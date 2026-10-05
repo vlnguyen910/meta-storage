@@ -1,11 +1,66 @@
 # metastorage database diagram
 
 This diagram records every table and column currently declared in
-`packages/database/src/schema`. Guest access remains future work;
+`packages/database/src/schema`. Flow 2 now activates rentals at Staff handover; guest account access remains future work;
 Booking and Payment are introduced by issue #18.
+
+Issue #24 adds `handover_inspections` and `inspection_photos` under the H6_V1 decision:
+
+- One inspection per check-in verification; linked to the booking, facility, exact assignment
+  and physical unit. A changed assignment/verification requires a new inspection, retaining history.
+- DRAFT accepts incomplete fields. COMPLETED requires `correct_unit = true`, nonblank
+  `condition_notes`, and at least one saved photo. Existing damage is recorded, not a failure gate.
+- Completion records actor/time and freezes the baseline; it does not create a Rental,
+  consume verification, mark CHECKED_IN or change the unit's occupancy (#25).
+- `version` plus booking/inspection row locks reject stale/concurrent writes. Only current
+  verified assignments can be edited. Completed and superseded records remain readable by facility scope.
+- Photos are private authenticated evidence, bounded to 8 JPEG/PNG/WebP files, 3 MiB each.
+  New evidence is stored as authenticated Cloudinary assets, referenced by public ID and format.
+  Nullable Base64 content is retained only for legacy evidence until verified migration;
+  metadata-only DTOs avoid loading bytes in normal lists. Photo GET uses private/no-store caching.
+- FM prepares unit/staff assignment and monitors records; only the assigned Facility Staff
+  can verify, edit inspection evidence, complete inspection and confirm handover.
+- A separate handover transaction records `handed_over_by/at`, creates exactly one ACTIVE rental
+  per booking, marks booking CHECKED_IN, unit OCCUPIED (business In Use), and consumes verification.
+  Rental dates use the registered booking period. No PIN/NFC or access-control requirement.
+- Signature is optional and not a completion requirement. No automatic AI comparison or
+  checkout/deposit charging is implemented by this issue.
 
 ```mermaid
 erDiagram
+  handover_inspections {
+    uuid id PK
+    uuid booking_id FK
+    uuid facility_id FK
+    uuid physical_unit_id FK
+    uuid unit_assignment_id FK
+    uuid verification_id FK,UK
+    varchar unit_code
+    varchar policy_version
+    inspection_status status
+    integer version
+    boolean correct_unit
+    text condition_notes
+    uuid created_by FK
+    uuid completed_by FK
+    timestamptz completed_at
+    uuid handed_over_by FK
+    timestamptz handed_over_at
+    timestamptz created_at
+    timestamptz updated_at
+  }
+  inspection_photos {
+    uuid id PK
+    uuid inspection_id FK
+    uuid uploaded_by FK
+    varchar filename
+    varchar mime_type
+    integer byte_size
+    text data_base64 "nullable legacy"
+    text cloudinary_public_id
+    varchar cloudinary_format
+    timestamptz created_at
+  }
   check_in_slots ||--o{ bookings : schedules
   users ||--o{ accounts : authenticates_with
   users ||--o{ sessions : signs_in_with
@@ -32,6 +87,14 @@ erDiagram
   bookings ||--o{ payments : records
   bookings ||--o{ booking_confirmation_emails : notifies
   bookings ||--o{ checkin_verifications : verifies
+  bookings ||--o{ handover_inspections : records_baseline
+  facilities ||--o{ handover_inspections : scopes
+  storage_units ||--o{ handover_inspections : inspected
+  unit_assignments ||--o{ handover_inspections : snapshots
+  checkin_verifications ||--o| handover_inspections : authorizes
+  users ||--o{ handover_inspections : creates_and_completes
+  handover_inspections ||--o{ inspection_photos : evidence
+  users ||--o{ inspection_photos : uploads
   users ||--o{ checkin_verifications : performs
   facilities ||--o{ checkin_verifications : scopes
   unit_assignments ||--o{ checkin_verifications : snapshots

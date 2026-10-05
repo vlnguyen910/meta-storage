@@ -20,6 +20,10 @@ import type {
   Facility,
   FacilityListParams,
   FacilityStaffMember,
+  Inspection,
+  InspectionDraftInput,
+  InspectionPhotoContent,
+  InspectionPhotoInput,
   LoginInput,
   PaginatedResult,
   PaymentCheckoutInput,
@@ -242,6 +246,31 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
             params: { facilityId },
           })
           .then(unwrap),
+    },
+    inspections: {
+      history: (bookingId: string) =>
+        http.get<ApiEnvelope<Inspection[]>>(`/bookings/${bookingId}/inspections`).then(unwrap),
+      start: (bookingId: string) =>
+        http.post<ApiEnvelope<Inspection>>(`/bookings/${bookingId}/inspections`).then(unwrap),
+      get: (id: string) => http.get<ApiEnvelope<Inspection>>(`/inspections/${id}`).then(unwrap),
+      save: (id: string, input: InspectionDraftInput) =>
+        http.patch<ApiEnvelope<Inspection>>(`/inspections/${id}`, input).then(unwrap),
+      upload: (id: string, input: InspectionPhotoInput) =>
+        http.post<ApiEnvelope<Inspection>>(`/inspections/${id}/photos`, input).then(unwrap),
+      photo: (id: string, photoId: string) =>
+        http
+          .get<ApiEnvelope<InspectionPhotoContent>>(`/inspections/${id}/photos/${photoId}`)
+          .then(unwrap),
+      removePhoto: (id: string, photoId: string, version: number) =>
+        http
+          .delete<ApiEnvelope<Inspection>>(`/inspections/${id}/photos/${photoId}`, {
+            data: { version },
+          })
+          .then(unwrap),
+      handover: (id: string, version: number) =>
+        http.post<ApiEnvelope<Inspection>>(`/inspections/${id}/handover`, { version }).then(unwrap),
+      complete: (id: string, version: number) =>
+        http.post<ApiEnvelope<Inspection>>(`/inspections/${id}/complete`, { version }).then(unwrap),
     },
     checkIns: {
       lookup: (input: CheckInLookupInput) =>

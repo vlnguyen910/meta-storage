@@ -17,6 +17,7 @@ import {
   desc,
   eq,
   facilities,
+  inArray,
   payments,
   storageUnits,
   unitAssignments,
@@ -24,6 +25,7 @@ import {
 } from "@metastorage/database";
 import { bookingReadFields } from "../bookings/bookings.projection";
 import type { BookingReadRecord } from "../bookings/bookings.types";
+import { assertAssignedStaff } from "./check-in-access";
 import type { CheckInPolicyEvaluation } from "./check-ins.policy";
 
 type QueryExecutor = Database | Parameters<Parameters<Database["transaction"]>[0]>[0];
@@ -81,7 +83,7 @@ export class CheckInsRepository {
         checkInVerifications,
         and(
           eq(checkInVerifications.bookingId, bookings.id),
-          eq(checkInVerifications.status, "VERIFIED"),
+          inArray(checkInVerifications.status, ["VERIFIED", "CONSUMED"]),
         ),
       )
       .where(condition)
@@ -143,6 +145,7 @@ export class CheckInsRepository {
       let record = await this.selectRecord(tx, eq(bookings.id, bookingId));
       if (!record) return null;
 
+      assertAssignedStaff({ id: staffId, role: "FACILITY_STAFF" }, record.booking.assignedStaffId);
       const evaluation = evaluate(record, now);
       if (evaluation.shouldMarkNoShow) {
         await tx

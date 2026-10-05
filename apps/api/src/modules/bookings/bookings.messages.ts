@@ -5,6 +5,7 @@ export const BOOKING_MESSAGES = {
   failedToCreateDraft: "Failed to create booking draft",
   bookingCannotAssignStaff: "Booking draft không thể phân công nhân viên",
   bookingDetailsNotFound: "Không tìm thấy thông tin đơn đặt chỗ (Booking)",
+  staffAssignmentClosed: "Chỉ được phân công Staff cho booking đang chờ check-in.",
   bookingNotFound: "Không tìm thấy đơn đặt chỗ",
   physicalUnitNotFound: "Không tìm thấy ô kho vật lý (Physical Unit)",
   invalidBookingStatus: (status: string) =>

@@ -8,6 +8,7 @@ import { type ReactNode, useState } from "react";
 import { navigationByRole } from "@/config/navigation";
 import { roleHome, routes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
+import { FacilityShell } from "@/features/facility-flow/facility-shell";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { resetMockDatabase } from "@/mocks/database";
@@ -46,6 +47,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       resetMockDatabase();
       window.location.reload();
     }
+  }
+
+  if (
+    session.user.role === UserRole.FACILITY_MANAGER ||
+    session.user.role === UserRole.FACILITY_STAFF
+  ) {
+    return <FacilityShell onLogout={logout}>{children}</FacilityShell>;
   }
 
   return (

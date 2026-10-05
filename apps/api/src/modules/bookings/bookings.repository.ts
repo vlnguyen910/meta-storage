@@ -10,12 +10,15 @@ import {
   and,
   bookings,
   checkInSlots,
+  checkInVerifications,
   type Database,
+  desc,
   eq,
   facilities,
   facilityAssignments,
   getTableColumns,
   gt,
+  handoverInspections,
   inArray,
   lt,
   type NewBooking,
@@ -604,6 +607,35 @@ export class BookingsRepository {
     });
   }
 
+  async handoverProgress(bookingIds: string[]) {
+    if (!bookingIds.length) return [];
+    return this.db
+      .select({
+        bookingId: handoverInspections.bookingId,
+        status: handoverInspections.status,
+        handedOverAt: handoverInspections.handedOverAt,
+      })
+      .from(handoverInspections)
+      .innerJoin(bookings, eq(bookings.id, handoverInspections.bookingId))
+      .innerJoin(
+        unitAssignments,
+        and(
+          eq(unitAssignments.id, handoverInspections.unitAssignmentId),
+          eq(unitAssignments.status, "ACTIVE"),
+        ),
+      )
+      .innerJoin(
+        checkInVerifications,
+        and(
+          eq(checkInVerifications.id, handoverInspections.verificationId),
+          inArray(checkInVerifications.status, ["VERIFIED", "CONSUMED"]),
+          eq(checkInVerifications.staffId, bookings.assignedStaffId),
+        ),
+      )
+      .where(inArray(handoverInspections.bookingId, bookingIds))
+      .orderBy(desc(handoverInspections.updatedAt));
+  }
+
   async assignStaff(bookingId: string, staffId: string) {
     return this.db.transaction(async (tx) => {
       // 1. Lock and fetch booking
@@ -617,9 +649,7 @@ export class BookingsRepository {
         return { error: "BOOKING_NOT_FOUND" as const };
       }
 
-      if (booking.status === "DRAFT") {
-        return { error: "INVALID_BOOKING_STATUS" as const, currentStatus: booking.status };
-      }
+      if (booking.status !== "CONFIRMED") return { error: "INVALID_BOOKING_STATUS" as const };
 
       // 2. Verify staff member exists and has active FACILITY_STAFF assignment for this facility
       const [staff] = await tx
@@ -632,6 +662,7 @@ export class BookingsRepository {
         .where(
           and(
             eq(users.id, staffId),
+            eq(users.role, "FACILITY_STAFF"),
             eq(facilityAssignments.facilityId, booking.facilityId),
             eq(facilityAssignments.role, "FACILITY_STAFF"),
             eq(facilityAssignments.isActive, true),
@@ -646,6 +677,22 @@ export class BookingsRepository {
         return { error: "STAFF_INACTIVE" as const };
       }
 
+      if (booking.assignedStaffId !== staffId) {
+        await tx
+          .update(checkInVerifications)
+          .set({
+            status: "INVALIDATED",
+            invalidatedAt: new Date(),
+            invalidatedReason: "Staff assignment changed",
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(checkInVerifications.bookingId, bookingId),
+              eq(checkInVerifications.status, "VERIFIED"),
+            ),
+          );
+      }
       // 3. Update booking assignedStaffId
       await tx
         .update(bookings)

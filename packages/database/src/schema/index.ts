@@ -8,6 +8,7 @@ export * from "./facilities";
 export * from "./facility-assignments";
 export * from "./facility-operating-hours";
 export * from "./facility-unit-types";
+export * from "./handover-inspections";
 export * from "./payment-provider-events";
 export * from "./payments";
 export * from "./relations";

@@ -11,7 +11,7 @@ import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
-import { optionalAuth, requireAuth } from "../auth/auth.guard";
+import { optionalAuth, requireAuth, requireRole } from "../auth/auth.guard";
 import { getFacilityAccessScope, requireAssignedFacility } from "../facilities/facilities.access";
 import { requireFacilityAccess } from "../facilities/facilities.guard";
 import { FacilitiesRepository } from "../facilities/facilities.repository";
@@ -82,7 +82,7 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
       schema: {
         querystring: StaffTasksQuerySchema,
       },
-      preHandler: [requireAuth],
+      preHandler: [requireRole("FACILITY_STAFF")],
     },
     async (request, reply) => {
       const user = request.user;
@@ -152,7 +152,7 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
         params: BookingIdParamsSchema,
         body: AssignPhysicalUnitBodySchema,
       },
-      preHandler: [requireAuth],
+      preHandler: [requireRole("FACILITY_MANAGER")],
     },
     async (request, reply) => {
       const { id } = request.params;
@@ -180,7 +180,7 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
         params: BookingIdParamsSchema,
         body: AssignStaffBodySchema,
       },
-      preHandler: [requireAuth],
+      preHandler: [requireRole("FACILITY_MANAGER")],
     },
     async (request, reply) => {
       const { id } = request.params;

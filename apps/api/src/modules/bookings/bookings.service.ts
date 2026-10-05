@@ -29,6 +29,22 @@ export class BookingsService {
     private readonly storageUnitsService: StorageUnitsService,
   ) {}
 
+  private async withHandoverProgress(bookings: BookingListItem[]): Promise<BookingListItem[]> {
+    const records = await this.repository.handoverProgress(bookings.map((b) => b.id));
+    return bookings.map((booking) => {
+      const record = records.find((r) => r.bookingId === booking.id);
+      const handoverStage: BookingListItem["handoverStage"] =
+        booking.status === "CHECKED_IN"
+          ? "HANDED_OVER"
+          : record?.status === "COMPLETED"
+            ? "READY_HANDOVER"
+            : record
+              ? "INSPECTING"
+              : "WAITING_CUSTOMER";
+      return { ...booking, handoverStage };
+    });
+  }
+
   async createDraft(input: BookingDraftInput, userId?: string): Promise<BookingDraft> {
     await this.facilitiesService.requireActiveFacility(input.facilityId);
     const unitType = await this.facilityUnitTypesService.requireActiveUnitType(
@@ -95,7 +111,9 @@ export class BookingsService {
   }
 
   async getFacilityBookings(facilityId: string, status?: string): Promise<BookingListItem[]> {
-    return this.repository.findFacilityBookings(facilityId, status);
+    return this.withHandoverProgress(
+      await this.repository.findFacilityBookings(facilityId, status),
+    );
   }
 
   async getBookingById(bookingId: string): Promise<BookingListItem> {
@@ -164,7 +182,7 @@ export class BookingsService {
     if ("error" in result) {
       switch (result.error) {
         case "INVALID_BOOKING_STATUS":
-          throw new BadRequestError(BOOKING_MESSAGES.bookingCannotAssignStaff);
+          throw new ConflictError(BOOKING_MESSAGES.staffAssignmentClosed);
         case "BOOKING_NOT_FOUND":
           throw new NotFoundError("Không tìm thấy đơn đặt chỗ");
         case "STAFF_NOT_IN_FACILITY":
@@ -186,6 +204,6 @@ export class BookingsService {
   }
 
   async getStaffTasks(staffUserId: string, facilityId?: string): Promise<BookingListItem[]> {
-    return this.repository.findStaffTasks(staffUserId, facilityId);
+    return this.withHandoverProgress(await this.repository.findStaffTasks(staffUserId, facilityId));
   }
 }

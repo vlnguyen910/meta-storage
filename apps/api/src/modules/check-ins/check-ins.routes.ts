@@ -6,6 +6,7 @@ import { successResponse } from "../../common/response/api-response";
 import { requireAuth } from "../auth/auth.guard";
 import { getFacilityAccessScope, requireAssignedFacility } from "../facilities/facilities.access";
 import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
+import { assertAssignedStaff, assertFlowReadAccess } from "./check-in-access";
 import { CheckInsRepository } from "./check-ins.repository";
 import { CheckInBookingParamsSchema, CheckInLookupBodySchema } from "./check-ins.schema";
 import { CheckInsService } from "./check-ins.service";
@@ -33,6 +34,8 @@ export const checkInsRoutes: FastifyPluginAsync = async (fastify) => {
       const scope = getFacilityAccessScope(user);
       await requireAssignedFacility(assignmentsRepository, facilityId, scope, CHECK_IN_ROLES);
 
+      const record = await checkInsRepository.findByLookup(input.type, input.value);
+      assertFlowReadAccess(user, record?.booking.assignedStaffId);
       const result = await service.lookup(input);
       return reply.status(200).send(successResponse(result));
     },
@@ -52,6 +55,8 @@ export const checkInsRoutes: FastifyPluginAsync = async (fastify) => {
       const scope = getFacilityAccessScope(user);
       await requireAssignedFacility(assignmentsRepository, facilityId, scope, CHECK_IN_ROLES);
 
+      const record = await checkInsRepository.findByBookingId(request.params.bookingId);
+      assertAssignedStaff(user, record?.booking.assignedStaffId);
       const result = await service.confirm(request.params.bookingId, user.id);
       return reply.status(200).send(successResponse(result));
     },

@@ -1,4 +1,5 @@
 export const FACILITY_DASHBOARD_MESSAGES = {
+  navigationLabel: "Các tác vụ quản lý cơ sở",
   tabOverview: "Tổng quan vận hành & KPIs",
   tabCheckIn: "Chuẩn bị Check-in & Gán ô kho",
   tabStaff: "Nhân viên & Phân công nhiệm vụ",

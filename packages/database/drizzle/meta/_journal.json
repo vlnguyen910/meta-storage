@@ -211,6 +211,13 @@
       "when": 1791532505511,
       "tag": "0029_ambiguous_komodo",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1791551828223,
+      "tag": "0030_luxuriant_firebrand",
+      "breakpoints": true
     }
   ]
 }

@@ -12,6 +12,7 @@ import { bookingsRoutes } from "./modules/bookings/bookings.routes";
 import { checkInsRoutes } from "./modules/check-ins/check-ins.routes";
 import { facilityContextPlugin } from "./modules/facilities/facilities.guard";
 import { facilitiesRoutes } from "./modules/facilities/facilities.routes";
+import { inspectionsRoutes } from "./modules/inspections/inspections.routes";
 import { paymentsRoutes } from "./modules/payments/payments.routes";
 import { rentalsRoutes } from "./modules/rentals/rentals.routes";
 import { reservationsRoutes } from "./modules/reservations/reservations.routes";
@@ -45,6 +46,7 @@ export function buildApp(): FastifyInstance {
   app.register(rentalsRoutes, { prefix: "/api/rentals" });
   app.register(bookingsRoutes, { prefix: "/api" });
   app.register(checkInsRoutes, { prefix: "/api" });
+  app.register(inspectionsRoutes, { prefix: "/api" });
   app.register(paymentsRoutes, { prefix: "/api" });
   return app;
 }

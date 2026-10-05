@@ -22,6 +22,7 @@
     "@metastorage/shared": "workspace:*",
     "argon2": "^0.45.1",
     "better-auth": "^1.7.5",
+    "cloudinary": "^2.11.0",
     "dotenv": "^18.0.0",
     "fastify": "^5.2.1",
     "fastify-plugin": "^6.0.0",

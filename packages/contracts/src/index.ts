@@ -7,6 +7,8 @@ export * from "./dashboard.types";
 export * from "./facilities";
 export * from "./handover-checklist";
 export * from "./handover-checklist.messages";
+export * from "./inspections";
+export * from "./inspections.messages";
 export * from "./messages";
 export * from "./payments";
 export * from "./rentals";

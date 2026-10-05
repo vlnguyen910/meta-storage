@@ -15,9 +15,11 @@ export const bookingCheckInSlotEnd = sql<Date>`(
   )
 ) at time zone 'Asia/Ho_Chi_Minh'`.mapWith((value) => new Date(value));
 
+// Qualify the outer ID explicitly: single-table projections otherwise strip the table
+// qualifier, making the subquery compare payments.booking_id with payments.id.
 export const bookingPaidAt = sql<Date | null>`(
   select min(${payments.paidAt}) from ${payments}
-  where ${payments.bookingId} = ${bookings.id}
+  where ${payments.bookingId} = ${sql.raw('"bookings"."id"')}
     and ${payments.status} in ('SUCCEEDED', 'REFUNDED')
 )`.mapWith((value) => (value === null ? null : new Date(value)));
 
