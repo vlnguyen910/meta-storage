@@ -53,7 +53,7 @@ export function CheckoutRow({ label, children }: { label: string; children: Reac
 export function UnitPhoto({ index = 0 }: { index?: number }) {
   return (
     <Image
-      src={`/images/storex/unit-${index % 3}.png`}
+      src={`/images/metastorage/unit-${index % 3}.png`}
       alt={m.illustration}
       fill
       sizes="(max-width: 760px) 100vw, 300px"

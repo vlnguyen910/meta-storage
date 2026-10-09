@@ -3,7 +3,7 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url(/fonts/storex/font-0.ttf) format("truetype");
+  src: url(/fonts/metastorage/font-0.ttf) format("truetype");
 }
 
 @font-face {
@@ -11,7 +11,7 @@
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url(/fonts/storex/font-1.ttf) format("truetype");
+  src: url(/fonts/metastorage/font-1.ttf) format("truetype");
 }
 
 @font-face {
@@ -19,7 +19,7 @@
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url(/fonts/storex/font-2.ttf) format("truetype");
+  src: url(/fonts/metastorage/font-2.ttf) format("truetype");
 }
 
 @font-face {
@@ -27,7 +27,7 @@
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url(/fonts/storex/font-3.ttf) format("truetype");
+  src: url(/fonts/metastorage/font-3.ttf) format("truetype");
 }
 
 @font-face {
@@ -35,7 +35,7 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url(/fonts/storex/font-4.ttf) format("truetype");
+  src: url(/fonts/metastorage/font-4.ttf) format("truetype");
 }
 
 @font-face {
@@ -43,7 +43,7 @@
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url(/fonts/storex/font-5.ttf) format("truetype");
+  src: url(/fonts/metastorage/font-5.ttf) format("truetype");
 }
 
 @font-face {
@@ -51,7 +51,7 @@
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url(/fonts/storex/font-6.ttf) format("truetype");
+  src: url(/fonts/metastorage/font-6.ttf) format("truetype");
 }
 
 @font-face {
@@ -59,7 +59,7 @@
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url(/fonts/storex/font-7.ttf) format("truetype");
+  src: url(/fonts/metastorage/font-7.ttf) format("truetype");
 }
 
 .page {

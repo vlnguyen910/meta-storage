@@ -24,7 +24,7 @@ async function fixture(
     id,
     bookingCode: "BK-2026-0001",
     facilityId: "f0000000-0000-0000-0000-000000000001",
-    facilityName: "StoreX Sài Gòn Central",
+    facilityName: "metastorage Sài Gòn Central",
     unitTypeId: "e0000000-0000-0000-0000-000000000001",
     unitTypeName: "Kho tiêu chuẩn (4 m²)",
     unitTypeSizeLabel: "4 m²",
@@ -258,7 +258,7 @@ test("manager navigation and assignment return to the new shell", async ({ page 
         .evaluate((image: HTMLImageElement) => image.naturalWidth),
     )
     .toBeGreaterThan(0);
-  await page.screenshot({ path: "/tmp/storex-flow2-assign.png", fullPage: true });
+  await page.screenshot({ path: "/tmp/metastorage-flow2-assign.png", fullPage: true });
   await page.getByRole("button", { name: "Xác nhận gán ô kho" }).click();
   await expect(page.getByText("BK-2026-0001 · HCM-01-002")).toBeVisible();
   await page.getByRole("button", { name: "Quay lại danh sách" }).click();
@@ -266,7 +266,7 @@ test("manager navigation and assignment return to the new shell", async ({ page 
   await expect(page.getByRole("heading", { name: "Tổng quan cơ sở", exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Chuẩn bị & Phân công", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Chuẩn bị kho & Phân công Staff" })).toBeVisible();
-  await page.screenshot({ path: "/tmp/storex-flow2-dispatch.png", fullPage: true });
+  await page.screenshot({ path: "/tmp/metastorage-flow2-dispatch.png", fullPage: true });
 });
 test("draft, real photo, review, immutable completion and reload", async ({ page }) => {
   const f = await fixture(page);
@@ -279,7 +279,7 @@ test("draft, real photo, review, immutable completion and reload", async ({ page
         .evaluate((image: HTMLImageElement) => image.naturalWidth),
     )
     .toBeGreaterThan(0);
-  await page.screenshot({ path: "/tmp/storex-flow2-verify.png", fullPage: true });
+  await page.screenshot({ path: "/tmp/metastorage-flow2-verify.png", fullPage: true });
   await page.getByRole("button", { name: "Xác minh booking & Chuyển sang kiểm tra kho" }).click();
   await expect(page.getByRole("button", { name: "Lưu và xem lại trước khi khóa" })).toBeDisabled();
   await page.getByRole("radio", { name: /Đúng ô kho vật lý/ }).check();
@@ -297,7 +297,7 @@ test("draft, real photo, review, immutable completion and reload", async ({ page
       .getByRole("heading", { name: "Quy chuẩn bàn giao thô" })
       .locator("xpath=ancestor::section"),
   ).toHaveCSS("background-color", "rgb(0, 59, 47)");
-  await page.screenshot({ path: "/tmp/storex-flow2-inspect.png", fullPage: true });
+  await page.screenshot({ path: "/tmp/metastorage-flow2-inspect.png", fullPage: true });
   await page.getByRole("button", { name: "Lưu và xem lại trước khi khóa" }).click();
   await expect(page.getByRole("heading", { name: "Xem lại & Hoàn tất kiểm tra" })).toBeVisible();
   await page.getByRole("button", { name: "Quay lại chỉnh sửa" }).click();
@@ -310,7 +310,7 @@ test("draft, real photo, review, immutable completion and reload", async ({ page
   );
   await page.getByRole("button", { name: "Lưu và xem lại trước khi khóa" }).click();
   await page.getByRole("checkbox").check();
-  await page.screenshot({ path: "/tmp/storex-flow2-review.png", fullPage: true });
+  await page.screenshot({ path: "/tmp/metastorage-flow2-review.png", fullPage: true });
   await page.getByRole("button", { name: "Hoàn tất kiểm tra ô kho (Khóa biên bản)" }).click();
   await expect(
     page.getByRole("heading", { name: "Bàn giao kho & Kích hoạt thuê kho" }),
@@ -340,7 +340,7 @@ test("draft, real photo, review, immutable completion and reload", async ({ page
   await page.reload();
   await expect(page.getByRole("heading", { name: "Thuê kho đang hoạt động" })).toBeVisible();
   await page.evaluate(() => window.scrollTo(0, 0));
-  await page.screenshot({ path: "/tmp/storex-flow2-handover.png", fullPage: true });
+  await page.screenshot({ path: "/tmp/metastorage-flow2-handover.png", fullPage: true });
 });
 test("API error does not leave verification stuck", async ({ page }) => {
   await fixture(page, { failHistory: true });
@@ -361,7 +361,7 @@ test("mobile sidebar and dispatch do not overflow", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Kiểm tra kho", exact: true })).toHaveCount(0);
   await page.getByRole("link", { name: "Tổng quan cơ sở", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Tổng quan cơ sở", exact: true })).toBeVisible();
-  await page.screenshot({ path: "/tmp/storex-flow2-mobile.png", fullPage: true });
+  await page.screenshot({ path: "/tmp/metastorage-flow2-mobile.png", fullPage: true });
 });
 
 test("unsaved navigation is guarded and wrong unit blocks review", async ({ page }) => {
@@ -415,7 +415,7 @@ test("truthful progress, contextual help and keyboard lookup", async ({ page }) 
   await expect(
     page.getByRole("button", { name: "Xác minh booking & Chuyển sang kiểm tra kho" }),
   ).toBeDisabled();
-  await page.screenshot({ path: "/tmp/storex-nielsen-help.png", fullPage: true });
+  await page.screenshot({ path: "/tmp/metastorage-nielsen-help.png", fullPage: true });
 });
 
 test("cancelling a reassignment preserves the original unit", async ({ page }) => {
@@ -494,7 +494,7 @@ test("failed refresh preserves the list and offers recovery", async ({ page }) =
     page.getByRole("alert").filter({ hasText: "Danh sách dưới đây là dữ liệu đã tải trước đó" }),
   ).toBeVisible({ timeout: 15000 });
   await expect(page.getByRole("heading", { name: "Lê Thị Mai Linh" })).toBeVisible();
-  await page.screenshot({ path: "/tmp/storex-nielsen-refresh-error.png", fullPage: true });
+  await page.screenshot({ path: "/tmp/metastorage-nielsen-refresh-error.png", fullPage: true });
   await page.unroute(pattern);
   await page.getByRole("button", { name: "Làm mới", exact: true }).click();
   await expect(
@@ -532,7 +532,7 @@ test("Cloudinary evidence URL renders in inspection, review and handover", async
   ).toBeVisible();
   await page.reload();
   await expect(img).toBeVisible();
-  await page.screenshot({ path: "/tmp/storex-cloudinary-ui.png", fullPage: true });
+  await page.screenshot({ path: "/tmp/metastorage-cloudinary-ui.png", fullPage: true });
 });
 
 test("failed Cloudinary delivery can be retried", async ({ page }) => {
@@ -563,7 +563,7 @@ test("failed Cloudinary delivery can be retried", async ({ page }) => {
   await expect(
     page.getByRole("alert").filter({ hasText: "Không tải được ảnh bằng chứng" }),
   ).toHaveCount(0);
-  await page.screenshot({ path: "/tmp/storex-cloudinary-retry.png", fullPage: true });
+  await page.screenshot({ path: "/tmp/metastorage-cloudinary-retry.png", fullPage: true });
 });
 
 test("FM direct inspection URLs remain read only and contain no PIN or handover actions", async ({
@@ -580,7 +580,7 @@ test("FM direct inspection URLs remain read only and contain no PIN or handover 
     page.getByRole("button", { name: "Xác nhận bàn giao & Kích hoạt hợp đồng thuê kho" }),
   ).toHaveCount(0);
   await expect(page.getByText("Bàn giao chìa & PIN")).toHaveCount(0);
-  await page.screenshot({ path: "/tmp/storex-fm-monitor.png", fullPage: true });
+  await page.screenshot({ path: "/tmp/metastorage-fm-monitor.png", fullPage: true });
 });
 
 test("FM filters real handover progress and only opens monitoring", async ({ page }) => {
@@ -591,7 +591,7 @@ test("FM filters real handover progress and only opens monitoring", async ({ pag
   await expect(page.getByRole("heading", { name: "Lê Thị Mai Linh" })).toBeVisible();
   await expect(page.getByRole("link", { name: /Tiếp đón & Xác minh booking/ })).toHaveCount(0);
   await expect(page.getByText("Staff được phân công", { exact: true })).toBeVisible();
-  await page.screenshot({ path: "/tmp/storex-fm-preparation-final.png", fullPage: true });
+  await page.screenshot({ path: "/tmp/metastorage-fm-preparation-final.png", fullPage: true });
 });
 
 test("Staff re-verifies a legacy FM verification before editing", async ({ page }) => {

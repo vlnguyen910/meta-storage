@@ -20,7 +20,7 @@ export class CloudinaryPhotoStorage implements InspectionPhotoStorage {
         ...this.options(),
         type: "authenticated",
         resource_type: "image",
-        public_id: `storex/inspections/${inspectionId}/${randomUUID()}`,
+        public_id: `metastorage/inspections/${inspectionId}/${randomUUID()}`,
         overwrite: false,
         timeout: 30000,
       });

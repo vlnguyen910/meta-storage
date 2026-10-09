@@ -3,8 +3,6 @@ import {
   type ConfirmReservationInput,
   PaymentStatus,
   type Reservation,
-  type ReservationDraft,
-  type ReservationDraftInput,
   type ReservationQuote,
   type ReservationQuoteInput,
   ReservationStatus,
@@ -14,126 +12,10 @@ import {
 import type MockAdapter from "axios-mock-adapter";
 import { addMonths, currentUser, envelope, errorBody, parseBody } from "../core/http";
 import { getMockDatabase, hydrateFacility, saveMockDatabase } from "../database";
+import { registerGuestCheckoutHandlers } from "./guest-checkout.handlers";
 
 export function registerReservationHandlers(mock: MockAdapter): void {
-  mock.onPost("/reservations/drafts").reply((config) => {
-    const database = getMockDatabase();
-    const input = parseBody<ReservationDraftInput>(config.data);
-    const unit = database.units.find(
-      (candidate) =>
-        candidate.facilityId === input.facilityId &&
-        candidate.unitTypeId === input.unitTypeId &&
-        candidate.status === StorageUnitStatus.AVAILABLE,
-    );
-    const facility = database.facilities.find((candidate) => candidate.id === input.facilityId);
-    if (!unit || !facility) {
-      return [409, errorBody(ApiErrorCode.CAPACITY_UNAVAILABLE, "Unit Type không còn capacity")];
-    }
-    const draft: ReservationDraft = {
-      id: crypto.randomUUID(),
-      facilityId: input.facilityId,
-      unitTypeId: input.unitTypeId,
-      checkInAt: input.checkInAt,
-      rentalEndAt: addMonths(input.checkInAt, input.durationMonths),
-      durationMonths: input.durationMonths,
-      contact: input.contact,
-      draftAccessToken: `mock-draft-token-${crypto.randomUUID()}`,
-      status: "DRAFT",
-      pricingStatus: "PRICED",
-      pricing: {
-        monthlyRateSnapshot: String(unit.monthlyPrice),
-        rentalFeeAmount: String(unit.monthlyPrice * input.durationMonths),
-        depositAmount: String(unit.monthlyPrice),
-        totalAmount: String(unit.monthlyPrice * (input.durationMonths + 1)),
-        currency: "VND",
-      },
-    };
-    return [201, envelope(draft)];
-  });
-
-  mock.onPost(/\/reservations\/drafts\/[^/]+\/hold$/).reply((config) => {
-    const body = parseBody<{ draftAccessToken: string }>(config.data);
-    if (!body.draftAccessToken) {
-      return [404, errorBody(ApiErrorCode.NOT_FOUND, "Không tìm thấy reservation draft")];
-    }
-    const now = new Date();
-    return [
-      201,
-      envelope({
-        holdId: crypto.randomUUID(),
-        holdToken: body.draftAccessToken,
-        unitTypeId: crypto.randomUUID(),
-        startsAt: now.toISOString(),
-        endsAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        expiresAt: new Date(now.getTime() + 10 * 60 * 1000).toISOString(),
-        status: "ACTIVE",
-      }),
-    ];
-  });
-
-  mock.onPost(/\/reservations\/drafts\/[^/]+\/pay$/).reply((config) => {
-    const input = parseBody<{ paymentMethodToken?: string }>(config.data);
-    if (input.paymentMethodToken === "fail") {
-      return [402, errorBody(ApiErrorCode.PAYMENT_FAILED, "Giao dịch thử nghiệm bị từ chối")];
-    }
-
-    const paymentId = crypto.randomUUID();
-    const bookingId = crypto.randomUUID();
-    const now = new Date();
-    const confirmation = {
-      bookingId,
-      bookingCode: `BK-MOCK-${paymentId.slice(0, 8).toUpperCase()}`,
-      qrToken: `${paymentId.replaceAll("-", "")}${bookingId.replaceAll("-", "")}`,
-      qrUrl: `https://example.test/check-in/${paymentId}`,
-      facility: { name: "storeX Demo Facility", address: "Địa chỉ demo" },
-      checkInSlotStart: now.toISOString(),
-      checkInSlotEnd: null,
-      rentalEndAt: addMonths(now.toISOString(), 1),
-      unitTypeName: "Kho tiêu chuẩn",
-      sizeLabel: "2 m²",
-      durationMonths: 1,
-      emailStatus: "QUEUED" as const,
-    };
-    return [
-      201,
-      envelope({
-        id: paymentId,
-        status: PaymentStatus.SUCCEEDED,
-        provider: "mock",
-        providerPaymentId: `mock-provider-${paymentId}`,
-        paidAt: now.toISOString(),
-        pricing: {
-          rentalFeeAmount: "900000",
-          depositAmount: "900000",
-          totalAmount: "1800000",
-          currency: "VND",
-        },
-        booking: {
-          id: bookingId,
-          bookingCode: confirmation.bookingCode,
-          facilityId: crypto.randomUUID(),
-          unitTypeId: crypto.randomUUID(),
-          checkInAt: confirmation.checkInSlotStart,
-          rentalEndAt: confirmation.rentalEndAt,
-          durationMonths: 1,
-          status: "CONFIRMED",
-          paidAt: now.toISOString(),
-          contact: {
-            fullName: "Demo Customer",
-            email: "customer@example.test",
-            phone: "+84900000000",
-          },
-          pricing: {
-            rentalFeeAmount: "900000",
-            depositAmount: "900000",
-            totalAmount: "1800000",
-            currency: "VND",
-          },
-        },
-        confirmation,
-      }),
-    ];
-  });
+  registerGuestCheckoutHandlers(mock);
 
   mock.onPost("/reservations/quote").reply((config) => {
     const database = getMockDatabase();

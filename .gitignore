@@ -12,6 +12,7 @@ test-results/
 .next/
 .next-dev/
 .next-playwright/
+.next-mock-playwright/
 out/
 
 # Expo & Mobile

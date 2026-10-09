@@ -1,8 +1,11 @@
 import { createHttpClient, createMetastorageApiClient } from "@metastorage/api-client";
+import { isMockMode } from "@/config/api-mode";
 import { authStore } from "@/features/auth/auth-store";
 
 const http = createHttpClient({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api",
+  baseURL: isMockMode
+    ? "/api"
+    : (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api"),
   tokenProvider: {
     getAccessToken: () => {
       const session = authStore.getState().session;
@@ -17,7 +20,4 @@ const http = createHttpClient({
   },
 });
 
-export const api = createMetastorageApiClient(
-  http,
-  process.env.NEXT_PUBLIC_API_MODE === "mock" ? "mock" : "better-auth",
-);
+export const api = createMetastorageApiClient(http, isMockMode ? "mock" : "better-auth");

@@ -11,7 +11,7 @@ export default function config(phase: string): NextConfig {
   return {
     ...nextConfig,
     distDir:
-      process.env.STOREX_NEXT_DIST_DIR ??
+      process.env.METASTORAGE_NEXT_DIST_DIR ??
       (phase === PHASE_DEVELOPMENT_SERVER ? ".next-dev" : ".next"),
   };
 }

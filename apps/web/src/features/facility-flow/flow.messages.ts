@@ -1,5 +1,5 @@
 export const FLOW = {
-  brand: "StoreX OS",
+  brand: "metastorage OS",
   subtitle: "Quản lý cơ sở",
   facility: "Cơ sở trực ban",
   noFacility: "Chưa có cơ sở được phân công",
@@ -277,7 +277,7 @@ export const FLOW = {
   lockedBy: "Thực hiện bởi",
   recordId: "Mã biên bản",
   handoverTitle: "Bàn giao kho & Kích hoạt thuê kho",
-  handoverRules: "Quy chế vận hành StoreX OS",
+  handoverRules: "Quy chế vận hành metastorage OS",
   handoverHint:
     "Staff được phân công đối chiếu biên bản đã khóa với khách hàng, xác nhận khách đã nhận kho rồi hoàn tất bàn giao. Hệ thống kích hoạt thuê kho theo lịch đăng ký.",
   reception: "Đối chiếu thông tin tiếp đón tại quầy",

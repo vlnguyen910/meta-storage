@@ -11,7 +11,7 @@ export function PublicFacilityCard({ facility }: { facility: CatalogFacility }) 
     <article className="grid overflow-hidden rounded-lg border border-[#e2e8f0] bg-white shadow-[0_1px_3px_rgb(15_23_42/4%)] transition hover:border-[#125345]/30 hover:shadow-[0_8px_24px_rgb(18_83_69/8%)] md:grid-cols-[29%_1fr_240px]">
       <div className="relative min-h-[220px] bg-[#e8f5f1]">
         <Image
-          src="/images/storex/storage-interior.png"
+          src="/images/metastorage/storage-interior.png"
           alt={m.illustration}
           fill
           sizes="(max-width: 767px) 100vw, 360px"

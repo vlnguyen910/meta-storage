@@ -62,7 +62,7 @@ export class SepayPaymentGateway {
       paymentCode: input.paymentCode,
       bankName: this.config.bankName ?? "SePay QR",
       accountNumber: this.config.accountNumber ?? "",
-      accountName: this.config.accountName ?? "STOREX",
+      accountName: this.config.accountName ?? "metastorage",
       amount: input.amount,
       currency: input.currency,
       content: input.paymentCode,

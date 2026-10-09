@@ -71,7 +71,7 @@ export function checkoutFailure(error: unknown, stage: "draft" | "hold" | "payme
     failure?.message ??
     body?.message ??
     (axios.isAxiosError(error) && !response ? m.networkError : m.unexpectedError);
-  console.error("[storeX checkout] Request failed", {
+  console.error("[metastorage checkout] Request failed", {
     stage,
     status: response?.status,
     code: failure?.code,

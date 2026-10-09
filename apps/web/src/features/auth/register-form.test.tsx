@@ -10,7 +10,7 @@ vi.mock("@/lib/api", () => ({ api: { auth: { registerCustomer } } }));
 describe("RegisterForm", () => {
   beforeEach(() => registerCustomer.mockReset());
 
-  it("submits the shared signup fields and shows the email confirmation state", async () => {
+  it("submits the shared signup fields and shows mock account confirmation", async () => {
     const user = userEvent.setup();
     registerCustomer.mockResolvedValue({ message: "sent" });
     render(<RegisterForm />);
@@ -32,7 +32,7 @@ describe("RegisterForm", () => {
         callbackTarget: "web",
       }),
     );
-    expect(screen.getByRole("heading", { name: "Kiểm tra hộp thư" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Đã tạo tài khoản mô phỏng" })).toBeInTheDocument();
   });
 
   it("validates password confirmation before calling the API", async () => {

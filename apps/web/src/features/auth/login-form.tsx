@@ -11,6 +11,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { FieldShell, Input } from "@/components/ui/form-controls";
 import { useToast } from "@/components/ui/toast";
+import { isMockMode } from "@/config/api-mode";
 import { roleHome, routes, safeReturnTo } from "@/config/routes";
 import { api } from "@/lib/api";
 import { demoAccounts } from "@/mocks/seeds";
@@ -24,7 +25,6 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export function LoginForm() {
-  const isMockMode = process.env.NEXT_PUBLIC_API_MODE === "mock";
   const router = useRouter();
   const searchParams = useSearchParams();
   const setSession = useAuthStore((state) => state.setSession);

@@ -19,7 +19,7 @@ export default defineConfig({
     reuseExistingServer: true,
     timeout: 120000,
     env: {
-      STOREX_NEXT_DIST_DIR: ".next-playwright",
+      METASTORAGE_NEXT_DIST_DIR: ".next-playwright",
       NEXT_PUBLIC_API_MODE: "api",
       NEXT_PUBLIC_API_BASE_URL: "http://127.0.0.1:4100/api",
     },

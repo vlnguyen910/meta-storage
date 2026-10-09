@@ -4,7 +4,7 @@ import { PublicHeader } from "@/components/layout/public-header";
 import { routes } from "@/config/routes";
 import { facilitiesMessages as m } from "./facilities.messages";
 import { FacilityList } from "./facility-list";
-import styles from "./storex-fonts.module.css";
+import styles from "./metastorage-fonts.module.css";
 
 export function PublicFacilitiesScreen() {
   return (
@@ -65,7 +65,7 @@ export function PublicFacilitiesScreen() {
         <div className="mx-auto grid w-[min(1180px,calc(100%_-_40px))] gap-10 py-12 md:grid-cols-[2fr_1fr_1fr]">
           <div>
             <Link href={routes.home} className="text-2xl font-bold text-[#125345]">
-              storeX
+              {m.brand}
             </Link>
             <p className="mt-4 max-w-[420px] text-xs text-[#64748b]">{m.footerDescription}</p>
           </div>

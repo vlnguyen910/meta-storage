@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type ReactNode, useEffect, useState } from "react";
 import { ToastProvider } from "@/components/ui/toast";
+import { isMockMode } from "@/config/api-mode";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { api } from "@/lib/api";
 import { installMockApi } from "@/mocks/install-mock-api";
@@ -18,12 +19,13 @@ export function AppProviders({ children }: { children: ReactNode }) {
         },
       }),
   );
-  const isMockMode = process.env.NEXT_PUBLIC_API_MODE === "mock";
   const [ready, setReady] = useState(!isMockMode);
 
   useEffect(() => {
     if (isMockMode) {
       installMockApi(api.http);
+      const { session, clearSession } = useAuthStore.getState();
+      if (session && !("accessToken" in session)) clearSession();
       useAuthStore.getState().setAuthReady(true);
       setReady(true);
       return;
@@ -37,7 +39,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
       .then((user) => setSession({ user }))
       .catch(() => clearSession())
       .finally(() => setAuthReady(true));
-  }, [isMockMode]);
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

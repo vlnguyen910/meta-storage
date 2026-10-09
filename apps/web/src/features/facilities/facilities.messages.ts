@@ -1,4 +1,5 @@
 export const facilitiesMessages = {
+  brand: "metastorage",
   title: "Tìm kho gần bạn",
   eyebrow: "Hệ sinh thái lưu trữ số hóa",
   description:
@@ -42,10 +43,10 @@ export const facilitiesMessages = {
   helpAction: "Tìm hiểu cách hoạt động",
   footerDescription:
     "Giải pháp lưu trữ cá nhân và doanh nghiệp. Tìm không gian phù hợp, quản lý đồ đạc thuận tiện và an tâm mỗi ngày.",
-  about: "Về storeX",
+  about: "Về metastorage",
   how: "Cách hoạt động",
   account: "Tài khoản của bạn",
   login: "Đăng nhập",
   register: "Tạo tài khoản",
-  copyright: "© 2026 storeX. Toàn bộ bản quyền được bảo lưu.",
+  copyright: "© 2026 metastorage. Toàn bộ bản quyền được bảo lưu.",
 };

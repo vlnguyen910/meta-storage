@@ -7,18 +7,18 @@ async function seed() {
   console.log("Starting local database seeding via raw SQL client...");
 
   console.log("1. Seeding facilities...");
-  // Fictional catalog fixtures for local testing, not real storeX locations.
+  // Fictional catalog fixtures for local testing, not real metastorage locations.
   const facilitiesData = [
-    { code: "HCM-01", name: "storeX Sài Gòn Central", address: "118 Nguyễn Văn Linh" },
-    { code: "HCM-02", name: "storeX Bến Thành", address: "42 Lê Lai" },
-    { code: "HCM-03", name: "storeX Bình Thạnh", address: "85 Điện Biên Phủ" },
-    { code: "HCM-04", name: "storeX Thảo Điền", address: "28 Nguyễn Văn Hưởng" },
-    { code: "HCM-05", name: "storeX Phú Nhuận", address: "156 Phan Xích Long" },
-    { code: "HCM-06", name: "storeX Tân Bình", address: "67 Cộng Hòa" },
-    { code: "HCM-07", name: "storeX Tân Phú", address: "93 Lũy Bán Bích" },
-    { code: "HCM-08", name: "storeX Gò Vấp", address: "210 Nguyễn Oanh" },
-    { code: "HCM-09", name: "storeX Bình Tân", address: "134 Tên Lửa" },
-    { code: "HCM-10", name: "storeX Thủ Đức", address: "55 Võ Văn Ngân" },
+    { code: "HCM-01", name: "metastorage Sài Gòn Central", address: "118 Nguyễn Văn Linh" },
+    { code: "HCM-02", name: "metastorage Bến Thành", address: "42 Lê Lai" },
+    { code: "HCM-03", name: "metastorage Bình Thạnh", address: "85 Điện Biên Phủ" },
+    { code: "HCM-04", name: "metastorage Thảo Điền", address: "28 Nguyễn Văn Hưởng" },
+    { code: "HCM-05", name: "metastorage Phú Nhuận", address: "156 Phan Xích Long" },
+    { code: "HCM-06", name: "metastorage Tân Bình", address: "67 Cộng Hòa" },
+    { code: "HCM-07", name: "metastorage Tân Phú", address: "93 Lũy Bán Bích" },
+    { code: "HCM-08", name: "metastorage Gò Vấp", address: "210 Nguyễn Oanh" },
+    { code: "HCM-09", name: "metastorage Bình Tân", address: "134 Tên Lửa" },
+    { code: "HCM-10", name: "metastorage Thủ Đức", address: "55 Võ Văn Ngân" },
   ];
   const facilities = [];
   for (const facility of facilitiesData) {
@@ -45,7 +45,7 @@ async function seed() {
   console.log("2. Seeding users...");
   const [manager] = await queryClient`
     INSERT INTO users (email, phone, name, role, status, email_verified)
-    VALUES ('manager@storex.vn', '0900000003', 'Lê Thu Hà (Facility Manager)', 'FACILITY_MANAGER', 'ACTIVE', true)
+    VALUES ('manager@metastorage.vn', '0900000003', 'Lê Thu Hà (Facility Manager)', 'FACILITY_MANAGER', 'ACTIVE', true)
     ON CONFLICT (email) DO UPDATE SET
       phone = EXCLUDED.phone,
       name = EXCLUDED.name,
@@ -57,7 +57,7 @@ async function seed() {
 
   const [customer] = await queryClient`
     INSERT INTO users (email, phone, name, role, status, email_verified)
-    VALUES ('customer@storex.vn', '0900000001', 'Lê Thị Mai Linh', 'CUSTOMER', 'ACTIVE', true)
+    VALUES ('customer@metastorage.vn', '0900000001', 'Lê Thị Mai Linh', 'CUSTOMER', 'ACTIVE', true)
     ON CONFLICT (email) DO UPDATE SET
       phone = EXCLUDED.phone,
       name = EXCLUDED.name,
@@ -69,7 +69,7 @@ async function seed() {
 
   const [staff] = await queryClient`
     INSERT INTO users (email, phone, name, role, status, email_verified)
-    VALUES ('staff@storex.vn', '0900000002', 'Trần Quốc Huy (Facility Staff)', 'FACILITY_STAFF', 'ACTIVE', true)
+    VALUES ('staff@metastorage.vn', '0900000002', 'Trần Quốc Huy (Facility Staff)', 'FACILITY_STAFF', 'ACTIVE', true)
     ON CONFLICT (email) DO UPDATE SET
       phone = EXCLUDED.phone,
       name = EXCLUDED.name,
@@ -293,7 +293,7 @@ async function seed() {
       typeCode: "UT-2M",
       assignCode: "HCM-01-001",
       contactName: "Lê Thị Mai Linh",
-      contactEmail: "customer@storex.vn",
+      contactEmail: "customer@metastorage.vn",
       contactPhone: "0900000001",
       months: 1,
       monthlyRate: 900000,

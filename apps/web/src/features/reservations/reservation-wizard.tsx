@@ -1,6 +1,6 @@
 "use client";
 import { ErrorState, LoadingState } from "@/components/ui/states";
-import fontStyles from "@/features/facilities/storex-fonts.module.css";
+import fontStyles from "@/features/facilities/metastorage-fonts.module.css";
 import { checkoutMessages as m } from "./checkout.messages";
 import s from "./checkout.module.css";
 import { CheckoutConfirmation } from "./checkout-confirmation";

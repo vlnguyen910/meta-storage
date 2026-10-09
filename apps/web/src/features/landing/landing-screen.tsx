@@ -22,7 +22,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { Currency } from "@/components/ui/display";
-import fonts from "@/features/facilities/storex-fonts.module.css";
+import fonts from "@/features/facilities/metastorage-fonts.module.css";
 import { landingMessages as m } from "./landing.messages";
 import s from "./landing.module.css";
 import { useLandingCatalog } from "./use-landing-catalog";
@@ -42,7 +42,7 @@ function LandingImage({ index, className }: { index: number; className?: string 
   return (
     <div className={`${s.image} ${className ?? ""}`}>
       <Image
-        src={`/images/storex/landing/${index}.png`}
+        src={`/images/metastorage/landing/${index}.png`}
         alt={m.imageAlt}
         fill
         sizes="(max-width: 760px) 100vw, 500px"

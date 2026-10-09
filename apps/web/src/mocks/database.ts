@@ -3,7 +3,7 @@ import { StorageUnitStatus } from "@metastorage/contracts";
 import { createSeedDatabase } from "./seeds";
 import type { MockDatabase } from "./types";
 
-const DATABASE_KEY = "metastorage.mock-db.v3";
+const DATABASE_KEY = "metastorage.mock-db.v4";
 
 export function getMockDatabase(): MockDatabase {
   if (typeof window === "undefined") {
@@ -19,7 +19,7 @@ export function getMockDatabase(): MockDatabase {
 
   try {
     const parsed = JSON.parse(persisted) as MockDatabase;
-    if (parsed.version === 3 && Array.isArray(parsed.bookings)) {
+    if (parsed.version === 4 && Array.isArray(parsed.bookings)) {
       return parsed;
     }
     const fresh = createSeedDatabase();

@@ -11,19 +11,19 @@ import { FLOW_ASSETS } from "./flow-assets";
 
 const body = localFont({
   src: [
-    { path: "../../../public/fonts/storex/font-0.ttf", weight: "400" },
-    { path: "../../../public/fonts/storex/font-1.ttf", weight: "500" },
-    { path: "../../../public/fonts/storex/font-2.ttf", weight: "600" },
-    { path: "../../../public/fonts/storex/font-3.ttf", weight: "700" },
+    { path: "../../../public/fonts/metastorage/font-0.ttf", weight: "400" },
+    { path: "../../../public/fonts/metastorage/font-1.ttf", weight: "500" },
+    { path: "../../../public/fonts/metastorage/font-2.ttf", weight: "600" },
+    { path: "../../../public/fonts/metastorage/font-3.ttf", weight: "700" },
   ],
   variable: "--font-flow-body",
   display: "swap",
 });
 const heading = localFont({
   src: [
-    { path: "../../../public/fonts/storex/font-5.ttf", weight: "500" },
-    { path: "../../../public/fonts/storex/font-6.ttf", weight: "600" },
-    { path: "../../../public/fonts/storex/font-7.ttf", weight: "700" },
+    { path: "../../../public/fonts/metastorage/font-5.ttf", weight: "500" },
+    { path: "../../../public/fonts/metastorage/font-6.ttf", weight: "600" },
+    { path: "../../../public/fonts/metastorage/font-7.ttf", weight: "700" },
   ],
   variable: "--font-flow-heading",
   display: "swap",

@@ -1,6 +1,6 @@
 # Flow 2 UI — Stitch reference
 
-Source: **StoreX Storage Finder**, project `12493673820177325935`, retrieved 2026-10-05.
+Source: Stitch project `12493673820177325935`, retrieved 2026-10-05.
 
 | Stitch screen | Source screen ID | Application entry |
 | --- | --- | --- |
@@ -22,7 +22,7 @@ FM uses preparation/assignment and read-only monitoring. Verification, inspectio
 - PIN, NFC and electronic access controls are outside the agreed scope and removed from this flow. No hardware credential is required for handover. IoT readings, GPS/hash signatures and SMS delivery are not fabricated.
 - Dashboard counts use actual bookings, missing unit/staff assignment and completed handovers.
 - Illustrative storage photos from Stitch are labeled as illustration. Inspection evidence exclusively comes from uploaded API photos.
-- Operations overview uses the existing KPI component within the same StoreX OS shell; there is no new overview screen in the retrieved set of six Stitch screens.
+- Operations overview uses the existing KPI component within the same metastorage OS shell; there is no new overview screen in the retrieved set of six Stitch screens.
 
 ## Verification
 
@@ -58,7 +58,7 @@ Browser coverage additionally verifies truthful progress, Enter lookup, cancelli
 
 ### Build directory isolation
 
-Local Next.js development uses `.next-dev`; the dedicated Flow 2 Playwright server uses `.next-playwright`; production build/start uses `.next`. This prevents tests or production builds from replacing the active development server's generated route files. `STOREX_NEXT_DIST_DIR` overrides the output directory when explicitly needed. These generated directories are ignored by Git.
+Local Next.js development uses `.next-dev`; the dedicated Flow 2 Playwright server uses `.next-playwright`; production build/start uses `.next`. This prevents tests or production builds from replacing the active development server's generated route files. `METASTORAGE_NEXT_DIST_DIR` overrides the output directory when explicitly needed. These generated directories are ignored by Git.
 
 ### Appointment slot persistence
 
@@ -92,3 +92,16 @@ bun --env-file=../../apps/api/.env run db:migrate
 FM assigns units and Staff, then monitors read-only records. Staff execution requires both facility permission and current `assignedStaffId` on every API; assignment is checked again inside booking-locked mutations. Reassigning Staff invalidates the existing verification and requires a fresh inspection, preserving old records. Terminal bookings cannot be reassigned.
 
 Migration 0021 adds nullable handover actor/time to inspection records. It does not activate historical bookings. Apply with `cd packages/database && bun --env-file=../../apps/api/.env run db:migrate`; restart API after deployment.
+
+## Branding and demo identities
+
+The live brand is `metastorage`; fonts and images use `/fonts/metastorage` and `/images/metastorage`. Demo accounts use `@metastorage.test`. Existing demo identities and facility names can be renamed in place without resetting bookings or unit status:
+
+```bash
+bun --env-file=apps/api/.env apps/api/src/scripts/rename-demo-branding.ts
+bun --env-file=apps/api/.env apps/api/src/scripts/seed-flow2-demo.ts
+```
+
+Staff login is `staff@metastorage.test` / `Demo@123`. The seed keeps the existing Staff ID and facility assignment and adds units `HCM-01-009` through `HCM-01-018` only when missing. Inspection integration tests require a dedicated `metastorage_inspection_test_*` database.
+
+Existing QR signing bytes and stored Cloudinary public IDs remain compatible with old records; new evidence uses the `metastorage/inspections` prefix. Historical planning documents, actual filesystem locations and external source names are not live branding.

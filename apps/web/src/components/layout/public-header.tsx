@@ -1,5 +1,7 @@
 "use client";
 
+import { APP_NAME } from "@metastorage/shared";
+
 import { Menu, Warehouse, X } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -20,9 +22,7 @@ export function PublicHeader() {
           <span className="grid size-[38px] place-items-center rounded-[11px] bg-primary text-white">
             <Warehouse size={22} />
           </span>
-          <span>
-            store<span className="text-primary">X</span>
-          </span>
+          <span>{APP_NAME}</span>
         </Link>
         <button
           type="button"

@@ -1,8 +1,15 @@
 import type {
   BookingListItem,
+  CheckInVerification,
   Facility,
+  Inspection,
+  InspectionPhotoContent,
   Payment,
+  PaymentResult,
+  RentalDetail,
   Reservation,
+  ReservationDraft,
+  ReservationHold,
   ReservationQuote,
   StorageUnitStatus,
   User,
@@ -26,12 +33,23 @@ export interface MockStorageUnit {
 }
 
 export interface MockDatabase {
-  version: 3;
+  version: 4;
+  drafts: ReservationDraft[];
+  holds: (ReservationHold & { draftId: string })[];
+  checkoutResults: (PaymentResult & { draftId: string })[];
+  verifications: CheckInVerification[];
+  inspections: Inspection[];
+  photoContents: (InspectionPhotoContent & { inspectionId: string })[];
+  rentals: (RentalDetail & { userId: string | null })[];
   users: MockUser[];
   facilities: Facility[];
   units: MockStorageUnit[];
   quotes: ReservationQuote[];
   reservations: Reservation[];
   payments: Payment[];
-  bookings: BookingListItem[];
+  bookings: MockBooking[];
+}
+
+export interface MockBooking extends BookingListItem {
+  userId?: string | null;
 }

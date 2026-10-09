@@ -1,10 +1,12 @@
 "use client";
 
 import { UserRole } from "@metastorage/contracts";
+import { APP_NAME } from "@metastorage/shared";
 import { LogOut, Menu, RotateCcw, Warehouse, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode, useState } from "react";
+import { isMockMode } from "@/config/api-mode";
 import { navigationByRole } from "@/config/navigation";
 import { roleHome, routes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
@@ -72,9 +74,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span className="grid size-[38px] place-items-center rounded-[11px] bg-primary text-white">
               <Warehouse size={22} />
             </span>
-            <span>
-              store<span className="text-[#9cd0c2]">X</span>
-            </span>
+            <span>{APP_NAME}</span>
           </Link>
           <button
             type="button"
@@ -117,7 +117,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           })}
         </nav>
         <div className="mt-auto grid gap-1">
-          {process.env.NEXT_PUBLIC_API_MODE === "mock" ? (
+          {isMockMode ? (
             <button
               className="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-[10px] border-0 bg-transparent px-3 text-sm font-semibold text-[#bad2cc] hover:bg-white/10 hover:text-white"
               type="button"

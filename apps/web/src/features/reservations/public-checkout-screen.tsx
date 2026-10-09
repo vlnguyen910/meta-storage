@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { LoadingState } from "@/components/ui/states";
 import { routes } from "@/config/routes";
-import fontStyles from "@/features/facilities/storex-fonts.module.css";
+import fontStyles from "@/features/facilities/metastorage-fonts.module.css";
 import { checkoutMessages as m } from "./checkout.messages";
 import s from "./checkout.module.css";
 import { ReservationWizard } from "./reservation-wizard";

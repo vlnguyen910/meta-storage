@@ -8,8 +8,10 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { FieldShell, Input } from "@/components/ui/form-controls";
+import { isMockMode } from "@/config/api-mode";
 import { routes } from "@/config/routes";
 import { api } from "@/lib/api";
+import { MOCK_MESSAGES } from "@/mocks/mock.messages";
 import { AUTH_MESSAGES } from "./auth.messages";
 
 export function RegisterForm() {
@@ -52,12 +54,18 @@ export function RegisterForm() {
           <MailCheck aria-hidden="true" />
         </span>
         <h1 id="signup-success-title" className="mt-5 text-3xl font-bold">
-          Kiểm tra hộp thư
+          {isMockMode ? MOCK_MESSAGES.registeredTitle : "Kiểm tra hộp thư"}
         </h1>
         <p className="mt-3 text-muted">
-          Chúng tôi đã gửi liên kết xác minh đến{" "}
-          <strong className="break-all text-ink">{registeredEmail}</strong>. Hãy xác minh email
-          trước khi đăng nhập.
+          {isMockMode ? (
+            MOCK_MESSAGES.registered
+          ) : (
+            <>
+              Chúng tôi đã gửi liên kết xác minh đến{" "}
+              <strong className="break-all text-ink">{registeredEmail}</strong>. Hãy xác minh email
+              trước khi đăng nhập.
+            </>
+          )}
         </p>
         <Link className={`${buttonClassName("primary")} mt-6`} href={routes.login}>
           Đến trang đăng nhập <ArrowRight size={18} aria-hidden="true" />

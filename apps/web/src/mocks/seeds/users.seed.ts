@@ -8,7 +8,7 @@ export const demoAccounts = [
   {
     role: UserRole.FACILITY_MANAGER,
     email: "multi-manager@metastorage.test",
-    label: "Quản lý cơ sở Hà Nội",
+    label: "Quản lý nhiều cơ sở",
   },
   {
     role: UserRole.BUSINESS_OPERATIONS_MANAGER,
@@ -43,7 +43,7 @@ export const userSeeds: MockUser[] = demoAccounts.map((account, index) => ({
   updatedAt: new Date("2026-01-01T00:00:00Z"),
   assignedFacilityIds:
     account.email === "multi-manager@metastorage.test"
-      ? ["fac-hn-west"]
+      ? ["fac-hcm-central", "fac-hn-west"]
       : account.role === UserRole.FACILITY_STAFF || account.role === UserRole.FACILITY_MANAGER
         ? ["fac-hcm-central"]
         : [],

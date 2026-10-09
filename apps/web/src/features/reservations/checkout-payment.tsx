@@ -1,6 +1,7 @@
 "use client";
 import { ArrowLeft, CreditCard, Landmark, Wallet } from "lucide-react";
 import { Currency } from "@/components/ui/display";
+import { isMockMode } from "@/config/api-mode";
 import { checkoutMessages as m } from "./checkout.messages";
 import s from "./checkout.module.css";
 import type { CheckoutState } from "./checkout.types";
@@ -9,7 +10,11 @@ import { CheckoutRow, CheckoutSummary } from "./checkout-parts";
 export function CheckoutPayment({ state }: { state: CheckoutState }) {
   const pending = state.pendingPayment;
   const methods = [
-    { name: m.sepayTitle, description: m.sepayDescription, icon: Landmark },
+    {
+      name: isMockMode ? m.mockPayment : m.sepayTitle,
+      description: isMockMode ? m.mockPaymentDescription : m.sepayDescription,
+      icon: Landmark,
+    },
     { name: m.domestic, description: m.comingSoon, icon: CreditCard },
     { name: m.international, description: m.comingSoon, icon: CreditCard },
     { name: m.wallet, description: m.comingSoon, icon: Wallet },

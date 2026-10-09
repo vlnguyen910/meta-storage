@@ -1,7 +1,9 @@
 import type { BookingConfirmation } from "@metastorage/contracts";
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { CheckoutConfirmation } from "./checkout-confirmation";
+
+vi.mock("@/config/api-mode", () => ({ isMockMode: false }));
 
 const confirmation: BookingConfirmation = {
   bookingId: "11111111-1111-4111-8111-111111111111",

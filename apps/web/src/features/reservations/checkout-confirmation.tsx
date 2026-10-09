@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { Currency } from "@/components/ui/display";
+import { isMockMode } from "@/config/api-mode";
 import { routes } from "@/config/routes";
 import { checkoutMessages as m } from "./checkout.messages";
 import s from "./checkout.module.css";
@@ -48,7 +49,7 @@ export function CheckoutConfirmation({
           {copied ? <span role="status">{m.copied}</span> : null}
         </div>
         <p role="status" className={`${s.detailBox} mt-6`}>
-          {m.emailStatuses[confirmation.emailStatus]}
+          {isMockMode ? m.mockEmail : m.emailStatuses[confirmation.emailStatus]}
         </p>
       </section>
       <div className={s.successGrid}>

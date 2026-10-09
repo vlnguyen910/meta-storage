@@ -233,7 +233,7 @@ export function CheckInScreen({ user }: { user: { name: string } }) {
             <View className="flex-row items-center justify-between">
               <View>
                 <Text className="text-xs font-black uppercase tracking-widest text-emerald-700">
-                  storeX · vận hành
+                  metastorage · vận hành
                 </Text>
                 <Text className="mt-1 text-2xl font-black text-slate-950">Check-in & handover</Text>
               </View>
@@ -242,7 +242,7 @@ export function CheckInScreen({ user }: { user: { name: string } }) {
               </View>
             </View>
             <Text className="mt-3 text-sm leading-5 text-slate-500">
-              {user.name} · storeX Sài Gòn Central
+              {user.name} · metastorage Sài Gòn Central
             </Text>
           </View>
 
