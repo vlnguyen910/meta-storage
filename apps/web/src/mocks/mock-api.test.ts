@@ -113,7 +113,7 @@ describe("mock reservation API", () => {
     expect(tasks.some((t) => t.bookingCode === "BK-2026-0001")).toBe(true);
   });
 
-  it("returns one assigned Facility in login/me and scopes each manager dashboard", async () => {
+  it("returns the default facility in login/me and scopes single- and multi-facility managers", async () => {
     // 1. Single facility FM login and assignment retrieval
     const fmSession = await client.auth.login({
       email: "manager@metastorage.test",
@@ -139,7 +139,7 @@ describe("mock reservation API", () => {
       client.dashboards.get(UserRole.FACILITY_MANAGER, "fac-dn-riverside"),
     ).rejects.toMatchObject({ response: { status: 403 } });
 
-    // 2. Another manager works at Hanoi only
+    // 2. Multi-facility manager defaults to the first assignment and can access both.
     const multiSession = await client.auth.login({
       email: "multi-manager@metastorage.test",
       password: "Demo@123",
@@ -147,12 +147,17 @@ describe("mock reservation API", () => {
     tokens = multiSession;
 
     const multiAssignments = await client.facilities.myAssignments();
-    expect(multiAssignments).toHaveLength(1);
-    expect(multiAssignments[0]?.facilityId).toBe("fac-hn-west");
-    expect(multiSession.user.assignedFacilityId).toBe("fac-hn-west");
-    expect((await client.auth.me()).assignedFacilityId).toBe("fac-hn-west");
+    expect(multiAssignments).toHaveLength(2);
+    expect(multiAssignments.map((assignment) => assignment.facilityId)).toEqual([
+      "fac-hcm-central",
+      "fac-hn-west",
+    ]);
+    expect(multiSession.user.assignedFacilityId).toBe("fac-hcm-central");
+    expect((await client.auth.me()).assignedFacilityId).toBe("fac-hcm-central");
+    const hcmDashboard = await client.dashboards.get(UserRole.FACILITY_MANAGER, "fac-hcm-central");
+    expect(hcmDashboard.facilityName).toBe("metastorage Sài Gòn Central");
     await expect(
-      client.dashboards.get(UserRole.FACILITY_MANAGER, "fac-hcm-central"),
+      client.dashboards.get(UserRole.FACILITY_MANAGER, "fac-dn-riverside"),
     ).rejects.toMatchObject({ response: { status: 403 } });
 
     const hnDashboard = await client.dashboards.get(UserRole.FACILITY_MANAGER, "fac-hn-west");
