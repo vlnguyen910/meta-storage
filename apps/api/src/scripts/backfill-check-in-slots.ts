@@ -1,39 +1,23 @@
-import { and, bookings, db, eq, isNull, queryClient } from "@metastorage/database";
-import { getCheckInSlotEnd } from "../modules/check-ins/check-in-slot";
+import { bookings, checkInSlots, db, eq, isNull, queryClient } from "@metastorage/database";
 
-// Dry-run by default. Only fill missing ends; retain existing appointments and statuses.
-const apply = process.argv.includes("--apply");
+// Slot endpoints now come from check_in_slots; never invent appointment times.
 try {
-  const result = await db.transaction(async (tx) => {
-    const missing = await tx
-      .select({ id: bookings.id, code: bookings.bookingCode, start: bookings.checkInSlotStart })
-      .from(bookings)
-      .where(isNull(bookings.checkInSlotEnd))
-      .for("update");
-    const changes = [];
-    for (const row of missing) {
-      const end = getCheckInSlotEnd(row.start);
-      if (apply) {
-        await tx
-          .update(bookings)
-          .set({ checkInSlotEnd: end, updatedAt: new Date() })
-          .where(and(eq(bookings.id, row.id), isNull(bookings.checkInSlotEnd)));
-      }
-      changes.push({
-        bookingCode: row.code,
-        start: row.start.toISOString(),
-        end: end.toISOString(),
-      });
-    }
-    return changes;
-  });
-  console.log(
-    JSON.stringify(
-      { mode: apply ? "applied" : "dry-run", count: result.length, changes: result },
-      null,
-      2,
-    ),
-  );
+  const missing = await db
+    .select({
+      bookingId: bookings.id,
+      bookingCode: bookings.bookingCode,
+      checkInDate: bookings.checkInDate,
+      checkInSlotId: bookings.checkInSlotId,
+    })
+    .from(bookings)
+    .leftJoin(checkInSlots, eq(checkInSlots.id, bookings.checkInSlotId))
+    .where(isNull(checkInSlots.id));
+  console.log(JSON.stringify({ mode: "audit", count: missing.length, missing }, null, 2));
+  if (process.argv.includes("--apply") && missing.length) {
+    throw new Error(
+      "Bookings require a valid facility check-in slot. Apply the check-in-slot migrations and review missing appointments; automatic time replacement is disabled.",
+    );
+  }
 } finally {
   await queryClient.end();
 }

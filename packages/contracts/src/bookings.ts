@@ -93,6 +93,9 @@ export const BookingListItemSchema = z.object({
   paidAt: z.string().datetime().nullable(),
   assignedUnit: PhysicalUnitAssignmentSchema.nullable().optional(),
   assignedStaff: FacilityStaffMemberSchema.nullable().optional(),
+  handoverStage: z
+    .enum(["WAITING_CUSTOMER", "INSPECTING", "READY_HANDOVER", "HANDED_OVER"])
+    .optional(),
   createdAt: z.string().datetime(),
 });
 

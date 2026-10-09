@@ -6,6 +6,7 @@ import {
   eq,
   facilities,
   facilityAssignments,
+  facilityUnitTypes,
   queryClient,
   storageUnits,
   unitTypes,
@@ -41,9 +42,16 @@ async function seedFlow2Demo() {
       .for("update");
     if (!facility?.isActive) throw new Error("Active HCM-01 facility is required.");
     const types = await tx
-      .select()
+      .select({ code: unitTypes.code, id: unitTypes.id })
       .from(unitTypes)
-      .where(and(eq(unitTypes.facilityId, facility.id), eq(unitTypes.isActive, true)));
+      .innerJoin(facilityUnitTypes, eq(facilityUnitTypes.unitTypeId, unitTypes.id))
+      .where(
+        and(
+          eq(facilityUnitTypes.facilityId, facility.id),
+          eq(unitTypes.isActive, true),
+          eq(facilityUnitTypes.isActive, true),
+        ),
+      );
     const typeMap = new Map(types.map((type) => [type.code, type.id]));
     for (const code of unitTypeCodes) {
       if (!typeMap.has(code)) throw new Error(`Missing active unit type: ${code}`);

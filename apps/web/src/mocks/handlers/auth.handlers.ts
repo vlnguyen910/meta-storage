@@ -6,7 +6,6 @@ import {
   UserRole,
 } from "@metastorage/contracts";
 import type MockAdapter from "axios-mock-adapter";
-import { rolePermissions } from "@/config/access-control";
 import {
   createSession,
   currentUser,
@@ -36,7 +35,12 @@ export function registerAuthHandlers(mock: MockAdapter): void {
       phone,
       password,
       role: UserRole.STORAGE_CUSTOMER,
-      permissions: rolePermissions[UserRole.STORAGE_CUSTOMER],
+      status: "ACTIVE",
+      emailVerified: false,
+      image: null,
+      passwordHash: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
       assignedFacilityIds: [],
     });
     saveMockDatabase(db);
