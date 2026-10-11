@@ -47,7 +47,7 @@ metastorage/
 │       ├── node.json          # Node.js specific TypeScript config
 │       └── package.json
 ├── docker/
-│   └── docker-compose.yml      # PostgreSQL cho local development
+│   └── docker-compose.yml      # PostgreSQL và Redis cho local development
 ├── .husky/
 │   └── pre-commit             # Git hook chạy Biome check trước khi commit
 ├── biome.json                 # Cấu hình linter & formatter (Biome)
@@ -79,20 +79,31 @@ metastorage/
 bun install
 ```
 
-### 2. Khởi động PostgreSQL bằng Docker Compose
+### 2. Khởi động PostgreSQL và Redis bằng Docker Compose
 
 Docker Compose cung cấp PostgreSQL local với các thông tin kết nối mặc định:
 
 - **Host**: `localhost`
-- **Port**: `5432`
+- **Port**: `5433` (cổng PostgreSQL trong container: `5432`)
 - **Database**: `metastorage`
 - **User**: `postgres`
 - **Password**: `postgres`
+
+Redis local dùng `redis://localhost:6379`, chỉ mở cổng trên loopback. Service có
+healthcheck, lưu AOF trong volume `redis_data` và dùng `noeviction` để tránh tự
+loại bỏ dữ liệu phiên hoặc BullMQ jobs. Các key tạm thời phải được ghi kèm TTL.
 
 Khởi động database:
 
 ```bash
 docker compose -f docker/docker-compose.yml up -d
+```
+
+Nếu chỉ cần Redis (ví dụ PostgreSQL đang chạy trên cloud):
+
+```bash
+docker compose -f docker/docker-compose.yml up -d --wait redis
+docker compose -f docker/docker-compose.yml exec redis redis-cli ping
 ```
 
 Kiểm tra trạng thái:
@@ -113,7 +124,7 @@ Muốn xóa cả volume dữ liệu local:
 docker compose -f docker/docker-compose.yml down -v
 ```
 
-> Lệnh `down -v` sẽ xóa toàn bộ dữ liệu PostgreSQL local. Dùng lệnh này nếu volume đã được tạo từ cấu hình database cũ và cần khởi tạo lại.
+> Lệnh `down -v` sẽ xóa toàn bộ dữ liệu PostgreSQL và Redis local. Dùng lệnh này nếu volume đã được tạo từ cấu hình database cũ và cần khởi tạo lại.
 
 ### 3. Cấu hình biến môi trường
 
@@ -126,7 +137,21 @@ cp apps/api/.env.example apps/api/.env
 Để chạy với PostgreSQL trong Docker Compose, giữ `DATABASE_URL` như sau:
 
 ```env
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/metastorage
+DATABASE_URL=postgres://postgres:postgres@localhost:5433/metastorage
+REDIS_URL=redis://localhost:6379
+```
+
+API đăng ký Redis trong `common/redis/plugin.ts`; các module dùng `fastify.redis`.
+API kiểm tra kết nối khi khởi động, từ chối khởi động nếu Redis không kết nối được,
+và đóng client khi shutdown. Các lệnh Redis có timeout; không giữ lệnh trong
+offline queue khi mất kết nối. Worker tiếp tục dùng kết nối riêng cho BullMQ;
+nếu chạy worker local, đặt cùng `REDIS_URL` trong môi trường của worker.
+
+Kiểm chứng plugin với Redis thật bằng database Redis riêng cho test. Test chỉ
+tạo và xóa key có prefix/ngẫu nhiên, không chạy `FLUSHDB`:
+
+```bash
+REDIS_TEST_URL=redis://localhost:6379/15 bun run --filter api test
 ```
 
 API mặc định chạy tại port `4000`. Có thể thay đổi port trong `apps/api/.env`.
