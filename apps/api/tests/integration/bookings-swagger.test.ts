@@ -91,6 +91,35 @@ describe("Booking Swagger contracts", () => {
     expect(Object.keys(detail.properties)).toEqual(expect.arrayContaining(Object.keys(listItem)));
   });
 
+  test("documents guest tracking separately from account authentication", async () => {
+    const spec = (await app.inject("/docs/json")).json();
+    const resolve = (schema: { $ref?: string }) =>
+      schema.$ref ? spec.components.schemas[schema.$ref.split("/").at(-1) as string] : schema;
+    const exchange = spec.paths["/api/booking/magic-link/exchange"].post;
+    expect(exchange.security).toEqual([]);
+    const session = resolve(exchange.responses[200].content["application/json"].schema);
+    expect(Object.keys(session.properties.data.properties).sort()).toEqual([
+      "booking",
+      "bookingCode",
+      "expiresAt",
+    ]);
+    expect(session.example.data.booking.bookingCode).toBe(session.example.data.bookingCode);
+    expect(exchange.responses[429]).toBeDefined();
+    const tracking = spec.paths["/api/booking/tracking/{bookingCode}"].get;
+    expect(session.properties.data.properties.booking).toEqual(
+      resolve(tracking.responses[200].content["application/json"].schema).properties.data,
+    );
+    expect(tracking.security).toEqual([{ bookingTrackingSession: [] }]);
+    expect(spec.components.securitySchemes.bookingTrackingSession.name).toBe(
+      "metastorage_booking_session",
+    );
+    expect(
+      resolve(tracking.responses[200].content["application/json"].schema).example.data.contact
+        .email,
+    ).toBeString();
+    expect(spec.paths["/api/booking/session/revoke"].post.responses[204].description).toBeString();
+  });
+
   test("the Swagger draft example can be submitted and preserves the complete response", async () => {
     const spec = (await app.inject("/docs/json")).json();
     const operation = spec.paths["/api/bookings/drafts"].post;

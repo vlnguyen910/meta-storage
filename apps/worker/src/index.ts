@@ -1,25 +1,44 @@
-import { createHmac } from "node:crypto";
-import {
-  and,
-  bookingConfirmationEmails,
-  bookings,
-  capacityAllocations,
-  db,
-  eq,
-  facilities,
-  lt,
-  lte,
-  queryClient,
-  sql,
-  unitTypes,
-} from "@metastorage/database";
+import "./env";
+import { and, capacityAllocations, db, eq, lte, queryClient } from "@metastorage/database";
 import { Queue, Worker } from "bullmq";
 import Redis from "ioredis";
+import { sendPendingBookingConfirmations } from "./booking-confirmation";
+import { BOOKING_EMAIL_MESSAGES } from "./booking-email.messages";
 import { MockMailAdapter } from "./mail-adapter";
+import { ResendMailAdapter } from "./resend-mail-adapter";
 
 const queueName = "capacity-hold-expiry";
 const emailQueueName = "booking-confirmation-email";
-const MAX_EMAIL_ATTEMPTS = 5;
+const publicAppUrl = process.env.PUBLIC_APP_URL ?? "http://localhost:3000";
+const magicLinkSecret = process.env.BOOKING_MAGIC_LINK_SECRET ?? "";
+const qrTokenSecret = process.env.QR_TOKEN_SECRET ?? "storex-dev-qr-secret";
+const mailProvider = process.env.MAIL_PROVIDER ?? (process.env.RESEND_API_KEY ? "resend" : "mock");
+if (magicLinkSecret.length < 32 || !["https:", "http:"].includes(new URL(publicAppUrl).protocol))
+  throw new Error(BOOKING_EMAIL_MESSAGES.accessConfiguration);
+if (
+  !["resend", "mock"].includes(mailProvider) ||
+  (process.env.NODE_ENV === "production" && mailProvider !== "resend")
+)
+  throw new Error(BOOKING_EMAIL_MESSAGES.providerConfiguration);
+if (mailProvider === "resend" && (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL))
+  throw new Error(BOOKING_EMAIL_MESSAGES.providerConfiguration);
+const mailAdapter =
+  mailProvider === "resend"
+    ? new ResendMailAdapter({
+        apiKey: process.env.RESEND_API_KEY ?? "",
+        fromEmail: process.env.RESEND_FROM_EMAIL ?? "",
+      })
+    : new MockMailAdapter();
+// Queue connections can retry indefinitely; delivery commands must fail quickly.
+const deliveryRedis = new Redis(process.env.REDIS_URL ?? "redis://localhost:6379", {
+  maxRetriesPerRequest: 1,
+  commandTimeout: 2000,
+  enableOfflineQueue: false,
+  lazyConnect: true,
+  connectTimeout: 5000,
+});
+await deliveryRedis.connect();
+await deliveryRedis.ping();
 const redis = new Redis(process.env.REDIS_URL ?? "redis://localhost:6379", {
   maxRetriesPerRequest: null,
 });
@@ -61,78 +80,20 @@ worker.on("failed", (job, error) => {
 
 const emailWorker = new Worker(
   emailQueueName,
-  async () => {
-    const mailAdapter = new MockMailAdapter();
-    const claimed = await db.transaction(async (tx) => {
-      const rows = await tx
-        .select({
-          email: bookingConfirmationEmails,
-          booking: bookings,
-          facility: facilities,
-          unitType: unitTypes,
-        })
-        .from(bookingConfirmationEmails)
-        .innerJoin(bookings, eq(bookings.id, bookingConfirmationEmails.bookingId))
-        .innerJoin(facilities, eq(facilities.id, bookings.facilityId))
-        .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
-        .where(
-          and(
-            eq(bookingConfirmationEmails.status, "PENDING"),
-            lt(bookingConfirmationEmails.attempts, MAX_EMAIL_ATTEMPTS),
-          ),
-        )
-        .orderBy(bookingConfirmationEmails.createdAt)
-        .limit(20)
-        .for("update", { of: bookingConfirmationEmails, skipLocked: true });
-      const now = new Date();
-      for (const row of rows) {
-        await tx
-          .update(bookingConfirmationEmails)
-          .set({ attempts: sql`${bookingConfirmationEmails.attempts} + 1`, updatedAt: now })
-          .where(eq(bookingConfirmationEmails.id, row.email.id));
-      }
-      return rows;
-    });
-
-    for (const email of claimed) {
-      try {
-        const now = new Date();
-        const sent = await mailAdapter.sendBookingConfirmation({
-          recipientEmail: email.email.recipientEmail,
-          bookingCode: email.booking.bookingCode,
-          facilityName: email.facility.name,
-          unitTypeName: email.unitType.name,
-          qrUrl: `${process.env.PUBLIC_APP_URL ?? "http://localhost:3000"}/check-in?token=${createHmac(
-            "sha256",
-            process.env.QR_TOKEN_SECRET ?? "storex-dev-qr-secret",
-          )
-            .update(email.booking.id)
-            .digest("hex")}`,
-        });
-        await db
-          .update(bookingConfirmationEmails)
-          .set({
-            status: "SENT",
-            providerMessageId: sent.providerMessageId,
-            sentAt: now,
-            updatedAt: now,
-          })
-          .where(eq(bookingConfirmationEmails.id, email.email.id));
-      } catch (error) {
-        await db
-          .update(bookingConfirmationEmails)
-          .set({
-            status: email.email.attempts >= MAX_EMAIL_ATTEMPTS ? "FAILED" : "PENDING",
-            lastError: String(error),
-            updatedAt: new Date(),
-          })
-          .where(eq(bookingConfirmationEmails.id, email.email.id));
-      }
-    }
-    return { processed: claimed.length };
-  },
+  () =>
+    sendPendingBookingConfirmations({
+      db,
+      redis: deliveryRedis,
+      mailAdapter,
+      publicAppUrl,
+      magicLinkSecret,
+      qrTokenSecret,
+    }),
   { connection: redis },
 );
+emailWorker.on("failed", (job) => {
+  console.error(`Booking email job failed (${job?.id ?? "unknown"})`);
+});
 
 await emailQueue.upsertJobScheduler(
   "booking-confirmation-email-sweep",
@@ -145,6 +106,7 @@ async function shutdown() {
   await emailWorker.close();
   await queue.close();
   await emailQueue.close();
+  await deliveryRedis.quit();
   await redis.quit();
   await queryClient.end();
 }

@@ -10,6 +10,18 @@ function assertValidTtl(ttlSeconds: number): void {
 export class RedisService {
   constructor(private readonly client: Redis) {}
 
+  async incrementWithExpiry(key: string, ttlSeconds: number): Promise<number> {
+    assertValidTtl(ttlSeconds);
+    return Number(
+      await this.client.eval(
+        "local n = redis.call('INCR', KEYS[1]); if n == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]); end; return n",
+        1,
+        key,
+        ttlSeconds,
+      ),
+    );
+  }
+
   get(key: string): Promise<string | null> {
     return this.client.get(key);
   }

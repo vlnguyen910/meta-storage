@@ -1,8 +1,28 @@
 import { z } from "zod";
+import { BOOKING_CONTRACT_MESSAGES } from "./bookings.messages";
 import { FacilityStaffMemberSchema } from "./facilities";
 import { ReservationDraftContactSchema } from "./reservation-contact";
 
-export type { BookingDraft, BookingDraftPricing } from "./bookings.types";
+export type {
+  BookingDraft,
+  BookingDraftPricing,
+  BookingTracking,
+  BookingTrackingSession,
+} from "./bookings.types";
+
+export const BookingMagicLinkInputSchema = z.object({
+  token: z
+    .string({ error: BOOKING_CONTRACT_MESSAGES.invalidMagicToken })
+    .regex(/^[a-f0-9]{64}$/, BOOKING_CONTRACT_MESSAGES.invalidMagicToken),
+});
+export type BookingMagicLinkInput = z.infer<typeof BookingMagicLinkInputSchema>;
+
+export const BookingTrackingParamsSchema = z.object({
+  bookingCode: z
+    .string({ error: BOOKING_CONTRACT_MESSAGES.invalidBookingCode })
+    .min(1, BOOKING_CONTRACT_MESSAGES.invalidBookingCode)
+    .max(50, BOOKING_CONTRACT_MESSAGES.invalidBookingCode),
+});
 
 export const BookingDraftInputSchema = z.object({
   facilityId: z.string().uuid(),

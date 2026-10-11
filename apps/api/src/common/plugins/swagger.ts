@@ -80,6 +80,11 @@ const swaggerPluginCallback: FastifyPluginAsync = async (fastify) => {
       ],
       components: {
         securitySchemes: {
+          bookingTrackingSession: {
+            type: "apiKey",
+            in: "cookie",
+            name: "metastorage_booking_session",
+          },
           sessionAuth: {
             type: "apiKey",
             in: "cookie",

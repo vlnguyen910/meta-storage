@@ -4,6 +4,8 @@ import {
   BookingDraftInputSchema,
   BookingIdParamsSchema,
   BookingListQuerySchema,
+  BookingMagicLinkInputSchema,
+  BookingTrackingParamsSchema,
   FacilityBookingsParamsSchema,
   StaffTasksQuerySchema,
 } from "@metastorage/contracts";
@@ -21,6 +23,12 @@ import { StorageUnitsRepository } from "../storage-units/storage-units.repositor
 import { StorageUnitsService } from "../storage-units/storage-units.service";
 import { FacilityUnitTypesRepository } from "../unit-types/facility-unit-types.repository";
 import { FacilityUnitTypesService } from "../unit-types/facility-unit-types.service";
+import {
+  privateTrackingResponse,
+  requireTrackingOrigin,
+  trackingSessionCookie,
+  trackingSessionToken,
+} from "./bookings.access";
 import { BookingsRepository } from "./bookings.repository";
 import { BookingsService } from "./bookings.service";
 import { bookingSwaggerTransform } from "./bookings.swagger";
@@ -37,6 +45,7 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
     new FacilityUnitTypesService(new FacilityUnitTypesRepository(fastify.db), facilitiesRepository),
     new CheckInSlotsService(new CheckInSlotsRepository(fastify.db)),
     new StorageUnitsService(new StorageUnitsRepository(fastify.db)),
+    fastify.redisService,
   );
 
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
@@ -52,6 +61,57 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
       return reply
         .status(201)
         .send(successResponse(await service.createDraft(request.body, request.user?.id)));
+    },
+  );
+
+  typedApp.post(
+    "/booking/magic-link/exchange",
+    {
+      config: { swaggerTransform: bookingSwaggerTransform("exchange") },
+      schema: {
+        body: BookingMagicLinkInputSchema,
+      },
+      onRequest: [privateTrackingResponse, requireTrackingOrigin],
+    },
+    async (request, reply) => {
+      const result = await service.exchangeMagicLink(
+        request.body.token,
+        request.ip,
+        trackingSessionToken(request),
+      );
+      return reply
+        .header("Set-Cookie", trackingSessionCookie(result.sessionToken))
+        .send(successResponse(result.session));
+    },
+  );
+  typedApp.get(
+    "/booking/tracking/:bookingCode",
+    {
+      config: { swaggerTransform: bookingSwaggerTransform("tracking") },
+      schema: {
+        params: BookingTrackingParamsSchema,
+      },
+      onRequest: [privateTrackingResponse],
+    },
+    async (request, reply) =>
+      reply.send(
+        successResponse(
+          await service.getTrackingBooking(
+            request.params.bookingCode,
+            trackingSessionToken(request),
+          ),
+        ),
+      ),
+  );
+  typedApp.post(
+    "/booking/session/revoke",
+    {
+      config: { swaggerTransform: bookingSwaggerTransform("revoke") },
+      onRequest: [privateTrackingResponse, requireTrackingOrigin],
+    },
+    async (request, reply) => {
+      await service.revokeTrackingSession(trackingSessionToken(request));
+      return reply.header("Set-Cookie", trackingSessionCookie("", true)).status(204).send();
     },
   );
 

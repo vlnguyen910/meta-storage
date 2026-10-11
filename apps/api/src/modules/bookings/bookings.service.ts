@@ -1,11 +1,20 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, createHmac, randomBytes } from "node:crypto";
 import type {
   BookingDraft,
   BookingDraftInput,
   BookingListItem,
+  BookingTracking,
+  BookingTrackingSession,
   EligibleUnit,
   PhysicalUnitAssignment,
 } from "@metastorage/contracts";
+import {
+  BOOKING_ACCESS,
+  type BookingAccessGrant,
+  type BookingAccessSession,
+  bookingMagicKey,
+  bookingSessionKey,
+} from "@metastorage/shared/booking-access";
 import {
   AppError,
   BadRequestError,
@@ -13,6 +22,8 @@ import {
   NotFoundError,
   ValidationError,
 } from "../../common/errors/app-error";
+import type { RedisService } from "../../common/redis/redis.service";
+import { env } from "../../config/env";
 import type { FacilitiesService } from "../facilities/facilities.service";
 import type { StorageUnitsService } from "../storage-units/storage-units.service";
 import type { FacilityUnitTypesService } from "../unit-types/facility-unit-types.service";
@@ -27,6 +38,7 @@ export class BookingsService {
     private readonly facilityUnitTypesService: FacilityUnitTypesService,
     private readonly checkInSlotsService: CheckInSlotsService,
     private readonly storageUnitsService: StorageUnitsService,
+    private readonly accessRedis?: RedisService,
   ) {}
 
   private async withHandoverProgress(bookings: BookingListItem[]): Promise<BookingListItem[]> {
@@ -42,6 +54,81 @@ export class BookingsService {
               ? "INSPECTING"
               : "WAITING_CUSTOMER";
       return { ...booking, handoverStage };
+    });
+  }
+
+  private async withAccessRedis<T>(work: (redis: RedisService) => Promise<T>): Promise<T> {
+    if (!this.accessRedis) throw new AppError(BOOKING_MESSAGES.accessUnavailable, 503);
+    try {
+      return await work(this.accessRedis);
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      // Redis errors can contain command arguments. Never attach them to public errors or logs.
+      throw new AppError(BOOKING_MESSAGES.accessUnavailable, 503);
+    }
+  }
+
+  async exchangeMagicLink(
+    token: string,
+    ip: string,
+    previousSession?: string,
+  ): Promise<{ sessionToken: string; session: BookingTrackingSession }> {
+    return this.withAccessRedis(async (redis) => {
+      const ipHash = createHmac("sha256", env.BETTER_AUTH_SECRET).update(ip).digest("hex");
+      if (
+        (await redis.incrementWithExpiry(
+          `booking:rate:exchange:${ipHash}`,
+          BOOKING_ACCESS.rateWindow,
+        )) > BOOKING_ACCESS.rateLimit
+      ) {
+        throw new AppError(BOOKING_MESSAGES.accessRateLimited, 429);
+      }
+      const raw = await redis.get(bookingMagicKey(token));
+      if (!raw) throw new AppError(BOOKING_MESSAGES.accessInvalid, 401);
+      const grant = JSON.parse(raw) as BookingAccessGrant;
+      if (!grant.bookingId || !(Date.parse(grant.expiresAt) > Date.now()))
+        throw new AppError(BOOKING_MESSAGES.accessInvalid, 401);
+      const booking = await this.repository.findTrackingBooking(grant.bookingId);
+      if (!booking) throw new AppError(BOOKING_MESSAGES.accessInvalid, 401);
+      const sessionToken = randomBytes(32).toString("hex");
+      const session: BookingAccessSession = {
+        bookingId: grant.bookingId,
+        bookingCode: booking.bookingCode,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + BOOKING_ACCESS.sessionTtl * 1000).toISOString(),
+      };
+      await redis.set(
+        bookingSessionKey(sessionToken),
+        JSON.stringify(session),
+        BOOKING_ACCESS.sessionTtl,
+      );
+      if (previousSession) await redis.delete(bookingSessionKey(previousSession));
+      return {
+        sessionToken,
+        session: { bookingCode: session.bookingCode, expiresAt: session.expiresAt, booking },
+      };
+    });
+  }
+
+  async getTrackingBooking(bookingCode: string, sessionToken?: string): Promise<BookingTracking> {
+    return this.withAccessRedis(async (redis) => {
+      const raw = sessionToken ? await redis.get(bookingSessionKey(sessionToken)) : null;
+      if (!raw) throw new AppError(BOOKING_MESSAGES.accessInvalid, 401);
+      const session = JSON.parse(raw) as BookingAccessSession;
+      if (!session.bookingId || !(Date.parse(session.expiresAt) > Date.now()))
+        throw new AppError(BOOKING_MESSAGES.accessInvalid, 401);
+      if (session.bookingCode !== bookingCode)
+        throw new NotFoundError(BOOKING_MESSAGES.bookingNotFound);
+      const booking = await this.repository.findTrackingBooking(session.bookingId);
+      if (!booking || booking.bookingCode !== bookingCode)
+        throw new NotFoundError(BOOKING_MESSAGES.bookingNotFound);
+      return booking;
+    });
+  }
+
+  async revokeTrackingSession(sessionToken?: string): Promise<void> {
+    await this.withAccessRedis(async (redis) => {
+      if (sessionToken) await redis.delete(bookingSessionKey(sessionToken));
     });
   }
 
