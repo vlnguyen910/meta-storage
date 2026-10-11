@@ -1,5 +1,5 @@
 import "./env";
-import { and, capacityAllocations, db, eq, lte, queryClient } from "@metastorage/database";
+import { db, queryClient } from "@metastorage/database";
 import { Queue, Worker } from "bullmq";
 import Redis from "ioredis";
 import { sendPendingBookingConfirmations } from "./booking-confirmation";
@@ -7,7 +7,6 @@ import { BOOKING_EMAIL_MESSAGES } from "./booking-email.messages";
 import { MockMailAdapter } from "./mail-adapter";
 import { ResendMailAdapter } from "./resend-mail-adapter";
 
-const queueName = "capacity-hold-expiry";
 const emailQueueName = "booking-confirmation-email";
 const publicAppUrl = process.env.PUBLIC_APP_URL ?? "http://localhost:3000";
 const magicLinkSecret = process.env.BOOKING_MAGIC_LINK_SECRET ?? "";
@@ -42,41 +41,7 @@ await deliveryRedis.ping();
 const redis = new Redis(process.env.REDIS_URL ?? "redis://localhost:6379", {
   maxRetriesPerRequest: null,
 });
-const queue = new Queue(queueName, { connection: redis });
 const emailQueue = new Queue(emailQueueName, { connection: redis });
-
-const worker = new Worker(
-  queueName,
-  async () => {
-    const now = new Date();
-    const expired = await db
-      .update(capacityAllocations)
-      .set({ status: "EXPIRED", updatedAt: now })
-      .where(
-        and(
-          eq(capacityAllocations.kind, "HOLD"),
-          eq(capacityAllocations.status, "ACTIVE"),
-          lte(capacityAllocations.expiresAt, now),
-        ),
-      )
-      .returning({ id: capacityAllocations.id });
-    return { expired: expired.length };
-  },
-  { connection: redis },
-);
-
-await queue.upsertJobScheduler(
-  "capacity-hold-expiry-sweep",
-  { every: 30_000 },
-  { name: "sweep-expired-holds", data: {} },
-);
-
-worker.on("completed", (job, result) => {
-  if (result.expired > 0) console.log(`Expired ${result.expired} capacity holds (${job.id})`);
-});
-worker.on("failed", (job, error) => {
-  console.error(`Capacity hold expiry job failed (${job?.id ?? "unknown"})`, error);
-});
 
 const emailWorker = new Worker(
   emailQueueName,
@@ -102,9 +67,7 @@ await emailQueue.upsertJobScheduler(
 );
 
 async function shutdown() {
-  await worker.close();
   await emailWorker.close();
-  await queue.close();
   await emailQueue.close();
   await deliveryRedis.quit();
   await redis.quit();
