@@ -1,7 +1,10 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 
 export { BOOKING_EMAIL_MESSAGES } from "./mail.messages";
-export type { BookingConfirmationEmailInput } from "./mail.types";
+export type { BookingConfirmationEmailInput, MailJobData } from "./mail.types";
+
+export const MAIL_QUEUE_NAME = "mail";
+export const mailJobId = (bookingId: string) => `booking-confirmation-${bookingId}`;
 
 // Transport encryption shared by API producer and worker consumer, bound to delivery ID.
 export function encryptMailPayload(payload: string, secret: string, deliveryId: string): string {

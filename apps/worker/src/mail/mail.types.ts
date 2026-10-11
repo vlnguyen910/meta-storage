@@ -1,6 +1,3 @@
-import type { Database } from "@metastorage/database";
-import type Redis from "ioredis";
-
 export interface MailMessage {
   deliveryId: string;
   recipientEmail: string;
@@ -19,11 +16,4 @@ export interface MailAdapter {
   send(input: MailMessage): Promise<{
     providerMessageId: string;
   }>;
-}
-
-export interface BookingConfirmationDependencies {
-  db: Database;
-  redis: Redis;
-  mailAdapter: MailAdapter;
-  mailPayloadSecret: string;
 }

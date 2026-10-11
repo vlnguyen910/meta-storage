@@ -85,7 +85,6 @@ erDiagram
   facilities ||--o{ rentals : hosts
   storage_units ||--o{ rentals : occupies
   bookings ||--o{ payments : records
-  bookings ||--o{ booking_confirmation_emails : notifies
   bookings ||--o{ checkin_verifications : verifies
   bookings ||--o{ handover_inspections : records_baseline
   facilities ||--o{ handover_inspections : scopes
@@ -332,22 +331,6 @@ erDiagram
     text reason
   }
 
-  booking_confirmation_emails {
-    uuid id PK
-    uuid booking_id FK
-    varchar recipient_email
-    varchar template
-    text payload "nullable; encrypted mail input prepared by Booking API"
-    timestamptz expires_at "nullable until prepared; confirmation + 7 days"
-    booking_email_status status
-    integer attempts
-    text last_error
-    varchar provider_message_id
-    timestamptz sent_at
-    timestamptz created_at
-    timestamptz updated_at
-  }
-
   checkin_verifications {
     uuid id PK
     uuid booking_id FK
@@ -366,12 +349,11 @@ erDiagram
 
 ## Existing constraints and behavior
 
-- Booking confirmation email requests are inserted in the payment confirmation
-  transaction. Their `created_at` anchors the 7-day tracking-link lifetime. The
-  Booking API prepares and encrypts the mail payload before the worker can send
-  it; nullable payload/expiry preserve transactional creation without Redis.
-  Preparation can retry independently of payment. Retries never extend the link
-  lifetime. Requests whose link has expired before delivery become FAILED.
+- Booking confirmation mail is queued directly in BullMQ after the payment
+  transaction commits. There is no email outbox table. Booking service prepares
+  the link and encrypted job payload; the link lifetime is 7 days from paidAt.
+  BullMQ manages retry/status, and expired links stop delivery. A crash between
+  DB commit and enqueue can lose the mail request; payment remains successful.
 
 - UUID primary keys on `users`, `facilities`, `facility_assignments`,
   `unit_types`, `storage_units`, `facility_operating_hours`, `check_in_slots`, `reservation_drafts`

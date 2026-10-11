@@ -2,7 +2,6 @@ import { createHash, createHmac, randomBytes } from "node:crypto";
 import type { Facility, UnitType } from "@metastorage/database";
 import {
   and,
-  bookingConfirmationEmails,
   bookings,
   capacityAllocations,
   type Database,
@@ -409,13 +408,6 @@ export class PaymentsRepository {
         .where(eq(payments.id, payment.id))
         .returning();
       if (!updatedPayment) throw new Error(PAYMENT_MESSAGES.failedToFinalizePayment);
-
-      await tx.insert(bookingConfirmationEmails).values({
-        bookingId: booking.id,
-        recipientEmail: checkout.draft.contactEmail,
-        template: "BOOKING_CONFIRMATION",
-        status: "PENDING",
-      });
 
       await tx
         .update(capacityAllocations)
