@@ -1,4 +1,3 @@
-import { APP_NAME } from "@metastorage/shared";
 import { StatusBar } from "expo-status-bar";
 import {
   ActivityIndicator,
@@ -7,188 +6,189 @@ import {
   Pressable,
   ScrollView,
   Text,
-  TextInput,
   View,
 } from "react-native";
-import type { FormFieldProps } from "./auth-screen.types";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { AUTH_MESSAGES } from "./auth.messages";
+import { ForgotPasswordView } from "./forgot-password-view";
+import { LoginView } from "./login-view";
+import { RegisterView } from "./register-view";
 import { useAuthFlow } from "./use-auth-flow";
+import { VerifyEmailView } from "./verify-email-view";
 
 export function AuthScreen() {
   const auth = useAuthFlow();
 
   if (auth.isSessionPending) {
     return (
-      <View className="flex-1 items-center justify-center bg-slate-950">
-        <StatusBar style="light" />
-        <ActivityIndicator accessibilityLabel="Đang tải phiên đăng nhập" color="#34d399" />
+      <View className="flex-1 items-center justify-center bg-[#f8faf9]">
+        <StatusBar style="dark" />
+        <ActivityIndicator
+          accessibilityLabel="Đang tải phiên đăng nhập"
+          color="#125345"
+          size="large"
+        />
       </View>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      className="flex-1 bg-slate-950"
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <StatusBar style="light" />
-      <ScrollView
-        contentContainerClassName="flex-grow items-center justify-center px-5 py-10"
-        keyboardShouldPersistTaps="handled"
+    <SafeAreaView className="flex-1 bg-[#f8faf9]" edges={["top", "left", "right"]}>
+      <StatusBar style="dark" />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        className="flex-1"
       >
-        <View className="w-full max-w-md gap-6">
-          <View className="items-center gap-2">
-            <Text className="text-3xl font-bold text-emerald-400">{APP_NAME}</Text>
-            <Text className="text-center text-base text-slate-300">
-              {auth.user ? "Tài khoản Customer" : "Quản lý kho thuê trong một tài khoản"}
-            </Text>
-          </View>
-
-          {auth.user ? (
-            <View className="items-center gap-5 rounded-3xl border border-slate-700 bg-slate-900 p-6">
-              <Text className="text-xl font-semibold text-white">Xin chào, {auth.user.name}</Text>
-              <Text className="text-center text-slate-300">{auth.user.email}</Text>
-              <ActionButton label="Đăng xuất" onPress={() => void auth.signOut()} />
-            </View>
-          ) : auth.registeredEmail ? (
-            <View className="items-center gap-4 rounded-3xl border border-slate-700 bg-slate-900 p-6">
-              <Text
-                accessibilityRole="header"
-                className="text-center text-2xl font-bold text-white"
-              >
-                Kiểm tra hộp thư
-              </Text>
-              <Text className="text-center leading-6 text-slate-300">
-                Đã gửi liên kết xác minh đến {auth.registeredEmail}. Mở email này trên thiết bị để
-                quay lại ứng dụng.
-              </Text>
-              <ActionButton label="Về đăng nhập" onPress={() => auth.setMode("login")} />
-            </View>
-          ) : (
-            <View className="gap-4 rounded-3xl border border-slate-700 bg-slate-900 p-6">
-              <Text accessibilityRole="header" className="text-2xl font-bold text-white">
-                {auth.mode === "login" ? "Đăng nhập" : "Tạo tài khoản Customer"}
-              </Text>
-
-              {auth.mode === "register" ? (
-                <FormField
-                  label="Họ và tên"
-                  value={auth.values.name}
-                  error={auth.errors.name}
-                  onChangeText={(value) => auth.updateField("name", value)}
-                  autoComplete="name"
-                />
-              ) : null}
-              <FormField
-                label="Email"
-                value={auth.values.email}
-                error={auth.errors.email}
-                onChangeText={(value) => auth.updateField("email", value)}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-              />
-              {auth.mode === "register" ? (
-                <FormField
-                  label="Số điện thoại"
-                  value={auth.values.phone}
-                  error={auth.errors.phone}
-                  onChangeText={(value) => auth.updateField("phone", value)}
-                  keyboardType="phone-pad"
-                  autoComplete="tel"
-                />
-              ) : null}
-              <FormField
-                label="Mật khẩu"
-                value={auth.values.password}
-                error={auth.errors.password}
-                onChangeText={(value) => auth.updateField("password", value)}
-                secureTextEntry
-                autoComplete={auth.mode === "login" ? "current-password" : "new-password"}
-              />
-              {auth.mode === "register" ? (
-                <FormField
-                  label="Nhập lại mật khẩu"
-                  value={auth.values.confirmPassword}
-                  error={auth.errors.confirmPassword}
-                  onChangeText={(value) => auth.updateField("confirmPassword", value)}
-                  secureTextEntry
-                  autoComplete="new-password"
-                />
-              ) : null}
-
-              {auth.message ? (
-                <Text
-                  accessibilityRole="alert"
-                  className={auth.verificationFailed ? "text-amber-300" : "text-rose-300"}
-                >
-                  {auth.message}
-                </Text>
-              ) : null}
-
+        {/* Top App Bar - Adaptive to Figma specs */}
+        <View className="h-14 flex-row items-center justify-between border-b border-slate-200/80 bg-white px-4 shadow-xs">
+          {auth.mode === "forgot-password" ? (
+            // M-A04 Header: [← Đăng nhập] [storeX •] [📞]
+            <View className="flex-1 flex-row items-center justify-between">
               <Pressable
                 accessibilityRole="button"
-                className="min-h-12 items-center justify-center rounded-xl bg-emerald-500 px-4 active:bg-emerald-600"
-                disabled={auth.isSubmitting}
-                onPress={() => void auth.submit()}
+                className="flex-row items-center gap-1.5 py-1.5 pr-2 active:opacity-70"
+                onPress={() => auth.setMode("login")}
               >
-                {auth.isSubmitting ? (
-                  <ActivityIndicator color="#ffffff" />
-                ) : (
-                  <Text className="font-bold text-slate-950">
-                    {auth.mode === "login" ? "Đăng nhập" : "Tạo tài khoản"}
-                  </Text>
-                )}
+                <Text className="text-base text-slate-800">←</Text>
+                <Text className="text-xs font-semibold text-slate-800">
+                  {AUTH_MESSAGES.backToLoginBtn.replace("Quay lại ", "")}
+                </Text>
               </Pressable>
 
+              <View className="flex-row items-center gap-1">
+                <Text className="text-lg font-black text-[#125345]">storeX</Text>
+                <Text className="text-sm font-bold text-emerald-400">●</Text>
+              </View>
+
               <Pressable
                 accessibilityRole="button"
-                className="min-h-11 items-center justify-center px-3"
-                onPress={() => auth.setMode(auth.mode === "login" ? "register" : "login")}
+                className="h-10 w-10 items-center justify-center rounded-full active:bg-slate-100"
+                onPress={() => void auth.callHotline()}
               >
-                <Text className="text-center font-medium text-emerald-300">
-                  {auth.mode === "login"
-                    ? "Chưa có tài khoản? Đăng ký Customer"
-                    : "Đã có tài khoản? Đăng nhập"}
-                </Text>
+                <Text className="text-lg text-slate-800">📞</Text>
+              </Pressable>
+            </View>
+          ) : auth.mode === "login" ? (
+            // M-A01 Header: [← Trở lại] [[+] storeX] [📞]
+            <View className="flex-1 flex-row items-center justify-between">
+              <Pressable
+                accessibilityRole="button"
+                className="flex-row items-center gap-1 py-1.5 pr-2 active:opacity-70"
+                onPress={() => {
+                  // Switch to register or back
+                  auth.setMode("register");
+                }}
+              >
+                <Text className="text-base text-slate-800">←</Text>
+                <Text className="text-xs font-semibold text-slate-800">Trở lại</Text>
+              </Pressable>
+
+              <View className="flex-row items-center gap-1.5">
+                <View className="h-6 w-6 items-center justify-center rounded bg-[#125345]">
+                  <Text className="text-xs font-black text-white">◫</Text>
+                </View>
+                <Text className="text-lg font-black text-[#125345]">storeX</Text>
+              </View>
+
+              <Pressable
+                accessibilityRole="button"
+                className="h-10 w-10 items-center justify-center rounded-full active:bg-slate-100"
+                onPress={() => void auth.callHotline()}
+              >
+                <Text className="text-lg text-slate-800">📞</Text>
+              </Pressable>
+            </View>
+          ) : auth.mode === "register" ? (
+            // M-A02 Header: [←] [[+] storeX] [Đăng nhập]
+            <View className="flex-1 flex-row items-center justify-between">
+              <Pressable
+                accessibilityRole="button"
+                className="h-10 w-10 items-center justify-center rounded-full active:bg-slate-100"
+                onPress={() => auth.setMode("login")}
+              >
+                <Text className="text-xl font-bold text-slate-800">←</Text>
+              </Pressable>
+
+              <View className="flex-row items-center gap-1.5">
+                <View className="h-6 w-6 items-center justify-center rounded bg-[#125345]">
+                  <Text className="text-xs font-black text-white">◫</Text>
+                </View>
+                <Text className="text-lg font-black text-[#125345]">storeX</Text>
+              </View>
+
+              <Pressable
+                accessibilityRole="button"
+                className="py-1 px-2"
+                onPress={() => auth.setMode("login")}
+              >
+                <Text className="text-xs font-bold text-[#125345]">Đăng nhập</Text>
+              </Pressable>
+            </View>
+          ) : (
+            // A03 Header: [←] [Xác thực khách hàng] [?]
+            <View className="flex-1 flex-row items-center justify-between">
+              <Pressable
+                accessibilityRole="button"
+                className="h-10 w-10 items-center justify-center rounded-full active:bg-slate-100"
+                onPress={() => auth.setMode("register")}
+              >
+                <Text className="text-xl font-bold text-slate-800">←</Text>
+              </Pressable>
+
+              <Text className="text-base font-bold text-slate-900">
+                {AUTH_MESSAGES.verificationTitle}
+              </Text>
+
+              <Pressable
+                accessibilityRole="button"
+                className="h-8 w-8 items-center justify-center rounded-full active:bg-slate-100"
+                onPress={() => void auth.callHotline()}
+              >
+                <Text className="text-base text-slate-600">?</Text>
               </Pressable>
             </View>
           )}
-          <Text className="text-center text-xs text-slate-500">
-            Xác minh email trước khi đăng nhập. Số điện thoại dùng để tạo hồ sơ Customer.
-          </Text>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
-  );
-}
 
-function FormField({ label, value, error, onChangeText, ...inputProps }: FormFieldProps) {
-  return (
-    <View className="gap-2">
-      <Text className="font-semibold text-slate-200">{label}</Text>
-      <TextInput
-        accessibilityLabel={label}
-        accessibilityHint={error}
-        className="min-h-12 rounded-xl border border-slate-600 bg-slate-950 px-3 text-base text-white"
-        placeholder={label}
-        placeholderTextColor="#94a3b8"
-        value={value}
-        onChangeText={onChangeText}
-        {...inputProps}
-      />
-      {error ? <Text className="text-sm text-rose-300">{error}</Text> : null}
-    </View>
-  );
-}
-
-function ActionButton({ label, onPress }: { label: string; onPress: () => void }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      className="min-h-12 items-center justify-center rounded-xl bg-emerald-500 px-5"
-      onPress={onPress}
-    >
-      <Text className="font-bold text-slate-950">{label}</Text>
-    </Pressable>
+        {/* Scrollable Body */}
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{
+            flexGrow: 1,
+            alignItems: "center",
+            paddingHorizontal: 16,
+            paddingVertical: 20,
+          }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View className="w-full max-w-[440px]">
+            {auth.user ? (
+              <View className="items-center gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <View className="h-14 w-14 items-center justify-center rounded-full bg-emerald-100">
+                  <Text className="text-2xl text-emerald-800">👤</Text>
+                </View>
+                <Text className="text-xl font-bold text-slate-900">Xin chào, {auth.user.name}</Text>
+                <Text className="text-center text-xs text-slate-500">{auth.user.email}</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  className="mt-2 min-h-11 items-center justify-center rounded-xl bg-[#125345] px-6 active:bg-[#0d3f34]"
+                  onPress={() => void auth.signOut()}
+                >
+                  <Text className="text-sm font-bold text-white">Đăng xuất</Text>
+                </Pressable>
+              </View>
+            ) : auth.mode === "register" ? (
+              <RegisterView auth={auth} />
+            ) : auth.mode === "verify-email" ? (
+              <VerifyEmailView auth={auth} />
+            ) : auth.mode === "forgot-password" ? (
+              <ForgotPasswordView auth={auth} />
+            ) : (
+              <LoginView auth={auth} />
+            )}
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
