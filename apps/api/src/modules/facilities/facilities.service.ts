@@ -38,6 +38,12 @@ export class FacilitiesService {
         FACILITY_MESSAGES.checkInOutsideOperatingHours(openTime, closeTime),
         400,
         "CHECK_IN_OUTSIDE_HOURS",
+        [
+          {
+            field: "checkInSlotId",
+            message: FACILITY_MESSAGES.checkInOutsideOperatingHours(openTime, closeTime),
+          },
+        ],
       );
     }
   }

@@ -60,6 +60,29 @@ async function checkout() {
 }
 
 describe("checkout payment reconciliation", () => {
+  it("binds check-in errors from numeric API responses to the check-in field", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.draft.mockRejectedValueOnce({
+      isAxiosError: true,
+      response: {
+        status: 400,
+        data: {
+          success: false,
+          error: {
+            code: 400,
+            message: "Outside operating hours",
+            details: [{ field: "checkInAt", message: "Outside operating hours" }],
+          },
+        },
+      },
+    });
+    const { result } = await checkout();
+    expect(result.current.form.getFieldState("checkInAt").error?.message).toBe(
+      "Outside operating hours",
+    );
+    expect(mocks.hold).not.toHaveBeenCalled();
+    log.mockRestore();
+  });
   it("keeps a pending SePay payment pending and prevents duplicate requests", async () => {
     mocks.pay.mockResolvedValue(pending);
     const { result } = await checkout();

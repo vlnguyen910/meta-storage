@@ -188,9 +188,6 @@ export function useReservationCheckout() {
             form.setError(field as keyof WizardValues, { type: "server", message: detail.message });
           }
         }
-        if (failure.code === "CHECK_IN_OUTSIDE_HOURS" || failure.code === "CHECK_IN_IN_PAST") {
-          form.setError("checkInAt", { type: "server", message: failure.message });
-        }
         showToast(failure.message, "error");
       }
     }

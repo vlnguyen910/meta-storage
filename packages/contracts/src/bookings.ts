@@ -7,7 +7,8 @@ export type { BookingDraft, BookingDraftPricing } from "./bookings.types";
 export const BookingDraftInputSchema = z.object({
   facilityId: z.string().uuid(),
   unitTypeId: z.string().uuid(),
-  checkInAt: z.string().datetime({ offset: true }),
+  checkInSlotId: z.string().uuid(),
+  checkInDate: z.iso.date(),
   durationMonths: z.number().int().min(1).max(12),
 });
 

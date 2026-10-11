@@ -32,7 +32,8 @@ const ids = {
 const input = {
   facilityId: ids.facility,
   unitTypeId: ids.type,
-  checkInAt: "2030-01-01T09:30:00+07:00",
+  checkInSlotId: ids.slot,
+  checkInDate: "2030-01-01",
   durationMonths: 2,
 };
 const app = Fastify();
@@ -90,6 +91,7 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
     await db
       .delete(facilityOperatingHours)
       .where(eq(facilityOperatingHours.facilityId, ids.facility));
+    await db.delete(bookings).where(eq(bookings.checkInSlotId, ids.extraSlot));
     await db.delete(checkInSlots).where(eq(checkInSlots.id, ids.extraSlot));
   });
 
@@ -108,7 +110,7 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
     });
   });
 
-  test("creates a guest draft with normalized schedule, immutable pricing and only a token hash persisted", async () => {
+  test("creates a guest draft with the selected slot schedule, immutable pricing and only a token hash persisted", async () => {
     const beforePayments = await db.select({ count: count() }).from(payments);
     const beforeReservations = await db.select({ count: count() }).from(reservationDrafts);
     const response = await createDraft({
@@ -170,12 +172,12 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
   });
   test("rejects invalid IDs and dates", async () => {
     expect((await createDraft({ ...input, facilityId: "invalid" })).statusCode).toBe(400);
-    expect((await createDraft({ ...input, checkInAt: "invalid" })).statusCode).toBe(400);
+    expect((await createDraft({ ...input, checkInDate: "invalid" })).statusCode).toBe(400);
   });
   test("rejects a past check-in", async () => {
-    const response = await createDraft({ ...input, checkInAt: "2000-01-01T09:30:00+07:00" });
+    const response = await createDraft({ ...input, checkInDate: "2000-01-01" });
     expect(response.statusCode).toBe(400);
-    expect(response.json().error.code).toBe("CHECK_IN_IN_PAST");
+    expect(response.json().error.code).toBe(400);
   });
   test("rejects unavailable facility, unit type or offering", async () => {
     await db.update(facilities).set({ isActive: false }).where(eq(facilities.id, ids.facility));
@@ -191,29 +193,64 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
     expect((await createDraft()).statusCode).toBe(404);
     expect((await createDraft({ ...input, unitTypeId: randomUUID() })).statusCode).toBe(404);
   });
-  test("rejects times outside operating hours or slot definitions", async () => {
-    const hours = await createDraft({ ...input, checkInAt: "2030-01-01T05:30:00+07:00" });
-    expect(hours.statusCode).toBe(400);
-    expect(hours.json().error.code).toBe("CHECK_IN_OUTSIDE_HOURS");
-    const slot = await createDraft({ ...input, checkInAt: "2030-01-01T10:00:00+07:00" });
-    expect(slot.statusCode).toBe(400);
-    expect(slot.json().error.code).toBe("CHECK_IN_OUTSIDE_SLOTS");
+  test("rejects a missing check-in slot", async () => {
+    const response = await createDraft({ ...input, checkInSlotId: randomUUID() });
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({
+      error: { code: 400, details: [{ field: "checkInSlotId" }] },
+    });
   });
-  test("rechecks operating hours after normalization to the slot start", async () => {
-    await db
-      .insert(facilityOperatingHours)
-      .values({ facilityId: ids.facility, dayOfWeek: 2, openTime: "09:15", closeTime: "22:00" });
+  test("rejects a slot starting outside the facility operating hours", async () => {
+    await db.insert(facilityOperatingHours).values({
+      facilityId: ids.facility,
+      dayOfWeek: 2,
+      openTime: "09:15",
+      closeTime: "22:00",
+    });
     const response = await createDraft();
     expect(response.statusCode).toBe(400);
-    expect(response.json().error.code).toBe("CHECK_IN_OUTSIDE_HOURS");
+    expect(response.json()).toMatchObject({
+      error: { code: 400, details: [{ field: "checkInSlotId" }] },
+    });
   });
-  test("rejects ambiguous slot definitions", async () => {
+  test("uses the explicitly selected slot even when slot times overlap", async () => {
+    await db.insert(checkInSlots).values({
+      id: ids.extraSlot,
+      name: "Overlap",
+      startTime: "09:15",
+      endTime: "09:45",
+    });
+    const response = await createDraft({ ...input, checkInSlotId: ids.extraSlot });
+    expect(response.statusCode).toBe(201);
+    expect(response.json().data.checkInAt).toBe("2030-01-01T02:15:00.000Z");
+    const [row] = await db.select().from(bookings).where(eq(bookings.id, response.json().data.id));
+    expect(row?.checkInSlotId).toBe(ids.extraSlot);
+    expect(row?.checkInDate).toBe(input.checkInDate);
+  });
+  test("keeps the Vietnamese check-in date when UTC falls on the previous day", async () => {
+    await db.insert(checkInSlots).values({
+      id: ids.extraSlot,
+      name: "Early slot",
+      startTime: "06:00",
+      endTime: "07:00",
+    });
+    const response = await createDraft({ ...input, checkInSlotId: ids.extraSlot });
+    expect(response.statusCode).toBe(201);
+    expect(response.json().data.checkInAt).toBe("2029-12-31T23:00:00.000Z");
+    const [row] = await db.select().from(bookings).where(eq(bookings.id, response.json().data.id));
+    expect(row?.checkInDate).toBe("2030-01-01");
+    expect(row?.checkInSlotId).toBe(ids.extraSlot);
+  });
+  test.each([
+    ["10:00", "09:00"],
+    ["09:00", "09:00"],
+  ])("rejects invalid slot time range %s to %s", async (startTime, endTime) => {
     await db
       .insert(checkInSlots)
-      .values({ id: ids.extraSlot, name: "Overlap", startTime: "09:15", endTime: "09:45" });
-    const response = await createDraft();
+      .values({ id: ids.extraSlot, name: "Invalid", startTime, endTime });
+    const response = await createDraft({ ...input, checkInSlotId: ids.extraSlot });
     expect(response.statusCode).toBe(400);
-    expect(response.json().error.code).toBe("CHECK_IN_OUTSIDE_SLOTS");
+    expect(response.json().error.code).toBe(400);
   });
   test("rejects exhausted capacity and ignores expired holds", async () => {
     const [allocation] = await db
@@ -232,7 +269,7 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
     if (!allocation) throw new Error("Allocation fixture was not created");
     const response = await createDraft();
     expect(response.statusCode).toBe(409);
-    expect(response.json().error.code).toBe("CAPACITY_UNAVAILABLE");
+    expect(response.json().error.code).toBe(409);
     await db
       .update(capacityAllocations)
       .set({ expiresAt: new Date(0) })

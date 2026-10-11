@@ -44,7 +44,8 @@ const password = "Booking-test-password-123";
 const input = {
   facilityId: ids.facility,
   unitTypeId: ids.type,
-  checkInAt: "2031-02-01T11:30:00+07:00",
+  checkInSlotId: ids.slot,
+  checkInDate: "2031-02-01",
   durationMonths: 1,
 };
 const app = Fastify();

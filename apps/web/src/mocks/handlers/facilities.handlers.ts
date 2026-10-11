@@ -1,5 +1,4 @@
 import {
-  ApiErrorCode,
   type CatalogFacility,
   type Facility,
   type FacilityStaffMember,
@@ -89,7 +88,7 @@ export function registerFacilityHandlers(mock: MockAdapter): void {
             optionsForUnits(database.units.filter((unit) => unit.facilityId === facilityId)),
           ),
         ]
-      : [404, errorBody(ApiErrorCode.NOT_FOUND, "Không tìm thấy facility")];
+      : [404, errorBody(404, "Không tìm thấy facility")];
   });
 
   mock.onGet(/\/catalog\/facilities\/[^/]+$/).reply((config) => {
@@ -98,7 +97,7 @@ export function registerFacilityHandlers(mock: MockAdapter): void {
     const facility = database.facilities.find((candidate) => candidate.id === facilityId);
     return facility && hydrateFacility(database, facility).availableUnits > 0
       ? [200, envelope(toCatalogFacility(hydrateFacility(database, facility)))]
-      : [404, errorBody(ApiErrorCode.NOT_FOUND, "Không tìm thấy facility khả dụng")];
+      : [404, errorBody(404, "Không tìm thấy facility khả dụng")];
   });
 
   mock.onGet("/facilities").reply((config) => {
@@ -137,7 +136,7 @@ export function registerFacilityHandlers(mock: MockAdapter): void {
   mock.onGet("/facilities/my-assignments").reply((config) => {
     const database = getMockDatabase();
     const user = currentUser(config, database);
-    if (!user) return [401, errorBody(ApiErrorCode.UNAUTHORIZED, "Vui lòng đăng nhập")];
+    if (!user) return [401, errorBody(401, "Vui lòng đăng nhập")];
 
     const assignments = user.assignedFacilityIds.map((facilityId) => {
       const facility = database.facilities.find((f) => f.id === facilityId);
@@ -160,10 +159,10 @@ export function registerFacilityHandlers(mock: MockAdapter): void {
   mock.onGet(/\/facilities\/[^/]+\/assignments$/).reply((config) => {
     const database = getMockDatabase();
     const user = currentUser(config, database);
-    if (!user) return [401, errorBody(ApiErrorCode.UNAUTHORIZED, "Vui lòng đăng nhập")];
+    if (!user) return [401, errorBody(401, "Vui lòng đăng nhập")];
     const facilityId = config.url?.split("/")[2] ?? "";
     if (user.role === UserRole.FACILITY_MANAGER && !user.assignedFacilityIds.includes(facilityId)) {
-      return [403, errorBody(ApiErrorCode.FORBIDDEN, "Không có quyền truy cập cơ sở này")];
+      return [403, errorBody(403, "Không có quyền truy cập cơ sở này")];
     }
     const matchingUsers = database.users.filter((u) => u.assignedFacilityIds.includes(facilityId));
     const assignments = matchingUsers.map((u) => ({
@@ -190,7 +189,7 @@ export function registerFacilityHandlers(mock: MockAdapter): void {
             optionsForUnits(database.units.filter((unit) => unit.facilityId === facilityId)),
           ),
         ]
-      : [404, errorBody(ApiErrorCode.NOT_FOUND, "Không tìm thấy cơ sở")];
+      : [404, errorBody(404, "Không tìm thấy cơ sở")];
   });
 
   mock.onGet(/\/facilities\/[^/]+$/).reply((config) => {
@@ -199,7 +198,7 @@ export function registerFacilityHandlers(mock: MockAdapter): void {
     const facility = database.facilities.find((candidate) => candidate.id === facilityId);
     return facility
       ? [200, envelope(hydrateFacility(database, facility))]
-      : [404, errorBody(ApiErrorCode.NOT_FOUND, "Không tìm thấy cơ sở")];
+      : [404, errorBody(404, "Không tìm thấy cơ sở")];
   });
 }
 

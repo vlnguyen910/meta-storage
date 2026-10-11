@@ -1,5 +1,4 @@
 import {
-  ApiErrorCode,
   CustomerSignUpInputSchema,
   type LoginInput,
   type SessionTokens,
@@ -26,7 +25,7 @@ export function registerAuthHandlers(mock: MockAdapter): void {
       !parsed.success ||
       db.users.some((u) => u.email.toLowerCase() === parsed.data.email.toLowerCase())
     )
-      return [400, errorBody(ApiErrorCode.VALIDATION_ERROR, M.invalid)];
+      return [400, errorBody(400, M.invalid)];
     const { name, email, phone, password } = parsed.data;
     db.users.push({
       id: crypto.randomUUID(),
@@ -56,7 +55,7 @@ export function registerAuthHandlers(mock: MockAdapter): void {
     );
     return user
       ? [200, envelope(createSession(user), "Đăng nhập thành công")]
-      : [401, errorBody(ApiErrorCode.UNAUTHORIZED, "Email hoặc mật khẩu không đúng")];
+      : [401, errorBody(401, "Email hoặc mật khẩu không đúng")];
   });
 
   mock.onPost("/auth/refresh").reply((config) => {
@@ -65,7 +64,7 @@ export function registerAuthHandlers(mock: MockAdapter): void {
     const userId = tokenUserId(body.refreshToken, "refresh");
     const user = database.users.find((candidate) => candidate.id === userId);
     if (!user) {
-      return [401, errorBody(ApiErrorCode.UNAUTHORIZED, "Phiên đăng nhập đã hết hạn")];
+      return [401, errorBody(401, "Phiên đăng nhập đã hết hạn")];
     }
     const session = createSession(user);
     const tokens: SessionTokens = {
@@ -79,9 +78,7 @@ export function registerAuthHandlers(mock: MockAdapter): void {
   mock.onGet("/auth/me").reply((config) => {
     const database = getMockDatabase();
     const user = currentUser(config, database);
-    return user
-      ? [200, envelope(sessionUser(user))]
-      : [401, errorBody(ApiErrorCode.UNAUTHORIZED, "Vui lòng đăng nhập")];
+    return user ? [200, envelope(sessionUser(user))] : [401, errorBody(401, "Vui lòng đăng nhập")];
   });
 
   mock.onPost("/auth/logout").reply(200, envelope(null, "Đăng xuất thành công"));
