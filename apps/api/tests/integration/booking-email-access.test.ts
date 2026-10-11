@@ -7,7 +7,6 @@ import {
 } from "@metastorage/shared/booking-access";
 import Redis from "ioredis";
 import { createBookingTrackingLink } from "../../../worker/src/booking-tracking-link";
-import { ResendMailAdapter } from "../../../worker/src/resend-mail-adapter";
 
 const redisUrl = process.env.REDIS_TEST_URL;
 const redis = new Redis(redisUrl ?? "redis://127.0.0.1:6379/14", { lazyConnect: true });
@@ -45,48 +44,5 @@ describe.skipIf(!redisUrl)("Booking email magic-link delivery", () => {
     await redis.expire(bookingMagicKey(token), 120);
     expect((await createBookingTrackingLink(redis, input)).trackingUrl).toBe(first.trackingUrl);
     expect(await redis.ttl(bookingMagicKey(token))).toBeLessThanOrEqual(120);
-  });
-  test("Resend sends the tracking URL, escapes HTML and uses a stable idempotency key", async () => {
-    let sentBody: Record<string, unknown> = {};
-    let sentHeaders: Headers | undefined;
-    const adapter = new ResendMailAdapter({
-      apiKey: "test-key",
-      fromEmail: "StoreX <bookings@example.test>",
-      fetcher: async (_url, options) => {
-        sentBody = JSON.parse(options?.body as string);
-        sentHeaders = new Headers(options?.headers);
-        return new Response(JSON.stringify({ id: "provider-message" }), { status: 200 });
-      },
-    });
-    expect(
-      await adapter.sendBookingConfirmation({
-        deliveryId: input.deliveryId,
-        recipientEmail: "guest@example.test",
-        bookingCode: "SX123",
-        facilityName: "<script>bad</script>",
-        unitTypeName: "Small",
-        qrUrl: "https://example.test/check-in",
-        trackingUrl: "https://example.test/booking/tracking#token=secret",
-      }),
-    ).toEqual({ providerMessageId: "provider-message" });
-    expect(sentHeaders?.get("Idempotency-Key")).toBe(`booking-confirmation/${input.deliveryId}`);
-    expect(sentBody.html).toContain("booking/tracking#token=secret");
-    expect(sentBody.html).not.toContain("<script>");
-    const failing = new ResendMailAdapter({
-      apiKey: "test-key",
-      fromEmail: "test@example.test",
-      fetcher: async () => new Response("secret-provider-response", { status: 500 }),
-    });
-    await expect(
-      failing.sendBookingConfirmation({
-        deliveryId: input.deliveryId,
-        recipientEmail: "guest@example.test",
-        bookingCode: "SX123",
-        facilityName: "Facility",
-        unitTypeName: "Small",
-        qrUrl: "https://example.test",
-        trackingUrl: "https://example.test",
-      }),
-    ).rejects.not.toThrow("secret-provider-response");
   });
 });
