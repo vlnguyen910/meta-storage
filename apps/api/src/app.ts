@@ -18,7 +18,6 @@ import { facilitiesRoutes } from "./modules/facilities/facilities.routes";
 import { inspectionsRoutes } from "./modules/inspections/inspections.routes";
 import { paymentsRoutes } from "./modules/payments/payments.routes";
 import { rentalsRoutes } from "./modules/rentals/rentals.routes";
-import { reservationsRoutes } from "./modules/reservations/reservations.routes";
 import { usersRoutes } from "./modules/users/users.routes";
 
 export function buildApp(): FastifyInstance {
@@ -48,7 +47,6 @@ export function buildApp(): FastifyInstance {
   app.register(usersRoutes, { prefix: "/api/users" });
   app.register(authRoutes, { prefix: "/api/auth" });
   app.register(facilitiesRoutes, { prefix: "/api/facilities" });
-  app.register(reservationsRoutes, { prefix: "/api/reservations" });
   app.register(rentalsRoutes, { prefix: "/api/rentals" });
   app.register(bookingsRoutes, { prefix: "/api" });
   app.register(checkInsRoutes, { prefix: "/api" });

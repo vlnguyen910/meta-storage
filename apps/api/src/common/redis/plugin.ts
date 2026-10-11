@@ -30,10 +30,13 @@ const redisPluginAsync: FastifyPluginAsync<RedisPluginOptions> = async (fastify,
     }
   });
 
+  fastify.log.info("Connecting to Redis...");
   try {
     await redis.connect();
     await redis.ping();
+    fastify.log.info("Redis connection established");
   } catch (error) {
+    fastify.log.error("Redis connection failed");
     redis.disconnect();
     throw error;
   }
