@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
 import Redis from "ioredis";
 import { env } from "../../config/env";
+import { RedisService } from "./redis.service";
 import type { RedisPluginOptions } from "./redis.types";
 
 const redisPluginAsync: FastifyPluginAsync<RedisPluginOptions> = async (fastify, options) => {
@@ -17,6 +18,7 @@ const redisPluginAsync: FastifyPluginAsync<RedisPluginOptions> = async (fastify,
   // Avoid logging connection URLs or command arguments that may contain secrets.
   redis.on("error", () => fastify.log.warn("Redis connection error"));
   fastify.decorate("redis", redis);
+  fastify.decorate("redisService", new RedisService(redis));
   fastify.addHook("onClose", async () => {
     if (redis.status === "end") return;
     const closed = new Promise<void>((resolve) => redis.once("end", resolve));
