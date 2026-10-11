@@ -1,5 +1,6 @@
 import {
   type BookingListItem,
+  type BookingTracking,
   type EligibleUnit,
   type FacilityStaffMember,
   type PhysicalUnitAssignment,
@@ -20,6 +21,7 @@ import {
   gt,
   handoverInspections,
   inArray,
+  isNotNull,
   lt,
   type NewBooking,
   ne,
@@ -38,6 +40,80 @@ const assignedStaffUsers = aliasedTable(users, "assigned_staff_users");
 
 export class BookingsRepository {
   constructor(private readonly db: Database) {}
+
+  async findTrackingBooking(bookingId: string): Promise<BookingTracking | null> {
+    const [row] = await this.db
+      .select({
+        bookingCode: bookings.bookingCode,
+        status: bookings.status,
+        contactName: bookings.contactName,
+        contactEmail: bookings.contactEmail,
+        contactPhone: bookings.contactPhone,
+        facility: { name: facilities.name, address: facilities.address },
+        unitType: { name: unitTypes.name, sizeLabel: unitTypes.sizeLabel },
+        checkInSlotStart:
+          sql<Date>`(${bookings.checkInDate} + ${checkInSlots.startTime}) at time zone 'Asia/Ho_Chi_Minh'`.mapWith(
+            (value) => new Date(value),
+          ),
+        checkInSlotEnd:
+          sql<Date>`(${bookings.checkInDate} + ${checkInSlots.endTime}) at time zone 'Asia/Ho_Chi_Minh'`.mapWith(
+            (value) => new Date(value),
+          ),
+        rentalEndAt: bookings.rentalEndAt,
+        durationMonths: bookings.requestedMonths,
+        monthlyRateSnapshot: bookings.monthlyRateSnapshot,
+        rentalFeeAmount: bookings.rentalFeeAmount,
+        depositAmount: bookings.depositAmount,
+        totalAmount: bookings.totalAmount,
+        paymentStatus: payments.status,
+        paidAt: payments.paidAt,
+      })
+      .from(bookings)
+      .innerJoin(facilities, eq(facilities.id, bookings.facilityId))
+      .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
+      .innerJoin(checkInSlots, eq(checkInSlots.id, bookings.checkInSlotId))
+      .innerJoin(payments, eq(payments.bookingId, bookings.id))
+      .where(
+        and(
+          eq(bookings.id, bookingId),
+          inArray(bookings.status, ["CONFIRMED", "CHECKED_IN", "CANCELLED", "NO_SHOW"]),
+          inArray(payments.status, ["SUCCEEDED", "REFUNDED"]),
+          isNotNull(payments.paidAt),
+        ),
+      )
+      .orderBy(desc(payments.paidAt), desc(payments.id))
+      .limit(1);
+    if (
+      !row?.bookingCode ||
+      !row.contactName ||
+      !row.contactEmail ||
+      !row.contactPhone ||
+      !row.paidAt
+    )
+      return null;
+    return {
+      bookingCode: row.bookingCode,
+      status: row.status as BookingTracking["status"],
+      facility: row.facility,
+      unitType: row.unitType,
+      checkInSlotStart: row.checkInSlotStart.toISOString(),
+      checkInSlotEnd: row.checkInSlotEnd.toISOString(),
+      rentalEndAt: row.rentalEndAt.toISOString(),
+      durationMonths: row.durationMonths,
+      contact: { fullName: row.contactName, email: row.contactEmail, phone: row.contactPhone },
+      pricing: {
+        monthlyRateSnapshot: row.monthlyRateSnapshot,
+        rentalFeeAmount: row.rentalFeeAmount,
+        depositAmount: row.depositAmount,
+        totalAmount: row.totalAmount,
+        currency: "VND",
+      },
+      payment: {
+        status: row.paymentStatus as BookingTracking["payment"]["status"],
+        paidAt: row.paidAt.toISOString(),
+      },
+    };
+  }
 
   async createDraft(data: NewBooking) {
     const [draft] = await this.db.insert(bookings).values(data).returning();

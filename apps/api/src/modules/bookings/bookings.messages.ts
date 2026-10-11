@@ -1,4 +1,19 @@
 export const BOOKING_MESSAGES = {
+  accessInvalid: "Liên kết hoặc phiên tra cứu không hợp lệ hoặc đã hết hạn.",
+  accessUnavailable: "Dịch vụ tra cứu tạm thời không khả dụng. Vui lòng thử lại sau.",
+  accessRateLimited: "Bạn đã thử quá nhiều lần. Vui lòng thử lại sau một phút.",
+  accessOriginRejected: "Nguồn yêu cầu không được phép.",
+  exchangeDescription:
+    "POST the 64-character token from the email link fragment. Requires an allowed Origin. Returns bookingCode, expiresAt and current customer-facing booking details, and sets metastorage_booking_session (HttpOnly, SameSite=Lax, Secure in production, Path=/api/booking) for 30 minutes. Display the returned booking immediately; use GET tracking for refresh and subsequent updates. Reusable magic links expire after 7 days. Limited to 30 exchanges per minute per IP. No account login required; responses are no-store.",
+  trackingDescription:
+    "Requires the booking tracking cookie from magic-link exchange. Reads current customer-facing booking and payment details from PostgreSQL; the session can access only its own bookingCode. No account permissions are granted. Session expiry does not slide. Responses are no-store.",
+  revokeDescription:
+    "Requires an allowed Origin. Deletes the current Redis booking session and clears the cookie. Returns 204, including when no session exists. The original magic link can still be reopened until its expiry.",
+  sessionRevoked: "Booking tracking session revoked",
+  exchangeSummary: "Exchange an email magic link for a booking-scoped session",
+  trackingSummary: "View customer booking details using the booking session cookie",
+  revokeSummary: "Revoke the current booking tracking session",
+
   checkInInPast: "Ngày và giờ nhận kho phải sau thời điểm hiện tại (giờ Việt Nam).",
   checkInOutsideSlots: "Giờ nhận kho phải nằm trong một ca nhận kho có sẵn.",
   invalidCheckInSlot: "Ca nhận kho không tồn tại hoặc có khoảng giờ không hợp lệ.",

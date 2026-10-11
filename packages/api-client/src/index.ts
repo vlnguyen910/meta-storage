@@ -5,6 +5,8 @@ import type {
   AssignBookingStaffInput,
   AssignPhysicalUnitInput,
   BookingListItem,
+  BookingTracking,
+  BookingTrackingSession,
   CatalogFacility,
   CatalogFacilityListParams,
   CatalogUnitType,
@@ -222,6 +224,23 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
           .then(unwrap),
     },
     bookings: {
+      exchangeMagicLink: (token: string) =>
+        http
+          .post<ApiEnvelope<BookingTrackingSession>>("/booking/magic-link/exchange", { token }, {
+            skipAuthRefresh: true,
+          } as RetryConfig)
+          .then(unwrap),
+      tracking: (bookingCode: string) =>
+        http
+          .get<ApiEnvelope<BookingTracking>>(
+            `/booking/tracking/${encodeURIComponent(bookingCode)}`,
+            { skipAuthRefresh: true } as RetryConfig,
+          )
+          .then(unwrap),
+      revokeTrackingSession: () =>
+        http
+          .post("/booking/session/revoke", undefined, { skipAuthRefresh: true } as RetryConfig)
+          .then(() => undefined),
       listFacilityBookings: (facilityId: string, status?: string) =>
         http
           .get<ApiEnvelope<BookingListItem[]>>(`/facilities/${facilityId}/bookings`, {

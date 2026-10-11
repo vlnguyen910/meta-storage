@@ -13,7 +13,9 @@
   "dependencies": {
     "@metastorage/database": "workspace:*",
     "bullmq": "^5.58.5",
-    "ioredis": "^5.8.2"
+    "ioredis": "^5.8.2",
+    "@metastorage/shared": "workspace:*",
+    "dotenv": "^18.0.0"
   },
   "devDependencies": {
     "@metastorage/typescript-config": "workspace:*",

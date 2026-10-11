@@ -17,3 +17,23 @@ export type BookingDraft = {
   status: "DRAFT";
   pricing: BookingDraftPricing;
 };
+
+export interface BookingTrackingSession {
+  bookingCode: string;
+  expiresAt: string;
+  booking: BookingTracking;
+}
+
+export interface BookingTracking {
+  bookingCode: string;
+  status: "CONFIRMED" | "CANCELLED" | "NO_SHOW" | "CHECKED_IN";
+  facility: { name: string; address: string };
+  unitType: { name: string; sizeLabel: string };
+  checkInSlotStart: string;
+  checkInSlotEnd: string;
+  rentalEndAt: string;
+  durationMonths: number;
+  contact: { fullName: string; email: string; phone: string };
+  pricing: BookingDraftPricing;
+  payment: { status: "SUCCEEDED" | "REFUNDED"; paidAt: string };
+}

@@ -126,7 +126,9 @@
       "version": "0.0.1",
       "dependencies": {
         "@metastorage/database": "workspace:*",
+        "@metastorage/shared": "workspace:*",
         "bullmq": "^5.58.5",
+        "dotenv": "^18.0.0",
         "ioredis": "^5.8.2",
       },
       "devDependencies": {
@@ -182,6 +184,7 @@
       "version": "0.0.1",
       "devDependencies": {
         "@metastorage/typescript-config": "workspace:*",
+        "@types/node": "^22.13.4",
         "typescript": "^5.7.3",
       },
     },
@@ -2152,6 +2155,8 @@
     "vite/esbuild": ["esbuild@0.28.2", "", { "optionalDependencies": { "@esbuild/aix-ppc64": "0.28.2", "@esbuild/android-arm": "0.28.2", "@esbuild/android-arm64": "0.28.2", "@esbuild/android-x64": "0.28.2", "@esbuild/darwin-arm64": "0.28.2", "@esbuild/darwin-x64": "0.28.2", "@esbuild/freebsd-arm64": "0.28.2", "@esbuild/freebsd-x64": "0.28.2", "@esbuild/linux-arm": "0.28.2", "@esbuild/linux-arm64": "0.28.2", "@esbuild/linux-ia32": "0.28.2", "@esbuild/linux-loong64": "0.28.2", "@esbuild/linux-mips64el": "0.28.2", "@esbuild/linux-ppc64": "0.28.2", "@esbuild/linux-riscv64": "0.28.2", "@esbuild/linux-s390x": "0.28.2", "@esbuild/linux-x64": "0.28.2", "@esbuild/netbsd-arm64": "0.28.2", "@esbuild/netbsd-x64": "0.28.2", "@esbuild/openbsd-arm64": "0.28.2", "@esbuild/openbsd-x64": "0.28.2", "@esbuild/openharmony-arm64": "0.28.2", "@esbuild/sunos-x64": "0.28.2", "@esbuild/win32-arm64": "0.28.2", "@esbuild/win32-ia32": "0.28.2", "@esbuild/win32-x64": "0.28.2" }, "bin": { "esbuild": "bin/esbuild" } }, "sha512-HKVLS8dvII+xoKW9kmqxbRKrnWEXfJJr/FZhhJmiqIB0e053QNYFqOBouTMO/k5sID4MvCiUCvv8b9M4h32wIA=="],
 
     "web/zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
+
+    "worker/dotenv": ["dotenv@18.0.2", "", { "bin": { "dotenv": "dist/index.cjs" } }, "sha512-wl0U3CxC0iobaryqEKpFJxzyp4AxQFYAKj/WWszXZr87vVHLi2yJv2syax5Vxt+u02xqNgE277rsc3lOKg9sPg=="],
 
     "wrap-ansi/ansi-styles": ["ansi-styles@4.3.0", "", { "dependencies": { "color-convert": "^2.0.1" } }, "sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg=="],
 
