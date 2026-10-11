@@ -7,3 +7,10 @@ export interface BookingConfirmationEmailInput {
   unitTypeName: string;
   qrUrl: string;
 }
+
+export interface MailJobData {
+  deliveryId: string;
+  kind: "BOOKING_CONFIRMATION";
+  payload: string;
+  expiresAt: string;
+}

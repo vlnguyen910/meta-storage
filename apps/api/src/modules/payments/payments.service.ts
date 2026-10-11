@@ -8,6 +8,7 @@ import type {
 } from "@metastorage/contracts";
 import type { Payment } from "@metastorage/database";
 import { AppError, NotFoundError } from "../../common/errors/app-error";
+import type { BookingEmailService } from "../bookings/booking-email.service";
 import type { BookingReadRecord } from "../bookings/bookings.types";
 import { MockPaymentGateway, type PaymentGateway } from "./payment-gateway";
 import { PAYMENT_MESSAGES } from "./payments.messages";
@@ -27,7 +28,18 @@ export class PaymentsService {
       draftId: string,
     ) => Promise<PricingSnapshot | null> = async () => null,
     private readonly sepayGateway?: SepayPaymentGateway,
+    private readonly bookingEmail?: BookingEmailService,
   ) {}
+
+  private async confirmationWithEmail(completed: {
+    booking: BookingReadRecord;
+    confirmation: BookingConfirmation;
+  }): Promise<BookingConfirmation> {
+    const emailStatus =
+      (await this.bookingEmail?.enqueueConfirmation(completed.booking, completed.confirmation)) ??
+      "FAILED";
+    return { ...completed.confirmation, emailStatus };
+  }
 
   async pay(draftId: string, input: CheckoutPaymentBody): Promise<PaymentResult> {
     const holdTokenHash = hashToken(input.holdToken);
@@ -69,7 +81,7 @@ export class PaymentsService {
           bookingCode: completed.booking.bookingCode,
           paidAt: completed.booking.paidAt,
         },
-        completed.confirmation,
+        await this.confirmationWithEmail(completed),
       );
     }
 
@@ -152,7 +164,7 @@ export class PaymentsService {
         bookingCode: completedCheckout.booking.bookingCode,
         paidAt: completedCheckout.booking.paidAt,
       },
-      completedCheckout.confirmation,
+      await this.confirmationWithEmail(completedCheckout),
     );
   }
 
@@ -294,6 +306,7 @@ export class PaymentsService {
         "PAYMENT_UNCERTAIN",
       );
     await this.repository.updateProviderEvent(recorded.id, "PROCESSED", payment.id);
+    await this.confirmationWithEmail(completed);
     return { duplicate: false, processed: true, paymentId: payment.id };
   }
 
@@ -317,7 +330,7 @@ export class PaymentsService {
           bookingCode: completed.booking.bookingCode,
           paidAt: completed.booking.paidAt,
         },
-        completed.confirmation,
+        await this.confirmationWithEmail(completed),
       );
     }
 
@@ -359,7 +372,7 @@ export class PaymentsService {
         bookingCode: completed.booking.bookingCode,
         paidAt: completed.booking.paidAt,
       },
-      completed.confirmation,
+      await this.confirmationWithEmail(completed),
     );
   }
 
@@ -400,7 +413,12 @@ export class PaymentsService {
       transferInstructions,
       checkoutUrl: checkoutSession?.checkoutUrl,
       checkoutFormFields: checkoutSession?.formFields,
-      confirmation: completed?.confirmation,
+      confirmation: completed
+        ? {
+            ...completed.confirmation,
+            emailStatus: (await this.bookingEmail?.getStatus(completed.booking.id)) ?? "FAILED",
+          }
+        : undefined,
     };
   }
 }

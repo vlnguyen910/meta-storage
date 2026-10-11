@@ -1,66 +1,89 @@
 import { createHmac } from "node:crypto";
+import type { BookingConfirmation } from "@metastorage/contracts";
 import { BOOKING_ACCESS } from "@metastorage/shared/booking-access";
 import {
-  BOOKING_EMAIL_MESSAGES,
   type BookingConfirmationEmailInput,
   encryptMailPayload,
+  type MailJobData,
+  mailJobId,
 } from "@metastorage/shared/mail";
+import type { Queue } from "bullmq";
 import type Redis from "ioredis";
-import type { BookingEmailRepository } from "./booking-email.repository";
 import type { BookingEmailConfiguration } from "./booking-email.types";
 import { createBookingTrackingLink } from "./booking-tracking-link";
+import type { BookingReadRecord } from "./bookings.types";
 
 export class BookingEmailService {
   constructor(
-    private readonly repository: BookingEmailRepository,
     private readonly redis: Redis,
+    private readonly queue: Queue<MailJobData>,
     private readonly config: BookingEmailConfiguration,
   ) {}
 
-  async preparePendingConfirmations() {
-    const candidates = await this.repository.findPendingPreparation();
-    for (const row of candidates) {
-      const expiresAt = new Date(row.email.createdAt.getTime() + BOOKING_ACCESS.magicTtl * 1000);
-      if (expiresAt.getTime() <= Date.now()) {
-        await this.repository.savePreparation(row.email.id, {
-          status: "FAILED",
-          lastError: BOOKING_EMAIL_MESSAGES.accessExpired,
-          expiresAt,
-        });
-        continue;
-      }
-      try {
-        const link = await createBookingTrackingLink(this.redis, {
-          deliveryId: row.email.id,
-          bookingId: row.email.bookingId,
-          secret: this.config.magicLinkSecret,
-          publicAppUrl: this.config.publicAppUrl,
-          confirmedAt: row.email.createdAt,
-        });
-        const input: BookingConfirmationEmailInput = {
-          deliveryId: row.email.id,
-          recipientEmail: row.email.recipientEmail,
-          bookingCode: row.bookingCode,
-          facilityName: row.facilityName,
-          unitTypeName: row.unitTypeName,
-          trackingUrl: link.trackingUrl,
-          qrUrl: `${new URL("/check-in", this.config.publicAppUrl)}?token=${createHmac("sha256", this.config.qrTokenSecret).update(row.email.bookingId).digest("hex")}`,
-        };
-        await this.repository.savePreparation(row.email.id, {
+  async getStatus(bookingId: string): Promise<BookingConfirmation["emailStatus"]> {
+    try {
+      const job = await this.queue.getJob(mailJobId(bookingId));
+      if (!job) return "FAILED";
+      const state = await job.getState();
+      return state === "completed" ? "SENT" : state === "failed" ? "FAILED" : "QUEUED";
+    } catch {
+      return "PENDING";
+    }
+  }
+
+  async enqueueConfirmation(
+    booking: Pick<BookingReadRecord, "id" | "paidAt" | "contactEmail" | "bookingCode">,
+    confirmation: Pick<BookingConfirmation, "facility" | "unitTypeName">,
+  ): Promise<BookingConfirmation["emailStatus"]> {
+    try {
+      const jobId = mailJobId(booking.id);
+      if (await this.queue.getJob(jobId)) return this.getStatus(booking.id);
+      if (
+        !booking.paidAt ||
+        booking.paidAt.getTime() + BOOKING_ACCESS.magicTtl * 1000 <= Date.now()
+      )
+        return "FAILED";
+      const link = await createBookingTrackingLink(this.redis, {
+        deliveryId: booking.id,
+        bookingId: booking.id,
+        secret: this.config.magicLinkSecret,
+        publicAppUrl: this.config.publicAppUrl,
+        confirmedAt: booking.paidAt,
+      });
+      const input: BookingConfirmationEmailInput = {
+        deliveryId: booking.id,
+        recipientEmail: booking.contactEmail,
+        bookingCode: booking.bookingCode,
+        facilityName: confirmation.facility.name,
+        unitTypeName: confirmation.unitTypeName,
+        trackingUrl: link.trackingUrl,
+        qrUrl: `${new URL("/check-in", this.config.publicAppUrl)}?token=${createHmac("sha256", this.config.qrTokenSecret).update(booking.id).digest("hex")}`,
+      };
+      await this.queue.add(
+        "booking-confirmation",
+        {
+          deliveryId: booking.id,
+          kind: "BOOKING_CONFIRMATION",
           payload: encryptMailPayload(
             JSON.stringify(input),
             this.config.magicLinkSecret,
-            row.email.id,
+            booking.id,
           ),
-          expiresAt: new Date(link.expiresAt),
-          lastError: null,
-        });
-      } catch {
-        // Pending requests survive Redis/configuration failures; no payment rollback.
-        await this.repository.savePreparation(row.email.id, {
-          lastError: BOOKING_EMAIL_MESSAGES.preparationFailed,
-        });
-      }
+          expiresAt: link.expiresAt,
+        },
+        {
+          jobId,
+          attempts: 5,
+          backoff: { type: "exponential", delay: 5000 },
+          // Retain IDs through the link lifetime so payment replay cannot enqueue duplicates.
+          removeOnComplete: { age: BOOKING_ACCESS.magicTtl },
+          removeOnFail: { age: BOOKING_ACCESS.magicTtl },
+        },
+      );
+      return "QUEUED";
+    } catch {
+      this.config.onEnqueueFailure?.(booking.id);
+      return "FAILED";
     }
   }
 }

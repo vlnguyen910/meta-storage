@@ -2,6 +2,7 @@ import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { successResponse } from "../../common/response/api-response";
 import { env } from "../../config/env";
+import { BookingEmailService } from "../bookings/booking-email.service";
 import { PaymentsRepository } from "./payments.repository";
 import {
   type CheckoutPaymentBody,
@@ -44,6 +45,13 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
     undefined,
     (draftId) => repository.findDraftPricing(draftId),
     sepayGateway,
+    new BookingEmailService(fastify.redis, fastify.mailQueue, {
+      publicAppUrl: process.env.PUBLIC_APP_URL ?? "http://localhost:3000",
+      magicLinkSecret: process.env.BOOKING_MAGIC_LINK_SECRET ?? "",
+      qrTokenSecret: process.env.QR_TOKEN_SECRET ?? "storex-dev-qr-secret",
+      onEnqueueFailure: (bookingId) =>
+        fastify.log.error({ bookingId }, "Booking mail enqueue failed"),
+    }),
   );
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
 

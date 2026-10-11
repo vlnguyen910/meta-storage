@@ -1,10 +1,10 @@
 import Fastify, { type FastifyInstance } from "fastify";
 import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
-import { bookingMailPlugin } from "./common/cron/booking-mail.plugin";
 import { cronPlugin } from "./common/cron/plugin";
 import { databasePlugin } from "./common/database/plugin";
 import { setupErrorHandler } from "./common/errors/error-handler";
 import { loggerConfig } from "./common/logger/logger";
+import { mailQueuePlugin } from "./common/mail/plugin";
 import { corsPlugin } from "./common/plugins/cors";
 import { healthPlugin } from "./common/plugins/health";
 import { swaggerPlugin } from "./common/plugins/swagger";
@@ -38,7 +38,7 @@ export function buildApp(): FastifyInstance {
   app.register(databasePlugin);
   app.register(cronPlugin);
   app.register(redisPlugin);
-  app.register(bookingMailPlugin);
+  app.register(mailQueuePlugin);
   app.register(authPlugin);
   app.register(facilityContextPlugin);
   app.register(swaggerPlugin);

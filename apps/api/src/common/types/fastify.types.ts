@@ -1,4 +1,6 @@
 import type { Database } from "@metastorage/database";
+import type { MailJobData } from "@metastorage/shared/mail";
+import type { Queue } from "bullmq";
 import type Redis from "ioredis";
 import type { AuthSession, AuthUser } from "../../modules/auth/auth";
 import type { FacilityContext } from "../../modules/facilities/facilities.guard.types";
@@ -12,6 +14,7 @@ declare module "fastify" {
   }
 
   interface FastifyInstance {
+    mailQueue: Queue<MailJobData>;
     db: Database;
     redis: Redis;
     redisService: RedisService;

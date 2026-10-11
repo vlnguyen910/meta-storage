@@ -2,7 +2,6 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { createHash, randomUUID } from "node:crypto";
 import {
   accounts,
-  bookingConfirmationEmails,
   bookings,
   capacityAllocations,
   checkInSlots,
@@ -156,10 +155,6 @@ describe.skipIf(!testUrl)("Booking contact and optional account ownership with P
           .where(eq(reservationDrafts.facilityId, ids.facility))
       ).map((item) => item.id);
       await tx.delete(rentals).where(eq(rentals.facilityId, ids.facility));
-      if (bookingIds.length)
-        await tx
-          .delete(bookingConfirmationEmails)
-          .where(inArray(bookingConfirmationEmails.bookingId, bookingIds));
       if (bookingIds.length || draftIds.length)
         await tx
           .delete(payments)

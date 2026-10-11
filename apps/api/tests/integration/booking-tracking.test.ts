@@ -1,7 +1,6 @@
 import { afterAll, beforeAll, describe, expect, spyOn, test } from "bun:test";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import {
-  bookingConfirmationEmails,
   bookings,
   checkInSlots,
   db,
@@ -13,14 +12,15 @@ import {
   unitTypes,
 } from "@metastorage/database";
 import { BOOKING_ACCESS } from "@metastorage/shared/booking-access";
-import { decryptMailPayload } from "@metastorage/shared/mail";
+import { decryptMailPayload, type MailJobData, mailJobId } from "@metastorage/shared/mail";
+import { Queue, Worker } from "bullmq";
 import Fastify from "fastify";
 import { validatorCompiler } from "fastify-type-provider-zod";
-import { sendPendingBookingConfirmations } from "../../../worker/src/mail/mail.job";
+import Redis from "ioredis";
+import { processMailJob } from "../../../worker/src/mail/mail.job";
 import type { MailMessage } from "../../../worker/src/mail/mail.types";
 import { setupErrorHandler } from "../../src/common/errors/error-handler";
 import { redisPlugin } from "../../src/common/redis/plugin";
-import { BookingEmailRepository } from "../../src/modules/bookings/booking-email.repository";
 import { BookingEmailService } from "../../src/modules/bookings/booking-email.service";
 import { bookingsRoutes } from "../../src/modules/bookings/bookings.routes";
 
@@ -41,18 +41,6 @@ const keys: string[] = [];
 const requestIp = `2001:db8:${randomBytes(2).toString("hex")}:${randomBytes(2).toString("hex")}::1`;
 let created = false;
 const mailSecret = "test-only-magic-link-secret-32-characters";
-const prepareMail = () =>
-  new BookingEmailService(new BookingEmailRepository(db), app.redis, {
-    publicAppUrl: origin,
-    magicLinkSecret: mailSecret,
-    qrTokenSecret: "test-qr-secret",
-  }).preparePendingConfirmations();
-const trackingUrl = (message: MailMessage) => {
-  const url = message.text.match(/https?:\/\/\S+/)?.[0];
-  if (!url) throw new Error("Missing tracking URL");
-  return url;
-};
-
 async function grant(
   bookingId = ids.booking,
   expiresAt = new Date(Date.now() + 60_000).toISOString(),
@@ -238,218 +226,74 @@ describe.skipIf(!databaseUrl || !redisUrl)("Guest booking magic-link tracking", 
     await db.update(bookings).set({ status: "CONFIRMED" }).where(eq(bookings.id, ids.booking));
   });
 
-  test("confirmation worker retries the same link and grants access without a login", async () => {
-    const deliveryId = randomUUID();
+  test("booking mail runs through BullMQ, retries the same payload and grants tracking access", async () => {
+    const queueName = `test-mail-${randomUUID()}`;
+    const connection = new Redis(redisUrl as string, { maxRetriesPerRequest: null });
+    const queue = new Queue<MailJobData>(queueName, { connection: app.redis });
     const confirmedAt = new Date(Date.now() - 3600_000);
-    await db.insert(bookingConfirmationEmails).values({
-      id: deliveryId,
-      bookingId: ids.booking,
-      recipientEmail: "guest@example.test",
-      template: "booking-confirmation",
-      createdAt: confirmedAt,
+    const service = new BookingEmailService(app.redis, queue, {
+      publicAppUrl: origin,
+      magicLinkSecret: mailSecret,
+      qrTokenSecret: "test-qr-secret",
     });
-    await prepareMail();
+    const booking = {
+      id: ids.booking,
+      paidAt: confirmedAt,
+      contactEmail: "guest@example.test",
+      bookingCode: code,
+    };
+    const confirmation = {
+      facility: { name: "Tracking facility", address: "Test address" },
+      unitTypeName: "Tracking unit",
+    };
     const delivered: MailMessage[] = [];
-    let fail = true;
-    const dependencies = {
-      db,
-      redis: app.redis,
-      mailPayloadSecret: mailSecret,
-      mailAdapter: {
-        send: async (input: MailMessage) => {
-          delivered.push(input);
-          if (fail) throw new Error("provider-secret-should-not-be-persisted");
-          return { providerMessageId: "test-provider-id" };
-        },
+    const adapter = {
+      send: async (message: MailMessage) => {
+        delivered.push(message);
+        if (delivered.length === 1) throw new Error("temporary-provider-failure");
+        return { providerMessageId: "test-provider-id" };
       },
     };
-    await sendPendingBookingConfirmations(dependencies);
-    const [pending] = await db
-      .select()
-      .from(bookingConfirmationEmails)
-      .where(eq(bookingConfirmationEmails.id, deliveryId));
-    expect(pending?.status).toBe("PENDING");
-    expect(pending?.attempts).toBe(1);
-    expect(pending?.lastError).not.toContain("provider-secret");
-    expect(pending?.expiresAt).toEqual(
-      new Date(confirmedAt.getTime() + BOOKING_ACCESS.magicTtl * 1000),
-    );
-    fail = false;
-    await Promise.all([
-      sendPendingBookingConfirmations(dependencies),
-      sendPendingBookingConfirmations(dependencies),
-    ]);
-    expect(delivered).toHaveLength(2);
-    expect(delivered[1]?.text).toBe(delivered[0]?.text);
-    const [sent] = await db
-      .select()
-      .from(bookingConfirmationEmails)
-      .where(eq(bookingConfirmationEmails.id, deliveryId));
-    expect(sent?.status).toBe("SENT");
-    expect(sent?.attempts).toBe(2);
-    const firstDelivery = delivered[0];
-    if (!firstDelivery) throw new Error("Missing delivery");
-    expect(sent?.payload).not.toContain(trackingUrl(firstDelivery));
-    const token = new URL(trackingUrl(firstDelivery)).hash.slice("#token=".length);
-    keys.push(
-      `booking:delivery:${deliveryId}`,
-      `booking:magic:${createHash("sha256").update(token).digest("hex")}`,
-    );
-    const response = await exchange(token);
-    expect(response.statusCode).toBe(200);
-    const cookie = response.cookies[0];
-    if (!cookie) throw new Error("Missing tracking cookie");
-    const sessionKey = `booking:session:${createHash("sha256").update(cookie.value).digest("hex")}`;
-    keys.push(sessionKey);
-    // Redis disappearance/expiry revokes access even if the browser retains a cookie.
-    await app.redis.del(sessionKey);
-    expect(
-      (
-        await app.inject({
-          url: `/api/booking/tracking/${code}`,
-          headers: { cookie: `${cookie.name}=${cookie.value}` },
-        })
-      ).statusCode,
-    ).toBe(401);
-    await db.delete(bookingConfirmationEmails).where(eq(bookingConfirmationEmails.id, deliveryId));
-  });
-
-  test("Redis preparation failure preserves the request; recovery prepares it without changing its deadline", async () => {
-    const deliveryId = randomUUID();
-    const confirmedAt = new Date(Date.now() - 3600_000);
-    await db.insert(bookingConfirmationEmails).values({
-      id: deliveryId,
-      bookingId: ids.booking,
-      recipientEmail: "guest@example.test",
-      template: "recovery-test",
-      createdAt: confirmedAt,
-    });
-    const get = spyOn(app.redis, "get").mockRejectedValueOnce(new Error("private-redis-command"));
+    let worker: Worker<MailJobData> | undefined;
     try {
-      await prepareMail();
-      const [pending] = await db
-        .select()
-        .from(bookingConfirmationEmails)
-        .where(eq(bookingConfirmationEmails.id, deliveryId));
-      expect(pending).toMatchObject({ status: "PENDING", attempts: 0, payload: null });
-      expect(pending?.lastError).not.toContain("private-redis-command");
-    } finally {
-      get.mockRestore();
-    }
-    try {
-      await prepareMail();
-      const [ready] = await db
-        .select()
-        .from(bookingConfirmationEmails)
-        .where(eq(bookingConfirmationEmails.id, deliveryId));
-      expect(ready?.payload).toBeTruthy();
-      expect(ready?.expiresAt).toEqual(
-        new Date(confirmedAt.getTime() + BOOKING_ACCESS.magicTtl * 1000),
-      );
-      const payload = JSON.parse(decryptMailPayload(ready?.payload ?? "", mailSecret, deliveryId));
-      const token = new URL(payload.trackingUrl).hash.slice("#token=".length);
+      expect(await service.enqueueConfirmation(booking, confirmation)).toBe("QUEUED");
+      expect(await service.enqueueConfirmation(booking, confirmation)).toBe("QUEUED");
+      expect(await queue.getWaitingCount()).toBe(1);
+      const job = await queue.getJob(mailJobId(ids.booking));
+      if (!job) throw new Error("Missing mail job");
+      const input = JSON.parse(decryptMailPayload(job.data.payload, mailSecret, ids.booking));
+      const token = new URL(input.trackingUrl).hash.slice("#token=".length);
       keys.push(
-        `booking:delivery:${deliveryId}`,
+        `booking:delivery:${ids.booking}`,
         `booking:magic:${createHash("sha256").update(token).digest("hex")}`,
       );
+      expect(job.data.expiresAt).toBe(
+        new Date(confirmedAt.getTime() + BOOKING_ACCESS.magicTtl * 1000).toISOString(),
+      );
+      expect(job.data.payload).not.toContain(input.trackingUrl);
+      worker = new Worker<MailJobData>(
+        queueName,
+        (item) => processMailJob(item.data, adapter, mailSecret),
+        { connection },
+      );
+      const deadline = Date.now() + 9000;
+      while ((await job.getState()) !== "completed" && Date.now() < deadline) await Bun.sleep(100);
+      expect(await job.getState()).toBe("completed");
+      expect(delivered).toHaveLength(2);
+      expect(delivered[0]?.text).toBe(delivered[1]?.text);
+      expect(await service.getStatus(ids.booking)).toBe("SENT");
+      expect((await exchange(token)).statusCode).toBe(200);
+      await expect(
+        processMailJob({ ...job.data, expiresAt: new Date(0).toISOString() }, adapter, mailSecret),
+      ).rejects.toThrow();
+      expect(delivered).toHaveLength(2);
     } finally {
-      await db
-        .delete(bookingConfirmationEmails)
-        .where(eq(bookingConfirmationEmails.id, deliveryId));
+      await worker?.close();
+      await queue.obliterate({ force: true });
+      await queue.close();
+      await connection.quit();
     }
-  });
-
-  test("expired requests become FAILED before preparation or delivery, without sending mail", async () => {
-    const unpreparedId = randomUUID();
-    const preparedId = randomUUID();
-    await db.insert(bookingConfirmationEmails).values([
-      {
-        id: unpreparedId,
-        bookingId: ids.booking,
-        recipientEmail: "guest@example.test",
-        template: "expired-unprepared",
-        createdAt: new Date(Date.now() - 8 * 86400_000),
-      },
-      {
-        id: preparedId,
-        bookingId: ids.booking,
-        recipientEmail: "guest@example.test",
-        template: "expired-prepared",
-        payload: "not-decrypted-because-expired",
-        expiresAt: new Date(Date.now() - 1000),
-      },
-    ]);
-    let sent = 0;
-    try {
-      await prepareMail();
-      await sendPendingBookingConfirmations({
-        db,
-        redis: app.redis,
-        mailPayloadSecret: mailSecret,
-        mailAdapter: {
-          send: async () => {
-            sent++;
-            return { providerMessageId: "unexpected" };
-          },
-        },
-      });
-      const rows = await db
-        .select()
-        .from(bookingConfirmationEmails)
-        .where(inArray(bookingConfirmationEmails.id, [unpreparedId, preparedId]));
-      expect(rows).toHaveLength(2);
-      expect(rows.every((row) => row.status === "FAILED" && row.attempts === 0)).toBe(true);
-      expect(sent).toBe(0);
-    } finally {
-      await db
-        .delete(bookingConfirmationEmails)
-        .where(inArray(bookingConfirmationEmails.id, [unpreparedId, preparedId]));
-    }
-  });
-
-  test("marks the fifth failed email attempt terminal without changing the booking", async () => {
-    const deliveryId = randomUUID();
-    await db.insert(bookingConfirmationEmails).values({
-      id: deliveryId,
-      bookingId: ids.booking,
-      recipientEmail: "guest@example.test",
-      template: "terminal-test",
-      attempts: 4,
-    });
-    await prepareMail();
-    try {
-      await sendPendingBookingConfirmations({
-        db,
-        redis: app.redis,
-        mailPayloadSecret: mailSecret,
-        mailAdapter: {
-          send: async (input: MailMessage) => {
-            const token = new URL(trackingUrl(input)).hash.slice("#token=".length);
-            keys.push(
-              `booking:delivery:${deliveryId}`,
-              `booking:magic:${createHash("sha256").update(token).digest("hex")}`,
-            );
-            throw new Error("private-provider-error");
-          },
-        },
-      });
-      const [email] = await db
-        .select()
-        .from(bookingConfirmationEmails)
-        .where(eq(bookingConfirmationEmails.id, deliveryId));
-      expect(email?.status).toBe("FAILED");
-      expect(email?.attempts).toBe(5);
-      const [booking] = await db
-        .select({ status: bookings.status })
-        .from(bookings)
-        .where(eq(bookings.id, ids.booking));
-      expect(booking?.status).toBe("CONFIRMED");
-    } finally {
-      await db
-        .delete(bookingConfirmationEmails)
-        .where(eq(bookingConfirmationEmails.id, deliveryId));
-    }
-  });
+  }, 12_000);
 
   test("fails closed when Redis is unavailable, without leaking command data", async () => {
     const redisGet = spyOn(app.redisService, "get").mockImplementationOnce(async () => {
