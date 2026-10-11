@@ -337,6 +337,8 @@ erDiagram
     uuid booking_id FK
     varchar recipient_email
     varchar template
+    text payload "nullable; encrypted mail input prepared by Booking API"
+    timestamptz expires_at "nullable until prepared; confirmation + 7 days"
     booking_email_status status
     integer attempts
     text last_error
@@ -363,6 +365,13 @@ erDiagram
 ```
 
 ## Existing constraints and behavior
+
+- Booking confirmation email requests are inserted in the payment confirmation
+  transaction. Their `created_at` anchors the 7-day tracking-link lifetime. The
+  Booking API prepares and encrypts the mail payload before the worker can send
+  it; nullable payload/expiry preserve transactional creation without Redis.
+  Preparation can retry independently of payment. Retries never extend the link
+  lifetime. Requests whose link has expired before delivery become FAILED.
 
 - UUID primary keys on `users`, `facilities`, `facility_assignments`,
   `unit_types`, `storage_units`, `facility_operating_hours`, `check_in_slots`, `reservation_drafts`

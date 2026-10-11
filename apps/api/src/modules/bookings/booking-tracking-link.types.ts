@@ -3,6 +3,7 @@ export interface BookingTrackingLinkInput {
   bookingId: string;
   secret: string;
   publicAppUrl: string;
+  confirmedAt: Date;
 }
 export interface EncryptedBookingDelivery {
   ciphertext: string;

@@ -1,17 +1,12 @@
-import { createHmac, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
+import { and, bookingConfirmationEmails, eq, isNotNull, lte } from "@metastorage/database";
 import {
-  and,
-  bookingConfirmationEmails,
-  bookings,
-  eq,
-  facilities,
-  inArray,
-  lte,
-  unitTypes,
-} from "@metastorage/database";
-import type { BookingConfirmationDependencies } from "./booking-confirmation.types";
-import { BOOKING_EMAIL_MESSAGES } from "./booking-email.messages";
-import { createBookingTrackingLink } from "./booking-tracking-link";
+  BOOKING_EMAIL_MESSAGES,
+  type BookingConfirmationEmailInput,
+  decryptMailPayload,
+} from "@metastorage/shared/mail";
+import { sendBookingConfirmationEmail } from "./mail.service";
+import type { BookingConfirmationDependencies } from "./mail.types";
 
 const MAX_ATTEMPTS = 5;
 const LEASE_SECONDS = 60;
@@ -29,6 +24,7 @@ export async function sendPendingBookingConfirmations(
     .where(
       and(
         eq(bookingConfirmationEmails.status, "PENDING"),
+        isNotNull(bookingConfirmationEmails.payload),
         lte(bookingConfirmationEmails.attempts, MAX_ATTEMPTS),
       ),
     )
@@ -56,30 +52,26 @@ export async function sendPendingBookingConfirmations(
         const [current] = await tx
           .select({
             email: bookingConfirmationEmails,
-            bookingId: bookings.id,
-            bookingCode: bookings.bookingCode,
-            facilityName: facilities.name,
-            unitTypeName: unitTypes.name,
           })
           .from(bookingConfirmationEmails)
-          .innerJoin(bookings, eq(bookings.id, bookingConfirmationEmails.bookingId))
-          .innerJoin(facilities, eq(facilities.id, bookings.facilityId))
-          .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
           .where(
             and(
               eq(bookingConfirmationEmails.id, candidate.id),
               eq(bookingConfirmationEmails.status, "PENDING"),
-              inArray(bookings.status, ["CONFIRMED", "CHECKED_IN", "CANCELLED", "NO_SHOW"]),
+              isNotNull(bookingConfirmationEmails.payload),
             ),
           )
           .for("update", { of: bookingConfirmationEmails });
         if (!current) return null;
-        if (current.email.attempts >= MAX_ATTEMPTS) {
+        const expired = !current.email.expiresAt || current.email.expiresAt.getTime() <= Date.now();
+        if (current.email.attempts >= MAX_ATTEMPTS || expired) {
           await tx
             .update(bookingConfirmationEmails)
             .set({
               status: "FAILED",
-              lastError: BOOKING_EMAIL_MESSAGES.sendFailed,
+              lastError: expired
+                ? BOOKING_EMAIL_MESSAGES.accessExpired
+                : BOOKING_EMAIL_MESSAGES.sendFailed,
               updatedAt: new Date(),
             })
             .where(eq(bookingConfirmationEmails.id, candidate.id));
@@ -100,26 +92,15 @@ export async function sendPendingBookingConfirmations(
         eq(bookingConfirmationEmails.attempts, row.attempt),
       );
       try {
-        const link = await createBookingTrackingLink(deps.redis, {
-          deliveryId: candidate.id,
-          bookingId: row.bookingId,
-          secret: deps.magicLinkSecret,
-          publicAppUrl: deps.publicAppUrl,
-        });
+        const input = JSON.parse(
+          decryptMailPayload(row.email.payload ?? "", deps.mailPayloadSecret, candidate.id),
+        ) as BookingConfirmationEmailInput;
         if (
           leaseLost ||
           Number(await deps.redis.eval(renewScript, 1, leaseKey, owner, LEASE_SECONDS)) !== 1
         )
           continue;
-        const sent = await deps.mailAdapter.sendBookingConfirmation({
-          deliveryId: candidate.id,
-          recipientEmail: row.email.recipientEmail,
-          bookingCode: row.bookingCode,
-          facilityName: row.facilityName,
-          unitTypeName: row.unitTypeName,
-          trackingUrl: link.trackingUrl,
-          qrUrl: `${new URL("/check-in", deps.publicAppUrl)}?token=${createHmac("sha256", deps.qrTokenSecret).update(row.bookingId).digest("hex")}`,
-        });
+        const sent = await sendBookingConfirmationEmail(deps.mailAdapter, input);
         if (
           leaseLost ||
           Number(await deps.redis.eval(renewScript, 1, leaseKey, owner, LEASE_SECONDS)) !== 1
