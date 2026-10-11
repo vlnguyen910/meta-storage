@@ -82,4 +82,4 @@ bun run --filter web test:e2e --config=playwright.tracking.config.ts
 
 Cả hai lệnh cần BOOKING_TEST_DATABASE_URL và REDIS_TEST_URL. Bộ browser test tự chạy
 API cổng 4100 và web cổng 3000 ở chế độ API thật, kiểm tra desktop/mobile và axe.
-SMTP/Resend thật không được gọi trong test; adapter provider được kiểm tra qua fetch giả.
+SMTP/Resend thật không được gọi trong test; test worker dùng mail adapter giả để kiểm tra retry.
