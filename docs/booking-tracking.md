@@ -2,12 +2,19 @@
 
 Khách mở liên kết trong email xác nhận sau khi thanh toán thành công, không cần tài khoản.
 Logic đọc và cấp quyền nằm trong `BookingsService` và `BookingsRepository` hiện có.
-Không thêm bảng, cột hay migration; PostgreSQL vẫn là nguồn dữ liệu booking/thanh toán.
-Worker tiếp tục sử dụng bảng outbox `booking_confirmation_emails` đã có.
+PostgreSQL là nguồn dữ liệu booking/thanh toán. Outbox `booking_confirmation_emails`
+có thêm `payload` mã hóa và `expires_at` nullable; cần migration trước khi chạy bản mới.
 
 ## Luồng và API
 
-1. Worker đọc outbox, tạo token ngẫu nhiên 32 byte và gửi email qua Resend.
+1. Transaction xác nhận thanh toán ghi yêu cầu mail vào outbox. Booking service
+   trong API chuẩn bị token ngẫu nhiên 32 byte, link QR và payload mail được mã hóa;
+   lịch chuẩn bị chạy khi API ready và mỗi 10 giây. Hạn link là 7 ngày tính từ
+   `outbox.created_at` trong transaction xác nhận, kể cả khi chuẩn bị/gửi bị chậm.
+   Redis lỗi giữ yêu cầu PENDING để API thử lại, không rollback thanh toán.
+   Worker chỉ đọc payload đã chuẩn bị, dựng nội dung trong `mail.service.ts` và gửi
+   qua Resend. Không truy vấn nghiệp vụ booking hoặc tự cấp link. Mail chưa gửi mà
+   link đã hết hạn chuyển FAILED, không tự tạo link mới hoặc kéo dài hạn.
    Link có dạng `${PUBLIC_APP_URL}/booking/tracking#token=<64 hex>`.
    Fragment không được gửi trong HTTP request hoặc Referer. Trang có referrer policy
    `no-referrer`, không được index, xóa fragment trước khi gọi API.
@@ -39,9 +46,9 @@ booking, vì vậy nội dung email nhắc khách không chia sẻ link.
 
 | Key | Giá trị | TTL |
 | --- | --- | --- |
-| `booking:magic:<SHA256(token)>` | `bookingId`, `createdAt`, `expiresAt` | 7 ngày từ lần tạo link đầu tiên |
+| `booking:magic:<SHA256(token)>` | `bookingId`, `createdAt`, `expiresAt` | Phần thời gian còn lại trong 7 ngày từ xác nhận |
 | `booking:session:<SHA256(sessionToken)>` | `bookingId`, `bookingCode`, `createdAt`, `expiresAt` | 30 phút cố định |
-| `booking:delivery:<outboxId>` | `bookingId`, `createdAt`, `expiresAt`, `ciphertext`, `iv`, `tag` | 7 ngày |
+| `booking:delivery:<outboxId>` | `bookingId`, `createdAt`, `expiresAt`, `ciphertext`, `iv`, `tag` | Đến deadline cố định của link |
 | `booking:rate:exchange:<HMAC-SHA256(IP)>` | Số lần exchange trong cửa sổ hiện tại | 60 giây từ lần đầu |
 | `booking:email-lock:<outboxId>` | Mã sở hữu lock ngẫu nhiên | 60 giây, gia hạn mỗi 10 giây trong lúc xử lý |
 
@@ -59,13 +66,18 @@ mất hiệu lực; không có tự cấp lại link hoặc fallback OTP trong p
 
 ## Cấu hình
 
-Sao chép `apps/worker/.env.example` thành `.env`, cấu hình DATABASE_URL, REDIS_URL,
-PUBLIC_APP_URL và BOOKING_MAGIC_LINK_SECRET (tạo bằng `openssl rand -hex 32`).
-Giữ secret ổn định giữa các worker và lần khởi động để khôi phục payload retry.
+API cấu hình PUBLIC_APP_URL, BOOKING_MAGIC_LINK_SECRET và QR_TOKEN_SECRET.
+API và worker dùng cùng BOOKING_MAGIC_LINK_SECRET (ít nhất 32 ký tự, tạo bằng
+`openssl rand -hex 32`) để mã hóa/giải mã payload truyền qua DB. Giữ secret ổn định
+giữa các replica và lần khởi động. Worker không cần PUBLIC_APP_URL/QR_TOKEN_SECRET.
+Payload dùng AES-256-GCM với khóa dẫn xuất riêng cho mail, AAD ràng buộc outbox ID;
+DB không lưu link/token plaintext. API chuẩn bị nội dung đầu vào, worker giữ các
+hàm gửi từng loại mail trong cùng `mail/mail.service.ts`.
 
-- Local: `MAIL_PROVIDER=mock` chỉ ghi mã delivery, không gửi email hay in link.
-- Gửi thật: `MAIL_PROVIDER=resend`, RESEND_API_KEY và RESEND_FROM_EMAIL với domain đã xác minh.
-- Production yêu cầu provider Resend; dùng HTTPS cho web/API. Web/API nên cùng site để
+- Worker chỉ dùng Resend: RESEND_API_KEY và RESEND_FROM_EMAIL với domain đã xác minh.
+  Không còn MAIL_PROVIDER hay MockMailAdapter. Gửi thật được kiểm tra trên staging
+  khi hoàn thành API flow 1 và nối client; test tự động không gọi Resend.
+- Production dùng HTTPS cho web/API. Web/API nên cùng site để
   cookie SameSite=Lax hoạt động. Đặt CORS_ORIGIN và AUTH_TRUSTED_ORIGINS cho đúng web origin,
   NEXT_PUBLIC_API_BASE_URL trỏ tới API, PUBLIC_APP_URL trỏ tới web.
 - Giới hạn IP sử dụng IP kết nối Fastify; nếu triển khai sau proxy, cần cấu hình trustProxy

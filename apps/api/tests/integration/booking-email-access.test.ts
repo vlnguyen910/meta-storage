@@ -6,7 +6,7 @@ import {
   bookingMagicKey,
 } from "@metastorage/shared/booking-access";
 import Redis from "ioredis";
-import { createBookingTrackingLink } from "../../../worker/src/booking-tracking-link";
+import { createBookingTrackingLink } from "../../src/modules/bookings/booking-tracking-link";
 
 const redisUrl = process.env.REDIS_TEST_URL;
 const redis = new Redis(redisUrl ?? "redis://127.0.0.1:6379/14", { lazyConnect: true });
@@ -16,6 +16,7 @@ const input = {
   bookingId: randomUUID(),
   secret: "test-only-secret-with-at-least-32-characters",
   publicAppUrl: "http://localhost:3000",
+  confirmedAt: new Date(Date.now() - 60_000),
 };
 describe.skipIf(!redisUrl)("Booking email magic-link delivery", () => {
   beforeAll(() => redis.connect());
@@ -36,7 +37,13 @@ describe.skipIf(!redisUrl)("Booking email magic-link delivery", () => {
     expect(token).toMatch(/^[a-f0-9]{64}$/);
     const delivery = await redis.get(bookingDeliveryKey(input.deliveryId));
     expect(delivery).not.toContain(token);
-    expect(await redis.ttl(bookingMagicKey(token))).toBeGreaterThan(BOOKING_ACCESS.magicTtl - 10);
+    expect(await redis.ttl(bookingMagicKey(token))).toBeGreaterThan(BOOKING_ACCESS.magicTtl - 70);
+    expect(await redis.ttl(bookingMagicKey(token))).toBeLessThanOrEqual(
+      BOOKING_ACCESS.magicTtl - 60,
+    );
+    expect(first.expiresAt).toBe(
+      new Date(input.confirmedAt.getTime() + BOOKING_ACCESS.magicTtl * 1000).toISOString(),
+    );
     expect(JSON.parse((await redis.get(bookingMagicKey(token))) ?? "null")).toMatchObject({
       bookingId: input.bookingId,
       expiresAt: first.expiresAt,

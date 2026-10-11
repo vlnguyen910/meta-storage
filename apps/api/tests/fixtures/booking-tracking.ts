@@ -14,7 +14,7 @@ import {
   bookingDeliveryKey,
   bookingMagicKey,
 } from "../../../../packages/shared/src/booking-access";
-import { createBookingTrackingLink } from "../../../worker/src/booking-tracking-link";
+import { createBookingTrackingLink } from "../../src/modules/bookings/booking-tracking-link";
 
 export async function createTrackingFixture() {
   const id = randomUUID();
@@ -82,6 +82,7 @@ export async function createTrackingFixture() {
     bookingId: ids.booking,
     publicAppUrl: "http://127.0.0.1:3000",
     secret: "test-only-magic-link-secret-32-characters",
+    confirmedAt: new Date(),
   });
   const token = new URL(link.trackingUrl).hash.slice("#token=".length);
   return {

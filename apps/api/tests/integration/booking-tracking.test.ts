@@ -12,12 +12,16 @@ import {
   payments,
   unitTypes,
 } from "@metastorage/database";
+import { BOOKING_ACCESS } from "@metastorage/shared/booking-access";
+import { decryptMailPayload } from "@metastorage/shared/mail";
 import Fastify from "fastify";
 import { validatorCompiler } from "fastify-type-provider-zod";
-import { sendPendingBookingConfirmations } from "../../../worker/src/booking-confirmation";
-import type { BookingConfirmationEmailInput } from "../../../worker/src/mail-adapter.types";
+import { sendPendingBookingConfirmations } from "../../../worker/src/mail/mail.job";
+import type { MailMessage } from "../../../worker/src/mail/mail.types";
 import { setupErrorHandler } from "../../src/common/errors/error-handler";
 import { redisPlugin } from "../../src/common/redis/plugin";
+import { BookingEmailRepository } from "../../src/modules/bookings/booking-email.repository";
+import { BookingEmailService } from "../../src/modules/bookings/booking-email.service";
 import { bookingsRoutes } from "../../src/modules/bookings/bookings.routes";
 
 const databaseUrl = process.env.BOOKING_TEST_DATABASE_URL;
@@ -36,6 +40,18 @@ const app = Fastify();
 const keys: string[] = [];
 const requestIp = `2001:db8:${randomBytes(2).toString("hex")}:${randomBytes(2).toString("hex")}::1`;
 let created = false;
+const mailSecret = "test-only-magic-link-secret-32-characters";
+const prepareMail = () =>
+  new BookingEmailService(new BookingEmailRepository(db), app.redis, {
+    publicAppUrl: origin,
+    magicLinkSecret: mailSecret,
+    qrTokenSecret: "test-qr-secret",
+  }).preparePendingConfirmations();
+const trackingUrl = (message: MailMessage) => {
+  const url = message.text.match(/https?:\/\/\S+/)?.[0];
+  if (!url) throw new Error("Missing tracking URL");
+  return url;
+};
 
 async function grant(
   bookingId = ids.booking,
@@ -224,22 +240,23 @@ describe.skipIf(!databaseUrl || !redisUrl)("Guest booking magic-link tracking", 
 
   test("confirmation worker retries the same link and grants access without a login", async () => {
     const deliveryId = randomUUID();
+    const confirmedAt = new Date(Date.now() - 3600_000);
     await db.insert(bookingConfirmationEmails).values({
       id: deliveryId,
       bookingId: ids.booking,
       recipientEmail: "guest@example.test",
       template: "booking-confirmation",
+      createdAt: confirmedAt,
     });
-    const delivered: BookingConfirmationEmailInput[] = [];
+    await prepareMail();
+    const delivered: MailMessage[] = [];
     let fail = true;
     const dependencies = {
       db,
       redis: app.redis,
-      publicAppUrl: origin,
-      magicLinkSecret: "test-only-magic-link-secret-32-characters",
-      qrTokenSecret: "test-qr-secret",
+      mailPayloadSecret: mailSecret,
       mailAdapter: {
-        sendBookingConfirmation: async (input: BookingConfirmationEmailInput) => {
+        send: async (input: MailMessage) => {
           delivered.push(input);
           if (fail) throw new Error("provider-secret-should-not-be-persisted");
           return { providerMessageId: "test-provider-id" };
@@ -254,13 +271,16 @@ describe.skipIf(!databaseUrl || !redisUrl)("Guest booking magic-link tracking", 
     expect(pending?.status).toBe("PENDING");
     expect(pending?.attempts).toBe(1);
     expect(pending?.lastError).not.toContain("provider-secret");
+    expect(pending?.expiresAt).toEqual(
+      new Date(confirmedAt.getTime() + BOOKING_ACCESS.magicTtl * 1000),
+    );
     fail = false;
     await Promise.all([
       sendPendingBookingConfirmations(dependencies),
       sendPendingBookingConfirmations(dependencies),
     ]);
     expect(delivered).toHaveLength(2);
-    expect(delivered[1]?.trackingUrl).toBe(delivered[0]?.trackingUrl);
+    expect(delivered[1]?.text).toBe(delivered[0]?.text);
     const [sent] = await db
       .select()
       .from(bookingConfirmationEmails)
@@ -269,7 +289,8 @@ describe.skipIf(!databaseUrl || !redisUrl)("Guest booking magic-link tracking", 
     expect(sent?.attempts).toBe(2);
     const firstDelivery = delivered[0];
     if (!firstDelivery) throw new Error("Missing delivery");
-    const token = new URL(firstDelivery.trackingUrl).hash.slice("#token=".length);
+    expect(sent?.payload).not.toContain(trackingUrl(firstDelivery));
+    const token = new URL(trackingUrl(firstDelivery)).hash.slice("#token=".length);
     keys.push(
       `booking:delivery:${deliveryId}`,
       `booking:magic:${createHash("sha256").update(token).digest("hex")}`,
@@ -293,6 +314,99 @@ describe.skipIf(!databaseUrl || !redisUrl)("Guest booking magic-link tracking", 
     await db.delete(bookingConfirmationEmails).where(eq(bookingConfirmationEmails.id, deliveryId));
   });
 
+  test("Redis preparation failure preserves the request; recovery prepares it without changing its deadline", async () => {
+    const deliveryId = randomUUID();
+    const confirmedAt = new Date(Date.now() - 3600_000);
+    await db.insert(bookingConfirmationEmails).values({
+      id: deliveryId,
+      bookingId: ids.booking,
+      recipientEmail: "guest@example.test",
+      template: "recovery-test",
+      createdAt: confirmedAt,
+    });
+    const get = spyOn(app.redis, "get").mockRejectedValueOnce(new Error("private-redis-command"));
+    try {
+      await prepareMail();
+      const [pending] = await db
+        .select()
+        .from(bookingConfirmationEmails)
+        .where(eq(bookingConfirmationEmails.id, deliveryId));
+      expect(pending).toMatchObject({ status: "PENDING", attempts: 0, payload: null });
+      expect(pending?.lastError).not.toContain("private-redis-command");
+    } finally {
+      get.mockRestore();
+    }
+    try {
+      await prepareMail();
+      const [ready] = await db
+        .select()
+        .from(bookingConfirmationEmails)
+        .where(eq(bookingConfirmationEmails.id, deliveryId));
+      expect(ready?.payload).toBeTruthy();
+      expect(ready?.expiresAt).toEqual(
+        new Date(confirmedAt.getTime() + BOOKING_ACCESS.magicTtl * 1000),
+      );
+      const payload = JSON.parse(decryptMailPayload(ready?.payload ?? "", mailSecret, deliveryId));
+      const token = new URL(payload.trackingUrl).hash.slice("#token=".length);
+      keys.push(
+        `booking:delivery:${deliveryId}`,
+        `booking:magic:${createHash("sha256").update(token).digest("hex")}`,
+      );
+    } finally {
+      await db
+        .delete(bookingConfirmationEmails)
+        .where(eq(bookingConfirmationEmails.id, deliveryId));
+    }
+  });
+
+  test("expired requests become FAILED before preparation or delivery, without sending mail", async () => {
+    const unpreparedId = randomUUID();
+    const preparedId = randomUUID();
+    await db.insert(bookingConfirmationEmails).values([
+      {
+        id: unpreparedId,
+        bookingId: ids.booking,
+        recipientEmail: "guest@example.test",
+        template: "expired-unprepared",
+        createdAt: new Date(Date.now() - 8 * 86400_000),
+      },
+      {
+        id: preparedId,
+        bookingId: ids.booking,
+        recipientEmail: "guest@example.test",
+        template: "expired-prepared",
+        payload: "not-decrypted-because-expired",
+        expiresAt: new Date(Date.now() - 1000),
+      },
+    ]);
+    let sent = 0;
+    try {
+      await prepareMail();
+      await sendPendingBookingConfirmations({
+        db,
+        redis: app.redis,
+        mailPayloadSecret: mailSecret,
+        mailAdapter: {
+          send: async () => {
+            sent++;
+            return { providerMessageId: "unexpected" };
+          },
+        },
+      });
+      const rows = await db
+        .select()
+        .from(bookingConfirmationEmails)
+        .where(inArray(bookingConfirmationEmails.id, [unpreparedId, preparedId]));
+      expect(rows).toHaveLength(2);
+      expect(rows.every((row) => row.status === "FAILED" && row.attempts === 0)).toBe(true);
+      expect(sent).toBe(0);
+    } finally {
+      await db
+        .delete(bookingConfirmationEmails)
+        .where(inArray(bookingConfirmationEmails.id, [unpreparedId, preparedId]));
+    }
+  });
+
   test("marks the fifth failed email attempt terminal without changing the booking", async () => {
     const deliveryId = randomUUID();
     await db.insert(bookingConfirmationEmails).values({
@@ -302,16 +416,15 @@ describe.skipIf(!databaseUrl || !redisUrl)("Guest booking magic-link tracking", 
       template: "terminal-test",
       attempts: 4,
     });
+    await prepareMail();
     try {
       await sendPendingBookingConfirmations({
         db,
         redis: app.redis,
-        publicAppUrl: origin,
-        magicLinkSecret: "test-only-magic-link-secret-32-characters",
-        qrTokenSecret: "test-qr-secret",
+        mailPayloadSecret: mailSecret,
         mailAdapter: {
-          sendBookingConfirmation: async (input: BookingConfirmationEmailInput) => {
-            const token = new URL(input.trackingUrl).hash.slice("#token=".length);
+          send: async (input: MailMessage) => {
+            const token = new URL(trackingUrl(input)).hash.slice("#token=".length);
             keys.push(
               `booking:delivery:${deliveryId}`,
               `booking:magic:${createHash("sha256").update(token).digest("hex")}`,

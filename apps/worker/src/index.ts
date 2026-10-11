@@ -1,33 +1,20 @@
 import "./env";
 import { db, queryClient } from "@metastorage/database";
+import { BOOKING_EMAIL_MESSAGES } from "@metastorage/shared/mail";
 import { Queue, Worker } from "bullmq";
 import Redis from "ioredis";
-import { sendPendingBookingConfirmations } from "./booking-confirmation";
-import { BOOKING_EMAIL_MESSAGES } from "./booking-email.messages";
-import { MockMailAdapter } from "./mail-adapter";
-import { ResendMailAdapter } from "./resend-mail-adapter";
+import { sendPendingBookingConfirmations } from "./mail/mail.job";
+import { ResendMailAdapter } from "./mail/resend.adapter";
 
 const emailQueueName = "booking-confirmation-email";
-const publicAppUrl = process.env.PUBLIC_APP_URL ?? "http://localhost:3000";
-const magicLinkSecret = process.env.BOOKING_MAGIC_LINK_SECRET ?? "";
-const qrTokenSecret = process.env.QR_TOKEN_SECRET ?? "storex-dev-qr-secret";
-const mailProvider = process.env.MAIL_PROVIDER ?? (process.env.RESEND_API_KEY ? "resend" : "mock");
-if (magicLinkSecret.length < 32 || !["https:", "http:"].includes(new URL(publicAppUrl).protocol))
-  throw new Error(BOOKING_EMAIL_MESSAGES.accessConfiguration);
-if (
-  !["resend", "mock"].includes(mailProvider) ||
-  (process.env.NODE_ENV === "production" && mailProvider !== "resend")
-)
+const mailPayloadSecret = process.env.BOOKING_MAGIC_LINK_SECRET ?? "";
+if (mailPayloadSecret.length < 32) throw new Error(BOOKING_EMAIL_MESSAGES.payloadConfiguration);
+if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL)
   throw new Error(BOOKING_EMAIL_MESSAGES.providerConfiguration);
-if (mailProvider === "resend" && (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL))
-  throw new Error(BOOKING_EMAIL_MESSAGES.providerConfiguration);
-const mailAdapter =
-  mailProvider === "resend"
-    ? new ResendMailAdapter({
-        apiKey: process.env.RESEND_API_KEY ?? "",
-        fromEmail: process.env.RESEND_FROM_EMAIL ?? "",
-      })
-    : new MockMailAdapter();
+const mailAdapter = new ResendMailAdapter({
+  apiKey: process.env.RESEND_API_KEY,
+  fromEmail: process.env.RESEND_FROM_EMAIL,
+});
 // Queue connections can retry indefinitely; delivery commands must fail quickly.
 const deliveryRedis = new Redis(process.env.REDIS_URL ?? "redis://localhost:6379", {
   maxRetriesPerRequest: 1,
@@ -50,9 +37,7 @@ const emailWorker = new Worker(
       db,
       redis: deliveryRedis,
       mailAdapter,
-      publicAppUrl,
-      magicLinkSecret,
-      qrTokenSecret,
+      mailPayloadSecret,
     }),
   { connection: redis },
 );

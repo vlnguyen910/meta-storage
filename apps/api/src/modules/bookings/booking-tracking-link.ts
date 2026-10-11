@@ -4,8 +4,8 @@ import {
   bookingDeliveryKey,
   bookingMagicKey,
 } from "@metastorage/shared/booking-access";
+import { BOOKING_EMAIL_MESSAGES } from "@metastorage/shared/mail";
 import type Redis from "ioredis";
-import { BOOKING_EMAIL_MESSAGES } from "./booking-email.messages";
 import type {
   BookingTrackingLinkInput,
   EncryptedBookingDelivery,
@@ -33,8 +33,10 @@ export async function createBookingTrackingLink(
       iv: iv.toString("hex"),
       tag: cipher.getAuthTag().toString("hex"),
       bookingId: input.bookingId,
-      createdAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + BOOKING_ACCESS.magicTtl * 1000).toISOString(),
+      createdAt: input.confirmedAt.toISOString(),
+      expiresAt: new Date(
+        input.confirmedAt.getTime() + BOOKING_ACCESS.magicTtl * 1000,
+      ).toISOString(),
     };
     // Return the winner atomically. A retry can recover after a crash before grant creation.
     raw = String(
@@ -43,7 +45,12 @@ export async function createBookingTrackingLink(
         1,
         deliveryKey,
         JSON.stringify(delivery),
-        BOOKING_ACCESS.magicTtl,
+        Math.max(
+          1,
+          Math.ceil(
+            (input.confirmedAt.getTime() + BOOKING_ACCESS.magicTtl * 1000 - Date.now()) / 1000,
+          ),
+        ),
       ),
     );
   }

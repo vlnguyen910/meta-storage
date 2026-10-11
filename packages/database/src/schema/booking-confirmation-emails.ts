@@ -23,6 +23,8 @@ export const bookingConfirmationEmails = pgTable(
       .references(() => bookings.id, { onDelete: "cascade" }),
     recipientEmail: varchar({ length: 320 }).notNull(),
     template: varchar({ length: 80 }).notNull(),
+    payload: text(),
+    expiresAt: timestamp({ withTimezone: true }),
     status: bookingEmailStatusEnum().default("PENDING").notNull(),
     attempts: integer().default(0).notNull(),
     lastError: text(),

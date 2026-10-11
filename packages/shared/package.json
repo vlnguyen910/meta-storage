@@ -7,7 +7,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./booking-access": "./src/booking-access.ts"
+    "./booking-access": "./src/booking-access.ts",
+    "./mail": "./src/mail.ts"
   },
   "scripts": {
     "lint": "biome check src",
