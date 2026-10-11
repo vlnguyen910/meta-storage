@@ -39,7 +39,7 @@ describe("guest checkout validation", () => {
           headers: { "x-request-id": "request-123" },
           data: {
             error: {
-              code: "VALIDATION_ERROR",
+              code: 400,
               message: "Kiểm tra thông tin",
               details: [{ field: "contact.phone", message: "Số không hợp lệ" }],
             },
@@ -49,6 +49,7 @@ describe("guest checkout validation", () => {
       "draft",
     );
     expect(failure.message).toBe("Kiểm tra thông tin");
+    expect(failure.code).toBe(400);
     expect(failure.details?.[0]?.field).toBe("contact.phone");
     expect(log).toHaveBeenCalledWith(
       expect.any(String),

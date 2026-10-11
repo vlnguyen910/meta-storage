@@ -1,7 +1,6 @@
 import {
   type ApiEnvelope,
   type ApiErrorBody,
-  type ApiErrorCode,
   type Session,
   type SessionUser,
   StorageUnitStatus,
@@ -15,7 +14,7 @@ export function envelope<T>(data: T, message = "Thành công"): ApiEnvelope<T> {
   return { success: true, message, data, timestamp: new Date().toISOString() };
 }
 
-export function errorBody(code: ApiErrorCode, message: string): ApiErrorBody {
+export function errorBody(code: number, message: string): ApiErrorBody {
   return { success: false, message, error: { code }, timestamp: new Date().toISOString() };
 }
 

@@ -61,7 +61,9 @@ export class ReservationsService {
     let checkInAt = new Date(input.checkInAt);
     const now = new Date();
     if (Number.isNaN(checkInAt.getTime()) || checkInAt <= now) {
-      throw new AppError(RESERVATION_MESSAGES.checkInInPast, 400, "CHECK_IN_IN_PAST");
+      throw new AppError(RESERVATION_MESSAGES.checkInInPast, 400, "CHECK_IN_IN_PAST", [
+        { field: "checkInAt", message: RESERVATION_MESSAGES.checkInInPast },
+      ]);
     }
 
     const local = parseParts(checkInAt);
@@ -73,6 +75,12 @@ export class ReservationsService {
         RESERVATION_MESSAGES.checkInOutsideOperatingHours(openTime, closeTime),
         400,
         "CHECK_IN_OUTSIDE_HOURS",
+        [
+          {
+            field: "checkInAt",
+            message: RESERVATION_MESSAGES.checkInOutsideOperatingHours(openTime, closeTime),
+          },
+        ],
       );
     }
 
@@ -82,13 +90,21 @@ export class ReservationsService {
     }
     checkInAt = slot.startsAt;
     if (checkInAt <= now) {
-      throw new AppError(RESERVATION_MESSAGES.checkInInPast, 400, "CHECK_IN_IN_PAST");
+      throw new AppError(RESERVATION_MESSAGES.checkInInPast, 400, "CHECK_IN_IN_PAST", [
+        { field: "checkInAt", message: RESERVATION_MESSAGES.checkInInPast },
+      ]);
     }
     if (!isWithinHours(parseParts(checkInAt).time, openTime, closeTime)) {
       throw new AppError(
         RESERVATION_MESSAGES.checkInOutsideOperatingHours(openTime, closeTime),
         400,
         "CHECK_IN_OUTSIDE_HOURS",
+        [
+          {
+            field: "checkInAt",
+            message: RESERVATION_MESSAGES.checkInOutsideOperatingHours(openTime, closeTime),
+          },
+        ],
       );
     }
 

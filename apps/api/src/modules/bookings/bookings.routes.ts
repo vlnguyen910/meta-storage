@@ -23,6 +23,7 @@ import { FacilityUnitTypesRepository } from "../unit-types/facility-unit-types.r
 import { FacilityUnitTypesService } from "../unit-types/facility-unit-types.service";
 import { BookingsRepository } from "./bookings.repository";
 import { BookingsService } from "./bookings.service";
+import { bookingSwaggerTransform } from "./bookings.swagger";
 import { CheckInSlotsRepository } from "./check-in-slots.repository";
 import { CheckInSlotsService } from "./check-in-slots.service";
 
@@ -43,6 +44,7 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
   typedApp.post(
     "/bookings/drafts",
     {
+      config: { swaggerTransform: bookingSwaggerTransform("draft") },
       schema: { body: BookingDraftInputSchema },
       preHandler: [optionalAuth],
     },
@@ -57,6 +59,7 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
   typedApp.get(
     "/facilities/:facilityId/bookings",
     {
+      config: { swaggerTransform: bookingSwaggerTransform("facility") },
       schema: {
         params: FacilityBookingsParamsSchema,
         querystring: BookingListQuerySchema,
@@ -79,6 +82,7 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
   typedApp.get(
     "/bookings/assigned-to-me",
     {
+      config: { swaggerTransform: bookingSwaggerTransform("tasks") },
       schema: {
         querystring: StaffTasksQuerySchema,
       },
@@ -97,6 +101,7 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
   typedApp.get(
     "/bookings/:id",
     {
+      config: { swaggerTransform: bookingSwaggerTransform("detail") },
       schema: {
         params: BookingIdParamsSchema,
       },
@@ -123,6 +128,7 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
   typedApp.get(
     "/bookings/:id/eligible-units",
     {
+      config: { swaggerTransform: bookingSwaggerTransform("units") },
       schema: {
         params: BookingIdParamsSchema,
       },
@@ -148,6 +154,7 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
   typedApp.post(
     "/bookings/:id/assign-unit",
     {
+      config: { swaggerTransform: bookingSwaggerTransform("assignUnit") },
       schema: {
         params: BookingIdParamsSchema,
         body: AssignPhysicalUnitBodySchema,
@@ -176,6 +183,7 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
   typedApp.post(
     "/bookings/:id/assign-staff",
     {
+      config: { swaggerTransform: bookingSwaggerTransform("assignStaff") },
       schema: {
         params: BookingIdParamsSchema,
         body: AssignStaffBodySchema,

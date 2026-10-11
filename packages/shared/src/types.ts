@@ -4,7 +4,7 @@ export interface ApiErrorDetail {
 }
 
 export interface ApiError {
-  code: string;
+  code: number;
   message: string;
   details?: ApiErrorDetail[];
 }

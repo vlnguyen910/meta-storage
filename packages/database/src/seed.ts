@@ -1,4 +1,5 @@
 import { queryClient } from "./client";
+import { SEED_IDS, SEED_USERS } from "./seed-fixtures";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -9,26 +10,76 @@ async function seed() {
   console.log("1. Seeding facilities...");
   // Fictional catalog fixtures for local testing, not real metastorage locations.
   const facilitiesData = [
-    { code: "HCM-01", name: "metastorage Sài Gòn Central", address: "118 Nguyễn Văn Linh" },
-    { code: "HCM-02", name: "metastorage Bến Thành", address: "42 Lê Lai" },
-    { code: "HCM-03", name: "metastorage Bình Thạnh", address: "85 Điện Biên Phủ" },
-    { code: "HCM-04", name: "metastorage Thảo Điền", address: "28 Nguyễn Văn Hưởng" },
-    { code: "HCM-05", name: "metastorage Phú Nhuận", address: "156 Phan Xích Long" },
-    { code: "HCM-06", name: "metastorage Tân Bình", address: "67 Cộng Hòa" },
-    { code: "HCM-07", name: "metastorage Tân Phú", address: "93 Lũy Bán Bích" },
-    { code: "HCM-08", name: "metastorage Gò Vấp", address: "210 Nguyễn Oanh" },
-    { code: "HCM-09", name: "metastorage Bình Tân", address: "134 Tên Lửa" },
-    { code: "HCM-10", name: "metastorage Thủ Đức", address: "55 Võ Văn Ngân" },
+    {
+      id: SEED_IDS.facilities["HCM-01"],
+      code: "HCM-01",
+      name: "metastorage Sài Gòn Central",
+      address: "118 Nguyễn Văn Linh",
+    },
+    {
+      id: SEED_IDS.facilities["HCM-02"],
+      code: "HCM-02",
+      name: "metastorage Bến Thành",
+      address: "42 Lê Lai",
+    },
+    {
+      id: SEED_IDS.facilities["HCM-03"],
+      code: "HCM-03",
+      name: "metastorage Bình Thạnh",
+      address: "85 Điện Biên Phủ",
+    },
+    {
+      id: SEED_IDS.facilities["HCM-04"],
+      code: "HCM-04",
+      name: "metastorage Thảo Điền",
+      address: "28 Nguyễn Văn Hưởng",
+    },
+    {
+      id: SEED_IDS.facilities["HCM-05"],
+      code: "HCM-05",
+      name: "metastorage Phú Nhuận",
+      address: "156 Phan Xích Long",
+    },
+    {
+      id: SEED_IDS.facilities["HCM-06"],
+      code: "HCM-06",
+      name: "metastorage Tân Bình",
+      address: "67 Cộng Hòa",
+    },
+    {
+      id: SEED_IDS.facilities["HCM-07"],
+      code: "HCM-07",
+      name: "metastorage Tân Phú",
+      address: "93 Lũy Bán Bích",
+    },
+    {
+      id: SEED_IDS.facilities["HCM-08"],
+      code: "HCM-08",
+      name: "metastorage Gò Vấp",
+      address: "210 Nguyễn Oanh",
+    },
+    {
+      id: SEED_IDS.facilities["HCM-09"],
+      code: "HCM-09",
+      name: "metastorage Bình Tân",
+      address: "134 Tên Lửa",
+    },
+    {
+      id: SEED_IDS.facilities["HCM-10"],
+      code: "HCM-10",
+      name: "metastorage Thủ Đức",
+      address: "55 Võ Văn Ngân",
+    },
   ];
   const facilities = [];
   for (const facility of facilitiesData) {
     const [row] = await queryClient`
-      INSERT INTO facilities (code, name, address, description, is_active)
+      INSERT INTO facilities (id, code, name, address, description, is_active)
       VALUES (
-        ${facility.code}, ${facility.name}, ${`${facility.address}, TP. Hồ Chí Minh`},
+        ${facility.id}, ${facility.code}, ${facility.name}, ${`${facility.address}, TP. Hồ Chí Minh`},
         'Dữ liệu mẫu: kho lưu trữ cho gia đình và doanh nghiệp nhỏ, kiểm soát 24/7.', true
       )
-      ON CONFLICT (code) DO UPDATE SET
+      ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         address = EXCLUDED.address,
         description = EXCLUDED.description,
@@ -43,43 +94,16 @@ async function seed() {
   if (!facHcm) throw new Error("HCM facility was not created");
 
   console.log("2. Seeding users...");
-  const [manager] = await queryClient`
-    INSERT INTO users (email, phone, name, role, status, email_verified)
-    VALUES ('manager@metastorage.vn', '0900000003', 'Lê Thu Hà (Facility Manager)', 'FACILITY_MANAGER', 'ACTIVE', true)
-    ON CONFLICT (email) DO UPDATE SET
-      phone = EXCLUDED.phone,
-      name = EXCLUDED.name,
-      role = EXCLUDED.role,
-      status = EXCLUDED.status,
-      email_verified = EXCLUDED.email_verified
-    RETURNING id, email, name
-  `;
-
-  const [customer] = await queryClient`
-    INSERT INTO users (email, phone, name, role, status, email_verified)
-    VALUES ('customer@metastorage.vn', '0900000001', 'Lê Thị Mai Linh', 'CUSTOMER', 'ACTIVE', true)
-    ON CONFLICT (email) DO UPDATE SET
-      phone = EXCLUDED.phone,
-      name = EXCLUDED.name,
-      role = EXCLUDED.role,
-      status = EXCLUDED.status,
-      email_verified = EXCLUDED.email_verified
-    RETURNING id, email, name
-  `;
-
-  const [staff] = await queryClient`
-    INSERT INTO users (email, phone, name, role, status, email_verified)
-    VALUES ('staff@metastorage.vn', '0900000002', 'Trần Quốc Huy (Facility Staff)', 'FACILITY_STAFF', 'ACTIVE', true)
-    ON CONFLICT (email) DO UPDATE SET
-      phone = EXCLUDED.phone,
-      name = EXCLUDED.name,
-      role = EXCLUDED.role,
-      status = EXCLUDED.status,
-      email_verified = EXCLUDED.email_verified
-    RETURNING id, email, name
-  `;
-
-  if (!manager || !customer || !staff) throw new Error("Seed users were not created");
+  for (const fixture of SEED_USERS) {
+    await queryClient`
+      INSERT INTO users (id, email, phone, name, role, status, email_verified)
+      VALUES (${fixture.id}, ${fixture.email}, ${fixture.phone}, ${fixture.name}, ${fixture.role}, 'ACTIVE', true)
+      ON CONFLICT (id) DO UPDATE SET
+        email = EXCLUDED.email, phone = EXCLUDED.phone, name = EXCLUDED.name,
+        role = EXCLUDED.role, status = EXCLUDED.status, email_verified = EXCLUDED.email_verified
+    `;
+  }
+  const [customer, staff, manager] = SEED_USERS;
 
   console.log("3. Seeding facility assignments...");
   for (const assignment of [
@@ -87,8 +111,8 @@ async function seed() {
     { userId: staff.id, role: "FACILITY_STAFF" },
   ]) {
     await queryClient`
-      INSERT INTO facility_assignments (user_id, facility_id, role, is_active)
-      VALUES (${assignment.userId}, ${facHcm.id}, ${assignment.role}, true)
+      INSERT INTO facility_assignments (id, user_id, facility_id, role, is_active)
+      VALUES (${`90000000-0000-4000-8000-${assignment.userId.slice(-12)}`}, ${assignment.userId}, ${facHcm.id}, ${assignment.role}, true)
       ON CONFLICT (user_id, facility_id) DO UPDATE SET
         is_active = true,
         role = EXCLUDED.role,
@@ -100,6 +124,7 @@ async function seed() {
   // Dimensions below are fictional seed fixtures, not measured facility inventory.
   const unitTypesData = [
     {
+      id: SEED_IDS.unitTypes["UT-2M"],
       code: "UT-2M",
       name: "Kho tiêu chuẩn (2 m²)",
       sizeLabel: "2 m²",
@@ -109,6 +134,7 @@ async function seed() {
       monthlyPrice: 900000,
     },
     {
+      id: SEED_IDS.unitTypes["UT-4M"],
       code: "UT-4M",
       name: "Kho tiêu chuẩn (4 m²)",
       sizeLabel: "4 m²",
@@ -118,6 +144,7 @@ async function seed() {
       monthlyPrice: 1500000,
     },
     {
+      id: SEED_IDS.unitTypes["UT-6M"],
       code: "UT-6M",
       name: "Kho tiêu chuẩn (6 m²)",
       sizeLabel: "6 m²",
@@ -127,6 +154,7 @@ async function seed() {
       monthlyPrice: 2100000,
     },
     {
+      id: SEED_IDS.unitTypes["UT-AC-4M"],
       code: "UT-AC-4M",
       name: "Kho kiểm soát ẩm (4 m²)",
       sizeLabel: "4 m² - kiểm soát ẩm",
@@ -136,6 +164,7 @@ async function seed() {
       monthlyPrice: 1900000,
     },
     {
+      id: SEED_IDS.unitTypes["UT-1M"],
       code: "UT-1M",
       name: "Kho tiêu chuẩn (1 m²)",
       sizeLabel: "1 m²",
@@ -145,6 +174,7 @@ async function seed() {
       monthlyPrice: 500000,
     },
     {
+      id: SEED_IDS.unitTypes["UT-8M"],
       code: "UT-8M",
       name: "Kho tiêu chuẩn (8 m²)",
       sizeLabel: "8 m²",
@@ -154,6 +184,7 @@ async function seed() {
       monthlyPrice: 2700000,
     },
     {
+      id: SEED_IDS.unitTypes["UT-10M"],
       code: "UT-10M",
       name: "Kho tiêu chuẩn (10 m²)",
       sizeLabel: "10 m²",
@@ -163,6 +194,7 @@ async function seed() {
       monthlyPrice: 3300000,
     },
     {
+      id: SEED_IDS.unitTypes["UT-15M"],
       code: "UT-15M",
       name: "Kho tiêu chuẩn (15 m²)",
       sizeLabel: "15 m²",
@@ -176,12 +208,12 @@ async function seed() {
   const typeMap = new Map<string, string>();
   for (const unitType of unitTypesData) {
     const [row] = await queryClient`
-      INSERT INTO unit_types (code, name, size_label, length_m, width_m, height_m, monthly_price, is_active)
+      INSERT INTO unit_types (id, code, name, size_label, length_m, width_m, height_m, monthly_price, is_active)
       VALUES (
-        ${unitType.code}, ${unitType.name}, ${unitType.sizeLabel},
+        ${unitType.id}, ${unitType.code}, ${unitType.name}, ${unitType.sizeLabel},
         ${unitType.lengthM}, ${unitType.widthM}, ${unitType.heightM}, ${unitType.monthlyPrice}, true
       )
-      ON CONFLICT (code) DO UPDATE SET
+      ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         size_label = EXCLUDED.size_label,
         length_m = EXCLUDED.length_m,
@@ -209,9 +241,9 @@ async function seed() {
 
       // Every type is visible and bookable in the public catalog.
       await queryClient`
-        INSERT INTO storage_units (facility_id, unit_type_id, code, status)
-        VALUES (${facility.id}, ${unitTypeId}, ${`${facility.code}-${unitType.code}-001`}, 'AVAILABLE')
-        ON CONFLICT (code) DO UPDATE SET
+        INSERT INTO storage_units (id, facility_id, unit_type_id, code, status)
+        VALUES (${`71000000-0000-4000-8000-${facility.id.slice(-6)}${unitType.id.slice(-6)}`}, ${facility.id}, ${unitTypeId}, ${`${facility.code}-${unitType.code}-001`}, 'AVAILABLE')
+        ON CONFLICT (id) DO UPDATE SET
           facility_id = EXCLUDED.facility_id,
           unit_type_id = EXCLUDED.unit_type_id,
           status = EXCLUDED.status
@@ -221,14 +253,54 @@ async function seed() {
 
   console.log("5. Seeding storage units...");
   const storageUnitsData = [
-    { code: "HCM-01-001", typeCode: "UT-2M", status: "AVAILABLE" },
-    { code: "HCM-01-002", typeCode: "UT-2M", status: "AVAILABLE" },
-    { code: "HCM-01-003", typeCode: "UT-4M", status: "AVAILABLE" },
-    { code: "HCM-01-004", typeCode: "UT-4M", status: "AVAILABLE" },
-    { code: "HCM-01-005", typeCode: "UT-6M", status: "AVAILABLE" },
-    { code: "HCM-01-006", typeCode: "UT-6M", status: "OCCUPIED" },
-    { code: "HCM-01-007", typeCode: "UT-AC-4M", status: "MAINTENANCE" },
-    { code: "HCM-01-008", typeCode: "UT-AC-4M", status: "INSPECTION" },
+    {
+      id: SEED_IDS.storageUnits["HCM-01-001"],
+      code: "HCM-01-001",
+      typeCode: "UT-2M",
+      status: "AVAILABLE",
+    },
+    {
+      id: SEED_IDS.storageUnits["HCM-01-002"],
+      code: "HCM-01-002",
+      typeCode: "UT-2M",
+      status: "AVAILABLE",
+    },
+    {
+      id: SEED_IDS.storageUnits["HCM-01-003"],
+      code: "HCM-01-003",
+      typeCode: "UT-4M",
+      status: "AVAILABLE",
+    },
+    {
+      id: SEED_IDS.storageUnits["HCM-01-004"],
+      code: "HCM-01-004",
+      typeCode: "UT-4M",
+      status: "AVAILABLE",
+    },
+    {
+      id: SEED_IDS.storageUnits["HCM-01-005"],
+      code: "HCM-01-005",
+      typeCode: "UT-6M",
+      status: "AVAILABLE",
+    },
+    {
+      id: SEED_IDS.storageUnits["HCM-01-006"],
+      code: "HCM-01-006",
+      typeCode: "UT-6M",
+      status: "OCCUPIED",
+    },
+    {
+      id: SEED_IDS.storageUnits["HCM-01-007"],
+      code: "HCM-01-007",
+      typeCode: "UT-AC-4M",
+      status: "MAINTENANCE",
+    },
+    {
+      id: SEED_IDS.storageUnits["HCM-01-008"],
+      code: "HCM-01-008",
+      typeCode: "UT-AC-4M",
+      status: "INSPECTION",
+    },
   ];
 
   const unitMap = new Map<string, string>();
@@ -237,9 +309,9 @@ async function seed() {
     if (!typeId) continue;
 
     const [row] = await queryClient`
-      INSERT INTO storage_units (facility_id, unit_type_id, code, status)
-      VALUES (${facHcm.id}, ${typeId}, ${storageUnit.code}, ${storageUnit.status})
-      ON CONFLICT (code) DO UPDATE SET
+      INSERT INTO storage_units (id, facility_id, unit_type_id, code, status)
+      VALUES (${storageUnit.id}, ${facHcm.id}, ${typeId}, ${storageUnit.code}, ${storageUnit.status})
+      ON CONFLICT (id) DO UPDATE SET
         facility_id = EXCLUDED.facility_id,
         unit_type_id = EXCLUDED.unit_type_id,
         status = EXCLUDED.status
@@ -251,25 +323,25 @@ async function seed() {
   console.log("6. Seeding check-in slots...");
   const checkInSlotsData = [
     {
-      id: "20000000-0000-4000-8000-000000000001",
+      id: SEED_IDS.checkInSlots[0],
       name: "Ca 1",
       startTime: "09:00:00",
       endTime: "10:30:00",
     },
     {
-      id: "20000000-0000-4000-8000-000000000002",
+      id: SEED_IDS.checkInSlots[1],
       name: "Ca 2",
       startTime: "10:30:00",
       endTime: "12:00:00",
     },
     {
-      id: "20000000-0000-4000-8000-000000000003",
+      id: SEED_IDS.checkInSlots[2],
       name: "Ca 3",
       startTime: "14:00:00",
       endTime: "15:30:00",
     },
     {
-      id: "20000000-0000-4000-8000-000000000004",
+      id: SEED_IDS.checkInSlots[3],
       name: "Ca 4",
       startTime: "15:30:00",
       endTime: "17:00:00",
@@ -288,6 +360,7 @@ async function seed() {
   const now = Date.now();
   const bookingData = [
     {
+      id: SEED_IDS.bookings["BK-2026-0001"],
       code: "BK-2026-0001",
       scenario: "CONFIRMED_TODAY",
       typeCode: "UT-2M",
@@ -305,6 +378,7 @@ async function seed() {
       paymentStatus: "SUCCEEDED",
     },
     {
+      id: SEED_IDS.bookings["BK-2026-0002"],
       code: "BK-2026-0002",
       scenario: "TOO_EARLY",
       typeCode: "UT-4M",
@@ -322,6 +396,7 @@ async function seed() {
       paymentStatus: "SUCCEEDED",
     },
     {
+      id: SEED_IDS.bookings["BK-2026-0003"],
       code: "BK-2026-0003",
       scenario: "NO_SHOW",
       typeCode: "UT-6M",
@@ -360,21 +435,21 @@ async function seed() {
 
     const [booking] = await queryClient`
       INSERT INTO bookings (
-        booking_code, user_id, contact_name, contact_email, contact_phone,
+        id, booking_code, user_id, contact_name, contact_email, contact_phone,
         facility_id, unit_type_id, requested_months,
         check_in_date, check_in_slot_id,
         rental_end_at, monthly_rate_snapshot, rental_fee_amount, deposit_amount, total_amount,
         status
       )
       VALUES (
-        ${bookingSeed.code}, ${customer.id},
+        ${bookingSeed.id}, ${bookingSeed.code}, ${customer.id},
         ${bookingSeed.contactName}, ${bookingSeed.contactEmail}, ${bookingSeed.contactPhone},
         ${facHcm.id}, ${typeId}, ${bookingSeed.months},
         ${checkInDate}, ${slotId}, ${rentalEndAt.toISOString()},
         ${bookingSeed.monthlyRate}, ${rentalFeeAmount}, ${depositAmount}, ${totalAmount},
         ${bookingSeed.status}
       )
-      ON CONFLICT (booking_code) DO UPDATE SET
+      ON CONFLICT (id) DO UPDATE SET
         user_id = EXCLUDED.user_id,
         contact_name = EXCLUDED.contact_name,
         contact_email = EXCLUDED.contact_email,
@@ -425,9 +500,9 @@ async function seed() {
       const physicalUnitId = unitMap.get(bookingSeed.assignCode);
       if (physicalUnitId) {
         await queryClient`
-          INSERT INTO unit_assignments (booking_id, physical_unit_id, assigned_by, status, reason)
+          INSERT INTO unit_assignments (id, booking_id, physical_unit_id, assigned_by, status, reason)
           VALUES (
-            ${booking.id}, ${physicalUnitId}, ${manager.id}, 'ACTIVE',
+            ${`b0000000-0000-4000-8000-${booking.id.slice(-12)}`}, ${booking.id}, ${physicalUnitId}, ${manager.id}, 'ACTIVE',
             ${`Seed scenario: ${bookingSeed.scenario}`}
           )
         `;

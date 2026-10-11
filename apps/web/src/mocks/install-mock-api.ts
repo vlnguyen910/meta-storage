@@ -1,4 +1,3 @@
-import { ApiErrorCode } from "@metastorage/contracts";
 import type { AxiosInstance } from "axios";
 import MockAdapter from "axios-mock-adapter";
 import { errorBody } from "./core/http";
@@ -30,5 +29,5 @@ export function installMockApi(http: AxiosInstance): void {
   registerDashboardHandlers(mock);
   registerUsersHandlers(mock);
 
-  mock.onAny().reply(404, errorBody(ApiErrorCode.NOT_FOUND, MOCK_MESSAGES.endpoint));
+  mock.onAny().reply(404, errorBody(404, MOCK_MESSAGES.endpoint));
 }

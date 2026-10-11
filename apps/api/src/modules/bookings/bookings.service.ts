@@ -51,17 +51,19 @@ export class BookingsService {
       input.facilityId,
       input.unitTypeId,
     );
-    const requestedAt = new Date(input.checkInAt);
-    const now = new Date();
-    if (Number.isNaN(requestedAt.getTime()) || requestedAt <= now) {
-      throw new AppError(BOOKING_MESSAGES.checkInInPast, 400, "CHECK_IN_IN_PAST");
+    const slot = await this.checkInSlotsService.findByIdForDate(
+      input.checkInSlotId,
+      input.checkInDate,
+    );
+    if (!slot) {
+      throw new AppError(BOOKING_MESSAGES.invalidCheckInSlot, 400, "INVALID_CHECK_IN_SLOT", [
+        { field: "checkInSlotId", message: BOOKING_MESSAGES.invalidCheckInSlot },
+      ]);
     }
-    await this.facilitiesService.assertCheckInWithinOperatingHours(input.facilityId, requestedAt);
-    const slot = await this.checkInSlotsService.findForCheckIn(requestedAt);
-    if (!slot)
-      throw new AppError(BOOKING_MESSAGES.checkInOutsideSlots, 400, "CHECK_IN_OUTSIDE_SLOTS");
-    if (slot.startsAt <= now)
-      throw new AppError(BOOKING_MESSAGES.checkInInPast, 400, "CHECK_IN_IN_PAST");
+    if (slot.startsAt <= new Date())
+      throw new AppError(BOOKING_MESSAGES.checkInInPast, 400, "CHECK_IN_IN_PAST", [
+        { field: "checkInDate", message: BOOKING_MESSAGES.checkInInPast },
+      ]);
     await this.facilitiesService.assertCheckInWithinOperatingHours(input.facilityId, slot.startsAt);
     const rentalEndAt = new Date(slot.startsAt);
     rentalEndAt.setUTCMonth(rentalEndAt.getUTCMonth() + input.durationMonths);

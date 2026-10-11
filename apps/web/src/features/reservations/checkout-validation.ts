@@ -62,7 +62,7 @@ export function checkoutFailure(error: unknown, stage: "draft" | "hold" | "payme
   const response = axios.isAxiosError(error) ? error.response : undefined;
   const body = response?.data as
     | {
-        error?: { code?: string; message?: string; details?: { field: string; message: string }[] };
+        error?: { code?: number; message?: string; details?: { field: string; message: string }[] };
         message?: string;
       }
     | undefined;

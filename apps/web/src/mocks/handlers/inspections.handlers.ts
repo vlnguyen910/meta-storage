@@ -1,5 +1,4 @@
 import {
-  ApiErrorCode,
   type Inspection,
   InspectionDraftInputSchema,
   InspectionPhotoInputSchema,
@@ -19,7 +18,7 @@ function persist(db: MockDatabase, inspection: Inspection): [number, unknown] {
     saveMockDatabase(db);
     return [200, envelope(inspection)];
   } catch {
-    return [507, errorBody(ApiErrorCode.VALIDATION_ERROR, M.storage)];
+    return [507, errorBody(507, M.storage)];
   }
 }
 function context(config: AxiosRequestConfig) {
@@ -33,18 +32,18 @@ export function registerInspectionHandlers(mock: MockAdapter): void {
   mock.onGet(/\/bookings\/[^/]+\/inspections$/).reply((config) => {
     const db = getMockDatabase();
     const booking = db.bookings.find((b) => b.id === config.url?.split("/")[2]);
-    if (!booking) return [404, errorBody(ApiErrorCode.NOT_FOUND, M.missing)];
+    if (!booking) return [404, errorBody(404, M.missing)];
     if (!canReadBooking(currentUser(config, db), booking))
-      return [403, errorBody(ApiErrorCode.FORBIDDEN, M.forbidden)];
+      return [403, errorBody(403, M.forbidden)];
     return [200, envelope(db.inspections.filter((i) => i.bookingId === booking.id))];
   });
   mock.onPost(/\/bookings\/[^/]+\/inspections$/).reply((config) => {
     const db = getMockDatabase();
     const user = currentUser(config, db);
     const booking = db.bookings.find((b) => b.id === config.url?.split("/")[2]);
-    if (!booking) return [404, errorBody(ApiErrorCode.NOT_FOUND, M.missing)];
+    if (!booking) return [404, errorBody(404, M.missing)];
     if (user?.role !== UserRole.FACILITY_STAFF || !canReadBooking(user, booking))
-      return [403, errorBody(ApiErrorCode.FORBIDDEN, M.forbidden)];
+      return [403, errorBody(403, M.forbidden)];
     const lookup = lookupResult(db, booking);
     const verification = lookup.verification;
     if (
@@ -53,7 +52,7 @@ export function registerInspectionHandlers(mock: MockAdapter): void {
       verification?.status !== "VERIFIED" ||
       verification.staffId !== user.id
     )
-      return [409, errorBody(ApiErrorCode.INVALID_CHECK_IN, M.notReady)];
+      return [409, errorBody(409, M.notReady)];
     const existing = db.inspections.find(
       (i) => i.bookingId === booking.id && i.verificationId === verification.id,
     );
@@ -87,33 +86,32 @@ export function registerInspectionHandlers(mock: MockAdapter): void {
   });
   mock.onGet(/\/inspections\/[^/]+$/).reply((config) => {
     const { user, inspection, booking } = context(config);
-    if (!inspection || !booking) return [404, errorBody(ApiErrorCode.NOT_FOUND, M.missing)];
+    if (!inspection || !booking) return [404, errorBody(404, M.missing)];
     return canReadBooking(user, booking)
       ? [200, envelope(inspection)]
-      : [403, errorBody(ApiErrorCode.FORBIDDEN, M.forbidden)];
+      : [403, errorBody(403, M.forbidden)];
   });
   mock.onGet(/\/inspections\/[^/]+\/photos\/[^/]+$/).reply((config) => {
     const { db, user, inspection, booking } = context(config);
     const photo = db.photoContents.find(
       (p) => p.id === config.url?.split("/")[4] && p.inspectionId === inspection?.id,
     );
-    if (!photo || !booking) return [404, errorBody(ApiErrorCode.NOT_FOUND, M.missing)];
+    if (!photo || !booking) return [404, errorBody(404, M.missing)];
     return canReadBooking(user, booking)
       ? [200, envelope(photo)]
-      : [403, errorBody(ApiErrorCode.FORBIDDEN, M.forbidden)];
+      : [403, errorBody(403, M.forbidden)];
   });
   const mutate = (
     config: AxiosRequestConfig,
     action: "save" | "upload" | "remove" | "complete" | "handover",
   ): [number, unknown] => {
     const { db, user, inspection, booking } = context(config);
-    if (!inspection || !booking) return [404, errorBody(ApiErrorCode.NOT_FOUND, M.missing)];
+    if (!inspection || !booking) return [404, errorBody(404, M.missing)];
     if (user?.role !== UserRole.FACILITY_STAFF || !canReadBooking(user, booking))
-      return [403, errorBody(ApiErrorCode.FORBIDDEN, M.forbidden)];
+      return [403, errorBody(403, M.forbidden)];
     if (action === "handover" && inspection.handedOverAt) return [200, envelope(inspection)];
     const body = parseBody<{ version: number }>(config.data);
-    if (body.version !== inspection.version)
-      return [409, errorBody(ApiErrorCode.RESERVATION_CONFLICT, M.stale)];
+    if (body.version !== inspection.version) return [409, errorBody(409, M.stale)];
     const lookup = lookupResult(db, booking);
     if (
       !lookup.eligibility.canProceed ||
@@ -122,24 +120,23 @@ export function registerInspectionHandlers(mock: MockAdapter): void {
       lookup.verification.staffId !== user.id ||
       booking.assignedUnit?.id !== inspection.unitAssignmentId
     )
-      return [409, errorBody(ApiErrorCode.INVALID_CHECK_IN, M.notReady)];
+      return [409, errorBody(409, M.notReady)];
     if (action !== "handover" && inspection.status !== "DRAFT")
-      return [409, errorBody(ApiErrorCode.RESERVATION_CONFLICT, M.locked)];
+      return [409, errorBody(409, M.locked)];
     if (action === "save") {
       const parsed = InspectionDraftInputSchema.safeParse(parseBody(config.data));
-      if (!parsed.success) return [400, errorBody(ApiErrorCode.VALIDATION_ERROR, M.invalid)];
+      if (!parsed.success) return [400, errorBody(400, M.invalid)];
       inspection.correctUnit = parsed.data.correctUnit;
       inspection.conditionNotes = parsed.data.conditionNotes;
     }
     if (action === "upload") {
       const parsed = InspectionPhotoInputSchema.safeParse(parseBody(config.data));
-      if (!parsed.success || inspection.photos.length >= 8)
-        return [400, errorBody(ApiErrorCode.VALIDATION_ERROR, M.invalid)];
+      if (!parsed.success || inspection.photos.length >= 8) return [400, errorBody(400, M.invalid)];
       let byteSize: number;
       try {
         byteSize = atob(parsed.data.dataBase64).length;
       } catch {
-        return [400, errorBody(ApiErrorCode.VALIDATION_ERROR, M.invalid)];
+        return [400, errorBody(400, M.invalid)];
       }
       const photo = {
         id: crypto.randomUUID(),
@@ -162,7 +159,7 @@ export function registerInspectionHandlers(mock: MockAdapter): void {
     }
     if (action === "complete") {
       if (!inspection.correctUnit || !inspection.conditionNotes.trim() || !inspection.photos.length)
-        return [409, errorBody(ApiErrorCode.RESERVATION_CONFLICT, M.incomplete)];
+        return [409, errorBody(409, M.incomplete)];
       booking.handoverStage = "READY_HANDOVER";
       inspection.status = "COMPLETED";
       inspection.completedAt = new Date().toISOString();
@@ -172,7 +169,7 @@ export function registerInspectionHandlers(mock: MockAdapter): void {
     if (action === "handover") {
       const unit = db.units.find((u) => u.id === inspection.physicalUnitId);
       if (inspection.status !== "COMPLETED" || unit?.status !== "RESERVED")
-        return [409, errorBody(ApiErrorCode.INVALID_CHECK_IN, M.notReady)];
+        return [409, errorBody(409, M.notReady)];
       inspection.handedOverAt = new Date().toISOString();
       inspection.handedOverBy = user.id;
       inspection.handedOverByName = user.name;

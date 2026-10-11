@@ -1,5 +1,3 @@
-import type { ApiErrorCode } from "./api-response";
-
 export interface PaginatedResult<T> {
   items: T[];
   page: number;
@@ -19,7 +17,7 @@ export interface ApiErrorBody {
   success: false;
   message: string;
   error: {
-    code: ApiErrorCode;
+    code: number;
     details?: Record<string, string[]>;
   };
   timestamp: string;

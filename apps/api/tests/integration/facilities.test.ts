@@ -1,23 +1,16 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, mock, spyOn, test } from "bun:test";
+import { afterAll, beforeAll, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import type { Facility, UnitType } from "@metastorage/database";
 import Fastify from "fastify";
 import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
 import { setupErrorHandler } from "../../src/common/errors/error-handler";
+import { auth } from "../../src/modules/auth/auth";
 import { FacilitiesRepository } from "../../src/modules/facilities/facilities.repository";
 import { FacilityUnitTypesRepository } from "../../src/modules/unit-types/facility-unit-types.repository";
 import { UNIT_TYPE_MESSAGES } from "../../src/modules/unit-types/unit-types.messages";
 
 // These GET routes are public. Keep the auth provider out of this suite and fail
 // if either route unexpectedly attempts to retrieve a session.
-mock.module("../../src/modules/auth/auth", () => ({
-  auth: {
-    api: {
-      getSession: mock(() => {
-        throw new Error("Public facility routes must not require a session");
-      }),
-    },
-  },
-}));
+const getSession = spyOn(auth.api, "getSession");
 
 const { facilitiesRoutes } = await import("../../src/modules/facilities/facilities.routes");
 
@@ -63,6 +56,9 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
+  getSession.mockImplementation(() => {
+    throw new Error("Public facility routes must not require a session");
+  });
   getFacilities.mockClear().mockResolvedValue([facility]);
   findFacility.mockClear().mockResolvedValue(facility);
   getUnitTypes.mockClear().mockResolvedValue([unitType]);
@@ -73,6 +69,7 @@ afterAll(async () => {
   getFacilities.mockRestore();
   findFacility.mockRestore();
   getUnitTypes.mockRestore();
+  getSession.mockRestore();
 });
 
 const invalidQueries = [
@@ -130,7 +127,7 @@ describe("GET /api/facilities", () => {
       expect(response.statusCode).toBe(400);
       expect(response.json()).toMatchObject({
         success: false,
-        error: { code: "VALIDATION_ERROR" },
+        error: { code: 400 },
       });
       expect(getFacilities).not.toHaveBeenCalled();
     },
@@ -188,7 +185,7 @@ describe("GET /api/facilities/:facilityId/unit-types", () => {
       expect(response.statusCode).toBe(404);
       expect(response.json()).toMatchObject({
         success: false,
-        error: { code: "NOT_FOUND", message: UNIT_TYPE_MESSAGES.facilityUnavailable },
+        error: { code: 404, message: UNIT_TYPE_MESSAGES.facilityUnavailable },
       });
       expect(getUnitTypes).not.toHaveBeenCalled();
     },
@@ -198,7 +195,7 @@ describe("GET /api/facilities/:facilityId/unit-types", () => {
     const response = await app.inject({ method: "GET", url: "/api/facilities/invalid/unit-types" });
 
     expect(response.statusCode).toBe(400);
-    expect(response.json()).toMatchObject({ success: false, error: { code: "VALIDATION_ERROR" } });
+    expect(response.json()).toMatchObject({ success: false, error: { code: 400 } });
     expect(findFacility).not.toHaveBeenCalled();
     expect(getUnitTypes).not.toHaveBeenCalled();
   });
@@ -211,7 +208,7 @@ describe("GET /api/facilities/:facilityId/unit-types", () => {
       expect(response.statusCode).toBe(400);
       expect(response.json()).toMatchObject({
         success: false,
-        error: { code: "VALIDATION_ERROR" },
+        error: { code: 400 },
       });
       expect(findFacility).not.toHaveBeenCalled();
       expect(getUnitTypes).not.toHaveBeenCalled();

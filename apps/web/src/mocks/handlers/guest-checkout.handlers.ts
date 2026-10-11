@@ -1,8 +1,7 @@
-import {
-  ApiErrorCode,
-  type PaymentCheckoutInput,
-  type PaymentResult,
-  type ReservationDraftInput,
+import type {
+  PaymentCheckoutInput,
+  PaymentResult,
+  ReservationDraftInput,
 } from "@metastorage/contracts";
 import type MockAdapter from "axios-mock-adapter";
 import { addMonths, currentUser, envelope, errorBody, parseBody } from "../core/http";
@@ -20,7 +19,7 @@ export function registerGuestCheckoutHandlers(mock: MockAdapter): void {
         u.unitTypeId === input.unitTypeId &&
         u.status === "AVAILABLE",
     );
-    if (!unit) return [409, errorBody(ApiErrorCode.CAPACITY_UNAVAILABLE, M.capacity)];
+    if (!unit) return [409, errorBody(409, M.capacity)];
     if (
       !Number.isInteger(input.durationMonths) ||
       input.durationMonths < 1 ||
@@ -28,7 +27,7 @@ export function registerGuestCheckoutHandlers(mock: MockAdapter): void {
       !Number.isFinite(Date.parse(input.checkInAt)) ||
       Date.parse(input.checkInAt) < Date.now()
     )
-      return [400, errorBody(ApiErrorCode.VALIDATION_ERROR, M.invalid)];
+      return [400, errorBody(400, M.invalid)];
     const draft = {
       ...input,
       id: crypto.randomUUID(),
@@ -55,7 +54,7 @@ export function registerGuestCheckoutHandlers(mock: MockAdapter): void {
     const draft = db.drafts.find(
       (d) => d.id === id && d.draftAccessToken === body.draftAccessToken,
     );
-    if (!draft) return [404, errorBody(ApiErrorCode.NOT_FOUND, M.missing)];
+    if (!draft) return [404, errorBody(404, M.missing)];
     const existing = db.holds.find((h) => h.draftId === id && Date.parse(h.expiresAt) > Date.now());
     if (existing) return [200, envelope(existing)];
     const capacity = db.units.filter(
@@ -80,8 +79,7 @@ export function registerGuestCheckoutHandlers(mock: MockAdapter): void {
         !b.assignedUnit &&
         overlaps(b.checkInSlotStart, b.rentalEndAt),
     ).length;
-    if (capacity <= held + booked)
-      return [409, errorBody(ApiErrorCode.CAPACITY_UNAVAILABLE, M.capacity)];
+    if (capacity <= held + booked) return [409, errorBody(409, M.capacity)];
     const hold = {
       draftId: draft.id,
       holdId: crypto.randomUUID(),
@@ -107,13 +105,11 @@ export function registerGuestCheckoutHandlers(mock: MockAdapter): void {
       (h) =>
         h.draftId === id && h.holdToken === input.holdToken && Date.parse(h.expiresAt) > Date.now(),
     );
-    if (!draft?.pricing || !hold)
-      return [409, errorBody(ApiErrorCode.RESERVATION_CONFLICT, M.hold)];
-    if (input.paymentMethodToken === "fail")
-      return [402, errorBody(ApiErrorCode.PAYMENT_FAILED, M.paymentFailed)];
+    if (!draft?.pricing || !hold) return [409, errorBody(409, M.hold)];
+    if (input.paymentMethodToken === "fail") return [402, errorBody(402, M.paymentFailed)];
     const facility = db.facilities.find((f) => f.id === draft.facilityId);
     const unit = db.units.find((u) => u.unitTypeId === draft.unitTypeId);
-    if (!facility || !unit) return [404, errorBody(ApiErrorCode.NOT_FOUND, M.missing)];
+    if (!facility || !unit) return [404, errorBody(404, M.missing)];
     const now = new Date().toISOString();
     const bookingId = crypto.randomUUID();
     const paymentId = crypto.randomUUID();
@@ -203,6 +199,6 @@ export function registerGuestCheckoutHandlers(mock: MockAdapter): void {
             confirmation: result.confirmation,
           }),
         ]
-      : [404, errorBody(ApiErrorCode.NOT_FOUND, M.missing)];
+      : [404, errorBody(404, M.missing)];
   });
 }

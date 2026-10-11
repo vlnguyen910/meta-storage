@@ -2,7 +2,8 @@ import { CustomerSignUpInputSchema } from "@metastorage/contracts";
 import { fromNodeHeaders } from "better-auth/node";
 import type { FastifyPluginAsync } from "fastify";
 import { AppError, ConflictError, UnauthorizedError } from "../../common/errors/app-error";
-import { successResponse } from "../../common/response/api-response";
+import { ERROR_MESSAGES } from "../../common/errors/error.messages";
+import { errorResponse, successResponse } from "../../common/response/api-response";
 import { env } from "../../config/env";
 import { auth } from "./auth";
 import { requireAuth } from "./auth.guard";
@@ -72,9 +73,12 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       const url = new URL(request.url, env.BETTER_AUTH_URL);
 
       if (request.method === "POST" && url.pathname.endsWith("/sign-up/email")) {
-        return reply.status(404).send({
-          message: AUTH_MESSAGES.customerSignupMustUseCustomerEndpoint,
-        });
+        return reply.status(404).send(
+          errorResponse({
+            code: 404,
+            message: AUTH_MESSAGES.customerSignupMustUseCustomerEndpoint,
+          }),
+        );
       }
 
       // Convert Fastify headers to standard Headers object
@@ -92,8 +96,24 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
 
       // Forward response to client
       reply.status(response.status);
-      // biome-ignore lint/suspicious/useIterableCallbackReturn: <have no idea>
-      response.headers.forEach((value, key) => reply.header(key, value));
+      response.headers.forEach((value, key) => {
+        if (key !== "content-length") reply.header(key, value);
+      });
+      if (response.status >= 400) {
+        const body = await response.json().catch(() => null);
+        return reply.type("application/json").send(
+          errorResponse({
+            code: response.status,
+            message:
+              body &&
+              typeof body === "object" &&
+              "message" in body &&
+              typeof body.message === "string"
+                ? body.message
+                : ERROR_MESSAGES.unexpectedInternalServerError,
+          }),
+        );
+      }
       return reply.send(response.body ? await response.text() : null);
     },
   });
