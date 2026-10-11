@@ -142,6 +142,23 @@ REDIS_URL=redis://localhost:6379
 ```
 
 API đăng ký Redis trong `common/redis/plugin.ts`; các module dùng `fastify.redis`.
+Các thao tác dữ liệu tạm dùng `fastify.redisService` hoặc inject `RedisService`
+vào constructor của service/module cần dùng. Client `fastify.redis` dành cho
+lệnh nâng cao như Lua/transactions khi feature thực sự cần atomic workflow.
+
+```ts
+await fastify.redisService.set("feature:resource:123", "value", 300);
+const value = await fastify.redisService.get("feature:resource:123");
+const created = await fastify.redisService.setIfAbsent("feature:resource:123", "value", 300);
+await fastify.redisService.delete("feature:resource:123");
+```
+
+`set` và `setIfAbsent` bắt buộc TTL là số nguyên dương tính bằng giây.
+`setIfAbsent` dùng `SET EX NX` nguyên tử; trả `false` nếu key đã tồn tại và giữ
+nguyên value/TTL cũ. `exists` trả boolean; `getTtl` trả giây còn lại (`-2`: không
+có key, `-1`: key không có expiry). Feature tự quản lý prefix, serialization,
+validation và business rules; Redis errors được truyền về caller để xử lý.
+
 API kiểm tra kết nối khi khởi động, từ chối khởi động nếu Redis không kết nối được,
 và đóng client khi shutdown. Các lệnh Redis có timeout; không giữ lệnh trong
 offline queue khi mất kết nối. Worker tiếp tục dùng kết nối riêng cho BullMQ;
