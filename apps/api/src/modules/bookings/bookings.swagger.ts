@@ -5,6 +5,7 @@ import {
   type BookingListItem,
   BookingListItemSchema,
   type BookingTracking,
+  type CheckInSlotOption,
   EligibleUnitSchema,
   PhysicalUnitAssignmentSchema,
 } from "@metastorage/contracts";
@@ -226,6 +227,33 @@ const trackingErrors = {
   503: failure(503, BOOKING_MESSAGES.accessUnavailable),
 };
 const operations = {
+  slots: {
+    summary: m.slotsSummary,
+    description: m.slotsDescription,
+    security: [],
+    response: {
+      200: success(
+        {
+          type: "array",
+          items: objectSchema({
+            id: { type: "string", format: "uuid" },
+            name: text,
+            startTime: text,
+            endTime: text,
+          }),
+        },
+        [
+          {
+            id: SEED_IDS.checkInSlots[0],
+            name: "Morning",
+            startTime: "09:00:00",
+            endTime: "11:00:00",
+          },
+        ] satisfies CheckInSlotOption[],
+      ),
+      500: errors[500],
+    },
+  },
   exchange: {
     summary: BOOKING_MESSAGES.exchangeSummary,
     description: BOOKING_MESSAGES.exchangeDescription,

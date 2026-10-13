@@ -1,9 +1,21 @@
-import { checkInSlots, eq, sql } from "@metastorage/database";
+import { asc, checkInSlots, eq, sql } from "@metastorage/database";
 import type { BookingQueryExecutor } from "./bookings.types";
 import type { ResolvedCheckInSlot } from "./check-in-slots.types";
 
 export class CheckInSlotsRepository {
   constructor(private readonly executor: BookingQueryExecutor) {}
+
+  async list() {
+    return this.executor
+      .select({
+        id: checkInSlots.id,
+        name: checkInSlots.name,
+        startTime: checkInSlots.startTime,
+        endTime: checkInSlots.endTime,
+      })
+      .from(checkInSlots)
+      .orderBy(asc(checkInSlots.startTime), asc(checkInSlots.endTime), asc(checkInSlots.id));
+  }
 
   async findByIdForDate(
     checkInSlotId: string,

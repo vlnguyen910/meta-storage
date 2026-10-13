@@ -8,6 +8,7 @@ export type {
   BookingDraftPricing,
   BookingTracking,
   BookingTrackingSession,
+  CheckInSlotOption,
 } from "./bookings.types";
 
 export const BookingMagicLinkInputSchema = z.object({

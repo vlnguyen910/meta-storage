@@ -1,3 +1,10 @@
+export type CheckInSlotOption = {
+  id: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+};
+
 export type BookingDraftPricing = {
   monthlyRateSnapshot: string;
   rentalFeeAmount: string;
