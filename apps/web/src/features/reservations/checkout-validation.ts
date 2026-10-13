@@ -71,16 +71,24 @@ export function checkoutFailure(error: unknown, stage: "draft" | "hold" | "payme
     failure?.message ??
     body?.message ??
     (axios.isAxiosError(error) && !response ? m.networkError : m.unexpectedError);
-  console.error("[metastorage checkout] Request failed", {
-    stage,
-    status: response?.status,
-    code: failure?.code,
-    message,
-    details: failure?.details,
-    requestId: response?.headers?.["x-request-id"],
-    errorName: error instanceof Error ? error.name : undefined,
-    errorMessage: error instanceof Error ? error.message : undefined,
-    stack: error instanceof Error ? error.stack : undefined,
-  });
+  const request = axios.isAxiosError(error) ? error.config : undefined;
+  // The caller handles this failure on the form. Log text so Next's dev overlay
+  // does not hide diagnostic fields inside a collapsed object or block recovery.
+  console.warn(
+    "[metastorage checkout] Request failed " +
+      JSON.stringify({
+        stage,
+        method: request?.method?.toUpperCase() ?? null,
+        endpoint: request?.url?.split("?")[0] ?? null,
+        status: response?.status ?? null,
+        code: failure?.code ?? (axios.isAxiosError(error) ? error.code : undefined) ?? "UNKNOWN",
+        message,
+        details: failure?.details ?? [],
+        requestId: response?.headers?.["x-request-id"] ?? null,
+        errorName: error instanceof Error ? error.name : "UnknownError",
+        errorMessage: error instanceof Error ? error.message : null,
+        stack: error instanceof Error ? error.stack : null,
+      }),
+  );
   return { message, code: failure?.code, details: failure?.details };
 }

@@ -128,3 +128,69 @@ test("FM can assign a physical unit and Staff without acting as Staff", async ({
   expect(booking.assignedUnit.physicalUnitCode).toBe("HCM-01-001");
   await page.screenshot({ path: "/tmp/metastorage-offline-assigned.png", fullPage: true });
 });
+
+test("checkout hold rejection shows details without blocking retry", async ({ page }) => {
+  const diagnostics: string[] = [];
+  page.on("console", (message) => {
+    if (message.text().includes("[metastorage checkout]")) diagnostics.push(message.text());
+  });
+  await page.goto("/reservations/new?facilityId=fac-hcm-central");
+  await page.getByRole("button", { name: "Chọn loại này", exact: true }).first().click();
+  await page.getByRole("button", { name: "Tiếp tục: Thông tin người thuê" }).click();
+  await page.getByLabel("Họ và tên", { exact: true }).fill("Khách kiểm tra lỗi");
+  await page.getByLabel("Số điện thoại", { exact: true }).fill("0901234567");
+  await page.getByLabel("Địa chỉ email", { exact: true }).fill("retry@example.test");
+  // Another checkout takes the available capacity after the customer selects it.
+  await page.evaluate(() => {
+    const key = "metastorage.mock-db.v4";
+    const database = JSON.parse(localStorage.getItem(key) ?? "{}");
+    const type = "00000000-0000-0000-0001-000000000001";
+    const available = database.units.filter(
+      (unit: { unitTypeId: string; status: string }) =>
+        unit.unitTypeId === type && unit.status === "AVAILABLE",
+    ).length;
+    for (let index = 0; index < available; index++) {
+      database.holds.push({
+        draftId: `qa-other-${index}`,
+        holdId: `qa-other-${index}`,
+        holdToken: `qa-other-${index}`,
+        unitTypeId: type,
+        startsAt: new Date().toISOString(),
+        endsAt: "2099-12-31T00:00:00.000Z",
+        expiresAt: new Date(Date.now() + 600000).toISOString(),
+        status: "ACTIVE",
+      });
+    }
+    localStorage.setItem(key, JSON.stringify(database));
+  });
+  await page.getByRole("button", { name: "Xem đơn thuê", exact: true }).click();
+  await expect(
+    page
+      .getByText("Loại kho này đã hết chỗ. Vui lòng chọn loại kho khác.", { exact: true })
+      .first(),
+  ).toBeVisible();
+  await expect(page.getByText("Console Error", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("Họ và tên", { exact: true })).toHaveValue("Khách kiểm tra lỗi");
+  expect(
+    diagnostics.some(
+      (log) =>
+        log.includes('"stage":"hold"') &&
+        log.includes('"status":409') &&
+        log.includes('"code":"CAPACITY_UNAVAILABLE"') &&
+        log.includes("/hold"),
+    ),
+  ).toBe(true);
+  await page.screenshot({ path: "/tmp/metastorage-checkout-capacity-error.png", fullPage: true });
+  await page.evaluate(() => {
+    const key = "metastorage.mock-db.v4";
+    const database = JSON.parse(localStorage.getItem(key) ?? "{}");
+    database.holds = database.holds.filter(
+      (hold: { draftId: string }) => !hold.draftId.startsWith("qa-other-"),
+    );
+    localStorage.setItem(key, JSON.stringify(database));
+  });
+  await page.getByRole("button", { name: "Xem đơn thuê", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Kiểm tra thông tin đơn thuê kho" }),
+  ).toBeVisible();
+});

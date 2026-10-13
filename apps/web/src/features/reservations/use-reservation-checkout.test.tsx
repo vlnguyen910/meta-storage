@@ -122,7 +122,7 @@ describe("checkout payment reconciliation", () => {
   });
   it("keeps the idempotency key for a retry after a network error", async () => {
     mocks.pay.mockRejectedValueOnce(new Error("Network failure")).mockResolvedValue(pending);
-    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const log = vi.spyOn(console, "warn").mockImplementation(() => {});
     const { result } = await checkout();
     await act(async () => {
       await result.current.pay();
