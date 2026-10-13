@@ -30,10 +30,15 @@ describe("guest checkout validation", () => {
     expect(checkInError("2026-10-03T25:00", now)).toBe(m.checkInRequired);
   });
   it("reads nested API errors and logs status, stage and field details without request contact data", () => {
-    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const log = vi.spyOn(console, "warn").mockImplementation(() => {});
     const failure = checkoutFailure(
       {
         isAxiosError: true,
+        config: {
+          method: "post",
+          url: "/reservations/drafts?token=private-token",
+          data: { email: "private@example.test" },
+        },
         response: {
           status: 400,
           headers: { "x-request-id": "request-123" },
@@ -51,14 +56,23 @@ describe("guest checkout validation", () => {
     expect(failure.message).toBe("Kiểm tra thông tin");
     expect(failure.code).toBe(400);
     expect(failure.details?.[0]?.field).toBe("contact.phone");
-    expect(log).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.objectContaining({ status: 400, stage: "draft", requestId: "request-123" }),
+    const diagnostic = JSON.parse(
+      String(log.mock.calls[0]?.[0]).replace("[metastorage checkout] Request failed ", ""),
     );
+    expect(diagnostic).toMatchObject({
+      status: 400,
+      stage: "draft",
+      requestId: "request-123",
+      code: "VALIDATION_ERROR",
+      method: "POST",
+      endpoint: "/reservations/drafts",
+    });
+    expect(String(log.mock.calls[0]?.[0])).not.toContain("private-token");
+    expect(String(log.mock.calls[0]?.[0])).not.toContain("private@example.test");
     log.mockRestore();
   });
   it("distinguishes a network error from a rejected API request", () => {
-    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const log = vi.spyOn(console, "warn").mockImplementation(() => {});
     expect(checkoutFailure({ isAxiosError: true }, "payment").message).toBe(m.networkError);
     log.mockRestore();
   });
