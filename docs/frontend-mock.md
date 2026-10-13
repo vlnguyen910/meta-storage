@@ -30,3 +30,12 @@ Tests: `bun run --filter web test`; browser checks:
 The API source and schema are retained. The local PostgreSQL application tables were cleared
 for this switch; do not run database seed commands unless intentionally restoring backend data.
 The mobile Expo application retains its separate API integration.
+
+Checkout availability accepts optional `checkInAt`, `durationMonths` and `draftId` query
+parameters. Mock catalog cards and hold creation share the same remaining-capacity calculation:
+AVAILABLE units minus overlapping unassigned confirmed bookings and unexpired holds. The caller's
+own draft hold is excluded from the display so a valid hold does not disable its checkout.
+The catalog retains zero-capacity types instead of hiding them; checkout highlights and disables
+these cards and refreshes counts when the period changes, on focus, every 30 seconds and after a
+capacity rejection. These query parameters are used by the frontend mock; backend catalog remains
+outside this prototype's scope.

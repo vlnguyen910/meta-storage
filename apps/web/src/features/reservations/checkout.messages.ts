@@ -31,6 +31,11 @@ export const checkoutMessages = {
   selected: "Đã chọn",
   select: "Chọn loại này",
   unavailable: "Tạm hết kho",
+  unavailablePeriod:
+    "Hết chỗ trong thời gian thuê đã chọn. Chọn loại kho khác hoặc đổi ngày, thời hạn thuê.",
+  availableCount: (count: number) => `Còn ${count} kho trong kỳ thuê`,
+  refreshAvailability: "Kiểm tra lại chỗ trống",
+  chooseAnother: "Chọn loại kho khác",
   noUnits: "Chưa có loại kho phù hợp",
   noUnitsDescription: "Thử đổi bộ lọc diện tích hoặc chọn chi nhánh khác.",
   summary: "Tóm tắt đơn thuê",

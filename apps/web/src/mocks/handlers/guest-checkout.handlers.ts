@@ -4,6 +4,7 @@ import type {
   ReservationDraftInput,
 } from "@metastorage/contracts";
 import type MockAdapter from "axios-mock-adapter";
+import { remainingCapacity } from "../core/availability";
 import { addMonths, currentUser, envelope, errorBody, parseBody } from "../core/http";
 import { getMockDatabase, saveMockDatabase } from "../database";
 import { MOCK_MESSAGES as M } from "../mock.messages";
@@ -57,29 +58,16 @@ export function registerGuestCheckoutHandlers(mock: MockAdapter): void {
     if (!draft) return [404, errorBody(404, M.missing)];
     const existing = db.holds.find((h) => h.draftId === id && Date.parse(h.expiresAt) > Date.now());
     if (existing) return [200, envelope(existing)];
-    const capacity = db.units.filter(
-      (u) =>
-        u.facilityId === draft.facilityId &&
-        u.unitTypeId === draft.unitTypeId &&
-        u.status === "AVAILABLE",
-    ).length;
-    const overlaps = (start: string, end: string) =>
-      Date.parse(start) < Date.parse(draft.rentalEndAt) &&
-      Date.parse(end) > Date.parse(draft.checkInAt);
-    const held = db.holds.filter(
-      (h) =>
-        h.unitTypeId === draft.unitTypeId &&
-        Date.parse(h.expiresAt) > Date.now() &&
-        overlaps(h.startsAt, h.endsAt),
-    ).length;
-    const booked = db.bookings.filter(
-      (b) =>
-        b.unitTypeId === draft.unitTypeId &&
-        b.status === "CONFIRMED" &&
-        !b.assignedUnit &&
-        overlaps(b.checkInSlotStart, b.rentalEndAt),
-    ).length;
-    if (capacity <= held + booked) return [409, errorBody(409, M.capacity)];
+    if (
+      remainingCapacity(
+        db,
+        draft.facilityId,
+        draft.unitTypeId,
+        draft.checkInAt,
+        draft.rentalEndAt,
+      ) === 0
+    )
+      return [409, errorBody(409, M.capacity)];
     const hold = {
       draftId: draft.id,
       holdId: crypto.randomUUID(),

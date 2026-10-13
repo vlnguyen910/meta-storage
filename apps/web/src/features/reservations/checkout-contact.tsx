@@ -116,12 +116,37 @@ export function CheckoutContact({ state }: { state: CheckoutState }) {
             {state.submissionError}
           </p>
         ) : null}
+        {state.selectedOption?.availableCount === 0 ? (
+          <div className={s.capacityNotice} role="alert">
+            <p>{m.unavailablePeriod}</p>
+            <button type="button" className={s.secondary} onClick={() => state.setStep(0)}>
+              {m.chooseAnother}
+            </button>
+            <button
+              type="button"
+              className={s.secondary}
+              disabled={state.availabilityQuery.isFetching}
+              onClick={() => void state.availabilityQuery.refetch()}
+            >
+              {m.refreshAvailability}
+            </button>
+          </div>
+        ) : null}
         <div className={s.actions}>
           <button type="button" className={s.secondary} onClick={() => state.setStep(0)}>
             <ArrowLeft size={14} className="inline mr-2" />
             {m.back}
           </button>
-          <button type="submit" className={s.primary} disabled={state.busy}>
+          <button
+            type="submit"
+            className={s.primary}
+            disabled={
+              state.busy ||
+              state.availabilityQuery.isFetching ||
+              state.availabilityQuery.isError ||
+              state.selectedOption?.availableCount === 0
+            }
+          >
             {state.busy ? m.loading : m.review}
             <ArrowRight size={15} />
           </button>

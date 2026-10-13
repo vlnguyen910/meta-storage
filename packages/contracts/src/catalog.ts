@@ -27,4 +27,4 @@ export const CatalogUnitTypeSchema = z.object({
 
 export type CatalogUnitType = z.infer<typeof CatalogUnitTypeSchema>;
 
-export type { CatalogFacilityListParams } from "./catalog.types";
+export type { CatalogAvailabilityParams, CatalogFacilityListParams } from "./catalog.types";

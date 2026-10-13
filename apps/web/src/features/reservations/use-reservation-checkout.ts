@@ -82,7 +82,13 @@ export function useReservationCheckout() {
 
   const facilityId = form.watch("facilityId");
   const unitTypeId = form.watch("unitTypeId");
-  const availabilityQuery = useAvailability(facilityId);
+  const checkInValue = form.watch("checkInAt");
+  const checkInDate = new Date(`${checkInValue}:00+07:00`);
+  const availabilityQuery = useAvailability(facilityId, {
+    checkInAt: Number.isFinite(checkInDate.getTime()) ? checkInDate.toISOString() : undefined,
+    durationMonths: Number(form.watch("durationMonths")),
+    draftId: draft?.id,
+  });
   const selectedFacility = facilitiesQuery.data?.items.find((item) => item.id === facilityId);
   const selectedOption = availabilityQuery.data?.find((item) => item.unitTypeId === unitTypeId);
 
@@ -126,7 +132,17 @@ export function useReservationCheckout() {
   }, [paymentStatusQuery.data]);
 
   async function next() {
-    if (draftMutation.isPending || holdMutation.isPending) return;
+    if (
+      draftMutation.isPending ||
+      holdMutation.isPending ||
+      availabilityQuery.isFetching ||
+      availabilityQuery.isError
+    )
+      return;
+    if (selectedOption?.availableCount === 0) {
+      setSubmissionError(checkoutMessages.unavailablePeriod);
+      return;
+    }
     if (step === 0 && (await form.trigger(["facilityId", "unitTypeId"]))) setStep(1);
     else if (step === 2) setStep(3);
     else if (
@@ -182,6 +198,7 @@ export function useReservationCheckout() {
       } catch (error) {
         const failure = checkoutFailure(error, requestStage);
         setSubmissionError(failure.message);
+        if (failure.code === "CAPACITY_UNAVAILABLE") void availabilityQuery.refetch();
         for (const detail of failure.details ?? []) {
           const field = detail.field.replace(/^contact[./]/, "");
           if (["fullName", "email", "phone", "checkInAt", "durationMonths"].includes(field)) {

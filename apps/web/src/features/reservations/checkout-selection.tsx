@@ -89,6 +89,7 @@ export function CheckoutSelection({ state }: { state: CheckoutState }) {
               key={option.unitTypeId}
               className={s.unitCard}
               data-selected={selected?.unitTypeId === option.unitTypeId}
+              data-unavailable={option.availableCount === 0}
             >
               <div className={s.unitImage}>
                 <UnitPhoto
@@ -100,6 +101,15 @@ export function CheckoutSelection({ state }: { state: CheckoutState }) {
               </div>
               <div className={s.unitBody}>
                 <h2>{option.unitType}</h2>
+                <p
+                  className={s.availabilityBadge}
+                  role="status"
+                  data-unavailable={option.availableCount === 0}
+                >
+                  {option.availableCount === 0
+                    ? m.unavailablePeriod
+                    : m.availableCount(option.availableCount)}
+                </p>
                 <div className={s.specs}>
                   <div>
                     <span className={s.caption}>{m.area}</span>
@@ -121,19 +131,19 @@ export function CheckoutSelection({ state }: { state: CheckoutState }) {
                   <button
                     type="button"
                     aria-pressed={selected?.unitTypeId === option.unitTypeId}
-                    disabled={option.availableCount === 0}
+                    disabled={option.availableCount === 0 || availabilityQuery.isFetching}
                     className={`${s.cardSelect} ${selected?.unitTypeId === option.unitTypeId ? s.primary : s.secondary}`}
                     onClick={() =>
                       state.form.setValue("unitTypeId", option.unitTypeId, { shouldValidate: true })
                     }
                   >
-                    {selected?.unitTypeId === option.unitTypeId ? (
+                    {option.availableCount === 0 ? (
+                      m.unavailable
+                    ) : selected?.unitTypeId === option.unitTypeId ? (
                       <>
                         <Check size={14} />
                         {m.selected}
                       </>
-                    ) : option.availableCount === 0 ? (
-                      m.unavailable
                     ) : (
                       m.select
                     )}
