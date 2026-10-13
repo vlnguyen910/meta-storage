@@ -21,8 +21,8 @@ import { processMailJob } from "../../../worker/src/mail/mail.job";
 import type { MailMessage } from "../../../worker/src/mail/mail.types";
 import { setupErrorHandler } from "../../src/common/errors/error-handler";
 import { redisPlugin } from "../../src/common/redis/plugin";
-import { BookingEmailService } from "../../src/modules/bookings/booking-email.service";
 import { bookingsRoutes } from "../../src/modules/bookings/bookings.routes";
+import { createBookingsService } from "../../src/modules/bookings/bookings.service";
 
 const databaseUrl = process.env.BOOKING_TEST_DATABASE_URL;
 const redisUrl = process.env.REDIS_TEST_URL;
@@ -231,10 +231,14 @@ describe.skipIf(!databaseUrl || !redisUrl)("Guest booking magic-link tracking", 
     const connection = new Redis(redisUrl as string, { maxRetriesPerRequest: null });
     const queue = new Queue<MailJobData>(queueName, { connection: app.redis });
     const confirmedAt = new Date(Date.now() - 3600_000);
-    const service = new BookingEmailService(app.redis, queue, {
-      publicAppUrl: origin,
-      magicLinkSecret: mailSecret,
-      qrTokenSecret: "test-qr-secret",
+    const service = createBookingsService(app, {
+      redis: app.redis,
+      queue,
+      config: {
+        publicAppUrl: origin,
+        magicLinkSecret: mailSecret,
+        qrTokenSecret: "test-qr-secret",
+      },
     });
     const booking = {
       id: ids.booking,

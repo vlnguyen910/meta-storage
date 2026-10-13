@@ -1,5 +1,6 @@
 import { createHash, createHmac, randomBytes } from "node:crypto";
 import type {
+  BookingConfirmation,
   BookingDraft,
   BookingDraftInput,
   BookingListItem,
@@ -16,6 +17,12 @@ import {
   bookingSessionKey,
 } from "@metastorage/shared/booking-access";
 import {
+  type BookingConfirmationEmailInput,
+  encryptMailPayload,
+  mailJobId,
+} from "@metastorage/shared/mail";
+import type { FastifyInstance } from "fastify";
+import {
   AppError,
   BadRequestError,
   ConflictError,
@@ -24,12 +31,17 @@ import {
 } from "../../common/errors/app-error";
 import type { RedisService } from "../../common/redis/redis.service";
 import { env } from "../../config/env";
-import type { FacilitiesService } from "../facilities/facilities.service";
-import type { StorageUnitsService } from "../storage-units/storage-units.service";
-import type { FacilityUnitTypesService } from "../unit-types/facility-unit-types.service";
+import { FacilitiesRepository } from "../facilities/facilities.repository";
+import { FacilitiesService } from "../facilities/facilities.service";
+import { StorageUnitsRepository } from "../storage-units/storage-units.repository";
+import { StorageUnitsService } from "../storage-units/storage-units.service";
+import { FacilityUnitTypesRepository } from "../unit-types/facility-unit-types.repository";
+import { FacilityUnitTypesService } from "../unit-types/facility-unit-types.service";
 import { BOOKING_MESSAGES } from "./bookings.messages";
-import type { BookingsRepository } from "./bookings.repository";
-import type { CheckInSlotsService } from "./check-in-slots.service";
+import { BookingsRepository, createBookingTrackingLink } from "./bookings.repository";
+import type { BookingMailDependencies, BookingReadRecord } from "./bookings.types";
+import { CheckInSlotsRepository } from "./check-in-slots.repository";
+import { CheckInSlotsService } from "./check-in-slots.service";
 
 export class BookingsService {
   constructor(
@@ -39,7 +51,79 @@ export class BookingsService {
     private readonly checkInSlotsService: CheckInSlotsService,
     private readonly storageUnitsService: StorageUnitsService,
     private readonly accessRedis?: RedisService,
+    private readonly mail?: BookingMailDependencies,
   ) {}
+
+  async getStatus(bookingId: string): Promise<BookingConfirmation["emailStatus"]> {
+    const mail = this.mail;
+    if (!mail) return "FAILED";
+    try {
+      const job = await mail.queue.getJob(mailJobId(bookingId));
+      if (!job) return "FAILED";
+      const state = await job.getState();
+      return state === "completed" ? "SENT" : state === "failed" ? "FAILED" : "QUEUED";
+    } catch {
+      return "PENDING";
+    }
+  }
+
+  async enqueueConfirmation(
+    booking: Pick<BookingReadRecord, "id" | "paidAt" | "contactEmail" | "bookingCode">,
+    confirmation: Pick<BookingConfirmation, "facility" | "unitTypeName">,
+  ): Promise<BookingConfirmation["emailStatus"]> {
+    const mail = this.mail;
+    if (!mail) return "FAILED";
+    try {
+      const jobId = mailJobId(booking.id);
+      if (await mail.queue.getJob(jobId)) return this.getStatus(booking.id);
+      if (
+        !booking.paidAt ||
+        booking.paidAt.getTime() + BOOKING_ACCESS.magicTtl * 1000 <= Date.now()
+      )
+        return "FAILED";
+      const link = await createBookingTrackingLink(mail.redis, {
+        deliveryId: booking.id,
+        bookingId: booking.id,
+        secret: mail.config.magicLinkSecret,
+        publicAppUrl: mail.config.publicAppUrl,
+        confirmedAt: booking.paidAt,
+      });
+      const input: BookingConfirmationEmailInput = {
+        deliveryId: booking.id,
+        recipientEmail: booking.contactEmail,
+        bookingCode: booking.bookingCode,
+        facilityName: confirmation.facility.name,
+        unitTypeName: confirmation.unitTypeName,
+        trackingUrl: link.trackingUrl,
+        qrUrl: `${new URL("/check-in", mail.config.publicAppUrl)}?token=${createHmac("sha256", mail.config.qrTokenSecret).update(booking.id).digest("hex")}`,
+      };
+      await mail.queue.add(
+        "booking-confirmation",
+        {
+          deliveryId: booking.id,
+          kind: "BOOKING_CONFIRMATION",
+          payload: encryptMailPayload(
+            JSON.stringify(input),
+            mail.config.magicLinkSecret,
+            booking.id,
+          ),
+          expiresAt: link.expiresAt,
+        },
+        {
+          jobId,
+          attempts: 5,
+          backoff: { type: "exponential", delay: 5000 },
+          // Retain IDs through the link lifetime so payment replay cannot enqueue duplicates.
+          removeOnComplete: { age: BOOKING_ACCESS.magicTtl },
+          removeOnFail: { age: BOOKING_ACCESS.magicTtl },
+        },
+      );
+      return "QUEUED";
+    } catch {
+      mail.config.onEnqueueFailure?.(booking.id);
+      return "FAILED";
+    }
+  }
 
   private async withHandoverProgress(bookings: BookingListItem[]): Promise<BookingListItem[]> {
     const records = await this.repository.handoverProgress(bookings.map((b) => b.id));
@@ -295,4 +379,34 @@ export class BookingsService {
   async getStaffTasks(staffUserId: string, facilityId?: string): Promise<BookingListItem[]> {
     return this.withHandoverProgress(await this.repository.findStaffTasks(staffUserId, facilityId));
   }
+}
+
+// Shared wiring for booking routes and payment-triggered booking confirmations.
+export function createBookingsService(
+  app: FastifyInstance,
+  mail?: BookingMailDependencies,
+): BookingsService {
+  const facilitiesRepository = new FacilitiesRepository(app.db);
+  return new BookingsService(
+    new BookingsRepository(app.db),
+    new FacilitiesService(facilitiesRepository),
+    new FacilityUnitTypesService(new FacilityUnitTypesRepository(app.db), facilitiesRepository),
+    new CheckInSlotsService(new CheckInSlotsRepository(app.db)),
+    new StorageUnitsService(new StorageUnitsRepository(app.db)),
+    app.redisService,
+    mail ??
+      (app.redis && app.mailQueue
+        ? {
+            redis: app.redis,
+            queue: app.mailQueue,
+            config: {
+              publicAppUrl: process.env.PUBLIC_APP_URL ?? "http://localhost:3000",
+              magicLinkSecret: process.env.BOOKING_MAGIC_LINK_SECRET ?? "",
+              qrTokenSecret: process.env.QR_TOKEN_SECRET ?? "storex-dev-qr-secret",
+              onEnqueueFailure: (bookingId) =>
+                app.log.error({ bookingId }, "Booking mail enqueue failed"),
+            },
+          }
+        : undefined),
+  );
 }

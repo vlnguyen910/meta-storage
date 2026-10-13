@@ -6,7 +6,7 @@ import {
   bookingMagicKey,
 } from "@metastorage/shared/booking-access";
 import Redis from "ioredis";
-import { createBookingTrackingLink } from "../../src/modules/bookings/booking-tracking-link";
+import { createBookingTrackingLink } from "../../src/modules/bookings/bookings.repository";
 
 const redisUrl = process.env.REDIS_TEST_URL;
 const redis = new Redis(redisUrl ?? "redis://127.0.0.1:6379/14", { lazyConnect: true });
