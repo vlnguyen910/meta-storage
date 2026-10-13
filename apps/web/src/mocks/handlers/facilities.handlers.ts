@@ -6,7 +6,8 @@ import {
   UserRole,
 } from "@metastorage/contracts";
 import type MockAdapter from "axios-mock-adapter";
-import { currentUser, envelope, errorBody, optionsForUnits } from "../core/http";
+import { remainingCapacity } from "../core/availability";
+import { addMonths, currentUser, envelope, errorBody, optionsForUnits } from "../core/http";
 import { getMockDatabase, hydrateFacility } from "../database";
 
 export function registerFacilityHandlers(mock: MockAdapter): void {
@@ -81,14 +82,37 @@ export function registerFacilityHandlers(mock: MockAdapter): void {
     const database = getMockDatabase();
     const facilityId = config.url?.split("/")[3] ?? "";
     const facility = database.facilities.find((candidate) => candidate.id === facilityId);
-    return facility && hydrateFacility(database, facility).availableUnits > 0
-      ? [
-          200,
-          envelope(
-            optionsForUnits(database.units.filter((unit) => unit.facilityId === facilityId)),
+    if (!facility) return [404, errorBody(404, "Không tìm thấy facility")];
+    const requestedStart = String(config.params?.checkInAt ?? new Date().toISOString());
+    const start = Number.isFinite(Date.parse(requestedStart))
+      ? requestedStart
+      : new Date().toISOString();
+    const requestedMonths = Number(config.params?.durationMonths ?? 1);
+    const months =
+      Number.isInteger(requestedMonths) && requestedMonths >= 1 && requestedMonths <= 12
+        ? requestedMonths
+        : 1;
+    const end = addMonths(start, months);
+    const excludedDraftId = config.params?.draftId ? String(config.params.draftId) : undefined;
+    const options = optionsForUnits(
+      database.units.filter((unit) => unit.facilityId === facilityId),
+    );
+    return [
+      200,
+      envelope(
+        options.map((option) => ({
+          ...option,
+          availableCount: remainingCapacity(
+            database,
+            facilityId,
+            option.unitTypeId,
+            start,
+            end,
+            excludedDraftId,
           ),
-        ]
-      : [404, errorBody(404, "Không tìm thấy facility")];
+        })),
+      ),
+    ];
   });
 
   mock.onGet(/\/catalog\/facilities\/[^/]+$/).reply((config) => {

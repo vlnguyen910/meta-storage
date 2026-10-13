@@ -189,8 +189,46 @@ test("checkout hold rejection shows details without blocking retry", async ({ pa
     );
     localStorage.setItem(key, JSON.stringify(database));
   });
+  await page.getByRole("button", { name: "Kiểm tra lại chỗ trống", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Xem đơn thuê", exact: true })).toBeEnabled();
   await page.getByRole("button", { name: "Xem đơn thuê", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Kiểm tra thông tin đơn thuê kho" }),
+  ).toBeVisible();
+});
+
+test("sold-out storage cards show a warning and cannot be selected", async ({ page }) => {
+  await page.goto("/reservations/new?facilityId=fac-hcm-central");
+  await expect(
+    page.getByRole("button", { name: "Chọn loại này", exact: true }).first(),
+  ).toBeVisible();
+  await page.evaluate(() => {
+    const key = "metastorage.mock-db.v4";
+    const database = JSON.parse(localStorage.getItem(key) ?? "{}");
+    for (const unit of database.units) {
+      if (
+        unit.facilityId === "fac-hcm-central" &&
+        unit.unitTypeId === "00000000-0000-0000-0001-000000000001"
+      )
+        unit.status = "OCCUPIED";
+    }
+    localStorage.setItem(key, JSON.stringify(database));
+  });
+  await page.reload();
+  const card = page.locator("article[data-unavailable=true]").first();
+  await expect(card).toBeVisible();
+  await expect(card.getByRole("button", { name: "Tạm hết kho", exact: true })).toBeDisabled();
+  await expect(
+    card.getByText(
+      "Hết chỗ trong thời gian thuê đã chọn. Chọn loại kho khác hoặc đổi ngày, thời hạn thuê.",
+    ),
+  ).toBeVisible();
+  await card.click();
+  await expect(page.getByRole("button", { name: "Tiếp tục: Thông tin người thuê" })).toBeDisabled();
+  await page.screenshot({ path: "/tmp/metastorage-sold-out-card.png", fullPage: true });
+  await page.getByRole("button", { name: "Chọn loại này", exact: true }).first().click();
+  await page.getByRole("button", { name: "Tiếp tục: Thông tin người thuê" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Thông tin người thuê & Thời gian nhận kho" }),
   ).toBeVisible();
 });

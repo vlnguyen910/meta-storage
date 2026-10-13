@@ -1,6 +1,6 @@
 "use client";
 
-import type { CatalogFacilityListParams } from "@metastorage/contracts";
+import type { CatalogAvailabilityParams, CatalogFacilityListParams } from "@metastorage/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
@@ -25,10 +25,11 @@ export function useFacility(id: string) {
   });
 }
 
-export function useAvailability(id: string) {
+export function useAvailability(id: string, schedule: CatalogAvailabilityParams = {}) {
   return useQuery({
-    queryKey: facilityKeys.unitTypes(id),
-    queryFn: () => api.catalog.listUnitTypes(id),
+    queryKey: [...facilityKeys.unitTypes(id), schedule],
+    queryFn: () => api.catalog.listUnitTypes(id, schedule),
     enabled: Boolean(id),
+    refetchInterval: 30000,
   });
 }

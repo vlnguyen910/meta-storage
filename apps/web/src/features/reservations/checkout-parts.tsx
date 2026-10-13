@@ -131,7 +131,12 @@ export function CheckoutSummary({ state }: { state: CheckoutState }) {
         <button
           type="button"
           className={`${s.primary} ${s.full}`}
-          disabled={!option || option.availableCount === 0}
+          disabled={
+            !option ||
+            option.availableCount === 0 ||
+            state.availabilityQuery.isFetching ||
+            state.availabilityQuery.isError
+          }
           onClick={state.next}
         >
           {m.nextContact}

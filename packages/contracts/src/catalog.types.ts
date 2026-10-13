@@ -5,3 +5,9 @@ export interface CatalogFacilityListParams {
   pageSize?: number;
   sort?: "name" | "price" | "availability";
 }
+
+export interface CatalogAvailabilityParams {
+  checkInAt?: string;
+  durationMonths?: number;
+  draftId?: string;
+}

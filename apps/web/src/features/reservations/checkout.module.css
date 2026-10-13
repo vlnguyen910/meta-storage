@@ -653,3 +653,32 @@
 .unitCard:has(.cardSelect:not(:disabled)):hover {
   border-color: var(--green);
 }
+
+.unitCard[data-unavailable="true"] {
+  border: 2px solid #b42318;
+  background: #fff7f6;
+  box-shadow: none;
+}
+.availabilityBadge {
+  margin-bottom: 14px;
+  padding: 6px 10px;
+  border-radius: 5px;
+  background: #e8f5ee;
+  color: #145b47;
+  font-size: 13px;
+  font-weight: 600;
+}
+.availabilityBadge[data-unavailable="true"],
+.capacityNotice {
+  background: #ffebe8;
+  color: #942418;
+}
+.capacityNotice {
+  padding: 14px;
+  border: 1px solid #b42318;
+  border-radius: 6px;
+}
+.capacityNotice button {
+  margin-top: 10px;
+  margin-right: 10px;
+}
