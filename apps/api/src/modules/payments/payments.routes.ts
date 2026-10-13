@@ -1,15 +1,14 @@
+import {
+  PaymentCheckoutInputSchema,
+  PaymentDraftParamsSchema,
+  PaymentIdParamsSchema,
+} from "@metastorage/contracts";
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { successResponse } from "../../common/response/api-response";
 import { env } from "../../config/env";
 import { BookingEmailService } from "../bookings/booking-email.service";
 import { PaymentsRepository } from "./payments.repository";
-import {
-  type CheckoutPaymentBody,
-  checkoutPaymentBodySchema,
-  paymentDraftIdParamSchema,
-  paymentIdParamSchema,
-} from "./payments.schema";
 import { PaymentsService } from "./payments.service";
 import { SepayPaymentGateway } from "./sepay.gateway";
 
@@ -57,18 +56,15 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
 
   typedApp.post(
     "/reservations/drafts/:draftId/pay",
-    { schema: { params: paymentDraftIdParamSchema, body: checkoutPaymentBodySchema } },
+    { schema: { params: PaymentDraftParamsSchema, body: PaymentCheckoutInputSchema } },
     async (request, reply) =>
       reply
         .status(201)
         .send(
           successResponse(
             env.PAYMENT_PROVIDER === "sepay"
-              ? await service.startSepayPayment(
-                  request.params.draftId,
-                  request.body as CheckoutPaymentBody,
-                )
-              : await service.pay(request.params.draftId, request.body as CheckoutPaymentBody),
+              ? await service.startSepayPayment(request.params.draftId, request.body)
+              : await service.pay(request.params.draftId, request.body),
           ),
         ),
   );
@@ -86,7 +82,7 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
 
   typedApp.get(
     "/payments/:paymentId/status",
-    { schema: { params: paymentIdParamSchema } },
+    { schema: { params: PaymentIdParamsSchema } },
     async (request, reply) => {
       return reply.send(successResponse(await service.getStatus(request.params.paymentId)));
     },
@@ -96,7 +92,7 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
   if (env.NODE_ENV !== "production" && env.SEPAY_TEST_MODE) {
     typedApp.post(
       "/payments/:paymentId/confirm-sandbox",
-      { schema: { params: paymentIdParamSchema } },
+      { schema: { params: PaymentIdParamsSchema } },
       async (request, reply) => {
         return reply.send(
           successResponse(await service.confirmSandboxPayment(request.params.paymentId)),

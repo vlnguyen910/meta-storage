@@ -28,6 +28,16 @@ export const PaymentCheckoutInputSchema = z.object({
 
 export type PaymentCheckoutInput = z.infer<typeof PaymentCheckoutInputSchema>;
 
+export const PaymentDraftParamsSchema = z.object({
+  draftId: z.string().uuid(),
+});
+export type PaymentDraftParams = z.infer<typeof PaymentDraftParamsSchema>;
+
+export const PaymentIdParamsSchema = z.object({
+  paymentId: z.string().uuid(),
+});
+export type PaymentIdParams = z.infer<typeof PaymentIdParamsSchema>;
+
 export const PaymentResultSchema = z.object({
   id: z.string().uuid(),
   status: z.literal("SUCCEEDED"),

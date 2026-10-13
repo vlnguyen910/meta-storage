@@ -1,4 +1,3 @@
-import { createHash, createHmac, randomBytes } from "node:crypto";
 import type { Facility, UnitType } from "@metastorage/database";
 import {
   and,
@@ -11,35 +10,16 @@ import {
   paymentProviderEvents,
   payments,
   reservationDrafts,
+  type SQL,
   unitTypes,
 } from "@metastorage/database";
 import { AppError } from "../../common/errors/app-error";
 import { bookingReadFields } from "../bookings/bookings.projection";
+import { bookingCode, hashQrToken, qrTokenForBooking } from "../bookings/bookings.repository";
 import type { BookingReadRecord } from "../bookings/bookings.types";
 import { CheckInSlotsRepository } from "../bookings/check-in-slots.repository";
 import { PAYMENT_MESSAGES } from "./payments.messages";
-
-export type PricingSnapshot = {
-  monthlyRateSnapshot: string;
-  rentalFeeAmount: string;
-  depositAmount: string;
-  totalAmount: string;
-  currency: string;
-};
-
-function bookingCode() {
-  return `SX-${randomBytes(5).toString("hex").toUpperCase()}`;
-}
-
-function hashQrToken(token: string) {
-  return createHash("sha256").update(token).digest("hex");
-}
-
-function qrTokenForBooking(bookingId: string) {
-  return createHmac("sha256", process.env.QR_TOKEN_SECRET ?? "storex-dev-qr-secret")
-    .update(bookingId)
-    .digest("hex");
-}
+import type { PricingSnapshot } from "./payments.types";
 
 function toConfirmation(
   booking: Pick<
@@ -116,31 +96,14 @@ export class PaymentsRepository {
     draftId: string,
     holdTokenHash: string,
   ) {
-    const [result] = await this.db
-      .select({
-        payment: payments,
-        booking: bookingReadFields,
-        facility: facilities,
-        unitType: unitTypes,
-      })
-      .from(payments)
-      .innerJoin(bookings, eq(bookings.id, payments.bookingId))
-      .innerJoin(facilities, eq(facilities.id, bookings.facilityId))
-      .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
-      .where(
-        and(
-          eq(payments.idempotencyKey, idempotencyKey),
-          eq(payments.draftId, draftId),
-          eq(payments.holdTokenHash, holdTokenHash),
-          eq(payments.status, "SUCCEEDED"),
-        ),
-      );
-    return result
-      ? {
-          ...result,
-          confirmation: toConfirmation(result.booking, result.facility, result.unitType),
-        }
-      : undefined;
+    return this.findCompleted(
+      and(
+        eq(payments.idempotencyKey, idempotencyKey),
+        eq(payments.draftId, draftId),
+        eq(payments.holdTokenHash, holdTokenHash),
+        eq(payments.status, "SUCCEEDED"),
+      ),
+    );
   }
 
   async createPendingPayment(input: {
@@ -216,6 +179,10 @@ export class PaymentsRepository {
   }
 
   async findCompletedByPaymentId(paymentId: string) {
+    return this.findCompleted(eq(payments.id, paymentId));
+  }
+
+  private async findCompleted(condition: SQL | undefined) {
     const [result] = await this.db
       .select({
         payment: payments,
@@ -227,7 +194,7 @@ export class PaymentsRepository {
       .innerJoin(bookings, eq(bookings.id, payments.bookingId))
       .innerJoin(facilities, eq(facilities.id, bookings.facilityId))
       .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
-      .where(eq(payments.id, paymentId));
+      .where(condition);
     return result
       ? {
           ...result,

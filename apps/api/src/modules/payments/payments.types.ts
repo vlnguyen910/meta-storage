@@ -1,4 +1,47 @@
-import type { PaymentInstructions, VerifiedPaymentEvent } from "./payment-gateway.types";
+import type { BookingConfirmation } from "@metastorage/contracts";
+import type { Payment } from "@metastorage/database";
+import type { BookingReadRecord } from "../bookings/bookings.types";
+
+export type CompletedPayment = {
+  payment: Payment;
+  booking: BookingReadRecord;
+  confirmation: BookingConfirmation;
+};
+
+export type GatewayPaymentResult = {
+  providerPaymentId: string;
+  status: "SUCCEEDED" | "FAILED";
+};
+
+export type PaymentInstructions = {
+  paymentCode: string;
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+  amount: string;
+  currency: string;
+  content: string;
+  expiresAt: string;
+};
+
+export type VerifiedPaymentEvent = {
+  providerEventId: string;
+  paymentCode: string;
+  amount: number;
+  transferType: "in" | "out";
+  referenceCode: string | null;
+  metadata: Record<string, unknown>;
+};
+
+export interface PaymentGateway {
+  readonly provider: string;
+  charge(input: {
+    amount: string;
+    currency: string;
+    paymentMethodToken: string;
+    idempotencyKey: string;
+  }): Promise<GatewayPaymentResult>;
+}
 
 export type SepayWebhookPayload = {
   id?: number | string;
@@ -51,3 +94,11 @@ export type SepayCreateCheckoutInput = {
 
 export type SepayPaymentInstructions = PaymentInstructions & { provider: "sepay" };
 export type SepayVerifiedPaymentEvent = VerifiedPaymentEvent & { provider: "sepay" };
+
+export type PricingSnapshot = {
+  monthlyRateSnapshot: string;
+  rentalFeeAmount: string;
+  depositAmount: string;
+  totalAmount: string;
+  currency: string;
+};

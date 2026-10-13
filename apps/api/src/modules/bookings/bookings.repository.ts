@@ -1,3 +1,4 @@
+import { createHash, createHmac, randomBytes } from "node:crypto";
 import {
   type BookingListItem,
   type BookingTracking,
@@ -37,6 +38,20 @@ import {
 import { BOOKING_MESSAGES } from "./bookings.messages";
 
 const assignedStaffUsers = aliasedTable(users, "assigned_staff_users");
+
+export function bookingCode() {
+  return `SX-${randomBytes(5).toString("hex").toUpperCase()}`;
+}
+
+export function hashQrToken(token: string) {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+export function qrTokenForBooking(bookingId: string) {
+  return createHmac("sha256", process.env.QR_TOKEN_SECRET ?? "storex-dev-qr-secret")
+    .update(bookingId)
+    .digest("hex");
+}
 
 export class BookingsRepository {
   constructor(private readonly db: Database) {}
