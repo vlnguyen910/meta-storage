@@ -8,6 +8,7 @@ async function login(page: Page, email: string) {
   await expect(page).not.toHaveURL(/\/login$/);
 }
 test("offline staff workflow survives reload without backend requests", async ({ page }) => {
+  await page.clock.setFixedTime(new Date("2026-10-13T15:31:00+07:00"));
   const requests: string[] = [];
   const errors: string[] = [];
   page.on("request", (r) => {

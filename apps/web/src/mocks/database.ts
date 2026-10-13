@@ -1,6 +1,10 @@
 import type { Facility } from "@metastorage/contracts";
 import { StorageUnitStatus } from "@metastorage/contracts";
-import { createSeedDatabase } from "./seeds";
+import {
+  applyDemoBookingSchedule,
+  createSeedDatabase,
+  DEMO_BOOKING_SCHEDULE_REVISION,
+} from "./seeds";
 import type { MockDatabase } from "./types";
 
 const DATABASE_KEY = "metastorage.mock-db.v4";
@@ -20,6 +24,10 @@ export function getMockDatabase(): MockDatabase {
   try {
     const parsed = JSON.parse(persisted) as MockDatabase;
     if (parsed.version === 4 && Array.isArray(parsed.bookings)) {
+      if (parsed.demoScheduleRevision !== DEMO_BOOKING_SCHEDULE_REVISION) {
+        applyDemoBookingSchedule(parsed);
+        saveMockDatabase(parsed);
+      }
       return parsed;
     }
     const fresh = createSeedDatabase();
