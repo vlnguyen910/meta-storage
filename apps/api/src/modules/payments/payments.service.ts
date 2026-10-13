@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import type {
   BookingConfirmation,
   PaidBooking,
+  PaymentCheckoutInput,
   PaymentPendingResponse,
   PaymentResult,
   PaymentStatusResponse,
@@ -10,10 +11,10 @@ import type { Payment } from "@metastorage/database";
 import { AppError, NotFoundError } from "../../common/errors/app-error";
 import type { BookingEmailService } from "../bookings/booking-email.service";
 import type { BookingReadRecord } from "../bookings/bookings.types";
-import { MockPaymentGateway, type PaymentGateway } from "./payment-gateway";
+import { MockPaymentGateway, type PaymentGateway } from "./payment-mock.gateway";
 import { PAYMENT_MESSAGES } from "./payments.messages";
-import type { PaymentsRepository, PricingSnapshot } from "./payments.repository";
-import type { CheckoutPaymentBody } from "./payments.schema";
+import type { PaymentsRepository } from "./payments.repository";
+import type { CompletedPayment, PricingSnapshot } from "./payments.types";
 import type { SepayPaymentGateway } from "./sepay.gateway";
 
 function hashToken(token: string) {
@@ -41,7 +42,55 @@ export class PaymentsService {
     return { ...completed.confirmation, emailStatus };
   }
 
-  async pay(draftId: string, input: CheckoutPaymentBody): Promise<PaymentResult> {
+  private async completedResult(completed: CompletedPayment | undefined): Promise<PaymentResult> {
+    if (!completed?.payment.paidAt || !completed.booking.bookingCode || !completed.booking.paidAt) {
+      throw new AppError(PAYMENT_MESSAGES.paymentMissingBookingInformation, 500);
+    }
+    return toPaymentResult(
+      { ...completed.payment, paidAt: completed.payment.paidAt },
+      {
+        ...completed.booking,
+        bookingCode: completed.booking.bookingCode,
+        paidAt: completed.booking.paidAt,
+      },
+      await this.confirmationWithEmail(completed),
+    );
+  }
+
+  private pendingResponse(
+    payment: Payment,
+    draftId: string,
+    expiresAt: Date | null,
+  ): PaymentPendingResponse {
+    if (!this.sepayGateway)
+      throw new AppError(PAYMENT_MESSAGES.sepayUnavailable, 503, "PAYMENT_PROVIDER_UNAVAILABLE");
+    const instructions = this.sepayGateway.createInstructions({
+      paymentCode: payment.paymentCode,
+      amount: payment.totalAmount,
+      currency: payment.currency,
+      expiresAt: expiresAt ?? new Date(Date.now() + 10 * 60_000),
+    });
+    const session = this.sepayGateway.createCheckoutSession({
+      paymentCode: payment.paymentCode,
+      amount: Number(payment.totalAmount),
+      currency: payment.currency,
+      description: PAYMENT_MESSAGES.checkoutDescription(payment.paymentCode),
+      draftId,
+      paymentId: payment.id,
+    });
+    return {
+      paymentId: payment.id,
+      status: "PENDING",
+      provider: "sepay",
+      paymentCode: payment.paymentCode,
+      transferInstructions: instructions,
+      checkoutUrl: session?.checkoutUrl,
+      checkoutFormFields: session?.formFields,
+      expiresAt: instructions.expiresAt,
+    };
+  }
+
+  async pay(draftId: string, input: PaymentCheckoutInput): Promise<PaymentResult> {
     const holdTokenHash = hashToken(input.holdToken);
     const existing = await this.repository.findByIdempotencyKey(input.idempotencyKey);
     if (existing) {
@@ -67,22 +116,7 @@ export class PaymentsService {
         draftId,
         holdTokenHash,
       );
-      if (
-        !completed?.payment.paidAt ||
-        !completed.booking.bookingCode ||
-        !completed.booking.paidAt
-      ) {
-        throw new AppError(PAYMENT_MESSAGES.paymentMissingBookingInformation, 500);
-      }
-      return toPaymentResult(
-        { ...completed.payment, paidAt: completed.payment.paidAt },
-        {
-          ...completed.booking,
-          bookingCode: completed.booking.bookingCode,
-          paidAt: completed.booking.paidAt,
-        },
-        await this.confirmationWithEmail(completed),
-      );
+      return this.completedResult(completed);
     }
 
     const checkout = await this.repository.findCheckout(draftId, holdTokenHash);
@@ -157,20 +191,12 @@ export class PaymentsService {
     if (!completedCheckout.booking.bookingCode || !completedCheckout.booking.paidAt)
       throw new AppError(PAYMENT_MESSAGES.bookingPaymentInformationMissing, 500);
 
-    return toPaymentResult(
-      { ...completedCheckout.payment, paidAt: completedCheckout.payment.paidAt },
-      {
-        ...completedCheckout.booking,
-        bookingCode: completedCheckout.booking.bookingCode,
-        paidAt: completedCheckout.booking.paidAt,
-      },
-      await this.confirmationWithEmail(completedCheckout),
-    );
+    return this.completedResult(completedCheckout);
   }
 
   async startSepayPayment(
     draftId: string,
-    input: CheckoutPaymentBody,
+    input: PaymentCheckoutInput,
   ): Promise<PaymentPendingResponse> {
     if (!this.sepayGateway)
       throw new AppError(PAYMENT_MESSAGES.sepayUnavailable, 503, "PAYMENT_PROVIDER_UNAVAILABLE");
@@ -193,30 +219,7 @@ export class PaymentsService {
       }
       const existingHold = await this.repository.findActiveHoldForPayment(existing);
       if (!existingHold) throw new AppError(PAYMENT_MESSAGES.holdExpired, 409, "HOLD_EXPIRED");
-      const instructions = this.sepayGateway.createInstructions({
-        paymentCode: existing.paymentCode,
-        amount: existing.totalAmount,
-        currency: existing.currency,
-        expiresAt: existingHold.expiresAt ?? new Date(Date.now() + 10 * 60_000),
-      });
-      const checkoutSession = this.sepayGateway.createCheckoutSession({
-        paymentCode: existing.paymentCode,
-        amount: Number(existing.totalAmount),
-        currency: existing.currency,
-        description: `Thanh toan don hang ${existing.paymentCode}`,
-        draftId,
-        paymentId: existing.id,
-      });
-      return {
-        paymentId: existing.id,
-        status: "PENDING",
-        provider: "sepay",
-        paymentCode: existing.paymentCode,
-        transferInstructions: instructions,
-        checkoutUrl: checkoutSession?.checkoutUrl,
-        checkoutFormFields: checkoutSession?.formFields,
-        expiresAt: instructions.expiresAt,
-      };
+      return this.pendingResponse(existing, draftId, existingHold.expiresAt);
     }
     const checkout = await this.repository.findCheckout(draftId, holdTokenHash);
     if (!checkout) throw new NotFoundError(PAYMENT_MESSAGES.holdUnavailable);
@@ -236,30 +239,7 @@ export class PaymentsService {
       pricing,
     });
     if (!pending) throw new AppError(PAYMENT_MESSAGES.holdNoLongerAvailable, 409, "HOLD_EXPIRED");
-    const instructions = this.sepayGateway.createInstructions({
-      paymentCode: pending.payment.paymentCode,
-      amount: pending.payment.totalAmount,
-      currency: pending.payment.currency,
-      expiresAt: checkout.hold.expiresAt ?? new Date(Date.now() + 10 * 60_000),
-    });
-    const checkoutSession = this.sepayGateway.createCheckoutSession({
-      paymentCode: pending.payment.paymentCode,
-      amount: Number(pending.payment.totalAmount),
-      currency: pending.payment.currency,
-      description: `Thanh toan don hang ${pending.payment.paymentCode}`,
-      draftId,
-      paymentId: pending.payment.id,
-    });
-    return {
-      paymentId: pending.payment.id,
-      status: "PENDING",
-      provider: "sepay",
-      paymentCode: pending.payment.paymentCode,
-      transferInstructions: instructions,
-      checkoutUrl: checkoutSession?.checkoutUrl,
-      checkoutFormFields: checkoutSession?.formFields,
-      expiresAt: instructions.expiresAt,
-    };
+    return this.pendingResponse(pending.payment, draftId, checkout.hold.expiresAt);
   }
 
   async handleSepayWebhook(
@@ -316,22 +296,7 @@ export class PaymentsService {
 
     if (payment.status === "SUCCEEDED") {
       const completed = await this.repository.findCompletedByPaymentId(payment.id);
-      if (
-        !completed?.payment.paidAt ||
-        !completed.booking.bookingCode ||
-        !completed.booking.paidAt
-      ) {
-        throw new AppError(PAYMENT_MESSAGES.paymentMissingBookingInformation, 500);
-      }
-      return toPaymentResult(
-        { ...completed.payment, paidAt: completed.payment.paidAt },
-        {
-          ...completed.booking,
-          bookingCode: completed.booking.bookingCode,
-          paidAt: completed.booking.paidAt,
-        },
-        await this.confirmationWithEmail(completed),
-      );
+      return this.completedResult(completed);
     }
 
     if (payment.status !== "PENDING") {
@@ -365,15 +330,7 @@ export class PaymentsService {
     if (!completed.booking.bookingCode || !completed.booking.paidAt)
       throw new AppError(PAYMENT_MESSAGES.bookingPaymentInformationMissing, 500);
 
-    return toPaymentResult(
-      { ...completed.payment, paidAt: completed.payment.paidAt },
-      {
-        ...completed.booking,
-        bookingCode: completed.booking.bookingCode,
-        paidAt: completed.booking.paidAt,
-      },
-      await this.confirmationWithEmail(completed),
-    );
+    return this.completedResult(completed);
   }
 
   async getStatus(paymentId: string): Promise<PaymentStatusResponse> {
@@ -400,7 +357,7 @@ export class PaymentsService {
             paymentCode: payment.paymentCode,
             amount: Number(payment.totalAmount),
             currency: payment.currency,
-            description: `Thanh toan don hang ${payment.paymentCode}`,
+            description: PAYMENT_MESSAGES.checkoutDescription(payment.paymentCode),
             draftId: payment.draftId,
             paymentId: payment.id,
           })

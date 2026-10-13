@@ -1,6 +1,6 @@
-import type { PaymentGateway } from "./payment-gateway.types";
+import type { PaymentGateway } from "./payments.types";
 
-export type { GatewayPaymentResult, PaymentGateway } from "./payment-gateway.types";
+export type { GatewayPaymentResult, PaymentGateway } from "./payments.types";
 
 export class MockPaymentGateway implements PaymentGateway {
   readonly provider = "mock";

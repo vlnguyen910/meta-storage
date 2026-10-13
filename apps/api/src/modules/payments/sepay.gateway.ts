@@ -1,14 +1,15 @@
 import { timingSafeEqual } from "node:crypto";
 import { SePayPgClient } from "sepay-pg-node";
 import { BadRequestError, UnauthorizedError } from "../../common/errors/app-error";
-import type { PaymentInstructions, VerifiedPaymentEvent } from "./payment-gateway.types";
 import { PAYMENT_MESSAGES } from "./payments.messages";
 import type {
+  PaymentInstructions,
   SepayCheckoutSession,
   SepayCreateCheckoutInput,
   SepayGatewayConfig,
   SepayWebhookPayload,
-} from "./sepay.types";
+  VerifiedPaymentEvent,
+} from "./payments.types";
 
 export class SepayPaymentGateway {
   readonly provider = "sepay";

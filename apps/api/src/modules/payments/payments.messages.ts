@@ -1,4 +1,5 @@
 export const PAYMENT_MESSAGES = {
+  checkoutDescription: (paymentCode: string) => `Thanh toan don hang ${paymentCode}`,
   sepayWebhookUnauthorized: "SePay webhook authentication failed",
   sepayWebhookInvalidJson: "Invalid SePay webhook JSON",
   sepayWebhookInvalidPayload: "Invalid SePay webhook payload",
