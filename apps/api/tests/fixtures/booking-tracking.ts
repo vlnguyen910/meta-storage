@@ -14,7 +14,7 @@ import {
   bookingDeliveryKey,
   bookingMagicKey,
 } from "../../../../packages/shared/src/booking-access";
-import { createBookingTrackingLink } from "../../src/modules/bookings/booking-tracking-link";
+import { createBookingTrackingLink } from "../../src/modules/bookings/bookings.repository";
 
 export async function createTrackingFixture() {
   const id = randomUUID();

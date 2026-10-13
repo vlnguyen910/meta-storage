@@ -16,38 +16,22 @@ import { successResponse } from "../../common/response/api-response";
 import { optionalAuth, requireAuth, requireRole } from "../auth/auth.guard";
 import { getFacilityAccessScope, requireAssignedFacility } from "../facilities/facilities.access";
 import { requireFacilityAccess } from "../facilities/facilities.guard";
-import { FacilitiesRepository } from "../facilities/facilities.repository";
-import { FacilitiesService } from "../facilities/facilities.service";
 import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
-import { StorageUnitsRepository } from "../storage-units/storage-units.repository";
-import { StorageUnitsService } from "../storage-units/storage-units.service";
-import { FacilityUnitTypesRepository } from "../unit-types/facility-unit-types.repository";
-import { FacilityUnitTypesService } from "../unit-types/facility-unit-types.service";
 import {
   privateTrackingResponse,
   requireTrackingOrigin,
   trackingSessionCookie,
   trackingSessionToken,
 } from "./bookings.access";
-import { BookingsRepository } from "./bookings.repository";
-import { BookingsService } from "./bookings.service";
+import { createBookingsService } from "./bookings.service";
 import { bookingSwaggerTransform } from "./bookings.swagger";
 import { CheckInSlotsRepository } from "./check-in-slots.repository";
 import { CheckInSlotsService } from "./check-in-slots.service";
 
 export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
-  const bookingsRepository = new BookingsRepository(fastify.db);
   const assignmentsRepository = new FacilityAssignmentsRepository(fastify.db);
-  const facilitiesRepository = new FacilitiesRepository(fastify.db);
   const checkInSlotsService = new CheckInSlotsService(new CheckInSlotsRepository(fastify.db));
-  const service = new BookingsService(
-    bookingsRepository,
-    new FacilitiesService(facilitiesRepository),
-    new FacilityUnitTypesService(new FacilityUnitTypesRepository(fastify.db), facilitiesRepository),
-    checkInSlotsService,
-    new StorageUnitsService(new StorageUnitsRepository(fastify.db)),
-    fastify.redisService,
-  );
+  const service = createBookingsService(fastify);
 
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
 

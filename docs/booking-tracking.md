@@ -2,6 +2,9 @@
 
 Khách mở liên kết trong email xác nhận sau khi thanh toán thành công, không cần tài khoản.
 Logic đọc và cấp quyền nằm trong `BookingsService` và `BookingsRepository` hiện có.
+`BookingsService` chuẩn bị/enqueue email xác nhận và đọc trạng thái job; hàm
+`createBookingTrackingLink` trong `bookings.repository.ts` tạo và lưu link/grant Redis.
+Các type nội bộ dùng chung nằm trong `bookings.types.ts`.
 PostgreSQL là nguồn dữ liệu booking/thanh toán. Mail dùng trực tiếp BullMQ/Redis,
 không có bảng outbox hoặc cron chuẩn bị mail. Migration 0032 xóa bảng
 `booking_confirmation_emails` và dữ liệu mail cũ.

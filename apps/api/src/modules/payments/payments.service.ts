@@ -9,7 +9,7 @@ import type {
 } from "@metastorage/contracts";
 import type { Payment } from "@metastorage/database";
 import { AppError, NotFoundError } from "../../common/errors/app-error";
-import type { BookingEmailService } from "../bookings/booking-email.service";
+import type { BookingsService } from "../bookings/bookings.service";
 import type { BookingReadRecord } from "../bookings/bookings.types";
 import { MockPaymentGateway, type PaymentGateway } from "./payment-mock.gateway";
 import { PAYMENT_MESSAGES } from "./payments.messages";
@@ -29,7 +29,7 @@ export class PaymentsService {
       draftId: string,
     ) => Promise<PricingSnapshot | null> = async () => null,
     private readonly sepayGateway?: SepayPaymentGateway,
-    private readonly bookingEmail?: BookingEmailService,
+    private readonly bookingEmail?: Pick<BookingsService, "enqueueConfirmation" | "getStatus">,
   ) {}
 
   private async confirmationWithEmail(completed: {
