@@ -1,6 +1,6 @@
 import { createHttpClient, createMetastorageApiClient } from "@metastorage/api-client";
 import type { SessionTokens } from "@metastorage/contracts";
-import { beforeEach, expect, it } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { getMockDatabase, resetMockDatabase } from "./database";
 import { installMockApi } from "./install-mock-api";
 
@@ -20,11 +20,14 @@ const http = createHttpClient({
 });
 const client = createMetastorageApiClient(http);
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-13T15:31:00+07:00"));
   process.env.NEXT_PUBLIC_MOCK_DELAY_MS = "0";
   resetMockDatabase();
   installMockApi(http);
   tokens = null;
 });
+afterEach(() => vi.useRealTimers());
 async function login(email: string) {
   tokens = await client.auth.login({ email, password: "Demo@123" });
 }

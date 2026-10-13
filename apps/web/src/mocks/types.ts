@@ -34,6 +34,7 @@ export interface MockStorageUnit {
 
 export interface MockDatabase {
   version: 4;
+  demoScheduleRevision?: string;
   drafts: ReservationDraft[];
   holds: (ReservationHold & { draftId: string })[];
   checkoutResults: (PaymentResult & { draftId: string })[];
