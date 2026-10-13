@@ -39,6 +39,9 @@ export const BOOKING_MESSAGES = {
 
 export const BOOKING_SWAGGER_MESSAGES = {
   tag: "Bookings",
+  slotsSummary: "List shared check-in slots",
+  slotsDescription:
+    "Public endpoint. Returns all shared check-in slot definitions ordered by startTime, endTime and id. Times use HH:mm:ss in Asia/Ho_Chi_Minh; they are time-of-day values without a date or UTC offset. Returns an empty array when no slots are configured. Use an id as checkInSlotId when creating a booking draft. This list does not indicate facility/date availability; draft creation validates the selected schedule.",
   draftSummary: "Create a booking draft (guest or signed-in account)",
   draftDescription:
     "Submit checkInDate as YYYY-MM-DD in Asia/Ho_Chi_Minh and an existing checkInSlotId, along with facilityId, unitTypeId and durationMonths. The server combines that date with the selected slot's start time, which must be in the future and within facility operating hours. checkInAt in the response is the resolved UTC timestamp; it is not a request field. Pricing is snapshotted. Contact is submitted at payment; this request does not accept contact or userId. Keep draftAccessToken for subsequent checkout steps. Creating a draft does not hold capacity. Replace example IDs with IDs from your database.",

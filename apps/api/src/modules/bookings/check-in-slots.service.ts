@@ -1,8 +1,13 @@
+import type { CheckInSlotOption } from "@metastorage/contracts";
 import type { CheckInSlotsRepository } from "./check-in-slots.repository";
 import type { ResolvedCheckInSlot } from "./check-in-slots.types";
 
 export class CheckInSlotsService {
   constructor(private readonly repository: CheckInSlotsRepository) {}
+
+  list(): Promise<CheckInSlotOption[]> {
+    return this.repository.list();
+  }
 
   async findByIdForDate(
     checkInSlotId: string,

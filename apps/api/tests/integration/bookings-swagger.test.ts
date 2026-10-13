@@ -12,6 +12,7 @@ import { swaggerPlugin } from "../../src/common/plugins/swagger";
 import { auth } from "../../src/modules/auth/auth";
 import { bookingsRoutes } from "../../src/modules/bookings/bookings.routes";
 import { BookingsService } from "../../src/modules/bookings/bookings.service";
+import { CheckInSlotsRepository } from "../../src/modules/bookings/check-in-slots.repository";
 
 const app = Fastify();
 const session = spyOn(auth.api, "getSession");
@@ -34,6 +35,44 @@ afterAll(async () => {
 });
 
 describe("Booking Swagger contracts", () => {
+  test.each([
+    { slots: [] },
+    {
+      slots: [
+        {
+          id: "77777777-7777-4777-8777-777777777777",
+          name: "Morning",
+          startTime: "09:00:00",
+          endTime: "11:00:00",
+        },
+      ],
+    },
+  ])("returns the check-in slot list without a session: %j", async ({ slots }) => {
+    const list = spyOn(CheckInSlotsRepository.prototype, "list").mockResolvedValueOnce(slots);
+    try {
+      session.mockClear();
+      const response = await app.inject("/api/bookings/check-in-slots");
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({
+        success: true,
+        data: slots,
+        timestamp: expect.any(String),
+      });
+      expect(session).not.toHaveBeenCalled();
+      expect(list).toHaveBeenCalledTimes(1);
+    } finally {
+      list.mockRestore();
+    }
+  });
+
+  test("documents the public check-in slot list", async () => {
+    const spec = (await app.inject("/docs/json")).json();
+    const operation = spec.paths["/api/bookings/check-in-slots"]?.get;
+    expect(operation).toBeDefined();
+    expect(operation.security).toEqual([]);
+    expect(operation.responses[200]).toBeDefined();
+  });
+
   test("documents all seven routes with complete response schemas and numeric error examples", async () => {
     const response = await app.inject("/docs/json");
     expect(response.statusCode).toBe(200);

@@ -39,16 +39,23 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
   const bookingsRepository = new BookingsRepository(fastify.db);
   const assignmentsRepository = new FacilityAssignmentsRepository(fastify.db);
   const facilitiesRepository = new FacilitiesRepository(fastify.db);
+  const checkInSlotsService = new CheckInSlotsService(new CheckInSlotsRepository(fastify.db));
   const service = new BookingsService(
     bookingsRepository,
     new FacilitiesService(facilitiesRepository),
     new FacilityUnitTypesService(new FacilityUnitTypesRepository(fastify.db), facilitiesRepository),
-    new CheckInSlotsService(new CheckInSlotsRepository(fastify.db)),
+    checkInSlotsService,
     new StorageUnitsService(new StorageUnitsRepository(fastify.db)),
     fastify.redisService,
   );
 
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
+
+  typedApp.get(
+    "/bookings/check-in-slots",
+    { config: { swaggerTransform: bookingSwaggerTransform("slots") } },
+    async (_request, reply) => reply.send(successResponse(await checkInSlotsService.list())),
+  );
 
   typedApp.post(
     "/bookings/drafts",
