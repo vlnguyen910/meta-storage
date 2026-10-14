@@ -107,6 +107,8 @@ export class SepayPaymentGateway {
     } catch {
       throw new BadRequestError(PAYMENT_MESSAGES.sepayWebhookInvalidJson);
     }
+    if (!payload || typeof payload !== "object")
+      throw new BadRequestError(PAYMENT_MESSAGES.sepayWebhookInvalidPayload);
 
     // SePay PG IPN format
     if (payload.order?.order_invoice_number) {
@@ -114,7 +116,16 @@ export class SepayPaymentGateway {
       const amount = Number(
         payload.transaction?.transaction_amount ?? payload.order.order_amount ?? 0,
       );
-      const eventId = String(payload.transaction?.transaction_id ?? `IPN-${code}-${Date.now()}`);
+      const eventId = String(payload.transaction?.transaction_id ?? "");
+      if (
+        !eventId ||
+        eventId.length > 128 ||
+        code.length > 32 ||
+        !Number.isSafeInteger(amount) ||
+        amount < 0 ||
+        amount > 2147483647
+      )
+        throw new BadRequestError(PAYMENT_MESSAGES.sepayWebhookInvalidPayload);
       return {
         providerEventId: eventId,
         paymentCode: code,
@@ -124,6 +135,15 @@ export class SepayPaymentGateway {
           ? String(payload.transaction.transaction_id)
           : null,
         metadata: payload as Record<string, unknown>,
+        currency: payload.transaction?.transaction_currency ?? payload.order.order_currency,
+        successful:
+          payload.notification_type === "ORDER_PAID" &&
+          payload.order.order_status === "CAPTURED" &&
+          payload.transaction?.transaction_status === "APPROVED" &&
+          payload.transaction?.transaction_type === "PAYMENT" &&
+          payload.order.order_currency === "VND" &&
+          payload.transaction?.transaction_currency === "VND" &&
+          Number(payload.order.order_amount) === amount,
       };
     }
 

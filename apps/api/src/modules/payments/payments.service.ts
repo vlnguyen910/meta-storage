@@ -3,6 +3,9 @@ import type {
   BookingConfirmation,
   BookingPaymentInput,
   BookingPaymentSession,
+  ManualRefund,
+  ManualRefundConfirmation,
+  ManualRefundQuery,
   PaidBooking,
   PaymentCheckoutInput,
   PaymentResult,
@@ -10,14 +13,14 @@ import type {
 } from "@metastorage/contracts";
 import type { Payment } from "@metastorage/database";
 import type { FastifyInstance } from "fastify";
-import { AppError, NotFoundError } from "../../common/errors/app-error";
+import { AppError, NotFoundError, UnauthorizedError } from "../../common/errors/app-error";
 import { env } from "../../config/env";
 import { type BookingsService, createBookingsService } from "../bookings/bookings.service";
 import type { BookingReadRecord } from "../bookings/bookings.types";
 import { MockPaymentGateway, type PaymentGateway } from "./payment-mock.gateway";
 import { PAYMENT_MESSAGES } from "./payments.messages";
 import { PaymentsRepository } from "./payments.repository";
-import type { CompletedPayment, PricingSnapshot } from "./payments.types";
+import type { CompletedPayment, PaymentStatusCredentials, PricingSnapshot } from "./payments.types";
 import { SepayPaymentGateway } from "./sepay.gateway";
 
 function hashToken(token: string) {
@@ -34,6 +37,30 @@ export class PaymentsService {
     private readonly sepayGateway?: SepayPaymentGateway,
     private readonly bookingEmail?: Pick<BookingsService, "enqueueConfirmation" | "getStatus">,
   ) {}
+
+  async listManualRefunds(query: ManualRefundQuery): Promise<ManualRefund[]> {
+    const rows = await this.repository.listManualRefunds(query);
+    return rows.map((row) => ({ ...row, paidAt: row.paidAt?.toISOString() ?? null }));
+  }
+
+  async confirmManualRefund(
+    paymentId: string,
+    reference: string,
+    actorId: string,
+  ): Promise<ManualRefundConfirmation> {
+    const payment = await this.repository.confirmManualRefund(paymentId, reference, actorId);
+    if (!payment.refundReference || !payment.refundedAt || !payment.refundedBy)
+      throw new AppError(PAYMENT_MESSAGES.failedToFinalizePayment, 500);
+    return {
+      paymentId: payment.id,
+      status: "REFUNDED",
+      amount: payment.totalAmount,
+      currency: payment.currency,
+      reference: payment.refundReference,
+      refundedAt: payment.refundedAt.toISOString(),
+      refundedBy: payment.refundedBy,
+    };
+  }
 
   async startBookingPayment(
     bookingId: string,
@@ -207,6 +234,15 @@ export class PaymentsService {
     if (!this.sepayGateway)
       throw new AppError(PAYMENT_MESSAGES.sepayUnavailable, 503, "PAYMENT_PROVIDER_UNAVAILABLE");
     const event = this.sepayGateway.verifyWebhook(headers, rawBody);
+    const bookingResult = await this.repository.processBookingPaymentEvent(event);
+    if (bookingResult) {
+      if (bookingResult.completed) await this.confirmationWithEmail(bookingResult.completed);
+      return {
+        duplicate: bookingResult.duplicate,
+        processed: bookingResult.processed,
+        paymentId: bookingResult.paymentId,
+      };
+    }
     const existingEvent = await this.repository.findProviderEvent("sepay", event.providerEventId);
     if (existingEvent && existingEvent.status !== "FAILED") return { duplicate: true };
     const recorded =
@@ -224,7 +260,13 @@ export class PaymentsService {
       }));
     if (!recorded) return { duplicate: true };
     const payment = await this.repository.findPendingByPaymentCode(event.paymentCode);
-    if (!payment || event.transferType !== "in" || event.amount !== Number(payment.totalAmount)) {
+    if (
+      !payment ||
+      event.successful === false ||
+      event.transferType !== "in" ||
+      event.amount !== Number(payment.totalAmount) ||
+      (event.currency && event.currency !== payment.currency)
+    ) {
       await this.repository.updateProviderEvent(recorded.id, "IGNORED");
       return { duplicate: false, processed: false };
     }
@@ -291,8 +333,18 @@ export class PaymentsService {
     return this.completedResult(completed);
   }
 
-  async getStatus(paymentId: string): Promise<PaymentStatusResponse> {
-    const payment = await this.repository.findPayment(paymentId);
+  async getStatus(
+    paymentId: string,
+    credentials: PaymentStatusCredentials,
+  ): Promise<PaymentStatusResponse> {
+    if (!credentials.checkoutAccessToken && !credentials.userId)
+      throw new UnauthorizedError(PAYMENT_MESSAGES.paymentAccessRequired);
+    const payment = await this.repository.findPaymentForStatus(paymentId, {
+      userId: credentials.userId,
+      tokenHash: credentials.checkoutAccessToken
+        ? hashToken(credentials.checkoutAccessToken)
+        : undefined,
+    });
     if (!payment) throw new NotFoundError(PAYMENT_MESSAGES.paymentNotFound);
     const completed =
       payment.status === "SUCCEEDED"

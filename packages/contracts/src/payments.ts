@@ -2,7 +2,13 @@ import { z } from "zod";
 import { BookingConfirmationSchema, PaidBookingSchema } from "./bookings";
 import { ReservationDraftContactSchema } from "./reservation-contact";
 
-export type { BookingPaymentSession } from "./payments.types";
+export type {
+  BookingPaymentSession,
+  ManualRefund,
+  ManualRefundConfirmation,
+} from "./payments.types";
+
+import { PAYMENT_CONTRACT_MESSAGES } from "./payments.messages";
 
 export const BookingPaymentParamsSchema = z.object({
   bookingId: z.string().uuid(),
@@ -16,12 +22,25 @@ export const BookingPaymentInputSchema = z.object({
 });
 export type BookingPaymentInput = z.infer<typeof BookingPaymentInputSchema>;
 
-export enum PaymentStatus {
-  PENDING = "PENDING",
-  SUCCEEDED = "SUCCEEDED",
-  FAILED = "FAILED",
-  REFUNDED = "REFUNDED",
-}
+export const PaymentStatus = {
+  PENDING: "PENDING",
+  SUCCEEDED: "SUCCEEDED",
+  FAILED: "FAILED",
+  REFUND_PENDING: "REFUND_PENDING",
+  REFUNDED: "REFUNDED",
+} as const;
+export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
+export const PAYMENT_STATUSES = Object.values(PaymentStatus);
+
+export const ManualRefundQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).default(0),
+});
+export type ManualRefundQuery = z.infer<typeof ManualRefundQuerySchema>;
+export const ConfirmManualRefundInputSchema = z.object({
+  reference: z.string().trim().min(1, PAYMENT_CONTRACT_MESSAGES.refundReferenceRequired).max(128),
+});
+export type ConfirmManualRefundInput = z.infer<typeof ConfirmManualRefundInputSchema>;
 
 export const PaymentSchema = z.object({
   id: z.string(),
@@ -52,6 +71,17 @@ export const PaymentIdParamsSchema = z.object({
   paymentId: z.string().uuid(),
 });
 export type PaymentIdParams = z.infer<typeof PaymentIdParamsSchema>;
+
+// Preserve other HTTP headers, including the account session cookie.
+export const PaymentStatusHeadersSchema = z
+  .object({
+    "x-booking-access-token": z
+      .string()
+      .regex(/^[a-f0-9]{64}$/, PAYMENT_CONTRACT_MESSAGES.checkoutAccessTokenInvalid)
+      .optional(),
+  })
+  .passthrough();
+export type PaymentStatusHeaders = z.infer<typeof PaymentStatusHeadersSchema>;
 
 export const PaymentResultSchema = z.object({
   id: z.string().uuid(),
@@ -97,7 +127,7 @@ export type PaymentResponse = PaymentResult | PaymentPendingResponse;
 
 export const PaymentStatusResponseSchema = z.object({
   paymentId: z.string().uuid(),
-  status: z.enum(["PENDING", "SUCCEEDED", "FAILED", "REFUNDED"]),
+  status: z.enum(PaymentStatus),
   provider: z.string(),
   paymentCode: z.string(),
   transferInstructions: SepayPaymentInstructionsSchema.optional(),

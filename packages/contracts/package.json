@@ -7,7 +7,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./users": "./src/users.ts"
+    "./users": "./src/users.ts",
+    "./payments": "./src/payments.ts"
   },
   "scripts": {
     "lint": "biome check src",
