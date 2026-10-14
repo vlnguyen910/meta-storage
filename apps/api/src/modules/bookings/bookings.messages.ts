@@ -15,6 +15,7 @@ export const BOOKING_MESSAGES = {
   revokeSummary: "Revoke the current booking tracking session",
 
   checkInInPast: "Ngày và giờ nhận kho phải sau thời điểm hiện tại (giờ Việt Nam).",
+  checkInTomorrow: "Ngày nhận kho sớm nhất là ngày mai theo giờ Việt Nam.",
   checkInOutsideSlots: "Giờ nhận kho phải nằm trong một ca nhận kho có sẵn.",
   invalidCheckInSlot: "Ca nhận kho không tồn tại hoặc có khoảng giờ không hợp lệ.",
   unitTypeCapacityUnavailable: "Unit Type không còn capacity trong kỳ thuê",
@@ -44,7 +45,7 @@ export const BOOKING_SWAGGER_MESSAGES = {
     "Public endpoint. Returns all shared check-in slot definitions ordered by startTime, endTime and id. Times use HH:mm:ss in Asia/Ho_Chi_Minh; they are time-of-day values without a date or UTC offset. Returns an empty array when no slots are configured. Use an id as checkInSlotId when creating a booking draft. This list does not indicate facility/date availability; draft creation validates the selected schedule.",
   draftSummary: "Create a booking draft (guest or signed-in account)",
   draftDescription:
-    "Submit checkInDate as YYYY-MM-DD in Asia/Ho_Chi_Minh and an existing checkInSlotId, along with facilityId, unitTypeId and durationMonths. The server combines that date with the selected slot's start time, which must be in the future and within facility operating hours. checkInAt in the response is the resolved UTC timestamp; it is not a request field. Pricing is snapshotted. Contact is submitted at payment; this request does not accept contact or userId. Keep draftAccessToken for subsequent checkout steps. Creating a draft does not hold capacity. Replace example IDs with IDs from your database.",
+    "Submit checkInDate as YYYY-MM-DD in Asia/Ho_Chi_Minh and an existing checkInSlotId, along with facilityId, unitTypeId and durationMonths. The check-in date must be tomorrow or later in Vietnam calendar time. The server combines that date with the selected slot's start time, within facility operating hours. checkInAt in the response is the resolved UTC timestamp; it is not a request field. Pricing is snapshotted. Contact is submitted at payment; this request does not accept contact or userId. Keep draftAccessToken for subsequent checkout steps. Creating a draft does not hold capacity. Replace example IDs with IDs from your database.",
   facilitySummary: "List operational bookings at a facility",
   facilityDescription:
     "Requires a session and facility manager assignment, or global system admin/business operation manager access. DRAFT bookings are excluded; status is optional. Example IDs must be replaced with IDs from your database.",

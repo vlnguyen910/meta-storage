@@ -38,7 +38,11 @@ import { StorageUnitsService } from "../storage-units/storage-units.service";
 import { FacilityUnitTypesRepository } from "../unit-types/facility-unit-types.repository";
 import { FacilityUnitTypesService } from "../unit-types/facility-unit-types.service";
 import { BOOKING_MESSAGES } from "./bookings.messages";
-import { BookingsRepository, createBookingTrackingLink } from "./bookings.repository";
+import {
+  BookingsRepository,
+  bookingLocalDate,
+  createBookingTrackingLink,
+} from "./bookings.repository";
 import type { BookingMailDependencies, BookingReadRecord } from "./bookings.types";
 import { CheckInSlotsRepository } from "./check-in-slots.repository";
 import { CheckInSlotsService } from "./check-in-slots.service";
@@ -217,6 +221,8 @@ export class BookingsService {
   }
 
   async createDraft(input: BookingDraftInput, userId?: string): Promise<BookingDraft> {
+    if (input.checkInDate <= bookingLocalDate())
+      throw new AppError(BOOKING_MESSAGES.checkInTomorrow, 400, "CHECK_IN_TOMORROW_REQUIRED");
     await this.facilitiesService.requireActiveFacility(input.facilityId);
     const unitType = await this.facilityUnitTypesService.requireActiveUnitType(
       input.facilityId,

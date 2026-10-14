@@ -1,14 +1,12 @@
 import type { CheckInEligibility, CheckInEligibilityReasonCode } from "@metastorage/contracts";
 import type { CheckInVerification } from "@metastorage/database";
 
-const GRACE_PERIOD_MS = 2 * 60 * 60 * 1000;
-
 export type CheckInPolicyRecord = {
   bookingStatus: string;
   payment: { status: string } | null;
   hasAssignedUnit: boolean;
   checkInSlotStart: Date;
-  checkInSlotEnd: Date | null;
+  checkInDayEnd: Date | null;
   verification: CheckInVerification | null;
 };
 
@@ -17,16 +15,12 @@ export type CheckInPolicyEvaluation = CheckInEligibility & {
   shouldMarkNoShow: boolean;
 };
 
-export function getGraceEndsAt(checkInSlotEnd: Date | null): Date | null {
-  return checkInSlotEnd ? new Date(checkInSlotEnd.getTime() + GRACE_PERIOD_MS) : null;
-}
-
 export function evaluateCheckInEligibility(
   record: CheckInPolicyRecord,
   now: Date,
 ): CheckInPolicyEvaluation {
   const reasons: CheckInEligibilityReasonCode[] = [];
-  const graceEndsAt = getGraceEndsAt(record.checkInSlotEnd);
+  const graceEndsAt = record.checkInDayEnd;
 
   if (record.bookingStatus !== "CONFIRMED") {
     reasons.push("INVALID_BOOKING_STATUS");
@@ -44,7 +38,7 @@ export function evaluateCheckInEligibility(
     reasons.push("CHECKIN_SLOT_NOT_CONFIGURED");
   } else if (now < record.checkInSlotStart) {
     reasons.push("TOO_EARLY");
-  } else if (now > graceEndsAt) {
+  } else if (now >= graceEndsAt) {
     reasons.push("DEADLINE_PASSED");
   }
 

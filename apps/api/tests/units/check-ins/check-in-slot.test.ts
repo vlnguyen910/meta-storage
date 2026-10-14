@@ -16,21 +16,25 @@ describe("two-hour check-in slot", () => {
       "2026-10-05T18:30:00.000Z",
     );
   });
-  it("allows a paid assigned booking and preserves the separate two-hour grace period", () => {
+  it("allows a paid assigned booking until the final slot ends and rejects the cutoff itself", () => {
     const start = new Date("2026-12-15T02:00:00.000Z");
     const record = {
       bookingStatus: "CONFIRMED",
       payment: { status: "SUCCEEDED" },
       hasAssignedUnit: true,
       checkInSlotStart: start,
-      checkInSlotEnd: getCheckInSlotEnd(start),
+      checkInDayEnd: new Date("2026-12-15T11:00:00.000Z"),
       verification: null,
     };
     const during = evaluateCheckInEligibility(record, new Date("2026-12-15T03:00:00.000Z"));
     assert.equal(during.canProceed, true);
-    assert.equal(during.graceEndsAt?.toISOString(), "2026-12-15T06:00:00.000Z");
+    assert.equal(during.graceEndsAt?.toISOString(), "2026-12-15T11:00:00.000Z");
+    assert.equal(
+      evaluateCheckInEligibility(record, new Date("2026-12-15T09:00:00.000Z")).canProceed,
+      true,
+    );
     assert.deepEqual(
-      evaluateCheckInEligibility(record, new Date("2026-12-15T06:00:00.001Z")).reasons,
+      evaluateCheckInEligibility(record, new Date("2026-12-15T11:00:00.000Z")).reasons,
       ["DEADLINE_PASSED"],
     );
   });

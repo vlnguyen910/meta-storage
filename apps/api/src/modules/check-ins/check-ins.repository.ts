@@ -13,12 +13,15 @@ import {
   and,
   bookings,
   capacityAllocations,
+  checkInSlots,
   checkInVerifications,
   desc,
   eq,
   facilities,
   inArray,
+  max,
   payments,
+  sql,
   storageUnits,
   unitAssignments,
   unitTypes,
@@ -38,6 +41,7 @@ export type CheckInRecord = {
   assignment: UnitAssignment | null;
   assignedUnit: StorageUnit | null;
   verification: CheckInVerification | null;
+  checkInDayEnd: Date | null;
 };
 
 type CheckInConfirmResult =
@@ -69,6 +73,11 @@ export class CheckInsRepository {
         assignment: unitAssignments,
         assignedUnit: storageUnits,
         verification: checkInVerifications,
+        checkInDayEnd: sql<Date | null>`(${bookings.checkInDate} +
+          (${executor.select({ end: max(checkInSlots.endTime) }).from(checkInSlots)}))
+          at time zone 'Asia/Ho_Chi_Minh'`.mapWith((value) =>
+          value === null ? null : new Date(value),
+        ),
       })
       .from(bookings)
       .innerJoin(facilities, eq(bookings.facilityId, facilities.id))
