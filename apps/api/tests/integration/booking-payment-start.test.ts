@@ -1,14 +1,18 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, beforeEach, describe, expect, setSystemTime, test } from "bun:test";
 import { createHash, randomUUID } from "node:crypto";
 import {
+  accounts,
   bookings,
   capacityAllocations,
   checkInSlots,
+  checkInVerifications,
   db,
   eq,
   facilities,
+  facilityAssignments,
   facilityUnitTypes,
   inArray,
+  paymentProviderEvents,
   payments,
   reservationDrafts,
   storageUnits,
@@ -16,14 +20,23 @@ import {
   unitTypes,
   users,
 } from "@metastorage/database";
+import { type MailJobData, mailJobId } from "@metastorage/shared/mail";
+import { Queue } from "bullmq";
 import Fastify from "fastify";
 import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
+import Redis from "ioredis";
+import { expireCapacityHolds } from "../../src/common/cron/expire-capacity-holds";
 import { setupErrorHandler } from "../../src/common/errors/error-handler";
 import { env } from "../../src/config/env";
+import { auth } from "../../src/modules/auth/auth";
+import { authPlugin } from "../../src/modules/auth/auth.guard";
+import { authRoutes } from "../../src/modules/auth/auth.routes";
 import { bookingsRoutes } from "../../src/modules/bookings/bookings.routes";
+import { checkInsRoutes } from "../../src/modules/check-ins/check-ins.routes";
 import { paymentsRoutes } from "../../src/modules/payments/payments.routes";
 
 const testUrl = process.env.BOOKING_TEST_DATABASE_URL;
+const redisUrl = process.env.REDIS_TEST_URL;
 const ids = {
   facility: randomUUID(),
   type: randomUUID(),
@@ -31,6 +44,10 @@ const ids = {
   extraUnit: randomUUID(),
   slot: randomUUID(),
   user: randomUUID(),
+  admin: randomUUID(),
+  staff: randomUUID(),
+  manager: randomUUID(),
+  lastSlot: randomUUID(),
 };
 const contact = { fullName: "Payment guest", email: "guest@example.test", phone: "+84901234567" };
 const checkInDate = new Date(Date.now() + 2 * 86400_000).toISOString().slice(0, 10);
@@ -39,10 +56,25 @@ const previous = {
   provider: env.PAYMENT_PROVIDER,
   merchant: env.SEPAY_MERCHANT_ID,
   secret: env.SEPAY_SECRET_KEY,
+  magicSecret: process.env.BOOKING_MAGIC_LINK_SECRET,
 };
 let created = false;
+const webhookEventIds: string[] = [];
+let adminCookie = "";
+let customerCookie = "";
+let staffCookie = "";
+let managerCookie = "";
+let redis: Redis | undefined;
+let mailQueue: Queue<MailJobData> | undefined;
 
 async function clearBookings() {
+  await db.delete(checkInVerifications).where(eq(checkInVerifications.facilityId, ids.facility));
+  if (webhookEventIds.length) {
+    await db
+      .delete(paymentProviderEvents)
+      .where(inArray(paymentProviderEvents.providerEventId, webhookEventIds));
+    webhookEventIds.length = 0;
+  }
   const rows = await db
     .select({ id: bookings.id })
     .from(bookings)
@@ -96,6 +128,36 @@ function pay(
   });
 }
 
+function webhook(
+  paymentCode: string,
+  overrides: Record<string, unknown> = {},
+  eventId = randomUUID(),
+) {
+  webhookEventIds.push(eventId);
+  return app.inject({
+    method: "POST",
+    url: "/api/payments/webhooks/sepay",
+    headers: { "x-secret-key": "test-only-sepay-secret" },
+    payload: {
+      notification_type: "ORDER_PAID",
+      order: {
+        order_invoice_number: paymentCode,
+        order_status: "CAPTURED",
+        order_currency: "VND",
+        order_amount: "3000000.00",
+      },
+      transaction: {
+        transaction_id: eventId,
+        transaction_amount: "3000000.00",
+        transaction_status: "APPROVED",
+        transaction_type: "PAYMENT",
+        transaction_currency: "VND",
+      },
+      ...overrides,
+    },
+  });
+}
+
 describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () => {
   beforeAll(async () => {
     if (process.env.DATABASE_URL !== testUrl)
@@ -103,14 +165,61 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     env.PAYMENT_PROVIDER = "sepay";
     env.SEPAY_MERCHANT_ID = "test-merchant";
     env.SEPAY_SECRET_KEY = "test-only-sepay-secret";
-    await db.transaction(async (tx) => {
-      await tx.insert(users).values({
-        id: ids.user,
-        name: "Saved booking owner",
-        email: `${ids.user}@example.test`,
-        role: "CUSTOMER",
-        status: "ACTIVE",
+    if (redisUrl) {
+      process.env.BOOKING_MAGIC_LINK_SECRET = "booking-flow-test-magic-secret-32-characters";
+      redis = new Redis(redisUrl, { maxRetriesPerRequest: null });
+      mailQueue = new Queue<MailJobData>(`test-booking-flow-${ids.facility}`, {
+        connection: redis,
       });
+      app.decorate("redis", redis);
+      app.decorate("mailQueue", mailQueue);
+    }
+    const password = "Manual-refund-test-123";
+    const passwordHash = await (await auth.$context).password.hash(password);
+    await db.transaction(async (tx) => {
+      await tx.insert(users).values([
+        {
+          id: ids.user,
+          name: "Saved booking owner",
+          email: `${ids.user}@example.test`,
+          role: "CUSTOMER",
+          status: "ACTIVE",
+          emailVerified: true,
+        },
+        {
+          id: ids.admin,
+          name: "Refund admin",
+          email: `${ids.admin}@example.test`,
+          role: "SYSTEM_ADMIN",
+          status: "ACTIVE",
+          emailVerified: true,
+        },
+        {
+          id: ids.staff,
+          name: "Assigned check-in staff",
+          email: `${ids.staff}@example.test`,
+          role: "FACILITY_STAFF",
+          status: "ACTIVE",
+          emailVerified: true,
+        },
+        {
+          id: ids.manager,
+          name: "Booking facility manager",
+          email: `${ids.manager}@example.test`,
+          role: "FACILITY_MANAGER",
+          status: "ACTIVE",
+          emailVerified: true,
+        },
+      ]);
+      await tx.insert(accounts).values(
+        [ids.user, ids.admin, ids.staff, ids.manager].map((userId) => ({
+          id: randomUUID(),
+          userId,
+          accountId: userId,
+          providerId: "credential",
+          password: passwordHash,
+        })),
+      );
       await tx
         .insert(facilities)
         .values({ id: ids.facility, code: ids.facility, name: "Payment test", address: "Test" });
@@ -126,6 +235,12 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
       });
       await tx.insert(facilityUnitTypes).values({ facilityId: ids.facility, unitTypeId: ids.type });
       await tx
+        .insert(facilityAssignments)
+        .values({ userId: ids.staff, facilityId: ids.facility, role: "FACILITY_STAFF" });
+      await tx
+        .insert(facilityAssignments)
+        .values({ userId: ids.manager, facilityId: ids.facility, role: "FACILITY_MANAGER" });
+      await tx
         .insert(storageUnits)
         .values({ id: ids.unit, code: ids.unit, facilityId: ids.facility, unitTypeId: ids.type });
       await tx
@@ -137,14 +252,33 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     app.setValidatorCompiler(validatorCompiler);
     app.setSerializerCompiler(serializerCompiler);
     setupErrorHandler(app);
+    await app.register(authPlugin);
+    await app.register(authRoutes, { prefix: "/api/auth" });
     await app.register(bookingsRoutes, { prefix: "/api" });
     await app.register(paymentsRoutes, { prefix: "/api" });
+    await app.register(checkInsRoutes, { prefix: "/api" });
     await app.ready();
+    for (const userId of [ids.user, ids.admin, ids.staff, ids.manager]) {
+      const login = await app.inject({
+        method: "POST",
+        url: "/api/auth/sign-in/email",
+        payload: { email: `${userId}@example.test`, password },
+      });
+      expect(login.statusCode).toBe(200);
+      const cookie = login.cookies.map((item) => `${item.name}=${item.value}`).join("; ");
+      if (userId === ids.admin) adminCookie = cookie;
+      else if (userId === ids.staff) staffCookie = cookie;
+      else if (userId === ids.manager) managerCookie = cookie;
+      else customerCookie = cookie;
+    }
   });
 
   beforeEach(async () => {
+    setSystemTime();
+    await mailQueue?.obliterate({ force: true });
     await clearBookings();
     await db.delete(storageUnits).where(eq(storageUnits.id, ids.extraUnit));
+    await db.delete(checkInSlots).where(eq(checkInSlots.id, ids.lastSlot));
     await db
       .update(unitTypes)
       .set({ monthlyPrice: 1000000, isActive: true })
@@ -154,10 +288,16 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
   });
 
   afterAll(async () => {
+    setSystemTime();
     await app.close();
     env.PAYMENT_PROVIDER = previous.provider;
     env.SEPAY_MERCHANT_ID = previous.merchant;
     env.SEPAY_SECRET_KEY = previous.secret;
+    if (previous.magicSecret === undefined) delete process.env.BOOKING_MAGIC_LINK_SECRET;
+    else process.env.BOOKING_MAGIC_LINK_SECRET = previous.magicSecret;
+    await mailQueue?.obliterate({ force: true });
+    await mailQueue?.close();
+    await redis?.quit();
     if (!created) return;
     await clearBookings();
     await db.delete(storageUnits).where(eq(storageUnits.id, ids.extraUnit));
@@ -166,7 +306,11 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     await db.delete(facilities).where(eq(facilities.id, ids.facility));
     await db.delete(unitTypes).where(eq(unitTypes.id, ids.type));
     await db.delete(checkInSlots).where(eq(checkInSlots.id, ids.slot));
+    await db.delete(checkInSlots).where(eq(checkInSlots.id, ids.lastSlot));
     await db.delete(users).where(eq(users.id, ids.user));
+    await db.delete(users).where(eq(users.id, ids.admin));
+    await db.delete(users).where(eq(users.id, ids.staff));
+    await db.delete(users).where(eq(users.id, ids.manager));
   });
 
   test("starts SePay checkout on the same draft with snapshotted price, contact and a ten-minute hold", async () => {
@@ -266,6 +410,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     const response = await app.inject({
       method: "GET",
       url: `/api/payments/${payment.paymentId}/status`,
+      headers: { "x-booking-access-token": booking.draftAccessToken },
     });
     expect(response.statusCode).toBe(200);
     const data = response.json().data;
@@ -278,10 +423,770 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     const expired = await app.inject({
       method: "GET",
       url: `/api/payments/${payment.paymentId}/status`,
+      headers: { "x-booking-access-token": booking.draftAccessToken },
     });
     expect(expired.statusCode).toBe(200);
     expect(expired.json().data.checkoutUrl).toBeUndefined();
     expect(expired.json().data.checkoutFormFields).toBeUndefined();
+  });
+
+  test("payment ID alone cannot expose checkout or booking confirmation", async () => {
+    const booking = await draft();
+    const payment = (await pay(booking)).json().data;
+    for (const paid of [false, true]) {
+      if (paid) expect((await webhook(payment.paymentCode)).statusCode).toBe(200);
+      const denied = await app.inject({
+        method: "GET",
+        url: `/api/payments/${payment.paymentId}/status`,
+      });
+      expect(denied.statusCode).toBe(401);
+      expect(denied.headers["cache-control"]).toBe("no-store");
+      expect(denied.json().data).toBeUndefined();
+      expect(denied.body).not.toContain("qrToken");
+      expect(denied.body).not.toContain("checkoutFormFields");
+    }
+  });
+
+  test("checkout credentials are scoped to one payment and never appear in its response", async () => {
+    const booking = await draft();
+    const other = await draft();
+    const payment = (await pay(booking)).json().data;
+    for (const token of [other.draftAccessToken, "a".repeat(64)]) {
+      const denied = await app.inject({
+        method: "GET",
+        url: `/api/payments/${payment.paymentId}/status`,
+        headers: { "x-booking-access-token": token },
+      });
+      expect(denied.statusCode).toBe(404);
+      expect(denied.headers["cache-control"]).toBe("no-store");
+      expect(denied.json().data).toBeUndefined();
+    }
+    const allowed = await app.inject({
+      method: "GET",
+      url: `/api/payments/${payment.paymentId}/status`,
+      headers: { "x-booking-access-token": booking.draftAccessToken },
+    });
+    expect(allowed.statusCode).toBe(200);
+    expect(allowed.headers["cache-control"]).toBe("no-store");
+    expect(allowed.body).not.toContain(booking.draftAccessToken);
+    expect(allowed.body).not.toContain("holdTokenHash");
+    const missing = await app.inject({
+      method: "GET",
+      url: `/api/payments/${randomUUID()}/status`,
+      headers: { "x-booking-access-token": booking.draftAccessToken },
+    });
+    expect(missing.statusCode).toBe(404);
+    const malformed = await app.inject({
+      method: "GET",
+      url: `/api/payments/${payment.paymentId}/status`,
+      headers: { "x-booking-access-token": "invalid" },
+    });
+    expect(malformed.statusCode).toBe(400);
+    expect(malformed.headers["cache-control"]).toBe("no-store");
+  });
+
+  test("only the saved booking owner can read payment through an account session", async () => {
+    const booking = await draft();
+    const payment = (await pay(booking)).json().data;
+    await db
+      .update(bookings)
+      .set({ contactEmail: `${ids.user}@example.test` })
+      .where(eq(bookings.id, booking.id));
+    const request = (cookie: string) =>
+      app.inject({
+        method: "GET",
+        url: `/api/payments/${payment.paymentId}/status`,
+        headers: { cookie },
+      });
+    expect((await request(customerCookie)).statusCode).toBe(404);
+    await db.update(bookings).set({ userId: ids.user }).where(eq(bookings.id, booking.id));
+    expect((await request(customerCookie)).statusCode).toBe(200);
+    expect((await request(adminCookie)).statusCode).toBe(404);
+    await webhook(payment.paymentCode);
+    const paid = await request(customerCookie);
+    expect(paid.statusCode).toBe(200);
+    expect(paid.json().data.confirmation.bookingId).toBe(booking.id);
+    try {
+      await db.update(users).set({ status: "INACTIVE" }).where(eq(users.id, ids.user));
+      const disabled = await request(customerCookie);
+      expect(disabled.statusCode).toBe(403);
+      expect(disabled.headers["cache-control"]).toBe("no-store");
+    } finally {
+      await db.update(users).set({ status: "ACTIVE" }).where(eq(users.id, ids.user));
+    }
+  });
+
+  test("checkout status stays readable through hold expiry and the manual refund lifecycle", async () => {
+    const booking = await draft();
+    const payment = (await pay(booking)).json().data;
+    const request = () =>
+      app.inject({
+        method: "GET",
+        url: `/api/payments/${payment.paymentId}/status`,
+        headers: { "x-booking-access-token": booking.draftAccessToken },
+      });
+    await db
+      .update(capacityAllocations)
+      .set({ expiresAt: new Date(0) })
+      .where(eq(capacityAllocations.referenceId, booking.id));
+    expect((await request()).json().data.status).toBe("PENDING");
+    await db
+      .update(storageUnits)
+      .set({ status: "MAINTENANCE" })
+      .where(eq(storageUnits.id, ids.unit));
+    expect((await webhook(payment.paymentCode)).statusCode).toBe(200);
+    expect((await request()).json().data.status).toBe("REFUND_PENDING");
+    expect(
+      (
+        await app.inject({
+          method: "POST",
+          url: `/api/payments/${payment.paymentId}/refund/confirm`,
+          headers: { cookie: adminCookie },
+          payload: { reference: "manual-status-test" },
+        })
+      ).statusCode,
+    ).toBe(200);
+    const refunded = await request();
+    expect(refunded.statusCode).toBe(200);
+    expect(refunded.json().data.status).toBe("REFUNDED");
+    expect(refunded.json().data.confirmation).toBeUndefined();
+  });
+
+  test("webhook confirms the existing booking and converts its hold atomically", async () => {
+    const booking = await draft();
+    const payment = (await pay(booking)).json().data;
+    expect((await webhook(payment.paymentCode)).statusCode).toBe(200);
+    const [saved] = await db.select().from(bookings).where(eq(bookings.id, booking.id));
+    expect(saved?.status).toBe("CONFIRMED");
+    expect(saved?.bookingCode).toStartWith("SX-");
+    expect(saved?.qrTokenHash).toHaveLength(64);
+    expect(saved?.contactEmail).toBe(contact.email);
+    const [paid] = await db.select().from(payments).where(eq(payments.id, payment.paymentId));
+    expect(paid?.status).toBe("SUCCEEDED");
+    expect(paid?.paidAt).toBeInstanceOf(Date);
+    const allocations = await db
+      .select()
+      .from(capacityAllocations)
+      .where(eq(capacityAllocations.referenceId, booking.id));
+    expect(allocations).toHaveLength(1);
+    expect(allocations[0]).toMatchObject({
+      kind: "BOOKING",
+      status: "ACTIVE",
+      expiresAt: null,
+      accessTokenHash: null,
+    });
+    expect(
+      await db.select().from(unitAssignments).where(eq(unitAssignments.bookingId, booking.id)),
+    ).toHaveLength(0);
+    const events = await db
+      .select()
+      .from(paymentProviderEvents)
+      .where(eq(paymentProviderEvents.paymentId, payment.paymentId));
+    expect(events).toHaveLength(1);
+    expect(events[0]?.status).toBe("PROCESSED");
+  });
+
+  test.each(["ACTIVE", "EXPIRED"] as const)(
+    "late payment reclaims capacity from a %s expired hold without extending it",
+    async (status) => {
+      const booking = await draft();
+      const payment = (await pay(booking)).json().data;
+      await db
+        .update(capacityAllocations)
+        .set({ expiresAt: new Date(0), status })
+        .where(eq(capacityAllocations.referenceId, booking.id));
+      expect((await webhook(payment.paymentCode)).statusCode).toBe(200);
+      expect((await db.select().from(bookings).where(eq(bookings.id, booking.id)))[0]?.status).toBe(
+        "CONFIRMED",
+      );
+      const rows = await db
+        .select()
+        .from(capacityAllocations)
+        .where(eq(capacityAllocations.referenceId, booking.id));
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({ kind: "BOOKING", status: "ACTIVE", expiresAt: null });
+    },
+  );
+
+  test("late payment with no capacity records a full manual refund and acknowledges retries", async () => {
+    const booking = await draft();
+    const other = await draft();
+    const payment = (await pay(booking)).json().data;
+    await db
+      .update(capacityAllocations)
+      .set({ expiresAt: new Date(0) })
+      .where(eq(capacityAllocations.referenceId, booking.id));
+    expect((await pay(other)).statusCode).toBe(201);
+    const eventId = randomUUID();
+    expect((await webhook(payment.paymentCode, {}, eventId)).statusCode).toBe(200);
+    expect((await webhook(payment.paymentCode, {}, eventId)).statusCode).toBe(200);
+    expect(
+      (await db.select().from(payments).where(eq(payments.id, payment.paymentId)))[0],
+    ).toMatchObject({
+      status: "REFUND_PENDING",
+      refundReason: "NO_CAPACITY",
+      totalAmount: "3000000.00",
+      refundReference: null,
+      refundedAt: null,
+    });
+    expect((await db.select().from(bookings).where(eq(bookings.id, booking.id)))[0]).toMatchObject({
+      status: "DRAFT",
+      bookingCode: null,
+      qrTokenHash: null,
+    });
+    expect(
+      (
+        await db
+          .select()
+          .from(capacityAllocations)
+          .where(eq(capacityAllocations.referenceId, booking.id))
+      )[0]?.status,
+    ).toBe("RELEASED");
+    const statusResponse = await app.inject({
+      method: "GET",
+      url: `/api/payments/${payment.paymentId}/status`,
+      headers: { "x-booking-access-token": booking.draftAccessToken },
+    });
+    expect(statusResponse.json().data.status).toBe("REFUND_PENDING");
+    expect(statusResponse.json().data.confirmation).toBeUndefined();
+    expect((await pay(booking)).statusCode).toBe(409);
+  });
+
+  test("late payment cannot confirm a facility that is no longer active", async () => {
+    const booking = await draft();
+    const payment = (await pay(booking)).json().data;
+    await db
+      .update(capacityAllocations)
+      .set({ expiresAt: new Date(0) })
+      .where(eq(capacityAllocations.referenceId, booking.id));
+    await db.update(facilities).set({ isActive: false }).where(eq(facilities.id, ids.facility));
+    expect((await webhook(payment.paymentCode)).statusCode).toBe(200);
+    expect(
+      (await db.select().from(payments).where(eq(payments.id, payment.paymentId)))[0],
+    ).toMatchObject({ status: "REFUND_PENDING", refundReason: "OFFERING_UNAVAILABLE" });
+  });
+
+  test.each([false, true])(
+    "late payment after selected slot obeys the final slot cutoff (at cutoff: %s)",
+    async (atCutoff) => {
+      const booking = await draft();
+      const payment = (await pay(booking)).json().data;
+      await db
+        .insert(checkInSlots)
+        .values({ id: ids.lastSlot, name: "Last check-in", startTime: "17:00", endTime: "18:00" });
+      await db
+        .update(capacityAllocations)
+        .set({ expiresAt: new Date(0) })
+        .where(eq(capacityAllocations.referenceId, booking.id));
+      setSystemTime(new Date(`${checkInDate}T${atCutoff ? "11:00:00" : "04:00:00"}.000Z`));
+      expect((await webhook(payment.paymentCode)).statusCode).toBe(200);
+      const [saved] = await db.select().from(payments).where(eq(payments.id, payment.paymentId));
+      expect(saved?.status).toBe(atCutoff ? "REFUND_PENDING" : "SUCCEEDED");
+      if (atCutoff) expect(saved?.refundReason).toBe("CHECK_IN_CLOSED");
+    },
+  );
+
+  test("new drafts require tomorrow in Vietnam, not merely a future slot or 24 hours", async () => {
+    setSystemTime(new Date("2030-01-01T17:01:00.000Z")); // Jan 2 00:01 in Vietnam.
+    const payload = {
+      facilityId: ids.facility,
+      unitTypeId: ids.type,
+      checkInSlotId: ids.slot,
+      durationMonths: 2,
+    };
+    expect(
+      (
+        await app.inject({
+          method: "POST",
+          url: "/api/bookings/drafts",
+          payload: { ...payload, checkInDate: "2030-01-02" },
+        })
+      ).statusCode,
+    ).toBe(400);
+    setSystemTime(new Date("2030-01-02T16:59:00.000Z")); // Jan 2 23:59 in Vietnam.
+    expect(
+      (
+        await app.inject({
+          method: "POST",
+          url: "/api/bookings/drafts",
+          payload: { ...payload, checkInDate: "2030-01-03" },
+        })
+      ).statusCode,
+    ).toBe(201);
+  });
+
+  test("a draft carried into check-in day cannot start a new payment", async () => {
+    const booking = await draft();
+    setSystemTime(new Date(`${checkInDate}T00:00:00.000Z`)); // 07:00, slot has not started.
+    expect((await pay(booking)).statusCode).toBe(409);
+    expect(await db.select().from(payments).where(eq(payments.bookingId, booking.id))).toHaveLength(
+      0,
+    );
+  });
+
+  test("admin completes a full manual refund with immutable audit; customer and guest are denied", async () => {
+    const booking = await draft();
+    const payment = (await pay(booking)).json().data;
+    await db
+      .update(capacityAllocations)
+      .set({ expiresAt: new Date(0) })
+      .where(eq(capacityAllocations.referenceId, booking.id));
+    await db
+      .update(storageUnits)
+      .set({ status: "MAINTENANCE" })
+      .where(eq(storageUnits.id, ids.unit));
+    expect((await webhook(payment.paymentCode)).statusCode).toBe(200);
+    const url = `/api/payments/${payment.paymentId}/refund/confirm`;
+    const payload = { reference: "bank-transfer-123", amount: 1, refundedBy: ids.user };
+    expect((await app.inject({ method: "GET", url: "/api/payments/refunds" })).statusCode).toBe(
+      401,
+    );
+    expect(
+      (
+        await app.inject({
+          method: "GET",
+          url: "/api/payments/refunds",
+          headers: { cookie: customerCookie },
+        })
+      ).statusCode,
+    ).toBe(403);
+    expect((await app.inject({ method: "POST", url, payload })).statusCode).toBe(401);
+    expect(
+      (await app.inject({ method: "POST", url, payload, headers: { cookie: customerCookie } }))
+        .statusCode,
+    ).toBe(403);
+    const list = await app.inject({
+      method: "GET",
+      url: "/api/payments/refunds",
+      headers: { cookie: adminCookie },
+    });
+    expect(list.statusCode).toBe(200);
+    expect(
+      list.json().data.find((item: { paymentId: string }) => item.paymentId === payment.paymentId),
+    ).toMatchObject({ amount: "3000000.00", reason: "NO_CAPACITY" });
+    expect(
+      (
+        await app.inject({
+          method: "POST",
+          url,
+          payload: { reference: "  " },
+          headers: { cookie: adminCookie },
+        })
+      ).statusCode,
+    ).toBe(400);
+    const responses = await Promise.all(
+      Array.from({ length: 2 }, () =>
+        app.inject({ method: "POST", url, payload, headers: { cookie: adminCookie } }),
+      ),
+    );
+    expect(responses.map((response) => response.statusCode)).toEqual([200, 200]);
+    expect(responses[0]?.json().data).toEqual(responses[1]?.json().data);
+    expect(responses[0]?.json().data).toMatchObject({
+      status: "REFUNDED",
+      amount: "3000000.00",
+      refundedBy: ids.admin,
+      reference: payload.reference,
+    });
+    expect(
+      (
+        await app.inject({
+          method: "POST",
+          url,
+          payload: { reference: "other-transfer" },
+          headers: { cookie: adminCookie },
+        })
+      ).statusCode,
+    ).toBe(409);
+  });
+
+  test.skipIf(!redisUrl)(
+    "full API flow reserves the final unit once, queues one email, then manager assigns and staff checks in",
+    async () => {
+      const queue = mailQueue;
+      if (!queue) throw new Error("Full flow requires REDIS_TEST_URL");
+      const drafts = [await draft(), await draft()];
+      const keys = [randomUUID(), randomUUID()];
+      const starts = await Promise.all(drafts.map((booking, index) => pay(booking, keys[index])));
+      expect(starts.map((response) => response.statusCode).sort()).toEqual([201, 409]);
+      const index = starts.findIndex((response) => response.statusCode === 201);
+      const booking = drafts[index];
+      const first = starts[index]?.json().data;
+      if (!booking || !first) throw new Error("Missing successful checkout");
+      setSystemTime(new Date(Date.now() + 60000));
+      const retry = await pay(booking, keys[index]);
+      expect(retry.statusCode).toBe(201);
+      expect(retry.json().data.paymentId).toBe(first.paymentId);
+      expect(retry.json().data.expiresAt).toBe(first.expiresAt);
+      const assignUnit = () =>
+        app.inject({
+          method: "POST",
+          url: `/api/bookings/${booking.id}/assign-unit`,
+          headers: { cookie: managerCookie },
+          payload: { physicalUnitId: ids.unit },
+        });
+      expect((await assignUnit()).statusCode).toBe(404);
+      const eventId = randomUUID();
+      const delivered = await Promise.all(
+        Array.from({ length: 4 }, () => webhook(first.paymentCode, {}, eventId)),
+      );
+      expect(delivered.map((response) => response.statusCode)).toEqual([200, 200, 200, 200]);
+      const getStatus = () =>
+        app.inject({
+          method: "GET",
+          url: `/api/payments/${first.paymentId}/status`,
+          headers: { "x-booking-access-token": booking.draftAccessToken },
+        });
+      const status = await getStatus();
+      expect(status.statusCode).toBe(200);
+      expect(status.json().data).toMatchObject({
+        status: "SUCCEEDED",
+        confirmation: { bookingId: booking.id, emailStatus: "QUEUED" },
+      });
+      const job = await queue.getJob(mailJobId(booking.id));
+      expect(job).toBeDefined();
+      expect(job?.data.deliveryId).toBe(booking.id);
+      const queuedAt = job?.timestamp;
+      expect((await webhook(first.paymentCode)).statusCode).toBe(200);
+      expect(
+        await queue.getJobCountByTypes("waiting", "delayed", "active", "completed", "failed"),
+      ).toBe(1);
+      expect((await queue.getJob(mailJobId(booking.id)))?.timestamp).toBe(queuedAt);
+      const [hold] = await db
+        .select()
+        .from(capacityAllocations)
+        .where(eq(capacityAllocations.referenceId, booking.id));
+      expect(hold).toMatchObject({ kind: "BOOKING", status: "ACTIVE", expiresAt: null });
+      const staff = await app.inject({
+        method: "POST",
+        url: `/api/bookings/${booking.id}/assign-staff`,
+        headers: { cookie: managerCookie },
+        payload: { staffId: ids.staff },
+      });
+      expect(staff.statusCode).toBe(200);
+      const checkIn = () =>
+        app.inject({
+          method: "POST",
+          url: `/api/check-ins/${booking.id}/confirm`,
+          headers: { cookie: staffCookie },
+        });
+      expect((await checkIn()).statusCode).toBe(409);
+      expect((await assignUnit()).statusCode).toBe(200);
+      expect((await checkIn()).statusCode).toBe(409); // It is still before the booked day.
+      setSystemTime(new Date(booking.checkInAt));
+      const verified = await checkIn();
+      expect(verified.statusCode).toBe(200);
+      expect(verified.json().data.verification.status).toBe("VERIFIED");
+      expect(
+        await db
+          .select()
+          .from(checkInVerifications)
+          .where(eq(checkInVerifications.bookingId, booking.id)),
+      ).toHaveLength(1);
+    },
+  );
+
+  test("the real expiry sweep releases capacity at the deadline and late webhook races a new checkout safely", async () => {
+    const first = await draft();
+    const second = await draft();
+    const pending = (await pay(first)).json().data;
+    setSystemTime(new Date(pending.expiresAt));
+    const sweep = await expireCapacityHolds(db);
+    expect(sweep).toEqual({ expired: 1, skipped: false });
+    expect(
+      (
+        await db
+          .select()
+          .from(capacityAllocations)
+          .where(eq(capacityAllocations.referenceId, first.id))
+      )[0]?.status,
+    ).toBe("EXPIRED");
+    expect((await pay(first)).statusCode).toBe(409);
+    const [late, fresh] = await Promise.all([webhook(pending.paymentCode), pay(second)]);
+    expect(late.statusCode).toBe(200);
+    expect([201, 409]).toContain(fresh.statusCode);
+    if (fresh.statusCode === 201) {
+      expect((await webhook(fresh.json().data.paymentCode)).statusCode).toBe(200);
+      expect(
+        (await db.select().from(payments).where(eq(payments.id, pending.paymentId)))[0]?.status,
+      ).toBe("REFUND_PENDING");
+    } else {
+      expect(
+        (await db.select().from(payments).where(eq(payments.id, pending.paymentId)))[0]?.status,
+      ).toBe("SUCCEEDED");
+    }
+    const allocations = await db
+      .select()
+      .from(capacityAllocations)
+      .where(eq(capacityAllocations.facilityId, ids.facility));
+    expect(allocations.filter((allocation) => allocation.status === "ACTIVE")).toHaveLength(1);
+    expect(
+      (await db.select().from(bookings).where(eq(bookings.facilityId, ids.facility))).filter(
+        (booking) => booking.status === "CONFIRMED",
+      ),
+    ).toHaveLength(1);
+    expect(await expireCapacityHolds(db)).toEqual({ expired: 0, skipped: false });
+  });
+
+  test("after real hold expiry, late payment refunds in full and duplicate webhooks preserve the manual refund audit", async () => {
+    const first = await draft();
+    const second = await draft();
+    const pending = (await pay(first)).json().data;
+    setSystemTime(new Date(pending.expiresAt));
+    expect((await expireCapacityHolds(db)).expired).toBe(1);
+    const next = await pay(second);
+    expect(next.statusCode).toBe(201);
+    expect((await webhook(next.json().data.paymentCode)).statusCode).toBe(200);
+    const eventId = randomUUID();
+    expect((await webhook(pending.paymentCode, {}, eventId)).statusCode).toBe(200);
+    const getStatus = () =>
+      app.inject({
+        method: "GET",
+        url: `/api/payments/${pending.paymentId}/status`,
+        headers: { "x-booking-access-token": first.draftAccessToken },
+      });
+    expect((await getStatus()).json().data.status).toBe("REFUND_PENDING");
+    const confirm = await app.inject({
+      method: "POST",
+      url: `/api/payments/${pending.paymentId}/refund/confirm`,
+      headers: { cookie: adminCookie },
+      payload: { reference: "full-flow-bank-transfer" },
+    });
+    expect(confirm.statusCode).toBe(200);
+    const [refunded] = await db.select().from(payments).where(eq(payments.id, pending.paymentId));
+    expect(refunded).toMatchObject({
+      status: "REFUNDED",
+      totalAmount: "3000000.00",
+      refundReference: "full-flow-bank-transfer",
+      refundedBy: ids.admin,
+    });
+    expect((await webhook(pending.paymentCode, {}, eventId)).statusCode).toBe(200);
+    expect((await webhook(pending.paymentCode)).statusCode).toBe(200);
+    expect((await db.select().from(payments).where(eq(payments.id, pending.paymentId)))[0]).toEqual(
+      refunded,
+    );
+    expect((await getStatus()).json().data).toMatchObject({ status: "REFUNDED" });
+    expect((await getStatus()).json().data.confirmation).toBeUndefined();
+    expect(await mailQueue?.getJob(mailJobId(first.id))).toBeFalsy();
+  });
+
+  test("concurrent duplicate webhook deliveries finalize once", async () => {
+    const booking = await draft();
+    const payment = (await pay(booking)).json().data;
+    const eventId = randomUUID();
+    const responses = await Promise.all(
+      Array.from({ length: 4 }, () => webhook(payment.paymentCode, {}, eventId)),
+    );
+    expect(responses.map((response) => response.statusCode)).toEqual([200, 200, 200, 200]);
+    const [saved] = await db.select().from(bookings).where(eq(bookings.id, booking.id));
+    const initial = { bookingCode: saved?.bookingCode, qrTokenHash: saved?.qrTokenHash };
+    expect((await webhook(payment.paymentCode)).statusCode).toBe(200);
+    expect((await db.select().from(bookings).where(eq(bookings.id, booking.id)))[0]).toMatchObject(
+      initial,
+    );
+    expect(
+      await db
+        .select()
+        .from(capacityAllocations)
+        .where(eq(capacityAllocations.referenceId, booking.id)),
+    ).toHaveLength(1);
+    const events = await db
+      .select()
+      .from(paymentProviderEvents)
+      .where(eq(paymentProviderEvents.paymentId, payment.paymentId));
+    expect(events.filter((event) => event.status === "PROCESSED")).toHaveLength(1);
+  });
+
+  test("webhook rolls back all writes on a database error and the same event can be retried", async () => {
+    const booking = await draft();
+    const other = await draft();
+    const payment = (await pay(booking)).json().data;
+    const eventId = randomUUID();
+    const [collision] = await db
+      .insert(payments)
+      .values({
+        bookingId: other.id,
+        provider: "sepay",
+        providerPaymentId: eventId,
+        paymentCode: randomUUID().replaceAll("-", ""),
+        holdTokenHash: "0".repeat(64),
+        idempotencyKey: randomUUID(),
+        totalAmount: "3000000",
+        currency: "VND",
+        status: "PENDING",
+      })
+      .returning();
+    if (!collision) throw new Error("Missing collision fixture");
+    expect((await webhook(payment.paymentCode, {}, eventId)).statusCode).toBe(500);
+    expect((await db.select().from(bookings).where(eq(bookings.id, booking.id)))[0]).toMatchObject({
+      status: "DRAFT",
+      bookingCode: null,
+      qrTokenHash: null,
+    });
+    expect(
+      (await db.select().from(payments).where(eq(payments.id, payment.paymentId)))[0],
+    ).toMatchObject({ status: "PENDING", paidAt: null });
+    expect(
+      (
+        await db
+          .select()
+          .from(capacityAllocations)
+          .where(eq(capacityAllocations.referenceId, booking.id))
+      )[0]?.kind,
+    ).toBe("HOLD");
+    expect(
+      await db
+        .select()
+        .from(paymentProviderEvents)
+        .where(eq(paymentProviderEvents.providerEventId, eventId)),
+    ).toHaveLength(0);
+    await db.delete(payments).where(eq(payments.id, collision.id));
+    expect((await webhook(payment.paymentCode, {}, eventId)).statusCode).toBe(200);
+    expect((await db.select().from(bookings).where(eq(bookings.id, booking.id)))[0]?.status).toBe(
+      "CONFIRMED",
+    );
+  });
+
+  test("webhook rejects invalid credentials before touching the booking", async () => {
+    const booking = await draft();
+    const payment = (await pay(booking)).json().data;
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/payments/webhooks/sepay",
+      headers: { "x-secret-key": "wrong-secret" },
+      payload: { order: { order_invoice_number: payment.paymentCode } },
+    });
+    expect(response.statusCode).toBe(401);
+    expect(
+      (await db.select().from(payments).where(eq(payments.id, payment.paymentId)))[0]?.status,
+    ).toBe("PENDING");
+    expect(
+      await db
+        .select()
+        .from(paymentProviderEvents)
+        .where(eq(paymentProviderEvents.paymentId, payment.paymentId)),
+    ).toHaveLength(0);
+  });
+
+  test("same-key checkout retry across Vietnam midnight preserves the original hold", async () => {
+    const booking = await draft();
+    const checkIn = new Date(booking.checkInAt);
+    setSystemTime(new Date(checkIn.getTime() - 9 * 3600000 - 60000)); // Previous day 23:59.
+    const key = randomUUID();
+    const first = await pay(booking, key);
+    expect(first.statusCode).toBe(201);
+    setSystemTime(new Date(checkIn.getTime() - 9 * 3600000 + 60000)); // Check-in day 00:01.
+    const replay = await pay(booking, key);
+    expect(replay.statusCode).toBe(201);
+    expect(replay.json().data.expiresAt).toBe(first.json().data.expiresAt);
+  });
+
+  test("two late payments competing for the last unit yield one booking and one manual refund", async () => {
+    const first = await draft();
+    const second = await draft();
+    const a = (await pay(first)).json().data;
+    await db
+      .update(capacityAllocations)
+      .set({ expiresAt: new Date(0) })
+      .where(eq(capacityAllocations.referenceId, first.id));
+    const b = (await pay(second)).json().data;
+    await db
+      .update(capacityAllocations)
+      .set({ expiresAt: new Date(0) })
+      .where(eq(capacityAllocations.referenceId, second.id));
+    const responses = await Promise.all([webhook(a.paymentCode), webhook(b.paymentCode)]);
+    expect(responses.map((response) => response.statusCode)).toEqual([200, 200]);
+    const rows = await db
+      .select()
+      .from(payments)
+      .where(inArray(payments.id, [a.paymentId, b.paymentId]));
+    expect(rows.map((row) => row.status).sort()).toEqual(["REFUND_PENDING", "SUCCEEDED"]);
+  });
+
+  test("a late-paid assigned booking can check in during a later slot on the same day", async () => {
+    const booking = await draft();
+    const payment = (await pay(booking)).json().data;
+    await db
+      .insert(checkInSlots)
+      .values({ id: ids.lastSlot, name: "Last check-in", startTime: "17:00", endTime: "18:00" });
+    await db
+      .update(capacityAllocations)
+      .set({ expiresAt: new Date(0) })
+      .where(eq(capacityAllocations.referenceId, booking.id));
+    setSystemTime(new Date(`${checkInDate}T09:00:00.000Z`)); // 16:00, beyond the old two-hour grace.
+    expect((await webhook(payment.paymentCode)).statusCode).toBe(200);
+    const request = () =>
+      app.inject({
+        method: "POST",
+        url: `/api/check-ins/${booking.id}/confirm`,
+        headers: { cookie: staffCookie },
+      });
+    await db
+      .update(bookings)
+      .set({ assignedStaffId: ids.staff })
+      .where(eq(bookings.id, booking.id));
+    expect((await request()).statusCode).toBe(409); // Payment alone is not sufficient.
+    await db
+      .insert(unitAssignments)
+      .values({ bookingId: booking.id, physicalUnitId: ids.unit, assignedBy: ids.admin });
+    expect((await request()).statusCode).toBe(200);
+  });
+
+  test.each([
+    {
+      transaction: {
+        transaction_amount: "1",
+        transaction_currency: "VND",
+        transaction_status: "APPROVED",
+        transaction_type: "PAYMENT",
+      },
+    },
+    {
+      transaction: {
+        transaction_amount: "3000000",
+        transaction_currency: "USD",
+        transaction_status: "APPROVED",
+        transaction_type: "PAYMENT",
+      },
+    },
+    { notification_type: "TRANSACTION_VOID" },
+    {
+      transaction: {
+        transaction_amount: "3000000",
+        transaction_currency: "VND",
+        transaction_status: "DECLINED",
+        transaction_type: "PAYMENT",
+      },
+    },
+  ])("does not confirm an invalid or non-payment event: %j", async (override) => {
+    const booking = await draft();
+    const payment = (await pay(booking)).json().data;
+    const eventId = randomUUID();
+    const transaction = override.transaction
+      ? { ...override.transaction, transaction_id: eventId }
+      : undefined;
+    expect(
+      (
+        await webhook(
+          payment.paymentCode,
+          { ...override, ...(transaction ? { transaction } : {}) },
+          eventId,
+        )
+      ).statusCode,
+    ).toBe(200);
+    expect((await db.select().from(bookings).where(eq(bookings.id, booking.id)))[0]?.status).toBe(
+      "DRAFT",
+    );
+    expect(
+      (await db.select().from(payments).where(eq(payments.id, payment.paymentId)))[0]?.status,
+    ).toBe("PENDING");
+    expect(
+      (
+        await db
+          .select()
+          .from(paymentProviderEvents)
+          .where(eq(paymentProviderEvents.providerEventId, eventId))
+      )[0]?.status,
+    ).toBe("IGNORED");
   });
 
   test("rejects another checkout reusing the idempotency key without persisting contact or hold", async () => {
