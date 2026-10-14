@@ -26,8 +26,30 @@ phiên SePay từ reservation (`startSepayPayment`, `pendingResponse`) đã đư
 API trạng thái chỉ tạo lại form checkout cho payment gắn booking còn hold hợp lệ;
 payment reservation cũ không còn được tạo form checkout qua gateway này.
 
+## Quyền đọc trạng thái payment
+
+`GET /api/payments/:paymentId/status` yêu cầu một trong hai credential:
+
+- Header `x-booking-access-token: <draftAccessToken>` từ API tạo booking draft;
+  server so SHA-256 với credential của đúng payment. Không gửi token trong URL.
+- Cookie đăng nhập của tài khoản ACTIVE có `bookings.user_id` khớp session.
+  Email trùng hoặc vai trò admin/staff không tự cấp quyền đọc checkout của khách.
+
+Thiếu credential trả 401; credential không có quyền hoặc payment không tồn tại
+cùng trả 404; token sai định dạng trả 400; tài khoản bị vô hiệu hóa trả 403.
+Các response, kể cả lỗi, có `Cache-Control: no-store` và `Referrer-Policy: no-referrer`.
+Hold hết hạn không thu hồi quyền đọc: khách vẫn xem được PENDING, SUCCEEDED,
+REFUND_PENDING hoặc REFUNDED. Response không trả credential/hash lưu trong database.
+
+Cookie email tracking giữ Path `/api/booking`; khách mở email tiếp tục dùng endpoint
+tracking hiện có. API client/frontend chưa đổi trong task backend này: guest polling
+status cần bổ sung header khi tích hợp; account owner có thể dùng session cookie.
+
 ## Quy tắc
 
+- Ngày nhận kho của draft và payment mới phải sau ngày hiện tại tại
+  `Asia/Ho_Chi_Minh` (ngày lịch, không yêu cầu đủ 24 giờ). Retry cùng key với hold
+  còn hạn vẫn trả phiên cũ khi qua nửa đêm; không gia hạn hold.
 - Transaction khóa booking và offering của cặp facility/unit type, kiểm tra capacity
   trên toàn kỳ thuê, lưu contact, tạo hold 10 phút và payment PENDING cùng lúc.
 - Draft và payment dùng chung cách tính sức chứa: chỉ xét kho hiện đang `AVAILABLE`
@@ -60,11 +82,43 @@ chưa được cấu hình. `error.code` dùng mã HTTP theo convention hiện t
 
 ## Phạm vi hiện tại
 
-Endpoint này hoàn thành bước bắt đầu payment. Webhook, confirm-sandbox và các reader
-legacy chưa chuyển sang hoàn tất payment chỉ có booking ID; không dùng phiên này để
-thu tiền thật trước khi triển khai luồng `DRAFT → CONFIRMED`, đối soát và bảo vệ status.
-Quy tắc tiền đến sau hold hết hạn đã chốt cho bước webhook tiếp theo: kiểm tra lại
-chỗ, còn thì xác nhận, hết thì chuyển xử lý hoàn tiền; chưa triển khai ở endpoint này.
+Webhook `POST /api/payments/webhooks/sepay` (alias `/api/sepay/ipn`) xác nhận payment
+gắn booking khi hold còn hiệu lực. IPN cần xác thực, transaction ID ổn định,
+`ORDER_PAID`, order `CAPTURED`, transaction `APPROVED`/`PAYMENT`, số tiền khớp và
+currency VND. Sự kiện hủy/chưa thành công hoặc sai số tiền/currency được ghi IGNORED.
+Xem [đặc tả IPN SePay](https://developer.sepay.vn/vi/cong-thanh-toan/IPN).
+
+Transaction khóa theo thứ tự booking → payment → offering → hold, chuyển cùng
+booking `DRAFT → CONFIRMED`, payment `PENDING → SUCCEEDED`, hold `HOLD → BOOKING`
+và provider event sang PROCESSED. Không tạo booking mới, không gán kho vật lý.
+Email được enqueue sau commit. Webhook lặp không tạo thêm booking/QR/allocation hoặc
+enqueue lại email. Lỗi database rollback toàn bộ, event có thể được gửi lại.
+
+Tiền đến sau hold hết hạn được kiểm tra lại sức chứa dưới cùng khóa offering với
+payment mới. Còn chỗ thì tái sử dụng allocation hết hạn (hoặc tạo allocation paid),
+không gia hạn checkout. Booking giữ nguyên lịch/giá. Có thể xác nhận sau slot đã
+chọn nếu chưa kết thúc slot cuối cùng của ngày nhận kho. Check-in cũng dùng hạn
+cuối ngày này; vẫn yêu cầu payment SUCCEEDED và kho/nhân viên đã được phân công.
+
+Hết chỗ, offering không hoạt động hoặc đã tới hạn cuối check-in thì ghi payment
+REFUND_PENDING, paidAt, provider reference và lý do; event PROCESSED, hold RELEASED,
+booking giữ DRAFT, không QR/email/gán kho. Hoàn toàn bộ payment total gồm thuê + cọc;
+đây không phải chính sách khách hủy/NO_SHOW mất cọc. Callback đã được xử lý trả 200.
+
+## Hoàn thủ công cho MVP
+
+- `GET /api/payments/refunds?limit=20&offset=0`: danh sách khoản REFUND_PENDING.
+- `POST /api/payments/:paymentId/refund/confirm` với `{ "reference": "mã chuyển khoản/bằng chứng" }`:
+  xác nhận admin đã chuyển tiền, không thực hiện chuyển tiền qua SePay.
+- Chỉ SYSTEM_ADMIN và BUSINESS_OPERATION_MANAGER đang ACTIVE được truy cập.
+  Server lấy toàn bộ số tiền từ payment, actor từ session và thời gian hiện tại.
+  Lưu refundReference/refundedBy/refundedAt rồi chuyển REFUNDED trong transaction.
+  Retry cùng reference giữ nguyên audit; reference khác trả 409. Payment không chờ
+  hoàn trả 409, payment không tồn tại trả 404; guest 401, sai role 403, input sai 400.
+
+Migration `0033_bent_puma.sql` bổ sung enum/metadata hoàn tiền; phải migrate trước
+khi chạy backend mới. Confirm-sandbox cho booking mới vẫn chưa hoàn thiện.
+Cơ chế hoàn tiền do khách hủy/NO_SHOW là task riêng.
 
 ## Kiểm thử
 
@@ -75,6 +129,20 @@ Chạy với PostgreSQL test riêng đã migrate, đặt `DATABASE_URL` bằng
 bun test apps/api/tests/integration/booking-payment-start.test.ts
 ```
 
-Test dùng SDK SePay với credential giả để tạo form tại chỗ, không gọi SePay thật,
-không cần Redis hoặc worker. Kiểm tra persistence, giá snapshot, ownership, token,
-validation, retry đồng thời, hết hạn và hai checkout tranh capacity cuối.
+Test dùng SDK SePay với credential giả để tạo form tại chỗ, không gọi SePay thật
+hoặc gửi email thật. Các ca PostgreSQL không cần Redis. Để chạy cả chuỗi API và
+kiểm tra email job thực trong BullMQ, đặt thêm `REDIS_TEST_URL` trỏ tới Redis test
+riêng. Queue dùng tên riêng theo fixture và được dọn sau test; không chạy worker.
+Nếu thiếu Redis test, ca xác minh email/full API flow sẽ được đánh dấu skip.
+
+| Tình huống | Kiểm tra tích hợp |
+| --- | --- |
+| Chỗ cuối | Hai draft gọi payment đồng thời: chỉ một payment/hold được tạo |
+| Retry | Giữ nguyên payment ID và expiresAt, kể cả retry qua nửa đêm Việt Nam |
+| Hết hạn | Chạy `expireCapacityHolds()` thật đúng expiresAt; hold thành EXPIRED, retry không hồi sinh |
+| Webhook lặp | Cùng event đồng thời và event khác cho payment đã xác nhận: một booking/allocation/email job |
+| Tiền đến muộn | Tranh chỗ với checkout mới dưới khóa transaction; không nhận dư capacity |
+| Hết chỗ/hết ngày | REFUND_PENDING toàn bộ thuê + cọc, không booking confirmation hoặc QR |
+| Hoàn thủ công | Admin xác nhận qua API; webhook replay không đổi số tiền/reference/actor/thời gian |
+| Chuỗi API | Draft → pay → protected status → webhook → manager gán staff/kho → staff check-in |
+| Rollback | Database lỗi không để lại booking confirmed hoặc provider event xử lý dở; retry được |
