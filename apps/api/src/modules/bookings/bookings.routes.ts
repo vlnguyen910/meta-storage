@@ -9,6 +9,7 @@ import {
   BookingPaymentParamsSchema,
   BookingTrackingParamsSchema,
   FacilityBookingsParamsSchema,
+  PaymentStatusHeadersSchema,
   StaffTasksQuerySchema,
 } from "@metastorage/contracts";
 import type { FastifyPluginAsync } from "fastify";
@@ -27,6 +28,7 @@ import {
   trackingSessionCookie,
   trackingSessionToken,
 } from "./bookings.access";
+import { BOOKING_MESSAGES } from "./bookings.messages";
 import { createBookingsService } from "./bookings.service";
 import { bookingSwaggerTransform } from "./bookings.swagger";
 import { CheckInSlotsRepository } from "./check-in-slots.repository";
@@ -58,6 +60,30 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
         .status(201)
         .send(successResponse(await service.createDraft(request.body, request.user?.id)));
     },
+  );
+
+  typedApp.post(
+    "/bookings/:bookingId/cancel",
+    {
+      onRequest: [privateTrackingResponse],
+      preHandler: [optionalAuth],
+      schema: {
+        params: BookingPaymentParamsSchema,
+        headers: PaymentStatusHeadersSchema,
+        tags: ["Bookings"],
+        summary: BOOKING_MESSAGES.cancellationSummary,
+        description: BOOKING_MESSAGES.cancellationDescription,
+      },
+    },
+    async (request, reply) =>
+      reply.send(
+        successResponse(
+          await service.cancelBooking(request.params.bookingId, {
+            checkoutAccessToken: request.headers["x-booking-access-token"],
+            userId: request.user?.id,
+          }),
+        ),
+      ),
   );
 
   typedApp.post(

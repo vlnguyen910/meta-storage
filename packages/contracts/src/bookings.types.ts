@@ -5,6 +5,18 @@ export type CheckInSlotOption = {
   endTime: string;
 };
 
+export type BookingClosure = {
+  bookingId: string;
+  status: "CANCELLED" | "NO_SHOW";
+  payment: {
+    paymentId: string;
+    status: "REFUND_PENDING" | "REFUNDED";
+    refundAmount: string;
+    depositForfeitedAmount: string;
+    currency: string;
+  };
+};
+
 export type BookingDraftPricing = {
   monthlyRateSnapshot: string;
   rentalFeeAmount: string;
@@ -42,5 +54,10 @@ export interface BookingTracking {
   durationMonths: number;
   contact: { fullName: string; email: string; phone: string };
   pricing: BookingDraftPricing;
-  payment: { status: "SUCCEEDED" | "REFUNDED"; paidAt: string };
+  payment: {
+    status: "SUCCEEDED" | "REFUND_PENDING" | "REFUNDED";
+    paidAt: string;
+    refundAmount: string | null;
+    depositForfeitedAmount: string;
+  };
 }

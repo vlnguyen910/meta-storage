@@ -3,7 +3,13 @@ import type { MailJobData } from "@metastorage/shared/mail";
 import type { Queue } from "bullmq";
 import type Redis from "ioredis";
 
-export type BookingQueryExecutor = Database | Parameters<Parameters<Database["transaction"]>[0]>[0];
+export type BookingTransaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
+export type BookingQueryExecutor = Database | BookingTransaction;
+
+export type BookingCancellationAccess = {
+  userId?: string;
+  tokenHash?: string;
+};
 
 export type BookingReadRecord = Booking & {
   contactName: string;

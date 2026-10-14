@@ -192,7 +192,12 @@ const trackingExample = {
     phone: booking.contactPhone,
   },
   pricing: draft.pricing,
-  payment: { status: "SUCCEEDED", paidAt: timestamp },
+  payment: {
+    status: "SUCCEEDED",
+    paidAt: timestamp,
+    refundAmount: null,
+    depositForfeitedAmount: "0.00",
+  },
 } satisfies BookingTracking;
 const text = { type: "string" };
 const objectSchema = (properties: Record<string, object>) => ({
@@ -216,8 +221,10 @@ const trackingSchema = objectSchema({
   }),
   pricing: draftProperties.pricing,
   payment: objectSchema({
-    status: { type: "string", enum: ["SUCCEEDED", "REFUNDED"] },
+    status: { type: "string", enum: ["SUCCEEDED", "REFUND_PENDING", "REFUNDED"] },
     paidAt: dateTime,
+    refundAmount: { type: "string", nullable: true },
+    depositForfeitedAmount: text,
   }),
 });
 const trackingErrors = {

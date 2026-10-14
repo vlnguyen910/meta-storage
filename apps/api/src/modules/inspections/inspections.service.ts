@@ -6,6 +6,7 @@ import {
   type InspectionPhotoInput,
 } from "@metastorage/contracts";
 import { ConflictError, NotFoundError, ValidationError } from "../../common/errors/app-error";
+import { CheckInSlotsRepository } from "../bookings/check-in-slots.repository";
 import { assertAssignedStaff } from "../check-ins/check-in-access";
 import { CloudinaryPhotoStorage } from "./cloudinary-photo-storage";
 import { assertHandoverReady } from "./handover.policy";
@@ -270,7 +271,11 @@ export class InspectionsService {
         throw new ConflictError(INSPECTION_MESSAGES.handoverInvalid);
       if (await this.repository.activeRental(tx, r.physicalUnitId))
         throw new ConflictError(INSPECTION_MESSAGES.rentalConflict);
-      await this.repository.activateRental(tx, c.booking, r, userId, new Date());
+      const now = new Date();
+      const deadline = await new CheckInSlotsRepository(tx).findDayEnd(c.booking.checkInDate);
+      if (!deadline || now >= deadline)
+        throw new ConflictError(INSPECTION_MESSAGES.handoverInvalid);
+      await this.repository.activateRental(tx, c.booking, r, userId, now);
     });
     return this.get(id);
   }

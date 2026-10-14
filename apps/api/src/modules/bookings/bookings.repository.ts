@@ -1,5 +1,6 @@
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from "node:crypto";
 import {
+  type BookingClosure,
   type BookingListItem,
   type BookingTracking,
   type EligibleUnit,
@@ -11,11 +12,13 @@ import {
   aliasedTable,
   and,
   bookings,
+  capacityAllocations,
   checkInSlots,
   checkInVerifications,
   type Database,
   desc,
   eq,
+  exists,
   facilities,
   facilityAssignments,
   getTableColumns,
@@ -24,9 +27,13 @@ import {
   inArray,
   isNotNull,
   lt,
+  lte,
+  max,
   type NewBooking,
   ne,
+  notExists,
   notInArray,
+  or,
   payments,
   rentals,
   sql,
@@ -42,8 +49,15 @@ import {
 } from "@metastorage/shared/booking-access";
 import { BOOKING_EMAIL_MESSAGES } from "@metastorage/shared/mail";
 import type Redis from "ioredis";
+import { AppError } from "../../common/errors/app-error";
 import { BOOKING_MESSAGES } from "./bookings.messages";
-import type { BookingTrackingLinkInput, EncryptedBookingDelivery } from "./bookings.types";
+import type {
+  BookingCancellationAccess,
+  BookingTrackingLinkInput,
+  BookingTransaction,
+  EncryptedBookingDelivery,
+} from "./bookings.types";
+import { CheckInSlotsRepository } from "./check-in-slots.repository";
 
 const assignedStaffUsers = aliasedTable(users, "assigned_staff_users");
 
@@ -143,6 +157,68 @@ export async function createBookingTrackingLink(
 export class BookingsRepository {
   constructor(private readonly db: Database) {}
 
+  async cancelBooking(
+    bookingId: string,
+    access: BookingCancellationAccess,
+  ): Promise<BookingClosure> {
+    if (!access.userId && !access.tokenHash)
+      throw new AppError(BOOKING_MESSAGES.cancellationAccessRequired, 401);
+    return this.db.transaction(async (tx) => {
+      const [owned] = await tx
+        .select({ id: bookings.id })
+        .from(bookings)
+        .where(
+          and(
+            eq(bookings.id, bookingId),
+            or(
+              access.userId ? eq(bookings.userId, access.userId) : undefined,
+              access.tokenHash ? eq(bookings.accessTokenHash, access.tokenHash) : undefined,
+            ),
+          ),
+        )
+        .for("update");
+      if (!owned) throw new AppError(BOOKING_MESSAGES.bookingNotFound, 404);
+      const result = await closeBookingBeforeCheckIn(tx, bookingId, "CANCELLED", new Date());
+      if (!result) throw new AppError(BOOKING_MESSAGES.cancellationClosed, 409);
+      return result;
+    });
+  }
+
+  async sweepNoShows(now = new Date()) {
+    return this.db.transaction(async (tx) => {
+      const dayEnd = sql`(${bookings.checkInDate} +
+        (${tx.select({ end: max(checkInSlots.endTime) }).from(checkInSlots)}))
+        at time zone 'Asia/Ho_Chi_Minh'`;
+      const candidates = await tx
+        .select({ id: bookings.id })
+        .from(bookings)
+        .where(
+          and(
+            eq(bookings.status, "CONFIRMED"),
+            lte(bookings.checkInDate, bookingLocalDate(now)),
+            lte(dayEnd, now.toISOString()),
+            exists(
+              tx
+                .select({ id: payments.id })
+                .from(payments)
+                .where(and(eq(payments.bookingId, bookings.id), eq(payments.status, "SUCCEEDED"))),
+            ),
+            notExists(
+              tx.select({ id: rentals.id }).from(rentals).where(eq(rentals.bookingId, bookings.id)),
+            ),
+          ),
+        )
+        .orderBy(bookings.checkInDate, bookings.id)
+        .limit(100)
+        .for("update", { skipLocked: true });
+      let processed = 0;
+      for (const booking of candidates) {
+        if (await closeBookingBeforeCheckIn(tx, booking.id, "NO_SHOW", now)) processed++;
+      }
+      return { processed };
+    });
+  }
+
   async findTrackingBooking(bookingId: string): Promise<BookingTracking | null> {
     const [row] = await this.db
       .select({
@@ -168,6 +244,8 @@ export class BookingsRepository {
         depositAmount: bookings.depositAmount,
         totalAmount: bookings.totalAmount,
         paymentStatus: payments.status,
+        refundAmount: payments.refundAmount,
+        depositForfeitedAmount: payments.depositForfeitedAmount,
         paidAt: payments.paidAt,
       })
       .from(bookings)
@@ -179,7 +257,7 @@ export class BookingsRepository {
         and(
           eq(bookings.id, bookingId),
           inArray(bookings.status, ["CONFIRMED", "CHECKED_IN", "CANCELLED", "NO_SHOW"]),
-          inArray(payments.status, ["SUCCEEDED", "REFUNDED"]),
+          inArray(payments.status, ["SUCCEEDED", "REFUND_PENDING", "REFUNDED"]),
           isNotNull(payments.paidAt),
         ),
       )
@@ -213,6 +291,9 @@ export class BookingsRepository {
       payment: {
         status: row.paymentStatus as BookingTracking["payment"]["status"],
         paidAt: row.paidAt.toISOString(),
+        refundAmount:
+          row.refundAmount ?? (row.paymentStatus !== "SUCCEEDED" ? row.totalAmount : null),
+        depositForfeitedAmount: row.depositForfeitedAmount,
       },
     };
   }
@@ -241,7 +322,7 @@ export class BookingsRepository {
           .as("paid_at"),
       })
       .from(payments)
-      .where(inArray(payments.status, ["SUCCEEDED", "REFUNDED"]))
+      .where(inArray(payments.status, ["SUCCEEDED", "REFUND_PENDING", "REFUNDED"]))
       .groupBy(payments.bookingId)
       .as("booking_payments");
 
@@ -358,7 +439,7 @@ export class BookingsRepository {
           .as("paid_at"),
       })
       .from(payments)
-      .where(inArray(payments.status, ["SUCCEEDED", "REFUNDED"]))
+      .where(inArray(payments.status, ["SUCCEEDED", "REFUND_PENDING", "REFUNDED"]))
       .groupBy(payments.bookingId)
       .as("booking_payments");
 
@@ -478,7 +559,7 @@ export class BookingsRepository {
           .as("paid_at"),
       })
       .from(payments)
-      .where(inArray(payments.status, ["SUCCEEDED", "REFUNDED"]))
+      .where(inArray(payments.status, ["SUCCEEDED", "REFUND_PENDING", "REFUNDED"]))
       .groupBy(payments.bookingId)
       .as("booking_payments");
 
@@ -880,4 +961,118 @@ export class BookingsRepository {
       return { success: true as const, bookingId, staffId };
     });
   }
+}
+
+// Caller supplies a transaction. Booking is always locked before payment, matching
+// checkout, verification and handover so only one lifecycle transition can win.
+export async function closeBookingBeforeCheckIn(
+  tx: BookingTransaction,
+  bookingId: string,
+  target: "CANCELLED" | "NO_SHOW",
+  now: Date,
+): Promise<BookingClosure | null> {
+  const [booking] = await tx
+    .select()
+    .from(bookings)
+    .where(eq(bookings.id, bookingId))
+    .for("update");
+  if (!booking) return null;
+  if (target === "CANCELLED" && booking.status === "CANCELLED") {
+    const [payment] = await tx
+      .select()
+      .from(payments)
+      .where(
+        and(
+          eq(payments.bookingId, bookingId),
+          eq(payments.refundReason, "CUSTOMER_CANCELLATION"),
+          inArray(payments.status, ["REFUND_PENDING", "REFUNDED"]),
+        ),
+      )
+      .for("update");
+    if (!payment) throw new AppError(BOOKING_MESSAGES.cancellationPaymentInvalid, 409);
+    return {
+      bookingId,
+      status: "CANCELLED",
+      payment: {
+        paymentId: payment.id,
+        status: payment.status as "REFUND_PENDING" | "REFUNDED",
+        refundAmount: payment.refundAmount ?? payment.totalAmount,
+        depositForfeitedAmount: payment.depositForfeitedAmount,
+        currency: payment.currency,
+      },
+    };
+  }
+  if (booking.status !== "CONFIRMED") return null;
+  const dayEnd = await new CheckInSlotsRepository(tx).findDayEnd(booking.checkInDate);
+  if (!dayEnd || (target === "NO_SHOW" ? now < dayEnd : now >= dayEnd)) return null;
+  const [rental] = await tx
+    .select({ id: rentals.id })
+    .from(rentals)
+    .where(eq(rentals.bookingId, bookingId))
+    .limit(1);
+  if (rental) return null;
+  const [payment] = await tx
+    .select()
+    .from(payments)
+    .where(
+      and(
+        eq(payments.bookingId, bookingId),
+        eq(payments.status, "SUCCEEDED"),
+        isNotNull(payments.paidAt),
+        eq(payments.totalAmount, booking.totalAmount),
+        sql`${payments.totalAmount} = ${booking.rentalFeeAmount}::numeric + ${booking.depositAmount}::numeric`,
+      ),
+    )
+    .for("update");
+  if (!payment) throw new AppError(BOOKING_MESSAGES.cancellationPaymentInvalid, 409);
+  const reason =
+    target === "CANCELLED" ? BOOKING_MESSAGES.cancellationReason : BOOKING_MESSAGES.noShowReason;
+  await tx
+    .update(payments)
+    .set({
+      status: "REFUND_PENDING",
+      refundAmount: booking.rentalFeeAmount,
+      depositForfeitedAmount: booking.depositAmount,
+      refundReason: target === "CANCELLED" ? "CUSTOMER_CANCELLATION" : "NO_SHOW",
+      updatedAt: now,
+    })
+    .where(eq(payments.id, payment.id));
+  await tx
+    .update(capacityAllocations)
+    .set({ status: "RELEASED", updatedAt: now })
+    .where(
+      and(
+        eq(capacityAllocations.referenceId, bookingId),
+        eq(capacityAllocations.kind, "BOOKING"),
+        eq(capacityAllocations.status, "ACTIVE"),
+      ),
+    );
+  await tx
+    .update(checkInVerifications)
+    .set({ status: "INVALIDATED", invalidatedAt: now, invalidatedReason: reason, updatedAt: now })
+    .where(
+      and(
+        eq(checkInVerifications.bookingId, bookingId),
+        eq(checkInVerifications.status, "VERIFIED"),
+      ),
+    );
+  await tx
+    .update(unitAssignments)
+    .set({ status: "CANCELLED", endedAt: now, reason })
+    .where(and(eq(unitAssignments.bookingId, bookingId), eq(unitAssignments.status, "ACTIVE")));
+  await tx
+    .update(bookings)
+    .set({ status: target, assignedStaffId: null, updatedAt: now })
+    .where(and(eq(bookings.id, bookingId), eq(bookings.status, "CONFIRMED")));
+  return {
+    bookingId,
+    status: target,
+    payment: {
+      paymentId: payment.id,
+      status: "REFUND_PENDING",
+      refundAmount: booking.rentalFeeAmount,
+      depositForfeitedAmount: booking.depositAmount,
+      currency: payment.currency,
+    },
+  };
 }

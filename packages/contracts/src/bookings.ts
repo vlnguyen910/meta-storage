@@ -4,6 +4,7 @@ import { FacilityStaffMemberSchema } from "./facilities";
 import { ReservationDraftContactSchema } from "./reservation-contact";
 
 export type {
+  BookingClosure,
   BookingDraft,
   BookingDraftPricing,
   BookingTracking,

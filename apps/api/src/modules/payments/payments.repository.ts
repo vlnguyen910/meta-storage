@@ -16,6 +16,7 @@ import {
   payments,
   reservationDrafts,
   type SQL,
+  sql,
   unitTypes,
 } from "@metastorage/database";
 import { AppError } from "../../common/errors/app-error";
@@ -231,6 +232,7 @@ export class PaymentsRepository {
             .set({
               status: "REFUND_PENDING",
               refundReason,
+              refundAmount: payment.totalAmount,
               paidAt: now,
               providerPaymentId: event.referenceCode ?? event.providerEventId,
               updatedAt: now,
@@ -475,7 +477,8 @@ export class PaymentsRepository {
       .select({
         paymentId: payments.id,
         bookingId: payments.bookingId,
-        amount: payments.totalAmount,
+        amount: sql<string>`coalesce(${payments.refundAmount}, ${payments.totalAmount})`,
+        depositForfeitedAmount: payments.depositForfeitedAmount,
         currency: payments.currency,
         reason: payments.refundReason,
         paidAt: payments.paidAt,

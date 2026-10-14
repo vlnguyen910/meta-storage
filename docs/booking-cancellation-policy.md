@@ -31,7 +31,7 @@
 ### No-show
 
 - Hạn check-in kết thúc tại **giờ kết thúc slot cuối cùng của ngày nhận kho** (Asia/Ho_Chi_Minh); thay thế grace period 2 giờ trước đây. Khách bỏ lỡ slot đã chọn vẫn có thể check-in muộn hơn trong cùng ngày sau khi payment thành công và manager đã gán kho.
-- Khi hết grace period mà Booking vẫn `CONFIRMED` và chưa check-in, chuyển `CONFIRMED → NO_SHOW`.
+- Đúng hoặc sau giờ kết thúc slot cuối ngày, Booking vẫn `CONFIRMED` thì chuyển `CONFIRMED → NO_SHOW`. Chỉ `CHECKED_IN` sau bàn giao mới được miễn NO_SHOW; verification `VERIFIED` chưa phải mốc đã đến theo quyết định nghiệp vụ hiện tại.
 - No-show hoàn rental fee đã thanh toán, mất toàn bộ deposit và release reserved Unit Type capacity.
 - `NO_SHOW` là terminal Booking state.
 
@@ -48,7 +48,7 @@ Booking lifecycle cần tối thiểu `CONFIRMED`, `CANCELLED`, `NO_SHOW`, `CHEC
 
 ## Test matrix cho lúc triển khai Booking/Payment backend
 
-Các kịch bản dưới đây là acceptance cases; hiện chưa có Booking/Payment backend để chạy automated tests.
+Các ca hủy/NO_SHOW được kiểm thử tích hợp với PostgreSQL; giới hạn đặt trước 30 ngày và reschedule bên dưới vẫn là task riêng, chưa được triển khai.
 
 | Trường hợp | Đầu vào / tiền điều kiện | Kết quả cần kiểm thử |
 | --- | --- | --- |
@@ -68,5 +68,30 @@ Các kịch bản dưới đây là acceptance cases; hiện chưa có Booking/P
 ## Ngoài phạm vi quyết định này
 
 - Cancellation do METASTORAGE không thể cung cấp unit phù hợp hoặc customer từ chối unit tại check-in vẫn **TBD** tại [issue #26](https://github.com/vlnguyen910/storeX/issues/26). Không tự động áp dụng forfeiture deposit của customer-initiated cancellation cho các trường hợp đó.
-- Tài liệu này chốt outcome nghiệp vụ, chưa chốt thời điểm/chi tiết kỹ thuật thực hiện refund qua payment provider.
-- Chưa thay đổi database schema hoặc API contract. Booking/Payment implementation sẽ bổ sung state machine, `rescheduleCount`, history và payment/refund state theo policy này. `ReservationStatus` hiện tại trong shared contract phục vụ reservation flow mẫu, không phải Booking state machine cuối cùng.
+- MVP dùng hoàn thủ công qua API admin hiện có; endpoint hủy/cron chỉ ghi nhận khoản chờ hoàn, không chuyển tiền qua SePay.
+- Reschedule, `rescheduleCount` và history vẫn chưa được triển khai trong task hủy/NO_SHOW.
+
+## Backend đã triển khai
+
+- `POST /api/bookings/:bookingId/cancel`: dùng `x-booking-access-token` của checkout
+  hoặc session ACTIVE của chủ booking. Thiếu credential trả 401, không có quyền/không
+  tồn tại trả 404, token sai định dạng trả 400. Chỉ CONFIRMED trước hạn cuối ngày và
+  chưa có rental được hủy; DRAFT, CHECKED_IN, NO_SHOW hoặc quá hạn trả 409.
+- Verification VERIFIED chưa chặn hủy. Hủy/NO_SHOW vô hiệu hóa verification,
+  hủy phân công kho đang ACTIVE, xóa assignedStaffId và release capacity. Không
+  đổi trạng thái vật lý của kho vì booking chưa bắt đầu rental.
+- Mọi thay đổi booking/payment/capacity/assignment/verification chạy trong một
+  transaction, khóa booking trước payment, cùng khóa với verification và handover.
+  Retry hủy trả kết quả đã lưu, kể cả khoản hoàn đã được admin xác nhận; không tính
+  lại giá, không gia hạn hold và không thay đổi audit hoàn tiền.
+- Payment giữ total_amount gốc; refund_amount lưu rental_fee_amount và
+  deposit_forfeited_amount lưu deposit_amount từ booking snapshot.
+  Payment chuyển SUCCEEDED → REFUND_PENDING → REFUNDED qua hoàn thủ công.
+  Lý do CUSTOMER_CANCELLATION/NO_SHOW phân biệt với hoàn toàn bộ do không thể nhận booking.
+- Cron API chạy khi khởi động và mỗi 30 giây, tối đa 100 booking mỗi lượt. Dùng
+  FOR UPDATE SKIP LOCKED để các instance không xử lý trùng; tự bắt lại booking quá
+  hạn sau downtime. Không cần khách/staff gọi API để phát hiện NO_SHOW.
+- API handover từ chối đúng/sau hạn cuối ngày ngay cả khi cron chưa chạy.
+  Sau bàn giao CHECKED_IN, cron/hủy không đụng tới rental hoặc tiền cọc của rental.
+- Chỉ cập nhật trạng thái chờ hoàn trong DB; admin thực hiện chuyển khoản rồi xác
+  nhận qua API refund. Tracking vẫn đọc được booking CANCELLED/NO_SHOW trong lúc chờ hoàn.

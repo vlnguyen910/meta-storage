@@ -1,4 +1,12 @@
 export const BOOKING_MESSAGES = {
+  cancellationAccessRequired: "Cần token checkout hoặc đăng nhập tài khoản sở hữu booking để hủy.",
+  cancellationClosed: "Chỉ được hủy booking đã thanh toán, chưa bàn giao và chưa hết hạn check-in.",
+  cancellationPaymentInvalid: "Không thể xác định khoản thanh toán hợp lệ để hoàn tiền thuê.",
+  cancellationSummary: "Cancel a paid booking before check-in handover",
+  cancellationDescription:
+    "Requires x-booking-access-token from draft checkout or the active booking owner's session. CONFIRMED bookings may be cancelled before the final check-in slot ends, including when verification is VERIFIED but handover is incomplete. Rental fee is queued for manual refund; the deposit is forfeited. Releases capacity and cancels assignments in one transaction. Repeated cancellation returns the persisted result. No money is transferred by this endpoint.",
+  cancellationReason: "Khách hủy trước bàn giao kho; hoàn tiền thuê và giữ tiền cọc.",
+  noShowReason: "Booking chưa bàn giao khi hết slot cuối ngày; hoàn tiền thuê và giữ tiền cọc.",
   accessInvalid: "Liên kết hoặc phiên tra cứu không hợp lệ hoặc đã hết hạn.",
   accessUnavailable: "Dịch vụ tra cứu tạm thời không khả dụng. Vui lòng thử lại sau.",
   accessRateLimited: "Bạn đã thử quá nhiều lần. Vui lòng thử lại sau một phút.",

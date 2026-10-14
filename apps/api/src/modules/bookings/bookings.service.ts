@@ -1,5 +1,6 @@
 import { createHash, createHmac, randomBytes } from "node:crypto";
 import type {
+  BookingClosure,
   BookingConfirmation,
   BookingDraft,
   BookingDraftInput,
@@ -27,6 +28,7 @@ import {
   BadRequestError,
   ConflictError,
   NotFoundError,
+  UnauthorizedError,
   ValidationError,
 } from "../../common/errors/app-error";
 import type { RedisService } from "../../common/redis/redis.service";
@@ -57,6 +59,20 @@ export class BookingsService {
     private readonly accessRedis?: RedisService,
     private readonly mail?: BookingMailDependencies,
   ) {}
+
+  async cancelBooking(
+    bookingId: string,
+    credentials: { checkoutAccessToken?: string; userId?: string },
+  ): Promise<BookingClosure> {
+    if (!credentials.checkoutAccessToken && !credentials.userId)
+      throw new UnauthorizedError(BOOKING_MESSAGES.cancellationAccessRequired);
+    return this.repository.cancelBooking(bookingId, {
+      userId: credentials.userId,
+      tokenHash: credentials.checkoutAccessToken
+        ? createHash("sha256").update(credentials.checkoutAccessToken).digest("hex")
+        : undefined,
+    });
+  }
 
   async getStatus(bookingId: string): Promise<BookingConfirmation["emailStatus"]> {
     const mail = this.mail;

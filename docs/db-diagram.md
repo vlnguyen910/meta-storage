@@ -302,7 +302,9 @@ erDiagram
     varchar currency
     payment_status status
     timestamptz paid_at
-    varchar refund_reason "nullable; NO_CAPACITY, CHECK_IN_CLOSED or OFFERING_UNAVAILABLE"
+    varchar refund_reason "nullable; NO_CAPACITY, CHECK_IN_CLOSED, OFFERING_UNAVAILABLE, CUSTOMER_CANCELLATION or NO_SHOW"
+    numeric refund_amount "nullable; legacy refund falls back to total_amount"
+    numeric deposit_forfeited_amount "NOT NULL DEFAULT 0"
     varchar refund_reference "nullable; bank transfer reference/evidence"
     timestamptz refunded_at "nullable"
     uuid refunded_by FK "nullable; ON DELETE RESTRICT"
@@ -488,8 +490,8 @@ The project uses disposable dev data: no backfill or historical synchronization.
 - `bookings.user_id` is nullable, indexed and references users with ON DELETE SET NULL.
   It controls saved account history, not guest access. Payment and Rental have no
   customer_id columns.
-- paidAt comes from the earliest non-null payments.paid_at with status SUCCEEDED
-  or REFUNDED. Booking queries join slots and aggregate payments before joining,
+- paidAt comes from the earliest non-null payments.paid_at with status SUCCEEDED,
+  REFUND_PENDING or REFUNDED. Booking queries join slots and aggregate payments before joining,
   preventing duplicate booking rows. Other consumers retain their timestamp
   projection until their dedicated query refactors.
 - Booking status defaults to DRAFT; a CHECK limits it to DRAFT, CONFIRMED,
@@ -512,6 +514,14 @@ The project uses disposable dev data: no backfill or historical synchronization.
   business operations manager may record REFUND_PENDING -> REFUNDED with a
   nonblank transfer reference, server timestamp and actor. Replays with the same
   reference preserve the original audit; a different reference conflicts.
+- Customer cancellation and NO_SHOW retain the original payment total and snapshot
+  `refund_amount = bookings.rental_fee_amount` and
+  `deposit_forfeited_amount = bookings.deposit_amount`. Refund reasons distinguish
+  CUSTOMER_CANCELLATION and NO_SHOW from full refunds for unfulfillable checkout.
+  Refund amounts and forfeitures must be nonnegative, cannot individually exceed
+  total_amount, and their sum cannot exceed total_amount. Existing pending/refunded
+  rows with NULL refund_amount retain the previous full-total refund behavior.
+  Manual refund readers/confirmation use the snapshotted refund amount.
 - Payment provider integration is selected through a gateway adapter. The
   current implementation provides a mock/test adapter; the production provider
   pricing policy uses the confirmed one-month deposit rule for checkout.

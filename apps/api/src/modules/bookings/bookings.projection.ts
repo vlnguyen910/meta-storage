@@ -20,7 +20,7 @@ export const bookingCheckInSlotEnd = sql<Date>`(
 export const bookingPaidAt = sql<Date | null>`(
   select min(${payments.paidAt}) from ${payments}
   where ${payments.bookingId} = ${sql.raw('"bookings"."id"')}
-    and ${payments.status} in ('SUCCEEDED', 'REFUNDED')
+    and ${payments.status} in ('SUCCEEDED', 'REFUND_PENDING', 'REFUNDED')
 )`.mapWith((value) => (value === null ? null : new Date(value)));
 
 // Operational readers exclude DRAFT; the database requires complete contact after DRAFT.

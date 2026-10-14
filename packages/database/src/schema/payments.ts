@@ -34,6 +34,8 @@ export const payments = pgTable(
     status: paymentStatusEnum().notNull(),
     paidAt: timestamp({ withTimezone: true }),
     refundReason: varchar({ length: 64 }),
+    refundAmount: numeric({ precision: 14, scale: 2 }),
+    depositForfeitedAmount: numeric({ precision: 14, scale: 2 }).default("0").notNull(),
     refundReference: varchar({ length: 128 }),
     refundedAt: timestamp({ withTimezone: true }),
     refundedBy: uuid().references(() => users.id, { onDelete: "restrict" }),
@@ -41,6 +43,15 @@ export const payments = pgTable(
     updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
+    check(
+      "payments_refund_amount_valid",
+      sql`${table.refundAmount} IS NULL OR (${table.refundAmount} >= 0 AND ${table.refundAmount} <= ${table.totalAmount})`,
+    ),
+    check(
+      "payments_deposit_forfeited_valid",
+      sql`${table.depositForfeitedAmount} >= 0 AND ${table.depositForfeitedAmount} <= ${table.totalAmount}
+        AND (${table.refundAmount} IS NULL OR ${table.refundAmount} + ${table.depositForfeitedAmount} <= ${table.totalAmount})`,
+    ),
     check(
       "payments_checkout_reference",
       sql`${table.bookingId} IS NOT NULL OR ${table.draftId} IS NOT NULL`,

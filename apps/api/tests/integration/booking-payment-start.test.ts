@@ -11,9 +11,11 @@ import {
   facilities,
   facilityAssignments,
   facilityUnitTypes,
+  handoverInspections,
   inArray,
   paymentProviderEvents,
   payments,
+  rentals,
   reservationDrafts,
   storageUnits,
   unitAssignments,
@@ -23,16 +25,20 @@ import {
 import { type MailJobData, mailJobId } from "@metastorage/shared/mail";
 import { Queue } from "bullmq";
 import Fastify from "fastify";
+import fp from "fastify-plugin";
 import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
 import Redis from "ioredis";
 import { expireCapacityHolds } from "../../src/common/cron/expire-capacity-holds";
+import { cronPlugin } from "../../src/common/cron/plugin";
 import { setupErrorHandler } from "../../src/common/errors/error-handler";
 import { env } from "../../src/config/env";
 import { auth } from "../../src/modules/auth/auth";
 import { authPlugin } from "../../src/modules/auth/auth.guard";
 import { authRoutes } from "../../src/modules/auth/auth.routes";
+import { BookingsRepository } from "../../src/modules/bookings/bookings.repository";
 import { bookingsRoutes } from "../../src/modules/bookings/bookings.routes";
 import { checkInsRoutes } from "../../src/modules/check-ins/check-ins.routes";
+import { inspectionsRoutes } from "../../src/modules/inspections/inspections.routes";
 import { paymentsRoutes } from "../../src/modules/payments/payments.routes";
 
 const testUrl = process.env.BOOKING_TEST_DATABASE_URL;
@@ -68,6 +74,8 @@ let redis: Redis | undefined;
 let mailQueue: Queue<MailJobData> | undefined;
 
 async function clearBookings() {
+  await db.delete(rentals).where(eq(rentals.facilityId, ids.facility));
+  await db.delete(handoverInspections).where(eq(handoverInspections.facilityId, ids.facility));
   await db.delete(checkInVerifications).where(eq(checkInVerifications.facilityId, ids.facility));
   if (webhookEventIds.length) {
     await db
@@ -257,6 +265,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     await app.register(bookingsRoutes, { prefix: "/api" });
     await app.register(paymentsRoutes, { prefix: "/api" });
     await app.register(checkInsRoutes, { prefix: "/api" });
+    await app.register(inspectionsRoutes, { prefix: "/api" });
     await app.ready();
     for (const userId of [ids.user, ids.admin, ids.staff, ids.manager]) {
       const login = await app.inject({
@@ -311,6 +320,505 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     await db.delete(users).where(eq(users.id, ids.admin));
     await db.delete(users).where(eq(users.id, ids.staff));
     await db.delete(users).where(eq(users.id, ids.manager));
+  });
+
+  test("customer cancellation refunds only snapshotted rent, forfeits deposit and releases capacity atomically", async () => {
+    const booking = await draft();
+    const payment = (await pay(booking)).json().data;
+    expect((await webhook(payment.paymentCode)).statusCode).toBe(200);
+    await db.update(unitTypes).set({ monthlyPrice: 9000000 }).where(eq(unitTypes.id, ids.type));
+    await db
+      .update(bookings)
+      .set({ assignedStaffId: ids.staff })
+      .where(eq(bookings.id, booking.id));
+    await db
+      .insert(unitAssignments)
+      .values({ bookingId: booking.id, physicalUnitId: ids.unit, assignedBy: ids.manager });
+    const cancel = () =>
+      app.inject({
+        method: "POST",
+        url: `/api/bookings/${booking.id}/cancel`,
+        headers: { "x-booking-access-token": booking.draftAccessToken },
+      });
+    const responses = await Promise.all([cancel(), cancel()]);
+    expect(responses.map((r) => r.statusCode)).toEqual([200, 200]);
+    expect(responses[0].json().data).toEqual(responses[1].json().data);
+    expect(responses[0].json().data).toMatchObject({
+      bookingId: booking.id,
+      status: "CANCELLED",
+      payment: {
+        paymentId: payment.paymentId,
+        status: "REFUND_PENDING",
+        refundAmount: "2000000.00",
+        depositForfeitedAmount: "1000000.00",
+        currency: "VND",
+      },
+    });
+    const [saved] = await db.select().from(bookings).where(eq(bookings.id, booking.id));
+    expect(saved.status).toBe("CANCELLED");
+    expect(saved.assignedStaffId).toBeNull();
+    const [paid] = await db.select().from(payments).where(eq(payments.id, payment.paymentId));
+    expect(paid).toMatchObject({
+      totalAmount: "3000000.00",
+      refundAmount: "2000000.00",
+      depositForfeitedAmount: "1000000.00",
+      refundReason: "CUSTOMER_CANCELLATION",
+      status: "REFUND_PENDING",
+    });
+    expect(
+      (
+        await db
+          .select()
+          .from(capacityAllocations)
+          .where(eq(capacityAllocations.referenceId, booking.id))
+      )[0].status,
+    ).toBe("RELEASED");
+    expect(
+      (await db.select().from(unitAssignments).where(eq(unitAssignments.bookingId, booking.id)))[0]
+        .status,
+    ).toBe("CANCELLED");
+    const pending = await app.inject({
+      method: "GET",
+      url: "/api/payments/refunds",
+      headers: { cookie: adminCookie },
+    });
+    expect(
+      pending
+        .json()
+        .data.find((item: { paymentId: string }) => item.paymentId === payment.paymentId),
+    ).toMatchObject({ amount: "2000000.00", depositForfeitedAmount: "1000000.00" });
+    const confirm = await app.inject({
+      method: "POST",
+      url: `/api/payments/${payment.paymentId}/refund/confirm`,
+      headers: { cookie: adminCookie },
+      payload: { reference: "rent-only-refund" },
+    });
+    expect(confirm.statusCode).toBe(200);
+    expect(confirm.json().data).toMatchObject({
+      amount: "2000000.00",
+      depositForfeitedAmount: "1000000.00",
+      status: "REFUNDED",
+    });
+    const status = await app.inject({
+      method: "GET",
+      url: `/api/payments/${payment.paymentId}/status`,
+      headers: { "x-booking-access-token": booking.draftAccessToken },
+    });
+    expect(status.json().data.refund).toMatchObject({
+      amount: "2000000.00",
+      depositForfeitedAmount: "1000000.00",
+    });
+    expect((await cancel()).json().data.payment.status).toBe("REFUNDED");
+    expect((await webhook(payment.paymentCode)).statusCode).toBe(200);
+    expect(
+      (await db.select().from(payments).where(eq(payments.id, payment.paymentId)))[0].refundAmount,
+    ).toBe("2000000.00");
+    const replacement = await draft();
+    expect((await pay(replacement)).statusCode).toBe(201);
+  });
+
+  test("cancellation requires checkout access or the active account owner and does not expose other bookings", async () => {
+    const booking = await draft();
+    const payment = (await pay(booking)).json().data;
+    await webhook(payment.paymentCode);
+    const url = `/api/bookings/${booking.id}/cancel`;
+    expect((await app.inject({ method: "POST", url })).statusCode).toBe(401);
+    for (const headers of [
+      { "x-booking-access-token": "b".repeat(64) },
+      { cookie: adminCookie },
+      { cookie: staffCookie },
+      { cookie: customerCookie },
+    ]) {
+      const response = await app.inject({ method: "POST", url, headers });
+      expect(response.statusCode).toBe(404);
+      expect(response.headers["cache-control"]).toBe("no-store");
+    }
+    expect(
+      (await app.inject({ method: "POST", url, headers: { "x-booking-access-token": "invalid" } }))
+        .statusCode,
+    ).toBe(400);
+    expect((await db.select().from(bookings).where(eq(bookings.id, booking.id)))[0].status).toBe(
+      "CONFIRMED",
+    );
+    await db.update(bookings).set({ userId: ids.user }).where(eq(bookings.id, booking.id));
+    expect(
+      (await app.inject({ method: "POST", url, headers: { cookie: customerCookie } })).statusCode,
+    ).toBe(200);
+  });
+
+  test("cancellation rejects unpaid drafts and bookings already handed over", async () => {
+    const booking = await draft();
+    const cancel = () =>
+      app.inject({
+        method: "POST",
+        url: `/api/bookings/${booking.id}/cancel`,
+        headers: { "x-booking-access-token": booking.draftAccessToken },
+      });
+    expect((await cancel()).statusCode).toBe(409);
+    const payment = (await pay(booking)).json().data;
+    expect((await cancel()).statusCode).toBe(409);
+    await webhook(payment.paymentCode);
+    await db.update(bookings).set({ status: "CHECKED_IN" }).where(eq(bookings.id, booking.id));
+    expect((await cancel()).statusCode).toBe(409);
+    expect(
+      (await db.select().from(payments).where(eq(payments.id, payment.paymentId)))[0].status,
+    ).toBe("SUCCEEDED");
+  });
+
+  test("cancellation after the final slot cutoff cannot turn an absent booking into CANCELLED", async () => {
+    const booking = await draft();
+    const payment = (await pay(booking)).json().data;
+    await webhook(payment.paymentCode);
+    setSystemTime(new Date(`${checkInDate}T23:59:59+07:00`));
+    const response = await app.inject({
+      method: "POST",
+      url: `/api/bookings/${booking.id}/cancel`,
+      headers: { "x-booking-access-token": booking.draftAccessToken },
+    });
+    expect(response.statusCode).toBe(409);
+    expect((await db.select().from(bookings).where(eq(bookings.id, booking.id)))[0].status).toBe(
+      "CONFIRMED",
+    );
+  });
+
+  test("NO_SHOW runs at the final slot end, includes VERIFIED bookings and retains rent-only refund on retries", async () => {
+    const booking = await draft();
+    const payment = (await pay(booking)).json().data;
+    await webhook(payment.paymentCode);
+    await db
+      .insert(checkInSlots)
+      .values({ id: ids.lastSlot, name: "Last slot", startTime: "17:00", endTime: "18:00" });
+    await db
+      .update(bookings)
+      .set({ assignedStaffId: ids.staff })
+      .where(eq(bookings.id, booking.id));
+    await db
+      .insert(unitAssignments)
+      .values({ bookingId: booking.id, physicalUnitId: ids.unit, assignedBy: ids.manager });
+    setSystemTime(new Date(booking.checkInAt));
+    const verify = await app.inject({
+      method: "POST",
+      url: `/api/check-ins/${booking.id}/confirm`,
+      headers: { cookie: staffCookie },
+    });
+    expect(verify.statusCode).toBe(200);
+    const repository = new BookingsRepository(db);
+    expect(await repository.sweepNoShows(new Date(`${checkInDate}T17:59:59.999+07:00`))).toEqual({
+      processed: 0,
+    });
+    const cutoff = new Date(`${checkInDate}T18:00:00+07:00`);
+    setSystemTime(cutoff);
+    const results = await Promise.all([
+      repository.sweepNoShows(cutoff),
+      repository.sweepNoShows(cutoff),
+    ]);
+    expect(results.reduce((sum, r) => sum + r.processed, 0)).toBe(1);
+    const [saved] = await db.select().from(bookings).where(eq(bookings.id, booking.id));
+    expect(saved).toMatchObject({ status: "NO_SHOW", assignedStaffId: null, updatedAt: cutoff });
+    const [refund] = await db.select().from(payments).where(eq(payments.id, payment.paymentId));
+    expect(refund).toMatchObject({
+      status: "REFUND_PENDING",
+      refundReason: "NO_SHOW",
+      totalAmount: "3000000.00",
+      refundAmount: "2000000.00",
+      depositForfeitedAmount: "1000000.00",
+    });
+    expect(
+      (
+        await db
+          .select()
+          .from(checkInVerifications)
+          .where(eq(checkInVerifications.bookingId, booking.id))
+      )[0],
+    ).toMatchObject({ status: "INVALIDATED", invalidatedAt: cutoff });
+    expect(
+      (await db.select().from(unitAssignments).where(eq(unitAssignments.bookingId, booking.id)))[0]
+        .status,
+    ).toBe("CANCELLED");
+    expect(
+      (
+        await db
+          .select()
+          .from(capacityAllocations)
+          .where(eq(capacityAllocations.referenceId, booking.id))
+      )[0].status,
+    ).toBe("RELEASED");
+    expect(await repository.sweepNoShows(new Date(cutoff.getTime() + 60000))).toEqual({
+      processed: 0,
+    });
+    expect((await db.select().from(payments).where(eq(payments.id, payment.paymentId)))[0]).toEqual(
+      refund,
+    );
+    expect(
+      (
+        await app.inject({
+          method: "POST",
+          url: `/api/bookings/${booking.id}/cancel`,
+          headers: { "x-booking-access-token": booking.draftAccessToken },
+        })
+      ).statusCode,
+    ).toBe(409);
+    expect((await webhook(payment.paymentCode)).statusCode).toBe(200);
+    expect((await db.select().from(bookings).where(eq(bookings.id, booking.id)))[0].status).toBe(
+      "NO_SHOW",
+    );
+  });
+
+  test("NO_SHOW skips unpaid drafts and CHECKED_IN bookings", async () => {
+    const unpaid = await draft();
+    const paid = await draft();
+    const payment = (await pay(paid)).json().data;
+    await webhook(payment.paymentCode);
+    await db.update(bookings).set({ status: "CHECKED_IN" }).where(eq(bookings.id, paid.id));
+    expect(
+      await new BookingsRepository(db).sweepNoShows(new Date(`${checkInDate}T23:59:59+07:00`)),
+    ).toEqual({ processed: 0 });
+    expect((await db.select().from(bookings).where(eq(bookings.id, unpaid.id)))[0].status).toBe(
+      "DRAFT",
+    );
+    expect(
+      (await db.select().from(payments).where(eq(payments.id, payment.paymentId)))[0].status,
+    ).toBe("SUCCEEDED");
+  });
+
+  test("staff lookup after deadline uses the same atomic NO_SHOW and refund transaction as cron", async () => {
+    const booking = await draft();
+    const payment = (await pay(booking)).json().data;
+    await webhook(payment.paymentCode);
+    await db
+      .update(bookings)
+      .set({ assignedStaffId: ids.staff })
+      .where(eq(bookings.id, booking.id));
+    const [saved] = await db.select().from(bookings).where(eq(bookings.id, booking.id));
+    setSystemTime(new Date(`${checkInDate}T23:59:59+07:00`));
+    const lookup = await app.inject({
+      method: "POST",
+      url: "/api/check-ins/lookup",
+      headers: { cookie: staffCookie },
+      payload: { type: "BOOKING_CODE", value: saved.bookingCode },
+    });
+    expect(lookup.statusCode).toBe(200);
+    expect((await db.select().from(bookings).where(eq(bookings.id, booking.id)))[0].status).toBe(
+      "NO_SHOW",
+    );
+    expect(
+      (await db.select().from(payments).where(eq(payments.id, payment.paymentId)))[0],
+    ).toMatchObject({
+      status: "REFUND_PENDING",
+      refundAmount: "2000000.00",
+      depositForfeitedAmount: "1000000.00",
+    });
+  });
+
+  test("cancellation after VERIFIED invalidates verification and wins atomically against check-in retries", async () => {
+    const booking = await draft();
+    const payment = (await pay(booking)).json().data;
+    await webhook(payment.paymentCode);
+    await db
+      .update(bookings)
+      .set({ assignedStaffId: ids.staff })
+      .where(eq(bookings.id, booking.id));
+    await db
+      .insert(unitAssignments)
+      .values({ bookingId: booking.id, physicalUnitId: ids.unit, assignedBy: ids.manager });
+    setSystemTime(new Date(booking.checkInAt));
+    const checkIn = () =>
+      app.inject({
+        method: "POST",
+        url: `/api/check-ins/${booking.id}/confirm`,
+        headers: { cookie: staffCookie },
+      });
+    expect((await checkIn()).statusCode).toBe(200);
+    const [cancel, retry] = await Promise.all([
+      app.inject({
+        method: "POST",
+        url: `/api/bookings/${booking.id}/cancel`,
+        headers: { "x-booking-access-token": booking.draftAccessToken },
+      }),
+      checkIn(),
+    ]);
+    expect(cancel.statusCode).toBe(200);
+    expect([200, 403]).toContain(retry.statusCode);
+    expect((await db.select().from(bookings).where(eq(bookings.id, booking.id)))[0].status).toBe(
+      "CANCELLED",
+    );
+    expect(
+      (
+        await db
+          .select()
+          .from(checkInVerifications)
+          .where(eq(checkInVerifications.bookingId, booking.id))
+      )[0].status,
+    ).toBe("INVALIDATED");
+    expect((await checkIn()).statusCode).toBe(403);
+  });
+
+  async function readyHandover(bookingId: string) {
+    await db.update(bookings).set({ assignedStaffId: ids.staff }).where(eq(bookings.id, bookingId));
+    const [assignment] = await db
+      .insert(unitAssignments)
+      .values({ bookingId, physicalUnitId: ids.unit, assignedBy: ids.manager })
+      .returning();
+    const verified = await app.inject({
+      method: "POST",
+      url: `/api/check-ins/${bookingId}/confirm`,
+      headers: { cookie: staffCookie },
+    });
+    expect(verified.statusCode).toBe(200);
+    const [verification] = await db
+      .select()
+      .from(checkInVerifications)
+      .where(eq(checkInVerifications.bookingId, bookingId));
+    const [inspection] = await db
+      .insert(handoverInspections)
+      .values({
+        bookingId,
+        facilityId: ids.facility,
+        physicalUnitId: ids.unit,
+        unitAssignmentId: assignment.id,
+        verificationId: verification.id,
+        unitCode: ids.unit,
+        status: "COMPLETED",
+        correctUnit: true,
+        conditionNotes: "Ready fixture",
+        completedAt: new Date(),
+        completedBy: ids.staff,
+        createdBy: ids.staff,
+      })
+      .returning();
+    return inspection;
+  }
+
+  test("cancellation racing handover has exactly one outcome: active rental or rent-only refund", async () => {
+    const booking = await draft();
+    const payment = (await pay(booking)).json().data;
+    await webhook(payment.paymentCode);
+    setSystemTime(new Date(booking.checkInAt));
+    const inspection = await readyHandover(booking.id);
+    const [cancel, handover] = await Promise.all([
+      app.inject({
+        method: "POST",
+        url: `/api/bookings/${booking.id}/cancel`,
+        headers: { "x-booking-access-token": booking.draftAccessToken },
+      }),
+      app.inject({
+        method: "POST",
+        url: `/api/inspections/${inspection.id}/handover`,
+        headers: { cookie: staffCookie },
+        payload: { version: inspection.version },
+      }),
+    ]);
+    const [saved] = await db.select().from(bookings).where(eq(bookings.id, booking.id));
+    const [paid] = await db.select().from(payments).where(eq(payments.id, payment.paymentId));
+    const active = await db.select().from(rentals).where(eq(rentals.bookingId, booking.id));
+    if (saved.status === "CANCELLED") {
+      expect(cancel.statusCode).toBe(200);
+      expect([403, 409]).toContain(handover.statusCode);
+      expect(active).toHaveLength(0);
+      expect(paid.status).toBe("REFUND_PENDING");
+    } else {
+      expect(saved.status).toBe("CHECKED_IN");
+      expect(handover.statusCode).toBe(200);
+      expect(cancel.statusCode).toBe(409);
+      expect(active).toHaveLength(1);
+      expect(paid.status).toBe("SUCCEEDED");
+    }
+  });
+
+  test("handover rejects the exact deadline before cron runs; NO_SHOW can safely race the request", async () => {
+    const booking = await draft();
+    const payment = (await pay(booking)).json().data;
+    await webhook(payment.paymentCode);
+    await db
+      .insert(checkInSlots)
+      .values({ id: ids.lastSlot, name: "Final slot", startTime: "17:00", endTime: "18:00" });
+    setSystemTime(new Date(booking.checkInAt));
+    const inspection = await readyHandover(booking.id);
+    const handover = () =>
+      app.inject({
+        method: "POST",
+        url: `/api/inspections/${inspection.id}/handover`,
+        headers: { cookie: staffCookie },
+        payload: { version: inspection.version },
+      });
+    const cutoff = new Date(`${checkInDate}T18:00:00+07:00`);
+    setSystemTime(cutoff);
+    expect((await handover()).statusCode).toBe(409);
+    expect((await db.select().from(bookings).where(eq(bookings.id, booking.id)))[0].status).toBe(
+      "CONFIRMED",
+    );
+    const [sweep, response] = await Promise.all([
+      new BookingsRepository(db).sweepNoShows(cutoff),
+      handover(),
+    ]);
+    expect(sweep.processed).toBe(1);
+    expect([403, 409]).toContain(response.statusCode);
+    expect(await db.select().from(rentals).where(eq(rentals.bookingId, booking.id))).toHaveLength(
+      0,
+    );
+    expect((await db.select().from(bookings).where(eq(bookings.id, booking.id)))[0].status).toBe(
+      "NO_SHOW",
+    );
+  });
+
+  test("NO_SHOW cron catches overdue bookings when the API starts", async () => {
+    const booking = await draft();
+    const payment = (await pay(booking)).json().data;
+    await webhook(payment.paymentCode);
+    setSystemTime(new Date(`${checkInDate}T23:59:59+07:00`));
+    const scheduled = Fastify();
+    scheduled.register(
+      fp(
+        async (server) => {
+          server.decorate("db", db);
+        },
+        { name: "database-plugin" },
+      ),
+    );
+    scheduled.register(cronPlugin);
+    try {
+      await scheduled.ready();
+      expect((await db.select().from(bookings).where(eq(bookings.id, booking.id)))[0].status).toBe(
+        "NO_SHOW",
+      );
+      expect(
+        (await db.select().from(payments).where(eq(payments.id, payment.paymentId)))[0]
+          .refundAmount,
+      ).toBe("2000000.00");
+    } finally {
+      await scheduled.close();
+    }
+  });
+
+  test("cancellation rolls back all changes if the refund snapshot violates a database constraint", async () => {
+    const booking = await draft();
+    const payment = (await pay(booking)).json().data;
+    await webhook(payment.paymentCode);
+    await db
+      .update(bookings)
+      .set({ rentalFeeAmount: "3000001", depositAmount: "-1" })
+      .where(eq(bookings.id, booking.id));
+    const [before] = await db.select().from(payments).where(eq(payments.id, payment.paymentId));
+    const response = await app.inject({
+      method: "POST",
+      url: `/api/bookings/${booking.id}/cancel`,
+      headers: { "x-booking-access-token": booking.draftAccessToken },
+    });
+    expect(response.statusCode).toBe(500);
+    expect((await db.select().from(payments).where(eq(payments.id, payment.paymentId)))[0]).toEqual(
+      before,
+    );
+    expect((await db.select().from(bookings).where(eq(bookings.id, booking.id)))[0].status).toBe(
+      "CONFIRMED",
+    );
+    expect(
+      (
+        await db
+          .select()
+          .from(capacityAllocations)
+          .where(eq(capacityAllocations.referenceId, booking.id))
+      )[0].status,
+    ).toBe("ACTIVE");
   });
 
   test("starts SePay checkout on the same draft with snapshotted price, contact and a ten-minute hold", async () => {
