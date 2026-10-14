@@ -6,6 +6,7 @@ import {
   type Database,
   eq,
   facilities,
+  facilityUnitTypes,
   gt,
   paymentProviderEvents,
   payments,
@@ -18,8 +19,9 @@ import { bookingReadFields } from "../bookings/bookings.projection";
 import { bookingCode, hashQrToken, qrTokenForBooking } from "../bookings/bookings.repository";
 import type { BookingReadRecord } from "../bookings/bookings.types";
 import { CheckInSlotsRepository } from "../bookings/check-in-slots.repository";
+import { StorageUnitsRepository } from "../storage-units/storage-units.repository";
 import { PAYMENT_MESSAGES } from "./payments.messages";
-import type { PricingSnapshot } from "./payments.types";
+import type { PrepareBookingPaymentInput, PricingSnapshot } from "./payments.types";
 
 function toConfirmation(
   booking: Pick<
@@ -48,6 +50,152 @@ function toConfirmation(
 
 export class PaymentsRepository {
   constructor(private readonly db: Database) {}
+
+  async prepareBookingPayment(input: PrepareBookingPaymentInput) {
+    return this.db.transaction(
+      async (tx) => {
+        const [booking] = await tx
+          .select()
+          .from(bookings)
+          .where(
+            and(
+              eq(bookings.id, input.bookingId),
+              eq(bookings.accessTokenHash, input.accessTokenHash),
+            ),
+          )
+          .for("update");
+        if (!booking) throw new AppError(PAYMENT_MESSAGES.bookingUnavailable, 404);
+        if (booking.status !== "DRAFT") throw new AppError(PAYMENT_MESSAGES.bookingNotDraft, 409);
+
+        const [existing] = await tx
+          .select()
+          .from(payments)
+          .where(eq(payments.idempotencyKey, input.idempotencyKey))
+          .for("update");
+        if (existing) {
+          if (
+            existing.bookingId !== booking.id ||
+            existing.holdTokenHash !== input.accessTokenHash ||
+            existing.provider !== "sepay"
+          )
+            throw new AppError(PAYMENT_MESSAGES.idempotencyKeyUsedForAnotherCheckout, 409);
+          if (
+            booking.contactName !== input.contact.fullName ||
+            booking.contactEmail !== input.contact.email ||
+            booking.contactPhone !== input.contact.phone
+          )
+            throw new AppError(PAYMENT_MESSAGES.bookingCheckoutChanged, 409);
+          if (existing.status !== "PENDING")
+            throw new AppError(PAYMENT_MESSAGES.paymentAttemptFinalized, 409);
+          const [hold] = await tx
+            .select({ expiresAt: capacityAllocations.expiresAt })
+            .from(capacityAllocations)
+            .where(
+              and(
+                eq(capacityAllocations.referenceId, booking.id),
+                eq(capacityAllocations.kind, "HOLD"),
+                eq(capacityAllocations.status, "ACTIVE"),
+                eq(capacityAllocations.accessTokenHash, existing.holdTokenHash),
+                gt(capacityAllocations.expiresAt, new Date()),
+              ),
+            )
+            .for("update");
+          if (!hold?.expiresAt) throw new AppError(PAYMENT_MESSAGES.holdExpired, 409);
+          return { payment: existing, expiresAt: hold.expiresAt };
+        }
+
+        const [pending] = await tx
+          .select({ id: payments.id })
+          .from(payments)
+          .where(and(eq(payments.bookingId, booking.id), eq(payments.status, "PENDING")))
+          .limit(1);
+        // A pending transfer may still arrive after hold expiry. Do not create another charge.
+        if (pending) throw new AppError(PAYMENT_MESSAGES.paymentPendingReconciliation, 409);
+
+        // Every booking checkout for this facility/type locks the same row before counting
+        // allocations. READ COMMITTED sees the preceding checkout's committed hold.
+        const [offering] = await tx
+          .select({
+            active: facilityUnitTypes.isActive,
+            facilityActive: facilities.isActive,
+            typeActive: unitTypes.isActive,
+          })
+          .from(facilityUnitTypes)
+          .innerJoin(facilities, eq(facilities.id, facilityUnitTypes.facilityId))
+          .innerJoin(unitTypes, eq(unitTypes.id, facilityUnitTypes.unitTypeId))
+          .where(
+            and(
+              eq(facilityUnitTypes.facilityId, booking.facilityId),
+              eq(facilityUnitTypes.unitTypeId, booking.unitTypeId),
+            ),
+          )
+          .for("update");
+        if (!offering?.active || !offering.facilityActive || !offering.typeActive)
+          throw new AppError(PAYMENT_MESSAGES.bookingOfferingUnavailable, 409);
+        const now = new Date();
+        const slot = await new CheckInSlotsRepository(tx).findByIdForDate(
+          booking.checkInSlotId,
+          booking.checkInDate,
+        );
+        if (
+          !slot ||
+          slot.startsAt <= now ||
+          slot.endsAt <= slot.startsAt ||
+          booking.rentalEndAt <= slot.startsAt
+        )
+          throw new AppError(PAYMENT_MESSAGES.bookingScheduleUnavailable, 409);
+        const available = await new StorageUnitsRepository(tx).getAvailableCapacity(
+          booking.facilityId,
+          booking.unitTypeId,
+          slot.startsAt,
+          booking.rentalEndAt,
+        );
+        if (available <= 0) throw new AppError(PAYMENT_MESSAGES.bookingCapacityUnavailable, 409);
+
+        const expiresAt = new Date(now.getTime() + input.holdDurationMs);
+        await tx.insert(capacityAllocations).values({
+          referenceId: booking.id,
+          facilityId: booking.facilityId,
+          unitTypeId: booking.unitTypeId,
+          kind: "HOLD",
+          status: "ACTIVE",
+          accessTokenHash: input.accessTokenHash,
+          startsAt: slot.startsAt,
+          endsAt: booking.rentalEndAt,
+          expiresAt,
+        });
+        await tx
+          .update(bookings)
+          .set({
+            contactName: input.contact.fullName,
+            contactEmail: input.contact.email,
+            contactPhone: input.contact.phone,
+            updatedAt: now,
+          })
+          .where(eq(bookings.id, booking.id));
+        const [payment] = await tx
+          .insert(payments)
+          .values({
+            bookingId: booking.id,
+            draftId: null,
+            holdTokenHash: input.accessTokenHash,
+            provider: "sepay",
+            paymentCode: input.paymentCode,
+            providerPaymentId: `pending_${input.paymentCode}`,
+            idempotencyKey: input.idempotencyKey,
+            totalAmount: booking.totalAmount,
+            currency: "VND",
+            status: "PENDING",
+          })
+          .onConflictDoNothing({ target: payments.idempotencyKey })
+          .returning();
+        if (!payment)
+          throw new AppError(PAYMENT_MESSAGES.idempotencyKeyUsedForAnotherCheckout, 409);
+        return { payment, expiresAt };
+      },
+      { isolationLevel: "read committed" },
+    );
+  }
 
   async findDraftPricing(draftId: string): Promise<PricingSnapshot | null> {
     const [draft] = await this.db
@@ -217,15 +365,17 @@ export class PaymentsRepository {
   }
 
   async findActiveHoldForPayment(payment: typeof payments.$inferSelect) {
-    if (!payment.draftId) return null;
+    const referenceId = payment.bookingId ?? payment.draftId;
+    if (!referenceId) return null;
     const [hold] = await this.db
       .select({ id: capacityAllocations.id, expiresAt: capacityAllocations.expiresAt })
       .from(capacityAllocations)
       .where(
         and(
-          eq(capacityAllocations.referenceId, payment.draftId),
+          eq(capacityAllocations.referenceId, referenceId),
           eq(capacityAllocations.kind, "HOLD"),
           eq(capacityAllocations.status, "ACTIVE"),
+          eq(capacityAllocations.accessTokenHash, payment.holdTokenHash),
           gt(capacityAllocations.expiresAt, new Date()),
         ),
       );

@@ -1,4 +1,13 @@
 export const PAYMENT_MESSAGES = {
+  startSummary: "Start payment for a booking draft",
+  startDescription:
+    "Public checkout authenticated by draftAccessToken. Submit contact and idempotencyKey; the server uses the booking price snapshot, creates a ten-minute capacity hold and returns a SePay checkout session. Repeating the same request reuses its payment and original expiry. No booking confirmation or email is issued until successful payment is finalized. Another pending attempt blocks a new payment, including after hold expiry, pending reconciliation.",
+  bookingUnavailable: "Booking draft không tồn tại hoặc token truy cập không hợp lệ.",
+  bookingNotDraft: "Chỉ booking DRAFT mới được bắt đầu thanh toán.",
+  bookingCheckoutChanged: "Thông tin checkout đã thay đổi; không thể dùng lại idempotency key.",
+  bookingCapacityUnavailable: "Loại kho không còn capacity trong kỳ thuê.",
+  bookingOfferingUnavailable: "Cơ sở hoặc loại kho không còn khả dụng.",
+  bookingScheduleUnavailable: "Lịch nhận kho không còn hợp lệ; hãy tạo booking draft mới.",
   checkoutDescription: (paymentCode: string) => `Thanh toan don hang ${paymentCode}`,
   sepayWebhookUnauthorized: "SePay webhook authentication failed",
   sepayWebhookInvalidJson: "Invalid SePay webhook JSON",

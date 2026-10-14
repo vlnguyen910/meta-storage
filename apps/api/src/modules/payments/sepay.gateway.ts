@@ -27,13 +27,19 @@ export class SepayPaymentGateway {
     }
   }
 
+  get checkoutConfigured(): boolean {
+    return Boolean(this.pgClient);
+  }
+
   createCheckoutSession(input: SepayCreateCheckoutInput): SepayCheckoutSession | null {
     if (!this.pgClient) return null;
     const checkoutUrl = this.pgClient.checkout.initCheckoutUrl();
     const webUrl = this.config.webUrl || "http://localhost:3000";
-    const successUrl = `${webUrl}/reservations/payment-result?status=success&paymentId=${input.paymentId}&draftId=${input.draftId}`;
-    const errorUrl = `${webUrl}/reservations/payment-result?status=error&paymentId=${input.paymentId}&draftId=${input.draftId}`;
-    const cancelUrl = `${webUrl}/reservations/payment-result?status=cancel&paymentId=${input.paymentId}&draftId=${input.draftId}`;
+    const resultUrl = `${webUrl}/bookings/payment-result`;
+    const reference = `paymentId=${input.paymentId}&bookingId=${input.bookingId}`;
+    const successUrl = `${resultUrl}?status=success&${reference}`;
+    const errorUrl = `${resultUrl}?status=error&${reference}`;
+    const cancelUrl = `${resultUrl}?status=cancel&${reference}`;
 
     const formFields = this.pgClient.checkout.initOneTimePaymentFields({
       operation: "PURCHASE",

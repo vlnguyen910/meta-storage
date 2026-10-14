@@ -1,21 +1,24 @@
 import { createHash, randomBytes } from "node:crypto";
 import type {
   BookingConfirmation,
+  BookingPaymentInput,
+  BookingPaymentSession,
   PaidBooking,
   PaymentCheckoutInput,
-  PaymentPendingResponse,
   PaymentResult,
   PaymentStatusResponse,
 } from "@metastorage/contracts";
 import type { Payment } from "@metastorage/database";
+import type { FastifyInstance } from "fastify";
 import { AppError, NotFoundError } from "../../common/errors/app-error";
-import type { BookingsService } from "../bookings/bookings.service";
+import { env } from "../../config/env";
+import { type BookingsService, createBookingsService } from "../bookings/bookings.service";
 import type { BookingReadRecord } from "../bookings/bookings.types";
 import { MockPaymentGateway, type PaymentGateway } from "./payment-mock.gateway";
 import { PAYMENT_MESSAGES } from "./payments.messages";
-import type { PaymentsRepository } from "./payments.repository";
+import { PaymentsRepository } from "./payments.repository";
 import type { CompletedPayment, PricingSnapshot } from "./payments.types";
-import type { SepayPaymentGateway } from "./sepay.gateway";
+import { SepayPaymentGateway } from "./sepay.gateway";
 
 function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
@@ -31,6 +34,42 @@ export class PaymentsService {
     private readonly sepayGateway?: SepayPaymentGateway,
     private readonly bookingEmail?: Pick<BookingsService, "enqueueConfirmation" | "getStatus">,
   ) {}
+
+  async startBookingPayment(
+    bookingId: string,
+    input: BookingPaymentInput,
+  ): Promise<BookingPaymentSession> {
+    if (!this.sepayGateway?.checkoutConfigured)
+      throw new AppError(PAYMENT_MESSAGES.sepayUnavailable, 503, "PAYMENT_PROVIDER_UNAVAILABLE");
+    const { payment, expiresAt } = await this.repository.prepareBookingPayment({
+      bookingId,
+      accessTokenHash: hashToken(input.draftAccessToken),
+      contact: input.contact,
+      idempotencyKey: input.idempotencyKey,
+      paymentCode: `${this.sepayGateway.paymentPrefix}${randomBytes(7).toString("hex").toUpperCase()}`,
+      holdDurationMs: 10 * 60_000,
+    });
+    const session = this.sepayGateway.createCheckoutSession({
+      bookingId,
+      paymentId: payment.id,
+      paymentCode: payment.paymentCode,
+      amount: Number(payment.totalAmount),
+      currency: payment.currency,
+      description: PAYMENT_MESSAGES.checkoutDescription(payment.paymentCode),
+    });
+    if (!session)
+      throw new AppError(PAYMENT_MESSAGES.sepayUnavailable, 503, "PAYMENT_PROVIDER_UNAVAILABLE");
+    return {
+      bookingId,
+      paymentId: payment.id,
+      provider: "sepay",
+      status: "PENDING",
+      paymentCode: payment.paymentCode,
+      checkoutUrl: session.checkoutUrl,
+      checkoutFormFields: session.formFields,
+      expiresAt: expiresAt.toISOString(),
+    };
+  }
 
   private async confirmationWithEmail(completed: {
     booking: BookingReadRecord;
@@ -55,39 +94,6 @@ export class PaymentsService {
       },
       await this.confirmationWithEmail(completed),
     );
-  }
-
-  private pendingResponse(
-    payment: Payment,
-    draftId: string,
-    expiresAt: Date | null,
-  ): PaymentPendingResponse {
-    if (!this.sepayGateway)
-      throw new AppError(PAYMENT_MESSAGES.sepayUnavailable, 503, "PAYMENT_PROVIDER_UNAVAILABLE");
-    const instructions = this.sepayGateway.createInstructions({
-      paymentCode: payment.paymentCode,
-      amount: payment.totalAmount,
-      currency: payment.currency,
-      expiresAt: expiresAt ?? new Date(Date.now() + 10 * 60_000),
-    });
-    const session = this.sepayGateway.createCheckoutSession({
-      paymentCode: payment.paymentCode,
-      amount: Number(payment.totalAmount),
-      currency: payment.currency,
-      description: PAYMENT_MESSAGES.checkoutDescription(payment.paymentCode),
-      draftId,
-      paymentId: payment.id,
-    });
-    return {
-      paymentId: payment.id,
-      status: "PENDING",
-      provider: "sepay",
-      paymentCode: payment.paymentCode,
-      transferInstructions: instructions,
-      checkoutUrl: session?.checkoutUrl,
-      checkoutFormFields: session?.formFields,
-      expiresAt: instructions.expiresAt,
-    };
   }
 
   async pay(draftId: string, input: PaymentCheckoutInput): Promise<PaymentResult> {
@@ -192,54 +198,6 @@ export class PaymentsService {
       throw new AppError(PAYMENT_MESSAGES.bookingPaymentInformationMissing, 500);
 
     return this.completedResult(completedCheckout);
-  }
-
-  async startSepayPayment(
-    draftId: string,
-    input: PaymentCheckoutInput,
-  ): Promise<PaymentPendingResponse> {
-    if (!this.sepayGateway)
-      throw new AppError(PAYMENT_MESSAGES.sepayUnavailable, 503, "PAYMENT_PROVIDER_UNAVAILABLE");
-    const holdTokenHash = hashToken(input.holdToken);
-    const existing = await this.repository.findByIdempotencyKey(input.idempotencyKey);
-    if (existing) {
-      if (existing.draftId !== draftId || existing.holdTokenHash !== holdTokenHash) {
-        throw new AppError(
-          PAYMENT_MESSAGES.idempotencyKeyUsedForAnotherCheckout,
-          409,
-          "IDEMPOTENCY_KEY_REUSED",
-        );
-      }
-      if (existing.status !== "PENDING") {
-        throw new AppError(
-          PAYMENT_MESSAGES.paymentAttemptFinalized,
-          409,
-          "PAYMENT_ATTEMPT_FINALIZED",
-        );
-      }
-      const existingHold = await this.repository.findActiveHoldForPayment(existing);
-      if (!existingHold) throw new AppError(PAYMENT_MESSAGES.holdExpired, 409, "HOLD_EXPIRED");
-      return this.pendingResponse(existing, draftId, existingHold.expiresAt);
-    }
-    const checkout = await this.repository.findCheckout(draftId, holdTokenHash);
-    if (!checkout) throw new NotFoundError(PAYMENT_MESSAGES.holdUnavailable);
-    if (checkout.hold.expiresAt && checkout.hold.expiresAt <= new Date()) {
-      throw new AppError(PAYMENT_MESSAGES.holdExpired, 409, "HOLD_EXPIRED");
-    }
-    const pricing = await this.pricingProvider(draftId);
-    if (!pricing)
-      throw new AppError(PAYMENT_MESSAGES.pricingNotConfigured, 409, "PRICING_NOT_CONFIGURED");
-    const paymentCode = `${this.sepayGateway.paymentPrefix}${randomBytes(7).toString("hex").toUpperCase()}`;
-    const pending = await this.repository.createPendingPayment({
-      draftId,
-      holdTokenHash,
-      provider: "sepay",
-      paymentCode,
-      idempotencyKey: input.idempotencyKey,
-      pricing,
-    });
-    if (!pending) throw new AppError(PAYMENT_MESSAGES.holdNoLongerAvailable, 409, "HOLD_EXPIRED");
-    return this.pendingResponse(pending.payment, draftId, checkout.hold.expiresAt);
   }
 
   async handleSepayWebhook(
@@ -352,13 +310,13 @@ export class PaymentsService {
           })
         : undefined;
     const checkoutSession =
-      payment.status === "PENDING" && this.sepayGateway && payment.draftId
+      payment.status === "PENDING" && this.sepayGateway && payment.bookingId && hold
         ? this.sepayGateway.createCheckoutSession({
             paymentCode: payment.paymentCode,
             amount: Number(payment.totalAmount),
             currency: payment.currency,
             description: PAYMENT_MESSAGES.checkoutDescription(payment.paymentCode),
-            draftId: payment.draftId,
+            bookingId: payment.bookingId,
             paymentId: payment.id,
           })
         : null;
@@ -434,4 +392,43 @@ function toPaymentResult(
     booking: result,
     confirmation,
   };
+}
+
+export function createPaymentsService(
+  fastify: FastifyInstance,
+  bookingService?: Pick<BookingsService, "enqueueConfirmation" | "getStatus">,
+): PaymentsService {
+  const isSepay = env.PAYMENT_PROVIDER === "sepay";
+  const hasPgConfig = Boolean(env.SEPAY_MERCHANT_ID && env.SEPAY_SECRET_KEY);
+  const hasLegacyConfig = Boolean(
+    env.SEPAY_WEBHOOK_API_KEY &&
+      env.SEPAY_BANK_NAME &&
+      env.SEPAY_BANK_ACCOUNT_NUMBER &&
+      env.SEPAY_BANK_ACCOUNT_NAME &&
+      env.PUBLIC_API_URL,
+  );
+
+  const sepayGateway =
+    isSepay && (hasPgConfig || hasLegacyConfig)
+      ? new SepayPaymentGateway({
+          paymentPrefix: env.SEPAY_PAYMENT_PREFIX,
+          env: env.SEPAY_ENV,
+          merchantId: env.SEPAY_MERCHANT_ID,
+          secretKey: env.SEPAY_SECRET_KEY,
+          webUrl: env.WEB_URL,
+          apiKey: env.SEPAY_WEBHOOK_API_KEY,
+          bankName: env.SEPAY_BANK_NAME,
+          accountNumber: env.SEPAY_BANK_ACCOUNT_NUMBER,
+          accountName: env.SEPAY_BANK_ACCOUNT_NAME,
+          publicApiUrl: env.PUBLIC_API_URL,
+        })
+      : undefined;
+  const repository = new PaymentsRepository(fastify.db);
+  return new PaymentsService(
+    repository,
+    undefined,
+    (draftId) => repository.findDraftPricing(draftId),
+    sepayGateway,
+    bookingService ?? createBookingsService(fastify),
+  );
 }

@@ -276,13 +276,18 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
       .where(eq(capacityAllocations.id, allocation.id));
     expect((await createDraft()).statusCode).toBe(201);
   });
-  test.each(["INACTIVE", "LOCKED", "MAINTENANCE"] as const)(
-    "rejects inventory with only %s units",
-    async (status) => {
-      await db.update(storageUnits).set({ status }).where(eq(storageUnits.id, ids.unit));
-      expect((await createDraft()).statusCode).toBe(409);
-    },
-  );
+  test.each([
+    "RESERVED",
+    "OCCUPIED",
+    "INSPECTION",
+    "RETURN_PENDING",
+    "INACTIVE",
+    "LOCKED",
+    "MAINTENANCE",
+  ] as const)("rejects inventory with only %s units", async (status) => {
+    await db.update(storageUnits).set({ status }).where(eq(storageUnits.id, ids.unit));
+    expect((await createDraft()).statusCode).toBe(409);
+  });
   test("draft creation does not consume capacity for another draft", async () => {
     const first = await createDraft();
     const second = await createDraft();
