@@ -1,3 +1,4 @@
+import { PaymentStatus } from "@metastorage/contracts/payments";
 import { sql } from "drizzle-orm";
 import {
   check,
@@ -12,9 +13,10 @@ import {
 } from "drizzle-orm/pg-core";
 import { bookings } from "./bookings";
 import { reservationDrafts } from "./reservation-drafts";
+import { users } from "./users";
 
-export const PAYMENT_STATUSES = ["PENDING", "SUCCEEDED", "FAILED", "REFUNDED"] as const;
-export const paymentStatusEnum = pgEnum("payment_status", PAYMENT_STATUSES);
+export { PAYMENT_STATUSES } from "@metastorage/contracts/payments";
+export const paymentStatusEnum = pgEnum("payment_status", PaymentStatus);
 
 export const payments = pgTable(
   "payments",
@@ -31,6 +33,10 @@ export const payments = pgTable(
     currency: varchar({ length: 3 }).notNull(),
     status: paymentStatusEnum().notNull(),
     paidAt: timestamp({ withTimezone: true }),
+    refundReason: varchar({ length: 64 }),
+    refundReference: varchar({ length: 128 }),
+    refundedAt: timestamp({ withTimezone: true }),
+    refundedBy: uuid().references(() => users.id, { onDelete: "restrict" }),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
   },

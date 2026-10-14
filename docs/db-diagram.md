@@ -85,6 +85,7 @@ erDiagram
   facilities ||--o{ rentals : hosts
   storage_units ||--o{ rentals : occupies
   bookings ||--o{ payments : records
+  users o|--o{ payments : confirms_manual_refund
   bookings ||--o{ checkin_verifications : verifies
   bookings ||--o{ handover_inspections : records_baseline
   facilities ||--o{ handover_inspections : scopes
@@ -301,6 +302,10 @@ erDiagram
     varchar currency
     payment_status status
     timestamptz paid_at
+    varchar refund_reason "nullable; NO_CAPACITY, CHECK_IN_CLOSED or OFFERING_UNAVAILABLE"
+    varchar refund_reference "nullable; bank transfer reference/evidence"
+    timestamptz refunded_at "nullable"
+    uuid refunded_by FK "nullable; ON DELETE RESTRICT"
     timestamptz created_at
     timestamptz updated_at
   }
@@ -464,9 +469,10 @@ Customer or user foreign keys.
 The legacy reservation/payment workflow still creates a Booking at payment success.
 It now copies contact directly from that reservation draft and creates no Customer.
 Its account association is not implemented; authenticated ownership is supported by
-  the new Booking draft endpoint. `POST /api/bookings/:bookingId/pay` now starts
-  payment on that draft, preserving ownership and snapshot pricing; booking-only
-  webhook finalization remains pending #113. See `docs/booking-payment.md`.
+the new Booking draft endpoint. `POST /api/bookings/:bookingId/pay` starts payment
+on that draft, preserving ownership and snapshot pricing. The booking webhook
+finalizes the same row or records a full manual refund when a late payment cannot
+receive capacity/check-in. See `docs/booking-payment.md`.
 The project uses disposable dev data: no backfill or historical synchronization.
 
 ## Payment and Booking notes (#18)
@@ -498,6 +504,14 @@ The project uses disposable dev data: no backfill or historical synchronization.
   booking contact and date/slot timestamps for the existing API contracts.
   The payment simplification migration removes the redundant breakdown columns;
   apply it together with the compatible backend before using the checkout.
+- Payment status values are PENDING, SUCCEEDED, FAILED, REFUND_PENDING and REFUNDED,
+  defined in the payment contract and reused by Drizzle. A valid incoming payment
+  that cannot receive capacity/check-in becomes REFUND_PENDING with paid_at and
+  refund_reason, while its booking stays DRAFT and holds are released. The full
+  payment total (rent plus deposit) must be refunded manually. Only an admin or
+  business operations manager may record REFUND_PENDING -> REFUNDED with a
+  nonblank transfer reference, server timestamp and actor. Replays with the same
+  reference preserve the original audit; a different reference conflicts.
 - Payment provider integration is selected through a gateway adapter. The
   current implementation provides a mock/test adapter; the production provider
   pricing policy uses the confirmed one-month deposit rule for checkout.

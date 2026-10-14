@@ -8,6 +8,16 @@ export type CompletedPayment = {
   confirmation: BookingConfirmation;
 };
 
+export type PaymentStatusCredentials = {
+  checkoutAccessToken?: string;
+  userId?: string;
+};
+
+export type PaymentStatusAccess = {
+  tokenHash?: string;
+  userId?: string;
+};
+
 export type PrepareBookingPaymentInput = {
   bookingId: string;
   accessTokenHash: string;
@@ -40,6 +50,15 @@ export type VerifiedPaymentEvent = {
   transferType: "in" | "out";
   referenceCode: string | null;
   metadata: Record<string, unknown>;
+  currency?: string;
+  successful?: boolean;
+};
+
+export type BookingWebhookResult = {
+  duplicate: boolean;
+  processed: boolean;
+  paymentId?: string;
+  completed?: CompletedPayment;
 };
 
 export interface PaymentGateway {
@@ -61,13 +80,17 @@ export type SepayWebhookPayload = {
   notification_type?: string;
   order?: {
     order_invoice_number?: string;
-    order_amount?: number;
+    order_amount?: number | string;
+    order_currency?: string;
     order_status?: string;
     [key: string]: unknown;
   };
   transaction?: {
     transaction_id?: string | number;
-    transaction_amount?: number;
+    transaction_amount?: number | string;
+    transaction_currency?: string;
+    transaction_status?: string;
+    transaction_type?: string;
     payment_method?: string;
     [key: string]: unknown;
   };
