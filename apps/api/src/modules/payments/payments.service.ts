@@ -54,7 +54,8 @@ export class PaymentsService {
     return {
       paymentId: payment.id,
       status: "REFUNDED",
-      amount: payment.totalAmount,
+      amount: payment.refundAmount ?? payment.totalAmount,
+      depositForfeitedAmount: payment.depositForfeitedAmount,
       currency: payment.currency,
       reference: payment.refundReference,
       refundedAt: payment.refundedAt.toISOString(),
@@ -378,6 +379,14 @@ export class PaymentsService {
       provider: payment.provider,
       paymentCode: payment.paymentCode,
       transferInstructions,
+      refund:
+        payment.status === "REFUND_PENDING" || payment.status === "REFUNDED"
+          ? {
+              amount: payment.refundAmount ?? payment.totalAmount,
+              depositForfeitedAmount: payment.depositForfeitedAmount,
+              reason: payment.refundReason,
+            }
+          : undefined,
       checkoutUrl: checkoutSession?.checkoutUrl,
       checkoutFormFields: checkoutSession?.formFields,
       confirmation: completed

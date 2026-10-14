@@ -6,6 +6,7 @@ export type {
   BookingPaymentSession,
   ManualRefund,
   ManualRefundConfirmation,
+  PaymentStatusResponse,
 } from "./payments.types";
 
 import { PAYMENT_CONTRACT_MESSAGES } from "./payments.messages";
@@ -135,5 +136,3 @@ export const PaymentStatusResponseSchema = z.object({
   checkoutFormFields: z.record(z.string(), z.union([z.string(), z.number()])).optional(),
   confirmation: z.lazy(() => BookingConfirmationSchema).optional(),
 });
-
-export type PaymentStatusResponse = z.infer<typeof PaymentStatusResponseSchema>;

@@ -10,6 +10,6 @@
 - [x] Bảo vệ endpoint trạng thái payment bằng token checkout trong header hoặc session tài khoản sở hữu booking; không cache.
 - [ ] Cân nhắc API trả số lượng còn trống theo cơ sở, loại kho và khoảng thời gian thuê.
 - [x] Kiểm thử tích hợp toàn flow: tranh chấp chỗ cuối, retry không gia hạn hold, cron hết hạn, webhook lặp, thanh toán muộn, hoàn thủ công và API gán kho/check-in; email không trùng job.
-- [ ] Triển khai hủy trước check-in và NO_SHOW sau slot cuối ngày nhận kho: hoàn tiền thuê, giữ tiền cọc.
+- [x] Triển khai hủy trước bàn giao và cron NO_SHOW sau slot cuối ngày nhận kho: hoàn thủ công tiền thuê, giữ cọc; chỉ CHECKED_IN được miễn NO_SHOW.
 
 Quy tắc đã chốt: tạo hold 10 phút khi bắt đầu payment; retry không gia hạn hold. Hold giữ sức chứa trong khoảng thời gian thuê, chưa gán kho vật lý cụ thể.

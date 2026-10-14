@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
+import { BookingsRepository } from "../../modules/bookings/bookings.repository";
 import { expireCapacityHolds } from "./expire-capacity-holds";
 
 const HOLD_EXPIRY_INTERVAL_MS = 30_000;
@@ -10,13 +11,26 @@ const cronPluginAsync: FastifyPluginAsync = async (fastify) => {
 
   const sweep = () => {
     if (running) return running;
-    running = expireCapacityHolds(fastify.db)
-      .then(({ expired, skipped }) => {
+    running = Promise.allSettled([
+      expireCapacityHolds(fastify.db).then(({ expired, skipped }) => {
         if (expired > 0) fastify.log.info({ expired }, "Expired capacity holds");
         if (skipped) fastify.log.debug("Capacity hold expiry skipped: another sweep is running");
+      }),
+      new BookingsRepository(fastify.db).sweepNoShows().then(({ processed }) => {
+        if (processed > 0) fastify.log.info({ processed }, "Processed booking no-shows");
+      }),
+    ])
+      .then((results) => {
+        for (const result of results) {
+          if (result.status === "rejected")
+            fastify.log.error(
+              { err: result.reason },
+              "Booking lifecycle sweep failed; retrying on the next interval",
+            );
+        }
       })
       .catch((err: unknown) => {
-        fastify.log.error({ err }, "Capacity hold expiry failed; retrying on the next interval");
+        fastify.log.error({ err }, "Booking lifecycle sweep failed; retrying on the next interval");
       })
       .finally(() => {
         running = undefined;

@@ -146,6 +146,43 @@ describe.skipIf(!databaseUrl || !redisUrl)("Guest booking magic-link tracking", 
     await db.delete(facilities).where(eq(facilities.id, ids.facility));
   });
 
+  test("tracking retains cancelled bookings while rent-only refund is pending", async () => {
+    await db.update(bookings).set({ status: "CANCELLED" }).where(eq(bookings.id, ids.booking));
+    await db
+      .update(payments)
+      .set({
+        status: "REFUND_PENDING",
+        refundReason: "CUSTOMER_CANCELLATION",
+        refundAmount: "1800000",
+        depositForfeitedAmount: "900000",
+      })
+      .where(eq(payments.bookingId, ids.booking));
+    try {
+      const response = await exchange(await grant());
+      expect(response.statusCode).toBe(200);
+      expect(response.json().data.booking).toMatchObject({
+        status: "CANCELLED",
+        payment: {
+          status: "REFUND_PENDING",
+          paidAt: "2031-01-01T00:00:00.000Z",
+          refundAmount: "1800000.00",
+          depositForfeitedAmount: "900000.00",
+        },
+      });
+    } finally {
+      await db.update(bookings).set({ status: "CONFIRMED" }).where(eq(bookings.id, ids.booking));
+      await db
+        .update(payments)
+        .set({
+          status: "SUCCEEDED",
+          refundReason: null,
+          refundAmount: null,
+          depositForfeitedAmount: "0",
+        })
+        .where(eq(payments.bookingId, ids.booking));
+    }
+  });
+
   test("magic link grants a scoped HttpOnly session, with live customer data and no secrets", async () => {
     const token = await grant();
     const response = await exchange(token);
@@ -168,7 +205,12 @@ describe.skipIf(!databaseUrl || !redisUrl)("Guest booking magic-link tracking", 
         bookingCode: code,
         status: "CONFIRMED",
         contact: { fullName: "Guest contact", email: "guest@example.test", phone: "0900000000" },
-        payment: { status: "SUCCEEDED", paidAt: "2031-01-01T00:00:00.000Z" },
+        payment: {
+          status: "SUCCEEDED",
+          paidAt: "2031-01-01T00:00:00.000Z",
+          refundAmount: null,
+          depositForfeitedAmount: "0.00",
+        },
       }),
     });
     expect(response.body).not.toMatch(

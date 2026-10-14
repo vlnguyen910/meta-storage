@@ -118,7 +118,11 @@ booking giữ DRAFT, không QR/email/gán kho. Hoàn toàn bộ payment total g�
 
 Migration `0033_bent_puma.sql` bổ sung enum/metadata hoàn tiền; phải migrate trước
 khi chạy backend mới. Confirm-sandbox cho booking mới vẫn chưa hoàn thiện.
-Cơ chế hoàn tiền do khách hủy/NO_SHOW là task riêng.
+Hủy trước bàn giao và NO_SHOW dùng cùng API hoàn thủ công, nhưng `amount` chỉ là
+tiền thuê; `depositForfeitedAmount` là tiền cọc bị giữ. Xem [policy hủy/NO_SHOW](booking-cancellation-policy.md).
+Migration `0034_nosy_hellfire_club.sql` bổ sung snapshot số tiền hoàn và cọc bị giữ;
+cần migrate trước khi chạy backend mới. Payment status trả thêm `refund` khi đang
+chờ hoàn/đã hoàn; tracking hỗ trợ REFUND_PENDING và thông tin tiền hoàn/cọc.
 
 ## Kiểm thử
 
@@ -146,3 +150,8 @@ Nếu thiếu Redis test, ca xác minh email/full API flow sẽ được đánh 
 | Hoàn thủ công | Admin xác nhận qua API; webhook replay không đổi số tiền/reference/actor/thời gian |
 | Chuỗi API | Draft → pay → protected status → webhook → manager gán staff/kho → staff check-in |
 | Rollback | Database lỗi không để lại booking confirmed hoặc provider event xử lý dở; retry được |
+
+Các ca hủy/NO_SHOW bổ sung trong suite payment: hủy đồng thời, hủy sau VERIFIED,
+tranh chấp hủy với handover, handover tại đúng hạn cuối, NO_SHOW với hai lượt cron
+đồng thời, cron bắt lại booking quá hạn lúc startup và rollback khi constraint lỗi.
+Tracking có ca đọc booking CANCELLED trong lúc chỉ tiền thuê đang chờ hoàn.

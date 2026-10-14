@@ -40,6 +40,7 @@ export const trackingMessages = {
     NO_SHOW: "Không đến nhận kho",
     CHECKED_IN: "Đã nhận kho",
     SUCCEEDED: "Đã thanh toán",
+    REFUND_PENDING: "Chờ hoàn tiền",
     REFUNDED: "Đã hoàn tiền",
   },
 } as const;

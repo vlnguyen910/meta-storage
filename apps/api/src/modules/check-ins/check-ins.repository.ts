@@ -12,7 +12,6 @@ import type {
 import {
   and,
   bookings,
-  capacityAllocations,
   checkInSlots,
   checkInVerifications,
   desc,
@@ -27,6 +26,7 @@ import {
   unitTypes,
 } from "@metastorage/database";
 import { bookingReadFields } from "../bookings/bookings.projection";
+import { closeBookingBeforeCheckIn } from "../bookings/bookings.repository";
 import type { BookingReadRecord } from "../bookings/bookings.types";
 import { assertAssignedStaff } from "./check-in-access";
 import type { CheckInPolicyEvaluation } from "./check-ins.policy";
@@ -154,35 +154,15 @@ export class CheckInsRepository {
       let record = await this.selectRecord(tx, eq(bookings.id, bookingId));
       if (!record) return null;
 
-      assertAssignedStaff({ id: staffId, role: "FACILITY_STAFF" }, record.booking.assignedStaffId);
+      if (staffId !== "system-check-in-expiry")
+        assertAssignedStaff(
+          { id: staffId, role: "FACILITY_STAFF" },
+          record.booking.assignedStaffId,
+        );
       const evaluation = evaluate(record, now);
       if (evaluation.shouldMarkNoShow) {
-        await tx
-          .update(bookings)
-          .set({ status: "NO_SHOW", updatedAt: now })
-          .where(and(eq(bookings.id, bookingId), eq(bookings.status, "CONFIRMED")));
-
-        await tx
-          .update(capacityAllocations)
-          .set({ status: "RELEASED", updatedAt: now })
-          .where(
-            and(
-              eq(capacityAllocations.referenceId, bookingId),
-              eq(capacityAllocations.kind, "BOOKING"),
-              eq(capacityAllocations.status, "ACTIVE"),
-            ),
-          );
-
-        await tx
-          .update(unitAssignments)
-          .set({
-            status: "CANCELLED",
-            endedAt: now,
-            reason: "Booking chuyển NO_SHOW sau khi hết grace period",
-          })
-          .where(
-            and(eq(unitAssignments.bookingId, bookingId), eq(unitAssignments.status, "ACTIVE")),
-          );
+        const closed = await closeBookingBeforeCheckIn(tx, bookingId, "NO_SHOW", now);
+        if (!closed) return { kind: "INELIGIBLE", record, evaluation };
 
         record = await this.selectRecord(tx, eq(bookings.id, bookingId));
         if (!record) return null;
