@@ -24,7 +24,8 @@
       "cache": false
     },
     "db:migrate": {
-      "cache": false
+      "cache": false,
+      "passThroughEnv": ["NODE_ENV", "DATABASE_URL", "DOCKER_DATABASE_URL"]
     },
     "db:push": {
       "cache": false
