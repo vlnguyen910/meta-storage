@@ -464,7 +464,9 @@ Customer or user foreign keys.
 The legacy reservation/payment workflow still creates a Booking at payment success.
 It now copies contact directly from that reservation draft and creates no Customer.
 Its account association is not implemented; authenticated ownership is supported by
-the new Booking draft endpoint, whose hold/payment consumers are still pending #113.
+  the new Booking draft endpoint. `POST /api/bookings/:bookingId/pay` now starts
+  payment on that draft, preserving ownership and snapshot pricing; booking-only
+  webhook finalization remains pending #113. See `docs/booking-payment.md`.
 The project uses disposable dev data: no backfill or historical synchronization.
 
 ## Payment and Booking notes (#18)

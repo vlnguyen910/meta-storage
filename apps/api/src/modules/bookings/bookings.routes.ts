@@ -5,6 +5,8 @@ import {
   BookingIdParamsSchema,
   BookingListQuerySchema,
   BookingMagicLinkInputSchema,
+  BookingPaymentInputSchema,
+  BookingPaymentParamsSchema,
   BookingTrackingParamsSchema,
   FacilityBookingsParamsSchema,
   StaffTasksQuerySchema,
@@ -17,6 +19,8 @@ import { optionalAuth, requireAuth, requireRole } from "../auth/auth.guard";
 import { getFacilityAccessScope, requireAssignedFacility } from "../facilities/facilities.access";
 import { requireFacilityAccess } from "../facilities/facilities.guard";
 import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
+import { PAYMENT_MESSAGES } from "../payments/payments.messages";
+import { createPaymentsService } from "../payments/payments.service";
 import {
   privateTrackingResponse,
   requireTrackingOrigin,
@@ -32,6 +36,7 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
   const assignmentsRepository = new FacilityAssignmentsRepository(fastify.db);
   const checkInSlotsService = new CheckInSlotsService(new CheckInSlotsRepository(fastify.db));
   const service = createBookingsService(fastify);
+  const paymentsService = createPaymentsService(fastify, service);
 
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
 
@@ -53,6 +58,28 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
         .status(201)
         .send(successResponse(await service.createDraft(request.body, request.user?.id)));
     },
+  );
+
+  typedApp.post(
+    "/bookings/:bookingId/pay",
+    {
+      schema: {
+        params: BookingPaymentParamsSchema,
+        body: BookingPaymentInputSchema,
+        tags: ["Payments"],
+        summary: PAYMENT_MESSAGES.startSummary,
+        description: PAYMENT_MESSAGES.startDescription,
+        security: [],
+      },
+    },
+    async (request, reply) =>
+      reply
+        .status(201)
+        .send(
+          successResponse(
+            await paymentsService.startBookingPayment(request.params.bookingId, request.body),
+          ),
+        ),
   );
 
   typedApp.post(

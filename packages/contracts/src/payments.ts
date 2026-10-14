@@ -1,5 +1,20 @@
 import { z } from "zod";
 import { BookingConfirmationSchema, PaidBookingSchema } from "./bookings";
+import { ReservationDraftContactSchema } from "./reservation-contact";
+
+export type { BookingPaymentSession } from "./payments.types";
+
+export const BookingPaymentParamsSchema = z.object({
+  bookingId: z.string().uuid(),
+});
+export type BookingPaymentParams = z.infer<typeof BookingPaymentParamsSchema>;
+
+export const BookingPaymentInputSchema = z.object({
+  draftAccessToken: z.string().regex(/^[a-f0-9]{64}$/),
+  idempotencyKey: z.string().min(16).max(128),
+  contact: ReservationDraftContactSchema,
+});
+export type BookingPaymentInput = z.infer<typeof BookingPaymentInputSchema>;
 
 export enum PaymentStatus {
   PENDING = "PENDING",

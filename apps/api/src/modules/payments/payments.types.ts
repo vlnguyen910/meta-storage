@@ -1,4 +1,4 @@
-import type { BookingConfirmation } from "@metastorage/contracts";
+import type { BookingConfirmation, BookingPaymentInput } from "@metastorage/contracts";
 import type { Payment } from "@metastorage/database";
 import type { BookingReadRecord } from "../bookings/bookings.types";
 
@@ -6,6 +6,15 @@ export type CompletedPayment = {
   payment: Payment;
   booking: BookingReadRecord;
   confirmation: BookingConfirmation;
+};
+
+export type PrepareBookingPaymentInput = {
+  bookingId: string;
+  accessTokenHash: string;
+  idempotencyKey: string;
+  contact: BookingPaymentInput["contact"];
+  paymentCode: string;
+  holdDurationMs: number;
 };
 
 export type GatewayPaymentResult = {
@@ -88,8 +97,8 @@ export type SepayCreateCheckoutInput = {
   amount: number;
   currency: string;
   description: string;
-  draftId: string;
   paymentId: string;
+  bookingId: string;
 };
 
 export type SepayPaymentInstructions = PaymentInstructions & { provider: "sepay" };

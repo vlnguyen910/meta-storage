@@ -16,10 +16,13 @@ export {
   isNull,
   lt,
   lte,
+  max,
   ne,
+  notExists,
   notInArray,
   or,
   sql,
+  sum,
 } from "drizzle-orm";
 export * from "./client";
 export * from "./env";
