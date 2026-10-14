@@ -51,6 +51,15 @@ export function bookingCode() {
   return `SX-${randomBytes(5).toString("hex").toUpperCase()}`;
 }
 
+export function bookingLocalDate(now = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+}
+
 export function hashQrToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
