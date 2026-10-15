@@ -154,6 +154,8 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
           : http.post("/auth/sign-out").then(() => null),
       forgotPassword: (email: string) =>
         http.post<ApiEnvelope<null>>("/auth/forgot-password", { email }).then(unwrap),
+      resendVerificationEmail: (email: string, callbackURL: string) =>
+        http.post("/auth/send-verification-email", { email, callbackURL }).then(() => undefined),
       registerCustomer: (input: CustomerSignUpInput) =>
         http
           .post<{ message: string }>("/auth/customer-sign-up", input)

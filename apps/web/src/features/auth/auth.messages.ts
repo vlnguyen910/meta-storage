@@ -1,4 +1,13 @@
 export const AUTH_MESSAGES = {
+  termsRequired: "Vui lòng đồng ý với điều khoản sử dụng và chính sách bảo mật.",
+  verificationCheck: "Kiểm tra xác thực email",
+  verificationCheckDescription:
+    "Mở liên kết trong email để xác thực tài khoản. Nếu đã mở liên kết, hãy đăng nhập để kiểm tra kết quả.",
+  verificationEmailHint: "Nhập email đã đăng ký để nhận lại liên kết xác thực.",
+  verificationResent:
+    "Yêu cầu gửi lại liên kết đã được tiếp nhận. Hãy kiểm tra hộp thư và thư rác.",
+  verificationRequestFailed: "Không thể gửi yêu cầu. Vui lòng kiểm tra kết nối và thử lại.",
+
   // Validation & Auth status
   invalidEmail: "Email chưa đúng định dạng",
   passwordTooShort: "Mật khẩu cần ít nhất 8 ký tự",

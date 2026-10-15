@@ -22,9 +22,9 @@ import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { isMockMode } from "@/config/api-mode";
-import { MOCK_MESSAGES } from "@/mocks/mock.messages";
 import { routes } from "@/config/routes";
 import { api } from "@/lib/api";
+import { MOCK_MESSAGES } from "@/mocks/mock.messages";
 import { AUTH_MESSAGES } from "./auth.messages";
 import type { RegisterFormValues } from "./auth.types";
 
@@ -61,6 +61,10 @@ export function RegisterForm() {
 
   async function onSubmit(values: RegisterFormValues) {
     setFormError(null);
+    if (!watch("terms")) {
+      setFormError(AUTH_MESSAGES.termsRequired);
+      return;
+    }
     try {
       const payload: CustomerSignUpInput = {
         name: values.name,
@@ -95,7 +99,9 @@ export function RegisterForm() {
             {isMockMode ? MOCK_MESSAGES.registeredTitle : AUTH_MESSAGES.checkEmailTitle}
           </h1>
           <p className="text-xs md:text-sm text-slate-500 leading-relaxed max-w-md mx-auto mb-6">
-            {isMockMode ? MOCK_MESSAGES.registered : AUTH_MESSAGES.checkEmailSubtitle(registeredEmail)}
+            {isMockMode
+              ? MOCK_MESSAGES.registered
+              : AUTH_MESSAGES.checkEmailSubtitle(registeredEmail)}
           </p>
           <Link
             href={routes.login}

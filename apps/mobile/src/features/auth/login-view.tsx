@@ -1,13 +1,9 @@
 import { useState } from "react";
 import { ActivityIndicator, Pressable, Text, TextInput, View } from "react-native";
 import { AUTH_MESSAGES } from "./auth.messages";
-import type { useAuthFlow } from "./use-auth-flow";
+import type { AuthViewProps } from "./auth-screen.types";
 
-interface LoginViewProps {
-  auth: ReturnType<typeof useAuthFlow>;
-}
-
-export function LoginView({ auth }: LoginViewProps) {
+export function LoginView({ auth }: AuthViewProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isTroubleshootOpen, setIsTroubleshootOpen] = useState(false);
 

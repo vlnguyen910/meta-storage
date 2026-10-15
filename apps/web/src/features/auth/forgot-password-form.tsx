@@ -28,6 +28,7 @@ const schema = z.object({
 });
 
 export function ForgotPasswordForm() {
+  const [requestError, setRequestError] = useState<string | null>(null);
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(60);
   const [isResending, setIsResending] = useState(false);
@@ -53,10 +54,12 @@ export function ForgotPasswordForm() {
 
   async function onSubmit({ email }: ForgotPasswordFormValues) {
     try {
+      setRequestError(null);
       await api.auth.forgotPassword(email);
-    } finally {
       setSubmittedEmail(email.trim().toLowerCase());
       setCountdown(60);
+    } catch {
+      setRequestError(AUTH_MESSAGES.verificationRequestFailed);
     }
   }
 
@@ -65,14 +68,25 @@ export function ForgotPasswordForm() {
     setIsResending(true);
     try {
       await api.auth.forgotPassword(submittedEmail);
+      setCountdown(60);
+      setRequestError(null);
+    } catch {
+      setRequestError(AUTH_MESSAGES.verificationRequestFailed);
     } finally {
       setIsResending(false);
-      setCountdown(60);
     }
   }
 
   return (
     <div className="w-full max-w-[480px] mx-auto">
+      {requestError ? (
+        <p
+          role="alert"
+          className="mb-4 rounded border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800"
+        >
+          {requestError}
+        </p>
+      ) : null}
       {/* Centered Card Container */}
       <div className="w-full bg-white rounded-[15px] border border-slate-200 shadow-xs p-6 sm:p-8 relative overflow-hidden transition-all duration-300">
         {/* Top Decorative Structural Accent */}

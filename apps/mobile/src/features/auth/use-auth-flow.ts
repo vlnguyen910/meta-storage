@@ -51,12 +51,13 @@ export function useAuthFlow() {
       }
       const hasError = verificationUrl.searchParams.has("error");
       if (hasError) {
+        setResendCountdown(0);
         setVerifySimState("expired");
         setMessage(AUTH_MESSAGES.verificationLinkInvalid);
         setIsSuccessMessage(false);
       } else {
         setVerifySimState("success");
-        setMessage(AUTH_MESSAGES.emailVerified);
+        setMessage(AUTH_MESSAGES.verificationCallbackReceived);
         setIsSuccessMessage(true);
       }
       setMode("verify-email");
@@ -107,14 +108,6 @@ export function useAuthFlow() {
     }
   }
 
-  function switchVerifyState(nextState: VerifyEmailSimState) {
-    setVerifySimState(nextState);
-    if (nextState === "pending") {
-      setResendCountdown(45);
-    }
-    setMessage(null);
-  }
-
   async function submitLogin() {
     setMessage(null);
     setIsSuccessMessage(false);
@@ -156,7 +149,7 @@ export function useAuthFlow() {
     if (!values.terms) {
       setErrors((current) => ({
         ...current,
-        terms: "Vui lòng đồng ý với Quy chế sử dụng kho và Chính sách bảo mật",
+        terms: AUTH_MESSAGES.termsRequired,
       }));
       return;
     }
@@ -207,8 +200,8 @@ export function useAuthFlow() {
   }
 
   async function submitForgotPassword() {
-    if (!values.email.trim()) {
-      setMessage("Vui lòng nhập địa chỉ email đã đăng ký.");
+    if (!CustomerSignUpInputSchema.shape.email.safeParse(values.email).success) {
+      setMessage(AUTH_MESSAGES.invalidEmail);
       setIsSuccessMessage(false);
       return;
     }
@@ -219,29 +212,28 @@ export function useAuthFlow() {
       setMessage(AUTH_MESSAGES.forgotPasswordSentDesc);
       setIsSuccessMessage(true);
     } catch {
-      // best-effort
-      setMessage(AUTH_MESSAGES.forgotPasswordSentDesc);
-      setIsSuccessMessage(true);
+      setMessage(AUTH_MESSAGES.requestFailed);
+      setIsSuccessMessage(false);
     } finally {
       setIsSubmitting(false);
     }
   }
 
   async function resendVerificationEmail() {
-    if (resendCountdown > 0 || isResending) return;
+    if ((verifySimState === "pending" && resendCountdown > 0) || isResending) return;
     const targetEmail = registeredUser?.email || values.email;
     if (!targetEmail) return;
 
     setIsResending(true);
     try {
-      await api.auth.forgotPassword(targetEmail);
+      await api.auth.resendVerificationEmail(targetEmail, "metastorage://auth/verified");
+      setVerifySimState("pending");
       setMessage(AUTH_MESSAGES.resendSuccessToast);
       setIsSuccessMessage(true);
       setResendCountdown(45);
     } catch {
-      setMessage(AUTH_MESSAGES.resendSuccessToast);
-      setIsSuccessMessage(true);
-      setResendCountdown(45);
+      setMessage(AUTH_MESSAGES.requestFailed);
+      setIsSuccessMessage(false);
     } finally {
       setIsResending(false);
     }
@@ -297,7 +289,6 @@ export function useAuthFlow() {
     isSuccessMessage,
     registeredUser,
     verifySimState,
-    setVerifySimState: switchVerifyState,
     resendCountdown,
     isSubmitting,
     isResending,

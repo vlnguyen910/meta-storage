@@ -9,18 +9,17 @@ import {
   Fingerprint,
   LockKeyhole,
   MapPin,
-  Menu,
   Package,
   Phone,
   QrCode,
   ShieldCheck,
   Snowflake,
   Truck,
-  UserRound,
   Warehouse,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { publicNavigation as nav, PublicHeader } from "@/components/layout/public-header";
 import { Currency } from "@/components/ui/display";
 import fonts from "@/features/facilities/metastorage-fonts.module.css";
 import { landingMessages as m } from "./landing.messages";
@@ -30,13 +29,6 @@ import { useLandingCatalog } from "./use-landing-catalog";
 const benefitIcons = [LockKeyhole, Snowflake, Truck, CalendarDays];
 const stepIcons = [Warehouse, ClipboardList, QrCode];
 const assuranceIcons = [ShieldCheck, CalendarDays, Fingerprint];
-const nav = [
-  { label: m.home, href: "/" },
-  { label: m.find, href: "/facilities" },
-  { label: m.pricing, href: "#pricing" },
-  { label: m.process, href: "#how-it-works" },
-  { label: m.faq, href: "#booking-info" },
-];
 
 function LandingImage({ index, className }: { index: number; className?: string }) {
   return (
@@ -73,55 +65,7 @@ export function LandingScreen() {
   const state = useLandingCatalog();
   return (
     <div className={`${fonts.page} ${s.page}`}>
-      <header className={s.header}>
-        <div className={s.headerInner}>
-          <Link href="/" className={s.brand}>
-            <Warehouse size={29} />
-            <span>
-              <strong>{m.brand}</strong>
-              <small>{m.tagline}</small>
-            </span>
-          </Link>
-          <nav className={s.desktopNav}>
-            {nav.map((item) => (
-              <Link key={item.href} href={item.href}>
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-          <div className={s.headerActions}>
-            <a href="tel:19006868" className={s.hotline}>
-              <small>{m.hotlineLabel}</small>
-              <strong>{m.hotline}</strong>
-            </a>
-            <Link href="/facilities" className={s.primary}>
-              {m.findNow}
-            </Link>
-            <Link href="/login" aria-label={m.login} className={s.account}>
-              <UserRound size={18} />
-            </Link>
-            <details className={s.mobileMenu}>
-              <summary aria-label={m.menu}>
-                <Menu size={23} />
-              </summary>
-              <nav>
-                {nav.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={(event) => {
-                      const menu = event.currentTarget.closest("details");
-                      if (menu) menu.open = false;
-                    }}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </nav>
-            </details>
-          </div>
-        </div>
-      </header>
+      <PublicHeader />
       <main>
         <section className={s.hero}>
           <div className={s.container}>

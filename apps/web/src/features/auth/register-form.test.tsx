@@ -40,7 +40,9 @@ describe("RegisterForm", () => {
       }),
     );
     expect(
-      screen.getByRole("heading", { name: isMockMode ? MOCK_MESSAGES.registeredTitle : AUTH_MESSAGES.checkEmailTitle }),
+      screen.getByRole("heading", {
+        name: isMockMode ? MOCK_MESSAGES.registeredTitle : AUTH_MESSAGES.checkEmailTitle,
+      }),
     ).toBeInTheDocument();
   });
 
@@ -102,4 +104,19 @@ describe("RegisterForm", () => {
 
     expect(await screen.findByText("Email already registered")).toBeInTheDocument();
   });
+});
+
+it("does not register when terms are declined", async () => {
+  const user = userEvent.setup();
+  registerCustomer.mockReset();
+  render(<RegisterForm />);
+  await user.type(screen.getByLabelText(/Họ và tên/i), "Review Customer");
+  await user.type(screen.getByLabelText(/Địa chỉ Email/i), "review@example.test");
+  await user.type(screen.getByLabelText(/Số điện thoại/i), "0901234567");
+  await user.type(screen.getByLabelText(/^Mật khẩu/i), "Customer#123");
+  await user.type(screen.getByLabelText(/Xác nhận lại mật khẩu/i), "Customer#123");
+  await user.click(screen.getByRole("checkbox"));
+  await user.click(screen.getByRole("button", { name: AUTH_MESSAGES.registerButton }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(AUTH_MESSAGES.termsRequired);
+  expect(registerCustomer).not.toHaveBeenCalled();
 });

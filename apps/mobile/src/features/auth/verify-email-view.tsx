@@ -1,17 +1,13 @@
 import { useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { AUTH_MESSAGES } from "./auth.messages";
-import type { useAuthFlow } from "./use-auth-flow";
+import type { AuthViewProps } from "./auth-screen.types";
 
-interface VerifyEmailViewProps {
-  auth: ReturnType<typeof useAuthFlow>;
-}
-
-export function VerifyEmailView({ auth }: VerifyEmailViewProps) {
+export function VerifyEmailView({ auth }: AuthViewProps) {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
-  const customerName = auth.registeredUser?.name || auth.values.name || "Nguyễn Minh Anh";
-  const customerEmail = auth.registeredUser?.email || auth.values.email || "customer@example.com";
+  const customerName = auth.registeredUser?.name || auth.values.name || AUTH_MESSAGES.customerLabel;
+  const customerEmail = auth.registeredUser?.email || auth.values.email || "";
 
   // Mask email e.g. "cu*******@example.test"
   const maskedEmail = maskEmail(customerEmail);
@@ -22,62 +18,18 @@ export function VerifyEmailView({ auth }: VerifyEmailViewProps) {
 
   return (
     <View className="w-full">
-      {/* State Simulator Control Bar (as shown in Figma screenshot) */}
-      <View
-        className="mb-4 rounded-2xl border border-slate-200 bg-white p-2 shadow-xs"
-        style={{ borderRadius: 14 }}
-      >
-        <View className="flex-row items-center gap-1.5 px-2 py-1">
-          <Text className="text-xs font-semibold text-slate-500">Mô phỏng:</Text>
-          <View className="flex-1 flex-row gap-1">
-            <Pressable
-              className={`flex-1 items-center justify-center rounded-lg py-1.5 ${
-                auth.verifySimState === "pending" ? "bg-[#125345]" : "bg-slate-100"
-              }`}
-              onPress={() => auth.setVerifySimState("pending")}
-            >
-              <Text
-                className={`text-[11px] font-bold ${
-                  auth.verifySimState === "pending" ? "text-white" : "text-slate-600"
-                }`}
-              >
-                1. Chờ xác thực
-              </Text>
-            </Pressable>
-
-            <Pressable
-              className={`flex-1 items-center justify-center rounded-lg py-1.5 ${
-                auth.verifySimState === "success" ? "bg-[#125345]" : "bg-slate-100"
-              }`}
-              onPress={() => auth.setVerifySimState("success")}
-            >
-              <Text
-                className={`text-[11px] font-bold ${
-                  auth.verifySimState === "success" ? "text-white" : "text-slate-600"
-                }`}
-              >
-                2. Thành công
-              </Text>
-            </Pressable>
-
-            <Pressable
-              className={`flex-1 items-center justify-center rounded-lg py-1.5 ${
-                auth.verifySimState === "expired" ? "bg-[#125345]" : "bg-slate-100"
-              }`}
-              onPress={() => auth.setVerifySimState("expired")}
-            >
-              <Text
-                className={`text-[11px] font-bold ${
-                  auth.verifySimState === "expired" ? "text-white" : "text-slate-600"
-                }`}
-              >
-                3. Hết hạn
-              </Text>
-            </Pressable>
-          </View>
+      {auth.message ? (
+        <View
+          accessibilityLiveRegion="polite"
+          className="mb-4 rounded border border-slate-300 bg-white p-3"
+        >
+          <Text
+            className={auth.isSuccessMessage ? "text-sm text-emerald-900" : "text-sm text-rose-800"}
+          >
+            {auth.message}
+          </Text>
         </View>
-      </View>
-
+      ) : null}
       {/* Customer Identity Card */}
       <View
         className="mb-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm"
@@ -283,10 +235,7 @@ export function VerifyEmailView({ auth }: VerifyEmailViewProps) {
             <Pressable
               accessibilityRole="button"
               className="h-12 w-full flex-row items-center justify-center rounded-xl bg-[#125345] active:bg-[#0d3f34]"
-              onPress={() => {
-                auth.setVerifySimState("pending");
-                void auth.resendVerificationEmail();
-              }}
+              onPress={() => void auth.resendVerificationEmail()}
               style={{ borderRadius: 12 }}
             >
               <Text className="text-sm font-semibold text-white">

@@ -71,13 +71,3 @@
 .page strong {
   font-family: "Space Grotesk", sans-serif;
 }
-.page header {
-  background: #fbfbfa;
-  border-color: #e2e8f0;
-}
-.page header nav a[href="/facilities"] {
-  background: #e8f5f1;
-  color: #125345;
-  padding: 8px 12px;
-  border-radius: 4px;
-}

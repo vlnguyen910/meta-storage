@@ -3,7 +3,7 @@ import { PublicHeader } from "./public-header";
 
 export function PublicLayout({ children }: { children: ReactNode }) {
   return (
-    <>
+    <div className="min-h-screen bg-[#faf8ff]">
       <PublicHeader />
       {children}
       <footer className="bg-[#0d352d] py-7 text-[#dcebe7]">
@@ -13,6 +13,6 @@ export function PublicLayout({ children }: { children: ReactNode }) {
           <span className="text-[#b2cbc5]">© 2026 metastorage</span>
         </div>
       </footer>
-    </>
+    </div>
   );
 }

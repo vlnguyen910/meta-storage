@@ -81,6 +81,8 @@ export function registerAuthHandlers(mock: MockAdapter): void {
     return user ? [200, envelope(sessionUser(user))] : [401, errorBody(401, "Vui lòng đăng nhập")];
   });
 
+  mock.onPost("/auth/send-verification-email").reply(200, { status: true });
+
   mock.onPost("/auth/logout").reply(200, envelope(null, "Đăng xuất thành công"));
 
   mock

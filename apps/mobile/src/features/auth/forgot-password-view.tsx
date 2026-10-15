@@ -1,13 +1,9 @@
 import { useState } from "react";
 import { ActivityIndicator, Pressable, Text, TextInput, View } from "react-native";
 import { AUTH_MESSAGES } from "./auth.messages";
-import type { useAuthFlow } from "./use-auth-flow";
+import type { AuthViewProps } from "./auth-screen.types";
 
-interface ForgotPasswordViewProps {
-  auth: ReturnType<typeof useAuthFlow>;
-}
-
-export function ForgotPasswordView({ auth }: ForgotPasswordViewProps) {
+export function ForgotPasswordView({ auth }: AuthViewProps) {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   return (

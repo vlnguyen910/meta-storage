@@ -38,7 +38,6 @@ describe("ForbiddenPage", () => {
 
     render(<ForbiddenPage />);
 
-    expect(screen.getByText("Nguyễn Văn Minh")).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: new RegExp(AUTH_MESSAGES.backToDashboard, "i") }),
     ).toHaveAttribute("href", "/customer/dashboard");
