@@ -63,7 +63,7 @@ describe("guest checkout validation", () => {
       status: 400,
       stage: "draft",
       requestId: "request-123",
-      code: "VALIDATION_ERROR",
+      code: 400,
       method: "POST",
       endpoint: "/reservations/drafts",
     });

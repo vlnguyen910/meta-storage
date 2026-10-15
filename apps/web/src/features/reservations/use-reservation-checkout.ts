@@ -198,7 +198,7 @@ export function useReservationCheckout() {
       } catch (error) {
         const failure = checkoutFailure(error, requestStage);
         setSubmissionError(failure.message);
-        if (failure.code === "CAPACITY_UNAVAILABLE") void availabilityQuery.refetch();
+        if (requestStage === "hold" && failure.code === 409) void availabilityQuery.refetch();
         for (const detail of failure.details ?? []) {
           const field = detail.field.replace(/^contact[./]/, "");
           if (["fullName", "email", "phone", "checkInAt", "durationMonths"].includes(field)) {
