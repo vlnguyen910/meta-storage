@@ -8,7 +8,7 @@ import styles from "./metastorage-fonts.module.css";
 
 export function PublicFacilitiesScreen() {
   return (
-    <div className={`${styles.page} bg-[#fbfbfa] text-[#0f172a]`}>
+    <div className={`${styles.page} bg-[#faf8ff] text-[#0f172a]`}>
       <PublicHeader />
       <main className="mx-auto w-[min(1180px,calc(100%_-_40px))] py-8 sm:py-10">
         <nav
@@ -30,7 +30,7 @@ export function PublicFacilitiesScreen() {
             </h1>
             <p className="max-w-[650px] text-sm text-[#64748b]">{m.description}</p>
           </div>
-          <div className="grid shrink-0 gap-3 rounded-lg border border-[#e2e8f0] bg-white px-5 py-4 text-xs text-[#64748b]">
+          <div className="grid shrink-0 gap-3 rounded-lg border border-[#bfcac4] bg-white px-5 py-4 text-xs text-[#64748b]">
             <span className="flex items-center gap-2">
               <MapPin size={15} className="text-[#125345]" />
               {m.network}

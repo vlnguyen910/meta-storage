@@ -1,6 +1,7 @@
-import { ArrowLeft, Warehouse } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
+import { PublicHeader } from "@/components/layout/public-header";
 import { LoadingState } from "@/components/ui/states";
 import { routes } from "@/config/routes";
 import fontStyles from "@/features/facilities/metastorage-fonts.module.css";
@@ -11,20 +12,15 @@ import { ReservationWizard } from "./reservation-wizard";
 export function PublicCheckoutScreen() {
   return (
     <div className={`${s.checkout} ${s.shell} ${fontStyles.page}`}>
-      <header className={s.header}>
-        <div className={s.headerInner}>
-          <Link className={s.headerBack} href={routes.facilities}>
-            <ArrowLeft size={16} />
-            {m.backToFacilities}
-          </Link>
-          <Link className={s.brand} href={routes.home}>
-            <Warehouse size={25} />
-            {m.brand}
-          </Link>
-          <span className={s.headerHint}>{m.contactDescription}</span>
-        </div>
-      </header>
+      <PublicHeader />
       <main className={s.main}>
+        <Link
+          className="mb-4 inline-flex min-h-11 items-center gap-2 text-sm text-[#165f4d]"
+          href={routes.facilities}
+        >
+          <ArrowLeft size={16} />
+          {m.backToFacilities}
+        </Link>
         <Suspense fallback={<LoadingState label={m.loading} />}>
           <ReservationWizard />
         </Suspense>

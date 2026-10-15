@@ -7,13 +7,13 @@ import {
   ChevronRight,
   Headphones,
   Home,
-  Phone,
   Ruler,
   Search,
   Warehouse,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { PublicHeader } from "@/components/layout/public-header";
 import { routes } from "@/config/routes";
 import { AUTH_MESSAGES } from "@/features/auth/auth.messages";
 
@@ -23,58 +23,7 @@ export default function NotFound() {
   return (
     <div className="bg-[#faf8ff] text-slate-900 antialiased min-h-screen flex flex-col justify-between selection:bg-[#165f4d] selection:text-white">
       {/* Top App Bar */}
-      <header className="w-full bg-white border-b border-slate-200 shadow-xs sticky top-0 z-50">
-        <div className="w-full max-w-7xl mx-auto px-4 md:px-8 flex items-center justify-between h-16">
-          {/* Brand Logo */}
-          <Link href={routes.home} className="flex items-center gap-2 group">
-            <span className="w-8 h-8 rounded-lg bg-[#165f4d] flex items-center justify-center text-white shadow-xs transition-all duration-150 group-hover:opacity-90">
-              <Warehouse className="w-5 h-5" />
-            </span>
-            <span className="text-xl font-bold text-[#165f4d] tracking-tight">
-              {AUTH_MESSAGES.brandName}
-            </span>
-          </Link>
-
-          {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center space-x-8 text-sm font-medium text-slate-600">
-            <Link href={routes.home} className="hover:text-slate-900 transition-colors">
-              {AUTH_MESSAGES.topNavFindStorage}
-            </Link>
-            <Link href="/about" className="hover:text-slate-900 transition-colors">
-              {AUTH_MESSAGES.navAbout}
-            </Link>
-            <Link href="/guide" className="hover:text-slate-900 transition-colors">
-              {AUTH_MESSAGES.topNavGuide}
-            </Link>
-            <Link href="/contact" className="hover:text-slate-900 transition-colors">
-              {AUTH_MESSAGES.topNavContact}
-            </Link>
-          </nav>
-
-          {/* Trailing Action Buttons */}
-          <div className="flex items-center gap-3">
-            <a
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 text-xs font-medium hover:bg-slate-50 transition-colors"
-              href={`tel:${AUTH_MESSAGES.hotlineNumber.replace(/\s+/g, "")}`}
-            >
-              <Phone className="w-3.5 h-3.5 text-[#165f4d]" />
-              <span className="font-medium">{AUTH_MESSAGES.hotlineNumber}</span>
-            </a>
-            <Link
-              className="text-slate-700 text-xs md:text-sm font-medium px-3 py-1.5 hover:bg-slate-50 rounded-lg transition-all"
-              href={routes.login}
-            >
-              {AUTH_MESSAGES.topNavLogin}
-            </Link>
-            <Link
-              className="bg-[#165f4d] text-white px-3.5 py-1.5 rounded-lg text-xs md:text-sm font-medium hover:bg-[#0f493b] transition-all shadow-xs"
-              href={routes.register}
-            >
-              {AUTH_MESSAGES.topNavRegister}
-            </Link>
-          </div>
-        </div>
-      </header>
+      <PublicHeader />
 
       {/* Main Error Canvas */}
       <main className="flex-1 flex items-center justify-center px-4 py-12 md:py-16">
@@ -153,14 +102,14 @@ export default function NotFound() {
           <form action={routes.home} method="GET" className="relative mb-6">
             <div className="relative flex items-center">
               <Search
-                className="absolute left-3.5 text-slate-400 w-4 h-4 pointer-events-none"
+                className="absolute left-3.5 text-slate-600 w-4 h-4 pointer-events-none"
                 aria-hidden="true"
               />
               <input
                 name="search"
                 type="text"
                 placeholder={AUTH_MESSAGES.notFoundSearchPlaceholder}
-                className="w-full h-11 pl-10 pr-20 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 text-xs md:text-sm focus:outline-none focus:border-[#165f4d] focus:ring-1 focus:ring-[#165f4d] transition-all shadow-xs"
+                className="w-full h-11 pl-10 pr-20 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-600 text-xs md:text-sm focus:outline-none focus:border-[#165f4d] focus:ring-1 focus:ring-[#165f4d] transition-all shadow-xs"
               />
               <button
                 type="submit"
@@ -174,7 +123,7 @@ export default function NotFound() {
 
           {/* Quick Navigation Links */}
           <div className="bg-[#f8fafc] border border-slate-200 rounded-lg p-3.5 mb-6 text-left">
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2 mb-2">
+            <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-wider px-2 mb-2">
               {AUTH_MESSAGES.quickNavHeader}
             </p>
             <div className="space-y-1">
@@ -189,7 +138,7 @@ export default function NotFound() {
                   </span>
                 </div>
                 <ChevronRight
-                  className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform"
+                  className="w-4 h-4 text-slate-600 group-hover:translate-x-0.5 transition-transform"
                   aria-hidden="true"
                 />
               </Link>
@@ -204,7 +153,7 @@ export default function NotFound() {
                   </span>
                 </div>
                 <ChevronRight
-                  className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform"
+                  className="w-4 h-4 text-slate-600 group-hover:translate-x-0.5 transition-transform"
                   aria-hidden="true"
                 />
               </Link>
@@ -219,7 +168,7 @@ export default function NotFound() {
                   </span>
                 </div>
                 <ChevronRight
-                  className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform"
+                  className="w-4 h-4 text-slate-600 group-hover:translate-x-0.5 transition-transform"
                   aria-hidden="true"
                 />
               </Link>
@@ -262,7 +211,7 @@ export default function NotFound() {
       </main>
 
       {/* Shared Global Footer */}
-      <footer className="w-full bg-white border-t border-slate-200">
+      <footer className="w-full bg-[#faf8ff] border-t border-slate-200">
         <div className="w-full max-w-7xl mx-auto px-4 md:px-8 py-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6 pb-6 border-b border-slate-200">
             <div className="flex items-center gap-2">

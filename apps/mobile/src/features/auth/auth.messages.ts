@@ -1,4 +1,8 @@
 export const AUTH_MESSAGES = {
+  invalidEmail: "Vui lòng nhập địa chỉ email hợp lệ.",
+  customerLabel: "Khách hàng",
+  termsRequired: "Vui lòng đồng ý với điều khoản sử dụng và chính sách bảo mật.",
+  verificationCallbackReceived: "Đã mở liên kết xác thực. Hãy đăng nhập để kiểm tra kết quả.",
   // Brand & General
   brandName: "storeX",
   brandSubtitle: "Hệ thống kho tự quản vật lý tại Việt Nam",
@@ -96,7 +100,7 @@ export const AUTH_MESSAGES = {
   verificationTitle: "Xác thực khách hàng",
   userTypePersonal: "TÀI KHOẢN CÁ NHÂN",
   statusPending: "Chờ xác nhận",
-  statusSuccess: "Đã kích hoạt",
+  statusSuccess: "Kiểm tra khi đăng nhập",
   statusExpired: "Hết hạn",
   customerRegisteredLabel: "Khách hàng đăng ký",
   changeEmailBtn: "Đổi email",
@@ -115,9 +119,8 @@ export const AUTH_MESSAGES = {
   resendWaitNotice: "Vui lòng chờ giây lát trước khi yêu cầu thư mới",
   resendSuccessToast: "Đã gửi lại email xác thực thành công!",
 
-  verifySuccessTitle: "Xác thực thành công!",
-  verifySuccessDesc:
-    "Tài khoản của bạn đã được kích hoạt hợp lệ. Bạn đã có thể đăng nhập ngay để tìm cơ sở và đặt buồng kho.",
+  verifySuccessTitle: "Đã mở liên kết xác thực",
+  verifySuccessDesc: "Hãy đăng nhập để kiểm tra trạng thái tài khoản của bạn.",
   continueToLoginBtn: "Tiếp tục đăng nhập ngay",
 
   verifyExpiredTitle: "Liên kết đã hết hiệu lực",

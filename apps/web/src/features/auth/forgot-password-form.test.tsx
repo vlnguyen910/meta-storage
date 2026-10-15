@@ -51,3 +51,18 @@ describe("ForgotPasswordForm", () => {
     expect(screen.getByRole("button", { name: /Thử lại sau/i })).toBeDisabled();
   });
 });
+
+it("keeps the recovery form usable on server failure", async () => {
+  const user = userEvent.setup();
+  forgotPassword.mockRejectedValue(new Error("offline"));
+  render(<ForgotPasswordForm />);
+  await user.type(screen.getByLabelText(/Địa chỉ Email đăng ký/i), "review@example.test");
+  await user.click(screen.getByRole("button", { name: AUTH_MESSAGES.forgotPasswordSubmitBtn }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    AUTH_MESSAGES.verificationRequestFailed,
+  );
+  expect(
+    screen.queryByRole("heading", { name: AUTH_MESSAGES.forgotPasswordSuccessTitle }),
+  ).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: AUTH_MESSAGES.forgotPasswordSubmitBtn })).toBeEnabled();
+});

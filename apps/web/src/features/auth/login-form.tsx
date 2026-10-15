@@ -114,7 +114,7 @@ export function LoginForm() {
               {AUTH_MESSAGES.emailLabel}
             </label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-600">
                 <Mail className="w-4 h-4" />
               </div>
               <input
@@ -123,7 +123,7 @@ export function LoginForm() {
                 autoComplete="email"
                 placeholder={AUTH_MESSAGES.emailPlaceholder}
                 {...register("email")}
-                className="w-full h-10 pl-9 pr-3.5 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#165f4d] focus:ring-1 focus:ring-[#165f4d] transition-colors"
+                className="w-full h-10 pl-9 pr-3.5 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 placeholder:text-slate-600 focus:outline-none focus:border-[#165f4d] focus:ring-1 focus:ring-[#165f4d] transition-colors"
               />
             </div>
             {errors.email?.message && (
@@ -139,7 +139,7 @@ export function LoginForm() {
               </label>
             </div>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-600">
                 <KeyRound className="w-4 h-4" />
               </div>
               <input
@@ -148,13 +148,13 @@ export function LoginForm() {
                 autoComplete="current-password"
                 placeholder={AUTH_MESSAGES.passwordPlaceholder}
                 {...register("password")}
-                className="w-full h-10 pl-9 pr-11 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#165f4d] focus:ring-1 focus:ring-[#165f4d] transition-colors"
+                className="w-full h-10 pl-9 pr-11 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 placeholder:text-slate-600 focus:outline-none focus:border-[#165f4d] focus:ring-1 focus:ring-[#165f4d] transition-colors"
               />
               <button
                 type="button"
                 aria-label={showPassword ? AUTH_MESSAGES.hidePassword : AUTH_MESSAGES.showPassword}
                 onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-700 focus:outline-none transition-colors cursor-pointer"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-600 hover:text-slate-700 focus:outline-none transition-colors cursor-pointer"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -209,7 +209,7 @@ export function LoginForm() {
             <div className="w-full border-t border-slate-200" />
           </div>
           <div className="relative flex justify-center text-xs">
-            <span className="bg-white px-3 text-slate-400">{AUTH_MESSAGES.orContinueWith}</span>
+            <span className="bg-white px-3 text-slate-600">{AUTH_MESSAGES.orContinueWith}</span>
           </div>
         </div>
 
@@ -285,7 +285,7 @@ export function LoginForm() {
         {/* Hotline Help Note */}
         <div className="mt-6 pt-4 border-t border-slate-200 text-center">
           <p className="text-xs text-slate-500 flex items-center justify-center gap-1.5">
-            <Headphones className="w-4 h-4 text-slate-400" />
+            <Headphones className="w-4 h-4 text-slate-600" />
             <span>{AUTH_MESSAGES.hotlineLabel}</span>
             <a
               href={`tel:${AUTH_MESSAGES.hotlineNumber.replace(/\s+/g, "")}`}
