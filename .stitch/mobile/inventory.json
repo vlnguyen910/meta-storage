@@ -1,0 +1,958 @@
+{
+  "projectId": "15161264923633714884",
+  "status": "AUDITING",
+  "screens": [
+    {
+      "deviceType": "MOBILE",
+      "height": "1768",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDdjZDk2MjVhODkwNGVhYjcwMDk4MTY4MGQ4EgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/3533757286781437756"
+      },
+      "name": "projects/15161264923633714884/screens/8338ff5d7c6249e0a9d0bda2cc5b7f38",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1XpZs5d8el6Owpswyal07D12__7NE1WVGklXWG26LuA4NKSYHJCz2xrYH99zMqZjNP8-zvQV7kHQw4453R9q9nZWDNOHS7bMzj2v6pBQEcc2YL-TprZL5tCFUaGvHTJ5OrlQ7rek3E41a5BQ4wGPXkFA0GkK1KPjD5lUUtfM2DcIfc2RxKRnN8MXNe6hTxca-sz5qFlr4AwJLjaHO89P642a7FRfIanyPj6b-DkpsZwPXPvMnzOvZA7E1-Y",
+        "name": "projects/15161264923633714884/files/24280e6599f34cdcb51cfcf22aae5054"
+      },
+      "title": "M-A04 — Quên mật khẩu — Chung",
+      "width": "780"
+    },
+    {
+      "deviceType": "MOBILE",
+      "height": "3354",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDdjZGJmMTVmOTAwMWI0ZDk3MDM0MDdhMmFmEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/7865913169580806485"
+      },
+      "name": "projects/15161264923633714884/screens/92fb3f93773f4ee59eafa57f48887b25",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1Xk02XWUAH6WxPsgnmJOClNjZMVPCZO6mTfDbGGicYipRcEXAHkVhNkP-j8pf2LmS2CzbQmimFCzc3lR8hkOnEA9VpACQrZ6Tc0hYcUoRPXqN2rVGxcP9Hf6qbH_8MCEvHFNuCu-xpn8i2vLJL_bxjALnPvc8sKhsBOzu4iRi5KiKIW5H6XUELd-PPSeTGVjr8jhPWnlFh8Rg39CD6aVRn2r-erX8cu6DNVNOUdMpCN3CyXH1Glm3fKkaI",
+        "name": "projects/15161264923633714884/files/b0b62edaccf34ebaa2fdd45ffb32a62a"
+      },
+      "title": "M-C04 — Phiếu giữ chỗ — Customer",
+      "width": "780"
+    },
+    {
+      "deviceType": "DESKTOP",
+      "height": "2400",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDdjZDllYjdmMTYwMzkyZDE0MWFlMTg4OGI4EgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/9581744073193738208"
+      },
+      "name": "projects/15161264923633714884/screens/b5be9b0a8c2a47ba98665f63c313eb82",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1XAVBW1GX3HaNAZ4qiRufSese7Qy5OdnsvwaAevqfi8lalgrGdf0m2hHutA3J2GBkKh2RapwWZrHjWK2gR0QY9eNUhdpUiU2ZVNC09Zo089JITKnMzo3pM8UA49VaTLMAK5LGJU1hCr2lr4uTRyb4etOIQg0di6jfMHFfGaJdX511cHv3BbM6njHZZQWa-q_SJiMFMYwN2m3EIUmoO_b_6MDGv2P7BbT72IO9aQ2N5UhBcZdvOLX-NcQG_b",
+        "name": "projects/15161264923633714884/files/61b7c52d114f41e592a82a00125f4ac4"
+      },
+      "title": "M-A01 — Đăng nhập — Chung Guest/Customer/FS",
+      "width": "2560"
+    },
+    {
+      "deviceType": "MOBILE",
+      "height": "3954",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDc2OGNlNWU1YmIwNjM5NzVjZDI0MWI4NmZiEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/5690406103465700793"
+      },
+      "name": "projects/15161264923633714884/screens/39dd09ce5e064126a40267e33c613d79",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1XGva_E2ebDcw_ItUn8dMlvuCjVL5XQ4v2WhE-yb-D2hUGRNtC9SOglJY-cMx0sgI-XUafVt2HiiAelhbev3Fgc1ybu_sTGP6sBtgy9LQWc_egC4j2y8BXQRMXMzYO75Ne4bXObjmoZe1AfCRGn0FAIqQK5jXABd6vIGMz8tnvd38HVXkbxT8pKU7z1SX0jDzCjLHsLLtaojK4Ba7pxjU_5j0mVKJIb1WjRMS4G2TIY6_o1TyUr5k_qI2R9",
+        "name": "projects/15161264923633714884/files/19a1075c9ebe4e68977973570c5a28bb"
+      },
+      "title": "M-FS03 — Biên bản kiểm tra trả kho — FS",
+      "width": "780"
+    },
+    {
+      "deviceType": "MOBILE",
+      "height": "1864",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDdjZDg2ZmUwOGQwNzc5OWFjNzQ4MTA1YmYzEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/6939165156885863217"
+      },
+      "name": "projects/15161264923633714884/screens/3a8b38b7e71a42258ac7183586da249b",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1WE4RaXXTeMfiSJNoEj_viAE4Glafd3VbVE67f_HqI_Dq96eJQYPLXzEfoljolg6VYqGejlaaw3pVkeufVONpGup2w-Wl6-AzNzT-kRfdSL7jlf4-zJLw1Sgt8UgMFr3ykokOmrLj-l16_a_0qjpnA_1WjhFW1QuB4RIZuuXHmMMSFrfzL6URzjL33JEOpm4sMnLnQCN7GU0r3cHTQAiEGfpe3xsdgjQc5HS13z-M8h0ZQSy2ncAofQHgIT",
+        "name": "projects/15161264923633714884/files/c676d58541cc456e8c5bf6e2e3faa7b6"
+      },
+      "title": "M-A01 — Đăng nhập — Chung Guest/Customer/FS",
+      "width": "780"
+    },
+    {
+      "deviceType": "MOBILE",
+      "height": "2668",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDdjZGJkZTljODYwMWI0ZDk3MDM0MDdhMmFmEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/14371493637460484783"
+      },
+      "name": "projects/15161264923633714884/screens/e0a6a8e1aab74674a7d54e064be01ab5",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1W2Er2etN2410TqZd8OemfGC8E3_CTHDGFBxRjAtNcOicRaMWE9DKtHKXtOHX80BywmG0IXPRv_YGy7zgiZzZLryG6JW8lVnybz0PGSZ6RJnA_YS8U7qsYq07pJsx6HvJ0oksthvqNpBRzHUrT2cdpbjllS-WCiUpsQFaEI8yGnjLW6KNgOd1yuYaCyZ6ghvjSok9RNe-UapB5Ruijij3R2kWKVCyt6OeXFuKZyIZGayMhHcHqNyY3rkPF7",
+        "name": "projects/15161264923633714884/files/8be53983b04f4428a941c0a19b26289b"
+      },
+      "title": "M-A03 — Xác thực email — Customer",
+      "width": "780"
+    },
+    {
+      "deviceType": "MOBILE",
+      "height": "4504",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDdjZGFhNTEyZjUwOTEwN2NiYzk2MTQyN2M1EgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/11405404260508696747"
+      },
+      "name": "projects/15161264923633714884/screens/2463253567ea490b8fc9d6ac0b9ce7ef",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1VAby4MxRjYaF4fnANpULmAhMOl_gjoNRgPqyhzGEgBJga2J8BRPjnlM8mLhnDoVOEu1OaltWaJRtfYEkvcBVCLX98EHnRoC4JEXbS_ry7hgaFlFMngd_JOHeJJtx6TEYCwnnPA4ODkS0qM0GCAOuYs6h4LycMztzQtH_ifhvVHypHGCql4lX8DOmG3QiTQ23bJiqrEsK8NgymSrb0imzF2ipAarRr0Y6hsZAqyw5gsjPTWghPS-ldAE0J_",
+        "name": "projects/15161264923633714884/files/d3ddcfccc2234b09bb398c4ed1bcd78b"
+      },
+      "title": "M-CK05 — Đặt kho thành công — Guest/Customer",
+      "width": "780"
+    },
+    {
+      "deviceType": "DESKTOP",
+      "height": "3116",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDc2OGRlMzA0OGQwNzc5ODM4Y2FmMmQ4MDAxEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/7708513384914392908"
+      },
+      "name": "projects/15161264923633714884/screens/2f70ba8f858847e5a54f29500ac22173",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1XXGHXtAaObujK-B3ORSk9HvzkSw9fKP5SYovNoHJ3AolX1G5qiw7qOtPRYYlyGC6SWISUQwxYFEhGzO6aS398w7BCkRRnOMrjl3W8zm7qn0xmbXr4KT7JL_VRVi6Uy71_Ds_ip5TTaN00dik6Bpft2oUAkKnODF7Q7duXSyMjcla-dUxfV2MxrmejY0BYQHoTV8BGsC0XKnjMw1A0ahNlNTJnvtLhGyVUomc1d2y3p1UeThq7oefMNyhU",
+        "name": "projects/15161264923633714884/files/ab28abdbbb084d8dba0e8a0658c5dad0"
+      },
+      "title": "M-C05 — Chi tiết phiếu giữ chỗ — Customer",
+      "width": "2560"
+    },
+    {
+      "deviceType": "DESKTOP",
+      "height": "2048",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDc2OGJhNDE4ZjUwMzc0OWExNTc4MTFkOTlhEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/13207049298966406645"
+      },
+      "name": "projects/15161264923633714884/screens/af59eab9abe54813aff8f8e4f91974ca",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1VQvs9ZsYaosukc7lMuxd2lGuXnC9z8P6clU0Lf36wt76HnE9IXybE1qbgH7bJxvA6eNeQ38MydVHH5_SHQRoyCh4MipNRxoSTdXcwlWtDDYcrRHcQPBQRN-TK3dqMQDjRDXYTYFfFalPS8bFs19S9lmr3lrElq2VxPoj5mOKhYR8wtGXCjemgYHrcZ5BJ384KZm_7SaQ0D96cozqgIJNDQ7j-Ex1w9uTXmAFPxACYNl80nT8B0a1UoDqEq",
+        "name": "projects/15161264923633714884/files/926f68077a314b3e818b48539abd0694"
+      },
+      "title": "M-E01 — Không có quyền truy cập — Chung",
+      "width": "2560"
+    },
+    {
+      "deviceType": "MOBILE",
+      "height": "1768",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDdjZGEyMjlmZjMwMmE5YjgzYzI5MmMzZWE1EgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/17494445241582581246"
+      },
+      "name": "projects/15161264923633714884/screens/d23c7ffab9614a0cb8442976e2f748be",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1XKpDP3UTYxsWnSQEPegNY5RY_ITiRy6EBb6Et-Vb7sG-uJkKVPskbgTpzOCRmW-QZa830TU0Z0hJkbNkkHb-yT8IibSG3b6OFAQhnoBDvQ2AHUDGVdvHxSiVuzQwSqq938F3AfAWsUGF580TwkF0TS7kNUUf1rszNk4nYWWGGtt8ZPgmCW4aomTtES2MznV71rxUXJqEBCgMUO2P-VGJryQ7CalwNkxvrIsafA0ooYX-BPmZeUwEjY3tHJ",
+        "name": "projects/15161264923633714884/files/f35b9beb15cf4d44ae5319f293abcf55"
+      },
+      "title": "M-A02 — Đăng ký khách hàng — Guest",
+      "width": "780"
+    },
+    {
+      "deviceType": "MOBILE",
+      "height": "2544",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDc2OGQ5Mjg1N2QwNTAzYzE4YWFiMThhMmRlEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/1053831688862704084"
+      },
+      "name": "projects/15161264923633714884/screens/b70750bc6580488fa1b5790b49db066a",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1WNDEP-OVcNMlInY5-dKqbIUydkzmYc-m-A_mjYnIRDy-CJXPOau015MwYtFpjEmJISdWf2noO0XtLg1cevtVX4LMG1W0ERuLKQEPYD5rIu9lTU7QMXj451hYWkn3b66oov2owXeBWgjINirAxunUkxXX9M4iQcHXWB70Lyegq6ADpxY5gAxaU1jcegC5wOdyrU3a5OGGuU44jyL2RZw35ZuNwC0ImCxC2ukdzTc9XFtRIf6nD57RTQYnHw",
+        "name": "projects/15161264923633714884/files/9c7edf1e7450418abd3ea66cda860865"
+      },
+      "title": "M-C06 — Kho của tôi — Customer",
+      "width": "780"
+    },
+    {
+      "deviceType": "MOBILE",
+      "height": "1768",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDdjZGFkN2MxOTcwMzkyZDE0MWFlMTg4OGI4EgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/3681111496810335653"
+      },
+      "name": "projects/15161264923633714884/screens/428f7a36372c421ab3cfd9c53d6f704c",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1XSdLRiuWBel0qD6-3hFRVnJLwQeU5gCwtfu6dtt5F-J2JqzaaU_m5t4H4_Hk58tCD2-iWNjydvK5Z5VD1YXR1xtS4c2ZRQULEzbXOPuJ5Plk9L-tRy1UOPOCADwIcir7oOcWGzDGYHlTc4NMn3WrQFfmdSl_nJkZvgQLp0XugqVJEBCLSPCHSNlxftSUTkbs3-HI8r0ic7IH1TucXqtAhsHHXdGbTH9gEdnq9DSkV1FsiuKDJO6JkCqkyg",
+        "name": "projects/15161264923633714884/files/c4f88a941eb5483db41fddeed29653b6"
+      },
+      "title": "M-CK02 — Thông tin thuê — Guest/Customer",
+      "width": "780"
+    },
+    {
+      "deviceType": "DESKTOP",
+      "height": "3426",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDc2OGYwMjNhYWMwNzc5YTA1ZjhhMWU3ZTNjEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/3881560435993287567"
+      },
+      "name": "projects/15161264923633714884/screens/cc495a0a407c4dff80403c3a78947de9",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1W9HMLq05WOo3OmORjrygncVs4rhLivjZOLKJxMY0Fu9iOl0vwKqxMMkv72IOtF5_-SJ3K0WgDiRfMqUEXhlvmMsYPgrSkWYidz3tv6WKMEOPj8GgriiCJmlsNfPYN8VesNW1tt4zk5qeCFoIzMox2JOERA82mHs3Bc1-tNixG7w81HKphI6A3SEhDt9WgBnJGTjcsHZV8_QDU_u5mQJVeZ3BdEjzhNm1QshqEDdd8L6hWiDlt4dwi2G2c",
+        "name": "projects/15161264923633714884/files/765c3b47510c4a3a99f8ebc1109dec2b"
+      },
+      "title": "M-FS04 — Tìm và xác minh booking — FS",
+      "width": "2560"
+    },
+    {
+      "deviceType": "DESKTOP",
+      "height": "3296",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDdjZGI5YmI2NDEwN2M0ZDc3ZGI2MGMzY2UyEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/10110339951998355706"
+      },
+      "name": "projects/15161264923633714884/screens/992c715d0a48444fa623f475242f485c",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1WZcCwVWEIrGOpJJzUFoI-HiWQzxBKWPe0F9gFlYbV4mfED9qVuoxWwt2f8y-b4oDeHP5WDvGNAF5misn_zWOP7uPe4re1A4x2piv-aJMOqzj8P_5m6RDlNwZSoDXeki-DI2YYOxSpbqtkXs1qxb6vJNR6T-9fvGv4VGjI0JCh92ceDkcuBTKXHKhXqhizDRlIsdRGe38nr4i8sgnxKm4efgoCq41iUMqrP2Dh2uXRC9iEqszImP6IGPXni",
+        "name": "projects/15161264923633714884/files/e7554795d5574d86b9dbd71a41e2a41a"
+      },
+      "title": "M-C02 — Đơn đặt kho đã thanh toán — Customer",
+      "width": "2560"
+    },
+    {
+      "deviceType": "DESKTOP",
+      "height": "2928",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDc2OGMwYTQ4MmYwNTc2MzE3MmVkMTExM2YyEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/664899320095393829"
+      },
+      "name": "projects/15161264923633714884/screens/616f0a5bb3f3450ebddf23e04a5dde1d",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1WzoWzNspGiVapSzd1NSE1BrRtN4K6xAJfP5EX5SecUxMTQtn1lD4lkF511oq8qiWA6ZKEJDn1yAGVTRZz_R_4rR9HK3kbszBZy3k42tF3agvoGinim27ba0h1VPNidtHv0RZ9B91askeFa9GYH2ZWM4zSlxBin4r6TA3VM-37C0ceDw-_JdU6j8tZkbjb5v8_eG6PEO7ogIiVt2x_69oSnKxQRVKwChqdr3kbPwYvcooqDPMUU5yGoeiyK",
+        "name": "projects/15161264923633714884/files/14197d74ee134480b6431bee19503cbd"
+      },
+      "title": "M-E02 — Không tìm thấy trang — Chung",
+      "width": "2560"
+    },
+    {
+      "deviceType": "MOBILE",
+      "height": "2708",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDc2OGJmZTM3NDgwMjJkNTc1NjlkMTljMWNjEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/14068256170717306070"
+      },
+      "name": "projects/15161264923633714884/screens/4400a40fb18f49d5a1ce3b4bf5c21217",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1Vrhmof9sRn_fC5PDCrQG1bWBAPrnnl5o2xy7If6p-agD0sxq3o4gjR40V-jSJ-Iu1-at65sTKujYv6gwUUSOh9NCVUIcUZTr77f-rlCVePGifmUlfxeLDRYnrEDgL4SQ6TAkH8Xa_hKqiGtyIlKWzD-OXkg_7z9PmoJeluUiy6IrmlCFacNxsL_chxAUMEV1N-ah6KP6eG29-8Zkas-Qm6LMOvI9usyTPDs272-op8Q3nW6T0KgxawPtFY",
+        "name": "projects/15161264923633714884/files/0b57fadb16fa4ec89502000338f059ce"
+      },
+      "title": "M-E01 — Không có quyền truy cập — Chung",
+      "width": "780"
+    },
+    {
+      "deviceType": "MOBILE",
+      "height": "3880",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDc2OGNmNDFkOTAwMWE2MGJmNTA0MmFkODgzEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/10700558522518704118"
+      },
+      "name": "projects/15161264923633714884/screens/9a5da213017f43c0a8d0199a125192c9",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1UgKX-Xv_4w0YzIDQvp5j4Pf0Zb9YlSCfjadBEof8uoVrNVFzecb6-bb8muus1ycUziS5cntf4rePnt-VgVOkyRx2S2cnOksbCxWbqIFbItx9GskzRjpPdjWdjcaqRGGzLmUrtJDMuZ4gOmBjlODYZhJi8LbXdmxuU6W1IA5aQ8a2Uqe8mTM1oqfDqAdu7wFnlbTfIW6tbmOvvzlRuJR4lzjQcwl_SuxV6fPmNaQ26uyDnCxzd4fD8Hfmc1",
+        "name": "projects/15161264923633714884/files/836cedc4e70a490791fd4a6683ceaa18"
+      },
+      "title": "M-FS06 — Xem lại và hoàn tất kiểm tra — FS",
+      "width": "780"
+    },
+    {
+      "deviceType": "MOBILE",
+      "height": "3968",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDdjZGE0ZTAwNmEwOTEwN2NiYzk2MTQyN2M1EgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/14731268503783977266"
+      },
+      "name": "projects/15161264923633714884/screens/e7acafc9502a405c88334c782ef5bc90",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1WsmOPvv3kAjNsj7sWRyt8FfWFDpUl1yCIYhMBXGcnPgnkibz42GsOCcEL1MybrpiFjkQBJ6z83FwPzWaLt-gf6aPbyYkwjC9WfRfspfZ1ah9QlojkVAOZ2YYJ27-El43e68U9AwZZvzAtM1A6gLSsjfMDDLUtVp_1xsFlv1OkeUgLRlYrgBrNx3NhwPuJaDe2dJkbw6JzWpua-HPOiQrvuxUa-7wXIVMBR1-zzfMiVB5nRpyD3cnhXCVfz",
+        "name": "projects/15161264923633714884/files/e55c2979456344048b67bb690d7dc438"
+      },
+      "title": "M-FS01 — Công việc của tôi — FS",
+      "width": "780"
+    },
+    {
+      "deviceType": "DESKTOP",
+      "height": "5268",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDdjZGExNjg3ODkwMWE2MGJmNTA0MmFkODgzEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/1210046510744859857"
+      },
+      "name": "projects/15161264923633714884/screens/18c621793a294831aed574111c7688d0",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1XYsVbg6ijU8yZeA3vyOxmFjsyBcnmwt_N49GelMIkVU6ayldfEsqoXMHxHQHfhx4O3nQRfKii3DLZ9E65UbAIHfdZTAMUqZpkSVZJ5Ben-ZIyUMjHHTJcOlhxFJM1AYLmZiubfKcyyN2unoMaRPIf94AUF7u2x9Tiq86WEn5Gk9S-W8G17QuIhLh0v307VtmzzSyOvQDTeeVJJ1DAVNx0wZqa9MhzkLvN7gh2SCANFYJCYp1C2i0Cijhw6",
+        "name": "projects/15161264923633714884/files/14e85efdab3847d983db56acf34baaa1"
+      },
+      "title": "M-P00 — Trang chủ — Guest/Customer",
+      "width": "2560"
+    },
+    {
+      "deviceType": "MOBILE",
+      "height": "5856",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDdjZDlmYWRlYTMwNzc5YTA1ZjhhMWU3ZTNjEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/12197460859169774100"
+      },
+      "name": "projects/15161264923633714884/screens/c45ff58e8cab4dfdbda3436ca6d634a1",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1VR7-1Z3LaIqaDMItF4rmMRV4gfrxitv_ae-o0IlWXKq1AOFEgrmZAmhxUyW4BlJrpHGZ9B0tZSCBPdpsuG9sYNtlxud2wVRbm05fL-wnWaIFdYOGZqepQNF5_xXODiTm-RP8bhnFmtosjAk1VJsTawqa-pqqhAcFHzHaJvhXuRNYpftcSI-ZL0GpsNsYmKLR33g97gvyOm06rdXAt1_gfUbMHnQ4wmq_cAh5Nc1JMHKOl8DughtzUq9A3R",
+        "name": "projects/15161264923633714884/files/aa9f11f32feb4c47ab4e83932dfee70e"
+      },
+      "title": "M-P00 — Trang chủ — Guest/Customer",
+      "width": "780"
+    },
+    {
+      "deviceType": "MOBILE",
+      "height": "4252",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDc2OGM1MmU2ZjEwNTAzYzFmOGQzMTdmYTIyEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/14393361786755837698"
+      },
+      "name": "projects/15161264923633714884/screens/b97672aacd9f4424b380d6d69df61b42",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1Uem_pgOfB1gjbyBbvru0Yn6OhXvlgLVFRjMCY74mnCnM1k9E-7cM4XcvCNJBpusyWZvKL_ddVp0WDSS_YiHkMn3027sCAnF1bIaB2Hxo7iTFsI8udFdplvUd_YLwFfrQB46aFamxAOVDmt_vot1cIRjevjl4Guqcks3kydB96SGQWI_zSAIvnlZWVOEx5A1NgfWssBU7VpgcKEZsEGaOh2qpt3wqR47aAnm6HvUs_SY8NbY1_JLIxslNjA",
+        "name": "projects/15161264923633714884/files/1f0d88a326b243fcb96b89d89e9cce02"
+      },
+      "title": "M-CK03 — Xem đơn thuê — Guest/Customer",
+      "width": "780"
+    },
+    {
+      "deviceType": "MOBILE",
+      "height": "3720",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDdjZGI1MGE4NzAwMmE5OWZhOGZkMTIzMGI3EgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/4770847341160465836"
+      },
+      "name": "projects/15161264923633714884/screens/1e7d07c2c964414cb9ec15a31c1c940e",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1UXyQ3caQtRM276OiO9P90jADMi25XJlDdeDZSPCVCa-b-oX1AONHub4tzIQALTRpAWMdcIjhJW2tc9W_Mh4RXVQjlhQ5M0Yq_HpDf6gKoNz9DMmHIaDLUxyuPAaYCfdMjPUKYlQIHTKI1LhUsZz177wOdKl253U82AwmNRE0_oWZxjSS1k9byryhMjrjeNywoj4QSCCeEYolzxLSzOchuPi4pbRumi4DXZvxPUbzUPu47yfpsMxnbc1TUB",
+        "name": "projects/15161264923633714884/files/fa416d2d37784017bdab0f1e0fc95984"
+      },
+      "title": "M-CK04 — Thanh toán — Guest/Customer",
+      "width": "780"
+    },
+    {
+      "deviceType": "MOBILE",
+      "height": "2854",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDdjZGI2MjkwOTMwMWE2MDk1NGYyM2I2MjZkEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/1501702795394586785"
+      },
+      "name": "projects/15161264923633714884/screens/0484c96e6937464db97cb8cdf9e1bf16",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1VoRVDkmi_vh6dZ7Ko0J5NiesdjiGTY17rl02qmGgt552SVgz4gbxWVKYDfTfD5M8mzxe41XHhZPsZ8tVa9EOYT8X_BtT5kUdRbDffTQYSV3S9Dc0k0WvOqiA0WwixH-IB_VJS6QymukpR0R12LSKAMQNXiQyld-QK1QY1wpZhwJtnjJGGrnDU_cs0Xpbawmcn681_7ae-QfQZHB8EnoAHZ0KW7WJXvKN_W1tkXx6iZiL2DnZrznFXfUhUf",
+        "name": "projects/15161264923633714884/files/8a9cb272b6b9480c8d2b6355d22a1329"
+      },
+      "title": "M-P01 — Tìm cơ sở kho — Guest/Customer",
+      "width": "780"
+    },
+    {
+      "deviceType": "MOBILE",
+      "height": "4368",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDc2OGJmMTEzZTQwOTI1ZDQyOTRkM2I5MWNjEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/18162093478878073480"
+      },
+      "name": "projects/15161264923633714884/screens/0af307ac3ba84674b531bffd43068935",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1URJxpyAcb70V-AuqtjIRV8fKGL3oRcqy8bIMs1_URqvMWEIeQoVKVAku4JFELFPtT7aN5iYIc6NdAOcZTHC8OHMIbyCm8O4nR4ZZZqiBWucH8drR_Zx3lyb0VJKC3JiSg5hFULVBxWzKkHeGfVrgtwmNKss2zIWNCxQvaFC1HdlQ0wfX6f3ggSZJGwyZed4eiB-2Mz_9uq00cAm9MUTz2mf-coMEX8bNWIDkU3R1V6mvLOFBNWGQSngR4",
+        "name": "projects/15161264923633714884/files/f4f0bd6170434857974f4c71eca59508"
+      },
+      "title": "M-C07 — Chi tiết kho đang thuê — Customer",
+      "width": "780"
+    },
+    {
+      "deviceType": "MOBILE",
+      "height": "3724",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDc2OGUzZWY2ZWEwNTAzYzE4YWFiMThhMmRlEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/16356886244223114483"
+      },
+      "name": "projects/15161264923633714884/screens/eed960355a7f493884fcd34fd5a09315",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1X7X85AilYXETnk5uWgeMlRZ9ozBWRCGHY6rmdHpLCR0Ios6OEM-WQlQjb7hgHoVwlR5Pk3h-YQzllsWQInxSU4-BNk6NI6hXUZI5DbM-4TBjrjRvkzSqhu2A5JopbbuOQt6pC39_GC89ICxrKHxKkgmN1cvHtEVMDqWQQdoYfKArlUTscgN1c5JQgSlycKG18zDQyM1cHHLNOAURPFw4q5MO9mIQavH2LPOz2Lfq08GCpEaSSBm10KyiW9",
+        "name": "projects/15161264923633714884/files/64d23687144b454d8c1700a49ffe9285"
+      },
+      "title": "M-FS07 — Bàn giao kho — FS",
+      "width": "780"
+    },
+    {
+      "deviceType": "MOBILE",
+      "height": "5792",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDdjZGEzNWFlNzcwMjJkNmJmOTMxMGRmMGZmEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/9856350600044087845"
+      },
+      "name": "projects/15161264923633714884/screens/056216253d64474eaa536da269c559ea",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1VVLSEMUBPGxaFidNh2oipq_ToSAJ5kfchMXS3JPvr2yZX5tnTBgRX1BwrKAbJ7EYEvoROTilgbN1QxU6-rUPq_139MP-W-ctEQdpBNsr-m2COq33w_9AKyNi9sYcovqpEJjp2NJAEAsWQ0wh0H_6LQ_Fiy1SqnKdc70lsG0SVZXzaNsp92eHarG1gNe9sjnVYPFcmsXxIYrnW2FkL3zs_I4pJSy4VDw8gZmtUThUHJ4DaFGBRgClDR-bdw",
+        "name": "projects/15161264923633714884/files/6abd8d7845fb4c7db6803e38f97885ee"
+      },
+      "title": "M-P02 — Chi tiết cơ sở kho — Guest/Customer",
+      "width": "780"
+    },
+    {
+      "deviceType": "DESKTOP",
+      "height": "3988",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDc2OGMxNDFhZmQwNTAzYzkyZjhiMmMwMTk3EgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/7036976911003265141"
+      },
+      "name": "projects/15161264923633714884/screens/6a254bfddf534b528b23f75350b37e66",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1VrIWOunaAQVFDFzPQgcaF_4GR8aJOOoa2fWO8O9oHLH_FhK3-pWiLARmvXeHh4BOuoUrGChAwT_ZUMVo6TRjtohxjGTskqbu0mFk8r6aLGBsXn4COREayH2foRzCIX8gRYoI6hU_3YKRnI0kF3h_D-YeEeBDMYobqcV0MsNmQisp1jADd-X7HdydJvrHaGibQFUxhmEipBwc7QZnhuudPLeq_lFiBnDMkimR6K5g3SowOGGNI2vKiUMBSw",
+        "name": "projects/15161264923633714884/files/1e4e658207c54aedbc835f4e912aa936"
+      },
+      "title": "M-FS03 — Biên bản kiểm tra trả kho — FS",
+      "width": "2560"
+    },
+    {
+      "deviceType": "MOBILE",
+      "height": "5620",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDdjZGI4NWRhY2YwMjJkNTc1NjlkMTljMWNjEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/10524077791453290613"
+      },
+      "name": "projects/15161264923633714884/screens/c6629951586a4feeb911d179416f4a00",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1US7FO7ZHNG9yOqi5K32Df5vkLX-7K8kNoVfOxRshOk8fQj6PUm1nHtzKrdVxxjVhpiYCo7pjBgE7Fd609l0WUPKLpAOMGklEJNN16mLTQo7M37rokSsSjZbC9tfGGN-KL3eBYtorbOIW0qcOjJm88CeDDjZF676nJmX1FnWEcEyfW6LCjPxrGlgxaKUTdc8-TzNR9_G8SpxlPfnq6CKkqjsqyKZekcoJsJLkOlVPtYQ_2NWs2-xBw3kunn",
+        "name": "projects/15161264923633714884/files/e7edb71139a244a49fa00fcbc39a35b9"
+      },
+      "title": "M-C03 — Chi tiết đơn đặt kho — Customer",
+      "width": "780"
+    },
+    {
+      "deviceType": "MOBILE",
+      "height": "3728",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDc2OGMzMDUwNmQwOTI1YzdlMWEyMWYzY2VhEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/13456989350184839967"
+      },
+      "name": "projects/15161264923633714884/screens/c3e6de08ec3b41a3b8cbb1166bc8a858",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1UOwrHscJvttsQ_neKIU1B7zGs4hOaSekyboVrDbgv5xAgSz0RBJ8006CRBOddyRy3TgGoHGqo6V2Odo8DAQ_49lUFUbhD2D3P1KCdtiUyY2gCzKAJpZN7hxtkep5kRCAEISPhN_zHD4rk5VjQaED8eg8ZiCr_aNdVyxweRlGIoan-yhripEnyNlctwgs7x7O48u-dYMWDcjQFT_hp_ONHQyXQxa1Izor4V0nQ6XsWs9VOHqChqDCf582xo",
+        "name": "projects/15161264923633714884/files/4f0ae4d022b14fa7a3435d78dd9efef1"
+      },
+      "title": "M-FS04 — Tìm và xác minh booking — FS",
+      "width": "780"
+    },
+    {
+      "deviceType": "MOBILE",
+      "height": "3400",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDdjZGE2MjNjZmUwMzMyYzBlZDg0MzFlN2QwEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/14266182412475965254"
+      },
+      "name": "projects/15161264923633714884/screens/cf5c5670b30d4282bd894e8115301c2c",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1WULbR0jyDBA8jjMlADyevqfeOR6pHpbv05rG8lJAlEUd2e_7TRY1Z9R9HcrVh1mXu7H1ZRZty6V8pdVsNOEJKcsxcawtRl2OqFcnwIi7nYr7gtVV10ebwj3TQWU_InV32kux9_dB4fKF94Ng1sM0eHIi9hjIOWRBoB8Bi5pDA18e_1b8yT4JQa9_TjGo3m4O2HyQP3I66iinvcCttgsTslia5OKgU--NyxDvUX3nBgyG6YZxeiyOec_2bF",
+        "name": "projects/15161264923633714884/files/f754f3b259d64483a6e2ed2bfb3864e4"
+      },
+      "title": "M-C01 — Tổng quan khách hàng — Customer",
+      "width": "780"
+    },
+    {
+      "deviceType": "DESKTOP",
+      "height": "2262",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDdjZGMwNDI5ZjgwOTEwNGY3MGU2MGNlZjQzEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/6612375325762049231"
+      },
+      "name": "projects/15161264923633714884/screens/27a1c43c93f44b25b5d4dbd3f47f0bb6",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1UyFXDVXHjWnJiSLkx2P3psmNiNvBE1L54G_VrvhCA0iuTYrBe4E1rnXdX6yqdRGXqtDCQYw22cwWzGhgUzVBYMDaWPy2FCHxrKiPTDlf8ha9d1qjyq2M_82aGQ_LTafp3r8f_5xgO97SphpIAKhkTU-F7ma6HwE8GeVms5q_dZ7tx66tCdOd4xBxJgX3-eiXx4UBK90twtIi0FCl9jCgitYC2uMK__vBZZiSAYhiHV2ZRTQGjNZwGl2acr",
+        "name": "projects/15161264923633714884/files/8e532bc2be454d688de0e14543b4b42a"
+      },
+      "title": "M-P01 — Tìm cơ sở kho — Guest/Customer",
+      "width": "2560"
+    },
+    {
+      "deviceType": "MOBILE",
+      "height": "3298",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDc2OGUwZTYwYjIwN2M0ZDFkNjUzMDQyNTFhEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/11188662013754708544"
+      },
+      "name": "projects/15161264923633714884/screens/6d91d21252714a8badf33ae56579c277",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1UVvW2426CB4VG0uiQGufSBcb8ShSzng7cViYCotRM1AH_fcMp7m__HoPY08Wz0rgpbyuxnVuB0lM4Rl1qFB1iGIrHNMZ_pB4mQTHGFf9ng9otmRlQFNl1gksUx8qXe5l48MAr3GIhKlrQ08y4aZy9uFFoYRHbobb_nJay0NxbS2pamCeLbBAub_YTk-gpBCH2jYO-WGSD2moz96RPNPUk88gQZA1abc5NxHSZmZyDv_gMD7GFhibOvxoPI",
+        "name": "projects/15161264923633714884/files/5208509181cd4646b23865649f402627"
+      },
+      "title": "M-FS02 — Yêu cầu kiểm tra trả kho — FS",
+      "width": "780"
+    },
+    {
+      "deviceType": "MOBILE",
+      "height": "2770",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDc2OGM3ZjdkZTcwNWMyZmNlMDM5MGFmYjNmEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/8688953246713444950"
+      },
+      "name": "projects/15161264923633714884/screens/78c274268b2445909a8365286fab1f0e",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1XRRdtM5Iy9ZUj99X-a5tEssZHJqKW-nZ2I2Ndgn4g0rV8Okzuomko1GQCfEo4V6cTrFdmAkBE3Z9OmpaQ0gaF_9TaCMt_9YkJQoAo4BxMz30rFz5hWDubmZakJfeA-WF1bIAYuQcFMDg9sYubLjv2GCT7IgeGt5r5BxapdNS-pj_sz0a3oGdPUVRPBTVCd5-OHEYv7JYCvxR2Nr9SrfQTLhI7RC5cXc1Av28j1MNAmYspgGSJQ0HnLf2vU",
+        "name": "projects/15161264923633714884/files/cf63c3cf7ee8429390f77c641596b9e7"
+      },
+      "title": "M-C07 — Chi tiết kho đang thuê — Customer",
+      "width": "780"
+    },
+    {
+      "deviceType": "MOBILE",
+      "height": "3326",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDdjZGIzYTE3YjAwMWE2MDk1NGYyM2I2MjZkEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/1580317314978644484"
+      },
+      "name": "projects/15161264923633714884/screens/5f0d24d467064d62a192b51499e1a537",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1UpmP8Hdb8Y1NrS-leKzDIIcxecix7C-xZIl16zNgTuV1G2xudu14WyhQePauL_D1AoLuJgxVNt_WFQP9c7ict31ENdCJ09hC4HavsU2Dei0BcgicEGf8Jiyn6sNyA9bZektn-krM2PtEEZiweUw7fCwbfYB-qX5J102tex42UzKrq1Yujvf1XmuexitkB_v8ERGQSwyr4vYruXbLLrsguN3qWxLg1XPryrA9SEGYGpnMo6iftv2TDC9Ss",
+        "name": "projects/15161264923633714884/files/0ce27ac3e43346dd9f20294d2ad91018"
+      },
+      "title": "M-C02 — Đơn đặt kho đã thanh toán — Customer",
+      "width": "780"
+    },
+    {
+      "deviceType": "MOBILE",
+      "height": "3702",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDdjZGE3OTgyOWUwMDMwMWZmYWRjMTM3OGVjEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/4833403650617603414"
+      },
+      "name": "projects/15161264923633714884/screens/9cabbdd6922248aaaf6b71ce9f7c29d3",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1VyG-8pZWNDaXDkdFkoO-zqxEe_u1-qPFgYMUUlc2sdD85HCHGl_DbpVDuq53O7AsC5O6Xng2wwdKWWRrAr4oHTVMyStEAtwLQJAgdSM_RDRu9tNNcxCQpioZdJze5_YDTOh5mV3snvOPtWQrgLSxnSSW_-X0dQ-CRilxF7C3fnU7_0OQqFVyM9DC36lHzB-4ASTOrrCPzHBsebvpqm5JovWRAHkgaw3qTmsh2bkFPMqEYDF1sp8f2Mi9Hw",
+        "name": "projects/15161264923633714884/files/f09126cc62904b03ad72f9a600935a87"
+      },
+      "title": "M-C05 — Chi tiết phiếu giữ chỗ — Customer",
+      "width": "780"
+    },
+    {
+      "deviceType": "MOBILE",
+      "height": "3084",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDdjZDgyZTlmNTUwOTM0ZDBjNzdiM2EwOTViEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/18099567468457858343"
+      },
+      "name": "projects/15161264923633714884/screens/ca603d8773024ab5a0df072ca8bc834e",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1VKvLI9I8VVUYZbN0JdxAbSMUhedh0dXPZ3Ss5PZbYk0UcSPaSBcZvSOwDihxWrkOi1Lq2ypms7r6pJXHNKbObZ5vmUJfPLNnpyn9jMbZ-c3P1qaNd6KATnzd0vTQP7aF8eJ2WcE2xTXCyoQIOUyUdX212YS9BAtGnMh9_YMDt6Eg6DLITg8iuNAWFqV8CSmmm3SSC3xVqKWsBh1-jdUF0048PPxDeOGeIeT85NIZ32Aj5bs9OHkTIkWVY",
+        "name": "projects/15161264923633714884/files/60a11e4eecc34cd3b07c1b2719e545d7"
+      },
+      "title": "M-CK01 — Chọn loại kho — Guest/Customer",
+      "width": "780"
+    },
+    {
+      "deviceType": "DESKTOP",
+      "height": "3570",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDdjZGM2Y2ZhNTIwN2M0ZDc3ZGI2MGMzY2UyEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/16366462634478501820"
+      },
+      "name": "projects/15161264923633714884/screens/cfcc00fdacfc462caedc422ecfe92d2d",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1WvccOOOeWFW2M4FkEmxEuXqEyGx3RJn3FfbaYxMEVMeztjP16I5ECkbhsd71ulxcMi_2fFKlA25pf5Ca9vk6B1M3ClsPCMxGvP6lUTkn6vE5O_NQ1CXESdnRs8i3gzhBEzjDs3T_tgrQl_-e3J2co7KeZmQ4s71l5gAg8OBcyXma81MuXG65Np_CZQ-QZKoe2wfFbZBgBc8aIAFZdjwK6S4rzUENHluHqIguO1ioBZAE3msUK3HHzaR9MW",
+        "name": "projects/15161264923633714884/files/620932a2538e47c28141ee10f132069d"
+      },
+      "title": "M-FS01 — Công việc của tôi — FS",
+      "width": "2560"
+    },
+    {
+      "deviceType": "MOBILE",
+      "height": "5034",
+      "htmlCode": {
+        "downloadUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzAwMDY1ZDdjZGIxNGY5YzUwOTM0ZDBjNzdiM2EwOTViEgsSBxC--uzxrhYYAZIBJAoKcHJvamVjdF9pZBIWQhQxNTE2MTI2NDkyMzYzMzcxNDg4NA&filename=&opi=89354086",
+        "mimeType": "text/html",
+        "name": "projects/15161264923633714884/files/7100985705718942861"
+      },
+      "name": "projects/15161264923633714884/screens/5e6456bf926e4529904b4cc6bf917e1b",
+      "screenshot": {
+        "downloadUrl": "https://lh3.googleusercontent.com/aida/AEtjO1X0ILFPUjYSiPw6w3TxcN_q1bCirVcC5sAhaB3tXjCU8d0Q28Z81ZETtCQKLAAGykqBgXQ-lggcwYfRnZqxAhZr4owy8ufqX8BMMV4cUKG-4hNOZmjljbaT82k2V0Sa2WpZXdI_rYV_LzAQHKyws1DmpWk3w_sXjsOTOJEoenzwVh6Z5XocSqdh1XNS0sVwHdLY0kBtWkZlJ5ZuUeijUWHJaX8PfCYyyBQpxIJ6A4NNLQtz7yGx9zhnRVk",
+        "name": "projects/15161264923633714884/files/0f8a6ebec69c42af86a111a2ee87b161"
+      },
+      "title": "M-CK03 — Xem đơn thuê — Guest/Customer",
+      "width": "804"
+    }
+  ],
+  "canvas": [
+    {
+      "height": 1423,
+      "id": "0484c96e6937464db97cb8cdf9e1bf16",
+      "label": "M-P01 — Tìm cơ sở kho — Guest/Customer",
+      "sourceScreen": "projects/15161264923633714884/screens/0484c96e6937464db97cb8cdf9e1bf16",
+      "width": 390,
+      "x": 1344,
+      "y": 38437
+    },
+    {
+      "height": 2758,
+      "id": "056216253d64474eaa536da269c559ea",
+      "label": "M-P02 — Chi tiết cơ sở kho — Guest/Customer",
+      "sourceScreen": "projects/15161264923633714884/screens/056216253d64474eaa536da269c559ea",
+      "width": 390,
+      "x": 4324,
+      "y": 38523
+    },
+    {
+      "height": 2173,
+      "id": "0af307ac3ba84674b531bffd43068935",
+      "label": "M-C07 — Chi tiết kho đang thuê — Customer",
+      "sourceScreen": "projects/15161264923633714884/screens/0af307ac3ba84674b531bffd43068935",
+      "width": 390,
+      "x": 1070,
+      "y": 45168
+    },
+    {
+      "height": 2936,
+      "id": "18c621793a294831aed574111c7688d0",
+      "label": "M-P00 — Trang chủ — Guest/Customer",
+      "sourceScreen": "projects/15161264923633714884/screens/18c621793a294831aed574111c7688d0",
+      "width": 390,
+      "x": 2962,
+      "y": 38523
+    },
+    {
+      "height": 1834,
+      "id": "1e7d07c2c964414cb9ec15a31c1c940e",
+      "label": "Generating Screen...",
+      "sourceScreen": "projects/15161264923633714884/screens/1e7d07c2c964414cb9ec15a31c1c940e",
+      "width": 390,
+      "x": 8479,
+      "y": 38531
+    },
+    {
+      "height": 2243,
+      "id": "2463253567ea490b8fc9d6ac0b9ce7ef",
+      "label": "M-CK05 — Đặt kho thành công — Guest/Customer",
+      "sourceScreen": "projects/15161264923633714884/screens/2463253567ea490b8fc9d6ac0b9ce7ef",
+      "width": 390,
+      "x": 9169,
+      "y": 38521
+    },
+    {
+      "height": 1123,
+      "id": "27a1c43c93f44b25b5d4dbd3f47f0bb6",
+      "label": "M-P01 — Tìm cơ sở kho — Guest/Customer",
+      "sourceScreen": "projects/15161264923633714884/screens/27a1c43c93f44b25b5d4dbd3f47f0bb6",
+      "width": 468,
+      "x": 812,
+      "y": 38437
+    },
+    {
+      "height": 1548,
+      "id": "2f70ba8f858847e5a54f29500ac22173",
+      "label": "M-C05 — Chi tiết phiếu giữ chỗ — Customer",
+      "sourceScreen": "projects/15161264923633714884/screens/2f70ba8f858847e5a54f29500ac22173",
+      "width": 390,
+      "x": 340,
+      "y": 45144
+    },
+    {
+      "height": 1964,
+      "id": "39dd09ce5e064126a40267e33c613d79",
+      "label": "M-FS03 — Biên bản kiểm tra trả kho — FS",
+      "sourceScreen": "projects/15161264923633714884/screens/39dd09ce5e064126a40267e33c613d79",
+      "width": 390,
+      "x": 8138,
+      "y": 45247
+    },
+    {
+      "height": 928,
+      "id": "3a8b38b7e71a42258ac7183586da249b",
+      "label": "M-A01 — Đăng nhập — Chung Guest/Customer/FS",
+      "sourceScreen": "projects/15161264923633714884/screens/3a8b38b7e71a42258ac7183586da249b",
+      "width": 390,
+      "x": 3870,
+      "y": 38523
+    },
+    {
+      "height": 920,
+      "id": "428f7a36372c421ab3cfd9c53d6f704c",
+      "label": "M-CK02 — Thông tin thuê — Guest/Customer",
+      "sourceScreen": "projects/15161264923633714884/screens/428f7a36372c421ab3cfd9c53d6f704c",
+      "width": 390,
+      "x": 7179,
+      "y": 38521
+    },
+    {
+      "height": 1349,
+      "id": "4400a40fb18f49d5a1ce3b4bf5c21217",
+      "label": "M-E01 — Không có quyền truy cập — Chung",
+      "sourceScreen": "projects/15161264923633714884/screens/4400a40fb18f49d5a1ce3b4bf5c21217",
+      "width": 390,
+      "x": 9500,
+      "y": 45247
+    },
+    {
+      "height": 2480,
+      "id": "5e6456bf926e4529904b4cc6bf917e1b",
+      "label": "M-CK03 — Xem đơn thuê — Guest/Customer",
+      "sourceScreen": "projects/15161264923633714884/screens/5e6456bf926e4529904b4cc6bf917e1b",
+      "width": 390,
+      "x": 774,
+      "y": 41951
+    },
+    {
+      "height": 1527,
+      "id": "5f0d24d467064d62a192b51499e1a537",
+      "label": "M-C02 — Đơn đặt kho đã thanh toán — Customer",
+      "sourceScreen": "projects/15161264923633714884/screens/5f0d24d467064d62a192b51499e1a537",
+      "width": 390,
+      "x": 1228,
+      "y": 41951
+    },
+    {
+      "height": 1055,
+      "id": "616f0a5bb3f3450ebddf23e04a5dde1d",
+      "label": "M-E02 — Không tìm thấy trang — Chung",
+      "sourceScreen": "projects/15161264923633714884/screens/616f0a5bb3f3450ebddf23e04a5dde1d",
+      "width": 390,
+      "x": 6340,
+      "y": 46527
+    },
+    {
+      "height": 2333,
+      "id": "6a254bfddf534b528b23f75350b37e66",
+      "label": "M-FS03 — Biên bản kiểm tra trả kho — FS",
+      "sourceScreen": "projects/15161264923633714884/screens/6a254bfddf534b528b23f75350b37e66",
+      "width": 390,
+      "x": 2490,
+      "y": 45198
+    },
+    {
+      "height": 1611,
+      "id": "6d91d21252714a8badf33ae56579c277",
+      "label": "M-FS02 — Yêu cầu kiểm tra trả kho — FS",
+      "sourceScreen": "projects/15161264923633714884/screens/6d91d21252714a8badf33ae56579c277",
+      "width": 390,
+      "x": 3390,
+      "y": 45236
+    },
+    {
+      "height": 1376,
+      "id": "78c274268b2445909a8365286fab1f0e",
+      "label": "M-C07 — Chi tiết kho đang thuê — Customer",
+      "sourceScreen": "projects/15161264923633714884/screens/78c274268b2445909a8365286fab1f0e",
+      "width": 390,
+      "x": 7684,
+      "y": 45247
+    },
+    {
+      "height": 884,
+      "id": "8338ff5d7c6249e0a9d0bda2cc5b7f38",
+      "label": "M-A04 — Quên mật khẩu — Chung",
+      "sourceScreen": "projects/15161264923633714884/screens/8338ff5d7c6249e0a9d0bda2cc5b7f38",
+      "width": 390,
+      "x": 5879,
+      "y": 38521
+    },
+    {
+      "height": 1634,
+      "id": "92fb3f93773f4ee59eafa57f48887b25",
+      "label": "M-C04 — Phiếu giữ chỗ — Customer",
+      "sourceScreen": "projects/15161264923633714884/screens/92fb3f93773f4ee59eafa57f48887b25",
+      "width": 390,
+      "x": 2688,
+      "y": 41975
+    },
+    {
+      "height": 1570,
+      "id": "992c715d0a48444fa623f475242f485c",
+      "label": "M-C02 — Đơn đặt kho đã thanh toán — Customer",
+      "sourceScreen": "projects/15161264923633714884/screens/992c715d0a48444fa623f475242f485c",
+      "width": 390,
+      "x": 320,
+      "y": 41951
+    },
+    {
+      "height": 1823,
+      "id": "9a5da213017f43c0a8d0199a125192c9",
+      "label": "Generating Screen...",
+      "sourceScreen": "projects/15161264923633714884/screens/9a5da213017f43c0a8d0199a125192c9",
+      "width": 390,
+      "x": 4070,
+      "y": 45171
+    },
+    {
+      "height": 1841,
+      "id": "9cabbdd6922248aaaf6b71ce9f7c29d3",
+      "label": "M-C05 — Chi tiết phiếu giữ chỗ — Customer",
+      "sourceScreen": "projects/15161264923633714884/screens/9cabbdd6922248aaaf6b71ce9f7c29d3",
+      "width": 390,
+      "x": 2136,
+      "y": 41951
+    },
+    {
+      "height": 952,
+      "id": "af59eab9abe54813aff8f8e4f91974ca",
+      "label": "M-E01 — Không có quyền truy cập — Chung",
+      "sourceScreen": "projects/15161264923633714884/screens/af59eab9abe54813aff8f8e4f91974ca",
+      "width": 390,
+      "x": 6340,
+      "y": 45247
+    },
+    {
+      "height": 1193,
+      "id": "b5be9b0a8c2a47ba98665f63c313eb82",
+      "label": "M-A01 — Đăng nhập — Chung Guest/Customer/FS",
+      "sourceScreen": "projects/15161264923633714884/screens/b5be9b0a8c2a47ba98665f63c313eb82",
+      "width": 390,
+      "x": 7819,
+      "y": 38521
+    },
+    {
+      "height": 1169,
+      "id": "b70750bc6580488fa1b5790b49db066a",
+      "label": "M-C06 — Kho của tôi — Customer",
+      "sourceScreen": "projects/15161264923633714884/screens/b70750bc6580488fa1b5790b49db066a",
+      "width": 390,
+      "x": 1900,
+      "y": 45198
+    },
+    {
+      "height": 2094,
+      "id": "b97672aacd9f4424b380d6d69df61b42",
+      "label": "M-CK03 — Xem đơn thuê — Guest/Customer",
+      "sourceScreen": "projects/15161264923633714884/screens/b97672aacd9f4424b380d6d69df61b42",
+      "width": 390,
+      "x": 8592,
+      "y": 45247
+    },
+    {
+      "height": 1826,
+      "id": "c3e6de08ec3b41a3b8cbb1166bc8a858",
+      "label": "M-FS04 — Tìm và xác minh booking — FS",
+      "sourceScreen": "projects/15161264923633714884/screens/c3e6de08ec3b41a3b8cbb1166bc8a858",
+      "width": 390,
+      "x": 9046,
+      "y": 45247
+    },
+    {
+      "height": 2936,
+      "id": "c45ff58e8cab4dfdbda3436ca6d634a1",
+      "label": "M-P00 — Trang chủ — Guest/Customer",
+      "sourceScreen": "projects/15161264923633714884/screens/c45ff58e8cab4dfdbda3436ca6d634a1",
+      "width": 390,
+      "x": 3416,
+      "y": 38523
+    },
+    {
+      "height": 2792,
+      "id": "c6629951586a4feeb911d179416f4a00",
+      "label": "M-C03 — Chi tiết đơn đặt kho — Customer",
+      "sourceScreen": "projects/15161264923633714884/screens/c6629951586a4feeb911d179416f4a00",
+      "width": 390,
+      "x": 1682,
+      "y": 41951
+    },
+    {
+      "height": 1499,
+      "id": "ca603d8773024ab5a0df072ca8bc834e",
+      "label": "M-CK01 — Chọn loại kho — Guest/Customer",
+      "sourceScreen": "projects/15161264923633714884/screens/ca603d8773024ab5a0df072ca8bc834e",
+      "width": 390,
+      "x": 6539,
+      "y": 38521
+    },
+    {
+      "height": 1754,
+      "id": "cc495a0a407c4dff80403c3a78947de9",
+      "label": "M-FS04 — Tìm và xác minh booking — FS",
+      "sourceScreen": "projects/15161264923633714884/screens/cc495a0a407c4dff80403c3a78947de9",
+      "width": 390,
+      "x": 4797,
+      "y": 45224
+    },
+    {
+      "height": 1692,
+      "id": "cf5c5670b30d4282bd894e8115301c2c",
+      "label": "M-C01 — Tổng quan khách hàng — Customer",
+      "sourceScreen": "projects/15161264923633714884/screens/cf5c5670b30d4282bd894e8115301c2c",
+      "width": 390,
+      "x": 3310,
+      "y": 41968
+    },
+    {
+      "height": 1828,
+      "id": "cfcc00fdacfc462caedc422ecfe92d2d",
+      "label": "M-FS01 — Công việc của tôi — FS",
+      "sourceScreen": "projects/15161264923633714884/screens/cfcc00fdacfc462caedc422ecfe92d2d",
+      "width": 412,
+      "x": 2318,
+      "y": 38526
+    },
+    {
+      "height": 1279,
+      "id": "d23c7ffab9614a0cb8442976e2f748be",
+      "label": "M-A02 — Đăng ký khách hàng — Guest",
+      "sourceScreen": "projects/15161264923633714884/screens/d23c7ffab9614a0cb8442976e2f748be",
+      "width": 390,
+      "x": 4778,
+      "y": 38523
+    },
+    {
+      "height": 1303,
+      "id": "e0a6a8e1aab74674a7d54e064be01ab5",
+      "label": "M-A03 — Xác thực email — Customer",
+      "sourceScreen": "projects/15161264923633714884/screens/e0a6a8e1aab74674a7d54e064be01ab5",
+      "width": 390,
+      "x": 5309,
+      "y": 38531
+    },
+    {
+      "height": 1958,
+      "id": "e7acafc9502a405c88334c782ef5bc90",
+      "label": "M-FS01 — Công việc của tôi — FS",
+      "sourceScreen": "projects/15161264923633714884/screens/e7acafc9502a405c88334c782ef5bc90",
+      "width": 390,
+      "x": 1798,
+      "y": 38437
+    },
+    {
+      "height": 1796,
+      "id": "eed960355a7f493884fcd34fd5a09315",
+      "label": "Generating Screen...",
+      "sourceScreen": "projects/15161264923633714884/screens/eed960355a7f493884fcd34fd5a09315",
+      "width": 390,
+      "x": 5510,
+      "y": 45198
+    }
+  ]
+}

@@ -53,6 +53,7 @@ import type {
 import axios, { type AxiosError, type AxiosInstance } from "axios";
 import type { HttpClientOptions, RetryConfig } from "./types";
 
+export { createMobileWorkflowClient } from "./mobile-workflows";
 export type { HttpClientOptions, TokenProvider } from "./types";
 
 export type AuthMode = "mock" | "better-auth";

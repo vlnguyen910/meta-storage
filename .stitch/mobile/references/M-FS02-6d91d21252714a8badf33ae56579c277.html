@@ -1,0 +1,778 @@
+<!DOCTYPE html><html class="light" lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>M-FS02 — Yêu cầu kiểm tra trả kho — FS | StoreX</title>
+<!-- Google Fonts: Space Grotesk & Be Vietnam Pro -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS v3 with Container Queries & Forms -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "tertiary-fixed": "#ffdcc3",
+            "surface-variant": "#dae2fd",
+            "secondary-fixed": "#b4efda",
+            "on-error-container": "#93000a",
+            "surface-container-low": "#f2f3ff",
+            "error": "#ba1a1a",
+            "inverse-primary": "#96d3c0",
+            "on-primary": "#ffffff",
+            "surface-bright": "#faf8ff",
+            "on-surface-variant": "#404945",
+            "surface-container-highest": "#dae2fd",
+            "on-background": "#131b2e",
+            "surface-dim": "#d2d9f4",
+            "on-tertiary-fixed": "#2f1500",
+            "primary-container": "#125345",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-high": "#e2e7ff",
+            "tertiary": "#512800",
+            "outline-variant": "#bfc9c4",
+            "on-primary-container": "#89c5b3",
+            "surface": "#faf8ff",
+            "secondary-container": "#b4efda",
+            "on-secondary-fixed-variant": "#135041",
+            "on-secondary-fixed": "#002018",
+            "background": "#faf8ff",
+            "outline": "#707975",
+            "inverse-surface": "#283044",
+            "on-tertiary": "#ffffff",
+            "error-container": "#ffdad6",
+            "secondary-fixed-dim": "#98d2be",
+            "on-secondary-container": "#366e5e",
+            "on-secondary": "#ffffff",
+            "primary-fixed-dim": "#96d3c0",
+            "on-surface": "#131b2e",
+            "tertiary-fixed-dim": "#ffb77d",
+            "inverse-on-surface": "#eef0ff",
+            "surface-tint": "#2c6859",
+            "primary-fixed": "#b1efdc",
+            "on-primary-fixed": "#002019",
+            "on-error": "#ffffff",
+            "on-primary-fixed-variant": "#0d5042",
+            "secondary": "#306858",
+            "on-tertiary-container": "#ffa454",
+            "on-tertiary-fixed-variant": "#6e3900",
+            "tertiary-container": "#723b00",
+            "surface-container": "#eaedff",
+            "primary": "#003b2f"
+          },
+          borderRadius: {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          spacing: {
+            "space-xs": "0.25rem",
+            "space-sm": "0.5rem",
+            "margin": "2rem",
+            "space-lg": "1.5rem",
+            "space-xl": "2.5rem",
+            "space-md": "1rem",
+            "margin-sm": "1rem",
+            "gutter": "1.5rem",
+            "gutter-sm": "1rem"
+          },
+          fontFamily: {
+            "display": ["Space Grotesk"],
+            "display-mobile": ["Space Grotesk"],
+            "headline-lg": ["Space Grotesk"],
+            "headline-sm": ["Space Grotesk"],
+            "body-sm": ["Be Vietnam Pro"],
+            "body-md": ["Be Vietnam Pro"],
+            "headline-md": ["Space Grotesk"],
+            "label-md": ["Space Grotesk"],
+            "headline-lg-mobile": ["Space Grotesk"],
+            "label-sm": ["Space Grotesk"],
+            "title-md": ["Be Vietnam Pro"],
+            "label-lg": ["Space Grotesk"],
+            "body-lg": ["Be Vietnam Pro"]
+          },
+          fontSize: {
+            "display": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "display-mobile": ["34px", { "lineHeight": "42px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+            "body-md": ["14px", { "lineHeight": "22px", "fontWeight": "400" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "headline-lg-mobile": ["26px", { "lineHeight": "34px", "fontWeight": "600" }],
+            "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+            "title-md": ["18px", { "lineHeight": "26px", "fontWeight": "600" }],
+            "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+            "body-lg": ["16px", { "lineHeight": "26px", "fontWeight": "400" }]
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .material-symbols-fill {
+      font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+    }
+    body {
+      background-color: #F8FAF9;
+      color: #0F172A;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* Prevent iOS auto zoom */
+    input, select, textarea, button {
+      font-size: 16px;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="min-h-screen bg-[#F8FAF9] text-[#0F172A] flex flex-col justify-start items-center">
+<!-- Mobile Container: Exactly 390px Mobile Viewport Canvas -->
+<div class="w-full max-w-[390px] min-h-screen bg-[#F8FAF9] flex flex-col relative pb-28 shadow-lg">
+<!-- Top Status Bar & App Bar for FS -->
+<header class="w-full bg-surface-container-lowest border-b border-outline-variant sticky top-0 z-30">
+<!-- Status Strip -->
+<div class="px-4 pt-2 pb-1 flex justify-between items-center text-xs text-on-surface-variant font-label-sm border-b border-[#F1F5F9]">
+<div class="flex items-center space-x-1.5">
+<span class="inline-block w-2 h-2 rounded-full bg-[#125345] animate-pulse"></span>
+<span class="font-medium text-[#125345]">StoreX FS Mobile</span>
+</div>
+<span class="font-medium">15:15 • 118 Nguyễn Văn Linh</span>
+</div>
+<!-- Main Shell Header -->
+<div class="px-4 py-3 flex items-center justify-between">
+<div class="flex items-center space-x-2.5">
+<div class="w-9 h-9 rounded-sm bg-primary-container text-on-primary flex items-center justify-center font-display font-bold text-lg tracking-tight">
+            SX
+          </div>
+<div class="flex flex-col">
+<div class="flex items-center space-x-1.5">
+<span class="font-display font-bold text-[#0F172A] text-base leading-none">StoreX</span>
+<span class="px-1.5 py-0.5 rounded-sm bg-[#E8F5F1] text-[#125345] font-label-sm text-[10px] uppercase font-bold tracking-wider">FS TRỰC KHO</span>
+</div>
+<span class="text-xs text-[#475569] font-body-sm truncate max-w-[190px]">StoreX Sài Gòn Central</span>
+</div>
+</div>
+<!-- FS Profile Pill Trigger -->
+<button aria-label="Mở hồ sơ nhân viên trực kho" class="flex items-center space-x-1.5 bg-[#F1F5F9] hover:bg-[#E2E8F0] active:scale-95 transition-all p-1.5 pr-2.5 rounded-sm border border-outline-variant h-11" id="openProfileSheetBtn" type="button">
+<div class="w-7 h-7 rounded-sm bg-primary-container text-on-primary font-display font-semibold text-xs flex items-center justify-center">
+            QH
+          </div>
+<div class="text-left">
+<span class="block text-[11px] font-semibold text-[#0F172A] leading-none">T.Q.Huy</span>
+<span class="text-[10px] text-[#125345] font-medium leading-none">Ca chiều</span>
+</div>
+<span class="material-symbols-outlined text-[16px] text-[#475569]">expand_more</span>
+</button>
+</div>
+<!-- Module Sub-Nav Tabs -->
+<nav aria-label="Phân hệ hiện trường" class="flex w-full px-4 border-t border-[#F1F5F9] bg-surface-container-lowest">
+<button class="flex-1 py-2.5 text-center font-label-md text-xs text-[#475569] hover:text-[#0F172A] border-b-2 border-transparent transition-colors flex items-center justify-center space-x-1.5 h-11" type="button">
+<span class="material-symbols-outlined text-base">inventory_2</span>
+<span>Nhận kho</span>
+</button>
+<button aria-current="page" class="flex-1 py-2.5 text-center font-label-md text-xs text-[#125345] font-bold border-b-2 border-primary-container transition-colors flex items-center justify-center space-x-1.5 h-11" type="button">
+<span class="material-symbols-outlined text-base">assignment_return</span>
+<span>Trả kho (M-FS02)</span>
+</button>
+</nav>
+</header>
+<!-- Main Content Stream -->
+<main class="flex-1 px-4 py-3 space-y-3.5 w-full">
+<!-- Shift Context & FS Authority Boundaries Banner -->
+<section aria-labelledby="shift-banner-title" class="bg-surface-container-lowest border border-outline-variant rounded-sm p-3.5 shadow-sm">
+<div class="flex items-start justify-between">
+<div class="space-y-1">
+<div class="flex items-center space-x-1.5">
+<span class="material-symbols-outlined text-primary-container text-lg">badge</span>
+<h1 class="font-headline-sm font-display text-sm font-bold text-[#0F172A]" id="shift-banner-title">
+                Ca trực chiều: 14:00 - 22:00
+              </h1>
+</div>
+<p class="text-xs text-[#475569] font-body-sm leading-relaxed">
+              Trần Quốc Huy (FS-088) • Điểm bàn giao kho vật lý Sài Gòn Central.
+            </p>
+</div>
+<span class="px-2 py-0.5 rounded-sm bg-[#E8F5F1] text-[#125345] font-display font-semibold text-[11px] whitespace-nowrap">
+            3 Yêu cầu
+          </span>
+</div>
+<!-- Strict Boundary Warning -->
+<div class="mt-2.5 pt-2.5 border-t border-[#F1F5F9] flex items-start space-x-2 bg-[#FFFBEB] p-2 rounded-sm border border-[#FDE68A]">
+<span class="material-symbols-outlined text-[#B45309] text-base shrink-0 mt-0.5">policy</span>
+<p class="text-[11px] text-[#92400E] leading-normal font-body-sm">
+<strong class="font-semibold">Phạm vi trách nhiệm FS:</strong> Kiểm tra hiện trạng buồng kho thực tế và lập biên bản đối soát (M-FS03). <span class="underline">Không</span> quyết định hoàn cọc hay thanh lý hợp đồng (thẩm quyền thuộc FM &amp; Kế toán).
+          </p>
+</div>
+</section>
+<!-- Quick Guidance Accordion (Nielsen #10: Help and Documentation) -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-sm overflow-hidden">
+<button aria-controls="helpContent" aria-expanded="false" class="w-full p-3 text-left flex justify-between items-center text-xs font-semibold text-[#0F172A] hover:bg-[#F8FAF9] transition-colors h-11" id="toggleHelpBtn" type="button">
+<span class="flex items-center space-x-1.5">
+<span class="material-symbols-outlined text-[#125345] text-lg">info</span>
+<span>Quy trình 4 bước kiểm tra buồng trả kho</span>
+</span>
+<span class="material-symbols-outlined text-sm text-[#475569] transition-transform duration-200" id="helpChevron">expand_more</span>
+</button>
+<div class="hidden px-3.5 pb-3 pt-1 text-xs text-[#475569] space-y-2 border-t border-[#F1F5F9] bg-[#FAFBFA]" id="helpContent">
+<div class="flex items-start space-x-2">
+<span class="w-4 h-4 rounded-full bg-primary-container text-white text-[10px] flex items-center justify-center shrink-0 font-bold">1</span>
+<p><strong>Tiếp đón tại sảnh:</strong> Xác minh người đến bàn giao khớp số điện thoại trên hệ thống.</p>
+</div>
+<div class="flex items-start space-x-2">
+<span class="w-4 h-4 rounded-full bg-primary-container text-white text-[10px] flex items-center justify-center shrink-0 font-bold">2</span>
+<p><strong>Thu hồi tài sản:</strong> Nhận lại thẻ từ ra vào trạm và chìa khóa MasterLock niêm phong.</p>
+</div>
+<div class="flex items-start space-x-2">
+<span class="w-4 h-4 rounded-full bg-primary-container text-white text-[10px] flex items-center justify-center shrink-0 font-bold">3</span>
+<p><strong>Kiểm tra hiện trường:</strong> Cùng khách lên buồng kho, mở khóa kiểm tra độ rỗng sạch &amp; vách tôn.</p>
+</div>
+<div class="flex items-start space-x-2">
+<span class="w-4 h-4 rounded-full bg-primary-container text-white text-[10px] flex items-center justify-center shrink-0 font-bold">4</span>
+<p><strong>Chụp ảnh &amp; Lập biên bản:</strong> Chuyển sang màn hình M-FS03 để ký biên bản số gửi Facility Manager.</p>
+</div>
+</div>
+</section>
+<!-- Search & Filters Container -->
+<section aria-label="Bộ lọc và tìm kiếm danh sách trả kho" class="space-y-2.5">
+<!-- Search Input -->
+<div class="relative w-full">
+<label class="sr-only" for="searchInput">Tìm mã yêu cầu hoặc số buồng</label>
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline text-lg">search</span>
+</div>
+<input class="block w-full pl-9 pr-10 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-sm text-sm text-[#0F172A] placeholder-[#94A3B8] focus:border-primary-container focus:ring-2 focus:ring-[#125345]/20 h-11 transition-all" id="searchInput" placeholder="Tìm theo RET-..., HCM-..., hoặc mã buồng..." type="text">
+<button aria-label="Xóa nội dung tìm kiếm" class="hidden absolute inset-y-0 right-0 pr-3 flex items-center text-[#94A3B8] hover:text-[#0F172A] h-11 w-11 justify-center" id="clearSearchBtn" type="button">
+<span class="material-symbols-outlined text-base">cancel</span>
+</button>
+</div>
+<!-- Filter Chips Carousel -->
+<div aria-label="Lọc theo trạng thái" class="flex items-center space-x-1.5 overflow-x-auto pb-1 no-scrollbar text-xs font-label-md" role="tablist">
+<button class="filter-chip active-filter px-3 py-1.5 rounded-sm bg-primary-container text-white font-medium border border-primary-container whitespace-nowrap min-h-[38px] flex items-center" data-filter="all" type="button">
+            Tất cả (3)
+          </button>
+<button class="filter-chip px-3 py-1.5 rounded-sm bg-surface-container-lowest text-[#475569] font-medium border border-outline-variant hover:border-[#125345] whitespace-nowrap min-h-[38px] flex items-center space-x-1" data-filter="pending" type="button">
+<span class="w-1.5 h-1.5 rounded-full bg-[#D97706]"></span>
+<span>Chờ kiểm tra (1)</span>
+</button>
+<button class="filter-chip px-3 py-1.5 rounded-sm bg-surface-container-lowest text-[#475569] font-medium border border-outline-variant hover:border-[#125345] whitespace-nowrap min-h-[38px] flex items-center space-x-1" data-filter="in_progress" type="button">
+<span class="w-1.5 h-1.5 rounded-full bg-[#2563EB]"></span>
+<span>Đang kiểm tra (1)</span>
+</button>
+<button class="filter-chip px-3 py-1.5 rounded-sm bg-surface-container-lowest text-[#475569] font-medium border border-outline-variant hover:border-[#125345] whitespace-nowrap min-h-[38px] flex items-center space-x-1" data-filter="submitted" type="button">
+<span class="w-1.5 h-1.5 rounded-full bg-[#64748B]"></span>
+<span>Đã gửi FM (1)</span>
+</button>
+</div>
+</section>
+<!-- Task Cards List -->
+<section aria-label="Danh sách buồng kho cần kiểm tra" class="space-y-3" id="cardsList">
+<!-- Card 1: Chờ kiểm tra (Active / Upcoming appointment) -->
+<article class="task-card bg-surface-container-lowest border border-outline-variant rounded-sm p-3.5 shadow-sm space-y-3 hover:border-[#125345]/50 transition-all" data-search="ret-2026-0021 b-204 dang hong nhung 0912" data-status="pending">
+<div class="flex items-start justify-between">
+<div>
+<div class="flex items-center space-x-1.5">
+<span class="font-display font-bold text-sm text-[#0F172A]">#RET-2026-0021</span>
+<span class="text-xs text-[#64748B]">• HĐ: CTR-HCM-0089</span>
+</div>
+<h2 class="font-headline-sm font-display text-base text-[#125345] mt-0.5">Buồng #B-204 (Tầng 2, Khu B)</h2>
+</div>
+<span class="px-2 py-0.5 rounded-sm bg-[#FEF3C7] text-[#92400E] font-label-sm text-[11px] font-bold border border-[#FDE68A] flex items-center space-x-1">
+<span class="w-1.5 h-1.5 rounded-full bg-[#D97706] animate-pulse"></span>
+<span>Chờ kiểm tra</span>
+</span>
+</div>
+<!-- Unit Specs Matrix -->
+<div class="grid grid-cols-2 gap-2 bg-[#F8FAF9] p-2.5 rounded-sm border border-[#E2E8F0] text-xs">
+<div>
+<span class="block text-[#64748B] text-[10px] uppercase font-semibold">Khách hàng</span>
+<span class="font-medium text-[#0F172A] truncate block">Đặng Hồng Nhung</span>
+<span class="text-[11px] text-[#475569]">0912 ••• 842</span>
+</div>
+<div>
+<span class="block text-[#64748B] text-[10px] uppercase font-semibold">Thời gian hẹn</span>
+<span class="font-semibold text-[#B45309] flex items-center space-x-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+<span>16:00 Hôm nay</span>
+</span>
+<span class="text-[11px] text-[#B45309] font-medium">(Còn 45 phút)</span>
+</div>
+</div>
+<!-- Asset Checklist summary -->
+<div class="text-xs space-y-1.5 border-t border-[#F1F5F9] pt-2">
+<span class="text-[11px] font-semibold text-[#475569] uppercase tracking-wider block">Tài sản cần thu hồi:</span>
+<div class="flex flex-wrap gap-1.5">
+<span class="px-2 py-0.5 rounded-sm bg-[#F1F5F9] text-[#334155] border border-[#CBD5E1] text-[11px] flex items-center space-x-1">
+<span class="material-symbols-outlined text-[13px] text-[#125345]">credit_card</span>
+<span>Thẻ ra vào trạm (01)</span>
+</span>
+<span class="px-2 py-0.5 rounded-sm bg-[#F1F5F9] text-[#334155] border border-[#CBD5E1] text-[11px] flex items-center space-x-1">
+<span class="material-symbols-outlined text-[13px] text-[#125345]">key</span>
+<span>MasterLock #44 (02 chìa)</span>
+</span>
+</div>
+</div>
+<!-- Actions -->
+<div class="pt-1 flex items-center space-x-2">
+<button class="w-full bg-primary-container hover:bg-[#0F4D3E] active:scale-95 text-white font-label-md text-xs font-semibold py-2.5 px-3 rounded-sm flex items-center justify-center space-x-1.5 transition-all shadow-sm h-11" onclick="openTaskDetailSheet('RET-2026-0021', 'B-204 (Tầng 2, Khu B)', 'Đặng Hồng Nhung', '0912 ••• 842', '16:00 Hôm nay (Còn 45 phút)', 'Tiêu chuẩn 6m² • Cao trần 2.8m')" type="button">
+<span class="material-symbols-outlined text-base">fact_check</span>
+<span>Xem chi tiết &amp; Kiểm tra (M-FS03)</span>
+</button>
+</div>
+</article>
+<!-- Card 2: Đang kiểm tra (In Progress) -->
+<article class="task-card bg-surface-container-lowest border border-outline-variant rounded-sm p-3.5 shadow-sm space-y-3 hover:border-[#125345]/50 transition-all" data-search="ret-2026-0019 a-108 hoang manh hung 0988" data-status="in_progress">
+<div class="flex items-start justify-between">
+<div>
+<div class="flex items-center space-x-1.5">
+<span class="font-display font-bold text-sm text-[#0F172A]">#RET-2026-0019</span>
+<span class="text-xs text-[#64748B]">• HĐ: CTR-HCM-0074</span>
+</div>
+<h2 class="font-headline-sm font-display text-base text-[#125345] mt-0.5">Buồng #A-108 (Tầng 1 - Mini 4m²)</h2>
+</div>
+<span class="px-2 py-0.5 rounded-sm bg-[#EFF6FF] text-[#1D4ED8] font-label-sm text-[11px] font-bold border border-[#BFDBFE] flex items-center space-x-1">
+<span class="material-symbols-outlined text-[13px]">pending</span>
+<span>Đang kiểm tra</span>
+</span>
+</div>
+<div class="grid grid-cols-2 gap-2 bg-[#F8FAF9] p-2.5 rounded-sm border border-[#E2E8F0] text-xs">
+<div>
+<span class="block text-[#64748B] text-[10px] uppercase font-semibold">Khách hàng</span>
+<span class="font-medium text-[#0F172A] truncate block">Hoàng Mạnh Hùng</span>
+<span class="text-[11px] text-[#475569]">0988 ••• 219</span>
+</div>
+<div>
+<span class="block text-[#64748B] text-[10px] uppercase font-semibold">Thời gian hẹn</span>
+<span class="font-medium text-[#0F172A] flex items-center space-x-1">
+<span class="material-symbols-outlined text-[14px] text-[#475569]">schedule</span>
+<span>17:30 Hôm nay</span>
+</span>
+<span class="text-[11px] text-[#2563EB] font-medium">Đã thu đủ 02 chìa</span>
+</div>
+</div>
+<div class="bg-[#F0FDF4] border border-[#BBF7D0] p-2 rounded-sm text-[11px] text-[#166534] flex items-center justify-between">
+<span class="flex items-center space-x-1">
+<span class="material-symbols-outlined text-[15px]">photo_camera</span>
+<span>Đã chụp ảnh vách tôn: 3/4 ảnh</span>
+</span>
+<span class="font-semibold">75%</span>
+</div>
+<!-- Actions -->
+<div class="pt-1 flex items-center space-x-2">
+<button class="w-full bg-[#1E293B] hover:bg-[#0F172A] active:scale-95 text-white font-label-md text-xs font-semibold py-2.5 px-3 rounded-sm flex items-center justify-center space-x-1.5 transition-all shadow-sm h-11" onclick="openTaskDetailSheet('RET-2026-0019', 'A-108 (Tầng 1 - Mini 4m²)', 'Hoàng Mạnh Hùng', '0988 ••• 219', '17:30 Hôm nay', 'Mini 4m² • Đang kiểm tra dở')" type="button">
+<span class="material-symbols-outlined text-base">play_arrow</span>
+<span>Tiếp tục kiểm tra hiện trạng</span>
+</button>
+</div>
+</article>
+<!-- Card 3: Đã gửi FM duyệt (Read-only) -->
+<article class="task-card bg-surface-container-lowest border border-outline-variant rounded-sm p-3.5 shadow-sm space-y-3 opacity-95" data-search="ret-2026-0018 l-003 cty cp logistics vina" data-status="submitted">
+<div class="flex items-start justify-between">
+<div>
+<div class="flex items-center space-x-1.5">
+<span class="font-display font-bold text-sm text-[#0F172A]">#RET-2026-0018</span>
+<span class="text-xs text-[#64748B]">• HĐ: CTR-HCM-0032</span>
+</div>
+<h2 class="font-headline-sm font-display text-base text-[#475569] mt-0.5">Buồng #L-003 (Tầng trệt - 12m²)</h2>
+</div>
+<span class="px-2 py-0.5 rounded-sm bg-[#F1F5F9] text-[#475569] font-label-sm text-[11px] font-bold border border-[#CBD5E1] flex items-center space-x-1">
+<span class="material-symbols-outlined text-[13px]">check_circle</span>
+<span>Đã gửi FM</span>
+</span>
+</div>
+<div class="grid grid-cols-2 gap-2 bg-[#F8FAF9] p-2.5 rounded-sm border border-[#E2E8F0] text-xs">
+<div>
+<span class="block text-[#64748B] text-[10px] uppercase font-semibold">Đại diện DN</span>
+<span class="font-medium text-[#0F172A] truncate block">Cty CP Logistics Vina</span>
+<span class="text-[11px] text-[#475569]">Người giao: A. Tuấn</span>
+</div>
+<div>
+<span class="block text-[#64748B] text-[10px] uppercase font-semibold">Thời điểm gửi FM</span>
+<span class="font-medium text-[#0F172A]">10:45 Hôm nay</span>
+<span class="text-[11px] text-[#059669] font-medium">Đã ký biên bản điện tử</span>
+</div>
+</div>
+<div class="bg-[#F8FAF9] p-2 rounded-sm border border-[#E2E8F0] text-[11px] text-[#64748B] flex items-start space-x-1.5">
+<span class="material-symbols-outlined text-[15px] text-[#94A3B8] shrink-0">lock</span>
+<p>Biên bản đối soát đã khóa. Facility Manager đang xét duyệt cấn trừ cọc. FS không được sửa đổi thêm.</p>
+</div>
+<!-- Actions -->
+<div class="pt-1 flex items-center space-x-2">
+<button class="w-full bg-white hover:bg-[#F1F5F9] border border-outline-variant text-[#475569] font-label-md text-xs font-semibold py-2.5 px-3 rounded-sm flex items-center justify-center space-x-1.5 transition-all h-11" onclick="openReadOnlySheet('RET-2026-0018', 'L-003 (Tầng trệt)', 'Cty CP Logistics Vina')" type="button">
+<span class="material-symbols-outlined text-base">visibility</span>
+<span>Xem biên bản đã gửi (Chỉ đọc)</span>
+</button>
+</div>
+</article>
+</section>
+<!-- Empty State (Shown when search/filter has 0 matches) -->
+<section class="hidden bg-surface-container-lowest border border-outline-variant rounded-sm p-8 text-center space-y-3" id="emptyState">
+<div class="w-12 h-12 mx-auto rounded-full bg-[#F1F5F9] text-[#64748B] flex items-center justify-center">
+<span class="material-symbols-outlined text-2xl">search_off</span>
+</div>
+<div class="space-y-1">
+<h2 class="font-display font-bold text-sm text-[#0F172A]">Không tìm thấy yêu cầu trả kho</h2>
+<p class="text-xs text-[#64748B] max-w-xs mx-auto">
+            Không có buồng kho nào khớp với từ khóa hoặc bộ lọc đã chọn trong ca trực hiện tại.
+          </p>
+</div>
+<button class="mt-2 inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-sm bg-primary-container text-white text-xs font-semibold h-11 hover:bg-[#0F4D3E]" id="resetFilterBtn" type="button">
+<span class="material-symbols-outlined text-base">refresh</span>
+<span>Đặt lại tìm kiếm &amp; bộ lọc</span>
+</button>
+</section>
+</main>
+<!-- Bottom Navigation Bar (FS Native Standard) -->
+<nav aria-label="Điều hướng chính dành cho FS" class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] z-40 bg-surface-container-lowest border-t border-outline-variant px-3 py-1.5 h-16 flex items-center justify-around shadow-md">
+<!-- Destination 1: Công việc chung -->
+<a class="flex flex-col items-center justify-center text-[#64748B] hover:text-[#0F172A] active:scale-95 transition-all w-24 h-12" href="#cong-viec">
+<span class="material-symbols-outlined text-2xl">checklist</span>
+<span class="text-[11px] font-label-sm font-medium mt-0.5">Công việc</span>
+</a>
+<!-- Destination 2: Trả kho (M-FS02 - Active) -->
+<a aria-current="page" class="flex flex-col items-center justify-center text-primary-container font-semibold active:scale-95 transition-all w-24 h-12" href="#tra-kho">
+<div class="relative">
+<span class="material-symbols-outlined text-2xl material-symbols-fill">assignment_return</span>
+<span class="absolute -top-1 -right-2 w-2 h-2 rounded-full bg-[#B45309]"></span>
+</div>
+<span class="text-[11px] font-label-sm font-bold mt-0.5">Trả kho (3)</span>
+</a>
+<!-- Destination 3: Kho của tôi / Trực trạm -->
+<a class="flex flex-col items-center justify-center text-[#64748B] hover:text-[#0F172A] active:scale-95 transition-all w-24 h-12" href="#kho-vat-ly">
+<span class="material-symbols-outlined text-2xl">warehouse</span>
+<span class="text-[11px] font-label-sm font-medium mt-0.5">Bản đồ tầng</span>
+</a>
+</nav>
+<!-- BOTTOM SHEET 1: Detail & Task Launch Sheet (M-FS02 -> M-FS03 Hand-off) -->
+<div aria-hidden="true" class="fixed inset-0 bg-black/60 z-50 hidden transition-opacity duration-300 opacity-0" id="detailSheetBackdrop"></div>
+<section aria-labelledby="sheetTitle" aria-modal="true" class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] z-50 bg-surface-container-lowest rounded-t-xl border-t border-outline-variant shadow-2xl p-4 transform translate-y-full transition-transform duration-300 max-h-[751px] flex flex-col hidden" id="detailSheet" role="dialog">
+<!-- Sheet Drag Handle -->
+<div class="w-12 h-1.5 bg-[#CBD5E1] rounded-full mx-auto mb-3 shrink-0"></div>
+<!-- Sheet Header -->
+<div class="flex items-start justify-between border-b border-[#F1F5F9] pb-3 shrink-0">
+<div>
+<span class="text-[11px] font-semibold text-[#125345] uppercase tracking-wider block font-label-sm">Yêu cầu kiểm tra hiện trường</span>
+<h2 class="font-headline-sm font-display text-lg text-[#0F172A] font-bold" id="sheetTitle">#RET-2026-0021</h2>
+<p class="text-xs font-semibold text-[#125345]" id="sheetUnit">Buồng #B-204 (Tầng 2, Khu B)</p>
+</div>
+<button aria-label="Đóng cửa sổ chi tiết" class="w-10 h-10 rounded-sm bg-[#F1F5F9] hover:bg-[#E2E8F0] text-[#475569] flex items-center justify-center active:scale-95" id="closeDetailSheetBtn" type="button">
+<span class="material-symbols-outlined text-xl">close</span>
+</button>
+</div>
+<!-- Sheet Scrollable Content -->
+<div class="overflow-y-auto py-3 space-y-3.5 text-xs flex-1 pr-1">
+<!-- Customer Info Strip -->
+<div class="bg-[#F8FAF9] p-3 rounded-sm border border-[#E2E8F0] space-y-1">
+<div class="flex justify-between">
+<span class="text-[#64748B]">Khách hàng bàn giao:</span>
+<span class="font-semibold text-[#0F172A]" id="sheetCustomer">Đặng Hồng Nhung</span>
+</div>
+<div class="flex justify-between">
+<span class="text-[#64748B]">Số điện thoại:</span>
+<span class="font-medium text-[#0F172A]" id="sheetPhone">0912 ••• 842</span>
+</div>
+<div class="flex justify-between">
+<span class="text-[#64748B]">Lịch hẹn:</span>
+<span class="font-semibold text-[#B45309]" id="sheetSchedule">16:00 Hôm nay</span>
+</div>
+<div class="flex justify-between">
+<span class="text-[#64748B]">Quy cách buồng:</span>
+<span class="font-medium text-[#0F172A]" id="sheetSpec">Tiêu chuẩn 6m² • Cao 2.8m</span>
+</div>
+</div>
+<!-- 4-Point Inspection Checklist preview -->
+<div class="space-y-2">
+<span class="font-label-md text-xs font-bold text-[#0F172A] block uppercase tracking-wider">
+            4 Tiêu chí nghiệm thu hiện trường (M-FS03):
+          </span>
+<div class="space-y-1.5">
+<div class="flex items-center space-x-2 p-2 rounded-sm bg-[#F8FAF9] border border-[#E2E8F0]">
+<span class="material-symbols-outlined text-[#125345] text-base">cleaning_services</span>
+<span class="text-xs text-[#0F172A]">1. Đã dọn sạch 100% rác và vật dụng cá nhân.</span>
+</div>
+<div class="flex items-center space-x-2 p-2 rounded-sm bg-[#F8FAF9] border border-[#E2E8F0]">
+<span class="material-symbols-outlined text-[#125345] text-base">crop_free</span>
+<span class="text-xs text-[#0F172A]">2. Vách tôn ngăn &amp; cửa cuốn không bị móp, đục phá.</span>
+</div>
+<div class="flex items-center space-x-2 p-2 rounded-sm bg-[#F8FAF9] border border-[#E2E8F0]">
+<span class="material-symbols-outlined text-[#125345] text-base">lock</span>
+<span class="text-xs text-[#0F172A]">3. Bát khóa cửa, thanh ray trượt vận hành tốt.</span>
+</div>
+<div class="flex items-center space-x-2 p-2 rounded-sm bg-[#F8FAF9] border border-[#E2E8F0]">
+<span class="material-symbols-outlined text-[#125345] text-base">inventory</span>
+<span class="text-xs text-[#0F172A]">4. Thu hồi đủ thẻ từ và chìa khóa MasterLock bàn giao lại.</span>
+</div>
+</div>
+</div>
+<!-- System Notification on Authority -->
+<div class="p-2.5 rounded-sm bg-[#FFFBEB] border border-[#FDE68A] text-[11px] text-[#92400E]">
+<strong>Lưu ý nghiệp vụ:</strong> Nếu phát hiện buồng chưa dọn sạch hoặc có hư hại vách, chụp ảnh hiện trường đầy đủ để FM có căn cứ khấu trừ chi phí vệ sinh/sửa chữa.
+        </div>
+</div>
+<!-- Sheet Footer Actions -->
+<div class="pt-3 border-t border-[#F1F5F9] shrink-0 space-y-2">
+<button class="w-full bg-primary-container hover:bg-[#0F4D3E] active:scale-95 text-white font-label-md text-sm font-semibold py-3 px-4 rounded-sm flex items-center justify-center space-x-2 transition-all shadow-sm h-11" id="startInspectionBtn" type="button">
+<span class="material-symbols-outlined text-lg">play_circle</span>
+<span>Bắt đầu kiểm tra thực địa (Chuyển M-FS03)</span>
+</button>
+<button class="w-full bg-transparent text-[#64748B] hover:text-[#0F172A] font-label-md text-xs font-medium py-2 rounded-sm h-10" id="closeDetailSheetBtnSecondary" type="button">
+          Quay lại danh sách
+        </button>
+</div>
+</section>
+<!-- BOTTOM SHEET 2: FS Shift & Profile Sheet -->
+<div aria-hidden="true" class="fixed inset-0 bg-black/60 z-50 hidden transition-opacity duration-300 opacity-0" id="profileSheetBackdrop"></div>
+<section aria-labelledby="profileSheetTitle" aria-modal="true" class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] z-50 bg-surface-container-lowest rounded-t-xl border-t border-outline-variant shadow-2xl p-4 transform translate-y-full transition-transform duration-300 flex flex-col hidden" id="profileSheet" role="dialog">
+<div class="w-12 h-1.5 bg-[#CBD5E1] rounded-full mx-auto mb-3 shrink-0"></div>
+<div class="flex items-start justify-between border-b border-[#F1F5F9] pb-3">
+<div class="flex items-center space-x-2.5">
+<div class="w-10 h-10 rounded-sm bg-primary-container text-white font-display font-bold text-base flex items-center justify-center">
+            QH
+          </div>
+<div>
+<h2 class="font-headline-sm font-display text-base text-[#0F172A] font-bold" id="profileSheetTitle">Trần Quốc Huy</h2>
+<p class="text-xs text-[#64748B]">Mã NV: FS-088 • Trạm Sài Gòn Central</p>
+</div>
+</div>
+<button aria-label="Đóng hồ sơ" class="w-9 h-9 rounded-sm bg-[#F1F5F9] text-[#475569] flex items-center justify-center active:scale-95" id="closeProfileSheetBtn" type="button">
+<span class="material-symbols-outlined text-lg">close</span>
+</button>
+</div>
+<div class="py-3.5 space-y-2.5 text-xs">
+<div class="flex justify-between py-1.5 border-b border-[#F1F5F9]">
+<span class="text-[#64748B]">Ca làm việc:</span>
+<span class="font-semibold text-[#0F172A]">Ca 2 (14:00 - 22:00)</span>
+</div>
+<div class="flex justify-between py-1.5 border-b border-[#F1F5F9]">
+<span class="text-[#64748B]">Cơ sở trực chiến:</span>
+<span class="font-semibold text-[#0F172A]">StoreX Sài Gòn Central</span>
+</div>
+<div class="flex justify-between py-1.5 border-b border-[#F1F5F9]">
+<span class="text-[#64748B]">Hotline nội bộ FM:</span>
+<a class="font-semibold text-[#125345] underline" href="tel:02873001188">028 7300 1188 (Nhánh 2)</a>
+</div>
+<div class="flex justify-between py-1.5 border-b border-[#F1F5F9]">
+<span class="text-[#64748B]">Chỉ huy ca (FM):</span>
+<span class="font-semibold text-[#0F172A]">Lê Thanh Hải (FM-01)</span>
+</div>
+<div class="p-2.5 rounded-sm bg-[#F8FAF9] border border-[#CBD5E1] text-[#475569] space-y-1">
+<span class="font-semibold text-[#0F172A] block">Lưu ý bàn giao ca:</span>
+<p>Mọi chìa khóa và thẻ từ thu hồi phải cất vào hộp an toàn KeySafe-02 trước 21:50.</p>
+</div>
+</div>
+<div class="pt-2 border-t border-[#F1F5F9] space-y-2">
+<button class="w-full bg-[#F1F5F9] hover:bg-[#E2E8F0] text-[#0F172A] font-semibold py-2.5 rounded-sm text-xs flex items-center justify-center space-x-1.5 h-11" onclick="alert('Đã đồng bộ dữ liệu ca trực mới nhất với máy chủ StoreX.');" type="button">
+<span class="material-symbols-outlined text-base">sync</span>
+<span>Đồng bộ dữ liệu ngoại tuyến</span>
+</button>
+<button class="w-full border border-red-200 text-red-600 hover:bg-red-50 font-semibold py-2.5 rounded-sm text-xs flex items-center justify-center space-x-1.5 h-11" onclick="alert('Bạn đã kết thúc ca trực thành công.');" type="button">
+<span class="material-symbols-outlined text-base">logout</span>
+<span>Đăng xuất &amp; Chốt ca trực</span>
+</button>
+</div>
+</section>
+<!-- TOAST NOTIFICATION CONTAINER -->
+<div class="fixed top-16 left-1/2 -translate-x-1/2 w-[350px] z-50 bg-[#0F172A] text-white p-3 rounded-sm shadow-xl flex items-center space-x-2 transform -translate-y-20 opacity-0 transition-all duration-300 pointer-events-none" id="toastNotification" role="alert">
+<span class="material-symbols-outlined text-[#10B981] text-lg">check_circle</span>
+<p class="text-xs font-body-sm leading-tight flex-1" id="toastMessage">Thao tác thành công.</p>
+</div>
+</div>
+<!-- Micro-Interactions & Pure Vanilla Logic -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // 1. Help Accordion Toggle
+      const toggleHelpBtn = document.getElementById('toggleHelpBtn');
+      const helpContent = document.getElementById('helpContent');
+      const helpChevron = document.getElementById('helpChevron');
+
+      toggleHelpBtn.addEventListener('click', () => {
+        const isHidden = helpContent.classList.contains('hidden');
+        if (isHidden) {
+          helpContent.classList.remove('hidden');
+          toggleHelpBtn.setAttribute('aria-expanded', 'true');
+          helpChevron.style.transform = 'rotate(180deg)';
+        } else {
+          helpContent.classList.add('hidden');
+          toggleHelpBtn.setAttribute('aria-expanded', 'false');
+          helpChevron.style.transform = 'rotate(0deg)';
+        }
+      });
+
+      // 2. Search & Filter System
+      const searchInput = document.getElementById('searchInput');
+      const clearSearchBtn = document.getElementById('clearSearchBtn');
+      const filterChips = document.querySelectorAll('.filter-chip');
+      const taskCards = document.querySelectorAll('.task-card');
+      const emptyState = document.getElementById('emptyState');
+      const resetFilterBtn = document.getElementById('resetFilterBtn');
+
+      let currentFilter = 'all';
+
+      function applyFilterAndSearch() {
+        const query = searchInput.value.toLowerCase().trim();
+        let visibleCount = 0;
+
+        taskCards.forEach(card => {
+          const cardStatus = card.getAttribute('data-status');
+          const cardSearchText = card.getAttribute('data-search') || '';
+
+          const matchesFilter = (currentFilter === 'all') || (cardStatus === currentFilter);
+          const matchesQuery = query === '' || cardSearchText.includes(query) || card.innerText.toLowerCase().includes(query);
+
+          if (matchesFilter && matchesQuery) {
+            card.classList.remove('hidden');
+            visibleCount++;
+          } else {
+            card.classList.add('hidden');
+          }
+        });
+
+        if (visibleCount === 0) {
+          emptyState.classList.remove('hidden');
+        } else {
+          emptyState.classList.add('hidden');
+        }
+
+        if (query.length > 0) {
+          clearSearchBtn.classList.remove('hidden');
+        } else {
+          clearSearchBtn.classList.add('hidden');
+        }
+      }
+
+      filterChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+          filterChips.forEach(c => {
+            c.classList.remove('bg-primary-container', 'text-white', 'border-primary-container', 'active-filter');
+            c.classList.add('bg-surface-container-lowest', 'text-[#475569]', 'border-outline-variant');
+          });
+
+          chip.classList.remove('bg-surface-container-lowest', 'text-[#475569]', 'border-outline-variant');
+          chip.classList.add('bg-primary-container', 'text-white', 'border-primary-container', 'active-filter');
+
+          currentFilter = chip.getAttribute('data-filter');
+          applyFilterAndSearch();
+        });
+      });
+
+      searchInput.addEventListener('input', applyFilterAndSearch);
+
+      clearSearchBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        applyFilterAndSearch();
+        searchInput.focus();
+      });
+
+      resetFilterBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        const allBtn = document.querySelector('[data-filter="all"]');
+        if (allBtn) allBtn.click();
+      });
+
+      // 3. Profile Sheet Modal
+      const openProfileSheetBtn = document.getElementById('openProfileSheetBtn');
+      const profileSheetBackdrop = document.getElementById('profileSheetBackdrop');
+      const profileSheet = document.getElementById('profileSheet');
+      const closeProfileSheetBtn = document.getElementById('closeProfileSheetBtn');
+
+      function openProfileSheet() {
+        profileSheetBackdrop.classList.remove('hidden');
+        profileSheet.classList.remove('hidden');
+        setTimeout(() => {
+          profileSheetBackdrop.classList.remove('opacity-0');
+          profileSheet.classList.remove('translate-y-full');
+        }, 10);
+      }
+
+      function closeProfileSheet() {
+        profileSheetBackdrop.classList.add('opacity-0');
+        profileSheet.classList.add('translate-y-full');
+        setTimeout(() => {
+          profileSheetBackdrop.classList.add('hidden');
+          profileSheet.classList.add('hidden');
+        }, 300);
+      }
+
+      openProfileSheetBtn.addEventListener('click', openProfileSheet);
+      profileSheetBackdrop.addEventListener('click', closeProfileSheet);
+      closeProfileSheetBtn.addEventListener('click', closeProfileSheet);
+
+      // 4. Detail Bottom Sheet Handlers
+      const detailSheetBackdrop = document.getElementById('detailSheetBackdrop');
+      const detailSheet = document.getElementById('detailSheet');
+      const closeDetailSheetBtn = document.getElementById('closeDetailSheetBtn');
+      const closeDetailSheetBtnSecondary = document.getElementById('closeDetailSheetBtnSecondary');
+      const startInspectionBtn = document.getElementById('startInspectionBtn');
+
+      window.openTaskDetailSheet = function(retId, unit, customer, phone, sched, spec) {
+        document.getElementById('sheetTitle').textContent = '#' + retId;
+        document.getElementById('sheetUnit').textContent = 'Buồng #' + unit;
+        document.getElementById('sheetCustomer').textContent = customer;
+        document.getElementById('sheetPhone').textContent = phone;
+        document.getElementById('sheetSchedule').textContent = sched;
+        document.getElementById('sheetSpec').textContent = spec;
+
+        detailSheetBackdrop.classList.remove('hidden');
+        detailSheet.classList.remove('hidden');
+        setTimeout(() => {
+          detailSheetBackdrop.classList.remove('opacity-0');
+          detailSheet.classList.remove('translate-y-full');
+        }, 10);
+      };
+
+      window.openReadOnlySheet = function(retId, unit, customer) {
+        window.openTaskDetailSheet(retId, unit, customer, 'Đã mã hóa', 'Đã kiểm tra lúc 10:45', 'Đã lưu kho tài liệu đối soát');
+        showToast('Đang mở biên bản lưu trữ chế độ Chỉ đọc (FM đã tiếp nhận).');
+      };
+
+      function closeDetailSheet() {
+        detailSheetBackdrop.classList.add('opacity-0');
+        detailSheet.classList.add('translate-y-full');
+        setTimeout(() => {
+          detailSheetBackdrop.classList.add('hidden');
+          detailSheet.classList.add('hidden');
+        }, 300);
+      }
+
+      detailSheetBackdrop.addEventListener('click', closeDetailSheet);
+      closeDetailSheetBtn.addEventListener('click', closeDetailSheet);
+      closeDetailSheetBtnSecondary.addEventListener('click', closeDetailSheet);
+
+      startInspectionBtn.addEventListener('click', () => {
+        closeDetailSheet();
+        showToast('Đang khởi tạo M-FS03: Mẫu biên bản nghiệm thu buồng kho trực địa.');
+      });
+
+      // 5. Toast System
+      window.showToast = function(msg) {
+        const toast = document.getElementById('toastNotification');
+        const toastMsg = document.getElementById('toastMessage');
+        toastMsg.textContent = msg;
+        toast.classList.remove('opacity-0', '-translate-y-20');
+        toast.classList.add('opacity-100', 'translate-y-0');
+
+        setTimeout(() => {
+          toast.classList.remove('opacity-100', 'translate-y-0');
+          toast.classList.add('opacity-0', '-translate-y-20');
+        }, 3000);
+      };
+    });
+  </script>
+</body></html>

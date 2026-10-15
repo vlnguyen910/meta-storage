@@ -1,0 +1,839 @@
+<!DOCTYPE html><html lang="vi"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>M-FS01 — Công việc của tôi — FS</title>
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#125345',
+            'primary-dark': '#0B382E',
+            'primary-soft': '#E6F0EC',
+            canvas: '#F8FAF9',
+            surface: '#FFFFFF',
+            darkText: '#0F172A',
+            subText: '#475569',
+            cardBorder: '#BFCAC4',
+            statusWarningBg: '#FEF3C7',
+            statusWarningText: '#92400E',
+            statusSuccessBg: '#DCFCE7',
+            statusSuccessText: '#166534',
+            statusBlueBg: '#E0F2FE',
+            statusBlueText: '#0369A1',
+          },
+          fontFamily: {
+            heading: ['"Space Grotesk"', 'sans-serif'],
+            body: ['"Be Vietnam Pro"', 'sans-serif'],
+          },
+          borderRadius: {
+            'custom': '4px',
+          },
+          boxShadow: {
+            'card': '0 1px 2px rgba(15,23,42,0.04)',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      background-color: #F8FAF9;
+      color: #0F172A;
+      -webkit-tap-highlight-color: transparent;
+    }
+    h1, h2, h3, h4, .font-heading {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .safe-top {
+      padding-top: env(safe-area-inset-top, 0px);
+    }
+    .safe-bottom {
+      padding-bottom: env(safe-area-inset-bottom, 16px);
+    }
+    /* Touch target min 44px */
+    .touch-target {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    /* Custom Card */
+    .storex-card {
+      background: #FFFFFF;
+      border: 1px solid #BFCAC4;
+      border-radius: 4px;
+      box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+    }
+    /* Focus visible */
+    button:focus-visible, a:focus-visible, input:focus-visible {
+      outline: 2px solid #125345;
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-canvas text-darkText flex flex-col justify-between selection:bg-primary-soft selection:text-primary">
+
+  <!-- TOP APP BAR / HEADER -->
+  <header class="sticky top-0 z-40 bg-surface border-b border-cardBorder safe-top shadow-sm">
+    <div class="px-4 h-16 flex items-center justify-between">
+      <!-- Brand & Facility Context -->
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-custom bg-primary flex items-center justify-center text-white font-heading font-bold text-lg" aria-hidden="true">
+          S
+        </div>
+        <div class="leading-tight">
+          <div class="flex items-center gap-1.5">
+            <span class="font-heading font-bold text-primary text-base tracking-tight">storeX</span>
+            <span class="text-[11px] font-semibold bg-primary-soft text-primary px-1.5 py-0.5 rounded-custom uppercase tracking-wider">FS Trực</span>
+          </div>
+          <p class="text-[12px] text-subText font-medium truncate max-w-[190px]">StoreX Sài Gòn Central</p>
+        </div>
+      </div>
+
+      <!-- Staff Profile & Menu Action -->
+      <div class="flex items-center gap-1">
+        <button id="btn-refresh" type="button" aria-label="Làm mới danh sách công việc" class="touch-target flex items-center justify-center text-subText hover:text-primary active:bg-gray-100 rounded-custom transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+        </button>
+
+        <button id="btn-account-toggle" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="account-sheet" aria-label="Tài khoản nhân viên Trần Quốc Huy" class="touch-target flex items-center gap-1.5 pl-1.5 pr-2 py-1 rounded-custom hover:bg-gray-100 active:bg-gray-200 transition-colors">
+          <div class="w-8 h-8 rounded-full bg-primary-soft text-primary font-bold text-xs flex items-center justify-center border border-cardBorder">
+            TH
+          </div>
+          <svg class="w-4 h-4 text-subText" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Active Role Subnav (FS Specific) -->
+    <nav class="flex border-t border-cardBorder bg-surface px-4 text-sm font-medium" aria-label="Điều hướng chính nhân viên cơ sở">
+      <a href="#work-queue" class="relative py-2.5 px-3 text-primary font-bold border-b-2 border-primary flex items-center gap-1.5 touch-target">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+        </svg>
+        <span>Công việc</span>
+        <span id="badge-total-tasks" class="ml-1 bg-primary text-white text-[11px] font-bold px-1.5 py-0.2 rounded-custom">3</span>
+      </a>
+      <a href="#tra-kho" onclick="alert('Điều hướng nhanh sang danh mục kiểm tra trả kho cơ sở (M-FS02).'); return false;" class="py-2.5 px-3 text-subText hover:text-darkText flex items-center gap-1.5 touch-target transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14V5a2 2 0 00-2-2H6a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2z"></path>
+        </svg>
+        <span>Trả kho</span>
+      </a>
+    </nav>
+  </header>
+
+  <!-- LIVE REGION NOTIFICATIONS (Screen Reader / Nielsen Heuristic 1) -->
+  <div id="live-announcer" class="sr-only" aria-live="polite"></div>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="flex-1 w-full max-w-[430px] mx-auto px-4 py-4 space-y-4" id="work-queue">
+    
+    <!-- CONTEXT BANNER & MOCK NOTICE -->
+    <section class="storex-card p-3 bg-white flex items-start gap-2.5">
+      <div class="w-5 h-5 rounded-custom bg-primary-soft text-primary flex items-center justify-center shrink-0 mt-0.5" aria-hidden="true">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+      </div>
+      <div class="text-[13px] leading-snug">
+        <p class="font-semibold text-darkText">Ca trực: 08:00 – 16:00 (GMT+7, 09/10/2026)</p>
+        <p class="text-subText mt-0.5">Dữ liệu mẫu nguyên mẫu FS. Chỉ hiển thị nhiệm vụ được Quản lý (FM) phân công tại trạm Sài Gòn Central.</p>
+      </div>
+    </section>
+
+    <!-- SEARCH & FILTER CONTROLS (Nielsen Heuristics 7 & 8) -->
+    <section class="space-y-3" aria-label="Tìm kiếm và lọc tác vụ">
+      <div class="relative">
+        <label for="task-search-input" class="sr-only">Tìm kiếm theo mã đơn hoặc tên khách hàng</label>
+        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-subText">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+        </div>
+        <input type="search" id="task-search-input" placeholder="Tìm mã đơn (BK-...), khách hàng..." class="w-full h-12 pl-10 pr-10 text-[15px] bg-white border border-cardBorder rounded-custom text-darkText placeholder:text-subText/80 focus:border-primary transition-all shadow-card">
+        <button id="btn-clear-search" type="button" aria-label="Xóa từ khóa tìm kiếm" class="hidden absolute inset-y-0 right-0 pr-3 flex items-center text-subText hover:text-darkText touch-target">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- FILTER TABS (Reflects true fixture counts) -->
+      <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-[13px] no-scrollbar" role="tablist" aria-label="Bộ lọc loại nhiệm vụ">
+        <button type="button" role="tab" id="tab-all" aria-selected="true" data-filter="all" class="filter-tab px-3 py-2 rounded-custom font-semibold bg-primary text-white border border-primary shrink-0 touch-target flex items-center gap-1.5 shadow-sm transition-all">
+          <span>Tất cả</span>
+          <span class="badge-count bg-white/20 text-white text-[11px] px-1.5 py-0.2 rounded-custom">3</span>
+        </button>
+        <button type="button" role="tab" id="tab-checkin" aria-selected="false" data-filter="checkin" class="filter-tab px-3 py-2 rounded-custom font-medium bg-white text-darkText border border-cardBorder shrink-0 touch-target flex items-center gap-1.5 hover:bg-gray-50 active:bg-gray-100 transition-all">
+          <span>Nhận kho</span>
+          <span class="badge-count bg-gray-100 text-subText text-[11px] px-1.5 py-0.2 rounded-custom">2</span>
+        </button>
+        <button type="button" role="tab" id="tab-checkout" aria-selected="false" data-filter="checkout" class="filter-tab px-3 py-2 rounded-custom font-medium bg-white text-darkText border border-cardBorder shrink-0 touch-target flex items-center gap-1.5 hover:bg-gray-50 active:bg-gray-100 transition-all">
+          <span>Trả kho</span>
+          <span class="badge-count bg-gray-100 text-subText text-[11px] px-1.5 py-0.2 rounded-custom">1</span>
+        </button>
+        <button type="button" role="tab" id="tab-inprogress" aria-selected="false" data-filter="inprogress" class="filter-tab px-3 py-2 rounded-custom font-medium bg-white text-darkText border border-cardBorder shrink-0 touch-target flex items-center gap-1.5 hover:bg-gray-50 active:bg-gray-100 transition-all">
+          <span>Đang thực hiện</span>
+          <span class="badge-count bg-gray-100 text-subText text-[11px] px-1.5 py-0.2 rounded-custom">1</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- STATUS BAR / FEEDBACK -->
+    <div id="filter-feedback-bar" class="text-[13px] text-subText flex items-center justify-between px-1">
+      <span id="txt-results-count">Hiển thị <strong class="text-darkText">3</strong> công việc phân công</span>
+      <button id="btn-reset-filters" type="button" class="text-primary font-semibold hover:underline text-[12px] hidden">Đặt lại bộ lọc</button>
+    </div>
+
+    <!-- TASK QUEUE LIST -->
+    <section id="task-list-container" class="space-y-3" aria-label="Danh sách tác vụ ca trực">
+
+      <!-- ITEM 1: MAIN PAID BOOKING READY FOR VERIFICATION (BK-2026-0001) -->
+      <article data-task="checkin inprogress" data-search="bk-2026-0001 nguyễn minh anh hcm-01-001 mini 2m" class="task-card storex-card p-4 space-y-3 border-l-4 border-l-primary relative">
+        <!-- Card Header & Badge -->
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-primary font-heading tracking-wide">TSK-2026-081</span>
+              <span class="text-[11px] font-semibold bg-statusSuccessBg text-statusSuccessText px-2 py-0.5 rounded-custom border border-green-200">
+                Đã thanh toán • Đến hôm nay
+              </span>
+            </div>
+            <h2 class="text-base font-bold text-darkText font-heading mt-1">Đón tiếp &amp; Bàn giao kho</h2>
+          </div>
+          <span class="text-[11px] font-bold text-primary bg-primary-soft px-2 py-1 rounded-custom shrink-0">
+            Khách trong khung giờ
+          </span>
+        </div>
+
+        <!-- Customer & Fixture Core Information -->
+        <div class="bg-gray-50 rounded-custom p-3 border border-cardBorder/60 space-y-2 text-[14px]">
+          <div class="flex justify-between items-baseline">
+            <span class="text-subText text-[13px]">Khách hàng:</span>
+            <span class="font-bold text-darkText">Nguyễn Minh Anh</span>
+          </div>
+          <div class="flex justify-between items-baseline">
+            <span class="text-subText text-[13px]">Mã đơn booking:</span>
+            <span class="font-mono font-semibold text-primary">BK-2026-0001</span>
+          </div>
+          <div class="flex justify-between items-baseline">
+            <span class="text-subText text-[13px]">Khung giờ hẹn:</span>
+            <span class="font-medium text-darkText">10:00 – 12:00 (09/10/2026) <span class="text-xs text-subText font-normal">• Ân hạn 14:00</span></span>
+          </div>
+          <div class="flex justify-between items-baseline border-t border-cardBorder/40 pt-1.5">
+            <span class="text-subText text-[13px]">Buồng vật lý gán:</span>
+            <span class="font-bold text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded-custom text-[13px]">
+              Buồng HCM-01-001 (Mini 2m²)
+            </span>
+          </div>
+        </div>
+
+        <!-- Financial & Status Safeguards Note -->
+        <p class="text-[12px] text-subText leading-relaxed">
+          * Đã thanh toán tiền thuê 900.000đ + cọc mẫu 900.000đ. Bước xác minh booking tiếp nhận tại quầy (M-FS04) là tiền đề bắt buộc trước khi thực hiện kiểm tra buồng kho.
+        </p>
+
+        <!-- Contextual Action Button (Minimum 48px height, 44px min target) -->
+        <div class="pt-1">
+          <button type="button" onclick="openVerifyModal('BK-2026-0001', 'Nguyễn Minh Anh', 'HCM-01-001', 'Mini 2m²', '10:00 – 12:00 (09/10/2026)')" class="w-full h-12 bg-primary hover:bg-primary-dark text-white font-heading font-semibold text-base rounded-custom flex items-center justify-center gap-2 shadow-sm active:scale-[0.99] transition-all" aria-label="Xác minh booking BK-2026-0001 để mở quy trình kiểm tra M-FS04">
+            <span>Xác minh booking</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+            </svg>
+          </button>
+        </div>
+      </article>
+
+      <!-- ITEM 2: UNALLOCATED ASSIGNED TASK (Awaiting FM, No allocation button for FS) -->
+      <article data-task="checkin" data-search="bk-2026-0004 trần hoàng nam tiêu chuẩn 4m" class="task-card storex-card p-4 space-y-3 border-l-4 border-l-amber-500 relative">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-amber-800 font-heading tracking-wide">TSK-2026-082</span>
+              <span class="text-[11px] font-semibold bg-statusWarningBg text-statusWarningText px-2 py-0.5 rounded-custom border border-amber-200">
+                Chờ FM gán buồng kho
+              </span>
+            </div>
+            <h2 class="text-base font-bold text-darkText font-heading mt-1">Tiếp nhận đặt chỗ mới</h2>
+          </div>
+          <span class="text-[11px] font-medium text-subText bg-gray-100 px-2 py-1 rounded-custom shrink-0">
+            Chiều nay 14:30
+          </span>
+        </div>
+
+        <div class="bg-gray-50 rounded-custom p-3 border border-cardBorder/60 space-y-2 text-[14px]">
+          <div class="flex justify-between items-baseline">
+            <span class="text-subText text-[13px]">Khách hàng:</span>
+            <span class="font-bold text-darkText">Trần Hoàng Nam</span>
+          </div>
+          <div class="flex justify-between items-baseline">
+            <span class="text-subText text-[13px]">Mã đơn:</span>
+            <span class="font-mono font-medium text-darkText">BK-2026-0004</span>
+          </div>
+          <div class="flex justify-between items-baseline">
+            <span class="text-subText text-[13px]">Quy cách yêu cầu:</span>
+            <span class="font-medium text-darkText">Tiêu chuẩn 4m² (Kỳ 3 tháng)</span>
+          </div>
+          <div class="flex justify-between items-baseline border-t border-cardBorder/40 pt-1.5">
+            <span class="text-subText text-[13px]">Hiện trạng vị trí:</span>
+            <span class="font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-custom text-[13px]">
+              Chờ Quản lý (FM) chỉ định buồng vật lý
+            </span>
+          </div>
+        </div>
+
+        <!-- Role Guard Warning (FS cannot allocate physical unit) -->
+        <div class="p-2.5 bg-amber-50/80 border border-amber-200/80 rounded-custom flex items-start gap-2 text-[12px] text-amber-900 leading-snug">
+          <svg class="w-4 h-4 text-amber-700 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+          </svg>
+          <p>
+            <strong>Phân định quyền:</strong> Nhân viên hiện trường (FS) không tự ý gán hoặc đổi buồng kho. Vui lòng đợi FM gán số buồng trước khi xuất vé kiểm tra.
+          </p>
+        </div>
+
+        <div class="pt-1">
+          <button type="button" onclick="showTaskDetails('TSK-2026-082', 'Trần Hoàng Nam', 'BK-2026-0004', 'Tiêu chuẩn 4m²', 'Chờ FM gán kho')" class="w-full h-12 bg-white hover:bg-gray-50 border border-cardBorder text-darkText font-heading font-medium text-[15px] rounded-custom flex items-center justify-center gap-1.5 active:bg-gray-100 transition-all touch-target">
+            <span>Xem chi tiết hồ sơ đơn</span>
+          </button>
+        </div>
+      </article>
+
+      <!-- ITEM 3: RETURN INSPECTION READY TASK (FS02 -> FS03 Flow) -->
+      <article data-task="checkout" data-search="ret-2026-0021 lê thị mai linh hcm-02-012 tiêu chuẩn 4m" class="task-card storex-card p-4 space-y-3 border-l-4 border-l-blue-600 relative">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-blue-800 font-heading tracking-wide">TSK-2026-083</span>
+              <span class="text-[11px] font-semibold bg-statusBlueBg text-statusBlueText px-2 py-0.5 rounded-custom border border-blue-200">
+                Yêu cầu trả kho • Sẵn sàng kiểm tra
+              </span>
+            </div>
+            <h2 class="text-base font-bold text-darkText font-heading mt-1">Khảo sát &amp; Kiểm tra trả kho</h2>
+          </div>
+          <span class="text-[11px] font-medium text-subText bg-gray-100 px-2 py-1 rounded-custom shrink-0">
+            Hẹn: 11:30 hôm nay
+          </span>
+        </div>
+
+        <div class="bg-gray-50 rounded-custom p-3 border border-cardBorder/60 space-y-2 text-[14px]">
+          <div class="flex justify-between items-baseline">
+            <span class="text-subText text-[13px]">Khách hàng trả:</span>
+            <span class="font-bold text-darkText">Lê Thị Mai Linh</span>
+          </div>
+          <div class="flex justify-between items-baseline">
+            <span class="text-subText text-[13px]">Mã yêu cầu trả:</span>
+            <span class="font-mono font-medium text-darkText">RET-2026-0021</span>
+          </div>
+          <div class="flex justify-between items-baseline">
+            <span class="text-subText text-[13px]">Buồng trả thực tế:</span>
+            <span class="font-bold text-darkText">HCM-02-012 (Tầng 2)</span>
+          </div>
+          <div class="flex justify-between items-baseline border-t border-cardBorder/40 pt-1.5">
+            <span class="text-subText text-[13px]">Tài sản cần thu hồi:</span>
+            <span class="font-medium text-darkText">Thẻ ra vào trạm + 02 chìa khoá vật lý</span>
+          </div>
+        </div>
+
+        <p class="text-[12px] text-subText leading-relaxed">
+          * FS ghi nhận hiện trạng tường rào, sàn sạch sẽ và lập biên bản khảo sát (M-FS03). Thẩm quyền quyết toán cọc do Quản lý cơ sở (FM) thực hiện.
+        </p>
+
+        <div class="pt-1">
+          <button type="button" onclick="openReturnInspectionModal('RET-2026-0021', 'Lê Thị Mai Linh', 'HCM-02-012')" class="w-full h-12 bg-white hover:bg-gray-50 border border-cardBorder text-darkText font-heading font-semibold text-[15px] rounded-custom flex items-center justify-center gap-2 active:bg-gray-100 transition-all shadow-card">
+            <span>Tiến hành kiểm tra trả kho (M-FS02)</span>
+            <svg class="w-4 h-4 text-subText" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+          </button>
+        </div>
+      </article>
+
+      <!-- EMPTY STATE (Nielsen Heuristic 9) -->
+      <div id="tasks-empty-state" class="storex-card p-6 text-center space-y-3 hidden">
+        <div class="w-12 h-12 rounded-full bg-gray-100 text-subText flex items-center justify-center mx-auto" aria-hidden="true">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+        </div>
+        <div class="space-y-1">
+          <h3 class="font-heading font-bold text-darkText text-base">Không tìm thấy công việc phù hợp</h3>
+          <p class="text-[13px] text-subText">Không có tác vụ nào khớp với bộ lọc hoặc từ khóa tìm kiếm của bạn.</p>
+        </div>
+        <div>
+          <button type="button" onclick="resetAllFilters()" class="h-11 px-4 bg-primary text-white text-sm font-semibold rounded-custom hover:bg-primary-dark transition-colors touch-target">
+            Xóa bộ lọc &amp; Tải lại
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- CONTEXTUAL HELP ACCORDION (Nielsen Heuristic 10: Quy trình tác nghiệp mẫu) -->
+    <section class="storex-card p-4 space-y-2.5 bg-white" aria-labelledby="help-heading">
+      <button type="button" id="btn-help-accordion" aria-expanded="false" aria-controls="help-accordion-content" class="w-full flex items-center justify-between text-left touch-target py-1 group">
+        <div class="flex items-center gap-2">
+          <div class="w-5 h-5 rounded-custom bg-primary-soft text-primary flex items-center justify-center shrink-0" aria-hidden="true">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+          <span id="help-heading" class="font-heading font-bold text-sm text-darkText group-hover:text-primary transition-colors">
+            Hướng dẫn quy trình 4 bước chuẩn tại quầy
+          </span>
+        </div>
+        <svg id="help-accordion-icon" class="w-4 h-4 text-subText transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+        </svg>
+      </button>
+
+      <div id="help-accordion-content" class="hidden pt-2 border-t border-cardBorder/60 space-y-2 text-[13px] text-subText leading-relaxed">
+        <ol class="list-decimal pl-4 space-y-1.5 marker:font-bold marker:text-primary">
+          <li><strong>Xác minh đơn (M-FS01 ➔ M-FS04):</strong> Kiểm tra thông tin khách đến nhận buồng, đối chiếu mã đặt và số điện thoại.</li>
+          <li><strong>Kiểm tra hiện trạng (M-FS04):</strong> Đi cùng khách đến buồng kho, chụp ảnh đối chiếu tình trạng sạch sẽ, vách tôn nguyên vẹn.</li>
+          <li><strong>Biên bản bàn giao:</strong> Hai bên ký xác nhận tình trạng buồng kho thực tế trước khi giao thẻ/chìa.</li>
+          <li><strong>Kích hoạt thuê:</strong> Chỉ kích hoạt trạng thái hợp đồng sau khi khách đã nhận chìa và hoàn tất biên bản.</li>
+        </ol>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- BOTTOM BAR / CA TRỰC STATUS -->
+  <footer class="bg-surface border-t border-cardBorder py-2.5 px-4 safe-bottom text-center">
+    <div class="flex items-center justify-between text-[12px] text-subText max-w-[430px] mx-auto">
+      <span class="flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true"></span>
+        <span>Hệ thống StoreX OS v2.4</span>
+      </span>
+      <span>Hotline nội bộ trạm: <strong>028 7300 1188</strong></span>
+    </div>
+  </footer>
+
+  <!-- ================= DIALOGS & OVERLAYS (IN-DOCUMENT ONLY) ================= -->
+
+  <!-- 1. ACCOUNT SHEET DIALOG -->
+  <div id="account-sheet" role="dialog" aria-modal="true" aria-labelledby="account-sheet-title" class="fixed inset-0 z-50 hidden">
+    <!-- Backdrop -->
+    <div id="account-sheet-backdrop" class="absolute inset-0 bg-darkText/50 backdrop-blur-sm transition-opacity opacity-0"></div>
+    
+    <!-- Modal panel -->
+    <div class="absolute bottom-0 inset-x-0 max-w-[430px] mx-auto bg-white rounded-t-lg border-t border-cardBorder p-5 space-y-4 shadow-xl transform translate-y-full transition-transform duration-200">
+      <div class="w-12 h-1 bg-gray-300 rounded-full mx-auto" aria-hidden="true"></div>
+      
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-full bg-primary-soft text-primary font-heading font-bold text-base flex items-center justify-center border border-cardBorder">
+            TH
+          </div>
+          <div>
+            <h3 id="account-sheet-title" class="font-heading font-bold text-darkText text-base">Trần Quốc Huy</h3>
+            <p class="text-xs text-subText">Nhân viên hiện trường (Field Staff)</p>
+            <p class="text-[12px] text-primary font-medium mt-0.5">Cơ sở: StoreX Sài Gòn Central</p>
+          </div>
+        </div>
+        <button id="btn-close-account-sheet" type="button" aria-label="Đóng bảng tài khoản" class="touch-target flex items-center justify-center text-subText hover:text-darkText rounded-custom">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="border-t border-cardBorder/60 pt-3 space-y-2 text-sm">
+        <div class="flex justify-between py-1 text-subText">
+          <span>Mã định danh FS:</span>
+          <span class="font-mono font-medium text-darkText">FS-SGC-012</span>
+        </div>
+        <div class="flex justify-between py-1 text-subText">
+          <span>Quyền hạn hệ thống:</span>
+          <span class="font-medium text-darkText">Tác nghiệp trạm (Không quyền FM)</span>
+        </div>
+      </div>
+
+      <div class="pt-2">
+        <button type="button" onclick="handleLogout()" class="w-full h-12 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-heading font-semibold text-sm rounded-custom flex items-center justify-center gap-2 active:bg-red-200 transition-colors touch-target">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+          </svg>
+          <span>Đăng xuất ca làm việc</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. VERIFY BOOKING FLOW PREVIEW MODAL (M-FS04 Link preview) -->
+  <div id="verify-modal" role="dialog" aria-modal="true" aria-labelledby="verify-modal-title" class="fixed inset-0 z-50 hidden">
+    <div id="verify-modal-backdrop" class="absolute inset-0 bg-darkText/60 backdrop-blur-sm transition-opacity opacity-0"></div>
+    
+    <div class="absolute inset-x-4 top-1/2 -translate-y-1/2 max-w-[400px] mx-auto bg-white rounded-custom border border-cardBorder p-5 space-y-4 shadow-2xl transform scale-95 transition-all duration-150">
+      <div class="flex items-center justify-between border-b border-cardBorder pb-3">
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 rounded-custom bg-primary-soft text-primary flex items-center justify-center" aria-hidden="true">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+          <h3 id="verify-modal-title" class="font-heading font-bold text-darkText text-base">Xác minh booking nhận kho</h3>
+        </div>
+        <button id="btn-close-verify-modal" type="button" aria-label="Đóng hộp thoại" class="touch-target flex items-center justify-center text-subText hover:text-darkText rounded-custom">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-sm">
+        <div class="p-3 bg-gray-50 rounded-custom border border-cardBorder/60 space-y-1.5">
+          <p class="text-xs text-subText">Thông tin hồ sơ nhận bàn giao:</p>
+          <p class="font-bold text-darkText text-[15px]" id="modal-customer-name">Nguyễn Minh Anh</p>
+          <p class="text-xs text-primary font-mono font-semibold" id="modal-booking-code">Mã: BK-2026-0001</p>
+          <p class="text-xs text-subText" id="modal-unit-allocated">Vị trí: Buồng HCM-01-001 (Mini 2m²)</p>
+        </div>
+
+        <div class="text-[13px] text-subText space-y-1.5 leading-relaxed">
+          <p class="font-medium text-darkText">Chuẩn bị trước khi rời quầy tiếp đón:</p>
+          <ul class="list-disc pl-4 space-y-1">
+            <li>Đã nhận đúng khách hàng theo lịch hẹn 10:00 – 12:00.</li>
+            <li>Buồng <strong>HCM-01-001</strong> đã sẵn sàng, sạch sẽ và chưa kích hoạt khóa.</li>
+            <li>Khách hàng đã thanh toán đầy đủ 1.800.000đ (tiền thuê + cọc mẫu).</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 pt-2">
+        <button type="button" onclick="closeVerifyModal()" class="flex-1 h-12 bg-white border border-cardBorder text-darkText font-heading font-medium text-sm rounded-custom hover:bg-gray-50 active:bg-gray-100 transition-colors touch-target">
+          Để sau
+        </button>
+        <button type="button" onclick="proceedToInspection()" class="flex-1 h-12 bg-primary hover:bg-primary-dark text-white font-heading font-semibold text-sm rounded-custom flex items-center justify-center gap-1.5 shadow-sm active:scale-[0.98] transition-all touch-target">
+          <span>Mở M-FS04</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. GENERIC DETAIL MODAL (Progressive disclosure for unallocated/inspection items) -->
+  <div id="detail-modal" role="dialog" aria-modal="true" aria-labelledby="detail-modal-title" class="fixed inset-0 z-50 hidden">
+    <div id="detail-modal-backdrop" class="absolute inset-0 bg-darkText/60 backdrop-blur-sm transition-opacity opacity-0"></div>
+    <div class="absolute inset-x-4 top-1/2 -translate-y-1/2 max-w-[400px] mx-auto bg-white rounded-custom border border-cardBorder p-5 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-cardBorder pb-2.5">
+        <h3 id="detail-modal-title" class="font-heading font-bold text-darkText text-base">Chi tiết nhiệm vụ</h3>
+        <button type="button" onclick="closeDetailModal()" aria-label="Đóng" class="touch-target flex items-center justify-center text-subText hover:text-darkText">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+      <div id="detail-modal-body" class="text-sm text-subText space-y-2 leading-relaxed"></div>
+      <div>
+        <button type="button" onclick="closeDetailModal()" class="w-full h-12 bg-primary text-white font-heading font-semibold rounded-custom">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- INLINE JAVASCRIPT: LOCAL STATE & INTERACTIONS ONLY -->
+  <script>
+    // State variables
+    let currentFilter = 'all';
+    let searchQuery = '';
+    const announcer = document.getElementById('live-announcer');
+
+    // DOM References
+    const searchInput = document.getElementById('task-search-input');
+    const clearSearchBtn = document.getElementById('btn-clear-search');
+    const filterTabs = document.querySelectorAll('.filter-tab');
+    const taskCards = document.querySelectorAll('.task-card');
+    const emptyState = document.getElementById('tasks-empty-state');
+    const resultsCountText = document.getElementById('txt-results-count');
+    const resetFiltersBtn = document.getElementById('btn-reset-filters');
+    const refreshBtn = document.getElementById('btn-refresh');
+
+    // Account Sheet Elements
+    const accountToggleBtn = document.getElementById('btn-account-toggle');
+    const accountSheet = document.getElementById('account-sheet');
+    const accountSheetBackdrop = document.getElementById('account-sheet-backdrop');
+    const accountSheetClose = document.getElementById('btn-close-account-sheet');
+
+    // Verify Modal Elements
+    const verifyModal = document.getElementById('verify-modal');
+    const verifyModalBackdrop = document.getElementById('verify-modal-backdrop');
+    const verifyModalClose = document.getElementById('btn-close-verify-modal');
+
+    // Detail Modal Elements
+    const detailModal = document.getElementById('detail-modal');
+    const detailModalBackdrop = document.getElementById('detail-modal-backdrop');
+
+    // Accordion Elements
+    const helpBtn = document.getElementById('btn-help-accordion');
+    const helpContent = document.getElementById('help-accordion-content');
+    const helpIcon = document.getElementById('help-accordion-icon');
+
+    // 1. FILTERING & SEARCHING (Local Fixture Engine)
+    function applyFilters() {
+      let visibleCount = 0;
+      const normalizedQuery = searchQuery.trim().toLowerCase();
+
+      taskCards.forEach(card => {
+        const taskTypes = card.getAttribute('data-task').toLowerCase();
+        const searchCorpus = card.getAttribute('data-search').toLowerCase();
+
+        const matchesFilter = (currentFilter === 'all') || taskTypes.includes(currentFilter);
+        const matchesSearch = !normalizedQuery || searchCorpus.includes(normalizedQuery);
+
+        if (matchesFilter && matchesSearch) {
+          card.classList.remove('hidden');
+          visibleCount++;
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+
+      // Update Feedback Text
+      resultsCountText.innerHTML = `Hiển thị <strong class="text-darkText">${visibleCount}</strong> công việc phân công`;
+
+      // Show/Hide Empty State
+      if (visibleCount === 0) {
+        emptyState.classList.remove('hidden');
+      } else {
+        emptyState.classList.add('hidden');
+      }
+
+      // Show Reset button if filters are modified
+      if (currentFilter !== 'all' || normalizedQuery.length > 0) {
+        resetFiltersBtn.classList.remove('hidden');
+      } else {
+        resetFiltersBtn.classList.add('hidden');
+      }
+
+      // Announce for accessibility
+      announcer.textContent = `Đã cập nhật danh sách, hiện có ${visibleCount} công việc.`;
+    }
+
+    // Filter tab clicks
+    filterTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        filterTabs.forEach(t => {
+          t.setAttribute('aria-selected', 'false');
+          t.className = 'filter-tab px-3 py-2 rounded-custom font-medium bg-white text-darkText border border-cardBorder shrink-0 touch-target flex items-center gap-1.5 hover:bg-gray-50 active:bg-gray-100 transition-all';
+          const badge = t.querySelector('.badge-count');
+          if (badge) {
+            badge.className = 'badge-count bg-gray-100 text-subText text-[11px] px-1.5 py-0.2 rounded-custom';
+          }
+        });
+
+        tab.setAttribute('aria-selected', 'true');
+        tab.className = 'filter-tab px-3 py-2 rounded-custom font-semibold bg-primary text-white border border-primary shrink-0 touch-target flex items-center gap-1.5 shadow-sm transition-all';
+        const activeBadge = tab.querySelector('.badge-count');
+        if (activeBadge) {
+          activeBadge.className = 'badge-count bg-white/20 text-white text-[11px] px-1.5 py-0.2 rounded-custom';
+        }
+
+        currentFilter = tab.getAttribute('data-filter');
+        applyFilters();
+      });
+    });
+
+    // Search input typing
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      if (searchQuery.length > 0) {
+        clearSearchBtn.classList.remove('hidden');
+      } else {
+        clearSearchBtn.classList.add('hidden');
+      }
+      applyFilters();
+    });
+
+    // Clear search button
+    clearSearchBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      searchQuery = '';
+      clearSearchBtn.classList.add('hidden');
+      searchInput.focus();
+      applyFilters();
+    });
+
+    // Reset all filters function
+    function resetAllFilters() {
+      searchInput.value = '';
+      searchQuery = '';
+      clearSearchBtn.classList.add('hidden');
+      currentFilter = 'all';
+
+      filterTabs.forEach(t => {
+        if (t.getAttribute('data-filter') === 'all') {
+          t.click();
+        }
+      });
+    }
+    resetFiltersBtn.addEventListener('click', resetAllFilters);
+
+    // Refresh interaction (Simulated)
+    refreshBtn.addEventListener('click', () => {
+      refreshBtn.classList.add('animate-spin');
+      announcer.textContent = 'Đang đồng bộ dữ liệu tác vụ phân công...';
+      setTimeout(() => {
+        refreshBtn.classList.remove('animate-spin');
+        announcer.textContent = 'Đã tải mới danh sách công việc ca trực.';
+      }, 500);
+    });
+
+    // 2. MODAL INTERACTIONS (ACCOUNT SHEET)
+    function openAccountSheet() {
+      accountSheet.classList.remove('hidden');
+      accountToggleBtn.setAttribute('aria-expanded', 'true');
+      setTimeout(() => {
+        accountSheetBackdrop.classList.remove('opacity-0');
+        accountSheetBackdrop.classList.add('opacity-100');
+        const panel = accountSheet.querySelector('.transform');
+        panel.classList.remove('translate-y-full');
+        panel.classList.add('translate-y-0');
+      }, 10);
+      accountSheetClose.focus();
+    }
+
+    function closeAccountSheet() {
+      accountSheetBackdrop.classList.remove('opacity-100');
+      accountSheetBackdrop.classList.add('opacity-0');
+      const panel = accountSheet.querySelector('.transform');
+      panel.classList.remove('translate-y-0');
+      panel.classList.add('translate-y-full');
+      setTimeout(() => {
+        accountSheet.classList.add('hidden');
+        accountToggleBtn.setAttribute('aria-expanded', 'false');
+        accountToggleBtn.focus();
+      }, 200);
+    }
+
+    accountToggleBtn.addEventListener('click', openAccountSheet);
+    accountSheetClose.addEventListener('click', closeAccountSheet);
+    accountSheetBackdrop.addEventListener('click', closeAccountSheet);
+
+    function handleLogout() {
+      if (confirm('Xác nhận kết thúc phiên làm việc của nhân viên Trần Quốc Huy?')) {
+        closeAccountSheet();
+        announcer.textContent = 'Đã đăng xuất ca trực an toàn.';
+        alert('Đã kết thúc phiên làm việc của FS. Chuyển hướng về màn hình Đăng nhập (A01).');
+      }
+    }
+
+    // 3. VERIFY BOOKING MODAL (Links directly to M-FS04)
+    function openVerifyModal(bkCode, customerName, unitCode, unitType, slot) {
+      document.getElementById('modal-customer-name').textContent = customerName;
+      document.getElementById('modal-booking-code').textContent = 'Mã đơn: ' + bkCode;
+      document.getElementById('modal-unit-allocated').textContent = 'Vị trí buồng: ' + unitCode + ' (' + unitType + ')';
+
+      verifyModal.classList.remove('hidden');
+      setTimeout(() => {
+        verifyModalBackdrop.classList.remove('opacity-0');
+        verifyModalBackdrop.classList.add('opacity-100');
+        const modalBox = verifyModal.querySelector('.transform');
+        modalBox.classList.remove('scale-95');
+        modalBox.classList.add('scale-100');
+      }, 10);
+      verifyModalClose.focus();
+    }
+
+    function closeVerifyModal() {
+      verifyModalBackdrop.classList.remove('opacity-100');
+      verifyModalBackdrop.classList.add('opacity-0');
+      const modalBox = verifyModal.querySelector('.transform');
+      modalBox.classList.remove('scale-100');
+      modalBox.classList.add('scale-95');
+      setTimeout(() => {
+        verifyModal.classList.add('hidden');
+      }, 150);
+    }
+
+    verifyModalClose.addEventListener('click', closeVerifyModal);
+    verifyModalBackdrop.addEventListener('click', closeVerifyModal);
+
+    function proceedToInspection() {
+      closeVerifyModal();
+      announcer.textContent = 'Chuyển tiếp sang màn hình M-FS04: Kiểm tra buồng kho trước bàn giao.';
+      alert('Chuyển tiếp thành công: Mở màn hình M-FS04 (Kiểm tra hiện trạng & đối chiếu buồng kho HCM-01-001).');
+    }
+
+    // 4. TASK DETAILS & RETURN INSPECTION HANDLERS
+    function showTaskDetails(taskId, customer, booking, spec, status) {
+      const body = document.getElementById('detail-modal-body');
+      body.innerHTML = `
+        <p><strong>Mã nhiệm vụ:</strong> ${taskId}</p>
+        <p><strong>Khách hàng:</strong> ${customer}</p>
+        <p><strong>Đơn booking:</strong> ${booking}</p>
+        <p><strong>Quy cách:</strong> ${spec}</p>
+        <p><strong>Trạng thái:</strong> <span class="text-amber-700 font-semibold">${status}</span></p>
+        <div class="p-2.5 bg-gray-50 border border-cardBorder rounded-custom text-xs text-subText mt-2">
+          Quản lý cơ sở (FM) đang điều phối rà soát buồng kho thực tế. Nhân viên FS không có quyền gán buồng kho trên giao diện này.
+        </div>
+      `;
+      detailModal.classList.remove('hidden');
+      setTimeout(() => {
+        detailModalBackdrop.classList.remove('opacity-0');
+        detailModalBackdrop.classList.add('opacity-100');
+      }, 10);
+    }
+
+    function openReturnInspectionModal(retCode, customer, unit) {
+      const body = document.getElementById('detail-modal-body');
+      body.innerHTML = `
+        <p><strong>Mã trả kho:</strong> ${retCode}</p>
+        <p><strong>Khách hàng:</strong> ${customer}</p>
+        <p><strong>Buồng vật lý:</strong> ${unit}</p>
+        <p><strong>Quy trình tiếp theo:</strong> Chuyển sang màn hình M-FS02 (Kiểm tra trả kho) để thu hồi thẻ RFID, chìa khoá và lập biên bản M-FS03.</p>
+        <div class="p-2.5 bg-blue-50 border border-blue-200 rounded-custom text-xs text-blue-900 mt-2">
+          Lưu ý: Mọi khoản khấu trừ hao mòn (nếu có) phải do FM phê duyệt, FS chỉ xác nhận tình trạng vệ sinh và tài sản bàn giao.
+        </div>
+      `;
+      detailModal.classList.remove('hidden');
+      setTimeout(() => {
+        detailModalBackdrop.classList.remove('opacity-0');
+        detailModalBackdrop.classList.add('opacity-100');
+      }, 10);
+    }
+
+    function closeDetailModal() {
+      detailModalBackdrop.classList.remove('opacity-100');
+      detailModalBackdrop.classList.add('opacity-0');
+      setTimeout(() => {
+        detailModal.classList.add('hidden');
+      }, 150);
+    }
+    detailModalBackdrop.addEventListener('click', closeDetailModal);
+
+    // 5. ACCORDION HELP TOGGLE
+    helpBtn.addEventListener('click', () => {
+      const expanded = helpBtn.getAttribute('aria-expanded') === 'true';
+      helpBtn.setAttribute('aria-expanded', !expanded);
+      if (!expanded) {
+        helpContent.classList.remove('hidden');
+        helpIcon.classList.add('rotate-180');
+      } else {
+        helpContent.classList.add('hidden');
+        helpIcon.classList.remove('rotate-180');
+      }
+    });
+
+    // Keyboard ESC to close any modal
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (!accountSheet.classList.contains('hidden')) closeAccountSheet();
+        if (!verifyModal.classList.contains('hidden')) closeVerifyModal();
+        if (!detailModal.classList.contains('hidden')) closeDetailModal();
+      }
+    });
+  </script>
+
+
+</body></html>
