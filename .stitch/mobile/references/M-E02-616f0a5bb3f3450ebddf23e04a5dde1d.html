@@ -1,0 +1,400 @@
+<!DOCTYPE html><html lang="vi"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>M-E02 — Không tìm thấy trang — Chung</title>
+  <!-- Google Fonts: Space Grotesk & Be Vietnam Pro -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              DEFAULT: '#125345',
+              hover: '#0E4035',
+              soft: '#EAF2EF'
+            },
+            canvas: '#F8FAF9',
+            borderStd: '#BFCAC4',
+            darkText: '#0F172A',
+            subText: '#475569'
+          },
+          fontFamily: {
+            heading: ['"Space Grotesk"', 'sans-serif'],
+            body: ['"Be Vietnam Pro"', 'sans-serif']
+          },
+          borderRadius: {
+            card: '4px',
+            control: '4px'
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      background-color: #F8FAF9;
+      color: #0F172A;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    h1, h2, h3, h4, .font-heading {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    /* Touch target min 44x44 constraint */
+    .touch-target {
+      min-width: 44px;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    /* Custom 1px solid visible border */
+    .border-standard {
+      border: 1px solid #BFCAC4;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between bg-canvas text-darkText antialiased">
+
+  <!-- TOP COMPACT APP BAR (Sticky Mobile Header - 390px span) -->
+  <header class="sticky top-0 z-40 bg-white border-b border-borderStd px-4 h-14 flex items-center justify-between shadow-sm">
+    <div class="flex items-center gap-2">
+      <button id="btnBackHeader" aria-label="Quay lại trang trước" class="touch-target p-2 text-darkText hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded-control">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path>
+        </svg>
+      </button>
+      <div class="flex items-center gap-1.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-primary" aria-hidden="true"></span>
+        <span class="font-heading font-bold text-lg tracking-tight text-primary">storeX</span>
+      </div>
+    </div>
+
+    <!-- Right Header Actions (Hotline Call & Help Trigger) -->
+    <div class="flex items-center gap-1">
+      <a href="tel:02873001188" aria-label="Gọi hotline hỗ trợ 028 7300 1188" class="touch-target px-2 text-subText hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded-control text-xs font-medium gap-1 flex">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+        </svg>
+        <span class="hidden sm:inline">028 7300 1188</span>
+      </a>
+      <button id="btnHeaderMenu" aria-label="Mở menu tài khoản và điều hướng" class="touch-target p-2 text-darkText hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded-control">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN ERROR CONTENT (Single-column, 16px gutters) -->
+  <main class="flex-1 w-full max-w-[430px] mx-auto px-4 py-6 flex flex-col justify-center">
+
+    <!-- 404 Hero Visual & Status Badge -->
+    <div class="text-center mb-6">
+      <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary-soft text-primary mb-4 border border-borderStd" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 12l5-3M12 12v6" stroke-dasharray="2 2"></path>
+        </svg>
+      </div>
+
+      <div class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-800 text-xs font-semibold rounded-control border border-amber-300 mb-2">
+        <span class="w-2 h-2 rounded-full bg-amber-600" aria-hidden="true"></span>
+        <span>MÃ 404 • KHÔNG TÌM THẤY TÀI NGUYÊN</span>
+      </div>
+
+      <h1 class="text-2xl font-bold font-heading text-darkText tracking-tight mb-2">
+        Không tìm thấy trang yêu cầu
+      </h1>
+      <p class="text-base text-subText leading-relaxed">
+        Đường dẫn bạn truy cập có thể đã hết hạn, bị thay đổi hoặc bản ghi buồng kho / phiếu dịch vụ không tồn tại trong hệ thống.
+      </p>
+    </div>
+
+    <!-- CARD 1: Phân biệt sự cố & Hướng dẫn phục hồi nhanh (Nielsen #9) -->
+    <section class="bg-white border-standard rounded-card p-4 mb-4 shadow-sm" aria-labelledby="heading-status-context">
+      <h2 id="heading-status-context" class="font-heading font-semibold text-base text-darkText flex items-center gap-2 mb-3">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        Phân biệt hiện trạng truy cập
+      </h2>
+      <ul class="space-y-2.5 text-sm text-subText">
+        <li class="flex items-start gap-2">
+          <span class="text-primary font-bold mt-0.5">•</span>
+          <span><strong>Nếu bạn đang tìm mã booking/buồng kho:</strong> Vui lòng đối soát lại mã đơn (ví dụ: <code class="text-xs bg-gray-100 text-darkText px-1 py-0.5 rounded font-mono">BK-2026-0001</code>) trên email hoặc phiếu đã cấp.</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="text-primary font-bold mt-0.5">•</span>
+          <span><strong>Không phải do lỗi kết nối mạng:</strong> Thiết bị của bạn vẫn kết nối bình thường với trạm storeX Sài Gòn Central. Không cần tải lại trang liên tục.</span>
+        </li>
+      </ul>
+    </section>
+
+    <!-- CARD 2: Hành động điều hướng chính theo vai trò (Nielsen #3, #4) -->
+    <section class="bg-white border-standard rounded-card p-4 mb-4 shadow-sm" aria-labelledby="heading-actions">
+      <h2 id="heading-actions" class="font-heading font-semibold text-base text-darkText mb-3">
+        Lối về trung tâm xử lý
+      </h2>
+
+      <div class="flex flex-col gap-2.5">
+        <!-- Nút quay lại bước trước -->
+        <button id="btnActionBack" type="button" class="w-full h-12 px-4 bg-primary hover:bg-primary-hover text-white font-medium text-base rounded-control flex items-center justify-center gap-2 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+          </svg>
+          Quay lại trang trước
+        </button>
+
+        <!-- Nút về màn hình chính theo ngữ cảnh vai trò (Guest/Customer hoặc FS) -->
+        <div class="grid grid-cols-2 gap-2">
+          <a id="linkHomeCustomer" href="javascript:void(0)" class="h-12 px-3 bg-canvas hover:bg-primary-soft text-darkText hover:text-primary border border-borderStd font-medium text-sm rounded-control flex items-center justify-center gap-1.5 transition-colors text-center focus:outline-none focus:ring-2 focus:ring-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+            </svg>
+            <span class="truncate">Về Trang chủ</span>
+          </a>
+
+          <a id="linkStaffWork" href="javascript:void(0)" class="h-12 px-3 bg-canvas hover:bg-primary-soft text-darkText hover:text-primary border border-borderStd font-medium text-sm rounded-control flex items-center justify-center gap-1.5 transition-colors text-center focus:outline-none focus:ring-2 focus:ring-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+            </svg>
+            <span class="truncate">Công việc của tôi</span>
+          </a>
+        </div>
+
+        <a id="linkSearchStorage" href="javascript:void(0)" class="h-11 px-3 text-subText hover:text-primary font-medium text-sm flex items-center justify-center gap-1.5 transition-colors text-center focus:outline-none focus:underline">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+          Tìm cơ sở kho lưu trữ khác
+        </a>
+      </div>
+    </section>
+
+    <!-- CARD 3: Hướng dẫn kiểm tra tại chỗ (Nielsen #10: Contextual Help Accordion) -->
+    <section class="bg-white border-standard rounded-card shadow-sm overflow-hidden" aria-labelledby="heading-help">
+      <button id="btnToggleHelp" type="button" aria-expanded="false" aria-controls="helpContent" class="w-full p-4 flex items-center justify-between text-left focus:outline-none focus:bg-canvas">
+        <span id="heading-help" class="font-heading font-semibold text-sm text-darkText flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          Cần hỗ trợ kiểm tra đường dẫn hoặc tài nguyên?
+        </span>
+        <svg id="arrowHelp" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-subText transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
+        </svg>
+      </button>
+
+      <div id="helpContent" class="hidden px-4 pb-4 pt-1 border-t border-borderStd/50 text-sm text-subText space-y-2.5">
+        <div class="bg-canvas p-3 rounded-control border border-borderStd/70">
+          <p class="font-medium text-darkText mb-1">Các bước tự kiểm tra nhanh:</p>
+          <ol class="list-decimal list-inside space-y-1 text-xs leading-relaxed">
+            <li>Kiểm tra lại xem URL có bị thiếu ký tự hoặc gõ nhầm hay không.</li>
+            <li>Nếu được gửi liên kết qua Zalo/Email, hãy mở lại email gốc để lấy đường dẫn mới nhất.</li>
+            <li>Phiếu giữ chỗ tạm thời chỉ tồn tại trong <strong>10 phút</strong>; sau thời hạn này hệ thống sẽ tự động hoàn kho.</li>
+            <li>Nhân viên FS cần kiểm tra đúng ca trực tại trạm được phân công: <strong>StoreX Sài Gòn Central</strong>.</li>
+          </ol>
+        </div>
+
+        <div class="text-xs text-subText pt-1 flex items-center justify-between">
+          <span>Hỗ trợ trực tiếp tại quầy trạm:</span>
+          <span class="font-semibold text-primary">08:00 – 20:00 hàng ngày</span>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- BOTTOM FOOTER (Compact, single-column friendly, copyright & hotline) -->
+  <footer class="w-full bg-white border-t border-borderStd px-4 py-4 text-center text-xs text-subText mt-4">
+    <div class="max-w-[430px] mx-auto space-y-1.5">
+      <p class="font-medium text-darkText">storeX Sài Gòn Central • 118 Nguyễn Văn Linh, Q.7, TP.HCM</p>
+      <p>Tổng đài tiếp nhận hỗ trợ vận hành: <a href="tel:02873001188" class="text-primary font-semibold underline">028 7300 1188</a></p>
+      <p class="text-[11px] text-subText/80">© 2026 storeX Technologies. Hệ thống tự quản kho vật lý thông minh.</p>
+    </div>
+  </footer>
+
+  <!-- BOTTOM SHEET MODAL: Menu điều hướng & Vai trò (Nielsen #3 - Closeable, Focus trap) -->
+  <div id="drawerOverlay" class="fixed inset-0 bg-darkText/40 z-50 hidden opacity-0 transition-opacity duration-200" aria-hidden="true"></div>
+
+  <div id="bottomDrawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle" class="fixed bottom-0 left-0 right-0 max-w-[430px] mx-auto bg-white border-t border-borderStd rounded-t-lg z-50 transform translate-y-full transition-transform duration-200 p-4 shadow-xl">
+    <div class="flex items-center justify-between pb-3 border-b border-borderStd">
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-primary" aria-hidden="true"></span>
+        <h2 id="drawerTitle" class="font-heading font-bold text-base text-darkText">Điều hướng nhanh StoreX</h2>
+      </div>
+      <button id="btnCloseDrawer" aria-label="Đóng bảng điều hướng" class="touch-target p-1 text-subText hover:text-darkText rounded-control focus:outline-none focus:ring-2 focus:ring-primary">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Danh sách liên kết an toàn theo vai trò trong hệ thống StoreX -->
+    <div class="py-3 space-y-1">
+      <p class="text-xs font-semibold uppercase tracking-wider text-subText px-2 py-1">Khách thuê kho (Customer / Guest)</p>
+      <a href="javascript:void(0)" class="drawer-nav-item flex items-center justify-between px-3 py-2.5 rounded-control hover:bg-canvas text-sm font-medium text-darkText">
+        <span>Trang chủ</span>
+        <span class="text-xs text-subText">M-P00</span>
+      </a>
+      <a href="javascript:void(0)" class="drawer-nav-item flex items-center justify-between px-3 py-2.5 rounded-control hover:bg-canvas text-sm font-medium text-darkText">
+        <span>Tìm cơ sở kho</span>
+        <span class="text-xs text-subText">M-P01</span>
+      </a>
+      <a href="javascript:void(0)" class="drawer-nav-item flex items-center justify-between px-3 py-2.5 rounded-control hover:bg-canvas text-sm font-medium text-darkText">
+        <span>Đăng nhập hệ thống</span>
+        <span class="text-xs text-subText">M-A01</span>
+      </a>
+
+      <div class="border-t border-borderStd/60 my-2 pt-2">
+        <p class="text-xs font-semibold uppercase tracking-wider text-subText px-2 py-1">Nhân viên trạm (Field Specialist)</p>
+        <a href="javascript:void(0)" class="drawer-nav-item flex items-center justify-between px-3 py-2.5 rounded-control hover:bg-canvas text-sm font-medium text-darkText">
+          <span>Công việc của tôi</span>
+          <span class="text-xs text-subText">M-FS01</span>
+        </a>
+        <a href="javascript:void(0)" class="drawer-nav-item flex items-center justify-between px-3 py-2.5 rounded-control hover:bg-canvas text-sm font-medium text-darkText">
+          <span>Yêu cầu kiểm tra trả kho</span>
+          <span class="text-xs text-subText">M-FS02</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="pt-2 border-t border-borderStd">
+      <button id="btnDismissDrawer" type="button" class="w-full h-11 bg-canvas hover:bg-gray-100 text-subText font-medium text-sm rounded-control border border-borderStd">
+        Đóng menu
+      </button>
+    </div>
+  </div>
+
+  <!-- IN-PAGE TOAST NOTIFICATION (Nielsen #1, #9: Feedback without blocking alerts) -->
+  <div id="toastMessage" role="status" aria-live="polite" class="fixed bottom-6 left-4 right-4 max-w-[400px] mx-auto bg-darkText text-white text-sm px-4 py-3 rounded-control shadow-lg flex items-center justify-between gap-3 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none z-50">
+    <div class="flex items-center gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+      </svg>
+      <span id="toastText">Đang chuyển hướng về trang trước...</span>
+    </div>
+  </div>
+
+  <!-- INLINE CLIENT-SIDE JAVASCRIPT FIXTURES & INTERACTIONS (No fetch/API, Pure Local Prototype) -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Elements
+      const btnBackHeader = document.getElementById('btnBackHeader');
+      const btnActionBack = document.getElementById('btnActionBack');
+      const btnToggleHelp = document.getElementById('btnToggleHelp');
+      const helpContent = document.getElementById('helpContent');
+      const arrowHelp = document.getElementById('arrowHelp');
+      const btnHeaderMenu = document.getElementById('btnHeaderMenu');
+      const drawerOverlay = document.getElementById('drawerOverlay');
+      const bottomDrawer = document.getElementById('bottomDrawer');
+      const btnCloseDrawer = document.getElementById('btnCloseDrawer');
+      const btnDismissDrawer = document.getElementById('btnDismissDrawer');
+      const toastMessage = document.getElementById('toastMessage');
+      const toastText = document.getElementById('toastText');
+
+      const linkHomeCustomer = document.getElementById('linkHomeCustomer');
+      const linkStaffWork = document.getElementById('linkStaffWork');
+      const linkSearchStorage = document.getElementById('linkSearchStorage');
+
+      // Toast feedback helper
+      function showToast(msg) {
+        toastText.textContent = msg;
+        toastMessage.classList.remove('translate-y-20', 'opacity-0');
+        toastMessage.classList.add('translate-y-0', 'opacity-100');
+        setTimeout(() => {
+          toastMessage.classList.remove('translate-y-0', 'opacity-100');
+          toastMessage.classList.add('translate-y-20', 'opacity-0');
+        }, 2600);
+      }
+
+      // Back button interaction (Fallback to history or mock feedback)
+      function handleBack() {
+        showToast('Đang quay lại trang thao tác trước đó...');
+        setTimeout(() => {
+          if (window.history.length > 1) {
+            window.history.back();
+          }
+        }, 600);
+      }
+
+      btnBackHeader.addEventListener('click', handleBack);
+      btnActionBack.addEventListener('click', handleBack);
+
+      // Contextual Help Accordion Toggle (Nielsen Heuristic #10)
+      btnToggleHelp.addEventListener('click', function() {
+        const isExpanded = btnToggleHelp.getAttribute('aria-expanded') === 'true';
+        btnToggleHelp.setAttribute('aria-expanded', !isExpanded);
+        if (isExpanded) {
+          helpContent.classList.add('hidden');
+          arrowHelp.classList.remove('rotate-180');
+        } else {
+          helpContent.classList.remove('hidden');
+          arrowHelp.classList.add('rotate-180');
+        }
+      });
+
+      // Bottom Drawer Menu Management (Nielsen Heuristic #3 & Accessibility)
+      function openDrawer() {
+        drawerOverlay.classList.remove('hidden');
+        setTimeout(() => {
+          drawerOverlay.classList.remove('opacity-0');
+          bottomDrawer.classList.remove('translate-y-full');
+          btnCloseDrawer.focus();
+        }, 10);
+      }
+
+      function closeDrawer() {
+        drawerOverlay.classList.add('opacity-0');
+        bottomDrawer.classList.add('translate-y-full');
+        setTimeout(() => {
+          drawerOverlay.classList.add('hidden');
+          btnHeaderMenu.focus();
+        }, 200);
+      }
+
+      btnHeaderMenu.addEventListener('click', openDrawer);
+      drawerOverlay.addEventListener('click', closeDrawer);
+      btnCloseDrawer.addEventListener('click', closeDrawer);
+      btnDismissDrawer.addEventListener('click', closeDrawer);
+
+      // Keyboard Accessibility: Escape key closes modal
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !bottomDrawer.classList.contains('translate-y-full')) {
+          closeDrawer();
+        }
+      });
+
+      // Role quick navigation links (Simulated in local prototype)
+      linkHomeCustomer.addEventListener('click', function() {
+        showToast('Chuyển hướng về Trang chủ StoreX (M-P00)...');
+      });
+
+      linkStaffWork.addEventListener('click', function() {
+        showToast('Chuyển hướng về Công việc của tôi - FS (M-FS01)...');
+      });
+
+      linkSearchStorage.addEventListener('click', function() {
+        showToast('Mở danh sách tìm kiếm buồng kho (M-P01)...');
+      });
+
+      const drawerLinks = document.querySelectorAll('.drawer-nav-item');
+      drawerLinks.forEach(link => {
+        link.addEventListener('click', function() {
+          const title = this.querySelector('span')?.textContent || 'trang';
+          closeDrawer();
+          showToast(`Đang điều hướng đến ${title}...`);
+        });
+      });
+    });
+  </script>
+
+
+</body></html>

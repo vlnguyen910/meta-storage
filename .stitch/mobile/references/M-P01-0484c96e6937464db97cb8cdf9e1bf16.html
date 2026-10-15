@@ -1,0 +1,641 @@
+<!DOCTYPE html><html lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=5.0" name="viewport">
+<title>M-P01 — Tìm cơ sở kho — Guest/Customer | storeX</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Space+Grotesk:wght@600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#125345',
+            'primary-dark': '#0d3d33',
+            'primary-soft': '#e8f3ef',
+            canvas: '#F8FAF9',
+            surface: '#FFFFFF',
+            'txt-main': '#0F172A',
+            'txt-muted': '#475569',
+            'border-card': '#BFCAC4',
+            'surface-tint': '#F1F5F3',
+          },
+          fontFamily: {
+            heading: ['"Space Grotesk"', 'sans-serif'],
+            body: ['"Be Vietnam Pro"', 'sans-serif'],
+          },
+          borderRadius: {
+            card: '4px',
+            btn: '4px',
+          },
+          boxShadow: {
+            faint: '0 1px 2px rgba(15, 23, 42, 0.04)',
+            sheet: '0 -4px 20px rgba(15, 23, 42, 0.12)',
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      background-color: #F8FAF9;
+      color: #0F172A;
+      -webkit-font-smoothing: antialiased;
+    }
+    h1, h2, h3, h4, .font-heading {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .material-symbols-outlined {
+      font-size: 20px;
+      line-height: 1;
+      vertical-align: middle;
+    }
+    /* Accessible focus ring */
+    *:focus-visible {
+      outline: 2px solid #125345;
+      outline-offset: 2px;
+    }
+    .card-border {
+      border: 1px solid #BFCAC4;
+      border-radius: 4px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+    /* Safe padding for bottom bars */
+    .pb-safe {
+      padding-bottom: calc(1rem + env(safe-area-inset-bottom, 16px));
+    }
+  </style>
+</head>
+<body class="bg-[#FAF8FF] text-[#1E293B] min-h-screen w-full max-w-[390px] mx-auto overflow-x-hidden flex flex-col justify-between selection:bg-primary-soft selection:text-primary relative">
+<!-- TOP APP BAR -->
+<header class="sticky top-0 z-30 w-full bg-white border-b border-[#BFCAC4] px-3 py-2 flex items-center justify-between shadow-faint"><div class="flex items-center gap-2"><a aria-label="storeX - Về trang chủ" class="flex items-center gap-2 group min-h-[44px] min-w-[44px] px-1 rounded focus:outline-none" href="#home"><div class="w-8 h-8 rounded bg-primary text-surface flex items-center justify-center font-bold text-base font-heading tracking-tight">X</div><div class="flex flex-col"><span class="font-heading font-bold text-base tracking-tight text-primary leading-none">storeX</span><span class="text-[9px] text-txt-muted uppercase tracking-wider font-semibold">Tự quản kho</span></div></a></div><div class="flex items-center gap-2"><span class="inline-flex items-center px-2 py-0.5 text-[11px] font-medium text-primary bg-primary-soft border border-[#BFCAC4] rounded">Khách vãng lai</span><a class="flex items-center justify-center min-w-[44px] min-h-[44px] text-xs font-semibold text-primary hover:text-primary-dark rounded border border-transparent focus:border-border-card px-2" href="#auth">Đăng nhập</a></div></header>
+<!-- MAIN CONTENT CONTAINER -->
+<main class="w-full px-3.5 pt-3 pb-24 flex-1 flex flex-col gap-3.5">
+<!-- PAGE TITLE & PROGRESSIVE DISCLOSURE -->
+<section>
+<div class="flex items-baseline justify-between">
+<h1 class="text-xl sm:text-2xl font-bold font-heading text-txt-main leading-tight">
+          Tìm kho gần bạn
+        </h1>
+<span class="text-xs text-txt-muted bg-surface px-2 py-1 rounded border border-border-card">
+          M-P01
+        </span>
+</div>
+<p class="text-xs text-txt-muted mt-1 leading-relaxed">
+        Chọn cơ sở tự quản kho vật lý phù hợp trước khi xem bảng giá và đăng ký giữ buồng kho.
+      </p>
+</section>
+<!-- SEARCH & FILTER ROW (WCAG 44px Controls, clear persistent labels) -->
+<section aria-label="Công cụ tìm kiếm cơ sở" class="flex flex-col gap-2">
+<div class="flex gap-2 items-center">
+<!-- Search Input with explicit label -->
+<div class="relative flex-1">
+<label class="sr-only" for="facilitySearchInput">Tìm kiếm theo tên cơ sở hoặc khu vực quận huyện</label>
+<span aria-hidden="true" class="absolute inset-y-0 left-3 flex items-center pointer-events-none text-txt-muted">
+<span class="material-symbols-outlined text-lg">search</span>
+</span>
+<input autocomplete="off" class="w-full h-12 pl-10 pr-9 bg-white text-base text-[#1E293B] placeholder-txt-muted border border-[#BFCAC4] rounded focus:border-primary focus:ring-1 focus:ring-primary shadow-faint" id="facilitySearchInput" oninput="handleSearch(this.value)" placeholder="Nhập quận, huyện hoặc tên trạm..." type="search">
+<button aria-label="Xóa nội dung tìm kiếm" class="hidden absolute inset-y-0 right-1 flex items-center justify-center min-w-[36px] min-h-[44px] text-txt-muted hover:text-txt-main" id="clearSearchBtn" onclick="clearSearch()" type="button">
+<span aria-hidden="true" class="material-symbols-outlined text-base">close</span>
+</button>
+</div>
+<!-- Filter Toggle Button (opens bottom sheet) -->
+<button aria-controls="filterBottomSheet" aria-expanded="false" aria-haspopup="dialog" class="h-12 px-3.5 bg-surface border border-border-card rounded-btn flex items-center gap-1.5 text-sm font-semibold text-txt-main hover:bg-surface-tint min-w-[44px] shadow-faint relative" id="openFilterBtn" onclick="toggleFilterSheet(true)" type="button">
+<span aria-hidden="true" class="material-symbols-outlined text-lg text-primary">tune</span>
+<span class="hidden xs:inline">Lọc</span>
+<span class="hidden ml-0.5 w-5 h-5 bg-primary text-surface text-xs font-bold rounded-full flex items-center justify-center" id="activeFilterBadge">0</span>
+</button>
+</div>
+<!-- ACTIVE FILTER CHIPS & RESET ACTION -->
+<div class="hidden flex-wrap items-center gap-1.5 pt-1 text-xs text-txt-muted" id="activeFiltersContainer">
+<span class="font-medium text-txt-main">Đang lọc:</span>
+<span class="hidden inline-flex items-center gap-1 bg-primary-soft text-primary font-medium px-2 py-1 rounded border border-primary/20" id="cityChip">
+<span id="cityChipText">TP. Hồ Chí Minh</span>
+<button aria-label="Bỏ lọc thành phố" class="hover:text-primary-dark ml-0.5" onclick="removeCityFilter()" type="button">
+<span aria-hidden="true" class="material-symbols-outlined text-sm leading-none">cancel</span>
+</button>
+</span>
+<span class="hidden inline-flex items-center gap-1 bg-primary-soft text-primary font-medium px-2 py-1 rounded border border-primary/20" id="sizeChip">
+<span id="sizeChipText">Còn buồng trống</span>
+<button aria-label="Bỏ lọc tình trạng" class="hover:text-primary-dark ml-0.5" onclick="removeAvailabilityFilter()" type="button">
+<span aria-hidden="true" class="material-symbols-outlined text-sm leading-none">cancel</span>
+</button>
+</span>
+<button class="text-xs text-primary underline font-medium ml-1 p-1 min-h-[32px] flex items-center" onclick="resetAllFilters()" type="button">
+          Xóa tất cả
+        </button>
+</div>
+</section>
+<!-- LIVE RESULTS STATUS (Nielsen Heuristic 1) -->
+<div class="flex items-center justify-between text-xs text-txt-muted px-0.5" id="resultsCountBar">
+<span id="resultsCountText">Hiển thị <strong>3 cơ sở</strong> khả dụng</span>
+<span class="text-[11px] bg-[#E2E8F0] text-txt-muted px-1.5 py-0.5 rounded">Dữ liệu mẫu GMT+7</span>
+</div>
+<!-- FACILITY CARDS LIST -->
+<section aria-label="Danh sách cơ sở kho" class="flex flex-col gap-3.5" id="facilityListContainer">
+<!-- CARD 1: StoreX Sài Gòn Central (Available) -->
+<article class="bg-surface card-border p-3 flex flex-col gap-3 relative transition-all" data-available="true" data-city="hcm" data-facility-id="SGC">
+<!-- Facility Visual & Badges -->
+<div class="relative w-full h-36 bg-surface-tint rounded overflow-hidden border border-[#BFCAC4]/40">
+<img alt="Hành lang buồng kho sạch sẽ tại StoreX Sài Gòn Central với các cửa cuốn kim loại" class="w-full h-full object-cover" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'390\' height=\'150\' viewBox=\'0 0 390 150\'%3E%3Crect fill=\'%23e8f3ef\' width=\'390\' height=\'150\'/%3E%3Ctext fill=\'%23125345\' font-family=\'sans-serif\' font-size=\'14\' font-weight=\'bold\' x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\'%3EstoreX Sài Gòn Central%3C/text%3E%3C/svg%3E';" src="https://lh3.googleusercontent.com/aida/AEtjO1VlYcn5B-VWE23B5sVL-F8Zdttwavjhr0YPSIQK6OJUSIhQwZJXa9CN01PeDU2AFX2R91rqz3OIdEXOiO9U5NOBF-4McsDOx2c2-x1BxlpD9YJ_Tz56fvPhJzlQBPPKYVAS75MlHPkZc1ujvjtrySxmBp-jKvtpyd5Mss34RaA9XwFIwRf8M39eqXwt67z24Ke3qjVDwSeS_RkoJCUxNgKGyIvPPH0iJfTsFxgKGgSSPOCeLBpYsGdnSXnu">
+<div class="absolute top-2 left-2 flex items-center gap-1.5 bg-surface/95 backdrop-blur-sm px-2 py-0.5 rounded border border-border-card text-xs font-semibold text-primary">
+<span aria-hidden="true" class="w-2 h-2 rounded-full bg-emerald-600 inline-block animate-pulse"></span>
+<span>Đang tiếp nhận khách</span>
+</div>
+<div class="absolute bottom-2 right-2 bg-txt-main/80 text-surface text-[11px] px-2 py-0.5 rounded font-medium">
+            Mã trạm: SGC
+          </div>
+</div>
+<!-- Facility Info -->
+<div class="flex flex-col gap-1.5">
+<div class="flex items-start justify-between gap-2">
+<h2 class="text-base font-bold font-heading text-txt-main leading-snug">
+              StoreX Sài Gòn Central
+            </h2>
+<span class="text-xs font-bold text-primary bg-primary-soft px-1.5 py-0.5 rounded whitespace-nowrap">
+              Còn 16 buồng trống
+            </span>
+</div>
+<div class="flex items-start gap-1.5 text-xs text-txt-muted leading-tight">
+<span aria-hidden="true" class="material-symbols-outlined text-sm text-txt-muted flex-shrink-0 mt-0.5">location_on</span>
+<span>118 Nguyễn Văn Linh, P. Tân Phong, Quận 7, TP.HCM</span>
+</div>
+<div class="flex items-center gap-1.5 text-xs text-txt-muted">
+<span aria-hidden="true" class="material-symbols-outlined text-sm text-txt-muted flex-shrink-0">call</span>
+<span>Hotline cơ sở: <strong>028 7300 1188</strong> (08:00 – 20:00)</span>
+</div>
+<!-- Price & Primary CTA -->
+<div class="mt-2 pt-2 border-t border-[#BFCAC4]/60 flex items-center justify-between gap-3">
+<div class="flex flex-col">
+<span class="text-[11px] text-txt-muted uppercase font-semibold">Đơn giá tham khảo</span>
+<div class="text-sm font-bold text-txt-main">
+                Từ <span class="text-base text-primary">900.000 đ</span><span class="text-xs font-normal text-txt-muted"> / tháng</span>
+</div>
+</div>
+<!-- Action Button leads to M-P02 -->
+<button class="h-11 px-4 bg-primary text-surface font-semibold text-sm rounded-btn hover:bg-primary-dark transition-colors flex items-center gap-1 min-w-[120px] justify-center shadow-faint active:scale-[0.98]" onclick="navigateToDetail('SGC', 'StoreX Sài Gòn Central')" type="button">
+<span>Xem cơ sở</span>
+<span aria-hidden="true" class="material-symbols-outlined text-base">arrow_forward</span>
+</button>
+</div>
+</div>
+</article>
+<!-- CARD 2: StoreX Hà Nội West (Notice / Full / Limited availability) -->
+<article class="bg-surface card-border p-3 flex flex-col gap-3 relative transition-all" data-available="false" data-city="hn" data-facility-id="HNW">
+<!-- Facility Visual & Badges -->
+<div class="relative w-full h-36 bg-surface-tint rounded overflow-hidden border border-[#BFCAC4]/40">
+<img alt="Khu vực tiếp đón và cửa vào hệ thống kho StoreX Hà Nội West" class="w-full h-full object-cover" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'390\' height=\'150\' viewBox=\'0 0 390 150\'%3E%3Crect fill=\'%23e8f3ef\' width=\'390\' height=\'150\'/%3E%3Ctext fill=\'%23125345\' font-family=\'sans-serif\' font-size=\'14\' font-weight=\'bold\' x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\'%3EstoreX Hà Nội West%3C/text%3E%3C/svg%3E';" src="https://lh3.googleusercontent.com/aida/AEtjO1VCGtlb_hKWEuNG1bUgvqDR5WnIPFe80kwNtjTbc6l6s4fpcXDCh4Lxw8qd7v8QkW3pz12JSf12tZL2CgHQhhrWltNzCMlLCOcXEUHy1ZffNJA2rVNdnZTvXMJcqYaHPqE_dLUk0bCsaTv9T4EzCrDhsm-YEA05UBpcTlIOiQgwFVJ_DVARVwn7BfaftntMVrOGZbwpyJJCunNUpjcloRa49g1U30uiAAj1PM0rZfoR-R5VXwwVFoizFmM">
+<div class="absolute top-2 left-2 flex items-center gap-1.5 bg-amber-50/95 backdrop-blur-sm px-2 py-0.5 rounded border border-amber-300 text-xs font-semibold text-amber-800">
+<span aria-hidden="true" class="material-symbols-outlined text-xs">info</span>
+<span>Tạm hết buồng trống</span>
+</div>
+<div class="absolute bottom-2 right-2 bg-txt-main/80 text-surface text-[11px] px-2 py-0.5 rounded font-medium">
+            Mã trạm: HNW
+          </div>
+</div>
+<!-- Facility Info -->
+<div class="flex flex-col gap-1.5">
+<div class="flex items-start justify-between gap-2">
+<h2 class="text-base font-bold font-heading text-txt-main leading-snug">
+              StoreX Hà Nội West
+            </h2>
+<span class="text-xs font-medium text-amber-800 bg-amber-100/70 px-1.5 py-0.5 rounded whitespace-nowrap">
+              0 buồng trống
+            </span>
+</div>
+<div class="flex items-start gap-1.5 text-xs text-txt-muted leading-tight">
+<span aria-hidden="true" class="material-symbols-outlined text-sm text-txt-muted flex-shrink-0 mt-0.5">location_on</span>
+<span>Số 88 Duy Tân, Dịch Vọng Hậu, Cầu Giấy, Hà Nội</span>
+</div>
+<div class="flex items-center gap-1.5 text-xs text-txt-muted">
+<span aria-hidden="true" class="material-symbols-outlined text-sm text-txt-muted flex-shrink-0">call</span>
+<span>Hotline cơ sở: <strong>024 7300 2266</strong> (08:00 – 20:00)</span>
+</div>
+<!-- Price & Unavailable State Explanation (Heuristic 9 & Business Rule Guard) -->
+<div class="mt-2 pt-2 border-t border-[#BFCAC4]/60 flex items-center justify-between gap-3">
+<div class="flex flex-col">
+<span class="text-[11px] text-txt-muted uppercase font-semibold">Đơn giá tham khảo</span>
+<div class="text-sm font-bold text-txt-main">
+                Từ <span class="text-base text-txt-main">850.000 đ</span><span class="text-xs font-normal text-txt-muted"> / tháng</span>
+</div>
+</div>
+<!-- Disabled / Inactive CTA with explicit plain Vietnamese reason -->
+<button aria-label="Cơ sở tạm thời hết buồng trống - xem thông báo" class="h-11 px-3 bg-surface-tint border border-border-card text-txt-muted font-medium text-xs rounded-btn hover:bg-[#E2E8F0] transition-colors flex items-center gap-1 min-w-[120px] justify-center" onclick="showUnavailableModal('StoreX Hà Nội West')" type="button">
+<span aria-hidden="true" class="material-symbols-outlined text-sm">schedule</span>
+<span>Tạm hết kho</span>
+</button>
+</div>
+</div>
+</article>
+<article class="bg-white card-border p-3 flex flex-col gap-2.5 relative transition-all" data-available="true" data-city="hcm" data-facility-id="BT"><div class="relative w-full h-32 bg-surface-tint rounded overflow-hidden border border-[#BFCAC4]"><img alt="Hệ thống buồng kho tại StoreX Bình Thạnh" class="w-full h-full object-cover" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'390\' height=\'150\' viewBox=\'0 0 390 150\'%3E%3Crect fill=\'%23e8f3ef\' width=\'390\' height=\'150\'/%3E%3Ctext fill=\'%23125345\' font-family=\'sans-serif\' font-size=\'14\' font-weight=\'bold\' x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\'%3EstoreX Bình Thạnh%3C/text%3E%3C/svg%3E';" src="https://lh3.googleusercontent.com/aida/AEtjO1VlYcn5B-VWE23B5sVL-F8Zdttwavjhr0YPSIQK6OJUSIhQwZJXa9CN01PeDU2AFX2R91rqz3OIdEXOiO9U5NOBF-4McsDOx2c2-x1BxlpD9YJ_Tz56fvPhJzlQBPPKYVAS75MlHPkZc1ujvjtrySxmBp-jKvtpyd5Mss34RaA9XwFIwRf8M39eqXwt67z24Ke3qjVDwSeS_RkoJCUxNgKGyIvPPH0iJfTsFxgKGgSSPOCeLBpYsGdnSXnu"><div class="absolute top-2 left-2 flex items-center gap-1.5 bg-white/95 backdrop-blur-sm px-2 py-0.5 rounded border border-[#BFCAC4] text-xs font-semibold text-primary"><span aria-hidden="true" class="w-2 h-2 rounded-full bg-emerald-600 inline-block animate-pulse"></span><span>Đang tiếp nhận khách</span></div><div class="absolute bottom-2 right-2 bg-slate-900/80 text-white text-[11px] px-2 py-0.5 rounded font-medium">Mã trạm: BT</div></div><div class="flex flex-col gap-1.5"><div class="flex items-start justify-between gap-2"><h2 class="text-base font-bold font-heading text-[#1E293B] leading-snug">StoreX Bình Thạnh</h2><span class="text-xs font-bold text-primary bg-primary-soft px-1.5 py-0.5 rounded border border-primary/20 whitespace-nowrap">Còn 10 buồng trống</span></div><div class="flex items-start gap-1.5 text-xs text-txt-muted leading-tight"><span aria-hidden="true" class="material-symbols-outlined text-sm text-txt-muted flex-shrink-0 mt-0.5">location_on</span><span>45 Ung Văn Khiêm, P. 25, Bình Thạnh, TP.HCM</span></div><div class="flex items-center gap-1.5 text-xs text-txt-muted"><span aria-hidden="true" class="material-symbols-outlined text-sm text-txt-muted flex-shrink-0">call</span><span>Hotline cơ sở: <strong>028 7300 3399</strong> (08:00 – 20:00)</span></div><div class="mt-2 pt-2 border-t border-[#BFCAC4] flex items-center justify-between gap-2"><div class="flex flex-col"><span class="text-[11px] text-txt-muted uppercase font-semibold">Đơn giá tham khảo</span><div class="text-sm font-bold text-[#1E293B]">Từ <span class="text-base text-primary">920.000 đ</span><span class="text-xs font-normal text-txt-muted"> / tháng</span></div></div><button class="h-11 px-4 bg-primary text-white font-semibold text-sm rounded hover:bg-primary-dark transition-colors flex items-center gap-1 min-w-[120px] justify-center shadow-faint active:scale-[0.98]" onclick="navigateToDetail('BT', 'StoreX Bình Thạnh')" type="button"><span>Xem cơ sở</span><span aria-hidden="true" class="material-symbols-outlined text-base">arrow_forward</span></button></div></div></article></section>
+<!-- EMPTY SEARCH/FILTER STATE (Heuristic 9) -->
+<div class="hidden bg-surface card-border p-6 flex flex-col items-center text-center gap-2 my-2" id="emptyResultsState">
+<div aria-hidden="true" class="w-12 h-12 rounded-full bg-surface-tint flex items-center justify-center text-txt-muted mb-1">
+<span class="material-symbols-outlined text-2xl">search_off</span>
+</div>
+<h3 class="text-base font-bold font-heading text-txt-main">Không tìm thấy cơ sở phù hợp</h3>
+<p class="text-xs text-txt-muted max-w-xs">
+        Không có trạm nào khớp với bộ lọc hoặc từ khóa tìm kiếm của bạn. Hãy thử xóa bộ lọc để xem toàn bộ danh mục trạm StoreX.
+      </p>
+<button class="mt-2 h-11 px-4 bg-primary text-surface text-sm font-semibold rounded-btn min-w-[140px] flex items-center justify-center gap-1.5 hover:bg-primary-dark" onclick="resetAllFilters()" type="button">
+<span aria-hidden="true" class="material-symbols-outlined text-base">refresh</span>
+<span>Đặt lại tìm kiếm</span>
+</button>
+</div>
+<!-- CONTEXTUAL HELP ACCORDION (Nielsen Heuristic 10: Help & Documentation) -->
+<section aria-label="Hướng dẫn chọn cơ sở kho" class="mt-2 bg-surface card-border p-3 flex flex-col gap-2">
+<button aria-controls="helpAccordionContent" aria-expanded="false" class="w-full flex items-center justify-between text-left py-1 text-sm font-bold font-heading text-txt-main focus:outline-none min-h-[44px]" id="helpAccordionHeader" onclick="toggleHelpAccordion()" type="button">
+<span class="flex items-center gap-2">
+<span aria-hidden="true" class="material-symbols-outlined text-primary text-lg">help_outline</span>
+<span>Quy trình thuê kho tự quản StoreX</span>
+</span>
+<span aria-hidden="true" class="material-symbols-outlined text-txt-muted transition-transform duration-200" id="helpChevron">expand_more</span>
+</button>
+<div class="hidden text-xs text-txt-muted pt-2 border-t border-[#BFCAC4]/60 flex flex-col gap-2" id="helpAccordionContent">
+<ol class="list-decimal pl-4 space-y-1.5 leading-relaxed">
+<li><strong>Bước 1 (M-P01):</strong> Chọn cơ sở thuận tiện cho việc di chuyển gửi đồ và bàn giao.</li>
+<li><strong>Bước 2 (M-P02):</strong> Xem kích thước thực tế (Mini 2m², Tiêu chuẩn 4m², Lớn 6m²) và kiểm tra số buồng khả dụng.</li>
+<li><strong>Bước 3:</strong> Chọn giữ chỗ (10 phút) hoặc thanh toán hoàn tất để nhận lịch hẹn check-in tiếp đón.</li>
+<li><strong>Bước 4:</strong> Đến trực tiếp quầy đón tiếp cơ sở StoreX để nhân viên (FS) kiểm tra hiện trạng và bàn giao buồng kho.</li>
+</ol>
+<p class="text-[11px] text-txt-main bg-primary-soft p-2 rounded border border-primary/20">
+<em>Lưu ý:</em> Tiền cọc và tiền thuê được tách bạch minh bạch. Hợp đồng chỉ chính thức kích hoạt sau biên bản kiểm tra thực địa tại trạm.
+        </p>
+</div>
+</section>
+</main>
+<!-- ROLE-SPECIFIC MOBILE BOTTOM NAVIGATION (44px touch targets) -->
+<nav aria-label="Thanh điều hướng chính" class="fixed bottom-0 left-0 right-0 z-20 bg-surface border-t border-border-card shadow-lg pb-safe">
+<div class="w-full max-w-[390px] mx-auto px-2 h-14 flex items-center justify-around" id="mainBottomNav">
+<!-- Nav Item 1: Trang chủ -->
+<a aria-label="Trang chủ" class="flex flex-col items-center justify-center min-w-[64px] min-h-[44px] text-txt-muted hover:text-primary rounded text-center focus:outline-none" href="#home">
+<span aria-hidden="true" class="material-symbols-outlined text-xl">home</span>
+<span class="text-[11px] font-medium leading-tight">Trang chủ</span>
+</a>
+<!-- Nav Item 2: Tìm kho (Active) -->
+<a aria-current="page" aria-label="Tìm cơ sở kho" class="flex flex-col items-center justify-center min-w-[64px] min-h-[44px] text-primary rounded text-center focus:outline-none font-bold" href="#find">
+<span aria-hidden="true" class="material-symbols-outlined text-xl">warehouse</span>
+<span class="text-[11px] leading-tight">Tìm kho</span>
+</a>
+<!-- Nav Item 3: Role Switchable (Đăng nhập / Kho của tôi) -->
+<a aria-label="Đăng nhập tài khoản" class="flex flex-col items-center justify-center min-w-[64px] min-h-[44px] text-txt-muted hover:text-primary rounded text-center focus:outline-none" href="#auth" id="dynamicNavAction" onclick="handleDynamicNavClick(event)">
+<span aria-hidden="true" class="material-symbols-outlined text-xl" id="dynamicNavIcon">login</span>
+<span class="text-[11px] font-medium leading-tight" id="dynamicNavLabel">Đăng nhập</span>
+</a>
+</div>
+</nav>
+<!-- BOTTOM SHEET: FILTER (Area / Availability) -->
+<div aria-hidden="true" class="fixed inset-0 bg-[#0F172A]/50 z-40 hidden transition-opacity" id="filterBottomSheetBackdrop" onclick="toggleFilterSheet(false)"></div>
+<section aria-labelledby="filterSheetTitle" aria-modal="true" class="fixed bottom-0 left-0 right-0 max-w-[390px] mx-auto z-50 bg-white rounded-t border-t border-[#BFCAC4] shadow-sheet p-4 pb-safe hidden transform transition-transform translate-y-full flex flex-col gap-4" id="filterBottomSheet" role="dialog">
+<!-- Sheet Header -->
+<div class="flex items-center justify-between border-b border-[#BFCAC4]/60 pb-3">
+<div class="flex items-center gap-2">
+<span aria-hidden="true" class="material-symbols-outlined text-primary">tune</span>
+<h2 class="text-base font-bold font-heading text-txt-main" id="filterSheetTitle">Lọc danh sách cơ sở</h2>
+</div>
+<button aria-label="Đóng bảng lọc" class="min-w-[44px] min-h-[44px] flex items-center justify-center text-txt-muted hover:text-txt-main rounded" onclick="toggleFilterSheet(false)" type="button">
+<span aria-hidden="true" class="material-symbols-outlined text-xl">close</span>
+</button>
+</div>
+<!-- Filter Form -->
+<form class="flex flex-col gap-4" id="filterForm" onsubmit="applyFilterForm(event)">
+<!-- Filter Group 1: Khu vực / Thành phố -->
+<fieldset class="flex flex-col gap-2">
+<legend class="text-sm font-bold text-txt-main">Thành phố &amp; Khu vực</legend>
+<div class="grid grid-cols-2 gap-2">
+<label class="flex items-center gap-2 p-2.5 bg-surface border border-border-card rounded cursor-pointer min-h-[44px] hover:bg-surface-tint">
+<input checked="" class="w-4 h-4 text-primary accent-primary" name="cityFilter" type="radio" value="all">
+<span class="text-xs font-medium">Tất cả (2)</span>
+</label>
+<label class="flex items-center gap-2 p-2.5 bg-surface border border-border-card rounded cursor-pointer min-h-[44px] hover:bg-surface-tint">
+<input class="w-4 h-4 text-primary accent-primary" name="cityFilter" type="radio" value="hcm">
+<span class="text-xs font-medium">TP. Hồ Chí Minh</span>
+</label>
+<label class="flex items-center gap-2 p-2.5 bg-surface border border-border-card rounded cursor-pointer min-h-[44px] hover:bg-surface-tint col-span-2">
+<input class="w-4 h-4 text-primary accent-primary" name="cityFilter" type="radio" value="hn">
+<span class="text-xs font-medium">Hà Nội (Cầu Giấy)</span>
+</label>
+</div>
+</fieldset>
+<!-- Filter Group 2: Tình trạng khả dụng -->
+<fieldset class="flex flex-col gap-2">
+<legend class="text-sm font-bold text-txt-main">Tình trạng buồng kho</legend>
+<label class="flex items-center gap-2.5 p-2.5 bg-surface border border-border-card rounded cursor-pointer min-h-[44px] hover:bg-surface-tint">
+<input class="w-4 h-4 text-primary accent-primary rounded" id="availableOnlyCheckbox" type="checkbox">
+<span class="text-xs font-medium">Chỉ hiện cơ sở còn buồng kho trống</span>
+</label>
+</fieldset>
+<!-- Actions: Áp dụng / Đặt lại / Hủy -->
+<div class="flex items-center gap-2 pt-2 border-t border-[#BFCAC4]/60">
+<button class="h-11 px-3 border border-border-card bg-surface text-txt-main text-xs font-semibold rounded-btn min-h-[44px] flex-1 hover:bg-surface-tint" onclick="resetFilterForm()" type="button">
+          Xóa chọn
+        </button>
+<button class="h-11 px-4 bg-primary text-surface text-xs font-semibold rounded-btn min-h-[44px] flex-[2] hover:bg-primary-dark" type="submit">
+          Áp dụng bộ lọc
+        </button>
+</div>
+</form>
+</section>
+<!-- BOTTOM SHEET: ACCOUNT & ROLE SWITCHER (Guest vs Customer Mock) -->
+<!-- MODAL: FACILITY UNAVAILABLE NOTICE (Nielsen 9) -->
+<div class="fixed inset-0 bg-[#0F172A]/50 z-50 hidden flex items-center justify-center p-4" id="unavailableModalBackdrop" onclick="closeUnavailableModal()">
+<div aria-labelledby="unavailTitle" aria-modal="true" class="bg-surface card-border max-w-[340px] w-full p-4 flex flex-col gap-3 shadow-lg" onclick="event.stopPropagation()" role="dialog">
+<div class="flex items-center gap-2 text-amber-700">
+<span aria-hidden="true" class="material-symbols-outlined text-2xl">warning</span>
+<h3 class="text-base font-bold font-heading text-txt-main" id="unavailTitle">Thông báo tình trạng kho</h3>
+</div>
+<p class="text-xs text-txt-muted leading-relaxed" id="unavailFacilityMessage">
+        Cơ sở <strong>StoreX Hà Nội West</strong> hiện tại đã hết 100% buồng kho trống trong kỳ báo cáo. Quý khách vui lòng chọn cơ sở khác hoặc liên hệ hotline để nhận tư vấn khi có khách trả kho.
+      </p>
+<div class="flex justify-end gap-2 pt-2 border-t border-border-card">
+<button class="h-10 px-4 bg-primary text-surface text-xs font-semibold rounded-btn min-h-[44px]" onclick="closeUnavailableModal()" type="button">
+          Đã hiểu
+        </button>
+</div>
+</div>
+</div>
+<!-- JAVASCRIPT LOGIC (MOCK-ONLY, NO BACKEND CALLS, ACCESSIBLE ESCAPE / FOCUS TRAP) -->
+<script>
+    // App State
+    let currentRole = 'guest'; // 'guest' | 'customer'
+    let currentCity = 'all'; // 'all' | 'hcm' | 'hn'
+    let filterAvailableOnly = false;
+    let searchQuery = '';
+
+    // Handle Search Filter
+    function handleSearch(val) {
+      searchQuery = val.trim().toLowerCase();
+      document.getElementById('clearSearchBtn').classList.toggle('hidden', searchQuery.length === 0);
+      filterFacilities();
+    }
+
+    function clearSearch() {
+      const input = document.getElementById('facilitySearchInput');
+      input.value = '';
+      searchQuery = '';
+      document.getElementById('clearSearchBtn').classList.add('hidden');
+      input.focus();
+      filterFacilities();
+    }
+
+    // Filter Logic
+    function filterFacilities() {
+      const container = document.getElementById('facilityListContainer');
+      const cards = container.querySelectorAll('article[data-facility-id]');
+      let visibleCount = 0;
+
+      cards.forEach(card => {
+        const cCity = card.getAttribute('data-city');
+        const cAvail = card.getAttribute('data-available') === 'true';
+        const cText = card.innerText.toLowerCase();
+
+        const matchCity = (currentCity === 'all') || (currentCity === cCity);
+        const matchAvail = (!filterAvailableOnly) || (cAvail === true);
+        const matchSearch = (searchQuery === '') || cText.includes(searchQuery);
+
+        if (matchCity && matchAvail && matchSearch) {
+          card.classList.remove('hidden');
+          visibleCount++;
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+
+      // Update Counts & Empty state
+      const countText = document.getElementById('resultsCountText');
+      countText.innerHTML = `Hiển thị <strong>${visibleCount} cơ sở</strong> phù hợp`;
+      
+      const emptyState = document.getElementById('emptyResultsState');
+      emptyState.classList.toggle('hidden', visibleCount > 0);
+
+      // Update Active Filter Badges
+      updateFilterChips();
+    }
+
+    function updateFilterChips() {
+      let activeCount = 0;
+      const chipsContainer = document.getElementById('activeFiltersContainer');
+      const cityChip = document.getElementById('cityChip');
+      const sizeChip = document.getElementById('sizeChip');
+      const badge = document.getElementById('activeFilterBadge');
+
+      if (currentCity !== 'all') {
+        activeCount++;
+        cityChip.classList.remove('hidden');
+        document.getElementById('cityChipText').innerText = (currentCity === 'hcm') ? 'TP. Hồ Chí Minh' : 'Hà Nội';
+      } else {
+        cityChip.classList.add('hidden');
+      }
+
+      if (filterAvailableOnly) {
+        activeCount++;
+        sizeChip.classList.remove('hidden');
+      } else {
+        sizeChip.classList.add('hidden');
+      }
+
+      if (searchQuery.length > 0) {
+        activeCount++;
+      }
+
+      chipsContainer.classList.toggle('hidden', activeCount === 0);
+      if (activeCount > 0) {
+        badge.innerText = activeCount;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    function removeCityFilter() {
+      currentCity = 'all';
+      const radios = document.getElementsByName('cityFilter');
+      radios.forEach(r => { if (r.value === 'all') r.checked = true; });
+      filterFacilities();
+    }
+
+    function removeAvailabilityFilter() {
+      filterAvailableOnly = false;
+      document.getElementById('availableOnlyCheckbox').checked = false;
+      filterFacilities();
+    }
+
+    function resetAllFilters() {
+      currentCity = 'all';
+      filterAvailableOnly = false;
+      searchQuery = '';
+      document.getElementById('facilitySearchInput').value = '';
+      document.getElementById('clearSearchBtn').classList.add('hidden');
+      
+      const radios = document.getElementsByName('cityFilter');
+      radios.forEach(r => { if (r.value === 'all') r.checked = true; });
+      document.getElementById('availableOnlyCheckbox').checked = false;
+
+      filterFacilities();
+    }
+
+    // Filter Sheet Toggle
+    function toggleFilterSheet(open) {
+      const sheet = document.getElementById('filterBottomSheet');
+      const backdrop = document.getElementById('filterBottomSheetBackdrop');
+      const btn = document.getElementById('openFilterBtn');
+
+      if (open) {
+        backdrop.classList.remove('hidden');
+        sheet.classList.remove('hidden');
+        setTimeout(() => {
+          sheet.classList.remove('translate-y-full');
+        }, 10);
+        btn.setAttribute('aria-expanded', 'true');
+      } else {
+        sheet.classList.add('translate-y-full');
+        setTimeout(() => {
+          sheet.classList.add('hidden');
+          backdrop.classList.add('hidden');
+        }, 200);
+        btn.setAttribute('aria-expanded', 'false');
+      }
+    }
+
+    function applyFilterForm(e) {
+      e.preventDefault();
+      const form = e.target;
+      const selectedCity = form.querySelector('input[name="cityFilter"]:checked').value;
+      const avail = form.querySelector('#availableOnlyCheckbox').checked;
+
+      currentCity = selectedCity;
+      filterAvailableOnly = avail;
+
+      toggleFilterSheet(false);
+      filterFacilities();
+    }
+
+    function resetFilterForm() {
+      const radios = document.getElementsByName('cityFilter');
+      radios.forEach(r => { if (r.value === 'all') r.checked = true; });
+      document.getElementById('availableOnlyCheckbox').checked = false;
+    }
+
+    // Account Sheet Toggle
+    function toggleAccountSheet(open) {
+      const sheet = document.getElementById('accountSheet');
+      const backdrop = document.getElementById('accountSheetBackdrop');
+
+      if (open) {
+        backdrop.classList.remove('hidden');
+        sheet.classList.remove('hidden');
+        setTimeout(() => {
+          sheet.classList.remove('translate-y-full');
+        }, 10);
+      } else {
+        sheet.classList.add('translate-y-full');
+        setTimeout(() => {
+          sheet.classList.add('hidden');
+          backdrop.classList.add('hidden');
+        }, 200);
+      }
+    }
+
+    // Switch Role Mode (Guest vs Signed Customer)
+    function switchUserMode(mode) {
+      currentRole = mode;
+      const badge = document.getElementById('userRoleBadge');
+      const name = document.getElementById('profileName');
+      const sub = document.getElementById('profileSubtitle');
+      const navIcon = document.getElementById('dynamicNavIcon');
+      const navLabel = document.getElementById('dynamicNavLabel');
+      const btnG = document.getElementById('btnModeGuest');
+      const btnC = document.getElementById('btnModeCustomer');
+
+      if (mode === 'customer') {
+        badge.innerText = 'Khách hàng';
+        badge.classList.remove('text-primary', 'bg-primary-soft');
+        badge.classList.add('text-emerald-900', 'bg-emerald-100');
+        
+        name.innerText = 'Nguyễn Minh Anh';
+        sub.innerText = 'customer@example.test • Đã xác thực';
+        
+        navIcon.innerText = 'inventory_2';
+        navLabel.innerText = 'Kho của tôi';
+
+        btnC.classList.add('bg-primary', 'text-surface');
+        btnC.classList.remove('bg-surface', 'text-txt-main');
+        btnG.classList.remove('bg-primary', 'text-surface');
+        btnG.classList.add('bg-surface', 'text-txt-main');
+      } else {
+        badge.innerText = 'Khách vãng lai';
+        badge.classList.add('text-primary', 'bg-primary-soft');
+        badge.classList.remove('text-emerald-900', 'bg-emerald-100');
+
+        name.innerText = 'Khách vãng lai (Guest)';
+        sub.innerText = 'Chưa đăng nhập — Xem danh mục kho';
+
+        navIcon.innerText = 'login';
+        navLabel.innerText = 'Đăng nhập';
+
+        btnG.classList.add('bg-primary', 'text-surface');
+        btnG.classList.remove('bg-surface', 'text-txt-main');
+        btnC.classList.remove('bg-primary', 'text-surface');
+        btnC.classList.add('bg-surface', 'text-txt-main');
+      }
+
+      toggleAccountSheet(false);
+    }
+
+    function handleDynamicNavClick(e) {
+      e.preventDefault();
+      if (currentRole === 'customer') {
+        alert('Chuyển hướng màn hình: C06 — Kho của tôi (Nguyễn Minh Anh - 1 buồng kho hoạt động).');
+      } else {
+        alert('Chuyển hướng màn hình: A01 — Đăng nhập tài khoản StoreX.');
+      }
+    }
+
+    // Contextual Help Accordion
+    function toggleHelpAccordion() {
+      const content = document.getElementById('helpAccordionContent');
+      const chevron = document.getElementById('helpChevron');
+      const header = document.getElementById('helpAccordionHeader');
+
+      const isHidden = content.classList.contains('hidden');
+      if (isHidden) {
+        content.classList.remove('hidden');
+        chevron.classList.add('rotate-180');
+        header.setAttribute('aria-expanded', 'true');
+      } else {
+        content.classList.add('hidden');
+        chevron.classList.remove('rotate-180');
+        header.setAttribute('aria-expanded', 'false');
+      }
+    }
+
+    // Modal for unavailable facility
+    function showUnavailableModal(facilityName) {
+      document.getElementById('unavailFacilityMessage').innerHTML = `Cơ sở <strong>${facilityName}</strong> hiện đang đạt 100% tỷ lệ lấp đầy. Bạn có thể chọn cơ sở <em>StoreX Sài Gòn Central</em> đang còn 16 buồng trống hoặc gọi hotline để được thông báo khi có vị trí mới.`;
+      document.getElementById('unavailableModalBackdrop').classList.remove('hidden');
+    }
+
+    function closeUnavailableModal() {
+      document.getElementById('unavailableModalBackdrop').classList.add('hidden');
+    }
+
+    // Navigation trigger (leads to M-P02)
+    function navigateToDetail(facilityId, facilityName) {
+      alert(`Chuyển tiếp sang màn hình M-P02 — Chi tiết cơ sở kho: ${facilityName} (${facilityId}) để chọn loại buồng và thời hạn thuê.`);
+    }
+
+    // Keyboard accessibility: ESC key closes dialogs
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        toggleFilterSheet(false);
+        toggleAccountSheet(false);
+        closeUnavailableModal();
+      }
+    });
+  </script>
+
+
+</body></html>

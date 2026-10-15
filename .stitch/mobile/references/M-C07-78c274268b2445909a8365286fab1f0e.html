@@ -1,0 +1,640 @@
+<!DOCTYPE html><html class="light" lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>M-C07 — Chi tiết kho đang thuê — Customer</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-container-high": "#e2e7ff",
+            "inverse-primary": "#96d3c0",
+            "on-tertiary-container": "#ffa454",
+            "tertiary-fixed": "#ffdcc3",
+            "tertiary-container": "#723b00",
+            "primary-fixed-dim": "#96d3c0",
+            "on-secondary-fixed": "#002018",
+            "surface": "#faf8ff",
+            "on-primary-fixed-variant": "#0d5042",
+            "surface-container-highest": "#dae2fd",
+            "surface-container": "#eaedff",
+            "background": "#faf8ff",
+            "secondary-container": "#b4efda",
+            "inverse-surface": "#283044",
+            "surface-variant": "#dae2fd",
+            "outline": "#707975",
+            "surface-container-lowest": "#ffffff",
+            "primary": "#003b2f",
+            "on-background": "#131b2e",
+            "on-tertiary-fixed-variant": "#6e3900",
+            "inverse-on-surface": "#eef0ff",
+            "tertiary": "#512800",
+            "on-surface": "#131b2e",
+            "on-surface-variant": "#404945",
+            "surface-tint": "#2c6859",
+            "surface-container-low": "#f2f3ff",
+            "on-error-container": "#93000a",
+            "on-secondary-fixed-variant": "#135041",
+            "primary-fixed": "#b1efdc",
+            "surface-bright": "#faf8ff",
+            "secondary": "#306858",
+            "outline-variant": "#bfc9c4",
+            "on-tertiary-fixed": "#2f1500",
+            "on-primary-fixed": "#002019",
+            "on-tertiary": "#ffffff",
+            "error-container": "#ffdad6",
+            "surface-dim": "#d2d9f4",
+            "on-primary-container": "#89c5b3",
+            "error": "#ba1a1a",
+            "tertiary-fixed-dim": "#ffb77d",
+            "on-error": "#ffffff",
+            "secondary-fixed": "#b4efda",
+            "on-secondary-container": "#366e5e",
+            "on-primary": "#ffffff",
+            "on-secondary": "#ffffff",
+            "secondary-fixed-dim": "#98d2be",
+            "primary-container": "#125345"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "space-lg": "1.5rem",
+            "margin": "2rem",
+            "gutter": "1.5rem",
+            "space-xl": "2.5rem",
+            "space-md": "1rem",
+            "space-xs": "0.25rem",
+            "gutter-sm": "1rem",
+            "margin-sm": "1rem",
+            "space-sm": "0.5rem"
+          },
+          "fontFamily": {
+            "body-md": ["Be Vietnam Pro"],
+            "display-mobile": ["Space Grotesk"],
+            "label-sm": ["Space Grotesk"],
+            "title-md": ["Be Vietnam Pro"],
+            "body-sm": ["Be Vietnam Pro"],
+            "headline-sm": ["Space Grotesk"],
+            "label-md": ["Space Grotesk"],
+            "headline-lg": ["Space Grotesk"],
+            "display": ["Space Grotesk"],
+            "body-lg": ["Be Vietnam Pro"],
+            "headline-lg-mobile": ["Space Grotesk"],
+            "label-lg": ["Space Grotesk"],
+            "headline-md": ["Space Grotesk"]
+          },
+          "fontSize": {
+            "body-md": ["14px", { "lineHeight": "22px", "fontWeight": "400" }],
+            "display-mobile": ["34px", { "lineHeight": "42px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+            "title-md": ["18px", { "lineHeight": "26px", "fontWeight": "600" }],
+            "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "display": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "body-lg": ["16px", { "lineHeight": "26px", "fontWeight": "400" }],
+            "headline-lg-mobile": ["26px", { "lineHeight": "34px", "fontWeight": "600" }],
+            "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      line-height: 1;
+      display: inline-block;
+      user-select: none;
+    }
+    .material-symbols-fill {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f1f5f9;
+      color: #131b2e;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: 'Be Vietnam Pro', sans-serif;
+    }
+    .sheet-transition {
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s ease;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-slate-100 text-on-surface">
+<!-- Mobile Viewport Container 390px Logical Width -->
+<div class="relative w-full max-w-[390px] min-h-screen bg-surface flex flex-col shadow-2xl overflow-x-hidden border-x border-outline-variant">
+<!-- TopAppBar (from Shared Components JSON: docked, full-width top) -->
+<header class="flex justify-between items-center w-full px-4 h-14 fixed top-0 left-0 max-w-[390px] mx-auto right-0 z-40 bg-surface border-b border-outline-variant select-none">
+<button aria-label="Quay lại" class="w-11 h-11 flex items-center justify-center text-primary active:scale-95 transition-transform duration-150 rounded-lg hover:bg-surface-container-high" type="button">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<h1 class="text-title-md font-title-md font-bold text-primary tracking-tight">Chi tiết buồng kho</h1>
+<button aria-label="Tài khoản cá nhân" class="w-11 h-11 flex items-center justify-center text-primary active:scale-95 transition-transform duration-150 rounded-lg hover:bg-surface-container-high" type="button">
+<span class="material-symbols-outlined text-[26px]">account_circle</span>
+</button>
+</header>
+<!-- Main Content Canvas (Scrollable) -->
+<main class="w-full flex-1 pt-16 pb-24 px-4 space-y-4">
+<!-- Status Header Banner -->
+<section class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg p-3.5 shadow-sm">
+<div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5 mb-2.5">
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#E8F5F1] text-primary-container text-label-sm font-label-sm uppercase tracking-wider">
+<span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+              Đang hoạt động
+            </span>
+<span class="text-body-sm font-body-sm text-on-surface-variant font-mono">HĐ: RNT-2026-0001</span>
+</div>
+<div class="flex items-center gap-1 text-[#125345] bg-[#E8F5F1] px-2 py-0.5 rounded text-label-sm font-label-sm">
+<span class="material-symbols-outlined text-[15px]">verified_user</span>
+<span>Niêm phong hợp lệ</span>
+</div>
+</div>
+<div class="flex justify-between items-baseline">
+<div>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Mã định danh buồng</p>
+<p class="text-headline-sm font-headline-sm text-primary tracking-tight font-bold">#HCM-01-001</p>
+</div>
+<div class="text-right">
+<p class="text-body-sm font-body-sm text-on-surface-variant">Phân vùng vị trí</p>
+<p class="text-body-lg font-body-lg font-semibold text-on-surface">Tầng 1 — Khu A</p>
+</div>
+</div>
+<p class="mt-1 text-body-sm font-body-sm text-slate-500 flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-primary">pin_drop</span>
+          Vị trí thuận tiện: Gần cửa xuất nhập chính &amp; thang nâng hàng
+        </p>
+</section>
+<!-- Facility & Spec Info Bento Card -->
+<section class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg p-4 shadow-sm space-y-3.5">
+<div class="flex items-start justify-between">
+<div>
+<h2 class="text-body-lg font-body-lg font-bold text-primary flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[20px] text-primary">warehouse</span>
+              StoreX Sài Gòn Central
+            </h2>
+<p class="text-body-md font-body-md text-on-surface-variant mt-0.5">118 Nguyễn Văn Linh, P. Tân Phong, Q.7, TP.HCM</p>
+</div>
+<a aria-label="Gọi hotline cơ sở" class="min-h-[44px] min-w-[44px] flex items-center justify-center bg-surface rounded-lg border border-outline-variant text-primary active:scale-95 transition-transform" href="tel:02873001188">
+<span class="material-symbols-outlined text-[20px]">call</span>
+</a>
+</div>
+<!-- Spec Pills Grid -->
+<div class="grid grid-cols-3 gap-2 pt-1 border-t border-slate-100">
+<div class="p-2.5 bg-surface rounded border border-outline-variant/60 flex flex-col justify-center">
+<span class="text-label-sm font-label-sm text-on-surface-variant">Gói buồng</span>
+<span class="text-body-lg font-body-lg font-bold text-primary mt-0.5">Mini 2m²</span>
+</div>
+<div class="p-2.5 bg-surface rounded border border-outline-variant/60 flex flex-col justify-center">
+<span class="text-label-sm font-label-sm text-on-surface-variant">Kích thước</span>
+<span class="text-body-md font-body-md font-bold text-on-surface mt-0.5">1.0 × 2.0m</span>
+</div>
+<div class="p-2.5 bg-surface rounded border border-outline-variant/60 flex flex-col justify-center">
+<span class="text-label-sm font-label-sm text-on-surface-variant">Thể tích kho</span>
+<span class="text-body-md font-body-md font-bold text-on-surface mt-0.5">5.0 m³</span>
+</div>
+</div>
+<div class="text-body-sm font-body-sm text-on-surface-variant bg-surface-container-low p-2.5 rounded border border-outline-variant/50 flex items-center justify-between">
+<span class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-primary">height</span>
+            Độ cao trần tiêu chuẩn: 2.5m
+          </span>
+<span class="text-emerald-800 font-medium">Khô ráo 24/7</span>
+</div>
+</section>
+<!-- Contract Cycle & Security Period -->
+<section class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg p-4 shadow-sm">
+<div class="flex items-center justify-between pb-2 border-b border-slate-100">
+<span class="text-body-md font-body-md font-semibold text-on-surface">Chu kỳ đang thuê</span>
+<span class="text-label-md font-label-md font-bold text-primary bg-[#E8F5F1] px-2.5 py-1 rounded">
+            Còn 30 ngày
+          </span>
+</div>
+<div class="mt-3 space-y-2 text-body-md font-body-md">
+<div class="flex justify-between items-center">
+<span class="text-on-surface-variant">Thời hạn thuê:</span>
+<span class="font-medium text-on-surface">09/10/2026 – 09/11/2026 (01 tháng)</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-on-surface-variant">Mã đặt chỗ gốc:</span>
+<span class="font-mono font-medium text-on-surface">BK-2026-0001</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-on-surface-variant">Nghiệm thu bàn giao:</span>
+<span class="font-medium text-emerald-800 flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">how_to_reg</span>
+              FS Trần Quốc Huy
+            </span>
+</div>
+</div>
+</section>
+<!-- Financial Detail Card -->
+<section class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg p-4 shadow-sm space-y-2.5">
+<h3 class="text-body-lg font-body-lg font-bold text-primary flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[20px] text-primary">payments</span>
+          Chi tiết tài chính đã thanh toán
+        </h3>
+<div class="space-y-2 text-body-md font-body-md">
+<div class="flex justify-between items-center">
+<span class="text-on-surface-variant">Tiền thuê kho (tháng hiện tại):</span>
+<span class="font-semibold text-on-surface">900.000 đ</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-on-surface-variant">Tiền cọc bảo đảm buồng:</span>
+<div class="text-right">
+<span class="font-semibold text-on-surface">900.000 đ</span>
+<p class="text-label-sm font-label-sm text-emerald-700">(Tách riêng, hoàn trả 100% khi thanh lý)</p>
+</div>
+</div>
+<div class="pt-2 border-t border-slate-100 flex justify-between items-center">
+<span class="text-body-md font-body-md font-bold text-primary">Tổng đã thanh toán đợt đầu:</span>
+<span class="text-body-lg font-body-lg font-bold text-primary">1.800.000 đ</span>
+</div>
+</div>
+</section>
+<!-- Customer Action Buttons (Min 44px height, high touch precision) -->
+<section class="w-full pt-1 pb-2 space-y-2.5">
+<p class="text-label-md font-label-md uppercase tracking-wider text-on-surface-variant text-center">Nhu cầu vận hành &amp; hỗ trợ</p>
+<div class="grid grid-cols-2 gap-2.5">
+<button class="min-h-[48px] w-full px-3 py-2.5 rounded-lg border border-outline-variant bg-surface hover:bg-slate-50 text-error font-body-md font-semibold flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform shadow-sm" onclick="openReturnSheet()" type="button">
+<span class="material-symbols-outlined text-[20px]">assignment_return</span>
+<span>Yêu cầu trả kho</span>
+</button>
+<button class="min-h-[48px] w-full px-3 py-2.5 rounded-lg bg-primary-container hover:bg-primary text-white font-body-md font-semibold flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform shadow-sm" onclick="openChangeSheet()" type="button">
+<span class="material-symbols-outlined text-[20px]">swap_horiz</span>
+<span>Yêu cầu đổi buồng</span>
+</button>
+</div>
+</section>
+<!-- Progressive Disclosure Sections (Accordion Foldables) -->
+<section class="w-full space-y-2">
+<!-- Foldable 1: Billing History -->
+<details class="group bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden transition-all duration-200">
+<summary class="min-h-[48px] px-4 py-3 flex items-center justify-between cursor-pointer list-none select-none hover:bg-slate-50">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px] text-primary">receipt_long</span>
+<span class="text-body-md font-body-md font-semibold text-on-surface">Lịch sử thanh toán &amp; Hóa đơn điện tử</span>
+</div>
+<span class="material-symbols-outlined text-[20px] text-outline transition-transform duration-200 group-open:rotate-180">expand_more</span>
+</summary>
+<div class="px-4 pb-4 pt-2 border-t border-slate-100 text-body-md font-body-md space-y-2">
+<div class="p-3 bg-surface rounded border border-outline-variant/60 flex items-center justify-between">
+<div>
+<p class="font-semibold text-on-surface">Hóa đơn INV-2026-0001</p>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Kỳ thanh toán 09/10/2026 • Chuyển khoản</p>
+</div>
+<div class="text-right">
+<p class="font-bold text-primary">1.800.000 đ</p>
+<span class="inline-block text-label-sm font-label-sm text-emerald-800 bg-[#E8F5F1] px-1.5 py-0.5 rounded">Thành công</span>
+</div>
+</div>
+<p class="text-body-sm font-body-sm text-slate-500 italic flex items-center gap-1">
+<span class="material-symbols-outlined text-[15px]">info</span>
+              Hóa đơn VAT điện tử được gửi tự động đến email đăng ký.
+            </p>
+</div>
+</details>
+<!-- Foldable 2: Initial Handover & Timeline -->
+<details class="group bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden transition-all duration-200">
+<summary class="min-h-[48px] px-4 py-3 flex items-center justify-between cursor-pointer list-none select-none hover:bg-slate-50">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px] text-primary">timeline</span>
+<span class="text-body-md font-body-md font-semibold text-on-surface">Hồ sơ bàn giao &amp; Dòng thời gian kho</span>
+</div>
+<span class="material-symbols-outlined text-[20px] text-outline transition-transform duration-200 group-open:rotate-180">expand_more</span>
+</summary>
+<div class="px-4 pb-4 pt-3 border-t border-slate-100 text-body-md font-body-md">
+<div class="relative pl-6 space-y-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-200">
+<div class="relative">
+<span class="absolute -left-6 top-1 w-2.5 h-2.5 rounded-full bg-emerald-600 ring-4 ring-emerald-100"></span>
+<p class="font-semibold text-on-surface">09/10/2026 — Đang sử dụng ổn định</p>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Buồng kho hoạt động bình thường, niêm phong khóa bảo mật đầy đủ.</p>
+</div>
+<div class="relative">
+<span class="absolute -left-6 top-1 w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+<p class="font-semibold text-on-surface">09/10/2026 — Hoàn tất bàn giao vật lý</p>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Nhận bàn giao khóa cơ cá nhân và thẻ từ ra vào trạm 24/7 từ FS Trần Quốc Huy.</p>
+</div>
+<div class="relative">
+<span class="absolute -left-6 top-1 w-2.5 h-2.5 rounded-full bg-slate-300"></span>
+<p class="font-semibold text-on-surface">09/10/2026 — Ký hợp đồng điện tử &amp; Đặt cọc</p>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Hợp đồng điện tử ký số thành công. Ghi nhận giao dịch cọc 900.000 đ.</p>
+</div>
+</div>
+</div>
+</details>
+<!-- Foldable 3: Safety Standards -->
+<details class="group bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden transition-all duration-200">
+<summary class="min-h-[48px] px-4 py-3 flex items-center justify-between cursor-pointer list-none select-none hover:bg-slate-50">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px] text-primary">security</span>
+<span class="text-body-md font-body-md font-semibold text-on-surface">Quy chuẩn an toàn &amp; An ninh vật lý</span>
+</div>
+<span class="material-symbols-outlined text-[20px] text-outline transition-transform duration-200 group-open:rotate-180">expand_more</span>
+</summary>
+<div class="px-4 pb-4 pt-2 border-t border-slate-100 text-body-md font-body-md space-y-2">
+<div class="flex items-start gap-2.5 py-1">
+<span class="material-symbols-outlined text-[18px] text-[#125345] mt-0.5">key</span>
+<div>
+<p class="font-medium text-on-surface">Khóa cơ riêng biệt cá nhân</p>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Chỉ có khách hàng giữ chìa khóa buồng, nhân viên không giữ chìa dự phòng.</p>
+</div>
+</div>
+<div class="flex items-start gap-2.5 py-1">
+<span class="material-symbols-outlined text-[18px] text-[#125345] mt-0.5">badge</span>
+<div>
+<p class="font-medium text-on-surface">Thẻ từ kiểm soát truy cập 24/7</p>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Cửa cuốn và barrier lối vào vận hành tự động qua thẻ phân quyền chính chủ.</p>
+</div>
+</div>
+<div class="flex items-start gap-2.5 py-1">
+<span class="material-symbols-outlined text-[18px] text-[#125345] mt-0.5">local_fire_department</span>
+<div>
+<p class="font-medium text-on-surface">PCCC &amp; Giám sát nhiệt ẩm định kỳ</p>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Hệ thống đầu phun tự động FM-200, camera hành lang ghi hình liên tục 30 ngày.</p>
+</div>
+</div>
+</div>
+</details>
+</section>
+</main>
+<!-- BottomNavBar (from Shared Components JSON: docked full-width bottom-0, active: Kho của tôi) -->
+<nav class="fixed bottom-0 left-0 max-w-[390px] mx-auto right-0 w-full z-30 flex justify-around items-center px-margin-sm py-space-xs h-16 bg-surface border-t border-outline-variant select-none">
+<!-- Tab 1: Tổng quan -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary font-normal active:scale-95 transition-transform duration-150 min-h-[44px] min-w-[54px]" href="#">
+<span class="material-symbols-outlined text-[22px]">dashboard</span>
+<span class="text-label-sm font-label-sm mt-0.5">Tổng quan</span>
+</a>
+<!-- Tab 2: Đơn đặt kho -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary font-normal active:scale-95 transition-transform duration-150 min-h-[44px] min-w-[54px]" href="#">
+<span class="material-symbols-outlined text-[22px]">inventory_2</span>
+<span class="text-label-sm font-label-sm mt-0.5">Đơn đặt kho</span>
+</a>
+<!-- Tab 3: Giữ chỗ -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary font-normal active:scale-95 transition-transform duration-150 min-h-[44px] min-w-[54px]" href="#">
+<span class="material-symbols-outlined text-[22px]">bookmark</span>
+<span class="text-label-sm font-label-sm mt-0.5">Giữ chỗ</span>
+</a>
+<!-- Tab 4: Kho của tôi (ACTIVE state) -->
+<a class="flex flex-col items-center justify-center text-primary font-semibold active:scale-95 transition-transform duration-150 min-h-[44px] min-w-[54px]" href="#">
+<span class="material-symbols-outlined text-[22px] material-symbols-fill">warehouse</span>
+<span class="text-label-sm font-label-sm mt-0.5">Kho của tôi</span>
+</a>
+</nav>
+<!-- BACKDROP FOR BOTTOM SHEETS -->
+<div class="fixed inset-0 bg-slate-900/60 z-50 hidden opacity-0 transition-opacity duration-300 backdrop-blur-sm" id="modal-backdrop" onclick="closeAllSheets()"></div>
+<!-- ========================================== -->
+<!-- BOTTOM SHEET 1: YÊU CẦU TRẢ KHO -->
+<!-- ========================================== -->
+<div class="fixed bottom-0 left-0 max-w-[390px] mx-auto right-0 w-full bg-surface-container-lowest rounded-t-2xl z-50 transform translate-y-full sheet-transition border-t border-outline-variant shadow-2xl flex flex-col max-h-[777px]" id="return-sheet">
+<!-- Drag handle -->
+<div class="w-full flex justify-center pt-3 pb-1 cursor-grab" onclick="closeAllSheets()">
+<div class="w-10 h-1 rounded-full bg-slate-300"></div>
+</div>
+<!-- Sheet Header -->
+<div class="px-5 py-2.5 flex items-center justify-between border-b border-slate-100">
+<div>
+<h3 class="text-title-md font-title-md font-bold text-primary">Yêu cầu trả kho</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Buồng #HCM-01-001 (Mini 2m²)</p>
+</div>
+<button aria-label="Đóng sheet" class="w-11 h-11 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100" onclick="closeAllSheets()" type="button">
+<span class="material-symbols-outlined text-[22px]">close</span>
+</button>
+</div>
+<!-- Sheet Scrollable Form Content -->
+<div class="px-5 py-4 overflow-y-auto space-y-4">
+<!-- Form Fields -->
+<div id="return-form-step">
+<!-- Policy Alert (Transparency) -->
+<div class="p-3 bg-amber-50 rounded border border-amber-200 text-body-sm font-body-sm text-amber-950 mb-3.5 space-y-1">
+<div class="flex items-center gap-1.5 font-semibold text-amber-900">
+<span class="material-symbols-outlined text-[18px]">policy</span>
+              Minh bạch chính sách trả kho
+            </div>
+<p>Hợp đồng và buồng kho vẫn giữ nguyên hiệu lực cho đến khi hoàn tất biên bản kiểm tra trả kho thực tế tại trạm. Hệ thống <strong>không tự ý đóng hợp đồng</strong> và <strong>không tự ý trừ cọc trước</strong>.</p>
+</div>
+<!-- Date field (Mandatory) -->
+<div class="space-y-1.5">
+<label class="block text-body-md font-body-md font-semibold text-on-surface" for="return-date">
+              Ngày dự kiến dọn kho &amp; trả phòng <span class="text-error">*</span>
+</label>
+<input class="w-full min-h-[44px] px-3.5 py-2.5 rounded border border-[#CBD5E1] bg-white font-body-md text-on-surface focus:outline-none focus:border-[#125345] focus:ring-2 focus:ring-[#125345]/15" id="return-date" type="date" value="2026-11-09">
+<p class="text-label-sm font-label-sm text-on-surface-variant">Vui lòng thông báo trước ít nhất 03 ngày làm việc để FM xếp lịch trực.</p>
+</div>
+<!-- Reason field -->
+<div class="space-y-1.5 mt-3.5">
+<label class="block text-body-md font-body-md font-semibold text-on-surface" for="return-reason">
+              Lý do trả kho <span class="text-error">*</span>
+</label>
+<select class="w-full min-h-[44px] px-3.5 py-2.5 rounded border border-[#CBD5E1] bg-white font-body-md text-on-surface focus:outline-none focus:border-[#125345] focus:ring-2 focus:ring-[#125345]/15" id="return-reason">
+<option value="relocate">Chuyển nhà / Thay đổi địa bàn sinh sống</option>
+<option value="finished">Đã hoàn tất nhu cầu lưu trữ tạm thời</option>
+<option value="cost">Tối ưu chi phí cá nhân / tổ chức</option>
+<option value="other">Lý do khác</option>
+</select>
+</div>
+<!-- Note field -->
+<div class="space-y-1.5 mt-3.5">
+<label class="block text-body-md font-body-md font-semibold text-on-surface" for="return-note">
+              Ghi chú thêm cho Quản lý cơ sở (FM)
+            </label>
+<textarea class="w-full p-3 rounded border border-[#CBD5E1] bg-white font-body-md text-on-surface focus:outline-none focus:border-[#125345] focus:ring-2 focus:ring-[#125345]/15 resize-none" id="return-note" placeholder="Ví dụ: Giờ dự kiến đưa xe tải vào bốc dỡ, số lượng chìa cơ hoàn trả..." rows="2"></textarea>
+</div>
+</div>
+<!-- Submission Success Mock State (Shown after submit) -->
+<div class="hidden p-4 bg-[#E8F5F1] rounded-lg border border-emerald-300 text-center space-y-2" id="return-success-step">
+<div class="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto text-white">
+<span class="material-symbols-outlined text-[28px]">mark_email_read</span>
+</div>
+<h4 class="text-body-lg font-body-lg font-bold text-primary">Đã tiếp nhận yêu cầu trả kho</h4>
+<p class="text-body-md font-body-md text-on-surface">Trạng thái: <strong class="text-emerald-800">Chờ Quản lý cơ sở (FM) xác nhận lịch hẹn</strong></p>
+<div class="text-body-sm font-body-sm text-slate-600 bg-white/70 p-3 rounded text-left mt-2">
+            Biên bản kiểm tra buồng thực tế sẽ được lập tại cơ sở vào ngày hẹn. Tiền cọc <strong>900.000 đ</strong> sẽ được đối soát hoàn trả trong 2-3 ngày sau bàn giao.
+          </div>
+</div>
+</div>
+<!-- Action Footer -->
+<div class="p-4 border-t border-slate-100 bg-surface flex gap-2.5">
+<button class="min-h-[44px] flex-1 px-4 py-2.5 rounded border border-outline-variant text-on-surface font-body-md font-medium hover:bg-slate-100 active:scale-95 transition-transform" onclick="closeAllSheets()" type="button">
+          Hủy / Giữ nguyên
+        </button>
+<button class="min-h-[44px] flex-1 px-4 py-2.5 rounded bg-error hover:bg-red-800 text-white font-body-md font-bold active:scale-95 transition-transform shadow" id="btn-submit-return" onclick="submitReturnRequest()" type="button">
+          Gửi yêu cầu trả
+        </button>
+</div>
+</div>
+<!-- ========================================== -->
+<!-- BOTTOM SHEET 2: YÊU CẦU ĐỔI BUỒNG KHO -->
+<!-- ========================================== -->
+<div class="fixed bottom-0 left-0 max-w-[390px] mx-auto right-0 w-full bg-surface-container-lowest rounded-t-2xl z-50 transform translate-y-full sheet-transition border-t border-outline-variant shadow-2xl flex flex-col max-h-[777px]" id="change-sheet">
+<!-- Drag handle -->
+<div class="w-full flex justify-center pt-3 pb-1 cursor-grab" onclick="closeAllSheets()">
+<div class="w-10 h-1 rounded-full bg-slate-300"></div>
+</div>
+<!-- Sheet Header -->
+<div class="px-5 py-2.5 flex items-center justify-between border-b border-slate-100">
+<div>
+<h3 class="text-title-md font-title-md font-bold text-primary">Yêu cầu đổi buồng kho</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Hiện tại: Buồng #HCM-01-001 (Mini 2m²)</p>
+</div>
+<button aria-label="Đóng sheet" class="w-11 h-11 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100" onclick="closeAllSheets()" type="button">
+<span class="material-symbols-outlined text-[22px]">close</span>
+</button>
+</div>
+<!-- Sheet Scrollable Form Content -->
+<div class="px-5 py-4 overflow-y-auto space-y-4">
+<div id="change-form-step">
+<!-- Survey Notice (Clarification Mandate) -->
+<div class="p-3 bg-blue-50 rounded border border-blue-200 text-body-sm font-body-sm text-blue-950 mb-3.5 space-y-1">
+<div class="flex items-center gap-1.5 font-semibold text-blue-900">
+<span class="material-symbols-outlined text-[18px]">travel_explore</span>
+              Quy trình khảo sát &amp; điều phối buồng
+            </div>
+<p>Đây là <strong>yêu cầu khảo sát nhu cầu</strong>, hệ thống <strong>không tự ý gán số buồng vật lý trực tiếp</strong> và <strong>không tự ý phát sinh phí đổi buồng ngay</strong>. Quản lý cơ sở (FM) sẽ liên hệ xác nhận tình trạng buồng trống thực tế và đối soát chênh lệch tài chính trước khi thực hiện chuyển đổi.</p>
+</div>
+<!-- Option 1: Requirement Category -->
+<div class="space-y-2">
+<label class="block text-body-md font-body-md font-semibold text-on-surface">
+              Nhu cầu chuyển đổi mong muốn <span class="text-error">*</span>
+</label>
+<div class="space-y-2">
+<label class="flex items-start gap-3 p-3 rounded-lg border border-outline-variant bg-surface cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-[#E8F5F1]">
+<input checked="" class="mt-1 text-primary focus:ring-primary w-4 h-4" name="change_type" type="radio" value="same_size">
+<div>
+<p class="font-body-md font-bold text-on-surface">Cùng loại diện tích (Mini 2m²)</p>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Đổi sang vị trí tầng khác, đổi dãy hành lang gần cửa hoặc góc thoáng hơn.</p>
+</div>
+</label>
+<label class="flex items-start gap-3 p-3 rounded-lg border border-outline-variant bg-surface cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-[#E8F5F1]">
+<input class="mt-1 text-primary focus:ring-primary w-4 h-4" name="change_type" type="radio" value="diff_size">
+<div>
+<p class="font-body-md font-bold text-on-surface">Khác loại diện tích</p>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Nâng cấp lên buồng lớn hơn (Medium 4m² / Large 6m²) hoặc chuyển sang buồng nhỏ hơn.</p>
+</div>
+</label></div>
+</div>
+</div>
+<!-- Target Size Specification Dropdown (Contextual) -->
+<div class="space-y-1.5 mt-3.5">
+<label class="block text-body-md font-body-md font-semibold text-on-surface" for="target-size">
+              Quy cách buồng mong muốn hướng tới
+            </label>
+<select class="w-full min-h-[44px] px-3.5 py-2.5 rounded border border-[#CBD5E1] bg-white font-body-md text-on-surface focus:outline-none focus:border-[#125345] focus:ring-2 focus:ring-[#125345]/15" id="target-size">
+<option value="2m-ground">Mini 2m² — Ưu tiên tầng trệt / gần cửa chính</option>
+<option value="4m">Medium 4m² (10.0 m³) — Mở rộng quy mô lưu trữ</option>
+<option value="6m">Large 6m² (15.0 m³) — Doanh nghiệp / Đồ nội thất lớn</option>
+<option value="1m">Locker 1m² — Giảm dung tích</option>
+</select>
+</div>
+<!-- Reason & Storage Need Description -->
+<div class="space-y-1.5 mt-3.5">
+<label class="block text-body-md font-body-md font-semibold text-on-surface" for="change-reason">
+              Mô tả chi tiết nhu cầu lưu trữ mới <span class="text-error">*</span>
+</label>
+<textarea class="w-full p-3 rounded border border-[#CBD5E1] bg-white font-body-md text-on-surface focus:outline-none focus:border-[#125345] focus:ring-2 focus:ring-[#125345]/15 resize-none" id="change-reason" placeholder="Ví dụ: Cần thêm chỗ chứa 10 thùng hồ sơ và bàn ghế; hoặc mong muốn đổi tầng 1 để tiện xe đẩy..." rows="2"></textarea>
+</div>
+</div>
+<!-- Submission Confirmation Step -->
+<div class="hidden p-4 bg-[#E8F5F1] rounded-lg border border-emerald-300 text-center space-y-2" id="change-success-step">
+<div class="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto text-white">
+<span class="material-symbols-outlined text-[28px]">published_with_changes</span>
+</div>
+<h4 class="text-body-lg font-body-lg font-bold text-primary">Đã gửi yêu cầu khảo sát đổi buồng</h4>
+<p class="text-body-md font-body-md text-on-surface">Quản lý cơ sở sẽ kiểm tra quỹ buồng trống và liên hệ với bạn trong vòng <strong>4 giờ làm việc</strong>.</p>
+<div class="text-body-sm font-body-sm text-slate-600 bg-white/70 p-3 rounded text-left mt-2">
+            Lưu ý: Hợp đồng buồng hiện tại vẫn giữ nguyên, khách hàng không tự ý chuyển vật dụng sang buồng khác trước khi có biên bản nghiệm thu mới.
+          </div>
+</div>
+</div>
+<!-- Action Footer -->
+<div class="p-4 border-t border-slate-100 bg-surface flex gap-2.5">
+<button class="min-h-[44px] flex-1 px-4 py-2.5 rounded border border-outline-variant text-on-surface font-body-md font-medium hover:bg-slate-100 active:scale-95 transition-transform" onclick="closeAllSheets()" type="button">
+          Hủy / Giữ nguyên
+        </button>
+<button class="min-h-[44px] flex-1 px-4 py-2.5 rounded bg-primary-container hover:bg-primary text-white font-body-md font-bold active:scale-95 transition-transform shadow" id="btn-submit-change" onclick="submitChangeRequest()" type="button">
+          Gửi yêu cầu đổi
+        </button>
+</div>
+</div>
+<!-- Micro-interactions JavaScript for Bottom Sheets -->
+<script>
+    const backdrop = document.getElementById('modal-backdrop');
+    const returnSheet = document.getElementById('return-sheet');
+    const changeSheet = document.getElementById('change-sheet');
+
+    function openReturnSheet() {
+      // Reset form states
+      document.getElementById('return-form-step').classList.remove('hidden');
+      document.getElementById('return-success-step').classList.add('hidden');
+      document.getElementById('btn-submit-return').classList.remove('hidden');
+
+      backdrop.classList.remove('hidden');
+      setTimeout(() => backdrop.classList.remove('opacity-0'), 10);
+      returnSheet.classList.remove('translate-y-full');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function openChangeSheet() {
+      // Reset form states
+      document.getElementById('change-form-step').classList.remove('hidden');
+      document.getElementById('change-success-step').classList.add('hidden');
+      document.getElementById('btn-submit-change').classList.remove('hidden');
+
+      backdrop.classList.remove('hidden');
+      setTimeout(() => backdrop.classList.remove('opacity-0'), 10);
+      changeSheet.classList.remove('translate-y-full');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeAllSheets() {
+      returnSheet.classList.add('translate-y-full');
+      changeSheet.classList.add('translate-y-full');
+      backdrop.classList.add('opacity-0');
+      setTimeout(() => {
+        backdrop.classList.add('hidden');
+        document.body.style.overflow = '';
+      }, 280);
+    }
+
+    function submitReturnRequest() {
+      // Switch view to mock reception
+      document.getElementById('return-form-step').classList.add('hidden');
+      document.getElementById('return-success-step').classList.remove('hidden');
+      document.getElementById('btn-submit-return').classList.add('hidden');
+    }
+
+    function submitChangeRequest() {
+      // Switch view to mock reception
+      document.getElementById('change-form-step').classList.add('hidden');
+      document.getElementById('change-success-step').classList.remove('hidden');
+      document.getElementById('btn-submit-change').classList.add('hidden');
+    }
+  </script>
+</body></html>

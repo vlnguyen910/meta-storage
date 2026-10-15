@@ -1,0 +1,67 @@
+{
+  "errors": [],
+  "requests": [],
+  "audits": [
+    {
+      "screen": "public-empty",
+      "violations": []
+    },
+    {
+      "screen": "checkout-details",
+      "violations": []
+    },
+    {
+      "screen": "checkout-review",
+      "violations": []
+    },
+    {
+      "screen": "checkout-payment",
+      "violations": []
+    },
+    {
+      "screen": "checkout-success",
+      "violations": []
+    },
+    {
+      "screen": "customer-overview",
+      "violations": []
+    },
+    {
+      "screen": "M-C03",
+      "violations": []
+    },
+    {
+      "screen": "M-C05",
+      "violations": []
+    },
+    {
+      "screen": "M-C07",
+      "violations": []
+    },
+    {
+      "screen": "staff-inspection",
+      "violations": []
+    },
+    {
+      "screen": "staff-review",
+      "violations": []
+    },
+    {
+      "screen": "staff-handover",
+      "violations": []
+    },
+    {
+      "screen": "signup",
+      "violations": []
+    },
+    {
+      "screen": "verify-email",
+      "violations": []
+    },
+    {
+      "screen": "forgot-password",
+      "violations": []
+    }
+  ],
+  "axe": []
+}

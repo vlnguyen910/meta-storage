@@ -10,6 +10,7 @@ export * from "./handover-checklist.messages";
 export * from "./inspections";
 export * from "./inspections.messages";
 export * from "./messages";
+export * from "./mobile-workflows";
 export * from "./payments";
 export * from "./rentals";
 export * from "./reservation-contact";

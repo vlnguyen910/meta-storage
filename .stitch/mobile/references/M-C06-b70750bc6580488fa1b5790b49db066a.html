@@ -1,0 +1,696 @@
+<!DOCTYPE html><html class="h-full bg-[#F8FAF9]" lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>M-C06 — Kho của tôi — Customer | StoreX</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "tertiary-fixed": "#ffdcc3",
+            "on-background": "#131b2e",
+            "on-primary": "#ffffff",
+            "secondary-container": "#b4efda",
+            "on-secondary-container": "#366e5e",
+            "on-primary-container": "#89c5b3",
+            "on-secondary": "#ffffff",
+            "secondary-fixed-dim": "#98d2be",
+            "tertiary-fixed-dim": "#ffb77d",
+            "on-surface": "#131b2e",
+            "on-surface-variant": "#404945",
+            "on-secondary-fixed": "#002018",
+            "surface-container-lowest": "#ffffff",
+            "surface": "#faf8ff",
+            "tertiary": "#512800",
+            "error": "#ba1a1a",
+            "surface-bright": "#faf8ff",
+            "secondary": "#306858",
+            "primary": "#003b2f",
+            "surface-container-low": "#f2f3ff",
+            "surface-dim": "#d2d9f4",
+            "on-error": "#ffffff",
+            "outline": "#707975",
+            "on-tertiary-container": "#ffa454",
+            "on-secondary-fixed-variant": "#135041",
+            "primary-fixed": "#b1efdc",
+            "tertiary-container": "#723b00",
+            "on-tertiary": "#ffffff",
+            "error-container": "#ffdad6",
+            "inverse-primary": "#96d3c0",
+            "secondary-fixed": "#b4efda",
+            "inverse-surface": "#283044",
+            "on-primary-fixed-variant": "#0d5042",
+            "primary-container": "#125345",
+            "surface-container-highest": "#dae2fd",
+            "inverse-on-surface": "#eef0ff",
+            "surface-tint": "#2c6859",
+            "surface-container-high": "#e2e7ff",
+            "on-error-container": "#93000a",
+            "surface-variant": "#dae2fd",
+            "primary-fixed-dim": "#96d3c0",
+            "background": "#faf8ff",
+            "on-tertiary-fixed-variant": "#6e3900",
+            "on-primary-fixed": "#002019",
+            "surface-container": "#eaedff",
+            "on-tertiary-fixed": "#2f1500",
+            "outline-variant": "#bfc9c4"
+          },
+          "borderRadius": {
+            "DEFAULT": "4px",
+            "lg": "4px",
+            "xl": "6px",
+            "full": "9999px"
+          },
+          "fontFamily": {
+            "label-md": ["Space Grotesk"],
+            "title-md": ["Be Vietnam Pro"],
+            "headline-md": ["Space Grotesk"],
+            "headline-lg-mobile": ["Space Grotesk"],
+            "label-lg": ["Space Grotesk"],
+            "headline-lg": ["Space Grotesk"],
+            "display-mobile": ["Space Grotesk"],
+            "body-lg": ["Be Vietnam Pro"],
+            "headline-sm": ["Space Grotesk"],
+            "display": ["Space Grotesk"],
+            "body-md": ["Be Vietnam Pro"],
+            "label-sm": ["Space Grotesk"],
+            "body-sm": ["Be Vietnam Pro"]
+          },
+          "fontSize": {
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "title-md": ["18px", { "lineHeight": "26px", "fontWeight": "600" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+            "headline-lg-mobile": ["26px", { "lineHeight": "34px", "fontWeight": "600" }],
+            "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "display-mobile": ["34px", { "lineHeight": "42px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "body-lg": ["16px", { "lineHeight": "26px", "fontWeight": "400" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "display": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "body-md": ["14px", { "lineHeight": "22px", "fontWeight": "400" }],
+            "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+            "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    /* Mobile-first base fixes */
+    body {
+      max-width: 390px;
+      margin: 0 auto;
+      background-color: #F8FAF9;
+      color: #0F172A;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .material-symbols-outlined.fill-icon {
+      font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+    }
+    /* Touch target consistency */
+    .touch-target {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="relative min-h-screen flex flex-col justify-between pb-24 shadow-sm border-x border-[#E2E8F0]">
+<!-- TOP APP BAR / HEADER -->
+<header class="sticky top-0 z-30 flex items-center justify-between w-full h-14 px-4 bg-white/95 backdrop-blur-md border-b border-[#E2E8F0]">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-[4px] bg-[#125345] flex items-center justify-center text-white font-headline-sm text-headline-sm font-bold tracking-tight">
+        S
+      </div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm font-bold text-[#125345] tracking-tight leading-none">storeX</span>
+<span class="font-body-sm text-[10px] text-[#475569] font-medium tracking-wide">Self-Storage HCM</span>
+</div>
+</div>
+<!-- Right Controls: Hotline help & User Avatar Profile Modal trigger -->
+<div class="flex items-center gap-1">
+<a aria-label="Liên hệ hỗ trợ trạm kho 028 7300 1188" class="touch-target flex items-center justify-center text-[#475569] hover:text-[#125345] rounded-[4px] transition-colors" href="tel:02873001188">
+<span class="material-symbols-outlined text-[22px]" data-icon="help_outline">help_outline</span>
+</a>
+<button aria-label="Mở thông tin tài khoản Nguyễn Minh Anh" class="touch-target flex items-center justify-center pl-1" id="openAccountModalBtn" type="button">
+<div class="w-8 h-8 rounded-[4px] bg-[#E8F3EF] border border-[#BFCAC4] flex items-center justify-center text-[#125345] font-label-md text-label-md font-bold">
+          MA
+        </div>
+</button>
+</div>
+</header>
+<!-- MAIN SCROLLABLE CONTENT -->
+<main class="flex-1 px-4 py-4 space-y-4">
+<!-- Screen Title & Contextual Status Subtitle -->
+<section>
+<div class="flex items-center justify-between">
+<h1 class="font-headline-sm text-headline-sm text-[#0F172A] font-bold tracking-tight">Kho của tôi</h1>
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[4px] bg-[#E8F3EF] text-[#125345] font-label-md text-label-md font-medium">
+<span class="w-2 h-2 rounded-full bg-[#125345]"></span>
+          1 buồng đang thuê
+        </span>
+</div>
+<p class="mt-1 font-body-sm text-body-sm text-[#475569]">
+        Danh sách các buồng lưu trữ đã nghiệm thu bàn giao và đang trong thời hạn thuê thực tế.
+      </p>
+</section>
+<!-- SEARCH & FILTER CONTROLS -->
+<section class="space-y-2">
+<!-- Search Field -->
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#707975] text-[20px]" data-icon="search">search</span>
+<input class="w-full pl-10 pr-9 py-2.5 bg-white border border-[#BFCAC4] rounded-[4px] text-body-md text-[#0F172A] placeholder-[#707975] focus:outline-none focus:border-[#125345] focus:ring-1 focus:ring-[#125345] shadow-[0_1px_2px_rgba(15,23,42,0.04)]" id="unitSearchInput" placeholder="Tìm theo mã buồng (HCM-01-001) hoặc hợp đồng..." type="text">
+<button class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-[#707975] hover:text-[#0F172A] p-1" id="clearSearchBtn" type="button">
+<span class="material-symbols-outlined text-[18px]" data-icon="close">close</span>
+</button>
+</div>
+<!-- Filter Segment Chips -->
+<div aria-label="Bộ lọc hợp đồng kho" class="flex items-center gap-2 overflow-x-auto pb-1" role="tablist">
+<button class="filter-tab touch-target px-3 py-2 rounded-[4px] font-label-md text-label-md border transition-all text-[#475569] bg-white border-[#BFCAC4] hover:bg-[#F1F5F9]" id="filterAll" type="button">
+          Tất cả (1)
+        </button>
+<button class="filter-tab active touch-target px-3 py-2 rounded-[4px] font-label-md text-label-md border transition-all bg-[#125345] text-white border-[#125345]" id="filterActive" type="button">
+          Đang thuê (1)
+        </button>
+<button class="filter-tab touch-target px-3 py-2 rounded-[4px] font-label-md text-label-md border transition-all text-[#475569] bg-white border-[#BFCAC4] hover:bg-[#F1F5F9]" id="filterEnded" type="button">
+          Đã kết thúc (0)
+        </button>
+</div>
+</section>
+<!-- ACTIVE RENTED STORAGE UNIT CARD (Primary Data Unit) -->
+<div class="space-y-4" id="unitCardWrapper">
+<article class="bg-white border border-[#BFCAC4] rounded-[4px] shadow-[0_1px_2px_rgba(15,23,42,0.04)] overflow-hidden transition-all">
+<!-- Card Header: Contract code & Status Badge -->
+<div class="px-4 py-3 bg-[#FAFBFB] border-b border-[#E2E8F0] flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="font-label-md text-label-md text-[#475569] tracking-wider uppercase">HỢP ĐỒNG:</span>
+<span class="font-label-md text-label-md font-bold text-[#0F172A]">RNT-2026-0001</span>
+</div>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-[#E8F3EF] text-[#125345] font-label-md text-label-md font-semibold">
+<span class="w-2 h-2 rounded-full bg-[#125345] animate-pulse"></span>
+            Đang hoạt động
+          </span>
+</div>
+<!-- Card Body -->
+<div class="p-4 space-y-3.5">
+<!-- Physical Unit Header & Location -->
+<div>
+<div class="flex items-baseline justify-between">
+<h2 class="font-headline-sm text-headline-sm text-[#0F172A] font-bold tracking-tight">
+                Buồng HCM-01-001
+              </h2>
+<span class="font-label-md text-label-md text-[#125345] font-semibold bg-[#E8F3EF] px-2 py-0.5 rounded-[4px]">
+                Mini 2.0 m²
+              </span>
+</div>
+<div class="mt-1 flex items-start gap-1.5 text-[#475569]">
+<span class="material-symbols-outlined text-[18px] text-[#125345] shrink-0 mt-0.5" data-icon="location_on">location_on</span>
+<p class="font-body-sm text-body-sm leading-snug">
+<span class="font-medium text-[#0F172A]">Tầng 1 - Khu A</span>, StoreX Sài Gòn Central<br>
+                118 Nguyễn Văn Linh, P. Tân Phong, Q.7, TP.HCM
+              </p>
+</div>
+</div>
+<!-- Physical Specs Grid -->
+<div class="grid grid-cols-2 gap-2 p-2.5 bg-[#F8FAF9] rounded-[4px] border border-[#E2E8F0]">
+<div>
+<span class="block font-body-sm text-[11px] text-[#475569]">Kích thước buồng:</span>
+<span class="font-label-md text-label-md font-semibold text-[#0F172A]">1.0m × 2.0m × Cao 2.5m</span>
+</div>
+<div>
+<span class="block font-body-sm text-[11px] text-[#475569]">Thể tích lưu trữ:</span>
+<span class="font-label-md text-label-md font-semibold text-[#0F172A]">5.0 m³</span>
+</div>
+</div>
+<!-- Rental Duration Details -->
+<div class="border-t border-dashed border-[#E2E8F0] pt-3">
+<div class="flex items-center justify-between text-body-sm">
+<span class="text-[#475569] flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-[#707975]" data-icon="calendar_today">calendar_today</span>
+                Thời hạn thuê:
+              </span>
+<span class="font-semibold text-[#0F172A]">09/10/2026 – 09/11/2026</span>
+</div>
+<div class="mt-1 flex items-center justify-between text-body-sm">
+<span class="text-[#475569]">Kỳ hạn:</span>
+<span class="font-medium text-[#0F172A]">01 tháng (chu kỳ trả trước)</span>
+</div>
+</div>
+<!-- Financial Breakdown Table (Clear Separation of Rent & Security Deposit) -->
+<div class="p-3 bg-[#FAFBFB] rounded-[4px] border border-[#BFCAC4] space-y-1.5">
+<div class="flex items-center justify-between font-body-md text-body-md">
+<span class="text-[#475569]">Tiền thuê kho:</span>
+<span class="font-semibold text-[#0F172A]">900.000 đ<span class="text-xs font-normal text-[#475569]">/tháng</span></span>
+</div>
+<div class="flex items-center justify-between font-body-md text-body-md">
+<span class="text-[#475569] flex items-center gap-1">
+                Tiền cọc giữ buồng:
+                <span class="material-symbols-outlined text-[14px] text-[#707975]" data-icon="verified" title="Hoàn lại 100% khi thanh lý hợp đồng và bàn giao đủ chìa">verified</span>
+</span>
+<span class="font-semibold text-[#125345]">900.000 đ</span>
+</div>
+<p class="font-body-sm text-[11px] text-[#707975] italic pt-1 border-t border-[#E2E8F0]">
+              * Tiền cọc được hoàn lại 100% khi khách hàng bàn giao buồng kho nguyên vẹn và hoàn tất nghiệm thu tại quầy.
+            </p>
+</div>
+<!-- CTAs Area -->
+<div class="pt-1 space-y-2">
+<!-- Primary Action Button: View Details M-C07 -->
+<button class="touch-target w-full py-3 px-4 bg-[#125345] hover:bg-[#0F493B] active:scale-[0.99] text-white rounded-[4px] font-label-md text-label-md font-semibold tracking-wide flex items-center justify-center gap-2 transition-colors shadow-sm" id="viewDetailBtn" type="button">
+<span>Xem chi tiết kho (M-C07)</span>
+<span class="material-symbols-outlined text-[18px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+<!-- Secondary Action Button: Access guide & counter contact -->
+<button class="touch-target w-full py-2.5 px-4 bg-transparent hover:bg-[#E8F3EF] border border-[#125345] text-[#125345] rounded-[4px] font-label-md text-label-md font-semibold flex items-center justify-center gap-2 transition-colors" id="openAccessGuideBtn" type="button">
+<span class="material-symbols-outlined text-[18px]" data-icon="info">info</span>
+<span>Hướng dẫn ra vào &amp; liên hệ quầy</span>
+</button>
+</div>
+</div>
+</article>
+</div>
+<!-- EMPTY STATE (Dynamically shown when filters or search yield 0 records) -->
+<div class="hidden bg-white border border-[#BFCAC4] rounded-[4px] p-6 text-center space-y-3" id="emptyStateWrapper">
+<div class="w-12 h-12 mx-auto rounded-full bg-[#E8F3EF] flex items-center justify-center text-[#125345]">
+<span class="material-symbols-outlined text-[28px]" data-icon="inventory_2">inventory_2</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm font-semibold text-[#0F172A]">Không tìm thấy buồng kho phù hợp</h3>
+<p class="font-body-sm text-body-sm text-[#475569] mt-1">
+          Bạn hiện không có buồng kho nào trong danh mục đã chọn hoặc theo từ khóa tìm kiếm.
+        </p>
+</div>
+<div class="pt-2 flex flex-col gap-2">
+<button class="touch-target px-4 py-2.5 bg-[#125345] text-white rounded-[4px] font-label-md text-label-md font-semibold" id="resetFilterBtn" type="button">
+          Đặt lại bộ lọc
+        </button>
+<button class="touch-target px-4 py-2 bg-transparent text-[#475569] hover:text-[#125345] rounded-[4px] font-body-sm text-body-sm underline" onclick="switchTabNav('bookings')" type="button">
+          Xem các đơn đặt kho sắp tới (M-C02)
+        </button>
+</div>
+</div>
+<!-- INFORMATIONAL NOTICE: DISTINCTION BETWEEN BOOKING & ACTIVE RENTAL -->
+<section class="bg-[#FAFBFB] border border-[#BFCAC4] rounded-[4px] p-3.5 flex items-start gap-3">
+<span class="material-symbols-outlined text-[20px] text-[#125345] shrink-0 mt-0.5" data-icon="verified_user">verified_user</span>
+<div class="font-body-sm text-body-sm text-[#475569]">
+<span class="font-semibold text-[#0F172A] block mb-0.5">Quy trình bàn giao chìa vật lý</span>
+        Buồng kho tại StoreX sử dụng khóa cơ và thẻ từ vật lý được bàn giao trực tiếp tại quầy tiếp tân. Mọi yêu cầu đổi ổ khóa hoặc hỗ trợ xin liên hệ nhân viên trực trạm.
+      </div>
+</section>
+<!-- FAQ & ACCORDION (Nielsen Heuristic #10: Help & Documentation) -->
+<section class="space-y-2 pt-2">
+<h3 class="font-label-md text-label-md font-bold text-[#0F172A] uppercase tracking-wider flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-[#125345]" data-icon="help">help</span>
+        Câu hỏi thường gặp &amp; Hướng dẫn
+      </h3>
+<div class="space-y-1.5">
+<!-- Accordion Item 1 -->
+<div class="border border-[#BFCAC4] rounded-[4px] bg-white overflow-hidden">
+<button aria-expanded="false" class="faq-trigger touch-target w-full px-3.5 py-3 text-left flex items-center justify-between text-body-md font-medium text-[#0F172A] hover:bg-[#F8FAF9]" type="button">
+<span>Giờ giấc ra vào kho StoreX?</span>
+<span class="material-symbols-outlined transition-transform duration-200 text-[#707975]" data-icon="expand_more">expand_more</span>
+</button>
+<div class="faq-content hidden px-3.5 pb-3 text-body-sm text-[#475569] border-t border-[#E2E8F0] pt-2 bg-[#FAFBFB]">
+            Khách hàng đã nhận buồng có thể ra vào kho từ 07:00 đến 22:00 tất cả các ngày trong tuần (bao gồm cả Thứ 7, Chủ Nhật và ngày lễ). Cổng tự động kiểm soát bằng thẻ từ đã cấp.
+          </div>
+</div>
+<!-- Accordion Item 2 -->
+<div class="border border-[#BFCAC4] rounded-[4px] bg-white overflow-hidden">
+<button aria-expanded="false" class="faq-trigger touch-target w-full px-3.5 py-3 text-left flex items-center justify-between text-body-md font-medium text-[#0F172A] hover:bg-[#F8FAF9]" type="button">
+<span>Làm thế nào khi muốn trả kho hoặc gia hạn?</span>
+<span class="material-symbols-outlined transition-transform duration-200 text-[#707975]" data-icon="expand_more">expand_more</span>
+</button>
+<div class="faq-content hidden px-3.5 pb-3 text-body-sm text-[#475569] border-t border-[#E2E8F0] pt-2 bg-[#FAFBFB]">
+            Vui lòng thông báo trước ít nhất 07 ngày trước ngày hết hạn (09/11/2026). Khi trả kho, quý khách nghiệm thu buồng cùng nhân viên tiếp tân và nhận lại 100% tiền cọc (900.000 đ) qua tài khoản ngân hàng trong vòng 24 giờ làm việc.
+          </div>
+</div>
+<!-- Accordion Item 3 -->
+<div class="border border-[#BFCAC4] rounded-[4px] bg-white overflow-hidden">
+<button aria-expanded="false" class="faq-trigger touch-target w-full px-3.5 py-3 text-left flex items-center justify-between text-body-md font-medium text-[#0F172A] hover:bg-[#F8FAF9]" type="button">
+<span>Tôi cần làm gì nếu quên chìa khóa/thẻ?</span>
+<span class="material-symbols-outlined transition-transform duration-200 text-[#707975]" data-icon="expand_more">expand_more</span>
+</button>
+<div class="faq-content hidden px-3.5 pb-3 text-body-sm text-[#475569] border-t border-[#E2E8F0] pt-2 bg-[#FAFBFB]">
+            Hãy liên hệ ngay quầy lễ tân chi nhánh Sài Gòn Central hoặc hotline <strong class="text-[#0F172A]">028 7300 1188</strong> cùng căn cước công dân chính chủ để được nhân viên hỗ trợ mở khóa dự phòng theo biên bản an ninh.
+          </div>
+</div>
+</div>
+</section>
+</main>
+<!-- BOTTOM NAVIGATION (CUSTOMER PORTAL - 4 STANDARD TABS) -->
+<nav aria-label="Customer Main Navigation" class="fixed bottom-0 left-0 right-0 z-40 max-w-[390px] mx-auto bg-white/95 backdrop-blur-md border-t border-[#BFCAC4] shadow-[0_-2px_6px_rgba(15,23,42,0.03)]">
+<div class="grid grid-cols-4 h-16">
+<!-- Tab 1: Tổng quan (M-C01) -->
+<button class="flex flex-col items-center justify-center text-[#475569] hover:text-[#125345] transition-colors focus:outline-none" onclick="switchTabNav('overview')" type="button">
+<span class="material-symbols-outlined text-[22px]" data-icon="dashboard">dashboard</span>
+<span class="font-label-sm text-[11px] mt-1">Tổng quan</span>
+</button>
+<!-- Tab 2: Đơn đặt kho (M-C02) -->
+<button class="flex flex-col items-center justify-center text-[#475569] hover:text-[#125345] transition-colors focus:outline-none" onclick="switchTabNav('bookings')" type="button">
+<span class="material-symbols-outlined text-[22px]" data-icon="receipt_long">receipt_long</span>
+<span class="font-label-sm text-[11px] mt-1">Đơn đặt</span>
+</button>
+<!-- Tab 3: Giữ chỗ (M-C04) -->
+<button class="flex flex-col items-center justify-center text-[#475569] hover:text-[#125345] transition-colors focus:outline-none" onclick="switchTabNav('reservations')" type="button">
+<span class="material-symbols-outlined text-[22px]" data-icon="bookmark">bookmark</span>
+<span class="font-label-sm text-[11px] mt-1">Giữ chỗ</span>
+</button>
+<!-- Tab 4: Kho của tôi (M-C06) -> ACTIVE -->
+<button aria-current="page" class="relative flex flex-col items-center justify-center text-[#125345] font-semibold focus:outline-none" type="button">
+<!-- Active indicator bar at top of tab -->
+<span class="absolute top-0 w-8 h-[2px] bg-[#125345] rounded-full"></span>
+<span class="material-symbols-outlined fill-icon text-[24px]" data-icon="warehouse">warehouse</span>
+<span class="font-label-sm text-[11px] mt-1 font-bold text-[#125345]">Kho của tôi</span>
+</button>
+</div>
+</nav>
+<!-- MODAL / BOTTOM SHEET 1: THÔNG TIN TÀI KHOẢN & ĐĂNG XUẤT -->
+<div aria-labelledby="modalUserTitle" aria-modal="true" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end justify-center" id="accountModal" role="dialog">
+<div class="absolute inset-0" id="accountModalBackdrop"></div>
+<div class="relative w-full max-w-[390px] bg-white rounded-t-[8px] border-t border-[#BFCAC4] p-5 space-y-4 shadow-xl transform transition-transform duration-200">
+<!-- Drag handle line -->
+<div class="w-10 h-1 bg-[#CBD5E1] rounded-full mx-auto mb-2"></div>
+<div class="flex items-center justify-between border-b border-[#E2E8F0] pb-3">
+<h3 class="font-headline-sm text-headline-sm font-bold text-[#0F172A]" id="modalUserTitle">Tài khoản khách hàng</h3>
+<button aria-label="Đóng cửa sổ tài khoản" class="touch-target p-1 text-[#475569] hover:text-[#0F172A]" id="closeAccountModalBtn" type="button">
+<span class="material-symbols-outlined text-[20px]" data-icon="close">close</span>
+</button>
+</div>
+<!-- User Profile Card -->
+<div class="flex items-center gap-3 p-3 bg-[#F8FAF9] border border-[#BFCAC4] rounded-[4px]">
+<div class="w-12 h-12 rounded-[4px] bg-[#125345] text-white flex items-center justify-center font-bold text-lg">
+          MA
+        </div>
+<div>
+<h4 class="font-headline-sm text-headline-sm font-bold text-[#0F172A]">Nguyễn Minh Anh</h4>
+<p class="font-body-sm text-body-sm text-[#475569]">minhanh.nguyen@email.vn</p>
+<span class="inline-block mt-0.5 font-label-sm text-[10px] text-[#125345] bg-[#E8F3EF] px-1.5 py-0.5 rounded-[4px] font-medium">Khách hàng định danh</span>
+</div>
+</div>
+<!-- Account Actions Menu -->
+<div class="space-y-1 text-body-md text-[#0F172A]">
+<a class="flex items-center justify-between p-2.5 rounded-[4px] hover:bg-[#F8FAF9] text-[#0F172A]" href="#profile">
+<span class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px] text-[#707975]" data-icon="person">person</span>
+            Thông tin cá nhân &amp; CCCD
+          </span>
+<span class="material-symbols-outlined text-[16px] text-[#CBD5E1]" data-icon="chevron_right">chevron_right</span>
+</a>
+<a class="flex items-center justify-between p-2.5 rounded-[4px] hover:bg-[#F8FAF9] text-[#0F172A]" href="#history">
+<span class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px] text-[#707975]" data-icon="history">history</span>
+            Lịch sử giao dịch &amp; Hóa đơn VAT
+          </span>
+<span class="material-symbols-outlined text-[16px] text-[#CBD5E1]" data-icon="chevron_right">chevron_right</span>
+</a>
+<a class="flex items-center justify-between p-2.5 rounded-[4px] hover:bg-[#F8FAF9] text-[#0F172A]" href="tel:02873001188">
+<span class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px] text-[#707975]" data-icon="support_agent">support_agent</span>
+            Tổng đài StoreX (028 7300 1188)
+          </span>
+<span class="material-symbols-outlined text-[16px] text-[#CBD5E1]" data-icon="chevron_right">chevron_right</span>
+</a>
+</div>
+<!-- Logout Action -->
+<div class="pt-2 border-t border-[#E2E8F0]">
+<button class="touch-target w-full py-2.5 px-4 bg-white border border-[#ba1a1a] text-[#ba1a1a] hover:bg-[#ffdad6]/20 font-label-md text-label-md font-semibold rounded-[4px] flex items-center justify-center gap-2 transition-colors" id="confirmLogoutBtn" type="button">
+<span class="material-symbols-outlined text-[18px]" data-icon="logout">logout</span>
+          Đăng xuất tài khoản
+        </button>
+</div>
+</div>
+</div>
+<!-- MODAL / BOTTOM SHEET 2: HƯỚNG DẪN RA VÀO & LIÊN HỆ QUẦY -->
+<div aria-labelledby="guideTitle" aria-modal="true" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end justify-center" id="accessGuideModal" role="dialog">
+<div class="absolute inset-0" id="accessModalBackdrop"></div>
+<div class="relative w-full max-w-[390px] bg-white rounded-t-[8px] border-t border-[#BFCAC4] p-5 space-y-4 shadow-xl">
+<div class="w-10 h-1 bg-[#CBD5E1] rounded-full mx-auto mb-1"></div>
+<div class="flex items-center justify-between border-b border-[#E2E8F0] pb-2">
+<h3 class="font-headline-sm text-headline-sm font-bold text-[#0F172A]" id="guideTitle">Quy định ra vào &amp; Quầy trạm</h3>
+<button aria-label="Đóng hướng dẫn" class="touch-target p-1 text-[#475569]" id="closeGuideModalBtn" type="button">
+<span class="material-symbols-outlined text-[20px]" data-icon="close">close</span>
+</button>
+</div>
+<div class="space-y-3 font-body-sm text-body-sm text-[#475569]">
+<div class="flex items-start gap-2.5">
+<span class="w-6 h-6 rounded-full bg-[#E8F3EF] text-[#125345] flex items-center justify-center font-bold text-xs shrink-0">1</span>
+<div>
+<strong class="text-[#0F172A] block font-body-md">Quẹt thẻ từ cổng an ninh</strong>
+            Sử dụng thẻ từ an ninh màu xanh lá đã cấp để mở cửa kính tầng 1 StoreX Sài Gòn Central.
+          </div>
+</div>
+<div class="flex items-start gap-2.5">
+<span class="w-6 h-6 rounded-full bg-[#E8F3EF] text-[#125345] flex items-center justify-center font-bold text-xs shrink-0">2</span>
+<div>
+<strong class="text-[#0F172A] block font-body-md">Mở buồng kho HCM-01-001</strong>
+            Sử dụng chìa khóa cơ vật lý riêng của quý khách. Nhân viên StoreX không giữ chìa dự phòng trong ổ khóa khi buồng đang được thuê.
+          </div>
+</div>
+<div class="flex items-start gap-2.5">
+<span class="w-6 h-6 rounded-full bg-[#E8F3EF] text-[#125345] flex items-center justify-center font-bold text-xs shrink-0">3</span>
+<div>
+<strong class="text-[#0F172A] block font-body-md">Hỗ trợ xe đẩy hàng</strong>
+            Xe đẩy trợ lực 300kg được đặt sẵn tại sảnh thang máy Tầng 1, miễn phí sử dụng nội khu.
+          </div>
+</div>
+</div>
+<!-- Counter Contact Box -->
+<div class="p-3 bg-[#F8FAF9] border border-[#BFCAC4] rounded-[4px] flex items-center justify-between">
+<div>
+<span class="font-body-sm text-[11px] text-[#475569] uppercase font-semibold">Trực ban quản lý trạm Q.7:</span>
+<p class="font-headline-sm text-headline-sm font-bold text-[#125345]">028 7300 1188</p>
+</div>
+<a class="touch-target px-3 py-2 bg-[#125345] text-white rounded-[4px] font-label-md text-label-md font-semibold flex items-center gap-1" href="tel:02873001188">
+<span class="material-symbols-outlined text-[18px]" data-icon="call">call</span>
+          Gọi ngay
+        </a>
+</div>
+</div>
+</div>
+<!-- TOAST FEEDBACK NOTIFICATION (Local Interaction Feedback) -->
+<div class="fixed top-16 left-4 right-4 max-w-[358px] mx-auto z-50 hidden bg-[#0F172A] text-white px-4 py-3 rounded-[4px] shadow-lg flex items-center justify-between transition-all" id="toastNotification">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#89c5b3] text-[20px]" data-icon="check_circle">check_circle</span>
+<span class="font-body-sm text-body-sm font-medium" id="toastMessage">Thông báo cập nhật</span>
+</div>
+<button class="text-slate-400 hover:text-white ml-2" onclick="dismissToast()">
+<span class="material-symbols-outlined text-[16px]" data-icon="close">close</span>
+</button>
+</div>
+<!-- INLINE VANILLA JAVASCRIPT FOR MICRO-INTERACTIONS -->
+<script>
+    // State management
+    const state = {
+      activeFilter: 'active', // 'all', 'active', 'ended'
+      searchTerm: '',
+      unitAvailable: true
+    };
+
+    // DOM Elements
+    const searchInput = document.getElementById('unitSearchInput');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    const filterAll = document.getElementById('filterAll');
+    const filterActive = document.getElementById('filterActive');
+    const filterEnded = document.getElementById('filterEnded');
+    const filterButtons = [filterAll, filterActive, filterEnded];
+    const unitCardWrapper = document.getElementById('unitCardWrapper');
+    const emptyStateWrapper = document.getElementById('emptyStateWrapper');
+    const resetFilterBtn = document.getElementById('resetFilterBtn');
+
+    // Modal elements
+    const accountModal = document.getElementById('accountModal');
+    const openAccountModalBtn = document.getElementById('openAccountModalBtn');
+    const closeAccountModalBtn = document.getElementById('closeAccountModalBtn');
+    const accountModalBackdrop = document.getElementById('accountModalBackdrop');
+    const confirmLogoutBtn = document.getElementById('confirmLogoutBtn');
+
+    const accessGuideModal = document.getElementById('accessGuideModal');
+    const openAccessGuideBtn = document.getElementById('openAccessGuideBtn');
+    const closeGuideModalBtn = document.getElementById('closeGuideModalBtn');
+    const accessModalBackdrop = document.getElementById('accessModalBackdrop');
+
+    const viewDetailBtn = document.getElementById('viewDetailBtn');
+
+    // Toast functions
+    function showToast(message) {
+      const toast = document.getElementById('toastNotification');
+      const toastMsg = document.getElementById('toastMessage');
+      toastMsg.textContent = message;
+      toast.classList.remove('hidden');
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 3500);
+    }
+
+    function dismissToast() {
+      document.getElementById('toastNotification').classList.add('hidden');
+    }
+
+    // Filter Logic
+    function updateListDisplay() {
+      const query = state.searchTerm.toLowerCase().trim();
+      const matchesSearch = query === '' || 
+                            'hcm-01-001'.includes(query) || 
+                            'rnt-2026-0001'.includes(query) || 
+                            'quận 7'.includes(query) || 
+                            'mini'.includes(query);
+
+      // Check filter matching
+      let isVisible = false;
+      if (state.activeFilter === 'all' && matchesSearch) {
+        isVisible = true;
+      } else if (state.activeFilter === 'active' && matchesSearch) {
+        isVisible = true;
+      } else {
+        // 'ended' has 0 contracts currently
+        isVisible = false;
+      }
+
+      if (isVisible) {
+        unitCardWrapper.classList.remove('hidden');
+        emptyStateWrapper.classList.add('hidden');
+      } else {
+        unitCardWrapper.classList.add('hidden');
+        emptyStateWrapper.classList.remove('hidden');
+      }
+    }
+
+    function setActiveFilter(filterName, clickedBtn) {
+      state.activeFilter = filterName;
+      filterButtons.forEach(btn => {
+        btn.classList.remove('bg-[#125345]', 'text-white', 'border-[#125345]');
+        btn.classList.add('bg-white', 'text-[#475569]', 'border-[#BFCAC4]');
+      });
+      clickedBtn.classList.remove('bg-white', 'text-[#475569]', 'border-[#BFCAC4]');
+      clickedBtn.classList.add('bg-[#125345]', 'text-white', 'border-[#125345]');
+      updateListDisplay();
+    }
+
+    filterAll.addEventListener('click', () => setActiveFilter('all', filterAll));
+    filterActive.addEventListener('click', () => setActiveFilter('active', filterActive));
+    filterEnded.addEventListener('click', () => setActiveFilter('ended', filterEnded));
+
+    // Reset filters
+    resetFilterBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      state.searchTerm = '';
+      clearSearchBtn.classList.add('hidden');
+      setActiveFilter('active', filterActive);
+    });
+
+    // Search events
+    searchInput.addEventListener('input', (e) => {
+      state.searchTerm = e.target.value;
+      if (state.searchTerm.length > 0) {
+        clearSearchBtn.classList.remove('hidden');
+      } else {
+        clearSearchBtn.classList.add('hidden');
+      }
+      updateListDisplay();
+    });
+
+    clearSearchBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      state.searchTerm = '';
+      clearSearchBtn.classList.add('hidden');
+      updateListDisplay();
+    });
+
+    // Accordions
+    document.querySelectorAll('.faq-trigger').forEach(trigger => {
+      trigger.addEventListener('click', () => {
+        const content = trigger.nextElementSibling;
+        const icon = trigger.querySelector('.material-symbols-outlined');
+        const isOpen = !content.classList.contains('hidden');
+
+        if (isOpen) {
+          content.classList.add('hidden');
+          icon.style.transform = 'rotate(0deg)';
+          trigger.setAttribute('aria-expanded', 'false');
+        } else {
+          content.classList.remove('hidden');
+          icon.style.transform = 'rotate(180deg)';
+          trigger.setAttribute('aria-expanded', 'true');
+        }
+      });
+    });
+
+    // Account Modal Handlers
+    function openAccountSheet() {
+      accountModal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeAccountSheet() {
+      accountModal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    openAccountModalBtn.addEventListener('click', openAccountSheet);
+    closeAccountModalBtn.addEventListener('click', closeAccountSheet);
+    accountModalBackdrop.addEventListener('click', closeAccountSheet);
+
+    confirmLogoutBtn.addEventListener('click', () => {
+      closeAccountSheet();
+      showToast('Đang đăng xuất khỏi tài khoản Nguyễn Minh Anh...');
+    });
+
+    // Access Guide Modal Handlers
+    function openGuideSheet() {
+      accessGuideModal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeGuideSheet() {
+      accessGuideModal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    openAccessGuideBtn.addEventListener('click', openGuideSheet);
+    closeGuideModalBtn.addEventListener('click', closeGuideSheet);
+    accessModalBackdrop.addEventListener('click', closeGuideSheet);
+
+    // Detail Action Handlers
+    viewDetailBtn.addEventListener('click', () => {
+      showToast('Đang mở Chi tiết hợp đồng buồng HCM-01-001 (M-C07)...');
+    });
+
+    // Simulated Bottom Navigation routing
+    function switchTabNav(tab) {
+      if (tab === 'overview') {
+        showToast('Chuyển hướng về M-C01 — Tổng quan');
+      } else if (tab === 'bookings') {
+        showToast('Chuyển hướng đến M-C02 — Đơn đặt kho');
+      } else if (tab === 'reservations') {
+        showToast('Chuyển hướng đến M-C04 — Phiếu giữ chỗ');
+      }
+    }
+
+    // Keyboard support (Escape closes sheets)
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeAccountSheet();
+        closeGuideSheet();
+        dismissToast();
+      }
+    });
+  </script>
+</body></html>

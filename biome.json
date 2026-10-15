@@ -7,7 +7,12 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**", "!packages/database/drizzle", "!.stitch/designs/*.html"]
+    "includes": [
+      "**",
+      "!packages/database/drizzle",
+      "!.stitch/designs/*.html",
+      "!.stitch/mobile/references/*.html"
+    ]
   },
   "formatter": {
     "enabled": true,

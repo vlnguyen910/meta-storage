@@ -1,0 +1,677 @@
+<!DOCTYPE html><html lang="vi"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>M-FS03 — Biên bản kiểm tra trả kho — FS</title>
+  <!-- Google Fonts: Space Grotesk & Be Vietnam Pro -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              DEFAULT: '#125345',
+              hover: '#0c3a30',
+              soft: '#E8F3EF',
+              surface: '#F8FAF9'
+            },
+            neutral: {
+              dark: '#0F172A',
+              muted: '#475569',
+              border: '#BFCAC4'
+            }
+          },
+          fontFamily: {
+            heading: ['"Space Grotesk"', 'sans-serif'],
+            body: ['"Be Vietnam Pro"', 'sans-serif']
+          },
+          borderRadius: {
+            'custom': '4px'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      background-color: #F8FAF9;
+      color: #0F172A;
+      -webkit-font-smoothing: antialiased;
+    }
+    h1, h2, h3, h4, .font-heading {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .custom-card {
+      background-color: #FFFFFF;
+      border: 1px solid #BFCAC4;
+      border-radius: 4px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+    .custom-control {
+      border: 1px solid #BFCAC4;
+      border-radius: 4px;
+      min-height: 48px;
+    }
+    .custom-control:focus {
+      outline: none;
+      border-color: #125345;
+      ring: 2px solid rgba(18, 83, 69, 0.2);
+    }
+    .touch-target {
+      min-width: 44px;
+      min-height: 44px;
+    }
+    /* Hide scrollbars for clean mobile appearance while maintaining scrollability */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-[#F8FAF9] text-[#0F172A]">
+
+  <!-- TOP APP BAR / HEADER (Sticky mobile) -->
+  <header class="sticky top-0 z-30 bg-white border-b border-[#BFCAC4] px-4 py-2.5 flex items-center justify-between shadow-sm">
+    <div class="flex items-center gap-2.5">
+      <a href="javascript:void(0)" onclick="handleBackAction()" class="touch-target flex items-center justify-center text-[#125345] hover:bg-[#E8F3EF] rounded p-1.5 focus:outline-none focus:ring-2 focus:ring-[#125345]" aria-label="Quay lại danh sách trả kho">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"></path>
+        </svg>
+      </a>
+      <div>
+        <div class="flex items-center gap-1.5">
+          <span class="text-xs font-semibold uppercase tracking-wider text-[#125345] bg-[#E8F3EF] px-2 py-0.5 rounded">RET-2026-0021</span>
+          <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-500" aria-hidden="true"></span>
+        </div>
+        <h1 class="text-base font-bold font-heading text-[#0F172A] leading-tight">Biên bản kiểm tra trả kho</h1>
+      </div>
+    </div>
+    
+    <!-- User/Facility Action Button -->
+    <button type="button" onclick="toggleUserSheet()" class="touch-target flex items-center justify-center p-1 rounded hover:bg-[#E8F3EF] focus:outline-none focus:ring-2 focus:ring-[#125345]" aria-label="Xem thông tin ca trực và tài khoản">
+      <div class="w-9 h-9 rounded bg-[#125345] text-white flex items-center justify-center font-heading font-bold text-sm">
+        QH
+      </div>
+    </button>
+  </header>
+
+  <!-- BANNER: NOTIFICATION / STATUS -->
+  <div id="statusToast" class="hidden mx-4 mt-3 p-3 custom-card bg-emerald-50 border-emerald-300 text-emerald-900 text-sm flex items-center justify-between" role="status" aria-live="polite">
+    <div class="flex items-center gap-2">
+      <svg class="w-5 h-5 text-emerald-700 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+      </svg>
+      <span id="statusToastMessage" class="font-medium">Đã lưu bản nháp thành công!</span>
+    </div>
+    <button type="button" onclick="closeToast()" class="text-emerald-700 hover:text-emerald-900 touch-target p-1" aria-label="Đóng thông báo">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+    </button>
+  </div>
+
+  <!-- MAIN SCROLLABLE CONTAINER -->
+  <main class="flex-1 px-4 py-4 space-y-4 pb-36">
+
+    <!-- FORM BANNER: SCOPE GUARD FOR FIELD SPECIALIST (FS) -->
+    <div class="custom-card p-3.5 bg-[#FFFBEB] border-amber-200 text-xs text-[#0F172A] flex items-start gap-2.5">
+      <svg class="w-5 h-5 text-amber-700 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+      </svg>
+      <div>
+        <strong class="font-semibold text-amber-900 block text-[13px]">Quy định nghiệp vụ Nhân viên Hiện trường (FS):</strong>
+        <p class="mt-0.5 text-amber-800 leading-relaxed">
+          FS ghi nhận trung thực hiện trạng thực tế và đối chiếu vật tư bàn giao ban đầu. FS <strong>không tính tiền khấu trừ, không duyệt hoàn cọc</strong> và không tự đóng hợp đồng. Kết quả sẽ được Quản lý cơ sở (FM) thẩm duyệt.
+        </p>
+      </div>
+    </div>
+
+    <!-- CARD 1: THÔNG TIN HỒ SƠ YÊU CẦU & BUỒNG KHO (READONLY) -->
+    <section class="custom-card p-4 space-y-3" aria-labelledby="heading-booking-info">
+      <div class="flex items-center justify-between pb-2.5 border-b border-[#BFCAC4]">
+        <h2 id="heading-booking-info" class="text-sm font-bold font-heading uppercase tracking-wide text-[#125345]">
+          1. Thông tin trả kho &amp; Buồng lưu trữ
+        </h2>
+        <span class="text-xs font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-200">
+          Chờ kiểm tra
+        </span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 text-sm">
+        <div>
+          <span class="text-xs text-[#475569] block">Cơ sở trạm tiếp nhận:</span>
+          <span class="font-semibold text-[#0F172A] block leading-tight">StoreX Sài Gòn Central</span>
+          <span class="text-xs text-[#475569] block mt-0.5">118 Nguyễn Văn Linh, Q.7</span>
+        </div>
+        <div>
+          <span class="text-xs text-[#475569] block">Buồng vật lý:</span>
+          <span class="font-bold text-[#125345] text-base block font-heading">HCM-01-001</span>
+          <span class="text-xs text-[#475569] block mt-0.5">Mini 2m² (Dãy A, Tầng 1)</span>
+        </div>
+        <div class="col-span-2 pt-2 border-t border-dashed border-[#BFCAC4] flex justify-between items-center">
+          <div>
+            <span class="text-xs text-[#475569] block">Khách hàng thuê:</span>
+            <span class="font-semibold text-[#0F172A] text-sm">Nguyễn Minh Anh</span>
+            <span class="text-xs text-[#475569] block">0908 123 456</span>
+          </div>
+          <div class="text-right">
+            <span class="text-xs text-[#475569] block">Lịch hẹn bàn giao:</span>
+            <span class="font-medium text-[#0F172A] text-xs">10:00 – 12:00, 09/10/2026</span>
+            <span class="text-[11px] text-emerald-700 block">Đã có mặt tại quầy</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CARD 2: KIỂM KÊ TÀI SẢN VẬT LÝ THU HỒI -->
+    <section class="custom-card p-4 space-y-3" aria-labelledby="heading-items-return">
+      <div class="flex items-center justify-between pb-2.5 border-b border-[#BFCAC4]">
+        <h2 id="heading-items-return" class="text-sm font-bold font-heading uppercase tracking-wide text-[#125345]">
+          2. Thu hồi vật tư vật lý <span class="text-red-600">*</span>
+        </h2>
+        <span class="text-xs text-[#475569]">Theo biên bản giao nhận</span>
+      </div>
+
+      <p class="text-xs text-[#475569]">
+        Đối chiếu các vật tư vật lý được bàn giao lúc nhận buồng:
+      </p>
+
+      <div class="space-y-2.5 pt-1">
+        <!-- Item 1: Thẻ ra vào cơ sở -->
+        <label class="flex items-start gap-3 p-3 rounded border border-[#BFCAC4] bg-white cursor-pointer hover:bg-[#F8FAF9] touch-target">
+          <input type="checkbox" id="itemCardReturn" name="returned_items" checked="" class="mt-1 w-5 h-5 rounded border-[#BFCAC4] text-[#125345] focus:ring-[#125345]" onchange="validateFormProgress()">
+          <div class="flex-1 text-xs">
+            <span class="font-semibold text-sm text-[#0F172A] block">01 Thẻ từ ra vào trạm kho</span>
+            <span class="text-[#475569] block mt-0.5">Mã thẻ: <strong class="text-[#0F172A]">CARD-SGC-8842</strong> (Nguyên vẹn, quẹt nhạy)</span>
+          </div>
+        </label>
+
+        <!-- Item 2: Ổ khóa MasterLock & 02 chìa -->
+        <label class="flex items-start gap-3 p-3 rounded border border-[#BFCAC4] bg-white cursor-pointer hover:bg-[#F8FAF9] touch-target">
+          <input type="checkbox" id="itemKeyReturn" name="returned_items" checked="" class="mt-1 w-5 h-5 rounded border-[#BFCAC4] text-[#125345] focus:ring-[#125345]" onchange="validateFormProgress()">
+          <div class="flex-1 text-xs">
+            <span class="font-semibold text-sm text-[#0F172A] block">01 Ổ khóa cơ MasterLock &amp; 02 chìa gốc</span>
+            <span class="text-[#475569] block mt-0.5">Số sê-ri: <strong class="text-[#0F172A]">ML-99201</strong> (Đã tra chìa thử mượt mà)</span>
+          </div>
+        </label>
+      </div>
+    </section>
+
+    <!-- CARD 3: ĐỐI CHIẾU ẢNH BASELINE & HIỆN TRẠNG THỰC TẾ -->
+    <section class="custom-card p-4 space-y-3" aria-labelledby="heading-baseline-comparison">
+      <div class="flex items-center justify-between pb-2.5 border-b border-[#BFCAC4]">
+        <h2 id="heading-baseline-comparison" class="text-sm font-bold font-heading uppercase tracking-wide text-[#125345]">
+          3. Đối chiếu ảnh Baseline &amp; Thực tế
+        </h2>
+        <span class="text-xs text-[#125345] font-medium bg-[#E8F3EF] px-1.5 py-0.5 rounded">Ảnh lúc nhận kho</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <div class="space-y-1">
+          <div class="h-28 bg-slate-200 rounded border border-[#BFCAC4] overflow-hidden relative flex items-center justify-center">
+            <div class="text-center p-2">
+              <svg class="w-8 h-8 mx-auto text-slate-500 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+              </svg>
+              <span class="text-[11px] font-semibold text-slate-700 block">Baseline ban đầu</span>
+            </div>
+            <span class="absolute bottom-1 left-1 bg-black/60 text-white text-[10px] px-1 rounded">09/10/2026</span>
+          </div>
+          <span class="text-[#475569] text-[11px] block">Sàn sạch &amp; vách nhôm mới</span>
+        </div>
+
+        <div class="space-y-1">
+          <div id="capturedPhotoBox" class="h-28 bg-[#E8F3EF] rounded border border-dashed border-[#125345] overflow-hidden relative flex flex-col items-center justify-center text-center p-2 cursor-pointer hover:bg-emerald-100" onclick="simulateAddPhoto()" role="button" tabindex="0" aria-label="Chụp hoặc đính kèm ảnh hiện trạng buồng kho">
+            <svg class="w-8 h-8 text-[#125345] mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+            <span id="photoStatusText" class="text-[11px] font-bold text-[#125345] leading-tight">Đã đính kèm 2 ảnh thực tế</span>
+            <span class="text-[10px] text-emerald-800">Bấm để thêm ảnh</span>
+          </div>
+          <span class="text-[#475569] text-[11px] block">Ảnh kiểm tra trực tiếp</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- CARD 4: CHECKLIST BẮT BUỘC (KIỂM TRA HIỆN TRẠNG BUỒNG KHO) -->
+    <section class="custom-card p-4 space-y-3.5" aria-labelledby="heading-checklist">
+      <div class="flex items-center justify-between pb-2.5 border-b border-[#BFCAC4]">
+        <h2 id="heading-checklist" class="text-sm font-bold font-heading uppercase tracking-wide text-[#125345]">
+          4. Tiêu chí kiểm tra thực địa <span class="text-red-600">*</span>
+        </h2>
+        <span class="text-xs text-emerald-700 font-semibold" id="checklistCounter">4/4 Tiêu chí đạt</span>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <!-- Criterion 1 -->
+        <div class="p-3 bg-white rounded border border-[#BFCAC4] space-y-2">
+          <div class="flex items-start justify-between">
+            <label for="chk-empty" class="font-semibold text-sm text-[#0F172A] block cursor-pointer">
+              1. Buồng kho hoàn toàn trống rỗng
+            </label>
+            <span class="text-[11px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-medium">Bắt buộc</span>
+          </div>
+          <p class="text-[#475569]">Không còn thùng carton, đồ đạc cá nhân, rác hay pallet bỏ sót lại trong buồng.</p>
+          <div class="flex items-center gap-3 pt-1">
+            <label class="flex items-center gap-1.5 cursor-pointer touch-target">
+              <input type="radio" id="chk-empty-yes" name="crit_empty" value="pass" checked="" class="w-4 h-4 text-[#125345] focus:ring-[#125345]" onchange="validateFormProgress()">
+              <span class="font-medium text-[#0F172A]">Đạt (Trống 100%)</span>
+            </label>
+            <label class="flex items-center gap-1.5 cursor-pointer touch-target">
+              <input type="radio" id="chk-empty-no" name="crit_empty" value="fail" class="w-4 h-4 text-red-600 focus:ring-red-600" onchange="validateFormProgress()">
+              <span class="font-medium text-red-700">Chưa dọn hết đồ</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Criterion 2 -->
+        <div class="p-3 bg-white rounded border border-[#BFCAC4] space-y-2">
+          <div class="flex items-start justify-between">
+            <label for="chk-clean" class="font-semibold text-sm text-[#0F172A] block cursor-pointer">
+              2. Vệ sinh mặt sàn epoxy
+            </label>
+            <span class="text-[11px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-medium">Bắt buộc</span>
+          </div>
+          <p class="text-[#475569]">Mặt sàn khô ráo, quét sạch bụi, không đọng vết dầu mỡ, chất lỏng hay hóa chất.</p>
+          <div class="flex items-center gap-3 pt-1">
+            <label class="flex items-center gap-1.5 cursor-pointer touch-target">
+              <input type="radio" id="chk-clean-yes" name="crit_clean" value="pass" checked="" class="w-4 h-4 text-[#125345] focus:ring-[#125345]" onchange="validateFormProgress()">
+              <span class="font-medium text-[#0F172A]">Đạt chuẩn sạch sẽ</span>
+            </label>
+            <label class="flex items-center gap-1.5 cursor-pointer touch-target">
+              <input type="radio" id="chk-clean-no" name="crit_clean" value="fail" class="w-4 h-4 text-red-600 focus:ring-red-600" onchange="validateFormProgress()">
+              <span class="font-medium text-red-700">Dính bẩn / Cần lau</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Criterion 3 -->
+        <div class="p-3 bg-white rounded border border-[#BFCAC4] space-y-2">
+          <div class="flex items-start justify-between">
+            <label for="chk-walls" class="font-semibold text-sm text-[#0F172A] block cursor-pointer">
+              3. Vách tôn và khung kết cấu buồng
+            </label>
+            <span class="text-[11px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-medium">Bắt buộc</span>
+          </div>
+          <p class="text-[#475569]">Vách tôn phẳng, không bị đâm thủng rách, không rỉ sét hoặc móp méo kết cấu chịu lực.</p>
+          <div class="flex items-center gap-3 pt-1">
+            <label class="flex items-center gap-1.5 cursor-pointer touch-target">
+              <input type="radio" id="chk-walls-yes" name="crit_walls" value="pass" checked="" class="w-4 h-4 text-[#125345] focus:ring-[#125345]" onchange="toggleDamageField(false); validateFormProgress()">
+              <span class="font-medium text-[#0F172A]">Nguyên vẹn</span>
+            </label>
+            <label class="flex items-center gap-1.5 cursor-pointer touch-target">
+              <input type="radio" id="chk-walls-no" name="crit_walls" value="fail" class="w-4 h-4 text-amber-600 focus:ring-amber-600" onchange="toggleDamageField(true); validateFormProgress()">
+              <span class="font-medium text-amber-800">Có vết trầy xước / Móp</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Criterion 4 -->
+        <div class="p-3 bg-white rounded border border-[#BFCAC4] space-y-2">
+          <div class="flex items-start justify-between">
+            <label for="chk-door" class="font-semibold text-sm text-[#0F172A] block cursor-pointer">
+              4. Cửa cuốn và bát khóa
+            </label>
+            <span class="text-[11px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-medium">Bắt buộc</span>
+          </div>
+          <p class="text-[#475569]">Cửa cuốn kéo lên xuống nhẹ nhàng, bát khóa nguyên vẹn, chốt không bị cong vênh kẹt ray.</p>
+          <div class="flex items-center gap-3 pt-1">
+            <label class="flex items-center gap-1.5 cursor-pointer touch-target">
+              <input type="radio" id="chk-door-yes" name="crit_door" value="pass" checked="" class="w-4 h-4 text-[#125345] focus:ring-[#125345]" onchange="validateFormProgress()">
+              <span class="font-medium text-[#0F172A]">Hoạt động tốt</span>
+            </label>
+            <label class="flex items-center gap-1.5 cursor-pointer touch-target">
+              <input type="radio" id="chk-door-no" name="crit_door" value="fail" class="w-4 h-4 text-amber-600 focus:ring-amber-600" onchange="validateFormProgress()">
+              <span class="font-medium text-amber-800">Kẹt ray / Lỗi bát khóa</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CARD 5: MÔ TẢ KỸ THUẬT & GHI CHÚ HIỆN TRƯỜNG CỦA FS -->
+    <section class="custom-card p-4 space-y-3" aria-labelledby="heading-notes">
+      <div class="flex items-center justify-between pb-2 border-b border-[#BFCAC4]">
+        <h2 id="heading-notes" class="text-sm font-bold font-heading uppercase tracking-wide text-[#125345]">
+          5. Ghi chú khảo sát kỹ thuật của FS
+        </h2>
+        <span class="text-xs text-[#475569]">Minh bạch sự thật</span>
+      </div>
+
+      <!-- Damage description (Conditionally visible if damage noted, or always available) -->
+      <div id="damageDetailWrapper" class="hidden space-y-1.5 p-2.5 bg-amber-50 rounded border border-amber-200">
+        <label for="damageDescription" class="block text-xs font-semibold text-amber-900">
+          Mô tả chi tiết tổn hao / hư hại vật lý phát hiện:
+        </label>
+        <textarea id="damageDescription" rows="2" class="w-full text-xs p-2 custom-control bg-white text-[#0F172A]" placeholder="Ví dụ: Vết trầy nhẹ vách tôn bên phải (~15cm), không ảnh hưởng khung chịu lực..."></textarea>
+      </div>
+
+      <div class="space-y-1.5">
+        <label for="generalFsNotes" class="block text-xs font-semibold text-[#0F172A]">
+          Ghi nhận tổng quan hiện trường (FS):
+        </label>
+        <textarea id="generalFsNotes" rows="3" class="w-full text-xs p-2.5 custom-control bg-white text-[#0F172A]" placeholder="Nhập ghi chú thêm nếu có (ví dụ: Khách hàng đồng thuận với hiện trạng, đã bàn giao thẻ và chìa khóa trước sự chứng kiến của FS)...">Khách hàng Nguyễn Minh Anh đã dọn sạch toàn bộ đồ đạc. Buồng kho HCM-01-001 trống hoàn toàn, sàn epoxy sạch sẽ. Đã thu hồi đủ thẻ CARD-SGC-8842 và ổ khóa MasterLock kèm 02 chìa.</textarea>
+      </div>
+
+      <div class="p-2.5 bg-[#F8FAF9] rounded border border-[#BFCAC4] text-xs text-[#475569] flex items-center justify-between">
+        <div>
+          <span>Nhân viên kiểm tra:</span>
+          <strong class="text-[#0F172A] ml-1">Trần Quốc Huy (FS)</strong>
+        </div>
+        <div>
+          <span>Thời điểm ghi nhận:</span>
+          <span class="text-[#0F172A] font-medium ml-1">09/10/2026 10:45 GMT+7</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- CARD 6: TRỢ GIÚP NGHIỆP VỤ (ACCORDION - NIELSEN #10) -->
+    <section class="custom-card p-3.5" aria-labelledby="heading-help">
+      <button type="button" onclick="toggleHelpAccordion()" class="w-full flex items-center justify-between text-left touch-target focus:outline-none focus:ring-2 focus:ring-[#125345] rounded" aria-expanded="false" id="helpAccordionBtn" aria-controls="helpAccordionContent">
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5 text-[#125345]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <span id="heading-help" class="text-xs font-bold font-heading text-[#0F172A]">Quy trình 3 bước xử lý trả kho tại quầy (FS)</span>
+        </div>
+        <svg id="helpArrow" class="w-4 h-4 text-[#475569] transform transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+        </svg>
+      </button>
+
+      <div id="helpAccordionContent" class="hidden mt-2 pt-2 border-t border-[#BFCAC4] text-xs text-[#475569] space-y-2">
+        <p><strong>Bước 1:</strong> Tiếp nhận khách hàng tại quầy lễ tân, kiểm tra CCCD/Hộ chiếu gốc khớp với tên trên đơn đặt kho.</p>
+        <p><strong>Bước 2:</strong> Cùng khách hàng đến trực tiếp buồng kho HCM-01-001, mở cửa kiểm tra hiện trạng theo 4 tiêu chí bắt buộc và thu hồi thẻ từ + chìa khóa.</p>
+        <p><strong>Bước 3:</strong> Chụp ảnh thực tế, hoàn tất biên bản này và bấm <em>"Gửi biên bản cho FM"</em>. Quản lý cơ sở (FM) sẽ thẩm định cọc và quyết toán tài chính độc lập.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FIXED BOTTOM DOCKED ACTIONS (Phục vụ thao tác một tay trên mobile) -->
+  <footer class="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-[#BFCAC4] p-3 shadow-lg max-w-[390px] mx-auto">
+    <div class="space-y-2">
+      <!-- Primary and Secondary Action Buttons -->
+      <div class="flex items-center gap-2">
+        <button type="button" id="btnSaveDraft" onclick="saveDraftAction()" class="touch-target px-3 py-2.5 rounded border border-[#BFCAC4] bg-white text-[#125345] font-heading font-semibold text-xs hover:bg-[#E8F3EF] focus:outline-none focus:ring-2 focus:ring-[#125345] flex items-center justify-center gap-1.5 transition-colors">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+          </svg>
+          <span>Lưu nháp</span>
+        </button>
+
+        <button type="button" id="btnSubmitForFM" onclick="openReviewModal()" class="touch-target flex-1 py-3 px-4 rounded bg-[#125345] hover:bg-[#0c3a30] text-white font-heading font-bold text-sm shadow focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#125345] flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+          <span>Gửi biên bản cho FM</span>
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="text-center">
+        <span class="text-[11px] text-[#475569]">
+          Trạng thái hiện tại: <span id="currentStatusBadge" class="font-medium text-amber-700">Đang kiểm tra thực địa</span>
+        </span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- MODAL: CONFIRMATION / REVIEW BEFORE SENDING TO FM -->
+  <div id="reviewModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="w-full max-w-[390px] bg-white rounded-t-lg sm:rounded-lg border border-[#BFCAC4] p-4 space-y-3.5 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-2 border-b border-[#BFCAC4]">
+        <h3 id="modal-title" class="text-sm font-bold font-heading text-[#0F172A] flex items-center gap-1.5">
+          <svg class="w-5 h-5 text-[#125345]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          Xác nhận gửi biên bản kiểm tra
+        </h3>
+        <button type="button" onclick="closeReviewModal()" class="touch-target text-[#475569] hover:text-[#0F172A]" aria-label="Đóng hộp thoại">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <div class="space-y-2 text-xs text-[#0F172A]">
+        <p class="text-[#475569]">Vui lòng xác nhận các thông tin thực tế trước khi chuyển hồ sơ cho Quản lý cơ sở (FM) quyết toán:</p>
+        
+        <div class="p-3 bg-[#F8FAF9] rounded border border-[#BFCAC4] space-y-1.5 text-xs">
+          <div class="flex justify-between">
+            <span class="text-[#475569]">Buồng kho:</span>
+            <strong class="text-[#0F172A]">HCM-01-001 (Mini 2m²)</strong>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-[#475569]">Khách hàng:</span>
+            <span class="font-medium">Nguyễn Minh Anh</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-[#475569]">Vật tư thu hồi:</span>
+            <span class="text-emerald-700 font-semibold">Đủ 01 Thẻ từ + 02 Chìa cơ</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-[#475569]">Hiện trạng buồng:</span>
+            <span class="text-emerald-700 font-semibold">Trống 100%, Sàn sạch sẽ</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-[#475569]">Ảnh chứng cứ:</span>
+            <span class="font-medium">02 ảnh thực tế kèm theo</span>
+          </div>
+        </div>
+
+        <div class="p-2.5 bg-blue-50 border border-blue-200 text-blue-900 rounded text-[11px] leading-relaxed">
+          <strong>Lưu ý:</strong> Sau khi gửi, biên bản sẽ chuyển sang trạng thái <em>"Chờ FM duyệt"</em> và không thể chỉnh sửa thêm tại hiện trường. Quản lý cơ sở sẽ chịu trách nhiệm phê duyệt thanh lý và đối soát hoàn trả cọc.
+        </div>
+      </div>
+
+      <div class="pt-2 flex gap-2">
+        <button type="button" onclick="closeReviewModal()" class="touch-target flex-1 py-2.5 rounded border border-[#BFCAC4] text-[#475569] font-heading font-medium text-xs hover:bg-[#F8FAF9]">
+          Kiểm tra lại
+        </button>
+        <button type="button" id="confirmSubmitBtn" onclick="submitFinalInspection()" class="touch-target flex-1 py-2.5 rounded bg-[#125345] hover:bg-[#0c3a30] text-white font-heading font-bold text-xs shadow">
+          Gửi phê duyệt ngay
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM SHEET: USER PROFILE & FACILITY SESSION (FS ROLE ONLY) -->
+  <div id="userSheet" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end justify-center" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <div class="w-full max-w-[390px] bg-white rounded-t-xl border-t border-[#BFCAC4] p-4 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between pb-2 border-b border-[#BFCAC4]">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded bg-[#125345] text-white flex items-center justify-center font-heading font-bold text-xs">
+            QH
+          </div>
+          <div>
+            <h3 id="sheet-title" class="text-sm font-bold font-heading text-[#0F172A]">Trần Quốc Huy</h3>
+            <span class="text-[11px] text-[#475569]">Nhân viên hiện trường (FS)</span>
+          </div>
+        </div>
+        <button type="button" onclick="toggleUserSheet()" class="touch-target text-[#475569] hover:text-[#0F172A]" aria-label="Đóng thông tin">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <div class="space-y-2 text-xs">
+        <div class="p-2.5 bg-[#F8FAF9] rounded border border-[#BFCAC4] space-y-1">
+          <div class="flex justify-between">
+            <span class="text-[#475569]">Cơ sở phân công:</span>
+            <strong class="text-[#0F172A]">StoreX Sài Gòn Central</strong>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-[#475569]">Ca làm việc:</span>
+            <span>08:00 – 16:00 (GMT+7)</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-[#475569]">Hotline cơ sở:</span>
+            <span>028 7300 1188</span>
+          </div>
+        </div>
+
+        <div class="pt-2">
+          <button type="button" onclick="handleLogout()" class="w-full touch-target py-2.5 px-4 rounded border border-red-300 bg-red-50 text-red-700 font-heading font-semibold text-xs hover:bg-red-100 flex items-center justify-center gap-2">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+            </svg>
+            <span>Đăng xuất ca trực FS</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- IN-PAGE JAVASCRIPT: LOCAL STATE & INTERACTION LOGIC (NO API / NO FETCH) -->
+  <script>
+    let isDraftSaved = false;
+    let isSubmitted = false;
+    let photoCount = 2;
+
+    function toggleHelpAccordion() {
+      const content = document.getElementById('helpAccordionContent');
+      const arrow = document.getElementById('helpArrow');
+      const btn = document.getElementById('helpAccordionBtn');
+      const isHidden = content.classList.contains('hidden');
+      
+      if (isHidden) {
+        content.classList.remove('hidden');
+        arrow.classList.add('rotate-180');
+        btn.setAttribute('aria-expanded', 'true');
+      } else {
+        content.classList.add('hidden');
+        arrow.classList.remove('rotate-180');
+        btn.setAttribute('aria-expanded', 'false');
+      }
+    }
+
+    function toggleDamageField(show) {
+      const wrapper = document.getElementById('damageDetailWrapper');
+      if (show) {
+        wrapper.classList.remove('hidden');
+        document.getElementById('damageDescription').focus();
+      } else {
+        wrapper.classList.add('hidden');
+      }
+    }
+
+    function simulateAddPhoto() {
+      if (isSubmitted) return;
+      photoCount++;
+      const text = document.getElementById('photoStatusText');
+      text.innerText = `Đã đính kèm ${photoCount} ảnh thực tế`;
+      showToast(`Đã thêm ảnh bằng chứng #${photoCount} (Mô phỏng camera)`);
+      validateFormProgress();
+    }
+
+    function validateFormProgress() {
+      if (isSubmitted) return;
+      const cardChecked = document.getElementById('itemCardReturn').checked;
+      const keyChecked = document.getElementById('itemKeyReturn').checked;
+      const critEmpty = document.querySelector('input[name="crit_empty"]:checked')?.value;
+      const critClean = document.querySelector('input[name="crit_clean"]:checked')?.value;
+      const critWalls = document.querySelector('input[name="crit_walls"]:checked')?.value;
+      const critDoor = document.querySelector('input[name="crit_door"]:checked')?.value;
+
+      const submitBtn = document.getElementById('btnSubmitForFM');
+      const counter = document.getElementById('checklistCounter');
+
+      let passCount = 0;
+      if (critEmpty === 'pass') passCount++;
+      if (critClean === 'pass') passCount++;
+      if (critWalls === 'pass') passCount++;
+      if (critDoor === 'pass') passCount++;
+
+      counter.innerText = `${passCount}/4 Tiêu chí đạt`;
+
+      // Require both physical items and checklist passed
+      const isValid = cardChecked && keyChecked && (critEmpty === 'pass');
+      submitBtn.disabled = !isValid;
+    }
+
+    function saveDraftAction() {
+      if (isSubmitted) return;
+      isDraftSaved = true;
+      showToast('Đã lưu bản nháp biên bản vào bộ nhớ ca trực!');
+      document.getElementById('currentStatusBadge').innerText = 'Bản nháp đã lưu (10:46)';
+    }
+
+    function openReviewModal() {
+      if (isSubmitted) return;
+      document.getElementById('reviewModal').classList.remove('hidden');
+    }
+
+    function closeReviewModal() {
+      document.getElementById('reviewModal').classList.add('hidden');
+    }
+
+    function submitFinalInspection() {
+      closeReviewModal();
+      isSubmitted = true;
+
+      // Lock form to Readonly as it is now sent to FM
+      document.getElementById('currentStatusBadge').innerText = 'Chờ FM duyệt';
+      document.getElementById('currentStatusBadge').className = 'font-semibold text-blue-700 bg-blue-100 px-2 py-0.5 rounded';
+
+      // Disable inputs
+      document.querySelectorAll('input, textarea').forEach(el => el.disabled = true);
+      document.getElementById('btnSaveDraft').disabled = true;
+      document.getElementById('btnSubmitForFM').disabled = true;
+      document.getElementById('btnSubmitForFM').innerText = 'Đã gửi biên bản cho FM';
+      document.getElementById('btnSubmitForFM').classList.replace('bg-[#125345]', 'bg-slate-500');
+
+      showToast('Biên bản đã được chuyển thành công tới Quản lý cơ sở (FM)!');
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('statusToast');
+      const msgEl = document.getElementById('statusToastMessage');
+      msgEl.innerText = msg;
+      toast.classList.remove('hidden');
+      setTimeout(() => {
+        toast.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 50);
+    }
+
+    function closeToast() {
+      document.getElementById('statusToast').classList.add('hidden');
+    }
+
+    function toggleUserSheet() {
+      const sheet = document.getElementById('userSheet');
+      sheet.classList.toggle('hidden');
+    }
+
+    function handleLogout() {
+      toggleUserSheet();
+      showToast('Đã đóng phiên ca trực của nhân viên FS.');
+    }
+
+    function handleBackAction() {
+      if (!isSubmitted && !isDraftSaved) {
+        if (confirm('Bản nháp chưa được lưu. Bạn có chắc chắn muốn quay lại danh sách công việc?')) {
+          history.back();
+        }
+      } else {
+        history.back();
+      }
+    }
+
+    // Keyboard navigation: Escape key closes active modals
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeReviewModal();
+        document.getElementById('userSheet').classList.add('hidden');
+      }
+    });
+
+    // Run initial check
+    validateFormProgress();
+  </script>
+
+
+</body></html>
