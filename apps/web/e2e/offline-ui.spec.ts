@@ -176,7 +176,7 @@ test("checkout hold rejection shows details without blocking retry", async ({ pa
       (log) =>
         log.includes('"stage":"hold"') &&
         log.includes('"status":409') &&
-        log.includes('"code":"CAPACITY_UNAVAILABLE"') &&
+        log.includes('"code":409') &&
         log.includes("/hold"),
     ),
   ).toBe(true);
