@@ -1,10 +1,15 @@
 import type {
   ApiEnvelope,
+  ApiFacility,
   ApiFacilityAssignment,
   ApiUnitType,
   AssignBookingStaffInput,
   AssignPhysicalUnitInput,
+  BookingDraft,
+  BookingDraftInput,
   BookingListItem,
+  BookingPaymentInput,
+  BookingPaymentSession,
   BookingTracking,
   BookingTrackingSession,
   CatalogAvailabilityParams,
@@ -14,6 +19,7 @@ import type {
   CheckInConfirmResult,
   CheckInLookupInput,
   CheckInLookupResult,
+  CheckInSlotOption,
   ClientSession,
   ConfirmReservationInput,
   CookieSession,
@@ -22,6 +28,7 @@ import type {
   EligibleUnit,
   Facility,
   FacilityListParams,
+  FacilityQuery,
   FacilityStaffMember,
   Inspection,
   InspectionDraftInput,
@@ -31,7 +38,6 @@ import type {
   PaginatedResult,
   PaymentCheckoutInput,
   PaymentResponse,
-  PaymentResult,
   PaymentStatusResponse,
   PhysicalUnitAssignment,
   RentalDetail,
@@ -167,6 +173,8 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
         http.patch<ApiEnvelope<User>>(`/users/${userId}/role`, { role }).then(unwrap),
     },
     facilities: {
+      listActive: (params: Partial<Pick<FacilityQuery, "limit" | "offset">> = {}) =>
+        http.get<ApiEnvelope<ApiFacility[]>>("/facilities", { params }).then(unwrap),
       listUnitTypes: (facilityId: string, params: UnitTypeListParams = {}) =>
         http
           .get<ApiEnvelope<ApiUnitType[]>>(`/facilities/${facilityId}/unit-types`, { params })
@@ -222,14 +230,23 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
         http.get<ApiEnvelope<Reservation>>(`/reservations/${reservationId}`).then(unwrap),
     },
     payments: {
-      status: (paymentId: string) =>
-        http.get<ApiEnvelope<PaymentStatusResponse>>(`/payments/${paymentId}/status`).then(unwrap),
-      confirmSandbox: (paymentId: string) =>
+      status: (paymentId: string, accessToken?: string) =>
         http
-          .post<ApiEnvelope<PaymentResult>>(`/payments/${paymentId}/confirm-sandbox`)
+          .get<ApiEnvelope<PaymentStatusResponse>>(`/payments/${paymentId}/status`, {
+            headers: accessToken ? { "x-booking-access-token": accessToken } : undefined,
+            ...(accessToken ? { skipAuthRefresh: true } : {}),
+          })
           .then(unwrap),
     },
     bookings: {
+      checkInSlots: () =>
+        http.get<ApiEnvelope<CheckInSlotOption[]>>("/bookings/check-in-slots").then(unwrap),
+      createDraft: (input: BookingDraftInput) =>
+        http.post<ApiEnvelope<BookingDraft>>("/bookings/drafts", input).then(unwrap),
+      pay: (bookingId: string, input: BookingPaymentInput) =>
+        http
+          .post<ApiEnvelope<BookingPaymentSession>>(`/bookings/${bookingId}/pay`, input)
+          .then(unwrap),
       exchangeMagicLink: (token: string) =>
         http
           .post<ApiEnvelope<BookingTrackingSession>>("/booking/magic-link/exchange", { token }, {

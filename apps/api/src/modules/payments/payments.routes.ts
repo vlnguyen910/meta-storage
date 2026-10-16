@@ -8,10 +8,10 @@ import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
-import { env } from "../../config/env";
 import { optionalAuth, requireRole } from "../auth/auth.guard";
 import { AUTH_MESSAGES } from "../auth/auth.messages";
 import { privateTrackingResponse } from "../bookings/bookings.access";
+import { PAYMENT_MESSAGES } from "./payments.messages";
 import { createPaymentsService } from "./payments.service";
 
 export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
@@ -64,7 +64,13 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
     {
       onRequest: [privateTrackingResponse],
       preHandler: [optionalAuth],
-      schema: { params: PaymentIdParamsSchema, headers: PaymentStatusHeadersSchema },
+      schema: {
+        tags: ["Payments"],
+        summary: PAYMENT_MESSAGES.statusSummary,
+        description: PAYMENT_MESSAGES.statusDescription,
+        params: PaymentIdParamsSchema,
+        headers: PaymentStatusHeadersSchema,
+      },
     },
     async (request, reply) => {
       return reply.send(
@@ -77,17 +83,4 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
       );
     },
   );
-
-  // Demo-only shortcut: never expose a client-controlled payment finalizer in production.
-  if (env.NODE_ENV !== "production" && env.SEPAY_TEST_MODE) {
-    typedApp.post(
-      "/payments/:paymentId/confirm-sandbox",
-      { schema: { params: PaymentIdParamsSchema } },
-      async (request, reply) => {
-        return reply.send(
-          successResponse(await service.confirmSandboxPayment(request.params.paymentId)),
-        );
-      },
-    );
-  }
 };

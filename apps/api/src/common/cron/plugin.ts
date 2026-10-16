@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
 import { BookingsRepository } from "../../modules/bookings/bookings.repository";
+import { createPaymentsService } from "../../modules/payments/payments.service";
 import { expireCapacityHolds } from "./expire-capacity-holds";
 
 const HOLD_EXPIRY_INTERVAL_MS = 30_000;
@@ -12,6 +13,12 @@ const cronPluginAsync: FastifyPluginAsync = async (fastify) => {
   const sweep = () => {
     if (running) return running;
     running = Promise.allSettled([
+      createPaymentsService(fastify)
+        .reconcilePendingPayments()
+        .then(({ failed }) => {
+          if (failed > 0)
+            fastify.log.warn({ failed }, "SePay reconciliation failed; retrying on the next sweep");
+        }),
       expireCapacityHolds(fastify.db).then(({ expired, skipped }) => {
         if (expired > 0) fastify.log.info({ expired }, "Expired capacity holds");
         if (skipped) fastify.log.debug("Capacity hold expiry skipped: another sweep is running");

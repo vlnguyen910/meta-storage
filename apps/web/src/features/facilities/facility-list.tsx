@@ -13,7 +13,7 @@ import { PublicFacilityCard } from "./public-facility-card";
 export function FacilityList({ protectedMode = false }: { protectedMode?: boolean }) {
   const [search, setSearch] = useState("");
   const [city, setCity] = useState("");
-  const [sort, setSort] = useState<"name" | "price" | "availability">("name");
+  const [sort, setSort] = useState<"name" | "price">("name");
   const [page, setPage] = useState(1);
   const query = useFacilities({ search, city, sort, page, pageSize: 6 });
 
@@ -58,7 +58,6 @@ export function FacilityList({ protectedMode = false }: { protectedMode?: boolea
         >
           <option value="name">{m.sorts.name}</option>
           <option value="price">{m.sorts.price}</option>
-          <option value="availability">{m.sorts.availability}</option>
         </Select>
       </div>
       {!protectedMode && query.data ? (

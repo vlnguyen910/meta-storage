@@ -72,8 +72,11 @@ export function AssignmentScreen() {
       });
       await queryClient.invalidateQueries({ queryKey: ["facility-flow"] });
       showToast(FLOW.assignedSuccess, "success");
-      router.push(`${root}/check-in?bookingCode=${encodeURIComponent(b.bookingCode)}`);
+      router.push(`${root}/dashboard`);
     } catch (e) {
+      setSelected("");
+      void units.refetch();
+      void booking.refetch();
       setError(flowError(e));
     }
   }

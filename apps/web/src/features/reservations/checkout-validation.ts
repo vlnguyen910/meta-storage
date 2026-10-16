@@ -41,10 +41,14 @@ export function checkInError(value: string, now = new Date()): string | undefine
 export const wizardSchema = z.object({
   facilityId: z.string().min(1, m.facilityRequired),
   unitTypeId: z.string().min(1, m.unitTypeRequired),
-  checkInAt: z.string().superRefine((value, ctx) => {
-    const message = checkInError(value);
-    if (message) ctx.addIssue({ code: z.ZodIssueCode.custom, message });
+  checkInDate: z.string().superRefine((value, ctx) => {
+    const today = toLocalDateTimeInput(new Date()).slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value))
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: m.checkInRequired });
+    else if (value <= today)
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: m.checkInTomorrow });
   }),
+  checkInSlotId: z.string().min(1, m.checkInRequired),
   durationMonths: z
     .number()
     .int(m.invalidDuration)

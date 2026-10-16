@@ -71,11 +71,3 @@ export function useConfirmReservation() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: reservationKeys.all }),
   });
 }
-
-export function useConfirmSandboxPayment() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (paymentId: string) => api.payments.confirmSandbox(paymentId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: reservationKeys.all }),
-  });
-}

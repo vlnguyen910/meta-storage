@@ -108,7 +108,9 @@ export function CheckoutSelection({ state }: { state: CheckoutState }) {
                 >
                   {option.availableCount === 0
                     ? m.unavailablePeriod
-                    : m.availableCount(option.availableCount)}
+                    : option.availableCount === null
+                      ? m.chooseSchedule
+                      : m.availableCount(option.availableCount)}
                 </p>
                 <div className={s.specs}>
                   <div>
@@ -117,7 +119,9 @@ export function CheckoutSelection({ state }: { state: CheckoutState }) {
                   </div>
                   <div>
                     <span className={s.caption}>{m.dimensions}</span>
-                    <span>{m.updating}</span>
+                    <span>
+                      {option.lengthM} × {option.widthM} × {option.heightM} m
+                    </span>
                   </div>
                 </div>
                 <div className={s.unitBottom}>

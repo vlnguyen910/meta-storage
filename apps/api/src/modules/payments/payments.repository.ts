@@ -2,6 +2,7 @@ import type { ManualRefundQuery } from "@metastorage/contracts";
 import type { Facility, UnitType } from "@metastorage/database";
 import {
   and,
+  asc,
   bookings,
   capacityAllocations,
   type Database,
@@ -11,6 +12,9 @@ import {
   facilityUnitTypes,
   gt,
   inArray,
+  isNotNull,
+  isNull,
+  lte,
   or,
   paymentProviderEvents,
   payments,
@@ -66,6 +70,51 @@ function toConfirmation(
 
 export class PaymentsRepository {
   constructor(private readonly db: Database) {}
+
+  async listPendingSepayPayments() {
+    return this.db
+      .select({ id: payments.id })
+      .from(payments)
+      .where(
+        and(
+          eq(payments.provider, "sepay"),
+          eq(payments.status, "PENDING"),
+          isNotNull(payments.bookingId),
+          isNull(payments.draftId),
+        ),
+      )
+      .orderBy(asc(payments.updatedAt), payments.id)
+      .limit(10);
+  }
+
+  async claimPaymentReconciliation(paymentId: string) {
+    // updatedAt doubles as a short lookup lease, without holding a transaction
+    // open over HTTP. An atomic predicate also throttles multiple API instances.
+    // Rotate checked rows to the back of the sweep, including missing orders.
+    const now = new Date();
+    const [payment] = await this.db
+      .update(payments)
+      .set({
+        // Timestamp arithmetic has no Drizzle helper. Always leave the initial
+        // createdAt === updatedAt state, even for a same-millisecond first poll.
+        updatedAt: sql`greatest(${now.toISOString()}::timestamptz, ${payments.createdAt} + interval '1 millisecond')`,
+      })
+      .where(
+        and(
+          eq(payments.id, paymentId),
+          eq(payments.provider, "sepay"),
+          eq(payments.status, "PENDING"),
+          isNotNull(payments.bookingId),
+          isNull(payments.draftId),
+          or(
+            eq(payments.updatedAt, payments.createdAt),
+            lte(payments.updatedAt, new Date(now.getTime() - 15_000)),
+          ),
+        ),
+      )
+      .returning();
+    return payment;
+  }
 
   async processBookingPaymentEvent(
     event: VerifiedPaymentEvent,

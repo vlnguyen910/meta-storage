@@ -17,6 +17,11 @@ export const PAYMENT_MESSAGES = {
   sepayWebhookInvalidJson: "Invalid SePay webhook JSON",
   sepayWebhookInvalidPayload: "Invalid SePay webhook payload",
   sepayUnavailable: "SePay chưa được cấu hình",
+  sepayVerificationUnavailable:
+    "Chưa thể xác minh thanh toán với SePay. Vui lòng kiểm tra lại sau; không thanh toán thêm.",
+  statusSummary: "Read and reconcile booking payment status",
+  statusDescription:
+    "Requires the booking owner's session or x-booking-access-token. Pending SePay payments are verified against the authenticated order API, at most once every 15 seconds per payment across API instances. Provider outages return 503 without finalizing payment. Redirect query parameters never confirm payment. The existing background sweep also reconciles payments without an open browser or IPN.",
   paymentNotFound: "Không tìm thấy Payment",
   paymentAccessRequired: "Cần token checkout hoặc phiên đăng nhập của tài khoản sở hữu booking.",
   idempotencyKeyUsedForAnotherCheckout: "Idempotency key đã được dùng cho checkout khác",

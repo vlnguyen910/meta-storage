@@ -35,10 +35,12 @@
       "persistent": true
     },
     "db:seed": {
-      "cache": false
+      "cache": false,
+      "passThroughEnv": ["NODE_ENV", "DATABASE_URL", "DOCKER_DATABASE_URL", "QR_TOKEN_SECRET"]
     },
     "db:clear": {
-      "cache": false
+      "cache": false,
+      "passThroughEnv": ["NODE_ENV", "DATABASE_URL", "DOCKER_DATABASE_URL"]
     }
   }
 }

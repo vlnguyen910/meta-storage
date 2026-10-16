@@ -12,7 +12,7 @@ import type {
   PaymentStatusResponse,
 } from "@metastorage/contracts";
 import type { Payment } from "@metastorage/database";
-import type { FastifyInstance } from "fastify";
+import type { FastifyBaseLogger, FastifyInstance } from "fastify";
 import { AppError, NotFoundError, UnauthorizedError } from "../../common/errors/app-error";
 import { env } from "../../config/env";
 import { type BookingsService, createBookingsService } from "../bookings/bookings.service";
@@ -36,6 +36,7 @@ export class PaymentsService {
     ) => Promise<PricingSnapshot | null> = async () => null,
     private readonly sepayGateway?: SepayPaymentGateway,
     private readonly bookingEmail?: Pick<BookingsService, "enqueueConfirmation" | "getStatus">,
+    private readonly logger?: Pick<FastifyBaseLogger, "warn">,
   ) {}
 
   async listManualRefunds(query: ManualRefundQuery): Promise<ManualRefund[]> {
@@ -291,47 +292,35 @@ export class PaymentsService {
     return { duplicate: false, processed: true, paymentId: payment.id };
   }
 
-  async confirmSandboxPayment(paymentId: string): Promise<PaymentResult> {
-    const payment = await this.repository.findPayment(paymentId);
-    if (!payment) throw new NotFoundError(PAYMENT_MESSAGES.paymentNotFound);
-
-    if (payment.status === "SUCCEEDED") {
-      const completed = await this.repository.findCompletedByPaymentId(payment.id);
-      return this.completedResult(completed);
-    }
-
-    if (payment.status !== "PENDING") {
-      throw new AppError(
-        PAYMENT_MESSAGES.paymentAttemptFinalized,
-        409,
-        "PAYMENT_ATTEMPT_FINALIZED",
+  private async reconcilePayment(paymentId: string): Promise<void> {
+    if (!this.sepayGateway?.checkoutConfigured) return;
+    const payment = await this.repository.claimPaymentReconciliation(paymentId);
+    if (!payment) return;
+    try {
+      const event = await this.sepayGateway.retrievePayment(payment);
+      if (!event) return;
+      const result = await this.repository.processBookingPaymentEvent(event);
+      if (result?.completed) await this.confirmationWithEmail(result.completed);
+    } catch (error) {
+      this.logger?.warn(
+        {
+          paymentId,
+          reason: error instanceof AppError ? error.code : "PAYMENT_RECONCILIATION_FAILED",
+        },
+        "Payment reconciliation failed; will retry",
       );
+      throw error;
     }
+  }
 
-    const hold = await this.repository.findActiveHoldForPayment(payment);
-    if (!hold) throw new AppError(PAYMENT_MESSAGES.holdExpired, 409, "HOLD_EXPIRED");
-
-    const completed = await this.repository.completePendingPayment({
-      paymentId: payment.id,
-      draftId: payment.draftId,
-      holdId: hold.id,
-      providerPaymentId: `SANDBOX-${payment.paymentCode}`,
-      paidAt: new Date(),
-    });
-
-    if (!completed?.booking) {
-      throw new AppError(
-        PAYMENT_MESSAGES.paymentReceivedPendingReconciliation,
-        503,
-        "PAYMENT_UNCERTAIN",
-      );
-    }
-    if (!completed.payment.paidAt)
-      throw new AppError(PAYMENT_MESSAGES.paymentTimestampMissing, 500);
-    if (!completed.booking.bookingCode || !completed.booking.paidAt)
-      throw new AppError(PAYMENT_MESSAGES.bookingPaymentInformationMissing, 500);
-
-    return this.completedResult(completed);
+  async reconcilePendingPayments(): Promise<{ checked: number; failed: number }> {
+    if (!this.sepayGateway?.checkoutConfigured) return { checked: 0, failed: 0 };
+    const pending = await this.repository.listPendingSepayPayments();
+    const results = await Promise.allSettled(pending.map(({ id }) => this.reconcilePayment(id)));
+    return {
+      checked: pending.length,
+      failed: results.filter((r) => r.status === "rejected").length,
+    };
   }
 
   async getStatus(
@@ -340,13 +329,19 @@ export class PaymentsService {
   ): Promise<PaymentStatusResponse> {
     if (!credentials.checkoutAccessToken && !credentials.userId)
       throw new UnauthorizedError(PAYMENT_MESSAGES.paymentAccessRequired);
-    const payment = await this.repository.findPaymentForStatus(paymentId, {
+    let payment = await this.repository.findPaymentForStatus(paymentId, {
       userId: credentials.userId,
       tokenHash: credentials.checkoutAccessToken
         ? hashToken(credentials.checkoutAccessToken)
         : undefined,
     });
     if (!payment) throw new NotFoundError(PAYMENT_MESSAGES.paymentNotFound);
+    // Authorize before any provider request or state transition. Never use data
+    // from the browser return URL to decide whether payment was received.
+    if (payment.status === "PENDING") {
+      await this.reconcilePayment(payment.id);
+      payment = (await this.repository.findPayment(payment.id)) ?? payment;
+    }
     const completed =
       payment.status === "SUCCEEDED"
         ? await this.repository.findCompletedByPaymentId(payment.id)
@@ -392,7 +387,7 @@ export class PaymentsService {
       confirmation: completed
         ? {
             ...completed.confirmation,
-            emailStatus: (await this.bookingEmail?.getStatus(completed.booking.id)) ?? "FAILED",
+            emailStatus: (await this.confirmationWithEmail(completed)).emailStatus,
           }
         : undefined,
     };
@@ -491,5 +486,6 @@ export function createPaymentsService(
     (draftId) => repository.findDraftPricing(draftId),
     sepayGateway,
     bookingService ?? createBookingsService(fastify),
+    fastify.log,
   );
 }
