@@ -1,6 +1,5 @@
 "use client";
 import { ArrowLeft, CreditCard, Landmark, Wallet } from "lucide-react";
-import { Currency } from "@/components/ui/display";
 import { isMockMode } from "@/config/api-mode";
 import { checkoutMessages as m } from "./checkout.messages";
 import s from "./checkout.module.css";
@@ -9,6 +8,8 @@ import { CheckoutRow, CheckoutSummary } from "./checkout-parts";
 
 export function CheckoutPayment({ state }: { state: CheckoutState }) {
   const pending = state.pendingPayment;
+  const status = state.paymentStatusQuery.data?.status;
+  const terminal = status === "FAILED" || status === "REFUND_PENDING" || status === "REFUNDED";
   const methods = [
     {
       name: isMockMode ? m.mockPayment : m.sepayTitle,
@@ -43,13 +44,24 @@ export function CheckoutPayment({ state }: { state: CheckoutState }) {
           ) : null}
           {pending ? (
             <section className={s.detailBox}>
-              <h2>{m.waitingPayment}</h2>
+              <h2>
+                {status === "REFUND_PENDING"
+                  ? m.refundPending
+                  : status === "REFUNDED"
+                    ? m.refunded
+                    : status === "FAILED"
+                      ? m.paymentFailed
+                      : m.waitingPayment}
+              </h2>
               <CheckoutRow label={m.paymentCode}>{pending.paymentCode}</CheckoutRow>
-              {pending.checkoutUrl && pending.checkoutFormFields ? (
+              {!terminal &&
+              state.holdSeconds > 0 &&
+              pending.checkoutUrl &&
+              pending.checkoutFormFields ? (
                 <form
                   action={pending.checkoutUrl}
                   method="POST"
-                  target="_blank"
+                  target="_self"
                   rel="noopener noreferrer"
                 >
                   {Object.entries(pending.checkoutFormFields).map(([name, value]) => (
@@ -60,27 +72,8 @@ export function CheckoutPayment({ state }: { state: CheckoutState }) {
                   </button>
                 </form>
               ) : null}
-              {pending.transferInstructions ? (
-                <div className={s.rows}>
-                  <CheckoutRow label={m.bankName}>
-                    {pending.transferInstructions.bankName}
-                  </CheckoutRow>
-                  <CheckoutRow label={m.accountNumber}>
-                    {pending.transferInstructions.accountNumber}
-                  </CheckoutRow>
-                  <CheckoutRow label={m.accountName}>
-                    {pending.transferInstructions.accountName}
-                  </CheckoutRow>
-                  <CheckoutRow label={m.total}>
-                    <Currency value={Number(pending.transferInstructions.amount)} />
-                  </CheckoutRow>
-                  <CheckoutRow label={m.transferContent}>
-                    {pending.transferInstructions.content}
-                  </CheckoutRow>
-                </div>
-              ) : null}
               <p role="status" className={s.fieldHint}>
-                {m.waitingHint}
+                {state.holdSeconds === 0 && !terminal ? m.expiredPayment : m.waitingHint}
               </p>
               {state.paymentStatusQuery.isError ? (
                 <p role="alert" className={s.fieldError}>
@@ -103,12 +96,15 @@ export function CheckoutPayment({ state }: { state: CheckoutState }) {
               <p>{state.paymentError}</p>
             </div>
           ) : null}
+          {terminal ? (
+            <a className={s.secondary} href="/reservations/new?new=1">
+              {m.startAgain}
+            </a>
+          ) : null}
           <button
             type="button"
             className={`${s.primary} ${s.full} mt-6`}
-            disabled={
-              !state.draft?.pricing || state.holdSeconds <= 0 || state.paying || Boolean(pending)
-            }
+            disabled={!state.draft?.pricing || state.paying || Boolean(pending)}
             onClick={state.pay}
           >
             {state.paying
@@ -129,7 +125,7 @@ export function CheckoutPayment({ state }: { state: CheckoutState }) {
               <ArrowLeft size={14} className="inline mr-2" />
               {m.back}
             </button>
-            {state.holdSeconds === 0 && !pending ? (
+            {state.hold && state.holdSeconds === 0 && !pending ? (
               <button type="button" className={s.secondary} onClick={() => state.setStep(1)}>
                 {m.review}
               </button>

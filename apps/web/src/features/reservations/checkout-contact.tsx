@@ -9,7 +9,7 @@ import { toLocalDateTimeInput } from "./checkout-validation";
 
 export function CheckoutContact({ state }: { state: CheckoutState }) {
   const { form } = state;
-  const checkIn = form.watch("checkInAt");
+
   return (
     <div className={s.layout}>
       <form
@@ -56,51 +56,28 @@ export function CheckoutContact({ state }: { state: CheckoutState }) {
               ))}
             </Select>
           </FieldShell>
-          <FieldShell label={m.date}>
+          <FieldShell label={m.date} error={form.formState.errors.checkInDate?.message}>
             <Input
               type="date"
-              min={toLocalDateTimeInput(new Date()).slice(0, 10)}
-              onInput={(event) =>
-                form.setValue(
-                  "checkInAt",
-                  `${event.currentTarget.value}T${checkIn.slice(11) || "09:00"}`,
-                  { shouldValidate: true },
-                )
-              }
-              value={checkIn.slice(0, 10)}
-              onChange={(event) =>
-                form.setValue(
-                  "checkInAt",
-                  `${event.target.value}T${checkIn.slice(11) || "09:00"}`,
-                  { shouldValidate: true },
-                )
-              }
+              min={toLocalDateTimeInput(new Date(Date.now() + 86400000)).slice(0, 10)}
+              {...form.register("checkInDate")}
             />
           </FieldShell>
-          <div className={s.wide}>
-            <FieldShell
-              label={m.time}
-              hint={m.timeHint}
-              error={form.formState.errors.checkInAt?.message}
-            >
-              <Input
-                type="time"
-                onInput={(event) =>
-                  form.setValue(
-                    "checkInAt",
-                    `${checkIn.slice(0, 10)}T${event.currentTarget.value}`,
-                    { shouldValidate: true },
-                  )
-                }
-                value={checkIn.slice(11)}
-                onChange={(event) =>
-                  form.setValue("checkInAt", `${checkIn.slice(0, 10)}T${event.target.value}`, {
-                    shouldValidate: true,
-                  })
-                }
-              />
-            </FieldShell>
-          </div>
+          <FieldShell label={m.time} error={form.formState.errors.checkInSlotId?.message}>
+            <Select {...form.register("checkInSlotId")} disabled={state.slotsQuery.isLoading}>
+              <option value="">{m.selectSlot}</option>
+              {state.slotsQuery.data?.map((slot) => (
+                <option key={slot.id} value={slot.id}>
+                  {m.slotLabel(slot.name, slot.startTime, slot.endTime)}
+                </option>
+              ))}
+            </Select>
+          </FieldShell>
+          {state.slotsQuery.isError ? (
+            <button type="button" onClick={() => state.slotsQuery.refetch()}>
+              {m.refreshSlots}
+            </button>
+          ) : null}
           <div className={s.wide}>
             <FieldShell label={m.note} hint={m.optional}>
               <textarea

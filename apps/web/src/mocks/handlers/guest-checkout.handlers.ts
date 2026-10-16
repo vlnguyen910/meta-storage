@@ -9,6 +9,7 @@ import { addMonths, currentUser, envelope, errorBody, parseBody } from "../core/
 import { getMockDatabase, saveMockDatabase } from "../database";
 import { MOCK_MESSAGES as M } from "../mock.messages";
 import type { MockBooking } from "../types";
+import { registerBookingCheckoutHandlers } from "./booking-checkout.handlers";
 
 export function registerGuestCheckoutHandlers(mock: MockAdapter): void {
   mock.onPost("/reservations/drafts").reply((config) => {
@@ -189,4 +190,5 @@ export function registerGuestCheckoutHandlers(mock: MockAdapter): void {
         ]
       : [404, errorBody(404, M.missing)];
   });
+  registerBookingCheckoutHandlers(mock);
 }

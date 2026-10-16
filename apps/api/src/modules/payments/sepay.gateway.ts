@@ -1,12 +1,13 @@
 import { timingSafeEqual } from "node:crypto";
 import { SePayPgClient } from "sepay-pg-node";
-import { BadRequestError, UnauthorizedError } from "../../common/errors/app-error";
+import { AppError, BadRequestError, UnauthorizedError } from "../../common/errors/app-error";
 import { PAYMENT_MESSAGES } from "./payments.messages";
 import type {
   PaymentInstructions,
   SepayCheckoutSession,
   SepayCreateCheckoutInput,
   SepayGatewayConfig,
+  SepayOrderDetailResponse,
   SepayWebhookPayload,
   VerifiedPaymentEvent,
 } from "./payments.types";
@@ -29,6 +30,116 @@ export class SepayPaymentGateway {
 
   get checkoutConfigured(): boolean {
     return Boolean(this.pgClient);
+  }
+
+  async retrievePayment(payment: {
+    paymentCode: string;
+    totalAmount: string;
+    currency: string;
+  }): Promise<VerifiedPaymentEvent | null> {
+    if (!this.checkoutConfigured) throw new AppError(PAYMENT_MESSAGES.sepayUnavailable, 503);
+    // The SDK's order client has no timeout and shares its API host statically.
+    // Keep the authenticated, bounded lookup inside this existing provider adapter.
+    const host = this.config.env === "production" ? "pgapi.sepay.vn" : "pgapi-sandbox.sepay.vn";
+    const signal = AbortSignal.timeout(5000);
+    let body: SepayOrderDetailResponse | undefined;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const response = await fetch(
+          `https://${host}/v1/order/detail/${encodeURIComponent(payment.paymentCode)}`,
+          {
+            headers: {
+              Authorization: `Basic ${Buffer.from(`${this.config.merchantId}:${this.config.secretKey}`).toString("base64")}`,
+              Accept: "application/json",
+              "Cache-Control": "no-store",
+            },
+            signal,
+            redirect: "error",
+          },
+        );
+        // A signed checkout form may not have been submitted to SePay yet.
+        if (response.status === 404) return null;
+        if (!response.ok)
+          throw new AppError(
+            PAYMENT_MESSAGES.sepayVerificationUnavailable,
+            503,
+            `SEPAY_LOOKUP_HTTP_${response.status}`,
+          );
+        body = (await response.json()) as SepayOrderDetailResponse;
+        break;
+      } catch (error) {
+        if (error instanceof AppError) throw error;
+        const code =
+          error instanceof Error
+            ? ((error.cause as NodeJS.ErrnoException | undefined)?.code ??
+              (error as NodeJS.ErrnoException).code)
+            : undefined;
+        // SePay can reset an idle/new connection. Retrying this read-only GET is
+        // safe; share the original deadline so retries never double the timeout.
+        const transient =
+          code &&
+          [
+            "ECONNRESET",
+            "EPIPE",
+            "EAI_AGAIN",
+            "ETIMEDOUT",
+            "UND_ERR_SOCKET",
+            "UND_ERR_CONNECT_TIMEOUT",
+          ].includes(code);
+        if (attempt === 0 && transient && !signal.aborted) continue;
+        // Never expose request headers, credentials or raw provider responses.
+        throw new AppError(
+          PAYMENT_MESSAGES.sepayVerificationUnavailable,
+          503,
+          signal.aborted
+            ? "SEPAY_LOOKUP_TIMEOUT"
+            : transient
+              ? "SEPAY_LOOKUP_CONNECTION_FAILED"
+              : "SEPAY_LOOKUP_INVALID_RESPONSE",
+        );
+      }
+    }
+    const order = body?.data;
+    const amount = Number(order?.order_amount);
+    if (
+      !order ||
+      typeof order.order_id !== "string" ||
+      !order.order_id.trim() ||
+      order.order_id.length > 120 ||
+      order.order_invoice_number !== payment.paymentCode ||
+      order.order_currency !== payment.currency ||
+      order.order_currency !== "VND" ||
+      !Number.isSafeInteger(amount) ||
+      amount <= 0 ||
+      amount > 2147483647 ||
+      amount !== Number(payment.totalAmount)
+    )
+      throw new AppError(
+        PAYMENT_MESSAGES.sepayVerificationUnavailable,
+        503,
+        "SEPAY_ORDER_MISMATCH",
+      );
+    if (order.order_status !== "CAPTURED") return null;
+    // CAPTURED is SePay's paid order state. Sandbox can return transactions: [].
+    // A stable order event makes polling/restarts replay-safe; payment row locking
+    // in processBookingPaymentEvent also deduplicates an optional concurrent IPN.
+    return {
+      providerEventId: `ORDER:${order.order_id}`,
+      referenceCode: order.order_id,
+      paymentCode: payment.paymentCode,
+      amount,
+      currency: order.order_currency,
+      transferType: "in",
+      successful: true,
+      metadata: {
+        source: "order-api",
+        orderId: order.order_id,
+        invoice: payment.paymentCode,
+        status: order.order_status,
+        amount,
+        currency: order.order_currency,
+      },
+    };
   }
 
   createCheckoutSession(input: SepayCreateCheckoutInput): SepayCheckoutSession | null {

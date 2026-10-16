@@ -1,4 +1,8 @@
 export const facilitiesMessages = {
+  chooseSchedule: "Sức chứa được kiểm tra khi đặt kho",
+  scheduleAtCheckout: "Chọn ngày và khung giờ khi đặt kho",
+  priceUnavailable: "Giá đang cập nhật",
+
   brand: "metastorage",
   title: "Tìm kho gần bạn",
   eyebrow: "Hệ sinh thái lưu trữ số hóa",

@@ -1,4 +1,19 @@
 export const checkoutMessages = {
+  bookingUuid: "Booking ID",
+  startAgain: "Bắt đầu đặt kho mới",
+  expiredPayment:
+    "Thời gian giữ chỗ đã hết. Đang kiểm tra kết quả thanh toán; vui lòng không chuyển thêm tiền.",
+  selectSlot: "Chọn khung giờ nhận kho",
+  slotLabel: (name: string, startTime: string, endTime: string) =>
+    `${name}: ${startTime.slice(0, 5)} – ${endTime.slice(0, 5)}`,
+  refreshSlots: "Tải lại khung giờ",
+  resumeContact: "Nhập lại thông tin liên hệ để tiếp tục lần thanh toán đang dở.",
+  refundPending: "Giao dịch đang chờ hoàn tiền. Đơn đặt kho chưa được xác nhận.",
+  refunded: "Giao dịch đã được hoàn tiền.",
+
+  chooseSchedule: "Sức chứa được kiểm tra khi tạo đơn và bắt đầu thanh toán",
+  priceUnavailable: "Giá đang cập nhật",
+
   mockPayment: "Thanh toán mô phỏng",
   mockPaymentDescription: "Thử luồng đặt kho; không thu tiền và không gọi SePay.",
   mockEmail: "Chế độ mock không gửi email. Hãy lưu mã booking và QR để thử check-in.",
@@ -105,12 +120,13 @@ export const checkoutMessages = {
   paymentFailed: "Chưa thể hoàn tất thanh toán",
   retry: "Thử lại",
   expiry: "Thời gian giữ chỗ còn lại",
-  expired: "Giữ chỗ đã hết hạn. Quay lại kiểm tra đơn để giữ chỗ mới.",
+  expired:
+    "Thời gian giữ chỗ đã hết. Vui lòng kiểm tra kết quả giao dịch trước khi thanh toán tiếp.",
   successful: "Đặt thuê kho thành công!",
   successDescription:
     "Thanh toán đã được xác nhận. Lưu mã xác nhận và đến chi nhánh theo lịch nhận kho.",
   paid: "Đã thanh toán",
-  bookingId: "Booking ID",
+  bookingId: "Mã đặt kho",
   qrTitle: "Mã xác nhận & QR",
   qrHint: "Xuất trình QR tại quầy khi đến nhận kho.",
   qrLoading: "Đang tạo mã QR…",

@@ -1,12 +1,12 @@
-import type { CatalogFacility } from "@metastorage/contracts";
-import { ArrowRight, Boxes, MapPin } from "lucide-react";
+import { ArrowRight, MapPin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Currency } from "@/components/ui/display";
 import { routes } from "@/config/routes";
 import { facilitiesMessages as m } from "./facilities.messages";
+import type { FacilityCatalogItem } from "./facility-catalog.types";
 
-export function PublicFacilityCard({ facility }: { facility: CatalogFacility }) {
+export function PublicFacilityCard({ facility }: { facility: FacilityCatalogItem }) {
   return (
     <article className="grid overflow-hidden rounded-lg border border-[#e2e8f0] bg-white shadow-[0_1px_3px_rgb(15_23_42/4%)] transition hover:border-[#125345]/30 hover:shadow-[0_8px_24px_rgb(18_83_69/8%)] md:grid-cols-[29%_1fr_240px]">
       <div className="relative min-h-[220px] bg-[#e8f5f1]">
@@ -43,11 +43,7 @@ export function PublicFacilityCard({ facility }: { facility: CatalogFacility }) 
         <div className="flex flex-wrap gap-2 text-xs">
           <span className="inline-flex items-center gap-2 rounded bg-[#e8f5f1] px-2.5 py-1.5 font-medium text-[#125345]">
             <span className="size-1.5 rounded-full bg-[#125345]" />
-            {m.available(facility.availableUnits)}
-          </span>
-          <span className="inline-flex items-center gap-2 rounded bg-[#f8f9f8] px-2.5 py-1.5 text-[#64748b]">
-            <Boxes size={14} />
-            {m.inventory(facility.totalUnits)}
+            {m.chooseSchedule}
           </span>
         </div>
       </div>
@@ -58,7 +54,11 @@ export function PublicFacilityCard({ facility }: { facility: CatalogFacility }) 
         <div className="text-[#125345]">
           <span className="text-xs">{m.from} </span>
           <strong className="text-2xl">
-            <Currency value={facility.startingMonthlyPrice} />
+            {facility.startingMonthlyPrice === null ? (
+              m.priceUnavailable
+            ) : (
+              <Currency value={facility.startingMonthlyPrice} />
+            )}
           </strong>
           <span className="mt-1 block text-xs text-[#64748b]">{m.monthly}</span>
         </div>

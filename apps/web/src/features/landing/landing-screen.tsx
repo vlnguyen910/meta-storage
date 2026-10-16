@@ -1,4 +1,5 @@
 "use client";
+
 import {
   ArrowRight,
   Boxes,
@@ -21,6 +22,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { publicNavigation as nav, PublicHeader } from "@/components/layout/public-header";
 import { Currency } from "@/components/ui/display";
+import { facilitiesMessages as facilityMessages } from "@/features/facilities/facilities.messages";
 import fonts from "@/features/facilities/metastorage-fonts.module.css";
 import { landingMessages as m } from "./landing.messages";
 import s from "./landing.module.css";
@@ -238,7 +240,11 @@ export function LandingScreen() {
                   <LandingImage index={4 + (i % 4)} />
                   <div className={s.unitInfo}>
                     <span className={s.badge}>
-                      {unit.availableCount > 0 ? m.available(unit.availableCount) : m.unavailable}
+                      {unit.availableCount === null
+                        ? facilityMessages.chooseSchedule
+                        : unit.availableCount > 0
+                          ? m.available(unit.availableCount)
+                          : m.unavailable}
                     </span>
                     <h3>
                       {unit.unitType}
@@ -265,7 +271,7 @@ export function LandingScreen() {
                     </strong>
                     <small>{m.monthly}</small>
                     <p>{m.rentalHint}</p>
-                    {unit.availableCount > 0 ? (
+                    {unit.availableCount !== 0 ? (
                       <Link className={s.primary} href={state.bookingHref(unit.unitTypeId)}>
                         {m.book}
                         <ArrowRight size={16} />
@@ -328,7 +334,7 @@ export function LandingScreen() {
                       {f.address}
                     </p>
                     <div>
-                      <span>{m.available(f.availableUnits)}</span>
+                      <span>{facilityMessages.chooseSchedule}</span>
                       <Link
                         className={s.primary}
                         href={`/reservations/new?facilityId=${encodeURIComponent(f.id)}`}

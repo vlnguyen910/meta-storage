@@ -126,6 +126,28 @@ export function registerFacilityHandlers(mock: MockAdapter): void {
 
   mock.onGet("/facilities").reply((config) => {
     const database = getMockDatabase();
+    if (config.params?.limit !== undefined || config.params?.offset !== undefined) {
+      const limit = Number(config.params?.limit ?? 20);
+      const offset = Number(config.params?.offset ?? 0);
+      return [
+        200,
+        envelope(
+          database.facilities
+            .filter((facility) => facility.status === "ACTIVE")
+            .slice(offset, offset + limit)
+            .map((facility) => ({
+              id: facility.id,
+              code: facility.code,
+              name: facility.name,
+              address: `${facility.address.line1}, ${facility.address.district}, ${facility.address.city}`,
+              description: facility.description,
+              isActive: true,
+              createdAt: new Date(0).toISOString(),
+              updatedAt: new Date(0).toISOString(),
+            })),
+        ),
+      ];
+    }
     const search = String(config.params?.search ?? "")
       .trim()
       .toLowerCase();
@@ -200,6 +222,39 @@ export function registerFacilityHandlers(mock: MockAdapter): void {
       userEmail: u.email,
     }));
     return [200, envelope(assignments)];
+  });
+
+  mock.onGet(/^\/facilities\/[^/]+\/unit-types$/).reply((config) => {
+    const database = getMockDatabase();
+    const facilityId = config.url?.split("/")[2];
+    const units = [
+      ...new Map(
+        database.units
+          .filter((unit) => unit.facilityId === facilityId)
+          .map((unit) => [unit.unitTypeId, unit]),
+      ).values(),
+    ];
+    const limit = Number(config.params?.limit ?? 20);
+    const offset = Number(config.params?.offset ?? 0);
+    return [
+      200,
+      envelope(
+        units.slice(offset, offset + limit).map((unit) => ({
+          id: unit.unitTypeId,
+          code: unit.unitTypeId,
+          name: unit.unitType,
+          sizeLabel: unit.sizeLabel,
+          lengthM: unit.sizeSqm,
+          widthM: 1,
+          heightM: 2.5,
+          sizeCbm: unit.sizeSqm * 2.5,
+          monthlyPrice: unit.monthlyPrice,
+          isActive: true,
+          createdAt: new Date(0).toISOString(),
+          updatedAt: new Date(0).toISOString(),
+        })),
+      ),
+    ];
   });
 
   mock.onGet(/\/facilities\/[^/]+\/availability$/).reply((config) => {

@@ -1,4 +1,13 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, setSystemTime, test } from "bun:test";
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  setSystemTime,
+  spyOn,
+  test,
+} from "bun:test";
 import { createHash, randomUUID } from "node:crypto";
 import {
   accounts,
@@ -72,6 +81,26 @@ let staffCookie = "";
 let managerCookie = "";
 let redis: Redis | undefined;
 let mailQueue: Queue<MailJobData> | undefined;
+const providerOrders = new Map<string, unknown>();
+const providerRequests: string[] = [];
+const originalFetch = globalThis.fetch;
+let providerFetch: ReturnType<typeof spyOn<typeof globalThis, "fetch">>;
+
+function capturedOrder(paymentCode: string, overrides: Record<string, unknown> = {}) {
+  const orderId = `SEPAY-${randomUUID()}`;
+  webhookEventIds.push(`ORDER:${orderId}`);
+  return {
+    data: {
+      order_id: orderId,
+      order_invoice_number: paymentCode,
+      order_status: "CAPTURED",
+      order_amount: "3000000.00",
+      order_currency: "VND",
+      transactions: [],
+      ...overrides,
+    },
+  };
+}
 
 async function clearBookings() {
   await db.delete(rentals).where(eq(rentals.facilityId, ids.facility));
@@ -173,6 +202,21 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     env.PAYMENT_PROVIDER = "sepay";
     env.SEPAY_MERCHANT_ID = "test-merchant";
     env.SEPAY_SECRET_KEY = "test-only-sepay-secret";
+    providerFetch = spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (!url.startsWith("https://pgapi-sandbox.sepay.vn/v1/order/detail/"))
+        return originalFetch(input, init);
+      expect(new Headers(init?.headers).get("authorization")).toBe(
+        `Basic ${Buffer.from("test-merchant:test-only-sepay-secret").toString("base64")}`,
+      );
+      expect(init?.signal).toBeDefined();
+      const invoice = decodeURIComponent(url.split("/").at(-1) ?? "");
+      providerRequests.push(invoice);
+      const configured = providerOrders.get(invoice);
+      const body = Array.isArray(configured) ? configured.shift() : configured;
+      if (body instanceof Error) throw body;
+      return new Response(JSON.stringify(body ?? {}), { status: body ? 200 : 404 });
+    });
     if (redisUrl) {
       process.env.BOOKING_MAGIC_LINK_SECRET = "booking-flow-test-magic-secret-32-characters";
       redis = new Redis(redisUrl, { maxRetriesPerRequest: null });
@@ -284,6 +328,8 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
 
   beforeEach(async () => {
     setSystemTime();
+    providerOrders.clear();
+    providerRequests.length = 0;
     await mailQueue?.obliterate({ force: true });
     await clearBookings();
     await db.delete(storageUnits).where(eq(storageUnits.id, ids.extraUnit));
@@ -297,6 +343,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
   });
 
   afterAll(async () => {
+    providerFetch?.mockRestore();
     setSystemTime();
     await app.close();
     env.PAYMENT_PROVIDER = previous.provider;
@@ -819,6 +866,233 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
           .where(eq(capacityAllocations.referenceId, booking.id))
       )[0].status,
     ).toBe("ACTIVE");
+  });
+
+  test("authorized status verifies SePay without IPN and confirms once under concurrent polling", async () => {
+    const booking = await draft();
+    const payment = (await pay(booking)).json().data;
+    // Even when creation and the first claim land on the exact same timestamp,
+    // only one instance may call the provider.
+    const now = new Date();
+    setSystemTime(now);
+    await db
+      .update(payments)
+      .set({ createdAt: now, updatedAt: now })
+      .where(eq(payments.id, payment.paymentId));
+    providerOrders.set(payment.paymentCode, capturedOrder(payment.paymentCode));
+    const read = () =>
+      app.inject({
+        method: "GET",
+        url: `/api/payments/${payment.paymentId}/status`,
+        headers: { "x-booking-access-token": booking.draftAccessToken },
+      });
+    await Promise.all([read(), read(), read()]);
+    const response = await read();
+    expect(response.statusCode).toBe(200);
+    expect(response.json().data).toMatchObject({
+      status: "SUCCEEDED",
+      confirmation: { bookingId: booking.id },
+    });
+    expect(providerRequests).toEqual([payment.paymentCode]);
+    const [saved] = await db.select().from(bookings).where(eq(bookings.id, booking.id));
+    expect(saved.status).toBe("CONFIRMED");
+    expect(saved.qrTokenHash).toBeTruthy();
+    const allocations = await db
+      .select()
+      .from(capacityAllocations)
+      .where(eq(capacityAllocations.referenceId, booking.id));
+    expect(allocations).toHaveLength(1);
+    expect(allocations[0]).toMatchObject({ kind: "BOOKING", status: "ACTIVE", expiresAt: null });
+    if (mailQueue) expect(await mailQueue.getJob(mailJobId(booking.id))).toBeTruthy();
+    await webhook(payment.paymentCode);
+    expect((await read()).json().data.confirmation.bookingCode).toBe(
+      response.json().data.confirmation.bookingCode,
+    );
+    if (mailQueue)
+      expect(
+        await mailQueue.getJobs(["wait", "active", "delayed", "completed", "failed"]),
+      ).toHaveLength(1);
+  });
+
+  test("unauthorized status never calls SePay or finalizes payment", async () => {
+    const booking = await draft();
+    const payment = (await pay(booking)).json().data;
+    providerOrders.set(payment.paymentCode, capturedOrder(payment.paymentCode));
+    for (const headers of [
+      {},
+      { "x-booking-access-token": "a".repeat(64) },
+      { cookie: customerCookie },
+    ]) {
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/payments/${payment.paymentId}/status`,
+        headers,
+      });
+      expect([401, 404]).toContain(response.statusCode);
+    }
+    expect(providerRequests).toEqual([]);
+    expect(
+      (await db.select().from(payments).where(eq(payments.id, payment.paymentId)))[0].status,
+    ).toBe("PENDING");
+  });
+
+  test.each(["AUTHENTICATION_NOT_NEEDED", "CANCELLED"])(
+    "provider order %s does not imply successful payment",
+    async (order_status) => {
+      const booking = await draft();
+      const payment = (await pay(booking)).json().data;
+      providerOrders.set(payment.paymentCode, capturedOrder(payment.paymentCode, { order_status }));
+      const read = () =>
+        app.inject({
+          method: "GET",
+          url: `/api/payments/${payment.paymentId}/status`,
+          headers: { "x-booking-access-token": booking.draftAccessToken },
+        });
+      expect((await read()).json().data.status).toBe("PENDING");
+      expect((await read()).json().data.confirmation).toBeUndefined();
+      expect(providerRequests).toHaveLength(1);
+    },
+  );
+
+  test.each([
+    { order_invoice_number: "another-invoice" },
+    { order_amount: "1.00" },
+    { order_currency: "USD" },
+    { order_amount: "3000000.5" },
+    { order_id: "" },
+  ])(
+    "rejects mismatched or invalid provider order %j without persisting success",
+    async (overrides) => {
+      const booking = await draft();
+      const payment = (await pay(booking)).json().data;
+      providerOrders.set(payment.paymentCode, capturedOrder(payment.paymentCode, overrides));
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/payments/${payment.paymentId}/status`,
+        headers: { "x-booking-access-token": booking.draftAccessToken },
+      });
+      expect(response.statusCode).toBe(503);
+      expect(
+        (await db.select().from(payments).where(eq(payments.id, payment.paymentId)))[0].status,
+      ).toBe("PENDING");
+      expect(
+        (await db.select().from(bookings).where(eq(bookings.id, booking.id)))[0].qrTokenHash,
+      ).toBeNull();
+    },
+  );
+
+  test("retries a reset SePay connection within the same reconciliation request", async () => {
+    const booking = await draft();
+    const payment = (await pay(booking)).json().data;
+    providerOrders.set(payment.paymentCode, [
+      new TypeError("fetch failed", {
+        cause: Object.assign(new Error("read ECONNRESET"), { code: "ECONNRESET" }),
+      }),
+      capturedOrder(payment.paymentCode),
+    ]);
+    const response = await app.inject({
+      method: "GET",
+      url: `/api/payments/${payment.paymentId}/status`,
+      headers: { "x-booking-access-token": booking.draftAccessToken },
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json().data).toMatchObject({
+      status: "SUCCEEDED",
+      confirmation: { bookingId: booking.id },
+    });
+    expect(providerRequests).toEqual([payment.paymentCode, payment.paymentCode]);
+  });
+
+  test("repeated connection resets stay pending and return a retryable error", async () => {
+    const booking = await draft();
+    const payment = (await pay(booking)).json().data;
+    const reset = () =>
+      new TypeError("fetch failed", {
+        cause: Object.assign(new Error("read ECONNRESET"), { code: "ECONNRESET" }),
+      });
+    providerOrders.set(payment.paymentCode, [reset(), reset()]);
+    const response = await app.inject({
+      method: "GET",
+      url: `/api/payments/${payment.paymentId}/status`,
+      headers: { "x-booking-access-token": booking.draftAccessToken },
+    });
+    expect(response.statusCode).toBe(503);
+    expect(providerRequests).toHaveLength(2);
+    expect(
+      (await db.select().from(payments).where(eq(payments.id, payment.paymentId)))[0].status,
+    ).toBe("PENDING");
+  });
+
+  test("provider outage remains retryable and missing orders remain pending", async () => {
+    const booking = await draft();
+    const payment = (await pay(booking)).json().data;
+    const read = () =>
+      app.inject({
+        method: "GET",
+        url: `/api/payments/${payment.paymentId}/status`,
+        headers: { "x-booking-access-token": booking.draftAccessToken },
+      });
+    expect((await read()).json().data.status).toBe("PENDING");
+    setSystemTime(new Date(Date.now() + 16_000));
+    providerOrders.set(payment.paymentCode, new DOMException("Timed out", "TimeoutError"));
+    expect((await read()).statusCode).toBe(503);
+    setSystemTime(new Date(Date.now() + 16_000));
+    providerOrders.set(payment.paymentCode, capturedOrder(payment.paymentCode));
+    expect((await read()).json().data.status).toBe("SUCCEEDED");
+  });
+
+  test.each([true, false])(
+    "background reconciliation works after closing the tab and expired hold (capacity=%s)",
+    async (available) => {
+      const booking = await draft();
+      const payment = (await pay(booking)).json().data;
+      await db
+        .update(capacityAllocations)
+        .set({ expiresAt: new Date(Date.now() - 1000) })
+        .where(eq(capacityAllocations.referenceId, booking.id));
+      if (!available)
+        await db
+          .update(storageUnits)
+          .set({ status: "MAINTENANCE" })
+          .where(eq(storageUnits.id, ids.unit));
+      providerOrders.set(payment.paymentCode, capturedOrder(payment.paymentCode));
+      const scheduled = Fastify();
+      scheduled.register(
+        fp(
+          async (server) => {
+            server.decorate("db", db);
+            if (redis && mailQueue) {
+              server.decorate("redis", redis);
+              server.decorate("mailQueue", mailQueue);
+            }
+          },
+          { name: "database-plugin" },
+        ),
+      );
+      scheduled.register(cronPlugin);
+      try {
+        await scheduled.ready();
+        const [saved] = await db.select().from(payments).where(eq(payments.id, payment.paymentId));
+        expect(saved.status).toBe(available ? "SUCCEEDED" : "REFUND_PENDING");
+        if (!available) expect(saved.refundAmount).toBe("3000000.00");
+        expect(providerRequests).toEqual([payment.paymentCode]);
+      } finally {
+        await scheduled.close();
+      }
+    },
+  );
+
+  test("client-controlled sandbox finalizer is unavailable", async () => {
+    const booking = await draft();
+    const payment = (await pay(booking)).json().data;
+    expect(
+      (
+        await app.inject({
+          method: "POST",
+          url: `/api/payments/${payment.paymentId}/confirm-sandbox`,
+        })
+      ).statusCode,
+    ).toBe(404);
   });
 
   test("starts SePay checkout on the same draft with snapshotted price, contact and a ten-minute hold", async () => {

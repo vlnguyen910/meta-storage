@@ -1,18 +1,19 @@
 "use client";
 
-import type { CatalogFacility } from "@metastorage/contracts";
-import { ArrowRight, Clock3, MapPin, ShieldCheck, Warehouse } from "lucide-react";
+import { ArrowRight, MapPin, ShieldCheck, Warehouse } from "lucide-react";
 import Link from "next/link";
 import { buttonClassName } from "@/components/ui/button";
 import { Currency, StatusBadge } from "@/components/ui/display";
 import { routes } from "@/config/routes";
 import { cn } from "@/lib/cn";
+import { facilitiesMessages as m } from "./facilities.messages";
+import type { FacilityCatalogItem } from "./facility-catalog.types";
 
 export function FacilityCard({
   facility,
   protectedMode = false,
 }: {
-  facility: CatalogFacility;
+  facility: FacilityCatalogItem;
   protectedMode?: boolean;
 }) {
   const visualTone = facility.code.startsWith("HCM")
@@ -47,18 +48,18 @@ export function FacilityCard({
         </div>
         <div className="grid gap-2 text-xs text-muted">
           <span className="flex items-center gap-2">
-            <Clock3 size={16} />
-            {facility.totalUnits} unit trong inventory
-          </span>
-          <span className="flex items-center gap-2">
             <ShieldCheck size={16} />
-            {facility.availableUnits} unit còn trống
+            {m.chooseSchedule}
           </span>
         </div>
         <div className="flex items-baseline gap-1.5 border-t border-line pt-3.5">
           <span className="text-xs text-muted">Chỉ từ</span>
           <strong className="text-xl text-primary">
-            <Currency value={facility.startingMonthlyPrice} />
+            {facility.startingMonthlyPrice === null ? (
+              m.priceUnavailable
+            ) : (
+              <Currency value={facility.startingMonthlyPrice} />
+            )}
           </strong>
           <small className="text-xs text-muted">/ tháng</small>
         </div>

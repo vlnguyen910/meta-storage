@@ -1,4 +1,5 @@
 import { accounts, and, db, eq, queryClient, users } from "@metastorage/database";
+import { SEED_DEMO_USERS } from "@metastorage/database/seed-fixtures";
 import { hashPassword } from "better-auth/crypto";
 import { env } from "./config/env";
 import { DEV_AUTH_ACCOUNTS, DEV_AUTH_PASSWORD } from "./dev/auth-fixtures";
@@ -10,7 +11,7 @@ try {
 
   const password = await hashPassword(DEV_AUTH_PASSWORD);
   await db.transaction(async (tx) => {
-    for (const fixture of DEV_AUTH_ACCOUNTS) {
+    for (const fixture of [...DEV_AUTH_ACCOUNTS, ...SEED_DEMO_USERS]) {
       const [user] = await tx.select().from(users).where(eq(users.email, fixture.email));
       if (
         !user ||
@@ -45,7 +46,9 @@ try {
       }
     }
   });
-  console.log("Development credentials prepared for all four Swagger role examples.");
+  console.log(
+    `Development credentials prepared for ${DEV_AUTH_ACCOUNTS.length + SEED_DEMO_USERS.length} demo users.`,
+  );
 } catch (error) {
   console.error(error);
   process.exitCode = 1;

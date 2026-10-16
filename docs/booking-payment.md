@@ -20,10 +20,11 @@ Trả HTTP 201 với envelope chuẩn, `data` gồm `bookingId`, `paymentId`, `s
 `provider: sepay`, `paymentCode`, `checkoutUrl`, `checkoutFormFields`, `expiresAt`.
 Form fields được ký bởi SDK SePay; không có request gọi provider hoặc gửi mail ở bước này.
 Return URL cho booking mới là `${WEB_URL}/bookings/payment-result` với `status`,
-`paymentId` và `bookingId`. Frontend sẽ tích hợp sau; return URL không xác nhận payment.
+`paymentId` và `bookingId`. Return URL không xác nhận payment.
 Gateway chỉ nhận `bookingId`, không tạo URL checkout reservation. Các method tạo
 phiên SePay từ reservation (`startSepayPayment`, `pendingResponse`) đã được bỏ.
-API trạng thái chỉ tạo lại form checkout cho payment gắn booking còn hold hợp lệ;
+API trạng thái đối soát payment booking qua API SePay có xác thực và chỉ tạo lại
+form checkout khi payment còn PENDING và hold hợp lệ;
 payment reservation cũ không còn được tạo form checkout qua gateway này.
 
 ## Quyền đọc trạng thái payment
@@ -42,8 +43,46 @@ Hold hết hạn không thu hồi quyền đọc: khách vẫn xem được PEND
 REFUND_PENDING hoặc REFUNDED. Response không trả credential/hash lưu trong database.
 
 Cookie email tracking giữ Path `/api/booking`; khách mở email tiếp tục dùng endpoint
-tracking hiện có. API client/frontend chưa đổi trong task backend này: guest polling
-status cần bổ sung header khi tích hợp; account owner có thể dùng session cookie.
+tracking hiện có. Web gửi header checkout cho guest; account owner dùng session cookie.
+
+## Đối soát bằng API SePay, không cần IPN
+
+API status kiểm tra quyền trước, sau đó tra cứu
+`GET https://pgapi-sandbox.sepay.vn/v1/order/detail/{paymentCode}` bằng Basic Auth
+merchant/secret ở backend. Chỉ đơn `CAPTURED` có đúng invoice, số tiền snapshot,
+currency VND và order ID hợp lệ mới tạo sự kiện xác minh cho transaction payment
+hiện có. Sandbox có thể trả `transactions: []`; trạng thái đơn CAPTURED là căn cứ
+theo [API SePay](https://developer.sepay.vn/vi/cong-thanh-toan/API/don-hang/chi-tiet-don-hang).
+
+Sự kiện `ORDER:<order_id>` ổn định qua retry/restart. Row lock và trạng thái payment
+bảo đảm polling, cron và IPN tùy chọn không xác nhận booking/allocation/email hai lần.
+Chỉ lưu metadata đơn cần cho đối soát, không lưu thông tin thẻ hoặc raw response.
+Status SUCCEEDED có thể enqueue mail bị bỏ lỡ sau commit; job ID theo booking
+giữ nguyên để không tạo thêm job.
+
+Mỗi payment được claim bằng update có điều kiện trên `payments.updated_at`, cách
+nhau ít nhất 15 giây giữa các instance; không giữ transaction trong lúc gọi HTTP.
+Request provider timeout sau 5 giây. Lỗi kết nối tạm thời như ECONNRESET được thử
+lại một lần trong cùng deadline 5 giây; không tăng gấp đôi thời gian chờ. Lỗi
+mạng/auth/provider hoặc dữ liệu không khớp
+trả 503, giữ PENDING để thử lại; 404 (chưa submit form), đơn chưa CAPTURED hoặc hủy
+không tự xác nhận hay kết luận giao dịch đã nhận tiền. Không tự tạo payment khác.
+Request trong thời gian chờ claim đọc trạng thái DB hiện tại.
+
+Cron hiện có chạy lúc khởi động và mỗi 30 giây, đối soát tối đa 10 payment booking
+SePay PENDING, ưu tiên lâu chưa kiểm tra. Dòng đã kiểm tra được đưa về cuối lượt để
+không chặn các đơn mới bởi đơn cũ chưa trả tiền. Đóng tab không dừng đối soát.
+Backend ngủ/tắt thì lượt khởi động hoặc request status tiếp theo tiếp tục xử lý.
+Timer yêu cầu API server Node chạy lâu dài; không được bảo đảm trên serverless/edge.
+
+Payment config: `PAYMENT_PROVIDER=sepay`, `SEPAY_ENV=sandbox`,
+`SEPAY_MERCHANT_ID`, `SEPAY_SECRET_KEY`. Giữ sandbox cả khi `NODE_ENV=production`
+trên môi trường demo. Deploy đặt `WEB_URL` về frontend công khai, cùng CORS/session
+origin và `PUBLIC_APP_URL` cho QR/email. Không cần IPN, `PUBLIC_API_URL`, bank account
+hay webhook key cho checkout này. Database, Redis và worker/email có cấu hình riêng.
+Không thay đổi schema và không cần migration mới cho phần đối soát.
+
+Endpoint `confirm-sandbox` đã được bỏ: trình duyệt không được tự xác nhận đã trả tiền.
 
 ## Quy tắc
 
@@ -82,8 +121,8 @@ chưa được cấu hình. `error.code` dùng mã HTTP theo convention hiện t
 
 ## Phạm vi hiện tại
 
-Webhook `POST /api/payments/webhooks/sepay` (alias `/api/sepay/ipn`) xác nhận payment
-gắn booking khi hold còn hiệu lực. IPN cần xác thực, transaction ID ổn định,
+Webhook `POST /api/payments/webhooks/sepay` (alias `/api/sepay/ipn`) giữ tương thích
+cho consumer cũ, không cần cấu hình cho flow mới. IPN cần xác thực, transaction ID ổn định,
 `ORDER_PAID`, order `CAPTURED`, transaction `APPROVED`/`PAYMENT`, số tiền khớp và
 currency VND. Sự kiện hủy/chưa thành công hoặc sai số tiền/currency được ghi IGNORED.
 Xem [đặc tả IPN SePay](https://developer.sepay.vn/vi/cong-thanh-toan/IPN).
@@ -117,7 +156,7 @@ booking giữ DRAFT, không QR/email/gán kho. Hoàn toàn bộ payment total g�
   hoàn trả 409, payment không tồn tại trả 404; guest 401, sai role 403, input sai 400.
 
 Migration `0033_bent_puma.sql` bổ sung enum/metadata hoàn tiền; phải migrate trước
-khi chạy backend mới. Confirm-sandbox cho booking mới vẫn chưa hoàn thiện.
+khi chạy backend mới.
 Hủy trước bàn giao và NO_SHOW dùng cùng API hoàn thủ công, nhưng `amount` chỉ là
 tiền thuê; `depositForfeitedAmount` là tiền cọc bị giữ. Xem [policy hủy/NO_SHOW](booking-cancellation-policy.md).
 Migration `0034_nosy_hellfire_club.sql` bổ sung snapshot số tiền hoàn và cọc bị giữ;

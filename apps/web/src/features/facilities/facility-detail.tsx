@@ -7,6 +7,7 @@ import { Currency, StatusBadge } from "@/components/ui/display";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/states";
 import { routes } from "@/config/routes";
 import { cn } from "@/lib/cn";
+import { facilitiesMessages as m } from "./facilities.messages";
 import { useAvailability, useFacility } from "./hooks";
 
 export function FacilityDetail({ facilityId }: { facilityId: string }) {
@@ -91,7 +92,9 @@ export function FacilityDetail({ facilityId }: { facilityId: string }) {
                         option.availableCount ? "text-accent" : "text-danger",
                       )}
                     >
-                      {option.availableCount ? `Còn ${option.availableCount} chỗ` : "Tạm hết chỗ"}
+                      {option.availableCount === null
+                        ? m.chooseSchedule
+                        : m.available(option.availableCount)}
                     </span>
                   </article>
                 ))}
@@ -109,17 +112,22 @@ export function FacilityDetail({ facilityId }: { facilityId: string }) {
             Đặt chỗ trực tuyến
           </span>
           <h2 className="m-0 text-2xl font-bold text-primary">
-            Từ <Currency value={facility.startingMonthlyPrice} />
+            {m.from}{" "}
+            {facility.startingMonthlyPrice === null ? (
+              m.priceUnavailable
+            ) : (
+              <Currency value={facility.startingMonthlyPrice} />
+            )}
           </h2>
           <p className="text-muted">Tiền cọc bằng một tháng thuê. Hoàn tất trong vài phút.</p>
           <div className="grid gap-3 border-y border-line py-4 text-sm">
             <span className="flex items-center gap-2">
               <ShieldCheck className="size-4 text-primary" />
-              {facility.availableUnits} unit còn trống
+              {m.chooseSchedule}
             </span>
             <span className="flex items-center gap-2">
               <Clock3 className="size-4 text-primary" />
-              {facility.totalUnits} unit trong inventory
+              {m.scheduleAtCheckout}
             </span>
           </div>
           <Link href={ctaPath} className={buttonClassName("primary", "w-full")}>

@@ -6,8 +6,9 @@ import {
 } from "@metastorage/contracts";
 import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
+import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
-import { requireRole } from "../auth/auth.guard";
+import { requireAuth, requireRole } from "../auth/auth.guard";
 import { FacilityUnitTypesRepository } from "../unit-types/facility-unit-types.repository";
 import { FacilityUnitTypesService } from "../unit-types/facility-unit-types.service";
 import { requireFacilityAccess } from "./facilities.guard";
@@ -29,6 +30,15 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
   );
 
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
+
+  typedApp.get("/my-assignments", { preHandler: [requireAuth] }, async (request, reply) => {
+    if (!request.user) throw new UnauthorizedError();
+    return reply.send(
+      successResponse(
+        await assignmentsService.listUserAssignments(request.user.id, request.user.role),
+      ),
+    );
+  });
 
   // GET /api/facilities/:facilityId/staff - Get active staff in facility
   typedApp.get(

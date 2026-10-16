@@ -34,11 +34,16 @@ describe("mock reservation API", () => {
     expect((await client.auth.me()).assignedFacilityId).toBeNull();
   });
 
-  it("searches facilities and returns aggregated availability", async () => {
-    const facilities = await client.facilities.list({ search: "Sài Gòn" });
-    expect(facilities.total).toBe(1);
-    const availability = await client.facilities.availability(facilities.items[0]?.id ?? "");
-    expect(availability.some((option) => option.availableCount > 0)).toBe(true);
+  it("reads the existing public facility and unit type API shapes", async () => {
+    const facilities = await client.facilities.listActive({ limit: 100, offset: 0 });
+    const facility = facilities.find((item) => item.code === "HCM-01");
+    expect(facility?.address).toBeTypeOf("string");
+    const unitTypes = await client.facilities.listUnitTypes(facility?.id ?? "", {
+      limit: 100,
+      offset: 0,
+    });
+    expect(unitTypes.length).toBeGreaterThan(0);
+    expect(unitTypes.every((type) => type.monthlyPrice >= 0 && type.lengthM > 0)).toBe(true);
   });
 
   it("browses the public catalog without using the protected facility API", async () => {
@@ -49,7 +54,7 @@ describe("mock reservation API", () => {
 
     const unitTypes = await client.catalog.listUnitTypes(facility?.id ?? "");
     expect(unitTypes.every((option) => option.facilityId === facility?.id)).toBe(true);
-    expect(unitTypes.some((option) => option.availableCount > 0)).toBe(true);
+    expect(unitTypes.some((option) => (option.availableCount ?? 0) > 0)).toBe(true);
   });
 
   it("does not create a reservation when payment fails and can retry successfully", async () => {

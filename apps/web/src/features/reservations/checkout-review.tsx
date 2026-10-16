@@ -36,7 +36,8 @@ export function CheckoutReview({ state }: { state: CheckoutState }) {
                   </div>
                   <div>
                     <span className={s.caption}>{m.dimensions}</span>
-                    {m.updating}
+                    {state.selectedOption?.lengthM} × {state.selectedOption?.widthM} ×{" "}
+                    {state.selectedOption?.heightM} m
                   </div>
                 </div>
               </div>
@@ -47,14 +48,14 @@ export function CheckoutReview({ state }: { state: CheckoutState }) {
               <div className={s.detailBox}>
                 <CalendarDays size={18} />
                 <span className={s.caption}>{m.date}</span>
-                {new Date(`${values.checkInAt}:00+07:00`).toLocaleDateString("vi-VN", {
+                {new Date(`${values.checkInDate}T00:00:00+07:00`).toLocaleDateString("vi-VN", {
                   timeZone: "Asia/Ho_Chi_Minh",
                 })}
               </div>
               <div className={s.detailBox}>
                 <Clock3 size={18} />
                 <span className={s.caption}>{m.time}</span>
-                {values.checkInAt.slice(11)}
+                {state.selectedSlot?.startTime.slice(0, 5)}
                 <span className={s.caption}>{m.timeHint}</span>
               </div>
               <div className={s.detailBox}>

@@ -1,10 +1,13 @@
 import { queryClient } from "./client";
+import { seedDemoData } from "./seed-demo";
 import { SEED_IDS, SEED_USERS } from "./seed-fixtures";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
 
 async function seed() {
+  if (process.env.NODE_ENV === "production")
+    throw new Error("Local demo seeding is disabled in production");
   console.log("Starting local database seeding via raw SQL client...");
 
   console.log("1. Seeding facilities...");
@@ -512,6 +515,7 @@ async function seed() {
     console.log(`   - ${bookingSeed.code}: ${bookingSeed.scenario}`);
   }
 
+  await seedDemoData();
   console.log("✅ Seeding completed successfully!");
   await queryClient.end();
 }

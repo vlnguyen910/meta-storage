@@ -48,6 +48,9 @@ export function CheckoutConfirmation({
           </button>
           {copied ? <span role="status">{m.copied}</span> : null}
         </div>
+        <p className="mt-3 break-all text-xs text-slate-600">
+          {m.bookingUuid}: {confirmation.bookingId}
+        </p>
         <p role="status" className={`${s.detailBox} mt-6`}>
           {isMockMode ? m.mockEmail : m.emailStatuses[confirmation.emailStatus]}
         </p>

@@ -730,6 +730,8 @@ export class BookingsRepository {
         facilityId: unit.facilityId,
         unitTypeId: unit.unitTypeId,
         code: unit.code,
+        floor: unit.floor,
+        locationDescription: unit.locationDescription,
         status: unit.status,
         isAvailableForPeriod: !isConflicted,
       };

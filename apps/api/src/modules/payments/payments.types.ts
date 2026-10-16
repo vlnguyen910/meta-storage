@@ -124,6 +124,16 @@ export type SepayCreateCheckoutInput = {
   bookingId: string;
 };
 
+export type SepayOrderDetailResponse = {
+  data?: {
+    order_id?: string;
+    order_invoice_number?: string;
+    order_status?: string;
+    order_amount?: string | number;
+    order_currency?: string;
+  };
+};
+
 export type SepayPaymentInstructions = PaymentInstructions & { provider: "sepay" };
 export type SepayVerifiedPaymentEvent = VerifiedPaymentEvent & { provider: "sepay" };
 

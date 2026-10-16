@@ -74,4 +74,43 @@ export const SEED_USERS = [
     name: "Business Operation Manager",
     phone: "0900000004",
   },
+  {
+    id: "40000000-0000-4000-8000-000000000005",
+    role: "SYSTEM_ADMIN",
+    email: "admin@metastorage.vn",
+    name: "Quản trị viên demo",
+    phone: "0900000005",
+  },
 ] as const;
+
+export const SEED_DEMO_USERS = [
+  ...Array.from({ length: 6 }, (_, index) => ({
+    id: `40000000-0000-4000-8000-${String(101 + index).padStart(12, "0")}`,
+    role: "CUSTOMER" as const,
+    email: `customer${index + 1}@metastorage.test`,
+    name:
+      [
+        "Nguyễn Minh An",
+        "Trần Ngọc Anh",
+        "Lê Hoàng Nam",
+        "Phạm Thảo Vy",
+        "Võ Thanh Tâm",
+        "Đặng Hải Yến",
+      ][index] ?? "Khách demo",
+    phone: `090100000${index + 1}`,
+  })),
+  ...Array.from({ length: 9 }, (_, index) => ({
+    id: `40000000-0000-4000-8000-${String(202 + index).padStart(12, "0")}`,
+    role: "FACILITY_MANAGER" as const,
+    email: `manager.hcm${String(index + 2).padStart(2, "0")}@metastorage.test`,
+    name: `Quản lý demo HCM-${String(index + 2).padStart(2, "0")}`,
+    phone: `09020000${String(index + 2).padStart(2, "0")}`,
+  })),
+  ...Array.from({ length: 9 }, (_, index) => ({
+    id: `40000000-0000-4000-8000-${String(302 + index).padStart(12, "0")}`,
+    role: "FACILITY_STAFF" as const,
+    email: `staff.hcm${String(index + 2).padStart(2, "0")}@metastorage.test`,
+    name: `Nhân viên demo HCM-${String(index + 2).padStart(2, "0")}`,
+    phone: `09030000${String(index + 2).padStart(2, "0")}`,
+  })),
+];
