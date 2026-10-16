@@ -173,7 +173,36 @@ REDIS_TEST_URL=redis://localhost:6379/15 bun run --filter api test
 
 API mặc định chạy tại port `4000`. Có thể thay đổi port trong `apps/api/.env`.
 
-### 4. Chạy môi trường phát triển (Dev)
+### 4. Deploy API và Worker lên VPS bằng Docker Compose
+
+Production Compose chỉ chạy API và worker. PostgreSQL và Redis phải được cung
+cấp bên ngoài VPS; API và worker dùng chung connection strings từ `docker/app.env`.
+Ví dụ dùng `rediss://` cho Redis có TLS; dùng connection string/SSL parameters
+đúng theo nhà cung cấp PostgreSQL.
+
+```bash
+cp docker/app.env.example docker/app.env
+```
+
+Điền database/Redis URLs, domain và credentials. Tạo secrets bằng
+`openssl rand -hex 32`; `BETTER_AUTH_SECRET` và `BOOKING_MAGIC_LINK_SECRET` cần
+ít nhất 32 ký tự. API và worker phải dùng cùng `BOOKING_MAGIC_LINK_SECRET`.
+Worker cần `RESEND_API_KEY` và `RESEND_FROM_EMAIL`. Không commit `docker/app.env`.
+
+Mỗi lần cập nhật schema, chạy migration lên PostgreSQL bên ngoài trước khi cập
+nhật app, rồi build và khởi động cả hai service:
+
+```bash
+docker compose -f docker/docker-compose.prod.yml --profile migrations \
+  run --build --rm migrate
+docker compose -f docker/docker-compose.prod.yml up -d --build
+```
+
+API bind vào `127.0.0.1:4000` để reverse proxy HTTPS trên VPS kết nối. Worker
+không mở cổng. API image có HTTP healthcheck; xem log bằng
+`docker compose -f docker/docker-compose.prod.yml logs -f api worker`.
+
+### 5. Chạy môi trường phát triển (Dev)
 
 Chạy đồng thời cả Frontend và Backend:
 
@@ -202,13 +231,13 @@ bun run --filter mobile android
 bun run --filter mobile ios
 ```
 
-### 5. Build dự án
+### 6. Build dự án
 
 ```bash
 bun run build
 ```
 
-### 6. Kiểm tra Type & Linter
+### 7. Kiểm tra Type & Linter
 
 ```bash
 # Kiểm tra TypeScript type checking toàn bộ repo
@@ -224,7 +253,7 @@ bun run check:fix
 bun run format
 ```
 
-### 7. Quản lý Database (Drizzle ORM & PostgreSQL)
+### 8. Quản lý Database (Drizzle ORM & PostgreSQL)
 
 ```bash
 # Tạo migration SQL mới từ schema TypeScript
