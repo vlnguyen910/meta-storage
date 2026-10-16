@@ -1,0 +1,39 @@
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    image: metastorage-api:latest
+    restart: unless-stopped
+    env_file:
+      - ./app.env
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 4000
+    ports:
+      - "127.0.0.1:4000:4000"
+
+  worker:
+    build:
+      context: ..
+      dockerfile: apps/worker/Dockerfile
+    image: metastorage-worker:latest
+    restart: unless-stopped
+    env_file:
+      - ./app.env
+    environment:
+      NODE_ENV: production
+
+  migrate:
+    profiles: ["migrations"]
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+      target: build
+    image: metastorage-api-migrations:latest
+    command: ["bun", "run", "--filter", "@metastorage/database", "db:migrate"]
+    env_file:
+      - ./app.env
+    environment:
+      NODE_ENV: production
