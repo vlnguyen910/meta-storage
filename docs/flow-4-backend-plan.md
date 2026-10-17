@@ -1,5 +1,11 @@
 # Kế hoạch backend Flow 4 — người thực hiện: bạn
 
+Tiến độ: đã triển khai lát cắt giá chung theo loại kho, chính sách cọc chung lưu
+DB, API BOM/version/audit và nối Booking draft. Xem
+[API và cách khởi tạo](flow-4-pricing-api.md). Báo cáo backend đã được bổ sung theo
+[định nghĩa/API điều hành](flow-4-reports-api.md); phí vẫn chưa triển khai;
+các mục dưới đây là kế hoạch tổng thể, không phải danh sách đã nghiệm thu.
+
 Mốc source `b4003a9` ngày 17/10/2026. Đọc
 [kiểm kê chung](flow-4-5-backend-audit.md) trước khi code.
 Chỉ API, contracts và persistence cần thiết; không sửa web/mobile/API client/mocks.

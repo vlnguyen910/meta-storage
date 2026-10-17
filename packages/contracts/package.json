@@ -8,7 +8,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./users": "./src/users.ts",
-    "./payments": "./src/payments.ts"
+    "./payments": "./src/payments.ts",
+    "./pricing": "./src/pricing.ts"
   },
   "scripts": {
     "lint": "biome check src",

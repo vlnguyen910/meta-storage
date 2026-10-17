@@ -18,6 +18,9 @@ export function findApiEnvPath(): string | null {
   const candidates = [
     path.resolve(process.cwd(), "apps/api/.env"),
     path.resolve(process.cwd(), ".env"),
+    // Drizzle Kit bundles its config, so import.meta may refer to that bundle
+    // rather than src/env.ts. Workspace scripts run from packages/database.
+    path.resolve(process.cwd(), "../../apps/api/.env"),
     path.resolve(currentDir, "../../../apps/api/.env"),
   ];
 

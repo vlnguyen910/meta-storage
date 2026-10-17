@@ -22,8 +22,10 @@ import {
   facilityUnitTypes,
   handoverInspections,
   inArray,
+  PRICING_SETTINGS_ID,
   paymentProviderEvents,
   payments,
+  pricingSettings,
   rentals,
   reservationDrafts,
   storageUnits,
@@ -199,6 +201,10 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
   beforeAll(async () => {
     if (process.env.DATABASE_URL !== testUrl)
       throw new Error("Use the isolated BOOKING_TEST_DATABASE_URL");
+    await db
+      .insert(pricingSettings)
+      .values({ id: PRICING_SETTINGS_ID, depositMonths: 1, version: 1 })
+      .onConflictDoNothing();
     env.PAYMENT_PROVIDER = "sepay";
     env.SEPAY_MERCHANT_ID = "test-merchant";
     env.SEPAY_SECRET_KEY = "test-only-sepay-secret";

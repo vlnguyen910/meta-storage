@@ -1,5 +1,21 @@
 # metastorage database diagram
 
+Flow 4 pricing: `pricing_settings` has exactly one supported key (`default`),
+positive `deposit_months` and `version`, nullable `updated_by` FK users and
+`updated_at`. The one-month starting policy is explicitly seeded, never a runtime
+fallback. Missing policy prevents new quotes. `unit_types.monthly_price` remains
+the sole current global price per type. Updating either price or deposit locks
+the settings row first, validates expectedVersion, increments the shared version
+and appends `pricing_changes` in the same transaction. Existing booking monetary
+snapshots are never recalculated. Drafts created before a change keep their
+snapshot, including when they start payment after the change.
+
+`pricing_changes`: UUID `id`, unique positive integer `version`, enum `operation`
+(`DEPOSIT_POLICY`, `UNIT_TYPE_PRICE`), required JSONB `before`/`after` storing the
+specific changed values, required `changed_by` FK users (RESTRICT), and timestamp
+`changed_at`. No API modifies or deletes audit records. Settings are not exposed
+to public/FS/FM/SA callers; configuration endpoints require BOM.
+
 This diagram records every table and column currently declared in
 `packages/database/src/schema`. Flow 2 now activates rentals at Staff handover; guest account access remains future work;
 Booking and Payment are introduced by issue #18.
@@ -28,6 +44,24 @@ Issue #24 adds `handover_inspections` and `inspection_photos` under the H6_V1 de
 
 ```mermaid
 erDiagram
+  pricing_settings {
+    text id PK "default"
+    integer deposit_months
+    integer version
+    uuid updated_by FK
+    timestamptz updated_at
+  }
+  pricing_changes {
+    uuid id PK
+    integer version UK
+    pricing_change_operation operation
+    jsonb before
+    jsonb after
+    uuid changed_by FK
+    timestamptz changed_at
+  }
+  users o|--o{ pricing_settings : updates
+  users ||--o{ pricing_changes : changes
   handover_inspections {
     uuid id PK
     uuid booking_id FK
