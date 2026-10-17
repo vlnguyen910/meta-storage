@@ -24,8 +24,14 @@ Issue #24 adds `handover_inspections` and `inspection_photos` under the H6_V1 de
 
 - One inspection per check-in verification; linked to the booking, facility, exact assignment
   and physical unit. A changed assignment/verification requires a new inspection, retaining history.
-- DRAFT accepts incomplete fields. COMPLETED requires `correct_unit = true`, nonblank
-  `condition_notes`, and at least one saved photo. Existing damage is recorded, not a failure gate.
+- New inspections use checklist version `H6_4PASS_V1`: DRAFT accepts incomplete results;
+  COMPLETED requires PASS for ASSIGNED_UNIT, DOOR_LOCK, UNIT_CONDITION and EXISTING_INVENTORY.
+  Notes/photos/signature are optional. Results and the immutable definition snapshot are stored
+  with the inspection. Nullable checklist columns distinguish historical records; no inferred PASS
+  or backfill. Saving explicit results on an old draft adopts the new policy; completed history stays unchanged.
+- FM assignment atomically sets a free physical unit RESERVED. Other bookings cannot reserve
+  that unit, even for non-overlapping dates. Reassign/cancel/no-show release RESERVED units only
+  if no other live assignment or ACTIVE rental remains. Handover changes RESERVED to OCCUPIED.
 - Completion records actor/time and freezes the baseline; it does not create a Rental,
   consume verification, mark CHECKED_IN or change the unit's occupancy (#25).
 - `version` plus booking/inspection row locks reject stale/concurrent writes. Only current
@@ -71,6 +77,9 @@ erDiagram
     uuid verification_id FK,UK
     varchar unit_code
     varchar policy_version
+    varchar checklist_version "nullable legacy"
+    jsonb checklist_results "nullable legacy"
+    jsonb checklist_definition "nullable legacy"
     inspection_status status
     integer version
     boolean correct_unit

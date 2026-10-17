@@ -1,5 +1,6 @@
 import { expect, spyOn, test } from "bun:test";
 import { randomUUID } from "node:crypto";
+import { passingChecklist } from "../fixtures/inspection-fixture";
 
 test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
   "assigned Staff handover is authorized, atomic and idempotent",
@@ -30,7 +31,6 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
       rentals,
       storageUnits,
       payments,
-      inspectionPhotos,
       handoverInspections,
     } = await import("@metastorage/database");
     const f = await createInspectionFixture();
@@ -114,18 +114,12 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
         await request(staff, "PATCH", `/inspections/${id}`, {
           version: 0,
           correctUnit: true,
-          conditionNotes: "Sàn sạch; vết xước đã ghi nhận.",
+          conditionNotes: "",
+          results: passingChecklist,
         })
       ).json().data;
-      await db.insert(inspectionPhotos).values({
-        inspectionId: id,
-        uploadedBy: f.userId,
-        filename: "fixture.png",
-        mimeType: "image/png",
-        byteSize: 68,
-        dataBase64:
-          "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
-      });
+      expect(record.photos).toHaveLength(0);
+      expect(record.conditionNotes).toBe("");
       const complete = await request(staff, "POST", `/inspections/${id}/complete`, {
         version: record.version,
       });
@@ -167,7 +161,7 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
       ).toHaveLength(0);
       await db
         .update(storageUnits)
-        .set({ status: "AVAILABLE" })
+        .set({ status: "RESERVED" })
         .where(eq(storageUnits.id, f.unitId));
       const responses = await Promise.all([
         request(staff, "POST", `/inspections/${id}/handover`, { version: record.version }),

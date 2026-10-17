@@ -16,6 +16,7 @@ import { checkInsRoutes } from "./modules/check-ins/check-ins.routes";
 import { facilityContextPlugin } from "./modules/facilities/facilities.guard";
 import { facilitiesRoutes } from "./modules/facilities/facilities.routes";
 import { inspectionsRoutes } from "./modules/inspections/inspections.routes";
+import { notificationsPlugin } from "./modules/notifications/notifications.plugin";
 import { paymentsRoutes } from "./modules/payments/payments.routes";
 import { pricingRoutes } from "./modules/pricing/pricing.routes";
 import { rentalsRoutes } from "./modules/rentals/rentals.routes";
@@ -41,6 +42,7 @@ export function buildApp(): FastifyInstance {
   app.register(redisPlugin);
   app.register(mailQueuePlugin);
   app.register(authPlugin);
+  app.register(notificationsPlugin);
   app.register(facilityContextPlugin);
   app.register(swaggerPlugin);
 

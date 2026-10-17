@@ -22,7 +22,7 @@ const id = (prefix: string, ordinal: number) =>
 
 // Fictional local fixtures only. No provider checkout, webhook or email is sent.
 export async function seedDemoData() {
-  await db.transaction(async (tx) => {
+  const flow2CheckInDate = await db.transaction(async (tx) => {
     await tx
       .insert(users)
       .values(
@@ -207,9 +207,80 @@ export async function seedDemoData() {
               reason: "Local demo: prepared booking",
             })
             .onConflictDoNothing();
+          await tx
+            .update(storageUnits)
+            .set({ status: "RESERVED" })
+            .where(and(eq(storageUnits.id, unit.id), eq(storageUnits.status, "AVAILABLE")));
         }
       }
     }
+
+    // One paid, unassigned booking for the full FM → Staff → handover Swagger flow.
+    const flow2Facility = facilityRows.find(
+      (facility) => facility.id === SEED_IDS.facilities["HCM-01"],
+    );
+    const flow2Type = typeRows.find((type) => type.id === SEED_IDS.unitTypes["UT-2M"]);
+    const flow2Slot = slots[0];
+    if (!flow2Facility || !flow2Type || !flow2Slot)
+      throw new Error("Missing Flow 2 demo facility, unit type or check-in slot");
+    const flow2BookingId = id("83000000", 1);
+    const flow2Start = new Date(`${today}T${flow2Slot.startTime}+07:00`);
+    const flow2End = new Date(flow2Start);
+    flow2End.setUTCMonth(flow2End.getUTCMonth() + 1);
+    const flow2TokenHash = hash(hash(`local-seed:${flow2BookingId}`));
+    await tx
+      .insert(bookings)
+      .values({
+        id: flow2BookingId,
+        bookingCode: "DEMO-FLOW2-READY",
+        userId: SEED_USERS[0].id,
+        facilityId: flow2Facility.id,
+        unitTypeId: flow2Type.id,
+        checkInDate: today,
+        checkInSlotId: flow2Slot.id,
+        requestedMonths: 1,
+        rentalEndAt: flow2End,
+        monthlyRateSnapshot: String(flow2Type.monthlyPrice),
+        rentalFeeAmount: String(flow2Type.monthlyPrice),
+        depositAmount: String(flow2Type.monthlyPrice),
+        totalAmount: String(flow2Type.monthlyPrice * 2),
+        contactName: SEED_USERS[0].name,
+        contactEmail: SEED_USERS[0].email,
+        contactPhone: `+84${SEED_USERS[0].phone.slice(1)}`,
+        accessTokenHash: flow2TokenHash,
+        qrTokenHash: hash(createHmac("sha256", qrSecret).update(flow2BookingId).digest("hex")),
+        status: "CONFIRMED",
+      })
+      .onConflictDoNothing();
+    await tx
+      .insert(payments)
+      .values({
+        id: id("13000000", 1),
+        bookingId: flow2BookingId,
+        holdTokenHash: flow2TokenHash,
+        provider: "MOCK",
+        providerPaymentId: `local-seed:${flow2BookingId}`,
+        idempotencyKey: `local-seed:${flow2BookingId}`,
+        paymentCode: "DEMO-FLOW2-PAID",
+        totalAmount: String(flow2Type.monthlyPrice * 2),
+        currency: "VND",
+        status: "SUCCEEDED",
+        paidAt: new Date(),
+      })
+      .onConflictDoNothing();
+    await tx
+      .insert(capacityAllocations)
+      .values({
+        id: id("a4000000", 1),
+        facilityId: flow2Facility.id,
+        unitTypeId: flow2Type.id,
+        referenceId: flow2BookingId,
+        kind: "BOOKING",
+        status: "ACTIVE",
+        startsAt: flow2Start,
+        endsAt: flow2End,
+      })
+      .onConflictDoNothing();
 
     // Keep the original Swagger IDs usable for check-in and snapshot-based capacity.
     const originals = await tx
@@ -232,6 +303,22 @@ export async function seedDemoData() {
         })
         .where(eq(bookings.id, booking.id));
       if (booking.status === "CONFIRMED") {
+        const [assignment] = await tx
+          .select({ physicalUnitId: unitAssignments.physicalUnitId })
+          .from(unitAssignments)
+          .where(
+            and(eq(unitAssignments.bookingId, booking.id), eq(unitAssignments.status, "ACTIVE")),
+          );
+        if (assignment)
+          await tx
+            .update(storageUnits)
+            .set({ status: "RESERVED" })
+            .where(
+              and(
+                eq(storageUnits.id, assignment.physicalUnitId),
+                eq(storageUnits.status, "AVAILABLE"),
+              ),
+            );
         await tx
           .insert(capacityAllocations)
           .values({
@@ -351,8 +438,12 @@ export async function seedDemoData() {
         .set({ floor: "1", locationDescription: `Khu demo bàn giao · ${code}` })
         .where(eq(storageUnits.code, code));
     }
+    return today;
   });
   console.log(
-    "Extended demo ready: 10 facilities, 8 types, 328 units, 29 users, 37 bookings, paid/pending/failed/refund/expired-hold scenarios.",
+    "Extended demo ready: 10 facilities, 8 types, 328 units, 29 users, 38 bookings, paid/pending/failed/refund/expired-hold scenarios.",
+  );
+  console.log(
+    `Flow 2 Swagger booking: DEMO-FLOW2-READY (${id("83000000", 1)}), check-in ${flow2CheckInDate}.`,
   );
 }

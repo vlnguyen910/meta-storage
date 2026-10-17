@@ -52,3 +52,18 @@ inspection uses the same baseline even if the checklist evolves. Define database
 transaction boundaries and API endpoints as part of issue #24.
 
 No inspection tables, endpoint, camera upload or signature workflow are introduced here.
+
+## Backend integration update (2026-10-17)
+
+Inspection draft requests accept optional `results` using the existing item result shape.
+Incomplete/FAIL results can be saved; duplicate/unknown codes and incorrect result types
+are rejected. Completion requires all four PASS results, without mandatory photos/notes.
+New inspections store `checklistVersion = H6_4PASS_V1`, the definition snapshot and actual
+results. This separate version distinguishes the former implementation's H6_V1 baseline.
+Legacy metadata remains NULL; no historical results are invented. Explicitly saving results
+on a legacy draft adopts the new metadata, while completed historical records remain immutable.
+The old `correctUnit` response is retained and derived from ASSIGNED_UNIT when results exist.
+Photo references in results must belong to the same inspection. Snapshot/results are frozen
+at completion. Existing authorization, version locks and separate handover remain in force.
+The existing frontend is outside this backend change and does not yet submit four results;
+its draft requests remain accepted, but new completion requires explicit four PASS results.

@@ -1,10 +1,30 @@
 import { z } from "zod";
+import { HANDOVER_CHECKLIST_ITEMS, HandoverChecklistItemResultSchema } from "./handover-checklist";
 import { INSPECTION_MESSAGES } from "./inspections.messages";
+import type { InspectionChecklistData } from "./inspections.types";
 
 export const INSPECTION_PHOTO_MAX_BYTES = 3 * 1024 * 1024;
 export const INSPECTION_PHOTO_MAX_COUNT = 8;
+export const INSPECTION_CHECKLIST_VERSION = "H6_4PASS_V1";
+const draftResults = z
+  .array(HandoverChecklistItemResultSchema)
+  .max(4)
+  .superRefine((results, ctx) => {
+    const seen = new Set<string>();
+    for (const result of results) {
+      if (
+        seen.has(result.itemCode) ||
+        result.resultType !== "PASS_FAIL" ||
+        !HANDOVER_CHECKLIST_ITEMS.some((item) => item.code === result.itemCode)
+      ) {
+        ctx.addIssue({ code: "custom", message: INSPECTION_MESSAGES.invalidResults });
+      }
+      seen.add(result.itemCode);
+    }
+  });
 export const InspectionDraftInputSchema = z.object({
   version: z.number().int().nonnegative(),
+  results: draftResults.optional(),
   correctUnit: z.boolean().nullable(),
   conditionNotes: z.string().max(4000, INSPECTION_MESSAGES.notesLimit),
 });
@@ -56,4 +76,4 @@ export const InspectionSchema = z.object({
   handedOverBy: z.string().uuid().nullable().optional(),
   photos: z.array(InspectionPhotoSchema),
 });
-export type Inspection = z.infer<typeof InspectionSchema>;
+export type Inspection = z.infer<typeof InspectionSchema> & InspectionChecklistData;

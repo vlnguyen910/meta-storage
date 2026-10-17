@@ -1,4 +1,6 @@
 import {
+  HANDOVER_CHECKLIST_ITEMS,
+  INSPECTION_CHECKLIST_VERSION,
   INSPECTION_MESSAGES,
   INSPECTION_PHOTO_MAX_COUNT,
   type Inspection,
@@ -58,6 +60,9 @@ export class InspectionsService {
       version: r.version,
       correctUnit: r.correctUnit,
       conditionNotes: r.conditionNotes,
+      results: r.checklistResults ?? null,
+      checklistDefinition: r.checklistDefinition ?? null,
+      checklistVersion: r.checklistVersion ?? null,
       createdBy: r.createdBy,
       completedBy: r.completedBy,
       completedByName: actorName(r.completedBy),
@@ -102,6 +107,9 @@ export class InspectionsService {
         unitAssignmentId: c.assignment.id,
         verificationId: c.verification.id,
         createdBy: userId,
+        checklistVersion: INSPECTION_CHECKLIST_VERSION,
+        checklistResults: [],
+        checklistDefinition: [...HANDOVER_CHECKLIST_ITEMS],
       });
       if (!created) throw new ConflictError(INSPECTION_MESSAGES.invalidContext);
       return created.id;
@@ -153,10 +161,28 @@ export class InspectionsService {
     return this.mutate(
       id,
       input.version,
-      async (tx) => {
+      async (tx, r) => {
+        if (input.results?.some((result) => result.photos.length)) {
+          const photos = new Set((await this.repository.photoIds(tx, id)).map((p) => p.id));
+          if (input.results.some((result) => result.photos.some((photo) => !photos.has(photo))))
+            throw new ValidationError(INSPECTION_MESSAGES.invalidResults);
+        }
+        const results = input.results ?? r.checklistResults;
+        const assigned = results?.find((result) => result.itemCode === "ASSIGNED_UNIT");
         await this.repository.updateInspection(tx, id, {
-          correctUnit: input.correctUnit,
+          correctUnit: results?.length
+            ? assigned
+              ? assigned.result === "PASS"
+              : null
+            : input.correctUnit,
           conditionNotes: input.conditionNotes.trim(),
+          ...(input.results === undefined
+            ? {}
+            : {
+                checklistResults: input.results,
+                checklistVersion: r.checklistVersion ?? INSPECTION_CHECKLIST_VERSION,
+                checklistDefinition: r.checklistDefinition ?? [...HANDOVER_CHECKLIST_ITEMS],
+              }),
         });
       },
       userId,
@@ -230,8 +256,7 @@ export class InspectionsService {
       id,
       version,
       async (tx, r) => {
-        const photos = await this.repository.photoIds(tx, id);
-        assertCompletable(r.correctUnit, r.conditionNotes, photos.length);
+        assertCompletable(r.checklistResults);
         await this.repository.updateInspection(tx, id, {
           status: "COMPLETED",
           completedAt: new Date(),

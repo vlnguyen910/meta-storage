@@ -1,5 +1,6 @@
 import { expect, spyOn, test } from "bun:test";
 import { randomUUID } from "node:crypto";
+import { passingChecklist } from "../fixtures/inspection-fixture";
 
 // Explicit opt-in: normal CI unit tests never connect to a developer database.
 test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
@@ -23,7 +24,7 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
       spyOn(CloudinaryPhotoStorage.prototype, "remove").mockResolvedValue(undefined),
     ];
     const { buildApp } = await import("../../src/app");
-    const { db, eq, bookings, checkInVerifications, rentals } = await import(
+    const { db, eq, bookings, checkInVerifications, rentals, handoverInspections } = await import(
       "@metastorage/database"
     );
     const fixture = await createInspectionFixture();
@@ -144,6 +145,49 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
         (await request("GET", `/inspections/${id}/photos/00000000-0000-4000-8000-000000000001`))
           .statusCode,
       ).toBe(404);
+      for (const results of [
+        passingChecklist.slice(1),
+        passingChecklist.map((r, i) => (i === 1 ? { ...r, result: "FAIL" } : r)),
+      ]) {
+        const saved = await request("PATCH", `/inspections/${id}`, {
+          ...input,
+          version: record.version,
+          results,
+        });
+        expect(saved.statusCode).toBe(200);
+        record = saved.json().data;
+        expect(
+          (await request("POST", `/inspections/${id}/complete`, { version: record.version }))
+            .statusCode,
+        ).toBe(422);
+      }
+      for (const results of [
+        [...passingChecklist, passingChecklist[0]],
+        [{ ...passingChecklist[0], itemCode: "UNKNOWN" }],
+      ]) {
+        expect(
+          (
+            await request("PATCH", `/inspections/${id}`, {
+              ...input,
+              version: record.version,
+              results,
+            })
+          ).statusCode,
+        ).toBe(400);
+      }
+      record = (
+        await request("PATCH", `/inspections/${id}`, {
+          ...input,
+          version: record.version,
+          results: passingChecklist,
+        })
+      ).json().data;
+      expect(record.results).toEqual(passingChecklist);
+      expect(record.checklistDefinition).toHaveLength(4);
+      expect(record.checklistVersion).toBe("H6_4PASS_V1");
+      expect((await request("GET", `/inspections/${id}`)).json().data.results).toEqual(
+        passingChecklist,
+      );
       const completed = await request("POST", `/inspections/${id}/complete`, {
         version: record.version,
       });
@@ -194,6 +238,23 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
       expect(fresh.json().data.id).not.toBe(id);
       expect(fresh.json().data.photos).toHaveLength(0);
       expect(fresh.json().data.correctUnit).toBeNull();
+      expect(fresh.json().data.results).toEqual([]);
+      // Nullable metadata represents old completed evidence, never synthesized PASS results.
+      await db
+        .update(handoverInspections)
+        .set({
+          checklistVersion: null,
+          checklistResults: null,
+          checklistDefinition: null,
+          status: "COMPLETED",
+          completedAt: new Date(),
+          completedBy: fixture.userId,
+        })
+        .where(eq(handoverInspections.id, fresh.json().data.id));
+      const historical = (await request("GET", `/inspections/${fresh.json().data.id}`)).json().data;
+      expect(historical.results).toBeNull();
+      expect(historical.checklistDefinition).toBeNull();
+      expect(historical.status).toBe("COMPLETED");
       await db
         .update(bookings)
         .set({ status: "NO_SHOW" })

@@ -1,4 +1,7 @@
-import { INSPECTION_MESSAGES as M } from "@metastorage/contracts";
+import {
+  HandoverChecklistCompletionSchema,
+  INSPECTION_MESSAGES as M,
+} from "@metastorage/contracts";
 import type { CheckInVerification, UnitAssignment } from "@metastorage/database";
 import { ConflictError } from "../../common/errors/app-error";
 import type { BookingReadRecord } from "../bookings/bookings.types";
@@ -13,6 +16,11 @@ export function assertHandoverReady(input: {
   userId: string;
 }) {
   const { record: r, booking: b, assignment: a, verification: v } = input;
+  if (
+    r.checklistVersion &&
+    !HandoverChecklistCompletionSchema.safeParse(r.checklistResults).success
+  )
+    throw new ConflictError(M.handoverIncomplete);
   if (r.status !== "COMPLETED" || !r.completedAt || r.correctUnit !== true)
     throw new ConflictError(M.handoverIncomplete);
   if (

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { HANDOVER_CHECKLIST_ITEMS } from "@metastorage/contracts";
 import {
   assertCompletable,
   assertCurrentInspection,
@@ -6,18 +7,25 @@ import {
 } from "../../src/modules/inspections/inspections.policy";
 
 describe("H6 inspection decision", () => {
-  test("existing damage is recordable and does not prevent completion", () => {
-    expect(() => assertCompletable(true, "Tường có vết xước trước bàn giao", 1)).not.toThrow();
+  const passing = HANDOVER_CHECKLIST_ITEMS.map((item) => ({
+    itemCode: item.code,
+    resultType: "PASS_FAIL" as const,
+    result: "PASS" as const,
+    note: null,
+    photos: [],
+  }));
+  test("four PASS results complete without notes or photos", () => {
+    expect(() => assertCompletable(passing)).not.toThrow();
   });
-  test("correct unit, description and photos are all mandatory", () => {
-    for (const [correct, notes, count] of [
-      [false, "Tốt", 1],
-      [null, "Tốt", 1],
-      [true, "  ", 1],
-      [true, "Tốt", 0],
-    ] as const) {
-      expect(() => assertCompletable(correct, notes, count)).toThrow();
-    }
+  test("missing, failed, duplicate and unknown results cannot complete", () => {
+    for (const results of [
+      [],
+      passing.slice(1),
+      passing.map((r, i) => (i === 1 ? { ...r, result: "FAIL" as const } : r)),
+      [...passing, passing[0]],
+      [...passing, { ...passing[0], itemCode: "UNKNOWN" }],
+    ])
+      expect(() => assertCompletable(results)).toThrow();
   });
   test("a verification tied to a previous assignment cannot be reused", () => {
     expect(() =>

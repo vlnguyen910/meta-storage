@@ -1,7 +1,12 @@
+import type {
+  HandoverChecklistItemDefinition,
+  HandoverChecklistItemResult,
+} from "@metastorage/contracts";
 import {
   boolean,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -39,6 +44,9 @@ export const handoverInspections = pgTable(
       .references(() => checkInVerifications.id, { onDelete: "restrict" }),
     unitCode: varchar({ length: 100 }).notNull(),
     policyVersion: varchar({ length: 20 }).default("H6_V1").notNull(),
+    checklistVersion: varchar({ length: 30 }),
+    checklistResults: jsonb().$type<HandoverChecklistItemResult[]>(),
+    checklistDefinition: jsonb().$type<HandoverChecklistItemDefinition[]>(),
     status: inspectionStatusEnum().default("DRAFT").notNull(),
     version: integer().default(0).notNull(),
     correctUnit: boolean(),

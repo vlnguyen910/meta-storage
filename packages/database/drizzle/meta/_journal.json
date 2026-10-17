@@ -253,6 +253,13 @@
       "when": 1792205324866,
       "tag": "0035_warm_king_bedlam",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1792214378077,
+      "tag": "0036_thin_plazm",
+      "breakpoints": true
     }
   ]
 }

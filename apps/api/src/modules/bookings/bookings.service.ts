@@ -35,6 +35,7 @@ import type { RedisService } from "../../common/redis/redis.service";
 import { env } from "../../config/env";
 import { FacilitiesRepository } from "../facilities/facilities.repository";
 import { FacilitiesService } from "../facilities/facilities.service";
+import type { NotificationsService } from "../notifications/notifications.service";
 import { PricingRepository } from "../pricing/pricing.repository";
 import { PricingService } from "../pricing/pricing.service";
 import { StorageUnitsRepository } from "../storage-units/storage-units.repository";
@@ -61,6 +62,7 @@ export class BookingsService {
     private readonly pricingService: PricingService,
     private readonly accessRedis?: RedisService,
     private readonly mail?: BookingMailDependencies,
+    private readonly notifications?: NotificationsService,
   ) {}
 
   async cancelBooking(
@@ -388,6 +390,14 @@ export class BookingsService {
       }
     }
 
+    if (result.changed && this.notifications) {
+      try {
+        await this.notifications.assigned(bookingId, staffId);
+      } catch {
+        // Assignment already committed. Ephemeral delivery cannot roll it back.
+        console.error("Staff notification delivery failed");
+      }
+    }
     const updatedBooking = await this.repository.findBookingById(bookingId);
     if (!updatedBooking) {
       throw new NotFoundError("Không tìm thấy đơn đặt chỗ sau khi cập nhật");
@@ -428,5 +438,6 @@ export function createBookingsService(
             },
           }
         : undefined),
+    app.notifications,
   );
 }
