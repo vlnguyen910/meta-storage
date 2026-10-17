@@ -29,7 +29,7 @@ jobs:
         script: |
           set -eu
 
-          cd /services/metastorage
+          cd services/metastorage
 
           git fetch origin stagging
           git checkout --detach origin/stagging
