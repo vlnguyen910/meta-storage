@@ -1,4 +1,5 @@
 export const BOOKING_MESSAGES = {
+  unitAssignmentChanged: "Kho được phân công đã thay đổi.",
   cancellationAccessRequired: "Cần token checkout hoặc đăng nhập tài khoản sở hữu booking để hủy.",
   cancellationClosed: "Chỉ được hủy booking đã thanh toán, chưa bàn giao và chưa hết hạn check-in.",
   cancellationPaymentInvalid: "Không thể xác định khoản thanh toán hợp lệ để hoàn tiền thuê.",
@@ -65,10 +66,10 @@ export const BOOKING_SWAGGER_MESSAGES = {
     "Requires a session and staff/manager assignment at the booking facility, or global system admin/business operation manager access. DRAFT bookings are not returned by this endpoint.",
   unitsSummary: "List units considered for booking assignment",
   unitsDescription:
-    "Requires facility manager or global admin/business operation manager access. Returns units matching the facility and unit type, excluding INACTIVE, LOCKED, MAINTENANCE and INSPECTION. Check isAvailableForPeriod: the result can include units with overlapping rentals or assignments.",
+    "Requires facility manager or global admin/business operation manager access. Returns AVAILABLE or RESERVED units matching the facility and unit type. Check isAvailableForPeriod: only a free unit or the unit already held by this booking can be assigned. Other live bookings and ACTIVE rentals block assignment regardless of schedule.",
   assignUnitSummary: "Assign or reassign a physical unit",
   assignUnitDescription:
-    "Requires facility manager or global admin/business operation manager access and a CONFIRMED booking. Revalidates unit status, facility/type and overlapping rentals/assignments in a transaction. Replaces the previous active assignment.",
+    "Requires facility manager or global admin/business operation manager access and a CONFIRMED booking. Revalidates facility/type, AVAILABLE status or this booking's RESERVED unit, and all live rentals/assignments in a transaction. Atomically marks the selected unit RESERVED and releases an unused prior RESERVED unit. Same-unit retries preserve the assignment.",
   assignStaffSummary: "Assign a staff member to an operational booking",
   assignStaffDescription:
     "Requires facility manager or global admin/business operation manager access. The selected account must be active and have an active FACILITY_STAFF assignment at this facility. DRAFT bookings cannot be assigned. Only staffId is used; notes is currently accepted but not persisted.",

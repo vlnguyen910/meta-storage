@@ -73,6 +73,26 @@ describe("Booking Swagger contracts", () => {
     expect(operation.responses[200]).toBeDefined();
   });
 
+  test("keeps five seeded role logins available in the Swagger UI", async () => {
+    const spec = (await app.inject("/docs/json")).json();
+    const examples =
+      spec.paths["/api/auth/sign-in/email"].post.requestBody.content["application/json"].examples;
+    expect(Object.keys(examples)).toEqual([
+      "CUSTOMER",
+      "FACILITY_STAFF",
+      "FACILITY_MANAGER",
+      "BUSINESS_OPERATION_MANAGER",
+      "SYSTEM_ADMIN",
+    ]);
+    const page = await app.inject("/docs/");
+    expect(page.statusCode).toBe(200);
+    expect(page.body).toContain("quick-login.js");
+    const script = await app.inject("/docs/static/theme/quick-login.js");
+    expect(script.statusCode).toBe(200);
+    expect(script.body).toContain("/api/auth/sign-in/email");
+    expect(script.body).toContain("/api/auth/me");
+  });
+
   test("documents all seven routes with complete response schemas and numeric error examples", async () => {
     const response = await app.inject("/docs/json");
     expect(response.statusCode).toBe(200);

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { HANDOVER_CHECKLIST_ITEMS } from "@metastorage/contracts";
 import {
   accounts,
   bookings,
@@ -16,6 +17,14 @@ import {
   users,
 } from "@metastorage/database";
 import { hashPassword } from "better-auth/crypto";
+
+export const passingChecklist = HANDOVER_CHECKLIST_ITEMS.map((item) => ({
+  itemCode: item.code,
+  resultType: "PASS_FAIL" as const,
+  result: "PASS" as const,
+  note: null,
+  photos: [],
+}));
 
 export function assertIsolatedDatabase() {
   const url = process.env.DATABASE_URL;
@@ -120,9 +129,13 @@ export async function createInspectionFixture() {
       startTime: "00:00:00",
       endTime: "23:59:59",
     });
-    await tx
-      .insert(storageUnits)
-      .values({ id: unitId, facilityId, unitTypeId, code: `TEST-UNIT-${suffix}` });
+    await tx.insert(storageUnits).values({
+      id: unitId,
+      facilityId,
+      unitTypeId,
+      code: `TEST-UNIT-${suffix}`,
+      status: "RESERVED",
+    });
     await tx.insert(reservationDrafts).values({
       id: draftId,
       facilityId,

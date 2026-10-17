@@ -33,6 +33,7 @@ booking mẫu trước khi tạo lại. Ngày check-in mẫu vẫn tính theo ng
 | Booking BK-2026-0001, CONFIRMED hôm nay | `80000000-0000-4000-8000-000000000001` |
 | Booking BK-2026-0002, CONFIRMED ngày mai | `80000000-0000-4000-8000-000000000002` |
 | Booking BK-2026-0003, NO_SHOW | `80000000-0000-4000-8000-000000000003` |
+| Booking DEMO-FLOW2-READY, đã thanh toán, chưa gán kho/Staff, check-in hôm nay | `83000000-0000-4000-8000-000000000001` |
 
 Giờ ca nhận kho theo `Asia/Ho_Chi_Minh`. Khi tạo draft, chọn ngày trong tương lai;
 ví dụ Swagger đã dùng ID seed cho facility, unit type và ca nhận kho. ID draft
@@ -51,3 +52,16 @@ Mật khẩu development: `StoreXDev123!`. Đăng nhập qua
 | BUSINESS_OPERATION_MANAGER | bom@metastorage.vn | `40000000-0000-4000-8000-000000000004` |
 
 Staff và manager được gán vào HCM-01. Sau khi reset database phải đăng nhập lại.
+
+## Test Flow 2 trên Swagger
+
+Chạy `bun run seed:local` với `DATABASE_URL` trỏ tới PostgreSQL Docker ở cổng host
+`5433`, rồi mở `/docs`. Booking `DEMO-FLOW2-READY` đã `CONFIRMED`, có payment
+`SUCCEEDED`, dùng loại kho `UT-2M` tại HCM-01 nhưng chưa gán kho hay Staff.
+Đăng nhập FM, gọi `GET /api/bookings/{id}/eligible-units`, sau đó `assign-unit`
+với một kho `isAvailableForPeriod: true` và `assign-staff` với Staff ID ở trên.
+Đăng nhập Staff để dùng `assigned-to-me`, lookup bằng `BOOKING_CODE`, confirm,
+inspection và handover. Ca nhận kho là 09:00; check-in/handover chỉ hợp lệ từ
+09:00 đến trước 20:00 theo giờ Việt Nam của ngày seed. Nếu đã bàn giao hoặc qua
+ngày, dùng database test mới để seed lại kịch bản sạch; chạy seed trên cùng DB
+không đặt lại booking đã xử lý.

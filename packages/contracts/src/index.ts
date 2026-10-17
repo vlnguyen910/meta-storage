@@ -11,6 +11,7 @@ export * from "./inspections";
 export * from "./inspections.messages";
 export * from "./messages";
 export * from "./mobile-workflows";
+export type { StaffTaskAssignedNotification } from "./notifications.types";
 export * from "./payments";
 export * from "./pricing";
 export * from "./rentals";

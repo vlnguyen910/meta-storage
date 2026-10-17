@@ -4,6 +4,7 @@ import type { Queue } from "bullmq";
 import type Redis from "ioredis";
 import type { AuthSession, AuthUser } from "../../modules/auth/auth";
 import type { FacilityContext } from "../../modules/facilities/facilities.guard.types";
+import type { NotificationsService } from "../../modules/notifications/notifications.service";
 import type { RedisService } from "../redis/redis.service";
 
 declare module "fastify" {
@@ -14,6 +15,7 @@ declare module "fastify" {
   }
 
   interface FastifyInstance {
+    notifications: NotificationsService;
     mailQueue: Queue<MailJobData>;
     db: Database;
     redis: Redis;

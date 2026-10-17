@@ -1,8 +1,12 @@
-import { INSPECTION_MESSAGES, INSPECTION_PHOTO_MAX_BYTES } from "@metastorage/contracts";
+import {
+  HandoverChecklistCompletionSchema,
+  INSPECTION_MESSAGES,
+  INSPECTION_PHOTO_MAX_BYTES,
+} from "@metastorage/contracts";
 import { ConflictError, ValidationError } from "../../common/errors/app-error";
 
-export function assertCompletable(correctUnit: boolean | null, notes: string, photoCount: number) {
-  if (correctUnit !== true || !notes.trim() || photoCount < 1)
+export function assertCompletable(results: unknown) {
+  if (!HandoverChecklistCompletionSchema.safeParse(results).success)
     throw new ValidationError(INSPECTION_MESSAGES.incomplete);
 }
 

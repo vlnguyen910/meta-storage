@@ -1,7 +1,7 @@
 # Local demo data
 
-Database: `metastorage` on `localhost:5432`. The local reset applied all 35 checked-in
-migrations, through `0034_nosy_hellfire_club`. Test databases are separate.
+Database: `metastorage` on `localhost:5433` when using Docker Compose. Apply migrations
+before seeding. Test databases are separate.
 
 ## Accounts
 
@@ -39,8 +39,8 @@ fictional demonstration data; do not use these credentials in production.
 - 70 operating-hour records: all seven weekdays, 08:00–20:00 Vietnam time, and four
   check-in slots spanning 09:00–17:00.
 - 29 working accounts, including seven customers and a manager/staff pair for each facility.
-- 37 bookings: 22 confirmed, 13 drafts, one cancelled, and one no-show immediately after seed.
-- 27 payments and 24 allocations, including paid bookings, pending checkout, failed payment,
+- 38 bookings: 23 confirmed, 13 drafts, one cancelled, and one no-show immediately after seed.
+- 28 payments and 25 allocations, including paid bookings, pending checkout, failed payment,
   manual-refund pending, and active/expired hold scenarios.
 
 Each facility has a future paid booking waiting for unit assignment and another prepared
@@ -54,6 +54,8 @@ Sample identifiers:
 - `BK-2026-0002`: a prepared booking for tomorrow.
 - `BK-2026-0003`: no-show with rent-only refund pending and deposit forfeited.
 - `DEMO-HCM-01-UNASSIGNED` through `DEMO-HCM-10-UNASSIGNED`: future paid bookings for FM assignment.
+- `DEMO-FLOW2-READY`: paid booking in HCM-01, unassigned, scheduled for today at 09:00
+  Vietnam time for manual Swagger testing of assignment through handover.
 - `DEMO-HCM-01-ASSIGNED` through `DEMO-HCM-10-ASSIGNED`: future prepared bookings.
 - Payment codes `DEMO-PAY-1`/`2`: pending active/expired holds, `DEMO-PAY-3`: failed,
   `DEMO-PAY-4`: cancelled booking awaiting refund.

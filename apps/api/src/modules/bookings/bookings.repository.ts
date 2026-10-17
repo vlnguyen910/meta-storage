@@ -26,7 +26,7 @@ import {
   handoverInspections,
   inArray,
   isNotNull,
-  lt,
+  isNull,
   lte,
   max,
   type NewBooking,
@@ -667,13 +667,9 @@ export class BookingsRepository {
     facilityId: string,
     unitTypeId: string,
     currentBookingId: string,
-    checkInStart: Date,
-    rentalEnd: Date,
+    _checkInStart: Date,
+    _rentalEnd: Date,
   ): Promise<EligibleUnit[]> {
-    const slotStart = sql<Date>`(${bookings.checkInDate} + ${checkInSlots.startTime})
-      at time zone 'Asia/Ho_Chi_Minh'`.mapWith((value) => new Date(value));
-
-    // 1. Get all units matching facility and unit type
     const allUnits = await this.db
       .select()
       .from(storageUnits)
@@ -681,61 +677,47 @@ export class BookingsRepository {
         and(
           eq(storageUnits.facilityId, facilityId),
           eq(storageUnits.unitTypeId, unitTypeId),
-          notInArray(storageUnits.status, ["INACTIVE", "LOCKED", "MAINTENANCE", "INSPECTION"]),
+          inArray(storageUnits.status, ["AVAILABLE", "RESERVED"]),
         ),
       );
-
-    if (allUnits.length === 0) return [];
-
+    if (!allUnits.length) return [];
     const unitIds = allUnits.map((u) => u.id);
-
-    // 2. Find units with overlapping active rentals
-    const conflictingRentals = await this.db
-      .select({ physicalUnitId: rentals.physicalUnitId })
-      .from(rentals)
-      .where(
-        and(
-          inArray(rentals.physicalUnitId, unitIds),
-          eq(rentals.status, "ACTIVE"),
-          gt(rentals.expectedEndAt, checkInStart),
-        ),
-      );
-    const conflictingRentalUnitIds = new Set(conflictingRentals.map((r) => r.physicalUnitId));
-
-    // 3. Find units with overlapping active booking assignments (excluding current booking)
-    const conflictingAssignments = await this.db
-      .select({ physicalUnitId: unitAssignments.physicalUnitId })
+    const assignments = await this.db
+      .select({
+        physicalUnitId: unitAssignments.physicalUnitId,
+        bookingId: unitAssignments.bookingId,
+      })
       .from(unitAssignments)
-      .innerJoin(bookings, eq(unitAssignments.bookingId, bookings.id))
-      .innerJoin(checkInSlots, eq(bookings.checkInSlotId, checkInSlots.id))
+      .innerJoin(bookings, eq(bookings.id, unitAssignments.bookingId))
       .where(
         and(
           inArray(unitAssignments.physicalUnitId, unitIds),
           eq(unitAssignments.status, "ACTIVE"),
-          ne(bookings.id, currentBookingId),
           notInArray(bookings.status, ["CANCELLED", "NO_SHOW"]),
-          lt(slotStart, rentalEnd.toISOString()),
-          gt(bookings.rentalEndAt, checkInStart),
         ),
       );
-    const conflictingAssignmentUnitIds = new Set(
-      conflictingAssignments.map((a) => a.physicalUnitId),
-    );
-
-    return allUnits.map((unit) => {
-      const isConflicted =
-        conflictingRentalUnitIds.has(unit.id) || conflictingAssignmentUnitIds.has(unit.id);
-      return {
-        id: unit.id,
-        facilityId: unit.facilityId,
-        unitTypeId: unit.unitTypeId,
-        code: unit.code,
-        floor: unit.floor,
-        locationDescription: unit.locationDescription,
-        status: unit.status,
-        isAvailableForPeriod: !isConflicted,
-      };
-    });
+    const active = await this.db
+      .select({ physicalUnitId: rentals.physicalUnitId })
+      .from(rentals)
+      .where(and(inArray(rentals.physicalUnitId, unitIds), eq(rentals.status, "ACTIVE")));
+    return allUnits.map((unit) => ({
+      id: unit.id,
+      facilityId: unit.facilityId,
+      unitTypeId: unit.unitTypeId,
+      code: unit.code,
+      floor: unit.floor,
+      locationDescription: unit.locationDescription,
+      status: unit.status,
+      isAvailableForPeriod:
+        !active.some((r) => r.physicalUnitId === unit.id) &&
+        !assignments.some(
+          (a) => a.physicalUnitId === unit.id && a.bookingId !== currentBookingId,
+        ) &&
+        (unit.status === "AVAILABLE" ||
+          assignments.some(
+            (a) => a.physicalUnitId === unit.id && a.bookingId === currentBookingId,
+          )),
+    }));
   }
 
   async assignPhysicalUnit(
@@ -744,17 +726,13 @@ export class BookingsRepository {
     assignedByUserId: string,
     reason?: string,
   ) {
-    const slotStart = sql<Date>`(${bookings.checkInDate} + ${checkInSlots.startTime})
-      at time zone 'Asia/Ho_Chi_Minh'`.mapWith((value) => new Date(value));
-
     return this.db.transaction(async (tx) => {
-      // 1. Lock and fetch the booking
+      // Lock the booking before its units, matching the lifecycle transaction order.
       const [booking] = await tx
-        .select({ ...getTableColumns(bookings), checkInSlotStart: slotStart })
+        .select()
         .from(bookings)
-        .innerJoin(checkInSlots, eq(bookings.checkInSlotId, checkInSlots.id))
         .where(eq(bookings.id, bookingId))
-        .for("update", { of: bookings });
+        .for("update");
 
       if (!booking) {
         return { error: "BOOKING_NOT_FOUND" as const };
@@ -764,12 +742,22 @@ export class BookingsRepository {
         return { error: "INVALID_BOOKING_STATUS" as const, currentStatus: booking.status };
       }
 
-      // 2. Lock and fetch the physical unit
-      const [unit] = await tx
+      const previous = await tx
+        .select()
+        .from(unitAssignments)
+        .where(and(eq(unitAssignments.bookingId, bookingId), eq(unitAssignments.status, "ACTIVE")));
+      // Stable ordering also serializes concurrent swaps of two reserved units.
+      const lockedUnits = await tx
         .select()
         .from(storageUnits)
-        .where(eq(storageUnits.id, physicalUnitId))
+        .where(
+          inArray(storageUnits.id, [
+            ...new Set([physicalUnitId, ...previous.map((a) => a.physicalUnitId)]),
+          ]),
+        )
+        .orderBy(storageUnits.id)
         .for("update");
+      const unit = lockedUnits.find((u) => u.id === physicalUnitId);
 
       if (!unit) {
         return { error: "PHYSICAL_UNIT_NOT_FOUND" as const };
@@ -781,28 +769,25 @@ export class BookingsRepository {
       }
 
       // 4. Check physical unit status
-      if (["INACTIVE", "LOCKED", "MAINTENANCE", "INSPECTION"].includes(unit.status)) {
+      if (
+        unit.status !== "AVAILABLE" &&
+        !(unit.status === "RESERVED" && previous.some((a) => a.physicalUnitId === unit.id))
+      ) {
         return { error: "UNIT_STATUS_INVALID" as const, unitStatus: unit.status };
       }
 
-      // 5. Revalidate overlapping active rentals
+      // Active rentals block assignment regardless of their expected return date.
       const [activeRental] = await tx
         .select({ id: rentals.id })
         .from(rentals)
-        .where(
-          and(
-            eq(rentals.physicalUnitId, unit.id),
-            eq(rentals.status, "ACTIVE"),
-            gt(rentals.expectedEndAt, booking.checkInSlotStart),
-          ),
-        )
+        .where(and(eq(rentals.physicalUnitId, unit.id), eq(rentals.status, "ACTIVE")))
         .for("update");
 
       if (activeRental) {
         return { error: "UNIT_RENTAL_CONFLICT" as const };
       }
 
-      // 6. Revalidate overlapping active booking assignments
+      // Any other live booking assignment blocks this physical unit.
       const [conflictingBooking] = await tx
         .select({ id: bookings.id })
         .from(unitAssignments)
@@ -814,16 +799,34 @@ export class BookingsRepository {
             eq(unitAssignments.status, "ACTIVE"),
             ne(bookings.id, booking.id),
             notInArray(bookings.status, ["CANCELLED", "NO_SHOW"]),
-            lt(slotStart, booking.rentalEndAt.toISOString()),
-            gt(bookings.rentalEndAt, booking.checkInSlotStart),
           ),
-        )
-        .for("update", { of: [unitAssignments, bookings] });
+        );
 
       if (conflictingBooking) {
         return { error: "UNIT_ASSIGNMENT_CONFLICT" as const };
       }
 
+      if (previous.length === 1 && previous[0]?.physicalUnitId === unit.id) {
+        const assignment = previous[0];
+        await tx
+          .update(storageUnits)
+          .set({ status: "RESERVED", updatedAt: new Date() })
+          .where(eq(storageUnits.id, unit.id));
+        return {
+          success: true as const,
+          assignment: {
+            id: assignment.id,
+            bookingId,
+            physicalUnitId: unit.id,
+            physicalUnitCode: unit.code,
+            assignedBy: assignment.assignedBy,
+            status: "ACTIVE" as const,
+            assignedAt: assignment.assignedAt.toISOString(),
+            endedAt: null,
+            reason: assignment.reason ?? null,
+          },
+        };
+      }
       const now = new Date();
 
       // 7. Deactivate any existing active assignment for this booking
@@ -851,6 +854,27 @@ export class BookingsRepository {
         throw new Error(BOOKING_MESSAGES.failedToCreateUnitAssignment);
       }
 
+      await tx
+        .update(storageUnits)
+        .set({ status: "RESERVED", updatedAt: now })
+        .where(eq(storageUnits.id, unit.id));
+      await tx
+        .update(checkInVerifications)
+        .set({
+          status: "INVALIDATED",
+          invalidatedAt: now,
+          invalidatedReason: BOOKING_MESSAGES.unitAssignmentChanged,
+          updatedAt: now,
+        })
+        .where(
+          and(
+            eq(checkInVerifications.bookingId, bookingId),
+            eq(checkInVerifications.status, "VERIFIED"),
+          ),
+        );
+      for (const old of previous) {
+        if (old.physicalUnitId !== unit.id) await releaseReservedUnit(tx, old.physicalUnitId, now);
+      }
       return {
         success: true as const,
         assignment: {
@@ -927,6 +951,7 @@ export class BookingsRepository {
             eq(facilityAssignments.facilityId, booking.facilityId),
             eq(facilityAssignments.role, "FACILITY_STAFF"),
             eq(facilityAssignments.isActive, true),
+            or(isNull(facilityAssignments.endedAt), gt(facilityAssignments.endedAt, new Date())),
           ),
         );
 
@@ -960,7 +985,12 @@ export class BookingsRepository {
         .set({ assignedStaffId: staffId, updatedAt: new Date() })
         .where(and(eq(bookings.id, bookingId), ne(bookings.status, "DRAFT")));
 
-      return { success: true as const, bookingId, staffId };
+      return {
+        success: true as const,
+        bookingId,
+        staffId,
+        changed: booking.assignedStaffId !== staffId,
+      };
     });
   }
 }
@@ -1058,6 +1088,10 @@ export async function closeBookingBeforeCheckIn(
         eq(checkInVerifications.status, "VERIFIED"),
       ),
     );
+  const releasedAssignments = await tx
+    .select({ physicalUnitId: unitAssignments.physicalUnitId })
+    .from(unitAssignments)
+    .where(and(eq(unitAssignments.bookingId, bookingId), eq(unitAssignments.status, "ACTIVE")));
   await tx
     .update(unitAssignments)
     .set({ status: "CANCELLED", endedAt: now, reason })
@@ -1066,6 +1100,10 @@ export async function closeBookingBeforeCheckIn(
     .update(bookings)
     .set({ status: target, assignedStaffId: null, updatedAt: now })
     .where(and(eq(bookings.id, bookingId), eq(bookings.status, "CONFIRMED")));
+  for (const assignment of releasedAssignments.sort((a, b) =>
+    a.physicalUnitId.localeCompare(b.physicalUnitId),
+  ))
+    await releaseReservedUnit(tx, assignment.physicalUnitId, now);
   return {
     bookingId,
     status: target,
@@ -1077,4 +1115,36 @@ export async function closeBookingBeforeCheckIn(
       currency: payment.currency,
     },
   };
+}
+
+// Called inside the booking transaction; never overwrite maintenance or occupied state.
+async function releaseReservedUnit(tx: BookingTransaction, unitId: string, now: Date) {
+  const [unit] = await tx
+    .select()
+    .from(storageUnits)
+    .where(eq(storageUnits.id, unitId))
+    .for("update");
+  if (unit?.status !== "RESERVED") return;
+  const [assignment] = await tx
+    .select({ id: unitAssignments.id })
+    .from(unitAssignments)
+    .innerJoin(bookings, eq(bookings.id, unitAssignments.bookingId))
+    .where(
+      and(
+        eq(unitAssignments.physicalUnitId, unitId),
+        eq(unitAssignments.status, "ACTIVE"),
+        notInArray(bookings.status, ["CANCELLED", "NO_SHOW"]),
+      ),
+    )
+    .limit(1);
+  const [rental] = await tx
+    .select({ id: rentals.id })
+    .from(rentals)
+    .where(and(eq(rentals.physicalUnitId, unitId), eq(rentals.status, "ACTIVE")))
+    .limit(1);
+  if (!assignment && !rental)
+    await tx
+      .update(storageUnits)
+      .set({ status: "AVAILABLE", updatedAt: now })
+      .where(eq(storageUnits.id, unitId));
 }
