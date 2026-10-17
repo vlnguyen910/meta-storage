@@ -2,7 +2,8 @@ name: Deploy API staging
 
 on:
   push:
-    branches: [ stagging ]
+    branches:
+    - stagging
 
 permissions:
   contents: read
