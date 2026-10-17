@@ -1,0 +1,713 @@
+<!DOCTYPE html><html class="h-full bg-surface" lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=390, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>M-C04 — Phiếu giữ chỗ — StoreX</title>
+<!-- Google Fonts: Space Grotesk & Be Vietnam Pro -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-container-lowest": "#ffffff",
+            "tertiary-fixed-dim": "#ffb77d",
+            "outline-variant": "#bfc9c4",
+            "on-primary-fixed": "#002019",
+            "surface-container": "#eaedff",
+            "on-primary": "#ffffff",
+            "on-background": "#131b2e",
+            "tertiary-container": "#723b00",
+            "secondary-container": "#b4efda",
+            "on-tertiary": "#ffffff",
+            "outline": "#707975",
+            "secondary-fixed-dim": "#98d2be",
+            "on-secondary-fixed-variant": "#135041",
+            "surface-container-highest": "#dae2fd",
+            "background": "#faf8ff",
+            "error": "#ba1a1a",
+            "tertiary-fixed": "#ffdcc3",
+            "on-secondary-fixed": "#002018",
+            "on-tertiary-fixed": "#2f1500",
+            "primary-fixed-dim": "#96d3c0",
+            "on-error": "#ffffff",
+            "secondary-fixed": "#b4efda",
+            "on-tertiary-container": "#ffa454",
+            "surface-dim": "#d2d9f4",
+            "primary-container": "#125345",
+            "inverse-primary": "#96d3c0",
+            "surface-bright": "#faf8ff",
+            "primary-fixed": "#b1efdc",
+            "on-secondary": "#ffffff",
+            "on-surface-variant": "#404945",
+            "error-container": "#ffdad6",
+            "on-secondary-container": "#366e5e",
+            "on-primary-container": "#89c5b3",
+            "on-error-container": "#93000a",
+            "secondary": "#306858",
+            "surface-tint": "#2c6859",
+            "tertiary": "#512800",
+            "on-primary-fixed-variant": "#0d5042",
+            "surface": "#faf8ff",
+            "on-surface": "#131b2e",
+            "inverse-surface": "#283044",
+            "surface-variant": "#dae2fd",
+            "surface-container-low": "#f2f3ff",
+            "on-tertiary-fixed-variant": "#6e3900",
+            "primary": "#003b2f",
+            "surface-container-high": "#e2e7ff",
+            "inverse-on-surface": "#eef0ff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "space-xl": "2.5rem",
+            "space-lg": "1.5rem",
+            "gutter": "1.5rem",
+            "margin": "2rem",
+            "space-sm": "0.5rem",
+            "space-xs": "0.25rem",
+            "margin-sm": "1rem",
+            "gutter-sm": "1rem",
+            "space-md": "1rem"
+          },
+          "fontFamily": {
+            "label-sm": ["Space Grotesk"],
+            "body-sm": ["Be Vietnam Pro"],
+            "title-md": ["Be Vietnam Pro"],
+            "headline-sm": ["Space Grotesk"],
+            "headline-md": ["Space Grotesk"],
+            "body-md": ["Be Vietnam Pro"],
+            "headline-lg-mobile": ["Space Grotesk"],
+            "label-md": ["Space Grotesk"],
+            "label-lg": ["Space Grotesk"],
+            "display-mobile": ["Space Grotesk"],
+            "display": ["Space Grotesk"],
+            "body-lg": ["Be Vietnam Pro"],
+            "headline-lg": ["Space Grotesk"]
+          },
+          "fontSize": {
+            "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+            "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+            "title-md": ["18px", { "lineHeight": "26px", "fontWeight": "600" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+            "body-md": ["14px", { "lineHeight": "22px", "fontWeight": "400" }],
+            "headline-lg-mobile": ["26px", { "lineHeight": "34px", "fontWeight": "600" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+            "display-mobile": ["34px", { "lineHeight": "42px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "display": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "body-lg": ["16px", { "lineHeight": "26px", "fontWeight": "400" }],
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    /* Precision mobile container lock */
+    .mobile-frame {
+      width: 390px;
+      min-height: 100vh;
+      margin: 0 auto;
+      background-color: #F8FAF9;
+      position: relative;
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.08);
+      display: flex;
+      flex-direction: column;
+    }
+    /* Strictly 4px border radius for key architectural surfaces */
+    .border-keyline {
+      border: 1px solid #BFCAC4;
+    }
+    .custom-rounded-4px {
+      border-radius: 4px !important;
+    }
+    /* Pulse glow for real-time countdown badge */
+    @keyframes pulseSoft {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    .animate-pulse-soft {
+      animation: pulseSoft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface-container-high text-on-surface antialiased flex justify-center items-start min-h-screen">
+<!-- Mobile Viewport Canvas 390px -->
+<div class="mobile-frame pb-24 overflow-x-hidden">
+<!-- Top App Bar (Shared Components JSON Anchor) -->
+<header class="sticky top-0 z-40 flex items-center justify-between w-full h-14 px-4 bg-surface/95 backdrop-blur-md shadow-sm border-b border-outline-variant">
+<!-- Brand Logo / Identity -->
+<div class="flex items-center space-x-2">
+<a class="flex items-center space-x-1.5 focus:outline-none" href="javascript:void(0)">
+<span class="w-7 h-7 custom-rounded-4px bg-primary-container text-on-primary flex items-center justify-center font-headline-sm text-headline-sm font-bold tracking-tight">S</span>
+<span class="font-headline-sm text-headline-sm font-bold text-primary tracking-tight">storeX</span>
+</a>
+</div>
+<!-- Customer Profile Quick Pill & Account Trigger -->
+<div class="flex items-center space-x-2">
+<div class="hidden xs:flex flex-col text-right">
+<span class="font-label-sm text-label-sm text-primary font-semibold leading-tight">Nguyễn Minh Anh</span>
+<span class="text-[10px] text-on-surface-variant font-body-sm leading-none">Khách hàng</span>
+</div>
+<button aria-label="Tài khoản khách hàng" class="w-11 h-11 flex items-center justify-center custom-rounded-4px text-primary hover:bg-surface-container-high transition-transform active:scale-95 border border-outline-variant" id="openAccountBtn">
+<span class="material-symbols-outlined text-title-md">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Subheader Title Bar -->
+<section class="px-4 pt-4 pb-2">
+<div class="flex items-center justify-between">
+<div>
+<span class="inline-block font-label-sm text-label-sm uppercase tracking-wider text-secondary font-bold">Mã màn hình: M-C04</span>
+<h1 class="font-headline-md text-headline-md text-primary font-bold mt-0.5">Phiếu giữ chỗ</h1>
+</div>
+<button class="flex items-center space-x-1 text-primary text-body-md font-medium hover:underline p-1" id="openHelpAccordionBtn">
+<span class="material-symbols-outlined text-[18px]">help_outline</span>
+<span class="font-label-md text-label-md">Quy định</span>
+</button>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">
+        Danh sách buồng kho bạn đang tạm giữ giá. Vui lòng thanh toán trước khi thời gian hết hiệu lực.
+      </p>
+</section>
+<!-- Top Summary Stats Pill Grid (Nielsen System Status) -->
+<section class="px-4 py-2">
+<div class="grid grid-cols-2 gap-2.5">
+<!-- Stat Active -->
+<div class="bg-surface-container-lowest custom-rounded-4px p-3 border-keyline shadow-sm relative overflow-hidden">
+<div class="absolute right-0 top-0 w-1.5 h-full bg-primary-container"></div>
+<div class="flex items-center space-x-1.5 text-primary">
+<span class="material-symbols-outlined text-[18px]">timelapse</span>
+<span class="font-label-sm text-label-sm uppercase font-semibold">Đang giữ chỗ</span>
+</div>
+<div class="mt-1 flex items-baseline space-x-1.5">
+<span class="font-headline-md text-headline-md font-bold text-primary">01</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">buồng kho</span>
+</div>
+<p class="text-[11px] text-primary font-body-sm mt-0.5 flex items-center">
+<span class="w-1.5 h-1.5 rounded-full bg-primary inline-block mr-1"></span>
+            Hiệu lực 10 phút
+          </p>
+</div>
+<!-- Stat Expired -->
+<div class="bg-surface-container-lowest custom-rounded-4px p-3 border-keyline shadow-sm">
+<div class="flex items-center space-x-1.5 text-outline">
+<span class="material-symbols-outlined text-[18px]">history_toggle_off</span>
+<span class="font-label-sm text-label-sm uppercase font-semibold">Đã hết hạn</span>
+</div>
+<div class="mt-1 flex items-baseline space-x-1.5">
+<span class="font-headline-md text-headline-md font-bold text-on-surface">01</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">buồng kho</span>
+</div>
+<p class="text-[11px] text-outline font-body-sm mt-0.5">
+            Đã hoàn lại quỹ mở
+          </p>
+</div>
+</div>
+</section>
+<!-- Filter Chips Cluster -->
+<section class="px-4 py-2">
+<div class="flex items-center space-x-2 overflow-x-auto no-scrollbar py-0.5" role="tablist">
+<button class="filter-tab min-h-[44px] px-3.5 py-2 custom-rounded-4px font-label-md text-label-md font-semibold bg-primary-container text-on-primary transition-all border border-primary-container" id="filterAll" onclick="applyFilter('all')">
+          Tất cả (2)
+        </button>
+<button class="filter-tab min-h-[44px] px-3.5 py-2 custom-rounded-4px font-label-md text-label-md font-semibold bg-surface-container-lowest text-on-surface-variant hover:text-primary border-keyline transition-all" id="filterActive" onclick="applyFilter('active')">
+          Đang giữ chỗ (1)
+        </button>
+<button class="filter-tab min-h-[44px] px-3.5 py-2 custom-rounded-4px font-label-md text-label-md font-semibold bg-surface-container-lowest text-on-surface-variant hover:text-primary border-keyline transition-all" id="filterExpired" onclick="applyFilter('expired')">
+          Đã hết hạn (1)
+        </button>
+</div>
+</section>
+<!-- Main Content Stream -->
+<main class="px-4 space-y-4 pt-1" id="holdListContainer">
+<!-- CARD 1: ACTIVE HOLD (#DC-2026-0001) -->
+<article class="hold-card bg-surface-container-lowest border-keyline custom-rounded-4px p-4 shadow-sm transition-all hover:border-primary-container/40" data-status="active" id="cardHoldActive">
+<!-- Header Info & Timer -->
+<div class="flex items-start justify-between border-b border-outline-variant/50 pb-3">
+<div>
+<div class="flex items-center space-x-2">
+<span class="font-label-sm text-label-sm text-primary font-bold">MÃ PHIẾU: #DC-2026-0001</span>
+</div>
+<div class="mt-1 flex items-center space-x-1.5">
+<span class="inline-flex items-center px-2 py-0.5 custom-rounded-4px font-label-sm text-label-sm font-semibold bg-secondary-container text-on-secondary-fixed-variant">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container mr-1.5"></span>
+                Đang giữ chỗ (Tạm thời)
+              </span>
+</div>
+</div>
+<!-- Live Countdown Badge -->
+<div class="bg-primary-container/10 border border-primary-container/20 px-2.5 py-1 custom-rounded-4px flex flex-col items-end">
+<span class="text-[10px] text-primary uppercase font-label-sm font-bold">Hết hạn sau</span>
+<div class="flex items-center space-x-1 text-primary">
+<span class="material-symbols-outlined text-[15px] animate-pulse-soft">timer</span>
+<span class="font-label-md text-label-md font-bold tracking-wider" id="countdownDisplay">08:24</span>
+</div>
+</div>
+</div>
+<!-- Facility & Unit Specifications -->
+<div class="pt-3 pb-2 space-y-2">
+<div>
+<h2 class="font-title-md text-title-md text-primary font-bold">StoreX Sài Gòn Central</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant flex items-center mt-0.5">
+<span class="material-symbols-outlined text-[15px] mr-1 text-outline">location_on</span>
+              118 Nguyễn Văn Linh, P. Tân Thuận Tây, Q.7, TP.HCM
+            </p>
+<p class="font-body-sm text-body-sm text-on-surface-variant flex items-center mt-0.5">
+<span class="material-symbols-outlined text-[15px] mr-1 text-outline">call</span>
+              Hotline cơ sở: <span class="font-semibold text-on-surface ml-1">028 7300 1188</span>
+</p>
+</div>
+<!-- Unit Specs Box -->
+<div class="bg-surface p-2.5 custom-rounded-4px border border-outline-variant/70 space-y-1.5">
+<div class="flex justify-between items-center text-body-md">
+<span class="font-semibold text-primary">Buồng Mini 2m²</span>
+<span class="font-label-sm text-label-sm bg-surface-container px-2 py-0.5 custom-rounded-4px text-primary font-bold">Mã buồng: MN-0248</span>
+</div>
+<div class="grid grid-cols-2 gap-2 text-body-sm text-on-surface-variant pt-1 border-t border-outline-variant/40">
+<div>
+<span>Kích thước: </span>
+<span class="font-medium text-on-surface">1.0m × 2.0m × 2.5m</span>
+</div>
+<div class="text-right">
+<span>Thể tích lưu trữ: </span>
+<span class="font-medium text-on-surface">5.0 m³</span>
+</div>
+</div>
+</div>
+<!-- Schedule details -->
+<div class="space-y-1 pt-1 text-body-md">
+<div class="flex justify-between items-center text-body-sm">
+<span class="text-on-surface-variant flex items-center">
+<span class="material-symbols-outlined text-[16px] mr-1 text-primary">calendar_today</span>
+                Nhận kho dự kiến:
+              </span>
+<span class="font-semibold text-on-surface">09/10/2026 (10:00 - 12:00)</span>
+</div>
+<div class="flex justify-between items-center text-body-sm">
+<span class="text-on-surface-variant flex items-center">
+<span class="material-symbols-outlined text-[16px] mr-1 text-primary">schedule</span>
+                Thời hạn thuê:
+              </span>
+<span class="font-medium text-on-surface">01 tháng (09/10/2026 – 09/11/2026)</span>
+</div>
+</div>
+<!-- Price Breakdown Breakdown -->
+<div class="bg-surface-bright p-3 custom-rounded-4px border-keyline mt-2 space-y-1.5">
+<div class="flex justify-between text-body-sm text-on-surface-variant">
+<span>Tiền thuê kho (1 tháng):</span>
+<span class="font-medium text-on-surface">900.000 đ</span>
+</div>
+<div class="flex justify-between text-body-sm text-on-surface-variant">
+<span class="flex items-center">
+                Tiền cọc giữ chỗ:
+                <button class="ml-1 text-outline hover:text-primary" onclick="alert('Tiền cọc được hoàn lại 100% khi thanh lý hợp đồng đúng kỳ hạn.')" type="button">
+<span class="material-symbols-outlined text-[14px]">info</span>
+</button>
+</span>
+<span class="font-medium text-on-surface">900.000 đ</span>
+</div>
+<div class="border-t border-outline-variant pt-2 flex justify-between items-center">
+<div>
+<span class="font-label-sm text-label-sm uppercase text-on-surface-variant font-bold">Tạm tính thanh toán:</span>
+<p class="text-[11px] text-outline">Bao gồm cọc bảo đảm</p>
+</div>
+<span class="font-headline-sm text-headline-sm text-primary font-bold">1.800.000 đ</span>
+</div>
+</div>
+<!-- Strict Legal Disclaimers (Nielsen Error Prevention & Transparency) -->
+<div class="bg-tertiary-fixed/30 border border-tertiary-container/30 custom-rounded-4px p-2.5 mt-2 flex items-start space-x-2">
+<span class="material-symbols-outlined text-tertiary-container text-[18px] shrink-0 mt-0.5">verified_user</span>
+<p class="font-body-sm text-body-sm text-on-tertiary-fixed leading-tight">
+<strong>Lưu ý:</strong> Phiếu giữ chỗ chưa phải là hợp đồng thuê hay xác nhận đặt kho thành công. Vui lòng hoàn tất thanh toán trước khi hết hạn giữ chỗ.
+            </p>
+</div>
+</div>
+<!-- Action CTAs (Min Touch 44px - Height 48px) -->
+<div class="pt-3 border-t border-outline-variant/50 space-y-2">
+<!-- Primary CTA -->
+<button class="w-full h-12 bg-primary-container hover:bg-primary text-on-primary font-label-lg text-label-lg font-semibold custom-rounded-4px flex items-center justify-center space-x-2 shadow-sm active:scale-[0.99] transition-all" onclick="handleContinuePayment('DC-2026-0001')">
+<span>Tiếp tục thanh toán (M-CK04)</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+<!-- Secondary Actions Grid -->
+<div class="grid grid-cols-2 gap-2">
+<button class="w-full h-11 bg-surface-container-lowest border-keyline hover:bg-surface text-primary font-label-md text-label-md font-semibold custom-rounded-4px flex items-center justify-center space-x-1 transition-all" onclick="handleViewDetail('DC-2026-0001')">
+<span class="material-symbols-outlined text-[16px]">visibility</span>
+<span>Chi tiết phiếu</span>
+</button>
+<button class="w-full h-11 bg-surface-container-lowest border border-outline-variant hover:bg-error-container/20 text-error font-label-md text-label-md font-semibold custom-rounded-4px flex items-center justify-center space-x-1 transition-all" onclick="handleCancelHold('DC-2026-0001')">
+<span class="material-symbols-outlined text-[16px]">close</span>
+<span>Hủy giữ chỗ</span>
+</button>
+</div>
+</div>
+</article>
+<!-- CARD 2: EXPIRED HOLD (#DC-2025-0892) -->
+<article class="hold-card bg-surface-container-lowest border-keyline custom-rounded-4px p-4 shadow-sm opacity-90 transition-all" data-status="expired" id="cardHoldExpired">
+<!-- Header -->
+<div class="flex items-start justify-between border-b border-outline-variant/40 pb-3">
+<div>
+<span class="font-label-sm text-label-sm text-outline font-bold">MÃ PHIẾU: #DC-2025-0892</span>
+<div class="mt-1">
+<span class="inline-flex items-center px-2 py-0.5 custom-rounded-4px font-label-sm text-label-sm font-semibold bg-surface-container-high text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px] mr-1 text-error">event_busy</span>
+                Đã hết hạn giữ chỗ
+              </span>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-outline">01/10/2026</span>
+</div>
+<!-- Body -->
+<div class="pt-3 pb-2 space-y-2">
+<div>
+<h2 class="font-title-md text-title-md text-on-surface font-semibold">StoreX Sài Gòn Central</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Loại buồng: Tiêu chuẩn 4m² | Kỳ hạn: 03 tháng</p>
+</div>
+<div class="bg-surface p-2.5 custom-rounded-4px border border-outline-variant/60 flex justify-between items-center text-body-sm">
+<span class="text-on-surface-variant">Tạm tính trước đây:</span>
+<span class="font-semibold text-on-surface">6.000.000 đ <span class="text-[11px] font-normal text-outline">(4.5M thuê + 1.5M cọc)</span></span>
+</div>
+<!-- Expired System Message -->
+<div class="bg-surface-variant/40 border border-outline-variant custom-rounded-4px p-2.5 flex items-start space-x-2 text-body-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-outline text-[18px] shrink-0 mt-0.5">info</span>
+<p>
+              Thời gian giữ buồng đã hết hạn. Buồng kho đã được mở lại cho khách hàng khác theo chính sách tự động.
+            </p>
+</div>
+</div>
+<!-- Re-hold Action Button -->
+<div class="pt-3 border-t border-outline-variant/40">
+<button class="w-full h-11 bg-surface hover:bg-secondary-container/30 border border-primary text-primary font-label-md text-label-md font-semibold custom-rounded-4px flex items-center justify-center space-x-1.5 transition-all" onclick="handleRehold('MN-0400')">
+<span class="material-symbols-outlined text-[18px]">replay</span>
+<span>Giữ chỗ lại buồng tương đương</span>
+</button>
+</div>
+</article>
+<!-- Empty State Container (Hidden by default, triggered by filters or action) -->
+<div class="hidden bg-surface-container-lowest border-keyline custom-rounded-4px p-8 text-center space-y-3" id="emptyStateHold">
+<div class="w-14 h-14 bg-surface-container custom-rounded-4px mx-auto flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-display-mobile">inbox</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-primary font-bold">Không tìm thấy phiếu nào</h3>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-xs mx-auto">
+          Hiện không có phiếu giữ chỗ nào thuộc bộ lọc bạn đã chọn.
+        </p>
+<button class="h-11 px-6 bg-primary-container text-on-primary font-label-md text-label-md font-semibold custom-rounded-4px inline-flex items-center space-x-1" onclick="applyFilter('all')">
+<span class="material-symbols-outlined text-[16px]">refresh</span>
+<span>Đặt lại bộ lọc</span>
+</button>
+</div>
+<!-- FAQ & Contextual Support Accordion (Nielsen Heuristic 10: Help & Documentation) -->
+<section class="bg-surface-container-lowest border-keyline custom-rounded-4px p-3.5 space-y-2 mt-4">
+<button class="w-full flex items-center justify-between text-left focus:outline-none" id="faqToggle">
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-primary text-[20px]">help_center</span>
+<span class="font-title-md text-title-md text-primary font-bold">Câu hỏi về phiếu giữ chỗ</span>
+</div>
+<span class="material-symbols-outlined text-outline text-[20px] transition-transform duration-200" id="faqArrow">expand_more</span>
+</button>
+<div class="hidden pt-2 border-t border-outline-variant/60 space-y-3 font-body-sm text-body-sm text-on-surface-variant" id="faqContent">
+<div>
+<h4 class="font-semibold text-on-surface">1. Thời gian giữ chỗ buồng kho là bao lâu?</h4>
+<p class="mt-0.5">Mỗi phiếu giữ chỗ có hiệu lực chính xác 10 phút tính từ lúc tạo phiếu. Đồng hồ đếm ngược sẽ thông báo thời gian còn lại trực tiếp trên thẻ.</p>
+</div>
+<div>
+<h4 class="font-semibold text-on-surface">2. Tiền cọc giữ chỗ được tính và hoàn trả thế nào?</h4>
+<p class="mt-0.5">Tiền cọc giữ chỗ tương đương 01 tháng tiền thuê. Khoản này sẽ được chuyển thành cọc bảo đảm hợp đồng và hoàn trả 100% khi thanh lý hợp đồng đúng cam kết.</p>
+</div>
+<div>
+<h4 class="font-semibold text-on-surface">3. Hủy phiếu giữ chỗ có mất phí không?</h4>
+<p class="mt-0.5">Hoàn toàn miễn phí. Quý khách có thể chủ động hủy bất kỳ lúc nào trước khi thanh toán.</p>
+</div>
+</div>
+</section>
+<!-- Customer Assistance Callout -->
+<div class="p-3 bg-secondary-container/20 border border-secondary/20 custom-rounded-4px flex items-center justify-between">
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-secondary text-[20px]">support_agent</span>
+<div>
+<p class="font-label-md text-label-md text-secondary font-bold">Cần hỗ trợ đặt kho gấp?</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Tổng đài viên StoreX luôn sẵn sàng 24/7</p>
+</div>
+</div>
+<a class="h-9 px-3 bg-primary-container text-on-primary font-label-sm text-label-sm custom-rounded-4px inline-flex items-center space-x-1" href="tel:02873001188">
+<span class="material-symbols-outlined text-[14px]">call</span>
+<span>Gọi ngay</span>
+</a>
+</div>
+</main>
+<!-- Bottom Navigation Bar (Mandatory Shell - Signed Customer Ecosystem) -->
+<!-- Prohibiting top/bottom border lines per system rules, tonal shift & shadow used -->
+<nav aria-label="Điều hướng chính" class="fixed bottom-0 left-1/2 -translate-x-1/2 w-[390px] h-16 bg-surface-container-lowest shadow-[0_-2px_10px_rgba(0,0,0,0.06)] z-40 flex items-center justify-around px-2">
+<!-- Tab 1: Tổng quan -->
+<a class="flex flex-col items-center justify-center flex-1 h-full text-on-surface-variant hover:text-primary transition-colors" href="javascript:void(0)" onclick="switchNavTab('home')">
+<span class="material-symbols-outlined text-[22px]">dashboard</span>
+<span class="font-label-sm text-label-sm mt-0.5">Tổng quan</span>
+</a>
+<!-- Tab 2: Đơn đặt kho -->
+<a class="flex flex-col items-center justify-center flex-1 h-full text-on-surface-variant hover:text-primary transition-colors" href="javascript:void(0)" onclick="switchNavTab('bookings')">
+<span class="material-symbols-outlined text-[22px]">receipt_long</span>
+<span class="font-label-sm text-label-sm mt-0.5">Đơn đặt kho</span>
+</a>
+<!-- Tab 3: Giữ chỗ (ACTIVE TAB with emerald indicator & bold text) -->
+<a class="flex flex-col items-center justify-center flex-1 h-full text-primary font-semibold relative" href="javascript:void(0)">
+<div class="w-8 h-1 bg-primary-container rounded-full absolute top-1"></div>
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">bookmark</span>
+<span class="font-label-sm text-label-sm font-bold text-primary mt-0.5">Giữ chỗ</span>
+</a>
+<!-- Tab 4: Kho của tôi -->
+<a class="flex flex-col items-center justify-center flex-1 h-full text-on-surface-variant hover:text-primary transition-colors" href="javascript:void(0)" onclick="switchNavTab('my-storage')">
+<span class="material-symbols-outlined text-[22px]">garage</span>
+<span class="font-label-sm text-label-sm mt-0.5">Kho của tôi</span>
+</a>
+</nav>
+<!-- Slide-Up Account Sheet Modal (Accessible Nielsen Customer Profile & Logout) -->
+<div class="fixed inset-0 bg-inverse-surface/50 backdrop-blur-sm z-50 hidden transition-opacity duration-200" id="accountModalBackdrop">
+<div class="fixed bottom-0 left-1/2 -translate-x-1/2 w-[390px] bg-surface-container-lowest custom-rounded-4px border-t border-keyline shadow-2xl p-5 transform translate-y-full transition-transform duration-200 max-h-[795px] overflow-y-auto" id="accountModalSheet">
+<!-- Sheet Handle -->
+<div class="w-12 h-1 bg-outline-variant mx-auto rounded-full mb-4"></div>
+<!-- Sheet Header -->
+<div class="flex items-center justify-between pb-3 border-b border-outline-variant">
+<div class="flex items-center space-x-3">
+<div class="w-11 h-11 bg-primary-container text-on-primary custom-rounded-4px flex items-center justify-center font-headline-sm text-headline-sm font-bold">
+              MA
+            </div>
+<div>
+<h3 class="font-title-md text-title-md text-primary font-bold">Nguyễn Minh Anh</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">customer@example.test</p>
+</div>
+</div>
+<button class="w-9 h-9 flex items-center justify-center custom-rounded-4px text-outline hover:text-on-surface border border-outline-variant" id="closeAccountBtn">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<!-- Account Links -->
+<div class="py-3 space-y-1">
+<a class="flex items-center justify-between p-3 custom-rounded-4px hover:bg-surface text-body-md text-on-surface" href="javascript:void(0)">
+<div class="flex items-center space-x-3">
+<span class="material-symbols-outlined text-primary text-[20px]">badge</span>
+<span>Thông tin cá nhân &amp; CCCD</span>
+</div>
+<span class="material-symbols-outlined text-outline text-[18px]">chevron_right</span>
+</a>
+<a class="flex items-center justify-between p-3 custom-rounded-4px hover:bg-surface text-body-md text-on-surface" href="javascript:void(0)">
+<div class="flex items-center space-x-3">
+<span class="material-symbols-outlined text-primary text-[20px]">credit_card</span>
+<span>Phương thức thanh toán đã lưu</span>
+</div>
+<span class="material-symbols-outlined text-outline text-[18px]">chevron_right</span>
+</a>
+<a class="flex items-center justify-between p-3 custom-rounded-4px hover:bg-surface text-body-md text-on-surface" href="javascript:void(0)">
+<div class="flex items-center space-x-3">
+<span class="material-symbols-outlined text-primary text-[20px]">notifications</span>
+<span>Cài đặt thông báo đặt kho</span>
+</div>
+<span class="material-symbols-outlined text-outline text-[18px]">chevron_right</span>
+</a>
+</div>
+<!-- Logout Action Button (Min touch target 48px) -->
+<div class="pt-3 border-t border-outline-variant">
+<button class="w-full h-12 bg-surface hover:bg-error-container/30 border border-error/40 text-error font-label-lg text-label-lg font-semibold custom-rounded-4px flex items-center justify-center space-x-2 transition-colors" onclick="handleLogout()">
+<span class="material-symbols-outlined text-[20px]">logout</span>
+<span>Đăng xuất tài khoản</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Toast Notification Overlay -->
+<div class="fixed top-16 left-1/2 -translate-x-1/2 w-[358px] bg-primary-container text-on-primary px-4 py-3 custom-rounded-4px shadow-lg z-50 hidden transition-all duration-300 flex items-center space-x-2" id="toastMessage">
+<span class="material-symbols-outlined text-[20px]" id="toastIcon">info</span>
+<span class="font-body-md text-body-md flex-1" id="toastText">Thông báo hệ thống</span>
+</div>
+</div>
+<!-- Inline Vanilla JavaScript for Micro-interactions and Nielsen Feedback -->
+<script>
+    // Countdown Timer logic: 8 minutes 42 seconds remaining
+    let totalSeconds = 8 * 60 + 42;
+    const countdownEl = document.getElementById('countdownDisplay');
+
+    function updateCountdown() {
+      if (totalSeconds <= 0) {
+        countdownEl.innerText = "00:00";
+        showToast("Phiếu #DC-2026-0001 đã hết hiệu lực 10 phút.", "warning");
+        return;
+      }
+      totalSeconds--;
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      countdownEl.innerText = 
+        (minutes < 10 ? "0" : "") + minutes + ":" + 
+        (seconds < 10 ? "0" : "") + seconds;
+    }
+    const timerInterval = setInterval(updateCountdown, 1000);
+
+    // Filter Chips Interactive Logic
+    function applyFilter(filter) {
+      const cardActive = document.getElementById('cardHoldActive');
+      const cardExpired = document.getElementById('cardHoldExpired');
+      const emptyState = document.getElementById('emptyStateHold');
+
+      // Update button styling
+      const buttons = document.querySelectorAll('.filter-tab');
+      buttons.forEach(btn => {
+        btn.classList.remove('bg-primary-container', 'text-on-primary', 'border-primary-container');
+        btn.classList.add('bg-surface-container-lowest', 'text-on-surface-variant', 'border-keyline');
+      });
+
+      if (filter === 'all') {
+        document.getElementById('filterAll').classList.remove('bg-surface-container-lowest', 'text-on-surface-variant', 'border-keyline');
+        document.getElementById('filterAll').classList.add('bg-primary-container', 'text-on-primary', 'border-primary-container');
+        if (cardActive) cardActive.style.display = 'block';
+        if (cardExpired) cardExpired.style.display = 'block';
+        emptyState.classList.add('hidden');
+      } else if (filter === 'active') {
+        document.getElementById('filterActive').classList.remove('bg-surface-container-lowest', 'text-on-surface-variant', 'border-keyline');
+        document.getElementById('filterActive').classList.add('bg-primary-container', 'text-on-primary', 'border-primary-container');
+        if (cardActive) cardActive.style.display = 'block';
+        if (cardExpired) cardExpired.style.display = 'none';
+        if (!cardActive || cardActive.style.display === 'none') {
+          emptyState.classList.remove('hidden');
+        } else {
+          emptyState.classList.add('hidden');
+        }
+      } else if (filter === 'expired') {
+        document.getElementById('filterExpired').classList.remove('bg-surface-container-lowest', 'text-on-surface-variant', 'border-keyline');
+        document.getElementById('filterExpired').classList.add('bg-primary-container', 'text-on-primary', 'border-primary-container');
+        if (cardActive) cardActive.style.display = 'none';
+        if (cardExpired) cardExpired.style.display = 'block';
+        emptyState.classList.add('hidden');
+      }
+    }
+
+    // Modal Sheet Trigger
+    const accountBackdrop = document.getElementById('accountModalBackdrop');
+    const accountSheet = document.getElementById('accountModalSheet');
+    const openAccountBtn = document.getElementById('openAccountBtn');
+    const closeAccountBtn = document.getElementById('closeAccountBtn');
+
+    function openAccountModal() {
+      accountBackdrop.classList.remove('hidden');
+      setTimeout(() => {
+        accountSheet.classList.remove('translate-y-full');
+      }, 10);
+    }
+
+    function closeAccountModal() {
+      accountSheet.classList.add('translate-y-full');
+      setTimeout(() => {
+        accountBackdrop.classList.add('hidden');
+      }, 200);
+    }
+
+    openAccountBtn.addEventListener('click', openAccountModal);
+    closeAccountBtn.addEventListener('click', closeAccountModal);
+    accountBackdrop.addEventListener('click', (e) => {
+      if (e.target === accountBackdrop) {
+        closeAccountModal();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !accountBackdrop.classList.contains('hidden')) {
+        closeAccountModal();
+      }
+    });
+
+    // FAQ Accordion Toggle
+    const faqToggle = document.getElementById('faqToggle');
+    const faqContent = document.getElementById('faqContent');
+    const faqArrow = document.getElementById('faqArrow');
+    const openHelpAccordionBtn = document.getElementById('openHelpAccordionBtn');
+
+    function toggleFaq() {
+      const isHidden = faqContent.classList.contains('hidden');
+      if (isHidden) {
+        faqContent.classList.remove('hidden');
+        faqArrow.classList.add('rotate-180');
+      } else {
+        faqContent.classList.add('hidden');
+        faqArrow.classList.remove('rotate-180');
+      }
+    }
+
+    faqToggle.addEventListener('click', toggleFaq);
+    openHelpAccordionBtn.addEventListener('click', () => {
+      faqContent.classList.remove('hidden');
+      faqArrow.classList.add('rotate-180');
+      faqToggle.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    // Toast Notification Utility
+    function showToast(text, type = 'info') {
+      const toast = document.getElementById('toastMessage');
+      const toastText = document.getElementById('toastText');
+      const toastIcon = document.getElementById('toastIcon');
+
+      toastText.innerText = text;
+      if (type === 'warning') {
+        toastIcon.innerText = 'warning';
+      } else if (type === 'success') {
+        toastIcon.innerText = 'check_circle';
+      } else {
+        toastIcon.innerText = 'info';
+      }
+
+      toast.classList.remove('hidden');
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 3500);
+    }
+
+    // Action button handlers
+    function handleContinuePayment(holdCode) {
+      showToast("Chuyển tiếp đến M-CK04: Cổng thanh toán tạm tính 1.800.000 đ...", "info");
+    }
+
+    function handleViewDetail(holdCode) {
+      showToast("Mở chi tiết phiếu M-C05 cho mã #" + holdCode, "info");
+    }
+
+    function handleCancelHold(holdCode) {
+      if (confirm("Bạn có chắc chắn muốn hủy phiếu giữ chỗ #" + holdCode + "? Buồng kho sẽ được nhường lại cho người khác.")) {
+        const cardActive = document.getElementById('cardHoldActive');
+        if (cardActive) {
+          cardActive.remove();
+          showToast("Đã hủy phiếu giữ chỗ #" + holdCode + " thành công.", "success");
+        }
+      }
+    }
+
+    function handleRehold(unitCode) {
+      showToast("Đang kiểm tra tình trạng buồng tương đương tại StoreX Sài Gòn Central...", "info");
+    }
+
+    function handleLogout() {
+      closeAccountModal();
+      showToast("Đã đăng xuất phiên làm việc của Nguyễn Minh Anh.", "info");
+    }
+
+    function switchNavTab(tabName) {
+      showToast("Chuyển đến phân hệ: " + tabName, "info");
+    }
+  </script>
+</body></html>

@@ -1,0 +1,14 @@
+.git
+.turbo
+**/node_modules
+**/dist
+**/.next
+**/.expo
+*.log
+.env
+.env.*
+!.env.example
+apps/*/.env
+apps/*/.env.*
+!apps/*/.env.example
+docker/*.env

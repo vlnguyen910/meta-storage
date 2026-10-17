@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "customers_email_normalized_idx" ON "customers" USING btree (lower(btrim("email")));

@@ -1,0 +1,7 @@
+{
+  "extends": "@metastorage/typescript-config/node.json",
+  "compilerOptions": {
+    "rootDir": "."
+  },
+  "include": ["src/**/*", "drizzle.config.ts"]
+}

@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-background" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BOM05 — Thiết lập &amp; Quản lý Quy tắc Kinh doanh Vận hành | StoreX OS</title>
+<!-- Fonts & Icons -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "tertiary-fixed-dim": "#80db71",
+            "surface": "#FFFFFF",
+            "on-secondary": "#ffffff",
+            "on-primary-fixed": "#002018",
+            "on-tertiary-fixed": "#002201",
+            "on-success-container": "#166534",
+            "primary-fixed": "#acf0d9",
+            "tertiary-fixed": "#9bf98a",
+            "inverse-on-surface": "#eef0ff",
+            "primary-container": "#165f4d",
+            "surface-container-highest": "#dae2fd",
+            "surface-container-high": "#e2e7ff",
+            "primary": "#004637",
+            "inverse-surface": "#283044",
+            "outline-variant": "#bfc9c3",
+            "secondary-container": "#d0e1fb",
+            "error-container": "#ffdad6",
+            "border": "#EEEEEE",
+            "error": "#ba1a1a",
+            "secondary-fixed-dim": "#b7c8e1",
+            "on-background": "#131b2e",
+            "on-tertiary-fixed-variant": "#005305",
+            "on-primary": "#ffffff",
+            "outline": "#94A3B8",
+            "primary-fixed-dim": "#90d4bd",
+            "surface-container": "#eaedff",
+            "on-surface-variant": "#3f4945",
+            "secondary": "#505f76",
+            "on-secondary-container": "#54647a",
+            "on-secondary-fixed-variant": "#38485d",
+            "on-error": "#ffffff",
+            "warning-container": "#FFFBEB",
+            "tertiary-container": "#006308",
+            "on-primary-fixed-variant": "#005140",
+            "on-tertiary": "#ffffff",
+            "warning": "#92400E",
+            "destructive": "#991B1B",
+            "surface-muted": "#F8FAFC",
+            "on-error-container": "#93000a",
+            "on-surface": "#131b2e",
+            "primary-dark": "#0F493B",
+            "on-secondary-fixed": "#0b1c30",
+            "surface-container-lowest": "#ffffff",
+            "primary-soft": "#E8F3EF",
+            "tertiary": "#004804",
+            "secondary-fixed": "#d3e4fe",
+            "background": "#FAFAFA",
+            "surface-dim": "#d2d9f4",
+            "inverse-primary": "#90d4bd",
+            "destructive-container": "#FEF2F2",
+            "surface-variant": "#dae2fd",
+            "on-primary-container": "#92d6bf",
+            "surface-container-low": "#f2f3ff",
+            "on-tertiary-container": "#83de74",
+            "surface-bright": "#faf8ff",
+            "surface-tint": "#246957",
+            "success-container": "#ECFDF5"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "card": "15px",
+            "full": "9999px"
+          },
+          "spacing": {
+            "2xl": "32px",
+            "section": "80px",
+            "gutter-mobile": "1rem",
+            "space-lg": "1rem",
+            "margin": "1.5rem",
+            "xs": "4px",
+            "space-xl": "1.5rem",
+            "space-md": "0.75rem",
+            "margin-desktop": "2rem",
+            "page-gutter": "24px",
+            "md": "12px",
+            "lg": "16px",
+            "field-gap": "8px",
+            "space-sm": "0.5rem",
+            "card-padding": "24px",
+            "xl": "24px",
+            "control-padding": "12px",
+            "4xl": "64px",
+            "sm": "8px",
+            "gutter": "1.5rem",
+            "space-xs": "0.25rem",
+            "3xl": "48px"
+          },
+          "fontFamily": {
+            "headline-lg-mobile": ["Inter"],
+            "body-md": ["Inter"],
+            "body-lg": ["Inter"],
+            "headline-md": ["Inter"],
+            "headline-display": ["Inter"],
+            "label-md": ["Inter"],
+            "headline-lg": ["Inter"],
+            "title-lg": ["Inter"],
+            "body-sm": ["Inter"],
+            "headline-display-mobile": ["Inter"],
+            "label-sm": ["Inter"]
+          },
+          "fontSize": {
+            "headline-lg-mobile": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.015em", "fontWeight": "700" }],
+            "body-md": ["16px", { "lineHeight": "26px", "fontWeight": "400" }],
+            "body-lg": ["18px", { "lineHeight": "30px", "fontWeight": "400" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.015em", "fontWeight": "700" }],
+            "headline-display": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.03em", "fontWeight": "800" }],
+            "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "700" }],
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "750" }],
+            "title-lg": ["20px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "body-sm": ["14px", { "lineHeight": "22px", "fontWeight": "400" }],
+            "headline-display-mobile": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.025em", "fontWeight": "800" }],
+            "label-sm": ["12px", { "lineHeight": "18px", "letterSpacing": "0.02em", "fontWeight": "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-family: 'Material Symbols Outlined';
+      font-weight: normal;
+      font-style: normal;
+      font-size: 20px;
+      line-height: 1;
+      display: inline-block;
+      white-space: nowrap;
+      word-wrap: normal;
+      direction: ltr;
+      -webkit-font-feature-settings: 'liga';
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Interactive accordion collapse */
+    .rule-card[data-open="false"] .rule-content {
+      display: none;
+    }
+    .rule-card[data-open="true"] .rule-chevron {
+      transform: rotate(180deg);
+    }
+  </style>
+</head>
+<body class="h-full font-body-md text-body-md text-on-surface antialiased flex flex-col bg-background">
+<!-- TOP APP BAR -->
+<header class="flex justify-between items-center h-16 px-space-lg w-full bg-surface-container-lowest dark:bg-inverse-surface border-b border-outline-variant dark:border-outline sticky top-0 z-40 shadow-sm">
+<div class="flex items-center gap-space-md">
+<div class="flex items-center gap-2">
+<div class="w-9 h-9 rounded-lg bg-primary flex items-center justify-center text-on-primary font-bold text-headline-sm">
+          S
+        </div>
+<span class="text-headline-sm font-headline-sm font-bold text-primary dark:text-primary-fixed tracking-tight">StoreX OS</span>
+</div>
+<span class="hidden md:inline-block text-outline-variant">|</span>
+<div class="hidden md:flex items-center gap-2">
+<span class="text-label-sm font-label-sm px-2 py-0.5 rounded-full bg-primary-soft text-primary font-semibold border border-primary/20">BOM Hub</span>
+<span class="text-body-sm font-body-sm text-secondary">/operations/business-rules</span>
+</div>
+</div>
+<!-- Center Search & Location -->
+<div class="hidden lg:flex items-center gap-space-md">
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-muted border border-border text-on-surface text-body-sm">
+<span class="material-symbols-outlined text-secondary" data-icon="apartment">apartment</span>
+<span class="font-medium">StoreX Sài Gòn Central</span>
+</div>
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-success-container text-on-success-container text-label-sm font-label-sm">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span>Đồng bộ trực tuyến</span>
+</div>
+</div>
+<!-- Actions & Profile -->
+<div class="flex items-center gap-space-sm">
+<button aria-label="Thông báo" class="w-11 h-11 flex items-center justify-center rounded-lg text-secondary hover:bg-surface-muted transition-colors relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-error ring-2 ring-surface"></span>
+</button>
+<button aria-label="Trợ giúp" class="w-11 h-11 flex items-center justify-center rounded-lg text-secondary hover:bg-surface-muted transition-colors">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+</button>
+<div class="h-6 w-px bg-border mx-1"></div>
+<!-- User Profile -->
+<div class="flex items-center gap-2.5 pl-1.5">
+<div class="w-9 h-9 rounded-full bg-primary-soft text-primary flex items-center justify-center font-bold text-label-md border border-primary/20">
+          TH
+        </div>
+<div class="hidden xl:flex flex-col text-left leading-tight">
+<span class="text-label-md font-label-md text-on-surface">Lê Thu Hà (Quản lý cơ sở)</span>
+<span class="text-label-sm font-label-sm text-secondary">Hội đồng Quản trị (BOM)</span>
+</div>
+</div>
+</div>
+</header>
+<!-- BODY SHELL -->
+<div class="flex flex-1 overflow-hidden">
+<!-- SIDEBAR NAV (BOM Shell) -->
+<aside class="w-64 flex flex-col justify-between p-space-md bg-surface-container-lowest border-r border-outline-variant shrink-0 overflow-y-auto hidden md:flex">
+<div class="flex flex-col gap-space-sm">
+<!-- Profile / Section Heading -->
+<div class="px-space-md py-2 mb-1">
+<p class="text-label-sm font-label-sm text-secondary uppercase tracking-wider">Hệ thống Điều hành</p>
+<p class="text-label-md font-label-md text-on-surface font-semibold">StoreX Facility Manager Hub</p>
+</div>
+<nav aria-label="Menu BOM" class="flex flex-col gap-1">
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="text-body-sm font-body-sm">Tổng quan cơ sở</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="grid_view">grid_view</span>
+<span class="text-body-sm font-body-sm">Quản lý ô kho</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="warehouse">warehouse</span>
+<span class="text-body-sm font-body-sm">Thông tin cơ sở &amp; loại kho</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="badge">badge</span>
+<span class="text-body-sm font-body-sm">Nhân viên cơ sở</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="assignment_ind">assignment_ind</span>
+<span class="text-body-sm font-body-sm">Phân công công việc</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="assignment_return">assignment_return</span>
+<span class="text-body-sm font-body-sm">Yêu cầu trả kho</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="text-body-sm font-body-sm">Báo cáo cơ sở</span>
+</a>
+<div class="my-2 border-t border-border"></div>
+<!-- Active BOM Business Rules Tab -->
+<a class="bg-primary-container text-on-primary-container font-semibold rounded-lg px-space-md py-space-sm flex items-center gap-space-sm transition-all shadow-sm" href="#">
+<span class="material-symbols-outlined text-primary-fixed" data-icon="gavel">gavel</span>
+<span class="text-body-sm font-body-sm">Quy tắc kinh doanh</span>
+</a>
+</nav>
+</div>
+<!-- Footer Nav Section -->
+<div class="flex flex-col gap-2 pt-4 border-t border-outline-variant">
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium text-warning" href="#">
+<span class="material-symbols-outlined" data-icon="warning">warning</span>
+<span class="text-body-sm font-body-sm">Chính sách chưa chốt</span>
+<span class="ml-auto w-2 h-2 rounded-full bg-warning"></span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium" href="#">
+<span class="material-symbols-outlined" data-icon="tune">tune</span>
+<span class="text-body-sm font-body-sm">Cài đặt trạm</span>
+</a>
+<div class="mt-2 p-3 bg-surface-muted rounded-xl border border-border flex items-center gap-3">
+<span class="material-symbols-outlined text-primary" data-icon="shield_lock">shield_lock</span>
+<div class="leading-tight">
+<p class="text-label-sm font-label-sm font-bold text-on-surface">Kiểm soát BOM</p>
+<p class="text-[11px] text-secondary">Thẩm quyền phê duyệt quy chế</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- MAIN CONTENT CANVAS -->
+<main class="flex-1 overflow-y-auto bg-background p-4 md:p-6 lg:p-8">
+<div class="max-w-[1240px] mx-auto space-y-6">
+<!-- HEADER SECTION & BREADCRUMBS -->
+<div class="bg-surface rounded-card p-6 md:p-8 border border-border shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+<div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+<div class="space-y-2">
+<div class="flex items-center gap-2 text-label-sm font-label-sm text-secondary">
+<span class="material-symbols-outlined text-[16px]" data-icon="shield">shield</span>
+<span>Ban Giám Đốc (BOM)</span>
+<span>/</span>
+<span class="text-primary font-medium">Quản trị vận hành</span>
+<span>/</span>
+<span class="text-on-surface font-semibold">Quy tắc kinh doanh BOM05</span>
+</div>
+<h1 class="text-headline-md lg:text-headline-lg font-headline-md lg:font-headline-lg text-primary tracking-tight">
+                BOM05 — Thiết lập &amp; Quản lý Quy tắc Kinh doanh Vận hành
+              </h1>
+<p class="text-body-md font-body-md text-secondary max-w-3xl">
+                Định nghĩa các nguyên tắc cốt lõi về giữ chỗ, hủy đơn, xử lý no-show, tiếp đón check-in và thanh lý buồng kho. Toàn bộ thiết lập tuân thủ nguyên tắc can thiệp nhân sự thực địa trước khi phát sinh nghĩa vụ tài chính.
+              </p>
+</div>
+<!-- Header Quick Badge -->
+<div class="flex lg:flex-col items-end gap-2 shrink-0">
+<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-warning-container text-warning text-label-sm font-label-sm border border-amber-200">
+<span class="material-symbols-outlined text-[16px]" data-icon="pending">pending</span>
+                Đang lấy ý kiến biểu quyết BOM
+              </span>
+<span class="text-label-sm font-label-sm text-secondary">Phiên bản dự thảo: v2.4-DRAFT</span>
+</div>
+</div>
+<!-- POLICY COMPLETENESS STATUS (BENTO ROW) -->
+<div class="mt-6 pt-6 border-t border-border grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
+<!-- Progress Visual Meter -->
+<div class="lg:col-span-4 bg-surface-muted rounded-xl p-4 border border-border space-y-2">
+<div class="flex justify-between items-center text-label-sm font-label-sm">
+<span class="font-semibold text-on-surface">Mức độ hoàn thiện quy chế</span>
+<span class="text-primary font-bold">3 / 5 nhóm hoàn thiện</span>
+</div>
+<!-- 5-segment Visual Bar -->
+<div class="grid grid-cols-5 gap-1.5 h-2.5">
+<div class="bg-primary rounded-full" title="Giữ chỗ tạm thời: Khảo nghiệm"></div>
+<div class="bg-warning rounded-full" title="Hủy đơn: Chờ Pháp chế"></div>
+<div class="bg-amber-400 rounded-full" title="No-show: Chờ BOM"></div>
+<div class="bg-primary rounded-full" title="Check-in: Đã thống nhất"></div>
+<div class="bg-primary rounded-full" title="Thanh lý: Bản thảo quy chuẩn"></div>
+</div>
+<div class="flex justify-between text-[11px] text-secondary">
+<span>Khởi tạo</span>
+<span>Đang phản biện</span>
+<span>Thống nhất 60%</span>
+</div>
+</div>
+<!-- Human-in-the-loop Guardrail Note -->
+<div class="lg:col-span-8 bg-warning-container/60 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+<div class="w-8 h-8 rounded-lg bg-warning/10 text-warning flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined" data-icon="policy">policy</span>
+</div>
+<div class="space-y-0.5">
+<div class="flex items-center gap-2">
+<span class="text-label-sm font-label-sm text-warning uppercase font-bold tracking-wide">Nguyên tắc ràng buộc pháp lý</span>
+<span class="px-2 py-0.2 bg-white/70 text-warning border border-warning/30 rounded text-[11px] font-semibold">Chính sách chưa chốt</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface">
+<strong>Chính sách chưa chốt</strong> — Không có quy tắc nào được tự động áp dụng phạt hoặc khấu trừ tài chính ngoài đời thực mà không có sự kiểm tra và biên bản xác thực của con người (FS/FM).
+                </p>
+</div>
+</div>
+</div>
+</div>
+<!-- 5 BUSINESS RULE ACCORDION GROUPS -->
+<section aria-label="Danh sách 5 nhóm quy tắc kinh doanh" class="space-y-4">
+<div class="flex items-center justify-between">
+<h2 class="text-title-lg font-title-lg text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="rule">rule</span>
+              Chi tiết 5 Nhóm Quy tắc Kinh doanh Vận hành
+            </h2>
+<span class="text-body-sm font-body-sm text-secondary">Nhấp từng khối để mở rộng thiết lập</span>
+</div>
+<!-- GROUP 1: GIỮ CHỖ TẠM THỜI -->
+<article class="rule-card bg-surface rounded-card border border-border shadow-[0_1px_3px_rgba(15,23,42,0.04)] overflow-hidden transition-all duration-150" data-open="true">
+<div class="p-5 md:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer hover:bg-surface-muted/50 transition-colors" onclick="toggleCard(this)">
+<div class="flex items-start md:items-center gap-4">
+<div class="w-10 h-10 rounded-xl bg-primary-soft text-primary flex items-center justify-center shrink-0 font-bold">
+                  01
+                </div>
+<div>
+<div class="flex items-center gap-2.5 flex-wrap">
+<h3 class="text-title-lg font-title-lg text-on-surface">Giữ chỗ tạm thời (Reservation Hold)</h3>
+<span class="px-2.5 py-0.5 rounded-full bg-secondary-container text-on-secondary-container text-label-sm font-label-sm">
+                      Bản nháp đang khảo nghiệm
+                    </span>
+</div>
+<p class="text-body-sm font-body-sm text-secondary mt-0.5">Khung thời hạn bảo lưu vị trí ô kho và bảo toàn chính sách giá niêm yết ban đầu.</p>
+</div>
+</div>
+<div class="flex items-center gap-3 self-end md:self-auto">
+<span class="text-label-sm font-label-sm text-secondary">2 thông số kích hoạt</span>
+<span class="material-symbols-outlined text-secondary rule-chevron transition-transform duration-200" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+<!-- Card Expanded Body -->
+<div class="rule-content px-5 md:px-6 pb-6 pt-2 border-t border-border">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+<div class="p-4 rounded-xl bg-surface-muted border border-border flex flex-col justify-between">
+<div class="space-y-1.5">
+<div class="flex items-center gap-2 text-primary font-semibold text-label-md">
+<span class="material-symbols-outlined text-[18px]" data-icon="timer">timer</span>
+                      Thời gian giữ chỗ buồng kho
+                    </div>
+<p class="text-body-sm font-body-sm text-secondary">
+                      Dự kiến <strong>24h</strong> kể từ khi tạo phiếu đặt chỗ trực tuyến.
+                    </p>
+</div>
+<div class="mt-3 pt-3 border-t border-border/80 flex items-center gap-2 text-label-sm font-label-sm text-warning">
+<span class="material-symbols-outlined text-[16px]" data-icon="info">info</span>
+<span>Chưa áp dụng cơ chế tự động hủy cứng qua Cronjob.</span>
+</div>
+</div>
+<div class="p-4 rounded-xl bg-surface-muted border border-border flex flex-col justify-between">
+<div class="space-y-1.5">
+<div class="flex items-center gap-2 text-primary font-semibold text-label-md">
+<span class="material-symbols-outlined text-[18px]" data-icon="lock">lock</span>
+                      Chính sách bảo lưu đơn giá
+                    </div>
+<p class="text-body-sm font-body-sm text-secondary">
+                      Giữ nguyên đơn giá niêm yết tại thời điểm tạo phiếu đặt thành công, không bị ảnh hưởng bởi biến động giá linh hoạt của hệ thống.
+                    </p>
+</div>
+<div class="mt-3 pt-3 border-t border-border/80 flex items-center gap-2 text-label-sm font-label-sm text-on-success-container">
+<span class="material-symbols-outlined text-[16px]" data-icon="verified">verified</span>
+<span>Đảm bảo quyền lợi khách hàng đặt sớm.</span>
+</div>
+</div>
+</div>
+<!-- Parameter Configuration Field -->
+<div class="mt-4 p-4 rounded-xl bg-white border border-border">
+<label class="block text-label-sm font-label-sm text-on-surface mb-2">Điều chỉnh thời hạn giữ chỗ dự kiến (Giờ thực hiện):</label>
+<div class="flex flex-wrap items-center gap-3">
+<div class="relative w-36">
+<input class="w-full h-11 px-3 py-2 rounded-lg border border-outline/30 text-body-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none" max="72" min="12" type="number" value="24"/>
+<span class="absolute right-3 top-2.5 text-body-sm text-secondary">Giờ</span>
+</div>
+<span class="text-body-sm text-secondary">Biên độ đề xuất bởi Bộ phận Tiếp thị: 24h - 48h.</span>
+</div>
+</div>
+</div>
+</article>
+<!-- GROUP 2: HỦY ĐƠN & HOÀN CỌC -->
+<article class="rule-card bg-surface rounded-card border border-border shadow-[0_1px_3px_rgba(15,23,42,0.04)] overflow-hidden transition-all duration-150" data-open="true">
+<div class="p-5 md:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer hover:bg-surface-muted/50 transition-colors" onclick="toggleCard(this)">
+<div class="flex items-start md:items-center gap-4">
+<div class="w-10 h-10 rounded-xl bg-warning-container text-warning flex items-center justify-center shrink-0 font-bold">
+                  02
+                </div>
+<div>
+<div class="flex items-center gap-2.5 flex-wrap">
+<h3 class="text-title-lg font-title-lg text-on-surface">Hủy đơn đặt kho &amp; Hoàn cọc giữ chỗ (Cancellation &amp; Refund)</h3>
+<span class="px-2.5 py-0.5 rounded-full bg-warning-container text-warning text-label-sm font-label-sm border border-amber-200">
+                      Chính sách chưa được chốt (Chờ ý kiến Pháp chế)
+                    </span>
+</div>
+<p class="text-body-sm font-body-sm text-secondary mt-0.5">Xử lý yêu cầu chấm dứt giữ chỗ và quy chế tài chính đối với tiền cọc ban đầu.</p>
+</div>
+</div>
+<div class="flex items-center gap-3 self-end md:self-auto">
+<span class="text-label-sm font-label-sm text-warning font-semibold">Chờ Legal ký duyệt</span>
+<span class="material-symbols-outlined text-secondary rule-chevron transition-transform duration-200" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+<!-- Card Expanded Body -->
+<div class="rule-content px-5 md:px-6 pb-6 pt-2 border-t border-border">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+<div class="p-4 rounded-xl bg-surface-muted border border-border space-y-2">
+<div class="flex items-center gap-2 text-primary font-semibold text-label-md">
+<span class="material-symbols-outlined text-[18px]" data-icon="event_busy">event_busy</span>
+                    Điều kiện gửi yêu cầu hủy
+                  </div>
+<p class="text-body-sm font-body-sm text-secondary">
+                    Khách hàng gửi yêu cầu hủy <strong>trước ngày nhận kho dự kiến</strong> ít nhất 24 giờ thông qua Cổng thông tin khách hàng hoặc thông báo văn bản.
+                  </p>
+<p class="text-label-sm font-label-sm text-secondary bg-white p-2 rounded border border-border">
+                    Mốc ghi nhận: Dấu thời gian hệ thống (Server Timestamp UTC+7).
+                  </p>
+</div>
+<div class="p-4 rounded-xl bg-destructive-container/50 border border-red-200 space-y-2">
+<div class="flex items-center gap-2 text-destructive font-semibold text-label-md">
+<span class="material-symbols-outlined text-[18px]" data-icon="block">block</span>
+                    Xử lý hoàn trả tiền cọc giữ chỗ
+                  </div>
+<p class="text-body-sm font-body-sm text-on-surface">
+                    Hoàn lại theo <strong>biên bản làm việc trực tiếp tại cơ sở</strong>.
+                  </p>
+<div class="p-2.5 bg-white rounded-lg border border-red-200 text-destructive text-label-sm font-label-sm font-semibold flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="do_not_disturb_on">do_not_disturb_on</span>
+                    Tuyệt đối không cam kết hoàn tiền tự động qua API cổng thanh toán.
+                  </div>
+</div>
+</div>
+<div class="mt-4 p-4 rounded-xl bg-amber-50 border border-amber-200 text-body-sm text-warning flex items-start gap-3">
+<span class="material-symbols-outlined text-[20px] mt-0.5 shrink-0" data-icon="rate_review">rate_review</span>
+<div>
+<strong class="font-semibold">Ý kiến thảo luận Pháp chế (Mr. Hoàng - Legal Lead):</strong> "Cần đối chiếu Nghị định về thương mại điện tử trước khi áp dụng khấu trừ 100% tiền cọc khi hủy sát giờ. Đề xuất quy trình hoàn qua đối soát tay trong 3-5 ngày làm việc."
+                </div>
+</div>
+</div>
+</article>
+<!-- GROUP 3: KHÁCH KHÔNG ĐẾN NHẬN (NO-SHOW) -->
+<article class="rule-card bg-surface rounded-card border border-border shadow-[0_1px_3px_rgba(15,23,42,0.04)] overflow-hidden transition-all duration-150" data-open="true">
+<div class="p-5 md:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer hover:bg-surface-muted/50 transition-colors" onclick="toggleCard(this)">
+<div class="flex items-start md:items-center gap-4">
+<div class="w-10 h-10 rounded-xl bg-primary-soft text-primary flex items-center justify-center shrink-0 font-bold">
+                  03
+                </div>
+<div>
+<div class="flex items-center gap-2.5 flex-wrap">
+<h3 class="text-title-lg font-title-lg text-on-surface">Xử lý khách không đến nhận kho (No-show Policy)</h3>
+<span class="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 text-label-sm font-label-sm border border-amber-200">
+                      Đang lấy ý kiến BOM
+                    </span>
+</div>
+<p class="text-body-sm font-body-sm text-secondary mt-0.5">Quy trình can thiệp hỗ trợ khi khách hàng quá giờ hẹn check-in mà không liên hệ.</p>
+</div>
+</div>
+<div class="flex items-center gap-3 self-end md:self-auto">
+<span class="text-label-sm font-label-sm text-secondary">Nguyên tắc: Nhân đạo &amp; Linh hoạt</span>
+<span class="material-symbols-outlined text-secondary rule-chevron transition-transform duration-200" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+<!-- Card Expanded Body -->
+<div class="rule-content px-5 md:px-6 pb-6 pt-2 border-t border-border">
+<div class="p-4 rounded-xl bg-surface-muted border border-border mt-4 space-y-3">
+<div class="flex items-center gap-2 text-primary font-semibold text-label-md">
+<span class="material-symbols-outlined text-[18px]" data-icon="call">call</span>
+                  Cơ chế kích hoạt xử lý thực địa
+                </div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+<div class="p-3 bg-white rounded-lg border border-border space-y-1">
+<div class="text-label-sm font-label-sm text-secondary">Mốc trễ hẹn</div>
+<div class="text-title-lg font-title-lg text-on-surface">Quá 60 Phút</div>
+<p class="text-body-sm text-secondary">Tính từ khung giờ check-in đã xác nhận.</p>
+</div>
+<div class="p-3 bg-white rounded-lg border border-border space-y-1">
+<div class="text-label-sm font-label-sm text-secondary">Hành động của FS/FM</div>
+<div class="text-title-lg font-title-lg text-on-surface">Liên hệ trực tiếp</div>
+<p class="text-body-sm text-secondary">Gọi điện xác nhận tình trạng &amp; hẹn lịch mới.</p>
+</div>
+<div class="p-3 bg-white rounded-lg border border-border space-y-1">
+<div class="text-label-sm font-label-sm text-secondary">Ràng buộc hệ thống</div>
+<div class="text-title-lg font-title-lg text-error">Nghiêm cấm tự phạt</div>
+<p class="text-body-sm text-secondary">Không tự ý hủy đơn hay tịch thu tiền cọc.</p>
+</div>
+</div>
+</div>
+</div>
+</article>
+<!-- GROUP 4: CHECK-IN & BÀN GIAO KHO -->
+<article class="rule-card bg-surface rounded-card border border-border shadow-[0_1px_3px_rgba(15,23,42,0.04)] overflow-hidden transition-all duration-150" data-open="true">
+<div class="p-5 md:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer hover:bg-surface-muted/50 transition-colors" onclick="toggleCard(this)">
+<div class="flex items-start md:items-center gap-4">
+<div class="w-10 h-10 rounded-xl bg-success-container text-on-success-container flex items-center justify-center shrink-0 font-bold">
+                  04
+                </div>
+<div>
+<div class="flex items-center gap-2.5 flex-wrap">
+<h3 class="text-title-lg font-title-lg text-on-surface">Điều kiện kích hoạt hợp đồng &amp; Bàn giao buồng kho (Check-in &amp; Handover)</h3>
+<span class="px-2.5 py-0.5 rounded-full bg-success-container text-on-success-container text-label-sm font-label-sm">
+                      Đã thống nhất nguyên tắc
+                    </span>
+</div>
+<p class="text-body-sm font-body-sm text-secondary mt-0.5">Tiêu chuẩn chuyển dịch trạng thái hợp đồng sang "Đang sử dụng (In Use)".</p>
+</div>
+</div>
+<div class="flex items-center gap-3 self-end md:self-auto">
+<span class="text-label-sm font-label-sm text-on-success-container font-semibold">Đồng thuận 100% BOM</span>
+<span class="material-symbols-outlined text-secondary rule-chevron transition-transform duration-200" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+<!-- Card Expanded Body -->
+<div class="rule-content px-5 md:px-6 pb-6 pt-2 border-t border-border">
+<div class="p-4 rounded-xl bg-surface-muted border border-border mt-4">
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary text-[24px] mt-0.5" data-icon="key">key</span>
+<div class="space-y-2">
+<p class="text-body-md font-body-md text-on-surface leading-relaxed">
+                      Chỉ khi nhân viên hiện trường (FS) hoàn tất <strong>kiểm tra hiện trạng</strong> và <strong>bàn giao chìa khóa vật lý</strong> cho khách thì hợp đồng mới chuyển sang trạng thái
+                      <span class="inline-block px-2.5 py-0.5 bg-primary-soft text-primary font-bold rounded">"Đang sử dụng (In Use)"</span>
+                      và bắt đầu tính cước thuê kho.
+                    </p>
+<div class="p-3 bg-white rounded-lg border border-border flex items-center gap-2 text-label-sm font-label-sm text-secondary">
+<span class="material-symbols-outlined text-primary text-[18px]" data-icon="check_circle">check_circle</span>
+<span><strong>Quy chuẩn bắt buộc:</strong> Việc khách hàng thanh toán trước chỉ là <em>điều kiện cần</em>, biên bản bàn giao thực tế tại cơ sở là <em>điều kiện đủ</em>.</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</article>
+<!-- GROUP 5: TRẢ KHO & THANH LÝ HỢP ĐỒNG -->
+<article class="rule-card bg-surface rounded-card border border-border shadow-[0_1px_3px_rgba(15,23,42,0.04)] overflow-hidden transition-all duration-150" data-open="true">
+<div class="p-5 md:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer hover:bg-surface-muted/50 transition-colors" onclick="toggleCard(this)">
+<div class="flex items-start md:items-center gap-4">
+<div class="w-10 h-10 rounded-xl bg-primary-soft text-primary flex items-center justify-center shrink-0 font-bold">
+                  05
+                </div>
+<div>
+<div class="flex items-center gap-2.5 flex-wrap">
+<h3 class="text-title-lg font-title-lg text-on-surface">Trả buồng kho &amp; Thanh lý hợp đồng (Rental Return &amp; Settlement)</h3>
+<span class="px-2.5 py-0.5 rounded-full bg-secondary-container text-on-secondary-container text-label-sm font-label-sm">
+                      Bản thảo quy chuẩn
+                    </span>
+</div>
+<p class="text-body-sm font-body-sm text-secondary mt-0.5">Tiến trình 3 cấp kiểm duyệt giải phóng mặt bằng và hoàn trả tiền ký quỹ.</p>
+</div>
+</div>
+<div class="flex items-center gap-3 self-end md:self-auto">
+<span class="text-label-sm font-label-sm text-secondary">Luồng 3 bước FS → FM → Kế toán</span>
+<span class="material-symbols-outlined text-secondary rule-chevron transition-transform duration-200" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+<!-- Card Expanded Body -->
+<div class="rule-content px-5 md:px-6 pb-6 pt-2 border-t border-border">
+<div class="mt-4 space-y-3">
+<div class="p-4 rounded-xl bg-surface-muted border border-border">
+<div class="font-semibold text-on-surface text-label-md mb-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]" data-icon="checklist">checklist</span>
+                    Nghĩa vụ của khách hàng &amp; Quy trình 3 bước xử lý:
+                  </div>
+<p class="text-body-sm text-secondary mb-3">
+                    Khách dọn sạch đồ đạc và hoàn trả chìa khóa/thẻ từ ra vào ô kho.
+                  </p>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+<div class="bg-white p-3 rounded-lg border border-border space-y-1">
+<span class="text-label-sm font-label-sm text-primary font-bold">Bước 1: FS Hiện trường</span>
+<p class="text-body-sm text-on-surface">Lập Biên bản nghiệm thu thực địa, chụp ảnh buồng kho rỗng sạch.</p>
+</div>
+<div class="bg-white p-3 rounded-lg border border-border space-y-1">
+<span class="text-label-sm font-label-sm text-primary font-bold">Bước 2: FM Quản lý trạm</span>
+<p class="text-body-sm text-on-surface">Rà soát tài sản cơ sở vật chất, xác nhận không có hư hại cấu trúc.</p>
+</div>
+<div class="bg-white p-3 rounded-lg border border-border space-y-1">
+<span class="text-label-sm font-label-sm text-primary font-bold">Bước 3: Kế toán Trung tâm</span>
+<p class="text-body-sm text-on-surface">Duyệt quyết toán cọc và chuyển khoản hoàn cọc cho khách.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</article>
+</section>
+<!-- PREVIOUS VS CURRENT DRAFT COMPARISON TABLE -->
+<section class="bg-surface rounded-card border border-border shadow-[0_1px_3px_rgba(15,23,42,0.04)] overflow-hidden">
+<div class="p-6 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div>
+<h2 class="text-title-lg font-title-lg text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="compare_arrows">compare_arrows</span>
+                Bảng đối chiếu Trước &amp; Sau (Previous vs Current Draft Configuration)
+              </h2>
+<p class="text-body-sm font-body-sm text-secondary mt-0.5">So sánh các thay đổi trọng yếu giữa chính sách cũ (v1.8) và dự thảo mới (v2.4-DRAFT).</p>
+</div>
+<span class="px-3 py-1 rounded-full bg-surface-muted text-secondary text-label-sm font-label-sm border border-border self-start sm:self-auto">
+              Chỉ số rủi ro: Giảm 42%
+            </span>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-muted border-b border-border">
+<th class="py-3.5 px-6 text-label-sm font-label-sm text-secondary tracking-wider">HẠNG MỤC QUY TẮC</th>
+<th class="py-3.5 px-6 text-label-sm font-label-sm text-secondary tracking-wider">CẤU HÌNH CŨ (V1.8 THỰC THI)</th>
+<th class="py-3.5 px-6 text-label-sm font-label-sm text-primary tracking-wider bg-primary-soft/40">DỰ THẢO HIỆN TẠI (V2.4 BOM)</th>
+<th class="py-3.5 px-6 text-label-sm font-label-sm text-secondary tracking-wider">TÁC ĐỘNG VẬN HÀNH</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border text-body-sm">
+<tr class="hover:bg-surface-muted/60 transition-colors">
+<td class="py-4 px-6 font-semibold text-on-surface">Giữ chỗ buồng kho</td>
+<td class="py-4 px-6 text-secondary line-through">Tự động hủy sau 12h nếu không thanh toán cọc</td>
+<td class="py-4 px-6 text-on-surface font-medium bg-primary-soft/20">Giữ chỗ 24h, bảo lưu giá niêm yết ban đầu</td>
+<td class="py-4 px-6">
+<span class="inline-flex items-center gap-1 text-on-success-container font-medium text-label-sm">
+<span class="material-symbols-outlined text-[16px]" data-icon="trending_up">trending_up</span>
+                      Tăng tỷ lệ chốt đơn +18%
+                    </span>
+</td>
+</tr>
+<tr class="hover:bg-surface-muted/60 transition-colors">
+<td class="py-4 px-6 font-semibold text-on-surface">Hủy đơn &amp; Tiền cọc</td>
+<td class="py-4 px-6 text-secondary line-through">Tịch thu 100% cọc qua hệ thống khi hủy trễ</td>
+<td class="py-4 px-6 text-on-surface font-medium bg-primary-soft/20">Biên bản thực địa tại trạm, không hủy cọc tự động qua API</td>
+<td class="py-4 px-6">
+<span class="inline-flex items-center gap-1 text-primary font-medium text-label-sm">
+<span class="material-symbols-outlined text-[16px]" data-icon="shield">shield</span>
+                      Triệt tiêu rủi ro kiện cáo
+                    </span>
+</td>
+</tr>
+<tr class="hover:bg-surface-muted/60 transition-colors">
+<td class="py-4 px-6 font-semibold text-on-surface">Xử lý trễ hẹn (No-show)</td>
+<td class="py-4 px-6 text-secondary line-through">Tự động giải phóng vị trí kho sau 30 phút</td>
+<td class="py-4 px-6 text-on-surface font-medium bg-primary-soft/20">FS gọi điện thoại sau 60 phút, chuyển lịch hẹn mới</td>
+<td class="py-4 px-6">
+<span class="inline-flex items-center gap-1 text-on-success-container font-medium text-label-sm">
+<span class="material-symbols-outlined text-[16px]" data-icon="thumb_up">thumb_up</span>
+                      Nâng cao chỉ số hài lòng CSAT
+                    </span>
+</td>
+</tr>
+<tr class="hover:bg-surface-muted/60 transition-colors">
+<td class="py-4 px-6 font-semibold text-on-surface">Kích hoạt hợp đồng</td>
+<td class="py-4 px-6 text-secondary line-through">Kích hoạt ngay khi nhận thanh toán trực tuyến</td>
+<td class="py-4 px-6 text-on-surface font-medium bg-primary-soft/20">Chỉ kích hoạt sau khi FS bàn giao chìa khóa vật lý</td>
+<td class="py-4 px-6">
+<span class="inline-flex items-center gap-1 text-warning font-medium text-label-sm">
+<span class="material-symbols-outlined text-[16px]" data-icon="fact_check">fact_check</span>
+                      Trách nhiệm hiện trường rõ ràng
+                    </span>
+</td>
+</tr>
+<tr class="hover:bg-surface-muted/60 transition-colors">
+<td class="py-4 px-6 font-semibold text-on-surface">Quyết toán thanh lý cọc</td>
+<td class="py-4 px-6 text-secondary line-through">Kế toán duyệt dựa trên email đề xuất cá nhân</td>
+<td class="py-4 px-6 text-on-surface font-medium bg-primary-soft/20">Biên bản nghiệm thu 3 bên: FS → FM → Kế toán</td>
+<td class="py-4 px-6">
+<span class="inline-flex items-center gap-1 text-on-success-container font-medium text-label-sm">
+<span class="material-symbols-outlined text-[16px]" data-icon="verified_user">verified_user</span>
+                      Kiểm soát thất thoát 100%
+                    </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- AUDIT LOG & COMPLIANCE FOOTER ACTIONS -->
+<section class="bg-surface rounded-card p-6 md:p-8 border border-border shadow-[0_1px_3px_rgba(15,23,42,0.04)] space-y-6">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="space-y-1">
+<h3 class="text-title-lg font-title-lg text-on-surface">Hành động Phê duyệt Quy chế</h3>
+<p class="text-body-sm font-body-sm text-secondary">
+                Lưu lại bản thảo đã hiệu chỉnh hoặc xem lịch sử phiên bản của các ủy viên Hội đồng Quản trị.
+              </p>
+</div>
+<div class="flex items-center gap-2 text-label-sm font-label-sm text-secondary">
+<span class="material-symbols-outlined text-[18px]" data-icon="history">history</span>
+<span>Lần chỉnh sửa gần nhất: 10:45 AM - Hôm nay bởi Lê Thu Hà</span>
+</div>
+</div>
+<!-- Action Buttons Bar (Minimum 44px target) -->
+<div class="pt-6 border-t border-border flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3">
+<!-- Secondary Outline Action -->
+<button class="min-h-[44px] px-5 py-2.5 rounded-lg border border-border bg-surface text-on-surface hover:bg-surface-muted transition-colors font-medium text-body-sm flex items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none" type="button">
+<span class="material-symbols-outlined text-secondary" data-icon="history_toggle_off">history_toggle_off</span>
+<span>Xem lịch sử thay đổi phiên bản</span>
+</button>
+<!-- Save Draft Button -->
+<button class="min-h-[44px] px-6 py-2.5 rounded-lg bg-primary hover:bg-primary-dark text-on-primary transition-colors font-semibold text-body-sm flex items-center justify-center gap-2 shadow-sm focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none" type="button">
+<span class="material-symbols-outlined" data-icon="save">save</span>
+<span>Lưu bản thảo quy chế kinh doanh</span>
+</button>
+<!-- Disabled Promulgate Action with Explanation Tooltip -->
+<div class="relative group">
+<button class="min-h-[44px] w-full sm:w-auto px-6 py-2.5 rounded-lg bg-surface-muted text-secondary/50 border border-border/80 cursor-not-allowed font-semibold text-body-sm flex items-center justify-center gap-2" disabled="" type="button">
+<span class="material-symbols-outlined text-secondary/40" data-icon="publish">publish</span>
+<span>Ban hành quy chế chính thức</span>
+</button>
+<!-- Floating Explanation Tooltip -->
+<div class="absolute bottom-full right-0 mb-2 hidden group-hover:block w-72 p-3 bg-inverse-surface text-inverse-on-surface text-label-sm font-label-sm rounded-lg shadow-xl z-50 pointer-events-none">
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-warning text-[18px]" data-icon="lock">lock</span>
+<span>Chức năng vô hiệu hóa: Cần hoàn tất phê duyệt từ Pháp chế (Nhóm 02) và đủ 100% phiếu đồng thuận của Hội đồng BOM.</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Warning Banner -->
+<div class="text-[12px] text-secondary flex items-center gap-2 bg-surface-muted px-4 py-2.5 rounded-lg">
+<span class="material-symbols-outlined text-[16px] text-primary" data-icon="lock_clock">lock_clock</span>
+<span>Mọi phiên bản lưu nháp đều được ghi vào Audit Trail với mã hash SHA-256 nhằm phục vụ công tác thanh tra nội bộ.</span>
+</div>
+</section>
+</div>
+</main>
+</div>
+<!-- Micro-interactions Script -->
+<script>
+    function toggleCard(headerElement) {
+      const card = headerElement.closest('.rule-card');
+      const isOpen = card.getAttribute('data-open') === 'true';
+      card.setAttribute('data-open', !isOpen);
+    }
+  </script>
+</body></html>

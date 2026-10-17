@@ -1,0 +1,62 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Testing and Coverage
+coverage/
+playwright-report/
+test-results/
+
+# Next.js
+.next/
+.next-dev/
+.next-playwright/
+.next-mock-playwright/
+out/
+
+# Expo & Mobile
+.expo/
+web-build/
+
+# Turborepo
+.turbo/
+
+# Build artifacts
+dist/
+build/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+bun.lockb*
+
+# OS Files
+.DS_Store
+*.pem
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+docker/app.env
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+
+# Local notes / workspace tracking
+handover.md
+
+/.codex/config.toml

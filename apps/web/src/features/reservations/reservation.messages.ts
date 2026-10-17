@@ -1,0 +1,17 @@
+export const RESERVATION_MESSAGES = {
+  facilityRequired: "Chọn một cơ sở",
+  unitTypeRequired: "Chọn loại kho",
+  checkInRequired: "Chọn thời gian check-in",
+  checkInTomorrow: "Ngày nhận kho phải từ ngày mai (giờ Việt Nam).",
+  nameRequired: "Nhập họ tên",
+  invalidEmail: "Email chưa đúng định dạng",
+  invalidPhone: "Nhập số điện thoại Việt Nam gồm 10 chữ số, bắt đầu bằng 0 (ví dụ 0901234567).",
+  phoneRequired: "Nhập số điện thoại để nhận thông tin đặt kho.",
+  phoneCharacters: "Số điện thoại chỉ được chứa chữ số và khoảng trắng.",
+  pastCheckIn: "Ngày và giờ nhận kho phải sau thời điểm hiện tại (giờ Việt Nam).",
+  invalidDuration: "Chọn thời hạn thuê từ 1 đến 12 tháng.",
+  networkError: "Không kết nối được hệ thống. Kiểm tra mạng và thử lại.",
+  unexpectedError: "Đã có lỗi xảy ra, vui lòng thử lại.",
+  draftCreationFailed: "Không thể lưu thông tin đơn thuê.",
+  paymentConfirmationMissing: "Thanh toán đã được ghi nhận nhưng chưa tải được thông tin xác nhận.",
+} as const;

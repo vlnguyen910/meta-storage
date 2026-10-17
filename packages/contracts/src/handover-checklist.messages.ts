@@ -1,0 +1,17 @@
+export const HANDOVER_CHECKLIST_MESSAGES = {
+  assignedUnit: "Đúng ô kho đã được gán cho booking",
+  doorLock: "Cửa và khóa hoạt động bình thường",
+  unitCondition: "Ô kho không bị hư hỏng",
+  existingInventory: "Đồ dùng có sẵn trong kho đầy đủ, không mất hoặc hư hại",
+  emptyDefinition: "Checklist must define at least one item",
+  duplicateCode: "Checklist item codes must be unique",
+  invalidPassRule: "An item that must pass must be required and use PASS_FAIL results",
+  invalidFailureNoteRule: "Failure notes apply only to PASS_FAIL results",
+  unknownItem: "Unknown checklist item",
+  duplicateResult: "Each checklist item can have only one result",
+  missingItem: "Required checklist item is missing",
+  wrongResultType: "Checklist result type does not match the item definition",
+  mustPass: "Checklist item must pass before completion",
+  missingFailureNote: "A note is required when this item fails",
+  missingPhoto: "A photo is required for this checklist item",
+} as const;

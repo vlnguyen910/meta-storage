@@ -1,0 +1,62 @@
+name: Deploy API staging
+
+on:
+  push:
+    branches:
+    - stagging
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+    - name: Deploy API and Worker
+      uses: appleboy/ssh-action@v1.2.2
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: 22
+        command_timeout: 18m
+        script: |
+          set -eu
+
+          cd /services/metastorage
+
+          git fetch origin stagging
+          git checkout --detach origin/stagging
+
+          COMPOSE=docker/docker-compose.prod.yml
+
+          docker compose -f "$COMPOSE" \
+            --profile migrations build api worker migrate
+
+          docker compose -f "$COMPOSE" \
+            --profile migrations run --rm --no-deps migrate
+
+          docker compose -f "$COMPOSE" \
+            up -d --no-build --wait --wait-timeout 120 api worker
+
+          docker compose -f "$COMPOSE" exec -T api bun -e '
+            const response = await fetch(
+              "http://127.0.0.1:4000/api/health"
+            );
+            const body = await response.json();
+
+            if (
+              !response.ok ||
+              body.data?.database?.status !== "connected"
+            ) {
+              process.exit(1);
+            }
+          '
+
+          echo "Staging deployment completed"

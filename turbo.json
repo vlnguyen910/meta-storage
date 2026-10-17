@@ -1,0 +1,46 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "tui",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+    },
+    "lint": {
+      "dependsOn": ["^lint"]
+    },
+    "check-types": {
+      "dependsOn": ["^check-types"]
+    },
+    "test": {
+      "dependsOn": ["^test"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "db:generate": {
+      "cache": false
+    },
+    "db:migrate": {
+      "cache": false,
+      "passThroughEnv": ["NODE_ENV", "DATABASE_URL", "DOCKER_DATABASE_URL"]
+    },
+    "db:push": {
+      "cache": false
+    },
+    "db:studio": {
+      "cache": false,
+      "persistent": true
+    },
+    "db:seed": {
+      "cache": false,
+      "passThroughEnv": ["NODE_ENV", "DATABASE_URL", "DOCKER_DATABASE_URL", "QR_TOKEN_SECRET"]
+    },
+    "db:clear": {
+      "cache": false,
+      "passThroughEnv": ["NODE_ENV", "DATABASE_URL", "DOCKER_DATABASE_URL"]
+    }
+  }
+}

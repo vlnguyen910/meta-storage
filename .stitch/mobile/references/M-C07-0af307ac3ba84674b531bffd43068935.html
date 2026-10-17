@@ -1,0 +1,489 @@
+<!DOCTYPE html><html lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>M-C07 — Chi tiết kho đang thuê — StoreX</title>
+<!-- Google Fonts: Space Grotesk & Be Vietnam Pro -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS v3 with Plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-primary": "#ffffff",
+            "tertiary-fixed-dim": "#ffb77d",
+            "on-surface": "#131b2e",
+            "secondary-container": "#b4efda",
+            "primary-container": "#125345",
+            "on-surface-variant": "#404945",
+            "surface-container-highest": "#dae2fd",
+            "on-secondary-fixed-variant": "#135041",
+            "inverse-surface": "#283044",
+            "surface-dim": "#d2d9f4",
+            "primary-fixed": "#b1efdc",
+            "surface-container-low": "#f2f3ff",
+            "primary-fixed-dim": "#96d3c0",
+            "on-primary-fixed": "#002019",
+            "surface-container-lowest": "#ffffff",
+            "on-tertiary": "#ffffff",
+            "tertiary-fixed": "#ffdcc3",
+            "inverse-primary": "#96d3c0",
+            "on-error": "#ffffff",
+            "surface-variant": "#dae2fd",
+            "outline": "#707975",
+            "background": "#faf8ff",
+            "on-tertiary-fixed": "#2f1500",
+            "secondary-fixed-dim": "#98d2be",
+            "on-tertiary-fixed-variant": "#6e3900",
+            "inverse-on-surface": "#eef0ff",
+            "error-container": "#ffdad6",
+            "on-secondary": "#ffffff",
+            "on-primary-fixed-variant": "#0d5042",
+            "on-tertiary-container": "#ffa454",
+            "surface-container-high": "#e2e7ff",
+            "surface": "#faf8ff",
+            "secondary-fixed": "#b4efda",
+            "on-secondary-fixed": "#002018",
+            "surface-bright": "#faf8ff",
+            "surface-tint": "#2c6859",
+            "on-background": "#131b2e",
+            "tertiary": "#512800",
+            "primary": "#003b2f",
+            "outline-variant": "#bfc9c4",
+            "tertiary-container": "#723b00",
+            "on-primary-container": "#89c5b3",
+            "on-secondary-container": "#366e5e",
+            "on-error-container": "#93000a",
+            "surface-container": "#eaedff",
+            "secondary": "#306858",
+            "error": "#ba1a1a"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "space-sm": "0.5rem",
+            "margin-sm": "1rem",
+            "margin": "2rem",
+            "gutter-sm": "1rem",
+            "space-lg": "1.5rem",
+            "space-xs": "0.25rem",
+            "gutter": "1.5rem",
+            "space-xl": "2.5rem",
+            "space-md": "1rem"
+          },
+          "fontFamily": {
+            "body-sm": ["Be Vietnam Pro"],
+            "display-mobile": ["Space Grotesk"],
+            "title-md": ["Be Vietnam Pro"],
+            "body-md": ["Be Vietnam Pro"],
+            "headline-sm": ["Space Grotesk"],
+            "label-sm": ["Space Grotesk"],
+            "label-lg": ["Space Grotesk"],
+            "display": ["Space Grotesk"],
+            "headline-lg": ["Space Grotesk"],
+            "body-lg": ["Be Vietnam Pro"],
+            "label-md": ["Space Grotesk"],
+            "headline-lg-mobile": ["Space Grotesk"],
+            "headline-md": ["Space Grotesk"]
+          },
+          "fontSize": {
+            "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+            "display-mobile": ["34px", { "lineHeight": "42px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "title-md": ["18px", { "lineHeight": "26px", "fontWeight": "600" }],
+            "body-md": ["14px", { "lineHeight": "22px", "fontWeight": "400" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+            "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+            "display": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-lg": ["16px", { "lineHeight": "26px", "fontWeight": "400" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "headline-lg-mobile": ["26px", { "lineHeight": "34px", "fontWeight": "600" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      background-color: #F8FAF9;
+      color: #0F172A;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    /* Brand custom token locks */
+    .brand-emerald {
+      color: #125345;
+    }
+    .bg-brand-emerald {
+      background-color: #125345;
+    }
+    .border-brand-keyline {
+      border-color: #BFCAC4;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-[#F8FAF9] text-[#0F172A] min-h-screen flex flex-col justify-between selection:bg-secondary-container selection:text-primary">
+<!-- ================= TOP APP BAR (M-C07) ================= -->
+<header class="fixed top-0 left-0 right-0 h-14 bg-surface-container-lowest z-40 px-4 flex items-center justify-between shadow-sm border-b border-outline-variant">
+<div class="flex items-center gap-3">
+<a aria-label="Quay lại Kho của tôi" class="w-11 h-11 flex items-center justify-center rounded-lg text-primary hover:bg-surface-container-high transition-transform duration-150 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary-container" href="#back">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</a>
+<h1 class="text-title-md font-title-md text-primary font-bold tracking-tight">Chi tiết buồng kho</h1>
+</div>
+<!-- Avatar trigger customer account modal sheet -->
+<button aria-expanded="false" aria-haspopup="dialog" aria-label="Mở thông tin tài khoản khách hàng Nguyễn Minh Anh" class="w-11 h-11 flex items-center justify-center rounded-lg text-primary hover:bg-surface-container-high transition-transform duration-150 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary-container" id="profile-trigger" type="button">
+<span class="material-symbols-outlined text-[28px]">account_circle</span>
+</button>
+</header>
+<!-- ================= MAIN CONTENT CANVAS ================= -->
+<main class="w-full max-w-[390px] mx-auto pt-16 pb-24 px-4 flex flex-col gap-4">
+<!-- 1. BANNER TRẠNG THÁI BUỒNG KHO -->
+<section aria-label="Trạng thái hợp đồng thuê" class="mt-2 bg-surface-container-lowest rounded-lg border border-outline-variant p-4 shadow-sm">
+<div class="flex items-center justify-between gap-2">
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#E8F5F1] text-primary-container text-label-md font-label-md">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+            Đang hoạt động
+          </span>
+</div>
+<div class="text-right">
+<span class="text-label-sm font-label-sm text-[#475569] block">Mã hợp đồng</span>
+<span class="text-label-lg font-label-lg font-bold text-primary tracking-wide">RNT-2026-0001</span>
+</div>
+</div>
+<div class="mt-3 pt-3 border-t border-[#F1F5F9] flex items-center justify-between text-body-sm font-body-sm text-[#475569]">
+<span>Hợp đồng vật lý có giá trị thực địa</span>
+<span class="inline-flex items-center text-primary-container font-medium">
+<span class="material-symbols-outlined text-[16px] mr-1">verified_user</span> Niêm phong hợp lệ
+        </span>
+</div>
+</section>
+<!-- 2. THẺ 1: THÔNG TIN BUỒNG KHO VẬT LÝ & CƠ SỞ -->
+<section aria-labelledby="card1-title" class="bg-surface-container-lowest rounded-lg border border-outline-variant p-4 shadow-sm">
+<div class="flex items-start justify-between pb-3 border-b border-[#F1F5F9]">
+<div>
+<span class="text-label-sm font-label-sm uppercase tracking-wider text-primary-container bg-[#E8F5F1] px-2 py-0.5 rounded">Phân bổ tại trạm</span>
+<h2 class="text-headline-sm font-headline-sm text-[#0F172A] mt-1.5" id="card1-title">Buồng #HCM-01-001</h2>
+<p class="text-body-md font-body-md text-[#475569] mt-0.5">Vị trí: Tầng 1 - Khu A (Lối vào chính, gần thang máy tải)</p>
+</div>
+</div>
+<!-- Specification Grid -->
+<div class="grid grid-cols-2 gap-2.5 my-3.5">
+<div class="p-3 bg-[#F8FAF9] rounded border border-outline-variant/60">
+<span class="text-label-sm font-label-sm text-[#475569] block">Loại quy chuẩn</span>
+<span class="text-body-lg font-body-lg font-semibold text-[#0F172A] block mt-0.5">Gói Mini 2m²</span>
+<span class="text-body-sm font-body-sm text-[#475569]">Thể tích khả dụng: 5.0 m³</span>
+</div>
+<div class="p-3 bg-[#F8FAF9] rounded border border-outline-variant/60">
+<span class="text-label-sm font-label-sm text-[#475569] block">Kích thước buồng</span>
+<span class="text-body-lg font-body-lg font-semibold text-[#0F172A] block mt-0.5">1.0m × 2.0m</span>
+<span class="text-body-sm font-body-sm text-[#475569]">Chiều cao trần: 2.5m</span>
+</div>
+</div>
+<!-- Station details -->
+<div class="pt-3 border-t border-[#F1F5F9] space-y-2">
+<div class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-[20px] text-primary-container shrink-0 mt-0.5">store</span>
+<div>
+<p class="text-body-lg font-body-lg font-semibold text-[#0F172A]">StoreX Sài Gòn Central</p>
+<p class="text-body-md font-body-md text-[#475569] mt-0.5">118 Nguyễn Văn Linh, P. Tân Phong, Q.7, TP.HCM</p>
+</div>
+</div>
+<div class="pt-2 flex items-center justify-between gap-3">
+<div class="text-body-sm font-body-sm text-[#475569]">
+<span class="block text-label-sm font-label-sm text-[#475569]">Hotline cơ sở vật lý</span>
+<span class="font-semibold text-[#0F172A] text-body-lg font-body-lg">028 7300 1188</span>
+</div>
+<a aria-label="Gọi điện thoại hotline StoreX Sài Gòn Central 028 7300 1188" class="min-h-[44px] px-4 py-2 bg-primary-container text-on-primary rounded font-label-lg text-label-lg flex items-center gap-1.5 shadow-sm active:scale-95 transition-transform" href="tel:02873001188">
+<span class="material-symbols-outlined text-[18px]">call</span>
+            Gọi trạm
+          </a>
+</div>
+</div>
+</section>
+<!-- 3. THẺ 2: THỜI HẠN THUÊ & MỐC BÀN GIAO -->
+<section aria-labelledby="card2-title" class="bg-surface-container-lowest rounded-lg border border-outline-variant p-4 shadow-sm">
+<div class="flex items-center justify-between pb-2 border-b border-[#F1F5F9]">
+<h2 class="text-title-md font-title-md text-[#0F172A]" id="card2-title">Thời hạn thuê &amp; Mốc giao nhận</h2>
+<span class="text-label-md font-label-md font-bold text-primary-container bg-[#E8F5F1] px-2 py-0.5 rounded">Còn 30 ngày</span>
+</div>
+<div class="divide-y divide-[#F1F5F9] text-body-md font-body-md">
+<div class="py-2.5 flex justify-between items-center">
+<span class="text-[#475569]">Bàn giao hoàn tất</span>
+<span class="font-semibold text-[#0F172A]">09/10/2026 (GMT+7)</span>
+</div>
+<div class="py-2.5 flex justify-between items-center">
+<span class="text-[#475569]">Ngày kết thúc kỳ hạn</span>
+<span class="font-semibold text-[#0F172A]">09/11/2026 (01 tháng)</span>
+</div>
+<div class="py-2.5 flex justify-between items-center">
+<span class="text-[#475569]">Mã đặt kho ban đầu</span>
+<span class="font-medium text-primary">BK-2026-0001</span>
+</div>
+<div class="pt-2.5">
+<p class="text-label-sm font-label-sm text-[#475569] mb-1">Tình trạng nghiệm thu thực địa</p>
+<div class="flex items-center gap-2 text-body-sm font-body-sm bg-[#F8FAF9] p-2.5 rounded border border-outline-variant/50">
+<span class="material-symbols-outlined text-[18px] text-primary-container">assignment_turned_in</span>
+<span class="text-[#0F172A]">Đã nghiệm thu hiện trường cùng chuyên viên <strong>FS Trần Quốc Huy</strong></span>
+</div>
+</div>
+</div>
+</section>
+<!-- 4. THẺ 3: CHI TIẾT TÀI CHÍNH MINH BẠCH -->
+<section aria-labelledby="card3-title" class="bg-surface-container-lowest rounded-lg border border-outline-variant p-4 shadow-sm">
+<h2 class="text-title-md font-title-md text-[#0F172A] pb-2 border-b border-[#F1F5F9]" id="card3-title">Chi tiết tài chính minh bạch</h2>
+<div class="divide-y divide-[#F1F5F9] pt-1">
+<div class="py-2.5 flex justify-between items-start">
+<div>
+<p class="text-body-md font-body-md text-[#0F172A] font-medium">Tiền thuê kho (Kỳ đầu)</p>
+<span class="text-body-sm font-body-sm text-[#475569]">Snapshot biểu phí định kỳ</span>
+</div>
+<span class="text-body-lg font-body-lg font-semibold text-[#0F172A]">900.000 đ</span>
+</div>
+<div class="py-2.5 flex justify-between items-start">
+<div class="pr-2">
+<p class="text-body-md font-body-md text-[#0F172A] font-medium">Tiền cọc bảo đảm giữ buồng</p>
+<p class="text-body-sm font-body-sm text-[#475569] mt-0.5">Được giữ độc lập tại cơ sở, hoàn lại 100% khi thanh lý hợp đồng và bàn giao buồng rỗng nguyên vẹn.</p>
+</div>
+<span class="text-body-lg font-body-lg font-semibold text-[#0F172A] shrink-0">900.000 đ</span>
+</div>
+<div class="pt-3 pb-1 flex justify-between items-baseline bg-[#F8FAF9] -mx-4 px-4 mt-2">
+<span class="text-title-md font-title-md font-bold text-[#0F172A]">Tổng tiền đã thanh toán</span>
+<span class="text-headline-sm font-headline-sm font-bold text-primary-container">1.800.000 đ</span>
+</div>
+</div>
+<div class="mt-3 flex items-center gap-1.5 text-body-sm font-body-sm text-primary-container">
+<span class="material-symbols-outlined text-[16px]">check</span>
+<span>Đã thanh toán đủ 100% trước khi bàn giao buồng</span>
+</div>
+</section>
+<!-- 5. THẺ 4: TIỆN ÍCH AN NINH & QUY CHUẨN TRẠM -->
+<section aria-labelledby="card4-title" class="bg-surface-container-lowest rounded-lg border border-outline-variant p-4 shadow-sm">
+<h2 class="text-title-md font-title-md text-[#0F172A] pb-2 border-b border-[#F1F5F9]" id="card4-title">An ninh &amp; Quy chuẩn vật lý tại trạm</h2>
+<ul class="mt-2 divide-y divide-[#F1F5F9]">
+<li class="py-3 flex items-start gap-3">
+<span class="material-symbols-outlined text-[20px] text-primary-container mt-0.5 shrink-0">key</span>
+<div>
+<p class="text-body-lg font-body-lg font-semibold text-[#0F172A]">Ổ khóa &amp; Chìa cơ riêng biệt</p>
+<p class="text-body-md font-body-md text-[#475569] mt-0.5">Khách hàng giữ chìa khóa độc quyền đã niêm phong khi nhận buồng từ quản lý trạm.</p>
+</div>
+</li>
+<li class="py-3 flex items-start gap-3">
+<span class="material-symbols-outlined text-[20px] text-primary-container mt-0.5 shrink-0">badge</span>
+<div>
+<p class="text-body-lg font-body-lg font-semibold text-[#0F172A]">Thẻ từ ra vào trạm 24/7</p>
+<p class="text-body-md font-body-md text-[#475569] mt-0.5">Quẹt thẻ vật lý tại cửa chính để ra vào kho bất kể ngày đêm.</p>
+</div>
+</li>
+<li class="py-3 flex items-start gap-3">
+<span class="material-symbols-outlined text-[20px] text-primary-container mt-0.5 shrink-0">mode_fan</span>
+<div>
+<p class="text-body-lg font-body-lg font-semibold text-[#0F172A]">Thông gió &amp; PCCC tiêu chuẩn</p>
+<p class="text-body-md font-body-md text-[#475569] mt-0.5">Không khí lưu thông liên tục, hệ thống cảnh báo khói và bình chữa cháy định kỳ.</p>
+</div>
+</li>
+</ul>
+</section>
+<!-- 6. THẺ 5: HƯỚNG DẪN HỖ TRỢ & XỬ LÝ SỰ CỐ (ACCORDION - NIELSEN #10) -->
+<section aria-labelledby="card5-title" class="bg-surface-container-lowest rounded-lg border border-outline-variant p-4 shadow-sm">
+<div class="flex items-center gap-2 pb-2 border-b border-[#F1F5F9]">
+<span class="material-symbols-outlined text-[20px] text-primary-container">help_outline</span>
+<h2 class="text-title-md font-title-md text-[#0F172A]" id="card5-title">Hướng dẫn hỗ trợ &amp; Xử lý sự cố</h2>
+</div>
+<div aria-label="Các câu hỏi thường gặp và quy trình hỗ trợ" class="divide-y divide-[#F1F5F9] mt-1" role="region">
+<!-- FAQ Item 1 -->
+<div class="py-2.5">
+<button aria-controls="faq-ans-1" aria-expanded="false" class="accordion-trigger w-full flex items-center justify-between text-left min-h-[44px] py-1 text-body-lg font-body-lg font-semibold text-[#0F172A] focus:outline-none focus:ring-1 focus:ring-primary rounded" type="button">
+<span>Làm thế nào khi cần gia hạn hợp đồng thuê?</span>
+<span class="material-symbols-outlined text-[20px] text-[#475569] transition-transform duration-200 accordion-arrow">expand_more</span>
+</button>
+<div class="accordion-content hidden pt-1 pb-2 text-body-md font-body-md text-[#475569]" id="faq-ans-1">
+            Liên hệ trực tiếp quầy lễ tân hoặc hotline trạm StoreX Sài Gòn Central trước ngày hết hạn 07 ngày để đối soát buồng và hoàn tất phụ lục kỳ hạn mới.
+          </div>
+</div>
+<!-- FAQ Item 2 -->
+<div class="py-2.5">
+<button aria-controls="faq-ans-2" aria-expanded="false" class="accordion-trigger w-full flex items-center justify-between text-left min-h-[44px] py-1 text-body-lg font-body-lg font-semibold text-[#0F172A] focus:outline-none focus:ring-1 focus:ring-primary rounded" type="button">
+<span>Quy trình trả kho và hoàn tiền cọc 900.000 đ?</span>
+<span class="material-symbols-outlined text-[20px] text-[#475569] transition-transform duration-200 accordion-arrow">expand_more</span>
+</button>
+<div class="accordion-content hidden pt-1 pb-2 text-body-md font-body-md text-[#475569]" id="faq-ans-2">
+            Đăng ký lịch hẹn trả kho với nhân viên hiện trường (FS) để khảo sát buồng trống sạch sẽ, sau đó Quản lý cơ sở (FM) thực hiện đối soát và hoàn tiền cọc 900.000 đ theo biên bản bàn giao thanh lý.
+          </div>
+</div>
+<!-- FAQ Item 3 -->
+<div class="py-2.5">
+<button aria-controls="faq-ans-3" aria-expanded="false" class="accordion-trigger w-full flex items-center justify-between text-left min-h-[44px] py-1 text-body-lg font-body-lg font-semibold text-[#0F172A] focus:outline-none focus:ring-1 focus:ring-primary rounded" type="button">
+<span>Quên chìa khóa hoặc cần hỗ trợ khẩn cấp?</span>
+<span class="material-symbols-outlined text-[20px] text-[#475569] transition-transform duration-200 accordion-arrow">expand_more</span>
+</button>
+<div class="accordion-content hidden pt-1 pb-2 text-body-md font-body-md text-[#475569]" id="faq-ans-3">
+            Liên hệ ngay nhân viên trực trạm qua hotline <strong class="text-[#0F172A]">028 7300 1188</strong> hoặc đến trực tiếp quầy dịch vụ tại tầng 1 để xác minh danh tính và lập biên bản mở niêm phong dự phòng.
+          </div>
+</div>
+</div>
+</section>
+</main>
+<!-- ================= BOTTOM NAVIGATION BAR (CUSTOMER - STOREX) ================= -->
+<!-- Active Tab: Kho của tôi (kho cở sở đang quản lý) -->
+<nav aria-label="Điều hướng chính" class="fixed bottom-0 left-0 w-full z-40 flex justify-around items-center px-margin-sm py-space-xs h-16 bg-surface border-t border-outline-variant shadow-[0_-2px_6px_rgba(15,23,42,0.04)]">
+<!-- Tab 1: Tổng quan -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant font-normal min-w-[56px] min-h-[48px] hover:text-primary active:scale-95 transition-transform duration-150" href="#dashboard">
+<span class="material-symbols-outlined text-[22px]">dashboard</span>
+<span class="text-label-sm font-label-sm mt-0.5">Tổng quan</span>
+</a>
+<!-- Tab 2: Đơn đặt kho -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant font-normal min-w-[56px] min-h-[48px] hover:text-primary active:scale-95 transition-transform duration-150" href="#orders">
+<span class="material-symbols-outlined text-[22px]">receipt_long</span>
+<span class="text-label-sm font-label-sm mt-0.5">Đơn đặt kho</span>
+</a>
+<!-- Tab 3: Giữ chỗ -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant font-normal min-w-[56px] min-h-[48px] hover:text-primary active:scale-95 transition-transform duration-150" href="#bookmarks">
+<span class="material-symbols-outlined text-[22px]">bookmark</span>
+<span class="text-label-sm font-label-sm mt-0.5">Giữ chỗ</span>
+</a>
+<!-- Tab 4: Kho của tôi (ACTIVE) -->
+<a aria-current="page" class="flex flex-col items-center justify-center text-primary font-semibold min-w-[56px] min-h-[48px] active:scale-95 transition-transform duration-150" href="#my-warehouse">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">warehouse</span>
+<span class="text-label-sm font-label-sm mt-0.5 font-bold">Kho của tôi</span>
+</a>
+</nav>
+<!-- ================= CUSTOMER ACCOUNT MODAL SHEET ================= -->
+<div aria-hidden="true" class="fixed inset-0 bg-black/40 z-50 backdrop-blur-sm hidden transition-opacity opacity-0" id="profile-sheet-backdrop">
+<div aria-labelledby="sheet-title" aria-modal="true" class="fixed bottom-0 left-0 right-0 max-w-[390px] mx-auto bg-surface-container-lowest rounded-t-xl p-5 border-t border-outline-variant shadow-xl transform translate-y-full transition-transform duration-250 ease-out" id="profile-sheet-panel" role="dialog">
+<!-- Drag handle -->
+<div class="w-10 h-1 bg-outline-variant rounded-full mx-auto mb-4"></div>
+<div class="flex items-center justify-between pb-3 border-b border-[#F1F5F9]">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-[#E8F5F1] text-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-[32px]">account_circle</span>
+</div>
+<div>
+<h3 class="text-title-md font-title-md text-[#0F172A] font-bold" id="sheet-title">Nguyễn Minh Anh</h3>
+<span class="text-label-sm font-label-sm text-primary-container font-medium">Khách hàng cá nhân StoreX</span>
+</div>
+</div>
+<button aria-label="Đóng bảng thông tin tài khoản" class="w-11 h-11 flex items-center justify-center rounded-lg text-[#475569] hover:bg-[#F1F5F9] focus:outline-none" id="close-sheet-btn" type="button">
+<span class="material-symbols-outlined text-[24px]">close</span>
+</button>
+</div>
+<!-- User contact particulars -->
+<div class="py-4 space-y-3 text-body-md font-body-md">
+<div class="flex items-center justify-between p-3 bg-[#F8FAF9] rounded border border-outline-variant/60">
+<span class="text-[#475569] flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">mail</span> Email:
+          </span>
+<span class="font-semibold text-[#0F172A]">customer@example.test</span>
+</div>
+<div class="flex items-center justify-between p-3 bg-[#F8FAF9] rounded border border-outline-variant/60">
+<span class="text-[#475569] flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">phone</span> Điện thoại:
+          </span>
+<span class="font-semibold text-[#0F172A]">0908 123 456</span>
+</div>
+</div>
+<!-- Action buttons -->
+<div class="pt-2 flex flex-col gap-2.5">
+<button class="w-full min-h-[44px] flex items-center justify-center gap-2 bg-[#FEE2E2] text-[#B91C1C] rounded font-label-lg text-label-lg font-semibold active:scale-95 transition-transform" onclick="alert('Đã đăng xuất khỏi tài khoản StoreX.')" type="button">
+<span class="material-symbols-outlined text-[20px]">logout</span>
+          Đăng xuất
+        </button>
+</div>
+</div>
+</div>
+<!-- ================= INLINE JAVASCRIPT MICRO-INTERACTIONS ================= -->
+<script>
+    // --- 1. Account Sheet Modal Interaction ---
+    const profileTrigger = document.getElementById('profile-trigger');
+    const profileBackdrop = document.getElementById('profile-sheet-backdrop');
+    const profilePanel = document.getElementById('profile-sheet-panel');
+    const closeSheetBtn = document.getElementById('close-sheet-btn');
+
+    function openProfileSheet() {
+      profileBackdrop.classList.remove('hidden');
+      requestAnimationFrame(() => {
+        profileBackdrop.classList.remove('opacity-0');
+        profileBackdrop.classList.add('opacity-100');
+        profilePanel.classList.remove('translate-y-full');
+        profilePanel.classList.add('translate-y-0');
+      });
+      profileTrigger.setAttribute('aria-expanded', 'true');
+      closeSheetBtn.focus();
+    }
+
+    function closeProfileSheet() {
+      profileBackdrop.classList.remove('opacity-100');
+      profileBackdrop.classList.add('opacity-0');
+      profilePanel.classList.remove('translate-y-0');
+      profilePanel.classList.add('translate-y-full');
+      setTimeout(() => {
+        profileBackdrop.classList.add('hidden');
+        profileTrigger.setAttribute('aria-expanded', 'false');
+        profileTrigger.focus();
+      }, 200);
+    }
+
+    profileTrigger.addEventListener('click', openProfileSheet);
+    closeSheetBtn.addEventListener('click', closeProfileSheet);
+    profileBackdrop.addEventListener('click', (e) => {
+      if (e.target === profileBackdrop) {
+        closeProfileSheet();
+      }
+    });
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !profileBackdrop.classList.contains('hidden')) {
+        closeProfileSheet();
+      }
+    });
+
+    // --- 2. FAQ Accordion Interaction ---
+    const accordionTriggers = document.querySelectorAll('.accordion-trigger');
+
+    accordionTriggers.forEach((trigger) => {
+      trigger.addEventListener('click', () => {
+        const isExpanded = trigger.getAttribute('aria-expanded') === 'true';
+        const contentId = trigger.getAttribute('aria-controls');
+        const content = document.getElementById(contentId);
+        const arrow = trigger.querySelector('.accordion-arrow');
+
+        // Toggle state
+        if (isExpanded) {
+          trigger.setAttribute('aria-expanded', 'false');
+          content.classList.add('hidden');
+          arrow.style.transform = 'rotate(0deg)';
+        } else {
+          trigger.setAttribute('aria-expanded', 'true');
+          content.classList.remove('hidden');
+          arrow.style.transform = 'rotate(180deg)';
+        }
+      });
+    });
+  </script>
+</body></html>

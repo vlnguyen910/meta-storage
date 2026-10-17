@@ -1,0 +1,773 @@
+<!DOCTYPE html><html lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>M-C02 — Đơn đặt kho đã thanh toán — Customer</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Space+Grotesk:wght@600;700&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              DEFAULT: '#125345',
+              hover: '#0c3a30',
+              soft: '#E8F3EF',
+              border: '#BFCAC4'
+            },
+            surface: {
+              canvas: '#F8FAF9',
+              card: '#FFFFFF',
+              dark: '#0F172A',
+              muted: '#475569'
+            }
+          },
+          fontFamily: {
+            heading: ['"Space Grotesk"', 'sans-serif'],
+            body: ['"Be Vietnam Pro"', 'sans-serif']
+          },
+          borderRadius: {
+            'custom': '4px'
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    /* Full mobile viewport fill, zero desktop margins */
+    html, body {
+      width: 100%;
+      min-height: 100%;
+      margin: 0;
+      padding: 0;
+      background-color: #F8FAF9;
+      -webkit-tap-highlight-color: transparent;
+    }
+    :focus-visible {
+      outline: 2px solid #125345;
+      outline-offset: 2px;
+    }
+    .tap-target {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="w-full text-[#0F172A] font-body antialiased min-h-screen pb-24">
+<!-- TOP HEADER (StoreX Customer chuẩn Mobile) -->
+<header class="sticky top-0 z-40 bg-white border-b border-[#BFCAC4] px-4 py-3 flex items-center justify-between shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+<!-- Brand identity -->
+<div class="flex items-center gap-2.5">
+<div class="w-9 h-9 rounded-custom bg-[#125345] flex items-center justify-center text-white font-heading font-bold text-xl shadow-sm">
+        s
+      </div>
+<div class="flex flex-col">
+<span class="font-heading font-bold text-lg text-[#125345] tracking-tight leading-none">storeX</span>
+<span class="text-[10px] text-[#475569] font-medium tracking-wide mt-0.5 uppercase">Tự quản thông minh</span>
+</div>
+</div>
+<!-- Actions: Notifications / Help & User identity -->
+<div class="flex items-center gap-2">
+<!-- Trợ giúp / Thông báo -->
+<button aria-label="Hướng dẫn sử dụng và trợ giúp" class="tap-target w-11 h-11 flex items-center justify-center rounded-custom text-[#475569] hover:text-[#125345] hover:bg-[#E8F3EF] transition-colors" id="help-btn" type="button">
+<svg aria-hidden="true" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+<!-- User Button Minh Anh -->
+<button aria-expanded="false" aria-haspopup="dialog" aria-label="Mở menu tài khoản Minh Anh" class="tap-target px-2.5 py-1.5 flex items-center gap-2 rounded-custom border border-[#BFCAC4] bg-white text-[#0F172A] hover:bg-[#E8F3EF] transition-colors" id="account-btn" type="button">
+<span class="w-7 h-7 rounded-full bg-[#E8F3EF] text-[#125345] font-bold text-xs flex items-center justify-center border border-[#125345]/20">NA</span>
+<span class="text-xs font-semibold">Minh Anh</span>
+<svg aria-hidden="true" class="w-3.5 h-3.5 text-[#475569]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+</div>
+</header>
+<!-- MAIN VIEWPORT (Tràn viền 100% Mobile, px-4) -->
+<main class="w-full px-4 pt-3.5 space-y-4">
+<!-- PAGE TITLE & BADGE (Loại bỏ mã màn hình M-C02) -->
+<div>
+<div class="flex items-center justify-between gap-2">
+<h1 class="font-heading text-lg font-bold text-[#0F172A] tracking-tight">Đơn đặt kho của tôi</h1>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-custom bg-[#E8F3EF] text-[#125345] text-xs font-semibold border border-[#125345]/30 flex-shrink-0">
+<span class="w-2 h-2 rounded-full bg-[#125345]"></span>
+          Đã thanh toán
+        </span>
+</div>
+<p class="text-xs text-[#475569] mt-1 leading-relaxed">
+        Danh sách các đơn đặt kho đã chốt thanh toán, sẵn sàng nhận buồng tại trạm hoặc đang sử dụng.
+      </p>
+</div>
+<!-- SEARCH & FILTER TABS -->
+<section aria-label="Bộ lọc tìm kiếm" class="bg-white border border-[#BFCAC4] rounded-custom p-3.5 shadow-sm">
+<!-- Input Search (cỡ chữ >= 16px tránh iOS auto-zoom) -->
+<div class="relative mb-3">
+<label class="block text-xs font-bold text-[#0F172A] mb-1.5" for="booking-search">Mã đơn booking hoặc tên cơ sở</label>
+<div class="relative flex items-center">
+<span aria-hidden="true" class="absolute left-3 text-[#475569] pointer-events-none">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</span>
+<input autocomplete="off" class="w-full text-base pl-9 pr-8 py-2 bg-white border border-[#BFCAC4] rounded-custom text-[#0F172A] placeholder-[#475569]/70 focus:ring-1 focus:ring-[#125345] focus:border-[#125345]" id="booking-search" placeholder="Ví dụ: BK-2026-0001, Sài Gòn Central..." type="search">
+<button aria-label="Xóa nội dung tìm kiếm" class="hidden absolute right-2 tap-target w-8 h-8 flex items-center justify-center text-[#475569] hover:text-[#0F172A]" id="clear-search-btn" type="button">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</button>
+</div>
+</div>
+<!-- Quick Filter Pills: Tất cả (3), Chờ nhận kho (1), Đang sử dụng (1), Đã đóng/hủy (1) -->
+<div aria-label="Lọc theo trạng thái đơn hàng" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5" role="tablist">
+<button aria-selected="true" class="status-tab tap-target px-3 py-2 text-xs font-semibold rounded-custom border transition-colors flex items-center justify-center gap-1 whitespace-nowrap bg-[#125345] text-white border-[#125345]" data-filter="ALL" role="tab" type="button">
+          Tất cả (3)
+        </button>
+<button aria-selected="false" class="status-tab tap-target px-3 py-2 text-xs font-semibold rounded-custom border transition-colors flex items-center justify-center gap-1 whitespace-nowrap bg-white text-[#475569] border-[#BFCAC4] hover:bg-[#E8F3EF]" data-filter="PENDING_CHECKIN" role="tab" type="button">
+          Chờ nhận kho (1)
+        </button>
+<button aria-selected="false" class="status-tab tap-target px-3 py-2 text-xs font-semibold rounded-custom border transition-colors flex items-center justify-center gap-1 whitespace-nowrap bg-white text-[#475569] border-[#BFCAC4] hover:bg-[#E8F3EF]" data-filter="ACTIVE" role="tab" type="button">
+          Đang sử dụng (1)
+        </button>
+<button aria-selected="false" class="status-tab tap-target px-3 py-2 text-xs font-semibold rounded-custom border transition-colors flex items-center justify-center gap-1 whitespace-nowrap bg-white text-[#475569] border-[#BFCAC4] hover:bg-[#E8F3EF]" data-filter="CANCELLED" role="tab" type="button">
+          Đã đóng/hủy (1)
+        </button>
+</div>
+<!-- Filter feedback reset link -->
+<div class="hidden mt-2 pt-2 border-t border-[#BFCAC4]/40 flex items-center justify-between text-xs text-[#475569]" id="filter-reset-row">
+<span id="filter-result-text">Đang lọc kết quả</span>
+<button class="font-medium text-[#125345] underline hover:text-[#0c3a30] tap-target flex items-center" id="reset-filter-btn" type="button">
+          Đặt lại bộ lọc
+        </button>
+</div>
+</section>
+<!-- ACCESSIBILITY LIVE REGION -->
+<div aria-live="polite" class="sr-only" id="status-live-region">Hiển thị 3 đơn đặt kho</div>
+<!-- BOOKINGS CARD LIST -->
+<div class="space-y-4" id="booking-cards-list">
+<!-- CARD 1: Đơn sắp tới #BK-2026-0001 (Chờ đón tiếp) -->
+<article class="booking-card bg-white border border-[#BFCAC4] rounded-custom p-4 shadow-sm" data-code="BK-2026-0001" data-facility="StoreX Sài Gòn Central" data-status="PENDING_CHECKIN">
+<!-- Top header row -->
+<div class="flex items-start justify-between gap-2 border-b border-[#BFCAC4]/50 pb-3 mb-3">
+<div>
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="font-heading font-bold text-base text-[#125345]">#BK-2026-0001</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded-custom bg-[#E8F3EF] text-[#125345] text-[11px] font-bold border border-[#125345]/30">
+                ĐÃ THANH TOÁN 100%
+              </span>
+</div>
+<div class="flex items-center gap-2 mt-1">
+<span class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded-custom border border-emerald-200">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                Chờ đón tiếp
+              </span>
+<span class="text-xs text-[#475569]">09/10/2026 (GMT+7)</span>
+</div>
+</div>
+<!-- Mini QR Trigger -->
+<button aria-label="Xem mã QR nhận kho mini đơn BK-2026-0001" class="qr-trigger-btn tap-target w-11 h-11 rounded-custom bg-[#E8F3EF] text-[#125345] border border-[#BFCAC4] flex flex-col items-center justify-center hover:bg-[#125345] hover:text-white transition-colors flex-shrink-0" data-code="BK-2026-0001" type="button">
+<svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-[9px] font-bold mt-0.5 leading-none">MÃ QR</span>
+</button>
+</div>
+<!-- Facility Info -->
+<div class="mb-3">
+<div class="flex items-center gap-1.5 text-xs text-[#475569] mb-0.5">
+<svg aria-hidden="true" class="w-4 h-4 text-[#125345] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<strong class="text-[#0F172A] text-sm font-bold">StoreX Sài Gòn Central</strong>
+</div>
+<p class="text-xs text-[#475569] pl-5.5">118 Nguyễn Văn Linh, Q.7, TP.HCM</p>
+</div>
+<!-- Storage & Slot Details -->
+<div class="bg-[#F8FAF9] border border-[#BFCAC4]/70 rounded-custom p-3 mb-3 text-xs space-y-2">
+<div class="grid grid-cols-2 gap-2">
+<div>
+<span class="text-[#475569] block">Loại buồng:</span>
+<span class="font-bold text-[#0F172A] text-sm">Mini 2m²</span>
+<span class="text-[11px] text-[#475569] block">(1.0m × 2.0m × Cao 2.5m)</span>
+</div>
+<div>
+<span class="text-[#475569] block">Ô vật lý:</span>
+<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-custom bg-[#E8F3EF] text-[#125345] font-bold text-xs">
+                HCM-01-001 (Đã gán)
+              </span>
+</div>
+</div>
+<div class="pt-2 border-t border-[#BFCAC4]/50 flex justify-between items-start gap-2">
+<div>
+<span class="text-[#475569] block text-[11px]">Khung giờ đón tiếp:</span>
+<span class="font-bold text-[#125345] text-xs block">10:00 – 12:00, 09/10/2026</span>
+<span class="text-[10px] text-[#475569] block mt-0.5">Ân hạn đón tiếp đến 14:00 (GMT+7)</span>
+</div>
+<div class="text-right flex-shrink-0">
+<span class="text-[#475569] block text-[11px]">Kỳ hạn:</span>
+<span class="font-bold text-[#0F172A] text-xs">01 tháng</span>
+</div>
+</div>
+</div>
+<!-- Financial Summary -->
+<div class="flex items-center justify-between text-xs mb-3.5 pb-2.5 border-b border-[#BFCAC4]/50">
+<div>
+<span class="text-[#475569] block">Đã thanh toán:</span>
+<span class="text-[11px] text-[#125345] font-medium">(Thuê 900.000 đ + Cọc 900.000 đ)</span>
+</div>
+<div class="text-right">
+<span class="font-heading font-bold text-base text-[#125345]">1.800.000 đ</span>
+</div>
+</div>
+<!-- CTAs (Touch target >= 44px) -->
+<div class="flex items-center gap-2">
+<a aria-label="Xem đơn thuê đơn BK-2026-0001" class="tap-target flex-1 flex items-center justify-center gap-1.5 bg-[#125345] text-white text-xs font-semibold rounded-custom hover:bg-[#0c3a30] transition-colors" href="#">
+<span>Xem đơn thuê</span>
+<svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</a>
+<button aria-label="Gọi hotline trạm StoreX Sài Gòn Central" class="tap-target px-3 bg-white border border-[#BFCAC4] text-[#125345] text-xs font-semibold rounded-custom hover:bg-[#E8F3EF] transition-colors flex items-center justify-center gap-1.5 hotline-btn" data-phone="028 7300 1188" type="button">
+<svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>Hotline trạm</span>
+</button>
+</div>
+</article>
+<!-- CARD 2: Đơn #BK-2026-0004 (Đã thanh toán 100%, vị trí chờ FM chỉ định) -->
+<article class="booking-card bg-white border border-[#BFCAC4] rounded-custom p-4 shadow-sm" data-code="BK-2026-0004" data-facility="StoreX Sài Gòn Central" data-status="CANCELLED">
+<!-- Top header row -->
+<div class="flex items-start justify-between gap-2 border-b border-[#BFCAC4]/50 pb-3 mb-3">
+<div>
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="font-heading font-bold text-base text-[#125345]">#BK-2026-0004</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded-custom bg-[#E8F3EF] text-[#125345] text-[11px] font-bold border border-[#125345]/30">
+                ĐÃ THANH TOÁN 100%
+              </span>
+</div>
+<p class="text-xs text-[#475569] mt-0.5">Khung giờ: 15/10/2026 (GMT+7)</p>
+</div>
+<button aria-label="Xem mã QR đơn BK-2026-0004" class="qr-trigger-btn tap-target w-11 h-11 rounded-custom bg-[#E8F3EF] text-[#125345] border border-[#BFCAC4] flex flex-col items-center justify-center hover:bg-[#125345] hover:text-white transition-colors flex-shrink-0" data-code="BK-2026-0004" type="button">
+<svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-[9px] font-bold mt-0.5 leading-none">MÃ QR</span>
+</button>
+</div>
+<!-- Facility Info -->
+<div class="mb-3">
+<div class="flex items-center gap-1.5 text-xs text-[#475569] mb-0.5">
+<svg aria-hidden="true" class="w-4 h-4 text-[#125345] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<strong class="text-[#0F172A] text-sm font-bold">StoreX Sài Gòn Central</strong>
+</div>
+<p class="text-xs text-[#475569] pl-5.5">118 Nguyễn Văn Linh, Q.7, TP.HCM</p>
+</div>
+<!-- Storage & Slot Details -->
+<div class="bg-[#F8FAF9] border border-[#BFCAC4]/70 rounded-custom p-3 mb-3 text-xs space-y-2">
+<div class="grid grid-cols-2 gap-2">
+<div>
+<span class="text-[#475569] block">Loại buồng:</span>
+<span class="font-bold text-[#0F172A] text-sm">Tiêu chuẩn 4m²</span>
+</div>
+<div>
+<span class="text-[#475569] block">Vị trí buồng:</span>
+<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-custom bg-amber-50 text-amber-900 border border-amber-300 font-semibold text-[11px]">
+                Chờ FM chỉ định
+              </span>
+</div>
+</div>
+<div class="pt-2 border-t border-[#BFCAC4]/50 flex justify-between items-center text-xs">
+<span class="text-[#475569]">Kỳ hạn: <strong>03 tháng</strong></span>
+<span class="text-[#475569]">Khung giờ hẹn: <strong>15/10/2026</strong></span>
+</div>
+</div>
+<!-- Financial Summary -->
+<div class="flex items-center justify-between text-xs mb-3.5 pb-2.5 border-b border-[#BFCAC4]/50">
+<div>
+<span class="text-[#475569] block">Đã thanh toán (Kỳ 3 tháng):</span>
+<span class="text-[11px] text-[#125345] font-medium">(Thuê 4.5M + Cọc 1.5M)</span>
+</div>
+<div class="text-right">
+<span class="font-heading font-bold text-base text-[#125345]">6.000.000 đ</span>
+</div>
+</div>
+<!-- CTA -->
+<div>
+<a aria-label="Xem đơn thuê đơn BK-2026-0004" class="tap-target w-full flex items-center justify-center gap-1.5 bg-[#125345] text-white text-xs font-semibold rounded-custom hover:bg-[#0c3a30] transition-colors" href="#">
+<span>Xem đơn thuê</span>
+<svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</a>
+</div>
+</article>
+<!-- CARD 3: Đơn #BK-2025-0892 (ĐANG LƯU KHO) -->
+<article class="booking-card bg-white border border-[#BFCAC4] rounded-custom p-4 shadow-sm" data-code="BK-2025-0892" data-facility="StoreX Cầu Giấy TechHub" data-status="ACTIVE">
+<!-- Top header row -->
+<div class="flex items-start justify-between gap-2 border-b border-[#BFCAC4]/50 pb-3 mb-3">
+<div>
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="font-heading font-bold text-base text-[#125345]">#BK-2025-0892</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded-custom bg-[#E8F3EF] text-[#125345] text-[11px] font-bold border border-[#125345]/30">
+                ĐANG LƯU KHO
+              </span>
+</div>
+<p class="text-xs text-[#475569] mt-0.5">Kỳ hạn thuê hiện hành</p>
+</div>
+<span class="inline-flex items-center px-2 py-1 text-xs font-semibold text-[#125345] bg-[#E8F3EF] rounded-custom border border-[#125345]/20">
+            Buồng HN-CG-04
+          </span>
+</div>
+<!-- Facility Info -->
+<div class="mb-3">
+<div class="flex items-center gap-1.5 text-xs text-[#475569] mb-0.5">
+<svg aria-hidden="true" class="w-4 h-4 text-[#125345] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<strong class="text-[#0F172A] text-sm font-bold">StoreX Cầu Giấy TechHub</strong>
+</div>
+<p class="text-xs text-[#475569] pl-5.5">88 Duy Tân, Cầu Giấy, Hà Nội</p>
+</div>
+<!-- Storage & Slot Details -->
+<div class="bg-[#F8FAF9] border border-[#BFCAC4]/70 rounded-custom p-3 mb-3 text-xs grid grid-cols-2 gap-2">
+<div>
+<span class="text-[#475569] block">Loại buồng:</span>
+<span class="font-bold text-[#0F172A] text-sm">Mini 2m²</span>
+</div>
+<div>
+<span class="text-[#475569] block">Hết hạn hợp đồng:</span>
+<span class="font-bold text-[#125345] text-xs">15/11/2026</span>
+</div>
+</div>
+<!-- CTA: Chi tiết buồng đang thuê -->
+<div>
+<a aria-label="Xem chi tiết buồng đang thuê đơn BK-2025-0892" class="tap-target w-full flex items-center justify-center gap-1.5 bg-white border border-[#125345] text-[#125345] text-xs font-semibold rounded-custom hover:bg-[#E8F3EF] transition-colors" href="#">
+<span>Chi tiết buồng đang thuê</span>
+<svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</a>
+</div>
+</article>
+</div>
+<!-- EMPTY STATE -->
+<div class="hidden bg-white border border-[#BFCAC4] rounded-custom p-6 text-center shadow-sm" id="empty-state">
+<div class="w-12 h-12 rounded-full bg-[#E8F3EF] text-[#125345] flex items-center justify-center mx-auto mb-3">
+<svg aria-hidden="true" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<h2 class="font-heading font-bold text-base text-[#0F172A] mb-1">Không tìm thấy đơn đặt kho phù hợp</h2>
+<p class="text-xs text-[#475569] mb-4">Không có mã đơn hoặc cơ sở nào khớp với từ khóa tìm kiếm của bạn.</p>
+<button class="tap-target inline-flex items-center justify-center px-4 py-2 bg-[#125345] text-white text-xs font-semibold rounded-custom hover:bg-[#0c3a30] transition-colors" id="empty-reset-btn" type="button">
+        Xem tất cả đơn đã thanh toán
+      </button>
+</div>
+<!-- ACCORDION: HƯỚNG DẪN 3 BƯỚC NHẬN BUỒNG KHO TẠI QUẦY -->
+<section aria-label="Hướng dẫn nhận buồng kho tại quầy" class="bg-white border border-[#BFCAC4] rounded-custom shadow-sm overflow-hidden">
+<button aria-controls="help-content" aria-expanded="false" class="w-full tap-target px-4 py-3 flex items-center justify-between text-left font-heading font-bold text-xs text-[#0F172A] hover:bg-[#F8FAF9] transition-colors" id="help-toggle-btn" type="button">
+<span class="flex items-center gap-2">
+<svg aria-hidden="true" class="w-4 h-4 text-[#125345] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+          Quy trình 3 bước nhận buồng kho tại quầy
+        </span>
+<svg aria-hidden="true" class="w-4 h-4 text-[#475569] transform transition-transform" fill="none" id="help-arrow-icon" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+<div class="hidden px-4 pb-4 pt-1 border-t border-[#BFCAC4]/40 text-xs text-[#475569] space-y-2.5" id="help-content">
+<div class="flex items-start gap-2.5">
+<span class="w-5 h-5 rounded-full bg-[#E8F3EF] text-[#125345] font-bold text-[11px] flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
+<div>
+<strong class="text-[#0F172A] block">Đến đúng khung giờ hẹn tại trạm:</strong>
+            Có mặt tại sảnh tiếp đón cơ sở StoreX tương ứng trong khung giờ hẹn đã chốt (có ân hạn 2 giờ).
+          </div>
+</div>
+<div class="flex items-start gap-2.5">
+<span class="w-5 h-5 rounded-full bg-[#E8F3EF] text-[#125345] font-bold text-[11px] flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
+<div>
+<strong class="text-[#0F172A] block">Xuất trình mã QR và CMND/CCCD:</strong>
+            Nhân viên lễ tân cơ sở (FS) sẽ quét đối soát mã QR booking của bạn và xác thực danh tính.
+          </div>
+</div>
+<div class="flex items-start gap-2.5">
+<span class="w-5 h-5 rounded-full bg-[#E8F3EF] text-[#125345] font-bold text-[11px] flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
+<div>
+<strong class="text-[#0F172A] block">Kiểm tra buồng thực tế &amp; Ký nhận bàn giao:</strong>
+            Cùng nhân viên nghiệm thu buồng sạch sẽ, nhận mã số bảo mật buồng hoặc chìa khóa để chính thức sử dụng.
+          </div>
+</div>
+</div>
+</section>
+</main>
+<!-- BOTTOM NAVIGATION (4 mục chuẩn Mobile) -->
+<nav aria-label="Điều hướng chính ứng dụng" class="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#BFCAC4] shadow-[0_-2px_6px_rgba(15,23,42,0.06)]">
+<div class="w-full flex items-center justify-around h-16 px-1">
+<!-- 1. Tổng quan -->
+<a aria-label="Trang tổng quan khách hàng" class="tap-target flex flex-col items-center justify-center flex-1 text-[#475569] hover:text-[#125345] transition-colors" href="#">
+<svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-[11px] font-medium mt-0.5">Tổng quan</span>
+</a>
+<!-- 2. Đơn đặt (ACTIVE) -->
+<a aria-current="page" aria-label="Danh sách đơn đặt kho đã thanh toán" class="tap-target flex flex-col items-center justify-center flex-1 text-[#125345] font-bold" href="#">
+<svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-[11px] mt-0.5">Đơn đặt</span>
+</a>
+<!-- 3. Giữ chỗ -->
+<a aria-label="Danh sách giữ chỗ" class="tap-target flex flex-col items-center justify-center flex-1 text-[#475569] hover:text-[#125345] transition-colors" href="#">
+<svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-[11px] font-medium mt-0.5">Giữ chỗ</span>
+</a>
+<!-- 4. Kho của tôi -->
+<a aria-label="Quản lý buồng kho của tôi" class="tap-target flex flex-col items-center justify-center flex-1 text-[#475569] hover:text-[#125345] transition-colors" href="#">
+<svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-[11px] font-medium mt-0.5">Kho của tôi</span>
+</a>
+</div>
+</nav>
+<!-- ACCOUNT DRAWER DIALOG -->
+<div aria-hidden="true" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm hidden" id="account-sheet-backdrop">
+<div aria-labelledby="sheet-user-name" aria-modal="true" class="fixed bottom-0 left-0 right-0 w-full bg-white rounded-t-xl border-t border-[#BFCAC4] p-5 shadow-2xl transform translate-y-full transition-transform duration-200" id="account-sheet" role="dialog">
+<!-- Drag indicator -->
+<div aria-hidden="true" class="w-10 h-1 bg-[#BFCAC4] rounded-full mx-auto mb-4"></div>
+<!-- User Info -->
+<div class="flex items-center gap-3 pb-4 border-b border-[#BFCAC4]/40">
+<div class="w-12 h-12 rounded-full bg-[#E8F3EF] text-[#125345] font-heading font-bold text-lg flex items-center justify-center border border-[#125345]/20">
+          NA
+        </div>
+<div class="flex-1">
+<h2 class="font-heading font-bold text-base text-[#0F172A]" id="sheet-user-name">Nguyễn Minh Anh</h2>
+<p class="text-xs text-[#475569]">customer@storex.vn</p>
+<span class="inline-block mt-0.5 px-2 py-0.5 rounded-custom bg-[#E8F3EF] text-[#125345] text-[10px] font-semibold">Khách thuê StoreX (Customer)</span>
+</div>
+<button aria-label="Đóng cửa sổ tài khoản" class="tap-target p-2 text-[#475569] hover:text-[#0F172A]" id="close-sheet-btn" type="button">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</button>
+</div>
+<!-- Quick profile details -->
+<div class="py-3 space-y-1.5 text-xs">
+<div class="p-2.5 rounded-custom text-[#475569] flex justify-between items-center bg-[#F8FAF9]">
+<span>Cơ sở quen thuộc:</span>
+<strong class="text-[#0F172A]">StoreX Sài Gòn Central</strong>
+</div>
+<div class="p-2.5 rounded-custom text-[#475569] flex justify-between items-center bg-[#F8FAF9]">
+<span>Số điện thoại:</span>
+<strong class="text-[#0F172A]">0908 123 456</strong>
+</div>
+</div>
+<!-- Action buttons -->
+<div class="pt-3 border-t border-[#BFCAC4]/40 space-y-2">
+<button class="w-full tap-target py-2.5 px-4 rounded-custom bg-white border border-rose-300 text-rose-700 text-xs font-semibold hover:bg-rose-50 transition-colors flex items-center justify-center gap-2" id="logout-btn" type="button">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+          Đăng xuất tài khoản
+        </button>
+<button class="w-full tap-target py-2.5 px-4 rounded-custom bg-[#F8FAF9] text-[#475569] text-xs font-medium hover:bg-[#E8F3EF] transition-colors" id="dismiss-sheet-btn" type="button">
+          Đóng
+        </button>
+</div>
+</div>
+</div>
+<!-- QR MODAL POPUP -->
+<div aria-hidden="true" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden flex items-center justify-center p-4" id="qr-modal-backdrop">
+<div aria-labelledby="qr-modal-title" aria-modal="true" class="w-full max-w-[340px] bg-white rounded-custom border border-[#BFCAC4] p-5 shadow-2xl" id="qr-modal" role="dialog">
+<div class="flex items-center justify-between pb-3 border-b border-[#BFCAC4]/40">
+<div>
+<span class="text-[10px] uppercase font-bold text-[#475569]">Mã QR nhận buồng kho</span>
+<h2 class="font-heading font-bold text-lg text-[#125345]" id="qr-modal-title">BK-2026-0001</h2>
+</div>
+<button aria-label="Đóng bảng mã QR" class="tap-target p-2 text-[#475569] hover:text-[#0F172A]" id="close-qr-btn" type="button">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</button>
+</div>
+<!-- QR Visual Mock -->
+<div class="py-5 text-center">
+<div class="w-44 h-44 mx-auto bg-white p-3 border-2 border-[#125345] rounded-custom flex flex-col items-center justify-center shadow-sm">
+<svg aria-hidden="true" class="w-36 h-36 text-[#125345]" fill="currentColor" viewBox="0 0 100 100">
+<rect fill="#125345" height="28" width="28" x="5" y="5"></rect>
+<rect fill="white" height="20" width="20" x="9" y="9"></rect>
+<rect fill="#125345" height="12" width="12" x="13" y="13"></rect>
+<rect fill="#125345" height="28" width="28" x="67" y="5"></rect>
+<rect fill="white" height="20" width="20" x="71" y="9"></rect>
+<rect fill="#125345" height="12" width="12" x="75" y="13"></rect>
+<rect fill="#125345" height="28" width="28" x="5" y="67"></rect>
+<rect fill="white" height="20" width="20" x="9" y="71"></rect>
+<rect fill="#125345" height="12" width="12" x="13" y="75"></rect>
+<rect height="8" width="8" x="38" y="10"></rect>
+<rect height="15" width="8" x="50" y="15"></rect>
+<rect height="15" width="15" x="42" y="38"></rect>
+<rect height="8" width="18" x="15" y="42"></rect>
+<rect height="12" width="12" x="70" y="45"></rect>
+<rect height="18" width="10" x="40" y="65"></rect>
+<rect height="8" width="18" x="60" y="70"></rect>
+<rect height="10" width="10" x="78" y="80"></rect>
+</svg>
+</div>
+<p class="text-xs text-[#0F172A] font-bold mt-3">Xuất trình tại quầy trạm StoreX</p>
+<p class="text-[11px] text-[#475569] mt-0.5">Nhân viên tiếp đón sẽ quét mã để cấp chìa khóa</p>
+</div>
+<button class="w-full tap-target py-2.5 bg-[#125345] text-white text-xs font-semibold rounded-custom hover:bg-[#0c3a30] transition-colors" id="confirm-qr-close-btn" type="button">
+        Đóng mã QR
+      </button>
+</div>
+</div>
+<!-- TOAST NOTIFICATION -->
+<div aria-live="polite" class="fixed top-16 left-4 right-4 z-50 bg-[#0F172A] text-white text-xs px-4 py-3 rounded-custom shadow-lg flex items-center gap-2 hidden" id="toast" role="status">
+<svg aria-hidden="true" class="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span id="toast-message">Thông báo</span>
+</div>
+<!-- SCRIPT -->
+<script>
+    (function() {
+      const searchInput = document.getElementById('booking-search');
+      const clearSearchBtn = document.getElementById('clear-search-btn');
+      const statusTabs = document.querySelectorAll('.status-tab');
+      const bookingCards = document.querySelectorAll('.booking-card');
+      const emptyState = document.getElementById('empty-state');
+      const emptyResetBtn = document.getElementById('empty-reset-btn');
+      const filterResetRow = document.getElementById('filter-reset-row');
+      const resetFilterBtn = document.getElementById('reset-filter-btn');
+      const filterResultText = document.getElementById('filter-result-text');
+      const liveRegion = document.getElementById('status-live-region');
+
+      const accountBtn = document.getElementById('account-btn');
+      const accountSheetBackdrop = document.getElementById('account-sheet-backdrop');
+      const accountSheet = document.getElementById('account-sheet');
+      const closeSheetBtn = document.getElementById('close-sheet-btn');
+      const dismissSheetBtn = document.getElementById('dismiss-sheet-btn');
+      const logoutBtn = document.getElementById('logout-btn');
+
+      const qrModalBackdrop = document.getElementById('qr-modal-backdrop');
+      const qrModalTitle = document.getElementById('qr-modal-title');
+      const closeQrBtn = document.getElementById('close-qr-btn');
+      const confirmQrCloseBtn = document.getElementById('confirm-qr-close-btn');
+
+      const helpBtn = document.getElementById('help-btn');
+      const helpToggleBtn = document.getElementById('help-toggle-btn');
+      const helpContent = document.getElementById('help-content');
+      const helpArrowIcon = document.getElementById('help-arrow-icon');
+      const toast = document.getElementById('toast');
+      const toastMessage = document.getElementById('toast-message');
+
+      let currentStatusFilter = 'ALL';
+      let currentSearchQuery = '';
+
+      function showToast(msg) {
+        if (!toast) return;
+        toastMessage.textContent = msg;
+        toast.classList.remove('hidden');
+        setTimeout(() => {
+          toast.classList.add('hidden');
+        }, 3000);
+      }
+
+      function applyFilters() {
+        let visibleCount = 0;
+        const query = currentSearchQuery.toLowerCase().trim();
+
+        bookingCards.forEach(card => {
+          const cardCode = card.getAttribute('data-code').toLowerCase();
+          const cardStatus = card.getAttribute('data-status');
+          const cardFacility = (card.getAttribute('data-facility') || '').toLowerCase();
+
+          const matchesStatus = (currentStatusFilter === 'ALL') || (cardStatus === currentStatusFilter);
+          const matchesQuery = !query || cardCode.includes(query) || cardFacility.includes(query);
+
+          if (matchesStatus && matchesQuery) {
+            card.classList.remove('hidden');
+            visibleCount++;
+          } else {
+            card.classList.add('hidden');
+          }
+        });
+
+        if (visibleCount === 0) {
+          emptyState.classList.remove('hidden');
+        } else {
+          emptyState.classList.add('hidden');
+        }
+
+        const isFiltered = (currentStatusFilter !== 'ALL') || (query !== '');
+        if (isFiltered) {
+          filterResetRow.classList.remove('hidden');
+          filterResultText.textContent = `Hiển thị ${visibleCount} đơn đặt kho`;
+        } else {
+          filterResetRow.classList.add('hidden');
+        }
+
+        liveRegion.textContent = `Đang hiển thị ${visibleCount} đơn đặt kho.`;
+      }
+
+      searchInput.addEventListener('input', function(e) {
+        currentSearchQuery = e.target.value;
+        if (currentSearchQuery.length > 0) {
+          clearSearchBtn.classList.remove('hidden');
+        } else {
+          clearSearchBtn.classList.add('hidden');
+        }
+        applyFilters();
+      });
+
+      clearSearchBtn.addEventListener('click', function() {
+        searchInput.value = '';
+        currentSearchQuery = '';
+        clearSearchBtn.classList.add('hidden');
+        searchInput.focus();
+        applyFilters();
+      });
+
+      statusTabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+          statusTabs.forEach(t => {
+            t.classList.remove('bg-[#125345]', 'text-white', 'border-[#125345]');
+            t.classList.add('bg-white', 'text-[#475569]', 'border-[#BFCAC4]');
+            t.setAttribute('aria-selected', 'false');
+          });
+
+          this.classList.remove('bg-white', 'text-[#475569]', 'border-[#BFCAC4]');
+          this.classList.add('bg-[#125345]', 'text-white', 'border-[#125345]');
+          this.setAttribute('aria-selected', 'true');
+
+          currentStatusFilter = this.getAttribute('data-filter');
+          applyFilters();
+        });
+      });
+
+      function resetAllFilters() {
+        searchInput.value = '';
+        currentSearchQuery = '';
+        clearSearchBtn.classList.add('hidden');
+        currentStatusFilter = 'ALL';
+
+        statusTabs.forEach(t => {
+          if (t.getAttribute('data-filter') === 'ALL') {
+            t.classList.add('bg-[#125345]', 'text-white', 'border-[#125345]');
+            t.classList.remove('bg-white', 'text-[#475569]', 'border-[#BFCAC4]');
+            t.setAttribute('aria-selected', 'true');
+          } else {
+            t.classList.remove('bg-[#125345]', 'text-white', 'border-[#125345]');
+            t.classList.add('bg-white', 'text-[#475569]', 'border-[#BFCAC4]');
+            t.setAttribute('aria-selected', 'false');
+          }
+        });
+
+        applyFilters();
+        showToast('Đã đặt lại toàn bộ bộ lọc');
+      }
+
+      resetFilterBtn.addEventListener('click', resetAllFilters);
+      emptyResetBtn.addEventListener('click', resetAllFilters);
+
+      function openAccountSheet() {
+        accountSheetBackdrop.classList.remove('hidden');
+        accountBtn.setAttribute('aria-expanded', 'true');
+        setTimeout(() => {
+          accountSheet.classList.remove('translate-y-full');
+        }, 10);
+      }
+
+      function closeAccountSheet() {
+        accountSheet.classList.add('translate-y-full');
+        accountBtn.setAttribute('aria-expanded', 'false');
+        setTimeout(() => {
+          accountSheetBackdrop.classList.add('hidden');
+          accountBtn.focus();
+        }, 200);
+      }
+
+      accountBtn.addEventListener('click', openAccountSheet);
+      closeSheetBtn.addEventListener('click', closeAccountSheet);
+      dismissSheetBtn.addEventListener('click', closeAccountSheet);
+      accountSheetBackdrop.addEventListener('click', function(e) {
+        if (e.target === accountSheetBackdrop) {
+          closeAccountSheet();
+        }
+      });
+
+      logoutBtn.addEventListener('click', function() {
+        closeAccountSheet();
+        showToast('Đã ghi nhận yêu cầu đăng xuất');
+      });
+
+      document.querySelectorAll('.qr-trigger-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const code = this.getAttribute('data-code');
+          qrModalTitle.textContent = code;
+          qrModalBackdrop.classList.remove('hidden');
+        });
+      });
+
+      function closeQrModal() {
+        qrModalBackdrop.classList.add('hidden');
+      }
+
+      closeQrBtn.addEventListener('click', closeQrModal);
+      confirmQrCloseBtn.addEventListener('click', closeQrModal);
+      qrModalBackdrop.addEventListener('click', function(e) {
+        if (e.target === qrModalBackdrop) {
+          closeQrModal();
+        }
+      });
+
+      document.querySelectorAll('.hotline-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const phone = this.getAttribute('data-phone');
+          showToast(`Hotline trạm StoreX: ${phone}`);
+        });
+      });
+
+      function toggleHelp() {
+        const isExpanded = helpToggleBtn.getAttribute('aria-expanded') === 'true';
+        if (isExpanded) {
+          helpContent.classList.add('hidden');
+          helpToggleBtn.setAttribute('aria-expanded', 'false');
+          helpArrowIcon.classList.remove('rotate-180');
+        } else {
+          helpContent.classList.remove('hidden');
+          helpToggleBtn.setAttribute('aria-expanded', 'true');
+          helpArrowIcon.classList.add('rotate-180');
+        }
+      }
+
+      helpToggleBtn.addEventListener('click', toggleHelp);
+      helpBtn.addEventListener('click', function() {
+        helpContent.classList.remove('hidden');
+        helpToggleBtn.setAttribute('aria-expanded', 'true');
+        helpArrowIcon.classList.add('rotate-180');
+        helpToggleBtn.scrollIntoView({ behavior: 'smooth' });
+      });
+
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          if (!qrModalBackdrop.classList.contains('hidden')) {
+            closeQrModal();
+          } else if (!accountSheetBackdrop.classList.contains('hidden')) {
+            closeAccountSheet();
+          }
+        }
+      });
+    })();
+  </script>
+</body></html>

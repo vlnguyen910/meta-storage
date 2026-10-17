@@ -1,0 +1,717 @@
+<!DOCTYPE html><html class="h-full bg-surface" lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>M-FS07 — Bàn giao kho — FS</title>
+<!-- Fonts: Space Grotesk & Be Vietnam Pro -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-container-lowest": "#ffffff",
+            "outline": "#707975",
+            "surface-container": "#eaedff",
+            "secondary-fixed-dim": "#98d2be",
+            "tertiary-container": "#723b00",
+            "on-secondary-fixed": "#002018",
+            "surface-container-highest": "#dae2fd",
+            "on-error": "#ffffff",
+            "tertiary": "#512800",
+            "on-tertiary-container": "#ffa454",
+            "on-tertiary-fixed": "#2f1500",
+            "error-container": "#ffdad6",
+            "on-secondary-fixed-variant": "#135041",
+            "outline-variant": "#bfc9c4",
+            "on-primary-fixed-variant": "#0d5042",
+            "inverse-primary": "#96d3c0",
+            "surface-dim": "#d2d9f4",
+            "on-tertiary-fixed-variant": "#6e3900",
+            "surface": "#F8FAF9",
+            "primary-fixed": "#b1efdc",
+            "on-primary-fixed": "#002019",
+            "secondary-fixed": "#b4efda",
+            "on-background": "#131b2e",
+            "tertiary-fixed": "#ffdcc3",
+            "surface-container-low": "#f2f3ff",
+            "surface-container-high": "#e2e7ff",
+            "secondary-container": "#b4efda",
+            "on-primary-container": "#89c5b3",
+            "on-secondary-container": "#366e5e",
+            "surface-bright": "#faf8ff",
+            "primary-fixed-dim": "#96d3c0",
+            "error": "#ba1a1a",
+            "surface-tint": "#2c6859",
+            "tertiary-fixed-dim": "#ffb77d",
+            "primary-container": "#125345",
+            "on-surface": "#0F172A",
+            "inverse-on-surface": "#eef0ff",
+            "on-secondary": "#ffffff",
+            "primary": "#125345",
+            "background": "#F8FAF9",
+            "surface-variant": "#E8F3EF",
+            "secondary": "#306858",
+            "on-primary": "#ffffff",
+            "on-error-container": "#93000a",
+            "inverse-surface": "#283044",
+            "on-surface-variant": "#475569",
+            "on-tertiary": "#ffffff"
+          },
+          "borderRadius": {
+            "DEFAULT": "4px",
+            "lg": "4px",
+            "xl": "6px",
+            "full": "9999px"
+          },
+          "spacing": {
+            "gutter-sm": "1rem",
+            "space-xs": "0.25rem",
+            "margin-sm": "1rem",
+            "margin": "2rem",
+            "space-xl": "2.5rem",
+            "space-md": "1rem",
+            "gutter": "1.5rem",
+            "space-sm": "0.5rem",
+            "space-lg": "1.5rem"
+          },
+          "fontFamily": {
+            "headline-md": ["Space Grotesk"],
+            "headline-lg-mobile": ["Space Grotesk"],
+            "headline-lg": ["Space Grotesk"],
+            "label-sm": ["Space Grotesk"],
+            "display": ["Space Grotesk"],
+            "title-md": ["Be Vietnam Pro"],
+            "body-md": ["Be Vietnam Pro"],
+            "body-lg": ["Be Vietnam Pro"],
+            "display-mobile": ["Space Grotesk"],
+            "label-md": ["Space Grotesk"],
+            "label-lg": ["Space Grotesk"],
+            "headline-sm": ["Space Grotesk"],
+            "body-sm": ["Be Vietnam Pro"]
+          },
+          "fontSize": {
+            "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+            "headline-lg-mobile": ["26px", { "lineHeight": "34px", "fontWeight": "600" }],
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+            "display": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "title-md": ["18px", { "lineHeight": "26px", "fontWeight": "600" }],
+            "body-md": ["14px", { "lineHeight": "22px", "fontWeight": "400" }],
+            "body-lg": ["16px", { "lineHeight": "26px", "fontWeight": "400" }],
+            "display-mobile": ["34px", { "lineHeight": "42px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    /* Mobile-first base touches */
+    body {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      touch-action: manipulation;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .material-symbols-outlined.fill-1 {
+      font-variation-settings: 'FILL' 1;
+    }
+    /* Touch target guarantee */
+    .touch-target {
+      min-width: 44px;
+      min-height: 44px;
+    }
+    /* Custom checkmark animation */
+    input[type="checkbox"]:checked {
+      background-color: #125345;
+      border-color: #125345;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface flex justify-center min-h-screen">
+<!-- Mobile Container (Max 430px, standard 390px fluid viewport) -->
+<main class="w-full max-w-[430px] min-h-screen bg-surface flex flex-col relative pb-32">
+<!-- TOP APP BAR -->
+<header class="sticky top-0 z-40 bg-surface/95 backdrop-blur-md border-b border-outline-variant px-4 py-2.5 flex items-center justify-between shadow-[0_1px_3px_rgba(15,23,42,0.05)]">
+<div class="flex items-center gap-2">
+<button aria-label="Quay lại danh sách công việc M-FS01" class="touch-target flex items-center justify-center -ml-2 text-on-surface hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<div>
+<div class="flex items-center gap-1.5">
+<span class="font-headline-sm text-headline-sm text-primary tracking-tight font-bold">StoreX</span>
+<span class="px-1.5 py-0.5 rounded-[4px] bg-primary text-white text-[10px] font-label-sm font-semibold tracking-wide">FS HIỆN TRƯỜNG</span>
+</div>
+<p class="font-body-sm text-[11px] text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px] text-primary">location_on</span>
+            Sài Gòn Central • 118 Nguyễn Văn Linh, Q.7
+          </p>
+</div>
+</div>
+<!-- User Profile Trigger & Mock Time Badge -->
+<div class="flex items-center gap-2">
+<span class="hidden sm:inline-block px-1.5 py-0.5 rounded-[4px] bg-surface-variant text-primary text-[10px] font-label-sm font-semibold">GMT+7</span>
+<button aria-label="Mở thông tin ca trực của Trần Quốc Huy" class="touch-target flex items-center gap-1.5 p-1 rounded-[4px] border border-outline-variant bg-surface-container-lowest text-left active:scale-95 transition-transform" id="btnOpenUserSheet" type="button">
+<div class="w-8 h-8 rounded-[4px] bg-primary-container text-white flex items-center justify-center font-headline-sm text-[13px] font-semibold">
+            HQ
+          </div>
+<span class="material-symbols-outlined text-[18px] text-outline">expand_more</span>
+</button>
+</div>
+</header>
+<!-- CONTENT CANVAS -->
+<div class="px-4 pt-3.5 space-y-3.5 flex-1">
+<!-- Screen Context Subheader -->
+<div class="flex items-center justify-between">
+<div>
+<span class="text-[11px] font-label-sm text-primary font-bold tracking-wider uppercase">Quy trình đón tiếp • Bước cuối</span>
+<h1 class="text-[20px] font-headline-sm text-on-surface font-bold tracking-tight">M-FS07 — Bàn giao kho — FS</h1>
+</div>
+<span class="px-2 py-0.5 rounded-[4px] bg-[#FEF3C7] text-[#92400E] font-label-sm text-[11px] font-semibold border border-[#FDE68A]">
+          Thực địa
+        </span>
+</div>
+<!-- PROGRESS TRACKER (3 Steps) -->
+<section aria-label="Tiến trình đón tiếp khách hàng" class="bg-surface-container-lowest rounded-[4px] border border-outline-variant p-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+<div class="grid grid-cols-3 gap-2 text-center relative">
+<!-- Step 1 -->
+<div class="flex flex-col items-center relative">
+<div class="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center font-label-md text-xs">
+<span class="material-symbols-outlined text-[16px]">check</span>
+</div>
+<span class="mt-1 font-body-sm text-[11px] font-semibold text-primary">1. Xác minh</span>
+<span class="text-[10px] text-on-surface-variant font-body-sm">Đã đạt ✓</span>
+</div>
+<!-- Connecting line 1-2 -->
+<div class="absolute top-3.5 left-[18%] w-[30%] h-[2px] bg-primary -z-0"></div>
+<!-- Step 2 -->
+<div class="flex flex-col items-center relative">
+<div class="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center font-label-md text-xs">
+<span class="material-symbols-outlined text-[16px]">check</span>
+</div>
+<span class="mt-1 font-body-sm text-[11px] font-semibold text-primary">2. Hiện trạng</span>
+<span class="text-[10px] text-on-surface-variant font-body-sm">Chuẩn 4/4 ✓</span>
+</div>
+<!-- Connecting line 2-3 -->
+<div class="absolute top-3.5 right-[18%] w-[30%] h-[2px] bg-primary -z-0"></div>
+<!-- Step 3 (Active) -->
+<div class="flex flex-col items-center relative">
+<div class="w-7 h-7 rounded-full bg-primary text-white ring-2 ring-primary/30 flex items-center justify-center font-label-md text-xs font-bold">
+              3
+            </div>
+<span class="mt-1 font-body-sm text-[11px] font-bold text-primary">3. Bàn giao</span>
+<span class="text-[10px] text-primary font-body-sm font-medium animate-pulse">Đang xử lý</span>
+</div>
+</div>
+</section>
+<!-- SUCCESS BANNER (Initially Hidden until activated) -->
+<section class="hidden bg-[#E8F5F1] rounded-[4px] border-2 border-primary p-4 shadow-sm animate-in fade-in duration-300" id="successBanner">
+<div class="flex items-start gap-3">
+<div class="w-10 h-10 rounded-[4px] bg-primary text-white flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[26px]">verified</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<h2 class="font-headline-sm text-[17px] font-bold text-primary">ĐÃ BÀN GIAO THÀNH CÔNG</h2>
+<span class="px-2 py-0.5 rounded-[4px] bg-primary text-white text-[10px] font-label-sm font-semibold">ĐÃ KÍCH HOẠT</span>
+</div>
+<p class="font-body-md text-[13px] text-on-surface mt-1 leading-snug">
+              Hợp đồng chính thức <strong>RNT-2026-0001</strong> đã có hiệu lực. Quyền mở cửa trạm NFC &amp; thẻ từ đã được hệ thống kích hoạt trực tiếp.
+            </p>
+<div class="mt-3 pt-3 border-t border-primary/20 flex flex-col gap-2">
+<button class="touch-target w-full h-[44px] rounded-[4px] bg-primary text-white font-label-lg text-[14px] font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform" onclick="alert('Đang tạo và tải bản in PDF: BIEN_BAN_BAN_GIAO_RNT-2026-0001.pdf')" type="button">
+<span class="material-symbols-outlined text-[18px]">print</span>
+                In biên bản bàn giao (PDF)
+              </button>
+<button class="touch-target w-full h-[44px] rounded-[4px] border border-primary bg-transparent text-primary font-label-lg text-[14px] font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform hover:bg-[#E8F3EF]" onclick="alert('Quay về bảng điều phối công việc hiện trường (M-FS01)')" type="button">
+<span class="material-symbols-outlined text-[18px]">task_alt</span>
+                Về danh sách công việc (M-FS01)
+              </button>
+</div>
+</div>
+</div>
+</section>
+<!-- CARD 1: THÔNG TIN HỒ SƠ BOOKING & KHÁCH HÀNG (READ-ONLY) -->
+<section aria-labelledby="heading-booking-info" class="bg-surface-container-lowest rounded-[4px] border border-outline-variant p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+<div class="flex items-center justify-between border-b border-outline-variant/60 pb-2 mb-2.5">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px] text-primary">badge</span>
+<h2 class="font-headline-sm text-[15px] font-bold text-on-surface" id="heading-booking-info">Hồ sơ Booking &amp; Khách hàng</h2>
+</div>
+<span class="px-2 py-0.5 rounded-[4px] bg-surface-variant text-primary font-label-sm text-[11px] font-semibold">
+            BK-2026-0001
+          </span>
+</div>
+<div class="space-y-2 text-[13px] font-body-md">
+<!-- Row 1: Khách hàng -->
+<div class="flex items-start justify-between">
+<span class="text-on-surface-variant">Khách hàng:</span>
+<div class="text-right">
+<span class="font-semibold text-on-surface">Nguyễn Minh Anh</span>
+<a class="block text-primary font-medium flex items-center justify-end gap-1 hover:underline" href="tel:0908123456">
+<span class="material-symbols-outlined text-[14px]">phone_enabled</span> 0908 123 456
+              </a>
+</div>
+</div>
+<!-- Row 2: Khung giờ hẹn tiếp đón -->
+<div class="flex items-start justify-between">
+<span class="text-on-surface-variant">Lịch hẹn đón:</span>
+<div class="text-right">
+<span class="font-medium text-on-surface">10:00 – 12:00, 09/10/2026</span>
+<span class="block text-[11px] text-on-surface-variant">(Ân hạn đến 14:00 hôm nay)</span>
+</div>
+</div>
+<!-- Row 3: Thanh toán -->
+<div class="flex items-start justify-between">
+<span class="text-on-surface-variant">Tình trạng thanh toán:</span>
+<div class="text-right">
+<span class="inline-flex items-center gap-1 text-[#125345] font-semibold">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> Đã thu 100% (1.800.000 đ)
+              </span>
+<p class="text-[11px] text-on-surface-variant leading-tight">900k kỳ 1 + 900k tiền cọc giữ buồng</p>
+</div>
+</div>
+<!-- Row 4: Buồng kho vật lý được FM chỉ định -->
+<div class="mt-2.5 pt-2.5 border-t border-outline-variant/60 bg-surface p-2.5 rounded-[4px]">
+<div class="flex items-center justify-between">
+<span class="text-xs font-label-sm uppercase tracking-wide text-on-surface-variant font-semibold">Buồng vật lý chỉ định (FM)</span>
+<span class="font-headline-sm text-[16px] font-bold text-primary">#HCM-01-001</span>
+</div>
+<div class="grid grid-cols-2 gap-2 mt-1.5 text-xs text-on-surface-variant">
+<div>
+<span class="block text-on-surface font-medium">Loại Mini 2m² (5.0m³)</span>
+<span>Kích thước: 1.0 × 2.0 × Cao 2.5m</span>
+</div>
+<div class="text-right">
+<span class="block text-on-surface font-medium">Vị trí: Tầng 1 - Khu A</span>
+<span>Gần cửa xuất nhập hàng #02</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- CARD 2: KẾT QUẢ KIỂM TRA TRƯỚC BÀN GIAO (PRE-HANDOVER BASELINE CHECKLIST) -->
+<section aria-labelledby="heading-precheck" class="bg-surface-container-lowest rounded-[4px] border border-outline-variant p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+<div class="flex items-center justify-between border-b border-outline-variant/60 pb-2 mb-2.5">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px] text-primary">fact_check</span>
+<h2 class="font-headline-sm text-[15px] font-bold text-on-surface" id="heading-precheck">Biên bản Kiểm tra Thực địa</h2>
+</div>
+<span class="inline-flex items-center gap-1 text-[11px] font-semibold text-primary bg-[#E8F5F1] px-2 py-0.5 rounded-[4px]">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+            Đạt chuẩn 100%
+          </span>
+</div>
+<p class="text-xs text-on-surface-variant mb-2">
+          Nghiệm thu đạt chuẩn bởi <strong>FS Trần Quốc Huy</strong> lúc <strong>10:25, 09/10/2026</strong>.
+        </p>
+<!-- 4 Sub-criteria summarized -->
+<ul class="space-y-1.5 text-xs text-on-surface">
+<li class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[16px]">done_all</span>
+<span>Buồng trống 100%, sàn sạch rác, không vật dụng sót lại.</span>
+</li>
+<li class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[16px]">done_all</span>
+<span>Sàn epoxy khô ráo, không ẩm mốc, tường sạch sẽ.</span>
+</li>
+<li class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[16px]">done_all</span>
+<span>Vách tôn và khung cửa cuốn nguyên vẹn, sơn không móp.</span>
+</li>
+<li class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[16px]">done_all</span>
+<span>Khóa chốt và then cài trơn tru, bát khóa chắc chắn.</span>
+</li>
+</ul>
+<!-- Modal Trigger for Baseline Photo -->
+<div class="mt-3 pt-2.5 border-t border-outline-variant/60 flex items-center justify-between">
+<button class="touch-target flex items-center gap-1.5 text-primary text-xs font-semibold hover:underline active:scale-95 transition-transform" id="btnOpenPhotoModal" type="button">
+<span class="material-symbols-outlined text-[18px]">photo_camera</span>
+            Xem lại 02 ảnh hiện trạng trước bàn giao
+          </button>
+<span class="text-[11px] text-on-surface-variant">ID: VERIF-901</span>
+</div>
+</section>
+<!-- CARD 3: BÀN GIAO VẬT TƯ THỰC TẾ (PHYSICAL HANDOVER ITEMS CHECKLIST) -->
+<section aria-labelledby="heading-handover-items" class="bg-surface-container-lowest rounded-[4px] border border-outline-variant p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+<div class="flex items-center justify-between border-b border-outline-variant/60 pb-2 mb-2.5">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px] text-primary">inventory_2</span>
+<h2 class="font-headline-sm text-[15px] font-bold text-on-surface" id="heading-handover-items">Vật tư Bàn giao Tận tay</h2>
+</div>
+<span class="text-xs font-label-md font-bold text-on-surface-variant px-2 py-0.5 bg-surface rounded-[4px] border border-outline-variant" id="checklistCounter">
+            0/4 mục
+          </span>
+</div>
+<p class="text-xs text-on-surface-variant mb-3">
+          Tick xác nhận từng hạng mục thực tế cùng khách hàng trước khi bấm kích hoạt:
+        </p>
+<!-- Checklist Group -->
+<fieldset class="space-y-3">
+<legend class="sr-only">Các hạng mục vật tư bàn giao cần xác nhận</legend>
+<!-- Checkbox Item 1 -->
+<label class="flex items-start gap-3 p-2.5 rounded-[4px] border border-outline-variant hover:bg-surface cursor-pointer select-none transition-colors">
+<input class="handover-item mt-0.5 w-5 h-5 rounded-[4px] border-outline text-primary focus:ring-primary/20 cursor-pointer" id="chk-card" type="checkbox">
+<div class="flex-1 text-[13px] leading-snug">
+<span class="font-semibold text-on-surface block">01 Thẻ từ ra vào trạm kho</span>
+<p class="text-on-surface-variant text-xs mt-0.5">
+                Mã thẻ: <strong class="text-on-surface">CARD-SGC-8842</strong>. Đã thử quẹt cổng kiểm soát chính thành công cùng khách.
+              </p>
+</div>
+</label>
+<!-- Checkbox Item 2 -->
+<label class="flex items-start gap-3 p-2.5 rounded-[4px] border border-outline-variant hover:bg-surface cursor-pointer select-none transition-colors">
+<input class="handover-item mt-0.5 w-5 h-5 rounded-[4px] border-outline text-primary focus:ring-primary/20 cursor-pointer" id="chk-lock" type="checkbox">
+<div class="flex-1 text-[13px] leading-snug">
+<span class="font-semibold text-on-surface block">01 Khóa cơ MasterLock &amp; 02 chìa gốc</span>
+<p class="text-on-surface-variant text-xs mt-0.5">
+                Mã sê-ri: <strong class="text-on-surface">ML-99201</strong>. Khách hàng đã trực tiếp tra khóa, đóng mở trơn tru.
+              </p>
+</div>
+</label>
+<!-- Checkbox Item 3 -->
+<label class="flex items-start gap-3 p-2.5 rounded-[4px] border border-outline-variant hover:bg-surface cursor-pointer select-none transition-colors">
+<input class="handover-item mt-0.5 w-5 h-5 rounded-[4px] border-outline text-primary focus:ring-primary/20 cursor-pointer" id="chk-inspection" type="checkbox">
+<div class="flex-1 text-[13px] leading-snug">
+<span class="font-semibold text-on-surface block">Khách hàng nghiệm thu buồng #HCM-01-001</span>
+<p class="text-on-surface-variant text-xs mt-0.5">
+                Khách đã có mặt tại cửa buồng, xác nhận buồng sạch sẽ, khô ráo và đúng kích thước đăng ký.
+              </p>
+</div>
+</label>
+<!-- Checkbox Item 4 -->
+<label class="flex items-start gap-3 p-2.5 rounded-[4px] border border-outline-variant hover:bg-surface cursor-pointer select-none transition-colors">
+<input class="handover-item mt-0.5 w-5 h-5 rounded-[4px] border-outline text-primary focus:ring-primary/20 cursor-pointer" id="chk-safety" type="checkbox">
+<div class="flex-1 text-[13px] leading-snug">
+<span class="font-semibold text-on-surface block">Hướng dẫn an toàn PCCC &amp; Quy chế kho</span>
+<p class="text-on-surface-variant text-xs mt-0.5">
+                Đã giải thích giờ mở cửa (08:00 - 20:00), cấm vật liệu cháy nổ, vị trí bình CO2 và Hotline khẩn cấp 24/7 (028 7300 1188).
+              </p>
+</div>
+</label>
+</fieldset>
+</section>
+<!-- CARD 4: CẢNH BÁO GIỚI HẠN THẨM QUYỀN FS (GUARDED BOUNDARIES) -->
+<section aria-label="Lưu ý thẩm quyền nghiệp vụ" class="rounded-[4px] border border-[#F59E0B]/40 bg-[#FFFBEB] p-3.5 text-[13px] shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+<div class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-[#B45309] text-[20px] shrink-0 mt-0.5">warning</span>
+<div class="space-y-1">
+<h3 class="font-headline-sm text-xs font-bold text-[#92400E] uppercase tracking-wider">
+              Quy chế kích hoạt buồng kho vật lý
+            </h3>
+<p class="text-[#78350F] text-xs leading-relaxed font-body-md">
+              Bàn giao kho là bước chốt cuối cùng để chính thức <strong>kích hoạt hợp đồng thuê vật lý</strong> và mở quyền ra vào trạm cho khách hàng. Nhân viên FS không cấp mã PIN/NFC từ xa, không thu thêm bất kỳ khoản phí nào ngoài hóa đơn booking. Hành động kích hoạt là <strong>không thể hoàn tác (Irreversible)</strong>.
+            </p>
+</div>
+</div>
+</section>
+<!-- CARD 5: TRỢ GIÚP & HƯỚNG DẪN NGHIỆP VỤ NHANH (ACCORDION) -->
+<section aria-labelledby="heading-faq" class="bg-surface-container-lowest rounded-[4px] border border-outline-variant p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] mb-4">
+<h2 class="font-headline-sm text-[14px] font-bold text-on-surface mb-2 flex items-center gap-1.5" id="heading-faq">
+<span class="material-symbols-outlined text-[18px] text-outline">help_outline</span>
+          Hỗ trợ nghiệp vụ tình huống thực địa
+        </h2>
+<div class="space-y-2 text-xs divide-y divide-outline-variant/60">
+<!-- Accordion item 1 -->
+<details class="pt-2 group cursor-pointer">
+<summary class="font-semibold text-on-surface flex items-center justify-between list-none">
+<span>1. Khách muốn đổi sang buồng lớn hơn ngay tại quầy?</span>
+<span class="material-symbols-outlined text-[16px] text-outline group-open:rotate-180 transition-transform">expand_more</span>
+</summary>
+<p class="text-on-surface-variant mt-1.5 pl-2 border-l-2 border-primary font-body-md leading-relaxed">
+              FS <strong>không tự ý đổi buồng</strong>. Giữ nguyên trạng thái booking, lập tức liên hệ FM (Facility Manager) trực ca qua Hotline nội bộ #102 để FM điều chỉnh layout và lập phụ lục chênh lệch giá trước khi giao chìa.
+            </p>
+</details>
+<!-- Accordion item 2 -->
+<details class="pt-2 group cursor-pointer">
+<summary class="font-semibold text-on-surface flex items-center justify-between list-none">
+<span>2. Khách sau này làm mất chìa hoặc thẻ từ thì sao?</span>
+<span class="material-symbols-outlined text-[16px] text-outline group-open:rotate-180 transition-transform">expand_more</span>
+</summary>
+<p class="text-on-surface-variant mt-1.5 pl-2 border-l-2 border-primary font-body-md leading-relaxed">
+              StoreX không giữ chìa sơ cua của buồng khách hàng (bảo mật tuyệt đối). Mất chìa cần lập biên bản phá khóa (phí phá khóa &amp; cấp ổ mới: 250.000đ). Mất thẻ từ cấp lại tại quầy tiếp tân: 100.000đ/thẻ.
+            </p>
+</details>
+</div>
+</section>
+</div>
+<!-- STICKY ACTION DOCK AT BOTTOM -->
+<footer class="fixed bottom-0 left-0 right-0 z-30 flex justify-center bg-surface-container-lowest/95 backdrop-blur-md border-t border-outline-variant px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">
+<div class="w-full max-w-[430px] flex flex-col gap-1.5">
+<button class="touch-target w-full h-[48px] rounded-[4px] bg-[#94A3B8] text-white font-label-lg text-[15px] font-bold flex items-center justify-center gap-2 transition-all duration-150 cursor-not-allowed" disabled="" id="btnSubmitHandover" type="button">
+<span class="material-symbols-outlined text-[20px]">how_to_reg</span>
+<span>Xác nhận bàn giao &amp; Kích hoạt hợp đồng</span>
+</button>
+<p class="text-center font-body-sm text-[11px] text-on-surface-variant" id="helperTextAction">
+          Vui lòng tích chọn đủ 4/4 hạng mục vật tư để kích hoạt.
+        </p>
+</div>
+</footer>
+<!-- ACTION SHEET: THÔNG TIN TÀI KHOẢN & CA TRỰC FS (Trần Quốc Huy) -->
+<div aria-labelledby="sheet-title" aria-modal="true" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden flex items-end justify-center transition-opacity" id="userActionSheet" role="dialog">
+<div class="w-full max-w-[430px] bg-surface-container-lowest rounded-t-[8px] p-4 border-t border-outline-variant space-y-4 shadow-xl">
+<div class="w-10 h-1 bg-outline-variant rounded-full mx-auto mb-1"></div>
+<div class="flex items-center justify-between border-b border-outline-variant/70 pb-3">
+<div class="flex items-center gap-2.5">
+<div class="w-10 h-10 rounded-[4px] bg-primary text-white flex items-center justify-center font-headline-sm font-bold">
+              HQ
+            </div>
+<div>
+<h2 class="font-headline-sm text-[16px] font-bold text-on-surface" id="sheet-title">Trần Quốc Huy</h2>
+<span class="text-xs text-on-surface-variant font-body-sm">Field Specialist • Mã NV: FS-HCM-09</span>
+</div>
+</div>
+<button class="touch-target text-on-surface-variant hover:text-on-surface" id="btnCloseUserSheet" type="button">
+<span class="material-symbols-outlined text-[22px]">close</span>
+</button>
+</div>
+<div class="space-y-2 text-xs font-body-md">
+<div class="flex justify-between py-1 border-b border-outline-variant/40">
+<span class="text-on-surface-variant">Trạm tiếp nhận:</span>
+<span class="font-semibold text-on-surface">StoreX Sài Gòn Central (Q.7)</span>
+</div>
+<div class="flex justify-between py-1 border-b border-outline-variant/40">
+<span class="text-on-surface-variant">Ca trực hiện tại:</span>
+<span class="font-semibold text-on-surface">Ca sáng: 07:30 – 15:30 (09/10/2026)</span>
+</div>
+<div class="flex justify-between py-1 border-b border-outline-variant/40">
+<span class="text-on-surface-variant">Nhiệm vụ trong ca:</span>
+<span class="text-primary font-bold">Đã hoàn tất 3/4 ca đón tiếp</span>
+</div>
+<div class="flex justify-between py-1">
+<span class="text-on-surface-variant">Facility Manager (FM):</span>
+<span class="text-on-surface">Lê Hoàng Nam (Hotline: #102)</span>
+</div>
+</div>
+<div class="pt-2 flex flex-col gap-2">
+<button class="touch-target w-full h-[44px] rounded-[4px] border border-outline-variant bg-surface font-label-md text-xs font-semibold text-on-surface flex items-center justify-center gap-2 active:scale-95 transition-transform" onclick="alert('Đã đồng bộ dữ liệu ngoại tuyến thành công!')" type="button">
+<span class="material-symbols-outlined text-[16px]">sync</span>
+            Đồng bộ dữ liệu ngoại tuyến (Offline Sync)
+          </button>
+<button class="touch-target w-full h-[44px] rounded-[4px] bg-error-container text-error font-label-md text-xs font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform" onclick="alert('Đã đăng xuất phiên làm việc của FS Trần Quốc Huy')" type="button">
+<span class="material-symbols-outlined text-[16px]">logout</span>
+            Đăng xuất ca làm việc
+          </button>
+</div>
+</div>
+</div>
+<!-- MODAL: XEM LẠI ẢNH HIỆN TRẠNG BASELINE (2 Photos) -->
+<div aria-labelledby="modal-photo-title" aria-modal="true" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4" id="photoModal" role="dialog">
+<div class="w-full max-w-[380px] bg-surface-container-lowest rounded-[4px] border border-outline-variant p-4 space-y-3 shadow-2xl">
+<div class="flex items-center justify-between border-b border-outline-variant/60 pb-2">
+<div>
+<h2 class="font-headline-sm text-[15px] font-bold text-on-surface" id="modal-photo-title">Ảnh nghiệm thu buồng #HCM-01-001</h2>
+<span class="text-[11px] text-on-surface-variant">Chụp lúc 10:24 &amp; 10:25, 09/10/2026 bởi FS Huy</span>
+</div>
+<button class="touch-target text-on-surface-variant hover:text-on-surface" id="btnClosePhotoModal" type="button">
+<span class="material-symbols-outlined text-[22px]">close</span>
+</button>
+</div>
+<div class="space-y-3">
+<div>
+<p class="text-xs font-semibold text-on-surface mb-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-primary">check_circle</span>
+              Ảnh 1: Toàn cảnh sàn epoxy và vách trong
+            </p>
+<div class="w-full h-36 bg-surface-container-high rounded-[4px] overflow-hidden relative border border-outline-variant flex items-center justify-center">
+<img class="w-full h-full object-cover" data-alt="A clean, well-lit modern self-storage unit interior with polished gray epoxy flooring and clean corrugated steel walls, shot from a direct eye-level perspective under bright linear LED lighting, emphasizing spotless cleanliness and architectural precision." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBKvsiRa0v1fSW_Zkwxdg8yOLkpec6yCPB7L3vnaFo792x5JrLq1xxZChHLhyodKdBFDU5DDQ-OXAa_5o5aTiNLEfV-z4FFrMHAtf6TUDNKz3HeyUee2Y6uzSecQLujEo9Ut9vhylqnUQ5NSgzCMS4QLGo_H9qiJu_4stKCE2M0Dq6emAimXwladU1x39p50aTpJyM8ThqXRh42iCrLWHAD0i4pyabiVs7BbgDydJEtE_pdWEDnN5Obo_9j_qlopMiXV5aZwRQ6-IRt">
+<span class="absolute bottom-1 right-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded-[2px] font-mono">10:24:18 AM</span>
+</div>
+</div>
+<div>
+<p class="text-xs font-semibold text-on-surface mb-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-primary">check_circle</span>
+              Ảnh 2: Khung then cửa cuốn và bát khóa
+            </p>
+<div class="w-full h-36 bg-surface-container-high rounded-[4px] overflow-hidden relative border border-outline-variant flex items-center justify-center">
+<img class="w-full h-full object-cover" data-alt="A close-up photograph of a heavy-duty industrial self-storage roll-up door latch and padlock hasp, flawlessly clean with no scratches, positioned securely against a teal metal door frame in high bright indoor industrial lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCdJECyga6tYahhEnPUkkG-SA6pJiBeaJH0d3A-H-XNpjnceDYRvmLPzcjpN17Va3dvzIz-0hZ9cI_cTP0DsAEIJlxwpfUud-lwzsBRuUEtxm8Lb__bJX9m2J3mbSD77hZZ89ZKfXpbd1x8L_rw7ytdD1OpVUV1O9iiyH2MomQSqjkUye0DVqvNEfniRpxZcf3vbnU9ngDpvQr62G1anywDOh6VPngBRj0dImAlRVYuekdOasHlfC_t-LBGhsX5JfwwdKRACA4g2n7S">
+<span class="absolute bottom-1 right-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded-[2px] font-mono">10:25:02 AM</span>
+</div>
+</div>
+</div>
+<div class="pt-2">
+<button class="touch-target w-full h-[40px] rounded-[4px] bg-surface border border-outline-variant font-label-md text-xs font-semibold text-on-surface hover:bg-surface-variant transition-colors" id="btnClosePhotoModalBottom" type="button">
+            Đóng cửa sổ ảnh
+          </button>
+</div>
+</div>
+</div>
+<!-- MODAL CONFIRMATION: DIALOG XÁC NHẬN BÀN GIAO & KÍCH HOẠT LẦN CUỐI -->
+<div aria-labelledby="confirm-modal-title" aria-modal="true" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4" id="confirmModal" role="dialog">
+<div class="w-full max-w-[370px] bg-surface-container-lowest rounded-[4px] border border-outline-variant p-4 space-y-3.5 shadow-2xl">
+<div class="flex items-start gap-3">
+<div class="w-10 h-10 rounded-[4px] bg-primary text-white flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[24px]">verified_user</span>
+</div>
+<div>
+<h2 class="font-headline-sm text-[16px] font-bold text-on-surface leading-snug" id="confirm-modal-title">
+              Xác nhận kích hoạt hợp đồng?
+            </h2>
+<p class="text-xs text-on-surface-variant mt-1 leading-relaxed">
+              Bạn đang hoàn tất bàn giao cho khách hàng <strong>Nguyễn Minh Anh</strong> tại buồng <strong>#HCM-01-001</strong>.
+            </p>
+</div>
+</div>
+<div class="bg-surface rounded-[4px] p-2.5 border border-outline-variant/70 text-xs space-y-1 font-body-sm text-on-surface">
+<p class="flex justify-between">
+<span class="text-on-surface-variant">Mã hợp đồng mới:</span>
+<strong class="text-primary font-mono font-bold">RNT-2026-0001</strong>
+</p>
+<p class="flex justify-between">
+<span class="text-on-surface-variant">Thẻ từ ra vào:</span>
+<span class="font-mono">CARD-SGC-8842</span>
+</p>
+<p class="flex justify-between">
+<span class="text-on-surface-variant">Khóa cơ MasterLock:</span>
+<span class="font-mono">ML-99201 (02 chìa)</span>
+</p>
+<p class="text-[11px] text-error font-medium pt-1 border-t border-outline-variant/50">
+            * Sau khi xác nhận, hợp đồng sẽ có hiệu lực ngay lập tức và ghi nhận chỉ số doanh thu cho ca trực.
+          </p>
+</div>
+<div class="flex gap-2 pt-1">
+<button class="touch-target flex-1 h-[44px] rounded-[4px] border border-outline-variant bg-surface text-on-surface font-label-md text-xs font-semibold hover:bg-surface-variant transition-colors" id="btnCancelConfirm" type="button">
+            Kiểm tra lại
+          </button>
+<button class="touch-target flex-1 h-[44px] rounded-[4px] bg-primary text-white font-label-md text-xs font-bold hover:bg-[#0F493B] active:scale-95 transition-all" id="btnProceedConfirm" type="button">
+            Đồng ý kích hoạt
+          </button>
+</div>
+</div>
+</div>
+</main>
+<!-- CLIENT-SIDE VANILLA INTERACTION SCRIPT -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Elements
+      const checkboxes = document.querySelectorAll('.handover-item');
+      const submitBtn = document.getElementById('btnSubmitHandover');
+      const helperText = document.getElementById('helperTextAction');
+      const checklistCounter = document.getElementById('checklistCounter');
+      const successBanner = document.getElementById('successBanner');
+      
+      // User Sheet Elements
+      const btnOpenUserSheet = document.getElementById('btnOpenUserSheet');
+      const userActionSheet = document.getElementById('userActionSheet');
+      const btnCloseUserSheet = document.getElementById('btnCloseUserSheet');
+
+      // Photo Modal Elements
+      const btnOpenPhotoModal = document.getElementById('btnOpenPhotoModal');
+      const photoModal = document.getElementById('photoModal');
+      const btnClosePhotoModal = document.getElementById('btnClosePhotoModal');
+      const btnClosePhotoModalBottom = document.getElementById('btnClosePhotoModalBottom');
+
+      // Confirm Modal Elements
+      const confirmModal = document.getElementById('confirmModal');
+      const btnCancelConfirm = document.getElementById('btnCancelConfirm');
+      const btnProceedConfirm = document.getElementById('btnProceedConfirm');
+
+      // State check for checkboxes
+      function updateChecklistState() {
+        const total = checkboxes.length;
+        let checkedCount = 0;
+        checkboxes.forEach(cb => {
+          if (cb.checked) checkedCount++;
+        });
+
+        checklistCounter.textContent = `${checkedCount}/${total} mục`;
+
+        if (checkedCount === total) {
+          submitBtn.removeAttribute('disabled');
+          submitBtn.classList.remove('bg-[#94A3B8]', 'cursor-not-allowed');
+          submitBtn.classList.add('bg-primary', 'hover:bg-[#0F493B]', 'active:scale-95', 'cursor-pointer');
+          helperText.textContent = 'Đã đủ điều kiện bàn giao. Nhấn để kích hoạt hợp đồng vật lý.';
+          helperText.classList.add('text-primary', 'font-medium');
+          helperText.classList.remove('text-on-surface-variant');
+        } else {
+          submitBtn.setAttribute('disabled', 'true');
+          submitBtn.classList.add('bg-[#94A3B8]', 'cursor-not-allowed');
+          submitBtn.classList.remove('bg-primary', 'hover:bg-[#0F493B]', 'active:scale-95', 'cursor-pointer');
+          helperText.textContent = `Vui lòng tích chọn đủ 4/4 hạng mục vật tư để kích hoạt (Hiện tại: ${checkedCount}/${total}).`;
+          helperText.classList.remove('text-primary', 'font-medium');
+          helperText.classList.add('text-on-surface-variant');
+        }
+      }
+
+      checkboxes.forEach(cb => {
+        cb.addEventListener('change', updateChecklistState);
+      });
+
+      // Trigger Confirmation Modal
+      submitBtn.addEventListener('click', () => {
+        if (!submitBtn.hasAttribute('disabled')) {
+          confirmModal.classList.remove('hidden');
+        }
+      });
+
+      btnCancelConfirm.addEventListener('click', () => {
+        confirmModal.classList.add('hidden');
+      });
+
+      // Final Activation Action
+      btnProceedConfirm.addEventListener('click', () => {
+        confirmModal.classList.add('hidden');
+        
+        // Show success UI
+        successBanner.classList.remove('hidden');
+        successBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // Update Button State to completed
+        submitBtn.setAttribute('disabled', 'true');
+        submitBtn.innerHTML = `
+          <span class="material-symbols-outlined text-[20px]">check_circle</span>
+          <span>Đã kích hoạt hợp đồng RNT-2026-0001</span>
+        `;
+        submitBtn.classList.remove('bg-primary', 'hover:bg-[#0F493B]');
+        submitBtn.classList.add('bg-secondary', 'opacity-90', 'cursor-default');
+        helperText.textContent = 'Hợp đồng đã kích hoạt trực tiếp trên hệ thống lúc 10:32 (GMT+7).';
+
+        // Disable checkboxes to prevent tampering after contract creation
+        checkboxes.forEach(cb => cb.setAttribute('disabled', 'true'));
+      });
+
+      // User Profile Sheet interactions
+      btnOpenUserSheet.addEventListener('click', () => {
+        userActionSheet.classList.remove('hidden');
+      });
+      btnCloseUserSheet.addEventListener('click', () => {
+        userActionSheet.classList.add('hidden');
+      });
+      userActionSheet.addEventListener('click', (e) => {
+        if (e.target === userActionSheet) userActionSheet.classList.add('hidden');
+      });
+
+      // Photo Baseline Modal interactions
+      btnOpenPhotoModal.addEventListener('click', () => {
+        photoModal.classList.remove('hidden');
+      });
+      const closePhotoHandler = () => photoModal.classList.add('hidden');
+      btnClosePhotoModal.addEventListener('click', closePhotoHandler);
+      btnClosePhotoModalBottom.addEventListener('click', closePhotoHandler);
+      photoModal.addEventListener('click', (e) => {
+        if (e.target === photoModal) closePhotoHandler();
+      });
+
+    });
+  </script>
+</body></html>

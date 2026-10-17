@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-background" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BOM04 — Tiền cọc &amp; khoản phí | StoreX OS</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "tertiary-fixed-dim": "#80db71",
+            "surface": "#FFFFFF",
+            "on-secondary": "#ffffff",
+            "on-primary-fixed": "#002018",
+            "on-tertiary-fixed": "#002201",
+            "on-success-container": "#166534",
+            "primary-fixed": "#acf0d9",
+            "tertiary-fixed": "#9bf98a",
+            "inverse-on-surface": "#eef0ff",
+            "primary-container": "#165f4d",
+            "surface-container-highest": "#dae2fd",
+            "surface-container-high": "#e2e7ff",
+            "primary": "#004637",
+            "inverse-surface": "#283044",
+            "outline-variant": "#bfc9c3",
+            "secondary-container": "#d0e1fb",
+            "error-container": "#ffdad6",
+            "border": "#EEEEEE",
+            "error": "#ba1a1a",
+            "secondary-fixed-dim": "#b7c8e1",
+            "on-background": "#131b2e",
+            "on-tertiary-fixed-variant": "#005305",
+            "on-primary": "#ffffff",
+            "outline": "#94A3B8",
+            "primary-fixed-dim": "#90d4bd",
+            "surface-container": "#eaedff",
+            "on-surface-variant": "#3f4945",
+            "secondary": "#505f76",
+            "on-secondary-container": "#54647a",
+            "on-secondary-fixed-variant": "#38485d",
+            "on-error": "#ffffff",
+            "warning-container": "#FFFBEB",
+            "tertiary-container": "#006308",
+            "on-primary-fixed-variant": "#005140",
+            "on-tertiary": "#ffffff",
+            "warning": "#92400E",
+            "destructive": "#991B1B",
+            "surface-muted": "#F8FAFC",
+            "on-error-container": "#93000a",
+            "on-surface": "#131b2e",
+            "primary-dark": "#0F493B",
+            "on-secondary-fixed": "#0b1c30",
+            "surface-container-lowest": "#ffffff",
+            "primary-soft": "#E8F3EF",
+            "tertiary": "#004804",
+            "secondary-fixed": "#d3e4fe",
+            "background": "#FAFAFA",
+            "surface-dim": "#d2d9f4",
+            "inverse-primary": "#90d4bd",
+            "destructive-container": "#FEF2F2",
+            "surface-variant": "#dae2fd",
+            "on-primary-container": "#92d6bf",
+            "surface-container-low": "#f2f3ff",
+            "on-tertiary-container": "#83de74",
+            "surface-bright": "#faf8ff",
+            "surface-tint": "#246957",
+            "success-container": "#ECFDF5"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "15px": "15px",
+            "full": "9999px"
+          },
+          "spacing": {
+            "2xl": "32px",
+            "section": "80px",
+            "gutter-mobile": "1rem",
+            "space-lg": "1rem",
+            "margin": "1.5rem",
+            "xs": "4px",
+            "space-xl": "1.5rem",
+            "space-md": "0.75rem",
+            "margin-desktop": "2rem",
+            "page-gutter": "24px",
+            "md": "12px",
+            "lg": "16px",
+            "field-gap": "8px",
+            "space-sm": "0.5rem",
+            "card-padding": "24px",
+            "xl": "24px",
+            "control-padding": "12px",
+            "4xl": "64px",
+            "sm": "8px",
+            "gutter": "1.5rem",
+            "space-xs": "0.25rem",
+            "3xl": "48px"
+          },
+          "fontFamily": {
+            "headline-lg-mobile": ["Inter"],
+            "body-md": ["Inter"],
+            "body-lg": ["Inter"],
+            "headline-md": ["Inter"],
+            "headline-display": ["Inter"],
+            "label-md": ["Inter"],
+            "headline-lg": ["Inter"],
+            "title-lg": ["Inter"],
+            "body-sm": ["Inter"],
+            "headline-display-mobile": ["Inter"],
+            "label-sm": ["Inter"]
+          },
+          "fontSize": {
+            "headline-lg-mobile": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.015em", "fontWeight": "700" }],
+            "body-md": ["16px", { "lineHeight": "26px", "fontWeight": "400" }],
+            "body-lg": ["18px", { "lineHeight": "30px", "fontWeight": "400" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.015em", "fontWeight": "700" }],
+            "headline-display": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.03em", "fontWeight": "800" }],
+            "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "700" }],
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "750" }],
+            "title-lg": ["20px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "body-sm": ["14px", { "lineHeight": "22px", "fontWeight": "400" }],
+            "headline-display-mobile": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.025em", "fontWeight": "800" }],
+            "label-sm": ["12px", { "lineHeight": "18px", "letterSpacing": "0.02em", "fontWeight": "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      line-height: 1;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-background font-body-md text-on-surface antialiased flex flex-col">
+<!-- TopNavBar (Shared Component) -->
+<header class="flex justify-between items-center h-16 px-space-lg w-full bg-surface-container-lowest border-b border-outline-variant sticky top-0 z-40 shadow-sm">
+<div class="flex items-center gap-space-lg">
+<div class="flex items-center gap-space-sm">
+<span class="text-headline-sm font-headline-sm font-bold text-primary flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="warehouse" style="font-size: 26px;">warehouse</span>
+          StoreX OS
+        </span>
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-primary-soft text-primary font-semibold border border-primary/20">
+          BOM Governance
+        </span>
+</div>
+<div class="hidden md:flex items-center ml-4 pl-4 border-l border-outline-variant">
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-secondary text-base" data-icon="search">search</span>
+<input class="w-72 pl-9 pr-3 py-1.5 bg-surface-muted text-body-sm font-body-sm rounded-lg border border-[#E2E8F0] focus:ring-2 focus:ring-primary-container focus:outline-none transition-colors duration-150" placeholder="Tìm kiếm văn bản, chính sách, trạm kho..." type="text"/>
+</div>
+</div>
+</div>
+<!-- Navigation links & Profile from JSON -->
+<div class="flex items-center gap-4">
+<div class="hidden lg:flex items-center gap-6">
+<span class="text-label-md font-label-md text-primary font-bold border-b-2 border-primary py-4 cursor-pointer">
+          StoreX Sài Gòn Central
+        </span>
+<span class="text-label-md font-label-md text-on-surface-variant font-medium hover:text-primary transition-colors duration-150 cursor-pointer flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          Đồng bộ trực tuyến
+        </span>
+</div>
+<div class="flex items-center gap-2 border-l border-outline-variant pl-4">
+<button aria-label="Thông báo" class="w-10 h-10 flex items-center justify-center rounded-lg text-secondary hover:bg-surface-muted transition-colors duration-150" type="button">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button aria-label="Trợ giúp" class="w-10 h-10 flex items-center justify-center rounded-lg text-secondary hover:bg-surface-muted transition-colors duration-150" type="button">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+</button>
+<div class="flex items-center gap-3 ml-2 pl-2">
+<div class="w-9 h-9 rounded-full bg-primary-container text-surface flex items-center justify-center font-bold text-label-md shadow-xs border border-primary/20">
+            TH
+          </div>
+<div class="hidden sm:flex flex-col text-left">
+<span class="text-label-md font-label-md leading-tight text-on-surface">Lê Thu Hà</span>
+<span class="text-label-sm font-label-sm text-secondary">BOM Director</span>
+</div>
+</div>
+</div>
+</div>
+</header>
+<div class="flex flex-1 relative">
+<!-- SideNavBar (BOM Contextual Nav based on Design Anchors) -->
+<aside aria-label="Thanh điều hướng BOM" class="fixed left-0 top-16 bottom-0 w-64 flex flex-col justify-between p-space-md bg-surface-container-lowest border-r border-outline-variant z-30 overflow-y-auto">
+<div class="space-y-4">
+<!-- Identity header -->
+<div class="px-space-md py-2 border-b border-[#EEEEEE] pb-3">
+<div class="text-label-sm font-label-sm text-secondary uppercase tracking-wider">Hội đồng Quản trị</div>
+<div class="text-title-lg font-title-lg text-on-surface">BOM Operations Hub</div>
+<div class="text-body-sm font-body-sm text-secondary">Mã định danh: /operations/fees</div>
+</div>
+<!-- Navigation Tabs -->
+<nav aria-label="Menu chức năng BOM" class="space-y-1">
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-all duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="text-label-md font-label-md">Tổng quan điều hành</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-all duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="apartment">apartment</span>
+<span class="text-label-md font-label-md">Quy chuẩn mặt bằng kho</span>
+</a>
+<!-- Active tab: Tiền cọc & Khoản phí -->
+<a aria-current="page" class="bg-primary-container text-surface font-semibold rounded-lg px-space-md py-space-sm flex items-center gap-space-sm transition-all duration-150 shadow-xs" href="/operations/fees">
+<span class="material-symbols-outlined text-surface" data-icon="payments">payments</span>
+<span class="text-label-md font-label-md">Tiền cọc &amp; Khoản phí</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-all duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="verified_user">verified_user</span>
+<span class="text-label-md font-label-md">Hợp đồng &amp; Pháp chế</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-all duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="assignment_ind">assignment_ind</span>
+<span class="text-label-md font-label-md">Ủy quyền Facility Manager</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-all duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="text-label-md font-label-md">Báo cáo tài chính kho</span>
+</a>
+</nav>
+</div>
+<!-- Footer SideNav actions -->
+<div class="pt-4 border-t border-[#EEEEEE] space-y-2">
+<div class="px-space-md py-2 bg-warning-container/70 border border-warning/30 rounded-lg flex items-start gap-2 text-warning">
+<span class="material-symbols-outlined text-sm mt-0.5" data-icon="warning">warning</span>
+<div class="text-label-sm font-label-sm">
+<span class="font-bold">2 Chính sách</span> đang chờ thẩm định pháp lý trước kỳ họp Q2.
+          </div>
+</div>
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-2 flex items-center gap-space-sm font-medium transition-all duration-150 text-body-sm font-body-sm" href="#">
+<span class="material-symbols-outlined" data-icon="tune">tune</span>
+<span class="text-label-md font-label-md">Cài đặt quy chế</span>
+</a>
+</div>
+</aside>
+<!-- Main Workspace Content -->
+<main class="ml-64 flex-1 min-h-[calc(100vh-4rem)] p-6 lg:p-8 max-w-7xl">
+<!-- Breadcrumb & Header Title Area -->
+<div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+<div>
+<nav aria-label="Breadcrumb" class="flex items-center gap-2 text-label-sm font-label-sm text-secondary mb-1.5">
+<span>Vận hành BOM</span>
+<span class="material-symbols-outlined text-xs" data-icon="chevron_right">chevron_right</span>
+<span>Chính sách giá &amp; Chi phí</span>
+<span class="material-symbols-outlined text-xs" data-icon="chevron_right">chevron_right</span>
+<span class="text-on-surface font-semibold">BOM04</span>
+</nav>
+<div class="flex items-center gap-3">
+<h1 class="text-headline-md font-headline-md text-on-surface tracking-tight">
+              BOM04 — Cấu hình chính sách Tiền cọc, Phí dịch vụ &amp; Khoản bồi hoàn
+            </h1>
+</div>
+<p class="text-body-sm font-body-sm text-secondary mt-1">
+            Quy định mức ký quỹ an toàn, chi phí dịch vụ cơ sở và khung đối soát hao mòn áp dụng toàn chuỗi kho StoreX.
+          </p>
+</div>
+<!-- Quick metadata badge -->
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-label-sm font-label-sm bg-surface border border-[#E2E8F0] shadow-xs text-on-surface">
+<span class="material-symbols-outlined text-sm text-primary" data-icon="history">history</span>
+            Phiên bản dự thảo v2.4 (2025)
+          </span>
+</div>
+</div>
+<!-- Policy Completeness Tracker (Bento Card Header) -->
+<section aria-labelledby="tracker-heading" class="bg-surface rounded-15px border border-[#EEEEEE] p-card-padding mb-8 shadow-xs">
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+<div class="space-y-2 flex-1">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xl" data-icon="rule">rule</span>
+<h2 class="text-title-lg font-title-lg text-on-surface" id="tracker-heading">
+                  Đánh giá mức độ hoàn thiện chính sách (Policy Completeness Tracker)
+                </h2>
+</div>
+<span class="text-label-md font-label-md text-primary font-bold bg-primary-soft px-2.5 py-1 rounded-full">
+                50% Tiến độ hoàn tất
+              </span>
+</div>
+<!-- Progress Bar -->
+<div class="w-full bg-[#EEEEEE] h-2.5 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full transition-all duration-500" style="width: 50%;"></div>
+</div>
+<div class="flex flex-wrap items-center gap-6 pt-1 text-label-sm font-label-sm">
+<div class="flex items-center gap-2 text-on-success-container">
+<span class="material-symbols-outlined text-sm" data-icon="check_circle">check_circle</span>
+<span><strong>2/4</strong> hạng mục đã có đề xuất nháp hoàn chỉnh</span>
+</div>
+<div class="flex items-center gap-2 text-warning">
+<span class="material-symbols-outlined text-sm" data-icon="pending">pending</span>
+<span><strong>2/4</strong> hạng mục đang chờ thẩm định pháp chế &amp; tài chính</span>
+</div>
+</div>
+</div>
+<!-- Primary Save Trigger Button -->
+<div class="flex items-center gap-3">
+<button class="min-h-[44px] px-5 py-2.5 rounded-lg border border-[#E2E8F0] bg-surface hover:bg-surface-muted text-on-surface font-label-md text-label-md transition-colors duration-150 flex items-center gap-2" type="button">
+<span class="material-symbols-outlined text-sm" data-icon="history_toggle_subpath">image_search</span>
+              Lịch sử hiệu chỉnh
+            </button>
+<button class="min-h-[44px] px-6 py-2.5 rounded-lg bg-primary hover:bg-primary-dark text-on-primary font-label-md text-label-md transition-colors duration-150 shadow-xs flex items-center gap-2" id="saveDraftBtn" type="button">
+<span class="material-symbols-outlined text-sm" data-icon="save">save</span>
+              Lưu bản thảo cấu hình phí
+            </button>
+</div>
+</div>
+<!-- Success Toast Simulation Container (Hidden by default, triggered via JS) -->
+<div class="hidden mt-4 p-3 bg-success-container border border-on-success-container/30 rounded-lg flex items-center justify-between text-on-success-container transition-all duration-300" id="saveToast">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-base" data-icon="verified">verified</span>
+<span class="text-body-sm font-body-sm font-semibold">Đã lưu tạm thành công toàn bộ đề xuất chính sách biểu phí vào kho dữ liệu BOM.</span>
+</div>
+<button class="text-on-success-container hover:opacity-75" onclick="document.getElementById('saveToast').classList.add('hidden')" type="button">
+<span class="material-symbols-outlined text-base" data-icon="close">close</span>
+</button>
+</div>
+</section>
+<!-- 4 Business Domains (2x2 Asymmetric Bento Matrix) -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+<!-- SECTION 1: Cấu hình Tiền ký quỹ bảo đảm (Deposit Policy) -->
+<section aria-labelledby="section-deposit-heading" class="bg-surface rounded-15px border border-[#EEEEEE] p-card-padding flex flex-col justify-between shadow-xs transition-all hover:border-[#94A3B8]/40">
+<div>
+<div class="flex items-center justify-between pb-3 border-b border-[#EEEEEE] mb-5">
+<div class="flex items-center gap-2.5">
+<span class="w-8 h-8 rounded-lg bg-primary-soft text-primary flex items-center justify-center font-bold text-label-md">1</span>
+<div>
+<h3 class="text-title-lg font-title-lg text-on-surface" id="section-deposit-heading">Cấu hình Tiền ký quỹ bảo đảm</h3>
+<span class="text-label-sm font-label-sm text-secondary">Deposit Policy &amp; Risk Mitigation</span>
+</div>
+</div>
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-label-sm font-label-sm bg-warning-container text-warning border border-warning/20">
+                Chính sách chưa chốt
+              </span>
+</div>
+<!-- Radio Selection Group -->
+<fieldset class="space-y-3 mb-6">
+<legend class="text-label-md font-label-md text-on-surface mb-2">Phương thức tính tiền cọc mặc định:</legend>
+<!-- Option A -->
+<label class="flex items-start gap-3 p-3.5 rounded-xl border-2 border-primary bg-primary-soft/40 cursor-pointer min-h-[44px] transition-colors" for="deposit-fixed">
+<input checked="" class="w-5 h-5 text-primary border-outline focus:ring-primary mt-0.5" id="deposit-fixed" name="deposit-calculation-method" type="radio"/>
+<div class="space-y-0.5">
+<div class="flex items-center gap-2">
+<span class="text-body-md font-body-md font-semibold text-on-surface">Mức cố định bằng 1 tháng tiền thuê</span>
+<span class="px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-emerald-100 text-emerald-800 font-bold">Đang thí điểm</span>
+</div>
+<p class="text-body-sm font-body-sm text-secondary">
+                    Áp dụng thu trước ngay khi kích hoạt hợp đồng thuê ô kho, hoàn trả sau thanh lý kiểm kê.
+                  </p>
+</div>
+</label>
+<!-- Option B -->
+<label class="flex items-start gap-3 p-3.5 rounded-xl border border-[#E2E8F0] hover:bg-surface-muted cursor-pointer min-h-[44px] transition-colors" for="deposit-percentage">
+<input class="w-5 h-5 text-primary border-outline focus:ring-primary mt-0.5" id="deposit-percentage" name="deposit-calculation-method" type="radio"/>
+<div class="space-y-0.5">
+<div class="flex items-center gap-2">
+<span class="text-body-md font-body-md font-semibold text-on-surface">Tỷ lệ phần trăm theo giá trị hợp đồng</span>
+<span class="px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-surface-muted text-secondary font-medium border border-[#E2E8F0]">Bản nháp</span>
+</div>
+<p class="text-body-sm font-body-sm text-secondary">
+                    Dự kiến 20% tổng giá trị toàn kỳ thuê đối với các hợp đồng doanh nghiệp trên 12 tháng.
+                  </p>
+</div>
+</label>
+</fieldset>
+<!-- Minimum Deposit Floor Setting -->
+<div class="bg-surface-muted p-4 rounded-xl border border-[#E2E8F0] mb-5">
+<label class="block text-label-md font-label-md text-on-surface mb-1" for="min-deposit-input">
+                Mức tiền cọc tối thiểu quy định (Sàn ký quỹ):
+              </label>
+<div class="relative mt-1">
+<input class="w-full pl-3 pr-12 py-2.5 rounded-lg border border-[#E2E8F0] bg-surface font-title-lg font-title-lg text-primary focus:ring-2 focus:ring-primary focus:outline-none min-h-[44px]" id="min-deposit-input" type="text" value="900.000"/>
+<div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-label-md font-label-md text-secondary">
+                  VNĐ
+                </div>
+</div>
+<p class="text-label-sm font-label-sm text-secondary mt-1">Áp dụng cho mọi dung tích kho dù giá thuê tháng dưới hạn mức này.</p>
+</div>
+</div>
+<!-- Note Box -->
+<div class="p-3.5 rounded-xl bg-destructive-container/50 border border-destructive/20 text-destructive flex items-start gap-3">
+<span class="material-symbols-outlined text-lg mt-0.5 flex-shrink-0" data-icon="policy">policy</span>
+<div class="text-body-sm font-body-sm">
+<strong class="font-bold">Ghi chú thẩm định:</strong> Chính sách chưa chốt phương án cuối cùng. Không áp dụng công thức tự động trừ cọc; quyết toán cọc thực tế do FM lập biên bản đối soát và Kế toán thẩm định.
+            </div>
+</div>
+</section>
+<!-- SECTION 2: Khoản phí dịch vụ gia tăng (Extra Services) -->
+<section aria-labelledby="section-services-heading" class="bg-surface rounded-15px border border-[#EEEEEE] p-card-padding flex flex-col justify-between shadow-xs transition-all hover:border-[#94A3B8]/40">
+<div>
+<div class="flex items-center justify-between pb-3 border-b border-[#EEEEEE] mb-5">
+<div class="flex items-center gap-2.5">
+<span class="w-8 h-8 rounded-lg bg-primary-soft text-primary flex items-center justify-center font-bold text-label-md">2</span>
+<div>
+<h3 class="text-title-lg font-title-lg text-on-surface" id="section-services-heading">Khoản phí dịch vụ gia tăng</h3>
+<span class="text-label-sm font-label-sm text-secondary">Extra &amp; Value-added Facility Services</span>
+</div>
+</div>
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-label-sm font-label-sm bg-success-container text-on-success-container border border-on-success-container/20">
+                Đã có đề xuất nháp
+              </span>
+</div>
+<p class="text-body-sm font-body-sm text-secondary mb-4">
+              Biểu phí các trang thiết bị cung ứng tiện ích hỗ trợ khách hàng bảo quản và vận hành kho tại chỗ.
+            </p>
+<div class="space-y-4 mb-6">
+<!-- Item 1: Thẻ từ -->
+<div class="p-4 rounded-xl border border-[#E2E8F0] bg-surface flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+<div class="flex items-start gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-low text-primary flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined" data-icon="badge">badge</span>
+</div>
+<div>
+<label class="text-body-md font-body-md font-semibold text-on-surface block" for="rfid-rate-input">Thẻ từ ra vào bổ sung</label>
+<span class="text-label-sm font-label-sm text-secondary">Định mức cấp mặc định 02 thẻ/hợp đồng. Phí áp dụng từ thẻ thứ 03.</span>
+</div>
+</div>
+<div class="flex items-center gap-2 self-end sm:self-center">
+<div class="relative w-36">
+<input class="w-full text-right pr-12 py-2 rounded-lg border border-[#E2E8F0] font-semibold text-on-surface focus:ring-2 focus:ring-primary focus:outline-none min-h-[44px]" id="rfid-rate-input" type="text" value="50.000"/>
+<span class="absolute inset-y-0 right-0 pr-3 flex items-center text-label-sm font-label-sm text-secondary">đ/thẻ</span>
+</div>
+</div>
+</div>
+<!-- Item 2: Ổ khóa cơ -->
+<div class="p-4 rounded-xl border border-[#E2E8F0] bg-surface flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+<div class="flex items-start gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-low text-primary flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined" data-icon="lock">lock</span>
+</div>
+<div>
+<label class="text-body-md font-body-md font-semibold text-on-surface block" for="lock-rate-input">Ổ khóa cơ bàn giao bổ sung</label>
+<span class="text-label-sm font-label-sm text-secondary">Chuẩn khóa chống cắt thương hiệu StoreX Security Grade 4.</span>
+</div>
+</div>
+<div class="flex items-center gap-2 self-end sm:self-center">
+<div class="relative w-36">
+<input class="w-full text-right pr-12 py-2 rounded-lg border border-[#E2E8F0] font-semibold text-on-surface focus:ring-2 focus:ring-primary focus:outline-none min-h-[44px]" id="lock-rate-input" type="text" value="120.000"/>
+<span class="absolute inset-y-0 right-0 pr-3 flex items-center text-label-sm font-label-sm text-secondary">đ/ổ</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Customer Right Note -->
+<div class="p-3.5 rounded-xl bg-surface-muted border border-[#E2E8F0] text-secondary flex items-start gap-3">
+<span class="material-symbols-outlined text-base mt-0.5 text-primary" data-icon="info">info</span>
+<div class="text-label-sm font-label-sm">
+<strong class="text-on-surface font-semibold">Quyền chủ động của khách hàng:</strong> Khách hàng có quyền tự trang bị ổ khóa riêng đạt chuẩn kỹ thuật mà không bắt buộc phải mua từ StoreX Facility.
+            </div>
+</div>
+</section>
+<!-- SECTION 3: Biểu phí xử lý hư hại & Hao mòn buồng kho (Damage Matrix) -->
+<section aria-labelledby="section-damage-heading" class="bg-surface rounded-15px border border-[#EEEEEE] p-card-padding flex flex-col justify-between shadow-xs transition-all hover:border-[#94A3B8]/40">
+<div>
+<div class="flex items-center justify-between pb-3 border-b border-[#EEEEEE] mb-5">
+<div class="flex items-center gap-2.5">
+<span class="w-8 h-8 rounded-lg bg-primary-soft text-primary flex items-center justify-center font-bold text-label-md">3</span>
+<div>
+<h3 class="text-title-lg font-title-lg text-on-surface" id="section-damage-heading">Biểu phí xử lý hư hại &amp; Hao mòn buồng kho</h3>
+<span class="text-label-sm font-label-sm text-secondary">Damage Assessment &amp; Repair Matrix</span>
+</div>
+</div>
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-label-sm font-label-sm bg-success-container text-on-success-container border border-on-success-container/20">
+                Đã có đề xuất nháp
+              </span>
+</div>
+<!-- Table of Matrix -->
+<div class="overflow-x-auto border border-[#EEEEEE] rounded-xl mb-4">
+<table aria-label="Bảng biểu phí sửa chữa hư hại" class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-muted border-b border-[#E2E8F0]">
+<th class="py-3 px-4 text-label-sm font-label-sm text-secondary uppercase tracking-wider" scope="col">Hạng mục kiểm định</th>
+<th class="py-3 px-4 text-label-sm font-label-sm text-secondary uppercase tracking-wider" scope="col">Cơ chế định giá</th>
+<th class="py-3 px-4 text-label-sm font-label-sm text-secondary uppercase tracking-wider text-right" scope="col">Đơn giá dự thảo</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#EEEEEE] text-body-sm font-body-sm">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-muted/50 transition-colors">
+<td class="py-3.5 px-4">
+<div class="font-semibold text-on-surface">Vách tôn trầy xước nhẹ</div>
+<div class="text-label-sm font-label-sm text-secondary">Vết xước bề mặt dưới 10cm, không làm rỉ sét lõi</div>
+</td>
+<td class="py-3.5 px-4 text-secondary">
+                      Khung cố định theo điểm
+                    </td>
+<td class="py-3.5 px-4 text-right font-bold text-on-surface">
+                      200.000 đ<span class="font-normal text-secondary text-xs">/vị trí</span>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-muted/50 transition-colors bg-warning-container/20">
+<td class="py-3.5 px-4">
+<div class="font-semibold text-on-surface">Vách tôn móp méo / biến dạng</div>
+<div class="text-label-sm font-label-sm text-warning font-medium">Hư hỏng kết cấu chịu lực, ảnh hưởng buồng kề cận</div>
+</td>
+<td class="py-3.5 px-4">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-label-sm font-label-sm bg-warning-container text-warning font-bold">
+                        Khảo sát hiện trường
+                      </span>
+</td>
+<td class="py-3.5 px-4 text-right text-secondary italic">
+                      Không có biểu giá tự động
+                    </td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-muted/50 transition-colors">
+<td class="py-3.5 px-4">
+<div class="font-semibold text-on-surface">Vệ sinh sàn không đạt chuẩn</div>
+<div class="text-label-sm font-label-sm text-secondary">Còn rác thải, bao bì hoặc vết dầu/hóa chất dính bám</div>
+</td>
+<td class="py-3.5 px-4 text-secondary">
+                      Phí xử lý môi trường
+                    </td>
+<td class="py-3.5 px-4 text-right font-bold text-on-surface">
+                      150.000 đ<span class="font-normal text-secondary text-xs">/lần</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="p-3 bg-surface-muted rounded-xl border border-[#EEEEEE] text-label-sm font-label-sm text-secondary">
+            * Các trường hợp biến dạng nặng buộc phải do Trưởng bộ phận Kỹ thuật và FM cùng kiểm định trước khi quyết toán đối trừ.
+          </div>
+</section>
+<!-- SECTION 4: Phí phạt trả kho trễ hạn & Xử lý quá hạn (Late Fees) -->
+<section aria-labelledby="section-late-fees-heading" class="bg-surface rounded-15px border border-[#EEEEEE] p-card-padding flex flex-col justify-between shadow-xs transition-all hover:border-[#94A3B8]/40">
+<div>
+<div class="flex items-center justify-between pb-3 border-b border-[#EEEEEE] mb-5">
+<div class="flex items-center gap-2.5">
+<span class="w-8 h-8 rounded-lg bg-primary-soft text-primary flex items-center justify-center font-bold text-label-md">4</span>
+<div>
+<h3 class="text-title-lg font-title-lg text-on-surface" id="section-late-fees-heading">Phí phạt trả kho trễ hạn &amp; Xử lý quá hạn</h3>
+<span class="text-label-sm font-label-sm text-secondary">Late Handover &amp; Overdue Sanctions</span>
+</div>
+</div>
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-label-sm font-label-sm bg-warning-container text-warning border border-warning/20">
+                Chính sách chưa chốt
+              </span>
+</div>
+<!-- Pending Review Banner -->
+<div class="p-4 rounded-xl bg-warning-container/50 border border-warning/30 mb-5">
+<div class="flex items-center gap-2 text-warning mb-1">
+<span class="material-symbols-outlined text-lg" data-icon="gavel">gavel</span>
+<span class="text-label-md font-label-md font-bold">Đang lấy ý kiến pháp chế &amp; tài chính</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface">
+                Tạm thời không kích hoạt tính năng phạt lũy tiến tự động trên hệ thống core nhằm tránh các tranh chấp hợp đồng dân sự chưa qua rà soát điều khoản.
+              </p>
+</div>
+<!-- Controlled Mock Controls for Draft Discussion -->
+<div class="space-y-4 opacity-85">
+<div class="flex items-center justify-between p-3.5 rounded-xl border border-[#E2E8F0] bg-surface-muted">
+<div>
+<div class="text-body-md font-body-md font-semibold text-on-surface">Khung phạt trễ hạn theo giờ (Grace Period 2h)</div>
+<div class="text-label-sm font-label-sm text-secondary">Đề xuất 1.5x đơn giá theo giờ sau thời điểm chốt biên bản</div>
+</div>
+<span class="text-label-sm font-label-sm px-2.5 py-1 bg-surface rounded border border-[#E2E8F0] font-semibold text-secondary">
+                  Tạm khóa
+                </span>
+</div>
+<div class="flex items-center justify-between p-3.5 rounded-xl border border-[#E2E8F0] bg-surface-muted">
+<div>
+<div class="text-body-md font-body-md font-semibold text-on-surface">Quy trình niêm phong tài sản quá hạn (&gt;15 ngày)</div>
+<div class="text-label-sm font-label-sm text-secondary">Yêu cầu văn bản ủy quyền có chứng thực của đại diện BOM</div>
+</div>
+<span class="text-label-sm font-label-sm px-2.5 py-1 bg-surface rounded border border-[#E2E8F0] font-semibold text-secondary">
+                  Chờ biểu mẫu
+                </span>
+</div>
+</div>
+</div>
+<div class="mt-4 pt-3 border-t border-[#EEEEEE] flex items-center justify-between text-label-sm font-label-sm text-secondary">
+<span>Dự kiến trình phê duyệt: Kỳ họp Hội đồng số 04/2025</span>
+<button class="text-primary font-bold hover:underline" type="button">Xem văn bản lấy ý kiến →</button>
+</div>
+</section>
+</div>
+<!-- Governance Action Bar at Bottom -->
+<section aria-label="Thao tác phê duyệt" class="bg-surface rounded-15px border border-[#EEEEEE] p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary" data-icon="lock_clock">lock_clock</span>
+<div class="text-body-sm font-body-sm text-secondary">
+            Mọi thay đổi chính sách sẽ tạo một bản ghi kiểm toán (Audit Trail) bất biến được gắn nhãn định danh BOM.
+          </div>
+</div>
+<div class="flex items-center gap-3 w-full sm:w-auto">
+<button class="flex-1 sm:flex-none min-h-[44px] px-5 py-2.5 rounded-lg border border-[#E2E8F0] text-secondary hover:bg-surface-muted font-label-md text-label-md transition-colors" type="button">
+            Hủy thay đổi
+          </button>
+<button class="flex-1 sm:flex-none min-h-[44px] px-6 py-2.5 rounded-lg bg-primary hover:bg-primary-dark text-on-primary font-label-md text-label-md transition-colors shadow-xs" onclick="document.getElementById('saveDraftBtn').click()" type="button">
+            Xác nhận lưu bản thảo
+          </button>
+</div>
+</section>
+</main>
+</div>
+<script>
+    // Micro-interaction for Save Draft prototype simulation
+    document.addEventListener('DOMContentLoaded', () => {
+      const saveBtn = document.getElementById('saveDraftBtn');
+      const toast = document.getElementById('saveToast');
+
+      if (saveBtn && toast) {
+        saveBtn.addEventListener('click', () => {
+          toast.classList.remove('hidden');
+          // Smooth scroll to top of card if needed
+          toast.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          setTimeout(() => {
+            // keep visible for user feedback
+          }, 4000);
+        });
+      }
+    });
+  </script>
+</body></html>

@@ -1,0 +1,459 @@
+<!DOCTYPE html><html class="light" lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>M-CK01 — Chọn loại kho — Guest/Customer</title>
+<!-- Google Fonts: Space Grotesk & Be Vietnam Pro -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS CDN with Plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "outline": "#707975",
+            "on-error-container": "#93000a",
+            "on-tertiary-fixed": "#2f1500",
+            "on-primary-fixed": "#002019",
+            "secondary-fixed-dim": "#98d2be",
+            "primary-container": "#125345",
+            "on-tertiary-container": "#ffa454",
+            "surface-variant": "#dae2fd",
+            "outline-variant": "#bfc9c4",
+            "on-tertiary": "#ffffff",
+            "on-surface": "#131b2e",
+            "on-primary-fixed-variant": "#0d5042",
+            "surface-container-lowest": "#ffffff",
+            "on-surface-variant": "#404945",
+            "tertiary-fixed-dim": "#ffb77d",
+            "error-container": "#ffdad6",
+            "secondary-container": "#b4efda",
+            "tertiary": "#512800",
+            "surface-container": "#eaedff",
+            "on-secondary-container": "#366e5e",
+            "tertiary-fixed": "#ffdcc3",
+            "secondary": "#306858",
+            "inverse-surface": "#283044",
+            "error": "#ba1a1a",
+            "surface-container-low": "#f2f3ff",
+            "primary-fixed-dim": "#96d3c0",
+            "on-secondary-fixed": "#002018",
+            "on-tertiary-fixed-variant": "#6e3900",
+            "surface-bright": "#faf8ff",
+            "on-error": "#ffffff",
+            "tertiary-container": "#723b00",
+            "on-secondary": "#ffffff",
+            "surface-container-highest": "#dae2fd",
+            "primary": "#003b2f",
+            "on-primary-container": "#89c5b3",
+            "background": "#faf8ff",
+            "inverse-primary": "#96d3c0",
+            "primary-fixed": "#b1efdc",
+            "on-background": "#131b2e",
+            "inverse-on-surface": "#eef0ff",
+            "on-primary": "#ffffff",
+            "surface-dim": "#d2d9f4",
+            "surface": "#faf8ff",
+            "surface-tint": "#2c6859",
+            "secondary-fixed": "#b4efda",
+            "on-secondary-fixed-variant": "#135041",
+            "surface-container-high": "#e2e7ff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "gutter-sm": "1rem",
+            "space-sm": "0.5rem",
+            "margin-sm": "1rem",
+            "space-lg": "1.5rem",
+            "space-md": "1rem",
+            "margin": "2rem",
+            "space-xs": "0.25rem",
+            "space-xl": "2.5rem",
+            "gutter": "1.5rem"
+          },
+          "fontFamily": {
+            "headline-lg": ["Space Grotesk"],
+            "body-sm": ["Be Vietnam Pro"],
+            "headline-sm": ["Space Grotesk"],
+            "title-md": ["Be Vietnam Pro"],
+            "body-md": ["Be Vietnam Pro"],
+            "label-lg": ["Space Grotesk"],
+            "display-mobile": ["Space Grotesk"],
+            "label-sm": ["Space Grotesk"],
+            "headline-md": ["Space Grotesk"],
+            "headline-lg-mobile": ["Space Grotesk"],
+            "label-md": ["Space Grotesk"],
+            "body-lg": ["Be Vietnam Pro"],
+            "display": ["Space Grotesk"]
+          },
+          "fontSize": {
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "title-md": ["18px", { "lineHeight": "26px", "fontWeight": "600" }],
+            "body-md": ["14px", { "lineHeight": "22px", "fontWeight": "400" }],
+            "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+            "display-mobile": ["34px", { "lineHeight": "42px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+            "headline-lg-mobile": ["26px", { "lineHeight": "34px", "fontWeight": "600" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "body-lg": ["16px", { "lineHeight": "26px", "fontWeight": "400" }],
+            "display": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    body {
+      background-color: #F8FAF9;
+      color: #131b2e;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    input[type="radio"]:checked {
+      background-color: #125345;
+      border-color: #125345;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="flex justify-center min-h-screen bg-[#F8FAF9] text-on-surface select-none">
+<!-- Container cố định chuẩn mobile 390px -->
+<main class="w-[390px] max-w-[390px] min-h-screen bg-[#F8FAF9] relative flex flex-col pb-36 shadow-lg border-x border-outline-variant/40">
+<!-- 1. Header & Điều hướng (Mobile Compact Header) -->
+<header class="sticky top-0 z-40 bg-surface-container-lowest/95 backdrop-blur-md border-b border-outline-variant shadow-sm px-4 pt-3 pb-2.5">
+<div class="flex items-center justify-between h-11">
+<button aria-label="Quay lại cơ sở kho" class="w-10 h-10 -ml-1.5 flex items-center justify-center rounded-lg text-primary hover:bg-surface-container transition-colors active:scale-95" type="button">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<div class="text-center flex-1 px-1">
+<h1 class="font-headline-sm text-[17px] leading-[22px] font-bold text-primary tracking-tight truncate">
+            Chọn loại kho
+          </h1>
+<p class="font-body-sm text-[11px] text-on-surface-variant truncate">
+            StoreX Sài Gòn Central
+          </p>
+</div>
+<button aria-label="Hỗ trợ &amp; Trợ giúp" class="w-10 h-10 -mr-1.5 flex items-center justify-center rounded-lg text-primary hover:bg-surface-container transition-colors active:scale-95" type="button">
+<span class="material-symbols-outlined text-[22px]">help_outline</span>
+</button>
+</div>
+<!-- Thanh Stepper 5 bước thu gọn (Compact Stepper) -->
+<div class="mt-2.5 pt-2 border-t border-outline-variant/40">
+<div class="flex items-center justify-between mb-1.5">
+<span class="font-label-sm text-label-sm font-semibold text-primary-container">
+            Bước 1/5: Chọn loại kho
+          </span>
+<span class="font-body-sm text-[11px] text-outline font-medium">
+            Tiếp: Thông tin thuê
+          </span>
+</div>
+<!-- Thanh tiến trình 5 phân đoạn -->
+<div class="grid grid-cols-5 gap-1.5 h-1.5 w-full">
+<div class="bg-primary-container rounded-full h-full"></div>
+<div class="bg-outline-variant/50 rounded-full h-full"></div>
+<div class="bg-outline-variant/50 rounded-full h-full"></div>
+<div class="bg-outline-variant/50 rounded-full h-full"></div>
+<div class="bg-outline-variant/50 rounded-full h-full"></div>
+</div>
+</div>
+</header>
+<!-- Thân cuộn nội dung -->
+<div class="px-4 py-3.5 space-y-3.5 flex-1">
+<!-- 2. Thông tin cơ sở đã chọn (Facility Summary Card) -->
+<section aria-labelledby="facility-title" class="bg-surface-container-lowest border border-outline-variant rounded-lg p-3.5 shadow-sm">
+<div class="flex items-start justify-between gap-2 mb-1.5">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary-container text-[18px]">warehouse</span>
+<h2 class="font-headline-sm text-[14px] leading-5 font-bold text-on-surface" id="facility-title">
+              StoreX Sài Gòn Central
+            </h2>
+</div>
+<span class="inline-flex items-center gap-1 bg-[#E8F5F1] text-primary-container px-2 py-0.5 rounded-full font-label-sm text-[10px] whitespace-nowrap">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+            Đang tiếp nhận khách
+          </span>
+</div>
+<p class="font-body-sm text-[12px] text-on-surface-variant flex items-start gap-1 leading-4">
+<span class="material-symbols-outlined text-[15px] text-outline mt-0.5 shrink-0">location_on</span>
+<span>118 Nguyễn Văn Linh, P. Tân Phong, Quận 7, TP.HCM</span>
+</p>
+<div class="mt-2 pt-2 border-t border-outline-variant/30 flex items-center justify-between text-[11px] text-on-surface-variant">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-primary-container">call</span>
+            Hotline: <strong class="text-on-surface font-semibold">028 7300 1188</strong>
+</span>
+<span class="text-primary-container font-medium hover:underline flex items-center gap-0.5 cursor-pointer">
+            Đổi cơ sở
+            <span class="material-symbols-outlined text-[12px]">chevron_right</span>
+</span>
+</div>
+</section>
+<!-- Ghi chú quy tắc nghiệp vụ: Khoản cọc & Giữ chỗ -->
+<div class="bg-surface-container-high/60 border border-outline-variant/60 rounded-lg p-2.5 flex items-start gap-2">
+<span class="material-symbols-outlined text-primary-container text-[18px] shrink-0 mt-0.5">info</span>
+<div class="font-body-sm text-[11px] leading-4 text-on-surface-variant">
+<p><strong class="text-on-surface font-medium">Lưu ý nghiệp vụ:</strong> Đơn giá và tiền cọc hiển thị là mức tham khảo chuẩn. Sau khi chọn, buồng lưu trữ được tạm giữ <strong>10 phút</strong> trong quy trình tạo hợp đồng.</p>
+</div>
+</div>
+<!-- 3. Danh sách loại buồng kho (Storage Type Cards) -->
+<section aria-label="Danh sách loại buồng lưu trữ" class="space-y-3">
+<div class="flex items-center justify-between">
+<h3 class="font-headline-sm text-[14px] font-bold text-on-surface tracking-tight">
+            Chọn kích thước buồng kho
+          </h3>
+<span class="font-label-sm text-[11px] text-outline">
+            Số ô do FM điều phối
+          </span>
+</div>
+<!-- THẺ 1: Mini 2m² (MẶC ĐỊNH CHỌN) -->
+<label class="storage-card block relative bg-surface-container-lowest border-2 border-primary-container rounded-lg p-3.5 shadow-sm cursor-pointer transition-all" id="card-mini">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2">
+<input checked="" class="w-5 h-5 text-primary-container border-outline text-primary focus:ring-0 focus:ring-offset-0 transition-transform cursor-pointer" name="storage_plan" onclick="updateSelection('Mini 2m²', '900.000 đ/tháng', '900.000 đ', 'mini')" type="radio" value="mini">
+<div>
+<div class="flex items-center gap-1.5">
+<h4 class="font-headline-sm text-[15px] font-bold text-on-surface">Mini 2m²</h4>
+<span class="bg-[#E8F5F1] text-primary-container text-[10px] font-label-sm px-1.5 py-0.5 rounded-full font-semibold">
+                    Còn 6 buồng trống
+                  </span>
+</div>
+<p class="font-body-sm text-[11px] text-outline mt-0.5 font-medium">
+                  Kích thước: 1.0m × 2.0m • Cao 2.5m (Thể tích 5.0 m³)
+                </p>
+</div>
+</div>
+</div>
+<p class="font-body-sm text-[12px] text-on-surface-variant mt-2.5 bg-surface-container-low/50 p-2 rounded border border-outline-variant/30 leading-4">
+<strong class="text-on-surface font-medium">Phù hợp:</strong> Đồ dùng gia đình nhỏ, 10–15 thùng carton tiêu chuẩn, vali du lịch, tài liệu lưu trữ.
+          </p>
+<div class="mt-2.5 pt-2.5 border-t border-outline-variant/40 flex items-center justify-between">
+<div>
+<span class="block font-label-sm text-[10px] uppercase tracking-wider text-outline">Đơn giá tham khảo</span>
+<span class="font-headline-sm text-[16px] font-bold text-primary-container">
+                900.000 đ <span class="font-body-sm text-[11px] font-normal text-on-surface-variant">/ tháng</span>
+</span>
+</div>
+<div class="text-right">
+<span class="block font-label-sm text-[10px] text-outline">Tiền cọc bảo đảm</span>
+<span class="font-body-sm text-[11px] font-semibold text-on-surface">
+                900.000 đ <span class="text-[10px] font-normal text-outline">(1 tháng - Tách riêng)</span>
+</span>
+</div>
+</div>
+</label>
+<!-- THẺ 2: Tiêu chuẩn 4m² -->
+<label class="storage-card block relative bg-surface-container-lowest border border-outline-variant rounded-lg p-3.5 shadow-sm cursor-pointer hover:border-primary-container/60 transition-all" id="card-standard">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2">
+<input class="w-5 h-5 text-primary-container border-outline text-primary focus:ring-0 focus:ring-offset-0 transition-transform cursor-pointer" name="storage_plan" onclick="updateSelection('Tiêu chuẩn 4m²', '1.500.000 đ/tháng', '1.500.000 đ', 'standard')" type="radio" value="standard">
+<div>
+<div class="flex items-center gap-1.5">
+<h4 class="font-headline-sm text-[15px] font-bold text-on-surface">Tiêu chuẩn 4m²</h4>
+<span class="bg-[#FEF3C7] text-[#92400E] text-[10px] font-label-sm px-1.5 py-0.5 rounded-full font-semibold">
+                    Phổ biến nhất
+                  </span>
+<span class="bg-[#E8F5F1] text-primary-container text-[10px] font-label-sm px-1.5 py-0.5 rounded-full font-semibold">
+                    Còn 8 buồng trống
+                  </span>
+</div>
+<p class="font-body-sm text-[11px] text-outline mt-0.5 font-medium">
+                  Kích thước: 2.0m × 2.0m • Cao 2.5m (Thể tích 10.0 m³)
+                </p>
+</div>
+</div>
+</div>
+<p class="font-body-sm text-[12px] text-on-surface-variant mt-2.5 bg-surface-container-low/50 p-2 rounded border border-outline-variant/30 leading-4">
+<strong class="text-on-surface font-medium">Phù hợp:</strong> Nội thất trọn gói căn hộ 1–2 PN, tủ lạnh, sofa mini, kho hàng shop online 30–40 thùng.
+          </p>
+<div class="mt-2.5 pt-2.5 border-t border-outline-variant/40 flex items-center justify-between">
+<div>
+<span class="block font-label-sm text-[10px] uppercase tracking-wider text-outline">Đơn giá tham khảo</span>
+<span class="font-headline-sm text-[16px] font-bold text-primary-container">
+                1.500.000 đ <span class="font-body-sm text-[11px] font-normal text-on-surface-variant">/ tháng</span>
+</span>
+</div>
+<div class="text-right">
+<span class="block font-label-sm text-[10px] text-outline">Tiền cọc bảo đảm</span>
+<span class="font-body-sm text-[11px] font-semibold text-on-surface">
+                1.500.000 đ <span class="text-[10px] font-normal text-outline">(1 tháng - Tách riêng)</span>
+</span>
+</div>
+</div>
+</label>
+<!-- THẺ 3: Kho lớn 6m² (Disabled State - Heuristic #5 Error Prevention & Clear Explanation) -->
+<div class="relative bg-[#F1F3F2] border border-outline-variant/60 rounded-lg p-3.5 opacity-85 select-none">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2">
+<div class="w-5 h-5 rounded-full border border-outline-variant/80 bg-gray-200 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[13px] text-outline">block</span>
+</div>
+<div>
+<div class="flex items-center gap-1.5 flex-wrap">
+<h4 class="font-headline-sm text-[15px] font-bold text-outline">Lớn 6m² (Kiểm soát ẩm)</h4>
+<span class="bg-error-container text-on-error-container text-[10px] font-label-sm px-1.5 py-0.5 rounded-full font-semibold">
+                    Tạm hết buồng trống (0/12)
+                  </span>
+</div>
+<p class="font-body-sm text-[11px] text-outline mt-0.5 font-medium">
+                  Kích thước: 3.0m × 2.0m • Cao 2.5m (Thể tích 15.0 m³)
+                </p>
+</div>
+</div>
+</div>
+<!-- Thông báo giải thích rõ ràng trạng thái vô hiệu hóa -->
+<div class="mt-2.5 p-2 bg-surface-container-lowest/80 rounded border border-outline-variant/50 text-[11px] font-body-sm text-outline leading-4">
+<span class="font-semibold text-on-error-container block mb-0.5">⚠️ Không thể đặt kho này vào lúc này:</span>
+            Loại kho này hiện đã được đặt kín. Quý khách vui lòng chọn <strong>Mini 2m²</strong> hoặc <strong>Tiêu chuẩn 4m²</strong>, hoặc liên hệ Hotline 028 7300 1188 để nhận thông báo ưu tiên khi có ô hoàn tất trả kho.
+          </div>
+<div class="mt-2.5 pt-2 border-t border-outline-variant/30 flex items-center justify-between text-outline">
+<div>
+<span class="block font-label-sm text-[10px] uppercase">Đơn giá niêm yết</span>
+<span class="font-headline-sm text-[14px] font-semibold">2.200.000 đ / tháng</span>
+</div>
+<div class="text-right">
+<span class="inline-block text-[11px] font-medium text-primary-container bg-surface-container px-2 py-0.5 rounded">
+                Nhận tin khi có kho
+              </span>
+</div>
+</div>
+</div>
+</section>
+<!-- 4. Tiện ích & Cam kết hệ thống (Transparency Matrix) -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-lg p-3 space-y-2">
+<h4 class="font-headline-sm text-[13px] font-bold text-on-surface flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-primary-container">verified_user</span>
+          Tiêu chuẩn an ninh &amp; vận hành kèm theo
+        </h4>
+<div class="grid grid-cols-2 gap-2 pt-1 font-body-sm text-[11px] text-on-surface-variant">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[15px] text-primary-container">lock</span>
+<span>Khóa số &amp; Mã QR 24/7</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[15px] text-primary-container">videocam</span>
+<span>CCTV an ninh hồng ngoại</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[15px] text-primary-container">device_thermostat</span>
+<span>Kiểm soát độ ẩm &amp; nhiệt</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[15px] text-primary-container">fire_truck</span>
+<span>Hệ thống PCCC tự động</span>
+</div>
+</div>
+</section>
+<!-- 5. Trợ giúp theo ngữ cảnh (Contextual Help Accordion - Heuristic 10) -->
+<section aria-labelledby="faq-heading" class="bg-surface-container-lowest border border-outline-variant rounded-lg p-3.5 space-y-2">
+<div class="flex items-center gap-1.5 mb-1">
+<span class="material-symbols-outlined text-primary-container text-[18px]">quiz</span>
+<h3 class="font-headline-sm text-[13px] font-bold text-on-surface" id="faq-heading">
+            Câu hỏi thường gặp tại bước chọn kho
+          </h3>
+</div>
+<details class="group border-b border-outline-variant/40 pb-2 pt-1">
+<summary class="flex justify-between items-center cursor-pointer list-none font-body-sm text-[12px] font-semibold text-on-surface hover:text-primary-container">
+<span>Tiền cọc được tính và hoàn lại như thế nào?</span>
+<span class="material-symbols-outlined text-[16px] text-outline group-open:rotate-180 transition-transform">expand_more</span>
+</summary>
+<p class="font-body-sm text-[11px] text-on-surface-variant mt-1.5 leading-4 pl-0.5">
+            Khoản cọc bảo đảm bằng đúng 01 tháng tiền thuê, được ghi nhận độc lập trên hợp đồng. Khoản này được hoàn trả 100% qua tài khoản ngân hàng trong vòng 24 giờ sau khi quý khách bàn giao buồng kho.
+          </p>
+</details>
+<details class="group border-b border-outline-variant/40 pb-2 pt-1">
+<summary class="flex justify-between items-center cursor-pointer list-none font-body-sm text-[12px] font-semibold text-on-surface hover:text-primary-container">
+<span>Tôi có cần chọn số buồng cụ thể ngay không?</span>
+<span class="material-symbols-outlined text-[16px] text-outline group-open:rotate-180 transition-transform">expand_more</span>
+</summary>
+<p class="font-body-sm text-[11px] text-on-surface-variant mt-1.5 leading-4 pl-0.5">
+            Không. Nhằm tối ưu hóa luồng di chuyển và xe đẩy hàng, Quản lý cơ sở (Facility Manager - FM) sẽ trực tiếp đón tiếp và phân bổ vị trí ô thuận tiện nhất khi quý khách mang đồ đến kho.
+          </p>
+</details>
+<details class="group pb-1 pt-1">
+<summary class="flex justify-between items-center cursor-pointer list-none font-body-sm text-[12px] font-semibold text-on-surface hover:text-primary-container">
+<span>Thời gian thuê tối thiểu là bao lâu?</span>
+<span class="material-symbols-outlined text-[16px] text-outline group-open:rotate-180 transition-transform">expand_more</span>
+</summary>
+<p class="font-body-sm text-[11px] text-on-surface-variant mt-1.5 leading-4 pl-0.5">
+            Thời hạn thuê linh hoạt từ 01 tháng đến 12 tháng. Quý khách có thể gia hạn bất kỳ lúc nào trên ứng dụng StoreX hoặc thông báo kết thúc thuê trước 07 ngày.
+          </p>
+</details>
+</section>
+</div>
+<!-- 6. Thanh cố định dưới chân (Sticky Bottom Action Bar) -->
+<div class="fixed bottom-0 z-50 w-[390px] bg-surface-container-lowest/95 backdrop-blur-md border-t border-outline-variant px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
+<div class="flex items-center justify-between mb-2">
+<div>
+<span class="font-body-sm text-[11px] text-outline block leading-3">Loại kho đã chọn:</span>
+<span class="font-headline-sm text-[14px] font-bold text-on-surface" id="selected-type-name">
+            Mini 2m²
+          </span>
+</div>
+<div class="text-right">
+<span class="font-body-sm text-[11px] text-outline block leading-3">Tạm tính tháng đầu:</span>
+<span class="font-headline-sm text-[15px] font-bold text-primary-container" id="selected-price">
+            900.000 đ
+          </span>
+<span class="font-body-sm text-[10px] text-on-surface-variant block" id="selected-deposit">
+            (Cọc hoàn lại: 900.000 đ)
+          </span>
+</div>
+</div>
+<!-- Nút CTA chính tiếp tục -->
+<a class="w-full h-12 bg-primary-container hover:bg-[#0F4D3E] text-on-primary font-label-lg text-[13px] font-semibold rounded-[4px] flex items-center justify-center gap-1.5 shadow-sm active:scale-[0.99] transition-all" href="#step-2-thong-tin-thue">
+<span>Tiếp tục — Điền thông tin thuê (Bước 2)</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</a>
+<!-- Safe Area Indicator cho iPhone -->
+<div class="w-32 h-1 bg-outline-variant/60 rounded-full mx-auto mt-2"></div>
+</div>
+</main>
+<!-- Script điều khiển tương tác chọn loại kho và cập nhật Footer CTA -->
+<script>
+    function updateSelection(typeName, price, deposit, cardId) {
+      document.getElementById('selected-type-name').innerText = typeName;
+      document.getElementById('selected-price').innerText = price.replace('/tháng', '');
+      document.getElementById('selected-deposit').innerText = '(Cọc hoàn lại: ' + deposit + ')';
+
+      // Cập nhật đường viền thẻ được kích hoạt
+      const cardMini = document.getElementById('card-mini');
+      const cardStandard = document.getElementById('card-standard');
+
+      if (cardId === 'mini') {
+        cardMini.classList.add('border-primary-container', 'border-2');
+        cardMini.classList.remove('border-outline-variant', 'border');
+        cardStandard.classList.add('border-outline-variant', 'border');
+        cardStandard.classList.remove('border-primary-container', 'border-2');
+      } else {
+        cardStandard.classList.add('border-primary-container', 'border-2');
+        cardStandard.classList.remove('border-outline-variant', 'border');
+        cardMini.classList.add('border-outline-variant', 'border');
+        cardMini.classList.remove('border-primary-container', 'border-2');
+      }
+    }
+  </script>
+</body></html>

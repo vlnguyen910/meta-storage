@@ -1,0 +1,591 @@
+<!DOCTYPE html><html class="light" lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>M-P02 — Chi tiết cơ sở kho — Guest/Customer</title>
+<!-- Google Fonts & Material Symbols -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-dim": "#d2d9f4",
+            "on-primary-fixed-variant": "#0d5042",
+            "on-tertiary-fixed": "#2f1500",
+            "on-tertiary": "#ffffff",
+            "primary-fixed": "#b1efdc",
+            "on-error-container": "#93000a",
+            "on-error": "#ffffff",
+            "on-primary": "#ffffff",
+            "surface-variant": "#dae2fd",
+            "secondary-container": "#b4efda",
+            "secondary-fixed-dim": "#98d2be",
+            "on-background": "#131b2e",
+            "on-secondary-fixed": "#002018",
+            "tertiary-container": "#723b00",
+            "surface-bright": "#faf8ff",
+            "primary-fixed-dim": "#96d3c0",
+            "inverse-primary": "#96d3c0",
+            "surface": "#faf8ff",
+            "tertiary-fixed": "#ffdcc3",
+            "primary-container": "#125345",
+            "error": "#ba1a1a",
+            "tertiary-fixed-dim": "#ffb77d",
+            "on-secondary-fixed-variant": "#135041",
+            "tertiary": "#512800",
+            "inverse-on-surface": "#eef0ff",
+            "secondary-fixed": "#b4efda",
+            "surface-container-high": "#e2e7ff",
+            "on-primary-fixed": "#002019",
+            "on-surface-variant": "#404945",
+            "on-tertiary-container": "#ffa454",
+            "on-tertiary-fixed-variant": "#6e3900",
+            "surface-tint": "#2c6859",
+            "surface-container": "#eaedff",
+            "on-primary-container": "#89c5b3",
+            "surface-container-highest": "#dae2fd",
+            "outline": "#707975",
+            "background": "#faf8ff",
+            "surface-container-low": "#f2f3ff",
+            "on-secondary": "#ffffff",
+            "surface-container-lowest": "#ffffff",
+            "secondary": "#306858",
+            "outline-variant": "#bfc9c4",
+            "primary": "#003b2f",
+            "on-surface": "#131b2e",
+            "error-container": "#ffdad6",
+            "on-secondary-container": "#366e5e",
+            "inverse-surface": "#283044"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "gutter": "1.5rem",
+            "space-xl": "2.5rem",
+            "space-sm": "0.5rem",
+            "space-lg": "1.5rem",
+            "margin-sm": "1rem",
+            "space-xs": "0.25rem",
+            "margin": "2rem",
+            "gutter-sm": "1rem",
+            "space-md": "1rem"
+          },
+          "fontFamily": {
+            "body-md": ["Be Vietnam Pro"],
+            "label-sm": ["Space Grotesk"],
+            "headline-sm": ["Space Grotesk"],
+            "headline-md": ["Space Grotesk"],
+            "body-lg": ["Be Vietnam Pro"],
+            "headline-lg-mobile": ["Space Grotesk"],
+            "label-lg": ["Space Grotesk"],
+            "headline-lg": ["Space Grotesk"],
+            "body-sm": ["Be Vietnam Pro"],
+            "label-md": ["Space Grotesk"],
+            "display": ["Space Grotesk"],
+            "display-mobile": ["Space Grotesk"],
+            "title-md": ["Be Vietnam Pro"]
+          },
+          "fontSize": {
+            "body-md": ["14px", { "lineHeight": "22px", "fontWeight": "400" }],
+            "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+            "body-lg": ["16px", { "lineHeight": "26px", "fontWeight": "400" }],
+            "headline-lg-mobile": ["26px", { "lineHeight": "34px", "fontWeight": "600" }],
+            "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "display": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "display-mobile": ["34px", { "lineHeight": "42px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "title-md": ["18px", { "lineHeight": "26px", "fontWeight": "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+    }
+    body {
+      -webkit-tap-highlight-color: transparent;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body-lg text-body-lg antialiased min-h-screen pb-36 w-full">
+<!-- Mobile Top Application Bar (Header) -->
+<header class="sticky top-0 z-40 bg-surface-container-lowest/95 backdrop-blur-md border-b border-outline-variant shadow-sm px-4 h-16 flex items-center justify-between w-full">
+<div class="flex items-center gap-2">
+<a aria-label="Quay lại" class="inline-flex items-center justify-center w-11 h-11 -ml-2 rounded-lg text-primary-container hover:bg-surface-container-low transition-all duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</a>
+<div>
+<span class="font-headline-sm text-headline-sm font-bold text-primary-container tracking-tight">storeX</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<a class="inline-flex items-center gap-1.5 px-3 py-2 min-h-[44px] rounded-lg border border-outline-variant bg-surface-container-lowest text-primary-container font-label-md text-label-md shadow-sm active:scale-95 transition-all" href="tel:02873001188">
+<span class="material-symbols-outlined text-[18px]">call</span>
+<span>028 7300 1188</span>
+</a>
+<a aria-label="Tài khoản" class="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-surface-container-low text-primary-container font-label-md text-label-md hover:bg-surface-container active:scale-95 transition-all" href="#">
+<span class="material-symbols-outlined text-[22px]">person</span>
+</a>
+</div>
+</header>
+<!-- Breadcrumbs & Facility Code Header -->
+<div class="px-4 pt-3 pb-2 flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm w-full">
+<div class="flex items-center gap-1 text-on-surface-variant">
+<a class="hover:text-primary-container transition-colors flex items-center gap-0.5" href="#">
+<span class="material-symbols-outlined text-[14px]">home</span>
+<span>Trang chủ</span>
+</a>
+<span>/</span>
+<a class="hover:text-primary-container transition-colors" href="#">TP.HCM</a>
+<span>/</span>
+<span class="text-on-surface font-medium truncate max-w-[120px]">Quận 7</span>
+</div>
+<span class="inline-flex items-center px-2 py-0.5 rounded bg-surface-container font-label-sm text-label-sm text-primary-container font-semibold">Mã: SGC</span>
+</div>
+<main class="px-4 space-y-4 w-full">
+<!-- Facility Identity & Headline -->
+<section class="space-y-2">
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-secondary-container text-on-secondary-fixed-variant font-label-md text-label-md font-semibold">
+<span class="w-2 h-2 rounded-full bg-primary-container animate-pulse"></span>
+          Đang tiếp nhận khách • Còn 16 buồng trống
+        </span>
+</div>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface tracking-tight font-bold">
+        StoreX Sài Gòn Central
+      </h1>
+<p class="text-on-surface-variant font-body-md text-body-md flex items-start gap-1.5">
+<span class="material-symbols-outlined text-primary-container text-[18px] mt-0.5 shrink-0">location_on</span>
+<span>118 Nguyễn Văn Linh, P. Tân Phong, Quận 7, TP.HCM</span>
+</p>
+</section>
+<!-- Facility Photo Banner -->
+<section class="rounded border border-outline-variant overflow-hidden bg-surface-container-lowest shadow-sm">
+<div class="relative w-full aspect-[16/10] bg-surface-container-low">
+<img class="w-full h-full object-cover" data-alt="Sảnh đón tiếp và buồng lưu trữ chuẩn an ninh" src="https://lh3.googleusercontent.com/aida-public/AB6AXuArIrGdRWJL1_U1sWovWPX2Ci7KLHouoYL7_iDvF0s7lhz4Q6l8a219PENEGYp0Whs-TM26jRcLX63DBci9WfsalcKobG1EKuMAC0bzSMXOsnpYVS78DLbCC5_QoyFDjS0TuGyjOfZg1nHgZPCT_V69AYfqJE8kJc6INEd9ZXqiBZ7uL1COhaE3J_LoA2fuUIpe5doVsjHUw-Pw5jeCd6QTKujZn3XlIVmxhbObG46t4w3-3a0oZY6yYDmmvilmuZtojFffent0FMJk">
+<div class="absolute bottom-2 left-2 right-2 bg-inverse-surface/85 backdrop-blur-sm px-3 py-1.5 rounded flex items-center justify-between text-on-tertiary">
+<p class="font-body-sm text-body-sm text-inverse-on-surface truncate">
+            Khu vực sảnh đón tiếp &amp; buồng lưu trữ chuẩn an ninh
+          </p>
+<span class="inline-flex items-center gap-1 font-label-sm text-label-sm shrink-0 ml-2 text-inverse-primary">
+<span class="material-symbols-outlined text-[14px]">photo_camera</span>
+<span>Thực tế</span>
+</span>
+</div>
+</div>
+<!-- Facility Operating Spec Snapshot -->
+<div class="p-3 grid grid-cols-2 gap-2 divide-x divide-outline-variant bg-surface-container-lowest">
+<div class="flex items-center gap-2 pl-1">
+<span class="material-symbols-outlined text-primary-container text-[20px]">schedule</span>
+<div>
+<div class="font-label-sm text-label-sm text-on-surface-variant uppercase">Mở cửa đón khách</div>
+<div class="font-label-md text-label-md text-on-surface font-semibold">08:00 – 20:00 (Hàng ngày)</div>
+</div>
+</div>
+<div class="flex items-center gap-2 pl-3">
+<span class="material-symbols-outlined text-primary-container text-[20px]">support_agent</span>
+<div>
+<div class="font-label-sm text-label-sm text-on-surface-variant uppercase">Hotline cơ sở</div>
+<a class="font-label-md text-label-md text-primary-container font-semibold hover:underline" href="tel:02873001188">028 7300 1188</a>
+</div>
+</div>
+</div>
+</section>
+<!-- Essential Amenities (Tiện ích cơ sở thiết yếu) -->
+<section class="rounded border border-outline-variant bg-surface-container-lowest p-4 shadow-sm space-y-3">
+<h2 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-container text-[22px]">verified</span>
+<span>Tiện ích cơ sở thiết yếu</span>
+</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+        Hạ tầng vật lý hoàn thiện tại trạm phục vụ tự bốc dỡ và lưu kho chuyên nghiệp:
+      </p>
+<div class="grid grid-cols-2 gap-2.5 pt-1">
+<div class="p-2.5 rounded border border-outline-variant bg-surface-container-low/50 flex items-start gap-2">
+<span class="material-symbols-outlined text-primary-container text-[20px] mt-0.5">elevator</span>
+<div>
+<div class="font-label-md text-label-md text-on-surface font-semibold">Thang máy tải</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Sức chứa 1.500 kg</div>
+</div>
+</div>
+<div class="p-2.5 rounded border border-outline-variant bg-surface-container-low/50 flex items-start gap-2">
+<span class="material-symbols-outlined text-primary-container text-[20px] mt-0.5">lock</span>
+<div>
+<div class="font-label-md text-label-md text-on-surface font-semibold">Cửa cuốn riêng</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Bảo vệ độc lập từng ô</div>
+</div>
+</div>
+<div class="p-2.5 rounded border border-outline-variant bg-surface-container-low/50 flex items-start gap-2">
+<span class="material-symbols-outlined text-primary-container text-[20px] mt-0.5">videocam</span>
+<div>
+<div class="font-label-md text-label-md text-on-surface font-semibold">Camera hành lang</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Ghi hình an ninh 24/7</div>
+</div>
+</div>
+<div class="p-2.5 rounded border border-outline-variant bg-surface-container-low/50 flex items-start gap-2">
+<span class="material-symbols-outlined text-primary-container text-[20px] mt-0.5">local_shipping</span>
+<div>
+<div class="font-label-md text-label-md text-on-surface font-semibold">Xe đẩy trợ lực</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Có sẵn miễn phí tại sảnh</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Available Unit Types Section -->
+<section class="space-y-3 pt-1">
+<div class="flex items-center justify-between">
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-bold">Danh mục loại kho tại cơ sở</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Chọn diện tích phù hợp để tiếp tục giữ chỗ trực tuyến (tối đa 24h)</p>
+</div>
+</div>
+<!-- Unit Card 1: Mini 2m² -->
+<article class="unit-card relative rounded border border-outline-variant bg-surface-container-lowest p-4 transition-all duration-150 shadow-sm cursor-pointer" onclick="selectUnit('mini', 'Mini 2m²', '900.000 đ', '900.000 đ')">
+<div class="flex items-start justify-between gap-2">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-headline-sm text-on-surface">Mini 2m²</span>
+<span class="px-2 py-0.5 rounded bg-secondary-container text-on-secondary-fixed-variant font-label-sm text-label-sm font-semibold">
+                Còn 6 buồng trống
+              </span>
+</div>
+<div class="font-label-md text-label-md text-on-surface-variant">
+              Dài 1.0m × Rộng 2.0m × Cao 2.5m • Thể tích 5m³
+            </div>
+</div>
+<!-- Custom Radio Indicator -->
+<div class="unit-radio shrink-0 mt-1 w-5 h-5 rounded-full border-2 border-outline flex items-center justify-center transition-colors" data-unit="mini">
+<div class="radio-dot w-2.5 h-2.5 rounded-full bg-primary-container hidden"></div>
+</div>
+</div>
+<div class="mt-3 pt-3 border-t border-outline-variant space-y-2">
+<div class="flex items-start gap-1.5 font-body-sm text-body-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-primary-container text-[16px] shrink-0">check_circle</span>
+<span><strong>Phù hợp:</strong> Đồ dùng gia đình nhỏ, 10–15 thùng carton, vali du lịch.</span>
+</div>
+<div class="p-2.5 rounded bg-surface-container-low flex items-center justify-between">
+<div>
+<div class="font-label-sm text-label-sm text-on-surface-variant font-semibold">GIÁ THUÊ CỐ ĐỊNH</div>
+<div class="font-headline-sm text-headline-sm text-primary-container font-bold">900.000 đ <span class="font-body-sm text-body-sm text-on-surface-variant font-normal">/ tháng</span></div>
+</div>
+<div class="text-right">
+<div class="font-label-sm text-label-sm text-on-surface-variant font-semibold">KHOẢN CỌC TÁCH RIÊNG</div>
+<div class="font-label-md text-label-md text-on-surface font-semibold">900.000 đ (1 tháng)</div>
+</div>
+</div>
+<button class="w-full min-h-[44px] mt-1 py-2.5 px-3 rounded border border-primary-container text-primary-container font-label-md text-label-md font-semibold hover:bg-secondary-container/30 active:scale-95 transition-all text-center" type="button">
+            Chọn loại kho này
+          </button>
+</div>
+</article>
+<!-- Unit Card 2: Tiêu chuẩn 4m² (Featured) -->
+<article class="unit-card relative rounded border-2 border-primary-container bg-surface-container-lowest p-4 transition-all duration-150 shadow-sm cursor-pointer" onclick="selectUnit('standard', 'Tiêu chuẩn 4m²', '1.500.000 đ', '1.500.000 đ')">
+<div class="absolute -top-3 right-4 bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm px-2.5 py-0.5 rounded font-bold shadow-sm">
+          Phổ biến nhất
+        </div>
+<div class="flex items-start justify-between gap-2">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-headline-sm text-on-surface">Tiêu chuẩn 4m²</span>
+<span class="px-2 py-0.5 rounded bg-secondary-container text-on-secondary-fixed-variant font-label-sm text-label-sm font-semibold">
+                Còn 8 buồng trống
+              </span>
+</div>
+<div class="font-label-md text-label-md text-on-surface-variant">
+              Dài 2.0m × Rộng 2.0m × Cao 2.5m • Thể tích 10m³
+            </div>
+</div>
+<!-- Custom Radio Indicator -->
+<div class="unit-radio shrink-0 mt-1 w-5 h-5 rounded-full border-2 border-primary-container flex items-center justify-center transition-colors" data-unit="standard">
+<div class="radio-dot w-2.5 h-2.5 rounded-full bg-primary-container block"></div>
+</div>
+</div>
+<div class="mt-3 pt-3 border-t border-outline-variant space-y-2">
+<div class="flex items-start gap-1.5 font-body-sm text-body-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-primary-container text-[16px] shrink-0">check_circle</span>
+<span><strong>Phù hợp:</strong> Nội thất căn hộ 1-2 phòng ngủ, kho hàng online 30–40 thùng.</span>
+</div>
+<div class="p-2.5 rounded bg-secondary-container/20 flex items-center justify-between border border-secondary-fixed">
+<div>
+<div class="font-label-sm text-label-sm text-on-surface-variant font-semibold">GIÁ THUÊ CỐ ĐỊNH</div>
+<div class="font-headline-sm text-headline-sm text-primary-container font-bold">1.500.000 đ <span class="font-body-sm text-body-sm text-on-surface-variant font-normal">/ tháng</span></div>
+</div>
+<div class="text-right">
+<div class="font-label-sm text-label-sm text-on-surface-variant font-semibold">KHOẢN CỌC TÁCH RIÊNG</div>
+<div class="font-label-md text-label-md text-on-surface font-semibold">1.500.000 đ (1 tháng)</div>
+</div>
+</div>
+<button class="w-full min-h-[44px] mt-1 py-2.5 px-3 rounded bg-primary-container text-on-primary font-label-md text-label-md font-semibold active:scale-95 transition-all text-center" type="button">
+            Đang chọn loại kho này ✓
+          </button>
+</div>
+</article>
+<!-- Unit Card 3: Lớn 6m² -->
+<article class="unit-card relative rounded border border-outline-variant bg-surface-container-lowest p-4 transition-all duration-150 shadow-sm cursor-pointer" onclick="selectUnit('large', 'Lớn 6m²', '2.100.000 đ', '2.100.000 đ')">
+<div class="flex items-start justify-between gap-2">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-headline-sm text-on-surface">Lớn 6m²</span>
+<span class="px-2 py-0.5 rounded bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm font-semibold">
+                Còn 2 buồng trống
+              </span>
+</div>
+<div class="font-label-md text-label-md text-on-surface-variant">
+              Dài 2.4m × Rộng 2.5m × Cao 2.5m • Thể tích 15m³
+            </div>
+</div>
+<!-- Custom Radio Indicator -->
+<div class="unit-radio shrink-0 mt-1 w-5 h-5 rounded-full border-2 border-outline flex items-center justify-center transition-colors" data-unit="large">
+<div class="radio-dot w-2.5 h-2.5 rounded-full bg-primary-container hidden"></div>
+</div>
+</div>
+<div class="mt-3 pt-3 border-t border-outline-variant space-y-2">
+<div class="flex items-start gap-1.5 font-body-sm text-body-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-primary-container text-[16px] shrink-0">check_circle</span>
+<span><strong>Phù hợp:</strong> Hàng hóa doanh nghiệp, chuyển nhà trọn gói, đồ đạc cồng kềnh.</span>
+</div>
+<div class="p-2.5 rounded bg-surface-container-low flex items-center justify-between">
+<div>
+<div class="font-label-sm text-label-sm text-on-surface-variant font-semibold">GIÁ THUÊ CỐ ĐỊNH</div>
+<div class="font-headline-sm text-headline-sm text-primary-container font-bold">2.100.000 đ <span class="font-body-sm text-body-sm text-on-surface-variant font-normal">/ tháng</span></div>
+</div>
+<div class="text-right">
+<div class="font-label-sm text-label-sm text-on-surface-variant font-semibold">KHOẢN CỌC TÁCH RIÊNG</div>
+<div class="font-label-md text-label-md text-on-surface font-semibold">2.100.000 đ (1 tháng)</div>
+</div>
+</div>
+<button class="w-full min-h-[44px] mt-1 py-2.5 px-3 rounded border border-primary-container text-primary-container font-label-md text-label-md font-semibold hover:bg-secondary-container/30 active:scale-95 transition-all text-center" type="button">
+            Chọn loại kho này
+          </button>
+</div>
+</article>
+<!-- Unit Card 4: Kho khí hậu đặc biệt 6m² (Disabled/Sold Out) -->
+<article class="relative rounded border border-outline-variant/60 bg-surface-container-low/60 p-4 opacity-80 cursor-not-allowed">
+<div class="flex items-start justify-between gap-2">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-headline-sm text-outline">Kho khí hậu đặc biệt 6m²</span>
+<span class="px-2 py-0.5 rounded bg-error-container text-on-error-container font-label-sm text-label-sm font-semibold">
+                Tạm hết buồng trống (0)
+              </span>
+</div>
+<div class="font-label-md text-label-md text-outline">
+              Dài 2.4m × Rộng 2.5m × Cao 2.5m • Kiểm soát nhiệt độ 22-25°C
+            </div>
+</div>
+<div class="shrink-0 mt-1 w-5 h-5 rounded-full border-2 border-outline-variant bg-surface-dim flex items-center justify-center">
+<span class="material-symbols-outlined text-[14px] text-outline">lock</span>
+</div>
+</div>
+<div class="mt-3 pt-3 border-t border-outline-variant/50 space-y-2">
+<div class="p-2.5 rounded bg-surface-container flex items-center justify-between">
+<div>
+<div class="font-label-sm text-label-sm text-outline font-semibold">GIÁ THAM KHẢO</div>
+<div class="font-headline-sm text-headline-sm text-outline font-semibold">2.500.000 đ <span class="font-body-sm text-body-sm text-outline font-normal">/ tháng</span></div>
+</div>
+<div class="text-right">
+<span class="font-label-sm text-label-sm text-outline">Bảo quản thiết bị &amp; rượu</span>
+</div>
+</div>
+<button class="w-full min-h-[44px] mt-1 py-2.5 px-3 rounded bg-surface-dim text-on-surface-variant font-label-md text-label-md cursor-not-allowed text-center" disabled="" type="button">
+            Đã kín chỗ — Vui lòng chọn loại kho khác hoặc liên hệ hotline
+          </button>
+</div>
+</article>
+</section>
+<!-- Operational Process & Important Notices Accordion -->
+<section class="rounded border border-outline-variant bg-surface-container-lowest p-4 shadow-sm space-y-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-container text-[22px]">info</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Quy trình &amp; Lưu ý vận hành thực tế</h3>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+        StoreX duy trì tiêu chuẩn minh bạch tuyệt đối về phí thuê, tiền cọc và quy trình bàn giao chìa khóa tại trạm:
+      </p>
+<!-- Accordion 1: 3 Bước bàn giao -->
+<details class="group rounded border border-outline-variant bg-surface-container-lowest overflow-hidden transition-all" open="">
+<summary class="flex items-center justify-between p-3 min-h-[44px] cursor-pointer list-none bg-surface-container-low font-label-md text-label-md font-semibold text-on-surface select-none">
+<span class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-container text-[18px]">format_list_numbered</span>
+            1. Quy trình 3 bước nhận buồng kho
+          </span>
+<span class="material-symbols-outlined text-on-surface-variant group-open:rotate-180 transition-transform">expand_more</span>
+</summary>
+<div class="p-3 text-body-md font-body-md text-on-surface-variant space-y-2 border-t border-outline-variant">
+<div class="flex items-start gap-2">
+<span class="w-5 h-5 rounded-full bg-secondary-container text-on-secondary-fixed-variant font-label-sm font-bold flex items-center justify-center shrink-0 mt-0.5">1</span>
+<p><strong>Chọn loại kho &amp; giữ chỗ trực tuyến:</strong> Đăng ký xác nhận nhu cầu, hệ thống giữ chỗ tối đa 24 giờ cho khách hàng.</p>
+</div>
+<div class="flex items-start gap-2">
+<span class="w-5 h-5 rounded-full bg-secondary-container text-on-secondary-fixed-variant font-label-sm font-bold flex items-center justify-center shrink-0 mt-0.5">2</span>
+<p><strong>Đón tiếp &amp; kiểm tra trực tiếp tại trạm:</strong> Khách hàng tới địa chỉ 118 Nguyễn Văn Linh trong khung giờ 08:00 – 20:00 để kiểm tra tình trạng buồng thực tế.</p>
+</div>
+<div class="flex items-start gap-2">
+<span class="w-5 h-5 rounded-full bg-secondary-container text-on-secondary-fixed-variant font-label-sm font-bold flex items-center justify-center shrink-0 mt-0.5">3</span>
+<p><strong>Bàn giao chìa/thẻ &amp; kích hoạt:</strong> Ký kết thỏa thuận thuê lưu trữ, thanh toán cọc và nhận mã thẻ ra vào cửa cuốn độc lập.</p>
+</div>
+</div>
+</details>
+<!-- Accordion 2: Nguyên tắc tiền cọc & Phân bổ số buồng -->
+<details class="group rounded border border-outline-variant bg-surface-container-lowest overflow-hidden transition-all">
+<summary class="flex items-center justify-between p-3 min-h-[44px] cursor-pointer list-none bg-surface-container-low font-label-md text-label-md font-semibold text-on-surface select-none">
+<span class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-container text-[18px]">account_balance_wallet</span>
+            2. Tiền cọc &amp; Quy định mã số buồng kho
+          </span>
+<span class="material-symbols-outlined text-on-surface-variant group-open:rotate-180 transition-transform">expand_more</span>
+</summary>
+<div class="p-3 text-body-md font-body-md text-on-surface-variant space-y-2 border-t border-outline-variant">
+<p>
+            • <strong>Phân định rõ ràng:</strong> Tiền thuê hàng tháng và tiền cọc bảo đảm là <strong>2 khoản tách biệt</strong> (cọc tương đương 01 tháng tiền thuê). Tiền cọc sẽ được hoàn trả đầy đủ trong 03 ngày làm việc sau khi thanh lý hợp đồng và bàn giao buồng kho nguyên vẹn.
+          </p>
+<p>
+            • <strong>Số buồng cụ thể (ví dụ HCM-01-A102):</strong> Sẽ do Quản lý cơ sở (FM) trực tiếp phân bổ khi bạn tới trạm thực tế dựa trên sơ đồ mặt bằng tối ưu nhất. Khách hàng không chọn mã số phòng cố định khi đăng ký online.
+          </p>
+<p>
+            • <strong>Thời gian giữ chỗ:</strong> Đơn giữ chỗ có hiệu lực trong vòng <strong>24 giờ</strong> tính từ thời điểm gửi yêu cầu thành công.
+          </p>
+</div>
+</details>
+</section>
+<!-- Support Assistance Card -->
+<div class="p-3 rounded border border-outline-variant bg-surface-container-lowest flex items-center justify-between">
+<div class="space-y-0.5">
+<div class="font-label-md text-label-md font-semibold text-on-surface">Cần tư vấn kích thước kho?</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Nhân viên trực trạm hỗ trợ đo đạc miễn phí</div>
+</div>
+<a class="inline-flex items-center gap-1.5 px-3.5 py-2.5 min-h-[44px] rounded bg-secondary-container text-on-secondary-fixed-variant font-label-md text-label-md font-semibold active:scale-95 transition-all" href="tel:02873001188">
+<span class="material-symbols-outlined text-[18px]">call</span>
+<span>Gọi ngay</span>
+</a>
+</div>
+</main>
+<!-- Sticky Bottom Summary & CTA Bar -->
+<aside class="fixed bottom-14 left-0 right-0 z-30 bg-surface-container-lowest border-t border-outline-variant px-4 py-2.5 shadow-lg backdrop-blur-md w-full">
+<div class="w-full space-y-2">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5 font-label-md text-label-md text-on-surface">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span>
+<span>Đã chọn:</span>
+<strong class="text-primary-container font-bold" id="selected-unit-label">Tiêu chuẩn 4m²</strong>
+</div>
+<div class="font-label-md text-label-md text-on-surface">
+<span class="font-bold text-primary-container text-[16px]" id="selected-unit-price">1.500.000 đ</span>/tháng
+</div>
+</div>
+<button class="w-full min-h-[44px] h-11 px-4 rounded bg-primary-container text-on-primary font-label-lg text-label-lg font-semibold flex items-center justify-center gap-2 shadow hover:bg-on-primary-fixed-variant active:scale-95 transition-all" onclick="handleContinueBooking()" type="button">
+<span id="cta-button-text">Tiếp tục đặt kho (Bước 1)</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+</aside>
+<!-- Bottom Navigation Bar for Guest/Customer (Mobile Persistent Shell) -->
+<nav class="fixed bottom-0 left-0 right-0 z-40 bg-surface-container-lowest border-t border-outline-variant h-14 px-4 flex items-center justify-around w-full">
+<a class="flex flex-col items-center justify-center min-w-[44px] h-full text-on-surface-variant hover:text-on-surface active:scale-95 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">home</span>
+<span class="font-label-sm text-label-sm">Trang chủ</span>
+</a>
+<!-- Active Tab: Tìm kho -->
+<a class="flex flex-col items-center justify-center min-w-[44px] h-full text-primary-container font-semibold active:scale-95 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">warehouse</span>
+<span class="font-label-sm text-label-sm font-semibold">Tìm kho</span>
+</a>
+<a class="flex flex-col items-center justify-center min-w-[44px] h-full text-on-surface-variant hover:text-on-surface active:scale-95 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">help_outline</span>
+<span class="font-label-sm text-label-sm">Hỗ trợ</span>
+</a>
+<a class="flex flex-col items-center justify-center min-w-[44px] h-full text-on-surface-variant hover:text-on-surface active:scale-95 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">login</span>
+<span class="font-label-sm text-label-sm">Đăng nhập</span>
+</a>
+</nav>
+<!-- Inline interaction logic for Unit Selection -->
+<script>
+    let currentSelection = {
+      id: 'standard',
+      name: 'Tiêu chuẩn 4m²',
+      price: '1.500.000 đ',
+      deposit: '1.500.000 đ'
+    };
+
+    function selectUnit(id, name, price, deposit) {
+      currentSelection = { id, name, price, deposit };
+
+      // Update Radio Dots
+      document.querySelectorAll('.unit-radio').forEach(radio => {
+        const isTarget = radio.getAttribute('data-unit') === id;
+        const dot = radio.querySelector('.radio-dot');
+        if (isTarget) {
+          radio.classList.remove('border-outline');
+          radio.classList.add('border-primary-container');
+          dot.classList.remove('hidden');
+          dot.classList.add('block');
+        } else {
+          radio.classList.remove('border-primary-container');
+          radio.classList.add('border-outline');
+          dot.classList.add('hidden');
+          dot.classList.remove('block');
+        }
+      });
+
+      // Update Card Visual Styling
+      document.querySelectorAll('.unit-card').forEach(card => {
+        const isMatch = card.getAttribute('onclick').includes("\'" + id + "\'");
+        if (isMatch) {
+          card.classList.remove('border-outline-variant');
+          card.classList.add('border-2', 'border-primary-container');
+          const btn = card.querySelector('button');
+          if (btn) {
+            btn.className = 'w-full min-h-[44px] mt-1 py-2.5 px-3 rounded bg-primary-container text-on-primary font-label-md text-label-md font-semibold active:scale-95 transition-all text-center';
+            btn.innerText = 'Đang chọn loại kho này ✓';
+          }
+        } else {
+          card.classList.remove('border-2', 'border-primary-container');
+          card.classList.add('border-outline-variant');
+          const btn = card.querySelector('button');
+          if (btn) {
+            btn.className = 'w-full min-h-[44px] mt-1 py-2.5 px-3 rounded border border-primary-container text-primary-container font-label-md text-label-md font-semibold hover:bg-secondary-container/30 active:scale-95 transition-all text-center';
+            btn.innerText = 'Chọn loại kho này';
+          }
+        }
+      });
+
+      // Update Sticky Bar Text
+      document.getElementById('selected-unit-label').innerText = name;
+      document.getElementById('selected-unit-price').innerText = price;
+      document.getElementById('cta-button-text').innerText = 'Tiếp tục đặt kho (Bước 1)';
+    }
+
+    function handleContinueBooking() {
+      const notification = document.createElement('div');
+      notification.className = "fixed top-4 left-4 right-4 z-50 p-3 bg-primary-container text-on-primary rounded shadow-xl text-center font-label-md text-label-md flex items-center justify-center gap-2 animate-bounce";
+      notification.innerHTML = '<span class="material-symbols-outlined text-[18px]">verified</span> Đã giữ chỗ ' + currentSelection.name + ' thành công! Đang chuyển tiếp bước 1...';
+      document.body.appendChild(notification);
+      setTimeout(() => {
+        notification.remove();
+      }, 3000);
+    }
+  </script>
+</body></html>

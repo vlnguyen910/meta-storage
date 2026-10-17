@@ -1,0 +1,4 @@
+interface:
+  display_name: "Metastorage Backend Endpoint"
+  short_description: "Implement backend APIs with contracts, TDD, and DTOs"
+  default_prompt: "Dùng $metastorage-backend-endpoint để triển khai endpoint backend theo nghiệp vụ đã chốt, giữ phạm vi gọn."

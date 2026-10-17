@@ -1,0 +1,289 @@
+<!DOCTYPE html><html class="light" lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>M-E01 — Không có quyền truy cập — Chung</title>
+<!-- Google Fonts: Space Grotesk & Be Vietnam Pro -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-container-high": "#e2e7ff",
+            "inverse-primary": "#96d3c0",
+            "on-tertiary-container": "#ffa454",
+            "tertiary-fixed": "#ffdcc3",
+            "tertiary-container": "#723b00",
+            "primary-fixed-dim": "#96d3c0",
+            "on-secondary-fixed": "#002018",
+            "surface": "#faf8ff",
+            "on-primary-fixed-variant": "#0d5042",
+            "surface-container-highest": "#dae2fd",
+            "surface-container": "#eaedff",
+            "background": "#faf8ff",
+            "secondary-container": "#b4efda",
+            "inverse-surface": "#283044",
+            "surface-variant": "#dae2fd",
+            "outline": "#707975",
+            "surface-container-lowest": "#ffffff",
+            "primary": "#003b2f",
+            "on-background": "#131b2e",
+            "on-tertiary-fixed-variant": "#6e3900",
+            "inverse-on-surface": "#eef0ff",
+            "tertiary": "#512800",
+            "on-surface": "#131b2e",
+            "on-surface-variant": "#404945",
+            "surface-tint": "#2c6859",
+            "surface-container-low": "#f2f3ff",
+            "on-error-container": "#93000a",
+            "on-secondary-fixed-variant": "#135041",
+            "primary-fixed": "#b1efdc",
+            "surface-bright": "#faf8ff",
+            "secondary": "#306858",
+            "outline-variant": "#bfc9c4",
+            "on-tertiary-fixed": "#2f1500",
+            "on-primary-fixed": "#002019",
+            "on-tertiary": "#ffffff",
+            "error-container": "#ffdad6",
+            "surface-dim": "#d2d9f4",
+            "on-primary-container": "#89c5b3",
+            "error": "#ba1a1a",
+            "tertiary-fixed-dim": "#ffb77d",
+            "on-error": "#ffffff",
+            "secondary-fixed": "#b4efda",
+            "on-secondary-container": "#366e5e",
+            "on-primary": "#ffffff",
+            "on-secondary": "#ffffff",
+            "secondary-fixed-dim": "#98d2be",
+            "primary-container": "#125345"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "space-lg": "1.5rem",
+            "margin": "2rem",
+            "gutter": "1.5rem",
+            "space-xl": "2.5rem",
+            "space-md": "1rem",
+            "space-xs": "0.25rem",
+            "gutter-sm": "1rem",
+            "margin-sm": "1rem",
+            "space-sm": "0.5rem"
+          },
+          "fontFamily": {
+            "body-md": ["Be Vietnam Pro"],
+            "display-mobile": ["Space Grotesk"],
+            "label-sm": ["Space Grotesk"],
+            "title-md": ["Be Vietnam Pro"],
+            "body-sm": ["Be Vietnam Pro"],
+            "headline-sm": ["Space Grotesk"],
+            "label-md": ["Space Grotesk"],
+            "headline-lg": ["Space Grotesk"],
+            "display": ["Space Grotesk"],
+            "body-lg": ["Be Vietnam Pro"],
+            "headline-lg-mobile": ["Space Grotesk"],
+            "label-lg": ["Space Grotesk"],
+            "headline-md": ["Space Grotesk"]
+          },
+          "fontSize": {
+            "body-md": ["14px", { "lineHeight": "22px", "fontWeight": "400" }],
+            "display-mobile": ["34px", { "lineHeight": "42px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+            "title-md": ["18px", { "lineHeight": "26px", "fontWeight": "600" }],
+            "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "display": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "body-lg": ["16px", { "lineHeight": "26px", "fontWeight": "400" }],
+            "headline-lg-mobile": ["26px", { "lineHeight": "34px", "fontWeight": "600" }],
+            "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      background-color: #faf8ff;
+      color: #131b2e;
+      font-family: 'Be Vietnam Pro', sans-serif;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .touch-target {
+      min-width: 44px;
+      min-height: 44px;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface antialiased flex justify-center min-h-screen">
+<!-- Mobile Viewport Container: 390px logical width boundary -->
+<main class="w-full max-w-[390px] min-h-screen bg-surface-container-lowest flex flex-col relative shadow-[0_4px_24px_rgba(0,0,0,0.06)] border-x border-outline-variant">
+<!-- Top App Bar (Shared Component Pattern) -->
+<header class="flex justify-between items-center w-full px-4 h-14 sticky top-0 left-0 z-40 bg-surface-container-lowest border-b border-outline-variant">
+<div class="flex items-center gap-2">
+<button aria-label="Quay lại" class="touch-target flex items-center justify-center rounded-lg text-primary hover:bg-surface-container active:scale-95 transition-transform duration-150" type="button">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<div class="flex items-center gap-1.5 pl-1">
+<span class="w-2.5 h-2.5 rounded-full bg-primary-container"></span>
+<span class="font-headline-sm text-headline-sm tracking-tight text-primary font-bold">StoreX</span>
+</div>
+</div>
+<div class="flex items-center gap-1">
+<a aria-label="Gọi hotline hỗ trợ" class="touch-target flex items-center justify-center rounded-lg text-primary hover:bg-surface-container active:scale-95 transition-transform duration-150" href="tel:02873001188">
+<span class="material-symbols-outlined text-[22px]">phone_in_talk</span>
+</a>
+<button aria-label="Tài khoản cá nhân" class="touch-target flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container active:scale-95 transition-transform duration-150" type="button">
+<span class="material-symbols-outlined text-[24px]">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas (Linear Error Flow: Navigation Shell suppressed intentionally) -->
+<div class="flex-1 px-4 pt-6 pb-8 flex flex-col gap-6">
+<!-- Hero 403 Status Block -->
+<section class="flex flex-col items-center text-center pt-2">
+<!-- Visual Lock Icon Unit -->
+<div class="relative flex items-center justify-center w-20 h-20 rounded-full bg-error-container/60 border border-error/20 mb-4 shadow-sm">
+<div class="w-14 h-14 rounded-full bg-error-container flex items-center justify-center text-error">
+<span class="material-symbols-outlined text-[32px]" style="font-variation-settings: 'FILL' 1;">lock</span>
+</div>
+<span class="absolute -bottom-1 right-1 w-5 h-5 bg-tertiary-container text-tertiary-fixed rounded-full flex items-center justify-center border-2 border-surface-container-lowest">
+<span class="material-symbols-outlined text-[13px]">shield</span>
+</span>
+</div>
+<!-- Error Tag -->
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-surface-container border border-outline-variant mb-2">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span>
+<span class="font-label-md text-label-md text-error tracking-wider uppercase">MÃ 403 • TỪ CHỐI TRUY CẬP</span>
+</div>
+<!-- Primary Heading -->
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface mb-2 font-bold tracking-tight">
+          Không có quyền truy cập
+        </h1>
+<!-- Friendly Narrative Description (>=16px standard) -->
+<p class="font-body-lg text-body-lg text-on-surface-variant leading-relaxed px-1">
+          Tài khoản hiện tại của bạn không có quyền xem hoặc thao tác trên bản ghi / cơ sở kho này. Điều này nhằm bảo mật hợp đồng thuê và an toàn tài sản kho tự quản.
+        </p>
+</section>
+<!-- Context Session Metadata Card -->
+<section class="rounded-lg border border-outline-variant bg-surface-container-low p-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+<div class="flex items-center justify-between pb-3 border-b border-outline-variant/60">
+<span class="font-label-md text-label-md text-on-surface-variant">NGỮ CẢNH PHIÊN LÀM VIỆC</span>
+<span class="inline-flex items-center gap-1 font-label-sm text-label-sm px-2 py-0.5 rounded bg-secondary-container text-on-secondary-fixed-variant">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+            ĐÃ XÁC THỰC
+          </span>
+</div>
+<div class="space-y-2.5 pt-3">
+<div class="flex items-center justify-between gap-2">
+<span class="font-body-md text-body-md text-on-surface-variant">Vai trò xác lập:</span>
+<span class="font-label-lg text-label-lg text-primary font-semibold">Khách thuê kho (Customer)</span>
+</div>
+<div class="flex items-center justify-between gap-2">
+<span class="font-body-md text-body-md text-on-surface-variant">Tài khoản:</span>
+<span class="font-body-md text-body-md text-on-surface font-medium truncate max-w-[200px]">customer@example.test</span>
+</div>
+<div class="flex items-center justify-between gap-2">
+<span class="font-body-md text-body-md text-on-surface-variant">Cơ sở đối chiếu:</span>
+<span class="font-body-md text-body-md text-on-surface font-medium text-right">StoreX Sài Gòn Central</span>
+</div>
+</div>
+</section>
+<!-- Common Reasons Accordion/List -->
+<section class="rounded-lg border border-outline-variant bg-surface-container-lowest p-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+<div class="flex items-center gap-2 mb-3.5">
+<span class="material-symbols-outlined text-primary text-[20px]">help_outline</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold text-[18px]">
+            Lý do phổ biến
+          </h2>
+</div>
+<div class="space-y-3.5">
+<!-- Reason 1 -->
+<div class="flex items-start gap-3 p-2.5 rounded-lg bg-surface-container/50 border border-outline-variant/50">
+<span class="material-symbols-outlined text-primary text-[20px] mt-0.5">group_off</span>
+<div>
+<p class="font-body-lg text-body-lg text-on-surface font-semibold leading-tight">Khác tài khoản thuê</p>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Buồng kho hoặc đơn đặt chỗ này thuộc quyền quản lý của khách hàng khác.</p>
+</div>
+</div>
+<!-- Reason 2 -->
+<div class="flex items-start gap-3 p-2.5 rounded-lg bg-surface-container/50 border border-outline-variant/50">
+<span class="material-symbols-outlined text-primary text-[20px] mt-0.5">policy</span>
+<div>
+<p class="font-body-lg text-body-lg text-on-surface font-semibold leading-tight">Phân định trách nhiệm</p>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Khách hàng không thể tự gán ô buồng hay can thiệp vào tác vụ kỹ thuật của FS; FS không thể xem báo cáo tài chính của FM.</p>
+</div>
+</div>
+<!-- Reason 3 -->
+<div class="flex items-start gap-3 p-2.5 rounded-lg bg-surface-container/50 border border-outline-variant/50">
+<span class="material-symbols-outlined text-primary text-[20px] mt-0.5">switch_account</span>
+<div>
+<p class="font-body-lg text-body-lg text-on-surface font-semibold leading-tight">Đăng nhập nhầm tài khoản</p>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Bạn có thể đang đăng nhập tài khoản cá nhân khác với email đã ký hợp đồng điện tử.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Action Navigation Buttons Cluster (Strict touch targets >= 44px) -->
+<section class="flex flex-col gap-2.5 pt-1">
+<!-- Primary Action -->
+<a class="touch-target w-full rounded-lg bg-primary-container hover:bg-primary active:scale-[0.98] transition-transform text-on-primary font-label-lg text-label-lg flex items-center justify-center gap-2 shadow-sm font-semibold" href="#M-C01">
+<span class="material-symbols-outlined text-[20px]">roofing</span>
+<span>Về trang của tôi</span>
+</a>
+<!-- Secondary Action 1 -->
+<a class="touch-target w-full rounded-lg bg-surface-container-lowest border border-primary text-primary hover:bg-secondary-container/30 active:scale-[0.98] transition-transform font-label-lg text-label-lg flex items-center justify-center gap-2 font-semibold" href="#M-P01">
+<span class="material-symbols-outlined text-[20px]">storefront</span>
+<span>Tìm cơ sở kho khác</span>
+</a>
+<!-- Secondary Action 2 -->
+<a class="touch-target w-full rounded-lg bg-surface-container border border-outline-variant text-on-surface-variant hover:bg-surface-variant active:scale-[0.98] transition-transform font-label-lg text-label-lg flex items-center justify-center gap-2" href="#M-A01">
+<span class="material-symbols-outlined text-[20px]">logout</span>
+<span>Đăng xuất &amp; Đổi tài khoản</span>
+</a>
+</section>
+<!-- Customer Support Footer Card -->
+<footer class="mt-auto pt-4 border-t border-outline-variant/60 flex flex-col items-center text-center">
+<div class="inline-flex items-center gap-2 text-on-surface-variant font-body-md text-body-md mb-1">
+<span class="material-symbols-outlined text-primary text-[18px]">support_agent</span>
+<span>Hỗ trợ vận hành trạm tự quản 24/7</span>
+</div>
+<a class="touch-target inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-primary font-headline-sm text-headline-sm text-[18px] font-bold tracking-tight hover:underline" href="tel:02873001188">
+<span class="material-symbols-outlined text-[20px]">call</span>
+<span>028 7300 1188</span>
+</a>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-0.5">
+          Thời gian hỗ trợ trực tiếp: 08:00 – 20:00 hàng ngày
+        </p>
+</footer>
+</div>
+</main>
+</body></html>

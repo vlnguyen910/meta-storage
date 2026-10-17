@@ -1,0 +1,1 @@
+ALTER TABLE "bookings" ALTER COLUMN "qr_token_hash" SET DATA TYPE varchar(255);
