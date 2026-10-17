@@ -98,6 +98,7 @@ function bookingsService(repository: BookingsRepository) {
     undefined as never,
     undefined as never,
     undefined as never,
+    undefined as never,
   );
 }
 

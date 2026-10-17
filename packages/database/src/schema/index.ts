@@ -10,6 +10,7 @@ export * from "./facility-unit-types";
 export * from "./handover-inspections";
 export * from "./payment-provider-events";
 export * from "./payments";
+export * from "./pricing";
 export * from "./relations";
 export * from "./rentals";
 export * from "./reservation-drafts";

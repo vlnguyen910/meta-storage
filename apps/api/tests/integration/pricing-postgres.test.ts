@@ -1,0 +1,184 @@
+import { afterAll, beforeAll, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import { randomUUID } from "node:crypto";
+import {
+  bookings,
+  checkInSlots,
+  db,
+  eq,
+  facilities,
+  facilityUnitTypes,
+  PRICING_SETTINGS_ID,
+  pricingChanges,
+  pricingSettings,
+  storageUnits,
+  unitTypes,
+  users,
+} from "@metastorage/database";
+import Fastify from "fastify";
+import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
+import { seedPricingPolicy } from "../../../../packages/database/src/seed-pricing";
+import { setupErrorHandler } from "../../src/common/errors/error-handler";
+import { auth } from "../../src/modules/auth/auth";
+import { bookingsRoutes } from "../../src/modules/bookings/bookings.routes";
+import { pricingRoutes } from "../../src/modules/pricing/pricing.routes";
+
+const testUrl = process.env.PRICING_TEST_DATABASE_URL;
+describe.skipIf(!testUrl)("pricing transactions with isolated PostgreSQL", () => {
+  const ids = {
+    actor: randomUUID(),
+    type: randomUUID(),
+    facility: randomUUID(),
+    unit: randomUUID(),
+    slot: randomUUID(),
+  };
+  const app = Fastify();
+  let session: ReturnType<typeof spyOn<typeof auth.api, "getSession">>;
+  let created = false;
+  const date = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
+  const draft = () =>
+    app.inject({
+      method: "POST",
+      url: "/api/bookings/drafts",
+      payload: {
+        facilityId: ids.facility,
+        unitTypeId: ids.type,
+        checkInDate: date,
+        checkInSlotId: ids.slot,
+        durationMonths: 2,
+      },
+    });
+  const patch = (payload: object, suffix = "") =>
+    app.inject({ method: "PATCH", url: `/api/business-rules/pricing${suffix}`, payload });
+
+  beforeAll(async () => {
+    if (process.env.DATABASE_URL !== testUrl)
+      throw new Error(
+        "DATABASE_URL must match PRICING_TEST_DATABASE_URL (empty isolated test database)",
+      );
+    if (
+      (await db.select().from(pricingSettings)).length ||
+      (await db.select().from(pricingChanges)).length
+    )
+      throw new Error("Use an empty isolated pricing test database");
+    await db.insert(users).values({
+      id: ids.actor,
+      name: "Pricing test BOM",
+      email: `${ids.actor}@example.test`,
+      role: "BUSINESS_OPERATION_MANAGER",
+      status: "ACTIVE",
+    });
+    await db
+      .insert(facilities)
+      .values({ id: ids.facility, code: ids.facility, name: "Pricing test", address: "Test" });
+    await db.insert(unitTypes).values({
+      id: ids.type,
+      code: ids.type,
+      name: "Pricing type",
+      sizeLabel: "S",
+      lengthM: 1,
+      widthM: 1,
+      heightM: 1,
+      monthlyPrice: 750000,
+    });
+    await db.insert(facilityUnitTypes).values({ facilityId: ids.facility, unitTypeId: ids.type });
+    await db
+      .insert(storageUnits)
+      .values({ id: ids.unit, code: ids.unit, facilityId: ids.facility, unitTypeId: ids.type });
+    await db
+      .insert(checkInSlots)
+      .values({ id: ids.slot, name: "Pricing slot", startTime: "09:00", endTime: "10:00" });
+    created = true;
+    session = spyOn(auth.api, "getSession").mockResolvedValue({
+      user: { id: ids.actor, role: "BUSINESS_OPERATION_MANAGER", status: "ACTIVE" },
+      session: {},
+    } as never);
+    app.decorate("db", db);
+    app.setValidatorCompiler(validatorCompiler);
+    app.setSerializerCompiler(serializerCompiler);
+    setupErrorHandler(app);
+    await app.register(pricingRoutes, { prefix: "/api/business-rules" });
+    await app.register(bookingsRoutes, { prefix: "/api" });
+    await app.ready();
+  });
+  beforeEach(async () => {
+    await db.delete(bookings).where(eq(bookings.facilityId, ids.facility));
+    await db.delete(pricingChanges).where(eq(pricingChanges.changedBy, ids.actor));
+    await db.delete(pricingSettings);
+    await seedPricingPolicy();
+    await db.update(unitTypes).set({ monthlyPrice: 750000 }).where(eq(unitTypes.id, ids.type));
+  });
+  afterAll(async () => {
+    await app.close();
+    session?.mockRestore();
+    if (!created) return;
+    await db.delete(bookings).where(eq(bookings.facilityId, ids.facility));
+    await db.delete(pricingChanges).where(eq(pricingChanges.changedBy, ids.actor));
+    await db.delete(pricingSettings);
+    await db.delete(storageUnits).where(eq(storageUnits.id, ids.unit));
+    await db.delete(facilityUnitTypes).where(eq(facilityUnitTypes.facilityId, ids.facility));
+    await db.delete(unitTypes).where(eq(unitTypes.id, ids.type));
+    await db.delete(facilities).where(eq(facilities.id, ids.facility));
+    await db.delete(checkInSlots).where(eq(checkInSlots.id, ids.slot));
+    await db.delete(users).where(eq(users.id, ids.actor));
+  });
+
+  test("updates price/policy with audit and keeps pre-existing draft snapshots", async () => {
+    const first = await draft();
+    expect(first.statusCode).toBe(201);
+    expect(first.json().data.pricing.totalAmount).toBe("2250000");
+    expect(
+      (await patch({ expectedVersion: 1, monthlyPrice: 900000 }, `/${ids.type}`)).statusCode,
+    ).toBe(200);
+    expect((await patch({ expectedVersion: 2, depositMonths: 2 })).statusCode).toBe(200);
+    const next = await draft();
+    expect(next.statusCode).toBe(201);
+    expect(next.json().data.pricing).toMatchObject({
+      monthlyRateSnapshot: "900000",
+      depositAmount: "1800000",
+      rentalFeeAmount: "1800000",
+      totalAmount: "3600000",
+    });
+    const [old] = await db.select().from(bookings).where(eq(bookings.id, first.json().data.id));
+    expect(Number(old?.totalAmount)).toBe(2250000);
+    expect(Number(old?.depositAmount)).toBe(750000);
+    const history = await app.inject({ method: "GET", url: "/api/business-rules/pricing/history" });
+    expect(history.json().data).toHaveLength(2);
+    expect(history.json().data[0]).toMatchObject({
+      version: 3,
+      changedBy: ids.actor,
+      before: { depositMonths: 1 },
+      after: { depositMonths: 2 },
+    });
+  });
+  test("concurrent writes with the same version produce one winner and one conflict", async () => {
+    const results = await Promise.all([
+      patch({ expectedVersion: 1, depositMonths: 2 }),
+      patch({ expectedVersion: 1, depositMonths: 3 }),
+    ]);
+    expect(results.map((r) => r.statusCode).sort()).toEqual([200, 409]);
+    expect(await db.select().from(pricingChanges)).toHaveLength(1);
+    const result = await app.inject({ method: "GET", url: "/api/business-rules/pricing" });
+    expect(result.json().data.version).toBe(2);
+  });
+  test("failed price mutation rolls back policy version and audit", async () => {
+    expect(
+      (await patch({ expectedVersion: 1, monthlyPrice: 1 }, `/${randomUUID()}`)).statusCode,
+    ).toBe(404);
+    const [settings] = await db.select().from(pricingSettings);
+    expect(settings?.version).toBe(1);
+    expect(await db.select().from(pricingChanges)).toHaveLength(0);
+  });
+  test("missing policy blocks draft and repeated seed never overwrites a changed policy", async () => {
+    await db.delete(pricingSettings).where(eq(pricingSettings.id, PRICING_SETTINGS_ID));
+    expect((await draft()).statusCode).toBe(503);
+    const unavailable = await app.inject({ method: "GET", url: "/api/business-rules/pricing" });
+    expect(unavailable.statusCode).toBe(503);
+    expect(unavailable.json().error.code).toBe(503);
+    await seedPricingPolicy();
+    expect((await patch({ expectedVersion: 1, depositMonths: 2 })).statusCode).toBe(200);
+    await seedPricingPolicy();
+    const [settings] = await db.select().from(pricingSettings);
+    expect(settings?.depositMonths).toBe(2);
+    expect(settings?.version).toBe(2);
+  });
+});

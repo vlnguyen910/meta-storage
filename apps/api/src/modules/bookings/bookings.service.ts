@@ -35,6 +35,8 @@ import type { RedisService } from "../../common/redis/redis.service";
 import { env } from "../../config/env";
 import { FacilitiesRepository } from "../facilities/facilities.repository";
 import { FacilitiesService } from "../facilities/facilities.service";
+import { PricingRepository } from "../pricing/pricing.repository";
+import { PricingService } from "../pricing/pricing.service";
 import { StorageUnitsRepository } from "../storage-units/storage-units.repository";
 import { StorageUnitsService } from "../storage-units/storage-units.service";
 import { FacilityUnitTypesRepository } from "../unit-types/facility-unit-types.repository";
@@ -56,6 +58,7 @@ export class BookingsService {
     private readonly facilityUnitTypesService: FacilityUnitTypesService,
     private readonly checkInSlotsService: CheckInSlotsService,
     private readonly storageUnitsService: StorageUnitsService,
+    private readonly pricingService: PricingService,
     private readonly accessRedis?: RedisService,
     private readonly mail?: BookingMailDependencies,
   ) {}
@@ -270,13 +273,7 @@ export class BookingsService {
       throw new AppError(BOOKING_MESSAGES.unitTypeCapacityUnavailable, 409, "CAPACITY_UNAVAILABLE");
 
     const draftAccessToken = randomBytes(32).toString("hex");
-    const pricing: BookingDraft["pricing"] = {
-      monthlyRateSnapshot: String(unitType.monthlyPrice),
-      rentalFeeAmount: String(unitType.monthlyPrice * input.durationMonths),
-      depositAmount: String(unitType.monthlyPrice),
-      totalAmount: String(unitType.monthlyPrice * (input.durationMonths + 1)),
-      currency: "VND",
-    };
+    const pricing = await this.pricingService.quote(unitType.id, input.durationMonths);
     const draft = await this.repository.createDraft({
       userId: userId ?? null,
       facilityId: input.facilityId,
@@ -415,6 +412,7 @@ export function createBookingsService(
     new FacilityUnitTypesService(new FacilityUnitTypesRepository(app.db), facilitiesRepository),
     new CheckInSlotsService(new CheckInSlotsRepository(app.db)),
     new StorageUnitsService(new StorageUnitsRepository(app.db)),
+    new PricingService(new PricingRepository(app.db)),
     app.redisService,
     mail ??
       (app.redis && app.mailQueue

@@ -1,6 +1,7 @@
 import { queryClient } from "./client";
 import { seedDemoData } from "./seed-demo";
 import { SEED_IDS, SEED_USERS } from "./seed-fixtures";
+import { seedPricingPolicy } from "./seed-pricing";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -516,6 +517,7 @@ async function seed() {
   }
 
   await seedDemoData();
+  await seedPricingPolicy();
   console.log("✅ Seeding completed successfully!");
   await queryClient.end();
 }
