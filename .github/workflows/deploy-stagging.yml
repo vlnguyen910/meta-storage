@@ -7,10 +7,15 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+
     steps:
     - name: Deploy API and Worker
       uses: appleboy/ssh-action@v1.2.2
@@ -21,9 +26,12 @@ jobs:
         port: 22
         command_timeout: 18m
         script: |
+          set -eu
+
           cd /services/metastorage
-          git fetch origin 
-          git checkout stagging
+
+          git fetch origin stagging
+          git checkout --detach origin/stagging
 
           COMPOSE=docker/docker-compose.prod.yml
 
