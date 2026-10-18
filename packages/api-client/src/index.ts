@@ -21,6 +21,7 @@ import type {
   CheckInLookupResult,
   CheckInSlotOption,
   ClientSession,
+  ConfirmManualRefundInput,
   ConfirmReservationInput,
   CookieSession,
   CustomerSignUpInput,
@@ -35,19 +36,33 @@ import type {
   InspectionPhotoContent,
   InspectionPhotoInput,
   LoginInput,
+  ManualRefund,
+  ManualRefundConfirmation,
+  ManualRefundQuery,
+  OperationsOverview,
   PaginatedResult,
   PaymentCheckoutInput,
   PaymentResponse,
   PaymentStatusResponse,
   PhysicalUnitAssignment,
+  PricingChange,
+  PricingConfiguration,
+  PricingQuery,
+  PricingUpdateResult,
+  ReconciliationReport,
   RentalDetail,
   RentalListItem,
+  RentalReport,
+  RentalReportQuery,
+  ReportExportQuery,
   Reservation,
   ReservationDraft,
   ReservationDraftInput,
   ReservationHold,
   ReservationQuote,
   ReservationQuoteInput,
+  RevenueReport,
+  RevenueReportQuery,
   Session,
   SessionTokens,
   SessionUser,
@@ -55,9 +70,13 @@ import type {
   StorageUnitResponse,
   UnitAvailabilityOption,
   UnitTypeListParams,
+  UpdateDepositPolicy,
   UpdateStorageUnitStatusBody,
+  UpdateUnitTypePrice,
   User,
   UserRole,
+  UtilizationReport,
+  UtilizationReportQuery,
 } from "@metastorage/contracts";
 import axios, { type AxiosError, type AxiosInstance } from "axios";
 import type { HttpClientOptions, RetryConfig } from "./types";
@@ -260,6 +279,15 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
             ...(accessToken ? { skipAuthRefresh: true } : {}),
           })
           .then(unwrap),
+      listRefunds: (params: Partial<ManualRefundQuery> = {}) =>
+        http.get<ApiEnvelope<ManualRefund[]>>("/payments/refunds", { params }).then(unwrap),
+      confirmManualRefund: (paymentId: string, input: ConfirmManualRefundInput) =>
+        http
+          .post<ApiEnvelope<ManualRefundConfirmation>>(
+            `/payments/${paymentId}/refund/confirm`,
+            input,
+          )
+          .then(unwrap),
     },
     bookings: {
       checkInSlots: () =>
@@ -357,6 +385,53 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
             params: facilityId ? { facilityId } : undefined,
           })
           .then(unwrap),
+    },
+    pricing: {
+      getConfiguration: (params: Partial<PricingQuery> = {}) =>
+        http
+          .get<ApiEnvelope<PricingConfiguration>>("/business-rules/pricing", { params })
+          .then(unwrap),
+      getHistory: (params: Partial<PricingQuery> = {}) =>
+        http
+          .get<ApiEnvelope<PricingChange[]>>("/business-rules/pricing/history", { params })
+          .then(unwrap),
+      updateDepositPolicy: (input: UpdateDepositPolicy) =>
+        http.patch<ApiEnvelope<PricingUpdateResult>>("/business-rules/pricing", input).then(unwrap),
+      updateUnitTypePrice: (unitTypeId: string, input: UpdateUnitTypePrice) =>
+        http
+          .patch<ApiEnvelope<PricingUpdateResult>>(`/business-rules/pricing/${unitTypeId}`, input)
+          .then(unwrap),
+    },
+    reports: {
+      getOverview: (params: Partial<RevenueReportQuery> = {}) =>
+        http.get<ApiEnvelope<OperationsOverview>>("/reports/overview", { params }).then(unwrap),
+      getRevenue: (params: Partial<RevenueReportQuery> = {}) =>
+        http.get<ApiEnvelope<RevenueReport>>("/reports/revenue", { params }).then(unwrap),
+      getUtilization: (params: Partial<UtilizationReportQuery> = {}) =>
+        http.get<ApiEnvelope<UtilizationReport>>("/reports/utilization", { params }).then(unwrap),
+      getRentals: (params: Partial<RentalReportQuery> = {}) =>
+        http.get<ApiEnvelope<RentalReport>>("/reports/rentals", { params }).then(unwrap),
+      getReconciliation: (params: Partial<UtilizationReportQuery> = {}) =>
+        http
+          .get<ApiEnvelope<ReconciliationReport>>("/reports/reconciliation", { params })
+          .then(unwrap),
+      exportReport: async (
+        params: ReportExportQuery,
+      ): Promise<{ data: string; filename: string }> => {
+        const response = await http.get("/reports/export", {
+          params,
+          responseType: "text",
+        });
+        const contentDisposition = response.headers["content-disposition"] as string | undefined;
+        let filename = `${params.type}-report.csv`;
+        if (contentDisposition) {
+          const match = contentDisposition.match(/filename="?([^"]+)"?/);
+          if (match?.[1]) {
+            filename = match[1];
+          }
+        }
+        return { data: response.data as string, filename };
+      },
     },
   };
 }

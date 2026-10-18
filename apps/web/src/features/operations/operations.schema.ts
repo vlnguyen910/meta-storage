@@ -13,6 +13,20 @@ export const OperationsPriceDraftSchema = z.object({
     .nonnegative(M.nonnegative),
 });
 
+export const OperationsDepositDraftSchema = z.object({
+  depositMonths: z
+    .number({ invalid_type_error: M.required })
+    .int(M.required)
+    .positive(M.required)
+    .max(24, "Tối đa 24 tháng"),
+});
+export type OperationsDepositDraft = z.infer<typeof OperationsDepositDraftSchema>;
+
+export const OperationsManualRefundDraftSchema = z.object({
+  reference: z.string().trim().min(1, M.required).max(128, "Tối đa 128 ký tự"),
+});
+export type OperationsManualRefundDraft = z.infer<typeof OperationsManualRefundDraftSchema>;
+
 export const OperationsFeeDraftSchema = z
   .object({
     method: z.enum(["unconfigured", "fixed", "percentage"]),
