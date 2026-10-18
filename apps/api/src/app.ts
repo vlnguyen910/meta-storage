@@ -21,6 +21,7 @@ import { paymentsRoutes } from "./modules/payments/payments.routes";
 import { pricingRoutes } from "./modules/pricing/pricing.routes";
 import { rentalsRoutes } from "./modules/rentals/rentals.routes";
 import { reportsRoutes } from "./modules/reports/reports.routes";
+import { storageUnitsRoutes } from "./modules/storage-units/storage-units.routes";
 import { usersRoutes } from "./modules/users/users.routes";
 
 export function buildApp(): FastifyInstance {
@@ -58,5 +59,7 @@ export function buildApp(): FastifyInstance {
   app.register(paymentsRoutes, { prefix: "/api" });
   app.register(pricingRoutes, { prefix: "/api/business-rules" });
   app.register(reportsRoutes, { prefix: "/api/reports" });
+  app.register(storageUnitsRoutes, { prefix: "/api/storage-units" });
+  app.register(storageUnitsRoutes, { prefix: "/api/units" });
   return app;
 }
