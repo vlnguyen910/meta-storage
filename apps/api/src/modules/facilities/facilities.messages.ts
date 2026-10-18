@@ -17,4 +17,9 @@ export const FACILITY_MESSAGES = {
   staffAssignmentNotFound: "Không tìm thấy phân công nhân sự tương ứng",
   failedToCreateFacility: "Failed to create facility",
   failedToUpsertAssignment: "Failed to upsert assignment",
+  facilityInactiveAssignment: "Không thể phân công vào cơ sở đang ngưng hoạt động",
+  staffHasPendingTasks:
+    "Nhân viên đang có công việc dở dang chưa bàn giao; hãy phân công lại cho nhân viên khác trước khi thu hồi phân công.",
+  assignmentCreated: "Phân công nhân sự vào cơ sở thành công",
+  assignmentRevoked: "Thu hồi phân công nhân sự thành công",
 } as const;

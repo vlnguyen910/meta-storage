@@ -23,6 +23,7 @@ import type {
   ClientSession,
   ConfirmReservationInput,
   CookieSession,
+  CreateAssignmentBody,
   CustomerSignUpInput,
   DashboardSummary,
   EligibleUnit,
@@ -192,6 +193,25 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
       getStaff: (facilityId: string) =>
         http
           .get<ApiEnvelope<FacilityStaffMember[]>>(`/facilities/${facilityId}/staff`)
+          .then(unwrap),
+      listAssignments: (
+        facilityId: string,
+        params: Partial<Pick<FacilityQuery, "limit" | "offset">> = {},
+      ) =>
+        http
+          .get<ApiEnvelope<ApiFacilityAssignment[]>>(`/facilities/${facilityId}/assignments`, {
+            params,
+          })
+          .then(unwrap),
+      assignUser: (facilityId: string, input: CreateAssignmentBody) =>
+        http
+          .post<ApiEnvelope<ApiFacilityAssignment>>(`/facilities/${facilityId}/assignments`, input)
+          .then(unwrap),
+      revokeAssignment: (facilityId: string, userId: string) =>
+        http
+          .delete<ApiEnvelope<ApiFacilityAssignment>>(
+            `/facilities/${facilityId}/assignments/${userId}`,
+          )
           .then(unwrap),
     },
     catalog: {

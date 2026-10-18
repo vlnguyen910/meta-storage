@@ -116,6 +116,34 @@ export class FacilityAssignmentsRepository {
     return assignment;
   }
 
+  async findUserActiveAssignment(userId: string): Promise<FacilityAssignment | undefined> {
+    const [assignment] = await this.db
+      .select()
+      .from(facilityAssignments)
+      .where(
+        and(
+          eq(facilityAssignments.userId, userId),
+          eq(facilityAssignments.isActive, true),
+          or(isNull(facilityAssignments.endedAt), gt(facilityAssignments.endedAt, new Date())),
+        ),
+      );
+    return assignment;
+  }
+
+  async hasActiveConfirmedTasks(facilityId: string, userId: string): Promise<boolean> {
+    const [row] = await this.db
+      .select({ count: sql<number>`count(*)::int`.as("count") })
+      .from(bookings)
+      .where(
+        and(
+          eq(bookings.facilityId, facilityId),
+          eq(bookings.assignedStaffId, userId),
+          eq(bookings.status, "CONFIRMED"),
+        ),
+      );
+    return (row?.count ?? 0) > 0;
+  }
+
   async upsertAssignment(data: NewFacilityAssignment): Promise<FacilityAssignment> {
     try {
       return await this.db.transaction(async (tx) => {
