@@ -158,7 +158,7 @@ export function StaffAssignmentModal({ booking, isOpen, onClose }: StaffAssignme
                               <ShieldCheck className="h-3 w-3" /> Staff
                             </span>
                           </div>
-                          <div className="flex items-center gap-3 text-xs text-muted mt-1">
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-muted mt-1">
                             {staff.phone && (
                               <span className="flex items-center gap-1">
                                 <Phone className="h-3 w-3" /> {staff.phone}
@@ -166,6 +166,17 @@ export function StaffAssignmentModal({ booking, isOpen, onClose }: StaffAssignme
                             )}
                             <span className="flex items-center gap-1">
                               <Mail className="h-3 w-3" /> {staff.email}
+                            </span>
+                            <span
+                              className={`inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium ${
+                                (staff.assignedTasksCount ?? 0) === 0
+                                  ? "bg-emerald-50 text-emerald-700"
+                                  : "bg-slate-100 text-slate-700"
+                              }`}
+                            >
+                              {(staff.assignedTasksCount ?? 0) === 0
+                                ? "Sẵn sàng (0 việc)"
+                                : `Đang phụ trách: ${staff.assignedTasksCount} việc`}
                             </span>
                           </div>
                         </div>

@@ -33,4 +33,9 @@ export const FACILITY_DASHBOARD_MESSAGES = {
   staffInactiveBadge: "Tạm dừng",
   staffRoleStaff: "Nhân viên cơ sở",
   staffRoleManager: "Quản lý cơ sở",
+  staffStatTotal: "Tổng nhân viên",
+  staffStatBusy: "Đang có nhiệm vụ",
+  staffStatAvailable: "Sẵn sàng nhận việc",
+  staffWorkloadLabel: "Nhiệm vụ đang phụ trách",
+  staffViewBookingsAction: "Đến bảng điều phối Check-in",
 } as const;
