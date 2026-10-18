@@ -6,8 +6,17 @@ import Link from "next/link";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { FieldShell, Input, Select } from "@/components/ui/form-controls";
 import { ErrorState, LoadingState } from "@/components/ui/states";
+import { isMockMode } from "@/config/api-mode";
 import { businessOperationsRoutes as routes } from "@/config/routes";
 import { cn } from "@/lib/cn";
+import { OperationsDashboardView } from "./components/operations-dashboard-view";
+import { OperationsFacilitiesRealView } from "./components/operations-facilities-real-view";
+import { OperationsFeesView } from "./components/operations-fees-view";
+import { OperationsPricingView } from "./components/operations-pricing-view";
+import { OperationsReportsHub } from "./components/operations-reports-hub";
+import { OperationsRevenueView } from "./components/operations-revenue-view";
+import { OperationsRulesView } from "./components/operations-rules-view";
+import { OperationsUtilizationView } from "./components/operations-utilization-view";
 import { OPERATIONS_MESSAGES as M } from "./operations.messages";
 import type { OperationsWorkspaceProps } from "./operations.types";
 import { formatPercentage } from "./operations.utils";
@@ -17,6 +26,38 @@ import { OperationsReports } from "./operations-reports";
 import { useOperationsWorkspace } from "./use-operations-workspace";
 
 export function OperationsWorkspace({ section }: Readonly<OperationsWorkspaceProps>) {
+  if (!isMockMode) {
+    return (
+      <div className="grid min-w-0 gap-6">
+        <header className="flex flex-wrap items-start justify-between gap-5">
+          <div className="min-w-0">
+            <p className="mb-2 text-xs font-semibold text-slate-600">{M.breadcrumb}</p>
+            <h1 className="text-3xl font-bold text-ink sm:text-4xl">{M.titles[section]}</h1>
+            <p className="mb-0 mt-3 max-w-3xl text-sm text-slate-600">{M.descriptions[section]}</p>
+          </div>
+          {(section === "revenue" || section === "utilization") && (
+            <Link href={routes.reports} className={buttonClassName("outline")}>
+              {M.backReports}
+            </Link>
+          )}
+        </header>
+
+        {section === "dashboard" && <OperationsDashboardView />}
+        {section === "pricing" && <OperationsPricingView />}
+        {section === "business-rules" && <OperationsRulesView />}
+        {section === "fees" && <OperationsFeesView />}
+        {section === "revenue" && <OperationsRevenueView />}
+        {section === "utilization" && <OperationsUtilizationView />}
+        {section === "reports" && <OperationsReportsHub />}
+        {section === "facilities" && <OperationsFacilitiesRealView />}
+      </div>
+    );
+  }
+
+  return <MockOperationsWorkspace section={section} />;
+}
+
+function MockOperationsWorkspace({ section }: Readonly<OperationsWorkspaceProps>) {
   const workspace = useOperationsWorkspace();
   const {
     query,
@@ -33,10 +74,13 @@ export function OperationsWorkspace({ section }: Readonly<OperationsWorkspacePro
     period,
     setPeriod,
   } = workspace;
+
   if (query.isPending) return <LoadingState label={M.loading} />;
   if (query.isError || !data)
     return <ErrorState message={M.error} onRetry={() => void query.refetch()} />;
+
   const configuration = ["pricing", "fees", "business-rules"].includes(section);
+
   return (
     <div className="grid min-w-0 gap-6">
       <header className="flex flex-wrap items-start justify-between gap-5">
@@ -51,6 +95,15 @@ export function OperationsWorkspace({ section }: Readonly<OperationsWorkspacePro
           </Link>
         )}
       </header>
+
+      {/* Mock Mode Explicit Notice */}
+      <div
+        role="status"
+        className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs font-medium text-amber-900"
+      >
+        {M.demoNote}
+      </div>
+
       {!configuration && (
         <section
           className={cn(
@@ -116,11 +169,13 @@ export function OperationsWorkspace({ section }: Readonly<OperationsWorkspacePro
           </div>
         </section>
       )}
+
       {feedback && (
         <p role="status" className="m-0 rounded-xl bg-primary-soft p-4 text-sm text-primary">
           {feedback}
         </p>
       )}
+
       {configuration ? (
         <OperationsConfiguration
           section={section}
@@ -176,7 +231,7 @@ export function OperationsWorkspace({ section }: Readonly<OperationsWorkspacePro
           unitTypeId={unitTypeId}
         />
       )}
-      <p className="m-0 text-xs text-slate-600">{M.demoNote}</p>
+
       {workspace.editingFacility && (
         <OperationsDialog title={M.editFacility} onClose={workspace.closeFacility}>
           <form
@@ -207,6 +262,7 @@ export function OperationsWorkspace({ section }: Readonly<OperationsWorkspacePro
           </form>
         </OperationsDialog>
       )}
+
       {workspace.editingPrice && (
         <OperationsDialog
           title={M.editPriceLabel(workspace.editingPrice.name)}
