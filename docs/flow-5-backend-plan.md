@@ -14,18 +14,18 @@ mặc định thuộc Flow 5. Membership facility và phân công task là hai t
 
 ## F5-0 — Chốt permission và các transition
 
-- Thống nhất BOM quản lý danh mục facility; FM chỉ thao tác phần được phép tại
-  facility mình. Quyền sửa metadata/đóng cơ sở, sửa type dùng chung phải chốt.
-- SA gán/thu hồi membership theo #51; FM chỉ chọn FS hợp lệ để giao việc. Nếu
-  muốn cho BOM/FM ghi membership phải xác nhận thay đổi quyền trước.
-- Giữ model một user một role và một facility assignment active hiện có. Không
-  tạo multi-facility hoặc ca làm việc khi #41 chưa chốt và DB vẫn chặn.
-- Chốt ai đưa kho vào/ra MAINTENANCE, transition từ trạng thái nào và cách xử lý
-  unit có hold/booking/assignment/rental. Không PATCH status tùy ý.
-- Chốt thu hồi/chuyển nhân sự đang có việc chưa bàn giao; không bỏ rơi assignment
-  hoặc cho FS cũ tiếp tục xử lý sau khi mất scope.
+- **Chính sách chính thức:** Đã chốt chi tiết tại [Chính sách vận hành cơ sở và phân công nhân sự (F1–F5)](facility-staff-operations-policy.md) và contracts `@metastorage/contracts`.
+- Thống nhất BOM/SA quản lý danh mục facility; FM chỉ thao tác phần được phép tại
+  facility mình. Quyền sửa metadata/đóng cơ sở, sửa type dùng chung đã chốt.
+- SA/BOM gán/thu hồi membership; FM chọn FS hợp lệ để giao việc và phân bổ tải công việc.
+- Giữ model một user một role và một facility assignment active hiện có (F1). Không
+  tạo multi-facility hoặc ca làm việc khi DB đã có unique partial index chặn (F2).
+- Phân quyền đưa kho vào/ra MAINTENANCE thuộc về FM trong scope cơ sở (F4), cấm chuyển
+  trực tiếp OCCUPIED/RESERVED sang MAINTENANCE. Không PATCH status tùy ý.
+- Chốt thu hồi/chuyển nhân sự đang có việc chưa bàn giao: reassign cho FS khác trước
+  khi thu hồi hoặc điều chuyển (F3).
 
-Đầu ra: ma trận actor × operation, state transition table, ca test và phần TBD.
+Đầu ra: ma trận actor × operation, state transition table, ca test contracts và chính sách dùng chung.
 
 ## F5-1 — Hoàn thiện facility management
 
