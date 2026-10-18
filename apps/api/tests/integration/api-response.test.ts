@@ -89,7 +89,8 @@ describe("HTTP error response contract", () => {
       error: { code: 401, message: "Invalid credentials" },
       timestamp: expect.any(String),
     });
-    expect(response.headers["set-cookie"]).toEqual(["test=; Max-Age=0"]);
+    const setCookie = response.headers["set-cookie"];
+    expect(Array.isArray(setCookie) ? setCookie : [setCookie]).toEqual(["test=; Max-Age=0"]);
     expect(response.headers["content-length"]).toBe(String(Buffer.byteLength(response.body)));
   });
   test("keeps the successful Better Auth response compatible with its client", async () => {

@@ -1,6 +1,7 @@
 import { type FacilityStaffMember, UserRole } from "@metastorage/contracts";
 import {
   and,
+  bookings,
   type Database,
   desc,
   eq,
@@ -24,10 +25,19 @@ export class FacilityAssignmentsRepository {
   constructor(private readonly db: Database) {}
 
   async findFacilityStaff(facilityId: string): Promise<FacilityStaffMember[]> {
+    const taskCountSql = sql<number>`(
+      select count(*)::int
+      from ${bookings}
+      where ${bookings.assignedStaffId} = ${users.id}
+        and ${bookings.facilityId} = ${facilityId}
+        and ${bookings.status} = 'CONFIRMED'
+    )`.mapWith(Number);
+
     const rows = await this.db
       .select({
         user: users,
         assignment: facilityAssignments,
+        taskCount: taskCountSql,
       })
       .from(users)
       .innerJoin(facilityAssignments, eq(users.id, facilityAssignments.userId))
@@ -40,13 +50,14 @@ export class FacilityAssignmentsRepository {
         ),
       );
 
-    return rows.map(({ user }) => ({
+    return rows.map(({ user, taskCount }) => ({
       id: user.id,
       name: user.name,
       email: user.email,
       phone: user.phone ?? null,
       role: UserRole.FACILITY_STAFF,
       isActive: true,
+      assignedTasksCount: taskCount ?? 0,
     }));
   }
 

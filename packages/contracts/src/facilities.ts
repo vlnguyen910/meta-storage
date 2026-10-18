@@ -75,6 +75,7 @@ export const FacilityStaffMemberSchema = z.object({
   phone: z.string().nullable().optional(),
   role: z.literal(UserRole.FACILITY_STAFF),
   isActive: z.boolean(),
+  assignedTasksCount: z.number().int().nonnegative().optional(),
 });
 
 export type FacilityStaffMember = z.infer<typeof FacilityStaffMemberSchema>;
