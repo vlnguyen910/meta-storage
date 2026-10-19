@@ -9,16 +9,16 @@ export const OperationsFacilityDraftSchema = z.object({
 export const OperationsPriceDraftSchema = z.object({
   monthlyPrice: z
     .number({ invalid_type_error: M.nonnegative })
-    .finite(M.nonnegative)
+    .int("Giá thuê phải là số nguyên")
     .nonnegative(M.nonnegative),
 });
+export type OperationsPriceDraft = z.infer<typeof OperationsPriceDraftSchema>;
 
 export const OperationsDepositDraftSchema = z.object({
   depositMonths: z
     .number({ invalid_type_error: M.required })
-    .int(M.required)
-    .positive(M.required)
-    .max(24, "Tối đa 24 tháng"),
+    .int("Hệ số cọc phải là số nguyên")
+    .positive("Hệ số cọc phải lớn hơn 0"),
 });
 export type OperationsDepositDraft = z.infer<typeof OperationsDepositDraftSchema>;
 

@@ -8,6 +8,7 @@ import { FieldShell, Input, Select } from "@/components/ui/form-controls";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { businessOperationsRoutes as routes } from "@/config/routes";
 import { cn } from "@/lib/cn";
+import { useOperationsCatalogOptions } from "../hooks/use-operations-catalog-options";
 import { useOperationsOverview } from "../hooks/use-operations-overview";
 import { OPERATIONS_MESSAGES as M } from "../operations.messages";
 import {
@@ -16,8 +17,8 @@ import {
   formatPercentage,
   getDefaultPeriod,
 } from "../operations.utils";
-import { FacilityUtilizationChart } from "./charts/facility-utilization-chart";
-import { InventoryStatusChart } from "./charts/inventory-status-chart";
+import { FacilityRevenueChart } from "./charts/facility-revenue-chart";
+import { FacilityUtilizationDonutChart } from "./charts/facility-utilization-donut-chart";
 
 export function OperationsDashboardView() {
   const defaultPeriod = getDefaultPeriod();
@@ -25,6 +26,8 @@ export function OperationsDashboardView() {
   const [to, setTo] = useState(defaultPeriod.to);
   const [facilityId, setFacilityId] = useState("all");
   const [unitTypeId, setUnitTypeId] = useState("all");
+
+  const { facilities: catalogFacilities } = useOperationsCatalogOptions();
 
   const query = useOperationsOverview({
     from,
@@ -35,14 +38,6 @@ export function OperationsDashboardView() {
 
   const { data, isPending, isError, refetch } = query;
 
-  if (isPending) return <LoadingState label={M.loading} />;
-  if (isError || !data) {
-    return <ErrorState message={M.error} onRetry={() => void refetch()} />;
-  }
-
-  const { summary, attention, facilities, asOf, period, total } = data;
-  const { financial, inventory } = summary;
-
   function resetFilters() {
     const def = getDefaultPeriod();
     setFrom(def.from);
@@ -51,45 +46,78 @@ export function OperationsDashboardView() {
     setUnitTypeId("all");
   }
 
+  // Filter Bar Component that stays accessible even if data request fails
+  const filtersBar = (
+    <section className="grid items-end gap-4 rounded-card border border-outline-variant bg-surface-container-lowest p-5 shadow-[0_1px_2px_rgb(15_23_42_/_0.04)] sm:grid-cols-2 lg:grid-cols-5">
+      <FieldShell label={M.fromDateLabel}>
+        <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} max={to} />
+      </FieldShell>
+      <FieldShell label={M.toDateLabel}>
+        <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} min={from} />
+      </FieldShell>
+      <FieldShell label={M.facilityFilter}>
+        <Select value={facilityId} onChange={(e) => setFacilityId(e.target.value)}>
+          <option value="all">{M.allFacilities}</option>
+          {catalogFacilities.map((fac) => (
+            <option key={fac.id} value={fac.id}>
+              {fac.name}
+            </option>
+          ))}
+        </Select>
+      </FieldShell>
+      <div className="flex items-center gap-2 sm:col-span-2">
+        <Button
+          type="button"
+          variant="outline"
+          icon={<RotateCcw size={16} aria-hidden="true" />}
+          onClick={resetFilters}
+        >
+          {M.reset}
+        </Button>
+        <div className="ml-auto text-xs text-slate-500 font-medium">
+          {M.periodDisplay(from, to)}
+        </div>
+      </div>
+    </section>
+  );
+
+  if (isPending) {
+    return (
+      <div className="grid min-w-0 gap-6">
+        {filtersBar}
+        <LoadingState label={M.loading} />
+      </div>
+    );
+  }
+
+  if (isError || !data) {
+    return (
+      <div className="grid min-w-0 gap-6">
+        {filtersBar}
+        <ErrorState message={M.error} onRetry={() => void refetch()} />
+      </div>
+    );
+  }
+
+  const { summary, attention, facilities, asOf, total } = data;
+  const { financial, inventory } = summary;
+
+  // Sort facilities by rental revenue descending for top preview
+  const revenueSortedFacilities = [...facilities].sort((a, b) => {
+    const valA = Number.parseFloat(a.financial.rentalCollected ?? "0") || 0;
+    const valB = Number.parseFloat(b.financial.rentalCollected ?? "0") || 0;
+    return valB - valA;
+  });
+
   return (
     <div className="grid min-w-0 gap-6">
-      {/* Filters bar */}
-      <section className="grid items-end gap-4 rounded-card border border-outline-variant bg-surface-container-lowest p-5 shadow-[0_1px_2px_rgb(15_23_42_/_0.04)] sm:grid-cols-2 lg:grid-cols-5">
-        <FieldShell label={M.fromDateLabel}>
-          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} max={to} />
-        </FieldShell>
-        <FieldShell label={M.toDateLabel}>
-          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} min={from} />
-        </FieldShell>
-        <FieldShell label={M.facilityFilter}>
-          <Select value={facilityId} onChange={(e) => setFacilityId(e.target.value)}>
-            <option value="all">{M.allFacilities}</option>
-            {facilities.map((item) => (
-              <option key={item.facility.id} value={item.facility.id}>
-                {item.facility.name}
-              </option>
-            ))}
-          </Select>
-        </FieldShell>
-        <div className="flex items-center gap-2 sm:col-span-2">
-          <Button
-            type="button"
-            variant="outline"
-            icon={<RotateCcw size={16} aria-hidden="true" />}
-            onClick={resetFilters}
-          >
-            {M.reset}
-          </Button>
-          <div className="ml-auto text-xs text-slate-500 font-medium">
-            {M.periodDisplay(period.from, period.to)}
-          </div>
-        </div>
-      </section>
+      {/* Filters Bar */}
+      {filtersBar}
 
-      {/* KPI Section 1: Financial in Period */}
-      <section className="grid min-w-0 gap-4">
+      {/* KPI Group 1: Financial in Period (4 cards) */}
+      <section className="grid min-w-0 gap-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-lg font-bold text-ink">Kết quả tài chính trong kỳ</h2>
+          <h2 className="text-base font-bold text-ink">Kết quả tài chính trong kỳ</h2>
           <span className="text-xs text-slate-500">{M.netCashHelp}</span>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -132,7 +160,7 @@ export function OperationsDashboardView() {
             <p className="my-2 text-2xl font-bold tabular-nums text-rose-600">
               {formatMoney(financial.cashRefunded)}
             </p>
-            <p className="m-0 text-xs text-slate-500">Theo thời điểm hoàn thực tế</p>
+            <p className="m-0 text-xs text-slate-500">Theo thời điểm hoàn tiền thực tế</p>
           </div>
 
           {/* Net Cash */}
@@ -146,20 +174,21 @@ export function OperationsDashboardView() {
             >
               {formatMoney(financial.netCash)}
             </p>
-            <p className="m-0 text-xs text-slate-500">Thực thu trừ tiền đã hoàn</p>
+            <p className="m-0 text-xs text-slate-500">Thực thu trừ tiền đã hoàn (dòng tiền)</p>
           </div>
         </div>
       </section>
 
-      {/* KPI Section 2: Snapshot at asOf */}
-      <section className="grid min-w-0 gap-4">
+      {/* KPI Group 2: Compact Snapshot Balances at asOf (3 cards) */}
+      <section className="grid min-w-0 gap-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-lg font-bold text-ink">Số dư cọc & Sức chứa kho (Hiện trạng)</h2>
+          <h2 className="text-base font-bold text-ink">Số dư cọc & Khai thác hiện tại</h2>
           <span className="text-xs text-slate-500 font-medium">
             {M.asOfDisplay(formatDateTimeVn(asOf))}
           </span>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-3">
+          {/* Deposit Held */}
           <div className="rounded-card border border-outline-variant bg-slate-50 p-5">
             <span className="text-xs font-semibold text-slate-600">{M.depositHeldLabel}</span>
             <p className="my-2 text-2xl font-bold tabular-nums text-ink">
@@ -172,14 +201,18 @@ export function OperationsDashboardView() {
             <p className="m-0 text-xs text-slate-500">{M.depositHeldExplanation}</p>
           </div>
 
+          {/* Pending Refund */}
           <div className="rounded-card border border-outline-variant bg-slate-50 p-5">
-            <span className="text-xs font-semibold text-slate-600">{M.depositForfeitedLabel}</span>
-            <p className="my-2 text-2xl font-bold tabular-nums text-slate-800">
-              {formatMoney(financial.depositForfeited)}
+            <span className="text-xs font-semibold text-slate-600">{M.pendingRefundLabel}</span>
+            <p className="my-2 text-2xl font-bold tabular-nums text-amber-700">
+              {formatMoney(attention.refunds.amount)}
             </p>
-            <p className="m-0 text-xs text-slate-500">Cọc giữ lại do vi phạm hợp đồng</p>
+            <p className="m-0 text-xs text-slate-500">
+              {attention.refunds.count} yêu cầu hoàn tiền đang chờ xác nhận
+            </p>
           </div>
 
+          {/* Utilization Rate */}
           <div className="rounded-card border border-outline-variant bg-slate-50 p-5">
             <span className="text-xs font-semibold text-slate-600">
               Tỷ lệ sử dụng toàn hệ thống
@@ -195,18 +228,6 @@ export function OperationsDashboardView() {
               {inventory.occupiedUnits} đang dùng / {inventory.activeUnits} ô khai thác
             </p>
           </div>
-
-          <div className="rounded-card border border-outline-variant bg-slate-50 p-5">
-            <span className="text-xs font-semibold text-slate-600">Ô khả dụng & Bảo trì</span>
-            <p className="my-2 text-2xl font-bold tabular-nums text-emerald-700">
-              {inventory.availableUnits} trống /{" "}
-              <span className="text-amber-700">{inventory.maintenanceUnits} bảo trì</span>
-            </p>
-            <p className="m-0 text-xs text-slate-500">
-              {inventory.activeCheckoutHolds} hold, {inventory.confirmedAwaitingHandover} chờ nhận
-              kho
-            </p>
-          </div>
         </div>
       </section>
 
@@ -217,7 +238,7 @@ export function OperationsDashboardView() {
           {M.attentionHeader}
         </h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Refunds */}
+          {/* Refunds Queue */}
           <div className="rounded-lg border border-amber-200 bg-white p-4 flex flex-col justify-between">
             <div>
               <div className="flex items-center gap-2 text-amber-800 font-semibold text-xs mb-1">
@@ -236,6 +257,27 @@ export function OperationsDashboardView() {
               className={cn(buttonClassName("outline"), "mt-3 text-xs w-full justify-center")}
             >
               {M.actionManageRefunds}
+            </Link>
+          </div>
+
+          {/* Data Quality / Reconciliation */}
+          <div className="rounded-lg border border-amber-200 bg-white p-4 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center gap-2 text-amber-800 font-semibold text-xs mb-1">
+                <AlertCircle size={15} />
+                <span>Chất lượng đối chiếu</span>
+              </div>
+              <p className="text-sm text-slate-700 font-medium">
+                {attention.dataQuality.hasIssues
+                  ? attention.dataQuality.description
+                  : "Dữ liệu đối chiếu hoàn chỉnh, không có cảnh báo"}
+              </p>
+            </div>
+            <Link
+              href={`${routes.reports}?tab=reconciliation`}
+              className={cn(buttonClassName("outline"), "mt-3 text-xs w-full justify-center")}
+            >
+              {M.actionViewReconciliation}
             </Link>
           </div>
 
@@ -276,45 +318,27 @@ export function OperationsDashboardView() {
               {M.actionViewUtilization}
             </Link>
           </div>
-
-          {/* Data Quality */}
-          <div className="rounded-lg border border-amber-200 bg-white p-4 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-2 text-amber-800 font-semibold text-xs mb-1">
-                <AlertCircle size={15} />
-                <span>Chất lượng dữ liệu</span>
-              </div>
-              <p className="text-sm text-slate-700 font-medium">
-                {attention.dataQuality.hasIssues
-                  ? attention.dataQuality.description
-                  : "Dữ liệu đối chiếu hoàn chỉnh, không có cảnh báo"}
-              </p>
-            </div>
-            {attention.dataQuality.hasIssues && (
-              <Link
-                href={`${routes.reports}?tab=reconciliation`}
-                className={cn(buttonClassName("outline"), "mt-3 text-xs w-full justify-center")}
-              >
-                {M.actionViewReconciliation}
-              </Link>
-            )}
-          </div>
         </div>
       </section>
 
-      {/* Charts & Breakdown */}
+      {/* Exactly 2 Chart Blocks on Dashboard as requested by project owner */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <FacilityUtilizationChart
-          items={facilities.map((item) => ({
+        {/* Chart 1: Revenue Horizontal Bar Preview (max 5 facilities, sorted by revenue) */}
+        <FacilityRevenueChart
+          items={revenueSortedFacilities.map((item) => ({
             facility: item.facility,
-            metrics: item.inventory,
+            metrics: item.financial,
           }))}
           totalFacilities={total}
+          limit={5}
+          showFullReportLink
         />
-        <InventoryStatusChart metrics={inventory} />
+
+        {/* Chart 2: Compact Donut Utilization Gauge */}
+        <FacilityUtilizationDonutChart metrics={inventory} />
       </div>
 
-      {/* Navigation Quick Links to Full Reports */}
+      {/* Quick Navigation Cards to Full Detailed Reports */}
       <div className="grid gap-4 sm:grid-cols-2">
         <Link
           href={routes.revenue}
