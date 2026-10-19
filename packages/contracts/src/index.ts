@@ -19,5 +19,6 @@ export * from "./reports";
 export * from "./reservation-contact";
 export * from "./reservations";
 export * from "./storage-units";
+export * from "./storage-units.messages";
 export * from "./unit-types";
 export * from "./users";

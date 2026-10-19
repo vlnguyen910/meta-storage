@@ -66,9 +66,12 @@ import type {
   Session,
   SessionTokens,
   SessionUser,
+  StorageUnitMaintenanceTransition,
+  StorageUnitResponse,
   UnitAvailabilityOption,
   UnitTypeListParams,
   UpdateDepositPolicy,
+  UpdateStorageUnitStatusBody,
   UpdateUnitTypePrice,
   User,
   UserRole,
@@ -211,6 +214,18 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
       getStaff: (facilityId: string) =>
         http
           .get<ApiEnvelope<FacilityStaffMember[]>>(`/facilities/${facilityId}/staff`)
+          .then(unwrap),
+    },
+    storageUnits: {
+      get: (id: string) =>
+        http.get<ApiEnvelope<StorageUnitResponse>>(`/storage-units/${id}`).then(unwrap),
+      updateStatus: (id: string, input: UpdateStorageUnitStatusBody) =>
+        http
+          .patch<ApiEnvelope<StorageUnitResponse>>(`/storage-units/${id}/status`, input)
+          .then(unwrap),
+      transition: (id: string, input: StorageUnitMaintenanceTransition) =>
+        http
+          .post<ApiEnvelope<StorageUnitResponse>>(`/storage-units/${id}/transitions`, input)
           .then(unwrap),
     },
     catalog: {

@@ -1,3 +1,4 @@
+import { canTransitionStorageUnitStatus, STORAGE_UNIT_MESSAGES } from "@metastorage/contracts";
 import {
   and,
   bookings,
@@ -14,14 +15,103 @@ import {
   notExists,
   notInArray,
   or,
+  rentals,
+  type StorageUnit,
   sql,
   storageUnits,
   sum,
   unitAssignments,
 } from "@metastorage/database";
 
+type DbExecutor = Database | Parameters<Parameters<Database["transaction"]>[0]>[0];
+
+export type TransitionUnitStatusResult =
+  | { success: true; unit: StorageUnit }
+  | { error: "UNIT_NOT_FOUND" }
+  | { error: "TRANSITION_NOT_ALLOWED"; message: string; currentStatus: string };
+
 export class StorageUnitsRepository {
-  constructor(private readonly db: Pick<Database, "select" | "$with" | "with">) {}
+  constructor(private readonly db: DbExecutor) {}
+
+  async findById(id: string): Promise<StorageUnit | undefined> {
+    const [unit] = await this.db.select().from(storageUnits).where(eq(storageUnits.id, id));
+    return unit;
+  }
+
+  async transitionStatus(
+    unitId: string,
+    targetStatus: "AVAILABLE" | "MAINTENANCE",
+    _reason?: string,
+  ): Promise<TransitionUnitStatusResult> {
+    const execute = async (tx: DbExecutor) => {
+      const [unit] = await tx
+        .select()
+        .from(storageUnits)
+        .where(eq(storageUnits.id, unitId))
+        .for("update");
+
+      if (!unit) {
+        return { error: "UNIT_NOT_FOUND" as const };
+      }
+
+      // Check active rentals
+      const [activeRental] = await tx
+        .select({ id: rentals.id })
+        .from(rentals)
+        .where(and(eq(rentals.physicalUnitId, unit.id), eq(rentals.status, "ACTIVE")))
+        .limit(1);
+
+      // Check active unit assignments
+      const [activeAssignment] = await tx
+        .select({ id: unitAssignments.id })
+        .from(unitAssignments)
+        .innerJoin(bookings, eq(bookings.id, unitAssignments.bookingId))
+        .where(
+          and(
+            eq(unitAssignments.physicalUnitId, unit.id),
+            eq(unitAssignments.status, "ACTIVE"),
+            notInArray(bookings.status, ["CANCELLED", "NO_SHOW"]),
+          ),
+        )
+        .limit(1);
+
+      const validation = canTransitionStorageUnitStatus(unit.status, targetStatus, {
+        hasActiveRental: Boolean(activeRental),
+        hasActiveAssignment: Boolean(activeAssignment),
+      });
+
+      if (!validation.allowed) {
+        return {
+          error: "TRANSITION_NOT_ALLOWED" as const,
+          message:
+            validation.error ??
+            STORAGE_UNIT_MESSAGES.invalidStatusTransition(unit.status, targetStatus),
+          currentStatus: unit.status,
+        };
+      }
+
+      const now = new Date();
+      const [updated] = await tx
+        .update(storageUnits)
+        .set({
+          status: targetStatus,
+          updatedAt: now,
+        })
+        .where(eq(storageUnits.id, unit.id))
+        .returning();
+
+      if (!updated) {
+        throw new Error("Failed to update storage unit status");
+      }
+
+      return { success: true as const, unit: updated };
+    };
+
+    if ("transaction" in this.db && typeof this.db.transaction === "function") {
+      return this.db.transaction(execute);
+    }
+    return execute(this.db);
+  }
 
   async getAvailableCapacity(facilityId: string, unitTypeId: string, startsAt: Date, endsAt: Date) {
     const checkInStart = sql`(${bookings.checkInDate} + ${checkInSlots.startTime})
