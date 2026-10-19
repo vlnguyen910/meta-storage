@@ -1,9 +1,13 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { BarChart3, TrendingUp } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
+import { buttonClassName } from "@/components/ui/button";
 import { FieldShell, Input } from "@/components/ui/form-controls";
 import { ErrorState, LoadingState } from "@/components/ui/states";
+import { businessOperationsRoutes as routes } from "@/config/routes";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { OPERATIONS_MESSAGES as M } from "../operations.messages";
@@ -12,7 +16,7 @@ import { OperationsTable } from "../operations-parts";
 export function OperationsFacilitiesRealView() {
   const [search, setSearch] = useState("");
   const query = useQuery({
-    queryKey: ["facilities", "active"],
+    queryKey: ["facilities", "active-list"],
     queryFn: () => api.facilities.listActive({ limit: 100 }),
     staleTime: 60_000,
   });
@@ -33,15 +37,25 @@ export function OperationsFacilitiesRealView() {
 
   return (
     <div className="grid gap-6">
-      <section className="rounded-card border border-outline-variant bg-surface-container-lowest p-5 shadow-[0_1px_2px_rgb(15_23_42_/_0.04)]">
-        <FieldShell label={M.search}>
-          <Input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm theo tên, mã hoặc địa chỉ cơ sở..."
-          />
-        </FieldShell>
+      <section className="flex flex-wrap items-center justify-between gap-4 rounded-card border border-outline-variant bg-surface-container-lowest p-5 shadow-[0_1px_2px_rgb(15_23_42_/_0.04)]">
+        <div className="max-w-md flex-1 min-w-64">
+          <FieldShell label={M.search}>
+            <Input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Tìm theo tên, mã hoặc địa chỉ cơ sở..."
+            />
+          </FieldShell>
+        </div>
+        <div className="text-right">
+          <span className="inline-block rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 border border-emerald-200">
+            Cơ sở đang hoạt động ({facilities.length})
+          </span>
+          <p className="m-0 mt-1 text-[11px] text-slate-500 max-w-xs">
+            Danh sách gồm các cơ sở đang mở cửa kinh doanh. Quản trị phân ô & nhân sự thuộc Flow 5.
+          </p>
+        </div>
       </section>
 
       {filtered.length === 0 ? (
@@ -51,7 +65,7 @@ export function OperationsFacilitiesRealView() {
       ) : (
         <OperationsTable
           label={M.titles.facilities}
-          headings={["Mã cơ sở", "Tên cơ sở", "Địa chỉ", "Trạng thái"]}
+          headings={["Mã cơ sở", "Tên cơ sở", "Địa chỉ", "Trạng thái", "Báo cáo điều hành"]}
         >
           {filtered.map((facility) => (
             <tr key={facility.id} className="hover:bg-slate-50/50">
@@ -73,6 +87,33 @@ export function OperationsFacilitiesRealView() {
                 >
                   {facility.isActive ? M.active : M.inactive}
                 </span>
+              </td>
+              <td className="px-5 py-4 whitespace-nowrap">
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`${routes.revenue}?facilityId=${facility.id}`}
+                    aria-label={`Xem doanh thu cơ sở ${facility.name}`}
+                    className={cn(
+                      buttonClassName("outline"),
+                      "h-8 px-2.5 text-xs font-medium inline-flex items-center gap-1.5",
+                    )}
+                  >
+                    <TrendingUp size={13} className="text-primary" aria-hidden="true" />
+                    <span>Doanh thu</span>
+                  </Link>
+
+                  <Link
+                    href={`${routes.utilization}?facilityId=${facility.id}`}
+                    aria-label={`Xem sử dụng kho cơ sở ${facility.name}`}
+                    className={cn(
+                      buttonClassName("outline"),
+                      "h-8 px-2.5 text-xs font-medium inline-flex items-center gap-1.5",
+                    )}
+                  >
+                    <BarChart3 size={13} className="text-primary" aria-hidden="true" />
+                    <span>Sử dụng kho</span>
+                  </Link>
+                </div>
               </td>
             </tr>
           ))}
