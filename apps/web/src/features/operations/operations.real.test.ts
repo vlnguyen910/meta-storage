@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
+import { OPERATIONS_SHELL_MESSAGES } from "@/modules/business-operations/operations.messages";
 import {
   OperationsDepositDraftSchema,
   OperationsManualRefundDraftSchema,
+  OperationsPriceDraftSchema,
 } from "./operations.schema";
 import {
   formatDateTimeVn,
   formatDateVn,
   formatMoney,
+  formatMoneyWithCurrency,
   formatPercentage,
   getDefaultPeriod,
 } from "./operations.utils";
@@ -22,6 +25,24 @@ describe("Real Operations Utilities and Schemas", () => {
       expect(formatMoney(null)).toBe("—");
       expect(formatMoney(undefined)).toBe("—");
       expect(formatMoney("invalid-number")).toBe("—");
+    });
+  });
+
+  describe("formatMoneyWithCurrency", () => {
+    it("formats VND with Vietnamese currency symbol", () => {
+      expect(formatMoneyWithCurrency(1500000, "VND")).toMatch(/1\.500\.000/);
+      expect(formatMoneyWithCurrency("1500000", "vnd")).toMatch(/1\.500\.000/);
+    });
+
+    it("formats USD with US Dollar symbol and 2 decimal places without forcing VND", () => {
+      const formatted = formatMoneyWithCurrency(50, "USD");
+      expect(formatted).toMatch(/\$50\.00/);
+      expect(formatted).not.toContain("₫");
+    });
+
+    it("handles null or undefined by returning dash", () => {
+      expect(formatMoneyWithCurrency(null, "USD")).toBe("—");
+      expect(formatMoneyWithCurrency(undefined, "VND")).toBe("—");
     });
   });
 
@@ -57,27 +78,28 @@ describe("Real Operations Utilities and Schemas", () => {
     });
   });
 
+  describe("OperationsPriceDraftSchema", () => {
+    it("accepts valid non-negative integer prices", () => {
+      expect(OperationsPriceDraftSchema.safeParse({ monthlyPrice: 5000000 }).success).toBe(true);
+      expect(OperationsPriceDraftSchema.safeParse({ monthlyPrice: 0 }).success).toBe(true);
+    });
+
+    it("rejects negative prices and non-integer prices", () => {
+      expect(OperationsPriceDraftSchema.safeParse({ monthlyPrice: -1000 }).success).toBe(false);
+      expect(OperationsPriceDraftSchema.safeParse({ monthlyPrice: 12.5 }).success).toBe(false);
+    });
+  });
+
   describe("OperationsDepositDraftSchema", () => {
-    it("validates positive integer deposit months", () => {
-      const valid = OperationsDepositDraftSchema.safeParse({
-        depositMonths: 2,
-      });
-      expect(valid.success).toBe(true);
+    it("validates positive integer deposit months and does not arbitrarily cap at 24", () => {
+      expect(OperationsDepositDraftSchema.safeParse({ depositMonths: 2 }).success).toBe(true);
+      expect(OperationsDepositDraftSchema.safeParse({ depositMonths: 36 }).success).toBe(true);
+    });
 
-      const invalidZero = OperationsDepositDraftSchema.safeParse({
-        depositMonths: 0,
-      });
-      expect(invalidZero.success).toBe(false);
-
-      const invalidNegative = OperationsDepositDraftSchema.safeParse({
-        depositMonths: -1,
-      });
-      expect(invalidNegative.success).toBe(false);
-
-      const invalidNonInt = OperationsDepositDraftSchema.safeParse({
-        depositMonths: 1.5,
-      });
-      expect(invalidNonInt.success).toBe(false);
+    it("rejects zero, negative numbers and floats", () => {
+      expect(OperationsDepositDraftSchema.safeParse({ depositMonths: 0 }).success).toBe(false);
+      expect(OperationsDepositDraftSchema.safeParse({ depositMonths: -1 }).success).toBe(false);
+      expect(OperationsDepositDraftSchema.safeParse({ depositMonths: 1.5 }).success).toBe(false);
     });
   });
 
@@ -92,6 +114,14 @@ describe("Real Operations Utilities and Schemas", () => {
         reference: "   ",
       });
       expect(empty.success).toBe(false);
+    });
+  });
+
+  describe("Shell Mode Messages", () => {
+    it("defines distinct labels for API mode vs mock mode", () => {
+      expect(OPERATIONS_SHELL_MESSAGES.apiMode).toBe("Chế độ: API Development");
+      expect(OPERATIONS_SHELL_MESSAGES.demo).toBe("Dữ liệu minh họa");
+      expect(OPERATIONS_SHELL_MESSAGES.apiNote).toContain("API Backend Development");
     });
   });
 });

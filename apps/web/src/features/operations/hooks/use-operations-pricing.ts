@@ -9,6 +9,7 @@ import { OPERATIONS_MESSAGES as M } from "../operations.messages";
 export function useOperationsPricing() {
   const queryClient = useQueryClient();
   const [conflictError, setConflictError] = useState<string | null>(null);
+  const [mutationError, setMutationError] = useState<string | null>(null);
 
   const configQuery = useQuery({
     queryKey: ["pricing", "configuration"],
@@ -33,6 +34,7 @@ export function useOperationsPricing() {
       monthlyPrice: number;
     }) => {
       setConflictError(null);
+      setMutationError(null);
       return api.pricing.updateUnitTypePrice(unitTypeId, {
         expectedVersion,
         monthlyPrice,
@@ -40,11 +42,23 @@ export function useOperationsPricing() {
     },
     onSuccess: () => {
       setConflictError(null);
+      setMutationError(null);
       void queryClient.invalidateQueries({ queryKey: ["pricing"] });
+      void queryClient.invalidateQueries({ queryKey: ["catalog"] });
+      void queryClient.invalidateQueries({ queryKey: ["unit-types"] });
+      void queryClient.invalidateQueries({ queryKey: ["facilities"] });
     },
     onError: (error) => {
-      if (axios.isAxiosError(error) && error.response?.status === 409) {
-        setConflictError(M.conflictMessage);
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 409) {
+          setConflictError(M.conflictMessage);
+        } else {
+          setMutationError(
+            error.response?.data?.message || error.message || "Lỗi khi cập nhật giá loại kho",
+          );
+        }
+      } else {
+        setMutationError("Lỗi kết nối khi cập nhật giá");
       }
     },
   });
@@ -58,6 +72,7 @@ export function useOperationsPricing() {
       depositMonths: number;
     }) => {
       setConflictError(null);
+      setMutationError(null);
       return api.pricing.updateDepositPolicy({
         expectedVersion,
         depositMonths,
@@ -65,17 +80,32 @@ export function useOperationsPricing() {
     },
     onSuccess: () => {
       setConflictError(null);
+      setMutationError(null);
       void queryClient.invalidateQueries({ queryKey: ["pricing"] });
+      void queryClient.invalidateQueries({ queryKey: ["catalog"] });
+      void queryClient.invalidateQueries({ queryKey: ["unit-types"] });
+      void queryClient.invalidateQueries({ queryKey: ["facilities"] });
     },
     onError: (error) => {
-      if (axios.isAxiosError(error) && error.response?.status === 409) {
-        setConflictError(M.conflictMessage);
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 409) {
+          setConflictError(M.conflictMessage);
+        } else {
+          setMutationError(
+            error.response?.data?.message ||
+              error.message ||
+              "Lỗi khi cập nhật chính sách tiền cọc",
+          );
+        }
+      } else {
+        setMutationError("Lỗi kết nối khi cập nhật tiền cọc");
       }
     },
   });
 
   function reloadData() {
     setConflictError(null);
+    setMutationError(null);
     void configQuery.refetch();
     void historyQuery.refetch();
   }
@@ -86,7 +116,9 @@ export function useOperationsPricing() {
     updatePriceMutation,
     updateDepositMutation,
     conflictError,
+    mutationError,
     setConflictError,
+    setMutationError,
     reloadData,
   };
 }

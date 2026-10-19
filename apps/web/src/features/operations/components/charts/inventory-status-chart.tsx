@@ -1,165 +1,177 @@
 "use client";
 
 import type { ReportInventoryMetrics } from "@metastorage/contracts";
-import { cn } from "@/lib/cn";
+import { useEffect, useState } from "react";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { OPERATIONS_MESSAGES as M } from "../../operations.messages";
-import { formatPercentage } from "../../operations.utils";
 
 export interface InventoryStatusChartProps {
   metrics: ReportInventoryMetrics;
-  title?: string;
 }
 
-export function InventoryStatusChart({
-  metrics,
-  title = M.inventoryStatusTitle,
-}: Readonly<InventoryStatusChartProps>) {
-  const totalPhysical = metrics.totalUnits || 1;
+export function InventoryStatusChart({ metrics }: Readonly<InventoryStatusChartProps>) {
+  const [mounted, setMounted] = useState(false);
 
-  const statuses = [
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const physicalSegments = [
     {
-      key: "occupied",
-      label: M.statusOccupied,
-      count: metrics.occupiedUnits,
-      color: "bg-blue-600",
-      textColor: "text-blue-700",
-      bgLight: "bg-blue-50",
+      name: "Đang sử dụng (Occupied)",
+      value: metrics.occupiedUnits,
+      color: "#165f4d",
+      description: "Đang được khách hàng sử dụng thực tế",
     },
     {
-      key: "available",
-      label: M.statusAvailable,
-      count: metrics.availableUnits,
-      color: "bg-emerald-500",
-      textColor: "text-emerald-700",
-      bgLight: "bg-emerald-50",
+      name: "Còn trống (Available)",
+      value: metrics.availableUnits,
+      color: "#10b981",
+      description: "Sẵn sàng bàn giao cho hợp đồng mới",
     },
     {
-      key: "maintenance",
-      label: M.statusMaintenance,
-      count: metrics.maintenanceUnits,
-      color: "bg-amber-500",
-      textColor: "text-amber-700",
-      bgLight: "bg-amber-50",
+      name: "Đang bảo trì (Maintenance)",
+      value: metrics.maintenanceUnits,
+      color: "#f59e0b",
+      description: "Đang sửa chữa hoặc bảo dưỡng kỹ thuật",
     },
     {
-      key: "reserved",
-      label: M.statusReserved,
-      count: metrics.reservedUnits,
-      color: "bg-indigo-500",
-      textColor: "text-indigo-700",
-      bgLight: "bg-indigo-50",
+      name: "Chờ bàn giao (Reserved)",
+      value: metrics.reservedUnits,
+      color: "#6366f1",
+      description: "Đã gán ô kho vật lý, chờ khách nhận",
     },
     {
-      key: "inspection",
-      label: M.statusInspection,
-      count: metrics.inspectionUnits,
-      color: "bg-purple-500",
-      textColor: "text-purple-700",
-      bgLight: "bg-purple-50",
+      name: "Đang kiểm tra (Inspection)",
+      value: metrics.inspectionUnits,
+      color: "#06b6d4",
+      description: "Nhân viên đang kiểm tra hiện trạng",
     },
     {
-      key: "returnPending",
-      label: M.statusReturnPending,
-      count: metrics.returnPendingUnits,
-      color: "bg-orange-500",
-      textColor: "text-orange-700",
-      bgLight: "bg-orange-50",
+      name: "Chờ trả kho (Return pending)",
+      value: metrics.returnPendingUnits,
+      color: "#ec4899",
+      description: "Hết hạn thuê, đang tiến hành trả kho",
     },
     {
-      key: "locked",
-      label: M.statusLocked,
-      count: metrics.lockedUnits,
-      color: "bg-slate-500",
-      textColor: "text-slate-700",
-      bgLight: "bg-slate-100",
+      name: "Đang khóa (Locked)",
+      value: metrics.lockedUnits,
+      color: "#64748b",
+      description: "Tạm khóa do sự cố hoặc tranh chấp",
     },
     {
-      key: "inactive",
-      label: M.statusInactive,
-      count: metrics.inactiveUnits,
-      color: "bg-zinc-400",
-      textColor: "text-zinc-600",
-      bgLight: "bg-zinc-100",
+      name: "Ngừng hoạt động (Inactive)",
+      value: metrics.inactiveUnits,
+      color: "#94a3b8",
+      description: "Không đưa vào mẫu số tính tỷ lệ khai thác",
     },
   ];
 
+  const activeSegments = physicalSegments.filter((seg) => seg.value > 0);
+
   return (
     <section className="grid gap-5 rounded-card border border-outline-variant bg-surface-container-lowest p-5 shadow-[0_1px_2px_rgb(15_23_42_/_0.04)]">
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-outline-variant pb-3">
-        <div>
-          <h3 className="text-base font-bold text-ink">{title}</h3>
-          <p className="m-0 text-xs text-slate-600">{M.inventoryFormulaNoteReal}</p>
-        </div>
-        <div className="text-right">
-          <span className="text-xs text-slate-500">Tỷ lệ khai thác: </span>
-          <strong className="text-sm font-bold text-primary">
-            {metrics.utilizationPercent !== null
-              ? formatPercentage(metrics.utilizationPercent)
-              : M.noOperatingUnitsBadge}
-          </strong>
-        </div>
+      <div className="border-b border-outline-variant pb-4">
+        <h3 className="text-base font-bold text-ink">{M.inventoryStatusTitle}</h3>
+        <p className="m-0 text-xs text-slate-600 mt-1">{M.inventoryFormulaNoteReal}</p>
       </div>
 
-      {/* Stacked Segmented Bar */}
-      <div className="grid gap-2">
-        <div
-          role="img"
-          aria-label={`Biểu đồ trạng thái: ${statuses.map((s) => `${s.label}: ${s.count}`).join(", ")}`}
-          className="flex h-5 w-full overflow-hidden rounded-full bg-slate-100"
-        >
-          {statuses.map((s) => {
-            if (s.count === 0) return null;
-            const percent = (s.count / totalPhysical) * 100;
-            return (
-              <div
-                key={s.key}
-                title={`${s.label}: ${s.count} ô (${formatPercentage(percent)})`}
-                className={cn("h-full transition-all duration-300", s.color)}
-                style={{ width: `${percent}%` }}
-              />
-            );
-          })}
+      {/* Physical Status Donut Chart & Legend */}
+      <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-12">
+        <div className="relative h-64 w-full lg:col-span-5">
+          {!mounted ? (
+            <div className="h-full w-full animate-pulse rounded-lg bg-slate-50" />
+          ) : activeSegments.length === 0 ? (
+            <div className="flex h-full items-center justify-center text-xs text-slate-500">
+              Không có dữ liệu ô kho
+            </div>
+          ) : (
+            <>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={activeSegments}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={55}
+                    outerRadius={85}
+                    paddingAngle={2}
+                    dataKey="value"
+                    strokeWidth={0}
+                  >
+                    {activeSegments.map((entry) => (
+                      <Cell key={`cell-${entry.name}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(val, name) => [`${val} ô`, name]}
+                    contentStyle={{
+                      backgroundColor: "#0f172a",
+                      border: "none",
+                      borderRadius: "8px",
+                      color: "#fff",
+                      fontSize: "12px",
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-xl font-bold tabular-nums text-ink">
+                  {metrics.totalUnits}
+                </span>
+                <span className="text-[11px] font-medium text-slate-500">Tổng số ô</span>
+              </div>
+            </>
+          )}
         </div>
 
-        {/* Legend */}
-        <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4 pt-2">
-          {statuses.map((s) => (
+        {/* Detailed Full Labels Legend */}
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:col-span-7">
+          {physicalSegments.map((seg) => (
             <div
-              key={s.key}
-              className={cn("flex items-center justify-between rounded-md p-2", s.bgLight)}
+              key={seg.name}
+              className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50/70 p-2.5 text-xs"
             >
-              <div className="flex items-center gap-1.5 min-w-0">
+              <div className="flex items-center gap-2">
                 <span
-                  className={cn("h-2.5 w-2.5 shrink-0 rounded-full", s.color)}
+                  className="h-3 w-3 shrink-0 rounded-xs"
+                  style={{ backgroundColor: seg.color }}
                   aria-hidden="true"
                 />
-                <span className="truncate text-slate-700 font-medium">{s.label.split(" ")[0]}</span>
+                <span className="font-semibold text-ink">{seg.name}</span>
               </div>
-              <strong className={cn("tabular-nums shrink-0 ml-1 font-bold", s.textColor)}>
-                {s.count}
-              </strong>
+              <span className="font-bold tabular-nums text-slate-800 ml-2">{seg.value} ô</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Non-physical Flow Metrics Callout */}
-      <div className="rounded-lg border border-indigo-100 bg-indigo-50/50 p-3.5 text-xs text-indigo-950">
-        <p className="font-semibold text-indigo-900 mb-1">
-          {M.nonPhysicalTitle} —{" "}
-          <span className="font-normal text-indigo-700">{M.nonPhysicalNote}</span>
-        </p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 pt-1">
-          <div className="flex items-center justify-between rounded-md bg-white p-2 border border-indigo-100">
-            <span>{M.activeHoldsLabel}:</span>
-            <strong className="font-bold tabular-nums text-indigo-700">
-              {metrics.activeCheckoutHolds} lượt giữ chỗ
+      {/* Non-physical Indicators Section */}
+      <div className="mt-2 border-t border-outline-variant pt-4">
+        <h4 className="text-xs font-bold text-slate-700 mb-1">{M.nonPhysicalTitle}</h4>
+        <p className="text-[11px] text-slate-500 mb-3">{M.nonPhysicalNote}</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="flex items-center justify-between rounded-lg border border-sky-200 bg-sky-50/50 p-3.5">
+            <div>
+              <span className="text-xs font-semibold text-sky-900">{M.activeHoldsLabel}</span>
+              <p className="m-0 text-[11px] text-sky-700">Đang thực hiện thanh toán tại checkout</p>
+            </div>
+            <strong className="text-lg font-bold tabular-nums text-sky-900">
+              {metrics.activeCheckoutHolds}
             </strong>
           </div>
-          <div className="flex items-center justify-between rounded-md bg-white p-2 border border-indigo-100">
-            <span>{M.awaitingHandoverLabel}:</span>
-            <strong className="font-bold tabular-nums text-indigo-700">
-              {metrics.confirmedAwaitingHandover} booking
+
+          <div className="flex items-center justify-between rounded-lg border border-indigo-200 bg-indigo-50/50 p-3.5">
+            <div>
+              <span className="text-xs font-semibold text-indigo-900">
+                {M.awaitingHandoverLabel}
+              </span>
+              <p className="m-0 text-[11px] text-indigo-700">
+                Đã thanh toán, đang chờ lịch nhận kho
+              </p>
+            </div>
+            <strong className="text-lg font-bold tabular-nums text-indigo-900">
+              {metrics.confirmedAwaitingHandover}
             </strong>
           </div>
         </div>

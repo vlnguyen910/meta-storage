@@ -4,6 +4,7 @@ import { Globe2, LogOut, Menu, Warehouse, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { isMockMode } from "@/config/api-mode";
 import { businessOperationsNavigation } from "@/config/navigation/business-operations.navigation";
 import { businessOperationsRoutes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
@@ -77,7 +78,7 @@ export function BusinessOperationsShell({ children }: Readonly<BusinessOperation
         </span>
         <div className="ml-auto flex items-center gap-3">
           <span className="hidden rounded-full bg-primary-soft px-3 py-1.5 text-xs font-semibold text-primary sm:inline-block">
-            {M.demo}
+            {isMockMode ? M.demo : M.apiMode}
           </span>
           <div className="hidden border-l border-slate-200 pl-4 text-right md:block">
             <p className="m-0 text-sm font-semibold">{user?.name}</p>
@@ -104,7 +105,7 @@ export function BusinessOperationsShell({ children }: Readonly<BusinessOperation
         <p className="mb-5 mt-2 px-3 text-xs font-semibold text-slate-600">{M.role}</p>
         {navigation}
         <p className="mb-0 mt-auto border-t border-slate-200 px-3 pt-4 text-xs text-slate-600">
-          {M.note}
+          {isMockMode ? M.note : M.apiNote}
         </p>
       </aside>
       <dialog

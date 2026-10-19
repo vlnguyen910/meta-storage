@@ -1,6 +1,15 @@
 "use client";
 
-import { AlertTriangle, History, RefreshCw, Save } from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  History,
+  RefreshCw,
+  Save,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -8,21 +17,72 @@ import { FieldShell, Input } from "@/components/ui/form-controls";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useOperationsPricing } from "../hooks/use-operations-pricing";
 import { OPERATIONS_MESSAGES as M } from "../operations.messages";
-import { operationsRules } from "../operations.mock";
+import { type OperationsDepositDraft, OperationsDepositDraftSchema } from "../operations.schema";
 import { formatDateTimeVn, formatMoney } from "../operations.utils";
 import { OperationsTable } from "../operations-parts";
 
-interface DepositFormValues {
-  depositMonths: number;
-}
+// Static reference business policies sourced from project requirements documentation
+const REFERENCE_BUSINESS_POLICIES = [
+  {
+    group: "Đặt chỗ & Giữ kho",
+    name: "Thời hạn giữ chỗ thanh toán (Hold)",
+    value:
+      "15 phút kể từ thời điểm tạo hold tại checkout. Tự động giải phóng nếu không thanh toán.",
+    status: "Đã áp dụng theo luồng booking",
+    isTbd: false,
+  },
+  {
+    group: "Thời hạn & Hợp đồng",
+    name: "Thời hạn thuê tối thiểu",
+    value: "1 tháng (30 ngày). Không hỗ trợ hợp đồng thuê ngắn ngày trong phiên bản hiện tại.",
+    status: "Đã chốt theo yêu cầu MVP",
+    isTbd: false,
+  },
+  {
+    group: "Chính sách hủy & Hoàn tiền",
+    name: "Phí hủy đặt chỗ trước ngày nhận kho",
+    value: "Chính sách tỷ lệ khấu trừ hoàn tiền khi khách hủy booking trước lịch bàn giao.",
+    status: "TBD (Chờ quyết định chính sách)",
+    isTbd: true,
+  },
+  {
+    group: "Vận hành & Trả kho",
+    name: "Phí phạt quá hạn trả kho",
+    value:
+      "Mức phí tính thêm theo ngày khi khách hàng không bàn giao ô kho đúng hạn kết thúc hợp đồng.",
+    status: "TBD (Chờ quyết định chính sách)",
+    isTbd: true,
+  },
+  {
+    group: "Hư hại & Bồi thường",
+    name: "Biểu phí bồi thường hư hỏng ô kho",
+    value:
+      "Đánh giá theo biên bản kiểm tra bàn giao thực tế (Handover checklist) của nhân viên tại cơ sở.",
+    status: "TBD (Theo biên bản hiện trường)",
+    isTbd: true,
+  },
+] as const;
 
 export function OperationsRulesView() {
-  const { configQuery, historyQuery, updateDepositMutation, conflictError, reloadData } =
-    useOperationsPricing();
+  const {
+    configQuery,
+    historyQuery,
+    updateDepositMutation,
+    conflictError,
+    mutationError,
+    setConflictError,
+    setMutationError,
+    reloadData,
+  } = useOperationsPricing();
 
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [showReferencePolicies, setShowReferencePolicies] = useState(false);
+  const [baseVersion, setBaseVersion] = useState<number | null>(null);
 
-  const depositForm = useForm<DepositFormValues>();
+  const depositForm = useForm<OperationsDepositDraft>({
+    resolver: zodResolver(OperationsDepositDraftSchema),
+    defaultValues: { depositMonths: 1 },
+  });
 
   const {
     data: config,
@@ -30,45 +90,77 @@ export function OperationsRulesView() {
     isError: isConfigError,
     refetch: refetchConfig,
   } = configQuery;
-  const { data: history, isPending: isHistoryPending } = historyQuery;
 
+  const {
+    data: history,
+    isPending: isHistoryPending,
+    isError: isHistoryError,
+    refetch: refetchHistory,
+  } = historyQuery;
+
+  // Initialize and safely sync baseVersion without overwriting user's dirty edits
   useEffect(() => {
     if (config?.depositMonths !== undefined) {
-      depositForm.reset({ depositMonths: config.depositMonths });
+      if (baseVersion === null) {
+        setBaseVersion(config.version);
+        depositForm.reset({ depositMonths: config.depositMonths });
+      } else if (!depositForm.formState.isDirty && !conflictError) {
+        setBaseVersion(config.version);
+        depositForm.reset({ depositMonths: config.depositMonths });
+      }
     }
-  }, [config?.depositMonths, depositForm]);
+  }, [config, baseVersion, depositForm, conflictError]);
 
   if (isConfigPending) return <LoadingState label={M.loading} />;
   if (isConfigError || !config) {
     return <ErrorState message={M.error} onRetry={() => void refetchConfig()} />;
   }
 
-  async function handleSaveDeposit(values: DepositFormValues) {
-    if (!config) return;
+  async function handleSaveDeposit(values: OperationsDepositDraft) {
+    if (!config || baseVersion === null) return;
+    setFeedback(null);
+    setMutationError(null);
+    setConflictError(null);
+
     try {
       await updateDepositMutation.mutateAsync({
-        expectedVersion: config.version,
+        expectedVersion: baseVersion,
         depositMonths: values.depositMonths,
       });
       setFeedback(M.depositUpdated);
+      setBaseVersion(config.version + 1);
     } catch {
-      // 409 Conflict is captured in hook state
+      // 409 Conflict or other mutation errors are tracked in hook state
+    }
+  }
+
+  function handleConflictReload() {
+    setFeedback(null);
+    reloadData();
+    if (config) {
+      setBaseVersion(config.version);
+      depositForm.reset({ depositMonths: config.depositMonths });
     }
   }
 
   return (
     <div className="grid min-w-0 gap-6">
-      {/* Deposit Policy Configuration Card */}
+      {/* Area 1: Active Live Deposit Policy Configuration Card */}
       <section className="rounded-card border border-outline-variant bg-surface-container-lowest p-6 shadow-[0_1px_2px_rgb(15_23_42_/_0.04)]">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-outline-variant pb-4 mb-5">
           <div>
-            <h2 className="text-lg font-bold text-ink">{M.depositPolicy}</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-bold text-ink">{M.depositPolicy}</h2>
+              <span className="rounded-md bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 border border-emerald-200">
+                Cấu hình trực tiếp
+              </span>
+            </div>
             <p className="m-0 text-xs text-slate-600 mt-1">{M.depositHelpReal}</p>
           </div>
           <div className="flex flex-wrap items-center gap-3 text-xs">
             <span className="rounded-md bg-slate-100 px-3 py-1 font-medium text-slate-700">
               {M.currentVersion}:{" "}
-              <strong className="font-bold text-primary">{config.version}</strong>
+              <strong className="font-bold text-primary">v{config.version}</strong>
             </span>
             <span className="text-slate-500">
               {M.updatedAtLabel}: {formatDateTimeVn(config.updatedAt)}
@@ -77,11 +169,23 @@ export function OperationsRulesView() {
               type="button"
               variant="outline"
               icon={<RefreshCw size={14} aria-hidden="true" />}
-              onClick={reloadData}
+              onClick={handleConflictReload}
             >
               Làm mới
             </Button>
           </div>
+        </div>
+
+        {/* Clear Formula Explanation Card */}
+        <div className="mb-5 rounded-lg border border-slate-200 bg-slate-50 p-4 text-xs text-slate-700">
+          <p className="font-semibold text-ink mb-1">Quy tắc tính tiền cọc khi tạo đặt chỗ:</p>
+          <p className="font-mono text-xs font-bold text-primary">
+            Tiền cọc = Giá thuê 1 tháng của loại kho × Hệ số cọc ({config.depositMonths} tháng)
+          </p>
+          <p className="text-[11px] text-slate-500 mt-1">
+            * Thay đổi hệ số cọc chỉ áp dụng cho các báo giá và booking tạo mới. Không làm thay đổi
+            số tiền cọc đã snapshot trong hợp đồng cũ.
+          </p>
         </div>
 
         {feedback && (
@@ -93,17 +197,36 @@ export function OperationsRulesView() {
           </p>
         )}
 
+        {mutationError && (
+          <div
+            role="alert"
+            className="mb-4 rounded-xl border border-rose-300 bg-rose-50 p-4 text-xs font-semibold text-rose-800"
+          >
+            {mutationError}
+          </div>
+        )}
+
         {conflictError && (
           <div
             role="alert"
             className="mb-5 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-900"
           >
-            <div className="flex items-center gap-2 font-bold">
+            <div className="flex items-center gap-2 font-bold text-sm">
               <AlertTriangle size={18} className="text-amber-600" />
               <span>{M.conflictTitle}</span>
             </div>
-            <p className="mt-1 text-sm">{conflictError}</p>
-            <Button type="button" variant="outline" className="mt-3 text-xs" onClick={reloadData}>
+            <p className="mt-1 text-xs">{conflictError}</p>
+            <p className="mt-2 text-xs font-medium text-amber-950">
+              Phiên bản trên máy chủ hiện tại: <strong>v{config.version}</strong> (Hệ số cọc:{" "}
+              {config.depositMonths} tháng). Nội dung nháp của bạn được giữ nguyên trong ô nhập bên
+              dưới để đối chiếu.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-3 text-xs"
+              onClick={handleConflictReload}
+            >
               {M.conflictReload}
             </Button>
           </div>
@@ -122,15 +245,9 @@ export function OperationsRulesView() {
               <Input
                 type="number"
                 min={1}
-                max={24}
                 step={1}
                 className="w-32"
-                {...depositForm.register("depositMonths", {
-                  valueAsNumber: true,
-                  required: M.required,
-                  min: { value: 1, message: "Hệ số cọc tối thiểu là 1 tháng" },
-                  max: { value: 24, message: "Tối đa 24 tháng" },
-                })}
+                {...depositForm.register("depositMonths", { valueAsNumber: true })}
               />
               <span className="text-sm font-semibold text-slate-700">{M.depositMonthsUnit}</span>
             </div>
@@ -148,7 +265,7 @@ export function OperationsRulesView() {
         </form>
       </section>
 
-      {/* History of changes */}
+      {/* Area 2: History of changes */}
       <section className="grid gap-4">
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -162,6 +279,11 @@ export function OperationsRulesView() {
 
         {isHistoryPending ? (
           <LoadingState label="Đang tải lịch sử thay đổi..." />
+        ) : isHistoryError ? (
+          <ErrorState
+            message="Không thể tải dữ liệu lịch sử thay đổi giá & cọc từ máy chủ."
+            onRetry={() => void refetchHistory()}
+          />
         ) : !history || history.length === 0 ? (
           <p className="py-6 text-center text-sm text-slate-500 rounded-card border border-outline-variant bg-surface-container-lowest">
             Chưa có lịch sử thay đổi.
@@ -196,7 +318,7 @@ export function OperationsRulesView() {
                   <td className="px-5 py-4 text-xs text-slate-600 whitespace-nowrap">
                     {formatDateTimeVn(change.changedAt)}
                   </td>
-                  <td className="px-5 py-4 text-xs font-medium text-slate-800 whitespace-nowrap">
+                  <td className="px-5 py-4 text-xs font-mono text-slate-700 whitespace-nowrap">
                     {change.changedBy}
                   </td>
                   <td className="px-5 py-4 whitespace-nowrap">
@@ -214,32 +336,72 @@ export function OperationsRulesView() {
         )}
       </section>
 
-      {/* General Rules Reference Table */}
-      <section className="grid gap-4">
-        <div>
-          <h2 className="text-lg font-bold text-ink">{M.titles["business-rules"]}</h2>
-          <p className="m-0 text-xs text-slate-600">{M.rulesHelp}</p>
-        </div>
-        <OperationsTable label={M.titles["business-rules"]} headings={M.ruleHeadings}>
-          {operationsRules.map((rule) => (
-            <tr key={rule.name} className="hover:bg-slate-50/50">
-              <td className="whitespace-nowrap px-5 py-4 font-semibold text-slate-600">
-                {rule.group}
-              </td>
-              <th scope="row" className="min-w-40 px-5 py-4 font-bold text-ink">
-                {rule.name}
-              </th>
-              <td className="min-w-64 max-w-xl px-5 py-4 text-slate-700 leading-relaxed text-xs">
-                {rule.value}
-              </td>
-              <td className="whitespace-nowrap px-5 py-4">
-                <span className="rounded-full bg-primary-soft px-3 py-1 text-xs font-semibold text-primary">
-                  {rule.confirmed ? M.confirmed : M.tbd}
-                </span>
-              </td>
-            </tr>
-          ))}
-        </OperationsTable>
+      {/* Area 3: Reference Business Policies (Collapsible, document-sourced, NOT mock) */}
+      <section className="rounded-card border border-outline-variant bg-surface-container-lowest p-5 shadow-[0_1px_2px_rgb(15_23_42_/_0.04)]">
+        <button
+          type="button"
+          onClick={() => setShowReferencePolicies((prev) => !prev)}
+          className="flex w-full items-center justify-between text-left"
+          aria-expanded={showReferencePolicies}
+        >
+          <div className="flex items-center gap-2">
+            <FileText size={18} className="text-slate-500" />
+            <div>
+              <h3 className="text-sm font-bold text-ink">Chính sách nghiệp vụ tham khảo</h3>
+              <p className="m-0 text-xs text-slate-500">
+                Nội dung tài liệu dự án • Chưa hỗ trợ API cấu hình tự động
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 text-xs font-semibold text-primary">
+            <span>{showReferencePolicies ? "Thu gọn" : "Xem chi tiết"}</span>
+            {showReferencePolicies ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </div>
+        </button>
+
+        {showReferencePolicies && (
+          <div className="mt-4 border-t border-outline-variant pt-4">
+            <p className="text-xs text-slate-600 mb-3">
+              Các quy tắc dưới đây được trích xuất từ tài liệu đặc tả nghiệp vụ dự án StoreX
+              (docs/facility-staff-operations-policy.md). Các mục được đánh dấu TBD đang chờ ban
+              quản trị ban hành quyết định chính thức và chưa thể điều chỉnh qua giao diện này.
+            </p>
+            <OperationsTable
+              label="Chính sách nghiệp vụ tham khảo"
+              headings={[
+                "Nhóm quy tắc",
+                "Tên quy tắc",
+                "Nội dung quy định",
+                "Trạng thái nghiệp vụ",
+              ]}
+            >
+              {REFERENCE_BUSINESS_POLICIES.map((rule) => (
+                <tr key={rule.name} className="hover:bg-slate-50/50">
+                  <td className="whitespace-nowrap px-5 py-4 font-semibold text-slate-600 text-xs">
+                    {rule.group}
+                  </td>
+                  <th scope="row" className="min-w-40 px-5 py-4 font-bold text-ink text-xs">
+                    {rule.name}
+                  </th>
+                  <td className="min-w-64 max-w-xl px-5 py-4 text-slate-700 leading-relaxed text-xs">
+                    {rule.value}
+                  </td>
+                  <td className="whitespace-nowrap px-5 py-4">
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                        rule.isTbd
+                          ? "bg-amber-50 text-amber-800 border border-amber-200"
+                          : "bg-slate-100 text-slate-700"
+                      }`}
+                    >
+                      {rule.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </OperationsTable>
+          </div>
+        )}
       </section>
     </div>
   );

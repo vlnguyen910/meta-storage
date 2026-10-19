@@ -1,5 +1,6 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle, Edit, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -9,25 +10,34 @@ import { ErrorState, LoadingState } from "@/components/ui/states";
 import { cn } from "@/lib/cn";
 import { useOperationsPricing } from "../hooks/use-operations-pricing";
 import { OPERATIONS_MESSAGES as M } from "../operations.messages";
+import { type OperationsPriceDraft, OperationsPriceDraftSchema } from "../operations.schema";
 import { formatDateTimeVn, formatMoney } from "../operations.utils";
 import { OperationsDialog, OperationsTable } from "../operations-parts";
 
-interface EditPriceFormValues {
-  monthlyPrice: number;
-}
-
 export function OperationsPricingView() {
-  const { configQuery, updatePriceMutation, conflictError, reloadData } = useOperationsPricing();
+  const {
+    configQuery,
+    updatePriceMutation,
+    conflictError,
+    mutationError,
+    setConflictError,
+    setMutationError,
+    reloadData,
+  } = useOperationsPricing();
 
   const [editingItem, setEditingItem] = useState<{
     unitTypeId: string;
     name: string;
+    code: string;
     monthlyPrice: number;
+    baseVersion: number;
   } | null>(null);
 
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  const priceForm = useForm<EditPriceFormValues>();
+  const priceForm = useForm<OperationsPriceDraft>({
+    resolver: zodResolver(OperationsPriceDraftSchema),
+  });
 
   const { data, isPending, isError, refetch } = configQuery;
 
@@ -36,24 +46,43 @@ export function OperationsPricingView() {
     return <ErrorState message={M.error} onRetry={() => void refetch()} />;
   }
 
-  function handleOpenEdit(price: { unitTypeId: string; name: string; monthlyPrice: number }) {
+  function handleOpenEdit(price: {
+    unitTypeId: string;
+    name: string;
+    code: string;
+    monthlyPrice: number;
+  }) {
+    if (!data) return;
     setFeedback(null);
-    setEditingItem(price);
+    setConflictError(null);
+    setMutationError(null);
+    setEditingItem({ ...price, baseVersion: data.version });
     priceForm.reset({ monthlyPrice: price.monthlyPrice });
   }
 
-  async function handleSavePrice(values: EditPriceFormValues) {
+  async function handleSavePrice(values: OperationsPriceDraft) {
     if (!editingItem || !data) return;
+    setFeedback(null);
+    setMutationError(null);
+    setConflictError(null);
+
     try {
       await updatePriceMutation.mutateAsync({
         unitTypeId: editingItem.unitTypeId,
-        expectedVersion: data.version,
+        expectedVersion: editingItem.baseVersion,
         monthlyPrice: values.monthlyPrice,
       });
       setFeedback(M.pricingUpdated);
       setEditingItem(null);
     } catch {
-      // Conflict error or other errors are handled in mutation state
+      // 409 Conflict and other errors are captured in mutation state
+    }
+  }
+
+  function handleConflictReload() {
+    reloadData();
+    if (editingItem && data) {
+      setEditingItem({ ...editingItem, baseVersion: data.version });
     }
   }
 
@@ -67,12 +96,12 @@ export function OperationsPricingView() {
         </div>
         <div className="flex flex-wrap items-center gap-4 text-xs">
           <div className="rounded-md bg-slate-100 px-3 py-1.5 font-medium text-slate-800">
-            {M.currentVersion}: <strong className="font-bold text-primary">{data.version}</strong>
+            {M.currentVersion}: <strong className="font-bold text-primary">v{data.version}</strong>
           </div>
           <div className="text-slate-500">
             {M.updatedAtLabel}: {formatDateTimeVn(data.updatedAt)}
           </div>
-          <div className="text-slate-500">
+          <div className="text-slate-500 font-mono">
             {M.updatedByLabel}:{" "}
             <span className="font-medium text-slate-800">{data.updatedBy ?? "Hệ thống"}</span>
           </div>
@@ -96,27 +125,11 @@ export function OperationsPricingView() {
         </p>
       )}
 
-      {conflictError && (
-        <div
-          role="alert"
-          className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-900"
-        >
-          <div className="flex items-center gap-2 font-bold">
-            <AlertTriangle size={18} className="text-amber-600" />
-            <span>{M.conflictTitle}</span>
-          </div>
-          <p className="mt-1 text-sm">{conflictError}</p>
-          <Button type="button" variant="outline" className="mt-3 text-xs" onClick={reloadData}>
-            {M.conflictReload}
-          </Button>
-        </div>
-      )}
-
       {/* Pricing Table */}
-      <OperationsTable label={M.titles.pricing} headings={M.priceHeadings}>
+      <OperationsTable label={M.pricingConfigTitle} headings={M.priceHeadings}>
         {data.prices.map((price) => (
           <tr key={price.unitTypeId} className="hover:bg-slate-50/50">
-            <th scope="row" className="px-5 py-4 font-semibold text-primary whitespace-nowrap">
+            <th scope="row" className="px-5 py-4 font-semibold text-ink whitespace-nowrap">
               {price.name}
             </th>
             <td className="px-5 py-4 text-slate-600 font-mono text-xs whitespace-nowrap">
@@ -141,27 +154,22 @@ export function OperationsPricingView() {
               <Button
                 type="button"
                 variant="outline"
-                icon={<Edit size={14} aria-hidden="true" />}
-                onClick={() =>
-                  handleOpenEdit({
-                    unitTypeId: price.unitTypeId,
-                    name: price.name,
-                    monthlyPrice: price.monthlyPrice,
-                  })
-                }
-                aria-label={M.editPriceLabel(price.name)}
+                className="h-8 px-2.5 text-xs inline-flex items-center gap-1.5"
+                aria-label={`Chỉnh giá thuê loại kho ${price.name}`}
+                icon={<Edit size={13} aria-hidden="true" />}
+                onClick={() => handleOpenEdit(price)}
               >
-                {M.edit}
+                Chỉnh giá
               </Button>
             </td>
           </tr>
         ))}
       </OperationsTable>
 
-      {/* Edit Price Dialog */}
+      {/* Edit Price Modal Dialog */}
       {editingItem && (
         <OperationsDialog
-          title={M.editPriceLabel(editingItem.name)}
+          title={`Chỉnh giá thuê: ${editingItem.name}`}
           onClose={() => setEditingItem(null)}
         >
           <form
@@ -169,51 +177,63 @@ export function OperationsPricingView() {
             className="grid gap-4"
             onSubmit={priceForm.handleSubmit(handleSavePrice)}
           >
-            <div className="rounded-md bg-slate-50 p-3 text-xs text-slate-600">
-              <p className="m-0">
-                Phiên bản áp dụng: <strong className="font-bold text-ink">{data.version}</strong>
+            <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
+              <p className="font-semibold text-ink">
+                Loại kho: {editingItem.name} ({editingItem.code})
               </p>
-              <p className="m-0 mt-1">
-                Giá hiện tại:{" "}
-                <strong className="font-bold text-ink">
-                  {formatMoney(editingItem.monthlyPrice)}
-                </strong>
+              <p className="mt-1">
+                Phiên bản cấu hình kỳ vọng: <strong>v{editingItem.baseVersion}</strong>
               </p>
             </div>
+
+            {mutationError && (
+              <p
+                role="alert"
+                className="m-0 rounded-lg bg-rose-50 p-3 text-xs font-semibold text-rose-800 border border-rose-200"
+              >
+                {mutationError}
+              </p>
+            )}
 
             {conflictError && (
               <div
                 role="alert"
-                className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900"
+                className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-900"
               >
-                <p className="font-bold">{M.conflictTitle}</p>
-                <p className="mt-1">{conflictError}</p>
+                <div className="flex items-center gap-2 font-bold text-xs">
+                  <AlertTriangle size={15} className="text-amber-600" />
+                  <span>{M.conflictTitle}</span>
+                </div>
+                <p className="mt-1 text-xs">{conflictError}</p>
+                <p className="mt-1.5 text-xs font-medium text-amber-950">
+                  Phiên bản mới nhất trên máy chủ là <strong>v{data.version}</strong>. Bản nháp của
+                  bạn được giữ nguyên để đối chiếu.
+                </p>
                 <Button
                   type="button"
                   variant="outline"
-                  className="mt-2 text-xs"
-                  onClick={reloadData}
+                  className="mt-2 text-xs h-7 px-2"
+                  onClick={handleConflictReload}
                 >
                   {M.conflictReload}
                 </Button>
               </div>
             )}
 
-            <FieldShell label={M.newPrice} error={priceForm.formState.errors.monthlyPrice?.message}>
+            <FieldShell
+              label="Giá thuê một tháng (VND)"
+              error={priceForm.formState.errors.monthlyPrice?.message}
+            >
               <Input
                 type="number"
                 min={0}
                 step={1000}
-                {...priceForm.register("monthlyPrice", {
-                  valueAsNumber: true,
-                  required: M.required,
-                  min: { value: 0, message: M.nonnegative },
-                })}
+                {...priceForm.register("monthlyPrice", { valueAsNumber: true })}
                 autoFocus
               />
             </FieldShell>
 
-            <div className="mt-2 flex flex-wrap justify-end gap-3">
+            <div className="mt-3 flex flex-wrap justify-end gap-3">
               <Button type="button" variant="outline" onClick={() => setEditingItem(null)}>
                 {M.cancel}
               </Button>
