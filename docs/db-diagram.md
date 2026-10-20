@@ -490,7 +490,7 @@ erDiagram
 ## Existing constraints and behavior
 
 - New booking access emails have an intent/snapshot in the existing durable outbox,
-  inserted in the payment transaction. The worker prepares the 7-day tracking link
+  inserted in the payment transaction. The worker prepares the 24-hour tracking link
   and encrypted payload, then bridges to the existing BullMQ job/delivery ID.
   Legacy jobs remain readable; ENQUEUED differs from provider-confirmed SENT.
 
@@ -592,10 +592,11 @@ previous guest booking, the user must explicitly verify that booking and choose
 “Save to account”. OTP and claim endpoints remain separate implementation work;
 claim conflict behavior is TBD until that endpoint is designed.
 
-Guest lookup uses booking code and contact email, followed by email OTP verification
-before private details are returned. The resulting guest session must be short-lived
-and scoped to the verified Booking. OTP expiry, retry limits, cooldown and session
-TTL belong to #92; account history ownership is independent of guest access.
+Guest access uses a 24-hour magic link sent only to the contact email stored on that
+Booking. Exchanging it creates a short-lived session scoped to that Booking; requesting
+a replacement link revokes the previous magic grant and is rate-limited/audited. The
+guest session does not attach the Booking to an account; account history ownership
+remains independent of guest access.
 Deleting an account sets its Booking user IDs to NULL and preserves business history.
 Payments and Rentals derive account ownership through Booking, with no duplicated
 Customer or user foreign keys.
@@ -721,10 +722,31 @@ infers only unambiguous single-source refunds; mixed refunds require both compon
 Historical unallocatable refunds are reconciliation issues, never guessed.
 
 `notification_outbox.booking_email`: nullable JSONB snapshot (booking code, facility
-name, unit type, verified paidAt), only for customer BOOKING_CONFIRMED emails.
+name, unit type, verified paidAt, optional tracking-link delivery id/createdAt/expiry),
+for customer BOOKING_CONFIRMED or guest tracking-link emails.
 `mail_payload`: nullable encrypted existing mail-job payload; `mail_expires_at`: nullable
 timestamp; `queued_at`: nullable timestamp. ENQUEUED means queued, not provider SENT.
 No raw token in inbox or logs. The existing BullMQ queue/job ID/delivery ID and
-7-day TTL from paidAt remain authoritative. Provider attempts record first_attempt_at
+24-hour TTL from link creation remain authoritative. Provider attempts record first_attempt_at
 at send time, not enqueue time; ambiguous outcomes beyond 24h require review.
 No historical booking email replay. Old queue jobs are adopted by the same job ID.
+
+## Rental lifecycle configuration and guest rental access (2026-10-20)
+
+`rental_lifecycle_settings`: key/value/description table limited by the API to
+`EXPIRY_REMINDER_DAYS` and `ABANDONED_REVIEW_DAYS`. Values are nonnegative PostgreSQL
+integers; no business min/max is imposed. Seed values are 7 days for each setting.
+System Administrator changes use optimistic `version`, store actor/time, and append
+`return_audit` in the same transaction. A sweep reads one settings snapshot for its
+candidate query and state changes. Existing logical notification keys and review flags
+remain stable after configuration changes.
+
+`booking_access_audit`: UUID id, booking_id FK, idempotency_key, action, JSONB details,
+and created_at; `(booking_id, idempotency_key)` is unique. Guest resend attempts store
+an HMAC of the submitted email, never raw email or tokens. A matching attempt inserts
+the corresponding durable customer row in `notification_outbox` in the same transaction;
+the outbox id is also the mail delivery id. Magic links expire 24 hours after request;
+the latest issued link revokes the prior magic grant. Session cookies remain 30 minutes
+and are scoped to one booking. The resend limits are 3 per booking/hour and 10 per IP/hour.
+Guests can read their linked rental, payment/refund history, and ISSUED contract PDFs;
+they cannot use rental or staff mutation endpoints.

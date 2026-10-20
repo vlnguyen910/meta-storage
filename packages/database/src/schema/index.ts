@@ -1,4 +1,5 @@
 export * from "./accounts";
+export * from "./booking-access-audit";
 export * from "./booking-contracts";
 export * from "./bookings";
 export * from "./capacity-allocations";
@@ -14,6 +15,7 @@ export * from "./payment-provider-events";
 export * from "./payments";
 export * from "./pricing";
 export * from "./relations";
+export * from "./rental-lifecycle-settings";
 export * from "./rentals";
 export * from "./reservation-drafts";
 export * from "./returns";

@@ -21,4 +21,8 @@ export interface BookingEmailSnapshot {
   facilityName: string;
   unitTypeName: string;
   paidAt: string;
+  kind?: "BOOKING_CONFIRMATION" | "TRACKING_LINK";
+  deliveryId?: string;
+  linkCreatedAt?: string;
+  linkExpiresAt?: string;
 }
