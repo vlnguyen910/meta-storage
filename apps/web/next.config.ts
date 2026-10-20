@@ -10,6 +10,10 @@ const nextConfig: NextConfig = {
 export default function config(phase: string): NextConfig {
   return {
     ...nextConfig,
+    async rewrites() {
+      const target = process.env.API_PROXY_TARGET?.replace(/\/$/, "");
+      return target ? [{ source: "/api/:path*", destination: `${target}/:path*` }] : [];
+    },
     distDir:
       process.env.METASTORAGE_NEXT_DIST_DIR ??
       (phase === PHASE_DEVELOPMENT_SERVER ? ".next-dev" : ".next"),

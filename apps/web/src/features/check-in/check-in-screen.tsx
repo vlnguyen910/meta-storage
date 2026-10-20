@@ -11,7 +11,6 @@ import {
   User,
   Warehouse,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
@@ -19,8 +18,8 @@ import { Currency } from "@/components/ui/display";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { AssignmentScreen } from "@/features/facility-flow/assignment-screen";
+import { FACILITY_OVERVIEW_MESSAGES } from "@/features/facility-flow/facility-overview.messages";
 import { FLOW } from "@/features/facility-flow/flow.messages";
-import { FLOW_ASSETS } from "@/features/facility-flow/flow-assets";
 import {
   BackLabel,
   FlowButton as Button,
@@ -391,14 +390,10 @@ function CheckInFlowScreen() {
                 <SectionTitle icon={<Warehouse size={22} />}>{FLOW.unitDetails}</SectionTitle>
                 <div className="mt-4 flex flex-col gap-4 sm:flex-row">
                   <div className="grid h-36 shrink-0 place-items-center rounded bg-[#f2f3ff] text-[#306858] sm:w-44">
-                    <Image
-                      src={FLOW_ASSETS.allocated}
-                      alt="Ảnh minh họa không gian kho"
-                      width={176}
-                      height={144}
-                      unoptimized
-                      className="h-36 w-full rounded object-cover"
-                    />
+                    <div className="flex flex-col items-center gap-2 p-4 text-center">
+                      <Warehouse size={40} aria-hidden="true" />
+                      <span className="text-xs">{FACILITY_OVERVIEW_MESSAGES.noPhoto}</span>
+                    </div>
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-[11px] uppercase text-[#306858]">{FLOW.assigned}</p>

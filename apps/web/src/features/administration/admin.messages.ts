@@ -9,6 +9,8 @@ export const ADMIN_ROLE_LABELS: Readonly<Record<UserRole, string>> = {
 };
 
 export const ADMIN_MESSAGES = {
+  liveRequired: "Chức năng quản trị chưa sẵn sàng",
+  liveDescription: "Dữ liệu và thao tác quản trị chưa sẵn sàng trên môi trường hiện tại.",
   navigation: "Điều hướng quản trị",
   openMenu: "Mở menu quản trị",
   closeMenu: "Đóng menu quản trị",

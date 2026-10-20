@@ -13,6 +13,7 @@ export const AUTH_MESSAGES = {
   passwordTooShort: "Mật khẩu cần ít nhất 8 ký tự",
   loginEmailNotVerified:
     "Email chưa xác minh. Nếu thông tin đăng nhập đúng, storeX đã gửi lại liên kết xác minh.",
+  logoutFailed: "Chưa thể đăng xuất. Vui lòng thử lại.",
   loginFailed: "Không thể đăng nhập. Vui lòng kiểm tra lại email hoặc mật khẩu.",
   loginWelcome: (name: string) => `Chào mừng ${name}`,
   registrationFailed: "Chưa thể tạo tài khoản. Vui lòng thử lại sau.",

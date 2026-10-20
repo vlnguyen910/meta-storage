@@ -58,7 +58,7 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
         actions={
           <div className="flex gap-2">
             <div className="rounded-lg bg-white px-4 py-2 text-xs shadow-sm">
-              <p className="text-[#707975]">{FLOW.syncTime}</p>
+              <p className="text-[#5c6661]">{FLOW.syncTime}</p>
               <strong>
                 {d.query.dataUpdatedAt
                   ? new Date(d.query.dataUpdatedAt).toLocaleTimeString("vi-VN", {
@@ -89,7 +89,7 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
           { label: FLOW.pendingAccess, value: d.count("CHECKED_IN"), icon: ClipboardCheck },
         ].map(({ label, value, icon: Icon }) => (
           <Panel key={label}>
-            <div className="flex items-center justify-between gap-1 text-[11px] uppercase tracking-wider text-[#707975]">
+            <div className="flex items-center justify-between gap-1 text-[11px] uppercase tracking-wider text-[#5c6661]">
               <span>{label}</span>
               <Icon size={20} className="text-[#003b2f]" />
             </div>
@@ -100,7 +100,7 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
       <Panel className="space-y-4">
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative min-w-[180px] flex-1">
-            <Search size={20} className="absolute left-3 top-3 text-[#707975]" />
+            <Search size={20} className="absolute left-3 top-3 text-[#5c6661]" />
             <input
               className={`${inputClass} pl-10`}
               aria-label={FLOW.searchLabel}
@@ -169,7 +169,7 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
         <Panel className="py-12 text-center">
           <Warehouse className="mx-auto mb-3 text-[#306858]" size={40} />
           <h2 className={`${titleClass} text-xl`}>{FLOW.noBookings}</h2>
-          <p className="mt-2 text-[#707975]">{FLOW.noBookingsHint}</p>
+          <p className="mt-2 text-[#5c6661]">{FLOW.noBookingsHint}</p>
           <Button
             className="mt-4"
             variant="secondary"
@@ -227,7 +227,7 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
                 </div>
                 <div className="grid flex-1 gap-4 rounded-lg bg-[#f2f3ff]/60 p-4 sm:grid-cols-3">
                   <div>
-                    <p className="text-[11px] uppercase text-[#707975]">{FLOW.position}</p>
+                    <p className="text-[11px] uppercase text-[#5c6661]">{FLOW.position}</p>
                     <p className="mt-1 font-semibold">
                       {b.assignedUnit?.physicalUnitCode ?? FLOW.unassigned}
                     </p>
@@ -236,12 +236,12 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
                     </p>
                   </div>
                   <div>
-                    <p className="text-[11px] uppercase text-[#707975]">{FLOW.slot}</p>
+                    <p className="text-[11px] uppercase text-[#5c6661]">{FLOW.slot}</p>
                     <p className="mt-1 text-xs font-medium">{formatDateTime(b.checkInSlotStart)}</p>
                     <p className="text-xs text-[#404945]">{formatDateTime(b.checkInSlotEnd)}</p>
                   </div>
                   <div>
-                    <p className="text-[11px] uppercase text-[#707975]">{FLOW.payment}</p>
+                    <p className="text-[11px] uppercase text-[#5c6661]">{FLOW.payment}</p>
                     <p className="mt-1 text-xs font-semibold text-[#125345]">
                       {b.paidAt ? FLOW.paid : FLOW.unpaid}
                     </p>

@@ -1,13 +1,11 @@
 "use client";
-import { ArrowLeft, Check, Lock } from "lucide-react";
+import { ArrowLeft, Check, Lock, Warehouse } from "lucide-react";
 import localFont from "next/font/local";
-import Image from "next/image";
 import type { ReactNode } from "react";
 import type { ButtonProps } from "@/components/ui/button";
 import { Button as BaseButton } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { FLOW } from "./flow.messages";
-import { FLOW_ASSETS } from "./flow-assets";
 
 const body = localFont({
   src: [
@@ -116,13 +114,13 @@ export function Steps({ active, completed = [] }: { active: number; completed?: 
                 ? "bg-[#b4efda] text-[#135041]"
                 : i === active
                   ? "bg-[#003b2f] text-white"
-                  : "bg-[#eaedff] text-[#707975]",
+                  : "bg-[#eaedff] text-[#5c6661]",
             )}
           >
             {completed.includes(i) ? <Check size={20} /> : String(i + 1).padStart(2, "0")}
           </span>
           <div>
-            <p className="text-[11px] text-[#707975]">
+            <p className="text-[11px] text-[#5c6661]">
               {completed.includes(i)
                 ? FLOW.done
                 : i === active
@@ -149,25 +147,18 @@ export function SectionTitle({ children, icon }: { children: ReactNode; icon?: R
 export function DataPair({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="min-w-0">
-      <p className="text-[11px] uppercase tracking-wide text-[#707975]">{label}</p>
+      <p className="text-[11px] uppercase tracking-wide text-[#5c6661]">{label}</p>
       <div className="mt-1 break-words font-medium">{children}</div>
     </div>
   );
 }
 export function UnitPlaceholder() {
   return (
-    <div className="relative size-20 shrink-0 overflow-hidden rounded-lg bg-[#f2f3ff]">
-      <Image
-        src={FLOW_ASSETS.corridor}
-        alt="Ảnh minh họa không gian kho"
-        fill
-        unoptimized
-        sizes="80px"
-        className="object-cover"
-      />
-      <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-center text-[8px] text-white">
-        Ảnh minh họa
-      </span>
+    <div
+      aria-hidden="true"
+      className="grid size-20 shrink-0 place-items-center rounded-lg bg-[#f2f3ff] text-[#306858]"
+    >
+      <Warehouse size={32} />
     </div>
   );
 }
