@@ -6,6 +6,7 @@ import {
   type MailJobData,
   BOOKING_EMAIL_MESSAGES as m,
   mailJobId,
+  trackingLinkMailJobId,
 } from "@metastorage/shared/mail";
 import { UnrecoverableError } from "bullmq";
 import { processMailJob } from "../mail/mail.job";
@@ -20,7 +21,12 @@ export class BookingMailService {
   ) {}
 
   async enqueue(row: BookingMailRow, now: Date) {
-    const job = await this.options.queue.getJob(mailJobId(row.bookingId));
+    const snapshot = row.bookingEmail;
+    if (!snapshot) throw new Error("Missing booking mail snapshot");
+    const trackingLink = snapshot.kind === "TRACKING_LINK";
+    const deliveryId = snapshot.deliveryId ?? row.bookingId;
+    const jobId = trackingLink ? trackingLinkMailJobId(deliveryId) : mailJobId(row.bookingId);
+    const job = await this.options.queue.getJob(jobId);
     if (job) {
       const state = await job.getState();
       if (state === "completed")
@@ -32,10 +38,13 @@ export class BookingMailService {
     }
     if (row.firstAttemptAt && now.getTime() - row.firstAttemptAt.getTime() >= 24 * 3600000 - 60000)
       return { status: "REVIEW_REQUIRED" as const };
-    const snapshot = row.bookingEmail;
-    if (!snapshot) throw new Error("Missing booking mail snapshot");
     const expiresAt = new Date(
-      new Date(snapshot.paidAt).getTime() + BOOKING_ACCESS.magicTtl * 1000,
+      Math.min(
+        Date.parse(snapshot.linkExpiresAt ?? "9999-12-31T23:59:59.999Z"),
+        new Date(snapshot.linkCreatedAt ?? snapshot.paidAt).getTime() +
+          BOOKING_ACCESS.magicTtl * 1000,
+        row.mailExpiresAt?.getTime() ?? Number.POSITIVE_INFINITY,
+      ),
     );
     if (expiresAt <= now)
       return {
@@ -44,37 +53,56 @@ export class BookingMailService {
     if (job) return { status: "ENQUEUED" as const };
     if (!row.mailPayload) {
       const link = await createBookingTrackingLink(this.options.redis, {
-        deliveryId: row.bookingId,
+        deliveryId,
         bookingId: row.bookingId,
-        confirmedAt: new Date(snapshot.paidAt),
+        confirmedAt: new Date(snapshot.linkCreatedAt ?? snapshot.paidAt),
         secret: this.options.secret,
         publicAppUrl: this.options.publicAppUrl,
+        replaceExisting: trackingLink,
       });
+      if (
+        trackingLink &&
+        (!snapshot.bookingCode ||
+          !snapshot.deliveryId ||
+          !snapshot.linkCreatedAt ||
+          !snapshot.linkExpiresAt)
+      )
+        throw new UnrecoverableError(m.sendFailed);
       const payload = encryptMailPayload(
-        JSON.stringify({
-          deliveryId: row.bookingId,
-          recipientEmail: row.recipientEmail,
-          bookingCode: snapshot.bookingCode,
-          facilityName: snapshot.facilityName,
-          unitTypeName: snapshot.unitTypeName,
-          trackingUrl: link.trackingUrl,
-          qrUrl: `${new URL("/check-in", this.options.publicAppUrl)}?token=${createHmac("sha256", this.options.qrTokenSecret).update(row.bookingId).digest("hex")}`,
-        }),
+        JSON.stringify(
+          trackingLink
+            ? {
+                deliveryId,
+                recipientEmail: row.recipientEmail,
+                bookingCode: snapshot.bookingCode,
+                trackingUrl: link.trackingUrl,
+                expiresAt: snapshot.linkExpiresAt,
+              }
+            : {
+                deliveryId,
+                recipientEmail: row.recipientEmail,
+                bookingCode: snapshot.bookingCode,
+                facilityName: snapshot.facilityName,
+                unitTypeName: snapshot.unitTypeName,
+                trackingUrl: link.trackingUrl,
+                qrUrl: `${new URL("/check-in", this.options.publicAppUrl)}?token=${createHmac("sha256", this.options.qrTokenSecret).update(row.bookingId).digest("hex")}`,
+              },
+        ),
         this.options.secret,
-        row.bookingId,
+        deliveryId,
       );
       row = await this.repository.bookingPayload(row, payload, expiresAt);
     }
     await this.options.queue.add(
-      "booking-confirmation",
+      trackingLink ? "booking-tracking-link" : "booking-confirmation",
       {
-        deliveryId: row.bookingId,
-        kind: "BOOKING_CONFIRMATION",
+        deliveryId,
+        kind: trackingLink ? "BOOKING_TRACKING_LINK" : "BOOKING_CONFIRMATION",
         payload: row.mailPayload as string,
-        expiresAt: (row.mailExpiresAt ?? expiresAt).toISOString(),
+        expiresAt: expiresAt.toISOString(),
       },
       {
-        jobId: mailJobId(row.bookingId),
+        jobId,
         attempts: 5,
         backoff: { type: "exponential", delay: 5000 },
         removeOnComplete: { age: BOOKING_ACCESS.magicTtl },

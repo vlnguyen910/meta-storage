@@ -3,14 +3,18 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:
 
 export type { BookingAccessGrant, BookingAccessSession } from "./booking-access.types";
 export const BOOKING_ACCESS = {
-  magicTtl: 7 * 24 * 60 * 60,
+  magicTtl: 24 * 60 * 60,
   sessionTtl: 30 * 60,
   rateWindow: 60,
   rateLimit: 30,
+  resendRateWindow: 60 * 60,
+  resendPerBookingLimit: 3,
+  resendPerIpLimit: 10,
 } as const;
 export const bookingAccessHash = (token: string) =>
   createHash("sha256").update(token).digest("hex");
 export const bookingMagicKey = (token: string) => `booking:magic:${bookingAccessHash(token)}`;
+export const bookingActiveMagicKey = (bookingId: string) => `booking:magic:active:${bookingId}`;
 export const bookingSessionKey = (token: string) => `booking:session:${bookingAccessHash(token)}`;
 export const bookingDeliveryKey = (deliveryId: string) => `booking:delivery:${deliveryId}`;
 
@@ -65,7 +69,13 @@ export async function createBookingTrackingLink(
     );
   }
   const delivery = JSON.parse(raw) as EncryptedBookingDelivery;
-  const ttl = Math.floor((Date.parse(delivery.expiresAt) - Date.now()) / 1000);
+  const expiresAt = new Date(
+    Math.min(
+      Date.parse(delivery.expiresAt),
+      Date.parse(delivery.createdAt) + BOOKING_ACCESS.magicTtl * 1000,
+    ),
+  ).toISOString();
+  const ttl = Math.floor((Date.parse(expiresAt) - Date.now()) / 1000);
   if (delivery.bookingId !== input.bookingId || ttl <= 0)
     throw new Error(BOOKING_EMAIL_MESSAGES.accessExpired);
   const decipher = createDecipheriv("aes-256-gcm", encryptionKey, Buffer.from(delivery.iv, "hex"));
@@ -75,18 +85,25 @@ export async function createBookingTrackingLink(
     decipher.update(Buffer.from(delivery.ciphertext, "hex")),
     decipher.final(),
   ]).toString("utf8");
-  await redis.set(
-    bookingMagicKey(token),
+  const grantKey = bookingMagicKey(token);
+  const activeKey = bookingActiveMagicKey(input.bookingId);
+  const script = input.replaceExisting
+    ? "local previous = redis.call('GET', KEYS[1]); if previous and previous ~= KEYS[2] then redis.call('DEL', previous); end; redis.call('SET', KEYS[2], ARGV[1], 'EX', ARGV[2]); redis.call('SET', KEYS[1], KEYS[2], 'EX', ARGV[2]); return 1"
+    : "local active = redis.call('GET', KEYS[1]); if active and active ~= KEYS[2] then return 0; end; redis.call('SET', KEYS[2], ARGV[1], 'EX', ARGV[2], 'NX'); if not active then redis.call('SET', KEYS[1], KEYS[2], 'EX', ARGV[2]); end; return 1";
+  const stored = await redis.eval(
+    script,
+    2,
+    activeKey,
+    grantKey,
     JSON.stringify({
       bookingId: input.bookingId,
       createdAt: delivery.createdAt,
-      expiresAt: delivery.expiresAt,
+      expiresAt,
     }),
-    "EX",
     ttl,
-    "NX",
   );
+  if (Number(stored) !== 1) throw new Error(BOOKING_EMAIL_MESSAGES.accessExpired);
   const url = new URL("/booking/tracking", appUrl);
   url.hash = `token=${token}`;
-  return { trackingUrl: url.toString(), expiresAt: delivery.expiresAt };
+  return { trackingUrl: url.toString(), expiresAt };
 }

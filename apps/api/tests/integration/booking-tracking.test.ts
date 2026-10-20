@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, spyOn, test } from "bun:test";
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { createHash, createHmac, randomBytes, randomUUID } from "node:crypto";
 import {
+  bookingAccessAudit,
   bookings,
   checkInSlots,
   db,
@@ -8,21 +9,38 @@ import {
   facilities,
   facilityUnitTypes,
   inArray,
+  notificationOutbox,
   payments,
+  rentals,
+  storageUnits,
   unitTypes,
 } from "@metastorage/database";
-import { BOOKING_ACCESS } from "@metastorage/shared/booking-access";
-import { decryptMailPayload, type MailJobData, mailJobId } from "@metastorage/shared/mail";
+import {
+  BOOKING_ACCESS,
+  bookingActiveMagicKey,
+  bookingDeliveryKey,
+  bookingMagicKey,
+} from "@metastorage/shared/booking-access";
+import {
+  decryptMailPayload,
+  type MailJobData,
+  mailJobId,
+  trackingLinkMailJobId,
+} from "@metastorage/shared/mail";
 import { Queue, Worker } from "bullmq";
 import Fastify from "fastify";
 import { validatorCompiler } from "fastify-type-provider-zod";
 import Redis from "ioredis";
 import { processMailJob } from "../../../worker/src/mail/mail.job";
 import type { MailMessage } from "../../../worker/src/mail/mail.types";
+import { BookingMailService } from "../../../worker/src/notifications/booking-mail.service";
+import type { OutboxRepository } from "../../../worker/src/notifications/outbox.repository";
 import { setupErrorHandler } from "../../src/common/errors/error-handler";
 import { redisPlugin } from "../../src/common/redis/plugin";
+import { env } from "../../src/config/env";
 import { bookingsRoutes } from "../../src/modules/bookings/bookings.routes";
 import { createBookingsService } from "../../src/modules/bookings/bookings.service";
+import { guestRentalAccessRoutes } from "../../src/modules/guest-rental-access/guest-rental-access.routes";
 
 const databaseUrl = process.env.BOOKING_TEST_DATABASE_URL;
 const redisUrl = process.env.REDIS_TEST_URL;
@@ -35,7 +53,7 @@ const ids = {
   booking: randomUUID(),
   draft: randomUUID(),
 };
-const code = `TEST-${id}`;
+const code = `TEST-${id.toUpperCase()}`;
 const app = Fastify();
 const keys: string[] = [];
 const requestIp = `2001:db8:${randomBytes(2).toString("hex")}:${randomBytes(2).toString("hex")}::1`;
@@ -44,16 +62,17 @@ const mailSecret = "test-only-magic-link-secret-32-characters";
 async function grant(
   bookingId = ids.booking,
   expiresAt = new Date(Date.now() + 60_000).toISOString(),
+  createdAt = new Date().toISOString(),
 ) {
   const token = randomBytes(32).toString("hex");
   const key = `booking:magic:${createHash("sha256").update(token).digest("hex")}`;
   keys.push(key);
-  await app.redis.set(
-    key,
-    JSON.stringify({ bookingId, createdAt: new Date().toISOString(), expiresAt }),
-    "EX",
-    60,
-  );
+  const activeKey = bookingActiveMagicKey(bookingId);
+  const previousKey = await app.redis.get(activeKey);
+  if (previousKey) await app.redis.del(previousKey);
+  await app.redis.set(key, JSON.stringify({ bookingId, createdAt, expiresAt }), "EX", 60);
+  await app.redis.set(activeKey, key, "EX", 60);
+  keys.push(activeKey);
   return token;
 }
 
@@ -131,6 +150,7 @@ describe.skipIf(!databaseUrl || !redisUrl)("Guest booking magic-link tracking", 
     setupErrorHandler(app);
     await app.register(redisPlugin, { url: redisUrl });
     await app.register(bookingsRoutes, { prefix: "/api" });
+    await app.register(guestRentalAccessRoutes, { prefix: "/api" });
     await app.ready();
   });
 
@@ -138,6 +158,8 @@ describe.skipIf(!databaseUrl || !redisUrl)("Guest booking magic-link tracking", 
     if (app.hasDecorator("redis") && keys.length) await app.redis.del(...keys);
     await app.close();
     if (!created) return;
+    await db.delete(notificationOutbox).where(eq(notificationOutbox.bookingId, ids.booking));
+    await db.delete(bookingAccessAudit).where(eq(bookingAccessAudit.bookingId, ids.booking));
     await db.delete(payments).where(eq(payments.bookingId, ids.booking));
     await db.delete(bookings).where(inArray(bookings.id, [ids.booking, ids.draft]));
     await db.delete(checkInSlots).where(eq(checkInSlots.id, ids.slot));
@@ -222,6 +244,66 @@ describe.skipIf(!databaseUrl || !redisUrl)("Guest booking magic-link tracking", 
     });
     expect(tracked.statusCode).toBe(200);
     expect(response.json().data.booking).toEqual(tracked.json().data);
+    const unitId = randomUUID();
+    await db.insert(storageUnits).values({
+      id: unitId,
+      code: unitId,
+      facilityId: ids.facility,
+      unitTypeId: ids.type,
+      status: "OCCUPIED",
+    });
+    await db.insert(rentals).values({
+      bookingId: ids.booking,
+      facilityId: ids.facility,
+      physicalUnitId: unitId,
+      status: "ACTIVE",
+      startAt: new Date("2031-02-01T01:00:00Z"),
+      expectedEndAt: new Date("2031-04-01T02:00:00Z"),
+      depositAmount: "900000",
+    });
+    await db.update(bookings).set({ status: "CHECKED_IN" }).where(eq(bookings.id, ids.booking));
+    try {
+      const rental = await app.inject({
+        url: `/api/booking/tracking/${code}/rental`,
+        headers: { cookie: cookieHeader },
+      });
+      expect(rental.statusCode).toBe(200);
+      expect(rental.json().data).toMatchObject({
+        bookingCode: code,
+        status: "ACTIVE",
+        physicalUnit: { id: unitId, code: unitId },
+        expectedEndAt: "2031-04-01T02:00:00.000Z",
+      });
+      const paymentHistory = await app.inject({
+        url: `/api/booking/tracking/${code}/payments`,
+        headers: { cookie: cookieHeader },
+      });
+      expect(paymentHistory.statusCode).toBe(200);
+      expect(paymentHistory.body).not.toContain('"provider"');
+      expect(paymentHistory.json().data).toMatchObject([
+        { paymentCode: expect.any(String), status: "SUCCEEDED", totalAmount: "2700000.00" },
+      ]);
+      expect(
+        (
+          await app.inject({
+            url: `/api/booking/tracking/${code}/contracts`,
+            headers: { cookie: cookieHeader },
+          })
+        ).json().data,
+      ).toEqual([]);
+      expect(
+        (
+          await app.inject({
+            url: `/api/booking/tracking/${code}/contracts/${randomUUID()}/pdf`,
+            headers: { cookie: cookieHeader },
+          })
+        ).statusCode,
+      ).toBe(404);
+    } finally {
+      await db.delete(rentals).where(eq(rentals.bookingId, ids.booking));
+      await db.delete(storageUnits).where(eq(storageUnits.id, unitId));
+      await db.update(bookings).set({ status: "CONFIRMED" }).where(eq(bookings.id, ids.booking));
+    }
     expect(response.json().data.booking).toMatchObject({
       facility: { name: "Tracking facility", address: "Test address" },
       pricing: { totalAmount: "2700000.00" },
@@ -268,7 +350,117 @@ describe.skipIf(!databaseUrl || !redisUrl)("Guest booking magic-link tracking", 
     await db.update(bookings).set({ status: "CONFIRMED" }).where(eq(bookings.id, ids.booking));
   });
 
+  test("guest access-link requests are generic, audited, rate-limited and idempotent", async () => {
+    const remoteAddress = `198.51.100.${randomBytes(1).readUInt8()}`;
+    const ipHash = createHmac("sha256", env.BETTER_AUTH_SECRET)
+      .update(`guest-access-ip:${remoteAddress}`)
+      .digest("hex");
+    const bookingHash = createHmac("sha256", env.BETTER_AUTH_SECRET)
+      .update(`guest-access-booking:${code.toUpperCase()}`)
+      .digest("hex");
+    keys.push(`booking:rate:resend:ip:${ipHash}`, `booking:rate:resend:booking:${bookingHash}`);
+    const request = (email: string, idempotencyKey = randomUUID()) =>
+      app.inject({
+        method: "POST",
+        url: "/api/booking/access-link",
+        headers: { origin },
+        remoteAddress,
+        payload: { bookingCode: code, email, idempotencyKey },
+      });
+    const wrong = await request("wrong@example.test");
+    expect(wrong.statusCode).toBe(202);
+    expect(wrong.body).not.toContain("guest@example.test");
+
+    const idempotencyKey = randomUUID();
+    const first = await request("guest@example.test", idempotencyKey);
+    const retry = await request("guest@example.test", idempotencyKey);
+    const limited = await request("guest@example.test");
+    expect(first.statusCode).toBe(202);
+    expect(retry.statusCode).toBe(202);
+    expect(first.json().data).toEqual(retry.json().data);
+    expect(wrong.json().data).toEqual(first.json().data);
+    expect(limited.statusCode).toBe(202);
+    const audits = await db
+      .select()
+      .from(bookingAccessAudit)
+      .where(eq(bookingAccessAudit.bookingId, ids.booking));
+    const outbox = await db
+      .select()
+      .from(notificationOutbox)
+      .where(eq(notificationOutbox.bookingId, ids.booking));
+    expect(audits).toHaveLength(2);
+    expect(audits.map((audit) => audit.action).sort()).toEqual([
+      "GUEST_ACCESS_LINK_REJECTED",
+      "GUEST_ACCESS_LINK_REQUESTED",
+    ]);
+    expect(JSON.stringify(audits)).not.toContain("guest@example.test");
+    expect(outbox).toHaveLength(1);
+    expect(outbox[0]?.bookingEmail).toMatchObject({
+      kind: "TRACKING_LINK",
+      bookingCode: code,
+      deliveryId: audits.find((audit) => audit.action === "GUEST_ACCESS_LINK_REQUESTED")?.id,
+    });
+    expect(outbox[0]?.mailExpiresAt?.getTime()).toBeGreaterThan(Date.now() + 23 * 60 * 60 * 1000);
+
+    const row = outbox[0];
+    if (!row) throw new Error("Missing guest link outbox row");
+    const queueName = `test-tracking-link-${randomUUID()}`;
+    const queue = new Queue<MailJobData>(queueName, { connection: app.redis });
+    const oldGrantKey = await app.redis.get(bookingActiveMagicKey(ids.booking));
+    const dispatcher = new BookingMailService(
+      {
+        bookingPayload: async (current, payload, expiresAt) => ({
+          ...current,
+          mailPayload: payload,
+          mailExpiresAt: expiresAt,
+        }),
+      } as unknown as OutboxRepository,
+      {
+        queue,
+        redis: app.redis,
+        secret: mailSecret,
+        qrTokenSecret: "test-qr-secret",
+        publicAppUrl: origin,
+      },
+    );
+    const delivered: MailMessage[] = [];
+    try {
+      keys.push(bookingDeliveryKey(row.id), bookingActiveMagicKey(ids.booking));
+      expect(await dispatcher.enqueue({ ...row, status: "PROCESSING" }, new Date())).toEqual({
+        status: "ENQUEUED",
+      });
+      const job = await queue.getJob(trackingLinkMailJobId(row.id));
+      if (!job) throw new Error("Missing guest tracking-link mail job");
+      const payload = JSON.parse(decryptMailPayload(job.data.payload, mailSecret, row.id));
+      const token = new URL(payload.trackingUrl).hash.slice("#token=".length);
+      const newGrantKey = bookingMagicKey(token);
+      keys.push(newGrantKey);
+      expect(job.data.kind).toBe("BOOKING_TRACKING_LINK");
+      expect(job.data.expiresAt).toBe(row.bookingEmail?.linkExpiresAt);
+      expect(job.data.payload).not.toContain(payload.trackingUrl);
+      expect(await app.redis.get(bookingActiveMagicKey(ids.booking))).toBe(newGrantKey);
+      if (oldGrantKey) expect(await app.redis.exists(oldGrantKey)).toBe(0);
+      await processMailJob(
+        job.data,
+        {
+          send: async (message) => {
+            delivered.push(message);
+            return { providerMessageId: "tracking-link-test" };
+          },
+        },
+        mailSecret,
+      );
+      expect(delivered).toHaveLength(1);
+      expect(delivered[0]?.recipientEmail).toBe("guest@example.test");
+      expect(delivered[0]?.text).toContain(payload.trackingUrl);
+    } finally {
+      await queue.obliterate({ force: true });
+      await queue.close();
+    }
+  });
+
   test("booking mail runs through BullMQ, retries the same payload and grants tracking access", async () => {
+    await app.redis.del(bookingActiveMagicKey(ids.booking));
     const queueName = `test-mail-${randomUUID()}`;
     const connection = new Redis(redisUrl as string, { maxRetriesPerRequest: null });
     const queue = new Queue<MailJobData>(queueName, { connection: app.redis });
@@ -312,6 +504,7 @@ describe.skipIf(!databaseUrl || !redisUrl)("Guest booking magic-link tracking", 
       keys.push(
         `booking:delivery:${ids.booking}`,
         `booking:magic:${createHash("sha256").update(token).digest("hex")}`,
+        bookingActiveMagicKey(ids.booking),
       );
       expect(job.data.expiresAt).toBe(
         new Date(confirmedAt.getTime() + BOOKING_ACCESS.magicTtl * 1000).toISOString(),
@@ -365,6 +558,17 @@ describe.skipIf(!databaseUrl || !redisUrl)("Guest booking magic-link tracking", 
       401,
     );
     expect((await exchange(await grant(ids.draft))).statusCode).toBe(401);
+    expect(
+      (
+        await exchange(
+          await grant(
+            ids.booking,
+            new Date(Date.now() + 5 * BOOKING_ACCESS.magicTtl * 1000).toISOString(),
+            new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString(),
+          ),
+        )
+      ).statusCode,
+    ).toBe(401);
     expect((await exchange("not-a-token")).statusCode).toBe(400);
   });
 
