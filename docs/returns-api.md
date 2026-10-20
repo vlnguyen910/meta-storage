@@ -1,6 +1,7 @@
 # Flow 3 return APIs — implementation record, 2026-10-20
 
-Implemented backend/database scope: My Storage reads, return requests and scheduling,
+Implemented backend/database scope: My Storage reads, guest rental access, lifecycle
+configuration, return requests and scheduling,
 versioned return inspections, physical receipt/corrections, FM settlement/manual
 refund confirmation, BOM overdue-rate configuration, authorization and audit.
 See [my-storage-api.md](my-storage-api.md) for rental reads and provider audit.
@@ -24,7 +25,9 @@ No Web, Mobile or API-client files changed. This is not completion of all Flow 3
 | Refund SLA | Three following business days after FM approval, weekends/holiday snapshot excluded |
 | Contract PDFs/handover gate | Implemented separately; see rental-contracts-api.md. No CCCD/passport schema |
 | Automatic OVERDUE + seven-full-day manual-review flag | Facility-local cron updates rental only; preserves open request and sends deduplicated manual-review notice; no disposal |
-| Durable email/in-app outbox, expiry reminders | Implemented DB outbox, notification inbox, worker claims/leases/retry, current FM authorization check, 30-day local reminder at configured time or 09:00 fallback for facilities with consistent operating-hour timezone |
+| Durable email/in-app outbox, expiry reminders | Implemented DB outbox, notification inbox, worker claims/leases/retry, current FM authorization check, configurable 7-day local reminder at configured time or 09:00 fallback for facilities with consistent operating-hour timezone |
+| Lifecycle day settings | System Administrator-only `rental_lifecycle_settings`; optimistic version and `return_audit` update in one transaction; seeded 7-day expiry and manual-review values; no business min/max |
+| Guest rental portal | Booking-scoped cookie GETs for rental/payment/refund/issued contracts; private PDF backend read; generic audited resend request, 24-hour link, old grant revoked on replacement, 3/booking/hour and 10/IP/hour |
 | Existing finance reports with return settlement/refunds | Cash refunds by confirmedAt; latest effective settlement; explicit deposit/rent allocations; unknown legacy splits flagged; fees/debt are not automatically classified as revenue |
 | Renewal/upgrade | Intentionally excluded; no schema/API/job added |
 
@@ -38,7 +41,7 @@ to OVERDUE without changing return-request status. After seven full local days
 from that overdue boundary, it stamps `abandoned_review_at` and queues an FM review
 notice. The customer already receives the overdue notice; no automatic disposal occurs.
 
-Rental creation less than 30 local calendar days before expiry queues an immediate
+Rental creation less than 7 local calendar days before expiry queues an immediate
 customer reminder. Otherwise the worker queues one reminder at the configured
 facility local time (default 09:00). Stable event/recipient keys deduplicate
 concurrent sweeps and retries. Verified payment, booking, return scheduling,
@@ -59,6 +62,15 @@ record becomes `REVIEW_REQUIRED` for manual investigation; no second unprotected
 send is attempted after Resend's 24-hour key retention window.
 
 ## Endpoints
+
+`GET /api/return-policy/lifecycle-settings` and `PUT` on the same path are restricted
+to System Administrator. The PUT body is `{ "key": "EXPIRY_REMINDER_DAYS" | "ABANDONED_REVIEW_DAYS", "value": 7, "expectedVersion": 0 }`.
+Values must be nonnegative PostgreSQL integers; there is no business min/max. Each
+change increments the row version and appends old/new values, actor and timestamp to
+`return_audit` atomically. Defaults are inserted by the standard `db:seed` command after
+migration; the lifecycle job fails closed if either row is missing.
+
+Guest access routes and contracts are documented in [booking-tracking.md](booking-tracking.md).
 
 All paths have `/api` prefix and private/no-store responses. Existing success/error
 envelopes apply. UUID/body/query validation: 400; no session: 401; forbidden role/
@@ -172,7 +184,7 @@ Normal deployment preparation, against an aligned migration history:
 
 ```bash
 bun run db:migrate
-bun run --filter @metastorage/database db:seed:return-policy
+bun run db:seed
 ```
 
 The seed inserts default 25% only when absent; it never overwrites BOM settings.

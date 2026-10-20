@@ -149,8 +149,8 @@ Giữ tương thích API/DTO hiện có; ghi rõ endpoint/contract mới trong t
   inspection/fees, refunds. Event/outbox durable, retry/dedupe; delivery lỗi không
   rollback business transaction. Không hứa exactly-once delivery.
   Khách nhận sự kiện liên quan booking/rental; FM nhận công việc của cơ sở có quyền.
-  Upcoming-expiry reminder trước **30 ngày**, lúc **09:00 theo timezone cơ sở**;
-  Admin được cấu hình giờ gửi. Rental tạo khi còn dưới 30 ngày gửi ngay sau khi tạo;
+  Upcoming-expiry reminder trước **7 ngày**, lúc **09:00 theo timezone cơ sở**;
+  Admin được cấu hình giờ gửi. Rental tạo khi còn dưới 7 ngày gửi ngay sau khi tạo;
   dùng cùng logical-event dedupe để scheduler/retry không tạo thông báo trùng.
   Email giao dịch ưu tiên contact lưu trên booking/rental, không bắt buộc có account.
 - Abandoned property: FS lưu thông tin tài sản, bằng chứng và lịch sử liên hệ;
