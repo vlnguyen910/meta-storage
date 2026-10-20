@@ -1363,6 +1363,87 @@ describe.skipIf(!target)(
       expect(row?.abandonedReviewAt).toBeNull();
     });
 
+    test("cancel after local midnight records overdue atomically and sweep repairs missing events", async () => {
+      const item = await scenario("PENDING");
+      const lifecycle = new RentalLifecycleService(
+        new RentalLifecycleRepository(db),
+        new ReturnsRepository(db),
+      );
+      const notices = () =>
+        db
+          .select()
+          .from(notificationOutbox)
+          .where(eq(notificationOutbox.eventKey, `rental:${item.rentalId}:overdue`));
+      const cancelled = await api("owner", "POST", `/return-requests/${item.id}/cancel`, {
+        expectedVersion: (await state(item.id)).request.version,
+      });
+      expect(cancelled.statusCode).toBe(200);
+      expect(await notices()).toHaveLength(2);
+      await Promise.all([
+        lifecycle.sweep(new Date(), fixture.facility),
+        lifecycle.sweep(new Date(), fixture.facility),
+      ]);
+      expect(await notices()).toHaveLength(2);
+      await db
+        .delete(notificationOutbox)
+        .where(eq(notificationOutbox.eventKey, `rental:${item.rentalId}:overdue`));
+      await lifecycle.sweep(new Date(), fixture.facility);
+      expect(await notices()).toHaveLength(2);
+      expect((await state(item.id)).request.status).toBe("CANCELLED");
+    });
+
+    test("sweep advances beyond a full batch with no eligible email recipients", async () => {
+      const items = [];
+      for (let i = 0; i < 101; i++) items.push(await scenario("PENDING"));
+      items.sort((a, b) => a.rentalId.localeCompare(b.rentalId));
+      const last = items.at(-1);
+      if (!last) throw new Error("Missing batch fixture");
+      await db
+        .update(bookings)
+        .set({ contactEmail: "" })
+        .where(
+          inArray(
+            bookings.id,
+            items.slice(0, -1).map((item) => item.bookingId),
+          ),
+        );
+      await db
+        .update(facilityAssignments)
+        .set({ isActive: false })
+        .where(
+          and(
+            eq(facilityAssignments.facilityId, fixture.facility),
+            eq(facilityAssignments.userId, actorIds.manager),
+          ),
+        );
+      try {
+        const lifecycle = new RentalLifecycleService(
+          new RentalLifecycleRepository(db),
+          new ReturnsRepository(db),
+        );
+        await lifecycle.sweep(new Date(), fixture.facility);
+        expect(
+          (await db.select().from(rentals).where(eq(rentals.id, last.rentalId)))[0]?.status,
+        ).toBe("OVERDUE");
+        expect(
+          await db
+            .select()
+            .from(notificationOutbox)
+            .where(eq(notificationOutbox.eventKey, `rental:${last.rentalId}:overdue`)),
+        ).toHaveLength(1);
+      } finally {
+        await db
+          .update(facilityAssignments)
+          .set({ isActive: true })
+          .where(
+            and(
+              eq(facilityAssignments.facilityId, fixture.facility),
+              eq(facilityAssignments.userId, actorIds.manager),
+            ),
+          );
+      }
+    });
+
     test("expiry reminders honor configured local time and immediate creation shares scheduler dedupe", async () => {
       const item = await scenario();
       await db

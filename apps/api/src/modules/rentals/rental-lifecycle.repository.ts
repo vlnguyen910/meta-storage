@@ -4,6 +4,7 @@ import {
   eq,
   facilityOperatingHours,
   facilityReturnCalendars,
+  gt,
   inArray,
   isNull,
   notExists,
@@ -31,7 +32,7 @@ export async function facilityLifecycleClock(tx: NotificationTransaction, facili
 
 export class RentalLifecycleRepository {
   constructor(private readonly db: Database) {}
-  candidates(now: Date, facilityId?: string) {
+  candidates(now: Date, facilityId?: string, afterId?: string) {
     // Facility-local calendar boundaries and date subtraction cannot be expressed
     // with Drizzle comparison helpers; keep timezone arithmetic inside PostgreSQL.
     // Reuse the existing facility operating-hours timezone when no return calendar
@@ -54,6 +55,10 @@ export class RentalLifecycleRepository {
       .select({ id: notificationOutbox.id })
       .from(notificationOutbox)
       .where(eq(notificationOutbox.eventKey, sql`'rental:' || ${rentals.id}::text || ':expiry'`));
+    const overdueEvent = this.db
+      .select({ id: notificationOutbox.id })
+      .from(notificationOutbox)
+      .where(eq(notificationOutbox.eventKey, sql`'rental:' || ${rentals.id}::text || ':overdue'`));
     return this.db
       .with(operatingTimezones)
       .select({ id: rentals.id })
@@ -64,9 +69,10 @@ export class RentalLifecycleRepository {
         and(
           inArray(rentals.status, ["ACTIVE", "RETURN_PENDING", "OVERDUE"]),
           isNull(rentals.closedAt),
+          afterId ? gt(rentals.id, afterId) : undefined,
           facilityId ? eq(rentals.facilityId, facilityId) : undefined,
           sql`(
-          (${today} > ${expiry} AND ${rentals.status} <> 'OVERDUE'
+          (${today} > ${expiry} AND (${rentals.status} <> 'OVERDUE' OR ${notExists(overdueEvent)})
             AND (${rentals.actualReturnAt} IS NULL OR (${rentals.actualReturnAt} AT TIME ZONE ${timezone})::date > ${expiry}))
           OR (${today} >= ${expiry} + 8 AND ${rentals.actualReturnAt} IS NULL AND ${rentals.abandonedReviewAt} IS NULL)
           OR (${today} >= ${expiry} - 30 AND ${today} <= ${expiry}
@@ -75,7 +81,7 @@ export class RentalLifecycleRepository {
         )`,
         ),
       )
-      .orderBy(rentals.expectedEndAt, rentals.id)
+      .orderBy(rentals.id)
       .limit(100);
   }
 }
