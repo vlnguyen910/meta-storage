@@ -1,4 +1,20 @@
 export const REPORT_MESSAGES = {
+  monthlyHeaders: [
+    "from",
+    "to",
+    "asOf",
+    "month",
+    "cashReceivedVnd",
+    "rentalCollectedVnd",
+    "depositCollectedVnd",
+    "cashRefundedVnd",
+    "netCashVnd",
+    "unsupportedCurrencyPayments",
+  ],
+  monthlyRange:
+    "Monthly reports support at most 60 calendar months per request. Narrow the date range.",
+  monthlyDescription:
+    "Monthly VND collections by paidAt and settled refunds by refundedAt, grouped in Asia/Ho_Chi_Minh. Months without activity are included. Rent/deposit use booking snapshots, not current prices. Same reader roles and facility scope as revenue; at most 60 calendar months per request.",
   overviewSummary: "Tổng quan tiền, năng lực khai thác và công việc cần chú ý",
   revenueDescription:
     "Thu theo paidAt; hoàn theo refundedAt, múi giờ Việt Nam. from/to bao gồm cả hai ngày; mặc định từ đầu tháng đến hôm nay. Các số cọc đang giữ, cọc mất và chờ hoàn là hiện trạng tại asOf. Dòng tiền ròng không phải lợi nhuận. Giá trị null kèm cờ đối chiếu nghĩa là chưa đủ dữ liệu phân loại.",

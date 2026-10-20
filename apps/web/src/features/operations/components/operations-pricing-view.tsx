@@ -13,6 +13,7 @@ import { OPERATIONS_MESSAGES as M } from "../operations.messages";
 import { type OperationsPriceDraft, OperationsPriceDraftSchema } from "../operations.schema";
 import { formatDateTimeVn, formatMoney } from "../operations.utils";
 import { OperationsDialog, OperationsTable } from "../operations-parts";
+import { REPORTING_MESSAGES as R } from "../operations-reporting.messages";
 
 export function OperationsPricingView() {
   const {
@@ -39,10 +40,10 @@ export function OperationsPricingView() {
     resolver: zodResolver(OperationsPriceDraftSchema),
   });
 
-  const { data, isPending, isError, refetch } = configQuery;
+  const { data, isPending, refetch } = configQuery;
 
   if (isPending) return <LoadingState label={M.loading} />;
-  if (isError || !data) {
+  if (!data) {
     return <ErrorState message={M.error} onRetry={() => void refetch()} />;
   }
 
@@ -79,10 +80,13 @@ export function OperationsPricingView() {
     }
   }
 
-  function handleConflictReload() {
-    reloadData();
-    if (editingItem && data) {
-      setEditingItem({ ...editingItem, baseVersion: data.version });
+  async function handleConflictReload() {
+    try {
+      const latest = await reloadData();
+      setEditingItem((item) => (item ? { ...item, baseVersion: latest.version } : null));
+      setFeedback(R.compareVersion);
+    } catch {
+      setMutationError(R.reloadError);
     }
   }
 
@@ -109,7 +113,7 @@ export function OperationsPricingView() {
             type="button"
             variant="outline"
             icon={<RefreshCw size={14} aria-hidden="true" />}
-            onClick={reloadData}
+            onClick={() => void handleConflictReload()}
           >
             Làm mới
           </Button>
@@ -186,6 +190,20 @@ export function OperationsPricingView() {
               </p>
             </div>
 
+            <p className="text-xs text-slate-600">
+              {R.latestPrice(
+                formatMoney(
+                  data.prices.find((item) => item.unitTypeId === editingItem.unitTypeId)
+                    ?.monthlyPrice,
+                ),
+                data.version,
+              )}
+            </p>
+            {feedback && (
+              <p role="status" className="text-xs text-primary">
+                {feedback}
+              </p>
+            )}
             {mutationError && (
               <p
                 role="alert"

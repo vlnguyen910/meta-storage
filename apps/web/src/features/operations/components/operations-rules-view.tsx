@@ -20,48 +20,9 @@ import { OPERATIONS_MESSAGES as M } from "../operations.messages";
 import { type OperationsDepositDraft, OperationsDepositDraftSchema } from "../operations.schema";
 import { formatDateTimeVn, formatMoney } from "../operations.utils";
 import { OperationsTable } from "../operations-parts";
+import { REPORTING_MESSAGES as R } from "../operations-reporting.messages";
 
-// Static reference business policies sourced from project requirements documentation
-const REFERENCE_BUSINESS_POLICIES = [
-  {
-    group: "Đặt chỗ & Giữ kho",
-    name: "Thời hạn giữ chỗ thanh toán (Hold)",
-    value:
-      "15 phút kể từ thời điểm tạo hold tại checkout. Tự động giải phóng nếu không thanh toán.",
-    status: "Đã áp dụng theo luồng booking",
-    isTbd: false,
-  },
-  {
-    group: "Thời hạn & Hợp đồng",
-    name: "Thời hạn thuê tối thiểu",
-    value: "1 tháng (30 ngày). Không hỗ trợ hợp đồng thuê ngắn ngày trong phiên bản hiện tại.",
-    status: "Đã chốt theo yêu cầu MVP",
-    isTbd: false,
-  },
-  {
-    group: "Chính sách hủy & Hoàn tiền",
-    name: "Phí hủy đặt chỗ trước ngày nhận kho",
-    value: "Chính sách tỷ lệ khấu trừ hoàn tiền khi khách hủy booking trước lịch bàn giao.",
-    status: "TBD (Chờ quyết định chính sách)",
-    isTbd: true,
-  },
-  {
-    group: "Vận hành & Trả kho",
-    name: "Phí phạt quá hạn trả kho",
-    value:
-      "Mức phí tính thêm theo ngày khi khách hàng không bàn giao ô kho đúng hạn kết thúc hợp đồng.",
-    status: "TBD (Chờ quyết định chính sách)",
-    isTbd: true,
-  },
-  {
-    group: "Hư hại & Bồi thường",
-    name: "Biểu phí bồi thường hư hỏng ô kho",
-    value:
-      "Đánh giá theo biên bản kiểm tra bàn giao thực tế (Handover checklist) của nhân viên tại cơ sở.",
-    status: "TBD (Theo biên bản hiện trường)",
-    isTbd: true,
-  },
-] as const;
+const REFERENCE_BUSINESS_POLICIES = R.policyRules;
 
 export function OperationsRulesView() {
   const {
@@ -84,12 +45,7 @@ export function OperationsRulesView() {
     defaultValues: { depositMonths: 1 },
   });
 
-  const {
-    data: config,
-    isPending: isConfigPending,
-    isError: isConfigError,
-    refetch: refetchConfig,
-  } = configQuery;
+  const { data: config, isPending: isConfigPending, refetch: refetchConfig } = configQuery;
 
   const {
     data: history,
@@ -101,18 +57,15 @@ export function OperationsRulesView() {
   // Initialize and safely sync baseVersion without overwriting user's dirty edits
   useEffect(() => {
     if (config?.depositMonths !== undefined) {
-      if (baseVersion === null) {
-        setBaseVersion(config.version);
-        depositForm.reset({ depositMonths: config.depositMonths });
-      } else if (!depositForm.formState.isDirty && !conflictError) {
+      if (!depositForm.formState.isDirty) {
         setBaseVersion(config.version);
         depositForm.reset({ depositMonths: config.depositMonths });
       }
     }
-  }, [config, baseVersion, depositForm, conflictError]);
+  }, [config, depositForm]);
 
   if (isConfigPending) return <LoadingState label={M.loading} />;
-  if (isConfigError || !config) {
+  if (!config) {
     return <ErrorState message={M.error} onRetry={() => void refetchConfig()} />;
   }
 
@@ -123,23 +76,26 @@ export function OperationsRulesView() {
     setConflictError(null);
 
     try {
-      await updateDepositMutation.mutateAsync({
+      const saved = await updateDepositMutation.mutateAsync({
         expectedVersion: baseVersion,
         depositMonths: values.depositMonths,
       });
       setFeedback(M.depositUpdated);
-      setBaseVersion(config.version + 1);
+      setBaseVersion(saved.version);
+      depositForm.reset(values);
     } catch {
       // 409 Conflict or other mutation errors are tracked in hook state
     }
   }
 
-  function handleConflictReload() {
+  async function handleConflictReload() {
     setFeedback(null);
-    reloadData();
-    if (config) {
-      setBaseVersion(config.version);
-      depositForm.reset({ depositMonths: config.depositMonths });
+    try {
+      const latest = await reloadData();
+      setBaseVersion(latest.version);
+      setFeedback(R.compareVersion);
+    } catch {
+      setMutationError(R.reloadError);
     }
   }
 
@@ -237,12 +193,16 @@ export function OperationsRulesView() {
           className="grid gap-4 max-w-md"
           onSubmit={depositForm.handleSubmit(handleSaveDeposit)}
         >
+          <p className="text-xs text-slate-600">
+            {R.latestDeposit(config.depositMonths, config.version)}
+          </p>
           <FieldShell
             label={M.depositMonthsField}
             error={depositForm.formState.errors.depositMonths?.message}
           >
             <div className="flex items-center gap-3">
               <Input
+                aria-label={M.depositMonthsField}
                 type="number"
                 min={1}
                 step={1}
@@ -361,11 +321,7 @@ export function OperationsRulesView() {
 
         {showReferencePolicies && (
           <div className="mt-4 border-t border-outline-variant pt-4">
-            <p className="text-xs text-slate-600 mb-3">
-              Các quy tắc dưới đây được trích xuất từ tài liệu đặc tả nghiệp vụ dự án StoreX
-              (docs/facility-staff-operations-policy.md). Các mục được đánh dấu TBD đang chờ ban
-              quản trị ban hành quyết định chính thức và chưa thể điều chỉnh qua giao diện này.
-            </p>
+            <p className="text-xs text-slate-600 mb-3">{R.policySource}</p>
             <OperationsTable
               label="Chính sách nghiệp vụ tham khảo"
               headings={[

@@ -1,13 +1,9 @@
 "use client";
 
-import type { ReportInventoryMetrics } from "@metastorage/contracts";
 import { useEffect, useState } from "react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { OPERATIONS_MESSAGES as M } from "../../operations.messages";
-
-export interface InventoryStatusChartProps {
-  metrics: ReportInventoryMetrics;
-}
+import type { InventoryStatusChartProps } from "./inventory-status-chart.types";
 
 export function InventoryStatusChart({ metrics }: Readonly<InventoryStatusChartProps>) {
   const [mounted, setMounted] = useState(false);

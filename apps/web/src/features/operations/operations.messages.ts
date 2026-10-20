@@ -244,7 +244,7 @@ export const OPERATIONS_MESSAGES = {
   statusInactive: "Ngừng hoạt động (Inactive)",
 
   // Reports Hub & Sub-sections
-  tabRentalsTitle: "Hợp đồng thuê (Rentals)",
+  tabRentalsTitle: "Tình hình thuê kho",
   tabReconciliationTitle: "Đối chiếu giao dịch",
   tabRefundQueueTitle: "Hàng chờ hoàn tiền (Refund Queue)",
   reconciliationSummary:

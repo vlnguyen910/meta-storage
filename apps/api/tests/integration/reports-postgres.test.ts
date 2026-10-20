@@ -348,6 +348,43 @@ describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
       (await get(`revenue?${period}&unitTypeId=${randomUUID()}`)).json().data.summary.cashReceived,
     ).toBe("0.00");
   });
+  test("groups cash by Vietnam calendar month, fills gaps and keeps assigned scope", async () => {
+    const response = await get("revenue/monthly?from=2026-09-01&to=2026-11-30");
+    expect(response.statusCode).toBe(200);
+    expect(response.headers["cache-control"]).toBe("private, no-store");
+    const data = response.json().data;
+    expect(data.items.map((item: { month: string }) => item.month)).toEqual([
+      "2026-09",
+      "2026-10",
+      "2026-11",
+    ]);
+    expect(data.items[0].cashReceived).toBe("8000000.00");
+    expect(data.items[1]).toMatchObject({
+      cashReceived: "20000000.00",
+      rentalCollected: "15000000.00",
+      depositCollected: "5000000.00",
+      cashRefunded: "4000000.00",
+    });
+    expect(data.items[2].netCash).toBe("-3000000.00");
+    const exported = await get("export?type=revenue-monthly&from=2026-09-01&to=2026-11-30");
+    expect(exported.statusCode).toBe(200);
+    expect(exported.headers["content-disposition"]).toContain("reports-revenue-monthly.csv");
+    expect(exported.body).toContain("2026-11");
+    expect(exported.body).toContain("-3000000.00");
+    expect(
+      (await get(`revenue/monthly?${period}&facilityId=${ids.b}`)).json().data.items[0]
+        .cashReceived,
+    ).toBe("0.00");
+    login("FACILITY_MANAGER", ids.fm);
+    expect((await get(`revenue/monthly?${period}`)).json().data.items[0].cashReceived).toBe(
+      "20000000.00",
+    );
+    expect((await get(`revenue/monthly?${period}&facilityId=${ids.b}`)).statusCode).toBe(403);
+    login("STORAGE_CUSTOMER");
+    expect((await get(`revenue/monthly?${period}`)).statusCode).toBe(403);
+    login("BUSINESS_OPERATION_MANAGER");
+    expect((await get("revenue/monthly?from=2020-01-01&to=2026-10-20")).statusCode).toBe(400);
+  });
   test("flags an unclassifiable deposit instead of presenting a false balance", async () => {
     const id = await payment(firstBookingId, "REFUNDED", "2026-10-14T10:00:00Z", {
       refundAmount: "100",
@@ -380,6 +417,9 @@ describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
         hasIssues: true,
         unsupportedCurrencyPayments: 1,
       });
+      const monthly = (await get(`revenue/monthly?${period}`)).json().data.items[0];
+      expect(monthly.cashReceived).toBe("20000000.00");
+      expect(monthly.unsupportedCurrencyPayments).toBe(1);
     } finally {
       await db.delete(payments).where(eq(payments.id, id));
     }
@@ -440,6 +480,9 @@ describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
       expect(data.summary.cashReceived).toBe("24000000.00");
       expect(data.summary.rentalCollected).toBeNull();
       expect(data.unattributed.cashReceived).toBe("4000000.00");
+      const monthly = (await get(`revenue/monthly?${period}`)).json().data.items[0];
+      expect(monthly.cashReceived).toBe("24000000.00");
+      expect(monthly.rentalCollected).toBeNull();
     } finally {
       await db.delete(payments).where(eq(payments.id, id));
       await db.delete(reservationDrafts).where(eq(reservationDrafts.id, draftId));

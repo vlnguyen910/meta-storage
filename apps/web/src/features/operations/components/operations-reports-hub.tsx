@@ -37,6 +37,7 @@ import {
   formatMoneyWithCurrency,
 } from "../operations.utils";
 import { OperationsDialog, OperationsTable } from "../operations-parts";
+import { REPORTING_MESSAGES as R } from "../operations-reporting.messages";
 
 const PAGE_SIZE = 20;
 
@@ -126,22 +127,26 @@ export function OperationsReportsHub() {
 
 function RentalsTab() {
   const [facilityId, setFacilityId] = useState("all");
+  const [unitTypeId, setUnitTypeId] = useState("all");
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(1);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
-  const { facilities: catalogFacilities } = useOperationsCatalogOptions();
+  const { facilities: catalogFacilities, unitTypes: catalogUnitTypes } =
+    useOperationsCatalogOptions();
   const offset = (page - 1) * PAGE_SIZE;
 
   const query = useOperationsRentals({
     facilityId: facilityId === "all" ? undefined : facilityId,
+    unitTypeId: unitTypeId === "all" ? undefined : unitTypeId,
     status: status === "all" ? undefined : status,
     limit: PAGE_SIZE,
     offset,
   });
 
   const { data, isPending, isError, refetch } = query;
+  const summary = useOperationsRentals({ facilityId, unitTypeId, limit: 1, offset: 0 });
 
   async function handleExport() {
     try {
@@ -150,6 +155,7 @@ function RentalsTab() {
       const res = await api.reports.exportReport({
         type: "rentals",
         facilityId: facilityId === "all" ? undefined : facilityId,
+        unitTypeId: unitTypeId === "all" ? undefined : unitTypeId,
         status: status === "all" ? undefined : status,
       });
       downloadCsv(res.data, res.filename);
@@ -166,6 +172,22 @@ function RentalsTab() {
 
   return (
     <div className="grid gap-6">
+      <div>
+        <h2 className="text-lg font-bold">{R.rentalTitle}</h2>
+        <p className="mt-1 text-sm text-slate-600">{R.rentalHelp}</p>
+      </div>
+      {summary.data && (
+        <dl className="flex flex-wrap gap-4 rounded-card border border-outline-variant bg-white p-4 text-sm">
+          {summary.data.byStatus.map((item) => (
+            <div key={item.status}>
+              <dt className="text-xs text-slate-600">
+                {R.rentalStatuses[item.status] ?? item.status}
+              </dt>
+              <dd className="font-bold">{item.count}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
       {/* Filters */}
       <section className="grid items-end gap-4 rounded-card border border-outline-variant bg-surface-container-lowest p-5 shadow-[0_1px_2px_rgb(15_23_42_/_0.04)] sm:grid-cols-2 lg:grid-cols-4">
         <FieldShell label={M.facilityFilter}>
@@ -184,7 +206,23 @@ function RentalsTab() {
             ))}
           </Select>
         </FieldShell>
-        <FieldShell label="Trạng thái hợp đồng">
+        <FieldShell label={M.unitTypeFilter}>
+          <Select
+            value={unitTypeId}
+            onChange={(event) => {
+              setUnitTypeId(event.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="all">{M.allUnitTypes}</option>
+            {catalogUnitTypes.map((type) => (
+              <option key={type.unitTypeId} value={type.unitTypeId}>
+                {type.name}
+              </option>
+            ))}
+          </Select>
+        </FieldShell>
+        <FieldShell label={R.rentalStatus}>
           <Select
             value={status}
             onChange={(e) => {
@@ -193,9 +231,14 @@ function RentalsTab() {
             }}
           >
             <option value="all">Tất cả trạng thái</option>
-            {data?.byStatus.map((s) => (
-              <option key={s.status} value={s.status}>
-                {M.rentalStatuses[s.status] ?? s.status} ({s.count})
+            {Array.from(
+              new Set([
+                ...(summary.data?.byStatus.map((item) => item.status) ?? []),
+                ...(status === "all" ? [] : [status]),
+              ]),
+            ).map((value) => (
+              <option key={value} value={value}>
+                {R.rentalStatuses[value] ?? value}
               </option>
             ))}
           </Select>
@@ -208,6 +251,7 @@ function RentalsTab() {
             onClick={() => {
               setFacilityId("all");
               setStatus("all");
+              setUnitTypeId("all");
               setPage(1);
               setExportError(null);
             }}
@@ -240,7 +284,7 @@ function RentalsTab() {
         <ErrorState message={M.error} onRetry={() => void refetch()} />
       ) : data.items.length === 0 ? (
         <p className="py-8 text-center text-sm text-slate-500 rounded-card border border-outline-variant bg-surface-container-lowest">
-          {M.empty}
+          {R.rentalEmpty}
         </p>
       ) : (
         <>
@@ -279,7 +323,7 @@ function RentalsTab() {
                           : "bg-amber-50 text-amber-800 border border-amber-200",
                     )}
                   >
-                    {M.rentalStatuses[item.status] ?? item.status}
+                    {R.rentalStatuses[item.status] ?? item.status}
                   </span>
                 </td>
               </tr>
@@ -290,7 +334,7 @@ function RentalsTab() {
           <div className="flex flex-wrap items-center justify-between gap-4 py-2 text-xs text-slate-600">
             <div>
               Hiển thị {offset + 1} – {Math.min(offset + data.items.length, data.total)} trong tổng
-              số <strong>{data.total}</strong> hợp đồng
+              số <strong>{data.total}</strong> lượt thuê
             </div>
             <div className="flex items-center gap-2">
               <Button
