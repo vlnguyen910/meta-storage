@@ -12,6 +12,21 @@ export type {
   CheckInSlotOption,
 } from "./bookings.types";
 
+export const RequestGuestAccessLinkSchema = z.strictObject({
+  bookingCode: z.string().trim().min(1).max(50),
+  email: z.email().max(320),
+  idempotencyKey: z.uuid(),
+});
+export type RequestGuestAccessLink = z.infer<typeof RequestGuestAccessLinkSchema>;
+
+export const GuestContractParamsSchema = z.object({
+  bookingCode: z.string().trim().min(1).max(50),
+  contractId: z.uuid(),
+});
+export const GuestContractDownloadQuerySchema = z.object({
+  download: z.enum(["true", "false"]).default("false"),
+});
+
 export const BookingMagicLinkInputSchema = z.object({
   token: z
     .string({ error: BOOKING_CONTRACT_MESSAGES.invalidMagicToken })
