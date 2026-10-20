@@ -8,7 +8,7 @@ import {
   queryClient,
   users,
 } from "@metastorage/database";
-import { SEED_DEMO_USERS, SEED_USERS } from "@metastorage/database/seed-fixtures";
+import { SEED_DEMO_USERS, SEED_USERS } from "@metastorage/database/demo-fixtures";
 import { hashPassword } from "better-auth/crypto";
 import { env } from "./config/env";
 import { DEV_AUTH_PASSWORD } from "./dev/auth-fixtures";
