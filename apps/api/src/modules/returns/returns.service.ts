@@ -30,6 +30,7 @@ import type { InspectionPhotoStorage } from "../inspections/photo-storage.types"
 import {
   localDate,
   overdueAmount,
+  refundAllocation,
   refundDueDate,
   reviewInspection,
   wholeVnd,
@@ -536,6 +537,8 @@ export class ReturnsService {
         refunds: refunds.map((r) => ({
           id: r.id,
           amount: r.amount,
+          depositRefundAmount: r.depositRefundAmount,
+          rentRefundAmount: r.rentRefundAmount,
           reference: r.reference,
           confirmedBy: r.confirmedBy,
           confirmedAt: r.confirmedAt.toISOString(),
@@ -970,6 +973,11 @@ export class ReturnsService {
           wholeVnd(existing.amount) !== wholeVnd(input.amount) ||
           existing.reference !== input.reference ||
           existing.confirmedBy !== actor.id ||
+          (input.depositRefundAmount !== undefined &&
+            wholeVnd(existing.depositRefundAmount ?? "0") !==
+              wholeVnd(input.depositRefundAmount)) ||
+          (input.rentRefundAmount !== undefined &&
+            wholeVnd(existing.rentRefundAmount ?? "0") !== wholeVnd(input.rentRefundAmount)) ||
           JSON.stringify(existing.evidencePhotoIds) !== JSON.stringify(input.evidencePhotoIds)
         )
           throw new ConflictError(m.refund);
@@ -998,11 +1006,55 @@ export class ReturnsService {
         already + amount > wholeVnd(payment.totalAmount)
       )
         throw new ConflictError(m.refund);
+      const settlements = await this.repository.settlements(tx, id);
+      const depositEntitlement = (row: typeof returnSettlements.$inferSelect) => {
+        const available =
+          wholeVnd(row.depositSnapshot) -
+          wholeVnd(row.overdueFeeAmount) -
+          wholeVnd(row.damageAmount);
+        return available > 0n ? available : 0n;
+      };
+      let depositPaid = 0n,
+        rentPaid = 0n;
+      for (const refund of refunds) {
+        const origin = settlements.find((row) => row.id === refund.settlementId);
+        if (!origin) throw new ConflictError(m.refund);
+        const allocation = refundAllocation(
+          wholeVnd(refund.amount),
+          depositEntitlement(origin),
+          wholeVnd(origin.unusedRentRefundAmount),
+          refund.depositRefundAmount,
+          refund.rentRefundAmount,
+          true,
+        );
+        if (!allocation) throw new ConflictError(m.refund);
+        depositPaid += allocation.deposit;
+        rentPaid += allocation.rent;
+      }
+      const depositAvailable =
+        depositEntitlement(settlement) > depositPaid
+          ? depositEntitlement(settlement) - depositPaid
+          : 0n;
+      const rentAvailable =
+        wholeVnd(settlement.unusedRentRefundAmount) > rentPaid
+          ? wholeVnd(settlement.unusedRentRefundAmount) - rentPaid
+          : 0n;
+      const allocation = refundAllocation(
+        amount,
+        depositAvailable,
+        rentAvailable,
+        input.depositRefundAmount,
+        input.rentRefundAmount,
+      );
+      if (!allocation || allocation.deposit > depositAvailable || allocation.rent > rentAvailable)
+        throw new ConflictError(m.refund);
       const row = await this.repository.insertRefund(tx, {
         requestId: id,
         paymentId: payment.id,
         settlementId: settlement.id,
         amount: amount.toString(),
+        depositRefundAmount: allocation.deposit.toString(),
+        rentRefundAmount: allocation.rent.toString(),
         reference: input.reference,
         evidencePhotoIds: input.evidencePhotoIds,
         idempotencyKey: input.idempotencyKey,
@@ -1017,6 +1069,8 @@ export class ReturnsService {
         {
           refundId: row.id,
           amount: row.amount,
+          depositRefundAmount: row.depositRefundAmount,
+          rentRefundAmount: row.rentRefundAmount,
           reference: row.reference,
           evidencePhotoIds: row.evidencePhotoIds,
         },

@@ -69,3 +69,27 @@ export function reviewInspection(
   }
   return failed ? "FAIL" : "PASS";
 }
+
+// Legacy full transfers can be decomposed from their immutable originating settlement.
+// A new mixed transfer requires explicit components even when its total is unambiguous.
+export function refundAllocation(
+  amount: bigint,
+  depositAvailable: bigint,
+  rentAvailable: bigint,
+  depositPart?: string | null,
+  rentPart?: string | null,
+  legacy = false,
+) {
+  if (depositPart != null && rentPart != null) {
+    const deposit = wholeVnd(depositPart),
+      rent = wholeVnd(rentPart);
+    if (deposit + rent !== amount) return undefined;
+    return { deposit, rent };
+  }
+  if (depositPart != null || rentPart != null) return undefined;
+  if (rentAvailable === 0n) return { deposit: amount, rent: 0n };
+  if (depositAvailable === 0n) return { deposit: 0n, rent: amount };
+  if (legacy && amount === depositAvailable + rentAvailable)
+    return { deposit: depositAvailable, rent: rentAvailable };
+  return undefined;
+}

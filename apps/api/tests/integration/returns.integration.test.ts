@@ -1208,6 +1208,77 @@ describe.skipIf(!target)(
       expect(current.settlements[0].remainingRefund).toBe(String(initialRate * 10000));
     });
 
+    test("mixed refunds require explicit allocation and respect separate remaining deposit/rent limits", async () => {
+      const item = await scenario();
+      const inspection = await start(item.id);
+      await save(item.id, inspection);
+      await complete(item.id, inspection);
+      await receive(item.id);
+      expect(
+        (
+          await api("manager", "POST", `/return-requests/${item.id}/settlement`, {
+            expectedVersion: (await state(item.id)).request.version,
+            damageAmount: "0",
+            unusedRentRefundAmount: "300000",
+            reason: "FM exception approved",
+          })
+        ).statusCode,
+      ).toBe(200);
+      const proof = await api("manager", "POST", `/return-requests/${item.id}/evidence`, {
+        expectedVersion: (await state(item.id)).request.version,
+        purpose: "REFUND",
+        filename: "receipt.png",
+        mimeType: "image/png",
+        dataBase64: png,
+      });
+      const input = {
+        expectedVersion: (await state(item.id)).request.version,
+        amount: "200000",
+        reference: randomUUID(),
+        evidencePhotoIds: [proof.json().data.id],
+        idempotencyKey: randomUUID(),
+      };
+      const path = `/return-requests/${item.id}/refunds/confirm`;
+      expect((await api("manager", "POST", path, input)).statusCode).toBe(409);
+      expect(
+        (await api("manager", "POST", path, { ...input, depositRefundAmount: "100000" }))
+          .statusCode,
+      ).toBe(409);
+      expect(
+        (
+          await api("manager", "POST", path, {
+            ...input,
+            depositRefundAmount: "100000",
+            rentRefundAmount: "99999",
+          })
+        ).statusCode,
+      ).toBe(409);
+      const valid = { ...input, depositRefundAmount: "100000", rentRefundAmount: "100000" };
+      const responses = await Promise.all([
+        api("manager", "POST", path, valid),
+        api("manager", "POST", path, valid),
+      ]);
+      expect(responses.map((r) => r.statusCode)).toEqual([200, 200]);
+      expect((await state(item.id)).refunds[0]).toMatchObject({
+        depositRefundAmount: "100000",
+        rentRefundAmount: "100000",
+      });
+      expect(
+        (await api("manager", "POST", path, { ...valid, rentRefundAmount: "0" })).statusCode,
+      ).toBe(409);
+      const next = {
+        ...valid,
+        expectedVersion: (await state(item.id)).request.version,
+        amount: "300000",
+        depositRefundAmount: "0",
+        rentRefundAmount: "300000",
+        reference: randomUUID(),
+        idempotencyKey: randomUUID(),
+      };
+      expect((await api("manager", "POST", path, next)).statusCode).toBe(409);
+      expect((await state(item.id)).refunds).toHaveLength(1);
+    });
+
     test("overdue starts at facility midnight, retains request workflow and flags manual review after seven full days", async () => {
       const item = await scenario();
       const lifecycle = new RentalLifecycleService(
