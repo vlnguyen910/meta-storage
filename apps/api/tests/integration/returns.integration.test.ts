@@ -19,6 +19,7 @@ import {
   paymentProviderEvents,
   payments,
   queryClient,
+  rentalLifecycleSettings,
   rentals,
   returnAudit,
   returnChecklistVersions,
@@ -35,7 +36,11 @@ import {
   unitTypes,
   users,
 } from "@metastorage/database";
-import { bookingDeliveryKey, bookingMagicKey } from "@metastorage/shared/booking-access";
+import {
+  BOOKING_ACCESS,
+  bookingDeliveryKey,
+  bookingMagicKey,
+} from "@metastorage/shared/booking-access";
 import {
   decryptMailPayload,
   encryptMailPayload,
@@ -59,6 +64,7 @@ import { InspectionsRepository } from "../../src/modules/inspections/inspections
 import { recordLifecycleEvent } from "../../src/modules/notifications/lifecycle-notifications.repository";
 import { lifecycleNotificationsRoutes } from "../../src/modules/notifications/lifecycle-notifications.routes";
 import { PaymentsRepository } from "../../src/modules/payments/payments.repository";
+import { rentalLifecycleSettingsRoutes } from "../../src/modules/rental-lifecycle-settings/rental-lifecycle-settings.routes";
 import { RentalLifecycleRepository } from "../../src/modules/rentals/rental-lifecycle.repository";
 import {
   RentalLifecycleService,
@@ -103,6 +109,7 @@ const definition = [
 ];
 let scenarioNumber = 0;
 let initialRate = 25;
+let initialLifecycleSettings: (typeof rentalLifecycleSettings.$inferSelect)[] = [];
 let latestChecklistVersion = 0;
 let setupStarted = false;
 
@@ -315,6 +322,21 @@ describe.skipIf(!target)(
             address: "Test",
           },
         ]);
+        await tx
+          .insert(rentalLifecycleSettings)
+          .values([
+            {
+              key: "EXPIRY_REMINDER_DAYS",
+              value: 7,
+              description: "Expiry reminder test setting",
+            },
+            {
+              key: "ABANDONED_REVIEW_DAYS",
+              value: 7,
+              description: "Abandoned review test setting",
+            },
+          ])
+          .onConflictDoNothing();
         for (const [key, facilityId] of [
           ["staff", fixture.facility],
           ["replacement", fixture.facility],
@@ -381,6 +403,7 @@ describe.skipIf(!target)(
       });
       await app.register(lifecycleNotificationsRoutes, { prefix: "/api" });
       await app.register(rentalsRoutes, { prefix: "/api/rentals" });
+      await app.register(rentalLifecycleSettingsRoutes, { prefix: "/api" });
       await app.ready();
       for (const key of Object.keys(roles) as (keyof typeof roles)[]) {
         const response = await api(null, "POST", "/auth/sign-in/email", {
@@ -404,6 +427,7 @@ describe.skipIf(!target)(
         .where(eq(returnOverdueSettings.id, "default"));
       if (!rate) throw new Error("Seed return policy before running suite");
       initialRate = rate.rate;
+      initialLifecycleSettings = await db.select().from(rentalLifecycleSettings);
     });
 
     afterAll(async () => {
@@ -424,6 +448,17 @@ describe.skipIf(!target)(
             .delete(notificationOutbox)
             .where(eq(notificationOutbox.facilityId, fixture.facility));
           await tx.delete(returnAudit).where(inArray(returnAudit.actorId, Object.values(actorIds)));
+          for (const key of ["EXPIRY_REMINDER_DAYS", "ABANDONED_REVIEW_DAYS"] as const) {
+            const original = initialLifecycleSettings.find((row) => row.key === key);
+            if (original) {
+              await tx
+                .update(rentalLifecycleSettings)
+                .set(original)
+                .where(eq(rentalLifecycleSettings.key, key));
+            } else {
+              await tx.delete(rentalLifecycleSettings).where(eq(rentalLifecycleSettings.key, key));
+            }
+          }
           await tx.delete(returnRefunds).where(inArray(returnRefunds.requestId, requests));
           await tx.delete(returnSettlements).where(inArray(returnSettlements.requestId, requests));
           await tx.delete(returnTimeChanges).where(inArray(returnTimeChanges.requestId, requests));
@@ -513,6 +548,77 @@ describe.skipIf(!target)(
           })
         ).statusCode,
       ).toBe(403);
+    });
+
+    test("lifecycle settings are System Admin-only, versioned and audited atomically", async () => {
+      const denied = await api("manager", "GET", "/return-policy/lifecycle-settings");
+      expect(denied.statusCode).toBe(403);
+      const listed = await api("admin", "GET", "/return-policy/lifecycle-settings");
+      expect(listed.statusCode).toBe(200);
+      expect(listed.json().data).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ key: "EXPIRY_REMINDER_DAYS", value: expect.any(Number) }),
+          expect.objectContaining({ key: "ABANDONED_REVIEW_DAYS", value: expect.any(Number) }),
+        ]),
+      );
+      const setting = listed
+        .json()
+        .data.find((row: { key: string }) => row.key === "EXPIRY_REMINDER_DAYS");
+      const changed = await api("admin", "PUT", "/return-policy/lifecycle-settings", {
+        key: setting.key,
+        value: 0,
+        expectedVersion: setting.version,
+      });
+      expect(changed.statusCode).toBe(200);
+      expect(changed.json().data).toMatchObject({ value: 0, version: setting.version + 1 });
+      expect(
+        (
+          await api("admin", "PUT", "/return-policy/lifecycle-settings", {
+            key: setting.key,
+            value: 7,
+            expectedVersion: setting.version,
+          })
+        ).statusCode,
+      ).toBe(409);
+      expect(
+        (
+          await api("admin", "PUT", "/return-policy/lifecycle-settings", {
+            key: setting.key,
+            value: -1,
+            expectedVersion: setting.version + 1,
+          })
+        ).statusCode,
+      ).toBe(400);
+      const restored = await api("admin", "PUT", "/return-policy/lifecycle-settings", {
+        key: setting.key,
+        value: setting.value,
+        expectedVersion: setting.version + 1,
+      });
+      expect(restored.statusCode).toBe(200);
+      const audit = await db
+        .select()
+        .from(returnAudit)
+        .where(
+          and(
+            eq(returnAudit.actorId, actorIds.admin),
+            eq(returnAudit.action, "RENTAL_LIFECYCLE_SETTING_CONFIGURED"),
+          ),
+        );
+      expect(audit).toHaveLength(2);
+      expect(audit.map((row) => row.details)).toEqual(
+        expect.arrayContaining([
+          {
+            key: setting.key,
+            before: { value: setting.value, version: setting.version },
+            after: { value: 0, version: setting.version + 1 },
+          },
+          {
+            key: setting.key,
+            before: { value: 0, version: setting.version + 1 },
+            after: { value: setting.value, version: setting.version + 2 },
+          },
+        ]),
+      );
     });
 
     test("pending does not reserve; concurrent confirmation enforces capacity and buffer", async () => {
@@ -1459,7 +1565,7 @@ describe.skipIf(!target)(
       const item = await scenario();
       await db
         .update(rentals)
-        .set({ expectedEndAt: new Date("2032-02-01T03:00:00Z") })
+        .set({ expectedEndAt: new Date("2032-01-09T03:00:00Z") })
         .where(eq(rentals.id, item.rentalId));
       const lifecycle = new RentalLifecycleService(
         new RentalLifecycleRepository(db),
@@ -1480,7 +1586,7 @@ describe.skipIf(!target)(
       const immediate = await scenario();
       await db
         .update(rentals)
-        .set({ expectedEndAt: new Date("2032-01-31T03:00:00Z") })
+        .set({ expectedEndAt: new Date("2032-01-08T03:00:00Z") })
         .where(eq(rentals.id, immediate.rentalId));
       await db.transaction(async (tx) => {
         const [row] = await tx.select().from(rentals).where(eq(rentals.id, immediate.rentalId));
@@ -1510,7 +1616,7 @@ describe.skipIf(!target)(
       try {
         await db
           .update(rentals)
-          .set({ expectedEndAt: new Date("2032-02-01T03:00:00Z") })
+          .set({ expectedEndAt: new Date("2032-01-09T03:00:00Z") })
           .where(eq(rentals.id, item.rentalId));
         await db
           .update(facilityReturnCalendars)
@@ -1695,7 +1801,9 @@ describe.skipIf(!target)(
           token = new URL(decoded.trackingUrl).hash.slice("#token=".length);
           expect(decoded.recipientEmail).toBe("contact@example.test");
           expect(decoded.qrUrl).toContain("/check-in?token=");
-          expect(job.data.expiresAt).toBe(new Date(Date.now() + 7 * 86400000).toISOString());
+          expect(job.data.expiresAt).toBe(
+            new Date(Date.now() + BOOKING_ACCESS.magicTtl * 1000).toISOString(),
+          );
           expect((await current())?.mailPayload).not.toContain(token);
           expect((await api("owner", "GET", "/notifications?limit=100")).body).not.toContain(token);
           await Promise.all([

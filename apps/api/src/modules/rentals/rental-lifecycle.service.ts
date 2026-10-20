@@ -1,4 +1,6 @@
+import { RentalLifecycleSettingKey } from "@metastorage/contracts";
 import type { rentals } from "@metastorage/database";
+import { rentalLifecycleSettings } from "@metastorage/database";
 import { lifecycleExpiryDetail } from "../notifications/lifecycle-notifications.messages";
 import { recordLifecycleEvent } from "../notifications/lifecycle-notifications.repository";
 import type { NotificationTransaction } from "../notifications/lifecycle-notifications.types";
@@ -21,10 +23,15 @@ export async function recordImmediateExpiry(
 ) {
   const calendar = await facilityLifecycleClock(tx, rental.facilityId);
   if (!calendar) return; // Missing facility timezone is configuration work, never guess a timezone.
+  const settings = await tx.select().from(rentalLifecycleSettings);
+  const reminderDays = settings.find(
+    (setting) => setting.key === RentalLifecycleSettingKey.EXPIRY_REMINDER_DAYS,
+  )?.value;
+  if (reminderDays === undefined) return;
   const days =
     dayIndex(localDate(rental.expectedEndAt, calendar.timezone)) -
     dayIndex(localDate(now, calendar.timezone));
-  if (days >= 0 && days < 30)
+  if (days >= 0 && days < reminderDays)
     await recordLifecycleEvent(tx, {
       key: `rental:${rental.id}:expiry`,
       type: "UPCOMING_EXPIRY",
@@ -40,10 +47,21 @@ export class RentalLifecycleService {
     private readonly returns: ReturnsRepository,
   ) {}
   async sweep(now = new Date(), facilityId?: string) {
+    const settings = await this.repository.settings();
+    const expiryReminderDays = settings[RentalLifecycleSettingKey.EXPIRY_REMINDER_DAYS];
+    const abandonedReviewDays = settings[RentalLifecycleSettingKey.ABANDONED_REVIEW_DAYS];
+    if (expiryReminderDays === undefined || abandonedReviewDays === undefined)
+      throw new Error("Rental lifecycle settings are missing");
+    const lifecycleSettings = { expiryReminderDays, abandonedReviewDays };
     let processed = 0;
     let afterId: string | undefined;
     while (true) {
-      const candidates = await this.repository.candidates(now, facilityId, afterId);
+      const candidates = await this.repository.candidates(
+        now,
+        lifecycleSettings,
+        facilityId,
+        afterId,
+      );
       if (!candidates.length) break;
       for (const candidate of candidates)
         await this.returns.locked(candidate.id, async (tx, { rental }) => {
@@ -60,7 +78,12 @@ export class RentalLifecycleService {
               await this.returns.updateRental(tx, rental.id, { status: "OVERDUE" });
             await recordOverdueEvent(tx, rental, calendar.timezone, now);
           }
-          if (daysOverdue >= 8 && !rental.actualReturnAt && !rental.abandonedReviewAt) {
+          if (
+            daysOverdue > 0 &&
+            daysOverdue - 1 >= abandonedReviewDays &&
+            !rental.actualReturnAt &&
+            !rental.abandonedReviewAt
+          ) {
             await this.returns.updateRental(tx, rental.id, { abandonedReviewAt: now });
             await recordLifecycleEvent(tx, {
               key: `rental:${rental.id}:abandoned-review`,
@@ -79,7 +102,8 @@ export class RentalLifecycleService {
           }).format(now);
           if (
             daysOverdue <= 0 &&
-            (daysOverdue > -30 || (daysOverdue === -30 && clock >= calendar.reminderTime))
+            (daysOverdue > -expiryReminderDays ||
+              (daysOverdue === -expiryReminderDays && clock >= calendar.reminderTime))
           )
             await recordLifecycleEvent(tx, {
               key: `rental:${rental.id}:expiry`,

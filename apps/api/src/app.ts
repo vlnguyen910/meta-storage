@@ -22,6 +22,7 @@ import { lifecycleNotificationsRoutes } from "./modules/notifications/lifecycle-
 import { notificationsPlugin } from "./modules/notifications/notifications.plugin";
 import { paymentsRoutes } from "./modules/payments/payments.routes";
 import { pricingRoutes } from "./modules/pricing/pricing.routes";
+import { rentalLifecycleSettingsRoutes } from "./modules/rental-lifecycle-settings/rental-lifecycle-settings.routes";
 import { rentalsRoutes } from "./modules/rentals/rentals.routes";
 import { reportsRoutes } from "./modules/reports/reports.routes";
 import { returnsRoutes } from "./modules/returns/returns.routes";
@@ -69,5 +70,6 @@ export function buildApp(): FastifyInstance {
   app.register(storageUnitsRoutes, { prefix: "/api/units" });
   app.register(contractsRoutes, { prefix: "/api" });
   app.register(returnsRoutes, { prefix: "/api" });
+  app.register(rentalLifecycleSettingsRoutes, { prefix: "/api" });
   return app;
 }
