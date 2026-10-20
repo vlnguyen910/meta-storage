@@ -12,7 +12,7 @@ Review and apply the generated migration to the intended development database:
 
 ```sh
 bun run db:migrate
-bun run --filter @metastorage/database db:seed:pricing
+bun run db:seed
 ```
 
 The explicit seed establishes the approved initial one-month deposit policy.

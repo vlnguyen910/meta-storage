@@ -22,7 +22,7 @@
     "db:push": "turbo run db:push",
     "db:studio": "turbo run db:studio",
     "db:seed": "turbo run db:seed",
-    "seed:local": "bun run db:seed && bun run --filter api seed:auth",
+    "seed:local": "bun run db:seed",
     "db:clear": "turbo run db:clear"
   },
   "devDependencies": {

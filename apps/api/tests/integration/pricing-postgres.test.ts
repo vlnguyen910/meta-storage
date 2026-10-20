@@ -16,7 +16,7 @@ import {
 } from "@metastorage/database";
 import Fastify from "fastify";
 import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
-import { seedPricingPolicy } from "../../../../packages/database/src/seed-pricing";
+import { seedPricingPolicy } from "../../../../packages/database/src/seed";
 import { setupErrorHandler } from "../../src/common/errors/error-handler";
 import { auth } from "../../src/modules/auth/auth";
 import { bookingsRoutes } from "../../src/modules/bookings/bookings.routes";
