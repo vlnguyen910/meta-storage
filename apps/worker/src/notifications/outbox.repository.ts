@@ -5,6 +5,7 @@ import {
   eq,
   facilityAssignments,
   gt,
+  inArray,
   isNull,
   lte,
   notificationOutbox,
@@ -12,6 +13,7 @@ import {
   sql,
   users,
 } from "@metastorage/database";
+import { BOOKING_ACCESS } from "@metastorage/shared/booking-access";
 
 export class OutboxRepository {
   constructor(private readonly db: Database) {}
@@ -25,7 +27,7 @@ export class OutboxRepository {
             lte(notificationOutbox.nextAttemptAt, now),
             facilityId ? eq(notificationOutbox.facilityId, facilityId) : undefined,
             or(
-              eq(notificationOutbox.status, "PENDING"),
+              inArray(notificationOutbox.status, ["PENDING", "ENQUEUED"]),
               and(
                 eq(notificationOutbox.status, "PROCESSING"),
                 lte(notificationOutbox.leaseUntil, now),
@@ -40,6 +42,7 @@ export class OutboxRepository {
       // Resend retains keys for 24 hours. Stop one minute early so a timeout
       // cannot cross that boundary and create an unprotected second delivery.
       if (
+        !row.bookingEmail &&
         row.firstAttemptAt &&
         now.getTime() - row.firstAttemptAt.getTime() >= 24 * 3600000 - 60000
       ) {
@@ -55,7 +58,7 @@ export class OutboxRepository {
           status: "PROCESSING",
           leaseToken: randomUUID(),
           leaseUntil: new Date(now.getTime() + 60000),
-          firstAttemptAt: row.firstAttemptAt ?? now,
+          firstAttemptAt: row.bookingEmail ? row.firstAttemptAt : (row.firstAttemptAt ?? now),
           attempts: row.attempts + 1,
         })
         .where(eq(notificationOutbox.id, row.id))
@@ -63,6 +66,99 @@ export class OutboxRepository {
       return claimed;
     });
   }
+  async bookingPayload(
+    row: typeof notificationOutbox.$inferSelect,
+    payload: string,
+    expiresAt: Date,
+  ) {
+    const [updated] = await this.db
+      .update(notificationOutbox)
+      .set({ mailPayload: payload, mailExpiresAt: expiresAt })
+      .where(
+        and(
+          eq(notificationOutbox.id, row.id),
+          eq(notificationOutbox.status, "PROCESSING"),
+          sql`${notificationOutbox.leaseToken} = ${row.leaseToken}::uuid`,
+          isNull(notificationOutbox.mailPayload),
+        ),
+      )
+      .returning();
+    if (!updated) throw new Error("Booking payload lease lost");
+    return updated;
+  }
+
+  async bookingDeliveryPayload(bookingId: string) {
+    const [row] = await this.db
+      .select({ payload: notificationOutbox.mailPayload })
+      .from(notificationOutbox)
+      .where(
+        and(
+          eq(notificationOutbox.eventKey, `booking:${bookingId}:confirmed`),
+          eq(notificationOutbox.recipientKey, "customer"),
+        ),
+      );
+    return row?.payload;
+  }
+
+  async beginBooking(bookingId: string, payload: string, expiresAt: Date, now: Date) {
+    return this.db.transaction(async (tx) => {
+      const [row] = await tx
+        .select()
+        .from(notificationOutbox)
+        .where(
+          and(
+            eq(notificationOutbox.eventKey, `booking:${bookingId}:confirmed`),
+            eq(notificationOutbox.recipientKey, "customer"),
+          ),
+        )
+        .for("update");
+      if (!row?.bookingEmail) return { kind: "LEGACY" as const };
+      if (row.status === "SENT")
+        return { kind: "DONE" as const, providerMessageId: row.providerMessageId ?? "" };
+      const expectedExpiry =
+        new Date(row.bookingEmail.paidAt).getTime() + BOOKING_ACCESS.magicTtl * 1000;
+      const expired = expectedExpiry <= now.getTime() || expiresAt.getTime() !== expectedExpiry;
+      const pastWindow =
+        row.firstAttemptAt && now.getTime() - row.firstAttemptAt.getTime() >= 24 * 3600000 - 60000;
+      if (
+        ["SUPPRESSED", "REVIEW_REQUIRED"].includes(row.status) ||
+        expired ||
+        pastWindow ||
+        (row.mailPayload && row.mailPayload !== payload)
+      ) {
+        await tx
+          .update(notificationOutbox)
+          .set({
+            status: expired && !row.firstAttemptAt ? "SUPPRESSED" : "REVIEW_REQUIRED",
+            leaseToken: null,
+            leaseUntil: null,
+          })
+          .where(eq(notificationOutbox.id, row.id));
+        return { kind: "STOP" as const };
+      }
+      await tx
+        .update(notificationOutbox)
+        .set({
+          status: "ENQUEUED",
+          mailPayload: payload,
+          mailExpiresAt: expiresAt,
+          firstAttemptAt: row.firstAttemptAt ?? now,
+          queuedAt: row.queuedAt ?? now,
+          leaseToken: null,
+          leaseUntil: null,
+        })
+        .where(eq(notificationOutbox.id, row.id));
+      return { kind: "SEND" as const, id: row.id };
+    });
+  }
+
+  async bookingSent(id: string, providerMessageId: string, now: Date) {
+    await this.db
+      .update(notificationOutbox)
+      .set({ status: "SENT", providerMessageId, sentAt: now, leaseToken: null, leaseUntil: null })
+      .where(eq(notificationOutbox.id, id));
+  }
+
   async authorized(row: typeof notificationOutbox.$inferSelect, now: Date) {
     if (row.recipientRole === "CUSTOMER") return true; // Booking contact may be a guest; never require an account for email.
     if (row.recipientRole !== "FACILITY_MANAGER" || !row.recipientUserId) return false;
@@ -85,7 +181,7 @@ export class OutboxRepository {
   }
   finish(
     row: typeof notificationOutbox.$inferSelect,
-    status: "SENT" | "PENDING" | "SUPPRESSED",
+    status: "SENT" | "PENDING" | "SUPPRESSED" | "ENQUEUED" | "REVIEW_REQUIRED",
     now: Date,
     providerMessageId?: string,
   ) {
@@ -96,9 +192,13 @@ export class OutboxRepository {
         leaseToken: null,
         leaseUntil: null,
         nextAttemptAt: new Date(
-          now.getTime() + Math.min(3600000, 5000 * 2 ** Math.min(row.attempts, 10)),
+          now.getTime() +
+            (status === "ENQUEUED"
+              ? 30000
+              : Math.min(3600000, 5000 * 2 ** Math.min(row.attempts, 10))),
         ),
         ...(status === "SENT" ? { providerMessageId, sentAt: now } : {}),
+        ...(status === "ENQUEUED" ? { queuedAt: row.queuedAt ?? now } : {}),
       })
       .where(
         and(

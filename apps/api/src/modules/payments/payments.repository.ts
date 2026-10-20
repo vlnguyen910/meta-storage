@@ -338,7 +338,6 @@ export class PaymentsRepository {
           type: "BOOKING_CONFIRMED",
           bookingId: booking.id,
           managers: true,
-          customer: false,
           occurredAt: now,
         });
         await tx
@@ -944,7 +943,6 @@ export class PaymentsRepository {
         type: "BOOKING_CONFIRMED",
         bookingId: booking.id,
         managers: true,
-        customer: false,
         occurredAt: input.paidAt,
       });
 

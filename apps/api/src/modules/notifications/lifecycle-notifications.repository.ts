@@ -6,11 +6,13 @@ import {
   desc,
   eq,
   exists,
+  facilities,
   facilityAssignments,
   gt,
   isNull,
   notificationOutbox,
   or,
+  unitTypes,
   users,
 } from "@metastorage/database";
 import {
@@ -27,6 +29,15 @@ export async function recordLifecycleEvent(
   const [booking] = await tx.select().from(bookings).where(eq(bookings.id, input.bookingId));
   if (!booking) return;
   const at = input.occurredAt ?? new Date();
+  const [bookingInfo] =
+    input.type === "BOOKING_CONFIRMED" && input.customer !== false
+      ? await tx
+          .select({ facilityName: facilities.name, unitTypeName: unitTypes.name })
+          .from(facilities)
+          .innerJoin(unitTypes, eq(unitTypes.id, booking.unitTypeId))
+          .where(eq(facilities.id, booking.facilityId))
+      : [];
+
   const subject = LIFECYCLE_NOTIFICATION_SUBJECTS[input.type];
   const body = lifecycleNotificationBody(
     subject,
@@ -79,6 +90,15 @@ export async function recordLifecycleEvent(
           recipientEmail: recipient.email,
           subject,
           body,
+          bookingEmail:
+            recipient.role === "CUSTOMER" && bookingInfo
+              ? {
+                  bookingCode: booking.bookingCode,
+                  facilityName: bookingInfo.facilityName,
+                  unitTypeName: bookingInfo.unitTypeName,
+                  paidAt: at.toISOString(),
+                }
+              : null,
           occurredAt: at,
           nextAttemptAt: at,
         })),
