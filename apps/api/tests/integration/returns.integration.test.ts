@@ -686,6 +686,7 @@ describe.skipIf(!target)(
       await save(item.id, first, { code: "UNIT", additionalCode: "PROPERTY", photoId: proof });
       expect((await complete(item.id, first)).json().data.status).toBe("FAIL");
       const second = await start(item.id);
+      const handoffProof = await photo(item.id, second);
       await save(item.id, second);
       expect((await complete(item.id, second)).json().data.status).toBe("PASS");
       await receive(item.id);
@@ -698,6 +699,25 @@ describe.skipIf(!target)(
         });
       expect((await settlement()).statusCode).toBe(409);
       const old = (await state(item.id)).inspections.find((i: { id: string }) => i.id === first.id);
+      const foreign = await scenario();
+      const foreignAttempt = await start(foreign.id);
+      const foreignPhoto = await photo(foreign.id, foreignAttempt);
+      expect(
+        (
+          await api(
+            "staff",
+            "PUT",
+            `/return-requests/${item.id}/inspections/${first.id}/property`,
+            {
+              expectedVersion: old.version,
+              propertyDisposition: "STORED",
+              propertyReceiver: "Custody receiver",
+              propertyHandledAt: "2032-01-02T04:00:00Z",
+              propertyEvidencePhotoIds: [foreignPhoto],
+            },
+          )
+        ).statusCode,
+      ).toBe(422);
       const handled = await api(
         "staff",
         "PUT",
@@ -707,7 +727,7 @@ describe.skipIf(!target)(
           propertyDisposition: "STORED",
           propertyReceiver: "Custody receiver",
           propertyHandledAt: "2032-01-02T04:00:00Z",
-          propertyEvidencePhotoIds: [proof],
+          propertyEvidencePhotoIds: [handoffProof],
         },
       );
       expect(handled.statusCode).toBe(200);
