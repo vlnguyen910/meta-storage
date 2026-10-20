@@ -1,3 +1,4 @@
+import type { BookingEmailSnapshot } from "@metastorage/contracts";
 import {
   LifecycleNotificationEvent,
   NotificationDeliveryStatus,
@@ -5,6 +6,7 @@ import {
 import {
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -42,6 +44,10 @@ export const notificationOutbox = pgTable(
     recipientEmail: text().notNull(),
     subject: text().notNull(),
     body: text().notNull(),
+    bookingEmail: jsonb().$type<BookingEmailSnapshot>(),
+    mailPayload: text(),
+    mailExpiresAt: timestamp({ withTimezone: true }),
+    queuedAt: timestamp({ withTimezone: true }),
     occurredAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
     status: notificationDeliveryStatusEnum().default("PENDING").notNull(),
     attempts: integer().default(0).notNull(),

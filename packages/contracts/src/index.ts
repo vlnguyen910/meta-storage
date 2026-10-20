@@ -13,6 +13,7 @@ export * from "./lifecycle-notifications";
 export * from "./messages";
 export * from "./mobile-workflows";
 export type {
+  BookingEmailSnapshot,
   LifecycleNotificationItem,
   StaffTaskAssignedNotification,
 } from "./notifications.types";

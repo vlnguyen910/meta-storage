@@ -489,10 +489,10 @@ erDiagram
 
 ## Existing constraints and behavior
 
-- The booking access email still uses its existing BullMQ flow: Booking service
-  prepares the 7-day tracking link and encrypted payload after payment commit.
-  Flow 3 lifecycle notifications use the separate durable database outbox below;
-  the access-email queue has not been migrated into it.
+- New booking access emails have an intent/snapshot in the existing durable outbox,
+  inserted in the payment transaction. The worker prepares the 7-day tracking link
+  and encrypted payload, then bridges to the existing BullMQ job/delivery ID.
+  Legacy jobs remain readable; ENQUEUED differs from provider-confirmed SENT.
 
 - UUID primary keys on `users`, `facilities`, `facility_assignments`,
   `unit_types`, `storage_units`, `facility_operating_hours`, `check_in_slots`, `reservation_drafts`
@@ -710,3 +710,21 @@ All nonclosed rental statuses (ACTIVE, RETURN_PENDING, OVERDUE) block reassignme
   In-app reads enforce current ownership or current FM facility assignment.
 - Disposition updates may resolve property on an older failed inspection without
   changing its original checklist or PASS/FAIL. Closure checks every inspection attempt.
+
+## Flow 3 review corrections (2026-10-20)
+
+Confirmed: partial mixed refunds explicitly allocate deposit/rent; depositHeld is
+refundable deposit after approved fees minus confirmed deposit refunds, floored at zero.
+`return_refunds.deposit_refund_amount` / `rent_refund_amount`: nullable numeric(14,0),
+both null for legacy data or both nonnegative with sum equal to amount. New API
+infers only unambiguous single-source refunds; mixed refunds require both components.
+Historical unallocatable refunds are reconciliation issues, never guessed.
+
+`notification_outbox.booking_email`: nullable JSONB snapshot (booking code, facility
+name, unit type, verified paidAt), only for customer BOOKING_CONFIRMED emails.
+`mail_payload`: nullable encrypted existing mail-job payload; `mail_expires_at`: nullable
+timestamp; `queued_at`: nullable timestamp. ENQUEUED means queued, not provider SENT.
+No raw token in inbox or logs. The existing BullMQ queue/job ID/delivery ID and
+7-day TTL from paidAt remain authoritative. Provider attempts record first_attempt_at
+at send time, not enqueue time; ambiguous outcomes beyond 24h require review.
+No historical booking email replay. Old queue jobs are adopted by the same job ID.
