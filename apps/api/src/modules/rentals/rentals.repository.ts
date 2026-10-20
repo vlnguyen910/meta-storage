@@ -1,11 +1,18 @@
-import type { RentalDetail, RentalListItem } from "@metastorage/contracts";
+import type { RentalDetail, RentalListItem, RentalPageQuery } from "@metastorage/contracts";
 import {
   and,
+  asc,
   bookings,
   type Database,
   eq,
   facilities,
+  gt,
+  inArray,
+  or,
+  payments,
   rentals,
+  returnRefunds,
+  sql,
   storageUnits,
   unitTypes,
 } from "@metastorage/database";
@@ -30,6 +37,9 @@ export class RentalsRepository {
         facility: facilities,
         unitType: unitTypes,
         physicalUnit: storageUnits,
+        // Date drops microseconds. Keep an exact UTC cursor with PostgreSQL formatting,
+        // for which Drizzle has no helper, so equal-expiry pages never repeat rows.
+        cursorEndAt: sql<string>`to_char(${rentals.expectedEndAt} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`,
       })
       .from(rentals)
       .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
@@ -39,8 +49,74 @@ export class RentalsRepository {
   }
 
   async listByUserId(userId: string): Promise<RentalListItem[]> {
-    const rows = await this.baseQuery().where(eq(bookings.userId, userId));
+    const rows = await this.baseQuery()
+      .where(
+        and(
+          eq(bookings.userId, userId),
+          inArray(rentals.status, ["ACTIVE", "RETURN_PENDING", "OVERDUE"]),
+        ),
+      )
+      .orderBy(asc(rentals.expectedEndAt), asc(rentals.id));
     return rows.map(toListItem);
+  }
+
+  async listPageByUserId(userId: string, query: RentalPageQuery, history: boolean) {
+    const afterEndAt = query.afterEndAt ? sql`${query.afterEndAt}::timestamptz` : undefined;
+    return this.baseQuery()
+      .where(
+        and(
+          eq(bookings.userId, userId),
+          inArray(rentals.status, history ? ["CLOSED"] : ["ACTIVE", "RETURN_PENDING", "OVERDUE"]),
+          afterEndAt && query.afterId
+            ? or(
+                gt(rentals.expectedEndAt, afterEndAt),
+                and(eq(rentals.expectedEndAt, afterEndAt), gt(rentals.id, query.afterId)),
+              )
+            : undefined,
+        ),
+      )
+      .orderBy(asc(rentals.expectedEndAt), asc(rentals.id))
+      .limit(query.limit + 1);
+  }
+
+  async listPaymentsByUserId(rentalId: string, userId: string) {
+    return this.db
+      .select({
+        id: payments.id,
+        paymentCode: payments.paymentCode,
+        provider: payments.provider,
+        status: payments.status,
+        totalAmount: payments.totalAmount,
+        currency: payments.currency,
+        paidAt: payments.paidAt,
+        refundAmount: payments.refundAmount,
+        refundReason: payments.refundReason,
+        refundedAt: payments.refundedAt,
+        createdAt: payments.createdAt,
+      })
+      .from(payments)
+      .innerJoin(bookings, eq(bookings.id, payments.bookingId))
+      .innerJoin(rentals, eq(rentals.bookingId, bookings.id))
+      .where(and(eq(rentals.id, rentalId), eq(bookings.userId, userId)))
+      .orderBy(asc(payments.createdAt), asc(payments.id));
+  }
+
+  listReturnRefundsByUserId(rentalId: string, userId: string) {
+    return this.db
+      .select({
+        id: returnRefunds.id,
+        paymentId: returnRefunds.paymentId,
+        amount: returnRefunds.amount,
+        reference: returnRefunds.reference,
+        confirmedAt: returnRefunds.confirmedAt,
+        settlementId: returnRefunds.settlementId,
+      })
+      .from(returnRefunds)
+      .innerJoin(payments, eq(payments.id, returnRefunds.paymentId))
+      .innerJoin(bookings, eq(bookings.id, payments.bookingId))
+      .innerJoin(rentals, eq(rentals.bookingId, bookings.id))
+      .where(and(eq(rentals.id, rentalId), eq(bookings.userId, userId)))
+      .orderBy(asc(returnRefunds.confirmedAt), asc(returnRefunds.id));
   }
 
   async findByIdAndUserId(rentalId: string, userId: string): Promise<RentalDetail | null> {
@@ -61,7 +137,7 @@ type RentalRow = Awaited<ReturnType<RentalsRepository["listByUserId"]>>[number] 
       physicalUnit: typeof storageUnits.$inferSelect | null;
     };
 
-function toListItem(row: RentalRow): RentalListItem {
+export function toListItem(row: RentalRow): RentalListItem {
   return {
     id: row.rental.id,
     bookingId: row.booking.id,

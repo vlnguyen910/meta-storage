@@ -1,4 +1,22 @@
 import { z } from "zod";
+import { RENTAL_CONTRACT_MESSAGES } from "./rentals.messages";
+
+export type { RentalPage, RentalPageCursor, RentalPaymentItem } from "./rentals.types";
+
+export const RentalIdParamsSchema = z.object({ rentalId: z.string().uuid() });
+
+export const RentalPageQuerySchema = z
+  .object({
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+    afterEndAt: z.string().datetime({ offset: true }).optional(),
+    afterId: z.string().uuid().optional(),
+  })
+  .refine((query) => Boolean(query.afterEndAt) === Boolean(query.afterId), {
+    message: RENTAL_CONTRACT_MESSAGES.incompleteCursor,
+    path: ["afterId"],
+  });
+
+export type RentalPageQuery = z.infer<typeof RentalPageQuerySchema>;
 
 export const RentalStatusSchema = z.string().min(1);
 
