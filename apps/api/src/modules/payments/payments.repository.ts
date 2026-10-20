@@ -33,6 +33,7 @@ import {
 } from "../bookings/bookings.repository";
 import type { BookingReadRecord } from "../bookings/bookings.types";
 import { CheckInSlotsRepository } from "../bookings/check-in-slots.repository";
+import { recordLifecycleEvent } from "../notifications/lifecycle-notifications.repository";
 import { StorageUnitsRepository } from "../storage-units/storage-units.repository";
 import { PAYMENT_MESSAGES } from "./payments.messages";
 import type {
@@ -326,6 +327,20 @@ export class PaymentsRepository {
           .where(and(eq(payments.id, payment.id), eq(payments.status, "PENDING")))
           .returning();
         if (!paid) throw new AppError(PAYMENT_MESSAGES.failedToFinalizePayment, 500);
+        await recordLifecycleEvent(tx, {
+          key: `payment:${paid.id}:confirmed`,
+          type: "PAYMENT_CONFIRMED",
+          bookingId: booking.id,
+          occurredAt: now,
+        });
+        await recordLifecycleEvent(tx, {
+          key: `booking:${booking.id}:confirmed`,
+          type: "BOOKING_CONFIRMED",
+          bookingId: booking.id,
+          managers: true,
+          customer: false,
+          occurredAt: now,
+        });
         await tx
           .update(capacityAllocations)
           .set({
@@ -918,6 +933,20 @@ export class PaymentsRepository {
         .where(eq(payments.id, payment.id))
         .returning();
       if (!updatedPayment) throw new Error(PAYMENT_MESSAGES.failedToFinalizePayment);
+      await recordLifecycleEvent(tx, {
+        key: `payment:${updatedPayment.id}:confirmed`,
+        type: "PAYMENT_CONFIRMED",
+        bookingId: booking.id,
+        occurredAt: input.paidAt,
+      });
+      await recordLifecycleEvent(tx, {
+        key: `booking:${booking.id}:confirmed`,
+        type: "BOOKING_CONFIRMED",
+        bookingId: booking.id,
+        managers: true,
+        customer: false,
+        occurredAt: input.paidAt,
+      });
 
       await tx
         .update(capacityAllocations)

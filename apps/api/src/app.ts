@@ -13,14 +13,17 @@ import { authPlugin } from "./modules/auth/auth.guard";
 import { authRoutes } from "./modules/auth/auth.routes";
 import { bookingsRoutes } from "./modules/bookings/bookings.routes";
 import { checkInsRoutes } from "./modules/check-ins/check-ins.routes";
+import { contractsRoutes } from "./modules/contracts/contracts.routes";
 import { facilityContextPlugin } from "./modules/facilities/facilities.guard";
 import { facilitiesRoutes } from "./modules/facilities/facilities.routes";
 import { inspectionsRoutes } from "./modules/inspections/inspections.routes";
+import { lifecycleNotificationsRoutes } from "./modules/notifications/lifecycle-notifications.routes";
 import { notificationsPlugin } from "./modules/notifications/notifications.plugin";
 import { paymentsRoutes } from "./modules/payments/payments.routes";
 import { pricingRoutes } from "./modules/pricing/pricing.routes";
 import { rentalsRoutes } from "./modules/rentals/rentals.routes";
 import { reportsRoutes } from "./modules/reports/reports.routes";
+import { returnsRoutes } from "./modules/returns/returns.routes";
 import { storageUnitsRoutes } from "./modules/storage-units/storage-units.routes";
 import { usersRoutes } from "./modules/users/users.routes";
 
@@ -40,6 +43,7 @@ export function buildApp(): FastifyInstance {
   app.register(corsPlugin);
   app.register(databasePlugin);
   app.register(cronPlugin);
+  app.register(lifecycleNotificationsRoutes, { prefix: "/api" });
   app.register(redisPlugin);
   app.register(mailQueuePlugin);
   app.register(authPlugin);
@@ -61,5 +65,7 @@ export function buildApp(): FastifyInstance {
   app.register(reportsRoutes, { prefix: "/api/reports" });
   app.register(storageUnitsRoutes, { prefix: "/api/storage-units" });
   app.register(storageUnitsRoutes, { prefix: "/api/units" });
+  app.register(contractsRoutes, { prefix: "/api" });
+  app.register(returnsRoutes, { prefix: "/api" });
   return app;
 }

@@ -9,15 +9,21 @@ export * from "./handover-checklist";
 export * from "./handover-checklist.messages";
 export * from "./inspections";
 export * from "./inspections.messages";
+export * from "./lifecycle-notifications";
 export * from "./messages";
 export * from "./mobile-workflows";
-export type { StaffTaskAssignedNotification } from "./notifications.types";
+export type {
+  LifecycleNotificationItem,
+  StaffTaskAssignedNotification,
+} from "./notifications.types";
 export * from "./payments";
 export * from "./pricing";
+export * from "./rental-documents";
 export * from "./rentals";
 export * from "./reports";
 export * from "./reservation-contact";
 export * from "./reservations";
+export * from "./returns";
 export * from "./storage-units";
 export * from "./storage-units.messages";
 export * from "./unit-types";

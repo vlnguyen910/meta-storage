@@ -1,5 +1,95 @@
 # metastorage database diagram
 
+## Booking contract PDFs (confirmed 2026-10-20)
+
+MVP customer identity is existing booking contactName/contactEmail/contactPhone only;
+no CCCD/passport columns or identity-document storage are introduced.
+`booking_contracts`: UUID id, booking_id FK, immutable positive version (unique per
+booking), UPLOADED/ISSUED status, filename, byte_size (1..20MiB), positive page_count,
+SHA256, private unique object_key, idempotency_key unique per booking, uploaded_by/at,
+issued_by/at nullable until issuance, JSONB terms_snapshot nullable until issuance.
+The latest ISSUED version is current; uploading alone never replaces the issued
+version or creates a signature. No revoke, signing, renewal or transfer workflow.
+`booking_contract_audit`: UUID id, booking_id/contract_id/actor_id FKs, action,
+JSONB details, occurred_at. Immutable upload/issuance/handover audit.
+`handover_inspections.contract_id`: nullable FK booking_contracts; existing handovers
+remain null, new handovers require an issued valid linked PDF and save its exact
+version. Booking → Rental remains the authoritative contract linkage after handover.
+Issue snapshots existing customer/facility/unit-type/pricing/deposit/term and verified
+successful payment. Issuance and new handover share booking-first row locks; a stale
+current-issued expectation conflicts. No uploads/issues after physical handover.
+Private S3 objects use unique immutable keys; no public storage URLs in DTOs. Backend
+checks role, ownership/facility scope and linkage before reading bytes. Failed DB
+writes clean up only their new object; preserved versions are never deleted by API.
+
+## Return workflow (confirmed 2026-10-20)
+
+This additive feature is independent of handover inspections/check-in checklist.
+`return_checklist_versions`: UUID id, unique integer version, JSONB items
+(code/label/group/serious), created_by FK users and created_at. Versions are immutable;
+Admin appends a version with optimistic concurrency. There is no inferred initial
+checklist; all four confirmed groups must be configured before starting inspection.
+
+`facility_return_calendars`: facility_id PK/FK, timezone, JSONB holiday dates,
+reminder_time (09:00 default), version, updated_by FK users and updated_at. Admin
+configures it; operating hours and check_in_slots remain existing sources. Slots
+are 90 minutes, capacity one and a 15-minute cooldown; schedule changes flag
+confirmed appointments for manual review while preserving time snapshots.
+
+`return_overdue_settings`: singleton id default, integer rate 0–100 (seed 25),
+version, updated_by FK users nullable for seed and updated_at. Changes are BOM-only
+and audited. Missing policy blocks financial assessment; no runtime fallback.
+
+`return_requests`: UUID id, rental_id/facility_id/slot_id FKs, local date, UTC starts_at/
+ends_at and timezone snapshots, assigned_staff_id FK nullable, reason, status
+(PENDING/CONFIRMED/INSPECTING/FAILED/COMPLETED/CANCELLED), version, manual_review_required,
+created_by FK and created_at. Partial unique index permits only one open return per
+rental. Rental/booking locks serialize workflow and financial changes; schedule
+capacity/buffer checks serialize on the facility row.
+PENDING does not reserve capacity. A partial unique (facility_id,date,slot_id) index
+for CONFIRMED/INSPECTING/FAILED backs capacity-one confirmation; buffer conflicts
+between different slots are checked under the same facility lock.
+
+`return_inspections`: UUID id, request_id FK, unique (request_id, attempt),
+checklist_version_id FK, JSONB definition/results snapshots, DRAFT/PASS/FAIL status,
+version, property_disposition/receiver/handled_at/evidence_photo_ids, created_by,
+completed_by/at and created_at. FAILED retries append a new attempt and change the
+request FAILED → INSPECTING; frozen results are never overwritten. Remaining property
+does not by itself FAIL inspection but blocks closure until resolved or stored.
+`return_inspection_photos`: UUID id, inspection_id/uploaded_by FKs, filename, MIME,
+byte_size, private storage public_id/format and created_at; maximum five per inspection.
+No photo bytes or public URLs are persisted in the normal inspection DTO.
+`return_evidence_photos`: UUID id, request_id/uploaded_by FKs, purpose
+(TIME_CORRECTION or REFUND), filename/MIME/byte_size, private public_id/format and
+created_at. Financial/time evidence is independent of frozen inspection evidence
+and its five-photo limit, allowing proof to be added after rental closure.
+
+`return_time_changes`: UUID id, request_id FK, previous_at/proposed_at, reason,
+JSONB evidence_photo_ids, idempotency_key, PENDING/APPROVED/REJECTED status,
+proposed_by/decided_by FKs, decision_reason/decided_at and created_at. Unique
+(request_id,idempotency_key). FS proposes corrections; assigned-facility FM decides.
+Initial physical receipt is also audited. Approvals compare previous_at against
+the current confirmed value to reject competing corrections.
+
+`return_settlements`: immutable UUID id and unique (request_id,revision), FK request,
+integer-VND numeric(14,0) deposit/overdue/damage/unused-rent-refund/refund-entitlement/
+debt snapshots, integer rate_snapshot, actual_return_at, refund_due_date,
+calendar_snapshot JSONB, approved_by FK, reason and approved_at. Corrections append
+new revisions, retain the original rate/deposit snapshot, and calculate debt if
+already-refunded money exceeds the corrected entitlement. No automatic collection.
+SLA is three business days following FM approval, excluding weekends and the saved
+holiday calendar. Original revision deadlines are retained in history.
+
+`return_refunds`: UUID id, request_id/payment_id/settlement_id FKs, positive integer-VND
+amount, reference, evidence_photo_ids JSONB, idempotency_key, confirmed_by FK and
+confirmed_at. Unique request/idempotency and transfer reference; rows represent
+explicitly confirmed manual transfers, not refund submissions. No existing payment
+status is overwritten. Settlement closure does not wait for transfers.
+
+`return_audit`: UUID id, nullable request_id/facility_id FKs, actor_id FK, action,
+JSONB details and created_at. Append-only approvals/config/transition records.
+No unrelated workflow, renewal/upgrade or check-in policy is introduced.
+
 Flow 4 pricing: `pricing_settings` has exactly one supported key (`default`),
 positive `deposit_months` and `version`, nullable `updated_by` FK users and
 `updated_at`. The one-month starting policy is explicitly seeded, never a runtime
@@ -399,11 +489,10 @@ erDiagram
 
 ## Existing constraints and behavior
 
-- Booking confirmation mail is queued directly in BullMQ after the payment
-  transaction commits. There is no email outbox table. Booking service prepares
-  the link and encrypted job payload; the link lifetime is 7 days from paidAt.
-  BullMQ manages retry/status, and expired links stop delivery. A crash between
-  DB commit and enqueue can lose the mail request; payment remains successful.
+- The booking access email still uses its existing BullMQ flow: Booking service
+  prepares the 7-day tracking link and encrypted payload after payment commit.
+  Flow 3 lifecycle notifications use the separate durable database outbox below;
+  the access-email queue has not been migrated into it.
 
 - UUID primary keys on `users`, `facilities`, `facility_assignments`,
   `unit_types`, `storage_units`, `facility_operating_hours`, `check_in_slots`, `reservation_drafts`
@@ -594,3 +683,30 @@ Asia/Ho_Chi_Minh time. Legacy draft requests map check_in_at to the containing
 slot (start inclusive, end exclusive) and normalize draft/hold dates to that
 slot's start before charging. A request outside the slots is rejected. Previously
 created drafts with an unnormalized schedule must be recreated before payment.
+
+Return closure marks the linked active unit assignment `COMPLETED` with `ended_at`,
+and releases the linked active BOOKING capacity allocation in the same transaction.
+`unit_assignments.status` is varchar; the shared status list now includes `COMPLETED`.
+All nonclosed rental statuses (ACTIVE, RETURN_PENDING, OVERDUE) block reassignment/handover.
+
+
+## Flow 3 review fixes — durable notifications and overdue review
+
+- `rentals.abandoned_review_at`: nullable server timestamp, set once after seven
+  full facility-local calendar days from the first overdue midnight while physical return remains unconfirmed.
+  This flags FM manual review only; it grants no disposal or forfeiture authority.
+- `notification_outbox`: one row per `(event_key, recipient_key)` with UUID id,
+  booking/facility foreign keys, optional recipient user, snapshotted recipient email,
+  event type, subject/text, occurred_at and in-app visibility. Customer email uses
+  booking contact; FM recipients are active facility assignments. No guest identity schema.
+- Email delivery fields: PENDING/PROCESSING/SENT/REVIEW_REQUIRED, attempt count,
+  next_attempt_at, first_attempt_at, lease token/expiry, provider message id and sent_at.
+  Worker claims rows with row locks, sends outside the transaction, and conditionally
+  acknowledges its lease. Retried sends retain one provider idempotency key and frozen
+  content. Stop automatic retries after the provider's 24-hour idempotency window;
+  retain REVIEW_REQUIRED for manual investigation. Do not promise exactly-once delivery.
+- Outbox insert shares business transactions. Unique logical keys deduplicate callbacks,
+  retries, concurrent cron runs and immediate/scheduled expiry reminders.
+  In-app reads enforce current ownership or current FM facility assignment.
+- Disposition updates may resolve property on an older failed inspection without
+  changing its original checklist or PASS/FAIL. Closure checks every inspection attempt.

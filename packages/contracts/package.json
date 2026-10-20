@@ -9,7 +9,10 @@
     ".": "./src/index.ts",
     "./users": "./src/users.ts",
     "./payments": "./src/payments.ts",
-    "./pricing": "./src/pricing.ts"
+    "./pricing": "./src/pricing.ts",
+    "./returns": "./src/returns.ts",
+    "./rental-documents": "./src/rental-documents.ts",
+    "./lifecycle-notifications": "./src/lifecycle-notifications.ts"
   },
   "scripts": {
     "lint": "biome check src",

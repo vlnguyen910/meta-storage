@@ -16,6 +16,7 @@ import {
 } from "@metastorage/database";
 import { bookingReadFields } from "../bookings/bookings.projection";
 import type { BookingReadRecord } from "../bookings/bookings.types";
+import { recordImmediateExpiry } from "../rentals/rental-lifecycle.service";
 import type { InspectionRow, InspectionTransaction, NewInspectionRow } from "./inspections.types";
 
 export class InspectionsRepository {
@@ -137,7 +138,12 @@ export class InspectionsRepository {
     const [rental] = await tx
       .select()
       .from(rentals)
-      .where(and(eq(rentals.physicalUnitId, unitId), eq(rentals.status, "ACTIVE")));
+      .where(
+        and(
+          eq(rentals.physicalUnitId, unitId),
+          inArray(rentals.status, ["ACTIVE", "RETURN_PENDING", "OVERDUE"]),
+        ),
+      );
     return rental;
   }
 
@@ -167,17 +173,21 @@ export class InspectionsRepository {
     userId: string,
     now: Date,
   ) {
-    await tx.insert(rentals).values({
-      bookingId: booking.id,
-      facilityId: booking.facilityId,
-      physicalUnitId: record.physicalUnitId,
-      status: "ACTIVE",
-      startAt: booking.checkInSlotStart,
-      expectedEndAt: booking.rentalEndAt,
-      depositAmount: booking.depositAmount,
-      createdAt: now,
-      updatedAt: now,
-    });
+    const [rental] = await tx
+      .insert(rentals)
+      .values({
+        bookingId: booking.id,
+        facilityId: booking.facilityId,
+        physicalUnitId: record.physicalUnitId,
+        status: "ACTIVE",
+        startAt: booking.checkInSlotStart,
+        expectedEndAt: booking.rentalEndAt,
+        depositAmount: booking.depositAmount,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+    if (rental) await recordImmediateExpiry(tx, rental, now);
     await tx
       .update(bookings)
       .set({ status: "CHECKED_IN", updatedAt: now })
