@@ -18,9 +18,13 @@ import {
   facilities,
   facilityAssignments,
   facilityUnitTypes,
+  inArray,
   payments,
   rentals,
   reservationDrafts,
+  returnRefunds,
+  returnRequests,
+  returnSettlements,
   storageUnits,
   unitTypes,
   users,
@@ -29,6 +33,7 @@ import Fastify from "fastify";
 import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
 import { setupErrorHandler } from "../../src/common/errors/error-handler";
 import { auth } from "../../src/modules/auth/auth";
+import { ReportsRepository } from "../../src/modules/reports/reports.repository";
 import { reportsRoutes } from "../../src/modules/reports/reports.routes";
 
 const testUrl = process.env.REPORTS_TEST_DATABASE_URL;
@@ -45,9 +50,16 @@ describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
   let session: ReturnType<typeof spyOn<typeof auth.api, "getSession">>;
   let created = false;
   let firstBookingId = "";
+  let firstPaymentId = "";
+  let existingFacilities = 0;
   let unitId = "";
   const period = "from=2026-10-01&to=2026-10-31";
-  const get = (path: string) => app.inject({ method: "GET", url: `/api/reports/${path}` });
+  const get = (path: string, unfiltered = false) => {
+    const url = new URL(`/api/reports/${path}`, "http://localhost");
+    if (!unfiltered && !url.searchParams.has("unitTypeId"))
+      url.searchParams.set("unitTypeId", ids.type);
+    return app.inject({ method: "GET", url: url.pathname + url.search });
+  };
   const login = (role: string, id = ids.bom) =>
     session.mockResolvedValue({ user: { id, role, status: "ACTIVE" }, session: {} } as never);
   async function booking(status = "CONFIRMED", facilityId = ids.a) {
@@ -96,12 +108,17 @@ describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
     return id;
   }
   beforeAll(async () => {
-    if (!testUrl || process.env.DATABASE_URL !== testUrl)
-      throw new Error(
-        "Use matching DATABASE_URL/REPORTS_TEST_DATABASE_URL for an isolated database",
-      );
-    if ((await db.select({ id: facilities.id }).from(facilities).limit(1)).length)
-      throw new Error("Reports suite requires an empty dedicated test database");
+    const url = testUrl ? new URL(testUrl) : undefined;
+    if (
+      !url ||
+      process.env.DATABASE_URL !== testUrl ||
+      !["localhost", "127.0.0.1"].includes(url.hostname) ||
+      url.port !== "5433" ||
+      url.pathname !== "/metastorage"
+    )
+      throw new Error("Use existing local container DB only");
+    existingFacilities = (await db.select({ id: facilities.id }).from(facilities)).length;
+    created = true;
     setSystemTime(new Date("2026-12-01T12:00:00Z"));
     await db.insert(users).values([
       {
@@ -161,7 +178,7 @@ describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
     }
     const a = await booking();
     firstBookingId = a;
-    await payment(a, "SUCCEEDED", "2026-10-10T10:00:00Z");
+    firstPaymentId = await payment(a, "SUCCEEDED", "2026-10-10T10:00:00Z");
     await payment(a, "PENDING", null);
     await payment(a, "FAILED", null);
     await payment(await booking("CANCELLED"), "REFUND_PENDING", "2026-10-11T10:00:00Z", {
@@ -239,7 +256,29 @@ describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
     session?.mockRestore();
     setSystemTime();
     if (!created) return;
-    // This suite owns a dedicated empty database; no cleanup of application data.
+    const ownBookings = (
+      await db
+        .select({ id: bookings.id })
+        .from(bookings)
+        .where(inArray(bookings.facilityId, [ids.a, ids.b]))
+    ).map((row) => row.id);
+    if (ownBookings.length) {
+      await db.delete(rentals).where(inArray(rentals.bookingId, ownBookings));
+      await db.delete(payments).where(inArray(payments.bookingId, ownBookings));
+      await db.delete(bookings).where(inArray(bookings.id, ownBookings));
+    }
+    await db
+      .delete(capacityAllocations)
+      .where(inArray(capacityAllocations.facilityId, [ids.a, ids.b]));
+    await db.delete(storageUnits).where(inArray(storageUnits.facilityId, [ids.a, ids.b]));
+    await db
+      .delete(facilityAssignments)
+      .where(inArray(facilityAssignments.facilityId, [ids.a, ids.b]));
+    await db.delete(facilityUnitTypes).where(inArray(facilityUnitTypes.facilityId, [ids.a, ids.b]));
+    await db.delete(facilities).where(inArray(facilities.id, [ids.a, ids.b]));
+    await db.delete(unitTypes).where(eq(unitTypes.id, ids.type));
+    await db.delete(checkInSlots).where(eq(checkInSlots.id, ids.slot));
+    await db.delete(users).where(inArray(users.id, [ids.bom, ids.fm]));
   });
   test("reports receipts by paidAt, refunds by refundedAt, and retains refunded receipts", async () => {
     const response = await get(`revenue?${period}&limit=1`);
@@ -259,7 +298,7 @@ describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
       paymentsReceivedCount: 5,
     });
     expect(data.items).toHaveLength(1);
-    expect(data.total).toBe(2);
+    expect(data.total).toBe(existingFacilities + 2);
     const november = await get("revenue?from=2026-11-01&to=2026-11-30");
     expect(november.json().data.summary).toMatchObject({
       cashReceived: "0.00",
@@ -461,6 +500,139 @@ describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
       await db.delete(facilityUnitTypes).where(eq(facilityUnitTypes.facilityId, ids.b));
     }
   });
+  test("return refunds and settlement revisions affect existing reports without multiplying history", async () => {
+    const [rental] = await db.select().from(rentals).where(eq(rentals.bookingId, firstBookingId));
+    if (!rental) throw new Error("Missing rental fixture");
+    const requestId = randomUUID(),
+      originalId = randomUUID(),
+      revisedId = randomUUID();
+    const repo = new ReportsRepository(db);
+    const readAt = (at: string) =>
+      repo.read(
+        { id: ids.bom, role: "BUSINESS_OPERATION_MANAGER" },
+        { facilityId: ids.a },
+        new Date("2026-10-01"),
+        new Date("2026-11-01"),
+        new Date(at),
+      );
+    const baseline = await readAt("2026-10-21T12:00:00Z");
+    await db.insert(returnRequests).values({
+      id: requestId,
+      rentalId: rental.id,
+      facilityId: ids.a,
+      slotId: ids.slot,
+      date: "2026-10-20",
+      startsAt: new Date("2026-10-20T02:00:00Z"),
+      endsAt: new Date("2026-10-20T03:30:00Z"),
+      timezone: "Asia/Ho_Chi_Minh",
+      status: "COMPLETED",
+      reason: "Report fixture",
+      createdBy: ids.fm,
+    });
+    const settlement = {
+      requestId,
+      depositSnapshot: "1000000",
+      rateSnapshot: 25,
+      overdueFeeAmount: "250000",
+      damageAmount: "0",
+      unusedRentRefundAmount: "300000",
+      refundEntitlement: "1050000",
+      debtAmount: "0",
+      actualReturnAt: new Date("2026-10-20"),
+      refundDueDate: "2026-10-26",
+      calendarSnapshot: { timezone: "Asia/Ho_Chi_Minh", holidays: [] },
+      approvedBy: ids.fm,
+      reason: "Report fixture",
+    };
+    try {
+      await db.insert(returnSettlements).values([
+        { ...settlement, id: originalId, revision: 1, approvedAt: new Date("2026-10-21") },
+        {
+          ...settlement,
+          id: revisedId,
+          revision: 2,
+          overdueFeeAmount: "0",
+          refundEntitlement: "1300000",
+          approvedAt: new Date("2026-10-22"),
+        },
+      ]);
+      const early = await readAt("2026-10-21T12:00:00Z");
+      expect(
+        Number(early.financial[0]?.depositHeld) - Number(baseline.financial[0]?.depositHeld),
+      ).toBe(-250000);
+      await db.insert(returnRefunds).values([
+        {
+          requestId,
+          paymentId: firstPaymentId,
+          settlementId: revisedId,
+          amount: "200000",
+          depositRefundAmount: "100000",
+          rentRefundAmount: "100000",
+          reference: randomUUID(),
+          evidencePhotoIds: [],
+          idempotencyKey: randomUUID(),
+          confirmedBy: ids.fm,
+          confirmedAt: new Date("2026-10-23"),
+        },
+        {
+          requestId,
+          paymentId: firstPaymentId,
+          settlementId: revisedId,
+          amount: "900000",
+          depositRefundAmount: "700000",
+          rentRefundAmount: "200000",
+          reference: randomUUID(),
+          evidencePhotoIds: [],
+          idempotencyKey: randomUUID(),
+          confirmedBy: ids.fm,
+          confirmedAt: new Date("2026-11-05"),
+        },
+      ]);
+      const data = (await get(`revenue?${period}`)).json().data;
+      expect(data.summary).toMatchObject({
+        cashReceived: "20000000.00",
+        cashRefunded: "4200000.00",
+        depositHeld: "3200000.00",
+        pendingRefundAmount: "7200000.00",
+        pendingRefundCount: 3,
+      });
+      const overview = (await get(`overview?${period}`)).json().data;
+      expect(overview.attention.refunds).toMatchObject({ count: 2, amount: "7000000.00" });
+      expect(overview.attention.returnRefunds).toMatchObject({ count: 1, amount: "200000.00" });
+      const november = (await get("revenue?from=2026-11-01&to=2026-11-30")).json().data;
+      expect(november.summary.cashRefunded).toBe("3900000.00");
+      expect((await get(`export?type=revenue&${period}`)).body).toContain('"4200000.00"');
+      const beforeRefund = await readAt("2026-10-22T12:00:00Z");
+      expect(Number(beforeRefund.financial[0]?.cashRefunded)).toBe(4000000);
+      const unknown = randomUUID();
+      await db.insert(returnRefunds).values({
+        id: unknown,
+        requestId,
+        paymentId: firstPaymentId,
+        settlementId: revisedId,
+        amount: "10",
+        reference: randomUUID(),
+        evidencePhotoIds: [],
+        idempotencyKey: randomUUID(),
+        confirmedBy: ids.fm,
+        confirmedAt: new Date("2026-11-06"),
+      });
+      expect((await get(`revenue?${period}`)).json().data.summary.depositHeld).toBeNull();
+      expect(
+        (await get("reconciliation"))
+          .json()
+          .data.items.some(
+            (row: { paymentId: string; unclassifiedDeposit: boolean }) =>
+              row.paymentId === firstPaymentId && row.unclassifiedDeposit,
+          ),
+      ).toBe(true);
+    } finally {
+      await db.delete(returnRefunds).where(eq(returnRefunds.requestId, requestId));
+      await db.delete(returnSettlements).where(eq(returnSettlements.requestId, requestId));
+      await db.delete(returnRequests).where(eq(returnRequests.id, requestId));
+    }
+  });
+
   test("keeps received money visible when legacy data cannot be attributed to a booking", async () => {
     const draftId = randomUUID();
     await db.insert(reservationDrafts).values({
@@ -474,14 +646,18 @@ describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
       contactEmail: "test@example.test",
       contactPhone: "0901234567",
     });
+    const before = (await get(`revenue?${period}`, true)).json().data;
+    const beforeMonthly = (await get(`revenue/monthly?${period}`, true)).json().data.items[0];
     const id = await payment(null, "SUCCEEDED", "2026-10-14T10:00:00Z", { draftId });
     try {
-      const data = (await get(`revenue?${period}`)).json().data;
-      expect(data.summary.cashReceived).toBe("24000000.00");
+      const data = (await get(`revenue?${period}`, true)).json().data;
+      expect(Number(data.summary.cashReceived) - Number(before.summary.cashReceived)).toBe(4000000);
       expect(data.summary.rentalCollected).toBeNull();
-      expect(data.unattributed.cashReceived).toBe("4000000.00");
-      const monthly = (await get(`revenue/monthly?${period}`)).json().data.items[0];
-      expect(monthly.cashReceived).toBe("24000000.00");
+      expect(
+        Number(data.unattributed.cashReceived) - Number(before.unattributed?.cashReceived ?? "0"),
+      ).toBe(4000000);
+      const monthly = (await get(`revenue/monthly?${period}`, true)).json().data.items[0];
+      expect(Number(monthly.cashReceived) - Number(beforeMonthly.cashReceived)).toBe(4000000);
       expect(monthly.rentalCollected).toBeNull();
     } finally {
       await db.delete(payments).where(eq(payments.id, id));

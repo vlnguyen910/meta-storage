@@ -88,12 +88,17 @@ Không đọc giá hiện hành để tính lại doanh số quá khứ.
 
 **Tại asOf, không bị giới hạn bởi kỳ thu đang chọn**:
 
-- `depositHeld`: cọc đã nhận trừ cọc mất và phần đã hoàn xác định được. Cọc đang
+- `depositHeld`: với return settlement, phần cọc còn được hoàn sau phí đã duyệt
+  trừ cọc đã hoàn xác định được (tối thiểu 0); dùng revision có hiệu lực tại asOf.
+  Booking chưa có settlement giữ phép tính cũ: cọc đã nhận trừ cọc mất. Cọc đang
   chờ hoàn vẫn còn giữ cho đến khi xác nhận hoàn thực tế. Vì vậy số này có thể
   giao với pending refund; không cộng chúng để suy ra tổng tiền.
 - `depositForfeited`: tổng cọc đã ghi nhận mất, không cộng vào tiền thuê đã thu.
 - `pendingRefundAmount`/`pendingRefundCount`: nghĩa vụ hiện đang chờ hoàn theo
-  ledger; BOM/SA theo API hoàn thủ công hiện có, không có thao tác chuyển tiền mới.
+  ledger, gồm phần return settlement chưa chuyển. Refund đã xác nhận được cộng
+  theo confirmedAt vào cashRefunded, không nhân với số revision. Overview giữ
+  attention.refunds cho queue cancellation cũ và thêm attention.returnRefunds cho
+  nghĩa vụ trả kho do FM xử lý; không cấp BOM/SA thêm quyền hoàn trả kho.
 - Utilization = tổng OCCUPIED / tổng ô chưa INACTIVE; MAINTENANCE vẫn trong mẫu
   số, các trạng thái khác được trả riêng. Mẫu số 0 → null. Tổng hệ thống tính từ
   tổng số ô, không lấy trung bình các tỷ lệ cơ sở.

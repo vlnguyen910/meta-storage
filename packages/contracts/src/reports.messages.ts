@@ -28,6 +28,7 @@ export const REPORT_MESSAGES = {
   roleDenied: "Vai trò hiện tại không có quyền xem báo cáo.",
   exportTooLarge: "Báo cáo vượt giới hạn xuất đồng bộ. Hãy thu hẹp bộ lọc.",
   invalidExportFilter: "Bộ lọc không áp dụng cho loại báo cáo này.",
+  returnRefundAction: "FM của cơ sở xử lý khoản hoàn trả kho qua yêu cầu trả kho tương ứng.",
   refundAction: "Xem các khoản chờ hoàn và xử lý theo quy trình hoàn tiền thủ công.",
   vacantAction:
     "Kiểm tra cơ sở có nhiều ô AVAILABLE để lên kế hoạch khai thác; sức chứa đặt kho vẫn phải kiểm tra theo kỳ.",
