@@ -267,7 +267,8 @@ export class ReportsRepository {
     return this.db.transaction(
       async (tx) => {
         const scoped = await this.scope(tx, actor, filter);
-        const rules = financialRules(asOf);
+        const accounting = returnAccounting(tx, asOf, start, end);
+        const rules = financialRules(asOf, accounting);
         const predicate = and(
           or(
             inArray(bookings.facilityId, scoped.ids),
