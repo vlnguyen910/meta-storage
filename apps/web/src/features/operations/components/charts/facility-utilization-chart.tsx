@@ -1,14 +1,9 @@
 "use client";
 
-import type { ReportFacility, ReportInventoryMetrics } from "@metastorage/contracts";
 import { cn } from "@/lib/cn";
 import { OPERATIONS_MESSAGES as M } from "../../operations.messages";
 import { formatPercentage } from "../../operations.utils";
-
-export interface FacilityUtilizationChartProps {
-  items: { facility: ReportFacility; metrics: ReportInventoryMetrics }[];
-  totalFacilities: number;
-}
+import type { FacilityUtilizationChartProps } from "./facility-utilization-chart.types";
 
 export function FacilityUtilizationChart({
   items,

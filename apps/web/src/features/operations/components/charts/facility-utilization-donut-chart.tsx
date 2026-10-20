@@ -1,6 +1,5 @@
 "use client";
 
-import type { ReportInventoryMetrics } from "@metastorage/contracts";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -8,10 +7,7 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { businessOperationsRoutes as routes } from "@/config/routes";
 import { OPERATIONS_MESSAGES as M } from "../../operations.messages";
 import { formatPercentage } from "../../operations.utils";
-
-export interface FacilityUtilizationDonutChartProps {
-  metrics: ReportInventoryMetrics;
-}
+import type { FacilityUtilizationDonutChartProps } from "./facility-utilization-donut-chart.types";
 
 export function FacilityUtilizationDonutChart({
   metrics,
@@ -41,7 +37,9 @@ export function FacilityUtilizationDonutChart({
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-outline-variant pb-4">
         <div>
           <h3 className="text-base font-bold text-ink">Tỷ lệ khai thác hiện tại</h3>
-          <p className="m-0 text-xs text-slate-600">Occupied / ActiveUnits (loại trừ Inactive)</p>
+          <p className="m-0 text-xs text-slate-600">
+            Ô đang thuê / ô khai thác (loại trừ ngừng hoạt động)
+          </p>
         </div>
         <Link
           href={routes.utilization}
@@ -122,7 +120,8 @@ export function FacilityUtilizationDonutChart({
                   Chưa thuê trong tổng ô khai thác: {unrented} ô
                 </p>
                 <p className="text-[11px] text-slate-500">
-                  Gồm {metrics.availableUnits} ô trống và {metrics.maintenanceUnits} ô bảo trì
+                  Trong đó: {metrics.availableUnits} ô trống, {metrics.maintenanceUnits} ô bảo trì;
+                  phần còn lại có thể đang chờ bàn giao hoặc kiểm tra.
                 </p>
               </div>
             </div>

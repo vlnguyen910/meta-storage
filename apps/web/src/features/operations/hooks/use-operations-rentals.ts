@@ -1,21 +1,19 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useAuthStore } from "@/features/auth/auth-store";
 import { api } from "@/lib/api";
-
-export interface OperationsRentalsFilter {
-  facilityId?: string;
-  unitTypeId?: string;
-  status?: string;
-  limit?: number;
-  offset?: number;
-}
+import type { OperationsRentalsFilter } from "./use-operations-rentals.types";
 
 export function useOperationsRentals(filter: OperationsRentalsFilter) {
+  const actor = useAuthStore((state) => state.session?.user);
   const query = useQuery({
     queryKey: [
       "reports",
       "rentals",
+      actor?.id,
+      actor?.role,
+      actor?.assignedFacilityId,
       {
         facilityId: filter.facilityId === "all" ? undefined : filter.facilityId,
         unitTypeId: filter.unitTypeId === "all" ? undefined : filter.unitTypeId,

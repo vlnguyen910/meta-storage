@@ -1,4 +1,6 @@
 ﻿import {
+  type MonthlyRevenueQuery,
+  type MonthlyRevenueReport,
   REPORT_MESSAGES as m,
   type OperationsOverview,
   type ReconciliationReport,
@@ -90,6 +92,39 @@ function inventory(data: ReportDataset, id?: string): ReportInventoryMetrics {
 
 export class ReportsService {
   constructor(private readonly repository: ReportsRepository) {}
+  async monthlyRevenue(
+    query: MonthlyRevenueQuery,
+    actor: ReportActor,
+  ): Promise<MonthlyRevenueReport> {
+    const now = new Date();
+    const period = resolveReportPeriod(query, now);
+    const data = await this.repository.monthlyRevenue(actor, query, period.start, period.end, now);
+    const items: MonthlyRevenueReport["items"] = [];
+    const first = Number(period.from.slice(0, 4)) * 12 + Number(period.from.slice(5, 7)) - 1;
+    const last = Number(period.to.slice(0, 4)) * 12 + Number(period.to.slice(5, 7)) - 1;
+    for (let index = first; index <= last; index++) {
+      const month = `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, "0")}`;
+      const receipt = data.receipts.find((row) => row.month === month);
+      const refund = data.refunds.find((row) => row.month === month);
+      const received = receipt?.cashReceived ?? "0.00";
+      const refunded = refund?.cashRefunded ?? "0.00";
+      items.push({
+        month,
+        cashReceived: received,
+        cashRefunded: refunded,
+        rentalCollected: receipt?.unclassified ? null : (receipt?.rentalCollected ?? "0.00"),
+        depositCollected: receipt?.unclassified ? null : (receipt?.depositCollected ?? "0.00"),
+        netCash: formatCents(parseCents(received) - parseCents(refunded)),
+        unsupportedCurrencyPayments: receipt?.unsupportedCurrencyPayments ?? 0,
+      });
+    }
+    return {
+      period: { from: period.from, to: period.to, timeZone: period.timeZone },
+      asOf: now.toISOString(),
+      currency: "VND",
+      items,
+    };
+  }
   async revenue(
     query: RevenueReportQuery,
     actor: ReportActor,
@@ -237,7 +272,32 @@ export class ReportsService {
       offset: 0,
     };
     let body: string;
-    if (query.type === "revenue") {
+    if (query.type === "revenue-monthly") {
+      const report = await this.monthlyRevenue(
+        {
+          facilityId: query.facilityId,
+          unitTypeId: query.unitTypeId,
+          from: query.from,
+          to: query.to,
+        },
+        actor,
+      );
+      body = csv(
+        m.monthlyHeaders,
+        report.items.map((row) => [
+          report.period.from,
+          report.period.to,
+          report.asOf,
+          row.month,
+          row.cashReceived,
+          row.rentalCollected,
+          row.depositCollected,
+          row.cashRefunded,
+          row.netCash,
+          row.unsupportedCurrencyPayments,
+        ]),
+      );
+    } else if (query.type === "revenue") {
       const report = await this.revenue({ ...base, from: query.from, to: query.to }, actor, true);
       if (report.total > MAX_SYNC_EXPORT_ROWS) throw new AppError(m.exportTooLarge, 422);
       const rows = report.items.map((row) => ({

@@ -39,6 +39,8 @@ import type {
   ManualRefund,
   ManualRefundConfirmation,
   ManualRefundQuery,
+  MonthlyRevenueQuery,
+  MonthlyRevenueReport,
   OperationsOverview,
   PaginatedResult,
   PaymentCheckoutInput,
@@ -403,6 +405,10 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
           .then(unwrap),
     },
     reports: {
+      getMonthlyRevenue: (params: MonthlyRevenueQuery = {}) =>
+        http
+          .get<ApiEnvelope<MonthlyRevenueReport>>("/reports/revenue/monthly", { params })
+          .then(unwrap),
       getOverview: (params: Partial<RevenueReportQuery> = {}) =>
         http.get<ApiEnvelope<OperationsOverview>>("/reports/overview", { params }).then(unwrap),
       getRevenue: (params: Partial<RevenueReportQuery> = {}) =>

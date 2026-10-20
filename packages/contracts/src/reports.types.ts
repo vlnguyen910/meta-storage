@@ -50,6 +50,21 @@ export interface RevenueReport {
   limit: number;
   offset: number;
 }
+export interface MonthlyRevenuePoint {
+  month: string;
+  cashReceived: string;
+  rentalCollected: string | null;
+  depositCollected: string | null;
+  cashRefunded: string;
+  netCash: string;
+  unsupportedCurrencyPayments: number;
+}
+export interface MonthlyRevenueReport {
+  period: ReportPeriod;
+  asOf: string;
+  currency: "VND";
+  items: MonthlyRevenuePoint[];
+}
 export interface UtilizationReport {
   asOf: string;
   summary: ReportInventoryMetrics;

@@ -8,16 +8,18 @@ import { buttonClassName } from "@/components/ui/button";
 import { FieldShell, Input } from "@/components/ui/form-controls";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { businessOperationsRoutes as routes } from "@/config/routes";
-import { api } from "@/lib/api";
+import { useAuthStore } from "@/features/auth/auth-store";
 import { cn } from "@/lib/cn";
+import { loadActiveFacilities } from "../operations.data";
 import { OPERATIONS_MESSAGES as M } from "../operations.messages";
 import { OperationsTable } from "../operations-parts";
 
 export function OperationsFacilitiesRealView() {
+  const actor = useAuthStore((state) => state.session?.user);
   const [search, setSearch] = useState("");
   const query = useQuery({
-    queryKey: ["facilities", "active-list"],
-    queryFn: () => api.facilities.listActive({ limit: 100 }),
+    queryKey: ["facilities", "active-list", actor?.id, actor?.role, actor?.assignedFacilityId],
+    queryFn: loadActiveFacilities,
     staleTime: 60_000,
   });
 

@@ -11,10 +11,14 @@ import { businessOperationsRoutes as routes } from "@/config/routes";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { useOperationsCatalogOptions } from "../hooks/use-operations-catalog-options";
+import { useOperationsMonthlyRevenue } from "../hooks/use-operations-monthly-revenue";
 import { useOperationsRevenue } from "../hooks/use-operations-revenue";
 import { OPERATIONS_MESSAGES as M } from "../operations.messages";
 import { downloadCsv, formatMoney, getDefaultPeriod } from "../operations.utils";
+import { REPORTING_MESSAGES as R } from "../operations-reporting.messages";
 import { FacilityRevenueChart } from "./charts/facility-revenue-chart";
+import { MonthlyRevenueChart } from "./charts/monthly-revenue-chart";
+import { OperationsFinancialChart } from "./charts/operations-financial-chart";
 
 const PAGE_SIZE = 20;
 
@@ -23,6 +27,7 @@ export function OperationsRevenueView() {
   const router = useRouter();
 
   const defaultPeriod = getDefaultPeriod();
+  defaultPeriod.from = `${defaultPeriod.to.slice(0, 4)}-01-01`;
   const urlFacilityId = searchParams.get("facilityId");
   const urlUnitTypeId = searchParams.get("unitTypeId");
   const urlFrom = searchParams.get("from");
@@ -43,10 +48,10 @@ export function OperationsRevenueView() {
 
   // Sync state if URL changes (back/forward navigation)
   useEffect(() => {
-    if (urlFacilityId) setFacilityId(urlFacilityId);
-    if (urlUnitTypeId) setUnitTypeId(urlUnitTypeId);
-    if (urlFrom) setFrom(urlFrom);
-    if (urlTo) setTo(urlTo);
+    setFacilityId(urlFacilityId ?? "all");
+    setUnitTypeId(urlUnitTypeId ?? "all");
+    setFrom(urlFrom ?? `${getDefaultPeriod().to.slice(0, 4)}-01-01`);
+    setTo(urlTo ?? getDefaultPeriod().to);
     if (!Number.isNaN(urlPage) && urlPage >= 1) setPage(urlPage);
   }, [urlFacilityId, urlUnitTypeId, urlFrom, urlTo, urlPage]);
 
@@ -91,6 +96,7 @@ export function OperationsRevenueView() {
   });
 
   const { data, isPending, isError, refetch } = query;
+  const monthly = useOperationsMonthlyRevenue({ from, to, facilityId, unitTypeId });
 
   function handleFilterChange(updates: {
     from?: string;
@@ -108,6 +114,7 @@ export function OperationsRevenueView() {
 
   function resetFilters() {
     const def = getDefaultPeriod();
+    def.from = `${def.to.slice(0, 4)}-01-01`;
     setFrom(def.from);
     setTo(def.to);
     setFacilityId("all");
@@ -123,12 +130,12 @@ export function OperationsRevenueView() {
     });
   }
 
-  async function handleExport() {
+  async function handleExport(type: "revenue" | "revenue-monthly" = "revenue") {
     try {
       setExporting(true);
       setExportError(null);
       const res = await api.reports.exportReport({
-        type: "revenue",
+        type,
         from,
         to,
         facilityId: facilityId === "all" ? undefined : facilityId,
@@ -207,9 +214,17 @@ export function OperationsRevenueView() {
           type="button"
           loading={exporting}
           icon={<Download size={16} aria-hidden="true" />}
-          onClick={handleExport}
+          onClick={() => void handleExport()}
         >
-          {M.export}
+          {R.facilityCsv}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          loading={exporting}
+          onClick={() => void handleExport("revenue-monthly")}
+        >
+          {R.monthlyCsv}
         </Button>
       </div>
     </section>
@@ -251,53 +266,14 @@ export function OperationsRevenueView() {
         <ErrorState message={M.error} onRetry={() => void refetch()} />
       ) : (
         <>
-          {/* Financial Summary KPI Cards */}
-          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-card border border-outline-variant bg-surface-container-lowest p-5 shadow-[0_1px_2px_rgb(15_23_42_/_0.04)]">
-              <span className="text-xs font-semibold text-slate-600">{M.cashReceivedLabel}</span>
-              <p className="my-2 text-2xl font-bold tabular-nums text-ink">
-                {formatMoney(data.summary.cashReceived)}
-              </p>
-              <p className="m-0 text-xs text-slate-500">
-                {data.summary.paymentsReceivedCount} giao dịch thanh toán
-              </p>
-            </div>
-
-            <div className="rounded-card border border-outline-variant bg-surface-container-lowest p-5 shadow-[0_1px_2px_rgb(15_23_42_/_0.04)]">
-              <span className="text-xs font-semibold text-slate-600">{M.rentalCollectedLabel}</span>
-              <p className="my-2 text-2xl font-bold tabular-nums text-primary">
-                {data.summary.rentalCollected !== null ? (
-                  formatMoney(data.summary.rentalCollected)
-                ) : (
-                  <span className="text-amber-700 text-lg">{M.dataNeedsReconciliation}</span>
-                )}
-              </p>
-              <p className="m-0 text-xs text-slate-500">Tiền thuê thuần (tách biệt cọc)</p>
-            </div>
-
-            <div className="rounded-card border border-outline-variant bg-surface-container-lowest p-5 shadow-[0_1px_2px_rgb(15_23_42_/_0.04)]">
-              <span className="text-xs font-semibold text-slate-600">{M.cashRefundedLabel}</span>
-              <p className="my-2 text-2xl font-bold tabular-nums text-rose-600">
-                {formatMoney(data.summary.cashRefunded)}
-              </p>
-              <p className="m-0 text-xs text-slate-500">Đã hoàn tiền thực tế</p>
-            </div>
-
-            <div className="rounded-card border border-outline-variant bg-surface-container-lowest p-5 shadow-[0_1px_2px_rgb(15_23_42_/_0.04)]">
-              <span className="text-xs font-semibold text-slate-600">{M.netCashLabel}</span>
-              <p
-                className={cn(
-                  "my-2 text-2xl font-bold tabular-nums",
-                  Number.parseFloat(data.summary.netCash) < 0
-                    ? "text-rose-600"
-                    : "text-emerald-700",
-                )}
-              >
-                {formatMoney(data.summary.netCash)}
-              </p>
-              <p className="m-0 text-xs text-slate-500">Dòng tiền ròng trong kỳ</p>
-            </div>
-          </section>
+          <OperationsFinancialChart metrics={data.summary} />
+          {monthly.isPending ? (
+            <LoadingState label={M.loading} />
+          ) : monthly.isError || !monthly.data ? (
+            <ErrorState message={M.error} onRetry={() => void monthly.refetch()} />
+          ) : (
+            <MonthlyRevenueChart report={monthly.data} />
+          )}
 
           {/* Recharts Revenue Chart */}
           <FacilityRevenueChart items={data.items} totalFacilities={data.total} />
@@ -305,13 +281,15 @@ export function OperationsRevenueView() {
           {/* Detailed Table */}
           <section
             aria-label={M.titles.revenue}
+            // biome-ignore lint/a11y/noNoninteractiveTabindex: Make the horizontally scrollable data table keyboard accessible.
+            tabIndex={0}
             className="max-w-full overflow-x-auto rounded-card border border-outline-variant bg-surface-container-lowest shadow-[0_1px_2px_rgb(15_23_42_/_0.04)]"
           >
             <table className="w-full border-collapse text-left text-sm">
               <caption className="sr-only">{M.titles.revenue}</caption>
               <thead className="border-b border-slate-200 bg-slate-50 text-slate-600">
                 <tr>
-                  {M.revenueHeadings.map((heading) => (
+                  {R.facilityRevenueHeadings.map((heading) => (
                     <th key={heading} scope="col" className="px-5 py-3 text-xs font-semibold">
                       {heading}
                     </th>

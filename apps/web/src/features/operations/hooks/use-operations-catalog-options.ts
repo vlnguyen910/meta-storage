@@ -1,18 +1,20 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { useAuthStore } from "@/features/auth/auth-store";
+import { loadActiveFacilities, loadPricingConfiguration } from "../operations.data";
 
 export function useOperationsCatalogOptions() {
+  const actor = useAuthStore((state) => state.session?.user);
   const facilitiesQuery = useQuery({
-    queryKey: ["facilities", "active-options"],
-    queryFn: () => api.facilities.listActive({ limit: 100 }),
+    queryKey: ["facilities", "active-options", actor?.id, actor?.role, actor?.assignedFacilityId],
+    queryFn: loadActiveFacilities,
     staleTime: 5 * 60_000,
   });
 
   const pricingQuery = useQuery({
-    queryKey: ["pricing", "configuration"],
-    queryFn: () => api.pricing.getConfiguration({ limit: 100 }),
+    queryKey: ["pricing", "configuration", actor?.id, actor?.role, actor?.assignedFacilityId],
+    queryFn: loadPricingConfiguration,
     staleTime: 5 * 60_000,
   });
 

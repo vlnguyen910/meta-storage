@@ -180,6 +180,73 @@ export class ReportsRepository {
     );
   }
 
+  async monthlyRevenue(
+    actor: ReportActor,
+    filter: ReportFilters,
+    start: Date,
+    end: Date,
+    asOf: Date,
+  ) {
+    return this.db.transaction(
+      async (tx) => {
+        const scoped = await this.scope(tx, actor, filter);
+        const rules = financialRules(asOf);
+        const predicate = and(
+          or(
+            inArray(bookings.facilityId, scoped.ids),
+            scoped.includeUnattributed ? isNull(payments.bookingId) : undefined,
+          ),
+          filter.unitTypeId ? eq(bookings.unitTypeId, filter.unitTypeId) : undefined,
+        );
+        // Group at the database: only monthly aggregates cross the boundary, not payment rows.
+        const receiptMonth = sql<string>`to_char(${payments.paidAt} at time zone 'Asia/Ho_Chi_Minh', 'YYYY-MM')`;
+        const refundMonth = sql<string>`to_char(${payments.refundedAt} at time zone 'Asia/Ho_Chi_Minh', 'YYYY-MM')`;
+        const receipts = await tx
+          .select({
+            month: receiptMonth,
+            cashReceived: amount(rules.vn, sql`${payments.totalAmount}`),
+            rentalCollected: amount(
+              sql`${rules.vn} and ${rules.knownSnapshot}`,
+              sql`${bookings.rentalFeeAmount}`,
+            ),
+            depositCollected: amount(
+              sql`${rules.vn} and ${rules.knownSnapshot}`,
+              sql`${bookings.depositAmount}`,
+            ),
+            unclassified: quantity(sql`${rules.vn} and not ${rules.knownSnapshot}`),
+            unsupportedCurrencyPayments: quantity(sql`not (${rules.vn})`),
+          })
+          .from(payments)
+          .leftJoin(bookings, eq(bookings.id, payments.bookingId))
+          .where(
+            and(
+              predicate,
+              rules.captured,
+              sql`${payments.paidAt} >= ${start.toISOString()} and ${payments.paidAt} < ${end.toISOString()}`,
+            ),
+          )
+          .groupBy(receiptMonth);
+        const refunds = await tx
+          .select({
+            month: refundMonth,
+            cashRefunded: amount(rules.vn, rules.refund),
+          })
+          .from(payments)
+          .leftJoin(bookings, eq(bookings.id, payments.bookingId))
+          .where(
+            and(
+              predicate,
+              rules.settledRefund,
+              sql`${payments.refundedAt} >= ${start.toISOString()} and ${payments.refundedAt} < ${end.toISOString()}`,
+            ),
+          )
+          .groupBy(refundMonth);
+        return { receipts, refunds };
+      },
+      { isolationLevel: "repeatable read", accessMode: "read only" },
+    );
+  }
+
   async reconciliation(actor: ReportActor, query: RentalReportQuery, asOf: Date) {
     return this.db.transaction(
       async (tx) => {

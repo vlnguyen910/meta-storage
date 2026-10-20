@@ -13,8 +13,8 @@ import { useOperationsCatalogOptions } from "../hooks/use-operations-catalog-opt
 import { useOperationsUtilization } from "../hooks/use-operations-utilization";
 import { OPERATIONS_MESSAGES as M } from "../operations.messages";
 import { downloadCsv, formatDateTimeVn, formatPercentage } from "../operations.utils";
+import { REPORTING_MESSAGES as R } from "../operations-reporting.messages";
 import { FacilityUtilizationBarChart } from "./charts/facility-utilization-bar-chart";
-import { InventoryStatusChart } from "./charts/inventory-status-chart";
 
 const PAGE_SIZE = 20;
 
@@ -38,8 +38,8 @@ export function OperationsUtilizationView() {
 
   // Sync state if URL changes (back/forward navigation)
   useEffect(() => {
-    if (urlFacilityId) setFacilityId(urlFacilityId);
-    if (urlUnitTypeId) setUnitTypeId(urlUnitTypeId);
+    setFacilityId(urlFacilityId ?? "all");
+    setUnitTypeId(urlUnitTypeId ?? "all");
     if (!Number.isNaN(urlPage) && urlPage >= 1) setPage(urlPage);
   }, [urlFacilityId, urlUnitTypeId, urlPage]);
 
@@ -200,28 +200,27 @@ export function OperationsUtilizationView() {
         <>
           {/* AsOf Snapshot Header */}
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-base font-bold text-ink">Hiện trạng sức chứa toàn hệ thống</h2>
+            <h2 className="text-base font-bold text-ink">{R.currentScope}</h2>
             <span className="text-xs text-slate-500 font-medium">
               {M.asOfDisplay(formatDateTimeVn(data.asOf))}
             </span>
           </div>
 
           {/* Recharts Charts Grid */}
-          <div className="grid gap-6 lg:grid-cols-2">
-            <FacilityUtilizationBarChart items={data.items} totalFacilities={data.total} />
-            <InventoryStatusChart metrics={data.summary} />
-          </div>
+          <FacilityUtilizationBarChart items={data.items} totalFacilities={data.total} />
 
           {/* Detailed Table */}
           <section
             aria-label={M.titles.utilization}
+            // biome-ignore lint/a11y/noNoninteractiveTabindex: Make the horizontally scrollable data table keyboard accessible.
+            tabIndex={0}
             className="max-w-full overflow-x-auto rounded-card border border-outline-variant bg-surface-container-lowest shadow-[0_1px_2px_rgb(15_23_42_/_0.04)]"
           >
             <table className="w-full border-collapse text-left text-sm">
               <caption className="sr-only">{M.titles.utilization}</caption>
               <thead className="border-b border-slate-200 bg-slate-50 text-slate-600">
                 <tr>
-                  {M.capacityHeadings.map((heading) => (
+                  {R.capacityHeadings.map((heading) => (
                     <th key={heading} scope="col" className="px-5 py-3 text-xs font-semibold">
                       {heading}
                     </th>
@@ -244,21 +243,8 @@ export function OperationsUtilizationView() {
                           ({facility.code})
                         </span>
                       </th>
-                      <td className="px-5 py-4 font-bold tabular-nums text-ink whitespace-nowrap">
-                        {metrics.totalUnits}
-                      </td>
-                      <td className="px-5 py-4 tabular-nums text-slate-700 whitespace-nowrap">
-                        {metrics.activeUnits}
-                      </td>
-                      <td className="px-5 py-4 tabular-nums text-primary font-bold whitespace-nowrap">
-                        {metrics.occupiedUnits}
-                      </td>
-                      <td className="px-5 py-4 tabular-nums text-emerald-700 whitespace-nowrap">
-                        {metrics.availableUnits}
-                      </td>
-                      <td className="px-5 py-4 tabular-nums text-amber-700 whitespace-nowrap">
-                        {metrics.maintenanceUnits}
-                      </td>
+                      <td className="px-5 py-4 tabular-nums">{metrics.activeUnits}</td>
+                      <td className="px-5 py-4 tabular-nums">{metrics.occupiedUnits}</td>
                       <td className="px-5 py-4 whitespace-nowrap">
                         {isNull ? (
                           <span className="rounded-xs bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-800 border border-amber-200">

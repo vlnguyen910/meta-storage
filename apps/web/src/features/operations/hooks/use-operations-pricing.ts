@@ -3,23 +3,34 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { useState } from "react";
+import { useAuthStore } from "@/features/auth/auth-store";
 import { api } from "@/lib/api";
+import { loadPricingConfiguration } from "../operations.data";
 import { OPERATIONS_MESSAGES as M } from "../operations.messages";
+import { REPORTING_MESSAGES as R } from "../operations-reporting.messages";
 
 export function useOperationsPricing() {
+  const actor = useAuthStore((state) => state.session?.user);
   const queryClient = useQueryClient();
   const [conflictError, setConflictError] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
 
   const configQuery = useQuery({
-    queryKey: ["pricing", "configuration"],
-    queryFn: () => api.pricing.getConfiguration({ limit: 100 }),
+    queryKey: ["pricing", "configuration", actor?.id, actor?.role, actor?.assignedFacilityId],
+    queryFn: loadPricingConfiguration,
     staleTime: 60_000,
   });
 
   const historyQuery = useQuery({
-    queryKey: ["pricing", "history"],
-    queryFn: () => api.pricing.getHistory({ limit: 50 }),
+    queryKey: ["pricing", "history", actor?.id, actor?.role, actor?.assignedFacilityId],
+    queryFn: async () => {
+      const rows = [];
+      for (let offset = 0; ; offset += 100) {
+        const page = await api.pricing.getHistory({ limit: 100, offset });
+        rows.push(...page);
+        if (page.length < 100) return rows;
+      }
+    },
     staleTime: 60_000,
   });
 
@@ -53,12 +64,10 @@ export function useOperationsPricing() {
         if (error.response?.status === 409) {
           setConflictError(M.conflictMessage);
         } else {
-          setMutationError(
-            error.response?.data?.message || error.message || "Lỗi khi cập nhật giá loại kho",
-          );
+          setMutationError(error.response?.data?.message || error.message || R.mutationError);
         }
       } else {
-        setMutationError("Lỗi kết nối khi cập nhật giá");
+        setMutationError(R.mutationError);
       }
     },
   });
@@ -91,23 +100,21 @@ export function useOperationsPricing() {
         if (error.response?.status === 409) {
           setConflictError(M.conflictMessage);
         } else {
-          setMutationError(
-            error.response?.data?.message ||
-              error.message ||
-              "Lỗi khi cập nhật chính sách tiền cọc",
-          );
+          setMutationError(error.response?.data?.message || error.message || R.mutationError);
         }
       } else {
-        setMutationError("Lỗi kết nối khi cập nhật tiền cọc");
+        setMutationError(R.mutationError);
       }
     },
   });
 
-  function reloadData() {
+  async function reloadData() {
+    const result = await configQuery.refetch();
+    if (result.error || !result.data) throw result.error ?? new Error(R.reloadError);
+    await historyQuery.refetch();
     setConflictError(null);
     setMutationError(null);
-    void configQuery.refetch();
-    void historyQuery.refetch();
+    return result.data;
   }
 
   return {

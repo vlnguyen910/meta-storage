@@ -1,20 +1,19 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useAuthStore } from "@/features/auth/auth-store";
 import { api } from "@/lib/api";
-
-export interface OperationsOverviewFilter {
-  from: string;
-  to: string;
-  facilityId?: string;
-  unitTypeId?: string;
-}
+import type { OperationsOverviewFilter } from "./use-operations-overview.types";
 
 export function useOperationsOverview(filter: OperationsOverviewFilter) {
+  const actor = useAuthStore((state) => state.session?.user);
   const query = useQuery({
     queryKey: [
       "reports",
       "overview",
+      actor?.id,
+      actor?.role,
+      actor?.assignedFacilityId,
       {
         from: filter.from,
         to: filter.to,
