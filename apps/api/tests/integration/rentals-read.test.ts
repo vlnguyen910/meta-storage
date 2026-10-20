@@ -252,27 +252,27 @@ describe.skipIf(!target)("My Storage reads against existing local container Post
     }
   });
 
-  test("legacy list keeps array DTO, excludes closed/unhanded-over/guest/other rentals", async () => {
+  test("default list is paginated current view and excludes closed/unhanded-over/guest/other rentals", async () => {
     const response = await read("/mine");
     expect(response.statusCode).toBe(200);
-    expect(response.json().data.map((item: { id: string }) => item.id)).toEqual(active);
+    expect(response.json().data.items.map((item: { id: string }) => item.id)).toEqual(active);
     expect(response.body).not.toContain("private-booking-hash");
     expect(
       response
         .json()
-        .data.map((item: { status: string }) => item.status)
+        .data.items.map((item: { status: string }) => item.status)
         .sort(),
     ).toEqual(["ACTIVE", "OVERDUE", "RETURN_PENDING", "RETURN_PENDING"]);
   });
 
   test("current pagination is stable for equal expiry dates and does not require cursor row", async () => {
-    const first = await read("/mine/page?limit=2");
+    const first = await read("/mine?limit=2");
     expect(first.statusCode).toBe(200);
     expect(first.json().data.items.map((item: { id: string }) => item.id)).toEqual(
       active.slice(0, 2),
     );
     const next = new URLSearchParams({ ...first.json().data.nextCursor, limit: "2" });
-    const second = await read(`/mine/page?${next}`);
+    const second = await read(`/mine?${next}`);
     expect(second.statusCode).toBe(200);
     expect(second.json().data.items.map((item: { id: string }) => item.id)).toEqual(
       active.slice(2),
@@ -281,20 +281,24 @@ describe.skipIf(!target)("My Storage reads against existing local container Post
 
     // A tuple cursor need not identify an existing row; ownership remains in the SQL predicate.
     const later = await read(
-      `/mine/page?afterEndAt=${encodeURIComponent(end)}&afterId=ffffffff-ffff-4fff-bfff-ffffffffffff`,
+      `/mine?afterEndAt=${encodeURIComponent(end)}&afterId=ffffffff-ffff-4fff-bfff-ffffffffffff`,
     );
     expect(later.statusCode).toBe(200);
     expect(later.json().data.items).toEqual([]);
   });
 
   test("history is independently paginated and closed rentals remain readable by owner", async () => {
-    const first = await read("/history?limit=1");
+    const first = await read("/mine?view=history&limit=1");
     expect(first.statusCode).toBe(200);
     expect(first.json().data.items.map((item: { id: string }) => item.id)).toEqual(
       closed.slice(0, 1),
     );
-    const cursor = new URLSearchParams({ ...first.json().data.nextCursor, limit: "1" });
-    const second = await read(`/history?${cursor}`);
+    const cursor = new URLSearchParams({
+      ...first.json().data.nextCursor,
+      limit: "1",
+      view: "history",
+    });
+    const second = await read(`/mine?${cursor}`);
     expect(second.statusCode).toBe(200);
     expect(second.json().data.items.map((item: { id: string }) => item.id)).toEqual(
       closed.slice(1),
@@ -304,7 +308,12 @@ describe.skipIf(!target)("My Storage reads against existing local container Post
   });
 
   test("auth, role, ownership and query validation apply on every read endpoint", async () => {
-    for (const path of ["/mine", "/mine/page", "/history", `/${active[0]}/payments`]) {
+    for (const path of [
+      "/mine",
+      "/mine?view=current",
+      "/mine?view=history",
+      `/${active[0]}/payments`,
+    ]) {
       expect((await read(path, "")).statusCode).toBe(401);
       expect((await read(path, staffCookie)).statusCode).toBe(403);
     }
@@ -313,6 +322,9 @@ describe.skipIf(!target)("My Storage reads against existing local container Post
       expect((await read(`/${id}/payments`)).statusCode).toBe(404);
     }
     for (const query of [
+      "view=invalid",
+      "view=",
+      "view=current&view=history",
       "limit=0",
       "limit=101",
       "limit=1.5",
@@ -320,8 +332,46 @@ describe.skipIf(!target)("My Storage reads against existing local container Post
       `afterEndAt=${end}`,
       `afterId=${active[0]}`,
     ])
-      expect((await read(`/mine/page?${query}`)).statusCode).toBe(400);
+      expect((await read(`/mine?${query}`)).statusCode).toBe(400);
     expect((await read("/not-a-uuid/payments")).statusCode).toBe(400);
+  });
+
+  test("default limit is 20 and Load More traverses the current view without duplicates", async () => {
+    const extra: { id: string; bookingId: string }[] = [];
+    try {
+      for (let i = 0; i < 21; i++)
+        extra.push(await createRental(ids.owner, "ACTIVE", "2032-03-01T03:00:00Z"));
+      const first = await read("/mine");
+      expect(first.statusCode).toBe(200);
+      expect(first.json().data.items).toHaveLength(20);
+      expect(first.json().data.nextCursor).not.toBeNull();
+      const cursor = new URLSearchParams(first.json().data.nextCursor);
+      const second = await read(`/mine?${cursor}`);
+      expect(second.statusCode).toBe(200);
+      expect(second.json().data.items).toHaveLength(5);
+      expect(second.json().data.nextCursor).toBeNull();
+      const listedIds = [...first.json().data.items, ...second.json().data.items].map(
+        (r: { id: string }) => r.id,
+      );
+      expect(new Set(listedIds).size).toBe(25);
+      expect(listedIds).toEqual([...active, ...extra.map((r) => r.id).sort()]);
+    } finally {
+      if (extra.length)
+        await db.transaction(async (tx) => {
+          await tx.delete(rentals).where(
+            inArray(
+              rentals.id,
+              extra.map((r) => r.id),
+            ),
+          );
+          await tx.delete(bookings).where(
+            inArray(
+              bookings.id,
+              extra.map((r) => r.bookingId),
+            ),
+          );
+        });
+    }
   });
 
   test("payment history preserves pending/failed/refund facts without credential disclosure", async () => {

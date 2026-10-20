@@ -48,18 +48,6 @@ export class RentalsRepository {
       .leftJoin(storageUnits, eq(storageUnits.id, rentals.physicalUnitId));
   }
 
-  async listByUserId(userId: string): Promise<RentalListItem[]> {
-    const rows = await this.baseQuery()
-      .where(
-        and(
-          eq(bookings.userId, userId),
-          inArray(rentals.status, ["ACTIVE", "RETURN_PENDING", "OVERDUE"]),
-        ),
-      )
-      .orderBy(asc(rentals.expectedEndAt), asc(rentals.id));
-    return rows.map(toListItem);
-  }
-
   async listPageByUserId(userId: string, query: RentalPageQuery, history: boolean) {
     const afterEndAt = query.afterEndAt ? sql`${query.afterEndAt}::timestamptz` : undefined;
     return this.baseQuery()
@@ -127,15 +115,13 @@ export class RentalsRepository {
   }
 }
 
-type RentalRow = Awaited<ReturnType<RentalsRepository["listByUserId"]>>[number] extends never
-  ? never
-  : {
-      rental: typeof rentals.$inferSelect;
-      booking: BookingReadRecord;
-      facility: typeof facilities.$inferSelect;
-      unitType: typeof unitTypes.$inferSelect;
-      physicalUnit: typeof storageUnits.$inferSelect | null;
-    };
+type RentalRow = {
+  rental: typeof rentals.$inferSelect;
+  booking: BookingReadRecord;
+  facility: typeof facilities.$inferSelect;
+  unitType: typeof unitTypes.$inferSelect;
+  physicalUnit: typeof storageUnits.$inferSelect | null;
+};
 
 export function toListItem(row: RentalRow): RentalListItem {
   return {

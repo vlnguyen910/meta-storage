@@ -285,7 +285,7 @@ describe.skipIf(!testUrl)("Booking contact and optional account ownership with P
     }
     const mine = await app.inject({ method: "GET", url: "/api/rentals/mine", headers: { cookie } });
     expect(mine.statusCode).toBe(200);
-    expect(mine.json().data.map((item: { id: string }) => item.id)).toEqual([rentalIds[0]]);
+    expect(mine.json().data.items.map((item: { id: string }) => item.id)).toEqual([rentalIds[0]]);
     for (const [index, id] of rentalIds.entries()) {
       const response = await app.inject({
         method: "GET",

@@ -6,12 +6,8 @@ import { type RentalsRepository, toListItem } from "./rentals.repository";
 export class RentalsService {
   constructor(private readonly repository: RentalsRepository) {}
 
-  async listMine(userId: string) {
-    return this.repository.listByUserId(userId);
-  }
-
-  async pageMine(userId: string, query: RentalPageQuery, history = false): Promise<RentalPage> {
-    const rows = await this.repository.listPageByUserId(userId, query, history);
+  async pageMine(userId: string, query: RentalPageQuery): Promise<RentalPage> {
+    const rows = await this.repository.listPageByUserId(userId, query, query.view === "history");
     const pageRows = rows.slice(0, query.limit);
     const items = pageRows.map(toListItem);
     const last = pageRows.at(-1);
