@@ -5,8 +5,7 @@ import { Download, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { FieldShell, Input, Select } from "@/components/ui/form-controls";
-import { EmptyState, ErrorState, LoadingState } from "@/components/ui/states";
-import { isMockMode } from "@/config/api-mode";
+import { ErrorState, LoadingState } from "@/components/ui/states";
 import { businessOperationsRoutes as routes } from "@/config/routes";
 import { cn } from "@/lib/cn";
 import { OPERATIONS_MESSAGES as M } from "./operations.messages";
@@ -34,7 +33,6 @@ export function OperationsWorkspace({ section }: Readonly<OperationsWorkspacePro
     period,
     setPeriod,
   } = workspace;
-  if (!isMockMode) return <EmptyState title={M.liveRequired} description={M.liveDescription} />;
   if (query.isPending) return <LoadingState label={M.loading} />;
   if (query.isError || !data)
     return <ErrorState message={M.error} onRetry={() => void query.refetch()} />;

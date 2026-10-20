@@ -1,6 +1,4 @@
 export const OPERATIONS_MESSAGES = {
-  liveRequired: "Chức năng vận hành chưa sẵn sàng",
-  liveDescription: "Chưa có dữ liệu báo cáo và cấu hình từ hệ thống cho màn hình này.",
   role: "Quản lý vận hành kinh doanh",
   brand: "StoreX OS",
   scope: "Toàn hệ thống",

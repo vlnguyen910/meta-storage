@@ -11,7 +11,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/components/ui/toast";
 import { useAuthStore } from "@/features/auth/auth-store";
@@ -137,6 +137,9 @@ export function useInspectionEditor(record: Inspection, onNavigate: (next: strin
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [confirmLock, setConfirmLock] = useState(false);
+  const [serverConflict, setServerConflict] = useState(false);
+  const [comparison, setComparison] = useState<Inspection | null>(null);
+  const recordId = useRef(record.id);
   const form = useForm<InspectionDraftInput>({
     resolver: zodResolver(InspectionDraftInputSchema),
     defaultValues: {
@@ -149,13 +152,18 @@ export function useInspectionEditor(record: Inspection, onNavigate: (next: strin
   const locked = record.status === "COMPLETED";
   const dirty = form.formState.isDirty;
   useEffect(() => {
+    if (recordId.current === record.id && form.formState.isDirty) return;
+    recordId.current = record.id;
     form.reset({
       version: record.version,
       results: record.results ?? [],
       correctUnit: record.correctUnit,
       conditionNotes: record.conditionNotes,
     });
-  }, [record.version, record.correctUnit, record.conditionNotes, record.results, form]);
+    setConfirmLock(false);
+    setComparison(null);
+    setServerConflict(false);
+  }, [record.id, record.version, record.correctUnit, record.conditionNotes, record.results, form]);
   useEffect(() => {
     if (!dirty) return;
     const listener = (e: BeforeUnloadEvent) => {
@@ -178,6 +186,13 @@ export function useInspectionEditor(record: Inspection, onNavigate: (next: strin
     };
   }, [dirty]);
   const values = form.watch();
+  const conflict = serverConflict || values.version !== record.version;
+  const canKeepDraft =
+    !!comparison &&
+    comparison.status === "DRAFT" &&
+    comparison.unitAssignmentId === record.unitAssignmentId &&
+    comparison.verificationId === record.verificationId &&
+    comparison.checklistVersion === record.checklistVersion;
   const items = record.checklistDefinition?.length
     ? record.checklistDefinition
     : HANDOVER_CHECKLIST_ITEMS;
@@ -216,15 +231,60 @@ export function useInspectionEditor(record: Inspection, onNavigate: (next: strin
       correctUnit: data.correctUnit,
       conditionNotes: data.conditionNotes,
     });
+    setServerConflict(false);
+    setComparison(null);
     return data;
   }
+  async function refreshForComparison() {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      const records = await queryClient.fetchQuery({
+        queryKey: inspectionKey(record.bookingId),
+        queryFn: () => api.inspections.history(record.bookingId),
+        staleTime: 0,
+      });
+      const latest = records.find((item) => item.id === record.id);
+      if (!latest) throw new Error(FLOW.comparisonUnavailable);
+      setComparison(latest);
+    } catch (error) {
+      setError(flowError(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+  function keepDraft() {
+    if (!comparison || !canKeepDraft || busy) return;
+    const draft = form.getValues();
+    form.reset({
+      version: comparison.version,
+      results: comparison.results ?? [],
+      correctUnit: comparison.correctUnit,
+      conditionNotes: comparison.conditionNotes,
+    });
+    form.setValue("results", draft.results, { shouldDirty: true });
+    form.setValue("correctUnit", draft.correctUnit, { shouldDirty: true });
+    form.setValue("conditionNotes", draft.conditionNotes, { shouldDirty: true });
+    setConfirmLock(false);
+    setServerConflict(false);
+    setComparison(null);
+    setError("");
+  }
+  function loadServerDraft() {
+    if (!comparison || busy) return;
+    accept(comparison);
+    setConfirmLock(false);
+    setError("");
+  }
   async function action(work: () => Promise<Inspection>): Promise<Inspection | undefined> {
-    if (busy || locked) return undefined;
+    if (busy || locked || conflict) return undefined;
     setBusy(true);
     setError("");
     try {
       return accept(await work());
     } catch (e) {
+      if (axios.isAxiosError(e) && e.response?.status === 409) setServerConflict(true);
       const msg = flowError(e);
       setError(msg);
       showToast(msg, "error");
@@ -235,11 +295,9 @@ export function useInspectionEditor(record: Inspection, onNavigate: (next: strin
     return undefined;
   }
   async function save(next?: string) {
-    if (busy || locked) return;
+    if (busy || locked || conflict) return;
     if (!(await form.trigger())) return;
-    const data = await action(() =>
-      api.inspections.save(record.id, { ...form.getValues(), version: record.version }),
-    );
+    const data = await action(() => api.inspections.save(record.id, form.getValues()));
     if (data) {
       if (next) onNavigate(next);
       else showToast(FLOW.saveSuccess, "success");
@@ -262,7 +320,7 @@ export function useInspectionEditor(record: Inspection, onNavigate: (next: strin
       if (dirty)
         saved = await api.inspections.save(record.id, {
           ...form.getValues(),
-          version: record.version,
+          version: form.getValues("version"),
         });
       const data = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
@@ -284,7 +342,7 @@ export function useInspectionEditor(record: Inspection, onNavigate: (next: strin
       if (dirty)
         saved = await api.inspections.save(record.id, {
           ...form.getValues(),
-          version: record.version,
+          version: form.getValues("version"),
         });
       return api.inspections.removePhoto(record.id, photoId, saved.version);
     });
@@ -303,6 +361,12 @@ export function useInspectionEditor(record: Inspection, onNavigate: (next: strin
     values,
     dirty,
     locked,
+    conflict,
+    comparison,
+    canKeepDraft,
+    refreshForComparison,
+    keepDraft,
+    loadServerDraft,
     busy,
     error,
     count,

@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { isMockMode } from "@/config/api-mode";
 import { OPERATIONS_MESSAGES as M } from "./operations.messages";
 import { operationsMockData, operationsTypeMetrics } from "./operations.mock";
 import { OperationsFacilityDraftSchema, OperationsPriceDraftSchema } from "./operations.schema";
@@ -23,7 +22,6 @@ export function useOperationsWorkspace() {
   const cache = useQueryClient();
   const query = useQuery({
     queryKey,
-    enabled: isMockMode,
     queryFn: async (): Promise<OperationsMockData> => structuredClone(operationsMockData),
     staleTime: Number.POSITIVE_INFINITY,
     gcTime: Number.POSITIVE_INFINITY,
@@ -42,10 +40,7 @@ export function useOperationsWorkspace() {
     resolver: zodResolver(OperationsPriceDraftSchema),
   });
   const mutation = useMutation({
-    mutationFn: async (data: OperationsMockData) => {
-      if (!isMockMode) throw new Error(M.liveRequired);
-      return data;
-    },
+    mutationFn: async (data: OperationsMockData) => data,
     onSuccess: (data) => {
       cache.setQueryData(queryKey, data);
       setEditingFacility(null);
