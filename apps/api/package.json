@@ -7,7 +7,6 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsup src/index.ts --format esm --clean",
     "start": "node dist/index.js",
-    "seed:auth": "tsx src/seed-auth.ts",
     "seed:facility-accounts": "tsx src/seed-facility-accounts.ts",
     "lint": "biome check src",
     "test": "bun test tests/integration --pass-with-no-tests",

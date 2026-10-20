@@ -36,7 +36,13 @@
     },
     "db:seed": {
       "cache": false,
-      "passThroughEnv": ["NODE_ENV", "DATABASE_URL", "DOCKER_DATABASE_URL", "QR_TOKEN_SECRET"]
+      "passThroughEnv": [
+        "NODE_ENV",
+        "DATABASE_URL",
+        "DOCKER_DATABASE_URL",
+        "QR_TOKEN_SECRET",
+        "SEED_NOW"
+      ]
     },
     "db:clear": {
       "cache": false,

@@ -182,6 +182,7 @@
       "version": "0.0.1",
       "dependencies": {
         "@metastorage/contracts": "workspace:*",
+        "better-auth": "1.7.5",
         "dotenv": "^16.4.7",
         "drizzle-orm": "^0.45.2",
         "postgres": "^3.4.9",

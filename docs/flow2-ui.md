@@ -99,7 +99,7 @@ The live brand is `metastorage`; fonts and images use `/fonts/metastorage` and `
 
 ```bash
 bun --env-file=apps/api/.env apps/api/src/scripts/rename-demo-branding.ts
-bun --env-file=apps/api/.env apps/api/src/scripts/seed-flow2-demo.ts
+bun run seed:local
 ```
 
 Staff login is `staff@metastorage.test` / `12345678`. The seed keeps the existing Staff ID and facility assignment and adds units `HCM-01-009` through `HCM-01-018` only when missing. Inspection integration tests require a dedicated `metastorage_inspection_test_*` database.
