@@ -1,0 +1,218 @@
+# Flow 3 return APIs — implementation record, 2026-10-20
+
+Implemented backend/database scope: My Storage reads, return requests and scheduling,
+versioned return inspections, physical receipt/corrections, FM settlement/manual
+refund confirmation, BOM overdue-rate configuration, authorization and audit.
+See [my-storage-api.md](my-storage-api.md) for rental reads and provider audit.
+No Web, Mobile or API-client files changed. This is not completion of all Flow 3.
+
+## Decision-to-code status
+
+| Decision | Implementation |
+| --- | --- |
+| Default ACTIVE/RETURN_PENDING/OVERDUE + CLOSED history | Rental reads; stable expiry/UUID keyset pagination |
+| PENDING does not reserve, capacity one from CONFIRMED | Facility-row lock; reserved-slot partial unique index; 15-minute interval conflict check |
+| 90-minute slots, operating hours/holidays, 24-hour notice | Existing check_in_slots + facility_operating_hours; calendar config; create/edit validation |
+| Admin config changes preserve confirmed appointments | Immutable time snapshots, manualReviewRequired flag; no reschedule/cancel |
+| Admin return checklist/severity | Append-only versions, four groups; snapshot at each inspection attempt |
+| Assigned FS only; FM assigns/reassigns | Backend role + live facility membership + current assignment checks |
+| FAILED retry | New attempt, FAILED → INSPECTING; previous result preserved |
+| Photos/property/closure | Five inspection photos; issue requires note/evidence; property resolved/stored before closure |
+| Actual-return corrections | Assigned FS proposal with proof; FM approval; append financial revision after settlement |
+| One-time overdue fee | Assessed in settlement using actual-return local date, integer rate/deposit snapshots and half-up VND |
+| Settlement/debt/refund | FM approval; deposit deduction, nonnegative refund, ledger-only debt; separate immutable revisions/refund records |
+| Refund SLA | Three following business days after FM approval, weekends/holiday snapshot excluded |
+| Contract PDFs/handover gate | Implemented separately; see rental-contracts-api.md. No CCCD/passport schema |
+| Automatic OVERDUE + seven-full-day manual-review flag | Facility-local cron updates rental only; preserves open request and sends deduplicated manual-review notice; no disposal |
+| Durable email/in-app outbox, expiry reminders | Implemented DB outbox, notification inbox, worker claims/leases/retry, current FM authorization check, 30-day local reminder at configured time or 09:00 fallback for facilities with consistent operating-hour timezone |
+| Aggregated finance reports for new fees/refunds/debt | Outstanding; new records readable in return detail, legacy reports/payment fields unchanged |
+| Renewal/upgrade | Intentionally excluded; no schema/API/job added |
+
+## Lifecycle jobs and notifications
+
+API cron evaluates rental expiry using the return-calendar timezone, or reuses the
+single consistent timezone already configured in facility operating hours when no
+return calendar exists. Missing/inconsistent operating-hour timezone leaves the
+rental unchanged. At 00:00 on the local day after expiry, it changes rental status
+to OVERDUE without changing return-request status. After seven full local days
+from that overdue boundary, it stamps `abandoned_review_at` and queues an FM review
+notice. The customer already receives the overdue notice; no automatic disposal occurs.
+
+Rental creation less than 30 local calendar days before expiry queues an immediate
+customer reminder. Otherwise the worker queues one reminder at the configured
+facility local time (default 09:00). Stable event/recipient keys deduplicate
+concurrent sweeps and retries. Verified payment, booking, return scheduling,
+inspection, settlement, refund and time-change records also enqueue notifications
+inside their business transaction. Booking confirmation email remains the existing
+booking access message; the new outbox booking event targets assigned FMs, avoiding
+sending the customer a duplicate booking email.
+
+`GET /api/notifications?limit=20&offset=0` returns the authenticated customer's
+own booking events or FMs' events for currently assigned facilities. Email attempts
+reuse one Resend idempotency key. After 23h59m of unresolved delivery attempts the
+record becomes `REVIEW_REQUIRED` for manual investigation; no second unprotected
+send is attempted after Resend's 24-hour key retention window.
+
+## Endpoints
+
+All paths have `/api` prefix and private/no-store responses. Existing success/error
+envelopes apply. UUID/body/query validation: 400; no session: 401; forbidden role/
+facility/assignment: 403; missing/not-owned rental: 404; stale state/version or slot
+conflict: 409; invalid business values/incomplete evidence: 422. POST creates return
+requests/inspection attempts/photos/evidence/time proposals with 201; other actions
+return 200. Auth requires active users; no implicit BOM/Admin operational authority.
+
+| Method/path | Actor and purpose |
+| --- | --- |
+| GET `/rentals/:rentalId/return-slots?date=YYYY-MM-DD` | Owner; valid slots with at least 24-hour notice; advisory availability |
+| GET/POST `/rentals/:rentalId/return-requests` | Owner; list own requests/create PENDING request |
+| GET `/facilities/:facilityId/return-requests` | Facility FM; FS sees only requests assigned to that FS |
+| GET `/return-requests/:requestId` | Owner, facility FM, currently assigned facility FS; detail, attempts/photos metadata, settlement revisions, refunds, audit |
+| PATCH `/return-requests/:requestId` | Owner; PENDING edit, revalidates schedule and notice |
+| POST `/return-requests/:requestId/cancel` | Owner; PENDING only |
+| PATCH `/return-requests/:requestId/staff` | Facility FM; assign/change eligible active FS, reason required |
+| POST `/return-requests/:requestId/confirm` | Assigned FS; PENDING → CONFIRMED, rechecks schedule/capacity/buffer |
+| POST `/return-requests/:requestId/inspections` | Assigned FS; CONFIRMED/FAILED → INSPECTING, creates new attempt |
+| PUT `/return-requests/:requestId/inspections/:inspectionId` | Assigned FS; save current DRAFT checklist/property data |
+| POST `/return-requests/:requestId/inspections/:inspectionId/complete` | Assigned FS; evaluate frozen checklist; serious issue FAIL, minor PASS; remaining property alone does not FAIL |
+| PUT `/return-requests/:requestId/inspections/:inspectionId/property` | Assigned FS; record resolved/stored property, receiver/time/proof |
+| POST `/return-requests/:requestId/inspections/:inspectionId/photos` | Assigned FS; maximum five total per attempt, private existing photo adapter |
+| GET `/return-requests/:requestId/inspections/:inspectionId/photos/:photoId` | Authorized reader; short-lived private photo URL |
+| POST `/return-requests/:requestId/physical-return` | Assigned FS; initial confirmed actualReturnAt with reason/audit |
+| POST `/return-requests/:requestId/evidence` | Assigned FS for TIME_CORRECTION; FM for REFUND, including after closure |
+| GET `/return-requests/:requestId/evidence/:photoId` | Authorized reader; short-lived private evidence URL |
+| POST `/return-requests/:requestId/time-changes` | Assigned FS; propose corrected time with proof/reason/idempotency key |
+| POST `/return-requests/:requestId/time-changes/:changeId/decision` | Facility FM; approve/reject, append financial adjustment if already assessed |
+| POST `/return-requests/:requestId/settlement` | Facility FM; approve damage/unused-rent exception, close rental/release occupancy atomically |
+| POST `/return-requests/:requestId/refunds/confirm` | Facility FM; explicit manual completed-transfer confirmation with reference/proof/idempotency key |
+| GET/PUT `/return-policy/checklist` | System Admin; read/append checklist version |
+| GET/PUT `/facilities/:facilityId/return-calendar` | System Admin; timezone/holidays/reminder time and optional operating-hours replacement |
+| GET/PUT `/return-policy/overdue-rate` | BOM only; integer 0–100%, expectedVersion/audit |
+
+Facility queue query: `limit` 1–100 (20 default), `offset` >=0, optional request `status`.
+Results order by creation/UUID descending. Request payloads are the shared input Zod
+schemas in `packages/contracts/src/returns.ts`; integer-VND money uses decimal
+strings. Mutation `expectedVersion` is the request version, except inspection save/
+complete/property/photo actions use the inspection version. Reload detail after writes.
+
+Calendar PUT accepts `{ expectedVersion, timezone, holidays, reminderTime,
+operatingHours? }`. Each hours item is `{ dayOfWeek: 0..6, openTime: 'HH:mm',
+closeTime: 'HH:mm' }`. Supplied hours replace that facility's existing operating
+hours atomically and also affect check-in, which shares this source. Omission
+preserves hours; a timezone change requires matching hours. Missing required calendar/
+hours blocks scheduling. Existing 90-minute seed slots are reused without splitting
+or moving them. Adjacent slots whose intervals violate the buffer are unavailable.
+Changing calendar/hours preserves confirmed time snapshots and flags manual review.
+The flag is informational for staff; there is no automatic appointment cancellation.
+
+PENDING requests may select the same slot. Confirmation serializes facility
+reservations and revalidates current configuration; exactly one overlapping
+confirmation succeeds. The 24-hour rule applies at customer creation/edit, not the
+later FS confirmation. An already started/past appointment cannot be confirmed.
+Booking/request/financial mutations serialize under facility → booking → rental →
+request locks to avoid conflicting schedule updates and duplicate assessment.
+This favors simple consistency for MVP over parallel mutations within one facility.
+
+Inspection results freeze on completion. Property handling/photos can be appended
+on the latest PASS inspection before closure without changing those results. Every
+issue needs a note and valid photo. Serious remaining-property classification still
+does not itself FAIL. Closure needs actual physical receipt, latest PASS, financial
+determination and resolved/stored property (receiver required for storage). Damage
+fees require evidence from a completed inspection attempt and explicit FM approval.
+Failed inspection sets MAINTENANCE; a later successful attempt is required to close.
+Closure atomically sets rental CLOSED, linked active assignment COMPLETED/endedAt,
+BOOKING capacity RELEASED and unit AVAILABLE. Refund completion is independent.
+
+Overdue assessment compares the confirmed actual-return local calendar date with
+rental expiry's local date: the next day is overdue. Initial assessment snapshots
+rate/deposit once; corrections retain those snapshots and append revisions.
+`fee = (deposit × integerRate + 50) / 100` in BigInt integer arithmetic. Approved
+fees deduct from deposit; unused-rent refunds require FM reason. Debt is recorded
+when fees exceed deposit or a correction reduces entitlement below money already
+refunded. No automatic debt collection. Later BOM changes do not recalculate fees.
+
+SePay PG currently has no refund-create/status adapter. This module therefore uses
+the confirmed manual fallback. `/refunds/confirm` attests an **already completed**
+manual transfer, never a refund submission. It records FM/reference/proof and does
+not call a provider or rewrite original payment success. Automatic provider refund
+integration is outstanding. Proof for refunds/time corrections is separate from
+inspection photos so a frozen five-photo inspection does not prevent later audit.
+Private photos reuse the existing Cloudinary adapter; that is not the future
+S3-compatible PDF contract implementation.
+
+## Database and compatibility
+
+Additive generated migrations: `0037_graceful_sister_grimm`,
+`0038_aromatic_metal_master`, `0039_woozy_toad_men`, `0040_solid_umar`,
+`0041_useful_blindfold`; generated using
+`bun run db:generate`, never hand-edited. No existing rentals/payments are backfilled
+or reclassified. The existing assignment status varchar supports new COMPLETED;
+its shared constant/diagram are updated without a DDL alteration. Active occupancy
+queries now also protect RETURN_PENDING/OVERDUE rentals.
+
+Normal deployment preparation, against an aligned migration history:
+
+```bash
+bun run db:migrate
+bun run --filter @metastorage/database db:seed:return-policy
+```
+
+The seed inserts default 25% only when absent; it never overwrites BOM settings.
+Admin must configure an actual return checklist/calendar/hours. There is no guessed
+initial severity list or runtime rate fallback.
+
+Local database has a divergent older migration journal and lacks pricing tables.
+To preserve existing local data, only the reviewed new 0037–0041 SQL statements
+were applied transactionally to the existing localhost:5433/metastorage container,
+with their generated hashes/timestamps recorded in the journal. Older history was
+not rewritten and no database reset/clone/new test DB was created. Full historical
+`db:migrate` was not declared successful; migration-history reconciliation remains
+an environment issue before a normal full migration run.
+
+## Verification
+
+Run from root, pointing to existing local containers. No cron/worker is registered
+in integration fixtures. Object storage is mocked at its adapter boundary; DB/auth/
+constraints/transactions are real. Fixtures use UUID scope and remove their own rows;
+BOM configuration-change tests run in a rolled-back transaction to preserve settings.
+
+```bash
+export NODE_ENV=test LOG_LEVEL=silent PAYMENT_PROVIDER=mock
+export DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5433/metastorage
+export MY_STORAGE_LOCAL_DATABASE_URL="$DATABASE_URL"
+
+bun test --preload ./apps/api/tests/setup.ts apps/api/tests/integration/returns.integration.test.ts
+bun test --preload ./apps/api/tests/setup.ts apps/api/tests/integration/rentals-read.test.ts
+bun test --preload ./apps/api/tests/setup.ts apps/api/tests/units/returns.policy.test.ts
+bun test --preload ./apps/api/tests/setup.ts apps/api/tests/units/inspections.policy.test.ts apps/api/tests/units/bookings/bookings.service.test.ts
+bun run --filter @metastorage/contracts test
+bun run --filter api check-types
+bun run --filter @metastorage/contracts check-types
+bun run --filter @metastorage/database check-types
+bun run --filter api lint
+bun run --filter @metastorage/contracts lint
+bun run --filter @metastorage/database lint
+git diff --check
+node .gitnexus/run.cjs detect-changes --scope all --limit 1000 --repo .
+```
+
+Observed after review fixes: return integration 21 passed / 260 assertions; rental-read integration
+5 passed / 67 assertions; return policy 3 passed / 14 assertions; existing inspection/
+booking-service regression 19 passed; shared contracts 12 passed. API/contracts/DB
+typecheck and lint passed. Contracts lint initially found export ordering, which was
+fixed before rerunning successfully. These results do not represent a full monorepo
+suite, external provider/storage verification or UI verification.
+
+Earlier booking-identity regression: 2 passed, 6 failed due to missing local
+pricing_settings and overlapping legacy slot fixtures; not fixed by this feature.
+Contract API/handover checks are implemented and tested with private storage mocked;
+real S3 configuration is not verified. No production S3 verification; email delivery still depends on worker/provider configuration. Abandoned-property handling stays manual and legal review is still required. No commit/push/deploy performed.
+
+GitNexus pre-edit occupancy impact: activeRental/findEligibleUnits/assignPhysicalUnit
+LOW; releaseReservedUnit CRITICAL (check-in/cancellation callers), reported before
+editing. New ReturnsService initially UNKNOWN/not indexed, corroborated through
+text caller search. Refreshed index includes return symbols. Tracked diff detection
+reports HIGH, 26 symbols/6 flows. CLI output lists only a subset and does not include
+untracked-file changes; index also warned about truncated process walks/callees.
+This is a limited graph review, not a clean full-coverage verdict. New module review
+also used direct inspection, real DB tests, lint and typechecks.
