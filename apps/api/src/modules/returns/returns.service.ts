@@ -928,7 +928,11 @@ export class ReturnsService {
       if (!inspection) throw new NotFoundError(m.notFound);
       this.version(inspection.version, input.expectedVersion);
       if (!["INSPECTING", "FAILED"].includes(request.status)) throw new ConflictError(m.conflict);
-      const allowed = new Set((await this.repository.photos(tx, inspectionId)).map((p) => p.id));
+      const attempts = await this.repository.inspections(tx, id);
+      const photos = (
+        await Promise.all(attempts.map((attempt) => this.repository.photos(tx, attempt.id)))
+      ).flat();
+      const allowed = new Set(photos.map((photo) => photo.id));
       if (input.propertyEvidencePhotoIds.some((photoId) => !allowed.has(photoId)))
         throw new ValidationError(m.evidence);
       if (
@@ -951,6 +955,10 @@ export class ReturnsService {
         "PROPERTY_DISPOSITION_RECORDED",
         {
           inspectionId,
+          previousDisposition: inspection.propertyDisposition,
+          evidenceSources: photos
+            .filter((photo) => row.propertyEvidencePhotoIds.includes(photo.id))
+            .map((photo) => ({ photoId: photo.id, inspectionId: photo.inspectionId })),
           disposition: row.propertyDisposition,
           receiver: row.propertyReceiver,
           handledAt: row.propertyHandledAt?.toISOString(),
