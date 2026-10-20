@@ -22,6 +22,7 @@ export const rentals = pgTable(
     expectedEndAt: timestamp({ withTimezone: true }).notNull(),
     actualReturnAt: timestamp({ withTimezone: true }),
     closedAt: timestamp({ withTimezone: true }),
+    abandonedReviewAt: timestamp({ withTimezone: true }),
     depositAmount: numeric({ precision: 14, scale: 2 }).notNull(),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),

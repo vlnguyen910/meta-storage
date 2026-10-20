@@ -3,7 +3,7 @@ import { bookings } from "./bookings";
 import { storageUnits } from "./storage-units";
 import { users } from "./users";
 
-export const UNIT_ASSIGNMENT_STATUSES = ["ACTIVE", "REASSIGNED", "CANCELLED"] as const;
+export const UNIT_ASSIGNMENT_STATUSES = ["ACTIVE", "REASSIGNED", "CANCELLED", "COMPLETED"] as const;
 export type UnitAssignmentStatus = (typeof UNIT_ASSIGNMENT_STATUSES)[number];
 
 export const unitAssignments = pgTable(
