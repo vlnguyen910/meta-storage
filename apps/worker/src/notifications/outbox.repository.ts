@@ -87,36 +87,54 @@ export class OutboxRepository {
     return updated;
   }
 
-  async bookingDeliveryPayload(bookingId: string) {
-    const [row] = await this.db
+  async bookingDeliveryPayload(deliveryId: string) {
+    const [byId] = await this.db
+      .select({ payload: notificationOutbox.mailPayload })
+      .from(notificationOutbox)
+      .where(eq(notificationOutbox.id, deliveryId));
+    if (byId) return byId.payload;
+    const [legacy] = await this.db
       .select({ payload: notificationOutbox.mailPayload })
       .from(notificationOutbox)
       .where(
         and(
-          eq(notificationOutbox.eventKey, `booking:${bookingId}:confirmed`),
+          eq(notificationOutbox.eventKey, `booking:${deliveryId}:confirmed`),
           eq(notificationOutbox.recipientKey, "customer"),
         ),
       );
-    return row?.payload;
+    return legacy?.payload;
   }
 
-  async beginBooking(bookingId: string, payload: string, expiresAt: Date, now: Date) {
+  async beginBooking(deliveryId: string, payload: string, expiresAt: Date, now: Date) {
     return this.db.transaction(async (tx) => {
-      const [row] = await tx
+      const [byId] = await tx
         .select()
         .from(notificationOutbox)
-        .where(
-          and(
-            eq(notificationOutbox.eventKey, `booking:${bookingId}:confirmed`),
-            eq(notificationOutbox.recipientKey, "customer"),
-          ),
-        )
+        .where(eq(notificationOutbox.id, deliveryId))
         .for("update");
+      const [row] = byId
+        ? [byId]
+        : await tx
+            .select()
+            .from(notificationOutbox)
+            .where(
+              and(
+                eq(notificationOutbox.eventKey, `booking:${deliveryId}:confirmed`),
+                eq(notificationOutbox.recipientKey, "customer"),
+              ),
+            )
+            .for("update");
       if (!row?.bookingEmail) return { kind: "LEGACY" as const };
       if (row.status === "SENT")
         return { kind: "DONE" as const, providerMessageId: row.providerMessageId ?? "" };
-      const expectedExpiry =
-        new Date(row.bookingEmail.paidAt).getTime() + BOOKING_ACCESS.magicTtl * 1000;
+      const linkCreatedAt = new Date(row.bookingEmail.linkCreatedAt ?? row.bookingEmail.paidAt);
+      const expectedExpiry = Math.min(
+        row.mailExpiresAt?.getTime() ?? Number.POSITIVE_INFINITY,
+        row.bookingEmail.linkExpiresAt
+          ? Date.parse(row.bookingEmail.linkExpiresAt)
+          : linkCreatedAt.getTime() + BOOKING_ACCESS.magicTtl * 1000,
+        linkCreatedAt.getTime() + BOOKING_ACCESS.magicTtl * 1000,
+      );
       const expired = expectedExpiry <= now.getTime() || expiresAt.getTime() !== expectedExpiry;
       const pastWindow =
         row.firstAttemptAt && now.getTime() - row.firstAttemptAt.getTime() >= 24 * 3600000 - 60000;

@@ -18,6 +18,7 @@ export interface BookingTrackingLinkInput {
   secret: string;
   publicAppUrl: string;
   confirmedAt: Date;
+  replaceExisting?: boolean;
 }
 export interface EncryptedBookingDelivery {
   ciphertext: string;

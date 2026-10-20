@@ -13,11 +13,11 @@ export const BOOKING_MESSAGES = {
   accessRateLimited: "Bạn đã thử quá nhiều lần. Vui lòng thử lại sau một phút.",
   accessOriginRejected: "Nguồn yêu cầu không được phép.",
   exchangeDescription:
-    "POST the 64-character token from the email link fragment. Requires an allowed Origin. Returns bookingCode, expiresAt and current customer-facing booking details, and sets metastorage_booking_session (HttpOnly, SameSite=Lax, Secure in production, Path=/api/booking) for 30 minutes. Display the returned booking immediately; use GET tracking for refresh and subsequent updates. Reusable magic links expire after 7 days. Limited to 30 exchanges per minute per IP. No account login required; responses are no-store.",
+    "POST the 64-character token from the email link fragment. Requires an allowed Origin. Returns bookingCode, expiresAt and current customer-facing booking details, and sets metastorage_booking_session (HttpOnly, SameSite=Lax, Secure in production, Path=/api/booking) for 30 minutes. Display the returned booking immediately; use GET tracking for refresh and subsequent updates. Magic links expire after 24 hours. Limited to 30 exchanges per minute per IP. No account login required; responses are no-store.",
   trackingDescription:
     "Requires the booking tracking cookie from magic-link exchange. Reads current customer-facing booking and payment details from PostgreSQL; the session can access only its own bookingCode. No account permissions are granted. Session expiry does not slide. Responses are no-store.",
   revokeDescription:
-    "Requires an allowed Origin. Deletes the current Redis booking session and clears the cookie. Returns 204, including when no session exists. The original magic link can still be reopened until its expiry.",
+    "Requires an allowed Origin. Deletes the current Redis booking session and clears the cookie. Returns 204, including when no session exists. The current magic link can be reopened until expiry unless a newer link replaced it.",
   sessionRevoked: "Booking tracking session revoked",
   exchangeSummary: "Exchange an email magic link for a booking-scoped session",
   trackingSummary: "View customer booking details using the booking session cookie",

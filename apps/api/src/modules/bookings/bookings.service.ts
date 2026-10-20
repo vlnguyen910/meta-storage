@@ -14,6 +14,7 @@ import {
   BOOKING_ACCESS,
   type BookingAccessGrant,
   type BookingAccessSession,
+  bookingActiveMagicKey,
   bookingMagicKey,
   bookingSessionKey,
 } from "@metastorage/shared/booking-access";
@@ -201,8 +202,24 @@ export class BookingsService {
       const raw = await redis.get(bookingMagicKey(token));
       if (!raw) throw new AppError(BOOKING_MESSAGES.accessInvalid, 401);
       const grant = JSON.parse(raw) as BookingAccessGrant;
-      if (!grant.bookingId || !(Date.parse(grant.expiresAt) > Date.now()))
+      const expiresAt = Math.min(
+        Date.parse(grant.expiresAt),
+        Date.parse(grant.createdAt) + BOOKING_ACCESS.magicTtl * 1000,
+      );
+      if (!grant.bookingId || !(expiresAt > Date.now()))
         throw new AppError(BOOKING_MESSAGES.accessInvalid, 401);
+      const activeKey = bookingActiveMagicKey(grant.bookingId),
+        magicKey = bookingMagicKey(token),
+        activeGrant = await redis.get(activeKey);
+      if (activeGrant && activeGrant !== magicKey)
+        throw new AppError(BOOKING_MESSAGES.accessInvalid, 401);
+      if (!activeGrant) {
+        const remaining = Math.max(1, Math.ceil((expiresAt - Date.now()) / 1000));
+        if (!(await redis.setIfAbsent(activeKey, magicKey, remaining))) {
+          if ((await redis.get(activeKey)) !== magicKey)
+            throw new AppError(BOOKING_MESSAGES.accessInvalid, 401);
+        }
+      }
       const booking = await this.repository.findTrackingBooking(grant.bookingId);
       if (!booking) throw new AppError(BOOKING_MESSAGES.accessInvalid, 401);
       const sessionToken = randomBytes(32).toString("hex");

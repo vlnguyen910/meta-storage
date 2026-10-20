@@ -15,6 +15,10 @@ export const BOOKING_EMAIL_MESSAGES = {
   unitType: "Loại kho",
   tracking: "Xem thông tin đặt kho",
   trackingHint:
-    "Liên kết có hiệu lực trong 7 ngày kể từ khi xác nhận đặt kho. Bất kỳ ai có liên kết đều có thể xem thông tin đặt kho; vui lòng không chia sẻ.",
+    "Liên kết có hiệu lực trong 24 giờ. Bất kỳ ai có liên kết đều có thể xem thông tin đặt kho; vui lòng không chia sẻ.",
+  trackingLinkSubject: (code: string) => `StoreX — Liên kết truy cập đặt kho ${code}`,
+  trackingLinkTitle: "Liên kết truy cập thông tin kho",
+  trackingLinkHint: (expiresAt: string) =>
+    `Liên kết hết hạn lúc ${expiresAt}. Không chia sẻ email này.`,
   checkIn: "Mã nhận kho",
 } as const;

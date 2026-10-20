@@ -15,7 +15,8 @@ Không tạo lại bảng booking_confirmation_emails đã xóa ở migration 00
 1. Transaction xác nhận thanh toán lưu intent cùng business data. Sau commit,
    dispatcher tạo link tra cứu/QR và enqueue job `booking-confirmation` vào queue
    `mail`. Payload mã hóa được giữ trong outbox để retry không đổi nội dung.
-   Hạn link là 7 ngày tính từ `booking.paidAt`, kể cả khi enqueue/gửi bị chậm.
+   Hạn magic link là 24 giờ tính từ lúc link được tạo. Link cũ có ngày tạo trước
+   thay đổi này cũng bị giới hạn hiệu lực 24 giờ khi exchange.
    Worker giải mã payload, dựng nội dung trong `mail.service.ts` và gửi qua Resend;
    không truy vấn booking hoặc tự cấp link. Mail hết hạn dừng retry và chuyển FAILED.
    Lỗi enqueue được log, không rollback thanh toán. Chấp nhận khoảng trống giữa
@@ -39,7 +40,17 @@ Không tạo lại bảng booking_confirmation_emails đã xóa ở migration 00
    thông tin liên hệ, giá snapshot và trạng thái/ngày thanh toán.
    Không trả ID tài khoản, phân công nhân viên, token QR, token draft hoặc dữ liệu provider.
 4. `POST /api/booking/session/revoke` kiểm tra Origin, xóa phiên Redis và cookie;
-   trả 204 kể cả khi cookie không tồn tại. Link gốc vẫn dùng được trong thời hạn 7 ngày.
+   trả 204 kể cả khi cookie không tồn tại. Link vẫn dùng được đến hạn 24 giờ hoặc
+   tới lúc khách yêu cầu cấp link mới, tùy mốc nào đến trước.
+5. Guest rental access dùng cùng cookie session và booking code:
+   `POST /api/booking/access-link` nhận `{ bookingCode, email, idempotencyKey }`.
+   Backend chỉ gửi tới contact email khớp booking, luôn trả phản hồi chung 202,
+   giới hạn 3 lần/booking/giờ và 10 lần/IP/giờ. Audit idempotency và email outbox
+   được ghi cùng transaction; email có thể được retry qua worker.
+   `GET /api/booking/tracking/:bookingCode/rental`, `/payments`, `/contracts` và
+   `/contracts/:contractId/pdf` yêu cầu cookie session của đúng booking. Chỉ hợp đồng
+   `ISSUED` được liệt kê/tải; PDF đi qua backend private storage. Các GET này chỉ đọc,
+   không cấp quyền sửa rental hay yêu cầu trả kho.
 
 Các endpoint có `Cache-Control: no-store`. Link sai/hết hạn hoặc phiên hết hạn trả 401;
 truy cập booking khác bằng phiên hợp lệ trả 404; Origin không được phép trả 403;
@@ -52,10 +63,12 @@ booking, vì vậy nội dung email nhắc khách không chia sẻ link.
 
 | Key | Giá trị | TTL |
 | --- | --- | --- |
-| `booking:magic:<SHA256(token)>` | `bookingId`, `createdAt`, `expiresAt` | Phần thời gian còn lại trong 7 ngày từ xác nhận |
+| `booking:magic:<SHA256(token)>` | `bookingId`, `createdAt`, `expiresAt` | Phần thời gian còn lại trong 24 giờ từ lúc link được tạo |
 | `booking:session:<SHA256(sessionToken)>` | `bookingId`, `bookingCode`, `createdAt`, `expiresAt` | 30 phút cố định |
-| `booking:delivery:<bookingId>` | `bookingId`, `createdAt`, `expiresAt`, `ciphertext`, `iv`, `tag` | Đến deadline cố định của link |
+| `booking:delivery:<deliveryId>` | `bookingId`, `createdAt`, `expiresAt`, `ciphertext`, `iv`, `tag` | Đến deadline cố định của từng link |
 | `booking:rate:exchange:<HMAC-SHA256(IP)>` | Số lần exchange trong cửa sổ hiện tại | 60 giây từ lần đầu |
+| `booking:magic:active:<bookingId>` | Redis key của grant hiện hành | Đến deadline của link hiện hành |
+| `booking:rate:resend:booking:<HMAC>` / `booking:rate:resend:ip:<HMAC>` | Số lần xin link | 1 giờ từ lần đầu |
 
 Token magic chỉ tồn tại ở dạng hash trong grant. Bản sao phục vụ retry được mã hóa
 AES-256-GCM, khóa dẫn xuất từ `BOOKING_MAGIC_LINK_SECRET`, có AAD ràng buộc booking ID.
@@ -64,7 +77,7 @@ Retry sử dụng cùng link và deadline; không kéo dài TTL. Counter dùng L
 
 BullMQ quản lý lock, trạng thái và retry: tối đa 5 lượt, exponential backoff bắt đầu
 5 giây. Job ID `booking-confirmation-<bookingId>` tránh enqueue trùng; giữ job hoàn tất/
-thất bại trong 7 ngày. Intent chưa enqueue trả PENDING; job tồn tại trả QUEUED;
+thất bại đến hết deadline của link. Intent chưa enqueue trả PENDING; job tồn tại trả QUEUED;
 ENQUEUED không được coi là SENT. Chỉ provider success/job hoàn tất mới ghi SENT;
 trạng thái durable vẫn đọc được sau khi job được dọn. REVIEW_REQUIRED/SUPPRESSED
 ánh xạ FAILED, không có intent/job legacy trả FAILED. Lỗi đọc Redis trả PENDING.
@@ -104,13 +117,15 @@ bảng bị xóa sẽ không được chuyển tự động sang queue mới.
 
 ## Kiểm tra
 
-Dùng database đã migrate riêng và Redis database riêng, tuyệt đối không dùng production:
+Dùng PostgreSQL và Redis container local hiện có, không tạo database riêng hoặc reset/flush
+dữ liệu. Integration fixtures dùng UUID ngẫu nhiên và chỉ cleanup các hàng do test tạo:
 
 ```sh
 DATABASE_URL="$BOOKING_TEST_DATABASE_URL" bun run --filter api test
 bun run --filter web test:e2e --config=playwright.tracking.config.ts
 ```
 
-Cả hai lệnh cần BOOKING_TEST_DATABASE_URL và REDIS_TEST_URL. Bộ browser test tự chạy
+Cấu hình `BOOKING_TEST_DATABASE_URL` trùng với `DATABASE_URL` local và `REDIS_TEST_URL`
+trỏ tới Redis local. Bộ browser test tự chạy
 API cổng 4100 và web cổng 3000 ở chế độ API thật, kiểm tra desktop/mobile và axe.
 SMTP/Resend thật không được gọi trong test; test worker dùng mail adapter giả để kiểm tra retry.

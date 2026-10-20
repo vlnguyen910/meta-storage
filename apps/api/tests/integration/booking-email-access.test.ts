@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import {
   BOOKING_ACCESS,
+  bookingActiveMagicKey,
   bookingDeliveryKey,
   bookingMagicKey,
 } from "@metastorage/shared/booking-access";
@@ -25,7 +26,7 @@ describe.skipIf(!redisUrl)("Booking email magic-link delivery", () => {
     redis.disconnect();
   });
   test("concurrent retries preserve the link, ciphertext and original expiry", async () => {
-    keys.push(bookingDeliveryKey(input.deliveryId));
+    keys.push(bookingDeliveryKey(input.deliveryId), bookingActiveMagicKey(input.bookingId));
     const results = await Promise.all(
       Array.from({ length: 8 }, () => createBookingTrackingLink(redis, input)),
     );
@@ -51,5 +52,31 @@ describe.skipIf(!redisUrl)("Booking email magic-link delivery", () => {
     await redis.expire(bookingMagicKey(token), 120);
     expect((await createBookingTrackingLink(redis, input)).trackingUrl).toBe(first.trackingUrl);
     expect(await redis.ttl(bookingMagicKey(token))).toBeLessThanOrEqual(120);
+  });
+
+  test("issuing a replacement link revokes the prior magic grant", async () => {
+    keys.push(bookingActiveMagicKey(input.bookingId));
+    const first = await createBookingTrackingLink(redis, {
+      ...input,
+      deliveryId: randomUUID(),
+      replaceExisting: true,
+    });
+    const firstToken = new URL(first.trackingUrl).hash.slice("#token=".length);
+    const firstKey = bookingMagicKey(firstToken);
+    keys.push(firstKey);
+    const replacement = await createBookingTrackingLink(redis, {
+      ...input,
+      deliveryId: randomUUID(),
+      confirmedAt: new Date(),
+      replaceExisting: true,
+    });
+    const replacementToken = new URL(replacement.trackingUrl).hash.slice("#token=".length);
+    const replacementKey = bookingMagicKey(replacementToken);
+    keys.push(replacementKey);
+    expect(await redis.exists(firstKey)).toBe(0);
+    expect(await redis.get(bookingActiveMagicKey(input.bookingId))).toBe(replacementKey);
+    expect(Date.parse(replacement.expiresAt)).toBeLessThanOrEqual(
+      Date.now() + BOOKING_ACCESS.magicTtl * 1000,
+    );
   });
 });
