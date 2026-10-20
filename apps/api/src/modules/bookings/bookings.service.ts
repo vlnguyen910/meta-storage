@@ -80,11 +80,14 @@ export class BookingsService {
   }
 
   async getStatus(bookingId: string): Promise<BookingConfirmation["emailStatus"]> {
+    const durable = await this.repository.bookingEmailStatus(bookingId);
+    if (durable?.status === "SENT") return "SENT";
+    if (durable && ["SUPPRESSED", "REVIEW_REQUIRED"].includes(durable.status)) return "FAILED";
     const mail = this.mail;
-    if (!mail) return "FAILED";
+    if (!mail) return durable ? "PENDING" : "FAILED";
     try {
       const job = await mail.queue.getJob(mailJobId(bookingId));
-      if (!job) return "FAILED";
+      if (!job) return durable ? "PENDING" : "FAILED";
       const state = await job.getState();
       return state === "completed" ? "SENT" : state === "failed" ? "FAILED" : "QUEUED";
     } catch {
@@ -96,6 +99,9 @@ export class BookingsService {
     booking: Pick<BookingReadRecord, "id" | "paidAt" | "contactEmail" | "bookingCode">,
     confirmation: Pick<BookingConfirmation, "facility" | "unitTypeName">,
   ): Promise<BookingConfirmation["emailStatus"]> {
+    // New payments persist the intent atomically. Only the dispatcher prepares its
+    // frozen payload; legacy jobs keep their original producer and stable job ID.
+    if (await this.repository.bookingEmailStatus(booking.id)) return this.getStatus(booking.id);
     const mail = this.mail;
     if (!mail) return "FAILED";
     try {

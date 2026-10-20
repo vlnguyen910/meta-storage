@@ -20,22 +20,6 @@ export type BookingReadRecord = Booking & {
   paidAt: Date | null;
 };
 
-export interface BookingTrackingLinkInput {
-  deliveryId: string;
-  bookingId: string;
-  secret: string;
-  publicAppUrl: string;
-  confirmedAt: Date;
-}
-export interface EncryptedBookingDelivery {
-  ciphertext: string;
-  iv: string;
-  tag: string;
-  bookingId: string;
-  createdAt: string;
-  expiresAt: string;
-}
-
 export interface BookingEmailConfiguration {
   publicAppUrl: string;
   magicLinkSecret: string;

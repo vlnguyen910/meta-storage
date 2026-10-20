@@ -5,10 +5,10 @@ import {
   MAIL_QUEUE_NAME,
   type MailJobData,
 } from "@metastorage/shared/mail";
-import { Worker } from "bullmq";
+import { Queue, Worker } from "bullmq";
 import Redis from "ioredis";
-import { processMailJob } from "./mail/mail.job";
 import { ResendMailAdapter } from "./mail/resend.adapter";
+import { BookingMailService } from "./notifications/booking-mail.service";
 import { OutboxRepository } from "./notifications/outbox.repository";
 import { OutboxService } from "./notifications/outbox.service";
 
@@ -24,9 +24,18 @@ const redis = new Redis(process.env.REDIS_URL ?? "redis://localhost:6379", {
   maxRetriesPerRequest: null,
 });
 redis.on("error", () => console.error("Mail worker Redis connection error"));
+const outboxRepository = new OutboxRepository(db);
+const mailQueue = new Queue<MailJobData>(MAIL_QUEUE_NAME, { connection: redis });
+const bookingMail = new BookingMailService(outboxRepository, {
+  redis,
+  queue: mailQueue,
+  secret: mailPayloadSecret,
+  publicAppUrl: process.env.PUBLIC_APP_URL ?? "http://localhost:3000",
+  qrTokenSecret: process.env.QR_TOKEN_SECRET ?? "storex-dev-qr-secret",
+});
 const emailWorker = new Worker<MailJobData>(
   MAIL_QUEUE_NAME,
-  (job) => processMailJob(job.data, mailAdapter, mailPayloadSecret),
+  (job) => bookingMail.deliver(job.data, mailAdapter),
   { connection: redis },
 );
 emailWorker.on("failed", (job) => {
@@ -34,7 +43,7 @@ emailWorker.on("failed", (job) => {
 });
 emailWorker.on("error", () => console.error("Mail worker error"));
 
-const outbox = new OutboxService(new OutboxRepository(db), mailAdapter);
+const outbox = new OutboxService(outboxRepository, mailAdapter, bookingMail);
 let outboxRunning: Promise<unknown> | undefined;
 const dispatchOutbox = () => {
   if (outboxRunning) return;
@@ -53,6 +62,7 @@ async function shutdown() {
   clearInterval(outboxTimer);
   await outboxRunning;
   await emailWorker.close();
+  await mailQueue.close();
   await redis.quit();
   await queryClient.end();
 }

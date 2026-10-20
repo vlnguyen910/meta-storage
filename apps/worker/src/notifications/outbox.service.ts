@@ -1,4 +1,5 @@
 import type { MailAdapter } from "../mail/mail.types";
+import type { BookingMailService } from "./booking-mail.service";
 import type { OutboxRepository } from "./outbox.repository";
 
 const escapeHtml = (value: string) =>
@@ -12,6 +13,7 @@ export class OutboxService {
   constructor(
     private readonly repository: OutboxRepository,
     private readonly mail: MailAdapter,
+    private readonly bookingMail?: BookingMailService,
   ) {}
   async dispatch(now?: Date, facilityId?: string, limit = 10) {
     let processed = 0;
@@ -25,6 +27,17 @@ export class OutboxService {
         continue;
       }
       try {
+        if (row.bookingEmail) {
+          if (!this.bookingMail) throw new Error("Booking mail dispatcher is required");
+          const result = await this.bookingMail.enqueue(row, attemptAt);
+          await this.repository.finish(
+            row,
+            result.status,
+            attemptAt,
+            "providerMessageId" in result ? result.providerMessageId : undefined,
+          );
+          continue;
+        }
         const sent = await this.mail.send({
           deliveryId: `notification-${row.id}`,
           recipientEmail: row.recipientEmail,

@@ -22,6 +22,7 @@ import {
   facilityUnitTypes,
   handoverInspections,
   inArray,
+  notificationOutbox,
   PRICING_SETTINGS_ID,
   paymentProviderEvents,
   payments,
@@ -33,12 +34,16 @@ import {
   unitTypes,
   users,
 } from "@metastorage/database";
-import { type MailJobData, mailJobId } from "@metastorage/shared/mail";
+import { bookingDeliveryKey, bookingMagicKey } from "@metastorage/shared/booking-access";
+import { decryptMailPayload, type MailJobData, mailJobId } from "@metastorage/shared/mail";
 import { Queue } from "bullmq";
 import Fastify from "fastify";
 import fp from "fastify-plugin";
 import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
 import Redis from "ioredis";
+import { BookingMailService } from "../../../worker/src/notifications/booking-mail.service";
+import { OutboxRepository } from "../../../worker/src/notifications/outbox.repository";
+import { OutboxService } from "../../../worker/src/notifications/outbox.service";
 import { expireCapacityHolds } from "../../src/common/cron/expire-capacity-holds";
 import { cronPlugin } from "../../src/common/cron/plugin";
 import { setupErrorHandler } from "../../src/common/errors/error-handler";
@@ -54,6 +59,7 @@ import { paymentsRoutes } from "../../src/modules/payments/payments.routes";
 
 const testUrl = process.env.BOOKING_TEST_DATABASE_URL;
 const redisUrl = process.env.REDIS_TEST_URL;
+const fixtureMailSecret = "booking-flow-test-magic-secret-32-characters";
 const ids = {
   facility: randomUUID(),
   type: randomUUID(),
@@ -83,6 +89,7 @@ let staffCookie = "";
 let managerCookie = "";
 let redis: Redis | undefined;
 let mailQueue: Queue<MailJobData> | undefined;
+let createdPricing = false;
 const providerOrders = new Map<string, unknown>();
 const providerRequests: string[] = [];
 const originalFetch = globalThis.fetch;
@@ -104,7 +111,45 @@ function capturedOrder(paymentCode: string, overrides: Record<string, unknown> =
   };
 }
 
+async function dispatchFixtureMail() {
+  if (!redis || !mailQueue) return;
+  const repository = new OutboxRepository(db);
+  const bookingMail = new BookingMailService(repository, {
+    redis,
+    queue: mailQueue,
+    secret: process.env.BOOKING_MAGIC_LINK_SECRET as string,
+    publicAppUrl: process.env.PUBLIC_APP_URL ?? "http://localhost:3000",
+    qrTokenSecret: process.env.QR_TOKEN_SECRET ?? "storex-dev-qr-secret",
+  });
+  await new OutboxService(
+    repository,
+    {
+      async send() {
+        return { providerMessageId: randomUUID() };
+      },
+    },
+    bookingMail,
+  ).dispatch(new Date(), ids.facility, 100);
+}
+
 async function clearBookings() {
+  const ownOutbox = await db
+    .select()
+    .from(notificationOutbox)
+    .where(eq(notificationOutbox.facilityId, ids.facility));
+  if (redis)
+    for (const row of ownOutbox) {
+      if (!row.bookingEmail) continue;
+      const keys = [bookingDeliveryKey(row.bookingId)];
+      if (row.mailPayload) {
+        const decoded = JSON.parse(
+          decryptMailPayload(row.mailPayload, fixtureMailSecret, row.bookingId),
+        );
+        keys.push(bookingMagicKey(new URL(decoded.trackingUrl).hash.slice("#token=".length)));
+      }
+      await redis.del(...keys);
+    }
+  await db.delete(notificationOutbox).where(eq(notificationOutbox.facilityId, ids.facility));
   await db.delete(rentals).where(eq(rentals.facilityId, ids.facility));
   await db.delete(handoverInspections).where(eq(handoverInspections.facilityId, ids.facility));
   await db.delete(checkInVerifications).where(eq(checkInVerifications.facilityId, ids.facility));
@@ -199,12 +244,21 @@ function webhook(
 
 describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () => {
   beforeAll(async () => {
-    if (process.env.DATABASE_URL !== testUrl)
-      throw new Error("Use the isolated BOOKING_TEST_DATABASE_URL");
-    await db
+    const local = testUrl ? new URL(testUrl) : undefined;
+    if (
+      !local ||
+      process.env.DATABASE_URL !== testUrl ||
+      !["localhost", "127.0.0.1"].includes(local.hostname) ||
+      local.port !== "5433" ||
+      local.pathname !== "/metastorage"
+    )
+      throw new Error("Use existing local container DB only");
+    const seeded = await db
       .insert(pricingSettings)
       .values({ id: PRICING_SETTINGS_ID, depositMonths: 1, version: 1 })
-      .onConflictDoNothing();
+      .onConflictDoNothing()
+      .returning();
+    createdPricing = seeded.length > 0;
     env.PAYMENT_PROVIDER = "sepay";
     env.SEPAY_MERCHANT_ID = "test-merchant";
     env.SEPAY_SECRET_KEY = "test-only-sepay-secret";
@@ -224,7 +278,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
       return new Response(JSON.stringify(body ?? {}), { status: body ? 200 : 404 });
     });
     if (redisUrl) {
-      process.env.BOOKING_MAGIC_LINK_SECRET = "booking-flow-test-magic-secret-32-characters";
+      process.env.BOOKING_MAGIC_LINK_SECRET = fixtureMailSecret;
       redis = new Redis(redisUrl, { maxRetriesPerRequest: null });
       mailQueue = new Queue<MailJobData>(`test-booking-flow-${ids.facility}`, {
         connection: redis,
@@ -359,9 +413,12 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     else process.env.BOOKING_MAGIC_LINK_SECRET = previous.magicSecret;
     await mailQueue?.obliterate({ force: true });
     await mailQueue?.close();
-    await redis?.quit();
-    if (!created) return;
+    if (!created) {
+      await redis?.quit();
+      return;
+    }
     await clearBookings();
+    await redis?.quit();
     await db.delete(storageUnits).where(eq(storageUnits.id, ids.extraUnit));
     await db.delete(storageUnits).where(eq(storageUnits.id, ids.unit));
     await db.delete(facilityUnitTypes).where(eq(facilityUnitTypes.facilityId, ids.facility));
@@ -373,6 +430,8 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     await db.delete(users).where(eq(users.id, ids.admin));
     await db.delete(users).where(eq(users.id, ids.staff));
     await db.delete(users).where(eq(users.id, ids.manager));
+    if (createdPricing)
+      await db.delete(pricingSettings).where(eq(pricingSettings.id, PRICING_SETTINGS_ID));
   });
 
   test("customer cancellation refunds only snapshotted rent, forfeits deposit and releases capacity atomically", async () => {
@@ -909,6 +968,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
       .where(eq(capacityAllocations.referenceId, booking.id));
     expect(allocations).toHaveLength(1);
     expect(allocations[0]).toMatchObject({ kind: "BOOKING", status: "ACTIVE", expiresAt: null });
+    await dispatchFixtureMail();
     if (mailQueue) expect(await mailQueue.getJob(mailJobId(booking.id))).toBeTruthy();
     await webhook(payment.paymentCode);
     expect((await read()).json().data.confirmation.bookingCode).toBe(
@@ -1628,8 +1688,10 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
       expect(status.statusCode).toBe(200);
       expect(status.json().data).toMatchObject({
         status: "SUCCEEDED",
-        confirmation: { bookingId: booking.id, emailStatus: "QUEUED" },
+        confirmation: { bookingId: booking.id, emailStatus: "PENDING" },
       });
+      await dispatchFixtureMail();
+      expect((await getStatus()).json().data.confirmation.emailStatus).toBe("QUEUED");
       const job = await queue.getJob(mailJobId(booking.id));
       expect(job).toBeDefined();
       expect(job?.data.deliveryId).toBe(booking.id);

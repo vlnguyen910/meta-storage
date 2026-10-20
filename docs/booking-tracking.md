@@ -2,17 +2,19 @@
 
 Khách mở liên kết trong email xác nhận sau khi thanh toán thành công, không cần tài khoản.
 Logic đọc và cấp quyền nằm trong `BookingsService` và `BookingsRepository` hiện có.
-`BookingsService` chuẩn bị/enqueue email xác nhận và đọc trạng thái job; hàm
-`createBookingTrackingLink` trong `bookings.repository.ts` tạo và lưu link/grant Redis.
-Các type nội bộ dùng chung nằm trong `bookings.types.ts`.
-PostgreSQL là nguồn dữ liệu booking/thanh toán. Mail dùng trực tiếp BullMQ/Redis,
-không có bảng outbox hoặc cron chuẩn bị mail. Migration 0032 xóa bảng
-`booking_confirmation_emails` và dữ liệu mail cũ.
+Payment transaction lưu intent email booking khách và snapshot template trong
+`notification_outbox`. Worker dispatcher chuẩn bị link/QR, lưu payload mã hóa và
+đưa vào queue BullMQ `mail`; callback/API không còn là điều kiện để email được gửi.
+`BookingsService` đọc trạng thái durable/job và giữ fallback cho booking/job legacy.
+`createBookingTrackingLink` được dùng chung tại `packages/shared/src/booking-access.ts`
+(vẫn re-export từ repository để giữ tương thích import); type ở booking-access.types.ts.
+Không tạo lại bảng booking_confirmation_emails đã xóa ở migration 0032.
 
 ## Luồng và API
 
-1. Sau khi transaction xác nhận thanh toán commit, API tạo link tra cứu, link QR và
-   enqueue một job `booking-confirmation` vào queue `mail`. Payload được mã hóa.
+1. Transaction xác nhận thanh toán lưu intent cùng business data. Sau commit,
+   dispatcher tạo link tra cứu/QR và enqueue job `booking-confirmation` vào queue
+   `mail`. Payload mã hóa được giữ trong outbox để retry không đổi nội dung.
    Hạn link là 7 ngày tính từ `booking.paidAt`, kể cả khi enqueue/gửi bị chậm.
    Worker giải mã payload, dựng nội dung trong `mail.service.ts` và gửi qua Resend;
    không truy vấn booking hoặc tự cấp link. Mail hết hạn dừng retry và chuyển FAILED.
@@ -62,21 +64,28 @@ Retry sử dụng cùng link và deadline; không kéo dài TTL. Counter dùng L
 
 BullMQ quản lý lock, trạng thái và retry: tối đa 5 lượt, exponential backoff bắt đầu
 5 giây. Job ID `booking-confirmation-<bookingId>` tránh enqueue trùng; giữ job hoàn tất/
-thất bại trong 7 ngày. API ánh xạ trạng thái job sang QUEUED/SENT/FAILED; lỗi đọc Redis
-trả PENDING, không có job trả FAILED. Trạng thái mail không phải dữ liệu audit lâu dài.
+thất bại trong 7 ngày. Intent chưa enqueue trả PENDING; job tồn tại trả QUEUED;
+ENQUEUED không được coi là SENT. Chỉ provider success/job hoàn tất mới ghi SENT;
+trạng thái durable vẫn đọc được sau khi job được dọn. REVIEW_REQUIRED/SUPPRESSED
+ánh xạ FAILED, không có intent/job legacy trả FAILED. Lỗi đọc Redis trả PENDING.
 Resend dùng `Idempotency-Key: booking-confirmation/<bookingId>`; cửa sổ dedupe của provider
 là 24 giờ, không bảo đảm gửi đúng một lần sau mọi sự cố. Không ghi token, cookie, link
 hoặc phản hồi lỗi thô của provider vào log. Redis mất dữ liệu làm job/grant/phiên mất
-hiệu lực; không có tự cấp lại link hoặc fallback OTP trong phiên bản này.
+hiệu lực; không có fallback OTP hoặc gia hạn link. Outbox giữ payload mã hóa để
+khôi phục enqueue bằng cùng job/delivery ID và nội dung. Lần thử provider đầu được
+lưu trước khi gửi; quá 23h59m khi kết quả chưa rõ thì REVIEW_REQUIRED, không tự gửi lại.
+Booking/job cũ vẫn dùng payload/delivery ID cũ; không backfill email booking lịch sử.
 
 ## Cấu hình
 
 API cấu hình PUBLIC_APP_URL, BOOKING_MAGIC_LINK_SECRET và QR_TOKEN_SECRET.
 API và worker dùng cùng BOOKING_MAGIC_LINK_SECRET (ít nhất 32 ký tự, tạo bằng
 `openssl rand -hex 32`) để mã hóa/giải mã payload truyền qua Redis/BullMQ. Giữ secret ổn định
-giữa các replica và lần khởi động. Worker không cần DATABASE_URL, PUBLIC_APP_URL hoặc QR_TOKEN_SECRET.
+giữa các replica và lần khởi động. Worker cần DATABASE_URL và cùng PUBLIC_APP_URL,
+QR_TOKEN_SECRET để chuẩn bị mail từ intent sau khi API đã dừng.
 Payload dùng AES-256-GCM với khóa dẫn xuất riêng cho mail, AAD ràng buộc booking ID;
-job không lưu link/token plaintext. API chuẩn bị nội dung đầu vào, worker giữ các
+job/outbox không lưu link/token plaintext và inbox không trả payload. Worker chuẩn bị
+nội dung đầu vào cho intent mới, giữ các
 hàm gửi từng loại mail trong cùng `mail/mail.service.ts`.
 
 - Worker chỉ dùng Resend: RESEND_API_KEY và RESEND_FROM_EMAIL với domain đã xác minh.

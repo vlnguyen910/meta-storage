@@ -35,8 +35,18 @@ import {
   unitTypes,
   users,
 } from "@metastorage/database";
+import { bookingDeliveryKey, bookingMagicKey } from "@metastorage/shared/booking-access";
+import {
+  decryptMailPayload,
+  encryptMailPayload,
+  type MailJobData,
+  mailJobId,
+} from "@metastorage/shared/mail";
+import { Queue } from "bullmq";
 import Fastify from "fastify";
 import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
+import Redis from "ioredis";
+import { BookingMailService } from "../../../worker/src/notifications/booking-mail.service";
 import { OutboxRepository } from "../../../worker/src/notifications/outbox.repository";
 import { OutboxService } from "../../../worker/src/notifications/outbox.service";
 import { setupErrorHandler } from "../../src/common/errors/error-handler";
@@ -44,6 +54,7 @@ import { auth } from "../../src/modules/auth/auth";
 import { authPlugin } from "../../src/modules/auth/auth.guard";
 import { authRoutes } from "../../src/modules/auth/auth.routes";
 import { BookingsRepository } from "../../src/modules/bookings/bookings.repository";
+import { createBookingsService } from "../../src/modules/bookings/bookings.service";
 import { InspectionsRepository } from "../../src/modules/inspections/inspections.repository";
 import { recordLifecycleEvent } from "../../src/modules/notifications/lifecycle-notifications.repository";
 import { lifecycleNotificationsRoutes } from "../../src/modules/notifications/lifecycle-notifications.routes";
@@ -1594,7 +1605,11 @@ describe.skipIf(!target)(
         .from(notificationOutbox)
         .where(eq(notificationOutbox.bookingId, item.bookingId));
       expect(notices.filter((n) => n.eventType === "PAYMENT_CONFIRMED")).toHaveLength(1);
-      expect(notices.filter((n) => n.eventType === "BOOKING_CONFIRMED")).toHaveLength(1);
+      expect(notices.filter((n) => n.eventType === "BOOKING_CONFIRMED")).toHaveLength(2);
+      expect(
+        notices.find((n) => n.eventType === "BOOKING_CONFIRMED" && n.recipientRole === "CUSTOMER")
+          ?.bookingEmail?.paidAt,
+      ).toBe(new Date().toISOString());
       const rollbackKey = `rollback:${randomUUID()}`;
       await expect(
         db.transaction(async (tx) => {
@@ -1613,6 +1628,158 @@ describe.skipIf(!target)(
           .where(eq(notificationOutbox.eventKey, rollbackKey)),
       ).toHaveLength(0);
     });
+
+    test.skipIf(!process.env.REDIS_TEST_URL)(
+      "durable booking intent recovers a missed enqueue, freezes access payload and survives lost provider acknowledgement",
+      async () => {
+        await db
+          .update(notificationOutbox)
+          .set({ status: "SENT" })
+          .where(eq(notificationOutbox.facilityId, fixture.facility));
+        const item = await scenario();
+        // Commit the same event used by verified-payment transactions, then simulate
+        // the API dying before it can enqueue anything. Payment retry is covered above.
+        await db.transaction((tx) =>
+          recordLifecycleEvent(tx, {
+            key: `booking:${item.bookingId}:confirmed`,
+            type: "BOOKING_CONFIRMED",
+            bookingId: item.bookingId,
+            occurredAt: new Date(),
+          }),
+        );
+        const redis = new Redis(process.env.REDIS_TEST_URL as string, {
+          maxRetriesPerRequest: null,
+        });
+        const queueName = `storex-test-mail-${randomUUID()}`;
+        const queue = new Queue<MailJobData>(queueName, { connection: redis });
+        const repository = new OutboxRepository(db);
+        const secret = "test-only-durable-booking-secret-at-least-32-characters";
+        const bookingMail = new BookingMailService(repository, {
+          redis,
+          queue,
+          secret,
+          publicAppUrl: "http://localhost:3000",
+          qrTokenSecret: "test-qr-secret",
+        });
+        const sent = new Map<string, string>();
+        const mail = {
+          async send(message: { deliveryId: string; text: string }) {
+            const prior = sent.get(message.deliveryId);
+            if (prior) expect(message.text).toBe(prior);
+            sent.set(message.deliveryId, message.text);
+            return { providerMessageId: `provider-${message.deliveryId}` };
+          },
+        };
+        const sender = new OutboxService(repository, mail, bookingMail);
+        const current = async () =>
+          (
+            await db
+              .select()
+              .from(notificationOutbox)
+              .where(eq(notificationOutbox.eventKey, `booking:${item.bookingId}:confirmed`))
+          )[0];
+        let token: string | undefined;
+        try {
+          expect(await queue.getJob(mailJobId(item.bookingId))).toBeUndefined();
+          const add = spyOn(queue, "add").mockRejectedValueOnce(new Error("Queue unavailable"));
+          await sender.dispatch(new Date(), fixture.facility);
+          add.mockRestore();
+          expect((await current())?.status).toBe("PENDING");
+          expect((await current())?.firstAttemptAt).toBeNull();
+          await sender.dispatch(new Date(Date.now() + 12000), fixture.facility);
+          expect((await current())?.status).toBe("ENQUEUED");
+          expect((await current())?.firstAttemptAt).toBeNull();
+          const job = await queue.getJob(mailJobId(item.bookingId));
+          if (!job) throw new Error("Missing durable booking job");
+          const decoded = JSON.parse(decryptMailPayload(job.data.payload, secret, item.bookingId));
+          token = new URL(decoded.trackingUrl).hash.slice("#token=".length);
+          expect(decoded.recipientEmail).toBe("contact@example.test");
+          expect(decoded.qrUrl).toContain("/check-in?token=");
+          expect(job.data.expiresAt).toBe(new Date(Date.now() + 7 * 86400000).toISOString());
+          expect((await current())?.mailPayload).not.toContain(token);
+          expect((await api("owner", "GET", "/notifications?limit=100")).body).not.toContain(token);
+          await Promise.all([
+            sender.dispatch(new Date(Date.now() + 120000), fixture.facility),
+            sender.dispatch(new Date(Date.now() + 120000), fixture.facility),
+          ]);
+          expect((await queue.getJobs(["waiting"])).filter((j) => j.id === job.id)).toHaveLength(1);
+          const ack = spyOn(repository, "bookingSent").mockRejectedValueOnce(
+            new Error("Lost DB acknowledgement"),
+          );
+          await expect(bookingMail.deliver(job.data, mail)).rejects.toThrow(
+            "Lost DB acknowledgement",
+          );
+          ack.mockRestore();
+          expect((await current())?.status).toBe("ENQUEUED");
+          const legacyCipher = encryptMailPayload(JSON.stringify(decoded), secret, item.bookingId);
+          await bookingMail.deliver({ ...job.data, payload: legacyCipher }, mail);
+          expect((await current())?.mailPayload).toBe(job.data.payload);
+          expect(sent.size).toBe(1);
+          expect((await current())?.status).toBe("SENT");
+          await job.remove();
+          expect(await createBookingsService(app).getStatus(item.bookingId)).toBe("SENT");
+          await bookingMail.deliver(job.data, mail);
+          expect(sent.size).toBe(1);
+          const stopped = await scenario();
+          await db.transaction((tx) =>
+            recordLifecycleEvent(tx, {
+              key: `booking:${stopped.bookingId}:confirmed`,
+              type: "BOOKING_CONFIRMED",
+              bookingId: stopped.bookingId,
+              occurredAt: new Date(),
+            }),
+          );
+          await db
+            .update(notificationOutbox)
+            .set({ firstAttemptAt: new Date(Date.now() - 24 * 3600000) })
+            .where(eq(notificationOutbox.eventKey, `booking:${stopped.bookingId}:confirmed`));
+          await expect(
+            bookingMail.deliver({ ...job.data, deliveryId: stopped.bookingId }, mail),
+          ).rejects.toThrow();
+          expect(
+            (
+              await db
+                .select()
+                .from(notificationOutbox)
+                .where(eq(notificationOutbox.eventKey, `booking:${stopped.bookingId}:confirmed`))
+            )[0]?.status,
+          ).toBe("REVIEW_REQUIRED");
+          const expired = await scenario();
+          await db.transaction((tx) =>
+            recordLifecycleEvent(tx, {
+              key: `booking:${expired.bookingId}:confirmed`,
+              type: "BOOKING_CONFIRMED",
+              bookingId: expired.bookingId,
+              occurredAt: new Date(Date.now() - 8 * 86400000),
+            }),
+          );
+          await sender.dispatch(new Date(), fixture.facility);
+          expect(
+            (
+              await db
+                .select()
+                .from(notificationOutbox)
+                .where(eq(notificationOutbox.eventKey, `booking:${expired.bookingId}:confirmed`))
+            )[0]?.status,
+          ).toBe("SUPPRESSED");
+          expect(await queue.getJob(mailJobId(expired.bookingId))).toBeUndefined();
+          // An already prepared legacy job without an outbox row still uses the
+          // original payload and delivery ID, rather than generating a second link.
+          await db
+            .delete(notificationOutbox)
+            .where(eq(notificationOutbox.eventKey, `booking:${item.bookingId}:confirmed`));
+          await bookingMail.deliver(job.data, mail);
+          expect(sent.size).toBe(1);
+        } finally {
+          await queue.close();
+          const keys = await redis.keys(`bull:${queueName}:*`);
+          keys.push(bookingDeliveryKey(item.bookingId));
+          if (token) keys.push(bookingMagicKey(token));
+          if (keys.length) await redis.del(...keys);
+          redis.disconnect();
+        }
+      },
+    );
 
     test("durable inbox authorization and mail retries, concurrency, lost acknowledgements and expiry preserve one logical event", async () => {
       const item = await scenario();
