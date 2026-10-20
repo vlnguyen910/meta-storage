@@ -182,7 +182,8 @@ CRITICAL, 35 symbols/23 flows, and its CLI presentation omits some names and unt
 new files. These are limited graph checks, not a complete safety verdict. Changes
 were additionally reviewed directly and exercised through DB integration/regression tests.
 
-Remaining Flow 3 work: aggregated financial reporting. Durable outbox/overdue reminder
+Existing financial reports now include return refunds/settlement revisions (see
+flow-4-reports-api.md). Durable outbox/overdue reminder
 behavior is documented in `returns-api.md`. Contract storage needs real deployment
 configuration/integration verification. Renewal, upgrade, signing, automated contract
 content generation and lawful property disposal remain unimplemented.

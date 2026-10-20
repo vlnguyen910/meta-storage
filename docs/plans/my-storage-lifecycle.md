@@ -15,7 +15,8 @@ Xem `docs/returns-api.md` cho endpoint, giới hạn và kiểm chứng.
 T4 đã bổ sung upload/issue PDF private S3-compatible và handover gate theo quyết định
 không thêm CCCD/hộ chiếu. Xem `docs/rental-contracts-api.md` cho phiên bản, quyền,
 điều kiện issue, migration 0040 và kiểm thử. Job overdue và outbox đã triển khai;
-báo cáo tổng hợp tài chính mới **chưa triển khai**. Đây chưa phải kết luận toàn bộ
+báo cáo hiện hữu đã tính return refund/settlement revision theo kế hoạch review fixes;
+không xây hệ thống kế toán hoặc dashboard mới. Đây chưa phải kết luận toàn bộ
 Flow 3 hoàn tất. Không có renewal/upgrade trong MVP.
 
 ## 1. Hiện trạng và nguyên nhân
