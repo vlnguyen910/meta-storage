@@ -25,7 +25,7 @@ No Web, Mobile or API-client files changed. This is not completion of all Flow 3
 | Contract PDFs/handover gate | Implemented separately; see rental-contracts-api.md. No CCCD/passport schema |
 | Automatic OVERDUE + seven-full-day manual-review flag | Facility-local cron updates rental only; preserves open request and sends deduplicated manual-review notice; no disposal |
 | Durable email/in-app outbox, expiry reminders | Implemented DB outbox, notification inbox, worker claims/leases/retry, current FM authorization check, 30-day local reminder at configured time or 09:00 fallback for facilities with consistent operating-hour timezone |
-| Aggregated finance reports for new fees/refunds/debt | Outstanding; new records readable in return detail, legacy reports/payment fields unchanged |
+| Existing finance reports with return settlement/refunds | Cash refunds by confirmedAt; latest effective settlement; explicit deposit/rent allocations; unknown legacy splits flagged; fees/debt are not automatically classified as revenue |
 | Renewal/upgrade | Intentionally excluded; no schema/API/job added |
 
 ## Lifecycle jobs and notifications
@@ -43,9 +43,14 @@ customer reminder. Otherwise the worker queues one reminder at the configured
 facility local time (default 09:00). Stable event/recipient keys deduplicate
 concurrent sweeps and retries. Verified payment, booking, return scheduling,
 inspection, settlement, refund and time-change records also enqueue notifications
-inside their business transaction. Booking confirmation email remains the existing
-booking access message; the new outbox booking event targets assigned FMs, avoiding
-sending the customer a duplicate booking email.
+inside their business transaction. Booking confirmation now persists a customer
+intent with its template snapshot in the same outbox, alongside FM notifications.
+The worker prepares the existing access email and enqueues the existing BullMQ job
+with a frozen encrypted payload. New intents bypass the former API enqueue path;
+legacy jobs keep their delivery ID/template. ENQUEUED is not provider-confirmed SENT.
+See booking-tracking.md for queue recovery, TTL and rollout behavior.
+Cancel transitions to OVERDUE write the same deduplicated overdue event atomically;
+sweeps repair missing events and advance through batches even without recipients.
 
 `GET /api/notifications?limit=20&offset=0` returns the authenticated customer's
 own booking events or FMs' events for currently assigned facilities. Email attempts
@@ -137,6 +142,19 @@ manual transfer, never a refund submission. It records FM/reference/proof and do
 not call a provider or rewrite original payment success. Automatic provider refund
 integration is outstanding. Proof for refunds/time corrections is separate from
 inspection photos so a frozen five-photo inspection does not prevent later audit.
+For property disposition on an older failed attempt, proof may belong to any
+inspection of the same request; its source attempt is audited. Capture new handoff
+proof in the current retry attempt; five photos per attempt remains enforced.
+
+Mixed manual refunds require both `depositRefundAmount` and `rentRefundAmount`
+(integer-VND strings), summing to `amount` and each within its remaining entitlement.
+Single-source transfers can omit both; the server records the unambiguous split.
+A replay with a changed component conflicts. Historical ambiguous splits appear
+in report reconciliation and block further confirmations requiring an unknown
+component balance; no history is overwritten or guessed.
+`depositHeld` is refundable deposit after approved fees and confirmed deposit
+transfers, floored at zero. Reports include return refunds without rewriting the
+original payment; overview separates FM return obligations from the legacy refund queue.
 Private photos reuse the existing Cloudinary adapter; that is not the future
 S3-compatible PDF contract implementation.
 
@@ -144,7 +162,7 @@ S3-compatible PDF contract implementation.
 
 Additive generated migrations: `0037_graceful_sister_grimm`,
 `0038_aromatic_metal_master`, `0039_woozy_toad_men`, `0040_solid_umar`,
-`0041_useful_blindfold`; generated using
+`0041_useful_blindfold`, `0042_moaning_zaran`; generated using
 `bun run db:generate`, never hand-edited. No existing rentals/payments are backfilled
 or reclassified. The existing assignment status varchar supports new COMPLETED;
 its shared constant/diagram are updated without a DDL alteration. Active occupancy
@@ -161,13 +179,13 @@ The seed inserts default 25% only when absent; it never overwrites BOM settings.
 Admin must configure an actual return checklist/calendar/hours. There is no guessed
 initial severity list or runtime rate fallback.
 
-Local database has a divergent older migration journal and lacks pricing tables.
-To preserve existing local data, only the reviewed new 0037–0041 SQL statements
-were applied transactionally to the existing localhost:5433/metastorage container,
-with their generated hashes/timestamps recorded in the journal. Older history was
-not rewritten and no database reset/clone/new test DB was created. Full historical
-`db:migrate` was not declared successful; migration-history reconciliation remains
-an environment issue before a normal full migration run.
+Local database originally had a divergent older migration journal. Migration 0042
+was generated and applied successfully with the normal db:migrate command on the
+existing localhost:5433/metastorage container. Regression checkout then detected
+missing pricing tables despite older journal entries: the existing additive 0035
+SQL was reviewed and applied transactionally to restore those tables/type/FKs.
+No old journal entries were rewritten and no database reset/clone/new test DB was
+created. This repairs that observed schema gap, not a full historical schema audit.
 
 ## Verification
 
@@ -216,3 +234,14 @@ reports HIGH, 26 symbols/6 flows. CLI output lists only a subset and does not in
 untracked-file changes; index also warned about truncated process walks/callees.
 This is a limited graph review, not a clean full-coverage verdict. New module review
 also used direct inspection, real DB tests, lint and typechecks.
+
+## Review-fix verification (2026-10-20)
+
+Current runs: returns integration 25 passed / 320 assertions; reports integration
+11 / 60; selected checkout regression 5 / 80; rental reads 5 / 67; Redis booking
+link retry 1 / 9. All use existing local containers; mail/storage boundaries are mocked.
+The checkout run selected `authorized status verifies SePay|unauthorized status never|starts SePay checkout|concurrent same-key|full API flow`;
+78 unrelated cases were filtered out. Global cron tests were not run against shared
+local data. No skipped/filtered cases are counted as passed.
+API/worker/contracts/database/shared typecheck and lint, API/worker build passed.
+Real Resend/S3 delivery was not exercised. See plans/my-storage-review-fixes.md.
