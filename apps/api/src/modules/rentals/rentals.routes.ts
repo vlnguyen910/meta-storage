@@ -11,28 +11,12 @@ export const rentalsRoutes: FastifyPluginAsync = async (fastify) => {
   const service = new RentalsService(new RentalsRepository(fastify.db));
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
 
-  typedApp.get("/mine", { preHandler: [requireRole("CUSTOMER")] }, async (request, reply) => {
-    if (!request.user) throw new UnauthorizedError();
-    return reply.send(successResponse(await service.listMine(request.user.id)));
-  });
-
   typedApp.get(
-    "/mine/page",
+    "/mine",
     { schema: { querystring: RentalPageQuerySchema }, preHandler: [requireRole("CUSTOMER")] },
     async (request, reply) => {
       if (!request.user) throw new UnauthorizedError();
       return reply.send(successResponse(await service.pageMine(request.user.id, request.query)));
-    },
-  );
-
-  typedApp.get(
-    "/history",
-    { schema: { querystring: RentalPageQuerySchema }, preHandler: [requireRole("CUSTOMER")] },
-    async (request, reply) => {
-      if (!request.user) throw new UnauthorizedError();
-      return reply.send(
-        successResponse(await service.pageMine(request.user.id, request.query, true)),
-      );
     },
   );
 

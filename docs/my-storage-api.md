@@ -2,7 +2,8 @@
 
 These rental read APIs are implemented alongside the return APIs documented in
 [returns-api.md](returns-api.md). Contract issuance/access and handover gate are documented in [rental-contracts-api.md](rental-contracts-api.md).
-Automated overdue lifecycle and durable notification workflows remain outstanding in `docs/plans/my-storage-lifecycle.md`.
+Automated overdue lifecycle and durable notification workflows are documented in
+[returns-api.md](returns-api.md).
 The read endpoints themselves need no schema migration.
 
 All routes require an ACTIVE authenticated CUSTOMER. Rental ownership is derived
@@ -11,19 +12,24 @@ claimed by a matching account. Responses use the existing success/error envelope
 
 | Method/path | Response `data` |
 | --- | --- |
-| `GET /api/rentals/mine` | Existing array shape; only ACTIVE/RETURN_PENDING/OVERDUE, ordered by expected expiry then UUID ascending |
-| `GET /api/rentals/mine/page` | `{ items, nextCursor }`, same active statuses and order |
-| `GET /api/rentals/history` | `{ items, nextCursor }`, only CLOSED, same expiry/UUID order |
+| `GET /api/rentals/mine` | `{ items, nextCursor }`; defaults to current view, ACTIVE/RETURN_PENDING/OVERDUE, nearest expiry then UUID ascending |
+| `GET /api/rentals/mine?view=history` | Same paginated DTO, CLOSED only |
 | `GET /api/rentals/:rentalId` | Existing rental detail; owners may also read their CLOSED rental |
 | `GET /api/rentals/:rentalId/payments` | Checkout payment history linked through the rental's booking, oldest creation time then UUID; empty array if no payments |
 
 Only actual rental rows appear in lists: payment/booking confirmation does not create
-a rental. Handover does. The unpaginated route remains for current consumers; new
-consumers should use the paginated route. API client/Web/Mobile are not changed.
+a rental. Handover does. `/mine/page` and `/history` have been removed; there is one
+list route. `/mine` changes from an array to `{ items, nextCursor }`. API client/Web/
+Mobile are outside this backend change; existing array consumers need migration.
+The shared API client currently types `rentals.mine()` as an array, and Web's list
+and mock still consume that shape. They must read `data.items`, supply the selected
+view, and implement Load More before using this new contract. No working UI
+integration or browser verification is claimed by this backend-only change.
 
 ## Pagination
 
-Query: `limit` (integer 1–100, default 20), optional `afterEndAt` (ISO date-time with
+Query: `view` (`current` or `history`, default `current`), `limit` (integer 1–100,
+default 20), optional `afterEndAt` (ISO date-time with
 timezone), optional `afterId` (UUID). Both cursor fields must be supplied together.
 
 Example `nextCursor` value (null when no further page exists):
@@ -35,6 +41,8 @@ Example `nextCursor` value (null when no further page exists):
 }
 ```
 Send the returned cursor values unchanged as the next request's query parameters.
+Keep `view` unchanged while loading more; reset both cursor fields when switching
+views. Example: `/api/rentals/mine?view=history&limit=20&afterEndAt=...&afterId=...`.
 Dates in item DTOs retain the existing millisecond ISO representation; the cursor
 preserves PostgreSQL microseconds to avoid repeats. The UUID breaks equal-expiry ties.
 Each query rechecks ownership/status and does not need the cursor row to still exist.
@@ -51,9 +59,9 @@ not counted as collected funds. This endpoint does not call SePay or mark paymen
 successful. Credentials, provider payment IDs and idempotency keys are not returned.
 The successful response carries `Cache-Control: private, no-store`.
 
-Refund fields currently describe the existing legacy payment row. They do not
-include the new independent return refunds/settlements. Read those through the
-return-request detail API; legacy payment fields are not overwritten.
+Legacy refund fields retain the payment row's meaning and are not overwritten.
+Each payment also includes `returnRefunds` for independent confirmed return refunds
+with settlement references; full settlement revisions are in return-request detail.
 Null fields are not fabricated into a successful refund.
 
 ## Errors
@@ -111,3 +119,14 @@ Observed results on 2026-10-20:
 
 No UI verification, full monorepo test/build or deployment was performed. New return
 migrations and their local application are documented in `returns-api.md`.
+
+## Unified list verification (current implementation)
+
+`GET /api/rentals/mine?view=current|history` now always paginates. Defaults are
+current/20; invalid views and malformed/incomplete cursors return 400. Ownership,
+status groups and microsecond expiry/UUID keyset ordering remain unchanged.
+
+The updated rental-read integration suite passes 6 tests / 78 assertions on the
+existing local PostgreSQL container, including default 20-item pagination across
+25 current rentals, history pagination, ownership/role guards and invalid filters.
+No schema migration, database reset, global scheduler or frontend changes required.

@@ -7,6 +7,9 @@ export const RentalIdParamsSchema = z.object({ rentalId: z.string().uuid() });
 
 export const RentalPageQuerySchema = z
   .object({
+    view: z
+      .enum(["current", "history"], { error: RENTAL_CONTRACT_MESSAGES.invalidView })
+      .default("current"),
     limit: z.coerce.number().int().min(1).max(100).default(20),
     afterEndAt: z.string().datetime({ offset: true }).optional(),
     afterId: z.string().uuid().optional(),
