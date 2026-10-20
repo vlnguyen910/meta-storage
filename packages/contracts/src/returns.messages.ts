@@ -1,0 +1,18 @@
+export const RETURN_MESSAGES = {
+  notFound: "Không tìm thấy hồ sơ trả kho.",
+  forbidden: "Bạn không có quyền xử lý hồ sơ trả kho này.",
+  conflict: "Trạng thái hoặc phiên bản hồ sơ đã thay đổi.",
+  configurationMissing: "Chưa cấu hình đầy đủ chính sách trả kho.",
+  invalidSlot: "Ca trả kho không hợp lệ hoặc không còn chỗ.",
+  notice: "Phải đăng ký trả kho trước ít nhất 24 giờ.",
+  incomplete: "Checklist hoặc bằng chứng kiểm tra chưa đầy đủ.",
+  propertyUnresolved: "Tài sản còn lại chưa được xử lý hoặc bàn giao lưu giữ.",
+  invalidTime: "Thời điểm trả kho thực tế không hợp lệ.",
+  invalidMoney: "Số tiền phải là số nguyên VND không âm.",
+  duplicateItems: "Mã checklist item phải duy nhất và đủ các nhóm kiểm tra.",
+  evidence: "Ảnh bằng chứng không thuộc inspection này.",
+  settlement: "Chưa đủ điều kiện xác nhận quyết toán.",
+  refund: "Số tiền hoàn không hợp lệ hoặc đã được ghi nhận.",
+  reason: "Cần cung cấp lý do.",
+  version: "Phiên bản không hợp lệ.",
+} as const;

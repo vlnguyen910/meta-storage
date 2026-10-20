@@ -699,7 +699,12 @@ export class BookingsRepository {
     const active = await this.db
       .select({ physicalUnitId: rentals.physicalUnitId })
       .from(rentals)
-      .where(and(inArray(rentals.physicalUnitId, unitIds), eq(rentals.status, "ACTIVE")));
+      .where(
+        and(
+          inArray(rentals.physicalUnitId, unitIds),
+          inArray(rentals.status, ["ACTIVE", "RETURN_PENDING", "OVERDUE"]),
+        ),
+      );
     return allUnits.map((unit) => ({
       id: unit.id,
       facilityId: unit.facilityId,
@@ -780,7 +785,12 @@ export class BookingsRepository {
       const [activeRental] = await tx
         .select({ id: rentals.id })
         .from(rentals)
-        .where(and(eq(rentals.physicalUnitId, unit.id), eq(rentals.status, "ACTIVE")))
+        .where(
+          and(
+            eq(rentals.physicalUnitId, unit.id),
+            inArray(rentals.status, ["ACTIVE", "RETURN_PENDING", "OVERDUE"]),
+          ),
+        )
         .for("update");
 
       if (activeRental) {
@@ -1140,7 +1150,12 @@ async function releaseReservedUnit(tx: BookingTransaction, unitId: string, now: 
   const [rental] = await tx
     .select({ id: rentals.id })
     .from(rentals)
-    .where(and(eq(rentals.physicalUnitId, unitId), eq(rentals.status, "ACTIVE")))
+    .where(
+      and(
+        eq(rentals.physicalUnitId, unitId),
+        inArray(rentals.status, ["ACTIVE", "RETURN_PENDING", "OVERDUE"]),
+      ),
+    )
     .limit(1);
   if (!assignment && !rental)
     await tx
