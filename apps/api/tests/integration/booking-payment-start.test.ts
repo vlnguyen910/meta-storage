@@ -615,14 +615,16 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     });
     expect(verify.statusCode).toBe(200);
     const repository = new BookingsRepository(db);
-    expect(await repository.sweepNoShows(new Date(`${checkInDate}T17:59:59.999+07:00`))).toEqual({
+    expect(
+      await repository.sweepNoShows(new Date(`${checkInDate}T17:59:59.999+07:00`), ids.facility),
+    ).toEqual({
       processed: 0,
     });
     const cutoff = new Date(`${checkInDate}T18:00:00+07:00`);
     setSystemTime(cutoff);
     const results = await Promise.all([
-      repository.sweepNoShows(cutoff),
-      repository.sweepNoShows(cutoff),
+      repository.sweepNoShows(cutoff, ids.facility),
+      repository.sweepNoShows(cutoff, ids.facility),
     ]);
     expect(results.reduce((sum, r) => sum + r.processed, 0)).toBe(1);
     const [saved] = await db.select().from(bookings).where(eq(bookings.id, booking.id));
@@ -655,9 +657,11 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
           .where(eq(capacityAllocations.referenceId, booking.id))
       )[0].status,
     ).toBe("RELEASED");
-    expect(await repository.sweepNoShows(new Date(cutoff.getTime() + 60000))).toEqual({
-      processed: 0,
-    });
+    expect(await repository.sweepNoShows(new Date(cutoff.getTime() + 60000), ids.facility)).toEqual(
+      {
+        processed: 0,
+      },
+    );
     expect((await db.select().from(payments).where(eq(payments.id, payment.paymentId)))[0]).toEqual(
       refund,
     );
@@ -683,7 +687,10 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     await webhook(payment.paymentCode);
     await db.update(bookings).set({ status: "CHECKED_IN" }).where(eq(bookings.id, paid.id));
     expect(
-      await new BookingsRepository(db).sweepNoShows(new Date(`${checkInDate}T23:59:59+07:00`)),
+      await new BookingsRepository(db).sweepNoShows(
+        new Date(`${checkInDate}T23:59:59+07:00`),
+        ids.facility,
+      ),
     ).toEqual({ processed: 0 });
     expect((await db.select().from(bookings).where(eq(bookings.id, unpaid.id)))[0].status).toBe(
       "DRAFT",
@@ -860,7 +867,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
       "CONFIRMED",
     );
     const [sweep, response] = await Promise.all([
-      new BookingsRepository(db).sweepNoShows(cutoff),
+      new BookingsRepository(db).sweepNoShows(cutoff, ids.facility),
       handover(),
     ]);
     expect(sweep.processed).toBe(1);
@@ -887,7 +894,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
         { name: "database-plugin" },
       ),
     );
-    scheduled.register(cronPlugin);
+    scheduled.register(cronPlugin, { facilityId: ids.facility });
     try {
       await scheduled.ready();
       expect((await db.select().from(bookings).where(eq(bookings.id, booking.id)))[0].status).toBe(
@@ -1135,7 +1142,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
           { name: "database-plugin" },
         ),
       );
-      scheduled.register(cronPlugin);
+      scheduled.register(cronPlugin, { facilityId: ids.facility });
       try {
         await scheduled.ready();
         const [saved] = await db.select().from(payments).where(eq(payments.id, payment.paymentId));
@@ -1740,7 +1747,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     const second = await draft();
     const pending = (await pay(first)).json().data;
     setSystemTime(new Date(pending.expiresAt));
-    const sweep = await expireCapacityHolds(db);
+    const sweep = await expireCapacityHolds(db, new Date(), ids.facility);
     expect(sweep).toEqual({ expired: 1, skipped: false });
     expect(
       (
@@ -1774,7 +1781,10 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
         (booking) => booking.status === "CONFIRMED",
       ),
     ).toHaveLength(1);
-    expect(await expireCapacityHolds(db)).toEqual({ expired: 0, skipped: false });
+    expect(await expireCapacityHolds(db, new Date(), ids.facility)).toEqual({
+      expired: 0,
+      skipped: false,
+    });
   });
 
   test("after real hold expiry, late payment refunds in full and duplicate webhooks preserve the manual refund audit", async () => {
@@ -1782,7 +1792,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     const second = await draft();
     const pending = (await pay(first)).json().data;
     setSystemTime(new Date(pending.expiresAt));
-    expect((await expireCapacityHolds(db)).expired).toBe(1);
+    expect((await expireCapacityHolds(db, new Date(), ids.facility)).expired).toBe(1);
     const next = await pay(second);
     expect(next.statusCode).toBe(201);
     expect((await webhook(next.json().data.paymentCode)).statusCode).toBe(200);

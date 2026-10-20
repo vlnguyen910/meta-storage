@@ -72,13 +72,15 @@ function toConfirmation(
 export class PaymentsRepository {
   constructor(private readonly db: Database) {}
 
-  async listPendingSepayPayments() {
+  async listPendingSepayPayments(facilityId?: string) {
     return this.db
       .select({ id: payments.id })
       .from(payments)
+      .innerJoin(bookings, eq(bookings.id, payments.bookingId))
       .where(
         and(
           eq(payments.provider, "sepay"),
+          facilityId ? eq(bookings.facilityId, facilityId) : undefined,
           eq(payments.status, "PENDING"),
           isNotNull(payments.bookingId),
           isNull(payments.draftId),
