@@ -154,6 +154,8 @@ export type SettleReturn = z.infer<typeof SettleReturnSchema>;
 export const ConfirmReturnRefundSchema = z.strictObject({
   expectedVersion: version,
   amount: money.refine((v) => BigInt(v) > 0n, m.invalidMoney),
+  depositRefundAmount: money.optional(),
+  rentRefundAmount: money.optional(),
   reference: z.string().trim().min(1).max(128),
   evidencePhotoIds: z.array(z.uuid()).min(1).max(5),
   idempotencyKey: z.uuid(),

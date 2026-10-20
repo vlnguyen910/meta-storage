@@ -249,6 +249,8 @@ export const returnRefunds = pgTable(
       .notNull()
       .references(() => returnSettlements.id, { onDelete: "restrict" }),
     amount: numeric({ precision: 14, scale: 0 }).notNull(),
+    depositRefundAmount: numeric({ precision: 14, scale: 0 }),
+    rentRefundAmount: numeric({ precision: 14, scale: 0 }),
     reference: text().notNull(),
     evidencePhotoIds: jsonb().$type<string[]>().notNull(),
     idempotencyKey: uuid().notNull(),
@@ -261,6 +263,15 @@ export const returnRefunds = pgTable(
     uniqueIndex("return_refund_idempotency_idx").on(t.requestId, t.idempotencyKey),
     uniqueIndex("return_refund_reference_idx").on(t.paymentId, t.reference),
     check("return_refund_amount_positive", sql`${t.amount} > 0`),
+    check(
+      "return_refund_allocation_valid",
+      sql`(
+      (${t.depositRefundAmount} IS NULL AND ${t.rentRefundAmount} IS NULL) OR
+      (${t.depositRefundAmount} IS NOT NULL AND ${t.rentRefundAmount} IS NOT NULL AND
+       ${t.depositRefundAmount} >= 0 AND ${t.rentRefundAmount} >= 0 AND
+       ${t.depositRefundAmount} + ${t.rentRefundAmount} = ${t.amount})
+    )`,
+    ),
   ],
 );
 export const returnAudit = pgTable(

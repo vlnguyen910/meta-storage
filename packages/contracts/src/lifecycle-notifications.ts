@@ -17,6 +17,7 @@ export type LifecycleNotificationEvent = (typeof LifecycleNotificationEvent)[num
 export const NotificationDeliveryStatus = [
   "PENDING",
   "PROCESSING",
+  "ENQUEUED",
   "SENT",
   "REVIEW_REQUIRED",
   "SUPPRESSED",

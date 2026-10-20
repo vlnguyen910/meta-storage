@@ -15,3 +15,10 @@ export interface LifecycleNotificationItem {
   body: string;
   occurredAt: string;
 }
+
+export interface BookingEmailSnapshot {
+  bookingCode: string | null;
+  facilityName: string;
+  unitTypeName: string;
+  paidAt: string;
+}
