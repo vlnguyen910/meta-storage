@@ -1,4 +1,8 @@
-import { RETURN_MESSAGES as m, type ReturnQueueQuery } from "@metastorage/contracts";
+import {
+  RETURN_MESSAGES as m,
+  type ReturnQueueQuery,
+  SystemSettingKey,
+} from "@metastorage/contracts";
 import {
   and,
   bookings,
@@ -22,13 +26,15 @@ import {
   returnEvidencePhotos,
   returnInspectionPhotos,
   returnInspections,
-  returnOverdueSettings,
   returnRefunds,
   returnRequests,
   returnSettlements,
   returnTimeChanges,
   sql,
   storageUnits,
+  systemSettingChanges,
+  systemSettingInteger,
+  systemSettings,
   unitAssignments,
   users,
 } from "@metastorage/database";
@@ -223,24 +229,37 @@ export class ReturnsRepository {
   }
   async rate(tx: ReturnTransaction | Database = this.db) {
     const [row] = await tx
-      .select()
-      .from(returnOverdueSettings)
-      .where(eq(returnOverdueSettings.id, "default"));
+      .select({ rate: systemSettingInteger, version: systemSettings.version })
+      .from(systemSettings)
+      .where(eq(systemSettings.key, SystemSettingKey.OVERDUE_FEE_RATE));
     return row;
   }
   async lockRate(tx: ReturnTransaction) {
     const [row] = await tx
-      .select()
-      .from(returnOverdueSettings)
-      .where(eq(returnOverdueSettings.id, "default"))
+      .select({ rate: systemSettingInteger, version: systemSettings.version })
+      .from(systemSettings)
+      .where(eq(systemSettings.key, SystemSettingKey.OVERDUE_FEE_RATE))
       .for("update");
     return row;
   }
-  async saveRate(tx: ReturnTransaction, rate: number, version: number, actorId: string) {
+  async saveRate(
+    tx: ReturnTransaction,
+    rate: number,
+    version: number,
+    actorId: string,
+    beforeRate: number,
+  ) {
     await tx
-      .update(returnOverdueSettings)
-      .set({ rate, version, updatedBy: actorId, updatedAt: new Date() })
-      .where(eq(returnOverdueSettings.id, "default"));
+      .update(systemSettings)
+      .set({ value: rate, version, updatedBy: actorId, updatedAt: new Date() })
+      .where(eq(systemSettings.key, SystemSettingKey.OVERDUE_FEE_RATE));
+    await tx.insert(systemSettingChanges).values({
+      key: SystemSettingKey.OVERDUE_FEE_RATE,
+      before: { value: beforeRate, version: version - 1 },
+      after: { value: rate, version },
+      actorId,
+      source: "OVERDUE_RATE_CONFIGURED",
+    });
   }
   async audit(
     tx: ReturnTransaction,

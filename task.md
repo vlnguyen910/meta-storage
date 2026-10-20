@@ -154,3 +154,16 @@ Không tự chọn giá trị cho các TBD còn lại. Nhánh không phụ thu�
   không commit hoặc push.
 - Không có renewal/upgrade, e-signature, tự thanh lý tài sản, cấp quyền trả kho cho guest,
   giao diện Admin config hoặc frontend guest portal trong phạm vi backend này.
+
+## 8. Hoàn tất tiếp theo: config toàn hệ thống
+
+- [x] Một bảng system_settings cho bốn cấu hình global hiện có; scalar JSONB,
+  allowlist/validation theo key, version và audit riêng.
+- [x] Gộp lifecycle, overdue-rate và deposit policy; giữ quyền BOM và snapshot pricing.
+- [x] Thêm API chung GET/PUT /api/system-settings và history; giữ tương thích API cũ.
+- [x] Migration/data transfer nguyên tử; giữ giá trị/version/actor/time, chạy lại no-op.
+- [x] Giới hạn job kiểm thử theo facility fixture trên DB local dùng chung.
+- [ ] Chốt hiệu lực thay đổi trên dữ liệu đang chạy trước khi mở quyền sửa các
+  hard-code khác (TTL, slot/buffer, hold, file limits). Danh sách ở docs/system-settings.md.
+
+Xem docs/plans/system-settings.md cho phạm vi, kết quả kiểm thử và giới hạn.

@@ -27,6 +27,7 @@ import { rentalsRoutes } from "./modules/rentals/rentals.routes";
 import { reportsRoutes } from "./modules/reports/reports.routes";
 import { returnsRoutes } from "./modules/returns/returns.routes";
 import { storageUnitsRoutes } from "./modules/storage-units/storage-units.routes";
+import { systemSettingsRoutes } from "./modules/system-settings/system-settings.routes";
 import { usersRoutes } from "./modules/users/users.routes";
 
 export function buildApp(): FastifyInstance {
@@ -71,5 +72,6 @@ export function buildApp(): FastifyInstance {
   app.register(contractsRoutes, { prefix: "/api" });
   app.register(returnsRoutes, { prefix: "/api" });
   app.register(rentalLifecycleSettingsRoutes, { prefix: "/api" });
+  app.register(systemSettingsRoutes, { prefix: "/api" });
   return app;
 }

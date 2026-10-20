@@ -257,3 +257,10 @@ The checkout run selected `authorized status verifies SePay|unauthorized status 
 local data. No skipped/filtered cases are counted as passed.
 API/worker/contracts/database/shared typecheck and lint, API/worker build passed.
 Real Resend/S3 delivery was not exercised. See plans/my-storage-review-fixes.md.
+
+## Common system configuration
+
+Global day settings, overdue rate and deposit-month policy now share `system_settings`.
+See [system settings API](./system-settings.md). Legacy lifecycle/overdue/pricing paths
+retain their contracts, access controls, shared versions and audit history. Migration
+0044 plus `bun run db:migrate`'s transactional data step preserves existing values.

@@ -11,6 +11,7 @@
     "./payments": "./src/payments.ts",
     "./pricing": "./src/pricing.ts",
     "./returns": "./src/returns.ts",
+    "./system-settings": "./src/system-settings.ts",
     "./rental-documents": "./src/rental-documents.ts",
     "./lifecycle-notifications": "./src/lifecycle-notifications.ts"
   },

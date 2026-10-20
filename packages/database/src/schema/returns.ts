@@ -58,23 +58,6 @@ export const facilityReturnCalendars = pgTable("facility_return_calendars", {
     .references(() => users.id, { onDelete: "restrict" }),
   updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
 });
-export const returnOverdueSettings = pgTable(
-  "return_overdue_settings",
-  {
-    id: text().primaryKey(),
-    rate: integer().default(25).notNull(),
-    version: integer().default(0).notNull(),
-    updatedBy: uuid().references(() => users.id, { onDelete: "restrict" }),
-    updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
-  },
-  (t) => [
-    check(
-      "return_overdue_rate_valid",
-      sql`${t.id} = 'default' AND ${t.rate} BETWEEN 0 AND 100 AND ${t.version} >= 0`,
-    ),
-  ],
-);
-
 export const returnRequests = pgTable(
   "return_requests",
   {

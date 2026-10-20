@@ -36,7 +36,7 @@ configures it; operating hours and check_in_slots remain existing sources. Slots
 are 90 minutes, capacity one and a 15-minute cooldown; schedule changes flag
 confirmed appointments for manual review while preserving time snapshots.
 
-`return_overdue_settings`: singleton id default, integer rate 0–100 (seed 25),
+`system_settings` key OVERDUE_FEE_RATE stores integer rate 0–100 (seed 25),
 version, updated_by FK users nullable for seed and updated_at. Changes are BOM-only
 and audited. Missing policy blocks financial assessment; no runtime fallback.
 
@@ -90,9 +90,8 @@ status is overwritten. Settlement closure does not wait for transfers.
 JSONB details and created_at. Append-only approvals/config/transition records.
 No unrelated workflow, renewal/upgrade or check-in policy is introduced.
 
-Flow 4 pricing: `pricing_settings` has exactly one supported key (`default`),
-positive `deposit_months` and `version`, nullable `updated_by` FK users and
-`updated_at`. The one-month starting policy is explicitly seeded, never a runtime
+Flow 4 pricing: `system_settings` key DEPOSIT_MONTHS stores positive integer value
+and shared positive pricing version, nullable updated_by FK users and updated_at. The one-month starting policy is explicitly seeded, never a runtime
 fallback. Missing policy prevents new quotes. `unit_types.monthly_price` remains
 the sole current global price per type. Updating either price or deposit locks
 the settings row first, validates expectedVersion, increments the shared version
@@ -140,13 +139,25 @@ Issue #24 adds `handover_inspections` and `inspection_photos` under the H6_V1 de
 
 ```mermaid
 erDiagram
-  pricing_settings {
-    text id PK "default"
-    integer deposit_months
+  system_settings {
+    text key PK
+    jsonb value
+    text description
     integer version
     uuid updated_by FK
     timestamptz updated_at
   }
+  system_setting_changes {
+    uuid id PK
+    text key FK
+    jsonb before
+    jsonb after
+    uuid actor_id FK
+    text source
+    timestamptz created_at
+  }
+  system_settings ||--o{ system_setting_changes : audits
+  users ||--o{ system_setting_changes : changes
   pricing_changes {
     uuid id PK
     integer version UK
@@ -156,7 +167,7 @@ erDiagram
     uuid changed_by FK
     timestamptz changed_at
   }
-  users o|--o{ pricing_settings : updates
+  users o|--o{ system_settings : updates
   users ||--o{ pricing_changes : changes
   handover_inspections {
     uuid id PK
@@ -733,11 +744,11 @@ No historical booking email replay. Old queue jobs are adopted by the same job I
 
 ## Rental lifecycle configuration and guest rental access (2026-10-20)
 
-`rental_lifecycle_settings`: key/value/description table limited by the API to
-`EXPIRY_REMINDER_DAYS` and `ABANDONED_REVIEW_DAYS`. Values are nonnegative PostgreSQL
+`system_settings` includes `EXPIRY_REMINDER_DAYS` and `ABANDONED_REVIEW_DAYS`;
+the legacy lifecycle API filters reads/writes to these two keys. Values are nonnegative PostgreSQL
 integers; no business min/max is imposed. Seed values are 7 days for each setting.
-System Administrator changes use optimistic `version`, store actor/time, and append
-`return_audit` in the same transaction. A sweep reads one settings snapshot for its
+System Administrator changes use optimistic version, store actor/time, and append
+system_setting_changes plus legacy return_audit in the same transaction. A sweep reads one settings snapshot for its
 candidate query and state changes. Existing logical notification keys and review flags
 remain stable after configuration changes.
 
@@ -750,3 +761,26 @@ the latest issued link revokes the prior magic grant. Session cookies remain 30 
 and are scoped to one booking. The resend limits are 3 per booking/hour and 10 per IP/hour.
 Guests can read their linked rental, payment/refund history, and ISSUED contract PDFs;
 they cannot use rental or staff mutation endpoints.
+
+## Unified system settings (2026-10-20; supersedes global settings tables above)
+
+`system_settings` is the single active global configuration table: key PK, scalar JSONB
+value, description, nonnegative version, updated_by FK users and updated_at. API keys
+are an allowlist with per-key validation and permissions. Initial keys are
+EXPIRY_REMINDER_DAYS (7), ABANDONED_REVIEW_DAYS (7), OVERDUE_FEE_RATE (25) and
+DEPOSIT_MONTHS (1). Days use nonnegative PostgreSQL integers, rate 0–100 and months
+positive. DEPOSIT_MONTHS retains the positive shared pricing revision: price changes
+also lock/increment this row. Existing quote/rental/settlement snapshots are unchanged.
+System Admin manages rental-day settings; BOM exclusively manages financial settings.
+Facility calendars/checklists, unit type prices and financial snapshots remain relational
+domain data rather than global scalar settings. No new runtime fallback or cache.
+
+`system_setting_changes`: UUID id, key FK, JSONB before/after value+version snapshots,
+actor_id FK, source and created_at. Append-only changes share the update transaction;
+existing pricing_changes and return_audit are retained for domain history.
+
+The migration runner snapshots legacy pricing_settings, return_overdue_settings and
+rental_lifecycle_settings under row locks, runs generated DDL, and restores values
+with original versions, descriptions and actor/timestamps in the same transaction.
+The legacy configuration tables are retired only as part of that atomic migration.
+Use `bun run db:migrate`; invoking drizzle-kit migrate directly bypasses this data step.

@@ -4,18 +4,26 @@ import type {
   UpdateDepositPolicy,
   UpdateUnitTypePrice,
 } from "@metastorage/contracts";
-import { PRICING_MESSAGES as m } from "@metastorage/contracts";
+import { PRICING_MESSAGES as m, SystemSettingKey } from "@metastorage/contracts";
 import {
   asc,
   type Database,
   desc,
   eq,
-  PRICING_SETTINGS_ID,
   pricingChanges,
-  pricingSettings,
+  systemSettingChanges,
+  systemSettingInteger,
+  systemSettings,
   unitTypes,
 } from "@metastorage/database";
 import { AppError, ConflictError, NotFoundError } from "../../common/errors/app-error";
+
+const pricingPolicyFields = {
+  depositMonths: systemSettingInteger,
+  version: systemSettings.version,
+  updatedBy: systemSettings.updatedBy,
+  updatedAt: systemSettings.updatedAt,
+};
 
 export class PricingRepository {
   constructor(private readonly db: Database) {}
@@ -23,9 +31,9 @@ export class PricingRepository {
   async getConfiguration(query: PricingQuery) {
     return this.db.transaction(async (tx) => {
       const [settings] = await tx
-        .select()
-        .from(pricingSettings)
-        .where(eq(pricingSettings.id, PRICING_SETTINGS_ID))
+        .select(pricingPolicyFields)
+        .from(systemSettings)
+        .where(eq(systemSettings.key, SystemSettingKey.DEPOSIT_MONTHS))
         .for("share");
       if (!settings) throw new AppError(m.unavailable, 503, "PRICING_NOT_CONFIGURED");
       const prices = await tx
@@ -55,10 +63,10 @@ export class PricingRepository {
     const [row] = await this.db
       .select({
         monthlyPrice: unitTypes.monthlyPrice,
-        depositMonths: pricingSettings.depositMonths,
+        depositMonths: systemSettingInteger,
       })
       .from(unitTypes)
-      .crossJoin(pricingSettings)
+      .innerJoin(systemSettings, eq(systemSettings.key, SystemSettingKey.DEPOSIT_MONTHS))
       .where(eq(unitTypes.id, unitTypeId));
     return row ?? null;
   }
@@ -66,14 +74,14 @@ export class PricingRepository {
   async updateDeposit(input: UpdateDepositPolicy, actor: string) {
     return this.update(input.expectedVersion, actor, async (tx) => {
       const [row] = await tx
-        .select({ depositMonths: pricingSettings.depositMonths })
-        .from(pricingSettings)
-        .where(eq(pricingSettings.id, PRICING_SETTINGS_ID));
+        .select({ depositMonths: systemSettingInteger })
+        .from(systemSettings)
+        .where(eq(systemSettings.key, SystemSettingKey.DEPOSIT_MONTHS));
       if (!row) throw new AppError(m.unavailable, 503, "PRICING_NOT_CONFIGURED");
       await tx
-        .update(pricingSettings)
-        .set({ depositMonths: input.depositMonths })
-        .where(eq(pricingSettings.id, PRICING_SETTINGS_ID));
+        .update(systemSettings)
+        .set({ value: input.depositMonths })
+        .where(eq(systemSettings.key, SystemSettingKey.DEPOSIT_MONTHS));
       return {
         operation: "DEPOSIT_POLICY",
         before: row,
@@ -132,9 +140,9 @@ export class PricingRepository {
       // Both price and deposit writes lock the singleton first, so the shared version
       // represents the entire pricing configuration and stale updates cannot win.
       const [settings] = await tx
-        .select()
-        .from(pricingSettings)
-        .where(eq(pricingSettings.id, PRICING_SETTINGS_ID))
+        .select(pricingPolicyFields)
+        .from(systemSettings)
+        .where(eq(systemSettings.key, SystemSettingKey.DEPOSIT_MONTHS))
         .for("update");
       if (!settings) throw new AppError(m.unavailable, 503, "PRICING_NOT_CONFIGURED");
       if (settings.version !== expectedVersion) throw new ConflictError(m.conflict);
@@ -142,9 +150,23 @@ export class PricingRepository {
       const version = settings.version + 1;
       const now = new Date();
       await tx
-        .update(pricingSettings)
+        .update(systemSettings)
         .set({ version, updatedBy: actor, updatedAt: now })
-        .where(eq(pricingSettings.id, PRICING_SETTINGS_ID));
+        .where(eq(systemSettings.key, SystemSettingKey.DEPOSIT_MONTHS));
+      await tx.insert(systemSettingChanges).values({
+        key: SystemSettingKey.DEPOSIT_MONTHS,
+        before: { value: settings.depositMonths, version: settings.version },
+        after: {
+          value:
+            changed.operation === "DEPOSIT_POLICY"
+              ? (changed.after as { depositMonths: number }).depositMonths
+              : settings.depositMonths,
+          version,
+        },
+        actorId: actor,
+        source: changed.operation,
+        createdAt: now,
+      });
       await tx.insert(pricingChanges).values({
         version,
         operation: changed.operation,

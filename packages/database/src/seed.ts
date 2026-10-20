@@ -1,4 +1,5 @@
 import { createHash, createHmac } from "node:crypto";
+import { SYSTEM_SETTING_DEFINITIONS } from "@metastorage/contracts/system-settings";
 import { hashPassword } from "better-auth/crypto";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { db, queryClient } from "./client";
@@ -13,16 +14,13 @@ import {
   facilityAssignments,
   facilityOperatingHours,
   facilityReturnCalendars,
-  PRICING_SETTINGS_ID,
   payments,
-  pricingSettings,
-  rentalLifecycleSettings,
   rentals,
   returnChecklistVersions,
   returnInspections,
-  returnOverdueSettings,
   returnRequests,
   storageUnits,
+  systemSettings,
   unitAssignments,
   unitTypes,
   users,
@@ -917,35 +915,31 @@ async function seedFlow3Rentals(seedNow: Date) {
 
 export async function seedPricingPolicy(seedNow = getSeedNow()) {
   await db
-    .insert(pricingSettings)
-    .values({ id: PRICING_SETTINGS_ID, depositMonths: 1, version: 1, updatedAt: seedNow })
+    .insert(systemSettings)
+    .values({
+      key: "DEPOSIT_MONTHS",
+      value: SYSTEM_SETTING_DEFINITIONS.DEPOSIT_MONTHS.defaultValue,
+      description: SYSTEM_SETTING_DEFINITIONS.DEPOSIT_MONTHS.description,
+      version: 1,
+      updatedAt: seedNow,
+    })
     .onConflictDoNothing();
 }
 
 async function seedPolicies(seedNow: Date) {
   await seedPricingPolicy(seedNow);
+  const keys = ["EXPIRY_REMINDER_DAYS", "ABANDONED_REVIEW_DAYS", "OVERDUE_FEE_RATE"] as const;
   await db
-    .insert(returnOverdueSettings)
-    .values({ id: "default", rate: 25, version: 0, updatedAt: seedNow })
-    .onConflictDoNothing();
-  await db
-    .insert(rentalLifecycleSettings)
-    .values([
-      {
-        key: "EXPIRY_REMINDER_DAYS",
-        value: 7,
-        description: "Số ngày trước hạn thuê để nhắc khách.",
+    .insert(systemSettings)
+    .values(
+      keys.map((key) => ({
+        key,
+        value: SYSTEM_SETTING_DEFINITIONS[key].defaultValue,
+        description: SYSTEM_SETTING_DEFINITIONS[key].description,
         version: 0,
         updatedAt: seedNow,
-      },
-      {
-        key: "ABANDONED_REVIEW_DAYS",
-        value: 7,
-        description: "Số ngày quá hạn đầy đủ trước khi chuyển cho Facility Manager xem xét.",
-        version: 0,
-        updatedAt: seedNow,
-      },
-    ])
+      })),
+    )
     .onConflictDoNothing();
 }
 

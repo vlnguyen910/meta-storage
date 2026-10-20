@@ -19,19 +19,19 @@ import {
   paymentProviderEvents,
   payments,
   queryClient,
-  rentalLifecycleSettings,
   rentals,
   returnAudit,
   returnChecklistVersions,
   returnEvidencePhotos,
   returnInspectionPhotos,
   returnInspections,
-  returnOverdueSettings,
   returnRefunds,
   returnRequests,
   returnSettlements,
   returnTimeChanges,
   storageUnits,
+  systemSettingChanges,
+  systemSettings,
   unitAssignments,
   unitTypes,
   users,
@@ -109,7 +109,7 @@ const definition = [
 ];
 let scenarioNumber = 0;
 let initialRate = 25;
-let initialLifecycleSettings: (typeof rentalLifecycleSettings.$inferSelect)[] = [];
+let initialLifecycleSettings: (typeof systemSettings.$inferSelect)[] = [];
 let latestChecklistVersion = 0;
 let setupStarted = false;
 
@@ -323,7 +323,7 @@ describe.skipIf(!target)(
           },
         ]);
         await tx
-          .insert(rentalLifecycleSettings)
+          .insert(systemSettings)
           .values([
             {
               key: "EXPIRY_REMINDER_DAYS",
@@ -423,11 +423,14 @@ describe.skipIf(!target)(
       latestChecklistVersion++;
       const [rate] = await db
         .select()
-        .from(returnOverdueSettings)
-        .where(eq(returnOverdueSettings.id, "default"));
+        .from(systemSettings)
+        .where(eq(systemSettings.key, "OVERDUE_FEE_RATE"));
       if (!rate) throw new Error("Seed return policy before running suite");
-      initialRate = rate.rate;
-      initialLifecycleSettings = await db.select().from(rentalLifecycleSettings);
+      initialRate = Number(rate.value);
+      initialLifecycleSettings = await db
+        .select()
+        .from(systemSettings)
+        .where(inArray(systemSettings.key, ["EXPIRY_REMINDER_DAYS", "ABANDONED_REVIEW_DAYS"]));
     });
 
     afterAll(async () => {
@@ -448,15 +451,15 @@ describe.skipIf(!target)(
             .delete(notificationOutbox)
             .where(eq(notificationOutbox.facilityId, fixture.facility));
           await tx.delete(returnAudit).where(inArray(returnAudit.actorId, Object.values(actorIds)));
+          await tx
+            .delete(systemSettingChanges)
+            .where(inArray(systemSettingChanges.actorId, Object.values(actorIds)));
           for (const key of ["EXPIRY_REMINDER_DAYS", "ABANDONED_REVIEW_DAYS"] as const) {
             const original = initialLifecycleSettings.find((row) => row.key === key);
             if (original) {
-              await tx
-                .update(rentalLifecycleSettings)
-                .set(original)
-                .where(eq(rentalLifecycleSettings.key, key));
+              await tx.update(systemSettings).set(original).where(eq(systemSettings.key, key));
             } else {
-              await tx.delete(rentalLifecycleSettings).where(eq(rentalLifecycleSettings.key, key));
+              await tx.delete(systemSettings).where(eq(systemSettings.key, key));
             }
           }
           await tx.delete(returnRefunds).where(inArray(returnRefunds.requestId, requests));

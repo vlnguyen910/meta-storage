@@ -7,13 +7,17 @@ import { ConflictError, ForbiddenError, NotFoundError } from "../../common/error
 import type { RentalLifecycleSettingsRepository } from "./rental-lifecycle-settings.repository";
 
 function dto(row: {
-  key: RentalLifecycleSettingDto["key"];
+  key: string;
   value: number;
   description: string;
   version: number;
   updatedAt: Date;
 }): RentalLifecycleSettingDto {
-  return { ...row, updatedAt: row.updatedAt.toISOString() };
+  return {
+    ...row,
+    key: row.key as RentalLifecycleSettingDto["key"],
+    updatedAt: row.updatedAt.toISOString(),
+  };
 }
 
 export class RentalLifecycleSettingsService {
