@@ -285,7 +285,7 @@ function CheckInFlowScreen() {
       ) : wantsInspection && verified ? (
         flow.history.isLoading ? (
           <LoadingState label={FLOW.loading} />
-        ) : flow.history.isError ? (
+        ) : flow.history.isError && !flow.history.data ? (
           <ErrorState message={FLOW.loadHistoryError} onRetry={() => flow.history.refetch()} />
         ) : flow.current ? (
           <InspectionScreen

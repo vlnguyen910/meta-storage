@@ -79,3 +79,20 @@ hai test từng lỗi để đạt kết quả này. Lượt chạy này dùng B
 1.3.14 được ghim trong CI; không thay thế kết quả CI remote. Người dùng báo đã
 chạy xong phần 1 (CI chuẩn) và phần 2 (E2E). Không thao tác dữ liệu storex_local.
 Log chi tiết: `/tmp/storex-part3-*.log`.
+
+## Sửa sau review PR #136
+
+- Giữ ghi chú, checklist và version gốc khi refetch hoặc lưu gặp 409. Tải snapshot
+  máy chủ để đối chiếu; Staff chủ động chọn giữ bản nháp trên version mới hoặc bỏ
+  bản nháp để nạp server. Không tự gửi lại. Không áp draft vào biên bản đã khóa
+  hoặc có ngữ cảnh assignment/verification/checklist khác.
+- Giữ màn chỉnh sửa khi refetch history lỗi nhưng còn cache, tránh unmount làm mất draft.
+- Gỡ các thay đổi Flow 2 khóa hoặc gắn nhãn API vào workspace BOM/Admin. Hai prototype
+  độc lập được giữ theo quyết định đã chốt; tích hợp Web Flow 4 thuộc PR #134 riêng.
+- Web tests hiện tại: 79 PASS, gồm 9 ca hồi quy mới dùng hook thật; type-check 8/8.
+- Browser Edge emulation dùng response fixture có kiểm soát: tái hiện 409 và giữ
+  một PASS/ghi chú chưa lưu; đối chiếu rồi hoàn tất inspection và handover riêng;
+  xác nhận BOM/Admin mở với nhãn minh họa. Axe không có lỗi ở conflict/handover,
+  không tràn ngang ở 375/390/430px, không pageerror.
+- Lượt sửa này không chạy bộ E2E, không ghi dữ liệu backend thật và không thay thế
+  bằng chứng integration PostgreSQL/WebSocket ở các lượt trước.

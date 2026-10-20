@@ -193,6 +193,68 @@ export function InspectionScreen({
     );
   return (
     <div className="space-y-6">
+      {e.conflict && (
+        <Panel className="border border-amber-300 bg-amber-50">
+          <div role="alert">
+            <h2 className="text-lg font-bold">{FLOW.draftConflictTitle}</h2>
+            <p className="mt-2 text-sm">{FLOW.draftConflictHelp}</p>
+          </div>
+          <Button
+            variant="secondary"
+            className="mt-3"
+            loading={e.busy}
+            onClick={e.refreshForComparison}
+          >
+            {FLOW.compareServer}
+          </Button>
+          {e.comparison && (
+            <>
+              <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-2">
+                <div className="min-w-0">
+                  <h3 className="font-semibold">{FLOW.localDraft}</h3>
+                  <p className="my-2 text-xs">{FLOW.comparisonVersion(e.values.version)}</p>
+                  <InspectionChecklist items={e.items} results={e.values.results ?? []} />
+                  <p className="mt-3 whitespace-pre-wrap break-words text-sm">
+                    {e.values.conditionNotes || FLOW.noNotes}
+                  </p>
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-semibold">{FLOW.serverDraft}</h3>
+                  <p className="my-2 text-xs">{FLOW.comparisonVersion(e.comparison.version)}</p>
+                  <InspectionChecklist
+                    items={
+                      e.comparison.checklistDefinition?.length
+                        ? e.comparison.checklistDefinition
+                        : e.items
+                    }
+                    results={e.comparison.results ?? []}
+                  />
+                  <p className="mt-3 whitespace-pre-wrap break-words text-sm">
+                    {e.comparison.conditionNotes || FLOW.noNotes}
+                  </p>
+                </div>
+              </div>
+              {!e.canKeepDraft && (
+                <p className="mt-3 text-sm text-amber-950">{FLOW.comparisonReadOnly}</p>
+              )}
+              <div className="mt-4 flex flex-wrap gap-3">
+                <Button disabled={e.busy || !e.canKeepDraft} onClick={e.keepDraft}>
+                  {FLOW.keepDraft}
+                </Button>
+                <Button
+                  variant="secondary"
+                  disabled={e.busy}
+                  onClick={() => {
+                    if (window.confirm(FLOW.discardDraftConfirm)) e.loadServerDraft();
+                  }}
+                >
+                  {FLOW.loadServerDraft}
+                </Button>
+              </div>
+            </>
+          )}
+        </Panel>
+      )}
       <Panel className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Warehouse size={30} className="text-[#003b2f]" />
@@ -214,7 +276,7 @@ export function InspectionScreen({
           </Pill>
         </div>
       </Panel>
-      {handover ? (
+      {handover && !e.conflict ? (
         <HandoverContent record={record} result={result} onBack={back} />
       ) : review ? (
         <>
@@ -294,7 +356,7 @@ export function InspectionScreen({
             </Button>
             <Button
               loading={e.busy}
-              disabled={!e.confirmLock || !e.canComplete || e.locked || e.dirty}
+              disabled={!e.confirmLock || !e.canComplete || e.locked || e.dirty || e.conflict}
               onClick={e.complete}
               icon={<Lock size={18} />}
             >
@@ -391,7 +453,7 @@ export function InspectionScreen({
                   </SectionTitle>
                   <Button
                     variant="secondary"
-                    disabled={e.busy || e.locked || record.photos.length >= 8}
+                    disabled={e.busy || e.locked || e.conflict || record.photos.length >= 8}
                     onClick={() => fileRef.current?.click()}
                     icon={<Camera size={18} />}
                   >
@@ -419,7 +481,7 @@ export function InspectionScreen({
                         recordId={record.id}
                         photo={photo}
                         onRemove={e.locked ? undefined : e.remove}
-                        disabled={e.busy}
+                        disabled={e.busy || e.conflict}
                       />
                     ))}
                   </div>
@@ -473,14 +535,14 @@ export function InspectionScreen({
               <Button
                 variant="secondary"
                 loading={e.busy}
-                disabled={e.locked}
+                disabled={e.locked || e.conflict}
                 onClick={() => e.save()}
               >
                 {FLOW.save}
               </Button>
               <Button
                 loading={e.busy}
-                disabled={!e.canComplete || e.locked}
+                disabled={!e.canComplete || e.locked || e.conflict}
                 onClick={() => e.save("review")}
               >
                 {FLOW.review}

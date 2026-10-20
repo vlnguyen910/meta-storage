@@ -307,4 +307,18 @@ export const FLOW = {
   handoverPending:
     "Biên bản đã khóa. Xác nhận khách đã nhận kho để hoàn tất bàn giao và kích hoạt thuê kho.",
   loadHistoryError: "Không thể tải hồ sơ kiểm tra. Thử lại trước khi tiếp tục.",
+  draftConflictTitle: "Biên bản trên máy chủ đã thay đổi",
+  draftConflictHelp:
+    "Checklist và ghi chú đang nhập vẫn được giữ. Tải bản máy chủ để đối chiếu trước khi lưu tiếp; hệ thống không tự ghi đè hoặc tự gửi lại.",
+  compareServer: "Tải bản máy chủ để đối chiếu",
+  keepDraft: "Giữ bản nháp với phiên bản mới",
+  loadServerDraft: "Nạp bản máy chủ, bỏ bản nháp",
+  discardDraftConfirm: "Bỏ checklist và ghi chú chưa lưu để nạp bản máy chủ?",
+  localDraft: "Bản nháp chưa lưu của bạn",
+  serverDraft: "Bản máy chủ vừa tải",
+  comparisonUnavailable:
+    "Không tìm thấy biên bản hiện tại để đối chiếu. Giữ lại nội dung và tải lại danh sách công việc.",
+  comparisonReadOnly:
+    "Biên bản đã khóa hoặc ngữ cảnh kho/checklist đã thay đổi; không thể áp dụng bản nháp cũ. Bạn vẫn có thể đối chiếu nội dung trước khi nạp bản máy chủ.",
+  comparisonVersion: (version: number) => `Phiên bản v${version}`,
 };
