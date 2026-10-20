@@ -482,7 +482,7 @@ export class ReturnsService {
       const before = await this.repository.lockRate(tx);
       if (!before) throw new ConflictError(m.configurationMissing);
       this.version(before.version, input.expectedVersion);
-      await this.repository.saveRate(tx, input.rate, before.version + 1, actor.id);
+      await this.repository.saveRate(tx, input.rate, before.version + 1, actor.id, before.rate);
       await this.repository.audit(tx, actor.id, "OVERDUE_RATE_CONFIGURED", {
         before: before.rate,
         after: input.rate,

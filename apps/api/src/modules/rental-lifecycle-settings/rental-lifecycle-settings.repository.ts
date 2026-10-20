@@ -1,11 +1,33 @@
 import type { RentalLifecycleSettingKeyValue } from "@metastorage/contracts";
-import { type Database, eq, rentalLifecycleSettings, returnAudit } from "@metastorage/database";
+import {
+  type Database,
+  eq,
+  inArray,
+  returnAudit,
+  systemSettingChanges,
+  systemSettingInteger,
+  systemSettings,
+} from "@metastorage/database";
+
+const keys = ["EXPIRY_REMINDER_DAYS", "ABANDONED_REVIEW_DAYS"] as const;
+const fields = {
+  key: systemSettings.key,
+  value: systemSettingInteger,
+  description: systemSettings.description,
+  version: systemSettings.version,
+  updatedBy: systemSettings.updatedBy,
+  updatedAt: systemSettings.updatedAt,
+};
 
 export class RentalLifecycleSettingsRepository {
   constructor(readonly db: Database) {}
 
   list() {
-    return this.db.select().from(rentalLifecycleSettings).orderBy(rentalLifecycleSettings.key);
+    return this.db
+      .select(fields)
+      .from(systemSettings)
+      .where(inArray(systemSettings.key, keys))
+      .orderBy(systemSettings.key);
   }
 
   async lock(
@@ -13,9 +35,9 @@ export class RentalLifecycleSettingsRepository {
     tx: Parameters<Parameters<Database["transaction"]>[0]>[0],
   ) {
     const [row] = await tx
-      .select()
-      .from(rentalLifecycleSettings)
-      .where(eq(rentalLifecycleSettings.key, key))
+      .select(fields)
+      .from(systemSettings)
+      .where(eq(systemSettings.key, key))
       .for("update");
     return row;
   }
@@ -28,19 +50,30 @@ export class RentalLifecycleSettingsRepository {
     tx: Parameters<Parameters<Database["transaction"]>[0]>[0],
   ) {
     const [row] = await tx
-      .update(rentalLifecycleSettings)
+      .update(systemSettings)
       .set({ value, version, updatedBy: userId, updatedAt: new Date() })
-      .where(eq(rentalLifecycleSettings.key, key))
-      .returning();
+      .where(eq(systemSettings.key, key))
+      .returning(fields);
     return row;
   }
 
-  audit(
+  async audit(
     tx: Parameters<Parameters<Database["transaction"]>[0]>[0],
     userId: string,
-    details: Record<string, unknown>,
+    details: {
+      key: RentalLifecycleSettingKeyValue;
+      before: { value: number; version: number };
+      after: { value: number; version: number };
+    },
   ) {
-    return tx.insert(returnAudit).values({
+    await tx.insert(systemSettingChanges).values({
+      key: details.key,
+      before: details.before,
+      after: details.after,
+      actorId: userId,
+      source: "RENTAL_LIFECYCLE_SETTING_CONFIGURED",
+    });
+    await tx.insert(returnAudit).values({
       requestId: null,
       facilityId: null,
       actorId: userId,

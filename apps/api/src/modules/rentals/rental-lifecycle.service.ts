@@ -1,6 +1,6 @@
 import { RentalLifecycleSettingKey } from "@metastorage/contracts";
 import type { rentals } from "@metastorage/database";
-import { rentalLifecycleSettings } from "@metastorage/database";
+import { eq, systemSettingInteger, systemSettings } from "@metastorage/database";
 import { lifecycleExpiryDetail } from "../notifications/lifecycle-notifications.messages";
 import { recordLifecycleEvent } from "../notifications/lifecycle-notifications.repository";
 import type { NotificationTransaction } from "../notifications/lifecycle-notifications.types";
@@ -23,7 +23,10 @@ export async function recordImmediateExpiry(
 ) {
   const calendar = await facilityLifecycleClock(tx, rental.facilityId);
   if (!calendar) return; // Missing facility timezone is configuration work, never guess a timezone.
-  const settings = await tx.select().from(rentalLifecycleSettings);
+  const settings = await tx
+    .select({ key: systemSettings.key, value: systemSettingInteger })
+    .from(systemSettings)
+    .where(eq(systemSettings.key, RentalLifecycleSettingKey.EXPIRY_REMINDER_DAYS));
   const reminderDays = settings.find(
     (setting) => setting.key === RentalLifecycleSettingKey.EXPIRY_REMINDER_DAYS,
   )?.value;

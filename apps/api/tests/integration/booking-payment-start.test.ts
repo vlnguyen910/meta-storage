@@ -23,13 +23,12 @@ import {
   handoverInspections,
   inArray,
   notificationOutbox,
-  PRICING_SETTINGS_ID,
   paymentProviderEvents,
   payments,
-  pricingSettings,
   rentals,
   reservationDrafts,
   storageUnits,
+  systemSettings,
   unitAssignments,
   unitTypes,
   users,
@@ -254,8 +253,8 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     )
       throw new Error("Use existing local container DB only");
     const seeded = await db
-      .insert(pricingSettings)
-      .values({ id: PRICING_SETTINGS_ID, depositMonths: 1, version: 1 })
+      .insert(systemSettings)
+      .values({ key: "DEPOSIT_MONTHS", value: 1, description: "Deposit test setting", version: 1 })
       .onConflictDoNothing()
       .returning();
     createdPricing = seeded.length > 0;
@@ -431,7 +430,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     await db.delete(users).where(eq(users.id, ids.staff));
     await db.delete(users).where(eq(users.id, ids.manager));
     if (createdPricing)
-      await db.delete(pricingSettings).where(eq(pricingSettings.id, PRICING_SETTINGS_ID));
+      await db.delete(systemSettings).where(eq(systemSettings.key, "DEPOSIT_MONTHS"));
   });
 
   test("customer cancellation refunds only snapshotted rent, forfeits deposit and releases capacity atomically", async () => {

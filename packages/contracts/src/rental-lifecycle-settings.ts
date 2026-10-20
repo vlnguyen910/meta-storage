@@ -1,8 +1,9 @@
 import { z } from "zod";
+import { SystemSettingKey } from "./system-settings";
 
 export const RentalLifecycleSettingKey = {
-  EXPIRY_REMINDER_DAYS: "EXPIRY_REMINDER_DAYS",
-  ABANDONED_REVIEW_DAYS: "ABANDONED_REVIEW_DAYS",
+  EXPIRY_REMINDER_DAYS: SystemSettingKey.EXPIRY_REMINDER_DAYS,
+  ABANDONED_REVIEW_DAYS: SystemSettingKey.ABANDONED_REVIEW_DAYS,
 } as const;
 export type RentalLifecycleSettingKeyValue =
   (typeof RentalLifecycleSettingKey)[keyof typeof RentalLifecycleSettingKey];

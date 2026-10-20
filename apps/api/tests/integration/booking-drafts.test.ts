@@ -10,11 +10,10 @@ import {
   facilities,
   facilityOperatingHours,
   facilityUnitTypes,
-  PRICING_SETTINGS_ID,
   payments,
-  pricingSettings,
   reservationDrafts,
   storageUnits,
+  systemSettings,
   unitTypes,
 } from "@metastorage/database";
 import Fastify from "fastify";
@@ -48,8 +47,8 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
     if (process.env.DATABASE_URL !== testUrl)
       throw new Error("DATABASE_URL must match the isolated BOOKING_TEST_DATABASE_URL");
     await db
-      .insert(pricingSettings)
-      .values({ id: PRICING_SETTINGS_ID, depositMonths: 1, version: 1 })
+      .insert(systemSettings)
+      .values({ key: "DEPOSIT_MONTHS", value: 1, description: "Deposit test setting", version: 1 })
       .onConflictDoNothing();
     await db.transaction(async (tx) => {
       await tx

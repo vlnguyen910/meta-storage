@@ -9,9 +9,10 @@ import {
   isNull,
   notExists,
   notificationOutbox,
-  rentalLifecycleSettings,
   rentals,
   sql,
+  systemSettingInteger,
+  systemSettings,
 } from "@metastorage/database";
 
 import type { NotificationTransaction } from "../notifications/lifecycle-notifications.types";
@@ -34,7 +35,10 @@ export async function facilityLifecycleClock(tx: NotificationTransaction, facili
 export class RentalLifecycleRepository {
   constructor(private readonly db: Database) {}
   async settings() {
-    const rows = await this.db.select().from(rentalLifecycleSettings);
+    const rows = await this.db
+      .select({ key: systemSettings.key, value: systemSettingInteger })
+      .from(systemSettings)
+      .where(inArray(systemSettings.key, ["EXPIRY_REMINDER_DAYS", "ABANDONED_REVIEW_DAYS"]));
     return Object.fromEntries(rows.map((row) => [row.key, row.value]));
   }
   candidates(
