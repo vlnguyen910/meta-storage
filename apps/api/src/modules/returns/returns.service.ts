@@ -27,6 +27,7 @@ import {
 import { CloudinaryPhotoStorage } from "../inspections/cloudinary-photo-storage";
 import { decodePhoto } from "../inspections/inspections.policy";
 import type { InspectionPhotoStorage } from "../inspections/photo-storage.types";
+import { recordOverdueEvent } from "../rentals/rental-lifecycle.events";
 import {
   localDate,
   overdueAmount,
@@ -310,14 +311,17 @@ export class ReturnsService {
       this.version(request.version, expectedVersion);
       if (request.status !== "PENDING") throw new ConflictError(m.conflict);
       const row = await this.repository.updateRequest(tx, id, { status: "CANCELLED" });
-      if (context.rental.status === "RETURN_PENDING")
-        await this.repository.updateRental(tx, context.rental.id, {
-          status:
-            localDate(new Date(), request.timezone) >
-            localDate(context.rental.expectedEndAt, request.timezone)
-              ? "OVERDUE"
-              : "ACTIVE",
-        });
+      if (context.rental.status === "RETURN_PENDING") {
+        const now = new Date();
+        const status =
+          localDate(now, request.timezone) >
+          localDate(context.rental.expectedEndAt, request.timezone)
+            ? "OVERDUE"
+            : "ACTIVE";
+        await this.repository.updateRental(tx, context.rental.id, { status });
+        if (status === "OVERDUE")
+          await recordOverdueEvent(tx, context.rental, request.timezone, now);
+      }
       await this.repository.audit(
         tx,
         actor.id,
