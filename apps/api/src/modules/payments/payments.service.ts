@@ -313,9 +313,11 @@ export class PaymentsService {
     }
   }
 
-  async reconcilePendingPayments(): Promise<{ checked: number; failed: number }> {
+  async reconcilePendingPayments(
+    facilityId?: string,
+  ): Promise<{ checked: number; failed: number }> {
     if (!this.sepayGateway?.checkoutConfigured) return { checked: 0, failed: 0 };
-    const pending = await this.repository.listPendingSepayPayments();
+    const pending = await this.repository.listPendingSepayPayments(facilityId);
     const results = await Promise.allSettled(pending.map(({ id }) => this.reconcilePayment(id)));
     return {
       checked: pending.length,

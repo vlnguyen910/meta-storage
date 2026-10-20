@@ -118,7 +118,7 @@ export class BookingsRepository {
     });
   }
 
-  async sweepNoShows(now = new Date()) {
+  async sweepNoShows(now = new Date(), facilityId?: string) {
     return this.db.transaction(async (tx) => {
       const dayEnd = sql`(${bookings.checkInDate} +
         (${tx.select({ end: max(checkInSlots.endTime) }).from(checkInSlots)}))
@@ -129,6 +129,7 @@ export class BookingsRepository {
         .where(
           and(
             eq(bookings.status, "CONFIRMED"),
+            facilityId ? eq(bookings.facilityId, facilityId) : undefined,
             lte(bookings.checkInDate, bookingLocalDate(now)),
             lte(dayEnd, now.toISOString()),
             exists(
