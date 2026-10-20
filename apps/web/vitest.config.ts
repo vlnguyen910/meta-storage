@@ -11,6 +11,7 @@ export default defineConfig({
     },
   },
   test: {
+    env: { NEXT_PUBLIC_API_MODE: "mock" },
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     globals: true,

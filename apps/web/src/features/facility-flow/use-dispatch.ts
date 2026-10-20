@@ -9,7 +9,7 @@ export function readiness(b: BookingListItem, now = Date.now()) {
   if (b.status === "CANCELLED") return "CANCELLED";
   if (b.status === "NO_SHOW") return "NO_SHOW";
   if (!b.paidAt) return "PAYMENT_PENDING";
-  if (b.checkInSlotEnd && now > new Date(b.checkInSlotEnd).getTime() + 7200000) return "NO_SHOW";
+  // Backend owns the day-end deadline and NO_SHOW transition; slot end is not the deadline.
   if (!b.assignedUnit) return "NEEDS_UNIT";
   if (!b.assignedStaff) return "NEEDS_STAFF";
   if (!b.checkInSlotEnd) return "SLOT_MISSING";

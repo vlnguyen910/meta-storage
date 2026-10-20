@@ -7,7 +7,7 @@ export const MOCK_MESSAGES = {
   invalid: "Thông tin không hợp lệ. Vui lòng kiểm tra lại các trường.",
   stale: "Dữ liệu đã thay đổi. Tải lại trước khi tiếp tục.",
   locked: "Biên bản đã khóa, không thể sửa nội dung.",
-  incomplete: "Cần xác nhận đúng ô kho, ghi tình trạng và thêm ít nhất một ảnh trước khi khóa.",
+  incomplete: "Cả 4 mục kiểm tra phải đạt trước khi khóa biên bản.",
   notReady:
     "Booking chưa đủ điều kiện: cần thanh toán, phân công Staff, gán ô kho và xác minh trong giờ hẹn.",
   storage: "Bộ nhớ trình duyệt đã đầy. Xóa bớt ảnh hoặc đặt lại dữ liệu mock.",

@@ -2,13 +2,16 @@
 
 import { UserRole } from "@metastorage/contracts";
 import { APP_NAME } from "@metastorage/shared";
+import { useQueryClient } from "@tanstack/react-query";
 import { LogOut, Menu, RotateCcw, Warehouse, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode, useState } from "react";
+import { useToast } from "@/components/ui/toast";
 import { isMockMode } from "@/config/api-mode";
 import { navigationByRole } from "@/config/navigation";
 import { roleHome, routes } from "@/config/routes";
+import { AUTH_MESSAGES } from "@/features/auth/auth.messages";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { FacilityShell } from "@/features/facility-flow/facility-shell";
 import { api } from "@/lib/api";
@@ -27,6 +30,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
   const session = useAuthStore((state) => state.session);
   const clearSession = useAuthStore((state) => state.clearSession);
   const role = session?.user.role;
@@ -38,9 +43,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     try {
       await api.auth.logout();
       clearSession();
+      queryClient.clear();
       router.replace(routes.login);
     } catch {
-      // Keep the current session visible so the user can retry the server logout.
+      showToast(AUTH_MESSAGES.logoutFailed, "error");
     }
   }
 

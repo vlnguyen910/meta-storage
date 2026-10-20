@@ -2,7 +2,6 @@
 import { UserRole } from "@metastorage/contracts";
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, ArrowRight, CheckCircle2, RefreshCw, Warehouse } from "lucide-react";
-import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Currency } from "@/components/ui/display";
@@ -16,7 +15,6 @@ import {
 } from "@/features/check-in/hooks";
 import { formatDateTime } from "@/lib/format";
 import { FLOW } from "./flow.messages";
-import { FLOW_ASSETS } from "./flow-assets";
 import {
   BackLabel,
   FlowButton as Button,
@@ -30,6 +28,8 @@ import {
   Steps,
   titleClass,
 } from "./flow-ui";
+import { ReassignmentDialog } from "./reassignment-dialog";
+import type { UnitAssignmentConfirmation } from "./reassignment-dialog.types";
 import { flowError } from "./use-check-in-flow";
 export function AssignmentScreen() {
   const router = useRouter();
@@ -41,6 +41,7 @@ export function AssignmentScreen() {
   const [selected, setSelected] = useState("");
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
+  const [confirmation, setConfirmation] = useState<UnitAssignmentConfirmation | null>(null);
   const { showToast } = useToast();
   const role = useAuthStore((s) => s.session?.user.role);
   const current = selected || booking.data?.assignedUnit?.physicalUnitId || "";
@@ -53,30 +54,43 @@ export function AssignmentScreen() {
       !chosen ||
       mutation.isPending ||
       !chosen.isAvailableForPeriod ||
-      chosen.status !== "AVAILABLE"
+      !(chosen.status === "AVAILABLE" || chosen.id === b.assignedUnit?.physicalUnitId)
     )
       return;
-    if (
-      b.assignedUnit &&
-      b.assignedUnit.physicalUnitId !== current &&
-      !window.confirm(
-        FLOW.confirmReassign(b.contactName, b.assignedUnit.physicalUnitCode, chosen.code),
-      )
-    )
+    const change: UnitAssignmentConfirmation = {
+      bookingId: b.id,
+      bookingCode: b.bookingCode,
+      customerName: b.contactName,
+      previousUnitCode: b.assignedUnit?.physicalUnitCode ?? null,
+      physicalUnitId: current,
+      unitCode: chosen.code,
+      reason: reason.trim(),
+    };
+    setError("");
+    if (b.assignedUnit && b.assignedUnit.physicalUnitId !== current) {
+      setConfirmation(change);
       return;
+    }
+    await assign(change);
+  }
+  async function assign(change: UnitAssignmentConfirmation) {
+    if (mutation.isPending || role !== UserRole.FACILITY_MANAGER) return;
     setError("");
     try {
       await mutation.mutateAsync({
-        bookingId: b.id,
-        input: { physicalUnitId: current, reason: reason.trim() || undefined },
+        bookingId: change.bookingId,
+        input: { physicalUnitId: change.physicalUnitId, reason: change.reason || undefined },
       });
       await queryClient.invalidateQueries({ queryKey: ["facility-flow"] });
-      showToast(FLOW.assignedSuccess, "success");
-      router.push(`${root}/dashboard`);
+      setConfirmation(null);
+      showToast(
+        change.previousUnitCode && change.previousUnitCode !== change.unitCode
+          ? FLOW.reassignedSuccess(change.previousUnitCode, change.unitCode)
+          : FLOW.assignedSuccess,
+        "success",
+      );
+      router.push(`${root}/check-in?bookingCode=${encodeURIComponent(change.bookingCode)}`);
     } catch (e) {
-      setSelected("");
-      void units.refetch();
-      void booking.refetch();
       setError(flowError(e));
     }
   }
@@ -153,8 +167,11 @@ export function AssignmentScreen() {
               ) : !units.data?.length ? (
                 <Panel>{FLOW.noUnits}</Panel>
               ) : (
-                units.data.map((u, index) => {
-                  const available = u.isAvailableForPeriod && u.status === "AVAILABLE";
+                units.data.map((u) => {
+                  const available =
+                    u.isAvailableForPeriod &&
+                    (u.status === "AVAILABLE" ||
+                      u.id === booking.data?.assignedUnit?.physicalUnitId);
                   const checked = current === u.id;
                   return (
                     <label
@@ -164,17 +181,7 @@ export function AssignmentScreen() {
                       <div className="flex flex-wrap items-start justify-between gap-4 p-4">
                         <div className="flex flex-1 items-center gap-4">
                           <div className="grid h-28 w-32 shrink-0 place-items-center rounded bg-[#f2f3ff] text-[#306858]">
-                            <Image
-                              src={
-                                FLOW_ASSETS.unitPhotos[index % FLOW_ASSETS.unitPhotos.length] ??
-                                FLOW_ASSETS.corridor
-                              }
-                              alt="Ảnh minh họa buồng kho"
-                              width={128}
-                              height={112}
-                              unoptimized
-                              className="h-28 w-32 rounded object-cover"
-                            />
+                            <Warehouse size={40} aria-hidden="true" />
                           </div>
                           <div>
                             <Pill tone={available ? "green" : "red"}>
@@ -221,7 +228,7 @@ export function AssignmentScreen() {
               </label>
             </div>
           </div>
-          {error && (
+          {error && !confirmation && (
             <p role="alert" className="rounded bg-[#ffdad6] p-3 text-[#93000a]">
               {error}
             </p>
@@ -241,7 +248,10 @@ export function AssignmentScreen() {
               loading={mutation.isPending}
               disabled={
                 !chosen?.isAvailableForPeriod ||
-                chosen.status !== "AVAILABLE" ||
+                !(
+                  chosen.status === "AVAILABLE" ||
+                  chosen.id === booking.data.assignedUnit?.physicalUnitId
+                ) ||
                 role !== UserRole.FACILITY_MANAGER
               }
               icon={<ArrowRight size={18} />}
@@ -250,6 +260,20 @@ export function AssignmentScreen() {
             </Button>
           </Panel>
         </>
+      )}
+      {confirmation && (
+        <ReassignmentDialog
+          change={confirmation}
+          pending={mutation.isPending}
+          error={error}
+          onCancel={() => {
+            if (!mutation.isPending) {
+              setConfirmation(null);
+              setError("");
+            }
+          }}
+          onConfirm={() => void assign(confirmation)}
+        />
       )}
     </>
   );

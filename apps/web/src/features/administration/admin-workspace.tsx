@@ -5,7 +5,8 @@ import { Download, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FieldShell, Input, Select } from "@/components/ui/form-controls";
-import { LoadingState } from "@/components/ui/states";
+import { EmptyState, LoadingState } from "@/components/ui/states";
+import { isMockMode } from "@/config/api-mode";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { formatDateTime } from "@/lib/format";
 import {
@@ -56,6 +57,7 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
   const [notice, setNotice] = useState("");
   const filter = (key: keyof AdminFilters, value: string) =>
     setFilters((current) => ({ ...current, [key]: value }));
+  if (!isMockMode) return <EmptyState title={M.liveRequired} description={M.liveDescription} />;
   if (query.isLoading) return <LoadingState label={M.loading} />;
   if (!query.data || query.isError)
     return (

@@ -65,5 +65,12 @@ on a legacy draft adopts the new metadata, while completed historical records re
 The old `correctUnit` response is retained and derived from ASSIGNED_UNIT when results exist.
 Photo references in results must belong to the same inspection. Snapshot/results are frozen
 at completion. Existing authorization, version locks and separate handover remain in force.
-The existing frontend is outside this backend change and does not yet submit four results;
-its draft requests remain accepted, but new completion requires explicit four PASS results.
+At the time of this backend change, frontend integration was pending.
+
+## Frontend integration update (2026-10-20)
+
+The frontend now submits and reloads all four explicit checklist results, preserves FAIL
+or incomplete drafts, and enables completion only when the shared completion contract
+accepts four PASS results. Notes and photos remain optional. Review, handover and FM
+read-only screens display the saved results; legacy records never infer missing PASS
+values. Inspection completion and final customer handover remain separate actions.

@@ -78,10 +78,11 @@ export function useAssignPhysicalUnitMutation() {
   return useMutation({
     mutationFn: ({ bookingId, input }: { bookingId: string; input: AssignPhysicalUnitInput }) =>
       api.bookings.assignUnit(bookingId, input),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: bookingKeys.all });
-      queryClient.invalidateQueries({ queryKey: bookingKeys.detail(variables.bookingId) });
-    },
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: bookingKeys.all }),
+        queryClient.invalidateQueries({ queryKey: ["facility-flow"] }),
+      ]),
   });
 }
 
@@ -99,10 +100,11 @@ export function useAssignStaffMutation() {
   return useMutation({
     mutationFn: ({ bookingId, input }: { bookingId: string; input: AssignBookingStaffInput }) =>
       api.bookings.assignStaff(bookingId, input),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: bookingKeys.all });
-      queryClient.invalidateQueries({ queryKey: bookingKeys.detail(variables.bookingId) });
-    },
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: bookingKeys.all }),
+        queryClient.invalidateQueries({ queryKey: ["facility-flow"] }),
+      ]),
   });
 }
 

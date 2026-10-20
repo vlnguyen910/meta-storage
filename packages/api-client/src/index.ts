@@ -134,6 +134,14 @@ function toSession(user: SessionUser): CookieSession {
 function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode) {
   return {
     http,
+    notifications: {
+      webSocketUrl: (origin: string) => {
+        const base = (http.defaults.baseURL ?? "/api").replace(/\/$/, "");
+        const url = new URL(`${base}/notifications/ws`, origin);
+        url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+        return url.toString();
+      },
+    },
     auth: {
       login: async (input: LoginInput) => {
         if (authMode === "mock") {

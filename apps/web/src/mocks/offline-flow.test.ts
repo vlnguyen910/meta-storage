@@ -1,5 +1,6 @@
 import { createHttpClient, createMetastorageApiClient } from "@metastorage/api-client";
 import type { SessionTokens } from "@metastorage/contracts";
+import { HANDOVER_CHECKLIST_ITEMS } from "@metastorage/contracts";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { getMockDatabase, resetMockDatabase } from "./database";
 import { installMockApi } from "./install-mock-api";
@@ -79,9 +80,16 @@ it("keeps FM assignment separate from Staff inspection and persists handover", a
   let inspection = await client.inspections.start(id);
   await expect(
     client.inspections.complete(inspection.id, inspection.version),
-  ).rejects.toMatchObject({ response: { status: 409 } });
+  ).rejects.toMatchObject({ response: { status: 422 } });
   inspection = await client.inspections.save(inspection.id, {
     version: inspection.version,
+    results: HANDOVER_CHECKLIST_ITEMS.map((item) => ({
+      itemCode: item.code,
+      resultType: "PASS_FAIL",
+      result: "PASS",
+      note: null,
+      photos: [],
+    })),
     correctUnit: true,
     conditionNotes: "Kho trống, sạch, không hư hại.",
   });

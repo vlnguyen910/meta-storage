@@ -1,5 +1,6 @@
 "use client";
 import type { CheckInLookupResult, Inspection, InspectionPhoto } from "@metastorage/contracts";
+import { HANDOVER_CHECKLIST_ITEMS } from "@metastorage/contracts";
 import { useQuery } from "@tanstack/react-query";
 import {
   Camera,
@@ -26,6 +27,7 @@ import {
   SectionTitle,
   titleClass,
 } from "./flow-ui";
+import { InspectionChecklist } from "./inspection-checklist";
 import { flowError, useHandover, useInspectionEditor } from "./use-check-in-flow";
 export function InspectionPhotoCard({
   recordId,
@@ -70,7 +72,7 @@ export function InspectionPhotoCard({
             />
           </a>
         ) : (
-          <div className="grid h-full place-items-center p-3 text-center text-xs text-[#707975]">
+          <div className="grid h-full place-items-center p-3 text-center text-xs text-[#5c6661]">
             {query.isError ? (
               <div role="alert">
                 <p>{FLOW.photoLoadError}</p>
@@ -121,7 +123,7 @@ export function InspectionPhotoCard({
       </div>
       <div className="p-3">
         <p className="truncate text-xs font-semibold">{photo.filename}</p>
-        <p className="mt-1 text-[11px] text-[#707975]">{formatDateTime(photo.createdAt)}</p>
+        <p className="mt-1 text-[11px] text-[#5c6661]">{formatDateTime(photo.createdAt)}</p>
       </div>
     </div>
   );
@@ -160,7 +162,14 @@ export function InspectionScreen({
           {FLOW.recordId}: {record.id} · {record.unitCode}
         </p>
         <Pill>{record.status === "COMPLETED" ? FLOW.locked : FLOW.statusLabels.DRAFT}</Pill>
-        <p className="whitespace-pre-wrap">{record.conditionNotes}</p>
+        {record.status === "COMPLETED" && (
+          <Pill tone={record.handedOverAt ? "green" : "amber"}>
+            {record.handedOverAt ? FLOW.handoverFinished : FLOW.pendingHandover}
+          </Pill>
+        )}
+        <InspectionChecklist items={e.items} results={record.results ?? []} />
+        {!record.checklistVersion && <p>{FLOW.checklistLegacy}</p>}
+        <p className="whitespace-pre-wrap">{record.conditionNotes || FLOW.noNotes}</p>
         <p className="text-xs">
           {FLOW.lockedAt}: {formatDateTime(record.completedAt)}
         </p>
@@ -188,17 +197,17 @@ export function InspectionScreen({
         <div className="flex items-center gap-3">
           <Warehouse size={30} className="text-[#003b2f]" />
           <div>
-            <p className="text-xs text-[#707975]">{result.booking.bookingCode}</p>
+            <p className="text-xs text-[#5c6661]">{result.booking.bookingCode}</p>
             <h2 className={`${titleClass} text-xl`}>{result.booking.contactName}</h2>
           </div>
         </div>
         <div>
-          <p className="text-[11px] uppercase text-[#707975]">{FLOW.assigned}</p>
+          <p className="text-[11px] uppercase text-[#5c6661]">{FLOW.assigned}</p>
           <strong className={`${titleClass} text-xl text-[#003b2f]`}>{record.unitCode}</strong>
-          <p className="text-xs text-[#707975]">{result.booking.unitTypeSizeLabel}</p>
+          <p className="text-xs text-[#5c6661]">{result.booking.unitTypeSizeLabel}</p>
         </div>
         <div>
-          <p className="text-[11px] uppercase text-[#707975]">{FLOW.recordId}</p>
+          <p className="text-[11px] uppercase text-[#5c6661]">{FLOW.recordId}</p>
           <p className="max-w-[220px] break-all text-xs">{record.id}</p>
           <Pill tone={e.locked ? "green" : "neutral"}>
             {e.locked ? FLOW.locked : e.dirty ? FLOW.unsaved : FLOW.saved}
@@ -234,11 +243,9 @@ export function InspectionScreen({
                   {FLOW.conditionReport}
                 </SectionTitle>
                 <div className="mt-4 rounded bg-[#f2f3ff] p-4">
-                  <Pill tone={record.correctUnit ? "green" : "amber"}>
-                    {record.correctUnit ? FLOW.correct : FLOW.wrong}
-                  </Pill>
+                  <InspectionChecklist items={e.items} results={record.results ?? []} />
                   <p className="mt-4 whitespace-pre-wrap text-sm leading-6">
-                    {record.conditionNotes}
+                    {record.conditionNotes || FLOW.noNotes}
                   </p>
                 </div>
               </Panel>
@@ -255,36 +262,16 @@ export function InspectionScreen({
             </div>
             <div className="space-y-4">
               <Panel>
-                <p className="text-[11px] uppercase text-[#707975]">{FLOW.recordStatus}</p>
+                <p className="text-[11px] uppercase text-[#5c6661]">{FLOW.recordStatus}</p>
                 <h2 className={`${titleClass} mt-2 text-xl text-[#003b2f]`}>
-                  {e.count === 3 ? FLOW.readyComplete : FLOW.incomplete}
+                  {e.canComplete ? FLOW.readyComplete : FLOW.incomplete}
                 </h2>
                 <div className="mt-4 rounded bg-[#f2f3ff] p-4">
                   <Pill tone="amber">{FLOW.notHandedOver}</Pill>
                   <p className="mt-3 text-xs leading-5">{FLOW.inspectionPending}</p>
                 </div>
                 <div className="mt-4 space-y-3">
-                  {[FLOW.correctTitle, FLOW.notesTitle, FLOW.photosTitle].map((text, i) => (
-                    <div key={text} className="flex items-center gap-2 text-xs">
-                      <CheckCircle2
-                        size={16}
-                        className={
-                          i === 0
-                            ? record.correctUnit
-                              ? "text-[#306858]"
-                              : "text-[#93000a]"
-                            : i === 1
-                              ? record.conditionNotes.trim()
-                                ? "text-[#306858]"
-                                : "text-[#93000a]"
-                              : record.photos.length
-                                ? "text-[#306858]"
-                                : "text-[#93000a]"
-                        }
-                      />
-                      {text}
-                    </div>
-                  ))}
+                  <InspectionChecklist items={e.items} results={record.results ?? []} />
                 </div>
               </Panel>
               <Panel className="bg-[#b4efda]/30">
@@ -307,7 +294,7 @@ export function InspectionScreen({
             </Button>
             <Button
               loading={e.busy}
-              disabled={!e.confirmLock || e.count !== 3 || e.locked}
+              disabled={!e.confirmLock || !e.canComplete || e.locked || e.dirty}
               onClick={e.complete}
               icon={<Lock size={18} />}
             >
@@ -319,11 +306,11 @@ export function InspectionScreen({
         <>
           <Panel className="flex flex-wrap items-center gap-4">
             <div className="grid size-20 place-items-center rounded-full border-[6px] border-[#b4efda] text-xl font-bold text-[#003b2f]">
-              {Math.round((e.count / 3) * 100)}%
+              {Math.round((e.count / e.items.length) * 100)}%
             </div>
             <div>
               <h2 className={`${titleClass} text-xl`}>
-                {e.count} / 3 {FLOW.progress}
+                {e.count} / {e.items.length} {FLOW.progress}
               </h2>
               <p className="mt-1 text-sm text-[#404945]">{FLOW.requirement}</p>
             </div>
@@ -335,35 +322,15 @@ export function InspectionScreen({
                   <span className="grid size-7 place-items-center rounded bg-[#003b2f] text-sm text-white">
                     1
                   </span>
-                  {FLOW.correctTitle}
+                  {FLOW.checklistTitle}
                 </SectionTitle>
-                <p className="mt-2 text-xs text-[#707975]">{FLOW.correctHint}</p>
-                <fieldset disabled={e.busy || e.locked} className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <legend className="sr-only">{FLOW.correctTitle}</legend>
-                  {[true, false].map((v) => (
-                    <label
-                      key={String(v)}
-                      className={`cursor-pointer rounded-lg bg-[#f2f3ff] p-4 ${e.values.correctUnit === v ? "ring-2 ring-[#003b2f]" : ""}`}
-                    >
-                      <input
-                        type="radio"
-                        name="correctUnit"
-                        checked={e.values.correctUnit === v}
-                        onChange={() => e.form.setValue("correctUnit", v, { shouldDirty: true })}
-                        className="mr-2 accent-[#003b2f]"
-                      />
-                      <strong className="text-sm">{v ? FLOW.correct : FLOW.wrong}</strong>
-                      <p className="mt-2 text-xs text-[#707975]">
-                        {v ? record.unitCode : FLOW.mismatch}
-                      </p>
-                    </label>
-                  ))}
-                </fieldset>
-                {e.values.correctUnit === false && (
-                  <p role="alert" className="mt-4 rounded bg-[#ffdad6] p-3 text-sm text-[#93000a]">
-                    {FLOW.mismatch}
-                  </p>
-                )}
+                <p className="my-3 text-sm text-[#404945]">{FLOW.requirement}</p>
+                <InspectionChecklist
+                  items={e.items}
+                  results={e.values.results ?? []}
+                  disabled={e.busy || e.locked}
+                  onChange={e.setResult}
+                />
               </Panel>
               <Panel>
                 <SectionTitle>
@@ -372,7 +339,7 @@ export function InspectionScreen({
                   </span>
                   {FLOW.notesTitle}
                 </SectionTitle>
-                <p className="mt-2 text-xs text-[#707975]">{FLOW.notesHint}</p>
+                <p className="mt-2 text-xs text-[#5c6661]">{FLOW.notesHint}</p>
                 <div className="my-4 flex flex-wrap gap-2">
                   {FLOW.suggestions.map((s) => (
                     <button
@@ -405,7 +372,7 @@ export function InspectionScreen({
                     className={inputClass}
                   />
                 </label>
-                <p id="condition-notes-feedback" className="mt-2 text-right text-xs text-[#707975]">
+                <p id="condition-notes-feedback" className="mt-2 text-right text-xs text-[#5c6661]">
                   {e.values.conditionNotes.length}/4000
                 </p>
                 {e.form.formState.errors.conditionNotes && (
@@ -431,7 +398,7 @@ export function InspectionScreen({
                     {FLOW.upload}
                   </Button>
                 </div>
-                <p className="mt-2 text-xs text-[#707975]">{FLOW.photosHint}</p>
+                <p className="mt-2 text-xs text-[#5c6661]">{FLOW.photosHint}</p>
                 <input
                   ref={fileRef}
                   type="file"
@@ -457,7 +424,7 @@ export function InspectionScreen({
                     ))}
                   </div>
                 ) : (
-                  <div className="mt-4 rounded-lg border border-dashed border-[#bfc9c4] p-8 text-center text-xs text-[#707975]">
+                  <div className="mt-4 rounded-lg border border-dashed border-[#bfc9c4] p-8 text-center text-xs text-[#5c6661]">
                     {FLOW.noPhotos}
                   </div>
                 )}
@@ -484,12 +451,12 @@ export function InspectionScreen({
               </Panel>
               <Panel>
                 <SectionTitle>{FLOW.telemetry}</SectionTitle>
-                <p className="mt-3 text-xs leading-5 text-[#707975]">{FLOW.telemetryHint}</p>
+                <p className="mt-3 text-xs leading-5 text-[#5c6661]">{FLOW.telemetryHint}</p>
                 <Pill tone="neutral">{FLOW.unavailable}</Pill>
               </Panel>
             </div>
           </div>
-          {e.count !== 3 && <p className="text-sm text-[#404945]">{FLOW.reviewHint}</p>}
+          {!e.canComplete && <p className="text-sm text-[#404945]">{FLOW.reviewHint}</p>}
           <Panel className="flex flex-wrap items-center justify-between gap-3">
             <Button variant="secondary" onClick={back} disabled={e.busy}>
               {FLOW.backVerify}
@@ -497,7 +464,7 @@ export function InspectionScreen({
             <div
               role="status"
               aria-live="polite"
-              className="flex items-center gap-2 text-xs text-[#707975]"
+              className="flex items-center gap-2 text-xs text-[#5c6661]"
             >
               <Cloud size={16} />
               {e.busy ? FLOW.saving : e.dirty ? FLOW.unsaved : FLOW.saved}
@@ -513,7 +480,7 @@ export function InspectionScreen({
               </Button>
               <Button
                 loading={e.busy}
-                disabled={e.count !== 3 || e.locked}
+                disabled={!e.canComplete || e.locked}
                 onClick={() => e.save("review")}
               >
                 {FLOW.review}
@@ -581,7 +548,16 @@ function HandoverContent({
                 {FLOW.printRecord}
               </Button>
             </div>
-            <p className="my-4 whitespace-pre-wrap text-sm leading-6">{record.conditionNotes}</p>
+            <div className="mt-4">
+              <InspectionChecklist
+                items={record.checklistDefinition ?? HANDOVER_CHECKLIST_ITEMS}
+                results={record.results ?? []}
+              />
+            </div>
+            {!record.checklistVersion && <p className="mt-3 text-sm">{FLOW.checklistLegacy}</p>}
+            <p className="my-4 whitespace-pre-wrap text-sm leading-6">
+              {record.conditionNotes || FLOW.noNotes}
+            </p>
             <div className="grid gap-3 sm:grid-cols-3">
               {record.photos.map((photo) => (
                 <InspectionPhotoCard key={photo.id} recordId={record.id} photo={photo} />

@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useToast } from "@/components/ui/toast";
@@ -41,6 +41,8 @@ export function LoginForm() {
   const setSession = useAuthStore((state) => state.setSession);
   const { showToast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
 
   const {
     register,
@@ -79,12 +81,14 @@ export function LoginForm() {
       router.replace(destination);
     } catch (error) {
       const responseData = axios.isAxiosError(error)
-        ? (error.response?.data as { code?: string; message?: string } | undefined)
+        ? (error.response?.data as
+            | { code?: string; message?: string; error?: { code?: string; message?: string } }
+            | undefined)
         : undefined;
       const message =
-        responseData?.code === "EMAIL_NOT_VERIFIED"
+        (responseData?.code ?? responseData?.error?.code) === "EMAIL_NOT_VERIFIED"
           ? AUTH_MESSAGES.loginEmailNotVerified
-          : responseData?.message;
+          : (responseData?.error?.message ?? responseData?.message);
       showToast(message ?? AUTH_MESSAGES.loginFailed, "error");
     }
   }
@@ -107,7 +111,7 @@ export function LoginForm() {
         </div>
 
         {/* Authentication Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form method="post" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Field 1: Email */}
           <div>
             <label htmlFor="email" className="block text-sm font-bold text-slate-900 mb-1.5">
@@ -120,6 +124,7 @@ export function LoginForm() {
               <input
                 id="email"
                 type="email"
+                disabled={!hydrated}
                 autoComplete="email"
                 placeholder={AUTH_MESSAGES.emailPlaceholder}
                 {...register("email")}
@@ -145,6 +150,7 @@ export function LoginForm() {
               <input
                 id="password"
                 type={showPassword ? "text" : "password"}
+                disabled={!hydrated}
                 autoComplete="current-password"
                 placeholder={AUTH_MESSAGES.passwordPlaceholder}
                 {...register("password")}
@@ -194,7 +200,7 @@ export function LoginForm() {
           <div className="pt-2">
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={!hydrated || isSubmitting}
               className="w-full h-11 bg-[#165f4d] hover:bg-[#0f493b] active:bg-[#0a352b] text-white text-sm font-semibold rounded-lg flex items-center justify-center gap-2 transition-all duration-150 shadow-xs active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#165f4d] cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
             >
               <span>{isSubmitting ? AUTH_MESSAGES.loggingIn : AUTH_MESSAGES.loginButton}</span>

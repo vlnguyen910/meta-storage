@@ -1,4 +1,7 @@
 import {
+  HANDOVER_CHECKLIST_ITEMS,
+  HandoverChecklistCompletionSchema,
+  INSPECTION_CHECKLIST_VERSION,
   type Inspection,
   InspectionDraftInputSchema,
   InspectionPhotoInputSchema,
@@ -69,6 +72,9 @@ export function registerInspectionHandlers(mock: MockAdapter): void {
       policyVersion: "H6_V1",
       status: "DRAFT",
       version: 0,
+      results: [],
+      checklistVersion: INSPECTION_CHECKLIST_VERSION,
+      checklistDefinition: [...HANDOVER_CHECKLIST_ITEMS],
       correctUnit: null,
       conditionNotes: "",
       createdBy: user.id,
@@ -126,8 +132,19 @@ export function registerInspectionHandlers(mock: MockAdapter): void {
     if (action === "save") {
       const parsed = InspectionDraftInputSchema.safeParse(parseBody(config.data));
       if (!parsed.success) return [400, errorBody(400, M.invalid)];
-      inspection.correctUnit = parsed.data.correctUnit;
-      inspection.conditionNotes = parsed.data.conditionNotes;
+      const results = parsed.data.results ?? inspection.results;
+      const assigned = results?.find((entry) => entry.itemCode === "ASSIGNED_UNIT");
+      inspection.correctUnit = results?.length
+        ? assigned
+          ? assigned.result === "PASS"
+          : null
+        : parsed.data.correctUnit;
+      inspection.conditionNotes = parsed.data.conditionNotes.trim();
+      if (parsed.data.results !== undefined) {
+        inspection.results = parsed.data.results;
+        inspection.checklistVersion ??= INSPECTION_CHECKLIST_VERSION;
+        inspection.checklistDefinition ??= [...HANDOVER_CHECKLIST_ITEMS];
+      }
     }
     if (action === "upload") {
       const parsed = InspectionPhotoInputSchema.safeParse(parseBody(config.data));
@@ -158,8 +175,8 @@ export function registerInspectionHandlers(mock: MockAdapter): void {
       db.photoContents = db.photoContents.filter((p) => p.id !== photoId);
     }
     if (action === "complete") {
-      if (!inspection.correctUnit || !inspection.conditionNotes.trim() || !inspection.photos.length)
-        return [409, errorBody(409, M.incomplete)];
+      if (!HandoverChecklistCompletionSchema.safeParse(inspection.results).success)
+        return [422, errorBody(422, M.incomplete)];
       booking.handoverStage = "READY_HANDOVER";
       inspection.status = "COMPLETED";
       inspection.completedAt = new Date().toISOString();

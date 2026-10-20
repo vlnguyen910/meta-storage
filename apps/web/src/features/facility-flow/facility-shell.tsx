@@ -20,6 +20,7 @@ import { useMyFacilityAssignments } from "@/features/check-in/hooks";
 import { cn } from "@/lib/cn";
 import { FLOW } from "./flow.messages";
 import { flowFontClass } from "./flow-ui";
+import { StaffTaskNotifications } from "./staff-task-notifications";
 
 function FacilityShellContent({
   children,
@@ -179,7 +180,10 @@ function FacilityShellContent({
             </div>
           </div>
         </header>
-        <main className="mx-auto max-w-[1504px] space-y-6 px-4 pb-8 sm:px-8">{children}</main>
+        <main className="mx-auto max-w-[1504px] space-y-6 px-4 pb-8 sm:px-8">
+          {user?.role === UserRole.FACILITY_STAFF && <StaffTaskNotifications key={user.id} />}
+          {children}
+        </main>
       </div>
     </div>
   );
