@@ -3,7 +3,7 @@ import { expect, type Page, test } from "@playwright/test";
 async function login(page: Page, email: string) {
   await page.goto("/login");
   await page.getByLabel("Email", { exact: true }).fill(email);
-  await page.getByLabel("Mật khẩu", { exact: true }).fill("Demo@123");
+  await page.getByLabel("Mật khẩu", { exact: true }).fill("12345678");
   await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
   await expect(page).not.toHaveURL(/\/login$/);
 }

@@ -47,5 +47,5 @@ export const userSeeds: MockUser[] = demoAccounts.map((account, index) => ({
       : account.role === UserRole.FACILITY_STAFF || account.role === UserRole.FACILITY_MANAGER
         ? ["fac-hcm-central"]
         : [],
-  password: "Demo@123",
+  password: "12345678",
 }));

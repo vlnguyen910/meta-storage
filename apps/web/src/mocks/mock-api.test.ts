@@ -27,7 +27,7 @@ describe("mock reservation API", () => {
     installMockApi(http);
     const session = await client.auth.login({
       email: "customer@metastorage.test",
-      password: "Demo@123",
+      password: "12345678",
     });
     tokens = session;
     expect(session.user.assignedFacilityId).toBeNull();
@@ -91,7 +91,7 @@ describe("mock reservation API", () => {
     // 1. FM logs in and assigns staff to BK-2026-0001
     const fmSession = await client.auth.login({
       email: "manager@metastorage.test",
-      password: "Demo@123",
+      password: "12345678",
     });
     tokens = fmSession;
 
@@ -109,7 +109,7 @@ describe("mock reservation API", () => {
     // 2. Staff logs in and fetches assigned tasks
     const staffSession = await client.auth.login({
       email: "staff@metastorage.test",
-      password: "Demo@123",
+      password: "12345678",
     });
     tokens = staffSession;
 
@@ -122,7 +122,7 @@ describe("mock reservation API", () => {
     // 1. Single facility FM login and assignment retrieval
     const fmSession = await client.auth.login({
       email: "manager@metastorage.test",
-      password: "Demo@123",
+      password: "12345678",
     });
     tokens = fmSession;
     expect(fmSession.user.assignedFacilityId).toBe("fac-hcm-central");
@@ -147,7 +147,7 @@ describe("mock reservation API", () => {
     // 2. Multi-facility manager defaults to the first assignment and can access both.
     const multiSession = await client.auth.login({
       email: "multi-manager@metastorage.test",
-      password: "Demo@123",
+      password: "12345678",
     });
     tokens = multiSession;
 

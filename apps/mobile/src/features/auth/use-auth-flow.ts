@@ -263,7 +263,7 @@ export function useAuthFlow() {
     }
   }
 
-  function fillDemo(email = "customer@metastorage.test", password = "Demo@123") {
+  function fillDemo(email = "customer@metastorage.test", password = "12345678") {
     setValues((current) => ({
       ...current,
       email,

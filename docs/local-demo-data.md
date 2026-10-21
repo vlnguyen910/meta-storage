@@ -5,7 +5,7 @@ before seeding. Test databases are separate.
 
 ## Accounts
 
-All accounts below use the local-only password **`StoreXDev123!`**. Accounts are active,
+All accounts below use the local-only password **`12345678`**. Accounts are active,
 email-verified, and have actual Better Auth credential records, so they work on Web
 and Swagger rather than only in mocks.
 

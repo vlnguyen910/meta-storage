@@ -1,6 +1,6 @@
 # Tài khoản cơ sở local
 
-Dùng tại `http://localhost:3000/login`. Mật khẩu fixture local: `StoreXDev123!`.
+Dùng tại `http://localhost:3000/login`. Mật khẩu fixture local: `12345678`.
 
 | Cơ sở | Manager | Staff |
 | --- | --- | --- |

@@ -95,7 +95,7 @@ export function useMobileAuth({ route, run, go }: MobileScreenProps) {
     },
     demo: (role: "customer" | "staff") => {
       login.setValue("email", `${role}@metastorage.test`);
-      login.setValue("password", "Demo@123");
+      login.setValue("password", "12345678");
     },
   };
 }
