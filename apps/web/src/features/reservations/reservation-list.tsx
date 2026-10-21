@@ -11,7 +11,7 @@ import { useMyReservations } from "./hooks";
 
 export function ReservationList() {
   const query = useMyReservations();
-  if (query.isLoading) return <LoadingState label="Đang tải reservation…" />;
+  if (query.isLoading) return <LoadingState variant="table" />;
   if (query.isError)
     return (
       <ErrorState message="Không thể tải danh sách reservation." onRetry={() => query.refetch()} />

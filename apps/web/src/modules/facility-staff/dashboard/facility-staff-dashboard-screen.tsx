@@ -61,7 +61,7 @@ function StaffDashboardContent() {
       </nav>
 
       {isLoading ? (
-        <LoadingState label={FLOW.loading} />
+        <LoadingState label={FLOW.loading} variant="dashboard" />
       ) : isError ? (
         <ErrorState message={FLOW.error} onRetry={() => refetch()} />
       ) : !assignment ? (

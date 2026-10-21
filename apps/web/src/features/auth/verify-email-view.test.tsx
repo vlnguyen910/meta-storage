@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { GlobalLoadingProvider } from "@/components/providers/global-loading-provider";
 import { AUTH_MESSAGES as m } from "./auth.messages";
 import { VerifyEmailView } from "./verify-email-view";
 
@@ -16,7 +17,11 @@ describe("email verification recovery", () => {
     resendVerificationEmail.mockReset();
   });
   it("does not claim verification success or show a simulator without evidence", () => {
-    render(<VerifyEmailView />);
+    render(
+      <GlobalLoadingProvider>
+        <VerifyEmailView />
+      </GlobalLoadingProvider>,
+    );
     expect(screen.getByRole("heading", { name: m.verificationCheck })).toBeInTheDocument();
     expect(screen.queryByText(m.successTitle)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Token valid/ })).not.toBeInTheDocument();
@@ -24,14 +29,22 @@ describe("email verification recovery", () => {
   it("keeps token errors even if status=success is supplied", () => {
     params.set("error", "invalid_token");
     params.set("status", "success");
-    render(<VerifyEmailView />);
+    render(
+      <GlobalLoadingProvider>
+        <VerifyEmailView />
+      </GlobalLoadingProvider>,
+    );
     expect(screen.getByRole("heading", { name: m.failureTitle })).toBeInTheDocument();
     expect(screen.queryByText(m.successTitle)).not.toBeInTheDocument();
   });
   it("resends verification with the entered email and trusted local callback", async () => {
     const user = userEvent.setup();
     resendVerificationEmail.mockResolvedValue(undefined);
-    render(<VerifyEmailView />);
+    render(
+      <GlobalLoadingProvider>
+        <VerifyEmailView />
+      </GlobalLoadingProvider>,
+    );
     await user.type(screen.getByLabelText(m.emailLabel), "review@example.test");
     await user.click(screen.getByRole("button", { name: m.resendVerifyEmail }));
     expect(resendVerificationEmail).toHaveBeenCalledWith(
@@ -46,7 +59,11 @@ describe("email verification recovery", () => {
     resendVerificationEmail.mockRejectedValue(new Error("offline"));
     params.set("error", "expired");
     params.set("email", "review@example.test");
-    render(<VerifyEmailView />);
+    render(
+      <GlobalLoadingProvider>
+        <VerifyEmailView />
+      </GlobalLoadingProvider>,
+    );
     expect(screen.getByRole("heading", { name: m.expiredTitle })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: m.resendVerifyEmail }));
     expect(await screen.findByRole("alert")).toHaveTextContent(m.verificationRequestFailed);

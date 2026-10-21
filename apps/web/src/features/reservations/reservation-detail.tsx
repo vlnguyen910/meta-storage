@@ -11,7 +11,7 @@ import { useReservation } from "./hooks";
 
 export function ReservationDetail({ reservationId }: { reservationId: string }) {
   const query = useReservation(reservationId);
-  if (query.isLoading) return <LoadingState />;
+  if (query.isLoading) return <LoadingState variant="detail" />;
   if (query.isError || !query.data)
     return (
       <ErrorState

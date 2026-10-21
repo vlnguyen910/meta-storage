@@ -31,7 +31,7 @@ export function StaffTasksView({ facilityId, facilityName }: StaffTasksViewProps
 
   const { data: tasks, isLoading, isError, isFetching, refetch } = useStaffTasks(facilityId);
 
-  if (isLoading) return <LoadingState />;
+  if (isLoading) return <LoadingState variant="table" />;
   if (isError)
     return (
       <ErrorState message="Không thể tải danh sách nhiệm vụ được giao." onRetry={() => refetch()} />

@@ -21,6 +21,7 @@ import {
 import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useGlobalLoading } from "@/components/providers/global-loading-provider";
 import { isMockMode } from "@/config/api-mode";
 import { routes } from "@/config/routes";
 import { api } from "@/lib/api";
@@ -29,6 +30,7 @@ import { AUTH_MESSAGES } from "./auth.messages";
 import type { RegisterFormValues } from "./auth.types";
 
 export function RegisterForm() {
+  const { runWithGlobalLoading } = useGlobalLoading();
   const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -74,7 +76,7 @@ export function RegisterForm() {
         confirmPassword: values.confirmPassword,
         callbackTarget: values.callbackTarget,
       };
-      await api.auth.registerCustomer(payload);
+      await runWithGlobalLoading(() => api.auth.registerCustomer(payload));
       setRegisteredEmail(values.email.trim().toLowerCase());
     } catch (error) {
       const message = getResponseMessage(error);

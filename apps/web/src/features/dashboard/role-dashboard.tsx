@@ -21,7 +21,8 @@ export function RoleDashboard({ role, facilityId }: RoleDashboardProps) {
     queryKey: ["dashboard", role, facilityId],
     queryFn: () => api.dashboards.get(role, facilityId),
   });
-  if (query.isLoading) return <LoadingState label={ROLE_DASHBOARD_MESSAGES.loading} />;
+  if (query.isLoading)
+    return <LoadingState label={ROLE_DASHBOARD_MESSAGES.loading} variant="dashboard" />;
   if (query.isError || !query.data) {
     return <ErrorState message={ROLE_DASHBOARD_MESSAGES.error} onRetry={() => query.refetch()} />;
   }

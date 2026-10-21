@@ -22,6 +22,7 @@ export function useBookingTracking() {
   const [message, setMessage] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<number | null>(null);
   const exchange = useMutation({
+    meta: { globalLoading: true },
     mutationFn: api.bookings.exchangeMagicLink,
     gcTime: 0,
     retry: false,
@@ -81,6 +82,7 @@ export function useBookingTracking() {
     return () => window.clearTimeout(timer);
   }, [expiresAt, client]);
   const revoke = useMutation({
+    meta: { globalLoading: true },
     mutationFn: api.bookings.revokeTrackingSession,
     onSuccess: async () => {
       // Cancel outstanding requests before removing cached private data.

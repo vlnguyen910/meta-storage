@@ -7,6 +7,7 @@ import { LogOut, Menu, RotateCcw, Warehouse, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode, useState } from "react";
+import { useGlobalLoading } from "@/components/providers/global-loading-provider";
 import { useToast } from "@/components/ui/toast";
 import { isMockMode } from "@/config/api-mode";
 import { navigationByRole } from "@/config/navigation";
@@ -34,6 +35,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { showToast } = useToast();
   const session = useAuthStore((state) => state.session);
   const clearSession = useAuthStore((state) => state.clearSession);
+  const { runWithGlobalLoading, startNavigationLoading } = useGlobalLoading();
   const role = session?.user.role;
   if (!session || !role) return null;
 
@@ -41,10 +43,13 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   async function logout() {
     try {
-      await api.auth.logout();
-      clearSession();
-      queryClient.clear();
-      router.replace(routes.login);
+      await runWithGlobalLoading(async () => {
+        await api.auth.logout();
+        clearSession();
+        queryClient.clear();
+        startNavigationLoading();
+        router.replace(routes.login);
+      });
     } catch {
       showToast(AUTH_MESSAGES.logoutFailed, "error");
     }

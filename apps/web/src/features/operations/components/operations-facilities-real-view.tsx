@@ -25,7 +25,7 @@ export function OperationsFacilitiesRealView() {
 
   const { data: facilities, isPending, isError, refetch } = query;
 
-  if (isPending) return <LoadingState label={M.loading} />;
+  if (isPending) return <LoadingState label={M.loading} variant="table" />;
   if (isError || !facilities) {
     return <ErrorState message={M.error} onRetry={() => void refetch()} />;
   }

@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { LoadingState } from "@/components/ui/states";
+import { LOADING_MESSAGES } from "@/components/ui/loading.messages";
+import { FullScreenLoading } from "@/components/ui/states";
 import { routes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { AppShell } from "./app-shell";
@@ -26,11 +27,7 @@ export function ProtectedArea({
   }, [allowedRole, authReady, hydrated, router, session]);
 
   if (!hydrated || !authReady || !session || session.user.role !== allowedRole) {
-    return (
-      <main className="grid min-h-screen place-items-center p-8">
-        <LoadingState label="Đang xác thực quyền truy cập…" />
-      </main>
-    );
+    return <FullScreenLoading label={LOADING_MESSAGES.auth} />;
   }
 
   return withAppShell ? <AppShell>{children}</AppShell> : children;

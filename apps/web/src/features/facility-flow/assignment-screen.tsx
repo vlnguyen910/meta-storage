@@ -100,7 +100,7 @@ export function AssignmentScreen() {
       <Steps active={0} />
       <FlowHelp />
       {booking.isLoading ? (
-        <LoadingState label={FLOW.loading} />
+        <LoadingState label={FLOW.loading} variant="detail" />
       ) : booking.isError || !booking.data ? (
         <ErrorState message={FLOW.error} onRetry={() => booking.refetch()} />
       ) : (
@@ -161,7 +161,7 @@ export function AssignmentScreen() {
                 </Button>
               </div>
               {units.isLoading ? (
-                <LoadingState />
+                <LoadingState variant="table" />
               ) : units.isError ? (
                 <ErrorState message={FLOW.error} onRetry={() => units.refetch()} />
               ) : !units.data?.length ? (

@@ -22,6 +22,7 @@ export function useOperationsRefunds() {
   });
 
   const confirmMutation = useMutation({
+    meta: { globalLoading: true },
     mutationFn: async ({ paymentId, reference }: { paymentId: string; reference: string }) =>
       api.payments.confirmManualRefund(paymentId, { reference }),
     onSuccess: () => {

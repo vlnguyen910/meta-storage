@@ -279,7 +279,7 @@ function RentalsTab() {
       )}
 
       {isPending ? (
-        <LoadingState label={M.loading} />
+        <LoadingState label={M.loading} variant="table" />
       ) : isError || !data ? (
         <ErrorState message={M.error} onRetry={() => void refetch()} />
       ) : data.items.length === 0 ? (
@@ -416,7 +416,7 @@ function ReconciliationTab() {
       </div>
 
       {isPending ? (
-        <LoadingState label={M.loading} />
+        <LoadingState label={M.loading} variant="table" />
       ) : isError || !data ? (
         <ErrorState message={M.error} onRetry={() => void refetch()} />
       ) : data.items.length === 0 ? (
@@ -598,7 +598,7 @@ function RefundsQueueTab() {
       )}
 
       {isPending ? (
-        <LoadingState label={M.loading} />
+        <LoadingState label={M.loading} variant="table" />
       ) : isError || !refunds ? (
         <ErrorState message={M.error} onRetry={() => void refetch()} />
       ) : refunds.length === 0 ? (

@@ -56,7 +56,7 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
   const [notice, setNotice] = useState("");
   const filter = (key: keyof AdminFilters, value: string) =>
     setFilters((current) => ({ ...current, [key]: value }));
-  if (query.isLoading) return <LoadingState label={M.loading} />;
+  if (query.isLoading) return <LoadingState label={M.loading} variant="table" />;
   if (!query.data || query.isError)
     return (
       <section className={adminCard}>

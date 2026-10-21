@@ -77,7 +77,7 @@ export function CheckoutSelection({ state }: { state: CheckoutState }) {
       </div>
       <div className={s.layout}>
         <div className={s.stack}>
-          {availabilityQuery.isLoading ? <LoadingState label={m.loading} /> : null}
+          {availabilityQuery.isLoading ? <LoadingState label={m.loading} variant="form" /> : null}
           {availabilityQuery.isError ? (
             <ErrorState message={m.availabilityError} onRetry={() => availabilityQuery.refetch()} />
           ) : null}

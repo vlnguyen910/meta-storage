@@ -8,10 +8,14 @@ export function useBookingSlots() {
   return useQuery({ queryKey: ["bookings", "slots"], queryFn: api.bookings.checkInSlots });
 }
 export function useBookingDraft() {
-  return useMutation({ mutationFn: (input: BookingDraftInput) => api.bookings.createDraft(input) });
+  return useMutation({
+    meta: { globalLoading: true },
+    mutationFn: (input: BookingDraftInput) => api.bookings.createDraft(input),
+  });
 }
 export function useBookingPayment() {
   return useMutation({
+    meta: { globalLoading: true },
     mutationFn: ({ bookingId, input }: { bookingId: string; input: BookingPaymentInput }) =>
       api.bookings.pay(bookingId, input),
   });

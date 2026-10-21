@@ -11,7 +11,7 @@ import { formatDate } from "@/lib/format";
 
 export function CustomerDashboardScreen() {
   const query = useMyReservations();
-  if (query.isLoading) return <LoadingState />;
+  if (query.isLoading) return <LoadingState variant="dashboard" />;
   if (query.isError) {
     return (
       <ErrorState message="Không thể tải tổng quan tài khoản." onRetry={() => query.refetch()} />

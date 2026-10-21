@@ -162,7 +162,7 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
         </p>
       )}
       {d.query.isLoading ? (
-        <LoadingState label={FLOW.loading} />
+        <LoadingState label={FLOW.loading} variant="table" />
       ) : d.query.isError && !d.query.data ? (
         <ErrorState message={FLOW.listError} onRetry={() => d.query.refetch()} />
       ) : d.filtered.length === 0 ? (

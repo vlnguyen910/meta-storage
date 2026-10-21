@@ -1,4 +1,5 @@
 "use client";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -11,9 +12,24 @@ import { useOperationsRevenue } from "../hooks/use-operations-revenue";
 import { OPERATIONS_MESSAGES as M } from "../operations.messages";
 import { formatDateTimeVn, formatMoney, getDefaultPeriod } from "../operations.utils";
 import { REPORTING_MESSAGES as R } from "../operations-reporting.messages";
-import { FacilityRevenueChart } from "./charts/facility-revenue-chart";
-import { FacilityUtilizationDonutChart } from "./charts/facility-utilization-donut-chart";
-import { OperationsFinancialChart } from "./charts/operations-financial-chart";
+import { ChartLoadingSkeleton } from "./charts/chart-loading-skeleton";
+
+const FacilityRevenueChart = dynamic(
+  () => import("./charts/facility-revenue-chart").then((module) => module.FacilityRevenueChart),
+  { ssr: false, loading: () => <ChartLoadingSkeleton /> },
+);
+const FacilityUtilizationDonutChart = dynamic(
+  () =>
+    import("./charts/facility-utilization-donut-chart").then(
+      (module) => module.FacilityUtilizationDonutChart,
+    ),
+  { ssr: false, loading: () => <ChartLoadingSkeleton /> },
+);
+const OperationsFinancialChart = dynamic(
+  () =>
+    import("./charts/operations-financial-chart").then((module) => module.OperationsFinancialChart),
+  { ssr: false, loading: () => <ChartLoadingSkeleton /> },
+);
 
 export function OperationsDashboardView() {
   const [showPreview, setShowPreview] = useState(false);
@@ -74,7 +90,7 @@ export function OperationsDashboardView() {
         </Button>
       </section>
       {query.isPending ? (
-        <LoadingState label={M.loading} />
+        <LoadingState label={M.loading} variant="dashboard" />
       ) : query.isError || !data ? (
         <ErrorState message={M.error} onRetry={() => void query.refetch()} />
       ) : (
@@ -125,7 +141,7 @@ export function OperationsDashboardView() {
         </summary>
         {showPreview &&
           (preview.isPending ? (
-            <LoadingState label={M.loading} />
+            <LoadingState label={M.loading} variant="table" />
           ) : preview.isError || !preview.data ? (
             <ErrorState message={M.error} onRetry={() => void preview.refetch()} />
           ) : (

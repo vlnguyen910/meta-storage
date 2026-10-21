@@ -20,6 +20,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useGlobalLoading } from "@/components/providers/global-loading-provider";
 import { useToast } from "@/components/ui/toast";
 import { isMockMode } from "@/config/api-mode";
 import { roleHome, routes, safeReturnTo } from "@/config/routes";
@@ -36,6 +37,7 @@ const schema = z.object({
 });
 
 export function LoginForm() {
+  const { runWithGlobalLoading, startNavigationLoading } = useGlobalLoading();
   const router = useRouter();
   const searchParams = useSearchParams();
   const setSession = useAuthStore((state) => state.setSession);
@@ -58,27 +60,29 @@ export function LoginForm() {
 
   async function onSubmit(values: LoginFormValues) {
     try {
-      const session = await api.auth.login({
-        email: values.email,
-        password: values.password,
+      await runWithGlobalLoading(async () => {
+        const session = await api.auth.login({ email: values.email, password: values.password });
+        setSession(session);
+        const role = session.user.role;
+        if (!role) {
+          startNavigationLoading();
+          router.replace(routes.forbidden);
+          return;
+        }
+        showToast(AUTH_MESSAGES.loginWelcome(session.user.name));
+        const requested = safeReturnTo(searchParams.get("returnTo"), roleHome[role]);
+        const roleRoot = `/${roleHome[role].split("/")[1]}`;
+        const customerReservationEntry =
+          session.user.role === UserRole.STORAGE_CUSTOMER &&
+          (requested === routes.reservationNew ||
+            requested.startsWith(`${routes.reservationNew}?`));
+        const destination =
+          requested === roleRoot || requested.startsWith(`${roleRoot}/`) || customerReservationEntry
+            ? requested
+            : roleHome[role];
+        startNavigationLoading();
+        router.replace(destination);
       });
-      setSession(session);
-      const role = session.user.role;
-      if (!role) {
-        router.replace(routes.forbidden);
-        return;
-      }
-      showToast(AUTH_MESSAGES.loginWelcome(session.user.name));
-      const requested = safeReturnTo(searchParams.get("returnTo"), roleHome[role]);
-      const roleRoot = `/${roleHome[role].split("/")[1]}`;
-      const customerReservationEntry =
-        session.user.role === UserRole.STORAGE_CUSTOMER &&
-        (requested === routes.reservationNew || requested.startsWith(`${routes.reservationNew}?`));
-      const destination =
-        requested === roleRoot || requested.startsWith(`${roleRoot}/`) || customerReservationEntry
-          ? requested
-          : roleHome[role];
-      router.replace(destination);
     } catch (error) {
       const responseData = axios.isAxiosError(error)
         ? (error.response?.data as
@@ -188,12 +192,6 @@ export function LoginForm() {
             >
               {AUTH_MESSAGES.forgotPassword}
             </Link>
-          </div>
-
-          {/* Role Intelligence Notice Box */}
-          <div className="rounded-lg bg-[#f8fafc] p-3 border border-slate-200 flex items-start gap-2.5">
-            <ShieldCheck className="w-4 h-4 text-[#165f4d] shrink-0 mt-0.5" />
-            <p className="text-xs text-slate-600 leading-relaxed">{AUTH_MESSAGES.roleNotice}</p>
           </div>
 
           {/* Primary CTA Button */}

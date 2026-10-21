@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type PropsWithChildren } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { GlobalLoadingProvider } from "@/components/providers/global-loading-provider";
 import { routes } from "@/config/routes";
 import { useLogout } from "./use-logout";
 
@@ -17,7 +18,11 @@ function setup() {
   client.setQueryData(["session-sample"], "private-cache");
   const hook = renderHook(() => useLogout(), {
     wrapper: ({ children }: PropsWithChildren) =>
-      createElement(QueryClientProvider, { client }, children),
+      createElement(
+        QueryClientProvider,
+        { client },
+        createElement(GlobalLoadingProvider, null, children),
+      ),
   });
   return { ...hook, client };
 }

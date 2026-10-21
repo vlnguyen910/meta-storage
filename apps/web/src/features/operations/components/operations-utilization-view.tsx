@@ -2,6 +2,7 @@
 
 import axios from "axios";
 import { ChevronLeft, ChevronRight, Download, RotateCcw } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,15 @@ import { useOperationsUtilization } from "../hooks/use-operations-utilization";
 import { OPERATIONS_MESSAGES as M } from "../operations.messages";
 import { downloadCsv, formatDateTimeVn, formatPercentage } from "../operations.utils";
 import { REPORTING_MESSAGES as R } from "../operations-reporting.messages";
-import { FacilityUtilizationBarChart } from "./charts/facility-utilization-bar-chart";
+import { ChartLoadingSkeleton } from "./charts/chart-loading-skeleton";
+
+const FacilityUtilizationBarChart = dynamic(
+  () =>
+    import("./charts/facility-utilization-bar-chart").then(
+      (module) => module.FacilityUtilizationBarChart,
+    ),
+  { ssr: false, loading: () => <ChartLoadingSkeleton /> },
+);
 
 const PAGE_SIZE = 20;
 
@@ -193,7 +202,7 @@ export function OperationsUtilizationView() {
       )}
 
       {isPending ? (
-        <LoadingState label={M.loading} />
+        <LoadingState label={M.loading} variant="dashboard" />
       ) : isError || !data ? (
         <ErrorState message={M.error} onRetry={() => void refetch()} />
       ) : (

@@ -37,6 +37,7 @@ export function useCheckInLookupMutation() {
 
 export function useCheckInConfirmMutation() {
   return useMutation({
+    meta: { globalLoading: true },
     mutationFn: (bookingId: string) => api.checkIns.confirm(bookingId),
   });
 }
@@ -76,6 +77,7 @@ export function useAssignPhysicalUnitMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    meta: { globalLoading: true },
     mutationFn: ({ bookingId, input }: { bookingId: string; input: AssignPhysicalUnitInput }) =>
       api.bookings.assignUnit(bookingId, input),
     onSettled: () =>
@@ -98,6 +100,7 @@ export function useAssignStaffMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    meta: { globalLoading: true },
     mutationFn: ({ bookingId, input }: { bookingId: string; input: AssignBookingStaffInput }) =>
       api.bookings.assignStaff(bookingId, input),
     onSettled: () =>

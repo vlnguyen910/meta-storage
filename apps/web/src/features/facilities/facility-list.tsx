@@ -71,7 +71,7 @@ export function FacilityList({ protectedMode = false }: { protectedMode?: boolea
           </span>
         </div>
       ) : null}
-      {query.isLoading ? <LoadingState label={m.loading} /> : null}
+      {query.isLoading ? <LoadingState label={m.loading} variant="table" /> : null}
       {query.isError ? <ErrorState message={m.error} onRetry={() => query.refetch()} /> : null}
       {query.data?.items.length === 0 ? (
         <EmptyState title={m.empty} description={m.emptyDescription} />

@@ -90,7 +90,7 @@ function CheckInFlowScreen() {
       <>
         <FlowHeading title={FLOW.monitor} description={FLOW.managerMonitorHint} />
         {flow.lookup.isLoading ? (
-          <LoadingState label={FLOW.loading} />
+          <LoadingState label={FLOW.loading} variant="detail" />
         ) : flow.lookup.isError ? (
           <ErrorState
             message={flowError(flow.lookup.error)}
@@ -184,7 +184,7 @@ function CheckInFlowScreen() {
               </Panel>
             </div>
             {flow.history.isLoading ? (
-              <LoadingState label={FLOW.loading} />
+              <LoadingState label={FLOW.loading} variant="table" />
             ) : flow.history.isError ? (
               <ErrorState message={FLOW.loadHistoryError} onRetry={() => flow.history.refetch()} />
             ) : flow.history.data?.length ? (
@@ -273,7 +273,7 @@ function CheckInFlowScreen() {
         </Panel>
       )}
       {flow.lookup.isLoading ? (
-        <LoadingState label={FLOW.loading} />
+        <LoadingState label={FLOW.loading} variant="detail" />
       ) : flow.lookup.isError ? (
         <ErrorState message={flowError(flow.lookup.error)} onRetry={() => flow.lookup.refetch()} />
       ) : !result ? (
@@ -284,7 +284,7 @@ function CheckInFlowScreen() {
         </Panel>
       ) : wantsInspection && verified ? (
         flow.history.isLoading ? (
-          <LoadingState label={FLOW.loading} />
+          <LoadingState label={FLOW.loading} variant="table" />
         ) : flow.history.isError && !flow.history.data ? (
           <ErrorState message={FLOW.loadHistoryError} onRetry={() => flow.history.refetch()} />
         ) : flow.current ? (
