@@ -1,8 +1,12 @@
 "use client";
 import Link from "next/link";
+import { PublicLayout } from "@/components/layout/public-layout";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { Card } from "@/components/ui/display";
+import { routes } from "@/config/routes";
 import { formatCurrency, formatDateTime } from "@/lib/format";
+import { bookingLookupMessages } from "./booking-lookup.messages";
+import { BookingLookupForm } from "./booking-lookup-form";
 import { trackingMessages as m } from "./tracking.messages";
 import { useBookingTracking } from "./use-booking-tracking";
 
@@ -15,20 +19,18 @@ function Detail({ label, value }: { label: string; value: string }) {
   );
 }
 export function BookingTrackingScreen() {
-  const { booking, loading, message, revoke, revoking, revokeError, retry } = useBookingTracking();
+  const { booking, loading, lookup, message, revoke, revoking, revokeError, retry } =
+    useBookingTracking();
+  if (lookup && !loading) {
+    return (
+      <PublicLayout>
+        <BookingLookupForm />
+      </PublicLayout>
+    );
+  }
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b border-slate-200 bg-white px-5 py-5">
-        <div className="mx-auto max-w-4xl">
-          <Link
-            href="/"
-            className="text-xl font-bold text-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-4"
-          >
-            {m.brand}
-          </Link>
-        </div>
-      </header>
-      <main className="mx-auto max-w-4xl space-y-6 px-5 py-8 sm:py-12">
+    <PublicLayout>
+      <main className="mx-auto w-[min(1120px,calc(100%_-_40px))] space-y-6 py-8 text-slate-900 sm:py-12">
         <div>
           <h1 className="mb-2 text-3xl font-bold">{m.title}</h1>
           <p className="text-slate-600">{m.description}</p>
@@ -45,6 +47,9 @@ export function BookingTrackingScreen() {
             </p>
             <div className="flex flex-wrap gap-3">
               {retry ? <Button onClick={retry}>{m.retry}</Button> : null}
+              <Link href={routes.bookingTracking} className={buttonClassName("outline")}>
+                {bookingLookupMessages.lookupAgain}
+              </Link>
               <Link href="/" className={buttonClassName("outline")}>
                 {m.home}
               </Link>
@@ -114,6 +119,6 @@ export function BookingTrackingScreen() {
           </>
         ) : null}
       </main>
-    </div>
+    </PublicLayout>
   );
 }

@@ -14,4 +14,5 @@ export const MOCK_MESSAGES = {
   registered: "Tài khoản mock đã tạo. Bạn có thể đăng nhập ngay; không gửi email thực tế.",
   registeredTitle: "Đã tạo tài khoản mô phỏng",
   endpoint: "Thao tác này chưa có dữ liệu mock; không gửi request tới backend.",
+  guestAccessLinkRequested: "Nếu thông tin phù hợp, email hướng dẫn truy cập sẽ được gửi.",
 } as const;

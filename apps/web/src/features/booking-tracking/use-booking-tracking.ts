@@ -18,6 +18,7 @@ export function useBookingTracking() {
   const client = useQueryClient();
   const initialized = useRef(false);
   const [bookingCode, setBookingCode] = useState<string | null>(null);
+  const [lookup, setLookup] = useState(false);
   const [initializing, setInitializing] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<number | null>(null);
@@ -41,10 +42,11 @@ export function useBookingTracking() {
     if (!token) {
       const code = url.searchParams.get("bookingCode");
       setBookingCode(code);
-      if (!code) setMessage(m.invalid);
+      setLookup(!code);
       setInitializing(false);
       return;
     }
+    setLookup(false);
     void mutateAsync(token)
       .then((session) => {
         client.setQueryData([...queryRoot, session.bookingCode], session.booking);
@@ -96,6 +98,7 @@ export function useBookingTracking() {
   });
   return {
     booking: query.isError || message ? undefined : query.data,
+    lookup,
     loading: initializing || (Boolean(bookingCode) && query.isPending),
     message: message ?? (query.isError ? accessError(query.error) : null),
     revokeError: revoke.isError ? m.revokeFailed : null,

@@ -57,6 +57,7 @@ import type {
   RentalReport,
   RentalReportQuery,
   ReportExportQuery,
+  RequestGuestAccessLink,
   Reservation,
   ReservationDraft,
   ReservationDraftInput,
@@ -292,6 +293,12 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
           .then(unwrap),
     },
     bookings: {
+      requestGuestAccessLink: (input: RequestGuestAccessLink) =>
+        http
+          .post<ApiEnvelope<{ message: string }>>("/booking/access-link", input, {
+            skipAuthRefresh: true,
+          } as RetryConfig)
+          .then(unwrap),
       checkInSlots: () =>
         http.get<ApiEnvelope<CheckInSlotOption[]>>("/bookings/check-in-slots").then(unwrap),
       createDraft: (input: BookingDraftInput) =>

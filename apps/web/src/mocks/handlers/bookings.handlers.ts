@@ -3,6 +3,7 @@ import {
   type AssignPhysicalUnitInput,
   type CheckInLookupInput,
   type PhysicalUnitAssignment,
+  type RequestGuestAccessLink,
   StorageUnitStatus,
   UserRole,
 } from "@metastorage/contracts";
@@ -17,6 +18,10 @@ import { currentUser, envelope, errorBody, parseBody } from "../core/http";
 import { getMockDatabase, saveMockDatabase } from "../database";
 import { MOCK_MESSAGES as M } from "../mock.messages";
 export function registerBookingHandlers(mock: MockAdapter): void {
+  mock.onPost("/booking/access-link").reply((config) => {
+    parseBody<RequestGuestAccessLink>(config.data);
+    return [202, envelope({ message: M.guestAccessLinkRequested })];
+  });
   mock.onGet(/\/facilities\/[^/]+\/staff$/).reply((config) => {
     const db = getMockDatabase();
     const facilityId = config.url?.split("/")[2];

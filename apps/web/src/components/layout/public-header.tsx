@@ -1,7 +1,7 @@
 "use client";
-import { Menu, UserRound, Warehouse } from "lucide-react";
+import { KeyRound, Menu, UserRound, Warehouse } from "lucide-react";
 import Link from "next/link";
-import { roleHome } from "@/config/routes";
+import { roleHome, routes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
 import fonts from "@/features/facilities/metastorage-fonts.module.css";
 import { landingMessages as m } from "@/features/landing/landing.messages";
@@ -35,16 +35,28 @@ export function PublicHeader() {
           ))}
         </nav>
         <div className={s.headerActions}>
+          <Link href="/facilities" className={s.primary}>
+            {m.findNow}
+          </Link>
+          {!session ? (
+            <Link href={routes.bookingTracking} className={s.tracking}>
+              <KeyRound size={16} aria-hidden="true" />
+              <span className={s.trackingLong}>{m.myStorageLookup}</span>
+              <span className={s.trackingShort}>{m.myStorageLookupShort}</span>
+            </Link>
+          ) : null}
+          <Link
+            href={accountHref}
+            aria-label={session ? m.account : m.login}
+            className={`${s.account} ${!session ? s.accountLogin : ""}`}
+          >
+            <UserRound size={18} />
+            {!session ? <span>{m.login}</span> : null}
+          </Link>
           <a href="tel:19006868" className={s.hotline}>
             <small>{m.hotlineLabel}</small>
             <strong>{m.hotline}</strong>
           </a>
-          <Link href="/facilities" className={s.primary}>
-            {m.findNow}
-          </Link>
-          <Link href={accountHref} aria-label={m.login} className={s.account}>
-            <UserRound size={18} />
-          </Link>
           <details className={s.mobileMenu}>
             <summary aria-label={m.menu}>
               <Menu size={23} />
