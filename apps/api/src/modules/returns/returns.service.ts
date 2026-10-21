@@ -17,6 +17,8 @@ import type {
 } from "@metastorage/contracts";
 import { RETURN_MESSAGES as m } from "@metastorage/contracts";
 import type { returnInspections, returnSettlements } from "@metastorage/database";
+import { CloudinaryPhotoStorage } from "../../common/adapters/storage/cloudinary-photo.storage";
+import type { InspectionPhotoStorage } from "../../common/adapters/storage/photo-storage.types";
 import {
   AppError,
   ConflictError,
@@ -24,9 +26,7 @@ import {
   NotFoundError,
   ValidationError,
 } from "../../common/errors/app-error";
-import { CloudinaryPhotoStorage } from "../inspections/cloudinary-photo-storage";
 import { decodePhoto } from "../inspections/inspections.policy";
-import type { InspectionPhotoStorage } from "../inspections/photo-storage.types";
 import { recordOverdueEvent } from "../rentals/rental-lifecycle.events";
 import {
   localDate,

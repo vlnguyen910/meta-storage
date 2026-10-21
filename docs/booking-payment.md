@@ -82,6 +82,15 @@ origin và `PUBLIC_APP_URL` cho QR/email. Không cần IPN, `PUBLIC_API_URL`, ba
 hay webhook key cho checkout này. Database, Redis và worker/email có cấu hình riêng.
 Không thay đổi schema và không cần migration mới cho phần đối soát.
 
+Backend chỉ hỗ trợ SePay Payment Gateway: khi `PAYMENT_PROVIDER=sepay`, thiếu merchant
+ID hoặc secret key sẽ dừng startup. Bank webhook cũ (`id`, `code`, `transferAmount`)
+và xác thực `Authorization: Apikey ...` bị từ chối. PG IPN và tra cứu order API vẫn
+hoạt động; URL `/api/payments/webhooks/sepay` và `/api/sepay/ipn` được giữ nguyên.
+Các biến `SEPAY_WEBHOOK_API_KEY`, `PUBLIC_API_URL`, `SEPAY_TEST_MODE` đã được bỏ.
+`SEPAY_BANK_*` chỉ còn là thông tin hiển thị tùy chọn trong `transferInstructions`.
+Trước khi triển khai, kiểm tra dashboard không còn gửi bank webhook cũ và xử lý các
+giao dịch đang chờ theo luồng cũ; bản refactor này không chuyển đổi dữ liệu giao dịch.
+
 Endpoint `confirm-sandbox` đã được bỏ: trình duyệt không được tự xác nhận đã trả tiền.
 
 ## Quy tắc

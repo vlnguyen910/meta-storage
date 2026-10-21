@@ -14,6 +14,7 @@ import {
   NotFoundError,
   ValidationError,
 } from "../../common/errors/app-error";
+import { CloudinaryContractStorage } from "./cloudinary-contract.storage";
 import { contractHash, decodeContract, validateContractPdf } from "./contracts.policy";
 import type { ContractsRepository } from "./contracts.repository";
 import type {
@@ -22,7 +23,6 @@ import type {
   ContractStorage,
   ContractTransaction,
 } from "./contracts.types";
-import { S3ContractStorage } from "./s3-contract.storage";
 
 const dto = (
   row: ContractRow,
@@ -45,7 +45,7 @@ const dto = (
 export class ContractsService {
   constructor(
     readonly repository: ContractsRepository,
-    private readonly storage: ContractStorage = new S3ContractStorage(),
+    private readonly storage: ContractStorage = new CloudinaryContractStorage(),
   ) {}
   private async access(
     tx: ContractTransaction,
@@ -226,7 +226,9 @@ export class ContractsService {
         // a referenced object; retain it if the database cannot confirm absence.
         try {
           if (!(await this.repository.objectReferenced(objectKey))) {
-            if (!writeStarted || transactionResolved) await this.storage.remove(objectKey);
+            // No acknowledged write may mean a collision with a retained object or
+            // an upload whose outcome is unknown. Cleanup only our confirmed upload.
+            if (writeStarted && transactionResolved) await this.storage.remove(objectKey);
             else console.error("Contract orphan cleanup deferred");
           }
         } catch {

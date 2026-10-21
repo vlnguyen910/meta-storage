@@ -97,8 +97,10 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       // Forward response to client
       reply.status(response.status);
       response.headers.forEach((value, key) => {
-        if (key !== "content-length") reply.header(key, value);
+        if (key !== "content-length" && key !== "set-cookie") reply.header(key, value);
       });
+      const cookies = response.headers.getSetCookie();
+      if (cookies.length) reply.header("set-cookie", cookies);
       if (response.status >= 400) {
         const body = await response.json().catch(() => null);
         return reply.type("application/json").send(

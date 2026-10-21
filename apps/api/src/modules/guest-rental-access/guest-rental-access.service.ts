@@ -5,8 +5,8 @@ import type Redis from "ioredis";
 import { AppError, NotFoundError } from "../../common/errors/app-error";
 import type { RedisService } from "../../common/redis/redis.service";
 import { env } from "../../config/env";
+import { CloudinaryContractStorage } from "../contracts/cloudinary-contract.storage";
 import type { ContractStorage } from "../contracts/contracts.types";
-import { S3ContractStorage } from "../contracts/s3-contract.storage";
 import { GUEST_RENTAL_ACCESS_MESSAGES as messages } from "./guest-rental-access.messages";
 import type { GuestRentalAccessRepository } from "./guest-rental-access.repository";
 import type { GuestIssuedContract, GuestRentalPaymentItem } from "./guest-rental-access.types";
@@ -17,7 +17,7 @@ export class GuestRentalAccessService {
     private readonly repository: GuestRentalAccessRepository,
     private readonly redis: Redis,
     private readonly redisService: RedisService,
-    private readonly contractStorage: ContractStorage = new S3ContractStorage(),
+    private readonly contractStorage: ContractStorage = new CloudinaryContractStorage(),
   ) {}
 
   private async session(token: string | undefined, bookingCode: string): Promise<GuestSession> {

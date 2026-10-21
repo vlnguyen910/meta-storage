@@ -10,7 +10,7 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
     );
     assertIsolatedDatabase(true);
     const { CloudinaryPhotoStorage } = await import(
-      "../../src/modules/inspections/cloudinary-photo-storage"
+      "../../src/common/adapters/storage/cloudinary-photo.storage"
     );
     const photoSpies = [
       spyOn(CloudinaryPhotoStorage.prototype, "upload").mockImplementation(async () => ({
@@ -22,15 +22,17 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
       ),
       spyOn(CloudinaryPhotoStorage.prototype, "remove").mockResolvedValue(undefined),
     ];
-    const { S3ContractStorage } = await import("../../src/modules/contracts/s3-contract.storage");
+    const { CloudinaryContractStorage } = await import(
+      "../../src/modules/contracts/cloudinary-contract.storage"
+    );
     const { PDFDocument } = await import("pdf-lib");
     const document = await PDFDocument.create();
     document.addPage().drawText("Handover regression contract");
     const pdfBytes = await document.save();
     const contractSpies = [
-      spyOn(S3ContractStorage.prototype, "put").mockResolvedValue(undefined),
-      spyOn(S3ContractStorage.prototype, "get").mockImplementation(async () => pdfBytes),
-      spyOn(S3ContractStorage.prototype, "remove").mockResolvedValue(undefined),
+      spyOn(CloudinaryContractStorage.prototype, "put").mockResolvedValue(undefined),
+      spyOn(CloudinaryContractStorage.prototype, "get").mockImplementation(async () => pdfBytes),
+      spyOn(CloudinaryContractStorage.prototype, "remove").mockResolvedValue(undefined),
     ];
     const {
       db,

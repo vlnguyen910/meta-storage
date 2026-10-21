@@ -84,6 +84,11 @@ no issue or new handover succeeds without a validated readable object.
 
 ## Storage and transactions
 
+Current storage: authenticated Cloudinary raw PDFs, with the existing object key as
+public ID and API-proxied downloads. See [Google and Cloudinary setup](./google-auth-cloudinary.md)
+for configuration, migration/cutover and verification. The S3 setup below is historical
+and retained for legacy-data migration only; application reads/writes no longer use it.
+
 Configure the existing API environment, using a **private** S3-compatible bucket:
 
 ```dotenv

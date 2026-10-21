@@ -458,27 +458,18 @@ export function createPaymentsService(
 ): PaymentsService {
   const isSepay = env.PAYMENT_PROVIDER === "sepay";
   const hasPgConfig = Boolean(env.SEPAY_MERCHANT_ID && env.SEPAY_SECRET_KEY);
-  const hasLegacyConfig = Boolean(
-    env.SEPAY_WEBHOOK_API_KEY &&
-      env.SEPAY_BANK_NAME &&
-      env.SEPAY_BANK_ACCOUNT_NUMBER &&
-      env.SEPAY_BANK_ACCOUNT_NAME &&
-      env.PUBLIC_API_URL,
-  );
 
   const sepayGateway =
-    isSepay && (hasPgConfig || hasLegacyConfig)
+    isSepay && hasPgConfig
       ? new SepayPaymentGateway({
           paymentPrefix: env.SEPAY_PAYMENT_PREFIX,
           env: env.SEPAY_ENV,
           merchantId: env.SEPAY_MERCHANT_ID,
           secretKey: env.SEPAY_SECRET_KEY,
           webUrl: env.WEB_URL,
-          apiKey: env.SEPAY_WEBHOOK_API_KEY,
           bankName: env.SEPAY_BANK_NAME,
           accountNumber: env.SEPAY_BANK_ACCOUNT_NUMBER,
           accountName: env.SEPAY_BANK_ACCOUNT_NAME,
-          publicApiUrl: env.PUBLIC_API_URL,
         })
       : undefined;
   const repository = new PaymentsRepository(fastify.db);

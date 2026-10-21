@@ -9,9 +9,9 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
     const { assertIsolatedDatabase, createInspectionFixture } = await import(
       "../fixtures/inspection-fixture"
     );
-    assertIsolatedDatabase();
+    assertIsolatedDatabase(true);
     const { CloudinaryPhotoStorage } = await import(
-      "../../src/modules/inspections/cloudinary-photo-storage"
+      "../../src/common/adapters/storage/cloudinary-photo.storage"
     );
     const photoSpies = [
       spyOn(CloudinaryPhotoStorage.prototype, "upload").mockImplementation(async () => ({
@@ -23,12 +23,25 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
       ),
       spyOn(CloudinaryPhotoStorage.prototype, "remove").mockResolvedValue(undefined),
     ];
-    const { buildApp } = await import("../../src/app");
+    const { default: Fastify } = await import("fastify");
+    const { serializerCompiler, validatorCompiler } = await import("fastify-type-provider-zod");
+    const { setupErrorHandler } = await import("../../src/common/errors/error-handler");
+    const { authPlugin } = await import("../../src/modules/auth/auth.guard");
+    const { authRoutes } = await import("../../src/modules/auth/auth.routes");
+    const { inspectionsRoutes } = await import("../../src/modules/inspections/inspections.routes");
     const { db, eq, bookings, checkInVerifications, rentals, handoverInspections } = await import(
       "@metastorage/database"
     );
-    const fixture = await createInspectionFixture();
-    const app = buildApp();
+    const fixture = await createInspectionFixture(true);
+    // Test only these routes; never start the global scheduler on a developer DB.
+    const app = Fastify();
+    app.decorate("db", db);
+    app.setValidatorCompiler(validatorCompiler);
+    app.setSerializerCompiler(serializerCompiler);
+    setupErrorHandler(app);
+    app.register(authPlugin);
+    app.register(authRoutes, { prefix: "/api/auth" });
+    app.register(inspectionsRoutes, { prefix: "/api" });
     await app.ready();
     const origin = process.env.AUTH_TRUSTED_ORIGINS?.split(",")[0] ?? "http://localhost:3000";
     async function login(email: string) {
@@ -266,6 +279,9 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
     } finally {
       await app.close();
       for (const spy of photoSpies) spy.mockRestore();
+      await fixture.cleanup();
+      const { queryClient } = await import("@metastorage/database");
+      await queryClient.end();
     }
   },
   30000,

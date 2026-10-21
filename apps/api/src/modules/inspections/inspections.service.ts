@@ -7,18 +7,21 @@ import {
   type InspectionDraftInput,
   type InspectionPhotoInput,
 } from "@metastorage/contracts";
+import { CloudinaryPhotoStorage } from "../../common/adapters/storage/cloudinary-photo.storage";
+import type {
+  InspectionPhotoStorage,
+  StoredPhoto,
+} from "../../common/adapters/storage/photo-storage.types";
 import { ConflictError, NotFoundError, ValidationError } from "../../common/errors/app-error";
 import { CheckInSlotsRepository } from "../bookings/check-in-slots.repository";
 import { assertAssignedStaff } from "../check-ins/check-in-access";
 import { ContractsRepository } from "../contracts/contracts.repository";
 import { ContractsService } from "../contracts/contracts.service";
 import type { ContractStorage } from "../contracts/contracts.types";
-import { CloudinaryPhotoStorage } from "./cloudinary-photo-storage";
 import { assertHandoverReady } from "./handover.policy";
 import { assertCompletable, assertCurrentInspection, decodePhoto } from "./inspections.policy";
 import type { InspectionsRepository } from "./inspections.repository";
 import type { InspectionRow, InspectionTransaction } from "./inspections.types";
-import type { InspectionPhotoStorage, StoredPhoto } from "./photo-storage.types";
 
 export class InspectionsService {
   constructor(
