@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
+import { bookingLookupMessages } from "@/features/booking-tracking/booking-lookup.messages";
 import { BookingTrackingScreen } from "@/features/booking-tracking/booking-tracking-screen";
-import { trackingMessages } from "@/features/booking-tracking/tracking.messages";
 export const metadata: Metadata = {
-  title: trackingMessages.title,
+  title: bookingLookupMessages.title,
   referrer: "no-referrer",
   robots: { index: false, follow: false },
 };
