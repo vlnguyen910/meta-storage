@@ -14,7 +14,24 @@
       "dependsOn": ["^check-types"]
     },
     "test": {
-      "dependsOn": ["^test"]
+      "dependsOn": ["^test"],
+      "env": [
+        "NODE_ENV",
+        "REDIS_URL",
+        "CORS_ORIGIN",
+        "AUTH_TRUSTED_ORIGINS",
+        "BETTER_AUTH_SECRET",
+        "BETTER_AUTH_URL",
+        "BOOKING_MAGIC_LINK_SECRET",
+        "QR_TOKEN_SECRET",
+        "PUBLIC_APP_URL",
+        "WEB_URL",
+        "RESEND_API_KEY",
+        "RESEND_FROM_EMAIL",
+        "CLOUDINARY_CLOUD_NAME",
+        "CLOUDINARY_API_KEY",
+        "CLOUDINARY_API_SECRET"
+      ]
     },
     "dev": {
       "cache": false,
