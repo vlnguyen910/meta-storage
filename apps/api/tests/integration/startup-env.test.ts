@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { envSchema } from "../../src/config/env.schema";
 
 const valid = {
@@ -100,7 +100,8 @@ describe("API startup environment", () => {
   });
 
   test("server exits before initializing dependencies and never prints supplied secrets", () => {
-    const result = Bun.spawnSync([process.execPath, path.resolve("apps/api/src/index.ts")], {
+    const entrypoint = fileURLToPath(new URL("../../src/index.ts", import.meta.url));
+    const result = Bun.spawnSync([process.execPath, entrypoint], {
       env: {
         ...process.env,
         ...valid,

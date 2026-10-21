@@ -51,6 +51,22 @@ jobs:
       run: bun run check-types
 
     - name: Run unit tests
+      env:
+        NODE_ENV: test
+        REDIS_URL: redis://127.0.0.1:6379
+        CORS_ORIGIN: http://localhost:3000
+        AUTH_TRUSTED_ORIGINS: http://localhost:3000
+        BETTER_AUTH_SECRET: ci-only-auth-secret-32-characters-long
+        BETTER_AUTH_URL: http://localhost:4000/api/auth
+        BOOKING_MAGIC_LINK_SECRET: ci-only-booking-secret-32-characters
+        QR_TOKEN_SECRET: ci-only-qr-secret-32-characters-long
+        PUBLIC_APP_URL: http://localhost:3000
+        WEB_URL: http://localhost:3000
+        RESEND_API_KEY: re_ci_only
+        RESEND_FROM_EMAIL: CI <ci@example.test>
+        CLOUDINARY_CLOUD_NAME: ci-test-cloud
+        CLOUDINARY_API_KEY: ci-test-key
+        CLOUDINARY_API_SECRET: ci-only-cloudinary-secret
       run: bun run test
 
     - name: Build production artifacts
