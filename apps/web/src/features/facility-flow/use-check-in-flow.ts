@@ -13,6 +13,7 @@ import axios from "axios";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useGlobalLoading } from "@/components/providers/global-loading-provider";
 import { useToast } from "@/components/ui/toast";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { api } from "@/lib/api";
@@ -77,6 +78,7 @@ export function useCheckInFlow() {
   };
   const queryClient = useQueryClient();
   const verify = useMutation({
+    meta: { globalLoading: true },
     mutationFn: () =>
       result?.booking.status === "CHECKED_IN" ||
       (result?.verification?.status === "VERIFIED" && result.verification.staffId === userId)
@@ -110,6 +112,7 @@ export function useCheckInFlow() {
     },
   });
   const start = useMutation({
+    meta: { globalLoading: true },
     mutationFn: () => api.inspections.start(bookingId),
     onSuccess: async (data) => {
       queryClient.setQueryData(inspectionKey(bookingId), (old: Inspection[] | undefined) => [
@@ -134,6 +137,7 @@ export function useCheckInFlow() {
 export function useInspectionEditor(record: Inspection, onNavigate: (next: string) => void) {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
+  const { runWithGlobalLoading } = useGlobalLoading();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [confirmLock, setConfirmLock] = useState(false);
@@ -282,7 +286,7 @@ export function useInspectionEditor(record: Inspection, onNavigate: (next: strin
     setBusy(true);
     setError("");
     try {
-      return accept(await work());
+      return accept(await runWithGlobalLoading(work));
     } catch (e) {
       if (axios.isAxiosError(e) && e.response?.status === 409) setServerConflict(true);
       const msg = flowError(e);
@@ -387,6 +391,7 @@ export function useHandover(record: Inspection) {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
   const mutation = useMutation({
+    meta: { globalLoading: true },
     mutationFn: () => api.inspections.handover(record.id, record.version),
     onSuccess: async (data) => {
       queryClient.setQueryData(inspectionKey(record.bookingId), (old: Inspection[] | undefined) => [

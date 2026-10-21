@@ -72,7 +72,7 @@ export function StaffAssignmentModal({ booking, isOpen, onClose }: StaffAssignme
       <p className="mt-1 text-sm text-[#404945]">{booking.facilityName}</p>
       <form onSubmit={form.handleSubmit(submit)} className="mt-5 space-y-5">
         {staff.isLoading ? (
-          <LoadingState label={M.loading} />
+          <LoadingState label={M.loading} variant="table" />
         ) : staff.isError ? (
           <ErrorState message={M.loadError} onRetry={() => staff.refetch()} />
         ) : activeStaff.length === 0 ? (

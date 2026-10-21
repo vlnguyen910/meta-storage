@@ -17,7 +17,7 @@ export function FacilityOverview({
 }: FacilityOverviewProps) {
   const state = useDispatch(facilityId, staff);
   const root = staff ? "/staff" : "/facility-manager";
-  if (state.query.isLoading) return <LoadingState label={FLOW.loading} />;
+  if (state.query.isLoading) return <LoadingState label={FLOW.loading} variant="dashboard" />;
   if (state.query.isError)
     return <ErrorState message={FLOW.listError} onRetry={() => state.query.refetch()} />;
   const cards = [

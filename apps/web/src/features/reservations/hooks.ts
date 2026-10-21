@@ -35,12 +35,14 @@ export function useReservationQuote() {
 
 export function useReservationDraft() {
   return useMutation({
+    meta: { globalLoading: true },
     mutationFn: (input: ReservationDraftInput) => api.reservations.createDraft(input),
   });
 }
 
 export function useReservationHold() {
   return useMutation({
+    meta: { globalLoading: true },
     mutationFn: ({ draftId, draftAccessToken }: { draftId: string; draftAccessToken: string }) =>
       api.reservations.createHold(draftId, draftAccessToken),
   });
@@ -49,6 +51,7 @@ export function useReservationHold() {
 export function useReservationPayment() {
   const queryClient = useQueryClient();
   return useMutation({
+    meta: { globalLoading: true },
     mutationFn: ({ draftId, input }: { draftId: string; input: PaymentCheckoutInput }) =>
       api.reservations.pay(draftId, input),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: reservationKeys.all }),
@@ -67,6 +70,7 @@ export function usePaymentStatus(paymentId: string | null) {
 export function useConfirmReservation() {
   const queryClient = useQueryClient();
   return useMutation({
+    meta: { globalLoading: true },
     mutationFn: (input: ConfirmReservationInput) => api.reservations.confirm(input),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: reservationKeys.all }),
   });

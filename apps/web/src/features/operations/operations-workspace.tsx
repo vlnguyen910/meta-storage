@@ -75,7 +75,7 @@ function MockOperationsWorkspace({ section }: Readonly<OperationsWorkspaceProps>
     setPeriod,
   } = workspace;
 
-  if (query.isPending) return <LoadingState label={M.loading} />;
+  if (query.isPending) return <LoadingState label={M.loading} variant="table" />;
   if (query.isError || !data)
     return <ErrorState message={M.error} onRetry={() => void query.refetch()} />;
 

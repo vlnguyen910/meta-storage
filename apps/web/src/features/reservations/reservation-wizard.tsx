@@ -13,7 +13,7 @@ import { useReservationCheckout } from "./use-reservation-checkout";
 
 export function ReservationWizard() {
   const state = useReservationCheckout();
-  if (state.facilitiesQuery.isLoading) return <LoadingState label={m.loading} />;
+  if (state.facilitiesQuery.isLoading) return <LoadingState label={m.loading} variant="form" />;
   if (state.facilitiesQuery.isError)
     return <ErrorState message={m.facilityError} onRetry={() => state.facilitiesQuery.refetch()} />;
   return (

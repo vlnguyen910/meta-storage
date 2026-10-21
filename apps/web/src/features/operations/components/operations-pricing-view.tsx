@@ -42,7 +42,7 @@ export function OperationsPricingView() {
 
   const { data, isPending, refetch } = configQuery;
 
-  if (isPending) return <LoadingState label={M.loading} />;
+  if (isPending) return <LoadingState label={M.loading} variant="table" />;
   if (!data) {
     return <ErrorState message={M.error} onRetry={() => void refetch()} />;
   }

@@ -35,6 +35,7 @@ export function useOperationsPricing() {
   });
 
   const updatePriceMutation = useMutation({
+    meta: { globalLoading: true },
     mutationFn: async ({
       unitTypeId,
       expectedVersion,
@@ -73,6 +74,7 @@ export function useOperationsPricing() {
   });
 
   const updateDepositMutation = useMutation({
+    meta: { globalLoading: true },
     mutationFn: async ({
       expectedVersion,
       depositMonths,

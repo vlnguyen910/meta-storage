@@ -11,7 +11,8 @@ import type { FacilityStaffTabProps } from "./facility-staff-tab.types";
 export function FacilityStaffTab({ facilityId, facilityName }: FacilityStaffTabProps) {
   const { data: staffList, isLoading, isError, refetch } = useFacilityStaff(facilityId);
 
-  if (isLoading) return <LoadingState label={FACILITY_DASHBOARD_MESSAGES.loadingFacility} />;
+  if (isLoading)
+    return <LoadingState label={FACILITY_DASHBOARD_MESSAGES.loadingFacility} variant="table" />;
   if (isError)
     return (
       <ErrorState

@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { GlobalLoadingProvider } from "@/components/providers/global-loading-provider";
 import { isMockMode } from "@/config/api-mode";
 import { MOCK_MESSAGES } from "@/mocks/mock.messages";
 import { AUTH_MESSAGES } from "./auth.messages";
@@ -10,13 +11,21 @@ const { registerCustomer } = vi.hoisted(() => ({ registerCustomer: vi.fn() }));
 
 vi.mock("@/lib/api", () => ({ api: { auth: { registerCustomer } } }));
 
+function renderRegisterForm() {
+  return render(
+    <GlobalLoadingProvider>
+      <RegisterForm />
+    </GlobalLoadingProvider>,
+  );
+}
+
 describe("RegisterForm", () => {
   beforeEach(() => registerCustomer.mockReset());
 
   it("submits the shared signup fields and shows the email confirmation state", async () => {
     const user = userEvent.setup();
     registerCustomer.mockResolvedValue({ message: "sent" });
-    render(<RegisterForm />);
+    renderRegisterForm();
 
     await user.type(screen.getByLabelText(/Họ và tên/i), "Nguyễn An");
     await user.type(screen.getByLabelText(/Địa chỉ Email/i), "AN@example.com");
@@ -48,7 +57,7 @@ describe("RegisterForm", () => {
 
   it("validates password confirmation before calling the API and shows mismatch indicator", async () => {
     const user = userEvent.setup();
-    render(<RegisterForm />);
+    renderRegisterForm();
 
     await user.type(screen.getByLabelText(/^Mật khẩu/i), "Customer#123");
     await user.type(screen.getByLabelText(/Xác nhận lại mật khẩu/i), "Different#123");
@@ -64,7 +73,7 @@ describe("RegisterForm", () => {
 
   it("toggles password visibility when eye icon is clicked", async () => {
     const user = userEvent.setup();
-    render(<RegisterForm />);
+    renderRegisterForm();
 
     const passwordInput = screen.getByLabelText(/^Mật khẩu/i);
     expect(passwordInput).toHaveAttribute("type", "password");
@@ -92,7 +101,7 @@ describe("RegisterForm", () => {
       response: { data: { message: "Email already registered" } },
     });
     registerCustomer.mockRejectedValueOnce(error);
-    render(<RegisterForm />);
+    renderRegisterForm();
 
     await user.type(screen.getByLabelText(/Họ và tên/i), "Nguyễn An");
     await user.type(screen.getByLabelText(/Địa chỉ Email/i), "exist@example.com");
@@ -109,7 +118,7 @@ describe("RegisterForm", () => {
 it("does not register when terms are declined", async () => {
   const user = userEvent.setup();
   registerCustomer.mockReset();
-  render(<RegisterForm />);
+  renderRegisterForm();
   await user.type(screen.getByLabelText(/Họ và tên/i), "Review Customer");
   await user.type(screen.getByLabelText(/Địa chỉ Email/i), "review@example.test");
   await user.type(screen.getByLabelText(/Số điện thoại/i), "0901234567");

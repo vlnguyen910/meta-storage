@@ -2,12 +2,15 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type ReactNode, useEffect, useState } from "react";
+import { LOADING_MESSAGES } from "@/components/ui/loading.messages";
+import { FullScreenLoading } from "@/components/ui/states";
 import { ToastProvider } from "@/components/ui/toast";
 import { isMockMode } from "@/config/api-mode";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { api } from "@/lib/api";
 import { installMockApi } from "@/mocks/install-mock-api";
 import { GlobalActivityIndicator } from "./global-activity-indicator";
+import { GlobalLoadingProvider } from "./global-loading-provider";
 
 export function AppProviders({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -44,12 +47,10 @@ export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
-        <GlobalActivityIndicator />
-        {ready ? (
-          children
-        ) : (
-          <div className="grid min-h-screen place-items-center p-8">Đang khởi tạo metastorage…</div>
-        )}
+        <GlobalLoadingProvider>
+          <GlobalActivityIndicator />
+          {ready ? children : <FullScreenLoading label={LOADING_MESSAGES.app} />}
+        </GlobalLoadingProvider>
       </ToastProvider>
     </QueryClientProvider>
   );

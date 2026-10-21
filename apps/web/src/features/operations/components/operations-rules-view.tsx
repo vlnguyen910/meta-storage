@@ -64,7 +64,7 @@ export function OperationsRulesView() {
     }
   }, [config, depositForm]);
 
-  if (isConfigPending) return <LoadingState label={M.loading} />;
+  if (isConfigPending) return <LoadingState label={M.loading} variant="form" />;
   if (!config) {
     return <ErrorState message={M.error} onRetry={() => void refetchConfig()} />;
   }
@@ -238,7 +238,7 @@ export function OperationsRulesView() {
         </div>
 
         {isHistoryPending ? (
-          <LoadingState label="Đang tải lịch sử thay đổi..." />
+          <LoadingState label={M.loading} variant="table" />
         ) : isHistoryError ? (
           <ErrorState
             message="Không thể tải dữ liệu lịch sử thay đổi giá & cọc từ máy chủ."

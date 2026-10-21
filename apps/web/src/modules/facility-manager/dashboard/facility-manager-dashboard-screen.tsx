@@ -52,7 +52,7 @@ function FacilityManagerDashboardContent() {
         ))}
       </nav>
       {isLoading ? (
-        <LoadingState label={M.loadingFacility} />
+        <LoadingState label={M.loadingFacility} variant="dashboard" />
       ) : isError ? (
         <ErrorState message={M.errorLoadFacility} onRetry={() => refetch()} />
       ) : !assignment ? (

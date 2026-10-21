@@ -11,7 +11,7 @@ export function NewReservationScreen() {
         title="Đặt kho mới"
         description="Hoàn tất 5 bước để giữ chỗ theo loại và kích thước kho."
       />
-      <Suspense fallback={<LoadingState />}>
+      <Suspense fallback={<LoadingState variant="form" />}>
         <ReservationWizard />
       </Suspense>
     </>

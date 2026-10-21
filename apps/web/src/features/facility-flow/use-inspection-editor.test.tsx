@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { GlobalLoadingProvider } from "@/components/providers/global-loading-provider";
 import { api } from "@/lib/api";
 import { useInspectionEditor } from "./use-check-in-flow";
 
@@ -57,7 +58,9 @@ function harness() {
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   return ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    <QueryClientProvider client={client}>
+      <GlobalLoadingProvider>{children}</GlobalLoadingProvider>
+    </QueryClientProvider>
   );
 }
 beforeEach(() => vi.resetAllMocks());

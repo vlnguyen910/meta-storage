@@ -10,7 +10,7 @@ import { useMyRentals } from "./hooks";
 
 export function RentalList() {
   const query = useMyRentals();
-  if (query.isLoading) return <LoadingState />;
+  if (query.isLoading) return <LoadingState variant="table" />;
   if (query.isError)
     return <ErrorState message="Không thể tải My Storage." onRetry={() => query.refetch()} />;
   const rentals = query.data ?? [];

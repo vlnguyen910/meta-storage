@@ -40,6 +40,7 @@ export function useOperationsWorkspace() {
     resolver: zodResolver(OperationsPriceDraftSchema),
   });
   const mutation = useMutation({
+    meta: { globalLoading: true },
     mutationFn: async (data: OperationsMockData) => data,
     onSuccess: (data) => {
       cache.setQueryData(queryKey, data);

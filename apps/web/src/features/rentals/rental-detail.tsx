@@ -9,7 +9,7 @@ import { useRental } from "./hooks";
 
 export function RentalDetail({ rentalId }: { rentalId: string }) {
   const query = useRental(rentalId);
-  if (query.isLoading) return <LoadingState />;
+  if (query.isLoading) return <LoadingState variant="detail" />;
   if (query.isError || !query.data) {
     return (
       <ErrorState

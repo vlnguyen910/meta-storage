@@ -2,6 +2,7 @@
 
 import axios from "axios";
 import { ChevronLeft, ChevronRight, Download, RotateCcw } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -16,9 +17,21 @@ import { useOperationsRevenue } from "../hooks/use-operations-revenue";
 import { OPERATIONS_MESSAGES as M } from "../operations.messages";
 import { downloadCsv, formatMoney, getDefaultPeriod } from "../operations.utils";
 import { REPORTING_MESSAGES as R } from "../operations-reporting.messages";
-import { FacilityRevenueChart } from "./charts/facility-revenue-chart";
-import { MonthlyRevenueChart } from "./charts/monthly-revenue-chart";
-import { OperationsFinancialChart } from "./charts/operations-financial-chart";
+import { ChartLoadingSkeleton } from "./charts/chart-loading-skeleton";
+
+const FacilityRevenueChart = dynamic(
+  () => import("./charts/facility-revenue-chart").then((module) => module.FacilityRevenueChart),
+  { ssr: false, loading: () => <ChartLoadingSkeleton /> },
+);
+const MonthlyRevenueChart = dynamic(
+  () => import("./charts/monthly-revenue-chart").then((module) => module.MonthlyRevenueChart),
+  { ssr: false, loading: () => <ChartLoadingSkeleton /> },
+);
+const OperationsFinancialChart = dynamic(
+  () =>
+    import("./charts/operations-financial-chart").then((module) => module.OperationsFinancialChart),
+  { ssr: false, loading: () => <ChartLoadingSkeleton /> },
+);
 
 const PAGE_SIZE = 20;
 
@@ -261,14 +274,14 @@ export function OperationsRevenueView() {
       )}
 
       {isPending ? (
-        <LoadingState label={M.loading} />
+        <LoadingState label={M.loading} variant="dashboard" />
       ) : isError || !data ? (
         <ErrorState message={M.error} onRetry={() => void refetch()} />
       ) : (
         <>
           <OperationsFinancialChart metrics={data.summary} />
           {monthly.isPending ? (
-            <LoadingState label={M.loading} />
+            <LoadingState label={M.loading} variant="table" />
           ) : monthly.isError || !monthly.data ? (
             <ErrorState message={M.error} onRetry={() => void monthly.refetch()} />
           ) : (
