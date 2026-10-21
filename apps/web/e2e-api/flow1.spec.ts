@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
+import { selectCheckInDate } from "../e2e/support/reservation-form";
 import { checkoutMessages as m } from "../src/features/reservations/checkout.messages";
 import { paymentResultMessages as resultMessages } from "../src/features/reservations/payment-result.messages";
 
@@ -15,8 +16,8 @@ async function openPayment(page: Page, typeId = unitTypeId) {
   await page.getByLabel(m.fullName, { exact: true }).fill("Flow 1 Guest");
   await page.getByLabel(m.phone, { exact: true }).fill("0901234567");
   await page.getByLabel(m.email, { exact: true }).fill("flow1-guest@example.test");
-  await page.getByLabel(m.date, { exact: true }).fill("2030-01-01");
-  await page.getByLabel(m.time, { exact: true }).selectOption(slotId);
+  await selectCheckInDate(page, "2030-01-01");
+  await page.locator(`input[name="checkInSlotId"][value="${slotId}"]`).check();
   await page.getByRole("button", { name: m.review, exact: true }).click();
   await page.getByRole("button", { name: m.checkout, exact: true }).click();
 }
