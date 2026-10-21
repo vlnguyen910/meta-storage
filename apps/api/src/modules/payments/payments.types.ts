@@ -72,11 +72,6 @@ export interface PaymentGateway {
 }
 
 export type SepayWebhookPayload = {
-  id?: number | string;
-  code?: string | null;
-  transferType?: "in" | "out";
-  transferAmount?: number;
-  referenceCode?: string | null;
   notification_type?: string;
   order?: {
     order_invoice_number?: string;
@@ -103,11 +98,9 @@ export type SepayGatewayConfig = {
   merchantId?: string;
   secretKey?: string;
   webUrl?: string;
-  apiKey?: string;
   bankName?: string;
   accountNumber?: string;
   accountName?: string;
-  publicApiUrl?: string;
 };
 
 export type SepayCheckoutSession = {

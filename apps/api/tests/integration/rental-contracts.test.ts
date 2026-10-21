@@ -500,6 +500,19 @@ describe.skipIf(!target)("contract PDFs and physical handover on existing local 
     }
   });
 
+  test("an unacknowledged storage write is retained instead of deleting a possible existing asset", async () => {
+    const f = await scenario();
+    const before = objects.size;
+    interceptPut = async () => {
+      throw new Error("Upload acknowledgement lost");
+    };
+    expect((await upload(f.bookingId)).statusCode).toBe(500);
+    expect(objects.size).toBe(before + 1);
+    expect(
+      await db.select().from(bookingContracts).where(eq(bookingContracts.bookingId, f.bookingId)),
+    ).toHaveLength(0);
+  });
+
   test("an unknown commit outcome retains the referenced object and upload retry returns the committed version", async () => {
     const f = await scenario(),
       before = objects.size;

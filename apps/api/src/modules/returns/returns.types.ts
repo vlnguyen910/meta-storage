@@ -1,5 +1,5 @@
 import type { bookings, Database, rentals, returnRequests } from "@metastorage/database";
-import type { InspectionPhotoStorage } from "../inspections/photo-storage.types";
+import type { InspectionPhotoStorage } from "../../common/adapters/storage/photo-storage.types";
 
 export interface ReturnsRoutesOptions {
   photoStorage?: InspectionPhotoStorage;

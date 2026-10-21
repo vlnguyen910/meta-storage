@@ -1,3 +1,5 @@
+// Validate configuration before app imports can initialize database/Redis clients.
+import "./config/env";
 import { buildApp } from "./app";
 import { env } from "./config/env";
 

@@ -74,6 +74,10 @@ The repair on the local database filled six missing ends on 2026-10-05; a second
 
 ### Cloudinary inspection evidence
 
+The SDK integration and photo boundary now live in `apps/api/src/common/adapters/storage`
+and are shared by inspections and returns. Contracts use the same SDK adapter for
+authenticated raw PDFs; see [configuration and cutover](./google-auth-cloudinary.md).
+
 Configure CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET only in apps/api/.env. New uploads use authenticated assets; the DB keeps public ID, format and audit metadata, with legacy Base64 nullable. The upload API still accepts bounded Base64 as transport, but new images are not stored as Base64 in PostgreSQL. Existing bytes remain readable.
 
 The scoped photo endpoint generates a private download URL valid for five minutes. The UI refreshes URLs every four minutes/on window focus and provides retry for failed delivery. Signed download links are bearer links until expiry and use Cloudinary API bandwidth rather than public CDN caching. Original evidence is uploaded without transformations/overwrite.

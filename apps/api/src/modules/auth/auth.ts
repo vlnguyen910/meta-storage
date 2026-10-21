@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { expo } from "@better-auth/expo";
-import { accounts, db, sessions, users, verifications } from "@metastorage/database";
 import { betterAuth } from "better-auth";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/api";
 import { ResendMailer } from "../../common/adapters/mailer/resend.adapter";
 import { env } from "../../config/env";
+import { authDatabase } from "./auth.database";
+import { AUTH_MESSAGES } from "./auth.messages";
 
 const verificationMailer = new ResendMailer({
   apiKey: env.RESEND_API_KEY,
@@ -17,15 +18,58 @@ export const auth = betterAuth({
     ...env.AUTH_TRUSTED_ORIGINS.split(",").map((origin) => origin.trim()),
     "metastorage://",
   ],
-  database: drizzleAdapter(db, {
-    provider: "pg",
-    schema: {
-      user: users,
-      session: sessions,
-      account: accounts,
-      verification: verifications,
+  database: authDatabase,
+  socialProviders:
+    env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
+      ? {
+          google: {
+            clientId: env.GOOGLE_CLIENT_ID,
+            clientSecret: env.GOOGLE_CLIENT_SECRET,
+            // Only the authorization-code flow is exposed in this backend integration.
+            disableIdTokenSignIn: true,
+            prompt: "select_account",
+          },
+        }
+      : {},
+  account: {
+    accountLinking: {
+      enabled: true,
+      disableImplicitLinking: true,
+      allowDifferentEmails: false,
+      updateUserInfoOnLink: false,
     },
-  }),
+  },
+  hooks: {
+    before: createAuthMiddleware(async (ctx) => {
+      if (ctx.path !== "/link-social") return;
+      const session = await getSessionFromCtx(ctx, { disableCookieCache: true });
+      if (!session)
+        throw new APIError("UNAUTHORIZED", {
+          code: "LOGIN_REQUIRED",
+          message: AUTH_MESSAGES.googleLinkSessionRequired,
+        });
+      if (session.user.status !== "ACTIVE")
+        throw new APIError("FORBIDDEN", {
+          code: "ACCOUNT_DISABLED",
+          message: AUTH_MESSAGES.accountDisabled,
+        });
+    }),
+  },
+  databaseHooks: {
+    session: {
+      create: {
+        before: async (session, ctx) => {
+          if (!ctx) return;
+          const user = await ctx.context.internalAdapter.findUserById(session.userId);
+          if (!user || !("status" in user) || user.status !== "ACTIVE")
+            throw new APIError("FORBIDDEN", {
+              code: "ACCOUNT_DISABLED",
+              message: AUTH_MESSAGES.accountDisabled,
+            });
+        },
+      },
+    },
+  },
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
@@ -44,6 +88,32 @@ export const auth = betterAuth({
     },
   },
   user: {
+    validateUserInfo: async ({ user, source }, ctx) => {
+      if (source.method !== "oauth" || source.oauth?.providerId !== "google") return;
+      if (user.emailVerified !== true)
+        return {
+          error: "google_email_unverified",
+          errorDescription: AUTH_MESSAGES.googleEmailUnverified,
+        };
+      if (source.action !== "create-user" && user.id) {
+        const existing = await ctx.context.internalAdapter.findUserById(user.id);
+        if (!existing || !("status" in existing) || existing.status !== "ACTIVE")
+          return {
+            error: "account_disabled",
+            errorDescription: AUTH_MESSAGES.accountDisabled,
+          };
+      }
+      if (source.action === "link-account") {
+        // OAuth state proves initiation, but linking also requires a live session at callback.
+        const session = await getSessionFromCtx(ctx, { disableCookieCache: true });
+        if (!session || session.user.id !== user.id)
+          return {
+            error: "link_session_required",
+            errorDescription: AUTH_MESSAGES.googleLinkSessionRequired,
+          };
+      }
+      return undefined;
+    },
     additionalFields: {
       phone: {
         type: "string",
@@ -72,6 +142,8 @@ export const auth = betterAuth({
   },
   plugins: [expo()],
   advanced: {
+    disableOriginCheck: false,
+    disableCSRFCheck: false,
     cookiePrefix: "metastorage-auth",
     useSecureCookies: env.NODE_ENV === "production",
     database: {

@@ -197,9 +197,6 @@ export class SepayPaymentGateway {
     const authorization = headers.authorization ?? headers.Authorization;
     const receivedAuth = Array.isArray(authorization) ? authorization[0] : authorization;
 
-    const isApiKeyValid = Boolean(
-      this.config.apiKey && receivedAuth && safeEqual(receivedAuth, `Apikey ${this.config.apiKey}`),
-    );
     const isSecretKeyValid = Boolean(
       this.config.secretKey &&
         ((receivedSecret && safeEqual(receivedSecret, this.config.secretKey)) ||
@@ -208,7 +205,7 @@ export class SepayPaymentGateway {
               safeEqual(receivedAuth, `Bearer ${this.config.secretKey}`)))),
     );
 
-    if (!isApiKeyValid && !isSecretKeyValid) {
+    if (!isSecretKeyValid) {
       throw new UnauthorizedError(PAYMENT_MESSAGES.sepayWebhookUnauthorized);
     }
 
@@ -255,24 +252,6 @@ export class SepayPaymentGateway {
           payload.order.order_currency === "VND" &&
           payload.transaction?.transaction_currency === "VND" &&
           Number(payload.order.order_amount) === amount,
-      };
-    }
-
-    // Legacy Bank Webhook format
-    if (payload.id && payload.code && typeof payload.transferAmount === "number") {
-      return {
-        providerEventId: String(payload.id),
-        paymentCode: payload.code,
-        amount: payload.transferAmount,
-        transferType: payload.transferType ?? "in",
-        referenceCode: payload.referenceCode ?? null,
-        metadata: {
-          id: payload.id,
-          code: payload.code,
-          transferType: payload.transferType,
-          transferAmount: payload.transferAmount,
-          referenceCode: payload.referenceCode ?? null,
-        },
       };
     }
 

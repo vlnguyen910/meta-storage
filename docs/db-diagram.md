@@ -18,7 +18,8 @@ version. Booking → Rental remains the authoritative contract linkage after han
 Issue snapshots existing customer/facility/unit-type/pricing/deposit/term and verified
 successful payment. Issuance and new handover share booking-first row locks; a stale
 current-issued expectation conflicts. No uploads/issues after physical handover.
-Private S3 objects use unique immutable keys; no public storage URLs in DTOs. Backend
+Private authenticated Cloudinary raw PDFs use unique immutable object keys as public IDs;
+no public storage URLs in DTOs. Backend
 checks role, ownership/facility scope and linkage before reading bytes. Failed DB
 writes clean up only their new object; preserved versions are never deleted by API.
 
@@ -530,6 +531,9 @@ erDiagram
   `reservation_draft_status`: `DRAFT`; `reservation_pricing_status`:
   `PRICING_NOT_CONFIGURED`, `PRICED`; `capacity_allocation_kind`: `HOLD`, `BOOKING`; and
   `capacity_allocation_status`: `ACTIVE`, `RELEASED`, `EXPIRED`.
+- Composite unique `accounts(provider_id, account_id)` ensures one owner per provider
+  identity, including concurrent OAuth linking. Existing duplicates must be resolved
+  explicitly before applying this constraint; never merge users automatically.
 - Composite unique indexes exist on `facility_assignments(user_id, facility_id)` and
   `facility_operating_hours(facility_id, day_of_week)`.
 - Each User may work at at most one Facility at a time. A partial unique index

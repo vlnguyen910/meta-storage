@@ -1905,6 +1905,43 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     );
   });
 
+  test("legacy bank webhooks are rejected without changing the pending payment", async () => {
+    const booking = await draft();
+    const payment = (await pay(booking)).json().data;
+    const payload = {
+      id: randomUUID(),
+      code: payment.paymentCode,
+      transferAmount: 3000000,
+      transferType: "in",
+    };
+    webhookEventIds.push(payload.id);
+    for (const [headers, status] of [
+      [{ authorization: "Apikey test-only-sepay-secret" }, 401],
+      [{ "x-secret-key": "test-only-sepay-secret" }, 400],
+    ] as const) {
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/payments/webhooks/sepay",
+        headers,
+        payload,
+      });
+      expect(response.statusCode).toBe(status);
+    }
+    expect(
+      (await db.select().from(payments).where(eq(payments.id, payment.paymentId)))[0]?.status,
+    ).toBe("PENDING");
+    expect(
+      await db
+        .select()
+        .from(paymentProviderEvents)
+        .where(eq(paymentProviderEvents.providerEventId, payload.id)),
+    ).toHaveLength(0);
+    expect((await webhook(payment.paymentCode)).statusCode).toBe(200);
+    expect(
+      (await db.select().from(payments).where(eq(payments.id, payment.paymentId)))[0]?.status,
+    ).toBe("SUCCEEDED");
+  });
+
   test("webhook rejects invalid credentials before touching the booking", async () => {
     const booking = await draft();
     const payment = (await pay(booking)).json().data;

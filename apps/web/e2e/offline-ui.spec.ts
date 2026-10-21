@@ -74,6 +74,7 @@ test("all demo roles and public pages render without backend", async ({ page }) 
 });
 
 test("guest checkout uses the selected price and creates a mock booking", async ({ page }) => {
+  await page.clock.setFixedTime(new Date("2030-01-01T09:00:00+07:00"));
   const requests: string[] = [];
   page.on("request", (r) => {
     if (/:4000|:8080|\/api\//.test(r.url())) requests.push(r.url());
@@ -95,6 +96,10 @@ test("guest checkout uses the selected price and creates a mock booking", async 
   ).toBeVisible();
   await page.getByRole("button", { name: "Quay lại", exact: true }).click();
   await expect(page.getByLabel("Họ và tên", { exact: true })).toHaveValue("Khách mock");
+  await expect(page.locator('[data-calendar-date="2030-01-02"]')).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
   await page.getByRole("button", { name: "Xem đơn thuê", exact: true }).click();
   await page.getByRole("button", { name: "Thanh toán", exact: true }).click();
   await expect(page.getByText("Thanh toán mô phỏng", { exact: true })).toBeVisible();
