@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { selectCheckInDate, tomorrowInVietnam } from "./support/reservation-form";
 
 async function login(page: Page, email: string) {
   await page.goto("/login");
@@ -83,7 +84,11 @@ test("guest checkout uses the selected price and creates a mock booking", async 
   await page.getByLabel("Họ và tên", { exact: true }).fill("Khách mock");
   await page.getByLabel("Số điện thoại", { exact: true }).fill("0901234567");
   await page.getByLabel("Địa chỉ email", { exact: true }).fill("customer@metastorage.test");
-  await page.getByLabel("Thời hạn thuê", { exact: true }).selectOption("3");
+  await selectCheckInDate(page, await tomorrowInVietnam(page));
+  await page
+    .locator('input[name="checkInSlotId"][value="11111111-1111-4111-8111-111111111111"]')
+    .check();
+  await page.getByRole("radio", { name: "3 tháng", exact: true }).check();
   await page.getByRole("button", { name: "Xem đơn thuê", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Kiểm tra thông tin đơn thuê kho" }),
@@ -129,7 +134,7 @@ test("FM can assign a physical unit and Staff without acting as Staff", async ({
   await page.screenshot({ path: "/tmp/metastorage-offline-assigned.png", fullPage: true });
 });
 
-test("checkout hold rejection shows details without blocking retry", async ({ page }) => {
+test("capacity rejection shows details and preserves the form for retry", async ({ page }) => {
   const diagnostics: string[] = [];
   page.on("console", (message) => {
     if (message.text().includes("[metastorage checkout]")) diagnostics.push(message.text());
@@ -140,6 +145,10 @@ test("checkout hold rejection shows details without blocking retry", async ({ pa
   await page.getByLabel("Họ và tên", { exact: true }).fill("Khách kiểm tra lỗi");
   await page.getByLabel("Số điện thoại", { exact: true }).fill("0901234567");
   await page.getByLabel("Địa chỉ email", { exact: true }).fill("retry@example.test");
+  await selectCheckInDate(page, await tomorrowInVietnam(page));
+  await page
+    .locator('input[name="checkInSlotId"][value="11111111-1111-4111-8111-111111111111"]')
+    .check();
   // Another checkout takes the available capacity after the customer selects it.
   await page.evaluate(() => {
     const key = "metastorage.mock-db.v4";
@@ -174,10 +183,10 @@ test("checkout hold rejection shows details without blocking retry", async ({ pa
   expect(
     diagnostics.some(
       (log) =>
-        log.includes('"stage":"hold"') &&
+        log.includes('"stage":"draft"') &&
         log.includes('"status":409') &&
         log.includes('"code":409') &&
-        log.includes("/hold"),
+        log.includes("/bookings/drafts"),
     ),
   ).toBe(true);
   await page.screenshot({ path: "/tmp/metastorage-checkout-capacity-error.png", fullPage: true });
@@ -189,7 +198,6 @@ test("checkout hold rejection shows details without blocking retry", async ({ pa
     );
     localStorage.setItem(key, JSON.stringify(database));
   });
-  await page.getByRole("button", { name: "Kiểm tra lại chỗ trống", exact: true }).click();
   await expect(page.getByRole("button", { name: "Xem đơn thuê", exact: true })).toBeEnabled();
   await page.getByRole("button", { name: "Xem đơn thuê", exact: true }).click();
   await expect(
