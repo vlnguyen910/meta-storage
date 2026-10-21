@@ -166,7 +166,7 @@ export function LoginView({ auth }: AuthViewProps) {
           className="flex-row items-center gap-1.5 py-1"
           onPress={() => {
             // Fill guest / demo or trigger guest browse
-            auth.fillDemo("customer@metastorage.test", "Demo@123");
+            auth.fillDemo("customer@metastorage.test", "12345678");
           }}
         >
           <Text className="text-xs font-bold text-[#125345]">{AUTH_MESSAGES.continueAsGuest}</Text>

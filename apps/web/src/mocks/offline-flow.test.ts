@@ -30,7 +30,7 @@ beforeEach(() => {
 });
 afterEach(() => vi.useRealTimers());
 async function login(email: string) {
-  tokens = await client.auth.login({ email, password: "Demo@123" });
+  tokens = await client.auth.login({ email, password: "12345678" });
 }
 it("keeps guest pricing and payment booking together without an API server", async () => {
   const draft = await client.reservations.createDraft({

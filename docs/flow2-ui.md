@@ -102,7 +102,7 @@ bun --env-file=apps/api/.env apps/api/src/scripts/rename-demo-branding.ts
 bun --env-file=apps/api/.env apps/api/src/scripts/seed-flow2-demo.ts
 ```
 
-Staff login is `staff@metastorage.test` / `Demo@123`. The seed keeps the existing Staff ID and facility assignment and adds units `HCM-01-009` through `HCM-01-018` only when missing. Inspection integration tests require a dedicated `metastorage_inspection_test_*` database.
+Staff login is `staff@metastorage.test` / `12345678`. The seed keeps the existing Staff ID and facility assignment and adds units `HCM-01-009` through `HCM-01-018` only when missing. Inspection integration tests require a dedicated `metastorage_inspection_test_*` database.
 
 Existing QR signing bytes and stored Cloudinary public IDs remain compatible with old records; new evidence uses the `metastorage/inspections` prefix. Historical planning documents, actual filesystem locations and external source names are not live branding.
 
@@ -136,7 +136,7 @@ The standalone BOM and System Administrator prototype workspaces are also gated 
 
 ## Manual Flow 2 verification
 
-Use `manager@metastorage.vn` and `staff@metastorage.vn` with the local seed password `StoreXDev123!`. The normal path requires a CONFIRMED booking, a SUCCEEDED payment, a suitable unit at the same facility, an assigned Staff account and a valid check-in appointment. Follow the appointment start/end/deadline displayed by the backend; a future or expired appointment is not a valid happy-path fixture.
+Use `manager@metastorage.vn` and `staff@metastorage.vn` with the local seed password `12345678`. The normal path requires a CONFIRMED booking, a SUCCEEDED payment, a suitable unit at the same facility, an assigned Staff account and a valid check-in appointment. Follow the appointment start/end/deadline displayed by the backend; a future or expired appointment is not a valid happy-path fixture.
 
 1. Sign in as FM at `/facility-manager/dashboard`. Open a booking, assign a suitable physical unit, then assign the Staff account from the facility's staff list.
 2. To test reassignment, select a different available unit and enter an optional reason. The in-app confirmation shows booking/customer, current/new unit and reason. Cancel or Escape preserves the existing assignment and sends no mutation. Confirm sends the reviewed selection; pending requests disable both actions. A backend conflict stays visible in the dialog. A successful change requires fresh verification/inspection for the new unit.

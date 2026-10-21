@@ -51,7 +51,7 @@ export const AUTH_MESSAGES = {
   demoQuickFillTitle: "Tài khoản mẫu (1 chạm)",
   customerDemoLabel: "Khách hàng cá nhân",
   customerDemoEmail: "customer@metastorage.test",
-  demoPassword: "Demo@123",
+  demoPassword: "12345678",
   loginEmailNotVerified:
     "Email chưa xác minh. StoreX đã gửi lại liên kết nếu thông tin đăng nhập đúng.",
 

@@ -191,7 +191,7 @@ export const AUTH_MESSAGES = {
 
   // Demo Accounts (Mock Mode)
   demoAccountsTitle: "Tài khoản demo (1-Click)",
-  demoPasswordLabel: "Mật khẩu mặc định: Demo@123",
+  demoPasswordLabel: "Mật khẩu mặc định: 12345678",
 
   // Footer
   footerCopyright: "© 2025 StoreX. All rights reserved. Giấy phép ĐKKD TP.HCM & Hà Nội.",

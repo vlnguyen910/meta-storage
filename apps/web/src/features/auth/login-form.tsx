@@ -52,7 +52,7 @@ export function LoginForm() {
   } = useForm<LoginFormValues>({
     resolver: zodResolver(schema),
     defaultValues: isMockMode
-      ? { email: "customer@metastorage.test", password: "Demo@123", remember: false }
+      ? { email: "customer@metastorage.test", password: "12345678", remember: false }
       : { email: "", password: "", remember: false },
   });
 
@@ -275,7 +275,7 @@ export function LoginForm() {
                   className="cursor-pointer rounded-lg border border-slate-200 bg-white p-2 text-left hover:border-[#165f4d] hover:bg-[#e8f3ef]/30 transition-all text-xs"
                   onClick={() => {
                     setValue("email", account.email, { shouldValidate: true });
-                    setValue("password", "Demo@123", { shouldValidate: true });
+                    setValue("password", "12345678", { shouldValidate: true });
                   }}
                 >
                   <strong className="block text-[11px] text-slate-900 truncate">

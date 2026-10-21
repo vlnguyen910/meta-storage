@@ -41,7 +41,7 @@ vừa tạo do API sinh, cần lấy từ response để dùng ở bước tiế
 
 ## Tài khoản đăng nhập
 
-Mật khẩu development: `StoreXDev123!`. Đăng nhập qua
+Mật khẩu development: `12345678`. Đăng nhập qua
 `POST /api/auth/sign-in/email`, dùng cookie session trên cùng origin Swagger.
 
 | Role | Email | User ID |

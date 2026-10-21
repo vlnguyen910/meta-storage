@@ -10,7 +10,7 @@ Reload preserves bookings, assignment, verification, inspection photos and hando
 Use the **Khôi phục dữ liệu demo** action in the authenticated app shell to restore the samples.
 This affects only browser data, not PostgreSQL.
 
-Demo accounts (password `Demo@123`):
+Demo accounts (password `12345678`):
 
 - `customer@metastorage.test`
 - `manager@metastorage.test`

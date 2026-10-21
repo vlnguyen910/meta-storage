@@ -13,9 +13,10 @@ import {
   users,
 } from "@metastorage/database";
 import { hashPassword, verifyPassword } from "better-auth/crypto";
+import { DEV_AUTH_PASSWORD } from "../dev/auth-fixtures";
 
 const email = "staff@metastorage.test";
-const password = "Demo@123";
+const password = DEV_AUTH_PASSWORD;
 const unitTypeCodes = [
   "UT-2M",
   "UT-2M",

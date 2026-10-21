@@ -27,7 +27,7 @@ export const MOBILE_AUTH_MESSAGES = {
   demos: "Tài khoản demo",
   customer: "Dùng tài khoản Customer",
   staff: "Dùng tài khoản FS",
-  demoPassword: "Mật khẩu demo: Demo@123",
+  demoPassword: "Mật khẩu demo: 12345678",
   phoneHint: "Số điện thoại có mã quốc gia, ví dụ +84901234567.",
   cooldown: (seconds: number) => `Có thể thử lại sau ${seconds}s`,
 };

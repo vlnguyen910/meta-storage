@@ -138,7 +138,7 @@ References:
 
 ## Demo accounts and manual flows
 
-Password for all seeded accounts: **Demo@123**.
+Password for all seeded accounts: **12345678**.
 
 | Account | Purpose |
 | --- | --- |
