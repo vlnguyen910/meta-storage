@@ -411,6 +411,10 @@
   resize: vertical;
 }
 .durationField {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  align-self: stretch;
   min-width: 0;
   margin: 0;
   padding: 0;
@@ -423,14 +427,17 @@
   font-weight: 700;
 }
 .durationGrid {
+  flex: 1;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 .durationOption {
   display: flex;
   min-width: 0;
-  min-height: 46px;
+  min-height: 0;
+  height: 100%;
   align-items: center;
   justify-content: center;
   gap: 6px;
@@ -923,6 +930,18 @@
   color: var(--color-danger);
 }
 @media (max-width: 420px) {
+  .durationField {
+    min-height: 0;
+    align-self: start;
+  }
+  .durationGrid {
+    flex: none;
+    grid-template-rows: repeat(4, minmax(46px, auto));
+  }
+  .durationOption {
+    height: auto;
+    min-height: 46px;
+  }
   .calendarPanel {
     padding: 8px;
   }
