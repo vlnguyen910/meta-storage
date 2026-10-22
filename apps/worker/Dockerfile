@@ -16,6 +16,8 @@ COPY packages/typescript-config/package.json ./packages/typescript-config/packag
 RUN bun install --frozen-lockfile --filter "./apps/worker"
 
 COPY apps/worker ./apps/worker
+COPY packages/database ./packages/database
+COPY packages/contracts ./packages/contracts
 COPY packages/shared ./packages/shared
 COPY packages/typescript-config ./packages/typescript-config
 
