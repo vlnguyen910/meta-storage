@@ -92,6 +92,7 @@ export const ReturnInspectionParamsSchema = z.object({
 export const ReturnPhotoParamsSchema = ReturnInspectionParamsSchema.extend({ photoId: z.uuid() });
 export const ReturnTimeChangeParamsSchema = z.object({ requestId: z.uuid(), changeId: z.uuid() });
 export const ReturnVersionSchema = z.strictObject({ expectedVersion: version });
+export type ReturnVersion = z.infer<typeof ReturnVersionSchema>;
 export const CreateReturnRequestSchema = z.strictObject({ date, slotId: z.uuid(), reason });
 export type CreateReturnRequest = z.infer<typeof CreateReturnRequestSchema>;
 export const EditReturnRequestSchema = CreateReturnRequestSchema.extend({
@@ -102,11 +103,13 @@ export const AssignReturnStaffSchema = z.strictObject({
   staffId: z.uuid(),
   reason,
 });
+export type AssignReturnStaff = z.infer<typeof AssignReturnStaffSchema>;
 export const RecordPhysicalReturnSchema = z.strictObject({
   expectedVersion: version,
   actualReturnAt: z.iso.datetime({ offset: true }),
   reason,
 });
+export type RecordPhysicalReturn = z.infer<typeof RecordPhysicalReturnSchema>;
 export const ProposeReturnTimeSchema = RecordPhysicalReturnSchema.extend({
   evidencePhotoIds: z.array(z.uuid()).min(1).max(5),
   idempotencyKey: z.uuid(),
@@ -139,6 +142,7 @@ export const ReturnPhotoInputSchema = z.strictObject({
   mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]),
   dataBase64: z.string().min(1).max(4194304),
 });
+export type ReturnPhotoInput = z.infer<typeof ReturnPhotoInputSchema>;
 export const ReturnEvidenceInputSchema = ReturnPhotoInputSchema.extend({
   purpose: z.enum(["TIME_CORRECTION", "REFUND"]),
 });

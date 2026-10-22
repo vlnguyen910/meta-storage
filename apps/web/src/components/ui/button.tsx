@@ -1,5 +1,6 @@
 import { cn } from "@/lib/cn";
 import type { ButtonProps, ButtonVariant } from "./button.types";
+import { Spinner } from "./spinner";
 
 export type { ButtonProps } from "./button.types";
 
@@ -33,14 +34,7 @@ export function Button({
       disabled={disabled || loading}
       {...props}
     >
-      {loading ? (
-        <span
-          className="size-[18px] animate-spin rounded-full border-2 border-current border-r-transparent"
-          aria-hidden="true"
-        />
-      ) : (
-        icon
-      )}
+      {loading ? <Spinner variant="button" className="size-[18px]" /> : icon}
       {children}
     </button>
   );

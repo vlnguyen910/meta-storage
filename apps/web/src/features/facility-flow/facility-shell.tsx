@@ -15,8 +15,11 @@ import {
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { type ReactNode, Suspense, useState } from "react";
+import { isMockMode } from "@/config/api-mode";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { useMyFacilityAssignments } from "@/features/check-in/hooks";
+import { LifecycleInbox } from "@/features/returns/lifecycle-inbox";
+import { RETURNS_MESSAGES as RETURNS } from "@/features/returns/returns.messages";
 import { cn } from "@/lib/cn";
 import { FLOW } from "./flow.messages";
 import { flowFontClass } from "./flow-ui";
@@ -45,6 +48,7 @@ function FacilityShellContent({
       href: `${root}/dashboard`,
       icon: ClipboardCheck,
     },
+    { label: RETURNS.managerNav, href: `${root}/returns`, icon: History },
     ...(!isManager
       ? [{ label: FLOW.inspection, href: `${root}/check-in`, icon: ClipboardCheck }]
       : []),
@@ -82,16 +86,22 @@ function FacilityShellContent({
             <p className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-[#bfc9c4]">
               {FLOW.business}
             </p>
-            {navigation.map(({ label, href, icon: Icon }, i) => (
+            {navigation.map(({ label, href, icon: Icon }) => (
               <Link
                 key={label}
                 href={href}
                 onClick={() => setOpen(false)}
                 className={cn(
                   "flex items-center gap-2 rounded px-2 py-2 text-sm text-[#bfc9c4] hover:bg-[#125345] hover:text-white",
-                  ((i === 0 && pathname.endsWith("/dashboard") && overview) ||
-                    (i === 1 && pathname.endsWith("/dashboard") && !overview) ||
-                    (i === 2 && pathname.endsWith("/check-in"))) &&
+                  ((href.includes("view=overview") &&
+                    pathname.endsWith("/dashboard") &&
+                    overview) ||
+                    (href.endsWith("/dashboard") &&
+                      !href.includes("view=") &&
+                      pathname.endsWith("/dashboard") &&
+                      !overview) ||
+                    pathname === href ||
+                    pathname.startsWith(`${href}/`)) &&
                     "bg-[#125345] font-semibold text-white",
                 )}
               >
@@ -165,9 +175,11 @@ function FacilityShellContent({
                   : isManager
                     ? FLOW.managerDispatch
                     : FLOW.staffTasks
-                : isManager
-                  ? FLOW.monitor
-                  : FLOW.inspection}
+                : pathname.startsWith(`${root}/returns`)
+                  ? RETURNS.facilityReturnsCrumb
+                  : isManager
+                    ? FLOW.monitor
+                    : FLOW.inspection}
             </span>
           </div>
           <div className="flex items-center gap-3">
@@ -182,6 +194,7 @@ function FacilityShellContent({
         </header>
         <main className="mx-auto max-w-[1504px] space-y-6 px-4 pb-8 sm:px-8">
           {user?.role === UserRole.FACILITY_STAFF && <StaffTaskNotifications key={user.id} />}
+          {isManager && !isMockMode && <LifecycleInbox key={user?.id} />}
           {children}
         </main>
       </div>

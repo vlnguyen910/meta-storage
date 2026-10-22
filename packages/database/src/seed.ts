@@ -30,8 +30,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
 const FLOW2_STAFF_ID = "40000000-0000-4000-8000-000000000006";
 const FLOW2_STAFF_EMAIL = "staff@metastorage.test";
-const FLOW2_STAFF_PASSWORD = "Demo@123";
-const DEV_AUTH_PASSWORD = "StoreXDev123!";
+const FLOW2_STAFF_PASSWORD = "12345678";
+const DEV_AUTH_PASSWORD = "12345678";
 const FLOW3_IDS = {
   bookings: [
     "84000000-0000-4000-8000-000000000001",

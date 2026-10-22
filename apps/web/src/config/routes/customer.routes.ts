@@ -6,4 +6,6 @@ export const customerRoutes = {
   reservation: (reservationId: string) => `/customer/reservations/${reservationId}`,
   rentals: "/customer/storage",
   rental: (rentalId: string) => `/customer/storage/${rentalId}`,
+  newReturn: (rentalId: string) => `/customer/storage/${rentalId}/return`,
+  returnRequest: (requestId: string) => `/customer/returns/${requestId}`,
 } as const;

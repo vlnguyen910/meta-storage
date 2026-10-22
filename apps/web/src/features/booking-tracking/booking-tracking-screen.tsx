@@ -7,6 +7,7 @@ import { routes } from "@/config/routes";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import { bookingLookupMessages } from "./booking-lookup.messages";
 import { BookingLookupForm } from "./booking-lookup-form";
+import { GuestRentalRecords } from "./guest-rental-records";
 import { trackingMessages as m } from "./tracking.messages";
 import { useBookingTracking } from "./use-booking-tracking";
 
@@ -19,7 +20,7 @@ function Detail({ label, value }: { label: string; value: string }) {
   );
 }
 export function BookingTrackingScreen() {
-  const { booking, loading, lookup, message, revoke, revoking, revokeError, retry } =
+  const { booking, loading, lookup, message, revoke, revoking, revokeError, retry, expire } =
     useBookingTracking();
   if (lookup && !loading) {
     return (
@@ -107,6 +108,7 @@ export function BookingTrackingScreen() {
                 />
               </dl>
             </Card>
+            <GuestRentalRecords code={booking.bookingCode} onExpired={expire} />
             <p className="text-sm leading-relaxed text-slate-600">{m.privacy}</p>
             {revokeError ? (
               <p role="alert" className="text-red-700">

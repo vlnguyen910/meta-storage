@@ -13,6 +13,7 @@ import {
   useBooking,
   useEligibleUnits,
 } from "@/features/check-in/hooks";
+import { RentalDocuments } from "@/features/rentals/rental-records";
 import { formatDateTime } from "@/lib/format";
 import { FLOW } from "./flow.messages";
 import {
@@ -260,6 +261,9 @@ export function AssignmentScreen() {
             </Button>
           </Panel>
         </>
+      )}
+      {booking.data && (
+        <RentalDocuments bookingId={booking.data.id} manager={role === UserRole.FACILITY_MANAGER} />
       )}
       {confirmation && (
         <ReassignmentDialog

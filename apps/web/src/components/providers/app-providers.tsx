@@ -7,6 +7,7 @@ import { FullScreenLoading } from "@/components/ui/states";
 import { ToastProvider } from "@/components/ui/toast";
 import { isMockMode } from "@/config/api-mode";
 import { useAuthStore } from "@/features/auth/auth-store";
+import { PrivateDataBoundary } from "@/features/returns/private-data-boundary";
 import { api } from "@/lib/api";
 import { installMockApi } from "@/mocks/install-mock-api";
 import { GlobalActivityIndicator } from "./global-activity-indicator";
@@ -46,6 +47,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <PrivateDataBoundary />
       <ToastProvider>
         <GlobalLoadingProvider>
           <GlobalActivityIndicator />

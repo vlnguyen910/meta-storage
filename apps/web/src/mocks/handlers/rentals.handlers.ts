@@ -7,7 +7,15 @@ export function registerRentalHandlers(mock: MockAdapter): void {
     const db = getMockDatabase();
     const user = currentUser(config, db);
     if (!user) return [401, errorBody(401, M.forbidden)];
-    return [200, envelope(db.rentals.filter((r) => r.userId === user.id))];
+    const history = config.params?.view === "history";
+    const items = db.rentals
+      .filter((r) => r.userId === user.id)
+      .filter((r) =>
+        history
+          ? ["CLOSED", "CANCELLED"].includes(r.status)
+          : !["CLOSED", "CANCELLED"].includes(r.status),
+      );
+    return [200, envelope({ items, nextCursor: null })];
   });
   mock.onGet(/\/rentals\/[^/]+$/).reply((config) => {
     const db = getMockDatabase();

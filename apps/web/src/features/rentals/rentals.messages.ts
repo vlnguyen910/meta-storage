@@ -1,0 +1,17 @@
+export const RENTAL_MESSAGES = {
+  currentTitle: "Kho đang thuê",
+  historyTitle: "Lịch sử thuê kho",
+  description: "Xem thông tin kho, thời hạn thuê và các yêu cầu trả kho của bạn.",
+  viewLabel: "Chọn danh sách kho",
+  currentTab: "Đang thuê",
+  historyTab: "Lịch sử",
+  emptyTitle: "Chưa có kho trong danh sách này",
+  emptyDescription: "Kho chỉ xuất hiện sau khi việc bàn giao hoàn tất.",
+  loadFailed: "Không thể tải danh sách kho. Hãy thử tải lại.",
+  termLabel: "Thời hạn",
+  unitLabel: "Mã ô kho",
+  notAssigned: "Chưa có thông tin",
+  loadingMore: "Đang tải…",
+  loadMore: "Tải thêm",
+  loadMoreFailed: "Không tải thêm được. Hãy thử lại.",
+} as const;
