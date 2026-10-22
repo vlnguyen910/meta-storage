@@ -106,6 +106,11 @@ return 200. Auth requires active users; no implicit BOM/Admin operational author
 | GET/PUT `/facilities/:facilityId/return-calendar` | System Admin; timezone/holidays/reminder time and optional operating-hours replacement |
 | GET/PUT `/return-policy/overdue-rate` | BOM only; integer 0–100%, expectedVersion/audit |
 
+Facility-scoped queue and calendar endpoints are registered directly in
+`modules/facilities/facilities.routes.ts` under `/api/facilities`. They delegate
+return workflow/policy rules to `ReturnsService`. Their private/no-store hook is
+attached only to these three routes, not public facility reads.
+
 Facility queue query: `limit` 1–100 (20 default), `offset` >=0, optional request `status`.
 Results order by creation/UUID descending. Request payloads are the shared input Zod
 schemas in `packages/contracts/src/returns.ts`; integer-VND money uses decimal

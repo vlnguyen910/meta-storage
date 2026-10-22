@@ -1,7 +1,6 @@
 import {
   AssignReturnStaffSchema,
   ConfigureOverdueRateSchema,
-  ConfigureReturnCalendarSchema,
   ConfigureReturnChecklistSchema,
   ConfirmReturnRefundSchema,
   CreateReturnRequestSchema,
@@ -12,14 +11,11 @@ import {
   ReturnDetailEnvelopeSchema,
   ReturnEvidenceInputSchema,
   ReturnEvidenceParamsSchema,
-  ReturnFacilityParamsSchema,
   ReturnInspectionParamsSchema,
   ReturnPhotoInputSchema,
   ReturnPhotoParamsSchema,
   ReturnPreviewEnvelopeSchema,
   ReturnPropertySchema,
-  ReturnQueueEnvelopeSchema,
-  ReturnQueueQuerySchema,
   ReturnRefundEnvelopeSchema,
   ReturnRentalParamsSchema,
   ReturnRequestParamsSchema,
@@ -50,19 +46,6 @@ export const returnsRoutes: FastifyPluginAsync<ReturnsRoutesOptions> = async (ap
   app.addHook("onRequest", async (_request, reply) => {
     reply.header("Cache-Control", "private, no-store");
   });
-  typed.get(
-    "/facilities/:facilityId/return-requests",
-    {
-      preHandler: [requireAuth],
-      schema: {
-        params: ReturnFacilityParamsSchema,
-        querystring: ReturnQueueQuerySchema,
-        response: { 200: ReturnQueueEnvelopeSchema },
-      },
-    },
-    async (req) =>
-      successResponse(await service.queue(actor(req), req.params.facilityId, req.query)),
-  );
   typed.get(
     "/rentals/:rentalId/return-requests",
     {
@@ -133,23 +116,6 @@ export const returnsRoutes: FastifyPluginAsync<ReturnsRoutesOptions> = async (ap
       schema: { body: ConfigureReturnChecklistSchema },
     },
     async (req) => successResponse(await service.configureChecklist(actor(req), req.body)),
-  );
-  typed.get(
-    "/facilities/:facilityId/return-calendar",
-    {
-      preHandler: [requireRole("SYSTEM_ADMIN")],
-      schema: { params: ReturnFacilityParamsSchema },
-    },
-    async (req) => successResponse(await service.calendar(actor(req), req.params.facilityId)),
-  );
-  typed.put(
-    "/facilities/:facilityId/return-calendar",
-    {
-      preHandler: [requireRole("SYSTEM_ADMIN")],
-      schema: { params: ReturnFacilityParamsSchema, body: ConfigureReturnCalendarSchema },
-    },
-    async (req) =>
-      successResponse(await service.configureCalendar(actor(req), req.params.facilityId, req.body)),
   );
   typed.get(
     "/return-policy/overdue-rate",
