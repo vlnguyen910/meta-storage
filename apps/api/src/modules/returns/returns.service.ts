@@ -3,19 +3,26 @@ import type {
   ConfigureReturnCalendar,
   ConfigureReturnChecklist,
   ConfirmReturnRefund,
+  ConfirmReturnRefundDto,
   CreateReturnRequest,
   ProposeReturnTime,
   ReturnActor,
   ReturnChecklistVersionDto,
   ReturnEvidenceInput,
   ReturnInspectionDto,
+  ReturnOperationalContextDto,
   ReturnQueueQuery,
+  ReturnRequestDetailDto,
   ReturnRequestDto,
   ReturnSettlementDto,
+  ReturnSettlementPreviewDto,
   SaveReturnInspection,
   SettleReturn,
 } from "@metastorage/contracts";
-import { RETURN_MESSAGES as m } from "@metastorage/contracts";
+import {
+  ReturnSettlementBlockerCode as blockerCode,
+  RETURN_MESSAGES as m,
+} from "@metastorage/contracts";
 import type { returnInspections, returnSettlements } from "@metastorage/database";
 import { CloudinaryPhotoStorage } from "../../common/adapters/storage/cloudinary-photo.storage";
 import type { InspectionPhotoStorage } from "../../common/adapters/storage/photo-storage.types";
@@ -29,15 +36,22 @@ import {
 import { decodePhoto } from "../inspections/inspections.policy";
 import { recordOverdueEvent } from "../rentals/rental-lifecycle.events";
 import {
+  calculateSettlement,
+  depositEntitlement,
   localDate,
-  overdueAmount,
   refundAllocation,
   refundDueDate,
+  refundSummary,
   reviewInspection,
   wholeVnd,
 } from "./returns.policy";
 import type { ReturnsRepository } from "./returns.repository";
-import type { ReturnContext, ReturnRequestRow, ReturnTransaction } from "./returns.types";
+import type {
+  ReturnContext,
+  ReturnOperationalRow,
+  ReturnRequestRow,
+  ReturnTransaction,
+} from "./returns.types";
 
 const requestDto = (row: ReturnRequestRow): ReturnRequestDto => ({
   id: row.id,
@@ -52,6 +66,25 @@ const requestDto = (row: ReturnRequestRow): ReturnRequestDto => ({
   reason: row.reason,
   manualReviewRequired: row.manualReviewRequired,
   createdAt: row.createdAt.toISOString(),
+});
+const operationalDto = (row: ReturnOperationalRow): ReturnOperationalContextDto => ({
+  booking: { id: row.bookingId, bookingCode: row.bookingCode },
+  customer: { id: row.customerId, name: row.customerName, phone: row.customerPhone },
+  rental: {
+    id: row.rentalId,
+    status: row.rentalStatus,
+    expectedEndAt: row.expectedEndAt.toISOString(),
+    depositSnapshot: wholeVnd(row.depositAmount).toString(),
+  },
+  unit: {
+    id: row.unitId,
+    code: row.unitCode,
+    unitTypeName: row.unitTypeName,
+    sizeLabel: row.sizeLabel,
+  },
+  facility: { id: row.facilityId, name: row.facilityName },
+  assignedStaff:
+    row.staffId && row.staffName !== null ? { id: row.staffId, name: row.staffName } : null,
 });
 const inspectionDto = (row: typeof returnInspections.$inferSelect): ReturnInspectionDto => ({
   id: row.id,
@@ -187,14 +220,25 @@ export class ReturnsService {
         if (!(await this.repository.member(tx, facilityId, actor.id, "FACILITY_STAFF")))
           throw new ForbiddenError(m.forbidden);
       }
-      return (
-        await this.repository.queue(
-          tx,
-          facilityId,
-          query,
-          actor.role === "FACILITY_STAFF" ? actor.id : undefined,
-        )
-      ).map(requestDto);
+      const requests = await this.repository.queue(
+        tx,
+        facilityId,
+        query,
+        actor.role === "FACILITY_STAFF" ? actor.id : undefined,
+      );
+      const contexts = new Map(
+        (
+          await this.repository.operationalContexts(
+            tx,
+            requests.map((r) => r.id),
+          )
+        ).map((row) => [row.requestId, operationalDto(row)]),
+      );
+      return requests.map((row) => {
+        const context = contexts.get(row.id);
+        if (!context) throw new NotFoundError(m.notFound);
+        return { ...requestDto(row), context };
+      });
     });
   }
   async list(actor: ReturnActor, rentalId: string) {
@@ -492,7 +536,13 @@ export class ReturnsService {
     });
   }
 
-  async get(actor: ReturnActor, id: string) {
+  private async operationalContext(tx: ReturnTransaction, id: string) {
+    const [row] = await this.repository.operationalContexts(tx, [id]);
+    if (!row) throw new NotFoundError(m.notFound);
+    return operationalDto(row);
+  }
+
+  async get(actor: ReturnActor, id: string): Promise<ReturnRequestDetailDto> {
     return this.repository.lockedRequest(id, async (tx, context, request) => {
       await this.reader(tx, actor, context, request);
       const [inspections, settlements, refunds, changes, audit] = await Promise.all([
@@ -505,6 +555,8 @@ export class ReturnsService {
       const paid = refunds.reduce((sum, r) => sum + wholeVnd(r.amount), 0n);
       return {
         request: requestDto(request),
+        context: actor.role === "CUSTOMER" ? null : await this.operationalContext(tx, id),
+        refundSummary: settlements[0] ? refundSummary(settlements[0], settlements, refunds) : null,
         actualReturnAt: context.rental.actualReturnAt?.toISOString() ?? null,
         inspections: await Promise.all(
           inspections.map(async (inspection) => ({
@@ -975,21 +1027,61 @@ export class ReturnsService {
     });
   }
 
-  async confirmRefund(actor: ReturnActor, id: string, input: ConfirmReturnRefund) {
+  async confirmRefund(
+    actor: ReturnActor,
+    id: string,
+    input: ConfirmReturnRefund,
+  ): Promise<ConfirmReturnRefundDto> {
     return this.repository.lockedRequest(id, async (tx, context, request) => {
       await this.manager(tx, actor, request.facilityId);
       const refunds = await this.repository.refunds(tx, id);
+      const settlements = await this.repository.settlements(tx, id);
+      const [settlement] = settlements;
+      if (!settlement) throw new ConflictError(m.refund);
+      const summary = refundSummary(settlement, settlements, refunds);
       const existing = refunds.find((r) => r.idempotencyKey === input.idempotencyKey);
       if (existing) {
+        const legacyReplay =
+          existing.depositRefundAmount === null &&
+          existing.rentRefundAmount === null &&
+          input.depositRefundAmount === undefined &&
+          input.rentRefundAmount === undefined;
+        const origin = settlements.find((row) => row.id === existing.settlementId);
+        const saved = origin
+          ? refundAllocation(
+              wholeVnd(existing.amount),
+              depositEntitlement(origin),
+              wholeVnd(origin.unusedRentRefundAmount),
+              existing.depositRefundAmount,
+              existing.rentRefundAmount,
+              true,
+            )
+          : undefined;
+        // A single-source retry uses its stored allocation, even after later refunds/corrections.
+        const allocation =
+          input.depositRefundAmount === undefined &&
+          input.rentRefundAmount === undefined &&
+          saved &&
+          (saved.deposit === 0n || saved.rent === 0n)
+            ? saved
+            : origin
+              ? refundAllocation(
+                  wholeVnd(input.amount),
+                  depositEntitlement(origin),
+                  wholeVnd(origin.unusedRentRefundAmount),
+                  input.depositRefundAmount,
+                  input.rentRefundAmount,
+                )
+              : undefined;
         if (
+          (!legacyReplay &&
+            (!allocation ||
+              !saved ||
+              allocation.deposit !== saved.deposit ||
+              allocation.rent !== saved.rent)) ||
           wholeVnd(existing.amount) !== wholeVnd(input.amount) ||
           existing.reference !== input.reference ||
           existing.confirmedBy !== actor.id ||
-          (input.depositRefundAmount !== undefined &&
-            wholeVnd(existing.depositRefundAmount ?? "0") !==
-              wholeVnd(input.depositRefundAmount)) ||
-          (input.rentRefundAmount !== undefined &&
-            wholeVnd(existing.rentRefundAmount ?? "0") !== wholeVnd(input.rentRefundAmount)) ||
           JSON.stringify(existing.evidencePhotoIds) !== JSON.stringify(input.evidencePhotoIds)
         )
           throw new ConflictError(m.refund);
@@ -997,60 +1089,28 @@ export class ReturnsService {
           id: existing.id,
           amount: existing.amount,
           confirmedAt: existing.confirmedAt.toISOString(),
+          version: request.version,
+          refundSummary: summary,
         };
       }
       this.version(request.version, input.expectedVersion);
-      const [settlement] = await this.repository.settlements(tx, id);
       const payment = await this.repository.payment(tx, context.booking.id);
-      if (
-        !settlement ||
-        request.status !== "COMPLETED" ||
-        !payment?.paidAt ||
-        payment.status !== "SUCCEEDED"
-      )
+      if (request.status !== "COMPLETED" || !payment?.paidAt || payment.status !== "SUCCEEDED")
         throw new ConflictError(m.refund);
       await this.verifyEvidence(tx, id, input.evidencePhotoIds, "REFUND");
       const already = refunds.reduce((sum, r) => sum + wholeVnd(r.amount), 0n);
       const amount = wholeVnd(input.amount);
       if (
+        !summary.allocationKnown ||
+        summary.remainingDepositRefund === null ||
+        summary.remainingRentRefund === null ||
         amount <= 0n ||
-        already + amount > wholeVnd(settlement.refundEntitlement) ||
+        amount > wholeVnd(summary.remainingRefund) ||
         already + amount > wholeVnd(payment.totalAmount)
       )
         throw new ConflictError(m.refund);
-      const settlements = await this.repository.settlements(tx, id);
-      const depositEntitlement = (row: typeof returnSettlements.$inferSelect) => {
-        const available =
-          wholeVnd(row.depositSnapshot) -
-          wholeVnd(row.overdueFeeAmount) -
-          wholeVnd(row.damageAmount);
-        return available > 0n ? available : 0n;
-      };
-      let depositPaid = 0n,
-        rentPaid = 0n;
-      for (const refund of refunds) {
-        const origin = settlements.find((row) => row.id === refund.settlementId);
-        if (!origin) throw new ConflictError(m.refund);
-        const allocation = refundAllocation(
-          wholeVnd(refund.amount),
-          depositEntitlement(origin),
-          wholeVnd(origin.unusedRentRefundAmount),
-          refund.depositRefundAmount,
-          refund.rentRefundAmount,
-          true,
-        );
-        if (!allocation) throw new ConflictError(m.refund);
-        depositPaid += allocation.deposit;
-        rentPaid += allocation.rent;
-      }
-      const depositAvailable =
-        depositEntitlement(settlement) > depositPaid
-          ? depositEntitlement(settlement) - depositPaid
-          : 0n;
-      const rentAvailable =
-        wholeVnd(settlement.unusedRentRefundAmount) > rentPaid
-          ? wholeVnd(settlement.unusedRentRefundAmount) - rentPaid
-          : 0n;
+      const depositAvailable = wholeVnd(summary.remainingDepositRefund),
+        rentAvailable = wholeVnd(summary.remainingRentRefund);
       const allocation = refundAllocation(
         amount,
         depositAvailable,
@@ -1073,7 +1133,7 @@ export class ReturnsService {
         confirmedBy: actor.id,
       });
       if (!row) throw new ConflictError(m.refund);
-      await this.repository.updateRequest(tx, id, {});
+      const updated = await this.repository.updateRequest(tx, id, {});
       await this.repository.audit(
         tx,
         actor.id,
@@ -1089,7 +1149,13 @@ export class ReturnsService {
         id,
         request.facilityId,
       );
-      return { id: row.id, amount: row.amount, confirmedAt: row.confirmedAt.toISOString() };
+      return {
+        id: row.id,
+        amount: row.amount,
+        confirmedAt: row.confirmedAt.toISOString(),
+        version: updated.version,
+        refundSummary: refundSummary(settlement, settlements, [...refunds, row]),
+      };
     });
   }
   async proposeTime(actor: ReturnActor, id: string, input: ProposeReturnTime) {
@@ -1202,6 +1268,114 @@ export class ReturnsService {
       return { id: change.id, status };
     });
   }
+  private async settlementEligibility(
+    tx: ReturnTransaction,
+    context: ReturnContext,
+    request: ReturnRequestRow,
+    input: SettleReturn,
+  ) {
+    const blockingReasons: ReturnSettlementPreviewDto["blockingReasons"] = [];
+    const add = (
+      code: ReturnSettlementPreviewDto["blockingReasons"][number]["code"],
+      message: string,
+    ) => blockingReasons.push({ code, message });
+    const attempts = await this.repository.inspections(tx, request.id);
+    if (request.status !== "INSPECTING")
+      add(blockerCode.REQUEST_NOT_INSPECTING, m.requestNotInspecting);
+    if (attempts[0]?.status !== "PASS")
+      add(blockerCode.INSPECTION_NOT_PASSED, m.inspectionNotPassed);
+    if (!context.rental.actualReturnAt)
+      add(blockerCode.ACTUAL_RETURN_MISSING, m.actualReturnMissing);
+    if (context.rental.status === "CLOSED") add(blockerCode.RENTAL_CLOSED, m.rentalClosed);
+    for (const attempt of attempts) {
+      const property = attempt.definition
+        .filter((i) => i.group === "REMAINING_PROPERTY")
+        .some((i) => attempt.results.find((r) => r.code === i.code)?.issue);
+      if (!property) continue;
+      if (
+        attempt.propertyDisposition === "NONE" ||
+        !attempt.propertyHandledAt ||
+        !attempt.propertyEvidencePhotoIds.length ||
+        (attempt.propertyDisposition === "STORED" && !attempt.propertyReceiver)
+      ) {
+        add(blockerCode.PROPERTY_UNRESOLVED, m.propertyUnresolved);
+        continue;
+      }
+      try {
+        await this.verifyEvidence(tx, request.id, attempt.propertyEvidencePhotoIds);
+      } catch (error) {
+        if (!(error instanceof ValidationError)) throw error;
+        add(blockerCode.EVIDENCE_INVALID, m.evidence);
+      }
+    }
+    const damageEvidence = attempts
+      .filter((a) => a.status !== "DRAFT")
+      .flatMap((attempt) =>
+        attempt.results
+          .filter(
+            (result) =>
+              result.issue &&
+              result.note &&
+              result.photoIds.length &&
+              attempt.definition.some(
+                (item) =>
+                  item.code === result.code &&
+                  ["UNIT_CONDITION", "HYGIENE_SAFETY"].includes(item.group),
+              ),
+          )
+          .flatMap((result) => result.photoIds),
+      );
+    if (wholeVnd(input.damageAmount) > 0n && !damageEvidence.length)
+      add(blockerCode.DAMAGE_EVIDENCE_MISSING, m.incomplete);
+    return { blockingReasons, damageEvidence: [...new Set(damageEvidence)] };
+  }
+
+  async preview(
+    actor: ReturnActor,
+    id: string,
+    input: SettleReturn,
+  ): Promise<ReturnSettlementPreviewDto> {
+    return this.repository.lockedRequest(id, async (tx, context, request) => {
+      await this.manager(tx, actor, request.facilityId);
+      this.version(request.version, input.expectedVersion);
+      if (wholeVnd(input.unusedRentRefundAmount) > wholeVnd(context.booking.rentalFeeAmount))
+        throw new ValidationError(m.invalidMoney);
+      const { blockingReasons } = await this.settlementEligibility(tx, context, request, input);
+      const settlements = await this.repository.settlements(tx, id);
+      const previous = settlements[0];
+      const calendar =
+        previous?.calendarSnapshot ?? (await this.repository.calendar(request.facilityId, tx));
+      const policy = previous ? { rate: previous.rateSnapshot } : await this.repository.rate(tx);
+      if (!calendar || !policy)
+        blockingReasons.push({
+          code: blockerCode.CONFIGURATION_MISSING,
+          message: m.configurationMissing,
+        });
+      let calculation: ReturnSettlementPreviewDto["calculation"] = null;
+      if (context.rental.actualReturnAt && calendar && policy) {
+        const refunds = await this.repository.refunds(tx, id);
+        const result = calculateSettlement({
+          depositSnapshot: previous?.depositSnapshot ?? context.rental.depositAmount,
+          rateSnapshot: policy.rate,
+          expectedEndAt: context.rental.expectedEndAt,
+          actualReturnAt: context.rental.actualReturnAt,
+          timezone: request.timezone,
+          damageAmount: input.damageAmount,
+          unusedRentRefundAmount: input.unusedRentRefundAmount,
+          paid: refunds.reduce((sum, row) => sum + wholeVnd(row.amount), 0n),
+        });
+        calculation = { ...result, ...refundSummary(result, settlements, refunds) };
+      }
+      return {
+        requestId: id,
+        version: request.version,
+        canClose: blockingReasons.length === 0,
+        blockingReasons,
+        calculation,
+      };
+    });
+  }
+
   private async assess(
     tx: ReturnTransaction,
     actor: ReturnActor,
@@ -1216,42 +1390,30 @@ export class ReturnsService {
       previous?.calendarSnapshot ?? (await this.repository.calendar(request.facilityId, tx));
     const policy = previous ? { rate: previous.rateSnapshot } : await this.repository.lockRate(tx);
     if (!calendar || !policy) throw new ConflictError(m.configurationMissing);
-    const deposit = wholeVnd(previous?.depositSnapshot ?? context.rental.depositAmount);
-    const fee = wholeVnd(
-      overdueAmount(
-        deposit.toString(),
-        policy.rate,
-        context.rental.expectedEndAt,
-        at,
-        request.timezone,
-      ),
-    );
-    const damage = wholeVnd(input.damageAmount);
-    const extraRent = wholeVnd(input.unusedRentRefundAmount);
-    if (extraRent > wholeVnd(context.booking.rentalFeeAmount))
+    if (wholeVnd(input.unusedRentRefundAmount) > wholeVnd(context.booking.rentalFeeAmount))
       throw new ValidationError(m.invalidMoney);
-    const fees = fee + damage;
-    const entitlement = (deposit > fees ? deposit - fees : 0n) + extraRent;
     const paid = (await this.repository.refunds(tx, request.id)).reduce(
       (sum, r) => sum + wholeVnd(r.amount),
       0n,
     );
-    const debt =
-      (fees > deposit ? fees - deposit : 0n) + (paid > entitlement ? paid - entitlement : 0n);
+    const calculation = calculateSettlement({
+      depositSnapshot: previous?.depositSnapshot ?? context.rental.depositAmount,
+      rateSnapshot: policy.rate,
+      expectedEndAt: context.rental.expectedEndAt,
+      actualReturnAt: at,
+      timezone: request.timezone,
+      damageAmount: input.damageAmount,
+      unusedRentRefundAmount: input.unusedRentRefundAmount,
+      paid,
+    });
     const now = new Date();
     const row = await this.repository.insertSettlement(tx, {
       requestId: request.id,
       revision: (previous?.revision ?? 0) + 1,
-      depositSnapshot: deposit.toString(),
-      rateSnapshot: policy.rate,
-      overdueFeeAmount: fee.toString(),
-      damageAmount: damage.toString(),
-      unusedRentRefundAmount: extraRent.toString(),
-      refundEntitlement: entitlement.toString(),
-      debtAmount: debt.toString(),
+      ...calculation,
       actualReturnAt: at,
       refundDueDate:
-        previous && entitlement <= wholeVnd(previous.refundEntitlement)
+        previous && wholeVnd(calculation.refundEntitlement) <= wholeVnd(previous.refundEntitlement)
           ? previous.refundDueDate
           : refundDueDate(now, calendar.timezone, calendar.holidays),
       calendarSnapshot: { timezone: calendar.timezone, holidays: calendar.holidays },
@@ -1293,48 +1455,17 @@ export class ReturnsService {
         );
       }
       this.version(request.version, input.expectedVersion);
-      const [inspection] = await this.repository.inspections(tx, id);
-      if (
-        request.status !== "INSPECTING" ||
-        inspection?.status !== "PASS" ||
-        !context.rental.actualReturnAt ||
-        context.rental.status === "CLOSED"
-      )
-        throw new ConflictError(m.settlement);
-      for (const attempt of await this.repository.inspections(tx, id)) {
-        const property = attempt.definition
-          .filter((i) => i.group === "REMAINING_PROPERTY")
-          .some((i) => attempt.results.find((r) => r.code === i.code)?.issue);
-        if (!property) continue;
+      const eligibility = await this.settlementEligibility(tx, context, request, input);
+      const first = eligibility.blockingReasons[0];
+      if (first) {
         if (
-          attempt.propertyDisposition === "NONE" ||
-          !attempt.propertyHandledAt ||
-          !attempt.propertyEvidencePhotoIds.length ||
-          (attempt.propertyDisposition === "STORED" && !attempt.propertyReceiver)
+          first.code === blockerCode.EVIDENCE_INVALID ||
+          first.code === blockerCode.DAMAGE_EVIDENCE_MISSING
         )
-          throw new ConflictError(m.propertyUnresolved);
-        await this.verifyEvidence(tx, id, attempt.propertyEvidencePhotoIds);
+          throw new ValidationError(first.message);
+        throw new ConflictError(first.message);
       }
       if (wholeVnd(input.damageAmount) > 0n) {
-        const attempts = await this.repository.inspections(tx, id);
-        const evidence = attempts
-          .filter((attempt) => attempt.status !== "DRAFT")
-          .flatMap((attempt) =>
-            attempt.results
-              .filter(
-                (result) =>
-                  result.issue &&
-                  result.note &&
-                  result.photoIds.length &&
-                  attempt.definition.some(
-                    (item) =>
-                      item.code === result.code &&
-                      ["UNIT_CONDITION", "HYGIENE_SAFETY"].includes(item.group),
-                  ),
-              )
-              .flatMap((result) => result.photoIds),
-          );
-        if (!evidence.length) throw new ValidationError(m.incomplete);
         await this.repository.audit(
           tx,
           actor.id,
@@ -1342,7 +1473,7 @@ export class ReturnsService {
           {
             amount: input.damageAmount,
             reason: input.reason,
-            evidencePhotoIds: [...new Set(evidence)],
+            evidencePhotoIds: eligibility.damageEvidence,
           },
           id,
           request.facilityId,

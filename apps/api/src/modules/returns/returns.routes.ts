@@ -9,16 +9,21 @@ import {
   EditReturnRequestSchema,
   ProposeReturnTimeSchema,
   RecordPhysicalReturnSchema,
+  ReturnDetailEnvelopeSchema,
   ReturnEvidenceInputSchema,
   ReturnEvidenceParamsSchema,
   ReturnFacilityParamsSchema,
   ReturnInspectionParamsSchema,
   ReturnPhotoInputSchema,
   ReturnPhotoParamsSchema,
+  ReturnPreviewEnvelopeSchema,
   ReturnPropertySchema,
+  ReturnQueueEnvelopeSchema,
   ReturnQueueQuerySchema,
+  ReturnRefundEnvelopeSchema,
   ReturnRentalParamsSchema,
   ReturnRequestParamsSchema,
+  ReturnSettlementEnvelopeSchema,
   ReturnSlotsQuerySchema,
   ReturnTimeChangeParamsSchema,
   ReturnVersionSchema,
@@ -49,7 +54,11 @@ export const returnsRoutes: FastifyPluginAsync<ReturnsRoutesOptions> = async (ap
     "/facilities/:facilityId/return-requests",
     {
       preHandler: [requireAuth],
-      schema: { params: ReturnFacilityParamsSchema, querystring: ReturnQueueQuerySchema },
+      schema: {
+        params: ReturnFacilityParamsSchema,
+        querystring: ReturnQueueQuerySchema,
+        response: { 200: ReturnQueueEnvelopeSchema },
+      },
     },
     async (req) =>
       successResponse(await service.queue(actor(req), req.params.facilityId, req.query)),
@@ -157,7 +166,10 @@ export const returnsRoutes: FastifyPluginAsync<ReturnsRoutesOptions> = async (ap
   );
   typed.get(
     "/return-requests/:requestId",
-    { preHandler: [requireAuth], schema: { params: ReturnRequestParamsSchema } },
+    {
+      preHandler: [requireAuth],
+      schema: { params: ReturnRequestParamsSchema, response: { 200: ReturnDetailEnvelopeSchema } },
+    },
     async (req) => successResponse(await service.get(actor(req), req.params.requestId)),
   );
   typed.patch(
@@ -350,10 +362,27 @@ export const returnsRoutes: FastifyPluginAsync<ReturnsRoutesOptions> = async (ap
       ),
   );
   typed.post(
+    "/return-requests/:requestId/settlement/preview",
+    {
+      preHandler: [requireAuth],
+      schema: {
+        params: ReturnRequestParamsSchema,
+        body: SettleReturnSchema,
+        response: { 200: ReturnPreviewEnvelopeSchema },
+      },
+    },
+    async (req) =>
+      successResponse(await service.preview(actor(req), req.params.requestId, req.body)),
+  );
+  typed.post(
     "/return-requests/:requestId/settlement",
     {
       preHandler: [requireAuth],
-      schema: { params: ReturnRequestParamsSchema, body: SettleReturnSchema },
+      schema: {
+        params: ReturnRequestParamsSchema,
+        body: SettleReturnSchema,
+        response: { 200: ReturnSettlementEnvelopeSchema },
+      },
     },
     async (req) =>
       successResponse(await service.settle(actor(req), req.params.requestId, req.body)),
@@ -362,7 +391,11 @@ export const returnsRoutes: FastifyPluginAsync<ReturnsRoutesOptions> = async (ap
     "/return-requests/:requestId/refunds/confirm",
     {
       preHandler: [requireAuth],
-      schema: { params: ReturnRequestParamsSchema, body: ConfirmReturnRefundSchema },
+      schema: {
+        params: ReturnRequestParamsSchema,
+        body: ConfirmReturnRefundSchema,
+        response: { 200: ReturnRefundEnvelopeSchema },
+      },
     },
     async (req) =>
       successResponse(await service.confirmRefund(actor(req), req.params.requestId, req.body)),

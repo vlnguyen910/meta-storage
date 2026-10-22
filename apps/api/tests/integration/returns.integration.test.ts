@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, setSystemTime, spyOn, test } from "bun:test";
 import { randomUUID } from "node:crypto";
+import swagger from "@fastify/swagger";
 import {
   accounts,
   and,
@@ -49,7 +50,11 @@ import {
 } from "@metastorage/shared/mail";
 import { Queue } from "bullmq";
 import Fastify from "fastify";
-import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
+import {
+  createJsonSchemaTransform,
+  serializerCompiler,
+  validatorCompiler,
+} from "fastify-type-provider-zod";
 import Redis from "ioredis";
 import { BookingMailService } from "../../../worker/src/notifications/booking-mail.service";
 import { OutboxRepository } from "../../../worker/src/notifications/outbox.repository";
@@ -284,7 +289,7 @@ describe.skipIf(!target)(
   "return workflow with real local PostgreSQL and mocked private object storage",
   () => {
     beforeAll(async () => {
-      assertTestDatabase(target, process.env, true);
+      assertTestDatabase(target, process.env);
       setSystemTime(new Date("2032-01-02T05:00:00Z"));
       const hash = await (await auth.$context).password.hash(password);
       setupStarted = true;
@@ -377,6 +382,10 @@ describe.skipIf(!target)(
       app.setValidatorCompiler(validatorCompiler);
       app.setSerializerCompiler(serializerCompiler);
       setupErrorHandler(app);
+      await app.register(swagger, {
+        openapi: { info: { title: "Return test", version: "1" } },
+        transform: createJsonSchemaTransform({ zodToJsonConfig: { target: "openapi-3.0" } }),
+      });
       await app.register(authPlugin);
       await app.register(authRoutes, { prefix: "/api/auth" });
       await app.register(returnsRoutes, {
@@ -774,6 +783,195 @@ describe.skipIf(!target)(
       }
     });
 
+    test("operational context preserves guest bookings and restricts staff/contact visibility", async () => {
+      const item = await scenario();
+      const bookingCode = `RETURN-${item.id}`;
+      await db.update(bookings).set({ bookingCode }).where(eq(bookings.id, item.bookingId));
+      const detail = await state(item.id);
+      expect(detail.context).toMatchObject({
+        booking: { id: item.bookingId, bookingCode },
+        customer: { id: actorIds.owner, name: "Return test", phone: "0900000000" },
+        rental: { id: item.rentalId, status: "RETURN_PENDING", depositSnapshot: "1000000" },
+        unit: { id: item.unitId, code: item.unitId },
+        facility: { id: fixture.facility },
+        assignedStaff: { id: actorIds.staff, name: "Return test" },
+      });
+      expect(Object.keys(detail.context.customer).sort()).toEqual(["id", "name", "phone"]);
+      const staff = await api("staff", "GET", `/return-requests/${item.id}`);
+      expect(staff.json().data.context).toEqual(detail.context);
+      expect((await api("replacement", "GET", `/return-requests/${item.id}`)).statusCode).toBe(403);
+      expect((await api("outsider", "GET", `/return-requests/${item.id}`)).statusCode).toBe(403);
+      expect(
+        (await api("owner", "GET", `/return-requests/${item.id}`)).json().data.context,
+      ).toBeNull();
+      await db.update(bookings).set({ userId: null }).where(eq(bookings.id, item.bookingId));
+      await db
+        .update(returnRequests)
+        .set({ assignedStaffId: null })
+        .where(eq(returnRequests.id, item.id));
+      const queue = await api(
+        "manager",
+        "GET",
+        `/facilities/${fixture.facility}/return-requests?limit=100`,
+      );
+      const row = queue.json().data.find((r: { id: string }) => r.id === item.id);
+      expect(row.context.customer.id).toBeNull();
+      expect(row.context.assignedStaff).toBeNull();
+      expect(row.context.unit.unitTypeName).toBeString();
+      expect(row.context.unit.sizeLabel).toBeString();
+    });
+
+    test("settlement preview is authorized, versioned and read-only; mutation recalculates", async () => {
+      const item = await scenario();
+      const path = `/return-requests/${item.id}/settlement/preview`;
+      const input = {
+        expectedVersion: 0,
+        damageAmount: "0",
+        unusedRentRefundAmount: "300000",
+        reason: "Preview",
+      };
+      expect((await api(null, "POST", path, input)).statusCode).toBe(401);
+      for (const role of ["staff", "outsider", "owner", "admin", "bom"] as const)
+        expect((await api(role, "POST", path, input)).statusCode).toBe(403);
+      const beforeBlocked = await state(item.id);
+      const blocked = await api("manager", "POST", path, input);
+      expect(await state(item.id)).toEqual(beforeBlocked);
+      expect(blocked.statusCode).toBe(200);
+      expect(blocked.json().data).toMatchObject({ canClose: false, calculation: null });
+      expect(blocked.json().data.blockingReasons.map((b: { code: string }) => b.code)).toContain(
+        "ACTUAL_RETURN_MISSING",
+      );
+      const inspection = await start(item.id);
+      await save(item.id, inspection);
+      await complete(item.id, inspection);
+      await receive(item.id);
+      input.expectedVersion = (await state(item.id)).request.version;
+      const snapshot = async () => ({
+        detail: await state(item.id),
+        rental: await db.select().from(rentals).where(eq(rentals.id, item.rentalId)),
+        unit: await db.select().from(storageUnits).where(eq(storageUnits.id, item.unitId)),
+        assignments: await db
+          .select()
+          .from(unitAssignments)
+          .where(eq(unitAssignments.bookingId, item.bookingId)),
+        capacity: await db
+          .select()
+          .from(capacityAllocations)
+          .where(eq(capacityAllocations.referenceId, item.bookingId)),
+        outbox: await db.select().from(notificationOutbox),
+      });
+      const [calendar] = await db
+        .select()
+        .from(facilityReturnCalendars)
+        .where(eq(facilityReturnCalendars.facilityId, fixture.facility));
+      if (!calendar) throw new Error("Missing test calendar");
+      await db
+        .delete(facilityReturnCalendars)
+        .where(eq(facilityReturnCalendars.facilityId, fixture.facility));
+      try {
+        const missing = await api("manager", "POST", path, input);
+        expect(missing.json().data).toMatchObject({ canClose: false, calculation: null });
+        expect(missing.json().data.blockingReasons.map((b: { code: string }) => b.code)).toContain(
+          "CONFIGURATION_MISSING",
+        );
+      } finally {
+        await db.insert(facilityReturnCalendars).values(calendar);
+      }
+      const before = await snapshot();
+      const preview = await api("manager", "POST", path, input);
+      expect(preview.statusCode).toBe(200);
+      expect(preview.json().data).toMatchObject({
+        requestId: item.id,
+        version: input.expectedVersion,
+        canClose: true,
+        blockingReasons: [],
+      });
+      expect(preview.json().data.calculation).toMatchObject({
+        depositSnapshot: "1000000",
+        rateSnapshot: initialRate,
+        remainingRentRefund: "300000",
+        confirmedDepositRefund: "0",
+        confirmedRentRefund: "0",
+        allocationKnown: true,
+      });
+      expect(await snapshot()).toEqual(before);
+      expect(
+        (
+          await api("manager", "POST", path, {
+            ...input,
+            expectedVersion: input.expectedVersion - 1,
+          })
+        ).statusCode,
+      ).toBe(409);
+      expect(
+        (await api("manager", "POST", path, { ...input, damageAmount: "1.5" })).statusCode,
+      ).toBe(400);
+      expect(
+        (await api("manager", "POST", path, { ...input, unusedRentRefundAmount: "1000001" }))
+          .statusCode,
+      ).toBe(422);
+      const damage = await api("manager", "POST", path, { ...input, damageAmount: "1" });
+      expect(damage.json().data.canClose).toBe(false);
+      expect(damage.json().data.blockingReasons.map((b: { code: string }) => b.code)).toContain(
+        "DAMAGE_EVIDENCE_MISSING",
+      );
+      const [originalRate] = await db
+        .select()
+        .from(systemSettings)
+        .where(eq(systemSettings.key, "OVERDUE_FEE_RATE"));
+      if (!originalRate) throw new Error("Missing test rate");
+      const assigned = await api("manager", "PATCH", `/return-requests/${item.id}/staff`, {
+        expectedVersion: input.expectedVersion,
+        staffId: actorIds.staff,
+        reason: "Revalidate after preview",
+      });
+      expect(assigned.statusCode).toBe(200);
+      expect(
+        (await api("manager", "POST", `/return-requests/${item.id}/settlement`, input)).statusCode,
+      ).toBe(409);
+      input.expectedVersion = (await state(item.id)).request.version;
+      await db
+        .update(systemSettings)
+        .set({ value: 50 })
+        .where(eq(systemSettings.key, "OVERDUE_FEE_RATE"));
+      try {
+        const settled = await api(
+          "manager",
+          "POST",
+          `/return-requests/${item.id}/settlement`,
+          input,
+        );
+        expect(settled.statusCode).toBe(200);
+        expect(settled.json().data.rateSnapshot).toBe(50);
+        expect(settled.json().data.refundEntitlement).toBe("800000");
+        expect((await state(item.id)).refundSummary.remainingRefund).toBe("800000");
+      } finally {
+        await db
+          .update(systemSettings)
+          .set(originalRate)
+          .where(eq(systemSettings.key, "OVERDUE_FEE_RATE"));
+      }
+      expect((await api("manager", "POST", path, input)).statusCode).toBe(409);
+    });
+
+    test("return OpenAPI documents full operational and financial response contracts", () => {
+      const paths = app.swagger().paths;
+      for (const [path, method] of [
+        ["/api/facilities/{facilityId}/return-requests", "get"],
+        ["/api/return-requests/{requestId}", "get"],
+        ["/api/return-requests/{requestId}/settlement/preview", "post"],
+        ["/api/return-requests/{requestId}/settlement", "post"],
+        ["/api/return-requests/{requestId}/refunds/confirm", "post"],
+      ] as const) {
+        const response = paths?.[path]?.[method]?.responses?.["200"];
+        expect(JSON.stringify(response)).toContain('"properties"');
+        expect(JSON.stringify(response)).toContain('"data"');
+      }
+      expect(JSON.stringify(paths?.["/api/return-requests/{requestId}"])).toContain(
+        "refundSummary",
+      );
+    });
+
     test("facility queues enforce scope and assignment, rental request listing enforces ownership", async () => {
       const item = await scenario();
       const queuePath = `/facilities/${fixture.facility}/return-requests?limit=100&offset=0`;
@@ -781,6 +979,7 @@ describe.skipIf(!target)(
       expect((await api("admin", "GET", queuePath)).statusCode).toBe(403);
       const fm = await api("manager", "GET", queuePath);
       expect(fm.statusCode).toBe(200);
+      expect(fm.headers["cache-control"]).toBe("private, no-store");
       expect(fm.json().data.some((r: { id: string }) => r.id === item.id)).toBe(true);
       const unassigned = await api("replacement", "GET", queuePath);
       expect(unassigned.statusCode).toBe(200);
@@ -1002,6 +1201,20 @@ describe.skipIf(!target)(
           reason: "Approved damage",
         });
       expect((await settle()).statusCode).toBe(409);
+      const propertyPreview = await api(
+        "manager",
+        "POST",
+        `/return-requests/${s.id}/settlement/preview`,
+        {
+          expectedVersion: current.request.version,
+          damageAmount: "100000",
+          unusedRentRefundAmount: "0",
+          reason: "Preview property",
+        },
+      );
+      expect(
+        propertyPreview.json().data.blockingReasons.map((b: { code: string }) => b.code),
+      ).toEqual(expect.arrayContaining(["PROPERTY_UNRESOLVED", "ACTUAL_RETURN_MISSING"]));
       await receive(s.id);
       current = await state(s.id);
       expect((await settle()).statusCode).toBe(409);
@@ -1393,6 +1606,13 @@ describe.skipIf(!target)(
         api("manager", "POST", path, valid),
       ]);
       expect(responses.map((r) => r.statusCode)).toEqual([200, 200]);
+      expect(responses[0].json().data.refundSummary).toMatchObject({
+        confirmedDepositRefund: "100000",
+        confirmedRentRefund: "100000",
+        remainingRentRefund: "200000",
+        allocationKnown: true,
+      });
+      expect((await api("manager", "POST", path, input)).statusCode).toBe(409);
       expect((await state(item.id)).refunds[0]).toMatchObject({
         depositRefundAmount: "100000",
         rentRefundAmount: "100000",
@@ -1411,7 +1631,123 @@ describe.skipIf(!target)(
       };
       expect((await api("manager", "POST", path, next)).statusCode).toBe(409);
       expect((await state(item.id)).refunds).toHaveLength(1);
+      const partial = { ...next, amount: "150000", rentRefundAmount: "150000" };
+      const transferred = await api("manager", "POST", path, partial);
+      expect(transferred.statusCode).toBe(200);
+      expect(transferred.json().data.refundSummary).toMatchObject({
+        confirmedDepositRefund: "100000",
+        confirmedRentRefund: "250000",
+        remainingRentRefund: "50000",
+      });
+      expect((await api("manager", "POST", path, partial)).statusCode).toBe(200);
+      const beforeLegacy = await state(item.id);
+      const originalRefund = beforeLegacy.refunds.find(
+        (r: { id: string }) => r.id === responses[0].json().data.id,
+      );
+      await db
+        .update(returnRefunds)
+        .set({ depositRefundAmount: null, rentRefundAmount: null })
+        .where(eq(returnRefunds.id, originalRefund.id));
+      const legacy = await state(item.id);
+      expect(legacy.refundSummary).toMatchObject({
+        allocationKnown: false,
+        remainingDepositRefund: null,
+        confirmedDepositRefund: null,
+        remainingRentRefund: null,
+        confirmedRentRefund: null,
+      });
+      expect(legacy.refundSummary.remainingRefund).toBe(beforeLegacy.refundSummary.remainingRefund);
+      expect(
+        (
+          await api("manager", "POST", path, {
+            ...partial,
+            expectedVersion: legacy.request.version,
+            idempotencyKey: randomUUID(),
+            reference: randomUUID(),
+            amount: "1",
+            rentRefundAmount: "1",
+          })
+        ).statusCode,
+      ).toBe(409);
+      expect((await state(item.id)).refunds).toEqual(legacy.refunds);
     });
+
+    test.each(["full", "partial"] as const)(
+      "legacy %s mixed refund replays its original payload without changing history",
+      async (kind) => {
+        const item = await scenario();
+        const inspection = await start(item.id);
+        await save(item.id, inspection);
+        await complete(item.id, inspection);
+        await receive(item.id);
+        const settled = await api("manager", "POST", `/return-requests/${item.id}/settlement`, {
+          expectedVersion: (await state(item.id)).request.version,
+          damageAmount: "0",
+          unusedRentRefundAmount: "300000",
+          reason: "Legacy retry regression",
+        });
+        expect(settled.statusCode).toBe(200);
+        const settlement = settled.json().data;
+        const proof = await api("manager", "POST", `/return-requests/${item.id}/evidence`, {
+          expectedVersion: (await state(item.id)).request.version,
+          purpose: "REFUND",
+          filename: "legacy-receipt.png",
+          mimeType: "image/png",
+          dataBase64: png,
+        });
+        expect(proof.statusCode).toBe(201);
+        const input = {
+          expectedVersion: (await state(item.id)).request.version,
+          amount: kind === "full" ? settlement.refundEntitlement : "100000",
+          reference: randomUUID(),
+          evidencePhotoIds: [proof.json().data.id],
+          idempotencyKey: randomUUID(),
+        };
+        const path = `/return-requests/${item.id}/refunds/confirm`;
+        const confirmed = await api("manager", "POST", path, {
+          ...input,
+          depositRefundAmount:
+            kind === "full"
+              ? String(BigInt(settlement.depositSnapshot) - BigInt(settlement.overdueFeeAmount))
+              : "50000",
+          rentRefundAmount: kind === "full" ? "300000" : "50000",
+        });
+        expect(confirmed.statusCode).toBe(200);
+        const refundId = confirmed.json().data.id;
+        await db
+          .update(returnRefunds)
+          .set({ depositRefundAmount: null, rentRefundAmount: null })
+          .where(eq(returnRefunds.id, refundId));
+        const before = await state(item.id);
+        const replays = await Promise.all([
+          api("manager", "POST", path, input),
+          api("manager", "POST", path, input),
+        ]);
+        expect(replays.map((response) => response.statusCode)).toEqual([200, 200]);
+        for (const response of replays) {
+          expect(response.json().data).toMatchObject({
+            id: refundId,
+            version: before.request.version,
+            refundSummary: before.refundSummary,
+          });
+          expect(response.json().data.refundSummary.allocationKnown).toBe(kind === "full");
+        }
+        for (const changed of [
+          { ...input, amount: String(BigInt(input.amount) + 1n) },
+          { ...input, reference: randomUUID() },
+          { ...input, evidencePhotoIds: [randomUUID()] },
+          { ...input, depositRefundAmount: "1" },
+          { ...input, depositRefundAmount: "0", rentRefundAmount: input.amount },
+        ])
+          expect((await api("manager", "POST", path, changed)).statusCode).toBe(409);
+        expect(await state(item.id)).toEqual(before);
+        expect(before.refunds).toHaveLength(1);
+        expect(before.refunds[0]).toMatchObject({
+          depositRefundAmount: null,
+          rentRefundAmount: null,
+        });
+      },
+    );
 
     test("overdue starts at facility midnight, retains request workflow and flags manual review after seven full days", async () => {
       const item = await scenario();

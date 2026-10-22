@@ -31,10 +31,21 @@ therefore cannot silently green CI.
 tests in a second process. With no DB opt-ins it intentionally skips DB suites;
 the separate CI database job is mandatory before deploy.
 
+## Return workflow regressions
+
+`apps/api/tests/integration/returns.integration.test.ts` requires an isolated
+`metastorage_inspection_test_*` database, including when run directly. Set
+`NODE_ENV=test` and matching `DATABASE_URL` / `MY_STORAGE_LOCAL_DATABASE_URL`.
+The suite temporarily changes the global overdue rate to verify settlement
+recalculation; it must never run against the shared local `metastorage` database.
+The guard rejects that target before creating fixtures or changing settings.
+
 ## Existing shared local database
 
-Use the current PostgreSQL database on localhost:5433/metastorage and Redis database
-14. Do not create a database, reset/reseed fixtures, truncate tables or flush Redis.
+Only legacy suites that still explicitly opt in may use PostgreSQL on
+localhost:5433/metastorage and Redis database 14. The return workflow suite above
+is excluded. For these shared-database runs, do not create a database, reset/reseed
+fixtures, truncate tables or flush Redis.
 Run suites in separate processes: some close their shared Postgres client on teardown.
 
 Booking payment regression runs its scheduler with `facilityId: ids.facility`.

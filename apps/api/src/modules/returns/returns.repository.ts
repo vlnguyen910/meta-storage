@@ -36,6 +36,7 @@ import {
   systemSettingInteger,
   systemSettings,
   unitAssignments,
+  unitTypes,
   users,
 } from "@metastorage/database";
 import { NotFoundError } from "../../common/errors/app-error";
@@ -191,6 +192,49 @@ export class ReturnsRepository {
       .orderBy(desc(returnRequests.createdAt), desc(returnRequests.id))
       .limit(query.limit)
       .offset(query.offset);
+  }
+  operationalContexts(tx: ReturnTransaction, requestIds: string[]) {
+    return tx
+      .select({
+        requestId: returnRequests.id,
+        bookingId: bookings.id,
+        bookingCode: bookings.bookingCode,
+        customerId: bookings.userId,
+        customerName: bookings.contactName,
+        customerPhone: bookings.contactPhone,
+        rentalId: rentals.id,
+        rentalStatus: rentals.status,
+        expectedEndAt: rentals.expectedEndAt,
+        depositAmount: rentals.depositAmount,
+        unitId: storageUnits.id,
+        unitCode: storageUnits.code,
+        unitTypeName: unitTypes.name,
+        sizeLabel: unitTypes.sizeLabel,
+        facilityId: facilities.id,
+        facilityName: facilities.name,
+        staffId: users.id,
+        staffName: users.name,
+      })
+      .from(returnRequests)
+      .innerJoin(
+        rentals,
+        and(
+          eq(rentals.id, returnRequests.rentalId),
+          eq(rentals.facilityId, returnRequests.facilityId),
+        ),
+      )
+      .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
+      .innerJoin(
+        storageUnits,
+        and(
+          eq(storageUnits.id, rentals.physicalUnitId),
+          eq(storageUnits.facilityId, returnRequests.facilityId),
+        ),
+      )
+      .innerJoin(unitTypes, eq(unitTypes.id, storageUnits.unitTypeId))
+      .innerJoin(facilities, eq(facilities.id, returnRequests.facilityId))
+      .leftJoin(users, eq(users.id, returnRequests.assignedStaffId))
+      .where(inArray(returnRequests.id, requestIds));
   }
   async saveCalendar(tx: ReturnTransaction, values: typeof facilityReturnCalendars.$inferInsert) {
     const [row] = await tx

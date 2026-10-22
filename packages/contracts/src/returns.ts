@@ -174,3 +174,193 @@ export const ReturnQueueQuerySchema = z.object({
   status: z.enum(ReturnRequestStatus).optional(),
 });
 export type ReturnQueueQuery = z.infer<typeof ReturnQueueQuerySchema>;
+
+// Response schemas keep the documented contract aligned with HTTP serialization.
+const responseMoney = money.meta({ example: "1000000" });
+const iso = z.iso.datetime({ offset: true });
+const photoResponse = z.object({
+  id: z.uuid(),
+  filename: z.string(),
+  mimeType: z.string(),
+  byteSize: z.number(),
+});
+export const ReturnOperationalContextSchema = z.object({
+  booking: z.object({ id: z.uuid(), bookingCode: z.string().nullable() }),
+  customer: z.object({
+    id: z.string().nullable(),
+    name: z.string().nullable(),
+    phone: z.string().nullable(),
+  }),
+  rental: z.object({
+    id: z.uuid(),
+    status: z.string(),
+    expectedEndAt: iso,
+    depositSnapshot: responseMoney,
+  }),
+  unit: z.object({
+    id: z.uuid(),
+    code: z.string(),
+    unitTypeName: z.string(),
+    sizeLabel: z.string(),
+  }),
+  facility: z.object({ id: z.uuid(), name: z.string() }),
+  assignedStaff: z.object({ id: z.string(), name: z.string() }).nullable(),
+});
+export const ReturnRefundSummarySchema = z.object({
+  refundEntitlement: responseMoney,
+  remainingRefund: responseMoney,
+  remainingDepositRefund: responseMoney.nullable(),
+  remainingRentRefund: responseMoney.nullable(),
+  confirmedDepositRefund: responseMoney.nullable(),
+  confirmedRentRefund: responseMoney.nullable(),
+  allocationKnown: z.boolean(),
+});
+const requestResponse = z.object({
+  id: z.uuid(),
+  rentalId: z.uuid(),
+  facilityId: z.uuid(),
+  status: z.string(),
+  version: z.number(),
+  assignedStaffId: z.string().nullable(),
+  startsAt: iso,
+  endsAt: iso,
+  timezone: z.string(),
+  reason: z.string(),
+  manualReviewRequired: z.boolean(),
+  createdAt: iso,
+});
+export const ReturnSettlementResponseSchema = z.object({
+  id: z.uuid(),
+  requestId: z.uuid(),
+  revision: z.number(),
+  depositSnapshot: responseMoney,
+  rateSnapshot: z.number(),
+  overdueFeeAmount: responseMoney,
+  damageAmount: responseMoney,
+  unusedRentRefundAmount: responseMoney,
+  refundEntitlement: responseMoney,
+  debtAmount: responseMoney,
+  remainingRefund: responseMoney,
+  actualReturnAt: iso,
+  refundDueDate: z.iso.date(),
+  approvedBy: z.string(),
+  approvedAt: iso,
+});
+export const ReturnSettlementBlockerCode = {
+  REQUEST_NOT_INSPECTING: "REQUEST_NOT_INSPECTING",
+  INSPECTION_NOT_PASSED: "INSPECTION_NOT_PASSED",
+  ACTUAL_RETURN_MISSING: "ACTUAL_RETURN_MISSING",
+  RENTAL_CLOSED: "RENTAL_CLOSED",
+  PROPERTY_UNRESOLVED: "PROPERTY_UNRESOLVED",
+  EVIDENCE_INVALID: "EVIDENCE_INVALID",
+  DAMAGE_EVIDENCE_MISSING: "DAMAGE_EVIDENCE_MISSING",
+  CONFIGURATION_MISSING: "CONFIGURATION_MISSING",
+} as const;
+export const ReturnSettlementPreviewSchema = z.object({
+  requestId: z.uuid(),
+  version: z.number(),
+  canClose: z.boolean(),
+  blockingReasons: z.array(
+    z.object({ code: z.enum(ReturnSettlementBlockerCode), message: z.string() }),
+  ),
+  calculation: ReturnRefundSummarySchema.extend({
+    depositSnapshot: responseMoney,
+    rateSnapshot: z.number(),
+    overdueFeeAmount: responseMoney,
+    damageAmount: responseMoney,
+    unusedRentRefundAmount: responseMoney,
+    debtAmount: responseMoney,
+  }).nullable(),
+});
+export const ReturnRefundResponseSchema = z.object({
+  id: z.uuid(),
+  amount: responseMoney,
+  depositRefundAmount: responseMoney.nullable(),
+  rentRefundAmount: responseMoney.nullable(),
+  reference: z.string(),
+  confirmedBy: z.string(),
+  confirmedAt: iso,
+  settlementId: z.uuid(),
+});
+export const ReturnRequestDetailSchema = z.object({
+  request: requestResponse,
+  context: ReturnOperationalContextSchema.nullable(),
+  refundSummary: ReturnRefundSummarySchema.nullable(),
+  actualReturnAt: iso.nullable(),
+  inspections: z.array(
+    z.object({
+      id: z.uuid(),
+      requestId: z.uuid(),
+      attempt: z.number(),
+      status: z.string(),
+      version: z.number(),
+      checklistVersionId: z.uuid(),
+      definition: z.array(ReturnChecklistItemSchema),
+      results: z.array(ReturnChecklistResultSchema),
+      propertyDisposition: z.string(),
+      propertyReceiver: z.string().nullable(),
+      propertyHandledAt: iso.nullable(),
+      propertyEvidencePhotoIds: z.array(z.uuid()),
+      createdBy: z.string(),
+      completedBy: z.string().nullable(),
+      completedAt: iso.nullable(),
+      createdAt: iso,
+      photos: z.array(photoResponse),
+    }),
+  ),
+  evidence: z.array(photoResponse.extend({ purpose: z.string() })),
+  settlements: z.array(ReturnSettlementResponseSchema),
+  timeChanges: z.array(
+    z.object({
+      id: z.uuid(),
+      previousAt: iso.nullable(),
+      proposedAt: iso,
+      status: z.string(),
+      reason: z.string(),
+      proposedBy: z.string(),
+      decidedBy: z.string().nullable(),
+      decidedAt: iso.nullable(),
+      decisionReason: z.string().nullable(),
+      evidencePhotoIds: z.array(z.uuid()),
+      createdAt: iso,
+    }),
+  ),
+  refunds: z.array(ReturnRefundResponseSchema),
+  audit: z.array(
+    z.object({
+      id: z.uuid(),
+      action: z.string(),
+      actorId: z.string(),
+      details: z.unknown(),
+      createdAt: iso,
+    }),
+  ),
+});
+export const ReturnQueueResponseSchema = z.array(
+  requestResponse.extend({ context: ReturnOperationalContextSchema }),
+);
+export const ConfirmReturnRefundResponseSchema = z.object({
+  id: z.uuid(),
+  amount: responseMoney,
+  confirmedAt: iso,
+  version: z.number(),
+  refundSummary: ReturnRefundSummarySchema,
+});
+export const ReturnQueueEnvelopeSchema = z.object({
+  success: z.literal(true),
+  data: ReturnQueueResponseSchema,
+  timestamp: iso,
+  message: z.string().optional(),
+});
+export const ReturnDetailEnvelopeSchema = ReturnQueueEnvelopeSchema.extend({
+  data: ReturnRequestDetailSchema,
+});
+export const ReturnPreviewEnvelopeSchema = ReturnQueueEnvelopeSchema.extend({
+  data: ReturnSettlementPreviewSchema,
+});
+export const ReturnSettlementEnvelopeSchema = ReturnQueueEnvelopeSchema.extend({
+  data: ReturnSettlementResponseSchema,
+});
+export const ReturnRefundEnvelopeSchema = ReturnQueueEnvelopeSchema.extend({
+  data: ConfirmReturnRefundResponseSchema,
+});
