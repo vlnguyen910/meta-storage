@@ -1,14 +1,20 @@
 import {
+  ConfigureReturnCalendarSchema,
   createFacilityBodySchema,
   facilityIdNestedParamSchema,
   facilityQuerySchema,
+  ReturnFacilityParamsSchema,
+  ReturnQueueEnvelopeSchema,
+  ReturnQueueQuerySchema,
   UnitTypeListQuerySchema,
 } from "@metastorage/contracts";
-import type { FastifyPluginAsync } from "fastify";
+import type { FastifyPluginAsync, onRequestAsyncHookHandler } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
 import { requireAuth, requireRole } from "../auth/auth.guard";
+import { ReturnsRepository } from "../returns/returns.repository";
+import { ReturnsService } from "../returns/returns.service";
 import { FacilityUnitTypesRepository } from "../unit-types/facility-unit-types.repository";
 import { FacilityUnitTypesService } from "../unit-types/facility-unit-types.service";
 import { requireFacilityAccess } from "./facilities.guard";
@@ -29,7 +35,63 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
     facilitiesRepository,
   );
 
+  const returnsService = new ReturnsService(new ReturnsRepository(fastify.db));
+  const privateReturnResponse: onRequestAsyncHookHandler = async (_request, reply) => {
+    reply.header("Cache-Control", "private, no-store");
+  };
+
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
+
+  typedApp.get(
+    "/:facilityId/return-requests",
+    {
+      onRequest: privateReturnResponse,
+      preHandler: [requireAuth],
+      schema: {
+        params: ReturnFacilityParamsSchema,
+        querystring: ReturnQueueQuerySchema,
+        response: { 200: ReturnQueueEnvelopeSchema },
+      },
+    },
+    async (request) => {
+      if (!request.user) throw new UnauthorizedError();
+      return successResponse(
+        await returnsService.queue(request.user, request.params.facilityId, request.query),
+      );
+    },
+  );
+  typedApp.get(
+    "/:facilityId/return-calendar",
+    {
+      onRequest: privateReturnResponse,
+      preHandler: [requireRole("SYSTEM_ADMIN")],
+      schema: { params: ReturnFacilityParamsSchema },
+    },
+    async (request) => {
+      if (!request.user) throw new UnauthorizedError();
+      return successResponse(
+        await returnsService.calendar(request.user, request.params.facilityId),
+      );
+    },
+  );
+  typedApp.put(
+    "/:facilityId/return-calendar",
+    {
+      onRequest: privateReturnResponse,
+      preHandler: [requireRole("SYSTEM_ADMIN")],
+      schema: { params: ReturnFacilityParamsSchema, body: ConfigureReturnCalendarSchema },
+    },
+    async (request) => {
+      if (!request.user) throw new UnauthorizedError();
+      return successResponse(
+        await returnsService.configureCalendar(
+          request.user,
+          request.params.facilityId,
+          request.body,
+        ),
+      );
+    },
+  );
 
   typedApp.get("/my-assignments", { preHandler: [requireAuth] }, async (request, reply) => {
     if (!request.user) throw new UnauthorizedError();

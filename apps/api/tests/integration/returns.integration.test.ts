@@ -65,6 +65,7 @@ import { authPlugin } from "../../src/modules/auth/auth.guard";
 import { authRoutes } from "../../src/modules/auth/auth.routes";
 import { BookingsRepository } from "../../src/modules/bookings/bookings.repository";
 import { createBookingsService } from "../../src/modules/bookings/bookings.service";
+import { facilitiesRoutes } from "../../src/modules/facilities/facilities.routes";
 import { InspectionsRepository } from "../../src/modules/inspections/inspections.repository";
 import { recordLifecycleEvent } from "../../src/modules/notifications/lifecycle-notifications.repository";
 import { lifecycleNotificationsRoutes } from "../../src/modules/notifications/lifecycle-notifications.routes";
@@ -388,6 +389,7 @@ describe.skipIf(!target)(
       });
       await app.register(authPlugin);
       await app.register(authRoutes, { prefix: "/api/auth" });
+      await app.register(facilitiesRoutes, { prefix: "/api/facilities" });
       await app.register(returnsRoutes, {
         prefix: "/api",
         photoStorage: {
@@ -527,6 +529,20 @@ describe.skipIf(!target)(
 
     test("authorization is explicit: Admin config only, facility FM approval, assigned FS operations", async () => {
       const s = await scenario();
+      const calendarPath = `/facilities/${fixture.facility}/return-calendar`;
+      const calendar = await api("admin", "GET", calendarPath);
+      expect(calendar.statusCode).toBe(200);
+      expect(calendar.headers["cache-control"]).toBe("private, no-store");
+      expect((await api(null, "GET", calendarPath)).statusCode).toBe(401);
+      expect((await api("manager", "GET", calendarPath)).statusCode).toBe(403);
+      const input = {
+        expectedVersion: calendar.json().data.version + 1,
+        timezone: calendar.json().data.timezone,
+        holidays: calendar.json().data.holidays,
+        reminderTime: calendar.json().data.reminderTime,
+      };
+      expect((await api("manager", "PUT", calendarPath, input)).statusCode).toBe(403);
+      expect((await api("admin", "PUT", calendarPath, input)).statusCode).toBe(409);
       expect((await api(null, "GET", `/return-requests/${s.id}`)).statusCode).toBe(401);
       for (const who of ["admin", "bom", "outsider", "replacement"] as const)
         expect((await api(who, "GET", `/return-requests/${s.id}`)).statusCode).toBe(403);
