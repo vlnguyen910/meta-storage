@@ -170,6 +170,110 @@ original payment; overview separates FM return obligations from the legacy refun
 Private photos reuse the existing Cloudinary adapter; that is not the future
 S3-compatible PDF contract implementation.
 
+## Flow 3 operational and financial contracts (issue #148)
+
+Facility queue items now include `context`; authorized FM/assigned FS detail has the
+same context at the detail root. Customer-owned detail returns `context: null`.
+The queue remains an array with the existing limit/offset/status/order behavior.
+Context selects only:
+
+- `booking`: id, bookingCode (nullable for historical bookings).
+- `customer`: id (nullable account User ID, not a separate Customer entity),
+  name and phone from the booking contact snapshot. Guests remain visible;
+  email, auth tokens and profile data are not exposed.
+- `rental`: id, status, expectedEndAt (ISO), depositSnapshot (integer VND string
+  normalized from the rental deposit; never current catalog pricing).
+- `unit`: id, code, unitTypeName, sizeLabel; `facility`: id, name.
+- `assignedStaff`: id/name or null when unassigned, available only to operational readers.
+
+### Settlement preview
+
+`POST /api/return-requests/:requestId/settlement/preview` is facility-FM-only and
+accepts the exact existing settlement input:
+
+```json
+{
+  "expectedVersion": 5,
+  "damageAmount": "0",
+  "unusedRentRefundAmount": "300000",
+  "reason": "Approved early-return exception"
+}
+```
+
+The success envelope's data contains `requestId`, `version`, `canClose`,
+`blockingReasons: [{ code, message }]` and `calculation`. Calculation contains
+`depositSnapshot`, `rateSnapshot`, `overdueFeeAmount`, `damageAmount`,
+`unusedRentRefundAmount`, `debtAmount` and all fields of the refund summary below.
+Amounts are integer VND strings; rates and versions are numbers.
+
+A valid but ineligible preview returns 200 with `canClose: false`. Blocker codes:
+`REQUEST_NOT_INSPECTING`, `INSPECTION_NOT_PASSED`, `ACTUAL_RETURN_MISSING`,
+`RENTAL_CLOSED`, `PROPERTY_UNRESOLVED`, `EVIDENCE_INVALID`,
+`DAMAGE_EVIDENCE_MISSING`, `CONFIGURATION_MISSING`.
+When actual return, calendar or rate is missing, `calculation` is null: missing
+financial data is never represented as a zero fee. Otherwise calculations remain
+available even when another closure condition blocks approval.
+
+Preview validates ownership scope and request version under the existing lock
+order, but writes no settlement/refund/audit/outbox, rental/request status, unit,
+assignment or capacity changes. It neither uploads evidence nor calls a provider.
+Stale preview versions return 409; malformed input 400; rent refund above the
+booking rental fee 422. All current closure gates remain in the mutation.
+Settlement recomputes under transaction locks. A rate or calendar change may alter
+results even when request version is unchanged; a preview is not an approval token.
+Completed settlement replay with matching financial inputs remains read-only and
+returns the existing revision even with the original stale version. New mutations
+always check version. Replays never authorize a new financial adjustment.
+
+### Source-aware refund summary
+
+Detail adds `refundSummary` at its root (null before any settlement); confirmation
+adds `refundSummary` and the current request `version` alongside existing
+id/amount/confirmedAt. Preview embeds summary fields in `calculation`:
+
+```json
+{
+  "refundEntitlement": "1050000",
+  "remainingRefund": "850000",
+  "remainingDepositRefund": "650000",
+  "remainingRentRefund": "200000",
+  "confirmedDepositRefund": "100000",
+  "confirmedRentRefund": "100000",
+  "allocationKnown": true
+}
+```
+
+Entitlement uses the latest settlement revision. Confirmed source payments use
+immutable refund records and, for supported legacy records, their originating
+settlement; later corrections never reallocate transfers. Existing historical
+settlement DTOs remain compatible; use root summary for current balances.
+If legacy source allocation is ambiguous, `allocationKnown` is false and the
+four source fields are null. Aggregate entitlement/remaining remain known; detail
+and history stay readable, but further confirmations needing unknown balances
+return 409. No backfill or guessed split is performed.
+
+After a correction, the sum of the two remaining source balances can exceed total
+remainingRefund if one source was already overpaid. Confirmation checks both
+source limits and the aggregate limit, plus the existing original payment cap.
+Do not sum source fields to bypass the aggregate limit or move money between them.
+
+Refund idempotent replay is checked before request-version validation: it returns
+the same transfer ID and current summary/version, without a second transfer or
+new audit. Compare amount/reference/evidence/actor and normalized stored allocation;
+expectedVersion is a concurrency token, not part of the financial fingerprint.
+Changed financial/reference/evidence payload conflicts. Both source components
+remain required for new mixed transfers, including replay. A legacy transfer
+whose stored components are both null accepts its original amount-only retry
+when amount/reference/evidence/actor match, even if source allocation is unknown;
+this never creates or rewrites a transfer. A single-source replay
+may omit both and uses its stored source regardless of later refunds/corrections.
+This is semantic payload equivalence, not byte-for-byte JSON comparison.
+
+These endpoints have shared Zod input/response schemas, documented success
+envelopes and Swagger/OpenAPI response shapes. Frontend branch integration still
+needs to consume context/refundSummary, request preview, handle null/unknown values,
+and refresh after transitions before enabling the corresponding controls.
+
 ## Database and compatibility
 
 Additive generated migrations: `0037_graceful_sister_grimm`,

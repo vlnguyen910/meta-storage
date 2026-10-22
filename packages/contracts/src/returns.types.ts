@@ -1,4 +1,14 @@
-import type { ReturnChecklistItem, ReturnChecklistResult } from "./returns";
+import type { z } from "zod";
+import type {
+  ConfirmReturnRefundResponseSchema,
+  ReturnChecklistItem,
+  ReturnChecklistResult,
+  ReturnOperationalContextSchema,
+  ReturnRefundResponseSchema,
+  ReturnRefundSummarySchema,
+  ReturnRequestDetailSchema,
+  ReturnSettlementPreviewSchema,
+} from "./returns";
 
 export interface ReturnActor {
   id: string;
@@ -48,32 +58,6 @@ export interface ReturnTimeChangeDto {
   evidencePhotoIds: string[];
   createdAt: string;
 }
-export interface ReturnRefundDto {
-  id: string;
-  amount: string;
-  depositRefundAmount: string | null;
-  rentRefundAmount: string | null;
-  reference: string;
-  confirmedBy: string;
-  confirmedAt: string;
-  settlementId: string;
-}
-export interface ReturnRequestDetailDto {
-  request: ReturnRequestDto;
-  actualReturnAt: string | null;
-  inspections: ReturnInspectionDetailDto[];
-  evidence: Array<ReturnPhotoDto & { purpose: string }>;
-  settlements: ReturnSettlementDto[];
-  timeChanges: ReturnTimeChangeDto[];
-  refunds: ReturnRefundDto[];
-  audit: Array<{
-    id: string;
-    action: string;
-    actorId: string;
-    details: unknown;
-    createdAt: string;
-  }>;
-}
 export interface ReturnEvidencePhotoDto {
   id: string;
   filename: string;
@@ -121,3 +105,10 @@ export interface ReturnSettlementDto {
   approvedBy: string;
   approvedAt: string;
 }
+
+export type ReturnOperationalContextDto = z.infer<typeof ReturnOperationalContextSchema>;
+export type ReturnRefundSummaryDto = z.infer<typeof ReturnRefundSummarySchema>;
+export type ReturnSettlementPreviewDto = z.infer<typeof ReturnSettlementPreviewSchema>;
+export type ReturnRequestDetailDto = z.infer<typeof ReturnRequestDetailSchema>;
+export type ReturnRefundDto = z.infer<typeof ReturnRefundResponseSchema>;
+export type ConfirmReturnRefundDto = z.infer<typeof ConfirmReturnRefundResponseSchema>;

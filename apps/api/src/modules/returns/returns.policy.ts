@@ -1,6 +1,15 @@
-import type { ReturnChecklistItem, ReturnChecklistResult } from "@metastorage/contracts";
+import type {
+  ReturnChecklistItem,
+  ReturnChecklistResult,
+  ReturnRefundSummaryDto,
+} from "@metastorage/contracts";
 import { RETURN_MESSAGES as m } from "@metastorage/contracts";
 import { ValidationError } from "../../common/errors/app-error";
+import type {
+  RefundAllocationRow,
+  SettlementCalculationInput,
+  SettlementHistoryRow,
+} from "./returns.types";
 
 export function wholeVnd(value: string): bigint {
   if (!/^\d+(?:\.0+)?$/.test(value)) throw new ValidationError(m.invalidMoney);
@@ -92,4 +101,83 @@ export function refundAllocation(
   if (legacy && amount === depositAvailable + rentAvailable)
     return { deposit: depositAvailable, rent: rentAvailable };
   return undefined;
+}
+
+const nonnegative = (value: bigint) => (value > 0n ? value : 0n);
+export function depositEntitlement(
+  row: Pick<SettlementHistoryRow, "depositSnapshot" | "overdueFeeAmount" | "damageAmount">,
+) {
+  return nonnegative(
+    wholeVnd(row.depositSnapshot) - wholeVnd(row.overdueFeeAmount) - wholeVnd(row.damageAmount),
+  );
+}
+
+export function calculateSettlement(input: SettlementCalculationInput) {
+  const deposit = wholeVnd(input.depositSnapshot);
+  const fee = wholeVnd(
+    overdueAmount(
+      input.depositSnapshot,
+      input.rateSnapshot,
+      input.expectedEndAt,
+      input.actualReturnAt,
+      input.timezone,
+    ),
+  );
+  const damage = wholeVnd(input.damageAmount);
+  const rent = wholeVnd(input.unusedRentRefundAmount);
+  const entitlement = nonnegative(deposit - fee - damage) + rent;
+  return {
+    depositSnapshot: deposit.toString(),
+    rateSnapshot: input.rateSnapshot,
+    overdueFeeAmount: fee.toString(),
+    damageAmount: damage.toString(),
+    unusedRentRefundAmount: rent.toString(),
+    refundEntitlement: entitlement.toString(),
+    debtAmount: (
+      nonnegative(fee + damage - deposit) + nonnegative(input.paid - entitlement)
+    ).toString(),
+  };
+}
+
+export function refundSummary(
+  latest: Omit<SettlementHistoryRow, "id">,
+  settlements: SettlementHistoryRow[],
+  refunds: RefundAllocationRow[],
+): ReturnRefundSummaryDto {
+  let depositPaid = 0n,
+    rentPaid = 0n;
+  let allocationKnown = true;
+  const paid = refunds.reduce((sum, row) => sum + wholeVnd(row.amount), 0n);
+  for (const refund of refunds) {
+    const origin = settlements.find((row) => row.id === refund.settlementId);
+    const allocation = origin
+      ? refundAllocation(
+          wholeVnd(refund.amount),
+          depositEntitlement(origin),
+          wholeVnd(origin.unusedRentRefundAmount),
+          refund.depositRefundAmount,
+          refund.rentRefundAmount,
+          true,
+        )
+      : undefined;
+    if (!allocation) {
+      allocationKnown = false;
+      continue;
+    }
+    depositPaid += allocation.deposit;
+    rentPaid += allocation.rent;
+  }
+  return {
+    refundEntitlement: latest.refundEntitlement,
+    remainingRefund: nonnegative(wholeVnd(latest.refundEntitlement) - paid).toString(),
+    allocationKnown,
+    remainingDepositRefund: allocationKnown
+      ? nonnegative(depositEntitlement(latest) - depositPaid).toString()
+      : null,
+    remainingRentRefund: allocationKnown
+      ? nonnegative(wholeVnd(latest.unusedRentRefundAmount) - rentPaid).toString()
+      : null,
+    confirmedDepositRefund: allocationKnown ? depositPaid.toString() : null,
+    confirmedRentRefund: allocationKnown ? rentPaid.toString() : null,
+  };
 }
