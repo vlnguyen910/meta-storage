@@ -1,3 +1,4 @@
+import { isIP } from "node:net";
 import { z } from "zod";
 import { ENV_MESSAGES as m } from "./env.messages";
 import { providerEnvSchema } from "./provider-env";
@@ -10,6 +11,31 @@ const optionalText = z
   .trim()
   .transform((value) => value || undefined)
   .optional();
+
+export const trustedProxyCidrsSchema = z
+  .string()
+  .trim()
+  .default("")
+  .refine(
+    (value) =>
+      !value ||
+      value.split(",").every((entry) => {
+        const [address = "", prefix, extra] = entry.trim().split("/");
+        const family = isIP(address);
+        return (
+          family !== 0 &&
+          extra === undefined &&
+          (prefix === undefined ||
+            (/^\d+$/.test(prefix) &&
+              Number(prefix) >= 1 &&
+              Number(prefix) <= (family === 4 ? 32 : 128)))
+        );
+      }),
+    m.trustedProxyCidrs,
+  )
+  .transform((value): string[] | false =>
+    value ? value.split(",").map((entry) => entry.trim()) : false,
+  );
 
 function validOriginList(value: string, webOnly: boolean): boolean {
   return value.split(",").every((entry) => {
@@ -33,6 +59,7 @@ export const envSchema = z
     NODE_ENV: z.enum(["development", "develop", "test", "production"]).default("development"),
     PORT: z.coerce.number().int().min(1).max(65535).default(4000),
     HOST: z.string().trim().min(1).default("0.0.0.0"),
+    TRUSTED_PROXY_CIDRS: trustedProxyCidrsSchema,
     LOG_LEVEL: z
       .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
       .default("info"),
