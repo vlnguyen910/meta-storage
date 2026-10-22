@@ -81,6 +81,15 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
       const assigned = responses.find((r) => r.statusCode === 200)?.json().data;
       expect((await assign(winner, f.unitId)).json().data.id).toBe(assigned.id);
       expect((await assign(loser, f.unitId)).statusCode).toBe(400);
+      // Verify the winning booking's current assignment, whichever request won the race.
+      const winnerVerificationId = randomUUID();
+      await db.insert(checkInVerifications).values({
+        id: winnerVerificationId,
+        bookingId: winner,
+        facilityId: f.facilityId,
+        staffId: f.userId,
+        unitAssignmentId: assigned.id,
+      });
       const eligible = await app.inject({
         method: "GET",
         url: `/api/bookings/${loser}/eligible-units`,
@@ -110,7 +119,7 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
           await db
             .select()
             .from(checkInVerifications)
-            .where(eq(checkInVerifications.id, f.verificationId))
+            .where(eq(checkInVerifications.id, winnerVerificationId))
         )[0]?.status,
       ).toBe("INVALIDATED");
       const cancellation = await app.inject({

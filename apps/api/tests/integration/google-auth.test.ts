@@ -17,6 +17,7 @@ import { setupErrorHandler } from "../../src/common/errors/error-handler";
 import { auth } from "../../src/modules/auth/auth";
 import { authPlugin } from "../../src/modules/auth/auth.guard";
 import { authRoutes } from "../../src/modules/auth/auth.routes";
+import { assertTestDatabase } from "../fixtures/test-database";
 
 const target = process.env.MY_STORAGE_LOCAL_DATABASE_URL;
 const suffix = randomUUID();
@@ -89,15 +90,7 @@ async function callback(code: string, flow: { state: string; cookie: string }) {
 
 describe.skipIf(!target)("Google OAuth using local PostgreSQL and mocked Google exchange", () => {
   beforeAll(async () => {
-    const url = new URL(target as string);
-    if (
-      process.env.NODE_ENV !== "test" ||
-      process.env.DATABASE_URL !== target ||
-      !["localhost", "127.0.0.1"].includes(url.hostname) ||
-      url.port !== "5433" ||
-      url.pathname !== "/metastorage"
-    )
-      throw new Error("Explicit existing local database only");
+    assertTestDatabase(target, process.env, true);
     app.decorate("db", db);
     setupErrorHandler(app);
     app.register(authPlugin);

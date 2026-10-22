@@ -25,6 +25,7 @@ import {
   users,
 } from "@metastorage/database";
 import { hashPassword } from "better-auth/crypto";
+import { assertTestDatabase } from "./test-database";
 
 export const passingChecklist = HANDOVER_CHECKLIST_ITEMS.map((item) => ({
   itemCode: item.code,
@@ -35,19 +36,11 @@ export const passingChecklist = HANDOVER_CHECKLIST_ITEMS.map((item) => ({
 }));
 
 export function assertIsolatedDatabase(allowExistingLocal = false) {
-  const url = process.env.DATABASE_URL;
-  const parsed = url ? new URL(url) : null;
-  const authorizedLocal =
-    allowExistingLocal &&
-    url === process.env.MY_STORAGE_LOCAL_DATABASE_URL &&
-    parsed &&
-    ["localhost", "127.0.0.1"].includes(parsed.hostname) &&
-    parsed.port === "5433" &&
-    parsed.pathname === "/metastorage";
-  if (!authorizedLocal && !parsed?.pathname.startsWith("/metastorage_inspection_test_"))
-    throw new Error(
-      "Inspection tests require a dedicated metastorage_inspection_test_* database; never seed a shared database.",
-    );
+  assertTestDatabase(
+    process.env.DATABASE_URL,
+    process.env,
+    allowExistingLocal && process.env.DATABASE_URL === process.env.MY_STORAGE_LOCAL_DATABASE_URL,
+  );
 }
 
 export async function createInspectionFixture(allowExistingLocal = false) {

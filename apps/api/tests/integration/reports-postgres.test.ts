@@ -35,6 +35,7 @@ import { setupErrorHandler } from "../../src/common/errors/error-handler";
 import { auth } from "../../src/modules/auth/auth";
 import { ReportsRepository } from "../../src/modules/reports/reports.repository";
 import { reportsRoutes } from "../../src/modules/reports/reports.routes";
+import { assertTestDatabase } from "../fixtures/test-database";
 
 const testUrl = process.env.REPORTS_TEST_DATABASE_URL;
 describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
@@ -108,15 +109,7 @@ describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
     return id;
   }
   beforeAll(async () => {
-    const url = testUrl ? new URL(testUrl) : undefined;
-    if (
-      !url ||
-      process.env.DATABASE_URL !== testUrl ||
-      !["localhost", "127.0.0.1"].includes(url.hostname) ||
-      url.port !== "5433" ||
-      url.pathname !== "/metastorage"
-    )
-      throw new Error("Use existing local container DB only");
+    assertTestDatabase(testUrl, process.env, true);
     existingFacilities = (await db.select({ id: facilities.id }).from(facilities)).length;
     created = true;
     setSystemTime(new Date("2026-12-01T12:00:00Z"));

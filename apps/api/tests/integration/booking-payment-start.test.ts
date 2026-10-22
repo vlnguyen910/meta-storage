@@ -55,6 +55,7 @@ import { bookingsRoutes } from "../../src/modules/bookings/bookings.routes";
 import { checkInsRoutes } from "../../src/modules/check-ins/check-ins.routes";
 import { inspectionsRoutes } from "../../src/modules/inspections/inspections.routes";
 import { paymentsRoutes } from "../../src/modules/payments/payments.routes";
+import { assertTestDatabase } from "../fixtures/test-database";
 
 const testUrl = process.env.BOOKING_TEST_DATABASE_URL;
 const redisUrl = process.env.REDIS_TEST_URL;
@@ -243,15 +244,7 @@ function webhook(
 
 describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () => {
   beforeAll(async () => {
-    const local = testUrl ? new URL(testUrl) : undefined;
-    if (
-      !local ||
-      process.env.DATABASE_URL !== testUrl ||
-      !["localhost", "127.0.0.1"].includes(local.hostname) ||
-      local.port !== "5433" ||
-      local.pathname !== "/metastorage"
-    )
-      throw new Error("Use existing local container DB only");
+    assertTestDatabase(testUrl, process.env, true);
     const seeded = await db
       .insert(systemSettings)
       .values({ key: "DEPOSIT_MONTHS", value: 1, description: "Deposit test setting", version: 1 })

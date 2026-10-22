@@ -74,6 +74,7 @@ import { rentalsRoutes } from "../../src/modules/rentals/rentals.routes";
 import { ReturnsRepository } from "../../src/modules/returns/returns.repository";
 import { returnsRoutes } from "../../src/modules/returns/returns.routes";
 import { ReturnsService } from "../../src/modules/returns/returns.service";
+import { assertTestDatabase } from "../fixtures/test-database";
 
 const target = process.env.MY_STORAGE_LOCAL_DATABASE_URL;
 const app = Fastify();
@@ -283,14 +284,7 @@ describe.skipIf(!target)(
   "return workflow with real local PostgreSQL and mocked private object storage",
   () => {
     beforeAll(async () => {
-      const url = new URL(target as string);
-      if (
-        process.env.DATABASE_URL !== target ||
-        !["127.0.0.1", "localhost"].includes(url.hostname) ||
-        url.port !== "5433" ||
-        url.pathname !== "/metastorage"
-      )
-        throw new Error("Use existing local container DB only");
+      assertTestDatabase(target, process.env, true);
       setSystemTime(new Date("2032-01-02T05:00:00Z"));
       const hash = await (await auth.$context).password.hash(password);
       setupStarted = true;

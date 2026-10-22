@@ -17,6 +17,8 @@
       "dependsOn": ["^test"],
       "env": [
         "NODE_ENV",
+        "DATABASE_URL",
+        "LOG_LEVEL",
         "REDIS_URL",
         "CORS_ORIGIN",
         "AUTH_TRUSTED_ORIGINS",

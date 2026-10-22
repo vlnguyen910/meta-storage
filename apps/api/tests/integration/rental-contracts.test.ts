@@ -42,6 +42,7 @@ import type { ContractTransaction } from "../../src/modules/contracts/contracts.
 import { InspectionsRepository } from "../../src/modules/inspections/inspections.repository";
 import { inspectionsRoutes } from "../../src/modules/inspections/inspections.routes";
 import { InspectionsService } from "../../src/modules/inspections/inspections.service";
+import { assertTestDatabase } from "../fixtures/test-database";
 
 const target = process.env.MY_STORAGE_LOCAL_DATABASE_URL;
 const app = Fastify();
@@ -213,14 +214,7 @@ function handover(inspectionId: string, who: keyof typeof roles = "fs") {
 
 describe.skipIf(!target)("contract PDFs and physical handover on existing local PostgreSQL", () => {
   beforeAll(async () => {
-    const url = new URL(target as string);
-    if (
-      process.env.DATABASE_URL !== target ||
-      !["localhost", "127.0.0.1"].includes(url.hostname) ||
-      url.port !== "5433" ||
-      url.pathname !== "/metastorage"
-    )
-      throw new Error("Existing local container only");
+    assertTestDatabase(target, process.env, true);
     setSystemTime(new Date("2032-06-01T03:00:00Z"));
     const doc = await PDFDocument.create();
     doc.addPage([500, 700]).drawText("STOREX contract fixture");
