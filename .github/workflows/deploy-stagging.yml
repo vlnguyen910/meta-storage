@@ -1,9 +1,19 @@
 name: Deploy API staging
 
 on:
-  push:
-    branches:
-    - stagging
+  workflow_call:
+    inputs:
+      sha:
+        description: Commit that passed quality and database checks
+        required: true
+        type: string
+    secrets:
+      HOST:
+        required: true
+      USERNAME:
+        required: true
+      SSH_PRIVATE_KEY:
+        required: true
 
 permissions:
   contents: read
@@ -20,7 +30,10 @@ jobs:
     steps:
     - name: Deploy API and Worker
       uses: appleboy/ssh-action@v1.2.2
+      env:
+        DEPLOY_SHA: ${{ inputs.sha }}
       with:
+        envs: DEPLOY_SHA
         host: ${{ secrets.HOST }}
         username: ${{ secrets.USERNAME }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -31,8 +44,13 @@ jobs:
 
           cd services/metastorage
 
-          git fetch origin stagging
-          git checkout --detach origin/stagging
+          if ! printf '%s\n' "$DEPLOY_SHA" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "Invalid deployment commit"
+            exit 1
+          fi
+          git fetch origin "$DEPLOY_SHA"
+          git checkout --detach "$DEPLOY_SHA"
+          test "$(git rev-parse HEAD)" = "$DEPLOY_SHA"
 
           COMPOSE=docker/docker-compose.prod.yml
 
@@ -59,4 +77,8 @@ jobs:
             }
           '
 
-          echo "Staging deployment completed"
+          WORKER_ID=$(docker compose -f "$COMPOSE" ps -q worker)
+          test -n "$WORKER_ID"
+          test "$(docker inspect --format '{{.State.Running}}' "$WORKER_ID")" = "true"
+
+          echo "Staging deployment completed: $DEPLOY_SHA"
