@@ -38,6 +38,7 @@ import type { OutboxRepository } from "../../../worker/src/notifications/outbox.
 import { setupErrorHandler } from "../../src/common/errors/error-handler";
 import { redisPlugin } from "../../src/common/redis/plugin";
 import { env } from "../../src/config/env";
+import { trustedProxyCidrsSchema } from "../../src/config/env.schema";
 import { bookingsRoutes } from "../../src/modules/bookings/bookings.routes";
 import { createBookingsService } from "../../src/modules/bookings/bookings.service";
 import { guestRentalAccessRoutes } from "../../src/modules/guest-rental-access/guest-rental-access.routes";
@@ -54,7 +55,7 @@ const ids = {
   draft: randomUUID(),
 };
 const code = `TEST-${id.toUpperCase()}`;
-const app = Fastify();
+const app = Fastify({ trustProxy: trustedProxyCidrsSchema.parse("127.0.0.1") });
 const keys: string[] = [];
 const requestIp = `2001:db8:${randomBytes(2).toString("hex")}:${randomBytes(2).toString("hex")}::1`;
 let created = false;
@@ -580,5 +581,89 @@ describe.skipIf(!databaseUrl || !redisUrl)("Guest booking magic-link tracking", 
     );
     expect(responses.filter((response) => response.statusCode === 401)).toHaveLength(30);
     expect(responses.filter((response) => response.statusCode === 429)).toHaveLength(1);
+  });
+
+  test("forwarded clients have separate quotas while the booking quota stays shared", async () => {
+    const clients = [1, 2, 3].map(
+      (suffix) =>
+        `2001:db8:${randomBytes(2).toString("hex")}:${randomBytes(2).toString("hex")}::${suffix}`,
+    );
+    const [first = "", second = "", third = ""] = clients;
+    const forwarded = (ip: string, url: string, payload: object) =>
+      app.inject({
+        method: "POST",
+        url,
+        remoteAddress: "127.0.0.1",
+        headers: { origin, "x-forwarded-for": ip },
+        payload,
+      });
+    for (const ip of clients) {
+      const hash = (value: string) =>
+        createHmac("sha256", env.BETTER_AUTH_SECRET).update(value).digest("hex");
+      keys.push(
+        `booking:rate:exchange:${hash(ip)}`,
+        `booking:rate:resend:ip:${hash(`guest-access-ip:${ip}`)}`,
+      );
+    }
+    for (let attempt = 0; attempt <= BOOKING_ACCESS.rateLimit; attempt++) {
+      const response = await forwarded(first, "/api/booking/magic-link/exchange", {
+        token: "f".repeat(64),
+      });
+      expect(response.statusCode).toBe(attempt === BOOKING_ACCESS.rateLimit ? 429 : 401);
+    }
+    expect(
+      (await forwarded(second, "/api/booking/magic-link/exchange", { token: "f".repeat(64) }))
+        .statusCode,
+    ).toBe(401);
+
+    for (let attempt = 0; attempt <= BOOKING_ACCESS.resendPerIpLimit; attempt++) {
+      const unknownCode = randomUUID();
+      const hash = createHmac("sha256", env.BETTER_AUTH_SECRET)
+        .update(`guest-access-booking:${unknownCode.toUpperCase()}`)
+        .digest("hex");
+      keys.push(`booking:rate:resend:booking:${hash}`);
+      expect(
+        (
+          await forwarded(first, "/api/booking/access-link", {
+            bookingCode: unknownCode,
+            email: "unknown@example.test",
+            idempotencyKey: randomUUID(),
+          })
+        ).statusCode,
+      ).toBe(202);
+    }
+    const bookingHash = createHmac("sha256", env.BETTER_AUTH_SECRET)
+      .update(`guest-access-booking:${code.toUpperCase()}`)
+      .digest("hex");
+    await app.redis.del(`booking:rate:resend:booking:${bookingHash}`);
+    const outboxCount = async () =>
+      (
+        await db
+          .select()
+          .from(notificationOutbox)
+          .where(eq(notificationOutbox.bookingId, ids.booking))
+      ).length;
+    const before = await outboxCount();
+    for (let attempt = 0; attempt < BOOKING_ACCESS.resendPerBookingLimit; attempt++)
+      expect(
+        (
+          await forwarded(second, "/api/booking/access-link", {
+            bookingCode: code,
+            email: "guest@example.test",
+            idempotencyKey: randomUUID(),
+          })
+        ).statusCode,
+      ).toBe(202);
+    expect(await outboxCount()).toBe(before + BOOKING_ACCESS.resendPerBookingLimit);
+    expect(
+      (
+        await forwarded(third, "/api/booking/access-link", {
+          bookingCode: code,
+          email: "guest@example.test",
+          idempotencyKey: randomUUID(),
+        })
+      ).statusCode,
+    ).toBe(202);
+    expect(await outboxCount()).toBe(before + BOOKING_ACCESS.resendPerBookingLimit);
   });
 });

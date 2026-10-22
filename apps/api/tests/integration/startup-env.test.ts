@@ -43,6 +43,29 @@ describe("API startup environment", () => {
     const result = envSchema.parse(valid);
     expect(result.GOOGLE_CLIENT_ID).toBeUndefined();
     expect(result.PORT).toBe(4000);
+    expect(result.TRUSTED_PROXY_CIDRS).toBe(false);
+  });
+
+  test("accepts explicit proxy IPs/CIDRs and rejects trusting every address", () => {
+    expect(
+      envSchema.parse({ ...valid, TRUSTED_PROXY_CIDRS: "127.0.0.1, 10.10.0.0/24, ::1/128" })
+        .TRUSTED_PROXY_CIDRS,
+    ).toEqual(["127.0.0.1", "10.10.0.0/24", "::1/128"]);
+    expect(envSchema.parse({ ...valid, TRUSTED_PROXY_CIDRS: " " }).TRUSTED_PROXY_CIDRS).toBe(false);
+    for (const value of [
+      "true",
+      "*",
+      "loopback",
+      "0.0.0.0/0",
+      "::/0",
+      "10.0.0.1/33",
+      "::1/129",
+      "127.0.0.1,",
+      "127.0.0.1/",
+      "127.0.0.1/32/1",
+      "999.0.0.1",
+    ])
+      expect(envSchema.safeParse({ ...valid, TRUSTED_PROXY_CIDRS: value }).success).toBe(false);
   });
 
   test("rejects wrong URL protocols, malformed origins, sender, weak secrets and invalid ports", () => {

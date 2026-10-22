@@ -9,6 +9,7 @@ import { corsPlugin } from "./common/plugins/cors";
 import { healthPlugin } from "./common/plugins/health";
 import { swaggerPlugin } from "./common/plugins/swagger";
 import { redisPlugin } from "./common/redis/plugin";
+import { env } from "./config/env";
 import { authPlugin } from "./modules/auth/auth.guard";
 import { authRoutes } from "./modules/auth/auth.routes";
 import { bookingsRoutes } from "./modules/bookings/bookings.routes";
@@ -33,6 +34,7 @@ import { usersRoutes } from "./modules/users/users.routes";
 export function buildApp(): FastifyInstance {
   const app = Fastify({
     logger: loggerConfig,
+    trustProxy: env.TRUSTED_PROXY_CIDRS,
   });
 
   // Zod Type Provider compilers
