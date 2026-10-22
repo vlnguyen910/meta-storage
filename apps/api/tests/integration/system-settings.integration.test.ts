@@ -25,6 +25,7 @@ import { RentalLifecycleSettingsRepository } from "../../src/modules/rental-life
 import { rentalLifecycleSettingsRoutes } from "../../src/modules/rental-lifecycle-settings/rental-lifecycle-settings.routes";
 import { returnsRoutes } from "../../src/modules/returns/returns.routes";
 import { systemSettingsRoutes } from "../../src/modules/system-settings/system-settings.routes";
+import { assertTestDatabase } from "../fixtures/test-database";
 
 const localUrl = process.env.MY_STORAGE_LOCAL_DATABASE_URL;
 describe.skipIf(!localUrl)("unified settings using existing local PostgreSQL", () => {
@@ -57,14 +58,7 @@ describe.skipIf(!localUrl)("unified settings using existing local PostgreSQL", (
   };
 
   beforeAll(async () => {
-    const url = new URL(localUrl ?? "http://invalid");
-    if (
-      process.env.DATABASE_URL !== localUrl ||
-      !["localhost", "127.0.0.1"].includes(url.hostname) ||
-      url.port !== "5433" ||
-      url.pathname !== "/metastorage"
-    )
-      throw new Error("Use the existing local container database; no separate database/reset");
+    assertTestDatabase(localUrl, process.env, true);
     originals = await db.select().from(systemSettings);
     expect(originals).toHaveLength(4);
     await db.insert(users).values(

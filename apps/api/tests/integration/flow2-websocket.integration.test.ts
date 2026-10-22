@@ -148,6 +148,8 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
     } finally {
       mail.mockRestore();
       for (const socket of sockets) socket.close();
+      // Bun 1.3 retains rejected upgrade connections after native clients close.
+      app.server.closeAllConnections();
       await app.close();
     }
   },

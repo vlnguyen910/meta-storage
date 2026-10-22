@@ -25,6 +25,7 @@ import { auth } from "../../src/modules/auth/auth";
 import { authPlugin } from "../../src/modules/auth/auth.guard";
 import { authRoutes } from "../../src/modules/auth/auth.routes";
 import { rentalsRoutes } from "../../src/modules/rentals/rentals.routes";
+import { assertTestDatabase } from "../fixtures/test-database";
 
 const target = process.env.MY_STORAGE_LOCAL_DATABASE_URL;
 const app = Fastify();
@@ -109,15 +110,7 @@ function read(url: string, cookie: string = ownerCookie) {
 
 describe.skipIf(!target)("My Storage reads against existing local container PostgreSQL", () => {
   beforeAll(async () => {
-    // Explicit opt-in only to the Compose database already inspected for this task.
-    const url = new URL(target as string);
-    if (
-      process.env.DATABASE_URL !== target ||
-      !["localhost", "127.0.0.1"].includes(url.hostname) ||
-      url.port !== "5433" ||
-      url.pathname !== "/metastorage"
-    )
-      throw new Error("Rental read tests require the configured existing local container DB");
+    assertTestDatabase(target, process.env, true);
 
     const hash = await (await auth.$context).password.hash(password);
     fixtureStarted = true;

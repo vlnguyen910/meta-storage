@@ -10,6 +10,7 @@ import {
   facilities,
   facilityUnitTypes,
   inArray,
+  notificationOutbox,
   or,
   payments,
   rentals,
@@ -154,6 +155,7 @@ describe.skipIf(!testUrl)("Booking contact and optional account ownership with P
           .from(reservationDrafts)
           .where(eq(reservationDrafts.facilityId, ids.facility))
       ).map((item) => item.id);
+      await tx.delete(notificationOutbox).where(eq(notificationOutbox.facilityId, ids.facility));
       await tx.delete(rentals).where(eq(rentals.facilityId, ids.facility));
       if (bookingIds.length || draftIds.length)
         await tx
