@@ -202,6 +202,45 @@ API bind vào `127.0.0.1:4000` để reverse proxy HTTPS trên VPS kết nối. 
 không mở cổng. API image có HTTP healthcheck; xem log bằng
 `docker compose -f docker/docker-compose.prod.yml logs -f api worker`.
 
+Đặt `TRUSTED_PROXY_CIDRS` trong `docker/app.env` thành danh sách IP/CIDR của
+proxy mà API thực sự thấy (phân cách bằng dấu phẩy). Mặc định để trống: API bỏ
+qua `X-Forwarded-For`. Không dùng `true`, wildcard hoặc CIDR `/0`. Với Docker,
+peer có thể là bridge gateway thay vì `127.0.0.1`; kiểm tra `remoteAddress` trong
+API logs và đối chiếu topology trước khi điền. CIDR staging hiện là **TBD**.
+Reverse proxy phải ghi đè header do client gửi, ví dụ Nginx một tầng dùng
+`proxy_set_header X-Forwarded-For $remote_addr;`. Không tin các mạng Docker khác
+chỉ vì chúng dùng địa chỉ private. Mỗi IP khách có quota guest-access riêng;
+quota theo Booking vẫn được chia sẻ giữa các IP.
+
+Nếu Nginx chạy trực tiếp trên VPS còn API chạy trong Compose, kiểm tra gateway:
+
+```bash
+docker inspect --format '{{range .NetworkSettings.Networks}}{{.Gateway}}{{println}}{{end}}' \
+  "$(docker compose -f docker/docker-compose.prod.yml ps -q api)"
+docker compose -f docker/docker-compose.prod.yml logs --tail 100 api
+```
+
+Gửi một request qua domain Nginx và đối chiếu `remoteAddress` trong API logs với
+gateway trên. Nếu khớp, điền **đúng IP đó** vào `TRUSTED_PROXY_CIDRS` (không lấy
+IP khách hoặc public IP của VPS). Sau khi kiểm tra cấu hình Nginx, dùng các header
+sau trong `location` chuyển tiếp tới API:
+
+```nginx
+proxy_set_header Host $host;
+proxy_set_header X-Forwarded-Host $host;
+proxy_set_header X-Forwarded-Proto $scheme;
+proxy_set_header X-Forwarded-For $remote_addr;
+```
+
+Chạy `sudo nginx -t` trước khi reload Nginx; tạo lại API container sau khi đổi
+`docker/app.env` để biến môi trường mới có hiệu lực. Không tự dùng gateway của
+máy development cho VPS staging.
+
+CI chạy quality checks và database regressions độc lập. Chỉ push lên nhánh
+`stagging` vượt qua cả hai job mới gọi workflow deploy, với đúng commit SHA đã
+kiểm tra. PR không deploy. Deploy đang chạy không bị hủy khi có push mới;
+workflow vẫn build → migrate → start → kiểm tra API và worker theo thứ tự.
+
 ### 5. Chạy môi trường phát triển (Dev)
 
 Chạy đồng thời cả Frontend và Backend:
