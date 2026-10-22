@@ -107,7 +107,7 @@ it("keeps FM assignment separate from Staff inspection and persists handover", a
   expect(getMockDatabase().units.find((u) => u.id === unit.id)?.status).toBe("OCCUPIED");
   await login("customer@metastorage.test");
   // Guest bookings do not acquire ownership by matching a registered email.
-  expect((await client.rentals.mine()).some((r) => r.bookingId === id)).toBe(false);
+  expect((await client.rentals.mine()).items.some((r) => r.bookingId === id)).toBe(false);
 });
 it("fails closed for unknown endpoints", async () => {
   await expect(http.get("/missing-offline-endpoint")).rejects.toMatchObject({

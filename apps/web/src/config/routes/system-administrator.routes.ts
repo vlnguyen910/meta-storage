@@ -4,4 +4,5 @@ export const systemAdministratorRoutes = {
   facilityAssignments: "/system-admin/facility-assignments",
   loginHistory: "/system-admin/login-history",
   activityLogs: "/system-admin/activity-logs",
+  returnSettings: "/system-admin/return-settings",
 } as const;

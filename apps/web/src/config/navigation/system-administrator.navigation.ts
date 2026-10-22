@@ -1,9 +1,11 @@
 import { Building2, History, LayoutDashboard, ListChecks, UsersRound } from "lucide-react";
 import { systemAdministratorRoutes } from "@/config/routes";
 import { ADMIN_MESSAGES as M } from "@/features/administration/admin.messages";
+import { F3 } from "@/features/returns/integration.messages";
 import type { NavigationItem } from "./types";
 
 export const systemAdministratorNavigation: NavigationItem[] = [
+  { href: systemAdministratorRoutes.returnSettings, label: F3.settings, icon: ListChecks },
   { href: systemAdministratorRoutes.dashboard, label: M.titles.dashboard, icon: LayoutDashboard },
   { href: systemAdministratorRoutes.users, label: M.titles.users, icon: UsersRound },
   {

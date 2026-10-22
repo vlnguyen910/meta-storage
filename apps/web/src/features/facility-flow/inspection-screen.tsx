@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useRef, useState } from "react";
+import { BookingContractAccess } from "@/features/rentals/rental-records";
 import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { FLOW } from "./flow.messages";
@@ -154,6 +155,7 @@ export function InspectionScreen({
     return (
       <Panel className="space-y-4">
         <SectionTitle>{FLOW.readonlyRecord}</SectionTitle>
+        <BookingContractAccess bookingId={result.booking.id} />
         {(record.unitAssignmentId !== result.assignedUnit?.id ||
           record.verificationId !== result.verification?.id) && (
           <Pill tone="amber">{FLOW.historicalRecord}</Pill>
@@ -193,6 +195,7 @@ export function InspectionScreen({
     );
   return (
     <div className="space-y-6">
+      <BookingContractAccess bookingId={result.booking.id} />
       {e.conflict && (
         <Panel className="border border-amber-300 bg-amber-50">
           <div role="alert">

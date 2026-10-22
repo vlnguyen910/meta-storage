@@ -15,6 +15,7 @@ import { roleHome, routes } from "@/config/routes";
 import { AUTH_MESSAGES } from "@/features/auth/auth.messages";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { FacilityShell } from "@/features/facility-flow/facility-shell";
+import { LifecycleInbox } from "@/features/returns/lifecycle-inbox";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { resetMockDatabase } from "@/mocks/database";
@@ -175,6 +176,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           </span>
         </header>
         <main className="mx-auto max-w-[1440px] p-9 max-[800px]:p-[25px_18px] max-[560px]:px-3.5">
+          {role === UserRole.STORAGE_CUSTOMER && !isMockMode && (
+            <div className="mb-5">
+              <LifecycleInbox key={session.user.id} />
+            </div>
+          )}
           {children}
         </main>
       </div>

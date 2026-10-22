@@ -79,9 +79,21 @@ export function GlobalActivityIndicator() {
     return () => window.clearTimeout(timeout);
   }, [active]);
 
-  if (!visible) return null;
-
   return (
-    <FullScreenLoading label={isProcessing ? LOADING_MESSAGES.processing : LOADING_MESSAGES.page} />
+    <>
+      {navigationCount > 0 && (
+        <div
+          aria-hidden="true"
+          className="fixed top-0 left-0 right-0 z-[9999] h-[3px] overflow-hidden bg-transparent pointer-events-none"
+        >
+          <div className="h-full w-full bg-gradient-to-r from-primary via-emerald-400 to-teal-300 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-top-progress" />
+        </div>
+      )}
+      {visible && (
+        <FullScreenLoading
+          label={isProcessing ? LOADING_MESSAGES.processing : LOADING_MESSAGES.page}
+        />
+      )}
+    </>
   );
 }
