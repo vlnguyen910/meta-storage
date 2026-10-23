@@ -3,8 +3,10 @@
 import type { GuestRentalPaymentItemDto, RentalDocumentDto } from "@metastorage/contracts";
 import { CONTRACT_PDF_MAX_BYTES, ContractUploadSchema } from "@metastorage/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Clock, CreditCard, FileCheck, FileText, Receipt } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button, buttonClassName } from "@/components/ui/button";
+import { StatusBadge } from "@/components/ui/display";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { F3 } from "@/features/returns/integration.messages";
 import {
@@ -24,7 +26,12 @@ export function RentalPayments({ rentalId }: { rentalId: string }) {
   });
   return (
     <section className={f3Panel}>
-      <h2 className="text-lg font-bold">{F3.payments}</h2>
+      <div className="mb-4 flex items-center gap-2.5">
+        <div className="grid size-9 place-items-center rounded-lg bg-emerald-50 text-primary">
+          <CreditCard size={18} />
+        </div>
+        <h2 className="text-lg font-bold text-ink">{F3.payments}</h2>
+      </div>
       {query.isPending ? (
         <LoadingState variant="table" />
       ) : query.isError ? (
@@ -47,30 +54,37 @@ export function BookingContractAccess({ bookingId }: { bookingId: string }) {
 }
 
 export function PaymentRecords({ items }: { items: GuestRentalPaymentItemDto[] }) {
-  if (!items.length) return <p>{F3.noPayments}</p>;
+  if (!items.length) return <p className="text-sm text-muted">{F3.noPayments}</p>;
   return (
-    <ul className="space-y-3">
+    <ul className="list-none space-y-3 p-0">
       {items.map((item) => (
-        <li key={item.id} className="rounded border border-slate-200 p-4 space-y-2">
-          <div className="flex flex-wrap justify-between gap-2">
-            <strong>{item.paymentCode}</strong>
-            <span>{F3.status[item.status as keyof typeof F3.status] ?? item.status}</span>
+        <li key={item.id} className="space-y-2.5 rounded-xl border border-slate-200/80 bg-white p-4 shadow-2xs">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Receipt size={16} className="text-primary" />
+              <strong className="font-mono text-sm text-ink">{item.paymentCode}</strong>
+            </div>
+            <StatusBadge value={item.status} />
           </div>
-          <p>
-            {F3.paid}: <strong>{money(item.totalAmount)}</strong>
-          </p>
-          <p className="text-sm text-slate-600">
-            {new Date(item.paidAt ?? item.createdAt).toLocaleString("vi-VN")}
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2.5">
+            <p className="m-0 text-sm">
+              <span className="text-muted">{F3.paid}: </span>
+              <strong className="text-base font-bold text-primary">{money(item.totalAmount)}</strong>
+            </p>
+            <p className="m-0 flex items-center gap-1.5 text-xs text-muted">
+              <Clock size={13} className="text-slate-400" />
+              {new Date(item.paidAt ?? item.createdAt).toLocaleString("vi-VN")}
+            </p>
+          </div>
           {item.refundedAt && item.refundAmount && (
-            <p>
-              {F3.refunded}: {money(item.refundAmount)} ·{" "}
+            <p className="m-0 text-sm text-amber-800">
+              {F3.refunded}: <strong>{money(item.refundAmount)}</strong> ·{" "}
               {new Date(item.refundedAt).toLocaleString("vi-VN")}
             </p>
           )}
           {item.returnRefunds.map((r) => (
-            <p key={r.id} className="text-sm text-emerald-800">
-              {F3.returnedRefund}: {money(r.amount)} · {r.reference} ·{" "}
+            <p key={r.id} className="m-0 text-xs text-emerald-800">
+              {F3.returnedRefund}: <strong>{money(r.amount)}</strong> · {r.reference} ·{" "}
               {new Date(r.confirmedAt).toLocaleString("vi-VN")}
             </p>
           ))}
@@ -236,21 +250,29 @@ export function RentalDocuments({
   });
   return (
     <section className={f3Panel}>
-      <h2 className="text-lg font-bold">{F3.contracts}</h2>
+      <div className="mb-4 flex items-center gap-2.5">
+        <div className="grid size-9 place-items-center rounded-lg bg-emerald-50 text-primary">
+          <FileText size={18} />
+        </div>
+        <h2 className="text-lg font-bold text-ink">{F3.contracts}</h2>
+      </div>
       {query.isPending ? (
         <LoadingState variant="table" />
       ) : query.isError ? (
         <ErrorState message={integrationError(query.error)} onRetry={() => query.refetch()} />
       ) : (
-        <ul className="space-y-3">
-          {!query.data.length && <li>{F3.noContracts}</li>}
+        <ul className="list-none space-y-3 p-0">
+          {!query.data.length && <li className="text-sm text-muted">{F3.noContracts}</li>}
           {query.data.map((doc) => (
-            <li key={doc.id} className="rounded border border-slate-200 p-4 space-y-3">
-              <div className="flex flex-wrap justify-between gap-2">
-                <strong>
-                  {F3.version(doc.version)} · {doc.filename}
-                </strong>
-                <span className="text-sm text-emerald-800">
+            <li key={doc.id} className="space-y-3 rounded-xl border border-slate-200/80 bg-white p-4 shadow-2xs">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <FileCheck size={16} className="text-primary" />
+                  <strong className="text-sm text-ink">
+                    {F3.version(doc.version)} · {doc.filename}
+                  </strong>
+                </div>
+                <span className="rounded-full border border-emerald-200/70 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">
                   {doc.status === "ISSUED" ? F3.issued : F3.uploaded}
                   {doc.currentIssued ? ` · ${F3.current}` : ""}
                   {doc.usedForHandover ? ` · ${F3.used}` : ""}
