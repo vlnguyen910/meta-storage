@@ -170,3 +170,29 @@ regression tests above. Newly added files were reviewed directly as well. GitHub
 searches for Google and Cloudinary returned no matches. No live provider credentials
 were available; real OAuth consent and Cloudinary PDF/private delivery acceptance are
 still required before production use. No commit, push or deployment was performed.
+
+## Contract upload diagnosis — 2026-10-23
+
+The active local credentials pass Cloudinary's authenticated ping, but a signed
+private raw PDF upload returns HTTP 403 with `missing permissions (actions=["create"])`.
+The API maps that provider rejection to `503 CONTRACT_STORAGE_UNAVAILABLE`.
+The root and API env files have matching Cloudinary credentials; no secret values
+were printed or changed. The diagnostic used a new private diagnostic key, not a
+customer booking, and did not modify business records.
+
+An account administrator must check the API key/product-environment permissions
+and permitted folders, or supply a server key that can create the private raw PDF
+assets used under `contracts/`. Contract reading and rollback cleanup also require
+the corresponding read/delete access. Manage keys through Cloudinary Console
+Settings → API Keys ([official instructions](https://cloudinary.com/documentation/developer_onboarding_faq_find_credentials)).
+After a key change, update the server configuration sources actually used locally
+(`.env` and/or `apps/api/.env`) and restart the API. Keep the API secret server-side.
+Verify upload, issue and authenticated PDF read before retrying Staff handover.
+No public-storage fallback or simulated upload success was introduced.
+
+Web now displays contract readiness on the FM monitoring page, with inline upload,
+local PDF preview, a separate upload action and a distinct issued state. Staff sees
+the missing-contract condition and cannot submit final handover until an issued
+contract is returned. Browser-native inline PDF rendering may vary; a local preview
+link is also provided. UI regression tests use API fixtures, not successful live
+Cloudinary writes; live upload acceptance remains blocked by the permission above.

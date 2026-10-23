@@ -107,6 +107,7 @@ export interface ReturnSettlementDto {
 }
 
 export type ReturnOperationalContextDto = z.infer<typeof ReturnOperationalContextSchema>;
+export type ReturnQueueItemDto = ReturnRequestDto & { context: ReturnOperationalContextDto };
 export type ReturnRefundSummaryDto = z.infer<typeof ReturnRefundSummarySchema>;
 export type ReturnSettlementPreviewDto = z.infer<typeof ReturnSettlementPreviewSchema>;
 export type ReturnRequestDetailDto = z.infer<typeof ReturnRequestDetailSchema>;

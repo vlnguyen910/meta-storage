@@ -70,10 +70,12 @@ import type {
   ReservationQuoteInput,
   ReturnInspectionDto,
   ReturnPhotoInput,
+  ReturnQueueItemDto,
   ReturnQueueQuery,
   ReturnRequestDetailDto,
   ReturnRequestDto,
   ReturnSettlementDto,
+  ReturnSettlementPreviewDto,
   ReturnSlotDto,
   ReturnVersion,
   RevenueReport,
@@ -435,7 +437,7 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
           .then(unwrap),
       queue: (facilityId: string, params: Partial<ReturnQueueQuery> = {}) =>
         http
-          .get<ApiEnvelope<ReturnRequestDto[]>>(`/facilities/${facilityId}/return-requests`, {
+          .get<ApiEnvelope<ReturnQueueItemDto[]>>(`/facilities/${facilityId}/return-requests`, {
             params,
           })
           .then(unwrap),
@@ -482,6 +484,14 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
               byteSize: number;
             }>
           >(`/return-requests/${requestId}/inspections/${inspectionId}/photos`, input)
+          .then(unwrap),
+      previewSettlement: (requestId: string, input: SettleReturn, signal?: AbortSignal) =>
+        http
+          .post<ApiEnvelope<ReturnSettlementPreviewDto>>(
+            `/return-requests/${requestId}/settlement/preview`,
+            input,
+            { signal },
+          )
           .then(unwrap),
       settle: (requestId: string, input: SettleReturn) =>
         http

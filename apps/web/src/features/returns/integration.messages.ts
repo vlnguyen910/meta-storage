@@ -1,4 +1,36 @@
 export const F3 = {
+  unknownCustomer: "Khách thuê",
+  bookingCode: "Mã đặt kho",
+  unitLabel: "Ô kho",
+  staffLabel: "Nhân viên phụ trách",
+  operationalContext: "Khách thuê và kho được bàn giao",
+  rentalEnd: "Hạn thuê",
+  unknown: "Chưa xác định",
+  preview: "Xem trước quyết toán",
+  previewRefresh: "Rà soát trước khi duyệt",
+  finalConfirm: "Xác nhận duyệt và đóng thuê",
+  previewNotice:
+    "Hệ thống tính lại khi duyệt theo chính sách hiện hành. Kết quả đã lưu có thể khác bản xem trước nếu chính sách vừa thay đổi.",
+  previewInvalid: "Thông tin đã thay đổi. Hãy lấy lại bản xem trước để tiếp tục.",
+  cannotClose: "Chưa đủ điều kiện hoàn tất trả kho",
+  refreshFailed:
+    "Giao dịch đã được ghi nhận nhưng chưa tải lại được hồ sơ. Hãy tải lại dữ liệu trước thao tác tiếp theo.",
+  unknownOutcome: "Chưa xác định được kết quả. Hãy tải lại hồ sơ để kiểm tra trước khi thử lại.",
+  depositRemaining: "Cọc còn được hoàn",
+  rentRemaining: "Tiền thuê còn được hoàn",
+  depositConfirmed: "Cọc đã hoàn",
+  rentConfirmed: "Tiền thuê đã hoàn",
+  depositTransfer: "Tiền cọc đã chuyển (VND)",
+  rentTransfer: "Tiền thuê đã chuyển (VND)",
+  allocationUnknown:
+    "Chưa xác định được phân bổ các khoản hoàn cũ. Chỉ xem tổng và lịch sử; cần đối soát trước khi xác nhận khoản hoàn mới.",
+  notClosed: "Chỉ xác nhận hoàn tiền sau khi hồ sơ trả kho đã hoàn tất quyết toán.",
+  pendingTransfer:
+    "Có lần xác nhận chưa rõ kết quả. Đã phục hồi nội dung; hãy kiểm tra lịch sử và xác nhận lại, hệ thống giữ cùng mã chống trùng.",
+  storageUnavailable:
+    "Không lưu được thông tin chống trùng trong phiên này. Hãy kiểm tra cài đặt trình duyệt trước khi xác nhận.",
+  refundAlreadyRecorded: "Khoản hoàn này đã có trong lịch sử. Không cần xác nhận lại.",
+  savedProofs: "Chọn chứng từ hoàn tiền đã tải lên",
   loadMore: "Tải thêm",
   retry: "Thử lại",
   refresh: "Tải lại dữ liệu",
@@ -68,8 +100,6 @@ export const F3 = {
   stored: "Đã bàn giao lưu giữ",
   propertyHelp: "Bổ sung hồ sơ tài sản mà không thay đổi kết quả checklist đã hoàn tất.",
   settlement: "Quyết toán và hoàn tiền",
-  settlementBlocked:
-    "Chưa thể duyệt quyết toán: backend chưa có bản xem trước số tiền và điều kiện đóng kho. Liên hệ người phụ trách backend.",
   settle: "Duyệt quyết toán",
   deposit: "Cọc theo hồ sơ",
   overdue: "Phí quá hạn",
@@ -81,8 +111,6 @@ export const F3 = {
   refund: "Xác nhận chuyển khoản đã hoàn tất",
   refundHelp:
     "Chỉ ghi nhận sau khi chuyển khoản thủ công thực sự thành công. Thao tác này không chuyển tiền cho khách.",
-  refundBlocked:
-    "Chưa đủ số dư cọc/tiền thuê còn được hoàn để xác nhận an toàn. Chờ backend bổ sung dữ liệu phân bổ.",
   refundHistory: "Các lần hoàn tiền đã xác nhận",
   reference: "Mã tham chiếu chuyển khoản",
   refundAmount: "Số tiền đã chuyển (VND)",

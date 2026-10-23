@@ -4,6 +4,7 @@ import type {
   ConfigureReturnChecklist,
   ConfigureSystemSetting,
   ConfirmReturnRefund,
+  ConfirmReturnRefundDto,
   ContractIssue,
   ContractUpload,
   GuestIssuedContractDto,
@@ -147,7 +148,7 @@ export function createFlow3Client(http: AxiosInstance) {
           .then(unwrap),
       confirmRefund: (id: string, input: ConfirmReturnRefund) =>
         http
-          .post<ApiEnvelope<{ id: string; amount: string; confirmedAt: string }>>(
+          .post<ApiEnvelope<ConfirmReturnRefundDto>>(
             `/return-requests/${id}/refunds/confirm`,
             input,
           )
