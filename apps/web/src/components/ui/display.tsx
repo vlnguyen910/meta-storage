@@ -39,7 +39,14 @@ export function StatusBadge({ value }: { value: string }) {
     COMPLETED: "Đã hoàn tất",
     CLOSED: "Đã đóng",
   };
-  const positive = ["ACTIVE", "AVAILABLE", "CONFIRMED", "SUCCEEDED", "CHECKED_IN", "OCCUPIED"].includes(value);
+  const positive = [
+    "ACTIVE",
+    "AVAILABLE",
+    "CONFIRMED",
+    "SUCCEEDED",
+    "CHECKED_IN",
+    "OCCUPIED",
+  ].includes(value);
   const maintenance = value === "MAINTENANCE";
   const danger = ["CANCELLED", "NO_SHOW", "FAILED", "OVERDUE"].includes(value);
   const warning = ["PENDING", "REFUNDED", "RETURN_PENDING"].includes(value);
@@ -51,7 +58,11 @@ export function StatusBadge({ value }: { value: string }) {
         maintenance && "border-amber-200/80 bg-amber-50 text-amber-800",
         danger && "border-rose-200/80 bg-rose-50 text-rose-700",
         warning && "border-amber-200/80 bg-amber-50 text-amber-800",
-        !positive && !maintenance && !danger && !warning && "border-slate-200 bg-slate-100 text-slate-700",
+        !positive &&
+          !maintenance &&
+          !danger &&
+          !warning &&
+          "border-slate-200 bg-slate-100 text-slate-700",
       )}
     >
       <span

@@ -76,7 +76,10 @@ export function CustomerReturnPanel({
                 </div>
                 <div className="flex items-center gap-3">
                   <ReturnStatusBadge status={request.status} />
-                  <ChevronRight size={17} className="text-slate-400 transition-transform group-hover:translate-x-0.5" />
+                  <ChevronRight
+                    size={17}
+                    className="text-slate-400 transition-transform group-hover:translate-x-0.5"
+                  />
                 </div>
               </Link>
             </li>

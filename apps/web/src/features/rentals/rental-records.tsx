@@ -58,7 +58,10 @@ export function PaymentRecords({ items }: { items: GuestRentalPaymentItemDto[] }
   return (
     <ul className="list-none space-y-3 p-0">
       {items.map((item) => (
-        <li key={item.id} className="space-y-2.5 rounded-xl border border-slate-200/80 bg-white p-4 shadow-2xs">
+        <li
+          key={item.id}
+          className="space-y-2.5 rounded-xl border border-slate-200/80 bg-white p-4 shadow-2xs"
+        >
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Receipt size={16} className="text-primary" />
@@ -69,7 +72,9 @@ export function PaymentRecords({ items }: { items: GuestRentalPaymentItemDto[] }
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2.5">
             <p className="m-0 text-sm">
               <span className="text-muted">{F3.paid}: </span>
-              <strong className="text-base font-bold text-primary">{money(item.totalAmount)}</strong>
+              <strong className="text-base font-bold text-primary">
+                {money(item.totalAmount)}
+              </strong>
             </p>
             <p className="m-0 flex items-center gap-1.5 text-xs text-muted">
               <Clock size={13} className="text-slate-400" />
@@ -264,7 +269,10 @@ export function RentalDocuments({
         <ul className="list-none space-y-3 p-0">
           {!query.data.length && <li className="text-sm text-muted">{F3.noContracts}</li>}
           {query.data.map((doc) => (
-            <li key={doc.id} className="space-y-3 rounded-xl border border-slate-200/80 bg-white p-4 shadow-2xs">
+            <li
+              key={doc.id}
+              className="space-y-3 rounded-xl border border-slate-200/80 bg-white p-4 shadow-2xs"
+            >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <FileCheck size={16} className="text-primary" />
