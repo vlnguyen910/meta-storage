@@ -3,7 +3,6 @@ import Link from "next/link";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { Card } from "@/components/ui/display";
-import { routes } from "@/config/routes";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import { bookingLookupMessages } from "./booking-lookup.messages";
 import { BookingLookupForm } from "./booking-lookup-form";
@@ -20,8 +19,18 @@ function Detail({ label, value }: { label: string; value: string }) {
   );
 }
 export function BookingTrackingScreen() {
-  const { booking, loading, lookup, message, revoke, revoking, revokeError, retry, expire } =
-    useBookingTracking();
+  const {
+    booking,
+    loading,
+    lookup,
+    message,
+    revoke,
+    revoking,
+    revokeError,
+    retry,
+    expire,
+    startLookup,
+  } = useBookingTracking();
   if (lookup && !loading) {
     return (
       <PublicLayout>
@@ -48,9 +57,9 @@ export function BookingTrackingScreen() {
             </p>
             <div className="flex flex-wrap gap-3">
               {retry ? <Button onClick={retry}>{m.retry}</Button> : null}
-              <Link href={routes.bookingTracking} className={buttonClassName("outline")}>
+              <Button variant="outline" onClick={() => void startLookup()}>
                 {bookingLookupMessages.lookupAgain}
-              </Link>
+              </Button>
               <Link href="/" className={buttonClassName("outline")}>
                 {m.home}
               </Link>

@@ -1,0 +1,25 @@
+import { defineConfig, devices } from "@playwright/test";
+
+export default defineConfig({
+  testDir: "./e2e",
+  testMatch: "guest-booking-api.spec.ts",
+  workers: 1,
+  retries: 0,
+  timeout: 45000,
+  expect: { timeout: 10000 },
+  use: {
+    baseURL: process.env.GUEST_LOOKUP_WEB_URL ?? "http://localhost:3000",
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
+  },
+  projects: [
+    {
+      name: "desktop",
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 1000 } },
+    },
+    ...[375, 390, 430].map((width) => ({
+      name: `mobile-${width}`,
+      use: { ...devices["Pixel 7"], viewport: { width, height: 844 } },
+    })),
+  ],
+});

@@ -1,22 +1,16 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
 import { ArrowRight, CheckCircle2, Mail, Ticket } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { isMockMode } from "@/config/api-mode";
-import { api } from "@/lib/api";
 import { bookingLookupMessages as m } from "./booking-lookup.messages";
 import { BookingLookupFormSchema, type BookingLookupFormValues } from "./booking-lookup.types";
+import { useGuestAccessRequest } from "./use-guest-access-request";
 
 export function BookingLookupForm() {
-  const [submitted, setSubmitted] = useState(false);
-  const requestLink = useMutation({
-    meta: { globalLoading: true },
-    mutationFn: api.bookings.requestGuestAccessLink,
-  });
+  const requestLink = useGuestAccessRequest();
   const {
     register,
     handleSubmit,
@@ -27,24 +21,9 @@ export function BookingLookupForm() {
     defaultValues: { bookingCode: "", email: "" },
   });
 
-  function onSubmit(values: BookingLookupFormValues) {
-    requestLink.mutate(
-      {
-        bookingCode: values.bookingCode.trim().toUpperCase(),
-        email: values.email.trim().toLowerCase(),
-        idempotencyKey: crypto.randomUUID(),
-      },
-      {
-        onSuccess: () => setSubmitted(true),
-        onError: () => setSubmitted(false),
-      },
-    );
-  }
-
   function startAgain() {
     requestLink.reset();
     reset();
-    setSubmitted(false);
   }
 
   return (
@@ -62,7 +41,7 @@ export function BookingLookupForm() {
       </nav>
 
       <section className="mx-auto max-w-3xl rounded border border-[#bfcac4] bg-white p-6 shadow-[0_2px_12px_rgba(19,27,46,0.04)] sm:p-10">
-        {submitted ? (
+        {requestLink.submitted ? (
           <div className="py-4 text-center">
             <CheckCircle2 aria-hidden="true" className="mx-auto mb-4 size-12 text-[#125345]" />
             <h1 className="mb-3 text-2xl font-bold text-[#131b2e]" id="lookup-success-title">
@@ -99,16 +78,16 @@ export function BookingLookupForm() {
               <p className="max-w-2xl leading-7 text-slate-600">{m.description}</p>
             </div>
 
-            {requestLink.isError ? (
+            {requestLink.error ? (
               <p
                 className="mb-5 rounded border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800"
                 role="alert"
               >
-                {m.failure}
+                {requestLink.error}
               </p>
             ) : null}
 
-            <form className="space-y-6" noValidate onSubmit={handleSubmit(onSubmit)}>
+            <form className="space-y-6" noValidate onSubmit={handleSubmit(requestLink.request)}>
               <div>
                 <label className="mb-2 block font-semibold text-[#131b2e]" htmlFor="bookingCode">
                   {m.bookingCode}
@@ -175,10 +154,10 @@ export function BookingLookupForm() {
 
               <button
                 className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded bg-[#125345] px-6 font-semibold text-white transition-colors hover:bg-[#0d4338] focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-wait disabled:opacity-70 sm:w-auto"
-                disabled={isSubmitting || requestLink.isPending}
+                disabled={isSubmitting || requestLink.pending}
                 type="submit"
               >
-                {isSubmitting || requestLink.isPending ? m.submitting : m.submit}
+                {isSubmitting || requestLink.pending ? m.submitting : m.submit}
                 <ArrowRight aria-hidden="true" className="size-5" />
               </button>
             </form>
