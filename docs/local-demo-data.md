@@ -70,7 +70,7 @@ fixtures; they do not represent a SePay transaction and do not enqueue/send emai
 From the repository root, with `DATABASE_URL` pointing to the intended local database:
 
 ```sh
-bun run seed:local
+bun run db:seed
 ```
 
 This runs the domain seed and prepares login credentials. The existing primary fixture

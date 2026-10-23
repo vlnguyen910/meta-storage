@@ -179,6 +179,13 @@ kho và Staff có thể xác nhận check-in trước giờ/ngày hẹn. Không 
 booking hoặc chạy seed lại. Production và test vẫn yêu cầu đến giờ hẹn.
 Hạn cuối check-in, quyền truy cập, checklist và hợp đồng bàn giao vẫn được kiểm tra.
 
+Khôi phục mật khẩu dùng Better Auth và Resend: đặt `WEB_URL` thành origin Web đã
+khai báo trong `AUTH_TRUSTED_ORIGINS`. Cả Web và Mobile yêu cầu qua
+`POST /api/auth/request-password-reset`; backend gửi liên kết đến trang Web
+`/reset-password`. Liên kết dùng một lần, hết hạn sau 60 phút; mật khẩu mới cần
+8–128 ký tự. Đặt lại thành công thu hồi các session cũ và yêu cầu đăng nhập lại,
+không tự đăng nhập. Email không tồn tại vẫn nhận cùng phản hồi chung.
+
 ### 4. Deploy API và Worker lên VPS bằng Docker Compose
 
 Production Compose chỉ chạy API và worker. PostgreSQL và Redis phải được cung
@@ -321,6 +328,25 @@ bun run db:clear
 
 # Seed lại sau khi dọn dữ liệu
 bun run db:seed
+```
+
+Chỉ cần lệnh seed ở trên (`bun run db:seed`); toàn bộ dữ liệu và logic seed
+nằm trong `packages/database/src/seed.ts`, bao gồm tài khoản và demo check-in ngay.
+
+Lệnh tạo booking riêng `DEMO-CHECKIN-NOW` tại `HCM-01`, đã thanh toán giả lập,
+gán một Unit còn trống và gán Staff `staff@metastorage.vn`, mật khẩu development
+là `12345678`. Chạy seed lại sẽ khôi phục các kịch bản mẫu và mật khẩu development.
+Slot bắt đầu ở phút hiện tại theo giờ Việt Nam và kết thúc cuối ngày. Có thể đăng nhập
+Staff và tìm mã booking để xác nhận check-in ngay; inspection và hợp đồng vẫn tuân theo
+điều kiện bàn giao hiện có. Lệnh không gửi email; chỉ dời giờ `DEMO-CHECKIN-NOW`
+khi booking còn `CONFIRMED`, chưa verification hoặc rental.
+Nếu demo đã đi tiếp, lệnh giữ nguyên trạng thái đó. Không chạy trong production.
+
+Kiểm thử seed trên database loopback mới, đã migrate, có tên kết thúc `_seed_test`:
+
+```bash
+SEED_TEST_DATABASE_URL=postgres://postgres:postgres@localhost:5433/metastorage_checkin_seed_test \
+  bun run --filter @metastorage/database test
 ```
 
 Tên, địa chỉ và giá trong seed là dữ liệu giả lập để test. Seed giữ các booking

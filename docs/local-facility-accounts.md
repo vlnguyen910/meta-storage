@@ -15,12 +15,15 @@ Dùng tại `http://localhost:3000/login`. Mật khẩu fixture local: `12345678
 | HCM-09 | manager.hcm09@metastorage.test | staff.hcm09@metastorage.test |
 | HCM-10 | manager.hcm10@metastorage.test | staff.hcm10@metastorage.test |
 
-Từ thư mục gốc repository, bổ sung tài khoản/phân công còn thiếu bằng:
+Từ thư mục gốc repository, tạo dữ liệu demo và tài khoản bằng một lệnh:
 
 ```bash
-bun run --filter api seed:facility-accounts
+bun run db:seed
 ```
 
-Lệnh dùng kết nối DB từ `apps/api/.env`, bị chặn trong production. Yêu cầu các cơ sở đã tồn tại và đang hoạt động. Giữ UUID, mật khẩu, thông tin tài khoản và phân công hiện có; dừng và rollback nếu tài khoản/phân công xung đột. Không seed lại booking, thanh toán hoặc ô kho.
+Toàn bộ seed nằm trong `packages/database/src/seed.ts`, dùng kết nối DB từ
+`apps/api/.env` và bị chặn trong production. Lệnh tạo cả catalog, booking,
+thanh toán giả lập và ô kho; chạy lại sẽ khôi phục các kịch bản mẫu và mật khẩu
+development `12345678`. Không có lệnh seed tài khoản riêng.
 
 Manager xem booking của cơ sở được phân công. Staff thấy các công việc được manager chỉ định; chỉ tạo tài khoản staff chưa tự phân công booking cho họ.

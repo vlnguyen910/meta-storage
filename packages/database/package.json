@@ -10,7 +10,7 @@
     "./schema": "./src/schema/index.ts",
     "./client": "./src/client.ts",
     "./env": "./src/env.ts",
-    "./demo-fixtures": "./src/demo-fixtures.ts"
+    "./seed": "./src/seed.ts"
   },
   "scripts": {
     "db:generate": "drizzle-kit generate",
@@ -20,7 +20,8 @@
     "db:seed": "bun src/seed.ts",
     "db:clear": "bun src/clear.ts",
     "lint": "biome check src",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "test": "bun test tests"
   },
   "dependencies": {
     "@metastorage/contracts": "workspace:*",

@@ -126,6 +126,14 @@ jobs:
       run: bun run db:migrate
     - name: Run every opted-in regression without cached results or skips
       run: bun run --filter api test:db
+    - name: Verify immediate demo check-in on a separate seeded database
+      env:
+        PGPASSWORD: postgres
+        SEED_TEST_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5433/metastorage_checkin_seed_test
+      run: |
+        createdb -h 127.0.0.1 -p 5433 -U postgres metastorage_checkin_seed_test
+        DATABASE_URL="$SEED_TEST_DATABASE_URL" bun run --filter @metastorage/database db:migrate
+        bun run --filter @metastorage/database test
 
   deploy:
     name: Deploy checked staging commit
