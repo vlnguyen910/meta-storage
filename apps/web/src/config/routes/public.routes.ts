@@ -8,5 +8,6 @@ export const publicRoutes = {
   register: "/register",
   verifyEmail: "/verify-email",
   forgotPassword: "/forgot-password",
+  resetPassword: "/reset-password",
   forbidden: "/forbidden",
 } as const;

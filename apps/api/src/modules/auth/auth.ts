@@ -41,6 +41,9 @@ export const auth = betterAuth({
   },
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
+      if (ctx.path === "/request-password-reset") {
+        ctx.body.redirectTo = new URL("/reset-password", env.WEB_URL).toString();
+      }
       if (ctx.path !== "/link-social") return;
       const session = await getSessionFromCtx(ctx, { disableCookieCache: true });
       if (!session)
@@ -74,6 +77,17 @@ export const auth = betterAuth({
     enabled: true,
     requireEmailVerification: true,
     autoSignIn: false,
+    minPasswordLength: 8,
+    maxPasswordLength: 128,
+    resetPasswordTokenExpiresIn: 60 * 60,
+    revokeSessionsOnPasswordReset: true,
+    sendResetPassword: async ({ user, url }) => {
+      await verificationMailer.sendPasswordResetEmail({
+        to: user.email,
+        name: user.name,
+        resetUrl: url,
+      });
+    },
   },
   emailVerification: {
     sendOnSignUp: true,
