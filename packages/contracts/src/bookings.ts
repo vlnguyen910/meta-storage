@@ -134,6 +134,7 @@ export const BookingListItemSchema = z.object({
   handoverStage: z
     .enum(["WAITING_CUSTOMER", "INSPECTING", "READY_HANDOVER", "HANDED_OVER"])
     .optional(),
+  earlyCheckInAllowed: z.boolean().optional(),
   createdAt: z.string().datetime(),
 });
 

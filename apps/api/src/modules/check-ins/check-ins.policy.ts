@@ -18,6 +18,7 @@ export type CheckInPolicyEvaluation = CheckInEligibility & {
 export function evaluateCheckInEligibility(
   record: CheckInPolicyRecord,
   now: Date,
+  allowEarlyCheckIn = false,
 ): CheckInPolicyEvaluation {
   const reasons: CheckInEligibilityReasonCode[] = [];
   const graceEndsAt = record.checkInDayEnd;
@@ -36,7 +37,7 @@ export function evaluateCheckInEligibility(
 
   if (!graceEndsAt) {
     reasons.push("CHECKIN_SLOT_NOT_CONFIGURED");
-  } else if (now < record.checkInSlotStart) {
+  } else if (!allowEarlyCheckIn && now < record.checkInSlotStart) {
     reasons.push("TOO_EARLY");
   } else if (now >= graceEndsAt) {
     reasons.push("DEADLINE_PASSED");

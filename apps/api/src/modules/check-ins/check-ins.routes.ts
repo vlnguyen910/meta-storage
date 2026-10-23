@@ -3,6 +3,7 @@ import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
+import { env } from "../../config/env";
 import { requireAuth } from "../auth/auth.guard";
 import { getFacilityAccessScope, requireAssignedFacility } from "../facilities/facilities.access";
 import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
@@ -16,7 +17,11 @@ const CHECK_IN_ROLES = ["FACILITY_MANAGER", "FACILITY_STAFF"] as const;
 export const checkInsRoutes: FastifyPluginAsync = async (fastify) => {
   const checkInsRepository = new CheckInsRepository(fastify.db);
   const assignmentsRepository = new FacilityAssignmentsRepository(fastify.db);
-  const service = new CheckInsService(checkInsRepository);
+  const service = new CheckInsService(
+    checkInsRepository,
+    undefined,
+    env.NODE_ENV === "development" || env.NODE_ENV === "develop",
+  );
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
 
   typedApp.post(

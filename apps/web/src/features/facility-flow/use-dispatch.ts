@@ -13,7 +13,7 @@ export function readiness(b: BookingListItem, now = Date.now()) {
   if (!b.assignedUnit) return "NEEDS_UNIT";
   if (!b.assignedStaff) return "NEEDS_STAFF";
   if (!b.checkInSlotEnd) return "SLOT_MISSING";
-  if (now < new Date(b.checkInSlotStart).getTime()) return "TOO_EARLY";
+  if (!b.earlyCheckInAllowed && now < new Date(b.checkInSlotStart).getTime()) return "TOO_EARLY";
   if (b.handoverStage === "INSPECTING" || b.handoverStage === "READY_HANDOVER")
     return b.handoverStage;
   return "READY";
