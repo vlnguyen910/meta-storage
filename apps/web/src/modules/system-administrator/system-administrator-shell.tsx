@@ -11,6 +11,7 @@ import { ADMIN_MESSAGES as M } from "@/features/administration/admin.messages";
 import type { AdminShellProps } from "@/features/administration/admin.types";
 import { useAdminLogout } from "@/features/administration/use-admin-logout";
 import { useAuthStore } from "@/features/auth/auth-store";
+import { F5 } from "@/features/facility-management/management.messages";
 import { F3 } from "@/features/returns/integration.messages";
 import { cn } from "@/lib/cn";
 
@@ -78,7 +79,11 @@ export function SystemAdministratorShell({ children }: Readonly<AdminShellProps>
           <span className="hidden rounded-full bg-emerald-50 px-2 py-1.5 text-center text-xs font-semibold text-emerald-900 sm:inline-block">
             {pathname === systemAdministratorRoutes.returnSettings && !isMockMode
               ? F3.settings
-              : M.demo}
+              : !isMockMode &&
+                  (pathname === systemAdministratorRoutes.facilityManagement ||
+                    pathname === systemAdministratorRoutes.facilityAssignments)
+                ? F5.title
+                : M.demo}
           </span>
           <div className="hidden border-l border-slate-200 pl-4 text-right md:block">
             <p className="m-0 text-sm font-semibold">{user?.name}</p>

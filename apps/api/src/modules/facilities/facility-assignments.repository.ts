@@ -9,6 +9,7 @@ import {
   type FacilityAssignment,
   facilities,
   facilityAssignments,
+  facilityTasks,
   gt,
   isNull,
   lte,
@@ -47,6 +48,7 @@ export class FacilityAssignmentsRepository {
           eq(facilityAssignments.role, "FACILITY_STAFF"),
           eq(facilityAssignments.isActive, true),
           eq(users.status, "ACTIVE"),
+          or(isNull(facilityAssignments.endedAt), gt(facilityAssignments.endedAt, new Date())),
         ),
       );
 
@@ -114,6 +116,73 @@ export class FacilityAssignmentsRepository {
         and(eq(facilityAssignments.facilityId, facilityId), eq(facilityAssignments.userId, userId)),
       );
     return assignment;
+  }
+
+  async findAssignmentTarget(userId: string) {
+    const [user] = await this.db
+      .select({ id: users.id, role: users.role, status: users.status })
+      .from(users)
+      .where(eq(users.id, userId));
+    return user;
+  }
+
+  async deactivateAssignmentWithWorkCheck(
+    facilityId: string,
+    userId: string,
+  ): Promise<
+    { assignment: FacilityAssignment } | { error: "ASSIGNMENT_NOT_FOUND" | "ASSIGNED_WORK" }
+  > {
+    return this.db.transaction(async (tx) => {
+      // Serialize against new/reassigned tasks using the same user-first lock order.
+      await tx.select({ id: users.id }).from(users).where(eq(users.id, userId)).for("update");
+      const [assignment] = await tx
+        .select()
+        .from(facilityAssignments)
+        .where(
+          and(
+            eq(facilityAssignments.facilityId, facilityId),
+            eq(facilityAssignments.userId, userId),
+          ),
+        )
+        .for("update");
+      if (!assignment) return { error: "ASSIGNMENT_NOT_FOUND" };
+      if (assignment.isActive) {
+        const [booking] = await tx
+          .select({ id: bookings.id })
+          .from(bookings)
+          .where(
+            and(
+              eq(bookings.facilityId, facilityId),
+              eq(bookings.assignedStaffId, userId),
+              eq(bookings.status, "CONFIRMED"),
+            ),
+          )
+          .limit(1);
+        const [task] = await tx
+          .select({ id: facilityTasks.id })
+          .from(facilityTasks)
+          .where(
+            and(
+              eq(facilityTasks.facilityId, facilityId),
+              eq(facilityTasks.assignedStaffId, userId),
+            ),
+          )
+          .limit(1);
+        if (booking || task) return { error: "ASSIGNED_WORK" };
+      }
+      const [deactivated] = await tx
+        .update(facilityAssignments)
+        .set({ isActive: false, endedAt: new Date() })
+        .where(
+          and(
+            eq(facilityAssignments.facilityId, facilityId),
+            eq(facilityAssignments.userId, userId),
+          ),
+        )
+        .returning();
+      if (!deactivated) return { error: "ASSIGNMENT_NOT_FOUND" };
+      return { assignment: deactivated };
+    });
   }
 
   async upsertAssignment(data: NewFacilityAssignment): Promise<FacilityAssignment> {

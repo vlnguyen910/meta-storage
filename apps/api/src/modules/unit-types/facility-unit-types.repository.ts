@@ -51,6 +51,11 @@ export class FacilityUnitTypesRepository {
     return link;
   }
 
+  async findSharedUnitType(unitTypeId: string): Promise<UnitType | undefined> {
+    const [unitType] = await this.db.select().from(unitTypes).where(eq(unitTypes.id, unitTypeId));
+    return unitType;
+  }
+
   async list(facilityId: string, limit: number, offset: number, isActive?: boolean) {
     return this.db
       .select({ offering: facilityUnitTypes, unitType: unitTypes })
@@ -101,6 +106,17 @@ export class FacilityUnitTypesRepository {
       )
       .returning();
     return updated;
+  }
+
+  async setActiveOrLink(
+    facilityId: string,
+    unitTypeId: string,
+    isActive: boolean,
+  ): Promise<FacilityUnitType | undefined> {
+    const existing = await this.find(facilityId, unitTypeId);
+    if (existing) return this.setActive(facilityId, unitTypeId, isActive);
+    if (!isActive) return undefined;
+    return this.link(facilityId, unitTypeId);
   }
 
   async unlink(facilityId: string, unitTypeId: string): Promise<FacilityUnitType | undefined> {

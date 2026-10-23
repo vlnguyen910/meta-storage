@@ -1,13 +1,26 @@
+import type { ApiFacility, ApiFacilityAssignment } from "@metastorage/contracts";
 import {
   ConfigureReturnCalendarSchema,
+  CreateStorageUnitSchema,
+  createAssignmentBodySchema,
   createFacilityBodySchema,
+  facilityAssignmentListQuerySchema,
+  facilityAssignmentParamSchema,
   facilityIdNestedParamSchema,
+  facilityManagementQuerySchema,
   facilityQuerySchema,
+  facilityStorageUnitParamsSchema,
+  facilityUnitTypeParamsSchema,
   ReturnFacilityParamsSchema,
   ReturnQueueEnvelopeSchema,
   ReturnQueueQuerySchema,
+  SetFacilityUnitTypeSchema,
+  STORAGE_UNIT_MESSAGES,
   UnitTypeListQuerySchema,
+  updateFacilityBodySchema,
+  updateFacilityIdParamSchema,
 } from "@metastorage/contracts";
+import type { Facility, FacilityAssignment } from "@metastorage/database";
 import type { FastifyPluginAsync, onRequestAsyncHookHandler } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
@@ -15,9 +28,13 @@ import { successResponse } from "../../common/response/api-response";
 import { requireAuth, requireRole } from "../auth/auth.guard";
 import { ReturnsRepository } from "../returns/returns.repository";
 import { ReturnsService } from "../returns/returns.service";
+import { StorageUnitsRepository } from "../storage-units/storage-units.repository";
+import { StorageUnitsService } from "../storage-units/storage-units.service";
 import { FacilityUnitTypesRepository } from "../unit-types/facility-unit-types.repository";
 import { FacilityUnitTypesService } from "../unit-types/facility-unit-types.service";
+import { getFacilityAccessScope } from "./facilities.access";
 import { requireFacilityAccess } from "./facilities.guard";
+import { FACILITY_MESSAGES } from "./facilities.messages";
 import { FacilitiesRepository } from "./facilities.repository";
 import { FacilitiesService } from "./facilities.service";
 import { FacilityAssignmentsRepository } from "./facility-assignments.repository";
@@ -34,7 +51,10 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
     new FacilityUnitTypesRepository(fastify.db),
     facilitiesRepository,
   );
-
+  const storageUnitsService = new StorageUnitsService(
+    new StorageUnitsRepository(fastify.db),
+    new FacilityAssignmentsRepository(fastify.db),
+  );
   const returnsService = new ReturnsService(new ReturnsRepository(fastify.db));
   const privateReturnResponse: onRequestAsyncHookHandler = async (_request, reply) => {
     reply.header("Cache-Control", "private, no-store");
@@ -60,6 +80,7 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
       );
     },
   );
+
   typedApp.get(
     "/:facilityId/return-calendar",
     {
@@ -74,6 +95,7 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
       );
     },
   );
+
   typedApp.put(
     "/:facilityId/return-calendar",
     {
@@ -93,6 +115,84 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
+  typedApp.get(
+    "/management",
+    {
+      schema: {
+        tags: ["Facilities"],
+        security: [{ sessionAuth: [] }],
+        summary: FACILITY_MESSAGES.managementSummary,
+        querystring: facilityManagementQuerySchema,
+      },
+      preHandler: [requireRole("SYSTEM_ADMIN", "BUSINESS_OPERATION_MANAGER")],
+    },
+    async (request, reply) => {
+      if (!request.user) throw new UnauthorizedError();
+      const scope = getFacilityAccessScope(request.user);
+      const facilities = await service.listFacilities(
+        request.query.limit,
+        request.query.offset,
+        request.query.isActive,
+        scope,
+      );
+      return reply.send(successResponse(facilities.map(toApiFacility)));
+    },
+  );
+
+  typedApp.get(
+    "/:facilityId",
+    {
+      schema: {
+        tags: ["Facilities"],
+        security: [{ sessionAuth: [] }],
+        summary: FACILITY_MESSAGES.detailSummary,
+        params: facilityIdNestedParamSchema,
+      },
+      preHandler: [
+        requireAuth,
+        requireRole(
+          "FACILITY_MANAGER",
+          "FACILITY_STAFF",
+          "SYSTEM_ADMIN",
+          "BUSINESS_OPERATION_MANAGER",
+        ),
+      ],
+    },
+    async (request, reply) => {
+      if (!request.user) throw new UnauthorizedError();
+      const facility = await service.getFacilityById(
+        request.params.facilityId,
+        getFacilityAccessScope(request.user),
+      );
+      return reply.send(successResponse(toApiFacility(facility)));
+    },
+  );
+
+  typedApp.patch(
+    "/:facilityId",
+    {
+      schema: {
+        tags: ["Facilities"],
+        security: [{ sessionAuth: [] }],
+        summary: FACILITY_MESSAGES.updateSummary,
+        params: updateFacilityIdParamSchema,
+        body: updateFacilityBodySchema,
+      },
+      preHandler: [requireRole("SYSTEM_ADMIN", "BUSINESS_OPERATION_MANAGER")],
+    },
+    async (request, reply) => {
+      if (!request.user) throw new UnauthorizedError();
+      const facility = await service.updateFacility(
+        request.params.facilityId,
+        request.body,
+        getFacilityAccessScope(request.user),
+      );
+      return reply.send(
+        successResponse(toApiFacility(facility), FACILITY_MESSAGES.facilityMetadataUpdated),
+      );
+    },
+  );
+
   typedApp.get("/my-assignments", { preHandler: [requireAuth] }, async (request, reply) => {
     if (!request.user) throw new UnauthorizedError();
     return reply.send(
@@ -107,6 +207,9 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
     "/:facilityId/staff",
     {
       schema: {
+        tags: ["Facilities"],
+        security: [{ sessionAuth: [] }],
+        summary: FACILITY_MESSAGES.assignmentsSummary,
         params: facilityIdNestedParamSchema,
       },
       preHandler: [
@@ -122,18 +225,153 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
+  typedApp.get(
+    "/:facilityId/assignments",
+    {
+      schema: {
+        params: facilityIdNestedParamSchema,
+        querystring: facilityAssignmentListQuerySchema,
+      },
+      preHandler: [requireRole("SYSTEM_ADMIN", "BUSINESS_OPERATION_MANAGER")],
+    },
+    async (request, reply) => {
+      if (!request.user) throw new UnauthorizedError();
+      const assignments = await assignmentsService.listFacilityAssignments(
+        request.params.facilityId,
+        request.query.limit,
+        request.query.offset,
+        getFacilityAccessScope(request.user),
+      );
+      return reply.send(successResponse(assignments.map(toApiAssignment)));
+    },
+  );
+
+  typedApp.post(
+    "/:facilityId/assignments",
+    {
+      schema: {
+        tags: ["Facilities"],
+        security: [{ sessionAuth: [] }],
+        summary: FACILITY_MESSAGES.assignmentsSummary,
+        params: facilityIdNestedParamSchema,
+        body: createAssignmentBodySchema,
+      },
+      preHandler: [requireRole("SYSTEM_ADMIN", "BUSINESS_OPERATION_MANAGER")],
+    },
+    async (request, reply) => {
+      const assignment = await assignmentsService.assignUser(
+        request.params.facilityId,
+        request.body.userId,
+        request.body.role,
+      );
+      return reply
+        .status(201)
+        .send(successResponse(toApiAssignment(assignment), FACILITY_MESSAGES.assignmentCreated));
+    },
+  );
+
+  typedApp.delete(
+    "/:facilityId/assignments/:userId",
+    {
+      schema: {
+        tags: ["Facilities"],
+        security: [{ sessionAuth: [] }],
+        summary: FACILITY_MESSAGES.assignmentsSummary,
+        params: facilityAssignmentParamSchema,
+      },
+      preHandler: [requireRole("SYSTEM_ADMIN", "BUSINESS_OPERATION_MANAGER")],
+    },
+    async (request, reply) => {
+      const assignment = await assignmentsService.revokeAssignment(
+        request.params.facilityId,
+        request.params.userId,
+      );
+      return reply.send(
+        successResponse(toApiAssignment(assignment), FACILITY_MESSAGES.assignmentRevoked),
+      );
+    },
+  );
+
   // POST /api/facilities - Create new facility (Admin & BOM)
   typedApp.post(
     "/",
     {
       schema: {
+        tags: ["Facilities"],
+        security: [{ sessionAuth: [] }],
+        summary: FACILITY_MESSAGES.managementSummary,
         body: createFacilityBodySchema,
       },
       preHandler: [requireRole("SYSTEM_ADMIN", "BUSINESS_OPERATION_MANAGER")],
     },
     async (request, reply) => {
       const facility = await service.createFacility(request.body);
-      return reply.status(201).send(successResponse(facility));
+      return reply
+        .status(201)
+        .send(successResponse(toApiFacility(facility), FACILITY_MESSAGES.facilityCreated));
+    },
+  );
+
+  typedApp.get(
+    "/:facilityId/unit-types/management",
+    {
+      schema: {
+        tags: ["Facilities"],
+        security: [{ sessionAuth: [] }],
+        summary: FACILITY_MESSAGES.facilityUnitTypesSummary,
+        params: facilityIdNestedParamSchema,
+        querystring: facilityManagementQuerySchema,
+      },
+      preHandler: [requireRole("SYSTEM_ADMIN", "BUSINESS_OPERATION_MANAGER")],
+    },
+    async (request, reply) => {
+      const items = await unitTypesService.listManagement(request.params.facilityId, request.query);
+      return reply.send(successResponse(items));
+    },
+  );
+
+  typedApp.patch(
+    "/:facilityId/unit-types/:unitTypeId",
+    {
+      schema: {
+        tags: ["Facilities"],
+        security: [{ sessionAuth: [] }],
+        summary: FACILITY_MESSAGES.facilityUnitTypeUpdateSummary,
+        params: facilityUnitTypeParamsSchema,
+        body: SetFacilityUnitTypeSchema,
+      },
+      preHandler: [requireRole("SYSTEM_ADMIN", "BUSINESS_OPERATION_MANAGER")],
+    },
+    async (request, reply) => {
+      const offering = await unitTypesService.setManagementAvailability(
+        request.params.facilityId,
+        request.params.unitTypeId,
+        request.body,
+      );
+      return reply.send(successResponse(offering));
+    },
+  );
+
+  typedApp.post(
+    "/:facilityId/storage-units",
+    {
+      schema: {
+        tags: ["Storage Units"],
+        security: [{ sessionAuth: [] }],
+        summary: STORAGE_UNIT_MESSAGES.createSummary,
+        params: facilityStorageUnitParamsSchema,
+        body: CreateStorageUnitSchema,
+      },
+      preHandler: [requireAuth, requireRole("FACILITY_MANAGER")],
+    },
+    async (request, reply) => {
+      if (!request.user) throw new UnauthorizedError();
+      const unit = await storageUnitsService.createUnit(
+        request.params.facilityId,
+        request.body,
+        request.user,
+      );
+      return reply.status(201).send(successResponse(unit, STORAGE_UNIT_MESSAGES.unitCreated));
     },
   );
 
@@ -169,3 +407,39 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 };
+
+function toApiFacility(facility: Facility): ApiFacility {
+  return {
+    id: facility.id,
+    code: facility.code,
+    name: facility.name,
+    address: facility.address,
+    description: facility.description,
+    isActive: facility.isActive,
+    createdAt: facility.createdAt.toISOString(),
+    updatedAt: facility.updatedAt.toISOString(),
+  };
+}
+
+function toApiAssignment(
+  assignment: FacilityAssignment & {
+    userName?: string;
+    userEmail?: string;
+    facilityName?: string;
+    facilityCode?: string;
+  },
+): ApiFacilityAssignment {
+  return {
+    id: assignment.id,
+    userId: assignment.userId,
+    facilityId: assignment.facilityId,
+    assignedAt: assignment.assignedAt.toISOString(),
+    endedAt: assignment.endedAt?.toISOString() ?? null,
+    isActive: assignment.isActive,
+    role: assignment.role as ApiFacilityAssignment["role"],
+    ...(assignment.userName ? { userName: assignment.userName } : {}),
+    ...(assignment.userEmail ? { userEmail: assignment.userEmail } : {}),
+    ...(assignment.facilityName ? { facilityName: assignment.facilityName } : {}),
+    ...(assignment.facilityCode ? { facilityCode: assignment.facilityCode } : {}),
+  };
+}

@@ -3,12 +3,14 @@ import { UserRole } from "@metastorage/contracts";
 import {
   ChevronRight,
   ClipboardCheck,
+  ClipboardList,
   DoorOpen,
   History,
   LayoutGrid,
   LogOut,
   Menu,
   User,
+  UsersRound,
   Warehouse,
   X,
 } from "lucide-react";
@@ -16,8 +18,10 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { type ReactNode, Suspense, useState } from "react";
 import { isMockMode } from "@/config/api-mode";
+import { facilityManagerRoutes, facilityStaffRoutes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { useMyFacilityAssignments } from "@/features/check-in/hooks";
+import { F5 } from "@/features/facility-management/management.messages";
 import { LifecycleInbox } from "@/features/returns/lifecycle-inbox";
 import { RETURNS_MESSAGES as RETURNS } from "@/features/returns/returns.messages";
 import { cn } from "@/lib/cn";
@@ -49,6 +53,17 @@ function FacilityShellContent({
       icon: ClipboardCheck,
     },
     { label: RETURNS.managerNav, href: `${root}/returns`, icon: History },
+    {
+      label: F5.tasks,
+      href: isManager ? facilityManagerRoutes.tasks : facilityStaffRoutes.tasks,
+      icon: ClipboardList,
+    },
+    ...(isManager
+      ? [{ label: F5.inventory, href: facilityManagerRoutes.storageUnits, icon: DoorOpen }]
+      : []),
+    ...(isManager
+      ? [{ label: F5.staffDirectory, href: facilityManagerRoutes.staff, icon: UsersRound }]
+      : []),
     ...(!isManager
       ? [{ label: FLOW.inspection, href: `${root}/check-in`, icon: ClipboardCheck }]
       : []),
@@ -112,10 +127,7 @@ function FacilityShellContent({
             <p className="px-2 pb-1 pt-4 text-[11px] font-bold uppercase tracking-wider text-[#bfc9c4]">
               {FLOW.extension}
             </p>
-            {[
-              { label: FLOW.units, icon: DoorOpen },
-              { label: FLOW.history, icon: History },
-            ].map(({ label, icon: Icon }) => (
+            {[{ label: FLOW.history, icon: History }].map(({ label, icon: Icon }) => (
               <div key={label} className="flex items-center gap-2 rounded px-2 py-2 text-[#bfc9c4]">
                 <Icon size={20} />
                 <div>
@@ -169,17 +181,23 @@ function FacilityShellContent({
             <span className="hidden text-xs text-[#404945] sm:inline">{FLOW.operations}</span>
             <ChevronRight size={14} />
             <span className="truncate text-xs font-medium">
-              {pathname.endsWith("/dashboard")
-                ? overview
-                  ? FLOW.overview
-                  : isManager
-                    ? FLOW.managerDispatch
-                    : FLOW.staffTasks
-                : pathname.startsWith(`${root}/returns`)
-                  ? RETURNS.facilityReturnsCrumb
-                  : isManager
-                    ? FLOW.monitor
-                    : FLOW.inspection}
+              {pathname.endsWith("/storage-units")
+                ? F5.inventory
+                : pathname.endsWith("/staff")
+                  ? F5.staffDirectory
+                  : pathname.endsWith("/tasks")
+                    ? F5.tasks
+                    : pathname.endsWith("/dashboard")
+                      ? overview
+                        ? FLOW.overview
+                        : isManager
+                          ? FLOW.managerDispatch
+                          : FLOW.staffTasks
+                      : pathname.startsWith(`${root}/returns`)
+                        ? RETURNS.facilityReturnsCrumb
+                        : isManager
+                          ? FLOW.monitor
+                          : FLOW.inspection}
             </span>
           </div>
           <div className="flex items-center gap-3">

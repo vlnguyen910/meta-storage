@@ -1,6 +1,7 @@
 export const businessOperationsRoutes = {
   dashboard: "/operations/dashboard",
   facilities: "/operations/facilities",
+  facilityManagement: "/operations/facility-management",
   pricing: "/operations/pricing",
   fees: "/operations/fees",
   rules: "/operations/business-rules",

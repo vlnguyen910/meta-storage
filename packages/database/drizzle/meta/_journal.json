@@ -330,6 +330,13 @@
       "when": 1792749979392,
       "tag": "0046_next_shockwave",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1792775658787,
+      "tag": "0047_handy_franklin_storm",
+      "breakpoints": true
     }
   ]
 }

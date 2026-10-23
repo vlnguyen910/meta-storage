@@ -1,6 +1,6 @@
 import type { FacilityStaffMember } from "@metastorage/contracts";
 import type { FacilityAssignment, Role } from "@metastorage/database";
-import { ForbiddenError, NotFoundError } from "../../common/errors/app-error";
+import { ConflictError, ForbiddenError, NotFoundError } from "../../common/errors/app-error";
 import type { FacilityScope } from "./facilities.access";
 import { FACILITY_MESSAGES } from "./facilities.messages";
 import type { FacilitiesRepository } from "./facilities.repository";
@@ -17,17 +17,38 @@ export class FacilityAssignmentsService {
   }
 
   async revokeAssignment(facilityId: string, userId: string): Promise<FacilityAssignment> {
-    const existing = await this.assignmentsRepository.findAssignment(facilityId, userId);
-    if (!existing) {
-      throw new NotFoundError(FACILITY_MESSAGES.staffAssignmentNotFound);
+    const result = await this.assignmentsRepository.deactivateAssignmentWithWorkCheck(
+      facilityId,
+      userId,
+    );
+    if ("error" in result) {
+      if (result.error === "ASSIGNMENT_NOT_FOUND")
+        throw new NotFoundError(FACILITY_MESSAGES.staffAssignmentNotFound);
+      throw new ConflictError(FACILITY_MESSAGES.openWorkPreventsRevocation);
+    }
+    return result.assignment;
+  }
+
+  async assignUser(facilityId: string, userId: string, role: Role): Promise<FacilityAssignment> {
+    const facility = await this.facilitiesRepository.findById(facilityId);
+    if (!facility) throw new NotFoundError(FACILITY_MESSAGES.facilityNotFound(facilityId));
+
+    const user = await this.assignmentsRepository.findAssignmentTarget(userId);
+    if (!user) throw new NotFoundError(FACILITY_MESSAGES.userNotFound(userId));
+    if (user.status !== "ACTIVE")
+      throw new ForbiddenError(FACILITY_MESSAGES.inactiveUserAssignment);
+    if (user.role !== role) throw new ForbiddenError(FACILITY_MESSAGES.assignmentRoleMismatch);
+    if (role !== "FACILITY_STAFF" && role !== "FACILITY_MANAGER") {
+      throw new ForbiddenError(FACILITY_MESSAGES.assignmentRoleMismatch);
     }
 
-    const deactivated = await this.assignmentsRepository.deactivateAssignment(facilityId, userId);
-    if (!deactivated) {
-      throw new NotFoundError(FACILITY_MESSAGES.staffAssignmentNotFound);
-    }
-
-    return deactivated;
+    return this.assignmentsRepository.upsertAssignment({
+      facilityId,
+      userId,
+      role,
+      isActive: true,
+      endedAt: null,
+    });
   }
 
   async listFacilityAssignments(

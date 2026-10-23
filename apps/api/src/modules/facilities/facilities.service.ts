@@ -111,6 +111,14 @@ export class FacilitiesService {
       }
     }
 
+    if (
+      existing.isActive &&
+      input.isActive === false &&
+      (await this.facilitiesRepository.hasOpenOperations(id))
+    ) {
+      throw new ConflictError(FACILITY_MESSAGES.facilityHasOpenBookings);
+    }
+
     const updated = await this.facilitiesRepository.updateAccessible(id, input, scope);
     if (!updated) {
       if (scope.kind === "assigned")

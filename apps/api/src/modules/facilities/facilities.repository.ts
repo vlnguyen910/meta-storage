@@ -1,13 +1,18 @@
 import {
   and,
   asc,
+  bookings,
+  capacityAllocations,
   type Database,
   desc,
   eq,
   type Facility,
   facilities,
   facilityOperatingHours,
+  gt,
+  inArray,
   type NewFacility,
+  or,
 } from "@metastorage/database";
 import type { FacilityListScope, FacilityScope } from "./facilities.access";
 import { FACILITY_MESSAGES } from "./facilities.messages";
@@ -116,5 +121,36 @@ export class FacilitiesRepository {
       )
       .returning();
     return updated;
+  }
+
+  async hasOpenOperations(id: string): Promise<boolean> {
+    const now = new Date();
+    const [booking] = await this.db
+      .select({ id: bookings.id })
+      .from(bookings)
+      .where(
+        and(
+          eq(bookings.facilityId, id),
+          inArray(bookings.status, ["DRAFT", "CONFIRMED", "CHECKED_IN"]),
+        ),
+      )
+      .limit(1);
+    if (booking) return true;
+
+    const [allocation] = await this.db
+      .select({ id: capacityAllocations.id })
+      .from(capacityAllocations)
+      .where(
+        and(
+          eq(capacityAllocations.facilityId, id),
+          eq(capacityAllocations.status, "ACTIVE"),
+          or(
+            eq(capacityAllocations.kind, "BOOKING"),
+            and(eq(capacityAllocations.kind, "HOLD"), gt(capacityAllocations.expiresAt, now)),
+          ),
+        ),
+      )
+      .limit(1);
+    return Boolean(allocation);
   }
 }
