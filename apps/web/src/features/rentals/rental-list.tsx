@@ -1,6 +1,14 @@
 "use client";
 
-import { Box, Building2, CalendarDays, ChevronRight, History, MapPin, Warehouse } from "lucide-react";
+import {
+  Box,
+  Building2,
+  CalendarDays,
+  ChevronRight,
+  History,
+  MapPin,
+  Warehouse,
+} from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { Card, PageHeader, StatusBadge } from "@/components/ui/display";
@@ -116,7 +124,10 @@ export function RentalList() {
                 <div className="flex items-center justify-between gap-3 border-t border-slate-100 pt-3 md:border-t-0 md:pt-0">
                   <StatusBadge value={rental.status} />
                   <div className="grid size-9 place-items-center rounded-full bg-slate-50 text-slate-400 transition-all group-hover:bg-primary group-hover:text-white">
-                    <ChevronRight size={18} className="transition-transform group-hover:translate-x-0.5" />
+                    <ChevronRight
+                      size={18}
+                      className="transition-transform group-hover:translate-x-0.5"
+                    />
                   </div>
                 </div>
               </div>

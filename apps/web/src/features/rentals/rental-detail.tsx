@@ -26,12 +26,7 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
   const query = useRental(rentalId);
   if (query.isLoading) return <LoadingState variant="detail" />;
   if (query.isError || !query.data) {
-    return (
-      <ErrorState
-        message={M.notFoundOrForbidden}
-        onRetry={() => query.refetch()}
-      />
-    );
+    return <ErrorState message={M.notFoundOrForbidden} onRetry={() => query.refetch()} />;
   }
   const rental = query.data;
   return (
@@ -80,7 +75,9 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
                   <span className="block text-[11px] font-semibold tracking-wider text-muted uppercase">
                     {M.startDate}
                   </span>
-                  <strong className="text-sm font-bold text-ink">{formatDate(rental.startAt)}</strong>
+                  <strong className="text-sm font-bold text-ink">
+                    {formatDate(rental.startAt)}
+                  </strong>
                 </div>
               </div>
 
