@@ -104,7 +104,20 @@ export function useBookingTracking() {
       window.history.replaceState(null, "", window.location.pathname);
     },
   });
+  async function startLookup() {
+    setBookingCode(null);
+    setExpiresAt(null);
+    setMessage(null);
+    setLookup(true);
+    setInitializing(false);
+    exchange.reset();
+    revoke.reset();
+    window.history.replaceState(null, "", window.location.pathname);
+    await client.cancelQueries({ queryKey: queryRoot });
+    client.removeQueries({ queryKey: queryRoot });
+  }
   return {
+    startLookup,
     expire,
     booking: query.isError || message ? undefined : query.data,
     lookup,

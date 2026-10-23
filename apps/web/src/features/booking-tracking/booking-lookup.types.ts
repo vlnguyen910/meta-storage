@@ -10,3 +10,8 @@ export type BookingLookupFormValues = {
   bookingCode: string;
   email: string;
 };
+
+export interface GuestAccessAttempt {
+  identity: string;
+  idempotencyKey: string;
+}

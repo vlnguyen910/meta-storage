@@ -16,6 +16,8 @@ export const bookingLookupMessages = {
   success: "Nếu thông tin khớp, hướng dẫn truy cập sẽ được gửi đến email bạn đã nhập.",
   mockSuccess: "Yêu cầu đã được ghi nhận trong chế độ demo. Môi trường demo không gửi email thật.",
   failure: "Chưa thể gửi yêu cầu tra cứu lúc này. Vui lòng thử lại.",
+  rateLimited:
+    "Bạn đã gửi quá nhiều yêu cầu. Vui lòng đợi một lúc rồi thử lại; thông tin đã nhập vẫn được giữ.",
   tryAgain: "Gửi yêu cầu khác",
   home: "Về trang chủ",
   lookupAgain: "Tra cứu lại bằng mã đặt kho",
