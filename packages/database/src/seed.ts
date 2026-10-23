@@ -1,15 +1,15 @@
 import { createHash, createHmac } from "node:crypto";
 import { SYSTEM_SETTING_DEFINITIONS } from "@metastorage/contracts/system-settings";
 import { hashPassword } from "better-auth/crypto";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, notExists } from "drizzle-orm";
 import { db, queryClient } from "./client";
-import { SEED_DEMO_USERS, SEED_IDS, SEED_USERS } from "./demo-fixtures";
 import { loadApiEnv } from "./env";
 import {
   accounts,
   bookings,
   capacityAllocations,
   checkInSlots,
+  checkInVerifications,
   facilities,
   facilityAssignments,
   facilityOperatingHours,
@@ -26,12 +26,131 @@ import {
   users,
 } from "./schema";
 
+// Stable local fixtures only. Keep IDs unchanged when adding or reordering seed data.
+export const SEED_IDS = {
+  demoCheckInSlot: "20000000-0000-4000-8000-000000000005",
+  demoCheckInBooking: "83000000-0000-4000-8000-000000000002",
+  facilities: {
+    "HCM-01": "30000000-0000-4000-8000-000000000001",
+    "HCM-02": "30000000-0000-4000-8000-000000000002",
+    "HCM-03": "30000000-0000-4000-8000-000000000003",
+    "HCM-04": "30000000-0000-4000-8000-000000000004",
+    "HCM-05": "30000000-0000-4000-8000-000000000005",
+    "HCM-06": "30000000-0000-4000-8000-000000000006",
+    "HCM-07": "30000000-0000-4000-8000-000000000007",
+    "HCM-08": "30000000-0000-4000-8000-000000000008",
+    "HCM-09": "30000000-0000-4000-8000-000000000009",
+    "HCM-10": "30000000-0000-4000-8000-000000000010",
+  },
+  unitTypes: {
+    "UT-2M": "60000000-0000-4000-8000-000000000001",
+    "UT-4M": "60000000-0000-4000-8000-000000000002",
+    "UT-6M": "60000000-0000-4000-8000-000000000003",
+    "UT-AC-4M": "60000000-0000-4000-8000-000000000004",
+    "UT-1M": "60000000-0000-4000-8000-000000000005",
+    "UT-8M": "60000000-0000-4000-8000-000000000006",
+    "UT-10M": "60000000-0000-4000-8000-000000000007",
+    "UT-15M": "60000000-0000-4000-8000-000000000008",
+  },
+  checkInSlots: [
+    "20000000-0000-4000-8000-000000000001",
+    "20000000-0000-4000-8000-000000000002",
+    "20000000-0000-4000-8000-000000000003",
+    "20000000-0000-4000-8000-000000000004",
+  ],
+  storageUnits: {
+    "HCM-01-001": "70000000-0000-4000-8000-000000000001",
+    "HCM-01-002": "70000000-0000-4000-8000-000000000002",
+    "HCM-01-003": "70000000-0000-4000-8000-000000000003",
+    "HCM-01-004": "70000000-0000-4000-8000-000000000004",
+    "HCM-01-005": "70000000-0000-4000-8000-000000000005",
+    "HCM-01-006": "70000000-0000-4000-8000-000000000006",
+    "HCM-01-007": "70000000-0000-4000-8000-000000000007",
+    "HCM-01-008": "70000000-0000-4000-8000-000000000008",
+  },
+  bookings: {
+    "BK-2026-0001": "80000000-0000-4000-8000-000000000001",
+    "BK-2026-0002": "80000000-0000-4000-8000-000000000002",
+    "BK-2026-0003": "80000000-0000-4000-8000-000000000003",
+  },
+} as const;
+
+export const SEED_USERS = [
+  {
+    id: "40000000-0000-4000-8000-000000000001",
+    role: "CUSTOMER",
+    email: "customer@metastorage.vn",
+    name: "Lê Thị Mai Linh",
+    phone: "0900000001",
+  },
+  {
+    id: "40000000-0000-4000-8000-000000000002",
+    role: "FACILITY_STAFF",
+    email: "staff@metastorage.vn",
+    name: "Trần Quốc Huy",
+    phone: "0900000002",
+  },
+  {
+    id: "40000000-0000-4000-8000-000000000003",
+    role: "FACILITY_MANAGER",
+    email: "manager@metastorage.vn",
+    name: "Lê Thu Hà",
+    phone: "0900000003",
+  },
+  {
+    id: "40000000-0000-4000-8000-000000000004",
+    role: "BUSINESS_OPERATION_MANAGER",
+    email: "bom@metastorage.vn",
+    name: "Business Operation Manager",
+    phone: "0900000004",
+  },
+  {
+    id: "40000000-0000-4000-8000-000000000005",
+    role: "SYSTEM_ADMIN",
+    email: "admin@metastorage.vn",
+    name: "Quản trị viên demo",
+    phone: "0900000005",
+  },
+] as const;
+
+export const SEED_DEMO_USERS = [
+  ...Array.from({ length: 6 }, (_, index) => ({
+    id: `40000000-0000-4000-8000-${String(101 + index).padStart(12, "0")}`,
+    role: "CUSTOMER" as const,
+    email: `customer${index + 1}@metastorage.test`,
+    name:
+      [
+        "Nguyễn Minh An",
+        "Trần Ngọc Anh",
+        "Lê Hoàng Nam",
+        "Phạm Thảo Vy",
+        "Võ Thanh Tâm",
+        "Đặng Hải Yến",
+      ][index] ?? "Khách demo",
+    phone: `090100000${index + 1}`,
+  })),
+  ...Array.from({ length: 9 }, (_, index) => ({
+    id: `40000000-0000-4000-8000-${String(202 + index).padStart(12, "0")}`,
+    role: "FACILITY_MANAGER" as const,
+    email: `manager.hcm${String(index + 2).padStart(2, "0")}@metastorage.test`,
+    name: `Quản lý demo HCM-${String(index + 2).padStart(2, "0")}`,
+    phone: `09020000${String(index + 2).padStart(2, "0")}`,
+  })),
+  ...Array.from({ length: 9 }, (_, index) => ({
+    id: `40000000-0000-4000-8000-${String(302 + index).padStart(12, "0")}`,
+    role: "FACILITY_STAFF" as const,
+    email: `staff.hcm${String(index + 2).padStart(2, "0")}@metastorage.test`,
+    name: `Nhân viên demo HCM-${String(index + 2).padStart(2, "0")}`,
+    phone: `09030000${String(index + 2).padStart(2, "0")}`,
+  })),
+];
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
 const FLOW2_STAFF_ID = "40000000-0000-4000-8000-000000000006";
 const FLOW2_STAFF_EMAIL = "staff@metastorage.test";
 const FLOW2_STAFF_PASSWORD = "12345678";
-const DEV_AUTH_PASSWORD = "12345678";
+export const DEV_AUTH_PASSWORD = "12345678";
 const FLOW3_IDS = {
   bookings: [
     "84000000-0000-4000-8000-000000000001",
@@ -104,6 +223,157 @@ function getSeedNow() {
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
 const id = (prefix: string, ordinal: number) =>
   `${prefix}-0000-4000-8000-${String(ordinal).padStart(12, "0")}`;
+
+export async function seedImmediateCheckInSlot(seedNow = getSeedNow()) {
+  const nodeEnv = process.env.NODE_ENV ?? loadApiEnv().NODE_ENV;
+  if (nodeEnv?.trim().toLowerCase() === "production")
+    throw new Error("Local demo seeding is disabled in production");
+  const local = new Date(seedNow.getTime() + 7 * HOUR_MS).toISOString();
+  const date = local.slice(0, 10);
+  const startTime = `${local.slice(11, 16)}:00`;
+  const start = new Date(`${date}T${startTime}+07:00`);
+  const end = new Date(start.getTime() + 30 * DAY_MS);
+  await db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select()
+      .from(bookings)
+      .where(eq(bookings.id, SEED_IDS.demoCheckInBooking))
+      .for("update");
+    if (existing) {
+      const [rental] = await tx
+        .select({ id: rentals.id })
+        .from(rentals)
+        .where(eq(rentals.bookingId, existing.id));
+      const [verification] = await tx
+        .select({ id: checkInVerifications.id })
+        .from(checkInVerifications)
+        .where(eq(checkInVerifications.bookingId, existing.id));
+      if (existing.status !== "CONFIRMED" || rental || verification) {
+        console.log("DEMO-CHECKIN-NOW already progressed; keeping its booking and slot unchanged.");
+        return;
+      }
+    }
+    await tx
+      .insert(checkInSlots)
+      .values({
+        id: SEED_IDS.demoCheckInSlot,
+        name: "Demo check-in ngay",
+        startTime,
+        endTime: "23:59:59.999999",
+      })
+      .onConflictDoUpdate({ target: checkInSlots.id, set: { startTime } });
+    if (!existing) {
+      const [source] = await tx
+        .select()
+        .from(bookings)
+        .where(eq(bookings.id, SEED_IDS.bookings["BK-2026-0001"]));
+      if (!source) throw new Error("Run db:seed before preparing the immediate check-in demo");
+      const [unit] = await tx
+        .select()
+        .from(storageUnits)
+        .where(
+          and(
+            eq(storageUnits.facilityId, source.facilityId),
+            eq(storageUnits.unitTypeId, source.unitTypeId),
+            eq(storageUnits.status, "AVAILABLE"),
+            notExists(
+              tx
+                .select({ id: unitAssignments.id })
+                .from(unitAssignments)
+                .where(
+                  and(
+                    eq(unitAssignments.physicalUnitId, storageUnits.id),
+                    eq(unitAssignments.status, "ACTIVE"),
+                  ),
+                ),
+            ),
+          ),
+        )
+        .orderBy(storageUnits.code)
+        .limit(1)
+        .for("update", { skipLocked: true });
+      if (!unit) throw new Error("No available demo unit; existing bookings were preserved");
+      const bookingId = SEED_IDS.demoCheckInBooking;
+      const tokenHash = hash(hash(`local-seed:${bookingId}`));
+      await tx.insert(bookings).values({
+        ...source,
+        id: bookingId,
+        bookingCode: "DEMO-CHECKIN-NOW",
+        checkInDate: date,
+        checkInSlotId: SEED_IDS.demoCheckInSlot,
+        rentalEndAt: end,
+        status: "CONFIRMED",
+        assignedStaffId: SEED_USERS[1].id,
+        accessTokenHash: tokenHash,
+        qrTokenHash: hash(
+          createHmac(
+            "sha256",
+            process.env.QR_TOKEN_SECRET ?? loadApiEnv().QR_TOKEN_SECRET ?? "storex-dev-qr-secret",
+          )
+            .update(bookingId)
+            .digest("hex"),
+        ),
+        createdAt: seedNow,
+        updatedAt: seedNow,
+      });
+      await tx.insert(payments).values({
+        id: id("13000000", 2),
+        bookingId,
+        holdTokenHash: tokenHash,
+        provider: "MOCK",
+        providerPaymentId: `local-seed:${bookingId}`,
+        idempotencyKey: `local-seed:${bookingId}`,
+        paymentCode: "DEMO-CHECKIN-NOW-PAID",
+        totalAmount: source.totalAmount,
+        currency: "VND",
+        status: "SUCCEEDED",
+        paidAt: seedNow,
+      });
+      await tx.insert(unitAssignments).values({
+        id: id("b4000000", 2),
+        bookingId,
+        physicalUnitId: unit.id,
+        assignedBy: SEED_USERS[2].id,
+        status: "ACTIVE",
+        reason: "Local demo: immediate check-in",
+      });
+      await tx.update(storageUnits).set({ status: "RESERVED" }).where(eq(storageUnits.id, unit.id));
+      await tx.insert(capacityAllocations).values({
+        id: id("a4000000", 2),
+        facilityId: source.facilityId,
+        unitTypeId: source.unitTypeId,
+        referenceId: bookingId,
+        kind: "BOOKING",
+        status: "ACTIVE",
+        startsAt: start,
+        endsAt: end,
+      });
+    } else {
+      await tx
+        .update(bookings)
+        .set({
+          checkInDate: date,
+          checkInSlotId: SEED_IDS.demoCheckInSlot,
+          rentalEndAt: end,
+          updatedAt: seedNow,
+        })
+        .where(eq(bookings.id, existing.id));
+      await tx
+        .update(capacityAllocations)
+        .set({ startsAt: start, endsAt: end, updatedAt: seedNow })
+        .where(
+          and(
+            eq(capacityAllocations.referenceId, existing.id),
+            eq(capacityAllocations.kind, "BOOKING"),
+            eq(capacityAllocations.status, "ACTIVE"),
+          ),
+        );
+    }
+    console.log(
+      `Immediate check-in: DEMO-CHECKIN-NOW, ${date} ${startTime} +07:00; staff ${SEED_USERS[1].email}`,
+    );
+  });
+}
 
 // Fictional local fixtures only. No provider checkout, webhook or email is sent.
 async function seedDemoData(seedNow: Date) {
@@ -1497,11 +1767,13 @@ async function seed() {
   await seedFlow3Rentals(seedNow);
   await seedPolicies(seedNow);
   await seedAuthAccounts(seedNow);
+  await seedImmediateCheckInSlot(seedNow);
   console.log("✅ Seeding completed successfully!");
   await queryClient.end();
 }
 
-if (import.meta.main) {
+// API bundles import fixture metadata; only the seed script may execute this entry point.
+if (import.meta.main && process.argv[1]?.endsWith("/seed.ts")) {
   seed().catch(async (err) => {
     console.error("❌ Seeding failed:", err);
     await queryClient.end();

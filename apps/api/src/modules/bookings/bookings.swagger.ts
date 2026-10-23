@@ -9,7 +9,7 @@ import {
   EligibleUnitSchema,
   PhysicalUnitAssignmentSchema,
 } from "@metastorage/contracts";
-import { SEED_IDS, SEED_USERS } from "@metastorage/database/demo-fixtures";
+import { SEED_IDS, SEED_USERS } from "@metastorage/database/seed";
 import type { FastifySchema } from "fastify";
 import { createJsonSchemaTransform } from "fastify-type-provider-zod";
 import { z } from "zod";
