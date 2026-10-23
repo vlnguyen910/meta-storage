@@ -90,6 +90,7 @@ export class CheckInsService {
   constructor(
     private readonly repository: CheckInsRepository,
     private readonly clock: () => Date = () => new Date(),
+    private readonly allowEarlyCheckIn = false,
   ) {}
 
   async getFacilityIdForLookup(input: CheckInLookupInput): Promise<string> {
@@ -119,6 +120,7 @@ export class CheckInsService {
         verification: record.verification,
       },
       now,
+      this.allowEarlyCheckIn,
     );
 
     if (evaluation.shouldMarkNoShow) {
@@ -137,6 +139,7 @@ export class CheckInsService {
               verification: candidate.verification,
             },
             now,
+            this.allowEarlyCheckIn,
           ),
       );
       record = await this.repository.findByBookingId(record.booking.id);
@@ -151,6 +154,7 @@ export class CheckInsService {
           verification: record.verification,
         },
         this.clock(),
+        this.allowEarlyCheckIn,
       );
     }
 
@@ -174,6 +178,7 @@ export class CheckInsService {
             verification: record.verification,
           },
           now,
+          this.allowEarlyCheckIn,
         ),
     );
     if (!result) throw new NotFoundError("Không tìm thấy booking");
@@ -188,6 +193,7 @@ export class CheckInsService {
         verification: result.record.verification,
       },
       now,
+      this.allowEarlyCheckIn,
     );
     const response = toResult(result.record, evaluation);
 

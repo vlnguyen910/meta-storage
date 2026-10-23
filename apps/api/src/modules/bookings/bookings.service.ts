@@ -169,7 +169,11 @@ export class BookingsService {
             : record
               ? "INSPECTING"
               : "WAITING_CUSTOMER";
-      return { ...booking, handoverStage };
+      return {
+        ...booking,
+        handoverStage,
+        earlyCheckInAllowed: env.NODE_ENV === "development" || env.NODE_ENV === "develop",
+      };
     });
   }
 

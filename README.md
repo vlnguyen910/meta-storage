@@ -173,6 +173,12 @@ REDIS_TEST_URL=redis://localhost:6379/15 bun run --filter api test
 
 API mặc định chạy tại port `4000`. Có thể thay đổi port trong `apps/api/.env`.
 
+Demo check-in ngay sau khi đặt booking: chạy API với `NODE_ENV=development`
+hoặc `NODE_ENV=develop`. Booking đã thanh toán (`CONFIRMED`/`SUCCEEDED`), đã gán
+kho và Staff có thể xác nhận check-in trước giờ/ngày hẹn. Không cần đổi ngày
+booking hoặc chạy seed lại. Production và test vẫn yêu cầu đến giờ hẹn.
+Hạn cuối check-in, quyền truy cập, checklist và hợp đồng bàn giao vẫn được kiểm tra.
+
 ### 4. Deploy API và Worker lên VPS bằng Docker Compose
 
 Production Compose chỉ chạy API và worker. PostgreSQL và Redis phải được cung
