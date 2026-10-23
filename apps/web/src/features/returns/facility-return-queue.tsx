@@ -83,8 +83,14 @@ export function FacilityReturnQueue({ actorRole }: FacilityReturnQueueProps) {
     if (!queue.data) return [];
     if (!search.trim()) return queue.data;
     const q = search.toLowerCase().trim();
-    return queue.data.filter(
-      (r) => r.id.toLowerCase().includes(q) || Boolean(r.reason?.toLowerCase().includes(q)),
+    return queue.data.filter((r) =>
+      [
+        r.id,
+        r.reason,
+        r.context?.booking.bookingCode,
+        r.context?.customer.name,
+        r.context?.unit.code,
+      ].some((value) => value?.toLowerCase().includes(q)),
     );
   }, [queue.data, search]);
 
@@ -301,6 +307,7 @@ function ReturnQueueRow({
   assignedStaffName,
   onOpenAssignModal,
 }: ReturnQueueRowProps) {
+  assignedStaffName = request.context?.assignedStaff?.name ?? assignedStaffName;
   const canChangeAssignment =
     actorRole === "FACILITY_MANAGER" &&
     ["PENDING", "CONFIRMED", "INSPECTING", "FAILED"].includes(request.status);
@@ -322,7 +329,7 @@ function ReturnQueueRow({
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
         <div className="flex items-center gap-2">
           <span className="rounded-lg bg-slate-100 px-2.5 py-1 font-mono text-xs font-bold tracking-wide text-slate-800">
-            #{request.id.slice(-8)}
+            {request.context?.booking.bookingCode ?? `#${request.id.slice(-8)}`}
           </span>
           <span className="text-xs text-muted">{M.requestId}</span>
         </div>
@@ -339,6 +346,15 @@ function ReturnQueueRow({
       </div>
 
       {/* Middle Content: Details */}
+      {request.context && (
+        <div className="mt-4 space-y-1 text-sm text-slate-700">
+          <strong>{request.context.customer.name ?? F3.unknownCustomer}</strong>
+          <p>
+            {request.context.unit.code} · {request.context.unit.unitTypeName} ·{" "}
+            {request.context.unit.sizeLabel}
+          </p>
+        </div>
+      )}
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         {/* Schedule */}
         <div className="flex items-start gap-3">

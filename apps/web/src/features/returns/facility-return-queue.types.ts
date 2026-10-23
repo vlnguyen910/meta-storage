@@ -1,11 +1,11 @@
-import type { ReturnRequestDto } from "@metastorage/contracts";
+import type { ReturnQueueItemDto, ReturnRequestDto } from "@metastorage/contracts";
 
 export interface FacilityReturnQueueProps {
   actorRole: "FACILITY_MANAGER" | "FACILITY_STAFF";
 }
 
 export interface ReturnQueueRowProps {
-  request: ReturnRequestDto;
+  request: ReturnQueueItemDto;
   actorRole: "FACILITY_MANAGER" | "FACILITY_STAFF";
   assignedStaffName?: string | null;
   onOpenAssignModal?: (request: ReturnRequestDto) => void;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { isAxiosError } from "axios";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -37,6 +38,7 @@ import { F3 } from "./integration.messages";
 import { facilityTimeToIso } from "./integration-utils";
 import { ReturnFinancePanel } from "./return-finance-panel";
 import { ReturnInspectionWorkspace } from "./return-inspection-workspace";
+import { ReturnOperationalContext } from "./return-operational-context";
 import { ReturnPrivatePhoto } from "./return-private-photo";
 import { ReturnInspectionReview } from "./return-property-form";
 import { ReturnStaffAssignModal } from "./return-staff-assign-modal";
@@ -96,7 +98,15 @@ export function FacilityReturnDetail({ requestId, actorRole }: FacilityReturnDet
   );
 
   if (assignments.isLoading || query.isLoading) return <LoadingState variant="detail" />;
-  if (assignments.isError || query.isError || !query.data || !facility)
+  const accessLost =
+    isAxiosError(query.error) && [401, 403, 404].includes(query.error.response?.status ?? 0);
+  if (
+    assignments.isError ||
+    accessLost ||
+    (query.isError && !query.data) ||
+    !query.data ||
+    !facility
+  )
     return <ErrorState message={M.detailUnavailable} onRetry={() => void query.refetch()} />;
 
   const { request, actualReturnAt, inspections, evidence, timeChanges, audit } = query.data;
@@ -124,7 +134,9 @@ export function FacilityReturnDetail({ requestId, actorRole }: FacilityReturnDet
 
   const shortId = request.id.slice(-8).toUpperCase();
   const backHref = isStaff ? "/staff/returns" : "/facility-manager/returns";
-  const assignedStaffName = request.assignedStaffId ? staffMap.get(request.assignedStaffId) : null;
+  const assignedStaffName =
+    query.data.context?.assignedStaff?.name ??
+    (request.assignedStaffId ? staffMap.get(request.assignedStaffId) : null);
   const canChangeAssignment =
     actorRole === "FACILITY_MANAGER" &&
     ["PENDING", "CONFIRMED", "INSPECTING", "FAILED"].includes(request.status);
@@ -393,7 +405,7 @@ export function FacilityReturnDetail({ requestId, actorRole }: FacilityReturnDet
 
           <ReturnInspectionReview detail={query.data} staff={isStaff} />
           <ReturnTimeChanges detail={query.data} staff={isStaff} />
-          {!isStaff && <ReturnFinancePanel detail={query.data} manager />}
+          {!isStaff && <ReturnFinancePanel detail={query.data} manager stale={query.isError} />}
 
           {/* Card 5: Activity Log / Audit Trail */}
           <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs">
@@ -425,6 +437,9 @@ export function FacilityReturnDetail({ requestId, actorRole }: FacilityReturnDet
         {/* ==================== RIGHT COLUMN (Context Sidebar: 5 cols) ==================== */}
         <div className={`space-y-6 ${isStaff ? "row-start-1" : "lg:col-span-5"}`}>
           {/* Sidebar Card 1: Request Summary */}
+          {query.data.context && (
+            <ReturnOperationalContext context={query.data.context} timezone={request.timezone} />
+          )}
           <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
               <div className="flex items-center gap-2.5">

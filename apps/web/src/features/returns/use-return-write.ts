@@ -1,26 +1,49 @@
 "use client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { api } from "@/lib/api";
 import { returnKeys } from "./hooks";
 
-export function useReturnWrite<T>(requestId: string, operation: (input: T) => Promise<unknown>) {
+export function useReturnWrite<T, R = unknown>(
+  requestId: string,
+  operation: (input: T) => Promise<R>,
+) {
   const client = useQueryClient();
-  return useMutation({
+  const [refreshError, setRefreshError] = useState(false);
+  const requestKey = returnKeys.request(requestId);
+  async function refresh() {
+    try {
+      await Promise.all(
+        [
+          "returns",
+          "rentals",
+          "rental-payments",
+          "lifecycle-notifications",
+          "reports",
+          "operations",
+          "payments",
+          "check-ins",
+        ].map((root) => client.invalidateQueries({ queryKey: [root] })),
+      );
+      await client.fetchQuery({
+        queryKey: requestKey,
+        queryFn: () => api.returns.get(requestId),
+        staleTime: 0,
+        retry: false,
+      });
+      setRefreshError(false);
+      return true;
+    } catch {
+      setRefreshError(true);
+      return false;
+    }
+  }
+  const mutation = useMutation({
     meta: { globalLoading: true },
     mutationFn: operation,
     retry: false,
-    onSettled: async () => {
-      await Promise.all([
-        client.invalidateQueries({ queryKey: ["returns"] }),
-        client.invalidateQueries({ queryKey: ["rentals"] }),
-        client.invalidateQueries({ queryKey: ["rental-payments"] }),
-        client.invalidateQueries({ queryKey: ["lifecycle-notifications"] }),
-      ]);
-      await client.fetchQuery({
-        queryKey: returnKeys.request(requestId),
-        queryFn: () => api.returns.get(requestId),
-        staleTime: 0,
-      });
-    },
+    onMutate: () => setRefreshError(false),
+    onSettled: refresh,
   });
+  return { ...mutation, refreshError, refresh };
 }

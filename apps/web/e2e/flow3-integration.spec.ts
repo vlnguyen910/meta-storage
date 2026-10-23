@@ -1,6 +1,11 @@
 import AxeBuilder from "@axe-core/playwright";
-import type { ReturnRefundDto, ReturnSettlementDto } from "@metastorage/contracts";
+import type {
+  ReturnRefundDto,
+  ReturnRefundSummaryDto,
+  ReturnSettlementDto,
+} from "@metastorage/contracts";
 import { expect, type Page, test } from "@playwright/test";
+import { F3 } from "../src/features/returns/integration.messages";
 
 const rentalId = "85000000-0000-4000-8000-000000000003";
 const requestId = "86000000-0000-4000-8000-000000000003";
@@ -81,6 +86,23 @@ async function setup(page: Page, role: string, conflictSetting = false) {
     createdAt: now,
   };
   const detail = {
+    context:
+      role === "CUSTOMER"
+        ? null
+        : {
+            booking: { id: bookingId, bookingCode: "BK-FLOW3-TEST" },
+            customer: { id: null, name: "Guest demo", phone: "0901234567" },
+            rental: {
+              id: rentalId,
+              status: "RETURN_PENDING",
+              expectedEndAt: now,
+              depositSnapshot: "500000.00",
+            },
+            unit: { id: actorId, code: "HCM-TEST-03", unitTypeName: "Standard", sizeLabel: "4 m²" },
+            facility: { id: facilityId, name: "Demo facility" },
+            assignedStaff: { id: actorId, name: "Staff demo" },
+          },
+    refundSummary: null as ReturnRefundSummaryDto | null,
     request,
     actualReturnAt: now,
     inspections: [],
@@ -209,6 +231,7 @@ async function setup(page: Page, role: string, conflictSetting = false) {
         offset === 0
           ? Array.from({ length: 20 }, (_, i) => ({
               ...request,
+              context: detail.context,
               id: `86000000-0000-4000-8000-${String(i + 1).padStart(12, "0")}`,
             }))
           : [];
@@ -216,6 +239,7 @@ async function setup(page: Page, role: string, conflictSetting = false) {
     else if (path.endsWith("/evidence") && method === "POST") {
       detail.request.version++;
       data = { ...detail.evidence[0], purpose: req.postDataJSON().purpose };
+      detail.evidence[0] = data as (typeof detail.evidence)[number];
     } else if (path.endsWith(`/evidence/${photoId}`))
       data = {
         id: photoId,
@@ -235,21 +259,76 @@ async function setup(page: Page, role: string, conflictSetting = false) {
         createdAt: now,
       });
       data = { id: timeId, status: "PENDING" };
+    } else if (path.endsWith("/settlement/preview")) {
+      const input = req.postDataJSON();
+      const remaining = String(
+        500000 - Number(input.damageAmount) + Number(input.unusedRentRefundAmount),
+      );
+      data = {
+        requestId,
+        version: detail.request.version,
+        canClose: true,
+        blockingReasons: [],
+        calculation: {
+          depositSnapshot: "500000.00",
+          rateSnapshot: rate,
+          overdueFeeAmount: "0.00",
+          damageAmount: input.damageAmount,
+          unusedRentRefundAmount: input.unusedRentRefundAmount,
+          debtAmount: "0",
+          refundEntitlement: remaining,
+          remainingRefund: remaining,
+          allocationKnown: true,
+          remainingDepositRefund: String(500000 - Number(input.damageAmount)),
+          remainingRentRefund: input.unusedRentRefundAmount,
+          confirmedDepositRefund: "0",
+          confirmedRentRefund: "0",
+        },
+      };
+    } else if (path.endsWith("/settlement")) {
+      const input = req.postDataJSON();
+      const settlement = settlementFixture(input.unusedRentRefundAmount);
+      detail.settlements.push(settlement);
+      detail.refundSummary = summaryFixture(input.unusedRentRefundAmount);
+      detail.request.status = "COMPLETED";
+      detail.request.version++;
+      data = settlement;
     } else if (path.endsWith("/refunds/confirm")) {
       const input = req.postDataJSON();
       detail.request.version++;
       detail.refunds.push({
         id: timeId,
         amount: input.amount,
-        depositRefundAmount: input.amount,
-        rentRefundAmount: "0",
+        depositRefundAmount: input.depositRefundAmount,
+        rentRefundAmount: input.rentRefundAmount,
         reference: input.reference,
         confirmedBy: actorId,
         confirmedAt: now,
         settlementId: actorId,
       });
-      if (detail.settlements[0]) detail.settlements[0].remainingRefund = "0";
-      data = { id: timeId, amount: input.amount, confirmedAt: now };
+      const summary = detail.refundSummary;
+      if (!summary) throw new Error("Refund fixture must include source balances");
+      summary.remainingRefund = String(Number(summary.remainingRefund) - Number(input.amount));
+      summary.remainingDepositRefund = String(
+        Number(summary.remainingDepositRefund) - Number(input.depositRefundAmount),
+      );
+      summary.remainingRentRefund = String(
+        Number(summary.remainingRentRefund) - Number(input.rentRefundAmount),
+      );
+      summary.confirmedDepositRefund = String(
+        Number(summary.confirmedDepositRefund) + Number(input.depositRefundAmount),
+      );
+      summary.confirmedRentRefund = String(
+        Number(summary.confirmedRentRefund) + Number(input.rentRefundAmount),
+      );
+      if (detail.settlements[0]) detail.settlements[0].remainingRefund = summary.remainingRefund;
+      data = {
+        id: timeId,
+        amount: input.amount,
+        confirmedAt: now,
+        version: detail.request.version,
+        refundSummary: summary,
+      };
     } else if (path.endsWith("/decision")) {
       detail.request.version++;
       data = { id: timeId, status: "APPROVED" };
@@ -358,16 +437,31 @@ test("Customer sees payment facts and can open a private PDF", async ({ page }) 
   await inspect(page, "customer");
 });
 
-test("FM queue loads another page and keeps financial approval safely blocked", async ({
-  page,
-}) => {
-  await setup(page, "FACILITY_MANAGER");
+test("FM sees operational context and reviews settlement before closing", async ({ page }) => {
+  const { writes } = await setup(page, "FACILITY_MANAGER");
   await openPage(page, "/facility-manager/returns");
-  await page.getByRole("button", { name: "Tải thêm", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Tải thêm", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: F3.loadMore, exact: true }).click();
+  await expect(page.getByRole("button", { name: F3.loadMore, exact: true })).toHaveCount(0);
   await openPage(page, `/facility-manager/returns/${requestId}`);
-  await expect(page.getByRole("button", { name: "Duyệt quyết toán", exact: true })).toBeDisabled();
-  await expect(page.getByText(/backend chưa có bản xem trước/)).toBeVisible();
+  await expect(page.getByText("Guest demo", { exact: true })).toBeVisible();
+  await expect(page.getByText("HCM-TEST-03", { exact: false })).toBeVisible();
+  const form = page
+    .locator("form")
+    .filter({ has: page.getByRole("button", { name: F3.preview, exact: true }) });
+  await form.getByLabel(F3.reason, { exact: true }).fill("Checked inspection and physical return");
+  await form.getByRole("button", { name: F3.preview, exact: true }).click();
+  await expect(page.getByRole("button", { name: F3.previewRefresh, exact: true })).toBeEnabled();
+  expect(writes.filter((w) => w.path.endsWith("/settlement"))).toHaveLength(0);
+  await page.getByRole("button", { name: F3.previewRefresh, exact: true }).click();
+  await expect(page.getByRole("dialog", { name: F3.finalConfirm })).toBeVisible();
+  await inspect(page, "settlement-confirmation");
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: F3.finalConfirm, exact: true })
+    .click();
+  await expect(page.getByRole("button", { name: F3.preview, exact: true })).toHaveCount(0);
+  expect(writes.filter((w) => w.path.endsWith("/settlement/preview"))).toHaveLength(2);
+  expect(writes.filter((w) => w.path.endsWith("/settlement"))).toHaveLength(1);
   await inspect(page, "manager");
 });
 
@@ -462,11 +556,19 @@ test("A conflicting settings update keeps the draft for review and retry", async
   expect(updates[1]?.body).toMatchObject({ value: 40, expectedVersion: 2 });
 });
 
-test("FM confirms an already completed deposit transfer with proof and no automatic payment", async ({
-  page,
-}) => {
-  const { detail, writes } = await setup(page, "FACILITY_MANAGER");
-  detail.settlements.push({
+function summaryFixture(rent = "0"): ReturnRefundSummaryDto {
+  return {
+    refundEntitlement: String(500000 + Number(rent)),
+    remainingRefund: String(500000 + Number(rent)),
+    allocationKnown: true,
+    remainingDepositRefund: "500000.00",
+    remainingRentRefund: rent,
+    confirmedDepositRefund: "0.00",
+    confirmedRentRefund: "0.00",
+  };
+}
+function settlementFixture(rent = "0"): ReturnSettlementDto {
+  return {
     id: actorId,
     requestId,
     revision: 1,
@@ -474,67 +576,182 @@ test("FM confirms an already completed deposit transfer with proof and no automa
     rateSnapshot: 25,
     overdueFeeAmount: "0.00",
     damageAmount: "0.00",
-    unusedRentRefundAmount: "0.00",
-    refundEntitlement: "500000",
-    remainingRefund: "500000",
+    unusedRentRefundAmount: rent,
+    refundEntitlement: String(500000 + Number(rent)),
+    remainingRefund: String(500000 + Number(rent)),
     debtAmount: "0",
     actualReturnAt: now,
     refundDueDate: "2026-10-25",
     approvedBy: actorId,
     approvedAt: now,
-  });
-  await openPage(page, `/facility-manager/returns/${requestId}`);
-  const submit = page.getByRole("button", {
-    name: "Xác nhận chuyển khoản đã hoàn tất",
-    exact: true,
-  });
-  await expect(submit).toBeDisabled();
-  await page.getByLabel("Số tiền đã chuyển (VND)", { exact: true }).fill("500000");
-  await page.getByLabel("Mã tham chiếu chuyển khoản", { exact: true }).fill("MANUAL-TEST-001");
+  };
+}
+async function prepareRefund(page: Page, rent = "0") {
+  const fixture = await setup(page, "FACILITY_MANAGER");
+  fixture.detail.request.status = "COMPLETED";
+  fixture.detail.refundSummary = summaryFixture(rent);
+  fixture.detail.settlements.push(settlementFixture(rent));
+  return fixture;
+}
+async function fillRefund(page: Page, deposit = "500000", rent = "0") {
+  await page.getByLabel(F3.depositTransfer, { exact: true }).fill(deposit);
+  await page.getByLabel(F3.rentTransfer, { exact: true }).fill(rent);
+  await page.getByLabel(F3.reference, { exact: true }).fill("MANUAL-TEST-001");
   await page
     .locator('form input[type="file"]')
     .setInputFiles({ name: "proof.png", mimeType: "image/png", buffer: image });
-  await page.getByLabel("Tôi xác nhận chuyển khoản này đã hoàn tất", { exact: true }).check();
-  await submit.click();
+  await page.getByLabel(F3.confirmTransfer, { exact: true }).check();
+}
+
+test("FM cannot close when preview reports blockers", async ({ page }) => {
+  const { writes } = await setup(page, "FACILITY_MANAGER");
+  await page.route("**/settlement/preview", (route) =>
+    route.fulfill({
+      json: {
+        success: true,
+        data: {
+          requestId,
+          version: 2,
+          canClose: false,
+          calculation: null,
+          blockingReasons: [{ code: "INSPECTION", message: "Inspection requires completion" }],
+        },
+      },
+    }),
+  );
+  await openPage(page, `/facility-manager/returns/${requestId}`);
+  const form = page
+    .locator("form")
+    .filter({ has: page.getByRole("button", { name: F3.preview, exact: true }) });
+  await form.getByLabel(F3.reason, { exact: true }).fill("Review inspection");
+  await form.getByRole("button", { name: F3.preview, exact: true }).click();
+  await expect(page.getByText("Inspection requires completion")).toBeVisible();
+  await expect(page.getByRole("button", { name: F3.previewRefresh, exact: true })).toBeDisabled();
+  expect(writes.filter((w) => w.path.endsWith("/settlement"))).toHaveLength(0);
+});
+
+test("A settlement conflict preserves the draft and requires a fresh preview", async ({ page }) => {
+  const { detail } = await setup(page, "FACILITY_MANAGER");
+  await page.route("**/settlement", (route) => {
+    detail.request.version++;
+    return route.fulfill({ status: 409, json: { success: false, message: "Stale version" } });
+  });
+  await openPage(page, `/facility-manager/returns/${requestId}`);
+  const form = page
+    .locator("form")
+    .filter({ has: page.getByRole("button", { name: F3.preview, exact: true }) });
+  await form.getByLabel(F3.reason, { exact: true }).fill("Keep this draft");
+  await form.getByRole("button", { name: F3.preview, exact: true }).click();
+  await page.getByRole("button", { name: F3.previewRefresh, exact: true }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: F3.finalConfirm, exact: true })
+    .click();
+  await expect(form.getByLabel(F3.reason, { exact: true })).toHaveValue("Keep this draft");
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  await expect(page.getByRole("button", { name: F3.previewRefresh, exact: true })).toHaveCount(0);
+  await expect(form.getByRole("button", { name: F3.preview, exact: true })).toBeEnabled();
+});
+
+test("Successful refund with a failed refetch does not permit another write", async ({ page }) => {
+  const { detail, writes } = await prepareRefund(page, "100000");
+  let failRead = false;
+  await page.route(`**/return-requests/${requestId}`, (route) =>
+    failRead ? route.fulfill({ status: 503, json: { success: false } }) : route.fallback(),
+  );
+  await page.route("**/refunds/confirm", async (route) => {
+    failRead = true;
+    await route.fallback();
+  });
+  await openPage(page, `/facility-manager/returns/${requestId}`);
+  await fillRefund(page, "200000", "50000");
+  await page.getByRole("button", { name: F3.refund, exact: true }).click();
+  await expect(page.getByText(F3.refreshFailed).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: F3.refund, exact: true })).toBeDisabled();
+  expect(detail.refunds).toHaveLength(1);
+  expect(writes.filter((w) => w.path.endsWith("/refunds/confirm"))).toHaveLength(1);
+  failRead = false;
+  await page.getByRole("button", { name: F3.refresh, exact: true }).click();
   await expect(page.getByText("MANUAL-TEST-001", { exact: false })).toBeVisible();
-  await expect(submit).toHaveCount(0);
-  const confirmations = writes.filter((write) => write.path.endsWith("/refunds/confirm"));
-  expect(confirmations).toHaveLength(1);
-  expect(confirmations[0]?.body).toMatchObject({
-    amount: "500000",
-    reference: "MANUAL-TEST-001",
-    evidencePhotoIds: [photoId],
+  await expect(page.getByText(F3.refreshFailed)).toHaveCount(0);
+});
+
+test("FM confirms a completed mixed transfer using server source balances", async ({ page }) => {
+  const { writes } = await prepareRefund(page, "100000");
+  await openPage(page, `/facility-manager/returns/${requestId}`);
+  await fillRefund(page, "500000", "100000");
+  await page.getByRole("button", { name: F3.refund, exact: true }).click();
+  await expect(page.getByText("MANUAL-TEST-001", { exact: false })).toBeVisible();
+  await expect(page.getByRole("button", { name: F3.refund, exact: true })).toHaveCount(0);
+  const writesToRefund = writes.filter((w) => w.path.endsWith("/refunds/confirm"));
+  expect(writesToRefund).toHaveLength(1);
+  expect(writesToRefund[0]?.body).toMatchObject({
+    amount: "600000",
+    depositRefundAmount: "500000",
+    rentRefundAmount: "100000",
     expectedVersion: 3,
   });
-  expect(confirmations[0]?.body.idempotencyKey).toMatch(/^[0-9a-f-]{36}$/);
-  expect(writes.every((write) => !write.path.includes("/payments/"))).toBe(true);
+  expect(writesToRefund[0]?.body.idempotencyKey).toMatch(/^[0-9a-f-]{36}$/);
   await inspect(page, "refund");
 });
 
-test("Mixed rent/deposit refund stays blocked until backend exposes source balances", async ({
-  page,
-}) => {
-  const { detail } = await setup(page, "FACILITY_MANAGER");
-  detail.settlements.push({
-    id: actorId,
-    requestId,
-    revision: 1,
-    depositSnapshot: "500000",
-    rateSnapshot: 25,
-    overdueFeeAmount: "0",
-    damageAmount: "0",
-    unusedRentRefundAmount: "100000",
-    refundEntitlement: "600000",
-    remainingRefund: "600000",
-    debtAmount: "0",
-    actualReturnAt: now,
-    refundDueDate: "2026-10-25",
-    approvedBy: actorId,
-    approvedAt: now,
+test("Legacy unknown allocation remains read only", async ({ page }) => {
+  const { detail } = await prepareRefund(page, "100000");
+  detail.refundSummary = {
+    ...summaryFixture("100000"),
+    allocationKnown: false,
+    remainingDepositRefund: null,
+    remainingRentRefund: null,
+    confirmedDepositRefund: null,
+    confirmedRentRefund: null,
+  };
+  await openPage(page, `/facility-manager/returns/${requestId}`);
+  await expect(page.getByText(F3.allocationUnknown)).toBeVisible();
+  await expect(page.getByRole("button", { name: F3.refund, exact: true })).toHaveCount(0);
+});
+
+test("Late preview cannot authorize an edited form", async ({ page }) => {
+  await setup(page, "FACILITY_MANAGER");
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/settlement/preview", async (route) => {
+    await gate;
+    await route.fallback();
   });
   await openPage(page, `/facility-manager/returns/${requestId}`);
-  await expect(page.getByText(/Chưa đủ số dư cọc\/tiền thuê/)).toBeVisible();
-  await expect(page.getByRole("button", { name: "Xác nhận chuyển khoản đã hoàn tất" })).toHaveCount(
-    0,
+  const form = page
+    .locator("form")
+    .filter({ has: page.getByRole("button", { name: F3.preview, exact: true }) });
+  await form.getByLabel(F3.reason, { exact: true }).fill("Inspection checked");
+  await form.getByRole("button", { name: F3.preview, exact: true }).click();
+  await form.getByLabel(`${F3.damage} (VND)`, { exact: true }).fill("1000");
+  release();
+  await expect(page.getByRole("button", { name: F3.previewRefresh, exact: true })).toHaveCount(0);
+});
+
+test("Uncertain transfer preserves its idempotency key after reload", async ({ page }) => {
+  const { writes } = await prepareRefund(page, "100000");
+  let failed = false;
+  let first: Record<string, unknown> | undefined;
+  await page.route("**/refunds/confirm", async (route) => {
+    if (!failed) {
+      failed = true;
+      first = route.request().postDataJSON();
+      await route.abort("failed");
+    } else await route.fallback();
+  });
+  await openPage(page, `/facility-manager/returns/${requestId}`);
+  await fillRefund(page, "200000", "50000");
+  await page.getByRole("button", { name: F3.refund, exact: true }).click();
+  await expect(page.getByText(F3.unknownOutcome)).toBeVisible();
+  await openPage(page, page.url());
+  await expect(page.getByLabel(F3.depositTransfer, { exact: true })).toHaveValue("200000");
+  await page.getByLabel(F3.confirmTransfer, { exact: true }).check();
+  await page.getByRole("button", { name: F3.refund, exact: true }).click();
+  await expect(page.getByText("MANUAL-TEST-001", { exact: false })).toBeVisible();
+  expect(writes.find((w) => w.path.endsWith("/refunds/confirm"))?.body.idempotencyKey).toBe(
+    first?.idempotencyKey,
   );
 });

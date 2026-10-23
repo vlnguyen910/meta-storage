@@ -3,6 +3,7 @@
 import type { GuestRentalPaymentItemDto, RentalDocumentDto } from "@metastorage/contracts";
 import { CONTRACT_PDF_MAX_BYTES, ContractUploadSchema } from "@metastorage/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { isAxiosError } from "axios";
 import { Clock, CreditCard, FileCheck, FileText, Receipt } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button, buttonClassName } from "@/components/ui/button";
@@ -17,6 +18,9 @@ import {
 } from "@/features/returns/integration-utils";
 import { useFlow3Identity } from "@/features/returns/use-flow3-identity";
 import { api } from "@/lib/api";
+import { CONTRACT_UI as C } from "./contract.messages";
+import { ContractPdfPicker } from "./contract-pdf-picker";
+import { useRentalDocuments } from "./use-rental-documents";
 
 export function RentalPayments({ rentalId }: { rentalId: string }) {
   const identity = useFlow3Identity();
@@ -44,13 +48,7 @@ export function RentalPayments({ rentalId }: { rentalId: string }) {
 }
 
 export function BookingContractAccess({ bookingId }: { bookingId: string }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <details className={f3Panel} onToggle={(event) => setOpen(event.currentTarget.open)}>
-      <summary className="min-h-11 cursor-pointer font-bold text-primary">{F3.contracts}</summary>
-      {open && <RentalDocuments bookingId={bookingId} />}
-    </details>
-  );
+  return <RentalDocuments bookingId={bookingId} handover />;
 }
 
 export function PaymentRecords({ items }: { items: GuestRentalPaymentItemDto[] }) {
@@ -198,30 +196,30 @@ export function RentalDocuments({
   bookingId,
   rentalId,
   manager = false,
+  handover = false,
 }: {
   bookingId: string;
   rentalId?: string;
   manager?: boolean;
+  handover?: boolean;
 }) {
   const identity = useFlow3Identity();
   const client = useQueryClient();
   const key = ["rental-documents", identity, bookingId, rentalId];
-  const query = useQuery({
-    queryKey: key,
-    queryFn: ({ signal }) =>
-      rentalId
-        ? api.rentalDocuments.rental(rentalId, signal)
-        : api.rentalDocuments.list(bookingId, signal),
-  });
+  const query = useRentalDocuments(bookingId, rentalId);
   const [message, setMessage] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const fileInput = useRef<HTMLInputElement>(null);
   const [confirmation, setConfirmation] = useState<RentalDocumentDto | null>(null);
   const pendingUpload = useRef<{ file: File; key: string } | null>(null);
   const upload = useMutation({
     meta: { globalLoading: true },
     mutationFn: async () => {
-      if (!file || file.size > CONTRACT_PDF_MAX_BYTES || file.type !== "application/pdf")
+      if (
+        !file ||
+        file.size === 0 ||
+        file.size > CONTRACT_PDF_MAX_BYTES ||
+        file.type !== "application/pdf"
+      )
         throw new Error("invalid-pdf");
       if (pendingUpload.current?.file !== file)
         pendingUpload.current = { file, key: crypto.randomUUID() };
@@ -235,7 +233,6 @@ export function RentalDocuments({
     },
     onSuccess: () => {
       setFile(null);
-      if (fileInput.current) fileInput.current.value = "";
       pendingUpload.current = null;
       setMessage(F3.saved);
     },
@@ -253,6 +250,17 @@ export function RentalDocuments({
     },
     onSettled: () => client.invalidateQueries({ queryKey: key }),
   });
+  useEffect(() => {
+    if (bookingId && identity) {
+      setFile(null);
+      setConfirmation(null);
+      setMessage("");
+      pendingUpload.current = null;
+    }
+  }, [bookingId, identity]);
+  const issued = query.data?.some((doc) => doc.status === "ISSUED" && doc.currentIssued);
+  const hasUpload = query.data?.some((doc) => doc.status === "UPLOADED");
+  const failure = upload.isError ? upload.error : issue.error;
   return (
     <section className={f3Panel}>
       <div className="mb-4 flex items-center gap-2.5">
@@ -261,13 +269,28 @@ export function RentalDocuments({
         </div>
         <h2 className="text-lg font-bold text-ink">{F3.contracts}</h2>
       </div>
+      {(manager || handover) && query.isSuccess && (
+        <div
+          role="status"
+          className={`rounded border p-4 text-sm ${issued ? "border-emerald-300 bg-emerald-50 text-emerald-950" : "border-amber-300 bg-amber-50 text-amber-950"}`}
+        >
+          <strong>{issued ? C.ready : C.missing}</strong>
+          {!issued && (
+            <p className="mt-2">
+              {manager ? (hasUpload ? C.pendingIssue : C.missingUpload) : C.staffMissing}
+            </p>
+          )}
+        </div>
+      )}
       {query.isPending ? (
         <LoadingState variant="table" />
       ) : query.isError ? (
         <ErrorState message={integrationError(query.error)} onRetry={() => query.refetch()} />
       ) : (
         <ul className="list-none space-y-3 p-0">
-          {!query.data.length && <li className="text-sm text-muted">{F3.noContracts}</li>}
+          {!query.data.length && !manager && !handover && (
+            <li className="text-sm text-slate-600">{F3.noContracts}</li>
+          )}
           {query.data.map((doc) => (
             <li
               key={doc.id}
@@ -308,31 +331,30 @@ export function RentalDocuments({
           onSubmit={(event) => {
             event.preventDefault();
             setMessage("");
+            issue.reset();
             void upload.mutate();
           }}
           className="space-y-3 border-t border-slate-200 pt-4"
         >
-          <label className="grid gap-2 text-sm font-semibold">
-            {F3.file}
-            <input
-              ref={fileInput}
-              type="file"
-              accept="application/pdf"
-              onChange={(event) => {
-                setMessage("");
-                setFile(event.target.files?.[0] ?? null);
-              }}
-            />
-          </label>
-          {file && (file.size > CONTRACT_PDF_MAX_BYTES || file.type !== "application/pdf") && (
-            <p role="alert">{F3.badPdf}</p>
-          )}
+          <ContractPdfPicker
+            file={file}
+            disabled={upload.isPending || issue.isPending}
+            onSelect={(next) => {
+              setMessage("");
+              upload.reset();
+              issue.reset();
+              setFile(next);
+            }}
+          />
           <Button
             disabled={
               !file ||
+              file.size === 0 ||
               file.size > CONTRACT_PDF_MAX_BYTES ||
               file.type !== "application/pdf" ||
               upload.isPending ||
+              issue.isPending ||
+              query.isPending ||
               query.isError
             }
             loading={upload.isPending}
@@ -365,7 +387,9 @@ export function RentalDocuments({
       )}
       {(upload.isError || issue.isError) && (
         <p role="alert" className="text-red-700">
-          {integrationError(upload.error ?? issue.error)}
+          {isAxiosError(failure) && failure.response?.status === 503
+            ? C.storageFailure
+            : integrationError(failure)}
         </p>
       )}
       {message && (

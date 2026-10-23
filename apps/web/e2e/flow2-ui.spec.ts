@@ -8,11 +8,134 @@ import {
   UserRole,
 } from "@metastorage/contracts";
 import { expect, type Page, test } from "@playwright/test";
+import { FLOW } from "../src/features/facility-flow/flow.messages";
+import { CONTRACT_UI as C } from "../src/features/rentals/contract.messages";
+import { F3 } from "../src/features/returns/integration.messages";
 
 const id = "b0000000-0000-4000-8000-000000000001";
 const now = new Date().toISOString();
 const photoData =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+const contractPdf = Buffer.from(
+  "JVBERi0xLjcKJYGBgYEKCjYgMCBvYmoKPDwKL0ZpbHRlciAvRmxhdGVEZWNvZGUKL0xlbmd0aCAxMjEKPj4Kc3RyZWFtCnicHYrBCsJADETv8xU5C2I23U12QTwILR68CPkBkSpKe1DE728qAzM83rxxdDCt+TywO43Tb/w+b9etcau5stVGScjvkEx+RvpfE0kUM/mMfeks62CipVRh7XTQ3nJw0jDCxqsz1RZtwTk2zIH8Bd+gd1ywAC69HXsKZW5kc3RyZWFtCmVuZG9iagoKNyAwIG9iago8PAovRmlsdGVyIC9GbGF0ZURlY29kZQovVHlwZSAvT2JqU3RtCi9OIDUKL0ZpcnN0IDI2Ci9MZW5ndGggMzYxCj4+CnN0cmVhbQp4nNVSTUvDQBC976+Yox5kP5LmQ0qhbRIFKUorKIqHbbKUSNmVZCP13zuTpJYexLOEx+7MvNl9m3kSBCgIQwggTiCESaBgArGUMJ0y/vj1YYA/6J1pGb+rqxZekSNgDW+ML11nPUg2m7ETd6m93rsdG5pAEvnIeGhc1ZWmgWmRF4UQsRAiChGRECrDdYlIEQpjrKkE94g4HIG5OBAimGOtGBDFQw/Ve+5k7M9xRW5EnGzghskQ/9xLd+XDGeovPemM8ZWrMu0NXGTXSqhIChWINEhl8nKJv6Mx2rv/+7hef+3sry88mzONl4bcGPJAP2W+Nq3rmhLHTrzCYYU2t2b/aXxd6qtYpAnqjJMUPTYagz/fb99N2VMpzA/+ZuNJw5Cg3MpUtV64A7pP4IcvB1RNHpxb6zy5svej9aiGomj06JlkEsT4ptv6PqSkZHyhW9NLPelEEbZ0VW13wJ9qO7dtfUzQid8tGsXmCmVuZHN0cmVhbQplbmRvYmoKCjggMCBvYmoKPDwKL1NpemUgOQovUm9vdCAyIDAgUgovSW5mbyAzIDAgUgovRmlsdGVyIC9GbGF0ZURlY29kZQovVHlwZSAvWFJlZgovTGVuZ3RoIDQxCi9XIFsgMSAyIDIgXQovSW5kZXggWyAwIDkgXQo+PgpzdHJlYW0KeJwVxLERACAMA7G3wx0t+3esxEIJViGg22xISk6Vljgg3s8XBmIVA74KZW5kc3RyZWFtCmVuZG9iagoKc3RhcnR4cmVmCjY3MwolJUVPRg==",
+  "base64",
+);
+
+for (const width of [1440, 375, 390, 430]) {
+  test(`contract manager uploads with local preview and recovers storage error at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    await fixture(page, { role: "FACILITY_MANAGER" });
+    let document: Record<string, unknown> | null = null;
+    let uploads = 0;
+    await page.route(`**/api/bookings/${id}/contracts`, async (route) => {
+      if (route.request().method() === "POST") {
+        uploads++;
+        if (uploads === 1)
+          return route.fulfill({
+            status: 503,
+            json: {
+              success: false,
+              error: { code: "CONTRACT_STORAGE_UNAVAILABLE", message: "Storage unavailable" },
+            },
+          });
+        document = {
+          id,
+          bookingId: id,
+          filename: "contract-demo.pdf",
+          status: "UPLOADED",
+          currentIssued: false,
+          usedForHandover: false,
+          version: 1,
+          byteSize: contractPdf.length,
+          pageCount: 1,
+          uploadedAt: now,
+          issuedAt: null,
+        };
+        return route.fulfill({ json: { success: true, data: document } });
+      }
+      return route.fulfill({ json: { success: true, data: document ? [document] : [] } });
+    });
+    await page.route(`**/api/bookings/${id}/contracts/${id}/issue`, async (route) => {
+      document = { ...document, status: "ISSUED", currentIssued: true, issuedAt: now };
+      return route.fulfill({ json: { success: true, data: document } });
+    });
+    await page.goto("/facility-manager/check-in?bookingCode=BK-2026-0001");
+    await expect(page.getByText(C.missing, { exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: C.manage })).toBeVisible();
+    const chooser = page.waitForEvent("filechooser");
+    await page.getByRole("button", { name: C.select, exact: false }).click();
+    await (await chooser).setFiles({
+      name: "contract-demo.pdf",
+      mimeType: "application/pdf",
+      buffer: contractPdf,
+    });
+    await expect(page.getByRole("heading", { name: C.localPreview, exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: C.openLocal, exact: true })).toHaveAttribute(
+      "href",
+      /^blob:/,
+    );
+    expect(uploads).toBe(0);
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    expect(
+      await page.evaluate(() => globalThis.document.documentElement.scrollWidth <= innerWidth),
+    ).toBe(true);
+    await page.screenshot({ path: `test-results/contract-preview-${width}.png`, fullPage: true });
+    await page.getByRole("button", { name: F3.upload, exact: true }).click();
+    await expect(page.getByText(C.storageFailure)).toBeVisible();
+    await expect(page.getByRole("heading", { name: C.localPreview, exact: true })).toBeVisible();
+    await page.getByRole("button", { name: F3.upload, exact: true }).click();
+    await expect(page.getByText(C.pendingIssue)).toBeVisible();
+    await expect(page.getByRole("heading", { name: C.localPreview, exact: true })).toHaveCount(0);
+    await expect(page.getByText(C.ready, { exact: true })).toHaveCount(0);
+    await page.getByRole("button", { name: F3.issue, exact: true }).click();
+    await page.getByRole("button", { name: F3.issue, exact: true }).last().click();
+    await expect(page.getByText(C.ready, { exact: true })).toBeVisible();
+    expect(uploads).toBe(2);
+  });
+}
+
+test("contract missing blocks Staff handover early and refresh recovers after FM issues", async ({
+  page,
+}) => {
+  await fixture(page);
+  let issued = false;
+  await page.route(`**/api/bookings/${id}/contracts`, (route) =>
+    route.fulfill({
+      json: {
+        success: true,
+        data: issued
+          ? [
+              {
+                id,
+                bookingId: id,
+                filename: "issued.pdf",
+                status: "ISSUED",
+                currentIssued: true,
+                version: 1,
+              },
+            ]
+          : [],
+      },
+    }),
+  );
+  await page.goto("/staff/check-in?bookingCode=BK-2026-0001");
+  await page.getByRole("button", { name: FLOW.verifyProceed }).click();
+  await expect(page.getByText(C.missing, { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: C.select, exact: false })).toHaveCount(0);
+  await passChecklist(page);
+  await page.getByRole("button", { name: FLOW.review, exact: true }).click();
+  await page.getByRole("checkbox", { name: FLOW.confirmLock }).check();
+  await page.getByRole("button", { name: FLOW.complete, exact: true }).click();
+  await expect(page.getByText(C.handoverMissing)).toBeVisible();
+  await page.getByRole("checkbox", { name: FLOW.customerReceived }).check();
+  await expect(page.getByRole("button", { name: FLOW.handover, exact: true })).toBeDisabled();
+  issued = true;
+  await page.getByRole("button", { name: C.refresh, exact: true }).click();
+  await expect(page.getByRole("button", { name: FLOW.handover, exact: true })).toBeEnabled();
+});
+
 async function fixture(
   page: Page,
   {
@@ -95,7 +218,23 @@ async function fixture(
       return;
     }
     let data: unknown = null;
-    if (path === "/auth/me")
+    if (path === `/bookings/${id}/contracts`)
+      data = [
+        {
+          id,
+          bookingId: id,
+          filename: "issued.pdf",
+          status: "ISSUED",
+          currentIssued: true,
+          usedForHandover: false,
+          version: 1,
+          byteSize: 500,
+          pageCount: 1,
+          uploadedAt: now,
+          issuedAt: now,
+        },
+      ];
+    else if (path === "/auth/me")
       data = {
         id: assignment.assignedBy,
         name: "Lê Thu Hà",
