@@ -7,12 +7,14 @@ node_modules/
 coverage/
 playwright-report/
 test-results/
+flow5-test-results/
 
 # Next.js
 .next/
 .next-dev/
 .next-playwright/
 .next-mock-playwright/
+.next-flow5/
 out/
 
 # Expo & Mobile

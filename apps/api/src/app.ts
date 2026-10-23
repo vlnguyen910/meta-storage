@@ -17,6 +17,7 @@ import { checkInsRoutes } from "./modules/check-ins/check-ins.routes";
 import { contractsRoutes } from "./modules/contracts/contracts.routes";
 import { facilityContextPlugin } from "./modules/facilities/facilities.guard";
 import { facilitiesRoutes } from "./modules/facilities/facilities.routes";
+import { facilityTasksRoutes } from "./modules/facility-tasks/facility-tasks.routes";
 import { guestRentalAccessRoutes } from "./modules/guest-rental-access/guest-rental-access.routes";
 import { inspectionsRoutes } from "./modules/inspections/inspections.routes";
 import { lifecycleNotificationsRoutes } from "./modules/notifications/lifecycle-notifications.routes";
@@ -29,6 +30,7 @@ import { reportsRoutes } from "./modules/reports/reports.routes";
 import { returnsRoutes } from "./modules/returns/returns.routes";
 import { storageUnitsRoutes } from "./modules/storage-units/storage-units.routes";
 import { systemSettingsRoutes } from "./modules/system-settings/system-settings.routes";
+import { unitTypesRoutes } from "./modules/unit-types/unit-types.routes";
 import { usersRoutes } from "./modules/users/users.routes";
 
 export function buildApp(): FastifyInstance {
@@ -61,6 +63,8 @@ export function buildApp(): FastifyInstance {
   app.register(usersRoutes, { prefix: "/api/users" });
   app.register(authRoutes, { prefix: "/api/auth" });
   app.register(facilitiesRoutes, { prefix: "/api/facilities" });
+  app.register(unitTypesRoutes, { prefix: "/api/unit-types" });
+  app.register(facilityTasksRoutes, { prefix: "/api/facility-tasks" });
   app.register(rentalsRoutes, { prefix: "/api/rentals" });
   app.register(bookingsRoutes, { prefix: "/api" });
   app.register(guestRentalAccessRoutes, { prefix: "/api" });

@@ -16,6 +16,15 @@ export enum StorageUnitStatus {
   INACTIVE = "INACTIVE",
 }
 
+export const StorageUnitListQuerySchema = z.object({
+  facilityId: z.string().uuid(),
+  status: z.nativeEnum(StorageUnitStatus).optional(),
+  unitTypeId: z.string().uuid().optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).default(0),
+});
+export type StorageUnitListQuery = z.infer<typeof StorageUnitListQuerySchema>;
+
 export const UnitAvailabilityOptionSchema = z.object({
   facilityId: z.string(),
   unitTypeId: z.string(),
@@ -182,3 +191,28 @@ export function canTransitionStorageUnitStatus(
 }
 
 export * from "./storage-units.types";
+
+export const CreateStorageUnitSchema = z
+  .object({
+    unitTypeId: z.string().uuid(),
+    code: z.string().trim().min(1).max(80),
+    floor: z.string().trim().max(50).nullable().optional(),
+    locationDescription: z.string().trim().max(255).nullable().optional(),
+  })
+  .strict();
+export const UpdateStorageUnitSchema = CreateStorageUnitSchema.partial().refine(
+  (v) => Object.keys(v).length > 0,
+);
+export const StorageUnitMaintenanceHistoryQuerySchema = z
+  .object({
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+    offset: z.coerce.number().int().min(0).default(0),
+  })
+  .strict();
+export const SetFacilityUnitTypeSchema = z.object({ isActive: z.boolean() }).strict();
+export type CreateStorageUnitInput = z.infer<typeof CreateStorageUnitSchema>;
+export type UpdateStorageUnitInput = z.infer<typeof UpdateStorageUnitSchema>;
+export type StorageUnitMaintenanceHistoryQuery = z.infer<
+  typeof StorageUnitMaintenanceHistoryQuerySchema
+>;
+export type SetFacilityUnitTypeInput = z.infer<typeof SetFacilityUnitTypeSchema>;

@@ -1,5 +1,57 @@
 # metastorage database diagram
 
+## Flow 5 manual task assignment
+
+`facility_tasks` stores manual work assigned by the active Facility Manager to an
+active Facility Staff account at the same facility. Types are `INSPECT_UNIT`,
+`PRINT_DOCUMENT` and `REPORT_TO_MANAGER`. Columns: UUID id, facility_id,
+assigned_staff_id, created_by and assigned_by FKs, type, title (1..200 trimmed
+characters), nullable description (up to 2000 characters), nullable storage_unit_id
+and booking_id FKs, nonnegative integer version (default 0), lifecycle status,
+nullable started_at, completed_by and completed_at, assigned_at, created_at and
+updated_at. All foreign keys use RESTRICT to preserve assignments. Indexes cover
+(facility_id, assigned_staff_id) and (facility_id, type).
+
+Creation and reassignment validate current account roles, ACTIVE status and active,
+unexpired facility assignments under row locks. Optional unit/booking references
+must belong to the task facility. Reassignment uses the expected version; assigning
+the same current staff member at the current version is a no-op. Lifecycle is
+ASSIGNED → IN_PROGRESS → AWAITING_APPROVAL → COMPLETED. Only FM acceptance of the
+latest report completes a task; the report stores the accepting FM and time. Task
+metadata does not change booking assignees, inspection permissions, physical
+occupancy, contracts, rentals or maintenance. Existing Flow 2/contract APIs remain
+authoritative for execution; creating a printing task does not assert that a
+document has actually been printed.
+
+Facility staff membership cannot be revoked while bookings or tasks remain
+assigned; those items must be reassigned first.
+
+## Flow 5 staff work reports (confirmed 2026-10-22)
+
+`facility_task_reports`: UUID id, task_id FK facility_tasks (RESTRICT),
+submitted_by FK users (RESTRICT), nullable accepted_by FK users and accepted_at,
+content text (trimmed, 1..5000 characters), submitted_at timestamptz default now.
+Index (task_id, submitted_at, id) supports ordered history; a partial unique index
+allows at most one accepted report per task. One task has many immutable
+submissions; each submission keeps its original author even after reassignment.
+No edit/delete report API.
+
+Only the current active assigned FS with a valid same-facility assignment may
+submit. Same-facility FM and current assigned FS may read task report history.
+Submission rechecks authorization under task/account/membership row locks in the
+same order as task reassignment. Identity/time are server-generated. Reporting
+does not itself complete a task or mutate booking/unit/rental/inspection state.
+The assigned-facility FM accepts the latest report to complete the task.
+
+## Flow 5 physical-unit maintenance history
+
+`storage_unit_maintenance_history` records each allowed maintenance transition:
+UUID id, storage_unit_id FK, action (`ENTER_MAINTENANCE` or `EXIT_MAINTENANCE`),
+previous/next storage-unit status, optional reason, changed_by FK users, and
+changed_at. A status update and its history record commit in the same transaction.
+The actor and reason are retained for audit; history prevents hard deletion of the
+physical unit and the acting account.
+
 ## Booking contract PDFs (confirmed 2026-10-20)
 
 MVP customer identity is existing booking contactName/contactEmail/contactPhone only;
@@ -143,6 +195,44 @@ Issue #24 adds `handover_inspections` and `inspection_photos` under the H6_V1 de
 
 ```mermaid
 erDiagram
+  facility_tasks {
+    uuid id PK
+    uuid facility_id FK
+    uuid assigned_staff_id FK
+    uuid created_by FK
+    uuid assigned_by FK
+    facility_task_type type
+    facility_task_status status
+    varchar title
+    text description
+    uuid storage_unit_id FK "nullable"
+    uuid booking_id FK "nullable"
+    integer version
+    timestamptz started_at "nullable"
+    uuid completed_by FK "nullable"
+    timestamptz completed_at "nullable"
+    timestamptz assigned_at
+    timestamptz created_at
+    timestamptz updated_at
+  }
+  facility_task_reports {
+    uuid id PK
+    uuid task_id FK
+    uuid submitted_by FK
+    uuid accepted_by FK "nullable"
+    timestamptz accepted_at "nullable"
+    text content
+    timestamptz submitted_at
+  }
+  facilities ||--o{ facility_tasks : scopes
+  users ||--o{ facility_tasks : performs
+  users ||--o{ facility_tasks : creates
+  users ||--o{ facility_tasks : assigns
+  storage_units o|--o{ facility_tasks : references
+  bookings o|--o{ facility_tasks : references
+  facility_tasks ||--o{ facility_task_reports : records
+  users ||--o{ facility_task_reports : submits
+  users o|--o{ facility_task_reports : accepts
   system_settings {
     text key PK
     jsonb value
@@ -353,10 +443,25 @@ erDiagram
     uuid facility_id FK
     uuid unit_type_id FK
     varchar code UK
+    varchar floor "nullable"
+    varchar location_description "nullable"
     storage_unit_status status
     timestamptz created_at
     timestamptz updated_at
   }
+
+  storage_unit_maintenance_history {
+    uuid id PK
+    uuid storage_unit_id FK
+    storage_unit_maintenance_action action
+    storage_unit_status previous_status
+    storage_unit_status next_status
+    text reason "nullable"
+    uuid changed_by FK
+    timestamptz changed_at
+  }
+  storage_units ||--o{ storage_unit_maintenance_history : records
+  users ||--o{ storage_unit_maintenance_history : changes
 
   facility_operating_hours {
     uuid id PK
@@ -510,8 +615,9 @@ erDiagram
   Legacy jobs remain readable; ENQUEUED differs from provider-confirmed SENT.
 
 - UUID primary keys on `users`, `facilities`, `facility_assignments`,
-  `unit_types`, `storage_units`, `facility_operating_hours`, `check_in_slots`, `reservation_drafts`
-  and `capacity_allocations` default to generated random UUIDs. Auth tables
+  `facility_tasks`, `facility_task_reports`, `storage_unit_maintenance_history`,
+  `unit_types`, `storage_units`, `facility_operating_hours`, `check_in_slots`,
+  `reservation_drafts` and `capacity_allocations` default to generated random UUIDs. Auth tables
   `accounts`, `sessions` and `verifications` use text primary keys.
 - `users.email`, `users.phone`, `facilities.code`, `storage_units.code` and
   `sessions.token` are unique. `users.phone` is nullable. Booking contact email is not unique.
@@ -522,7 +628,11 @@ erDiagram
   reservation draft contact name/email/phone 150/320/32.
 - Nullable columns are `users.image`, `users.phone`, `users.password_hash`,
   `users.role`, `users.status`, `bookings.user_id`, `facilities.description`,
-  `facility_assignments.ended_at`, `sessions.ip_address`,
+  `facility_assignments.ended_at`, `storage_units.floor`,
+  `storage_units.location_description`, `storage_unit_maintenance_history.reason`,
+  `facility_tasks.description`, `facility_tasks.storage_unit_id`,
+  `facility_tasks.booking_id`,
+  `sessions.ip_address`,
   `sessions.user_agent`, and the optional token, expiry, scope and password
   fields in `accounts`. Every other column shown is required.
 - User role/status values are defined once in `packages/contracts/src/users.ts` and
@@ -531,6 +641,8 @@ erDiagram
   `BUSINESS_OPERATION_MANAGER`, `SYSTEM_ADMIN`; `status`: `ACTIVE`, `INACTIVE`;
   `storage_unit_status`: `AVAILABLE`, `RESERVED`, `OCCUPIED`, `MAINTENANCE`,
   `INSPECTION`, `RETURN_PENDING`, `LOCKED`, `INACTIVE`;
+  `storage_unit_maintenance_action`: `ENTER_MAINTENANCE`, `EXIT_MAINTENANCE`;
+  `facility_task_type`: `INSPECT_UNIT`, `PRINT_DOCUMENT`, `REPORT_TO_MANAGER`;
   `reservation_draft_status`: `DRAFT`; `reservation_pricing_status`:
   `PRICING_NOT_CONFIGURED`, `PRICED`; `capacity_allocation_kind`: `HOLD`, `BOOKING`; and
   `capacity_allocation_status`: `ACTIVE`, `RELEASED`, `EXPIRED`.
@@ -561,6 +673,8 @@ erDiagram
   reference value without a database foreign key at this stage.
 - User foreign keys use `ON DELETE CASCADE` for `accounts`, `sessions` and
   `facility_assignments`, and `ON DELETE SET NULL` for `bookings.user_id`.
+  Facility task/report and unit maintenance history references use `ON DELETE RESTRICT`
+  to preserve assigned work, reports, transition history and actor references.
   Facility foreign keys use `ON DELETE CASCADE` for `facility_unit_types`,
   `storage_units`, `facility_operating_hours` and `facility_assignments`, and
   `ON DELETE RESTRICT` for reservation drafts and capacity allocations.

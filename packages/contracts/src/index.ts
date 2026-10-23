@@ -5,6 +5,7 @@ export * from "./catalog";
 export * from "./check-in";
 export * from "./dashboard.types";
 export * from "./facilities";
+export * from "./facility-tasks";
 export type * from "./flow3-read.types";
 export * from "./handover-checklist";
 export * from "./handover-checklist.messages";

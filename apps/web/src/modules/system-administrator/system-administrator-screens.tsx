@@ -1,7 +1,8 @@
 import { AdminWorkspace } from "@/features/administration/admin-workspace";
+import { FacilityManagementWorkspace } from "@/features/facility-management/management-workspace";
 
 export function SystemAdministratorAssignmentsScreen() {
-  return <AdminWorkspace section="assignments" />;
+  return <FacilityManagementWorkspace membershipsOnly />;
 }
 
 export function SystemAdministratorLoginHistoryScreen() {

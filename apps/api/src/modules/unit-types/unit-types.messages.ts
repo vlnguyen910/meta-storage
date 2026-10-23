@@ -3,4 +3,13 @@ export const UNIT_TYPE_MESSAGES = {
   facilityUnavailable: "Không tìm thấy cơ sở đang hoạt động",
   failedToCreateUnitType: "Failed to create unit type",
   failedToLinkUnitType: "Failed to link unit type to facility",
+  codeAlreadyExists: "Mã loại kho đã được sử dụng.",
+  unitTypeNotFound: "Không tìm thấy loại kho.",
+  unitTypeCreateSummary: "Tạo loại kho dùng chung",
+  unitTypeListSummary: "Quản lý danh mục loại kho",
+  unitTypeUpdateSummary: "Cập nhật thông tin loại kho",
+  unitTypeCreated: "Đã tạo loại kho.",
+  unitTypeUpdated: "Đã cập nhật thông tin loại kho.",
+  facilityUnitTypesSummary: "Quản lý loại kho được cung cấp tại cơ sở",
+  facilityUnitTypeUnavailable: "Không tìm thấy liên kết loại kho tại cơ sở.",
 } as const;

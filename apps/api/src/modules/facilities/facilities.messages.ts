@@ -17,4 +17,21 @@ export const FACILITY_MESSAGES = {
   staffAssignmentNotFound: "Không tìm thấy phân công nhân sự tương ứng",
   failedToCreateFacility: "Failed to create facility",
   failedToUpsertAssignment: "Failed to upsert assignment",
+  openWorkPreventsRevocation:
+    "Hãy giao lại booking và task đang mở trước khi thu hồi phân công nhân sự.",
+  assignmentTargetUnavailable: "Tài khoản phải đang hoạt động và vai trò phải khớp với phân công.",
+  facilityHasOpenBookings:
+    "Không thể ngừng hoạt động cơ sở khi còn booking hoặc lượt giữ chỗ chưa kết thúc.",
+  facilityMetadataUpdated: "Đã cập nhật thông tin cơ sở.",
+  facilityCreated: "Đã tạo cơ sở.",
+  assignmentCreated: "Đã phân công nhân sự vào cơ sở.",
+  assignmentRevoked: "Đã thu hồi phân công nhân sự.",
+  managementSummary: "Quản lý danh sách cơ sở",
+  detailSummary: "Xem chi tiết cơ sở theo quyền truy cập",
+  updateSummary: "Cập nhật thông tin cơ sở",
+  assignmentsSummary: "Quản lý thành viên được phân công tại cơ sở",
+  facilityUnitTypesSummary: "Quản lý loại kho được cung cấp tại cơ sở",
+  facilityUnitTypeUpdateSummary: "Cập nhật trạng thái cung cấp loại kho tại cơ sở",
+  assignmentTargetMismatch: "Vai trò của nhân sự không khớp với vai trò phân công.",
+  activeAssignmentNotFound: "Không tìm thấy phân công đang hoạt động.",
 } as const;

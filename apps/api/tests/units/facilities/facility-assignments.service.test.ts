@@ -38,7 +38,9 @@ function createService(
   const assignmentsRepo = {
     findFacilityStaff: async () => [mockStaffMember],
     findAssignment: async () => mockAssignment,
-    deactivateAssignment: async () => ({ ...mockAssignment, isActive: false, endedAt: new Date() }),
+    deactivateAssignmentWithWorkCheck: async () => ({
+      assignment: { ...mockAssignment, isActive: false, endedAt: new Date() },
+    }),
     listAssignmentsWithUsers: async () => [
       {
         assignment: mockAssignment,
@@ -114,7 +116,7 @@ describe("FacilityAssignmentsService - Staff & Task Operations", () => {
 
   it("throws NotFoundError when revoking a non-existent assignment", async () => {
     const service = createService({
-      findAssignment: async () => undefined,
+      deactivateAssignmentWithWorkCheck: async () => ({ error: "ASSIGNMENT_NOT_FOUND" }),
     });
 
     await assert.rejects(

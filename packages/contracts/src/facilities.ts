@@ -134,3 +134,27 @@ export const createAssignmentBodySchema = z.object({
   role: FacilityAssignmentRoleSchema,
 });
 export type CreateAssignmentBody = z.infer<typeof createAssignmentBodySchema>;
+
+export const facilityManagementQuerySchema = facilityQuerySchema;
+export const updateFacilityIdParamSchema = facilityIdNestedParamSchema;
+export const unitTypeIdParamSchema = z.object({ unitTypeId: z.string().uuid() });
+export const facilityUnitTypeParamsSchema = z.object({
+  facilityId: z.string().uuid(),
+  unitTypeId: z.string().uuid(),
+});
+export const facilityAssignmentListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).default(0),
+});
+export const facilityStorageUnitParamsSchema = z.object({ facilityId: z.string().uuid() });
+
+export const FacilityUnitTypeManagementItemSchema = z.object({
+  facilityId: z.string().uuid(),
+  unitTypeId: z.string().uuid(),
+  isActive: z.boolean(),
+  code: z.string(),
+  name: z.string(),
+  sizeLabel: z.string(),
+  monthlyPrice: z.number().int().nonnegative(),
+});
+export type FacilityUnitTypeManagementItem = z.infer<typeof FacilityUnitTypeManagementItemSchema>;
