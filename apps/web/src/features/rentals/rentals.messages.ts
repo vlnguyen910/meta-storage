@@ -14,4 +14,11 @@ export const RENTAL_MESSAGES = {
   loadingMore: "Đang tải…",
   loadMore: "Tải thêm",
   loadMoreFailed: "Không tải thêm được. Hãy thử lại.",
+  backToStorage: "Quay lại kho của tôi",
+  startDate: "Bắt đầu thuê",
+  endDate: "Dự kiến kết thúc",
+  bookingStatus: "Trạng thái đặt kho",
+  timelineTitle: "Tiến trình thuê",
+  permissionsTitle: "Quyền thao tác hiện tại",
+  notFoundOrForbidden: "Không tìm thấy kho hoặc bạn không có quyền xem.",
 } as const;

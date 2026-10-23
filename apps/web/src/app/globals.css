@@ -83,6 +83,38 @@
   animation: top-progress 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
+@font-face {
+  font-family: "Be Vietnam Pro";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/metastorage/font-0.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Be Vietnam Pro";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/metastorage/font-1.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Be Vietnam Pro";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/metastorage/font-2.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Be Vietnam Pro";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/metastorage/font-3.ttf") format("truetype");
+}
+
 @theme {
   --color-primary: #165f4d;
   --color-primary-dark: #0f493b;
@@ -103,7 +135,7 @@
   --radius-card: 15px;
   --shadow-card: -2px 4px 12px 4px rgb(51 51 51 / 10%);
   --shadow-soft: 0 8px 30px rgb(15 23 42 / 7%);
-  --font-sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 @layer base {
@@ -142,7 +174,7 @@
   h1,
   h2,
   h3 {
-    letter-spacing: -0.035em;
+    letter-spacing: -0.015em;
   }
 
   p {

@@ -34,21 +34,36 @@ export function StatusBadge({ value }: { value: string }) {
     RESERVED: "Đã giữ chỗ",
     OCCUPIED: "Đang thuê",
     MAINTENANCE: "Bảo trì",
+    OVERDUE: "Quá hạn",
+    RETURN_PENDING: "Đang trả kho",
+    COMPLETED: "Đã hoàn tất",
+    CLOSED: "Đã đóng",
   };
-  const positive = ["ACTIVE", "AVAILABLE", "CONFIRMED", "SUCCEEDED", "CHECKED_IN"].includes(value);
+  const positive = ["ACTIVE", "AVAILABLE", "CONFIRMED", "SUCCEEDED", "CHECKED_IN", "OCCUPIED"].includes(value);
   const maintenance = value === "MAINTENANCE";
-  const danger = ["CANCELLED", "NO_SHOW", "FAILED"].includes(value);
-  const warning = ["PENDING", "REFUNDED"].includes(value);
+  const danger = ["CANCELLED", "NO_SHOW", "FAILED", "OVERDUE"].includes(value);
+  const warning = ["PENDING", "REFUNDED", "RETURN_PENDING"].includes(value);
   return (
     <span
       className={cn(
-        "inline-flex min-h-[26px] w-fit items-center rounded-full bg-slate-100 px-2.5 text-xs font-extrabold text-slate-600",
-        positive && "bg-accent-soft text-accent",
-        maintenance && "bg-amber-50 text-amber-700",
-        danger && "bg-rose-50 text-rose-700",
-        warning && "bg-amber-50 text-amber-700",
+        "inline-flex min-h-[26px] w-fit items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold",
+        positive && "border-emerald-200/80 bg-emerald-50 text-emerald-800",
+        maintenance && "border-amber-200/80 bg-amber-50 text-amber-800",
+        danger && "border-rose-200/80 bg-rose-50 text-rose-700",
+        warning && "border-amber-200/80 bg-amber-50 text-amber-800",
+        !positive && !maintenance && !danger && !warning && "border-slate-200 bg-slate-100 text-slate-700",
       )}
     >
+      <span
+        className={cn(
+          "size-1.5 shrink-0 rounded-full",
+          positive && "bg-emerald-600",
+          maintenance && "bg-amber-600",
+          danger && "bg-rose-600",
+          warning && "bg-amber-600",
+          !positive && !maintenance && !danger && !warning && "bg-slate-500",
+        )}
+      />
       {labels[value] ?? value}
     </span>
   );

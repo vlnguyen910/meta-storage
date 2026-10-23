@@ -38,18 +38,24 @@ const FLOW3_IDS = {
     "84000000-0000-4000-8000-000000000002",
     "84000000-0000-4000-8000-000000000003",
     "84000000-0000-4000-8000-000000000004",
+    "84000000-0000-4000-8000-000000000005",
+    "84000000-0000-4000-8000-000000000006",
   ],
   rentals: [
     "85000000-0000-4000-8000-000000000001",
     "85000000-0000-4000-8000-000000000002",
     "85000000-0000-4000-8000-000000000003",
     "85000000-0000-4000-8000-000000000004",
+    "85000000-0000-4000-8000-000000000005",
+    "85000000-0000-4000-8000-000000000006",
   ],
   requests: [
     "86000000-0000-4000-8000-000000000001",
     "86000000-0000-4000-8000-000000000002",
     "86000000-0000-4000-8000-000000000003",
     "86000000-0000-4000-8000-000000000004",
+    "86000000-0000-4000-8000-000000000005",
+    "86000000-0000-4000-8000-000000000006",
   ],
   inspections: ["87000000-0000-4000-8000-000000000001"],
   checklist: "88000000-0000-4000-8000-000000000001",
@@ -58,6 +64,8 @@ const FLOW3_IDS = {
     "70000000-0000-4000-8000-000000000020",
     "70000000-0000-4000-8000-000000000021",
     "70000000-0000-4000-8000-000000000022",
+    "70000000-0000-4000-8000-000000000023",
+    "70000000-0000-4000-8000-000000000024",
   ],
 };
 const FLOW3_BOOKING_CODES = [
@@ -65,6 +73,8 @@ const FLOW3_BOOKING_CODES = [
   "DEMO-FLOW3-RETURN-PENDING",
   "DEMO-FLOW3-OVERDUE",
   "DEMO-FLOW3-CLOSED",
+  "DEMO-FLOW3-ACTIVE-2",
+  "DEMO-FLOW3-RETURN-PENDING-2",
 ];
 const FLOW3_DEMO_CHECKLIST = [
   {
@@ -689,6 +699,14 @@ async function seedFlow3Rentals(seedNow: Date) {
       requestDay: -119,
       slotIndex: 0,
     },
+    { status: "ACTIVE", expiryDays: 45, requestStatus: null, requestDay: 10, slotIndex: 1 },
+    {
+      status: "RETURN_PENDING",
+      expiryDays: 12,
+      requestStatus: "PENDING",
+      requestDay: 14,
+      slotIndex: 1,
+    },
   ] as const;
   for (const [index, scenario] of definitions.entries()) {
     const bookingId = FLOW3_IDS.bookings[index];
@@ -1304,9 +1322,9 @@ async function seed() {
   const checkInSlotsData = [
     {
       id: SEED_IDS.checkInSlots[0],
-      name: "Ca 1",
-      startTime: "09:00:00",
-      endTime: "10:30:00",
+      name: "Ca demo hôm nay",
+      startTime: "07:00:00",
+      endTime: "20:00:00",
     },
     {
       id: SEED_IDS.checkInSlots[1],
