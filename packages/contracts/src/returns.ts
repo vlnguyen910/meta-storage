@@ -330,7 +330,7 @@ export const ReturnRequestDetailSchema = z.object({
     z.object({
       id: z.uuid(),
       action: z.string(),
-      actorId: z.string(),
+      actorId: z.string().nullable(),
       details: z.unknown(),
       createdAt: iso,
     }),

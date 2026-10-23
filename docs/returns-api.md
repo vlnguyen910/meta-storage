@@ -1,5 +1,41 @@
 # Flow 3 return APIs — implementation record, 2026-10-20
 
+## Guest return requests (2026-10-23)
+
+The booking contact can request an email magic link at `/booking/tracking`, exchange
+it for the existing 30-minute booking cookie, and submit a return without an account.
+The registered account session is separate; creating an account does not claim a guest booking.
+
+| Method/path (prefix `/api`) | Input | Result |
+| --- | --- | --- |
+| GET `/booking/tracking/:bookingCode/return-requests` | Tracking cookie | 200, public return-request DTO list for that booking |
+| GET `/booking/tracking/:bookingCode/return-slots` | Tracking cookie; query `date` | 200, available configured slots at least 24 hours ahead |
+| POST `/booking/tracking/:bookingCode/return-requests` | Tracking cookie, trusted Origin; `{ date, slotId, reason }` | 201, new PENDING request |
+
+All routes use no-store responses and derive the rental from the verified booking session.
+Missing, expired, revoked or other-booking sessions return 401; unknown rental 404;
+untrusted/missing POST Origin 403; malformed/extra input 400; notice violations 422;
+unavailable slot, closed rental or an existing open request 409. Client-supplied
+actor/booking/rental IDs are rejected. These routes expose no Staff inspection,
+internal audit, financial decisions, guest edits/cancellations or account permissions.
+
+Creation reuses the existing facility/booking/rental locks and constraints. Only one
+open request can exist even under concurrent submissions. PENDING does not reserve a
+slot; FM assigns Staff, and assigned Staff confirms availability before reserving it.
+The rental moves ACTIVE → RETURN_PENDING; OVERDUE remains OVERDUE. Existing lifecycle
+notifications inform the facility through its normal queue/inbox/email outbox.
+
+Migration `0046_next_shockwave.sql` makes `return_requests.created_by` and
+`return_audit.actor_id` nullable. Guest creation records null user IDs and audit details
+`{ source: "GUEST_MAGIC_LINK", bookingId, date, slotId }`; no account is fabricated and
+no email-link/session token is persisted in the audit. Apply with `bun run db:migrate`
+before deploying the feature. Account/Staff actions still record authenticated user IDs.
+
+The public tracking page shows the form and current request status/history. It clears
+private data when the tracking session expires, permits retry after errors, and requires
+a fresh slot selection after a conflict. Email link holders can create a request, so
+the transactional email explicitly describes that permission and asks not to share it.
+
 Implemented backend/database scope: My Storage reads, guest rental access, lifecycle
 configuration, return requests and scheduling,
 versioned return inspections, physical receipt/corrections, FM settlement/manual

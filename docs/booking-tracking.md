@@ -50,14 +50,15 @@ Không tạo lại bảng booking_confirmation_emails đã xóa ở migration 00
    `GET /api/booking/tracking/:bookingCode/rental`, `/payments`, `/contracts` và
    `/contracts/:contractId/pdf` yêu cầu cookie session của đúng booking. Chỉ hợp đồng
    `ISSUED` được liệt kê/tải; PDF đi qua backend private storage. Các GET này chỉ đọc,
-   không cấp quyền sửa rental hay yêu cầu trả kho.
+   không cấp quyền sửa rental. Phiên hợp lệ còn có thể xem yêu cầu trả kho, lấy
+   khung giờ và gửi yêu cầu mới qua các endpoint guest trong [returns-api.md](returns-api.md).
 
 Các endpoint có `Cache-Control: no-store`. Link sai/hết hạn hoặc phiên hết hạn trả 401;
 truy cập booking khác bằng phiên hợp lệ trả 404; Origin không được phép trả 403;
 quá giới hạn trả 429; Redis không khả dụng trả 503, không cấp quyền dự phòng.
-Phiên không gia hạn theo mỗi request và chỉ cấp quyền đọc một booking, không cấp quyền
+Phiên không gia hạn theo mỗi request và chỉ cấp quyền đọc/gửi yêu cầu trả kho cho một booking, không cấp quyền
 đăng nhập, thanh toán, hủy đơn hay thao tác quản trị. Ai giữ link đều có quyền xem
-booking, vì vậy nội dung email nhắc khách không chia sẻ link.
+booking và gửi yêu cầu trả kho, vì vậy nội dung email nhắc khách không chia sẻ link.
 
 ## Dữ liệu Redis
 

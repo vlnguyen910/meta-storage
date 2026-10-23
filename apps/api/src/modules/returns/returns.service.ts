@@ -48,6 +48,7 @@ import {
 import type { ReturnsRepository } from "./returns.repository";
 import type {
   ReturnContext,
+  ReturnCustomerActor,
   ReturnOperationalRow,
   ReturnRequestRow,
   ReturnTransaction,
@@ -165,7 +166,11 @@ export class ReturnsService {
     else await this.staff(tx, actor, request);
   }
 
-  private customer(actor: ReturnActor, context: ReturnContext) {
+  private customer(actor: ReturnCustomerActor, context: ReturnContext) {
+    if (actor.id === null) {
+      if (context.booking.id !== actor.bookingId) throw new NotFoundError(m.notFound);
+      return;
+    }
     this.role(actor, "CUSTOMER");
     if (context.booking.userId !== actor.id) throw new NotFoundError(m.notFound);
   }
@@ -241,13 +246,13 @@ export class ReturnsService {
       });
     });
   }
-  async list(actor: ReturnActor, rentalId: string) {
+  async list(actor: ReturnCustomerActor, rentalId: string) {
     return this.repository.locked(rentalId, async (tx, context) => {
       this.customer(actor, context);
       return (await this.repository.requestsForRental(tx, rentalId)).map(requestDto);
     });
   }
-  async slots(actor: ReturnActor, rentalId: string, date: string) {
+  async slots(actor: ReturnCustomerActor, rentalId: string, date: string) {
     return this.repository.locked(rentalId, async (tx, context) => {
       this.customer(actor, context);
       if (context.rental.closedAt || context.rental.status === "CLOSED")
@@ -279,7 +284,7 @@ export class ReturnsService {
     return slot;
   }
 
-  async create(actor: ReturnActor, rentalId: string, input: CreateReturnRequest) {
+  async create(actor: ReturnCustomerActor, rentalId: string, input: CreateReturnRequest) {
     return this.repository.locked(rentalId, async (tx, context) => {
       this.customer(actor, context);
       if (
@@ -307,7 +312,11 @@ export class ReturnsService {
         tx,
         actor.id,
         "RETURN_REQUEST_CREATED",
-        { slotId: slot.slotId, date: input.date },
+        {
+          slotId: slot.slotId,
+          date: input.date,
+          ...(actor.id === null ? { source: "GUEST_MAGIC_LINK", bookingId: actor.bookingId } : {}),
+        },
         row.id,
         row.facilityId,
       );

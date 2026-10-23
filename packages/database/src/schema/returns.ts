@@ -80,9 +80,7 @@ export const returnRequests = pgTable(
     version: integer().default(0).notNull(),
     reason: text().notNull(),
     manualReviewRequired: boolean().default(false).notNull(),
-    createdBy: uuid()
-      .notNull()
-      .references(() => users.id, { onDelete: "restrict" }),
+    createdBy: uuid().references(() => users.id, { onDelete: "restrict" }),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
@@ -263,9 +261,7 @@ export const returnAudit = pgTable(
     id: uuid().defaultRandom().primaryKey(),
     requestId: uuid().references(() => returnRequests.id, { onDelete: "restrict" }),
     facilityId: uuid().references(() => facilities.id, { onDelete: "restrict" }),
-    actorId: uuid()
-      .notNull()
-      .references(() => users.id, { onDelete: "restrict" }),
+    actorId: uuid().references(() => users.id, { onDelete: "restrict" }),
     action: text().notNull(),
     details: jsonb().$type<Record<string, unknown>>().notNull(),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
