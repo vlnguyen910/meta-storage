@@ -27,4 +27,21 @@ export const CustomerSignUpInputSchema = z
 
 export type CustomerSignUpInput = z.infer<typeof CustomerSignUpInputSchema>;
 
+export const ResetPasswordInputSchema = z
+  .object({
+    token: z.string().min(1).max(256),
+    newPassword: CustomerSignUpInputSchema.shape.password,
+    confirmPassword: CustomerSignUpInputSchema.shape.confirmPassword,
+  })
+  .superRefine((input, context) => {
+    if (input.newPassword !== input.confirmPassword) {
+      context.addIssue({
+        code: "custom",
+        path: ["confirmPassword"],
+        message: CONTRACT_MESSAGES.passwordsDoNotMatch,
+      });
+    }
+  });
+export type ResetPasswordInput = z.infer<typeof ResetPasswordInputSchema>;
+
 export type { CookieSession, LoginInput, Session, SessionUser } from "./auth.types";

@@ -68,6 +68,7 @@ import type {
   ReservationHold,
   ReservationQuote,
   ReservationQuoteInput,
+  ResetPasswordInput,
   ReturnInspectionDto,
   ReturnPhotoInput,
   ReturnQueueItemDto,
@@ -210,7 +211,16 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
           ? http.post<ApiEnvelope<null>>("/auth/logout").then(unwrap)
           : http.post("/auth/sign-out").then(() => null),
       forgotPassword: (email: string) =>
-        http.post<ApiEnvelope<null>>("/auth/forgot-password", { email }).then(unwrap),
+        authMode === "mock"
+          ? http.post<ApiEnvelope<null>>("/auth/forgot-password", { email }).then(unwrap)
+          : http.post("/auth/request-password-reset", { email }).then(() => undefined),
+      resetPassword: (input: ResetPasswordInput) =>
+        http
+          .post("/auth/reset-password", {
+            token: input.token,
+            newPassword: input.newPassword,
+          })
+          .then(() => undefined),
       resendVerificationEmail: (email: string, callbackURL: string) =>
         http.post("/auth/send-verification-email", { email, callbackURL }).then(() => undefined),
       registerCustomer: (input: CustomerSignUpInput) =>

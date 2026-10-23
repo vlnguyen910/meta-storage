@@ -103,8 +103,8 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       if (cookies.length) reply.header("set-cookie", cookies);
       if (response.status >= 400) {
         const body = await response.json().catch(() => null);
-        return reply.type("application/json").send(
-          errorResponse({
+        return reply.type("application/json").send({
+          ...errorResponse({
             code: response.status,
             message:
               body &&
@@ -114,7 +114,10 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
                 ? body.message
                 : ERROR_MESSAGES.unexpectedInternalServerError,
           }),
-        );
+          ...(body && typeof body === "object" && "code" in body && typeof body.code === "string"
+            ? { code: body.code }
+            : {}),
+        });
       }
       return reply.send(response.body ? await response.text() : null);
     },

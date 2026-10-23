@@ -1,4 +1,4 @@
-import type { Mailer, VerificationEmail } from "./mailer.interface";
+import type { Mailer, PasswordResetEmail, VerificationEmail } from "./mailer.interface";
 import { RESEND_MESSAGES } from "./resend.messages";
 import type { ResendAdapterOptions, ResendResponse } from "./resend.types";
 
@@ -7,6 +7,27 @@ export class ResendMailer implements Mailer {
 
   constructor(private readonly options: ResendAdapterOptions) {
     this.fetcher = options.fetcher ?? fetch;
+  }
+
+  async sendPasswordResetEmail({ to, name, resetUrl }: PasswordResetEmail): Promise<void> {
+    if (!this.options.apiKey || !this.options.fromEmail) {
+      throw new Error(RESEND_MESSAGES.deliveryNotConfigured);
+    }
+    const response = await this.fetcher("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.options.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      signal: AbortSignal.timeout(10_000),
+      body: JSON.stringify({
+        from: this.options.fromEmail,
+        to: [to],
+        subject: RESEND_MESSAGES.resetSubject,
+        html: RESEND_MESSAGES.resetHtml(escapeHtml(name), escapeAttribute(resetUrl)),
+      }),
+    });
+    if (!response.ok) throw new Error(RESEND_MESSAGES.resetEmailRejected);
   }
 
   async sendVerificationEmail({ to, name, verificationUrl }: VerificationEmail): Promise<void> {

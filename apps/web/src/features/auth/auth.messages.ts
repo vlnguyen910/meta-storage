@@ -1,4 +1,19 @@
 export const AUTH_MESSAGES = {
+  resetTitle: "Đặt lại mật khẩu",
+  resetNewPassword: "Mật khẩu mới",
+  resetHint:
+    "Sử dụng mật khẩu từ 8 đến 128 ký tự. Liên kết chỉ dùng một lần và hết hạn sau 60 phút.",
+  resetPasswordLength: "Mật khẩu cần từ 8 đến 128 ký tự.",
+  resetInvalid: "Liên kết không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu liên kết mới.",
+  resetFailed:
+    "Chưa thể đặt lại mật khẩu. Kiểm tra kết nối và thử lại; nếu liên kết hết hạn hoặc đã dùng, hãy yêu cầu liên kết mới.",
+  resetSubmit: "Lưu mật khẩu mới",
+  resetSubmitting: "Đang lưu…",
+  resetLoading: "Đang tải…",
+  resetSuccessTitle: "Đã đổi mật khẩu",
+  resetSuccess:
+    "Các phiên đăng nhập cũ đã được kết thúc. Hãy đăng nhập bằng mật khẩu mới trên web hoặc quay lại ứng dụng.",
+  resetRequestNew: "Yêu cầu liên kết mới",
   termsRequired: "Vui lòng đồng ý với điều khoản sử dụng và chính sách bảo mật.",
   verificationCheck: "Kiểm tra xác thực email",
   verificationCheckDescription:
