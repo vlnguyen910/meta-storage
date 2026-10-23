@@ -323,6 +323,13 @@
       "when": 1792574498979,
       "tag": "0045_lame_gateway",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1792749979392,
+      "tag": "0046_next_shockwave",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,5 @@
 import { createHmac } from "node:crypto";
-import type { RentalDetail } from "@metastorage/contracts";
+import type { CreateReturnRequest, RentalDetail } from "@metastorage/contracts";
 import { BOOKING_ACCESS, bookingSessionKey } from "@metastorage/shared/booking-access";
 import type Redis from "ioredis";
 import { AppError, NotFoundError } from "../../common/errors/app-error";
@@ -7,6 +7,7 @@ import type { RedisService } from "../../common/redis/redis.service";
 import { env } from "../../config/env";
 import { CloudinaryContractStorage } from "../contracts/cloudinary-contract.storage";
 import type { ContractStorage } from "../contracts/contracts.types";
+import type { ReturnsService } from "../returns/returns.service";
 import { GUEST_RENTAL_ACCESS_MESSAGES as messages } from "./guest-rental-access.messages";
 import type { GuestRentalAccessRepository } from "./guest-rental-access.repository";
 import type { GuestIssuedContract, GuestRentalPaymentItem } from "./guest-rental-access.types";
@@ -17,6 +18,7 @@ export class GuestRentalAccessService {
     private readonly repository: GuestRentalAccessRepository,
     private readonly redis: Redis,
     private readonly redisService: RedisService,
+    private readonly returns: ReturnsService,
     private readonly contractStorage: ContractStorage = new CloudinaryContractStorage(),
   ) {}
 
@@ -146,6 +148,28 @@ export class GuestRentalAccessService {
       ],
     };
     return item;
+  }
+
+  private async returnContext(bookingCode: string, token?: string) {
+    const session = await this.session(token, bookingCode);
+    const [row] = await this.repository.rental(session.bookingId);
+    if (!row) throw new NotFoundError(messages.rentalNotFound);
+    return { rentalId: row.rental.id, actor: { id: null, bookingId: session.bookingId } };
+  }
+
+  async returnRequests(bookingCode: string, token?: string) {
+    const { actor, rentalId } = await this.returnContext(bookingCode, token);
+    return this.returns.list(actor, rentalId);
+  }
+
+  async returnSlots(bookingCode: string, date: string, token?: string) {
+    const { actor, rentalId } = await this.returnContext(bookingCode, token);
+    return this.returns.slots(actor, rentalId, date);
+  }
+
+  async createReturn(bookingCode: string, input: CreateReturnRequest, token?: string) {
+    const { actor, rentalId } = await this.returnContext(bookingCode, token);
+    return this.returns.create(actor, rentalId, input);
   }
 
   async payments(bookingCode: string, token?: string): Promise<GuestRentalPaymentItem[]> {

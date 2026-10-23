@@ -44,7 +44,7 @@ and audited. Missing policy blocks financial assessment; no runtime fallback.
 `return_requests`: UUID id, rental_id/facility_id/slot_id FKs, local date, UTC starts_at/
 ends_at and timezone snapshots, assigned_staff_id FK nullable, reason, status
 (PENDING/CONFIRMED/INSPECTING/FAILED/COMPLETED/CANCELLED), version, manual_review_required,
-created_by FK and created_at. Partial unique index permits only one open return per
+created_by FK nullable for a guest magic-link submission, and created_at. Partial unique index permits only one open return per
 rental. Rental/booking locks serialize workflow and financial changes; schedule
 capacity/buffer checks serialize on the facility row.
 PENDING does not reserve capacity. A partial unique (facility_id,date,slot_id) index
@@ -87,8 +87,11 @@ confirmed_at. Unique request/idempotency and transfer reference; rows represent
 explicitly confirmed manual transfers, not refund submissions. No existing payment
 status is overwritten. Settlement closure does not wait for transfers.
 
-`return_audit`: UUID id, nullable request_id/facility_id FKs, actor_id FK, action,
-JSONB details and created_at. Append-only approvals/config/transition records.
+`return_audit`: UUID id, nullable request_id/facility_id FKs, nullable actor_id FK, action,
+JSONB details and created_at. Guest request creation has null actor_id/created_by and
+details containing source `GUEST_MAGIC_LINK` and the verified bookingId; the request's
+rental also identifies that booking. No fake account or session token is persisted.
+Account/Staff mutations continue to record their users FK. Append-only approvals/config/transition records.
 No unrelated workflow, renewal/upgrade or check-in policy is introduced.
 
 Flow 4 pricing: `system_settings` key DEPOSIT_MONTHS stores positive integer value
@@ -763,8 +766,12 @@ the corresponding durable customer row in `notification_outbox` in the same tran
 the outbox id is also the mail delivery id. Magic links expire 24 hours after request;
 the latest issued link revokes the prior magic grant. Session cookies remain 30 minutes
 and are scoped to one booking. The resend limits are 3 per booking/hour and 10 per IP/hour.
-Guests can read their linked rental, payment/refund history, and ISSUED contract PDFs;
-they cannot use rental or staff mutation endpoints.
+Guests can read their linked rental, payment/refund history, and ISSUED contract PDFs.
+A valid booking session can list its return requests, read return-slot availability,
+and submit a new return request through `/booking/tracking/:bookingCode` routes.
+These reuse the account workflow's notice, availability, open-request and rental-state
+rules; POST requires an allowed Origin. Guest sessions do not grant access to account
+rental or Staff endpoints, return edits/cancellations, financial decisions or other bookings.
 
 ## Unified system settings (2026-10-20; supersedes global settings tables above)
 

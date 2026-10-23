@@ -307,7 +307,7 @@ export class ReturnsRepository {
   }
   async audit(
     tx: ReturnTransaction,
-    actorId: string,
+    actorId: string | null,
     action: string,
     details: Record<string, unknown>,
     requestId: string | null = null,
