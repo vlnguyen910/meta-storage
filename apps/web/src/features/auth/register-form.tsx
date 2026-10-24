@@ -28,6 +28,7 @@ import { api } from "@/lib/api";
 import { MOCK_MESSAGES } from "@/mocks/mock.messages";
 import { AUTH_MESSAGES } from "./auth.messages";
 import type { RegisterFormValues } from "./auth.types";
+import { GoogleSignInButton } from "./google-sign-in-button";
 
 export function RegisterForm() {
   const { runWithGlobalLoading } = useGlobalLoading();
@@ -340,6 +341,18 @@ export function RegisterForm() {
             </button>
           </div>
         </form>
+
+        {/* Alternative SSO Dividers */}
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-slate-200" />
+          </div>
+          <div className="relative flex justify-center text-xs">
+            <span className="bg-white px-3 text-slate-600">{AUTH_MESSAGES.orContinueWith}</span>
+          </div>
+        </div>
+
+        <GoogleSignInButton label={AUTH_MESSAGES.googleContinue} />
 
         {/* Bottom Redirection */}
         <div className="mt-6 pt-4 border-t border-slate-200 text-center">

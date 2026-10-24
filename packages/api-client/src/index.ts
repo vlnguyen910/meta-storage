@@ -86,6 +86,8 @@ import type {
   SessionTokens,
   SessionUser,
   SettleReturn,
+  SocialAuthInput,
+  SocialAuthResponse,
   StorageUnitMaintenanceTransition,
   StorageUnitResponse,
   UnitAvailabilityOption,
@@ -229,6 +231,30 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
         http
           .post<{ message: string }>("/auth/customer-sign-up", input)
           .then((response) => response.data),
+      signInSocial: async (input: SocialAuthInput): Promise<SocialAuthResponse> => {
+        if (authMode === "mock") {
+          return { url: input.callbackURL, redirect: true };
+        }
+        const response = await http.post<SocialAuthResponse>("/auth/sign-in/social", {
+          provider: input.provider,
+          callbackURL: input.callbackURL,
+          errorCallbackURL: input.errorCallbackURL,
+          disableRedirect: true,
+        });
+        return response.data;
+      },
+      linkSocial: async (input: SocialAuthInput): Promise<SocialAuthResponse> => {
+        if (authMode === "mock") {
+          return { url: input.callbackURL, redirect: true };
+        }
+        const response = await http.post<SocialAuthResponse>("/auth/link-social", {
+          provider: input.provider,
+          callbackURL: input.callbackURL,
+          errorCallbackURL: input.errorCallbackURL,
+          disableRedirect: true,
+        });
+        return response.data;
+      },
     },
     users: {
       list: () => http.get<ApiEnvelope<User[]>>("/users", { params: { limit: 100 } }).then(unwrap),

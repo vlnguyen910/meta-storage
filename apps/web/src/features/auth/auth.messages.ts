@@ -59,7 +59,35 @@ export const AUTH_MESSAGES = {
 
   // SSO & Alternative Logins
   orContinueWith: "hoặc tiếp tục với",
-  googleLogin: "Hoặc tiếp tục với Google",
+  googleLogin: "Tiếp tục với Google",
+  googleContinue: "Tiếp tục với Google",
+  googleConnecting: "Đang kết nối với Google...",
+  googleLinking: "Đang chuyển hướng để liên kết Google...",
+  googleLinkButton: "Liên kết tài khoản Google",
+  googleLinkTitle: "Liên kết tài khoản Google",
+  googleLinkDescription:
+    "Liên kết tài khoản này với Google để có thể đăng nhập nhanh chóng bằng 1 chạm trong tương lai.",
+  googleLinkPromptAfterLogin:
+    "Đăng nhập thành công! Bạn có muốn liên kết tài khoản Google này ngay bây giờ để thuận tiện cho các lần đăng nhập tiếp theo không?",
+  linkGoogleAction: "Liên kết ngay với Google",
+  linkGoogleLater: "Để sau",
+  googleLinkSuccess: "Liên kết tài khoản Google thành công!",
+  googleLinkFailed: "Không thể hoàn tất liên kết tài khoản Google. Vui lòng thử lại.",
+  accountNotLinkedTitle: "Tài khoản chưa được liên kết Google",
+  accountNotLinked:
+    "Email này đã có tài khoản trên hệ thống nhưng chưa được liên kết với Google. Vui lòng đăng nhập bằng mật khẩu bên dưới, sau đó tiến hành liên kết.",
+  googleEmailUnverified:
+    "Email Google chưa được xác minh. Vui lòng xác minh trên Google trước khi tiếp tục.",
+  googleAccountDisabled:
+    "Tài khoản của bạn hiện đang bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.",
+  googleLinkSessionRequired:
+    "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại trước khi liên kết tài khoản.",
+  googleEmailMismatch: "Email tài khoản Google không khớp với email tài khoản hiện tại của bạn.",
+  googleAccessDenied:
+    "Bạn đã từ chối cấp quyền truy cập từ Google. Vui lòng thử lại nếu muốn đăng nhập.",
+  googleStateExpired: "Phiên xác thực đã hết hạn hoặc không hợp lệ. Vui lòng thử lại.",
+  googleProviderDisabled: "Phương thức đăng nhập qua Google hiện chưa được kích hoạt.",
+  googleAuthFailed: "Đăng nhập bằng Google không thành công. Vui lòng thử lại.",
   qrLogin: "Đăng nhập bằng mã QR qua ứng dụng storeX",
   hotlineLabel: "Hotline hỗ trợ kỹ thuật:",
   hotlineNumber: "1900 6868",
