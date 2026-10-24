@@ -17,7 +17,6 @@ import {
   eq,
   facilities,
   facilityAssignments,
-  facilityUnitTypes,
   inArray,
   payments,
   rentals,
@@ -35,6 +34,7 @@ import { setupErrorHandler } from "../../src/common/errors/error-handler";
 import { auth } from "../../src/modules/auth/auth";
 import { ReportsRepository } from "../../src/modules/reports/reports.repository";
 import { reportsRoutes } from "../../src/modules/reports/reports.routes";
+import { createTestUnitType, deleteTestUnitTypes } from "../fixtures/facility-catalog";
 import { assertTestDatabase } from "../fixtures/test-database";
 
 const testUrl = process.env.REPORTS_TEST_DATABASE_URL;
@@ -45,6 +45,7 @@ describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
     a: randomUUID(),
     b: randomUUID(),
     type: randomUUID(),
+    otherType: randomUUID(),
     slot: randomUUID(),
   };
   const app = Fastify();
@@ -72,7 +73,7 @@ describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
       contactEmail: "reports@example.test",
       contactPhone: "0901234567",
       facilityId,
-      unitTypeId: ids.type,
+      unitTypeId: facilityId === ids.b ? ids.otherType : ids.type,
       requestedMonths: 3,
       checkInDate: "2026-10-01",
       checkInSlotId: ids.slot,
@@ -133,7 +134,8 @@ describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
       { id: ids.a, code: ids.a, name: "=SUM(1,2)", address: "Test A" },
       { id: ids.b, code: ids.b, name: "Zero-sales facility", address: "Test B" },
     ]);
-    await db.insert(unitTypes).values({
+    await createTestUnitType(db, {
+      facilityId: ids.a,
       id: ids.type,
       code: ids.type,
       name: "Test storage",
@@ -143,7 +145,7 @@ describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
       heightM: 1,
       monthlyPrice: 9999999,
     });
-    await db.insert(facilityUnitTypes).values({ facilityId: ids.a, unitTypeId: ids.type });
+
     await db
       .insert(checkInSlots)
       .values({ id: ids.slot, name: "Test slot", startTime: "09:00", endTime: "10:00" });
@@ -267,9 +269,9 @@ describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
     await db
       .delete(facilityAssignments)
       .where(inArray(facilityAssignments.facilityId, [ids.a, ids.b]));
-    await db.delete(facilityUnitTypes).where(inArray(facilityUnitTypes.facilityId, [ids.a, ids.b]));
+    await deleteTestUnitTypes(db, eq(unitTypes.id, ids.type));
+
     await db.delete(facilities).where(inArray(facilities.id, [ids.a, ids.b]));
-    await db.delete(unitTypes).where(eq(unitTypes.id, ids.type));
     await db.delete(checkInSlots).where(eq(checkInSlots.id, ids.slot));
     await db.delete(users).where(inArray(users.id, [ids.bom, ids.fm]));
   });
@@ -457,7 +459,19 @@ describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
     }
   });
   test("computes weighted utilization and totals before facility pagination", async () => {
-    await db.insert(facilityUnitTypes).values({ facilityId: ids.b, unitTypeId: ids.type });
+    await createTestUnitType(db, {
+      id: ids.otherType,
+      facilityId: ids.b,
+      priceRangeId: ids.type,
+      code: ids.type,
+      name: "Other facility type",
+      sizeLabel: "S",
+      lengthM: 1,
+      widthM: 1,
+      heightM: 1,
+      monthlyPrice: 9999999,
+    });
+
     const bid = await booking("CONFIRMED", ids.b);
     const pid = await payment(bid, "SUCCEEDED", "2026-10-20T10:00:00Z");
     const units = [randomUUID(), randomUUID()] as const;
@@ -466,22 +480,22 @@ describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
         id: units[0],
         code: units[0],
         facilityId: ids.b,
-        unitTypeId: ids.type,
+        unitTypeId: ids.otherType,
         status: "OCCUPIED",
       },
       {
         id: units[1],
         code: units[1],
         facilityId: ids.b,
-        unitTypeId: ids.type,
+        unitTypeId: ids.otherType,
         status: "AVAILABLE",
       },
     ]);
     try {
-      const revenue = (await get(`revenue?${period}&limit=1`)).json().data;
+      const revenue = (await get(`revenue?${period}&limit=1`, true)).json().data;
       expect(revenue.items).toHaveLength(1);
       expect(revenue.summary.cashReceived).toBe("24000000.00");
-      const utilization = (await get("utilization?limit=1")).json().data;
+      const utilization = (await get("utilization?limit=1", true)).json().data;
       expect(utilization.summary.utilizationPercent).toBe(63.64);
       login("FACILITY_MANAGER", ids.fm);
       expect((await get(`revenue?${period}`)).json().data.summary.cashReceived).toBe("20000000.00");
@@ -490,7 +504,7 @@ describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
       await db.delete(payments).where(eq(payments.id, pid));
       await db.delete(bookings).where(eq(bookings.id, bid));
       for (const id of units) await db.delete(storageUnits).where(eq(storageUnits.id, id));
-      await db.delete(facilityUnitTypes).where(eq(facilityUnitTypes.facilityId, ids.b));
+      await deleteTestUnitTypes(db, eq(unitTypes.id, ids.otherType));
     }
   });
   test("return refunds and settlement revisions affect existing reports without multiplying history", async () => {

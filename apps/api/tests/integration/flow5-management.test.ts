@@ -8,9 +8,13 @@ import {
   eq,
   facilityTasks,
   inArray,
+  pricingChanges,
   queryClient,
   rentals,
   storageUnitMaintenanceHistory,
+  storageUnits,
+  systemSettingChanges,
+  systemSettings,
   unitAssignments,
   unitTypes,
 } from "@metastorage/database";
@@ -50,10 +54,20 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Flow 5 management A
         await db
           .delete(storageUnitMaintenanceHistory)
           .where(eq(storageUnitMaintenanceHistory.storageUnitId, f.unitId));
-        await f.cleanup();
+        await db
+          .update(systemSettings)
+          .set({ updatedBy: null })
+          .where(eq(systemSettings.updatedBy, f.ids.manager));
+        await db.delete(pricingChanges).where(eq(pricingChanges.changedBy, f.ids.manager));
+        await db
+          .delete(systemSettingChanges)
+          .where(eq(systemSettingChanges.actorId, f.ids.manager));
         if (createdUnitTypeIds.length > 0) {
+          // Physical units are removed by the fixture before their facility-owned types.
+          await db.delete(storageUnits).where(eq(storageUnits.facilityId, f.facilityId));
           await db.delete(unitTypes).where(inArray(unitTypes.id, createdUnitTypeIds));
         }
+        await f.cleanup();
       }
     } finally {
       await queryClient.end();
@@ -109,8 +123,10 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Flow 5 management A
     ).toBe(200);
   });
 
-  test("Admin and BOM manage shared unit types and facility offerings; prices are not editable here", async () => {
-    const create = await f.api("admin", "POST", "/unit-types", {
+  test("FM manages facility-owned types, prices and physical unit metadata", async () => {
+    const create = await f.api("manager", "POST", "/unit-types", {
+      facilityId: f.facilityId,
+      priceRangeId: f.typeId,
       code: `FLOW5-${randomUUID()}`,
       name: "Flow 5 managed type",
       sizeLabel: "6 m²",
@@ -123,34 +139,33 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Flow 5 management A
     const typeId = create.json().data.id as string;
     createdUnitTypeIds.push(typeId);
     expect(create.json().data.sizeCbm).toBe(15);
-    expect((await f.api("manager", "GET", "/unit-types")).statusCode).toBe(403);
+    expect((await f.api("manager", "GET", "/unit-types")).statusCode).toBe(200);
     expect(
-      (await f.api("admin", "PATCH", `/unit-types/${typeId}`, { monthlyPrice: 2 })).statusCode,
-    ).toBe(400);
-    const updated = await f.api("bom", "PATCH", `/unit-types/${typeId}`, { name: "Updated type" });
+      (
+        await f.api("admin", "PATCH", `/unit-types/${typeId}`, {
+          expectedVersion: 0,
+          monthlyPrice: 2,
+        })
+      ).statusCode,
+    ).toBe(403);
+    const updated = await f.api("manager", "PATCH", `/unit-types/${typeId}`, {
+      expectedVersion: 0,
+      name: "Updated type",
+    });
     expect(updated.statusCode).toBe(200);
     expect(updated.json().data).toMatchObject({ name: "Updated type", monthlyPrice: 1500000 });
 
-    expect(
-      (
-        await f.api("manager", "POST", `/facilities/${f.facilityId}/storage-units`, {
-          unitTypeId: typeId,
-          code: `FLOW5-${randomUUID()}`,
-        })
-      ).statusCode,
-    ).toBe(404);
     const offering = await f.api(
-      "admin",
+      "manager",
       "PATCH",
       `/facilities/${f.facilityId}/unit-types/${typeId}`,
-      { isActive: true },
+      { expectedVersion: 1, isActive: true },
     );
     expect(offering.statusCode).toBe(200);
-    expect(offering.json().data.isActive).toBe(true);
     expect(
-      (await f.api("admin", "GET", `/facilities/${f.facilityId}/unit-types/management`))
+      (await f.api("manager", "GET", `/facilities/${f.facilityId}/unit-types/management`))
         .json()
-        .data.some((item: { unitTypeId: string }) => item.unitTypeId === typeId),
+        .data.some((item: { id: string }) => item.id === typeId),
     ).toBe(true);
 
     const createdUnit = await f.api(
@@ -180,12 +195,14 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Flow 5 management A
     ).toBe(400);
     expect(
       (
-        await f.api("admin", "PATCH", `/facilities/${f.facilityId}/unit-types/${typeId}`, {
+        await f.api("manager", "PATCH", `/facilities/${f.facilityId}/unit-types/${typeId}`, {
+          expectedVersion: 2,
           isActive: false,
         })
       ).statusCode,
     ).toBe(200);
-    const deactivatedType = await f.api("admin", "PATCH", `/unit-types/${typeId}`, {
+    const deactivatedType = await f.api("manager", "PATCH", `/unit-types/${typeId}`, {
+      expectedVersion: 3,
       isActive: false,
     });
     expect(deactivatedType.statusCode).toBe(200);

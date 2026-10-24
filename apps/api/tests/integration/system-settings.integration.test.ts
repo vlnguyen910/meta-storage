@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import {
   db,
   eq,
+  facilities,
   inArray,
   pricingChanges,
   queryClient,
@@ -25,11 +26,18 @@ import { RentalLifecycleSettingsRepository } from "../../src/modules/rental-life
 import { rentalLifecycleSettingsRoutes } from "../../src/modules/rental-lifecycle-settings/rental-lifecycle-settings.routes";
 import { returnsRoutes } from "../../src/modules/returns/returns.routes";
 import { systemSettingsRoutes } from "../../src/modules/system-settings/system-settings.routes";
+import { createTestUnitType, deleteTestUnitTypes } from "../fixtures/facility-catalog";
 import { assertTestDatabase } from "../fixtures/test-database";
 
 const localUrl = process.env.MY_STORAGE_LOCAL_DATABASE_URL;
 describe.skipIf(!localUrl)("unified settings using existing local PostgreSQL", () => {
-  const ids = { admin: randomUUID(), bom: randomUUID(), staff: randomUUID(), type: randomUUID() };
+  const ids = {
+    admin: randomUUID(),
+    bom: randomUUID(),
+    staff: randomUUID(),
+    type: randomUUID(),
+    facility: randomUUID(),
+  };
   const roles = {
     admin: "SYSTEM_ADMIN",
     bom: "BUSINESS_OPERATION_MANAGER",
@@ -70,7 +78,11 @@ describe.skipIf(!localUrl)("unified settings using existing local PostgreSQL", (
         status: "ACTIVE" as const,
       })),
     );
-    await db.insert(unitTypes).values({
+    await db
+      .insert(facilities)
+      .values({ id: ids.facility, code: ids.facility, name: "Settings fixture", address: "Test" });
+    await createTestUnitType(db, {
+      facilityId: ids.facility,
       id: ids.type,
       code: ids.type,
       name: "Settings test type",
@@ -114,7 +126,8 @@ describe.skipIf(!localUrl)("unified settings using existing local PostgreSQL", (
               .update(systemSettings)
               .set(original)
               .where(eq(systemSettings.key, original.key));
-          await tx.delete(unitTypes).where(eq(unitTypes.id, ids.type));
+          await deleteTestUnitTypes(tx, eq(unitTypes.id, ids.type));
+          await tx.delete(facilities).where(eq(facilities.id, ids.facility));
           await tx.delete(users).where(inArray(users.id, actors));
         });
     } finally {
@@ -232,18 +245,24 @@ describe.skipIf(!localUrl)("unified settings using existing local PostgreSQL", (
 
   test("financial settings reuse pricing revision and overdue APIs without granting Admin approval", async () => {
     const before = await row("DEPOSIT_MONTHS");
-    const results = await Promise.all([
-      request("bom", "PUT", "/system-settings", {
-        key: before.key,
-        value: 2,
-        expectedVersion: before.version,
-      }),
-      request("bom", "PATCH", `/business-rules/pricing/${ids.type}`, {
-        monthlyPrice: 124000,
-        expectedVersion: before.version,
-      }),
-    ]);
-    expect(results.map((r) => r.statusCode).sort()).toEqual([200, 409]);
+    expect(
+      (
+        await request("bom", "PATCH", `/business-rules/rental-price-ranges/${ids.type}`, {
+          minMonthlyPrice: 1,
+          maxMonthlyPrice: 200000,
+          expectedVersion: 0,
+        })
+      ).statusCode,
+    ).toBe(200);
+    expect(
+      (
+        await request("bom", "PUT", "/system-settings", {
+          key: before.key,
+          value: 2,
+          expectedVersion: before.version + 1,
+        })
+      ).statusCode,
+    ).toBe(200);
     const current = await row(before.key);
     const pricing = await request("bom", "GET", "/business-rules/pricing");
     expect(pricing.json().data).toMatchObject({

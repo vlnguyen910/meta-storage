@@ -13,7 +13,6 @@ import {
   facilityAssignments,
   facilityOperatingHours,
   facilityReturnCalendars,
-  facilityUnitTypes,
   inArray,
   notificationOutbox,
   paymentProviderEvents,
@@ -80,6 +79,7 @@ import { rentalsRoutes } from "../../src/modules/rentals/rentals.routes";
 import { ReturnsRepository } from "../../src/modules/returns/returns.repository";
 import { returnsRoutes } from "../../src/modules/returns/returns.routes";
 import { ReturnsService } from "../../src/modules/returns/returns.service";
+import { createTestUnitType, deleteTestUnitTypes } from "../fixtures/facility-catalog";
 import { assertTestDatabase } from "../fixtures/test-database";
 
 const target = process.env.MY_STORAGE_LOCAL_DATABASE_URL;
@@ -366,7 +366,8 @@ describe.skipIf(!target)(
           await tx
             .insert(facilityAssignments)
             .values({ userId: actorIds[key], facilityId, role: roles[key] });
-        await tx.insert(unitTypes).values({
+        await createTestUnitType(tx, {
+          facilityId: fixture.facility,
           id: fixture.unitType,
           code: fixture.unitType,
           name: "Return test",
@@ -376,9 +377,7 @@ describe.skipIf(!target)(
           heightM: 1,
           monthlyPrice: 1000000,
         });
-        await tx
-          .insert(facilityUnitTypes)
-          .values({ facilityId: fixture.facility, unitTypeId: fixture.unitType });
+
         await tx
           .insert(checkInSlots)
           .values({ id: fixture.slot, name: "Return test", startTime: "09:00", endTime: "10:30" });
@@ -549,19 +548,17 @@ describe.skipIf(!target)(
           await tx
             .delete(facilityOperatingHours)
             .where(eq(facilityOperatingHours.facilityId, fixture.facility));
-          await tx
-            .delete(facilityUnitTypes)
-            .where(eq(facilityUnitTypes.facilityId, fixture.facility));
+
           await tx
             .delete(facilityAssignments)
             .where(inArray(facilityAssignments.userId, Object.values(actorIds)));
           await tx
             .delete(returnChecklistVersions)
             .where(eq(returnChecklistVersions.createdBy, actorIds.admin));
+          await deleteTestUnitTypes(tx, eq(unitTypes.id, fixture.unitType));
           await tx
             .delete(facilities)
             .where(inArray(facilities.id, [fixture.facility, fixture.otherFacility]));
-          await tx.delete(unitTypes).where(eq(unitTypes.id, fixture.unitType));
           await tx.delete(checkInSlots).where(eq(checkInSlots.id, fixture.slot));
           await tx.delete(users).where(inArray(users.id, Object.values(actorIds)));
         });
