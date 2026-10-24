@@ -21,6 +21,7 @@ export type {
 } from "./notifications.types";
 export * from "./payments";
 export * from "./pricing";
+export * from "./rental-charges";
 export * from "./rental-documents";
 export * from "./rental-lifecycle-settings";
 export * from "./rental-lifecycle-settings.messages";

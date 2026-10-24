@@ -23,6 +23,7 @@ import {
 import { checkInSlots } from "./check-in-slots";
 import { facilities } from "./facilities";
 import { payments } from "./payments";
+import { rentalCharges } from "./rental-charges";
 import { rentals } from "./rentals";
 import { users } from "./users";
 
@@ -191,6 +192,7 @@ export const returnSettlements = pgTable(
     requestId: uuid()
       .notNull()
       .references(() => returnRequests.id, { onDelete: "restrict" }),
+    rentalChargeId: uuid().references(() => rentalCharges.id, { onDelete: "restrict" }),
     revision: integer().notNull(),
     depositSnapshot: numeric({ precision: 14, scale: 0 }).notNull(),
     rateSnapshot: integer().notNull(),
@@ -210,6 +212,7 @@ export const returnSettlements = pgTable(
   },
   (t) => [
     uniqueIndex("return_settlement_revision_idx").on(t.requestId, t.revision),
+    index("return_settlement_rental_charge_idx").on(t.rentalChargeId),
     check(
       "return_settlement_amounts_valid",
       sql`${t.depositSnapshot} >= 0 AND ${t.rateSnapshot} BETWEEN 0 AND 100 AND ${t.overdueFeeAmount} >= 0 AND ${t.damageAmount} >= 0 AND ${t.unusedRentRefundAmount} >= 0 AND ${t.refundEntitlement} >= 0 AND ${t.debtAmount} >= 0`,

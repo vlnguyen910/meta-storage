@@ -17,12 +17,22 @@
 import { AppError } from "../../common/errors/app-error";
 import { csv, formatCents, parseCents, resolveReportPeriod } from "./reports.calculation";
 import type { ReportsRepository } from "./reports.repository";
-import type { ReportActor, ReportDataset, ReportFinancialRow } from "./reports.types";
+import type {
+  ReportActor,
+  ReportChargePaymentRow,
+  ReportChargeRefundRow,
+  ReportDataset,
+  ReportFinancialRow,
+} from "./reports.types";
 
 // Resource bound for synchronous exports, not a business/financial threshold.
 const MAX_SYNC_EXPORT_ROWS = 10000;
 
-function financial(rows: ReportFinancialRow[]): ReportFinancialMetrics {
+function financial(
+  rows: ReportFinancialRow[],
+  chargePayments: ReportChargePaymentRow[] = [],
+  chargeRefunds: ReportChargeRefundRow[] = [],
+): ReportFinancialMetrics {
   const money = (
     key:
       | "cashReceived"
@@ -43,20 +53,45 @@ function financial(rows: ReportFinancialRow[]): ReportFinancialMetrics {
   ) => rows.reduce((sum, row) => sum + row[key], 0);
   const unclassified = total("unclassifiedCollectedPayments"),
     unknownDeposit = total("unclassifiedDepositPayments");
+  const chargeMoney = (
+    key: "cashReceived" | "renewalCollected" | "extraChargeCollected" | "returnDebtCollected",
+  ) => chargePayments.reduce((sum, row) => sum + parseCents(row[key]), 0n);
+  const cashReceived = money("cashReceived") + chargeMoney("cashReceived");
+  const chargeRefunded = chargeRefunds.reduce(
+    (sum, row) => sum + parseCents(row.chargeRefunded),
+    0n,
+  );
+  const pendingChargeRefundAmount = chargeRefunds.reduce(
+    (sum, row) => sum + parseCents(row.pendingChargeRefundAmount),
+    0n,
+  );
   return {
-    cashReceived: formatCents(money("cashReceived")),
+    cashReceived: formatCents(cashReceived),
     rentalCollected: unclassified ? null : formatCents(money("rentalCollected")),
     depositCollected: unclassified ? null : formatCents(money("depositCollected")),
-    cashRefunded: formatCents(money("cashRefunded")),
-    netCash: formatCents(money("cashReceived") - money("cashRefunded")),
+    renewalCollected: formatCents(chargeMoney("renewalCollected")),
+    extraChargeCollected: formatCents(chargeMoney("extraChargeCollected")),
+    returnDebtCollected: formatCents(chargeMoney("returnDebtCollected")),
+    cashRefunded: formatCents(money("cashRefunded") + chargeRefunded),
+    chargeRefunded: formatCents(chargeRefunded),
+    netCash: formatCents(cashReceived - money("cashRefunded") - chargeRefunded),
     depositHeld: unknownDeposit ? null : formatCents(money("depositHeld")),
     depositForfeited: formatCents(money("depositForfeited")),
     pendingRefundAmount: formatCents(money("pendingRefundAmount")),
     pendingRefundCount: total("pendingRefundCount"),
-    paymentsReceivedCount: total("paymentsReceivedCount"),
+    pendingChargeRefundAmount: formatCents(pendingChargeRefundAmount),
+    pendingChargeRefundCount: chargeRefunds.reduce(
+      (sum, row) => sum + row.pendingChargeRefundCount,
+      0,
+    ),
+    paymentsReceivedCount:
+      total("paymentsReceivedCount") +
+      chargePayments.reduce((sum, row) => sum + row.paymentsReceivedCount, 0),
     unclassifiedCollectedPayments: unclassified,
     unclassifiedDepositPayments: unknownDeposit,
-    unsupportedCurrencyPayments: total("unsupportedCurrencyPayments"),
+    unsupportedCurrencyPayments:
+      total("unsupportedCurrencyPayments") +
+      chargePayments.reduce((sum, row) => sum + row.unsupportedCurrencyPayments, 0),
   };
 }
 function inventory(data: ReportDataset, id?: string): ReportInventoryMetrics {
@@ -106,16 +141,28 @@ export class ReportsService {
       const month = `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, "0")}`;
       const receipt = data.receipts.find((row) => row.month === month);
       const refund = data.refunds.find((row) => row.month === month);
-      const received = receipt?.cashReceived ?? "0.00";
-      const refunded = refund?.cashRefunded ?? "0.00";
+      const chargeReceipt = data.chargeReceipts.find((row) => row.month === month);
+      const chargeRefund = data.chargeRefunds.find((row) => row.month === month);
+      const received = formatCents(
+        parseCents(receipt?.cashReceived ?? "0") + parseCents(chargeReceipt?.cashReceived ?? "0"),
+      );
+      const refunded = formatCents(
+        parseCents(refund?.cashRefunded ?? "0") + parseCents(chargeRefund?.chargeRefunded ?? "0"),
+      );
       items.push({
         month,
         cashReceived: received,
         cashRefunded: refunded,
         rentalCollected: receipt?.unclassified ? null : (receipt?.rentalCollected ?? "0.00"),
         depositCollected: receipt?.unclassified ? null : (receipt?.depositCollected ?? "0.00"),
+        renewalCollected: chargeReceipt?.renewalCollected ?? "0.00",
+        extraChargeCollected: chargeReceipt?.extraChargeCollected ?? "0.00",
+        returnDebtCollected: chargeReceipt?.returnDebtCollected ?? "0.00",
+        chargeRefunded: chargeRefund?.chargeRefunded ?? "0.00",
         netCash: formatCents(parseCents(received) - parseCents(refunded)),
-        unsupportedCurrencyPayments: receipt?.unsupportedCurrencyPayments ?? 0,
+        unsupportedCurrencyPayments:
+          (receipt?.unsupportedCurrencyPayments ?? 0) +
+          (chargeReceipt?.unsupportedCurrencyPayments ?? 0),
       });
     }
     return {
@@ -135,7 +182,11 @@ export class ReportsService {
     const data = await this.repository.read(actor, query, period.start, period.end, now);
     const rows = data.facilities.map((facility) => ({
       facility,
-      metrics: financial(data.financial.filter((row) => row.facilityId === facility.id)),
+      metrics: financial(
+        data.financial.filter((row) => row.facilityId === facility.id),
+        data.chargePayments.filter((row) => row.facilityId === facility.id),
+        data.chargeRefunds.filter((row) => row.facilityId === facility.id),
+      ),
     }));
     rows.sort((a, b) => {
       const delta =
@@ -147,7 +198,7 @@ export class ReportsService {
       period: { from: period.from, to: period.to, timeZone: period.timeZone },
       asOf: now.toISOString(),
       currency: "VND",
-      summary: financial(data.financial),
+      summary: financial(data.financial, data.chargePayments, data.chargeRefunds),
       items: all ? rows : rows.slice(query.offset, query.offset + query.limit),
       unattributed: unattributed.length ? financial(unattributed) : null,
       total: rows.length,
@@ -186,11 +237,15 @@ export class ReportsService {
     const now = new Date(),
       period = resolveReportPeriod(query, now);
     const data = await this.repository.read(actor, query, period.start, period.end, now);
-    const money = financial(data.financial),
+    const money = financial(data.financial, data.chargePayments, data.chargeRefunds),
       units = inventory(data);
     const rows = data.facilities.map((facility) => ({
       facility,
-      financial: financial(data.financial.filter((row) => row.facilityId === facility.id)),
+      financial: financial(
+        data.financial.filter((row) => row.facilityId === facility.id),
+        data.chargePayments.filter((row) => row.facilityId === facility.id),
+        data.chargeRefunds.filter((row) => row.facilityId === facility.id),
+      ),
       inventory: inventory(data, facility.id),
     }));
     rows.sort(
@@ -218,6 +273,13 @@ export class ReportsService {
           canManage,
           endpoint: canManage ? "/api/payments/refunds" : null,
           description: m.refundAction,
+        },
+        chargeRefunds: {
+          count: money.pendingChargeRefundCount,
+          amount: money.pendingChargeRefundAmount,
+          canManage,
+          endpoint: canManage ? "/api/rental-charge-refunds" : null,
+          description: m.chargeRefundAction,
         },
         returnRefunds: {
           count: returnCount,
@@ -302,7 +364,11 @@ export class ReportsService {
           row.cashReceived,
           row.rentalCollected,
           row.depositCollected,
+          row.renewalCollected,
+          row.extraChargeCollected,
+          row.returnDebtCollected,
           row.cashRefunded,
+          row.chargeRefunded,
           row.netCash,
           row.unsupportedCurrencyPayments,
         ]),
@@ -328,12 +394,18 @@ export class ReportsService {
           x.cashReceived,
           x.rentalCollected,
           x.depositCollected,
+          x.renewalCollected,
+          x.extraChargeCollected,
+          x.returnDebtCollected,
           x.cashRefunded,
+          x.chargeRefunded,
           x.netCash,
           x.depositHeld,
           x.depositForfeited,
           x.pendingRefundAmount,
           x.pendingRefundCount,
+          x.pendingChargeRefundAmount,
+          x.pendingChargeRefundCount,
           x.unclassifiedCollectedPayments,
           x.unclassifiedDepositPayments,
           x.unsupportedCurrencyPayments,

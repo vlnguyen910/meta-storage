@@ -11,6 +11,10 @@ import type {
   PaymentResult,
   PaymentStatusResponse,
 } from "@metastorage/contracts";
+import type {
+  RentalChargePaymentSession,
+  StartRentalChargePayment,
+} from "@metastorage/contracts/rental-charges";
 import type { Payment } from "@metastorage/database";
 import type { FastifyBaseLogger, FastifyInstance } from "fastify";
 import { AppError, NotFoundError, UnauthorizedError } from "../../common/errors/app-error";
@@ -90,6 +94,41 @@ export class PaymentsService {
       throw new AppError(PAYMENT_MESSAGES.sepayUnavailable, 503, "PAYMENT_PROVIDER_UNAVAILABLE");
     return {
       bookingId,
+      paymentId: payment.id,
+      provider: "sepay",
+      status: "PENDING",
+      paymentCode: payment.paymentCode,
+      checkoutUrl: session.checkoutUrl,
+      checkoutFormFields: session.formFields,
+      expiresAt: expiresAt.toISOString(),
+    };
+  }
+
+  async startRentalChargePayment(
+    chargeId: string,
+    userId: string,
+    input: StartRentalChargePayment,
+  ): Promise<RentalChargePaymentSession> {
+    if (!this.sepayGateway?.checkoutConfigured)
+      throw new AppError(PAYMENT_MESSAGES.sepayUnavailable, 503, "PAYMENT_PROVIDER_UNAVAILABLE");
+    const { payment, expiresAt } = await this.repository.prepareRentalChargePayment({
+      chargeId,
+      userId,
+      idempotencyKey: input.idempotencyKey,
+      paymentCode: `${this.sepayGateway.paymentPrefix}${randomBytes(7).toString("hex").toUpperCase()}`,
+    });
+    const session = this.sepayGateway.createCheckoutSession({
+      rentalChargeId: chargeId,
+      paymentId: payment.id,
+      paymentCode: payment.paymentCode,
+      amount: Number(payment.totalAmount),
+      currency: payment.currency,
+      description: PAYMENT_MESSAGES.checkoutDescription(payment.paymentCode),
+    });
+    if (!session)
+      throw new AppError(PAYMENT_MESSAGES.sepayUnavailable, 503, "PAYMENT_PROVIDER_UNAVAILABLE");
+    return {
+      chargeId,
       paymentId: payment.id,
       provider: "sepay",
       status: "PENDING",
@@ -245,6 +284,8 @@ export class PaymentsService {
         paymentId: bookingResult.paymentId,
       };
     }
+    const chargeResult = await this.repository.processRentalChargePaymentEvent(event);
+    if (chargeResult) return chargeResult;
     const existingEvent = await this.repository.findProviderEvent("sepay", event.providerEventId);
     if (existingEvent && existingEvent.status !== "FAILED") return { duplicate: true };
     const recorded =
@@ -301,6 +342,7 @@ export class PaymentsService {
       if (!event) return;
       const result = await this.repository.processBookingPaymentEvent(event);
       if (result?.completed) await this.confirmationWithEmail(result.completed);
+      if (!result) await this.repository.processRentalChargePaymentEvent(event);
     } catch (error) {
       this.logger?.warn(
         {
@@ -351,22 +393,26 @@ export class PaymentsService {
     const hold =
       payment.status === "PENDING" ? await this.repository.findActiveHoldForPayment(payment) : null;
     const transferInstructions =
-      payment.status === "PENDING" && this.sepayGateway && hold
+      payment.status === "PENDING" && this.sepayGateway && (hold || payment.rentalChargeId)
         ? this.sepayGateway.createInstructions({
             paymentCode: payment.paymentCode,
             amount: payment.totalAmount,
             currency: payment.currency,
-            expiresAt: hold.expiresAt ?? new Date(Date.now() + 10 * 60_000),
+            expiresAt: hold?.expiresAt ?? payment.expiresAt ?? new Date(Date.now() + 10 * 60_000),
           })
         : undefined;
     const checkoutSession =
-      payment.status === "PENDING" && this.sepayGateway && payment.bookingId && hold
+      payment.status === "PENDING" &&
+      this.sepayGateway &&
+      (payment.bookingId || payment.rentalChargeId) &&
+      (hold || payment.rentalChargeId)
         ? this.sepayGateway.createCheckoutSession({
             paymentCode: payment.paymentCode,
             amount: Number(payment.totalAmount),
             currency: payment.currency,
             description: PAYMENT_MESSAGES.checkoutDescription(payment.paymentCode),
-            bookingId: payment.bookingId,
+            bookingId: payment.bookingId ?? undefined,
+            rentalChargeId: payment.rentalChargeId ?? undefined,
             paymentId: payment.id,
           })
         : null;
@@ -375,6 +421,7 @@ export class PaymentsService {
       status: payment.status,
       provider: payment.provider,
       paymentCode: payment.paymentCode,
+      chargeId: payment.rentalChargeId ?? undefined,
       transferInstructions,
       refund:
         payment.status === "REFUND_PENDING" || payment.status === "REFUNDED"

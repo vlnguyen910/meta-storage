@@ -409,3 +409,8 @@ Global day settings, overdue rate and deposit-month policy now share `system_set
 See [system settings API](./system-settings.md). Legacy lifecycle/overdue/pricing paths
 retain their contracts, access controls, shared versions and audit history. Migration
 0044 plus `bun run db:migrate`'s transactional data step preserves existing values.
+
+Positive return-settlement debt creates a separately payable `RETURN_DEBT` charge
+linked to its immutable settlement revision. Corrections update unpaid balance via
+audit adjustments; collected corrections use manual source-linked refunds. See
+[rental charges API](./rental-charges-api.md).

@@ -52,6 +52,7 @@ export type VerifiedPaymentEvent = {
   metadata: Record<string, unknown>;
   currency?: string;
   successful?: boolean;
+  paidAt?: Date;
 };
 
 export type BookingWebhookResult = {
@@ -114,7 +115,8 @@ export type SepayCreateCheckoutInput = {
   currency: string;
   description: string;
   paymentId: string;
-  bookingId: string;
+  bookingId?: string;
+  rentalChargeId?: string;
 };
 
 export type SepayOrderDetailResponse = {
@@ -124,6 +126,12 @@ export type SepayOrderDetailResponse = {
     order_status?: string;
     order_amount?: string | number;
     order_currency?: string;
+    transactions?: Array<{
+      id?: string | number;
+      transaction_type?: string;
+      transaction_status?: string;
+      transaction_date?: string;
+    }>;
   };
 };
 

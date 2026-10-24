@@ -20,6 +20,10 @@ import {
   isNull,
   or,
   payments,
+  rentalChargeAdjustments,
+  rentalChargeEvents,
+  rentalChargeRefunds,
+  rentalCharges,
   rentals,
   returnAudit,
   returnChecklistVersions,
@@ -530,6 +534,212 @@ export class ReturnsRepository {
     const [row] = await tx.insert(returnSettlements).values(values).returning();
     if (!row) throw new NotFoundError(m.notFound);
     return row;
+  }
+  async syncReturnDebtCharge(
+    tx: ReturnTransaction,
+    settlement: typeof returnSettlements.$inferSelect,
+    previous: typeof returnSettlements.$inferSelect | undefined,
+    rentalId: string,
+    actorId: string,
+  ) {
+    const debt = BigInt(settlement.debtAmount);
+    const previousChargeId = previous?.rentalChargeId;
+    const [previousCharge] = previousChargeId
+      ? await tx
+          .select()
+          .from(rentalCharges)
+          .where(eq(rentalCharges.id, previousChargeId))
+          .for("update")
+      : [];
+    let chargeId: string | undefined;
+    if (previousCharge) {
+      const adjustments = await tx
+        .select()
+        .from(rentalChargeAdjustments)
+        .where(eq(rentalChargeAdjustments.chargeId, previousCharge.id));
+      const balance = adjustments.reduce(
+        (value, item) => value + (item.direction === "INCREASE" ? 1n : -1n) * BigInt(item.amount),
+        BigInt(previousCharge.amount),
+      );
+      const [captured] = await tx
+        .select()
+        .from(payments)
+        .where(
+          and(
+            eq(payments.rentalChargeId, previousCharge.id),
+            inArray(payments.status, ["SUCCEEDED", "REFUND_PENDING", "REFUNDED"]),
+          ),
+        )
+        .orderBy(desc(payments.paidAt), desc(payments.id))
+        .limit(1);
+      if (!captured) {
+        const delta = debt - balance;
+        if (delta !== 0n) {
+          const direction = delta > 0n ? "INCREASE" : "REDUCTION";
+          await tx.insert(rentalChargeAdjustments).values({
+            chargeId: previousCharge.id,
+            settlementId: settlement.id,
+            direction,
+            amount: (delta > 0n ? delta : -delta).toString(),
+            reason: "Return settlement revision",
+            createdBy: actorId,
+          });
+          await tx.insert(rentalChargeEvents).values({
+            chargeId: previousCharge.id,
+            type: "ADJUSTED",
+            actorId,
+            reason: "Return settlement revision",
+            details: {
+              settlementId: settlement.id,
+              direction,
+              amount: (delta > 0n ? delta : -delta).toString(),
+            },
+          });
+        }
+        await tx
+          .update(rentalCharges)
+          .set({ status: debt > 0n ? "OPEN" : "VOID", updatedAt: new Date() })
+          .where(eq(rentalCharges.id, previousCharge.id));
+        chargeId = previousCharge.id;
+      } else {
+        const priorRefunds = await tx
+          .select()
+          .from(rentalChargeRefunds)
+          .where(
+            and(
+              eq(rentalChargeRefunds.chargeId, previousCharge.id),
+              inArray(rentalChargeRefunds.status, ["PENDING", "CONFIRMED"]),
+            ),
+          );
+        const confirmedRefund = priorRefunds.reduce(
+          (sum, item) => sum + (item.status === "CONFIRMED" ? BigInt(item.amount) : 0n),
+          0n,
+        );
+        const pendingRefund = priorRefunds.reduce(
+          (sum, item) => sum + (item.status === "PENDING" ? BigInt(item.amount) : 0n),
+          0n,
+        );
+        const netCollected = BigInt(captured.totalAmount) - confirmedRefund;
+        if (debt >= netCollected) {
+          if (pendingRefund > 0n) {
+            await tx
+              .update(rentalChargeRefunds)
+              .set({ status: "CANCELLED" })
+              .where(
+                and(
+                  eq(rentalChargeRefunds.chargeId, previousCharge.id),
+                  eq(rentalChargeRefunds.status, "PENDING"),
+                ),
+              );
+            await tx.insert(rentalChargeEvents).values({
+              chargeId: previousCharge.id,
+              type: "REFUND_CANCELLED",
+              actorId,
+              reason: "Return settlement revision changed the refundable balance",
+              details: { settlementId: settlement.id },
+            });
+          }
+          if (debt > netCollected) {
+            const [extra] = await tx
+              .insert(rentalCharges)
+              .values({
+                rentalId,
+                source: "RETURN_DEBT",
+                category: "RETURN_DEBT",
+                amount: (debt - netCollected).toString(),
+                evidence: "Additional amount from approved return settlement revision",
+                dueDate: null,
+                status: "OPEN",
+                createdBy: actorId,
+                approvedBy: actorId,
+              })
+              .returning();
+            if (extra) {
+              chargeId = extra.id;
+              await tx.insert(rentalChargeEvents).values({
+                chargeId: extra.id,
+                type: "APPROVED",
+                actorId,
+                reason: "Additional return settlement debt",
+              });
+            }
+          } else chargeId = previousCharge.id;
+        } else {
+          const targetRefund = BigInt(captured.totalAmount) - debt;
+          const allocatedPending = targetRefund - confirmedRefund;
+          if (pendingRefund > allocatedPending) {
+            await tx
+              .update(rentalChargeRefunds)
+              .set({ status: "CANCELLED" })
+              .where(
+                and(
+                  eq(rentalChargeRefunds.chargeId, previousCharge.id),
+                  eq(rentalChargeRefunds.status, "PENDING"),
+                ),
+              );
+            await tx.insert(rentalChargeEvents).values({
+              chargeId: previousCharge.id,
+              type: "REFUND_CANCELLED",
+              actorId,
+              reason: "Return settlement revision changed the pending refund",
+              details: { settlementId: settlement.id },
+            });
+          }
+          const allocated = pendingRefund > allocatedPending ? 0n : pendingRefund;
+          const refundAmount = targetRefund - confirmedRefund - allocated;
+          if (refundAmount > 0n) {
+            await tx.insert(rentalChargeRefunds).values({
+              chargeId: previousCharge.id,
+              paymentId: captured.id,
+              settlementId: settlement.id,
+              amount: refundAmount.toString(),
+              reason: "Return settlement correction",
+            });
+            await tx.insert(rentalChargeEvents).values({
+              chargeId: previousCharge.id,
+              type: "REFUND_CREATED",
+              actorId,
+              reason: "Return settlement correction",
+              details: { settlementId: settlement.id, amount: refundAmount.toString() },
+            });
+          }
+          await tx
+            .update(rentalCharges)
+            .set({ status: "REFUND_DUE", updatedAt: new Date() })
+            .where(eq(rentalCharges.id, previousCharge.id));
+          chargeId = previousCharge.id;
+        }
+      }
+    } else if (debt > 0n) {
+      const [created] = await tx
+        .insert(rentalCharges)
+        .values({
+          rentalId,
+          source: "RETURN_DEBT",
+          category: "RETURN_DEBT",
+          amount: debt.toString(),
+          evidence: "Approved return settlement debt",
+          dueDate: null,
+          status: "OPEN",
+          createdBy: actorId,
+          approvedBy: actorId,
+        })
+        .returning();
+      if (created) {
+        chargeId = created.id;
+        await tx.insert(rentalChargeEvents).values({
+          chargeId: created.id,
+          type: "APPROVED",
+          actorId,
+          reason: "Approved return settlement debt",
+        });
+      }
+    }
+    if (chargeId)
+      await tx
+        .update(returnSettlements)
+        .set({ rentalChargeId: chargeId })
+        .where(eq(returnSettlements.id, settlement.id));
   }
   refunds(tx: ReturnTransaction | Database, requestId: string) {
     return tx.select().from(returnRefunds).where(eq(returnRefunds.requestId, requestId));

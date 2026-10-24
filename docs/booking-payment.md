@@ -203,3 +203,7 @@ Các ca hủy/NO_SHOW bổ sung trong suite payment: hủy đồng thời, hủy
 tranh chấp hủy với handover, handover tại đúng hạn cuối, NO_SHOW với hai lượt cron
 đồng thời, cron bắt lại booking quá hạn lúc startup và rollback khi constraint lỗi.
 Tracking có ca đọc booking CANCELLED trong lúc chỉ tiền thuê đang chờ hoàn.
+
+Provider-confirmed rental charges use a separate `rentalChargeId` payment source;
+their completion and late-capture refund paths do not create or modify bookings,
+capacity, QR, or handover. See [rental charges API](./rental-charges-api.md).

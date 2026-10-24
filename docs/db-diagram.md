@@ -322,8 +322,18 @@ erDiagram
   bookings ||--o| rentals : becomes
   facilities ||--o{ rentals : hosts
   storage_units ||--o{ rentals : occupies
+  rentals ||--o{ rental_charges : owes
+  users ||--o{ rental_charges : submits
+  users o|--o{ rental_charges : approves
+  rental_charges ||--o{ payments : attempts
   bookings ||--o{ payments : records
   users o|--o{ payments : confirms_manual_refund
+  rental_charges ||--o{ rental_charge_adjustments : adjusts
+  rental_charges ||--o{ rental_charge_events : audits
+  rental_charges ||--o{ rental_charge_refunds : refunds
+  payments ||--o{ rental_charge_refunds : refunds
+  return_requests ||--o{ return_settlements : revises
+  rental_charges o|--o{ return_settlements : debt_obligation
   bookings ||--o{ checkin_verifications : verifies
   bookings ||--o{ handover_inspections : records_baseline
   facilities ||--o{ handover_inspections : scopes
@@ -542,19 +552,94 @@ erDiagram
     timestamptz updated_at
   }
 
+  rental_charges {
+    uuid id PK
+    uuid rental_id FK
+    rental_charge_source source
+    rental_charge_category category
+    numeric amount "integer VND"
+    varchar currency "VND"
+    text evidence
+    date due_date "nullable for return debt; extra charges require a due date"
+    rental_charge_status status
+    uuid created_by FK
+    uuid approved_by FK "nullable"
+    text decision_reason "nullable"
+    timestamptz disputed_at "nullable"
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+  rental_charge_adjustments {
+    uuid id PK
+    uuid charge_id FK
+    uuid settlement_id FK "nullable"
+    rental_charge_adjustment_direction direction
+    numeric amount "positive integer VND"
+    text reason
+    uuid created_by FK
+    timestamptz created_at
+  }
+
+  rental_charge_events {
+    uuid id PK
+    uuid charge_id FK
+    rental_charge_event_type type
+    uuid actor_id FK "nullable for provider/system events"
+    text reason "nullable"
+    jsonb details
+    timestamptz created_at
+  }
+
+  rental_charge_refunds {
+    uuid id PK
+    uuid charge_id FK
+    uuid payment_id FK
+    uuid settlement_id FK "nullable"
+    numeric amount "positive integer VND"
+    text reason
+    rental_charge_refund_status status
+    text reference "nullable until confirmed"
+    uuid confirmed_by FK "nullable"
+    timestamptz confirmed_at "nullable"
+    timestamptz created_at
+  }
+
+  return_settlements {
+    uuid id PK
+    uuid request_id FK
+    uuid rental_charge_id FK "nullable debt obligation"
+    integer revision
+    numeric deposit_snapshot
+    integer rate_snapshot
+    numeric overdue_fee_amount
+    numeric damage_amount
+    numeric unused_rent_refund_amount
+    numeric refund_entitlement
+    numeric debt_amount
+    timestamptz actual_return_at
+    date refund_due_date
+    jsonb calendar_snapshot
+    uuid approved_by FK
+    text reason
+    timestamptz approved_at
+  }
+
   payments {
     uuid id PK
     uuid booking_id FK "nullable for legacy checkout; required in target flow"
     uuid draft_id FK "nullable; legacy checkout only"
+    uuid rental_charge_id FK "nullable; source-specific charge attempt"
     varchar provider
     varchar provider_payment_id
     varchar payment_code UK
-    varchar hold_token_hash
+    varchar hold_token_hash "nullable for charge payment"
     varchar idempotency_key UK
     numeric total_amount
     varchar currency
     payment_status status
     timestamptz paid_at
+    timestamptz expires_at "nullable payment quote expiry"
     varchar refund_reason "nullable; NO_CAPACITY, CHECK_IN_CLOSED, OFFERING_UNAVAILABLE, CUSTOMER_CANCELLATION or NO_SHOW"
     numeric refund_amount "nullable; legacy refund falls back to total_amount"
     numeric deposit_forfeited_amount "NOT NULL DEFAULT 0"
@@ -794,8 +879,19 @@ The project uses disposable dev data: no backfill or historical synchronization.
   `HOLD` to `BOOKING` inside the same transaction. No physical unit is assigned
   at checkout.
 - `payments.idempotency_key` and `(provider, provider_payment_id)` are unique.
+- `payments` references exactly one source: booking, legacy reservation draft, or
+  rental charge. Booking/draft attempts require a hold-token hash; charge attempts
+  do not. Partial unique indexes permit one pending attempt and one applied
+  (`SUCCEEDED`) attempt per charge; late/duplicate provider captures remain
+  separate refund-pending attempts. Charge payment quote expiry is stored separately from the
+  charge due date; an expired quote can be retried with a new idempotency key.
+- `rental_charges` stores source-specific obligations in integer VND. `EXTRA` is
+  the charge itself; each return settlement revision points to its return-debt
+  obligation with a typed FK. Future renewal rows will point to their charge in
+  #163. No generic polymorphic source ID is used. Charge adjustments and refunds
+  are append-only records; events retain submit/approve/dispute/payment/refund audit.
 - `payments.draft_id` is nullable during the #113 expansion; a CHECK requires
-  booking_id or draft_id. Legacy writers keep draft_id, while the target workflow
+  exactly one of booking_id, draft_id, or rental_charge_id. Legacy writers keep draft_id, while the target workflow
   references the DRAFT Booking from payment start. Existing booking_id FK/index
   and idempotency/provider uniqueness remain unchanged. Legacy replay still uses
   draft_id plus hold-token hash until Payment refactoring; target replay uses
