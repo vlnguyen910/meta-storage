@@ -34,6 +34,13 @@ export const RentalChargeStatus = {
 } as const;
 export type RentalChargeStatus = (typeof RentalChargeStatus)[keyof typeof RentalChargeStatus];
 
+export const RentalChargeDecisionAction = {
+  APPROVE: "APPROVE",
+  REJECT: "REJECT",
+} as const;
+export type RentalChargeDecisionAction =
+  (typeof RentalChargeDecisionAction)[keyof typeof RentalChargeDecisionAction];
+
 export const RentalChargeAdjustmentDirection = {
   INCREASE: "INCREASE",
   REDUCTION: "REDUCTION",
@@ -96,7 +103,10 @@ export const CreateRentalChargeSchema = z.strictObject({
   dueDate: z.iso.date(),
 });
 export type CreateRentalCharge = z.infer<typeof CreateRentalChargeSchema>;
-export const RentalChargeDecisionSchema = z.strictObject({ reason });
+export const RentalChargeDecisionSchema = z.strictObject({
+  decision: z.enum(RentalChargeDecisionAction),
+  reason,
+});
 export type RentalChargeDecision = z.infer<typeof RentalChargeDecisionSchema>;
 export const RentalChargeAdjustmentSchema = z.strictObject({
   direction: z.enum(RentalChargeAdjustmentDirection),

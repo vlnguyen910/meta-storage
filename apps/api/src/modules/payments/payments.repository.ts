@@ -1185,6 +1185,7 @@ export class PaymentsRepository {
         .update(payments)
         .set({
           bookingId: booking.id,
+          draftId: null,
           providerPaymentId: input.providerPaymentId,
           status: "SUCCEEDED",
           paidAt: input.paidAt,

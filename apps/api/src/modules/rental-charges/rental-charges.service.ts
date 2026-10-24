@@ -79,12 +79,7 @@ export class RentalChargesService {
     return chargeDto(charge);
   }
 
-  async decide(
-    actor: RentalChargeActor,
-    chargeId: string,
-    input: RentalChargeDecision,
-    approved: boolean,
-  ) {
+  async decide(actor: RentalChargeActor, chargeId: string, input: RentalChargeDecision) {
     if (actor.role !== "FACILITY_MANAGER") throw new ForbiddenError(m.forbidden);
     const context = await this.repo.getChargeContext(chargeId);
     if (!context) throw new NotFoundError(m.notFound);
@@ -92,6 +87,7 @@ export class RentalChargesService {
       throw new ForbiddenError(m.forbidden);
     if (context.charge.createdBy === actor.id) throw new ForbiddenError(m.selfApproval);
     if (context.charge.status !== "PENDING_APPROVAL") throw new ConflictError(m.invalidState);
+    const approved = input.decision === "APPROVE";
     const updated = await this.repo.transition(chargeId, {
       status: approved ? "OPEN" : "VOID",
       actorId: actor.id,

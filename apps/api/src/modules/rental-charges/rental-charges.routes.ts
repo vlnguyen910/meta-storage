@@ -80,26 +80,13 @@ export const rentalChargesRoutes: FastifyPluginAsync = async (app) => {
       successResponse(await service.adjust(actor(request), request.params.chargeId, request.body)),
   );
   typed.post(
-    "/rental-charges/:chargeId/approve",
+    "/rental-charges/:chargeId/decision",
     {
       preHandler: [requireRole("FACILITY_MANAGER")],
       schema: { params: RentalChargeParamsSchema, body: RentalChargeDecisionSchema },
     },
     async (request) =>
-      successResponse(
-        await service.decide(actor(request), request.params.chargeId, request.body, true),
-      ),
-  );
-  typed.post(
-    "/rental-charges/:chargeId/reject",
-    {
-      preHandler: [requireRole("FACILITY_MANAGER")],
-      schema: { params: RentalChargeParamsSchema, body: RentalChargeDecisionSchema },
-    },
-    async (request) =>
-      successResponse(
-        await service.decide(actor(request), request.params.chargeId, request.body, false),
-      ),
+      successResponse(await service.decide(actor(request), request.params.chargeId, request.body)),
   );
   typed.post(
     "/rental-charges/:chargeId/payments",

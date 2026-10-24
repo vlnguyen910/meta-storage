@@ -584,13 +584,9 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
           .then(unwrap),
       create: (rentalId: string, input: CreateRentalCharge) =>
         http.post<ApiEnvelope<RentalChargeDto>>(`/rentals/${rentalId}/charges`, input).then(unwrap),
-      approve: (chargeId: string, input: RentalChargeDecision) =>
+      decide: (chargeId: string, input: RentalChargeDecision) =>
         http
-          .post<ApiEnvelope<RentalChargeDto>>(`/rental-charges/${chargeId}/approve`, input)
-          .then(unwrap),
-      reject: (chargeId: string, input: RentalChargeDecision) =>
-        http
-          .post<ApiEnvelope<RentalChargeDto>>(`/rental-charges/${chargeId}/reject`, input)
+          .post<ApiEnvelope<RentalChargeDto>>(`/rental-charges/${chargeId}/decision`, input)
           .then(unwrap),
       adjust: (chargeId: string, input: RentalChargeAdjustment) =>
         http
