@@ -130,8 +130,9 @@ describe.skipIf(!testUrl)("rental charges with isolated PostgreSQL", () => {
       .values({ id: ids.unit, code: ids.unit, facilityId: ids.facility, unitTypeId: ids.unitType });
     await db.insert(checkInSlots).values({
       id: ids.slot,
-      startsAt: new Date("2032-01-01T03:00:00Z"),
-      endsAt: new Date("2032-01-01T04:00:00Z"),
+      name: "Charge test slot",
+      startTime: "09:00",
+      endTime: "10:00",
     });
     await db.insert(facilityAssignments).values([
       { userId: ids.staff, facilityId: ids.facility, role: "FACILITY_STAFF", isActive: true },
