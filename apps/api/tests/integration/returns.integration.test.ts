@@ -19,6 +19,10 @@ import {
   paymentProviderEvents,
   payments,
   queryClient,
+  rentalChargeAdjustments,
+  rentalChargeEvents,
+  rentalChargeRefunds,
+  rentalCharges,
   rentals,
   returnAudit,
   returnChecklistVersions,
@@ -461,7 +465,6 @@ describe.skipIf(!target)(
             }
           }
           await tx.delete(returnRefunds).where(inArray(returnRefunds.requestId, requests));
-          await tx.delete(returnSettlements).where(inArray(returnSettlements.requestId, requests));
           await tx.delete(returnTimeChanges).where(inArray(returnTimeChanges.requestId, requests));
           await tx
             .delete(returnEvidencePhotos)
@@ -471,6 +474,33 @@ describe.skipIf(!target)(
             .where(inArray(returnInspectionPhotos.inspectionId, inspections));
           await tx.delete(returnInspections).where(inArray(returnInspections.requestId, requests));
           await tx.delete(returnRequests).where(eq(returnRequests.facilityId, fixture.facility));
+          const rentalIds = tx
+            .select({ id: rentals.id })
+            .from(rentals)
+            .where(eq(rentals.facilityId, fixture.facility));
+          const chargeIds = tx
+            .select({ id: rentalCharges.id })
+            .from(rentalCharges)
+            .where(inArray(rentalCharges.rentalId, rentalIds));
+          const chargePaymentIds = tx
+            .select({ id: payments.id })
+            .from(payments)
+            .where(inArray(payments.rentalChargeId, chargeIds));
+          await tx
+            .delete(paymentProviderEvents)
+            .where(inArray(paymentProviderEvents.paymentId, chargePaymentIds));
+          await tx
+            .delete(rentalChargeEvents)
+            .where(inArray(rentalChargeEvents.chargeId, chargeIds));
+          await tx
+            .delete(rentalChargeAdjustments)
+            .where(inArray(rentalChargeAdjustments.chargeId, chargeIds));
+          await tx
+            .delete(rentalChargeRefunds)
+            .where(inArray(rentalChargeRefunds.chargeId, chargeIds));
+          await tx.delete(returnSettlements).where(inArray(returnSettlements.requestId, requests));
+          await tx.delete(payments).where(inArray(payments.id, chargePaymentIds));
+          await tx.delete(rentalCharges).where(inArray(rentalCharges.id, chargeIds));
           const bookingIds = tx
             .select({ id: bookings.id })
             .from(bookings)
