@@ -4,6 +4,7 @@ import {
   checkInVerifications,
   db,
   eq,
+  facilityOperatingHours,
   payments,
   queryClient,
   unitAssignments,
@@ -22,6 +23,7 @@ import { assertTestDatabase } from "../fixtures/test-database";
 
 const target = process.env.MY_STORAGE_LOCAL_DATABASE_URL;
 let fixture: Awaited<ReturnType<typeof createInspectionFixture>>;
+let checkInDate: string;
 const origin = "http://localhost:3000";
 
 async function withApp(
@@ -64,10 +66,15 @@ describe.skipIf(!target)("development early check-in through real API and Postgr
   beforeAll(async () => {
     assertTestDatabase(target);
     fixture = await createInspectionFixture();
-    await db
-      .update(bookings)
-      .set({ checkInDate: new Date(Date.now() + 2 * 86400_000).toISOString().slice(0, 10) })
-      .where(eq(bookings.id, fixture.bookingId));
+    checkInDate = new Date(Date.now() + 2 * 86400_000).toISOString().slice(0, 10);
+    await db.insert(facilityOperatingHours).values({
+      facilityId: fixture.facilityId,
+      dayOfWeek: 0,
+      openTime: "00:00:00",
+      closeTime: "23:59:59",
+      timezone: "Asia/Ho_Chi_Minh",
+    });
+    await db.update(bookings).set({ checkInDate }).where(eq(bookings.id, fixture.bookingId));
   });
   beforeEach(async () => {
     await db
@@ -75,6 +82,10 @@ describe.skipIf(!target)("development early check-in through real API and Postgr
       .where(eq(checkInVerifications.bookingId, fixture.bookingId));
   });
   afterAll(async () => {
+    if (fixture)
+      await db
+        .delete(facilityOperatingHours)
+        .where(eq(facilityOperatingHours.facilityId, fixture.facilityId));
     await fixture?.cleanup();
     await queryClient.end();
   });
@@ -84,7 +95,10 @@ describe.skipIf(!target)("development early check-in through real API and Postgr
       await withApp(environment, async (app, cookie) => {
         const allowed = environment === "development" || environment === "develop";
         const headers = { cookie, origin };
-        const list = await app.inject({ url: "/api/bookings/assigned-to-me", headers });
+        const list = await app.inject({
+          url: `/api/bookings/assigned-to-me?fromDate=${checkInDate}`,
+          headers,
+        });
         expect(list.statusCode).toBe(200);
         expect(
           list.json().data.find((row: { id: string }) => row.id === fixture.bookingId)

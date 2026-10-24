@@ -7,6 +7,7 @@ import {
   type EligibleUnit,
   type FacilityStaffMember,
   type PhysicalUnitAssignment,
+  type StaffTasksQuery,
   UserRole,
 } from "@metastorage/contracts";
 import {
@@ -22,8 +23,10 @@ import {
   exists,
   facilities,
   facilityAssignments,
+  facilityOperatingHours,
   getTableColumns,
   gt,
+  gte,
   handoverInspections,
   inArray,
   isNotNull,
@@ -611,16 +614,31 @@ export class BookingsRepository {
     };
   }
 
-  async findStaffTasks(staffUserId: string, facilityId?: string): Promise<BookingListItem[]> {
+  async findStaffTasks(
+    staffUserId: string,
+    query: StaffTasksQuery = {},
+  ): Promise<BookingListItem[]> {
     const conditions = [eq(bookings.assignedStaffId, staffUserId), ne(bookings.status, "DRAFT")];
-    if (facilityId) {
-      conditions.push(eq(bookings.facilityId, facilityId));
+    if (query.facilityId) {
+      conditions.push(eq(bookings.facilityId, query.facilityId));
     }
 
+    const timezone = this.db
+      .select({ timezone: facilityOperatingHours.timezone })
+      .from(facilityOperatingHours)
+      .where(eq(facilityOperatingHours.facilityId, bookings.facilityId))
+      .orderBy(facilityOperatingHours.dayOfWeek)
+      .limit(1);
+    const today = sql<string>`(current_timestamp at time zone (${timezone}))::date`;
+    conditions.push(
+      gte(bookings.checkInDate, query.fromDate ?? query.toDate ?? today),
+      lte(bookings.checkInDate, query.toDate ?? query.fromDate ?? today),
+    );
+
     const slotStart = sql<Date>`(${bookings.checkInDate} + ${checkInSlots.startTime})
-      at time zone 'Asia/Ho_Chi_Minh'`.mapWith((value) => new Date(value));
+      at time zone (${timezone})`.mapWith((value) => new Date(value));
     const slotEnd = sql<Date>`(${bookings.checkInDate} + ${checkInSlots.endTime})
-      at time zone 'Asia/Ho_Chi_Minh'`.mapWith((value) => new Date(value));
+      at time zone (${timezone})`.mapWith((value) => new Date(value));
     const paidPayments = this.db
       .select({
         bookingId: payments.bookingId,
@@ -664,7 +682,7 @@ export class BookingsRepository {
       .leftJoin(users, eq(unitAssignments.assignedBy, users.id))
       .leftJoin(assignedStaffUsers, eq(bookings.assignedStaffId, assignedStaffUsers.id))
       .where(and(...conditions))
-      .orderBy(slotStart);
+      .orderBy(slotStart, bookings.id);
 
     return rows.map(
       ({

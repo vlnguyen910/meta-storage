@@ -12,6 +12,7 @@ import type {
   CustomerBookingPageQuery,
   EligibleUnit,
   PhysicalUnitAssignment,
+  StaffTasksQuery,
 } from "@metastorage/contracts";
 import {
   BOOKING_ACCESS,
@@ -481,8 +482,11 @@ export class BookingsService {
     return updatedBooking;
   }
 
-  async getStaffTasks(staffUserId: string, facilityId?: string): Promise<BookingListItem[]> {
-    return this.withHandoverProgress(await this.repository.findStaffTasks(staffUserId, facilityId));
+  async getStaffTasks(
+    staffUserId: string,
+    query: StaffTasksQuery = {},
+  ): Promise<BookingListItem[]> {
+    return this.withHandoverProgress(await this.repository.findStaffTasks(staffUserId, query));
   }
 }
 

@@ -1,4 +1,5 @@
 export const RETURN_MESSAGES = {
+  invalidDateRange: "Ngày bắt đầu không được sau ngày kết thúc.",
   notFound: "Không tìm thấy hồ sơ trả kho.",
   forbidden: "Bạn không có quyền xử lý hồ sơ trả kho này.",
   conflict: "Trạng thái hoặc phiên bản hồ sơ đã thay đổi.",

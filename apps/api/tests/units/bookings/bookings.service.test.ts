@@ -271,7 +271,7 @@ describe("BookingsService - Facility Staff Assignment", () => {
 
   it("retrieves tasks assigned to a specific staff member", async () => {
     const service = bookingsService(mockRepository());
-    const tasks = await service.getStaffTasks(staffId, facilityId);
+    const tasks = await service.getStaffTasks(staffId, { facilityId });
 
     assert.equal(tasks.length, 1);
     assert.equal(tasks[0].assignedStaff?.id, staffId);
