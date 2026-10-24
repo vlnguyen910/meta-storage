@@ -286,6 +286,25 @@ async function receive(id: string, at = "2032-01-02T02:00:00Z") {
   expect(response.statusCode).toBe(200);
 }
 
+async function legacyRentEntitlement(requestId: string) {
+  const [settlement] = await db
+    .select()
+    .from(returnSettlements)
+    .where(eq(returnSettlements.requestId, requestId));
+  if (!settlement) throw new Error("Missing legacy settlement fixture");
+  // New settlements forbid unused-rent refunds; retain coverage of pre-policy history.
+  const [legacy] = await db
+    .update(returnSettlements)
+    .set({
+      unusedRentRefundAmount: "300000",
+      refundEntitlement: String(BigInt(settlement.refundEntitlement) + 300000n),
+    })
+    .where(eq(returnSettlements.id, settlement.id))
+    .returning();
+  if (!legacy) throw new Error("Missing legacy entitlement");
+  return legacy;
+}
+
 describe.skipIf(!target)(
   "return workflow with real local PostgreSQL and mocked private object storage",
   () => {
@@ -866,7 +885,7 @@ describe.skipIf(!target)(
       const input = {
         expectedVersion: 0,
         damageAmount: "0",
-        unusedRentRefundAmount: "300000",
+        unusedRentRefundAmount: "0",
         reason: "Preview",
       };
       expect((await api(null, "POST", path, input)).statusCode).toBe(401);
@@ -928,7 +947,7 @@ describe.skipIf(!target)(
       expect(preview.json().data.calculation).toMatchObject({
         depositSnapshot: "1000000",
         rateSnapshot: initialRate,
-        remainingRentRefund: "300000",
+        remainingRentRefund: "0",
         confirmedDepositRefund: "0",
         confirmedRentRefund: "0",
         allocationKnown: true,
@@ -948,7 +967,7 @@ describe.skipIf(!target)(
       expect(
         (await api("manager", "POST", path, { ...input, unusedRentRefundAmount: "1000001" }))
           .statusCode,
-      ).toBe(422);
+      ).toBe(400);
       const damage = await api("manager", "POST", path, { ...input, damageAmount: "1" });
       expect(damage.json().data.canClose).toBe(false);
       expect(damage.json().data.blockingReasons.map((b: { code: string }) => b.code)).toContain(
@@ -982,8 +1001,8 @@ describe.skipIf(!target)(
         );
         expect(settled.statusCode).toBe(200);
         expect(settled.json().data.rateSnapshot).toBe(50);
-        expect(settled.json().data.refundEntitlement).toBe("800000");
-        expect((await state(item.id)).refundSummary.remainingRefund).toBe("800000");
+        expect(settled.json().data.refundEntitlement).toBe("500000");
+        expect((await state(item.id)).refundSummary.remainingRefund).toBe("500000");
       } finally {
         await db
           .update(systemSettings)
@@ -1594,7 +1613,7 @@ describe.skipIf(!target)(
       expect(current.settlements[0].remainingRefund).toBe(String(initialRate * 10000));
     });
 
-    test("mixed refunds require explicit allocation and respect separate remaining deposit/rent limits", async () => {
+    test("legacy mixed refunds require explicit allocation and respect separate remaining deposit/rent limits", async () => {
       const item = await scenario();
       const inspection = await start(item.id);
       await save(item.id, inspection);
@@ -1605,11 +1624,12 @@ describe.skipIf(!target)(
           await api("manager", "POST", `/return-requests/${item.id}/settlement`, {
             expectedVersion: (await state(item.id)).request.version,
             damageAmount: "0",
-            unusedRentRefundAmount: "300000",
+            unusedRentRefundAmount: "0",
             reason: "FM exception approved",
           })
         ).statusCode,
       ).toBe(200);
+      await legacyRentEntitlement(item.id);
       const proof = await api("manager", "POST", `/return-requests/${item.id}/evidence`, {
         expectedVersion: (await state(item.id)).request.version,
         purpose: "REFUND",
@@ -1722,11 +1742,11 @@ describe.skipIf(!target)(
         const settled = await api("manager", "POST", `/return-requests/${item.id}/settlement`, {
           expectedVersion: (await state(item.id)).request.version,
           damageAmount: "0",
-          unusedRentRefundAmount: "300000",
+          unusedRentRefundAmount: "0",
           reason: "Legacy retry regression",
         });
         expect(settled.statusCode).toBe(200);
-        const settlement = settled.json().data;
+        const settlement = await legacyRentEntitlement(item.id);
         const proof = await api("manager", "POST", `/return-requests/${item.id}/evidence`, {
           expectedVersion: (await state(item.id)).request.version,
           purpose: "REFUND",
@@ -1788,7 +1808,7 @@ describe.skipIf(!target)(
       },
     );
 
-    test("overdue starts at facility midnight, retains request workflow and flags manual review after seven full days", async () => {
+    test("overdue starts at the expiry instant; review still follows seven full local calendar days", async () => {
       const item = await scenario();
       const lifecycle = new RentalLifecycleService(
         new RentalLifecycleRepository(db),
@@ -1797,9 +1817,9 @@ describe.skipIf(!target)(
       const readRental = async () =>
         (await db.select().from(rentals).where(eq(rentals.id, item.rentalId)))[0];
       try {
-        await lifecycle.sweep(new Date("2032-01-01T16:59:59.999Z"), fixture.facility);
+        await lifecycle.sweep(new Date("2032-01-01T02:59:59.999Z"), fixture.facility);
         expect((await readRental())?.status).toBe("RETURN_PENDING");
-        const at = new Date("2032-01-01T17:00:00Z");
+        const at = new Date("2032-01-01T03:00:00Z");
         await Promise.all([
           lifecycle.sweep(at, fixture.facility),
           lifecycle.sweep(at, fixture.facility),
@@ -1840,9 +1860,9 @@ describe.skipIf(!target)(
       }
     });
 
-    test("actual return on the expiry date prevents overdue even when the case remains open", async () => {
+    test("actual return by the expiry instant prevents overdue even when the case remains open", async () => {
       const item = await scenario();
-      await receive(item.id, "2032-01-01T16:59:00Z");
+      await receive(item.id, "2032-01-01T03:00:00Z");
       await new RentalLifecycleService(
         new RentalLifecycleRepository(db),
         new ReturnsRepository(db),
@@ -2010,16 +2030,16 @@ describe.skipIf(!target)(
           .update(facilityOperatingHours)
           .set({ timezone: "America/New_York" })
           .where(eq(facilityOperatingHours.facilityId, fixture.facility));
-        // Expiry is January 31 in New York, independent of the API process timezone.
+        // The exact expiry instant is independent of New York's local midnight.
         await db
           .update(rentals)
           .set({ expectedEndAt: new Date("2032-02-01T03:00:00Z") })
           .where(eq(rentals.id, item.rentalId));
-        await lifecycle.sweep(new Date("2032-02-01T04:59:59.999Z"), fixture.facility);
+        await lifecycle.sweep(new Date("2032-02-01T02:59:59.999Z"), fixture.facility);
         expect(
           (await db.select().from(rentals).where(eq(rentals.id, item.rentalId)))[0]?.status,
         ).toBe("RETURN_PENDING");
-        await lifecycle.sweep(new Date("2032-02-01T05:00:00Z"), fixture.facility);
+        await lifecycle.sweep(new Date("2032-02-01T03:00:00Z"), fixture.facility);
         expect(
           (await db.select().from(rentals).where(eq(rentals.id, item.rentalId)))[0]?.status,
         ).toBe("OVERDUE");

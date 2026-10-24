@@ -102,6 +102,7 @@ export class RentalChargesService {
     if (actor.role !== "CUSTOMER") throw new ForbiddenError(m.forbidden);
     const context = await this.repo.getChargeContext(chargeId);
     if (!context || context.booking.userId !== actor.id) throw new NotFoundError(m.notFound);
+    if (context.charge.source === "RENEWAL") throw new ConflictError(m.invalidState);
     if (context.charge.status !== "OPEN") throw new ConflictError(m.invalidState);
     const deadline = new Date(context.charge.createdAt);
     deadline.setDate(deadline.getDate() + 7);

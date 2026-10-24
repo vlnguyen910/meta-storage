@@ -83,6 +83,7 @@ export async function recordLifecycleEvent(
           eventKey: input.key,
           eventType: input.type,
           bookingId: booking.id,
+          rentalTermVersion: input.rentalTermVersion,
           facilityId: booking.facilityId,
           recipientKey: recipient.key,
           recipientUserId: recipient.userId,

@@ -1,4 +1,5 @@
 export const PAYMENT_MESSAGES = {
+  chargeRefundRequired: "Payment received after quote expiry or charge closure",
   startSummary: "Start payment for a booking draft",
   startDescription:
     "Public checkout authenticated by draftAccessToken. Submit contact and idempotencyKey; the server uses the booking price snapshot, creates a ten-minute capacity hold and returns a SePay checkout session. Repeating the same request reuses its payment and original expiry. No booking confirmation or email is issued until successful payment is finalized. Another pending attempt blocks a new payment, including after hold expiry, pending reconciliation.",

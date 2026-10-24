@@ -1,5 +1,36 @@
 # metastorage database diagram
 
+## Rental renewals (#163, approved 2026-10-24)
+
+`rental_renewals` retains immutable quote/acceptance facts: UUID id, rental_id FK,
+nullable customer_id FK (SET NULL on account deletion), rental_version, unique
+nullable charge_id/payment_id FKs, per-rental idempotency_key, status
+(QUOTED/AWAITING_PAYMENT/APPLIED/EXPIRED/REFUND_REQUIRED), months 1..12,
+old_end_at/new_end_at, positive integer-VND monthly_rate/amount, VND currency,
+timezone/cutoff_at/expires_at, terms_version/terms, accepted_at/applied_at,
+failure_reason and created_at. Amount equals months × snapshotted rate; each month
+adds exactly 720 hours; expiry is at most 15 minutes after creation and no later
+than the saved local cutoff. Acceptance creates one OPEN RENEWAL/RENEWAL_RENT
+charge. Applied terms require an identified payment and application timestamp.
+Partial unique (rental_id,rental_version) for APPLIED prevents duplicate extension.
+
+`rentals.version` is nonnegative, starts at zero and increases once per applied
+renewal. `expected_end_at` remains the current term; original booking end/pricing
+and issued PDFs are unchanged. `notification_outbox.rental_term_version` is nullable
+for legacy events; expiry/overdue/review events identify the current term, and the
+worker suppresses a queued event for an older version (legacy means version zero).
+Facility → booking → rental locks serialize renewal with return/lifecycle;
+the existing facility/type offering lock serializes capacity with checkout.
+Quotes hold no capacity. Expired/conflicting captures create source-linked refunds
+instead of extending or moving the physical unit. Unpaid RETURN_DEBT anywhere on
+the customer's rentals blocks renewal; EXTRA is a separate obligation.
+No unused rent refund for early return, including initial and renewal terms.
+Historical refunds/snapshots remain recorded; captured but unapplied renewal money
+uses the controlled charge-refund workflow.
+OVERDUE begins at the saved expiry instant for an unreturned rental. Return-fee
+assessment still compares local calendar dates; abandoned review keeps the existing
+seven-full-local-day boundary starting at midnight on the following date.
+
 ## Flow 5 manual task assignment
 
 `facility_tasks` stores manual work assigned by the active Facility Manager to an
@@ -323,6 +354,9 @@ erDiagram
   facilities ||--o{ rentals : hosts
   storage_units ||--o{ rentals : occupies
   rentals ||--o{ rental_charges : owes
+  rentals ||--o{ rental_renewals : renews
+  rental_renewals o|--o| rental_charges : collects_rent
+  payments o|--o| rental_renewals : applies
   users ||--o{ rental_charges : submits
   users o|--o{ rental_charges : approves
   rental_charges ||--o{ payments : attempts
@@ -545,6 +579,7 @@ erDiagram
     varchar status
     timestamptz start_at
     timestamptz expected_end_at
+    integer version "nonnegative current term"
     timestamptz actual_return_at "nullable"
     timestamptz closed_at "nullable"
     numeric deposit_amount
@@ -568,6 +603,32 @@ erDiagram
     timestamptz disputed_at "nullable"
     timestamptz created_at
     timestamptz updated_at
+  }
+
+  rental_renewals {
+    uuid id PK
+    uuid rental_id FK
+    uuid customer_id FK "nullable on account deletion"
+    integer rental_version
+    uuid charge_id FK,UK "nullable until acceptance"
+    uuid payment_id FK,UK "nullable until capture"
+    varchar idempotency_key "unique per rental"
+    renewal_status status
+    integer months "1..12, 30 days each"
+    timestamptz old_end_at
+    timestamptz new_end_at
+    numeric monthly_rate "integer VND"
+    numeric amount "rate * months"
+    varchar currency "VND"
+    text timezone
+    timestamptz cutoff_at
+    timestamptz expires_at
+    varchar terms_version
+    text terms
+    timestamptz accepted_at "nullable"
+    timestamptz applied_at "nullable"
+    text failure_reason "nullable"
+    timestamptz created_at
   }
 
   rental_charge_adjustments {

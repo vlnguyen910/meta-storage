@@ -65,16 +65,18 @@ No Web, Mobile or API-client files changed. This is not completion of all Flow 3
 | Lifecycle day settings | System Administrator-only `rental_lifecycle_settings`; optimistic version and `return_audit` update in one transaction; seeded 7-day expiry and manual-review values; no business min/max |
 | Guest rental portal | Booking-scoped cookie GETs for rental/payment/refund/issued contracts; private PDF backend read; generic audited resend request, 24-hour link, old grant revoked on replacement, 3/booking/hour and 10/IP/hour |
 | Existing finance reports with return settlement/refunds | Cash refunds by confirmedAt; latest effective settlement; explicit deposit/rent allocations; unknown legacy splits flagged; fees/debt are not automatically classified as revenue |
-| Renewal/upgrade | Intentionally excluded; no schema/API/job added |
+| Renewal / upgrade | Renewal implemented by #163: see rental-renewal-api.md. Upgrade remains excluded. |
 
 ## Lifecycle jobs and notifications
 
 API cron evaluates rental expiry using the return-calendar timezone, or reuses the
 single consistent timezone already configured in facility operating hours when no
 return calendar exists. Missing/inconsistent operating-hour timezone leaves the
-rental unchanged. At 00:00 on the local day after expiry, it changes rental status
-to OVERDUE without changing return-request status. After seven full local days
-from that overdue boundary, it stamps `abandoned_review_at` and queues an FM review
+rental unchanged. Under the #163 policy, status becomes OVERDUE at the exact saved
+expiry instant unless physical return was confirmed by that instant; the return-request
+status is preserved. Fee assessment remains local-date based and starts only on the
+following date. After seven full local days from midnight starting that following
+date, it stamps `abandoned_review_at` and queues an FM review
 notice. The customer already receives the overdue notice; no automatic disposal occurs.
 
 Rental creation less than 7 local calendar days before expiry queues an immediate
@@ -136,7 +138,7 @@ return 200. Auth requires active users; no implicit BOM/Admin operational author
 | GET `/return-requests/:requestId/evidence/:photoId` | Authorized reader; short-lived private evidence URL |
 | POST `/return-requests/:requestId/time-changes` | Assigned FS; propose corrected time with proof/reason/idempotency key |
 | POST `/return-requests/:requestId/time-changes/:changeId/decision` | Facility FM; approve/reject, append financial adjustment if already assessed |
-| POST `/return-requests/:requestId/settlement` | Facility FM; approve damage/unused-rent exception, close rental/release occupancy atomically |
+| POST `/return-requests/:requestId/settlement` | Facility FM; approve damage/deposit settlement, close rental/release occupancy atomically; unused rent must be zero |
 | POST `/return-requests/:requestId/refunds/confirm` | Facility FM; explicit manual completed-transfer confirmation with reference/proof/idempotency key |
 | GET/PUT `/return-policy/checklist` | System Admin; read/append checklist version |
 | GET/PUT `/facilities/:facilityId/return-calendar` | System Admin; timezone/holidays/reminder time and optional operating-hours replacement |
@@ -185,7 +187,11 @@ Overdue assessment compares the confirmed actual-return local calendar date with
 rental expiry's local date: the next day is overdue. Initial assessment snapshots
 rate/deposit once; corrections retain those snapshots and append revisions.
 `fee = (deposit × integerRate + 50) / 100` in BigInt integer arithmetic. Approved
-fees deduct from deposit; unused-rent refunds require FM reason. Debt is recorded
+fees deduct from deposit. New early-return settlements cannot refund unused rent:
+`unusedRentRefundAmount` must be `"0"` (400 otherwise), for initial and renewed terms.
+Historical approved rent entitlements and transfers remain readable/replayable;
+time corrections may preserve, but cannot increase, a legacy rent entitlement.
+Debt is recorded
 when fees exceed deposit or a correction reduces entitlement below money already
 refunded. No automatic debt collection. Later BOM changes do not recalculate fees.
 
@@ -236,8 +242,8 @@ accepts the exact existing settlement input:
 {
   "expectedVersion": 5,
   "damageAmount": "0",
-  "unusedRentRefundAmount": "300000",
-  "reason": "Approved early-return exception"
+  "unusedRentRefundAmount": "0",
+  "reason": "Approve deposit settlement"
 }
 ```
 

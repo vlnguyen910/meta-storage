@@ -67,14 +67,15 @@ export class RentalLifecycleRepository {
     const abandonedReviewDays = sql`${settings.abandonedReviewDays}::integer`;
     const today = sql`(${now.toISOString()}::timestamptz at time zone ${timezone})::date`;
     const expiry = sql`(${rentals.expectedEndAt} at time zone ${timezone})::date`;
+    const termKey = sql`'rental:' || ${rentals.id}::text || case when ${rentals.version} = 0 then '' else ':term:' || ${rentals.version}::text end`;
     const dueReminder = this.db
       .select({ id: notificationOutbox.id })
       .from(notificationOutbox)
-      .where(eq(notificationOutbox.eventKey, sql`'rental:' || ${rentals.id}::text || ':expiry'`));
+      .where(eq(notificationOutbox.eventKey, sql`${termKey} || ':expiry'`));
     const overdueEvent = this.db
       .select({ id: notificationOutbox.id })
       .from(notificationOutbox)
-      .where(eq(notificationOutbox.eventKey, sql`'rental:' || ${rentals.id}::text || ':overdue'`));
+      .where(eq(notificationOutbox.eventKey, sql`${termKey} || ':overdue'`));
     return this.db
       .with(operatingTimezones)
       .select({ id: rentals.id })
@@ -88,10 +89,10 @@ export class RentalLifecycleRepository {
           afterId ? gt(rentals.id, afterId) : undefined,
           facilityId ? eq(rentals.facilityId, facilityId) : undefined,
           sql`(
-          (${today} > ${expiry} AND (${rentals.status} <> 'OVERDUE' OR ${notExists(overdueEvent)})
-            AND (${rentals.actualReturnAt} IS NULL OR (${rentals.actualReturnAt} AT TIME ZONE ${timezone})::date > ${expiry}))
+          (${now.toISOString()}::timestamptz >= ${rentals.expectedEndAt} AND (${rentals.status} <> 'OVERDUE' OR ${notExists(overdueEvent)})
+            AND (${rentals.actualReturnAt} IS NULL OR ${rentals.actualReturnAt} > ${rentals.expectedEndAt}))
           OR (${today} - ${expiry} > ${abandonedReviewDays} AND ${rentals.actualReturnAt} IS NULL AND ${rentals.abandonedReviewAt} IS NULL)
-          OR (${today} - ${expiry} >= -${expiryReminderDays} AND ${today} <= ${expiry}
+          OR (${now.toISOString()}::timestamptz < ${rentals.expectedEndAt} AND ${today} - ${expiry} >= -${expiryReminderDays} AND ${today} <= ${expiry}
             AND (${today} - ${expiry} > -${expiryReminderDays} OR (${now.toISOString()}::timestamptz AT TIME ZONE ${timezone})::time >= ${reminderTime}::time)
             AND ${notExists(dueReminder)})
         )`,

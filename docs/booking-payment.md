@@ -29,6 +29,11 @@ payment reservation cũ không còn được tạo form checkout qua gateway nà
 
 ## Quyền đọc trạng thái payment
 
+Từ #163, booking draft mới tính một tháng thuê bằng 30 × 24 giờ, thay cho tháng
+lịch. Snapshot ngày hết hạn/giá của booking đã lưu được giữ nguyên. Gia hạn cộng
+từ `rentals.expected_end_at`, thu tiền thuê riêng và không thu thêm cọc; xem
+[API gia hạn](./rental-renewal-api.md).
+
 `GET /api/payments/:paymentId/status` yêu cầu một trong hai credential:
 
 - Header `x-booking-access-token: <draftAccessToken>` từ API tạo booking draft;

@@ -341,7 +341,13 @@ export class StorageUnitsRepository {
     return execute(this.db);
   }
 
-  async getAvailableCapacity(facilityId: string, unitTypeId: string, startsAt: Date, endsAt: Date) {
+  async getAvailableCapacity(
+    facilityId: string,
+    unitTypeId: string,
+    startsAt: Date,
+    endsAt: Date,
+    renewal?: { bookingId: string; physicalUnitId: string },
+  ) {
     const checkInStart = sql`(${bookings.checkInDate} + ${checkInSlots.startTime})
       at time zone 'Asia/Ho_Chi_Minh'`;
     const conflictingAssignments = this.db
@@ -353,6 +359,7 @@ export class StorageUnitsRepository {
         and(
           eq(unitAssignments.physicalUnitId, storageUnits.id),
           eq(unitAssignments.status, "ACTIVE"),
+          renewal ? ne(unitAssignments.bookingId, renewal.bookingId) : undefined,
           notInArray(bookings.status, ["CANCELLED", "NO_SHOW"]),
           lt(checkInStart, endsAt.toISOString()),
           gt(bookings.rentalEndAt, startsAt),
@@ -366,7 +373,15 @@ export class StorageUnitsRepository {
           and(
             eq(storageUnits.facilityId, facilityId),
             eq(storageUnits.unitTypeId, unitTypeId),
-            eq(storageUnits.status, "AVAILABLE"),
+            or(
+              eq(storageUnits.status, "AVAILABLE"),
+              renewal
+                ? and(
+                    eq(storageUnits.id, renewal.physicalUnitId),
+                    eq(storageUnits.status, "OCCUPIED"),
+                  )
+                : undefined,
+            ),
             notExists(conflictingAssignments),
           ),
         ),
@@ -398,6 +413,7 @@ export class StorageUnitsRepository {
             eq(capacityAllocations.facilityId, facilityId),
             eq(capacityAllocations.unitTypeId, unitTypeId),
             eq(capacityAllocations.status, "ACTIVE"),
+            renewal ? ne(capacityAllocations.referenceId, renewal.bookingId) : undefined,
             lt(capacityAllocations.startsAt, endsAt),
             gt(capacityAllocations.endsAt, startsAt),
             or(

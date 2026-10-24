@@ -237,6 +237,7 @@ export class RentalChargesRepository {
         .where(eq(rentalCharges.id, chargeId))
         .for("update");
       if (!charge) return null;
+      if (charge.source === "RENEWAL") return { conflict: true as const };
       if (charge.status !== "OPEN") return { conflict: true as const };
       const adjustments = await tx
         .select()

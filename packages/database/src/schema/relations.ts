@@ -17,6 +17,7 @@ import {
   rentalChargeRefunds,
 } from "./rental-charge-financials";
 import { rentalCharges } from "./rental-charges";
+import { rentalRenewals } from "./rental-renewals";
 import { rentals } from "./rentals";
 import { reservationDrafts } from "./reservation-drafts";
 import { returnSettlements } from "./returns";
@@ -267,6 +268,14 @@ export const rentalsRelations = relations(rentals, ({ one, many }) => ({
     references: [storageUnits.id],
   }),
   charges: many(rentalCharges),
+  renewals: many(rentalRenewals),
+}));
+
+export const rentalRenewalsRelations = relations(rentalRenewals, ({ one }) => ({
+  rental: one(rentals, { fields: [rentalRenewals.rentalId], references: [rentals.id] }),
+  customer: one(users, { fields: [rentalRenewals.customerId], references: [users.id] }),
+  charge: one(rentalCharges, { fields: [rentalRenewals.chargeId], references: [rentalCharges.id] }),
+  payment: one(payments, { fields: [rentalRenewals.paymentId], references: [payments.id] }),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({

@@ -24,6 +24,7 @@ import { lifecycleNotificationsRoutes } from "./modules/notifications/lifecycle-
 import { notificationsPlugin } from "./modules/notifications/notifications.plugin";
 import { paymentsRoutes } from "./modules/payments/payments.routes";
 import { pricingRoutes } from "./modules/pricing/pricing.routes";
+import { renewalsRoutes } from "./modules/renewals/renewals.routes";
 import { rentalChargesRoutes } from "./modules/rental-charges/rental-charges.routes";
 import { rentalLifecycleSettingsRoutes } from "./modules/rental-lifecycle-settings/rental-lifecycle-settings.routes";
 import { rentalsRoutes } from "./modules/rentals/rentals.routes";
@@ -68,6 +69,7 @@ export function buildApp(): FastifyInstance {
   app.register(facilityTasksRoutes, { prefix: "/api/facility-tasks" });
   app.register(rentalsRoutes, { prefix: "/api/rentals" });
   app.register(rentalChargesRoutes, { prefix: "/api" });
+  app.register(renewalsRoutes, { prefix: "/api" });
   app.register(bookingsRoutes, { prefix: "/api" });
   app.register(guestRentalAccessRoutes, { prefix: "/api" });
   app.register(checkInsRoutes, { prefix: "/api" });
