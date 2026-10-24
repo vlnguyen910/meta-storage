@@ -12,7 +12,7 @@ import {
   Warehouse,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Currency } from "@/components/ui/display";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useAuthStore } from "@/features/auth/auth-store";
@@ -20,7 +20,6 @@ import { FLOW } from "@/features/facility-flow/flow.messages";
 import {
   FlowButton as Button,
   FlowHeading,
-  FlowHelp,
   inputClass,
   Panel,
   Pill,
@@ -57,7 +56,16 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
   const isStaff = useAuthStore((s) => s.session?.user.role) === UserRole.FACILITY_STAFF;
   const root = isStaff ? "/staff" : "/facility-manager";
   const d = useDispatch(facilityId, isStaff);
+  const { filter, search } = d;
   const [staffBooking, setStaffBooking] = useState<BookingListItem | null>(null);
+  const [page, setPage] = useState(1);
+  const pageSize = 6;
+  const pageCount = Math.max(1, Math.ceil(d.filtered.length / pageSize));
+  const pageItems = d.filtered.slice((page - 1) * pageSize, page * pageSize);
+  // Reset pagination whenever the user changes a filter or search term.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: filter and search intentionally reset the local page.
+  useEffect(() => setPage(1), [filter, search]);
+  useEffect(() => setPage((value) => Math.min(value, pageCount)), [pageCount]);
   return (
     <>
       <FlowHeading
@@ -81,17 +89,18 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
           </div>
         }
       />
-      <FlowHelp />
-      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-7">
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
         {[
           { label: FLOW.total, value: d.bookings.length, icon: Calendar },
-          { label: FLOW.needsUnit, value: d.count("NEEDS_UNIT"), icon: Warehouse },
-          { label: FLOW.waiting, value: d.count("READY"), icon: UserCheck },
-          { label: FLOW.inspecting, value: d.count("INSPECTING"), icon: ClipboardCheck },
-          { label: FLOW.readyHandover, value: d.count("READY_HANDOVER"), icon: ClipboardCheck },
           {
-            label: FLOW.needsStaff,
-            value: d.bookings.filter((b) => !b.assignedStaff && b.status === "CONFIRMED").length,
+            label: FLOW.needsAction,
+            value: d.count("NEEDS_UNIT") + d.count("NEEDS_STAFF"),
+            icon: Warehouse,
+          },
+          { label: FLOW.waiting, value: d.count("READY"), icon: UserCheck },
+          {
+            label: FLOW.inProgress,
+            value: d.count("INSPECTING") + d.count("READY_HANDOVER"),
             icon: ClipboardCheck,
           },
           { label: FLOW.pendingAccess, value: d.count("CHECKED_IN"), icon: ClipboardCheck },
@@ -162,7 +171,7 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
         </div>
       </Panel>
       <p role="status" aria-live="polite" className="text-sm text-[#404945]">
-        {d.query.isFetching ? FLOW.refreshing : FLOW.results(d.filtered.length, d.bookings.length)}
+        {d.query.isFetching ? FLOW.refreshing : FLOW.results(pageItems.length, d.filtered.length)}
       </p>
       {d.query.isError && d.query.data && (
         <p role="alert" className="rounded bg-[#ffdcc3] p-3 text-[#6e3900]">
@@ -191,7 +200,7 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
         </Panel>
       ) : (
         <div className="grid gap-4">
-          {d.filtered.map((b) => {
+          {pageItems.map((b) => {
             const state = readiness(b, d.now);
             const canAssign =
               !isStaff &&
@@ -326,6 +335,32 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
           })}
         </div>
       )}
+      {pageCount > 1 ? (
+        <nav
+          className="flex flex-wrap items-center justify-center gap-3"
+          aria-label="Phân trang booking"
+        >
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={page === 1}
+            onClick={() => setPage((value) => value - 1)}
+          >
+            {FLOW.previous}
+          </Button>
+          <span className="text-sm font-semibold text-[#404945]">
+            {FLOW.pageOf(page, pageCount)}
+          </span>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={page === pageCount}
+            onClick={() => setPage((value) => value + 1)}
+          >
+            {FLOW.paginationNext}
+          </Button>
+        </nav>
+      ) : null}
       {staffBooking && (
         <StaffAssignmentModal booking={staffBooking} isOpen onClose={() => setStaffBooking(null)} />
       )}

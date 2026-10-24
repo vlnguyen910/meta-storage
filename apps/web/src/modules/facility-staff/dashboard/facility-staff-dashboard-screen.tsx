@@ -34,11 +34,13 @@ function StaffDashboardContent() {
 
   return (
     <div className="space-y-6">
-      <FacilitySwitcher
-        activeAssignments={activeAssignments}
-        currentFacilityId={currentFacilityId}
-        onSwitchFacility={switchFacility}
-      />
+      {activeAssignments.length > 1 ? (
+        <FacilitySwitcher
+          activeAssignments={activeAssignments}
+          currentFacilityId={currentFacilityId}
+          onSwitchFacility={switchFacility}
+        />
+      ) : null}
       <nav className="flex flex-wrap gap-2" aria-label={M.navAriaLabel}>
         <Link
           href="?view=tasks"

@@ -21,4 +21,7 @@ export const STAFF_DIRECTORY = {
   loading: "Đang tải danh sách nhân viên…",
   error: "Không thể tải danh sách nhân viên. Vui lòng thử lại.",
   retry: "Thử lại",
+  previous: "Trang trước",
+  next: "Trang sau",
+  pageOf: (page: number, total: number) => `Trang ${page}/${total}`,
 } as const;
