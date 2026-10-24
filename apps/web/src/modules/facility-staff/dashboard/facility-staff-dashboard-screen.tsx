@@ -21,7 +21,7 @@ export function FacilityStaffDashboardScreen() {
 
 function StaffDashboardContent() {
   const view = useSearchParams().get("view");
-  const activeTab = view === "overview" ? "overview" : "tasks";
+  const activeTab = view === "tasks" ? "tasks" : "overview";
   const {
     currentFacility: assignment,
     activeAssignments,

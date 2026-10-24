@@ -415,7 +415,7 @@ async function fixture(
 }
 test("manager navigation and assignment return to the new shell", async ({ page }) => {
   await fixture(page, { unassigned: true, role: "FACILITY_MANAGER" });
-  await page.goto("/facility-manager/dashboard");
+  await page.goto("/facility-manager/dashboard?view=check-in");
   await expect(page.getByRole("heading", { name: "Chuẩn bị kho & Phân công Staff" })).toBeVisible();
   await page.getByRole("link", { name: "Gán ô kho ngay" }).click();
   await expect(page.getByRole("heading", { name: "Gán & Đổi ô kho" })).toBeVisible();
@@ -511,7 +511,7 @@ test("API error does not leave verification stuck", async ({ page }) => {
 test("mobile sidebar and dispatch do not overflow", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await fixture(page, { role: "FACILITY_MANAGER" });
-  await page.goto("/facility-manager/dashboard");
+  await page.goto("/facility-manager/dashboard?view=check-in");
   await expect(page.getByRole("heading", { name: "Chuẩn bị kho & Phân công Staff" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole("button", { name: "Mở menu" }).click();
@@ -547,7 +547,7 @@ test("unsaved navigation is guarded and wrong unit blocks review", async ({ page
 });
 test("staff dashboard uses the same flow shell and limits assignment actions", async ({ page }) => {
   await fixture(page, { role: "FACILITY_STAFF" });
-  await page.goto("/staff/dashboard");
+  await page.goto("/staff/dashboard?view=tasks");
   await expect(page.getByRole("heading", { name: "Công việc được giao" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Chỉ định / Đổi nhân viên" })).toHaveCount(0);
   await page.getByRole("link", { name: /Tiếp đón & Xác minh booking/ }).click();
@@ -641,7 +641,7 @@ test("cancelling evidence deletion keeps the photo in the record", async ({ page
 
 test("failed refresh preserves the list and offers recovery", async ({ page }) => {
   await fixture(page, { role: "FACILITY_MANAGER" });
-  await page.goto("/facility-manager/dashboard");
+  await page.goto("/facility-manager/dashboard?view=check-in");
   await expect(page.getByRole("heading", { name: "Lê Thị Mai Linh" })).toBeVisible();
   const pattern = "**/api/facilities/*/bookings";
   await page.route(pattern, async (route) =>
@@ -751,7 +751,7 @@ test("FM direct inspection URLs remain read only and contain no PIN or handover 
 test("FM filters real handover progress and only opens monitoring", async ({ page }) => {
   const f = await fixture(page, { role: "FACILITY_MANAGER" });
   f.booking.handoverStage = "READY_HANDOVER";
-  await page.goto("/facility-manager/dashboard");
+  await page.goto("/facility-manager/dashboard?view=tasks");
   await page.getByRole("button", { name: /^Chờ bàn giao/ }).click();
   await expect(page.getByRole("heading", { name: "Lê Thị Mai Linh" })).toBeVisible();
   await expect(page.getByRole("link", { name: /Tiếp đón & Xác minh booking/ })).toHaveCount(0);
@@ -800,7 +800,7 @@ test("staff assignment handles backend errors and retries with only persisted fi
       });
     } else await route.fallback();
   });
-  await page.goto("/facility-manager/dashboard");
+  await page.goto("/facility-manager/dashboard?view=tasks");
   await page.getByRole("button", { name: "Chỉ định / Đổi nhân viên" }).click();
   const dialog = page.getByRole("dialog", { name: "Chỉ định nhân viên phụ trách" });
   await expect(dialog).toBeVisible();
@@ -845,7 +845,7 @@ for (const width of [1440, 390]) {
   test(`assignment dialog accessibility and keyboard recovery at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 1000 });
     await fixture(page, { role: "FACILITY_MANAGER" });
-    await page.goto("/facility-manager/dashboard");
+    await page.goto("/facility-manager/dashboard?view=tasks");
     await page.getByRole("button", { name: "Chỉ định / Đổi nhân viên" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
     const audit = await new AxeBuilder({ page }).analyze();
@@ -1091,7 +1091,7 @@ test("incomplete and failed checklist drafts persist; four PASS unlock without n
 
 test("dispatch does not invent NO_SHOW after slot end plus two hours", async ({ page }) => {
   await fixture(page, { role: "FACILITY_MANAGER", elapsedSlot: true });
-  await page.goto("/facility-manager/dashboard");
+  await page.goto("/facility-manager/dashboard?view=tasks");
   const card = page
     .locator("section")
     .filter({ has: page.getByText("BK-2026-0001", { exact: true }) });
@@ -1173,7 +1173,7 @@ test("Staff realtime refreshes assigned tasks, ignores invalid recipients and de
   await page.routeWebSocket("**/api/notifications/ws", (ws) => {
     push = (data) => ws.send(data);
   });
-  await page.goto("/staff/dashboard");
+  await page.goto("/staff/dashboard?view=tasks");
   await expect(page.getByText("Đang nhận thông báo trực tiếp", { exact: true })).toBeVisible();
   await expect.poll(() => reads).toBeGreaterThan(0);
   const before = reads;
@@ -1218,7 +1218,7 @@ test("Staff realtime reconnects, refreshes missed tasks and closes when leaving 
     disconnect = () => ws.close({ code: 1012, reason: "Test restart" });
     ws.onClose(() => closes++);
   });
-  await page.goto("/staff/dashboard");
+  await page.goto("/staff/dashboard?view=tasks");
   await expect(page.getByText("Đang nhận thông báo trực tiếp", { exact: true })).toBeVisible();
   showTask = true;
   disconnect();
@@ -1234,7 +1234,7 @@ test("manager never opens a Staff notification socket", async ({ page }) => {
   await page.routeWebSocket("**/api/notifications/ws", () => {
     connections++;
   });
-  await page.goto("/facility-manager/dashboard");
+  await page.goto("/facility-manager/dashboard?view=check-in");
   await expect(page.getByRole("heading", { name: "Chuẩn bị kho & Phân công Staff" })).toBeVisible();
   expect(connections).toBe(0);
   await expect(page.getByText("Đang nhận thông báo trực tiếp", { exact: true })).toHaveCount(0);
@@ -1250,7 +1250,7 @@ for (const width of [1440, 390]) {
       connections++;
       reject = () => ws.close({ code: 1008, reason: "Session expired" });
     });
-    await page.goto("/staff/dashboard");
+    await page.goto("/staff/dashboard?view=tasks");
     await expect(page.getByText("Đang nhận thông báo trực tiếp", { exact: true })).toBeVisible();
     const initialConnections = connections;
     await page.evaluate(() => window.dispatchEvent(new Event("offline")));
