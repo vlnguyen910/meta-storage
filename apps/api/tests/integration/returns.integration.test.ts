@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, describe, expect, setSystemTime, spyOn, test } from "bun:test";
 import { randomUUID } from "node:crypto";
-import swagger from "@fastify/swagger";
 import {
   accounts,
   and,
@@ -50,16 +49,13 @@ import {
 } from "@metastorage/shared/mail";
 import { Queue } from "bullmq";
 import Fastify from "fastify";
-import {
-  createJsonSchemaTransform,
-  serializerCompiler,
-  validatorCompiler,
-} from "fastify-type-provider-zod";
+import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
 import Redis from "ioredis";
 import { BookingMailService } from "../../../worker/src/notifications/booking-mail.service";
 import { OutboxRepository } from "../../../worker/src/notifications/outbox.repository";
 import { OutboxService } from "../../../worker/src/notifications/outbox.service";
 import { setupErrorHandler } from "../../src/common/errors/error-handler";
+import { swaggerPlugin } from "../../src/common/plugins/swagger";
 import { auth } from "../../src/modules/auth/auth";
 import { authPlugin } from "../../src/modules/auth/auth.guard";
 import { authRoutes } from "../../src/modules/auth/auth.routes";
@@ -383,10 +379,7 @@ describe.skipIf(!target)(
       app.setValidatorCompiler(validatorCompiler);
       app.setSerializerCompiler(serializerCompiler);
       setupErrorHandler(app);
-      await app.register(swagger, {
-        openapi: { info: { title: "Return test", version: "1" } },
-        transform: createJsonSchemaTransform({ zodToJsonConfig: { target: "openapi-3.0" } }),
-      });
+      await app.register(swaggerPlugin);
       await app.register(authPlugin);
       await app.register(authRoutes, { prefix: "/api/auth" });
       await app.register(facilitiesRoutes, { prefix: "/api/facilities" });
