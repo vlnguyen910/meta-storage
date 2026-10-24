@@ -178,7 +178,6 @@ export async function createInspectionFixture(allowExistingLocal = false) {
     });
     await tx.insert(payments).values({
       bookingId,
-      draftId,
       holdTokenHash: suffix,
       provider: "mock",
       paymentCode: `TEST-${suffix}`,
