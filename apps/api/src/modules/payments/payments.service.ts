@@ -168,7 +168,11 @@ export class PaymentsService {
     const holdTokenHash = hashToken(input.holdToken);
     const existing = await this.repository.findByIdempotencyKey(input.idempotencyKey);
     if (existing) {
-      if (existing.draftId !== draftId || existing.holdTokenHash !== holdTokenHash) {
+      const completedBookingReplay = existing.bookingId && existing.status === "SUCCEEDED";
+      if (
+        (existing.draftId !== draftId && !completedBookingReplay) ||
+        existing.holdTokenHash !== holdTokenHash
+      ) {
         throw new AppError(
           PAYMENT_MESSAGES.idempotencyKeyUsedForAnotherCheckout,
           409,
@@ -187,7 +191,6 @@ export class PaymentsService {
       }
       const completed = await this.repository.findCompletedByIdempotencyKey(
         input.idempotencyKey,
-        draftId,
         holdTokenHash,
       );
       return this.completedResult(completed);

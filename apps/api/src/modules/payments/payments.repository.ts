@@ -873,15 +873,11 @@ export class PaymentsRepository {
     return payment;
   }
 
-  async findCompletedByIdempotencyKey(
-    idempotencyKey: string,
-    draftId: string,
-    holdTokenHash: string,
-  ) {
+  async findCompletedByIdempotencyKey(idempotencyKey: string, holdTokenHash: string) {
     return this.findCompleted(
       and(
         eq(payments.idempotencyKey, idempotencyKey),
-        eq(payments.draftId, draftId),
+        isNotNull(payments.bookingId),
         eq(payments.holdTokenHash, holdTokenHash),
         eq(payments.status, "SUCCEEDED"),
       ),
