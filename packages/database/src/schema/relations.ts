@@ -8,7 +8,6 @@ import { checkInVerifications } from "./checkin-verifications";
 import { facilities } from "./facilities";
 import { facilityAssignments } from "./facility-assignments";
 import { facilityOperatingHours } from "./facility-operating-hours";
-import { facilityUnitTypes } from "./facility-unit-types";
 import { paymentProviderEvents } from "./payment-provider-events";
 import { payments } from "./payments";
 import {
@@ -17,6 +16,7 @@ import {
   rentalChargeRefunds,
 } from "./rental-charge-financials";
 import { rentalCharges } from "./rental-charges";
+import { rentalPriceRanges } from "./rental-price-ranges";
 import { rentalRenewals } from "./rental-renewals";
 import { rentals } from "./rentals";
 import { reservationDrafts } from "./reservation-drafts";
@@ -110,7 +110,7 @@ export const paymentProviderEventsRelations = relations(paymentProviderEvents, (
 }));
 
 export const facilitiesRelations = relations(facilities, ({ many }) => ({
-  unitTypes: many(facilityUnitTypes),
+  unitTypes: many(unitTypes),
   assignments: many(facilityAssignments),
   storageUnits: many(storageUnits),
   operatingHours: many(facilityOperatingHours),
@@ -121,21 +121,18 @@ export const facilitiesRelations = relations(facilities, ({ many }) => ({
   checkInVerifications: many(checkInVerifications),
 }));
 
-export const unitTypesRelations = relations(unitTypes, ({ many }) => ({
-  facilities: many(facilityUnitTypes),
+export const unitTypesRelations = relations(unitTypes, ({ many, one }) => ({
+  facility: one(facilities, { fields: [unitTypes.facilityId], references: [facilities.id] }),
+  priceRange: one(rentalPriceRanges, {
+    fields: [unitTypes.priceRangeId],
+    references: [rentalPriceRanges.id],
+  }),
   storageUnits: many(storageUnits),
   bookings: many(bookings),
 }));
 
-export const facilityUnitTypesRelations = relations(facilityUnitTypes, ({ one }) => ({
-  facility: one(facilities, {
-    fields: [facilityUnitTypes.facilityId],
-    references: [facilities.id],
-  }),
-  unitType: one(unitTypes, {
-    fields: [facilityUnitTypes.unitTypeId],
-    references: [unitTypes.id],
-  }),
+export const rentalPriceRangesRelations = relations(rentalPriceRanges, ({ many }) => ({
+  unitTypes: many(unitTypes),
 }));
 
 export const facilityAssignmentsRelations = relations(facilityAssignments, ({ one }) => ({

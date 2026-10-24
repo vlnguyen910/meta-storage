@@ -10,7 +10,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { facilities } from "./facilities";
-import { facilityUnitTypes } from "./facility-unit-types";
+import { unitTypes } from "./unit-types";
 
 export const RESERVATION_DRAFT_STATUSES = ["DRAFT"] as const;
 export const RESERVATION_PRICING_STATUSES = ["PRICING_NOT_CONFIGURED", "PRICED"] as const;
@@ -54,7 +54,7 @@ export const reservationDrafts = pgTable(
   (table) => [
     foreignKey({
       columns: [table.facilityId, table.unitTypeId],
-      foreignColumns: [facilityUnitTypes.facilityId, facilityUnitTypes.unitTypeId],
+      foreignColumns: [unitTypes.facilityId, unitTypes.id],
     }).onDelete("restrict"),
     index("reservation_drafts_facility_idx").on(table.facilityId),
     index("reservation_drafts_unit_type_idx").on(table.unitTypeId),
