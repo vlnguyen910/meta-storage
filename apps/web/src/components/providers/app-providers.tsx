@@ -36,7 +36,6 @@ export function AppProviders({ children }: { children: ReactNode }) {
     }
 
     const { clearSession, setSession, setAuthReady } = useAuthStore.getState();
-    clearSession();
     setAuthReady(false);
     api.auth
       .me()

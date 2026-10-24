@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 import { TOAST_MESSAGES } from "./toast.messages";
 import type { ToastContextValue, ToastItem, ToastTone } from "./toast.types";
 
-const ToastContext = createContext<ToastContextValue | null>(null);
+export const ToastContext = createContext<ToastContextValue | null>(null);
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([]);

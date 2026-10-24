@@ -26,9 +26,15 @@ POST `/api/auth/sign-in/social` with JSON:
 
 The Better Auth response contains `url` and `redirect`. Preserve cookies and navigate
 to `url`; GET `/api/auth/callback/google` completes the exchange. The callback target
-must be trusted and implemented by the consuming frontend. On success it can read
-the existing session via `/api/auth/me`. Frontend/mobile integration is separate;
-this change does not wire the existing Web Google button.
+is implemented on the Web frontend at `/login/complete`. On success it reads
+the authenticated session via `/api/auth/me`, synchronizes the auth store, and navigates
+to the destination.
+
+The Web frontend integrates Google authentication and account linking:
+- Login page (`/login`) & Register page (`/register`): "Tiếp tục với Google" initiates `signInSocial`.
+- Callback completion route (`/login/complete`): Validates session with `/me`, updates store, and redirects to role home or `returnTo`.
+- Unlinked account handling: When backend redirects with `error=account_not_linked`, `/login` shows clear guidance to log in with password, and upon successful password login offers an immediate modal to link Google.
+- Logged-in explicit linking: Initiated from `/login` after password login or via sidebar button in `AppShell` with `linkSocial`, redirecting to `/login/complete?action=link`.
 
 New verified Google emails create CUSTOMER/ACTIVE users. Existing emails without a
 Google account redirect to the error callback with `error=account_not_linked`: show

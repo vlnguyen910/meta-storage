@@ -88,4 +88,14 @@ export function registerAuthHandlers(mock: MockAdapter): void {
   mock
     .onPost("/auth/forgot-password")
     .reply(200, envelope(null, "Nếu email tồn tại, hướng dẫn đã được gửi"));
+
+  mock.onPost("/auth/sign-in/social").reply((config) => {
+    const body = parseBody<{ callbackURL?: string }>(config.data);
+    return [200, { url: body.callbackURL ?? "/login/complete", redirect: true }];
+  });
+
+  mock.onPost("/auth/link-social").reply((config) => {
+    const body = parseBody<{ callbackURL?: string }>(config.data);
+    return [200, { url: body.callbackURL ?? "/login/complete?action=link", redirect: true }];
+  });
 }

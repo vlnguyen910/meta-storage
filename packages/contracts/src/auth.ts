@@ -44,4 +44,11 @@ export const ResetPasswordInputSchema = z
   });
 export type ResetPasswordInput = z.infer<typeof ResetPasswordInputSchema>;
 
-export type { CookieSession, LoginInput, Session, SessionUser } from "./auth.types";
+export type {
+  CookieSession,
+  LoginInput,
+  Session,
+  SessionUser,
+  SocialAuthInput,
+  SocialAuthResponse,
+} from "./auth.types";
