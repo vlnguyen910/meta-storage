@@ -58,6 +58,7 @@ describe.skipIf(!testUrl)("rental charges with isolated PostgreSQL", () => {
 
   beforeAll(async () => {
     assertTestDatabase(testUrl, process.env);
+    app.decorate("db", db);
     setupErrorHandler(app);
     app.setValidatorCompiler(validatorCompiler);
     app.setSerializerCompiler(serializerCompiler);
