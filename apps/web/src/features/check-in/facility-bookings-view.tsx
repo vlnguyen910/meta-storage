@@ -32,6 +32,14 @@ import { formatDateTime } from "@/lib/format";
 import type { FacilityBookingsViewProps } from "./facility-bookings-view.types";
 import { StaffAssignmentModal } from "./staff-assignment-modal";
 
+function slotRemainingLabel(value: string) {
+  const remaining = Date.parse(value) - Date.now();
+  if (remaining <= 0) return "Khung giờ đã kết thúc";
+  const hours = Math.floor(remaining / 3_600_000);
+  const minutes = Math.max(1, Math.ceil((remaining % 3_600_000) / 60_000));
+  return hours > 0 ? `Còn ${hours} giờ ${minutes} phút` : `Còn ${minutes} phút`;
+}
+
 const labels: Record<string, string> = {
   READY: FLOW.ready,
   NEEDS_UNIT: FLOW.needsUnit,
@@ -239,6 +247,11 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
                     <p className="text-[11px] uppercase text-[#5c6661]">{FLOW.slot}</p>
                     <p className="mt-1 text-xs font-medium">{formatDateTime(b.checkInSlotStart)}</p>
                     <p className="text-xs text-[#404945]">{formatDateTime(b.checkInSlotEnd)}</p>
+                    {b.checkInSlotEnd ? (
+                      <p className="mt-2 text-xs font-semibold text-[#125345]">
+                        {slotRemainingLabel(b.checkInSlotEnd)}
+                      </p>
+                    ) : null}
                   </div>
                   <div>
                     <p className="text-[11px] uppercase text-[#5c6661]">{FLOW.payment}</p>

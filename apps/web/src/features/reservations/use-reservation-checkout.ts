@@ -31,6 +31,7 @@ type WizardValues = z.input<typeof wizardSchema>;
 export function useReservationCheckout() {
   const searchParams = useSearchParams();
   const initialSearch = useRef(searchParams);
+  const routeSignature = useRef(searchParams.toString());
   const [step, setStep] = useState(0);
   const [changingFacility, setChangingFacility] = useState(!searchParams.get("facilityId"));
   const [areaFilter, setAreaFilter] = useState(searchParams.get("area") ?? "all");
@@ -81,6 +82,32 @@ export function useReservationCheckout() {
     pendingPayment?.paymentId ?? null,
     draft?.draftAccessToken,
   );
+
+  useEffect(() => {
+    const signature = searchParams.toString();
+    if (signature === routeSignature.current) return;
+    routeSignature.current = signature;
+    clearCheckoutContext();
+    setStep(0);
+    setChangingFacility(!searchParams.get("facilityId"));
+    setDraft(null);
+    setPendingPayment(null);
+    setConfirmation(null);
+    setQrDataUrl(null);
+    setPaymentError(null);
+    setSubmissionError(null);
+    setPaymentKey(crypto.randomUUID());
+    form.reset({
+      facilityId: searchParams.get("facilityId") ?? "",
+      unitTypeId: searchParams.get("unitTypeId") ?? "",
+      checkInDate: "",
+      checkInSlotId: "",
+      durationMonths: 1,
+      fullName: "",
+      email: "",
+      phone: "",
+    });
+  }, [form, searchParams]);
 
   useEffect(() => {
     if (initialSearch.current.get("new") === "1") {

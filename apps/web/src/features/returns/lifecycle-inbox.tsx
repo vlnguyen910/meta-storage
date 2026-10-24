@@ -1,11 +1,12 @@
 "use client";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { Bell, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { api } from "@/lib/api";
 import { F3 } from "./integration.messages";
-import { f3Panel, integrationError } from "./integration-utils";
+import { integrationError } from "./integration-utils";
 import { useFlow3Identity } from "./use-flow3-identity";
 
 export function LifecycleInbox() {
@@ -20,11 +21,26 @@ export function LifecycleInbox() {
     refetchOnWindowFocus: true,
   });
   return (
-    <section className={f3Panel}>
+    <section className="rounded-xl border border-sky-200 bg-sky-50/70 p-4 text-slate-900 shadow-sm">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="font-bold">{F3.notifications}</h2>
+        <div className="flex items-center gap-3">
+          <span className="grid size-9 place-items-center rounded-full bg-white text-sky-700 shadow-sm">
+            <Bell size={18} aria-hidden="true" />
+          </span>
+          <div>
+            <h2 className="font-bold">{F3.notifications}</h2>
+            <p className="m-0 text-xs text-slate-600">
+              Cập nhật mới về vận hành và hồ sơ cần xử lý.
+            </p>
+          </div>
+        </div>
         <Button variant="outline" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
-          {open ? F3.close : F3.notifications}
+          {open ? (
+            <ChevronUp size={16} aria-hidden="true" />
+          ) : (
+            <ChevronDown size={16} aria-hidden="true" />
+          )}
+          <span>{open ? F3.close : "Xem thông báo"}</span>
         </Button>
       </div>
       {open && (
