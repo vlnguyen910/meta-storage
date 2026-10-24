@@ -1,4 +1,10 @@
 export const PRICING_MESSAGES = {
+  rangeNotFound: "Không tìm thấy khung giá thuê.",
+  rangeUnavailable: "Khung giá thuê chưa được cấu hình hoặc đã ngừng sử dụng.",
+  rangeBoundsInvalid: "Giá tối đa phải lớn hơn hoặc bằng giá tối thiểu.",
+  rangeInUse: "Khung giá mới không bao phủ giá các loại kho đang sử dụng khung này.",
+  rangeCodeExists: "Mã khung giá đã được sử dụng.",
+  priceOutsideRange: "Giá thuê phải nằm trong khung giá do BOM cấu hình.",
   unavailable: "Chính sách giá/cọc chưa được cấu hình. Vui lòng liên hệ quản lý.",
   conflict: "Cấu hình đã thay đổi. Hãy tải lại trước khi cập nhật.",
   unitTypeNotFound: "Không tìm thấy loại kho.",
@@ -6,5 +12,5 @@ export const PRICING_MESSAGES = {
   updated: "Đã cập nhật cấu hình giá/cọc.",
   invalidVersion: "Phiên bản cấu hình phải là số nguyên dương.",
   invalidDeposit: "Hệ số cọc phải là số tháng nguyên dương.",
-  invalidPrice: "Giá thuê phải là số nguyên VND không âm trong giới hạn lưu trữ.",
+  invalidPrice: "Giá thuê phải là số nguyên VND dương trong giới hạn lưu trữ.",
 } as const;
