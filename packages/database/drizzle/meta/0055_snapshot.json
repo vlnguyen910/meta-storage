@@ -878,21 +878,6 @@
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
-        },
-        "bookings_facility_id_unit_type_id_facility_unit_types_facility_id_unit_type_id_fk": {
-          "name": "bookings_facility_id_unit_type_id_facility_unit_types_facility_id_unit_type_id_fk",
-          "tableFrom": "bookings",
-          "tableTo": "facility_unit_types",
-          "columnsFrom": [
-            "facility_id",
-            "unit_type_id"
-          ],
-          "columnsTo": [
-            "facility_id",
-            "unit_type_id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1087,21 +1072,6 @@
           "columnsTo": [
             "facility_id",
             "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "capacity_allocations_facility_id_unit_type_id_facility_unit_types_facility_id_unit_type_id_fk": {
-          "name": "capacity_allocations_facility_id_unit_type_id_facility_unit_types_facility_id_unit_type_id_fk",
-          "tableFrom": "capacity_allocations",
-          "tableTo": "facility_unit_types",
-          "columnsFrom": [
-            "facility_id",
-            "unit_type_id"
-          ],
-          "columnsTo": [
-            "facility_id",
-            "unit_type_id"
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
@@ -4808,21 +4778,6 @@
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
-        },
-        "reservation_drafts_facility_id_unit_type_id_facility_unit_types_facility_id_unit_type_id_fk": {
-          "name": "reservation_drafts_facility_id_unit_type_id_facility_unit_types_facility_id_unit_type_id_fk",
-          "tableFrom": "reservation_drafts",
-          "tableTo": "facility_unit_types",
-          "columnsFrom": [
-            "facility_id",
-            "unit_type_id"
-          ],
-          "columnsTo": [
-            "facility_id",
-            "unit_type_id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -6687,21 +6642,6 @@
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
-        },
-        "storage_units_facility_id_unit_type_id_facility_unit_types_facility_id_unit_type_id_fk": {
-          "name": "storage_units_facility_id_unit_type_id_facility_unit_types_facility_id_unit_type_id_fk",
-          "tableFrom": "storage_units",
-          "tableTo": "facility_unit_types",
-          "columnsFrom": [
-            "facility_id",
-            "unit_type_id"
-          ],
-          "columnsTo": [
-            "facility_id",
-            "unit_type_id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -7233,21 +7173,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "unit_types_code_idx": {
-          "name": "unit_types_code_idx",
-          "columns": [
-            {
-              "expression": "code",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
@@ -7470,103 +7395,6 @@
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.facility_unit_types": {
-      "name": "facility_unit_types",
-      "schema": "",
-      "columns": {
-        "facility_id": {
-          "name": "facility_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "unit_type_id": {
-          "name": "unit_type_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "is_active": {
-          "name": "is_active",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "facility_unit_types_unit_type_idx": {
-          "name": "facility_unit_types_unit_type_idx",
-          "columns": [
-            {
-              "expression": "unit_type_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "facility_unit_types_facility_id_facilities_id_fk": {
-          "name": "facility_unit_types_facility_id_facilities_id_fk",
-          "tableFrom": "facility_unit_types",
-          "tableTo": "facilities",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "facility_unit_types_unit_type_id_unit_types_id_fk": {
-          "name": "facility_unit_types_unit_type_id_unit_types_id_fk",
-          "tableFrom": "facility_unit_types",
-          "tableTo": "unit_types",
-          "columnsFrom": [
-            "unit_type_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "facility_unit_types_facility_id_unit_type_id_pk": {
-          "name": "facility_unit_types_facility_id_unit_type_id_pk",
-          "columns": [
-            "facility_id",
-            "unit_type_id"
-          ]
-        }
-      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
