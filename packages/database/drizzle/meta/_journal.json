@@ -337,6 +337,27 @@
       "when": 1792775658787,
       "tag": "0047_handy_franklin_storm",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1792831076429,
+      "tag": "0048_lucky_falcon",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1792831463994,
+      "tag": "0049_stiff_whiplash",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1792832115352,
+      "tag": "0050_sad_pyro",
+      "breakpoints": true
     }
   ]
 }

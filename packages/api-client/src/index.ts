@@ -25,6 +25,7 @@ import type {
   ConfirmManualRefundInput,
   ConfirmReservationInput,
   CookieSession,
+  CreateRentalCharge,
   CreateReturnRequest,
   CustomerBooking,
   CustomerBookingPage,
@@ -58,6 +59,13 @@ import type {
   PricingUpdateResult,
   ReconciliationReport,
   RecordPhysicalReturn,
+  RentalChargeAdjustment,
+  RentalChargeDecision,
+  RentalChargeDispute,
+  RentalChargeDto,
+  RentalChargePageQuery,
+  RentalChargePaymentSession,
+  RentalChargeRefundDto,
   RentalDetail,
   RentalPage,
   RentalPageQuery,
@@ -72,6 +80,7 @@ import type {
   ReservationQuote,
   ReservationQuoteInput,
   ResetPasswordInput,
+  ResolveRentalChargeDispute,
   ReturnInspectionDto,
   ReturnPhotoInput,
   ReturnQueueItemDto,
@@ -91,6 +100,7 @@ import type {
   SettleReturn,
   SocialAuthInput,
   SocialAuthResponse,
+  StartRentalChargePayment,
   StorageUnitMaintenanceTransition,
   StorageUnitResponse,
   UnitAvailabilityOption,
@@ -566,6 +576,54 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
         http
           .patch<ApiEnvelope<PricingUpdateResult>>(`/business-rules/pricing/${unitTypeId}`, input)
           .then(unwrap),
+    },
+    rentalCharges: {
+      list: (rentalId: string, signal?: AbortSignal) =>
+        http
+          .get<ApiEnvelope<RentalChargeDto[]>>(`/rentals/${rentalId}/charges`, { signal })
+          .then(unwrap),
+      create: (rentalId: string, input: CreateRentalCharge) =>
+        http.post<ApiEnvelope<RentalChargeDto>>(`/rentals/${rentalId}/charges`, input).then(unwrap),
+      approve: (chargeId: string, input: RentalChargeDecision) =>
+        http
+          .post<ApiEnvelope<RentalChargeDto>>(`/rental-charges/${chargeId}/approve`, input)
+          .then(unwrap),
+      reject: (chargeId: string, input: RentalChargeDecision) =>
+        http
+          .post<ApiEnvelope<RentalChargeDto>>(`/rental-charges/${chargeId}/reject`, input)
+          .then(unwrap),
+      adjust: (chargeId: string, input: RentalChargeAdjustment) =>
+        http
+          .post<ApiEnvelope<RentalChargeDto>>(`/rental-charges/${chargeId}/adjustments`, input)
+          .then(unwrap),
+      dispute: (chargeId: string, input: RentalChargeDispute) =>
+        http
+          .post<ApiEnvelope<RentalChargeDto>>(`/rental-charges/${chargeId}/dispute`, input)
+          .then(unwrap),
+      resolveDispute: (chargeId: string, input: ResolveRentalChargeDispute) =>
+        http
+          .post<ApiEnvelope<RentalChargeDto>>(`/rental-charges/${chargeId}/dispute/resolve`, input)
+          .then(unwrap),
+      pay: (chargeId: string, input: StartRentalChargePayment) =>
+        http
+          .post<ApiEnvelope<RentalChargePaymentSession>>(
+            `/rental-charges/${chargeId}/payments`,
+            input,
+          )
+          .then(unwrap),
+      refunds: {
+        list: (params: Partial<RentalChargePageQuery> = {}) =>
+          http
+            .get<ApiEnvelope<RentalChargeRefundDto[]>>("/rental-charge-refunds", { params })
+            .then(unwrap),
+        confirm: (refundId: string, reference: string) =>
+          http
+            .post<ApiEnvelope<RentalChargeRefundDto>>(
+              `/rental-charge-refunds/${refundId}/confirm`,
+              { reference },
+            )
+            .then(unwrap),
+      },
     },
     reports: {
       getMonthlyRevenue: (params: MonthlyRevenueQuery = {}) =>

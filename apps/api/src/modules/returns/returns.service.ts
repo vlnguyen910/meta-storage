@@ -1430,6 +1430,7 @@ export class ReturnsService {
       approvedAt: now,
       reason: input.reason,
     });
+    await this.repository.syncReturnDebtCharge(tx, row, previous, context.rental.id, actor.id);
     await this.repository.audit(
       tx,
       actor.id,

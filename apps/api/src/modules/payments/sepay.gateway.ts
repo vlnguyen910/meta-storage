@@ -131,6 +131,13 @@ export class SepayPaymentGateway {
       currency: order.order_currency,
       transferType: "in",
       successful: true,
+      paidAt: parseSePayTimestamp(
+        order.transactions?.find(
+          (transaction) =>
+            transaction.transaction_type === "PAYMENT" &&
+            transaction.transaction_status === "APPROVED",
+        )?.transaction_date,
+      ),
       metadata: {
         source: "order-api",
         orderId: order.order_id,
@@ -146,8 +153,9 @@ export class SepayPaymentGateway {
     if (!this.pgClient) return null;
     const checkoutUrl = this.pgClient.checkout.initCheckoutUrl();
     const webUrl = this.config.webUrl || "http://localhost:3000";
-    const resultUrl = `${webUrl}/bookings/payment-result`;
-    const reference = `paymentId=${input.paymentId}&bookingId=${input.bookingId}`;
+    const isCharge = Boolean(input.rentalChargeId);
+    const resultUrl = `${webUrl}/${isCharge ? "rental-charges" : "bookings"}/payment-result`;
+    const reference = `paymentId=${input.paymentId}&${isCharge ? "chargeId" : "bookingId"}=${input.rentalChargeId ?? input.bookingId}`;
     const successUrl = `${resultUrl}?status=success&${reference}`;
     const errorUrl = `${resultUrl}?status=error&${reference}`;
     const cancelUrl = `${resultUrl}?status=cancel&${reference}`;
@@ -252,6 +260,7 @@ export class SepayPaymentGateway {
           payload.order.order_currency === "VND" &&
           payload.transaction?.transaction_currency === "VND" &&
           Number(payload.order.order_amount) === amount,
+        paidAt: parseSePayTimestamp(payload.transaction?.transaction_date),
       };
     }
 
@@ -269,6 +278,12 @@ export class SepayPaymentGateway {
 
     throw new BadRequestError(PAYMENT_MESSAGES.sepayWebhookInvalidPayload);
   }
+}
+
+function parseSePayTimestamp(value: unknown): Date | undefined {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value)) return;
+  const parsed = new Date(`${value.replace(" ", "T")}+07:00`);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
 }
 
 function safeEqual(left: string, right: string) {

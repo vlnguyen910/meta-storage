@@ -8,6 +8,7 @@ import {
   type Database,
   desc,
   eq,
+  exists,
   facilities,
   facilityUnitTypes,
   gt,
@@ -18,6 +19,11 @@ import {
   or,
   paymentProviderEvents,
   payments,
+  rentalChargeAdjustments,
+  rentalChargeEvents,
+  rentalChargeRefunds,
+  rentalCharges,
+  rentals,
   reservationDrafts,
   type SQL,
   sql,
@@ -76,14 +82,37 @@ export class PaymentsRepository {
     return this.db
       .select({ id: payments.id })
       .from(payments)
-      .innerJoin(bookings, eq(bookings.id, payments.bookingId))
+      .leftJoin(bookings, eq(bookings.id, payments.bookingId))
       .where(
         and(
           eq(payments.provider, "sepay"),
-          facilityId ? eq(bookings.facilityId, facilityId) : undefined,
+          facilityId
+            ? or(
+                eq(bookings.facilityId, facilityId),
+                exists(
+                  this.db
+                    .select({ id: rentals.id })
+                    .from(rentals)
+                    .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
+                    .innerJoin(rentalCharges, eq(rentalCharges.rentalId, rentals.id))
+                    .where(
+                      and(
+                        eq(rentalCharges.id, payments.rentalChargeId),
+                        eq(bookings.facilityId, facilityId),
+                      ),
+                    ),
+                ),
+              )
+            : undefined,
           eq(payments.status, "PENDING"),
-          isNotNull(payments.bookingId),
-          isNull(payments.draftId),
+          or(
+            and(
+              isNotNull(payments.bookingId),
+              isNull(payments.draftId),
+              isNull(payments.rentalChargeId),
+            ),
+            isNotNull(payments.rentalChargeId),
+          ),
         ),
       )
       .orderBy(asc(payments.updatedAt), payments.id)
@@ -107,8 +136,14 @@ export class PaymentsRepository {
           eq(payments.id, paymentId),
           eq(payments.provider, "sepay"),
           eq(payments.status, "PENDING"),
-          isNotNull(payments.bookingId),
-          isNull(payments.draftId),
+          or(
+            and(
+              isNotNull(payments.bookingId),
+              isNull(payments.draftId),
+              isNull(payments.rentalChargeId),
+            ),
+            isNotNull(payments.rentalChargeId),
+          ),
           or(
             eq(payments.updatedAt, payments.createdAt),
             lte(payments.updatedAt, new Date(now.getTime() - 15_000)),
@@ -125,10 +160,15 @@ export class PaymentsRepository {
     return this.db.transaction(
       async (tx) => {
         const [candidate] = await tx
-          .select({ id: payments.id, bookingId: payments.bookingId, draftId: payments.draftId })
+          .select({
+            id: payments.id,
+            bookingId: payments.bookingId,
+            draftId: payments.draftId,
+            rentalChargeId: payments.rentalChargeId,
+          })
           .from(payments)
           .where(and(eq(payments.provider, "sepay"), eq(payments.paymentCode, event.paymentCode)));
-        if (!candidate?.bookingId || candidate.draftId) return null;
+        if (!candidate?.bookingId || candidate.draftId || candidate.rentalChargeId) return null;
         // Match checkout's booking -> payment -> offering lock order.
         const [checkout] = await tx
           .select({ booking: bookings, facility: facilities, unitType: unitTypes })
@@ -144,6 +184,7 @@ export class PaymentsRepository {
           .where(eq(payments.id, candidate.id))
           .for("update");
         if (!payment) throw new AppError(PAYMENT_MESSAGES.paymentNotFound, 404);
+        if (!payment.holdTokenHash) return null;
         const now = new Date();
         const [recorded] = await tx
           .insert(paymentProviderEvents)
@@ -374,6 +415,208 @@ export class PaymentsRepository {
       },
       { isolationLevel: "read committed" },
     );
+  }
+
+  async prepareRentalChargePayment(input: {
+    chargeId: string;
+    userId: string;
+    idempotencyKey: string;
+    paymentCode: string;
+  }) {
+    return this.db.transaction(async (tx) => {
+      const [row] = await tx
+        .select({ charge: rentalCharges, userId: bookings.userId })
+        .from(rentalCharges)
+        .innerJoin(rentals, eq(rentals.id, rentalCharges.rentalId))
+        .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
+        .where(eq(rentalCharges.id, input.chargeId))
+        .for("update", { of: rentalCharges });
+      if (!row || row.userId !== input.userId)
+        throw new AppError(PAYMENT_MESSAGES.paymentNotFound, 404);
+      const [existing] = await tx
+        .select()
+        .from(payments)
+        .where(eq(payments.idempotencyKey, input.idempotencyKey))
+        .for("update");
+      if (existing) {
+        if (existing.rentalChargeId !== input.chargeId || existing.provider !== "sepay")
+          throw new AppError(PAYMENT_MESSAGES.idempotencyKeyUsedForAnotherCheckout, 409);
+        if (
+          existing.status !== "PENDING" ||
+          !existing.expiresAt ||
+          existing.expiresAt <= new Date()
+        )
+          throw new AppError(PAYMENT_MESSAGES.paymentAttemptFinalized, 409);
+        return { payment: existing, expiresAt: existing.expiresAt };
+      }
+      if (row.charge.status !== "OPEN")
+        throw new AppError(PAYMENT_MESSAGES.paymentAttemptFinalized, 409);
+      const now = new Date();
+      await tx
+        .update(payments)
+        .set({ status: "FAILED", updatedAt: now })
+        .where(
+          and(
+            eq(payments.rentalChargeId, input.chargeId),
+            eq(payments.status, "PENDING"),
+            lte(payments.expiresAt, now),
+          ),
+        );
+      const adjustments = await tx
+        .select()
+        .from(rentalChargeAdjustments)
+        .where(eq(rentalChargeAdjustments.chargeId, input.chargeId));
+      const total = adjustments.reduce(
+        (value, adjustment) =>
+          value + (adjustment.direction === "INCREASE" ? 1 : -1) * Number(adjustment.amount),
+        Number(row.charge.amount),
+      );
+      if (!Number.isSafeInteger(total) || total <= 0)
+        throw new AppError(PAYMENT_MESSAGES.paymentAttemptFinalized, 409);
+      const [pending] = await tx
+        .select({ id: payments.id })
+        .from(payments)
+        .where(and(eq(payments.rentalChargeId, input.chargeId), eq(payments.status, "PENDING")))
+        .limit(1);
+      if (pending) throw new AppError(PAYMENT_MESSAGES.paymentPendingReconciliation, 409);
+      const expiresAt = new Date(now.getTime() + 15 * 60_000);
+      const [payment] = await tx
+        .insert(payments)
+        .values({
+          rentalChargeId: input.chargeId,
+          holdTokenHash: null,
+          provider: "sepay",
+          paymentCode: input.paymentCode,
+          providerPaymentId: `pending_${input.paymentCode}`,
+          idempotencyKey: input.idempotencyKey,
+          totalAmount: String(total),
+          currency: "VND",
+          status: "PENDING",
+          expiresAt,
+        })
+        .returning();
+      if (!payment) throw new AppError(PAYMENT_MESSAGES.failedToFinalizePayment, 500);
+      return { payment, expiresAt };
+    });
+  }
+
+  async processRentalChargePaymentEvent(event: VerifiedPaymentEvent) {
+    return this.db.transaction(async (tx) => {
+      const [candidate] = await tx
+        .select()
+        .from(payments)
+        .where(and(eq(payments.provider, "sepay"), eq(payments.paymentCode, event.paymentCode)));
+      if (!candidate?.rentalChargeId) return null;
+      const [charge] = await tx
+        .select()
+        .from(rentalCharges)
+        .where(eq(rentalCharges.id, candidate.rentalChargeId))
+        .for("update");
+      const [payment] = await tx
+        .select()
+        .from(payments)
+        .where(eq(payments.id, candidate.id))
+        .for("update");
+      if (!charge || !payment) throw new AppError(PAYMENT_MESSAGES.paymentNotFound, 404);
+      const [recorded] = await tx
+        .insert(paymentProviderEvents)
+        .values({
+          provider: "sepay",
+          providerEventId: event.providerEventId,
+          paymentId: payment.id,
+          paymentCode: event.paymentCode,
+          amount: event.amount,
+          transferType: event.transferType,
+          referenceCode: event.referenceCode,
+          status: "FAILED",
+          payloadMetadata: event.metadata,
+        })
+        .onConflictDoNothing({
+          target: [paymentProviderEvents.provider, paymentProviderEvents.providerEventId],
+        })
+        .returning();
+      const [existing] = recorded
+        ? [recorded]
+        : await tx
+            .select()
+            .from(paymentProviderEvents)
+            .where(
+              and(
+                eq(paymentProviderEvents.provider, "sepay"),
+                eq(paymentProviderEvents.providerEventId, event.providerEventId),
+              ),
+            )
+            .for("update");
+      if (!existing) throw new AppError(PAYMENT_MESSAGES.failedToFinalizePayment, 500);
+      if (
+        existing.paymentCode !== event.paymentCode ||
+        (existing.paymentId && existing.paymentId !== payment.id)
+      )
+        return { duplicate: true, processed: false, paymentId: payment.id };
+      if (!recorded && existing.status !== "FAILED")
+        return { duplicate: true, processed: false, paymentId: payment.id };
+      const matches =
+        ["PENDING", "FAILED"].includes(payment.status) &&
+        event.successful === true &&
+        event.transferType === "in" &&
+        event.amount === Number(payment.totalAmount) &&
+        event.currency === payment.currency;
+      if (!matches) {
+        await tx
+          .update(paymentProviderEvents)
+          .set({ status: "IGNORED", updatedAt: new Date() })
+          .where(eq(paymentProviderEvents.id, existing.id));
+        return { duplicate: false, processed: false, paymentId: payment.id };
+      }
+      const paidAt = event.paidAt;
+      const applicable = Boolean(
+        paidAt && payment.expiresAt && paidAt <= payment.expiresAt && charge.status === "OPEN",
+      );
+      const [updated] = await tx
+        .update(payments)
+        .set({
+          status: applicable ? "SUCCEEDED" : "REFUND_PENDING",
+          providerPaymentId: event.providerEventId,
+          paidAt: paidAt ?? new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(payments.id, payment.id))
+        .returning();
+      if (applicable && paidAt) {
+        await tx
+          .update(rentalCharges)
+          .set({ status: "PAID", updatedAt: paidAt })
+          .where(eq(rentalCharges.id, charge.id));
+        await tx.insert(rentalChargeEvents).values({
+          chargeId: charge.id,
+          type: "PAID",
+          actorId: null,
+          details: { paymentId: payment.id, paidAt: paidAt.toISOString() },
+        });
+      } else {
+        await tx
+          .update(rentalCharges)
+          .set({ status: "REFUND_DUE", updatedAt: new Date() })
+          .where(eq(rentalCharges.id, charge.id));
+        await tx.insert(rentalChargeRefunds).values({
+          chargeId: charge.id,
+          paymentId: payment.id,
+          amount: payment.totalAmount,
+          reason: "Payment received after quote expiry or charge closure",
+        });
+        await tx.insert(rentalChargeEvents).values({
+          chargeId: charge.id,
+          type: "REFUND_CREATED",
+          actorId: null,
+          details: { paymentId: payment.id, reason: "late_or_closed_payment" },
+        });
+      }
+      await tx
+        .update(paymentProviderEvents)
+        .set({ status: "PROCESSED", paymentId: payment.id, updatedAt: new Date() })
+        .where(eq(paymentProviderEvents.id, existing.id));
+      return { duplicate: false, processed: true, paymentId: updated?.id };
+    });
   }
 
   async prepareBookingPayment(input: PrepareBookingPaymentInput) {
@@ -766,6 +1009,21 @@ export class PaymentsRepository {
           eq(payments.id, paymentId),
           or(
             access.userId ? eq(bookings.userId, access.userId) : undefined,
+            access.userId
+              ? exists(
+                  this.db
+                    .select({ id: rentals.id })
+                    .from(rentalCharges)
+                    .innerJoin(rentals, eq(rentals.id, rentalCharges.rentalId))
+                    .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
+                    .where(
+                      and(
+                        eq(rentalCharges.id, payments.rentalChargeId),
+                        eq(bookings.userId, access.userId),
+                      ),
+                    ),
+                )
+              : undefined,
             access.tokenHash ? eq(payments.holdTokenHash, access.tokenHash) : undefined,
           ),
         ),
@@ -774,6 +1032,7 @@ export class PaymentsRepository {
   }
 
   async findActiveHoldForPayment(payment: typeof payments.$inferSelect) {
+    if (!payment.holdTokenHash) return null;
     const referenceId = payment.bookingId ?? payment.draftId;
     if (!referenceId) return null;
     const [hold] = await this.db

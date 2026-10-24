@@ -17,6 +17,8 @@ export * from "./payment-provider-events";
 export * from "./payments";
 export * from "./pricing";
 export * from "./relations";
+export * from "./rental-charge-financials";
+export * from "./rental-charges";
 export * from "./rentals";
 export * from "./reservation-drafts";
 export * from "./returns";
