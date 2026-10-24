@@ -4,6 +4,7 @@ import { desc, eq, getTableColumns, type SQL, sql } from "drizzle-orm";
 import { type MigrationMeta, readMigrationFiles } from "drizzle-orm/migrator";
 import { bigint, integer, pgSchema, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { type Database, db, queryClient } from "./client";
+import { migrateFacilityUnitTypes } from "./migrate-facility-unit-types";
 import { systemSettings } from "./schema/system-settings";
 
 // Historical definitions are migration-only: never exported to the active schema.
@@ -118,7 +119,19 @@ export async function applyMigrations(database: Database, migrations: MigrationM
     let applied = 0;
     for (const migration of migrations) {
       if (last && Number(last.createdAt) >= migration.folderMillis) continue;
-      for (const statement of migration.sql) await tx.execute(sql.raw(statement));
+      const contractsLocalTypes = migration.sql.some((statement) =>
+        statement.includes('ALTER TABLE "unit_types" ALTER COLUMN "facility_id" SET NOT NULL'),
+      );
+      if (contractsLocalTypes) await migrateFacilityUnitTypes(tx);
+      // Drizzle emits DROP TABLE CASCADE before explicit FK drops; execute those
+      // trusted generated drops first so PostgreSQL does not see missing constraints.
+      const statements = contractsLocalTypes
+        ? [
+            ...migration.sql.filter((statement) => statement.includes(" DROP CONSTRAINT ")),
+            ...migration.sql.filter((statement) => !statement.includes(" DROP CONSTRAINT ")),
+          ]
+        : migration.sql;
+      for (const statement of statements) await tx.execute(sql.raw(statement));
       await tx.insert(journal).values({ hash: migration.hash, createdAt: migration.folderMillis });
       applied++;
     }

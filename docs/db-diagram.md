@@ -1,5 +1,40 @@
 # metastorage database diagram
 
+## Facility-owned catalog and BOM ranges (approved 2026-10-24)
+
+`rental_price_ranges`: UUID id, unique code, name, nullable integer-VND
+min_monthly_price/max_monthly_price (both null until BOM configures them, or
+0 < min <= max), is_active, nonnegative version, nullable updated_by FK users
+(RESTRICT), created_at/updated_at. BOM alone creates/updates ranges. A range update
+must reject any linked local price outside the proposed bounds; no guessed defaults.
+
+`unit_types` belongs to exactly one facility through required facility_id FK
+(RESTRICT) and one required price_range_id FK (RESTRICT). Code is unique per facility;
+(facility_id,id) is also unique for composite references. Existing name/size_label,
+positive dimensions, generated size_cbm, positive integer monthly_price and is_active remain local.
+Add nonnegative version (default 0) and nullable updated_by FK users (RESTRICT).
+Only the currently assigned active FM writes local types/prices. Dimension edits
+are rejected once any booking or reservation draft references the type; create a
+new type and move eligible free physical units instead. Price changes affect only
+new quotes; booking/renewal/PDF snapshots are immutable. There is no unit_type_changes.
+FM price writes and BOM range writes append the existing pricing_changes ledger;
+the shared pricing revision remains serialized by the DEPOSIT_MONTHS settings row.
+
+`facility_unit_types` is retired. storage_units/bookings/reservation_drafts/
+capacity_allocations reference unit_types through (facility_id,unit_type_id),
+preventing cross-facility types. Catalog, checkout and renewal lock the local type
+in place of the retired offering. Range validation uses range-first/type-second
+locks after the shared pricing revision; new quotes require configured active
+bounds. Captures of existing quotes retain saved prices rather than recalculating.
+
+Migration expands the schema, transfers every existing facility/type pair into a
+local type (retaining the original UUID for the first facility and cloning others),
+remaps the four composite references, then enforces NOT NULL/FKs and retires the
+join table. Unassigned or nonpositive-priced legacy types fail preflight for explicit
+resolution rather than silently losing data. Existing scalar settings, payment
+amounts, audit JSON and contract/renewal snapshots are not rewritten. The migration
+runner performs the transfer within its existing atomic migration transaction.
+
 ## Rental renewals (#163, approved 2026-10-24)
 
 `rental_renewals` retains immutable quote/acceptance facts: UUID id, rental_id FK,
@@ -180,14 +215,14 @@ No unrelated workflow, renewal/upgrade or check-in policy is introduced.
 Flow 4 pricing: `system_settings` key DEPOSIT_MONTHS stores positive integer value
 and shared positive pricing version, nullable updated_by FK users and updated_at. The one-month starting policy is explicitly seeded, never a runtime
 fallback. Missing policy prevents new quotes. `unit_types.monthly_price` remains
-the sole current global price per type. Updating either price or deposit locks
-the settings row first, validates expectedVersion, increments the shared version
+the current local price per facility-owned type. Updating a price, range or deposit locks
+the settings row first, validates the relevant expectedVersion, increments the shared version
 and appends `pricing_changes` in the same transaction. Existing booking monetary
 snapshots are never recalculated. Drafts created before a change keep their
 snapshot, including when they start payment after the change.
 
 `pricing_changes`: UUID `id`, unique positive integer `version`, enum `operation`
-(`DEPOSIT_POLICY`, `UNIT_TYPE_PRICE`), required JSONB `before`/`after` storing the
+(`DEPOSIT_POLICY`, `UNIT_TYPE_PRICE`, `RENTAL_PRICE_RANGE`), required JSONB `before`/`after` storing the
 specific changed values, required `changed_by` FK users (RESTRICT), and timestamp
 `changed_at`. No API modifies or deletes audit records. Settings are not exposed
 to public/FS/FM/SA callers; configuration endpoints require BOM.
@@ -336,12 +371,12 @@ erDiagram
   users ||--o{ sessions : signs_in_with
   users ||--o{ facility_assignments : receives
   facilities ||--o{ facility_assignments : has
-  facilities ||--o{ facility_unit_types : offers
-  unit_types ||--o{ facility_unit_types : shared_by
-  facility_unit_types ||--o{ storage_units : materializes
-  facility_unit_types ||--o{ reservation_drafts : selects
-  facility_unit_types ||--o{ capacity_allocations : allocates
-  facility_unit_types ||--o{ bookings : books
+  facilities ||--o{ unit_types : owns
+  rental_price_ranges ||--o{ unit_types : constrains
+  unit_types ||--o{ storage_units : materializes
+  unit_types ||--o{ reservation_drafts : selects
+  unit_types ||--o{ capacity_allocations : allocates
+  unit_types ||--o{ bookings : books
   unit_types ||--o{ storage_units : materializes
   facilities ||--o{ storage_units : contains
   facilities ||--o{ facility_operating_hours : schedules
@@ -460,25 +495,34 @@ erDiagram
     timestamptz updated_at
   }
 
-  unit_types {
+  rental_price_ranges {
     uuid id PK
     varchar code UK
+    varchar name
+    integer min_monthly_price "nullable paired bounds"
+    integer max_monthly_price "nullable paired bounds"
+    boolean is_active
+    integer version
+    uuid updated_by FK "nullable"
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+  unit_types {
+    uuid id PK
+    uuid facility_id FK
+    uuid price_range_id FK
+    varchar code "unique within facility"
     varchar name
     varchar size_label
     numeric length_m
     numeric width_m
     numeric height_m
-    numeric size_cbm
+    numeric size_cbm "generated"
     integer monthly_price
     boolean is_active
-    timestamptz created_at
-    timestamptz updated_at
-  }
-
-  facility_unit_types {
-    uuid facility_id PK,FK
-    uuid unit_type_id PK,FK
-    boolean is_active
+    integer version
+    uuid updated_by FK "nullable"
     timestamptz created_at
     timestamptz updated_at
   }
@@ -812,25 +856,22 @@ erDiagram
 - Before applying the single-Facility index migration, check for Users with
   multiple `is_active = true` assignments. Resolve them explicitly before
   migrating; the migration must not choose a Facility or discard history.
-- `unit_types.code` is globally unique. `facility_unit_types` has a composite
-  primary key `(facility_id, unit_type_id)` and an index on `unit_type_id`.
+- `unit_types.code` is unique within a facility; `(facility_id,id)` is unique.
 - `storage_units`, `bookings`, `reservation_drafts` and `capacity_allocations`
-  each use a composite foreign key `(facility_id, unit_type_id)` to
-  `facility_unit_types(facility_id, unit_type_id)`. `capacity_allocations.reference_id` is a UUID
-  reference value without a database foreign key at this stage.
+  each use a composite foreign key `(facility_id,unit_type_id)` to
+  `unit_types(facility_id,id)` with ON DELETE RESTRICT. Range and facility ownership
+  references also use RESTRICT. `capacity_allocations.reference_id` remains a UUID
+  reference value without a database foreign key.
 - User foreign keys use `ON DELETE CASCADE` for `accounts`, `sessions` and
   `facility_assignments`, and `ON DELETE SET NULL` for `bookings.user_id`.
   Facility task/report and unit maintenance history references use `ON DELETE RESTRICT`
   to preserve assigned work, reports, transition history and actor references.
-  Facility foreign keys use `ON DELETE CASCADE` for `facility_unit_types`,
+  Facility foreign keys use `ON DELETE CASCADE` for
   `storage_units`, `facility_operating_hours` and `facility_assignments`, and
   `ON DELETE RESTRICT` for reservation drafts and capacity allocations.
-  Composite Facility Unit Type foreign keys use `ON DELETE RESTRICT`.
-  `facility_unit_types.unit_type_id` references `unit_types.id` with
-  `ON DELETE RESTRICT`, so linked unit types cannot be deleted.
 - `created_at` and `updated_at` columns default to `now()` wherever shown;
   `assigned_at` also defaults to `now()`. `facilities.is_active`,
-  `unit_types.is_active`, `facility_unit_types.is_active` and
+  `unit_types.is_active`, `rental_price_ranges.is_active` and
   `facility_assignments.is_active` default to true.
   `storage_units.status` defaults to `AVAILABLE`,
   `reservation_drafts.status` to `DRAFT`,
@@ -838,24 +879,13 @@ erDiagram
   `capacity_allocations.status` to `ACTIVE`. The default operating timezone is
   `Asia/Ho_Chi_Minh`.
 
-Unit Types are a shared catalog across facilities; their definition and monthly
-price are stored once in `unit_types`. Exact length, width and height are positive
-decimal measurements in meters (`length_m`, `width_m`, `height_m`). `size_cbm`
-is a stored generated column in cubic meters equal to `length_m * width_m * height_m`.
-Catalog floor area is calculated from length and width when reading; it is not stored.
-Each physical
-`storage_unit` inherits these dimensions through `unit_type_id`; physical units
-with different dimensions must reference different unit types. The `facility_unit_types` join table
-records which facilities offer each type and can disable an offering without
-disabling the shared type. Availability and capacity are scoped to the pair
-`(facility_id, unit_type_id)`, never to the shared Unit Type ID alone.
-
-For public catalog queries, a facility is eligible when it is active and has at
-least one `storage_units.status = AVAILABLE` for an active shared type and active
-facility offering. Unit Type availability is grouped by `unit_types.id` within
-the selected facility and counts only `AVAILABLE` units. Reservation, hold and
-booking flows reference the Unit Type ID; a physical unit is assigned later by
-operations and is never selected by the customer.
+Unit types belong to a facility and own their dimensions and monthly price within a
+BOM-managed rental price range. Exact length, width and height are positive meters;
+`size_cbm` is generated as their product, and floor area is calculated when reading.
+Physical units inherit the dimensions of their local type. Availability and capacity
+are scoped to `(facility_id,unit_type_id)`. Public catalog requires an active facility,
+active type and active configured range containing its price.
+Customers select a type; operations assign the physical unit later.
 
 ## Guest booking and optional account history (supersedes #77/#92 Customer model)
 

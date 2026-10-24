@@ -1,6 +1,6 @@
 import { foreignKey, index, pgEnum, pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { facilities } from "./facilities";
-import { facilityUnitTypes } from "./facility-unit-types";
+import { unitTypes } from "./unit-types";
 
 export const STORAGE_UNIT_STATUSES = [
   "AVAILABLE",
@@ -33,7 +33,7 @@ export const storageUnits = pgTable(
   (table) => [
     foreignKey({
       columns: [table.facilityId, table.unitTypeId],
-      foreignColumns: [facilityUnitTypes.facilityId, facilityUnitTypes.unitTypeId],
+      foreignColumns: [unitTypes.facilityId, unitTypes.id],
     }).onDelete("restrict"),
     index("storage_units_facility_idx").on(table.facilityId),
     index("storage_units_facility_status_idx").on(table.facilityId, table.status),
