@@ -209,7 +209,12 @@ export const StorageUnitMaintenanceHistoryQuerySchema = z
     offset: z.coerce.number().int().min(0).default(0),
   })
   .strict();
-export const SetFacilityUnitTypeSchema = z.object({ isActive: z.boolean() }).strict();
+export const SetFacilityUnitTypeSchema = z
+  .object({
+    isActive: z.boolean(),
+    expectedVersion: z.number().int().nonnegative().max(2147483646),
+  })
+  .strict();
 export type CreateStorageUnitInput = z.infer<typeof CreateStorageUnitSchema>;
 export type UpdateStorageUnitInput = z.infer<typeof UpdateStorageUnitSchema>;
 export type StorageUnitMaintenanceHistoryQuery = z.infer<
