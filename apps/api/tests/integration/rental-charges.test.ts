@@ -216,10 +216,31 @@ describe.skipIf(!testUrl)("rental charges with isolated PostgreSQL", () => {
     login({ id: ids.manager, role: "FACILITY_MANAGER" });
     const approved = await app.inject({
       method: "POST",
-      url: `/api/rental-charges/${chargeId}/approve`,
-      payload: { reason: "Evidence checked" },
+      url: `/api/rental-charges/${chargeId}/decision`,
+      payload: { decision: "APPROVE", reason: "Evidence checked" },
     });
     expect(approved.statusCode).toBe(200);
+
+    login({ id: ids.staff, role: "FACILITY_STAFF" });
+    const rejectedCharge = await app.inject({
+      method: "POST",
+      url: `/api/rentals/${rentalId}/charges`,
+      payload: {
+        category: "CLEANING",
+        amount: 10000,
+        evidence: "Duplicate charge fixture",
+        dueDate: "2032-02-10",
+      },
+    });
+    expect(rejectedCharge.statusCode).toBe(201);
+    login({ id: ids.manager, role: "FACILITY_MANAGER" });
+    const rejected = await app.inject({
+      method: "POST",
+      url: `/api/rental-charges/${rejectedCharge.json().data.id}/decision`,
+      payload: { decision: "REJECT", reason: "Duplicate request" },
+    });
+    expect(rejected.statusCode).toBe(200);
+    expect(rejected.json().data.status).toBe("VOID");
 
     const repository = new PaymentsRepository(db);
     const attempt = await repository.prepareRentalChargePayment({

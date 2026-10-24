@@ -17,6 +17,8 @@ describe("monthly cash reporting", () => {
           },
         ],
         refunds: [{ month: "2026-03", cashRefunded: "120.00" }],
+        chargeReceipts: [],
+        chargeRefunds: [],
       }),
     } as unknown as ReportsRepository;
     const result = await new ReportsService(repository).monthlyRevenue(
@@ -42,6 +44,8 @@ describe("monthly cash reporting", () => {
           },
         ],
         refunds: [],
+        chargeReceipts: [],
+        chargeRefunds: [],
       }),
     } as unknown as ReportsRepository;
     const result = await new ReportsService(repository).monthlyRevenue(

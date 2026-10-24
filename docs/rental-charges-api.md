@@ -6,8 +6,7 @@ This API records source-specific charges separately from payment attempts. All m
 | --- | --- | --- |
 | `GET /api/rentals/:rentalId/charges` | Customer owner | List charges for the customer's rental with adjusted, paid, refunded, and outstanding amounts. |
 | `POST /api/rentals/:rentalId/charges` | Assigned facility staff | Submit an extra charge with approved category, evidence, VND amount, and due date. |
-| `POST /api/rental-charges/:chargeId/approve` | Assigned facility manager | Approve a pending charge; creator cannot approve. |
-| `POST /api/rental-charges/:chargeId/reject` | Assigned facility manager | Reject a pending charge. |
+| `POST /api/rental-charges/:chargeId/decision` | Assigned facility manager | Approve or reject a pending charge using `decision: "APPROVE" | "REJECT"`; creator cannot decide their own charge. |
 | `POST /api/rental-charges/:chargeId/dispute` | Customer owner | Dispute an open charge within seven days of notice. |
 | `POST /api/rental-charges/:chargeId/dispute/resolve` | Assigned facility manager | Uphold, reduce, or waive a disputed charge with a reason. |
 | `POST /api/rental-charges/:chargeId/adjustments` | Business operations manager | Increase or reduce an unpaid open charge with audit reason. |
