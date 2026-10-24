@@ -1,7 +1,7 @@
 import { createHash, createHmac } from "node:crypto";
 import { SYSTEM_SETTING_DEFINITIONS } from "@metastorage/contracts/system-settings";
 import { hashPassword } from "better-auth/crypto";
-import { and, asc, eq, inArray, notExists } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, isNull, lt, notExists, or } from "drizzle-orm";
 import { db, queryClient } from "./client";
 import { loadApiEnv } from "./env";
 import {
@@ -1487,10 +1487,43 @@ async function seed() {
 
   const typeMap = new Map<string, string>();
   for (const [index, unitType] of unitTypesData.entries()) {
+    // Demo-only bounds: allow FM price changes around each fictional catalog price.
+    const minMonthlyPrice = Math.floor(unitType.monthlyPrice * 0.8);
+    const maxMonthlyPrice = Math.ceil(unitType.monthlyPrice * 1.2);
     await db
       .insert(rentalPriceRanges)
-      .values({ id: id("61000000", index + 1), code: unitType.code, name: unitType.name })
-      .onConflictDoNothing();
+      .values({
+        id: id("61000000", index + 1),
+        code: unitType.code,
+        name: unitType.name,
+        minMonthlyPrice,
+        maxMonthlyPrice,
+      })
+      .onConflictDoUpdate({
+        target: rentalPriceRanges.code,
+        set: { minMonthlyPrice, maxMonthlyPrice },
+        setWhere: and(
+          isNull(rentalPriceRanges.minMonthlyPrice),
+          isNull(rentalPriceRanges.maxMonthlyPrice),
+          eq(rentalPriceRanges.version, 0),
+          isNull(rentalPriceRanges.updatedBy),
+          eq(rentalPriceRanges.isActive, true),
+          notExists(
+            db
+              .select({ id: unitTypes.id })
+              .from(unitTypes)
+              .where(
+                and(
+                  eq(unitTypes.priceRangeId, rentalPriceRanges.id),
+                  or(
+                    lt(unitTypes.monthlyPrice, minMonthlyPrice),
+                    gt(unitTypes.monthlyPrice, maxMonthlyPrice),
+                  ),
+                ),
+              ),
+          ),
+        ),
+      });
     const [range] = await db
       .select({ id: rentalPriceRanges.id })
       .from(rentalPriceRanges)
@@ -1509,7 +1542,6 @@ async function seed() {
         .where(and(eq(unitTypes.facilityId, facility.id), eq(unitTypes.code, unitType.code)));
       if (!localType) throw new Error(`Missing seed type ${facility.code}/${unitType.code}`);
       if (facilityIndex === 0) typeMap.set(unitType.code, localType.id);
-      // Inventory fixtures exist before BOM explicitly configures their sale ranges.
       await db
         .insert(storageUnits)
         .values({

@@ -3,7 +3,7 @@
 ## Facility-owned catalog and BOM ranges (approved 2026-10-24)
 
 `rental_price_ranges`: UUID id, unique code, name, nullable integer-VND
-min_monthly_price/max_monthly_price (both null until BOM configures them, or
+min_monthly_price/max_monthly_price (both null for unconfigured/migrated ranges, or
 0 < min <= max), is_active, nonnegative version, nullable updated_by FK users
 (RESTRICT), created_at/updated_at. BOM alone creates/updates ranges. A range update
 must reject any linked local price outside the proposed bounds; no guessed defaults.
