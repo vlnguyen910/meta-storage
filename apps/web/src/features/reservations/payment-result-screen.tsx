@@ -4,12 +4,13 @@ import { useSearchParams } from "next/navigation";
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
 import { PublicLayout } from "@/components/layout/public-layout";
+import { Spinner } from "@/components/ui/spinner";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { useCheckoutPaymentStatus } from "./booking-checkout.hooks";
 import type { CheckoutContext } from "./booking-checkout.types";
 import styles from "./checkout.module.css";
 import { CheckoutConfirmation } from "./checkout-confirmation";
-import { readCheckoutContext } from "./checkout-storage";
+import { clearCheckoutContext, readCheckoutContext } from "./checkout-storage";
 import { paymentResultMessages as m } from "./payment-result.messages";
 
 export function PaymentResultScreen() {
@@ -40,6 +41,7 @@ export function PaymentResultScreen() {
   }, []);
   useEffect(() => {
     if (!confirmation) return;
+    clearCheckoutContext();
     let active = true;
     QRCode.toDataURL(confirmation.qrUrl, { width: 320, margin: 1 })
       .then((url) => {
@@ -72,9 +74,20 @@ export function PaymentResultScreen() {
                   : expired
                     ? m.expired
                     : m.pending;
+  const blockingPaymentCheck =
+    canRead &&
+    !confirmation &&
+    !query.isError &&
+    (query.isPending ||
+      query.isFetching ||
+      query.data?.status === "PENDING" ||
+      (query.data?.status === "SUCCEEDED" && !query.data.confirmation));
   return (
     <PublicLayout>
-      <main className={`${styles.checkout} mx-auto min-h-[70vh] w-full max-w-5xl px-5 py-12`}>
+      <main
+        aria-busy={blockingPaymentCheck}
+        className={`${styles.checkout} mx-auto min-h-[70vh] w-full max-w-5xl px-5 py-12`}
+      >
         {confirmation ? (
           <CheckoutConfirmation
             state={{ confirmation, qrDataUrl: qr, paidPricing: context?.draft.pricing ?? null }}
@@ -100,12 +113,26 @@ export function PaymentResultScreen() {
           </section>
         )}
         <Link
-          className="mt-6 inline-flex min-h-11 items-center underline"
+          aria-disabled={blockingPaymentCheck}
+          className={`mt-6 inline-flex min-h-11 items-center underline ${blockingPaymentCheck ? "pointer-events-none opacity-50" : ""}`}
           href="/reservations/new?new=1"
         >
           {m.newBooking}
         </Link>
       </main>
+      {blockingPaymentCheck ? (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-slate-950/35 p-6 backdrop-blur-[2px]"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="flex min-w-[min(360px,100%)] flex-col items-center gap-4 rounded-2xl bg-white p-8 text-center shadow-2xl">
+            <Spinner size="xl" label={m.loading} />
+            <strong className="text-lg text-slate-900">{m.loading}</strong>
+            <p className="m-0 text-sm text-slate-600">Vui lòng chờ hệ thống xác nhận giao dịch.</p>
+          </div>
+        </div>
+      ) : null}
     </PublicLayout>
   );
 }

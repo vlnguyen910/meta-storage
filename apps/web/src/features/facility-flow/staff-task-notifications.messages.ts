@@ -1,4 +1,5 @@
 export const STAFF_NOTIFICATIONS = {
+  notifications: "Thông báo nhiệm vụ",
   connecting: "Đang kết nối thông báo trực tiếp…",
   connected: "Đang nhận thông báo trực tiếp",
   reconnecting: "Mất kết nối trực tiếp; danh sách vẫn được cập nhật định kỳ.",

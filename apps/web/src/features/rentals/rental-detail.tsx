@@ -22,6 +22,15 @@ import { useRental } from "./hooks";
 import { RentalDocuments, RentalPayments } from "./rental-records";
 import { RENTAL_MESSAGES as M } from "./rentals.messages";
 
+function remainingLabel(value: string) {
+  const remaining = Date.parse(value) - Date.now();
+  if (remaining <= 0)
+    return `Đã quá hạn ${Math.max(1, Math.ceil(Math.abs(remaining) / 86_400_000))} ngày`;
+  const days = Math.floor(remaining / 86_400_000);
+  if (days > 0) return `Còn ${days} ngày`;
+  return `Còn ${Math.max(1, Math.ceil(remaining / 3_600_000))} giờ`;
+}
+
 export function RentalDetail({ rentalId }: { rentalId: string }) {
   const query = useRental(rentalId);
   if (query.isLoading) return <LoadingState variant="detail" />;
@@ -144,12 +153,15 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
           </div>
           <div className="relative pl-6">
             <div className="absolute bottom-3 left-3 top-3 w-0.5 bg-slate-200" aria-hidden="true" />
-            <ol className="grid gap-6">
+            <ol className="grid gap-8">
               {rental.timeline.map((event, idx) => {
                 const isDone = event.status === "DONE";
                 const isCurrent = event.status === "CURRENT";
                 return (
-                  <li key={event.label} className="relative flex flex-col gap-0.5">
+                  <li
+                    key={event.label}
+                    className="relative grid grid-cols-[1.5rem_minmax(0,1fr)] gap-3"
+                  >
                     <span
                       aria-hidden="true"
                       className={`absolute -left-6 top-0.5 grid size-6 place-items-center rounded-full text-xs font-bold transition-all ${
@@ -162,17 +174,25 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
                     >
                       {isDone ? <Check size={13} strokeWidth={3} /> : idx + 1}
                     </span>
-                    <span className="text-sm font-bold text-ink">
-                      {F3.timelineLabels[event.label as keyof typeof F3.timelineLabels] ??
-                        event.label}
-                    </span>
-                    <span className="text-xs font-medium text-muted">
-                      {event.at ? formatDate(event.at) : F3.timelineStatuses[event.status]}
-                    </span>
+                    <div className="col-start-2 min-w-0">
+                      <span className="block text-sm font-bold leading-5 text-ink">
+                        {F3.timelineLabels[event.label as keyof typeof F3.timelineLabels] ??
+                          event.label}
+                      </span>
+                      <span className="mt-1 block text-xs font-medium leading-4 text-muted">
+                        {event.at ? formatDate(event.at) : F3.timelineStatuses[event.status]}
+                      </span>
+                    </div>
                   </li>
                 );
               })}
             </ol>
+          </div>
+          <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            <span className="block text-xs font-semibold uppercase tracking-wide text-amber-800">
+              {M.remainingTime}
+            </span>
+            <strong className="mt-1 block">{remainingLabel(rental.expectedEndAt)}</strong>
           </div>
         </Card>
       </div>

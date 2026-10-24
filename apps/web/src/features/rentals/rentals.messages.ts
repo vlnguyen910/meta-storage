@@ -19,6 +19,7 @@ export const RENTAL_MESSAGES = {
   endDate: "Dự kiến kết thúc",
   bookingStatus: "Trạng thái đặt kho",
   timelineTitle: "Tiến trình thuê",
+  remainingTime: "Thời gian đến hạn trả kho",
   permissionsTitle: "Quyền thao tác hiện tại",
   notFoundOrForbidden: "Không tìm thấy kho hoặc bạn không có quyền xem.",
 } as const;

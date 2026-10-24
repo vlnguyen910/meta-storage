@@ -130,8 +130,9 @@ export const F3 = {
   checklist: "Checklist kiểm tra",
   calendar: "Lịch trả kho của cơ sở",
   reminders: "Nhắc hạn và rà soát",
-  overdueRate: "Tỷ lệ phí quá hạn (%)",
-  rateHelp: "Tỷ lệ số nguyên từ 0–100%. Thay đổi không tính lại các khoản đã có snapshot.",
+  overdueRate: "Tỷ lệ phí quá hạn trên tiền cọc (%)",
+  rateHelp:
+    "Tỷ lệ này được áp trên số tiền cọc snapshot khi hồ sơ quá hạn; không tính trên tiền thuê và không tính lại khoản đã có snapshot.",
   financeHelp:
     "Chính sách cọc tiếp tục được quản lý tại Quy tắc kinh doanh. Các loại phí khác chưa hỗ trợ cấu hình.",
   history: "Lịch sử thay đổi",
