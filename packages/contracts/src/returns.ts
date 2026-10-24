@@ -168,11 +168,18 @@ export type ConfirmReturnRefund = z.infer<typeof ConfirmReturnRefundSchema>;
 export type ReturnEvidenceInput = z.infer<typeof ReturnEvidenceInputSchema>;
 export const ReturnSlotsQuerySchema = z.object({ date });
 
-export const ReturnQueueQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(100).default(20),
-  offset: z.coerce.number().int().nonnegative().default(0),
-  status: z.enum(ReturnRequestStatus).optional(),
-});
+export const ReturnQueueQuerySchema = z
+  .object({
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+    offset: z.coerce.number().int().nonnegative().default(0),
+    status: z.enum(ReturnRequestStatus).optional(),
+    fromDate: date.optional(),
+    toDate: date.optional(),
+  })
+  .refine((query) => !query.fromDate || !query.toDate || query.fromDate <= query.toDate, {
+    message: m.invalidDateRange,
+    path: ["toDate"],
+  });
 export type ReturnQueueQuery = z.infer<typeof ReturnQueueQuerySchema>;
 
 // Response schemas keep the documented contract aligned with HTTP serialization.

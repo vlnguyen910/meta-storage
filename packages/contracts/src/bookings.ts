@@ -184,7 +184,14 @@ export type CustomerBookingPageQuery = z.infer<typeof CustomerBookingPageQuerySc
 export const AssignStaffBodySchema = AssignBookingStaffInputSchema;
 export type AssignStaffBody = z.infer<typeof AssignStaffBodySchema>;
 
-export const StaffTasksQuerySchema = z.object({
-  facilityId: z.string().uuid().optional(),
-});
+export const StaffTasksQuerySchema = z
+  .object({
+    facilityId: z.string().uuid().optional(),
+    fromDate: z.iso.date().optional(),
+    toDate: z.iso.date().optional(),
+  })
+  .refine((query) => !query.fromDate || !query.toDate || query.fromDate <= query.toDate, {
+    message: BOOKING_CONTRACT_MESSAGES.invalidDateRange,
+    path: ["toDate"],
+  });
 export type StaffTasksQuery = z.infer<typeof StaffTasksQuerySchema>;

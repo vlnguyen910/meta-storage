@@ -196,8 +196,7 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const user = request.user;
       if (!user) throw new UnauthorizedError();
-      const { facilityId } = request.query;
-      const tasks = await service.getStaffTasks(user.id, facilityId);
+      const tasks = await service.getStaffTasks(user.id, request.query);
       return reply.status(200).send(successResponse(tasks));
     },
   );

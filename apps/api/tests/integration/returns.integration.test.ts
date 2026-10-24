@@ -870,7 +870,7 @@ describe.skipIf(!target)(
       const queue = await api(
         "manager",
         "GET",
-        `/facilities/${fixture.facility}/return-requests?limit=100`,
+        `/facilities/${fixture.facility}/return-requests?limit=100&fromDate=${detail.date}`,
       );
       const row = queue.json().data.find((r: { id: string }) => r.id === item.id);
       expect(row.context.customer.id).toBeNull();
@@ -1032,7 +1032,8 @@ describe.skipIf(!target)(
 
     test("facility queues enforce scope and assignment, rental request listing enforces ownership", async () => {
       const item = await scenario();
-      const queuePath = `/facilities/${fixture.facility}/return-requests?limit=100&offset=0`;
+      const detail = await state(item.id);
+      const queuePath = `/facilities/${fixture.facility}/return-requests?limit=100&offset=0&fromDate=${detail.date}`;
       expect((await api("outsider", "GET", queuePath)).statusCode).toBe(403);
       expect((await api("admin", "GET", queuePath)).statusCode).toBe(403);
       const fm = await api("manager", "GET", queuePath);
