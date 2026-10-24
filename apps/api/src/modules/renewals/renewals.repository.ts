@@ -11,14 +11,17 @@ import {
   desc,
   eq,
   facilities,
-  facilityUnitTypes,
+  gte,
   inArray,
+  isNotNull,
+  lte,
   notificationOutbox,
   payments,
   rentalChargeAdjustments,
   rentalChargeEvents,
   rentalChargeRefunds,
   rentalCharges,
+  rentalPriceRanges,
   rentalRenewals,
   rentals,
   returnRequests,
@@ -85,7 +88,18 @@ export class RenewalsRepository {
       const [rate] = await tx
         .select({ amount: unitTypes.monthlyPrice })
         .from(unitTypes)
-        .where(eq(unitTypes.id, context.booking.unitTypeId));
+        .innerJoin(rentalPriceRanges, eq(rentalPriceRanges.id, unitTypes.priceRangeId))
+        .where(
+          and(
+            eq(unitTypes.id, context.booking.unitTypeId),
+            eq(unitTypes.facilityId, context.rental.facilityId),
+            eq(rentalPriceRanges.isActive, true),
+            isNotNull(rentalPriceRanges.minMonthlyPrice),
+            isNotNull(rentalPriceRanges.maxMonthlyPrice),
+            gte(unitTypes.monthlyPrice, rentalPriceRanges.minMonthlyPrice),
+            lte(unitTypes.monthlyPrice, rentalPriceRanges.maxMonthlyPrice),
+          ),
+        );
       if (!rate || rate.amount <= 0) throw new AppError(m.configuration, 503);
       const [quote] = await tx
         .insert(rentalRenewals)
@@ -336,20 +350,19 @@ export class RenewalsRepository {
     if (debt) return "debt";
     const [offering] = await tx
       .select({
-        active: facilityUnitTypes.isActive,
+        active: unitTypes.isActive,
         facilityActive: facilities.isActive,
         typeActive: unitTypes.isActive,
       })
-      .from(facilityUnitTypes)
-      .innerJoin(facilities, eq(facilities.id, facilityUnitTypes.facilityId))
-      .innerJoin(unitTypes, eq(unitTypes.id, facilityUnitTypes.unitTypeId))
+      .from(unitTypes)
+      .innerJoin(facilities, eq(facilities.id, unitTypes.facilityId))
       .where(
         and(
-          eq(facilityUnitTypes.facilityId, context.rental.facilityId),
-          eq(facilityUnitTypes.unitTypeId, context.booking.unitTypeId),
+          eq(unitTypes.facilityId, context.rental.facilityId),
+          eq(unitTypes.id, context.booking.unitTypeId),
         ),
       )
-      .for("update", { of: facilityUnitTypes });
+      .for("update", { of: unitTypes });
     if (!offering?.active || !offering.facilityActive || !offering.typeActive)
       return "configuration";
     const [unit] = await tx

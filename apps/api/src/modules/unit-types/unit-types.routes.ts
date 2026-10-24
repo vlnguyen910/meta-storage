@@ -6,6 +6,7 @@ import {
 } from "@metastorage/contracts";
 import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
+import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
 import { requireRole } from "../auth/auth.guard";
 import { UNIT_TYPE_MESSAGES } from "./unit-types.messages";
@@ -25,9 +26,13 @@ export const unitTypesRoutes: FastifyPluginAsync = async (fastify) => {
         summary: UNIT_TYPE_MESSAGES.unitTypeListSummary,
         querystring: UnitTypeManagementQuerySchema,
       },
-      preHandler: [requireRole("SYSTEM_ADMIN", "BUSINESS_OPERATION_MANAGER")],
+      preHandler: [requireRole("SYSTEM_ADMIN", "BUSINESS_OPERATION_MANAGER", "FACILITY_MANAGER")],
     },
-    async (request, reply) => reply.send(successResponse(await service.list(request.query))),
+    async (request, reply) => {
+      if (!request.user) throw new UnauthorizedError();
+      reply.header("Cache-Control", "private, no-store");
+      return reply.send(successResponse(await service.list(request.query, request.user)));
+    },
   );
 
   typedApp.post(
@@ -39,14 +44,19 @@ export const unitTypesRoutes: FastifyPluginAsync = async (fastify) => {
         summary: UNIT_TYPE_MESSAGES.unitTypeCreateSummary,
         body: CreateUnitTypeSchema,
       },
-      preHandler: [requireRole("SYSTEM_ADMIN", "BUSINESS_OPERATION_MANAGER")],
+      preHandler: [requireRole("FACILITY_MANAGER")],
     },
-    async (request, reply) =>
-      reply
+    async (request, reply) => {
+      if (!request.user) throw new UnauthorizedError();
+      return reply
         .status(201)
         .send(
-          successResponse(await service.create(request.body), UNIT_TYPE_MESSAGES.unitTypeCreated),
-        ),
+          successResponse(
+            await service.create(request.body, request.user),
+            UNIT_TYPE_MESSAGES.unitTypeCreated,
+          ),
+        );
+    },
   );
 
   typedApp.patch(
@@ -59,16 +69,18 @@ export const unitTypesRoutes: FastifyPluginAsync = async (fastify) => {
         params: UnitTypeIdParamsSchema,
         body: UpdateUnitTypeSchema,
       },
-      preHandler: [requireRole("SYSTEM_ADMIN", "BUSINESS_OPERATION_MANAGER")],
+      preHandler: [requireRole("FACILITY_MANAGER")],
     },
-    async (request, reply) =>
-      reply
+    async (request, reply) => {
+      if (!request.user) throw new UnauthorizedError();
+      return reply
         .status(200)
         .send(
           successResponse(
-            await service.update(request.params.id, request.body),
+            await service.update(request.params.id, request.body, request.user),
             UNIT_TYPE_MESSAGES.unitTypeUpdated,
           ),
-        ),
+        );
+    },
   );
 };

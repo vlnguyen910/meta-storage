@@ -42,6 +42,8 @@ import { StorageUnitsRepository } from "../storage-units/storage-units.repositor
 import { StorageUnitsService } from "../storage-units/storage-units.service";
 import { FacilityUnitTypesRepository } from "../unit-types/facility-unit-types.repository";
 import { FacilityUnitTypesService } from "../unit-types/facility-unit-types.service";
+import { UnitTypesRepository } from "../unit-types/unit-types.repository";
+import { UnitTypesService } from "../unit-types/unit-types.service";
 import { getFacilityAccessScope } from "./facilities.access";
 import { requireFacilityAccess } from "./facilities.guard";
 import { FACILITY_MESSAGES } from "./facilities.messages";
@@ -54,6 +56,7 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
   const rentalsService = new RentalsService(new RentalsRepository(fastify.db));
   const chargesService = new RentalChargesService(new RentalChargesRepository(fastify.db));
   const facilitiesRepository = new FacilitiesRepository(fastify.db);
+  const catalogService = new UnitTypesService(new UnitTypesRepository(fastify.db));
   const service = new FacilitiesService(facilitiesRepository);
   const assignmentsService = new FacilityAssignmentsService(
     new FacilityAssignmentsRepository(fastify.db),
@@ -439,10 +442,15 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
         params: facilityIdNestedParamSchema,
         querystring: facilityManagementQuerySchema,
       },
-      preHandler: [requireRole("SYSTEM_ADMIN", "BUSINESS_OPERATION_MANAGER")],
+      preHandler: [requireRole("SYSTEM_ADMIN", "BUSINESS_OPERATION_MANAGER", "FACILITY_MANAGER")],
     },
     async (request, reply) => {
-      const items = await unitTypesService.listManagement(request.params.facilityId, request.query);
+      if (!request.user) throw new UnauthorizedError();
+      reply.header("Cache-Control", "private, no-store");
+      const items = await catalogService.list(
+        { ...request.query, facilityId: request.params.facilityId },
+        request.user,
+      );
       return reply.send(successResponse(items));
     },
   );
@@ -457,13 +465,15 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
         params: facilityUnitTypeParamsSchema,
         body: SetFacilityUnitTypeSchema,
       },
-      preHandler: [requireRole("SYSTEM_ADMIN", "BUSINESS_OPERATION_MANAGER")],
+      preHandler: [requireRole("FACILITY_MANAGER")],
     },
     async (request, reply) => {
-      const offering = await unitTypesService.setManagementAvailability(
-        request.params.facilityId,
+      if (!request.user) throw new UnauthorizedError();
+      const offering = await catalogService.update(
         request.params.unitTypeId,
         request.body,
+        request.user,
+        request.params.facilityId,
       );
       return reply.send(successResponse(offering));
     },

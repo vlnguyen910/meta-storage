@@ -17,7 +17,6 @@ import {
   desc,
   eq,
   facilities,
-  facilityUnitTypes,
   gt,
   isNull,
   lt,
@@ -109,14 +108,12 @@ export class StorageUnitsRepository {
         .where(eq(facilities.id, facilityId))
         .for("update");
       const [offering] = await tx
-        .select({ id: facilityUnitTypes.unitTypeId })
-        .from(facilityUnitTypes)
-        .innerJoin(unitTypes, eq(unitTypes.id, facilityUnitTypes.unitTypeId))
+        .select({ id: unitTypes.id })
+        .from(unitTypes)
         .where(
           and(
-            eq(facilityUnitTypes.facilityId, facilityId),
-            eq(facilityUnitTypes.unitTypeId, input.unitTypeId),
-            eq(facilityUnitTypes.isActive, true),
+            eq(unitTypes.facilityId, facilityId),
+            eq(unitTypes.id, input.unitTypeId),
             eq(unitTypes.isActive, true),
           ),
         )
@@ -171,14 +168,12 @@ export class StorageUnitsRepository {
       }
       if (input.unitTypeId && input.unitTypeId !== unit.unitTypeId) {
         const [offering] = await tx
-          .select({ id: facilityUnitTypes.unitTypeId })
-          .from(facilityUnitTypes)
-          .innerJoin(unitTypes, eq(unitTypes.id, facilityUnitTypes.unitTypeId))
+          .select({ id: unitTypes.id })
+          .from(unitTypes)
           .where(
             and(
-              eq(facilityUnitTypes.facilityId, unit.facilityId),
-              eq(facilityUnitTypes.unitTypeId, input.unitTypeId),
-              eq(facilityUnitTypes.isActive, true),
+              eq(unitTypes.facilityId, unit.facilityId),
+              eq(unitTypes.id, input.unitTypeId),
               eq(unitTypes.isActive, true),
             ),
           )

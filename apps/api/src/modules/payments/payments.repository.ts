@@ -10,7 +10,6 @@ import {
   eq,
   exists,
   facilities,
-  facilityUnitTypes,
   gt,
   inArray,
   isNotNull,
@@ -244,18 +243,14 @@ export class PaymentsRepository {
         if (booking.status !== "DRAFT") throw new AppError(PAYMENT_MESSAGES.bookingNotDraft, 409);
         const [offering] = await tx
           .select({
-            active: facilityUnitTypes.isActive,
+            active: unitTypes.isActive,
             facilityActive: facilities.isActive,
             typeActive: unitTypes.isActive,
           })
-          .from(facilityUnitTypes)
-          .innerJoin(facilities, eq(facilities.id, facilityUnitTypes.facilityId))
-          .innerJoin(unitTypes, eq(unitTypes.id, facilityUnitTypes.unitTypeId))
+          .from(unitTypes)
+          .innerJoin(facilities, eq(facilities.id, unitTypes.facilityId))
           .where(
-            and(
-              eq(facilityUnitTypes.facilityId, booking.facilityId),
-              eq(facilityUnitTypes.unitTypeId, booking.unitTypeId),
-            ),
+            and(eq(unitTypes.facilityId, booking.facilityId), eq(unitTypes.id, booking.unitTypeId)),
           )
           .for("update");
         const [hold] = await tx
@@ -733,18 +728,14 @@ export class PaymentsRepository {
         // allocations. READ COMMITTED sees the preceding checkout's committed hold.
         const [offering] = await tx
           .select({
-            active: facilityUnitTypes.isActive,
+            active: unitTypes.isActive,
             facilityActive: facilities.isActive,
             typeActive: unitTypes.isActive,
           })
-          .from(facilityUnitTypes)
-          .innerJoin(facilities, eq(facilities.id, facilityUnitTypes.facilityId))
-          .innerJoin(unitTypes, eq(unitTypes.id, facilityUnitTypes.unitTypeId))
+          .from(unitTypes)
+          .innerJoin(facilities, eq(facilities.id, unitTypes.facilityId))
           .where(
-            and(
-              eq(facilityUnitTypes.facilityId, booking.facilityId),
-              eq(facilityUnitTypes.unitTypeId, booking.unitTypeId),
-            ),
+            and(eq(unitTypes.facilityId, booking.facilityId), eq(unitTypes.id, booking.unitTypeId)),
           )
           .for("update");
         if (!offering?.active || !offering.facilityActive || !offering.typeActive)
