@@ -2,7 +2,7 @@
 
 import type { FacilityStaffMember } from "@metastorage/contracts";
 import { Building2, Mail, Phone, UsersRound } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Input, Select } from "@/components/ui/form-controls";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { isMockMode } from "@/config/api-mode";
@@ -16,6 +16,8 @@ export function StaffDirectoryWorkspace() {
   const scope = useFacilityOptions();
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<StaffDirectorySort>("name");
+  const [page, setPage] = useState(1);
+  const pageSize = 6;
   const staffQuery = useTaskStaff(scope.facilityId);
   const staff = useMemo(() => {
     const normalized = search.trim().toLocaleLowerCase("vi");
@@ -32,6 +34,11 @@ export function StaffDirectoryWorkspace() {
         : left.name.localeCompare(right.name, "vi"),
     );
   }, [search, sort, staffQuery.data]);
+  const pageCount = Math.max(1, Math.ceil(staff.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const pageItems = staff.slice((safePage - 1) * pageSize, safePage * pageSize);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: search and sort intentionally reset the local page.
+  useEffect(() => setPage(1), [search, sort]);
 
   if (isMockMode) return <p role="status">{F5.noMock}</p>;
   if (scope.query.isPending) return <LoadingState variant="table" />;
@@ -56,7 +63,7 @@ export function StaffDirectoryWorkspace() {
       </ManagementField>
       <StaffPanel
         key={scope.facilityId}
-        staff={staff}
+        staff={pageItems}
         total={staffQuery.data?.length ?? 0}
         isLoading={staffQuery.isPending}
         isError={staffQuery.isError}
@@ -65,6 +72,9 @@ export function StaffDirectoryWorkspace() {
         setSearch={setSearch}
         sort={sort}
         setSort={setSort}
+        page={safePage}
+        pageCount={pageCount}
+        onPageChange={setPage}
       />
     </div>
   );
@@ -80,6 +90,9 @@ function StaffPanel({
   setSearch,
   sort,
   setSort,
+  page,
+  pageCount,
+  onPageChange,
 }: {
   staff: FacilityStaffMember[];
   total: number;
@@ -90,6 +103,9 @@ function StaffPanel({
   setSearch: (value: string) => void;
   sort: StaffDirectorySort;
   setSort: (value: StaffDirectorySort) => void;
+  page: number;
+  pageCount: number;
+  onPageChange: (value: number) => void;
 }) {
   if (isLoading) return <LoadingState variant="table" />;
   if (isError) return <ErrorState message={M.error} onRetry={retry} />;
@@ -145,6 +161,30 @@ function StaffPanel({
           ))}
         </ul>
       )}
+      {pageCount > 1 ? (
+        <nav
+          className="flex flex-wrap items-center justify-center gap-3"
+          aria-label="Phân trang nhân viên"
+        >
+          <button
+            type="button"
+            className="min-h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold"
+            disabled={page === 1}
+            onClick={() => onPageChange(page - 1)}
+          >
+            {M.previous}
+          </button>
+          <span className="text-sm font-semibold text-slate-600">{M.pageOf(page, pageCount)}</span>
+          <button
+            type="button"
+            className="min-h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold"
+            disabled={page === pageCount}
+            onClick={() => onPageChange(page + 1)}
+          >
+            {M.next}
+          </button>
+        </nav>
+      ) : null}
     </section>
   );
 }

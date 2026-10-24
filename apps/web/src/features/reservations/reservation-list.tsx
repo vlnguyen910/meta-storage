@@ -2,15 +2,19 @@
 
 import { CalendarDays, MapPin, Plus } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import { buttonClassName } from "@/components/ui/button";
 import { Currency, PageHeader, StatusBadge } from "@/components/ui/display";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/states";
 import { routes } from "@/config/routes";
 import { formatDate } from "@/lib/format";
 import { useMyReservations } from "./hooks";
+import { RESERVATION_MESSAGES as M } from "./reservation.messages";
 
 export function ReservationList() {
   const query = useMyReservations();
+  const [page, setPage] = useState(1);
+  const pageSize = 6;
   if (query.isLoading) return <LoadingState variant="table" />;
   if (query.isError)
     return (
@@ -39,7 +43,7 @@ export function ReservationList() {
         />
       ) : (
         <div className="grid gap-3">
-          {query.data?.map((reservation) => (
+          {query.data?.slice((page - 1) * pageSize, page * pageSize).map((reservation) => (
             <Link
               href={routes.customer.reservation(reservation.id)}
               className="grid grid-cols-[1.2fr_2fr_1fr_1fr] items-center gap-5 rounded-card border border-line bg-white p-6 shadow-soft transition hover:-translate-y-px hover:border-[#a9c8bf] max-[800px]:grid-cols-2 max-[560px]:grid-cols-1"
@@ -76,6 +80,32 @@ export function ReservationList() {
           ))}
         </div>
       )}
+      {query.data && query.data.length > pageSize ? (
+        <nav
+          className="flex flex-wrap items-center justify-center gap-3"
+          aria-label="Phân trang reservation"
+        >
+          <button
+            type="button"
+            className="min-h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold"
+            disabled={page === 1}
+            onClick={() => setPage((value) => value - 1)}
+          >
+            {M.previousPage}
+          </button>
+          <span className="text-sm font-semibold text-slate-600">
+            {M.pageOf(page, Math.ceil(query.data.length / pageSize))}
+          </span>
+          <button
+            type="button"
+            className="min-h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold"
+            disabled={page >= Math.ceil(query.data.length / pageSize)}
+            onClick={() => setPage((value) => value + 1)}
+          >
+            {M.nextPage}
+          </button>
+        </nav>
+      ) : null}
     </>
   );
 }

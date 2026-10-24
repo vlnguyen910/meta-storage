@@ -14,4 +14,7 @@ export const RESERVATION_MESSAGES = {
   unexpectedError: "Đã có lỗi xảy ra, vui lòng thử lại.",
   draftCreationFailed: "Không thể lưu thông tin đơn thuê.",
   paymentConfirmationMissing: "Thanh toán đã được ghi nhận nhưng chưa tải được thông tin xác nhận.",
+  previousPage: "Trang trước",
+  nextPage: "Trang sau",
+  pageOf: (page: number, total: number) => `Trang ${page}/${total}`,
 } as const;

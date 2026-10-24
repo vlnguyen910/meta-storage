@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { BarChart3, TrendingUp } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { buttonClassName } from "@/components/ui/button";
 import { FieldShell, Input } from "@/components/ui/form-controls";
 import { ErrorState, LoadingState } from "@/components/ui/states";
@@ -17,11 +17,15 @@ import { OperationsTable } from "../operations-parts";
 export function OperationsFacilitiesRealView() {
   const actor = useAuthStore((state) => state.session?.user);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 8;
   const query = useQuery({
     queryKey: ["facilities", "active-list", actor?.id, actor?.role, actor?.assignedFacilityId],
     queryFn: loadActiveFacilities,
     staleTime: 60_000,
   });
+  // biome-ignore lint/correctness/useExhaustiveDependencies: search intentionally resets the local page.
+  useEffect(() => setPage(1), [search]);
 
   const { data: facilities, isPending, isError, refetch } = query;
 
@@ -36,7 +40,9 @@ export function OperationsFacilitiesRealView() {
       item.code.toLowerCase().includes(search.toLowerCase()) ||
       item.address.toLowerCase().includes(search.toLowerCase()),
   );
-
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const pageItems = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
   return (
     <div className="grid gap-6">
       <section className="flex flex-wrap items-center justify-between gap-4 rounded-card border border-outline-variant bg-surface-container-lowest p-5 shadow-[0_1px_2px_rgb(15_23_42_/_0.04)]">
@@ -69,7 +75,7 @@ export function OperationsFacilitiesRealView() {
           label={M.titles.facilities}
           headings={["Mã cơ sở", "Tên cơ sở", "Địa chỉ", "Trạng thái", "Báo cáo điều hành"]}
         >
-          {filtered.map((facility) => (
+          {pageItems.map((facility) => (
             <tr key={facility.id} className="hover:bg-slate-50/50">
               <td className="px-5 py-4 font-mono font-bold text-xs text-primary whitespace-nowrap">
                 {facility.code}
@@ -121,6 +127,32 @@ export function OperationsFacilitiesRealView() {
           ))}
         </OperationsTable>
       )}
+      {pageCount > 1 ? (
+        <nav
+          className="flex flex-wrap items-center justify-center gap-3"
+          aria-label="Phân trang cơ sở"
+        >
+          <button
+            type="button"
+            className={buttonClassName("outline")}
+            disabled={safePage === 1}
+            onClick={() => setPage((value) => value - 1)}
+          >
+            {M.previousPage}
+          </button>
+          <span className="text-sm font-semibold text-slate-600">
+            {M.pageOf(safePage, pageCount)}
+          </span>
+          <button
+            type="button"
+            className={buttonClassName("outline")}
+            disabled={safePage === pageCount}
+            onClick={() => setPage((value) => value + 1)}
+          >
+            {M.nextPage}
+          </button>
+        </nav>
+      ) : null}
     </div>
   );
 }
