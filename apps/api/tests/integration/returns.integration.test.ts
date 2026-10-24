@@ -143,6 +143,7 @@ async function scenario(status: "CONFIRMED" | "PENDING" = "CONFIRMED") {
     bookingId = randomUUID(),
     rentalId = randomUUID(),
     requestId = randomUUID();
+  const date = new Date(Date.UTC(2032, 1, ++scenarioNumber)).toISOString().slice(0, 10);
   await db.transaction(async (tx) => {
     await tx.insert(storageUnits).values({
       id: unitId,
@@ -209,7 +210,7 @@ async function scenario(status: "CONFIRMED" | "PENDING" = "CONFIRMED") {
       rentalId,
       facilityId: fixture.facility,
       slotId: fixture.slot,
-      date: new Date(Date.UTC(2032, 1, ++scenarioNumber)).toISOString().slice(0, 10),
+      date,
       startsAt: new Date("2032-01-02T02:00:00Z"),
       endsAt: new Date("2032-01-02T03:30:00Z"),
       timezone: "Asia/Ho_Chi_Minh",
@@ -219,7 +220,7 @@ async function scenario(status: "CONFIRMED" | "PENDING" = "CONFIRMED") {
       createdBy: actorIds.owner,
     });
   });
-  return { id: requestId, rentalId, unitId, bookingId };
+  return { id: requestId, rentalId, unitId, bookingId, date };
 }
 async function start(id: string) {
   const current = await state(id);
@@ -870,7 +871,7 @@ describe.skipIf(!target)(
       const queue = await api(
         "manager",
         "GET",
-        `/facilities/${fixture.facility}/return-requests?limit=100&fromDate=${detail.date}`,
+        `/facilities/${fixture.facility}/return-requests?limit=100&fromDate=${item.date}`,
       );
       const row = queue.json().data.find((r: { id: string }) => r.id === item.id);
       expect(row.context.customer.id).toBeNull();
@@ -1032,8 +1033,7 @@ describe.skipIf(!target)(
 
     test("facility queues enforce scope and assignment, rental request listing enforces ownership", async () => {
       const item = await scenario();
-      const detail = await state(item.id);
-      const queuePath = `/facilities/${fixture.facility}/return-requests?limit=100&offset=0&fromDate=${detail.date}`;
+      const queuePath = `/facilities/${fixture.facility}/return-requests?limit=100&offset=0&fromDate=${item.date}`;
       expect((await api("outsider", "GET", queuePath)).statusCode).toBe(403);
       expect((await api("admin", "GET", queuePath)).statusCode).toBe(403);
       const fm = await api("manager", "GET", queuePath);
