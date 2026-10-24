@@ -364,11 +364,7 @@ describe.skipIf(!testUrl)("Booking contact and optional account ownership with P
       userId: null,
       status: "CONFIRMED",
     });
-    const replay = await repository.findCompletedByIdempotencyKey(
-      idempotencyKey,
-      reservation.id,
-      holdTokenHash,
-    );
+    const replay = await repository.findCompletedByIdempotencyKey(idempotencyKey, holdTokenHash);
     expect(replay?.booking.id).toBe(completed?.booking.id);
     expect(replay?.booking.contactPhone).toBe("0900000099");
   });
