@@ -34,6 +34,7 @@ export * from "./reservations";
 export * from "./returns";
 export * from "./storage-units";
 export * from "./storage-units.messages";
+export * from "./support";
 export * from "./system-settings";
 export * from "./unit-types";
 export * from "./users";

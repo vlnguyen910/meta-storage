@@ -16,6 +16,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { bookings } from "./bookings";
 import { facilities } from "./facilities";
+import { supportTickets } from "./support";
 import { users } from "./users";
 
 export const lifecycleNotificationEventEnum = pgEnum(
@@ -33,6 +34,7 @@ export const notificationOutbox = pgTable(
     eventKey: text().notNull(),
     recipientKey: text().notNull(),
     eventType: lifecycleNotificationEventEnum().notNull(),
+    supportTicketId: uuid().references(() => supportTickets.id, { onDelete: "restrict" }),
     bookingId: uuid()
       .notNull()
       .references(() => bookings.id, { onDelete: "restrict" }),

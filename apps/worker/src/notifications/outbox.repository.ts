@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import {
   and,
+  bookings,
   type Database,
   eq,
   facilityAssignments,
@@ -12,6 +13,7 @@ import {
   or,
   rentals,
   sql,
+  supportTickets,
   users,
 } from "@metastorage/database";
 import { BOOKING_ACCESS } from "@metastorage/shared/booking-access";
@@ -179,6 +181,27 @@ export class OutboxRepository {
   }
 
   async authorized(row: typeof notificationOutbox.$inferSelect, now: Date) {
+    if (row.eventType === "SUPPORT_CREATED") {
+      if (!row.supportTicketId || row.recipientRole !== "CUSTOMER" || !row.recipientUserId)
+        return false;
+      const [owner] = await this.db
+        .select({ email: users.email })
+        .from(supportTickets)
+        .innerJoin(bookings, eq(bookings.id, supportTickets.bookingId))
+        .innerJoin(users, eq(users.id, supportTickets.ownerUserId))
+        .where(
+          and(
+            eq(supportTickets.id, row.supportTicketId),
+            eq(supportTickets.bookingId, row.bookingId),
+            eq(supportTickets.facilityId, row.facilityId),
+            eq(supportTickets.ownerUserId, row.recipientUserId),
+            eq(bookings.userId, row.recipientUserId),
+            eq(users.role, "CUSTOMER"),
+            eq(users.status, "ACTIVE"),
+          ),
+        );
+      return Boolean(owner && owner.email === row.recipientEmail);
+    }
     if (["UPCOMING_EXPIRY", "RENTAL_OVERDUE", "ABANDONED_REVIEW"].includes(row.eventType)) {
       const [rental] = await this.db
         .select({
