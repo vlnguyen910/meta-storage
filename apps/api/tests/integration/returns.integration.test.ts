@@ -473,7 +473,6 @@ describe.skipIf(!target)(
             .delete(returnInspectionPhotos)
             .where(inArray(returnInspectionPhotos.inspectionId, inspections));
           await tx.delete(returnInspections).where(inArray(returnInspections.requestId, requests));
-          await tx.delete(returnRequests).where(eq(returnRequests.facilityId, fixture.facility));
           const rentalIds = tx
             .select({ id: rentals.id })
             .from(rentals)
@@ -499,6 +498,7 @@ describe.skipIf(!target)(
             .delete(rentalChargeRefunds)
             .where(inArray(rentalChargeRefunds.chargeId, chargeIds));
           await tx.delete(returnSettlements).where(inArray(returnSettlements.requestId, requests));
+          await tx.delete(returnRequests).where(eq(returnRequests.facilityId, fixture.facility));
           await tx.delete(payments).where(inArray(payments.id, chargePaymentIds));
           await tx.delete(rentalCharges).where(inArray(rentalCharges.id, chargeIds));
           const bookingIds = tx
