@@ -4,13 +4,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   type ApiFacility,
   type ApiFacilityAssignment,
-  type ApiUnitType,
   type CreateAssignmentBody,
   type CreateFacilityBody,
   type CreateUnitTypeInput,
   CreateUnitTypeSchema,
   createAssignmentBodySchema,
   createFacilityBodySchema,
+  type FacilityUnitTypeDto,
 } from "@metastorage/contracts";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -235,8 +235,8 @@ function FacilityEditor({
 
 function TypeCatalog() {
   const query = useManagedTypes();
-  const [editing, setEditing] = useState<ApiUnitType | "new" | null>(null);
-  const [toggling, setToggling] = useState<ApiUnitType | null>(null);
+  const [editing, setEditing] = useState<FacilityUnitTypeDto | "new" | null>(null);
+  const [toggling, setToggling] = useState<FacilityUnitTypeDto | null>(null);
   return (
     <div className="grid gap-4">
       <div>
@@ -286,13 +286,15 @@ function TypeCatalog() {
   );
 }
 
-function TypeEditor({ type, onClose }: { type?: ApiUnitType; onClose: () => void }) {
+function TypeEditor({ type, onClose }: { type?: FacilityUnitTypeDto; onClose: () => void }) {
   const create = useCreateType();
   const update = useUpdateType(type?.id ?? "");
   const mutation = type ? update : create;
   const form = useForm<CreateUnitTypeInput>({
     resolver: zodResolver(CreateUnitTypeSchema),
     defaultValues: {
+      facilityId: type?.facilityId ?? "",
+      priceRangeId: type?.priceRangeId ?? "",
       code: type?.code ?? "",
       name: type?.name ?? "",
       sizeLabel: type?.sizeLabel ?? "",
@@ -314,8 +316,8 @@ function TypeEditor({ type, onClose }: { type?: ApiUnitType; onClose: () => void
         onSubmit={form.handleSubmit(async (input) => {
           try {
             if (type) {
-              const { monthlyPrice: _price, ...metadata } = input;
-              await update.mutateAsync(metadata);
+              const { monthlyPrice: _price, facilityId: _facility, ...metadata } = input;
+              await update.mutateAsync({ ...metadata, expectedVersion: type.version });
             } else await create.mutateAsync(input);
             onClose();
           } catch {
@@ -376,7 +378,7 @@ function TypeEditor({ type, onClose }: { type?: ApiUnitType; onClose: () => void
   );
 }
 
-function TypeStatusEditor({ type, onClose }: { type: ApiUnitType; onClose: () => void }) {
+function TypeStatusEditor({ type, onClose }: { type: FacilityUnitTypeDto; onClose: () => void }) {
   const mutation = useUpdateType(type.id);
   return (
     <ManagementDialog
@@ -395,7 +397,10 @@ function TypeStatusEditor({ type, onClose }: { type: ApiUnitType; onClose: () =>
           disabled={mutation.isPending}
           onClick={async () => {
             try {
-              await mutation.mutateAsync({ isActive: !type.isActive });
+              await mutation.mutateAsync({
+                isActive: !type.isActive,
+                expectedVersion: type.version,
+              });
               onClose();
             } catch {
               /* Show error in dialog. */

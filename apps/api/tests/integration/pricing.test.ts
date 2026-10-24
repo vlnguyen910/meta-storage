@@ -7,6 +7,7 @@ import { auth } from "../../src/modules/auth/auth";
 import { PricingRepository } from "../../src/modules/pricing/pricing.repository";
 import { pricingRoutes } from "../../src/modules/pricing/pricing.routes";
 import { PricingService } from "../../src/modules/pricing/pricing.service";
+import { UnitTypesService } from "../../src/modules/unit-types/unit-types.service";
 
 const actor = "11111111-1111-4111-8111-111111111111";
 const type = "22222222-2222-4222-8222-222222222222";
@@ -14,7 +15,7 @@ const session = spyOn(auth.api, "getSession");
 const findQuote = spyOn(PricingRepository.prototype, "findQuote");
 const read = spyOn(PricingRepository.prototype, "getConfiguration");
 const update = spyOn(PricingRepository.prototype, "updateDeposit");
-const updatePrice = spyOn(PricingRepository.prototype, "updatePrice");
+const updatePrice = spyOn(UnitTypesService.prototype, "update");
 const service = new PricingService(new PricingRepository({} as never));
 const app = Fastify();
 app.decorate("db", {});
@@ -50,9 +51,13 @@ afterAll(async () => {
 });
 
 describe("database-backed pricing policy", () => {
-  test("validates global monthly prices and forwards only the requested type and actor", async () => {
+  test("validates local monthly prices and forwards the requested type and FM actor", async () => {
+    session.mockResolvedValue({
+      user: { id: actor, role: "FACILITY_MANAGER", status: "ACTIVE" },
+      session: {},
+    } as never);
     const url = `/api/business-rules/pricing/${type}`;
-    for (const monthlyPrice of [-1, 1.5, "900000", 2147483648]) {
+    for (const monthlyPrice of [0, -1, 1.5, "900000", 2147483648]) {
       expect(
         (await app.inject({ method: "PATCH", url, payload: { expectedVersion: 1, monthlyPrice } }))
           .statusCode,
@@ -68,8 +73,17 @@ describe("database-backed pricing policy", () => {
     expect(updatePrice).toHaveBeenCalledWith(
       type,
       { expectedVersion: 1, monthlyPrice: 900000 },
-      actor,
+      expect.objectContaining({ id: actor, role: "FACILITY_MANAGER" }),
     );
+  });
+  test("BOM cannot write the facility manager's local type price", async () => {
+    const response = await app.inject({
+      method: "PATCH",
+      url: `/api/business-rules/pricing/${type}`,
+      payload: { expectedVersion: 0, monthlyPrice: 900000 },
+    });
+    expect(response.statusCode).toBe(403);
+    expect(updatePrice).not.toHaveBeenCalled();
   });
   test("computes rent and deposit independently of rental duration using stored months", async () => {
     expect(await service.quote(type, 3)).toEqual({

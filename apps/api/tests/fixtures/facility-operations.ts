@@ -138,6 +138,7 @@ export async function createFacilityOperationsFixture() {
     otherFacilityId,
     typeId,
     otherTypeId,
+    foreignTypeId,
     unitId,
     maintenanceUnitId,
     otherUnitId,

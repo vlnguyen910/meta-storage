@@ -459,6 +459,9 @@ describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
     }
   });
   test("computes weighted utilization and totals before facility pagination", async () => {
+    // Other suites may retain fixtures; assert the contribution of this facility.
+    const previousRevenue = (await get(`revenue?${period}`, true)).json().data.summary;
+    const previousInventory = (await get("utilization", true)).json().data.summary;
     await createTestUnitType(db, {
       id: ids.otherType,
       facilityId: ids.b,
@@ -494,9 +497,17 @@ describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
     try {
       const revenue = (await get(`revenue?${period}&limit=1`, true)).json().data;
       expect(revenue.items).toHaveLength(1);
-      expect(revenue.summary.cashReceived).toBe("24000000.00");
+      expect(revenue.summary.cashReceived).toBe(
+        (Number(previousRevenue.cashReceived) + 4000000).toFixed(2),
+      );
       const utilization = (await get("utilization?limit=1", true)).json().data;
-      expect(utilization.summary.utilizationPercent).toBe(63.64);
+      expect(utilization.summary.activeUnits).toBe(previousInventory.activeUnits + 2);
+      expect(utilization.summary.occupiedUnits).toBe(previousInventory.occupiedUnits + 1);
+      expect(utilization.summary.utilizationPercent).toBe(
+        Math.round(
+          ((previousInventory.occupiedUnits + 1) / (previousInventory.activeUnits + 2)) * 10000,
+        ) / 100,
+      );
       login("FACILITY_MANAGER", ids.fm);
       expect((await get(`revenue?${period}`)).json().data.summary.cashReceived).toBe("20000000.00");
       expect((await get("export?type=utilization")).body).not.toContain("Zero-sales facility");
