@@ -4,6 +4,10 @@ import {
   CreateStorageUnitSchema,
   createAssignmentBodySchema,
   createFacilityBodySchema,
+  FacilityRentalHistoryQuerySchema,
+  FacilityRentalListParamsSchema,
+  FacilityRentalListQuerySchema,
+  FacilityRentalParamsSchema,
   facilityAssignmentListQuerySchema,
   facilityAssignmentParamSchema,
   facilityIdNestedParamSchema,
@@ -26,6 +30,8 @@ import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
 import { requireAuth, requireRole } from "../auth/auth.guard";
+import { RentalsRepository } from "../rentals/rentals.repository";
+import { RentalsService } from "../rentals/rentals.service";
 import { ReturnsRepository } from "../returns/returns.repository";
 import { ReturnsService } from "../returns/returns.service";
 import { StorageUnitsRepository } from "../storage-units/storage-units.repository";
@@ -41,6 +47,7 @@ import { FacilityAssignmentsRepository } from "./facility-assignments.repository
 import { FacilityAssignmentsService } from "./facility-assignments.service";
 
 export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
+  const rentalsService = new RentalsService(new RentalsRepository(fastify.db));
   const facilitiesRepository = new FacilitiesRepository(fastify.db);
   const service = new FacilitiesService(facilitiesRepository);
   const assignmentsService = new FacilityAssignmentsService(
@@ -62,6 +69,88 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
 
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
 
+  typedApp.get(
+    "/:facilityId/rentals",
+    {
+      onRequest: privateReturnResponse,
+      preHandler: [requireRole("FACILITY_MANAGER")],
+      schema: {
+        tags: ["Rentals"],
+        params: FacilityRentalListParamsSchema,
+        querystring: FacilityRentalListQuerySchema,
+      },
+    },
+    async (request) => {
+      if (!request.user) throw new UnauthorizedError();
+      return successResponse(
+        await rentalsService.facilityList(request.user, request.params.facilityId, request.query),
+      );
+    },
+  );
+  typedApp.get(
+    "/:facilityId/rentals/:rentalId",
+    {
+      onRequest: privateReturnResponse,
+      preHandler: [requireRole("FACILITY_MANAGER")],
+      schema: { tags: ["Rentals"], params: FacilityRentalParamsSchema },
+    },
+    async (request) => {
+      if (!request.user) throw new UnauthorizedError();
+      return successResponse(
+        await rentalsService.facilityDetail(
+          request.user,
+          request.params.facilityId,
+          request.params.rentalId,
+        ),
+      );
+    },
+  );
+  typedApp.get(
+    "/:facilityId/rentals/:rentalId/payments",
+    {
+      onRequest: privateReturnResponse,
+      preHandler: [requireRole("FACILITY_MANAGER")],
+      schema: {
+        tags: ["Rentals"],
+        params: FacilityRentalParamsSchema,
+        querystring: FacilityRentalHistoryQuerySchema,
+      },
+    },
+    async (request) => {
+      if (!request.user) throw new UnauthorizedError();
+      return successResponse(
+        await rentalsService.facilityPayments(
+          request.user,
+          request.params.facilityId,
+          request.params.rentalId,
+          request.query,
+        ),
+      );
+    },
+  );
+  typedApp.get(
+    "/:facilityId/rentals/:rentalId/renewals",
+    {
+      onRequest: privateReturnResponse,
+      preHandler: [requireRole("FACILITY_MANAGER")],
+      schema: {
+        tags: ["Renewals"],
+        params: FacilityRentalParamsSchema,
+        querystring: FacilityRentalHistoryQuerySchema,
+      },
+    },
+    async (request) => {
+      if (!request.user) throw new UnauthorizedError();
+      return successResponse(
+        await rentalsService.facilityRenewals(
+          request.user,
+          request.params.facilityId,
+          request.params.rentalId,
+          request.query,
+        ),
+      );
+    },
+  );
   typedApp.get(
     "/:facilityId/return-requests",
     {

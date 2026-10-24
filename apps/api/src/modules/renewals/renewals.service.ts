@@ -7,7 +7,7 @@ import type {
 import type { RenewalsRepository } from "./renewals.repository";
 import type { RenewalRecord } from "./renewals.types";
 
-function renewalDto(row: RenewalRecord): RentalRenewalDto {
+export function renewalDto(row: RenewalRecord): RentalRenewalDto {
   return {
     id: row.id,
     rentalId: row.rentalId,

@@ -1,9 +1,22 @@
 import { z } from "zod";
 import { RENTAL_CONTRACT_MESSAGES } from "./rentals.messages";
 
-export type { RentalPage, RentalPageCursor, RentalPaymentItem } from "./rentals.types";
+export type * from "./rentals.types";
 
 export const RentalIdParamsSchema = z.object({ rentalId: z.string().uuid() });
+
+export const FacilityRentalParamsSchema = z.object({ facilityId: z.uuid(), rentalId: z.uuid() });
+export const FacilityRentalListParamsSchema = z.object({ facilityId: z.uuid() });
+export const FacilityRentalHistoryQuerySchema = z.strictObject({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().nonnegative().default(0),
+});
+export const FacilityRentalListQuerySchema = FacilityRentalHistoryQuerySchema.extend({
+  status: z.enum(["ACTIVE", "RETURN_PENDING", "OVERDUE", "CLOSED"]).optional(),
+  unitTypeId: z.uuid().optional(),
+});
+export type FacilityRentalListQuery = z.infer<typeof FacilityRentalListQuerySchema>;
+export type FacilityRentalHistoryQuery = z.infer<typeof FacilityRentalHistoryQuerySchema>;
 
 export const RentalPageQuerySchema = z
   .object({
