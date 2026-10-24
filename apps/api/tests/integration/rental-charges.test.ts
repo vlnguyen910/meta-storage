@@ -49,6 +49,7 @@ describe.skipIf(!testUrl)("rental charges with isolated PostgreSQL", () => {
   let bookingId = "";
   let rentalId = "";
   let chargeId = "";
+  let rejectedChargeId = "";
   let paymentId = "";
 
   const login = (actor: typeof currentActor) => {
@@ -182,10 +183,10 @@ describe.skipIf(!testUrl)("rental charges with isolated PostgreSQL", () => {
     session?.mockRestore();
     if (paymentId)
       await db.delete(paymentProviderEvents).where(eq(paymentProviderEvents.paymentId, paymentId));
-    if (chargeId) {
-      await db.delete(rentalChargeEvents).where(eq(rentalChargeEvents.chargeId, chargeId));
-      await db.delete(payments).where(eq(payments.rentalChargeId, chargeId));
-      await db.delete(rentalCharges).where(eq(rentalCharges.id, chargeId));
+    for (const id of [chargeId, rejectedChargeId].filter(Boolean)) {
+      await db.delete(rentalChargeEvents).where(eq(rentalChargeEvents.chargeId, id));
+      await db.delete(payments).where(eq(payments.rentalChargeId, id));
+      await db.delete(rentalCharges).where(eq(rentalCharges.id, id));
     }
     if (rentalId) await db.delete(rentals).where(eq(rentals.id, rentalId));
     if (bookingId) await db.delete(bookings).where(eq(bookings.id, bookingId));
@@ -238,10 +239,11 @@ describe.skipIf(!testUrl)("rental charges with isolated PostgreSQL", () => {
       },
     });
     expect(rejectedCharge.statusCode).toBe(201);
+    rejectedChargeId = rejectedCharge.json().data.id;
     login({ id: ids.manager, role: "FACILITY_MANAGER" });
     const rejected = await app.inject({
       method: "POST",
-      url: `/api/rental-charges/${rejectedCharge.json().data.id}/decision`,
+      url: `/api/rental-charges/${rejectedChargeId}/decision`,
       payload: { decision: "REJECT", reason: "Duplicate request" },
     });
     expect(rejected.statusCode).toBe(200);
@@ -255,7 +257,7 @@ describe.skipIf(!testUrl)("rental charges with isolated PostgreSQL", () => {
       paymentCode: `STTEST${randomUUID().slice(0, 8)}`,
     });
     paymentId = attempt.payment.id;
-    expect(attempt.payment.totalAmount).toBe("25000");
+    expect(attempt.payment.totalAmount).toBe("25000.00");
     const event = {
       providerEventId: `sepay-test-${randomUUID()}`,
       paymentCode: attempt.payment.paymentCode,
@@ -304,7 +306,7 @@ describe.skipIf(!testUrl)("rental charges with isolated PostgreSQL", () => {
     login({ id: ids.customer, role: "CUSTOMER" });
     const own = await app.inject({ method: "GET", url: `/api/rentals/${rentalId}/charges` });
     expect(own.statusCode).toBe(200);
-    expect(own.json().data[0].paidAmount).toBe("25000");
+    expect(own.json().data[0].paidAmount).toBe("25000.00");
     login({ id: ids.otherCustomer, role: "CUSTOMER" });
     const foreign = await app.inject({ method: "GET", url: `/api/rentals/${rentalId}/charges` });
     expect(foreign.statusCode).toBe(404);
