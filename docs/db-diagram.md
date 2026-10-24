@@ -192,8 +192,9 @@ specific changed values, required `changed_by` FK users (RESTRICT), and timestam
 `changed_at`. No API modifies or deletes audit records. Settings are not exposed
 to public/FS/FM/SA callers; configuration endpoints require BOM.
 
-This diagram records every table and column currently declared in
-`packages/database/src/schema`. Flow 2 now activates rentals at Staff handover; guest account access remains future work;
+The existing-model sections record tables and columns declared in
+`packages/database/src/schema`; separately labeled approved-design sections describe
+future implementation, including Customer Support (#164). Flow 2 activates rentals at Staff handover; guest account access remains future work;
 Booking and Payment are introduced by issue #18.
 
 Issue #24 adds `handover_inspections` and `inspection_photos` under the H6_V1 decision:
@@ -1066,3 +1067,218 @@ rental_lifecycle_settings under row locks, runs generated DDL, and restores valu
 with original versions, descriptions and actor/timestamps in the same transaction.
 The legacy configuration tables are retired only as part of that atomic migration.
 Use `bun run db:migrate`; invoking drizzle-kit migrate directly bypasses this data step.
+
+## Customer Support approved design (2026-10-24, #164)
+
+**Status: APPROVED DESIGN; NOT YET IMPLEMENTED.** The owner approved the Support
+policy on 2026-10-24 and authorized the remaining documentation work. This section
+is the intended canonical model for #165/#166; it does not assert that these
+tables, enums, APIs or notification channels already exist.
+
+Policy: [customer-support-policy.md](customer-support-policy.md), C01–C15 and
+R1–R5. Detailed design and implementation handoff:
+[customer-support-model.md](customer-support-model.md).
+
+### Relationships
+
+All new entity IDs are UUIDs. All Support foreign keys use ON DELETE RESTRICT
+to preserve customer conversation, evidence and operational audit. State names
+below are design values; runtime enums/migrations are created by #165/#166.
+
+```mermaid
+erDiagram
+  bookings ||--o{ support_tickets : context
+  users ||--o{ support_tickets : owns
+  facilities ||--o{ support_tickets : scopes
+  rentals o|--o{ support_tickets : after_handover
+  storage_units o|--o{ support_tickets : received_unit
+  payments o|--o{ support_tickets : optional_transaction
+  support_tickets ||--|{ support_messages : contains
+  support_tickets ||--o{ support_attachments : limits_total
+  support_messages ||--o{ support_attachments : evidence
+  support_tickets ||--o{ support_work_reports : receives
+  support_messages ||--o| support_work_reports : report_content
+  support_tickets ||--|{ support_audit : records
+  support_tickets o|--o{ support_idempotency : result
+  support_tickets o|--o{ notification_outbox : support_event
+```
+
+A committed ticket contains its initial public message and CREATED audit.
+The optional ticket association on an idempotency claim exists only until its
+result is committed; no successful command may return without its result record.
+
+### support_tickets
+
+| Columns | Intended type and constraints |
+| --- | --- |
+| id | UUID PK, server generated |
+| booking_id, owner_user_id, facility_id | Required UUID FKs to bookings/users/facilities; server derives owner/facility from the authenticated booking context |
+| rental_id, storage_unit_id | Nullable UUID FKs; required for UNIT/LOCK/ACCESS_CODE/STORED_ITEMS to identify the rental and exact physical unit actually received |
+| payment_id | Nullable UUID FK payments; if present must belong to booking_id; successful payment is not a ticket prerequisite |
+| category | UNIT, LOCK, ACCESS_CODE, STORED_ITEMS or PAYMENT |
+| subject | Trimmed varchar(200), required and nonempty |
+| status | OPEN, IN_PROGRESS or CLOSED; required, default OPEN |
+| priority | NORMAL or HIGH; required, default NORMAL |
+| assigned_staff_id | Nullable UUID FK users; current Support assignee, independent of bookings.assigned_staff_id |
+| assigned_by, assigned_at | Nullable UUID FK users and timestamptz; current assignment actor/time |
+| assignment_version | Required nonnegative integer, default 0; increment on assign/reassign/clear |
+| version | Required nonnegative integer, default 0; optimistic concurrency for mutations |
+| first_assigned_at | Nullable timestamptz; preserve original assignment time after reassign |
+| first_onsite_started_at | Nullable timestamptz; assigned FS records arrival/start separately from assignment |
+| first_bom_response_at | Nullable timestamptz; first PAYMENT response/start by BOM |
+| action_due_at | Required timestamptz; created_at + 12 continuous hours |
+| closed_by, closed_at | Nullable UUID FK users and timestamptz; required together for CLOSED |
+| closure_kind, close_reason | Nullable RESOLVED/CUSTOMER_WITHDREW and text; required/nonempty for CLOSED |
+| created_at, updated_at | Required server-generated timestamptz |
+
+OPEN/IN_PROGRESS have null current closure metadata. CLOSED has the complete
+closure metadata above. Reopen preserves prior closure in audit, clears current
+closure/assignment, increments version/assignment_version and returns to OPEN.
+Reassignment must not change owner/context, reset the original deadline, delete
+reports or reuse an earlier assignment generation's accepted report.
+
+For warehouse categories, creation requires an actual handed-over rental that
+is not closed, linked to the booking and physical unit. PAYMENT accepts the
+owner's pending/failed/cancelled-booking cases, including before rental creation.
+Single-column FKs alone cannot prove this linkage; application checks under the
+same transaction/locks validate every referenced context and current ownership.
+
+Warehouse IN_PROGRESS requires a current assignee. PAYMENT can enter IN_PROGRESS
+when BOM begins even without an FS. FM may assign a same-facility FS to assist
+with PAYMENT information; this does not grant FS/FM financial decision or
+PAYMENT closure/reopen authority.
+
+Intended indexes:
+(owner_user_id, created_at DESC, id DESC);
+(facility_id, category, status, created_at DESC, id DESC);
+(assigned_staff_id, status, created_at DESC, id DESC);
+(category, status, priority, action_due_at, id).
+HIGH is explicitly sorted ahead of NORMAL; do not rely on enum lexical ordering.
+
+### support_messages
+
+Required columns: id UUID PK, ticket_id UUID FK, author_id UUID FK users,
+kind PUBLIC_REPLY/INTERNAL_NOTE/STAFF_REPORT, content trimmed text (1..5000),
+created_at timestamptz. Unique (ticket_id, id) provides a composite reference
+target for same-ticket attachments/reports. Index (ticket_id, created_at, id)
+supports stable pagination. Content is append-only; no edit/delete API in MVP.
+
+Customer queries and DTOs select PUBLIC_REPLY only. INTERNAL_NOTE is write/read
+restricted to authorized FM/BOM; STAFF_REPORT is operational evidence read by
+the current assigned FS and authorized FM/BOM, not automatically public.
+A public resolution summary is a separate PUBLIC_REPLY when resolving a ticket.
+
+### support_attachments
+
+Required columns: id UUID PK, ticket_id UUID FK, message_id UUID FK,
+uploaded_by UUID FK users, unique object_key text, original_filename text,
+mime_type text, positive byte_size integer, checksum text, created_at timestamptz.
+Composite (ticket_id, message_id) references support_messages(ticket_id, id),
+preventing images being linked to a message from another ticket.
+
+Accept JPEG/PNG/WebP only, at most 5 MiB (5 * 1024 * 1024 bytes) per image and
+**10 images total per ticket**, including replies, notes and reports. Do not
+make attachments mandatory for all tickets. Validate real content/MIME as well
+as size; reject PDF/video/SVG masquerading as an accepted image.
+
+Files are private. Reading requires current ticket and message-kind authorization,
+not knowledge of an object key or ownership of an old upload. Reassigned FS lose
+old ticket/file access. Hold the ticket lock while counting/finalizing image
+references to enforce 10 under concurrency. Finalization is idempotent; no duplicate
+reference on retry. Cleanup may remove only definitely unreferenced new objects;
+uncertain DB commit outcome must not destroy possibly committed evidence.
+
+### support_work_reports
+
+Required columns: id UUID PK, ticket_id UUID FK, unique message_id UUID FK,
+assignment_version integer, submitted_by UUID FK users, submitted_at timestamptz.
+Nullable accepted_by UUID FK users and accepted_at timestamptz must be both null
+or both present. Content lives in the linked STAFF_REPORT message, not duplicated.
+
+Composite (ticket_id, message_id) references support_messages(ticket_id, id).
+Application checks enforce message kind STAFF_REPORT, current assignment_version,
+current author/assignee and active membership. Partial unique
+(ticket_id, assignment_version) WHERE accepted_at IS NOT NULL prevents accepting
+multiple results from the same assignment generation.
+
+FS submit only while currently assigned and IN_PROGRESS; reporting leaves the
+ticket IN_PROGRESS. FM accepts the latest report of the current assignment.
+Acceptance metadata, public resolution, warehouse ticket closure, audit and
+outbox commit together. FS assistance reports on PAYMENT do not replace BOM's
+authority to decide and close PAYMENT.
+
+### support_audit
+
+Required: id UUID PK, ticket_id UUID FK, actor_id UUID FK users, action text,
+next_version integer, occurred_at timestamptz. Nullable: previous_version integer,
+old_status/new_status, previous_staff_id/next_staff_id UUID FKs users,
+assignment_version integer, reason text. details JSONB is allowlisted metadata
+and child/event references, not raw requests, payment secrets or access codes.
+Index (ticket_id, occurred_at, id) supports ordered history.
+
+Audit is append-only. Record creation, assignments, priority changes, FS onsite/BOM
+start, reports, approval and close/reopen in the corresponding transaction.
+Reasons are required for reassign/close/reopen. Assignment history is stored here;
+there is no duplicate assignment-history table.
+
+### support_idempotency
+
+Columns: actor_id UUID FK users, operation text, idempotency_key text, request_hash
+text, nullable ticket_id UUID FK, result_reference JSONB allowlist and
+created_at timestamptz. Composite key/unique (actor_id, operation, idempotency_key).
+
+A committed successful command includes its result reference. Same key/hash
+replays the result subject to current authorization; a different hash conflicts.
+Do not cache internal note/file content that could bypass revoked access.
+Concurrent key claims are serialized using DB uniqueness/transactions.
+
+### notification_outbox extension for #166
+
+Preserve existing data and delivery/lease/retry behavior, booking_id/facility_id
+requirements, event_key/recipient_key dedupe, and the rental_term_version column
+already on origin/dev c8369ee. Add:
+
+- Nullable support_ticket_id FK support_tickets; required on Support events.
+- channel EMAIL/IN_APP, preserving existing lifecycle rows as EMAIL.
+- recipient_email nullable for IN_APP; EMAIL requires a valid nonempty address.
+- IN_APP requires recipient_user_id and the exact recipient_role.
+
+Support events: SUPPORT_CREATED, SUPPORT_ASSIGNED, SUPPORT_REASSIGNED,
+SUPPORT_REPORTED, SUPPORT_PUBLIC_REPLIED, SUPPORT_CLOSED, SUPPORT_REOPENED,
+SUPPORT_PRIORITY_CHANGED, SUPPORT_INTERNAL_NOTE_CREATED.
+INTERNAL_NOTE events target only authorized FM/BOM, never customer/FS.
+
+Store one logical row per event/version/recipient/channel. Keep the existing
+unique event_key/recipient_key by consistently encoding channel in the event key.
+Business mutation/audit/outbox commit atomically; dispatch/retry after commit.
+Customer delivery is automatic EMAIL; FM/FS/BOM receive their user-scoped IN_APP
+notifications. Existing /notifications authorization/projection must be extended
+for Support in #166; role name alone is not a broadcast audience.
+Recheck current ownership/facility/assignee at read or sensitive delivery time.
+Revoked FS can receive only a minimal revocation notice, without old ticket data.
+
+### Lifecycle, workload and 12-hour tracking
+
+Ticket lifecycle: OPEN → IN_PROGRESS → CLOSED. Assignment immediately enters
+IN_PROGRESS; a separate FS start records first_onsite_started_at without another
+ticket transition. FS report remains IN_PROGRESS until FM accepts/closes for
+warehouse categories. BOM starts/resolves PAYMENT under its role.
+Customer withdrawal closes with CUSTOMER_WITHDREW, stops Support work and never
+marks an unfinished report/task successfully completed. Reopen is FM/BOM only
+within category scope and requires a fresh assignment where needed.
+
+12 continuous hours starts at created_at, without resetting on reassign.
+Warehouse measurement distinguishes “FS assigned” and “FS arrived/started”;
+assignment alone does not prove an onsite response. PAYMENT measures BOM's first
+contact/start in 12 hours. Reopen preserves original timing/audit and does not
+invent a fresh automatic SLA cycle or change the ticket's original created_at.
+Priority HIGH is processed ahead of NORMAL; both retain the 12-hour maximum.
+No new auto-dispatch, SLA engine, automatic escalation or realtime is approved.
+There is no cross-role ESCALATE action in MVP; overdue work stays with the
+authorized FM/BOM category owner and is visible in its manual queue.
+
+Support work remains on support_tickets. Do not create facility_tasks implicitly,
+alter bookings.assigned_staff_id, inherit check-in/inspection authority or change
+occupancy/rental/payment/maintenance/access codes. Existing facility_tasks lifecycle
+and task approval remain governed by Flow 5. Future shared work lists may query
+both sources without merging their state machines.
