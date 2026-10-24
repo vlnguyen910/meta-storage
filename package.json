@@ -22,7 +22,9 @@
     "db:push": "turbo run db:push",
     "db:studio": "turbo run db:studio",
     "db:seed": "turbo run db:seed",
-    "db:clear": "turbo run db:clear"
+    "db:clear": "turbo run db:clear",
+    "test:db:local": "bun apps/api/tests/run-local-database-tests.ts",
+    "check:pr": "bun run check && bun run check-types && bun run test && bun run test:db:local"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",

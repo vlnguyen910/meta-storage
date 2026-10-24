@@ -1,5 +1,48 @@
 # Integration tests on the existing local containers
 
+## One-command local checks before a PR
+
+Start the existing local dependencies once:
+
+```bash
+docker compose -f docker/docker-compose.yml up -d postgres redis
+```
+
+From the repository root:
+
+```bash
+bun run test:db:local  # all CI API database suites plus seed regressions
+bun run check:pr      # lint, workspace types, regular tests, then local DB tests
+```
+
+The wrapper uses PostgreSQL `127.0.0.1:5433/postgres` with the local Compose
+credentials and reserves Redis logical database **12**. It supplies fake API,
+Google OAuth and storage credentials, creates unique empty API/seed databases,
+applies the real migrations and invokes the existing CI runners directly. It
+does not seed the API regression database or accept skipped database cases.
+The separate seed database runs the same demo-seed regression as CI.
+
+The PostgreSQL account needs CREATE DATABASE permission. The existing business
+database `metastorage` is never migrated, reset or seeded by this command.
+The Redis database must be empty and dedicated to tests: the wrapper refuses a
+nonempty target, claims it exclusively, and clears only its claimed database on
+normal success/failure. Do not use this command with application Redis databases.
+Temporary PostgreSQL databases are removed after success or test failure.
+
+For different local ports/credentials or another empty reserved Redis DB:
+
+```bash
+LOCAL_TEST_POSTGRES_URL=postgres://postgres:postgres@127.0.0.1:15433/postgres \
+LOCAL_TEST_REDIS_URL=redis://127.0.0.1:16379/12 \
+bun run test:db:local
+```
+
+Overrides accept only loopback PostgreSQL administration database `postgres` and
+Redis databases 1–15. Remote hosts, Redis DB 0 and query-string overrides are
+rejected. If the process is force-killed, inspect its leftover test databases and
+reserved Redis DB before manually cleaning them; the wrapper will not erase
+unknown pre-existing Redis data on the next invocation.
+
 ## Isolated CI regressions
 
 `bun run --filter api test:db` runs all opt-in integration suites in separate
