@@ -306,7 +306,9 @@ describe.skipIf(!testUrl)("rental charges with isolated PostgreSQL", () => {
     login({ id: ids.customer, role: "CUSTOMER" });
     const own = await app.inject({ method: "GET", url: `/api/rentals/${rentalId}/charges` });
     expect(own.statusCode).toBe(200);
-    expect(own.json().data[0].paidAmount).toBe("25000.00");
+    expect(
+      own.json().data.find((charge: { id: string }) => charge.id === chargeId).paidAmount,
+    ).toBe("25000.00");
     login({ id: ids.otherCustomer, role: "CUSTOMER" });
     const foreign = await app.inject({ method: "GET", url: `/api/rentals/${rentalId}/charges` });
     expect(foreign.statusCode).toBe(404);
