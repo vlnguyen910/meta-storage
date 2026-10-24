@@ -14,7 +14,6 @@ import {
   facilityAssignments,
   facilityOperatingHours,
   facilityReturnCalendars,
-  facilityUnitTypes,
   inArray,
   notificationOutbox,
   paymentProviderEvents,
@@ -56,6 +55,7 @@ import { ReportsRepository } from "../../src/modules/reports/reports.repository"
 import { ReportsService } from "../../src/modules/reports/reports.service";
 import { ReturnsRepository } from "../../src/modules/returns/returns.repository";
 import { returnsRoutes } from "../../src/modules/returns/returns.routes";
+import { createTestUnitType, deleteTestUnitTypes } from "../fixtures/facility-catalog";
 import { assertTestDatabase } from "../fixtures/test-database";
 
 const target =
@@ -253,7 +253,8 @@ describe.skipIf(!target)("rental renewal with isolated PostgreSQL", () => {
     await db
       .insert(facilities)
       .values({ id: ids.facility, code: ids.facility, name: "Renewal facility", address: "Test" });
-    await db.insert(unitTypes).values({
+    await createTestUnitType(db, {
+      facilityId: ids.facility,
       id: ids.type,
       code: ids.type,
       name: "Renewal type",
@@ -263,7 +264,7 @@ describe.skipIf(!target)("rental renewal with isolated PostgreSQL", () => {
       heightM: 1,
       monthlyPrice: 1200000,
     });
-    await db.insert(facilityUnitTypes).values({ facilityId: ids.facility, unitTypeId: ids.type });
+
     await db
       .insert(checkInSlots)
       .values({ id: ids.slot, name: "Renewal slot", startTime: "10:00", endTime: "11:30" });
@@ -377,9 +378,9 @@ describe.skipIf(!target)("rental renewal with isolated PostgreSQL", () => {
       .delete(facilityOperatingHours)
       .where(eq(facilityOperatingHours.facilityId, ids.facility));
     await db.delete(facilityAssignments).where(eq(facilityAssignments.facilityId, ids.facility));
-    await db.delete(facilityUnitTypes).where(eq(facilityUnitTypes.facilityId, ids.facility));
+    await deleteTestUnitTypes(db, eq(unitTypes.id, ids.type));
+
     await db.delete(facilities).where(eq(facilities.id, ids.facility));
-    await db.delete(unitTypes).where(eq(unitTypes.id, ids.type));
     await db.delete(checkInSlots).where(eq(checkInSlots.id, ids.slot));
     await db.delete(users).where(inArray(users.id, [ids.owner, ids.other, ids.manager]));
   });

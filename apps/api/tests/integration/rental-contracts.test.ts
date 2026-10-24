@@ -16,7 +16,6 @@ import {
   eq,
   facilities,
   facilityAssignments,
-  facilityUnitTypes,
   handoverInspections,
   inArray,
   notificationOutbox,
@@ -42,6 +41,7 @@ import type { ContractTransaction } from "../../src/modules/contracts/contracts.
 import { InspectionsRepository } from "../../src/modules/inspections/inspections.repository";
 import { inspectionsRoutes } from "../../src/modules/inspections/inspections.routes";
 import { InspectionsService } from "../../src/modules/inspections/inspections.service";
+import { createTestUnitType, deleteTestUnitTypes } from "../fixtures/facility-catalog";
 import { assertTestDatabase } from "../fixtures/test-database";
 
 const target = process.env.MY_STORAGE_LOCAL_DATABASE_URL;
@@ -260,7 +260,8 @@ describe.skipIf(!target)("contract PDFs and physical handover on existing local 
           facilityId: key === "otherFm" ? fixture.otherFacility : fixture.facility,
           role: roles[key],
         });
-      await tx.insert(unitTypes).values({
+      await createTestUnitType(tx, {
+        facilityId: fixture.facility,
         id: fixture.type,
         code: fixture.type,
         name: "MVP type",
@@ -270,9 +271,7 @@ describe.skipIf(!target)("contract PDFs and physical handover on existing local 
         heightM: 1,
         monthlyPrice: 1000000,
       });
-      await tx
-        .insert(facilityUnitTypes)
-        .values({ facilityId: fixture.facility, unitTypeId: fixture.type });
+
       await tx
         .insert(checkInSlots)
         .values({ id: fixture.slot, name: "Contract test", startTime: "09:00", endTime: "10:30" });
@@ -319,16 +318,14 @@ describe.skipIf(!target)("contract PDFs and physical handover on existing local 
         await tx.delete(payments).where(inArray(payments.bookingId, scoped));
         await tx.delete(bookings).where(eq(bookings.facilityId, fixture.facility));
         await tx.delete(storageUnits).where(eq(storageUnits.facilityId, fixture.facility));
-        await tx
-          .delete(facilityUnitTypes)
-          .where(eq(facilityUnitTypes.facilityId, fixture.facility));
+
         await tx
           .delete(facilityAssignments)
           .where(inArray(facilityAssignments.userId, Object.values(ids)));
+        await deleteTestUnitTypes(tx, eq(unitTypes.id, fixture.type));
         await tx
           .delete(facilities)
           .where(inArray(facilities.id, [fixture.facility, fixture.otherFacility]));
-        await tx.delete(unitTypes).where(eq(unitTypes.id, fixture.type));
         await tx.delete(checkInSlots).where(eq(checkInSlots.id, fixture.slot));
         await tx.delete(users).where(inArray(users.id, Object.values(ids)));
       });
