@@ -1,15 +1,28 @@
-import type { RentalDetail, RentalListItem, RentalPageQuery } from "@metastorage/contracts";
+import type {
+  FacilityRentalHistoryQuery,
+  FacilityRentalListQuery,
+  RentalDetail,
+  RentalListItem,
+  RentalPageQuery,
+} from "@metastorage/contracts";
 import {
   and,
   asc,
+  bookingContracts,
   bookings,
+  count,
   type Database,
+  desc,
   eq,
   facilities,
   gt,
   inArray,
+  isNotNull,
   or,
   payments,
+  rentalChargeRefunds,
+  rentalCharges,
+  rentalRenewals,
   rentals,
   returnRefunds,
   sql,
@@ -19,6 +32,8 @@ import {
 
 import { bookingReadFields } from "../bookings/bookings.projection";
 import type { BookingReadRecord } from "../bookings/bookings.types";
+import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
+import type { RentalReadExecutor } from "./rentals.types";
 
 const ACTIONS = {
   canCancel: false as const,
@@ -28,6 +43,192 @@ const ACTIONS = {
 
 export class RentalsRepository {
   constructor(private readonly db: Database) {}
+
+  managerAssignment(facilityId: string, userId: string) {
+    return new FacilityAssignmentsRepository(this.db).findActiveAssignment(
+      facilityId,
+      userId,
+      "FACILITY_MANAGER",
+    );
+  }
+
+  private facilityQuery(executor: RentalReadExecutor = this.db) {
+    const initialPayment = executor
+      .selectDistinctOn([payments.bookingId], {
+        bookingId: payments.bookingId,
+        id: payments.id,
+        status: payments.status,
+        amount: payments.totalAmount,
+        currency: payments.currency,
+        paidAt: payments.paidAt,
+      })
+      .from(payments)
+      .where(isNotNull(payments.bookingId))
+      .orderBy(
+        payments.bookingId,
+        desc(isNotNull(payments.paidAt)),
+        desc(payments.createdAt),
+        desc(payments.id),
+      )
+      .as("rental_initial_payment");
+    const contract = executor
+      .selectDistinctOn([bookingContracts.bookingId], {
+        bookingId: bookingContracts.bookingId,
+        id: bookingContracts.id,
+        version: bookingContracts.version,
+        issuedAt: bookingContracts.issuedAt,
+      })
+      .from(bookingContracts)
+      .where(eq(bookingContracts.status, "ISSUED"))
+      .orderBy(bookingContracts.bookingId, desc(bookingContracts.version))
+      .as("rental_issued_contract");
+    return executor
+      .select({
+        rental: rentals,
+        booking: {
+          id: bookings.id,
+          bookingCode: bookings.bookingCode,
+          userId: bookings.userId,
+          name: bookings.contactName,
+          email: bookings.contactEmail,
+          phone: bookings.contactPhone,
+        },
+        unit: {
+          id: storageUnits.id,
+          code: storageUnits.code,
+          unitTypeId: unitTypes.id,
+          unitTypeName: unitTypes.name,
+          sizeLabel: unitTypes.sizeLabel,
+        },
+        initialPayment: {
+          id: initialPayment.id,
+          status: initialPayment.status,
+          amount: initialPayment.amount,
+          currency: initialPayment.currency,
+          paidAt: initialPayment.paidAt,
+        },
+        contract: { id: contract.id, version: contract.version, issuedAt: contract.issuedAt },
+      })
+      .from(rentals)
+      .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
+      .innerJoin(storageUnits, eq(storageUnits.id, rentals.physicalUnitId))
+      .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
+      .leftJoin(initialPayment, eq(initialPayment.bookingId, bookings.id))
+      .leftJoin(contract, eq(contract.bookingId, bookings.id));
+  }
+
+  listForFacility(facilityId: string, query: FacilityRentalListQuery) {
+    return this.db.transaction(
+      async (tx) => {
+        const filter = and(
+          eq(rentals.facilityId, facilityId),
+          query.status ? eq(rentals.status, query.status) : undefined,
+          query.unitTypeId ? eq(bookings.unitTypeId, query.unitTypeId) : undefined,
+        );
+        const [total] = await tx
+          .select({ value: count() })
+          .from(rentals)
+          .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
+          .where(filter);
+        const items = await this.facilityQuery(tx)
+          .where(filter)
+          .orderBy(asc(rentals.expectedEndAt), asc(rentals.id))
+          .limit(query.limit)
+          .offset(query.offset);
+        return { items, total: total?.value ?? 0 };
+      },
+      { isolationLevel: "repeatable read", accessMode: "read only" },
+    );
+  }
+
+  async findForFacility(facilityId: string, rentalId: string) {
+    const [row] = await this.facilityQuery().where(
+      and(eq(rentals.facilityId, facilityId), eq(rentals.id, rentalId)),
+    );
+    return row;
+  }
+
+  facilityPayments(bookingId: string, rentalId: string, query: FacilityRentalHistoryQuery) {
+    return this.db.transaction(
+      async (tx) => {
+        const filter = or(eq(payments.bookingId, bookingId), eq(rentalCharges.rentalId, rentalId));
+        const [total] = await tx
+          .select({ value: count() })
+          .from(payments)
+          .leftJoin(rentalCharges, eq(rentalCharges.id, payments.rentalChargeId))
+          .where(filter);
+        const items = await tx
+          .select({
+            id: payments.id,
+            paymentCode: payments.paymentCode,
+            chargeId: payments.rentalChargeId,
+            source: rentalCharges.source,
+            status: payments.status,
+            amount: payments.totalAmount,
+            currency: payments.currency,
+            paidAt: payments.paidAt,
+            refundAmount: payments.refundAmount,
+            refundReason: payments.refundReason,
+            refundedAt: payments.refundedAt,
+            createdAt: payments.createdAt,
+          })
+          .from(payments)
+          .leftJoin(rentalCharges, eq(rentalCharges.id, payments.rentalChargeId))
+          .where(filter)
+          .orderBy(desc(payments.createdAt), desc(payments.id))
+          .limit(query.limit)
+          .offset(query.offset);
+        const ids = items.map((item) => item.id);
+        const returnTransfers = await tx
+          .select({
+            id: returnRefunds.id,
+            paymentId: returnRefunds.paymentId,
+            amount: returnRefunds.amount,
+            reference: returnRefunds.reference,
+            confirmedAt: returnRefunds.confirmedAt,
+          })
+          .from(returnRefunds)
+          .where(inArray(returnRefunds.paymentId, ids))
+          .orderBy(asc(returnRefunds.confirmedAt), asc(returnRefunds.id));
+        const chargeTransfers = await tx
+          .select({
+            id: rentalChargeRefunds.id,
+            paymentId: rentalChargeRefunds.paymentId,
+            amount: rentalChargeRefunds.amount,
+            reference: rentalChargeRefunds.reference,
+            confirmedAt: rentalChargeRefunds.confirmedAt,
+          })
+          .from(rentalChargeRefunds)
+          .where(
+            and(
+              inArray(rentalChargeRefunds.paymentId, ids),
+              eq(rentalChargeRefunds.status, "CONFIRMED"),
+            ),
+          )
+          .orderBy(asc(rentalChargeRefunds.confirmedAt), asc(rentalChargeRefunds.id));
+        return { items, total: total?.value ?? 0, returnTransfers, chargeTransfers };
+      },
+      { isolationLevel: "repeatable read", accessMode: "read only" },
+    );
+  }
+
+  facilityRenewals(rentalId: string, query: FacilityRentalHistoryQuery) {
+    return this.db.transaction(
+      async (tx) => {
+        const filter = eq(rentalRenewals.rentalId, rentalId);
+        const [total] = await tx.select({ value: count() }).from(rentalRenewals).where(filter);
+        const items = await tx
+          .select()
+          .from(rentalRenewals)
+          .where(filter)
+          .orderBy(desc(rentalRenewals.createdAt), desc(rentalRenewals.id))
+          .limit(query.limit)
+          .offset(query.offset);
+        return { items, total: total?.value ?? 0 };
+      },
+      { isolationLevel: "repeatable read", accessMode: "read only" },
+    );
+  }
 
   private baseQuery() {
     return this.db
