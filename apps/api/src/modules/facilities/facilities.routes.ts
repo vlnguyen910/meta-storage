@@ -4,6 +4,8 @@ import {
   CreateStorageUnitSchema,
   createAssignmentBodySchema,
   createFacilityBodySchema,
+  FacilityRentalChargeParamsSchema,
+  FacilityRentalChargeQuerySchema,
   FacilityRentalHistoryQuerySchema,
   FacilityRentalListParamsSchema,
   FacilityRentalListQuerySchema,
@@ -30,6 +32,8 @@ import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
 import { requireAuth, requireRole } from "../auth/auth.guard";
+import { RentalChargesRepository } from "../rental-charges/rental-charges.repository";
+import { RentalChargesService } from "../rental-charges/rental-charges.service";
 import { RentalsRepository } from "../rentals/rentals.repository";
 import { RentalsService } from "../rentals/rentals.service";
 import { ReturnsRepository } from "../returns/returns.repository";
@@ -48,6 +52,7 @@ import { FacilityAssignmentsService } from "./facility-assignments.service";
 
 export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
   const rentalsService = new RentalsService(new RentalsRepository(fastify.db));
+  const chargesService = new RentalChargesService(new RentalChargesRepository(fastify.db));
   const facilitiesRepository = new FacilitiesRepository(fastify.db);
   const service = new FacilitiesService(facilitiesRepository);
   const assignmentsService = new FacilityAssignmentsService(
@@ -151,6 +156,29 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
       );
     },
   );
+  typedApp.get(
+    "/:facilityId/rental-charges",
+    {
+      onRequest: privateReturnResponse,
+      preHandler: [requireRole("FACILITY_MANAGER")],
+      schema: {
+        tags: ["Rental Charges"],
+        params: FacilityRentalChargeParamsSchema,
+        querystring: FacilityRentalChargeQuerySchema,
+      },
+    },
+    async (request) => {
+      if (!request.user?.role) throw new UnauthorizedError();
+      return successResponse(
+        await chargesService.facilityQueue(
+          { id: request.user.id, role: request.user.role },
+          request.params.facilityId,
+          request.query,
+        ),
+      );
+    },
+  );
+
   typedApp.get(
     "/:facilityId/return-requests",
     {

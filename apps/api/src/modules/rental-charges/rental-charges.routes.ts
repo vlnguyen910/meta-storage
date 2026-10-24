@@ -31,6 +31,18 @@ export const rentalChargesRoutes: FastifyPluginAsync = async (app) => {
   const typed = app.withTypeProvider<ZodTypeProvider>();
 
   typed.get(
+    "/rental-charges/:chargeId",
+    {
+      preHandler: [requireRole("FACILITY_MANAGER")],
+      schema: { tags: ["Rental Charges"], params: RentalChargeParamsSchema },
+    },
+    async (request, reply) => {
+      reply.header("Cache-Control", "private, no-store");
+      return successResponse(await service.facilityDetail(actor(request), request.params.chargeId));
+    },
+  );
+
+  typed.get(
     "/rental-charge-refunds",
     {
       preHandler: [requireRole("SYSTEM_ADMIN", "BUSINESS_OPERATION_MANAGER")],

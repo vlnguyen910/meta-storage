@@ -1,16 +1,20 @@
 import type {
+  FacilityRentalChargeQuery,
   RentalChargeCategory,
   RentalChargeStatus,
 } from "@metastorage/contracts/rental-charges";
 import {
   and,
   bookings,
+  count,
   type Database,
   desc,
   eq,
+  exists,
   type FacilityRole,
   facilityAssignments,
   gt,
+  inArray,
   isNull,
   or,
   payments,
@@ -20,11 +24,136 @@ import {
   rentalCharges,
   rentals,
   sql,
+  storageUnits,
   users,
 } from "@metastorage/database";
+import type { FacilityChargeReadExecutor } from "./rental-charges.types";
 
 export class RentalChargesRepository {
   constructor(private readonly db: Database) {}
+
+  private facilityReadQuery(executor: FacilityChargeReadExecutor = this.db) {
+    const adjustments = executor
+      .select({
+        value: sql<string>`coalesce(sum(case when ${rentalChargeAdjustments.direction} = 'INCREASE' then ${rentalChargeAdjustments.amount} else -${rentalChargeAdjustments.amount} end), 0)`,
+      })
+      .from(rentalChargeAdjustments)
+      .where(eq(rentalChargeAdjustments.chargeId, rentalCharges.id));
+    const captured = executor
+      .select({ value: sql<string>`coalesce(sum(${payments.totalAmount}), 0)` })
+      .from(payments)
+      .where(
+        and(
+          eq(payments.rentalChargeId, rentalCharges.id),
+          inArray(payments.status, ["SUCCEEDED", "REFUND_PENDING", "REFUNDED"]),
+        ),
+      );
+    const appliedEvent = executor
+      .select({ id: rentalChargeEvents.id })
+      .from(rentalChargeEvents)
+      .where(
+        and(
+          eq(rentalChargeEvents.chargeId, rentalCharges.id),
+          eq(rentalChargeEvents.type, "PAID"),
+          sql`${rentalChargeEvents.details}->>'paymentId' = ${payments.id}::text`,
+        ),
+      );
+    const paid = executor
+      .select({ value: sql<string>`coalesce(sum(${payments.totalAmount}), 0)` })
+      .from(payments)
+      .where(
+        and(
+          eq(payments.rentalChargeId, rentalCharges.id),
+          or(eq(payments.status, "SUCCEEDED"), exists(appliedEvent)),
+        ),
+      );
+    const refunded = executor
+      .select({ value: sql<string>`coalesce(sum(${rentalChargeRefunds.amount}), 0)` })
+      .from(rentalChargeRefunds)
+      .where(
+        and(
+          eq(rentalChargeRefunds.chargeId, rentalCharges.id),
+          eq(rentalChargeRefunds.status, "CONFIRMED"),
+        ),
+      );
+    return executor
+      .select({
+        charge: rentalCharges,
+        adjustedAmount: sql<string>`(${rentalCharges.amount} + (${adjustments}))::text`,
+        capturedAmount: sql<string>`(${captured})::text`,
+        // Applied receipts exclude late/duplicate captures that are only owed a refund.
+        paidAmount: sql<string>`(${paid})::text`,
+        refundedAmount: sql<string>`(${refunded})::text`,
+        context: {
+          facilityId: rentals.facilityId,
+          bookingId: bookings.id,
+          bookingCode: bookings.bookingCode,
+          customerName: bookings.contactName,
+          customerEmail: bookings.contactEmail,
+          customerPhone: bookings.contactPhone,
+          unitCode: storageUnits.code,
+          rentalStatus: rentals.status,
+          expectedEndAt: rentals.expectedEndAt,
+        },
+      })
+      .from(rentalCharges)
+      .innerJoin(rentals, eq(rentals.id, rentalCharges.rentalId))
+      .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
+      .innerJoin(storageUnits, eq(storageUnits.id, rentals.physicalUnitId));
+  }
+
+  listForFacility(facilityId: string, query: FacilityRentalChargeQuery) {
+    return this.db.transaction(
+      async (tx) => {
+        const filter = and(
+          eq(rentals.facilityId, facilityId),
+          query.status ? eq(rentalCharges.status, query.status) : undefined,
+          query.source ? eq(rentalCharges.source, query.source) : undefined,
+          query.rentalId ? eq(rentalCharges.rentalId, query.rentalId) : undefined,
+        );
+        const [total] = await tx
+          .select({ value: count() })
+          .from(rentalCharges)
+          .innerJoin(rentals, eq(rentals.id, rentalCharges.rentalId))
+          .where(filter);
+        const items = await this.facilityReadQuery(tx)
+          .where(filter)
+          .orderBy(desc(rentalCharges.createdAt), desc(rentalCharges.id))
+          .limit(query.limit)
+          .offset(query.offset);
+        return { items, total: total?.value ?? 0 };
+      },
+      { isolationLevel: "repeatable read", accessMode: "read only" },
+    );
+  }
+
+  async facilityDetail(facilityId: string, chargeId: string) {
+    return this.db.transaction(
+      async (tx) => {
+        const [row] = await this.facilityReadQuery(tx).where(
+          and(eq(rentals.facilityId, facilityId), eq(rentalCharges.id, chargeId)),
+        );
+        if (!row) return null;
+        const events = await tx
+          .select()
+          .from(rentalChargeEvents)
+          .where(eq(rentalChargeEvents.chargeId, chargeId))
+          .orderBy(rentalChargeEvents.createdAt, rentalChargeEvents.id);
+        const adjustments = await tx
+          .select()
+          .from(rentalChargeAdjustments)
+          .where(eq(rentalChargeAdjustments.chargeId, chargeId))
+          .orderBy(rentalChargeAdjustments.createdAt, rentalChargeAdjustments.id);
+        const refunds = await tx
+          .select()
+          .from(rentalChargeRefunds)
+          .where(eq(rentalChargeRefunds.chargeId, chargeId))
+          .orderBy(rentalChargeRefunds.createdAt, rentalChargeRefunds.id);
+        return { row, events, adjustments, refunds };
+      },
+      { isolationLevel: "repeatable read", accessMode: "read only" },
+    );
+  }
 
   async listForCustomer(rentalId: string, userId: string) {
     return this.db

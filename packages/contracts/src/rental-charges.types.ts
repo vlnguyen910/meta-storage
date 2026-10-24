@@ -56,3 +56,44 @@ export type RentalChargeRefundDto = {
   confirmedAt: string | null;
   confirmedBy: string | null;
 };
+
+export interface FacilityRentalChargeItem extends RentalChargeDto {
+  capturedAmount: string;
+  context: {
+    facilityId: string;
+    bookingId: string;
+    bookingCode: string | null;
+    customerName: string | null;
+    customerEmail: string | null;
+    customerPhone: string | null;
+    unitCode: string;
+    rentalStatus: string;
+    expectedEndAt: string;
+  };
+}
+
+export interface FacilityRentalChargePage {
+  items: FacilityRentalChargeItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface FacilityRentalChargeDetail extends FacilityRentalChargeItem {
+  events: {
+    id: string;
+    type: string;
+    actorId: string | null;
+    reason: string | null;
+    createdAt: string;
+  }[];
+  adjustments: {
+    id: string;
+    direction: "INCREASE" | "REDUCTION";
+    amount: string;
+    reason: string;
+    createdBy: string;
+    createdAt: string;
+  }[];
+  refunds: RentalChargeRefundDto[];
+}

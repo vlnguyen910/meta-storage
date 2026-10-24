@@ -90,6 +90,14 @@ export const RentalChargeParamsSchema = z.object({ chargeId: z.uuid() });
 export const RentalChargeRefundParamsSchema = z.object({ refundId: z.uuid() });
 export const RentalChargePageQuerySchema = z.object(page);
 export type RentalChargePageQuery = z.infer<typeof RentalChargePageQuerySchema>;
+export const FacilityRentalChargeParamsSchema = z.object({ facilityId: z.uuid() });
+export const FacilityRentalChargeQuerySchema = z.strictObject({
+  ...page,
+  status: z.enum(RentalChargeStatus).optional(),
+  source: z.enum(RentalChargeSource).optional(),
+  rentalId: z.uuid().optional(),
+});
+export type FacilityRentalChargeQuery = z.infer<typeof FacilityRentalChargeQuerySchema>;
 export const CreateRentalChargeSchema = z.strictObject({
   category: z.enum([
     RentalChargeCategory.LOCK_REPLACEMENT,

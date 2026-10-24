@@ -1,6 +1,10 @@
 import type {
   ConfirmRentalChargeRefund,
   CreateRentalCharge,
+  FacilityRentalChargeDetail,
+  FacilityRentalChargeItem,
+  FacilityRentalChargePage,
+  FacilityRentalChargeQuery,
   RentalChargeAdjustment,
   RentalChargeDecision,
   RentalChargeDispute,
@@ -9,9 +13,23 @@ import type {
 } from "@metastorage/contracts/rental-charges";
 import type { RentalCharge } from "@metastorage/database";
 import { ConflictError, ForbiddenError, NotFoundError } from "../../common/errors/app-error";
+import { wholeVnd } from "../returns/returns.policy";
 import { RENTAL_CHARGE_MESSAGES as m } from "./rental-charges.messages";
 import type { RentalChargesRepository } from "./rental-charges.repository";
-import type { RentalChargeActor } from "./rental-charges.types";
+import type { FacilityChargeReadRow, RentalChargeActor } from "./rental-charges.types";
+
+function facilityChargeDto(row: FacilityChargeReadRow): FacilityRentalChargeItem {
+  const outstanding = wholeVnd(row.adjustedAmount) - wholeVnd(row.paidAmount);
+  return {
+    ...chargeDto(row.charge, row.adjustedAmount),
+    capturedAmount: row.capturedAmount,
+    paidAmount: row.paidAmount,
+    refundedAmount: row.refundedAmount,
+    outstandingAmount:
+      row.charge.status === "VOID" || outstanding < 0n ? "0" : outstanding.toString(),
+    context: { ...row.context, expectedEndAt: row.context.expectedEndAt.toISOString() },
+  };
+}
 
 function chargeDto(charge: RentalCharge, adjustedAmount = charge.amount): RentalChargeDto {
   return {
@@ -39,6 +57,71 @@ function chargeDto(charge: RentalCharge, adjustedAmount = charge.amount): Rental
 
 export class RentalChargesService {
   constructor(private readonly repo: RentalChargesRepository) {}
+
+  private async managerScope(actor: RentalChargeActor, facilityId: string) {
+    if (
+      actor.role !== "FACILITY_MANAGER" ||
+      !(await this.repo.hasAssignment(facilityId, actor.id, "FACILITY_MANAGER"))
+    )
+      throw new ForbiddenError(m.forbidden);
+  }
+
+  async facilityQueue(
+    actor: RentalChargeActor,
+    facilityId: string,
+    query: FacilityRentalChargeQuery,
+  ): Promise<FacilityRentalChargePage> {
+    await this.managerScope(actor, facilityId);
+    const result = await this.repo.listForFacility(facilityId, query);
+    return {
+      items: result.items.map(facilityChargeDto),
+      total: result.total,
+      limit: query.limit,
+      offset: query.offset,
+    };
+  }
+
+  async facilityDetail(
+    actor: RentalChargeActor,
+    chargeId: string,
+  ): Promise<FacilityRentalChargeDetail> {
+    if (actor.role !== "FACILITY_MANAGER") throw new ForbiddenError(m.forbidden);
+    const context = await this.repo.getChargeContext(chargeId);
+    if (!context) throw new NotFoundError(m.notFound);
+    await this.managerScope(actor, context.rental.facilityId);
+    const result = await this.repo.facilityDetail(context.rental.facilityId, chargeId);
+    if (!result) throw new NotFoundError(m.notFound);
+    return {
+      ...facilityChargeDto(result.row),
+      events: result.events.map((row) => ({
+        id: row.id,
+        type: row.type,
+        actorId: row.actorId,
+        reason: row.reason,
+        createdAt: row.createdAt.toISOString(),
+      })),
+      adjustments: result.adjustments.map((row) => ({
+        id: row.id,
+        direction: row.direction,
+        amount: row.amount,
+        reason: row.reason,
+        createdBy: row.createdBy,
+        createdAt: row.createdAt.toISOString(),
+      })),
+      refunds: result.refunds.map((row) => ({
+        id: row.id,
+        chargeId: row.chargeId,
+        paymentId: row.paymentId,
+        amount: row.amount,
+        reason: row.reason,
+        status: row.status,
+        reference: row.reference,
+        createdAt: row.createdAt.toISOString(),
+        confirmedAt: row.confirmedAt?.toISOString() ?? null,
+        confirmedBy: row.confirmedBy,
+      })),
+    };
+  }
 
   async listMine(actor: RentalChargeActor, rentalId: string) {
     if (actor.role !== "CUSTOMER") throw new ForbiddenError(m.forbidden);
