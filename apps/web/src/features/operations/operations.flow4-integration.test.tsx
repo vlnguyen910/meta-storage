@@ -31,6 +31,8 @@ function configuration() {
     prices: [
       {
         unitTypeId: "44000000-0000-4000-8000-000000000080",
+        facilityId: "30000000-0000-4000-8000-000000000001",
+        priceRangeId: "61000000-0000-4000-8000-000000000001",
         code: "TEST",
         name: "Test type",
         monthlyPrice: 1000000,

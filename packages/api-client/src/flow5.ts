@@ -2,7 +2,6 @@ import type {
   ApiEnvelope,
   ApiFacility,
   ApiFacilityAssignment,
-  ApiUnitType,
   AssignFacilityTaskInput,
   CreateAssignmentBody,
   CreateFacilityBody,
@@ -16,6 +15,7 @@ import type {
   FacilityTaskListResult,
   FacilityTaskReportDetail,
   FacilityTaskReportListResult,
+  FacilityUnitTypeDto,
   FacilityUnitTypeManagementItem,
   StorageUnitDetail,
   StorageUnitListQuery,
@@ -85,11 +85,13 @@ export function createFlow5Client(http: AxiosInstance) {
       },
       unitTypes: {
         list: (params: Partial<UnitTypeManagementQuery> = {}, signal?: AbortSignal) =>
-          http.get<ApiEnvelope<ApiUnitType[]>>("/unit-types", { params, signal }).then(unwrap),
+          http
+            .get<ApiEnvelope<FacilityUnitTypeDto[]>>("/unit-types", { params, signal })
+            .then(unwrap),
         create: (input: CreateUnitTypeInput) =>
-          http.post<ApiEnvelope<ApiUnitType>>("/unit-types", input).then(unwrap),
+          http.post<ApiEnvelope<FacilityUnitTypeDto>>("/unit-types", input).then(unwrap),
         update: (id: string, input: UpdateUnitTypeInput) =>
-          http.patch<ApiEnvelope<ApiUnitType>>(`/unit-types/${id}`, input).then(unwrap),
+          http.patch<ApiEnvelope<FacilityUnitTypeDto>>(`/unit-types/${id}`, input).then(unwrap),
       },
       units: {
         list: (params: StorageUnitListQuery, signal?: AbortSignal) =>

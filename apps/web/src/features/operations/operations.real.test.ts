@@ -79,12 +79,13 @@ describe("Real Operations Utilities and Schemas", () => {
   });
 
   describe("OperationsPriceDraftSchema", () => {
-    it("accepts valid non-negative integer prices", () => {
+    it("accepts valid positive integer prices", () => {
       expect(OperationsPriceDraftSchema.safeParse({ monthlyPrice: 5000000 }).success).toBe(true);
-      expect(OperationsPriceDraftSchema.safeParse({ monthlyPrice: 0 }).success).toBe(true);
+      expect(OperationsPriceDraftSchema.safeParse({ monthlyPrice: 1 }).success).toBe(true);
     });
 
-    it("rejects negative prices and non-integer prices", () => {
+    it("rejects zero, negative prices and non-integer prices", () => {
+      expect(OperationsPriceDraftSchema.safeParse({ monthlyPrice: 0 }).success).toBe(false);
       expect(OperationsPriceDraftSchema.safeParse({ monthlyPrice: -1000 }).success).toBe(false);
       expect(OperationsPriceDraftSchema.safeParse({ monthlyPrice: 12.5 }).success).toBe(false);
     });

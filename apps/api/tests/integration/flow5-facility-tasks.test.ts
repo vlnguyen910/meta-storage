@@ -31,7 +31,7 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Flow 5 manual facil
       [bookingId, otherBookingId].map((id) => ({
         id,
         facilityId: id === bookingId ? f.facilityId : f.otherFacilityId,
-        unitTypeId: f.typeId,
+        unitTypeId: id === bookingId ? f.typeId : f.foreignTypeId,
         requestedMonths: 1,
         checkInDate: "2032-01-01",
         checkInSlotId: slotId,
