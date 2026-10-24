@@ -4,7 +4,6 @@ import {
   db,
   facilities,
   facilityAssignments,
-  facilityUnitTypes,
   inArray,
   storageUnitMaintenanceHistory,
   storageUnits,
@@ -17,6 +16,7 @@ import { setupErrorHandler } from "../../src/common/errors/error-handler";
 import { auth } from "../../src/modules/auth/auth";
 import { authPlugin } from "../../src/modules/auth/auth.guard";
 import { authRoutes } from "../../src/modules/auth/auth.routes";
+import { createTestUnitType, deleteTestUnitTypes } from "./facility-catalog";
 import { assertTestDatabase } from "./test-database";
 
 export async function createFacilityOperationsFixture() {
@@ -41,7 +41,8 @@ export async function createFacilityOperationsFixture() {
   const facilityId = randomUUID(),
     otherFacilityId = randomUUID();
   const typeId = randomUUID(),
-    otherTypeId = randomUUID();
+    otherTypeId = randomUUID(),
+    foreignTypeId = randomUUID();
   const unitId = randomUUID(),
     maintenanceUnitId = randomUUID(),
     otherUnitId = randomUUID();
@@ -93,9 +94,10 @@ export async function createFacilityOperationsFixture() {
         endedAt: key === "expiredStaff" ? new Date("2000-01-01") : null,
       });
     }
-    await tx.insert(unitTypes).values(
-      [typeId, otherTypeId].map((id) => ({
+    for (const id of [typeId, otherTypeId, foreignTypeId])
+      await createTestUnitType(tx, {
         id,
+        facilityId: id === foreignTypeId ? otherFacilityId : facilityId,
         code: id,
         name: "Flow 5 type",
         sizeLabel: "4 m²",
@@ -103,13 +105,7 @@ export async function createFacilityOperationsFixture() {
         widthM: 2,
         heightM: 3,
         monthlyPrice: 1000000,
-      })),
-    );
-    await tx.insert(facilityUnitTypes).values([
-      { facilityId, unitTypeId: typeId },
-      { facilityId, unitTypeId: otherTypeId },
-      { facilityId: otherFacilityId, unitTypeId: typeId },
-    ]);
+      });
     await tx.insert(storageUnits).values([
       {
         id: unitId,
@@ -129,7 +125,7 @@ export async function createFacilityOperationsFixture() {
       {
         id: otherUnitId,
         facilityId: otherFacilityId,
-        unitTypeId: typeId,
+        unitTypeId: foreignTypeId,
         code: `C-${otherUnitId}`,
       },
     ]);
@@ -183,13 +179,10 @@ export async function createFacilityOperationsFixture() {
           .delete(storageUnits)
           .where(inArray(storageUnits.facilityId, [facilityId, otherFacilityId]));
         await tx
-          .delete(facilityUnitTypes)
-          .where(inArray(facilityUnitTypes.facilityId, [facilityId, otherFacilityId]));
-        await tx
           .delete(facilityAssignments)
           .where(inArray(facilityAssignments.userId, Object.values(ids)));
+        await deleteTestUnitTypes(tx, inArray(unitTypes.id, [typeId, otherTypeId, foreignTypeId]));
         await tx.delete(facilities).where(inArray(facilities.id, [facilityId, otherFacilityId]));
-        await tx.delete(unitTypes).where(inArray(unitTypes.id, [typeId, otherTypeId]));
         await tx.delete(users).where(inArray(users.id, Object.values(ids)));
       });
     },

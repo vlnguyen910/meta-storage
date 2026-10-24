@@ -7,7 +7,6 @@ import {
   db,
   eq,
   facilities,
-  facilityUnitTypes,
   inArray,
   notificationOutbox,
   payments,
@@ -42,6 +41,7 @@ import { trustedProxyCidrsSchema } from "../../src/config/env.schema";
 import { bookingsRoutes } from "../../src/modules/bookings/bookings.routes";
 import { createBookingsService } from "../../src/modules/bookings/bookings.service";
 import { guestRentalAccessRoutes } from "../../src/modules/guest-rental-access/guest-rental-access.routes";
+import { createTestUnitType, deleteTestUnitTypes } from "../fixtures/facility-catalog";
 
 const databaseUrl = process.env.BOOKING_TEST_DATABASE_URL;
 const redisUrl = process.env.REDIS_TEST_URL;
@@ -95,7 +95,8 @@ describe.skipIf(!databaseUrl || !redisUrl)("Guest booking magic-link tracking", 
       await tx
         .insert(facilities)
         .values({ id: ids.facility, code: id, name: "Tracking facility", address: "Test address" });
-      await tx.insert(unitTypes).values({
+      await createTestUnitType(tx, {
+        facilityId: ids.facility,
         id: ids.type,
         code: id,
         name: "Tracking unit",
@@ -105,7 +106,7 @@ describe.skipIf(!databaseUrl || !redisUrl)("Guest booking magic-link tracking", 
         heightM: 2,
         monthlyPrice: 900000,
       });
-      await tx.insert(facilityUnitTypes).values({ facilityId: ids.facility, unitTypeId: ids.type });
+
       await tx
         .insert(checkInSlots)
         .values({ id: ids.slot, name: "Tracking slot", startTime: "09:00", endTime: "10:30" });
@@ -164,8 +165,8 @@ describe.skipIf(!databaseUrl || !redisUrl)("Guest booking magic-link tracking", 
     await db.delete(payments).where(eq(payments.bookingId, ids.booking));
     await db.delete(bookings).where(inArray(bookings.id, [ids.booking, ids.draft]));
     await db.delete(checkInSlots).where(eq(checkInSlots.id, ids.slot));
-    await db.delete(facilityUnitTypes).where(eq(facilityUnitTypes.facilityId, ids.facility));
-    await db.delete(unitTypes).where(eq(unitTypes.id, ids.type));
+
+    await deleteTestUnitTypes(db, eq(unitTypes.id, ids.type));
     await db.delete(facilities).where(eq(facilities.id, ids.facility));
   });
 
