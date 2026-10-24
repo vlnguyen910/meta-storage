@@ -19,6 +19,7 @@ import {
   users,
 } from "@metastorage/database";
 import Fastify from "fastify";
+import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
 import { setupErrorHandler } from "../../src/common/errors/error-handler";
 import { auth } from "../../src/modules/auth/auth";
 import { authPlugin } from "../../src/modules/auth/auth.guard";
@@ -58,6 +59,8 @@ describe.skipIf(!testUrl)("rental charges with isolated PostgreSQL", () => {
   beforeAll(async () => {
     assertTestDatabase(testUrl, process.env);
     setupErrorHandler(app);
+    app.setValidatorCompiler(validatorCompiler);
+    app.setSerializerCompiler(serializerCompiler);
     app.register(authPlugin);
     app.register(rentalChargesRoutes, { prefix: "/api" });
     await app.ready();
