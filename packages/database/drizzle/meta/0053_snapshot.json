@@ -7270,21 +7270,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "unit_types_code_idx": {
-          "name": "unit_types_code_idx",
-          "columns": [
-            {
-              "expression": "code",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
