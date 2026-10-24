@@ -38,7 +38,6 @@ import { recordOverdueEvent } from "../rentals/rental-lifecycle.events";
 import {
   calculateSettlement,
   depositEntitlement,
-  localDate,
   refundAllocation,
   refundDueDate,
   refundSummary,
@@ -366,11 +365,7 @@ export class ReturnsService {
       const row = await this.repository.updateRequest(tx, id, { status: "CANCELLED" });
       if (context.rental.status === "RETURN_PENDING") {
         const now = new Date();
-        const status =
-          localDate(now, request.timezone) >
-          localDate(context.rental.expectedEndAt, request.timezone)
-            ? "OVERDUE"
-            : "ACTIVE";
+        const status = now >= context.rental.expectedEndAt ? "OVERDUE" : "ACTIVE";
         await this.repository.updateRental(tx, context.rental.id, { status });
         if (status === "OVERDUE")
           await recordOverdueEvent(tx, context.rental, request.timezone, now);
@@ -1347,8 +1342,8 @@ export class ReturnsService {
     return this.repository.lockedRequest(id, async (tx, context, request) => {
       await this.manager(tx, actor, request.facilityId);
       this.version(request.version, input.expectedVersion);
-      if (wholeVnd(input.unusedRentRefundAmount) > wholeVnd(context.booking.rentalFeeAmount))
-        throw new ValidationError(m.invalidMoney);
+      if (wholeVnd(input.unusedRentRefundAmount) > 0n)
+        throw new ValidationError(m.noEarlyRentRefund);
       const { blockingReasons } = await this.settlementEligibility(tx, context, request, input);
       const settlements = await this.repository.settlements(tx, id);
       const previous = settlements[0];
@@ -1399,8 +1394,12 @@ export class ReturnsService {
       previous?.calendarSnapshot ?? (await this.repository.calendar(request.facilityId, tx));
     const policy = previous ? { rate: previous.rateSnapshot } : await this.repository.lockRate(tx);
     if (!calendar || !policy) throw new ConflictError(m.configurationMissing);
-    if (wholeVnd(input.unusedRentRefundAmount) > wholeVnd(context.booking.rentalFeeAmount))
-      throw new ValidationError(m.invalidMoney);
+    if (
+      wholeVnd(input.unusedRentRefundAmount) > 0n &&
+      (!previous ||
+        wholeVnd(input.unusedRentRefundAmount) > wholeVnd(previous.unusedRentRefundAmount))
+    )
+      throw new ValidationError(m.noEarlyRentRefund);
     const paid = (await this.repository.refunds(tx, request.id)).reduce(
       (sum, r) => sum + wholeVnd(r.amount),
       0n,

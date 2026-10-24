@@ -6,7 +6,7 @@ import { recordLifecycleEvent } from "../notifications/lifecycle-notifications.r
 import type { NotificationTransaction } from "../notifications/lifecycle-notifications.types";
 import { localDate } from "../returns/returns.policy";
 import type { ReturnsRepository } from "../returns/returns.repository";
-import { recordOverdueEvent } from "./rental-lifecycle.events";
+import { recordOverdueEvent, rentalLifecycleEventKey } from "./rental-lifecycle.events";
 import {
   facilityLifecycleClock,
   type RentalLifecycleRepository,
@@ -21,6 +21,7 @@ export async function recordImmediateExpiry(
   rental: typeof rentals.$inferSelect,
   now: Date,
 ) {
+  if (now >= rental.expectedEndAt) return;
   const calendar = await facilityLifecycleClock(tx, rental.facilityId);
   if (!calendar) return; // Missing facility timezone is configuration work, never guess a timezone.
   const settings = await tx
@@ -36,7 +37,8 @@ export async function recordImmediateExpiry(
     dayIndex(localDate(now, calendar.timezone));
   if (days >= 0 && days < reminderDays)
     await recordLifecycleEvent(tx, {
-      key: `rental:${rental.id}:expiry`,
+      key: rentalLifecycleEventKey(rental, "expiry"),
+      rentalTermVersion: rental.version,
       type: "UPCOMING_EXPIRY",
       bookingId: rental.bookingId,
       detail: lifecycleExpiryDetail(localDate(rental.expectedEndAt, calendar.timezone)),
@@ -74,9 +76,10 @@ export class RentalLifecycleService {
           const today = localDate(now, calendar.timezone),
             expiry = localDate(rental.expectedEndAt, calendar.timezone);
           const daysOverdue = dayIndex(today) - dayIndex(expiry);
+          const expired = now >= rental.expectedEndAt;
           const returnedOnTime =
-            rental.actualReturnAt && localDate(rental.actualReturnAt, calendar.timezone) <= expiry;
-          if (daysOverdue > 0 && !returnedOnTime) {
+            rental.actualReturnAt && rental.actualReturnAt <= rental.expectedEndAt;
+          if (expired && !returnedOnTime) {
             if (rental.status !== "OVERDUE")
               await this.returns.updateRental(tx, rental.id, { status: "OVERDUE" });
             await recordOverdueEvent(tx, rental, calendar.timezone, now);
@@ -89,7 +92,8 @@ export class RentalLifecycleService {
           ) {
             await this.returns.updateRental(tx, rental.id, { abandonedReviewAt: now });
             await recordLifecycleEvent(tx, {
-              key: `rental:${rental.id}:abandoned-review`,
+              key: rentalLifecycleEventKey(rental, "abandoned-review"),
+              rentalTermVersion: rental.version,
               type: "ABANDONED_REVIEW",
               bookingId: rental.bookingId,
               managers: true,
@@ -104,12 +108,13 @@ export class RentalLifecycleService {
             hourCycle: "h23",
           }).format(now);
           if (
-            daysOverdue <= 0 &&
+            !expired &&
             (daysOverdue > -expiryReminderDays ||
               (daysOverdue === -expiryReminderDays && clock >= calendar.reminderTime))
           )
             await recordLifecycleEvent(tx, {
-              key: `rental:${rental.id}:expiry`,
+              key: rentalLifecycleEventKey(rental, "expiry"),
+              rentalTermVersion: rental.version,
               type: "UPCOMING_EXPIRY",
               bookingId: rental.bookingId,
               detail: lifecycleExpiryDetail(expiry),

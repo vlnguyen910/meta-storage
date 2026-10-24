@@ -131,7 +131,7 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
       unitTypeId: ids.type,
       status: "DRAFT",
       checkInAt: "2030-01-01T02:00:00.000Z",
-      rentalEndAt: "2030-03-01T02:00:00.000Z",
+      rentalEndAt: "2030-03-02T02:00:00.000Z",
       durationMonths: 2,
       pricing: {
         monthlyRateSnapshot: "1000000",

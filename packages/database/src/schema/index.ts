@@ -19,6 +19,7 @@ export * from "./pricing";
 export * from "./relations";
 export * from "./rental-charge-financials";
 export * from "./rental-charges";
+export * from "./rental-renewals";
 export * from "./rentals";
 export * from "./reservation-drafts";
 export * from "./returns";

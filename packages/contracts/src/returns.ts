@@ -151,7 +151,7 @@ export const ReturnEvidenceParamsSchema = z.object({ requestId: z.uuid(), photoI
 export const SettleReturnSchema = z.strictObject({
   expectedVersion: version,
   damageAmount: money,
-  unusedRentRefundAmount: money,
+  unusedRentRefundAmount: money.refine((value) => BigInt(value) === 0n, m.noEarlyRentRefund),
   reason,
 });
 export type SettleReturn = z.infer<typeof SettleReturnSchema>;

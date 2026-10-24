@@ -294,7 +294,7 @@ export class BookingsService {
       ]);
     await this.facilitiesService.assertCheckInWithinOperatingHours(input.facilityId, slot.startsAt);
     const rentalEndAt = new Date(slot.startsAt);
-    rentalEndAt.setUTCMonth(rentalEndAt.getUTCMonth() + input.durationMonths);
+    rentalEndAt.setUTCDate(rentalEndAt.getUTCDate() + input.durationMonths * 30);
     const capacity = await this.storageUnitsService.getAvailableCapacity(
       input.facilityId,
       input.unitTypeId,

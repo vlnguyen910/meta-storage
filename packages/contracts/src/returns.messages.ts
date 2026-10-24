@@ -9,6 +9,7 @@ export const RETURN_MESSAGES = {
   propertyUnresolved: "Tài sản còn lại chưa được xử lý hoặc bàn giao lưu giữ.",
   invalidTime: "Thời điểm trả kho thực tế không hợp lệ.",
   invalidMoney: "Số tiền phải là số nguyên VND không âm.",
+  noEarlyRentRefund: "Không hoàn tiền thuê khi khách trả kho sớm.",
   duplicateItems: "Mã checklist item phải duy nhất và đủ các nhóm kiểm tra.",
   evidence: "Ảnh bằng chứng không thuộc inspection này.",
   settlement: "Chưa đủ điều kiện xác nhận quyết toán.",

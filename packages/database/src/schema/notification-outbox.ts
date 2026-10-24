@@ -36,6 +36,7 @@ export const notificationOutbox = pgTable(
     bookingId: uuid()
       .notNull()
       .references(() => bookings.id, { onDelete: "restrict" }),
+    rentalTermVersion: integer(),
     facilityId: uuid()
       .notNull()
       .references(() => facilities.id, { onDelete: "restrict" }),

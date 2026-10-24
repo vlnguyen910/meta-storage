@@ -40,6 +40,10 @@ import {
 import type { BookingReadRecord } from "../bookings/bookings.types";
 import { CheckInSlotsRepository } from "../bookings/check-in-slots.repository";
 import { recordLifecycleEvent } from "../notifications/lifecycle-notifications.repository";
+import { RENEWAL_MESSAGES } from "../renewals/renewals.messages";
+import { RenewalsRepository } from "../renewals/renewals.repository";
+import type { RenewalTransaction } from "../renewals/renewals.types";
+import { ReturnsRepository } from "../returns/returns.repository";
 import { StorageUnitsRepository } from "../storage-units/storage-units.repository";
 import { PAYMENT_MESSAGES } from "./payments.messages";
 import type {
@@ -423,7 +427,7 @@ export class PaymentsRepository {
     idempotencyKey: string;
     paymentCode: string;
   }) {
-    return this.db.transaction(async (tx) => {
+    return this.withChargeRentalLock(input.chargeId, async (tx) => {
       const [row] = await tx
         .select({ charge: rentalCharges, userId: bookings.userId })
         .from(rentalCharges)
@@ -433,6 +437,16 @@ export class PaymentsRepository {
         .for("update", { of: rentalCharges });
       if (!row || row.userId !== input.userId)
         throw new AppError(PAYMENT_MESSAGES.paymentNotFound, 404);
+      let quoteExpiresAt: Date | undefined;
+      if (row.charge.source === "RENEWAL") {
+        const result = await new RenewalsRepository(this.db).payable(
+          tx,
+          input.chargeId,
+          new Date(),
+        );
+        if ("failure" in result) throw new AppError(RENEWAL_MESSAGES[result.failure], 409);
+        quoteExpiresAt = result.quote.expiresAt;
+      }
       const [existing] = await tx
         .select()
         .from(payments)
@@ -479,7 +493,7 @@ export class PaymentsRepository {
         .where(and(eq(payments.rentalChargeId, input.chargeId), eq(payments.status, "PENDING")))
         .limit(1);
       if (pending) throw new AppError(PAYMENT_MESSAGES.paymentPendingReconciliation, 409);
-      const expiresAt = new Date(now.getTime() + 15 * 60_000);
+      const expiresAt = quoteExpiresAt ?? new Date(now.getTime() + 15 * 60_000);
       const [payment] = await tx
         .insert(payments)
         .values({
@@ -501,16 +515,17 @@ export class PaymentsRepository {
   }
 
   async processRentalChargePaymentEvent(event: VerifiedPaymentEvent) {
-    return this.db.transaction(async (tx) => {
-      const [candidate] = await tx
-        .select()
-        .from(payments)
-        .where(and(eq(payments.provider, "sepay"), eq(payments.paymentCode, event.paymentCode)));
-      if (!candidate?.rentalChargeId) return null;
+    const [candidate] = await this.db
+      .select()
+      .from(payments)
+      .where(and(eq(payments.provider, "sepay"), eq(payments.paymentCode, event.paymentCode)));
+    if (!candidate?.rentalChargeId) return null;
+    const chargeId = candidate.rentalChargeId;
+    return this.withChargeRentalLock(chargeId, async (tx) => {
       const [charge] = await tx
         .select()
         .from(rentalCharges)
-        .where(eq(rentalCharges.id, candidate.rentalChargeId))
+        .where(eq(rentalCharges.id, chargeId))
         .for("update");
       const [payment] = await tx
         .select()
@@ -569,9 +584,18 @@ export class PaymentsRepository {
         return { duplicate: false, processed: false, paymentId: payment.id };
       }
       const paidAt = event.paidAt;
-      const applicable = Boolean(
+      let applicable = Boolean(
         paidAt && payment.expiresAt && paidAt <= payment.expiresAt && charge.status === "OPEN",
       );
+      if (charge.source === "RENEWAL") {
+        const renewals = new RenewalsRepository(this.db);
+        if (applicable && paidAt) {
+          applicable = await renewals.apply(tx, charge.id, payment.id, paidAt);
+        } else {
+          applicable = false;
+          await renewals.rejectCapture(tx, charge.id, payment.id, "expired");
+        }
+      }
       const [updated] = await tx
         .update(payments)
         .set({
@@ -602,7 +626,10 @@ export class PaymentsRepository {
           chargeId: charge.id,
           paymentId: payment.id,
           amount: payment.totalAmount,
-          reason: "Payment received after quote expiry or charge closure",
+          reason:
+            charge.source === "RENEWAL"
+              ? RENEWAL_MESSAGES.refundRequired
+              : PAYMENT_MESSAGES.chargeRefundRequired,
         });
         await tx.insert(rentalChargeEvents).values({
           chargeId: charge.id,
@@ -617,6 +644,21 @@ export class PaymentsRepository {
         .where(eq(paymentProviderEvents.id, existing.id));
       return { duplicate: false, processed: true, paymentId: updated?.id };
     });
+  }
+
+  private async withChargeRentalLock<T>(
+    chargeId: string,
+    work: (tx: RenewalTransaction) => Promise<T>,
+  ): Promise<T> {
+    const [charge] = await this.db
+      .select({ rentalId: rentalCharges.rentalId, source: rentalCharges.source })
+      .from(rentalCharges)
+      .where(eq(rentalCharges.id, chargeId));
+    if (charge?.source === "RENEWAL") {
+      // Match return/cron before taking charge/payment locks; checkout shares the offering lock.
+      return new ReturnsRepository(this.db).locked(charge.rentalId, (tx) => work(tx));
+    }
+    return this.db.transaction(work);
   }
 
   async prepareBookingPayment(input: PrepareBookingPaymentInput) {

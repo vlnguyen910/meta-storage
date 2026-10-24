@@ -11,6 +11,7 @@
     "./users": "./src/users.ts",
     "./payments": "./src/payments.ts",
     "./rental-charges": "./src/rental-charges.ts",
+    "./renewals": "./src/renewals.ts",
     "./pricing": "./src/pricing.ts",
     "./returns": "./src/returns.ts",
     "./system-settings": "./src/system-settings.ts",

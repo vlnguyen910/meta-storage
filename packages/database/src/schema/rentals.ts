@@ -1,4 +1,14 @@
-import { index, numeric, pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import {
+  check,
+  index,
+  integer,
+  numeric,
+  pgTable,
+  timestamp,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
 import { bookings } from "./bookings";
 import { facilities } from "./facilities";
 import { storageUnits } from "./storage-units";
@@ -20,6 +30,7 @@ export const rentals = pgTable(
     status: varchar({ length: 50 }).default("ACTIVE").notNull(),
     startAt: timestamp({ withTimezone: true }).notNull(),
     expectedEndAt: timestamp({ withTimezone: true }).notNull(),
+    version: integer().default(0).notNull(),
     actualReturnAt: timestamp({ withTimezone: true }),
     closedAt: timestamp({ withTimezone: true }),
     abandonedReviewAt: timestamp({ withTimezone: true }),
@@ -28,6 +39,7 @@ export const rentals = pgTable(
     updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
+    check("rentals_version_nonnegative", sql`${table.version} >= 0`),
     index("rentals_facility_idx").on(table.facilityId),
     index("rentals_active_unit_idx").on(table.physicalUnitId, table.status, table.expectedEndAt),
   ],

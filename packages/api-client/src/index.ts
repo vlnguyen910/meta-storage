@@ -1,4 +1,5 @@
 import type {
+  AcceptRenewal,
   ApiEnvelope,
   ApiFacility,
   ApiFacilityAssignment,
@@ -57,8 +58,10 @@ import type {
   PricingConfiguration,
   PricingQuery,
   PricingUpdateResult,
+  QuoteRenewal,
   ReconciliationReport,
   RecordPhysicalReturn,
+  RenewalPageQuery,
   RentalChargeAdjustment,
   RentalChargeDecision,
   RentalChargeDispute,
@@ -69,6 +72,7 @@ import type {
   RentalDetail,
   RentalPage,
   RentalPageQuery,
+  RentalRenewalDto,
   RentalReport,
   RentalReportQuery,
   ReportExportQuery,
@@ -575,6 +579,24 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
       updateUnitTypePrice: (unitTypeId: string, input: UpdateUnitTypePrice) =>
         http
           .patch<ApiEnvelope<PricingUpdateResult>>(`/business-rules/pricing/${unitTypeId}`, input)
+          .then(unwrap),
+    },
+    renewals: {
+      quote: (rentalId: string, input: QuoteRenewal) =>
+        http
+          .post<ApiEnvelope<RentalRenewalDto>>(`/rentals/${rentalId}/renewals`, input)
+          .then(unwrap),
+      accept: (renewalId: string, input: AcceptRenewal) =>
+        http
+          .post<ApiEnvelope<RentalRenewalDto>>(`/rental-renewals/${renewalId}/accept`, input)
+          .then(unwrap),
+      get: (renewalId: string, signal?: AbortSignal) =>
+        http
+          .get<ApiEnvelope<RentalRenewalDto>>(`/rental-renewals/${renewalId}`, { signal })
+          .then(unwrap),
+      list: (rentalId: string, params: Partial<RenewalPageQuery> = {}) =>
+        http
+          .get<ApiEnvelope<RentalRenewalDto[]>>(`/rentals/${rentalId}/renewals`, { params })
           .then(unwrap),
     },
     rentalCharges: {
