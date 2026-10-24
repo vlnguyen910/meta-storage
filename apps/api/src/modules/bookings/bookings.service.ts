@@ -7,6 +7,9 @@ import type {
   BookingListItem,
   BookingTracking,
   BookingTrackingSession,
+  CustomerBooking,
+  CustomerBookingPage,
+  CustomerBookingPageQuery,
   EligibleUnit,
   PhysicalUnitAssignment,
 } from "@metastorage/contracts";
@@ -343,6 +346,52 @@ export class BookingsService {
       throw new NotFoundError(BOOKING_MESSAGES.bookingDetailsNotFound);
     }
     return booking;
+  }
+
+  async pageMine(userId: string, query: CustomerBookingPageQuery): Promise<CustomerBookingPage> {
+    const rows = await this.repository.listCustomerBookings(userId, query);
+    const pageRows = rows.slice(0, query.limit);
+    const progress = await this.repository.handoverProgress(pageRows.map((booking) => booking.id));
+    const latestProgress = new Map<string, (typeof progress)[number]>();
+    for (const record of progress) {
+      if (!latestProgress.has(record.bookingId)) latestProgress.set(record.bookingId, record);
+    }
+    const items: CustomerBooking[] = pageRows.map(({ cursorCreatedAt: _cursor, ...booking }) => ({
+      ...booking,
+      handoverStage:
+        booking.status === "CHECKED_IN"
+          ? "HANDED_OVER"
+          : latestProgress.get(booking.id)?.status === "COMPLETED"
+            ? "READY_HANDOVER"
+            : latestProgress.has(booking.id)
+              ? "INSPECTING"
+              : "WAITING_CUSTOMER",
+    }));
+    const last = pageRows.at(-1);
+    return {
+      items,
+      nextCursor:
+        rows.length > query.limit && last
+          ? { afterCreatedAt: last.cursorCreatedAt, afterId: last.id }
+          : null,
+    };
+  }
+
+  async getMine(bookingId: string, userId: string): Promise<CustomerBooking> {
+    const booking = await this.repository.findCustomerBookingById(bookingId, userId);
+    if (!booking) throw new NotFoundError(BOOKING_MESSAGES.bookingDetailsNotFound);
+    const progress = await this.repository.handoverProgress([booking.id]);
+    return {
+      ...booking,
+      handoverStage:
+        booking.status === "CHECKED_IN"
+          ? "HANDED_OVER"
+          : progress[0]?.status === "COMPLETED"
+            ? "READY_HANDOVER"
+            : progress[0]
+              ? "INSPECTING"
+              : "WAITING_CUSTOMER",
+    };
   }
 
   async getEligibleUnits(bookingId: string): Promise<EligibleUnit[]> {

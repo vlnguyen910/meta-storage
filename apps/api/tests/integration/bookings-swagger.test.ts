@@ -93,7 +93,7 @@ describe("Booking Swagger contracts", () => {
     expect(script.body).toContain("/api/auth/me");
   });
 
-  test("documents all seven routes with complete response schemas and numeric error examples", async () => {
+  test("documents all booking routes with complete response schemas and numeric error examples", async () => {
     const response = await app.inject("/docs/json");
     expect(response.statusCode).toBe(200);
     const spec = response.json();
@@ -103,6 +103,8 @@ describe("Booking Swagger contracts", () => {
       ["/api/bookings/drafts", "post", 201],
       ["/api/facilities/{facilityId}/bookings", "get", 200],
       ["/api/bookings/assigned-to-me", "get", 200],
+      ["/api/bookings/mine", "get", 200],
+      ["/api/bookings/mine/{id}", "get", 200],
       ["/api/bookings/{id}", "get", 200],
       ["/api/bookings/{id}/eligible-units", "get", 200],
       ["/api/bookings/{id}/assign-unit", "post", 200],

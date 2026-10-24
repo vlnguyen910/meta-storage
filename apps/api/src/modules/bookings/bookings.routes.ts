@@ -8,6 +8,7 @@ import {
   BookingPaymentInputSchema,
   BookingPaymentParamsSchema,
   BookingTrackingParamsSchema,
+  CustomerBookingPageQuerySchema,
   FacilityBookingsParamsSchema,
   PaymentStatusHeadersSchema,
   StaffTasksQuerySchema,
@@ -198,6 +199,36 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
       const { facilityId } = request.query;
       const tasks = await service.getStaffTasks(user.id, facilityId);
       return reply.status(200).send(successResponse(tasks));
+    },
+  );
+
+  typedApp.get(
+    "/bookings/mine",
+    {
+      config: { swaggerTransform: bookingSwaggerTransform("customerList") },
+      schema: { querystring: CustomerBookingPageQuerySchema },
+      onRequest: [privateTrackingResponse],
+      preHandler: [requireRole("CUSTOMER")],
+    },
+    async (request, reply) => {
+      const user = request.user;
+      if (!user) throw new UnauthorizedError();
+      return reply.send(successResponse(await service.pageMine(user.id, request.query)));
+    },
+  );
+
+  typedApp.get(
+    "/bookings/mine/:id",
+    {
+      config: { swaggerTransform: bookingSwaggerTransform("customerDetail") },
+      schema: { params: BookingIdParamsSchema },
+      onRequest: [privateTrackingResponse],
+      preHandler: [requireRole("CUSTOMER")],
+    },
+    async (request, reply) => {
+      const user = request.user;
+      if (!user) throw new UnauthorizedError();
+      return reply.send(successResponse(await service.getMine(request.params.id, user.id)));
     },
   );
 
