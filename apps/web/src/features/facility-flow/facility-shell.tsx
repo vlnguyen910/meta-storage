@@ -39,7 +39,8 @@ function FacilityShellContent({
   const [open, setOpen] = useState(false);
   const user = useAuthStore((s) => s.session?.user);
   const pathname = usePathname();
-  const overview = useSearchParams().get("view") === "overview";
+  const currentView = useSearchParams().get("view");
+  const overview = currentView !== "tasks" && currentView !== "check-in";
   const assignment = useMyFacilityAssignments();
   const facility = assignment.data?.find((a) => a.isActive) ?? assignment.data?.[0];
   const root = user?.role === UserRole.FACILITY_MANAGER ? "/facility-manager" : "/staff";
@@ -49,7 +50,7 @@ function FacilityShellContent({
     { label: FLOW.overview, href: `${root}/dashboard?view=overview`, icon: LayoutGrid },
     {
       label: isManager ? FLOW.managerDispatch : FLOW.staffTasks,
-      href: `${root}/dashboard`,
+      href: isManager ? `${root}/dashboard?view=check-in` : `${root}/dashboard?view=tasks`,
       icon: ClipboardCheck,
     },
     { label: RETURNS.managerNav, href: `${root}/returns`, icon: History },
@@ -111,8 +112,7 @@ function FacilityShellContent({
                   ((href.includes("view=overview") &&
                     pathname.endsWith("/dashboard") &&
                     overview) ||
-                    (href.endsWith("/dashboard") &&
-                      !href.includes("view=") &&
+                    ((href.includes("view=tasks") || href.includes("view=check-in")) &&
                       pathname.endsWith("/dashboard") &&
                       !overview) ||
                     pathname === href ||

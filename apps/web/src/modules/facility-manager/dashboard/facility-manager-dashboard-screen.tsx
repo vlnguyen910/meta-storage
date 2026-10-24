@@ -21,7 +21,7 @@ export function FacilityManagerDashboardScreen() {
 }
 function FacilityManagerDashboardContent() {
   const view = useSearchParams().get("view");
-  const activeTab = view === "overview" || view === "staff" ? view : "check-in";
+  const activeTab = view === "check-in" || view === "staff" ? view : "overview";
   const {
     currentFacility: assignment,
     activeAssignments,
