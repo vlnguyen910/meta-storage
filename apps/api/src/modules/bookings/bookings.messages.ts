@@ -61,6 +61,12 @@ export const BOOKING_SWAGGER_MESSAGES = {
   tasksSummary: "List bookings assigned to the signed-in account",
   tasksDescription:
     "Requires a session. Returns non-DRAFT bookings whose assignedStaffId matches the session account, optionally filtered by facilityId.",
+  customerListSummary: "List the signed-in customer's bookings",
+  customerListDescription:
+    "Requires a CUSTOMER session. Returns only bookings owned by the session userId, excludes DRAFT bookings, and uses a stable createdAt/id cursor. Contact email is not used for ownership.",
+  customerDetailSummary: "Get a booking owned by the signed-in customer",
+  customerDetailDescription:
+    "Requires a CUSTOMER session. Returns only the booking whose userId matches the session userId. Does not expose access token hashes, QR token hashes, provider details, or staff contact details.",
   detailSummary: "Get an operational booking",
   detailDescription:
     "Requires a session and staff/manager assignment at the booking facility, or global system admin/business operation manager access. DRAFT bookings are not returned by this endpoint.",

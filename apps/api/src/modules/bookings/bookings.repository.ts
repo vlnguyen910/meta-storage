@@ -3,6 +3,7 @@ import {
   type BookingClosure,
   type BookingListItem,
   type BookingTracking,
+  type CustomerBookingPageQuery,
   type EligibleUnit,
   type FacilityStaffMember,
   type PhysicalUnitAssignment,
@@ -27,6 +28,7 @@ import {
   inArray,
   isNotNull,
   isNull,
+  lt,
   lte,
   max,
   type NewBooking,
@@ -45,7 +47,12 @@ import {
 } from "@metastorage/database";
 import { AppError } from "../../common/errors/app-error";
 import { BOOKING_MESSAGES } from "./bookings.messages";
-import type { BookingCancellationAccess, BookingTransaction } from "./bookings.types";
+import { bookingCheckInSlotEnd, bookingCheckInSlotStart } from "./bookings.projection";
+import type {
+  BookingCancellationAccess,
+  BookingTransaction,
+  CustomerBookingQueryRow,
+} from "./bookings.types";
 import { CheckInSlotsRepository } from "./check-in-slots.repository";
 
 const assignedStaffUsers = aliasedTable(users, "assigned_staff_users");
@@ -75,8 +82,136 @@ export function qrTokenForBooking(bookingId: string) {
 
 export { createBookingTrackingLink } from "@metastorage/shared/booking-access";
 
+function toCustomerBooking(row: CustomerBookingQueryRow) {
+  return {
+    id: row.booking.id,
+    bookingCode: row.booking.bookingCode,
+    status: row.booking.status as "CONFIRMED" | "CANCELLED" | "NO_SHOW" | "CHECKED_IN",
+    facility: row.facility,
+    unitType: row.unitType,
+    checkInSlotStart: row.checkInSlotStart.toISOString(),
+    checkInSlotEnd: row.checkInSlotEnd.toISOString(),
+    rentalEndAt: row.booking.rentalEndAt.toISOString(),
+    durationMonths: row.booking.requestedMonths,
+    pricing: {
+      monthlyRateSnapshot: row.booking.monthlyRateSnapshot,
+      rentalFeeAmount: row.booking.rentalFeeAmount,
+      depositAmount: row.booking.depositAmount,
+      totalAmount: row.booking.totalAmount,
+      currency: "VND" as const,
+    },
+    paymentStatus: row.latestPayment?.status ?? ("NOT_STARTED" as const),
+    paidAt: row.latestPayment?.paidAt?.toISOString() ?? null,
+    assignedUnit:
+      row.assignedUnit?.code && row.assignedUnit.assignedAt
+        ? { code: row.assignedUnit.code, assignedAt: row.assignedUnit.assignedAt.toISOString() }
+        : null,
+    createdAt: row.booking.createdAt.toISOString(),
+    cursorCreatedAt: row.cursorCreatedAt,
+  };
+}
+
 export class BookingsRepository {
   constructor(private readonly db: Database) {}
+
+  private customerBookingQuery() {
+    const latestPayments = this.db
+      .selectDistinctOn([payments.bookingId], {
+        bookingId: payments.bookingId,
+        status: payments.status,
+        paidAt: payments.paidAt,
+      })
+      .from(payments)
+      .where(isNotNull(payments.bookingId))
+      .orderBy(payments.bookingId, desc(payments.createdAt), desc(payments.id))
+      .as("latest_customer_booking_payments");
+    const currentAssignments = this.db
+      .selectDistinctOn([unitAssignments.bookingId], {
+        bookingId: unitAssignments.bookingId,
+        physicalUnitId: unitAssignments.physicalUnitId,
+        assignedAt: unitAssignments.assignedAt,
+      })
+      .from(unitAssignments)
+      .where(eq(unitAssignments.status, "ACTIVE"))
+      .orderBy(
+        unitAssignments.bookingId,
+        desc(unitAssignments.assignedAt),
+        desc(unitAssignments.id),
+      )
+      .as("current_customer_booking_assignments");
+
+    return this.db
+      .select({
+        booking: {
+          id: bookings.id,
+          bookingCode: bookings.bookingCode,
+          status: bookings.status,
+          rentalEndAt: bookings.rentalEndAt,
+          requestedMonths: bookings.requestedMonths,
+          monthlyRateSnapshot: bookings.monthlyRateSnapshot,
+          rentalFeeAmount: bookings.rentalFeeAmount,
+          depositAmount: bookings.depositAmount,
+          totalAmount: bookings.totalAmount,
+          createdAt: bookings.createdAt,
+        },
+        facility: {
+          id: facilities.id,
+          name: facilities.name,
+          address: facilities.address,
+        },
+        unitType: {
+          id: unitTypes.id,
+          name: unitTypes.name,
+          sizeLabel: unitTypes.sizeLabel,
+        },
+        checkInSlotStart: bookingCheckInSlotStart,
+        checkInSlotEnd: bookingCheckInSlotEnd,
+        latestPayment: {
+          status: latestPayments.status,
+          paidAt: latestPayments.paidAt,
+        },
+        assignedUnit: {
+          code: storageUnits.code,
+          assignedAt: currentAssignments.assignedAt,
+        },
+        cursorCreatedAt: sql<string>`to_char(${bookings.createdAt} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`,
+      })
+      .from(bookings)
+      .innerJoin(facilities, eq(facilities.id, bookings.facilityId))
+      .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
+      .innerJoin(checkInSlots, eq(checkInSlots.id, bookings.checkInSlotId))
+      .leftJoin(latestPayments, eq(latestPayments.bookingId, bookings.id))
+      .leftJoin(currentAssignments, eq(currentAssignments.bookingId, bookings.id))
+      .leftJoin(storageUnits, eq(storageUnits.id, currentAssignments.physicalUnitId));
+  }
+
+  listCustomerBookings(userId: string, query: CustomerBookingPageQuery) {
+    const cursorDate = query.afterCreatedAt ? sql`${query.afterCreatedAt}::timestamptz` : undefined;
+    return this.customerBookingQuery()
+      .where(
+        and(
+          eq(bookings.userId, userId),
+          ne(bookings.status, "DRAFT"),
+          query.status ? eq(bookings.status, query.status) : undefined,
+          cursorDate && query.afterId
+            ? or(
+                lt(bookings.createdAt, cursorDate),
+                and(eq(bookings.createdAt, cursorDate), lt(bookings.id, query.afterId)),
+              )
+            : undefined,
+        ),
+      )
+      .orderBy(desc(bookings.createdAt), desc(bookings.id))
+      .limit(query.limit + 1)
+      .then((rows) => rows.map(toCustomerBooking));
+  }
+
+  async findCustomerBookingById(bookingId: string, userId: string) {
+    const [row] = await this.customerBookingQuery().where(
+      and(eq(bookings.id, bookingId), eq(bookings.userId, userId), ne(bookings.status, "DRAFT")),
+    );
+    return row ? toCustomerBooking(row) : null;
+  }
 
   async bookingEmailStatus(bookingId: string) {
     const [row] = await this.db

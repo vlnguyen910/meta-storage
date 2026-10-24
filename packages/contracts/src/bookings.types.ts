@@ -1,3 +1,5 @@
+import type { PaymentStatus } from "./payments";
+
 export type CheckInSlotOption = {
   id: string;
   name: string;
@@ -61,3 +63,30 @@ export interface BookingTracking {
     depositForfeitedAmount: string;
   };
 }
+export type CustomerBooking = {
+  id: string;
+  bookingCode: string | null;
+  status: "CONFIRMED" | "CANCELLED" | "NO_SHOW" | "CHECKED_IN";
+  facility: { id: string; name: string; address: string };
+  unitType: { id: string; name: string; sizeLabel: string };
+  checkInSlotStart: string;
+  checkInSlotEnd: string;
+  rentalEndAt: string;
+  durationMonths: number;
+  pricing: BookingDraftPricing;
+  paymentStatus: PaymentStatus | "NOT_STARTED";
+  paidAt: string | null;
+  assignedUnit: { code: string; assignedAt: string } | null;
+  handoverStage: "WAITING_CUSTOMER" | "INSPECTING" | "READY_HANDOVER" | "HANDED_OVER";
+  createdAt: string;
+};
+
+export type CustomerBookingPageCursor = {
+  afterCreatedAt: string;
+  afterId: string;
+};
+
+export type CustomerBookingPage = {
+  items: CustomerBooking[];
+  nextCursor: CustomerBookingPageCursor | null;
+};

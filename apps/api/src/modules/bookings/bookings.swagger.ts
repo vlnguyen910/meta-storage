@@ -6,6 +6,7 @@ import {
   BookingListItemSchema,
   type BookingTracking,
   type CheckInSlotOption,
+  type CustomerBooking,
   EligibleUnitSchema,
   PhysicalUnitAssignmentSchema,
 } from "@metastorage/contracts";
@@ -205,6 +206,63 @@ const objectSchema = (properties: Record<string, object>) => ({
   required: Object.keys(properties),
   properties,
 });
+const customerBookingExample = {
+  id: bookingId,
+  bookingCode: "BK-EXAMPLE",
+  status: "CONFIRMED",
+  facility: { id: facilityId, name: "HCM-01", address: "Ho Chi Minh City" },
+  unitType: { id: unitTypeId, name: "Small storage", sizeLabel: "S" },
+  checkInSlotStart: draft.checkInAt,
+  checkInSlotEnd: "2031-02-01T05:00:00.000Z",
+  rentalEndAt: draft.rentalEndAt,
+  durationMonths: 2,
+  pricing: draft.pricing,
+  paymentStatus: "SUCCEEDED",
+  paidAt: timestamp,
+  assignedUnit: null,
+  handoverStage: "WAITING_CUSTOMER",
+  createdAt: timestamp,
+} satisfies CustomerBooking;
+const customerPricingSchema = objectSchema({
+  monthlyRateSnapshot: text,
+  rentalFeeAmount: text,
+  depositAmount: text,
+  totalAmount: text,
+  currency: { type: "string", enum: ["VND"] },
+});
+const customerBookingSchema = objectSchema({
+  id: uuid,
+  bookingCode: { type: "string", nullable: true },
+  status: { type: "string", enum: ["CONFIRMED", "CANCELLED", "NO_SHOW", "CHECKED_IN"] },
+  facility: objectSchema({ id: uuid, name: text, address: text }),
+  unitType: objectSchema({ id: uuid, name: text, sizeLabel: text }),
+  checkInSlotStart: dateTime,
+  checkInSlotEnd: dateTime,
+  rentalEndAt: dateTime,
+  durationMonths: { type: "integer" },
+  pricing: customerPricingSchema,
+  paymentStatus: {
+    type: "string",
+    enum: ["NOT_STARTED", "PENDING", "SUCCEEDED", "FAILED", "REFUND_PENDING", "REFUNDED"],
+  },
+  paidAt: { type: "string", format: "date-time", nullable: true },
+  assignedUnit: {
+    ...objectSchema({ code: text, assignedAt: dateTime }),
+    nullable: true,
+  },
+  handoverStage: {
+    type: "string",
+    enum: ["WAITING_CUSTOMER", "INSPECTING", "READY_HANDOVER", "HANDED_OVER"],
+  },
+  createdAt: dateTime,
+});
+const customerBookingPageSchema = objectSchema({
+  items: { type: "array", items: customerBookingSchema },
+  nextCursor: {
+    ...objectSchema({ afterCreatedAt: dateTime, afterId: uuid }),
+    nullable: true,
+  },
+});
 const trackingSchema = objectSchema({
   bookingCode: text,
   status: { type: "string", enum: ["CONFIRMED", "CHECKED_IN", "CANCELLED", "NO_SHOW"] },
@@ -335,6 +393,24 @@ const operations = {
     summary: m.detailSummary,
     description: m.detailDescription,
     response: { ...errors, 200: success(bookingSchema, booking) },
+  },
+  customerList: {
+    summary: m.customerListSummary,
+    description: m.customerListDescription,
+    security: [{ sessionAuth: [] }],
+    response: {
+      ...errors,
+      200: success(customerBookingPageSchema, {
+        items: [customerBookingExample],
+        nextCursor: null,
+      }),
+    },
+  },
+  customerDetail: {
+    summary: m.customerDetailSummary,
+    description: m.customerDetailDescription,
+    security: [{ sessionAuth: [] }],
+    response: { ...errors, 200: success(customerBookingSchema, customerBookingExample) },
   },
   units: {
     summary: m.unitsSummary,

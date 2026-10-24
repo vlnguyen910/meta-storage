@@ -10,6 +10,9 @@ export type {
   BookingTracking,
   BookingTrackingSession,
   CheckInSlotOption,
+  CustomerBooking,
+  CustomerBookingPage,
+  CustomerBookingPageCursor,
 } from "./bookings.types";
 
 export const RequestGuestAccessLinkSchema = z.strictObject({
@@ -164,6 +167,19 @@ export const BookingListQuerySchema = z.object({
   status: z.enum(["CONFIRMED", "CANCELLED", "NO_SHOW", "CHECKED_IN"]).optional(),
 });
 export type BookingListQuery = z.infer<typeof BookingListQuerySchema>;
+
+export const CustomerBookingPageQuerySchema = z
+  .object({
+    status: z.enum(["CONFIRMED", "CANCELLED", "NO_SHOW", "CHECKED_IN"]).optional(),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+    afterCreatedAt: z.string().datetime({ offset: true }).optional(),
+    afterId: z.string().uuid().optional(),
+  })
+  .refine((query) => Boolean(query.afterCreatedAt) === Boolean(query.afterId), {
+    message: BOOKING_CONTRACT_MESSAGES.incompleteCustomerBookingCursor,
+    path: ["afterId"],
+  });
+export type CustomerBookingPageQuery = z.infer<typeof CustomerBookingPageQuerySchema>;
 
 export const AssignStaffBodySchema = AssignBookingStaffInputSchema;
 export type AssignStaffBody = z.infer<typeof AssignStaffBodySchema>;

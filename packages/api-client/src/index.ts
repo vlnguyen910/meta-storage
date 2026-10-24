@@ -26,6 +26,9 @@ import type {
   ConfirmReservationInput,
   CookieSession,
   CreateReturnRequest,
+  CustomerBooking,
+  CustomerBookingPage,
+  CustomerBookingPageQuery,
   CustomerSignUpInput,
   DashboardSummary,
   EligibleUnit,
@@ -349,6 +352,10 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
           .then(unwrap),
     },
     bookings: {
+      mine: (params: Partial<CustomerBookingPageQuery> = {}) =>
+        http.get<ApiEnvelope<CustomerBookingPage>>("/bookings/mine", { params }).then(unwrap),
+      getMine: (bookingId: string) =>
+        http.get<ApiEnvelope<CustomerBooking>>(`/bookings/mine/${bookingId}`).then(unwrap),
       requestGuestAccessLink: (input: RequestGuestAccessLink) =>
         http
           .post<ApiEnvelope<{ message: string }>>("/booking/access-link", input, {
