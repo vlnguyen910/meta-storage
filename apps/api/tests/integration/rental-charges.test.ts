@@ -265,7 +265,7 @@ describe.skipIf(!testUrl)("rental charges with isolated PostgreSQL", () => {
       currency: "VND",
       transferType: "in" as const,
       successful: true,
-      paidAt: new Date(Date.now() + 1000),
+      paidAt: new Date(),
       referenceCode: "test-reference",
       metadata: { fixture: true },
     };
