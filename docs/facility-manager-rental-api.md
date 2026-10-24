@@ -99,8 +99,15 @@ and generated DDL in one transaction. It retains the original type UUID for the
 first facility and clones types for other facilities, remapping bookings, drafts,
 physical units and capacity allocations. Legacy orphan or nonpositive-price types
 must be resolved explicitly before migration. Existing monetary/audit/PDF snapshots
-are preserved. Migrated/seeded ranges have null bounds until BOM configures them;
-new sale/renewal quotes for those ranges are unavailable during that interval.
+are preserved. Migrated ranges have null bounds until BOM configures them; new
+sale/renewal quotes for those ranges are unavailable during that interval.
+
+For testing/demo, `bun run db:seed` initializes the eight seed catalog ranges at
+80%–120% of their fictional monthly prices (e.g. UT-2M: 720,000–1,080,000 VND).
+It also fills unconfigured active seed ranges only when version is zero, there is
+no BOM actor and every linked local price fits those bounds. Configured, inactive
+or BOM-edited ranges and local FM prices remain unchanged on reruns. Production
+seeding remains disabled; these are demo values, not runtime pricing defaults.
 
 Frontend, mobile and API-client integration are outside this delivery. Existing
 management callers must adopt the FM write role, local versions, required ownership
@@ -124,3 +131,11 @@ partial or truncated results. The process index remains bounded, so this is not
 evidence that every caller is covered. The workflows above were checked directly.
 No production migration, frontend/browser verification, full monorepo suite or
 push was performed.
+
+Demo seed verification (2026-10-25): fresh seed creates eight configured ranges
+for 80 facility-owned types. Repeated seeding preserves BOM settings, local FM
+prices and booking monetary snapshots; it fills untouched null bounds and skips
+inactive, actor-edited or incompatible legacy ranges. Sixteen curl checks using
+seeded BOM/FM credentials and actual sessions/PostgreSQL passed for reading,
+creating and editing prices, boundary/version conflicts and role restrictions.
+Only disposable databases were seeded during this verification.
