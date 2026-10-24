@@ -107,9 +107,9 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Customer Support", 
     await db
       .insert(checkInSlots)
       .values({ id: slotId, name: "Support fixture", startTime: "09:00", endTime: "10:00" });
-    for (const [id, userId, facilityId] of [
-      [bookingId, f.ids.customer, f.facilityId],
-      [otherBookingId, f.ids.peerStaff, f.otherFacilityId],
+    for (const [id, userId, facilityId, unitTypeId] of [
+      [bookingId, f.ids.customer, f.facilityId, f.typeId],
+      [otherBookingId, f.ids.peerStaff, f.otherFacilityId, f.foreignTypeId],
     ] as const) {
       await db.insert(bookings).values({
         id,
@@ -118,7 +118,7 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Customer Support", 
         contactPhone: "0901234567",
         userId,
         facilityId,
-        unitTypeId: f.typeId,
+        unitTypeId,
         requestedMonths: 1,
         checkInDate: "2026-10-24",
         checkInSlotId: slotId,
