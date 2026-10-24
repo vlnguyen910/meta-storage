@@ -1070,10 +1070,13 @@ Use `bun run db:migrate`; invoking drizzle-kit migrate directly bypasses this da
 
 ## Customer Support approved design (2026-10-24, #164)
 
-**Status: APPROVED DESIGN; NOT YET IMPLEMENTED.** The owner approved the Support
-policy on 2026-10-24 and authorized the remaining documentation work. This section
-is the intended canonical model for #165/#166; it does not assert that these
-tables, enums, APIs or notification channels already exist.
+**Status: APPROVED DESIGN; #165 CUSTOMER FOUNDATION IMPLEMENTED.** The owner
+approved the Support policy on 2026-10-24. #165 introduces tickets, messages,
+attachments, audit, idempotency and an EMAIL receipt through the existing outbox.
+`support_work_reports`, operations transitions and IN_APP channels remain #166.
+Support timestamps use timestamptz(3) so JavaScript millisecond cursors preserve
+exact ordering. The outbox adds nullable `support_ticket_id` (RESTRICT FK) and
+`SUPPORT_CREATED`; existing booking/lifecycle delivery columns are preserved.
 
 Policy: [customer-support-policy.md](customer-support-policy.md), C01–C15 and
 R1–R5. Detailed design and implementation handoff:

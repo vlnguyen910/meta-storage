@@ -120,6 +120,7 @@ import type {
 import axios, { type AxiosError, type AxiosInstance } from "axios";
 import { createFlow3Client } from "./flow3";
 import { createFlow5Client } from "./flow5";
+import { createSupportClient } from "./support";
 import type { HttpClientOptions, RetryConfig } from "./types";
 
 export { createMobileWorkflowClient } from "./mobile-workflows";
@@ -195,6 +196,7 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
   return {
     ...createFlow3Client(http),
     ...createFlow5Client(http),
+    ...createSupportClient(http),
     http,
     notifications: {
       webSocketUrl: (origin: string) => {

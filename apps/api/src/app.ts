@@ -31,6 +31,7 @@ import { rentalsRoutes } from "./modules/rentals/rentals.routes";
 import { reportsRoutes } from "./modules/reports/reports.routes";
 import { returnsRoutes } from "./modules/returns/returns.routes";
 import { storageUnitsRoutes } from "./modules/storage-units/storage-units.routes";
+import { supportRoutes } from "./modules/support/support.routes";
 import { systemSettingsRoutes } from "./modules/system-settings/system-settings.routes";
 import { unitTypesRoutes } from "./modules/unit-types/unit-types.routes";
 import { usersRoutes } from "./modules/users/users.routes";
@@ -83,5 +84,6 @@ export function buildApp(): FastifyInstance {
   app.register(returnsRoutes, { prefix: "/api" });
   app.register(rentalLifecycleSettingsRoutes, { prefix: "/api" });
   app.register(systemSettingsRoutes, { prefix: "/api" });
+  app.register(supportRoutes, { prefix: "/api/support" });
   return app;
 }

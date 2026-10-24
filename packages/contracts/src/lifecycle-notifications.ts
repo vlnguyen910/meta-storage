@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const LifecycleNotificationEvent = [
+  "SUPPORT_CREATED",
   "PAYMENT_CONFIRMED",
   "BOOKING_CONFIRMED",
   "UPCOMING_EXPIRY",

@@ -26,6 +26,7 @@ export * from "./returns";
 export * from "./sessions";
 export * from "./storage-unit-maintenance-history";
 export * from "./storage-units";
+export * from "./support";
 export * from "./system-settings";
 export * from "./unit-assignments";
 export * from "./unit-types";
