@@ -19,7 +19,6 @@ import {
   eq,
   facilities,
   facilityAssignments,
-  facilityUnitTypes,
   handoverInspections,
   inArray,
   notificationOutbox,
@@ -55,6 +54,7 @@ import { bookingsRoutes } from "../../src/modules/bookings/bookings.routes";
 import { checkInsRoutes } from "../../src/modules/check-ins/check-ins.routes";
 import { inspectionsRoutes } from "../../src/modules/inspections/inspections.routes";
 import { paymentsRoutes } from "../../src/modules/payments/payments.routes";
+import { createTestUnitType, deleteTestUnitTypes } from "../fixtures/facility-catalog";
 import { assertTestDatabase } from "../fixtures/test-database";
 
 const testUrl = process.env.BOOKING_TEST_DATABASE_URL;
@@ -327,7 +327,8 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
       await tx
         .insert(facilities)
         .values({ id: ids.facility, code: ids.facility, name: "Payment test", address: "Test" });
-      await tx.insert(unitTypes).values({
+      await createTestUnitType(tx, {
+        facilityId: ids.facility,
         id: ids.type,
         code: ids.type,
         name: "Payment type",
@@ -337,7 +338,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
         heightM: 1,
         monthlyPrice: 1000000,
       });
-      await tx.insert(facilityUnitTypes).values({ facilityId: ids.facility, unitTypeId: ids.type });
+
       await tx
         .insert(facilityAssignments)
         .values({ userId: ids.staff, facilityId: ids.facility, role: "FACILITY_STAFF" });
@@ -413,9 +414,9 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     await redis?.quit();
     await db.delete(storageUnits).where(eq(storageUnits.id, ids.extraUnit));
     await db.delete(storageUnits).where(eq(storageUnits.id, ids.unit));
-    await db.delete(facilityUnitTypes).where(eq(facilityUnitTypes.facilityId, ids.facility));
+    await deleteTestUnitTypes(db, eq(unitTypes.id, ids.type));
+
     await db.delete(facilities).where(eq(facilities.id, ids.facility));
-    await db.delete(unitTypes).where(eq(unitTypes.id, ids.type));
     await db.delete(checkInSlots).where(eq(checkInSlots.id, ids.slot));
     await db.delete(checkInSlots).where(eq(checkInSlots.id, ids.lastSlot));
     await db.delete(users).where(eq(users.id, ids.user));

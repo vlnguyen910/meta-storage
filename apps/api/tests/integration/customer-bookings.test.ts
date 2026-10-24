@@ -8,7 +8,6 @@ import {
   eq,
   facilities,
   facilityAssignments,
-  facilityUnitTypes,
   inArray,
   payments,
   queryClient,
@@ -23,6 +22,7 @@ import { auth } from "../../src/modules/auth/auth";
 import { authPlugin } from "../../src/modules/auth/auth.guard";
 import { authRoutes } from "../../src/modules/auth/auth.routes";
 import { bookingsRoutes } from "../../src/modules/bookings/bookings.routes";
+import { createTestUnitType, deleteTestUnitTypes } from "../fixtures/facility-catalog";
 import { assertTestDatabase } from "../fixtures/test-database";
 
 const target = process.env.MY_STORAGE_LOCAL_DATABASE_URL;
@@ -131,7 +131,8 @@ describe.skipIf(!target)("Customer booking reads against isolated PostgreSQL", (
         role: "FACILITY_STAFF",
         isActive: true,
       });
-      await tx.insert(unitTypes).values({
+      await createTestUnitType(tx, {
+        facilityId: ids.facility,
         id: ids.type,
         code: ids.type,
         name: "Customer booking fixture",
@@ -141,7 +142,7 @@ describe.skipIf(!target)("Customer booking reads against isolated PostgreSQL", (
         heightM: 1,
         monthlyPrice: 900000,
       });
-      await tx.insert(facilityUnitTypes).values({ facilityId: ids.facility, unitTypeId: ids.type });
+
       await tx.insert(checkInSlots).values({
         id: ids.slot,
         name: "Customer booking fixture",
@@ -203,9 +204,9 @@ describe.skipIf(!target)("Customer booking reads against isolated PostgreSQL", (
       await db.transaction(async (tx) => {
         await tx.delete(payments).where(inArray(payments.bookingId, bookingIds));
         await tx.delete(bookings).where(inArray(bookings.id, bookingIds));
-        await tx.delete(facilityUnitTypes).where(eq(facilityUnitTypes.facilityId, ids.facility));
+        await deleteTestUnitTypes(tx, eq(unitTypes.id, ids.type));
+
         await tx.delete(facilities).where(eq(facilities.id, ids.facility));
-        await tx.delete(unitTypes).where(eq(unitTypes.id, ids.type));
         await tx.delete(checkInSlots).where(eq(checkInSlots.id, ids.slot));
         await tx.delete(users).where(inArray(users.id, [ids.owner, ids.other, ids.staff]));
       });

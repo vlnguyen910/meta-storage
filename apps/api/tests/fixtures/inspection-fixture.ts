@@ -11,7 +11,6 @@ import {
   eq,
   facilities,
   facilityAssignments,
-  facilityUnitTypes,
   handoverInspections,
   inArray,
   inspectionPhotos,
@@ -25,6 +24,7 @@ import {
   users,
 } from "@metastorage/database";
 import { hashPassword } from "better-auth/crypto";
+import { createTestUnitType, deleteTestUnitTypes } from "./facility-catalog";
 import { assertTestDatabase } from "./test-database";
 
 export const passingChecklist = HANDOVER_CHECKLIST_ITEMS.map((item) => ({
@@ -120,7 +120,8 @@ export async function createInspectionFixture(allowExistingLocal = false) {
       { userId: managerId, facilityId, role: "FACILITY_MANAGER" },
       { userId: outsiderId, facilityId, role: "FACILITY_STAFF" },
     ]);
-    await tx.insert(unitTypes).values({
+    await createTestUnitType(tx, {
+      facilityId: facilityId,
       id: unitTypeId,
       code: `TEST2-${suffix}`,
       name: "Kho rỗng",
@@ -130,7 +131,7 @@ export async function createInspectionFixture(allowExistingLocal = false) {
       heightM: 2,
       monthlyPrice: 1000000,
     });
-    await tx.insert(facilityUnitTypes).values({ facilityId, unitTypeId });
+
     const local = new Date(now + 7 * 3600000).toISOString();
     await tx.insert(checkInSlots).values({
       id: slotId,
@@ -233,10 +234,10 @@ export async function createInspectionFixture(allowExistingLocal = false) {
         await tx.delete(bookings).where(eq(bookings.id, bookingId));
         await tx.delete(reservationDrafts).where(eq(reservationDrafts.id, draftId));
         await tx.delete(storageUnits).where(eq(storageUnits.id, unitId));
-        await tx.delete(facilityUnitTypes).where(eq(facilityUnitTypes.facilityId, facilityId));
+
         await tx.delete(facilityAssignments).where(eq(facilityAssignments.facilityId, facilityId));
+        await deleteTestUnitTypes(tx, eq(unitTypes.id, unitTypeId));
         await tx.delete(facilities).where(eq(facilities.id, facilityId));
-        await tx.delete(unitTypes).where(eq(unitTypes.id, unitTypeId));
         await tx.delete(checkInSlots).where(eq(checkInSlots.id, slotId));
         await tx.delete(users).where(inArray(users.id, [userId, managerId, outsiderId]));
       });

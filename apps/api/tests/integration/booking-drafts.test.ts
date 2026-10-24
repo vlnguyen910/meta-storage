@@ -9,7 +9,6 @@ import {
   eq,
   facilities,
   facilityOperatingHours,
-  facilityUnitTypes,
   payments,
   reservationDrafts,
   storageUnits,
@@ -20,6 +19,7 @@ import Fastify from "fastify";
 import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
 import { setupErrorHandler } from "../../src/common/errors/error-handler";
 import { bookingsRoutes } from "../../src/modules/bookings/bookings.routes";
+import { createTestUnitType, deleteTestUnitTypes } from "../fixtures/facility-catalog";
 
 // Requires a migrated isolated DB, with DATABASE_URL and BOOKING_TEST_DATABASE_URL set to the same URL.
 const testUrl = process.env.BOOKING_TEST_DATABASE_URL;
@@ -54,7 +54,8 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
       await tx
         .insert(facilities)
         .values({ id: ids.facility, code: ids.facility, name: "Draft test", address: "Test" });
-      await tx.insert(unitTypes).values({
+      await createTestUnitType(tx, {
+        facilityId: ids.facility,
         id: ids.type,
         code: ids.type,
         name: "Draft test",
@@ -64,7 +65,7 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
         heightM: 1,
         monthlyPrice: 1000000,
       });
-      await tx.insert(facilityUnitTypes).values({ facilityId: ids.facility, unitTypeId: ids.type });
+
       await tx
         .insert(storageUnits)
         .values({ id: ids.unit, code: ids.unit, facilityId: ids.facility, unitTypeId: ids.type });
@@ -88,9 +89,9 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
       .set({ isActive: true, monthlyPrice: 1000000 })
       .where(eq(unitTypes.id, ids.type));
     await db
-      .update(facilityUnitTypes)
+      .update(unitTypes)
       .set({ isActive: true })
-      .where(eq(facilityUnitTypes.facilityId, ids.facility));
+      .where(eq(unitTypes.facilityId, ids.facility));
     await db.update(storageUnits).set({ status: "AVAILABLE" }).where(eq(storageUnits.id, ids.unit));
     await db.delete(capacityAllocations).where(eq(capacityAllocations.facilityId, ids.facility));
     await db
@@ -107,9 +108,9 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
       await tx.delete(bookings).where(eq(bookings.facilityId, ids.facility));
       await tx.delete(capacityAllocations).where(eq(capacityAllocations.facilityId, ids.facility));
       await tx.delete(storageUnits).where(eq(storageUnits.id, ids.unit));
-      await tx.delete(facilityUnitTypes).where(eq(facilityUnitTypes.facilityId, ids.facility));
+      await deleteTestUnitTypes(tx, eq(unitTypes.id, ids.type));
+
       await tx.delete(facilities).where(eq(facilities.id, ids.facility));
-      await tx.delete(unitTypes).where(eq(unitTypes.id, ids.type));
       await tx.delete(checkInSlots).where(eq(checkInSlots.id, ids.slot));
       await tx.delete(checkInSlots).where(eq(checkInSlots.id, ids.extraSlot));
     });
@@ -192,9 +193,9 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
     expect((await createDraft()).statusCode).toBe(404);
     await db.update(unitTypes).set({ isActive: true }).where(eq(unitTypes.id, ids.type));
     await db
-      .update(facilityUnitTypes)
+      .update(unitTypes)
       .set({ isActive: false })
-      .where(eq(facilityUnitTypes.facilityId, ids.facility));
+      .where(eq(unitTypes.facilityId, ids.facility));
     expect((await createDraft()).statusCode).toBe(404);
     expect((await createDraft({ ...input, unitTypeId: randomUUID() })).statusCode).toBe(404);
   });

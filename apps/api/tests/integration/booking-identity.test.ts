@@ -8,7 +8,6 @@ import {
   db,
   eq,
   facilities,
-  facilityUnitTypes,
   inArray,
   notificationOutbox,
   or,
@@ -29,6 +28,7 @@ import { BookingsRepository } from "../../src/modules/bookings/bookings.reposito
 import { bookingsRoutes } from "../../src/modules/bookings/bookings.routes";
 import { PaymentsRepository } from "../../src/modules/payments/payments.repository";
 import { rentalsRoutes } from "../../src/modules/rentals/rentals.routes";
+import { createTestUnitType, deleteTestUnitTypes } from "../fixtures/facility-catalog";
 
 const testUrl = process.env.BOOKING_TEST_DATABASE_URL;
 const ids = {
@@ -108,7 +108,8 @@ describe.skipIf(!testUrl)("Booking contact and optional account ownership with P
       await tx
         .insert(facilities)
         .values({ id: ids.facility, code: ids.facility, name: "Identity test", address: "Test" });
-      await tx.insert(unitTypes).values({
+      await createTestUnitType(tx, {
+        facilityId: ids.facility,
         id: ids.type,
         code: ids.type,
         name: "Identity test",
@@ -118,7 +119,7 @@ describe.skipIf(!testUrl)("Booking contact and optional account ownership with P
         heightM: 1,
         monthlyPrice: 1000000,
       });
-      await tx.insert(facilityUnitTypes).values({ facilityId: ids.facility, unitTypeId: ids.type });
+
       await tx
         .insert(storageUnits)
         .values({ id: ids.unit, code: ids.unit, facilityId: ids.facility, unitTypeId: ids.type });
@@ -165,9 +166,9 @@ describe.skipIf(!testUrl)("Booking contact and optional account ownership with P
       await tx.delete(reservationDrafts).where(eq(reservationDrafts.facilityId, ids.facility));
       await tx.delete(capacityAllocations).where(eq(capacityAllocations.facilityId, ids.facility));
       await tx.delete(storageUnits).where(eq(storageUnits.id, ids.unit));
-      await tx.delete(facilityUnitTypes).where(eq(facilityUnitTypes.facilityId, ids.facility));
+      await deleteTestUnitTypes(tx, eq(unitTypes.id, ids.type));
+
       await tx.delete(facilities).where(eq(facilities.id, ids.facility));
-      await tx.delete(unitTypes).where(eq(unitTypes.id, ids.type));
       await tx.delete(checkInSlots).where(eq(checkInSlots.id, ids.slot));
       await tx.delete(users).where(inArray(users.id, [ids.user, ids.other]));
     });

@@ -15,6 +15,7 @@ import {
   facilityOperatingHours,
   facilityReturnCalendars,
   payments,
+  rentalPriceRanges,
   rentals,
   returnChecklistVersions,
   returnInspections,
@@ -406,7 +407,7 @@ async function seedDemoData(seedNow: Date) {
     const typeRows = await tx
       .select()
       .from(unitTypes)
-      .where(inArray(unitTypes.id, Object.values(SEED_IDS.unitTypes)))
+      .where(inArray(unitTypes.facilityId, Object.values(SEED_IDS.facilities)))
       .orderBy(asc(unitTypes.code));
     const slots = await tx
       .select()
@@ -453,8 +454,9 @@ async function seedDemoData(seedNow: Date) {
           })
           .onConflictDoNothing();
       }
-      for (const type of typeRows) {
-        const originalId = `71000000-0000-4000-8000-${facility.id.slice(-6)}${type.id.slice(-6)}`;
+      const facilityTypes = typeRows.filter((type) => type.facilityId === facility.id);
+      for (const type of facilityTypes) {
+        const originalId = `71000000-0000-4000-8000-${facility.id.slice(-6)}${type.priceRangeId.slice(-6)}`;
         await tx
           .update(storageUnits)
           .set({ floor: "1", locationDescription: `Dãy A · ${type.sizeLabel} · Ô 01` })
@@ -463,7 +465,10 @@ async function seedDemoData(seedNow: Date) {
           await tx
             .insert(storageUnits)
             .values({
-              id: id("72000000", (facilityIndex + 1) * 1000 + typeRows.indexOf(type) * 10 + serial),
+              id: id(
+                "72000000",
+                (facilityIndex + 1) * 1000 + facilityTypes.indexOf(type) * 10 + serial,
+              ),
               facilityId: facility.id,
               unitTypeId: type.id,
               code: `${facility.code}-${type.code}-${String(serial).padStart(3, "0")}`,
@@ -477,7 +482,7 @@ async function seedDemoData(seedNow: Date) {
 
       for (let scenario = 0; scenario < 3; scenario++) {
         const ordinal = facilityIndex * 3 + scenario + 1;
-        const type = typeRows[(facilityIndex + scenario) % typeRows.length];
+        const type = facilityTypes[(facilityIndex + scenario) % facilityTypes.length];
         const customer = customers[facilityIndex % customers.length];
         const slot = slots[scenario % slots.length];
         if (!type || !customer || !slot) throw new Error("Incomplete demo catalog");
@@ -891,7 +896,10 @@ async function seedFlow2Demo(seedNow: Date) {
       "UT-AC-4M",
     ];
     for (const [index, typeCode] of codes.entries()) {
-      const [type] = await tx.select().from(unitTypes).where(eq(unitTypes.code, typeCode));
+      const [type] = await tx
+        .select()
+        .from(unitTypes)
+        .where(and(eq(unitTypes.code, typeCode), eq(unitTypes.facilityId, facility.id)));
       if (!type) throw new Error(`Missing active unit type ${typeCode}`);
       const code = `HCM-01-${String(index + 9).padStart(3, "0")}`;
       await tx
@@ -912,7 +920,11 @@ async function seedFlow2Demo(seedNow: Date) {
 
 async function seedFlow3Rentals(seedNow: Date) {
   const [facility] = await db.select().from(facilities).where(eq(facilities.code, "HCM-01"));
-  const [type] = await db.select().from(unitTypes).where(eq(unitTypes.code, "UT-2M"));
+  if (!facility) throw new Error("HCM-01 is required for return seed data");
+  const [type] = await db
+    .select()
+    .from(unitTypes)
+    .where(and(eq(unitTypes.code, "UT-2M"), eq(unitTypes.facilityId, facility.id)));
   const [customer, staff, manager, , admin] = SEED_USERS;
   if (!facility || !type || !customer || !staff || !manager || !admin)
     throw new Error("Flow 3 fixture prerequisites are missing");
@@ -1474,48 +1486,40 @@ async function seed() {
   ];
 
   const typeMap = new Map<string, string>();
-  for (const unitType of unitTypesData) {
-    const [row] = await queryClient`
-      INSERT INTO unit_types (id, code, name, size_label, length_m, width_m, height_m, monthly_price, is_active)
-      VALUES (
-        ${unitType.id}, ${unitType.code}, ${unitType.name}, ${unitType.sizeLabel},
-        ${unitType.lengthM}, ${unitType.widthM}, ${unitType.heightM}, ${unitType.monthlyPrice}, true
-      )
-      ON CONFLICT (id) DO UPDATE SET
-        name = EXCLUDED.name,
-        size_label = EXCLUDED.size_label,
-        length_m = EXCLUDED.length_m,
-        width_m = EXCLUDED.width_m,
-        height_m = EXCLUDED.height_m,
-        monthly_price = EXCLUDED.monthly_price,
-        is_active = EXCLUDED.is_active
-      RETURNING id, code
-    `;
-    if (!row) throw new Error(`Unit type ${unitType.code} was not created`);
-    typeMap.set(row.code, row.id);
-  }
-
-  for (const facility of facilities) {
-    for (const unitType of unitTypesData) {
-      const unitTypeId = typeMap.get(unitType.code);
-      if (!unitTypeId) throw new Error(`Unit type ${unitType.code} was not created`);
-      await queryClient`
-        INSERT INTO facility_unit_types (facility_id, unit_type_id, is_active)
-        VALUES (${facility.id}, ${unitTypeId}, true)
-        ON CONFLICT (facility_id, unit_type_id) DO UPDATE SET
-          is_active = true,
-          updated_at = ${seedNow.toISOString()}
-      `;
-
-      // Every type is visible and bookable in the public catalog.
-      await queryClient`
-        INSERT INTO storage_units (id, facility_id, unit_type_id, code, status)
-        VALUES (${`71000000-0000-4000-8000-${facility.id.slice(-6)}${unitType.id.slice(-6)}`}, ${facility.id}, ${unitTypeId}, ${`${facility.code}-${unitType.code}-001`}, 'AVAILABLE')
-        ON CONFLICT (id) DO UPDATE SET
-          facility_id = EXCLUDED.facility_id,
-          unit_type_id = EXCLUDED.unit_type_id,
-          status = EXCLUDED.status
-      `;
+  for (const [index, unitType] of unitTypesData.entries()) {
+    await db
+      .insert(rentalPriceRanges)
+      .values({ id: id("61000000", index + 1), code: unitType.code, name: unitType.name })
+      .onConflictDoNothing();
+    const [range] = await db
+      .select({ id: rentalPriceRanges.id })
+      .from(rentalPriceRanges)
+      .where(eq(rentalPriceRanges.code, unitType.code));
+    if (!range) throw new Error(`Missing seed range ${unitType.code}`);
+    for (const [facilityIndex, facility] of facilities.entries()) {
+      const candidateId =
+        facilityIndex === 0 ? unitType.id : id("62000000", facilityIndex * 100 + index + 1);
+      await db
+        .insert(unitTypes)
+        .values({ ...unitType, id: candidateId, facilityId: facility.id, priceRangeId: range.id })
+        .onConflictDoNothing();
+      const [localType] = await db
+        .select({ id: unitTypes.id })
+        .from(unitTypes)
+        .where(and(eq(unitTypes.facilityId, facility.id), eq(unitTypes.code, unitType.code)));
+      if (!localType) throw new Error(`Missing seed type ${facility.code}/${unitType.code}`);
+      if (facilityIndex === 0) typeMap.set(unitType.code, localType.id);
+      // Inventory fixtures exist before BOM explicitly configures their sale ranges.
+      await db
+        .insert(storageUnits)
+        .values({
+          id: `71000000-0000-4000-8000-${facility.id.slice(-6)}${unitType.id.slice(-6)}`,
+          facilityId: facility.id,
+          unitTypeId: localType.id,
+          code: `${facility.code}-${unitType.code}-001`,
+          status: "AVAILABLE",
+        })
+        .onConflictDoNothing({ target: storageUnits.code });
     }
   }
 
