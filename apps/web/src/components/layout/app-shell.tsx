@@ -204,13 +204,13 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span className="ml-auto rounded-full bg-primary-soft px-3 py-2 text-xs font-bold text-primary max-[560px]:hidden">
             {roleLabels[role]}
           </span>
-        </header>
-        <main className="mx-auto max-w-[1440px] p-9 max-[800px]:p-[25px_18px] max-[560px]:px-3.5">
           {role === UserRole.STORAGE_CUSTOMER && !isMockMode && (
-            <div className="mb-5">
+            <div className="ml-auto sm:ml-0">
               <LifecycleInbox key={session.user.id} />
             </div>
           )}
+        </header>
+        <main className="mx-auto max-w-[1440px] p-9 max-[800px]:p-[25px_18px] max-[560px]:px-3.5">
           {children}
         </main>
       </div>

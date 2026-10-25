@@ -1174,6 +1174,7 @@ test("Staff realtime refreshes assigned tasks, ignores invalid recipients and de
     push = (data) => ws.send(data);
   });
   await page.goto("/staff/dashboard?view=tasks");
+  await page.getByRole("button", { name: "Mở thông báo", exact: true }).click();
   await expect(page.getByText("Đang nhận thông báo trực tiếp", { exact: true })).toBeVisible();
   await expect.poll(() => reads).toBeGreaterThan(0);
   const before = reads;
@@ -1219,6 +1220,7 @@ test("Staff realtime reconnects, refreshes missed tasks and closes when leaving 
     ws.onClose(() => closes++);
   });
   await page.goto("/staff/dashboard?view=tasks");
+  await page.getByRole("button", { name: "Mở thông báo", exact: true }).click();
   await expect(page.getByText("Đang nhận thông báo trực tiếp", { exact: true })).toBeVisible();
   showTask = true;
   disconnect();
@@ -1251,6 +1253,7 @@ for (const width of [1440, 390]) {
       reject = () => ws.close({ code: 1008, reason: "Session expired" });
     });
     await page.goto("/staff/dashboard?view=tasks");
+    await page.getByRole("button", { name: "Mở thông báo", exact: true }).click();
     await expect(page.getByText("Đang nhận thông báo trực tiếp", { exact: true })).toBeVisible();
     const initialConnections = connections;
     await page.evaluate(() => window.dispatchEvent(new Event("offline")));

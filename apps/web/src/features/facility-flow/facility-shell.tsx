@@ -22,6 +22,7 @@ import { facilityManagerRoutes, facilityStaffRoutes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { useMyFacilityAssignments } from "@/features/check-in/hooks";
 import { F5 } from "@/features/facility-management/management.messages";
+import { NOTIFICATIONS } from "@/features/notifications/notifications.messages";
 import { LifecycleInbox } from "@/features/returns/lifecycle-inbox";
 import { RETURNS_MESSAGES as RETURNS } from "@/features/returns/returns.messages";
 import { cn } from "@/lib/cn";
@@ -189,28 +190,32 @@ function FacilityShellContent({
             <span className="hidden text-xs text-[#404945] sm:inline">{FLOW.operations}</span>
             <ChevronRight size={14} />
             <span className="truncate text-xs font-medium">
-              {pathname.endsWith("/storage-units")
-                ? F5.inventory
-                : pathname.endsWith("/staff")
-                  ? F5.staffDirectory
-                  : pathname.endsWith("/tasks")
-                    ? F5.tasks
-                    : pathname.endsWith("/dashboard")
-                      ? staffView
-                        ? F5.staffDirectory
-                        : overview
-                          ? FLOW.overview
+              {pathname.endsWith("/notifications")
+                ? NOTIFICATIONS.title
+                : pathname.endsWith("/storage-units")
+                  ? F5.inventory
+                  : pathname.endsWith("/staff")
+                    ? F5.staffDirectory
+                    : pathname.endsWith("/tasks")
+                      ? F5.tasks
+                      : pathname.endsWith("/dashboard")
+                        ? staffView
+                          ? F5.staffDirectory
+                          : overview
+                            ? FLOW.overview
+                            : isManager
+                              ? FLOW.managerDispatch
+                              : FLOW.staffTasks
+                        : pathname.startsWith(`${root}/returns`)
+                          ? RETURNS.facilityReturnsCrumb
                           : isManager
-                            ? FLOW.managerDispatch
-                            : FLOW.staffTasks
-                      : pathname.startsWith(`${root}/returns`)
-                        ? RETURNS.facilityReturnsCrumb
-                        : isManager
-                          ? FLOW.monitor
-                          : FLOW.inspection}
+                            ? FLOW.monitor
+                            : FLOW.inspection}
             </span>
           </div>
           <div className="flex items-center gap-3">
+            {user?.role === UserRole.FACILITY_STAFF && <StaffTaskNotifications key={user.id} />}
+            {isManager && !isMockMode && <LifecycleInbox key={user?.id} />}
             <span className="grid size-8 place-items-center rounded-full bg-[#003b2f] text-white">
               <User size={18} />
             </span>
@@ -220,11 +225,7 @@ function FacilityShellContent({
             </div>
           </div>
         </header>
-        <main className="mx-auto max-w-[1504px] space-y-6 px-4 pb-8 sm:px-8">
-          {user?.role === UserRole.FACILITY_STAFF && <StaffTaskNotifications key={user.id} />}
-          {isManager && !isMockMode && <LifecycleInbox key={user?.id} />}
-          {children}
-        </main>
+        <main className="mx-auto max-w-[1504px] space-y-6 px-4 pb-8 sm:px-8">{children}</main>
       </div>
     </div>
   );

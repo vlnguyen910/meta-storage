@@ -1,67 +1,58 @@
 "use client";
 
-import { Bell, CheckCircle2, CircleAlert, LoaderCircle, WifiOff } from "lucide-react";
+import { Circle, LoaderCircle, WifiOff } from "lucide-react";
 import Link from "next/link";
+import { facilityStaffRoutes } from "@/config/routes";
+import { NotificationPopover } from "@/features/notifications/notification-popover";
+import { NOTIFICATIONS as N } from "@/features/notifications/notifications.messages";
+import { StaffNotificationList } from "@/features/notifications/staff-notification-list";
 import { STAFF_NOTIFICATIONS as M } from "./staff-task-notifications.messages";
 import { useStaffTaskNotifications } from "./use-staff-task-notifications";
 
 export function StaffTaskNotifications() {
   const { enabled, status, received, reconnect } = useStaffTaskNotifications();
   if (!enabled) return null;
-  const tone =
-    status === "connected"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-950"
-      : received
-        ? "border-sky-200 bg-sky-50 text-sky-950"
-        : status === "offline" || status === "unavailable"
-          ? "border-amber-200 bg-amber-50 text-amber-950"
-          : "border-slate-200 bg-white text-slate-900";
   const Icon =
-    status === "connected"
-      ? CheckCircle2
-      : status === "offline"
+    status === "connecting" || status === "reconnecting"
+      ? LoaderCircle
+      : status === "offline" || status === "unavailable"
         ? WifiOff
-        : status === "unavailable"
-          ? CircleAlert
-          : received
-            ? Bell
-            : LoaderCircle;
+        : Circle;
   return (
-    <section
-      aria-label={M.notifications}
-      className={`mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3.5 text-sm shadow-sm print:hidden ${tone}`}
-    >
-      <div className="flex min-w-0 items-center gap-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-white/80">
-          <Icon
-            size={18}
-            className={status === "connecting" || status === "reconnecting" ? "animate-spin" : ""}
-            aria-hidden="true"
-          />
-        </span>
-        <div className="min-w-0">
-          <strong className="block text-xs font-bold uppercase tracking-wide">
-            {M.notifications}
-          </strong>
-          <p className="m-0 mt-0.5 leading-5">{M[status]}</p>
-        </div>
-      </div>
-      <div className="flex flex-wrap items-center gap-3">
-        {received && (
-          <Link href="/staff/dashboard?view=tasks" className="underline underline-offset-4">
-            {M.viewTasks}
-          </Link>
-        )}
-        {(status === "unavailable" || status === "reconnecting") && (
-          <button
-            type="button"
-            onClick={reconnect}
-            className="min-h-11 rounded-lg border border-current bg-white/70 px-3 font-semibold transition-colors hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2"
+    <NotificationPopover href={facilityStaffRoutes.notifications} hasUpdates={received}>
+      {() => (
+        <>
+          <div className="mx-3 mb-2 rounded-xl bg-slate-50 px-3 py-3">
+            <p
+              role="status"
+              className="m-0 flex items-start gap-2 text-xs leading-5 text-slate-600"
+            >
+              <Icon
+                size={14}
+                aria-hidden="true"
+                className={`mt-0.5 shrink-0 ${status === "connected" ? "fill-emerald-600 text-emerald-600" : ""}`}
+              />
+              {M[status]}
+            </p>
+            {(status === "unavailable" || status === "reconnecting") && (
+              <button
+                type="button"
+                onClick={reconnect}
+                className="mt-2 min-h-11 rounded-lg bg-white px-3 text-xs font-bold text-primary ring-1 ring-slate-200 focus-visible:outline-2 focus-visible:outline-primary"
+              >
+                {M.retry}
+              </button>
+            )}
+          </div>
+          <StaffNotificationList compact />
+          <Link
+            href={`${facilityStaffRoutes.dashboard}?view=tasks`}
+            className="mx-3 mb-2 flex min-h-11 items-center justify-center rounded-xl bg-slate-50 px-3 text-xs font-bold text-primary hover:bg-primary-soft focus-visible:outline-2 focus-visible:outline-primary"
           >
-            {M.retry}
-          </button>
-        )}
-      </div>
-    </section>
+            {N.staffTasks}
+          </Link>
+        </>
+      )}
+    </NotificationPopover>
   );
 }

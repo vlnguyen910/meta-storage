@@ -4,4 +4,5 @@ export const facilityManagerRoutes = {
   storageUnits: "/facility-manager/storage-units",
   tasks: "/facility-manager/tasks",
   staff: "/facility-manager/staff",
+  notifications: "/facility-manager/notifications",
 } as const;
