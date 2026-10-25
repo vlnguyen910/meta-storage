@@ -38,9 +38,8 @@ export const userSeeds: MockUser[] = demoAccounts.map((account, index) => ({
   status: "ACTIVE",
   emailVerified: true,
   image: null,
-  passwordHash: null,
-  createdAt: new Date("2026-01-01T00:00:00Z"),
-  updatedAt: new Date("2026-01-01T00:00:00Z"),
+  createdAt: "2026-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-01T00:00:00.000Z",
   assignedFacilityIds:
     account.email === "multi-manager@metastorage.test"
       ? ["fac-hcm-central", "fac-hn-west"]

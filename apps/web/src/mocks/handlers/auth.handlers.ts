@@ -37,9 +37,8 @@ export function registerAuthHandlers(mock: MockAdapter): void {
       status: "ACTIVE",
       emailVerified: false,
       image: null,
-      passwordHash: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       assignedFacilityIds: [],
     });
     saveMockDatabase(db);

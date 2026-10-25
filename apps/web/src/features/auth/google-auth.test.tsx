@@ -53,12 +53,11 @@ const createMockUser = (overrides: Partial<SessionUser> = {}): SessionUser => ({
   emailVerified: true,
   image: null,
   phone: null,
-  passwordHash: null,
   role: UserRole.STORAGE_CUSTOMER,
   status: "ACTIVE",
   assignedFacilityId: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
   ...overrides,
 });
 
