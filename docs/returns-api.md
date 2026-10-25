@@ -1,3 +1,5 @@
+> Updated 2026-10-25: guest tracking and guest return-request endpoints are removed. Customer operations require the owning CUSTOMER account session; historical guest sections below are superseded.
+
 # Flow 3 return APIs — implementation record, 2026-10-20
 
 ## Guest return requests (2026-10-23)

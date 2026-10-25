@@ -1,3 +1,5 @@
+> Superseded 2026-10-25: guest access has been removed from the backend. All customer booking/rental access requires an account session. This document records the former design; frontend updates are outside the backend/database change.
+
 # Guest booking tracking — issue #112
 
 ## Phạm vi đã nối
