@@ -78,10 +78,7 @@ export function useReservationCheckout() {
   const availabilityQuery = useAvailability(facilityId);
   const selectedFacility = facilitiesQuery.data?.items.find((item) => item.id === facilityId);
   const selectedOption = availabilityQuery.data?.find((item) => item.unitTypeId === unitTypeId);
-  const paymentStatusQuery = useCheckoutPaymentStatus(
-    pendingPayment?.paymentId ?? null,
-    draft?.draftAccessToken,
-  );
+  const paymentStatusQuery = useCheckoutPaymentStatus(pendingPayment?.paymentId ?? null);
 
   useEffect(() => {
     const signature = searchParams.toString();
@@ -262,13 +259,8 @@ export function useReservationCheckout() {
       const result = await paymentMutation.mutateAsync({
         bookingId: draft.id,
         input: {
-          draftAccessToken: draft.draftAccessToken,
           idempotencyKey: paymentKey,
-          contact: {
-            fullName: values.fullName.trim(),
-            email: values.email.trim(),
-            phone: normalizePhone(values.phone),
-          },
+          contactPhone: normalizePhone(values.phone),
         },
       });
       saveCheckoutContext({ ...context, payment: result });

@@ -30,7 +30,7 @@ export function PaymentResultScreen() {
     setReady(true);
   }, [paymentId, bookingId]);
   const canRead = ready && Boolean(context || session);
-  const query = useCheckoutPaymentStatus(paymentId, context?.draft.draftAccessToken, canRead);
+  const query = useCheckoutPaymentStatus(paymentId, undefined, canRead);
   const confirmation =
     canRead && !query.isError && query.data?.status === "SUCCEEDED"
       ? query.data.confirmation

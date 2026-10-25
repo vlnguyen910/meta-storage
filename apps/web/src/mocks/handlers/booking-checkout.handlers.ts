@@ -47,8 +47,6 @@ export function registerBookingCheckoutHandlers(mock: MockAdapter) {
         checkInAt: starts,
         rentalEndAt: ends,
         durationMonths: input.durationMonths,
-        draftAccessToken:
-          crypto.randomUUID().replaceAll("-", "") + crypto.randomUUID().replaceAll("-", ""),
         status: "DRAFT",
         pricing: {
           monthlyRateSnapshot: String(unit.monthlyPrice),
@@ -66,8 +64,7 @@ export function registerBookingCheckoutHandlers(mock: MockAdapter) {
     const entries = load();
     const entry = entries.find((e) => e.draft.id === config.url?.split("/")[2]);
     const input = JSON.parse(config.data) as BookingPaymentInput;
-    if (!entry || entry.draft.draftAccessToken !== input.draftAccessToken)
-      return [404, errorBody(404, M.missing)];
+    if (!entry) return [404, errorBody(404, M.missing)];
     if (entry.payment)
       return input.idempotencyKey === entry.key
         ? [201, envelope(entry.payment)]
@@ -79,7 +76,12 @@ export function registerBookingCheckoutHandlers(mock: MockAdapter) {
     )
       return [409, errorBody(409, M.capacity)];
     const paymentId = crypto.randomUUID();
-    entry.contact = input.contact;
+    const user = currentUser(config, db);
+    entry.contact = {
+      fullName: user?.name ?? "Guest",
+      email: user?.email ?? "guest@example.com",
+      phone: input.contactPhone ?? user?.phone ?? "",
+    };
     entry.key = input.idempotencyKey;
     entry.payment = {
       bookingId: draft.id,
@@ -95,7 +97,7 @@ export function registerBookingCheckoutHandlers(mock: MockAdapter) {
     db.holds.push({
       draftId: draft.id,
       holdId: crypto.randomUUID(),
-      holdToken: draft.draftAccessToken,
+      holdToken: draft.id,
       unitTypeId: draft.unitTypeId,
       startsAt: draft.checkInAt,
       endsAt: draft.rentalEndAt,
@@ -109,11 +111,7 @@ export function registerBookingCheckoutHandlers(mock: MockAdapter) {
   mock.onGet(/\/payments\/[^/]+\/status$/).reply((config) => {
     const entries = load();
     const entry = entries.find((e) => e.payment?.paymentId === config.url?.split("/")[2]);
-    if (
-      !entry?.payment ||
-      config.headers?.["x-booking-access-token"] !== entry.draft.draftAccessToken
-    )
-      return [401, errorBody(401, M.missing)];
+    if (!entry?.payment) return [404, errorBody(404, M.missing)];
     if (entry.status) return [200, envelope(entry.status)];
     const db = getMockDatabase();
     const d = entry.draft;
