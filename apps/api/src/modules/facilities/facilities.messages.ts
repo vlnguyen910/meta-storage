@@ -18,7 +18,7 @@ export const FACILITY_MESSAGES = {
   failedToCreateFacility: "Failed to create facility",
   failedToUpsertAssignment: "Failed to upsert assignment",
   openWorkPreventsRevocation:
-    "Hãy giao lại booking và task đang mở trước khi thu hồi phân công nhân sự.",
+    "Hãy bàn giao hết công việc đang phụ trách trước khi thu hồi phân công nhân sự.",
   assignmentTargetUnavailable: "Tài khoản phải đang hoạt động và vai trò phải khớp với phân công.",
   facilityHasOpenBookings:
     "Không thể ngừng hoạt động cơ sở khi còn booking hoặc lượt giữ chỗ chưa kết thúc.",
