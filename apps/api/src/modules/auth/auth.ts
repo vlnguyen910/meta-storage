@@ -1,9 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { expo } from "@better-auth/expo";
+import { db } from "@metastorage/database";
 import { betterAuth } from "better-auth";
 import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/api";
 import { ResendMailer } from "../../common/adapters/mailer/resend.adapter";
 import { env } from "../../config/env";
+import { captureSuccessfulLogin } from "../user-history/login-capture";
+import { UserHistoryRepository } from "../user-history/user-history.repository";
 import { authDatabase } from "./auth.database";
 import { AUTH_MESSAGES } from "./auth.messages";
 
@@ -11,6 +14,7 @@ const verificationMailer = new ResendMailer({
   apiKey: env.RESEND_API_KEY,
   fromEmail: env.RESEND_FROM_EMAIL,
 });
+const historyRepository = new UserHistoryRepository(db);
 export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL,
@@ -59,6 +63,38 @@ export const auth = betterAuth({
     }),
   },
   databaseHooks: {
+    user: {
+      create: {
+        after: async (user, ctx) => {
+          if (!ctx) return;
+          try {
+            await historyRepository.recordActivity({
+              actorId: user.id,
+              action: "USER_REGISTERED",
+              entityType: "users",
+              entityId: user.id,
+            });
+          } catch {
+            ctx.context.logger.warn("User registration activity could not be stored");
+          }
+        },
+      },
+      update: {
+        after: async (user, ctx) => {
+          if (ctx?.path !== "/update-user") return;
+          try {
+            await historyRepository.recordActivity({
+              actorId: user.id,
+              action: "POST /api/auth/update-user",
+              entityType: "users",
+              entityId: user.id,
+            });
+          } catch {
+            ctx.context.logger.warn("User profile activity could not be stored");
+          }
+        },
+      },
+    },
     session: {
       create: {
         before: async (session, ctx) => {
@@ -69,6 +105,19 @@ export const auth = betterAuth({
               code: "ACCOUNT_DISABLED",
               message: AUTH_MESSAGES.accountDisabled,
             });
+        },
+        after: async (session, ctx) => {
+          if (!ctx) return;
+          await captureSuccessfulLogin(
+            historyRepository,
+            session,
+            {
+              path: ctx.path,
+              providerId: ctx.params?.id,
+              headers: ctx.headers ?? ctx.request?.headers ?? new Headers(),
+            },
+            () => ctx.context.logger.warn("Login history could not be stored"),
+          );
         },
       },
     },
