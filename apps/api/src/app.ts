@@ -34,6 +34,8 @@ import { storageUnitsRoutes } from "./modules/storage-units/storage-units.routes
 import { supportRoutes } from "./modules/support/support.routes";
 import { systemSettingsRoutes } from "./modules/system-settings/system-settings.routes";
 import { unitTypesRoutes } from "./modules/unit-types/unit-types.routes";
+import { userActivityPlugin } from "./modules/user-history/user-activity.plugin";
+import { userHistoryRoutes } from "./modules/user-history/user-history.routes";
 import { usersRoutes } from "./modules/users/users.routes";
 
 export function buildApp(): FastifyInstance {
@@ -57,6 +59,7 @@ export function buildApp(): FastifyInstance {
   app.register(redisPlugin);
   app.register(mailQueuePlugin);
   app.register(authPlugin);
+  app.register(userActivityPlugin);
   app.register(notificationsPlugin);
   app.register(facilityContextPlugin);
   app.register(swaggerPlugin);
@@ -64,6 +67,7 @@ export function buildApp(): FastifyInstance {
   // System & Feature Routes
   app.register(healthPlugin, { prefix: "/api" });
   app.register(usersRoutes, { prefix: "/api/users" });
+  app.register(userHistoryRoutes, { prefix: "/api/admin" });
   app.register(authRoutes, { prefix: "/api/auth" });
   app.register(facilitiesRoutes, { prefix: "/api/facilities" });
   app.register(unitTypesRoutes, { prefix: "/api/unit-types" });
