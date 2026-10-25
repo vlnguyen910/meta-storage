@@ -1,5 +1,56 @@
 # metastorage database diagram
 
+## System administrator and account lifecycle (#185, approved 2026-10-25)
+
+`users` keeps its existing single role per account. Add partial unique index
+users_single_system_admin_idx on role WHERE role = SYSTEM_ADMIN, allowing at most
+one bootstrap SA. Management create/role APIs accept only CUSTOMER, FACILITY_STAFF,
+FACILITY_MANAGER and BUSINESS_OPERATION_MANAGER. They cannot create/promote SA or
+lock/demote the bootstrap SA. If legacy data has multiple SA rows, the unique-index
+migration fails atomically for explicit resolution; never delete/disable users to
+make it pass. Existing bootstrap/seed is retained.
+
+Account role changes and locking serialize on the users row, then memberships.
+Block changes while directly assigned booking is CONFIRMED, manual task is
+ASSIGNED/IN_PROGRESS/AWAITING_APPROVAL, support ticket is OPEN/IN_PROGRESS, or return
+request is PENDING/CONFIRMED/INSPECTING/FAILED. Closed/completed historical work and
+created_by/assigned_by audit references do not block changes. The existing handoff
+flows remain authoritative; no automatic work transfer is introduced.
+
+After handoff, user change, ending active facility assignments and deletion of all
+Better Auth sessions commit together. Reactivation creates neither sessions nor
+assignments. Changing assignment keeps sessions but membership guards read current
+scope at the next request. SA/BOM keep assignment write permissions. Session
+creation holds a user share lock and rechecks ACTIVE inside its insert transaction,
+so a simultaneous lock/role change cannot leave a stale session behind.
+
+## User history (#185, confirmed scope 2026-10-25)
+
+`login_history` stores successful sign-ins only, across all roles: UUID id,
+nullable user_id FK users (SET NULL), unique session_id (correlation identifier,
+never a session token; no FK to transient sessions), occurred_at timestamptz,
+nullable bounded device, operating_system, browser and model descriptions.
+No failed sign-ins, logout, expiry, IP, credentials, tokens or raw request headers.
+Device/model descriptions are best-effort client metadata, not proof of identity.
+Indexes: (occurred_at,id), (user_id,occurred_at,id).
+
+`user_activity_logs` records accepted mutation API requests across all roles,
+excluding read/list/search/download operations: UUID id, nullable actor_id FK users
+(SET NULL), bounded action/entity_type, nullable entity_id when no safe UUID is
+available, nullable facility_id FK facilities (SET NULL), occurred_at timestamptz.
+Accepted idempotent/no-op writes may appear; this is not an exact state-change ledger.
+No arbitrary request payloads or financial/PII
+snapshots. Indexes: (occurred_at,id), (actor_id,occurred_at,id),
+(entity_type,entity_id,occurred_at,id), (facility_id,occurred_at,id).
+Existing domain audits remain authoritative for their detailed before/after facts.
+
+History starts at capture enablement; do not synthesize legacy records. Both logs
+are best-effort per the user's 2026-10-25 decision: log failure never fails or rolls
+back the main operation and emits an operational warning. SA-only read access
+follows #185. Retention/cleanup remain TBD; no automatic cleanup is authorized.
+User profile edits allow only own name/phone; administrators cannot edit another
+user's profile.
+
 ## Facility-owned catalog and BOM ranges (approved 2026-10-24)
 
 `rental_price_ranges`: UUID id, unique code, name, nullable integer-VND
