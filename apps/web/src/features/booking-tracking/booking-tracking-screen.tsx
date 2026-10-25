@@ -1,8 +1,22 @@
 "use client";
+
+import {
+  Calendar,
+  CalendarCheck,
+  Clock,
+  CreditCard,
+  LogOut,
+  Mail,
+  MapPin,
+  Phone,
+  ShieldCheck,
+  User,
+  Warehouse,
+} from "lucide-react";
 import Link from "next/link";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { Button, buttonClassName } from "@/components/ui/button";
-import { Card } from "@/components/ui/display";
+import { Card, StatusBadge } from "@/components/ui/display";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import { bookingLookupMessages } from "./booking-lookup.messages";
 import { BookingLookupForm } from "./booking-lookup-form";
@@ -10,14 +24,6 @@ import { GuestRentalRecords } from "./guest-rental-records";
 import { trackingMessages as m } from "./tracking.messages";
 import { useBookingTracking } from "./use-booking-tracking";
 
-function Detail({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0">
-      <dt className="mb-1 text-sm text-slate-600">{label}</dt>
-      <dd className="m-0 break-words font-semibold text-slate-900">{value}</dd>
-    </div>
-  );
-}
 export function BookingTrackingScreen() {
   const {
     booking,
@@ -31,6 +37,7 @@ export function BookingTrackingScreen() {
     expire,
     startLookup,
   } = useBookingTracking();
+
   if (lookup && !loading) {
     return (
       <PublicLayout>
@@ -38,21 +45,29 @@ export function BookingTrackingScreen() {
       </PublicLayout>
     );
   }
+
   return (
     <PublicLayout>
-      <main className="mx-auto w-[min(1120px,calc(100%_-_40px))] space-y-6 py-8 text-slate-900 sm:py-12">
-        <div>
-          <h1 className="mb-2 text-3xl font-bold">{m.title}</h1>
-          <p className="text-slate-600">{m.description}</p>
+      <main className="mx-auto w-[min(1240px,calc(100%_-_32px))] py-8 text-slate-900 sm:py-10">
+        <div className="mb-8">
+          <span className="mb-2 inline-block text-xs font-bold tracking-wider text-primary uppercase">
+            StoreX Tracking
+          </span>
+          <h1 className="mb-2 text-3xl font-bold tracking-tight text-ink sm:text-4xl">{m.title}</h1>
+          <p className="m-0 text-sm text-muted sm:text-base">{m.description}</p>
         </div>
+
         {loading ? (
-          <p role="status" className="rounded-xl bg-white p-6">
-            {m.loading}
-          </p>
+          <Card className="rounded-2xl border border-slate-200/80 p-8 text-center shadow-2xs">
+            <p role="status" className="m-0 text-base font-semibold text-muted">
+              {m.loading}
+            </p>
+          </Card>
         ) : null}
+
         {message ? (
-          <Card>
-            <p role="alert" className="mb-5 leading-relaxed">
+          <Card className="rounded-2xl border border-slate-200/80 p-6 shadow-2xs">
+            <p role="alert" className="mb-5 leading-relaxed text-ink">
               {message}
             </p>
             <div className="flex flex-wrap gap-3">
@@ -66,68 +81,223 @@ export function BookingTrackingScreen() {
             </div>
           </Card>
         ) : null}
+
         {booking ? (
-          <>
-            <Card>
-              <dl className="grid gap-6 sm:grid-cols-2">
-                <Detail label={m.bookingCode} value={booking.bookingCode} />
-                <Detail label={m.status} value={m.statuses[booking.status]} />
-                <Detail label={m.facility} value={booking.facility.name} />
-                <Detail label={m.address} value={booking.facility.address} />
-                <Detail
-                  label={m.unitType}
-                  value={`${booking.unitType.name} · ${booking.unitType.sizeLabel}`}
-                />
-                <Detail label={m.duration} value={m.months(booking.durationMonths)} />
-                <Detail
-                  label={m.checkIn}
-                  value={`${formatDateTime(booking.checkInSlotStart)} – ${formatDateTime(booking.checkInSlotEnd)}`}
-                />
-                <Detail label={m.rentalEnd} value={formatDateTime(booking.rentalEndAt)} />
-              </dl>
-            </Card>
-            <Card>
-              <h2 className="mb-5 text-xl font-bold">{m.contact}</h2>
-              <dl className="grid gap-6 sm:grid-cols-2">
-                <Detail label={m.fullName} value={booking.contact.fullName} />
-                <Detail label={m.email} value={booking.contact.email} />
-                <Detail label={m.phone} value={booking.contact.phone} />
-              </dl>
-            </Card>
-            <Card>
-              <h2 className="mb-5 text-xl font-bold">{m.payment}</h2>
-              <dl className="grid gap-6 sm:grid-cols-2">
-                <Detail label={m.status} value={m.statuses[booking.payment.status]} />
-                <Detail label={m.paidAt} value={formatDateTime(booking.payment.paidAt)} />
-                <Detail
-                  label={m.monthlyRate}
-                  value={formatCurrency(Number(booking.pricing.monthlyRateSnapshot))}
-                />
-                <Detail
-                  label={m.rentalFee}
-                  value={formatCurrency(Number(booking.pricing.rentalFeeAmount))}
-                />
-                <Detail
-                  label={m.deposit}
-                  value={formatCurrency(Number(booking.pricing.depositAmount))}
-                />
-                <Detail
-                  label={m.total}
-                  value={formatCurrency(Number(booking.pricing.totalAmount))}
-                />
-              </dl>
-            </Card>
-            <GuestRentalRecords code={booking.bookingCode} onExpired={expire} />
-            <p className="text-sm leading-relaxed text-slate-600">{m.privacy}</p>
-            {revokeError ? (
-              <p role="alert" className="text-red-700">
-                {revokeError}
-              </p>
-            ) : null}
-            <Button variant="outline" onClick={revoke} loading={revoking}>
-              {m.revoke}
-            </Button>
-          </>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.55fr_1fr] lg:items-start">
+            {/* LEFT COLUMN: Main Booking Info & Physical Units / Contracts */}
+            <div className="flex flex-col gap-6">
+              <Card className="rounded-2xl border border-slate-200/80 p-6 shadow-2xs">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <span className="inline-block rounded-md border border-slate-200/80 bg-slate-100 px-2.5 py-0.5 font-mono text-xs font-bold tracking-wider text-slate-700 uppercase">
+                      {booking.bookingCode}
+                    </span>
+                    <h2 className="mt-2 text-2xl font-bold text-ink">
+                      {booking.unitType.name} · {booking.unitType.sizeLabel}
+                    </h2>
+                    <p className="mt-1 flex items-center gap-1.5 text-sm text-muted">
+                      <MapPin size={15} className="shrink-0 text-slate-400" />
+                      <span>
+                        {booking.facility.name} · {booking.facility.address}
+                      </span>
+                    </p>
+                  </div>
+                  <StatusBadge value={booking.status} />
+                </div>
+
+                {/* 4 Metric Tiles */}
+                <div className="mt-6 grid grid-cols-1 gap-3.5 border-t border-slate-100 pt-6 sm:grid-cols-2">
+                  <div className="flex items-center gap-3.5 rounded-xl border border-slate-100 bg-slate-50/70 p-3.5">
+                    <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-emerald-100/70 text-primary">
+                      <Calendar size={18} />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="block text-[11px] font-semibold tracking-wider text-muted uppercase">
+                        {m.checkIn}
+                      </span>
+                      <strong className="block truncate text-xs font-bold text-ink sm:text-sm">
+                        {formatDateTime(booking.checkInSlotStart)} –{" "}
+                        {formatDateTime(booking.checkInSlotEnd)}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3.5 rounded-xl border border-slate-100 bg-slate-50/70 p-3.5">
+                    <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-emerald-100/70 text-primary">
+                      <Clock size={18} />
+                    </div>
+                    <div>
+                      <span className="block text-[11px] font-semibold tracking-wider text-muted uppercase">
+                        {m.duration}
+                      </span>
+                      <strong className="text-sm font-bold text-ink">
+                        {m.months(booking.durationMonths)}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3.5 rounded-xl border border-slate-100 bg-slate-50/70 p-3.5">
+                    <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-sky-100/70 text-sky-800">
+                      <CalendarCheck size={18} />
+                    </div>
+                    <div>
+                      <span className="block text-[11px] font-semibold tracking-wider text-muted uppercase">
+                        {m.rentalEnd}
+                      </span>
+                      <strong className="text-sm font-bold text-ink">
+                        {formatDateTime(booking.rentalEndAt)}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3.5 rounded-xl border border-slate-100 bg-slate-50/70 p-3.5">
+                    <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-emerald-100/70 text-emerald-800">
+                      <Warehouse size={18} />
+                    </div>
+                    <div>
+                      <span className="block text-[11px] font-semibold tracking-wider text-muted uppercase">
+                        {m.facility}
+                      </span>
+                      <strong className="block truncate text-sm font-bold text-ink">
+                        {booking.facility.name}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Storage Units & Contracts */}
+              <GuestRentalRecords code={booking.bookingCode} onExpired={expire} />
+            </div>
+
+            {/* RIGHT COLUMN: Payment, Contact & Session Actions */}
+            <div className="flex flex-col gap-6">
+              {/* Payment Summary Card */}
+              <Card className="rounded-2xl border border-slate-200/80 p-6 shadow-2xs">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="grid size-9 place-items-center rounded-lg bg-emerald-50 text-primary">
+                      <CreditCard size={18} />
+                    </div>
+                    <h2 className="text-lg font-bold text-ink">{m.payment}</h2>
+                  </div>
+                  <StatusBadge value={booking.payment.status} />
+                </div>
+
+                <div className="mt-4 flex items-center gap-1.5 text-xs text-muted">
+                  <Clock size={13} className="text-slate-400" />
+                  <span>
+                    {m.paidAt}: {formatDateTime(booking.payment.paidAt)}
+                  </span>
+                </div>
+
+                <div className="mt-4 space-y-2.5 border-t border-slate-100 pt-4 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted">{m.monthlyRate}</span>
+                    <span className="font-semibold text-ink">
+                      {formatCurrency(Number(booking.pricing.monthlyRateSnapshot))}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted">
+                      {m.rentalFee} ({m.months(booking.durationMonths)})
+                    </span>
+                    <span className="font-semibold text-ink">
+                      {formatCurrency(Number(booking.pricing.rentalFeeAmount))}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted">{m.deposit}</span>
+                    <span className="font-semibold text-ink">
+                      {formatCurrency(Number(booking.pricing.depositAmount))}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between border-t border-slate-200/80 pt-3">
+                    <strong className="text-base font-bold text-ink">{m.total}</strong>
+                    <strong className="text-xl font-bold text-primary">
+                      {formatCurrency(Number(booking.pricing.totalAmount))}
+                    </strong>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Contact Information Card */}
+              <Card className="rounded-2xl border border-slate-200/80 p-6 shadow-2xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="grid size-9 place-items-center rounded-lg bg-emerald-50 text-primary">
+                    <User size={18} />
+                  </div>
+                  <h2 className="text-lg font-bold text-ink">{m.contact}</h2>
+                </div>
+
+                <div className="mt-4 space-y-3 border-t border-slate-100 pt-4 text-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-slate-50 text-slate-400">
+                      <User size={15} />
+                    </div>
+                    <div>
+                      <span className="block text-[11px] font-semibold text-muted uppercase">
+                        {m.fullName}
+                      </span>
+                      <strong className="text-sm font-semibold text-ink">
+                        {booking.contact.fullName}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-slate-50 text-slate-400">
+                      <Mail size={15} />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="block text-[11px] font-semibold text-muted uppercase">
+                        {m.email}
+                      </span>
+                      <strong className="block truncate text-sm font-semibold text-ink">
+                        {booking.contact.email}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-slate-50 text-slate-400">
+                      <Phone size={15} />
+                    </div>
+                    <div>
+                      <span className="block text-[11px] font-semibold text-muted uppercase">
+                        {m.phone}
+                      </span>
+                      <strong className="text-sm font-semibold text-ink">
+                        {booking.contact.phone}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Session / Privacy Info & Revoke Action */}
+              <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-5 shadow-2xs">
+                <div className="flex items-start gap-2.5">
+                  <ShieldCheck size={18} className="mt-0.5 shrink-0 text-primary" />
+                  <p className="m-0 text-xs leading-relaxed text-muted">{m.privacy}</p>
+                </div>
+                {revokeError ? (
+                  <p role="alert" className="m-0 text-xs text-red-700">
+                    {revokeError}
+                  </p>
+                ) : null}
+                <Button
+                  variant="outline"
+                  onClick={revoke}
+                  loading={revoking}
+                  className="mt-2 w-full justify-center gap-2"
+                >
+                  <LogOut size={15} />
+                  <span>{m.revoke}</span>
+                </Button>
+              </div>
+            </div>
+          </div>
         ) : null}
       </main>
     </PublicLayout>
