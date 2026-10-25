@@ -265,6 +265,7 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Flow 5 management A
     });
     const makeBooking = (id: string, status: "CONFIRMED" | "CHECKED_IN") => ({
       id,
+      userId: f.ids.customer,
       facilityId: f.facilityId,
       unitTypeId: f.typeId,
       requestedMonths: 1,
