@@ -1,5 +1,6 @@
 import {
   CreateUserInputSchema,
+  UpdateOwnProfileInputSchema,
   UpdateUserRoleInputSchema,
   UpdateUserStatusInputSchema,
   UserIdParamsSchema,
@@ -7,8 +8,10 @@ import {
 } from "@metastorage/contracts";
 import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
+import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
 import { requireAuth, requireRole } from "../auth/auth.guard";
+import { AUTH_MESSAGES } from "../auth/auth.messages";
 import { AuthRepository } from "../auth/auth.repository";
 import { AuthService } from "../auth/auth.service";
 import { USER_MESSAGES } from "./users.messages";
@@ -20,6 +23,19 @@ export const usersRoutes: FastifyPluginAsync = async (fastify) => {
   const service = new UsersService(repository, new AuthService(new AuthRepository(fastify.db)));
 
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
+
+  typedApp.patch(
+    "/me/profile",
+    {
+      schema: { body: UpdateOwnProfileInputSchema },
+      preHandler: [requireAuth],
+    },
+    async (request, reply) => {
+      if (!request.user) throw new UnauthorizedError(AUTH_MESSAGES.loginRequired);
+      const user = await service.updateOwnProfile(request.user.id, request.body);
+      return reply.send(successResponse(user, USER_MESSAGES.profileUpdated));
+    },
+  );
 
   typedApp.post(
     "/",
@@ -60,8 +76,7 @@ export const usersRoutes: FastifyPluginAsync = async (fastify) => {
       preHandler: [requireRole("SYSTEM_ADMIN")],
     },
     async (request, reply) => {
-      const { limit, offset } = request.query;
-      const users = await service.listUsers(limit, offset);
+      const users = await service.listUsers(request.query);
       return reply.status(200).send(successResponse(users));
     },
   );

@@ -7,5 +7,8 @@ export const USER_MESSAGES = {
   userCreated: "Tài khoản nghiệp vụ đã được tạo",
   roleUpdated: "Vai trò đã được cập nhật",
   statusUpdated: "Trạng thái tài khoản đã được cập nhật",
+  profileUpdated: "Thông tin cá nhân đã được cập nhật",
   userNotFound: "User này không tồn tại",
+  openWorkPreventsChange:
+    "Hãy bàn giao hết công việc đang phụ trách trước khi khóa tài khoản hoặc đổi vai trò.",
 } as const;
