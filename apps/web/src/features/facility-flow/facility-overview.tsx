@@ -90,7 +90,7 @@ export function FacilityOverview({
         )}
         <Link
           className="mt-4 inline-block font-semibold text-[#003b2f] underline"
-          href={`${root}/dashboard`}
+          href={`${root}/dashboard?view=${staff ? "tasks" : "check-in"}`}
         >
           {M.open}
         </Link>

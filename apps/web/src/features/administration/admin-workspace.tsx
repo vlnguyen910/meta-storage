@@ -5,6 +5,7 @@ import { Download, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FieldShell, Input, Select } from "@/components/ui/form-controls";
+import { ListPagination } from "@/components/ui/list-pagination";
 import { LoadingState } from "@/components/ui/states";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { formatDateTime } from "@/lib/format";
@@ -49,13 +50,16 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
   const query = useAdminData();
   const actor = useAuthStore((state) => state.session?.user.name) ?? M.role;
   const [filters, setFilters] = useState(initialFilters);
+  const [pagination, setPagination] = useState({ section, page: 1 });
   const [editor, setEditor] = useState<AdminUser | null>(null);
   const [userDetail, setUserDetail] = useState<AdminUser | null>(null);
   const [loginDetail, setLoginDetail] = useState<AdminLogin | null>(null);
   const [auditDetail, setAuditDetail] = useState<AdminAudit | null>(null);
   const [notice, setNotice] = useState("");
-  const filter = (key: keyof AdminFilters, value: string) =>
+  const filter = (key: keyof AdminFilters, value: string) => {
     setFilters((current) => ({ ...current, [key]: value }));
+    setPagination({ section, page: 1 });
+  };
   if (query.isLoading) return <LoadingState label={M.loading} variant="table" />;
   if (!query.data || query.isError)
     return (
@@ -98,6 +102,12 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
       ? M.loginHeadings
       : M.auditHeadings;
   const count = accounts ? users.length : login ? logins.length : audits.length;
+  const pageSize = 10;
+  const page = Math.min(
+    pagination.section === section ? pagination.page : 1,
+    Math.max(1, Math.ceil(count / pageSize)),
+  );
+  const start = (page - 1) * pageSize;
   const exportRows = () => {
     if (accounts)
       downloadCsv(
@@ -260,7 +270,10 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
               <Button
                 variant="outline"
                 icon={<RotateCcw size={17} aria-hidden="true" />}
-                onClick={() => setFilters(initialFilters)}
+                onClick={() => {
+                  setFilters(initialFilters);
+                  setPagination({ section, page: 1 });
+                }}
               >
                 {M.reset}
               </Button>
@@ -285,7 +298,7 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
           ) : (
             <AdminTable title={M.titles[section]} headings={headings}>
               {accounts
-                ? users.map((user) => (
+                ? users.slice(start, start + pageSize).map((user) => (
                     <tr key={user.id}>
                       <td>
                         <strong>{user.name}</strong>
@@ -329,7 +342,7 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
                     </tr>
                   ))
                 : login
-                  ? logins.map((entry) => (
+                  ? logins.slice(start, start + pageSize).map((entry) => (
                       <tr key={entry.id}>
                         <td>{formatDateTime(entry.at)}</td>
                         <td>
@@ -356,7 +369,7 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
                         </td>
                       </tr>
                     ))
-                  : audits.map((entry) => (
+                  : audits.slice(start, start + pageSize).map((entry) => (
                       <tr key={entry.id}>
                         <td>{formatDateTime(entry.at)}</td>
                         <td>{entry.actor}</td>
@@ -387,6 +400,13 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
                     ))}
             </AdminTable>
           )}
+          <ListPagination
+            label={M.titles[section]}
+            page={page}
+            pageSize={pageSize}
+            total={count}
+            onPageChange={(next) => setPagination({ section, page: next })}
+          />
         </>
       )}
       {editor && (

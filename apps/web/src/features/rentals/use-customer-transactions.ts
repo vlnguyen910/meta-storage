@@ -36,17 +36,22 @@ export function useCustomerTransactions(view: TransactionView) {
   });
   const transactions = useMemo<CustomerTransaction[]>(
     () =>
-      rentals.flatMap((rental, index) =>
-        (paymentQueries[index]?.data ?? []).map((payment) => ({ rental, payment })),
-      ),
+      rentals
+        .flatMap((rental, index) =>
+          (paymentQueries[index]?.data ?? []).map((payment) => ({ rental, payment })),
+        )
+        .sort(
+          (a, b) =>
+            Date.parse(b.payment.paidAt ?? b.payment.createdAt) -
+              Date.parse(a.payment.paidAt ?? a.payment.createdAt) ||
+            a.payment.id.localeCompare(b.payment.id),
+        ),
     [paymentQueries, rentals],
   );
   const loadingRentals = source ? source.isLoading : current.isLoading || history.isLoading;
   const loadingPayments = paymentQueries.some((query) => query.isPending);
   const error =
-    source?.error ??
-    current.error ??
-    history.error ??
+    (source ? source.error : (current.error ?? history.error)) ??
     paymentQueries.find((query) => query.error)?.error;
   const fetchingMore = source
     ? source.isFetchingNextPage
@@ -57,6 +62,10 @@ export function useCustomerTransactions(view: TransactionView) {
     loading: loadingRentals || loadingPayments,
     error,
     fetchingMore,
+    refreshing:
+      current.isRefetching ||
+      history.isRefetching ||
+      paymentQueries.some((query) => query.isFetching),
     hasNext,
     loadMore: () => {
       if (view === "current") return current.fetchNextPage();
@@ -66,9 +75,10 @@ export function useCustomerTransactions(view: TransactionView) {
         history.hasNextPage ? history.fetchNextPage() : Promise.resolve(),
       ]);
     },
-    retry: () => {
-      void current.refetch();
-      void history.refetch();
-    },
+    retry: () =>
+      Promise.all([
+        ...(source ? [source.refetch()] : [current.refetch(), history.refetch()]),
+        ...paymentQueries.filter((query) => query.isError).map((query) => query.refetch()),
+      ]),
   };
 }

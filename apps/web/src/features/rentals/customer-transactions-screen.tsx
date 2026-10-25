@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, PageHeader, StatusBadge } from "@/components/ui/display";
+import { ListPagination } from "@/components/ui/list-pagination";
 import { LoadingState } from "@/components/ui/states";
 import { customerRoutes } from "@/config/routes";
 import { formatCurrency, formatDateTime } from "@/lib/format";
@@ -13,7 +14,14 @@ import { type TransactionView, useCustomerTransactions } from "./use-customer-tr
 
 export function CustomerTransactionsScreen() {
   const [view, setView] = useState<TransactionView>("all");
+  const [page, setPage] = useState(1);
   const query = useCustomerTransactions(view);
+  const pageSize = 6;
+  const safePage = Math.min(page, Math.max(1, Math.ceil(query.transactions.length / pageSize)));
+  const visibleTransactions = query.transactions.slice(
+    (safePage - 1) * pageSize,
+    safePage * pageSize,
+  );
   return (
     <div className="space-y-6">
       <PageHeader eyebrow={M.eyebrow} title={M.title} description={M.description} />
@@ -23,13 +31,17 @@ export function CustomerTransactionsScreen() {
             key={item}
             type="button"
             aria-pressed={view === item}
-            onClick={() => setView(item)}
+            onClick={() => {
+              setView(item);
+              setPage(1);
+            }}
             className={`min-h-10 rounded-lg px-4 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${view === item ? "bg-white text-primary shadow-sm" : "text-slate-600 hover:text-ink"}`}
           >
             {item === "all" ? M.all : item === "current" ? M.current : M.history}
           </button>
         ))}
       </div>
+      <p className="m-0 text-sm leading-6 text-muted">{M.loadedHistory}</p>
       {query.loading ? <LoadingState variant="table" /> : null}
       {query.error && !query.transactions.length ? (
         <Card className="space-y-3">
@@ -37,9 +49,14 @@ export function CustomerTransactionsScreen() {
             <AlertCircle size={18} />
             {M.loadFailed}
           </div>
-          <Button type="button" variant="outline" onClick={query.retry}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void query.retry()}
+            loading={query.refreshing}
+          >
             <RotateCcw size={16} />
-            Thử lại
+            {M.retry}
           </Button>
         </Card>
       ) : null}
@@ -50,7 +67,7 @@ export function CustomerTransactionsScreen() {
       ) : null}
       {query.transactions.length > 0 ? (
         <div className="grid gap-3">
-          {query.transactions.map(({ rental, payment }) => (
+          {visibleTransactions.map(({ rental, payment }) => (
             <Card
               key={`${rental.id}-${payment.id}`}
               className="space-y-4 border-slate-200/80 p-5 shadow-sm"
@@ -79,7 +96,9 @@ export function CustomerTransactionsScreen() {
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-slate-600">{M.paidAt}</dt>
+                  <dt className="text-xs text-slate-600">
+                    {payment.paidAt ? M.paidAt : M.createdAt}
+                  </dt>
                   <dd className="text-sm font-semibold">
                     {formatDateTime(payment.paidAt ?? payment.createdAt)}
                   </dd>
@@ -116,10 +135,28 @@ export function CustomerTransactionsScreen() {
         </div>
       ) : null}
       {query.error && query.transactions.length ? (
-        <p role="alert" className="text-sm text-amber-800">
-          Một số giao dịch chưa tải được. Hãy tải thêm hoặc thử lại.
-        </p>
+        <div
+          role="alert"
+          className="flex flex-wrap items-center justify-between gap-3 rounded border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
+        >
+          <p>{M.partialError}</p>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void query.retry()}
+            loading={query.refreshing}
+          >
+            {M.retry}
+          </Button>
+        </div>
       ) : null}
+      <ListPagination
+        label={M.title}
+        page={safePage}
+        pageSize={pageSize}
+        total={query.transactions.length}
+        onPageChange={setPage}
+      />
       {query.hasNext ? (
         <Button
           type="button"

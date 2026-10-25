@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { FieldShell, Input } from "@/components/ui/form-controls";
+import { ListPagination } from "@/components/ui/list-pagination";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { cn } from "@/lib/cn";
 import { useOperationsPricing } from "../hooks/use-operations-pricing";
@@ -16,6 +17,8 @@ import { OperationsDialog, OperationsTable } from "../operations-parts";
 import { REPORTING_MESSAGES as R } from "../operations-reporting.messages";
 
 export function OperationsPricingView() {
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const {
     configQuery,
     updatePriceMutation,
@@ -46,6 +49,12 @@ export function OperationsPricingView() {
   if (!data) {
     return <ErrorState message={M.error} onRetry={() => void refetch()} />;
   }
+  const prices = data.prices.filter((price) =>
+    `${price.name} ${price.code}`
+      .toLocaleLowerCase("vi")
+      .includes(search.trim().toLocaleLowerCase("vi")),
+  );
+  const safePage = Math.min(page, Math.max(1, Math.ceil(prices.length / 10)));
 
   function handleOpenEdit(price: {
     unitTypeId: string;
@@ -130,8 +139,23 @@ export function OperationsPricingView() {
       )}
 
       {/* Pricing Table */}
+      <FieldShell label={M.priceSearch}>
+        <Input
+          type="search"
+          value={search}
+          onChange={(event) => {
+            setSearch(event.target.value);
+            setPage(1);
+          }}
+        />
+      </FieldShell>
+      {!prices.length && (
+        <p role="status" className="rounded border border-line bg-white p-5 text-muted">
+          {M.noPriceMatch}
+        </p>
+      )}
       <OperationsTable label={M.pricingConfigTitle} headings={M.priceHeadings}>
-        {data.prices.map((price) => (
+        {prices.slice((safePage - 1) * 10, safePage * 10).map((price) => (
           <tr key={price.unitTypeId} className="hover:bg-slate-50/50">
             <th scope="row" className="px-5 py-4 font-semibold text-ink whitespace-nowrap">
               {price.name}
@@ -169,6 +193,13 @@ export function OperationsPricingView() {
           </tr>
         ))}
       </OperationsTable>
+      <ListPagination
+        label={M.pricingConfigTitle}
+        page={safePage}
+        pageSize={10}
+        total={prices.length}
+        onPageChange={setPage}
+      />
 
       {/* Edit Price Modal Dialog */}
       {editingItem && (

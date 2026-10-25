@@ -48,7 +48,7 @@ export function StaffTaskNotifications() {
       </div>
       <div className="flex flex-wrap items-center gap-3">
         {received && (
-          <Link href="/staff/dashboard" className="underline underline-offset-4">
+          <Link href="/staff/dashboard?view=tasks" className="underline underline-offset-4">
             {M.viewTasks}
           </Link>
         )}

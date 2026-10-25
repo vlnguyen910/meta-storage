@@ -15,6 +15,11 @@ export const TRANSACTION_MESSAGES = {
   returnRefund: "Hoàn tiền trả kho",
   noTransactions: "Chưa có giao dịch trong danh sách này.",
   loadFailed: "Không thể tải lịch sử giao dịch. Hãy thử tải lại.",
+  partialError: "Một phần lịch sử chưa tải được. Các giao dịch đã tải vẫn được giữ bên dưới.",
+  retry: "Thử lại",
+  createdAt: "Thời gian tạo giao dịch",
+  loadedHistory:
+    "Giao dịch của các kho đã có hồ sơ thuê, sắp xếp mới nhất trước. Tải thêm kho để xem phần lịch sử còn lại; các đơn chờ bàn giao chưa nằm trong danh sách này.",
   loadMore: "Tải thêm kho",
   loadingMore: "Đang tải…",
   loadMoreFailed: "Không tải thêm được. Hãy thử lại.",

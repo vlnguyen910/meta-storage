@@ -13,6 +13,7 @@ flow5-test-results/
 .next/
 .next-dev/
 .next-playwright/
+.next-audit/
 .next-mock-playwright/
 .next-flow5/
 out/

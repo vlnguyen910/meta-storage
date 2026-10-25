@@ -13,8 +13,12 @@ import { RESERVATION_MESSAGES as M } from "./reservation.messages";
 
 export function ReservationList() {
   const query = useMyReservations();
-  const [page, setPage] = useState(1);
+  const [requestedPage, setPage] = useState(1);
   const pageSize = 6;
+  const page = Math.min(
+    requestedPage,
+    Math.max(1, Math.ceil((query.data?.length ?? 0) / pageSize)),
+  );
   if (query.isLoading) return <LoadingState variant="table" />;
   if (query.isError)
     return (
@@ -89,7 +93,7 @@ export function ReservationList() {
             type="button"
             className="min-h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold"
             disabled={page === 1}
-            onClick={() => setPage((value) => value - 1)}
+            onClick={() => setPage(page - 1)}
           >
             {M.previousPage}
           </button>
@@ -100,7 +104,7 @@ export function ReservationList() {
             type="button"
             className="min-h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold"
             disabled={page >= Math.ceil(query.data.length / pageSize)}
-            onClick={() => setPage((value) => value + 1)}
+            onClick={() => setPage(page + 1)}
           >
             {M.nextPage}
           </button>

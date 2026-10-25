@@ -1,4 +1,6 @@
 export const OPERATIONS_MESSAGES = {
+  priceSearch: "Tìm loại kho theo tên hoặc mã",
+  noPriceMatch: "Không có loại kho phù hợp. Thử từ khóa khác hoặc xóa tìm kiếm.",
   role: "Quản lý vận hành kinh doanh",
   brand: "StoreX OS",
   scope: "Toàn hệ thống",
