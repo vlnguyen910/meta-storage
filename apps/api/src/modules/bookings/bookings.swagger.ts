@@ -4,14 +4,12 @@ import {
   type BookingDraftInput,
   type BookingListItem,
   BookingListItemSchema,
-  type BookingTracking,
   type CheckInSlotOption,
   type CustomerBooking,
   EligibleUnitSchema,
   PhysicalUnitAssignmentSchema,
 } from "@metastorage/contracts";
 import { SEED_IDS, SEED_USERS } from "@metastorage/database/seed";
-import type { FastifySchema } from "fastify";
 import { createJsonSchemaTransform } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { ERROR_MESSAGES } from "../../common/errors/error.messages";
@@ -37,7 +35,6 @@ const draft = {
   checkInAt: "2031-02-01T02:00:00.000Z",
   rentalEndAt: "2031-04-01T02:00:00.000Z",
   durationMonths: 2,
-  draftAccessToken: "0123456789abcdef".repeat(4),
   status: "DRAFT",
   pricing: {
     monthlyRateSnapshot: "900000",
@@ -100,7 +97,6 @@ const draftProperties = {
   checkInAt: dateTime,
   rentalEndAt: dateTime,
   durationMonths: { type: "integer", minimum: 1, maximum: 12 },
-  draftAccessToken: { type: "string", minLength: 64 },
   status: { type: "string", enum: ["DRAFT"] },
   pricing: {
     type: "object",
@@ -177,29 +173,7 @@ const errors = {
   404: failure(404, BOOKING_MESSAGES.bookingNotFound),
   500: failure(500, ERROR_MESSAGES.unexpectedInternalServerError),
 };
-const optionalSession: FastifySchema["security"] = [{}, { sessionAuth: [] }];
-const trackingExample = {
-  bookingCode: booking.bookingCode,
-  status: "CONFIRMED",
-  facility: { name: "HCM-01", address: "Ho Chi Minh City" },
-  unitType: { name: booking.unitTypeName, sizeLabel: booking.unitTypeSizeLabel },
-  checkInSlotStart: booking.checkInSlotStart,
-  checkInSlotEnd: booking.checkInSlotEnd,
-  rentalEndAt: booking.rentalEndAt,
-  durationMonths: booking.requestedMonths,
-  contact: {
-    fullName: booking.contactName,
-    email: booking.contactEmail,
-    phone: booking.contactPhone,
-  },
-  pricing: draft.pricing,
-  payment: {
-    status: "SUCCEEDED",
-    paidAt: timestamp,
-    refundAmount: null,
-    depositForfeitedAmount: "0.00",
-  },
-} satisfies BookingTracking;
+
 const text = { type: "string" };
 const objectSchema = (properties: Record<string, object>) => ({
   type: "object",
@@ -263,34 +237,6 @@ const customerBookingPageSchema = objectSchema({
     nullable: true,
   },
 });
-const trackingSchema = objectSchema({
-  bookingCode: text,
-  status: { type: "string", enum: ["CONFIRMED", "CHECKED_IN", "CANCELLED", "NO_SHOW"] },
-  facility: objectSchema({ name: text, address: text }),
-  unitType: objectSchema({ name: text, sizeLabel: text }),
-  checkInSlotStart: dateTime,
-  checkInSlotEnd: dateTime,
-  rentalEndAt: dateTime,
-  durationMonths: { type: "integer" },
-  contact: objectSchema({
-    fullName: text,
-    email: { type: "string", format: "email" },
-    phone: text,
-  }),
-  pricing: draftProperties.pricing,
-  payment: objectSchema({
-    status: { type: "string", enum: ["SUCCEEDED", "REFUND_PENDING", "REFUNDED"] },
-    paidAt: dateTime,
-    refundAmount: { type: "string", nullable: true },
-    depositForfeitedAmount: text,
-  }),
-});
-const trackingErrors = {
-  400: errors[400],
-  401: failure(401, BOOKING_MESSAGES.accessInvalid),
-  403: errors[403],
-  503: failure(503, BOOKING_MESSAGES.accessUnavailable),
-};
 const operations = {
   slots: {
     summary: m.slotsSummary,
@@ -319,54 +265,11 @@ const operations = {
       500: errors[500],
     },
   },
-  exchange: {
-    summary: BOOKING_MESSAGES.exchangeSummary,
-    description: BOOKING_MESSAGES.exchangeDescription,
-    security: [],
-    body: { token: "0123456789abcdef".repeat(4) },
-    response: {
-      ...trackingErrors,
-      429: failure(429, BOOKING_MESSAGES.accessRateLimited),
-      200: {
-        ...success(
-          objectSchema({ bookingCode: text, expiresAt: dateTime, booking: trackingSchema }),
-          {
-            bookingCode: booking.bookingCode,
-            expiresAt: timestamp,
-            booking: trackingExample,
-          },
-        ),
-        headers: {
-          "Set-Cookie": { type: "string", description: BOOKING_MESSAGES.exchangeDescription },
-        },
-      },
-    },
-  },
-  tracking: {
-    summary: BOOKING_MESSAGES.trackingSummary,
-    description: BOOKING_MESSAGES.trackingDescription,
-    security: [{ bookingTrackingSession: [] }],
-    response: {
-      ...trackingErrors,
-      404: errors[404],
-      200: success(trackingSchema, trackingExample),
-    },
-  },
-  revoke: {
-    summary: BOOKING_MESSAGES.revokeSummary,
-    description: BOOKING_MESSAGES.revokeDescription,
-    security: [],
-    response: {
-      403: errors[403],
-      503: trackingErrors[503],
-      204: { description: BOOKING_MESSAGES.sessionRevoked, type: "null" },
-    },
-  },
   draft: {
     summary: m.draftSummary,
     description: m.draftDescription,
     body: draftInput,
-    security: optionalSession,
+    security: [{ sessionAuth: [] }],
     response: {
       ...errors,
       201: success(draftSchema, draft),

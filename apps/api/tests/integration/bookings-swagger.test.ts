@@ -166,9 +166,13 @@ describe("Booking Swagger contracts", () => {
       "facilityId",
       "unitTypeId",
     ]);
-    expect(operation.security).toEqual([{}, { sessionAuth: [] }]);
+    expect(operation.security).toEqual([{ sessionAuth: [] }]);
     const example = resolve(operation.responses[201].content["application/json"].schema).example;
-    session.mockResolvedValueOnce(null);
+    const customerId = "11111111-1111-4111-8111-111111111111";
+    session.mockResolvedValueOnce({
+      user: { id: customerId, role: "CUSTOMER", status: "ACTIVE" },
+      session: {},
+    } as never);
     createDraft.mockResolvedValueOnce(example.data);
     const response = await app.inject({
       method: "POST",
@@ -177,8 +181,8 @@ describe("Booking Swagger contracts", () => {
     });
     expect(response.statusCode).toBe(201);
     expect(response.json()).toEqual({ ...example, timestamp: expect.any(String) });
-    expect(createDraft).toHaveBeenCalledWith(input, undefined);
-    expect(response.json().data.draftAccessToken).toHaveLength(64);
+    expect(createDraft).toHaveBeenCalledWith(input, customerId);
+    expect(response.json().data.draftAccessToken).toBeUndefined();
   });
 
   test.each([

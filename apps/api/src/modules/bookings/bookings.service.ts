@@ -1,12 +1,10 @@
-import { createHash, createHmac, randomBytes } from "node:crypto";
+import { createHmac } from "node:crypto";
 import type {
   BookingClosure,
   BookingConfirmation,
   BookingDraft,
   BookingDraftInput,
   BookingListItem,
-  BookingTracking,
-  BookingTrackingSession,
   CustomerBooking,
   CustomerBookingPage,
   CustomerBookingPageQuery,
@@ -14,14 +12,7 @@ import type {
   PhysicalUnitAssignment,
   StaffTasksQuery,
 } from "@metastorage/contracts";
-import {
-  BOOKING_ACCESS,
-  type BookingAccessGrant,
-  type BookingAccessSession,
-  bookingActiveMagicKey,
-  bookingMagicKey,
-  bookingSessionKey,
-} from "@metastorage/shared/booking-access";
+import { BOOKING_ACCESS } from "@metastorage/shared/booking-access";
 import {
   type BookingConfirmationEmailInput,
   encryptMailPayload,
@@ -36,7 +27,6 @@ import {
   UnauthorizedError,
   ValidationError,
 } from "../../common/errors/app-error";
-import type { RedisService } from "../../common/redis/redis.service";
 import { env } from "../../config/env";
 import { FacilitiesRepository } from "../facilities/facilities.repository";
 import { FacilitiesService } from "../facilities/facilities.service";
@@ -48,11 +38,7 @@ import { StorageUnitsService } from "../storage-units/storage-units.service";
 import { FacilityUnitTypesRepository } from "../unit-types/facility-unit-types.repository";
 import { FacilityUnitTypesService } from "../unit-types/facility-unit-types.service";
 import { BOOKING_MESSAGES } from "./bookings.messages";
-import {
-  BookingsRepository,
-  bookingLocalDate,
-  createBookingTrackingLink,
-} from "./bookings.repository";
+import { BookingsRepository, bookingLocalDate } from "./bookings.repository";
 import type { BookingMailDependencies, BookingReadRecord } from "./bookings.types";
 import { CheckInSlotsRepository } from "./check-in-slots.repository";
 import { CheckInSlotsService } from "./check-in-slots.service";
@@ -65,22 +51,18 @@ export class BookingsService {
     private readonly checkInSlotsService: CheckInSlotsService,
     private readonly storageUnitsService: StorageUnitsService,
     private readonly pricingService: PricingService,
-    private readonly accessRedis?: RedisService,
     private readonly mail?: BookingMailDependencies,
     private readonly notifications?: NotificationsService,
   ) {}
 
   async cancelBooking(
     bookingId: string,
-    credentials: { checkoutAccessToken?: string; userId?: string },
+    credentials: { userId?: string },
   ): Promise<BookingClosure> {
-    if (!credentials.checkoutAccessToken && !credentials.userId)
+    if (!credentials.userId)
       throw new UnauthorizedError(BOOKING_MESSAGES.cancellationAccessRequired);
     return this.repository.cancelBooking(bookingId, {
       userId: credentials.userId,
-      tokenHash: credentials.checkoutAccessToken
-        ? createHash("sha256").update(credentials.checkoutAccessToken).digest("hex")
-        : undefined,
     });
   }
 
@@ -117,20 +99,13 @@ export class BookingsService {
         booking.paidAt.getTime() + BOOKING_ACCESS.magicTtl * 1000 <= Date.now()
       )
         return "FAILED";
-      const link = await createBookingTrackingLink(mail.redis, {
-        deliveryId: booking.id,
-        bookingId: booking.id,
-        secret: mail.config.magicLinkSecret,
-        publicAppUrl: mail.config.publicAppUrl,
-        confirmedAt: booking.paidAt,
-      });
       const input: BookingConfirmationEmailInput = {
         deliveryId: booking.id,
         recipientEmail: booking.contactEmail,
         bookingCode: booking.bookingCode,
         facilityName: confirmation.facility.name,
         unitTypeName: confirmation.unitTypeName,
-        trackingUrl: link.trackingUrl,
+        trackingUrl: new URL(`/customer/reservations/${booking.id}`, mail.config.publicAppUrl).href,
         qrUrl: `${new URL("/check-in", mail.config.publicAppUrl)}?token=${createHmac("sha256", mail.config.qrTokenSecret).update(booking.id).digest("hex")}`,
       };
       await mail.queue.add(
@@ -143,7 +118,9 @@ export class BookingsService {
             mail.config.magicLinkSecret,
             booking.id,
           ),
-          expiresAt: link.expiresAt,
+          expiresAt: new Date(
+            booking.paidAt.getTime() + BOOKING_ACCESS.magicTtl * 1000,
+          ).toISOString(),
         },
         {
           jobId,
@@ -181,98 +158,7 @@ export class BookingsService {
     });
   }
 
-  private async withAccessRedis<T>(work: (redis: RedisService) => Promise<T>): Promise<T> {
-    if (!this.accessRedis) throw new AppError(BOOKING_MESSAGES.accessUnavailable, 503);
-    try {
-      return await work(this.accessRedis);
-    } catch (error) {
-      if (error instanceof AppError) throw error;
-      // Redis errors can contain command arguments. Never attach them to public errors or logs.
-      throw new AppError(BOOKING_MESSAGES.accessUnavailable, 503);
-    }
-  }
-
-  async exchangeMagicLink(
-    token: string,
-    ip: string,
-    previousSession?: string,
-  ): Promise<{ sessionToken: string; session: BookingTrackingSession }> {
-    return this.withAccessRedis(async (redis) => {
-      const ipHash = createHmac("sha256", env.BETTER_AUTH_SECRET).update(ip).digest("hex");
-      if (
-        (await redis.incrementWithExpiry(
-          `booking:rate:exchange:${ipHash}`,
-          BOOKING_ACCESS.rateWindow,
-        )) > BOOKING_ACCESS.rateLimit
-      ) {
-        throw new AppError(BOOKING_MESSAGES.accessRateLimited, 429);
-      }
-      const raw = await redis.get(bookingMagicKey(token));
-      if (!raw) throw new AppError(BOOKING_MESSAGES.accessInvalid, 401);
-      const grant = JSON.parse(raw) as BookingAccessGrant;
-      const expiresAt = Math.min(
-        Date.parse(grant.expiresAt),
-        Date.parse(grant.createdAt) + BOOKING_ACCESS.magicTtl * 1000,
-      );
-      if (!grant.bookingId || !(expiresAt > Date.now()))
-        throw new AppError(BOOKING_MESSAGES.accessInvalid, 401);
-      const activeKey = bookingActiveMagicKey(grant.bookingId),
-        magicKey = bookingMagicKey(token),
-        activeGrant = await redis.get(activeKey);
-      if (activeGrant && activeGrant !== magicKey)
-        throw new AppError(BOOKING_MESSAGES.accessInvalid, 401);
-      if (!activeGrant) {
-        const remaining = Math.max(1, Math.ceil((expiresAt - Date.now()) / 1000));
-        if (!(await redis.setIfAbsent(activeKey, magicKey, remaining))) {
-          if ((await redis.get(activeKey)) !== magicKey)
-            throw new AppError(BOOKING_MESSAGES.accessInvalid, 401);
-        }
-      }
-      const booking = await this.repository.findTrackingBooking(grant.bookingId);
-      if (!booking) throw new AppError(BOOKING_MESSAGES.accessInvalid, 401);
-      const sessionToken = randomBytes(32).toString("hex");
-      const session: BookingAccessSession = {
-        bookingId: grant.bookingId,
-        bookingCode: booking.bookingCode,
-        createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + BOOKING_ACCESS.sessionTtl * 1000).toISOString(),
-      };
-      await redis.set(
-        bookingSessionKey(sessionToken),
-        JSON.stringify(session),
-        BOOKING_ACCESS.sessionTtl,
-      );
-      if (previousSession) await redis.delete(bookingSessionKey(previousSession));
-      return {
-        sessionToken,
-        session: { bookingCode: session.bookingCode, expiresAt: session.expiresAt, booking },
-      };
-    });
-  }
-
-  async getTrackingBooking(bookingCode: string, sessionToken?: string): Promise<BookingTracking> {
-    return this.withAccessRedis(async (redis) => {
-      const raw = sessionToken ? await redis.get(bookingSessionKey(sessionToken)) : null;
-      if (!raw) throw new AppError(BOOKING_MESSAGES.accessInvalid, 401);
-      const session = JSON.parse(raw) as BookingAccessSession;
-      if (!session.bookingId || !(Date.parse(session.expiresAt) > Date.now()))
-        throw new AppError(BOOKING_MESSAGES.accessInvalid, 401);
-      if (session.bookingCode !== bookingCode)
-        throw new NotFoundError(BOOKING_MESSAGES.bookingNotFound);
-      const booking = await this.repository.findTrackingBooking(session.bookingId);
-      if (!booking || booking.bookingCode !== bookingCode)
-        throw new NotFoundError(BOOKING_MESSAGES.bookingNotFound);
-      return booking;
-    });
-  }
-
-  async revokeTrackingSession(sessionToken?: string): Promise<void> {
-    await this.withAccessRedis(async (redis) => {
-      if (sessionToken) await redis.delete(bookingSessionKey(sessionToken));
-    });
-  }
-
-  async createDraft(input: BookingDraftInput, userId?: string): Promise<BookingDraft> {
+  async createDraft(input: BookingDraftInput, userId: string): Promise<BookingDraft> {
     if (input.checkInDate <= bookingLocalDate())
       throw new AppError(BOOKING_MESSAGES.checkInTomorrow, 400, "CHECK_IN_TOMORROW_REQUIRED");
     await this.facilitiesService.requireActiveFacility(input.facilityId);
@@ -305,10 +191,9 @@ export class BookingsService {
     if (capacity < 1)
       throw new AppError(BOOKING_MESSAGES.unitTypeCapacityUnavailable, 409, "CAPACITY_UNAVAILABLE");
 
-    const draftAccessToken = randomBytes(32).toString("hex");
     const pricing = await this.pricingService.quote(unitType.id, input.durationMonths);
     const draft = await this.repository.createDraft({
-      userId: userId ?? null,
+      userId,
       facilityId: input.facilityId,
       unitTypeId: input.unitTypeId,
       checkInDate: slot.checkInDate,
@@ -316,7 +201,6 @@ export class BookingsService {
       rentalEndAt,
       requestedMonths: input.durationMonths,
       status: "DRAFT",
-      accessTokenHash: createHash("sha256").update(draftAccessToken).digest("hex"),
       monthlyRateSnapshot: pricing.monthlyRateSnapshot,
       rentalFeeAmount: pricing.rentalFeeAmount,
       depositAmount: pricing.depositAmount,
@@ -329,7 +213,6 @@ export class BookingsService {
       checkInAt: slot.startsAt.toISOString(),
       rentalEndAt: draft.rentalEndAt.toISOString(),
       durationMonths: draft.requestedMonths,
-      draftAccessToken,
       status: "DRAFT",
       pricing,
     };
@@ -503,7 +386,6 @@ export function createBookingsService(
     new CheckInSlotsService(new CheckInSlotsRepository(app.db)),
     new StorageUnitsService(new StorageUnitsRepository(app.db)),
     new PricingService(new PricingRepository(app.db)),
-    app.redisService,
     mail ??
       (app.redis && app.mailQueue
         ? {

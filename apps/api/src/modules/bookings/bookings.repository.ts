@@ -2,7 +2,6 @@ import { createHash, createHmac, randomBytes } from "node:crypto";
 import {
   type BookingClosure,
   type BookingListItem,
-  type BookingTracking,
   type CustomerBookingPageQuery,
   type EligibleUnit,
   type FacilityStaffMember,
@@ -50,7 +49,11 @@ import {
 } from "@metastorage/database";
 import { AppError } from "../../common/errors/app-error";
 import { BOOKING_MESSAGES } from "./bookings.messages";
-import { bookingCheckInSlotEnd, bookingCheckInSlotStart } from "./bookings.projection";
+import {
+  bookingCheckInSlotEnd,
+  bookingCheckInSlotStart,
+  bookingCustomer,
+} from "./bookings.projection";
 import type {
   BookingCancellationAccess,
   BookingTransaction,
@@ -82,8 +85,6 @@ export function qrTokenForBooking(bookingId: string) {
     .update(bookingId)
     .digest("hex");
 }
-
-export { createBookingTrackingLink } from "@metastorage/shared/booking-access";
 
 function toCustomerBooking(row: CustomerBookingQueryRow) {
   return {
@@ -233,21 +234,13 @@ export class BookingsRepository {
     bookingId: string,
     access: BookingCancellationAccess,
   ): Promise<BookingClosure> {
-    if (!access.userId && !access.tokenHash)
-      throw new AppError(BOOKING_MESSAGES.cancellationAccessRequired, 401);
+    const userId = access.userId;
+    if (!userId) throw new AppError(BOOKING_MESSAGES.cancellationAccessRequired, 401);
     return this.db.transaction(async (tx) => {
       const [owned] = await tx
         .select({ id: bookings.id })
         .from(bookings)
-        .where(
-          and(
-            eq(bookings.id, bookingId),
-            or(
-              access.userId ? eq(bookings.userId, access.userId) : undefined,
-              access.tokenHash ? eq(bookings.accessTokenHash, access.tokenHash) : undefined,
-            ),
-          ),
-        )
+        .where(and(eq(bookings.id, bookingId), eq(bookings.userId, userId)))
         .for("update");
       if (!owned) throw new AppError(BOOKING_MESSAGES.bookingNotFound, 404);
       const result = await closeBookingBeforeCheckIn(tx, bookingId, "CANCELLED", new Date());
@@ -292,85 +285,6 @@ export class BookingsRepository {
     });
   }
 
-  async findTrackingBooking(bookingId: string): Promise<BookingTracking | null> {
-    const [row] = await this.db
-      .select({
-        bookingCode: bookings.bookingCode,
-        status: bookings.status,
-        contactName: bookings.contactName,
-        contactEmail: bookings.contactEmail,
-        contactPhone: bookings.contactPhone,
-        facility: { name: facilities.name, address: facilities.address },
-        unitType: { name: unitTypes.name, sizeLabel: unitTypes.sizeLabel },
-        checkInSlotStart:
-          sql<Date>`(${bookings.checkInDate} + ${checkInSlots.startTime}) at time zone 'Asia/Ho_Chi_Minh'`.mapWith(
-            (value) => new Date(value),
-          ),
-        checkInSlotEnd:
-          sql<Date>`(${bookings.checkInDate} + ${checkInSlots.endTime}) at time zone 'Asia/Ho_Chi_Minh'`.mapWith(
-            (value) => new Date(value),
-          ),
-        rentalEndAt: bookings.rentalEndAt,
-        durationMonths: bookings.requestedMonths,
-        monthlyRateSnapshot: bookings.monthlyRateSnapshot,
-        rentalFeeAmount: bookings.rentalFeeAmount,
-        depositAmount: bookings.depositAmount,
-        totalAmount: bookings.totalAmount,
-        paymentStatus: payments.status,
-        refundAmount: payments.refundAmount,
-        depositForfeitedAmount: payments.depositForfeitedAmount,
-        paidAt: payments.paidAt,
-      })
-      .from(bookings)
-      .innerJoin(facilities, eq(facilities.id, bookings.facilityId))
-      .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
-      .innerJoin(checkInSlots, eq(checkInSlots.id, bookings.checkInSlotId))
-      .innerJoin(payments, eq(payments.bookingId, bookings.id))
-      .where(
-        and(
-          eq(bookings.id, bookingId),
-          inArray(bookings.status, ["CONFIRMED", "CHECKED_IN", "CANCELLED", "NO_SHOW"]),
-          inArray(payments.status, ["SUCCEEDED", "REFUND_PENDING", "REFUNDED"]),
-          isNotNull(payments.paidAt),
-        ),
-      )
-      .orderBy(desc(payments.paidAt), desc(payments.id))
-      .limit(1);
-    if (
-      !row?.bookingCode ||
-      !row.contactName ||
-      !row.contactEmail ||
-      !row.contactPhone ||
-      !row.paidAt
-    )
-      return null;
-    return {
-      bookingCode: row.bookingCode,
-      status: row.status as BookingTracking["status"],
-      facility: row.facility,
-      unitType: row.unitType,
-      checkInSlotStart: row.checkInSlotStart.toISOString(),
-      checkInSlotEnd: row.checkInSlotEnd.toISOString(),
-      rentalEndAt: row.rentalEndAt.toISOString(),
-      durationMonths: row.durationMonths,
-      contact: { fullName: row.contactName, email: row.contactEmail, phone: row.contactPhone },
-      pricing: {
-        monthlyRateSnapshot: row.monthlyRateSnapshot,
-        rentalFeeAmount: row.rentalFeeAmount,
-        depositAmount: row.depositAmount,
-        totalAmount: row.totalAmount,
-        currency: "VND",
-      },
-      payment: {
-        status: row.paymentStatus as BookingTracking["payment"]["status"],
-        paidAt: row.paidAt.toISOString(),
-        refundAmount:
-          row.refundAmount ?? (row.paymentStatus !== "SUCCEEDED" ? row.totalAmount : null),
-        depositForfeitedAmount: row.depositForfeitedAmount,
-      },
-    };
-  }
-
   async createDraft(data: NewBooking) {
     const [draft] = await this.db.insert(bookings).values(data).returning();
     if (!draft) throw new Error(BOOKING_MESSAGES.failedToCreateDraft);
@@ -403,8 +317,8 @@ export class BookingsRepository {
       .select({
         booking: {
           ...getTableColumns(bookings),
-          contactName: sql<string>`${bookings.contactName}`,
-          contactEmail: sql<string>`${bookings.contactEmail}`,
+          contactName: bookingCustomer.name,
+          contactEmail: bookingCustomer.email,
           contactPhone: sql<string>`${bookings.contactPhone}`,
         },
         checkInSlotStart: slotStart,
@@ -418,6 +332,7 @@ export class BookingsRepository {
         assignedStaff: assignedStaffUsers,
       })
       .from(bookings)
+      .innerJoin(bookingCustomer, eq(bookingCustomer.id, bookings.userId))
       .innerJoin(checkInSlots, eq(bookings.checkInSlotId, checkInSlots.id))
       .leftJoin(paidPayments, eq(paidPayments.bookingId, bookings.id))
       .innerJoin(facilities, eq(bookings.facilityId, facilities.id))
@@ -520,8 +435,8 @@ export class BookingsRepository {
       .select({
         booking: {
           ...getTableColumns(bookings),
-          contactName: sql<string>`${bookings.contactName}`,
-          contactEmail: sql<string>`${bookings.contactEmail}`,
+          contactName: bookingCustomer.name,
+          contactEmail: bookingCustomer.email,
           contactPhone: sql<string>`${bookings.contactPhone}`,
         },
         checkInSlotStart: slotStart,
@@ -535,6 +450,7 @@ export class BookingsRepository {
         assignedStaff: assignedStaffUsers,
       })
       .from(bookings)
+      .innerJoin(bookingCustomer, eq(bookingCustomer.id, bookings.userId))
       .innerJoin(checkInSlots, eq(bookings.checkInSlotId, checkInSlots.id))
       .leftJoin(paidPayments, eq(paidPayments.bookingId, bookings.id))
       .innerJoin(facilities, eq(bookings.facilityId, facilities.id))
@@ -655,8 +571,8 @@ export class BookingsRepository {
       .select({
         booking: {
           ...getTableColumns(bookings),
-          contactName: sql<string>`${bookings.contactName}`,
-          contactEmail: sql<string>`${bookings.contactEmail}`,
+          contactName: bookingCustomer.name,
+          contactEmail: bookingCustomer.email,
           contactPhone: sql<string>`${bookings.contactPhone}`,
         },
         checkInSlotStart: slotStart,
@@ -670,6 +586,7 @@ export class BookingsRepository {
         assignedStaff: assignedStaffUsers,
       })
       .from(bookings)
+      .innerJoin(bookingCustomer, eq(bookingCustomer.id, bookings.userId))
       .innerJoin(checkInSlots, eq(bookings.checkInSlotId, checkInSlots.id))
       .leftJoin(paidPayments, eq(paidPayments.bookingId, bookings.id))
       .innerJoin(facilities, eq(bookings.facilityId, facilities.id))

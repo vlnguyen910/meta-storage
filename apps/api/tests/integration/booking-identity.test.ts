@@ -1,5 +1,5 @@
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { createHash, randomUUID } from "node:crypto";
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { randomUUID } from "node:crypto";
 import {
   accounts,
   bookings,
@@ -62,7 +62,7 @@ async function login() {
   return response.cookies.map((item) => `${item.name}=${item.value}`).join("; ");
 }
 
-async function draft(sessionCookie?: string, extra: Record<string, unknown> = {}) {
+async function draft(sessionCookie: string = cookie, extra: Record<string, unknown> = {}) {
   const response = await app.inject({
     method: "POST",
     url: "/api/bookings/drafts",
@@ -73,7 +73,7 @@ async function draft(sessionCookie?: string, extra: Record<string, unknown> = {}
   return response.json().data.id as string;
 }
 
-describe.skipIf(!testUrl)("Booking contact and optional account ownership with PostgreSQL", () => {
+describe.skipIf(!testUrl)("Account-owned booking identity with PostgreSQL", () => {
   beforeAll(async () => {
     if (process.env.DATABASE_URL !== testUrl)
       throw new Error("DATABASE_URL must match isolated BOOKING_TEST_DATABASE_URL");
@@ -174,38 +174,62 @@ describe.skipIf(!testUrl)("Booking contact and optional account ownership with P
     });
   });
 
-  test("guest cannot supply ownership; login never attaches bookings with matching email", async () => {
-    const id = await draft(undefined, { userId: ids.user });
+  beforeEach(async () => {
+    await db.delete(notificationOutbox).where(eq(notificationOutbox.facilityId, ids.facility));
     await db
-      .update(bookings)
-      .set({ contactName: "Guest", contactEmail: email, contactPhone: "0900000000" })
-      .where(eq(bookings.id, id));
-    await login();
-    expect((await db.select().from(bookings).where(eq(bookings.id, id)))[0]?.userId).toBeNull();
+      .delete(payments)
+      .where(
+        inArray(
+          payments.bookingId,
+          db
+            .select({ id: bookings.id })
+            .from(bookings)
+            .where(eq(bookings.facilityId, ids.facility)),
+        ),
+      );
+    await db.delete(capacityAllocations).where(eq(capacityAllocations.facilityId, ids.facility));
+    await db.delete(bookings).where(eq(bookings.facilityId, ids.facility));
+    await db.update(users).set({ phone: null }).where(eq(users.id, ids.user));
   });
 
-  test("authenticated draft uses the session account, ignoring body userId", async () => {
+  test("anonymous callers cannot create bookings even when supplying a user ID", async () => {
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/bookings/drafts",
+      payload: { ...input, userId: ids.user },
+    });
+    expect(response.statusCode).toBe(401);
+  });
+
+  test("draft owner comes from the session and no guest credential is returned", async () => {
     const id = await draft(cookie, { userId: ids.other });
+    const [booking] = await db.select().from(bookings).where(eq(bookings.id, id));
+    expect(booking?.userId).toBe(ids.user);
+    expect(booking).not.toHaveProperty("accessTokenHash");
+    expect(booking).not.toHaveProperty("contactName");
+    expect(booking).not.toHaveProperty("contactEmail");
+    expect(booking?.contactPhone).toBeNull();
+  });
+
+  test("an account may have no phone and can still create a booking draft", async () => {
+    const id = await draft();
+    expect((await db.select().from(bookings).where(eq(bookings.id, id)))[0]?.status).toBe("DRAFT");
+  });
+
+  test("database rejects a missing owner and deletion of an owner with bookings", async () => {
+    const id = await draft();
+    await expect(
+      db
+        .update(bookings)
+        .set({ userId: null as never })
+        .where(eq(bookings.id, id))
+        .execute(),
+    ).rejects.toThrow();
+    await expect(db.delete(users).where(eq(users.id, ids.user)).execute()).rejects.toThrow();
     expect((await db.select().from(bookings).where(eq(bookings.id, id)))[0]?.userId).toBe(ids.user);
   });
 
-  test("signup checks account duplication without a Customer profile", async () => {
-    const response = await app.inject({
-      method: "POST",
-      url: "/api/auth/customer-sign-up",
-      payload: {
-        name: "Duplicate",
-        email,
-        phone: "0900000000",
-        password,
-        confirmPassword: password,
-        callbackTarget: "web",
-      },
-    });
-    expect(response.statusCode).toBe(409);
-  });
-
-  test("inactive accounts cannot create a draft using an existing session", async () => {
+  test("inactive customer sessions cannot create a draft", async () => {
     await db.update(users).set({ status: "INACTIVE" }).where(eq(users.id, ids.user));
     try {
       const response = await app.inject({
@@ -220,172 +244,74 @@ describe.skipIf(!testUrl)("Booking contact and optional account ownership with P
     }
   });
 
-  test("non-DRAFT requires complete contact; same email retains each booking contact", async () => {
-    const first = await draft();
-    const second = await draft();
-    await expect(
-      db.update(bookings).set({ status: "CONFIRMED" }).where(eq(bookings.id, first)).execute(),
-    ).rejects.toThrow();
-    await expect(
-      db.update(bookings).set({ contactName: "Partial" }).where(eq(bookings.id, first)).execute(),
-    ).rejects.toThrow();
-    await db
-      .update(bookings)
-      .set({
-        status: "CONFIRMED",
-        contactName: "First contact",
-        contactEmail: email,
-        contactPhone: "0900000001",
-      })
-      .where(eq(bookings.id, first));
-    await db
-      .update(bookings)
-      .set({
-        status: "CONFIRMED",
-        contactName: "Second contact",
-        contactEmail: email,
-        contactPhone: "0900000002",
-      })
-      .where(eq(bookings.id, second));
-    const repository = new BookingsRepository(db);
-    expect(await repository.findBookingById(first)).toMatchObject({
-      contactName: "First contact",
-      contactPhone: "0900000001",
+  const checkout = (bookingId: string, contactPhone?: string, userId = ids.user) =>
+    new PaymentsRepository(db).prepareBookingPayment({
+      bookingId,
+      userId,
+      contactPhone,
+      holdTokenHash: randomUUID(),
+      idempotencyKey: randomUUID(),
+      paymentCode: randomUUID().replaceAll("-", ""),
+      holdDurationMs: 600000,
     });
-    expect(await repository.findBookingById(second)).toMatchObject({
-      contactName: "Second contact",
-      contactPhone: "0900000002",
-    });
+
+  test("payment requires a booking phone when profile phone is missing, without side effects", async () => {
+    const id = await draft();
+    await expect(checkout(id)).rejects.toMatchObject({ statusCode: 400 });
+    expect(await db.select().from(payments).where(eq(payments.bookingId, id))).toHaveLength(0);
+    expect(
+      await db.select().from(capacityAllocations).where(eq(capacityAllocations.referenceId, id)),
+    ).toHaveLength(0);
   });
 
-  test("rental history uses Booking.userId and rejects guest or other-account rental access", async () => {
-    const rentalIds: string[] = [];
-    for (const userId of [ids.user, ids.other, null]) {
-      const id = await draft();
-      await db
-        .update(bookings)
-        .set({
-          userId,
-          status: "CHECKED_IN",
-          contactName: "Contact",
-          contactEmail: email,
-          contactPhone: "0900000000",
-        })
-        .where(eq(bookings.id, id));
-      const [rental] = await db
-        .insert(rentals)
-        .values({
-          bookingId: id,
-          facilityId: ids.facility,
-          physicalUnitId: ids.unit,
-          startAt: new Date("2032-02-01T04:00:00Z"),
-          expectedEndAt: new Date("2032-03-01T04:00:00Z"),
-          depositAmount: "1000000",
-        })
-        .returning();
-      if (!rental) throw new Error("Rental fixture missing");
-      rentalIds.push(rental.id);
-    }
-    const mine = await app.inject({ method: "GET", url: "/api/rentals/mine", headers: { cookie } });
-    expect(mine.statusCode).toBe(200);
-    expect(mine.json().data.items.map((item: { id: string }) => item.id)).toEqual([rentalIds[0]]);
-    for (const [index, id] of rentalIds.entries()) {
-      const response = await app.inject({
-        method: "GET",
-        url: `/api/rentals/${id}`,
-        headers: { cookie },
-      });
-      expect(response.statusCode).toBe(index === 0 ? 200 : 404);
-    }
-    expect((await app.inject({ method: "GET", url: "/api/rentals/mine" })).statusCode).toBe(401);
+  test("payment falls back to profile phone", async () => {
+    await db.update(users).set({ phone: "0901234567" }).where(eq(users.id, ids.user));
+    const id = await draft();
+    await checkout(id);
+    expect((await db.select().from(bookings).where(eq(bookings.id, id)))[0]?.contactPhone).toBe(
+      "0901234567",
+    );
   });
 
-  test("legacy payment persists the draft contact without a Customer and replays it", async () => {
-    const pricing = {
-      monthlyRateSnapshot: "1000000",
-      rentalFeeAmount: "1000000",
-      depositAmount: "1000000",
-      totalAmount: "2000000",
-      currency: "VND",
-    };
-    const [reservation] = await db
-      .insert(reservationDrafts)
-      .values({
-        facilityId: ids.facility,
-        unitTypeId: ids.type,
-        checkInAt: new Date("2032-02-01T04:00:00Z"),
-        rentalEndAt: new Date("2032-03-01T04:00:00Z"),
-        durationMonths: 1,
-        contactName: "Payment contact",
-        contactEmail: email,
-        contactPhone: "0900000099",
-        pricingStatus: "PRICED",
-        pricing,
-      })
-      .returning();
-    if (!reservation) throw new Error("Reservation fixture missing");
-    const holdTokenHash = createHash("sha256").update(randomUUID()).digest("hex");
-    const [hold] = await db
-      .insert(capacityAllocations)
-      .values({
-        facilityId: ids.facility,
-        unitTypeId: ids.type,
-        referenceId: reservation.id,
-        kind: "HOLD",
-        status: "ACTIVE",
-        accessTokenHash: holdTokenHash,
-        expiresAt: new Date(Date.now() + 600000),
-        startsAt: reservation.checkInAt,
-        endsAt: reservation.rentalEndAt,
-      })
-      .returning();
-    if (!hold) throw new Error("Hold fixture missing");
-    const repository = new PaymentsRepository(db);
-    const idempotencyKey = randomUUID();
-    const payment = await repository.createPendingPayment({
-      draftId: reservation.id,
-      holdTokenHash,
-      provider: "MOCK",
-      pricing,
-      paymentCode: randomUUID().slice(0, 20),
-      idempotencyKey,
-    });
-    if (!payment) throw new Error("Payment fixture missing");
-    const completed = await repository.completePendingPayment({
-      paymentId: payment.payment.id,
-      providerPaymentId: randomUUID(),
-      draftId: reservation.id,
-      holdId: hold.id,
-      paidAt: new Date(),
-    });
-    expect(completed?.booking).toMatchObject({
-      contactName: "Payment contact",
-      contactEmail: email,
-      contactPhone: "0900000099",
-      userId: null,
-      status: "CONFIRMED",
-    });
-    const replay = await repository.findCompletedByIdempotencyKey(idempotencyKey, holdTokenHash);
-    expect(replay?.booking.id).toBe(completed?.booking.id);
-    expect(replay?.booking.contactPhone).toBe("0900000099");
+  test("entered phone belongs only to the booking and never updates the profile", async () => {
+    const id = await draft();
+    await checkout(id, "+84901234567");
+    expect((await db.select().from(bookings).where(eq(bookings.id, id)))[0]?.contactPhone).toBe(
+      "+84901234567",
+    );
+    expect((await db.select().from(users).where(eq(users.id, ids.user)))[0]?.phone).toBeNull();
   });
 
-  test("deleting an account preserves booking and contact, clearing only history ownership", async () => {
+  test("explicit booking phone overrides the profile and remains stable after profile changes", async () => {
+    await db.update(users).set({ phone: "0901234567" }).where(eq(users.id, ids.user));
+    const id = await draft();
+    await checkout(id, "+84908765432");
+    await db.update(users).set({ phone: "0901111111" }).where(eq(users.id, ids.user));
+    expect((await db.select().from(bookings).where(eq(bookings.id, id)))[0]?.contactPhone).toBe(
+      "+84908765432",
+    );
+  });
+
+  test("another customer cannot pay for this booking", async () => {
+    const id = await draft();
+    await expect(checkout(id, "+84901234567", ids.other)).rejects.toMatchObject({
+      statusCode: 404,
+    });
+    expect(await db.select().from(payments).where(eq(payments.bookingId, id))).toHaveLength(0);
+  });
+
+  test("operational reads use current account name/email and the booking phone", async () => {
     const id = await draft();
     await db
       .update(bookings)
-      .set({
-        userId: ids.other,
-        contactName: "Retained",
-        contactEmail: email,
-        contactPhone: "0900000010",
-      })
+      .set({ status: "CONFIRMED", contactPhone: "+84901234567" })
       .where(eq(bookings.id, id));
-    await db.delete(users).where(eq(users.id, ids.other));
-    expect((await db.select().from(bookings).where(eq(bookings.id, id)))[0]).toMatchObject({
-      userId: null,
-      contactName: "Retained",
+    await db.update(users).set({ name: "Updated customer" }).where(eq(users.id, ids.user));
+    const booking = await new BookingsRepository(db).findBookingById(id);
+    expect(booking).toMatchObject({
+      contactName: "Updated customer",
       contactEmail: email,
+      contactPhone: "+84901234567",
     });
   });
 });
