@@ -30,10 +30,9 @@ export const bookings = pgTable(
   {
     id: uuid().defaultRandom().primaryKey(),
     bookingCode: varchar({ length: 50 }).unique(),
-    userId: uuid().references(() => users.id, { onDelete: "set null" }),
-    accessTokenHash: varchar({ length: 128 }),
-    contactName: varchar({ length: 150 }),
-    contactEmail: varchar({ length: 320 }),
+    userId: uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
     contactPhone: varchar({ length: 32 }),
     facilityId: uuid()
       .notNull()
@@ -61,13 +60,8 @@ export const bookings = pgTable(
       sql`${table.status} IN ('DRAFT', 'CONFIRMED', 'CANCELLED', 'NO_SHOW', 'CHECKED_IN')`,
     ),
     check(
-      "bookings_contact_after_draft",
-      sql`${table.status} = 'DRAFT' OR (${table.contactName} IS NOT NULL AND ${table.contactEmail} IS NOT NULL AND ${table.contactPhone} IS NOT NULL)`,
-    ),
-    check(
-      "bookings_contact_complete",
-      sql`(${table.contactName} IS NULL AND ${table.contactEmail} IS NULL AND ${table.contactPhone} IS NULL)
-        OR (${table.contactName} IS NOT NULL AND ${table.contactEmail} IS NOT NULL AND ${table.contactPhone} IS NOT NULL)`,
+      "bookings_phone_after_draft",
+      sql`${table.status} = 'DRAFT' OR ${table.contactPhone} IS NOT NULL`,
     ),
     foreignKey({
       columns: [table.facilityId, table.unitTypeId],

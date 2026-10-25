@@ -1,5 +1,4 @@
 export * from "./accounts";
-export * from "./booking-access-audit";
 export * from "./booking-contracts";
 export * from "./bookings";
 export * from "./capacity-allocations";

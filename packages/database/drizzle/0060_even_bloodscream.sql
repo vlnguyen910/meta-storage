@@ -1,0 +1,1 @@
+DROP TABLE "booking_access_audit" CASCADE;
