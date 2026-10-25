@@ -38,4 +38,7 @@ export const FACILITY_DASHBOARD_MESSAGES = {
   staffStatAvailable: "Sẵn sàng nhận việc",
   staffWorkloadLabel: "Nhiệm vụ đang phụ trách",
   staffViewBookingsAction: "Đến bảng điều phối Check-in",
+  staffSearch: "Tìm nhân viên theo tên, email hoặc số điện thoại",
+  staffNoMatch: "Không tìm thấy nhân viên phù hợp",
+  staffNoMatchHelp: "Thử từ khóa khác hoặc xóa nội dung tìm kiếm.",
 } as const;

@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { FieldShell, Input } from "@/components/ui/form-controls";
+import { ListPagination } from "@/components/ui/list-pagination";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useOperationsPricing } from "../hooks/use-operations-pricing";
 import { OPERATIONS_MESSAGES as M } from "../operations.messages";
@@ -25,6 +26,7 @@ import { REPORTING_MESSAGES as R } from "../operations-reporting.messages";
 const REFERENCE_BUSINESS_POLICIES = R.policyRules;
 
 export function OperationsRulesView() {
+  const [historyPage, setHistoryPage] = useState(1);
   const {
     configQuery,
     historyQuery,
@@ -53,6 +55,10 @@ export function OperationsRulesView() {
     isError: isHistoryError,
     refetch: refetchHistory,
   } = historyQuery;
+  const safeHistoryPage = Math.min(
+    historyPage,
+    Math.max(1, Math.ceil((history?.length ?? 0) / 10)),
+  );
 
   // Initialize and safely sync baseVersion without overwriting user's dirty edits
   useEffect(() => {
@@ -250,7 +256,7 @@ export function OperationsRulesView() {
           </p>
         ) : (
           <OperationsTable label={M.pricingHistoryTitle} headings={M.historyHeadingsReal}>
-            {history.map((change) => {
+            {history.slice((safeHistoryPage - 1) * 10, safeHistoryPage * 10).map((change) => {
               const isDeposit = change.operation === "DEPOSIT_POLICY";
               let changeDetail = "";
               if (isDeposit) {
@@ -293,6 +299,15 @@ export function OperationsRulesView() {
               );
             })}
           </OperationsTable>
+        )}
+        {!isHistoryPending && !isHistoryError && (
+          <ListPagination
+            label={M.pricingHistoryTitle}
+            page={safeHistoryPage}
+            pageSize={10}
+            total={history?.length ?? 0}
+            onPageChange={setHistoryPage}
+          />
         )}
       </section>
 

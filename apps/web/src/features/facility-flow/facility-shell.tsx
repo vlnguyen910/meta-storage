@@ -40,12 +40,16 @@ function FacilityShellContent({
   const user = useAuthStore((s) => s.session?.user);
   const pathname = usePathname();
   const currentView = useSearchParams().get("view");
-  const overview = currentView !== "tasks" && currentView !== "check-in";
   const assignment = useMyFacilityAssignments();
   const facility = assignment.data?.find((a) => a.isActive) ?? assignment.data?.[0];
   const root = user?.role === UserRole.FACILITY_MANAGER ? "/facility-manager" : "/staff";
   const role = user?.role === UserRole.FACILITY_MANAGER ? FLOW.manager : FLOW.staff;
   const isManager = user?.role === UserRole.FACILITY_MANAGER;
+  const staffView = isManager && currentView === "staff";
+  const overview = isManager ? currentView !== "check-in" && !staffView : currentView !== "tasks";
+  const activeDashboardHref = staffView
+    ? facilityManagerRoutes.staff
+    : `${root}/dashboard?view=${overview ? "overview" : isManager ? "check-in" : "tasks"}`;
   const navigation = [
     { label: FLOW.overview, href: `${root}/dashboard?view=overview`, icon: LayoutGrid },
     {
@@ -107,16 +111,20 @@ function FacilityShellContent({
                 key={label}
                 href={href}
                 onClick={() => setOpen(false)}
+                aria-current={
+                  (
+                    pathname.endsWith("/dashboard")
+                      ? href === activeDashboardHref
+                      : pathname === href || pathname.startsWith(`${href}/`)
+                  )
+                    ? "page"
+                    : undefined
+                }
                 className={cn(
                   "flex items-center gap-2 rounded px-2 py-2 text-sm text-[#bfc9c4] hover:bg-[#125345] hover:text-white",
-                  ((href.includes("view=overview") &&
-                    pathname.endsWith("/dashboard") &&
-                    overview) ||
-                    ((href.includes("view=tasks") || href.includes("view=check-in")) &&
-                      pathname.endsWith("/dashboard") &&
-                      !overview) ||
-                    pathname === href ||
-                    pathname.startsWith(`${href}/`)) &&
+                  (pathname.endsWith("/dashboard")
+                    ? href === activeDashboardHref
+                    : pathname === href || pathname.startsWith(`${href}/`)) &&
                     "bg-[#125345] font-semibold text-white",
                 )}
               >
@@ -188,11 +196,13 @@ function FacilityShellContent({
                   : pathname.endsWith("/tasks")
                     ? F5.tasks
                     : pathname.endsWith("/dashboard")
-                      ? overview
-                        ? FLOW.overview
-                        : isManager
-                          ? FLOW.managerDispatch
-                          : FLOW.staffTasks
+                      ? staffView
+                        ? F5.staffDirectory
+                        : overview
+                          ? FLOW.overview
+                          : isManager
+                            ? FLOW.managerDispatch
+                            : FLOW.staffTasks
                       : pathname.startsWith(`${root}/returns`)
                         ? RETURNS.facilityReturnsCrumb
                         : isManager
