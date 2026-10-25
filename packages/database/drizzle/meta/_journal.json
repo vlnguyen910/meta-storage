@@ -414,6 +414,20 @@
       "when": 1792915591144,
       "tag": "0058_thick_brother_voodoo",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1792924005506,
+      "tag": "0059_omniscient_hiroim",
+      "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1792929537364,
+      "tag": "0060_even_bloodscream",
+      "breakpoints": true
     }
   ]
 }

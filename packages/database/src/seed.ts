@@ -315,7 +315,6 @@ export async function seedImmediateCheckInSlot(seedNow = getSeedNow()) {
         rentalEndAt: end,
         status: "CONFIRMED",
         assignedStaffId: SEED_USERS[1].id,
-        accessTokenHash: tokenHash,
         qrTokenHash: hash(
           createHmac(
             "sha256",
@@ -501,7 +500,7 @@ async function seedDemoData(seedNow: Date) {
         const row = {
           id: bookingId,
           bookingCode: paid ? code : null,
-          userId: scenario === 0 && facilityIndex % 3 === 0 ? null : customer.id,
+          userId: customer.id,
           facilityId: facility.id,
           unitTypeId: type.id,
           checkInDate,
@@ -512,10 +511,7 @@ async function seedDemoData(seedNow: Date) {
           rentalFeeAmount: String(type.monthlyPrice * months),
           depositAmount: String(type.monthlyPrice),
           totalAmount: String(type.monthlyPrice * (months + 1)),
-          contactName: paid ? customer.name : null,
-          contactEmail: paid ? customer.email : null,
           contactPhone: paid ? `+84${customer.phone.slice(1)}` : null,
-          accessTokenHash: tokenHash,
           status: paid ? "CONFIRMED" : "DRAFT",
           assignedStaffId: scenario === 1 ? staff.id : null,
           qrTokenHash: paid ? hash(qr) : null,
@@ -611,10 +607,7 @@ async function seedDemoData(seedNow: Date) {
         rentalFeeAmount: String(flow2Type.monthlyPrice),
         depositAmount: String(flow2Type.monthlyPrice),
         totalAmount: String(flow2Type.monthlyPrice * 2),
-        contactName: SEED_USERS[0].name,
-        contactEmail: SEED_USERS[0].email,
         contactPhone: `+84${SEED_USERS[0].phone.slice(1)}`,
-        accessTokenHash: flow2TokenHash,
         qrTokenHash: hash(createHmac("sha256", qrSecret).update(flow2BookingId).digest("hex")),
         status: "CONFIRMED",
       })
@@ -747,9 +740,6 @@ async function seedDemoData(seedNow: Date) {
           depositAmount: String(type.monthlyPrice),
           totalAmount: String(type.monthlyPrice * 3),
           status: cancelled ? "CANCELLED" : "DRAFT",
-          accessTokenHash: tokenHash,
-          contactName: SEED_USERS[0].name,
-          contactEmail: SEED_USERS[0].email,
           contactPhone: `+84${SEED_USERS[0].phone.slice(1)}`,
         })
         .onConflictDoNothing();
@@ -1025,8 +1015,6 @@ async function seedFlow3Rentals(seedNow: Date) {
           id: bookingId,
           bookingCode,
           userId: customer.id,
-          contactName: customer.name,
-          contactEmail: customer.email,
           contactPhone: customer.phone,
           facilityId: facility.id,
           unitTypeId: type.id,
@@ -1669,8 +1657,6 @@ async function seed() {
       scenario: "CONFIRMED_TODAY",
       typeCode: "UT-2M",
       assignCode: "HCM-01-001",
-      contactName: "Lê Thị Mai Linh",
-      contactEmail: "customer@metastorage.vn",
       contactPhone: "0900000001",
       months: 1,
       monthlyRate: 900000,
@@ -1687,8 +1673,6 @@ async function seed() {
       scenario: "TOO_EARLY",
       typeCode: "UT-4M",
       assignCode: "HCM-01-004",
-      contactName: "Trần Minh Đức",
-      contactEmail: "duc.tran@example.com",
       contactPhone: "0988776655",
       months: 3,
       monthlyRate: 1500000,
@@ -1705,8 +1689,6 @@ async function seed() {
       scenario: "NO_SHOW",
       typeCode: "UT-6M",
       assignCode: null,
-      contactName: "Công ty SmartLog (Anh Tuấn)",
-      contactEmail: "contact@smartlog.vn",
       contactPhone: "0903112233",
       months: 6,
       monthlyRate: 2100000,
@@ -1739,7 +1721,7 @@ async function seed() {
 
     const [booking] = await queryClient`
       INSERT INTO bookings (
-        id, booking_code, user_id, contact_name, contact_email, contact_phone,
+        id, booking_code, user_id, contact_phone,
         facility_id, unit_type_id, requested_months,
         check_in_date, check_in_slot_id,
         rental_end_at, monthly_rate_snapshot, rental_fee_amount, deposit_amount, total_amount,
@@ -1747,7 +1729,7 @@ async function seed() {
       )
       VALUES (
         ${bookingSeed.id}, ${bookingSeed.code}, ${customer.id},
-        ${bookingSeed.contactName}, ${bookingSeed.contactEmail}, ${bookingSeed.contactPhone},
+        ${bookingSeed.contactPhone},
         ${facHcm.id}, ${typeId}, ${bookingSeed.months},
         ${checkInDate}, ${slotId}, ${rentalEndAt.toISOString()},
         ${bookingSeed.monthlyRate}, ${rentalFeeAmount}, ${depositAmount}, ${totalAmount},
@@ -1755,8 +1737,6 @@ async function seed() {
       )
       ON CONFLICT (id) DO UPDATE SET
         user_id = EXCLUDED.user_id,
-        contact_name = EXCLUDED.contact_name,
-        contact_email = EXCLUDED.contact_email,
         contact_phone = EXCLUDED.contact_phone,
         facility_id = EXCLUDED.facility_id,
         unit_type_id = EXCLUDED.unit_type_id,

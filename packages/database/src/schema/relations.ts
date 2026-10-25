@@ -1,6 +1,5 @@
 import { relations } from "drizzle-orm";
 import { accounts } from "./accounts";
-import { bookingAccessAudit } from "./booking-access-audit";
 import { bookings } from "./bookings";
 import { capacityAllocations } from "./capacity-allocations";
 import { checkInSlots } from "./check-in-slots";
@@ -213,15 +212,7 @@ export const bookingsRelations = relations(bookings, ({ one, many }) => ({
   }),
   unitAssignments: many(unitAssignments),
   rental: one(rentals),
-  accessAudits: many(bookingAccessAudit),
   checkInVerifications: many(checkInVerifications),
-}));
-
-export const bookingAccessAuditRelations = relations(bookingAccessAudit, ({ one }) => ({
-  booking: one(bookings, {
-    fields: [bookingAccessAudit.bookingId],
-    references: [bookings.id],
-  }),
 }));
 
 export const unitAssignmentsRelations = relations(unitAssignments, ({ one }) => ({

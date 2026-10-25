@@ -4,6 +4,7 @@ import { desc, eq, getTableColumns, type SQL, sql } from "drizzle-orm";
 import { type MigrationMeta, readMigrationFiles } from "drizzle-orm/migrator";
 import { bigint, integer, pgSchema, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { type Database, db, queryClient } from "./client";
+import { removeGuestBookings } from "./migrate-account-bookings";
 import { migrateFacilityUnitTypes } from "./migrate-facility-unit-types";
 import { systemSettings } from "./schema/system-settings";
 
@@ -125,6 +126,12 @@ export async function applyMigrations(database: Database, migrations: MigrationM
         (last && Number(last.createdAt) >= migration.folderMillis)
       )
         continue;
+      if (
+        migration.sql.some((statement) =>
+          statement.includes('ALTER TABLE "bookings" ALTER COLUMN "user_id" SET NOT NULL'),
+        )
+      )
+        await removeGuestBookings(tx);
       const contractsLocalTypes = migration.sql.some((statement) =>
         statement.includes('ALTER TABLE "unit_types" ALTER COLUMN "facility_id" SET NOT NULL'),
       );

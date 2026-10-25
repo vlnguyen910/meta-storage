@@ -171,7 +171,7 @@ physical unit and the acting account.
 
 ## Booking contract PDFs (confirmed 2026-10-20)
 
-MVP customer identity is existing booking contactName/contactEmail/contactPhone only;
+MVP customer identity uses account name/email and booking-specific contactPhone;
 no CCCD/passport columns or identity-document storage are introduced.
 `booking_contracts`: UUID id, booking_id FK, immutable positive version (unique per
 booking), UPLOADED/ISSUED status, filename, byte_size (1..20MiB), positive page_count,
@@ -213,7 +213,7 @@ and audited. Missing policy blocks financial assessment; no runtime fallback.
 `return_requests`: UUID id, rental_id/facility_id/slot_id FKs, local date, UTC starts_at/
 ends_at and timezone snapshots, assigned_staff_id FK nullable, reason, status
 (PENDING/CONFIRMED/INSPECTING/FAILED/COMPLETED/CANCELLED), version, manual_review_required,
-created_by FK nullable for a guest magic-link submission, and created_at. Partial unique index permits only one open return per
+created_by FK records the authenticated customer account, and created_at. Partial unique index permits only one open return per
 rental. Rental/booking locks serialize workflow and financial changes; schedule
 capacity/buffer checks serialize on the facility row.
 PENDING does not reserve capacity. A partial unique (facility_id,date,slot_id) index
@@ -257,10 +257,9 @@ explicitly confirmed manual transfers, not refund submissions. No existing payme
 status is overwritten. Settlement closure does not wait for transfers.
 
 `return_audit`: UUID id, nullable request_id/facility_id FKs, nullable actor_id FK, action,
-JSONB details and created_at. Guest request creation has null actor_id/created_by and
-details containing source `GUEST_MAGIC_LINK` and the verified bookingId; the request's
-rental also identifies that booking. No fake account or session token is persisted.
-Account/Staff mutations continue to record their users FK. Append-only approvals/config/transition records.
+JSONB details and created_at. Customer and Staff mutations record their users FK;
+nullable actors remain available for scheduled/system records. Guest creation is removed.
+Append-only approvals/config/transition records.
 No unrelated workflow, renewal/upgrade or check-in policy is introduced.
 
 Flow 4 pricing: `system_settings` key DEPOSIT_MONTHS stores positive integer value
@@ -280,7 +279,7 @@ to public/FS/FM/SA callers; configuration endpoints require BOM.
 
 The existing-model sections record tables and columns declared in
 `packages/database/src/schema`; separately labeled approved-design sections describe
-future implementation, including Customer Support (#164). Flow 2 activates rentals at Staff handover; guest account access remains future work;
+future implementation, including Customer Support (#164). Flow 2 activates rentals at Staff handover; customer access requires an account;
 Booking and Payment are introduced by issue #18.
 
 Issue #24 adds `handover_inspections` and `inspection_photos` under the H6_V1 decision:
@@ -622,6 +621,7 @@ erDiagram
     varchar contact_name
     varchar contact_email
     varchar contact_phone
+    varchar access_token_hash "nullable; inactive legacy checkout"
     reservation_draft_status status
     reservation_pricing_status pricing_status
     jsonb pricing "nullable, immutable checkout price snapshot"
@@ -645,10 +645,7 @@ erDiagram
   bookings {
     uuid id PK
     varchar booking_code UK
-    uuid user_id FK "nullable for guest; ON DELETE SET NULL"
-    varchar access_token_hash "nullable"
-    varchar contact_name "nullable before payment; booking-specific"
-    varchar contact_email "nullable before payment; booking-specific"
+    uuid user_id FK "required; ON DELETE RESTRICT"
     varchar contact_phone "nullable before payment; booking-specific"
     uuid facility_id FK
     uuid unit_type_id FK
@@ -851,9 +848,9 @@ erDiagram
 
 ## Existing constraints and behavior
 
-- New booking access emails have an intent/snapshot in the existing durable outbox,
-  inserted in the payment transaction. The worker prepares the 24-hour tracking link
-  and encrypted payload, then bridges to the existing BullMQ job/delivery ID.
+- Booking confirmation emails have an intent/snapshot in the existing durable outbox,
+  inserted in the payment transaction. The worker prepares an authenticated account
+  booking URL and encrypted payload, then bridges to the existing BullMQ job/delivery ID.
   Legacy jobs remain readable; ENQUEUED differs from provider-confirmed SENT.
 
 - UUID primary keys on `users`, `facilities`, `facility_assignments`,
@@ -869,7 +866,7 @@ erDiagram
   `storage_units.code` 80; `facility_operating_hours.timezone` 64; and
   reservation draft contact name/email/phone 150/320/32.
 - Nullable columns are `users.image`, `users.phone`, `users.password_hash`,
-  `users.role`, `users.status`, `bookings.user_id`, `facilities.description`,
+  `users.role`, `users.status`, `facilities.description`,
   `facility_assignments.ended_at`, `storage_units.floor`,
   `storage_units.location_description`, `storage_unit_maintenance_history.reason`,
   `facility_tasks.description`, `facility_tasks.storage_unit_id`,
@@ -914,7 +911,7 @@ erDiagram
   references also use RESTRICT. `capacity_allocations.reference_id` remains a UUID
   reference value without a database foreign key.
 - User foreign keys use `ON DELETE CASCADE` for `accounts`, `sessions` and
-  `facility_assignments`, and `ON DELETE SET NULL` for `bookings.user_id`.
+  `facility_assignments`, and `ON DELETE RESTRICT` for `bookings.user_id`.
   Facility task/report and unit maintenance history references use `ON DELETE RESTRICT`
   to preserve assigned work, reports, transition history and actor references.
   Facility foreign keys use `ON DELETE CASCADE` for
@@ -938,37 +935,21 @@ are scoped to `(facility_id,unit_type_id)`. Public catalog requires an active fa
 active type and active configured range containing its price.
 Customers select a type; operations assign the physical unit later.
 
-## Guest booking and optional account history (supersedes #77/#92 Customer model)
+## Account-required booking (approved 2026-10-25; supersedes guest decisions)
 
-There is no Customer table. A guest can rent without creating a User. Each Booking
-owns its contact name, email and phone; equal emails do not merge contacts or grant
-access to any other Booking. Contact remains on the client until payment starts.
-
-`bookings.user_id` is nullable and references the authenticated account that saved
-this Booking. Creating a Booking while signed in records the session user, never a
-client-supplied user ID. Guest bookings have no account owner. Signing up, verifying
-an account email, or logging in never attaches guest bookings by email. To save a
-previous guest booking, the user must explicitly verify that booking and choose
-“Save to account”. OTP and claim endpoints remain separate implementation work;
-claim conflict behavior is TBD until that endpoint is designed.
-
-Guest access uses a 24-hour magic link sent only to the contact email stored on that
-Booking. Exchanging it creates a short-lived session scoped to that Booking; requesting
-a replacement link revokes the previous magic grant and is rate-limited/audited. The
-guest session does not attach the Booking to an account; account history ownership
-remains independent of guest access.
-Deleting an account sets its Booking user IDs to NULL and preserves business history.
-Payments and Rentals derive account ownership through Booking, with no duplicated
-Customer or user foreign keys.
-
-The legacy reservation/payment workflow still creates a Booking at payment success.
-It now copies contact directly from that reservation draft and creates no Customer.
-Its account association is not implemented; authenticated ownership is supported by
-the new Booking draft endpoint. `POST /api/bookings/:bookingId/pay` starts payment
-on that draft, preserving ownership and snapshot pricing. The booking webhook
-finalizes the same row or records a full manual refund when a late payment cannot
-receive capacity/check-in. See `docs/booking-payment.md`.
-The project uses disposable dev data: no backfill or historical synchronization.
+Only active authenticated CUSTOMER accounts can create booking drafts, start payments,
+read payment status, cancel bookings, or access their rentals/documents/return requests.
+Ownership is bookings.user_id, required with ON DELETE RESTRICT. No email-based claim,
+guest checkout token, magic link, guest cookie or guest actor grants business access.
+Existing guest business records are deleted before imposing NOT NULL; account-owned
+records remain. Name and email are read from users, not copied onto bookings.
+Signup does not require phone. At payment, contactPhone can be supplied for this booking;
+otherwise users.phone is used. A valid phone is required, stored on bookings only, and
+never written back to users. ContactPhone may be NULL only while the booking is DRAFT.
+Issued contracts retain their own immutable snapshots. Payments and rentals continue to
+derive ownership through booking. Accounts with bookings cannot be physically deleted;
+use the existing account lock/status workflow instead. Guest access endpoints are removed.
+The inactive legacy reservation-draft checkout cannot create unowned bookings anymore.
 
 ## Payment and Booking notes (#18)
 
@@ -977,12 +958,9 @@ The project uses disposable dev data: no backfill or historical synchronization.
   rate; total equals rental fee plus deposit, in VND. Payments use this stored
   quote even if catalog prices change later. Legacy unpriced drafts must be recreated.
 
-- Booking stores per-booking contact and pricing snapshots. All three contact fields
-  are either NULL together or present together; every non-DRAFT state requires all
-  three. Operational readers use these fields directly and exclude DRAFT.
-- `bookings.user_id` is nullable, indexed and references users with ON DELETE SET NULL.
-  It controls saved account history, not guest access. Payment and Rental have no
-  customer_id columns.
+- Booking stores per-booking phone and pricing snapshots; name/email come from users.
+- bookings.user_id is required, indexed and references users with ON DELETE RESTRICT.
+  Payment and Rental have no customer_id columns.
 - paidAt comes from the earliest non-null payments.paid_at with status SUCCEEDED,
   REFUND_PENDING or REFUNDED. Booking queries join slots and aggregate payments before joining,
   preventing duplicate booking rows. Other consumers retain their timestamp
@@ -990,7 +968,7 @@ The project uses disposable dev data: no backfill or historical synchronization.
 - Booking status defaults to DRAFT; a CHECK limits it to DRAFT, CONFIRMED,
   CANCELLED, NO_SHOW or CHECKED_IN. Pricing columns remain required.
 - Bookings retain nullable unique booking_code/qr_token_hash, nullable
-  assigned_staff_id and nullable access_token_hash. Operational lists/details
+  assigned_staff_id and required user_id. Operational lists/details
   exclude DRAFT; drafts cannot be assigned a unit/staff or verified through QR.
 - Payment stores the transaction total, currency, provider references, status
   and paid_at; the monthly rate, rental fee and deposit breakdown belong to
@@ -1070,7 +1048,7 @@ All nonclosed rental statuses (ACTIVE, RETURN_PENDING, OVERDUE) block reassignme
 - `notification_outbox`: one row per `(event_key, recipient_key)` with UUID id,
   booking/facility foreign keys, optional recipient user, snapshotted recipient email,
   event type, subject/text, occurred_at and in-app visibility. Customer email uses
-  booking contact; FM recipients are active facility assignments. No guest identity schema.
+  booking owner account; FM recipients are active facility assignments. No guest identity schema.
 - Email delivery fields: PENDING/PROCESSING/SENT/REVIEW_REQUIRED, attempt count,
   next_attempt_at, first_attempt_at, lease token/expiry, provider message id and sent_at.
   Worker claims rows with row locks, sends outside the transaction, and conditionally
@@ -1094,7 +1072,7 @@ Historical unallocatable refunds are reconciliation issues, never guessed.
 
 `notification_outbox.booking_email`: nullable JSONB snapshot (booking code, facility
 name, unit type, verified paidAt, optional tracking-link delivery id/createdAt/expiry),
-for customer BOOKING_CONFIRMED or guest tracking-link emails.
+for customer BOOKING_CONFIRMED emails; legacy guest tracking-link deliveries are suppressed.
 `mail_payload`: nullable encrypted existing mail-job payload; `mail_expires_at`: nullable
 timestamp; `queued_at`: nullable timestamp. ENQUEUED means queued, not provider SENT.
 No raw token in inbox or logs. The existing BullMQ queue/job ID/delivery ID and
@@ -1102,7 +1080,7 @@ No raw token in inbox or logs. The existing BullMQ queue/job ID/delivery ID and
 at send time, not enqueue time; ambiguous outcomes beyond 24h require review.
 No historical booking email replay. Old queue jobs are adopted by the same job ID.
 
-## Rental lifecycle configuration and guest rental access (2026-10-20)
+## Rental lifecycle configuration (2026-10-20)
 
 `system_settings` includes `EXPIRY_REMINDER_DAYS` and `ABANDONED_REVIEW_DAYS`;
 the legacy lifecycle API filters reads/writes to these two keys. Values are nonnegative PostgreSQL
@@ -1112,19 +1090,9 @@ system_setting_changes plus legacy return_audit in the same transaction. A sweep
 candidate query and state changes. Existing logical notification keys and review flags
 remain stable after configuration changes.
 
-`booking_access_audit`: UUID id, booking_id FK, idempotency_key, action, JSONB details,
-and created_at; `(booking_id, idempotency_key)` is unique. Guest resend attempts store
-an HMAC of the submitted email, never raw email or tokens. A matching attempt inserts
-the corresponding durable customer row in `notification_outbox` in the same transaction;
-the outbox id is also the mail delivery id. Magic links expire 24 hours after request;
-the latest issued link revokes the prior magic grant. Session cookies remain 30 minutes
-and are scoped to one booking. The resend limits are 3 per booking/hour and 10 per IP/hour.
-Guests can read their linked rental, payment/refund history, and ISSUED contract PDFs.
-A valid booking session can list its return requests, read return-slot availability,
-and submit a new return request through `/booking/tracking/:bookingCode` routes.
-These reuse the account workflow's notice, availability, open-request and rental-state
-rules; POST requires an allowed Origin. Guest sessions do not grant access to account
-rental or Staff endpoints, return edits/cancellations, financial decisions or other bookings.
+Guest tracking, resend and return endpoints are removed. The obsolete booking_access_audit
+table is dropped. Customer rental, payment, document and return operations require the
+owning account session and use the existing customer endpoints.
 
 ## Unified system settings (2026-10-20; supersedes global settings tables above)
 
