@@ -18,7 +18,7 @@ quyết định được xác nhận trong phiên làm việc, thay nội dung O
 | `/facility-manager/check-in?view=assign&bookingId=…` | GET/POST contracts, issue, private PDF; upload không tự issue |
 | `/system-admin/return-settings` | Checklist version; facility calendar/operating hours; system settings reminder/review và history |
 | `/operations/fees` | System setting OVERDUE_FEE_RATE và history; không nhân bản cấu hình cọc |
-| Hộp thông báo Customer/FM | GET notifications, limit/offset; không bịa trạng thái đã đọc |
+| Chuông trên headbar, `/customer/notifications`, `/facility-manager/notifications` | GET notifications, limit/offset; popup cuộn riêng, trang đầy đủ tải thêm; không bịa trạng thái đã đọc |
 
 Các methods mới ở `packages/api-client/src/flow3.ts`, được compose vào centralized
 client hiện tại. Không gọi backend rải rác hoặc dùng dữ liệu mock để bù response thiếu.

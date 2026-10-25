@@ -180,15 +180,20 @@ The authenticated Staff shell opens the existing cookie-authenticated
 FM never opens this channel. A valid `STAFF_TASK_ASSIGNED` event for the current user
 refreshes booking queries, shows a toast and offers a link to the task list without
 interrupting an inspection. Duplicate event IDs are ignored within the connection
-lifecycle. No notification history, unread count, offline replay or email is implied.
+lifecycle. The header bell now previews actual received events and links to
+`/staff/notifications`; at most 100 events are retained in memory for this session.
+No persistent history, unread count, offline replay or email is implied.
 
-The shell displays connecting/connected/reconnecting/offline/rejected states. It retries
+The bell dropdown displays connecting/connected/reconnecting/offline/rejected states.
+The connection stays active while the dropdown is closed. It retries
 unexpected disconnects with bounded exponential backoff; connection success and returning
 to the page refresh assignments so missed events are recovered from the database.
 Policy rejection (1008) stops automatic retry and offers a manual reconnect. Offline
 browsers wait for the online event. Existing polling remains as fallback. Leaving the
 Staff shell or changing the authenticated account closes the socket and cancels timers.
-The API must trust the actual web Origin, and deployment proxies must forward WebSocket
+Assignment bursts share a 200ms query-refresh window and show at most one toast every
+two seconds, while retaining each valid event up to the session limit. The API must
+trust the actual web Origin, and deployment proxies must forward WebSocket
 upgrades as well as ordinary HTTP requests.
 
 Read-only FM inspection records distinguish a locked baseline awaiting handover from
