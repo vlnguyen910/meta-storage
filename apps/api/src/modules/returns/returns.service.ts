@@ -166,10 +166,6 @@ export class ReturnsService {
   }
 
   private customer(actor: ReturnCustomerActor, context: ReturnContext) {
-    if (actor.id === null) {
-      if (context.booking.id !== actor.bookingId) throw new NotFoundError(m.notFound);
-      return;
-    }
     this.role(actor, "CUSTOMER");
     if (context.booking.userId !== actor.id) throw new NotFoundError(m.notFound);
   }
@@ -314,7 +310,6 @@ export class ReturnsService {
         {
           slotId: slot.slotId,
           date: input.date,
-          ...(actor.id === null ? { source: "GUEST_MAGIC_LINK", bookingId: actor.bookingId } : {}),
         },
         row.id,
         row.facilityId,
