@@ -111,14 +111,20 @@ export async function applyMigrations(database: Database, migrations: MigrationM
     await tx.execute(
       sql`create table if not exists drizzle.__drizzle_migrations (id serial primary key, hash text not null, created_at bigint)`,
     );
-    const [last] = await tx
-      .select({ createdAt: journal.createdAt })
+    const appliedMigrations = await tx
+      .select({ hash: journal.hash, createdAt: journal.createdAt })
       .from(journal)
-      .orderBy(desc(journal.createdAt))
-      .limit(1);
+      .orderBy(desc(journal.createdAt));
+    const [last] = appliedMigrations;
+    const appliedHashes = new Set(appliedMigrations.map((migration) => migration.hash));
     let applied = 0;
     for (const migration of migrations) {
-      if (last && Number(last.createdAt) >= migration.folderMillis) continue;
+      // A rebase can move a generated migration's timestamp without changing its SQL.
+      if (
+        appliedHashes.has(migration.hash) ||
+        (last && Number(last.createdAt) >= migration.folderMillis)
+      )
+        continue;
       const contractsLocalTypes = migration.sql.some((statement) =>
         statement.includes('ALTER TABLE "unit_types" ALTER COLUMN "facility_id" SET NOT NULL'),
       );
@@ -133,6 +139,7 @@ export async function applyMigrations(database: Database, migrations: MigrationM
         : migration.sql;
       for (const statement of statements) await tx.execute(sql.raw(statement));
       await tx.insert(journal).values({ hash: migration.hash, createdAt: migration.folderMillis });
+      appliedHashes.add(migration.hash);
       applied++;
     }
     if (originals.length) await tx.insert(systemSettings).values(originals);
