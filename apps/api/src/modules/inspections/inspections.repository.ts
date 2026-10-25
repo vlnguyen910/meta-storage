@@ -14,7 +14,7 @@ import {
   unitAssignments,
   users,
 } from "@metastorage/database";
-import { bookingReadFields } from "../bookings/bookings.projection";
+import { bookingCustomer, bookingReadFields } from "../bookings/bookings.projection";
 import type { BookingReadRecord } from "../bookings/bookings.types";
 import { recordImmediateExpiry } from "../rentals/rental-lifecycle.service";
 import type { InspectionRow, InspectionTransaction, NewInspectionRow } from "./inspections.types";
@@ -26,6 +26,7 @@ export class InspectionsRepository {
     const [booking] = await this.db
       .select(bookingReadFields)
       .from(bookings)
+      .innerJoin(bookingCustomer, eq(bookingCustomer.id, bookings.userId))
       .where(eq(bookings.id, bookingId));
     return booking;
   }
@@ -106,6 +107,7 @@ export class InspectionsRepository {
     const [booking] = await tx
       .select(bookingReadFields)
       .from(bookings)
+      .innerJoin(bookingCustomer, eq(bookingCustomer.id, bookings.userId))
       .where(eq(bookings.id, bookingId));
     const [verification] = await tx
       .select()

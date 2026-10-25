@@ -25,7 +25,7 @@ import {
   unitAssignments,
   unitTypes,
 } from "@metastorage/database";
-import { bookingReadFields } from "../bookings/bookings.projection";
+import { bookingCustomer, bookingReadFields } from "../bookings/bookings.projection";
 import { closeBookingBeforeCheckIn } from "../bookings/bookings.repository";
 import type { BookingReadRecord } from "../bookings/bookings.types";
 import { assertAssignedStaff } from "./check-in-access";
@@ -80,6 +80,7 @@ export class CheckInsRepository {
         ),
       })
       .from(bookings)
+      .innerJoin(bookingCustomer, eq(bookingCustomer.id, bookings.userId))
       .innerJoin(facilities, eq(bookings.facilityId, facilities.id))
       .innerJoin(unitTypes, eq(bookings.unitTypeId, unitTypes.id))
       .leftJoin(payments, eq(payments.bookingId, bookings.id))

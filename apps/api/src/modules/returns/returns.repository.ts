@@ -46,6 +46,7 @@ import {
   users,
 } from "@metastorage/database";
 import { NotFoundError } from "../../common/errors/app-error";
+import { bookingCustomer } from "../bookings/bookings.projection";
 import { lifecycleReturnDetail } from "../notifications/lifecycle-notifications.messages";
 import { recordLifecycleEvent } from "../notifications/lifecycle-notifications.repository";
 import type { ReturnContext, ReturnRequestRow, ReturnTransaction } from "./returns.types";
@@ -58,6 +59,7 @@ export class ReturnsRepository {
       .select({ rental: rentals, booking: bookings })
       .from(rentals)
       .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
+      .innerJoin(bookingCustomer, eq(bookingCustomer.id, bookings.userId))
       .where(eq(rentals.id, rentalId));
     if (!row) throw new NotFoundError(m.notFound);
     return row;
@@ -211,7 +213,7 @@ export class ReturnsRepository {
         bookingId: bookings.id,
         bookingCode: bookings.bookingCode,
         customerId: bookings.userId,
-        customerName: bookings.contactName,
+        customerName: bookingCustomer.name,
         customerPhone: bookings.contactPhone,
         rentalId: rentals.id,
         rentalStatus: rentals.status,
@@ -235,6 +237,7 @@ export class ReturnsRepository {
         ),
       )
       .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
+      .innerJoin(bookingCustomer, eq(bookingCustomer.id, bookings.userId))
       .innerJoin(
         storageUnits,
         and(

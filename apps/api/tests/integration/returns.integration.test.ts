@@ -39,11 +39,7 @@ import {
   unitTypes,
   users,
 } from "@metastorage/database";
-import {
-  BOOKING_ACCESS,
-  bookingDeliveryKey,
-  bookingMagicKey,
-} from "@metastorage/shared/booking-access";
+import { BOOKING_ACCESS } from "@metastorage/shared/booking-access";
 import {
   decryptMailPayload,
   encryptMailPayload,
@@ -167,7 +163,7 @@ async function scenario(status: "CONFIRMED" | "PENDING" = "CONFIRMED") {
       totalAmount: "2000000",
       status: "CHECKED_IN",
       contactName: "Return test",
-      contactEmail: "contact@example.test",
+      contactEmail: `${actorIds.owner}@example.test`,
       contactPhone: "0900000000",
     });
     const paymentId = randomUUID();
@@ -839,7 +835,7 @@ describe.skipIf(!target)(
       }
     });
 
-    test("operational context preserves guest bookings and restricts staff/contact visibility", async () => {
+    test("operational context uses account ownership and restricts staff/contact visibility", async () => {
       const item = await scenario();
       const bookingCode = `RETURN-${item.id}`;
       await db.update(bookings).set({ bookingCode }).where(eq(bookings.id, item.bookingId));
@@ -860,7 +856,6 @@ describe.skipIf(!target)(
       expect(
         (await api("owner", "GET", `/return-requests/${item.id}`)).json().data.context,
       ).toBeNull();
-      await db.update(bookings).set({ userId: null }).where(eq(bookings.id, item.bookingId));
       await db
         .update(returnRequests)
         .set({ assignedStaffId: null })
@@ -871,7 +866,7 @@ describe.skipIf(!target)(
         `/facilities/${fixture.facility}/return-requests?limit=100&fromDate=${item.date}`,
       );
       const row = queue.json().data.find((r: { id: string }) => r.id === item.id);
-      expect(row.context.customer.id).toBeNull();
+      expect(row.context.customer.id).toBe(actorIds.owner);
       expect(row.context.assignedStaff).toBeNull();
       expect(row.context.unit.unitTypeName).toBeString();
       expect(row.context.unit.sizeLabel).toBeString();
@@ -1830,7 +1825,7 @@ describe.skipIf(!target)(
           .where(eq(notificationOutbox.eventKey, `rental:${item.rentalId}:overdue`));
         expect(notices).toHaveLength(2);
         expect(notices.find((row) => row.recipientRole === "CUSTOMER")?.recipientEmail).toBe(
-          "contact@example.test",
+          `${actorIds.owner}@example.test`,
         );
         expect(
           notices
@@ -1899,21 +1894,12 @@ describe.skipIf(!target)(
       expect((await state(item.id)).request.status).toBe("CANCELLED");
     });
 
-    test("sweep advances beyond a full batch with no eligible email recipients", async () => {
+    test("sweep advances beyond a full batch of customer notifications", async () => {
       const items = [];
       for (let i = 0; i < 101; i++) items.push(await scenario("PENDING"));
       items.sort((a, b) => a.rentalId.localeCompare(b.rentalId));
       const last = items.at(-1);
       if (!last) throw new Error("Missing batch fixture");
-      await db
-        .update(bookings)
-        .set({ contactEmail: "" })
-        .where(
-          inArray(
-            bookings.id,
-            items.slice(0, -1).map((item) => item.bookingId),
-          ),
-        );
       await db
         .update(facilityAssignments)
         .set({ isActive: false })
@@ -2174,7 +2160,6 @@ describe.skipIf(!target)(
               .from(notificationOutbox)
               .where(eq(notificationOutbox.eventKey, `booking:${item.bookingId}:confirmed`))
           )[0];
-        let token: string | undefined;
         try {
           expect(await queue.getJob(mailJobId(item.bookingId))).toBeUndefined();
           const add = spyOn(queue, "add").mockRejectedValueOnce(new Error("Queue unavailable"));
@@ -2188,14 +2173,19 @@ describe.skipIf(!target)(
           const job = await queue.getJob(mailJobId(item.bookingId));
           if (!job) throw new Error("Missing durable booking job");
           const decoded = JSON.parse(decryptMailPayload(job.data.payload, secret, item.bookingId));
-          token = new URL(decoded.trackingUrl).hash.slice("#token=".length);
-          expect(decoded.recipientEmail).toBe("contact@example.test");
+          expect(new URL(decoded.trackingUrl).pathname).toBe(
+            `/customer/reservations/${item.bookingId}`,
+          );
+          expect(new URL(decoded.trackingUrl).hash).toBe("");
+          expect(decoded.recipientEmail).toBe(`${actorIds.owner}@example.test`);
           expect(decoded.qrUrl).toContain("/check-in?token=");
           expect(job.data.expiresAt).toBe(
             new Date(Date.now() + BOOKING_ACCESS.magicTtl * 1000).toISOString(),
           );
-          expect((await current())?.mailPayload).not.toContain(token);
-          expect((await api("owner", "GET", "/notifications?limit=100")).body).not.toContain(token);
+          expect((await current())?.mailPayload).not.toContain(decoded.qrUrl);
+          expect((await api("owner", "GET", "/notifications?limit=100")).body).not.toContain(
+            decoded.qrUrl,
+          );
           await Promise.all([
             sender.dispatch(new Date(Date.now() + 120000), fixture.facility),
             sender.dispatch(new Date(Date.now() + 120000), fixture.facility),
@@ -2271,8 +2261,6 @@ describe.skipIf(!target)(
         } finally {
           await queue.close();
           const keys = await redis.keys(`bull:${queueName}:*`);
-          keys.push(bookingDeliveryKey(item.bookingId));
-          if (token) keys.push(bookingMagicKey(token));
           if (keys.length) await redis.del(...keys);
           redis.disconnect();
         }
@@ -2281,10 +2269,9 @@ describe.skipIf(!target)(
 
     test("durable inbox authorization and mail retries, concurrency, lost acknowledgements and expiry preserve one logical event", async () => {
       const item = await scenario();
-      // Only this run's facility-owned records; do not dispatch or modify other local data.
+      // Clear this fixture's earlier notifications so the 100-item inbox has only this case.
       await db
-        .update(notificationOutbox)
-        .set({ status: "SENT" })
+        .delete(notificationOutbox)
         .where(eq(notificationOutbox.facilityId, fixture.facility));
       const key = `dispatch:${randomUUID()}`;
       await db.transaction((tx) =>

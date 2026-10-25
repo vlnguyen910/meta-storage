@@ -30,6 +30,15 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
       const cookie = (Array.isArray(cookies) ? cookies : [cookies ?? ""])
         .map((c) => c.split(";")[0])
         .join("; ");
+      const customerLogin = await app.inject({
+        method: "POST",
+        url: "/api/auth/sign-in/email",
+        payload: { email: f.customerEmail, password: f.password },
+      });
+      expect(customerLogin.statusCode).toBe(200);
+      const customerCookie = customerLogin.cookies
+        .map((item) => `${item.name}=${item.value}`)
+        .join("; ");
       const assign = (bookingId: string, unitId: string, headers = { cookie, origin }) =>
         app.inject({
           method: "POST",
@@ -45,7 +54,6 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
       const nextId = randomUUID();
       const accessToken = createHash("sha256").update(randomUUID()).digest("hex");
       const accessTokenHash = createHash("sha256").update(accessToken).digest("hex");
-      await db.update(bookings).set({ accessTokenHash }).where(eq(bookings.id, f.bookingId));
       await db.insert(bookings).values({
         ...original,
         id: nextId,
@@ -125,7 +133,7 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
       const cancellation = await app.inject({
         method: "POST",
         url: `/api/bookings/${winner}/cancel`,
-        headers: { origin, "x-booking-access-token": accessToken },
+        headers: { origin, cookie: customerCookie },
       });
       expect(cancellation.statusCode).toBe(200);
       expect(await unitStatus(replacement)).toBe("AVAILABLE");

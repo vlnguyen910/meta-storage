@@ -27,6 +27,7 @@ import {
   storageUnits,
   users,
 } from "@metastorage/database";
+import { bookingCustomer } from "../bookings/bookings.projection";
 import type { FacilityChargeReadExecutor } from "./rental-charges.types";
 
 export class RentalChargesRepository {
@@ -88,8 +89,8 @@ export class RentalChargesRepository {
           facilityId: rentals.facilityId,
           bookingId: bookings.id,
           bookingCode: bookings.bookingCode,
-          customerName: bookings.contactName,
-          customerEmail: bookings.contactEmail,
+          customerName: bookingCustomer.name,
+          customerEmail: bookingCustomer.email,
           customerPhone: bookings.contactPhone,
           unitCode: storageUnits.code,
           rentalStatus: rentals.status,
@@ -99,6 +100,7 @@ export class RentalChargesRepository {
       .from(rentalCharges)
       .innerJoin(rentals, eq(rentals.id, rentalCharges.rentalId))
       .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
+      .innerJoin(bookingCustomer, eq(bookingCustomer.id, bookings.userId))
       .innerJoin(storageUnits, eq(storageUnits.id, rentals.physicalUnitId));
   }
 
