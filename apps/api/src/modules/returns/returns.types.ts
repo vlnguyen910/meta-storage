@@ -14,7 +14,7 @@ export interface ReturnsRoutesOptions {
 }
 
 export type ReturnTransaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
-export type ReturnCustomerActor = ReturnActor | { id: null; bookingId: string };
+export type ReturnCustomerActor = ReturnActor;
 export interface ReturnContext {
   rental: typeof rentals.$inferSelect;
   booking: typeof bookings.$inferSelect;

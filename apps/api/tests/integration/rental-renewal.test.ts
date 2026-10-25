@@ -39,7 +39,6 @@ import { env } from "../../src/config/env";
 import { auth } from "../../src/modules/auth/auth";
 import { authPlugin } from "../../src/modules/auth/auth.guard";
 import { authRoutes } from "../../src/modules/auth/auth.routes";
-import { GuestRentalAccessRepository } from "../../src/modules/guest-rental-access/guest-rental-access.repository";
 import { PaymentsRepository } from "../../src/modules/payments/payments.repository";
 import type { VerifiedPaymentEvent } from "../../src/modules/payments/payments.types";
 import { renewalsRoutes } from "../../src/modules/renewals/renewals.routes";
@@ -460,8 +459,6 @@ describe.skipIf(!target)("rental renewal with isolated PostgreSQL", () => {
       headers: { cookie },
     });
     expect(detail.json().data.expectedEndAt).toBe(quote.newEndAt);
-    const [guest] = await new GuestRentalAccessRepository(db).rental(bookingId);
-    expect(guest?.rental.expectedEndAt.toISOString()).toBe(quote.newEndAt);
     const report = await new ReportsService(new ReportsRepository(db)).revenue(
       { facilityId: ids.facility, from: "2032-01-10", to: "2032-01-10", limit: 20, offset: 0 },
       { id: ids.manager, role: "FACILITY_MANAGER" },
