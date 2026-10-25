@@ -8,7 +8,7 @@ import {
   spyOn,
   test,
 } from "bun:test";
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import {
   accounts,
   bookings,
@@ -26,6 +26,7 @@ import {
   payments,
   rentals,
   reservationDrafts,
+  sessions,
   storageUnits,
   systemSettings,
   unitAssignments,
@@ -67,6 +68,7 @@ const ids = {
   extraUnit: randomUUID(),
   slot: randomUUID(),
   user: randomUUID(),
+  otherCustomer: randomUUID(),
   admin: randomUUID(),
   staff: randomUUID(),
   manager: randomUUID(),
@@ -85,6 +87,7 @@ let created = false;
 const webhookEventIds: string[] = [];
 let adminCookie = "";
 let customerCookie = "";
+let otherCustomerCookie = "";
 let staffCookie = "";
 let managerCookie = "";
 let redis: Redis | undefined;
@@ -178,6 +181,7 @@ async function draft() {
   const response = await app.inject({
     method: "POST",
     url: "/api/bookings/drafts",
+    headers: { cookie: customerCookie },
     payload: {
       facilityId: ids.facility,
       unitTypeId: ids.type,
@@ -189,24 +193,19 @@ async function draft() {
   expect(response.statusCode).toBe(201);
   return response.json().data as {
     id: string;
-    draftAccessToken: string;
     rentalEndAt: string;
     checkInAt: string;
   };
 }
 
-function pay(
-  booking: { id: string; draftAccessToken: string },
-  key = randomUUID(),
-  extra: Record<string, unknown> = {},
-) {
+function pay(booking: { id: string }, key = randomUUID(), extra: Record<string, unknown> = {}) {
   return app.inject({
     method: "POST",
     url: `/api/bookings/${booking.id}/pay`,
+    headers: { cookie: customerCookie },
     payload: {
-      draftAccessToken: booking.draftAccessToken,
       idempotencyKey: key,
-      contact,
+      contactPhone: contact.phone,
       ...extra,
     },
   });
@@ -283,6 +282,14 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     await db.transaction(async (tx) => {
       await tx.insert(users).values([
         {
+          id: ids.otherCustomer,
+          name: "Other customer",
+          email: `${ids.otherCustomer}@example.test`,
+          role: "CUSTOMER",
+          status: "ACTIVE",
+          emailVerified: true,
+        },
+        {
           id: ids.user,
           name: "Saved booking owner",
           email: `${ids.user}@example.test`,
@@ -316,7 +323,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
         },
       ]);
       await tx.insert(accounts).values(
-        [ids.user, ids.admin, ids.staff, ids.manager].map((userId) => ({
+        [ids.user, ids.otherCustomer, ids.admin, ids.staff, ids.manager].map((userId) => ({
           id: randomUUID(),
           userId,
           accountId: userId,
@@ -364,7 +371,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     await app.register(checkInsRoutes, { prefix: "/api" });
     await app.register(inspectionsRoutes, { prefix: "/api" });
     await app.ready();
-    for (const userId of [ids.user, ids.admin, ids.staff, ids.manager]) {
+    for (const userId of [ids.user, ids.otherCustomer, ids.admin, ids.staff, ids.manager]) {
       const login = await app.inject({
         method: "POST",
         url: "/api/auth/sign-in/email",
@@ -372,11 +379,18 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
       });
       expect(login.statusCode).toBe(200);
       const cookie = login.cookies.map((item) => `${item.name}=${item.value}`).join("; ");
-      if (userId === ids.admin) adminCookie = cookie;
+      if (userId === ids.otherCustomer) otherCustomerCookie = cookie;
+      else if (userId === ids.admin) adminCookie = cookie;
       else if (userId === ids.staff) staffCookie = cookie;
       else if (userId === ids.manager) managerCookie = cookie;
       else customerCookie = cookie;
     }
+    await db
+      .update(sessions)
+      .set({ expiresAt: new Date("2100-01-01T00:00:00Z") })
+      .where(
+        inArray(sessions.userId, [ids.user, ids.otherCustomer, ids.admin, ids.staff, ids.manager]),
+      );
   });
 
   beforeEach(async () => {
@@ -420,6 +434,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     await db.delete(checkInSlots).where(eq(checkInSlots.id, ids.slot));
     await db.delete(checkInSlots).where(eq(checkInSlots.id, ids.lastSlot));
     await db.delete(users).where(eq(users.id, ids.user));
+    await db.delete(users).where(eq(users.id, ids.otherCustomer));
     await db.delete(users).where(eq(users.id, ids.admin));
     await db.delete(users).where(eq(users.id, ids.staff));
     await db.delete(users).where(eq(users.id, ids.manager));
@@ -443,7 +458,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
       app.inject({
         method: "POST",
         url: `/api/bookings/${booking.id}/cancel`,
-        headers: { "x-booking-access-token": booking.draftAccessToken },
+        headers: { cookie: customerCookie },
       });
     const responses = await Promise.all([cancel(), cancel()]);
     expect(responses.map((r) => r.statusCode)).toEqual([200, 200]);
@@ -507,7 +522,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     const status = await app.inject({
       method: "GET",
       url: `/api/payments/${payment.paymentId}/status`,
-      headers: { "x-booking-access-token": booking.draftAccessToken },
+      headers: { cookie: customerCookie },
     });
     expect(status.json().data.refund).toMatchObject({
       amount: "2000000.00",
@@ -522,30 +537,25 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     expect((await pay(replacement)).statusCode).toBe(201);
   });
 
-  test("cancellation requires checkout access or the active account owner and does not expose other bookings", async () => {
+  test("cancellation requires the active customer owner", async () => {
     const booking = await draft();
     const payment = (await pay(booking)).json().data;
     await webhook(payment.paymentCode);
     const url = `/api/bookings/${booking.id}/cancel`;
-    expect((await app.inject({ method: "POST", url })).statusCode).toBe(401);
-    for (const headers of [
-      { "x-booking-access-token": "b".repeat(64) },
-      { cookie: adminCookie },
-      { cookie: staffCookie },
-      { cookie: customerCookie },
-    ]) {
+    for (const [headers, status] of [
+      [{}, 401],
+      [{ "x-booking-access-token": "b".repeat(64) }, 401],
+      [{ cookie: adminCookie }, 403],
+      [{ cookie: staffCookie }, 403],
+      [{ cookie: otherCustomerCookie }, 404],
+    ] as const) {
       const response = await app.inject({ method: "POST", url, headers });
-      expect(response.statusCode).toBe(404);
+      expect(response.statusCode).toBe(status);
       expect(response.headers["cache-control"]).toBe("no-store");
     }
-    expect(
-      (await app.inject({ method: "POST", url, headers: { "x-booking-access-token": "invalid" } }))
-        .statusCode,
-    ).toBe(400);
     expect((await db.select().from(bookings).where(eq(bookings.id, booking.id)))[0].status).toBe(
       "CONFIRMED",
     );
-    await db.update(bookings).set({ userId: ids.user }).where(eq(bookings.id, booking.id));
     expect(
       (await app.inject({ method: "POST", url, headers: { cookie: customerCookie } })).statusCode,
     ).toBe(200);
@@ -557,7 +567,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
       app.inject({
         method: "POST",
         url: `/api/bookings/${booking.id}/cancel`,
-        headers: { "x-booking-access-token": booking.draftAccessToken },
+        headers: { cookie: customerCookie },
       });
     expect((await cancel()).statusCode).toBe(409);
     const payment = (await pay(booking)).json().data;
@@ -578,7 +588,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     const response = await app.inject({
       method: "POST",
       url: `/api/bookings/${booking.id}/cancel`,
-      headers: { "x-booking-access-token": booking.draftAccessToken },
+      headers: { cookie: customerCookie },
     });
     expect(response.statusCode).toBe(409);
     expect((await db.select().from(bookings).where(eq(bookings.id, booking.id)))[0].status).toBe(
@@ -663,7 +673,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
         await app.inject({
           method: "POST",
           url: `/api/bookings/${booking.id}/cancel`,
-          headers: { "x-booking-access-token": booking.draftAccessToken },
+          headers: { cookie: customerCookie },
         })
       ).statusCode,
     ).toBe(409);
@@ -745,7 +755,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
       app.inject({
         method: "POST",
         url: `/api/bookings/${booking.id}/cancel`,
-        headers: { "x-booking-access-token": booking.draftAccessToken },
+        headers: { cookie: customerCookie },
       }),
       checkIn(),
     ]);
@@ -811,7 +821,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
       app.inject({
         method: "POST",
         url: `/api/bookings/${booking.id}/cancel`,
-        headers: { "x-booking-access-token": booking.draftAccessToken },
+        headers: { cookie: customerCookie },
       }),
       app.inject({
         method: "POST",
@@ -914,7 +924,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     const response = await app.inject({
       method: "POST",
       url: `/api/bookings/${booking.id}/cancel`,
-      headers: { "x-booking-access-token": booking.draftAccessToken },
+      headers: { cookie: customerCookie },
     });
     expect(response.statusCode).toBe(500);
     expect((await db.select().from(payments).where(eq(payments.id, payment.paymentId)))[0]).toEqual(
@@ -949,7 +959,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
       app.inject({
         method: "GET",
         url: `/api/payments/${payment.paymentId}/status`,
-        headers: { "x-booking-access-token": booking.draftAccessToken },
+        headers: { cookie: customerCookie },
       });
     await Promise.all([read(), read(), read()]);
     const response = await read();
@@ -987,7 +997,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     for (const headers of [
       {},
       { "x-booking-access-token": "a".repeat(64) },
-      { cookie: customerCookie },
+      { cookie: otherCustomerCookie },
     ]) {
       const response = await app.inject({
         method: "GET",
@@ -1012,7 +1022,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
         app.inject({
           method: "GET",
           url: `/api/payments/${payment.paymentId}/status`,
-          headers: { "x-booking-access-token": booking.draftAccessToken },
+          headers: { cookie: customerCookie },
         });
       expect((await read()).json().data.status).toBe("PENDING");
       expect((await read()).json().data.confirmation).toBeUndefined();
@@ -1035,7 +1045,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
       const response = await app.inject({
         method: "GET",
         url: `/api/payments/${payment.paymentId}/status`,
-        headers: { "x-booking-access-token": booking.draftAccessToken },
+        headers: { cookie: customerCookie },
       });
       expect(response.statusCode).toBe(503);
       expect(
@@ -1059,7 +1069,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     const response = await app.inject({
       method: "GET",
       url: `/api/payments/${payment.paymentId}/status`,
-      headers: { "x-booking-access-token": booking.draftAccessToken },
+      headers: { cookie: customerCookie },
     });
     expect(response.statusCode).toBe(200);
     expect(response.json().data).toMatchObject({
@@ -1080,7 +1090,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     const response = await app.inject({
       method: "GET",
       url: `/api/payments/${payment.paymentId}/status`,
-      headers: { "x-booking-access-token": booking.draftAccessToken },
+      headers: { cookie: customerCookie },
     });
     expect(response.statusCode).toBe(503);
     expect(providerRequests).toHaveLength(2);
@@ -1096,7 +1106,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
       app.inject({
         method: "GET",
         url: `/api/payments/${payment.paymentId}/status`,
-        headers: { "x-booking-access-token": booking.draftAccessToken },
+        headers: { cookie: customerCookie },
       });
     expect((await read()).json().data.status).toBe("PENDING");
     setSystemTime(new Date(Date.now() + 16_000));
@@ -1206,8 +1216,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
       userId: ids.user,
       bookingCode: null,
       qrTokenHash: null,
-      contactName: contact.fullName,
-      contactEmail: contact.email,
+
       contactPhone: contact.phone,
     });
     const holds = await db
@@ -1258,7 +1267,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     const response = await app.inject({
       method: "GET",
       url: `/api/payments/${payment.paymentId}/status`,
-      headers: { "x-booking-access-token": booking.draftAccessToken },
+      headers: { cookie: customerCookie },
     });
     expect(response.statusCode).toBe(200);
     const data = response.json().data;
@@ -1271,7 +1280,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     const expired = await app.inject({
       method: "GET",
       url: `/api/payments/${payment.paymentId}/status`,
-      headers: { "x-booking-access-token": booking.draftAccessToken },
+      headers: { cookie: customerCookie },
     });
     expect(expired.statusCode).toBe(200);
     expect(expired.json().data.checkoutUrl).toBeUndefined();
@@ -1295,61 +1304,29 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     }
   });
 
-  test("checkout credentials are scoped to one payment and never appear in its response", async () => {
+  test("old checkout tokens never authorize payment status", async () => {
     const booking = await draft();
-    const other = await draft();
     const payment = (await pay(booking)).json().data;
-    for (const token of [other.draftAccessToken, "a".repeat(64)]) {
-      const denied = await app.inject({
-        method: "GET",
-        url: `/api/payments/${payment.paymentId}/status`,
-        headers: { "x-booking-access-token": token },
-      });
-      expect(denied.statusCode).toBe(404);
-      expect(denied.headers["cache-control"]).toBe("no-store");
-      expect(denied.json().data).toBeUndefined();
-    }
-    const allowed = await app.inject({
+    const response = await app.inject({
       method: "GET",
       url: `/api/payments/${payment.paymentId}/status`,
-      headers: { "x-booking-access-token": booking.draftAccessToken },
+      headers: { "x-booking-access-token": "a".repeat(64) },
     });
-    expect(allowed.statusCode).toBe(200);
-    expect(allowed.headers["cache-control"]).toBe("no-store");
-    expect(allowed.body).not.toContain(booking.draftAccessToken);
-    expect(allowed.body).not.toContain("holdTokenHash");
-    const missing = await app.inject({
-      method: "GET",
-      url: `/api/payments/${randomUUID()}/status`,
-      headers: { "x-booking-access-token": booking.draftAccessToken },
-    });
-    expect(missing.statusCode).toBe(404);
-    const malformed = await app.inject({
-      method: "GET",
-      url: `/api/payments/${payment.paymentId}/status`,
-      headers: { "x-booking-access-token": "invalid" },
-    });
-    expect(malformed.statusCode).toBe(400);
-    expect(malformed.headers["cache-control"]).toBe("no-store");
+    expect(response.statusCode).toBe(401);
   });
 
   test("only the saved booking owner can read payment through an account session", async () => {
     const booking = await draft();
     const payment = (await pay(booking)).json().data;
-    await db
-      .update(bookings)
-      .set({ contactEmail: `${ids.user}@example.test` })
-      .where(eq(bookings.id, booking.id));
     const request = (cookie: string) =>
       app.inject({
         method: "GET",
         url: `/api/payments/${payment.paymentId}/status`,
         headers: { cookie },
       });
-    expect((await request(customerCookie)).statusCode).toBe(404);
     await db.update(bookings).set({ userId: ids.user }).where(eq(bookings.id, booking.id));
     expect((await request(customerCookie)).statusCode).toBe(200);
-    expect((await request(adminCookie)).statusCode).toBe(404);
+    expect((await request(adminCookie)).statusCode).toBe(403);
     await webhook(payment.paymentCode);
     const paid = await request(customerCookie);
     expect(paid.statusCode).toBe(200);
@@ -1371,7 +1348,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
       app.inject({
         method: "GET",
         url: `/api/payments/${payment.paymentId}/status`,
-        headers: { "x-booking-access-token": booking.draftAccessToken },
+        headers: { cookie: customerCookie },
       });
     await db
       .update(capacityAllocations)
@@ -1408,7 +1385,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     expect(saved?.status).toBe("CONFIRMED");
     expect(saved?.bookingCode).toStartWith("SX-");
     expect(saved?.qrTokenHash).toHaveLength(64);
-    expect(saved?.contactEmail).toBe(contact.email);
+    expect(saved?.contactPhone).toBe(contact.phone);
     const [paid] = await db.select().from(payments).where(eq(payments.id, payment.paymentId));
     expect(paid?.status).toBe("SUCCEEDED");
     expect(paid?.paidAt).toBeInstanceOf(Date);
@@ -1493,7 +1470,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     const statusResponse = await app.inject({
       method: "GET",
       url: `/api/payments/${payment.paymentId}/status`,
-      headers: { "x-booking-access-token": booking.draftAccessToken },
+      headers: { cookie: customerCookie },
     });
     expect(statusResponse.json().data.status).toBe("REFUND_PENDING");
     expect(statusResponse.json().data.confirmation).toBeUndefined();
@@ -1547,6 +1524,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
         await app.inject({
           method: "POST",
           url: "/api/bookings/drafts",
+          headers: { cookie: customerCookie },
           payload: { ...payload, checkInDate: "2030-01-02" },
         })
       ).statusCode,
@@ -1557,6 +1535,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
         await app.inject({
           method: "POST",
           url: "/api/bookings/drafts",
+          headers: { cookie: customerCookie },
           payload: { ...payload, checkInDate: "2030-01-03" },
         })
       ).statusCode,
@@ -1682,7 +1661,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
         app.inject({
           method: "GET",
           url: `/api/payments/${first.paymentId}/status`,
-          headers: { "x-booking-access-token": booking.draftAccessToken },
+          headers: { cookie: customerCookie },
         });
       const status = await getStatus();
       expect(status.statusCode).toBe(200);
@@ -1795,7 +1774,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
       app.inject({
         method: "GET",
         url: `/api/payments/${pending.paymentId}/status`,
-        headers: { "x-booking-access-token": first.draftAccessToken },
+        headers: { cookie: customerCookie },
       });
     expect((await getStatus()).json().data.status).toBe("REFUND_PENDING");
     const confirm = await app.inject({
@@ -2092,7 +2071,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
         .where(eq(capacityAllocations.referenceId, second.id)),
     ).toHaveLength(0);
     expect(
-      (await db.select().from(bookings).where(eq(bookings.id, second.id)))[0]?.contactEmail,
+      (await db.select().from(bookings).where(eq(bookings.id, second.id)))[0]?.contactPhone,
     ).toBeNull();
   });
 
@@ -2115,17 +2094,18 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     ).toHaveLength(1);
   });
 
-  test("wrong draft token cannot start payment", async () => {
+  test("another role cannot start payment for a customer booking", async () => {
     const booking = await draft();
-    expect(
-      (await pay(booking, randomUUID(), { draftAccessToken: "a".repeat(64) })).statusCode,
-    ).toBe(404);
+    const response = await app.inject({
+      method: "POST",
+      url: `/api/bookings/${booking.id}/pay`,
+      headers: { cookie: adminCookie },
+      payload: { idempotencyKey: randomUUID(), contactPhone: contact.phone },
+    });
+    expect(response.statusCode).toBe(403);
     expect(await db.select().from(payments).where(eq(payments.bookingId, booking.id))).toHaveLength(
       0,
     );
-    expect(
-      (await db.select().from(bookings).where(eq(bookings.id, booking.id)))[0]?.accessTokenHash,
-    ).toBe(createHash("sha256").update(booking.draftAccessToken).digest("hex"));
   });
 
   test("expired hold cannot be revived through retries or a new idempotency key", async () => {
@@ -2156,13 +2136,10 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     const booking = await draft();
     const key = randomUUID();
     expect((await pay(booking, key)).statusCode).toBe(201);
+    expect((await pay(booking, key, { contactPhone: "+84908765432" })).statusCode).toBe(409);
     expect(
-      (await pay(booking, key, { contact: { ...contact, email: "other@example.test" } }))
-        .statusCode,
-    ).toBe(409);
-    expect(
-      (await db.select().from(bookings).where(eq(bookings.id, booking.id)))[0]?.contactEmail,
-    ).toBe(contact.email);
+      (await db.select().from(bookings).where(eq(bookings.id, booking.id)))[0]?.contactPhone,
+    ).toBe(contact.phone);
   });
 
   test("non-DRAFT bookings cannot start another checkout", async () => {
@@ -2171,8 +2148,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
       .update(bookings)
       .set({
         status: "CONFIRMED",
-        contactName: contact.fullName,
-        contactEmail: contact.email,
+
         contactPhone: contact.phone,
       })
       .where(eq(bookings.id, booking.id));
@@ -2201,7 +2177,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
         .where(eq(capacityAllocations.referenceId, booking.id)),
     ).toHaveLength(0);
     expect(
-      (await db.select().from(bookings).where(eq(bookings.id, booking.id)))[0]?.contactEmail,
+      (await db.select().from(bookings).where(eq(bookings.id, booking.id)))[0]?.contactPhone,
     ).toBeNull();
   });
 
@@ -2242,6 +2218,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
       const draftResponse = await app.inject({
         method: "POST",
         url: "/api/bookings/drafts",
+        headers: { cookie: customerCookie },
         payload: {
           facilityId: ids.facility,
           unitTypeId: ids.type,
@@ -2323,8 +2300,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
         .update(bookings)
         .set({
           status: "CONFIRMED",
-          contactName: contact.fullName,
-          contactEmail: contact.email,
+
           contactPhone: contact.phone,
           rentalEndAt: middle,
         })
@@ -2333,8 +2309,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
         .update(bookings)
         .set({
           status: "CONFIRMED",
-          contactName: contact.fullName,
-          contactEmail: contact.email,
+
           contactPhone: contact.phone,
           checkInDate: middle.toISOString().slice(0, 10),
         })
@@ -2373,6 +2348,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
         const response = await app.inject({
           method: "POST",
           url: "/api/bookings/drafts",
+          headers: { cookie: customerCookie },
           payload: {
             facilityId: ids.facility,
             unitTypeId: ids.type,
@@ -2400,8 +2376,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
       .update(bookings)
       .set({
         status: "CONFIRMED",
-        contactName: contact.fullName,
-        contactEmail: contact.email,
+
         contactPhone: contact.phone,
       })
       .where(eq(bookings.id, assigned.id));
@@ -2455,9 +2430,9 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
       const response = await unavailable.inject({
         method: "POST",
         url: `/api/bookings/${booking.id}/pay`,
+        headers: { cookie: customerCookie },
         payload: {
-          draftAccessToken: booking.draftAccessToken,
-          contact,
+          contactPhone: contact.phone,
           idempotencyKey: randomUUID(),
         },
       });
@@ -2469,7 +2444,7 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
           .where(eq(capacityAllocations.referenceId, booking.id)),
       ).toHaveLength(0);
       expect(
-        (await db.select().from(bookings).where(eq(bookings.id, booking.id)))[0]?.contactEmail,
+        (await db.select().from(bookings).where(eq(bookings.id, booking.id)))[0]?.contactPhone,
       ).toBeNull();
     } finally {
       env.SEPAY_MERCHANT_ID = merchant;
@@ -2478,16 +2453,14 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     }
   });
 
-  test.each([
-    { contact: undefined },
-    { contact: { ...contact, email: "invalid" } },
-    { draftAccessToken: "invalid" },
-    { idempotencyKey: "short" },
-  ])("invalid input is rejected before persistence: %j", async (extra) => {
-    const booking = await draft();
-    expect((await pay(booking, randomUUID(), extra)).statusCode).toBe(400);
-    expect(await db.select().from(payments).where(eq(payments.bookingId, booking.id))).toHaveLength(
-      0,
-    );
-  });
+  test.each([{ contactPhone: "invalid" }, { contactPhone: "" }, { idempotencyKey: "short" }])(
+    "invalid input is rejected before persistence: %j",
+    async (extra) => {
+      const booking = await draft();
+      expect((await pay(booking, randomUUID(), extra)).statusCode).toBe(400);
+      expect(
+        await db.select().from(payments).where(eq(payments.bookingId, booking.id)),
+      ).toHaveLength(0);
+    },
+  );
 });
