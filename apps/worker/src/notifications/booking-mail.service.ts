@@ -1,12 +1,11 @@
 import { createHmac } from "node:crypto";
-import { BOOKING_ACCESS, createBookingTrackingLink } from "@metastorage/shared/booking-access";
+import { BOOKING_ACCESS } from "@metastorage/shared/booking-access";
 import {
   decryptMailPayload,
   encryptMailPayload,
   type MailJobData,
   BOOKING_EMAIL_MESSAGES as m,
   mailJobId,
-  trackingLinkMailJobId,
 } from "@metastorage/shared/mail";
 import { UnrecoverableError } from "bullmq";
 import { processMailJob } from "../mail/mail.job";
@@ -23,9 +22,9 @@ export class BookingMailService {
   async enqueue(row: BookingMailRow, now: Date) {
     const snapshot = row.bookingEmail;
     if (!snapshot) throw new Error("Missing booking mail snapshot");
-    const trackingLink = snapshot.kind === "TRACKING_LINK";
+    if (snapshot.kind === "TRACKING_LINK") return { status: "SUPPRESSED" as const };
     const deliveryId = snapshot.deliveryId ?? row.bookingId;
-    const jobId = trackingLink ? trackingLinkMailJobId(deliveryId) : mailJobId(row.bookingId);
+    const jobId = mailJobId(row.bookingId);
     const job = await this.options.queue.getJob(jobId);
     if (job) {
       const state = await job.getState();
@@ -52,52 +51,30 @@ export class BookingMailService {
       };
     if (job) return { status: "ENQUEUED" as const };
     if (!row.mailPayload) {
-      const link = await createBookingTrackingLink(this.options.redis, {
-        deliveryId,
-        bookingId: row.bookingId,
-        confirmedAt: new Date(snapshot.linkCreatedAt ?? snapshot.paidAt),
-        secret: this.options.secret,
-        publicAppUrl: this.options.publicAppUrl,
-        replaceExisting: trackingLink,
-      });
-      if (
-        trackingLink &&
-        (!snapshot.bookingCode ||
-          !snapshot.deliveryId ||
-          !snapshot.linkCreatedAt ||
-          !snapshot.linkExpiresAt)
-      )
-        throw new UnrecoverableError(m.sendFailed);
+      const trackingUrl = new URL(
+        `/customer/reservations/${row.bookingId}`,
+        this.options.publicAppUrl,
+      ).href;
       const payload = encryptMailPayload(
-        JSON.stringify(
-          trackingLink
-            ? {
-                deliveryId,
-                recipientEmail: row.recipientEmail,
-                bookingCode: snapshot.bookingCode,
-                trackingUrl: link.trackingUrl,
-                expiresAt: snapshot.linkExpiresAt,
-              }
-            : {
-                deliveryId,
-                recipientEmail: row.recipientEmail,
-                bookingCode: snapshot.bookingCode,
-                facilityName: snapshot.facilityName,
-                unitTypeName: snapshot.unitTypeName,
-                trackingUrl: link.trackingUrl,
-                qrUrl: `${new URL("/check-in", this.options.publicAppUrl)}?token=${createHmac("sha256", this.options.qrTokenSecret).update(row.bookingId).digest("hex")}`,
-              },
-        ),
+        JSON.stringify({
+          deliveryId,
+          recipientEmail: row.recipientEmail,
+          bookingCode: snapshot.bookingCode,
+          facilityName: snapshot.facilityName,
+          unitTypeName: snapshot.unitTypeName,
+          trackingUrl,
+          qrUrl: `${new URL("/check-in", this.options.publicAppUrl)}?token=${createHmac("sha256", this.options.qrTokenSecret).update(row.bookingId).digest("hex")}`,
+        }),
         this.options.secret,
         deliveryId,
       );
       row = await this.repository.bookingPayload(row, payload, expiresAt);
     }
     await this.options.queue.add(
-      trackingLink ? "booking-tracking-link" : "booking-confirmation",
+      "booking-confirmation",
       {
         deliveryId,
-        kind: trackingLink ? "BOOKING_TRACKING_LINK" : "BOOKING_CONFIRMATION",
+        kind: "BOOKING_CONFIRMATION",
         payload: row.mailPayload as string,
         expiresAt: expiresAt.toISOString(),
       },
@@ -113,6 +90,7 @@ export class BookingMailService {
   }
 
   async deliver(data: MailJobData, adapter: MailAdapter) {
+    if (data.kind === "BOOKING_TRACKING_LINK") throw new UnrecoverableError(m.sendFailed);
     const frozen = await this.repository.bookingDeliveryPayload(data.deliveryId);
     let payload = data.payload;
     // A legacy API replica may have enqueued the same content with another IV.
