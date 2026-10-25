@@ -1,6 +1,6 @@
 # Customer booking read API
 
-Both endpoints require an active authenticated account with role `CUSTOMER`. Ownership is checked against the session `userId` and `bookings.user_id`; contact email is never used to claim a booking. Guest bookings with `user_id = NULL` stay on the existing guest tracking access path.
+Both endpoints require an active authenticated account with role `CUSTOMER`. Ownership is checked against the session `userId` and `bookings.user_id`; contact email is never used to claim a booking. Every booking now requires a non-null account owner. Guest endpoints have been removed; name/email are read from users and contactPhone remains booking-specific.
 
 ## List bookings
 
