@@ -31,7 +31,7 @@ export function registerAuthHandlers(mock: MockAdapter): void {
       id: crypto.randomUUID(),
       name,
       email: email.toLowerCase(),
-      phone,
+      phone: phone ?? null,
       password,
       role: UserRole.STORAGE_CUSTOMER,
       status: "ACTIVE",

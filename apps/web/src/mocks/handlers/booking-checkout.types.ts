@@ -1,13 +1,13 @@
 import type {
   BookingDraft,
-  BookingPaymentInput,
   BookingPaymentSession,
   PaymentStatusResponse,
+  ReservationDraftContact,
 } from "@metastorage/contracts";
 
 export interface MockCheckout {
   draft: BookingDraft;
-  contact?: BookingPaymentInput["contact"];
+  contact?: ReservationDraftContact;
   key?: string;
   payment?: BookingPaymentSession;
   status?: PaymentStatusResponse;

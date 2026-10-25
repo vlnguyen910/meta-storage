@@ -10,11 +10,7 @@ export function readCheckoutContext(): CheckoutContext | null {
   if (typeof window === "undefined") return null;
   try {
     const context = JSON.parse(sessionStorage.getItem(key) ?? "null") as CheckoutContext | null;
-    return context?.draft?.id &&
-      /^[a-f0-9]{64}$/.test(context.draft.draftAccessToken) &&
-      context.idempotencyKey
-      ? context
-      : null;
+    return context?.draft?.id && context.idempotencyKey ? context : null;
   } catch {
     return null;
   }
