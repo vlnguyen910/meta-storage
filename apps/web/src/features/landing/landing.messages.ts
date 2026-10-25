@@ -9,6 +9,8 @@ export const landingMessages = {
   faq: "Câu hỏi thường gặp",
   login: "Đăng nhập",
   account: "Tài khoản",
+  signedIn: "Đã đăng nhập",
+  openAccount: (name: string) => `Mở trang quản lý của ${name}`,
   myStorageLookup: "Tra cứu kho của tôi",
   myStorageLookupShort: "Tra cứu kho",
   menu: "Mở menu",

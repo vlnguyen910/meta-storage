@@ -4,9 +4,10 @@ import { ArrowRight, MapPin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { buttonClassName } from "@/components/ui/button";
-import { StatusBadge } from "@/components/ui/display";
+import { Currency, StatusBadge } from "@/components/ui/display";
 import { routes } from "@/config/routes";
 import { cn } from "@/lib/cn";
+import { facilitiesMessages as m } from "./facilities.messages";
 import type { FacilityCatalogItem } from "./facility-catalog.types";
 
 export function FacilityCard({
@@ -44,15 +45,29 @@ export function FacilityCard({
             {facility.address}
           </p>
         </div>
+        <div className="border-t border-line pt-4">
+          <p className="m-0 text-xs text-muted">{m.price}</p>
+          <p className="mt-1 mb-0 text-lg font-bold text-primary">
+            {facility.startingMonthlyPrice === null ? (
+              m.priceUnavailable
+            ) : (
+              <>
+                <span className="text-sm font-normal">{m.from} </span>
+                <Currency value={facility.startingMonthlyPrice} />
+                <span className="text-sm font-normal text-muted"> {m.monthly}</span>
+              </>
+            )}
+          </p>
+        </div>
         <Link
           className={buttonClassName("outline")}
           href={
             protectedMode
-              ? `${routes.reservationNew}?facilityId=${facility.id}`
+              ? `${routes.customer.newReservation}?facilityId=${facility.id}&new=1`
               : routes.facility(facility.id)
           }
         >
-          Xem chi tiết <ArrowRight size={17} />
+          {m.details} <ArrowRight size={17} />
         </Link>
       </div>
     </article>
