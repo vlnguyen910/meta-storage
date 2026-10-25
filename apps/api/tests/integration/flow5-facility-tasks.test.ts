@@ -30,6 +30,7 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Flow 5 manual facil
     await db.insert(bookings).values(
       [bookingId, otherBookingId].map((id) => ({
         id,
+        userId: f.ids.customer,
         facilityId: id === bookingId ? f.facilityId : f.otherFacilityId,
         unitTypeId: id === bookingId ? f.typeId : f.foreignTypeId,
         requestedMonths: 1,

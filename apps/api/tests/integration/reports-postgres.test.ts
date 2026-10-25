@@ -41,6 +41,7 @@ const testUrl = process.env.REPORTS_TEST_DATABASE_URL;
 describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
   const ids = {
     bom: randomUUID(),
+    customer: randomUUID(),
     fm: randomUUID(),
     a: randomUUID(),
     b: randomUUID(),
@@ -69,6 +70,7 @@ describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
     await db.insert(bookings).values({
       id,
       bookingCode: `REPORT-${id}`,
+      userId: ids.customer,
       contactName: "Report Customer",
       contactEmail: "reports@example.test",
       contactPhone: "0901234567",
@@ -115,6 +117,13 @@ describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
     created = true;
     setSystemTime(new Date("2026-12-01T12:00:00Z"));
     await db.insert(users).values([
+      {
+        id: ids.customer,
+        name: "Report customer",
+        email: `${ids.customer}@example.test`,
+        role: "CUSTOMER",
+        status: "ACTIVE",
+      },
       {
         id: ids.bom,
         name: "Report BOM",
@@ -273,7 +282,7 @@ describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
 
     await db.delete(facilities).where(inArray(facilities.id, [ids.a, ids.b]));
     await db.delete(checkInSlots).where(eq(checkInSlots.id, ids.slot));
-    await db.delete(users).where(inArray(users.id, [ids.bom, ids.fm]));
+    await db.delete(users).where(inArray(users.id, [ids.bom, ids.fm, ids.customer]));
   });
   test("reports receipts by paidAt, refunds by refundedAt, and retains refunded receipts", async () => {
     const response = await get(`revenue?${period}&limit=1`);
