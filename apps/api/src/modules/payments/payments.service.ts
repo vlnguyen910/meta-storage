@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import type {
   BookingConfirmation,
   BookingPaymentInput,
@@ -6,38 +6,25 @@ import type {
   ManualRefund,
   ManualRefundConfirmation,
   ManualRefundQuery,
-  PaidBooking,
-  PaymentCheckoutInput,
-  PaymentResult,
   PaymentStatusResponse,
 } from "@metastorage/contracts";
 import type {
   RentalChargePaymentSession,
   StartRentalChargePayment,
 } from "@metastorage/contracts/rental-charges";
-import type { Payment } from "@metastorage/database";
 import type { FastifyBaseLogger, FastifyInstance } from "fastify";
 import { AppError, NotFoundError, UnauthorizedError } from "../../common/errors/app-error";
 import { env } from "../../config/env";
 import { type BookingsService, createBookingsService } from "../bookings/bookings.service";
 import type { BookingReadRecord } from "../bookings/bookings.types";
-import { MockPaymentGateway, type PaymentGateway } from "./payment-mock.gateway";
 import { PAYMENT_MESSAGES } from "./payments.messages";
 import { PaymentsRepository } from "./payments.repository";
-import type { CompletedPayment, PaymentStatusCredentials, PricingSnapshot } from "./payments.types";
+import type { PaymentStatusCredentials } from "./payments.types";
 import { SepayPaymentGateway } from "./sepay.gateway";
-
-function hashToken(token: string) {
-  return createHash("sha256").update(token).digest("hex");
-}
 
 export class PaymentsService {
   constructor(
     private readonly repository: PaymentsRepository,
-    private readonly gateway: PaymentGateway = new MockPaymentGateway(),
-    private readonly pricingProvider: (
-      draftId: string,
-    ) => Promise<PricingSnapshot | null> = async () => null,
     private readonly sepayGateway?: SepayPaymentGateway,
     private readonly bookingEmail?: Pick<BookingsService, "enqueueConfirmation" | "getStatus">,
     private readonly logger?: Pick<FastifyBaseLogger, "warn">,
@@ -71,13 +58,15 @@ export class PaymentsService {
   async startBookingPayment(
     bookingId: string,
     input: BookingPaymentInput,
+    userId: string,
   ): Promise<BookingPaymentSession> {
     if (!this.sepayGateway?.checkoutConfigured)
       throw new AppError(PAYMENT_MESSAGES.sepayUnavailable, 503, "PAYMENT_PROVIDER_UNAVAILABLE");
     const { payment, expiresAt } = await this.repository.prepareBookingPayment({
       bookingId,
-      accessTokenHash: hashToken(input.draftAccessToken),
-      contact: input.contact,
+      userId,
+      holdTokenHash: randomBytes(32).toString("hex"),
+      contactPhone: input.contactPhone,
       idempotencyKey: input.idempotencyKey,
       paymentCode: `${this.sepayGateway.paymentPrefix}${randomBytes(7).toString("hex").toUpperCase()}`,
       holdDurationMs: 10 * 60_000,
@@ -149,128 +138,6 @@ export class PaymentsService {
     return { ...completed.confirmation, emailStatus };
   }
 
-  private async completedResult(completed: CompletedPayment | undefined): Promise<PaymentResult> {
-    if (!completed?.payment.paidAt || !completed.booking.bookingCode || !completed.booking.paidAt) {
-      throw new AppError(PAYMENT_MESSAGES.paymentMissingBookingInformation, 500);
-    }
-    return toPaymentResult(
-      { ...completed.payment, paidAt: completed.payment.paidAt },
-      {
-        ...completed.booking,
-        bookingCode: completed.booking.bookingCode,
-        paidAt: completed.booking.paidAt,
-      },
-      await this.confirmationWithEmail(completed),
-    );
-  }
-
-  async pay(draftId: string, input: PaymentCheckoutInput): Promise<PaymentResult> {
-    const holdTokenHash = hashToken(input.holdToken);
-    const existing = await this.repository.findByIdempotencyKey(input.idempotencyKey);
-    if (existing) {
-      const completedBookingReplay = existing.bookingId && existing.status === "SUCCEEDED";
-      if (
-        (existing.draftId !== draftId && !completedBookingReplay) ||
-        existing.holdTokenHash !== holdTokenHash
-      ) {
-        throw new AppError(
-          PAYMENT_MESSAGES.idempotencyKeyUsedForAnotherCheckout,
-          409,
-          "IDEMPOTENCY_KEY_REUSED",
-        );
-      }
-      if (existing.status === "PENDING") {
-        throw new AppError(PAYMENT_MESSAGES.paymentPendingReconciliation, 409, "PAYMENT_PENDING");
-      }
-      if (existing.status !== "SUCCEEDED") {
-        throw new AppError(
-          PAYMENT_MESSAGES.paymentAttemptFinalized,
-          409,
-          "PAYMENT_ATTEMPT_FINALIZED",
-        );
-      }
-      const completed = await this.repository.findCompletedByIdempotencyKey(
-        input.idempotencyKey,
-        holdTokenHash,
-      );
-      return this.completedResult(completed);
-    }
-
-    const checkout = await this.repository.findCheckout(draftId, holdTokenHash);
-    if (!checkout) throw new NotFoundError(PAYMENT_MESSAGES.holdUnavailable);
-    if (checkout.hold.expiresAt && checkout.hold.expiresAt <= new Date()) {
-      throw new AppError(PAYMENT_MESSAGES.holdExpired, 409, "HOLD_EXPIRED");
-    }
-
-    const pricing = await this.pricingProvider(draftId);
-    if (!pricing)
-      throw new AppError(PAYMENT_MESSAGES.pricingNotConfigured, 409, "PRICING_NOT_CONFIGURED");
-
-    const pending = await this.repository.createPendingPayment({
-      draftId,
-      holdTokenHash,
-      provider: this.gateway.provider,
-      paymentCode: `MOCK${input.idempotencyKey.slice(-12).toUpperCase()}`,
-      idempotencyKey: input.idempotencyKey,
-      pricing,
-    });
-    if (!pending) throw new AppError(PAYMENT_MESSAGES.holdNoLongerAvailable, 409, "HOLD_EXPIRED");
-    if (pending.payment.status !== "PENDING") {
-      throw new AppError(
-        PAYMENT_MESSAGES.idempotencyKeyAlreadyProcessed,
-        409,
-        "IDEMPOTENCY_KEY_REUSED",
-      );
-    }
-
-    const gatewayResult = await this.gateway.charge({
-      amount: pricing.totalAmount,
-      currency: pricing.currency,
-      paymentMethodToken: input.paymentMethodToken,
-      idempotencyKey: input.idempotencyKey,
-    });
-    if (
-      !gatewayResult?.providerPaymentId ||
-      !["SUCCEEDED", "FAILED"].includes(gatewayResult.status)
-    ) {
-      throw new AppError(PAYMENT_MESSAGES.paymentGatewayResultUnknown, 503, "PAYMENT_UNCERTAIN");
-    }
-    if (gatewayResult.status === "FAILED") {
-      await this.repository.markFailed(pending.payment.id);
-      throw new AppError(PAYMENT_MESSAGES.paymentFailed, 402, "PAYMENT_FAILED");
-    }
-
-    let completedCheckout: Awaited<ReturnType<PaymentsRepository["completePendingPayment"]>>;
-    try {
-      completedCheckout = await this.repository.completePendingPayment({
-        paymentId: pending.payment.id,
-        draftId,
-        holdId: checkout.hold.id,
-        providerPaymentId: gatewayResult.providerPaymentId,
-        paidAt: new Date(),
-      });
-    } catch {
-      throw new AppError(
-        PAYMENT_MESSAGES.paymentReceivedPendingReconciliation,
-        503,
-        "PAYMENT_UNCERTAIN",
-      );
-    }
-    if (!completedCheckout?.booking) {
-      throw new AppError(
-        PAYMENT_MESSAGES.paymentReceivedPendingReconciliation,
-        503,
-        "PAYMENT_UNCERTAIN",
-      );
-    }
-    if (!completedCheckout.payment.paidAt)
-      throw new AppError(PAYMENT_MESSAGES.paymentTimestampMissing, 500);
-    if (!completedCheckout.booking.bookingCode || !completedCheckout.booking.paidAt)
-      throw new AppError(PAYMENT_MESSAGES.bookingPaymentInformationMissing, 500);
-
-    return this.completedResult(completedCheckout);
-  }
-
   async handleSepayWebhook(
     headers: Record<string, string | string[] | undefined>,
     rawBody: string,
@@ -316,24 +183,8 @@ export class PaymentsService {
       await this.repository.updateProviderEvent(recorded.id, "IGNORED");
       return { duplicate: false, processed: false };
     }
-    const hold = await this.repository.findActiveHoldForPayment(payment);
-    if (!hold) throw new AppError(PAYMENT_MESSAGES.holdExpired, 409, "HOLD_EXPIRED");
-    const completed = await this.repository.completePendingPayment({
-      paymentId: payment.id,
-      draftId: payment.draftId,
-      holdId: hold.id,
-      providerPaymentId: event.providerEventId,
-      paidAt: new Date(),
-    });
-    if (!completed)
-      throw new AppError(
-        PAYMENT_MESSAGES.paymentReceivedPendingReconciliation,
-        503,
-        "PAYMENT_UNCERTAIN",
-      );
-    await this.repository.updateProviderEvent(recorded.id, "PROCESSED", payment.id);
-    await this.confirmationWithEmail(completed);
-    return { duplicate: false, processed: true, paymentId: payment.id };
+    await this.repository.updateProviderEvent(recorded.id, "IGNORED");
+    return { duplicate: false, processed: false };
   }
 
   private async reconcilePayment(paymentId: string): Promise<void> {
@@ -374,13 +225,9 @@ export class PaymentsService {
     paymentId: string,
     credentials: PaymentStatusCredentials,
   ): Promise<PaymentStatusResponse> {
-    if (!credentials.checkoutAccessToken && !credentials.userId)
-      throw new UnauthorizedError(PAYMENT_MESSAGES.paymentAccessRequired);
+    if (!credentials.userId) throw new UnauthorizedError(PAYMENT_MESSAGES.paymentAccessRequired);
     let payment = await this.repository.findPaymentForStatus(paymentId, {
       userId: credentials.userId,
-      tokenHash: credentials.checkoutAccessToken
-        ? hashToken(credentials.checkoutAccessToken)
-        : undefined,
     });
     if (!payment) throw new NotFoundError(PAYMENT_MESSAGES.paymentNotFound);
     // Authorize before any provider request or state transition. Never use data
@@ -446,62 +293,6 @@ export class PaymentsService {
   }
 }
 
-function toPaymentResult(
-  payment: Pick<Payment, "id" | "provider" | "providerPaymentId" | "currency"> & { paidAt: Date },
-  booking: Pick<
-    BookingReadRecord,
-    | "id"
-    | "bookingCode"
-    | "facilityId"
-    | "unitTypeId"
-    | "checkInSlotStart"
-    | "rentalEndAt"
-    | "requestedMonths"
-    | "status"
-    | "paidAt"
-    | "contactName"
-    | "contactEmail"
-    | "contactPhone"
-    | "rentalFeeAmount"
-    | "depositAmount"
-    | "totalAmount"
-  > & { bookingCode: string; paidAt: Date },
-  confirmation?: BookingConfirmation,
-): PaymentResult {
-  const result: PaidBooking = {
-    id: booking.id,
-    bookingCode: booking.bookingCode,
-    facilityId: booking.facilityId,
-    unitTypeId: booking.unitTypeId,
-    checkInAt: booking.checkInSlotStart.toISOString(),
-    rentalEndAt: booking.rentalEndAt.toISOString(),
-    durationMonths: booking.requestedMonths,
-    status: "CONFIRMED",
-    paidAt: booking.paidAt.toISOString(),
-    contact: {
-      fullName: booking.contactName,
-      email: booking.contactEmail,
-      phone: booking.contactPhone,
-    },
-    pricing: {
-      rentalFeeAmount: booking.rentalFeeAmount,
-      depositAmount: booking.depositAmount,
-      totalAmount: booking.totalAmount,
-      currency: payment.currency,
-    },
-  };
-  return {
-    id: payment.id,
-    status: "SUCCEEDED",
-    provider: payment.provider,
-    providerPaymentId: payment.providerPaymentId,
-    paidAt: payment.paidAt.toISOString(),
-    pricing: result.pricing,
-    booking: result,
-    confirmation,
-  };
-}
-
 export function createPaymentsService(
   fastify: FastifyInstance,
   bookingService?: Pick<BookingsService, "enqueueConfirmation" | "getStatus">,
@@ -525,8 +316,6 @@ export function createPaymentsService(
   const repository = new PaymentsRepository(fastify.db);
   return new PaymentsService(
     repository,
-    undefined,
-    (draftId) => repository.findDraftPricing(draftId),
     sepayGateway,
     bookingService ?? createBookingsService(fastify),
     fastify.log,

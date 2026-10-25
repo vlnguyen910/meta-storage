@@ -2,13 +2,12 @@ import {
   ConfirmManualRefundInputSchema,
   ManualRefundQuerySchema,
   PaymentIdParamsSchema,
-  PaymentStatusHeadersSchema,
 } from "@metastorage/contracts";
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
-import { optionalAuth, requireRole } from "../auth/auth.guard";
+import { requireRole } from "../auth/auth.guard";
 import { AUTH_MESSAGES } from "../auth/auth.messages";
 import { privateTrackingResponse } from "../bookings/bookings.access";
 import { PAYMENT_MESSAGES } from "./payments.messages";
@@ -63,20 +62,18 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
     "/payments/:paymentId/status",
     {
       onRequest: [privateTrackingResponse],
-      preHandler: [optionalAuth],
+      preHandler: [requireRole("CUSTOMER")],
       schema: {
         tags: ["Payments"],
         summary: PAYMENT_MESSAGES.statusSummary,
         description: PAYMENT_MESSAGES.statusDescription,
         params: PaymentIdParamsSchema,
-        headers: PaymentStatusHeadersSchema,
       },
     },
     async (request, reply) => {
       return reply.send(
         successResponse(
           await service.getStatus(request.params.paymentId, {
-            checkoutAccessToken: request.headers["x-booking-access-token"],
             userId: request.user?.id,
           }),
         ),

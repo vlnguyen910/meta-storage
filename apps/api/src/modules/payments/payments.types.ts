@@ -9,20 +9,19 @@ export type CompletedPayment = {
 };
 
 export type PaymentStatusCredentials = {
-  checkoutAccessToken?: string;
   userId?: string;
 };
 
 export type PaymentStatusAccess = {
-  tokenHash?: string;
   userId?: string;
 };
 
 export type PrepareBookingPaymentInput = {
   bookingId: string;
-  accessTokenHash: string;
+  userId: string;
+  holdTokenHash: string;
   idempotencyKey: string;
-  contact: BookingPaymentInput["contact"];
+  contactPhone?: BookingPaymentInput["contactPhone"];
   paymentCode: string;
   holdDurationMs: number;
 };
