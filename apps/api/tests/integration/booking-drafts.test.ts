@@ -1,5 +1,5 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
-import { createHash, randomUUID } from "node:crypto";
+import { afterAll, beforeAll, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import { randomUUID } from "node:crypto";
 import {
   bookings,
   capacityAllocations,
@@ -14,6 +14,7 @@ import {
   storageUnits,
   systemSettings,
   unitTypes,
+  users,
 } from "@metastorage/database";
 import Fastify from "fastify";
 import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
@@ -24,6 +25,7 @@ import { createTestUnitType, deleteTestUnitTypes } from "../fixtures/facility-ca
 // Requires a migrated isolated DB, with DATABASE_URL and BOOKING_TEST_DATABASE_URL set to the same URL.
 const testUrl = process.env.BOOKING_TEST_DATABASE_URL;
 const ids = {
+  customer: randomUUID(),
   facility: randomUUID(),
   type: randomUUID(),
   unit: randomUUID(),
@@ -39,6 +41,7 @@ const input = {
 };
 const app = Fastify();
 let fixturesCreated = false;
+let session: ReturnType<typeof spyOn>;
 const createDraft = (payload: Record<string, unknown> = input) =>
   app.inject({ method: "POST", url: "/api/bookings/drafts", payload });
 
@@ -46,6 +49,18 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
   beforeAll(async () => {
     if (process.env.DATABASE_URL !== testUrl)
       throw new Error("DATABASE_URL must match the isolated BOOKING_TEST_DATABASE_URL");
+    await db.insert(users).values({
+      id: ids.customer,
+      name: "Draft customer",
+      email: `${ids.customer}@example.test`,
+      role: "CUSTOMER",
+      status: "ACTIVE",
+    });
+    const { auth } = await import("../../src/modules/auth/auth");
+    session = spyOn(auth.api, "getSession").mockResolvedValue({
+      user: { id: ids.customer, role: "CUSTOMER", status: "ACTIVE" },
+      session: {},
+    } as never);
     await db
       .insert(systemSettings)
       .values({ key: "DEPOSIT_MONTHS", value: 1, description: "Deposit test setting", version: 1 })
@@ -102,6 +117,7 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
   });
 
   afterAll(async () => {
+    session?.mockRestore();
     await app.close();
     if (!fixturesCreated) return;
     await db.transaction(async (tx) => {
@@ -113,10 +129,11 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
       await tx.delete(facilities).where(eq(facilities.id, ids.facility));
       await tx.delete(checkInSlots).where(eq(checkInSlots.id, ids.slot));
       await tx.delete(checkInSlots).where(eq(checkInSlots.id, ids.extraSlot));
+      await tx.delete(users).where(eq(users.id, ids.customer));
     });
   });
 
-  test("creates a guest draft with the selected slot schedule, immutable pricing and only a token hash persisted", async () => {
+  test("creates an account-owned draft with the selected slot and immutable pricing", async () => {
     const beforePayments = await db.select({ count: count() }).from(payments);
     const beforeReservations = await db.select({ count: count() }).from(reservationDrafts);
     const response = await createDraft({
@@ -142,22 +159,19 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
         currency: "VND",
       },
     });
-    expect(data.draftAccessToken).toMatch(/^[a-f0-9]{64}$/);
+    expect(data.draftAccessToken).toBeUndefined();
     expect(data.accessTokenHash).toBeUndefined();
     expect(data.contact).toBeUndefined();
     const [row] = await db.select().from(bookings).where(eq(bookings.id, data.id));
     expect(row).toMatchObject({
       status: "DRAFT",
-      userId: null,
-      contactName: null,
-      contactEmail: null,
+      userId: ids.customer,
       contactPhone: null,
       bookingCode: null,
       assignedStaffId: null,
       qrTokenHash: null,
       checkInDate: "2030-01-01",
       checkInSlotId: ids.slot,
-      accessTokenHash: createHash("sha256").update(data.draftAccessToken).digest("hex"),
     });
     await db.update(unitTypes).set({ monthlyPrice: 2000000 }).where(eq(unitTypes.id, ids.type));
     expect((await db.select().from(bookings).where(eq(bookings.id, data.id)))[0]?.totalAmount).toBe(
@@ -300,6 +314,6 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
     expect(first.statusCode).toBe(201);
     expect(second.statusCode).toBe(201);
     expect(first.json().data.id).not.toBe(second.json().data.id);
-    expect(first.json().data.draftAccessToken).not.toBe(second.json().data.draftAccessToken);
+    expect(first.json().data.draftAccessToken).toBeUndefined();
   });
 });

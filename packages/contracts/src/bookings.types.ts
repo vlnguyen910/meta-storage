@@ -34,7 +34,6 @@ export type BookingDraft = {
   checkInAt: string;
   rentalEndAt: string;
   durationMonths: number;
-  draftAccessToken: string;
   status: "DRAFT";
   pricing: BookingDraftPricing;
 };

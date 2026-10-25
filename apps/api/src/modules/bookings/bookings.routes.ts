@@ -4,31 +4,23 @@ import {
   BookingDraftInputSchema,
   BookingIdParamsSchema,
   BookingListQuerySchema,
-  BookingMagicLinkInputSchema,
   BookingPaymentInputSchema,
   BookingPaymentParamsSchema,
-  BookingTrackingParamsSchema,
   CustomerBookingPageQuerySchema,
   FacilityBookingsParamsSchema,
-  PaymentStatusHeadersSchema,
   StaffTasksQuerySchema,
 } from "@metastorage/contracts";
 import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
-import { optionalAuth, requireAuth, requireRole } from "../auth/auth.guard";
+import { requireAuth, requireRole } from "../auth/auth.guard";
 import { getFacilityAccessScope, requireAssignedFacility } from "../facilities/facilities.access";
 import { requireFacilityAccess } from "../facilities/facilities.guard";
 import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
 import { PAYMENT_MESSAGES } from "../payments/payments.messages";
 import { createPaymentsService } from "../payments/payments.service";
-import {
-  privateTrackingResponse,
-  requireTrackingOrigin,
-  trackingSessionCookie,
-  trackingSessionToken,
-} from "./bookings.access";
+import { privateTrackingResponse } from "./bookings.access";
 import { BOOKING_MESSAGES } from "./bookings.messages";
 import { createBookingsService } from "./bookings.service";
 import { bookingSwaggerTransform } from "./bookings.swagger";
@@ -54,12 +46,13 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
     {
       config: { swaggerTransform: bookingSwaggerTransform("draft") },
       schema: { body: BookingDraftInputSchema },
-      preHandler: [optionalAuth],
+      preHandler: [requireRole("CUSTOMER")],
     },
     async (request, reply) => {
+      if (!request.user) throw new UnauthorizedError();
       return reply
         .status(201)
-        .send(successResponse(await service.createDraft(request.body, request.user?.id)));
+        .send(successResponse(await service.createDraft(request.body, request.user.id)));
     },
   );
 
@@ -67,10 +60,9 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
     "/bookings/:bookingId/cancel",
     {
       onRequest: [privateTrackingResponse],
-      preHandler: [optionalAuth],
+      preHandler: [requireRole("CUSTOMER")],
       schema: {
         params: BookingPaymentParamsSchema,
-        headers: PaymentStatusHeadersSchema,
         tags: ["Bookings"],
         summary: BOOKING_MESSAGES.cancellationSummary,
         description: BOOKING_MESSAGES.cancellationDescription,
@@ -80,7 +72,6 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
       reply.send(
         successResponse(
           await service.cancelBooking(request.params.bookingId, {
-            checkoutAccessToken: request.headers["x-booking-access-token"],
             userId: request.user?.id,
           }),
         ),
@@ -90,73 +81,29 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
   typedApp.post(
     "/bookings/:bookingId/pay",
     {
+      preHandler: [requireRole("CUSTOMER")],
       schema: {
         params: BookingPaymentParamsSchema,
         body: BookingPaymentInputSchema,
         tags: ["Payments"],
         summary: PAYMENT_MESSAGES.startSummary,
         description: PAYMENT_MESSAGES.startDescription,
-        security: [],
+        security: [{ sessionAuth: [] }],
       },
     },
-    async (request, reply) =>
-      reply
+    async (request, reply) => {
+      if (!request.user) throw new UnauthorizedError();
+      return reply
         .status(201)
         .send(
           successResponse(
-            await paymentsService.startBookingPayment(request.params.bookingId, request.body),
+            await paymentsService.startBookingPayment(
+              request.params.bookingId,
+              request.body,
+              request.user.id,
+            ),
           ),
-        ),
-  );
-
-  typedApp.post(
-    "/booking/magic-link/exchange",
-    {
-      config: { swaggerTransform: bookingSwaggerTransform("exchange") },
-      schema: {
-        body: BookingMagicLinkInputSchema,
-      },
-      onRequest: [privateTrackingResponse, requireTrackingOrigin],
-    },
-    async (request, reply) => {
-      const result = await service.exchangeMagicLink(
-        request.body.token,
-        request.ip,
-        trackingSessionToken(request),
-      );
-      return reply
-        .header("Set-Cookie", trackingSessionCookie(result.sessionToken))
-        .send(successResponse(result.session));
-    },
-  );
-  typedApp.get(
-    "/booking/tracking/:bookingCode",
-    {
-      config: { swaggerTransform: bookingSwaggerTransform("tracking") },
-      schema: {
-        params: BookingTrackingParamsSchema,
-      },
-      onRequest: [privateTrackingResponse],
-    },
-    async (request, reply) =>
-      reply.send(
-        successResponse(
-          await service.getTrackingBooking(
-            request.params.bookingCode,
-            trackingSessionToken(request),
-          ),
-        ),
-      ),
-  );
-  typedApp.post(
-    "/booking/session/revoke",
-    {
-      config: { swaggerTransform: bookingSwaggerTransform("revoke") },
-      onRequest: [privateTrackingResponse, requireTrackingOrigin],
-    },
-    async (request, reply) => {
-      await service.revokeTrackingSession(trackingSessionToken(request));
-      return reply.header("Set-Cookie", trackingSessionCookie("", true)).status(204).send();
+        );
     },
   );
 

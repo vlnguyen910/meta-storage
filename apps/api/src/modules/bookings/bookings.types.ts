@@ -30,7 +30,6 @@ export type CustomerBookingQueryRow = {
 
 export type BookingCancellationAccess = {
   userId?: string;
-  tokenHash?: string;
 };
 
 export type BookingReadRecord = Booking & {

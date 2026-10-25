@@ -42,6 +42,7 @@ describe.skipIf(!testUrl)("pricing transactions with isolated PostgreSQL", () =>
     app.inject({
       method: "POST",
       url: "/api/bookings/drafts",
+      headers: { "x-customer": "1" },
       payload: {
         facilityId: ids.facility,
         unitTypeId: ids.type,
@@ -109,15 +110,17 @@ describe.skipIf(!testUrl)("pricing transactions with isolated PostgreSQL", () =>
       .values({ id: ids.slot, name: "Pricing slot", startTime: "09:00", endTime: "10:00" });
     created = true;
     session = spyOn(auth.api, "getSession").mockImplementation(async ({ headers }) =>
-      new Headers(headers).has("x-manager")
-        ? ({
-            user: { id: ids.manager, role: "FACILITY_MANAGER", status: "ACTIVE" },
-            session: {},
-          } as never)
-        : ({
-            user: { id: ids.actor, role: "BUSINESS_OPERATION_MANAGER", status: "ACTIVE" },
-            session: {},
-          } as never),
+      new Headers(headers).has("x-customer")
+        ? ({ user: { id: ids.actor, role: "CUSTOMER", status: "ACTIVE" }, session: {} } as never)
+        : new Headers(headers).has("x-manager")
+          ? ({
+              user: { id: ids.manager, role: "FACILITY_MANAGER", status: "ACTIVE" },
+              session: {},
+            } as never)
+          : ({
+              user: { id: ids.actor, role: "BUSINESS_OPERATION_MANAGER", status: "ACTIVE" },
+              session: {},
+            } as never),
     );
     app.decorate("db", db);
     app.setValidatorCompiler(validatorCompiler);
