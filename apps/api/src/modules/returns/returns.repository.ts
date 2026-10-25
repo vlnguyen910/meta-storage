@@ -116,6 +116,8 @@ export class ReturnsRepository {
     userId: string,
     role: "FACILITY_MANAGER" | "FACILITY_STAFF",
   ) {
+    // Match account/membership changes: lock the user before its assignment.
+    await tx.select({ id: users.id }).from(users).where(eq(users.id, userId)).for("share");
     const [row] = await tx
       .select({ id: facilityAssignments.id })
       .from(facilityAssignments)
@@ -131,7 +133,7 @@ export class ReturnsRepository {
           or(isNull(facilityAssignments.endedAt), gt(facilityAssignments.endedAt, new Date())),
         ),
       )
-      .for("share");
+      .for("share", { of: facilityAssignments });
     return Boolean(row);
   }
 

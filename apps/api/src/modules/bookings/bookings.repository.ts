@@ -1034,6 +1034,8 @@ export class BookingsRepository {
 
       if (booking.status !== "CONFIRMED") return { error: "INVALID_BOOKING_STATUS" as const };
 
+      // Serialize staff assignment with account changes and membership revocation.
+      await tx.select({ id: users.id }).from(users).where(eq(users.id, staffId)).for("share");
       // 2. Verify staff member exists and has active FACILITY_STAFF assignment for this facility
       const [staff] = await tx
         .select({
@@ -1051,7 +1053,8 @@ export class BookingsRepository {
             eq(facilityAssignments.isActive, true),
             or(isNull(facilityAssignments.endedAt), gt(facilityAssignments.endedAt, new Date())),
           ),
-        );
+        )
+        .for("share", { of: facilityAssignments });
 
       if (!staff) {
         return { error: "STAFF_NOT_IN_FACILITY" as const };
