@@ -371,16 +371,13 @@ describe.skipIf(!target)("contract PDFs and physical handover on existing local 
       .update(payments)
       .set({ status: "SUCCEEDED", paidAt: new Date() })
       .where(eq(payments.bookingId, f.bookingId));
-    await db.update(bookings).set({ contactName: " " }).where(eq(bookings.id, f.bookingId));
+    await db.update(users).set({ name: " " }).where(eq(users.id, ids.owner));
     expect((await issue(f.bookingId, id)).statusCode).toBe(422);
-    await db
-      .update(bookings)
-      .set({ contactName: "MVP customer" })
-      .where(eq(bookings.id, f.bookingId));
+    await db.update(users).set({ name: "MVP customer" }).where(eq(users.id, ids.owner));
     const issued = await issue(f.bookingId, id);
     expect(issued.statusCode).toBe(200);
     expect(issued.json().data.status).toBe("ISSUED");
-    expect(issued.json().data.terms.contactEmail).toBe("contact@example.test");
+    expect(issued.json().data.terms.contactEmail).toBe(`${ids.owner}@example.test`);
     expect(JSON.stringify(issued.json().data)).not.toMatch(
       /objectKey|idempotency|passport|cccd|secret/i,
     );

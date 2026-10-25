@@ -30,7 +30,7 @@ import {
   unitTypes,
 } from "@metastorage/database";
 
-import { bookingReadFields } from "../bookings/bookings.projection";
+import { bookingCustomer, bookingReadFields } from "../bookings/bookings.projection";
 import type { BookingReadRecord } from "../bookings/bookings.types";
 import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
 import type { RentalReadExecutor } from "./rentals.types";
@@ -89,8 +89,8 @@ export class RentalsRepository {
           id: bookings.id,
           bookingCode: bookings.bookingCode,
           userId: bookings.userId,
-          name: bookings.contactName,
-          email: bookings.contactEmail,
+          name: bookingCustomer.name,
+          email: bookingCustomer.email,
           phone: bookings.contactPhone,
         },
         unit: {
@@ -111,6 +111,7 @@ export class RentalsRepository {
       })
       .from(rentals)
       .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
+      .innerJoin(bookingCustomer, eq(bookingCustomer.id, bookings.userId))
       .innerJoin(storageUnits, eq(storageUnits.id, rentals.physicalUnitId))
       .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
       .leftJoin(initialPayment, eq(initialPayment.bookingId, bookings.id))
@@ -244,6 +245,7 @@ export class RentalsRepository {
       })
       .from(rentals)
       .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
+      .innerJoin(bookingCustomer, eq(bookingCustomer.id, bookings.userId))
       .innerJoin(facilities, eq(facilities.id, rentals.facilityId))
       .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
       .leftJoin(storageUnits, eq(storageUnits.id, rentals.physicalUnitId));

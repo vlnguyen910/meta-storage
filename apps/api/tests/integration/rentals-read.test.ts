@@ -179,7 +179,7 @@ describe.skipIf(!target)("My Storage reads against existing local container Post
     for (let i = 0; i < 2; i++) closed.push((await createRental(ids.owner, "CLOSED")).id);
     closed.sort();
     foreignRental = (await createRental(ids.other, "ACTIVE")).id;
-    guestRental = (await createRental(null, "ACTIVE")).id;
+    guestRental = (await createRental(ids.other, "ACTIVE")).id;
     // Preserve PostgreSQL precision beyond JavaScript Date's millisecond precision.
     await db
       .update(rentals)

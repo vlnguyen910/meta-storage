@@ -8,6 +8,7 @@ import {
   exists,
   facilities,
   facilityAssignments,
+  getTableColumns,
   gt,
   isNull,
   notificationOutbox,
@@ -26,7 +27,11 @@ export async function recordLifecycleEvent(
   tx: NotificationTransaction,
   input: LifecycleEventInput,
 ) {
-  const [booking] = await tx.select().from(bookings).where(eq(bookings.id, input.bookingId));
+  const [booking] = await tx
+    .select({ ...getTableColumns(bookings), contactEmail: users.email })
+    .from(bookings)
+    .innerJoin(users, eq(users.id, bookings.userId))
+    .where(eq(bookings.id, input.bookingId));
   if (!booking) return;
   const at = input.occurredAt ?? new Date();
   const [bookingInfo] =

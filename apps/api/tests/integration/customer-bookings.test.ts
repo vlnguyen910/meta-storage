@@ -155,7 +155,6 @@ describe.skipIf(!target)("Customer booking reads against isolated PostgreSQL", (
     await createBooking(ids.owner, "CANCELLED");
     await createBooking(ids.owner, "DRAFT");
     await createBooking(ids.other, "CONFIRMED");
-    await createBooking(null, "CONFIRMED");
 
     await db.insert(payments).values([
       {

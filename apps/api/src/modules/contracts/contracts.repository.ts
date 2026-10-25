@@ -20,13 +20,15 @@ import {
   users,
 } from "@metastorage/database";
 import { NotFoundError } from "../../common/errors/app-error";
+import { bookingCustomer, bookingReadFields } from "../bookings/bookings.projection";
 import type { ContractRow, ContractTransaction } from "./contracts.types";
 export class ContractsRepository {
   constructor(readonly db: Database) {}
   async booking(id: string, tx: ContractTransaction | Database = this.db) {
     const [row] = await tx
-      .select({ booking: bookings, facility: facilities, unitType: unitTypes })
+      .select({ booking: bookingReadFields, facility: facilities, unitType: unitTypes })
       .from(bookings)
+      .innerJoin(bookingCustomer, eq(bookingCustomer.id, bookings.userId))
       .innerJoin(facilities, eq(facilities.id, bookings.facilityId))
       .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
       .where(eq(bookings.id, id));

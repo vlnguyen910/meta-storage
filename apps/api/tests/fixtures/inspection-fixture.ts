@@ -49,6 +49,7 @@ export async function createInspectionFixture(allowExistingLocal = false) {
   const userId = randomUUID(),
     outsiderId = randomUUID(),
     managerId = randomUUID(),
+    customerId = randomUUID(),
     facilityId = randomUUID(),
     unitTypeId = randomUUID(),
     unitId = randomUUID(),
@@ -66,6 +67,14 @@ export async function createInspectionFixture(allowExistingLocal = false) {
     rentalEnd = new Date(now + 30 * 86400_000);
   await db.transaction(async (tx) => {
     await tx.insert(users).values([
+      {
+        id: customerId,
+        name: "Test customer",
+        email: `customer-${suffix}@example.test`,
+        role: "CUSTOMER",
+        status: "ACTIVE",
+        emailVerified: true,
+      },
       {
         id: managerId,
         name: "Facility Manager",
@@ -93,6 +102,13 @@ export async function createInspectionFixture(allowExistingLocal = false) {
     ]);
     const hashed = await hashPassword(password);
     await tx.insert(accounts).values([
+      {
+        id: randomUUID(),
+        userId: customerId,
+        accountId: customerId,
+        providerId: "credential",
+        password: hashed,
+      },
       {
         id: randomUUID(),
         userId: managerId,
@@ -160,7 +176,7 @@ export async function createInspectionFixture(allowExistingLocal = false) {
     await tx.insert(bookings).values({
       id: bookingId,
       bookingCode: `BK-TEST-${suffix.toUpperCase()}`,
-      userId: null,
+      userId: customerId,
       contactName: "Test customer",
       contactEmail: `customer-${suffix}@example.test`,
       contactPhone: "0900000000",
@@ -201,6 +217,8 @@ export async function createInspectionFixture(allowExistingLocal = false) {
     });
   });
   return {
+    customerId,
+    customerEmail: `customer-${suffix}@example.test`,
     userId,
     managerId,
     managerEmail,
@@ -239,7 +257,9 @@ export async function createInspectionFixture(allowExistingLocal = false) {
         await deleteTestUnitTypes(tx, eq(unitTypes.id, unitTypeId));
         await tx.delete(facilities).where(eq(facilities.id, facilityId));
         await tx.delete(checkInSlots).where(eq(checkInSlots.id, slotId));
-        await tx.delete(users).where(inArray(users.id, [userId, managerId, outsiderId]));
+        await tx
+          .delete(users)
+          .where(inArray(users.id, [userId, managerId, outsiderId, customerId]));
       });
     },
   };
