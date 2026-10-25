@@ -44,9 +44,11 @@ export function useStaffTaskNotifications() {
     let stopped = false;
     let socket: WebSocket | null = null;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let eventRefreshTimer: ReturnType<typeof setTimeout> | undefined;
     let attempts = 0;
     let denied = false;
     const seen = new Set<string>();
+    let lastToastAt = 0;
     const refresh = () => {
       void queryClient.invalidateQueries({ queryKey: bookingKeys.all });
     };
@@ -89,9 +91,29 @@ export function useStaffTaskNotifications() {
         if (!isTaskEvent(event) || event.recipientId !== userId || seen.has(event.id)) return;
         seen.add(event.id);
         if (seen.size > 100) seen.delete(seen.values().next().value as string);
+        const historyKey = ["bookings", "notification-events", userId] as const;
+        const history = queryClient.getQueryData<StaffTaskAssignedNotification[]>(historyKey) ?? [];
+        if (history.some((item) => item.id === event.id)) return;
+        // Keep only real events received in this session; the server has no Staff history API.
+        queryClient.setQueryData(
+          historyKey,
+          [event, ...history]
+            .sort((a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt))
+            .slice(0, 100),
+        );
         setReceived(true);
-        showToast(STAFF_NOTIFICATIONS.received);
-        refresh();
+        // Keep bursts of assignments from stacking an unbounded column of toasts.
+        if (Date.now() - lastToastAt >= 2000) {
+          showToast(STAFF_NOTIFICATIONS.received);
+          lastToastAt = Date.now();
+        }
+        // Coalesce assignment bursts while every event remains immediately visible in the inbox.
+        if (!eventRefreshTimer) {
+          eventRefreshTimer = setTimeout(() => {
+            eventRefreshTimer = undefined;
+            refresh();
+          }, 200);
+        }
       };
       current.onclose = ({ code }) => {
         if (stopped || socket !== current) return;
@@ -132,6 +154,7 @@ export function useStaffTaskNotifications() {
       stopped = true;
       clearTimeout(timer);
       socket?.close();
+      clearTimeout(eventRefreshTimer);
       window.removeEventListener("offline", offline);
       window.removeEventListener("online", online);
       document.removeEventListener("visibilitychange", visible);
