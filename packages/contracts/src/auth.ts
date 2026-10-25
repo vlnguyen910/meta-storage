@@ -10,7 +10,7 @@ export const CustomerSignUpInputSchema = z
   .object({
     name: z.string().trim().min(1).max(150),
     email: z.string().trim().toLowerCase().email().max(255),
-    phone: z.string().trim().min(1).max(20),
+    phone: z.string().trim().min(1).max(20).optional(),
     password: z.string().min(8).max(128),
     confirmPassword: z.string().min(8).max(128),
     callbackTarget: z.enum(["web", "mobile"]),
