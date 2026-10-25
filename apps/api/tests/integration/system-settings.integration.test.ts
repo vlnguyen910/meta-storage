@@ -336,6 +336,43 @@ describe.skipIf(!localUrl)("unified settings using existing local PostgreSQL", (
     }
   });
 
+  test("rebased migration hashes skip applied SQL while pending migrations still run", async () => {
+    const table = `settings_rebase_${randomUUID().replaceAll("-", "")}`;
+    const hash = randomUUID();
+    const pendingHash = randomUUID();
+    const timestamp = Date.now() + 1000000000000;
+    const original = {
+      hash,
+      bps: true,
+      folderMillis: timestamp,
+      sql: [`create table ${table} (value integer)`, `insert into ${table} values (1)`],
+    };
+    const rebased = { ...original, folderMillis: timestamp + 2 };
+    const pending = {
+      hash: pendingHash,
+      bps: true,
+      folderMillis: timestamp + 1,
+      sql: [`update ${table} set value = value + 1`],
+    };
+    try {
+      expect(await applyMigrations(db, [original])).toBe(1);
+      expect(await applyMigrations(db, [pending, rebased])).toBe(1);
+      expect(await applyMigrations(db, [pending, rebased])).toBe(0);
+      const [stored] = await db.execute(sql`select value from ${sql.identifier(table)}`);
+      expect(stored?.value).toBe(2);
+      const applied = await db.execute(
+        sql`select created_at from drizzle.__drizzle_migrations where hash = ${hash}`,
+      );
+      expect(applied).toHaveLength(1);
+      expect(Number(applied[0]?.created_at)).toBe(timestamp);
+    } finally {
+      await db.execute(sql`drop table if exists ${sql.identifier(table)}`);
+      await db.execute(
+        sql`delete from drizzle.__drizzle_migrations where hash in (${hash}, ${pendingHash})`,
+      );
+    }
+  });
+
   test("migration failure rolls back generated DDL, journal and data writes", async () => {
     const before = await row("ABANDONED_REVIEW_DAYS");
     const table = `settings_rollback_${randomUUID().replaceAll("-", "")}`;
