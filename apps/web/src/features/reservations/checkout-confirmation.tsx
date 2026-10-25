@@ -2,6 +2,7 @@
 import { ArrowLeft, Check, Copy } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Currency } from "@/components/ui/display";
 import { isMockMode } from "@/config/api-mode";
@@ -17,6 +18,10 @@ export function CheckoutConfirmation({
   state: Pick<CheckoutState, "confirmation" | "qrDataUrl" | "paidPricing">;
 }) {
   const [copied, setCopied] = useState(false);
+  const pathname = usePathname();
+  const facilitiesPath = pathname?.startsWith("/customer/")
+    ? routes.customer.facilities
+    : routes.facilities;
   const confirmation = state.confirmation;
   if (!confirmation) return null;
   return (
@@ -101,7 +106,7 @@ export function CheckoutConfirmation({
         </CheckoutPanel>
       </div>
       <div className={s.actions}>
-        <Link className={s.primary} href={routes.facilities}>
+        <Link className={s.primary} href={facilitiesPath}>
           <ArrowLeft size={16} />
           {m.backToFacilities}
         </Link>

@@ -1,4 +1,6 @@
 export const checkoutMessages = {
+  customerTitle: "Đặt kho mới",
+  customerDescription: "Chọn loại kho, lịch nhận và kiểm tra đơn thuê trước khi thanh toán.",
   bookingUuid: "Booking ID",
   startAgain: "Bắt đầu đặt kho mới",
   expiredPayment:
@@ -104,7 +106,7 @@ export const checkoutMessages = {
   pricingNotice:
     "Hệ thống chưa cấu hình tiền cọc và tổng thanh toán cho loại kho này. Thanh toán sẽ khả dụng khi có báo giá đầy đủ.",
   checkout: "Thanh toán",
-  paymentTitle: "Chọn phương thức thanh toán",
+  paymentTitle: "Thanh toán đơn thuê",
   paymentDescription: "Kiểm tra thông tin đơn thuê trước khi hoàn tất thanh toán.",
   paymentUnavailable: "Thanh toán chưa khả dụng",
   bank: "Chuyển khoản / Mobile Banking",

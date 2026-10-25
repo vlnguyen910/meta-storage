@@ -98,16 +98,6 @@
   gap: 14px;
   white-space: nowrap;
 }
-.hotline {
-  display: grid;
-  text-align: right;
-  color: var(--green);
-  white-space: nowrap;
-}
-.hotline small {
-  font-size: 9px;
-  text-transform: uppercase;
-}
 .account {
   border-radius: 50%;
   background: var(--green);
@@ -125,6 +115,49 @@
   font-family: "Space Grotesk", sans-serif;
   font-size: 13px;
   font-weight: 600;
+}
+.header .accountSession {
+  gap: 10px;
+  padding: 6px 10px;
+  border: 1px solid #bfcac4;
+  border-radius: 4px;
+  background: #e8f3ef;
+  color: var(--green);
+  text-decoration: none;
+}
+.accountSession:hover {
+  background: #d9eee7;
+  border-color: #165f4d;
+}
+.accountAvatar {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--green);
+  color: white;
+  font-weight: 700;
+}
+.accountIdentity {
+  display: grid;
+  max-width: 180px;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+.accountIdentity small {
+  font-size: 10px;
+  color: #404945;
+}
+.accountIdentity strong {
+  font-size: 13px;
+}
+.accountSession > svg {
+  flex-shrink: 0;
 }
 .tracking {
   display: inline-flex;
@@ -758,9 +791,6 @@
   .desktopNav {
     gap: 10px;
     font-size: 11px;
-  }
-  .hotline {
-    display: none;
   }
   .headingRow {
     align-items: start;

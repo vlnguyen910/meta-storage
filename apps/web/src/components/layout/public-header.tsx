@@ -1,5 +1,5 @@
 "use client";
-import { KeyRound, Menu, UserRound, Warehouse } from "lucide-react";
+import { ChevronRight, KeyRound, Menu, UserRound, Warehouse } from "lucide-react";
 import Link from "next/link";
 import { roleHome, routes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
@@ -47,16 +47,27 @@ export function PublicHeader() {
           ) : null}
           <Link
             href={accountHref}
-            aria-label={session ? m.account : m.login}
-            className={`${s.account} ${!session ? s.accountLogin : ""}`}
+            aria-label={session ? m.openAccount(session.user.name) : m.login}
+            className={`${s.account} ${session ? s.accountSession : s.accountLogin}`}
           >
-            <UserRound size={18} />
-            {!session ? <span>{m.login}</span> : null}
+            {session ? (
+              <>
+                <span className={s.accountAvatar} aria-hidden="true">
+                  {session.user.name.trim().slice(0, 1).toLocaleUpperCase("vi")}
+                </span>
+                <span className={s.accountIdentity}>
+                  <small>{m.signedIn}</small>
+                  <strong>{session.user.name}</strong>
+                </span>
+                <ChevronRight size={16} aria-hidden="true" />
+              </>
+            ) : (
+              <>
+                <UserRound size={18} aria-hidden="true" />
+                <span>{m.login}</span>
+              </>
+            )}
           </Link>
-          <a href="tel:19006868" className={s.hotline}>
-            <small>{m.hotlineLabel}</small>
-            <strong>{m.hotline}</strong>
-          </a>
           <details className={s.mobileMenu}>
             <summary aria-label={m.menu}>
               <Menu size={23} />

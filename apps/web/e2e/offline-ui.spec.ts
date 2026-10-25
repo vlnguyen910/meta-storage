@@ -102,7 +102,7 @@ test("guest checkout uses the selected price and creates a mock booking", async 
   );
   await page.getByRole("button", { name: "Xem đơn thuê", exact: true }).click();
   await page.getByRole("button", { name: "Thanh toán", exact: true }).click();
-  await expect(page.getByText("Thanh toán mô phỏng", { exact: true })).toBeVisible();
+  await expect(page.getByText("Thanh toán qua SePay", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Thanh toán", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Đặt thuê kho thành công!" })).toBeVisible();
   await expect(page.getByText(/Chế độ mock không gửi email/)).toBeVisible();
