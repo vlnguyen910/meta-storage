@@ -152,12 +152,12 @@ test("FS submits a report and FM accepts it to complete the task", async ({ page
   expect(state.writes.filter((row) => row.path.endsWith("/reports"))).toHaveLength(1);
 });
 
-test("Admin manages facilities, types, offerings and membership with revoke guards", async ({
+test("Operations manages facilities, types, offerings and membership with revoke guards", async ({
   page,
 }) => {
   const state = flow5Fixture();
-  await mockFlow5(page, state, "SYSTEM_ADMIN", f5id(9));
-  await page.goto("/system-admin/facility-management");
+  await mockFlow5(page, state, "BUSINESS_OPERATION_MANAGER", f5id(9));
+  await page.goto("/operations/facility-management");
   await page.getByRole("button", { name: "Thêm cơ sở", exact: true }).click();
   let dialog = page.getByRole("dialog");
   await dialog.getByLabel("Mã", { exact: true }).fill("FAC-WEB");
@@ -200,7 +200,7 @@ test("Admin manages facilities, types, offerings and membership with revoke guar
     offeringCard.getByRole("button", { name: "Tắt cung cấp", exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Phân công nhân sự", exact: true }).click();
-  await page.getByLabel("Tài khoản", { exact: true }).selectOption(f5staff2);
+  await page.getByLabel("ID tài khoản (UUID)", { exact: true }).fill(f5staff2);
   await page.getByRole("button", { name: "Gán nhân sự vào cơ sở", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Nhân viên hai", exact: true })).toBeVisible();
   state.revokeConflict = true;

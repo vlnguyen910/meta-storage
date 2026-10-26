@@ -27,7 +27,6 @@ Không cần seed lại để kiểm thử dữ liệu đang có. Seed có thể
 | FM | `/facility-manager/tasks` | Giao việc, đổi nhân viên, xem chi tiết và lịch sử báo cáo |
 | FM | `/facility-manager/staff` | Danh sách nhân viên cơ sở, email/số điện thoại và số booking được giao |
 | FS | `/staff/tasks` | Xem việc được giao, gửi báo cáo và đọc lịch sử |
-| Admin | `/system-admin/facility-management` | Cơ sở, loại kho, loại kho tại cơ sở, nhân sự và tra cứu ô kho |
 | Admin | `/system-admin/facility-assignments` | Phân công và thu hồi nhân sự tại cơ sở |
 | BOM | `/operations/facility-management` | Quản lý cơ sở/loại kho/nhân sự theo quyền backend |
 

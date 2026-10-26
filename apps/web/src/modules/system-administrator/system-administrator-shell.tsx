@@ -22,8 +22,7 @@ export function SystemAdministratorShell({ children }: Readonly<AdminShellProps>
   const contextLabel = !isMockMode
     ? pathname === systemAdministratorRoutes.returnSettings
       ? F3.settings
-      : pathname === systemAdministratorRoutes.facilityManagement ||
-          pathname === systemAdministratorRoutes.facilityAssignments
+      : pathname === systemAdministratorRoutes.facilityAssignments
         ? F5.title
         : null
     : null;
