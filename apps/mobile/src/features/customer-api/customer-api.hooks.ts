@@ -259,9 +259,13 @@ export function useCustomerRental(owner: string, id: string, go: CustomerNavigat
     defaultValues: { reason: "" },
   });
   const rental = useQuery({ queryKey: ["rental", owner, id], queryFn: () => api.rentals.get(id) });
-  const charges = useQuery({
+  const charges = useInfiniteQuery({
     queryKey: ["rental-charges", owner, id],
-    queryFn: ({ signal }) => api.rentalCharges.list(id, signal),
+    initialPageParam: 0,
+    queryFn: ({ pageParam, signal }) =>
+      api.rentalCharges.list(id, { limit: 20, offset: pageParam }, signal),
+    getNextPageParam: (page) =>
+      page.offset + page.items.length < page.total ? page.offset + page.items.length : undefined,
   });
   const payments = useQuery({
     queryKey: ["rental-payments", owner, id],
