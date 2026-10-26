@@ -1,4 +1,4 @@
-import type { UserRole } from "@metastorage/contracts";
+import type { User, UserRole } from "@metastorage/contracts";
 import type { ReactNode } from "react";
 
 export type AdminSection = "users" | "assignments" | "login-history" | "activity-logs";
@@ -102,10 +102,25 @@ export interface AdminDrawerProps {
 export type AdminDialogProps = AdminDrawerProps;
 
 export interface AdminUserDetailProps {
-  readonly user: AdminUser;
-  readonly data: AdminMockData;
+  readonly userId: string;
   readonly onClose: () => void;
-  readonly onEdit: () => void;
+  readonly onEdit: (user: User) => void;
+}
+
+export type AdminManagedUser = User & { role: UserRole; status: AdminAccountStatus };
+
+export interface AdminUserEditorProps {
+  readonly user: AdminManagedUser;
+  readonly onClose: () => void;
+  readonly onSave: (role: UserRole) => Promise<void>;
+}
+
+export type AdminUserEditValues = Pick<AdminManagedUser, "role">;
+
+export interface AdminUserFilters {
+  readonly search: string;
+  readonly role: string;
+  readonly status: string;
 }
 
 export interface AdminBadgeProps {

@@ -1,4 +1,4 @@
-import { UserRole } from "@metastorage/contracts";
+import { UserRole, type UserStatus } from "@metastorage/contracts";
 import type MockAdapter from "axios-mock-adapter";
 import { currentUser, envelope, errorBody, parseBody, publicUser } from "../core/http";
 import { getMockDatabase, saveMockDatabase } from "../database";
@@ -12,7 +12,9 @@ export function registerUsersHandlers(mock: MockAdapter): void {
     if (actor.role !== UserRole.SYSTEM_ADMINISTRATOR) {
       return [403, errorBody(403, M.forbidden)];
     }
-    return [200, envelope(database.users.map(publicUser))];
+    const limit = Number(config.params?.limit ?? 100);
+    const offset = Number(config.params?.offset ?? 0);
+    return [200, envelope(database.users.slice(offset, offset + limit).map(publicUser))];
   });
 
   mock.onGet("/users/customer-registrations").reply((config) => {
@@ -49,6 +51,17 @@ export function registerUsersHandlers(mock: MockAdapter): void {
     return [200, envelope({ year, years, items, summary })];
   });
 
+  mock.onGet(/\/users\/[^/]+$/).reply((config) => {
+    const database = getMockDatabase();
+    const actor = currentUser(config, database);
+    if (!actor) return [401, errorBody(401, M.loginRequired)];
+    if (actor.role !== UserRole.SYSTEM_ADMINISTRATOR) return [403, errorBody(403, M.forbidden)];
+    const userId = config.url?.split("/").at(-1);
+    const target = database.users.find((user) => user.id === userId);
+    if (!target) return [404, errorBody(404, M.userNotFound)];
+    return [200, envelope(publicUser(target))];
+  });
+
   mock.onPatch(/\/users\/[^/]+\/role$/).reply((config) => {
     const database = getMockDatabase();
     const actor = currentUser(config, database);
@@ -59,12 +72,33 @@ export function registerUsersHandlers(mock: MockAdapter): void {
 
     const userId = config.url?.split("/").at(-2);
     const target = database.users.find((user) => user.id === userId);
-    if (!target) return [404, errorBody(404, "Không tìm thấy người dùng")];
+    if (!target) return [404, errorBody(404, M.userNotFound)];
 
     const { role } = parseBody<{ role: UserRole }>(config.data);
+    if (role === UserRole.SYSTEM_ADMINISTRATOR && target.role !== UserRole.SYSTEM_ADMINISTRATOR)
+      return [403, errorBody(403, M.adminCreationForbidden)];
+    if (target.role === UserRole.SYSTEM_ADMINISTRATOR && role !== target.role)
+      return [403, errorBody(403, M.adminProtected)];
+    if (target.role !== role) target.assignedFacilityIds = [];
     target.role = role;
-    target.assignedFacilityIds = [];
     saveMockDatabase(database);
-    return [200, envelope(publicUser(target), "Vai trò đã được cập nhật")];
+    return [200, envelope(publicUser(target), M.roleUpdated)];
+  });
+
+  mock.onPatch(/\/users\/[^/]+\/status$/).reply((config) => {
+    const database = getMockDatabase();
+    const actor = currentUser(config, database);
+    if (!actor) return [401, errorBody(401, M.loginRequired)];
+    if (actor.role !== UserRole.SYSTEM_ADMINISTRATOR) return [403, errorBody(403, M.forbidden)];
+    const userId = config.url?.split("/").at(-2);
+    const target = database.users.find((user) => user.id === userId);
+    if (!target) return [404, errorBody(404, M.userNotFound)];
+    const { status } = parseBody<{ status: UserStatus }>(config.data);
+    if (target.role === UserRole.SYSTEM_ADMINISTRATOR && status === "INACTIVE")
+      return [403, errorBody(403, M.adminProtected)];
+    target.status = status;
+    if (status === "INACTIVE") target.assignedFacilityIds = [];
+    saveMockDatabase(database);
+    return [200, envelope(publicUser(target), M.statusUpdated)];
   });
 }

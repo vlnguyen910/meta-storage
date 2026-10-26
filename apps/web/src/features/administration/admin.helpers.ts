@@ -1,14 +1,20 @@
+import type { User } from "@metastorage/contracts";
 import { UserRole } from "@metastorage/contracts";
 import { ADMIN_MESSAGES as M } from "./admin.messages";
 import type {
   AdminAccountChange,
   AdminFacility,
+  AdminManagedUser,
   AdminMockData,
   AdminSnapshot,
 } from "./admin.types";
 
 export const isFacilityRole = (role: UserRole) =>
   role === UserRole.FACILITY_STAFF || role === UserRole.FACILITY_MANAGER;
+
+export function isManagedUser(user: User): user is AdminManagedUser {
+  return user.role !== null && user.status !== null;
+}
 
 export function userInitials(name: string): string {
   return name
