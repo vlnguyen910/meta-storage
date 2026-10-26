@@ -12,8 +12,8 @@ import { isAxiosError } from "axios";
 import { Clock, CreditCard, FileCheck, FileText, Receipt } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button, buttonClassName } from "@/components/ui/button";
-import { ListPagination } from "@/components/ui/list-pagination";
 import { StatusBadge } from "@/components/ui/display";
+import { ListPagination } from "@/components/ui/list-pagination";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { F3 } from "@/features/returns/integration.messages";
 import {
@@ -72,52 +72,52 @@ export function PaymentRecords({
   return (
     <>
       <ul className="list-none space-y-3 p-0">
-      {visibleItems.map((item) => (
-        <li
-          key={item.id}
-          className="space-y-2.5 rounded-xl border border-slate-200/80 bg-white p-4 shadow-2xs"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <Receipt size={16} className="text-primary" />
-              <strong className="max-w-full break-all font-mono text-sm text-ink">
-                {item.paymentCode}
-              </strong>
-              {item.source && <span className="text-xs text-muted">{W.source[item.source]}</span>}
+        {visibleItems.map((item) => (
+          <li
+            key={item.id}
+            className="space-y-2.5 rounded-xl border border-slate-200/80 bg-white p-4 shadow-2xs"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <Receipt size={16} className="text-primary" />
+                <strong className="max-w-full break-all font-mono text-sm text-ink">
+                  {item.paymentCode}
+                </strong>
+                {item.source && <span className="text-xs text-muted">{W.source[item.source]}</span>}
+              </div>
+              <StatusBadge value={item.status} />
             </div>
-            <StatusBadge value={item.status} />
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2.5">
-            <p className="m-0 text-sm">
-              <span className="text-muted">{F3.paid}: </span>
-              <strong className="text-base font-bold text-primary">
-                {money(item.totalAmount)}
-              </strong>
-            </p>
-            <p className="m-0 flex items-center gap-1.5 text-xs text-muted">
-              <Clock size={13} className="text-slate-400" />
-              {new Date(item.paidAt ?? item.createdAt).toLocaleString("vi-VN")}
-            </p>
-          </div>
-          {item.chargeRefunds?.map((refund) => (
-            <p className="text-sm text-emerald-900" key={refund.id}>
-              {W.refund}: {money(refund.amount)} ? {refund.reference}
-            </p>
-          ))}
-          {item.refundedAt && item.refundAmount && (
-            <p className="m-0 text-sm text-amber-800">
-              {F3.refunded}: <strong>{money(item.refundAmount)}</strong> ·{" "}
-              {new Date(item.refundedAt).toLocaleString("vi-VN")}
-            </p>
-          )}
-          {item.returnRefunds.map((r) => (
-            <p key={r.id} className="m-0 text-xs text-emerald-800">
-              {F3.returnedRefund}: <strong>{money(r.amount)}</strong> · {r.reference} ·{" "}
-              {new Date(r.confirmedAt).toLocaleString("vi-VN")}
-            </p>
-          ))}
-        </li>
-      ))}
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2.5">
+              <p className="m-0 text-sm">
+                <span className="text-muted">{F3.paid}: </span>
+                <strong className="text-base font-bold text-primary">
+                  {money(item.totalAmount)}
+                </strong>
+              </p>
+              <p className="m-0 flex items-center gap-1.5 text-xs text-muted">
+                <Clock size={13} className="text-slate-400" />
+                {new Date(item.paidAt ?? item.createdAt).toLocaleString("vi-VN")}
+              </p>
+            </div>
+            {item.chargeRefunds?.map((refund) => (
+              <p className="text-sm text-emerald-900" key={refund.id}>
+                {W.refund}: {money(refund.amount)} ? {refund.reference}
+              </p>
+            ))}
+            {item.refundedAt && item.refundAmount && (
+              <p className="m-0 text-sm text-amber-800">
+                {F3.refunded}: <strong>{money(item.refundAmount)}</strong> ·{" "}
+                {new Date(item.refundedAt).toLocaleString("vi-VN")}
+              </p>
+            )}
+            {item.returnRefunds.map((r) => (
+              <p key={r.id} className="m-0 text-xs text-emerald-800">
+                {F3.returnedRefund}: <strong>{money(r.amount)}</strong> · {r.reference} ·{" "}
+                {new Date(r.confirmedAt).toLocaleString("vi-VN")}
+              </p>
+            ))}
+          </li>
+        ))}
       </ul>
       <ListPagination
         label={F3.payments}
