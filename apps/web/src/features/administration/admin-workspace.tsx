@@ -1,11 +1,10 @@
 "use client";
 
 import { UserRole } from "@metastorage/contracts";
-import { Download, RotateCcw, Search } from "lucide-react";
+import { Calendar, Download, RotateCcw, Search } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
-import { Input } from "@/components/ui/form-controls";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { LoadingState } from "@/components/ui/states";
 import { useAuthStore } from "@/features/auth/auth-store";
@@ -176,16 +175,19 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
       )}
       <section
         aria-label={section === "activity-logs" ? M.auditSearch : M.search}
-        className="shrink-0 flex flex-wrap items-center gap-2.5 rounded-card border border-line bg-white p-2.5 shadow-card"
+        className="shrink-0 flex items-center gap-2 rounded-card border border-line bg-white p-2 shadow-card overflow-x-auto min-h-12"
       >
-        <form onSubmit={handleSearchSubmit} className="flex items-center gap-1.5 min-w-64 flex-1">
+        <form
+          onSubmit={handleSearchSubmit}
+          className="flex items-center gap-1.5 flex-1 min-w-44 max-w-xs shrink-0"
+        >
           <div className="relative flex-1">
             <Search
               aria-hidden="true"
-              size={16}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+              size={15}
+              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted"
             />
-            <Input
+            <input
               type="search"
               value={searchInput}
               placeholder={section === "activity-logs" ? M.auditSearch : M.search}
@@ -193,13 +195,13 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
               onKeyDown={(event) => {
                 if (event.key === "Enter") handleSearchSubmit();
               }}
-              className="h-9 min-h-9 rounded-lg border-line bg-canvas pl-9 text-xs shadow-2xs"
+              className="h-9 w-full rounded-lg border border-line bg-canvas pl-8 pr-2 text-xs text-ink placeholder:text-muted outline-none transition focus:border-primary focus:ring-1 focus:ring-primary shadow-2xs"
             />
           </div>
           <Button
             type="submit"
             variant="outline"
-            className="h-9 min-h-9 px-3 text-xs font-semibold shrink-0"
+            className="h-9 min-h-9 px-2.5 text-xs font-semibold shrink-0"
           >
             {M.searchConfirm}
           </Button>
@@ -209,7 +211,7 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
           <DropdownSelect
             value={filters.role}
             onChange={(val) => filter("role", val)}
-            className="w-40"
+            className="w-36 shrink-0"
             triggerClassName="h-9 min-h-9 text-xs bg-white border-line"
             placeholder={M.roleFilter}
             options={[
@@ -229,7 +231,7 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
           <DropdownSelect
             value={filters.status}
             onChange={(val) => filter("status", val)}
-            className="w-36"
+            className="w-32 shrink-0"
             triggerClassName="h-9 min-h-9 text-xs bg-white border-line"
             placeholder={M.statusFilter}
             options={[
@@ -245,7 +247,7 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
           <DropdownSelect
             value={filters.facilityId}
             onChange={(val) => filter("facilityId", val)}
-            className="w-44"
+            className="w-40 shrink-0"
             triggerClassName="h-9 min-h-9 text-xs bg-white border-line"
             placeholder={M.facilityFilter}
             options={[
@@ -263,7 +265,7 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
           <DropdownSelect
             value={filters.action}
             onChange={(val) => filter("action", val)}
-            className="w-44"
+            className="w-36 shrink-0"
             triggerClassName="h-9 min-h-9 text-xs bg-white border-line"
             placeholder={M.actionFilter}
             options={[
@@ -281,7 +283,7 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
           <DropdownSelect
             value={filters.outcome}
             onChange={(val) => filter("outcome", val)}
-            className="w-36"
+            className="w-28 shrink-0"
             triggerClassName="h-9 min-h-9 text-xs bg-white border-line"
             placeholder={M.outcomeFilter}
             options={[
@@ -294,19 +296,22 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
         )}
 
         {!accounts && (
-          <Input
-            type="date"
-            value={filters.date}
-            onChange={(event) => filter("date", event.target.value)}
-            className="h-9 min-h-9 text-xs w-36 rounded-lg border-line bg-white px-2.5 shadow-2xs"
-            aria-label={M.dateFilter}
-          />
+          <div className="flex h-9 items-center gap-1.5 rounded-lg border border-line bg-white px-2.5 text-xs shadow-2xs shrink-0">
+            <Calendar size={14} className="text-muted shrink-0" aria-hidden="true" />
+            <input
+              type="date"
+              value={filters.date}
+              onChange={(event) => filter("date", event.target.value)}
+              aria-label={M.dateFilter}
+              className="cursor-pointer border-none bg-transparent p-0 text-xs font-medium text-ink focus:outline-none w-28"
+            />
+          </div>
         )}
 
         <div className="flex items-center gap-1.5 ml-auto shrink-0">
           <Button
             variant="outline"
-            className="h-9 min-h-9 px-3 text-xs font-semibold gap-1.5"
+            className="h-9 min-h-9 px-2.5 text-xs font-semibold gap-1.5"
             icon={<RotateCcw size={14} aria-hidden="true" />}
             onClick={() => {
               setSearchInput("");
@@ -318,7 +323,7 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
           </Button>
           <Button
             variant="outline"
-            className="h-9 min-h-9 px-3 text-xs font-semibold gap-1.5"
+            className="h-9 min-h-9 px-2.5 text-xs font-semibold gap-1.5"
             icon={<Download size={14} aria-hidden="true" />}
             onClick={exportRows}
             disabled={!count}
