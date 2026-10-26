@@ -1,10 +1,13 @@
 "use client";
 import { CUSTOMER_WORKSPACE as M } from "@metastorage/shared";
+import { CalendarClock, CircleDollarSign, MapPin, Warehouse } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CardContent, Card as ShadcnCard } from "@/components/ui/card";
 import { Card, PageHeader, StatusBadge } from "@/components/ui/display";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ErrorState, LoadingState } from "@/components/ui/states";
@@ -28,12 +31,31 @@ export function CustomerBookingList() {
   const bookings = query.data?.pages.flatMap((p) => p.items) ?? [];
   const safePage = Math.min(page, Math.max(1, Math.ceil(bookings.length / pageSize)));
   const visibleBookings = bookings.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const statusLabel: Record<string, string> = {
+    CONFIRMED: "Đã xác nhận",
+    CHECKED_IN: "Đã check-in",
+    NO_SHOW: "Không đến",
+    CANCELLED: "Đã hủy",
+  };
+  const statusClass: Record<string, string> = {
+    CONFIRMED: "border-emerald-200 bg-emerald-50 text-emerald-800",
+    CHECKED_IN: "border-sky-200 bg-sky-50 text-sky-800",
+    NO_SHOW: "border-rose-200 bg-rose-50 text-rose-800",
+    CANCELLED: "border-slate-200 bg-slate-100 text-slate-700",
+  };
   return (
     <>
       <PageHeader
         title={M.bookings}
         description={M.appointment}
-        action={<Link href={customerRoutes.newReservation}>{M.newBooking}</Link>}
+        action={
+          <Link
+            className="inline-flex min-h-11 items-center rounded-lg bg-primary px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            href={customerRoutes.newReservation}
+          >
+            {M.newBooking}
+          </Link>
+        }
       />
       {query.isPending ? (
         <LoadingState />
@@ -44,22 +66,47 @@ export function CustomerBookingList() {
           {!bookings.length && <p>{M.empty}</p>}
           <div className="grid gap-4">
             {visibleBookings.map((b) => (
-              <Link
-                className="rounded-xl border border-line bg-white p-5"
+              <ShadcnCard
                 key={b.id}
-                href={customerRoutes.reservation(b.id)}
+                className="overflow-hidden border-slate-200/80 bg-white transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
               >
-                <strong>{b.bookingCode ?? b.id}</strong> <StatusBadge value={b.status} />
-                <p>
-                  {b.facility.name} · {b.unitType.name} · {b.unitType.sizeLabel}
-                </p>
-                <p>
-                  {M.appointment}: {formatDateTime(b.checkInSlotStart)}
-                </p>
-                <p>
-                  {M.paymentStatus}: {b.paymentStatus}
-                </p>
-              </Link>
+                <Link href={customerRoutes.reservation(b.id)}>
+                  <CardContent className="space-y-4 p-5">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <strong className="text-lg font-bold tracking-tight text-slate-900">
+                        {b.bookingCode ?? b.id}
+                      </strong>
+                      <Badge
+                        className={
+                          statusClass[b.status] ?? "border-slate-200 bg-slate-100 text-slate-700"
+                        }
+                      >
+                        {statusLabel[b.status] ?? b.status}
+                      </Badge>
+                    </div>
+                    <div className="grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
+                      <span className="flex items-center gap-2 sm:col-span-2">
+                        <Warehouse className="size-4 text-primary" aria-hidden="true" />
+                        {b.facility.name} · {b.unitType.name} · {b.unitType.sizeLabel}
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <MapPin className="size-4 text-slate-400" aria-hidden="true" />
+                        {b.facility.address}
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <CalendarClock className="size-4 text-slate-400" aria-hidden="true" />
+                        {formatDateTime(b.checkInSlotStart)}
+                      </span>
+                      <span
+                        className={`flex items-center gap-2 ${b.paymentStatus === "SUCCEEDED" ? "text-emerald-700" : "text-slate-500"}`}
+                      >
+                        <CircleDollarSign className="size-4" aria-hidden="true" />
+                        {b.paymentStatus === "SUCCEEDED" ? "Đã thanh toán" : b.paymentStatus}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Link>
+              </ShadcnCard>
             ))}
           </div>
           <ListPagination
