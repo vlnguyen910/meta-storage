@@ -24,7 +24,17 @@ async function fixture(page: Page, role: UserRole) {
         status: "ACTIVE",
         assignedFacilityId: id(2),
       };
-    else if (path === "/facilities/my-assignments")
+    else if (path === "/users/customer-registrations") {
+      const year = Number(new URL(route.request().url()).searchParams.get("year"));
+      data = {
+        year,
+        years: [year, year - 1],
+        items: Array.from({ length: 12 }, (_, index) => ({
+          month: `${year}-${String(index + 1).padStart(2, "0")}`,
+          count: index === 9 ? 3 : 0,
+        })),
+      };
+    } else if (path === "/facilities/my-assignments")
       data = [{ facilityId: id(2), facilityName: "Cơ sở kiểm thử", isActive: true }];
     else if (path.endsWith("/staff"))
       data = Array.from({ length: 13 }, (_, i) => ({
@@ -239,6 +249,64 @@ for (const width of [1440, 375]) {
 }
 
 for (const width of [1440, 375]) {
+  test(`Admin dashboard charts monthly customer registrations at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    await fixture(page, UserRole.SYSTEM_ADMINISTRATOR);
+    await page.goto("/system-admin/dashboard");
+    await expect(page.getByRole("heading", { name: AM.titles.dashboard })).toBeVisible();
+    await expect(page.getByRole("heading", { name: AM.customerChart })).toBeVisible();
+    await expect(page.locator(".recharts-line-curve")).toBeVisible();
+    for (const removed of [
+      "Phân bố 5 vai trò",
+      "Phân quyền theo cơ sở",
+      "Đăng nhập gần đây",
+      "Hoạt động gần đây",
+    ]) {
+      await expect(page.getByRole("heading", { name: removed })).toHaveCount(0);
+    }
+    await inspect(page, `admin-dashboard-${width}`);
+    if (width < 1024) await page.getByRole("button", { name: AM.openMenu }).click();
+    await page.getByRole("link", { name: AM.titles.users, exact: true }).click();
+    await expect(page).toHaveURL(/\/system-admin\/users$/);
+  });
+
+  if (width === 1440) {
+    test("Admin dashboard retries customer statistics after an API error", async ({ page }) => {
+      await fixture(page, UserRole.SYSTEM_ADMINISTRATOR);
+      let available = false;
+      await page.route("**/api/users/customer-registrations", (route) => {
+        if (!available) {
+          return route.fulfill({ status: 503, json: { success: false, error: { code: 503 } } });
+        }
+        const year = new Date().getUTCFullYear();
+        const month = `${year}-10`;
+        return route.fulfill({
+          json: {
+            success: true,
+            data: {
+              year,
+              years: [year],
+              items: [{ month, count: 2 }],
+              summary: {
+                totalUsers: 2,
+                activeUsers: 2,
+                inactiveUsers: 0,
+                unassignedFacilityUsers: 0,
+              },
+            },
+          },
+        });
+      });
+      await page.goto("/system-admin/dashboard");
+      await expect(
+        page.getByRole("alert").filter({ hasText: AM.customerChartError }),
+      ).toBeVisible();
+      available = true;
+      await page.getByRole("button", { name: AM.customerChartRetry }).click();
+      await expect(page.getByText("2 tài khoản mới", { exact: true })).toBeVisible();
+    });
+  }
+
   test(`Admin lists paginate, reset filters and export all matches at ${width}px`, async ({
     page,
   }) => {

@@ -1,12 +1,7 @@
 import type { UserRole } from "@metastorage/contracts";
 import type { ReactNode } from "react";
 
-export type AdminSection =
-  | "dashboard"
-  | "users"
-  | "assignments"
-  | "login-history"
-  | "activity-logs";
+export type AdminSection = "users" | "assignments" | "login-history" | "activity-logs";
 export type AdminAccountStatus = "ACTIVE" | "INACTIVE";
 export type AdminOutcome = "SUCCESS" | "FAILED";
 export type AdminAction = "ROLE_CHANGED" | "STATUS_CHANGED" | "FACILITIES_CHANGED";
@@ -107,10 +102,6 @@ export interface AdminDrawerProps {
 export interface AdminBadgeProps {
   readonly label: string;
   readonly warning?: boolean;
-}
-
-export interface AdminSummaryProps {
-  readonly data: AdminMockData;
 }
 
 export interface AdminSnapshotProps {
