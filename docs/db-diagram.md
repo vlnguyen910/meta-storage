@@ -65,14 +65,14 @@ must reject any linked local price outside the proposed bounds; no guessed defau
 positive dimensions, generated size_cbm, positive integer monthly_price and is_active remain local.
 Add nonnegative version (default 0) and nullable updated_by FK users (RESTRICT).
 Only the currently assigned active FM writes local types/prices. Dimension edits
-are rejected once any booking or reservation draft references the type; create a
+are rejected once any booking references the type; create a
 new type and move eligible free physical units instead. Price changes affect only
 new quotes; booking/renewal/PDF snapshots are immutable. There is no unit_type_changes.
 FM price writes and BOM range writes append the existing pricing_changes ledger;
 the shared pricing revision remains serialized by the DEPOSIT_MONTHS settings row.
 
-`facility_unit_types` is retired. storage_units/bookings/reservation_drafts/
-capacity_allocations reference unit_types through (facility_id,unit_type_id),
+`facility_unit_types` is retired. storage_units/bookings/capacity_allocations
+reference unit_types through (facility_id,unit_type_id),
 preventing cross-facility types. Catalog, checkout and renewal lock the local type
 in place of the retired offering. Range validation uses range-first/type-second
 locks after the shared pricing revision; new quotes require configured active
@@ -299,9 +299,8 @@ Issue #24 adds `handover_inspections` and `inspection_photos` under the H6_V1 de
 - `version` plus booking/inspection row locks reject stale/concurrent writes. Only current
   verified assignments can be edited. Completed and superseded records remain readable by facility scope.
 - Photos are private authenticated evidence, bounded to 8 JPEG/PNG/WebP files, 3 MiB each.
-  New evidence is stored as authenticated Cloudinary assets, referenced by public ID and format.
-  Nullable Base64 content is retained only for legacy evidence until verified migration;
-  metadata-only DTOs avoid loading bytes in normal lists. Photo GET uses private/no-store caching.
+  Evidence is stored as authenticated Cloudinary assets, referenced by required public ID and
+  format. PostgreSQL stores metadata only. Photo GET uses private/no-store caching.
 - FM prepares unit/staff assignment and monitors records; only the assigned Facility Staff
   can verify, edit inspection evidence, complete inspection and confirm handover.
 - A separate handover transaction records `handed_over_by/at`, creates exactly one ACTIVE rental
@@ -411,7 +410,6 @@ erDiagram
     varchar filename
     varchar mime_type
     integer byte_size
-    text data_base64 "nullable legacy"
     text cloudinary_public_id
     varchar cloudinary_format
     timestamptz created_at
@@ -424,14 +422,11 @@ erDiagram
   facilities ||--o{ unit_types : owns
   rental_price_ranges ||--o{ unit_types : constrains
   unit_types ||--o{ storage_units : materializes
-  unit_types ||--o{ reservation_drafts : selects
   unit_types ||--o{ capacity_allocations : allocates
   unit_types ||--o{ bookings : books
   unit_types ||--o{ storage_units : materializes
   facilities ||--o{ storage_units : contains
   facilities ||--o{ facility_operating_hours : schedules
-  facilities ||--o{ reservation_drafts : receives
-  unit_types ||--o{ reservation_drafts : selects
   unit_types ||--o{ capacity_allocations : allocates
   facilities ||--o{ capacity_allocations : reserves
   users o|--o{ bookings : saves_history
@@ -481,7 +476,6 @@ erDiagram
     boolean email_verified
     text image
     varchar phone UK
-    varchar password_hash
     role role
     status status
     timestamptz created_at
@@ -609,24 +603,6 @@ erDiagram
     time open_time
     time close_time
     varchar timezone
-  }
-
-  reservation_drafts {
-    uuid id PK
-    uuid facility_id FK
-    uuid unit_type_id FK
-    timestamptz check_in_at
-    timestamptz rental_end_at
-    integer duration_months
-    varchar contact_name
-    varchar contact_email
-    varchar contact_phone
-    varchar access_token_hash "nullable; inactive legacy checkout"
-    reservation_draft_status status
-    reservation_pricing_status pricing_status
-    jsonb pricing "nullable, immutable checkout price snapshot"
-    timestamptz created_at
-    timestamptz updated_at
   }
 
   capacity_allocations {
@@ -781,8 +757,7 @@ erDiagram
 
   payments {
     uuid id PK
-    uuid booking_id FK "nullable for legacy checkout; required in target flow"
-    uuid draft_id FK "nullable; legacy checkout only"
+    uuid booking_id FK "nullable for rental-charge payments"
     uuid rental_charge_id FK "nullable; source-specific charge attempt"
     varchar provider
     varchar provider_payment_id
@@ -856,16 +831,15 @@ erDiagram
 - UUID primary keys on `users`, `facilities`, `facility_assignments`,
   `facility_tasks`, `facility_task_reports`, `storage_unit_maintenance_history`,
   `unit_types`, `storage_units`, `facility_operating_hours`, `check_in_slots`,
-  `reservation_drafts` and `capacity_allocations` default to generated random UUIDs. Auth tables
+  and `capacity_allocations` default to generated random UUIDs. Auth tables
   `accounts`, `sessions` and `verifications` use text primary keys.
 - `users.email`, `users.phone`, `facilities.code`, `storage_units.code` and
   `sessions.token` are unique. `users.phone` is nullable. Booking contact email is not unique.
-- Varchar limits are `users.email` 255, `users.phone` 20,
-  `users.password_hash` 255; Booking contact name/email/phone 150/320/32; `facilities.code` 50, `facilities.name` 150;
+- Varchar limits are `users.email` 255, `users.phone` 20, Booking contact phone 32,
+  `facilities.code` 50 and `facilities.name` 150;
   `unit_types.code` 80, `unit_types.name` 100, `unit_types.size_label` 50;
-  `storage_units.code` 80; `facility_operating_hours.timezone` 64; and
-  reservation draft contact name/email/phone 150/320/32.
-- Nullable columns are `users.image`, `users.phone`, `users.password_hash`,
+  `storage_units.code` 80 and `facility_operating_hours.timezone` 64.
+- Nullable columns are `users.image`, `users.phone`,
   `users.role`, `users.status`, `facilities.description`,
   `facility_assignments.ended_at`, `storage_units.floor`,
   `storage_units.location_description`, `storage_unit_maintenance_history.reason`,
@@ -882,8 +856,7 @@ erDiagram
   `INSPECTION`, `RETURN_PENDING`, `LOCKED`, `INACTIVE`;
   `storage_unit_maintenance_action`: `ENTER_MAINTENANCE`, `EXIT_MAINTENANCE`;
   `facility_task_type`: `INSPECT_UNIT`, `PRINT_DOCUMENT`, `REPORT_TO_MANAGER`;
-  `reservation_draft_status`: `DRAFT`; `reservation_pricing_status`:
-  `PRICING_NOT_CONFIGURED`, `PRICED`; `capacity_allocation_kind`: `HOLD`, `BOOKING`; and
+  `capacity_allocation_kind`: `HOLD`, `BOOKING`; and
   `capacity_allocation_status`: `ACTIVE`, `RELEASED`, `EXPIRED`.
 - Composite unique `accounts(provider_id, account_id)` ensures one owner per provider
   identity, including concurrent OAuth linking. Existing duplicates must be resolved
@@ -905,7 +878,7 @@ erDiagram
   multiple `is_active = true` assignments. Resolve them explicitly before
   migrating; the migration must not choose a Facility or discard history.
 - `unit_types.code` is unique within a facility; `(facility_id,id)` is unique.
-- `storage_units`, `bookings`, `reservation_drafts` and `capacity_allocations`
+- `storage_units`, `bookings` and `capacity_allocations`
   each use a composite foreign key `(facility_id,unit_type_id)` to
   `unit_types(facility_id,id)` with ON DELETE RESTRICT. Range and facility ownership
   references also use RESTRICT. `capacity_allocations.reference_id` remains a UUID
@@ -916,14 +889,12 @@ erDiagram
   to preserve assigned work, reports, transition history and actor references.
   Facility foreign keys use `ON DELETE CASCADE` for
   `storage_units`, `facility_operating_hours` and `facility_assignments`, and
-  `ON DELETE RESTRICT` for reservation drafts and capacity allocations.
+  `ON DELETE RESTRICT` for capacity allocations.
 - `created_at` and `updated_at` columns default to `now()` wherever shown;
   `assigned_at` also defaults to `now()`. `facilities.is_active`,
   `unit_types.is_active`, `rental_price_ranges.is_active` and
   `facility_assignments.is_active` default to true.
   `storage_units.status` defaults to `AVAILABLE`,
-  `reservation_drafts.status` to `DRAFT`,
-  `reservation_drafts.pricing_status` to `PRICING_NOT_CONFIGURED`, and
   `capacity_allocations.status` to `ACTIVE`. The default operating timezone is
   `Asia/Ho_Chi_Minh`.
 
@@ -949,11 +920,11 @@ never written back to users. ContactPhone may be NULL only while the booking is 
 Issued contracts retain their own immutable snapshots. Payments and rentals continue to
 derive ownership through booking. Accounts with bookings cannot be physically deleted;
 use the existing account lock/status workflow instead. Guest access endpoints are removed.
-The inactive legacy reservation-draft checkout cannot create unowned bookings anymore.
+The legacy reservation-draft checkout and table are removed.
 
 ## Payment and Booking notes (#18)
 
-- New checkout drafts store an immutable `pricing` snapshot: rental fee equals
+- Booking drafts store immutable pricing columns: rental fee equals
   the monthly rate times the requested months; the deposit equals one month's
   rate; total equals rental fee plus deposit, in VND. Payments use this stored
   quote even if catalog prices change later. Legacy unpriced drafts must be recreated.
@@ -972,11 +943,8 @@ The inactive legacy reservation-draft checkout cannot create unowned bookings an
   exclude DRAFT; drafts cannot be assigned a unit/staff or verified through QR.
 - Payment stores the transaction total, currency, provider references, status
   and paid_at; the monthly rate, rental fee and deposit breakdown belong to
-  Booking. The legacy checkout obtains this breakdown from the immutable draft
-  pricing snapshot when creating a confirmed Booking. Its readers project
-  booking contact and date/slot timestamps for the existing API contracts.
-  The payment simplification migration removes the redundant breakdown columns;
-  apply it together with the compatible backend before using the checkout.
+  Booking. Readers project booking contact and date/slot timestamps for the
+  existing API contracts.
 - Payment status values are PENDING, SUCCEEDED, FAILED, REFUND_PENDING and REFUNDED,
   defined in the payment contract and reused by Drizzle. A valid incoming payment
   that cannot receive capacity/check-in becomes REFUND_PENDING with paid_at and
@@ -1000,8 +968,8 @@ The inactive legacy reservation-draft checkout cannot create unowned bookings an
   `HOLD` to `BOOKING` inside the same transaction. No physical unit is assigned
   at checkout.
 - `payments.idempotency_key` and `(provider, provider_payment_id)` are unique.
-- `payments` references exactly one source: booking, legacy reservation draft, or
-  rental charge. Booking/draft attempts require a hold-token hash; charge attempts
+- `payments` references exactly one source: booking or rental charge. Booking attempts
+  require a hold-token hash; charge attempts
   do not. Partial unique indexes permit one pending attempt and one applied
   (`SUCCEEDED`) attempt per charge; late/duplicate provider captures remain
   separate refund-pending attempts. Charge payment quote expiry is stored separately from the
@@ -1011,16 +979,8 @@ The inactive legacy reservation-draft checkout cannot create unowned bookings an
   obligation with a typed FK. Future renewal rows will point to their charge in
   #163. No generic polymorphic source ID is used. Charge adjustments and refunds
   are append-only records; events retain submit/approve/dispute/payment/refund audit.
-- `payments.draft_id` is nullable during the #113 expansion; a CHECK requires
-  exactly one of booking_id, draft_id, or rental_charge_id. Legacy writers keep draft_id, while the target workflow
-  references the DRAFT Booking from payment start. Existing booking_id FK/index
-  and idempotency/provider uniqueness remain unchanged. Legacy replay still uses
-  draft_id plus hold-token hash until Payment refactoring; target replay uses
-  booking_id plus hold-token hash. Plaintext tokens are never stored.
-- Task 2 deliberately retains reservation_drafts and its FK for current writers.
-  The project is in development: existing data may be cleared and seeded again.
-  No legacy-data mapping/backfill or checkout compatibility layer is required.
-  Dropping the table follows the consumer refactor in the final contract phase.
+- The source CHECK requires exactly one of booking_id or rental_charge_id. Booking checkout
+  uses booking_id plus a hold-token hash. Plaintext tokens are never stored.
 
 Check-in slots are shared time-of-day definitions with exactly four required
 columns: `id`, `name`, `start_time`, `end_time`. A Booking stores a required

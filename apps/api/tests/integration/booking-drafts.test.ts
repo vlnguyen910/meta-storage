@@ -10,7 +10,6 @@ import {
   facilities,
   facilityOperatingHours,
   payments,
-  reservationDrafts,
   storageUnits,
   systemSettings,
   unitTypes,
@@ -135,7 +134,6 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
 
   test("creates an account-owned draft with the selected slot and immutable pricing", async () => {
     const beforePayments = await db.select({ count: count() }).from(payments);
-    const beforeReservations = await db.select({ count: count() }).from(reservationDrafts);
     const response = await createDraft({
       ...input,
       contact: { fullName: "Ignored", email: "ignored@example.test", phone: "0900000000" },
@@ -178,7 +176,6 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
       "3000000.00",
     );
     expect(await db.select({ count: count() }).from(payments)).toEqual(beforePayments);
-    expect(await db.select({ count: count() }).from(reservationDrafts)).toEqual(beforeReservations);
     expect(
       await db
         .select()
