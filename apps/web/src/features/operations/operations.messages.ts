@@ -5,7 +5,6 @@ export const OPERATIONS_MESSAGES = {
   brand: "StoreX OS",
   scope: "Toàn hệ thống",
   demo: "Dữ liệu minh họa",
-  demoNote: "Bản mẫu sử dụng dữ liệu cục bộ. Thay đổi không áp dụng cho giao dịch thực tế.",
   period: "01/10/2026 – 07/10/2026",
   periodLabel: "Kỳ báo cáo mẫu",
   previousPeriod: "24/09/2026 – 30/09/2026 (chưa có dữ liệu mẫu)",

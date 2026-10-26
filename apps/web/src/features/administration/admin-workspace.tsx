@@ -160,9 +160,6 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
         </h1>
         <p className="mb-0 mt-1 text-sm leading-6 text-slate-600">{M.descriptions[section]}</p>
       </header>
-      <p className="m-0 rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-2 text-xs text-emerald-900">
-        {M.demoNote}
-      </p>
       {section === "assignments" && <p className="m-0 text-sm text-slate-600">{M.facilityHelp}</p>}
       {!accounts && (
         <p className="m-0 text-sm text-slate-600">
