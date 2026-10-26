@@ -11,6 +11,7 @@ import type { FacilityUtilizationDonutChartProps } from "./facility-utilization-
 
 export function FacilityUtilizationDonutChart({
   metrics,
+  compact = false,
 }: Readonly<FacilityUtilizationDonutChartProps>) {
   const [mounted, setMounted] = useState(false);
 
@@ -26,11 +27,102 @@ export function FacilityUtilizationDonutChart({
   const data = [
     { name: "Đang sử dụng", value: occupied, color: "#165f4d" },
     {
-      name: "Chưa thuê trong tổng ô khai thác (gồm bảo trì/trống)",
+      name: "Chưa thuê trong tổng ô khai thác",
       value: unrented,
       color: "#e2e8f0",
     },
   ];
+
+  const chartBody = isNull ? (
+    <div
+      className={`flex ${compact ? "h-36 sm:h-40" : "h-52"} flex-col items-center justify-center rounded-lg border border-dashed border-amber-300 bg-amber-50/50 p-4 text-center`}
+    >
+      <span className="rounded-md border border-amber-300 bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-900">
+        {M.noOperatingUnitsBadge}
+      </span>
+      <p className="mt-1.5 max-w-xs text-xs text-amber-800">
+        Hệ thống chưa ghi nhận ô kho hoạt động nào tại phạm vi đã chọn.
+      </p>
+    </div>
+  ) : !mounted ? (
+    <div
+      className={`${compact ? "h-36 sm:h-40" : "h-52"} w-full animate-pulse rounded-lg bg-slate-50`}
+    />
+  ) : (
+    <div className="grid grid-cols-1 items-center gap-3 sm:grid-cols-2">
+      {/* Donut Chart */}
+      <div className={`relative ${compact ? "h-36 sm:h-40" : "h-52"} w-full`}>
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              innerRadius={compact ? 42 : 55}
+              outerRadius={compact ? 62 : 75}
+              paddingAngle={2}
+              dataKey="value"
+              strokeWidth={0}
+            >
+              {data.map((entry) => (
+                <Cell key={`cell-${entry.name}`} fill={entry.color} />
+              ))}
+            </Pie>
+            <Tooltip
+              formatter={(val, name) => [`${val} ô`, name]}
+              contentStyle={{
+                backgroundColor: "#0f172a",
+                border: "none",
+                borderRadius: "8px",
+                color: "#fff",
+                fontSize: "12px",
+              }}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+
+        {/* Center rate */}
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+          <span
+            className={`${compact ? "text-xl" : "text-2xl"} font-bold tabular-nums text-slate-900`}
+          >
+            {formatPercentage(metrics.utilizationPercent ?? 0)}
+          </span>
+          <span className="text-[11px] font-medium text-slate-500">Khai thác</span>
+        </div>
+      </div>
+
+      {/* Legend and breakdown */}
+      <div className="space-y-2 text-xs">
+        <div className="flex items-start gap-2">
+          <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-xs bg-[#165f4d]" aria-hidden="true" />
+          <div className="min-w-0">
+            <p className="font-semibold text-slate-900">Đang sử dụng: {occupied} ô</p>
+            <p className="text-[11px] text-slate-500">Đã bàn giao cho khách thuê</p>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-2">
+          <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-xs bg-slate-300" aria-hidden="true" />
+          <div className="min-w-0">
+            <p className="font-semibold text-slate-700">Chưa thuê: {unrented} ô</p>
+            <p className="text-[11px] text-slate-500">
+              {metrics.availableUnits} trống, {metrics.maintenanceUnits} bảo trì
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-md bg-slate-50 p-2 text-[11px] text-slate-600 border border-slate-100">
+          <span className="font-semibold text-slate-700">Mẫu số: </span>
+          {active} ô khai thác (đã trừ {metrics.inactiveUnits} ô ngừng HĐ)
+        </div>
+      </div>
+    </div>
+  );
+
+  if (compact) {
+    return <div className="min-w-0">{chartBody}</div>;
+  }
 
   return (
     <section className="grid gap-4 rounded-card border border-outline-variant bg-surface-container-lowest p-5 shadow-[0_1px_2px_rgb(15_23_42_/_0.04)]">
@@ -49,90 +141,7 @@ export function FacilityUtilizationDonutChart({
           <ArrowRight size={14} aria-hidden="true" />
         </Link>
       </div>
-
-      {isNull ? (
-        <div className="flex h-52 flex-col items-center justify-center rounded-lg border border-dashed border-amber-300 bg-amber-50/50 p-6 text-center">
-          <span className="rounded-md border border-amber-300 bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900">
-            {M.noOperatingUnitsBadge}
-          </span>
-          <p className="mt-2 max-w-xs text-xs text-amber-800">
-            Hệ thống chưa ghi nhận ô kho hoạt động nào tại phạm vi đã chọn để tính tỷ lệ khai thác.
-          </p>
-        </div>
-      ) : !mounted ? (
-        <div className="h-52 w-full animate-pulse rounded-lg bg-slate-50" />
-      ) : (
-        <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-2">
-          {/* Donut Chart */}
-          <div className="relative h-52 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={data}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={55}
-                  outerRadius={75}
-                  paddingAngle={2}
-                  dataKey="value"
-                  strokeWidth={0}
-                >
-                  {data.map((entry) => (
-                    <Cell key={`cell-${entry.name}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(val, name) => [`${val} ô`, name]}
-                  contentStyle={{
-                    backgroundColor: "#0f172a",
-                    border: "none",
-                    borderRadius: "8px",
-                    color: "#fff",
-                    fontSize: "12px",
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-
-            {/* Center rate */}
-            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-2xl font-bold tabular-nums text-ink">
-                {formatPercentage(metrics.utilizationPercent ?? 0)}
-              </span>
-              <span className="text-[11px] font-medium text-slate-500">Khai thác</span>
-            </div>
-          </div>
-
-          {/* Legend and breakdown */}
-          <div className="space-y-3 text-xs">
-            <div className="flex items-start gap-2">
-              <span className="mt-1 h-3 w-3 shrink-0 rounded-xs bg-primary" aria-hidden="true" />
-              <div>
-                <p className="font-semibold text-ink">Đang sử dụng: {occupied} ô</p>
-                <p className="text-[11px] text-slate-500">Các ô kho đã bàn giao cho khách thuê</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-2">
-              <span className="mt-1 h-3 w-3 shrink-0 rounded-xs bg-slate-200" aria-hidden="true" />
-              <div>
-                <p className="font-semibold text-slate-700">
-                  Chưa thuê trong tổng ô khai thác: {unrented} ô
-                </p>
-                <p className="text-[11px] text-slate-500">
-                  Trong đó: {metrics.availableUnits} ô trống, {metrics.maintenanceUnits} ô bảo trì;
-                  phần còn lại có thể đang chờ bàn giao hoặc kiểm tra.
-                </p>
-              </div>
-            </div>
-
-            <div className="rounded-lg bg-slate-50 p-2.5 text-[11px] text-slate-600">
-              <span className="font-semibold text-slate-700">Mẫu số: </span>
-              {active} ô đang khai thác (đã loại trừ {metrics.inactiveUnits} ô ngừng hoạt động).
-            </div>
-          </div>
-        </div>
-      )}
+      {chartBody}
     </section>
   );
 }
