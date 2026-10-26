@@ -224,7 +224,7 @@ function ChecklistForm({ snapshot }: { snapshot: ReturnChecklistVersionDto | nul
                           val as (typeof RETURN_CHECKLIST_GROUPS)[number],
                         )
                       }
-                      placement={index >= items.fields.length - 2 ? "top" : "auto"}
+                      placement={index >= items.fields.length - 2 ? "top" : "bottom"}
                       className="w-full"
                       triggerClassName="h-9 min-h-9 text-xs bg-canvas border-line"
                       options={RETURN_CHECKLIST_GROUPS.map((group) => ({

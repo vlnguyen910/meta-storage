@@ -122,7 +122,7 @@ export function AdminUsersWorkspace() {
 
       <section
         aria-label={M.filters}
-        className="flex shrink-0 flex-wrap items-center gap-2.5 rounded-card border border-line bg-white p-3 shadow-card"
+        className="flex shrink-0 flex-wrap items-center gap-2.5 rounded-card border border-line bg-white p-3 shadow-card relative z-20"
       >
         <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 flex-1 min-w-64">
           <div className="relative flex-1">
@@ -159,6 +159,7 @@ export function AdminUsersWorkspace() {
         <DropdownSelect
           value={workspace.filters.role || "all"}
           onChange={(value) => workspace.filter("role", value === "all" ? "" : value)}
+          placement="bottom"
           className="min-w-44 lg:w-44"
           triggerClassName="h-9 min-h-9 text-xs"
           options={[
@@ -174,6 +175,7 @@ export function AdminUsersWorkspace() {
         <DropdownSelect
           value={workspace.filters.status || "all"}
           onChange={(value) => workspace.filter("status", value === "all" ? "" : value)}
+          placement="bottom"
           className="min-w-40 lg:w-40"
           triggerClassName="h-9 min-h-9 text-xs"
           options={[
