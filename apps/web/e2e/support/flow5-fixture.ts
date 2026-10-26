@@ -195,6 +195,11 @@ export async function mockFlow5(
           assignedAt: f5now,
         },
       ];
+    else if (
+      path === "/bookings/assigned-to-me" ||
+      /^\/facilities\/[^/]+\/return-requests$/.test(path)
+    )
+      data = [];
     else if (path === "/facilities/management") data = state.facilities;
     else if (path === "/facilities" && method === "POST") {
       const row = { ...state.facilities[0], ...input, id: f5id(30) } as ApiFacility;

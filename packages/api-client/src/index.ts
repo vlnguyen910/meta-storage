@@ -108,6 +108,7 @@ import type {
   SettleReturn,
   SocialAuthInput,
   SocialAuthResponse,
+  StaffTasksQuery,
   StartRentalChargePayment,
   StorageUnitMaintenanceTransition,
   StorageUnitResponse,
@@ -446,10 +447,13 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
         http
           .post<ApiEnvelope<BookingListItem>>(`/bookings/${bookingId}/assign-staff`, input)
           .then(unwrap),
-      listAssignedToMe: (facilityId?: string) =>
+      listAssignedToMe: (
+        facilityId?: string,
+        dates: Pick<StaffTasksQuery, "fromDate" | "toDate"> = {},
+      ) =>
         http
           .get<ApiEnvelope<BookingListItem[]>>("/bookings/assigned-to-me", {
-            params: { facilityId },
+            params: { ...dates, facilityId },
           })
           .then(unwrap),
     },

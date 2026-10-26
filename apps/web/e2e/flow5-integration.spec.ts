@@ -112,7 +112,7 @@ test("FS submits a report and FM accepts it to complete the task", async ({ page
   await mockFlow5(page, state, "FACILITY_STAFF", f5staff);
   await page.goto("/staff/tasks");
   await expect(page.getByRole("button", { name: "Giao công việc", exact: true })).toHaveCount(0);
-  await page.getByRole("button", { name: "Xem chi tiết", exact: true }).click();
+  await page.getByRole("link", { name: "Mở công việc", exact: true }).click();
   const detail = page.getByRole("region", { name: "Kiểm tra kho được giao", exact: true });
   await detail.getByRole("button", { name: "Bắt đầu thực hiện", exact: true }).click();
   await expect(detail.getByText("Đang thực hiện", { exact: true })).toBeVisible();
