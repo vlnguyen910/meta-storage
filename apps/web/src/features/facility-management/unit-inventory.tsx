@@ -14,6 +14,7 @@ import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { Input, Select } from "@/components/ui/form-controls";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ErrorState, LoadingState } from "@/components/ui/states";
@@ -149,20 +150,20 @@ export function InventoryPanel({
           {/* Facility switcher if provided */}
           {facilityOptions && facilityOptions.length > 0 && onSelectFacility && (
             <div className="w-56">
-              <Select
+              <DropdownSelect
                 value={facilityId}
-                onChange={(e) => {
-                  onSelectFacility(e.target.value);
+                onChange={(val) => {
+                  onSelectFacility(val);
                   setOffset(0);
                 }}
-                className="h-9 text-xs font-semibold bg-slate-50 border-slate-200"
-              >
-                {facilityOptions.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.code} · {f.name}
-                  </option>
-                ))}
-              </Select>
+                className="w-full"
+                triggerClassName="h-9 w-full text-xs font-semibold bg-slate-50 border-slate-200"
+                options={facilityOptions.map((f) => ({
+                  value: f.id,
+                  label: `${f.code} · ${f.name}`,
+                }))}
+                maxVisibleItems={6}
+              />
             </div>
           )}
 
@@ -192,40 +193,44 @@ export function InventoryPanel({
 
           {/* Status filter */}
           <div className="w-40">
-            <Select
+            <DropdownSelect
               value={status}
-              onChange={(e) => {
-                setStatus(e.target.value as StorageUnitStatus | "");
+              onChange={(val) => {
+                setStatus(val as StorageUnitStatus | "");
                 setOffset(0);
               }}
-              className="h-9 text-xs bg-slate-50 border-slate-200"
-            >
-              <option value="">{F5.allStatuses}</option>
-              {Object.values(StorageUnitStatus).map((value) => (
-                <option key={value} value={value}>
-                  {F5.statuses[value]}
-                </option>
-              ))}
-            </Select>
+              className="w-full"
+              triggerClassName="h-9 w-full text-xs bg-slate-50 border-slate-200"
+              options={[
+                { value: "", label: F5.allStatuses },
+                ...Object.values(StorageUnitStatus).map((value) => ({
+                  value,
+                  label: F5.statuses[value],
+                })),
+              ]}
+              maxVisibleItems={6}
+            />
           </div>
 
           {/* Unit Type filter */}
           <div className="w-44">
-            <Select
+            <DropdownSelect
               value={typeId}
-              onChange={(e) => {
-                setTypeId(e.target.value);
+              onChange={(val) => {
+                setTypeId(val);
                 setOffset(0);
               }}
-              className="h-9 text-xs bg-slate-50 border-slate-200"
-            >
-              <option value="">{F5.allTypes}</option>
-              {types.data?.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name} ({item.sizeLabel})
-                </option>
-              ))}
-            </Select>
+              className="w-full"
+              triggerClassName="h-9 w-full text-xs bg-slate-50 border-slate-200"
+              options={[
+                { value: "", label: F5.allTypes },
+                ...(types.data?.map((item) => ({
+                  value: item.id,
+                  label: `${item.name} (${item.sizeLabel})`,
+                })) ?? []),
+              ]}
+              maxVisibleItems={6}
+            />
           </div>
         </div>
 

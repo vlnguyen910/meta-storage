@@ -4,7 +4,8 @@ import { FacilityStatus } from "@metastorage/contracts";
 import { Download, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { Button, buttonClassName } from "@/components/ui/button";
-import { FieldShell, Input, Select } from "@/components/ui/form-controls";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
+import { FieldShell, Input } from "@/components/ui/form-controls";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { isMockMode } from "@/config/api-mode";
 import { businessOperationsRoutes as routes } from "@/config/routes";
@@ -130,14 +131,20 @@ function MockOperationsWorkspace({ section }: Readonly<OperationsWorkspaceProps>
           )}
         >
           <FieldShell label={M.facilityFilter}>
-            <Select value={facilityId} onChange={(event) => setFacilityId(event.target.value)}>
-              <option value="all">{M.allFacilities}</option>
-              {data.facilities.map((facility) => (
-                <option key={facility.id} value={facility.id}>
-                  {facility.name}
-                </option>
-              ))}
-            </Select>
+            <DropdownSelect
+              value={facilityId}
+              onChange={setFacilityId}
+              className="w-full"
+              triggerClassName="h-9 w-full bg-white"
+              options={[
+                { value: "all", label: M.allFacilities },
+                ...data.facilities.map((facility) => ({
+                  value: facility.id,
+                  label: facility.name,
+                })),
+              ]}
+              maxVisibleItems={6}
+            />
           </FieldShell>
           {section === "facilities" ? (
             <FieldShell label={M.search}>
@@ -150,20 +157,30 @@ function MockOperationsWorkspace({ section }: Readonly<OperationsWorkspaceProps>
           ) : (
             <>
               <FieldShell label={M.unitTypeFilter}>
-                <Select value={unitTypeId} onChange={(event) => setUnitTypeId(event.target.value)}>
-                  <option value="all">{M.allUnitTypes}</option>
-                  {data.prices.map((price) => (
-                    <option key={price.id} value={price.id}>
-                      {price.name}
-                    </option>
-                  ))}
-                </Select>
+                <DropdownSelect
+                  value={unitTypeId}
+                  onChange={setUnitTypeId}
+                  className="w-full"
+                  triggerClassName="h-9 w-full bg-white"
+                  options={[
+                    { value: "all", label: M.allUnitTypes },
+                    ...data.prices.map((price) => ({ value: price.id, label: price.name })),
+                  ]}
+                  maxVisibleItems={6}
+                />
               </FieldShell>
               <FieldShell label={M.periodLabel}>
-                <Select value={period} onChange={(event) => setPeriod(event.target.value)}>
-                  <option value="sample">{M.period}</option>
-                  <option value="previous">{M.previousPeriod}</option>
-                </Select>
+                <DropdownSelect
+                  value={period}
+                  onChange={setPeriod}
+                  className="w-full"
+                  triggerClassName="h-9 w-full bg-white"
+                  options={[
+                    { value: "sample", label: M.period },
+                    { value: "previous", label: M.previousPeriod },
+                  ]}
+                  maxVisibleItems={6}
+                />
               </FieldShell>
             </>
           )}

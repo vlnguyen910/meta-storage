@@ -3,7 +3,8 @@
 import type { FacilityStaffMember } from "@metastorage/contracts";
 import { Building2, Mail, Phone, UsersRound } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Input, Select } from "@/components/ui/form-controls";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
+import { Input } from "@/components/ui/form-controls";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { isMockMode } from "@/config/api-mode";
 import { useFacilityOptions, useTaskStaff } from "./hooks";
@@ -53,13 +54,17 @@ export function StaffDirectoryWorkspace() {
         <p className="mt-2 text-sm text-slate-600">{M.description}</p>
       </header>
       <ManagementField label={F5.facility}>
-        <Select value={scope.facilityId} onChange={(event) => scope.select(event.target.value)}>
-          {scope.query.data.map((facility) => (
-            <option key={facility.id} value={facility.id}>
-              {facility.code} · {facility.name}
-            </option>
-          ))}
-        </Select>
+        <DropdownSelect
+          value={scope.facilityId}
+          onChange={(val) => scope.select(val)}
+          className="w-full"
+          triggerClassName="h-10 min-h-10 w-full bg-white border-slate-200"
+          options={scope.query.data.map((facility) => ({
+            value: facility.id,
+            label: `${facility.code} · ${facility.name}`,
+          }))}
+          maxVisibleItems={6}
+        />
       </ManagementField>
       <StaffPanel
         key={scope.facilityId}
@@ -138,13 +143,17 @@ function StaffPanel({
             />
           </ManagementField>
           <ManagementField label={M.sort}>
-            <Select
+            <DropdownSelect
               value={sort}
-              onChange={(event) => setSort(event.target.value as StaffDirectorySort)}
-            >
-              <option value="name">{M.sortByName}</option>
-              <option value="workload">{M.sortByWorkload}</option>
-            </Select>
+              onChange={(val) => setSort(val as StaffDirectorySort)}
+              className="w-full"
+              triggerClassName="h-10 min-h-10 w-full bg-white border-slate-200"
+              options={[
+                { value: "name", label: M.sortByName },
+                { value: "workload", label: M.sortByWorkload },
+              ]}
+              maxVisibleItems={6}
+            />
           </ManagementField>
         </div>
       </div>
