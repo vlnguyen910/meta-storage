@@ -138,31 +138,34 @@ export function RentalFinancePanel({ rentalId }: { rentalId: string }) {
       ) : (
         <>
           {!state.charges.data.pages.flatMap((page) => page.items).length && <p>{M.empty}</p>}
-          {state.charges.data.pages.flatMap((page) => page.items).map((c) => (
-            <article className="grid gap-3 rounded border p-4" key={c.id}>
-              <strong>
-                {M.source[c.source]} · {c.status}
-              </strong>
-              <p>{c.evidence}</p>
-              <p>
-                {M.total}: {money(c.adjustedAmount)} · {M.outstanding}: {money(c.outstandingAmount)}
-              </p>
-              <p>
-                {M.dueDate}: {c.dueDate ?? M.noDueDate}
-              </p>
-              {c.status === "OPEN" && (
-                <Button disabled={pending} onClick={() => state.pay.mutate(c.id)}>
-                  {M.payment}
-                </Button>
-              )}
-              {c.source === "EXTRA" && c.status === "OPEN" && (
-                <ChargeDisputeForm
-                  pending={pending}
-                  onSubmit={(reason) => state.dispute.mutate({ chargeId: c.id, reason })}
-                />
-              )}
-            </article>
-          ))}
+          {state.charges.data.pages
+            .flatMap((page) => page.items)
+            .map((c) => (
+              <article className="grid gap-3 rounded border p-4" key={c.id}>
+                <strong>
+                  {M.source[c.source]} · {c.status}
+                </strong>
+                <p>{c.evidence}</p>
+                <p>
+                  {M.total}: {money(c.adjustedAmount)} · {M.outstanding}:{" "}
+                  {money(c.outstandingAmount)}
+                </p>
+                <p>
+                  {M.dueDate}: {c.dueDate ?? M.noDueDate}
+                </p>
+                {c.status === "OPEN" && (
+                  <Button disabled={pending} onClick={() => state.pay.mutate(c.id)}>
+                    {M.payment}
+                  </Button>
+                )}
+                {c.source === "EXTRA" && c.status === "OPEN" && (
+                  <ChargeDisputeForm
+                    pending={pending}
+                    onSubmit={(reason) => state.dispute.mutate({ chargeId: c.id, reason })}
+                  />
+                )}
+              </article>
+            ))}
           {state.charges.hasNextPage && (
             <Button
               variant="outline"
