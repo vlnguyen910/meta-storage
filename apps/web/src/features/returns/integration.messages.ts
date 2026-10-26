@@ -130,6 +130,7 @@ export const F3 = {
   settingsDescription: "Cấu hình danh mục và lịch hoàn trả kho",
   checklist: "Checklist kiểm tra",
   calendar: "Lịch trả kho của cơ sở",
+  calendarDescription: "Cấu hình thời gian hoạt động và ngày nghỉ của cơ sở",
   reminders: "Nhắc hạn và rà soát",
   overdueRate: "Tỷ lệ phí quá hạn trên tiền cọc (%)",
   rateHelp:
