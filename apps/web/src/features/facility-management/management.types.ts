@@ -13,6 +13,8 @@ export interface FacilityPanelProps {
 }
 export interface InventoryPanelProps extends FacilityPanelProps {
   canEdit: boolean;
+  facilityOptions?: Array<{ id: string; name: string; code: string }>;
+  onSelectFacility?: (id: string) => void;
 }
 export interface TaskPanelProps extends FacilityPanelProps {
   manager: boolean;

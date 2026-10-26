@@ -47,15 +47,22 @@ export function BusinessOperationsShell({ children }: Readonly<BusinessOperation
       })}
     </nav>
   );
+  const isFacilityManagement = pathname.startsWith("/operations/facility-management");
+
   return (
-    <div className="min-h-screen bg-canvas text-ink [--radius-card:4px] [--color-outline-variant:#bfcac4]">
+    <div
+      className={cn(
+        "min-h-screen bg-canvas text-ink [--radius-card:4px] [--color-outline-variant:#bfcac4]",
+        isFacilityManagement && "h-screen flex flex-col overflow-hidden min-h-0",
+      )}
+    >
       <a
         href="#operations-content"
         className="sr-only z-50 rounded-lg bg-white p-3 text-primary focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
       >
         {M.skip}
       </a>
-      <header className="sticky top-0 z-30 flex min-h-16 flex-wrap items-center gap-4 border-b border-slate-200 bg-white px-4 py-3 lg:px-7">
+      <header className="sticky top-0 z-30 flex min-h-16 shrink-0 flex-wrap items-center gap-4 border-b border-slate-200 bg-white px-4 py-3 lg:px-7">
         <button
           ref={trigger}
           type="button"
@@ -127,8 +134,20 @@ export function BusinessOperationsShell({ children }: Readonly<BusinessOperation
         </div>
         {navigation}
       </dialog>
-      <div className="min-w-0 lg:ml-60">
-        <main id="operations-content" className="mx-auto max-w-[1440px] px-4 py-7 sm:px-6 lg:p-8">
+      <div
+        className={cn(
+          "min-w-0 lg:ml-60",
+          isFacilityManagement && "flex-1 overflow-hidden min-h-0 flex flex-col",
+        )}
+      >
+        <main
+          id="operations-content"
+          className={cn(
+            "mx-auto max-w-[1440px] px-4 py-7 sm:px-6 lg:p-8",
+            isFacilityManagement &&
+              "flex-1 overflow-hidden min-h-0 w-full p-4 sm:p-6 lg:p-6 flex flex-col",
+          )}
+        >
           {children}
         </main>
       </div>

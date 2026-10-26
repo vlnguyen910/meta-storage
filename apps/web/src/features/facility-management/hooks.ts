@@ -1,6 +1,7 @@
 "use client";
 
 import type {
+  ApiFacility,
   AssignFacilityTaskInput,
   CreateAssignmentBody,
   CreateFacilityBody,
@@ -69,6 +70,17 @@ export function useFacilityOptions(global = false) {
     ? selected
     : (query.data?.[0]?.id ?? "");
   return { query, facilityId, select };
+}
+
+export function useAllFacilities() {
+  const key = useManagementKey();
+  return useQuery({
+    queryKey: [...key, "all-facilities-list"],
+    enabled: !isMockMode,
+    queryFn: async ({ signal }): Promise<ApiFacility[]> => {
+      return allPages((offset) => api.flow5.facilities.list({ limit: 100, offset }, signal));
+    },
+  });
 }
 
 export function useUnitInventory(query: StorageUnitListQuery) {
