@@ -5,7 +5,9 @@ import type {
   BookingDraft,
   BookingDraftInput,
   BookingListItem,
+  CustomerAvailability,
   CustomerBooking,
+  CustomerBookingDetail,
   CustomerBookingPage,
   CustomerBookingPageQuery,
   EligibleUnit,
@@ -158,7 +160,7 @@ export class BookingsService {
     });
   }
 
-  async createDraft(input: BookingDraftInput, userId: string): Promise<BookingDraft> {
+  private async resolveRentalPeriod(input: BookingDraftInput) {
     if (input.checkInDate <= bookingLocalDate())
       throw new AppError(BOOKING_MESSAGES.checkInTomorrow, 400, "CHECK_IN_TOMORROW_REQUIRED");
     await this.facilitiesService.requireActiveFacility(input.facilityId);
@@ -182,6 +184,29 @@ export class BookingsService {
     await this.facilitiesService.assertCheckInWithinOperatingHours(input.facilityId, slot.startsAt);
     const rentalEndAt = new Date(slot.startsAt);
     rentalEndAt.setUTCDate(rentalEndAt.getUTCDate() + input.durationMonths * 30);
+    return { slot, unitType, rentalEndAt };
+  }
+
+  async availability(input: BookingDraftInput): Promise<CustomerAvailability> {
+    const { slot, rentalEndAt } = await this.resolveRentalPeriod(input);
+    const asOf = new Date().toISOString();
+    const availableCount = await this.storageUnitsService.getAvailableCapacity(
+      input.facilityId,
+      input.unitTypeId,
+      slot.startsAt,
+      rentalEndAt,
+    );
+    return {
+      facilityId: input.facilityId,
+      unitTypeId: input.unitTypeId,
+      period: { startsAt: slot.startsAt.toISOString(), endsAt: rentalEndAt.toISOString() },
+      availableCount,
+      asOf,
+    };
+  }
+
+  async createDraft(input: BookingDraftInput, userId: string): Promise<BookingDraft> {
+    const { slot, unitType, rentalEndAt } = await this.resolveRentalPeriod(input);
     const capacity = await this.storageUnitsService.getAvailableCapacity(
       input.facilityId,
       input.unitTypeId,
@@ -261,12 +286,18 @@ export class BookingsService {
     };
   }
 
-  async getMine(bookingId: string, userId: string): Promise<CustomerBooking> {
+  async getMine(bookingId: string, userId: string): Promise<CustomerBookingDetail> {
     const booking = await this.repository.findCustomerBookingById(bookingId, userId);
     if (!booking) throw new NotFoundError(BOOKING_MESSAGES.bookingDetailsNotFound);
     const progress = await this.repository.handoverProgress([booking.id]);
+    const recovery = await this.repository.customerRecovery(booking.id, userId);
+    const { cursorCreatedAt: _cursor, ...details } = booking;
     return {
-      ...booking,
+      rentalId: recovery.rentalId,
+      confirmation: recovery.confirmation
+        ? { ...recovery.confirmation, emailStatus: await this.getStatus(booking.id) }
+        : null,
+      ...details,
       handoverStage:
         booking.status === "CHECKED_IN"
           ? "HANDED_OVER"

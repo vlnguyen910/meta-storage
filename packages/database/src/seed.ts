@@ -1807,7 +1807,7 @@ async function seed() {
 }
 
 // API bundles import fixture metadata; only the seed script may execute this entry point.
-if (import.meta.main && process.argv[1]?.endsWith("/seed.ts")) {
+if (import.meta.main && process.argv[1]?.replaceAll("\\", "/").endsWith("/seed.ts")) {
   seed().catch(async (err) => {
     console.error("❌ Seeding failed:", err);
     await queryClient.end();

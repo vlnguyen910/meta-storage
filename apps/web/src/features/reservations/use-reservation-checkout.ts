@@ -5,11 +5,14 @@ import type {
   BookingDraft,
   BookingPaymentSession,
 } from "@metastorage/contracts";
+import { isAxiosError } from "axios";
 import { useSearchParams } from "next/navigation";
 import QRCode from "qrcode";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
+import { isMockMode } from "@/config/api-mode";
+import { useAuthStore } from "@/features/auth/auth-store";
 import { useAvailability, useFacilities } from "@/features/facilities/hooks";
 import {
   useBookingDraft,
@@ -29,6 +32,7 @@ import {
 type WizardValues = z.input<typeof wizardSchema>;
 
 export function useReservationCheckout() {
+  const session = useAuthStore((state) => state.session);
   const searchParams = useSearchParams();
   const initialSearch = useRef(searchParams);
   const routeSignature = useRef(searchParams.toString());
@@ -58,8 +62,8 @@ export function useReservationCheckout() {
       checkInDate: "",
       checkInSlotId: "",
       durationMonths: 1,
-      fullName: "",
-      email: "",
+      fullName: !isMockMode && session ? session.user.name : "",
+      email: !isMockMode && session ? session.user.email : "",
       phone: "",
     },
   });
@@ -75,7 +79,12 @@ export function useReservationCheckout() {
     Boolean(selectedSlot) &&
     durationMonths >= 1 &&
     durationMonths <= 12;
-  const availabilityQuery = useAvailability(facilityId);
+  const availabilityQuery = useAvailability(
+    facilityId,
+    scheduleReady && unitTypeId
+      ? { unitTypeId, checkInDate, checkInSlotId, durationMonths }
+      : undefined,
+  );
   const selectedFacility = facilitiesQuery.data?.items.find((item) => item.id === facilityId);
   const selectedOption = availabilityQuery.data?.find((item) => item.unitTypeId === unitTypeId);
   const paymentStatusQuery = useCheckoutPaymentStatus(pendingPayment?.paymentId ?? null);
@@ -100,8 +109,8 @@ export function useReservationCheckout() {
       checkInDate: "",
       checkInSlotId: "",
       durationMonths: 1,
-      fullName: "",
-      email: "",
+      fullName: form.getValues("fullName"),
+      email: form.getValues("email"),
       phone: "",
     });
   }, [form, searchParams]);
@@ -140,8 +149,8 @@ export function useReservationCheckout() {
       checkInDate: saved.checkInDate,
       checkInSlotId: saved.checkInSlotId,
       durationMonths: saved.draft.durationMonths,
-      fullName: "",
-      email: "",
+      fullName: form.getValues("fullName"),
+      email: form.getValues("email"),
       phone: "",
     });
     if (saved.payment) {
@@ -153,6 +162,12 @@ export function useReservationCheckout() {
     }
     setChangingFacility(false);
   }, [form]);
+  useEffect(() => {
+    if (!isMockMode && session) {
+      form.setValue("fullName", session.user.name);
+      form.setValue("email", session.user.email);
+    }
+  }, [form, session]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: Scroll on step transitions.
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -254,19 +269,34 @@ export function useReservationCheckout() {
     setPaymentError(null);
     try {
       const values = form.getValues();
-      const context = { draft, checkInDate, checkInSlotId, idempotencyKey: paymentKey };
+      const previous = readCheckoutContext();
+      const contactPhone =
+        previous?.idempotencyKey === paymentKey && previous.contactPhone !== undefined
+          ? previous.contactPhone
+          : normalizePhone(values.phone);
+      const context = {
+        draft,
+        checkInDate,
+        checkInSlotId,
+        idempotencyKey: paymentKey,
+        contactPhone,
+      };
       saveCheckoutContext(context);
       const result = await paymentMutation.mutateAsync({
         bookingId: draft.id,
         input: {
           idempotencyKey: paymentKey,
-          contactPhone: normalizePhone(values.phone),
+          contactPhone,
         },
       });
       saveCheckoutContext({ ...context, payment: result });
       setPendingPayment(result);
     } catch (error) {
       setPaymentError(checkoutFailure(error, "payment").message);
+      if (isAxiosError(error) && [400, 409, 422].includes(error.response?.status ?? 0)) {
+        clearCheckoutContext();
+        setPaymentKey(crypto.randomUUID());
+      }
     } finally {
       requestInFlight.current = false;
     }

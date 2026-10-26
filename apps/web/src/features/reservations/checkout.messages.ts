@@ -1,4 +1,5 @@
 export const checkoutMessages = {
+  accountContactHint: "Họ tên và email lấy từ tài khoản đăng nhập.",
   customerTitle: "Đặt kho mới",
   customerDescription: "Chọn loại kho, lịch nhận và kiểm tra đơn thuê trước khi thanh toán.",
   bookingUuid: "Booking ID",

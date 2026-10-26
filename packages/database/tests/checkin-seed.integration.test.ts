@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const target = process.env.SEED_TEST_DATABASE_URL;
 let database: typeof import("../src/index");
@@ -31,7 +32,7 @@ describe.skipIf(!target)("immediate check-in seed on an isolated database", () =
       throw new Error("Seed regression requires a freshly migrated empty test database");
     }
     const child = Bun.spawn([process.execPath, "run", "db:seed"], {
-      cwd: new URL("../../..", import.meta.url).pathname,
+      cwd: fileURLToPath(new URL("../../..", import.meta.url)),
       env: { ...globalThis.process.env, SEED_NOW: now.toISOString() },
       stdout: "ignore",
       stderr: "inherit",
@@ -55,7 +56,7 @@ describe.skipIf(!target)("immediate check-in seed on an isolated database", () =
     try {
       const result = await Bun.build({
         entrypoints: [
-          new URL("../../../apps/api/src/dev/auth-fixtures.ts", import.meta.url).pathname,
+          fileURLToPath(new URL("../../../apps/api/src/dev/auth-fixtures.ts", import.meta.url)),
         ],
         target: "bun",
       });

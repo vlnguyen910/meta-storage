@@ -92,10 +92,19 @@ export function useFacility(id: string) {
   return { ...query, data: query.data?.find((facility) => facility.id === id) };
 }
 
-// No period-availability endpoint exists in the original API. A null count is
-// unknown; draft creation and start-payment remain authoritative.
-export function useAvailability(id: string) {
-  return useQuery({
+// Catalog remains readable without a schedule. Period capacity is a snapshot;
+// draft creation and start-payment remain authoritative.
+export function useAvailability(
+  id: string,
+  period?: import("@metastorage/contracts").CustomerAvailabilityQuery,
+) {
+  const availability = useQuery({
+    queryKey: [...facilityKeys.all, "period", id, period],
+    queryFn: ({ signal }) => api.facilities.availability(id, period!, signal),
+    enabled: Boolean(id && period),
+    staleTime: 0,
+  });
+  const catalog = useQuery({
     queryKey: facilityKeys.unitTypes(id),
     queryFn: () => loadUnitTypes(id),
     enabled: Boolean(id),
@@ -111,7 +120,19 @@ export function useAvailability(id: string) {
         widthM: type.widthM,
         heightM: type.heightM,
         monthlyPrice: type.monthlyPrice,
-        availableCount: null,
+        availableCount:
+          !availability.isError && period?.unitTypeId === type.id
+            ? (availability.data?.availableCount ?? null)
+            : null,
       })),
   });
+  return {
+    ...catalog,
+    availability,
+    refetch: async () => {
+      const result = await catalog.refetch();
+      if (period) await availability.refetch();
+      return result;
+    },
+  };
 }

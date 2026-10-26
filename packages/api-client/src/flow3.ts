@@ -77,6 +77,13 @@ export function createFlow3Client(http: AxiosInstance) {
           .then((r) => r.data),
     },
     rentalDocuments: {
+      pdfBytes: (bookingId: string, id: string, signal?: AbortSignal) =>
+        http
+          .get<ArrayBuffer>(`/bookings/${bookingId}/contracts/${id}/pdf`, {
+            responseType: "arraybuffer",
+            signal,
+          })
+          .then((r) => r.data),
       list: (bookingId: string, signal?: AbortSignal) =>
         http
           .get<ApiEnvelope<RentalDocumentDto[]>>(`/bookings/${bookingId}/contracts`, { signal })

@@ -14,6 +14,8 @@ export interface RentalPage {
 
 /** Stored checkout/refund facts. Pending payments are not collected revenue. */
 export interface RentalPaymentItem {
+  chargeId?: string | null;
+  source?: "BOOKING" | "RENEWAL" | "EXTRA" | "RETURN_DEBT";
   id: string;
   paymentCode: string;
   provider: string;
@@ -27,6 +29,7 @@ export interface RentalPaymentItem {
   createdAt: string;
   /** Completed return transfers; distinct from checkout cancellation refunds. */
   returnRefunds: RentalReturnRefundItem[];
+  chargeRefunds?: RentalChargeRefundTransfer[];
 }
 
 export interface RentalReturnRefundItem {
@@ -109,3 +112,10 @@ export interface FacilityRentalRenewalPage {
   limit: number;
   offset: number;
 }
+
+export type RentalChargeRefundTransfer = {
+  id: string;
+  amount: string;
+  reference: string | null;
+  confirmedAt: string;
+};

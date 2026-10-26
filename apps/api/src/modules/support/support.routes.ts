@@ -1,6 +1,8 @@
 import {
   SUPPORT_IMAGE_MAX_BYTES,
   SupportAttachmentParamsSchema,
+  SupportContextParamsSchema,
+  SupportContextQuerySchema,
   SupportCreateInputSchema,
   SupportDetailSchema,
   SupportImageInputSchema,
@@ -48,6 +50,25 @@ export const supportRoutes: FastifyPluginAsync<SupportRoutesOptions> = async (ap
     reply.header("Cache-Control", "private, no-store");
   });
   const guards = [requireRole("CUSTOMER")];
+  typed.get(
+    "/contexts",
+    { preHandler: guards, schema: { ...schema, querystring: SupportContextQuerySchema } },
+    async (req) => successResponse(await service.contexts(actor(req), req.query)),
+  );
+  typed.get(
+    "/contexts/:bookingId/payments",
+    {
+      preHandler: guards,
+      schema: {
+        ...schema,
+        params: SupportContextParamsSchema,
+        querystring: SupportPageQuerySchema,
+      },
+    },
+    async (req) =>
+      successResponse(await service.contextPayments(actor(req), req.params.bookingId, req.query)),
+  );
+
   typed.post(
     "/tickets",
     {

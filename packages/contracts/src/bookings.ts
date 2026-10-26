@@ -11,6 +11,7 @@ export type {
   BookingTrackingSession,
   CheckInSlotOption,
   CustomerBooking,
+  CustomerBookingDetail,
   CustomerBookingPage,
   CustomerBookingPageCursor,
 } from "./bookings.types";

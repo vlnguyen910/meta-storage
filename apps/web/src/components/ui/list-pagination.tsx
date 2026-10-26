@@ -36,7 +36,18 @@ export function ListPagination({
             <ChevronLeft size={16} aria-hidden="true" />
             {M.previous}
           </Button>
-          <span className="px-1 font-semibold">{M.page(current, pages)}</span>
+          {Array.from({ length: pages }, (_, index) => index + 1).map((pageNumber) => (
+            <Button
+              key={pageNumber}
+              type="button"
+              variant={pageNumber === current ? "primary" : "outline"}
+              disabled={pending}
+              aria-current={pageNumber === current ? "page" : undefined}
+              onClick={() => onPageChange(pageNumber)}
+            >
+              {pageNumber}
+            </Button>
+          ))}
           <Button
             type="button"
             variant="outline"

@@ -169,9 +169,12 @@ export class RentalsService {
     await this.getMine(rentalId, userId);
     const rows = await this.repository.listPaymentsByUserId(rentalId, userId);
     const refunds = await this.repository.listReturnRefundsByUserId(rentalId, userId);
+    const chargeRefunds = await this.repository.listChargeRefundsByUserId(rentalId, userId);
     return rows.map((row) => ({
       id: row.id,
       paymentCode: row.paymentCode,
+      chargeId: row.chargeId,
+      source: row.source ?? "BOOKING",
       provider: row.provider,
       status: row.status,
       totalAmount: row.totalAmount,
@@ -185,6 +188,18 @@ export class RentalsService {
           confirmedAt: refund.confirmedAt.toISOString(),
           settlementId: refund.settlementId,
         })),
+      chargeRefunds: chargeRefunds.flatMap((refund) =>
+        refund.paymentId === row.id && refund.confirmedAt
+          ? [
+              {
+                id: refund.id,
+                amount: refund.amount,
+                reference: refund.reference,
+                confirmedAt: refund.confirmedAt.toISOString(),
+              },
+            ]
+          : [],
+      ),
       refundAmount: row.refundAmount,
       refundReason: row.refundReason,
       paidAt: row.paidAt?.toISOString() ?? null,

@@ -1,5 +1,6 @@
 "use client";
 
+import { CUSTOMER_WORKSPACE as C } from "@metastorage/shared";
 import {
   ArrowLeft,
   Calendar,
@@ -12,6 +13,7 @@ import {
   Warehouse,
 } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 import { Card, PageHeader, StatusBadge } from "@/components/ui/display";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { customerRoutes } from "@/config/routes";
@@ -19,6 +21,7 @@ import { CustomerReturnPanel } from "@/features/returns/customer-return-panel";
 import { F3 } from "@/features/returns/integration.messages";
 import { formatDate } from "@/lib/format";
 import { useRental } from "./hooks";
+import { RentalFinancePanel } from "./rental-finance-panel";
 import { RentalDocuments, RentalPayments } from "./rental-records";
 import { RENTAL_MESSAGES as M } from "./rentals.messages";
 
@@ -40,6 +43,9 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
   const rental = query.data;
   return (
     <>
+      <Link href={`${customerRoutes.supportNew}?bookingId=${encodeURIComponent(rental.bookingId)}`}>
+        {C.newTicket}
+      </Link>
       <PageHeader
         eyebrow="Kho của tôi"
         title={rental.bookingCode}
@@ -196,6 +202,9 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
           </div>
         </Card>
       </div>
+      <Suspense>
+        <RentalFinancePanel rentalId={rentalId} />
+      </Suspense>
       <CustomerReturnPanel rentalId={rental.id} rentalStatus={rental.status} />
       <div className="mt-6 grid gap-6">
         <RentalPayments rentalId={rental.id} />

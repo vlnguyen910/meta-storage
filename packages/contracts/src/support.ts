@@ -67,6 +67,12 @@ export const SupportPageQuerySchema = z.strictObject({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   cursor: z.string().min(1, m.invalidCursor).max(768, m.invalidCursor).optional(),
 });
+export const SupportContextQuerySchema = SupportPageQuerySchema.extend({
+  category: z.enum(SUPPORT_CATEGORIES),
+});
+export const SupportContextParamsSchema = z.strictObject({ bookingId: uuid });
+export type SupportContextQuery = z.infer<typeof SupportContextQuerySchema>;
+
 export const SupportTicketQuerySchema = SupportPageQuerySchema.extend({
   bookingId: uuid.optional(),
   category: z.enum(SUPPORT_CATEGORIES).optional(),

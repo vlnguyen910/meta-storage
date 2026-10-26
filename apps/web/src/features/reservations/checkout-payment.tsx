@@ -1,4 +1,5 @@
 "use client";
+import { CUSTOMER_WORKSPACE as C } from "@metastorage/shared";
 import { ArrowLeft, Landmark } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -85,6 +86,14 @@ export function CheckoutPayment({ state }: { state: CheckoutState }) {
               </button>
             </section>
           ) : null}
+          {pending && state.draft && (
+            <Link
+              className={s.secondary}
+              href={`${routes.customer.supportNew}?bookingId=${encodeURIComponent(state.draft.id)}&paymentId=${encodeURIComponent(pending.paymentId)}`}
+            >
+              {C.newTicket}
+            </Link>
+          )}
           {state.paymentError ? (
             <div role="alert" className={s.notice}>
               <strong>{m.paymentFailed}</strong>

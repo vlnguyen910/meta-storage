@@ -11,6 +11,7 @@ import {
   paymentProviderEvents,
   payments,
   rentalChargeEvents,
+  rentalChargeRefunds,
   rentalCharges,
   rentals,
   storageUnits,
@@ -24,6 +25,7 @@ import { auth } from "../../src/modules/auth/auth";
 import { authPlugin } from "../../src/modules/auth/auth.guard";
 import { PaymentsRepository } from "../../src/modules/payments/payments.repository";
 import { rentalChargesRoutes } from "../../src/modules/rental-charges/rental-charges.routes";
+import { rentalsRoutes } from "../../src/modules/rentals/rentals.routes";
 import { ReportsRepository } from "../../src/modules/reports/reports.repository";
 import { ReportsService } from "../../src/modules/reports/reports.service";
 import { createTestUnitType, deleteTestUnitTypes } from "../fixtures/facility-catalog";
@@ -65,6 +67,7 @@ describe.skipIf(!testUrl)("rental charges with isolated PostgreSQL", () => {
     app.setSerializerCompiler(serializerCompiler);
     app.register(authPlugin);
     app.register(rentalChargesRoutes, { prefix: "/api" });
+    app.register(rentalsRoutes, { prefix: "/api/rentals" });
     await app.ready();
     session = spyOn(auth.api, "getSession").mockImplementation(
       async () =>

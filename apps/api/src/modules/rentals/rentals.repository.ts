@@ -274,6 +274,8 @@ export class RentalsRepository {
     return this.db
       .select({
         id: payments.id,
+        chargeId: payments.rentalChargeId,
+        source: rentalCharges.source,
         paymentCode: payments.paymentCode,
         provider: payments.provider,
         status: payments.status,
@@ -286,10 +288,37 @@ export class RentalsRepository {
         createdAt: payments.createdAt,
       })
       .from(payments)
-      .innerJoin(bookings, eq(bookings.id, payments.bookingId))
-      .innerJoin(rentals, eq(rentals.bookingId, bookings.id))
+      .leftJoin(rentalCharges, eq(rentalCharges.id, payments.rentalChargeId))
+      .innerJoin(
+        rentals,
+        or(eq(rentals.bookingId, payments.bookingId), eq(rentals.id, rentalCharges.rentalId)),
+      )
+      .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
       .where(and(eq(rentals.id, rentalId), eq(bookings.userId, userId)))
       .orderBy(asc(payments.createdAt), asc(payments.id));
+  }
+
+  listChargeRefundsByUserId(rentalId: string, userId: string) {
+    return this.db
+      .select({
+        id: rentalChargeRefunds.id,
+        paymentId: rentalChargeRefunds.paymentId,
+        amount: rentalChargeRefunds.amount,
+        reference: rentalChargeRefunds.reference,
+        confirmedAt: rentalChargeRefunds.confirmedAt,
+      })
+      .from(rentalChargeRefunds)
+      .innerJoin(rentalCharges, eq(rentalCharges.id, rentalChargeRefunds.chargeId))
+      .innerJoin(rentals, eq(rentals.id, rentalCharges.rentalId))
+      .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
+      .where(
+        and(
+          eq(rentals.id, rentalId),
+          eq(bookings.userId, userId),
+          eq(rentalChargeRefunds.status, "CONFIRMED"),
+        ),
+      )
+      .orderBy(asc(rentalChargeRefunds.confirmedAt), asc(rentalChargeRefunds.id));
   }
 
   listReturnRefundsByUserId(rentalId: string, userId: string) {

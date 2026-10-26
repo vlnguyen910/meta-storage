@@ -2,6 +2,7 @@ import type { ApiFacility, ApiFacilityAssignment } from "@metastorage/contracts"
 import {
   ConfigureReturnCalendarSchema,
   CreateStorageUnitSchema,
+  CustomerAvailabilityQuerySchema,
   createAssignmentBodySchema,
   createFacilityBodySchema,
   FacilityRentalChargeParamsSchema,
@@ -32,6 +33,7 @@ import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
 import { requireAuth, requireRole } from "../auth/auth.guard";
+import { createBookingsService } from "../bookings/bookings.service";
 import { RentalChargesRepository } from "../rental-charges/rental-charges.repository";
 import { RentalChargesService } from "../rental-charges/rental-charges.service";
 import { RentalsRepository } from "../rentals/rentals.repository";
@@ -76,6 +78,22 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
   };
 
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
+  const bookingService = createBookingsService(fastify);
+  typedApp.get(
+    "/:facilityId/availability",
+    {
+      schema: { params: facilityIdNestedParamSchema, querystring: CustomerAvailabilityQuerySchema },
+    },
+    async (request, reply) => {
+      reply.header("Cache-Control", "no-store");
+      return successResponse(
+        await bookingService.availability({
+          ...request.query,
+          facilityId: request.params.facilityId,
+        }),
+      );
+    },
+  );
 
   typedApp.get(
     "/:facilityId/rentals",

@@ -1,4 +1,5 @@
 "use client";
+import { CUSTOMER_WORKSPACE as C } from "@metastorage/shared";
 import { Check, MapPin } from "lucide-react";
 import { Currency } from "@/components/ui/display";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/states";
@@ -75,6 +76,14 @@ export function CheckoutSelection({ state }: { state: CheckoutState }) {
           </button>
         ))}
       </div>
+      {availabilityQuery.availability.isError && (
+        <ErrorState
+          message={m.availabilityError}
+          onRetry={() => availabilityQuery.availability.refetch()}
+        />
+      )}
+      {availabilityQuery.availability.isFetching && <p role="status">{C.loading}</p>}
+      <p className="my-3 text-sm text-muted">{C.snapshot}</p>
       <div className={s.layout}>
         <div className={s.stack}>
           {availabilityQuery.isLoading ? <LoadingState label={m.loading} variant="form" /> : null}

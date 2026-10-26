@@ -1,4 +1,7 @@
 export const customerRoutes = {
+  support: "/customer/support",
+  supportNew: "/customer/support/new",
+  supportTicket: (id: string) => `/customer/support/${id}`,
   dashboard: "/customer/dashboard",
   facilities: "/customer/facilities",
   reservations: "/customer/reservations",

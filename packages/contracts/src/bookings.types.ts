@@ -80,6 +80,11 @@ export type CustomerBooking = {
   createdAt: string;
 };
 
+export type CustomerBookingDetail = CustomerBooking & {
+  rentalId: string | null;
+  confirmation: import("./bookings").BookingConfirmation | null;
+};
+
 export type CustomerBookingPageCursor = {
   afterCreatedAt: string;
   afterId: string;

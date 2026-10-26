@@ -83,6 +83,31 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Customer Support", 
     expect(r.statusCode, r.body).toBe(201);
     return r.json().data;
   }
+  test("discovers owned pre-handover payment contexts and isolates attempts", async () => {
+    const response = await f.api("customer", "GET", "/support/contexts?category=PAYMENT&limit=1");
+    expect(response.statusCode, response.body).toBe(200);
+    const page = response.json().data;
+    expect(page.items.some((item: { id: string }) => item.id === bookingId)).toBe(true);
+    expect(response.body).not.toContain(otherBookingId);
+    expect(response.body).not.toContain("holdTokenHash");
+    const attempts = await f.api("customer", "GET", `/support/contexts/${bookingId}/payments`);
+    expect(attempts.statusCode, attempts.body).toBe(200);
+    expect(attempts.json().data.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: paymentId, status: "FAILED", source: "BOOKING" }),
+      ]),
+    );
+    const forbidden = await f.api(
+      "customer",
+      "GET",
+      `/support/contexts/${otherBookingId}/payments`,
+    );
+    expect(forbidden.statusCode).toBe(404);
+    const physical = await f.api("customer", "GET", "/support/contexts?category=UNIT");
+    expect(physical.statusCode).toBe(200);
+    expect(physical.json().data.items).toEqual([]);
+  });
+
   const imageInput = (version: number): SupportImageInput => ({
     filename: "condition.png",
     mimeType: "image/png",
