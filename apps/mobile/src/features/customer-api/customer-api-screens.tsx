@@ -615,34 +615,44 @@ export function CustomerRentalScreen({
                 />
               )}
             />
-            {state.charges.data?.map((c) => (
-              <Card key={c.id} title={M.source[c.source]}>
-                <Text>
-                  {c.status} · {c.evidence}
-                </Text>
-                <Row label={M.outstanding} value={money(c.outstandingAmount)} />
-                <Row label={M.dueDate} value={c.dueDate ?? M.noDueDate} />
-                {c.status === "OPEN" && (
-                  <Button
-                    label={M.payment}
-                    disabled={state.pay.isPending}
-                    onPress={() => state.pay.mutate(c.id)}
-                  />
-                )}
-                {c.status === "OPEN" && c.source === "EXTRA" && (
-                  <Button
-                    label={M.dispute}
-                    secondary
-                    disabled={state.dispute.isPending}
-                    onPress={() =>
-                      void state.disputeForm.handleSubmit((input) =>
-                        state.dispute.mutate({ chargeId: c.id, reason: input.reason }),
-                      )()
-                    }
-                  />
-                )}
-              </Card>
-            ))}
+            {state.charges.data?.pages
+              .flatMap((page) => page.items)
+              .map((c) => (
+                <Card key={c.id} title={M.source[c.source]}>
+                  <Text>
+                    {c.status} · {c.evidence}
+                  </Text>
+                  <Row label={M.outstanding} value={money(c.outstandingAmount)} />
+                  <Row label={M.dueDate} value={c.dueDate ?? M.noDueDate} />
+                  {c.status === "OPEN" && (
+                    <Button
+                      label={M.payment}
+                      disabled={state.pay.isPending}
+                      onPress={() => state.pay.mutate(c.id)}
+                    />
+                  )}
+                  {c.status === "OPEN" && c.source === "EXTRA" && (
+                    <Button
+                      label={M.dispute}
+                      secondary
+                      disabled={state.dispute.isPending}
+                      onPress={() =>
+                        void state.disputeForm.handleSubmit((input) =>
+                          state.dispute.mutate({ chargeId: c.id, reason: input.reason }),
+                        )()
+                      }
+                    />
+                  )}
+                </Card>
+              ))}
+            {state.charges.hasNextPage && (
+              <Button
+                secondary
+                label={M.more}
+                disabled={state.charges.isFetchingNextPage}
+                onPress={() => void state.charges.fetchNextPage()}
+              />
+            )}
           </Card>
           <Card title={M.transactions}>
             <QueryNotice query={state.payments} />
