@@ -18,7 +18,6 @@ import { rentalCharges } from "./rental-charges";
 import { rentalPriceRanges } from "./rental-price-ranges";
 import { rentalRenewals } from "./rental-renewals";
 import { rentals } from "./rentals";
-import { reservationDrafts } from "./reservation-drafts";
 import { returnSettlements } from "./returns";
 import { sessions } from "./sessions";
 import { storageUnits } from "./storage-units";
@@ -113,7 +112,6 @@ export const facilitiesRelations = relations(facilities, ({ many }) => ({
   assignments: many(facilityAssignments),
   storageUnits: many(storageUnits),
   operatingHours: many(facilityOperatingHours),
-  reservationDrafts: many(reservationDrafts),
   capacityAllocations: many(capacityAllocations),
   bookings: many(bookings),
   rentals: many(rentals),
@@ -162,17 +160,6 @@ export const facilityOperatingHoursRelations = relations(facilityOperatingHours,
   facility: one(facilities, {
     fields: [facilityOperatingHours.facilityId],
     references: [facilities.id],
-  }),
-}));
-
-export const reservationDraftsRelations = relations(reservationDrafts, ({ one }) => ({
-  facility: one(facilities, {
-    fields: [reservationDrafts.facilityId],
-    references: [facilities.id],
-  }),
-  unitType: one(unitTypes, {
-    fields: [reservationDrafts.unitTypeId],
-    references: [unitTypes.id],
   }),
 }));
 
