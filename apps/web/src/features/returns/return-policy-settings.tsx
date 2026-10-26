@@ -12,14 +12,26 @@ import {
 } from "@metastorage/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
+import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
+import { Input } from "@/components/ui/form-controls";
 import { ErrorState, LoadingState } from "@/components/ui/states";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { api } from "@/lib/api";
+import { cn } from "@/lib/cn";
 import { F3 } from "./integration.messages";
-import { f3Input, f3Panel, integrationError, minuteClock } from "./integration-utils";
+import { integrationError, minuteClock } from "./integration-utils";
 import type { ReturnCalendarDraft } from "./return-policy-settings.types";
 import { SystemSettingFields } from "./system-setting-fields";
 import { useFlow3Identity } from "./use-flow3-identity";
@@ -49,7 +61,14 @@ export function ReturnPolicySettings() {
           ))}
         </div>
       </div>
-      <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+      <div
+        className={cn(
+          "min-h-0",
+          tab === "checklist"
+            ? "flex-1 flex flex-col overflow-hidden"
+            : "flex-1 overflow-y-auto pr-1",
+        )}
+      >
         {tab === "checklist" ? (
           <ChecklistSettings />
         ) : tab === "calendar" ? (
@@ -101,97 +120,145 @@ function ChecklistForm({ snapshot }: { snapshot: ReturnChecklistVersionDto | nul
   });
   return (
     <form
-      className={f3Panel}
+      className="flex flex-col flex-1 h-full w-full overflow-hidden min-h-0 gap-3"
       onSubmit={form.handleSubmit((values) => {
         form.clearErrors();
         mutation.mutate(values);
       })}
     >
-      <h2 className="text-lg font-bold">
-        {F3.checklist} · {F3.version(snapshot?.version ?? 0)}
-      </h2>
-      <p className="text-sm text-slate-600">{F3.checklistHelp}</p>
-      {items.fields.map((field, index) => (
-        <fieldset
-          key={field.id}
-          className="grid gap-3 rounded border border-slate-200 p-4 sm:grid-cols-2"
-        >
-          <legend className="px-1 font-bold">{index + 1}</legend>
-          <label className="grid gap-2 text-sm font-semibold">
-            {F3.code}
-            <input
-              className={f3Input}
-              required
-              maxLength={80}
-              {...form.register(`items.${index}.code`)}
-            />
-          </label>
-          <label className="grid gap-2 text-sm font-semibold">
-            {F3.label}
-            <input
-              className={f3Input}
-              required
-              maxLength={300}
-              {...form.register(`items.${index}.label`)}
-            />
-          </label>
-          <div className="grid gap-2 text-sm font-semibold">
-            <span>{F3.group}</span>
-            <DropdownSelect
-              value={form.watch(`items.${index}.group`)}
-              onChange={(val) =>
-                form.setValue(
-                  `items.${index}.group`,
-                  val as (typeof RETURN_CHECKLIST_GROUPS)[number],
-                )
-              }
-              className="w-full"
-              triggerClassName="h-10 min-h-10 bg-white"
-              options={RETURN_CHECKLIST_GROUPS.map((group) => ({
-                value: group,
-                label: F3.groups[group],
-              }))}
-            />
-          </div>
-          <label className="flex min-h-11 items-center gap-3">
-            <input type="checkbox" {...form.register(`items.${index}.serious`)} />
-            {F3.serious}
-          </label>
+      <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 p-3 bg-white rounded-card border border-line shadow-card">
+        <div>
+          <h2 className="text-base font-bold font-['Space_Grotesk'] text-slate-900 m-0">
+            {F3.checklist} · {F3.version(snapshot?.version ?? 0)}
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5 m-0">{F3.checklistHelp}</p>
+        </div>
+        <div className="flex items-center gap-2">
           <Button
             type="button"
             variant="outline"
-            disabled={items.fields.length <= 4}
-            onClick={() => items.remove(index)}
+            className="h-9 min-h-9 px-3 text-xs font-semibold gap-1.5"
+            disabled={items.fields.length >= 100}
+            onClick={() =>
+              items.append({ code: "", label: "", group: "UNIT_CONDITION", serious: false })
+            }
+            icon={<Plus size={15} aria-hidden="true" />}
           >
-            {F3.remove}
+            {F3.addItem}
           </Button>
-        </fieldset>
-      ))}
-      <div className="flex flex-wrap gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          disabled={items.fields.length >= 100}
-          onClick={() =>
-            items.append({ code: "", label: "", group: "UNIT_CONDITION", serious: false })
-          }
-        >
-          {F3.addItem}
-        </Button>
-        <Button loading={mutation.isPending} disabled={mutation.isPending}>
-          {F3.save}
-        </Button>
+          <Button
+            type="submit"
+            className="h-9 min-h-9 px-4 text-xs font-semibold"
+            loading={mutation.isPending}
+            disabled={mutation.isPending}
+          >
+            {F3.save}
+          </Button>
+        </div>
       </div>
+
       {(mutation.isError || form.formState.errors.root) && (
-        <p role="alert" className="text-red-700">
+        <p
+          role="alert"
+          className="shrink-0 m-0 text-xs text-red-700 bg-red-50 p-2.5 rounded-lg border border-red-200"
+        >
           {form.formState.errors.root?.message ?? integrationError(mutation.error)}
         </p>
       )}
       {mutation.isSuccess && (
-        <p role="status" className="text-emerald-800">
+        <p
+          role="status"
+          className="shrink-0 m-0 text-xs text-emerald-800 bg-emerald-50 p-2.5 rounded-lg border border-emerald-200"
+        >
           {F3.saved}
         </p>
       )}
+
+      <Card className="flex flex-col flex-1 min-h-0 min-w-0 overflow-hidden rounded-card border-line bg-white shadow-card">
+        <div className="flex-1 min-h-0 overflow-auto">
+          <Table className="min-w-[760px] relative">
+            <TableHeader className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-xs shadow-2xs">
+              <TableRow>
+                <TableHead className="w-14 text-center text-xs font-bold text-slate-600">
+                  STT
+                </TableHead>
+                <TableHead className="w-1/4 text-xs font-bold text-slate-600">{F3.code}</TableHead>
+                <TableHead className="w-2/5 text-xs font-bold text-slate-600">{F3.label}</TableHead>
+                <TableHead className="w-1/4 text-xs font-bold text-slate-600">{F3.group}</TableHead>
+                <TableHead className="w-32 text-center text-xs font-bold text-slate-600">
+                  {F3.serious}
+                </TableHead>
+                <TableHead className="w-16 text-center text-xs font-bold text-slate-600"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.fields.map((field, index) => (
+                <TableRow key={field.id} className="hover:bg-slate-50/60 transition-colors">
+                  <TableCell className="text-center font-bold text-xs text-slate-500 py-2">
+                    {index + 1}
+                  </TableCell>
+                  <TableCell className="py-2">
+                    <Input
+                      className="h-9 min-h-9 text-xs font-mono uppercase bg-canvas"
+                      required
+                      maxLength={80}
+                      placeholder="VD: DEMO_CONDITION"
+                      {...form.register(`items.${index}.code`)}
+                    />
+                  </TableCell>
+                  <TableCell className="py-2">
+                    <Input
+                      className="h-9 min-h-9 text-xs bg-canvas"
+                      required
+                      maxLength={300}
+                      placeholder="VD: Tình trạng ô kho..."
+                      {...form.register(`items.${index}.label`)}
+                    />
+                  </TableCell>
+                  <TableCell className="py-2">
+                    <DropdownSelect
+                      value={form.watch(`items.${index}.group`)}
+                      onChange={(val) =>
+                        form.setValue(
+                          `items.${index}.group`,
+                          val as (typeof RETURN_CHECKLIST_GROUPS)[number],
+                        )
+                      }
+                      className="w-full"
+                      triggerClassName="h-9 min-h-9 text-xs bg-canvas border-line"
+                      options={RETURN_CHECKLIST_GROUPS.map((group) => ({
+                        value: group,
+                        label: F3.groups[group],
+                      }))}
+                    />
+                  </TableCell>
+                  <TableCell className="text-center py-2">
+                    <label className="inline-flex items-center justify-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="size-4 rounded border-slate-300 text-primary cursor-pointer"
+                        {...form.register(`items.${index}.serious`)}
+                      />
+                    </label>
+                  </TableCell>
+                  <TableCell className="text-center py-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      disabled={items.fields.length <= 4}
+                      onClick={() => items.remove(index)}
+                      className="size-8 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-30"
+                      title={F3.remove}
+                    >
+                      <Trash2 size={16} aria-hidden="true" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
     </form>
   );
 }
@@ -310,79 +377,146 @@ function CalendarForm({
   });
   return (
     <form
-      className={f3Panel}
+      className="space-y-3.5"
       onSubmit={form.handleSubmit((values) => {
         form.clearErrors();
         mutation.mutate(values);
       })}
     >
-      <h2 className="font-bold text-lg">
-        {F3.calendar} · {F3.version(snapshot?.version ?? 0)}
-      </h2>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="grid gap-2 font-semibold text-sm">
-          {F3.timezone}
-          <input className={f3Input} required {...form.register("timezone")} />
-        </label>
-        <label className="grid gap-2 font-semibold text-sm">
-          {F3.reminderTime}
-          <input className={f3Input} required type="time" {...form.register("reminderTime")} />
-        </label>
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-white rounded-card border border-line shadow-card">
+        <div>
+          <h2 className="text-base font-bold font-['Space_Grotesk'] text-slate-900 m-0">
+            {F3.calendar} · {F3.version(snapshot?.version ?? 0)}
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5 m-0">{F3.calendarDescription}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
+            <input
+              type="checkbox"
+              className="size-4 rounded border-slate-300 text-primary cursor-pointer"
+              checked={acknowledged}
+              onChange={(e) => setAcknowledged(e.target.checked)}
+            />
+            <span>{F3.confirmCalendar}</span>
+          </label>
+          <Button
+            disabled={!acknowledged || mutation.isPending}
+            loading={mutation.isPending}
+            className="h-9 min-h-9 px-4 text-xs font-semibold"
+          >
+            {F3.save}
+          </Button>
+        </div>
       </div>
-      <label className="grid gap-2 font-semibold text-sm">
-        {F3.holidays}
-        <textarea rows={4} className={f3Input} {...form.register("holidays")} />
-      </label>
-      <fieldset className="space-y-3">
-        <legend className="font-bold">{F3.operatingHours}</legend>
-        {F3.days.map((day, index) => (
-          <div key={day} className="grid gap-3 sm:grid-cols-3 border-b border-slate-200 pb-3">
-            <label className="flex min-h-11 gap-3 items-center">
-              <input type="checkbox" {...form.register(`hours.${index}.active`)} />
-              {day}
-            </label>
-            <label className="grid gap-1 text-sm">
-              {F3.open}
-              <input
-                type="time"
-                className={f3Input}
-                disabled={!form.watch(`hours.${index}.active`)}
-                {...form.register(`hours.${index}.openTime`)}
-              />
-            </label>
-            <label className="grid gap-1 text-sm">
-              {F3.shut}
-              <input
-                type="time"
-                className={f3Input}
-                disabled={!form.watch(`hours.${index}.active`)}
-                {...form.register(`hours.${index}.closeTime`)}
-              />
-            </label>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Card className="p-3.5 bg-white rounded-card border border-line shadow-card space-y-3">
+          <div className="grid gap-1 font-semibold text-xs">
+            <label htmlFor="calendar-timezone">{F3.timezone}</label>
+            <Input
+              id="calendar-timezone"
+              className="h-9 min-h-9 text-xs bg-canvas"
+              required
+              {...form.register("timezone")}
+            />
           </div>
-        ))}
-      </fieldset>
-      <p className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+          <div className="grid gap-1 font-semibold text-xs">
+            <label htmlFor="calendar-reminder-time">{F3.reminderTime}</label>
+            <Input
+              id="calendar-reminder-time"
+              className="h-9 min-h-9 text-xs bg-canvas"
+              required
+              type="time"
+              {...form.register("reminderTime")}
+            />
+          </div>
+        </Card>
+        <Card className="p-3.5 bg-white rounded-card border border-line shadow-card flex flex-col">
+          <div className="grid gap-1 font-semibold text-xs flex-1">
+            <label htmlFor="calendar-holidays">{F3.holidays}</label>
+            <textarea
+              id="calendar-holidays"
+              rows={3}
+              className="w-full flex-1 rounded-lg border border-line bg-canvas p-2 text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary"
+              placeholder="2026-01-01&#10;2026-04-30"
+              {...form.register("holidays")}
+            />
+          </div>
+        </Card>
+      </div>
+
+      <Card className="rounded-card border-line bg-white shadow-card overflow-hidden">
+        <div className="p-3 border-b border-line bg-slate-50/70">
+          <strong className="text-xs font-bold text-slate-700">{F3.operatingHours}</strong>
+        </div>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader className="bg-slate-50/50">
+              <TableRow>
+                <TableHead className="w-1/3 text-xs font-bold text-slate-600">Ngày</TableHead>
+                <TableHead className="w-1/3 text-xs font-bold text-slate-600">{F3.open}</TableHead>
+                <TableHead className="w-1/3 text-xs font-bold text-slate-600">{F3.shut}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {F3.days.map((day, index) => {
+                const active = form.watch(`hours.${index}.active`);
+                return (
+                  <TableRow key={day} className="hover:bg-slate-50/60 transition-colors">
+                    <TableCell className="py-2">
+                      <label className="inline-flex items-center gap-2 cursor-pointer text-xs font-semibold">
+                        <input
+                          type="checkbox"
+                          className="size-4 rounded border-slate-300 text-primary cursor-pointer"
+                          {...form.register(`hours.${index}.active`)}
+                        />
+                        <span className={active ? "text-slate-900 font-bold" : "text-slate-400"}>
+                          {day}
+                        </span>
+                      </label>
+                    </TableCell>
+                    <TableCell className="py-2">
+                      <Input
+                        type="time"
+                        className="h-8 min-h-8 text-xs w-36 bg-canvas"
+                        disabled={!active}
+                        {...form.register(`hours.${index}.openTime`)}
+                      />
+                    </TableCell>
+                    <TableCell className="py-2">
+                      <Input
+                        type="time"
+                        className="h-8 min-h-8 text-xs w-36 bg-canvas"
+                        disabled={!active}
+                        {...form.register(`hours.${index}.closeTime`)}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
+
+      <p className="rounded-lg border border-amber-300 bg-amber-50 p-2.5 text-xs text-amber-950 m-0">
         {F3.calendarWarning}
       </p>
-      <label className="flex min-h-11 gap-3 items-center">
-        <input
-          type="checkbox"
-          checked={acknowledged}
-          onChange={(e) => setAcknowledged(e.target.checked)}
-        />
-        {F3.confirmCalendar}
-      </label>
-      <Button disabled={!acknowledged || mutation.isPending} loading={mutation.isPending}>
-        {F3.save}
-      </Button>
+
       {(mutation.isError || form.formState.errors.root) && (
-        <p role="alert" className="text-red-700">
+        <p
+          role="alert"
+          className="text-xs text-red-700 bg-red-50 p-2.5 rounded-lg border border-red-200 m-0"
+        >
           {form.formState.errors.root?.message ?? integrationError(mutation.error)}
         </p>
       )}
       {mutation.isSuccess && (
-        <p role="status" className="text-emerald-800">
+        <p
+          role="status"
+          className="text-xs text-emerald-800 bg-emerald-50 p-2.5 rounded-lg border border-emerald-200 m-0"
+        >
           {F3.saved}
         </p>
       )}
