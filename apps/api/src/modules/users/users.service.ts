@@ -1,6 +1,7 @@
 import {
   type CreateUserInput,
   CreateUserInputSchema,
+  type CustomerRegistrationStats,
   type UpdateOwnProfileInput,
   UpdateOwnProfileInputSchema,
   type UpdateUserInput,
@@ -51,6 +52,30 @@ export class UsersService {
 
   async listUsers(query: UserListQuery): Promise<User[]> {
     return (await this.usersRepository.list(query)).map(toUserDto);
+  }
+
+  async customerRegistrations(
+    year = new Date().getUTCFullYear(),
+  ): Promise<CustomerRegistrationStats> {
+    const from = new Date(Date.UTC(year, 0, 1));
+    const to = new Date(Date.UTC(year + 1, 0, 1));
+    const [countsByMonth, availableYears, summary] = await Promise.all([
+      this.usersRepository.customerRegistrations(from, to),
+      this.usersRepository.customerRegistrationYears(),
+      this.usersRepository.dashboardSummary(),
+    ]);
+    const counts = new Map(countsByMonth.map((item) => [item.month, item.count]));
+    return {
+      year,
+      years: [...new Set([new Date().getUTCFullYear(), year, ...availableYears])].sort(
+        (a, b) => b - a,
+      ),
+      summary,
+      items: Array.from({ length: 12 }, (_, index) => {
+        const month = `${year}-${String(index + 1).padStart(2, "0")}`;
+        return { month, count: counts.get(month) ?? 0 };
+      }),
+    };
   }
 
   async updateOwnProfile(userId: string, input: UpdateOwnProfileInput): Promise<User> {

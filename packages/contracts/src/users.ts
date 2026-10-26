@@ -23,7 +23,12 @@ export const UserRoleSchema = z.enum(UserRole);
 export const BusinessUserRoleSchema = UserRoleSchema.exclude(["SYSTEM_ADMINISTRATOR"]);
 export const UserStatusSchema = z.enum(UserStatus);
 
-export type { User } from "./users.types";
+export type { CustomerRegistrationMonth, CustomerRegistrationStats, User } from "./users.types";
+
+export const CustomerRegistrationQuerySchema = z.object({
+  year: z.coerce.number().int().min(2000).max(2100).optional(),
+});
+export type CustomerRegistrationQuery = z.infer<typeof CustomerRegistrationQuerySchema>;
 
 export const UpdateOwnProfileInputSchema = z
   .strictObject({
