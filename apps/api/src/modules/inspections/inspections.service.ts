@@ -333,9 +333,7 @@ export class InspectionsService {
       mimeType: p.mimeType,
       byteSize: p.byteSize,
       createdAt: p.createdAt.toISOString(),
-      ...(p.cloudinaryPublicId && p.cloudinaryFormat
-        ? { url: this.storage.readUrl(p.cloudinaryPublicId, p.cloudinaryFormat) }
-        : { dataBase64: p.dataBase64 ?? "" }),
+      url: this.storage.readUrl(p.cloudinaryPublicId, p.cloudinaryFormat),
     };
   }
 }

@@ -1,17 +1,17 @@
 import { and, eq, inArray, isNull, notInArray, sql } from "drizzle-orm";
+import { pgTable, uuid } from "drizzle-orm/pg-core";
 import type { Database } from "./client";
-import {
-  bookings,
-  capacityAllocations,
-  rentals,
-  reservationDrafts,
-  storageUnits,
-  unitAssignments,
-} from "./schema";
+import { bookings, capacityAllocations, rentals, storageUnits, unitAssignments } from "./schema";
 
 type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
+const legacyReservationDrafts = pgTable("reservation_drafts", {
+  id: uuid().primaryKey(),
+});
 
 export async function removeGuestBookings(tx: Transaction) {
+  const [legacy] = await tx.execute<{ drafts: string | null }>(
+    sql`select to_regclass('public.reservation_drafts')::text as drafts`,
+  );
   const guests = tx.select({ id: bookings.id }).from(bookings).where(isNull(bookings.userId));
   const guestRentals = tx
     .select({ id: rentals.id })
@@ -39,7 +39,8 @@ export async function removeGuestBookings(tx: Transaction) {
     definition: string;
   }>(sql`
     with recursive descendants(oid) as (
-      select oid from pg_class where oid in ('public.bookings'::regclass, 'public.reservation_drafts'::regclass)
+      select oid from pg_class
+      where oid in ('public.bookings'::regclass, to_regclass('public.reservation_drafts'))
       union
       select c.conrelid from pg_constraint c join descendants d on d.oid = c.confrelid where c.contype = 'f'
     )
@@ -62,10 +63,12 @@ export async function removeGuestBookings(tx: Transaction) {
     await tx.execute(sql`alter table ${table} add constraint ${name} ${sql.raw(definition)}`);
   }
   await tx.delete(bookings).where(isNull(bookings.userId));
-  // Legacy reservation drafts have no account owner and are no longer a checkout path.
-  const drafts = tx.select({ id: reservationDrafts.id }).from(reservationDrafts);
-  await tx.delete(capacityAllocations).where(inArray(capacityAllocations.referenceId, drafts));
-  await tx.delete(reservationDrafts);
+  if (legacy?.drafts) {
+    // Legacy reservation drafts have no account owner and are no longer a checkout path.
+    const drafts = tx.select({ id: legacyReservationDrafts.id }).from(legacyReservationDrafts);
+    await tx.delete(capacityAllocations).where(inArray(capacityAllocations.referenceId, drafts));
+    await tx.delete(legacyReservationDrafts);
+  }
   for (const constraint of constraints) {
     const table = sql`${sql.identifier(constraint.schema)}.${sql.identifier(constraint.table)}`;
     const name = sql.identifier(constraint.name);

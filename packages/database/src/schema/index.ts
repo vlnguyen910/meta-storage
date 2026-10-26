@@ -21,7 +21,6 @@ export * from "./rental-charges";
 export * from "./rental-price-ranges";
 export * from "./rental-renewals";
 export * from "./rentals";
-export * from "./reservation-drafts";
 export * from "./returns";
 export * from "./sessions";
 export * from "./storage-unit-maintenance-history";
