@@ -157,15 +157,7 @@ export const ADMIN_MESSAGES = {
     "Cơ sở được phân quyền",
     "Thao tác",
   ] as const,
-  loginHeadings: [
-    "Thời gian",
-    "Tài khoản",
-    "Vai trò",
-    "IP đã che",
-    "Thiết bị",
-    "Kết quả",
-    "Chi tiết",
-  ] as const,
+  loginHeadings: ["Thời gian", "Tài khoản", "Vai trò", "Thiết bị", "Chi tiết"] as const,
   auditHeadings: [
     "Thời gian",
     "Người thực hiện",
