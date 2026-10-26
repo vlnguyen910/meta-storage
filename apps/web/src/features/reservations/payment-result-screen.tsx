@@ -1,11 +1,12 @@
 "use client";
 import { CUSTOMER_WORKSPACE as C } from "@metastorage/shared";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { Spinner } from "@/components/ui/spinner";
+import { customerRoutes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { useCheckoutPaymentStatus } from "./booking-checkout.hooks";
 import type { CheckoutContext } from "./booking-checkout.types";
@@ -16,6 +17,8 @@ import { paymentResultMessages as m } from "./payment-result.messages";
 
 export function PaymentResultScreen() {
   const params = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
   const paymentId = params.get("paymentId");
   const bookingId = params.get("bookingId");
   const session = useAuthStore((state) => state.session);
@@ -23,6 +26,11 @@ export function PaymentResultScreen() {
   const [ready, setReady] = useState(false);
   const [qr, setQr] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    if (!session || pathname !== "/bookings/payment-result") return;
+    const query = params.toString();
+    router.replace(`${customerRoutes.paymentResult}${query ? `?${query}` : ""}`);
+  }, [pathname, params, router, session]);
   useEffect(() => {
     const saved = readCheckoutContext();
     if (saved?.payment?.paymentId === paymentId && (!bookingId || saved.draft.id === bookingId))

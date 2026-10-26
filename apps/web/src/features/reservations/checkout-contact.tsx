@@ -91,12 +91,7 @@ export function CheckoutContact({ state }: { state: CheckoutState }) {
           </div>
           <div>
             <FieldShell label={m.email} error={form.formState.errors.email?.message}>
-              <Input
-                readOnly={!isMockMode}
-                type="email"
-                autoComplete="email"
-                {...form.register("email")}
-              />
+              <Input readOnly type="email" autoComplete="email" {...form.register("email")} />
             </FieldShell>
             <p className={s.fieldHint}>{isMockMode ? m.emailHint : m.accountContactHint}</p>
           </div>
