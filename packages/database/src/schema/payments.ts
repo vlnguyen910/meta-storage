@@ -13,7 +13,6 @@ import {
 } from "drizzle-orm/pg-core";
 import { bookings } from "./bookings";
 import { rentalCharges } from "./rental-charges";
-import { reservationDrafts } from "./reservation-drafts";
 import { users } from "./users";
 
 export { PAYMENT_STATUSES } from "@metastorage/contracts/payments";
@@ -24,7 +23,6 @@ export const payments = pgTable(
   {
     id: uuid().defaultRandom().primaryKey(),
     bookingId: uuid().references(() => bookings.id, { onDelete: "restrict" }),
-    draftId: uuid().references(() => reservationDrafts.id, { onDelete: "restrict" }),
     rentalChargeId: uuid().references(() => rentalCharges.id, { onDelete: "restrict" }),
     holdTokenHash: varchar({ length: 128 }),
     provider: varchar({ length: 32 }).notNull(),
@@ -58,9 +56,8 @@ export const payments = pgTable(
     check(
       "payments_source_reference",
       sql`(
-        (${table.bookingId} IS NOT NULL AND ${table.draftId} IS NULL AND ${table.rentalChargeId} IS NULL AND ${table.holdTokenHash} IS NOT NULL) OR
-        (${table.bookingId} IS NULL AND ${table.draftId} IS NOT NULL AND ${table.rentalChargeId} IS NULL AND ${table.holdTokenHash} IS NOT NULL) OR
-        (${table.bookingId} IS NULL AND ${table.draftId} IS NULL AND ${table.rentalChargeId} IS NOT NULL AND ${table.holdTokenHash} IS NULL)
+        (${table.bookingId} IS NOT NULL AND ${table.rentalChargeId} IS NULL AND ${table.holdTokenHash} IS NOT NULL) OR
+        (${table.bookingId} IS NULL AND ${table.rentalChargeId} IS NOT NULL AND ${table.holdTokenHash} IS NULL)
       )`,
     ),
     uniqueIndex("payments_provider_payment_idx").on(table.provider, table.providerPaymentId),

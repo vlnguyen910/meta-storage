@@ -136,14 +136,18 @@ export async function applyMigrations(database: Database, migrations: MigrationM
         statement.includes('ALTER TABLE "unit_types" ALTER COLUMN "facility_id" SET NOT NULL'),
       );
       if (contractsLocalTypes) await migrateFacilityUnitTypes(tx);
-      // Drizzle emits DROP TABLE CASCADE before explicit FK drops; execute those
-      // trusted generated drops first so PostgreSQL does not see missing constraints.
-      const statements = contractsLocalTypes
-        ? [
-            ...migration.sql.filter((statement) => statement.includes(" DROP CONSTRAINT ")),
-            ...migration.sql.filter((statement) => !statement.includes(" DROP CONSTRAINT ")),
-          ]
-        : migration.sql;
+      // Drizzle can emit DROP TABLE CASCADE before explicit FK drops; execute those
+      // trusted generated constraint drops first so PostgreSQL does not see missing constraints.
+      const dropsTableCascade = migration.sql.some(
+        (statement) => statement.includes("DROP TABLE") && statement.includes("CASCADE"),
+      );
+      const statements =
+        contractsLocalTypes || dropsTableCascade
+          ? [
+              ...migration.sql.filter((statement) => statement.includes(" DROP CONSTRAINT ")),
+              ...migration.sql.filter((statement) => !statement.includes(" DROP CONSTRAINT ")),
+            ]
+          : migration.sql;
       for (const statement of statements) await tx.execute(sql.raw(statement));
       await tx.insert(journal).values({ hash: migration.hash, createdAt: migration.folderMillis });
       appliedHashes.add(migration.hash);
