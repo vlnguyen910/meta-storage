@@ -25,10 +25,6 @@ async function renameDemoBranding() {
         UPDATE bookings SET contact_email = ${newEmail}, updated_at = now()
         WHERE contact_email = ${oldEmail}
       `;
-      await tx`
-        UPDATE reservation_drafts SET contact_email = ${newEmail}, updated_at = now()
-        WHERE contact_email = ${oldEmail}
-      `;
     }
     return { facilities: facilities.map(({ code, name }) => ({ code, name })), renamedUsers };
   });
