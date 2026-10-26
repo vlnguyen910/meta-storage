@@ -12,21 +12,43 @@ import {
   createFacilityBodySchema,
   type FacilityUnitTypeDto,
 } from "@metastorage/contracts";
-import { useState } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Layers,
+  Pencil,
+  Plus,
+  Search,
+  UserMinus,
+  UserPlus,
+  Warehouse,
+} from "lucide-react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/form-controls";
 import { ErrorState, LoadingState } from "@/components/ui/states";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { isMockMode } from "@/config/api-mode";
 import { useAuthStore } from "@/features/auth/auth-store";
+import { cn } from "@/lib/utils";
 import {
   managementError,
+  useAllFacilities,
   useAssignableAccounts,
   useAssignMember,
   useCreateFacility,
   useCreateType,
   useFacilityOptions,
-  useManagedFacility,
   useManagedTypes,
   useMemberships,
   useOfferings,
@@ -37,7 +59,7 @@ import {
 } from "./hooks";
 import { F5 } from "./management.messages";
 import type { FacilityPanelProps, ManagementWorkspaceProps } from "./management.types";
-import { ManagementDialog, ManagementField, panelClass, textareaClass } from "./management-ui";
+import { ManagementDialog, ManagementField, textareaClass } from "./management-ui";
 import { InventoryPanel } from "./unit-inventory";
 
 const tabLabels = {
@@ -48,80 +70,126 @@ const tabLabels = {
   units: F5.inventory,
 };
 
+const PAGE_SIZE = 8;
+
 export function FacilityManagementWorkspace({ membershipsOnly = false }: ManagementWorkspaceProps) {
   const scope = useFacilityOptions(true);
   const [tab, setTab] = useState<keyof typeof tabLabels>(
     membershipsOnly ? "memberships" : "facilities",
   );
-  const [creating, setCreating] = useState(false);
+  const [creatingFacility, setCreatingFacility] = useState(false);
+
   if (isMockMode) return <p role="status">{F5.noMock}</p>;
   if (scope.query.isPending) return <LoadingState variant="table" />;
-  if (scope.query.isError)
+  if (scope.query.isError) {
     return <ErrorState message={F5.loadError} onRetry={() => scope.query.refetch()} />;
+  }
+
   return (
-    <div className="grid gap-6">
-      <header>
-        <h1 className="text-3xl font-bold">
-          {membershipsOnly ? F5.memberships : F5.administration}
-        </h1>
-      </header>
-      {!membershipsOnly && (
-        <nav aria-label={F5.title} className="flex flex-wrap gap-2">
-          {(Object.keys(tabLabels) as Array<keyof typeof tabLabels>).map((value) => (
+    <div className="flex flex-col h-full w-full overflow-hidden min-h-0 gap-3.5">
+      {/* Header & Tabs cố định */}
+      <div className="shrink-0 flex flex-col gap-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
+              {membershipsOnly ? F5.memberships : F5.administration}
+            </h1>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Hệ thống quản lý dữ liệu danh mục cơ sở, ô kho và phân quyền vận hành
+            </p>
+          </div>
+
+          {!membershipsOnly && tab === "facilities" && (
             <Button
               type="button"
-              key={value}
-              variant={tab === value ? "primary" : "outline"}
-              aria-pressed={tab === value}
-              onClick={() => setTab(value)}
+              variant="primary"
+              onClick={() => setCreatingFacility(true)}
+              className="gap-2 shadow-sm h-10 px-4 text-xs font-semibold"
             >
-              {tabLabels[value]}
+              <Plus className="size-4" />
+              <span>{F5.newFacility}</span>
             </Button>
-          ))}
-        </nav>
-      )}
-      {tab !== "types" && (
-        <>
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="min-w-0 flex-1">
-              <ManagementField label={F5.facility}>
-                <Select
-                  value={scope.facilityId}
-                  onChange={(event) => scope.select(event.target.value)}
-                >
-                  {scope.query.data.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.code} · {item.name}
-                    </option>
-                  ))}
-                </Select>
-              </ManagementField>
-            </div>
-            {!membershipsOnly && (
-              <Button type="button" onClick={() => setCreating(true)}>
-                {F5.newFacility}
-              </Button>
-            )}
-          </div>
-          {!scope.facilityId && <p role="status">{F5.empty}</p>}
-        </>
-      )}
-      {tab === "types" ? (
-        <TypeCatalog />
-      ) : scope.facilityId ? (
-        <div key={`${tab}:${scope.facilityId}`}>
-          {tab === "facilities" && <FacilityDetails facilityId={scope.facilityId} />}
-          {tab === "offerings" && <FacilityOfferings facilityId={scope.facilityId} />}
-          {tab === "memberships" && <FacilityMemberships facilityId={scope.facilityId} />}
-          {tab === "units" && <InventoryPanel facilityId={scope.facilityId} canEdit={false} />}
+          )}
         </div>
-      ) : null}
-      {creating && (
+
+        {!membershipsOnly && (
+          <nav
+            aria-label={F5.title}
+            className="flex flex-wrap gap-1 p-1 bg-slate-100/90 rounded-xl w-fit border border-slate-200/80"
+          >
+            {(Object.keys(tabLabels) as Array<keyof typeof tabLabels>).map((value) => {
+              const active = tab === value;
+              return (
+                <button
+                  type="button"
+                  key={value}
+                  aria-pressed={active}
+                  onClick={() => setTab(value)}
+                  className={cn(
+                    "px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-150",
+                    active
+                      ? "bg-white text-primary shadow-xs font-extrabold"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-white/50",
+                  )}
+                >
+                  {tabLabels[value]}
+                </button>
+              );
+            })}
+          </nav>
+        )}
+      </div>
+
+      {/* Vùng nội dung Tab chính (Chiếm trọn không gian, không scroll ngoài) */}
+      <div className="flex-1 overflow-hidden min-h-0 flex flex-col">
+        {tab === "facilities" && (
+          <FacilityListTable
+            onSelectFacility={(id) => {
+              scope.select(id);
+              setTab("offerings");
+            }}
+            selectedFacilityId={scope.facilityId}
+            onOpenCreate={() => setCreatingFacility(true)}
+          />
+        )}
+
+        {tab === "types" && <TypeCatalogTable />}
+
+        {tab === "offerings" && (
+          <FacilityOfferingsTable
+            facilityId={scope.facilityId}
+            facilityOptions={scope.query.data}
+            onSelectFacility={scope.select}
+          />
+        )}
+
+        {tab === "memberships" && (
+          <FacilityMembershipsTable
+            facilityId={scope.facilityId}
+            facilityOptions={scope.query.data}
+            onSelectFacility={scope.select}
+          />
+        )}
+
+        {tab === "units" && (
+          <div className="flex flex-col h-full w-full overflow-hidden min-h-0">
+            <InventoryPanel
+              key={scope.facilityId}
+              facilityId={scope.facilityId}
+              facilityOptions={scope.query.data}
+              onSelectFacility={scope.select}
+              canEdit={!membershipsOnly}
+            />
+          </div>
+        )}
+      </div>
+
+      {creatingFacility && (
         <FacilityEditor
-          onClose={() => setCreating(false)}
+          onClose={() => setCreatingFacility(false)}
           onSaved={(facility) => {
             scope.select(facility.id);
-            setCreating(false);
+            setCreatingFacility(false);
           }}
         />
       )}
@@ -129,35 +197,941 @@ export function FacilityManagementWorkspace({ membershipsOnly = false }: Managem
   );
 }
 
-function FacilityDetails({ facilityId }: FacilityPanelProps) {
-  const query = useManagedFacility(facilityId);
-  const [editing, setEditing] = useState(false);
-  if (query.isPending) return <LoadingState variant="detail" />;
-  if (query.isError)
-    return <ErrorState message={managementError(query.error)} onRetry={() => query.refetch()} />;
-  const facility = query.data;
+/* =========================================================================
+   TAB 1: DANH SÁCH CƠ SỞ (Facility Table có Paging & Filter)
+   ========================================================================= */
+function FacilityListTable({
+  onSelectFacility,
+  selectedFacilityId,
+  onOpenCreate,
+}: {
+  onSelectFacility: (id: string) => void;
+  selectedFacilityId: string;
+  onOpenCreate: () => void;
+}) {
+  const query = useAllFacilities();
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [page, setPage] = useState(1);
+  const [editingFacility, setEditingFacility] = useState<ApiFacility | null>(null);
+
+  const items = query.data ?? [];
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return items.filter((item) => {
+      const matchQuery =
+        !q ||
+        item.code.toLowerCase().includes(q) ||
+        item.name.toLowerCase().includes(q) ||
+        item.address.toLowerCase().includes(q);
+      const matchStatus =
+        statusFilter === "ALL" ||
+        (statusFilter === "ACTIVE" && item.isActive) ||
+        (statusFilter === "INACTIVE" && !item.isActive);
+      return matchQuery && matchStatus;
+    });
+  }, [items, search, statusFilter]);
+
+  const totalItems = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  const currentPage = Math.min(Math.max(1, page), totalPages);
+
+  const pagedItems = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, currentPage]);
+
+  if (query.isPending) return <LoadingState variant="table" />;
+  if (query.isError) {
+    return <ErrorState message={F5.loadError} onRetry={() => query.refetch()} />;
+  }
+
   return (
-    <section className={`${panelClass} grid gap-4`}>
-      <h2 className="text-xl font-bold">
-        {facility.code} · {facility.name}
-      </h2>
-      <p>{facility.address}</p>
-      <p className="whitespace-pre-wrap break-words text-sm">{facility.description}</p>
-      <p className="font-semibold">{facility.isActive ? F5.active : F5.inactive}</p>
-      <Button type="button" variant="outline" onClick={() => setEditing(true)}>
-        {F5.edit}
-      </Button>
-      {editing && (
+    <div className="flex flex-col h-full w-full overflow-hidden min-h-0 gap-3">
+      {/* Filter / Search bar */}
+      <div className="shrink-0 flex flex-wrap items-center gap-3 p-3 bg-white border border-slate-200/90 rounded-xl shadow-xs">
+        <div className="relative flex-1 min-w-[240px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+          <Input
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            placeholder={F5.searchFacility}
+            className="pl-9 h-10 min-h-10 text-sm bg-slate-50/50 border-slate-200 focus:bg-white"
+          />
+        </div>
+
+        <div className="w-full sm:w-48 shrink-0">
+          <Select
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPage(1);
+            }}
+            className="h-10 min-h-10 text-sm bg-slate-50/50 border-slate-200 focus:bg-white"
+          >
+            <option value="ALL">{F5.allStatuses}</option>
+            <option value="ACTIVE">{F5.active}</option>
+            <option value="INACTIVE">{F5.inactive}</option>
+          </Select>
+        </div>
+
+        <Button
+          type="button"
+          variant="primary"
+          onClick={onOpenCreate}
+          className="h-10 px-3.5 text-xs font-semibold gap-1.5 shadow-xs shrink-0"
+        >
+          <Plus className="size-3.5" />
+          <span>{F5.newFacility}</span>
+        </Button>
+      </div>
+
+      {/* Table container (Scrollable with sticky header) */}
+      <div className="flex-1 overflow-y-auto min-h-0 border border-slate-200/90 rounded-xl bg-white shadow-xs">
+        <Table>
+          <TableHeader className="sticky top-0 bg-slate-50/95 backdrop-blur-xs z-10 border-b border-slate-200">
+            <TableRow>
+              <TableHead className="w-28">{F5.code}</TableHead>
+              <TableHead className="w-56">{F5.name}</TableHead>
+              <TableHead>{F5.address}</TableHead>
+              <TableHead className="hidden lg:table-cell max-w-xs">{F5.descriptionLabel}</TableHead>
+              <TableHead className="w-32">{F5.status}</TableHead>
+              <TableHead className="w-48 text-right">{F5.actions}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {pagedItems.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-12 text-slate-500">
+                  {F5.empty}
+                </TableCell>
+              </TableRow>
+            ) : (
+              pagedItems.map((facility) => {
+                const isSelected = facility.id === selectedFacilityId;
+                return (
+                  <TableRow
+                    key={facility.id}
+                    className={cn(
+                      "hover:bg-slate-50/70 transition-colors",
+                      isSelected && "bg-primary-soft/30 hover:bg-primary-soft/50",
+                    )}
+                  >
+                    <TableCell className="font-mono font-bold text-xs">
+                      <span className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md border border-slate-200/80">
+                        {facility.code}
+                      </span>
+                    </TableCell>
+                    <TableCell className="font-bold text-slate-900">
+                      <div className="flex items-center gap-2">
+                        <Warehouse className="size-4 text-primary shrink-0" />
+                        <span>{facility.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-xs sm:text-sm text-slate-600">
+                      {facility.address}
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell text-xs text-slate-500 truncate max-w-xs">
+                      {facility.description || "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        className={
+                          facility.isActive
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : "bg-slate-100 text-slate-500 border-slate-200"
+                        }
+                      >
+                        {facility.isActive ? F5.active : F5.inactive}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setEditingFacility(facility)}
+                          className="h-8 min-h-8 px-2.5 text-xs gap-1 border-slate-200 text-slate-700 hover:text-primary"
+                        >
+                          <Pencil className="size-3.5" />
+                          <span>{F5.edit}</span>
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={isSelected ? "primary" : "outline"}
+                          onClick={() => onSelectFacility(facility.id)}
+                          className="h-8 min-h-8 px-2.5 text-xs border-slate-200"
+                        >
+                          {isSelected ? "Đang chọn" : "Quản lý"}
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Pagination footer */}
+      <PaginationFooter
+        total={totalItems}
+        page={currentPage}
+        totalPages={totalPages}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
+      />
+
+      {editingFacility && (
         <FacilityEditor
-          facility={facility}
-          onClose={() => setEditing(false)}
-          onSaved={() => setEditing(false)}
+          facility={editingFacility}
+          onClose={() => setEditingFacility(null)}
+          onSaved={() => {
+            setEditingFacility(null);
+            void query.refetch();
+          }}
         />
       )}
-    </section>
+    </div>
   );
 }
 
+/* =========================================================================
+   TAB 2: DANH MỤC LOẠI KHO (Type Catalog Table có Paging & Filter)
+   ========================================================================= */
+function TypeCatalogTable() {
+  const query = useManagedTypes();
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [page, setPage] = useState(1);
+  const [editing, setEditing] = useState<FacilityUnitTypeDto | "new" | null>(null);
+  const [toggling, setToggling] = useState<FacilityUnitTypeDto | null>(null);
+
+  const items = query.data ?? [];
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return items.filter((item) => {
+      const matchQuery =
+        !q ||
+        item.code.toLowerCase().includes(q) ||
+        item.name.toLowerCase().includes(q) ||
+        item.sizeLabel.toLowerCase().includes(q);
+      const matchStatus =
+        statusFilter === "ALL" ||
+        (statusFilter === "ACTIVE" && item.isActive) ||
+        (statusFilter === "INACTIVE" && !item.isActive);
+      return matchQuery && matchStatus;
+    });
+  }, [items, search, statusFilter]);
+
+  const totalItems = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  const currentPage = Math.min(Math.max(1, page), totalPages);
+
+  const pagedItems = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, currentPage]);
+
+  if (query.isPending) return <LoadingState variant="table" />;
+  if (query.isError) {
+    return <ErrorState message={F5.loadError} onRetry={() => query.refetch()} />;
+  }
+
+  return (
+    <div className="flex flex-col h-full w-full overflow-hidden min-h-0 gap-3">
+      {/* Filter / Search bar */}
+      <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 p-3 bg-white border border-slate-200/90 rounded-xl shadow-xs">
+        <div className="relative flex-1 min-w-[240px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+          <Input
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            placeholder={F5.searchType}
+            className="pl-9 h-10 min-h-10 text-sm bg-slate-50/50 border-slate-200 focus:bg-white"
+          />
+        </div>
+
+        <div className="w-full sm:w-48 shrink-0">
+          <Select
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPage(1);
+            }}
+            className="h-10 min-h-10 text-sm bg-slate-50/50 border-slate-200 focus:bg-white"
+          >
+            <option value="ALL">{F5.allStatuses}</option>
+            <option value="ACTIVE">{F5.active}</option>
+            <option value="INACTIVE">{F5.inactive}</option>
+          </Select>
+        </div>
+
+        <Button
+          type="button"
+          variant="primary"
+          onClick={() => setEditing("new")}
+          className="h-10 px-4 text-xs font-semibold gap-2 shadow-xs shrink-0"
+        >
+          <Plus className="size-4" />
+          <span>{F5.newType}</span>
+        </Button>
+      </div>
+
+      {/* Table container */}
+      <div className="flex-1 overflow-y-auto min-h-0 border border-slate-200/90 rounded-xl bg-white shadow-xs">
+        <Table>
+          <TableHeader className="sticky top-0 bg-slate-50/95 backdrop-blur-xs z-10 border-b border-slate-200">
+            <TableRow>
+              <TableHead className="w-28">{F5.code}</TableHead>
+              <TableHead className="w-64">{F5.name}</TableHead>
+              <TableHead className="w-32">{F5.sizeLabel}</TableHead>
+              <TableHead>{F5.dimensions}</TableHead>
+              <TableHead className="w-32">{F5.status}</TableHead>
+              <TableHead className="w-48 text-right">{F5.actions}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {pagedItems.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-12 text-slate-500">
+                  {F5.empty}
+                </TableCell>
+              </TableRow>
+            ) : (
+              pagedItems.map((item) => (
+                <TableRow key={item.id} className="hover:bg-slate-50/70 transition-colors">
+                  <TableCell className="font-mono font-bold text-xs">
+                    <span className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md border border-slate-200/80">
+                      {item.code}
+                    </span>
+                  </TableCell>
+                  <TableCell className="font-bold text-slate-900">
+                    <div className="flex items-center gap-2">
+                      <Layers className="size-4 text-primary shrink-0" />
+                      <span>{item.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className="bg-purple-50 text-purple-700 border-purple-200">
+                      {item.sizeLabel}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-slate-600 font-medium text-xs sm:text-sm">
+                    {item.lengthM} × {item.widthM} × {item.heightM} m
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      className={
+                        item.isActive
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          : "bg-slate-100 text-slate-500 border-slate-200"
+                      }
+                    >
+                      {item.isActive ? F5.active : F5.inactive}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setEditing(item)}
+                        className="h-8 min-h-8 px-2.5 text-xs gap-1 border-slate-200 text-slate-700 hover:text-primary"
+                      >
+                        <Pencil className="size-3.5" />
+                        <span>{F5.edit}</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setToggling(item)}
+                        className={cn(
+                          "h-8 min-h-8 px-2.5 text-xs border-slate-200",
+                          item.isActive
+                            ? "text-amber-700 hover:bg-amber-50"
+                            : "text-emerald-700 hover:bg-emerald-50",
+                        )}
+                      >
+                        {item.isActive ? F5.deactivate : F5.activate}
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Pagination footer */}
+      <PaginationFooter
+        total={totalItems}
+        page={currentPage}
+        totalPages={totalPages}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
+      />
+
+      {editing && (
+        <TypeEditor
+          type={editing === "new" ? undefined : editing}
+          onClose={() => setEditing(null)}
+        />
+      )}
+      {toggling && <TypeStatusEditor type={toggling} onClose={() => setToggling(null)} />}
+    </div>
+  );
+}
+
+/* =========================================================================
+   TAB 3: LOẠI KHO TẠI CƠ SỞ (Offerings Table có Paging & Filter)
+   ========================================================================= */
+function FacilityOfferingsTable({
+  facilityId,
+  facilityOptions,
+  onSelectFacility,
+}: {
+  facilityId: string;
+  facilityOptions: Array<{ id: string; name: string; code: string }>;
+  onSelectFacility: (id: string) => void;
+}) {
+  const types = useManagedTypes();
+  const offerings = useOfferings(facilityId);
+  const mutation = useSetOffering(facilityId);
+  const [search, setSearch] = useState("");
+  const [offeringFilter, setOfferingFilter] = useState("ALL");
+  const [page, setPage] = useState(1);
+
+  const typesList = types.data ?? [];
+  const offeringsList = offerings.data ?? [];
+
+  const combinedItems = useMemo(() => {
+    return typesList.map((type) => {
+      const active = offeringsList.some((row) => row.unitTypeId === type.id && row.isActive);
+      return { type, active };
+    });
+  }, [typesList, offeringsList]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return combinedItems.filter(({ type, active }) => {
+      const matchQuery =
+        !q ||
+        type.code.toLowerCase().includes(q) ||
+        type.name.toLowerCase().includes(q) ||
+        type.sizeLabel.toLowerCase().includes(q);
+      const matchFilter =
+        offeringFilter === "ALL" ||
+        (offeringFilter === "ENABLED" && active) ||
+        (offeringFilter === "DISABLED" && !active);
+      return matchQuery && matchFilter;
+    });
+  }, [combinedItems, search, offeringFilter]);
+
+  const totalItems = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  const currentPage = Math.min(Math.max(1, page), totalPages);
+
+  const pagedItems = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, currentPage]);
+
+  if (types.isPending || offerings.isPending) return <LoadingState variant="table" />;
+  if (types.isError || offerings.isError) {
+    return (
+      <ErrorState
+        message={F5.loadError}
+        onRetry={() => {
+          void types.refetch();
+          void offerings.refetch();
+        }}
+      />
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full w-full overflow-hidden min-h-0 gap-3">
+      {/* Scope facility selector & Filter bar */}
+      <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 p-3 bg-white border border-slate-200/90 rounded-xl shadow-xs">
+        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
+          <div className="w-full sm:w-64">
+            <Select
+              value={facilityId}
+              onChange={(e) => onSelectFacility(e.target.value)}
+              className="h-10 min-h-10 text-sm bg-slate-50/50 border-slate-200 font-semibold text-slate-800"
+            >
+              {facilityOptions.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.code} · {opt.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+            <Input
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              placeholder={F5.searchOffering}
+              className="pl-9 h-10 min-h-10 text-sm bg-slate-50/50 border-slate-200 focus:bg-white"
+            />
+          </div>
+
+          <div className="w-full sm:w-44 shrink-0">
+            <Select
+              value={offeringFilter}
+              onChange={(e) => {
+                setOfferingFilter(e.target.value);
+                setPage(1);
+              }}
+              className="h-10 min-h-10 text-sm bg-slate-50/50 border-slate-200 focus:bg-white"
+            >
+              <option value="ALL">{F5.allOfferings}</option>
+              <option value="ENABLED">{F5.enabled}</option>
+              <option value="DISABLED">{F5.disabled}</option>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      {mutation.isError && (
+        <div
+          role="alert"
+          className="p-3 bg-red-50 text-danger border border-red-200 rounded-xl text-xs font-semibold shrink-0"
+        >
+          {managementError(mutation.error)}
+        </div>
+      )}
+
+      {/* Table container */}
+      <div className="flex-1 overflow-y-auto min-h-0 border border-slate-200/90 rounded-xl bg-white shadow-xs">
+        <Table>
+          <TableHeader className="sticky top-0 bg-slate-50/95 backdrop-blur-xs z-10 border-b border-slate-200">
+            <TableRow>
+              <TableHead className="w-28">{F5.code}</TableHead>
+              <TableHead className="w-64">{F5.name}</TableHead>
+              <TableHead className="w-32">{F5.sizeLabel}</TableHead>
+              <TableHead className="w-40">{F5.baseStatus}</TableHead>
+              <TableHead className="w-44">{F5.offeringStatus}</TableHead>
+              <TableHead className="w-36 text-right">{F5.actions}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {pagedItems.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-12 text-slate-500">
+                  {F5.empty}
+                </TableCell>
+              </TableRow>
+            ) : (
+              pagedItems.map(({ type, active }) => (
+                <TableRow key={type.id} className="hover:bg-slate-50/70 transition-colors">
+                  <TableCell className="font-mono font-bold text-xs">
+                    <span className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md border border-slate-200/80">
+                      {type.code}
+                    </span>
+                  </TableCell>
+                  <TableCell className="font-bold text-slate-900">
+                    <div className="flex items-center gap-2">
+                      <Layers className="size-4 text-primary shrink-0" />
+                      <span>{type.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className="bg-purple-50 text-purple-700 border-purple-200">
+                      {type.sizeLabel}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      className={
+                        type.isActive
+                          ? "bg-slate-100 text-slate-700 border-slate-200"
+                          : "bg-slate-100 text-slate-400 border-slate-200"
+                      }
+                    >
+                      {type.isActive ? F5.active : F5.inactive}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      className={
+                        active
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200 font-bold"
+                          : "bg-slate-100 text-slate-500 border-slate-200"
+                      }
+                    >
+                      {active ? F5.enabled : F5.disabled}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      type="button"
+                      variant={active ? "outline" : "primary"}
+                      disabled={mutation.isPending || (!active && !type.isActive)}
+                      onClick={() => mutation.mutate({ unitTypeId: type.id, isActive: !active })}
+                      className="h-8 min-h-8 px-3 text-xs"
+                    >
+                      {active ? F5.disable : F5.enable}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Pagination footer */}
+      <PaginationFooter
+        total={totalItems}
+        page={currentPage}
+        totalPages={totalPages}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
+      />
+    </div>
+  );
+}
+
+/* =========================================================================
+   TAB 4: PHÂN CÔNG NHÂN SỰ (Memberships Table có Paging & Filter)
+   ========================================================================= */
+function FacilityMembershipsTable({
+  facilityId,
+  facilityOptions,
+  onSelectFacility,
+}: {
+  facilityId: string;
+  facilityOptions: Array<{ id: string; name: string; code: string }>;
+  onSelectFacility: (id: string) => void;
+}) {
+  const query = useMemberships(facilityId);
+  const isAdmin = useAuthStore((state) => state.session?.user.role === "SYSTEM_ADMIN");
+  const accounts = useAssignableAccounts(isAdmin);
+  const assign = useAssignMember(facilityId);
+  const [revoking, setRevoking] = useState<ApiFacilityAssignment | null>(null);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [page, setPage] = useState(1);
+
+  const form = useForm<CreateAssignmentBody>({
+    resolver: zodResolver(createAssignmentBodySchema),
+    defaultValues: { userId: "", role: "FACILITY_STAFF" },
+  });
+  const role = form.watch("role");
+
+  const items = query.data ?? [];
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return items.filter((item) => {
+      const name = (item.userName ?? item.userId).toLowerCase();
+      const email = (item.userEmail ?? "").toLowerCase();
+      const matchQuery =
+        !q || name.includes(q) || email.includes(q) || item.userId.toLowerCase().includes(q);
+      const matchRole = roleFilter === "ALL" || item.role === roleFilter;
+      const matchStatus =
+        statusFilter === "ALL" ||
+        (statusFilter === "ACTIVE" && item.isActive) ||
+        (statusFilter === "INACTIVE" && !item.isActive);
+      return matchQuery && matchRole && matchStatus;
+    });
+  }, [items, search, roleFilter, statusFilter]);
+
+  const totalItems = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  const currentPage = Math.min(Math.max(1, page), totalPages);
+
+  const pagedItems = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, currentPage]);
+
+  if (query.isPending) return <LoadingState variant="table" />;
+  if (query.isError) {
+    return <ErrorState message={F5.loadError} onRetry={() => query.refetch()} />;
+  }
+
+  return (
+    <div className="flex flex-col h-full w-full overflow-hidden min-h-0 gap-3">
+      {/* Scope facility selector & Filter bar */}
+      <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 p-3 bg-white border border-slate-200/90 rounded-xl shadow-xs">
+        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
+          <div className="w-full sm:w-64">
+            <Select
+              value={facilityId}
+              onChange={(e) => onSelectFacility(e.target.value)}
+              className="h-10 min-h-10 text-sm bg-slate-50/50 border-slate-200 font-semibold text-slate-800"
+            >
+              {facilityOptions.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.code} · {opt.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+            <Input
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              placeholder={F5.searchMember}
+              className="pl-9 h-10 min-h-10 text-sm bg-slate-50/50 border-slate-200 focus:bg-white"
+            />
+          </div>
+
+          <div className="w-full sm:w-44 shrink-0">
+            <Select
+              value={roleFilter}
+              onChange={(e) => {
+                setRoleFilter(e.target.value);
+                setPage(1);
+              }}
+              className="h-10 min-h-10 text-sm bg-slate-50/50 border-slate-200 focus:bg-white"
+            >
+              <option value="ALL">{F5.allRoles}</option>
+              <option value="FACILITY_MANAGER">{F5.manager}</option>
+              <option value="FACILITY_STAFF">{F5.employee}</option>
+            </Select>
+          </div>
+
+          <div className="w-full sm:w-40 shrink-0">
+            <Select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
+              className="h-10 min-h-10 text-sm bg-slate-50/50 border-slate-200 focus:bg-white"
+            >
+              <option value="ALL">{F5.allStatuses}</option>
+              <option value="ACTIVE">{F5.active}</option>
+              <option value="INACTIVE">{F5.inactive}</option>
+            </Select>
+          </div>
+        </div>
+
+        <Button
+          type="button"
+          variant="primary"
+          onClick={() => setAssignDialogOpen(true)}
+          className="h-10 px-4 text-xs font-semibold gap-2 shadow-xs shrink-0"
+        >
+          <UserPlus className="size-4" />
+          <span>{F5.addStaff}</span>
+        </Button>
+      </div>
+
+      {/* Table container */}
+      <div className="flex-1 overflow-y-auto min-h-0 border border-slate-200/90 rounded-xl bg-white shadow-xs">
+        <Table>
+          <TableHeader className="sticky top-0 bg-slate-50/95 backdrop-blur-xs z-10 border-b border-slate-200">
+            <TableRow>
+              <TableHead>{F5.user}</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead className="w-44">{F5.role}</TableHead>
+              <TableHead className="w-32">{F5.status}</TableHead>
+              <TableHead className="w-40 text-right">{F5.actions}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {pagedItems.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-12 text-slate-500">
+                  {F5.empty}
+                </TableCell>
+              </TableRow>
+            ) : (
+              pagedItems.map((item) => {
+                const isManager = item.role === "FACILITY_MANAGER";
+                return (
+                  <TableRow key={item.id} className="hover:bg-slate-50/70 transition-colors">
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="size-8 bg-slate-100 border border-slate-200">
+                          <AvatarFallback className="text-xs font-bold text-slate-700">
+                            {(item.userName ?? item.userId).slice(0, 1).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <strong className="block text-sm text-slate-900">
+                            {item.userName ?? item.userId}
+                          </strong>
+                          <small className="text-xs text-slate-400 font-mono">
+                            {item.userId.slice(0, 8)}
+                          </small>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-slate-600 text-xs sm:text-sm font-medium">
+                      {item.userEmail || "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        className={
+                          isManager
+                            ? "bg-purple-50 text-purple-700 border-purple-200 font-bold"
+                            : "bg-blue-50 text-blue-700 border-blue-200"
+                        }
+                      >
+                        {isManager ? F5.manager : F5.employee}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        className={
+                          item.isActive
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : "bg-slate-100 text-slate-500 border-slate-200"
+                        }
+                      >
+                        {item.isActive ? F5.active : F5.inactive}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {item.isActive ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setRevoking(item)}
+                          className="h-8 min-h-8 px-2.5 text-xs text-danger hover:bg-red-50 border-slate-200 gap-1.5"
+                        >
+                          <UserMinus className="size-3.5" />
+                          <span>{F5.revoke}</span>
+                        </Button>
+                      ) : (
+                        <span className="text-xs text-slate-400 italic">Đã kết thúc</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Pagination footer */}
+      <PaginationFooter
+        total={totalItems}
+        page={currentPage}
+        totalPages={totalPages}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
+      />
+
+      {/* Dialog gán nhân sự mới */}
+      {assignDialogOpen && (
+        <ManagementDialog
+          title={F5.assignPerson}
+          onClose={() => setAssignDialogOpen(false)}
+          pending={assign.isPending}
+        >
+          <form
+            noValidate
+            className="grid gap-4"
+            onSubmit={form.handleSubmit(async (input) => {
+              try {
+                await assign.mutateAsync(input);
+                form.reset({ userId: "", role: input.role });
+                setAssignDialogOpen(false);
+              } catch {
+                /* Backend guard error */
+              }
+            })}
+          >
+            <ManagementField label={F5.role} error={form.formState.errors.role?.message}>
+              <Select {...form.register("role", { onChange: () => form.setValue("userId", "") })}>
+                <option value="FACILITY_STAFF">{F5.employee}</option>
+                <option value="FACILITY_MANAGER">{F5.manager}</option>
+              </Select>
+            </ManagementField>
+
+            <ManagementField
+              label={isAdmin ? F5.user : F5.userId}
+              error={form.formState.errors.userId?.message}
+            >
+              {isAdmin ? (
+                <Select {...form.register("userId")}>
+                  <option value="">{F5.choose}</option>
+                  {accounts.data
+                    ?.filter((item) => item.status === "ACTIVE" && item.role === role)
+                    .map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name} · {item.email}
+                      </option>
+                    ))}
+                </Select>
+              ) : (
+                <Input
+                  {...form.register("userId")}
+                  placeholder="Nhập UUID tài khoản nhân viên..."
+                />
+              )}
+            </ManagementField>
+
+            {!isAdmin && <p className="text-xs text-slate-500">{F5.bomUserHint}</p>}
+
+            {assign.isError && (
+              <p role="alert" className="text-xs font-semibold text-danger">
+                {managementError(assign.error)}
+              </p>
+            )}
+
+            <div className="flex items-center justify-end gap-2 mt-2">
+              <Button type="button" variant="outline" onClick={() => setAssignDialogOpen(false)}>
+                {F5.cancel}
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={assign.isPending || (isAdmin && (accounts.isPending || accounts.isError))}
+                loading={assign.isPending}
+              >
+                {F5.save}
+              </Button>
+            </div>
+          </form>
+        </ManagementDialog>
+      )}
+
+      {revoking && (
+        <MembershipRevoke
+          facilityId={facilityId}
+          assignment={revoking}
+          onClose={() => setRevoking(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+/* =========================================================================
+   COMPONENTS: DIALOGS & EDITORS
+   ========================================================================= */
 function FacilityEditor({
   facility,
   onClose,
@@ -184,6 +1158,7 @@ function FacilityEditor({
       isActive: facility?.isActive ?? true,
     },
   });
+
   return (
     <ManagementDialog
       title={facility ? F5.editFacility : F5.newFacility}
@@ -197,92 +1172,57 @@ function FacilityEditor({
           try {
             onSaved(facility ? await update.mutateAsync(input) : await create.mutateAsync(input));
           } catch {
-            /* Show backend constraint errors. */
+            /* Backend validation errors */
           }
         })}
       >
         <ManagementField label={F5.code} error={form.formState.errors.code?.message}>
-          <Input {...form.register("code")} />
+          <Input {...form.register("code")} placeholder="Ví dụ: HCM-10" />
         </ManagementField>
         <ManagementField label={F5.name} error={form.formState.errors.name?.message}>
-          <Input {...form.register("name")} />
+          <Input {...form.register("name")} placeholder="Tên cơ sở kho..." />
         </ManagementField>
         <ManagementField label={F5.address} error={form.formState.errors.address?.message}>
-          <Input {...form.register("address")} />
+          <Input {...form.register("address")} placeholder="Địa chỉ chi tiết..." />
         </ManagementField>
         <ManagementField
           label={F5.descriptionLabel}
           error={form.formState.errors.description?.message}
         >
-          <textarea className={textareaClass} {...form.register("description")} />
+          <textarea
+            className={textareaClass}
+            {...form.register("description")}
+            placeholder="Mô tả đặc điểm, vị trí..."
+          />
         </ManagementField>
-        <label className="flex min-h-11 items-center gap-3">
-          <input type="checkbox" className="size-5" {...form.register("isActive")} />
-          {F5.active}
+        <label className="flex min-h-11 items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            className="size-4 rounded text-primary"
+            {...form.register("isActive")}
+          />
+          <span className="text-sm font-semibold">{F5.active}</span>
         </label>
         {mutation.isError && (
-          <p role="alert" className="text-danger">
+          <p role="alert" className="text-xs font-semibold text-danger">
             {managementError(mutation.error)}
           </p>
         )}
-        <Button type="submit" disabled={mutation.isPending}>
-          {F5.save}
-        </Button>
+        <div className="flex items-center justify-end gap-2 mt-2">
+          <Button type="button" variant="outline" onClick={onClose}>
+            {F5.cancel}
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={mutation.isPending}
+            loading={mutation.isPending}
+          >
+            {F5.save}
+          </Button>
+        </div>
       </form>
     </ManagementDialog>
-  );
-}
-
-function TypeCatalog() {
-  const query = useManagedTypes();
-  const [editing, setEditing] = useState<FacilityUnitTypeDto | "new" | null>(null);
-  const [toggling, setToggling] = useState<FacilityUnitTypeDto | null>(null);
-  return (
-    <div className="grid gap-4">
-      <div>
-        <Button type="button" onClick={() => setEditing("new")}>
-          {F5.newType}
-        </Button>
-      </div>
-      <p className="text-sm text-slate-600">{F5.pricingHint}</p>
-      {query.isPending ? (
-        <LoadingState variant="table" />
-      ) : query.isError ? (
-        <ErrorState message={F5.loadError} onRetry={() => query.refetch()} />
-      ) : (
-        <>
-          {!query.data.length && <p>{F5.empty}</p>}
-          <ul className="grid gap-3 sm:grid-cols-2">
-            {query.data.map((item) => (
-              <li key={item.id} className={`${panelClass} grid gap-3`}>
-                <h2 className="text-lg font-bold">
-                  {item.code} · {item.name}
-                </h2>
-                <p>
-                  {item.sizeLabel} · {item.lengthM} × {item.widthM} × {item.heightM} m
-                </p>
-                <p className="text-sm">{item.isActive ? F5.active : F5.inactive}</p>
-                <div className="flex flex-wrap gap-2">
-                  <Button type="button" variant="outline" onClick={() => setEditing(item)}>
-                    {F5.edit}
-                  </Button>
-                  <Button type="button" variant="outline" onClick={() => setToggling(item)}>
-                    {item.isActive ? F5.deactivate : F5.activate}
-                  </Button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-      {editing && (
-        <TypeEditor
-          type={editing === "new" ? undefined : editing}
-          onClose={() => setEditing(null)}
-        />
-      )}
-      {toggling && <TypeStatusEditor type={toggling} onClose={() => setToggling(null)} />}
-    </div>
   );
 }
 
@@ -304,6 +1244,7 @@ function TypeEditor({ type, onClose }: { type?: FacilityUnitTypeDto; onClose: ()
       monthlyPrice: type?.monthlyPrice,
     },
   });
+
   return (
     <ManagementDialog
       title={type ? F5.editType : F5.newType}
@@ -318,23 +1259,25 @@ function TypeEditor({ type, onClose }: { type?: FacilityUnitTypeDto; onClose: ()
             if (type) {
               const { monthlyPrice: _price, facilityId: _facility, ...metadata } = input;
               await update.mutateAsync({ ...metadata, expectedVersion: type.version });
-            } else await create.mutateAsync(input);
+            } else {
+              await create.mutateAsync(input);
+            }
             onClose();
           } catch {
-            /* Keep form input for correction. */
+            /* Backend validation errors */
           }
         })}
       >
         <ManagementField label={F5.code} error={form.formState.errors.code?.message}>
-          <Input {...form.register("code")} />
+          <Input {...form.register("code")} placeholder="Ví dụ: UT-10M" />
         </ManagementField>
         <ManagementField label={F5.name} error={form.formState.errors.name?.message}>
-          <Input {...form.register("name")} />
+          <Input {...form.register("name")} placeholder="Ví dụ: Kho tiêu chuẩn (10 m²)" />
         </ManagementField>
         <ManagementField label={F5.sizeLabel} error={form.formState.errors.sizeLabel?.message}>
-          <Input {...form.register("sizeLabel")} />
+          <Input {...form.register("sizeLabel")} placeholder="Ví dụ: 10 m²" />
         </ManagementField>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-3">
           {(["lengthM", "widthM", "heightM"] as const).map((field, index) => (
             <ManagementField
               key={field}
@@ -359,20 +1302,33 @@ function TypeEditor({ type, onClose }: { type?: FacilityUnitTypeDto; onClose: ()
               type="number"
               min="0"
               step="1"
+              placeholder="VND / tháng"
               {...form.register("monthlyPrice", { valueAsNumber: true })}
             />
           </ManagementField>
         ) : (
-          <p className="text-sm text-slate-600">{F5.pricingHint}</p>
+          <p className="text-xs text-slate-500 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+            {F5.pricingHint}
+          </p>
         )}
         {mutation.isError && (
-          <p role="alert" className="text-danger">
+          <p role="alert" className="text-xs font-semibold text-danger">
             {managementError(mutation.error)}
           </p>
         )}
-        <Button type="submit" disabled={mutation.isPending}>
-          {F5.save}
-        </Button>
+        <div className="flex items-center justify-end gap-2 mt-2">
+          <Button type="button" variant="outline" onClick={onClose}>
+            {F5.cancel}
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={mutation.isPending}
+            loading={mutation.isPending}
+          >
+            {F5.save}
+          </Button>
+        </div>
       </form>
     </ManagementDialog>
   );
@@ -387,197 +1343,41 @@ function TypeStatusEditor({ type, onClose }: { type: FacilityUnitTypeDto; onClos
       pending={mutation.isPending}
     >
       <div className="grid gap-4">
+        <p className="text-sm text-slate-600">
+          Bạn có chắc chắn muốn {type.isActive ? "ngừng cung cấp" : "kích hoạt lại"} loại kho này
+          trong hệ thống?
+        </p>
         {mutation.isError && (
-          <p role="alert" className="text-danger">
+          <p role="alert" className="text-xs font-semibold text-danger">
             {managementError(mutation.error)}
           </p>
         )}
-        <Button
-          type="button"
-          disabled={mutation.isPending}
-          onClick={async () => {
-            try {
-              await mutation.mutateAsync({
-                isActive: !type.isActive,
-                expectedVersion: type.version,
-              });
-              onClose();
-            } catch {
-              /* Show error in dialog. */
-            }
-          }}
-        >
-          {type.isActive ? F5.deactivate : F5.activate}
-        </Button>
+        <div className="flex items-center justify-end gap-2 mt-2">
+          <Button type="button" variant="outline" onClick={onClose}>
+            {F5.cancel}
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
+            disabled={mutation.isPending}
+            loading={mutation.isPending}
+            onClick={async () => {
+              try {
+                await mutation.mutateAsync({
+                  isActive: !type.isActive,
+                  expectedVersion: type.version,
+                });
+                onClose();
+              } catch {
+                /* Backend error */
+              }
+            }}
+          >
+            {type.isActive ? F5.deactivate : F5.activate}
+          </Button>
+        </div>
       </div>
     </ManagementDialog>
-  );
-}
-
-function FacilityOfferings({ facilityId }: FacilityPanelProps) {
-  const types = useManagedTypes();
-  const offerings = useOfferings(facilityId);
-  const mutation = useSetOffering(facilityId);
-  if (types.isPending || offerings.isPending) return <LoadingState variant="table" />;
-  if (types.isError || offerings.isError)
-    return (
-      <ErrorState
-        message={F5.loadError}
-        onRetry={() => {
-          void types.refetch();
-          void offerings.refetch();
-        }}
-      />
-    );
-  return (
-    <section className="grid gap-4">
-      <h2 className="text-xl font-bold">{F5.offerings}</h2>
-      {mutation.isError && (
-        <p role="alert" className="text-danger">
-          {managementError(mutation.error)}
-        </p>
-      )}
-      {!types.data.length && <p>{F5.empty}</p>}
-      <ul className="grid gap-3">
-        {types.data.map((type) => {
-          const active = offerings.data.some((row) => row.unitTypeId === type.id && row.isActive);
-          return (
-            <li
-              key={type.id}
-              className={`${panelClass} flex flex-wrap items-center justify-between gap-3`}
-            >
-              <div>
-                <h3 className="font-bold">
-                  {type.code} · {type.name}
-                </h3>
-                <p className="text-sm">
-                  {type.sizeLabel} · {active ? F5.enabled : F5.disabled}
-                  {!type.isActive && ` · ${F5.inactive}`}
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={mutation.isPending || (!active && !type.isActive)}
-                onClick={() => mutation.mutate({ unitTypeId: type.id, isActive: !active })}
-              >
-                {active ? F5.disable : F5.enable}
-              </Button>
-            </li>
-          );
-        })}
-      </ul>
-    </section>
-  );
-}
-
-function FacilityMemberships({ facilityId }: FacilityPanelProps) {
-  const query = useMemberships(facilityId);
-  const isAdmin = useAuthStore((state) => state.session?.user.role === "SYSTEM_ADMIN");
-  const accounts = useAssignableAccounts(isAdmin);
-  const assign = useAssignMember(facilityId);
-  const [revoking, setRevoking] = useState<ApiFacilityAssignment | null>(null);
-  const form = useForm<CreateAssignmentBody>({
-    resolver: zodResolver(createAssignmentBodySchema),
-    defaultValues: { userId: "", role: "FACILITY_STAFF" },
-  });
-  const role = form.watch("role");
-  return (
-    <div className="grid gap-5">
-      <form
-        noValidate
-        className={`${panelClass} grid gap-4`}
-        onSubmit={form.handleSubmit(async (input) => {
-          try {
-            await assign.mutateAsync(input);
-            form.reset({ userId: "", role: input.role });
-          } catch {
-            /* Show assignment guard error. */
-          }
-        })}
-      >
-        <h2 className="text-xl font-bold">{F5.assignPerson}</h2>
-        <ManagementField label={F5.role} error={form.formState.errors.role?.message}>
-          <Select {...form.register("role", { onChange: () => form.setValue("userId", "") })}>
-            <option value="FACILITY_STAFF">{F5.employee}</option>
-            <option value="FACILITY_MANAGER">{F5.manager}</option>
-          </Select>
-        </ManagementField>
-        <ManagementField
-          label={isAdmin ? F5.user : F5.userId}
-          error={form.formState.errors.userId?.message}
-        >
-          {isAdmin ? (
-            <Select {...form.register("userId")}>
-              <option value="">{F5.choose}</option>
-              {accounts.data
-                ?.filter((item) => item.status === "ACTIVE" && item.role === role)
-                .map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name} · {item.email}
-                  </option>
-                ))}
-            </Select>
-          ) : (
-            <Input {...form.register("userId")} />
-          )}
-        </ManagementField>
-        {!isAdmin && <p className="text-sm text-slate-600">{F5.bomUserHint}</p>}
-        {isAdmin && accounts.isError && (
-          <ErrorState message={F5.loadError} onRetry={() => accounts.refetch()} />
-        )}
-        {assign.isError && (
-          <p role="alert" className="text-danger">
-            {managementError(assign.error)}
-          </p>
-        )}
-        {assign.isSuccess && <p role="status">{F5.saved}</p>}
-        <Button
-          type="submit"
-          disabled={assign.isPending || (isAdmin && (accounts.isPending || accounts.isError))}
-        >
-          {F5.assignPerson}
-        </Button>
-      </form>
-      {query.isPending ? (
-        <LoadingState variant="table" />
-      ) : query.isError ? (
-        <ErrorState message={F5.loadError} onRetry={() => query.refetch()} />
-      ) : (
-        <>
-          {!query.data.length && <p>{F5.empty}</p>}
-          <ul className="grid gap-3">
-            {query.data.map((item) => (
-              <li
-                key={item.id}
-                className={`${panelClass} flex flex-wrap items-center justify-between gap-3`}
-              >
-                <div>
-                  <h3 className="font-bold">{item.userName ?? item.userId}</h3>
-                  <p className="break-all text-sm">{item.userEmail}</p>
-                  <p className="text-sm">
-                    {item.role === "FACILITY_MANAGER" ? F5.manager : F5.employee} ·{" "}
-                    {item.isActive ? F5.active : F5.inactive}
-                  </p>
-                </div>
-                {item.isActive && (
-                  <Button type="button" variant="outline" onClick={() => setRevoking(item)}>
-                    {F5.revoke}
-                  </Button>
-                )}
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-      {revoking && (
-        <MembershipRevoke
-          facilityId={facilityId}
-          assignment={revoking}
-          onClose={() => setRevoking(null)}
-        />
-      )}
-    </div>
   );
 }
 
@@ -594,27 +1394,108 @@ function MembershipRevoke({
       onClose={onClose}
     >
       <div className="grid gap-4">
-        <p className="text-sm">{F5.revokeHint}</p>
+        <p className="text-sm text-slate-600">{F5.revokeHint}</p>
         {mutation.isError && (
-          <p role="alert" className="text-danger">
+          <p role="alert" className="text-xs font-semibold text-danger">
             {managementError(mutation.error)}
           </p>
         )}
-        <Button
-          type="button"
-          disabled={mutation.isPending}
-          onClick={async () => {
-            try {
-              await mutation.mutateAsync(assignment.userId);
-              onClose();
-            } catch {
-              /* Show conflict without losing confirmation context. */
-            }
-          }}
-        >
-          {F5.revoke}
-        </Button>
+        <div className="flex items-center justify-end gap-2 mt-2">
+          <Button type="button" variant="outline" onClick={onClose}>
+            {F5.cancel}
+          </Button>
+          <Button
+            type="button"
+            variant="danger"
+            disabled={mutation.isPending}
+            loading={mutation.isPending}
+            onClick={async () => {
+              try {
+                await mutation.mutateAsync(assignment.userId);
+                onClose();
+              } catch {
+                /* Conflict error */
+              }
+            }}
+          >
+            {F5.revoke}
+          </Button>
+        </div>
       </div>
     </ManagementDialog>
+  );
+}
+
+/* =========================================================================
+   COMPONENTS: REUSABLE PAGINATION FOOTER
+   ========================================================================= */
+function PaginationFooter({
+  total,
+  page,
+  totalPages,
+  pageSize,
+  onPageChange,
+}: {
+  total: number;
+  page: number;
+  totalPages: number;
+  pageSize: number;
+  onPageChange: (page: number) => void;
+}) {
+  return (
+    <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 p-3 bg-white border border-slate-200/90 rounded-xl shadow-xs text-sm">
+      <span className="text-xs sm:text-sm text-slate-600 font-medium">
+        {total > 0
+          ? `Hiển thị ${(page - 1) * pageSize + 1}–${Math.min(
+              page * pageSize,
+              total,
+            )} trong số ${total} bản ghi`
+          : "0 bản ghi"}
+      </span>
+
+      {totalPages > 1 && (
+        <div className="flex items-center gap-1.5">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={page <= 1}
+            onClick={() => onPageChange(Math.max(1, page - 1))}
+            className="h-8 min-h-8 px-2.5 text-xs gap-1 border-slate-200"
+          >
+            <ChevronLeft className="size-3.5" />
+            <span className="hidden sm:inline">Trước</span>
+          </Button>
+
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
+              <button
+                key={num}
+                type="button"
+                onClick={() => onPageChange(num)}
+                className={cn(
+                  "size-8 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center",
+                  num === page
+                    ? "bg-primary text-white shadow-xs font-bold"
+                    : "text-slate-600 hover:bg-slate-100",
+                )}
+              >
+                {num}
+              </button>
+            ))}
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            disabled={page >= totalPages}
+            onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+            className="h-8 min-h-8 px-2.5 text-xs gap-1 border-slate-200"
+          >
+            <span className="hidden sm:inline">Sau</span>
+            <ChevronRight className="size-3.5" />
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }
