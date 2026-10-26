@@ -149,7 +149,8 @@ export function AdminUsersWorkspace() {
           <Button
             type="submit"
             variant="outline"
-            className="h-9 min-h-9 px-3 text-xs font-semibold shrink-0"
+            className="h-9 min-h-9 px-3 text-xs font-semibold gap-1.5 shrink-0"
+            icon={<Search size={14} aria-hidden="true" />}
           >
             {M.searchConfirm}
           </Button>
