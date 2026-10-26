@@ -1757,19 +1757,18 @@ async function seed() {
 
     await queryClient`
       INSERT INTO payments (
-        id, booking_id, draft_id, hold_token_hash, provider, provider_payment_id,
+        id, booking_id, hold_token_hash, provider, provider_payment_id,
         idempotency_key, payment_code, total_amount,
         currency, status, paid_at
       )
       VALUES (
-        ${paymentId}, ${booking.id}, NULL, ${`seed-hold-${bookingSeed.code}`},
+        ${paymentId}, ${booking.id}, ${`seed-hold-${bookingSeed.code}`},
         'MOCK', ${`seed-payment-${bookingSeed.code}`}, ${`seed-idempotency-${bookingSeed.code}`}, ${`SEED${bookingSeed.code}`},
         ${totalAmount}, 'VND',
         ${bookingSeed.paymentStatus}, ${new Date(now + bookingSeed.paidOffset).toISOString()}
       )
       ON CONFLICT (id) DO UPDATE SET
         booking_id = EXCLUDED.booking_id,
-        draft_id = EXCLUDED.draft_id,
         payment_code = EXCLUDED.payment_code,
         status = EXCLUDED.status,
         paid_at = EXCLUDED.paid_at,

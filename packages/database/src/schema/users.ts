@@ -25,7 +25,6 @@ export const users = pgTable(
     emailVerified: boolean().default(false).notNull(),
     image: text(),
     phone: varchar({ length: 20 }).unique(),
-    passwordHash: varchar({ length: 255 }),
     role: roleEnum(),
     status: statusEnum(),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
