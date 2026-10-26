@@ -1,0 +1,52 @@
+import { CUSTOMER_WORKSPACE } from "@metastorage/shared";
+
+export const SUPPORT_UI_MESSAGES = {
+  ...CUSTOMER_WORKSPACE,
+  searchPlaceholder: "Tìm kiếm theo tiêu đề hoặc mã ticket...",
+  allStatuses: "Tất cả trạng thái",
+  allCategories: "Tất cả danh mục",
+  statusLabels: {
+    OPEN: "Đang mở",
+    IN_PROGRESS: "Đang xử lý",
+    CLOSED: "Đã đóng",
+  },
+  priorityLabels: {
+    NORMAL: "Bình thường",
+    HIGH: "Ưu tiên cao",
+  },
+  createSubtitle:
+    "Vui lòng cung cấp chi tiết vấn đề bạn đang gặp phải để chúng tôi hỗ trợ bạn nhanh nhất.",
+  ticketInfoTitle: "Thông tin yêu cầu",
+  ticketCode: "Mã ticket",
+  creator: "Người tạo",
+  createdAtLabel: "Thời gian tạo",
+  updatedAtLabel: "Cập nhật lần cuối",
+  originalContent: "Nội dung ban đầu",
+  chatTitle: "Lịch sử trao đổi",
+  chatSubtitle: "Hệ thống hỗ trợ khách hàng MetaStorage",
+  replyPlaceholder: "Nhập nội dung phản hồi (nhấn Shift + Enter để xuống dòng)...",
+  attachImage: "Đính kèm ảnh",
+  removeAttachment: "Bỏ chọn ảnh",
+  send: "Gửi",
+  sendReply: "Gửi phản hồi",
+  emptySearch: "Không tìm thấy yêu cầu hỗ trợ nào phù hợp.",
+  emptyTickets: "Bạn chưa có yêu cầu hỗ trợ nào.",
+  emptyTicketsDesc:
+    "Khi bạn gặp sự cố về kho, thanh toán hoặc dịch vụ, hãy gửi yêu cầu để được hỗ trợ.",
+  backToList: "Danh sách yêu cầu",
+  cancel: "Quay lại",
+  subjectPlaceholder: "Tóm tắt ngắn gọn vấn đề cần hỗ trợ...",
+  contentPlaceholder:
+    "Mô tả chi tiết sự cố, hiện trạng hoặc câu hỏi của bạn để nhân viên hỗ trợ kịp thời...",
+  subjectHelp: "Tối đa 200 ký tự",
+  contentHelp: "Tối đa 5000 ký tự",
+  bookingSelectPlaceholder: "— Chọn booking liên quan —",
+  paymentSelectPlaceholder: "— Chọn giao dịch liên quan (nếu có) —",
+  closedNotice: "Yêu cầu hỗ trợ này đã được đóng. Bạn chỉ có thể xem lại lịch sử tin nhắn.",
+  refreshMessages: "Làm mới tin nhắn",
+  loadMoreMessages: "Tải tin nhắn cũ hơn",
+  attachmentPreview: "Ảnh đính kèm:",
+  customerRole: "Khách hàng",
+  staffRole: "Nhân viên hỗ trợ",
+  adminRole: "Quản trị viên",
+} as const;

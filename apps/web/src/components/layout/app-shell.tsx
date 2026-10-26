@@ -187,8 +187,14 @@ export function AppShell({ children }: { children: ReactNode }) {
           aria-label="Đóng menu"
         />
       ) : null}
-      <div className="ml-[272px] min-h-screen max-[800px]:ml-0">
-        <header className="sticky top-0 z-30 flex h-[72px] items-center gap-3 border-b border-line bg-white px-8 max-[800px]:px-[18px]">
+      <div
+        className={cn(
+          "ml-[272px] min-h-screen max-[800px]:ml-0",
+          pathname.startsWith("/customer/support") &&
+            "h-screen flex flex-col overflow-hidden min-h-0",
+        )}
+      >
+        <header className="sticky top-0 z-30 flex h-[72px] shrink-0 items-center gap-3 border-b border-line bg-white px-8 max-[800px]:px-[18px]">
           <button
             type="button"
             className="hidden cursor-pointer border-0 bg-transparent p-2 text-inherit max-[800px]:grid max-[800px]:place-items-center"
@@ -210,7 +216,13 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           )}
         </header>
-        <main className="mx-auto max-w-[1440px] p-9 max-[800px]:p-[25px_18px] max-[560px]:px-3.5">
+        <main
+          className={cn(
+            "mx-auto max-w-[1440px] p-9 max-[800px]:p-[25px_18px] max-[560px]:px-3.5",
+            pathname.startsWith("/customer/support") &&
+              "flex-1 overflow-hidden w-full p-4 sm:p-6 min-h-0",
+          )}
+        >
           {children}
         </main>
       </div>
