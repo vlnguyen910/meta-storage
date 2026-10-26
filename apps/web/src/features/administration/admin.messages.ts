@@ -45,7 +45,7 @@ export const ADMIN_MESSAGES = {
   actionFilter: "Hành động",
   dateFilter: "Ngày ghi nhận",
   all: "Tất cả",
-  searchConfirm: "Tìm",
+  searchConfirm: "Tìm kiếm",
   reset: "Đặt lại bộ lọc",
   export: "Xuất CSV",
   details: "Xem chi tiết",

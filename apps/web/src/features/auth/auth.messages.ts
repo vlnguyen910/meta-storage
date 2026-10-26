@@ -205,7 +205,7 @@ export const AUTH_MESSAGES = {
   notFoundSubtitle:
     "Địa chỉ bạn vừa truy cập có thể đã thay đổi, bị xóa hoặc không còn tồn tại trên hệ thống",
   notFoundSearchPlaceholder: "Tìm kiếm cơ sở kho hoặc dịch vụ...",
-  notFoundSearchBtn: "Tìm",
+  notFoundSearchBtn: "Tìm kiếm",
   quickNavHeader: "Gợi ý điều hướng nhanh",
   navFacilitiesTitle: "Danh sách cơ sở kho",
   navPricingTitle: "Bảng giá và kích thước kho",
