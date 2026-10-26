@@ -48,17 +48,19 @@ function FacilityShellContent({
   const isManager = user?.role === UserRole.FACILITY_MANAGER;
   const navigation = [
     { label: FLOW.overview, href: `${root}/dashboard?view=overview`, icon: LayoutGrid },
-    {
-      label: isManager ? FLOW.managerDispatch : FLOW.staffTasks,
-      href: isManager ? `${root}/dashboard?view=check-in` : `${root}/dashboard?view=tasks`,
-      icon: ClipboardCheck,
-    },
+    ...(isManager
+      ? [
+          {
+            label: FLOW.managerDispatch,
+            href: `${root}/dashboard?view=check-in`,
+            icon: ClipboardCheck,
+          },
+        ]
+      : [{ label: FLOW.staffWork, href: facilityStaffRoutes.tasks, icon: ClipboardList }]),
     { label: RETURNS.managerNav, href: `${root}/returns`, icon: History },
-    {
-      label: F5.tasks,
-      href: isManager ? facilityManagerRoutes.tasks : facilityStaffRoutes.tasks,
-      icon: ClipboardList,
-    },
+    ...(isManager
+      ? [{ label: F5.tasks, href: facilityManagerRoutes.tasks, icon: ClipboardList }]
+      : []),
     ...(isManager
       ? [{ label: F5.inventory, href: facilityManagerRoutes.storageUnits, icon: DoorOpen }]
       : []),
@@ -115,6 +117,10 @@ function FacilityShellContent({
                     ((href.includes("view=tasks") || href.includes("view=check-in")) &&
                       pathname.endsWith("/dashboard") &&
                       !overview) ||
+                    (!isManager &&
+                      href === facilityStaffRoutes.tasks &&
+                      pathname.endsWith("/dashboard") &&
+                      currentView === "tasks") ||
                     pathname === href ||
                     pathname.startsWith(`${href}/`)) &&
                     "bg-[#125345] font-semibold text-white",
@@ -185,19 +191,23 @@ function FacilityShellContent({
                 ? F5.inventory
                 : pathname.endsWith("/staff")
                   ? F5.staffDirectory
-                  : pathname.endsWith("/tasks")
-                    ? F5.tasks
-                    : pathname.endsWith("/dashboard")
-                      ? overview
-                        ? FLOW.overview
-                        : isManager
-                          ? FLOW.managerDispatch
-                          : FLOW.staffTasks
-                      : pathname.startsWith(`${root}/returns`)
-                        ? RETURNS.facilityReturnsCrumb
-                        : isManager
-                          ? FLOW.monitor
-                          : FLOW.inspection}
+                  : !isManager &&
+                      (pathname === facilityStaffRoutes.tasks ||
+                        pathname.startsWith(`${facilityStaffRoutes.tasks}/`))
+                    ? FLOW.staffWork
+                    : pathname.endsWith("/tasks")
+                      ? F5.tasks
+                      : pathname.endsWith("/dashboard")
+                        ? overview
+                          ? FLOW.overview
+                          : isManager
+                            ? FLOW.managerDispatch
+                            : FLOW.staffWork
+                        : pathname.startsWith(`${root}/returns`)
+                          ? RETURNS.facilityReturnsCrumb
+                          : isManager
+                            ? FLOW.monitor
+                            : FLOW.inspection}
             </span>
           </div>
           <div className="flex items-center gap-3">

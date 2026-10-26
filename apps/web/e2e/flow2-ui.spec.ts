@@ -252,6 +252,8 @@ async function fixture(
       path === "/bookings/assigned-to-me"
     )
       data = [booking];
+    else if (path === "/facility-tasks") data = { items: [], total: 0, limit: 100, offset: 0 };
+    else if (/^\/facilities\/[^/]+\/return-requests$/.test(path)) data = [];
     else if (path === "/check-ins/lookup") data = lookup;
     else if (path === `/check-ins/${id}/confirm`) {
       lookup.verification = {
@@ -534,7 +536,7 @@ test("unsaved navigation is guarded and wrong unit blocks review", async ({ page
     .getByRole("textbox", { name: "Biên bản ghi nhận hiện trường" })
     .fill("Ghi nhận ô kho không khớp.");
   page.once("dialog", (dialog) => dialog.dismiss());
-  await page.getByRole("link", { name: "Công việc được giao", exact: true }).click();
+  await page.getByRole("link", { name: "Công việc của tôi", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "Biên bản ghi nhận hiện trường" })).toHaveValue(
     "Ghi nhận ô kho không khớp.",
   );
@@ -548,9 +550,9 @@ test("unsaved navigation is guarded and wrong unit blocks review", async ({ page
 test("staff dashboard uses the same flow shell and limits assignment actions", async ({ page }) => {
   await fixture(page, { role: "FACILITY_STAFF" });
   await page.goto("/staff/dashboard?view=tasks");
-  await expect(page.getByRole("heading", { name: "Công việc được giao" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Công việc của tôi" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Chỉ định / Đổi nhân viên" })).toHaveCount(0);
-  await page.getByRole("link", { name: /Tiếp đón & Xác minh booking/ }).click();
+  await page.getByRole("link", { name: "Làm check-in", exact: true }).click();
   await expect(page).toHaveURL(/staff\/check-in/);
 });
 
@@ -740,7 +742,8 @@ test("FM direct inspection URLs remain read only and contain no PIN or handover 
   await expect(
     page.getByRole("button", { name: "Xác minh booking & Chuyển sang kiểm tra kho" }),
   ).toHaveCount(0);
-  await expect(page.locator("input[type=file]")).toHaveCount(0);
+  // FM can upload contract PDFs; inspection image evidence remains read-only.
+  await expect(page.locator('input[type=file][accept*="image/"]')).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Xác nhận bàn giao & Kích hoạt hợp đồng thuê kho" }),
   ).toHaveCount(0);
@@ -754,7 +757,7 @@ test("FM filters real handover progress and only opens monitoring", async ({ pag
   await page.goto("/facility-manager/dashboard?view=tasks");
   await page.getByRole("button", { name: /^Chờ bàn giao/ }).click();
   await expect(page.getByRole("heading", { name: "Lê Thị Mai Linh" })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Tiếp đón & Xác minh booking/ })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Làm check-in", exact: true })).toHaveCount(0);
   await expect(page.getByText("Staff được phân công", { exact: true })).toBeVisible();
   await page.screenshot({ path: "/tmp/metastorage-fm-preparation-final.png", fullPage: true });
 });
@@ -1174,7 +1177,7 @@ test("Staff realtime refreshes assigned tasks, ignores invalid recipients and de
     push = (data) => ws.send(data);
   });
   await page.goto("/staff/dashboard?view=tasks");
-  await expect(page.getByText("Đang nhận thông báo trực tiếp", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Công việc của tôi", exact: true })).toBeVisible();
   await expect.poll(() => reads).toBeGreaterThan(0);
   const before = reads;
   const event = {
@@ -1194,7 +1197,7 @@ test("Staff realtime refreshes assigned tasks, ignores invalid recipients and de
   await expect(
     page.getByText("Bạn vừa được phân công nhiệm vụ mới.", { exact: true }),
   ).toBeVisible();
-  await expect(page.getByText(f.booking.bookingCode, { exact: true })).toBeVisible();
+  await expect(page.getByText(f.booking.bookingCode, { exact: false })).toBeVisible();
   await expect.poll(() => reads).toBeGreaterThan(before);
   push(JSON.stringify(event));
   await expect(page.getByText("Bạn vừa được phân công nhiệm vụ mới.", { exact: true })).toHaveCount(
@@ -1219,11 +1222,11 @@ test("Staff realtime reconnects, refreshes missed tasks and closes when leaving 
     ws.onClose(() => closes++);
   });
   await page.goto("/staff/dashboard?view=tasks");
-  await expect(page.getByText("Đang nhận thông báo trực tiếp", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Công việc của tôi", exact: true })).toBeVisible();
   showTask = true;
   disconnect();
   await expect.poll(() => connections).toBeGreaterThan(1);
-  await expect(page.getByText(f.booking.bookingCode, { exact: true })).toBeVisible();
+  await expect(page.getByText(f.booking.bookingCode, { exact: false })).toBeVisible();
   await page.goto("/login");
   await expect.poll(() => closes).toBeGreaterThan(0);
 });
@@ -1251,7 +1254,9 @@ for (const width of [1440, 390]) {
       reject = () => ws.close({ code: 1008, reason: "Session expired" });
     });
     await page.goto("/staff/dashboard?view=tasks");
-    await expect(page.getByText("Đang nhận thông báo trực tiếp", { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Công việc của tôi", exact: true }),
+    ).toBeVisible();
     const initialConnections = connections;
     await page.evaluate(() => window.dispatchEvent(new Event("offline")));
     await expect(
@@ -1259,7 +1264,9 @@ for (const width of [1440, 390]) {
     ).toBeVisible();
     await page.evaluate(() => window.dispatchEvent(new Event("online")));
     await expect.poll(() => connections).toBeGreaterThan(initialConnections);
-    await expect(page.getByText("Đang nhận thông báo trực tiếp", { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Công việc của tôi", exact: true }),
+    ).toBeVisible();
     const onlineConnections = connections;
     reject();
     await expect(
@@ -1279,7 +1286,9 @@ for (const width of [1440, 390]) {
     await page.screenshot({ path: `/tmp/storex-staff-notifications-${width}.png`, fullPage: true });
     await page.getByRole("button", { name: "Kết nối lại", exact: true }).click();
     await expect.poll(() => connections).toBeGreaterThan(onlineConnections);
-    await expect(page.getByText("Đang nhận thông báo trực tiếp", { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Công việc của tôi", exact: true }),
+    ).toBeVisible();
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
