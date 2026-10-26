@@ -175,7 +175,7 @@ function ChecklistForm({ snapshot }: { snapshot: ReturnChecklistVersionDto | nul
       )}
 
       <Card className="flex flex-col flex-1 min-h-0 min-w-0 overflow-hidden rounded-card border-line bg-white shadow-card">
-        <div className="flex-1 min-h-0 overflow-auto">
+        <div className="flex-1 min-h-0 overflow-auto pb-16">
           <Table className="min-w-[760px] relative">
             <TableHeader className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-xs shadow-2xs">
               <TableRow>
@@ -224,6 +224,7 @@ function ChecklistForm({ snapshot }: { snapshot: ReturnChecklistVersionDto | nul
                           val as (typeof RETURN_CHECKLIST_GROUPS)[number],
                         )
                       }
+                      placement={index >= items.fields.length - 2 ? "top" : "auto"}
                       className="w-full"
                       triggerClassName="h-9 min-h-9 text-xs bg-canvas border-line"
                       options={RETURN_CHECKLIST_GROUPS.map((group) => ({
