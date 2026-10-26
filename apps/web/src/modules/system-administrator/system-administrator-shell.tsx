@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, Menu, ShieldCheck, Warehouse, X } from "lucide-react";
+import { LogOut, Menu, ShieldCheck, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
@@ -25,7 +25,7 @@ export function SystemAdministratorShell({ children }: Readonly<AdminShellProps>
     if (pathname) drawer.current?.close();
   }, [pathname]);
   const navigation = (
-    <nav aria-label={M.navigation} className="grid gap-1">
+    <nav aria-label={M.navigation} className="grid gap-1.5">
       {systemAdministratorNavigation.map((item) => {
         const Icon = item.icon;
         const active = pathname === item.href;
@@ -35,8 +35,8 @@ export function SystemAdministratorShell({ children }: Readonly<AdminShellProps>
             href={item.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex min-h-11 items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-slate-600 outline-offset-2 hover:bg-primary-soft focus-visible:outline-2 focus-visible:outline-primary",
-              active && "bg-primary text-white hover:bg-primary-dark",
+              "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-600 outline-offset-2 hover:bg-primary-soft focus-visible:outline-2 focus-visible:outline-primary",
+              active && "bg-primary text-white shadow-sm hover:bg-primary-dark",
             )}
           >
             <Icon size={19} aria-hidden="true" />
@@ -51,7 +51,7 @@ export function SystemAdministratorShell({ children }: Readonly<AdminShellProps>
   return (
     <div
       className={cn(
-        "min-h-screen bg-slate-50 text-ink [--radius-card:4px] [--color-outline-variant:#bfcac4]",
+        "min-h-screen bg-canvas text-ink [--radius-card:4px] [--color-outline-variant:#bfcac4]",
         isFacilityManagement && "h-screen flex flex-col overflow-hidden min-h-0",
       )}
     >
@@ -61,7 +61,7 @@ export function SystemAdministratorShell({ children }: Readonly<AdminShellProps>
       >
         {M.skip}
       </a>
-      <header className="sticky top-0 z-30 flex min-h-16 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 py-2 lg:px-7">
+      <header className="sticky top-0 z-30 flex min-h-16 shrink-0 items-center gap-3 border-b border-line bg-white/95 px-4 py-2 backdrop-blur-sm lg:ml-64 lg:px-8">
         <button
           ref={trigger}
           type="button"
@@ -73,26 +73,37 @@ export function SystemAdministratorShell({ children }: Readonly<AdminShellProps>
         </button>
         <Link
           href={systemAdministratorRoutes.dashboard}
-          className="inline-flex min-h-11 shrink-0 items-center gap-2 font-bold text-primary"
+          className="font-bold text-primary lg:hidden"
         >
-          <Warehouse size={24} aria-hidden="true" />
           {M.brand}
         </Link>
-        <span className="hidden items-center gap-2 border-l border-slate-200 pl-4 text-sm text-slate-600 xl:inline-flex">
-          <ShieldCheck size={18} aria-hidden="true" />
-          {M.context}
-        </span>
-        <div className="ml-auto flex items-center gap-3">
-          <span className="hidden rounded-full bg-emerald-50 px-2 py-1.5 text-center text-xs font-semibold text-emerald-900 sm:inline-block">
-            {pathname === systemAdministratorRoutes.returnSettings && !isMockMode
-              ? F3.settings
-              : !isMockMode &&
-                  (pathname === systemAdministratorRoutes.facilityManagement ||
-                    pathname === systemAdministratorRoutes.facilityAssignments)
-                ? F5.title
-                : M.demo}
+        <nav aria-label={M.breadcrumb} className="hidden items-center gap-3 text-sm lg:flex">
+          <Link
+            href={systemAdministratorRoutes.dashboard}
+            className="text-slate-500 hover:text-primary"
+          >
+            {M.role}
+          </Link>
+          <span className="text-slate-300" aria-hidden="true">
+            /
           </span>
-          <div className="hidden border-l border-slate-200 pl-4 text-right md:block">
+          <span className="font-semibold">
+            {systemAdministratorNavigation.find((item) => item.href === pathname)?.label ?? M.role}
+          </span>
+        </nav>
+        <div className="ml-auto flex items-center gap-3">
+          {pathname !== systemAdministratorRoutes.dashboard && (
+            <span className="hidden rounded-full bg-emerald-50 px-2 py-1.5 text-center text-xs font-semibold text-emerald-900 sm:inline-block">
+              {pathname === systemAdministratorRoutes.returnSettings && !isMockMode
+                ? F3.settings
+                : !isMockMode &&
+                    (pathname === systemAdministratorRoutes.facilityManagement ||
+                      pathname === systemAdministratorRoutes.facilityAssignments)
+                  ? F5.title
+                  : M.demo}
+            </span>
+          )}
+          <div className="hidden border-l border-line pl-4 text-right md:block lg:hidden xl:block">
             <p className="m-0 text-sm font-semibold">{user?.name}</p>
             <p className="m-0 text-xs text-slate-600">{M.role}</p>
           </div>
@@ -113,12 +124,33 @@ export function SystemAdministratorShell({ children }: Readonly<AdminShellProps>
           {M.logoutFailed}
         </p>
       )}
-      <aside className="fixed bottom-0 left-0 top-16 hidden w-60 flex-col border-r border-slate-200 bg-white p-4 lg:flex">
-        <p className="mb-5 mt-2 px-3 text-xs font-semibold text-slate-600">{M.role}</p>
+      <aside className="fixed bottom-0 left-0 top-0 hidden w-64 flex-col border-r border-line bg-white p-4 lg:flex">
+        <Link
+          href={systemAdministratorRoutes.dashboard}
+          className="mb-8 flex items-center gap-3 px-2 pt-1"
+        >
+          <span className="grid size-10 place-items-center rounded-xl bg-primary text-white">
+            <ShieldCheck size={23} aria-hidden="true" />
+          </span>
+          <span className="min-w-0">
+            <strong className="block font-['Space_Grotesk'] text-lg leading-tight text-primary">
+              {M.brand}
+            </strong>
+            <span className="block text-[10px] font-semibold tracking-wide text-slate-500">
+              {M.role}
+            </span>
+          </span>
+        </Link>
         {navigation}
-        <p className="mb-0 mt-auto border-t border-slate-200 px-3 pt-4 text-xs leading-5 text-slate-600">
-          {M.context}
-        </p>
+        <div className="mt-auto flex items-center gap-3 rounded-xl border border-line bg-canvas p-2">
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary-soft text-sm font-bold text-primary">
+            {user?.name?.trim().slice(0, 1) ?? "A"}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="m-0 truncate text-sm font-semibold">{user?.name ?? M.role}</p>
+            <p className="m-0 truncate text-xs text-slate-500">{M.role}</p>
+          </div>
+        </div>
       </aside>
       <dialog
         ref={drawer}
@@ -141,7 +173,7 @@ export function SystemAdministratorShell({ children }: Readonly<AdminShellProps>
       </dialog>
       <div
         className={cn(
-          "min-w-0 lg:ml-60",
+          "min-w-0 lg:ml-64",
           isFacilityManagement && "flex-1 overflow-hidden min-h-0 flex flex-col",
         )}
       >

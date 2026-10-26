@@ -115,6 +115,22 @@
   src: url("/fonts/metastorage/font-3.ttf") format("truetype");
 }
 
+@font-face {
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/metastorage/font-6.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/metastorage/font-7.ttf") format("truetype");
+}
+
 @theme {
   --color-primary: #165f4d;
   --color-primary-dark: #0f493b;
