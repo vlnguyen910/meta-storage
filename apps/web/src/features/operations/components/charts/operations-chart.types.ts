@@ -6,6 +6,7 @@ import type {
 } from "@metastorage/contracts";
 export interface FinancialChartProps {
   metrics: ReportFinancialMetrics;
+  compact?: boolean;
 }
 export interface MonthlyChartProps {
   report: MonthlyRevenueReport;
