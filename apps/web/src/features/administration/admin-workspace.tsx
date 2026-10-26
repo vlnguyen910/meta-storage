@@ -175,7 +175,7 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
       )}
       <section
         aria-label={section === "activity-logs" ? M.auditSearch : M.search}
-        className="shrink-0 flex items-center gap-2 rounded-card border border-line bg-white p-2 shadow-card overflow-x-auto min-h-12"
+        className="shrink-0 flex items-center gap-2 rounded-card border border-line bg-white p-2 shadow-card min-h-12 relative z-20"
       >
         <form
           onSubmit={handleSearchSubmit}
@@ -212,6 +212,7 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
           <DropdownSelect
             value={filters.role}
             onChange={(val) => filter("role", val)}
+            placement="bottom"
             className="w-36 shrink-0"
             triggerClassName="h-9 min-h-9 text-xs bg-white border-line"
             placeholder={M.roleFilter}
@@ -232,6 +233,7 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
           <DropdownSelect
             value={filters.status}
             onChange={(val) => filter("status", val)}
+            placement="bottom"
             className="w-32 shrink-0"
             triggerClassName="h-9 min-h-9 text-xs bg-white border-line"
             placeholder={M.statusFilter}
@@ -248,6 +250,7 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
           <DropdownSelect
             value={filters.facilityId}
             onChange={(val) => filter("facilityId", val)}
+            placement="bottom"
             className="w-40 shrink-0"
             triggerClassName="h-9 min-h-9 text-xs bg-white border-line"
             placeholder={M.facilityFilter}
@@ -266,6 +269,7 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
           <DropdownSelect
             value={filters.action}
             onChange={(val) => filter("action", val)}
+            placement="bottom"
             className="w-36 shrink-0"
             triggerClassName="h-9 min-h-9 text-xs bg-white border-line"
             placeholder={M.actionFilter}
@@ -284,6 +288,7 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
           <DropdownSelect
             value={filters.outcome}
             onChange={(val) => filter("outcome", val)}
+            placement="bottom"
             className="w-28 shrink-0"
             triggerClassName="h-9 min-h-9 text-xs bg-white border-line"
             placeholder={M.outcomeFilter}

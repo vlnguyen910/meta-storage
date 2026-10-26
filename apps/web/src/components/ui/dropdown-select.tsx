@@ -31,7 +31,7 @@ export function DropdownSelect({
   const selectedOption = options.find((o) => o.value === value);
   const selectedIndex = options.findIndex((o) => o.value === value);
 
-  // Auto-flip upward if near the bottom of viewport or scrollable parent
+  // Auto-flip upward if near the bottom of viewport
   useEffect(() => {
     if (!isOpen || !containerRef.current) return;
 
@@ -48,24 +48,7 @@ export function DropdownSelect({
     const spaceBelowViewport = window.innerHeight - rect.bottom;
     const spaceAboveViewport = rect.top;
 
-    let spaceBelow = spaceBelowViewport;
-    let parent = containerRef.current.parentElement;
-    while (parent && parent !== document.body) {
-      const style = window.getComputedStyle(parent);
-      if (
-        style.overflowY === "auto" ||
-        style.overflowY === "scroll" ||
-        style.overflowY === "hidden"
-      ) {
-        const parentRect = parent.getBoundingClientRect();
-        const parentSpaceBelow = parentRect.bottom - rect.bottom;
-        spaceBelow = Math.min(spaceBelow, parentSpaceBelow);
-        break;
-      }
-      parent = parent.parentElement;
-    }
-
-    if (spaceBelow < 200 && spaceAboveViewport > spaceBelow) {
+    if (spaceBelowViewport < 220 && spaceAboveViewport > spaceBelowViewport) {
       setOpenUpward(true);
     } else {
       setOpenUpward(false);
