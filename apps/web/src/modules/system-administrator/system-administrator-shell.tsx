@@ -19,6 +19,14 @@ export function SystemAdministratorShell({ children }: Readonly<AdminShellProps>
   const pathname = usePathname();
   const logout = useAdminLogout();
   const user = useAuthStore((state) => state.session?.user);
+  const contextLabel = !isMockMode
+    ? pathname === systemAdministratorRoutes.returnSettings
+      ? F3.settings
+      : pathname === systemAdministratorRoutes.facilityManagement ||
+          pathname === systemAdministratorRoutes.facilityAssignments
+        ? F5.title
+        : null
+    : null;
   const drawer = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -92,15 +100,9 @@ export function SystemAdministratorShell({ children }: Readonly<AdminShellProps>
           </span>
         </nav>
         <div className="ml-auto flex items-center gap-3">
-          {pathname !== systemAdministratorRoutes.dashboard && (
+          {contextLabel && (
             <span className="hidden rounded-full bg-emerald-50 px-2 py-1.5 text-center text-xs font-semibold text-emerald-900 sm:inline-block">
-              {pathname === systemAdministratorRoutes.returnSettings && !isMockMode
-                ? F3.settings
-                : !isMockMode &&
-                    (pathname === systemAdministratorRoutes.facilityManagement ||
-                      pathname === systemAdministratorRoutes.facilityAssignments)
-                  ? F5.title
-                  : M.demo}
+              {contextLabel}
             </span>
           )}
           <div className="hidden border-l border-line pl-4 text-right md:block lg:hidden xl:block">

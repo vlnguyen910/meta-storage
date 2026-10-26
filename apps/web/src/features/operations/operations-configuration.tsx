@@ -107,7 +107,6 @@ function OperationsFeesForm() {
         </section>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-card border border-outline-variant bg-surface-container-lowest p-5 shadow-[0_1px_2px_rgb(15_23_42_/_0.04)]">
-        <p className="m-0 max-w-xl text-sm text-slate-600">{M.demoNote}</p>
         <Button type="submit" loading={isSubmitting}>
           {M.save}
         </Button>

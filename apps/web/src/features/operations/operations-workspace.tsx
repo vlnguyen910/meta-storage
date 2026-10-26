@@ -122,14 +122,6 @@ function MockOperationsWorkspace({ section }: Readonly<OperationsWorkspaceProps>
         )}
       </header>
 
-      {/* Mock Mode Explicit Notice */}
-      <div
-        role="status"
-        className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs font-medium text-amber-900"
-      >
-        {M.demoNote}
-      </div>
-
       {!configuration && (
         <section
           className={cn(
