@@ -19,4 +19,5 @@ export interface DropdownSelectProps {
   dropdownClassName?: string;
   disabled?: boolean;
   ariaLabel?: string;
+  placement?: "auto" | "top" | "bottom";
 }

@@ -18,9 +18,11 @@ export function DropdownSelect({
   dropdownClassName,
   disabled = false,
   ariaLabel,
+  placement = "auto",
 }: Readonly<DropdownSelectProps>) {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [openUpward, setOpenUpward] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -28,6 +30,47 @@ export function DropdownSelect({
 
   const selectedOption = options.find((o) => o.value === value);
   const selectedIndex = options.findIndex((o) => o.value === value);
+
+  // Auto-flip upward if near the bottom of viewport or scrollable parent
+  useEffect(() => {
+    if (!isOpen || !containerRef.current) return;
+
+    if (placement === "top") {
+      setOpenUpward(true);
+      return;
+    }
+    if (placement === "bottom") {
+      setOpenUpward(false);
+      return;
+    }
+
+    const rect = containerRef.current.getBoundingClientRect();
+    const spaceBelowViewport = window.innerHeight - rect.bottom;
+    const spaceAboveViewport = rect.top;
+
+    let spaceBelow = spaceBelowViewport;
+    let parent = containerRef.current.parentElement;
+    while (parent && parent !== document.body) {
+      const style = window.getComputedStyle(parent);
+      if (
+        style.overflowY === "auto" ||
+        style.overflowY === "scroll" ||
+        style.overflowY === "hidden"
+      ) {
+        const parentRect = parent.getBoundingClientRect();
+        const parentSpaceBelow = parentRect.bottom - rect.bottom;
+        spaceBelow = Math.min(spaceBelow, parentSpaceBelow);
+        break;
+      }
+      parent = parent.parentElement;
+    }
+
+    if (spaceBelow < 200 && spaceAboveViewport > spaceBelow) {
+      setOpenUpward(true);
+    } else {
+      setOpenUpward(false);
+    }
+  }, [isOpen, placement]);
 
   // Auto-expand if the currently active option is past the threshold
   useEffect(() => {
@@ -93,8 +136,13 @@ export function DropdownSelect({
     setSearchQuery("");
   };
 
+  const isUpward = placement === "top" || (placement !== "bottom" && openUpward);
+
   return (
-    <div ref={containerRef} className={cn("relative inline-block text-left", className)}>
+    <div
+      ref={containerRef}
+      className={cn("relative inline-block text-left", isOpen && "z-30", className)}
+    >
       {/* Trigger Button */}
       <button
         type="button"
@@ -119,7 +167,7 @@ export function DropdownSelect({
         <ChevronDown
           className={cn(
             "h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform duration-200",
-            isOpen && "rotate-180 text-primary",
+            isOpen && (isUpward ? "-rotate-180 text-primary" : "rotate-180 text-primary"),
           )}
           aria-hidden="true"
         />
@@ -131,7 +179,8 @@ export function DropdownSelect({
           role="listbox"
           aria-labelledby={`dropdown-trigger-${id}`}
           className={cn(
-            "absolute left-0 top-full z-50 mt-1 min-w-[200px] min-w-full w-max max-w-[340px] rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl animate-in fade-in-0 zoom-in-95 duration-100",
+            "absolute left-0 z-50 min-w-[200px] min-w-full w-max max-w-[340px] rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl animate-in fade-in-0 zoom-in-95 duration-100",
+            isUpward ? "bottom-full mb-1 origin-bottom-left" : "top-full mt-1 origin-top-left",
             dropdownClassName,
           )}
         >
