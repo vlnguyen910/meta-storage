@@ -9,7 +9,12 @@ export const AdminUserDraftSchema = z.object({
 });
 
 export const AdminUserEditSchema = z.object({
-  role: z.nativeEnum(UserRole),
+  role: z
+    .nativeEnum(UserRole)
+    .refine(
+      (role) => role !== UserRole.SYSTEM_ADMINISTRATOR && role !== UserRole.STORAGE_CUSTOMER,
+      { message: M.invalidRoleChange },
+    ),
 });
 
 export const AdminAssignmentDraftSchema = z.object({

@@ -65,6 +65,12 @@ export const UserListQuerySchema = z.object({
 export type UserListQuery = z.infer<typeof UserListQuerySchema>;
 
 export const UpdateUserRoleInputSchema = z.strictObject({ role: BusinessUserRoleSchema });
+export const UpdateUserRoleWithoutCustomerSchema = UpdateUserRoleInputSchema.extend({
+  role: UpdateUserRoleInputSchema.shape.role.exclude(["STORAGE_CUSTOMER"]),
+});
+export type UpdateUserRoleWithoutCustomerInput = z.infer<
+  typeof UpdateUserRoleWithoutCustomerSchema
+>;
 export const UpdateUserStatusInputSchema = z.strictObject({ status: UserStatusSchema });
 export const UpdateUserInputSchema = z
   .strictObject({ role: UserRoleSchema.optional(), status: UserStatusSchema.optional() })

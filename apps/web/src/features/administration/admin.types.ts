@@ -115,6 +115,13 @@ export interface AdminUserEditorProps {
   readonly onSave: (role: UserRole) => Promise<void>;
 }
 
+export interface AdminUserStatusConfirmationProps {
+  readonly user: AdminManagedUser | null;
+  readonly pending: boolean;
+  readonly onCancel: () => void;
+  readonly onConfirm: () => void;
+}
+
 export type AdminUserEditValues = Pick<AdminManagedUser, "role">;
 
 export interface AdminUserFilters {

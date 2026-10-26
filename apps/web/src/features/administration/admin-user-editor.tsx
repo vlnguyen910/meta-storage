@@ -3,9 +3,16 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { UserRole } from "@metastorage/contracts";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
-import { FieldShell, Select } from "@/components/ui/form-controls";
+import { FieldShell } from "@/components/ui/form-controls";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { adminApiError } from "./admin.helpers";
 import { ADMIN_ROLE_LABELS, ADMIN_MESSAGES as M } from "./admin.messages";
 import { AdminUserEditSchema } from "./admin.schema";
@@ -37,15 +44,37 @@ export function AdminUserEditor({ user, onClose, onSave }: Readonly<AdminUserEdi
         })}
       >
         <FieldShell label={M.roleChanged}>
-          <Select {...form.register("role")}>
-            {Object.values(UserRole)
-              .filter((role) => role !== UserRole.SYSTEM_ADMINISTRATOR)
-              .map((role) => (
-                <option key={role} value={role}>
-                  {ADMIN_ROLE_LABELS[role]}
-                </option>
-              ))}
-          </Select>
+          <Controller
+            control={form.control}
+            name="role"
+            render={({ field }) => (
+              <Select
+                value={field.value === UserRole.STORAGE_CUSTOMER ? "" : field.value}
+                onValueChange={field.onChange}
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={
+                      user.role === UserRole.STORAGE_CUSTOMER ? M.chooseReplacementRole : undefined
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(UserRole)
+                    .filter(
+                      (role) =>
+                        role !== UserRole.SYSTEM_ADMINISTRATOR &&
+                        role !== UserRole.STORAGE_CUSTOMER,
+                    )
+                    .map((role) => (
+                      <SelectItem key={role} value={role}>
+                        {ADMIN_ROLE_LABELS[role]}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
         </FieldShell>
         {notice && (
           <p role="alert" className="m-0 text-sm text-danger">
