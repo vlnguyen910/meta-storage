@@ -36,6 +36,8 @@ export const ADMIN_MESSAGES = {
   allRoles: "Tất cả vai trò",
   allStatuses: "Tất cả trạng thái",
   allFacilities: "Tất cả cơ sở",
+  allActions: "Tất cả hành động",
+  allOutcomes: "Tất cả kết quả",
   auditSearch: "Tìm người thực hiện, đối tượng hoặc mã",
   identifier: "Mã tài khoản",
   roleFilter: "Vai trò",
