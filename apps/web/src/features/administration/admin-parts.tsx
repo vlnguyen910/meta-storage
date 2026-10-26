@@ -2,11 +2,13 @@
 
 import { X } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/cn";
 import { accessLabel } from "./admin.helpers";
 import { ADMIN_ROLE_LABELS, ADMIN_MESSAGES as M } from "./admin.messages";
 import type {
   AdminBadgeProps,
+  AdminDialogProps,
   AdminDrawerProps,
   AdminSnapshotProps,
   AdminTableProps,
@@ -92,6 +94,21 @@ export function AdminDrawer({ title, children, onClose }: Readonly<AdminDrawerPr
       </header>
       {children}
     </dialog>
+  );
+}
+
+export function AdminDialog({ title, children, onClose }: Readonly<AdminDialogProps>) {
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto rounded-card border-line p-0 sm:max-w-xl">
+        <DialogHeader className="border-b border-line px-6 py-4 text-left">
+          <DialogTitle className="font-['Space_Grotesk'] text-xl font-bold text-ink">
+            {title}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="px-6 pb-6">{children}</div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -99,6 +99,15 @@ export interface AdminDrawerProps {
   readonly onClose: () => void;
 }
 
+export type AdminDialogProps = AdminDrawerProps;
+
+export interface AdminUserDetailProps {
+  readonly user: AdminUser;
+  readonly data: AdminMockData;
+  readonly onClose: () => void;
+  readonly onEdit: () => void;
+}
+
 export interface AdminBadgeProps {
   readonly label: string;
   readonly warning?: boolean;
@@ -122,6 +131,7 @@ export interface AdminEditorProps {
   readonly user: AdminUser;
   readonly data: AdminMockData;
   readonly assignment: boolean;
+  readonly modal?: boolean;
   readonly pending: boolean;
   readonly onSave: (changes: readonly AdminAccountChange[]) => Promise<void>;
   readonly onClose: () => void;

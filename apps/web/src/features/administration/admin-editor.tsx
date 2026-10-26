@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button";
 import { FieldShell, Input, Select } from "@/components/ui/form-controls";
 import { ADMIN_ROLE_LABELS, ADMIN_MESSAGES as M } from "./admin.messages";
 import type { AdminEditorProps } from "./admin.types";
-import { AdminDrawer, AdminSnapshotView } from "./admin-parts";
+import { AdminDialog, AdminDrawer, AdminSnapshotView } from "./admin-parts";
 import { useAdminEditor } from "./use-admin-editor";
 
 export function AdminEditor({
   user,
   data,
   assignment,
+  modal,
   pending,
   onSave,
   onClose,
@@ -30,8 +31,13 @@ export function AdminEditor({
     reviewAssignment,
   } = useAdminEditor({ user, data, assignment, pending, onSave, onClose, actor });
 
+  const Container = modal ? AdminDialog : AdminDrawer;
+
   return (
-    <AdminDrawer title={assignment ? M.assignmentDetail : M.edit} onClose={onClose}>
+    <Container
+      title={assignment ? M.assignmentDetail : modal ? M.userDetail : M.edit}
+      onClose={onClose}
+    >
       <p className="font-semibold">
         {user.name}
         <span className="mt-1 block break-all text-sm font-normal text-slate-600">
@@ -121,6 +127,6 @@ export function AdminEditor({
       <p role="status" className="text-sm text-primary">
         {notice}
       </p>
-    </AdminDrawer>
+    </Container>
   );
 }
