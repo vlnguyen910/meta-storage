@@ -166,11 +166,6 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
       {section === "assignments" && (
         <p className="shrink-0 m-0 text-xs text-slate-600">{M.facilityHelp}</p>
       )}
-      {!accounts && (
-        <p className="shrink-0 m-0 text-xs text-slate-600">
-          {M.readonlyLog} {M.privacy}
-        </p>
-      )}
       <section
         aria-label={section === "activity-logs" ? M.auditSearch : M.search}
         className="shrink-0 flex items-center gap-2 rounded-card border border-line bg-white p-2 shadow-card min-h-12 relative z-20"
