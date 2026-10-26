@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { FieldShell, Select } from "@/components/ui/form-controls";
+import { adminApiError } from "./admin.helpers";
 import { ADMIN_ROLE_LABELS, ADMIN_MESSAGES as M } from "./admin.messages";
 import { AdminUserEditSchema } from "./admin.schema";
 import type { AdminUserEditorProps, AdminUserEditValues } from "./admin.types";
@@ -30,8 +31,8 @@ export function AdminUserEditor({ user, onClose, onSave }: Readonly<AdminUserEdi
           try {
             await onSave(values.role);
             onClose();
-          } catch {
-            setNotice(M.updateError);
+          } catch (error) {
+            setNotice(adminApiError(error, M.updateError));
           }
         })}
       >
