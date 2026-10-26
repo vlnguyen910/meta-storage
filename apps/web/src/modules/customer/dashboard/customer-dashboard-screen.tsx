@@ -4,8 +4,8 @@ import { CalendarDays, Clock3, MapPin, Plus, WalletCards } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ShadcnButton } from "@/components/ui/shadcn-button";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { customerRoutes } from "@/config/routes";
 import { useCustomerBookings } from "@/features/bookings/customer-bookings.hooks";
@@ -26,13 +26,13 @@ export function CustomerDashboardScreen() {
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">{M.dashboard}</h1>
           <p className="mt-1 text-sm text-slate-500">{M.appointment}</p>
         </div>
-        <Button
+        <ShadcnButton
           className="w-full bg-primary hover:bg-primary-dark sm:w-auto"
           onClick={() => router.push(customerRoutes.newReservation)}
         >
           <Plus className="size-4" aria-hidden="true" />
           {M.newBooking}
-        </Button>
+        </ShadcnButton>
       </header>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.65fr)_minmax(280px,1fr)]">
         <Card>
