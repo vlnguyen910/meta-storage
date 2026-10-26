@@ -156,6 +156,50 @@ export class SupportService {
     if (!result.row.resultReference) throw new ConflictError(m.idempotencyConflict);
     return result.row.resultReference;
   }
+  async contexts(
+    actorId: string,
+    input: import("@metastorage/contracts").SupportContextQuery,
+  ): Promise<
+    import("@metastorage/contracts").SupportContextPage<
+      import("@metastorage/contracts").SupportBookingContext
+    >
+  > {
+    const rows = await this.repository.contexts(actorId, input, this.cursor(input.cursor));
+    return {
+      items: rows
+        .slice(0, input.limit)
+        .map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })),
+      nextCursor: this.next(rows, input.limit),
+    };
+  }
+
+  async contextPayments(
+    actorId: string,
+    bookingId: string,
+    input: SupportPageQuery,
+  ): Promise<
+    import("@metastorage/contracts").SupportContextPage<
+      import("@metastorage/contracts").SupportPaymentContext
+    >
+  > {
+    if (!(await this.repository.contextBooking(actorId, bookingId)))
+      throw new NotFoundError(m.notFound);
+    const rows = await this.repository.contextPayments(
+      actorId,
+      bookingId,
+      input,
+      this.cursor(input.cursor),
+    );
+    return {
+      items: rows.slice(0, input.limit).map((r) => ({
+        ...r,
+        source: r.source ?? "BOOKING",
+        createdAt: r.createdAt.toISOString(),
+      })),
+      nextCursor: this.next(rows, input.limit),
+    };
+  }
+
   async list(actorId: string, input: SupportTicketQuery): Promise<SupportTicketPage> {
     const rows = await this.repository.list(actorId, input, this.cursor(input.cursor));
     return {

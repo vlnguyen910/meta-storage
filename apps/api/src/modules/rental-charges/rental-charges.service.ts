@@ -123,32 +123,41 @@ export class RentalChargesService {
     };
   }
 
-  async listMine(actor: RentalChargeActor, rentalId: string) {
+  async listMinePage(
+    actor: RentalChargeActor,
+    rentalId: string,
+    query: { limit: number; offset: number },
+  ) {
     if (actor.role !== "CUSTOMER") throw new ForbiddenError(m.forbidden);
-    const rows = await this.repo.listForCustomer(rentalId, actor.id);
     const rental = await this.repo.customerOwnsRental(rentalId, actor.id);
     if (!rental) throw new NotFoundError(m.rentalNotFound);
-    return rows.map(({ charge, adjustedAmount, paidAmount, refundedAmount }) => ({
-      id: charge.id,
-      rentalId: charge.rentalId,
-      source: charge.source,
-      category: charge.category,
-      amount: charge.amount,
-      adjustedAmount,
-      paidAmount,
-      refundedAmount,
-      outstandingAmount: String(Math.max(0, Number(adjustedAmount) - Number(paidAmount))),
-      currency: charge.currency,
-      evidence: charge.evidence,
-      dueDate: charge.dueDate,
-      status: charge.status,
-      createdBy: charge.createdBy,
-      approvedBy: charge.approvedBy,
-      decisionReason: charge.decisionReason,
-      disputedAt: charge.disputedAt?.toISOString() ?? null,
-      createdAt: charge.createdAt.toISOString(),
-      updatedAt: charge.updatedAt.toISOString(),
-    }));
+    const result = await this.repo.listForCustomer(rentalId, actor.id, query.limit, query.offset);
+    return {
+      items: result.items.map(({ charge, adjustedAmount, paidAmount, refundedAmount }) => ({
+        id: charge.id,
+        rentalId: charge.rentalId,
+        source: charge.source,
+        category: charge.category,
+        amount: charge.amount,
+        adjustedAmount,
+        paidAmount,
+        refundedAmount,
+        outstandingAmount: String(Math.max(0, Number(adjustedAmount) - Number(paidAmount))),
+        currency: charge.currency,
+        evidence: charge.evidence,
+        dueDate: charge.dueDate,
+        status: charge.status,
+        createdBy: charge.createdBy,
+        approvedBy: charge.approvedBy,
+        decisionReason: charge.decisionReason,
+        disputedAt: charge.disputedAt?.toISOString() ?? null,
+        createdAt: charge.createdAt.toISOString(),
+        updatedAt: charge.updatedAt.toISOString(),
+      })),
+      total: result.total,
+      limit: query.limit,
+      offset: query.offset,
+    };
   }
 
   async create(actor: RentalChargeActor, rentalId: string, input: CreateRentalCharge) {

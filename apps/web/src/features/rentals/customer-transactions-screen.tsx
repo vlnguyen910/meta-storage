@@ -1,5 +1,6 @@
 "use client";
 
+import { CUSTOMER_WORKSPACE as C } from "@metastorage/shared";
 import { AlertCircle, ArrowRight, CreditCard, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -114,6 +115,17 @@ export function CustomerTransactionsScreen() {
                   {formatDateTime(payment.refundedAt)}
                 </p>
               ) : null}
+              {payment.source && <p>{C.source[payment.source]}</p>}
+              <Link
+                href={`${customerRoutes.supportNew}?bookingId=${rental.bookingId}&paymentId=${payment.id}`}
+              >
+                {C.newTicket}
+              </Link>
+              {payment.chargeRefunds?.map((refund) => (
+                <p className="text-sm text-emerald-900" key={refund.id}>
+                  {C.refund}: {formatCurrency(Number(refund.amount))} ? {refund.reference}
+                </p>
+              ))}
               {payment.returnRefunds.map((refund) => (
                 <p
                   key={refund.id}

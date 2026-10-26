@@ -1,4 +1,5 @@
 "use client";
+import { CUSTOMER_WORKSPACE as C } from "@metastorage/shared";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import QRCode from "qrcode";
@@ -74,20 +75,22 @@ export function PaymentResultScreen() {
                   : expired
                     ? m.expired
                     : m.pending;
-  const blockingPaymentCheck =
-    canRead &&
-    !confirmation &&
-    !query.isError &&
-    (query.isPending ||
-      query.isFetching ||
-      query.data?.status === "PENDING" ||
-      (query.data?.status === "SUCCEEDED" && !query.data.confirmation));
+  const blockingPaymentCheck = canRead && query.isFetching && !query.data;
   return (
     <PublicLayout>
       <main
         aria-busy={blockingPaymentCheck}
         className={`${styles.checkout} mx-auto min-h-[70vh] w-full max-w-5xl px-5 py-12`}
       >
+        {paymentId && (
+          <a
+            className="mb-5 inline-flex min-h-11 items-center rounded border px-4"
+            href={`metastorage://payment-result?${new URLSearchParams({ paymentId, ...(bookingId ? { bookingId } : {}) })}`}
+          >
+            {C.openApp}
+          </a>
+        )}
+        {blockingPaymentCheck && <Spinner label={m.loading} />}
         {confirmation ? (
           <CheckoutConfirmation
             state={{ confirmation, qrDataUrl: qr, paidPricing: context?.draft.pricing ?? null }}
@@ -120,19 +123,6 @@ export function PaymentResultScreen() {
           {m.newBooking}
         </Link>
       </main>
-      {blockingPaymentCheck ? (
-        <div
-          className="fixed inset-0 z-50 grid place-items-center bg-slate-950/35 p-6 backdrop-blur-[2px]"
-          role="status"
-          aria-live="polite"
-        >
-          <div className="flex min-w-[min(360px,100%)] flex-col items-center gap-4 rounded-2xl bg-white p-8 text-center shadow-2xl">
-            <Spinner size="xl" label={m.loading} />
-            <strong className="text-lg text-slate-900">{m.loading}</strong>
-            <p className="m-0 text-sm text-slate-600">Vui lòng chờ hệ thống xác nhận giao dịch.</p>
-          </div>
-        </div>
-      ) : null}
     </PublicLayout>
   );
 }

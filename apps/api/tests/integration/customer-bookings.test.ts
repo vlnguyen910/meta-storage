@@ -268,6 +268,38 @@ describe.skipIf(!target)("Customer booking reads against isolated PostgreSQL", (
     }
   });
 
+  test("owner detail recovers confirmation after refresh without exposing payment credentials", async () => {
+    const id = bookingIds[0];
+    const rows = await db
+      .select({ id: payments.id })
+      .from(payments)
+      .where(eq(payments.bookingId, id));
+    const payment = rows[0];
+    if (!payment) throw new Error("Missing payment fixture");
+    await db
+      .update(payments)
+      .set({ status: "SUCCEEDED", paidAt: new Date() })
+      .where(eq(payments.id, payment.id));
+    try {
+      const response = await read(`/mine/${id}`);
+      expect(response.statusCode, response.body).toBe(200);
+      expect(response.json().data).toMatchObject({
+        rentalId: null,
+        confirmation: { bookingId: id },
+      });
+      expect(response.json().data.confirmation.qrUrl).toContain("/check-in?token=");
+      expect(response.body).not.toContain("private-hold-");
+      expect(response.body).not.toContain("private-access-hash");
+      expect(response.body).not.toContain("cursorCreatedAt");
+      expect((await read(`/mine/${id}`, otherCookie)).statusCode).toBe(404);
+    } finally {
+      await db
+        .update(payments)
+        .set({ status: "FAILED", paidAt: null })
+        .where(eq(payments.id, payment.id));
+    }
+  });
+
   test("authorizes customer role and ownership on list and detail without changing staff detail scope", async () => {
     expect((await read("/mine", "")).statusCode).toBe(401);
     expect((await read("/mine", staffCookie)).statusCode).toBe(403);

@@ -1,12 +1,18 @@
 "use client";
 
-import type { GuestRentalPaymentItemDto, RentalDocumentDto } from "@metastorage/contracts";
+import type {
+  GuestRentalPaymentItemDto,
+  RentalDocumentDto,
+  RentalPaymentItem,
+} from "@metastorage/contracts";
 import { CONTRACT_PDF_MAX_BYTES, ContractUploadSchema } from "@metastorage/contracts";
+import { CUSTOMER_WORKSPACE as W } from "@metastorage/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { Clock, CreditCard, FileCheck, FileText, Receipt } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button, buttonClassName } from "@/components/ui/button";
+import { ListPagination } from "@/components/ui/list-pagination";
 import { StatusBadge } from "@/components/ui/display";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { F3 } from "@/features/returns/integration.messages";
@@ -51,19 +57,33 @@ export function BookingContractAccess({ bookingId }: { bookingId: string }) {
   return <RentalDocuments bookingId={bookingId} handover />;
 }
 
-export function PaymentRecords({ items }: { items: GuestRentalPaymentItemDto[] }) {
+export function PaymentRecords({
+  items,
+}: {
+  items: (GuestRentalPaymentItemDto &
+    Pick<RentalPaymentItem, "source" | "chargeId" | "chargeRefunds">)[];
+}) {
+  const [page, setPage] = useState(1);
+  const pageSize = 6;
+  const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const visibleItems = items.slice((safePage - 1) * pageSize, safePage * pageSize);
   if (!items.length) return <p className="text-sm text-muted">{F3.noPayments}</p>;
   return (
-    <ul className="list-none space-y-3 p-0">
-      {items.map((item) => (
+    <>
+      <ul className="list-none space-y-3 p-0">
+      {visibleItems.map((item) => (
         <li
           key={item.id}
           className="space-y-2.5 rounded-xl border border-slate-200/80 bg-white p-4 shadow-2xs"
         >
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               <Receipt size={16} className="text-primary" />
-              <strong className="font-mono text-sm text-ink">{item.paymentCode}</strong>
+              <strong className="max-w-full break-all font-mono text-sm text-ink">
+                {item.paymentCode}
+              </strong>
+              {item.source && <span className="text-xs text-muted">{W.source[item.source]}</span>}
             </div>
             <StatusBadge value={item.status} />
           </div>
@@ -79,6 +99,11 @@ export function PaymentRecords({ items }: { items: GuestRentalPaymentItemDto[] }
               {new Date(item.paidAt ?? item.createdAt).toLocaleString("vi-VN")}
             </p>
           </div>
+          {item.chargeRefunds?.map((refund) => (
+            <p className="text-sm text-emerald-900" key={refund.id}>
+              {W.refund}: {money(refund.amount)} ? {refund.reference}
+            </p>
+          ))}
           {item.refundedAt && item.refundAmount && (
             <p className="m-0 text-sm text-amber-800">
               {F3.refunded}: <strong>{money(item.refundAmount)}</strong> ·{" "}
@@ -93,7 +118,15 @@ export function PaymentRecords({ items }: { items: GuestRentalPaymentItemDto[] }
           ))}
         </li>
       ))}
-    </ul>
+      </ul>
+      <ListPagination
+        label={F3.payments}
+        page={safePage}
+        pageSize={pageSize}
+        total={items.length}
+        onPageChange={setPage}
+      />
+    </>
   );
 }
 

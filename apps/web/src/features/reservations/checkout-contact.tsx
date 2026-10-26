@@ -2,6 +2,7 @@
 import { ArrowLeft, ArrowRight, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { FieldShell, Input } from "@/components/ui/form-controls";
+import { isMockMode } from "@/config/api-mode";
 import { checkoutMessages as m } from "./checkout.messages";
 import s from "./checkout.module.css";
 import type { CheckoutState } from "./checkout.types";
@@ -73,7 +74,7 @@ export function CheckoutContact({ state }: { state: CheckoutState }) {
         <div className={s.formGrid}>
           <div className={s.wide}>
             <FieldShell label={m.fullName} error={form.formState.errors.fullName?.message}>
-              <Input autoComplete="name" {...form.register("fullName")} />
+              <Input readOnly={!isMockMode} autoComplete="name" {...form.register("fullName")} />
             </FieldShell>
           </div>
           <div>
@@ -90,9 +91,14 @@ export function CheckoutContact({ state }: { state: CheckoutState }) {
           </div>
           <div>
             <FieldShell label={m.email} error={form.formState.errors.email?.message}>
-              <Input type="email" autoComplete="email" {...form.register("email")} />
+              <Input
+                readOnly={!isMockMode}
+                type="email"
+                autoComplete="email"
+                {...form.register("email")}
+              />
             </FieldShell>
-            <p className={s.fieldHint}>{m.emailHint}</p>
+            <p className={s.fieldHint}>{isMockMode ? m.emailHint : m.accountContactHint}</p>
           </div>
           <fieldset
             className={s.durationField}

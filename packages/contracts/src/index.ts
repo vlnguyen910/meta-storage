@@ -3,6 +3,7 @@ export * from "./auth";
 export * from "./bookings";
 export * from "./catalog";
 export * from "./check-in";
+export * from "./customer-availability";
 export * from "./dashboard.types";
 export * from "./facilities";
 export * from "./facility-tasks";

@@ -157,8 +157,8 @@ export class RentalChargesRepository {
     );
   }
 
-  async listForCustomer(rentalId: string, userId: string) {
-    return this.db
+  async listForCustomer(rentalId: string, userId: string, limit: number, offset: number) {
+    const base = this.db
       .select({
         charge: rentalCharges,
         adjustedAmount: sql<string>`(${rentalCharges.amount} + coalesce((select sum(case when direction = 'INCREASE' then amount else -amount end) from rental_charge_adjustments where charge_id = ${rentalCharges.id}), 0))::text`,
@@ -170,6 +170,13 @@ export class RentalChargesRepository {
       .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
       .where(and(eq(rentals.id, rentalId), eq(bookings.userId, userId)))
       .orderBy(desc(rentalCharges.createdAt), desc(rentalCharges.id));
+    const [total] = await this.db
+      .select({ value: count() })
+      .from(rentalCharges)
+      .innerJoin(rentals, eq(rentals.id, rentalCharges.rentalId))
+      .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
+      .where(and(eq(rentals.id, rentalId), eq(bookings.userId, userId)));
+    return { items: await base.limit(limit).offset(offset), total: total?.value ?? 0 };
   }
 
   async getChargeContext(chargeId: string) {

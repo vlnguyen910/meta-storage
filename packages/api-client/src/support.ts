@@ -1,11 +1,15 @@
 import type {
   ApiEnvelope,
+  SupportBookingContext,
+  SupportContextPage,
+  SupportContextQuery,
   SupportCreateInput,
   SupportDetail,
   SupportImageInput,
   SupportImageResult,
   SupportMessagePage,
   SupportPageQuery,
+  SupportPaymentContext,
   SupportReplyInput,
   SupportReplyResult,
   SupportTicketPage,
@@ -18,6 +22,24 @@ export function createSupportClient(http: AxiosInstance) {
   const path = (id: string) => `/support/tickets/${encodeURIComponent(id)}`;
   return {
     support: {
+      contexts: (params: SupportContextQuery, signal?: AbortSignal) =>
+        http
+          .get<ApiEnvelope<SupportContextPage<SupportBookingContext>>>("/support/contexts", {
+            params,
+            signal,
+          })
+          .then(unwrap),
+      contextPayments: (
+        bookingId: string,
+        params: Partial<SupportPageQuery> = {},
+        signal?: AbortSignal,
+      ) =>
+        http
+          .get<ApiEnvelope<SupportContextPage<SupportPaymentContext>>>(
+            `/support/contexts/${encodeURIComponent(bookingId)}/payments`,
+            { params, signal },
+          )
+          .then(unwrap),
       create: (input: SupportCreateInput) =>
         http.post<ApiEnvelope<SupportDetail>>("/support/tickets", input).then(unwrap),
       list: (params: Partial<SupportTicketQuery> = {}, signal?: AbortSignal) =>

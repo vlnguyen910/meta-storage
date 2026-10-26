@@ -1,4 +1,5 @@
 "use client";
+import { CUSTOMER_WORKSPACE as C } from "@metastorage/shared";
 import { ArrowLeft, Check, Copy } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -106,6 +107,9 @@ export function CheckoutConfirmation({
         </CheckoutPanel>
       </div>
       <div className={s.actions}>
+        <Link className={s.primary} href={routes.customer.reservation(confirmation.bookingId)}>
+          {C.booking}
+        </Link>
         <Link className={s.primary} href={facilitiesPath}>
           <ArrowLeft size={16} />
           {m.backToFacilities}

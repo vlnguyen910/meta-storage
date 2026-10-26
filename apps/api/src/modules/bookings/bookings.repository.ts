@@ -48,6 +48,7 @@ import {
   users,
 } from "@metastorage/database";
 import { AppError } from "../../common/errors/app-error";
+import { PaymentsRepository } from "../payments/payments.repository";
 import { BOOKING_MESSAGES } from "./bookings.messages";
 import {
   bookingCheckInSlotEnd,
@@ -215,6 +216,32 @@ export class BookingsRepository {
       and(eq(bookings.id, bookingId), eq(bookings.userId, userId), ne(bookings.status, "DRAFT")),
     );
     return row ? toCustomerBooking(row) : null;
+  }
+
+  async customerRecovery(bookingId: string, userId: string) {
+    const [rental] = await this.db
+      .select({ id: rentals.id })
+      .from(rentals)
+      .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
+      .where(and(eq(bookings.id, bookingId), eq(bookings.userId, userId)));
+    const [paid] = await this.db
+      .select({ id: payments.id })
+      .from(payments)
+      .innerJoin(bookings, eq(bookings.id, payments.bookingId))
+      .where(
+        and(
+          eq(bookings.id, bookingId),
+          eq(bookings.userId, userId),
+          inArray(bookings.status, ["CONFIRMED", "CHECKED_IN"]),
+          eq(payments.status, "SUCCEEDED"),
+        ),
+      )
+      .orderBy(desc(payments.createdAt), desc(payments.id))
+      .limit(1);
+    const completed = paid
+      ? await new PaymentsRepository(this.db).findCompletedByPaymentId(paid.id)
+      : undefined;
+    return { rentalId: rental?.id ?? null, confirmation: completed?.confirmation ?? null };
   }
 
   async bookingEmailStatus(bookingId: string) {

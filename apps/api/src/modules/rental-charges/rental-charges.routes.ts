@@ -63,9 +63,14 @@ export const rentalChargesRoutes: FastifyPluginAsync = async (app) => {
   );
   typed.get(
     "/rentals/:rentalId/charges",
-    { preHandler: [requireRole("CUSTOMER")], schema: { params: RentalChargeRentalParamsSchema } },
+    {
+      preHandler: [requireRole("CUSTOMER")],
+      schema: { params: RentalChargeRentalParamsSchema, querystring: RentalChargePageQuerySchema },
+    },
     async (request) =>
-      successResponse(await service.listMine(actor(request), request.params.rentalId)),
+      successResponse(
+        await service.listMinePage(actor(request), request.params.rentalId, request.query),
+      ),
   );
   typed.post(
     "/rentals/:rentalId/charges",

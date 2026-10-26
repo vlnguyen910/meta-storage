@@ -28,7 +28,9 @@ import type {
   CookieSession,
   CreateRentalCharge,
   CreateReturnRequest,
-  CustomerBooking,
+  CustomerAvailability,
+  CustomerAvailabilityQuery,
+  CustomerBookingDetail,
   CustomerBookingPage,
   CustomerBookingPageQuery,
   CustomerSignUpInput,
@@ -66,6 +68,7 @@ import type {
   RentalChargeDecision,
   RentalChargeDispute,
   RentalChargeDto,
+  RentalChargePage,
   RentalChargePageQuery,
   RentalChargePaymentSession,
   RentalChargeRefundDto,
@@ -107,7 +110,6 @@ import type {
   StartRentalChargePayment,
   StorageUnitMaintenanceTransition,
   StorageUnitResponse,
-  UnitAvailabilityOption,
   UnitTypeListParams,
   UpdateDepositPolicy,
   UpdateStorageUnitStatusBody,
@@ -293,9 +295,12 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
         http.get<ApiEnvelope<ApiFacilityAssignment[]>>("/facilities/my-assignments").then(unwrap),
       get: (facilityId: string) =>
         http.get<ApiEnvelope<Facility>>(`/facilities/${facilityId}`).then(unwrap),
-      availability: (facilityId: string) =>
+      availability: (facilityId: string, params: CustomerAvailabilityQuery, signal?: AbortSignal) =>
         http
-          .get<ApiEnvelope<UnitAvailabilityOption[]>>(`/facilities/${facilityId}/availability`)
+          .get<ApiEnvelope<CustomerAvailability>>(`/facilities/${facilityId}/availability`, {
+            params,
+            signal,
+          })
           .then(unwrap),
       getStaff: (facilityId: string) =>
         http
@@ -368,10 +373,16 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
           .then(unwrap),
     },
     bookings: {
+      cancel: (bookingId: string) =>
+        http
+          .post<ApiEnvelope<import("@metastorage/contracts").BookingClosure>>(
+            `/bookings/${encodeURIComponent(bookingId)}/cancel`,
+          )
+          .then(unwrap),
       mine: (params: Partial<CustomerBookingPageQuery> = {}) =>
         http.get<ApiEnvelope<CustomerBookingPage>>("/bookings/mine", { params }).then(unwrap),
       getMine: (bookingId: string) =>
-        http.get<ApiEnvelope<CustomerBooking>>(`/bookings/mine/${bookingId}`).then(unwrap),
+        http.get<ApiEnvelope<CustomerBookingDetail>>(`/bookings/mine/${bookingId}`).then(unwrap),
       requestGuestAccessLink: (input: RequestGuestAccessLink) =>
         http
           .post<ApiEnvelope<{ message: string }>>("/booking/access-link", input, {
@@ -602,9 +613,9 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
           .then(unwrap),
     },
     rentalCharges: {
-      list: (rentalId: string, signal?: AbortSignal) =>
+      list: (rentalId: string, params: Partial<RentalChargePageQuery> = {}, signal?: AbortSignal) =>
         http
-          .get<ApiEnvelope<RentalChargeDto[]>>(`/rentals/${rentalId}/charges`, { signal })
+          .get<ApiEnvelope<RentalChargePage>>(`/rentals/${rentalId}/charges`, { params, signal })
           .then(unwrap),
       create: (rentalId: string, input: CreateRentalCharge) =>
         http.post<ApiEnvelope<RentalChargeDto>>(`/rentals/${rentalId}/charges`, input).then(unwrap),

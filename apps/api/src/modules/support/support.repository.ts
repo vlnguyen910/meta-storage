@@ -7,20 +7,24 @@ import {
   desc,
   eq,
   exists,
+  facilities,
   getTableColumns,
   inArray,
+  isNull,
   lt,
   notificationOutbox,
   or,
   payments,
   rentalCharges,
   rentals,
+  sql,
   storageUnits,
   supportAttachments,
   supportAudit,
   supportIdempotency,
   supportMessages,
   supportTickets,
+  unitTypes,
   users,
 } from "@metastorage/database";
 import type {
@@ -98,6 +102,115 @@ export class SupportRepository {
     const rows = lock ? await query.for("update", { of: supportTickets }) : await query;
     return rows[0];
   }
+  async contexts(
+    actorId: string,
+    input: import("@metastorage/contracts").SupportContextQuery,
+    cursor?: SupportCursor,
+  ) {
+    // Cursor dates use millisecond precision; order/filter on the same expression to avoid losing ties.
+    const createdAt = sql<Date>`date_trunc('milliseconds', ${bookings.createdAt})`.mapWith(
+      bookings.createdAt,
+    );
+    return this.db
+      .select({
+        id: bookings.id,
+        bookingCode: bookings.bookingCode,
+        status: bookings.status,
+        facility: { id: facilities.id, name: facilities.name },
+        unitType: { id: unitTypes.id, name: unitTypes.name },
+        checkInDate: bookings.checkInDate,
+        createdAt,
+      })
+      .from(bookings)
+      .innerJoin(users, eq(users.id, bookings.userId))
+      .innerJoin(facilities, eq(facilities.id, bookings.facilityId))
+      .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
+      .leftJoin(rentals, eq(rentals.bookingId, bookings.id))
+      .leftJoin(storageUnits, eq(storageUnits.id, rentals.physicalUnitId))
+      .where(
+        and(
+          eq(bookings.userId, actorId),
+          eq(users.role, "CUSTOMER"),
+          eq(users.status, "ACTIVE"),
+          input.category === "PAYMENT"
+            ? undefined
+            : and(
+                eq(bookings.status, "CHECKED_IN"),
+                isNull(rentals.closedAt),
+                eq(rentals.facilityId, bookings.facilityId),
+                eq(storageUnits.facilityId, bookings.facilityId),
+              ),
+          cursor
+            ? or(
+                lt(createdAt, cursor.createdAt),
+                and(eq(createdAt, cursor.createdAt), lt(bookings.id, cursor.id)),
+              )
+            : undefined,
+        ),
+      )
+      .orderBy(desc(createdAt), desc(bookings.id))
+      .limit(input.limit + 1);
+  }
+
+  async contextBooking(actorId: string, id: string) {
+    const [row] = await this.db
+      .select({ id: bookings.id })
+      .from(bookings)
+      .innerJoin(users, eq(users.id, bookings.userId))
+      .where(
+        and(
+          eq(bookings.id, id),
+          eq(bookings.userId, actorId),
+          eq(users.role, "CUSTOMER"),
+          eq(users.status, "ACTIVE"),
+        ),
+      );
+    return row;
+  }
+
+  async contextPayments(
+    actorId: string,
+    bookingId: string,
+    input: SupportPageQuery,
+    cursor?: SupportCursor,
+  ) {
+    const createdAt = sql<Date>`date_trunc('milliseconds', ${payments.createdAt})`.mapWith(
+      payments.createdAt,
+    );
+    return this.db
+      .select({
+        id: payments.id,
+        paymentCode: payments.paymentCode,
+        chargeId: payments.rentalChargeId,
+        source: rentalCharges.source,
+        status: payments.status,
+        amount: payments.totalAmount,
+        currency: payments.currency,
+        createdAt,
+      })
+      .from(payments)
+      .leftJoin(rentalCharges, eq(rentalCharges.id, payments.rentalChargeId))
+      .leftJoin(rentals, eq(rentals.id, rentalCharges.rentalId))
+      .innerJoin(
+        bookings,
+        or(eq(bookings.id, payments.bookingId), eq(bookings.id, rentals.bookingId)),
+      )
+      .where(
+        and(
+          eq(bookings.id, bookingId),
+          eq(bookings.userId, actorId),
+          cursor
+            ? or(
+                lt(createdAt, cursor.createdAt),
+                and(eq(createdAt, cursor.createdAt), lt(payments.id, cursor.id)),
+              )
+            : undefined,
+        ),
+      )
+      .orderBy(desc(createdAt), desc(payments.id))
+      .limit(input.limit + 1);
+  }
+
   async list(actorId: string, input: SupportTicketQuery, cursor?: SupportCursor) {
     return this.db
       .select(getTableColumns(supportTickets))
