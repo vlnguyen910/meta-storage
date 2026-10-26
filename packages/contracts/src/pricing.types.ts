@@ -34,6 +34,9 @@ export interface PricingChange {
   before: PricingChangeValues;
   after: PricingChangeValues;
   changedBy: string;
+  user: {
+    name: string
+  }
   changedAt: string;
 }
 

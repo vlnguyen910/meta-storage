@@ -306,7 +306,7 @@ export function OperationsRulesView() {
                         {formatDateTimeVn(change.changedAt)}
                       </TableCell>
                       <TableCell className="px-4 py-2.5 text-xs font-mono text-slate-700 whitespace-nowrap">
-                        {change.changedBy}
+                        {change.user.name}
                       </TableCell>
                       <TableCell className="px-4 py-2.5 whitespace-nowrap">
                         <Badge className="bg-slate-100 text-slate-800 border-slate-200 text-[11px] px-2 py-0.5">

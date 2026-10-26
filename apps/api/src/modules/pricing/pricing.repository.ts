@@ -12,6 +12,7 @@ import {
   type Database,
   desc,
   eq,
+  getTableColumns,
   gt,
   gte,
   isNotNull,
@@ -24,6 +25,7 @@ import {
   systemSettingInteger,
   systemSettings,
   unitTypes,
+  users,
 } from "@metastorage/database";
 import { AppError, ConflictError, NotFoundError } from "../../common/errors/app-error";
 import type { PricingRevision, PricingTransaction, PricingWrite } from "./pricing.types";
@@ -227,8 +229,14 @@ export class PricingRepository {
 
   history(query: PricingQuery) {
     return this.db
-      .select()
+      .select({
+        ...getTableColumns(pricingChanges),
+        user: {
+          name: users.name,
+        },
+      })
       .from(pricingChanges)
+      .innerJoin(users, eq(pricingChanges.changedBy, users.id))
       .orderBy(desc(pricingChanges.version))
       .limit(query.limit)
       .offset(query.offset);
