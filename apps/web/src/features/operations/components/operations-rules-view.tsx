@@ -12,15 +12,23 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FieldShell, Input } from "@/components/ui/form-controls";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ErrorState, LoadingState } from "@/components/ui/states";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useOperationsPricing } from "../hooks/use-operations-pricing";
 import { OPERATIONS_MESSAGES as M } from "../operations.messages";
 import { type OperationsDepositDraft, OperationsDepositDraftSchema } from "../operations.schema";
 import { formatDateTimeVn, formatMoney } from "../operations.utils";
-import { OperationsTable } from "../operations-parts";
 import { REPORTING_MESSAGES as R } from "../operations-reporting.messages";
 
 const REFERENCE_BUSINESS_POLICIES = R.policyRules;
@@ -255,50 +263,65 @@ export function OperationsRulesView() {
             Chưa có lịch sử thay đổi.
           </p>
         ) : (
-          <OperationsTable label={M.pricingHistoryTitle} headings={M.historyHeadingsReal}>
-            {history.slice((safeHistoryPage - 1) * 10, safeHistoryPage * 10).map((change) => {
-              const isDeposit = change.operation === "DEPOSIT_POLICY";
-              let changeDetail = "";
-              if (isDeposit) {
-                const beforeMonths =
-                  "depositMonths" in change.before ? change.before.depositMonths : "?";
-                const afterMonths =
-                  "depositMonths" in change.after ? change.after.depositMonths : "?";
-                changeDetail = `${beforeMonths} tháng cọc → ${afterMonths} tháng cọc`;
-              } else {
-                const beforePrice =
-                  "monthlyPrice" in change.before ? formatMoney(change.before.monthlyPrice) : "?";
-                const afterPrice =
-                  "monthlyPrice" in change.after ? formatMoney(change.after.monthlyPrice) : "?";
-                changeDetail = `${beforePrice} → ${afterPrice}`;
-              }
+          <div className="rounded-xl border border-slate-200/90 bg-white shadow-xs overflow-hidden">
+            <Table>
+              <TableHeader className="bg-slate-50/95 border-b border-slate-200">
+                <TableRow className="hover:bg-transparent">
+                  {M.historyHeadingsReal.map((heading) => (
+                    <TableHead
+                      key={heading}
+                      className="px-4 py-2.5 text-xs font-semibold text-slate-700 whitespace-nowrap"
+                    >
+                      {heading}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {history.slice((safeHistoryPage - 1) * 10, safeHistoryPage * 10).map((change) => {
+                  const isDeposit = change.operation === "DEPOSIT_POLICY";
+                  let changeDetail = "";
+                  if (isDeposit) {
+                    const beforeMonths =
+                      "depositMonths" in change.before ? change.before.depositMonths : "?";
+                    const afterMonths =
+                      "depositMonths" in change.after ? change.after.depositMonths : "?";
+                    changeDetail = `${beforeMonths} tháng cọc → ${afterMonths} tháng cọc`;
+                  } else {
+                    const beforePrice =
+                      "monthlyPrice" in change.before
+                        ? formatMoney(change.before.monthlyPrice)
+                        : "?";
+                    const afterPrice =
+                      "monthlyPrice" in change.after ? formatMoney(change.after.monthlyPrice) : "?";
+                    changeDetail = `${beforePrice} → ${afterPrice}`;
+                  }
 
-              return (
-                <tr key={change.id} className="hover:bg-slate-50/50">
-                  <th
-                    scope="row"
-                    className="px-5 py-4 font-mono font-bold text-primary whitespace-nowrap"
-                  >
-                    v{change.version}
-                  </th>
-                  <td className="px-5 py-4 text-xs text-slate-600 whitespace-nowrap">
-                    {formatDateTimeVn(change.changedAt)}
-                  </td>
-                  <td className="px-5 py-4 text-xs font-mono text-slate-700 whitespace-nowrap">
-                    {change.changedBy}
-                  </td>
-                  <td className="px-5 py-4 whitespace-nowrap">
-                    <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-800">
-                      {isDeposit ? M.opDeposit : M.opPrice}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 text-sm font-semibold tabular-nums text-ink">
-                    {changeDetail}
-                  </td>
-                </tr>
-              );
-            })}
-          </OperationsTable>
+                  return (
+                    <TableRow key={change.id} className="hover:bg-slate-50/60 transition-colors">
+                      <TableCell className="px-4 py-2.5 font-mono font-bold text-xs text-primary whitespace-nowrap">
+                        v{change.version}
+                      </TableCell>
+                      <TableCell className="px-4 py-2.5 text-xs text-slate-600 whitespace-nowrap">
+                        {formatDateTimeVn(change.changedAt)}
+                      </TableCell>
+                      <TableCell className="px-4 py-2.5 text-xs font-mono text-slate-700 whitespace-nowrap">
+                        {change.changedBy}
+                      </TableCell>
+                      <TableCell className="px-4 py-2.5 whitespace-nowrap">
+                        <Badge className="bg-slate-100 text-slate-800 border-slate-200 text-[11px] px-2 py-0.5">
+                          {isDeposit ? M.opDeposit : M.opPrice}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="px-4 py-2.5 text-xs font-semibold tabular-nums text-slate-900">
+                        {changeDetail}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         )}
         {!isHistoryPending && !isHistoryError && (
           <ListPagination
@@ -337,40 +360,53 @@ export function OperationsRulesView() {
         {showReferencePolicies && (
           <div className="mt-4 border-t border-outline-variant pt-4">
             <p className="text-xs text-slate-600 mb-3">{R.policySource}</p>
-            <OperationsTable
-              label="Chính sách nghiệp vụ tham khảo"
-              headings={[
-                "Nhóm quy tắc",
-                "Tên quy tắc",
-                "Nội dung quy định",
-                "Trạng thái nghiệp vụ",
-              ]}
-            >
-              {REFERENCE_BUSINESS_POLICIES.map((rule) => (
-                <tr key={rule.name} className="hover:bg-slate-50/50">
-                  <td className="whitespace-nowrap px-5 py-4 font-semibold text-slate-600 text-xs">
-                    {rule.group}
-                  </td>
-                  <th scope="row" className="min-w-40 px-5 py-4 font-bold text-ink text-xs">
-                    {rule.name}
-                  </th>
-                  <td className="min-w-64 max-w-xl px-5 py-4 text-slate-700 leading-relaxed text-xs">
-                    {rule.value}
-                  </td>
-                  <td className="whitespace-nowrap px-5 py-4">
-                    <span
-                      className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                        rule.isTbd
-                          ? "bg-amber-50 text-amber-800 border border-amber-200"
-                          : "bg-slate-100 text-slate-700"
-                      }`}
-                    >
-                      {rule.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </OperationsTable>
+            <div className="rounded-xl border border-slate-200/90 bg-white shadow-xs overflow-hidden">
+              <Table>
+                <TableHeader className="bg-slate-50/95 border-b border-slate-200">
+                  <TableRow className="hover:bg-transparent">
+                    {[
+                      "Nhóm quy tắc",
+                      "Tên quy tắc",
+                      "Nội dung quy định",
+                      "Trạng thái nghiệp vụ",
+                    ].map((heading) => (
+                      <TableHead
+                        key={heading}
+                        className="px-4 py-2.5 text-xs font-semibold text-slate-700 whitespace-nowrap"
+                      >
+                        {heading}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {REFERENCE_BUSINESS_POLICIES.map((rule) => (
+                    <TableRow key={rule.name} className="hover:bg-slate-50/60 transition-colors">
+                      <TableCell className="whitespace-nowrap px-4 py-2.5 font-semibold text-slate-600 text-xs">
+                        {rule.group}
+                      </TableCell>
+                      <TableCell className="min-w-40 px-4 py-2.5 font-bold text-slate-900 text-xs">
+                        {rule.name}
+                      </TableCell>
+                      <TableCell className="min-w-64 max-w-xl px-4 py-2.5 text-slate-700 leading-relaxed text-xs">
+                        {rule.value}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap px-4 py-2.5">
+                        <Badge
+                          className={`text-xs font-semibold px-2 py-0.5 ${
+                            rule.isTbd
+                              ? "bg-amber-50 text-amber-800 border-amber-200"
+                              : "bg-slate-100 text-slate-700 border-slate-200"
+                          }`}
+                        >
+                          {rule.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         )}
       </section>

@@ -47,13 +47,13 @@ export function BusinessOperationsShell({ children }: Readonly<BusinessOperation
       })}
     </nav>
   );
-  const isFacilityManagement = pathname.startsWith("/operations/facility-management");
+  const isOperationsNoScroll = pathname.startsWith("/operations");
 
   return (
     <div
       className={cn(
         "min-h-screen bg-canvas text-ink [--radius-card:4px] [--color-outline-variant:#bfcac4]",
-        isFacilityManagement && "h-screen flex flex-col overflow-hidden min-h-0",
+        isOperationsNoScroll && "h-screen flex flex-col overflow-hidden min-h-0",
       )}
     >
       <a
@@ -137,14 +137,14 @@ export function BusinessOperationsShell({ children }: Readonly<BusinessOperation
       <div
         className={cn(
           "min-w-0 lg:ml-60",
-          isFacilityManagement && "flex-1 overflow-hidden min-h-0 flex flex-col",
+          isOperationsNoScroll && "flex-1 overflow-hidden min-h-0 flex flex-col",
         )}
       >
         <main
           id="operations-content"
           className={cn(
             "mx-auto max-w-[1440px] px-4 py-7 sm:px-6 lg:p-8",
-            isFacilityManagement &&
+            isOperationsNoScroll &&
               "flex-1 overflow-hidden min-h-0 w-full p-4 sm:p-6 lg:p-6 flex flex-col",
           )}
         >
