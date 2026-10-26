@@ -18,6 +18,7 @@ import { useForm } from "react-hook-form";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { Input, Select } from "@/components/ui/form-controls";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ErrorState, LoadingState } from "@/components/ui/states";
@@ -260,18 +261,21 @@ function FacilityListTable({
         </form>
 
         <div className="w-full sm:w-48 shrink-0">
-          <Select
+          <DropdownSelect
             value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
+            onChange={(val) => {
+              setStatusFilter(val);
               setPage(1);
             }}
-            className="h-10 min-h-10 text-sm bg-slate-50/50 border-slate-200 focus:bg-white"
-          >
-            <option value="ALL">{F5.allStatuses}</option>
-            <option value="ACTIVE">{F5.active}</option>
-            <option value="INACTIVE">{F5.inactive}</option>
-          </Select>
+            className="w-full"
+            triggerClassName="h-10 min-h-10 w-full text-sm bg-slate-50/50 border-slate-200 focus:bg-white"
+            options={[
+              { value: "ALL", label: F5.allStatuses },
+              { value: "ACTIVE", label: F5.active },
+              { value: "INACTIVE", label: F5.inactive },
+            ]}
+            maxVisibleItems={6}
+          />
         </div>
 
         <Button
@@ -465,18 +469,21 @@ function TypeCatalogTable() {
         </form>
 
         <div className="w-full sm:w-48 shrink-0">
-          <Select
+          <DropdownSelect
             value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
+            onChange={(val) => {
+              setStatusFilter(val);
               setPage(1);
             }}
-            className="h-10 min-h-10 text-sm bg-slate-50/50 border-slate-200 focus:bg-white"
-          >
-            <option value="ALL">{F5.allStatuses}</option>
-            <option value="ACTIVE">{F5.active}</option>
-            <option value="INACTIVE">{F5.inactive}</option>
-          </Select>
+            className="w-full"
+            triggerClassName="h-10 min-h-10 w-full text-sm bg-slate-50/50 border-slate-200 focus:bg-white"
+            options={[
+              { value: "ALL", label: F5.allStatuses },
+              { value: "ACTIVE", label: F5.active },
+              { value: "INACTIVE", label: F5.inactive },
+            ]}
+            maxVisibleItems={6}
+          />
         </div>
 
         <Button
@@ -676,17 +683,17 @@ function FacilityOfferingsTable({
       <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 p-3 bg-white border border-slate-200/90 rounded-xl shadow-xs">
         <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
           <div className="w-full sm:w-64">
-            <Select
+            <DropdownSelect
               value={facilityId}
-              onChange={(e) => onSelectFacility(e.target.value)}
-              className="h-10 min-h-10 text-sm bg-slate-50/50 border-slate-200 font-semibold text-slate-800"
-            >
-              {facilityOptions.map((opt) => (
-                <option key={opt.id} value={opt.id}>
-                  {opt.code} · {opt.name}
-                </option>
-              ))}
-            </Select>
+              onChange={(val) => onSelectFacility(val)}
+              className="w-full"
+              triggerClassName="h-10 min-h-10 w-full text-sm bg-slate-50/50 border-slate-200 font-semibold text-slate-800"
+              options={facilityOptions.map((opt) => ({
+                value: opt.id,
+                label: `${opt.code} · ${opt.name}`,
+              }))}
+              maxVisibleItems={6}
+            />
           </div>
 
           <form
@@ -713,18 +720,21 @@ function FacilityOfferingsTable({
           </form>
 
           <div className="w-full sm:w-44 shrink-0">
-            <Select
+            <DropdownSelect
               value={offeringFilter}
-              onChange={(e) => {
-                setOfferingFilter(e.target.value);
+              onChange={(val) => {
+                setOfferingFilter(val);
                 setPage(1);
               }}
-              className="h-10 min-h-10 text-sm bg-slate-50/50 border-slate-200 focus:bg-white"
-            >
-              <option value="ALL">{F5.allOfferings}</option>
-              <option value="ENABLED">{F5.enabled}</option>
-              <option value="DISABLED">{F5.disabled}</option>
-            </Select>
+              className="w-full"
+              triggerClassName="h-10 min-h-10 w-full text-sm bg-slate-50/50 border-slate-200 focus:bg-white"
+              options={[
+                { value: "ALL", label: F5.allOfferings },
+                { value: "ENABLED", label: F5.enabled },
+                { value: "DISABLED", label: F5.disabled },
+              ]}
+              maxVisibleItems={6}
+            />
           </div>
         </div>
       </div>
@@ -904,17 +914,17 @@ function FacilityMembershipsTable({
       <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 p-3 bg-white border border-slate-200/90 rounded-xl shadow-xs">
         <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
           <div className="w-full sm:w-64">
-            <Select
+            <DropdownSelect
               value={facilityId}
-              onChange={(e) => onSelectFacility(e.target.value)}
-              className="h-10 min-h-10 text-sm bg-slate-50/50 border-slate-200 font-semibold text-slate-800"
-            >
-              {facilityOptions.map((opt) => (
-                <option key={opt.id} value={opt.id}>
-                  {opt.code} · {opt.name}
-                </option>
-              ))}
-            </Select>
+              onChange={(val) => onSelectFacility(val)}
+              className="w-full"
+              triggerClassName="h-10 min-h-10 w-full text-sm bg-slate-50/50 border-slate-200 font-semibold text-slate-800"
+              options={facilityOptions.map((opt) => ({
+                value: opt.id,
+                label: `${opt.code} · ${opt.name}`,
+              }))}
+              maxVisibleItems={6}
+            />
           </div>
 
           <form
@@ -941,33 +951,39 @@ function FacilityMembershipsTable({
           </form>
 
           <div className="w-full sm:w-44 shrink-0">
-            <Select
+            <DropdownSelect
               value={roleFilter}
-              onChange={(e) => {
-                setRoleFilter(e.target.value);
+              onChange={(val) => {
+                setRoleFilter(val);
                 setPage(1);
               }}
-              className="h-10 min-h-10 text-sm bg-slate-50/50 border-slate-200 focus:bg-white"
-            >
-              <option value="ALL">{F5.allRoles}</option>
-              <option value="FACILITY_MANAGER">{F5.manager}</option>
-              <option value="FACILITY_STAFF">{F5.employee}</option>
-            </Select>
+              className="w-full"
+              triggerClassName="h-10 min-h-10 w-full text-sm bg-slate-50/50 border-slate-200 focus:bg-white"
+              options={[
+                { value: "ALL", label: F5.allRoles },
+                { value: "FACILITY_MANAGER", label: F5.manager },
+                { value: "FACILITY_STAFF", label: F5.employee },
+              ]}
+              maxVisibleItems={6}
+            />
           </div>
 
           <div className="w-full sm:w-40 shrink-0">
-            <Select
+            <DropdownSelect
               value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
+              onChange={(val) => {
+                setStatusFilter(val);
                 setPage(1);
               }}
-              className="h-10 min-h-10 text-sm bg-slate-50/50 border-slate-200 focus:bg-white"
-            >
-              <option value="ALL">{F5.allStatuses}</option>
-              <option value="ACTIVE">{F5.active}</option>
-              <option value="INACTIVE">{F5.inactive}</option>
-            </Select>
+              className="w-full"
+              triggerClassName="h-10 min-h-10 w-full text-sm bg-slate-50/50 border-slate-200 focus:bg-white"
+              options={[
+                { value: "ALL", label: F5.allStatuses },
+                { value: "ACTIVE", label: F5.active },
+                { value: "INACTIVE", label: F5.inactive },
+              ]}
+              maxVisibleItems={6}
+            />
           </div>
         </div>
 

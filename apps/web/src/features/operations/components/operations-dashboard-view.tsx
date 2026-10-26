@@ -19,6 +19,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { businessOperationsRoutes as routes } from "@/config/routes";
 import { useOperationsCatalogOptions } from "../hooks/use-operations-catalog-options";
@@ -109,40 +110,30 @@ export function OperationsDashboardView() {
             </div>
 
             {/* Facility Selector */}
-            <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs">
-              <Building2 className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden="true" />
-              <select
-                value={facilityId}
-                aria-label={D.filterFacility}
-                onChange={(e) => setFacilityId(e.target.value)}
-                className="max-w-[150px] cursor-pointer truncate border-none bg-transparent p-0 text-xs font-medium text-slate-800 focus:outline-none sm:max-w-[180px]"
-              >
-                <option value="all">{M.allFacilities}</option>
-                {facilities.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <DropdownSelect
+              value={facilityId}
+              onChange={setFacilityId}
+              icon={<Building2 className="h-3.5 w-3.5" aria-hidden="true" />}
+              ariaLabel={D.filterFacility}
+              options={[
+                { value: "all", label: M.allFacilities },
+                ...facilities.map((f) => ({ value: f.id, label: f.name })),
+              ]}
+              maxVisibleItems={6}
+            />
 
             {/* Unit Type Selector */}
-            <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs">
-              <Boxes className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden="true" />
-              <select
-                value={unitTypeId}
-                aria-label={D.filterUnitType}
-                onChange={(e) => setUnitTypeId(e.target.value)}
-                className="max-w-[140px] cursor-pointer truncate border-none bg-transparent p-0 text-xs font-medium text-slate-800 focus:outline-none"
-              >
-                <option value="all">{M.allUnitTypes}</option>
-                {unitTypes.map((t) => (
-                  <option key={t.unitTypeId} value={t.unitTypeId}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <DropdownSelect
+              value={unitTypeId}
+              onChange={setUnitTypeId}
+              icon={<Boxes className="h-3.5 w-3.5" aria-hidden="true" />}
+              ariaLabel={D.filterUnitType}
+              options={[
+                { value: "all", label: M.allUnitTypes },
+                ...unitTypes.map((t) => ({ value: t.unitTypeId, label: t.name })),
+              ]}
+              maxVisibleItems={6}
+            />
 
             {/* Reset Button */}
             <Button

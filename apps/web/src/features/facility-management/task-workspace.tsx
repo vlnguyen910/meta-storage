@@ -14,6 +14,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { Input, Select } from "@/components/ui/form-controls";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { isMockMode } from "@/config/api-mode";
@@ -66,13 +67,17 @@ export function TaskWorkspace({ manager }: { manager: boolean }) {
       ) : (
         <>
           <ManagementField label={F5.facility}>
-            <Select value={scope.facilityId} onChange={(event) => scope.select(event.target.value)}>
-              {scope.query.data.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.code} · {item.name}
-                </option>
-              ))}
-            </Select>
+            <DropdownSelect
+              value={scope.facilityId}
+              onChange={(val) => scope.select(val)}
+              className="w-full"
+              triggerClassName="h-10 min-h-10 w-full bg-white border-slate-200"
+              options={scope.query.data.map((item) => ({
+                value: item.id,
+                label: `${item.code} · ${item.name}`,
+              }))}
+              maxVisibleItems={6}
+            />
           </ManagementField>
           <TaskPanel key={scope.facilityId} facilityId={scope.facilityId} manager={manager} />
         </>
@@ -99,37 +104,43 @@ function TaskPanel({ facilityId, manager }: TaskPanelProps) {
     <div className="grid gap-5">
       <div className="flex flex-wrap items-end gap-3">
         <ManagementField label={F5.taskType}>
-          <Select
+          <DropdownSelect
             value={type}
-            onChange={(event) => {
-              setType(event.target.value as FacilityTaskType | "");
+            onChange={(val) => {
+              setType(val as FacilityTaskType | "");
               setOffset(0);
             }}
-          >
-            <option value="">{F5.all}</option>
-            {Object.values(FacilityTaskType).map((value) => (
-              <option key={value} value={value}>
-                {F5.typeLabels[value]}
-              </option>
-            ))}
-          </Select>
+            className="w-48"
+            triggerClassName="h-10 min-h-10 w-full bg-white border-slate-200"
+            options={[
+              { value: "", label: F5.all },
+              ...Object.values(FacilityTaskType).map((value) => ({
+                value,
+                label: F5.typeLabels[value],
+              })),
+            ]}
+            maxVisibleItems={6}
+          />
         </ManagementField>
         {manager && (
           <ManagementField label={F5.staff}>
-            <Select
+            <DropdownSelect
               value={staffId}
-              onChange={(event) => {
-                setStaffId(event.target.value);
+              onChange={(val) => {
+                setStaffId(val);
                 setOffset(0);
               }}
-            >
-              <option value="">{F5.all}</option>
-              {staff.data?.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </Select>
+              className="w-48"
+              triggerClassName="h-10 min-h-10 w-full bg-white border-slate-200"
+              options={[
+                { value: "", label: F5.all },
+                ...(staff.data?.map((item) => ({
+                  value: item.id,
+                  label: item.name,
+                })) ?? []),
+              ]}
+              maxVisibleItems={6}
+            />
           </ManagementField>
         )}
         <Button

@@ -3,7 +3,8 @@
 import { List, Search } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input, Select } from "@/components/ui/form-controls";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
+import { Input } from "@/components/ui/form-controls";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/states";
 import { facilitiesMessages as m } from "./facilities.messages";
 import { FacilityCard } from "./facility-card";
@@ -33,32 +34,36 @@ export function FacilityList({ protectedMode = false }: { protectedMode?: boolea
             }}
           />
         </div>
-        <Select
-          className="rounded-md border-[#e2e8f0] bg-[#fbfbfa] text-sm"
-          aria-label={m.cityLabel}
+        <DropdownSelect
+          className="w-full"
+          triggerClassName="h-full min-h-[46px] w-full rounded-md border-[#e2e8f0] bg-[#fbfbfa] text-sm"
+          ariaLabel={m.cityLabel}
           value={city}
-          onChange={(event) => {
-            setCity(event.target.value);
+          onChange={(newCity) => {
+            setCity(newCity);
             setPage(1);
           }}
-        >
-          <option value="">{m.allCities}</option>
-          {m.cities.map((value) => (
-            <option key={value}>{value}</option>
-          ))}
-        </Select>
-        <Select
-          className="rounded-md border-[#e2e8f0] bg-[#fbfbfa] text-sm"
-          aria-label={m.sortLabel}
+          options={[
+            { value: "", label: m.allCities },
+            ...m.cities.map((value) => ({ value, label: value })),
+          ]}
+          maxVisibleItems={6}
+        />
+        <DropdownSelect
+          className="w-full"
+          triggerClassName="h-full min-h-[46px] w-full rounded-md border-[#e2e8f0] bg-[#fbfbfa] text-sm"
+          ariaLabel={m.sortLabel}
           value={sort}
-          onChange={(event) => {
-            setSort(event.target.value as typeof sort);
+          onChange={(newSort) => {
+            setSort(newSort as typeof sort);
             setPage(1);
           }}
-        >
-          <option value="name">{m.sorts.name}</option>
-          <option value="price">{m.sorts.price}</option>
-        </Select>
+          options={[
+            { value: "name", label: m.sorts.name },
+            { value: "price", label: m.sorts.price },
+          ]}
+          maxVisibleItems={6}
+        />
       </div>
       {!protectedMode && query.data ? (
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3 text-sm">

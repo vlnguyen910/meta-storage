@@ -9,7 +9,8 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FieldShell, Input, Select } from "@/components/ui/form-controls";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
+import { FieldShell, Input } from "@/components/ui/form-controls";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import {
@@ -270,71 +271,74 @@ function RentalsTab() {
           </form>
 
           {/* Facility Select */}
-          <div className="w-44">
-            <FieldShell label={M.facilityFilter}>
-              <Select
-                value={facilityId}
-                onChange={(e) => {
-                  setFacilityId(e.target.value);
-                  setPage(1);
-                }}
-                className="h-8 text-xs"
-              >
-                <option value="all">{M.allFacilities}</option>
-                {catalogFacilities.map((fac) => (
-                  <option key={fac.id} value={fac.id}>
-                    {fac.name}
-                  </option>
-                ))}
-              </Select>
-            </FieldShell>
+          <div className="w-48">
+            <span className="block text-xs font-semibold text-slate-700 mb-1">
+              {M.facilityFilter}
+            </span>
+            <DropdownSelect
+              value={facilityId}
+              onChange={(newFacilityId) => {
+                setFacilityId(newFacilityId);
+                setPage(1);
+              }}
+              className="w-full"
+              triggerClassName="h-8 w-full bg-white"
+              options={[
+                { value: "all", label: M.allFacilities },
+                ...catalogFacilities.map((fac) => ({ value: fac.id, label: fac.name })),
+              ]}
+              maxVisibleItems={6}
+            />
           </div>
 
           {/* Unit Type Select */}
-          <div className="w-40">
-            <FieldShell label={M.unitTypeFilter}>
-              <Select
-                value={unitTypeId}
-                onChange={(event) => {
-                  setUnitTypeId(event.target.value);
-                  setPage(1);
-                }}
-                className="h-8 text-xs"
-              >
-                <option value="all">{M.allUnitTypes}</option>
-                {catalogUnitTypes.map((type) => (
-                  <option key={type.unitTypeId} value={type.unitTypeId}>
-                    {type.name}
-                  </option>
-                ))}
-              </Select>
-            </FieldShell>
+          <div className="w-44">
+            <span className="block text-xs font-semibold text-slate-700 mb-1">
+              {M.unitTypeFilter}
+            </span>
+            <DropdownSelect
+              value={unitTypeId}
+              onChange={(newUnitTypeId) => {
+                setUnitTypeId(newUnitTypeId);
+                setPage(1);
+              }}
+              className="w-full"
+              triggerClassName="h-8 w-full bg-white"
+              options={[
+                { value: "all", label: M.allUnitTypes },
+                ...catalogUnitTypes.map((type) => ({ value: type.unitTypeId, label: type.name })),
+              ]}
+              maxVisibleItems={6}
+            />
           </div>
 
           {/* Status Select */}
-          <div className="w-40">
-            <FieldShell label={R.rentalStatus}>
-              <Select
-                value={status}
-                onChange={(e) => {
-                  setStatus(e.target.value);
-                  setPage(1);
-                }}
-                className="h-8 text-xs"
-              >
-                <option value="all">Tất cả trạng thái</option>
-                {Array.from(
+          <div className="w-44">
+            <span className="block text-xs font-semibold text-slate-700 mb-1">
+              {R.rentalStatus}
+            </span>
+            <DropdownSelect
+              value={status}
+              onChange={(newStatus) => {
+                setStatus(newStatus);
+                setPage(1);
+              }}
+              className="w-full"
+              triggerClassName="h-8 w-full bg-white"
+              options={[
+                { value: "all", label: "Tất cả trạng thái" },
+                ...Array.from(
                   new Set([
                     ...(summary.data?.byStatus.map((item) => item.status) ?? []),
                     ...(status === "all" ? [] : [status]),
                   ]),
-                ).map((value) => (
-                  <option key={value} value={value}>
-                    {R.rentalStatuses[value] ?? value}
-                  </option>
-                ))}
-              </Select>
-            </FieldShell>
+                ).map((value) => ({
+                  value,
+                  label: R.rentalStatuses[value] ?? value,
+                })),
+              ]}
+              maxVisibleItems={6}
+            />
           </div>
 
           {/* Action Buttons */}
@@ -559,24 +563,24 @@ function ReconciliationTab() {
           </form>
 
           {/* Facility Select */}
-          <div className="w-52">
-            <FieldShell label={M.facilityFilter}>
-              <Select
-                value={facilityId}
-                onChange={(e) => {
-                  setFacilityId(e.target.value);
-                  setPage(1);
-                }}
-                className="h-8 text-xs"
-              >
-                <option value="all">{M.allFacilities}</option>
-                {catalogFacilities.map((fac) => (
-                  <option key={fac.id} value={fac.id}>
-                    {fac.name}
-                  </option>
-                ))}
-              </Select>
-            </FieldShell>
+          <div className="w-56">
+            <span className="block text-xs font-semibold text-slate-700 mb-1">
+              {M.facilityFilter}
+            </span>
+            <DropdownSelect
+              value={facilityId}
+              onChange={(newFacilityId) => {
+                setFacilityId(newFacilityId);
+                setPage(1);
+              }}
+              className="w-full"
+              triggerClassName="h-8 w-full bg-white"
+              options={[
+                { value: "all", label: M.allFacilities },
+                ...catalogFacilities.map((fac) => ({ value: fac.id, label: fac.name })),
+              ]}
+              maxVisibleItems={6}
+            />
           </div>
 
           <Button

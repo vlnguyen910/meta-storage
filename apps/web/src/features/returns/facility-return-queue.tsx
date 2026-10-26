@@ -19,6 +19,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, PageHeader } from "@/components/ui/display";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { useMyFacilityAssignments } from "@/features/check-in/hooks";
@@ -223,20 +224,29 @@ export function FacilityReturnQueue({ actorRole }: FacilityReturnQueueProps) {
 
           {/* Status select dropdown */}
           <div className="flex items-center gap-2">
-            <select
+            <DropdownSelect
               value={status}
-              onChange={(event) => setStatus(event.target.value)}
-              className="h-11 rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 text-xs font-medium text-slate-800 focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
-            >
-              <option value="">{M.allStatuses}</option>
-              {(
-                ["PENDING", "CONFIRMED", "INSPECTING", "FAILED", "COMPLETED", "CANCELLED"] as const
-              ).map((value) => (
-                <option key={value} value={value}>
-                  {returnStatusLabel(value)}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setStatus(val)}
+              className="w-48"
+              triggerClassName="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 text-xs font-medium text-slate-800"
+              options={[
+                { value: "", label: M.allStatuses },
+                ...(
+                  [
+                    "PENDING",
+                    "CONFIRMED",
+                    "INSPECTING",
+                    "FAILED",
+                    "COMPLETED",
+                    "CANCELLED",
+                  ] as const
+                ).map((value) => ({
+                  value,
+                  label: returnStatusLabel(value),
+                })),
+              ]}
+              maxVisibleItems={6}
+            />
           </div>
         </div>
 

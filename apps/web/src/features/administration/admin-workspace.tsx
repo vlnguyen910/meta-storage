@@ -4,7 +4,8 @@ import { UserRole } from "@metastorage/contracts";
 import { Download, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { FieldShell, Input, Select } from "@/components/ui/form-controls";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
+import { FieldShell, Input } from "@/components/ui/form-controls";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { LoadingState } from "@/components/ui/states";
 import { useAuthStore } from "@/features/auth/auth-store";
@@ -179,55 +180,72 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
         </FieldShell>
         {(accounts || login) && (
           <FieldShell label={M.roleFilter}>
-            <Select value={filters.role} onChange={(event) => filter("role", event.target.value)}>
-              <option value="">{M.all}</option>
-              {Object.values(UserRole)
-                .filter((role) => section !== "assignments" || isFacilityRole(role))
-                .map((role) => (
-                  <option key={role} value={role}>
-                    {ADMIN_ROLE_LABELS[role]}
-                  </option>
-                ))}
-            </Select>
+            <DropdownSelect
+              value={filters.role}
+              onChange={(val) => filter("role", val)}
+              className="w-full"
+              triggerClassName="h-10 min-h-10 w-full bg-white border-slate-200"
+              options={[
+                { value: "", label: M.all },
+                ...Object.values(UserRole)
+                  .filter((role) => section !== "assignments" || isFacilityRole(role))
+                  .map((role) => ({
+                    value: role,
+                    label: ADMIN_ROLE_LABELS[role],
+                  })),
+              ]}
+              maxVisibleItems={6}
+            />
           </FieldShell>
         )}
         {accounts && (
           <FieldShell label={M.statusFilter}>
-            <Select
+            <DropdownSelect
               value={filters.status}
-              onChange={(event) => filter("status", event.target.value)}
-            >
-              <option value="">{M.all}</option>
-              <option value="ACTIVE">{M.active}</option>
-              <option value="INACTIVE">{M.inactive}</option>
-            </Select>
+              onChange={(val) => filter("status", val)}
+              className="w-full"
+              triggerClassName="h-10 min-h-10 w-full bg-white border-slate-200"
+              options={[
+                { value: "", label: M.all },
+                { value: "ACTIVE", label: M.active },
+                { value: "INACTIVE", label: M.inactive },
+              ]}
+              maxVisibleItems={6}
+            />
           </FieldShell>
         )}
         {(accounts || section === "activity-logs") && (
           <FieldShell label={M.facilityFilter}>
-            <Select
+            <DropdownSelect
               value={filters.facilityId}
-              onChange={(event) => filter("facilityId", event.target.value)}
-            >
-              <option value="">{M.all}</option>
-              {data.facilities.map((facility) => (
-                <option key={facility.id} value={facility.id}>
-                  {facility.name}
-                </option>
-              ))}
-            </Select>
+              onChange={(val) => filter("facilityId", val)}
+              className="w-full"
+              triggerClassName="h-10 min-h-10 w-full bg-white border-slate-200"
+              options={[
+                { value: "", label: M.all },
+                ...data.facilities.map((facility) => ({
+                  value: facility.id,
+                  label: facility.name,
+                })),
+              ]}
+              maxVisibleItems={6}
+            />
           </FieldShell>
         )}
         {!accounts && (
           <FieldShell label={M.outcomeFilter}>
-            <Select
+            <DropdownSelect
               value={filters.outcome}
-              onChange={(event) => filter("outcome", event.target.value)}
-            >
-              <option value="">{M.all}</option>
-              <option value="SUCCESS">{M.success}</option>
-              <option value="FAILED">{M.failed}</option>
-            </Select>
+              onChange={(val) => filter("outcome", val)}
+              className="w-full"
+              triggerClassName="h-10 min-h-10 w-full bg-white border-slate-200"
+              options={[
+                { value: "", label: M.all },
+                { value: "SUCCESS", label: M.success },
+                { value: "FAILED", label: M.failed },
+              ]}
+              maxVisibleItems={6}
+            />
           </FieldShell>
         )}
         {!accounts && (
@@ -241,17 +259,20 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
         )}
         {section === "activity-logs" && (
           <FieldShell label={M.actionFilter}>
-            <Select
+            <DropdownSelect
               value={filters.action}
-              onChange={(event) => filter("action", event.target.value)}
-            >
-              <option value="">{M.all}</option>
-              {Object.entries(M.actions).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </Select>
+              onChange={(val) => filter("action", val)}
+              className="w-full"
+              triggerClassName="h-10 min-h-10 w-full bg-white border-slate-200"
+              options={[
+                { value: "", label: M.all },
+                ...Object.entries(M.actions).map(([value, label]) => ({
+                  value,
+                  label,
+                })),
+              ]}
+              maxVisibleItems={6}
+            />
           </FieldShell>
         )}
         <div className="flex flex-wrap gap-2 sm:col-span-2 xl:col-span-4">
