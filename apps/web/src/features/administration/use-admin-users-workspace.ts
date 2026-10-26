@@ -4,7 +4,7 @@ import type { User, UserRole, UserStatus } from "@metastorage/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { api } from "@/lib/api";
-import { isManagedUser, matchesSearch } from "./admin.helpers";
+import { adminApiError, isManagedUser, matchesSearch } from "./admin.helpers";
 import { ADMIN_MESSAGES as M } from "./admin.messages";
 import type { AdminManagedUser, AdminUserFilters } from "./admin.types";
 
@@ -43,7 +43,7 @@ export function useAdminUsersWorkspace() {
       setNotice(M.roleUpdateSuccess);
       return invalidateUsers();
     },
-    onError: () => setNotice(M.updateError),
+    onError: (error) => setNotice(adminApiError(error, M.updateError)),
   });
   const statusMutation = useMutation({
     meta: { globalLoading: true },
@@ -53,7 +53,7 @@ export function useAdminUsersWorkspace() {
       setNotice(M.statusUpdateSuccess);
       return invalidateUsers();
     },
-    onError: () => setNotice(M.updateError),
+    onError: (error) => setNotice(adminApiError(error, M.updateError)),
   });
   const users = useMemo(
     () =>

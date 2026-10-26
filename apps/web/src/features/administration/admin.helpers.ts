@@ -1,5 +1,6 @@
 import type { User } from "@metastorage/contracts";
 import { UserRole } from "@metastorage/contracts";
+import { isAxiosError } from "axios";
 import { ADMIN_MESSAGES as M } from "./admin.messages";
 import type {
   AdminAccountChange,
@@ -14,6 +15,16 @@ export const isFacilityRole = (role: UserRole) =>
 
 export function isManagedUser(user: User): user is AdminManagedUser {
   return user.role !== null && user.status !== null;
+}
+
+export function adminApiError(error: unknown, fallback: string): string {
+  if (!isAxiosError(error)) return fallback;
+  const body = error.response?.data as
+    | { error?: { message?: unknown }; message?: unknown }
+    | undefined;
+  if (typeof body?.error?.message === "string") return body.error.message;
+  if (typeof body?.message === "string") return body.message;
+  return fallback;
 }
 
 export function userInitials(name: string): string {
