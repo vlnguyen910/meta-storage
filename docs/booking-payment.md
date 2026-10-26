@@ -111,9 +111,8 @@ Endpoint `confirm-sandbox` đã được bỏ: trình duyệt không được t�
 - Khoảng thuê dùng `[bắt đầu, kết thúc)`: hai lượt kết thúc/bắt đầu cùng thời điểm
   không chồng lấn khi tính sức chứa. Kho thực tế vẫn phải được nhân viên xác nhận
   `AVAILABLE` sau khi kiểm tra; phép tính này không tự đổi trạng thái kho.
-- Giữ nguyên booking ID, account owner, lịch và giá snapshot; không tạo reservation
-  draft, booking khác, QR hoặc email. `payments.booking_id` được ghi ngay;
-  `payments.draft_id` là NULL. Hold reference dùng booking ID.
+- Giữ nguyên booking ID, account owner, lịch và giá snapshot; không tạo booking khác,
+  QR hoặc email. `payments.booking_id` được ghi ngay và hold reference dùng booking ID.
 - Server tạo mã ngẫu nhiên nội bộ để đối chiếu hold và payment; mã này không được
   trả cho client và không dùng thay session để cấp quyền.
 - Cùng key và booking trả cùng payment/thời hạn. Không gia hạn hold.
