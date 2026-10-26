@@ -12,6 +12,7 @@ import {
   UnlockKeyhole,
   UsersRound,
 } from "lucide-react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -21,15 +22,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { Input } from "@/components/ui/form-controls";
 import { ListPagination } from "@/components/ui/list-pagination";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { LoadingState } from "@/components/ui/states";
 import {
   Table,
@@ -50,6 +45,12 @@ import { useAdminUsersWorkspace } from "./use-admin-users-workspace";
 export function AdminUsersWorkspace() {
   const workspace = useAdminUsersWorkspace();
   const data = workspace.query.data;
+  const [searchInput, setSearchInput] = useState(workspace.filters.search);
+
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    workspace.filter("search", searchInput.trim());
+  };
 
   if (workspace.query.isLoading) return <LoadingState label={M.loading} variant="table" />;
   if (!data || workspace.query.isError)
@@ -89,31 +90,31 @@ export function AdminUsersWorkspace() {
   const editor = workspace.editor;
 
   return (
-    <div className="grid min-w-0 gap-6">
-      <header>
+    <div className="flex flex-col h-full w-full overflow-hidden min-h-0 gap-3.5">
+      <header className="shrink-0">
         <div>
-          <h1 className="m-0 font-['Space_Grotesk'] text-2xl font-bold tracking-tight text-ink sm:text-[32px]">
+          <h1 className="m-0 font-['Space_Grotesk'] text-2xl font-bold tracking-tight text-ink sm:text-[28px]">
             {M.titles.users}
           </h1>
-          <p className="mb-0 mt-1 text-sm leading-6 text-muted">{M.descriptions.users}</p>
+          <p className="mb-0 mt-0.5 text-xs text-muted">{M.descriptions.users}</p>
         </div>
       </header>
 
-      <section aria-label={M.userMetrics} className="grid gap-5 md:grid-cols-3">
+      <section aria-label={M.userMetrics} className="grid shrink-0 gap-3 md:grid-cols-3">
         {metrics.map((metric) => (
           <Card
             key={metric.label}
-            className="flex min-h-36 items-center justify-between rounded-card border-line bg-white p-6 shadow-card"
+            className="flex min-h-24 items-center justify-between rounded-card border-line bg-white p-4 shadow-card hover:border-primary/40 transition-colors"
           >
-            <div className="grid gap-1">
-              <span className="text-sm font-semibold text-muted">{metric.label}</span>
-              <strong className="font-['Space_Grotesk'] text-3xl text-ink">
+            <div className="grid gap-0.5">
+              <span className="text-xs font-semibold text-muted">{metric.label}</span>
+              <strong className="font-['Space_Grotesk'] text-2xl text-ink">
                 {metric.value.toLocaleString("vi-VN")}
               </strong>
-              <span className={`text-xs ${metric.detailClassName}`}>{metric.detail}</span>
+              <span className={`text-[11px] ${metric.detailClassName}`}>{metric.detail}</span>
             </div>
-            <span className={`grid size-12 place-items-center rounded-xl ${metric.iconClassName}`}>
-              <metric.icon size={22} aria-hidden="true" />
+            <span className={`grid size-10 place-items-center rounded-xl ${metric.iconClassName}`}>
+              <metric.icon size={20} aria-hidden="true" />
             </span>
           </Card>
         ))}
@@ -121,72 +122,85 @@ export function AdminUsersWorkspace() {
 
       <section
         aria-label={M.filters}
-        className="flex flex-col gap-3 rounded-card border border-line bg-white p-4 shadow-card lg:flex-row lg:items-center"
+        className="flex shrink-0 flex-wrap items-center gap-2.5 rounded-card border border-line bg-white p-3 shadow-card"
       >
-        <div className="relative min-w-64 flex-1">
-          <label className="sr-only" htmlFor="admin-user-search">
-            {M.search}
-          </label>
-          <Search
-            aria-hidden="true"
-            size={19}
-            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted"
-          />
-          <Input
-            id="admin-user-search"
-            type="search"
-            value={workspace.filters.search}
-            placeholder={M.userSearchPlaceholder}
-            className="min-h-10 rounded-lg border-line bg-canvas pl-10 shadow-sm"
-            onChange={(event) => workspace.filter("search", event.target.value)}
-          />
-        </div>
-        <Select
+        <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 flex-1 min-w-64">
+          <div className="relative flex-1">
+            <label className="sr-only" htmlFor="admin-user-search">
+              {M.search}
+            </label>
+            <Search
+              aria-hidden="true"
+              size={17}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+            />
+            <Input
+              id="admin-user-search"
+              type="search"
+              value={searchInput}
+              placeholder={M.userSearchPlaceholder}
+              className="h-9 min-h-9 rounded-lg border-line bg-canvas pl-9 text-xs shadow-xs"
+              onChange={(event) => setSearchInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") handleSearchSubmit();
+              }}
+            />
+          </div>
+          <Button
+            type="submit"
+            variant="outline"
+            className="h-9 min-h-9 px-3 text-xs font-semibold shrink-0"
+          >
+            {M.searchConfirm}
+          </Button>
+        </form>
+
+        <DropdownSelect
           value={workspace.filters.role || "all"}
-          onValueChange={(value) => workspace.filter("role", value === "all" ? "" : value)}
-        >
-          <SelectTrigger aria-label={M.roleFilter} className="min-w-44 lg:w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{M.allRoles}</SelectItem>
-            {Object.values(UserRole).map((role) => (
-              <SelectItem key={role} value={role}>
-                {ADMIN_ROLE_LABELS[role]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
+          onChange={(value) => workspace.filter("role", value === "all" ? "" : value)}
+          className="min-w-44 lg:w-44"
+          triggerClassName="h-9 min-h-9 text-xs"
+          options={[
+            { value: "all", label: M.allRoles },
+            ...Object.values(UserRole).map((role) => ({
+              value: role,
+              label: ADMIN_ROLE_LABELS[role],
+            })),
+          ]}
+          maxVisibleItems={6}
+        />
+
+        <DropdownSelect
           value={workspace.filters.status || "all"}
-          onValueChange={(value) => workspace.filter("status", value === "all" ? "" : value)}
-        >
-          <SelectTrigger aria-label={M.statusFilter} className="min-w-40 lg:w-40">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{M.allStatuses}</SelectItem>
-            <SelectItem value="ACTIVE">{M.active}</SelectItem>
-            <SelectItem value="INACTIVE">{M.inactive}</SelectItem>
-          </SelectContent>
-        </Select>
+          onChange={(value) => workspace.filter("status", value === "all" ? "" : value)}
+          className="min-w-40 lg:w-40"
+          triggerClassName="h-9 min-h-9 text-xs"
+          options={[
+            { value: "all", label: M.allStatuses },
+            { value: "ACTIVE", label: M.active },
+            { value: "INACTIVE", label: M.inactive },
+          ]}
+          maxVisibleItems={6}
+        />
+
         <Button
           variant="outline"
-          className="min-h-10 rounded-lg px-3.5"
-          icon={<RotateCcw size={17} aria-hidden="true" />}
-          onClick={workspace.resetFilters}
+          className="h-9 min-h-9 rounded-lg px-3 text-xs font-semibold shrink-0"
+          icon={<RotateCcw size={15} aria-hidden="true" />}
+          onClick={() => {
+            setSearchInput("");
+            workspace.resetFilters();
+          }}
         >
           {M.clearFilters}
         </Button>
       </section>
 
-      <p
-        role="status"
-        className={workspace.notice ? "m-0 text-sm text-muted" : "sr-only"}
-        aria-live="polite"
-      >
-        {workspace.notice}
-      </p>
+      {workspace.notice && (
+        <p role="status" className="shrink-0 m-0 text-xs text-muted" aria-live="polite">
+          {workspace.notice}
+        </p>
+      )}
 
       {workspace.users.length === 0 ? (
         <section className={`${adminCard} text-center`}>
@@ -194,15 +208,15 @@ export function AdminUsersWorkspace() {
           <p className="text-sm text-muted">{M.emptyHelp}</p>
         </section>
       ) : (
-        <Card className="min-w-0 overflow-hidden rounded-card border-line bg-white shadow-card">
-          <div className="overflow-x-auto">
-            <Table className="min-w-[680px]">
-              <TableHeader className="bg-canvas/60">
+        <Card className="flex flex-col flex-1 min-h-0 min-w-0 overflow-hidden rounded-card border-line bg-white shadow-card">
+          <div className="flex-1 min-h-0 overflow-auto">
+            <Table className="min-w-[700px] relative">
+              <TableHeader className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-xs shadow-2xs">
                 <TableRow>
                   {M.userManagementHeadings.map((heading, index) => (
                     <TableHead
                       key={heading}
-                      className={`px-6 font-semibold text-muted ${
+                      className={`px-5 py-3 text-xs font-bold text-slate-600 ${
                         index === 0 ? "w-5/12" : index === 3 ? "w-1/12 text-right" : "w-3/12"
                       }`}
                     >
@@ -224,7 +238,7 @@ export function AdminUsersWorkspace() {
                           : "hover:bg-canvas/60"
                       }
                     >
-                      <TableCell className="px-6 py-4">
+                      <TableCell className="px-5 py-3">
                         <div className="flex items-center gap-3">
                           <span className="grid size-9 shrink-0 place-items-center rounded-full border border-line bg-slate-100 text-xs font-bold text-secondary">
                             {userInitials(user.name)}
@@ -235,7 +249,7 @@ export function AdminUsersWorkspace() {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="px-6 py-4">
+                      <TableCell className="px-5 py-3">
                         <Badge
                           className={
                             user.role
@@ -246,7 +260,7 @@ export function AdminUsersWorkspace() {
                           {user.role ? ADMIN_ROLE_LABELS[user.role] : M.noRole}
                         </Badge>
                       </TableCell>
-                      <TableCell className="px-6 py-4">
+                      <TableCell className="px-5 py-3">
                         <Badge
                           className={
                             user.status === "ACTIVE"
@@ -273,19 +287,19 @@ export function AdminUsersWorkspace() {
                               : M.noStatus}
                         </Badge>
                       </TableCell>
-                      <TableCell className="px-6 py-4 text-right">
+                      <TableCell className="px-5 py-3 text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
                               variant="ghost"
-                              className={`size-10 min-h-0 rounded-lg p-0 ${
+                              className={`size-9 min-h-0 rounded-lg p-0 ${
                                 workspace.detailId === user.id || workspace.editor?.id === user.id
                                   ? "bg-primary-soft text-primary"
                                   : ""
                               }`}
                               aria-label={M.actionsLabel(user.name)}
                             >
-                              <MoreVertical size={19} aria-hidden="true" />
+                              <MoreVertical size={18} aria-hidden="true" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48">
@@ -334,7 +348,7 @@ export function AdminUsersWorkspace() {
               </TableBody>
             </Table>
           </div>
-          <div className="border-t border-line p-4 [&>nav]:border-0 [&>nav]:p-0">
+          <div className="shrink-0 border-t border-line px-4 py-2.5 bg-white [&>nav]:border-0 [&>nav]:p-0 [&>nav]:shadow-none">
             <ListPagination
               label={M.titles.users}
               page={workspace.currentPage}

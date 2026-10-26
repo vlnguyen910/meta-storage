@@ -15,6 +15,7 @@ import { isAxiosError } from "axios";
 import { useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { api } from "@/lib/api";
 import { F3 } from "./integration.messages";
@@ -26,27 +27,37 @@ import { useFlow3Identity } from "./use-flow3-identity";
 export function ReturnPolicySettings() {
   const [tab, setTab] = useState<"checklist" | "calendar" | "reminders">("checklist");
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">{F3.settings}</h1>
-      <div className="flex flex-wrap gap-3">
-        {(["checklist", "calendar", "reminders"] as const).map((value) => (
-          <Button
-            key={value}
-            variant={tab === value ? "primary" : "outline"}
-            aria-pressed={tab === value}
-            onClick={() => setTab(value)}
-          >
-            {F3[value]}
-          </Button>
-        ))}
+    <div className="flex flex-col h-full w-full overflow-hidden min-h-0 gap-3.5">
+      <div className="shrink-0 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight font-['Space_Grotesk']">
+            {F3.settings}
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">{F3.settingsDescription}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {(["checklist", "calendar", "reminders"] as const).map((value) => (
+            <Button
+              key={value}
+              variant={tab === value ? "primary" : "outline"}
+              aria-pressed={tab === value}
+              className="h-9 min-h-9 text-xs font-semibold"
+              onClick={() => setTab(value)}
+            >
+              {F3[value]}
+            </Button>
+          ))}
+        </div>
       </div>
-      {tab === "checklist" ? (
-        <ChecklistSettings />
-      ) : tab === "calendar" ? (
-        <CalendarSettings />
-      ) : (
-        <SystemSettingFields keys={["EXPIRY_REMINDER_DAYS", "ABANDONED_REVIEW_DAYS"]} />
-      )}
+      <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+        {tab === "checklist" ? (
+          <ChecklistSettings />
+        ) : tab === "calendar" ? (
+          <CalendarSettings />
+        ) : (
+          <SystemSettingFields keys={["EXPIRY_REMINDER_DAYS", "ABANDONED_REVIEW_DAYS"]} />
+        )}
+      </div>
     </div>
   );
 }
@@ -124,16 +135,24 @@ function ChecklistForm({ snapshot }: { snapshot: ReturnChecklistVersionDto | nul
               {...form.register(`items.${index}.label`)}
             />
           </label>
-          <label className="grid gap-2 text-sm font-semibold">
-            {F3.group}
-            <select className={f3Input} {...form.register(`items.${index}.group`)}>
-              {RETURN_CHECKLIST_GROUPS.map((group) => (
-                <option key={group} value={group}>
-                  {F3.groups[group]}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="grid gap-2 text-sm font-semibold">
+            <span>{F3.group}</span>
+            <DropdownSelect
+              value={form.watch(`items.${index}.group`)}
+              onChange={(val) =>
+                form.setValue(
+                  `items.${index}.group`,
+                  val as (typeof RETURN_CHECKLIST_GROUPS)[number],
+                )
+              }
+              className="w-full"
+              triggerClassName="h-10 min-h-10 bg-white"
+              options={RETURN_CHECKLIST_GROUPS.map((group) => ({
+                value: group,
+                label: F3.groups[group],
+              }))}
+            />
+          </div>
           <label className="flex min-h-11 items-center gap-3">
             <input type="checkbox" {...form.register(`items.${index}.serious`)} />
             {F3.serious}
@@ -200,21 +219,24 @@ function CalendarSettings() {
   const absent = isAxiosError(calendar.error) && calendar.error.response?.status === 404;
   return (
     <div className="space-y-4">
-      <label className="grid gap-2 font-semibold">
-        {F3.facility}
-        <select
-          className={f3Input}
+      <div className="grid gap-2 font-semibold text-sm">
+        <span>{F3.facility}</span>
+        <DropdownSelect
           value={facilityId}
-          onChange={(e) => setFacilityId(e.target.value)}
-        >
-          <option value="">{F3.chooseFacility}</option>
-          {facilities.data?.map((facility) => (
-            <option key={facility.id} value={facility.id}>
-              {facility.name}
-            </option>
-          ))}
-        </select>
-      </label>
+          onChange={(val) => setFacilityId(val)}
+          className="w-full sm:w-80"
+          triggerClassName="h-10 min-h-10 bg-white"
+          placeholder={F3.chooseFacility}
+          options={[
+            { value: "", label: F3.chooseFacility },
+            ...(facilities.data?.map((facility) => ({
+              value: facility.id,
+              label: facility.name,
+            })) ?? []),
+          ]}
+          maxVisibleItems={8}
+        />
+      </div>
       {facilities.isPending && <LoadingState variant="form" />}
       {facilities.isError && (
         <ErrorState

@@ -54,13 +54,13 @@ export function SystemAdministratorShell({ children }: Readonly<AdminShellProps>
       })}
     </nav>
   );
-  const isFacilityManagement = pathname.startsWith("/system-admin/facility-management");
+  const isNoScroll = pathname.startsWith("/system-admin");
 
   return (
     <div
       className={cn(
         "min-h-screen bg-canvas text-ink [--radius-card:4px] [--color-outline-variant:#bfcac4]",
-        isFacilityManagement && "h-screen flex flex-col overflow-hidden min-h-0",
+        isNoScroll && "h-screen flex flex-col overflow-hidden min-h-0",
       )}
     >
       <a
@@ -176,15 +176,14 @@ export function SystemAdministratorShell({ children }: Readonly<AdminShellProps>
       <div
         className={cn(
           "min-w-0 lg:ml-64",
-          isFacilityManagement && "flex-1 overflow-hidden min-h-0 flex flex-col",
+          isNoScroll && "flex-1 overflow-hidden min-h-0 flex flex-col",
         )}
       >
         <main
           id="admin-content"
           className={cn(
             "mx-auto max-w-[1440px] px-4 py-7 sm:px-6 lg:p-8",
-            isFacilityManagement &&
-              "flex-1 overflow-hidden min-h-0 w-full p-4 sm:p-6 lg:p-6 flex flex-col",
+            isNoScroll && "flex-1 overflow-hidden min-h-0 w-full p-4 sm:p-6 lg:p-6 flex flex-col",
           )}
         >
           {children}

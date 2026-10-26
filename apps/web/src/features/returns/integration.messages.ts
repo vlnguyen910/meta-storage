@@ -127,6 +127,7 @@ export const F3 = {
   },
   timelineStatuses: { DONE: "Đã hoàn tất", CURRENT: "Hiện tại", UPCOMING: "Chưa diễn ra" },
   settings: "Cấu hình trả kho",
+  settingsDescription: "Cấu hình danh mục và lịch hoàn trả kho",
   checklist: "Checklist kiểm tra",
   calendar: "Lịch trả kho của cơ sở",
   reminders: "Nhắc hạn và rà soát",
