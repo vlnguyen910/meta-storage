@@ -1,13 +1,23 @@
 "use client";
 
 import axios from "axios";
-import { Download, RotateCcw } from "lucide-react";
+import {
+  Boxes,
+  Building2,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  Download,
+  Percent,
+  RotateCcw,
+} from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FieldShell, Select } from "@/components/ui/form-controls";
+import { Card } from "@/components/ui/card";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import {
@@ -24,7 +34,9 @@ import { useOperationsCatalogOptions } from "../hooks/use-operations-catalog-opt
 import { useOperationsUtilization } from "../hooks/use-operations-utilization";
 import { OPERATIONS_MESSAGES as M } from "../operations.messages";
 import { downloadCsv, formatDateTimeVn, formatPercentage } from "../operations.utils";
+import { DASHBOARD_MESSAGES as D } from "../operations-dashboard.messages";
 import { REPORTING_MESSAGES as R } from "../operations-reporting.messages";
+import { REPORTS_MESSAGES as RM } from "../operations-reports.messages";
 import { ChartLoadingSkeleton } from "./charts/chart-loading-skeleton";
 
 const FacilityUtilizationBarChart = dynamic(
@@ -49,6 +61,7 @@ export function OperationsUtilizationView() {
   const [unitTypeId, setUnitTypeId] = useState(urlUnitTypeId ?? "all");
   const [page, setPage] = useState(Number.isNaN(urlPage) || urlPage < 1 ? 1 : urlPage);
 
+  const [showChart, setShowChart] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
@@ -131,73 +144,100 @@ export function OperationsUtilizationView() {
   const selectedFacilityName =
     facilityId !== "all" ? catalogFacilities.find((f) => f.id === facilityId)?.name : undefined;
 
-  // Filter Bar Component that stays accessible even if data request fails
-  const filtersBar = (
-    <section className="grid items-end gap-4 rounded-card border border-outline-variant bg-surface-container-lowest p-5 shadow-[0_1px_2px_rgb(15_23_42_/_0.04)] sm:grid-cols-2 lg:grid-cols-4">
-      <FieldShell label={M.facilityFilter}>
-        <Select
-          value={facilityId}
-          onChange={(e) => handleFilterChange({ facilityId: e.target.value })}
-        >
-          <option value="all">{M.allFacilities}</option>
-          {catalogFacilities.map((fac) => (
-            <option key={fac.id} value={fac.id}>
-              {fac.name}
-            </option>
-          ))}
-        </Select>
-      </FieldShell>
-      <FieldShell label={M.unitTypeFilter}>
-        <Select
-          value={unitTypeId}
-          onChange={(e) => handleFilterChange({ unitTypeId: e.target.value })}
-        >
-          <option value="all">{M.allUnitTypes}</option>
-          {catalogUnitTypes.map((ut) => (
-            <option key={ut.unitTypeId} value={ut.unitTypeId}>
-              {ut.name}
-            </option>
-          ))}
-        </Select>
-      </FieldShell>
-      <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
-        <Button
-          type="button"
-          variant="outline"
-          icon={<RotateCcw size={16} aria-hidden="true" />}
-          onClick={resetFilters}
-        >
-          {M.reset}
-        </Button>
-        <Button
-          type="button"
-          loading={exporting}
-          icon={<Download size={16} aria-hidden="true" />}
-          onClick={handleExport}
-        >
-          {M.export}
-        </Button>
-      </div>
-    </section>
-  );
+  // Aggregate stats across items for the KPI cards
+  const totalActive = data?.items.reduce((s, i) => s + i.metrics.activeUnits, 0) ?? 0;
+  const totalOccupied = data?.items.reduce((s, i) => s + i.metrics.occupiedUnits, 0) ?? 0;
+  const totalAvailable = data?.items.reduce((s, i) => s + i.metrics.availableUnits, 0) ?? 0;
+  const totalMaintenance = data?.items.reduce((s, i) => s + i.metrics.maintenanceUnits, 0) ?? 0;
+  const avgPercent = totalActive > 0 ? (totalOccupied / totalActive) * 100 : 0;
 
   return (
-    <div className="grid min-w-0 gap-6">
-      {/* Filters Bar */}
-      {filtersBar}
+    <div className="flex min-w-0 flex-col gap-3 pb-3">
+      {/* Compact Filter Toolbar */}
+      <Card className="border-slate-200 bg-white p-2.5 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Facility Selector */}
+            <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs">
+              <Building2 className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden="true" />
+              <select
+                value={facilityId}
+                aria-label={D.filterFacility}
+                onChange={(e) => handleFilterChange({ facilityId: e.target.value })}
+                className="max-w-[150px] cursor-pointer truncate border-none bg-transparent p-0 text-xs font-medium text-slate-800 focus:outline-none sm:max-w-[180px]"
+              >
+                <option value="all">{M.allFacilities}</option>
+                {catalogFacilities.map((fac) => (
+                  <option key={fac.id} value={fac.id}>
+                    {fac.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Unit Type Selector */}
+            <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs">
+              <Boxes className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden="true" />
+              <select
+                value={unitTypeId}
+                aria-label={D.filterUnitType}
+                onChange={(e) => handleFilterChange({ unitTypeId: e.target.value })}
+                className="max-w-[140px] cursor-pointer truncate border-none bg-transparent p-0 text-xs font-medium text-slate-800 focus:outline-none"
+              >
+                <option value="all">{M.allUnitTypes}</option>
+                {catalogUnitTypes.map((ut) => (
+                  <option key={ut.unitTypeId} value={ut.unitTypeId}>
+                    {ut.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Reset Button */}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={resetFilters}
+              className="h-7 min-h-0 gap-1 rounded-lg border-dashed border-slate-300 px-2.5 text-xs text-slate-600 hover:text-slate-900"
+            >
+              <RotateCcw className="h-3 w-3" aria-hidden="true" />
+              <span>{D.filterReset}</span>
+            </Button>
+          </div>
+
+          {/* Export Button & Realtime Badge */}
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              loading={exporting}
+              onClick={() => void handleExport()}
+              className="h-7 min-h-0 gap-1 rounded-lg border-slate-200 px-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            >
+              <Download className="h-3 w-3 text-slate-500" aria-hidden="true" />
+              <span>{M.export}</span>
+            </Button>
+
+            {data && (
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                <span>{D.asOfLabel(formatDateTimeVn(data.asOf))}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </Card>
 
       {/* Selected Facility Context Banner */}
       {selectedFacilityName && (
-        <div className="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 px-4 py-2.5 text-xs text-primary">
-          <span>
-            Đang lọc theo cơ sở: <strong>{selectedFacilityName}</strong>
-          </span>
+        <div className="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-primary shadow-xs">
+          <span>{RM.filteringByFacility(selectedFacilityName)}</span>
           <button
             type="button"
             onClick={() => handleFilterChange({ facilityId: "all" })}
-            className="font-bold underline hover:text-primary-dark"
+            className="cursor-pointer font-bold underline hover:text-primary-dark"
           >
-            Xóa lọc cơ sở
+            {RM.clearFacilityFilter}
           </button>
         </div>
       )}
@@ -205,7 +245,7 @@ export function OperationsUtilizationView() {
       {exportError && (
         <p
           role="alert"
-          className="m-0 rounded-xl bg-rose-50 p-4 text-xs font-semibold text-rose-800 border border-rose-200"
+          className="m-0 rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-800 shadow-xs"
         >
           {exportError}
         </p>
@@ -217,83 +257,186 @@ export function OperationsUtilizationView() {
         <ErrorState message={M.error} onRetry={() => void refetch()} />
       ) : (
         <>
-          {/* AsOf Snapshot Header */}
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-base font-bold text-ink">{R.currentScope}</h2>
-            <span className="text-xs text-slate-500 font-medium">
-              {M.asOfDisplay(formatDateTimeVn(data.asOf))}
-            </span>
+          {/* Executive KPI Summary Cards */}
+          <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+            {/* Card 1: Tổng ô khai thác */}
+            <Card className="flex flex-col justify-between border-slate-200 bg-white p-3 shadow-xs">
+              <div className="flex items-center justify-between gap-1 text-slate-500">
+                <span className="text-xs font-medium">{RM.activeUnitsTotal}</span>
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-slate-100 text-slate-700">
+                  <Boxes className="h-3.5 w-3.5" aria-hidden="true" />
+                </div>
+              </div>
+              <div className="mt-1">
+                <p className="text-lg font-bold tracking-tight text-slate-900">{totalActive} ô</p>
+                <p className="mt-0.5 truncate text-[11px] text-slate-500">
+                  Trên {data.total} cơ sở hoạt động
+                </p>
+              </div>
+            </Card>
+
+            {/* Card 2: Ô đang thuê */}
+            <Card className="flex flex-col justify-between border-slate-200 bg-white p-3 shadow-xs">
+              <div className="flex items-center justify-between gap-1 text-slate-500">
+                <span className="text-xs font-medium">{RM.occupiedUnitsTotal}</span>
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-50 text-emerald-700">
+                  <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+                </div>
+              </div>
+              <div className="mt-1">
+                <p className="text-lg font-bold tracking-tight text-emerald-700">
+                  {totalOccupied} ô
+                </p>
+                <p className="mt-0.5 truncate text-[11px] text-slate-500">
+                  Đã bàn giao cho khách thuê
+                </p>
+              </div>
+            </Card>
+
+            {/* Card 3: Tỷ lệ khai thác TB */}
+            <Card className="flex flex-col justify-between border-slate-200 bg-white p-3 shadow-xs">
+              <div className="flex items-center justify-between gap-1 text-slate-500">
+                <span className="text-xs font-medium">{RM.averageUtilization}</span>
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-50 text-[#165f4d]">
+                  <Percent className="h-3.5 w-3.5" aria-hidden="true" />
+                </div>
+              </div>
+              <div className="mt-1">
+                <p className="text-lg font-bold tracking-tight text-slate-900">
+                  {formatPercentage(avgPercent)}
+                </p>
+                <p className="mt-0.5 truncate text-[11px] text-slate-500">
+                  {RM.unitBreakdown(totalAvailable, totalMaintenance)}
+                </p>
+              </div>
+            </Card>
+
+            {/* Card 4: Thời điểm cập nhật */}
+            <Card className="flex flex-col justify-between border-slate-200 bg-white p-3 shadow-xs">
+              <div className="flex items-center justify-between gap-1 text-slate-500">
+                <span className="text-xs font-medium">{RM.asOfRealtime}</span>
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-50 text-blue-700">
+                  <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+                </div>
+              </div>
+              <div className="mt-1">
+                <p className="text-xs font-bold tracking-tight text-slate-900 truncate">
+                  {formatDateTimeVn(data.asOf)}
+                </p>
+                <p className="mt-0.5 truncate text-[11px] text-slate-500">
+                  Hiện trạng khai thác toàn hệ thống
+                </p>
+              </div>
+            </Card>
           </div>
 
-          {/* Recharts Charts Grid */}
-          <FacilityUtilizationBarChart items={data.items} totalFacilities={data.total} />
+          {/* Collapsible Visual Analytics Bar Chart Card */}
+          <Card className="overflow-hidden border-slate-200 bg-white shadow-xs">
+            <button
+              type="button"
+              onClick={() => setShowChart(!showChart)}
+              className="flex w-full cursor-pointer items-center justify-between p-3 text-left transition-colors hover:bg-slate-50/70"
+            >
+              <div className="flex items-center gap-2">
+                {showChart ? (
+                  <ChevronUp className="h-4 w-4 text-slate-500" aria-hidden="true" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-slate-500" aria-hidden="true" />
+                )}
+                <span className="text-xs font-bold text-slate-900">{R.utilization}</span>
+                <Badge
+                  variant="outline"
+                  className="border-slate-200 py-0 text-[10px] font-normal text-slate-500"
+                >
+                  {M.showingFacilitiesCount(data.items.length, data.total)}
+                </Badge>
+              </div>
+              <span className="text-xs font-medium text-slate-500 hover:text-slate-800">
+                {showChart ? RM.chartToggleHide : RM.chartToggleShow}
+              </span>
+            </button>
 
-          {/* Detailed Table */}
-          <div className="rounded-xl border border-slate-200/90 bg-white shadow-xs overflow-hidden">
-            <Table>
-              <TableHeader className="bg-slate-50/95 border-b border-slate-200">
-                <TableRow className="hover:bg-transparent">
-                  {R.capacityHeadings.map((heading) => (
-                    <TableHead
-                      key={heading}
-                      className="px-4 py-2.5 text-xs font-semibold text-slate-700 whitespace-nowrap"
-                    >
-                      {heading}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.items.map(({ facility, metrics }) => {
-                  const percent = metrics.utilizationPercent;
-                  const isNull = percent === null;
+            {showChart && (
+              <div className="border-t border-slate-100 p-3 pt-2">
+                <FacilityUtilizationBarChart items={data.items} totalFacilities={data.total} />
+              </div>
+            )}
+          </Card>
 
-                  return (
-                    <TableRow key={facility.id} className="hover:bg-slate-50/60 transition-colors">
-                      <TableCell className="px-4 py-2.5 font-semibold text-xs text-slate-900 whitespace-nowrap">
-                        {facility.name}
-                        <span className="ml-1.5 font-mono text-xs text-slate-500 font-normal">
-                          ({facility.code})
-                        </span>
-                      </TableCell>
-                      <TableCell className="px-4 py-2.5 tabular-nums text-xs text-slate-700 whitespace-nowrap">
-                        {metrics.activeUnits}
-                      </TableCell>
-                      <TableCell className="px-4 py-2.5 tabular-nums text-xs text-slate-700 whitespace-nowrap">
-                        {metrics.occupiedUnits}
-                      </TableCell>
-                      <TableCell className="px-4 py-2.5 whitespace-nowrap">
-                        {isNull ? (
-                          <Badge className="bg-amber-50 text-amber-800 border-amber-200 text-[10px] px-1.5 py-0.2">
-                            {M.noOperatingUnitsBadge}
-                          </Badge>
-                        ) : (
-                          <strong className="text-primary tabular-nums text-xs font-bold">
-                            {formatPercentage(percent)}
-                          </strong>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+          {/* Detailed Data Table */}
+          <Card className="overflow-hidden border-slate-200 bg-white shadow-xs">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="border-b border-slate-200 bg-slate-50/90">
+                  <TableRow className="hover:bg-transparent">
+                    {R.capacityHeadings.map((heading) => (
+                      <TableHead
+                        key={heading}
+                        className="whitespace-nowrap px-3.5 py-2.5 text-xs font-semibold text-slate-700"
+                      >
+                        {heading}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.items.map(({ facility, metrics }) => {
+                    const percent = metrics.utilizationPercent;
+                    const isNull = percent === null;
 
-          {/* Pagination Controls with Direct Jump */}
-          <div className="pt-1">
-            <ListPagination
-              label={M.titles.utilization}
-              page={page}
-              pageSize={PAGE_SIZE}
-              total={data.total}
-              unitLabel="cơ sở"
-              onPageChange={(newPage) => {
-                setPage(newPage);
-                updateUrl({ page: newPage });
-              }}
-            />
-          </div>
+                    return (
+                      <TableRow
+                        key={facility.id}
+                        className="transition-colors hover:bg-slate-50/60"
+                      >
+                        <TableCell className="whitespace-nowrap px-3.5 py-2.5 text-xs font-semibold text-slate-900">
+                          {facility.name}
+                          <span className="ml-1.5 font-mono text-xs font-normal text-slate-500">
+                            ({facility.code})
+                          </span>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap px-3.5 py-2.5 text-xs tabular-nums text-slate-700">
+                          {metrics.activeUnits}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap px-3.5 py-2.5 text-xs tabular-nums text-slate-700">
+                          {metrics.occupiedUnits}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap px-3.5 py-2.5">
+                          {isNull ? (
+                            <Badge
+                              variant="outline"
+                              className="border-amber-200 bg-amber-50 px-1.5 py-0 text-[10px] text-amber-800"
+                            >
+                              {M.noOperatingUnitsBadge}
+                            </Badge>
+                          ) : (
+                            <strong className="text-xs font-bold tabular-nums text-primary">
+                              {formatPercentage(percent)}
+                            </strong>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Pagination Controls with Direct Jump & Ellipsis Jump */}
+            <div className="border-t border-slate-100 p-2.5">
+              <ListPagination
+                label={M.titles.utilization}
+                page={page}
+                pageSize={PAGE_SIZE}
+                total={data.total}
+                unitLabel="cơ sở"
+                onPageChange={(newPage) => {
+                  setPage(newPage);
+                  updateUrl({ page: newPage });
+                }}
+              />
+            </div>
+          </Card>
         </>
       )}
     </div>

@@ -1,0 +1,25 @@
+export const REPORTS_MESSAGES = {
+  viewChartTabFacility: "So sánh theo cơ sở",
+  viewChartTabMonthly: "Xu hướng theo tháng",
+  viewChartTabCash: "Dòng tiền & Hoàn tiền",
+  chartSectionTitle: "Phân tích trực quan",
+  chartSectionHelp:
+    "Xem biểu đồ phân tích theo cơ sở, diễn biến theo tháng hoặc dòng tiền chi tiết",
+  totalCashReceived: "Tổng thực thu",
+  netCashFlow: "Dòng tiền ròng",
+  depositHeld: "Cọc đang giữ",
+  depositForfeited: "Cọc đã thu giữ",
+  totalFacilitiesCount: "Số lượng cơ sở",
+  activeUnitsTotal: "Tổng ô khai thác",
+  occupiedUnitsTotal: "Ô đang thuê",
+  averageUtilization: "Tỷ lệ khai thác TB",
+  asOfRealtime: "Thời điểm cập nhật",
+  chartToggleHide: "Thu gọn biểu đồ",
+  chartToggleShow: "Mở rộng biểu đồ",
+  clearFacilityFilter: "Xóa lọc cơ sở",
+  filteringByFacility: (name: string) => `Đang lọc theo cơ sở: ${name}`,
+  unitBreakdown: (available: number, maintenance: number) =>
+    `Trống: ${available} ô · Bảo trì: ${maintenance} ô`,
+  cashBreakdown: (rental: string, deposit: string) => `Thuê: ${rental} · Cọc: ${deposit}`,
+  refundBreakdown: (refunded: string) => `Đã hoàn: ${refunded}`,
+} as const;
