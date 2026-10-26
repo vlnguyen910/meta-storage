@@ -25,7 +25,6 @@ import {
   paymentProviderEvents,
   payments,
   rentals,
-  reservationDrafts,
   sessions,
   storageUnits,
   systemSettings,
@@ -1174,7 +1173,6 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
   test("starts SePay checkout on the same draft with snapshotted price, contact and a ten-minute hold", async () => {
     const booking = await draft();
     await db.update(bookings).set({ userId: ids.user }).where(eq(bookings.id, booking.id));
-    const reservationsBefore = await db.select().from(reservationDrafts);
     await db.update(unitTypes).set({ monthlyPrice: 2000000 }).where(eq(unitTypes.id, ids.type));
     const start = Date.now();
     const response = await pay(booking, "x".repeat(128), {
@@ -1204,7 +1202,6 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     const [payment] = await db.select().from(payments).where(eq(payments.id, data.paymentId));
     expect(payment).toMatchObject({
       bookingId: booking.id,
-      draftId: null,
       status: "PENDING",
       paidAt: null,
       totalAmount: "3000000.00",
@@ -1233,7 +1230,6 @@ describe.skipIf(!testUrl)("Start booking payment with isolated PostgreSQL", () =
     });
     expect(Date.parse(data.expiresAt)).toBeGreaterThanOrEqual(start + 600000);
     expect(Date.parse(data.expiresAt)).toBeLessThanOrEqual(Date.now() + 600000);
-    expect(await db.select().from(reservationDrafts)).toEqual(reservationsBefore);
   });
 
   test("concurrent same-key retries reuse payment and hold without extending expiry", async () => {

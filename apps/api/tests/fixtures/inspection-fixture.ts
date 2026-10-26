@@ -17,7 +17,6 @@ import {
   notificationOutbox,
   payments,
   rentals,
-  reservationDrafts,
   storageUnits,
   unitAssignments,
   unitTypes,
@@ -56,15 +55,13 @@ export async function createInspectionFixture(allowExistingLocal = false) {
     bookingId = randomUUID(),
     assignmentId = randomUUID(),
     verificationId = randomUUID(),
-    draftId = randomUUID(),
     slotId = randomUUID();
   const email = `inspection-${suffix}@example.test`,
     outsiderEmail = `outside-${suffix}@example.test`,
     managerEmail = `manager-${suffix}@example.test`,
     password = "InspectionTest123!";
-  const now = Date.now(),
-    start = new Date(now - 30 * 60_000),
-    rentalEnd = new Date(now + 30 * 86400_000);
+  const now = Date.now();
+  const rentalEnd = new Date(now + 30 * 86400_000);
   await db.transaction(async (tx) => {
     await tx.insert(users).values([
       {
@@ -162,17 +159,6 @@ export async function createInspectionFixture(allowExistingLocal = false) {
       code: `TEST-UNIT-${suffix}`,
       status: "RESERVED",
     });
-    await tx.insert(reservationDrafts).values({
-      id: draftId,
-      facilityId,
-      unitTypeId,
-      checkInAt: start,
-      rentalEndAt: rentalEnd,
-      durationMonths: 1,
-      contactName: "Test customer",
-      contactEmail: `customer-${suffix}@example.test`,
-      contactPhone: "0900000000",
-    });
     await tx.insert(bookings).values({
       id: bookingId,
       bookingCode: `BK-TEST-${suffix.toUpperCase()}`,
@@ -250,7 +236,6 @@ export async function createInspectionFixture(allowExistingLocal = false) {
         await tx.delete(unitAssignments).where(eq(unitAssignments.bookingId, bookingId));
         await tx.delete(payments).where(eq(payments.bookingId, bookingId));
         await tx.delete(bookings).where(eq(bookings.id, bookingId));
-        await tx.delete(reservationDrafts).where(eq(reservationDrafts.id, draftId));
         await tx.delete(storageUnits).where(eq(storageUnits.id, unitId));
 
         await tx.delete(facilityAssignments).where(eq(facilityAssignments.facilityId, facilityId));

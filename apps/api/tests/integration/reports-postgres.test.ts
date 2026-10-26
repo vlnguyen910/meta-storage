@@ -20,7 +20,6 @@ import {
   inArray,
   payments,
   rentals,
-  reservationDrafts,
   returnRefunds,
   returnRequests,
   returnSettlements,
@@ -657,38 +656,6 @@ describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
       await db.delete(returnRefunds).where(eq(returnRefunds.requestId, requestId));
       await db.delete(returnSettlements).where(eq(returnSettlements.requestId, requestId));
       await db.delete(returnRequests).where(eq(returnRequests.id, requestId));
-    }
-  });
-
-  test("keeps received money visible when legacy data cannot be attributed to a booking", async () => {
-    const draftId = randomUUID();
-    await db.insert(reservationDrafts).values({
-      id: draftId,
-      facilityId: ids.a,
-      unitTypeId: ids.type,
-      checkInAt: new Date("2026-10-01"),
-      rentalEndAt: new Date("2027-01-01"),
-      durationMonths: 3,
-      contactName: "Test",
-      contactEmail: "test@example.test",
-      contactPhone: "0901234567",
-    });
-    const before = (await get(`revenue?${period}`, true)).json().data;
-    const beforeMonthly = (await get(`revenue/monthly?${period}`, true)).json().data.items[0];
-    const id = await payment(null, "SUCCEEDED", "2026-10-14T10:00:00Z", { draftId });
-    try {
-      const data = (await get(`revenue?${period}`, true)).json().data;
-      expect(Number(data.summary.cashReceived) - Number(before.summary.cashReceived)).toBe(4000000);
-      expect(data.summary.rentalCollected).toBeNull();
-      expect(
-        Number(data.unattributed.cashReceived) - Number(before.unattributed?.cashReceived ?? "0"),
-      ).toBe(4000000);
-      const monthly = (await get(`revenue/monthly?${period}`, true)).json().data.items[0];
-      expect(Number(monthly.cashReceived) - Number(beforeMonthly.cashReceived)).toBe(4000000);
-      expect(monthly.rentalCollected).toBeNull();
-    } finally {
-      await db.delete(payments).where(eq(payments.id, id));
-      await db.delete(reservationDrafts).where(eq(reservationDrafts.id, draftId));
     }
   });
 });
