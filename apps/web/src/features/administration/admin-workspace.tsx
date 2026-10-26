@@ -133,9 +133,7 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
           formatDateTime(entry.at),
           entry.email,
           ADMIN_ROLE_LABELS[entry.role],
-          entry.ipMasked,
           entry.device,
-          entry.outcome === "SUCCESS" ? M.success : M.failed,
         ]),
       );
     else
@@ -403,14 +401,7 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
                       <span className="mt-1 block text-xs text-slate-600">{entry.email}</span>
                     </td>
                     <td>{ADMIN_ROLE_LABELS[entry.role]}</td>
-                    <td>{entry.ipMasked}</td>
                     <td>{entry.device}</td>
-                    <td>
-                      <AdminBadge
-                        label={entry.outcome === "SUCCESS" ? M.success : M.failed}
-                        warning={entry.outcome !== "SUCCESS"}
-                      />
-                    </td>
                     <td>
                       <Button
                         variant="ghost"
