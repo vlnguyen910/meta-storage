@@ -1,13 +1,23 @@
 "use client";
 
 import axios from "axios";
-import { ChevronLeft, ChevronRight, Download, RotateCcw } from "lucide-react";
+import { Download, RotateCcw } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FieldShell, Select } from "@/components/ui/form-controls";
+import { ListPagination } from "@/components/ui/list-pagination";
 import { ErrorState, LoadingState } from "@/components/ui/states";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { businessOperationsRoutes as routes } from "@/config/routes";
 import { api } from "@/lib/api";
 import { useOperationsCatalogOptions } from "../hooks/use-operations-catalog-options";
@@ -219,99 +229,70 @@ export function OperationsUtilizationView() {
           <FacilityUtilizationBarChart items={data.items} totalFacilities={data.total} />
 
           {/* Detailed Table */}
-          <section
-            aria-label={M.titles.utilization}
-            // biome-ignore lint/a11y/noNoninteractiveTabindex: Make the horizontally scrollable data table keyboard accessible.
-            tabIndex={0}
-            className="max-w-full overflow-x-auto rounded-card border border-outline-variant bg-surface-container-lowest shadow-[0_1px_2px_rgb(15_23_42_/_0.04)]"
-          >
-            <table className="w-full border-collapse text-left text-sm">
-              <caption className="sr-only">{M.titles.utilization}</caption>
-              <thead className="border-b border-slate-200 bg-slate-50 text-slate-600">
-                <tr>
+          <div className="rounded-xl border border-slate-200/90 bg-white shadow-xs overflow-hidden">
+            <Table>
+              <TableHeader className="bg-slate-50/95 border-b border-slate-200">
+                <TableRow className="hover:bg-transparent">
                   {R.capacityHeadings.map((heading) => (
-                    <th key={heading} scope="col" className="px-5 py-3 text-xs font-semibold">
+                    <TableHead
+                      key={heading}
+                      className="px-4 py-2.5 text-xs font-semibold text-slate-700 whitespace-nowrap"
+                    >
                       {heading}
-                    </th>
+                    </TableHead>
                   ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {data.items.map(({ facility, metrics }) => {
                   const percent = metrics.utilizationPercent;
                   const isNull = percent === null;
 
                   return (
-                    <tr key={facility.id} className="hover:bg-slate-50/50">
-                      <th
-                        scope="row"
-                        className="px-5 py-4 font-semibold text-ink whitespace-nowrap"
-                      >
+                    <TableRow key={facility.id} className="hover:bg-slate-50/60 transition-colors">
+                      <TableCell className="px-4 py-2.5 font-semibold text-xs text-slate-900 whitespace-nowrap">
                         {facility.name}
                         <span className="ml-1.5 font-mono text-xs text-slate-500 font-normal">
                           ({facility.code})
                         </span>
-                      </th>
-                      <td className="px-5 py-4 tabular-nums">{metrics.activeUnits}</td>
-                      <td className="px-5 py-4 tabular-nums">{metrics.occupiedUnits}</td>
-                      <td className="px-5 py-4 whitespace-nowrap">
+                      </TableCell>
+                      <TableCell className="px-4 py-2.5 tabular-nums text-xs text-slate-700 whitespace-nowrap">
+                        {metrics.activeUnits}
+                      </TableCell>
+                      <TableCell className="px-4 py-2.5 tabular-nums text-xs text-slate-700 whitespace-nowrap">
+                        {metrics.occupiedUnits}
+                      </TableCell>
+                      <TableCell className="px-4 py-2.5 whitespace-nowrap">
                         {isNull ? (
-                          <span className="rounded-xs bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-800 border border-amber-200">
+                          <Badge className="bg-amber-50 text-amber-800 border-amber-200 text-[10px] px-1.5 py-0.2">
                             {M.noOperatingUnitsBadge}
-                          </span>
+                          </Badge>
                         ) : (
-                          <strong className="text-primary tabular-nums font-bold">
+                          <strong className="text-primary tabular-nums text-xs font-bold">
                             {formatPercentage(percent)}
                           </strong>
                         )}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-              </tbody>
-            </table>
-          </section>
+              </TableBody>
+            </Table>
+          </div>
 
-          {/* Pagination Controls */}
-          <div className="flex flex-wrap items-center justify-between gap-4 py-2 text-xs text-slate-600">
-            <div>
-              Hiển thị {data.items.length > 0 ? offset + 1 : 0} –{" "}
-              {Math.min(offset + data.items.length, data.total)} trong tổng số{" "}
-              <strong>{data.total}</strong> cơ sở
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={page <= 1}
-                onClick={() => {
-                  const newPage = page - 1;
-                  setPage(newPage);
-                  updateUrl({ page: newPage });
-                }}
-                className="h-8 px-2.5 text-xs"
-              >
-                <ChevronLeft size={14} aria-hidden="true" />
-                <span>Trang trước</span>
-              </Button>
-              <span className="font-semibold text-ink px-2">
-                Trang {page} / {Math.max(1, Math.ceil(data.total / PAGE_SIZE))}
-              </span>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={offset + data.items.length >= data.total}
-                onClick={() => {
-                  const newPage = page + 1;
-                  setPage(newPage);
-                  updateUrl({ page: newPage });
-                }}
-                className="h-8 px-2.5 text-xs"
-              >
-                <span>Trang sau</span>
-                <ChevronRight size={14} aria-hidden="true" />
-              </Button>
-            </div>
+          {/* Pagination Controls with Direct Jump */}
+          <div className="pt-1">
+            <ListPagination
+              label={M.titles.utilization}
+              page={page}
+              pageSize={PAGE_SIZE}
+              total={data.total}
+              unitLabel="cơ sở"
+              onPageChange={(newPage) => {
+                setPage(newPage);
+                updateUrl({ page: newPage });
+              }}
+            />
           </div>
         </>
       )}

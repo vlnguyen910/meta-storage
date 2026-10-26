@@ -5,4 +5,6 @@ export interface ListPaginationProps {
   total: number;
   onPageChange: (page: number) => void;
   pending?: boolean;
+  className?: string;
+  unitLabel?: string;
 }

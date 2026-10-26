@@ -12,23 +12,14 @@ import {
   createFacilityBodySchema,
   type FacilityUnitTypeDto,
 } from "@metastorage/contracts";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Layers,
-  Pencil,
-  Plus,
-  Search,
-  UserMinus,
-  UserPlus,
-  Warehouse,
-} from "lucide-react";
+import { Layers, Pencil, Plus, Search, UserMinus, UserPlus, Warehouse } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/form-controls";
+import { ListPagination } from "@/components/ui/list-pagination";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import {
   Table,
@@ -98,18 +89,6 @@ export function FacilityManagementWorkspace({ membershipsOnly = false }: Managem
               Hệ thống quản lý dữ liệu danh mục cơ sở, ô kho và phân quyền vận hành
             </p>
           </div>
-
-          {!membershipsOnly && tab === "facilities" && (
-            <Button
-              type="button"
-              variant="primary"
-              onClick={() => setCreatingFacility(true)}
-              className="gap-2 shadow-sm h-10 px-4 text-xs font-semibold"
-            >
-              <Plus className="size-4" />
-              <span>{F5.newFacility}</span>
-            </Button>
-          )}
         </div>
 
         {!membershipsOnly && (
@@ -202,15 +181,15 @@ export function FacilityManagementWorkspace({ membershipsOnly = false }: Managem
    ========================================================================= */
 function FacilityListTable({
   onSelectFacility,
-  selectedFacilityId,
   onOpenCreate,
 }: {
   onSelectFacility: (id: string) => void;
-  selectedFacilityId: string;
+  selectedFacilityId?: string;
   onOpenCreate: () => void;
 }) {
   const query = useAllFacilities();
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [page, setPage] = useState(1);
   const [editingFacility, setEditingFacility] = useState<ApiFacility | null>(null);
@@ -218,7 +197,7 @@ function FacilityListTable({
   const items = query.data ?? [];
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = searchQuery.trim().toLowerCase();
     return items.filter((item) => {
       const matchQuery =
         !q ||
@@ -231,7 +210,7 @@ function FacilityListTable({
         (statusFilter === "INACTIVE" && !item.isActive);
       return matchQuery && matchStatus;
     });
-  }, [items, search, statusFilter]);
+  }, [items, searchQuery, statusFilter]);
 
   const totalItems = filtered.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
@@ -247,22 +226,38 @@ function FacilityListTable({
     return <ErrorState message={F5.loadError} onRetry={() => query.refetch()} />;
   }
 
+  function handleSearchSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSearchQuery(searchInput);
+    setPage(1);
+  }
+
   return (
     <div className="flex flex-col h-full w-full overflow-hidden min-h-0 gap-3">
       {/* Filter / Search bar */}
       <div className="shrink-0 flex flex-wrap items-center gap-3 p-3 bg-white border border-slate-200/90 rounded-xl shadow-xs">
-        <div className="relative flex-1 min-w-[240px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-          <Input
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            placeholder={F5.searchFacility}
-            className="pl-9 h-10 min-h-10 text-sm bg-slate-50/50 border-slate-200 focus:bg-white"
-          />
-        </div>
+        <form
+          onSubmit={handleSearchSubmit}
+          className="flex items-center gap-2 flex-1 min-w-[280px]"
+        >
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+            <Input
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder={F5.searchFacility}
+              className="pl-9 h-10 min-h-10 text-sm bg-slate-50/50 border-slate-200 focus:bg-white"
+            />
+          </div>
+          <Button
+            type="submit"
+            variant="outline"
+            className="h-10 px-3 text-xs font-semibold gap-1.5 shrink-0 border-slate-200"
+          >
+            <Search className="size-3.5" />
+            <span>Tìm kiếm</span>
+          </Button>
+        </form>
 
         <div className="w-full sm:w-48 shrink-0">
           <Select
@@ -311,68 +306,59 @@ function FacilityListTable({
                 </TableCell>
               </TableRow>
             ) : (
-              pagedItems.map((facility) => {
-                const isSelected = facility.id === selectedFacilityId;
-                return (
-                  <TableRow
-                    key={facility.id}
-                    className={cn(
-                      "hover:bg-slate-50/70 transition-colors",
-                      isSelected && "bg-primary-soft/30 hover:bg-primary-soft/50",
-                    )}
-                  >
-                    <TableCell className="font-mono font-bold text-xs">
-                      <span className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md border border-slate-200/80">
-                        {facility.code}
-                      </span>
-                    </TableCell>
-                    <TableCell className="font-bold text-slate-900">
-                      <div className="flex items-center gap-2">
-                        <Warehouse className="size-4 text-primary shrink-0" />
-                        <span>{facility.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-xs sm:text-sm text-slate-600">
-                      {facility.address}
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell text-xs text-slate-500 truncate max-w-xs">
-                      {facility.description || "—"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        className={
-                          facility.isActive
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                            : "bg-slate-100 text-slate-500 border-slate-200"
-                        }
+              pagedItems.map((facility) => (
+                <TableRow key={facility.id} className="hover:bg-slate-50/70 transition-colors">
+                  <TableCell className="font-mono font-bold text-xs">
+                    <span className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md border border-slate-200/80">
+                      {facility.code}
+                    </span>
+                  </TableCell>
+                  <TableCell className="font-bold text-slate-900">
+                    <div className="flex items-center gap-2">
+                      <Warehouse className="size-4 text-primary shrink-0" />
+                      <span>{facility.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-xs sm:text-sm text-slate-600">
+                    {facility.address}
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell text-xs text-slate-500 truncate max-w-xs">
+                    {facility.description || "—"}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      className={
+                        facility.isActive
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          : "bg-slate-100 text-slate-500 border-slate-200"
+                      }
+                    >
+                      {facility.isActive ? F5.active : F5.inactive}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setEditingFacility(facility)}
+                        className="h-8 min-h-8 px-2.5 text-xs gap-1 border-slate-200 text-slate-700 hover:text-primary"
                       >
-                        {facility.isActive ? F5.active : F5.inactive}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setEditingFacility(facility)}
-                          className="h-8 min-h-8 px-2.5 text-xs gap-1 border-slate-200 text-slate-700 hover:text-primary"
-                        >
-                          <Pencil className="size-3.5" />
-                          <span>{F5.edit}</span>
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={isSelected ? "primary" : "outline"}
-                          onClick={() => onSelectFacility(facility.id)}
-                          className="h-8 min-h-8 px-2.5 text-xs border-slate-200"
-                        >
-                          {isSelected ? "Đang chọn" : "Quản lý"}
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
+                        <Pencil className="size-3.5" />
+                        <span>{F5.edit}</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => onSelectFacility(facility.id)}
+                        className="h-8 min-h-8 px-2.5 text-xs border-slate-200 text-slate-700 hover:text-primary"
+                      >
+                        <span>Quản lý</span>
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
             )}
           </TableBody>
         </Table>
@@ -382,9 +368,9 @@ function FacilityListTable({
       <PaginationFooter
         total={totalItems}
         page={currentPage}
-        totalPages={totalPages}
         pageSize={PAGE_SIZE}
         onPageChange={setPage}
+        unitLabel="cơ sở"
       />
 
       {editingFacility && (
@@ -406,7 +392,8 @@ function FacilityListTable({
    ========================================================================= */
 function TypeCatalogTable() {
   const query = useManagedTypes();
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<FacilityUnitTypeDto | "new" | null>(null);
@@ -415,7 +402,7 @@ function TypeCatalogTable() {
   const items = query.data ?? [];
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = searchQuery.trim().toLowerCase();
     return items.filter((item) => {
       const matchQuery =
         !q ||
@@ -428,7 +415,7 @@ function TypeCatalogTable() {
         (statusFilter === "INACTIVE" && !item.isActive);
       return matchQuery && matchStatus;
     });
-  }, [items, search, statusFilter]);
+  }, [items, searchQuery, statusFilter]);
 
   const totalItems = filtered.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
@@ -444,22 +431,38 @@ function TypeCatalogTable() {
     return <ErrorState message={F5.loadError} onRetry={() => query.refetch()} />;
   }
 
+  function handleSearchSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSearchQuery(searchInput);
+    setPage(1);
+  }
+
   return (
     <div className="flex flex-col h-full w-full overflow-hidden min-h-0 gap-3">
       {/* Filter / Search bar */}
       <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 p-3 bg-white border border-slate-200/90 rounded-xl shadow-xs">
-        <div className="relative flex-1 min-w-[240px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-          <Input
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            placeholder={F5.searchType}
-            className="pl-9 h-10 min-h-10 text-sm bg-slate-50/50 border-slate-200 focus:bg-white"
-          />
-        </div>
+        <form
+          onSubmit={handleSearchSubmit}
+          className="flex items-center gap-2 flex-1 min-w-[280px]"
+        >
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+            <Input
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder={F5.searchType}
+              className="pl-9 h-10 min-h-10 text-sm bg-slate-50/50 border-slate-200 focus:bg-white"
+            />
+          </div>
+          <Button
+            type="submit"
+            variant="outline"
+            className="h-10 px-3 text-xs font-semibold gap-1.5 shrink-0 border-slate-200"
+          >
+            <Search className="size-3.5" />
+            <span>Tìm kiếm</span>
+          </Button>
+        </form>
 
         <div className="w-full sm:w-48 shrink-0">
           <Select
@@ -608,7 +611,8 @@ function FacilityOfferingsTable({
   const types = useManagedTypes();
   const offerings = useOfferings(facilityId);
   const mutation = useSetOffering(facilityId);
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [offeringFilter, setOfferingFilter] = useState("ALL");
   const [page, setPage] = useState(1);
 
@@ -623,7 +627,7 @@ function FacilityOfferingsTable({
   }, [typesList, offeringsList]);
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = searchQuery.trim().toLowerCase();
     return combinedItems.filter(({ type, active }) => {
       const matchQuery =
         !q ||
@@ -636,7 +640,7 @@ function FacilityOfferingsTable({
         (offeringFilter === "DISABLED" && !active);
       return matchQuery && matchFilter;
     });
-  }, [combinedItems, search, offeringFilter]);
+  }, [combinedItems, searchQuery, offeringFilter]);
 
   const totalItems = filtered.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
@@ -660,6 +664,12 @@ function FacilityOfferingsTable({
     );
   }
 
+  function handleSearchSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSearchQuery(searchInput);
+    setPage(1);
+  }
+
   return (
     <div className="flex flex-col h-full w-full overflow-hidden min-h-0 gap-3">
       {/* Scope facility selector & Filter bar */}
@@ -679,18 +689,28 @@ function FacilityOfferingsTable({
             </Select>
           </div>
 
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-            <Input
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              placeholder={F5.searchOffering}
-              className="pl-9 h-10 min-h-10 text-sm bg-slate-50/50 border-slate-200 focus:bg-white"
-            />
-          </div>
+          <form
+            onSubmit={handleSearchSubmit}
+            className="flex items-center gap-2 flex-1 min-w-[220px]"
+          >
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+              <Input
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder={F5.searchOffering}
+                className="pl-9 h-10 min-h-10 text-sm bg-slate-50/50 border-slate-200 focus:bg-white"
+              />
+            </div>
+            <Button
+              type="submit"
+              variant="outline"
+              className="h-10 px-3 text-xs font-semibold gap-1.5 shrink-0 border-slate-200"
+            >
+              <Search className="size-3.5" />
+              <span>Tìm kiếm</span>
+            </Button>
+          </form>
 
           <div className="w-full sm:w-44 shrink-0">
             <Select
@@ -828,7 +848,8 @@ function FacilityMembershipsTable({
   const [revoking, setRevoking] = useState<ApiFacilityAssignment | null>(null);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
 
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [page, setPage] = useState(1);
@@ -842,7 +863,7 @@ function FacilityMembershipsTable({
   const items = query.data ?? [];
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = searchQuery.trim().toLowerCase();
     return items.filter((item) => {
       const name = (item.userName ?? item.userId).toLowerCase();
       const email = (item.userEmail ?? "").toLowerCase();
@@ -855,7 +876,7 @@ function FacilityMembershipsTable({
         (statusFilter === "INACTIVE" && !item.isActive);
       return matchQuery && matchRole && matchStatus;
     });
-  }, [items, search, roleFilter, statusFilter]);
+  }, [items, searchQuery, roleFilter, statusFilter]);
 
   const totalItems = filtered.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
@@ -869,6 +890,12 @@ function FacilityMembershipsTable({
   if (query.isPending) return <LoadingState variant="table" />;
   if (query.isError) {
     return <ErrorState message={F5.loadError} onRetry={() => query.refetch()} />;
+  }
+
+  function handleSearchSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSearchQuery(searchInput);
+    setPage(1);
   }
 
   return (
@@ -890,18 +917,28 @@ function FacilityMembershipsTable({
             </Select>
           </div>
 
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-            <Input
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              placeholder={F5.searchMember}
-              className="pl-9 h-10 min-h-10 text-sm bg-slate-50/50 border-slate-200 focus:bg-white"
-            />
-          </div>
+          <form
+            onSubmit={handleSearchSubmit}
+            className="flex items-center gap-2 flex-1 min-w-[220px]"
+          >
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+              <Input
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder={F5.searchMember}
+                className="pl-9 h-10 min-h-10 text-sm bg-slate-50/50 border-slate-200 focus:bg-white"
+              />
+            </div>
+            <Button
+              type="submit"
+              variant="outline"
+              className="h-10 px-3 text-xs font-semibold gap-1.5 shrink-0 border-slate-200"
+            >
+              <Search className="size-3.5" />
+              <span>Tìm kiếm</span>
+            </Button>
+          </form>
 
           <div className="w-full sm:w-44 shrink-0">
             <Select
@@ -1432,70 +1469,25 @@ function MembershipRevoke({
 function PaginationFooter({
   total,
   page,
-  totalPages,
   pageSize,
   onPageChange,
+  unitLabel = "bản ghi",
 }: {
   total: number;
   page: number;
-  totalPages: number;
+  totalPages?: number;
   pageSize: number;
   onPageChange: (page: number) => void;
+  unitLabel?: string;
 }) {
   return (
-    <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 p-3 bg-white border border-slate-200/90 rounded-xl shadow-xs text-sm">
-      <span className="text-xs sm:text-sm text-slate-600 font-medium">
-        {total > 0
-          ? `Hiển thị ${(page - 1) * pageSize + 1}–${Math.min(
-              page * pageSize,
-              total,
-            )} trong số ${total} bản ghi`
-          : "0 bản ghi"}
-      </span>
-
-      {totalPages > 1 && (
-        <div className="flex items-center gap-1.5">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={page <= 1}
-            onClick={() => onPageChange(Math.max(1, page - 1))}
-            className="h-8 min-h-8 px-2.5 text-xs gap-1 border-slate-200"
-          >
-            <ChevronLeft className="size-3.5" />
-            <span className="hidden sm:inline">Trước</span>
-          </Button>
-
-          <div className="flex items-center gap-1">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
-              <button
-                key={num}
-                type="button"
-                onClick={() => onPageChange(num)}
-                className={cn(
-                  "size-8 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center",
-                  num === page
-                    ? "bg-primary text-white shadow-xs font-bold"
-                    : "text-slate-600 hover:bg-slate-100",
-                )}
-              >
-                {num}
-              </button>
-            ))}
-          </div>
-
-          <Button
-            type="button"
-            variant="outline"
-            disabled={page >= totalPages}
-            onClick={() => onPageChange(Math.min(totalPages, page + 1))}
-            className="h-8 min-h-8 px-2.5 text-xs gap-1 border-slate-200"
-          >
-            <span className="hidden sm:inline">Sau</span>
-            <ChevronRight className="size-3.5" />
-          </Button>
-        </div>
-      )}
-    </div>
+    <ListPagination
+      label={F5.title}
+      page={page}
+      pageSize={pageSize}
+      total={total}
+      onPageChange={onPageChange}
+      unitLabel={unitLabel}
+    />
   );
 }

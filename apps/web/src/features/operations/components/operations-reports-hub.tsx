@@ -2,22 +2,24 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
-import {
-  ArrowRight,
-  CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  RefreshCw,
-  RotateCcw,
-} from "lucide-react";
+import { ArrowRight, CheckCircle2, Download, RefreshCw, RotateCcw, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FieldShell, Input, Select } from "@/components/ui/form-controls";
+import { ListPagination } from "@/components/ui/list-pagination";
 import { ErrorState, LoadingState } from "@/components/ui/states";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { businessOperationsRoutes as routes } from "@/config/routes";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/cn";
@@ -36,7 +38,7 @@ import {
   formatDateVn,
   formatMoneyWithCurrency,
 } from "../operations.utils";
-import { OperationsDialog, OperationsTable } from "../operations-parts";
+import { OperationsDialog } from "../operations-parts";
 import { REPORTING_MESSAGES as R } from "../operations-reporting.messages";
 
 const PAGE_SIZE = 20;
@@ -53,74 +55,73 @@ export function OperationsReportsHub() {
   }
 
   return (
-    <div className="grid min-w-0 gap-6">
-      {/* Navigation Cards to Dedicated Reports */}
-      <section className="grid gap-4 sm:grid-cols-2">
-        <Link
-          href={routes.revenue}
-          className="flex items-center justify-between rounded-card border border-outline-variant bg-surface-container-lowest p-5 transition-shadow hover:shadow-md"
-        >
-          <div>
-            <h3 className="text-base font-bold text-primary">{M.titles.revenue}</h3>
-            <p className="m-0 text-xs text-slate-600 mt-1">{M.reportCards.revenue}</p>
-          </div>
-          <ArrowRight size={20} className="text-primary shrink-0 ml-3" />
-        </Link>
-        <Link
-          href={routes.utilization}
-          className="flex items-center justify-between rounded-card border border-outline-variant bg-surface-container-lowest p-5 transition-shadow hover:shadow-md"
-        >
-          <div>
-            <h3 className="text-base font-bold text-primary">{M.titles.utilization}</h3>
-            <p className="m-0 text-xs text-slate-600 mt-1">{M.reportCards.utilization}</p>
-          </div>
-          <ArrowRight size={20} className="text-primary shrink-0 ml-3" />
-        </Link>
+    <div className="flex flex-col h-full w-full overflow-hidden min-h-0 gap-3">
+      {/* Top Bar: Tabs & Quick Links */}
+      <section className="shrink-0 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200/90 bg-white p-2.5 shadow-xs">
+        <div className="flex items-center gap-1.5 p-1 bg-slate-100/90 rounded-lg border border-slate-200/80">
+          <button
+            type="button"
+            onClick={() => setTab("rentals")}
+            className={cn(
+              "rounded-md px-3.5 py-1.5 text-xs font-semibold transition-all",
+              activeTab === "rentals"
+                ? "bg-white text-primary shadow-xs font-bold"
+                : "text-slate-600 hover:text-slate-900 hover:bg-white/60",
+            )}
+          >
+            {M.tabRentalsTitle}
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("reconciliation")}
+            className={cn(
+              "rounded-md px-3.5 py-1.5 text-xs font-semibold transition-all",
+              activeTab === "reconciliation"
+                ? "bg-white text-primary shadow-xs font-bold"
+                : "text-slate-600 hover:text-slate-900 hover:bg-white/60",
+            )}
+          >
+            {M.tabReconciliationTitle}
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("refunds")}
+            className={cn(
+              "rounded-md px-3.5 py-1.5 text-xs font-semibold transition-all",
+              activeTab === "refunds"
+                ? "bg-white text-primary shadow-xs font-bold"
+                : "text-slate-600 hover:text-slate-900 hover:bg-white/60",
+            )}
+          >
+            {M.tabRefundQueueTitle}
+          </button>
+        </div>
+
+        {/* Quick Links to Revenue & Utilization */}
+        <div className="flex items-center gap-2">
+          <Link
+            href={routes.revenue}
+            className="text-xs font-semibold text-slate-700 hover:text-primary px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white inline-flex items-center gap-1.5 transition-colors shadow-2xs"
+          >
+            <span>{M.titles.revenue}</span>
+            <ArrowRight size={13} className="text-primary" />
+          </Link>
+          <Link
+            href={routes.utilization}
+            className="text-xs font-semibold text-slate-700 hover:text-primary px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white inline-flex items-center gap-1.5 transition-colors shadow-2xs"
+          >
+            <span>{M.titles.utilization}</span>
+            <ArrowRight size={13} className="text-primary" />
+          </Link>
+        </div>
       </section>
 
-      {/* Tabs */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-outline-variant pb-2">
-        <button
-          type="button"
-          onClick={() => setTab("rentals")}
-          className={cn(
-            "rounded-md px-4 py-2 text-sm font-semibold transition-colors",
-            activeTab === "rentals"
-              ? "bg-primary text-white shadow-xs"
-              : "text-slate-600 hover:bg-slate-100",
-          )}
-        >
-          {M.tabRentalsTitle}
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("reconciliation")}
-          className={cn(
-            "rounded-md px-4 py-2 text-sm font-semibold transition-colors",
-            activeTab === "reconciliation"
-              ? "bg-primary text-white shadow-xs"
-              : "text-slate-600 hover:bg-slate-100",
-          )}
-        >
-          {M.tabReconciliationTitle}
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("refunds")}
-          className={cn(
-            "rounded-md px-4 py-2 text-sm font-semibold transition-colors",
-            activeTab === "refunds"
-              ? "bg-primary text-white shadow-xs"
-              : "text-slate-600 hover:bg-slate-100",
-          )}
-        >
-          {M.tabRefundQueueTitle}
-        </button>
+      {/* Main Tab Area */}
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+        {activeTab === "rentals" && <RentalsTab />}
+        {activeTab === "reconciliation" && <ReconciliationTab />}
+        {activeTab === "refunds" && <RefundsQueueTab />}
       </div>
-
-      {activeTab === "rentals" && <RentalsTab />}
-      {activeTab === "reconciliation" && <ReconciliationTab />}
-      {activeTab === "refunds" && <RefundsQueueTab />}
     </div>
   );
 }
@@ -129,6 +130,8 @@ function RentalsTab() {
   const [facilityId, setFacilityId] = useState("all");
   const [unitTypeId, setUnitTypeId] = useState("all");
   const [status, setStatus] = useState("all");
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -147,6 +150,28 @@ function RentalsTab() {
 
   const { data, isPending, isError, refetch } = query;
   const summary = useOperationsRentals({ facilityId, unitTypeId, limit: 1, offset: 0 });
+
+  function handleSearchSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSearchQuery(searchInput.trim());
+    setPage(1);
+  }
+
+  function handleResetSearch() {
+    setSearchInput("");
+    setSearchQuery("");
+    setPage(1);
+  }
+
+  function handleResetAll() {
+    setFacilityId("all");
+    setStatus("all");
+    setUnitTypeId("all");
+    setSearchInput("");
+    setSearchQuery("");
+    setPage(1);
+    setExportError(null);
+  }
 
   async function handleExport() {
     try {
@@ -170,199 +195,274 @@ function RentalsTab() {
     }
   }
 
+  const items = (data?.items ?? []).filter((item) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      item.bookingCode?.toLowerCase().includes(q) ||
+      item.id.toLowerCase().includes(q) ||
+      item.facilityName.toLowerCase().includes(q) ||
+      item.unitTypeName.toLowerCase().includes(q) ||
+      item.unitCode.toLowerCase().includes(q)
+    );
+  });
+
   return (
-    <div className="grid gap-6">
-      <div>
-        <h2 className="text-lg font-bold">{R.rentalTitle}</h2>
-        <p className="mt-1 text-sm text-slate-600">{R.rentalHelp}</p>
-      </div>
-      {summary.data && (
-        <dl className="flex flex-wrap gap-4 rounded-card border border-outline-variant bg-white p-4 text-sm">
-          {summary.data.byStatus.map((item) => (
-            <div key={item.status}>
-              <dt className="text-xs text-slate-600">
-                {R.rentalStatuses[item.status] ?? item.status}
-              </dt>
-              <dd className="font-bold">{item.count}</dd>
+    <div className="flex flex-col h-full w-full overflow-hidden min-h-0 gap-3">
+      {/* Filters Toolbar */}
+      <section className="shrink-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2.5 pb-2 border-b border-slate-100">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900">{R.rentalTitle}</h2>
+            <p className="m-0 text-xs text-slate-500">{R.rentalHelp}</p>
+          </div>
+          {summary.data && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {summary.data.byStatus.map((item) => (
+                <span
+                  key={item.status}
+                  className="rounded-md bg-slate-50 border border-slate-200 px-2 py-0.5 text-xs text-slate-700"
+                >
+                  <span className="text-slate-500">
+                    {R.rentalStatuses[item.status] ?? item.status}:{" "}
+                  </span>
+                  <strong className="text-slate-900">{item.count}</strong>
+                </span>
+              ))}
             </div>
-          ))}
-        </dl>
-      )}
-      {/* Filters */}
-      <section className="grid items-end gap-4 rounded-card border border-outline-variant bg-surface-container-lowest p-5 shadow-[0_1px_2px_rgb(15_23_42_/_0.04)] sm:grid-cols-2 lg:grid-cols-4">
-        <FieldShell label={M.facilityFilter}>
-          <Select
-            value={facilityId}
-            onChange={(e) => {
-              setFacilityId(e.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="all">{M.allFacilities}</option>
-            {catalogFacilities.map((fac) => (
-              <option key={fac.id} value={fac.id}>
-                {fac.name}
-              </option>
-            ))}
-          </Select>
-        </FieldShell>
-        <FieldShell label={M.unitTypeFilter}>
-          <Select
-            value={unitTypeId}
-            onChange={(event) => {
-              setUnitTypeId(event.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="all">{M.allUnitTypes}</option>
-            {catalogUnitTypes.map((type) => (
-              <option key={type.unitTypeId} value={type.unitTypeId}>
-                {type.name}
-              </option>
-            ))}
-          </Select>
-        </FieldShell>
-        <FieldShell label={R.rentalStatus}>
-          <Select
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="all">Tất cả trạng thái</option>
-            {Array.from(
-              new Set([
-                ...(summary.data?.byStatus.map((item) => item.status) ?? []),
-                ...(status === "all" ? [] : [status]),
-              ]),
-            ).map((value) => (
-              <option key={value} value={value}>
-                {R.rentalStatuses[value] ?? value}
-              </option>
-            ))}
-          </Select>
-        </FieldShell>
-        <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
-          <Button
-            type="button"
-            variant="outline"
-            icon={<RotateCcw size={16} aria-hidden="true" />}
-            onClick={() => {
-              setFacilityId("all");
-              setStatus("all");
-              setUnitTypeId("all");
-              setPage(1);
-              setExportError(null);
-            }}
-          >
-            {M.reset}
-          </Button>
-          <Button
-            type="button"
-            loading={exporting}
-            icon={<Download size={16} aria-hidden="true" />}
-            onClick={handleExport}
-          >
-            {M.export}
-          </Button>
+          )}
+        </div>
+
+        <div className="pt-2.5 flex flex-wrap items-end gap-2.5">
+          {/* Search Form with Submit Button */}
+          <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 min-w-64 flex-1">
+            <div className="relative flex-1">
+              <Input
+                type="search"
+                placeholder="Tìm mã đặt chỗ, mã kho, cơ sở..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="h-8 text-xs pl-8 pr-3"
+              />
+              <Search
+                size={14}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+              />
+            </div>
+            <Button
+              type="submit"
+              className="h-8 px-3 text-xs shrink-0 inline-flex items-center gap-1.5"
+            >
+              <Search size={13} aria-hidden="true" />
+              <span>Tìm kiếm</span>
+            </Button>
+            {searchQuery && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleResetSearch}
+                className="h-8 px-2 text-xs shrink-0 text-slate-600"
+              >
+                <X size={13} className="mr-1" />
+                <span>Xóa lọc</span>
+              </Button>
+            )}
+          </form>
+
+          {/* Facility Select */}
+          <div className="w-44">
+            <FieldShell label={M.facilityFilter}>
+              <Select
+                value={facilityId}
+                onChange={(e) => {
+                  setFacilityId(e.target.value);
+                  setPage(1);
+                }}
+                className="h-8 text-xs"
+              >
+                <option value="all">{M.allFacilities}</option>
+                {catalogFacilities.map((fac) => (
+                  <option key={fac.id} value={fac.id}>
+                    {fac.name}
+                  </option>
+                ))}
+              </Select>
+            </FieldShell>
+          </div>
+
+          {/* Unit Type Select */}
+          <div className="w-40">
+            <FieldShell label={M.unitTypeFilter}>
+              <Select
+                value={unitTypeId}
+                onChange={(event) => {
+                  setUnitTypeId(event.target.value);
+                  setPage(1);
+                }}
+                className="h-8 text-xs"
+              >
+                <option value="all">{M.allUnitTypes}</option>
+                {catalogUnitTypes.map((type) => (
+                  <option key={type.unitTypeId} value={type.unitTypeId}>
+                    {type.name}
+                  </option>
+                ))}
+              </Select>
+            </FieldShell>
+          </div>
+
+          {/* Status Select */}
+          <div className="w-40">
+            <FieldShell label={R.rentalStatus}>
+              <Select
+                value={status}
+                onChange={(e) => {
+                  setStatus(e.target.value);
+                  setPage(1);
+                }}
+                className="h-8 text-xs"
+              >
+                <option value="all">Tất cả trạng thái</option>
+                {Array.from(
+                  new Set([
+                    ...(summary.data?.byStatus.map((item) => item.status) ?? []),
+                    ...(status === "all" ? [] : [status]),
+                  ]),
+                ).map((value) => (
+                  <option key={value} value={value}>
+                    {R.rentalStatuses[value] ?? value}
+                  </option>
+                ))}
+              </Select>
+            </FieldShell>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-8 px-2.5 text-xs inline-flex items-center gap-1.5"
+              onClick={handleResetAll}
+            >
+              <RotateCcw size={13} aria-hidden="true" />
+              <span>{M.reset}</span>
+            </Button>
+            <Button
+              type="button"
+              loading={exporting}
+              className="h-8 px-3 text-xs inline-flex items-center gap-1.5"
+              onClick={handleExport}
+            >
+              <Download size={13} aria-hidden="true" />
+              <span>{M.export}</span>
+            </Button>
+          </div>
         </div>
       </section>
 
       {exportError && (
-        <p
+        <div
           role="alert"
-          className="m-0 rounded-xl bg-rose-50 p-4 text-xs font-semibold text-rose-800 border border-rose-200"
+          className="shrink-0 rounded-lg bg-rose-50 border border-rose-200 px-3.5 py-2 text-xs font-semibold text-rose-800"
         >
           {exportError}
-        </p>
+        </div>
       )}
 
-      {isPending ? (
-        <LoadingState label={M.loading} variant="table" />
-      ) : isError || !data ? (
-        <ErrorState message={M.error} onRetry={() => void refetch()} />
-      ) : data.items.length === 0 ? (
-        <p className="py-8 text-center text-sm text-slate-500 rounded-card border border-outline-variant bg-surface-container-lowest">
-          {R.rentalEmpty}
-        </p>
-      ) : (
-        <>
-          <OperationsTable label={M.rentalSummary} headings={M.rentalHeadings}>
-            {data.items.map((item) => (
-              <tr key={item.id} className="hover:bg-slate-50/50">
-                <th
-                  scope="row"
-                  className="px-5 py-4 font-mono text-xs font-semibold text-primary whitespace-nowrap"
-                >
-                  {item.bookingCode ?? item.id.slice(0, 8)}
-                </th>
-                <td className="px-5 py-4 text-xs text-slate-700 font-medium whitespace-nowrap">
-                  {item.facilityName}
-                </td>
-                <td className="px-5 py-4 text-xs text-slate-700 whitespace-nowrap">
-                  {item.unitTypeName}
-                </td>
-                <td className="px-5 py-4 text-xs font-mono font-bold text-ink whitespace-nowrap">
-                  {item.unitCode}
-                </td>
-                <td className="px-5 py-4 text-xs text-slate-600 tabular-nums whitespace-nowrap">
-                  {formatDateVn(item.startAt)}
-                </td>
-                <td className="px-5 py-4 text-xs text-slate-600 tabular-nums whitespace-nowrap font-medium">
-                  {formatDateVn(item.expectedEndAt)}
-                </td>
-                <td className="px-5 py-4 whitespace-nowrap">
-                  <span
-                    className={cn(
-                      "rounded-full px-2.5 py-0.5 text-xs font-semibold",
-                      item.status === "ACTIVE"
-                        ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                        : item.status === "OVERDUE"
-                          ? "bg-rose-50 text-rose-800 border border-rose-200"
-                          : "bg-amber-50 text-amber-800 border border-amber-200",
-                    )}
-                  >
-                    {R.rentalStatuses[item.status] ?? item.status}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </OperationsTable>
-
-          {/* Pagination */}
-          <div className="flex flex-wrap items-center justify-between gap-4 py-2 text-xs text-slate-600">
-            <div>
-              Hiển thị {offset + 1} – {Math.min(offset + data.items.length, data.total)} trong tổng
-              số <strong>{data.total}</strong> lượt thuê
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-                className="h-8 px-2.5 text-xs"
-              >
-                <ChevronLeft size={14} aria-hidden="true" />
-                <span>Trang trước</span>
-              </Button>
-              <span className="font-semibold text-ink px-2">
-                Trang {page} / {Math.max(1, Math.ceil(data.total / PAGE_SIZE))}
-              </span>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={offset + data.items.length >= data.total}
-                onClick={() => setPage((p) => p + 1)}
-                className="h-8 px-2.5 text-xs"
-              >
-                <span>Trang sau</span>
-                <ChevronRight size={14} aria-hidden="true" />
-              </Button>
-            </div>
+      {/* Table Section */}
+      <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-slate-200/90 bg-white shadow-xs">
+        {isPending ? (
+          <LoadingState label={M.loading} variant="table" />
+        ) : isError || !data ? (
+          <ErrorState message={M.error} onRetry={() => void refetch()} />
+        ) : items.length === 0 ? (
+          <div className="h-48 flex items-center justify-center text-xs text-slate-500">
+            {searchQuery
+              ? "Không tìm thấy lượt thuê nào khớp với từ khóa tìm kiếm."
+              : R.rentalEmpty}
           </div>
-        </>
+        ) : (
+          <Table>
+            <TableHeader className="sticky top-0 bg-slate-50/95 backdrop-blur-xs z-10 border-b border-slate-200">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="font-semibold text-xs text-slate-700 py-2.5 px-4">
+                  Mã đặt chỗ
+                </TableHead>
+                <TableHead className="font-semibold text-xs text-slate-700 py-2.5 px-4">
+                  Cơ sở
+                </TableHead>
+                <TableHead className="font-semibold text-xs text-slate-700 py-2.5 px-4">
+                  Loại kho
+                </TableHead>
+                <TableHead className="font-semibold text-xs text-slate-700 py-2.5 px-4">
+                  Mã ô kho
+                </TableHead>
+                <TableHead className="font-semibold text-xs text-slate-700 py-2.5 px-4">
+                  Ngày bắt đầu
+                </TableHead>
+                <TableHead className="font-semibold text-xs text-slate-700 py-2.5 px-4">
+                  Hạn thuê
+                </TableHead>
+                <TableHead className="font-semibold text-xs text-slate-700 py-2.5 px-4">
+                  Trạng thái
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.map((item) => (
+                <TableRow key={item.id} className="hover:bg-slate-50/60 transition-colors">
+                  <TableCell className="font-mono text-xs font-semibold text-primary py-2.5 px-4 whitespace-nowrap">
+                    {item.bookingCode ?? item.id.slice(0, 8)}
+                  </TableCell>
+                  <TableCell className="text-xs text-slate-800 font-medium py-2.5 px-4 whitespace-nowrap">
+                    {item.facilityName}
+                  </TableCell>
+                  <TableCell className="text-xs text-slate-600 py-2.5 px-4 whitespace-nowrap">
+                    {item.unitTypeName}
+                  </TableCell>
+                  <TableCell className="text-xs font-mono font-bold text-slate-900 py-2.5 px-4 whitespace-nowrap">
+                    {item.unitCode}
+                  </TableCell>
+                  <TableCell className="text-xs text-slate-600 tabular-nums py-2.5 px-4 whitespace-nowrap">
+                    {formatDateVn(item.startAt)}
+                  </TableCell>
+                  <TableCell className="text-xs text-slate-600 tabular-nums py-2.5 px-4 whitespace-nowrap font-medium">
+                    {formatDateVn(item.expectedEndAt)}
+                  </TableCell>
+                  <TableCell className="py-2.5 px-4 whitespace-nowrap">
+                    <Badge
+                      className={cn(
+                        "text-[11px] font-medium border px-2 py-0.5",
+                        item.status === "ACTIVE"
+                          ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                          : item.status === "OVERDUE"
+                            ? "bg-rose-50 text-rose-800 border-rose-200"
+                            : "bg-amber-50 text-amber-800 border-amber-200",
+                      )}
+                    >
+                      {R.rentalStatuses[item.status] ?? item.status}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </div>
+
+      {/* Pagination Footer with Jump Support */}
+      {data && (
+        <div className="shrink-0 pt-1">
+          <ListPagination
+            label={M.rentalSummary}
+            page={page}
+            pageSize={PAGE_SIZE}
+            total={data.total}
+            unitLabel="lượt thuê"
+            onPageChange={setPage}
+          />
+        </div>
       )}
     </div>
   );
@@ -370,6 +470,8 @@ function RentalsTab() {
 
 function ReconciliationTab() {
   const [facilityId, setFacilityId] = useState("all");
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const { facilities: catalogFacilities } = useOperationsCatalogOptions();
   const offset = (page - 1) * PAGE_SIZE;
@@ -382,145 +484,229 @@ function ReconciliationTab() {
 
   const { data, isPending, isError, refetch } = query;
 
+  function handleSearchSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSearchQuery(searchInput.trim());
+    setPage(1);
+  }
+
+  function handleResetSearch() {
+    setSearchInput("");
+    setSearchQuery("");
+    setPage(1);
+  }
+
+  const items = (data?.items ?? []).filter((item) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      item.paymentId.toLowerCase().includes(q) ||
+      Boolean(item.bookingId?.toLowerCase().includes(q)) ||
+      Boolean(item.facilityId?.toLowerCase().includes(q))
+    );
+  });
+
   return (
-    <div className="grid gap-6">
-      {/* Header Info & Filter */}
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-card border border-outline-variant bg-surface-container-lowest p-5 shadow-[0_1px_2px_rgb(15_23_42_/_0.04)]">
-        <div>
-          <h3 className="text-base font-bold text-ink mb-1">{M.tabReconciliationTitle}</h3>
-          <p className="m-0 text-xs text-slate-600">{M.reconciliationSummary}</p>
+    <div className="flex flex-col h-full w-full overflow-hidden min-h-0 gap-3">
+      {/* Header Info & Filters */}
+      <section className="shrink-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-slate-100">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900">{M.tabReconciliationTitle}</h3>
+            <p className="m-0 text-xs text-slate-500">{M.reconciliationSummary}</p>
+          </div>
           {data && (
-            <span className="mt-2 inline-block text-xs text-slate-400 font-medium">
+            <span className="text-xs text-slate-500 font-medium">
               {M.asOfDisplay(formatDateTimeVn(data.asOf))}
             </span>
           )}
         </div>
-        <div className="w-56">
-          <FieldShell label={M.facilityFilter}>
-            <Select
-              value={facilityId}
-              onChange={(e) => {
-                setFacilityId(e.target.value);
-                setPage(1);
-              }}
+
+        <div className="pt-2.5 flex flex-wrap items-end gap-2.5">
+          {/* Search Form with Confirm Button */}
+          <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 min-w-64 flex-1">
+            <div className="relative flex-1">
+              <Input
+                type="search"
+                placeholder="Tìm mã thanh toán, mã đặt chỗ..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="h-8 text-xs pl-8 pr-3"
+              />
+              <Search
+                size={14}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+              />
+            </div>
+            <Button
+              type="submit"
+              className="h-8 px-3 text-xs shrink-0 inline-flex items-center gap-1.5"
             >
-              <option value="all">{M.allFacilities}</option>
-              {catalogFacilities.map((fac) => (
-                <option key={fac.id} value={fac.id}>
-                  {fac.name}
-                </option>
-              ))}
-            </Select>
-          </FieldShell>
+              <Search size={13} aria-hidden="true" />
+              <span>Tìm kiếm</span>
+            </Button>
+            {searchQuery && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleResetSearch}
+                className="h-8 px-2 text-xs shrink-0 text-slate-600"
+              >
+                <X size={13} className="mr-1" />
+                <span>Xóa lọc</span>
+              </Button>
+            )}
+          </form>
+
+          {/* Facility Select */}
+          <div className="w-52">
+            <FieldShell label={M.facilityFilter}>
+              <Select
+                value={facilityId}
+                onChange={(e) => {
+                  setFacilityId(e.target.value);
+                  setPage(1);
+                }}
+                className="h-8 text-xs"
+              >
+                <option value="all">{M.allFacilities}</option>
+                {catalogFacilities.map((fac) => (
+                  <option key={fac.id} value={fac.id}>
+                    {fac.name}
+                  </option>
+                ))}
+              </Select>
+            </FieldShell>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="h-8 px-2.5 text-xs inline-flex items-center gap-1.5"
+            onClick={() => void refetch()}
+          >
+            <RefreshCw size={13} aria-hidden="true" />
+            <span>Làm mới</span>
+          </Button>
         </div>
+      </section>
+
+      {/* Table Section */}
+      <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-slate-200/90 bg-white shadow-xs">
+        {isPending ? (
+          <LoadingState label={M.loading} variant="table" />
+        ) : isError || !data ? (
+          <ErrorState message={M.error} onRetry={() => void refetch()} />
+        ) : items.length === 0 ? (
+          <div className="h-48 flex flex-col items-center justify-center text-center p-6">
+            <CheckCircle2 size={28} className="text-emerald-600 mb-2" />
+            <h4 className="font-bold text-sm text-slate-800">Không có giao dịch cần đối chiếu</h4>
+            <p className="text-xs text-slate-500 mt-1 max-w-sm">
+              Toàn bộ các khoản thu đã được ánh xạ khớp snapshot và currency chuẩn.
+            </p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader className="sticky top-0 bg-slate-50/95 backdrop-blur-xs z-10 border-b border-slate-200">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="font-semibold text-xs text-slate-700 py-2.5 px-4">
+                  Mã giao dịch
+                </TableHead>
+                <TableHead className="font-semibold text-xs text-slate-700 py-2.5 px-4">
+                  Mã đặt chỗ
+                </TableHead>
+                <TableHead className="font-semibold text-xs text-slate-700 py-2.5 px-4">
+                  Cơ sở
+                </TableHead>
+                <TableHead className="font-semibold text-xs text-slate-700 py-2.5 px-4">
+                  Số tiền
+                </TableHead>
+                <TableHead className="font-semibold text-xs text-slate-700 py-2.5 px-4">
+                  Tiền tệ
+                </TableHead>
+                <TableHead className="font-semibold text-xs text-slate-700 py-2.5 px-4">
+                  Trạng thái
+                </TableHead>
+                <TableHead className="font-semibold text-xs text-slate-700 py-2.5 px-4">
+                  Thời điểm
+                </TableHead>
+                <TableHead className="font-semibold text-xs text-slate-700 py-2.5 px-4">
+                  Vấn đề đối chiếu
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.map((item) => {
+                const issues = [];
+                if (item.missingSnapshot) issues.push(M.issueMissingSnapshot);
+                if (item.unclassifiedDeposit) issues.push(M.issueUnclassifiedDeposit);
+                if (item.unsupportedCurrency) issues.push(M.issueUnsupportedCurrency);
+
+                return (
+                  <TableRow key={item.paymentId} className="hover:bg-slate-50/60 transition-colors">
+                    <TableCell className="font-mono text-xs text-primary py-2.5 px-4 whitespace-nowrap">
+                      {item.paymentId.slice(0, 8)}...
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-slate-600 py-2.5 px-4 whitespace-nowrap">
+                      {item.bookingId ? `${item.bookingId.slice(0, 8)}...` : "—"}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-slate-600 py-2.5 px-4 whitespace-nowrap">
+                      {item.facilityId ? `${item.facilityId.slice(0, 8)}...` : "Chưa xác định"}
+                    </TableCell>
+                    <TableCell className="font-bold tabular-nums text-xs text-slate-900 py-2.5 px-4 whitespace-nowrap">
+                      {formatMoneyWithCurrency(item.totalAmount, item.currency)}
+                    </TableCell>
+                    <TableCell className="text-xs font-semibold text-slate-600 py-2.5 px-4 whitespace-nowrap">
+                      {item.currency}
+                    </TableCell>
+                    <TableCell className="py-2.5 px-4 whitespace-nowrap">
+                      <Badge className="text-[11px] font-medium bg-slate-100 text-slate-700 border-slate-200 px-2 py-0.5">
+                        {item.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-xs text-slate-600 py-2.5 px-4 whitespace-nowrap">
+                      {formatDateTimeVn(item.paidAt)}
+                    </TableCell>
+                    <TableCell className="py-2.5 px-4">
+                      <div className="flex flex-wrap gap-1">
+                        {issues.map((issue) => (
+                          <Badge
+                            key={issue}
+                            className="text-[10px] font-medium bg-amber-50 text-amber-800 border-amber-200 px-1.5 py-0.2"
+                          >
+                            {issue}
+                          </Badge>
+                        ))}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
       </div>
 
-      {isPending ? (
-        <LoadingState label={M.loading} variant="table" />
-      ) : isError || !data ? (
-        <ErrorState message={M.error} onRetry={() => void refetch()} />
-      ) : data.items.length === 0 ? (
-        <div className="rounded-card border border-emerald-200 bg-emerald-50/50 p-8 text-center">
-          <CheckCircle2 size={32} className="text-emerald-600 mx-auto mb-2" />
-          <h4 className="font-bold text-emerald-900">Không có giao dịch cần đối chiếu</h4>
-          <p className="text-xs text-emerald-700 mt-1">
-            Toàn bộ các khoản thu đã được ánh xạ khớp snapshot và currency chuẩn.
-          </p>
+      {/* Pagination Footer with Jump Support */}
+      {data && (
+        <div className="shrink-0 pt-1">
+          <ListPagination
+            label={M.tabReconciliationTitle}
+            page={page}
+            pageSize={PAGE_SIZE}
+            total={data.total}
+            unitLabel="giao dịch"
+            onPageChange={setPage}
+          />
         </div>
-      ) : (
-        <>
-          <OperationsTable label={M.tabReconciliationTitle} headings={M.reconciliationHeadingsReal}>
-            {data.items.map((item) => {
-              const issues = [];
-              if (item.missingSnapshot) issues.push(M.issueMissingSnapshot);
-              if (item.unclassifiedDeposit) issues.push(M.issueUnclassifiedDeposit);
-              if (item.unsupportedCurrency) issues.push(M.issueUnsupportedCurrency);
-
-              return (
-                <tr key={item.paymentId} className="hover:bg-slate-50/50">
-                  <th
-                    scope="row"
-                    className="px-5 py-4 font-mono text-xs text-primary whitespace-nowrap"
-                  >
-                    {item.paymentId.slice(0, 8)}...
-                  </th>
-                  <td className="px-5 py-4 font-mono text-xs text-slate-600 whitespace-nowrap">
-                    {item.bookingId ? `${item.bookingId.slice(0, 8)}...` : "—"}
-                  </td>
-                  <td className="px-5 py-4 font-mono text-xs text-slate-600 whitespace-nowrap">
-                    {item.facilityId ? `${item.facilityId.slice(0, 8)}...` : "Chưa xác định"}
-                  </td>
-                  {/* Currency-aware formatted amount - doesn't force USD to VND! */}
-                  <td className="px-5 py-4 font-bold tabular-nums text-ink whitespace-nowrap">
-                    {formatMoneyWithCurrency(item.totalAmount, item.currency)}
-                  </td>
-                  <td className="px-5 py-4 text-xs font-semibold text-slate-600 whitespace-nowrap">
-                    {item.currency}
-                  </td>
-                  <td className="px-5 py-4 whitespace-nowrap">
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
-                      {item.status}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 text-xs text-slate-600 whitespace-nowrap">
-                    {formatDateTimeVn(item.paidAt)}
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="flex flex-wrap gap-1">
-                      {issues.map((issue) => (
-                        <span
-                          key={issue}
-                          className="rounded-xs bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-800 border border-amber-200"
-                        >
-                          {issue}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </OperationsTable>
-
-          {/* Pagination */}
-          <div className="flex flex-wrap items-center justify-between gap-4 py-2 text-xs text-slate-600">
-            <div>
-              Hiển thị {offset + 1} – {Math.min(offset + data.items.length, data.total)} trong tổng
-              số <strong>{data.total}</strong> giao dịch cần đối chiếu
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-                className="h-8 px-2.5 text-xs"
-              >
-                <ChevronLeft size={14} aria-hidden="true" />
-                <span>Trang trước</span>
-              </Button>
-              <span className="font-semibold text-ink px-2">
-                Trang {page} / {Math.max(1, Math.ceil(data.total / PAGE_SIZE))}
-              </span>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={offset + data.items.length >= data.total}
-                onClick={() => setPage((p) => p + 1)}
-                className="h-8 px-2.5 text-xs"
-              >
-                <span>Trang sau</span>
-                <ChevronRight size={14} aria-hidden="true" />
-              </Button>
-            </div>
-          </div>
-        </>
       )}
     </div>
   );
 }
 
 function RefundsQueueTab() {
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const offset = (page - 1) * PAGE_SIZE;
 
@@ -535,6 +721,18 @@ function RefundsQueueTab() {
     resolver: zodResolver(OperationsManualRefundDraftSchema),
     defaultValues: { reference: "" },
   });
+
+  function handleSearchSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSearchQuery(searchInput.trim());
+    setPage(1);
+  }
+
+  function handleResetSearch() {
+    setSearchInput("");
+    setSearchQuery("");
+    setPage(1);
+  }
 
   async function handleConfirmRefund(values: OperationsManualRefundDraft) {
     if (!confirmingPaymentId) return;
@@ -557,128 +755,181 @@ function RefundsQueueTab() {
     }
   }
 
-  const paginatedRefunds = refunds ? refunds.slice(offset, offset + PAGE_SIZE) : [];
+  const filteredRefunds = (refunds ?? []).filter((r) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return r.paymentId.toLowerCase().includes(q) || Boolean(r.bookingId?.toLowerCase().includes(q));
+  });
+
+  const paginatedRefunds = filteredRefunds.slice(offset, offset + PAGE_SIZE);
 
   return (
-    <div className="grid gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-card border border-outline-variant bg-surface-container-lowest p-5 shadow-[0_1px_2px_rgb(15_23_42_/_0.04)]">
-        <div>
-          <h3 className="text-base font-bold text-ink">{M.tabRefundQueueTitle}</h3>
-          <p className="m-0 text-xs text-slate-600 mt-1">
-            Hàng chờ các khoản hoàn tiền trạng thái REFUND_PENDING cần xác nhận đối soát chuyển
-            khoản.
-          </p>
+    <div className="flex flex-col h-full w-full overflow-hidden min-h-0 gap-3">
+      {/* Header Bar */}
+      <section className="shrink-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-slate-100">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900">{M.tabRefundQueueTitle}</h3>
+            <p className="m-0 text-xs text-slate-500">
+              Hàng chờ các khoản hoàn tiền trạng thái REFUND_PENDING cần xác nhận đối soát.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-slate-500">
+              Tổng chờ: <strong className="text-slate-900">{filteredRefunds.length}</strong> yêu cầu
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-8 px-2.5 text-xs inline-flex items-center gap-1.5"
+              onClick={() => void refetch()}
+            >
+              <RefreshCw size={13} aria-hidden="true" />
+              <span>Làm mới</span>
+            </Button>
+          </div>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          icon={<RefreshCw size={14} aria-hidden="true" />}
-          onClick={() => void refetch()}
-        >
-          Làm mới
-        </Button>
-      </div>
+
+        {/* Search Form with Confirm Button */}
+        <div className="pt-2.5 flex items-center gap-2 max-w-md">
+          <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 w-full">
+            <div className="relative flex-1">
+              <Input
+                type="search"
+                placeholder="Tìm mã thanh toán, mã đặt chỗ..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="h-8 text-xs pl-8 pr-3"
+              />
+              <Search
+                size={14}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+              />
+            </div>
+            <Button
+              type="submit"
+              className="h-8 px-3 text-xs shrink-0 inline-flex items-center gap-1.5"
+            >
+              <Search size={13} aria-hidden="true" />
+              <span>Tìm kiếm</span>
+            </Button>
+            {searchQuery && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleResetSearch}
+                className="h-8 px-2 text-xs shrink-0 text-slate-600"
+              >
+                <X size={13} className="mr-1" />
+                <span>Xóa lọc</span>
+              </Button>
+            )}
+          </form>
+        </div>
+      </section>
 
       {feedback && (
-        <p
+        <div
           role="status"
-          className="m-0 rounded-xl bg-primary-soft p-4 text-sm font-semibold text-primary"
+          className="shrink-0 rounded-lg bg-emerald-50 border border-emerald-200 px-3.5 py-2 text-xs font-semibold text-emerald-800"
         >
           {feedback}
-        </p>
+        </div>
       )}
 
       {actionError && (
-        <p
+        <div
           role="alert"
-          className="m-0 rounded-xl bg-rose-50 p-4 text-xs font-semibold text-rose-800 border border-rose-200"
+          className="shrink-0 rounded-lg bg-rose-50 border border-rose-200 px-3.5 py-2 text-xs font-semibold text-rose-800"
         >
           {actionError}
-        </p>
+        </div>
       )}
 
-      {isPending ? (
-        <LoadingState label={M.loading} variant="table" />
-      ) : isError || !refunds ? (
-        <ErrorState message={M.error} onRetry={() => void refetch()} />
-      ) : refunds.length === 0 ? (
-        <div className="rounded-card border border-emerald-200 bg-emerald-50/50 p-8 text-center">
-          <CheckCircle2 size={32} className="text-emerald-600 mx-auto mb-2" />
-          <h4 className="font-bold text-emerald-900">Không có khoản hoàn nào đang chờ</h4>
-          <p className="text-xs text-emerald-700 mt-1">
-            Mọi yêu cầu hoàn tiền đã được xử lý hoặc không có nghĩa vụ tồn đọng.
-          </p>
-        </div>
-      ) : (
-        <>
-          <OperationsTable label={M.tabRefundQueueTitle} headings={M.refundQueueHeadingsReal}>
-            {paginatedRefunds.map((refund) => (
-              <tr key={refund.paymentId} className="hover:bg-slate-50/50">
-                <th
-                  scope="row"
-                  className="px-5 py-4 font-mono text-xs text-primary whitespace-nowrap"
-                >
-                  {refund.paymentId.slice(0, 8)}...
-                </th>
-                <td className="px-5 py-4 font-mono text-xs text-slate-700 whitespace-nowrap">
-                  {refund.bookingId ? `${refund.bookingId.slice(0, 8)}...` : "—"}
-                </td>
-                <td className="px-5 py-4 font-bold tabular-nums text-rose-600 whitespace-nowrap">
-                  {formatMoneyWithCurrency(refund.amount, refund.currency)}
-                </td>
-                <td className="px-5 py-4 text-xs text-slate-600 tabular-nums whitespace-nowrap">
-                  {formatDateTimeVn(refund.paidAt)}
-                </td>
-                <td className="px-5 py-4 whitespace-nowrap">
-                  <Button
-                    type="button"
-                    className="h-8 px-3 text-xs"
-                    onClick={() => {
-                      setFeedback(null);
-                      setActionError(null);
-                      setConfirmingPaymentId(refund.paymentId);
-                    }}
-                  >
-                    Xác nhận hoàn
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </OperationsTable>
-
-          {/* Pagination */}
-          <div className="flex flex-wrap items-center justify-between gap-4 py-2 text-xs text-slate-600">
-            <div>
-              Hiển thị {offset + 1} – {Math.min(offset + paginatedRefunds.length, refunds.length)}{" "}
-              trong tổng số <strong>{refunds.length}</strong> yêu cầu hoàn tiền
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-                className="h-8 px-2.5 text-xs"
-              >
-                <ChevronLeft size={14} aria-hidden="true" />
-                <span>Trang trước</span>
-              </Button>
-              <span className="font-semibold text-ink px-2">
-                Trang {page} / {Math.max(1, Math.ceil(refunds.length / PAGE_SIZE))}
-              </span>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={offset + paginatedRefunds.length >= refunds.length}
-                onClick={() => setPage((p) => p + 1)}
-                className="h-8 px-2.5 text-xs"
-              >
-                <span>Trang sau</span>
-                <ChevronRight size={14} aria-hidden="true" />
-              </Button>
-            </div>
+      {/* Table Section */}
+      <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-slate-200/90 bg-white shadow-xs">
+        {isPending ? (
+          <LoadingState label={M.loading} variant="table" />
+        ) : isError || !refunds ? (
+          <ErrorState message={M.error} onRetry={() => void refetch()} />
+        ) : filteredRefunds.length === 0 ? (
+          <div className="h-48 flex flex-col items-center justify-center text-center p-6">
+            <CheckCircle2 size={28} className="text-emerald-600 mb-2" />
+            <h4 className="font-bold text-sm text-slate-800">Không có khoản hoàn nào đang chờ</h4>
+            <p className="text-xs text-slate-500 mt-1 max-w-sm">
+              {searchQuery
+                ? "Không tìm thấy yêu cầu hoàn tiền nào khớp với từ khóa tìm kiếm."
+                : "Mọi yêu cầu hoàn tiền đã được xử lý hoặc không có nghĩa vụ tồn đọng."}
+            </p>
           </div>
-        </>
+        ) : (
+          <Table>
+            <TableHeader className="sticky top-0 bg-slate-50/95 backdrop-blur-xs z-10 border-b border-slate-200">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="font-semibold text-xs text-slate-700 py-2.5 px-4">
+                  Mã giao dịch
+                </TableHead>
+                <TableHead className="font-semibold text-xs text-slate-700 py-2.5 px-4">
+                  Mã đặt chỗ
+                </TableHead>
+                <TableHead className="font-semibold text-xs text-slate-700 py-2.5 px-4">
+                  Số tiền hoàn
+                </TableHead>
+                <TableHead className="font-semibold text-xs text-slate-700 py-2.5 px-4">
+                  Thời điểm ghi nhận
+                </TableHead>
+                <TableHead className="font-semibold text-xs text-slate-700 py-2.5 px-4 text-right">
+                  Thao tác
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedRefunds.map((refund) => (
+                <TableRow key={refund.paymentId} className="hover:bg-slate-50/60 transition-colors">
+                  <TableCell className="font-mono text-xs font-semibold text-primary py-2.5 px-4 whitespace-nowrap">
+                    {refund.paymentId.slice(0, 8)}...
+                  </TableCell>
+                  <TableCell className="font-mono text-xs text-slate-700 py-2.5 px-4 whitespace-nowrap">
+                    {refund.bookingId ? `${refund.bookingId.slice(0, 8)}...` : "—"}
+                  </TableCell>
+                  <TableCell className="font-bold tabular-nums text-xs text-rose-600 py-2.5 px-4 whitespace-nowrap">
+                    {formatMoneyWithCurrency(refund.amount, refund.currency)}
+                  </TableCell>
+                  <TableCell className="text-xs text-slate-600 tabular-nums py-2.5 px-4 whitespace-nowrap">
+                    {formatDateTimeVn(refund.paidAt)}
+                  </TableCell>
+                  <TableCell className="py-2.5 px-4 text-right whitespace-nowrap">
+                    <Button
+                      type="button"
+                      className="h-7 px-2.5 text-xs inline-flex items-center gap-1.5"
+                      onClick={() => {
+                        setFeedback(null);
+                        setActionError(null);
+                        setConfirmingPaymentId(refund.paymentId);
+                      }}
+                    >
+                      Xác nhận hoàn
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </div>
+
+      {/* Pagination Footer with Jump Support */}
+      {refunds && (
+        <div className="shrink-0 pt-1">
+          <ListPagination
+            label={M.tabRefundQueueTitle}
+            page={page}
+            pageSize={PAGE_SIZE}
+            total={filteredRefunds.length}
+            unitLabel="yêu cầu"
+            onPageChange={setPage}
+          />
+        </div>
       )}
 
       {/* Manual Refund Confirmation Dialog with Zod Form */}

@@ -9,22 +9,13 @@ import {
   StorageUnitMaintenanceTransitionSchema,
   StorageUnitStatus,
 } from "@metastorage/contracts";
-import {
-  Boxes,
-  ChevronLeft,
-  ChevronRight,
-  Eye,
-  Pencil,
-  Plus,
-  RefreshCw,
-  Search,
-  Wrench,
-} from "lucide-react";
+import { Boxes, Eye, Pencil, Plus, RefreshCw, Search, Wrench } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/form-controls";
+import { ListPagination } from "@/components/ui/list-pagination";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import {
   Table,
@@ -106,7 +97,8 @@ export function InventoryPanel({
   facilityOptions,
   onSelectFacility,
 }: InventoryPanelProps) {
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [status, setStatus] = useState<StorageUnitStatus | "">("");
   const [typeId, setTypeId] = useState("");
   const [offset, setOffset] = useState(0);
@@ -130,8 +122,8 @@ export function InventoryPanel({
 
   // Real-time client search on fetched page for quick lookup
   const items = useMemo(() => {
-    if (!search.trim()) return rawItems;
-    const q = search.trim().toLowerCase();
+    if (!searchQuery.trim()) return rawItems;
+    const q = searchQuery.trim().toLowerCase();
     return rawItems.filter(
       (unit) =>
         unit.code.toLowerCase().includes(q) ||
@@ -139,10 +131,15 @@ export function InventoryPanel({
         Boolean(unit.floor?.toLowerCase().includes(q)) ||
         Boolean(unit.locationDescription?.toLowerCase().includes(q)),
     );
-  }, [rawItems, search]);
+  }, [rawItems, searchQuery]);
 
-  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
   const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
+
+  function handleSearchSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSearchQuery(searchInput);
+    setOffset(0);
+  }
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden min-h-0 gap-3">
@@ -169,16 +166,29 @@ export function InventoryPanel({
             </div>
           )}
 
-          {/* Search box */}
-          <div className="relative w-64">
-            <Search className="absolute left-2.5 top-2.5 size-4 text-slate-400" />
-            <Input
-              placeholder={F5.searchUnit}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-8.5 h-9 text-xs bg-slate-50 border-slate-200"
-            />
-          </div>
+          {/* Search box with submit button */}
+          <form
+            onSubmit={handleSearchSubmit}
+            className="flex items-center gap-2 flex-1 min-w-[220px]"
+          >
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-2.5 size-4 text-slate-400" />
+              <Input
+                placeholder={F5.searchUnit}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="pl-8.5 h-9 text-xs bg-slate-50 border-slate-200"
+              />
+            </div>
+            <Button
+              type="submit"
+              variant="outline"
+              className="h-9 px-3 text-xs font-semibold gap-1.5 shrink-0 border-slate-200"
+            >
+              <Search className="size-3.5" />
+              <span>Tìm kiếm</span>
+            </Button>
+          </form>
 
           {/* Status filter */}
           <div className="w-40">
@@ -350,47 +360,15 @@ export function InventoryPanel({
       </div>
 
       {/* Pagination Footer */}
-      <div className="shrink-0 flex items-center justify-between px-3.5 py-2.5 border border-slate-200/90 bg-white rounded-xl shadow-2xs text-xs text-slate-600">
-        <div>
-          {totalItems > 0 ? (
-            <span>
-              Hiển thị <strong className="text-slate-900">{offset + 1}</strong> –{" "}
-              <strong className="text-slate-900">{Math.min(offset + PAGE_SIZE, totalItems)}</strong>{" "}
-              trên tổng số <strong className="text-slate-900">{totalItems}</strong> ô kho
-            </span>
-          ) : (
-            <span>Không có dữ liệu</span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
-            disabled={offset === 0 || query.isFetching}
-            className="min-h-0 h-8 px-2 text-xs gap-1"
-          >
-            <ChevronLeft className="size-3.5" />
-            <span>{F5.previous}</span>
-          </Button>
-
-          <span className="text-xs px-2 text-slate-500 font-medium">
-            Trang {currentPage} / {totalPages}
-          </span>
-
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setOffset(offset + PAGE_SIZE)}
-            disabled={offset + PAGE_SIZE >= totalItems || query.isFetching}
-            className="min-h-0 h-8 px-2 text-xs gap-1"
-          >
-            <span>{F5.next}</span>
-            <ChevronRight className="size-3.5" />
-          </Button>
-        </div>
-      </div>
+      <ListPagination
+        label={F5.inventory}
+        page={currentPage}
+        pageSize={PAGE_SIZE}
+        total={totalItems}
+        onPageChange={(p) => setOffset((p - 1) * PAGE_SIZE)}
+        pending={query.isFetching}
+        unitLabel="ô kho"
+      />
 
       {/* Detail Modal */}
       {detailUnitId && (

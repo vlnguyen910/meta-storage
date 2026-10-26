@@ -28,12 +28,16 @@ import { useOperationsWorkspace } from "./use-operations-workspace";
 export function OperationsWorkspace({ section }: Readonly<OperationsWorkspaceProps>) {
   if (!isMockMode) {
     return (
-      <div className="grid min-w-0 gap-6">
-        <header className="flex flex-wrap items-start justify-between gap-5">
+      <div className="flex flex-col h-full w-full overflow-hidden min-h-0 gap-3 py-3">
+        <header className="shrink-0 flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="mb-2 text-xs font-semibold text-slate-600">{M.breadcrumb}</p>
-            <h1 className="text-3xl font-bold text-ink sm:text-4xl">{M.titles[section]}</h1>
-            <p className="mb-0 mt-3 max-w-3xl text-sm text-slate-600">{M.descriptions[section]}</p>
+            <p className="text-xs font-semibold text-slate-500 mb-0.5">{M.breadcrumb}</p>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight sm:text-3xl">
+              {M.titles[section]}
+            </h1>
+            <p className="mt-1 text-xs text-slate-600 line-clamp-1 max-w-3xl">
+              {M.descriptions[section]}
+            </p>
           </div>
           {(section === "revenue" || section === "utilization") && (
             <Link href={routes.reports} className={buttonClassName("outline")}>
@@ -42,14 +46,36 @@ export function OperationsWorkspace({ section }: Readonly<OperationsWorkspacePro
           )}
         </header>
 
-        {section === "dashboard" && <OperationsDashboardView />}
-        {section === "pricing" && <OperationsPricingView />}
-        {section === "business-rules" && <OperationsRulesView />}
-        {section === "fees" && <OperationsFeesView />}
-        {section === "revenue" && <OperationsRevenueView />}
-        {section === "utilization" && <OperationsUtilizationView />}
-        {section === "reports" && <OperationsReportsHub />}
-        {section === "facilities" && <OperationsFacilitiesRealView />}
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          {section === "dashboard" && (
+            <div className="flex-1 overflow-y-auto min-h-0 pr-1">
+              <OperationsDashboardView />
+            </div>
+          )}
+          {section === "pricing" && <OperationsPricingView />}
+          {section === "business-rules" && (
+            <div className="flex-1 overflow-y-auto min-h-0 pr-1">
+              <OperationsRulesView />
+            </div>
+          )}
+          {section === "fees" && (
+            <div className="flex-1 overflow-y-auto min-h-0 pr-1">
+              <OperationsFeesView />
+            </div>
+          )}
+          {section === "revenue" && (
+            <div className="flex-1 overflow-y-auto min-h-0 pr-1">
+              <OperationsRevenueView />
+            </div>
+          )}
+          {section === "utilization" && (
+            <div className="flex-1 overflow-y-auto min-h-0 pr-1">
+              <OperationsUtilizationView />
+            </div>
+          )}
+          {section === "reports" && <OperationsReportsHub />}
+          {section === "facilities" && <OperationsFacilitiesRealView />}
+        </div>
       </div>
     );
   }
