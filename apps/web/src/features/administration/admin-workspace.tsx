@@ -270,11 +270,11 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
             value={filters.action}
             onChange={(val) => filter("action", val)}
             placement="bottom"
-            className="w-36 shrink-0"
+            className="w-40 shrink-0"
             triggerClassName="h-9 min-h-9 text-xs bg-white border-line"
             placeholder={M.actionFilter}
             options={[
-              { value: "", label: M.all },
+              { value: "", label: M.allActions },
               ...Object.entries(M.actions).map(([value, label]) => ({
                 value,
                 label,
@@ -289,11 +289,11 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
             value={filters.outcome}
             onChange={(val) => filter("outcome", val)}
             placement="bottom"
-            className="w-28 shrink-0"
+            className="w-36 shrink-0"
             triggerClassName="h-9 min-h-9 text-xs bg-white border-line"
             placeholder={M.outcomeFilter}
             options={[
-              { value: "", label: M.all },
+              { value: "", label: M.allOutcomes },
               { value: "SUCCESS", label: M.success },
               { value: "FAILED", label: M.failed },
             ]}
