@@ -1,18 +1,27 @@
 import { randomUUID } from "node:crypto";
-import type {
-  CreateUserInput,
-  UpdateOwnProfileInput,
-  UpdateUserInput,
-  UserListQuery,
+import {
+  type CreateUserInput,
+  type CustomerRegistrationStats,
+  type UpdateOwnProfileInput,
+  type UpdateUserInput,
+  type UserListQuery,
+  UserRole,
 } from "@metastorage/contracts";
 import {
   accounts,
   and,
+  count,
   type Database,
   desc,
   eq,
   facilityAssignments,
+  gt,
+  gte,
   ilike,
+  inArray,
+  isNull,
+  lt,
+  notExists,
   or,
   sessions,
   sql,
@@ -126,6 +135,64 @@ export class UsersRepository {
       .limit(query.limit)
       .offset(query.offset)
       .orderBy(desc(users.createdAt), desc(users.id));
+  }
+
+  async customerRegistrations(from: Date, to: Date): Promise<{ month: string; count: number }[]> {
+    // shortcut: current role determines the count; use role history if original signup role is needed.
+    const month = sql<string>`to_char(${users.createdAt} AT TIME ZONE 'UTC', 'YYYY-MM')`;
+    return this.db
+      .select({ month, count: sql<number>`count(*)::int` })
+      .from(users)
+      .where(
+        and(
+          eq(users.role, UserRole.STORAGE_CUSTOMER),
+          gte(users.createdAt, from),
+          lt(users.createdAt, to),
+        ),
+      )
+      .groupBy(month)
+      .orderBy(month);
+  }
+
+  async customerRegistrationYears(): Promise<number[]> {
+    const year = sql<number>`extract(year from ${users.createdAt} AT TIME ZONE 'UTC')::int`;
+    const rows = await this.db
+      .selectDistinct({ year })
+      .from(users)
+      .where(eq(users.role, UserRole.STORAGE_CUSTOMER))
+      .orderBy(year);
+    return rows.map((row) => row.year);
+  }
+
+  async dashboardSummary(): Promise<CustomerRegistrationStats["summary"]> {
+    const currentAssignment = this.db
+      .select({ id: facilityAssignments.id })
+      .from(facilityAssignments)
+      .where(
+        and(
+          eq(facilityAssignments.userId, users.id),
+          eq(facilityAssignments.isActive, true),
+          or(isNull(facilityAssignments.endedAt), gt(facilityAssignments.endedAt, new Date())),
+        ),
+      );
+    const [statuses, [unassigned]] = await Promise.all([
+      this.db.select({ status: users.status, count: count() }).from(users).groupBy(users.status),
+      this.db
+        .select({ count: count() })
+        .from(users)
+        .where(
+          and(
+            inArray(users.role, [UserRole.FACILITY_STAFF, UserRole.FACILITY_MANAGER]),
+            notExists(currentAssignment),
+          ),
+        ),
+    ]);
+    return {
+      totalUsers: statuses.reduce((total, row) => total + row.count, 0),
+      activeUsers: statuses.find((row) => row.status === "ACTIVE")?.count ?? 0,
+      inactiveUsers: statuses.find((row) => row.status === "INACTIVE")?.count ?? 0,
+      unassignedFacilityUsers: unassigned?.count ?? 0,
+    };
   }
 
   async update(id: string, data: UpdateUserInput, tx: UserTransaction): Promise<User | undefined> {

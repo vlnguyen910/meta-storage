@@ -1,5 +1,6 @@
 import {
   CreateUserInputSchema,
+  CustomerRegistrationQuerySchema,
   UpdateOwnProfileInputSchema,
   UpdateUserRoleInputSchema,
   UpdateUserStatusInputSchema,
@@ -78,6 +79,17 @@ export const usersRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const users = await service.listUsers(request.query);
       return reply.status(200).send(successResponse(users));
+    },
+  );
+
+  typedApp.get(
+    "/customer-registrations",
+    {
+      schema: { querystring: CustomerRegistrationQuerySchema },
+      preHandler: [requireRole("SYSTEM_ADMIN")],
+    },
+    async (request, reply) => {
+      return reply.send(successResponse(await service.customerRegistrations(request.query.year)));
     },
   );
 

@@ -12,3 +12,20 @@ export interface User {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface CustomerRegistrationMonth {
+  month: string;
+  count: number;
+}
+
+export interface CustomerRegistrationStats {
+  year: number;
+  years: number[];
+  items: CustomerRegistrationMonth[];
+  summary: {
+    totalUsers: number;
+    activeUsers: number;
+    inactiveUsers: number;
+    unassignedFacilityUsers: number;
+  };
+}

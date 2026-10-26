@@ -33,6 +33,7 @@ import type {
   CustomerBookingDetail,
   CustomerBookingPage,
   CustomerBookingPageQuery,
+  CustomerRegistrationStats,
   CustomerSignUpInput,
   DashboardSummary,
   EligibleUnit,
@@ -279,6 +280,12 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
     },
     users: {
       list: () => http.get<ApiEnvelope<User[]>>("/users", { params: { limit: 100 } }).then(unwrap),
+      customerRegistrations: (year?: number) =>
+        http
+          .get<ApiEnvelope<CustomerRegistrationStats>>("/users/customer-registrations", {
+            params: { year },
+          })
+          .then(unwrap),
       setRole: (userId: string, role: User["role"]) =>
         http.patch<ApiEnvelope<User>>(`/users/${userId}/role`, { role }).then(unwrap),
     },
