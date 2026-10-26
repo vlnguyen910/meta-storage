@@ -49,6 +49,7 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
   const query = useAdminData();
   const actor = useAuthStore((state) => state.session?.user.name) ?? M.role;
   const [filters, setFilters] = useState(initialFilters);
+  const [searchInput, setSearchInput] = useState(initialFilters.search);
   const [pagination, setPagination] = useState({ section, page: 1 });
   const [editor, setEditor] = useState<AdminUser | null>(null);
   const [userDetail, setUserDetail] = useState<AdminUser | null>(null);
@@ -58,6 +59,10 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
   const filter = (key: keyof AdminFilters, value: string) => {
     setFilters((current) => ({ ...current, [key]: value }));
     setPagination({ section, page: 1 });
+  };
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    filter("search", searchInput.trim());
   };
   if (query.isLoading) return <LoadingState label={M.loading} variant="table" />;
   if (!query.data || query.isError)
@@ -151,32 +156,49 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
       );
   };
   return (
-    <div className="grid min-w-0 gap-5">
-      <header>
-        <p className="mb-2 mt-0 text-xs font-semibold text-primary">
+    <div className="flex flex-col h-full w-full overflow-hidden min-h-0 gap-3.5">
+      <header className="shrink-0">
+        <p className="mb-1 mt-0 text-xs font-semibold text-primary">
           {M.role} / {codes[section]}
         </p>
-        <h1 className="m-0 font-['Space_Grotesk'] text-2xl font-bold tracking-tight sm:text-[32px]">
+        <h1 className="m-0 font-['Space_Grotesk'] text-2xl font-bold tracking-tight sm:text-[28px]">
           {M.titles[section]}
         </h1>
-        <p className="mb-0 mt-1 text-sm leading-6 text-slate-600">{M.descriptions[section]}</p>
+        <p className="mb-0 mt-0.5 text-xs text-slate-600">{M.descriptions[section]}</p>
       </header>
-      {section === "assignments" && <p className="m-0 text-sm text-slate-600">{M.facilityHelp}</p>}
+      {section === "assignments" && (
+        <p className="shrink-0 m-0 text-xs text-slate-600">{M.facilityHelp}</p>
+      )}
       {!accounts && (
-        <p className="m-0 text-sm text-slate-600">
+        <p className="shrink-0 m-0 text-xs text-slate-600">
           {M.readonlyLog} {M.privacy}
         </p>
       )}
       <section
         aria-label={section === "activity-logs" ? M.auditSearch : M.search}
-        className={`${adminCard} grid items-end gap-4 sm:grid-cols-2 xl:grid-cols-4`}
+        className={`${adminCard} shrink-0 grid items-end gap-3 p-3.5 sm:grid-cols-2 xl:grid-cols-4`}
       >
         <FieldShell label={section === "activity-logs" ? M.auditSearch : M.search}>
-          <Input
-            type="search"
-            value={filters.search}
-            onChange={(event) => filter("search", event.target.value)}
-          />
+          <div className="flex items-center gap-2">
+            <Input
+              type="search"
+              value={searchInput}
+              placeholder={section === "activity-logs" ? M.auditSearch : M.search}
+              onChange={(event) => setSearchInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") handleSearchSubmit();
+              }}
+              className="h-10 text-xs"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10 px-3 text-xs font-semibold shrink-0"
+              onClick={handleSearchSubmit}
+            >
+              {M.searchConfirm}
+            </Button>
+          </div>
         </FieldShell>
         {(accounts || login) && (
           <FieldShell label={M.roleFilter}>
@@ -280,6 +302,7 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
             variant="outline"
             icon={<RotateCcw size={17} aria-hidden="true" />}
             onClick={() => {
+              setSearchInput("");
               setFilters(initialFilters);
               setPagination({ section, page: 1 });
             }}
@@ -296,9 +319,11 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
           </Button>
         </div>
       </section>
-      <p role="status" className="m-0 text-sm text-primary">
-        {notice}
-      </p>
+      {notice && (
+        <p role="status" className="shrink-0 m-0 text-xs text-primary">
+          {notice}
+        </p>
+      )}
       {count === 0 ? (
         <section className={`${adminCard} text-center`}>
           <h2 className="text-lg font-bold">{M.empty}</h2>
@@ -407,13 +432,15 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
                 ))}
         </AdminTable>
       )}
-      <ListPagination
-        label={M.titles[section]}
-        page={page}
-        pageSize={pageSize}
-        total={count}
-        onPageChange={(next) => setPagination({ section, page: next })}
-      />
+      <div className="shrink-0 [&>nav]:shadow-2xs">
+        <ListPagination
+          label={M.titles[section]}
+          page={page}
+          pageSize={pageSize}
+          total={count}
+          onPageChange={(next) => setPagination({ section, page: next })}
+        />
+      </div>
       {editor && (
         <AdminEditor
           key={editor.id}
