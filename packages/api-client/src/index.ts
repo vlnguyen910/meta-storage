@@ -115,7 +115,9 @@ import type {
   UpdateDepositPolicy,
   UpdateStorageUnitStatusBody,
   UpdateUnitTypePrice,
+  UpdateUserStatusInput,
   User,
+  UserListQuery,
   UserRole,
   UtilizationReport,
   UtilizationReportQuery,
@@ -279,7 +281,11 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
       },
     },
     users: {
-      list: () => http.get<ApiEnvelope<User[]>>("/users", { params: { limit: 100 } }).then(unwrap),
+      list: (params: Partial<UserListQuery> = { limit: 100 }) =>
+        http.get<ApiEnvelope<User[]>>("/users", { params }).then(unwrap),
+      get: (userId: string) => http.get<ApiEnvelope<User>>(`/users/${userId}`).then(unwrap),
+      setStatus: (userId: string, input: UpdateUserStatusInput) =>
+        http.patch<ApiEnvelope<User>>(`/users/${userId}/status`, input).then(unwrap),
       customerRegistrations: (year?: number) =>
         http
           .get<ApiEnvelope<CustomerRegistrationStats>>("/users/customer-registrations", {

@@ -8,6 +8,10 @@ export const AdminUserDraftSchema = z.object({
   reason: z.string().trim(),
 });
 
+export const AdminUserEditSchema = z.object({
+  role: z.nativeEnum(UserRole),
+});
+
 export const AdminAssignmentDraftSchema = z.object({
   facilityIds: z.array(z.string()),
   reason: z.string().trim(),

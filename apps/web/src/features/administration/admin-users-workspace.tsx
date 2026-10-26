@@ -9,6 +9,7 @@ import {
   Pencil,
   RotateCcw,
   Search,
+  UnlockKeyhole,
   UsersRound,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -32,11 +33,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { roleBadgeClassName, userInitials } from "./admin.helpers";
+import { isManagedUser, roleBadgeClassName, userInitials } from "./admin.helpers";
 import { ADMIN_ROLE_LABELS, ADMIN_MESSAGES as M } from "./admin.messages";
-import { AdminEditor } from "./admin-editor";
 import { adminCard } from "./admin-parts";
 import { AdminUserDetail } from "./admin-user-detail";
+import { AdminUserEditor } from "./admin-user-editor";
 import { useAdminUsersWorkspace } from "./use-admin-users-workspace";
 
 export function AdminUsersWorkspace() {
@@ -55,7 +56,7 @@ export function AdminUsersWorkspace() {
   const metrics = [
     {
       label: M.totalUsers,
-      value: data.users.length,
+      value: data.length,
       detail: M.allSystemAccounts,
       detailClassName: "text-muted",
       icon: UsersRound,
@@ -63,24 +64,22 @@ export function AdminUsersWorkspace() {
     },
     {
       label: M.active,
-      value: data.users.filter((user) => user.status === "ACTIVE").length,
-      detail: M.activeShare(
-        data.users.filter((user) => user.status === "ACTIVE").length,
-        data.users.length,
-      ),
+      value: data.filter((user) => user.status === "ACTIVE").length,
+      detail: M.activeShare(data.filter((user) => user.status === "ACTIVE").length, data.length),
       detailClassName: "text-accent",
       icon: CheckCircle2,
       iconClassName: "bg-accent-soft text-accent",
     },
     {
       label: M.inactive,
-      value: data.users.filter((user) => user.status === "INACTIVE").length,
+      value: data.filter((user) => user.status === "INACTIVE").length,
       detail: M.lockedReview,
       detailClassName: "text-warning",
       icon: LockKeyhole,
       iconClassName: "bg-red-50 text-danger",
     },
   ];
+  const editor = workspace.editor;
 
   return (
     <div className="grid min-w-0 gap-6">
@@ -158,19 +157,6 @@ export function AdminUsersWorkspace() {
           <NativeSelectOption value="ACTIVE">{M.active}</NativeSelectOption>
           <NativeSelectOption value="INACTIVE">{M.inactive}</NativeSelectOption>
         </NativeSelect>
-        <NativeSelect
-          aria-label={M.facilityFilter}
-          value={workspace.filters.facilityId}
-          onChange={(event) => workspace.filter("facilityId", event.target.value)}
-          className="min-w-44 bg-canvas"
-        >
-          <NativeSelectOption value="">{M.allFacilities}</NativeSelectOption>
-          {data.facilities.map((facility) => (
-            <NativeSelectOption key={facility.id} value={facility.id}>
-              {facility.name}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
         <Button
           variant="outline"
           className="min-h-10 rounded-lg px-3.5"
@@ -181,7 +167,11 @@ export function AdminUsersWorkspace() {
         </Button>
       </section>
 
-      <p role="status" className="sr-only">
+      <p
+        role="status"
+        className={workspace.notice ? "m-0 text-sm text-muted" : "sr-only"}
+        aria-live="polite"
+      >
         {workspace.notice}
       </p>
 
@@ -209,77 +199,125 @@ export function AdminUsersWorkspace() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {workspace.visibleUsers.map((user) => (
-                  <TableRow
-                    key={user.id}
-                    className={
-                      workspace.detail?.id === user.id || workspace.editor?.id === user.id
-                        ? "bg-primary-soft/30 hover:bg-primary-soft/50"
-                        : "hover:bg-canvas/60"
-                    }
-                  >
-                    <TableCell className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <span className="grid size-9 shrink-0 place-items-center rounded-full border border-line bg-slate-100 text-xs font-bold text-secondary">
-                          {userInitials(user.name)}
-                        </span>
-                        <span className="min-w-0">
-                          <strong className="block truncate text-sm text-ink">{user.name}</strong>
-                          <span className="block truncate text-xs text-muted">{user.email}</span>
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-6 py-4">
-                      <Badge className={roleBadgeClassName(user.role)}>
-                        {ADMIN_ROLE_LABELS[user.role]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="px-6 py-4">
-                      <Badge
-                        className={
-                          user.status === "ACTIVE"
-                            ? "border-emerald-100 bg-accent-soft text-accent"
-                            : "border-red-100 bg-red-50 text-red-700"
-                        }
-                      >
-                        <span
-                          aria-hidden="true"
-                          className={`mr-1.5 size-1.5 rounded-full ${
-                            user.status === "ACTIVE" ? "bg-accent" : "bg-danger"
-                          }`}
-                        />
-                        {user.status === "ACTIVE" ? M.active : M.inactive}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="px-6 py-4 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            className={`size-10 min-h-0 rounded-lg p-0 ${
-                              workspace.detail?.id === user.id || workspace.editor?.id === user.id
-                                ? "bg-primary-soft text-primary"
-                                : ""
+                {workspace.visibleUsers.map((user) => {
+                  const canManage =
+                    isManagedUser(user) && user.role !== UserRole.SYSTEM_ADMINISTRATOR;
+                  return (
+                    <TableRow
+                      key={user.id}
+                      className={
+                        workspace.detailId === user.id || workspace.editor?.id === user.id
+                          ? "bg-primary-soft/30 hover:bg-primary-soft/50"
+                          : "hover:bg-canvas/60"
+                      }
+                    >
+                      <TableCell className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <span className="grid size-9 shrink-0 place-items-center rounded-full border border-line bg-slate-100 text-xs font-bold text-secondary">
+                            {userInitials(user.name)}
+                          </span>
+                          <span className="min-w-0">
+                            <strong className="block truncate text-sm text-ink">{user.name}</strong>
+                            <span className="block truncate text-xs text-muted">{user.email}</span>
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-6 py-4">
+                        <Badge
+                          className={
+                            user.role
+                              ? roleBadgeClassName(user.role)
+                              : "border-line bg-slate-50 text-secondary"
+                          }
+                        >
+                          {user.role ? ADMIN_ROLE_LABELS[user.role] : M.noRole}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="px-6 py-4">
+                        <Badge
+                          className={
+                            user.status === "ACTIVE"
+                              ? "border-emerald-100 bg-accent-soft text-accent"
+                              : user.status === "INACTIVE"
+                                ? "border-red-100 bg-red-50 text-red-700"
+                                : "border-line bg-slate-50 text-secondary"
+                          }
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={`mr-1.5 size-1.5 rounded-full ${
+                              user.status === "ACTIVE"
+                                ? "bg-accent"
+                                : user.status === "INACTIVE"
+                                  ? "bg-danger"
+                                  : "bg-slate-400"
                             }`}
-                            aria-label={M.actionsLabel(user.name)}
-                          >
-                            <MoreVertical size={19} aria-hidden="true" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem onSelect={() => workspace.setDetail(user)}>
-                            <Eye size={17} aria-hidden="true" className="mr-2 text-muted" />
-                            {M.details}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => workspace.setEditor(user)}>
-                            <Pencil size={17} aria-hidden="true" className="mr-2 text-muted" />
-                            {M.edit}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                          />
+                          {user.status === "ACTIVE"
+                            ? M.active
+                            : user.status === "INACTIVE"
+                              ? M.inactive
+                              : M.noStatus}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="px-6 py-4 text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              className={`size-10 min-h-0 rounded-lg p-0 ${
+                                workspace.detailId === user.id || workspace.editor?.id === user.id
+                                  ? "bg-primary-soft text-primary"
+                                  : ""
+                              }`}
+                              aria-label={M.actionsLabel(user.name)}
+                            >
+                              <MoreVertical size={19} aria-hidden="true" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem onSelect={() => workspace.setDetailId(user.id)}>
+                              <Eye size={17} aria-hidden="true" className="mr-2 text-muted" />
+                              {M.details}
+                            </DropdownMenuItem>
+                            {canManage && (
+                              <DropdownMenuItem
+                                onSelect={() => {
+                                  if (
+                                    isManagedUser(user) &&
+                                    user.role !== UserRole.SYSTEM_ADMINISTRATOR
+                                  )
+                                    workspace.setEditor(user);
+                                }}
+                              >
+                                <Pencil size={17} aria-hidden="true" className="mr-2 text-muted" />
+                                {M.edit}
+                              </DropdownMenuItem>
+                            )}
+                            {canManage && (
+                              <DropdownMenuItem
+                                disabled={workspace.isChangingStatus}
+                                className={
+                                  user.status === "ACTIVE"
+                                    ? "text-danger focus:text-danger"
+                                    : "text-primary focus:text-primary"
+                                }
+                                onSelect={() => workspace.toggleStatus(user)}
+                              >
+                                {user.status === "ACTIVE" ? (
+                                  <LockKeyhole size={17} aria-hidden="true" className="mr-2" />
+                                ) : (
+                                  <UnlockKeyhole size={17} aria-hidden="true" className="mr-2" />
+                                )}
+                                {user.status === "ACTIVE" ? M.lock : M.unlock}
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
@@ -295,29 +333,23 @@ export function AdminUsersWorkspace() {
         </Card>
       )}
 
-      {workspace.detail && (
+      {workspace.detailId && (
         <AdminUserDetail
-          user={workspace.detail}
-          data={data}
-          onClose={() => workspace.setDetail(null)}
-          onEdit={() => {
-            workspace.setEditor(workspace.detail);
-            workspace.setDetail(null);
+          userId={workspace.detailId}
+          onClose={() => workspace.setDetailId(null)}
+          onEdit={(user) => {
+            if (isManagedUser(user) && user.role !== UserRole.SYSTEM_ADMINISTRATOR)
+              workspace.setEditor(user);
+            workspace.setDetailId(null);
           }}
         />
       )}
 
-      {workspace.editor && (
-        <AdminEditor
-          key={workspace.editor.id}
-          user={workspace.editor}
-          data={data}
-          actor={workspace.actor}
-          assignment={false}
-          modal
-          pending={workspace.query.mutation.isPending}
+      {editor && (
+        <AdminUserEditor
+          user={editor}
           onClose={() => workspace.setEditor(null)}
-          onSave={workspace.saveChanges}
+          onSave={(role) => workspace.saveUser(editor.id, role)}
         />
       )}
     </div>
