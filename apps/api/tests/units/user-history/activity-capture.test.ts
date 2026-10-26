@@ -28,7 +28,7 @@ describe("user activity capture", () => {
         params: { id: targetId, token: "private" },
         body: { password: "private", email: "private@example.test" },
       },
-      { success: true, data: { id: targetId, passwordHash: "private" } },
+      { success: true, data: { id: targetId, accessToken: "private" } },
     );
     expect(event).toEqual({
       actorId,
