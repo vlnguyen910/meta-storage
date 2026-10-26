@@ -6,8 +6,6 @@ import { F3 } from "@/features/returns/integration.messages";
 import type { NavigationItem } from "./types";
 
 export const systemAdministratorNavigation: NavigationItem[] = [
-  { href: systemAdministratorRoutes.facilityManagement, label: F5.administration, icon: Building2 },
-  { href: systemAdministratorRoutes.returnSettings, label: F3.settings, icon: ListChecks },
   { href: systemAdministratorRoutes.dashboard, label: M.titles.dashboard, icon: LayoutDashboard },
   { href: systemAdministratorRoutes.users, label: M.titles.users, icon: UsersRound },
   {
@@ -21,4 +19,6 @@ export const systemAdministratorNavigation: NavigationItem[] = [
     label: M.titles["activity-logs"],
     icon: ListChecks,
   },
+  { href: systemAdministratorRoutes.facilityManagement, label: F5.administration, icon: Building2 },
+  { href: systemAdministratorRoutes.returnSettings, label: F3.settings, icon: ListChecks },
 ];
