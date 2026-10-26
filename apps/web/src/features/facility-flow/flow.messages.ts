@@ -16,6 +16,7 @@ export const FLOW = {
   assignedStaff: "Staff phụ trách",
   needsStaff: "Chờ phân công Staff",
   staffTasks: "Công việc được giao",
+  staffWork: "Công việc của tôi",
   confirmHandover: "Xác nhận khách nhận kho",
   customerReceived: "Đã đối chiếu với khách hàng và xác nhận khách đã nhận bàn giao ô kho.",
   handoverSuccess: "Đã bàn giao kho và kích hoạt thuê kho.",

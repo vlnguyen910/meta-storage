@@ -42,6 +42,7 @@ import {
   panelClass,
   textareaClass,
 } from "./management-ui";
+import { TASK_WORKSPACE_MESSAGES } from "./task-workspace.messages";
 
 const TASK_STATUS_BADGE_CLASS: Record<FacilityTaskDetail["status"], string> = {
   ASSIGNED: "border-sky-200 bg-sky-50 text-sky-900",
@@ -342,7 +343,7 @@ function TaskCreator({
   );
 }
 
-function TaskDetails({
+export function TaskDetails({
   id,
   manager,
   onClose,
@@ -363,6 +364,8 @@ function TaskDetails({
   if (query.isError)
     return <ErrorState message={managementError(query.error)} onRetry={() => query.refetch()} />;
   const task = query.data;
+  const Heading = manager ? "h2" : "h1";
+  const ReportHeading = manager ? "h3" : "h2";
   return (
     <section
       ref={detailRef}
@@ -374,9 +377,9 @@ function TaskDetails({
           <p className="inline-flex w-fit items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-900">
             {F5.typeLabels[task.type]}
           </p>
-          <h2 className="mt-2 break-words text-xl font-extrabold tracking-tight text-ink">
+          <Heading className="mt-2 break-words text-xl font-extrabold tracking-tight text-ink">
             {task.title}
-          </h2>
+          </Heading>
           <p
             className={`mt-3 inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-bold ${TASK_STATUS_BADGE_CLASS[task.status]}`}
           >
@@ -384,16 +387,20 @@ function TaskDetails({
           </p>
           <p className="mt-1 text-sm text-slate-600">{F5.taskStateHint[task.status]}</p>
         </div>
-        <Button type="button" variant="outline" onClick={onClose}>
-          {F5.close}
-        </Button>
+        {manager && (
+          <Button type="button" variant="outline" onClick={onClose}>
+            {F5.close}
+          </Button>
+        )}
       </div>
       <p className="whitespace-pre-wrap break-words text-sm">{task.description}</p>
       <dl className="grid gap-3 text-sm sm:grid-cols-2">
-        <div>
-          <dt className="text-slate-600">{F5.staff}</dt>
-          <dd>{task.assignedStaffName}</dd>
-        </div>
+        {manager && (
+          <div>
+            <dt className="text-slate-600">{F5.staff}</dt>
+            <dd>{task.assignedStaffName}</dd>
+          </div>
+        )}
         <div>
           <dt className="text-slate-600">{F5.assignedBy}</dt>
           <dd>{task.assignerName}</dd>
@@ -402,17 +409,19 @@ function TaskDetails({
           <dt className="text-slate-600">{F5.assignedAt}</dt>
           <dd>{formatDateTime(task.assignedAt)}</dd>
         </div>
-        <div>
-          <dt className="text-slate-600">{F5.version}</dt>
-          <dd>{task.version}</dd>
-        </div>
-        {task.storageUnitId && (
+        {manager && (
+          <div>
+            <dt className="text-slate-600">{F5.version}</dt>
+            <dd>{task.version}</dd>
+          </div>
+        )}
+        {manager && task.storageUnitId && (
           <div className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-3">
             <dt className="text-xs font-semibold text-slate-600">{F5.unit}</dt>
             <dd className="mt-1 break-all font-mono text-xs text-ink">{task.storageUnitId}</dd>
           </div>
         )}
-        {task.bookingId && (
+        {manager && task.bookingId && (
           <div className="min-w-0 rounded-xl border border-emerald-200 bg-emerald-50/70 p-3">
             <dt className="text-xs font-bold text-emerald-900">{F5.booking}</dt>
             <dd className="mt-1 break-all font-mono text-xs text-emerald-950">{task.bookingId}</dd>
@@ -424,7 +433,7 @@ function TaskDetails({
       ) : (
         <TaskExecution task={task} onReported={() => setOffset(0)} />
       )}
-      <h3 className="text-lg font-bold">{F5.reports}</h3>
+      <ReportHeading className="text-lg font-bold">{F5.reports}</ReportHeading>
       {history.isPending ? (
         <LoadingState variant="table" />
       ) : history.isError ? (
@@ -498,6 +507,17 @@ function TaskExecution({ task, onReported }: { task: FacilityTaskDetail; onRepor
       </div>
     );
   if (task.status === "COMPLETED") return null;
+  if (task.status === "AWAITING_APPROVAL")
+    return (
+      <details className="rounded-xl border border-slate-200 p-4">
+        <summary className="cursor-pointer text-sm font-semibold text-emerald-900">
+          {TASK_WORKSPACE_MESSAGES.additionalReport}
+        </summary>
+        <div className="mt-4">
+          <TaskReportEditor taskId={task.id} onReported={onReported} />
+        </div>
+      </details>
+    );
   return <TaskReportEditor taskId={task.id} onReported={onReported} />;
 }
 

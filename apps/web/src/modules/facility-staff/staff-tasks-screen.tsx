@@ -1,5 +1,11 @@
-import { TaskWorkspace } from "@/features/facility-management/task-workspace";
-
+"use client";
+import { Suspense } from "react";
+import { LoadingState } from "@/components/ui/states";
+import { StaffWorkList } from "./staff-work-list";
 export function StaffTasksScreen() {
-  return <TaskWorkspace manager={false} />;
+  return (
+    <Suspense fallback={<LoadingState variant="table" />}>
+      <StaffWorkList />
+    </Suspense>
+  );
 }
