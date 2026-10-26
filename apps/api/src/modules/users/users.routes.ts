@@ -2,7 +2,7 @@ import {
   CreateUserInputSchema,
   CustomerRegistrationQuerySchema,
   UpdateOwnProfileInputSchema,
-  UpdateUserRoleInputSchema,
+  UpdateUserRoleWithoutCustomerSchema,
   UpdateUserStatusInputSchema,
   UserIdParamsSchema,
   UserListQuerySchema,
@@ -99,7 +99,7 @@ export const usersRoutes: FastifyPluginAsync = async (fastify) => {
     {
       schema: {
         params: UserIdParamsSchema,
-        body: UpdateUserRoleInputSchema,
+        body: UpdateUserRoleWithoutCustomerSchema,
       },
       preHandler: [requireRole("SYSTEM_ADMIN")],
     },

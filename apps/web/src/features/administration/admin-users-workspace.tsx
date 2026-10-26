@@ -23,7 +23,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/form-controls";
 import { ListPagination } from "@/components/ui/list-pagination";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { LoadingState } from "@/components/ui/states";
 import {
   Table,
@@ -38,6 +44,7 @@ import { ADMIN_ROLE_LABELS, ADMIN_MESSAGES as M } from "./admin.messages";
 import { adminCard } from "./admin-parts";
 import { AdminUserDetail } from "./admin-user-detail";
 import { AdminUserEditor } from "./admin-user-editor";
+import { AdminUserStatusConfirmation } from "./admin-user-status-confirmation";
 import { useAdminUsersWorkspace } from "./use-admin-users-workspace";
 
 export function AdminUsersWorkspace() {
@@ -134,29 +141,35 @@ export function AdminUsersWorkspace() {
             onChange={(event) => workspace.filter("search", event.target.value)}
           />
         </div>
-        <NativeSelect
-          aria-label={M.roleFilter}
-          value={workspace.filters.role}
-          onChange={(event) => workspace.filter("role", event.target.value)}
-          className="min-w-44 bg-canvas"
+        <Select
+          value={workspace.filters.role || "all"}
+          onValueChange={(value) => workspace.filter("role", value === "all" ? "" : value)}
         >
-          <NativeSelectOption value="">{M.allRoles}</NativeSelectOption>
-          {Object.values(UserRole).map((role) => (
-            <NativeSelectOption key={role} value={role}>
-              {ADMIN_ROLE_LABELS[role]}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
-        <NativeSelect
-          aria-label={M.statusFilter}
-          value={workspace.filters.status}
-          onChange={(event) => workspace.filter("status", event.target.value)}
-          className="min-w-40 bg-canvas"
+          <SelectTrigger aria-label={M.roleFilter} className="min-w-44 lg:w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{M.allRoles}</SelectItem>
+            {Object.values(UserRole).map((role) => (
+              <SelectItem key={role} value={role}>
+                {ADMIN_ROLE_LABELS[role]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={workspace.filters.status || "all"}
+          onValueChange={(value) => workspace.filter("status", value === "all" ? "" : value)}
         >
-          <NativeSelectOption value="">{M.allStatuses}</NativeSelectOption>
-          <NativeSelectOption value="ACTIVE">{M.active}</NativeSelectOption>
-          <NativeSelectOption value="INACTIVE">{M.inactive}</NativeSelectOption>
-        </NativeSelect>
+          <SelectTrigger aria-label={M.statusFilter} className="min-w-40 lg:w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{M.allStatuses}</SelectItem>
+            <SelectItem value="ACTIVE">{M.active}</SelectItem>
+            <SelectItem value="INACTIVE">{M.inactive}</SelectItem>
+          </SelectContent>
+        </Select>
         <Button
           variant="outline"
           className="min-h-10 rounded-lg px-3.5"
@@ -302,7 +315,7 @@ export function AdminUsersWorkspace() {
                                     ? "text-danger focus:text-danger"
                                     : "text-primary focus:text-primary"
                                 }
-                                onSelect={() => workspace.toggleStatus(user)}
+                                onSelect={() => workspace.requestStatusChange(user)}
                               >
                                 {user.status === "ACTIVE" ? (
                                   <LockKeyhole size={17} aria-hidden="true" className="mr-2" />
@@ -352,6 +365,12 @@ export function AdminUsersWorkspace() {
           onSave={(role) => workspace.saveUser(editor.id, role)}
         />
       )}
+      <AdminUserStatusConfirmation
+        user={workspace.statusConfirmation}
+        pending={workspace.isChangingStatus}
+        onCancel={() => workspace.setStatusConfirmation(null)}
+        onConfirm={workspace.confirmStatusChange}
+      />
     </div>
   );
 }

@@ -75,6 +75,7 @@ export function registerUsersHandlers(mock: MockAdapter): void {
     if (!target) return [404, errorBody(404, M.userNotFound)];
 
     const { role } = parseBody<{ role: UserRole }>(config.data);
+    if (role === UserRole.STORAGE_CUSTOMER) return [403, errorBody(403, M.customerRoleForbidden)];
     if (role === UserRole.SYSTEM_ADMINISTRATOR && target.role !== UserRole.SYSTEM_ADMINISTRATOR)
       return [403, errorBody(403, M.adminCreationForbidden)];
     if (target.role === UserRole.SYSTEM_ADMINISTRATOR && role !== target.role)

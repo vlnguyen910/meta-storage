@@ -1,6 +1,11 @@
 "use client";
 
-import type { User, UserRole, UserStatus } from "@metastorage/contracts";
+import {
+  type UpdateUserRoleWithoutCustomerInput,
+  type User,
+  UserRole,
+  type UserStatus,
+} from "@metastorage/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { api } from "@/lib/api";
@@ -29,6 +34,7 @@ export function useAdminUsersWorkspace() {
   const [page, setPage] = useState(1);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [editor, setEditor] = useState<AdminManagedUser | null>(null);
+  const [statusConfirmation, setStatusConfirmation] = useState<AdminManagedUser | null>(null);
   const [notice, setNotice] = useState("");
   const invalidateUsers = () =>
     Promise.all([
@@ -37,8 +43,13 @@ export function useAdminUsersWorkspace() {
     ]);
   const updateMutation = useMutation({
     meta: { globalLoading: true },
-    mutationFn: ({ userId, role }: { userId: string; role: UserRole }) =>
-      api.users.setRole(userId, role),
+    mutationFn: ({
+      userId,
+      role,
+    }: {
+      userId: string;
+      role: UpdateUserRoleWithoutCustomerInput["role"];
+    }) => api.users.setRole(userId, role),
     onSuccess: () => {
       setNotice(M.roleUpdateSuccess);
       return invalidateUsers();
@@ -76,17 +87,21 @@ export function useAdminUsersWorkspace() {
     setPage(1);
   };
   const saveUser = async (userId: string, role: UserRole) => {
+    if (role === UserRole.SYSTEM_ADMINISTRATOR || role === UserRole.STORAGE_CUSTOMER)
+      throw new Error(M.invalidRoleChange);
     setNotice("");
     await updateMutation.mutateAsync({ userId, role });
   };
-  const toggleStatus = (user: User) => {
-    if (!isManagedUser(user) || user.role === "SYSTEM_ADMIN") return;
+  const requestStatusChange = (user: User) => {
+    if (!isManagedUser(user) || user.role === UserRole.SYSTEM_ADMINISTRATOR) return;
+    setStatusConfirmation(user);
+  };
+  const confirmStatusChange = () => {
+    const user = statusConfirmation;
+    if (!user) return;
     const status: UserStatus = user.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
-    if (
-      !window.confirm(M.statusChangeConfirm(user.name, status === "INACTIVE" ? M.lock : M.unlock))
-    )
-      return;
     setNotice("");
+    setStatusConfirmation(null);
     statusMutation.mutate({ userId: user.id, status });
   };
 
@@ -101,11 +116,14 @@ export function useAdminUsersWorkspace() {
     pageSize,
     query,
     resetFilters,
+    statusConfirmation,
     saveUser,
+    confirmStatusChange,
+    requestStatusChange,
+    setStatusConfirmation,
     setDetailId,
     setEditor,
     setPage,
-    toggleStatus,
     users,
     visibleUsers,
   };

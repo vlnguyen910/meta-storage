@@ -115,6 +115,7 @@ import type {
   UpdateDepositPolicy,
   UpdateStorageUnitStatusBody,
   UpdateUnitTypePrice,
+  UpdateUserRoleWithoutCustomerInput,
   UpdateUserStatusInput,
   User,
   UserListQuery,
@@ -292,7 +293,7 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
             params: { year },
           })
           .then(unwrap),
-      setRole: (userId: string, role: User["role"]) =>
+      setRole: (userId: string, role: UpdateUserRoleWithoutCustomerInput["role"]) =>
         http.patch<ApiEnvelope<User>>(`/users/${userId}/role`, { role }).then(unwrap),
     },
     facilities: {
