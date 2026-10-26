@@ -44,23 +44,23 @@ export function CustomerBookingList() {
           {!bookings.length && <p>{M.empty}</p>}
           <div className="grid gap-4">
             {visibleBookings.map((b) => (
-                <Link
-                  className="rounded-xl border border-line bg-white p-5"
-                  key={b.id}
-                  href={customerRoutes.reservation(b.id)}
-                >
-                  <strong>{b.bookingCode ?? b.id}</strong> <StatusBadge value={b.status} />
-                  <p>
-                    {b.facility.name} · {b.unitType.name} · {b.unitType.sizeLabel}
-                  </p>
-                  <p>
-                    {M.appointment}: {formatDateTime(b.checkInSlotStart)}
-                  </p>
-                  <p>
-                    {M.paymentStatus}: {b.paymentStatus}
-                  </p>
-                </Link>
-              ))}
+              <Link
+                className="rounded-xl border border-line bg-white p-5"
+                key={b.id}
+                href={customerRoutes.reservation(b.id)}
+              >
+                <strong>{b.bookingCode ?? b.id}</strong> <StatusBadge value={b.status} />
+                <p>
+                  {b.facility.name} · {b.unitType.name} · {b.unitType.sizeLabel}
+                </p>
+                <p>
+                  {M.appointment}: {formatDateTime(b.checkInSlotStart)}
+                </p>
+                <p>
+                  {M.paymentStatus}: {b.paymentStatus}
+                </p>
+              </Link>
+            ))}
           </div>
           <ListPagination
             label={M.bookings}
