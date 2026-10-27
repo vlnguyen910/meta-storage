@@ -151,12 +151,7 @@ describe.skipIf(!localUrl)("unified settings using existing local PostgreSQL", (
         .json()
         .data.map((r: { key: string }) => r.key)
         .sort(),
-    ).toEqual([
-      "CLOSING_HOUR",
-      "DEPOSIT_MONTHS",
-      "OPENING_HOUR",
-      "OVERDUE_FEE_RATE",
-    ]);
+    ).toEqual(["CLOSING_HOUR", "DEPOSIT_MONTHS", "OPENING_HOUR", "OVERDUE_FEE_RATE"]);
     const value = await row("OVERDUE_FEE_RATE");
     expect(
       (
