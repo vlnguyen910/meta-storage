@@ -85,8 +85,8 @@ export function ListPagination({
     >
       {/* Left: Summary text */}
       <div className="text-slate-600 font-medium select-none" role="status">
-        Hiển thị <strong className="text-slate-900 font-bold">{startIdx}</strong> –{" "}
-        <strong className="text-slate-900 font-bold">{endIdx}</strong> trên tổng số{" "}
+        {M.summaryShowing} <strong className="text-slate-900 font-bold">{startIdx}</strong> –{" "}
+        <strong className="text-slate-900 font-bold">{endIdx}</strong> {M.summaryOf}{" "}
         <strong className="text-slate-900 font-bold">{total}</strong> {unitLabel}
       </div>
 
@@ -123,7 +123,7 @@ export function ListPagination({
                     min={1}
                     max={pages}
                     ref={(el) => el?.focus()}
-                    placeholder="Trang"
+                    placeholder={M.pagePlaceholder}
                     value={ellipsisValue}
                     onChange={(e) => setEllipsisValue(e.target.value)}
                     onBlur={() => {
@@ -194,7 +194,7 @@ export function ListPagination({
         </Button>
 
         {/* Quick Jump Input */}
-        {pages > 4 && (
+        {pages > 1 && (
           <form
             onSubmit={handleDirectJumpSubmit}
             className="hidden md:flex items-center gap-1.5 ml-2 pl-2 border-l border-slate-200"
