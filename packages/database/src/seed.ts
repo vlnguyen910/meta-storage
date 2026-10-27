@@ -960,10 +960,10 @@ async function seedFlow3Rentals(seedNow: Date) {
       status: "RETURN_PENDING",
       expiryDays: 5,
       requestStatus: "PENDING",
-      requestDay: 3,
-      slotIndex: 2,
+      requestDay: 0,
+      slotIndex: 3,
     },
-    { status: "OVERDUE", expiryDays: -2, requestStatus: "CONFIRMED", requestDay: 4, slotIndex: 2 },
+    { status: "OVERDUE", expiryDays: -2, requestStatus: "CONFIRMED", requestDay: 0, slotIndex: 4 },
     {
       status: "CLOSED",
       expiryDays: -120,
@@ -976,8 +976,8 @@ async function seedFlow3Rentals(seedNow: Date) {
       status: "RETURN_PENDING",
       expiryDays: 12,
       requestStatus: "PENDING",
-      requestDay: 14,
-      slotIndex: 1,
+      requestDay: 0,
+      slotIndex: 3,
     },
   ] as const;
   for (const [index, scenario] of definitions.entries()) {
