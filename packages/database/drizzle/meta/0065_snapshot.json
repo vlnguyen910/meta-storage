@@ -1,6 +1,6 @@
 {
-  "id": "2f43b7a4-a4b6-4fc0-8d2b-5e2f02c1f74a",
-  "prevId": "6dd6d667-0dce-46c0-b8de-0ab16cdd4328",
+  "id": "48246045-c375-42c6-8fd5-fcc14d146729",
+  "prevId": "2f43b7a4-a4b6-4fc0-8d2b-5e2f02c1f74a",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1166,156 +1166,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.facility_task_reports": {
-      "name": "facility_task_reports",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "task_id": {
-          "name": "task_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "submitted_by": {
-          "name": "submitted_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "accepted_by": {
-          "name": "accepted_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "accepted_at": {
-          "name": "accepted_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "content": {
-          "name": "content",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "submitted_at": {
-          "name": "submitted_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "facility_task_reports_history_idx": {
-          "name": "facility_task_reports_history_idx",
-          "columns": [
-            {
-              "expression": "task_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "submitted_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "facility_task_reports_one_accepted_per_task_idx": {
-          "name": "facility_task_reports_one_accepted_per_task_idx",
-          "columns": [
-            {
-              "expression": "task_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"facility_task_reports\".\"accepted_at\" IS NOT NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "facility_task_reports_task_id_facility_tasks_id_fk": {
-          "name": "facility_task_reports_task_id_facility_tasks_id_fk",
-          "tableFrom": "facility_task_reports",
-          "tableTo": "facility_tasks",
-          "columnsFrom": [
-            "task_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "facility_task_reports_submitted_by_users_id_fk": {
-          "name": "facility_task_reports_submitted_by_users_id_fk",
-          "tableFrom": "facility_task_reports",
-          "tableTo": "users",
-          "columnsFrom": [
-            "submitted_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "facility_task_reports_accepted_by_users_id_fk": {
-          "name": "facility_task_reports_accepted_by_users_id_fk",
-          "tableFrom": "facility_task_reports",
-          "tableTo": "users",
-          "columnsFrom": [
-            "accepted_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "facility_task_reports_acceptance_valid": {
-          "name": "facility_task_reports_acceptance_valid",
-          "value": "(\"facility_task_reports\".\"accepted_by\" IS NULL AND \"facility_task_reports\".\"accepted_at\" IS NULL) OR (\"facility_task_reports\".\"accepted_by\" IS NOT NULL AND \"facility_task_reports\".\"accepted_at\" IS NOT NULL)"
-        },
-        "facility_task_reports_content_valid": {
-          "name": "facility_task_reports_content_valid",
-          "value": "length(btrim(\"facility_task_reports\".\"content\")) BETWEEN 1 AND 5000"
-        }
-      },
-      "isRLSEnabled": false
-    },
     "public.facility_tasks": {
       "name": "facility_tasks",
       "schema": "",
@@ -1410,6 +1260,30 @@
         },
         "completed_at": {
           "name": "completed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "report_id": {
+          "name": "report_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "report_content": {
+          "name": "report_content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "report_submitted_by": {
+          "name": "report_submitted_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "report_submitted_at": {
+          "name": "report_submitted_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
@@ -1571,6 +1445,19 @@
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
+        },
+        "facility_tasks_report_submitted_by_users_id_fk": {
+          "name": "facility_tasks_report_submitted_by_users_id_fk",
+          "tableFrom": "facility_tasks",
+          "tableTo": "users",
+          "columnsFrom": [
+            "report_submitted_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1584,6 +1471,14 @@
         "facility_tasks_lifecycle_valid": {
           "name": "facility_tasks_lifecycle_valid",
           "value": "(\"facility_tasks\".\"status\" = 'ASSIGNED' AND \"facility_tasks\".\"started_at\" IS NULL AND \"facility_tasks\".\"completed_by\" IS NULL AND \"facility_tasks\".\"completed_at\" IS NULL)\n        OR (\"facility_tasks\".\"status\" IN ('IN_PROGRESS', 'AWAITING_APPROVAL') AND \"facility_tasks\".\"started_at\" IS NOT NULL AND \"facility_tasks\".\"completed_by\" IS NULL AND \"facility_tasks\".\"completed_at\" IS NULL)\n        OR (\"facility_tasks\".\"status\" = 'COMPLETED' AND \"facility_tasks\".\"started_at\" IS NOT NULL AND \"facility_tasks\".\"completed_by\" IS NOT NULL AND \"facility_tasks\".\"completed_at\" IS NOT NULL)"
+        },
+        "facility_tasks_report_valid": {
+          "name": "facility_tasks_report_valid",
+          "value": "(\"facility_tasks\".\"report_id\" IS NULL AND \"facility_tasks\".\"report_content\" IS NULL AND \"facility_tasks\".\"report_submitted_by\" IS NULL AND \"facility_tasks\".\"report_submitted_at\" IS NULL)\n        OR (\"facility_tasks\".\"report_id\" IS NOT NULL AND \"facility_tasks\".\"report_content\" IS NOT NULL AND \"facility_tasks\".\"report_submitted_by\" IS NOT NULL AND \"facility_tasks\".\"report_submitted_at\" IS NOT NULL AND length(btrim(\"facility_tasks\".\"report_content\")) BETWEEN 1 AND 5000)"
+        },
+        "facility_tasks_report_required_for_approval": {
+          "name": "facility_tasks_report_required_for_approval",
+          "value": "\"facility_tasks\".\"status\" NOT IN ('AWAITING_APPROVAL', 'COMPLETED') OR \"facility_tasks\".\"report_id\" IS NOT NULL"
         },
         "facility_tasks_text_valid": {
           "name": "facility_tasks_text_valid",
@@ -7613,5 +7508,5 @@
     "schemas": {},
     "tables": {}
   },
-  "tag": "0064_exotic_triton"
+  "tag": "0065_useful_warhawk"
 }
