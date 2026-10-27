@@ -68,7 +68,7 @@ describe.skipIf(!localUrl)("unified settings using existing local PostgreSQL", (
   beforeAll(async () => {
     assertTestDatabase(localUrl, process.env, true);
     originals = await db.select().from(systemSettings);
-    expect(originals).toHaveLength(4);
+    expect(originals).toHaveLength(6);
     await db.insert(users).values(
       Object.entries(roles).map(([key, role]) => ({
         id: ids[key as keyof typeof roles],
@@ -151,7 +151,12 @@ describe.skipIf(!localUrl)("unified settings using existing local PostgreSQL", (
         .json()
         .data.map((r: { key: string }) => r.key)
         .sort(),
-    ).toEqual(["DEPOSIT_MONTHS", "OVERDUE_FEE_RATE"]);
+    ).toEqual([
+      "CLOSING_HOUR",
+      "DEPOSIT_MONTHS",
+      "OPENING_HOUR",
+      "OVERDUE_FEE_RATE",
+    ]);
     const value = await row("OVERDUE_FEE_RATE");
     expect(
       (
