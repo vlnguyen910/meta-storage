@@ -165,17 +165,7 @@ export class LifecycleNotificationsRepository {
               : role === "FACILITY_STAFF"
                 ? and(
                     exists(facilityAccess),
-                    exists(
-                      this.db
-                        .select({ id: supportTickets.id })
-                        .from(supportTickets)
-                        .where(
-                          and(
-                            eq(supportTickets.id, notificationOutbox.supportTicketId),
-                            eq(supportTickets.assignedStaffId, userId),
-                          ),
-                        ),
-                    ),
+                    isNull(notificationOutbox.supportTicketId),
                   )
                 : exists(facilityAccess),
         ),
