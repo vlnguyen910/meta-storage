@@ -163,10 +163,7 @@ export class LifecycleNotificationsRepository {
                     ),
                 )
               : role === "FACILITY_STAFF"
-                ? and(
-                    exists(facilityAccess),
-                    isNull(notificationOutbox.supportTicketId),
-                  )
+                ? and(exists(facilityAccess), isNull(notificationOutbox.supportTicketId))
                 : exists(facilityAccess),
         ),
       )

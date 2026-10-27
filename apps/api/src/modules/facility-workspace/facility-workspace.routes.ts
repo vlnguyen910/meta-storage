@@ -43,4 +43,3 @@ function actor(user: { id: string } | null | undefined) {
   if (!user) throw new UnauthorizedError();
   return user.id;
 }
-
