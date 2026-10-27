@@ -24,8 +24,15 @@ export function ReturnSettlementForm({
   const blocked = stale || editor.uncertain || editor.mutation.refreshError || editor.saved;
   return (
     <div className="space-y-4">
-      <form className="space-y-4" onSubmit={editor.form.handleSubmit(() => editor.loadPreview())}>
-        <fieldset disabled={blocked || editor.mutation.isPending} className="space-y-4">
+      <form
+        noValidate
+        className="space-y-4"
+        onSubmit={editor.form.handleSubmit(() => editor.loadPreview())}
+      >
+        <fieldset
+          disabled={blocked || editor.mutation.isPending}
+          className="grid gap-4 sm:grid-cols-2"
+        >
           <label className="grid gap-2 font-semibold text-sm">
             {F3.damage} (VND)
             <input
@@ -33,8 +40,14 @@ export function ReturnSettlementForm({
               inputMode="numeric"
               pattern="[0-9]+"
               required
+              aria-invalid={Boolean(editor.form.formState.errors.damageAmount)}
               {...editor.form.register("damageAmount")}
             />
+            {editor.form.formState.errors.damageAmount && (
+              <span role="alert" className="text-xs font-normal text-danger">
+                {editor.form.formState.errors.damageAmount.message}
+              </span>
+            )}
           </label>
           <label className="grid gap-2 font-semibold text-sm">
             {F3.rentRefund} (VND)
@@ -43,19 +56,36 @@ export function ReturnSettlementForm({
               inputMode="numeric"
               pattern="[0-9]+"
               required
+              aria-invalid={Boolean(editor.form.formState.errors.unusedRentRefundAmount)}
               {...editor.form.register("unusedRentRefundAmount")}
             />
+            {editor.form.formState.errors.unusedRentRefundAmount && (
+              <span role="alert" className="text-xs font-normal text-danger">
+                {editor.form.formState.errors.unusedRentRefundAmount.message}
+              </span>
+            )}
           </label>
-          <label className="grid gap-2 font-semibold text-sm">
+          <label className="grid gap-2 font-semibold text-sm sm:col-span-2">
             {F3.reason}
             <textarea
               className={f3Input}
               maxLength={4000}
               required
+              aria-invalid={Boolean(editor.form.formState.errors.reason)}
               {...editor.form.register("reason")}
             />
+            {editor.form.formState.errors.reason && (
+              <span role="alert" className="text-xs font-normal text-danger">
+                {editor.form.formState.errors.reason.message}
+              </span>
+            )}
           </label>
-          <Button loading={editor.loading} disabled={editor.loading}>
+          <Button
+            variant="outline"
+            className="w-fit"
+            loading={editor.loading}
+            disabled={editor.loading}
+          >
             {F3.preview}
           </Button>
         </fieldset>
@@ -100,7 +130,7 @@ export function ReturnSettlementForm({
           editor.setConfirming(false);
           trigger.current?.focus();
         }}
-        className="m-auto w-[min(640px,94vw)] max-h-[90dvh] overflow-y-auto rounded border border-[#BFCAC4] bg-white p-5 backdrop:bg-slate-950/40"
+        className="m-auto w-[min(640px,94vw)] max-h-[90dvh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 backdrop:bg-slate-950/40"
       >
         <h3 className="mb-4 text-lg font-bold">{F3.finalConfirm}</h3>
         {editor.confirming && editor.preview && <SettlementPreview preview={editor.preview} />}

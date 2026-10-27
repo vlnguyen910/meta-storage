@@ -11,11 +11,17 @@ import {
   type FacilityTaskDetail,
   FacilityTaskType,
 } from "@metastorage/contracts";
+import { ArrowRight, ClipboardList, FileCheck2, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { Input, Select } from "@/components/ui/form-controls";
+import {
+  OperationalBadge,
+  OperationalSectionHeader,
+  operationalToolbar,
+} from "@/components/ui/operational";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { isMockMode } from "@/config/api-mode";
 import { formatDateTime } from "@/lib/format";
@@ -29,9 +35,11 @@ import {
   useFacilityTaskList,
   useReportTask,
   useStartTask,
+  useTaskBookingOptions,
   useTaskReportHistory,
   useTaskStaff,
   useTaskUnitOptions,
+  useUnitDetail,
 } from "./hooks";
 import { F5 } from "./management.messages";
 import type { TaskPanelProps } from "./management.types";
@@ -107,7 +115,7 @@ export function TaskPanel({ facilityId, manager, status }: TaskPanelProps) {
   const query = status ? reviewsQuery : tasksQuery;
   return (
     <div className="grid gap-5">
-      <div className="flex flex-wrap items-end gap-3">
+      <div className={manager ? operationalToolbar : "flex flex-wrap items-end gap-3"}>
         <ManagementField label={F5.taskType}>
           <DropdownSelect
             value={type}
@@ -148,6 +156,7 @@ export function TaskPanel({ facilityId, manager, status }: TaskPanelProps) {
             />
           </ManagementField>
         )}
+
         <Button
           type="button"
           variant="outline"
@@ -176,37 +185,78 @@ export function TaskPanel({ facilityId, manager, status }: TaskPanelProps) {
               {F5.empty}
             </p>
           )}
-          <ul className="grid gap-3 sm:grid-cols-2">
-            {query.data.items.map((task) => (
-              <li
-                key={task.id}
-                className={`${panelClass} flex min-h-48 flex-col gap-3 transition duration-150 hover:border-emerald-300 hover:shadow-md`}
-              >
-                <p className="inline-flex w-fit items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-900">
-                  {F5.typeLabels[task.type]}
-                </p>
-                <h2 className="break-words text-lg font-extrabold tracking-tight text-ink">
-                  {task.title}
-                </h2>
-                <p
-                  className={`inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-bold ${TASK_STATUS_BADGE_CLASS[task.status]}`}
+          {manager ? (
+            <ul className="grid list-none gap-3 p-0">
+              {query.data.items.map((task) => (
+                <li
+                  key={task.id}
+                  className={`${panelClass} flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between`}
                 >
-                  {F5.taskStatusLabels[task.status]}
-                </p>
-                <p className="text-sm text-slate-600">
-                  {task.assignedStaffName} · {formatDateTime(task.assignedAt)}
-                </p>
-                <Button
-                  type="button"
-                  className="mt-auto w-full sm:w-auto"
-                  onClick={() => select(task.id)}
-                  aria-pressed={selected === task.id}
+                  <div className="flex min-w-0 items-start gap-3">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-800">
+                      <ClipboardList size={20} aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0 space-y-1.5">
+                      <p className="text-xs font-medium text-slate-500">
+                        {F5.typeLabels[task.type]}
+                      </p>
+                      <h2 className="break-words text-base font-bold text-slate-900">
+                        {task.title}
+                      </h2>
+                      <p className="flex items-center gap-1.5 text-xs text-slate-600">
+                        <UserRound size={13} aria-hidden="true" />
+                        {task.assignedStaffName} · {formatDateTime(task.assignedAt)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 flex-wrap items-center gap-3">
+                    <OperationalBadge value={task.status} />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => select(task.id)}
+                      aria-pressed={selected === task.id}
+                    >
+                      {F5.detail}
+                      <ArrowRight size={15} aria-hidden="true" />
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {query.data.items.map((task) => (
+                <li
+                  key={task.id}
+                  className={`${panelClass} flex min-h-48 flex-col gap-3 transition duration-150 hover:border-emerald-300 hover:shadow-md`}
                 >
-                  {F5.detail}
-                </Button>
-              </li>
-            ))}
-          </ul>
+                  <p className="inline-flex w-fit items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-900">
+                    {F5.typeLabels[task.type]}
+                  </p>
+                  <h2 className="break-words text-lg font-extrabold tracking-tight text-ink">
+                    {task.title}
+                  </h2>
+                  <p
+                    className={`inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-bold ${TASK_STATUS_BADGE_CLASS[task.status]}`}
+                  >
+                    {F5.taskStatusLabels[task.status]}
+                  </p>
+                  <p className="text-sm text-slate-600">
+                    {task.assignedStaffName} · {formatDateTime(task.assignedAt)}
+                  </p>
+                  <Button
+                    type="button"
+                    className="mt-auto w-full sm:w-auto"
+                    onClick={() => select(task.id)}
+                    aria-pressed={selected === task.id}
+                  >
+                    {F5.detail}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
           <PageControls
             label={F5.tasks}
             offset={offset}
@@ -217,9 +267,14 @@ export function TaskPanel({ facilityId, manager, status }: TaskPanelProps) {
           />
         </>
       )}
-      {selected && (
-        <TaskDetails key={selected} id={selected} manager={manager} onClose={() => select("")} />
-      )}
+      {selected &&
+        (manager ? (
+          <ManagementDialog title={F5.detail} onClose={() => select("")} wide>
+            <TaskDetails key={selected} id={selected} manager onClose={() => select("")} />
+          </ManagementDialog>
+        ) : (
+          <TaskDetails key={selected} id={selected} manager={false} onClose={() => select("")} />
+        ))}
       {creating && (
         <TaskCreator
           facilityId={facilityId}
@@ -247,6 +302,8 @@ function TaskCreator({
   const staff = useTaskStaff(facilityId);
   const units = useTaskUnitOptions(facilityId);
   const mutation = useCreateTask();
+  const [linkBooking, setLinkBooking] = useState(false);
+  const bookings = useTaskBookingOptions(facilityId, linkBooking);
   const form = useForm<CreateFacilityTaskInput>({
     resolver: zodResolver(CreateFacilityTaskSchema),
     defaultValues: {
@@ -310,9 +367,35 @@ function TaskCreator({
             ))}
           </Select>
         </ManagementField>
-        <ManagementField label={F5.booking} error={form.formState.errors.bookingId?.message}>
-          <Input {...form.register("bookingId", { setValueAs: (value) => value || undefined })} />
-        </ManagementField>
+        <details
+          className="rounded-xl border border-slate-200 p-3"
+          onToggle={(event) => setLinkBooking(event.currentTarget.open)}
+        >
+          <summary className="cursor-pointer text-sm font-semibold text-slate-700">
+            {F5.booking}
+          </summary>
+          <div className="mt-3">
+            <ManagementField
+              label={F5.bookingReference}
+              error={form.formState.errors.bookingId?.message}
+            >
+              <Select
+                disabled={bookings.isPending || bookings.isError}
+                {...form.register("bookingId", { setValueAs: (value) => value || undefined })}
+              >
+                <option value="">{F5.optional}</option>
+                {bookings.data?.map((booking) => (
+                  <option key={booking.id} value={booking.id}>
+                    {booking.bookingCode} · {booking.contactName}
+                  </option>
+                ))}
+              </Select>
+            </ManagementField>
+            {bookings.isError && (
+              <ErrorState message={F5.loadError} onRetry={() => bookings.refetch()} />
+            )}
+          </div>
+        </details>
         <p className="text-sm text-slate-600">
           {F5.taskContext} {F5.printingHint}
         </p>
@@ -332,6 +415,7 @@ function TaskCreator({
         )}
         <Button
           type="submit"
+          loading={mutation.isPending}
           disabled={
             mutation.isPending ||
             staff.isPending ||
@@ -350,7 +434,6 @@ function TaskCreator({
 export function TaskDetails({
   id,
   manager,
-  onClose,
 }: {
   id: string;
   manager: boolean;
@@ -358,23 +441,25 @@ export function TaskDetails({
 }) {
   const query = useFacilityTaskDetail(id);
   const detailRef = useRef<HTMLElement>(null);
+  const relatedUnit = useUnitDetail(manager ? (query.data?.storageUnitId ?? "") : "");
   useEffect(() => {
-    if (query.data?.id) detailRef.current?.scrollIntoView({ block: "start" });
-  }, [query.data?.id]);
+    if (!manager && query.data?.id) detailRef.current?.scrollIntoView({ block: "start" });
+  }, [query.data?.id, manager]);
   const [offset, setOffset] = useState(0);
   const history = useTaskReportHistory(id, offset);
   const acceptReport = useAcceptTaskReport(id);
+  const [reviewing, setReviewing] = useState("");
   if (query.isPending) return <LoadingState variant="detail" />;
   if (query.isError)
     return <ErrorState message={managementError(query.error)} onRetry={() => query.refetch()} />;
   const task = query.data;
   const Heading = manager ? "h2" : "h1";
-  const ReportHeading = manager ? "h3" : "h2";
+
   return (
     <section
       ref={detailRef}
       aria-label={task.title}
-      className={`${panelClass} grid scroll-mt-20 gap-5`}
+      className={manager ? "grid min-w-0 gap-5" : `${panelClass} grid scroll-mt-20 gap-5`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
@@ -384,18 +469,19 @@ export function TaskDetails({
           <Heading className="mt-2 break-words text-xl font-extrabold tracking-tight text-ink">
             {task.title}
           </Heading>
-          <p
-            className={`mt-3 inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-bold ${TASK_STATUS_BADGE_CLASS[task.status]}`}
-          >
-            {F5.taskStatusLabels[task.status]}
-          </p>
+          {manager ? (
+            <div className="mt-3">
+              <OperationalBadge value={task.status} />
+            </div>
+          ) : (
+            <p
+              className={`mt-3 inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-bold ${TASK_STATUS_BADGE_CLASS[task.status]}`}
+            >
+              {F5.taskStatusLabels[task.status]}
+            </p>
+          )}
           <p className="mt-1 text-sm text-slate-600">{F5.taskStateHint[task.status]}</p>
         </div>
-        {manager && (
-          <Button type="button" variant="outline" onClick={onClose}>
-            {F5.close}
-          </Button>
-        )}
       </div>
       <p className="whitespace-pre-wrap break-words text-sm">{task.description}</p>
       <dl className="grid gap-3 text-sm sm:grid-cols-2">
@@ -413,16 +499,13 @@ export function TaskDetails({
           <dt className="text-slate-600">{F5.assignedAt}</dt>
           <dd>{formatDateTime(task.assignedAt)}</dd>
         </div>
-        {manager && (
-          <div>
-            <dt className="text-slate-600">{F5.version}</dt>
-            <dd>{task.version}</dd>
-          </div>
-        )}
+
         {manager && task.storageUnitId && (
           <div className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-3">
             <dt className="text-xs font-semibold text-slate-600">{F5.unit}</dt>
-            <dd className="mt-1 break-all font-mono text-xs text-ink">{task.storageUnitId}</dd>
+            <dd className="mt-1 break-all font-mono text-xs text-ink">
+              {relatedUnit.data?.code ?? task.storageUnitId}
+            </dd>
           </div>
         )}
         {manager && task.bookingId && (
@@ -433,11 +516,28 @@ export function TaskDetails({
         )}
       </dl>
       {manager ? (
-        task.status !== "COMPLETED" && <TaskReassignment task={task} />
+        (task.status === "ASSIGNED" || task.status === "IN_PROGRESS") && (
+          <details className="rounded-xl border border-slate-200 p-4">
+            <summary className="cursor-pointer text-sm font-semibold text-slate-700">
+              {F5.reassign}
+            </summary>
+            <div className="mt-4">
+              <TaskReassignment task={task} />
+            </div>
+          </details>
+        )
       ) : (
         <TaskExecution task={task} onReported={() => setOffset(0)} />
       )}
-      <ReportHeading className="text-lg font-bold">{F5.reports}</ReportHeading>
+      {manager ? (
+        <OperationalSectionHeader
+          title={F5.reports}
+          icon={FileCheck2}
+          count={history.data?.total}
+        />
+      ) : (
+        <h2 className="text-lg font-bold">{F5.reports}</h2>
+      )}
       {history.isPending ? (
         <LoadingState variant="table" />
       ) : history.isError ? (
@@ -453,6 +553,9 @@ export function TaskDetails({
               >
                 <p className="text-sm font-semibold">
                   {report.submitterName} · {formatDateTime(report.submittedAt)}
+                </p>
+                <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-slate-800">
+                  {report.content}
                 </p>
                 {report.acceptedAt ? (
                   <p className="mt-2 inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-900">
@@ -471,13 +574,13 @@ export function TaskDetails({
                     <Button
                       type="button"
                       disabled={acceptReport.isPending}
-                      onClick={() => acceptReport.mutate(report.id)}
+                      loading={acceptReport.isPending}
+                      onClick={() => setReviewing(report.id)}
                     >
                       {F5.acceptReport}
                     </Button>
                   </div>
                 ) : null}
-                <p className="mt-2 whitespace-pre-wrap break-words text-sm">{report.content}</p>
               </li>
             ))}
           </ol>
@@ -490,6 +593,37 @@ export function TaskDetails({
             pending={history.isFetching}
           />
         </>
+      )}
+      {reviewing && (
+        <ManagementDialog
+          title={F5.reviewTitle}
+          onClose={() => setReviewing("")}
+          pending={acceptReport.isPending}
+        >
+          <p className="mb-2 font-semibold">{task.title}</p>
+          <p className="mb-5 text-sm leading-6 text-slate-600">{F5.reviewConfirm}</p>
+          {acceptReport.isError && (
+            <p role="alert" className="mb-3 text-sm text-danger">
+              {managementError(acceptReport.error)}
+            </p>
+          )}
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              variant="outline"
+              disabled={acceptReport.isPending}
+              onClick={() => setReviewing("")}
+            >
+              {F5.cancel}
+            </Button>
+            <Button
+              loading={acceptReport.isPending}
+              disabled={acceptReport.isPending}
+              onClick={() => acceptReport.mutate(reviewing, { onSuccess: () => setReviewing("") })}
+            >
+              {F5.acceptReport}
+            </Button>
+          </div>
+        </ManagementDialog>
       )}
     </section>
   );
@@ -532,11 +666,13 @@ function TaskReassignment({ task }: { task: FacilityTaskDetail }) {
     resolver: zodResolver(AssignFacilityTaskSchema),
     defaultValues: { assignedStaffId: task.assignedStaffId, version: task.version },
   });
-  const { reset } = form;
-  useEffect(
-    () => reset({ assignedStaffId: task.assignedStaffId, version: task.version }),
-    [reset, task.assignedStaffId, task.version],
-  );
+  const { reset, getValues, getFieldState } = form;
+  useEffect(() => {
+    const assignedStaffId = getFieldState("assignedStaffId").isDirty
+      ? getValues("assignedStaffId")
+      : task.assignedStaffId;
+    reset({ assignedStaffId, version: task.version });
+  }, [reset, getValues, getFieldState, task.assignedStaffId, task.version]);
   return (
     <form
       noValidate
@@ -567,8 +703,21 @@ function TaskReassignment({ task }: { task: FacilityTaskDetail }) {
           {managementError(mutation.error)}
         </p>
       )}
-      {mutation.isSuccess && <p role="status">{F5.saved}</p>}
-      <Button type="submit" disabled={mutation.isPending || staff.isPending || staff.isError}>
+      {form.watch("assignedStaffId") === task.assignedStaffId && (
+        <p className="text-xs text-slate-500">{F5.assignedStaffUnchanged}</p>
+      )}
+      <Button
+        type="submit"
+        variant="outline"
+        className="w-fit border! border-slate-200"
+        loading={mutation.isPending}
+        disabled={
+          mutation.isPending ||
+          staff.isPending ||
+          staff.isError ||
+          form.watch("assignedStaffId") === task.assignedStaffId
+        }
+      >
         {F5.reassign}
       </Button>
     </form>

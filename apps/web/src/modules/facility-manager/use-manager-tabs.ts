@@ -1,16 +1,20 @@
 "use client";
 import type { ReportExportQuery, SupportOperation } from "@metastorage/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/components/ui/toast";
 import { useAuthStore } from "@/features/auth/auth-store";
+import { managementError } from "@/features/facility-management/hooks";
 import { downloadCsv } from "@/features/operations/operations.utils";
 import { api } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { MANAGER_TABS as M } from "./manager-tabs.messages";
 import type { ManagerReportRow } from "./manager-tabs.types";
 export function useManagerKey() {
   const user = useAuthStore((s) => s.session?.user);
   return ["manager-tabs", user?.id, user?.role] as const;
 }
 export function useManagerReport(filters: ReportExportQuery) {
+  const { showToast } = useToast();
   const key = useManagerKey();
   const report = useQuery({
     queryKey: [...key, "report", filters],
@@ -58,6 +62,8 @@ export function useManagerReport(filters: ReportExportQuery) {
     },
   });
   const download = useMutation({
+    onSuccess: () => showToast(M.exportSaved, "success"),
+    onError: (error) => showToast(managementError(error), "error"),
     mutationFn: async () => {
       const file = await api.reports.exportReport(filters);
       downloadCsv(file.data, file.filename);
@@ -74,10 +80,13 @@ export function useManagerTicket(id: string, offset: number) {
   });
 }
 export function useManagerTicketAction(id: string) {
+  const { showToast } = useToast();
   const key = useManagerKey(),
     client = useQueryClient();
   return useMutation({
     mutationFn: (input: SupportOperation) => api.facilityWorkspace.ticketAction(id, input),
+    onSuccess: (_result, input) => showToast(M.actionSuccess[input.action] ?? M.saved, "success"),
+    onError: (error) => showToast(managementError(error), "error"),
     onSettled: async () => {
       await client.invalidateQueries({ queryKey: key });
       await client.invalidateQueries({ queryKey: ["lifecycle-notifications"] });

@@ -15,6 +15,11 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { Currency } from "@/components/ui/display";
+import {
+  OperationalBackLink,
+  OperationalBadge,
+  OperationalPageHeader,
+} from "@/components/ui/operational";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { facilityStaffRoutes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
@@ -56,7 +61,9 @@ function CheckInFlowScreen() {
   const user = useAuthStore((s) => s.session?.user);
   const root = user?.role === UserRole.FACILITY_MANAGER ? "/facility-manager" : "/staff";
   const returnTo =
-    user?.role === UserRole.FACILITY_STAFF ? facilityStaffRoutes.tasks : `${root}/dashboard`;
+    user?.role === UserRole.FACILITY_STAFF
+      ? facilityStaffRoutes.tasks
+      : `${root}/tasks?view=bookings`;
   const [lookupType, setLookupType] = useState<"BOOKING_CODE" | "QR_TOKEN">("BOOKING_CODE");
   const [input, setInput] = useState("");
   const result = flow.result;
@@ -91,7 +98,8 @@ function CheckInFlowScreen() {
   if (user?.role === UserRole.FACILITY_MANAGER)
     return (
       <>
-        <FlowHeading title={FLOW.monitor} description={FLOW.managerMonitorHint} />
+        <OperationalBackLink href={returnTo}>{FLOW.back}</OperationalBackLink>
+        <OperationalPageHeader title={FLOW.monitor} description={FLOW.managerMonitorHint} />
         {flow.lookup.isLoading ? (
           <LoadingState label={FLOW.loading} variant="detail" />
         ) : flow.lookup.isError ? (
@@ -114,11 +122,11 @@ function CheckInFlowScreen() {
                 {result.booking.bookingCode} ·{" "}
                 {result.assignedUnit?.physicalUnitCode ?? FLOW.unassigned}
               </p>
-              <Pill>{FLOW.statusLabels[result.booking.status]}</Pill>
+              <OperationalBadge
+                value={result.booking.status}
+                label={FLOW.statusLabels[result.booking.status]}
+              />
               <div className="mt-4 flex flex-wrap gap-3">
-                <Button variant="secondary" onClick={() => router.push(returnTo)}>
-                  <BackLabel />
-                </Button>
                 {result.booking.status === "CONFIRMED" && (
                   <Link
                     className="rounded bg-[#b4efda] p-3 font-semibold"

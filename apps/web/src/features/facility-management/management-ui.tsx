@@ -2,6 +2,7 @@
 
 import { cloneElement, useEffect, useId, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/cn";
 import { F5 } from "./management.messages";
 import type {
   ManagementDialogProps,
@@ -30,7 +31,13 @@ export function ManagementField({ label, error, children }: ManagementFieldProps
   );
 }
 
-export function ManagementDialog({ title, onClose, children, pending }: ManagementDialogProps) {
+export function ManagementDialog({
+  title,
+  onClose,
+  children,
+  pending,
+  wide,
+}: ManagementDialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const id = useId();
   useEffect(() => {
@@ -50,13 +57,22 @@ export function ManagementDialog({ title, onClose, children, pending }: Manageme
         event.preventDefault();
         if (!pending) onClose();
       }}
-      className="fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 text-ink shadow-xl backdrop:bg-slate-950/40"
+      className={cn(
+        "fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-white p-5 text-ink shadow-xl backdrop:bg-slate-950/40 sm:p-6",
+        wide ? "max-w-3xl" : "max-w-xl",
+      )}
     >
       <div className="mb-5 flex items-start justify-between gap-4">
         <h2 id={id} className="text-xl font-bold">
           {title}
         </h2>
-        <Button type="button" variant="outline" onClick={onClose} disabled={pending}>
+        <Button
+          type="button"
+          variant="outline"
+          className="border! border-slate-200 text-sm"
+          onClick={onClose}
+          disabled={pending}
+        >
           {F5.close}
         </Button>
       </div>

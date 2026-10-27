@@ -1,4 +1,19 @@
 export const RETURNS_MESSAGES = {
+  loadedQueue: (count: number) => `Đã tải ${count} yêu cầu theo bộ lọc hiện tại.`,
+  moreQueue: "Có thêm yêu cầu chưa tải. Dùng nút tải thêm để xem tiếp.",
+  managerCancelled: "Yêu cầu đã hủy. Không còn thao tác tiếp nhận hoặc phân công.",
+  managerCompleted:
+    "Yêu cầu đã hoàn tất. Có thể xem quyết toán và kiểm tra việc hoàn tiền đã ghi nhận.",
+  managerAwaitingInspection:
+    "Nhân viên cần tiếp nhận, kiểm tra kho và gửi kết quả trước khi quản lý quyết toán.",
+  managerAssignNext: "Phân công nhân viên phụ trách để tiếp nhận và kiểm tra kho theo lịch hẹn.",
+  managerAwaitingReceipt:
+    "Nhân viên chưa ghi nhận thời điểm thực tế nhận lại kho. Cần hoàn tất bước này trước khi quyết toán.",
+  managerSettlementNext:
+    "Kiểm tra kết quả trả kho và xem trước quyết toán. Số tiền cuối cùng do hệ thống xác nhận.",
+  jumpToSettlement: "Xem quyết toán và hoàn tiền",
+  searchLabel: "Tìm trong các yêu cầu đã tải",
+
   sectionTitle: "Yêu cầu trả kho",
   sectionDescription: "Chọn lịch để gửi yêu cầu. Cơ sở sẽ xác nhận lịch hẹn.",
   newRequest: "Gửi yêu cầu trả kho",

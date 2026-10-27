@@ -1,10 +1,12 @@
 "use client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { ReportExportQuery } from "@metastorage/contracts";
+import { Download, FileChartColumn } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
+import { OperationalSectionHeader, operationalField } from "@/components/ui/operational";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/states";
 import { managementError } from "@/features/facility-management/hooks";
 import { ManagerTabFrame } from "./manager-tab-frame";
@@ -23,7 +25,7 @@ const schema = z
     if (["revenue", "revenue-monthly"].includes(v.type) && (!v.from || !v.to || v.to < v.from))
       ctx.addIssue({ code: "custom", path: ["to"], message: M.invalidPeriod });
   });
-const field = "min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm";
+const field = operationalField;
 export function ManagerReportsScreen() {
   return (
     <ManagerTabFrame title={M.reports} description={M.reportHint}>
@@ -104,7 +106,9 @@ export function ManagerReportsPanel({ facilityId }: ManagerFacilityTabProps) {
           </label>
         )}
         <div className="flex items-end">
-          <Button type="submit">{M.apply}</Button>
+          <Button type="submit" variant="outline" disabled={report.isFetching}>
+            {M.apply}
+          </Button>
         </div>
         {form.formState.errors.to && (
           <p role="alert" className="text-sm text-red-700 sm:col-span-2">
@@ -113,14 +117,23 @@ export function ManagerReportsPanel({ facilityId }: ManagerFacilityTabProps) {
         )}
       </form>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-slate-600">{M.reportTypes[filters.type]}</p>
+        <OperationalSectionHeader
+          title={M.reportTypes[filters.type] ?? M.reports}
+          icon={FileChartColumn}
+        />
         <Button
-          disabled={download.isPending || form.formState.isDirty || report.isError}
+          loading={download.isPending}
+          title={form.formState.isDirty ? M.exportPendingFilters : M.export}
+          disabled={
+            download.isPending || form.formState.isDirty || report.isError || report.isPending
+          }
           onClick={() => download.mutate()}
         >
+          <Download size={16} aria-hidden="true" />
           {M.export}
         </Button>
       </div>
+      {form.formState.isDirty && <p className="text-xs text-amber-800">{M.exportPendingFilters}</p>}
       {download.isError && (
         <p role="alert" className="text-sm text-red-700">
           {managementError(download.error)}
@@ -151,8 +164,10 @@ export function ManagerReportsPanel({ facilityId }: ManagerFacilityTabProps) {
                   <th scope="row" className="px-5 py-4">
                     {row.label}
                   </th>
-                  <td className="px-5 py-4">{M.statuses[row.value] ?? row.value}</td>
-                  <td className="px-5 py-4">{row.detail}</td>
+                  <td className="px-5 py-4 text-right font-medium tabular-nums">
+                    {M.statuses[row.value] ?? row.value}
+                  </td>
+                  <td className="px-5 py-4 text-right tabular-nums">{row.detail}</td>
                 </tr>
               ))}
             </tbody>

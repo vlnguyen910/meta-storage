@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, PageHeader } from "@/components/ui/display";
@@ -37,6 +38,7 @@ export function FacilityReturnQueue({
   embedded = false,
 }: FacilityReturnQueueProps) {
   const assignments = useMyFacilityAssignments();
+  const params = useSearchParams();
   const assignedFacilityId = useAuthStore((state) => state.session?.user.assignedFacilityId);
   const activeFacilities = assignments.data?.filter((item) => item.isActive) ?? [];
   const [selectedFacilityId, setSelectedFacilityId] = useState("");
@@ -46,8 +48,12 @@ export function FacilityReturnQueue({
     assignedFacilityId ||
     (activeFacilities.length === 1 ? activeFacilities[0]?.facilityId : "");
   const facility = activeFacilities.find((item) => item.facilityId === facilityId);
-  const [status, setStatus] = useState("");
-  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState(
+    actorRole === "FACILITY_MANAGER" ? (params.get("returnStatus") ?? "") : "",
+  );
+  const [search, setSearch] = useState(
+    actorRole === "FACILITY_MANAGER" ? (params.get("returnSearch") ?? "") : "",
+  );
   const [assigningRequest, setAssigningRequest] = useState<ReturnRequestDto | null>(null);
 
   const queue = useFacilityReturnQueue(facility?.facilityId ?? "", actorRole, status || undefined);
@@ -150,65 +156,72 @@ export function FacilityReturnQueue({
       )}
 
       {/* KPI Stats Bar */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <button
-          type="button"
-          onClick={() => setStatus("")}
-          className={`flex flex-col rounded-2xl border p-4 text-left transition-all ${
-            status === ""
-              ? "border-primary bg-primary/5 shadow-xs ring-1 ring-primary/20"
-              : "border-slate-200/80 bg-white hover:border-slate-300 shadow-2xs"
-          }`}
-        >
-          <span className="text-xs font-medium text-slate-500">{M.statAll}</span>
-          <strong className="mt-1 text-2xl font-bold text-slate-900">{stats.total}</strong>
-        </button>
+      {actorRole === "FACILITY_MANAGER" ? (
+        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+          <p>{M.loadedQueue(queue.data?.length ?? 0)}</p>
+          {queue.hasNextPage && <p className="mt-1 text-xs text-slate-500">{M.moreQueue}</p>}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <button
+            type="button"
+            onClick={() => setStatus("")}
+            className={`flex flex-col rounded-2xl border p-4 text-left transition-all ${
+              status === ""
+                ? "border-primary bg-primary/5 shadow-xs ring-1 ring-primary/20"
+                : "border-slate-200/80 bg-white hover:border-slate-300 shadow-2xs"
+            }`}
+          >
+            <span className="text-xs font-medium text-slate-500">{M.statAll}</span>
+            <strong className="mt-1 text-2xl font-bold text-slate-900">{stats.total}</strong>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setStatus(status === "PENDING" ? "" : "PENDING")}
-          className={`flex flex-col rounded-2xl border p-4 text-left transition-all ${
-            status === "PENDING"
-              ? "border-amber-500 bg-amber-50/80 shadow-xs ring-1 ring-amber-500/20"
-              : "border-slate-200/80 bg-white hover:border-slate-300 shadow-2xs"
-          }`}
-        >
-          <span className="text-xs font-medium text-amber-700">{M.statPending}</span>
-          <strong className="mt-1 text-2xl font-bold text-amber-900">{stats.pending}</strong>
-        </button>
+          <button
+            type="button"
+            onClick={() => setStatus(status === "PENDING" ? "" : "PENDING")}
+            className={`flex flex-col rounded-2xl border p-4 text-left transition-all ${
+              status === "PENDING"
+                ? "border-amber-500 bg-amber-50/80 shadow-xs ring-1 ring-amber-500/20"
+                : "border-slate-200/80 bg-white hover:border-slate-300 shadow-2xs"
+            }`}
+          >
+            <span className="text-xs font-medium text-amber-700">{M.statPending}</span>
+            <strong className="mt-1 text-2xl font-bold text-amber-900">{stats.pending}</strong>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setStatus(status === "INSPECTING" ? "" : "INSPECTING")}
-          className={`flex flex-col rounded-2xl border p-4 text-left transition-all ${
-            status === "INSPECTING"
-              ? "border-teal-500 bg-teal-50/80 shadow-xs ring-1 ring-teal-500/20"
-              : "border-slate-200/80 bg-white hover:border-slate-300 shadow-2xs"
-          }`}
-        >
-          <span className="text-xs font-medium text-teal-700">{M.statInspecting}</span>
-          <strong className="mt-1 text-2xl font-bold text-teal-900">{stats.inspecting}</strong>
-        </button>
+          <button
+            type="button"
+            onClick={() => setStatus(status === "INSPECTING" ? "" : "INSPECTING")}
+            className={`flex flex-col rounded-2xl border p-4 text-left transition-all ${
+              status === "INSPECTING"
+                ? "border-teal-500 bg-teal-50/80 shadow-xs ring-1 ring-teal-500/20"
+                : "border-slate-200/80 bg-white hover:border-slate-300 shadow-2xs"
+            }`}
+          >
+            <span className="text-xs font-medium text-teal-700">{M.statInspecting}</span>
+            <strong className="mt-1 text-2xl font-bold text-teal-900">{stats.inspecting}</strong>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setStatus(status === "COMPLETED" ? "" : "COMPLETED")}
-          className={`flex flex-col rounded-2xl border p-4 text-left transition-all ${
-            status === "COMPLETED"
-              ? "border-emerald-500 bg-emerald-50/80 shadow-xs ring-1 ring-emerald-500/20"
-              : "border-slate-200/80 bg-white hover:border-slate-300 shadow-2xs"
-          }`}
-        >
-          <span className="text-xs font-medium text-emerald-700">{M.statCompleted}</span>
-          <strong className="mt-1 text-2xl font-bold text-emerald-900">{stats.completed}</strong>
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={() => setStatus(status === "COMPLETED" ? "" : "COMPLETED")}
+            className={`flex flex-col rounded-2xl border p-4 text-left transition-all ${
+              status === "COMPLETED"
+                ? "border-emerald-500 bg-emerald-50/80 shadow-xs ring-1 ring-emerald-500/20"
+                : "border-slate-200/80 bg-white hover:border-slate-300 shadow-2xs"
+            }`}
+          >
+            <span className="text-xs font-medium text-emerald-700">{M.statCompleted}</span>
+            <strong className="mt-1 text-2xl font-bold text-emerald-900">{stats.completed}</strong>
+          </button>
+        </div>
+      )}
 
       {/* Filter & Search Toolbar */}
       <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-xs sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
           {/* Search box */}
-          <div className="relative min-w-56 max-w-sm flex-1">
+          <div className="relative min-w-0 max-w-sm flex-1">
             <Search
               className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400"
               aria-hidden="true"
@@ -217,6 +230,7 @@ export function FacilityReturnQueue({
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              aria-label={M.searchLabel}
               placeholder={M.searchPlaceholder}
               className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/60 pl-10 pr-9 text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
@@ -282,6 +296,10 @@ export function FacilityReturnQueue({
               assignedStaffName={
                 request.assignedStaffId ? staffMap.get(request.assignedStaffId) : null
               }
+              returnFilters={new URLSearchParams({
+                returnStatus: status,
+                returnSearch: search,
+              }).toString()}
               onOpenAssignModal={(req) => setAssigningRequest(req)}
             />
           ))}
@@ -326,6 +344,7 @@ function ReturnQueueRow({
   actorRole,
   assignedStaffName,
   onOpenAssignModal,
+  returnFilters,
 }: ReturnQueueRowProps) {
   assignedStaffName = request.context?.assignedStaff?.name ?? assignedStaffName;
   const canChangeAssignment =
@@ -334,7 +353,7 @@ function ReturnQueueRow({
 
   const href =
     actorRole === "FACILITY_MANAGER"
-      ? `/facility-manager/returns/${request.id}`
+      ? `/facility-manager/returns/${request.id}${returnFilters ? `?${returnFilters}` : ""}`
       : `/staff/returns/${request.id}`;
 
   const formattedDate = new Date(request.startsAt).toLocaleString("vi-VN", {
@@ -349,7 +368,9 @@ function ReturnQueueRow({
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
         <div className="flex items-center gap-2">
           <span className="rounded-lg bg-slate-100 px-2.5 py-1 font-mono text-xs font-bold tracking-wide text-slate-800">
-            {request.context?.booking.bookingCode ?? `#${request.id.slice(-8)}`}
+            {actorRole === "FACILITY_MANAGER"
+              ? `#${request.id.slice(-8).toUpperCase()}`
+              : (request.context?.booking.bookingCode ?? `#${request.id.slice(-8)}`)}
           </span>
           <span className="text-xs text-muted">{M.requestId}</span>
         </div>
@@ -369,6 +390,11 @@ function ReturnQueueRow({
       {request.context && (
         <div className="mt-4 space-y-1 text-sm text-slate-700">
           <strong>{request.context.customer.name ?? F3.unknownCustomer}</strong>
+          {actorRole === "FACILITY_MANAGER" && (
+            <p className="break-all text-xs text-slate-500">
+              {F3.bookingCode}: {request.context.booking.bookingCode ?? F3.unknown}
+            </p>
+          )}
           <p>
             {request.context.unit.code} · {request.context.unit.unitTypeName} ·{" "}
             {request.context.unit.sizeLabel}
