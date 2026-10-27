@@ -470,6 +470,20 @@
       "when": 1793088400000,
       "tag": "0066_special_silverclaw",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1793048964587,
+      "tag": "0062_glamorous_miss_america",
+      "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1793081421317,
+      "tag": "0063_exotic_triton",
+      "breakpoints": true
     }
   ]
 }
