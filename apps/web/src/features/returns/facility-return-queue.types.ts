@@ -2,6 +2,8 @@ import type { ReturnQueueItemDto, ReturnRequestDto } from "@metastorage/contract
 
 export interface FacilityReturnQueueProps {
   actorRole: "FACILITY_MANAGER" | "FACILITY_STAFF";
+  facilityId?: string;
+  embedded?: boolean;
 }
 
 export interface ReturnQueueRowProps {

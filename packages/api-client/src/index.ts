@@ -125,6 +125,7 @@ import type {
   UtilizationReportQuery,
 } from "@metastorage/contracts";
 import axios, { type AxiosError, type AxiosInstance } from "axios";
+import { createFacilityWorkspaceClient } from "./facility-workspace";
 import { createFlow3Client } from "./flow3";
 import { createFlow5Client } from "./flow5";
 import { createSupportClient } from "./support";
@@ -204,6 +205,7 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
     ...createFlow3Client(http),
     ...createFlow5Client(http),
     ...createSupportClient(http),
+    ...createFacilityWorkspaceClient(http),
     http,
     notifications: {
       webSocketUrl: (origin: string) => {

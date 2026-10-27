@@ -133,7 +133,7 @@ export function FacilityReturnDetail({ requestId, actorRole }: FacilityReturnDet
     : M.nextManager;
 
   const shortId = request.id.slice(-8).toUpperCase();
-  const backHref = isStaff ? "/staff/returns" : "/facility-manager/returns";
+  const backHref = isStaff ? "/staff/returns" : "/facility-manager/tasks?view=returns";
   const assignedStaffName =
     query.data.context?.assignedStaff?.name ??
     (request.assignedStaffId ? staffMap.get(request.assignedStaffId) : null);

@@ -7,6 +7,25 @@ export * from "./customer-availability";
 export * from "./dashboard.types";
 export * from "./facilities";
 export * from "./facility-tasks";
+export type {
+  FacilityRentalDetail,
+  FacilityRentalItem as FacilityWorkspaceRentalItem,
+  FacilityRentalPage as FacilityWorkspaceRentalPage,
+  FacilityRentalPayment,
+  FacilitySupportQuery,
+  FacilityWorkspaceQuery,
+  SupportOperation,
+  SupportOperationsDetail,
+  SupportOperationsMessage,
+  SupportOperationsPage,
+  SupportOperationsTicket,
+} from "./facility-workspace";
+export {
+  FACILITY_WORKSPACE_MESSAGES,
+  FacilitySupportQuerySchema,
+  FacilityWorkspaceQuerySchema,
+  SupportOperationSchema,
+} from "./facility-workspace";
 export type * from "./flow3-read.types";
 export * from "./handover-checklist";
 export * from "./handover-checklist.messages";

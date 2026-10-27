@@ -31,12 +31,17 @@ import { ReturnStaffAssignModal } from "./return-staff-assign-modal";
 import { ReturnStatusBadge } from "./return-status-badge";
 import { RETURNS_MESSAGES as M, returnStatusLabel } from "./returns.messages";
 
-export function FacilityReturnQueue({ actorRole }: FacilityReturnQueueProps) {
+export function FacilityReturnQueue({
+  actorRole,
+  facilityId: scopedFacilityId,
+  embedded = false,
+}: FacilityReturnQueueProps) {
   const assignments = useMyFacilityAssignments();
   const assignedFacilityId = useAuthStore((state) => state.session?.user.assignedFacilityId);
   const activeFacilities = assignments.data?.filter((item) => item.isActive) ?? [];
   const [selectedFacilityId, setSelectedFacilityId] = useState("");
   const facilityId =
+    scopedFacilityId ||
     selectedFacilityId ||
     assignedFacilityId ||
     (activeFacilities.length === 1 ? activeFacilities[0]?.facilityId : "");
@@ -118,26 +123,31 @@ export function FacilityReturnQueue({ actorRole }: FacilityReturnQueueProps) {
       </select>
     </label>
   );
-  if (!facility) return <Card>{activeFacilities.length ? facilityPicker : M.noFacility}</Card>;
+  if (!facility)
+    return (
+      <Card>{activeFacilities.length && !scopedFacilityId ? facilityPicker : M.noFacility}</Card>
+    );
   if (queue.isLoading) return <LoadingState variant="table" />;
   if (queue.isError && !queue.data?.length)
     return <ErrorState message={M.queueError} onRetry={() => queue.refetch()} />;
 
   return (
     <div className="space-y-6">
-      {activeFacilities.length > 1 && facilityPicker}
+      {!scopedFacilityId && activeFacilities.length > 1 && facilityPicker}
       {/* Page Header with Facility Info */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <PageHeader eyebrow="Vận hành cơ sở" title={title} />
-          <p className="-mt-5 text-sm text-slate-600">{M.queueDescription}</p>
-        </div>
+      {!embedded && (
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <PageHeader eyebrow="Vận hành cơ sở" title={title} />
+            <p className="-mt-5 text-sm text-slate-600">{M.queueDescription}</p>
+          </div>
 
-        <div className="inline-flex items-center gap-2 self-start rounded-2xl border border-emerald-200/80 bg-emerald-50/70 px-4 py-2 text-xs font-semibold text-emerald-900 shadow-2xs sm:self-auto">
-          <Building2 className="size-4 text-emerald-700" aria-hidden="true" />
-          <span>{facility.facilityName ?? M.facilityFallback}</span>
+          <div className="inline-flex items-center gap-2 self-start rounded-2xl border border-emerald-200/80 bg-emerald-50/70 px-4 py-2 text-xs font-semibold text-emerald-900 shadow-2xs sm:self-auto">
+            <Building2 className="size-4 text-emerald-700" aria-hidden="true" />
+            <span>{facility.facilityName ?? M.facilityFallback}</span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* KPI Stats Bar */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

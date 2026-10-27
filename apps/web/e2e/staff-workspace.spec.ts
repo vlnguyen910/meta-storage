@@ -89,29 +89,21 @@ async function staffFixture(page: Page) {
   };
 }
 
-test("Staff merges assigned bookings and facility tasks while preserving other sidebar tabs", async ({
+test("Staff lands on assigned work and opens bookings and facility task details", async ({
   page,
 }, testInfo) => {
   const { state, bookings, bookingQueries } = await staffFixture(page);
   await page.goto("/staff/dashboard?view=overview");
-  await expect(page).toHaveURL(/dashboard\?view=overview$/);
-  await expect(page.getByRole("heading", { name: "Tổng quan cơ sở", exact: true })).toBeVisible();
-  const menu = page.getByRole("button", { name: "Mở menu", exact: true });
-  const openSidebar = async () => {
-    if (await menu.isVisible()) await menu.click();
-  };
-  await openSidebar();
-  const nav = page.locator("aside nav");
-  for (const name of ["Tổng quan cơ sở", "Công việc của tôi", "Kiểm tra kho"])
-    await expect(nav.getByRole("link", { name, exact: true })).toBeVisible();
-  await expect(nav.getByRole("link")).toHaveCount(4);
-  await nav.getByRole("link", { name: "Công việc của tôi", exact: true }).click();
+  await expect(page).toHaveURL(/\/staff\/dashboard\?view=overview$/);
   await expect(page.getByRole("heading", { name: "Công việc của tôi", exact: true })).toBeVisible();
-  await expect(page).toHaveURL(/\/staff\/tasks$/);
-  await expect(nav.getByRole("link", { name: "Công việc cơ sở", exact: true })).toHaveCount(0);
-  await expect(nav.getByRole("link", { name: "Công việc được giao", exact: true })).toHaveCount(0);
+  await expect(page.locator("aside")).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "Điều hướng nhân viên cơ sở" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Tổng quan cơ sở", exact: true })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Kiểm tra kho được giao" })).toBeVisible();
   await expect(page.getByRole("tab", { name: /Cần xử lý/ })).toContainText("2");
+  await page.goto("/staff");
+  await expect(page).toHaveURL(/\/staff$/);
+  await expect(page.getByRole("heading", { name: "Công việc của tôi", exact: true })).toBeVisible();
   await page.screenshot({
     path: `/tmp/metastorage-staff-ui/merged-${testInfo.project.name}.png`,
     fullPage: true,
@@ -121,10 +113,12 @@ test("Staff merges assigned bookings and facility tasks while preserving other s
   await expect(page.getByText("BK-RETURN-UI", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Nhận kho — Nguyễn Minh Anh" })).toBeVisible();
   await expect(page.getByText("OTHER-STAFF", { exact: false })).toHaveCount(0);
-  await expect(page.getByRole("link", { name: "Làm check-in", exact: true })).toHaveAttribute(
-    "href",
-    "/staff/check-in?bookingCode=BK-STAFF-UI",
-  );
+  const checkInLink = page.getByRole("link", { name: "Làm check-in", exact: true });
+  await expect(checkInLink).toHaveAttribute("href", "/staff/check-in?bookingCode=BK-STAFF-UI");
+  await checkInLink.click();
+  await expect(page).toHaveURL(/\/staff\/check-in\?bookingCode=BK-STAFF-UI$/);
+  await page.goto("/staff/tasks");
+  await page.getByLabel("Loại công việc", { exact: true }).selectOption("CHECK_IN");
   await page.getByLabel("Ngày làm việc", { exact: true }).fill("2026-10-23");
   await expect
     .poll(() =>
@@ -167,8 +161,7 @@ test("Staff merges assigned bookings and facility tasks while preserving other s
   expect(state.tasks[0]?.status).toBe("AWAITING_APPROVAL");
   if (!bookings[0]) throw new Error("Missing booking fixture");
   bookings[0].handoverStage = "READY_HANDOVER";
-  await openSidebar();
-  await nav.getByRole("link", { name: "Công việc của tôi", exact: true }).click();
+  await page.goto("/staff/tasks");
   await page.getByLabel("Loại công việc", { exact: true }).selectOption("CHECK_IN");
   await expect(page.getByRole("heading", { name: "Công việc của tôi", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Làm mới", exact: true }).click();
@@ -177,18 +170,11 @@ test("Staff merges assigned bookings and facility tasks while preserving other s
     "/staff/check-in?bookingCode=BK-STAFF-UI&view=handover",
   );
   await page.screenshot({
-    path: `/tmp/metastorage-staff-ui/sidebar-${testInfo.project.name}.png`,
+    path: `/tmp/metastorage-staff-ui/workboard-${testInfo.project.name}.png`,
     fullPage: true,
   });
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await openSidebar();
-  await nav.locator('a[href="/staff/returns"]').click();
-  await expect(page).toHaveURL(/\/staff\/returns$/, { timeout: 15000 });
-  await expect(page.getByText("BK-RETURN-UI", { exact: true })).toBeVisible();
-  await openSidebar();
-  await nav.getByRole("link", { name: "Kiểm tra kho", exact: true }).click();
-  await expect(page).toHaveURL(/\/staff\/check-in$/);
 });
 
 test("filters and pagination survive task navigation; assignment revocation is handled", async ({
@@ -229,7 +215,7 @@ test("empty and partial error states recover; mobile workspace remains usable", 
   page,
 }) => {
   const fixture = await staffFixture(page);
-  await page.goto("/staff/dashboard?view=tasks");
+  await page.goto("/staff/tasks");
   await page.getByLabel("Tìm công việc", { exact: true }).fill("không tồn tại");
   await expect(page.getByText("Chưa có công việc trong nhóm này", { exact: true })).toBeVisible();
   await page.getByLabel("Tìm công việc", { exact: true }).fill("");

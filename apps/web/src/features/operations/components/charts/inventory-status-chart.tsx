@@ -5,7 +5,10 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { OPERATIONS_MESSAGES as M } from "../../operations.messages";
 import type { InventoryStatusChartProps } from "./inventory-status-chart.types";
 
-export function InventoryStatusChart({ metrics }: Readonly<InventoryStatusChartProps>) {
+export function InventoryStatusChart({
+  metrics,
+  title = M.inventoryStatusTitle,
+}: Readonly<InventoryStatusChartProps>) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -68,13 +71,13 @@ export function InventoryStatusChart({ metrics }: Readonly<InventoryStatusChartP
   return (
     <section className="grid gap-5 rounded-card border border-outline-variant bg-surface-container-lowest p-5 shadow-[0_1px_2px_rgb(15_23_42_/_0.04)]">
       <div className="border-b border-outline-variant pb-4">
-        <h3 className="text-base font-bold text-ink">{M.inventoryStatusTitle}</h3>
+        <h3 className="text-base font-bold text-ink">{title}</h3>
         <p className="m-0 text-xs text-slate-600 mt-1">{M.inventoryFormulaNoteReal}</p>
       </div>
 
       {/* Physical Status Donut Chart & Legend */}
       <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-12">
-        <div className="relative h-64 w-full lg:col-span-5">
+        <div data-testid="inventory-donut-chart" className="relative h-64 w-full lg:col-span-5">
           {!mounted ? (
             <div className="h-full w-full animate-pulse rounded-lg bg-slate-50" />
           ) : activeSegments.length === 0 ? (

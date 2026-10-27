@@ -40,7 +40,6 @@ export function StaffWorkList() {
     return <EmptyState title={M.noFacility} description={M.noFacilityHint} />;
   return (
     <div className="space-y-6">
-      <p className="text-sm font-medium text-emerald-900">{scope.currentFacility.facilityName}</p>
       {scope.isMultiFacility && (
         <FacilitySwitcher
           activeAssignments={scope.activeAssignments}

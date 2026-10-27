@@ -1,0 +1,1 @@
+ALTER TYPE "public"."lifecycle_notification_event" ADD VALUE 'SUPPORT_UPDATED' BEFORE 'PAYMENT_CONFIRMED';

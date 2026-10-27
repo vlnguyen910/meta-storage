@@ -9,6 +9,10 @@ export const FLOW = {
   overview: "Tổng quan cơ sở",
   dispatch: "Check-in & Bàn giao kho",
   managerDispatch: "Chuẩn bị & Phân công",
+  managerRentals: "Khách thuê & Hợp đồng",
+  managerSupport: "Yêu cầu hỗ trợ",
+  managerReports: "Báo cáo & Xuất dữ liệu",
+  managerCoordination: "Điều phối công việc",
   managerDispatchTitle: "Chuẩn bị kho & Phân công Staff",
   monitor: "Theo dõi hồ sơ",
   managerMonitorHint:

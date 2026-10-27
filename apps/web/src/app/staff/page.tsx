@@ -1,4 +1,5 @@
-import { FacilityStaffDashboardScreen } from "@/modules/facility-staff/dashboard/facility-staff-dashboard-screen";
+import { StaffTasksScreen } from "@/modules/facility-staff/staff-tasks-screen";
+
 export default function StaffHomePage() {
-  return <FacilityStaffDashboardScreen />;
+  return <StaffTasksScreen />;
 }

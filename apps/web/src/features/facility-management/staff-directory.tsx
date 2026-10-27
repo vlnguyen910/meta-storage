@@ -53,19 +53,21 @@ export function StaffDirectoryWorkspace() {
         <h1 className="text-3xl font-bold">{M.title}</h1>
         <p className="mt-2 text-sm text-slate-600">{M.description}</p>
       </header>
-      <ManagementField label={F5.facility}>
-        <DropdownSelect
-          value={scope.facilityId}
-          onChange={(val) => scope.select(val)}
-          className="w-full"
-          triggerClassName="h-10 min-h-10 w-full bg-white border-slate-200"
-          options={scope.query.data.map((facility) => ({
-            value: facility.id,
-            label: `${facility.code} · ${facility.name}`,
-          }))}
-          maxVisibleItems={6}
-        />
-      </ManagementField>
+      {scope.query.data.length > 1 && (
+        <ManagementField label={F5.facility}>
+          <DropdownSelect
+            value={scope.facilityId}
+            onChange={(val) => scope.select(val)}
+            className="w-full"
+            triggerClassName="h-10 min-h-10 w-full bg-white border-slate-200"
+            options={scope.query.data.map((facility) => ({
+              value: facility.id,
+              label: `${facility.code} · ${facility.name}`,
+            }))}
+            maxVisibleItems={6}
+          />
+        </ManagementField>
+      )}
       <StaffPanel
         key={scope.facilityId}
         staff={pageItems}

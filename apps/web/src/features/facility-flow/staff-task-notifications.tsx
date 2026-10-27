@@ -46,7 +46,7 @@ export function StaffTaskNotifications() {
           </div>
           <StaffNotificationList compact />
           <Link
-            href={`${facilityStaffRoutes.dashboard}?view=tasks`}
+            href={facilityStaffRoutes.tasks}
             className="mx-3 mb-2 flex min-h-11 items-center justify-center rounded-xl bg-slate-50 px-3 text-xs font-bold text-primary hover:bg-primary-soft focus-visible:outline-2 focus-visible:outline-primary"
           >
             {N.staffTasks}

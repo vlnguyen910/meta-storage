@@ -181,7 +181,7 @@ export class OutboxRepository {
   }
 
   async authorized(row: typeof notificationOutbox.$inferSelect, now: Date) {
-    if (row.eventType === "SUPPORT_CREATED") {
+    if (row.eventType === "SUPPORT_CREATED" || row.eventType === "SUPPORT_UPDATED") {
       if (!row.supportTicketId || row.recipientRole !== "CUSTOMER" || !row.recipientUserId)
         return false;
       const [owner] = await this.db
