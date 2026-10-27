@@ -1,12 +1,7 @@
-import type { UserRole } from "@metastorage/contracts";
+import type { User, UserRole } from "@metastorage/contracts";
 import type { ReactNode } from "react";
 
-export type AdminSection =
-  | "dashboard"
-  | "users"
-  | "assignments"
-  | "login-history"
-  | "activity-logs";
+export type AdminSection = "users" | "assignments" | "login-history" | "activity-logs";
 export type AdminAccountStatus = "ACTIVE" | "INACTIVE";
 export type AdminOutcome = "SUCCESS" | "FAILED";
 export type AdminAction = "ROLE_CHANGED" | "STATUS_CHANGED" | "FACILITIES_CHANGED";
@@ -104,13 +99,40 @@ export interface AdminDrawerProps {
   readonly onClose: () => void;
 }
 
+export type AdminDialogProps = AdminDrawerProps;
+
+export interface AdminUserDetailProps {
+  readonly userId: string;
+  readonly onClose: () => void;
+  readonly onEdit: (user: User) => void;
+}
+
+export type AdminManagedUser = User & { role: UserRole; status: AdminAccountStatus };
+
+export interface AdminUserEditorProps {
+  readonly user: AdminManagedUser;
+  readonly onClose: () => void;
+  readonly onSave: (role: UserRole) => Promise<void>;
+}
+
+export interface AdminUserStatusConfirmationProps {
+  readonly user: AdminManagedUser | null;
+  readonly pending: boolean;
+  readonly onCancel: () => void;
+  readonly onConfirm: () => void;
+}
+
+export type AdminUserEditValues = Pick<AdminManagedUser, "role">;
+
+export interface AdminUserFilters {
+  readonly search: string;
+  readonly role: string;
+  readonly status: string;
+}
+
 export interface AdminBadgeProps {
   readonly label: string;
   readonly warning?: boolean;
-}
-
-export interface AdminSummaryProps {
-  readonly data: AdminMockData;
 }
 
 export interface AdminSnapshotProps {
@@ -131,6 +153,7 @@ export interface AdminEditorProps {
   readonly user: AdminUser;
   readonly data: AdminMockData;
   readonly assignment: boolean;
+  readonly modal?: boolean;
   readonly pending: boolean;
   readonly onSave: (changes: readonly AdminAccountChange[]) => Promise<void>;
   readonly onClose: () => void;

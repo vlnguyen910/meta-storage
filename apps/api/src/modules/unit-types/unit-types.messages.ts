@@ -1,6 +1,18 @@
 export const UNIT_TYPE_MESSAGES = {
+  forbidden: "Bạn không có quyền quản lý loại kho tại cơ sở này.",
+  stale: "Loại kho đã thay đổi. Hãy tải lại trước khi cập nhật.",
+  dimensionsInUse: "Loại kho đã được dùng để đặt chỗ; hãy tạo loại mới để thay đổi kích thước.",
   unitTypeUnavailable: "Không tìm thấy Unit Type khả dụng tại cơ sở này",
   facilityUnavailable: "Không tìm thấy cơ sở đang hoạt động",
   failedToCreateUnitType: "Failed to create unit type",
   failedToLinkUnitType: "Failed to link unit type to facility",
+  codeAlreadyExists: "Mã loại kho đã được sử dụng.",
+  unitTypeNotFound: "Không tìm thấy loại kho.",
+  unitTypeCreateSummary: "Tạo loại kho tại cơ sở được phân công",
+  unitTypeListSummary: "Quản lý danh mục loại kho",
+  unitTypeUpdateSummary: "Cập nhật thông tin loại kho",
+  unitTypeCreated: "Đã tạo loại kho.",
+  unitTypeUpdated: "Đã cập nhật thông tin loại kho.",
+  facilityUnitTypesSummary: "Quản lý loại kho được cung cấp tại cơ sở",
+  facilityUnitTypeUnavailable: "Không tìm thấy liên kết loại kho tại cơ sở.",
 } as const;

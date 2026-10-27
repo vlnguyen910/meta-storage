@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "turbo dev --filter=web",
+    "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",
     "check-types": "turbo check-types",
@@ -16,14 +16,16 @@
     "format": "biome format --write .",
     "test": "turbo test",
     "test:e2e": "bun run --filter web test:e2e",
+    "test:customer:e2e": "bun apps/api/tests/run-customer-rental-e2e.ts",
     "prepare": "husky",
     "db:generate": "turbo run db:generate",
     "db:migrate": "turbo run db:migrate",
     "db:push": "turbo run db:push",
     "db:studio": "turbo run db:studio",
     "db:seed": "turbo run db:seed",
-    "seed:local": "bun run db:seed && bun run --filter api seed:auth",
-    "db:clear": "turbo run db:clear"
+    "db:clear": "turbo run db:clear",
+    "test:db:local": "bun apps/api/tests/run-local-database-tests.ts",
+    "check:pr": "bun run check && bun run check-types && bun run test && bun run test:db:local"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",

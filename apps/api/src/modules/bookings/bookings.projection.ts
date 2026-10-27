@@ -1,4 +1,12 @@
-import { bookings, checkInSlots, getTableColumns, payments, sql } from "@metastorage/database";
+import {
+  alias,
+  bookings,
+  checkInSlots,
+  getTableColumns,
+  payments,
+  sql,
+  users,
+} from "@metastorage/database";
 
 // Keep legacy API timestamps while the database stores a local date and a slot.
 export const bookingCheckInSlotStart = sql<Date>`(
@@ -23,11 +31,13 @@ export const bookingPaidAt = sql<Date | null>`(
     and ${payments.status} in ('SUCCEEDED', 'REFUND_PENDING', 'REFUNDED')
 )`.mapWith((value) => (value === null ? null : new Date(value)));
 
-// Operational readers exclude DRAFT; the database requires complete contact after DRAFT.
+export const bookingCustomer = alias(users, "booking_customer");
+
+// Operational readers join the required account; phone belongs to the booking.
 export const bookingReadFields = {
   ...getTableColumns(bookings),
-  contactName: sql<string>`${bookings.contactName}`,
-  contactEmail: sql<string>`${bookings.contactEmail}`,
+  contactName: bookingCustomer.name,
+  contactEmail: bookingCustomer.email,
   contactPhone: sql<string>`${bookings.contactPhone}`,
   checkInSlotStart: bookingCheckInSlotStart,
   checkInSlotEnd: bookingCheckInSlotEnd,

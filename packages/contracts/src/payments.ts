@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { BookingConfirmationSchema, PaidBookingSchema } from "./bookings";
-import { ReservationDraftContactSchema } from "./reservation-contact";
 
 export type {
   BookingPaymentSession,
@@ -17,9 +16,12 @@ export const BookingPaymentParamsSchema = z.object({
 export type BookingPaymentParams = z.infer<typeof BookingPaymentParamsSchema>;
 
 export const BookingPaymentInputSchema = z.object({
-  draftAccessToken: z.string().regex(/^[a-f0-9]{64}$/),
   idempotencyKey: z.string().min(16).max(128),
-  contact: ReservationDraftContactSchema,
+  contactPhone: z
+    .string()
+    .trim()
+    .regex(/^(?:\+[1-9]\d{7,14}|0\d{9})$/)
+    .optional(),
 });
 export type BookingPaymentInput = z.infer<typeof BookingPaymentInputSchema>;
 
@@ -131,6 +133,7 @@ export const PaymentStatusResponseSchema = z.object({
   status: z.enum(PaymentStatus),
   provider: z.string(),
   paymentCode: z.string(),
+  chargeId: z.string().uuid().optional(),
   transferInstructions: SepayPaymentInstructionsSchema.optional(),
   checkoutUrl: z.string().url().optional(),
   checkoutFormFields: z.record(z.string(), z.union([z.string(), z.number()])).optional(),

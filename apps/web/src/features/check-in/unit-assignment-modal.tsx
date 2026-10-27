@@ -106,7 +106,7 @@ export function UnitAssignmentModal({ booking, isOpen, onClose }: UnitAssignment
               Chọn ô kho vật lý phù hợp trong cơ sở:
             </span>
 
-            {isLoading && <LoadingState />}
+            {isLoading && <LoadingState variant="table" />}
 
             {isError && (
               <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-700">

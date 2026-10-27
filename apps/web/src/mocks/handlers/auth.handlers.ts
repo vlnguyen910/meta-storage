@@ -31,15 +31,14 @@ export function registerAuthHandlers(mock: MockAdapter): void {
       id: crypto.randomUUID(),
       name,
       email: email.toLowerCase(),
-      phone,
+      phone: phone ?? null,
       password,
       role: UserRole.STORAGE_CUSTOMER,
       status: "ACTIVE",
       emailVerified: false,
       image: null,
-      passwordHash: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       assignedFacilityIds: [],
     });
     saveMockDatabase(db);
@@ -88,4 +87,14 @@ export function registerAuthHandlers(mock: MockAdapter): void {
   mock
     .onPost("/auth/forgot-password")
     .reply(200, envelope(null, "Nếu email tồn tại, hướng dẫn đã được gửi"));
+
+  mock.onPost("/auth/sign-in/social").reply((config) => {
+    const body = parseBody<{ callbackURL?: string }>(config.data);
+    return [200, { url: body.callbackURL ?? "/login/complete", redirect: true }];
+  });
+
+  mock.onPost("/auth/link-social").reply((config) => {
+    const body = parseBody<{ callbackURL?: string }>(config.data);
+    return [200, { url: body.callbackURL ?? "/login/complete?action=link", redirect: true }];
+  });
 }

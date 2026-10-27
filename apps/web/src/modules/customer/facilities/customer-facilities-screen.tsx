@@ -5,9 +5,9 @@ export function CustomerFacilitiesScreen() {
   return (
     <>
       <PageHeader
-        eyebrow="Đặt kho mới"
-        title="Chọn cơ sở"
-        description="Xem tồn kho hiện tại và bắt đầu reservation."
+        eyebrow="Tìm kiếm kho"
+        title="Chọn cơ sở kho lưu trữ"
+        description="Xem danh sách cơ sở kho còn trống và bắt đầu đặt chỗ thuê kho."
       />
       <FacilityList protectedMode />
     </>

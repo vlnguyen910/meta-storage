@@ -23,14 +23,23 @@ export function registerFacilityHandlers(mock: MockAdapter): void {
           u.role === UserRole.FACILITY_STAFF &&
           (!facilityId || facilityId === "all" || u.assignedFacilityIds.includes(facilityId)),
       )
-      .map((u) => ({
-        id: u.id,
-        name: u.name,
-        email: u.email,
-        phone: u.phone ?? null,
-        role: UserRole.FACILITY_STAFF,
-        isActive: true,
-      }));
+      .map((u) => {
+        const assignedTasksCount = database.bookings.filter(
+          (b) =>
+            (!facilityId || facilityId === "all" || b.facilityId === facilityId) &&
+            b.assignedStaff?.id === u.id &&
+            b.status === "CONFIRMED",
+        ).length;
+        return {
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          phone: u.phone ?? null,
+          role: UserRole.FACILITY_STAFF,
+          isActive: true,
+          assignedTasksCount,
+        };
+      });
 
     return [200, envelope(staffList)];
   });

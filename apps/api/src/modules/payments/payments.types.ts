@@ -9,20 +9,19 @@ export type CompletedPayment = {
 };
 
 export type PaymentStatusCredentials = {
-  checkoutAccessToken?: string;
   userId?: string;
 };
 
 export type PaymentStatusAccess = {
-  tokenHash?: string;
   userId?: string;
 };
 
 export type PrepareBookingPaymentInput = {
   bookingId: string;
-  accessTokenHash: string;
+  userId: string;
+  holdTokenHash: string;
   idempotencyKey: string;
-  contact: BookingPaymentInput["contact"];
+  contactPhone?: BookingPaymentInput["contactPhone"];
   paymentCode: string;
   holdDurationMs: number;
 };
@@ -52,6 +51,7 @@ export type VerifiedPaymentEvent = {
   metadata: Record<string, unknown>;
   currency?: string;
   successful?: boolean;
+  paidAt?: Date;
 };
 
 export type BookingWebhookResult = {
@@ -72,11 +72,6 @@ export interface PaymentGateway {
 }
 
 export type SepayWebhookPayload = {
-  id?: number | string;
-  code?: string | null;
-  transferType?: "in" | "out";
-  transferAmount?: number;
-  referenceCode?: string | null;
   notification_type?: string;
   order?: {
     order_invoice_number?: string;
@@ -103,11 +98,9 @@ export type SepayGatewayConfig = {
   merchantId?: string;
   secretKey?: string;
   webUrl?: string;
-  apiKey?: string;
   bankName?: string;
   accountNumber?: string;
   accountName?: string;
-  publicApiUrl?: string;
 };
 
 export type SepayCheckoutSession = {
@@ -121,7 +114,8 @@ export type SepayCreateCheckoutInput = {
   currency: string;
   description: string;
   paymentId: string;
-  bookingId: string;
+  bookingId?: string;
+  rentalChargeId?: string;
 };
 
 export type SepayOrderDetailResponse = {
@@ -131,6 +125,12 @@ export type SepayOrderDetailResponse = {
     order_status?: string;
     order_amount?: string | number;
     order_currency?: string;
+    transactions?: Array<{
+      id?: string | number;
+      transaction_type?: string;
+      transaction_status?: string;
+      transaction_date?: string;
+    }>;
   };
 };
 

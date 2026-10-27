@@ -8,9 +8,17 @@ export interface BookingConfirmationEmailInput {
   qrUrl: string;
 }
 
+export interface BookingTrackingLinkEmailInput {
+  deliveryId: string;
+  recipientEmail: string;
+  bookingCode: string;
+  trackingUrl: string;
+  expiresAt: string;
+}
+
 export interface MailJobData {
   deliveryId: string;
-  kind: "BOOKING_CONFIRMATION";
+  kind: "BOOKING_CONFIRMATION" | "BOOKING_TRACKING_LINK";
   payload: string;
   expiresAt: string;
 }

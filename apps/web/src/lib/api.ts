@@ -3,9 +3,7 @@ import { isMockMode } from "@/config/api-mode";
 import { authStore } from "@/features/auth/auth-store";
 
 const http = createHttpClient({
-  baseURL: isMockMode
-    ? "/api"
-    : (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api"),
+  baseURL: isMockMode ? "/api" : (process.env.NEXT_PUBLIC_API_BASE_URL ?? "/api"),
   tokenProvider: {
     getAccessToken: () => {
       const session = authStore.getState().session;

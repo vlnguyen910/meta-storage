@@ -38,4 +38,36 @@ describe("two-hour check-in slot", () => {
       ["DEADLINE_PASSED"],
     );
   });
+  it("allows early check-in only when explicitly enabled, retaining all other blockers", () => {
+    const record = {
+      bookingStatus: "CONFIRMED",
+      payment: { status: "SUCCEEDED" },
+      hasAssignedUnit: true,
+      checkInSlotStart: new Date("2026-12-16T02:00:00Z"),
+      checkInDayEnd: new Date("2026-12-16T11:00:00Z"),
+      verification: null,
+    };
+    const now = new Date("2026-12-15T03:00:00Z");
+    assert.deepEqual(evaluateCheckInEligibility(record, now).reasons, ["TOO_EARLY"]);
+    assert.equal(evaluateCheckInEligibility(record, now, true).canProceed, true);
+    assert.deepEqual(
+      evaluateCheckInEligibility(
+        { ...record, payment: { status: "PENDING" }, hasAssignedUnit: false },
+        now,
+        true,
+      ).reasons,
+      ["PAYMENT_NOT_SUCCEEDED", "UNIT_NOT_ASSIGNED"],
+    );
+    assert.deepEqual(
+      evaluateCheckInEligibility({ ...record, bookingStatus: "DRAFT" }, now, true).reasons,
+      ["INVALID_BOOKING_STATUS"],
+    );
+    assert.deepEqual(
+      evaluateCheckInEligibility({ ...record, checkInDayEnd: null }, now, true).reasons,
+      ["CHECKIN_SLOT_NOT_CONFIGURED"],
+    );
+    assert.deepEqual(evaluateCheckInEligibility(record, record.checkInDayEnd, true).reasons, [
+      "DEADLINE_PASSED",
+    ]);
+  });
 });

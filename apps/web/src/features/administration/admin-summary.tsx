@@ -1,133 +1,163 @@
-import { UserRole } from "@metastorage/contracts";
+"use client";
+import { KeyRound, ShieldCheck, UserRoundCheck, UsersRound } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { systemAdministratorRoutes as routes } from "@/config/routes";
-import { formatDateTime } from "@/lib/format";
-import { isFacilityRole } from "./admin.helpers";
-import { ADMIN_ROLE_LABELS, ADMIN_MESSAGES as M } from "./admin.messages";
-import type { AdminSummaryProps } from "./admin.types";
-import { AdminBadge, AdminTable, adminCard } from "./admin-parts";
+import { ADMIN_MESSAGES as M } from "./admin.messages";
+import { useCustomerRegistrations } from "./use-customer-registrations";
 
-export function AdminSummary({ data }: Readonly<AdminSummaryProps>) {
+export function AdminSummary() {
+  const [year, setYear] = useState(() => new Date().getUTCFullYear());
+  const registrations = useCustomerRegistrations(year);
   const metrics = [
-    { label: M.totalUsers, value: data.users.length, href: routes.users },
+    {
+      label: M.totalUsers,
+      value: registrations.data?.summary.totalUsers,
+      href: routes.users,
+      icon: UsersRound,
+    },
     {
       label: M.activeUsers,
-      value: data.users.filter((user) => user.status === "ACTIVE").length,
+      value: registrations.data?.summary.activeUsers,
       href: routes.users,
+      icon: UserRoundCheck,
     },
     {
       label: M.lockedUsers,
-      value: data.users.filter((user) => user.status === "INACTIVE").length,
+      value: registrations.data?.summary.inactiveUsers,
       href: routes.users,
+      icon: KeyRound,
     },
     {
       label: M.pendingAssignments,
-      value: data.users.filter((user) => isFacilityRole(user.role) && !user.facilityIds.length)
-        .length,
+      value: registrations.data?.summary.unassignedFacilityUsers,
       href: routes.facilityAssignments,
+      icon: ShieldCheck,
     },
   ];
+
   return (
-    <div className="grid min-w-0 gap-5">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid min-w-0 gap-4">
+      <section aria-label={M.totalUsers} className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => (
           <Link
             href={metric.href}
-            className={`${adminCard} transition hover:border-primary focus-visible:outline-2 focus-visible:outline-primary`}
+            className="rounded-card outline-offset-2 focus-visible:outline-2 focus-visible:outline-primary"
             key={metric.label}
           >
-            <p className="m-0 text-sm text-slate-600">{metric.label}</p>
-            <p className="mb-0 mt-3 text-3xl font-bold text-primary">{metric.value}</p>
+            <Card className="flex h-full min-h-28 flex-col justify-between rounded-card border-line bg-white p-4 shadow-card transition-colors hover:border-primary/40">
+              <div className="flex items-start justify-between gap-2">
+                <p className="m-0 text-xs font-semibold text-slate-600">{metric.label}</p>
+                <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
+                  <metric.icon size={19} aria-hidden="true" />
+                </span>
+              </div>
+              <p className="m-0 font-['Space_Grotesk'] text-3xl font-bold leading-none tracking-tight text-ink">
+                {metric.value?.toLocaleString("vi-VN") ?? "—"}
+              </p>
+            </Card>
           </Link>
         ))}
-      </div>
-      <div className="grid min-w-0 gap-5 xl:grid-cols-2">
-        <section className={adminCard}>
-          <h2 className="mt-0 text-lg font-bold">{M.roleDistribution}</h2>
-          <ul className="m-0 grid list-none gap-3 p-0">
-            {Object.values(UserRole).map((role) => (
-              <li
-                className="flex justify-between gap-4 border-b border-slate-100 pb-3 text-sm"
-                key={role}
+      </section>
+
+      <Card
+        aria-label={M.customerChart}
+        className="min-w-0 rounded-card border-line bg-white p-4 shadow-card sm:p-5"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+          <div>
+            <h2 className="m-0 font-['Space_Grotesk'] text-lg font-bold text-ink sm:text-xl">
+              {M.customerChart}
+            </h2>
+            <p className="mb-0 mt-0.5 text-xs text-slate-500">{M.customerChartDescription}</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2.5">
+            {registrations.data && (
+              <Badge className="border-emerald-200 bg-primary-soft px-2.5 py-1 text-xs text-primary">
+                {registrations.data.items
+                  .reduce((sum, item) => sum + item.count, 0)
+                  .toLocaleString("vi-VN")}{" "}
+                {M.customerChartValue.toLowerCase()}
+              </Badge>
+            )}
+            <DropdownSelect
+              aria-label={M.customerChartYear}
+              value={String(year)}
+              onChange={(val) => setYear(Number(val))}
+              className="min-w-36"
+              triggerClassName="h-9 min-h-9 text-xs"
+              options={(registrations.data?.years ?? [year]).map((option) => ({
+                value: String(option),
+                label: M.customerChartYearOption(option),
+              }))}
+            />
+          </div>
+        </div>
+        {registrations.isLoading && (
+          <p role="status" className="mt-6 text-sm text-slate-600">
+            {M.customerChartLoading}
+          </p>
+        )}
+        {registrations.isError && (
+          <div role="alert" className="mt-6 flex flex-wrap items-center gap-3 text-sm">
+            <span>{M.customerChartError}</span>
+            <Button variant="outline" onClick={() => registrations.refetch()}>
+              {M.customerChartRetry}
+            </Button>
+          </div>
+        )}
+        {registrations.data && (
+          <>
+            <div className="mt-5 rounded-xl border border-line bg-canvas p-3 sm:p-5">
+              <ChartContainer
+                config={{ count: { label: M.customerChartValue, color: "#165f4d" } }}
+                className="h-[300px] w-full aspect-auto"
               >
-                <span>{ADMIN_ROLE_LABELS[role]}</span>
-                <strong>{data.users.filter((user) => user.role === role).length}</strong>
-              </li>
-            ))}
-          </ul>
-        </section>
-        <section className="min-w-0">
-          <h2 className="text-lg font-bold">{M.facilitySummary}</h2>
-          <AdminTable title={M.facilitySummary} headings={M.facilityHeadings}>
-            {data.facilities.map((facility) => (
-              <tr key={facility.id}>
-                <td>{facility.name}</td>
-                <td>
-                  {
-                    data.users.filter(
-                      (user) =>
-                        user.role === UserRole.FACILITY_MANAGER &&
-                        user.facilityIds.includes(facility.id),
-                    ).length
-                  }
-                </td>
-                <td>
-                  {
-                    data.users.filter(
-                      (user) =>
-                        user.role === UserRole.FACILITY_STAFF &&
-                        user.facilityIds.includes(facility.id),
-                    ).length
-                  }
-                </td>
-              </tr>
-            ))}
-          </AdminTable>
-        </section>
-      </div>
-      <div className="grid min-w-0 gap-5 xl:grid-cols-2">
-        <section className={adminCard}>
-          <h2 className="mt-0 text-lg font-bold">
-            <Link href={routes.loginHistory} className="hover:text-primary">
-              {M.latestLogins}
-            </Link>
-          </h2>
-          <ul className="m-0 grid list-none gap-3 p-0">
-            {data.logins.slice(0, 4).map((entry) => (
-              <li
-                key={entry.id}
-                className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3 text-sm"
-              >
-                <div>
-                  <strong>{entry.name}</strong>
-                  <p className="mb-0 mt-1 text-xs text-slate-600">{formatDateTime(entry.at)}</p>
-                </div>
-                <AdminBadge
-                  label={entry.outcome === "SUCCESS" ? M.success : M.failed}
-                  warning={entry.outcome === "FAILED"}
-                />
-              </li>
-            ))}
-          </ul>
-        </section>
-        <section className={adminCard}>
-          <h2 className="mt-0 text-lg font-bold">
-            <Link href={routes.activityLogs} className="hover:text-primary">
-              {M.latestActivity}
-            </Link>
-          </h2>
-          <ul className="m-0 grid list-none gap-3 p-0">
-            {data.audits.slice(0, 4).map((entry) => (
-              <li key={entry.id} className="border-b border-slate-100 pb-3 text-sm">
-                <strong>{M.actions[entry.action]}</strong>
-                <p className="mb-0 mt-1 text-slate-600">
-                  {entry.target} · {formatDateTime(entry.at)}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </section>
-      </div>
+                <LineChart
+                  data={registrations.data.items}
+                  margin={{ left: 0, right: 16 }}
+                  accessibilityLayer
+                >
+                  <CartesianGrid vertical={false} stroke="#e5e7eb" />
+                  <XAxis
+                    dataKey="month"
+                    tickFormatter={M.customerChartMonthTick}
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fill: "#64748b", fontSize: 11 }}
+                    minTickGap={12}
+                  />
+                  <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={30} />
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        labelFormatter={(label) => M.customerChartMonth(String(label))}
+                      />
+                    }
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="count"
+                    stroke="var(--color-count)"
+                    strokeWidth={3}
+                    dot={{ r: 3, fill: "#fff", strokeWidth: 2 }}
+                    activeDot={{ r: 5 }}
+                  />
+                </LineChart>
+              </ChartContainer>
+            </div>
+            {registrations.data.items.every((item) => item.count === 0) && (
+              <p className="mb-0 mt-3 text-sm text-slate-600">{M.customerChartEmpty(year)}</p>
+            )}
+          </>
+        )}
+      </Card>
     </div>
   );
 }

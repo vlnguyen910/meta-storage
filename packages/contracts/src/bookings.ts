@@ -10,7 +10,26 @@ export type {
   BookingTracking,
   BookingTrackingSession,
   CheckInSlotOption,
+  CustomerBooking,
+  CustomerBookingDetail,
+  CustomerBookingPage,
+  CustomerBookingPageCursor,
 } from "./bookings.types";
+
+export const RequestGuestAccessLinkSchema = z.strictObject({
+  bookingCode: z.string().trim().min(1).max(50),
+  email: z.email().max(320),
+  idempotencyKey: z.uuid(),
+});
+export type RequestGuestAccessLink = z.infer<typeof RequestGuestAccessLinkSchema>;
+
+export const GuestContractParamsSchema = z.object({
+  bookingCode: z.string().trim().min(1).max(50),
+  contractId: z.uuid(),
+});
+export const GuestContractDownloadQuerySchema = z.object({
+  download: z.enum(["true", "false"]).default("false"),
+});
 
 export const BookingMagicLinkInputSchema = z.object({
   token: z
@@ -119,6 +138,7 @@ export const BookingListItemSchema = z.object({
   handoverStage: z
     .enum(["WAITING_CUSTOMER", "INSPECTING", "READY_HANDOVER", "HANDED_OVER"])
     .optional(),
+  earlyCheckInAllowed: z.boolean().optional(),
   createdAt: z.string().datetime(),
 });
 
@@ -149,10 +169,30 @@ export const BookingListQuerySchema = z.object({
 });
 export type BookingListQuery = z.infer<typeof BookingListQuerySchema>;
 
+export const CustomerBookingPageQuerySchema = z
+  .object({
+    status: z.enum(["CONFIRMED", "CANCELLED", "NO_SHOW", "CHECKED_IN"]).optional(),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+    afterCreatedAt: z.string().datetime({ offset: true }).optional(),
+    afterId: z.string().uuid().optional(),
+  })
+  .refine((query) => Boolean(query.afterCreatedAt) === Boolean(query.afterId), {
+    message: BOOKING_CONTRACT_MESSAGES.incompleteCustomerBookingCursor,
+    path: ["afterId"],
+  });
+export type CustomerBookingPageQuery = z.infer<typeof CustomerBookingPageQuerySchema>;
+
 export const AssignStaffBodySchema = AssignBookingStaffInputSchema;
 export type AssignStaffBody = z.infer<typeof AssignStaffBodySchema>;
 
-export const StaffTasksQuerySchema = z.object({
-  facilityId: z.string().uuid().optional(),
-});
+export const StaffTasksQuerySchema = z
+  .object({
+    facilityId: z.string().uuid().optional(),
+    fromDate: z.iso.date().optional(),
+    toDate: z.iso.date().optional(),
+  })
+  .refine((query) => !query.fromDate || !query.toDate || query.fromDate <= query.toDate, {
+    message: BOOKING_CONTRACT_MESSAGES.invalidDateRange,
+    path: ["toDate"],
+  });
 export type StaffTasksQuery = z.infer<typeof StaffTasksQuerySchema>;

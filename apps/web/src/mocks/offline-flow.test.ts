@@ -1,5 +1,6 @@
 import { createHttpClient, createMetastorageApiClient } from "@metastorage/api-client";
 import type { SessionTokens } from "@metastorage/contracts";
+import { HANDOVER_CHECKLIST_ITEMS } from "@metastorage/contracts";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { getMockDatabase, resetMockDatabase } from "./database";
 import { installMockApi } from "./install-mock-api";
@@ -29,7 +30,7 @@ beforeEach(() => {
 });
 afterEach(() => vi.useRealTimers());
 async function login(email: string) {
-  tokens = await client.auth.login({ email, password: "Demo@123" });
+  tokens = await client.auth.login({ email, password: "12345678" });
 }
 it("keeps guest pricing and payment booking together without an API server", async () => {
   const draft = await client.reservations.createDraft({
@@ -79,9 +80,16 @@ it("keeps FM assignment separate from Staff inspection and persists handover", a
   let inspection = await client.inspections.start(id);
   await expect(
     client.inspections.complete(inspection.id, inspection.version),
-  ).rejects.toMatchObject({ response: { status: 409 } });
+  ).rejects.toMatchObject({ response: { status: 422 } });
   inspection = await client.inspections.save(inspection.id, {
     version: inspection.version,
+    results: HANDOVER_CHECKLIST_ITEMS.map((item) => ({
+      itemCode: item.code,
+      resultType: "PASS_FAIL",
+      result: "PASS",
+      note: null,
+      photos: [],
+    })),
     correctUnit: true,
     conditionNotes: "Kho trống, sạch, không hư hại.",
   });
@@ -99,7 +107,7 @@ it("keeps FM assignment separate from Staff inspection and persists handover", a
   expect(getMockDatabase().units.find((u) => u.id === unit.id)?.status).toBe("OCCUPIED");
   await login("customer@metastorage.test");
   // Guest bookings do not acquire ownership by matching a registered email.
-  expect((await client.rentals.mine()).some((r) => r.bookingId === id)).toBe(false);
+  expect((await client.rentals.mine()).items.some((r) => r.bookingId === id)).toBe(false);
 });
 it("fails closed for unknown endpoints", async () => {
   await expect(http.get("/missing-offline-endpoint")).rejects.toMatchObject({

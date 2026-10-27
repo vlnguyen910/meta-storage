@@ -1,40 +1,36 @@
 "use client";
-import { ArrowLeft, CreditCard, Landmark, Wallet } from "lucide-react";
+import { CUSTOMER_WORKSPACE as C } from "@metastorage/shared";
+import { ArrowLeft, Landmark } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { isMockMode } from "@/config/api-mode";
+import { routes } from "@/config/routes";
 import { checkoutMessages as m } from "./checkout.messages";
 import s from "./checkout.module.css";
 import type { CheckoutState } from "./checkout.types";
 import { CheckoutRow, CheckoutSummary } from "./checkout-parts";
 
 export function CheckoutPayment({ state }: { state: CheckoutState }) {
+  const pathname = usePathname();
+  const restartPath = pathname?.startsWith("/customer/")
+    ? routes.customer.newReservation
+    : routes.reservationNew;
   const pending = state.pendingPayment;
   const status = state.paymentStatusQuery.data?.status;
   const terminal = status === "FAILED" || status === "REFUND_PENDING" || status === "REFUNDED";
-  const methods = [
-    {
-      name: isMockMode ? m.mockPayment : m.sepayTitle,
-      description: isMockMode ? m.mockPaymentDescription : m.sepayDescription,
-      icon: Landmark,
-    },
-    { name: m.domestic, description: m.comingSoon, icon: CreditCard },
-    { name: m.international, description: m.comingSoon, icon: CreditCard },
-    { name: m.wallet, description: m.comingSoon, icon: Wallet },
-  ];
   return (
     <>
       <h1 className={s.title}>{m.paymentTitle}</h1>
       <p className={s.description}>{m.paymentDescription}</p>
       <div className={s.layout}>
         <section className={s.panel}>
-          {methods.map((method) => (
-            <div key={method.name} className={s.paymentOption}>
-              <method.icon size={21} />
-              <div>
-                <strong>{method.name}</strong>
-                <small>{method.description}</small>
-              </div>
+          <div className={s.paymentOption}>
+            <Landmark size={21} aria-hidden="true" />
+            <div>
+              <strong>{m.sepayTitle}</strong>
+              <small>{isMockMode ? m.mockPaymentDescription : m.sepayDescription}</small>
             </div>
-          ))}
+          </div>
           {!state.draft?.pricing ? (
             <p role="status" className={s.notice}>
               <strong>{m.paymentUnavailable}</strong>
@@ -90,6 +86,14 @@ export function CheckoutPayment({ state }: { state: CheckoutState }) {
               </button>
             </section>
           ) : null}
+          {pending && state.draft && (
+            <Link
+              className={s.secondary}
+              href={`${routes.customer.supportNew}?bookingId=${encodeURIComponent(state.draft.id)}&paymentId=${encodeURIComponent(pending.paymentId)}`}
+            >
+              {C.newTicket}
+            </Link>
+          )}
           {state.paymentError ? (
             <div role="alert" className={s.notice}>
               <strong>{m.paymentFailed}</strong>
@@ -97,9 +101,9 @@ export function CheckoutPayment({ state }: { state: CheckoutState }) {
             </div>
           ) : null}
           {terminal ? (
-            <a className={s.secondary} href="/reservations/new?new=1">
+            <Link className={s.secondary} href={`${restartPath}?new=1`}>
               {m.startAgain}
-            </a>
+            </Link>
           ) : null}
           <button
             type="button"

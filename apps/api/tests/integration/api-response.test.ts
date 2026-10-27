@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, spyOn, test } from "bun:test";
+import { createAuthClient } from "better-auth/client";
 import Fastify from "fastify";
 import { validatorCompiler } from "fastify-type-provider-zod";
 import { z } from "zod";
@@ -87,9 +88,11 @@ describe("HTTP error response contract", () => {
     expect(response.json()).toEqual({
       success: false,
       error: { code: 401, message: "Invalid credentials" },
+      code: "INVALID_EMAIL_OR_PASSWORD",
       timestamp: expect.any(String),
     });
-    expect(response.headers["set-cookie"]).toEqual(["test=; Max-Age=0"]);
+    const setCookie = response.headers["set-cookie"];
+    expect(Array.isArray(setCookie) ? setCookie : [setCookie]).toEqual(["test=; Max-Age=0"]);
     expect(response.headers["content-length"]).toBe(String(Buffer.byteLength(response.body)));
   });
   test("keeps the successful Better Auth response compatible with its client", async () => {
@@ -102,5 +105,43 @@ describe("HTTP error response contract", () => {
     });
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual(body);
+  });
+  test("preserves the auth SDK code for an unverified login", async () => {
+    provider.mockResolvedValueOnce(
+      Response.json({ code: "EMAIL_NOT_VERIFIED", message: "Email not verified" }, { status: 403 }),
+    );
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/auth/sign-in/email",
+      payload: {},
+    });
+    expect(response.json()).toMatchObject({
+      code: "EMAIL_NOT_VERIFIED",
+      error: { code: 403, message: "Email not verified" },
+    });
+    provider.mockResolvedValueOnce(
+      Response.json({ code: "EMAIL_NOT_VERIFIED", message: "Email not verified" }, { status: 403 }),
+    );
+    const client = createAuthClient({
+      baseURL: "http://localhost:4000/api/auth",
+      fetchOptions: {
+        customFetchImpl: async () => {
+          const result = await app.inject({
+            method: "POST",
+            url: "/api/auth/sign-in/email",
+            payload: {},
+          });
+          return new Response(result.body, {
+            status: result.statusCode,
+            headers: { "content-type": "application/json" },
+          });
+        },
+      },
+    });
+    const result = await client.signIn.email({
+      email: "test@example.test",
+      password: "Password123!",
+    });
+    expect(result.error?.code).toBe("EMAIL_NOT_VERIFIED");
   });
 });

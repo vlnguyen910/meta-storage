@@ -10,7 +10,7 @@ export const CustomerSignUpInputSchema = z
   .object({
     name: z.string().trim().min(1).max(150),
     email: z.string().trim().toLowerCase().email().max(255),
-    phone: z.string().trim().min(1).max(20),
+    phone: z.string().trim().min(1).max(20).optional(),
     password: z.string().min(8).max(128),
     confirmPassword: z.string().min(8).max(128),
     callbackTarget: z.enum(["web", "mobile"]),
@@ -27,4 +27,28 @@ export const CustomerSignUpInputSchema = z
 
 export type CustomerSignUpInput = z.infer<typeof CustomerSignUpInputSchema>;
 
-export type { CookieSession, LoginInput, Session, SessionUser } from "./auth.types";
+export const ResetPasswordInputSchema = z
+  .object({
+    token: z.string().min(1).max(256),
+    newPassword: CustomerSignUpInputSchema.shape.password,
+    confirmPassword: CustomerSignUpInputSchema.shape.confirmPassword,
+  })
+  .superRefine((input, context) => {
+    if (input.newPassword !== input.confirmPassword) {
+      context.addIssue({
+        code: "custom",
+        path: ["confirmPassword"],
+        message: CONTRACT_MESSAGES.passwordsDoNotMatch,
+      });
+    }
+  });
+export type ResetPasswordInput = z.infer<typeof ResetPasswordInputSchema>;
+
+export type {
+  CookieSession,
+  LoginInput,
+  Session,
+  SessionUser,
+  SocialAuthInput,
+  SocialAuthResponse,
+} from "./auth.types";

@@ -1,11 +1,64 @@
 import { randomUUID } from "node:crypto";
-import type { CreateUserInput, UpdateUserInput } from "@metastorage/contracts";
-import { accounts, type Database, desc, eq, sql, type User, users } from "@metastorage/database";
+import {
+  type CreateUserInput,
+  type CustomerRegistrationStats,
+  type UpdateOwnProfileInput,
+  type UpdateUserInput,
+  type UserListQuery,
+  UserRole,
+} from "@metastorage/contracts";
+import {
+  accounts,
+  and,
+  count,
+  type Database,
+  desc,
+  eq,
+  facilityAssignments,
+  gt,
+  gte,
+  ilike,
+  inArray,
+  isNull,
+  lt,
+  notExists,
+  or,
+  sessions,
+  sql,
+  type User,
+  users,
+} from "@metastorage/database";
 import { ConflictError } from "../../common/errors/app-error";
+import { hasOpenAssignedWork } from "../facilities/staff-work.repository";
 import { USER_MESSAGES } from "./users.messages";
+import type { UserTransaction } from "./users.types";
 
 export class UsersRepository {
   constructor(private readonly db: Database) {}
+
+  transaction<T>(work: (tx: UserTransaction) => Promise<T>): Promise<T> {
+    return this.db.transaction(work);
+  }
+
+  async findByIdForUpdate(id: string, tx: UserTransaction): Promise<User | undefined> {
+    const [user] = await tx.select().from(users).where(eq(users.id, id)).for("update");
+    return user;
+  }
+
+  hasOpenWork(id: string, tx: UserTransaction): Promise<boolean> {
+    return hasOpenAssignedWork(tx, id);
+  }
+
+  async deactivateAssignments(id: string, tx: UserTransaction): Promise<void> {
+    await tx
+      .update(facilityAssignments)
+      .set({ isActive: false, endedAt: new Date() })
+      .where(and(eq(facilityAssignments.userId, id), eq(facilityAssignments.isActive, true)));
+  }
+
+  async revokeSessions(id: string, tx: UserTransaction): Promise<void> {
+    await tx.delete(sessions).where(eq(sessions.userId, id));
+  }
 
   async create(data: Omit<CreateUserInput, "password">, passwordHash: string): Promise<User> {
     try {
@@ -65,21 +118,113 @@ export class UsersRepository {
     return user;
   }
 
-  async list(limit: number, offset: number): Promise<User[]> {
+  async list(query: UserListQuery): Promise<User[]> {
+    const search = query.search ? `%${query.search.replace(/[\\%_]/g, "\\$&")}%` : undefined;
     return this.db
       .select()
       .from(users)
-      .limit(limit)
-      .offset(offset)
+      .where(
+        and(
+          query.role ? eq(users.role, query.role) : undefined,
+          query.status ? eq(users.status, query.status) : undefined,
+          search
+            ? or(ilike(users.name, search), ilike(users.email, search), ilike(users.phone, search))
+            : undefined,
+        ),
+      )
+      .limit(query.limit)
+      .offset(query.offset)
       .orderBy(desc(users.createdAt), desc(users.id));
   }
 
-  async update(id: string, data: UpdateUserInput): Promise<User | undefined> {
-    const [user] = await this.db
+  async customerRegistrations(from: Date, to: Date): Promise<{ month: string; count: number }[]> {
+    // shortcut: current role determines the count; use role history if original signup role is needed.
+    const month = sql<string>`to_char(${users.createdAt} AT TIME ZONE 'UTC', 'YYYY-MM')`;
+    return this.db
+      .select({ month, count: sql<number>`count(*)::int` })
+      .from(users)
+      .where(
+        and(
+          eq(users.role, UserRole.STORAGE_CUSTOMER),
+          gte(users.createdAt, from),
+          lt(users.createdAt, to),
+        ),
+      )
+      .groupBy(month)
+      .orderBy(month);
+  }
+
+  async customerRegistrationYears(): Promise<number[]> {
+    const year = sql<number>`extract(year from ${users.createdAt} AT TIME ZONE 'UTC')::int`;
+    const rows = await this.db
+      .selectDistinct({ year })
+      .from(users)
+      .where(eq(users.role, UserRole.STORAGE_CUSTOMER))
+      .orderBy(year);
+    return rows.map((row) => row.year);
+  }
+
+  async dashboardSummary(): Promise<CustomerRegistrationStats["summary"]> {
+    const currentAssignment = this.db
+      .select({ id: facilityAssignments.id })
+      .from(facilityAssignments)
+      .where(
+        and(
+          eq(facilityAssignments.userId, users.id),
+          eq(facilityAssignments.isActive, true),
+          or(isNull(facilityAssignments.endedAt), gt(facilityAssignments.endedAt, new Date())),
+        ),
+      );
+    const [statuses, [unassigned]] = await Promise.all([
+      this.db.select({ status: users.status, count: count() }).from(users).groupBy(users.status),
+      this.db
+        .select({ count: count() })
+        .from(users)
+        .where(
+          and(
+            inArray(users.role, [UserRole.FACILITY_STAFF, UserRole.FACILITY_MANAGER]),
+            notExists(currentAssignment),
+          ),
+        ),
+    ]);
+    return {
+      totalUsers: statuses.reduce((total, row) => total + row.count, 0),
+      activeUsers: statuses.find((row) => row.status === "ACTIVE")?.count ?? 0,
+      inactiveUsers: statuses.find((row) => row.status === "INACTIVE")?.count ?? 0,
+      unassignedFacilityUsers: unassigned?.count ?? 0,
+    };
+  }
+
+  async update(id: string, data: UpdateUserInput, tx: UserTransaction): Promise<User | undefined> {
+    const [user] = await tx
       .update(users)
       .set({ ...data, updatedAt: new Date() })
       .where(eq(users.id, id))
       .returning();
     return user;
+  }
+
+  async updateProfile(id: string, data: UpdateOwnProfileInput): Promise<User | undefined> {
+    try {
+      const [user] = await this.db
+        .update(users)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(users.id, id))
+        .returning();
+      return user;
+    } catch (error) {
+      const cause = error instanceof Error && error.cause ? error.cause : error;
+      if (
+        cause &&
+        typeof cause === "object" &&
+        "code" in cause &&
+        cause.code === "23505" &&
+        "constraint_name" in cause &&
+        cause.constraint_name === "users_phone_unique"
+      ) {
+        throw new ConflictError(USER_MESSAGES.phoneAlreadyExists);
+      }
+      throw error;
+    }
   }
 }

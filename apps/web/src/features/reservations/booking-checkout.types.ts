@@ -5,5 +5,6 @@ export interface CheckoutContext {
   checkInDate: string;
   checkInSlotId: string;
   idempotencyKey: string;
+  contactPhone?: string;
   payment?: BookingPaymentSession;
 }

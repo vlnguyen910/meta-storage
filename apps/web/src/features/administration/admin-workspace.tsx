@@ -1,10 +1,11 @@
 "use client";
 
 import { UserRole } from "@metastorage/contracts";
-import { Download, RotateCcw } from "lucide-react";
+import { Calendar, Download, RotateCcw, Search } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { FieldShell, Input, Select } from "@/components/ui/form-controls";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
+import { ListPagination } from "@/components/ui/list-pagination";
 import { LoadingState } from "@/components/ui/states";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { formatDateTime } from "@/lib/format";
@@ -25,7 +26,6 @@ import type {
 } from "./admin.types";
 import { AdminEditor } from "./admin-editor";
 import { AdminBadge, AdminDrawer, AdminSnapshotView, AdminTable, adminCard } from "./admin-parts";
-import { AdminSummary } from "./admin-summary";
 import { useAdminData } from "./use-admin-data";
 
 const initialFilters: AdminFilters = {
@@ -38,7 +38,6 @@ const initialFilters: AdminFilters = {
   date: "",
 };
 const codes = {
-  dashboard: "SA01",
   users: "SA02",
   assignments: "SA03",
   "login-history": "SA04",
@@ -49,14 +48,22 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
   const query = useAdminData();
   const actor = useAuthStore((state) => state.session?.user.name) ?? M.role;
   const [filters, setFilters] = useState(initialFilters);
+  const [searchInput, setSearchInput] = useState(initialFilters.search);
+  const [pagination, setPagination] = useState({ section, page: 1 });
   const [editor, setEditor] = useState<AdminUser | null>(null);
   const [userDetail, setUserDetail] = useState<AdminUser | null>(null);
   const [loginDetail, setLoginDetail] = useState<AdminLogin | null>(null);
   const [auditDetail, setAuditDetail] = useState<AdminAudit | null>(null);
   const [notice, setNotice] = useState("");
-  const filter = (key: keyof AdminFilters, value: string) =>
+  const filter = (key: keyof AdminFilters, value: string) => {
     setFilters((current) => ({ ...current, [key]: value }));
-  if (query.isLoading) return <LoadingState label={M.loading} />;
+    setPagination({ section, page: 1 });
+  };
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    filter("search", searchInput.trim());
+  };
+  if (query.isLoading) return <LoadingState label={M.loading} variant="table" />;
   if (!query.data || query.isError)
     return (
       <section className={adminCard}>
@@ -98,6 +105,12 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
       ? M.loginHeadings
       : M.auditHeadings;
   const count = accounts ? users.length : login ? logins.length : audits.length;
+  const pageSize = 10;
+  const page = Math.min(
+    pagination.section === section ? pagination.page : 1,
+    Math.max(1, Math.ceil(count / pageSize)),
+  );
+  const start = (page - 1) * pageSize;
   const exportRows = () => {
     if (accounts)
       downloadCsv(
@@ -120,9 +133,7 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
           formatDateTime(entry.at),
           entry.email,
           ADMIN_ROLE_LABELS[entry.role],
-          entry.ipMasked,
           entry.device,
-          entry.outcome === "SUCCESS" ? M.success : M.failed,
         ]),
       );
     else
@@ -142,253 +153,299 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
       );
   };
   return (
-    <div className="grid min-w-0 gap-5">
-      <header>
-        <p className="mb-2 mt-0 text-xs font-semibold text-primary">
+    <div className="flex flex-col h-full w-full overflow-hidden min-h-0 gap-3.5">
+      <header className="shrink-0">
+        <p className="mb-1 mt-0 text-xs font-semibold text-primary">
           {M.role} / {codes[section]}
         </p>
-        <h1 className="m-0 text-2xl font-bold tracking-tight sm:text-3xl">{M.titles[section]}</h1>
-        <p className="mb-0 mt-3 text-sm leading-6 text-slate-600">{M.descriptions[section]}</p>
+        <h1 className="m-0 font-['Space_Grotesk'] text-2xl font-bold tracking-tight sm:text-[28px]">
+          {M.titles[section]}
+        </h1>
+        <p className="mb-0 mt-0.5 text-xs text-slate-600">{M.descriptions[section]}</p>
       </header>
-      <p className="m-0 rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-sm text-emerald-900">
-        {M.demoNote}
-      </p>
-      {section === "dashboard" ? (
-        <AdminSummary data={data} />
-      ) : (
-        <>
-          {section === "assignments" && (
-            <p className="m-0 text-sm text-slate-600">{M.facilityHelp}</p>
-          )}
-          {!accounts && (
-            <p className="m-0 text-sm text-slate-600">
-              {M.readonlyLog} {M.privacy}
-            </p>
-          )}
-          <section
-            aria-label={section === "activity-logs" ? M.auditSearch : M.search}
-            className={`${adminCard} grid items-end gap-4 sm:grid-cols-2 xl:grid-cols-4`}
-          >
-            <FieldShell label={section === "activity-logs" ? M.auditSearch : M.search}>
-              <Input
-                type="search"
-                value={filters.search}
-                onChange={(event) => filter("search", event.target.value)}
-              />
-            </FieldShell>
-            {(accounts || login) && (
-              <FieldShell label={M.roleFilter}>
-                <Select
-                  value={filters.role}
-                  onChange={(event) => filter("role", event.target.value)}
-                >
-                  <option value="">{M.all}</option>
-                  {Object.values(UserRole)
-                    .filter((role) => section !== "assignments" || isFacilityRole(role))
-                    .map((role) => (
-                      <option key={role} value={role}>
-                        {ADMIN_ROLE_LABELS[role]}
-                      </option>
-                    ))}
-                </Select>
-              </FieldShell>
-            )}
-            {accounts && (
-              <FieldShell label={M.statusFilter}>
-                <Select
-                  value={filters.status}
-                  onChange={(event) => filter("status", event.target.value)}
-                >
-                  <option value="">{M.all}</option>
-                  <option value="ACTIVE">{M.active}</option>
-                  <option value="INACTIVE">{M.inactive}</option>
-                </Select>
-              </FieldShell>
-            )}
-            {(accounts || section === "activity-logs") && (
-              <FieldShell label={M.facilityFilter}>
-                <Select
-                  value={filters.facilityId}
-                  onChange={(event) => filter("facilityId", event.target.value)}
-                >
-                  <option value="">{M.all}</option>
-                  {data.facilities.map((facility) => (
-                    <option key={facility.id} value={facility.id}>
-                      {facility.name}
-                    </option>
-                  ))}
-                </Select>
-              </FieldShell>
-            )}
-            {!accounts && (
-              <FieldShell label={M.outcomeFilter}>
-                <Select
-                  value={filters.outcome}
-                  onChange={(event) => filter("outcome", event.target.value)}
-                >
-                  <option value="">{M.all}</option>
-                  <option value="SUCCESS">{M.success}</option>
-                  <option value="FAILED">{M.failed}</option>
-                </Select>
-              </FieldShell>
-            )}
-            {!accounts && (
-              <FieldShell label={M.dateFilter}>
-                <Input
-                  type="date"
-                  value={filters.date}
-                  onChange={(event) => filter("date", event.target.value)}
-                />
-              </FieldShell>
-            )}
-            {section === "activity-logs" && (
-              <FieldShell label={M.actionFilter}>
-                <Select
-                  value={filters.action}
-                  onChange={(event) => filter("action", event.target.value)}
-                >
-                  <option value="">{M.all}</option>
-                  {Object.entries(M.actions).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </Select>
-              </FieldShell>
-            )}
-            <div className="flex flex-wrap gap-2 sm:col-span-2 xl:col-span-4">
-              <Button
-                variant="outline"
-                icon={<RotateCcw size={17} aria-hidden="true" />}
-                onClick={() => setFilters(initialFilters)}
-              >
-                {M.reset}
-              </Button>
-              <Button
-                variant="outline"
-                icon={<Download size={17} aria-hidden="true" />}
-                onClick={exportRows}
-                disabled={!count}
-              >
-                {M.export}
-              </Button>
-            </div>
-          </section>
-          <p role="status" className="m-0 text-sm text-primary">
-            {notice}
-          </p>
-          {count === 0 ? (
-            <section className={`${adminCard} text-center`}>
-              <h2 className="text-lg font-bold">{M.empty}</h2>
-              <p className="text-sm text-slate-600">{M.emptyHelp}</p>
-            </section>
-          ) : (
-            <AdminTable title={M.titles[section]} headings={headings}>
-              {accounts
-                ? users.map((user) => (
-                    <tr key={user.id}>
-                      <td>
-                        <strong>{user.name}</strong>
-                        <span className="mt-1 block text-xs text-slate-600">{user.email}</span>
-                      </td>
-                      <td>{ADMIN_ROLE_LABELS[user.role]}</td>
-                      <td>
-                        <AdminBadge
-                          label={user.status === "ACTIVE" ? M.active : M.inactive}
-                          warning={user.status !== "ACTIVE"}
-                        />
-                      </td>
-                      <td className="max-w-xs">{accessLabel(user, data.facilities)}</td>
-                      {section === "users" && (
-                        <td>{user.lastLoginAt ? formatDateTime(user.lastLoginAt) : M.none}</td>
-                      )}
-                      <td>
-                        <div className="grid gap-1">
-                          {section === "users" && (
-                            <Button
-                              variant="ghost"
-                              aria-label={M.detailLabel(user.name)}
-                              onClick={() => setUserDetail(user)}
-                            >
-                              {M.details}
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            aria-label={
-                              section === "assignments"
-                                ? M.assignmentLabel(user.name)
-                                : M.editLabel(user.name)
-                            }
-                            onClick={() => setEditor(user)}
-                          >
-                            {section === "assignments" ? M.assign : M.edit}
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                : login
-                  ? logins.map((entry) => (
-                      <tr key={entry.id}>
-                        <td>{formatDateTime(entry.at)}</td>
-                        <td>
-                          <strong>{entry.name}</strong>
-                          <span className="mt-1 block text-xs text-slate-600">{entry.email}</span>
-                        </td>
-                        <td>{ADMIN_ROLE_LABELS[entry.role]}</td>
-                        <td>{entry.ipMasked}</td>
-                        <td>{entry.device}</td>
-                        <td>
-                          <AdminBadge
-                            label={entry.outcome === "SUCCESS" ? M.success : M.failed}
-                            warning={entry.outcome !== "SUCCESS"}
-                          />
-                        </td>
-                        <td>
-                          <Button
-                            variant="ghost"
-                            aria-label={M.detailLabel(entry.id)}
-                            onClick={() => setLoginDetail(entry)}
-                          >
-                            {M.details}
-                          </Button>
-                        </td>
-                      </tr>
-                    ))
-                  : audits.map((entry) => (
-                      <tr key={entry.id}>
-                        <td>{formatDateTime(entry.at)}</td>
-                        <td>{entry.actor}</td>
-                        <td>
-                          {entry.target}
-                          <span className="mt-1 block text-xs text-slate-600">
-                            {entry.targetId}
-                          </span>
-                        </td>
-                        <td>{M.actions[entry.action]}</td>
-                        <td>{entry.facilityIds.join(", ") || M.none}</td>
-                        <td>
-                          <AdminBadge
-                            label={entry.outcome === "SUCCESS" ? M.success : M.failed}
-                            warning={entry.outcome !== "SUCCESS"}
-                          />
-                        </td>
-                        <td>
-                          <Button
-                            variant="ghost"
-                            aria-label={M.detailLabel(entry.id)}
-                            onClick={() => setAuditDetail(entry)}
-                          >
-                            {M.details}
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-            </AdminTable>
-          )}
-        </>
+      {section === "assignments" && (
+        <p className="shrink-0 m-0 text-xs text-slate-600">{M.facilityHelp}</p>
       )}
+      <section
+        aria-label={section === "activity-logs" ? M.auditSearch : M.search}
+        className="shrink-0 flex items-center gap-2 rounded-card border border-line bg-white p-2 shadow-card min-h-12 relative z-20"
+      >
+        <form
+          onSubmit={handleSearchSubmit}
+          className="flex items-center gap-1.5 flex-1 min-w-44 max-w-xs shrink-0"
+        >
+          <div className="relative flex-1">
+            <Search
+              aria-hidden="true"
+              size={15}
+              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted"
+            />
+            <input
+              type="search"
+              value={searchInput}
+              placeholder={section === "activity-logs" ? M.auditSearch : M.search}
+              onChange={(event) => setSearchInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") handleSearchSubmit();
+              }}
+              className="h-9 w-full rounded-lg border border-line bg-canvas pl-8 pr-2 text-xs text-ink placeholder:text-muted outline-none transition focus:border-primary focus:ring-1 focus:ring-primary shadow-2xs"
+            />
+          </div>
+          <Button
+            type="submit"
+            variant="outline"
+            className="h-9 min-h-9 px-3 text-xs font-semibold gap-1.5 shrink-0"
+            icon={<Search size={14} aria-hidden="true" />}
+          >
+            {M.searchConfirm}
+          </Button>
+        </form>
+
+        {(accounts || login) && (
+          <DropdownSelect
+            value={filters.role}
+            onChange={(val) => filter("role", val)}
+            placement="bottom"
+            className="w-36 shrink-0"
+            triggerClassName="h-9 min-h-9 text-xs bg-white border-line"
+            placeholder={M.roleFilter}
+            options={[
+              { value: "", label: M.allRoles },
+              ...Object.values(UserRole)
+                .filter((role) => section !== "assignments" || isFacilityRole(role))
+                .map((role) => ({
+                  value: role,
+                  label: ADMIN_ROLE_LABELS[role],
+                })),
+            ]}
+            maxVisibleItems={6}
+          />
+        )}
+
+        {accounts && (
+          <DropdownSelect
+            value={filters.status}
+            onChange={(val) => filter("status", val)}
+            placement="bottom"
+            className="w-32 shrink-0"
+            triggerClassName="h-9 min-h-9 text-xs bg-white border-line"
+            placeholder={M.statusFilter}
+            options={[
+              { value: "", label: M.allStatuses },
+              { value: "ACTIVE", label: M.active },
+              { value: "INACTIVE", label: M.inactive },
+            ]}
+            maxVisibleItems={6}
+          />
+        )}
+
+        {(accounts || section === "activity-logs") && (
+          <DropdownSelect
+            value={filters.facilityId}
+            onChange={(val) => filter("facilityId", val)}
+            placement="bottom"
+            className="w-40 shrink-0"
+            triggerClassName="h-9 min-h-9 text-xs bg-white border-line"
+            placeholder={M.facilityFilter}
+            options={[
+              { value: "", label: M.allFacilities },
+              ...data.facilities.map((facility) => ({
+                value: facility.id,
+                label: facility.name,
+              })),
+            ]}
+            maxVisibleItems={6}
+          />
+        )}
+
+        {section === "activity-logs" && (
+          <DropdownSelect
+            value={filters.action}
+            onChange={(val) => filter("action", val)}
+            placement="bottom"
+            className="w-40 shrink-0"
+            triggerClassName="h-9 min-h-9 text-xs bg-white border-line"
+            placeholder={M.actionFilter}
+            options={[
+              { value: "", label: M.allActions },
+              ...Object.entries(M.actions).map(([value, label]) => ({
+                value,
+                label,
+              })),
+            ]}
+            maxVisibleItems={6}
+          />
+        )}
+
+        {!accounts && (
+          <DropdownSelect
+            value={filters.outcome}
+            onChange={(val) => filter("outcome", val)}
+            placement="bottom"
+            className="w-36 shrink-0"
+            triggerClassName="h-9 min-h-9 text-xs bg-white border-line"
+            placeholder={M.outcomeFilter}
+            options={[
+              { value: "", label: M.allOutcomes },
+              { value: "SUCCESS", label: M.success },
+              { value: "FAILED", label: M.failed },
+            ]}
+            maxVisibleItems={6}
+          />
+        )}
+
+        {!accounts && (
+          <div className="flex h-9 items-center gap-1.5 rounded-lg border border-line bg-white px-2.5 text-xs shadow-2xs shrink-0">
+            <Calendar size={14} className="text-muted shrink-0" aria-hidden="true" />
+            <input
+              type="date"
+              value={filters.date}
+              onChange={(event) => filter("date", event.target.value)}
+              aria-label={M.dateFilter}
+              className="cursor-pointer border-none bg-transparent p-0 text-xs font-medium text-ink focus:outline-none w-28"
+            />
+          </div>
+        )}
+
+        <div className="flex items-center gap-1.5 ml-auto shrink-0">
+          <Button
+            variant="outline"
+            className="h-9 min-h-9 px-2.5 text-xs font-semibold gap-1.5"
+            icon={<RotateCcw size={14} aria-hidden="true" />}
+            onClick={() => {
+              setSearchInput("");
+              setFilters(initialFilters);
+              setPagination({ section, page: 1 });
+            }}
+          >
+            {M.clearFilters}
+          </Button>
+          <Button
+            variant="outline"
+            className="h-9 min-h-9 px-2.5 text-xs font-semibold gap-1.5"
+            icon={<Download size={14} aria-hidden="true" />}
+            onClick={exportRows}
+            disabled={!count}
+          >
+            {M.export}
+          </Button>
+        </div>
+      </section>
+      {notice && (
+        <p role="status" className="shrink-0 m-0 text-xs text-primary">
+          {notice}
+        </p>
+      )}
+      {count === 0 ? (
+        <section className={`${adminCard} text-center`}>
+          <h2 className="text-lg font-bold">{M.empty}</h2>
+          <p className="text-sm text-slate-600">{M.emptyHelp}</p>
+        </section>
+      ) : (
+        <AdminTable title={M.titles[section]} headings={headings}>
+          {accounts
+            ? users.slice(start, start + pageSize).map((user) => (
+                <tr key={user.id}>
+                  <td>
+                    <strong>{user.name}</strong>
+                    <span className="mt-1 block text-xs text-slate-600">{user.email}</span>
+                  </td>
+                  <td>{ADMIN_ROLE_LABELS[user.role]}</td>
+                  <td>
+                    <AdminBadge
+                      label={user.status === "ACTIVE" ? M.active : M.inactive}
+                      warning={user.status !== "ACTIVE"}
+                    />
+                  </td>
+                  <td className="max-w-xs">{accessLabel(user, data.facilities)}</td>
+                  {section === "users" && (
+                    <td>{user.lastLoginAt ? formatDateTime(user.lastLoginAt) : M.none}</td>
+                  )}
+                  <td>
+                    <div className="grid gap-1">
+                      {section === "users" && (
+                        <Button
+                          variant="ghost"
+                          aria-label={M.detailLabel(user.name)}
+                          onClick={() => setUserDetail(user)}
+                        >
+                          {M.details}
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        aria-label={
+                          section === "assignments"
+                            ? M.assignmentLabel(user.name)
+                            : M.editLabel(user.name)
+                        }
+                        onClick={() => setEditor(user)}
+                      >
+                        {section === "assignments" ? M.assign : M.edit}
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            : login
+              ? logins.slice(start, start + pageSize).map((entry) => (
+                  <tr key={entry.id}>
+                    <td>{formatDateTime(entry.at)}</td>
+                    <td>
+                      <strong>{entry.name}</strong>
+                      <span className="mt-1 block text-xs text-slate-600">{entry.email}</span>
+                    </td>
+                    <td>{ADMIN_ROLE_LABELS[entry.role]}</td>
+                    <td>{entry.device}</td>
+                    <td>
+                      <Button
+                        variant="ghost"
+                        aria-label={M.detailLabel(entry.id)}
+                        onClick={() => setLoginDetail(entry)}
+                      >
+                        {M.details}
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              : audits.slice(start, start + pageSize).map((entry) => (
+                  <tr key={entry.id}>
+                    <td>{formatDateTime(entry.at)}</td>
+                    <td>{entry.actor}</td>
+                    <td>
+                      {entry.target}
+                      <span className="mt-1 block text-xs text-slate-600">{entry.targetId}</span>
+                    </td>
+                    <td>{M.actions[entry.action]}</td>
+                    <td>{entry.facilityIds.join(", ") || M.none}</td>
+                    <td>
+                      <AdminBadge
+                        label={entry.outcome === "SUCCESS" ? M.success : M.failed}
+                        warning={entry.outcome !== "SUCCESS"}
+                      />
+                    </td>
+                    <td>
+                      <Button
+                        variant="ghost"
+                        aria-label={M.detailLabel(entry.id)}
+                        onClick={() => setAuditDetail(entry)}
+                      >
+                        {M.details}
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+        </AdminTable>
+      )}
+      <div className="shrink-0 [&>nav]:shadow-2xs">
+        <ListPagination
+          label={M.titles[section]}
+          page={page}
+          pageSize={pageSize}
+          total={count}
+          onPageChange={(next) => setPagination({ section, page: next })}
+        />
+      </div>
       {editor && (
         <AdminEditor
           key={editor.id}

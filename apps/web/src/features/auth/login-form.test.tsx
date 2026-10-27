@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { GlobalLoadingProvider } from "@/components/providers/global-loading-provider";
 import { ToastProvider } from "@/components/ui/toast";
 import { LoginForm } from "./login-form";
 
@@ -15,9 +16,11 @@ vi.mock("next/navigation", () => ({
 
 function renderLoginForm() {
   return render(
-    <ToastProvider>
-      <LoginForm />
-    </ToastProvider>,
+    <GlobalLoadingProvider>
+      <ToastProvider>
+        <LoginForm />
+      </ToastProvider>
+    </GlobalLoadingProvider>,
   );
 }
 
@@ -75,13 +78,13 @@ describe("LoginForm", () => {
     await user.clear(emailInput);
     await user.type(emailInput, "customer@metastorage.test");
     await user.clear(passwordInput);
-    await user.type(passwordInput, "Demo@123");
+    await user.type(passwordInput, "12345678");
     await user.click(submitBtn);
 
     await waitFor(() => {
       expect(login).toHaveBeenCalledWith({
         email: "customer@metastorage.test",
-        password: "Demo@123",
+        password: "12345678",
       });
       expect(mockReplace).toHaveBeenCalledWith("/customer/dashboard");
     });

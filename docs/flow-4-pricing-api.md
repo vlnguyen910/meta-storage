@@ -12,7 +12,7 @@ Review and apply the generated migration to the intended development database:
 
 ```sh
 bun run db:migrate
-bun run --filter @metastorage/database db:seed:pricing
+bun run db:seed
 ```
 
 The explicit seed establishes the approved initial one-month deposit policy.
@@ -70,3 +70,12 @@ The PostgreSQL suite requires empty pricing tables and cleans only its fixtures.
 It covers real quote/draft persistence, immutable old snapshots, before/after
 audit, stale concurrent writers, rollback and explicit idempotent initialization.
 Booking regressions use BOOKING_TEST_DATABASE_URL matching DATABASE_URL.
+
+## Unified storage
+
+Pricing policy now uses `system_settings` key `DEPOSIT_MONTHS`; its version remains
+the shared revision incremented by BOTH deposit-policy and unit-type price changes.
+`pricing_changes` remains the domain history; new writes also append
+`system_setting_changes`. Existing endpoints and BOM-only authority are unchanged.
+The common settings API delegates financial writes to the existing pricing operation.
+Run `bun run db:migrate` (not drizzle-kit migrate directly) to preserve old policy data.

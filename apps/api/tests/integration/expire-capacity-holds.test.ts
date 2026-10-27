@@ -1,14 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
-import {
-  capacityAllocations,
-  db,
-  eq,
-  facilities,
-  facilityUnitTypes,
-  sql,
-  unitTypes,
-} from "@metastorage/database";
+import { capacityAllocations, db, eq, facilities, sql, unitTypes } from "@metastorage/database";
 import Fastify from "fastify";
 import fp from "fastify-plugin";
 import {
@@ -16,6 +8,7 @@ import {
   expireCapacityHolds,
 } from "../../src/common/cron/expire-capacity-holds";
 import { cronPlugin } from "../../src/common/cron/plugin";
+import { createTestUnitType, deleteTestUnitTypes } from "../fixtures/facility-catalog";
 
 const testUrl = process.env.BOOKING_TEST_DATABASE_URL;
 const facilityId = randomUUID();
@@ -36,7 +29,8 @@ describe.skipIf(!testUrl)("Capacity hold expiry with PostgreSQL", () => {
         name: "Expiry test",
         address: "Test",
       });
-      await tx.insert(unitTypes).values({
+      await createTestUnitType(tx, {
+        facilityId: facilityId,
         id: unitTypeId,
         code: unitTypeId,
         name: "Expiry test",
@@ -46,7 +40,6 @@ describe.skipIf(!testUrl)("Capacity hold expiry with PostgreSQL", () => {
         heightM: 1,
         monthlyPrice: 1000000,
       });
-      await tx.insert(facilityUnitTypes).values({ facilityId, unitTypeId });
     });
     fixturesCreated = true;
   });
@@ -59,9 +52,9 @@ describe.skipIf(!testUrl)("Capacity hold expiry with PostgreSQL", () => {
     if (!fixturesCreated) return;
     await db.transaction(async (tx) => {
       await tx.delete(capacityAllocations).where(eq(capacityAllocations.facilityId, facilityId));
-      await tx.delete(facilityUnitTypes).where(eq(facilityUnitTypes.facilityId, facilityId));
+      await deleteTestUnitTypes(tx, eq(unitTypes.id, unitTypeId));
+
       await tx.delete(facilities).where(eq(facilities.id, facilityId));
-      await tx.delete(unitTypes).where(eq(unitTypes.id, unitTypeId));
     });
   });
 

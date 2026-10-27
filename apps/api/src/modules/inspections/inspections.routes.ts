@@ -14,6 +14,7 @@ import { getFacilityAccessScope, requireAssignedFacility } from "../facilities/f
 import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
 import { InspectionsRepository } from "./inspections.repository";
 import { InspectionsService } from "./inspections.service";
+import type { InspectionsRoutesOptions } from "./inspections.types";
 
 const bookingParams = z.object({ bookingId: z.string().uuid() });
 const inspectionParams = z.object({ inspectionId: z.string().uuid() });
@@ -24,8 +25,15 @@ function actorId(request: FastifyRequest) {
   return request.user.id;
 }
 
-export const inspectionsRoutes: FastifyPluginAsync = async (app) => {
-  const service = new InspectionsService(new InspectionsRepository(app.db));
+export const inspectionsRoutes: FastifyPluginAsync<InspectionsRoutesOptions> = async (
+  app,
+  options,
+) => {
+  const service = new InspectionsService(
+    new InspectionsRepository(app.db),
+    undefined,
+    options.contractStorage,
+  );
   const facilities = new FacilityAssignmentsRepository(app.db);
   const typed = app.withTypeProvider<ZodTypeProvider>();
   const guard = async (

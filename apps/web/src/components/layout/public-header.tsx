@@ -1,7 +1,7 @@
 "use client";
-import { Menu, UserRound, Warehouse } from "lucide-react";
+import { ChevronRight, KeyRound, Menu, UserRound, Warehouse } from "lucide-react";
 import Link from "next/link";
-import { roleHome } from "@/config/routes";
+import { roleHome, routes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
 import fonts from "@/features/facilities/metastorage-fonts.module.css";
 import { landingMessages as m } from "@/features/landing/landing.messages";
@@ -35,15 +35,38 @@ export function PublicHeader() {
           ))}
         </nav>
         <div className={s.headerActions}>
-          <a href="tel:19006868" className={s.hotline}>
-            <small>{m.hotlineLabel}</small>
-            <strong>{m.hotline}</strong>
-          </a>
           <Link href="/facilities" className={s.primary}>
             {m.findNow}
           </Link>
-          <Link href={accountHref} aria-label={m.login} className={s.account}>
-            <UserRound size={18} />
+          {!session ? (
+            <Link href={routes.bookingTracking} className={s.tracking}>
+              <KeyRound size={16} aria-hidden="true" />
+              <span className={s.trackingLong}>{m.myStorageLookup}</span>
+              <span className={s.trackingShort}>{m.myStorageLookupShort}</span>
+            </Link>
+          ) : null}
+          <Link
+            href={accountHref}
+            aria-label={session ? m.openAccount(session.user.name) : m.login}
+            className={`${s.account} ${session ? s.accountSession : s.accountLogin}`}
+          >
+            {session ? (
+              <>
+                <span className={s.accountAvatar} aria-hidden="true">
+                  {session.user.name.trim().slice(0, 1).toLocaleUpperCase("vi")}
+                </span>
+                <span className={s.accountIdentity}>
+                  <small>{m.signedIn}</small>
+                  <strong>{session.user.name}</strong>
+                </span>
+                <ChevronRight size={16} aria-hidden="true" />
+              </>
+            ) : (
+              <>
+                <UserRound size={18} aria-hidden="true" />
+                <span>{m.login}</span>
+              </>
+            )}
           </Link>
           <details className={s.mobileMenu}>
             <summary aria-label={m.menu}>

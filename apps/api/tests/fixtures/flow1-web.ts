@@ -4,13 +4,12 @@ import {
   db,
   facilities,
   facilityAssignments,
-  facilityUnitTypes,
   queryClient,
   storageUnits,
-  unitTypes,
   users,
 } from "@metastorage/database";
 import { hashPassword } from "better-auth/crypto";
+import { createTestUnitType } from "./facility-catalog";
 
 // Dedicated, repeatable browser fixtures. Never run against a development or production database.
 const target = process.env.BOOKING_TEST_DATABASE_URL;
@@ -34,37 +33,30 @@ try {
         address: "Flow 1 Test City",
       })
       .onConflictDoNothing();
-    await tx
-      .insert(unitTypes)
-      .values({
-        id: unitTypeId,
-        code: "FLOW1-120",
-        name: "Flow 1 Browser Unit",
-        sizeLabel: "S",
-        lengthM: 2,
-        widthM: 2,
-        heightM: 2,
-        monthlyPrice: 1000000,
-      })
-      .onConflictDoNothing();
-    await tx.insert(facilityUnitTypes).values({ facilityId, unitTypeId }).onConflictDoNothing();
-    await tx
-      .insert(unitTypes)
-      .values({
-        id: scarceTypeId,
-        code: "FLOW1-120-LAST",
-        name: "Flow 1 Last Unit",
-        sizeLabel: "S",
-        lengthM: 1,
-        widthM: 1,
-        heightM: 2,
-        monthlyPrice: 1000000,
-      })
-      .onConflictDoNothing();
-    await tx
-      .insert(facilityUnitTypes)
-      .values({ facilityId, unitTypeId: scarceTypeId })
-      .onConflictDoNothing();
+    await createTestUnitType(tx, {
+      facilityId: facilityId,
+      id: unitTypeId,
+      code: "FLOW1-120",
+      name: "Flow 1 Browser Unit",
+      sizeLabel: "S",
+      lengthM: 2,
+      widthM: 2,
+      heightM: 2,
+      monthlyPrice: 1000000,
+    });
+
+    await createTestUnitType(tx, {
+      facilityId: facilityId,
+      id: scarceTypeId,
+      code: "FLOW1-120-LAST",
+      name: "Flow 1 Last Unit",
+      sizeLabel: "S",
+      lengthM: 1,
+      widthM: 1,
+      heightM: 2,
+      monthlyPrice: 1000000,
+    });
+
     await tx
       .insert(storageUnits)
       .values({ code: "FLOW1-120-LAST", facilityId, unitTypeId: scarceTypeId })

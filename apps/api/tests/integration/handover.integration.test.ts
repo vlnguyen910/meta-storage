@@ -8,9 +8,9 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
     const { assertIsolatedDatabase, createInspectionFixture } = await import(
       "../fixtures/inspection-fixture"
     );
-    assertIsolatedDatabase();
+    assertIsolatedDatabase(true);
     const { CloudinaryPhotoStorage } = await import(
-      "../../src/modules/inspections/cloudinary-photo-storage"
+      "../../src/common/adapters/storage/cloudinary-photo.storage"
     );
     const photoSpies = [
       spyOn(CloudinaryPhotoStorage.prototype, "upload").mockImplementation(async () => ({
@@ -22,7 +22,18 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
       ),
       spyOn(CloudinaryPhotoStorage.prototype, "remove").mockResolvedValue(undefined),
     ];
-    const { buildApp } = await import("../../src/app");
+    const { CloudinaryContractStorage } = await import(
+      "../../src/modules/contracts/cloudinary-contract.storage"
+    );
+    const { PDFDocument } = await import("pdf-lib");
+    const document = await PDFDocument.create();
+    document.addPage().drawText("Handover regression contract");
+    const pdfBytes = await document.save();
+    const contractSpies = [
+      spyOn(CloudinaryContractStorage.prototype, "put").mockResolvedValue(undefined),
+      spyOn(CloudinaryContractStorage.prototype, "get").mockImplementation(async () => pdfBytes),
+      spyOn(CloudinaryContractStorage.prototype, "remove").mockResolvedValue(undefined),
+    ];
     const {
       db,
       eq,
@@ -33,8 +44,31 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
       payments,
       handoverInspections,
     } = await import("@metastorage/database");
-    const f = await createInspectionFixture();
-    const app = buildApp();
+    const f = await createInspectionFixture(true);
+    const fixtures = [f];
+    // Use real routes/auth/DB, but no global cron, queue, worker or Redis writes.
+    const { default: Fastify } = await import("fastify");
+    const { serializerCompiler, validatorCompiler } = await import("fastify-type-provider-zod");
+    const { setupErrorHandler } = await import("../../src/common/errors/error-handler");
+    const { authPlugin } = await import("../../src/modules/auth/auth.guard");
+    const { authRoutes } = await import("../../src/modules/auth/auth.routes");
+    const { bookingsRoutes } = await import("../../src/modules/bookings/bookings.routes");
+    const { checkInsRoutes } = await import("../../src/modules/check-ins/check-ins.routes");
+    const { inspectionsRoutes } = await import("../../src/modules/inspections/inspections.routes");
+    const { contractsRoutes } = await import("../../src/modules/contracts/contracts.routes");
+    const { facilityContextPlugin } = await import("../../src/modules/facilities/facilities.guard");
+    const app = Fastify();
+    app.decorate("db", db);
+    app.setValidatorCompiler(validatorCompiler);
+    app.setSerializerCompiler(serializerCompiler);
+    setupErrorHandler(app);
+    await app.register(authPlugin);
+    await app.register(authRoutes, { prefix: "/api/auth" });
+    await app.register(facilityContextPlugin);
+    await app.register(bookingsRoutes, { prefix: "/api" });
+    await app.register(checkInsRoutes, { prefix: "/api" });
+    await app.register(inspectionsRoutes, { prefix: "/api" });
+    await app.register(contractsRoutes, { prefix: "/api" });
     await app.ready();
     const origin = process.env.AUTH_TRUSTED_ORIGINS?.split(",")[0] ?? "http://localhost:3000";
     async function login(email: string) {
@@ -124,6 +158,20 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
         version: record.version,
       });
       expect(complete.statusCode).toBe(200);
+      const uploaded = await request(manager, "POST", `/bookings/${f.bookingId}/contracts`, {
+        filename: "contract.pdf",
+        mimeType: "application/pdf",
+        dataBase64: Buffer.from(pdfBytes).toString("base64"),
+        idempotencyKey: randomUUID(),
+      });
+      expect(uploaded.statusCode).toBe(201);
+      const issued = await request(
+        manager,
+        "POST",
+        `/bookings/${f.bookingId}/contracts/${uploaded.json().data.id}/issue`,
+        { expectedCurrentIssuedId: null },
+      );
+      expect(issued.statusCode).toBe(200);
       const beforeHandover = await request(manager, "GET", `/facilities/${f.facilityId}/bookings`);
       expect(beforeHandover.json().data[0].handoverStage).toBe("READY_HANDOVER");
       record = complete.json().data;
@@ -208,7 +256,8 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
           })
         ).statusCode,
       ).toBe(409);
-      const second = await createInspectionFixture();
+      const second = await createInspectionFixture(true);
+      fixtures.push(second);
       const secondManager = await login(second.managerEmail),
         secondStaff = await login(second.email);
       expect(
@@ -228,7 +277,10 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
       expect(old?.status).toBe("INVALIDATED");
     } finally {
       await app.close();
-      for (const spy of photoSpies) spy.mockRestore();
+      for (const spy of [...photoSpies, ...contractSpies]) spy.mockRestore();
+      for (const fixture of fixtures.reverse()) await fixture.cleanup();
+      const { queryClient } = await import("@metastorage/database");
+      await queryClient.end();
     }
   },
   30000,

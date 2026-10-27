@@ -1,5 +1,5 @@
-import { AdminWorkspace } from "@/features/administration/admin-workspace";
+import { AdminUsersWorkspace } from "@/features/administration/admin-users-workspace";
 
 export function SystemAdministratorUsersScreen() {
-  return <AdminWorkspace section="users" />;
+  return <AdminUsersWorkspace />;
 }

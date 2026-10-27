@@ -1,4 +1,5 @@
 import {
+  MonthlyRevenueQuerySchema,
   REPORT_MESSAGES as m,
   RentalReportQuerySchema,
   ReportExportQuerySchema,
@@ -51,6 +52,21 @@ export const reportsRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       if (!request.user) throw new UnauthorizedError();
       return reply.send(successResponse(await service.overview(request.query, request.user)));
+    },
+  );
+  app.get(
+    "/revenue/monthly",
+    {
+      preHandler,
+      schema: {
+        tags: ["Reports"],
+        description: m.monthlyDescription,
+        querystring: MonthlyRevenueQuerySchema,
+      },
+    },
+    async (request, reply) => {
+      if (!request.user) throw new UnauthorizedError();
+      return reply.send(successResponse(await service.monthlyRevenue(request.query, request.user)));
     },
   );
   app.get(

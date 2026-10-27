@@ -26,10 +26,11 @@ Mở `/docs`, đăng nhập qua Authentication. Nhóm **Reports** gồm:
 |---|---|
 | `/api/reports/overview` | from, to, facilityId, unitTypeId, limit, offset |
 | `/api/reports/revenue` | như overview |
+| `/api/reports/revenue/monthly` | from, to, facilityId, unitTypeId; tối đa 60 tháng theo lịch |
 | `/api/reports/utilization` | facilityId, unitTypeId, limit, offset |
 | `/api/reports/rentals` | facilityId, unitTypeId, status, limit, offset |
 | `/api/reports/reconciliation` | facilityId, unitTypeId, limit, offset |
-| `/api/reports/export` | type=revenue/utilization/rentals; cùng filter hợp lệ cho loại báo cáo |
+| `/api/reports/export` | type=revenue/revenue-monthly/utilization/rentals; cùng filter hợp lệ cho loại báo cáo |
 
 BOM và SYSTEM_ADMIN đọc toàn hệ thống; FM chỉ cơ sở có membership active đúng
 role và chưa hết hạn. FM không có quyền xử lý queue refund toàn hệ thống. Guest
@@ -42,6 +43,30 @@ SQL là [đầu ngày from, đầu ngày sau to). Utilization/rental/reconciliat
 hiện trạng: không nhận filter lịch sử để tránh tạo cảm giác có dữ liệu hồi dựng.
 
 Ví dụ: `/api/reports/overview?from=2026-10-01&to=2026-10-31`.
+
+### Báo cáo theo tháng và Web BOM (20/10/2026)
+
+`GET /api/reports/revenue/monthly?from=2026-01-01&to=2026-10-20` trả
+`{period, asOf, currency: "VND", items}`. Mỗi item có `month` dạng YYYY-MM,
+`cashReceived`, `rentalCollected`, `depositCollected`, `cashRefunded`, `netCash`
+và `unsupportedCurrencyPayments`. Tất cả tiền là decimal string; rent/deposit
+không phân loại được vẫn là null. Tháng không phát sinh giao dịch có giá trị 0.
+Hai truy vấn aggregate theo tháng trong cùng read-only transaction; không tải
+payment rows về Web, không gọi endpoint nhiều lần cho từng ngày/tháng.
+
+Thu được nhóm bằng paidAt, hoàn bằng refundedAt theo múi giờ Việt Nam; tháng
+đầu/cuối chỉ bao gồm ngày thuộc bộ lọc. Đây là tiền thu, không phải doanh thu
+kế toán ghi nhận theo thời gian thuê. Không lấy giá hiện tại tính lại dữ liệu cũ.
+CSV `type=revenue-monthly` dùng cùng query/scope; Content-Disposition được expose
+qua CORS để Web đọc đúng tên file. Quyền truy cập giữ nguyên với revenue.
+
+Web BOM mặc định trang revenue từ đầu năm đến hôm nay, có cột đứng theo tháng
+và so sánh cơ sở, bảng đối chiếu và hai CSV tương ứng. Dashboard dùng biểu đồ
+dòng tiền + tỷ lệ khai thác, số dư cọc/chờ hoàn gọn; preview cơ sở thu tiền lấy
+từ revenue API sắp đúng thứ tự, không sort lại trang overview theo tiền.
+Utilization chỉ trình bày hiệu quả khai thác cơ sở, không đặt khối tám trạng thái
+ô kho/hold vào màn chính BOM. Tab rentals là “Tình hình thuê kho” sau bàn giao,
+không phải danh sách tài liệu hợp đồng hoặc booking đang chờ nhận kho.
 
 ## Định nghĩa số liệu
 
@@ -63,12 +88,17 @@ Không đọc giá hiện hành để tính lại doanh số quá khứ.
 
 **Tại asOf, không bị giới hạn bởi kỳ thu đang chọn**:
 
-- `depositHeld`: cọc đã nhận trừ cọc mất và phần đã hoàn xác định được. Cọc đang
+- `depositHeld`: với return settlement, phần cọc còn được hoàn sau phí đã duyệt
+  trừ cọc đã hoàn xác định được (tối thiểu 0); dùng revision có hiệu lực tại asOf.
+  Booking chưa có settlement giữ phép tính cũ: cọc đã nhận trừ cọc mất. Cọc đang
   chờ hoàn vẫn còn giữ cho đến khi xác nhận hoàn thực tế. Vì vậy số này có thể
   giao với pending refund; không cộng chúng để suy ra tổng tiền.
 - `depositForfeited`: tổng cọc đã ghi nhận mất, không cộng vào tiền thuê đã thu.
 - `pendingRefundAmount`/`pendingRefundCount`: nghĩa vụ hiện đang chờ hoàn theo
-  ledger; BOM/SA theo API hoàn thủ công hiện có, không có thao tác chuyển tiền mới.
+  ledger, gồm phần return settlement chưa chuyển. Refund đã xác nhận được cộng
+  theo confirmedAt vào cashRefunded, không nhân với số revision. Overview giữ
+  attention.refunds cho queue cancellation cũ và thêm attention.returnRefunds cho
+  nghĩa vụ trả kho do FM xử lý; không cấp BOM/SA thêm quyền hoàn trả kho.
 - Utilization = tổng OCCUPIED / tổng ô chưa INACTIVE; MAINTENANCE vẫn trong mẫu
   số, các trạng thái khác được trả riêng. Mẫu số 0 → null. Tổng hệ thống tính từ
   tổng số ô, không lấy trung bình các tỷ lệ cơ sở.

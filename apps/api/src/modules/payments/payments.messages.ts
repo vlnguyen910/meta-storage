@@ -1,8 +1,10 @@
 export const PAYMENT_MESSAGES = {
+  bookingPhoneRequired: "Vui lòng nhập số điện thoại liên hệ cho booking.",
+  chargeRefundRequired: "Payment received after quote expiry or charge closure",
   startSummary: "Start payment for a booking draft",
   startDescription:
-    "Public checkout authenticated by draftAccessToken. Submit contact and idempotencyKey; the server uses the booking price snapshot, creates a ten-minute capacity hold and returns a SePay checkout session. Repeating the same request reuses its payment and original expiry. No booking confirmation or email is issued until successful payment is finalized. Another pending attempt blocks a new payment, including after hold expiry, pending reconciliation.",
-  bookingUnavailable: "Booking draft không tồn tại hoặc token truy cập không hợp lệ.",
+    "Requires the owning CUSTOMER session. Submit idempotencyKey and optionally contactPhone (otherwise the profile phone is used); the server uses the booking price snapshot, creates a ten-minute capacity hold and returns a SePay checkout session. Repeating the same request reuses its payment and original expiry. No booking confirmation or email is issued until successful payment is finalized. Another pending attempt blocks a new payment, including after hold expiry, pending reconciliation.",
+  bookingUnavailable: "Booking draft không tồn tại hoặc không thuộc tài khoản của bạn.",
   bookingNotDraft: "Chỉ booking DRAFT mới được bắt đầu thanh toán.",
   bookingCheckoutChanged: "Thông tin checkout đã thay đổi; không thể dùng lại idempotency key.",
   bookingCapacityUnavailable: "Loại kho không còn capacity trong kỳ thuê.",
@@ -21,9 +23,9 @@ export const PAYMENT_MESSAGES = {
     "Chưa thể xác minh thanh toán với SePay. Vui lòng kiểm tra lại sau; không thanh toán thêm.",
   statusSummary: "Read and reconcile booking payment status",
   statusDescription:
-    "Requires the booking owner's session or x-booking-access-token. Pending SePay payments are verified against the authenticated order API, at most once every 15 seconds per payment across API instances. Provider outages return 503 without finalizing payment. Redirect query parameters never confirm payment. The existing background sweep also reconciles payments without an open browser or IPN.",
+    "Requires the booking owner's CUSTOMER session. Pending SePay payments are verified against the authenticated order API, at most once every 15 seconds per payment across API instances. Provider outages return 503 without finalizing payment. Redirect query parameters never confirm payment. The existing background sweep also reconciles payments without an open browser or IPN.",
   paymentNotFound: "Không tìm thấy Payment",
-  paymentAccessRequired: "Cần token checkout hoặc phiên đăng nhập của tài khoản sở hữu booking.",
+  paymentAccessRequired: "Cần đăng nhập bằng tài khoản sở hữu booking.",
   idempotencyKeyUsedForAnotherCheckout: "Idempotency key đã được dùng cho checkout khác",
   paymentPendingReconciliation: "Payment đang được đối soát",
   paymentAttemptFinalized: "Payment attempt đã kết thúc, hãy tạo idempotency key mới",

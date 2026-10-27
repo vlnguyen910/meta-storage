@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { createTrackingFixture } from "../../api/tests/fixtures/booking-tracking";
+import { bookingLookupMessages as L } from "../src/features/booking-tracking/booking-lookup.messages";
 
 test.skip(
   process.env.BOOKING_TRACKING_E2E !== "1",
@@ -71,8 +72,9 @@ test("expired and missing links show a usable error without private information"
     expect(new URL(page.url()).hash).toBe("");
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     await page.goto("/booking/tracking");
-    await expect(page.getByRole("main").getByRole("alert")).toContainText("hết hạn");
-    await expect(page.getByRole("link", { name: "Về trang chủ" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: L.title, exact: true })).toBeVisible();
+    await expect(page.getByLabel(L.email, { exact: true })).toBeVisible();
+    await expect(page.getByText("Khách kiểm thử", { exact: true })).toHaveCount(0);
   } finally {
     await fixture.cleanup();
   }

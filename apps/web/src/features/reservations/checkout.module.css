@@ -410,6 +410,79 @@
   min-height: 100px;
   resize: vertical;
 }
+.durationField {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  align-self: stretch;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.durationLegend {
+  margin-bottom: 8px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+.durationGrid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.durationOption {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 5px;
+  border: 1px solid #dce5e1;
+  border-radius: 5px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease,
+    box-shadow 120ms ease;
+}
+.durationOption:hover {
+  border-color: #9fc6b8;
+  background: #f7fbf9;
+}
+.durationOption[data-selected="true"] {
+  border-color: var(--green);
+  background: #edf7f3;
+  box-shadow: 0 0 0 1px var(--green);
+}
+.durationOption:focus-within {
+  outline: 3px solid #75a895;
+  outline-offset: 2px;
+}
+.formGrid .durationRadio {
+  flex: 0 0 15px;
+  width: 15px;
+  height: 15px;
+  min-height: 15px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  accent-color: var(--green);
+  background: transparent;
+  cursor: pointer;
+}
+.durationOption span {
+  white-space: nowrap;
+}
 .fieldHint {
   font-size: 12px;
   color: var(--muted);
@@ -659,6 +732,228 @@
   border: 2px solid #b42318;
   background: #fff7f6;
   box-shadow: none;
+}
+
+.calendarField,
+.slotField {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.pickerLegend {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 12px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+.pickerLegend svg {
+  flex: 0 0 auto;
+  color: var(--green);
+}
+.calendarPanel {
+  overflow: hidden;
+  border: 1px solid #dce5e1;
+  border-radius: 6px;
+  background: #f8fbfa;
+  padding: 12px;
+}
+.calendarHeader {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.calendarHeader h2 {
+  margin: 0;
+  text-align: center;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+.calendarNav {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--green);
+  cursor: pointer;
+}
+.calendarNav:hover:not(:disabled) {
+  background: #e8f3ef;
+}
+.calendarNav:disabled {
+  color: #aab6b1;
+  cursor: not-allowed;
+}
+.calendarGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+.calendarWeekday {
+  display: grid;
+  place-items: center;
+  min-height: 32px;
+  color: #66756f;
+  font-size: 11px;
+  font-weight: 600;
+}
+.calendarDay {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.calendarDay:hover:not(:disabled):not([data-selected="true"]) {
+  border-color: #b7d5ca;
+  background: #eef7f3;
+}
+.calendarDay[data-selected="true"] {
+  background: var(--green);
+  color: #fff;
+  box-shadow: 0 2px 6px rgb(18 83 69 / 20%);
+}
+.calendarDay:disabled {
+  color: #b3bdb9;
+  cursor: not-allowed;
+}
+.calendarDay:focus-visible,
+.calendarNav:focus-visible,
+.slotCard:focus-within {
+  outline: 3px solid #75a895;
+  outline-offset: 2px;
+}
+.calendarHint {
+  min-height: 20px;
+  margin: 9px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.slotField {
+  grid-column: 1 / -1;
+}
+.slotField .fieldHint {
+  margin: -4px 0 12px;
+}
+.slotGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.slotCard {
+  display: flex;
+  min-width: 0;
+  min-height: 58px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #dce5e1;
+  border-radius: 5px;
+  background: #fff;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease,
+    box-shadow 120ms ease;
+}
+.slotCard:hover {
+  border-color: #9fc6b8;
+  background: #f7fbf9;
+}
+.slotCard[data-selected="true"] {
+  border-color: var(--green);
+  background: #edf7f3;
+  box-shadow: 0 0 0 1px var(--green);
+}
+.formGrid .slotRadio {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  accent-color: var(--green);
+  background: transparent;
+  cursor: pointer;
+}
+.slotCardText {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+.slotCardText strong {
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: 12px;
+}
+.slotCardText span {
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.slotField:disabled .slotCard {
+  cursor: wait;
+  opacity: 0.65;
+}
+.slotStatus,
+.slotError {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.slotError {
+  color: var(--color-danger);
+}
+@media (max-width: 420px) {
+  .durationField {
+    min-height: 0;
+    align-self: start;
+  }
+  .durationGrid {
+    flex: none;
+    grid-template-rows: repeat(4, minmax(46px, auto));
+  }
+  .durationOption {
+    height: auto;
+    min-height: 46px;
+  }
+  .calendarPanel {
+    padding: 8px;
+  }
+  .calendarGrid {
+    gap: 2px;
+  }
+  .calendarDay {
+    min-height: 44px;
+  }
+  .slotGrid {
+    grid-template-columns: 1fr;
+  }
 }
 .availabilityBadge {
   margin-bottom: 14px;

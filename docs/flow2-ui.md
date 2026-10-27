@@ -74,6 +74,10 @@ The repair on the local database filled six missing ends on 2026-10-05; a second
 
 ### Cloudinary inspection evidence
 
+The SDK integration and photo boundary now live in `apps/api/src/common/adapters/storage`
+and are shared by inspections and returns. Contracts use the same SDK adapter for
+authenticated raw PDFs; see [configuration and cutover](./google-auth-cloudinary.md).
+
 Configure CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET only in apps/api/.env. New uploads use authenticated assets; the DB keeps public ID, format and audit metadata, with legacy Base64 nullable. The upload API still accepts bounded Base64 as transport, but new images are not stored as Base64 in PostgreSQL. Existing bytes remain readable.
 
 The scoped photo endpoint generates a private download URL valid for five minutes. The UI refreshes URLs every four minutes/on window focus and provides retry for failed delivery. Signed download links are bearer links until expiry and use Cloudinary API bandwidth rather than public CDN caching. Original evidence is uploaded without transformations/overwrite.
@@ -99,9 +103,104 @@ The live brand is `metastorage`; fonts and images use `/fonts/metastorage` and `
 
 ```bash
 bun --env-file=apps/api/.env apps/api/src/scripts/rename-demo-branding.ts
-bun --env-file=apps/api/.env apps/api/src/scripts/seed-flow2-demo.ts
+bun run db:seed
 ```
 
-Staff login is `staff@metastorage.test` / `Demo@123`. The seed keeps the existing Staff ID and facility assignment and adds units `HCM-01-009` through `HCM-01-018` only when missing. Inspection integration tests require a dedicated `metastorage_inspection_test_*` database.
+Staff login is `staff@metastorage.test` / `12345678`. The seed keeps the existing Staff ID and facility assignment and adds units `HCM-01-009` through `HCM-01-018` only when missing. Inspection integration tests require a dedicated `metastorage_inspection_test_*` database.
 
 Existing QR signing bytes and stored Cloudinary public IDs remain compatible with old records; new evidence uses the `metastorage/inspections` prefix. Historical planning documents, actual filesystem locations and external source names are not live branding.
+
+## Connect Flow 2 to the deployed API
+
+Use these settings in `apps/web/.env` and restart the web development server:
+
+```dotenv
+NEXT_PUBLIC_API_MODE=api
+NEXT_PUBLIC_API_BASE_URL=/api
+API_PROXY_TARGET=https://kekongpath.site/api
+```
+
+The browser calls its own `/api` origin; Next.js rewrites requests to the configured upstream, including the `/api` prefix. This keeps session cookies first party. `API_PROXY_TARGET` is server configuration, not a client secret. The backend must trust the actual web origin for authentication; the proxy preserves Origin and does not bypass backend checks. Serve the web over HTTPS in production for Secure auth cookies. To use a local backend, set `API_PROXY_TARGET=http://localhost:4000/api`. Set `NEXT_PUBLIC_API_MODE=mock` for the offline prototype. The shared API client remains the only HTTP boundary.
+
+Log in with an active backend account that has the FM or FS role and facility assignment. Frontend mock accounts do not authenticate against the backend. Swagger development credentials may require the deployment's auth seed; do not assume they are available. FM prepares unit/staff assignment and monitors records. The assigned FS verifies the booking, creates/edits the inspection, uploads evidence, completes inspection, and separately confirms handover. Rental dates follow the current backend behavior.
+
+API errors use the backend's nested `error.message` envelope, with support for legacy top-level messages. Assignment failures refresh booking/unit eligibility; changing unit or staff refreshes lookup and inspection context. Handover refreshes booking and rental queries. Logout clears the server-state cache. Staff assignment submits only `staffId`; the unused notes field is omitted because the backend currently does not persist it.
+
+The Flow 2 Playwright config uses first-party `/api` requests and a dedicated HTTP upstream on port 4100 for session tests. It verifies login errors, cookie persistence on reload, logout and protected navigation through the actual Next.js rewrite. Operational booking/inspection cases use intercepted API fixtures, including nested errors, staff assignment retry, stale inspection version recovery and desktop/mobile accessibility. These tests validate frontend integration and proxy behavior, not deployment database transactions or notification delivery.
+
+## Database-backed facility screens
+
+Normal builds now default to API mode. The offline prototype requires an explicit `NEXT_PUBLIC_API_MODE=mock`; Vitest and offline browser suites opt into mock mode separately.
+
+FM/FS overview reads the same scoped booking endpoints as dispatch: facility bookings for FM and assigned-to-me bookings for FS. Counts and recent bookings come from those API responses, with error/retry instead of sample metrics. Recent bookings are ordered by their real creation timestamps; they are not an activity/audit feed. Staff overview never requests the manager's full facility booking list. Scope loading/errors/empty assignments are handled before rendering overview or staff tabs.
+
+Operational unit screens no longer display bundled stock photos as a particular unit's image. They show a neutral warehouse icon until the API supports real unit photos. Inspection evidence remains loaded exclusively through the inspection photo endpoint. Seeded customer names and booking codes are actual rows in the local PostgreSQL database; their resemblance to prototype fixtures does not imply a mock response.
+
+The standalone BOM and System Administrator prototype workspaces are also gated by explicit mock mode. In API mode, their sample queries are disabled, their mock mutations are blocked, and their shells hide the demo badge. They display an unavailable state until those screens are integrated with the required backend endpoints. This does not add reporting, audit/history, pricing or account-management functionality to the local backend.
+
+## Manual Flow 2 verification
+
+Use `manager@metastorage.vn` and `staff@metastorage.vn` with the local seed password `12345678`. The normal path requires a CONFIRMED booking, a SUCCEEDED payment, a suitable unit at the same facility, an assigned Staff account and a valid check-in appointment. Follow the appointment start/end/deadline displayed by the backend; a future or expired appointment is not a valid happy-path fixture.
+
+1. Sign in as FM at `/facility-manager/dashboard`. Open a booking, assign a suitable physical unit, then assign the Staff account from the facility's staff list.
+2. To test reassignment, select a different available unit and enter an optional reason. The in-app confirmation shows booking/customer, current/new unit and reason. Cancel or Escape preserves the existing assignment and sends no mutation. Confirm sends the reviewed selection; pending requests disable both actions. A backend conflict stays visible in the dialog. A successful change requires fresh verification/inspection for the new unit.
+3. Keep the assigned FS signed in using another browser/profile to observe the realtime assignment notification, or sign out and sign in as the assigned FS. Open the booking from assigned tasks or search its booking code/QR. Check customer, payment, assigned unit and appointment eligibility. Confirm verification to create/open the inspection.
+4. Record explicit PASS/FAIL for all four checklist items. Notes and JPEG/PNG/WebP photos are optional (up to 3 MB each, at most 8 photos). Save draft, reload and confirm results and any evidence persist. Missing or FAIL checklist items block completion.
+5. Select review, acknowledge the immutable record and complete inspection. The inspection becomes COMPLETED/read-only; the booking remains CONFIRMED and the rental has not yet been activated.
+6. On handover, acknowledge that the customer received the unit and confirm. Expect booking CHECKED_IN, unit OCCUPIED, rental ACTIVE and recorded handover actor/time. Reload and verify the completed state persists. FM monitors the record; FM cannot execute Staff verification/inspection/handover.
+
+Also check: an unassigned/wrong Staff cannot execute the booking; early/late arrival is blocked; invalid/oversized photos are rejected; API errors allow retry; a stale inspection version reloads the current record; repeated handover cannot create a duplicate rental. Automated browser fixtures cover the workflow separately from live database/provider behavior. Photo upload on the local API requires valid Cloudinary configuration.
+
+The original local seed's bookings include today-morning, tomorrow and terminal no-show scenarios. Seeding them does not guarantee an appointment is eligible at the time of manual testing. Create a separate correctly scheduled test booking or use the existing booking within its configured appointment; do not bypass the eligibility policy or overwrite a booking already being tested.
+
+## Backend checklist alignment
+
+- Inspection uses the shared four-item checklist: ASSIGNED_UNIT, DOOR_LOCK,
+  UNIT_CONDITION and EXISTING_INVENTORY. Each item must explicitly PASS to complete.
+- Drafts accept missing/FAIL results. Save and reload preserve `results`, per-item
+  notes/photo references and the server checklist definition/version.
+- General condition notes and evidence photos are optional. Photo size/count/type
+  limits remain enforced. Review and read-only/handover screens show all checklist results.
+- Legacy records without detailed checklist data remain distinguishable; the UI
+  never converts `correctUnit: true` into four PASS results.
+- Completion freezes the baseline. Staff handover still creates the rental through
+  the existing backend transaction; FM monitors without Staff mutation controls.
+- Dispatch reads NO_SHOW from backend booking status. It does not calculate a
+  deadline from slot end plus two hours. Check-in details show API `graceEndsAt`.
+
+Validation: browser coverage for partial/FAIL drafts, reload, four PASS completion
+without notes/photos, version conflicts, handover and desktop/mobile accessibility;
+isolated PostgreSQL integration suites validate checklist persistence and atomic handover.
+
+
+## Staff realtime notifications (2026-10-20)
+
+The authenticated Staff shell opens the existing cookie-authenticated
+`GET /api/notifications/ws` endpoint through the centralized API client's URL builder.
+FM never opens this channel. A valid `STAFF_TASK_ASSIGNED` event for the current user
+refreshes booking queries, shows a toast and offers a link to the task list without
+interrupting an inspection. Duplicate event IDs are ignored within the connection
+lifecycle. The header bell now previews actual received events and links to
+`/staff/notifications`; at most 100 events are retained in memory for this session.
+No persistent history, unread count, offline replay or email is implied.
+
+The bell dropdown displays connecting/connected/reconnecting/offline/rejected states.
+The connection stays active while the dropdown is closed. It retries
+unexpected disconnects with bounded exponential backoff; connection success and returning
+to the page refresh assignments so missed events are recovered from the database.
+Policy rejection (1008) stops automatic retry and offers a manual reconnect. Offline
+browsers wait for the online event. Existing polling remains as fallback. Leaving the
+Staff shell or changing the authenticated account closes the socket and cancels timers.
+Assignment bursts share a 200ms query-refresh window and show at most one toast every
+two seconds, while retaining each valid event up to the session limit. The API must
+trust the actual web Origin, and deployment proxies must forward WebSocket
+upgrades as well as ordinary HTTP requests.
+
+Read-only FM inspection records distinguish a locked baseline awaiting handover from
+an actual handover with its recorded actor/time. Only the assigned FS confirms customer
+receipt; the backend transaction activates the rental and updates booking/unit status.
+
+The supported normal path is assignment → verification → four PASS checklist → immutable
+inspection → customer receipt → rental activation. Same-type unit reassignment is supported.
+Upgrade/downgrade pricing and refusal/refund branches remain TBD under the approved backend
+completion plan; they are not represented as completed frontend actions.

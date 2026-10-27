@@ -2,7 +2,7 @@ export const SWAGGER_MESSAGES = {
   description: `HTTP API for the metastorage platform.
 
 ### Test with a development account
-1. Run \`bun run seed:local\` with a migrated local database to prepare the five development accounts. The auth seed resets their development passwords.
+1. Run \`bun run db:seed\` with a migrated local database to prepare the five development accounts. The seed resets their development passwords.
 2. Choose a role in the quick-login bar above, or use an example under **Authentication → POST /api/auth/sign-in/email**.
 3. The browser saves the session cookie automatically. Call **GET /api/auth/me** to check the current role. No bearer token is needed.
 4. The quick-login bar signs out before switching roles. Manual login can use **POST /api/auth/sign-out** first.

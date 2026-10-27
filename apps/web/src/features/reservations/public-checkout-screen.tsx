@@ -21,7 +21,7 @@ export function PublicCheckoutScreen() {
           <ArrowLeft size={16} />
           {m.backToFacilities}
         </Link>
-        <Suspense fallback={<LoadingState label={m.loading} />}>
+        <Suspense fallback={<LoadingState label={m.loading} variant="form" />}>
           <ReservationWizard />
         </Suspense>
       </main>

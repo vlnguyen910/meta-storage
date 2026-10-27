@@ -78,7 +78,7 @@ export function createMobileSeed(now = Date.now()): DemoDatabase {
     email: "customer@metastorage.test",
     role: "CUSTOMER" as const,
     facilityIds: [],
-    password: "Demo@123",
+    password: "12345678",
     verified: true,
   };
   const staff = {
@@ -87,7 +87,7 @@ export function createMobileSeed(now = Date.now()): DemoDatabase {
     email: "staff@metastorage.test",
     role: "FACILITY_STAFF" as const,
     facilityIds: [demoId(1)],
-    password: "Demo@123",
+    password: "12345678",
     verified: true,
   };
   const other = {

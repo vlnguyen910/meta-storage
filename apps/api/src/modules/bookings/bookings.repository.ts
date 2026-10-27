@@ -1,11 +1,12 @@
-import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from "node:crypto";
+import { createHash, createHmac, randomBytes } from "node:crypto";
 import {
   type BookingClosure,
   type BookingListItem,
-  type BookingTracking,
+  type CustomerBookingPageQuery,
   type EligibleUnit,
   type FacilityStaffMember,
   type PhysicalUnitAssignment,
+  type StaffTasksQuery,
   UserRole,
 } from "@metastorage/contracts";
 import {
@@ -21,18 +22,22 @@ import {
   exists,
   facilities,
   facilityAssignments,
+  facilityOperatingHours,
   getTableColumns,
   gt,
+  gte,
   handoverInspections,
   inArray,
   isNotNull,
   isNull,
+  lt,
   lte,
   max,
   type NewBooking,
   ne,
   notExists,
   notInArray,
+  notificationOutbox,
   or,
   payments,
   rentals,
@@ -42,20 +47,18 @@ import {
   unitTypes,
   users,
 } from "@metastorage/database";
-import {
-  BOOKING_ACCESS,
-  bookingDeliveryKey,
-  bookingMagicKey,
-} from "@metastorage/shared/booking-access";
-import { BOOKING_EMAIL_MESSAGES } from "@metastorage/shared/mail";
-import type Redis from "ioredis";
 import { AppError } from "../../common/errors/app-error";
+import { PaymentsRepository } from "../payments/payments.repository";
 import { BOOKING_MESSAGES } from "./bookings.messages";
+import {
+  bookingCheckInSlotEnd,
+  bookingCheckInSlotStart,
+  bookingCustomer,
+} from "./bookings.projection";
 import type {
   BookingCancellationAccess,
-  BookingTrackingLinkInput,
   BookingTransaction,
-  EncryptedBookingDelivery,
+  CustomerBookingQueryRow,
 } from "./bookings.types";
 import { CheckInSlotsRepository } from "./check-in-slots.repository";
 
@@ -84,98 +87,187 @@ export function qrTokenForBooking(bookingId: string) {
     .digest("hex");
 }
 
-export async function createBookingTrackingLink(
-  redis: Redis,
-  input: BookingTrackingLinkInput,
-): Promise<{ trackingUrl: string; expiresAt: string }> {
-  if (input.secret.length < 32) throw new Error(BOOKING_EMAIL_MESSAGES.accessConfiguration);
-  const appUrl = new URL(input.publicAppUrl);
-  if (!["http:", "https:"].includes(appUrl.protocol) || appUrl.username || appUrl.password)
-    throw new Error(BOOKING_EMAIL_MESSAGES.accessConfiguration);
-  const encryptionKey = createHash("sha256").update(input.secret).digest();
-  const deliveryKey = bookingDeliveryKey(input.deliveryId);
-  let raw = await redis.get(deliveryKey);
-  if (!raw) {
-    const token = randomBytes(32).toString("hex");
-    const iv = randomBytes(12);
-    const cipher = createCipheriv("aes-256-gcm", encryptionKey, iv);
-    cipher.setAAD(Buffer.from(`${input.deliveryId}:${input.bookingId}`));
-    const ciphertext = Buffer.concat([cipher.update(token, "utf8"), cipher.final()]);
-    const delivery: EncryptedBookingDelivery = {
-      ciphertext: ciphertext.toString("hex"),
-      iv: iv.toString("hex"),
-      tag: cipher.getAuthTag().toString("hex"),
-      bookingId: input.bookingId,
-      createdAt: input.confirmedAt.toISOString(),
-      expiresAt: new Date(
-        input.confirmedAt.getTime() + BOOKING_ACCESS.magicTtl * 1000,
-      ).toISOString(),
-    };
-    // Return the winner atomically. A retry can recover after a crash before grant creation.
-    raw = String(
-      await redis.eval(
-        "if redis.call('EXISTS', KEYS[1]) == 0 then redis.call('SET', KEYS[1], ARGV[1], 'EX', ARGV[2]); end; return redis.call('GET', KEYS[1])",
-        1,
-        deliveryKey,
-        JSON.stringify(delivery),
-        Math.max(
-          1,
-          Math.ceil(
-            (input.confirmedAt.getTime() + BOOKING_ACCESS.magicTtl * 1000 - Date.now()) / 1000,
-          ),
-        ),
-      ),
-    );
-  }
-  const delivery = JSON.parse(raw) as EncryptedBookingDelivery;
-  const ttl = Math.floor((Date.parse(delivery.expiresAt) - Date.now()) / 1000);
-  if (delivery.bookingId !== input.bookingId || ttl <= 0)
-    throw new Error(BOOKING_EMAIL_MESSAGES.accessExpired);
-  const decipher = createDecipheriv("aes-256-gcm", encryptionKey, Buffer.from(delivery.iv, "hex"));
-  decipher.setAAD(Buffer.from(`${input.deliveryId}:${input.bookingId}`));
-  decipher.setAuthTag(Buffer.from(delivery.tag, "hex"));
-  const token = Buffer.concat([
-    decipher.update(Buffer.from(delivery.ciphertext, "hex")),
-    decipher.final(),
-  ]).toString("utf8");
-  await redis.set(
-    bookingMagicKey(token),
-    JSON.stringify({
-      bookingId: input.bookingId,
-      createdAt: delivery.createdAt,
-      expiresAt: delivery.expiresAt,
-    }),
-    "EX",
-    ttl,
-    "NX",
-  );
-  const url = new URL("/booking/tracking", appUrl);
-  url.hash = `token=${token}`;
-  return { trackingUrl: url.toString(), expiresAt: delivery.expiresAt };
+function toCustomerBooking(row: CustomerBookingQueryRow) {
+  return {
+    id: row.booking.id,
+    bookingCode: row.booking.bookingCode,
+    status: row.booking.status as "CONFIRMED" | "CANCELLED" | "NO_SHOW" | "CHECKED_IN",
+    facility: row.facility,
+    unitType: row.unitType,
+    checkInSlotStart: row.checkInSlotStart.toISOString(),
+    checkInSlotEnd: row.checkInSlotEnd.toISOString(),
+    rentalEndAt: row.booking.rentalEndAt.toISOString(),
+    durationMonths: row.booking.requestedMonths,
+    pricing: {
+      monthlyRateSnapshot: row.booking.monthlyRateSnapshot,
+      rentalFeeAmount: row.booking.rentalFeeAmount,
+      depositAmount: row.booking.depositAmount,
+      totalAmount: row.booking.totalAmount,
+      currency: "VND" as const,
+    },
+    paymentStatus: row.latestPayment?.status ?? ("NOT_STARTED" as const),
+    paidAt: row.latestPayment?.paidAt?.toISOString() ?? null,
+    assignedUnit:
+      row.assignedUnit?.code && row.assignedUnit.assignedAt
+        ? { code: row.assignedUnit.code, assignedAt: row.assignedUnit.assignedAt.toISOString() }
+        : null,
+    createdAt: row.booking.createdAt.toISOString(),
+    cursorCreatedAt: row.cursorCreatedAt,
+  };
 }
 
 export class BookingsRepository {
   constructor(private readonly db: Database) {}
 
+  private customerBookingQuery() {
+    const latestPayments = this.db
+      .selectDistinctOn([payments.bookingId], {
+        bookingId: payments.bookingId,
+        status: payments.status,
+        paidAt: payments.paidAt,
+      })
+      .from(payments)
+      .where(isNotNull(payments.bookingId))
+      .orderBy(payments.bookingId, desc(payments.createdAt), desc(payments.id))
+      .as("latest_customer_booking_payments");
+    const currentAssignments = this.db
+      .selectDistinctOn([unitAssignments.bookingId], {
+        bookingId: unitAssignments.bookingId,
+        physicalUnitId: unitAssignments.physicalUnitId,
+        assignedAt: unitAssignments.assignedAt,
+      })
+      .from(unitAssignments)
+      .where(eq(unitAssignments.status, "ACTIVE"))
+      .orderBy(
+        unitAssignments.bookingId,
+        desc(unitAssignments.assignedAt),
+        desc(unitAssignments.id),
+      )
+      .as("current_customer_booking_assignments");
+
+    return this.db
+      .select({
+        booking: {
+          id: bookings.id,
+          bookingCode: bookings.bookingCode,
+          status: bookings.status,
+          rentalEndAt: bookings.rentalEndAt,
+          requestedMonths: bookings.requestedMonths,
+          monthlyRateSnapshot: bookings.monthlyRateSnapshot,
+          rentalFeeAmount: bookings.rentalFeeAmount,
+          depositAmount: bookings.depositAmount,
+          totalAmount: bookings.totalAmount,
+          createdAt: bookings.createdAt,
+        },
+        facility: {
+          id: facilities.id,
+          name: facilities.name,
+          address: facilities.address,
+        },
+        unitType: {
+          id: unitTypes.id,
+          name: unitTypes.name,
+          sizeLabel: unitTypes.sizeLabel,
+        },
+        checkInSlotStart: bookingCheckInSlotStart,
+        checkInSlotEnd: bookingCheckInSlotEnd,
+        latestPayment: {
+          status: latestPayments.status,
+          paidAt: latestPayments.paidAt,
+        },
+        assignedUnit: {
+          code: storageUnits.code,
+          assignedAt: currentAssignments.assignedAt,
+        },
+        cursorCreatedAt: sql<string>`to_char(${bookings.createdAt} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`,
+      })
+      .from(bookings)
+      .innerJoin(facilities, eq(facilities.id, bookings.facilityId))
+      .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
+      .innerJoin(checkInSlots, eq(checkInSlots.id, bookings.checkInSlotId))
+      .leftJoin(latestPayments, eq(latestPayments.bookingId, bookings.id))
+      .leftJoin(currentAssignments, eq(currentAssignments.bookingId, bookings.id))
+      .leftJoin(storageUnits, eq(storageUnits.id, currentAssignments.physicalUnitId));
+  }
+
+  listCustomerBookings(userId: string, query: CustomerBookingPageQuery) {
+    const cursorDate = query.afterCreatedAt ? sql`${query.afterCreatedAt}::timestamptz` : undefined;
+    return this.customerBookingQuery()
+      .where(
+        and(
+          eq(bookings.userId, userId),
+          ne(bookings.status, "DRAFT"),
+          query.status ? eq(bookings.status, query.status) : undefined,
+          cursorDate && query.afterId
+            ? or(
+                lt(bookings.createdAt, cursorDate),
+                and(eq(bookings.createdAt, cursorDate), lt(bookings.id, query.afterId)),
+              )
+            : undefined,
+        ),
+      )
+      .orderBy(desc(bookings.createdAt), desc(bookings.id))
+      .limit(query.limit + 1)
+      .then((rows) => rows.map(toCustomerBooking));
+  }
+
+  async findCustomerBookingById(bookingId: string, userId: string) {
+    const [row] = await this.customerBookingQuery().where(
+      and(eq(bookings.id, bookingId), eq(bookings.userId, userId), ne(bookings.status, "DRAFT")),
+    );
+    return row ? toCustomerBooking(row) : null;
+  }
+
+  async customerRecovery(bookingId: string, userId: string) {
+    const [rental] = await this.db
+      .select({ id: rentals.id })
+      .from(rentals)
+      .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
+      .where(and(eq(bookings.id, bookingId), eq(bookings.userId, userId)));
+    const [paid] = await this.db
+      .select({ id: payments.id })
+      .from(payments)
+      .innerJoin(bookings, eq(bookings.id, payments.bookingId))
+      .where(
+        and(
+          eq(bookings.id, bookingId),
+          eq(bookings.userId, userId),
+          inArray(bookings.status, ["CONFIRMED", "CHECKED_IN"]),
+          eq(payments.status, "SUCCEEDED"),
+        ),
+      )
+      .orderBy(desc(payments.createdAt), desc(payments.id))
+      .limit(1);
+    const completed = paid
+      ? await new PaymentsRepository(this.db).findCompletedByPaymentId(paid.id)
+      : undefined;
+    return { rentalId: rental?.id ?? null, confirmation: completed?.confirmation ?? null };
+  }
+
+  async bookingEmailStatus(bookingId: string) {
+    const [row] = await this.db
+      .select({ status: notificationOutbox.status, queuedAt: notificationOutbox.queuedAt })
+      .from(notificationOutbox)
+      .where(
+        and(
+          eq(notificationOutbox.eventKey, `booking:${bookingId}:confirmed`),
+          eq(notificationOutbox.recipientKey, "customer"),
+        ),
+      );
+    return row;
+  }
+
   async cancelBooking(
     bookingId: string,
     access: BookingCancellationAccess,
   ): Promise<BookingClosure> {
-    if (!access.userId && !access.tokenHash)
-      throw new AppError(BOOKING_MESSAGES.cancellationAccessRequired, 401);
+    const userId = access.userId;
+    if (!userId) throw new AppError(BOOKING_MESSAGES.cancellationAccessRequired, 401);
     return this.db.transaction(async (tx) => {
       const [owned] = await tx
         .select({ id: bookings.id })
         .from(bookings)
-        .where(
-          and(
-            eq(bookings.id, bookingId),
-            or(
-              access.userId ? eq(bookings.userId, access.userId) : undefined,
-              access.tokenHash ? eq(bookings.accessTokenHash, access.tokenHash) : undefined,
-            ),
-          ),
-        )
+        .where(and(eq(bookings.id, bookingId), eq(bookings.userId, userId)))
         .for("update");
       if (!owned) throw new AppError(BOOKING_MESSAGES.bookingNotFound, 404);
       const result = await closeBookingBeforeCheckIn(tx, bookingId, "CANCELLED", new Date());
@@ -184,7 +276,7 @@ export class BookingsRepository {
     });
   }
 
-  async sweepNoShows(now = new Date()) {
+  async sweepNoShows(now = new Date(), facilityId?: string) {
     return this.db.transaction(async (tx) => {
       const dayEnd = sql`(${bookings.checkInDate} +
         (${tx.select({ end: max(checkInSlots.endTime) }).from(checkInSlots)}))
@@ -195,6 +287,7 @@ export class BookingsRepository {
         .where(
           and(
             eq(bookings.status, "CONFIRMED"),
+            facilityId ? eq(bookings.facilityId, facilityId) : undefined,
             lte(bookings.checkInDate, bookingLocalDate(now)),
             lte(dayEnd, now.toISOString()),
             exists(
@@ -217,85 +310,6 @@ export class BookingsRepository {
       }
       return { processed };
     });
-  }
-
-  async findTrackingBooking(bookingId: string): Promise<BookingTracking | null> {
-    const [row] = await this.db
-      .select({
-        bookingCode: bookings.bookingCode,
-        status: bookings.status,
-        contactName: bookings.contactName,
-        contactEmail: bookings.contactEmail,
-        contactPhone: bookings.contactPhone,
-        facility: { name: facilities.name, address: facilities.address },
-        unitType: { name: unitTypes.name, sizeLabel: unitTypes.sizeLabel },
-        checkInSlotStart:
-          sql<Date>`(${bookings.checkInDate} + ${checkInSlots.startTime}) at time zone 'Asia/Ho_Chi_Minh'`.mapWith(
-            (value) => new Date(value),
-          ),
-        checkInSlotEnd:
-          sql<Date>`(${bookings.checkInDate} + ${checkInSlots.endTime}) at time zone 'Asia/Ho_Chi_Minh'`.mapWith(
-            (value) => new Date(value),
-          ),
-        rentalEndAt: bookings.rentalEndAt,
-        durationMonths: bookings.requestedMonths,
-        monthlyRateSnapshot: bookings.monthlyRateSnapshot,
-        rentalFeeAmount: bookings.rentalFeeAmount,
-        depositAmount: bookings.depositAmount,
-        totalAmount: bookings.totalAmount,
-        paymentStatus: payments.status,
-        refundAmount: payments.refundAmount,
-        depositForfeitedAmount: payments.depositForfeitedAmount,
-        paidAt: payments.paidAt,
-      })
-      .from(bookings)
-      .innerJoin(facilities, eq(facilities.id, bookings.facilityId))
-      .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
-      .innerJoin(checkInSlots, eq(checkInSlots.id, bookings.checkInSlotId))
-      .innerJoin(payments, eq(payments.bookingId, bookings.id))
-      .where(
-        and(
-          eq(bookings.id, bookingId),
-          inArray(bookings.status, ["CONFIRMED", "CHECKED_IN", "CANCELLED", "NO_SHOW"]),
-          inArray(payments.status, ["SUCCEEDED", "REFUND_PENDING", "REFUNDED"]),
-          isNotNull(payments.paidAt),
-        ),
-      )
-      .orderBy(desc(payments.paidAt), desc(payments.id))
-      .limit(1);
-    if (
-      !row?.bookingCode ||
-      !row.contactName ||
-      !row.contactEmail ||
-      !row.contactPhone ||
-      !row.paidAt
-    )
-      return null;
-    return {
-      bookingCode: row.bookingCode,
-      status: row.status as BookingTracking["status"],
-      facility: row.facility,
-      unitType: row.unitType,
-      checkInSlotStart: row.checkInSlotStart.toISOString(),
-      checkInSlotEnd: row.checkInSlotEnd.toISOString(),
-      rentalEndAt: row.rentalEndAt.toISOString(),
-      durationMonths: row.durationMonths,
-      contact: { fullName: row.contactName, email: row.contactEmail, phone: row.contactPhone },
-      pricing: {
-        monthlyRateSnapshot: row.monthlyRateSnapshot,
-        rentalFeeAmount: row.rentalFeeAmount,
-        depositAmount: row.depositAmount,
-        totalAmount: row.totalAmount,
-        currency: "VND",
-      },
-      payment: {
-        status: row.paymentStatus as BookingTracking["payment"]["status"],
-        paidAt: row.paidAt.toISOString(),
-        refundAmount:
-          row.refundAmount ?? (row.paymentStatus !== "SUCCEEDED" ? row.totalAmount : null),
-        depositForfeitedAmount: row.depositForfeitedAmount,
-      },
-    };
   }
 
   async createDraft(data: NewBooking) {
@@ -330,8 +344,8 @@ export class BookingsRepository {
       .select({
         booking: {
           ...getTableColumns(bookings),
-          contactName: sql<string>`${bookings.contactName}`,
-          contactEmail: sql<string>`${bookings.contactEmail}`,
+          contactName: bookingCustomer.name,
+          contactEmail: bookingCustomer.email,
           contactPhone: sql<string>`${bookings.contactPhone}`,
         },
         checkInSlotStart: slotStart,
@@ -345,6 +359,7 @@ export class BookingsRepository {
         assignedStaff: assignedStaffUsers,
       })
       .from(bookings)
+      .innerJoin(bookingCustomer, eq(bookingCustomer.id, bookings.userId))
       .innerJoin(checkInSlots, eq(bookings.checkInSlotId, checkInSlots.id))
       .leftJoin(paidPayments, eq(paidPayments.bookingId, bookings.id))
       .innerJoin(facilities, eq(bookings.facilityId, facilities.id))
@@ -447,8 +462,8 @@ export class BookingsRepository {
       .select({
         booking: {
           ...getTableColumns(bookings),
-          contactName: sql<string>`${bookings.contactName}`,
-          contactEmail: sql<string>`${bookings.contactEmail}`,
+          contactName: bookingCustomer.name,
+          contactEmail: bookingCustomer.email,
           contactPhone: sql<string>`${bookings.contactPhone}`,
         },
         checkInSlotStart: slotStart,
@@ -462,6 +477,7 @@ export class BookingsRepository {
         assignedStaff: assignedStaffUsers,
       })
       .from(bookings)
+      .innerJoin(bookingCustomer, eq(bookingCustomer.id, bookings.userId))
       .innerJoin(checkInSlots, eq(bookings.checkInSlotId, checkInSlots.id))
       .leftJoin(paidPayments, eq(paidPayments.bookingId, bookings.id))
       .innerJoin(facilities, eq(bookings.facilityId, facilities.id))
@@ -541,16 +557,31 @@ export class BookingsRepository {
     };
   }
 
-  async findStaffTasks(staffUserId: string, facilityId?: string): Promise<BookingListItem[]> {
+  async findStaffTasks(
+    staffUserId: string,
+    query: StaffTasksQuery = {},
+  ): Promise<BookingListItem[]> {
     const conditions = [eq(bookings.assignedStaffId, staffUserId), ne(bookings.status, "DRAFT")];
-    if (facilityId) {
-      conditions.push(eq(bookings.facilityId, facilityId));
+    if (query.facilityId) {
+      conditions.push(eq(bookings.facilityId, query.facilityId));
     }
 
+    const timezone = this.db
+      .select({ timezone: facilityOperatingHours.timezone })
+      .from(facilityOperatingHours)
+      .where(eq(facilityOperatingHours.facilityId, bookings.facilityId))
+      .orderBy(facilityOperatingHours.dayOfWeek)
+      .limit(1);
+    const today = sql<string>`(current_timestamp at time zone (${timezone}))::date`;
+    conditions.push(
+      gte(bookings.checkInDate, query.fromDate ?? query.toDate ?? today),
+      lte(bookings.checkInDate, query.toDate ?? query.fromDate ?? today),
+    );
+
     const slotStart = sql<Date>`(${bookings.checkInDate} + ${checkInSlots.startTime})
-      at time zone 'Asia/Ho_Chi_Minh'`.mapWith((value) => new Date(value));
+      at time zone (${timezone})`.mapWith((value) => new Date(value));
     const slotEnd = sql<Date>`(${bookings.checkInDate} + ${checkInSlots.endTime})
-      at time zone 'Asia/Ho_Chi_Minh'`.mapWith((value) => new Date(value));
+      at time zone (${timezone})`.mapWith((value) => new Date(value));
     const paidPayments = this.db
       .select({
         bookingId: payments.bookingId,
@@ -567,8 +598,8 @@ export class BookingsRepository {
       .select({
         booking: {
           ...getTableColumns(bookings),
-          contactName: sql<string>`${bookings.contactName}`,
-          contactEmail: sql<string>`${bookings.contactEmail}`,
+          contactName: bookingCustomer.name,
+          contactEmail: bookingCustomer.email,
           contactPhone: sql<string>`${bookings.contactPhone}`,
         },
         checkInSlotStart: slotStart,
@@ -582,6 +613,7 @@ export class BookingsRepository {
         assignedStaff: assignedStaffUsers,
       })
       .from(bookings)
+      .innerJoin(bookingCustomer, eq(bookingCustomer.id, bookings.userId))
       .innerJoin(checkInSlots, eq(bookings.checkInSlotId, checkInSlots.id))
       .leftJoin(paidPayments, eq(paidPayments.bookingId, bookings.id))
       .innerJoin(facilities, eq(bookings.facilityId, facilities.id))
@@ -594,7 +626,7 @@ export class BookingsRepository {
       .leftJoin(users, eq(unitAssignments.assignedBy, users.id))
       .leftJoin(assignedStaffUsers, eq(bookings.assignedStaffId, assignedStaffUsers.id))
       .where(and(...conditions))
-      .orderBy(slotStart);
+      .orderBy(slotStart, bookings.id);
 
     return rows.map(
       ({
@@ -699,7 +731,12 @@ export class BookingsRepository {
     const active = await this.db
       .select({ physicalUnitId: rentals.physicalUnitId })
       .from(rentals)
-      .where(and(inArray(rentals.physicalUnitId, unitIds), eq(rentals.status, "ACTIVE")));
+      .where(
+        and(
+          inArray(rentals.physicalUnitId, unitIds),
+          inArray(rentals.status, ["ACTIVE", "RETURN_PENDING", "OVERDUE"]),
+        ),
+      );
     return allUnits.map((unit) => ({
       id: unit.id,
       facilityId: unit.facilityId,
@@ -780,7 +817,12 @@ export class BookingsRepository {
       const [activeRental] = await tx
         .select({ id: rentals.id })
         .from(rentals)
-        .where(and(eq(rentals.physicalUnitId, unit.id), eq(rentals.status, "ACTIVE")))
+        .where(
+          and(
+            eq(rentals.physicalUnitId, unit.id),
+            inArray(rentals.status, ["ACTIVE", "RETURN_PENDING", "OVERDUE"]),
+          ),
+        )
         .for("update");
 
       if (activeRental) {
@@ -936,6 +978,8 @@ export class BookingsRepository {
 
       if (booking.status !== "CONFIRMED") return { error: "INVALID_BOOKING_STATUS" as const };
 
+      // Serialize staff assignment with account changes and membership revocation.
+      await tx.select({ id: users.id }).from(users).where(eq(users.id, staffId)).for("share");
       // 2. Verify staff member exists and has active FACILITY_STAFF assignment for this facility
       const [staff] = await tx
         .select({
@@ -953,7 +997,8 @@ export class BookingsRepository {
             eq(facilityAssignments.isActive, true),
             or(isNull(facilityAssignments.endedAt), gt(facilityAssignments.endedAt, new Date())),
           ),
-        );
+        )
+        .for("share", { of: facilityAssignments });
 
       if (!staff) {
         return { error: "STAFF_NOT_IN_FACILITY" as const };
@@ -1140,7 +1185,12 @@ async function releaseReservedUnit(tx: BookingTransaction, unitId: string, now: 
   const [rental] = await tx
     .select({ id: rentals.id })
     .from(rentals)
-    .where(and(eq(rentals.physicalUnitId, unitId), eq(rentals.status, "ACTIVE")))
+    .where(
+      and(
+        eq(rentals.physicalUnitId, unitId),
+        inArray(rentals.status, ["ACTIVE", "RETURN_PENDING", "OVERDUE"]),
+      ),
+    )
     .limit(1);
   if (!assignment && !rental)
     await tx

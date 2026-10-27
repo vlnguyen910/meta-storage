@@ -21,14 +21,17 @@ import {
 import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useGlobalLoading } from "@/components/providers/global-loading-provider";
 import { isMockMode } from "@/config/api-mode";
 import { routes } from "@/config/routes";
 import { api } from "@/lib/api";
 import { MOCK_MESSAGES } from "@/mocks/mock.messages";
 import { AUTH_MESSAGES } from "./auth.messages";
 import type { RegisterFormValues } from "./auth.types";
+import { GoogleSignInButton } from "./google-sign-in-button";
 
 export function RegisterForm() {
+  const { runWithGlobalLoading } = useGlobalLoading();
   const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -74,7 +77,7 @@ export function RegisterForm() {
         confirmPassword: values.confirmPassword,
         callbackTarget: values.callbackTarget,
       };
-      await api.auth.registerCustomer(payload);
+      await runWithGlobalLoading(() => api.auth.registerCustomer(payload));
       setRegisteredEmail(values.email.trim().toLowerCase());
     } catch (error) {
       const message = getResponseMessage(error);
@@ -338,6 +341,18 @@ export function RegisterForm() {
             </button>
           </div>
         </form>
+
+        {/* Alternative SSO Dividers */}
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-slate-200" />
+          </div>
+          <div className="relative flex justify-center text-xs">
+            <span className="bg-white px-3 text-slate-600">{AUTH_MESSAGES.orContinueWith}</span>
+          </div>
+        </div>
+
+        <GoogleSignInButton label={AUTH_MESSAGES.googleContinue} />
 
         {/* Bottom Redirection */}
         <div className="mt-6 pt-4 border-t border-slate-200 text-center">

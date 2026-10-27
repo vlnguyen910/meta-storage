@@ -69,8 +69,7 @@ These rules consolidate the project's engineering principles and agent-specific 
 20. **Team and Time Constraints**: Keep technical choices feasible for a team of four developers working within ten weeks.
 21. **Centralized User-facing Messages**: Do not hard-code user-facing success, response, validation, or error messages inline in routes, services, repositories, UI components, hooks, or schemas. Put them in a feature/module-scoped `*.messages.ts` constants file and reference those constants. Use small message-builder functions for dynamic values. Keep messages close to their owning feature; do not create a catch-all global message registry. This rule does not apply to logs, comments, test fixtures, or protocol/framework-required strings that are not presented to users or API clients.
 22. **Dedicated TypeScript Interfaces**: Do not declare project `interface`s in business, route, screen, component, hook, or other implementation files. Move each interface to an adjacent dedicated `*.types.ts`, `types.ts`, or `*.interface.ts` file that matches its feature or adapter boundary. Keep unrelated interfaces out of shared type files; use declaration files such as `*.d.ts` only when TypeScript module augmentation or declaration merging requires them.
-23. **Post-test UI Verification**: After running tests, inspect the affected UI in a browser for visual bugs, broken interactions, and flows that get stuck. Check navigation, form validation, error messages, and loading states throughout the affected flow. Fix discovered issues and repeat the relevant tests and UI checks before reporting completion; passing automated tests alone does not confirm that the UI works correctly. Playwright is available and may be used for this verification when appropriate.
-24. **Drizzle Query Builder First**: Use Drizzle query builder as the default for database queries, including selects, joins, filters, CTEs, unions, and grouping. Use Drizzle's parameterized `sql` template only for expressions without a suitable Drizzle helper, or when SQL provides a concrete query/data-processing optimization that the query builder cannot reasonably express, such as reducing database round trips or avoiding unnecessary data transfer to the application. Keep SQL fragments as small as practical; use a full SQL statement only when necessary and explain the specific benefit in a nearby comment. Do not assume raw SQL is faster without justification. Reference Drizzle schema tables/columns and parameterize values; never concatenate user input into SQL.
+23. **Drizzle Query Builder First**: Use Drizzle query builder as the default for database queries, including selects, joins, filters, CTEs, unions, and grouping. Use Drizzle's parameterized `sql` template only for expressions without a suitable Drizzle helper, or when SQL provides a concrete query/data-processing optimization that the query builder cannot reasonably express, such as reducing database round trips or avoiding unnecessary data transfer to the application. Keep SQL fragments as small as practical; use a full SQL statement only when necessary and explain the specific benefit in a nearby comment. Do not assume raw SQL is faster without justification. Reference Drizzle schema tables/columns and parameterize values; never concatenate user input into SQL.
 
 ## 4. Build, Lint, and Development Commands
 
@@ -102,63 +101,3 @@ bun run check:fix                    # Apply Biome auto-fixes
 
 - **Husky Pre-commit**: Automatically runs `biome check --staged` on staged files.
 - **Conventional Commits**: Format `<type>: <imperative summary>` (e.g., `feat: add booking state machine`, `fix: resolve payment webhook race condition`).
-
-<!-- gitnexus:start -->
-# GitNexus — Code Intelligence
-
-This project is indexed by GitNexus as **storeX** (1580 symbols, 3331 relationships, 122 execution flows).
-
-> Index stale? Run `node .gitnexus/run.cjs analyze --index-only` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? Bootstrap with `npx`, `bunx`, or `pnpm dlx` — e.g. `bunx gitnexus@latest analyze` (npm 11 npx crash; #1939).
-
-## Always Do
-
-- **MUST run impact before editing.** Use `impact({target: "symbolName", direction: "upstream"})` or `node .gitnexus/run.cjs impact "symbolName" --direction upstream --repo .`; report callers, processes, and risk. Never substitute grep for graph analysis.
-- **MUST analyze graph changes before committing.** Use `detect_changes({scope: "all"})` (MCP) or `node .gitnexus/run.cjs detect-changes --scope all --repo .` (CLI fallback). `partial: true` or `truncated: true` is not a clean check — a zero means unseen, not unaffected; re-run it. For regression review: `detect_changes({scope: "compare", base_ref: "main"})` or `node .gitnexus/run.cjs detect-changes --scope compare --base-ref "main" --repo .`.
-- MUST warn on HIGH/CRITICAL `risk` pre-edit; never use `riskSharedAxes` to waive a HIGH/CRITICAL `risk` warning. Compare File/symbol: MCP File omits axes; Graph-RAG expands File.
-- **MUST treat `risk: UNKNOWN` as unresolved, not as low.** An empty caller set is not evidence the symbol is unused — it can also mean the callers are not resolvable by the index (plain-object property access, dynamic dispatch, cross-language calls). `impact` pairs `UNKNOWN` with a `riskNote` saying so. Confirm with a text search before treating the symbol as safe to change or delete; do not proceed on the strength of a zero.
-- **MUST use `query({search_query: "concept"})` for concepts/flows, `context({name: "symbolName"})` for a named symbol, or `impact` for blast radius, on read-only callers, dependencies, imports, or execution flow.** Graph first; text search only for empty/`UNKNOWN`/literals.
-- For security review, `explain({target: "fileOrSymbol"})` lists taint findings (source→sink flows; needs `analyze --pdg`).
-
-## Never Do
-
-- NEVER edit a function, class, or method before MCP/CLI impact analysis.
-- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis, and never read `UNKNOWN` as an all-clear — it means the walk could not answer, which is the one verdict that requires confirming by other means.
-- NEVER rename symbols with find-and-replace — use `rename` which understands the call graph.
-- NEVER commit before MCP/CLI graph change analysis.
-
-## Resources
-
-| Resource | Use for |
-| --- | --- |
-| `gitnexus://repo/storeX/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/storeX/clusters` | All functional areas |
-| `gitnexus://repo/storeX/processes` | All execution flows |
-| `gitnexus://repo/storeX/process/{name}` | Step-by-step execution trace |
-
-## CLI
-
-| Task | Read this skill file |
-| --- | --- |
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus-cli/SKILL.md` |
-| Work in the Dashboard area (52 symbols) | `.claude/skills/gitnexus-area-dashboard/SKILL.md` |
-| Work in the Facilities area (45 symbols) | `.claude/skills/gitnexus-area-facilities/SKILL.md` |
-| Work in the Reservations area (18 symbols) | `.claude/skills/gitnexus-area-reservations/SKILL.md` |
-| Work in the Ui area (14 symbols) | `.claude/skills/gitnexus-area-ui/SKILL.md` |
-| Work in the Users area (13 symbols) | `.claude/skills/gitnexus-area-users/SKILL.md` |
-| Work in the Catalog area (13 symbols) | `.claude/skills/gitnexus-area-catalog/SKILL.md` |
-| Work in the Handlers area (13 symbols) | `.claude/skills/gitnexus-area-handlers/SKILL.md` |
-| Work in the Layout area (9 symbols) | `.claude/skills/gitnexus-area-layout/SKILL.md` |
-| Work in the Mocks area (7 symbols) | `.claude/skills/gitnexus-area-mocks/SKILL.md` |
-| Work in the App area (6 symbols) | `.claude/skills/gitnexus-area-app/SKILL.md` |
-| Work in the Auth area (6 symbols) | `.claude/skills/gitnexus-area-auth/SKILL.md` |
-| Work in the Dashboards area (5 symbols) | `.claude/skills/gitnexus-area-dashboards/SKILL.md` |
-| Work in the Errors area (4 symbols) | `.claude/skills/gitnexus-area-errors/SKILL.md` |
-| Work in the Cluster_29 area (4 symbols) | `.claude/skills/gitnexus-area-cluster-29/SKILL.md` |
-| Work in the Cluster_28 area (3 symbols) | `.claude/skills/gitnexus-area-cluster-28/SKILL.md` |
-
-<!-- gitnexus:end -->

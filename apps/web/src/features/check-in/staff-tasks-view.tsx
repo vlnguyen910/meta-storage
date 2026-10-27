@@ -13,11 +13,12 @@ import {
   UserCheck,
   Warehouse,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, Currency, PageHeader, StatusBadge } from "@/components/ui/display";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { formatDate } from "@/lib/format";
+import { STAFF_DASHBOARD_MESSAGES as M } from "@/modules/facility-staff/dashboard/staff-dashboard.messages";
 import { useStaffTasks } from "./hooks";
 
 interface StaffTasksViewProps {
@@ -28,10 +29,15 @@ interface StaffTasksViewProps {
 export function StaffTasksView({ facilityId, facilityName }: StaffTasksViewProps) {
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [page, setPage] = useState(1);
+  const pageSize = 6;
+  // Reset pagination whenever the user changes a filter or search term.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: filter and search intentionally reset the local page.
+  useEffect(() => setPage(1), [filterStatus, searchQuery]);
 
   const { data: tasks, isLoading, isError, isFetching, refetch } = useStaffTasks(facilityId);
 
-  if (isLoading) return <LoadingState />;
+  if (isLoading) return <LoadingState variant="table" />;
   if (isError)
     return (
       <ErrorState message="Không thể tải danh sách nhiệm vụ được giao." onRetry={() => refetch()} />
@@ -55,6 +61,9 @@ export function StaffTasksView({ facilityId, facilityName }: StaffTasksViewProps
     }
     return true;
   });
+  const pageCount = Math.max(1, Math.ceil(filteredTasks.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const pageTasks = filteredTasks.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   return (
     <div className="space-y-6">
@@ -136,7 +145,7 @@ export function StaffTasksView({ facilityId, facilityName }: StaffTasksViewProps
         </Card>
       ) : (
         <div className="grid gap-4">
-          {filteredTasks.map((booking) => (
+          {pageTasks.map((booking) => (
             <Card
               key={booking.id}
               className="transition-all hover:border-slate-300 hover:shadow-md"
@@ -232,6 +241,32 @@ export function StaffTasksView({ facilityId, facilityName }: StaffTasksViewProps
           ))}
         </div>
       )}
+      {pageCount > 1 ? (
+        <nav
+          className="flex flex-wrap items-center justify-center gap-3"
+          aria-label="Phân trang nhiệm vụ"
+        >
+          <Button
+            type="button"
+            variant="outline"
+            disabled={safePage === 1}
+            onClick={() => setPage((value) => value - 1)}
+          >
+            {M.previous}
+          </Button>
+          <span className="text-sm font-semibold text-slate-600">
+            {M.pageOf(safePage, pageCount)}
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={safePage === pageCount}
+            onClick={() => setPage((value) => value + 1)}
+          >
+            {M.next}
+          </Button>
+        </nav>
+      ) : null}
     </div>
   );
 }

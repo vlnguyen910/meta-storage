@@ -1,19 +1,24 @@
 "use client";
+import { CUSTOMER_WORKSPACE as C } from "@metastorage/shared";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
 import { PublicLayout } from "@/components/layout/public-layout";
+import { Spinner } from "@/components/ui/spinner";
+import { customerRoutes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { useCheckoutPaymentStatus } from "./booking-checkout.hooks";
 import type { CheckoutContext } from "./booking-checkout.types";
 import styles from "./checkout.module.css";
 import { CheckoutConfirmation } from "./checkout-confirmation";
-import { readCheckoutContext } from "./checkout-storage";
+import { clearCheckoutContext, readCheckoutContext } from "./checkout-storage";
 import { paymentResultMessages as m } from "./payment-result.messages";
 
 export function PaymentResultScreen() {
   const params = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
   const paymentId = params.get("paymentId");
   const bookingId = params.get("bookingId");
   const session = useAuthStore((state) => state.session);
@@ -22,6 +27,11 @@ export function PaymentResultScreen() {
   const [qr, setQr] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
+    if (!session || pathname !== "/bookings/payment-result") return;
+    const query = params.toString();
+    router.replace(`${customerRoutes.paymentResult}${query ? `?${query}` : ""}`);
+  }, [pathname, params, router, session]);
+  useEffect(() => {
     const saved = readCheckoutContext();
     if (saved?.payment?.paymentId === paymentId && (!bookingId || saved.draft.id === bookingId))
       setContext(saved);
@@ -29,7 +39,7 @@ export function PaymentResultScreen() {
     setReady(true);
   }, [paymentId, bookingId]);
   const canRead = ready && Boolean(context || session);
-  const query = useCheckoutPaymentStatus(paymentId, context?.draft.draftAccessToken, canRead);
+  const query = useCheckoutPaymentStatus(paymentId, undefined, canRead);
   const confirmation =
     canRead && !query.isError && query.data?.status === "SUCCEEDED"
       ? query.data.confirmation
@@ -40,6 +50,7 @@ export function PaymentResultScreen() {
   }, []);
   useEffect(() => {
     if (!confirmation) return;
+    clearCheckoutContext();
     let active = true;
     QRCode.toDataURL(confirmation.qrUrl, { width: 320, margin: 1 })
       .then((url) => {
@@ -72,9 +83,22 @@ export function PaymentResultScreen() {
                   : expired
                     ? m.expired
                     : m.pending;
+  const blockingPaymentCheck = canRead && query.isFetching && !query.data;
   return (
     <PublicLayout>
-      <main className={`${styles.checkout} mx-auto min-h-[70vh] w-full max-w-5xl px-5 py-12`}>
+      <main
+        aria-busy={blockingPaymentCheck}
+        className={`${styles.checkout} mx-auto min-h-[70vh] w-full max-w-5xl px-5 py-12`}
+      >
+        {paymentId && (
+          <a
+            className="mb-5 inline-flex min-h-11 items-center rounded border px-4"
+            href={`metastorage://payment-result?${new URLSearchParams({ paymentId, ...(bookingId ? { bookingId } : {}) })}`}
+          >
+            {C.openApp}
+          </a>
+        )}
+        {blockingPaymentCheck && <Spinner label={m.loading} />}
         {confirmation ? (
           <CheckoutConfirmation
             state={{ confirmation, qrDataUrl: qr, paidPricing: context?.draft.pricing ?? null }}
@@ -100,7 +124,8 @@ export function PaymentResultScreen() {
           </section>
         )}
         <Link
-          className="mt-6 inline-flex min-h-11 items-center underline"
+          aria-disabled={blockingPaymentCheck}
+          className={`mt-6 inline-flex min-h-11 items-center underline ${blockingPaymentCheck ? "pointer-events-none opacity-50" : ""}`}
           href="/reservations/new?new=1"
         >
           {m.newBooking}

@@ -66,7 +66,7 @@ export function CheckoutSummary({ state }: { state: CheckoutState }) {
   const months = form.watch("durationMonths");
   const pricing = state.draft?.pricing;
   return (
-    <aside className={`${s.panel} ${s.sidebar}`}>
+    <aside className={`${s.panel} ${s.sidebar}`} aria-label={m.summary}>
       <h2>{step === 1 ? m.serviceSummary : step >= 2 ? m.billing : m.summary}</h2>
       {option && step > 0 ? (
         <div className={s.summaryImage}>

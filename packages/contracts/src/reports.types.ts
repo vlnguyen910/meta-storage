@@ -8,12 +8,18 @@ export interface ReportFinancialMetrics {
   cashReceived: string;
   rentalCollected: string | null;
   depositCollected: string | null;
+  renewalCollected: string;
+  extraChargeCollected: string;
+  returnDebtCollected: string;
   cashRefunded: string;
+  chargeRefunded: string;
   netCash: string;
   depositHeld: string | null;
   depositForfeited: string;
   pendingRefundAmount: string;
   pendingRefundCount: number;
+  pendingChargeRefundAmount: string;
+  pendingChargeRefundCount: number;
   paymentsReceivedCount: number;
   unclassifiedCollectedPayments: number;
   unclassifiedDepositPayments: number;
@@ -49,6 +55,25 @@ export interface RevenueReport {
   total: number;
   limit: number;
   offset: number;
+}
+export interface MonthlyRevenuePoint {
+  month: string;
+  cashReceived: string;
+  rentalCollected: string | null;
+  depositCollected: string | null;
+  renewalCollected: string;
+  extraChargeCollected: string;
+  returnDebtCollected: string;
+  cashRefunded: string;
+  chargeRefunded: string;
+  netCash: string;
+  unsupportedCurrencyPayments: number;
+}
+export interface MonthlyRevenueReport {
+  period: ReportPeriod;
+  asOf: string;
+  currency: "VND";
+  items: MonthlyRevenuePoint[];
 }
 export interface UtilizationReport {
   asOf: string;
@@ -90,6 +115,14 @@ export interface OperationsOverview {
       endpoint: string | null;
       description: string;
     };
+    chargeRefunds?: {
+      count: number;
+      amount: string;
+      canManage: boolean;
+      endpoint: string | null;
+      description: string;
+    };
+    returnRefunds?: { count: number; amount: string; description: string };
     vacantCapacity: { count: number; description: string };
     maintenance: { count: number; description: string };
     dataQuality: {
@@ -115,6 +148,7 @@ export interface ReconciliationReport {
   asOf: string;
   items: {
     paymentId: string;
+    chargeId?: string | null;
     bookingId: string | null;
     facilityId: string | null;
     currency: string;

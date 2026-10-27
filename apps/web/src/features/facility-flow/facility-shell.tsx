@@ -3,23 +3,32 @@ import { UserRole } from "@metastorage/contracts";
 import {
   ChevronRight,
   ClipboardCheck,
+  ClipboardList,
   DoorOpen,
   History,
   LayoutGrid,
   LogOut,
   Menu,
   User,
+  UsersRound,
   Warehouse,
   X,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { type ReactNode, Suspense, useState } from "react";
+import { isMockMode } from "@/config/api-mode";
+import { facilityManagerRoutes, facilityStaffRoutes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { useMyFacilityAssignments } from "@/features/check-in/hooks";
+import { F5 } from "@/features/facility-management/management.messages";
+import { NOTIFICATIONS } from "@/features/notifications/notifications.messages";
+import { LifecycleInbox } from "@/features/returns/lifecycle-inbox";
+import { RETURNS_MESSAGES as RETURNS } from "@/features/returns/returns.messages";
 import { cn } from "@/lib/cn";
 import { FLOW } from "./flow.messages";
 import { flowFontClass } from "./flow-ui";
+import { StaffTaskNotifications } from "./staff-task-notifications";
 
 function FacilityShellContent({
   children,
@@ -31,19 +40,36 @@ function FacilityShellContent({
   const [open, setOpen] = useState(false);
   const user = useAuthStore((s) => s.session?.user);
   const pathname = usePathname();
-  const overview = useSearchParams().get("view") === "overview";
+  const currentView = useSearchParams().get("view");
   const assignment = useMyFacilityAssignments();
   const facility = assignment.data?.find((a) => a.isActive) ?? assignment.data?.[0];
   const root = user?.role === UserRole.FACILITY_MANAGER ? "/facility-manager" : "/staff";
   const role = user?.role === UserRole.FACILITY_MANAGER ? FLOW.manager : FLOW.staff;
   const isManager = user?.role === UserRole.FACILITY_MANAGER;
+  const staffView = isManager && currentView === "staff";
+  const overview = isManager ? currentView !== "check-in" && !staffView : currentView !== "tasks";
+  const activeDashboardHref = staffView
+    ? facilityManagerRoutes.staff
+    : `${root}/dashboard?view=${overview ? "overview" : isManager ? "check-in" : "tasks"}`;
   const navigation = [
     { label: FLOW.overview, href: `${root}/dashboard?view=overview`, icon: LayoutGrid },
     {
       label: isManager ? FLOW.managerDispatch : FLOW.staffTasks,
-      href: `${root}/dashboard`,
+      href: isManager ? `${root}/dashboard?view=check-in` : `${root}/dashboard?view=tasks`,
       icon: ClipboardCheck,
     },
+    { label: RETURNS.managerNav, href: `${root}/returns`, icon: History },
+    {
+      label: F5.tasks,
+      href: isManager ? facilityManagerRoutes.tasks : facilityStaffRoutes.tasks,
+      icon: ClipboardList,
+    },
+    ...(isManager
+      ? [{ label: F5.inventory, href: facilityManagerRoutes.storageUnits, icon: DoorOpen }]
+      : []),
+    ...(isManager
+      ? [{ label: F5.staffDirectory, href: facilityManagerRoutes.staff, icon: UsersRound }]
+      : []),
     ...(!isManager
       ? [{ label: FLOW.inspection, href: `${root}/check-in`, icon: ClipboardCheck }]
       : []),
@@ -81,16 +107,25 @@ function FacilityShellContent({
             <p className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-[#bfc9c4]">
               {FLOW.business}
             </p>
-            {navigation.map(({ label, href, icon: Icon }, i) => (
+            {navigation.map(({ label, href, icon: Icon }) => (
               <Link
                 key={label}
                 href={href}
                 onClick={() => setOpen(false)}
+                aria-current={
+                  (
+                    pathname.endsWith("/dashboard")
+                      ? href === activeDashboardHref
+                      : pathname === href || pathname.startsWith(`${href}/`)
+                  )
+                    ? "page"
+                    : undefined
+                }
                 className={cn(
                   "flex items-center gap-2 rounded px-2 py-2 text-sm text-[#bfc9c4] hover:bg-[#125345] hover:text-white",
-                  ((i === 0 && pathname.endsWith("/dashboard") && overview) ||
-                    (i === 1 && pathname.endsWith("/dashboard") && !overview) ||
-                    (i === 2 && pathname.endsWith("/check-in"))) &&
+                  (pathname.endsWith("/dashboard")
+                    ? href === activeDashboardHref
+                    : pathname === href || pathname.startsWith(`${href}/`)) &&
                     "bg-[#125345] font-semibold text-white",
                 )}
               >
@@ -101,10 +136,7 @@ function FacilityShellContent({
             <p className="px-2 pb-1 pt-4 text-[11px] font-bold uppercase tracking-wider text-[#bfc9c4]">
               {FLOW.extension}
             </p>
-            {[
-              { label: FLOW.units, icon: DoorOpen },
-              { label: FLOW.history, icon: History },
-            ].map(({ label, icon: Icon }) => (
+            {[{ label: FLOW.history, icon: History }].map(({ label, icon: Icon }) => (
               <div key={label} className="flex items-center gap-2 rounded px-2 py-2 text-[#bfc9c4]">
                 <Icon size={20} />
                 <div>
@@ -158,18 +190,32 @@ function FacilityShellContent({
             <span className="hidden text-xs text-[#404945] sm:inline">{FLOW.operations}</span>
             <ChevronRight size={14} />
             <span className="truncate text-xs font-medium">
-              {pathname.endsWith("/dashboard")
-                ? overview
-                  ? FLOW.overview
-                  : isManager
-                    ? FLOW.managerDispatch
-                    : FLOW.staffTasks
-                : isManager
-                  ? FLOW.monitor
-                  : FLOW.inspection}
+              {pathname.endsWith("/notifications")
+                ? NOTIFICATIONS.title
+                : pathname.endsWith("/storage-units")
+                  ? F5.inventory
+                  : pathname.endsWith("/staff")
+                    ? F5.staffDirectory
+                    : pathname.endsWith("/tasks")
+                      ? F5.tasks
+                      : pathname.endsWith("/dashboard")
+                        ? staffView
+                          ? F5.staffDirectory
+                          : overview
+                            ? FLOW.overview
+                            : isManager
+                              ? FLOW.managerDispatch
+                              : FLOW.staffTasks
+                        : pathname.startsWith(`${root}/returns`)
+                          ? RETURNS.facilityReturnsCrumb
+                          : isManager
+                            ? FLOW.monitor
+                            : FLOW.inspection}
             </span>
           </div>
           <div className="flex items-center gap-3">
+            {user?.role === UserRole.FACILITY_STAFF && <StaffTaskNotifications key={user.id} />}
+            {isManager && !isMockMode && <LifecycleInbox key={user?.id} />}
             <span className="grid size-8 place-items-center rounded-full bg-[#003b2f] text-white">
               <User size={18} />
             </span>

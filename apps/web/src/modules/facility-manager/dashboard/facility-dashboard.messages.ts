@@ -33,4 +33,12 @@ export const FACILITY_DASHBOARD_MESSAGES = {
   staffInactiveBadge: "Tạm dừng",
   staffRoleStaff: "Nhân viên cơ sở",
   staffRoleManager: "Quản lý cơ sở",
+  staffStatTotal: "Tổng nhân viên",
+  staffStatBusy: "Đang có nhiệm vụ",
+  staffStatAvailable: "Sẵn sàng nhận việc",
+  staffWorkloadLabel: "Nhiệm vụ đang phụ trách",
+  staffViewBookingsAction: "Đến bảng điều phối Check-in",
+  staffSearch: "Tìm nhân viên theo tên, email hoặc số điện thoại",
+  staffNoMatch: "Không tìm thấy nhân viên phù hợp",
+  staffNoMatchHelp: "Thử từ khóa khác hoặc xóa nội dung tìm kiếm.",
 } as const;

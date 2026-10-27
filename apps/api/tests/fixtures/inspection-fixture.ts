@@ -2,14 +2,21 @@ import { randomUUID } from "node:crypto";
 import { HANDOVER_CHECKLIST_ITEMS } from "@metastorage/contracts";
 import {
   accounts,
+  bookingContractAudit,
+  bookingContracts,
   bookings,
   checkInSlots,
   checkInVerifications,
   db,
+  eq,
   facilities,
   facilityAssignments,
-  facilityUnitTypes,
+  handoverInspections,
+  inArray,
+  inspectionPhotos,
+  notificationOutbox,
   payments,
+  rentals,
   reservationDrafts,
   storageUnits,
   unitAssignments,
@@ -17,6 +24,8 @@ import {
   users,
 } from "@metastorage/database";
 import { hashPassword } from "better-auth/crypto";
+import { createTestUnitType, deleteTestUnitTypes } from "./facility-catalog";
+import { assertTestDatabase } from "./test-database";
 
 export const passingChecklist = HANDOVER_CHECKLIST_ITEMS.map((item) => ({
   itemCode: item.code,
@@ -26,20 +35,21 @@ export const passingChecklist = HANDOVER_CHECKLIST_ITEMS.map((item) => ({
   photos: [],
 }));
 
-export function assertIsolatedDatabase() {
-  const url = process.env.DATABASE_URL;
-  if (!url || !new URL(url).pathname.startsWith("/metastorage_inspection_test_"))
-    throw new Error(
-      "Inspection tests require a dedicated metastorage_inspection_test_* database; never seed a shared database.",
-    );
+export function assertIsolatedDatabase(allowExistingLocal = false) {
+  assertTestDatabase(
+    process.env.DATABASE_URL,
+    process.env,
+    allowExistingLocal && process.env.DATABASE_URL === process.env.MY_STORAGE_LOCAL_DATABASE_URL,
+  );
 }
 
-export async function createInspectionFixture() {
-  assertIsolatedDatabase();
+export async function createInspectionFixture(allowExistingLocal = false) {
+  assertIsolatedDatabase(allowExistingLocal);
   const suffix = randomUUID().slice(0, 8);
   const userId = randomUUID(),
     outsiderId = randomUUID(),
     managerId = randomUUID(),
+    customerId = randomUUID(),
     facilityId = randomUUID(),
     unitTypeId = randomUUID(),
     unitId = randomUUID(),
@@ -57,6 +67,14 @@ export async function createInspectionFixture() {
     rentalEnd = new Date(now + 30 * 86400_000);
   await db.transaction(async (tx) => {
     await tx.insert(users).values([
+      {
+        id: customerId,
+        name: "Test customer",
+        email: `customer-${suffix}@example.test`,
+        role: "CUSTOMER",
+        status: "ACTIVE",
+        emailVerified: true,
+      },
       {
         id: managerId,
         name: "Facility Manager",
@@ -86,6 +104,13 @@ export async function createInspectionFixture() {
     await tx.insert(accounts).values([
       {
         id: randomUUID(),
+        userId: customerId,
+        accountId: customerId,
+        providerId: "credential",
+        password: hashed,
+      },
+      {
+        id: randomUUID(),
         userId: managerId,
         accountId: managerId,
         providerId: "credential",
@@ -111,7 +136,8 @@ export async function createInspectionFixture() {
       { userId: managerId, facilityId, role: "FACILITY_MANAGER" },
       { userId: outsiderId, facilityId, role: "FACILITY_STAFF" },
     ]);
-    await tx.insert(unitTypes).values({
+    await createTestUnitType(tx, {
+      facilityId: facilityId,
       id: unitTypeId,
       code: `TEST2-${suffix}`,
       name: "Kho rỗng",
@@ -121,7 +147,7 @@ export async function createInspectionFixture() {
       heightM: 2,
       monthlyPrice: 1000000,
     });
-    await tx.insert(facilityUnitTypes).values({ facilityId, unitTypeId });
+
     const local = new Date(now + 7 * 3600000).toISOString();
     await tx.insert(checkInSlots).values({
       id: slotId,
@@ -150,7 +176,7 @@ export async function createInspectionFixture() {
     await tx.insert(bookings).values({
       id: bookingId,
       bookingCode: `BK-TEST-${suffix.toUpperCase()}`,
-      userId: null,
+      userId: customerId,
       contactName: "Test customer",
       contactEmail: `customer-${suffix}@example.test`,
       contactPhone: "0900000000",
@@ -169,7 +195,6 @@ export async function createInspectionFixture() {
     });
     await tx.insert(payments).values({
       bookingId,
-      draftId,
       holdTokenHash: suffix,
       provider: "mock",
       paymentCode: `TEST-${suffix}`,
@@ -192,6 +217,8 @@ export async function createInspectionFixture() {
     });
   });
   return {
+    customerId,
+    customerEmail: `customer-${suffix}@example.test`,
     userId,
     managerId,
     managerEmail,
@@ -205,6 +232,36 @@ export async function createInspectionFixture() {
     email,
     outsiderEmail,
     password,
+    async cleanup() {
+      await db.transaction(async (tx) => {
+        const inspections = tx
+          .select({ id: handoverInspections.id })
+          .from(handoverInspections)
+          .where(eq(handoverInspections.bookingId, bookingId));
+        await tx.delete(bookingContractAudit).where(eq(bookingContractAudit.bookingId, bookingId));
+        await tx
+          .delete(inspectionPhotos)
+          .where(inArray(inspectionPhotos.inspectionId, inspections));
+        await tx.delete(handoverInspections).where(eq(handoverInspections.bookingId, bookingId));
+        await tx.delete(bookingContracts).where(eq(bookingContracts.bookingId, bookingId));
+        await tx.delete(notificationOutbox).where(eq(notificationOutbox.bookingId, bookingId));
+        await tx.delete(rentals).where(eq(rentals.bookingId, bookingId));
+        await tx.delete(checkInVerifications).where(eq(checkInVerifications.bookingId, bookingId));
+        await tx.delete(unitAssignments).where(eq(unitAssignments.bookingId, bookingId));
+        await tx.delete(payments).where(eq(payments.bookingId, bookingId));
+        await tx.delete(bookings).where(eq(bookings.id, bookingId));
+        await tx.delete(reservationDrafts).where(eq(reservationDrafts.id, draftId));
+        await tx.delete(storageUnits).where(eq(storageUnits.id, unitId));
+
+        await tx.delete(facilityAssignments).where(eq(facilityAssignments.facilityId, facilityId));
+        await deleteTestUnitTypes(tx, eq(unitTypes.id, unitTypeId));
+        await tx.delete(facilities).where(eq(facilities.id, facilityId));
+        await tx.delete(checkInSlots).where(eq(checkInSlots.id, slotId));
+        await tx
+          .delete(users)
+          .where(inArray(users.id, [userId, managerId, outsiderId, customerId]));
+      });
+    },
   };
 }
 

@@ -1,0 +1,24 @@
+export const bookingLookupMessages = {
+  title: "Tra cứu kho của tôi",
+  description:
+    "Nhập mã đặt kho và email đã dùng khi đặt. Nếu thông tin khớp, StoreX sẽ gửi liên kết truy cập qua email.",
+  bookingCode: "Mã đặt kho",
+  bookingCodePlaceholder: "Nhập mã đặt kho",
+  email: "Email dùng khi đặt kho",
+  emailPlaceholder: "name@example.com",
+  bookingCodeHint: "Mã đặt kho có trong xác nhận đặt kho của bạn.",
+  emailHint: "Liên kết truy cập sẽ được gửi đến email đã dùng khi đặt kho.",
+  submit: "Gửi liên kết tra cứu",
+  submitting: "Đang gửi yêu cầu…",
+  bookingCodeRequired: "Vui lòng nhập mã đặt kho.",
+  emailRequired: "Vui lòng nhập email đã dùng khi đặt kho.",
+  emailInvalid: "Email chưa đúng định dạng.",
+  success: "Nếu thông tin khớp, hướng dẫn truy cập sẽ được gửi đến email bạn đã nhập.",
+  mockSuccess: "Yêu cầu đã được ghi nhận trong chế độ demo. Môi trường demo không gửi email thật.",
+  failure: "Chưa thể gửi yêu cầu tra cứu lúc này. Vui lòng thử lại.",
+  rateLimited:
+    "Bạn đã gửi quá nhiều yêu cầu. Vui lòng đợi một lúc rồi thử lại; thông tin đã nhập vẫn được giữ.",
+  tryAgain: "Gửi yêu cầu khác",
+  home: "Về trang chủ",
+  lookupAgain: "Tra cứu lại bằng mã đặt kho",
+} as const;

@@ -6,7 +6,6 @@ import {
   db,
   eq,
   facilities,
-  facilityUnitTypes,
   payments,
   unitTypes,
 } from "../../../../packages/database/src";
@@ -15,6 +14,7 @@ import {
   bookingMagicKey,
 } from "../../../../packages/shared/src/booking-access";
 import { createBookingTrackingLink } from "../../src/modules/bookings/bookings.repository";
+import { createTestUnitType, deleteTestUnitTypes } from "./facility-catalog";
 
 export async function createTrackingFixture() {
   const id = randomUUID();
@@ -32,7 +32,8 @@ export async function createTrackingFixture() {
       name: "Kho StoreX kiểm thử",
       address: "123 Đường kiểm thử, TP.HCM",
     });
-    await tx.insert(unitTypes).values({
+    await createTestUnitType(tx, {
+      facilityId: ids.facility,
       id: ids.type,
       code: id,
       name: "Kho nhỏ",
@@ -42,7 +43,7 @@ export async function createTrackingFixture() {
       heightM: 2,
       monthlyPrice: 900000,
     });
-    await tx.insert(facilityUnitTypes).values({ facilityId: ids.facility, unitTypeId: ids.type });
+
     await tx
       .insert(checkInSlots)
       .values({ id: ids.slot, name: "Ca kiểm thử", startTime: "09:00", endTime: "10:30" });
@@ -95,8 +96,8 @@ export async function createTrackingFixture() {
       await db.delete(payments).where(eq(payments.bookingId, ids.booking));
       await db.delete(bookings).where(eq(bookings.id, ids.booking));
       await db.delete(checkInSlots).where(eq(checkInSlots.id, ids.slot));
-      await db.delete(facilityUnitTypes).where(eq(facilityUnitTypes.facilityId, ids.facility));
-      await db.delete(unitTypes).where(eq(unitTypes.id, ids.type));
+
+      await deleteTestUnitTypes(db, eq(unitTypes.id, ids.type));
       await db.delete(facilities).where(eq(facilities.id, ids.facility));
     },
   };

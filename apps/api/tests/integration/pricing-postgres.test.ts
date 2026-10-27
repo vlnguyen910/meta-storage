@@ -6,26 +6,29 @@ import {
   db,
   eq,
   facilities,
-  facilityUnitTypes,
-  PRICING_SETTINGS_ID,
+  facilityAssignments,
+  inArray,
   pricingChanges,
-  pricingSettings,
   storageUnits,
+  systemSettingChanges,
+  systemSettings,
   unitTypes,
   users,
 } from "@metastorage/database";
 import Fastify from "fastify";
 import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
-import { seedPricingPolicy } from "../../../../packages/database/src/seed-pricing";
+import { seedPricingPolicy } from "../../../../packages/database/src/seed";
 import { setupErrorHandler } from "../../src/common/errors/error-handler";
 import { auth } from "../../src/modules/auth/auth";
 import { bookingsRoutes } from "../../src/modules/bookings/bookings.routes";
 import { pricingRoutes } from "../../src/modules/pricing/pricing.routes";
+import { createTestUnitType, deleteTestUnitTypes } from "../fixtures/facility-catalog";
 
 const testUrl = process.env.PRICING_TEST_DATABASE_URL;
 describe.skipIf(!testUrl)("pricing transactions with isolated PostgreSQL", () => {
   const ids = {
     actor: randomUUID(),
+    manager: randomUUID(),
     type: randomUUID(),
     facility: randomUUID(),
     unit: randomUUID(),
@@ -39,6 +42,7 @@ describe.skipIf(!testUrl)("pricing transactions with isolated PostgreSQL", () =>
     app.inject({
       method: "POST",
       url: "/api/bookings/drafts",
+      headers: { "x-customer": "1" },
       payload: {
         facilityId: ids.facility,
         unitTypeId: ids.type,
@@ -48,7 +52,12 @@ describe.skipIf(!testUrl)("pricing transactions with isolated PostgreSQL", () =>
       },
     });
   const patch = (payload: object, suffix = "") =>
-    app.inject({ method: "PATCH", url: `/api/business-rules/pricing${suffix}`, payload });
+    app.inject({
+      method: "PATCH",
+      url: `/api/business-rules/pricing${suffix}`,
+      headers: suffix ? { "x-manager": "1" } : {},
+      payload,
+    });
 
   beforeAll(async () => {
     if (process.env.DATABASE_URL !== testUrl)
@@ -56,7 +65,8 @@ describe.skipIf(!testUrl)("pricing transactions with isolated PostgreSQL", () =>
         "DATABASE_URL must match PRICING_TEST_DATABASE_URL (empty isolated test database)",
       );
     if (
-      (await db.select().from(pricingSettings)).length ||
+      (await db.select().from(systemSettings).where(eq(systemSettings.key, "DEPOSIT_MONTHS")))
+        .length ||
       (await db.select().from(pricingChanges)).length
     )
       throw new Error("Use an empty isolated pricing test database");
@@ -67,10 +77,21 @@ describe.skipIf(!testUrl)("pricing transactions with isolated PostgreSQL", () =>
       role: "BUSINESS_OPERATION_MANAGER",
       status: "ACTIVE",
     });
+    await db.insert(users).values({
+      id: ids.manager,
+      name: "Pricing FM",
+      email: `${ids.manager}@example.test`,
+      role: "FACILITY_MANAGER",
+      status: "ACTIVE",
+    });
     await db
       .insert(facilities)
       .values({ id: ids.facility, code: ids.facility, name: "Pricing test", address: "Test" });
-    await db.insert(unitTypes).values({
+    await db
+      .insert(facilityAssignments)
+      .values({ userId: ids.manager, facilityId: ids.facility, role: "FACILITY_MANAGER" });
+    await createTestUnitType(db, {
+      facilityId: ids.facility,
       id: ids.type,
       code: ids.type,
       name: "Pricing type",
@@ -80,7 +101,7 @@ describe.skipIf(!testUrl)("pricing transactions with isolated PostgreSQL", () =>
       heightM: 1,
       monthlyPrice: 750000,
     });
-    await db.insert(facilityUnitTypes).values({ facilityId: ids.facility, unitTypeId: ids.type });
+
     await db
       .insert(storageUnits)
       .values({ id: ids.unit, code: ids.unit, facilityId: ids.facility, unitTypeId: ids.type });
@@ -88,10 +109,19 @@ describe.skipIf(!testUrl)("pricing transactions with isolated PostgreSQL", () =>
       .insert(checkInSlots)
       .values({ id: ids.slot, name: "Pricing slot", startTime: "09:00", endTime: "10:00" });
     created = true;
-    session = spyOn(auth.api, "getSession").mockResolvedValue({
-      user: { id: ids.actor, role: "BUSINESS_OPERATION_MANAGER", status: "ACTIVE" },
-      session: {},
-    } as never);
+    session = spyOn(auth.api, "getSession").mockImplementation(async ({ headers }) =>
+      new Headers(headers).has("x-customer")
+        ? ({ user: { id: ids.actor, role: "CUSTOMER", status: "ACTIVE" }, session: {} } as never)
+        : new Headers(headers).has("x-manager")
+          ? ({
+              user: { id: ids.manager, role: "FACILITY_MANAGER", status: "ACTIVE" },
+              session: {},
+            } as never)
+          : ({
+              user: { id: ids.actor, role: "BUSINESS_OPERATION_MANAGER", status: "ACTIVE" },
+              session: {},
+            } as never),
+    );
     app.decorate("db", db);
     app.setValidatorCompiler(validatorCompiler);
     app.setSerializerCompiler(serializerCompiler);
@@ -102,24 +132,38 @@ describe.skipIf(!testUrl)("pricing transactions with isolated PostgreSQL", () =>
   });
   beforeEach(async () => {
     await db.delete(bookings).where(eq(bookings.facilityId, ids.facility));
-    await db.delete(pricingChanges).where(eq(pricingChanges.changedBy, ids.actor));
-    await db.delete(pricingSettings);
+    await db
+      .delete(pricingChanges)
+      .where(inArray(pricingChanges.changedBy, [ids.actor, ids.manager]));
+    await db
+      .delete(systemSettingChanges)
+      .where(inArray(systemSettingChanges.actorId, [ids.actor, ids.manager]));
+    await db.delete(systemSettings).where(eq(systemSettings.key, "DEPOSIT_MONTHS"));
     await seedPricingPolicy();
-    await db.update(unitTypes).set({ monthlyPrice: 750000 }).where(eq(unitTypes.id, ids.type));
+    await db
+      .update(unitTypes)
+      .set({ monthlyPrice: 750000, version: 0, updatedBy: null })
+      .where(eq(unitTypes.id, ids.type));
   });
   afterAll(async () => {
     await app.close();
     session?.mockRestore();
     if (!created) return;
     await db.delete(bookings).where(eq(bookings.facilityId, ids.facility));
-    await db.delete(pricingChanges).where(eq(pricingChanges.changedBy, ids.actor));
-    await db.delete(pricingSettings);
+    await db
+      .delete(pricingChanges)
+      .where(inArray(pricingChanges.changedBy, [ids.actor, ids.manager]));
+    await db
+      .delete(systemSettingChanges)
+      .where(inArray(systemSettingChanges.actorId, [ids.actor, ids.manager]));
+    await db.delete(systemSettings).where(eq(systemSettings.key, "DEPOSIT_MONTHS"));
     await db.delete(storageUnits).where(eq(storageUnits.id, ids.unit));
-    await db.delete(facilityUnitTypes).where(eq(facilityUnitTypes.facilityId, ids.facility));
-    await db.delete(unitTypes).where(eq(unitTypes.id, ids.type));
+
+    await deleteTestUnitTypes(db, eq(unitTypes.id, ids.type));
     await db.delete(facilities).where(eq(facilities.id, ids.facility));
     await db.delete(checkInSlots).where(eq(checkInSlots.id, ids.slot));
-    await db.delete(users).where(eq(users.id, ids.actor));
+    await db.delete(facilityAssignments).where(eq(facilityAssignments.userId, ids.manager));
+    await db.delete(users).where(inArray(users.id, [ids.actor, ids.manager]));
   });
 
   test("updates price/policy with audit and keeps pre-existing draft snapshots", async () => {
@@ -127,7 +171,7 @@ describe.skipIf(!testUrl)("pricing transactions with isolated PostgreSQL", () =>
     expect(first.statusCode).toBe(201);
     expect(first.json().data.pricing.totalAmount).toBe("2250000");
     expect(
-      (await patch({ expectedVersion: 1, monthlyPrice: 900000 }, `/${ids.type}`)).statusCode,
+      (await patch({ expectedVersion: 0, monthlyPrice: 900000 }, `/${ids.type}`)).statusCode,
     ).toBe(200);
     expect((await patch({ expectedVersion: 2, depositMonths: 2 })).statusCode).toBe(200);
     const next = await draft();
@@ -164,12 +208,15 @@ describe.skipIf(!testUrl)("pricing transactions with isolated PostgreSQL", () =>
     expect(
       (await patch({ expectedVersion: 1, monthlyPrice: 1 }, `/${randomUUID()}`)).statusCode,
     ).toBe(404);
-    const [settings] = await db.select().from(pricingSettings);
+    const [settings] = await db
+      .select()
+      .from(systemSettings)
+      .where(eq(systemSettings.key, "DEPOSIT_MONTHS"));
     expect(settings?.version).toBe(1);
     expect(await db.select().from(pricingChanges)).toHaveLength(0);
   });
   test("missing policy blocks draft and repeated seed never overwrites a changed policy", async () => {
-    await db.delete(pricingSettings).where(eq(pricingSettings.id, PRICING_SETTINGS_ID));
+    await db.delete(systemSettings).where(eq(systemSettings.key, "DEPOSIT_MONTHS"));
     expect((await draft()).statusCode).toBe(503);
     const unavailable = await app.inject({ method: "GET", url: "/api/business-rules/pricing" });
     expect(unavailable.statusCode).toBe(503);
@@ -177,8 +224,11 @@ describe.skipIf(!testUrl)("pricing transactions with isolated PostgreSQL", () =>
     await seedPricingPolicy();
     expect((await patch({ expectedVersion: 1, depositMonths: 2 })).statusCode).toBe(200);
     await seedPricingPolicy();
-    const [settings] = await db.select().from(pricingSettings);
-    expect(settings?.depositMonths).toBe(2);
+    const [settings] = await db
+      .select()
+      .from(systemSettings)
+      .where(eq(systemSettings.key, "DEPOSIT_MONTHS"));
+    expect(settings?.value).toBe(2);
     expect(settings?.version).toBe(2);
   });
 });

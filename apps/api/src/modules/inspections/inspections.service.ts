@@ -7,20 +7,27 @@ import {
   type InspectionDraftInput,
   type InspectionPhotoInput,
 } from "@metastorage/contracts";
+import { CloudinaryPhotoStorage } from "../../common/adapters/storage/cloudinary-photo.storage";
+import type {
+  InspectionPhotoStorage,
+  StoredPhoto,
+} from "../../common/adapters/storage/photo-storage.types";
 import { ConflictError, NotFoundError, ValidationError } from "../../common/errors/app-error";
 import { CheckInSlotsRepository } from "../bookings/check-in-slots.repository";
 import { assertAssignedStaff } from "../check-ins/check-in-access";
-import { CloudinaryPhotoStorage } from "./cloudinary-photo-storage";
+import { ContractsRepository } from "../contracts/contracts.repository";
+import { ContractsService } from "../contracts/contracts.service";
+import type { ContractStorage } from "../contracts/contracts.types";
 import { assertHandoverReady } from "./handover.policy";
 import { assertCompletable, assertCurrentInspection, decodePhoto } from "./inspections.policy";
 import type { InspectionsRepository } from "./inspections.repository";
 import type { InspectionRow, InspectionTransaction } from "./inspections.types";
-import type { InspectionPhotoStorage, StoredPhoto } from "./photo-storage.types";
 
 export class InspectionsService {
   constructor(
     private readonly repository: InspectionsRepository,
     private readonly storage: InspectionPhotoStorage = new CloudinaryPhotoStorage(),
+    private readonly contractStorage?: ContractStorage,
   ) {}
 
   async booking(bookingId: string) {
@@ -270,6 +277,16 @@ export class InspectionsService {
 
   async handover(id: string, version: number, userId: string) {
     const initial = await this.record(id);
+    const contracts = new ContractsService(
+      new ContractsRepository(this.repository.db),
+      this.contractStorage,
+    );
+    const actor = { id: userId, role: "FACILITY_STAFF" };
+    // Private-object I/O happens before the transaction; the booking lock below
+    // rechecks the exact current issued version before binding physical handover.
+    const candidate = initial.handedOverAt
+      ? undefined
+      : await contracts.prepareHandover(actor, initial.bookingId);
     await this.repository.locked(initial.bookingId, async (tx, c) => {
       assertAssignedStaff({ id: userId, role: "FACILITY_STAFF" }, c.booking?.assignedStaffId);
       const r = await this.repository.lockInspection(tx, id);
@@ -300,7 +317,9 @@ export class InspectionsService {
       const deadline = await new CheckInSlotsRepository(tx).findDayEnd(c.booking.checkInDate);
       if (!deadline || now >= deadline)
         throw new ConflictError(INSPECTION_MESSAGES.handoverInvalid);
+      const contractId = await contracts.bindHandover(tx, actor, c.booking.id, candidate);
       await this.repository.activateRental(tx, c.booking, r, userId, now);
+      await this.repository.updateInspection(tx, id, { contractId });
     });
     return this.get(id);
   }

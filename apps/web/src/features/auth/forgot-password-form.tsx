@@ -18,6 +18,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useGlobalLoading } from "@/components/providers/global-loading-provider";
 import { routes } from "@/config/routes";
 import { api } from "@/lib/api";
 import { AUTH_MESSAGES } from "./auth.messages";
@@ -28,6 +29,7 @@ const schema = z.object({
 });
 
 export function ForgotPasswordForm() {
+  const { runWithGlobalLoading } = useGlobalLoading();
   const [requestError, setRequestError] = useState<string | null>(null);
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(60);
@@ -55,7 +57,7 @@ export function ForgotPasswordForm() {
   async function onSubmit({ email }: ForgotPasswordFormValues) {
     try {
       setRequestError(null);
-      await api.auth.forgotPassword(email);
+      await runWithGlobalLoading(() => api.auth.forgotPassword(email));
       setSubmittedEmail(email.trim().toLowerCase());
       setCountdown(60);
     } catch {
@@ -67,7 +69,7 @@ export function ForgotPasswordForm() {
     if (!submittedEmail || countdown > 0 || isResending) return;
     setIsResending(true);
     try {
-      await api.auth.forgotPassword(submittedEmail);
+      await runWithGlobalLoading(() => api.auth.forgotPassword(submittedEmail));
       setCountdown(60);
       setRequestError(null);
     } catch {

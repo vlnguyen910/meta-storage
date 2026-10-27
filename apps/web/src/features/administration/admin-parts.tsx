@@ -2,11 +2,13 @@
 
 import { X } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/cn";
 import { accessLabel } from "./admin.helpers";
 import { ADMIN_ROLE_LABELS, ADMIN_MESSAGES as M } from "./admin.messages";
 import type {
   AdminBadgeProps,
+  AdminDialogProps,
   AdminDrawerProps,
   AdminSnapshotProps,
   AdminTableProps,
@@ -34,26 +36,28 @@ export function AdminTable({ title, headings, children }: Readonly<AdminTablePro
       aria-label={title}
       // biome-ignore lint/a11y/noNoninteractiveTabindex: Keyboard users need to focus the horizontally scrollable table.
       tabIndex={0}
-      className="min-w-0 overflow-x-auto bg-surface-container-lowest border border-outline-variant rounded-card shadow-[0_1px_2px_rgb(15_23_42_/_0.04)] outline-offset-2 focus-visible:outline-2 focus-visible:outline-primary"
+      className="flex flex-col flex-1 min-h-0 min-w-0 overflow-hidden rounded-card border border-line bg-white shadow-card outline-offset-2 focus-visible:outline-2 focus-visible:outline-primary"
     >
-      <table
-        className={cn(
-          "w-full border-collapse text-left text-sm [&_td]:px-5 [&_td]:py-4 [&_tr]:border-b [&_tr]:border-slate-100",
-          headings.length > 3 && "min-w-[760px]",
-        )}
-      >
-        <caption className="sr-only">{title}</caption>
-        <thead className="bg-slate-50 text-xs text-slate-600">
-          <tr>
-            {headings.map((heading) => (
-              <th scope="col" className="px-5 py-4 font-semibold" key={heading}>
-                {heading}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>{children}</tbody>
-      </table>
+      <div className="flex-1 min-h-0 overflow-auto">
+        <table
+          className={cn(
+            "w-full border-collapse text-left text-sm [&_td]:px-4 [&_td]:py-3.5 [&_tr]:border-b [&_tr]:border-slate-100 [&_tr:hover]:bg-slate-50/70 transition-colors",
+            headings.length > 3 && "min-w-[760px]",
+          )}
+        >
+          <caption className="sr-only">{title}</caption>
+          <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-xs text-xs font-semibold text-slate-600 shadow-2xs">
+            <tr>
+              {headings.map((heading) => (
+                <th scope="col" className="px-4 py-3 font-semibold" key={heading}>
+                  {heading}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">{children}</tbody>
+        </table>
+      </div>
     </section>
   );
 }
@@ -92,6 +96,21 @@ export function AdminDrawer({ title, children, onClose }: Readonly<AdminDrawerPr
       </header>
       {children}
     </dialog>
+  );
+}
+
+export function AdminDialog({ title, children, onClose }: Readonly<AdminDialogProps>) {
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto rounded-card border-line p-0 sm:max-w-xl">
+        <DialogHeader className="border-b border-line px-6 py-4 text-left">
+          <DialogTitle className="font-['Space_Grotesk'] text-xl font-bold text-ink">
+            {title}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="px-6 pb-6">{children}</div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

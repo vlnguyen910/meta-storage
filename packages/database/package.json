@@ -10,21 +10,22 @@
     "./schema": "./src/schema/index.ts",
     "./client": "./src/client.ts",
     "./env": "./src/env.ts",
-    "./seed-fixtures": "./src/seed-fixtures.ts"
+    "./seed": "./src/seed.ts"
   },
   "scripts": {
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "db:migrate": "bun src/migrate.ts",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "bun src/seed.ts",
-    "db:seed:pricing": "bun src/seed-pricing.ts",
     "db:clear": "bun src/clear.ts",
     "lint": "biome check src",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "test": "bun test tests"
   },
   "dependencies": {
     "@metastorage/contracts": "workspace:*",
+    "better-auth": "1.7.5",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.45.2",
     "postgres": "^3.4.9"

@@ -11,7 +11,6 @@ import {
   User,
   Warehouse,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
@@ -19,8 +18,8 @@ import { Currency } from "@/components/ui/display";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { AssignmentScreen } from "@/features/facility-flow/assignment-screen";
+import { FACILITY_OVERVIEW_MESSAGES } from "@/features/facility-flow/facility-overview.messages";
 import { FLOW } from "@/features/facility-flow/flow.messages";
-import { FLOW_ASSETS } from "@/features/facility-flow/flow-assets";
 import {
   BackLabel,
   FlowButton as Button,
@@ -36,6 +35,8 @@ import {
 } from "@/features/facility-flow/flow-ui";
 import { InspectionScreen } from "@/features/facility-flow/inspection-screen";
 import { flowError, useCheckInFlow } from "@/features/facility-flow/use-check-in-flow";
+import { CONTRACT_UI as C } from "@/features/rentals/contract.messages";
+import { RentalDocuments } from "@/features/rentals/rental-records";
 import { formatDateTime } from "@/lib/format";
 export function CheckInScreen() {
   return (
@@ -91,7 +92,7 @@ function CheckInFlowScreen() {
       <>
         <FlowHeading title={FLOW.monitor} description={FLOW.managerMonitorHint} />
         {flow.lookup.isLoading ? (
-          <LoadingState label={FLOW.loading} />
+          <LoadingState label={FLOW.loading} variant="detail" />
         ) : flow.lookup.isError ? (
           <ErrorState
             message={flowError(flow.lookup.error)}
@@ -113,10 +114,18 @@ function CheckInFlowScreen() {
                 {result.assignedUnit?.physicalUnitCode ?? FLOW.unassigned}
               </p>
               <Pill>{FLOW.statusLabels[result.booking.status]}</Pill>
-              <div className="mt-4 flex gap-3">
+              <div className="mt-4 flex flex-wrap gap-3">
                 <Button variant="secondary" onClick={() => router.push(`${root}/dashboard`)}>
                   <BackLabel />
                 </Button>
+                {result.booking.status === "CONFIRMED" && (
+                  <a
+                    href="#booking-contracts"
+                    className="inline-flex min-h-11 items-center rounded border border-primary bg-white px-4 font-semibold text-primary hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-primary"
+                  >
+                    {C.manage}
+                  </a>
+                )}
                 {result.booking.status === "CONFIRMED" && (
                   <Link
                     className="rounded bg-[#b4efda] p-3 font-semibold"
@@ -127,6 +136,14 @@ function CheckInFlowScreen() {
                 )}
               </div>
             </Panel>
+            <div id="booking-contracts" className="scroll-mt-24">
+              <RentalDocuments
+                key={result.booking.id}
+                bookingId={result.booking.id}
+                manager={result.booking.status === "CONFIRMED"}
+                handover
+              />
+            </div>
             <div className="grid gap-6 lg:grid-cols-2">
               <Panel className="space-y-4">
                 <SectionTitle icon={<User size={20} />}>{FLOW.dossier}</SectionTitle>
@@ -185,7 +202,7 @@ function CheckInFlowScreen() {
               </Panel>
             </div>
             {flow.history.isLoading ? (
-              <LoadingState label={FLOW.loading} />
+              <LoadingState label={FLOW.loading} variant="table" />
             ) : flow.history.isError ? (
               <ErrorState message={FLOW.loadHistoryError} onRetry={() => flow.history.refetch()} />
             ) : flow.history.data?.length ? (
@@ -274,7 +291,7 @@ function CheckInFlowScreen() {
         </Panel>
       )}
       {flow.lookup.isLoading ? (
-        <LoadingState label={FLOW.loading} />
+        <LoadingState label={FLOW.loading} variant="detail" />
       ) : flow.lookup.isError ? (
         <ErrorState message={flowError(flow.lookup.error)} onRetry={() => flow.lookup.refetch()} />
       ) : !result ? (
@@ -285,8 +302,8 @@ function CheckInFlowScreen() {
         </Panel>
       ) : wantsInspection && verified ? (
         flow.history.isLoading ? (
-          <LoadingState label={FLOW.loading} />
-        ) : flow.history.isError ? (
+          <LoadingState label={FLOW.loading} variant="table" />
+        ) : flow.history.isError && !flow.history.data ? (
           <ErrorState message={FLOW.loadHistoryError} onRetry={() => flow.history.refetch()} />
         ) : flow.current ? (
           <InspectionScreen
@@ -391,14 +408,10 @@ function CheckInFlowScreen() {
                 <SectionTitle icon={<Warehouse size={22} />}>{FLOW.unitDetails}</SectionTitle>
                 <div className="mt-4 flex flex-col gap-4 sm:flex-row">
                   <div className="grid h-36 shrink-0 place-items-center rounded bg-[#f2f3ff] text-[#306858] sm:w-44">
-                    <Image
-                      src={FLOW_ASSETS.allocated}
-                      alt="Ảnh minh họa không gian kho"
-                      width={176}
-                      height={144}
-                      unoptimized
-                      className="h-36 w-full rounded object-cover"
-                    />
+                    <div className="flex flex-col items-center gap-2 p-4 text-center">
+                      <Warehouse size={40} aria-hidden="true" />
+                      <span className="text-xs">{FACILITY_OVERVIEW_MESSAGES.noPhoto}</span>
+                    </div>
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-[11px] uppercase text-[#306858]">{FLOW.assigned}</p>

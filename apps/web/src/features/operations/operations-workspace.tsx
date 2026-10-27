@@ -4,10 +4,20 @@ import { FacilityStatus } from "@metastorage/contracts";
 import { Download, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { Button, buttonClassName } from "@/components/ui/button";
-import { FieldShell, Input, Select } from "@/components/ui/form-controls";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
+import { FieldShell, Input } from "@/components/ui/form-controls";
 import { ErrorState, LoadingState } from "@/components/ui/states";
+import { isMockMode } from "@/config/api-mode";
 import { businessOperationsRoutes as routes } from "@/config/routes";
 import { cn } from "@/lib/cn";
+import { OperationsDashboardView } from "./components/operations-dashboard-view";
+import { OperationsFacilitiesRealView } from "./components/operations-facilities-real-view";
+import { OperationsFeesView } from "./components/operations-fees-view";
+import { OperationsPricingView } from "./components/operations-pricing-view";
+import { OperationsReportsHub } from "./components/operations-reports-hub";
+import { OperationsRevenueView } from "./components/operations-revenue-view";
+import { OperationsRulesView } from "./components/operations-rules-view";
+import { OperationsUtilizationView } from "./components/operations-utilization-view";
 import { OPERATIONS_MESSAGES as M } from "./operations.messages";
 import type { OperationsWorkspaceProps } from "./operations.types";
 import { formatPercentage } from "./operations.utils";
@@ -17,6 +27,64 @@ import { OperationsReports } from "./operations-reports";
 import { useOperationsWorkspace } from "./use-operations-workspace";
 
 export function OperationsWorkspace({ section }: Readonly<OperationsWorkspaceProps>) {
+  if (!isMockMode) {
+    return (
+      <div className="flex flex-col h-full w-full overflow-hidden min-h-0 gap-3 py-3">
+        <header className="shrink-0 flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-slate-500 mb-0.5">{M.breadcrumb}</p>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight sm:text-3xl">
+              {M.titles[section]}
+            </h1>
+            <p className="mt-1 text-xs text-slate-600 line-clamp-1 max-w-3xl">
+              {M.descriptions[section]}
+            </p>
+          </div>
+          {(section === "revenue" || section === "utilization") && (
+            <Link href={routes.reports} className={buttonClassName("outline")}>
+              {M.backReports}
+            </Link>
+          )}
+        </header>
+
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          {section === "dashboard" && (
+            <div className="flex-1 overflow-y-auto min-h-0 pr-1">
+              <OperationsDashboardView />
+            </div>
+          )}
+          {section === "pricing" && <OperationsPricingView />}
+          {section === "business-rules" && (
+            <div className="flex-1 overflow-y-auto min-h-0 pr-1">
+              <OperationsRulesView />
+            </div>
+          )}
+          {section === "fees" && (
+            <div className="flex-1 overflow-y-auto min-h-0 pr-1">
+              <OperationsFeesView />
+            </div>
+          )}
+          {section === "revenue" && (
+            <div className="flex-1 overflow-y-auto min-h-0 pr-1">
+              <OperationsRevenueView />
+            </div>
+          )}
+          {section === "utilization" && (
+            <div className="flex-1 overflow-y-auto min-h-0 pr-1">
+              <OperationsUtilizationView />
+            </div>
+          )}
+          {section === "reports" && <OperationsReportsHub />}
+          {section === "facilities" && <OperationsFacilitiesRealView />}
+        </div>
+      </div>
+    );
+  }
+
+  return <MockOperationsWorkspace section={section} />;
+}
+
+function MockOperationsWorkspace({ section }: Readonly<OperationsWorkspaceProps>) {
   const workspace = useOperationsWorkspace();
   const {
     query,
@@ -33,10 +101,13 @@ export function OperationsWorkspace({ section }: Readonly<OperationsWorkspacePro
     period,
     setPeriod,
   } = workspace;
-  if (query.isPending) return <LoadingState label={M.loading} />;
+
+  if (query.isPending) return <LoadingState label={M.loading} variant="table" />;
   if (query.isError || !data)
     return <ErrorState message={M.error} onRetry={() => void query.refetch()} />;
+
   const configuration = ["pricing", "fees", "business-rules"].includes(section);
+
   return (
     <div className="grid min-w-0 gap-6">
       <header className="flex flex-wrap items-start justify-between gap-5">
@@ -51,6 +122,7 @@ export function OperationsWorkspace({ section }: Readonly<OperationsWorkspacePro
           </Link>
         )}
       </header>
+
       {!configuration && (
         <section
           className={cn(
@@ -59,14 +131,20 @@ export function OperationsWorkspace({ section }: Readonly<OperationsWorkspacePro
           )}
         >
           <FieldShell label={M.facilityFilter}>
-            <Select value={facilityId} onChange={(event) => setFacilityId(event.target.value)}>
-              <option value="all">{M.allFacilities}</option>
-              {data.facilities.map((facility) => (
-                <option key={facility.id} value={facility.id}>
-                  {facility.name}
-                </option>
-              ))}
-            </Select>
+            <DropdownSelect
+              value={facilityId}
+              onChange={setFacilityId}
+              className="w-full"
+              triggerClassName="h-9 w-full bg-white"
+              options={[
+                { value: "all", label: M.allFacilities },
+                ...data.facilities.map((facility) => ({
+                  value: facility.id,
+                  label: facility.name,
+                })),
+              ]}
+              maxVisibleItems={6}
+            />
           </FieldShell>
           {section === "facilities" ? (
             <FieldShell label={M.search}>
@@ -79,20 +157,30 @@ export function OperationsWorkspace({ section }: Readonly<OperationsWorkspacePro
           ) : (
             <>
               <FieldShell label={M.unitTypeFilter}>
-                <Select value={unitTypeId} onChange={(event) => setUnitTypeId(event.target.value)}>
-                  <option value="all">{M.allUnitTypes}</option>
-                  {data.prices.map((price) => (
-                    <option key={price.id} value={price.id}>
-                      {price.name}
-                    </option>
-                  ))}
-                </Select>
+                <DropdownSelect
+                  value={unitTypeId}
+                  onChange={setUnitTypeId}
+                  className="w-full"
+                  triggerClassName="h-9 w-full bg-white"
+                  options={[
+                    { value: "all", label: M.allUnitTypes },
+                    ...data.prices.map((price) => ({ value: price.id, label: price.name })),
+                  ]}
+                  maxVisibleItems={6}
+                />
               </FieldShell>
               <FieldShell label={M.periodLabel}>
-                <Select value={period} onChange={(event) => setPeriod(event.target.value)}>
-                  <option value="sample">{M.period}</option>
-                  <option value="previous">{M.previousPeriod}</option>
-                </Select>
+                <DropdownSelect
+                  value={period}
+                  onChange={setPeriod}
+                  className="w-full"
+                  triggerClassName="h-9 w-full bg-white"
+                  options={[
+                    { value: "sample", label: M.period },
+                    { value: "previous", label: M.previousPeriod },
+                  ]}
+                  maxVisibleItems={6}
+                />
               </FieldShell>
             </>
           )}
@@ -116,11 +204,13 @@ export function OperationsWorkspace({ section }: Readonly<OperationsWorkspacePro
           </div>
         </section>
       )}
+
       {feedback && (
         <p role="status" className="m-0 rounded-xl bg-primary-soft p-4 text-sm text-primary">
           {feedback}
         </p>
       )}
+
       {configuration ? (
         <OperationsConfiguration
           section={section}
@@ -176,7 +266,7 @@ export function OperationsWorkspace({ section }: Readonly<OperationsWorkspacePro
           unitTypeId={unitTypeId}
         />
       )}
-      <p className="m-0 text-xs text-slate-600">{M.demoNote}</p>
+
       {workspace.editingFacility && (
         <OperationsDialog title={M.editFacility} onClose={workspace.closeFacility}>
           <form
@@ -207,6 +297,7 @@ export function OperationsWorkspace({ section }: Readonly<OperationsWorkspacePro
           </form>
         </OperationsDialog>
       )}
+
       {workspace.editingPrice && (
         <OperationsDialog
           title={M.editPriceLabel(workspace.editingPrice.name)}

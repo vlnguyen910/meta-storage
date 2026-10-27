@@ -13,7 +13,8 @@ import { useAvailability, useFacility } from "./hooks";
 export function FacilityDetail({ facilityId }: { facilityId: string }) {
   const facilityQuery = useFacility(facilityId);
   const availabilityQuery = useAvailability(facilityId);
-  if (facilityQuery.isLoading || availabilityQuery.isLoading) return <LoadingState />;
+  if (facilityQuery.isLoading || availabilityQuery.isLoading)
+    return <LoadingState variant="detail" />;
   if (facilityQuery.isError || availabilityQuery.isError || !facilityQuery.data)
     return (
       <ErrorState

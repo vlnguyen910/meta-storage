@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { GlobalLoadingProvider } from "@/components/providers/global-loading-provider";
 import { AUTH_MESSAGES } from "./auth.messages";
 import { ForgotPasswordForm } from "./forgot-password-form";
 
@@ -8,13 +9,21 @@ const { forgotPassword } = vi.hoisted(() => ({ forgotPassword: vi.fn() }));
 
 vi.mock("@/lib/api", () => ({ api: { auth: { forgotPassword } } }));
 
+function renderForgotPasswordForm() {
+  return render(
+    <GlobalLoadingProvider>
+      <ForgotPasswordForm />
+    </GlobalLoadingProvider>,
+  );
+}
+
 describe("ForgotPasswordForm", () => {
   beforeEach(() => {
     forgotPassword.mockReset();
   });
 
   it("renders the initial request form correctly", () => {
-    render(<ForgotPasswordForm />);
+    renderForgotPasswordForm();
 
     expect(
       screen.getByRole("heading", { name: AUTH_MESSAGES.forgotPasswordTitle }),
@@ -29,7 +38,7 @@ describe("ForgotPasswordForm", () => {
   it("submits the form and displays the privacy-preserving sent state", async () => {
     const user = userEvent.setup();
     forgotPassword.mockResolvedValue({ message: "ok" });
-    render(<ForgotPasswordForm />);
+    renderForgotPasswordForm();
 
     const emailInput = screen.getByLabelText(/Địa chỉ Email đăng ký/i);
     await user.type(emailInput, "test@example.com");
@@ -55,7 +64,7 @@ describe("ForgotPasswordForm", () => {
 it("keeps the recovery form usable on server failure", async () => {
   const user = userEvent.setup();
   forgotPassword.mockRejectedValue(new Error("offline"));
-  render(<ForgotPasswordForm />);
+  renderForgotPasswordForm();
   await user.type(screen.getByLabelText(/Địa chỉ Email đăng ký/i), "review@example.test");
   await user.click(screen.getByRole("button", { name: AUTH_MESSAGES.forgotPasswordSubmitBtn }));
   expect(await screen.findByRole("alert")).toHaveTextContent(

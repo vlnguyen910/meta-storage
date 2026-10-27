@@ -37,6 +37,7 @@ export function useCheckInLookupMutation() {
 
 export function useCheckInConfirmMutation() {
   return useMutation({
+    meta: { globalLoading: true },
     mutationFn: (bookingId: string) => api.checkIns.confirm(bookingId),
   });
 }
@@ -76,12 +77,14 @@ export function useAssignPhysicalUnitMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    meta: { globalLoading: true },
     mutationFn: ({ bookingId, input }: { bookingId: string; input: AssignPhysicalUnitInput }) =>
       api.bookings.assignUnit(bookingId, input),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: bookingKeys.all });
-      queryClient.invalidateQueries({ queryKey: bookingKeys.detail(variables.bookingId) });
-    },
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: bookingKeys.all }),
+        queryClient.invalidateQueries({ queryKey: ["facility-flow"] }),
+      ]),
   });
 }
 
@@ -97,12 +100,14 @@ export function useAssignStaffMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    meta: { globalLoading: true },
     mutationFn: ({ bookingId, input }: { bookingId: string; input: AssignBookingStaffInput }) =>
       api.bookings.assignStaff(bookingId, input),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: bookingKeys.all });
-      queryClient.invalidateQueries({ queryKey: bookingKeys.detail(variables.bookingId) });
-    },
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: bookingKeys.all }),
+        queryClient.invalidateQueries({ queryKey: ["facility-flow"] }),
+      ]),
   });
 }
 

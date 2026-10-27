@@ -20,5 +20,39 @@ export const UnitTypeListQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   offset: z.coerce.number().int().min(0).default(0),
 });
+export const UnitTypeManagementQuerySchema = UnitTypeListQuerySchema.extend({
+  facilityId: z.uuid().optional(),
+  isActive: z.preprocess(
+    (value) => (value === "true" ? true : value === "false" ? false : value),
+    z.boolean().optional(),
+  ),
+}).strict();
+export type UnitTypeManagementQuery = z.infer<typeof UnitTypeManagementQuerySchema>;
 export type UnitTypeListQuery = z.infer<typeof UnitTypeListQuerySchema>;
 export type UnitTypeListParams = Partial<UnitTypeListQuery>;
+
+export const CreateUnitTypeSchema = z
+  .object({
+    facilityId: z.uuid(),
+    priceRangeId: z.uuid(),
+    code: z.string().trim().min(1).max(80),
+    name: z.string().trim().min(1).max(100),
+    sizeLabel: z.string().trim().min(1).max(50),
+    lengthM: z.number().positive(),
+    widthM: z.number().positive(),
+    heightM: z.number().positive(),
+    monthlyPrice: z.number().int().positive().max(2147483647),
+  })
+  .strict();
+export const UpdateUnitTypeSchema = CreateUnitTypeSchema.omit({ facilityId: true })
+  .partial()
+  .extend({
+    isActive: z.boolean().optional(),
+    expectedVersion: z.number().int().nonnegative().max(2147483646),
+  })
+  .strict()
+  .refine((v) => Object.keys(v).some((key) => key !== "expectedVersion"));
+export const UnitTypeIdParamsSchema = z.object({ id: z.string().uuid() });
+export type CreateUnitTypeInput = z.infer<typeof CreateUnitTypeSchema>;
+export type UpdateUnitTypeInput = z.infer<typeof UpdateUnitTypeSchema>;
+export type { FacilityUnitTypeDto } from "./unit-types.types";

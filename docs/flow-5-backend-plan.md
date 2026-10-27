@@ -3,7 +3,8 @@
 Mốc source `b4003a9` ngày 17/10/2026. Đọc
 [kiểm kê chung](flow-4-5-backend-audit.md) trước khi code.
 Chỉ API, contracts và persistence cần thiết; không sửa web/mobile/API client/mocks.
-Các endpoint bổ sung dưới đây là đề xuất, chưa được triển khai.
+Kế hoạch được cập nhật sau đợt triển khai Flow 5 ngày 22/10/2026. Endpoint và test
+đã làm được ghi ở từng phase; task chỉ hoàn tất sau khi FM chấp nhận báo cáo mới nhất.
 
 ## Mục tiêu và phạm vi
 
@@ -14,18 +15,19 @@ mặc định thuộc Flow 5. Membership facility và phân công task là hai t
 
 ## F5-0 — Chốt permission và các transition
 
-- Thống nhất BOM quản lý danh mục facility; FM chỉ thao tác phần được phép tại
-  facility mình. Quyền sửa metadata/đóng cơ sở, sửa type dùng chung phải chốt.
-- SA gán/thu hồi membership theo #51; FM chỉ chọn FS hợp lệ để giao việc. Nếu
-  muốn cho BOM/FM ghi membership phải xác nhận thay đổi quyền trước.
-- Giữ model một user một role và một facility assignment active hiện có. Không
-  tạo multi-facility hoặc ca làm việc khi #41 chưa chốt và DB vẫn chặn.
-- Chốt ai đưa kho vào/ra MAINTENANCE, transition từ trạng thái nào và cách xử lý
-  unit có hold/booking/assignment/rental. Không PATCH status tùy ý.
-- Chốt thu hồi/chuyển nhân sự đang có việc chưa bàn giao; không bỏ rơi assignment
-  hoặc cho FS cũ tiếp tục xử lý sau khi mất scope.
+- **Chính sách chính thức:** Đã chốt chi tiết tại [Chính sách vận hành cơ sở và phân công nhân sự (F1–F5)](facility-staff-operations-policy.md) và contracts `@metastorage/contracts`.
+- **Bảo trì:** Người dùng đã yêu cầu chưa làm luồng FM gửi yêu cầu Admin. Tạm giữ quyền FM chuyển trực tiếp trong cơ sở được phân công theo policy F4; Admin/BOM vẫn có quyền toàn hệ thống. Lưu lịch sử mọi lần vào/ra bảo trì; không thêm API yêu cầu/phê duyệt.
+- Thống nhất BOM/SA quản lý danh mục facility; FM chỉ thao tác phần được phép tại
+  facility mình. Quyền sửa metadata/đóng cơ sở, sửa type dùng chung đã chốt.
+- SA/BOM gán/thu hồi membership; FM chọn FS hợp lệ để giao việc và phân bổ tải công việc.
+- Giữ model một user một role và một facility assignment active hiện có (F1). Không
+  tạo multi-facility hoặc ca làm việc khi DB đã có unique partial index chặn (F2).
+- Phân quyền đưa kho vào/ra MAINTENANCE thuộc về FM trong scope cơ sở (F4), cấm chuyển
+  trực tiếp OCCUPIED/RESERVED sang MAINTENANCE. Không PATCH status tùy ý.
+- Chốt thu hồi/chuyển nhân sự đang có việc chưa bàn giao: reassign cho FS khác trước
+  khi thu hồi hoặc điều chuyển (F3).
 
-Đầu ra: ma trận actor × operation, state transition table, ca test và phần TBD.
+Đầu ra: ma trận actor × operation, state transition table, ca test contracts và chính sách dùng chung.
 
 ## F5-1 — Hoàn thiện facility management
 
@@ -39,6 +41,7 @@ mặc định thuộc Flow 5. Membership facility và phân công task là hai t
   liệu thuê/thanh toán. Chốt và test trường hợp còn hold hoặc booking tương lai.
 - Operating hours đã có bảng và được booking kiểm tra. Chỉ thêm API cấu hình giờ
   khi nằm trong scope đã chốt; không làm scheduling engine hoặc ca làm việc.
+- Đã bổ sung GET `/api/facilities/management`, GET/PATCH `/:facilityId`; chỉ Admin/BOM sửa metadata. Chặn ngừng cơ sở khi còn booking hoặc hold còn hiệu lực.
 
 ## F5-2 — Loại kho, offering và physical inventory
 
@@ -61,6 +64,8 @@ mặc định thuộc Flow 5. Membership facility và phân công task là hai t
   Không chỉ đổi status rồi hy vọng hold hiện có tự hết hiệu lực.
 - Không cho chuyển facility/type của unit đang gắn booking/rental một cách tùy ý;
   giữ lịch sử và dữ liệu snapshot. Hạn chế xóa theo policy/foreign keys đã chốt.
+- Đã bổ sung catalog routes tại `/api/unit-types`, bật/tắt offering theo cơ sở và POST/PATCH physical inventory. Cập nhật type không nhận `monthlyPrice`; giá tiếp tục thuộc Flow 4.
+- Maintenance transition ghi history trong cùng transaction; chỉ FM trong facility scope hoặc Admin/BOM được chuyển. State machine chặn kho có booking assignment hoặc rental đang hoạt động.
 
 ## F5-3 — Membership và phân công nhân sự
 
@@ -79,6 +84,7 @@ mặc định thuộc Flow 5. Membership facility và phân công task là hai t
 - Đồng bộ cách lọc endedAt/role/status giữa staff picker, scope guard và assign.
   Đổi role/disable/thu hồi phải tác động tới quyền request tiếp theo; kiểm tra
   session/cache auth hiện tại thay vì mặc định mọi session đã bị vô hiệu.
+- Đã bổ sung GET/POST/DELETE facility assignment APIs cho Admin/BOM, tái sử dụng users hiện có. Không xóa membership history; chặn thu hồi khi booking CONFIRMED hoặc task vẫn giao cho nhân sự đó.
 - Giữ nguyên assign-unit, assign-staff và assigned-to-me của module bookings.
   Chỉ bổ sung validation đã thiếu. Không tạo bảng task và lịch làm việc mới.
   Inspection trả kho/support task chỉ mở rộng khi owner Flow 3/7 có contract.
@@ -103,5 +109,6 @@ mặc định thuộc Flow 5. Membership facility và phân công task là hai t
 - Bàn giao Swagger, fixtures và script demo API: dùng users endpoint hiện có →
   gán facility → tạo/quản lý unit → đọc staff picker → dùng assign-staff cũ → thử
   truy cập chéo facility để xác nhận bị chặn → xem summary có scope.
+- Task lifecycle đã chốt: FS bắt đầu task, gửi báo cáo; task chờ FM chấp nhận báo cáo mới nhất rồi mới hoàn tất. Flow từ FM gửi yêu cầu bảo trì lên Admin chưa nằm trong scope hiện tại.
 
 Không tự commit/push hoặc thay backend production trong lúc thực hiện kế hoạch.

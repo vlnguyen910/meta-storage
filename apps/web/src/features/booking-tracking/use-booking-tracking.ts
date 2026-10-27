@@ -1,7 +1,7 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { trackingMessages as m } from "./tracking.messages";
 
@@ -18,10 +18,19 @@ export function useBookingTracking() {
   const client = useQueryClient();
   const initialized = useRef(false);
   const [bookingCode, setBookingCode] = useState<string | null>(null);
+  const [lookup, setLookup] = useState(false);
   const [initializing, setInitializing] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<number | null>(null);
+  const expire = useCallback(() => {
+    setMessage(m.invalid);
+    setBookingCode(null);
+    void client
+      .cancelQueries({ queryKey: queryRoot })
+      .then(() => client.removeQueries({ queryKey: queryRoot }));
+  }, [client]);
   const exchange = useMutation({
+    meta: { globalLoading: true },
     mutationFn: api.bookings.exchangeMagicLink,
     gcTime: 0,
     retry: false,
@@ -40,10 +49,11 @@ export function useBookingTracking() {
     if (!token) {
       const code = url.searchParams.get("bookingCode");
       setBookingCode(code);
-      if (!code) setMessage(m.invalid);
+      setLookup(!code);
       setInitializing(false);
       return;
     }
+    setLookup(false);
     void mutateAsync(token)
       .then((session) => {
         client.setQueryData([...queryRoot, session.bookingCode], session.booking);
@@ -69,18 +79,20 @@ export function useBookingTracking() {
     refetchInterval: 30_000,
   });
   useEffect(() => {
+    if (isAxiosError(query.error) && query.error.response?.status === 401) expire();
+  }, [query.error, expire]);
+  useEffect(() => {
     if (!expiresAt) return;
     const timer = window.setTimeout(
       () => {
-        setMessage(m.invalid);
-        setBookingCode(null);
-        client.removeQueries({ queryKey: queryRoot });
+        expire();
       },
       Math.max(0, expiresAt - Date.now()),
     );
     return () => window.clearTimeout(timer);
-  }, [expiresAt, client]);
+  }, [expiresAt, expire]);
   const revoke = useMutation({
+    meta: { globalLoading: true },
     mutationFn: api.bookings.revokeTrackingSession,
     onSuccess: async () => {
       // Cancel outstanding requests before removing cached private data.
@@ -92,8 +104,23 @@ export function useBookingTracking() {
       window.history.replaceState(null, "", window.location.pathname);
     },
   });
+  async function startLookup() {
+    setBookingCode(null);
+    setExpiresAt(null);
+    setMessage(null);
+    setLookup(true);
+    setInitializing(false);
+    exchange.reset();
+    revoke.reset();
+    window.history.replaceState(null, "", window.location.pathname);
+    await client.cancelQueries({ queryKey: queryRoot });
+    client.removeQueries({ queryKey: queryRoot });
+  }
   return {
+    startLookup,
+    expire,
     booking: query.isError || message ? undefined : query.data,
+    lookup,
     loading: initializing || (Boolean(bookingCode) && query.isPending),
     message: message ?? (query.isError ? accessError(query.error) : null),
     revokeError: revoke.isError ? m.revokeFailed : null,

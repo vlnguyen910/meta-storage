@@ -16,6 +16,7 @@ export function useAdminData() {
     gcTime: Number.POSITIVE_INFINITY,
   });
   const mutation = useMutation({
+    meta: { globalLoading: true },
     mutationFn: async (changes: readonly AdminAccountChange[]) => {
       const data = client.getQueryData<AdminMockData>(key) ?? structuredClone(adminMockData);
       return changes.reduce(applyAdminChange, data);

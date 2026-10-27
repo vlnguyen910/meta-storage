@@ -2,15 +2,20 @@
 
 import { UserRole } from "@metastorage/contracts";
 import { APP_NAME } from "@metastorage/shared";
+import { useQueryClient } from "@tanstack/react-query";
 import { LogOut, Menu, RotateCcw, Warehouse, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode, useState } from "react";
+import { useGlobalLoading } from "@/components/providers/global-loading-provider";
+import { useToast } from "@/components/ui/toast";
 import { isMockMode } from "@/config/api-mode";
 import { navigationByRole } from "@/config/navigation";
 import { roleHome, routes } from "@/config/routes";
+import { AUTH_MESSAGES } from "@/features/auth/auth.messages";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { FacilityShell } from "@/features/facility-flow/facility-shell";
+import { LifecycleInbox } from "@/features/returns/lifecycle-inbox";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { resetMockDatabase } from "@/mocks/database";
@@ -27,8 +32,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
   const session = useAuthStore((state) => state.session);
   const clearSession = useAuthStore((state) => state.clearSession);
+  const { runWithGlobalLoading, startNavigationLoading } = useGlobalLoading();
   const role = session?.user.role;
   if (!session || !role) return null;
 
@@ -36,11 +44,15 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   async function logout() {
     try {
-      await api.auth.logout();
-      clearSession();
-      router.replace(routes.login);
+      await runWithGlobalLoading(async () => {
+        await api.auth.logout();
+        clearSession();
+        queryClient.clear();
+        startNavigationLoading();
+        router.replace(routes.login);
+      });
     } catch {
-      // Keep the current session visible so the user can retry the server logout.
+      showToast(AUTH_MESSAGES.logoutFailed, "error");
     }
   }
 
@@ -162,6 +174,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span className="ml-auto rounded-full bg-primary-soft px-3 py-2 text-xs font-bold text-primary max-[560px]:hidden">
             {roleLabels[role]}
           </span>
+          {role === UserRole.STORAGE_CUSTOMER && !isMockMode && (
+            <div className="ml-auto sm:ml-0">
+              <LifecycleInbox key={session.user.id} />
+            </div>
+          )}
         </header>
         <main className="mx-auto max-w-[1440px] p-9 max-[800px]:p-[25px_18px] max-[560px]:px-3.5">
           {children}

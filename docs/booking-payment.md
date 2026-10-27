@@ -1,20 +1,20 @@
 # Bắt đầu thanh toán booking
 
 `POST /api/bookings/:bookingId/pay` tạo phiên SePay Payment Gateway cho booking
-`DRAFT` hiện có. Endpoint public, xác minh quyền bằng `draftAccessToken`; đăng nhập
-không thay thế token và không thay đổi `bookings.user_id`.
+`DRAFT` hiện có. Endpoint yêu cầu session của CUSTOMER đang ACTIVE và booking
+phải thuộc tài khoản này. Không chấp nhận token guest làm quyền truy cập.
 
 ```json
 {
-  "draftAccessToken": "<64 ký tự hex từ API tạo draft>",
   "idempotencyKey": "<16–128 ký tự, giữ nguyên khi retry>",
-  "contact": {
-    "fullName": "Nguyen Van An",
-    "email": "an@example.test",
-    "phone": "+84901234567"
-  }
+  "contactPhone": "+84901234567"
 }
 ```
+
+`contactPhone` là tùy chọn nếu profile đã có số điện thoại hợp lệ. Nếu profile chưa có,
+customer phải nhập số tại bước booking/thanh toán. Số được lưu riêng cho booking và
+không cập nhật `users.phone`. Tên/email lấy từ tài khoản; booking không có cột tên/email.
+Đăng ký tài khoản vẫn không bắt buộc phone. Draft luôn có owner và không trả bearer token.
 
 Trả HTTP 201 với envelope chuẩn, `data` gồm `bookingId`, `paymentId`, `status: PENDING`,
 `provider: sepay`, `paymentCode`, `checkoutUrl`, `checkoutFormFields`, `expiresAt`.
@@ -29,21 +29,20 @@ payment reservation cũ không còn được tạo form checkout qua gateway nà
 
 ## Quyền đọc trạng thái payment
 
-`GET /api/payments/:paymentId/status` yêu cầu một trong hai credential:
+Từ #163, booking draft mới tính một tháng thuê bằng 30 × 24 giờ, thay cho tháng
+lịch. Snapshot ngày hết hạn/giá của booking đã lưu được giữ nguyên. Gia hạn cộng
+từ `rentals.expected_end_at`, thu tiền thuê riêng và không thu thêm cọc; xem
+[API gia hạn](./rental-renewal-api.md).
 
-- Header `x-booking-access-token: <draftAccessToken>` từ API tạo booking draft;
-  server so SHA-256 với credential của đúng payment. Không gửi token trong URL.
-- Cookie đăng nhập của tài khoản ACTIVE có `bookings.user_id` khớp session.
-  Email trùng hoặc vai trò admin/staff không tự cấp quyền đọc checkout của khách.
-
-Thiếu credential trả 401; credential không có quyền hoặc payment không tồn tại
-cùng trả 404; token sai định dạng trả 400; tài khoản bị vô hiệu hóa trả 403.
-Các response, kể cả lỗi, có `Cache-Control: no-store` và `Referrer-Policy: no-referrer`.
-Hold hết hạn không thu hồi quyền đọc: khách vẫn xem được PENDING, SUCCEEDED,
-REFUND_PENDING hoặc REFUNDED. Response không trả credential/hash lưu trong database.
-
-Cookie email tracking giữ Path `/api/booking`; khách mở email tiếp tục dùng endpoint
-tracking hiện có. Web gửi header checkout cho guest; account owner dùng session cookie.
+`GET /api/payments/:paymentId/status` yêu cầu cookie đăng nhập của CUSTOMER ACTIVE
+có `bookings.user_id` khớp session. Thiếu session trả 401; sai role hoặc inactive trả 403;
+booking/payment không thuộc customer hoặc không tồn tại trả 404. Header
+`x-booking-access-token` và cookie tracking cũ không cấp quyền.
+Response có `Cache-Control: no-store` và `Referrer-Policy: no-referrer`.
+Hold hết hạn không thu hồi quyền đọc trạng thái qua tài khoản.
+Email xác nhận dẫn tới `/customer/reservations/:bookingId`, không cấp magic link.
+Các endpoint `/booking/magic-link/exchange`, `/booking/access-link`, `/booking/tracking/*`
+và `/booking/session/revoke` đã bị xóa. Web/mobile/API client cần cập nhật riêng.
 
 ## Đối soát bằng API SePay, không cần IPN
 
@@ -82,6 +81,15 @@ origin và `PUBLIC_APP_URL` cho QR/email. Không cần IPN, `PUBLIC_API_URL`, ba
 hay webhook key cho checkout này. Database, Redis và worker/email có cấu hình riêng.
 Không thay đổi schema và không cần migration mới cho phần đối soát.
 
+Backend chỉ hỗ trợ SePay Payment Gateway: khi `PAYMENT_PROVIDER=sepay`, thiếu merchant
+ID hoặc secret key sẽ dừng startup. Bank webhook cũ (`id`, `code`, `transferAmount`)
+và xác thực `Authorization: Apikey ...` bị từ chối. PG IPN và tra cứu order API vẫn
+hoạt động; URL `/api/payments/webhooks/sepay` và `/api/sepay/ipn` được giữ nguyên.
+Các biến `SEPAY_WEBHOOK_API_KEY`, `PUBLIC_API_URL`, `SEPAY_TEST_MODE` đã được bỏ.
+`SEPAY_BANK_*` chỉ còn là thông tin hiển thị tùy chọn trong `transferInstructions`.
+Trước khi triển khai, kiểm tra dashboard không còn gửi bank webhook cũ và xử lý các
+giao dịch đang chờ theo luồng cũ; bản refactor này không chuyển đổi dữ liệu giao dịch.
+
 Endpoint `confirm-sandbox` đã được bỏ: trình duyệt không được tự xác nhận đã trả tiền.
 
 ## Quy tắc
@@ -90,7 +98,7 @@ Endpoint `confirm-sandbox` đã được bỏ: trình duyệt không được t�
   `Asia/Ho_Chi_Minh` (ngày lịch, không yêu cầu đủ 24 giờ). Retry cùng key với hold
   còn hạn vẫn trả phiên cũ khi qua nửa đêm; không gia hạn hold.
 - Transaction khóa booking và offering của cặp facility/unit type, kiểm tra capacity
-  trên toàn kỳ thuê, lưu contact, tạo hold 10 phút và payment PENDING cùng lúc.
+  trên toàn kỳ thuê, lưu contactPhone, tạo hold 10 phút và payment PENDING cùng lúc.
 - Draft và payment dùng chung cách tính sức chứa: chỉ xét kho hiện đang `AVAILABLE`
   và không có lịch gán kho ACTIVE giao với khoảng thuê. Booking đã gán kho được tính
   qua kho vật lý, không trừ lại allocation của booking đó. Với booking chưa gán kho
@@ -106,16 +114,16 @@ Endpoint `confirm-sandbox` đã được bỏ: trình duyệt không được t�
 - Giữ nguyên booking ID, account owner, lịch và giá snapshot; không tạo reservation
   draft, booking khác, QR hoặc email. `payments.booking_id` được ghi ngay;
   `payments.draft_id` là NULL. Hold reference dùng booking ID.
-- Token chỉ lưu SHA-256. Ở bước này hash draft token cũng là credential hash của hold
-  và `payments.hold_token_hash`; không phát hành thêm hold token.
-- Cùng key, booking, token và contact trả cùng payment/thời hạn. Không gia hạn hold.
-  Đổi contact hoặc dùng key cho booking khác trả 409.
+- Server tạo mã ngẫu nhiên nội bộ để đối chiếu hold và payment; mã này không được
+  trả cho client và không dùng thay session để cấp quyền.
+- Cùng key và booking trả cùng payment/thời hạn. Không gia hạn hold.
+  Đổi contactPhone hoặc dùng key cho booking khác trả 409.
 - Một payment PENDING chặn attempt mới, kể cả khi hold hết hạn: giao dịch có thể
   vẫn đến sau hạn và cần đối soát. Retry cùng key sau khi hold hết hạn cũng trả 409.
 - Thiếu SePay PG merchant ID/secret hoặc provider chưa chọn SePay trả 503 trước khi
-  ghi contact/hold/payment. Mock và bank webhook cũ không dùng để bắt đầu endpoint này.
+  ghi contactPhone/hold/payment. Mock và bank webhook cũ không dùng để bắt đầu endpoint này.
 
-HTTP 400: input không hợp lệ; 404: booking/token không hợp lệ; 409: booking không
+HTTP 400: input không hợp lệ; 401: chưa đăng nhập; 403: sai role/inactive; 404: booking không thuộc tài khoản; 409: booking không
 còn DRAFT, lịch/offering/capacity không còn hợp lệ hoặc conflict checkout; 503: SePay PG
 chưa được cấu hình. `error.code` dùng mã HTTP theo convention hiện tại.
 
@@ -161,7 +169,7 @@ Hủy trước bàn giao và NO_SHOW dùng cùng API hoàn thủ công, nhưng `
 tiền thuê; `depositForfeitedAmount` là tiền cọc bị giữ. Xem [policy hủy/NO_SHOW](booking-cancellation-policy.md).
 Migration `0034_nosy_hellfire_club.sql` bổ sung snapshot số tiền hoàn và cọc bị giữ;
 cần migrate trước khi chạy backend mới. Payment status trả thêm `refund` khi đang
-chờ hoàn/đã hoàn; tracking hỗ trợ REFUND_PENDING và thông tin tiền hoàn/cọc.
+chờ hoàn/đã hoàn; customer xem thông tin này qua session tài khoản.
 
 ## Kiểm thử
 
@@ -194,3 +202,7 @@ Các ca hủy/NO_SHOW bổ sung trong suite payment: hủy đồng thời, hủy
 tranh chấp hủy với handover, handover tại đúng hạn cuối, NO_SHOW với hai lượt cron
 đồng thời, cron bắt lại booking quá hạn lúc startup và rollback khi constraint lỗi.
 Tracking có ca đọc booking CANCELLED trong lúc chỉ tiền thuê đang chờ hoàn.
+
+Provider-confirmed rental charges use a separate `rentalChargeId` payment source;
+their completion and late-capture refund paths do not create or modify bookings,
+capacity, QR, or handover. See [rental charges API](./rental-charges-api.md).

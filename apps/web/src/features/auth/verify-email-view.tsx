@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useGlobalLoading } from "@/components/providers/global-loading-provider";
 import { routes } from "@/config/routes";
 import { api } from "@/lib/api";
 import { AUTH_MESSAGES as m } from "./auth.messages";
@@ -15,6 +16,7 @@ import type { ForgotPasswordFormValues } from "./auth.types";
 const schema = z.object({ email: z.string().trim().toLowerCase().email(m.invalidEmail) });
 
 export function VerifyEmailView() {
+  const { runWithGlobalLoading } = useGlobalLoading();
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
   const [countdown, setCountdown] = useState(0);
@@ -39,7 +41,9 @@ export function VerifyEmailView() {
     if (countdown > 0) return;
     setFeedback(null);
     try {
-      await api.auth.resendVerificationEmail(email, `${window.location.origin}/verify-email`);
+      await runWithGlobalLoading(() =>
+        api.auth.resendVerificationEmail(email, `${window.location.origin}/verify-email`),
+      );
       setFailed(false);
       setFeedback(m.verificationResent);
       setCountdown(45);

@@ -1,6 +1,7 @@
 import { type FacilityStaffMember, UserRole } from "@metastorage/contracts";
 import {
   and,
+  bookings,
   type Database,
   desc,
   eq,
@@ -16,18 +17,28 @@ import {
   sql,
   users,
 } from "@metastorage/database";
-import { ConflictError } from "../../common/errors/app-error";
+import { ConflictError, ForbiddenError, NotFoundError } from "../../common/errors/app-error";
 import type { AssignedFacilityScope, FacilityScope } from "./facilities.access";
 import { FACILITY_MESSAGES } from "./facilities.messages";
+import { hasOpenAssignedWork } from "./staff-work.repository";
 
 export class FacilityAssignmentsRepository {
   constructor(private readonly db: Database) {}
 
   async findFacilityStaff(facilityId: string): Promise<FacilityStaffMember[]> {
+    const taskCountSql = sql<number>`(
+      select count(*)::int
+      from ${bookings}
+      where ${bookings.assignedStaffId} = ${users.id}
+        and ${bookings.facilityId} = ${facilityId}
+        and ${bookings.status} = 'CONFIRMED'
+    )`.mapWith(Number);
+
     const rows = await this.db
       .select({
         user: users,
         assignment: facilityAssignments,
+        taskCount: taskCountSql,
       })
       .from(users)
       .innerJoin(facilityAssignments, eq(users.id, facilityAssignments.userId))
@@ -37,16 +48,18 @@ export class FacilityAssignmentsRepository {
           eq(facilityAssignments.role, "FACILITY_STAFF"),
           eq(facilityAssignments.isActive, true),
           eq(users.status, "ACTIVE"),
+          or(isNull(facilityAssignments.endedAt), gt(facilityAssignments.endedAt, new Date())),
         ),
       );
 
-    return rows.map(({ user }) => ({
+    return rows.map(({ user, taskCount }) => ({
       id: user.id,
       name: user.name,
       email: user.email,
       phone: user.phone ?? null,
       role: UserRole.FACILITY_STAFF,
       isActive: true,
+      assignedTasksCount: taskCount ?? 0,
     }));
   }
 
@@ -105,16 +118,85 @@ export class FacilityAssignmentsRepository {
     return assignment;
   }
 
+  async findAssignmentTarget(userId: string) {
+    const [user] = await this.db
+      .select({ id: users.id, role: users.role, status: users.status })
+      .from(users)
+      .where(eq(users.id, userId));
+    return user;
+  }
+
+  async deactivateAssignmentWithWorkCheck(
+    facilityId: string,
+    userId: string,
+  ): Promise<
+    { assignment: FacilityAssignment } | { error: "ASSIGNMENT_NOT_FOUND" | "ASSIGNED_WORK" }
+  > {
+    return this.db.transaction(async (tx) => {
+      // Serialize against new/reassigned tasks using the same user-first lock order.
+      await tx.select({ id: users.id }).from(users).where(eq(users.id, userId)).for("update");
+      const [assignment] = await tx
+        .select()
+        .from(facilityAssignments)
+        .where(
+          and(
+            eq(facilityAssignments.facilityId, facilityId),
+            eq(facilityAssignments.userId, userId),
+          ),
+        )
+        .for("update");
+      if (!assignment) return { error: "ASSIGNMENT_NOT_FOUND" };
+      if (assignment.isActive && (await hasOpenAssignedWork(tx, userId, facilityId)))
+        return { error: "ASSIGNED_WORK" };
+      const [deactivated] = await tx
+        .update(facilityAssignments)
+        .set({ isActive: false, endedAt: new Date() })
+        .where(
+          and(
+            eq(facilityAssignments.facilityId, facilityId),
+            eq(facilityAssignments.userId, userId),
+          ),
+        )
+        .returning();
+      if (!deactivated) return { error: "ASSIGNMENT_NOT_FOUND" };
+      return { assignment: deactivated };
+    });
+  }
+
   async upsertAssignment(data: NewFacilityAssignment): Promise<FacilityAssignment> {
     try {
       return await this.db.transaction(async (tx) => {
         // Serialize reassignments for a User, including when no assignment exists yet.
-        await tx
-          .select({ id: users.id })
+        const [user] = await tx
+          .select({ id: users.id, role: users.role, status: users.status })
           .from(users)
           .where(eq(users.id, data.userId))
           .for("update");
+        if (!user) throw new NotFoundError(FACILITY_MESSAGES.userNotFound(data.userId));
+        if (user.status !== "ACTIVE")
+          throw new ForbiddenError(FACILITY_MESSAGES.inactiveUserAssignment);
+        if (
+          user.role !== data.role ||
+          (data.role !== "FACILITY_STAFF" && data.role !== "FACILITY_MANAGER")
+        )
+          throw new ForbiddenError(FACILITY_MESSAGES.assignmentRoleMismatch);
         const now = new Date();
+        const [previous] = await tx
+          .select()
+          .from(facilityAssignments)
+          .where(
+            and(
+              eq(facilityAssignments.userId, data.userId),
+              eq(facilityAssignments.isActive, true),
+            ),
+          )
+          .for("update");
+        if (previous && previous.facilityId !== data.facilityId) {
+          if (!previous.endedAt || previous.endedAt > now)
+            throw new ConflictError(FACILITY_MESSAGES.userAlreadyAssigned);
+          if (await hasOpenAssignedWork(tx, data.userId, previous.facilityId))
+            throw new ConflictError(FACILITY_MESSAGES.openWorkPreventsRevocation);
+        }
         await tx
           .update(facilityAssignments)
           .set({ isActive: false })

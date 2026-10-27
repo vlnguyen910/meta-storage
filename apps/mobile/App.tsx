@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthScreen } from "./src/features/auth/auth-screen";
+import { CustomerWorkspace } from "./src/features/customer-api/customer-workspace";
 import { MobileApp } from "./src/features/mobile-shell/mobile-app";
 import { authClient } from "./src/lib/auth-client";
 import { CheckInScreen } from "./src/screens/check-in-screen";
@@ -16,7 +17,15 @@ function ConnectedScreens() {
 
   return (
     <SafeAreaProvider>
-      {user && canOperateCheckIn ? <CheckInScreen user={user} /> : <AuthScreen />}
+      <QueryClientProvider client={queryClient}>
+        {user && role === "CUSTOMER" ? (
+          <CustomerWorkspace key={user.id} owner={user.id} />
+        ) : user && canOperateCheckIn ? (
+          <CheckInScreen user={user} />
+        ) : (
+          <AuthScreen />
+        )}
+      </QueryClientProvider>
     </SafeAreaProvider>
   );
 }

@@ -3,6 +3,8 @@ import { REPORT_MESSAGES as m } from "./reports.messages";
 
 export { REPORT_MESSAGES } from "./reports.messages";
 export type {
+  MonthlyRevenuePoint,
+  MonthlyRevenueReport,
   OperationsOverview,
   ReconciliationReport,
   RentalReport,
@@ -37,7 +39,7 @@ export const ReportExportQuerySchema = z
   .strictObject({
     ...scope,
     ...period,
-    type: z.enum(["revenue", "utilization", "rentals"]),
+    type: z.enum(["revenue", "revenue-monthly", "utilization", "rentals"]),
     status: z.string().trim().min(1).max(50).optional(),
   })
   .refine((q) => (!q.from && !q.to) || Boolean(q.from && q.to && q.to >= q.from), {
@@ -45,10 +47,43 @@ export const ReportExportQuerySchema = z
     path: ["from"],
   })
   .refine(
-    (q) => (q.type === "revenue" || (!q.from && !q.to)) && (q.type === "rentals" || !q.status),
+    (q) =>
+      (["revenue", "revenue-monthly"].includes(q.type) || (!q.from && !q.to)) &&
+      (q.type === "rentals" || !q.status),
     { message: m.invalidExportFilter },
+  )
+  .refine(
+    (q) =>
+      q.type !== "revenue-monthly" ||
+      !q.from ||
+      !q.to ||
+      (Number(q.to.slice(0, 4)) - Number(q.from.slice(0, 4))) * 12 +
+        Number(q.to.slice(5, 7)) -
+        Number(q.from.slice(5, 7)) <
+        60,
+    { message: m.monthlyRange },
   );
 export type RevenueReportQuery = z.infer<typeof RevenueReportQuerySchema>;
+export const MonthlyRevenueQuerySchema = z
+  .strictObject({ ...scope, ...period })
+  .refine((q) => (!q.from && !q.to) || Boolean(q.from && q.to && q.to >= q.from), {
+    message: m.invalidPeriod,
+    path: ["from"],
+  })
+  .refine(
+    (q) =>
+      !q.from ||
+      !q.to ||
+      (Number(q.to.slice(0, 4)) - Number(q.from.slice(0, 4))) * 12 +
+        Number(q.to.slice(5, 7)) -
+        Number(q.from.slice(5, 7)) <
+        60,
+    {
+      message: m.monthlyRange,
+      path: ["to"],
+    },
+  );
+export type MonthlyRevenueQuery = z.infer<typeof MonthlyRevenueQuerySchema>;
 export type UtilizationReportQuery = z.infer<typeof UtilizationReportQuerySchema>;
 export type RentalReportQuery = z.infer<typeof RentalReportQuerySchema>;
 export type ReportExportQuery = z.infer<typeof ReportExportQuerySchema>;

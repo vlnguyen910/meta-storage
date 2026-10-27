@@ -2,7 +2,6 @@
 
 import {
   ArrowLeft,
-  ArrowRight,
   BookOpen,
   ChevronRight,
   Headphones,
@@ -113,10 +112,10 @@ export default function NotFound() {
               />
               <button
                 type="submit"
-                className="absolute right-1.5 h-8 px-3 rounded-md bg-[#165f4d] text-white text-xs font-medium hover:bg-[#0f493b] transition-colors flex items-center gap-1 cursor-pointer"
+                className="absolute right-1.5 h-8 px-3 rounded-md bg-[#165f4d] text-white text-xs font-medium hover:bg-[#0f493b] transition-colors flex items-center gap-1.5 cursor-pointer"
               >
+                <Search className="w-3.5 h-3.5" aria-hidden="true" />
                 <span>{AUTH_MESSAGES.notFoundSearchBtn}</span>
-                <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
               </button>
             </div>
           </form>

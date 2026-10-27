@@ -1,4 +1,6 @@
 export const FLOW = {
+  pendingHandover: "Đã khóa biên bản kiểm tra · Chờ nhân viên xác nhận bàn giao cho khách.",
+  handoverFinished: "Đã bàn giao kho cho khách.",
   brand: "metastorage OS",
   subtitle: "Quản lý cơ sở",
   facility: "Cơ sở trực ban",
@@ -61,7 +63,8 @@ export const FLOW = {
   photoLoadError:
     "Không tải được ảnh bằng chứng. Chọn Thử lại để kiểm tra ảnh trước khi khóa biên bản.",
   pendingStep: "Chưa xác nhận",
-  reviewHint: "Hoàn tất đủ 3 hạng mục phía trên để xem lại. Bạn vẫn có thể lưu nháp khi chưa đủ.",
+  reviewHint:
+    "Cả 4 mục kiểm tra phải đạt để xem lại và khóa biên bản. Bạn vẫn có thể lưu nháp khi chưa đủ.",
   lockHint: "Đánh dấu xác nhận đã đối chiếu để mở nút khóa biên bản.",
   statusLabels: {
     CONFIRMED: "Đã xác nhận",
@@ -88,6 +91,8 @@ export const FLOW = {
   sync: "Đồng bộ dữ liệu",
   syncTime: "Cập nhật lúc",
   total: "Tổng booking",
+  needsAction: "Cần xử lý",
+  inProgress: "Đang xử lý",
   needsUnit: "Cần gán ô kho",
   waiting: "Chờ xác minh",
   inspecting: "Đang kiểm tra kho",
@@ -105,6 +110,9 @@ export const FLOW = {
   search: "Tìm mã booking, tên khách hàng, số điện thoại hoặc mã ô kho…",
   searchLabel: "Tìm booking trong danh sách",
   noBookings: "Không có booking phù hợp",
+  previous: "Trước",
+  paginationNext: "Sau",
+  pageOf: (page: number, total: number) => `Trang ${page}/${total}`,
   noBookingsHint: "Thử bộ lọc khác hoặc làm mới danh sách.",
   clearFilters: "Xóa bộ lọc",
   position: "Vị trí & Quy cách",
@@ -113,6 +121,15 @@ export const FLOW = {
   receive: "Tiếp đón & Xác minh booking",
   assign: "Gán ô kho ngay",
   reassign: "Đổi ô kho",
+  reassignTitle: "Xác nhận đổi ô kho",
+  reassignFrom: "Ô kho hiện tại",
+  reassignTo: "Ô kho mới",
+  reassignDescription:
+    "Sau khi đổi kho, xác minh booking và biên bản kiểm tra của ô kho cũ không còn áp dụng. Nhân viên cần xác minh và lập lại biên bản kiểm tra cho ô kho mới trước khi bàn giao.",
+  reassignCancel: "Hủy",
+  reassignConfirm: "Xác nhận đổi kho",
+  reassignedSuccess: (oldCode: string, newCode: string) =>
+    `Đã đổi ô kho từ ${oldCode} sang ${newCode}.`,
   assignBefore: "Cần gán ô kho trước khi check-in",
   unassigned: "Chưa chỉ định",
   assigned: "Ô kho được gán",
@@ -205,13 +222,21 @@ export const FLOW = {
   baseline: "Hồ sơ hiện trạng trước bàn giao",
   supervisor: "FM Giám sát",
   progress: "Hạng mục hoàn tất",
-  requirement: "Xác nhận đúng ô kho, nhập mô tả và tải ít nhất một ảnh để hoàn tất kiểm tra.",
+  requirement: "Cả 4 mục kiểm tra phải đạt trước khi khóa biên bản. Ghi chú và ảnh là tùy chọn.",
+  checklistTitle: "Checklist kiểm tra ô kho",
+  checklistPass: "Đạt",
+  checklistFail: "Không đạt",
+  checklistUnanswered: "Chưa kiểm tra",
+  checklistFailure: "Mục kiểm tra chưa đạt. Dừng bàn giao và liên hệ quản lý để xử lý.",
+  checklistLegacy:
+    "Biên bản cũ chưa có kết quả checklist chi tiết. Không tự suy diễn kết quả kiểm tra.",
+  noNotes: "Không có ghi chú bổ sung.",
   correctTitle: "Xác nhận đúng ô kho đã gán",
   correctHint: "Đối chiếu biển số trên cửa kho với ô kho hệ thống chỉ định.",
   correct: "Đúng ô kho vật lý",
   wrong: "Sai ô kho thực tế",
   mismatch: "Ô kho thực tế không khớp. Dừng bàn giao và liên hệ quản lý để gán lại ô kho.",
-  notesTitle: "Mô tả hiện trạng buồng kho",
+  notesTitle: "Mô tả hiện trạng buồng kho (tùy chọn)",
   notesHint: "Ghi nhận hiện trạng kho rỗng làm căn cứ đối chiếu khi trả kho.",
   required: "Bắt buộc",
   suggestions: [
@@ -224,7 +249,7 @@ export const FLOW = {
   notesLabel: "Biên bản ghi nhận hiện trường",
   notesPlaceholder: "Mô tả sàn, vách, cửa, trần và những dấu vết có sẵn…",
   notesRequired: "Nhập mô tả hiện trạng kho.",
-  photosTitle: "Bằng chứng ảnh thực địa kho rỗng",
+  photosTitle: "Bằng chứng ảnh thực địa kho rỗng (tùy chọn)",
   photosHint: "JPEG, PNG hoặc WebP; tối đa 3 MB/ảnh, tối đa 8 ảnh.",
   upload: "Chụp ảnh / Tải lên",
   removePhoto: "Xóa ảnh",
@@ -240,8 +265,8 @@ export const FLOW = {
       "Lưu những dấu vết có sẵn làm căn cứ đối chiếu khi khách hàng trả kho.",
     ],
     [
-      "Không chặn bàn giao vô cớ",
-      "Ghi nhận khiếm khuyết nhỏ trong mô tả và ảnh; chỉ dừng khi ô kho không khớp.",
+      "Hoàn tất đủ 4 mục kiểm tra",
+      "Ghi nhận vấn đề cần xử lý; chỉ bàn giao sau khi cả 4 mục kiểm tra đều đạt.",
     ],
   ],
   technical: "Hỗ trợ kỹ thuật buồng kho",
@@ -287,4 +312,18 @@ export const FLOW = {
   handoverPending:
     "Biên bản đã khóa. Xác nhận khách đã nhận kho để hoàn tất bàn giao và kích hoạt thuê kho.",
   loadHistoryError: "Không thể tải hồ sơ kiểm tra. Thử lại trước khi tiếp tục.",
+  draftConflictTitle: "Biên bản trên máy chủ đã thay đổi",
+  draftConflictHelp:
+    "Checklist và ghi chú đang nhập vẫn được giữ. Tải bản máy chủ để đối chiếu trước khi lưu tiếp; hệ thống không tự ghi đè hoặc tự gửi lại.",
+  compareServer: "Tải bản máy chủ để đối chiếu",
+  keepDraft: "Giữ bản nháp với phiên bản mới",
+  loadServerDraft: "Nạp bản máy chủ, bỏ bản nháp",
+  discardDraftConfirm: "Bỏ checklist và ghi chú chưa lưu để nạp bản máy chủ?",
+  localDraft: "Bản nháp chưa lưu của bạn",
+  serverDraft: "Bản máy chủ vừa tải",
+  comparisonUnavailable:
+    "Không tìm thấy biên bản hiện tại để đối chiếu. Giữ lại nội dung và tải lại danh sách công việc.",
+  comparisonReadOnly:
+    "Biên bản đã khóa hoặc ngữ cảnh kho/checklist đã thay đổi; không thể áp dụng bản nháp cũ. Bạn vẫn có thể đối chiếu nội dung trước khi nạp bản máy chủ.",
+  comparisonVersion: (version: number) => `Phiên bản v${version}`,
 };

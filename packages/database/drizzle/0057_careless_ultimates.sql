@@ -1,0 +1,1 @@
+ALTER TABLE "user_activity_logs" ALTER COLUMN "entity_id" DROP NOT NULL;

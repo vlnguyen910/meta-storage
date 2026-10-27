@@ -173,6 +173,19 @@ REDIS_TEST_URL=redis://localhost:6379/15 bun run --filter api test
 
 API mặc định chạy tại port `4000`. Có thể thay đổi port trong `apps/api/.env`.
 
+Demo check-in ngay sau khi đặt booking: chạy API với `NODE_ENV=development`
+hoặc `NODE_ENV=develop`. Booking đã thanh toán (`CONFIRMED`/`SUCCEEDED`), đã gán
+kho và Staff có thể xác nhận check-in trước giờ/ngày hẹn. Không cần đổi ngày
+booking hoặc chạy seed lại. Production và test vẫn yêu cầu đến giờ hẹn.
+Hạn cuối check-in, quyền truy cập, checklist và hợp đồng bàn giao vẫn được kiểm tra.
+
+Khôi phục mật khẩu dùng Better Auth và Resend: đặt `WEB_URL` thành origin Web đã
+khai báo trong `AUTH_TRUSTED_ORIGINS`. Cả Web và Mobile yêu cầu qua
+`POST /api/auth/request-password-reset`; backend gửi liên kết đến trang Web
+`/reset-password`. Liên kết dùng một lần, hết hạn sau 60 phút; mật khẩu mới cần
+8–128 ký tự. Đặt lại thành công thu hồi các session cũ và yêu cầu đăng nhập lại,
+không tự đăng nhập. Email không tồn tại vẫn nhận cùng phản hồi chung.
+
 ### 4. Deploy API và Worker lên VPS bằng Docker Compose
 
 Production Compose chỉ chạy API và worker. PostgreSQL và Redis phải được cung
@@ -201,6 +214,45 @@ docker compose -f docker/docker-compose.prod.yml up -d --build
 API bind vào `127.0.0.1:4000` để reverse proxy HTTPS trên VPS kết nối. Worker
 không mở cổng. API image có HTTP healthcheck; xem log bằng
 `docker compose -f docker/docker-compose.prod.yml logs -f api worker`.
+
+Đặt `TRUSTED_PROXY_CIDRS` trong `docker/app.env` thành danh sách IP/CIDR của
+proxy mà API thực sự thấy (phân cách bằng dấu phẩy). Mặc định để trống: API bỏ
+qua `X-Forwarded-For`. Không dùng `true`, wildcard hoặc CIDR `/0`. Với Docker,
+peer có thể là bridge gateway thay vì `127.0.0.1`; kiểm tra `remoteAddress` trong
+API logs và đối chiếu topology trước khi điền. CIDR staging hiện là **TBD**.
+Reverse proxy phải ghi đè header do client gửi, ví dụ Nginx một tầng dùng
+`proxy_set_header X-Forwarded-For $remote_addr;`. Không tin các mạng Docker khác
+chỉ vì chúng dùng địa chỉ private. Mỗi IP khách có quota guest-access riêng;
+quota theo Booking vẫn được chia sẻ giữa các IP.
+
+Nếu Nginx chạy trực tiếp trên VPS còn API chạy trong Compose, kiểm tra gateway:
+
+```bash
+docker inspect --format '{{range .NetworkSettings.Networks}}{{.Gateway}}{{println}}{{end}}' \
+  "$(docker compose -f docker/docker-compose.prod.yml ps -q api)"
+docker compose -f docker/docker-compose.prod.yml logs --tail 100 api
+```
+
+Gửi một request qua domain Nginx và đối chiếu `remoteAddress` trong API logs với
+gateway trên. Nếu khớp, điền **đúng IP đó** vào `TRUSTED_PROXY_CIDRS` (không lấy
+IP khách hoặc public IP của VPS). Sau khi kiểm tra cấu hình Nginx, dùng các header
+sau trong `location` chuyển tiếp tới API:
+
+```nginx
+proxy_set_header Host $host;
+proxy_set_header X-Forwarded-Host $host;
+proxy_set_header X-Forwarded-Proto $scheme;
+proxy_set_header X-Forwarded-For $remote_addr;
+```
+
+Chạy `sudo nginx -t` trước khi reload Nginx; tạo lại API container sau khi đổi
+`docker/app.env` để biến môi trường mới có hiệu lực. Không tự dùng gateway của
+máy development cho VPS staging.
+
+CI chạy quality checks và database regressions độc lập. Chỉ push lên nhánh
+`stagging` vượt qua cả hai job mới gọi workflow deploy, với đúng commit SHA đã
+kiểm tra. PR không deploy. Deploy đang chạy không bị hủy khi có push mới;
+workflow vẫn build → migrate → start → kiểm tra API và worker theo thứ tự.
 
 ### 5. Chạy môi trường phát triển (Dev)
 
@@ -276,6 +328,25 @@ bun run db:clear
 
 # Seed lại sau khi dọn dữ liệu
 bun run db:seed
+```
+
+Chỉ cần lệnh seed ở trên (`bun run db:seed`); toàn bộ dữ liệu và logic seed
+nằm trong `packages/database/src/seed.ts`, bao gồm tài khoản và demo check-in ngay.
+
+Lệnh tạo booking riêng `DEMO-CHECKIN-NOW` tại `HCM-01`, đã thanh toán giả lập,
+gán một Unit còn trống và gán Staff `staff@metastorage.vn`, mật khẩu development
+là `12345678`. Chạy seed lại sẽ khôi phục các kịch bản mẫu và mật khẩu development.
+Slot bắt đầu ở phút hiện tại theo giờ Việt Nam và kết thúc cuối ngày. Có thể đăng nhập
+Staff và tìm mã booking để xác nhận check-in ngay; inspection và hợp đồng vẫn tuân theo
+điều kiện bàn giao hiện có. Lệnh không gửi email; chỉ dời giờ `DEMO-CHECKIN-NOW`
+khi booking còn `CONFIRMED`, chưa verification hoặc rental.
+Nếu demo đã đi tiếp, lệnh giữ nguyên trạng thái đó. Không chạy trong production.
+
+Kiểm thử seed trên database loopback mới, đã migrate, có tên kết thúc `_seed_test`:
+
+```bash
+SEED_TEST_DATABASE_URL=postgres://postgres:postgres@localhost:5433/metastorage_checkin_seed_test \
+  bun run --filter @metastorage/database test
 ```
 
 Tên, địa chỉ và giá trong seed là dữ liệu giả lập để test. Seed giữ các booking

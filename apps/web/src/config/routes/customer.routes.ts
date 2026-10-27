@@ -1,9 +1,17 @@
 export const customerRoutes = {
+  support: "/customer/support",
+  supportNew: "/customer/support/new",
+  supportTicket: (id: string) => `/customer/support/${id}`,
   dashboard: "/customer/dashboard",
   facilities: "/customer/facilities",
   reservations: "/customer/reservations",
-  newReservation: "/reservations/new",
+  newReservation: "/customer/reservations/new",
   reservation: (reservationId: string) => `/customer/reservations/${reservationId}`,
   rentals: "/customer/storage",
+  transactions: "/customer/transactions",
+  notifications: "/customer/notifications",
+  paymentResult: "/customer/payments/result",
   rental: (rentalId: string) => `/customer/storage/${rentalId}`,
+  newReturn: (rentalId: string) => `/customer/storage/${rentalId}/return`,
+  returnRequest: (requestId: string) => `/customer/returns/${requestId}`,
 } as const;

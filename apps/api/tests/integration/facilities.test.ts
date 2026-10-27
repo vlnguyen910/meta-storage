@@ -87,6 +87,7 @@ describe("GET /api/facilities", () => {
     const response = await app.inject({ method: "GET", url: "/api/facilities" });
 
     expect(response.statusCode).toBe(200);
+    expect(response.headers["cache-control"]).toBeUndefined();
     expect(response.json()).toEqual({
       success: true,
       data: [

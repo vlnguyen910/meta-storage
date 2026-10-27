@@ -12,7 +12,7 @@ import {
   Warehouse,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Currency } from "@/components/ui/display";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useAuthStore } from "@/features/auth/auth-store";
@@ -20,7 +20,6 @@ import { FLOW } from "@/features/facility-flow/flow.messages";
 import {
   FlowButton as Button,
   FlowHeading,
-  FlowHelp,
   inputClass,
   Panel,
   Pill,
@@ -31,6 +30,14 @@ import { readiness, useDispatch } from "@/features/facility-flow/use-dispatch";
 import { formatDateTime } from "@/lib/format";
 import type { FacilityBookingsViewProps } from "./facility-bookings-view.types";
 import { StaffAssignmentModal } from "./staff-assignment-modal";
+
+function slotRemainingLabel(value: string) {
+  const remaining = Date.parse(value) - Date.now();
+  if (remaining <= 0) return "Khung giờ đã kết thúc";
+  const hours = Math.floor(remaining / 3_600_000);
+  const minutes = Math.max(1, Math.ceil((remaining % 3_600_000) / 60_000));
+  return hours > 0 ? `Còn ${hours} giờ ${minutes} phút` : `Còn ${minutes} phút`;
+}
 
 const labels: Record<string, string> = {
   READY: FLOW.ready,
@@ -49,7 +56,16 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
   const isStaff = useAuthStore((s) => s.session?.user.role) === UserRole.FACILITY_STAFF;
   const root = isStaff ? "/staff" : "/facility-manager";
   const d = useDispatch(facilityId, isStaff);
+  const { filter, search } = d;
   const [staffBooking, setStaffBooking] = useState<BookingListItem | null>(null);
+  const [page, setPage] = useState(1);
+  const pageSize = 6;
+  const pageCount = Math.max(1, Math.ceil(d.filtered.length / pageSize));
+  const pageItems = d.filtered.slice((page - 1) * pageSize, page * pageSize);
+  // Reset pagination whenever the user changes a filter or search term.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: filter and search intentionally reset the local page.
+  useEffect(() => setPage(1), [filter, search]);
+  useEffect(() => setPage((value) => Math.min(value, pageCount)), [pageCount]);
   return (
     <>
       <FlowHeading
@@ -58,7 +74,7 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
         actions={
           <div className="flex gap-2">
             <div className="rounded-lg bg-white px-4 py-2 text-xs shadow-sm">
-              <p className="text-[#707975]">{FLOW.syncTime}</p>
+              <p className="text-[#5c6661]">{FLOW.syncTime}</p>
               <strong>
                 {d.query.dataUpdatedAt
                   ? new Date(d.query.dataUpdatedAt).toLocaleTimeString("vi-VN", {
@@ -73,23 +89,24 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
           </div>
         }
       />
-      <FlowHelp />
-      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-7">
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
         {[
           { label: FLOW.total, value: d.bookings.length, icon: Calendar },
-          { label: FLOW.needsUnit, value: d.count("NEEDS_UNIT"), icon: Warehouse },
-          { label: FLOW.waiting, value: d.count("READY"), icon: UserCheck },
-          { label: FLOW.inspecting, value: d.count("INSPECTING"), icon: ClipboardCheck },
-          { label: FLOW.readyHandover, value: d.count("READY_HANDOVER"), icon: ClipboardCheck },
           {
-            label: FLOW.needsStaff,
-            value: d.bookings.filter((b) => !b.assignedStaff && b.status === "CONFIRMED").length,
+            label: FLOW.needsAction,
+            value: d.count("NEEDS_UNIT") + d.count("NEEDS_STAFF"),
+            icon: Warehouse,
+          },
+          { label: FLOW.waiting, value: d.count("READY"), icon: UserCheck },
+          {
+            label: FLOW.inProgress,
+            value: d.count("INSPECTING") + d.count("READY_HANDOVER"),
             icon: ClipboardCheck,
           },
           { label: FLOW.pendingAccess, value: d.count("CHECKED_IN"), icon: ClipboardCheck },
         ].map(({ label, value, icon: Icon }) => (
           <Panel key={label}>
-            <div className="flex items-center justify-between gap-1 text-[11px] uppercase tracking-wider text-[#707975]">
+            <div className="flex items-center justify-between gap-1 text-[11px] uppercase tracking-wider text-[#5c6661]">
               <span>{label}</span>
               <Icon size={20} className="text-[#003b2f]" />
             </div>
@@ -100,7 +117,7 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
       <Panel className="space-y-4">
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative min-w-[180px] flex-1">
-            <Search size={20} className="absolute left-3 top-3 text-[#707975]" />
+            <Search size={20} className="absolute left-3 top-3 text-[#5c6661]" />
             <input
               className={`${inputClass} pl-10`}
               aria-label={FLOW.searchLabel}
@@ -154,7 +171,7 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
         </div>
       </Panel>
       <p role="status" aria-live="polite" className="text-sm text-[#404945]">
-        {d.query.isFetching ? FLOW.refreshing : FLOW.results(d.filtered.length, d.bookings.length)}
+        {d.query.isFetching ? FLOW.refreshing : FLOW.results(pageItems.length, d.filtered.length)}
       </p>
       {d.query.isError && d.query.data && (
         <p role="alert" className="rounded bg-[#ffdcc3] p-3 text-[#6e3900]">
@@ -162,14 +179,14 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
         </p>
       )}
       {d.query.isLoading ? (
-        <LoadingState label={FLOW.loading} />
+        <LoadingState label={FLOW.loading} variant="table" />
       ) : d.query.isError && !d.query.data ? (
         <ErrorState message={FLOW.listError} onRetry={() => d.query.refetch()} />
       ) : d.filtered.length === 0 ? (
         <Panel className="py-12 text-center">
           <Warehouse className="mx-auto mb-3 text-[#306858]" size={40} />
           <h2 className={`${titleClass} text-xl`}>{FLOW.noBookings}</h2>
-          <p className="mt-2 text-[#707975]">{FLOW.noBookingsHint}</p>
+          <p className="mt-2 text-[#5c6661]">{FLOW.noBookingsHint}</p>
           <Button
             className="mt-4"
             variant="secondary"
@@ -183,7 +200,7 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
         </Panel>
       ) : (
         <div className="grid gap-4">
-          {d.filtered.map((b) => {
+          {pageItems.map((b) => {
             const state = readiness(b, d.now);
             const canAssign =
               !isStaff &&
@@ -227,7 +244,7 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
                 </div>
                 <div className="grid flex-1 gap-4 rounded-lg bg-[#f2f3ff]/60 p-4 sm:grid-cols-3">
                   <div>
-                    <p className="text-[11px] uppercase text-[#707975]">{FLOW.position}</p>
+                    <p className="text-[11px] uppercase text-[#5c6661]">{FLOW.position}</p>
                     <p className="mt-1 font-semibold">
                       {b.assignedUnit?.physicalUnitCode ?? FLOW.unassigned}
                     </p>
@@ -236,12 +253,17 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
                     </p>
                   </div>
                   <div>
-                    <p className="text-[11px] uppercase text-[#707975]">{FLOW.slot}</p>
+                    <p className="text-[11px] uppercase text-[#5c6661]">{FLOW.slot}</p>
                     <p className="mt-1 text-xs font-medium">{formatDateTime(b.checkInSlotStart)}</p>
                     <p className="text-xs text-[#404945]">{formatDateTime(b.checkInSlotEnd)}</p>
+                    {b.checkInSlotEnd ? (
+                      <p className="mt-2 text-xs font-semibold text-[#125345]">
+                        {slotRemainingLabel(b.checkInSlotEnd)}
+                      </p>
+                    ) : null}
                   </div>
                   <div>
-                    <p className="text-[11px] uppercase text-[#707975]">{FLOW.payment}</p>
+                    <p className="text-[11px] uppercase text-[#5c6661]">{FLOW.payment}</p>
                     <p className="mt-1 text-xs font-semibold text-[#125345]">
                       {b.paidAt ? FLOW.paid : FLOW.unpaid}
                     </p>
@@ -313,6 +335,32 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
           })}
         </div>
       )}
+      {pageCount > 1 ? (
+        <nav
+          className="flex flex-wrap items-center justify-center gap-3"
+          aria-label="Phân trang booking"
+        >
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={page === 1}
+            onClick={() => setPage((value) => value - 1)}
+          >
+            {FLOW.previous}
+          </Button>
+          <span className="text-sm font-semibold text-[#404945]">
+            {FLOW.pageOf(page, pageCount)}
+          </span>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={page === pageCount}
+            onClick={() => setPage((value) => value + 1)}
+          >
+            {FLOW.paginationNext}
+          </Button>
+        </nav>
+      ) : null}
       {staffBooking && (
         <StaffAssignmentModal booking={staffBooking} isOpen onClose={() => setStaffBooking(null)} />
       )}
