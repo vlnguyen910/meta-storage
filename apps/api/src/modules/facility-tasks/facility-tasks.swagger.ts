@@ -1,5 +1,9 @@
 import type { SwaggerTransform } from "@fastify/swagger";
-import { type FacilityTaskDetail, FACILITY_TASK_MESSAGES as m } from "@metastorage/contracts";
+import {
+  type FacilityTaskDashboardSummary,
+  type FacilityTaskDetail,
+  FACILITY_TASK_MESSAGES as m,
+} from "@metastorage/contracts";
 import { createJsonSchemaTransform } from "fastify-type-provider-zod";
 
 const transform = createJsonSchemaTransform({ zodToJsonConfig: { target: "openapi-3.0" } });
@@ -15,12 +19,17 @@ const task: FacilityTaskDetail = {
   assignedStaffName: "Staff demo",
   assignedBy: "00000000-0000-4000-8000-000000000004",
   assignerName: "FM demo",
-  version: 0,
+  description: null,
   startedAt: null,
   completedAt: null,
   assignedAt: timestamp,
   createdAt: timestamp,
   updatedAt: timestamp,
+};
+const dashboard: FacilityTaskDashboardSummary = {
+  date: "2026-10-28",
+  pendingCount: 2,
+  byType: { CHECK_IN_HANDOVER: 1, UNIT_INSPECTION: 1, HANDLE_SUPPORT: 0 },
 };
 
 function errorExample(code: number, message: string) {
@@ -32,18 +41,10 @@ function errorExample(code: number, message: string) {
 }
 
 export function facilityTaskSwaggerTransform(
-  operation: "create" | "list" | "detail" | "assign" | "start" | "complete" | "cancel",
+  operation: "create" | "list" | "update" | "dashboard",
 ): SwaggerTransform {
   const isCreate = operation === "create";
   const isList = operation === "list";
-  const data: FacilityTaskDetail =
-    operation === "start"
-      ? { ...task, status: "IN_PROGRESS", startedAt: timestamp }
-      : operation === "complete"
-        ? { ...task, status: "COMPLETED", startedAt: timestamp, completedAt: timestamp }
-        : operation === "cancel"
-          ? { ...task, status: "CANCELLED" }
-          : task;
   return (input) => {
     const result = transform(input);
     result.schema = {
@@ -51,33 +52,24 @@ export function facilityTaskSwaggerTransform(
       security: [{ sessionAuth: [] }],
       response: {
         [isCreate ? 201 : 200]: {
-          description:
-            operation === "start"
-              ? m.taskStarted
-              : operation === "complete"
-                ? m.taskCompleted
-                : operation === "cancel"
-                  ? m.taskCancelled
-                  : isCreate
-                    ? m.created
-                    : m.success,
+          description: isCreate ? m.created : m.success,
           type: "object",
           example: {
             success: true,
-            data: isList ? { items: [data], total: 1, limit: 20, offset: 0 } : data,
+            data:
+              operation === "dashboard"
+                ? dashboard
+                : isList
+                  ? { items: [task], total: 1, limit: 20, offset: 0 }
+                  : task,
             timestamp,
           },
         },
         400: errorExample(400, m.invalidInput),
         401: errorExample(401, m.loginRequired),
         403: errorExample(403, m.accessDenied),
-        ...(operation !== "list" && operation !== "create"
-          ? { 404: errorExample(404, m.taskNotFound) }
-          : {}),
-        ...(operation === "assign" ? { 409: errorExample(409, m.versionConflict) } : {}),
-        ...(operation === "start" || operation === "complete" || operation === "cancel"
-          ? { 409: errorExample(409, m.taskNotReady) }
-          : {}),
+        ...(operation === "update" ? { 404: errorExample(404, m.taskNotFound) } : {}),
+        ...(operation === "update" ? { 409: errorExample(409, m.taskNotReady) } : {}),
       },
     };
     return result;

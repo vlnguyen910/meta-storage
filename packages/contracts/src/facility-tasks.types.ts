@@ -15,7 +15,7 @@ export interface FacilityTaskDetail {
   assignedStaffName: string;
   assignedBy: string;
   assignerName: string;
-  version: number;
+  description: string | null;
   startedAt: string | null;
   completedAt: string | null;
   assignedAt: string;

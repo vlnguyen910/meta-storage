@@ -221,7 +221,6 @@ export class InspectionsRepository {
         startedAt: sql`coalesce(${facilityTasks.startedAt}, ${now})`,
         completedAt: now,
         updatedAt: now,
-        version: sql`${facilityTasks.version} + 1`,
       })
       .where(
         and(

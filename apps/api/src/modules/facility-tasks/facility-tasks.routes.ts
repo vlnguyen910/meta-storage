@@ -1,29 +1,45 @@
 import {
-  AssignFacilityTaskSchema,
   CreateFacilityTaskSchema,
   FacilityTaskListQuerySchema,
   FacilityTaskParamsSchema,
   FACILITY_TASK_MESSAGES as m,
+  StaffFacilityTaskListQuerySchema,
+  UpdateFacilityTaskSchema,
 } from "@metastorage/contracts";
 import type { FastifyPluginAsync, FastifyRequest } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
 import { requireRole } from "../auth/auth.guard";
+import { FacilitiesRepository } from "../facilities/facilities.repository";
 import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
+import { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
 import { FacilityTasksRepository } from "./facility-tasks.repository";
 import { FacilityTasksService } from "./facility-tasks.service";
 import { facilityTaskSwaggerTransform } from "./facility-tasks.swagger";
 
 export const facilityTasksRoutes: FastifyPluginAsync = async (app) => {
   const typed = app.withTypeProvider<ZodTypeProvider>();
+  const assignmentRepository = new FacilityAssignmentsRepository(app.db);
   const service = new FacilityTasksService(
-    new FacilityTasksRepository(app.db),
-    new FacilityAssignmentsRepository(app.db),
+    new FacilityTasksRepository(app.db, assignmentRepository),
+    new FacilityAssignmentsService(assignmentRepository, new FacilitiesRepository(app.db)),
   );
-  app.addHook("onRequest", async (_req, reply) => {
+
+  app.addHook("onRequest", async (_request, reply) => {
     reply.header("Cache-Control", "private, no-store");
   });
+
+  typed.get(
+    "/dashboard/my",
+    {
+      config: { swaggerTransform: facilityTaskSwaggerTransform("dashboard") },
+      preHandler: [requireRole("FACILITY_STAFF")],
+      schema: { tags: ["Facility Tasks"], summary: m.myDashboardSummary },
+    },
+    async (request) => successResponse(await service.dashboardForStaff(actor(request))),
+  );
+
   typed.post(
     "/",
     {
@@ -35,89 +51,57 @@ export const facilityTasksRoutes: FastifyPluginAsync = async (app) => {
         body: CreateFacilityTaskSchema,
       },
     },
-    async (req, reply) =>
-      reply.status(201).send(successResponse(await service.create(req.body, actor(req)))),
+    async (request, reply) =>
+      reply.status(201).send(successResponse(await service.create(request.body, actor(request)))),
   );
+
   typed.get(
-    "/",
+    "/my",
     {
       config: { swaggerTransform: facilityTaskSwaggerTransform("list") },
-      preHandler: [requireRole("FACILITY_MANAGER", "FACILITY_STAFF")],
+      preHandler: [requireRole("FACILITY_STAFF")],
       schema: {
         tags: ["Facility Tasks"],
-        summary: m.listSummary,
+        summary: m.myTasksSummary,
+        querystring: StaffFacilityTaskListQuerySchema,
+      },
+    },
+    async (request) => successResponse(await service.listMineTask(request.query, actor(request))),
+  );
+
+  typed.get(
+    "/facility",
+    {
+      config: { swaggerTransform: facilityTaskSwaggerTransform("list") },
+      preHandler: [requireRole("FACILITY_MANAGER")],
+      schema: {
+        tags: ["Facility Tasks"],
+        summary: m.facilityTasksSummary,
         querystring: FacilityTaskListQuerySchema,
       },
     },
-    async (req) => successResponse(await service.list(req.query, actor(req))),
+    async (request) => successResponse(await service.listFacility(request.query, actor(request))),
   );
-  typed.get(
-    "/:id",
-    {
-      config: { swaggerTransform: facilityTaskSwaggerTransform("detail") },
-      preHandler: [requireRole("FACILITY_MANAGER", "FACILITY_STAFF")],
-      schema: {
-        tags: ["Facility Tasks"],
-        summary: m.detailSummary,
-        params: FacilityTaskParamsSchema,
-      },
-    },
-    async (req) => successResponse(await service.detail(req.params.id, actor(req))),
-  );
-  typed.post(
-    "/:id/start",
-    {
-      config: { swaggerTransform: facilityTaskSwaggerTransform("start") },
-      preHandler: [requireRole("FACILITY_STAFF")],
-      schema: {
-        tags: ["Facility Tasks"],
-        summary: m.taskStartSummary,
-        params: FacilityTaskParamsSchema,
-      },
-    },
-    async (req) => successResponse(await service.start(req.params.id, actor(req)), m.taskStarted),
-  );
-  typed.post(
-    "/:id/complete",
-    {
-      config: { swaggerTransform: facilityTaskSwaggerTransform("complete") },
-      preHandler: [requireRole("FACILITY_STAFF")],
-      schema: {
-        tags: ["Facility Tasks"],
-        summary: m.taskCompleteSummary,
-        params: FacilityTaskParamsSchema,
-      },
-    },
-    async (req) =>
-      successResponse(await service.complete(req.params.id, actor(req)), m.taskCompleted),
-  );
-  typed.post(
-    "/:id/cancel",
-    {
-      config: { swaggerTransform: facilityTaskSwaggerTransform("cancel") },
-      preHandler: [requireRole("FACILITY_MANAGER")],
-      schema: {
-        tags: ["Facility Tasks"],
-        summary: m.taskCancelSummary,
-        params: FacilityTaskParamsSchema,
-      },
-    },
-    async (req) =>
-      successResponse(await service.cancel(req.params.id, actor(req)), m.taskCancelled),
-  );
+
   typed.patch(
     "/:id",
     {
-      config: { swaggerTransform: facilityTaskSwaggerTransform("assign") },
-      preHandler: [requireRole("FACILITY_MANAGER")],
+      config: { swaggerTransform: facilityTaskSwaggerTransform("update") },
+      preHandler: [requireRole("FACILITY_MANAGER", "FACILITY_STAFF")],
       schema: {
         tags: ["Facility Tasks"],
-        summary: m.assignSummary,
+        summary: m.updateSummary,
         params: FacilityTaskParamsSchema,
-        body: AssignFacilityTaskSchema,
+        body: UpdateFacilityTaskSchema,
       },
     },
-    async (req) => successResponse(await service.assign(req.params.id, req.body, actor(req))),
+    async (request) =>
+      successResponse(
+        await service.update(request.params.id, request.body, actor(request)),
+        "status" in request.body && request.body.status === "CANCELLED"
+          ? m.taskCancelled
+          : m.updated,
+      ),
   );
 };
 

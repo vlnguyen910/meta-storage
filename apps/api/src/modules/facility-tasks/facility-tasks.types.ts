@@ -20,11 +20,7 @@ export type TaskWriteResult =
         | "MANAGER_ACCESS_DENIED"
         | "STAFF_UNAVAILABLE"
         | "CONTEXT_MISMATCH"
-        | "VERSION_CONFLICT"
         | "INVALID_TASK_STATE"
-        | "TASK_ACCESS_DENIED";
+        | "TASK_ACCESS_DENIED"
+        | "TASK_TYPE_LOCKED";
     };
-
-export type LockedTaskActors =
-  | { manager: { id: string; name: string }; staff: { id: string; name: string } }
-  | { error: "MANAGER_ACCESS_DENIED" | "STAFF_UNAVAILABLE" };
