@@ -59,7 +59,7 @@ The decisions in the register are approved by the requestor. The following recor
 ## Implementation decisions confirmed for #163
 
 - **Resolved in #163:** customer-wide unpaid RETURN_DEBT blocks renewal; no debt/rent netting; unpaid EXTRA does not block.
-- **Resolved R2/R5/R6 implementation mapping:** use the existing facility return-calendar timezone, falling back to the single configured operating-hours timezone; reject missing/inconsistent configuration. `unit_types.monthly_price` is the current published global rate. New booking/renewal months use 30 × 24 hours, `rentals.expected_end_at` is current expiry, and booking/PDF snapshots retain the initial term. OVERDUE begins at the exact expiry instant; fees remain based on the next local date. Reminder/review cadence remains separate.
+- **Resolved R2/R5/R6 implementation mapping:** use the shared `Asia/Ho_Chi_Minh` timezone; operating hours are shared BOM settings and holiday calendars are out of scope. `unit_types.monthly_price` is the current published global rate. New booking/renewal months use 30 × 24 hours, `rentals.expected_end_at` is current expiry, and booking/PDF snapshots retain the initial term. OVERDUE begins at the exact expiry instant; fees remain based on the next local date. Reminder/review cadence remains separate.
 - **R8:** no early-return rental-fee refunds for new initial/renewal settlements. Preserve historical approved entitlements/transfers; captured-but-unapplied renewal payments still require controlled refunds.
 
 ## Remaining TBDs and validation items

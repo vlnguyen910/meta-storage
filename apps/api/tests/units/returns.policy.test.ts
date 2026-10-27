@@ -22,14 +22,8 @@ describe("confirmed return policies", () => {
     expect(overdueAmount("1000", 0, expiry, new Date("2032-02-02"), "Asia/Ho_Chi_Minh")).toBe("0");
     expect(() => overdueAmount("1.50", 25, expiry, expiry, "Asia/Ho_Chi_Minh")).toThrow();
   });
-  test("SLA begins after FM approval and skips weekends and configured holidays", () => {
-    // Friday 2032-01-02 local; Monday is a configured holiday.
-    expect(
-      refundDueDate(new Date("2032-01-02T03:00:00Z"), "Asia/Ho_Chi_Minh", ["2032-01-05"]),
-    ).toBe("2032-01-08");
-    expect(refundDueDate(new Date("2032-01-02T03:00:00Z"), "Asia/Ho_Chi_Minh", [])).toBe(
-      "2032-01-07",
-    );
+  test("SLA begins after FM approval and skips weekends", () => {
+    expect(refundDueDate(new Date("2032-01-02T03:00:00Z"), "Asia/Ho_Chi_Minh")).toBe("2032-01-07");
   });
   test("admin severity snapshot determines FAIL; remaining property alone does not", () => {
     const definition = [

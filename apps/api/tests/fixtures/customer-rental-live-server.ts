@@ -8,7 +8,6 @@ import {
   checkInSlots,
   db,
   eq,
-  facilityReturnCalendars,
   payments,
   rentals,
   storageUnits,
@@ -61,13 +60,6 @@ await db
     })),
   )
   .onConflictDoNothing();
-await db.insert(facilityReturnCalendars).values({
-  facilityId: f.facilityId,
-  timezone: "Asia/Ho_Chi_Minh",
-  holidays: [],
-  version: 0,
-  updatedBy: f.ids.manager,
-});
 const slotId = randomUUID();
 await db
   .insert(checkInSlots)

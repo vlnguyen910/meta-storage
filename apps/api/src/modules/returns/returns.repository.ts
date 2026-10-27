@@ -13,8 +13,6 @@ import {
   eq,
   facilities,
   facilityAssignments,
-  facilityOperatingHours,
-  facilityReturnCalendars,
   gt,
   gte,
   inArray,
@@ -148,38 +146,20 @@ export class ReturnsRepository {
     if (!row) throw new NotFoundError(m.notFound);
   }
 
-  async calendar(facilityId: string, tx: ReturnTransaction | Database = this.db) {
-    const [row] = await tx
-      .select()
-      .from(facilityReturnCalendars)
-      .where(eq(facilityReturnCalendars.facilityId, facilityId));
-    return row;
-  }
-  hours(facilityId: string, tx: ReturnTransaction | Database = this.db) {
-    return tx
-      .select({
-        dayOfWeek: facilityOperatingHours.dayOfWeek,
-        openTime: facilityOperatingHours.openTime,
-        closeTime: facilityOperatingHours.closeTime,
-        timezone: facilityOperatingHours.timezone,
-      })
-      .from(facilityOperatingHours)
-      .where(eq(facilityOperatingHours.facilityId, facilityId))
-      .orderBy(facilityOperatingHours.dayOfWeek);
-  }
-  async saveHours(
-    tx: ReturnTransaction,
-    facilityId: string,
-    timezone: string,
-    hours: { dayOfWeek: number; openTime: string; closeTime: string }[],
-  ) {
-    await tx
-      .delete(facilityOperatingHours)
-      .where(eq(facilityOperatingHours.facilityId, facilityId));
-    if (hours.length)
-      await tx
-        .insert(facilityOperatingHours)
-        .values(hours.map((h) => ({ ...h, facilityId, timezone })));
+  async operatingHours(tx: ReturnTransaction | Database = this.db) {
+    const rows = await tx
+      .select({ key: systemSettings.key, value: systemSettingInteger })
+      .from(systemSettings)
+      .where(inArray(systemSettings.key, ["OPENING_HOUR", "CLOSING_HOUR"]));
+    const settings = Object.fromEntries(rows.map((row) => [row.key, row.value]));
+    if (settings.OPENING_HOUR === undefined || settings.CLOSING_HOUR === undefined) return [];
+    return [
+      {
+        openTime: `${String(settings.OPENING_HOUR).padStart(2, "0")}:00:00`,
+        closeTime: `${String(settings.CLOSING_HOUR).padStart(2, "0")}:00:00`,
+        timezone: "Asia/Ho_Chi_Minh",
+      },
+    ];
   }
   requestsForRental(tx: ReturnTransaction, rentalId: string) {
     return tx
@@ -249,25 +229,6 @@ export class ReturnsRepository {
       .innerJoin(facilities, eq(facilities.id, returnRequests.facilityId))
       .leftJoin(users, eq(users.id, returnRequests.assignedStaffId))
       .where(inArray(returnRequests.id, requestIds));
-  }
-  async saveCalendar(tx: ReturnTransaction, values: typeof facilityReturnCalendars.$inferInsert) {
-    const [row] = await tx
-      .insert(facilityReturnCalendars)
-      .values(values)
-      .onConflictDoUpdate({
-        target: facilityReturnCalendars.facilityId,
-        set: values,
-      })
-      .returning();
-    return row;
-  }
-  async flagAppointments(tx: ReturnTransaction, facilityId: string) {
-    await tx
-      .update(returnRequests)
-      .set({ manualReviewRequired: true, version: sql`${returnRequests.version} + 1` })
-      .where(
-        and(eq(returnRequests.facilityId, facilityId), eq(returnRequests.status, "CONFIRMED")),
-      );
   }
   async checklist(tx: ReturnTransaction | Database = this.db) {
     const [row] = await tx
@@ -357,22 +318,13 @@ export class ReturnsRepository {
     });
   }
   async schedule(tx: ReturnTransaction, facilityId: string, date: string) {
-    const localNoon = new Date(`${date}T12:00:00Z`);
-    const hours = await tx
-      .select()
-      .from(facilityOperatingHours)
-      .where(
-        and(
-          eq(facilityOperatingHours.facilityId, facilityId),
-          eq(facilityOperatingHours.dayOfWeek, localNoon.getUTCDay()),
-        ),
-      );
+    const hours = await this.operatingHours(tx);
     const slots = await tx
       .select()
       .from(checkInSlots)
       .orderBy(checkInSlots.startTime, checkInSlots.id);
     const adjacent = [-1, 0, 1].map((offset) => {
-      const day = new Date(localNoon);
+      const day = new Date(`${date}T12:00:00Z`);
       day.setUTCDate(day.getUTCDate() + offset);
       return day.toISOString().slice(0, 10);
     });

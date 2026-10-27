@@ -51,8 +51,8 @@ No Web, Mobile or API-client files changed. This is not completion of all Flow 3
 | --- | --- |
 | Default ACTIVE/RETURN_PENDING/OVERDUE + CLOSED history | Rental reads; stable expiry/UUID keyset pagination |
 | PENDING does not reserve, capacity one from CONFIRMED | Facility-row lock; reserved-slot partial unique index; 15-minute interval conflict check |
-| 90-minute slots, operating hours/holidays, 24-hour notice | Existing check_in_slots + facility_operating_hours; calendar config; create/edit validation |
-| Admin config changes preserve confirmed appointments | Immutable time snapshots, manualReviewRequired flag; no reschedule/cancel |
+| Return appointment slots and shared hours | Existing check_in_slots + BOM-managed global opening/closing settings; holiday calendars are out of scope |
+| Shared operating hours | BOM-managed global setting; existing appointment times remain snapshotted |
 | Admin return checklist/severity | Append-only versions, four groups; snapshot at each inspection attempt |
 | Assigned FS only; FM assigns/reassigns | Backend role + live facility membership + current assignment checks |
 | FAILED retry | New attempt, FAILED → INSPECTING; previous result preserved |
@@ -60,10 +60,10 @@ No Web, Mobile or API-client files changed. This is not completion of all Flow 3
 | Actual-return corrections | Assigned FS proposal with proof; FM approval; append financial revision after settlement |
 | One-time overdue fee | Assessed in settlement using actual-return local date, integer rate/deposit snapshots and half-up VND |
 | Settlement/debt/refund | FM approval; deposit deduction, nonnegative refund, ledger-only debt; separate immutable revisions/refund records |
-| Refund SLA | Three following business days after FM approval, weekends/holiday snapshot excluded |
+| Refund SLA | Three following business days after FM approval, skipping Saturday/Sunday only |
 | Contract PDFs/handover gate | Implemented separately; see rental-contracts-api.md. No CCCD/passport schema |
 | Automatic OVERDUE + seven-full-day manual-review flag | Facility-local cron updates rental only; preserves open request and sends deduplicated manual-review notice; no disposal |
-| Durable email/in-app outbox, expiry reminders | Implemented DB outbox, notification inbox, worker claims/leases/retry, current FM authorization check, configurable 7-day local reminder at configured time or 09:00 fallback for facilities with consistent operating-hour timezone |
+| Durable email/in-app outbox, expiry reminders | Implemented DB outbox, notification inbox, worker claims/leases/retry, current FM authorization check, configurable 7-day reminder evaluated in Asia/Ho_Chi_Minh at 09:00 |
 | Lifecycle day settings | System Administrator-only `rental_lifecycle_settings`; optimistic version and `return_audit` update in one transaction; seeded 7-day expiry and manual-review values; no business min/max |
 | Guest rental portal | Booking-scoped cookie GETs for rental/payment/refund/issued contracts; private PDF backend read; generic audited resend request, 24-hour link, old grant revoked on replacement, 3/booking/hour and 10/IP/hour |
 | Existing finance reports with return settlement/refunds | Cash refunds by confirmedAt; latest effective settlement; explicit deposit/rent allocations; unknown legacy splits flagged; fees/debt are not automatically classified as revenue |
@@ -71,10 +71,8 @@ No Web, Mobile or API-client files changed. This is not completion of all Flow 3
 
 ## Lifecycle jobs and notifications
 
-API cron evaluates rental expiry using the return-calendar timezone, or reuses the
-single consistent timezone already configured in facility operating hours when no
-return calendar exists. Missing/inconsistent operating-hour timezone leaves the
-rental unchanged. Under the #163 policy, status becomes OVERDUE at the exact saved
+API cron evaluates rental expiry in the shared Asia/Ho_Chi_Minh timezone. Opening
+and closing hours are shared BOM settings; holidays are out of scope. Under the #163 policy, status becomes OVERDUE at the exact saved
 expiry instant unless physical return was confirmed by that instant; the return-request
 status is preserved. Fee assessment remains local-date based and starts only on the
 following date. After seven full local days from midnight starting that following
@@ -143,10 +141,9 @@ return 200. Auth requires active users; no implicit BOM/Admin operational author
 | POST `/return-requests/:requestId/settlement` | Facility FM; approve damage/deposit settlement, close rental/release occupancy atomically; unused rent must be zero |
 | POST `/return-requests/:requestId/refunds/confirm` | Facility FM; explicit manual completed-transfer confirmation with reference/proof/idempotency key |
 | GET/PUT `/return-policy/checklist` | System Admin; read/append checklist version |
-| GET/PUT `/facilities/:facilityId/return-calendar` | System Admin; timezone/holidays/reminder time and optional operating-hours replacement |
 | GET/PUT `/return-policy/overdue-rate` | BOM only; integer 0–100%, expectedVersion/audit |
 
-Facility-scoped queue and calendar endpoints are registered directly in
+Facility-scoped queue endpoints are registered directly in
 `modules/facilities/facilities.routes.ts` under `/api/facilities`. They delegate
 return workflow/policy rules to `ReturnsService`. Their private/no-store hook is
 attached only to these three routes, not public facility reads.
@@ -157,15 +154,12 @@ schemas in `packages/contracts/src/returns.ts`; integer-VND money uses decimal
 strings. Mutation `expectedVersion` is the request version, except inspection save/
 complete/property/photo actions use the inspection version. Reload detail after writes.
 
-Calendar PUT accepts `{ expectedVersion, timezone, holidays, reminderTime,
-operatingHours? }`. Each hours item is `{ dayOfWeek: 0..6, openTime: 'HH:mm',
-closeTime: 'HH:mm' }`. Supplied hours replace that facility's existing operating
-hours atomically and also affect check-in, which shares this source. Omission
-preserves hours; a timezone change requires matching hours. Missing required calendar/
-hours blocks scheduling. Existing 90-minute seed slots are reused without splitting
-or moving them. Adjacent slots whose intervals violate the buffer are unavailable.
-Changing calendar/hours preserves confirmed time snapshots and flags manual review.
-The flag is informational for staff; there is no automatic appointment cancellation.
+BOM manages shared opening and closing hours through `PUT /api/system-settings` keys
+`OPENING_HOUR` and `CLOSING_HOUR` (whole hours, Asia/Ho_Chi_Minh). They apply to
+check-in and return appointments across all facilities. Holidays are out of scope.
+Changing either value flags confirmed return appointments for manual review while
+preserving their saved time snapshots. Existing 90-minute seed slots are reused;
+adjacent slots that violate the buffer are unavailable.
 
 PENDING requests may select the same slot. Confirmation serializes facility
 reservations and revalidates current configuration; exactly one overlapping
@@ -259,7 +253,7 @@ A valid but ineligible preview returns 200 with `canClose: false`. Blocker codes
 `REQUEST_NOT_INSPECTING`, `INSPECTION_NOT_PASSED`, `ACTUAL_RETURN_MISSING`,
 `RENTAL_CLOSED`, `PROPERTY_UNRESOLVED`, `EVIDENCE_INVALID`,
 `DAMAGE_EVIDENCE_MISSING`, `CONFIGURATION_MISSING`.
-When actual return, calendar or rate is missing, `calculation` is null: missing
+When actual return or rate is missing, `calculation` is null: missing
 financial data is never represented as a zero fee. Otherwise calculations remain
 available even when another closure condition blocks approval.
 
@@ -268,8 +262,8 @@ order, but writes no settlement/refund/audit/outbox, rental/request status, unit
 assignment or capacity changes. It neither uploads evidence nor calls a provider.
 Stale preview versions return 409; malformed input 400; rent refund above the
 booking rental fee 422. All current closure gates remain in the mutation.
-Settlement recomputes under transaction locks. A rate or calendar change may alter
-results even when request version is unchanged; a preview is not an approval token.
+Settlement recomputes under transaction locks. A rate change may alter results even
+when request version is unchanged; a preview is not an approval token.
 Completed settlement replay with matching financial inputs remains read-only and
 returns the existing revision even with the original stale version. New mutations
 always check version. Replays never authorize a new financial adjustment.
@@ -341,8 +335,8 @@ bun run db:seed
 ```
 
 The seed inserts default 25% only when absent; it never overwrites BOM settings.
-Admin must configure an actual return checklist/calendar/hours. There is no guessed
-initial severity list or runtime rate fallback.
+Admin must configure an actual return checklist. BOM configures shared opening and
+closing hours. There is no guessed initial severity list or runtime rate fallback.
 
 Local database originally had a divergent older migration journal. Migration 0042
 was generated and applied successfully with the normal db:migrate command on the

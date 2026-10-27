@@ -145,16 +145,14 @@ assigned; those items must be reassigned first.
 
 ## Flow 5 staff work reports (confirmed 2026-10-22)
 
-`facility_task_reports`: UUID id, task_id FK facility_tasks (RESTRICT),
-submitted_by FK users (RESTRICT), nullable accepted_by FK users and accepted_at,
-content text (trimmed, 1..5000 characters), submitted_at timestamptz default now.
-Index (task_id, submitted_at, id) supports ordered history; a partial unique index
-allows at most one accepted report per task. One task has many immutable
-submissions; each submission keeps its original author even after reassignment.
-No edit/delete report API.
+The latest task report is stored on `facility_tasks`: nullable report_id,
+report_content (trimmed, 1..5000), report_submitted_by FK users and
+report_submitted_at. These four fields are either all null or all present.
+Submitting again replaces the prior report; no report history is retained.
+The existing completed_by/completed_at columns record the accepting FM and time.
 
 Only the current active assigned FS with a valid same-facility assignment may
-submit. Same-facility FM and current assigned FS may read task report history.
+submit. Same-facility FM and current assigned FS may read the latest report.
 Submission rechecks authorization under task/account/membership row locks in the
 same order as task reassignment. Identity/time are server-generated. Reporting
 does not itself complete a task or mutate booking/unit/rental/inspection state.
@@ -177,11 +175,12 @@ This additive feature is independent of handover inspections/check-in checklist.
 Admin appends a version with optimistic concurrency. There is no inferred initial
 checklist; all four confirmed groups must be configured before starting inspection.
 
-`facility_return_calendars`: facility_id PK/FK, timezone, JSONB holiday dates,
-reminder_time (09:00 default), version, updated_by FK users and updated_at. Admin
-configures it; operating hours and check_in_slots remain existing sources. Slots
-are 90 minutes, capacity one and a 15-minute cooldown; schedule changes flag
-confirmed appointments for manual review while preserving time snapshots.
+Global `system_settings` keys `OPENING_HOUR` and `CLOSING_HOUR` hold the shared
+operating window (default 08:00–20:00, Asia/Ho_Chi_Minh); BOM manages them with
+versioned audit history. Holiday calendars are out of scope. `check_in_slots` define
+appointment start times; return appointments are filtered by the shared hours and
+remain capacity one with a 15-minute cooldown. Existing appointments keep their
+saved UTC/timezone snapshots.
 
 `system_settings` key OVERDUE_FEE_RATE stores integer rate 0–100 (seed 25),
 version, updated_by FK users nullable for seed and updated_at. Changes are BOM-only
@@ -221,11 +220,11 @@ the current confirmed value to reject competing corrections.
 `return_settlements`: immutable UUID id and unique (request_id,revision), FK request,
 integer-VND numeric(14,0) deposit/overdue/damage/unused-rent-refund/refund-entitlement/
 debt snapshots, integer rate_snapshot, actual_return_at, refund_due_date,
-calendar_snapshot JSONB, approved_by FK, reason and approved_at. Corrections append
+timezone snapshot JSONB, approved_by FK, reason and approved_at. Corrections append
 new revisions, retain the original rate/deposit snapshot, and calculate debt if
 already-refunded money exceeds the corrected entitlement. No automatic collection.
-SLA is three business days following FM approval, excluding weekends and the saved
-holiday calendar. Original revision deadlines are retained in history.
+SLA is three business days following FM approval, skipping Saturday and Sunday.
+Original revision deadlines are retained in history.
 
 `return_refunds`: UUID id, request_id/payment_id/settlement_id FKs, positive integer-VND
 amount, reference, evidence_photo_ids JSONB, idempotency_key, confirmed_by FK and
@@ -304,18 +303,13 @@ erDiagram
     timestamptz started_at "nullable"
     uuid completed_by FK "nullable"
     timestamptz completed_at "nullable"
+    uuid report_id "nullable"
+    text report_content "nullable"
+    uuid report_submitted_by FK "nullable"
+    timestamptz report_submitted_at "nullable"
     timestamptz assigned_at
     timestamptz created_at
     timestamptz updated_at
-  }
-  facility_task_reports {
-    uuid id PK
-    uuid task_id FK
-    uuid submitted_by FK
-    uuid accepted_by FK "nullable"
-    timestamptz accepted_at "nullable"
-    text content
-    timestamptz submitted_at
   }
   facilities ||--o{ facility_tasks : scopes
   users ||--o{ facility_tasks : performs
@@ -323,9 +317,6 @@ erDiagram
   users ||--o{ facility_tasks : assigns
   storage_units o|--o{ facility_tasks : references
   bookings o|--o{ facility_tasks : references
-  facility_tasks ||--o{ facility_task_reports : records
-  users ||--o{ facility_task_reports : submits
-  users o|--o{ facility_task_reports : accepts
   system_settings {
     text key PK
     jsonb value
@@ -403,7 +394,6 @@ erDiagram
   unit_types ||--o{ bookings : books
   unit_types ||--o{ storage_units : materializes
   facilities ||--o{ storage_units : contains
-  facilities ||--o{ facility_operating_hours : schedules
   unit_types ||--o{ capacity_allocations : allocates
   facilities ||--o{ capacity_allocations : reserves
   users o|--o{ bookings : saves_history
@@ -573,14 +563,6 @@ erDiagram
   storage_units ||--o{ storage_unit_maintenance_history : records
   users ||--o{ storage_unit_maintenance_history : changes
 
-  facility_operating_hours {
-    uuid id PK
-    uuid facility_id FK
-    integer day_of_week
-    time open_time
-    time close_time
-    varchar timezone
-  }
 
   capacity_allocations {
     uuid id PK
@@ -806,8 +788,8 @@ erDiagram
   Legacy jobs remain readable; ENQUEUED differs from provider-confirmed SENT.
 
 - UUID primary keys on `users`, `facilities`, `facility_assignments`,
-  `facility_tasks`, `facility_task_reports`, `storage_unit_maintenance_history`,
-  `unit_types`, `storage_units`, `facility_operating_hours`, `check_in_slots`,
+  `facility_tasks`, `storage_unit_maintenance_history`,
+  `unit_types`, `storage_units`, `check_in_slots`,
   and `capacity_allocations` default to generated random UUIDs. Auth tables
   `accounts`, `sessions` and `verifications` use text primary keys.
 - `users.email`, `users.phone`, `facilities.code`, `storage_units.code` and
@@ -815,13 +797,15 @@ erDiagram
 - Varchar limits are `users.email` 255, `users.phone` 20, Booking contact phone 32,
   `facilities.code` 50 and `facilities.name` 150;
   `unit_types.code` 80, `unit_types.name` 100, `unit_types.size_label` 50;
-  `storage_units.code` 80 and `facility_operating_hours.timezone` 64.
+  `storage_units.code` 80.
 - Nullable columns are `users.image`, `users.phone`,
   `users.role`, `users.status`, `facilities.description`,
   `facility_assignments.ended_at`, `storage_units.floor`,
   `storage_units.location_description`, `storage_unit_maintenance_history.reason`,
   `facility_tasks.description`, `facility_tasks.storage_unit_id`,
-  `facility_tasks.booking_id`,
+  `facility_tasks.booking_id`, `facility_tasks.report_id`,
+  `facility_tasks.report_content`, `facility_tasks.report_submitted_by`,
+  `facility_tasks.report_submitted_at`,
   `sessions.ip_address`,
   `sessions.user_agent`, and the optional token, expiry, scope and password
   fields in `accounts`. Every other column shown is required.
@@ -838,8 +822,7 @@ erDiagram
 - Composite unique `accounts(provider_id, account_id)` ensures one owner per provider
   identity, including concurrent OAuth linking. Existing duplicates must be resolved
   explicitly before applying this constraint; never merge users automatically.
-- Composite unique indexes exist on `facility_assignments(user_id, facility_id)` and
-  `facility_operating_hours(facility_id, day_of_week)`.
+- Composite unique indexes exist on `facility_assignments(user_id, facility_id)`.
 - Each User may work at at most one Facility at a time. A partial unique index
   `facility_assignments_active_user_idx` on `user_id WHERE is_active = true`
   enforces this rule, including concurrent assignments. Inactive assignments are
@@ -865,7 +848,7 @@ erDiagram
   Facility task/report and unit maintenance history references use `ON DELETE RESTRICT`
   to preserve assigned work, reports, transition history and actor references.
   Facility foreign keys use `ON DELETE CASCADE` for
-  `storage_units`, `facility_operating_hours` and `facility_assignments`, and
+  `storage_units` and `facility_assignments`, and
   `ON DELETE RESTRICT` for capacity allocations.
 - `created_at` and `updated_at` columns default to `now()` wherever shown;
   `assigned_at` also defaults to `now()`. `facilities.is_active`,
@@ -873,7 +856,7 @@ erDiagram
   `facility_assignments.is_active` default to true.
   `storage_units.status` defaults to `AVAILABLE`,
   `capacity_allocations.status` to `ACTIVE`. The default operating timezone is
-  `Asia/Ho_Chi_Minh`.
+  `Asia/Ho_Chi_Minh`. Operating hours are now global system settings, not a table.
 
 Unit types belong to a facility and own their dimensions and monthly price within a
 BOM-managed rental price range. Exact length, width and height are positive meters;
@@ -1036,13 +1019,13 @@ owning account session and use the existing customer endpoints.
 `system_settings` is the single active global configuration table: key PK, scalar JSONB
 value, description, nonnegative version, updated_by FK users and updated_at. API keys
 are an allowlist with per-key validation and permissions. Initial keys are
-EXPIRY_REMINDER_DAYS (7), ABANDONED_REVIEW_DAYS (7), OVERDUE_FEE_RATE (25) and
-DEPOSIT_MONTHS (1). Days use nonnegative PostgreSQL integers, rate 0–100 and months
-positive. DEPOSIT_MONTHS retains the positive shared pricing revision: price changes
+EXPIRY_REMINDER_DAYS (7), ABANDONED_REVIEW_DAYS (7), OVERDUE_FEE_RATE (25),
+DEPOSIT_MONTHS (1), OPENING_HOUR (8) and CLOSING_HOUR (20). Day/hour settings use
+bounded integers, rate 0–100 and months positive. DEPOSIT_MONTHS retains the positive shared pricing revision: price changes
 also lock/increment this row. Existing quote/rental/settlement snapshots are unchanged.
-System Admin manages rental-day settings; BOM exclusively manages financial settings.
-Facility calendars/checklists, unit type prices and financial snapshots remain relational
-domain data rather than global scalar settings. No new runtime fallback or cache.
+System Admin manages rental-day settings; BOM manages financial settings and shared
+operating hours. Return checklist versions, unit type prices and financial snapshots
+remain relational domain data. Holiday calendars are out of scope.
 
 `system_setting_changes`: UUID id, key FK, JSONB before/after value+version snapshots,
 actor_id FK, source and created_at. Append-only changes share the update transaction;

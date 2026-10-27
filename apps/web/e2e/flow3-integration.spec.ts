@@ -361,14 +361,19 @@ async function setup(page: Page, role: string, conflictSetting = false) {
         data = (
           role === "SYSTEM_ADMIN"
             ? ["EXPIRY_REMINDER_DAYS", "ABANDONED_REVIEW_DAYS"]
-            : ["OVERDUE_FEE_RATE"]
+            : ["OVERDUE_FEE_RATE", "OPENING_HOUR", "CLOSING_HOUR"]
         ).map((key) => ({
           key,
-          value: rate,
+          value: key === "OPENING_HOUR" ? 8 : key === "CLOSING_HOUR" ? 20 : rate,
           version: settingVersion,
-          description: "Cấu hình kiểm thử",
-          unit: "PERCENT",
-          category: "FINANCE",
+          description:
+            key === "OPENING_HOUR"
+              ? "Giờ mở cửa chung"
+              : key === "CLOSING_HOUR"
+                ? "Giờ đóng cửa chung"
+                : "Cấu hình kiểm thử",
+          unit: key.endsWith("HOUR") ? "HOUR" : "PERCENT",
+          category: key.endsWith("HOUR") ? "OPERATIONS" : "FINANCE",
           valueType: "INTEGER",
           updatedBy: actorId,
           updatedAt: now,
@@ -390,15 +395,6 @@ async function setup(page: Page, role: string, conflictSetting = false) {
       };
     else if (path === "/facilities")
       data = [{ id: facilityId, name: "Cơ sở kiểm thử", isActive: true }];
-    else if (path.endsWith("/return-calendar"))
-      data = {
-        facilityId,
-        timezone: "Asia/Ho_Chi_Minh",
-        holidays: [],
-        reminderTime: "09:00",
-        version: 1,
-        operatingHours: [{ dayOfWeek: 1, openTime: "08:00:00", closeTime: "17:00:00" }],
-      };
     else
       return route.fulfill({
         status: 404,
@@ -500,21 +496,18 @@ test("BOM updates overdue rate through system settings", async ({ page }) => {
   await inspect(page, "bom");
 });
 
-test("Admin calendar is readable and changing it requires acknowledgement", async ({ page }) => {
-  const { writes } = await setup(page, "SYSTEM_ADMIN");
-  await openPage(page, "/system-admin/return-settings");
-  await expect(page.getByText("Tiêu chí", { exact: true })).toHaveCount(4);
-  await page.getByRole("button", { name: "Lịch trả kho của cơ sở", exact: true }).click();
-  await page.getByRole("combobox", { name: "Cơ sở", exact: true }).selectOption(facilityId);
-  await expect(page.getByRole("button", { name: "Lưu thay đổi", exact: true })).toBeDisabled();
-  await page.getByLabel("Tôi đã kiểm tra ảnh hưởng tới lịch check-in và trả kho").check();
-  await expect(page.getByRole("button", { name: "Lưu thay đổi", exact: true })).toBeEnabled();
-  await page.getByRole("button", { name: "Lưu thay đổi", exact: true }).click();
+test("BOM configures shared operating hours", async ({ page }) => {
+  const { writes } = await setup(page, "BUSINESS_OPERATION_MANAGER");
+  await openPage(page, "/operations/fees");
+  await page.getByLabel("Giờ mở cửa chung", { exact: true }).fill("9");
+  await page.getByRole("button", { name: "Lưu thay đổi", exact: true }).last().click();
   await expect(page.getByText("Đã lưu thay đổi.", { exact: true })).toBeVisible();
-  expect(
-    writes.find((write) => write.path.endsWith("/return-calendar"))?.body.operatingHours,
-  ).toEqual([{ dayOfWeek: 1, openTime: "08:00", closeTime: "17:00" }]);
-  await inspect(page, "admin");
+  expect(writes.find((write) => write.path === "/system-settings")?.body).toMatchObject({
+    key: "OPENING_HOUR",
+    expectedVersion: 1,
+    value: 9,
+  });
+  await inspect(page, "bom");
 });
 
 test("Guest rental is read-only and private data disappears when the session expires", async ({

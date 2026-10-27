@@ -4,6 +4,8 @@ import {
   type Database,
   desc,
   eq,
+  returnRequests,
+  sql,
   systemSettingChanges,
   systemSettings,
 } from "@metastorage/database";
@@ -21,5 +23,47 @@ export class SystemSettingsRepository {
       .orderBy(desc(systemSettingChanges.createdAt), desc(systemSettingChanges.id))
       .limit(query.limit)
       .offset(query.offset);
+  }
+  async lock(
+    key: SystemSettingKeyValue,
+    tx: Parameters<Parameters<Database["transaction"]>[0]>[0],
+  ) {
+    const [row] = await tx
+      .select()
+      .from(systemSettings)
+      .where(eq(systemSettings.key, key))
+      .for("update");
+    return row;
+  }
+  async save(
+    key: SystemSettingKeyValue,
+    value: number,
+    version: number,
+    actorId: string,
+    tx: Parameters<Parameters<Database["transaction"]>[0]>[0],
+  ) {
+    const [row] = await tx
+      .update(systemSettings)
+      .set({ value, version, updatedBy: actorId, updatedAt: new Date() })
+      .where(eq(systemSettings.key, key))
+      .returning();
+    return row;
+  }
+  async audit(
+    tx: Parameters<Parameters<Database["transaction"]>[0]>[0],
+    key: SystemSettingKeyValue,
+    actorId: string,
+    before: { value: number; version: number },
+    after: { value: number; version: number },
+  ) {
+    await tx
+      .insert(systemSettingChanges)
+      .values({ key, before, after, actorId, source: "SYSTEM_SETTING_CONFIGURED" });
+  }
+  flagConfirmedReturnAppointments(tx: Parameters<Parameters<Database["transaction"]>[0]>[0]) {
+    return tx
+      .update(returnRequests)
+      .set({ manualReviewRequired: true, version: sql`${returnRequests.version} + 1` })
+      .where(eq(returnRequests.status, "CONFIRMED"));
   }
 }

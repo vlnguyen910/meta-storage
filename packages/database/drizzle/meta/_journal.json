@@ -449,6 +449,20 @@
       "when": 1793081421317,
       "tag": "0063_exotic_triton",
       "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1793082661092,
+      "tag": "0064_useful_warhawk",
+      "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1793084790058,
+      "tag": "0065_special_silverclaw",
+      "breakpoints": true
     }
   ]
 }

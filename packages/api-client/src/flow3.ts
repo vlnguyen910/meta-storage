@@ -1,6 +1,5 @@
 import type {
   ApiEnvelope,
-  ConfigureReturnCalendar,
   ConfigureReturnChecklist,
   ConfigureSystemSetting,
   ConfirmReturnRefund,
@@ -15,7 +14,6 @@ import type {
   RentalDetail,
   RentalDocumentDto,
   RentalPaymentItem,
-  ReturnCalendarDto,
   ReturnChecklistVersionDto,
   ReturnEvidenceInput,
   ReturnEvidencePhotoDto,
@@ -171,17 +169,6 @@ export function createFlow3Client(http: AxiosInstance) {
       saveChecklist: (input: ConfigureReturnChecklist) =>
         http
           .put<ApiEnvelope<ReturnChecklistVersionDto>>("/return-policy/checklist", input)
-          .then(unwrap),
-      calendar: (id: string, signal?: AbortSignal) =>
-        http
-          .get<ApiEnvelope<ReturnCalendarDto>>(`/facilities/${id}/return-calendar`, { signal })
-          .then(unwrap),
-      saveCalendar: (id: string, input: ConfigureReturnCalendar) =>
-        http
-          .put<ApiEnvelope<Omit<ReturnCalendarDto, "operatingHours">>>(
-            `/facilities/${id}/return-calendar`,
-            input,
-          )
           .then(unwrap),
     },
     systemSettings: {

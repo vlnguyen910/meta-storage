@@ -40,18 +40,12 @@ export function overdueAmount(
   return ((amount * BigInt(rate) + 50n) / 100n).toString();
 }
 
-export function refundDueDate(approvedAt: Date, timezone: string, holidays: string[]): string {
+export function refundDueDate(approvedAt: Date, timezone: string): string {
   const day = new Date(`${localDate(approvedAt, timezone)}T12:00:00Z`);
-  const excluded = new Set(holidays);
   let remaining = 3;
   while (remaining > 0) {
     day.setUTCDate(day.getUTCDate() + 1);
-    if (
-      day.getUTCDay() !== 0 &&
-      day.getUTCDay() !== 6 &&
-      !excluded.has(day.toISOString().slice(0, 10))
-    )
-      remaining--;
+    if (day.getUTCDay() !== 0 && day.getUTCDay() !== 6) remaining--;
   }
   return day.toISOString().slice(0, 10);
 }
