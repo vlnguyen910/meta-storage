@@ -1,6 +1,6 @@
 {
-  "id": "48246045-c375-42c6-8fd5-fcc14d146729",
-  "prevId": "2f43b7a4-a4b6-4fc0-8d2b-5e2f02c1f74a",
+  "id": "c750da96-13a8-4b95-b6f7-25591e8d4c46",
+  "prevId": "48246045-c375-42c6-8fd5-fcc14d146729",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1047,108 +1047,6 @@
         "facility_assignments_facility_id_facilities_id_fk": {
           "name": "facility_assignments_facility_id_facilities_id_fk",
           "tableFrom": "facility_assignments",
-          "tableTo": "facilities",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.facility_operating_hours": {
-      "name": "facility_operating_hours",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "facility_id": {
-          "name": "facility_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "day_of_week": {
-          "name": "day_of_week",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "open_time": {
-          "name": "open_time",
-          "type": "time",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "close_time": {
-          "name": "close_time",
-          "type": "time",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "timezone": {
-          "name": "timezone",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'Asia/Ho_Chi_Minh'"
-        }
-      },
-      "indexes": {
-        "facility_operating_hours_facility_day_idx": {
-          "name": "facility_operating_hours_facility_day_idx",
-          "columns": [
-            {
-              "expression": "facility_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "day_of_week",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "facility_operating_hours_facility_idx": {
-          "name": "facility_operating_hours_facility_idx",
-          "columns": [
-            {
-              "expression": "facility_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "facility_operating_hours_facility_id_facilities_id_fk": {
-          "name": "facility_operating_hours_facility_id_facilities_id_fk",
-          "tableFrom": "facility_operating_hours",
           "tableTo": "facilities",
           "columnsFrom": [
             "facility_id"
@@ -4146,90 +4044,6 @@
       },
       "isRLSEnabled": false
     },
-    "public.facility_return_calendars": {
-      "name": "facility_return_calendars",
-      "schema": "",
-      "columns": {
-        "facility_id": {
-          "name": "facility_id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "timezone": {
-          "name": "timezone",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "holidays": {
-          "name": "holidays",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "reminder_time": {
-          "name": "reminder_time",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'09:00'"
-        },
-        "version": {
-          "name": "version",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updated_by": {
-          "name": "updated_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "facility_return_calendars_facility_id_facilities_id_fk": {
-          "name": "facility_return_calendars_facility_id_facilities_id_fk",
-          "tableFrom": "facility_return_calendars",
-          "tableTo": "facilities",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "facility_return_calendars_updated_by_users_id_fk": {
-          "name": "facility_return_calendars_updated_by_users_id_fk",
-          "tableFrom": "facility_return_calendars",
-          "tableTo": "users",
-          "columnsFrom": [
-            "updated_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.return_audit": {
       "name": "return_audit",
       "schema": "",
@@ -6450,7 +6264,7 @@
         },
         "system_settings_known_integer": {
           "name": "system_settings_known_integer",
-          "value": "\"system_settings\".\"key\" not in ('EXPIRY_REMINDER_DAYS', 'ABANDONED_REVIEW_DAYS', 'OVERDUE_FEE_RATE', 'DEPOSIT_MONTHS') or (jsonb_typeof(\"system_settings\".\"value\") = 'number' and (\"system_settings\".\"value\" #>> '{}')::numeric between 0 and 2147483647 and trunc((\"system_settings\".\"value\" #>> '{}')::numeric) = (\"system_settings\".\"value\" #>> '{}')::numeric)"
+          "value": "\"system_settings\".\"key\" not in ('EXPIRY_REMINDER_DAYS', 'ABANDONED_REVIEW_DAYS', 'OVERDUE_FEE_RATE', 'DEPOSIT_MONTHS', 'OPENING_HOUR', 'CLOSING_HOUR') or (jsonb_typeof(\"system_settings\".\"value\") = 'number' and (\"system_settings\".\"value\" #>> '{}')::numeric between 0 and 2147483647 and trunc((\"system_settings\".\"value\" #>> '{}')::numeric) = (\"system_settings\".\"value\" #>> '{}')::numeric)"
         },
         "system_settings_overdue_rate": {
           "name": "system_settings_overdue_rate",
@@ -6459,6 +6273,10 @@
         "system_settings_deposit_policy": {
           "name": "system_settings_deposit_policy",
           "value": "\"system_settings\".\"key\" <> 'DEPOSIT_MONTHS' or ((\"system_settings\".\"value\" #>> '{}')::numeric > 0 and \"system_settings\".\"version\" > 0)"
+        },
+        "system_settings_operating_hour": {
+          "name": "system_settings_operating_hour",
+          "value": "\"system_settings\".\"key\" not in ('OPENING_HOUR', 'CLOSING_HOUR') or (\"system_settings\".\"value\" #>> '{}')::integer between 0 and 24"
         }
       },
       "isRLSEnabled": false
@@ -7508,5 +7326,5 @@
     "schemas": {},
     "tables": {}
   },
-  "tag": "0065_useful_warhawk"
+  "tag": "0066_special_silverclaw"
 }

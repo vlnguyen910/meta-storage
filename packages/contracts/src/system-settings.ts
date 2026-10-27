@@ -6,6 +6,8 @@ export const SystemSettingKey = {
   ABANDONED_REVIEW_DAYS: "ABANDONED_REVIEW_DAYS",
   OVERDUE_FEE_RATE: "OVERDUE_FEE_RATE",
   DEPOSIT_MONTHS: "DEPOSIT_MONTHS",
+  OPENING_HOUR: "OPENING_HOUR",
+  CLOSING_HOUR: "CLOSING_HOUR",
 } as const;
 export type SystemSettingKeyValue = (typeof SystemSettingKey)[keyof typeof SystemSettingKey];
 
@@ -43,6 +45,22 @@ export const SYSTEM_SETTING_DEFINITIONS = {
     description: "Số tháng tiền thuê dùng để tính tiền cọc.",
     defaultValue: 1,
   },
+  OPENING_HOUR: {
+    category: "OPERATIONS",
+    unit: "HOUR",
+    valueType: "INTEGER",
+    role: "BUSINESS_OPERATION_MANAGER",
+    description: "Giờ mở cửa chung của các cơ sở (giờ Việt Nam).",
+    defaultValue: 8,
+  },
+  CLOSING_HOUR: {
+    category: "OPERATIONS",
+    unit: "HOUR",
+    valueType: "INTEGER",
+    role: "BUSINESS_OPERATION_MANAGER",
+    description: "Giờ đóng cửa chung của các cơ sở (giờ Việt Nam).",
+    defaultValue: 20,
+  },
 } as const;
 
 const integer = z
@@ -75,6 +93,16 @@ export const ConfigureSystemSettingSchema = z.discriminatedUnion("key", [
     key: z.literal(SystemSettingKey.DEPOSIT_MONTHS),
     value: integer.positive(m.invalid),
     expectedVersion: version.positive(m.invalid),
+  }),
+  z.strictObject({
+    key: z.literal(SystemSettingKey.OPENING_HOUR),
+    value: integer.max(23, m.invalid),
+    expectedVersion: version,
+  }),
+  z.strictObject({
+    key: z.literal(SystemSettingKey.CLOSING_HOUR),
+    value: integer.min(1, m.invalid).max(24, m.invalid),
+    expectedVersion: version,
   }),
 ]);
 export const SystemSettingParamsSchema = z.strictObject({ key: z.enum(SystemSettingKey) });

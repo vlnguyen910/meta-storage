@@ -19,18 +19,16 @@ export class FacilitiesService {
     return facility;
   }
 
-  async assertCheckInWithinOperatingHours(facilityId: string, checkInAt: Date): Promise<void> {
+  async assertCheckInWithinOperatingHours(_facilityId: string, checkInAt: Date): Promise<void> {
     const parts = new Intl.DateTimeFormat("en-US", {
       timeZone: "Asia/Ho_Chi_Minh",
-      weekday: "short",
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
     }).formatToParts(checkInAt);
     const get = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
-    const dayOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(get("weekday"));
     const time = `${get("hour")}:${get("minute")}:00`;
-    const hours = await this.facilitiesRepository.findOperatingHours(facilityId, dayOfWeek);
+    const hours = await this.facilitiesRepository.globalOperatingHours();
     const openTime = hours?.openTime ?? "06:00:00";
     const closeTime = hours?.closeTime ?? "22:00:00";
     if (time < openTime || time > closeTime) {

@@ -65,11 +65,13 @@ function SettingField({ setting }: { setting: SystemSettingDto }) {
     enabled: showHistory,
   });
   const label =
-    setting.key === "OVERDUE_FEE_RATE"
-      ? F3.overdueRate
-      : setting.key === "EXPIRY_REMINDER_DAYS"
-        ? F3.expiryDays
-        : F3.reviewDays;
+    setting.key === "OPENING_HOUR" || setting.key === "CLOSING_HOUR"
+      ? setting.description
+      : setting.key === "OVERDUE_FEE_RATE"
+        ? F3.overdueRate
+        : setting.key === "EXPIRY_REMINDER_DAYS"
+          ? F3.expiryDays
+          : F3.reviewDays;
   return (
     <section className={f3Panel}>
       <form
@@ -83,8 +85,16 @@ function SettingField({ setting }: { setting: SystemSettingDto }) {
           {label}
           <input
             type="number"
-            min={0}
-            max={setting.key === "OVERDUE_FEE_RATE" ? 100 : 2147483647}
+            min={setting.key === "CLOSING_HOUR" ? 1 : 0}
+            max={
+              setting.key === "OPENING_HOUR"
+                ? 23
+                : setting.key === "CLOSING_HOUR"
+                  ? 24
+                  : setting.key === "OVERDUE_FEE_RATE"
+                    ? 100
+                    : 2147483647
+            }
             step={1}
             required
             className={f3Input}
