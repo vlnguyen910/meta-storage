@@ -14,7 +14,6 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { bookingContracts } from "./booking-contracts";
 import { bookings } from "./bookings";
 import { checkInVerifications } from "./checkin-verifications";
 import { facilities } from "./facilities";
@@ -43,7 +42,6 @@ export const handoverInspections = pgTable(
       .notNull()
       .unique()
       .references(() => checkInVerifications.id, { onDelete: "restrict" }),
-    contractId: uuid().references(() => bookingContracts.id, { onDelete: "restrict" }),
     unitCode: varchar({ length: 100 }).notNull(),
     policyVersion: varchar({ length: 20 }).default("H6_V1").notNull(),
     checklistVersion: varchar({ length: 30 }),
@@ -79,9 +77,8 @@ export const inspectionPhotos = pgTable(
     filename: varchar({ length: 120 }).notNull(),
     mimeType: varchar({ length: 40 }).notNull(),
     byteSize: integer().notNull(),
-    dataBase64: text(),
-    cloudinaryPublicId: text(),
-    cloudinaryFormat: varchar({ length: 20 }),
+    cloudinaryPublicId: text().notNull(),
+    cloudinaryFormat: varchar({ length: 20 }).notNull(),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [index("inspection_photos_inspection_idx").on(t.inspectionId)],

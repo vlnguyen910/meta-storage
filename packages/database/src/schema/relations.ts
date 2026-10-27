@@ -6,7 +6,6 @@ import { checkInSlots } from "./check-in-slots";
 import { checkInVerifications } from "./checkin-verifications";
 import { facilities } from "./facilities";
 import { facilityAssignments } from "./facility-assignments";
-import { facilityOperatingHours } from "./facility-operating-hours";
 import { paymentProviderEvents } from "./payment-provider-events";
 import { payments } from "./payments";
 import {
@@ -18,17 +17,10 @@ import { rentalCharges } from "./rental-charges";
 import { rentalPriceRanges } from "./rental-price-ranges";
 import { rentalRenewals } from "./rental-renewals";
 import { rentals } from "./rentals";
-import { reservationDrafts } from "./reservation-drafts";
 import { returnSettlements } from "./returns";
 import { sessions } from "./sessions";
 import { storageUnits } from "./storage-units";
-import {
-  supportAttachments,
-  supportAudit,
-  supportIdempotency,
-  supportMessages,
-  supportTickets,
-} from "./support";
+import { supportTickets } from "./support";
 import { unitAssignments } from "./unit-assignments";
 import { unitTypes } from "./unit-types";
 import { users } from "./users";
@@ -112,8 +104,6 @@ export const facilitiesRelations = relations(facilities, ({ many }) => ({
   unitTypes: many(unitTypes),
   assignments: many(facilityAssignments),
   storageUnits: many(storageUnits),
-  operatingHours: many(facilityOperatingHours),
-  reservationDrafts: many(reservationDrafts),
   capacityAllocations: many(capacityAllocations),
   bookings: many(bookings),
   rentals: many(rentals),
@@ -156,24 +146,6 @@ export const storageUnitsRelations = relations(storageUnits, ({ one, many }) => 
   }),
   assignments: many(unitAssignments),
   rentals: many(rentals),
-}));
-
-export const facilityOperatingHoursRelations = relations(facilityOperatingHours, ({ one }) => ({
-  facility: one(facilities, {
-    fields: [facilityOperatingHours.facilityId],
-    references: [facilities.id],
-  }),
-}));
-
-export const reservationDraftsRelations = relations(reservationDrafts, ({ one }) => ({
-  facility: one(facilities, {
-    fields: [reservationDrafts.facilityId],
-    references: [facilities.id],
-  }),
-  unitType: one(unitTypes, {
-    fields: [reservationDrafts.unitTypeId],
-    references: [unitTypes.id],
-  }),
 }));
 
 export const capacityAllocationsRelations = relations(capacityAllocations, ({ one }) => ({
@@ -291,7 +263,7 @@ export const checkInSlotsRelations = relations(checkInSlots, ({ many }) => ({
   bookings: many(bookings),
 }));
 
-export const supportTicketsRelations = relations(supportTickets, ({ one, many }) => ({
+export const supportTicketsRelations = relations(supportTickets, ({ one }) => ({
   booking: one(bookings, { fields: [supportTickets.bookingId], references: [bookings.id] }),
   owner: one(users, {
     fields: [supportTickets.ownerUserId],
@@ -300,72 +272,5 @@ export const supportTicketsRelations = relations(supportTickets, ({ one, many })
   }),
   facility: one(facilities, { fields: [supportTickets.facilityId], references: [facilities.id] }),
   rental: one(rentals, { fields: [supportTickets.rentalId], references: [rentals.id] }),
-  storageUnit: one(storageUnits, {
-    fields: [supportTickets.storageUnitId],
-    references: [storageUnits.id],
-  }),
   payment: one(payments, { fields: [supportTickets.paymentId], references: [payments.id] }),
-  assignee: one(users, {
-    fields: [supportTickets.assignedStaffId],
-    references: [users.id],
-    relationName: "supportAssignee",
-  }),
-  assigner: one(users, {
-    fields: [supportTickets.assignedBy],
-    references: [users.id],
-    relationName: "supportAssigner",
-  }),
-  closer: one(users, {
-    fields: [supportTickets.closedBy],
-    references: [users.id],
-    relationName: "supportCloser",
-  }),
-  messages: many(supportMessages),
-  attachments: many(supportAttachments),
-  audit: many(supportAudit),
-  idempotency: many(supportIdempotency),
-}));
-export const supportMessagesRelations = relations(supportMessages, ({ one, many }) => ({
-  ticket: one(supportTickets, {
-    fields: [supportMessages.ticketId],
-    references: [supportTickets.id],
-  }),
-  author: one(users, { fields: [supportMessages.authorId], references: [users.id] }),
-  attachments: many(supportAttachments),
-}));
-export const supportAttachmentsRelations = relations(supportAttachments, ({ one }) => ({
-  ticket: one(supportTickets, {
-    fields: [supportAttachments.ticketId],
-    references: [supportTickets.id],
-  }),
-  message: one(supportMessages, {
-    fields: [supportAttachments.ticketId, supportAttachments.messageId],
-    references: [supportMessages.ticketId, supportMessages.id],
-  }),
-  uploader: one(users, { fields: [supportAttachments.uploadedBy], references: [users.id] }),
-}));
-export const supportAuditRelations = relations(supportAudit, ({ one }) => ({
-  ticket: one(supportTickets, { fields: [supportAudit.ticketId], references: [supportTickets.id] }),
-  actor: one(users, {
-    fields: [supportAudit.actorId],
-    references: [users.id],
-    relationName: "supportAuditActor",
-  }),
-  previousStaff: one(users, {
-    fields: [supportAudit.previousStaffId],
-    references: [users.id],
-    relationName: "supportAuditPreviousStaff",
-  }),
-  nextStaff: one(users, {
-    fields: [supportAudit.nextStaffId],
-    references: [users.id],
-    relationName: "supportAuditNextStaff",
-  }),
-}));
-export const supportIdempotencyRelations = relations(supportIdempotency, ({ one }) => ({
-  ticket: one(supportTickets, {
-    fields: [supportIdempotency.ticketId],
-    references: [supportTickets.id],
-  }),
-  actor: one(users, { fields: [supportIdempotency.actorId], references: [users.id] }),
 }));

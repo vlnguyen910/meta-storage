@@ -8,7 +8,6 @@ import {
   checkInSlots,
   db,
   eq,
-  facilityReturnCalendars,
   payments,
   rentals,
   storageUnits,
@@ -17,11 +16,9 @@ import {
   unitTypes,
   users,
 } from "@metastorage/database";
-import { PDFDocument } from "pdf-lib";
 import { corsPlugin } from "../../src/common/plugins/cors";
 import { authRoutes } from "../../src/modules/auth/auth.routes";
 import { bookingsRoutes } from "../../src/modules/bookings/bookings.routes";
-import { contractsRoutes } from "../../src/modules/contracts/contracts.routes";
 import { facilitiesRoutes } from "../../src/modules/facilities/facilities.routes";
 import { paymentsRoutes } from "../../src/modules/payments/payments.routes";
 import { SepayPaymentGateway } from "../../src/modules/payments/sepay.gateway";
@@ -42,20 +39,6 @@ await db
   .update(unitTypes)
   .set({ name: "Customer available type" })
   .where(eq(unitTypes.id, f.typeId));
-const objects = new Map<string, Uint8Array>();
-const storage = {
-  async put(key: string, bytes: Uint8Array) {
-    objects.set(key, bytes);
-  },
-  async get(key: string) {
-    const data = objects.get(key);
-    if (!data) throw new Error("Missing test object");
-    return data;
-  },
-  async remove(key: string) {
-    objects.delete(key);
-  },
-};
 await f.app.register(corsPlugin);
 await f.app.register(authRoutes, { prefix: "/api/auth" });
 await f.app.register(bookingsRoutes, { prefix: "/api" });
@@ -65,8 +48,7 @@ await f.app.register(rentalsRoutes, { prefix: "/api/rentals" });
 await f.app.register(returnsRoutes, { prefix: "/api" });
 await f.app.register(renewalsRoutes, { prefix: "/api" });
 await f.app.register(rentalChargesRoutes, { prefix: "/api" });
-await f.app.register(contractsRoutes, { prefix: "/api", storage });
-await f.app.register(supportRoutes, { prefix: "/api/support", storage });
+await f.app.register(supportRoutes, { prefix: "/api/support" });
 await db
   .insert(systemSettings)
   .values(
@@ -78,13 +60,6 @@ await db
     })),
   )
   .onConflictDoNothing();
-await db.insert(facilityReturnCalendars).values({
-  facilityId: f.facilityId,
-  timezone: "Asia/Ho_Chi_Minh",
-  holidays: [],
-  version: 0,
-  updatedBy: f.ids.manager,
-});
 const slotId = randomUUID();
 await db
   .insert(checkInSlots)
@@ -149,7 +124,6 @@ for (let i = 0; i < 3; i++) {
       .insert(unitAssignments)
       .values({ bookingId: id, physicalUnitId: unitId, assignedBy: f.ids.manager });
   }
-  // Document upload/issue use the real HTTP route; handover state below is an explicit test precondition.
   rentalRows.push({
     id: rentalId,
     bookingId: id,
@@ -194,24 +168,6 @@ await db.insert(payments).values({
   status: "FAILED",
 });
 await f.login();
-const pdf = await PDFDocument.create();
-pdf.addPage();
-const bytes = await pdf.save();
-const uploaded = await f.api("manager", "POST", `/bookings/${bookingIds[0]}/contracts`, {
-  filename: "live-contract.pdf",
-  mimeType: "application/pdf",
-  dataBase64: Buffer.from(bytes).toString("base64"),
-  idempotencyKey: randomUUID(),
-});
-if (uploaded.statusCode !== 201) throw new Error(uploaded.body);
-const contractId = uploaded.json().data.id;
-const issued = await f.api(
-  "manager",
-  "POST",
-  `/bookings/${bookingIds[0]}/contracts/${contractId}/issue`,
-  { expectedCurrentIssuedId: null },
-);
-if (issued.statusCode !== 200) throw new Error(issued.body);
 await db.insert(rentals).values(rentalRows);
 for (const id of bookingIds)
   await db.update(bookings).set({ status: "CHECKED_IN" }).where(eq(bookings.id, id));
@@ -228,7 +184,6 @@ await writeFile(
     slotId,
     rentalIds,
     bookingIds,
-    contractId,
     failedBookingId,
     failedPaymentId,
     email: `${f.ids.customer}@example.test`,

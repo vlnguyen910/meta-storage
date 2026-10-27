@@ -2,8 +2,6 @@ import {
   and,
   type Database,
   eq,
-  facilityOperatingHours,
-  facilityReturnCalendars,
   gt,
   inArray,
   isNull,
@@ -17,19 +15,8 @@ import {
 
 import type { NotificationTransaction } from "../notifications/lifecycle-notifications.types";
 
-export async function facilityLifecycleClock(tx: NotificationTransaction, facilityId: string) {
-  const [calendar] = await tx
-    .select()
-    .from(facilityReturnCalendars)
-    .where(eq(facilityReturnCalendars.facilityId, facilityId));
-  if (calendar) return { timezone: calendar.timezone, reminderTime: calendar.reminderTime };
-  const hours = await tx
-    .select({ timezone: facilityOperatingHours.timezone })
-    .from(facilityOperatingHours)
-    .where(eq(facilityOperatingHours.facilityId, facilityId));
-  const timezones = new Set(hours.map((row) => row.timezone));
-  if (timezones.size !== 1) return undefined;
-  return { timezone: hours[0]?.timezone ?? "", reminderTime: "09:00" };
+export async function facilityLifecycleClock(_tx: NotificationTransaction, _facilityId: string) {
+  return { timezone: "Asia/Ho_Chi_Minh", reminderTime: "09:00" };
 }
 
 export class RentalLifecycleRepository {
@@ -49,20 +36,8 @@ export class RentalLifecycleRepository {
   ) {
     // Facility-local calendar boundaries and date subtraction cannot be expressed
     // with Drizzle comparison helpers; keep timezone arithmetic inside PostgreSQL.
-    // Reuse the existing facility operating-hours timezone when no return calendar
-    // exists. The aggregate excludes inconsistent/missing facility timezones.
-    const operatingTimezones = this.db.$with("operating_timezones").as(
-      this.db
-        .select({
-          facilityId: facilityOperatingHours.facilityId,
-          timezone: sql<string>`min(${facilityOperatingHours.timezone})`.as("operating_timezone"),
-        })
-        .from(facilityOperatingHours)
-        .groupBy(facilityOperatingHours.facilityId)
-        .having(sql`count(distinct ${facilityOperatingHours.timezone}) = 1`),
-    );
-    const timezone = sql`coalesce(${facilityReturnCalendars.timezone}, ${operatingTimezones.timezone})`;
-    const reminderTime = sql`coalesce(${facilityReturnCalendars.reminderTime}, '09:00')`;
+    const timezone = sql`'Asia/Ho_Chi_Minh'`;
+    const reminderTime = sql`'09:00'`;
     const expiryReminderDays = sql`${settings.expiryReminderDays}::integer`;
     const abandonedReviewDays = sql`${settings.abandonedReviewDays}::integer`;
     const today = sql`(${now.toISOString()}::timestamptz at time zone ${timezone})::date`;
@@ -77,11 +52,8 @@ export class RentalLifecycleRepository {
       .from(notificationOutbox)
       .where(eq(notificationOutbox.eventKey, sql`${termKey} || ':overdue'`));
     return this.db
-      .with(operatingTimezones)
       .select({ id: rentals.id })
       .from(rentals)
-      .leftJoin(facilityReturnCalendars, eq(facilityReturnCalendars.facilityId, rentals.facilityId))
-      .leftJoin(operatingTimezones, eq(operatingTimezones.facilityId, rentals.facilityId))
       .where(
         and(
           inArray(rentals.status, ["ACTIVE", "RETURN_PENDING", "OVERDUE"]),

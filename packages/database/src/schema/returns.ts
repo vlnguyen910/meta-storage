@@ -46,19 +46,6 @@ export const returnChecklistVersions = pgTable("return_checklist_versions", {
     .references(() => users.id, { onDelete: "restrict" }),
   createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
 });
-export const facilityReturnCalendars = pgTable("facility_return_calendars", {
-  facilityId: uuid()
-    .primaryKey()
-    .references(() => facilities.id, { onDelete: "restrict" }),
-  timezone: text().notNull(),
-  holidays: jsonb().$type<string[]>().notNull(),
-  reminderTime: text().default("09:00").notNull(),
-  version: integer().notNull(),
-  updatedBy: uuid()
-    .notNull()
-    .references(() => users.id, { onDelete: "restrict" }),
-  updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
-});
 export const returnRequests = pgTable(
   "return_requests",
   {
@@ -203,7 +190,7 @@ export const returnSettlements = pgTable(
     debtAmount: numeric({ precision: 14, scale: 0 }).notNull(),
     actualReturnAt: timestamp({ withTimezone: true }).notNull(),
     refundDueDate: date().notNull(),
-    calendarSnapshot: jsonb().$type<{ timezone: string; holidays: string[] }>().notNull(),
+    calendarSnapshot: jsonb().$type<{ timezone: string }>().notNull(),
     approvedBy: uuid()
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),

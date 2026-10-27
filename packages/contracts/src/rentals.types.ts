@@ -67,7 +67,6 @@ export interface FacilityRentalItem {
     currency: string;
     paidAt: string | null;
   } | null;
-  currentIssuedContract: { id: string; version: number; issuedAt: string } | null;
 }
 
 export interface FacilityRentalPage {

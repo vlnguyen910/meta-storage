@@ -12,7 +12,6 @@ import {
   ne,
   or,
   rentalPriceRanges,
-  reservationDrafts,
   type UnitType,
   unitTypes,
   users,
@@ -167,12 +166,7 @@ export class UnitTypesRepository {
           .from(bookings)
           .where(eq(bookings.unitTypeId, id))
           .limit(1);
-        const [draft] = await tx
-          .select({ id: reservationDrafts.id })
-          .from(reservationDrafts)
-          .where(eq(reservationDrafts.unitTypeId, id))
-          .limit(1);
-        if (booking || draft) throw new ConflictError(M.dimensionsInUse);
+        if (booking) throw new ConflictError(M.dimensionsInUse);
       }
       const price = input.monthlyPrice ?? before.monthlyPrice;
       if (

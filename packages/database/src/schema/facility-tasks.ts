@@ -49,6 +49,10 @@ export const facilityTasks = pgTable(
     startedAt: timestamp({ withTimezone: true }),
     completedBy: uuid().references(() => users.id, { onDelete: "restrict" }),
     completedAt: timestamp({ withTimezone: true }),
+    reportId: uuid(),
+    reportContent: text(),
+    reportSubmittedBy: uuid().references(() => users.id, { onDelete: "restrict" }),
+    reportSubmittedAt: timestamp({ withTimezone: true }),
     assignedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
@@ -62,6 +66,15 @@ export const facilityTasks = pgTable(
       sql`(${t.status} = 'ASSIGNED' AND ${t.startedAt} IS NULL AND ${t.completedBy} IS NULL AND ${t.completedAt} IS NULL)
         OR (${t.status} IN ('IN_PROGRESS', 'AWAITING_APPROVAL') AND ${t.startedAt} IS NOT NULL AND ${t.completedBy} IS NULL AND ${t.completedAt} IS NULL)
         OR (${t.status} = 'COMPLETED' AND ${t.startedAt} IS NOT NULL AND ${t.completedBy} IS NOT NULL AND ${t.completedAt} IS NOT NULL)`,
+    ),
+    check(
+      "facility_tasks_report_valid",
+      sql`(${t.reportId} IS NULL AND ${t.reportContent} IS NULL AND ${t.reportSubmittedBy} IS NULL AND ${t.reportSubmittedAt} IS NULL)
+        OR (${t.reportId} IS NOT NULL AND ${t.reportContent} IS NOT NULL AND ${t.reportSubmittedBy} IS NOT NULL AND ${t.reportSubmittedAt} IS NOT NULL AND length(btrim(${t.reportContent})) BETWEEN 1 AND 5000)`,
+    ),
+    check(
+      "facility_tasks_report_required_for_approval",
+      sql`${t.status} NOT IN ('AWAITING_APPROVAL', 'COMPLETED') OR ${t.reportId} IS NOT NULL`,
     ),
     check(
       "facility_tasks_text_valid",

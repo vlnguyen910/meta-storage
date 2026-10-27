@@ -59,7 +59,7 @@ The decisions in the register are approved by the requestor. The following recor
 ## Implementation decisions confirmed for #163
 
 - **Resolved in #163:** customer-wide unpaid RETURN_DEBT blocks renewal; no debt/rent netting; unpaid EXTRA does not block.
-- **Resolved R2/R5/R6 implementation mapping:** use the existing facility return-calendar timezone, falling back to the single configured operating-hours timezone; reject missing/inconsistent configuration. `unit_types.monthly_price` is the current published global rate. New booking/renewal months use 30 × 24 hours, `rentals.expected_end_at` is current expiry, and booking/PDF snapshots retain the initial term. OVERDUE begins at the exact expiry instant; fees remain based on the next local date. Reminder/review cadence remains separate.
+- **Resolved R2/R5/R6 implementation mapping:** use the shared `Asia/Ho_Chi_Minh` timezone; operating hours are shared BOM settings and holiday calendars are out of scope. `unit_types.monthly_price` is the current published global rate. New booking/renewal months use 30 × 24 hours, `rentals.expected_end_at` is current expiry, and booking/PDF snapshots retain the initial term. OVERDUE begins at the exact expiry instant; fees remain based on the next local date. Reminder/review cadence remains separate.
 - **R8:** no early-return rental-fee refunds for new initial/renewal settlements. Preserve historical approved entitlements/transfers; captured-but-unapplied renewal payments still require controlled refunds.
 
 ## Remaining TBDs and validation items
@@ -101,10 +101,10 @@ The main cross-dependencies for implementation are: R2 + R3 + P2 must use the sa
 
 The following design direction is consistent with the approved policy. Exact schema names, constraints, and API shapes remain follow-up design work for #162/#163 and are not approved by this policy document.
 
-- Keep the original checkout flow and its `booking_id`/`draft_id` semantics unchanged for initial rental + deposit.
+- Keep the booking checkout flow unchanged for initial rental + deposit.
 - Add a rental obligation/charge record representing **what is owed**, not a provider attempt. It is tied to a rental and exactly one typed source (`RENEWAL`, `EXTRA`, or a particular `RETURN_DEBT` settlement revision). Store integer VND amounts, source/component breakdown, status, due time, reason/evidence, creator/approver, idempotency key and audit.
 - A renewal record snapshots prior/new term boundaries, 30-day duration units and rate/version, plus the rent amount. It has no deposit charge or deposit contribution. Applying it updates the current rental end exactly once under rental/booking/capacity locks; it never overwrites the original booking price or issued PDF.
-- Payment rows represent attempts against one obligation. Several `FAILED`/`PENDING` attempts still leave one amount due; one provider-confirmed success marks that source paid once. Initial checkout attempts remain tied to booking/draft and continue to use their current workflow.
+- Payment rows represent attempts against one obligation. Several `FAILED`/`PENDING` attempts still leave one amount due; one provider-confirmed success marks that source paid once. Initial checkout attempts remain tied to bookings and continue to use their current workflow.
 - A return settlement revision remains immutable and authoritative for its assessed refund/debt. A later correction creates an adjustment linked to the new revision; it does not mutate historical charges, payment attempts or transfer allocations.
 - Reports aggregate each payment/refund once before joining source records. Source attribution comes from immutable obligation components, never from contact text, current catalog prices or an inferred “rent first/deposit first” ordering.
 

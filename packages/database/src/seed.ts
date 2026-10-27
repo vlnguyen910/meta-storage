@@ -12,8 +12,6 @@ import {
   checkInVerifications,
   facilities,
   facilityAssignments,
-  facilityOperatingHours,
-  facilityReturnCalendars,
   payments,
   rentalPriceRanges,
   rentals,
@@ -439,18 +437,6 @@ async function seedDemoData(seedNow: Date) {
         await tx
           .insert(facilityAssignments)
           .values({ userId: person.id, facilityId: facility.id, role: person.role })
-          .onConflictDoNothing();
-      }
-      for (let day = 0; day < 7; day++) {
-        await tx
-          .insert(facilityOperatingHours)
-          .values({
-            facilityId: facility.id,
-            dayOfWeek: day,
-            openTime: "08:00:00",
-            closeTime: "20:00:00",
-            timezone: "Asia/Ho_Chi_Minh",
-          })
           .onConflictDoNothing();
       }
       const facilityTypes = typeRows.filter((type) => type.facilityId === facility.id);
@@ -941,19 +927,6 @@ async function seedFlow3Rentals(seedNow: Date) {
     )[0];
   if (!checklistVersion) throw new Error("Flow 3 checklist fixture could not be created");
 
-  await db
-    .insert(facilityReturnCalendars)
-    .values({
-      facilityId: facility.id,
-      timezone: "Asia/Ho_Chi_Minh",
-      holidays: [],
-      reminderTime: "09:00",
-      version: 1,
-      updatedBy: admin.id,
-      updatedAt: seedNow,
-    })
-    .onConflictDoNothing();
-
   const definitions = [
     { status: "ACTIVE", expiryDays: 20, requestStatus: null, requestDay: 2, slotIndex: 0 },
     {
@@ -1216,7 +1189,13 @@ export async function seedPricingPolicy(seedNow = getSeedNow()) {
 
 async function seedPolicies(seedNow: Date) {
   await seedPricingPolicy(seedNow);
-  const keys = ["EXPIRY_REMINDER_DAYS", "ABANDONED_REVIEW_DAYS", "OVERDUE_FEE_RATE"] as const;
+  const keys = [
+    "EXPIRY_REMINDER_DAYS",
+    "ABANDONED_REVIEW_DAYS",
+    "OVERDUE_FEE_RATE",
+    "OPENING_HOUR",
+    "CLOSING_HOUR",
+  ] as const;
   await db
     .insert(systemSettings)
     .values(
@@ -1757,19 +1736,18 @@ async function seed() {
 
     await queryClient`
       INSERT INTO payments (
-        id, booking_id, draft_id, hold_token_hash, provider, provider_payment_id,
+        id, booking_id, hold_token_hash, provider, provider_payment_id,
         idempotency_key, payment_code, total_amount,
         currency, status, paid_at
       )
       VALUES (
-        ${paymentId}, ${booking.id}, NULL, ${`seed-hold-${bookingSeed.code}`},
+        ${paymentId}, ${booking.id}, ${`seed-hold-${bookingSeed.code}`},
         'MOCK', ${`seed-payment-${bookingSeed.code}`}, ${`seed-idempotency-${bookingSeed.code}`}, ${`SEED${bookingSeed.code}`},
         ${totalAmount}, 'VND',
         ${bookingSeed.paymentStatus}, ${new Date(now + bookingSeed.paidOffset).toISOString()}
       )
       ON CONFLICT (id) DO UPDATE SET
         booking_id = EXCLUDED.booking_id,
-        draft_id = EXCLUDED.draft_id,
         payment_code = EXCLUDED.payment_code,
         status = EXCLUDED.status,
         paid_at = EXCLUDED.paid_at,

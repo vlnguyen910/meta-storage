@@ -4,7 +4,6 @@ import {
   db,
   eq,
   facilityAssignments,
-  facilityTaskReports,
   facilityTasks,
   inArray,
   queryClient,
@@ -28,7 +27,6 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Flow 5 task reports
     try {
       if (f) {
         if (taskIds.length) {
-          await db.delete(facilityTaskReports).where(inArray(facilityTaskReports.taskId, taskIds));
           await db.delete(facilityTasks).where(inArray(facilityTasks.id, taskIds));
         }
         await f.cleanup();
@@ -60,9 +58,11 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Flow 5 task reports
     const originalTask = before[0];
     if (!originalTask) throw new Error("Created task was not persisted");
     const unitBefore = await db.select().from(storageUnits).where(eq(storageUnits.id, f.unitId));
+    let firstReportId = "";
     for (const content of [" First inspection ", "Follow-up inspection"]) {
       const r = await f.api("staff", "POST", path(task.id), { content });
       expect(r.statusCode).toBe(201);
+      if (!firstReportId) firstReportId = r.json().data.id;
       expect(r.json().data).toMatchObject({
         taskId: task.id,
         submittedBy: f.ids.staff,
@@ -82,20 +82,17 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Flow 5 task reports
           "acceptedAt",
         ].sort(),
       );
-      const [saved] = await db
-        .select()
-        .from(facilityTaskReports)
-        .where(eq(facilityTaskReports.id, r.json().data.id));
-      expect(saved?.content).toBe(content.trim());
-      expect(saved?.submittedAt.toISOString()).toBe(r.json().data.submittedAt);
+      const [saved] = await db.select().from(facilityTasks).where(eq(facilityTasks.id, task.id));
+      expect(saved?.reportId).toBe(r.json().data.id);
+      expect(saved?.reportContent).toBe(content.trim());
+      expect(saved?.reportSubmittedAt?.toISOString()).toBe(r.json().data.submittedAt);
     }
     const history = await f.api("manager", "GET", path(task.id));
     expect(history.statusCode).toBe(200);
     expect(history.headers["cache-control"]).toBe("private, no-store");
-    expect(history.json().data).toMatchObject({ total: 2, limit: 20, offset: 0 });
+    expect(history.json().data).toMatchObject({ total: 1, limit: 20, offset: 0 });
     expect(history.json().data.items.map((r: { content: string }) => r.content)).toEqual([
       "Follow-up inspection",
-      "First inspection",
     ]);
     const [waiting] = await db.select().from(facilityTasks).where(eq(facilityTasks.id, task.id));
     expect(waiting?.status).toBe("AWAITING_APPROVAL");
@@ -105,6 +102,9 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Flow 5 task reports
       unitBefore,
     );
     const latest = history.json().data.items[0];
+    expect(
+      (await f.api("manager", "POST", `${path(task.id)}/${firstReportId}/accept`)).statusCode,
+    ).toBe(409);
     const accepted = await f.api("manager", "POST", `${path(task.id)}/${latest.id}/accept`);
     expect(accepted.statusCode).toBe(200);
     expect(accepted.json().data).toMatchObject({
@@ -112,12 +112,12 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Flow 5 task reports
       status: "COMPLETED",
       completedBy: f.ids.manager,
     });
-    const [acceptedReport] = await db
+    const [acceptedTask] = await db
       .select()
-      .from(facilityTaskReports)
-      .where(eq(facilityTaskReports.id, latest.id));
-    expect(acceptedReport?.acceptedBy).toBe(f.ids.manager);
-    expect(acceptedReport?.acceptedAt).toBeInstanceOf(Date);
+      .from(facilityTasks)
+      .where(eq(facilityTasks.id, task.id));
+    expect(acceptedTask?.completedBy).toBe(f.ids.manager);
+    expect(acceptedTask?.completedAt).toBeInstanceOf(Date);
     expect((await start(task.id)).statusCode).toBe(409);
     expect((await f.api("staff", "POST", path(task.id), { content: "Too late" })).statusCode).toBe(
       409,
@@ -162,9 +162,8 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Flow 5 task reports
     ]) {
       expect((await f.api("staff", "POST", path(task.id), body)).statusCode).toBe(400);
     }
-    expect(
-      await db.select().from(facilityTaskReports).where(eq(facilityTaskReports.taskId, task.id)),
-    ).toHaveLength(0);
+    const [unreported] = await db.select().from(facilityTasks).where(eq(facilityTasks.id, task.id));
+    expect(unreported?.reportId).toBeNull();
     for (const method of ["POST", "GET"] as const) {
       expect(
         (
@@ -221,7 +220,7 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Flow 5 task reports
     }
   });
 
-  test("reassignment preserves authors and FM history while removing previous staff access", async () => {
+  test("reassignment preserves the current report until the new assignee replaces it", async () => {
     const task = await create();
     expect((await start(task.id)).statusCode).toBe(200);
     expect(
@@ -247,12 +246,11 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Flow 5 task reports
       expect(r.statusCode).toBe(200);
       expect(r.json().data.items.map((v: { submittedBy: string }) => v.submittedBy)).toEqual([
         f.ids.peerStaff,
-        f.ids.staff,
       ]);
     }
   });
 
-  test("history pagination is task-scoped and handles empty and out-of-range pages", async () => {
+  test("report list returns only the latest submission with compatible pagination", async () => {
     const task = await create();
     expect((await start(task.id)).statusCode).toBe(200);
     expect((await f.api("manager", "GET", path(task.id))).json().data).toEqual({
@@ -267,10 +265,12 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Flow 5 task reports
     expect(reports.every((r) => r.statusCode === 201)).toBe(true);
     const all = (await f.api("manager", "GET", path(task.id))).json().data;
     const page = (await f.api("manager", "GET", `${path(task.id)}?limit=1&offset=1`)).json().data;
-    expect(page).toEqual({ items: [all.items[1]], total: 3, limit: 1, offset: 1 });
+    expect(all.total).toBe(1);
+    expect(all.items).toHaveLength(1);
+    expect(page).toEqual({ items: [], total: 1, limit: 1, offset: 1 });
     expect((await f.api("manager", "GET", `${path(task.id)}?offset=100`)).json().data).toEqual({
       items: [],
-      total: 3,
+      total: 1,
       limit: 20,
       offset: 100,
     });
@@ -291,12 +291,9 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Flow 5 task reports
     ]);
     expect(assignment.statusCode).toBe(200);
     expect([201, 403]).toContain(report.statusCode);
-    const saved = await db
-      .select()
-      .from(facilityTaskReports)
-      .where(eq(facilityTaskReports.taskId, task.id));
-    expect(saved).toHaveLength(report.statusCode === 201 ? 1 : 0);
-    if (saved[0]) expect(saved[0].submittedBy).toBe(f.ids.staff);
+    const [saved] = await db.select().from(facilityTasks).where(eq(facilityTasks.id, task.id));
+    expect(saved?.reportId !== null).toBe(report.statusCode === 201);
+    if (saved?.reportId) expect(saved.reportSubmittedBy).toBe(f.ids.staff);
     expect(
       (await f.api("staff", "POST", path(task.id), { content: "After assignment" })).statusCode,
     ).toBe(403);

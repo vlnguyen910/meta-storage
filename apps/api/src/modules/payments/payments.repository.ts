@@ -107,11 +107,7 @@ export class PaymentsRepository {
             : undefined,
           eq(payments.status, "PENDING"),
           or(
-            and(
-              isNotNull(payments.bookingId),
-              isNull(payments.draftId),
-              isNull(payments.rentalChargeId),
-            ),
+            and(isNotNull(payments.bookingId), isNull(payments.rentalChargeId)),
             isNotNull(payments.rentalChargeId),
           ),
         ),
@@ -138,11 +134,7 @@ export class PaymentsRepository {
           eq(payments.provider, "sepay"),
           eq(payments.status, "PENDING"),
           or(
-            and(
-              isNotNull(payments.bookingId),
-              isNull(payments.draftId),
-              isNull(payments.rentalChargeId),
-            ),
+            and(isNotNull(payments.bookingId), isNull(payments.rentalChargeId)),
             isNotNull(payments.rentalChargeId),
           ),
           or(
@@ -164,12 +156,11 @@ export class PaymentsRepository {
           .select({
             id: payments.id,
             bookingId: payments.bookingId,
-            draftId: payments.draftId,
             rentalChargeId: payments.rentalChargeId,
           })
           .from(payments)
           .where(and(eq(payments.provider, "sepay"), eq(payments.paymentCode, event.paymentCode)));
-        if (!candidate?.bookingId || candidate.draftId || candidate.rentalChargeId) return null;
+        if (!candidate?.bookingId || candidate.rentalChargeId) return null;
         // Match checkout's booking -> payment -> offering lock order.
         const [checkout] = await tx
           .select({ booking: bookings, facility: facilities, unitType: unitTypes })
@@ -778,7 +769,6 @@ export class PaymentsRepository {
           .insert(payments)
           .values({
             bookingId: booking.id,
-            draftId: null,
             holdTokenHash: input.holdTokenHash,
             provider: "sepay",
             paymentCode: input.paymentCode,
@@ -930,15 +920,13 @@ export class PaymentsRepository {
   }
 
   async findActiveHoldForPayment(payment: typeof payments.$inferSelect) {
-    if (!payment.holdTokenHash) return null;
-    const referenceId = payment.bookingId ?? payment.draftId;
-    if (!referenceId) return null;
+    if (!payment.holdTokenHash || !payment.bookingId) return null;
     const [hold] = await this.db
       .select({ id: capacityAllocations.id, expiresAt: capacityAllocations.expiresAt })
       .from(capacityAllocations)
       .where(
         and(
-          eq(capacityAllocations.referenceId, referenceId),
+          eq(capacityAllocations.referenceId, payment.bookingId),
           eq(capacityAllocations.kind, "HOLD"),
           eq(capacityAllocations.status, "ACTIVE"),
           eq(capacityAllocations.accessTokenHash, payment.holdTokenHash),

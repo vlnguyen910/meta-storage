@@ -14,7 +14,6 @@ const base = {
   status: "ACTIVE" as const,
   emailVerified: true,
   image: null,
-  passwordHash: "private",
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -81,7 +80,7 @@ describe("approved user lifecycle", () => {
       const { service, calls } = fixture();
       const user = await service.updateUser(id, input);
       expect(calls).toEqual(["update", "deactivate assignments", "revoke sessions"]);
-      expect(user).not.toHaveProperty("passwordHash");
+      expect(user).not.toHaveProperty("password");
     }
   });
 

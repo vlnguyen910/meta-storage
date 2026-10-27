@@ -11,8 +11,6 @@ import {
   eq,
   facilities,
   facilityAssignments,
-  facilityOperatingHours,
-  facilityReturnCalendars,
   inArray,
   notificationOutbox,
   paymentProviderEvents,
@@ -351,6 +349,8 @@ describe.skipIf(!target)(
               value: 7,
               description: "Abandoned review test setting",
             },
+            { key: "OPENING_HOUR", value: 8, description: "Test opening hour" },
+            { key: "CLOSING_HOUR", value: 18, description: "Test closing hour" },
           ])
           .onConflictDoNothing();
         for (const [key, facilityId] of [
@@ -377,22 +377,6 @@ describe.skipIf(!target)(
         await tx
           .insert(checkInSlots)
           .values({ id: fixture.slot, name: "Return test", startTime: "09:00", endTime: "10:30" });
-        for (let day = 0; day < 7; day++)
-          await tx.insert(facilityOperatingHours).values({
-            facilityId: fixture.facility,
-            dayOfWeek: day,
-            openTime: "08:00",
-            closeTime: "18:00",
-            timezone: "Asia/Ho_Chi_Minh",
-          });
-        await tx.insert(facilityReturnCalendars).values({
-          facilityId: fixture.facility,
-          timezone: "Asia/Ho_Chi_Minh",
-          holidays: ["2032-01-05"],
-          reminderTime: "09:00",
-          version: 1,
-          updatedBy: actorIds.admin,
-        });
       });
       app.decorate("db", db);
       app.setValidatorCompiler(validatorCompiler);
@@ -538,12 +522,6 @@ describe.skipIf(!target)(
             .where(eq(capacityAllocations.facilityId, fixture.facility));
           await tx.delete(bookings).where(eq(bookings.facilityId, fixture.facility));
           await tx.delete(storageUnits).where(eq(storageUnits.facilityId, fixture.facility));
-          await tx
-            .delete(facilityReturnCalendars)
-            .where(eq(facilityReturnCalendars.facilityId, fixture.facility));
-          await tx
-            .delete(facilityOperatingHours)
-            .where(eq(facilityOperatingHours.facilityId, fixture.facility));
 
           await tx
             .delete(facilityAssignments)
@@ -565,20 +543,6 @@ describe.skipIf(!target)(
 
     test("authorization is explicit: Admin config only, facility FM approval, assigned FS operations", async () => {
       const s = await scenario();
-      const calendarPath = `/facilities/${fixture.facility}/return-calendar`;
-      const calendar = await api("admin", "GET", calendarPath);
-      expect(calendar.statusCode).toBe(200);
-      expect(calendar.headers["cache-control"]).toBe("private, no-store");
-      expect((await api(null, "GET", calendarPath)).statusCode).toBe(401);
-      expect((await api("manager", "GET", calendarPath)).statusCode).toBe(403);
-      const input = {
-        expectedVersion: calendar.json().data.version + 1,
-        timezone: calendar.json().data.timezone,
-        holidays: calendar.json().data.holidays,
-        reminderTime: calendar.json().data.reminderTime,
-      };
-      expect((await api("manager", "PUT", calendarPath, input)).statusCode).toBe(403);
-      expect((await api("admin", "PUT", calendarPath, input)).statusCode).toBe(409);
       expect((await api(null, "GET", `/return-requests/${s.id}`)).statusCode).toBe(401);
       for (const who of ["admin", "bom", "outsider", "replacement"] as const)
         expect((await api(who, "GET", `/return-requests/${s.id}`)).statusCode).toBe(403);
@@ -739,21 +703,9 @@ describe.skipIf(!target)(
           })
         ).statusCode,
       ).toBe(200);
-      // Admin edits preserve confirmed appointment snapshots and flag manual follow-up.
-      const updated = await api("admin", "PUT", `/facilities/${fixture.facility}/return-calendar`, {
-        expectedVersion: 1,
-        timezone: "Asia/Ho_Chi_Minh",
-        holidays: ["2032-01-05", "2032-01-04"],
-        reminderTime: "09:00",
-      });
-      expect(updated.statusCode).toBe(200);
-      const retained = await state(winner.id);
-      expect(retained.request.startsAt).toBe(winner.startsAt);
-      expect(retained.request.status).toBe("CONFIRMED");
-      expect(retained.request.manualReviewRequired).toBe(true);
     });
 
-    test("customer create/edit enforce notice, holidays, ownership and pending-only changes", async () => {
+    test("customer create/edit enforce notice, ownership and pending-only changes", async () => {
       const item = await scenario("PENDING");
       await db.delete(returnRequests).where(eq(returnRequests.id, item.id));
       const path = `/rentals/${item.rentalId}/return-requests`;
@@ -775,15 +727,6 @@ describe.skipIf(!target)(
           })
         ).statusCode,
       ).toBe(422);
-      expect(
-        (
-          await api("owner", "POST", path, {
-            date: "2032-01-05",
-            slotId: fixture.slot,
-            reason: "test",
-          })
-        ).statusCode,
-      ).toBe(409);
       const created = await api("owner", "POST", path, {
         date: "2032-01-06",
         slotId: fixture.slot,
@@ -911,23 +854,6 @@ describe.skipIf(!target)(
           .where(eq(capacityAllocations.referenceId, item.bookingId)),
         outbox: await db.select().from(notificationOutbox),
       });
-      const [calendar] = await db
-        .select()
-        .from(facilityReturnCalendars)
-        .where(eq(facilityReturnCalendars.facilityId, fixture.facility));
-      if (!calendar) throw new Error("Missing test calendar");
-      await db
-        .delete(facilityReturnCalendars)
-        .where(eq(facilityReturnCalendars.facilityId, fixture.facility));
-      try {
-        const missing = await api("manager", "POST", path, input);
-        expect(missing.json().data).toMatchObject({ canClose: false, calculation: null });
-        expect(missing.json().data.blockingReasons.map((b: { code: string }) => b.code)).toContain(
-          "CONFIGURATION_MISSING",
-        );
-      } finally {
-        await db.insert(facilityReturnCalendars).values(calendar);
-      }
       const before = await snapshot();
       const preview = await api("manager", "POST", path, input);
       expect(preview.statusCode).toBe(200);
@@ -1288,7 +1214,7 @@ describe.skipIf(!target)(
       expect(results[0].json().data.id).toBe(results[1].json().data.id);
       const amount = String(1000000 - initialRate * 10000 - 100000);
       expect(results[0].json().data.refundEntitlement).toBe(amount);
-      expect(results[0].json().data.refundDueDate).toBe("2032-01-08");
+      expect(results[0].json().data.refundDueDate).toBe("2032-01-07");
       current = await state(s.id);
       expect(current.settlements).toHaveLength(1);
       expect(current.request.status).toBe("COMPLETED");
@@ -1976,67 +1902,6 @@ describe.skipIf(!target)(
           .from(notificationOutbox)
           .where(eq(notificationOutbox.eventKey, `rental:${immediate.rentalId}:expiry`)),
       ).toHaveLength(1);
-    });
-
-    test("configured reminder time overrides 09:00 and existing facility timezone works before return-calendar setup", async () => {
-      const item = await scenario();
-      const lifecycle = new RentalLifecycleService(
-        new RentalLifecycleRepository(db),
-        new ReturnsRepository(db),
-      );
-      const [calendar] = await db
-        .select()
-        .from(facilityReturnCalendars)
-        .where(eq(facilityReturnCalendars.facilityId, fixture.facility));
-      if (!calendar) throw new Error("Missing calendar fixture");
-      try {
-        await db
-          .update(rentals)
-          .set({ expectedEndAt: new Date("2032-01-09T03:00:00Z") })
-          .where(eq(rentals.id, item.rentalId));
-        await db
-          .update(facilityReturnCalendars)
-          .set({ reminderTime: "10:00" })
-          .where(eq(facilityReturnCalendars.facilityId, fixture.facility));
-        const notice = () =>
-          db
-            .select()
-            .from(notificationOutbox)
-            .where(eq(notificationOutbox.eventKey, `rental:${item.rentalId}:expiry`));
-        await lifecycle.sweep(new Date("2032-01-02T02:59:59.999Z"), fixture.facility);
-        expect(await notice()).toHaveLength(0);
-        await lifecycle.sweep(new Date("2032-01-02T03:00:00Z"), fixture.facility);
-        expect(await notice()).toHaveLength(1);
-        await db
-          .delete(facilityReturnCalendars)
-          .where(eq(facilityReturnCalendars.facilityId, fixture.facility));
-        await db
-          .update(facilityOperatingHours)
-          .set({ timezone: "America/New_York" })
-          .where(eq(facilityOperatingHours.facilityId, fixture.facility));
-        // The exact expiry instant is independent of New York's local midnight.
-        await db
-          .update(rentals)
-          .set({ expectedEndAt: new Date("2032-02-01T03:00:00Z") })
-          .where(eq(rentals.id, item.rentalId));
-        await lifecycle.sweep(new Date("2032-02-01T02:59:59.999Z"), fixture.facility);
-        expect(
-          (await db.select().from(rentals).where(eq(rentals.id, item.rentalId)))[0]?.status,
-        ).toBe("RETURN_PENDING");
-        await lifecycle.sweep(new Date("2032-02-01T03:00:00Z"), fixture.facility);
-        expect(
-          (await db.select().from(rentals).where(eq(rentals.id, item.rentalId)))[0]?.status,
-        ).toBe("OVERDUE");
-      } finally {
-        await db
-          .insert(facilityReturnCalendars)
-          .values(calendar)
-          .onConflictDoUpdate({ target: facilityReturnCalendars.facilityId, set: calendar });
-        await db
-          .update(facilityOperatingHours)
-          .set({ timezone: "Asia/Ho_Chi_Minh" })
-          .where(eq(facilityOperatingHours.facilityId, fixture.facility));
-      }
     });
 
     test("verified payment retries persist one payment/booking notification and outbox rolls back with business work", async () => {
