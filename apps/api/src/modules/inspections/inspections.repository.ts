@@ -12,7 +12,6 @@ import {
   inspectionPhotos,
   payments,
   rentals,
-  sql,
   storageUnits,
   unitAssignments,
   users,
@@ -214,14 +213,9 @@ export class InspectionsRepository {
         updatedAt: now,
       })
       .where(eq(handoverInspections.id, record.id));
-    await tx
-      .update(facilityTasks)
-      .set({
-        status: "COMPLETED",
-        startedAt: sql`coalesce(${facilityTasks.startedAt}, ${now})`,
-        completedAt: now,
-        updatedAt: now,
-      })
+    const tasks = await tx
+      .select({ id: facilityTasks.id, startedAt: facilityTasks.startedAt })
+      .from(facilityTasks)
       .where(
         and(
           eq(facilityTasks.type, FacilityTaskType.CHECK_IN_HANDOVER),
@@ -230,7 +224,18 @@ export class InspectionsRepository {
           eq(facilityTasks.assignedStaffId, userId),
           inArray(facilityTasks.status, ["ASSIGNED", "IN_PROGRESS"]),
         ),
-      );
+      )
+      .for("update");
+    for (const task of tasks)
+      await tx
+        .update(facilityTasks)
+        .set({
+          status: "COMPLETED",
+          startedAt: task.startedAt ?? now,
+          completedAt: now,
+          updatedAt: now,
+        })
+        .where(eq(facilityTasks.id, task.id));
   }
 
   async byVerification(tx: InspectionTransaction, verificationId: string) {
