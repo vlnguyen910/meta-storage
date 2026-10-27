@@ -14,7 +14,6 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { bookingContracts } from "./booking-contracts";
 import { bookings } from "./bookings";
 import { checkInVerifications } from "./checkin-verifications";
 import { facilities } from "./facilities";
@@ -43,7 +42,6 @@ export const handoverInspections = pgTable(
       .notNull()
       .unique()
       .references(() => checkInVerifications.id, { onDelete: "restrict" }),
-    contractId: uuid().references(() => bookingContracts.id, { onDelete: "restrict" }),
     unitCode: varchar({ length: 100 }).notNull(),
     policyVersion: varchar({ length: 20 }).default("H6_V1").notNull(),
     checklistVersion: varchar({ length: 30 }),

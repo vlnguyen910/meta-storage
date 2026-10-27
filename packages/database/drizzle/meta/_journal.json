@@ -442,6 +442,20 @@
       "when": 1793088000000,
       "tag": "0062_powerful_thunderbolt",
       "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1793048964587,
+      "tag": "0063_glamorous_miss_america",
+      "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1793081421317,
+      "tag": "0064_exotic_triton",
+      "breakpoints": true
     }
   ]
 }
