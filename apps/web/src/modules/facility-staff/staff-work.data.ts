@@ -55,22 +55,23 @@ export function facilityWork(t: FacilityTaskDetail): StaffWorkItem {
   return {
     id: `task:${t.id}`,
     kind: "TASK",
-    group:
-      t.status === "COMPLETED" ? "done" : t.status === "AWAITING_APPROVAL" ? "review" : "pending",
-    title: t.title,
-    typeLabel: { INSPECT_UNIT: M.inspect, PRINT_DOCUMENT: M.print, REPORT_TO_MANAGER: M.report }[
-      t.type
-    ],
+    group: t.status === "COMPLETED" ? "done" : t.status === "CANCELLED" ? "closed" : "pending",
+    title: t.description ?? t.referenceId,
+    typeLabel: {
+      CHECK_IN_HANDOVER: M.checkIn,
+      UNIT_INSPECTION: M.inspect,
+      HANDLE_SUPPORT: M.report,
+    }[t.type],
     statusLabel: {
       ASSIGNED: M.assigned,
       IN_PROGRESS: M.inProgress,
-      AWAITING_APPROVAL: M.awaitingApproval,
       COMPLETED: M.complete,
+      CANCELLED: M.cancelled,
     }[t.status],
     reference: "",
     startsAt: null,
     href: `/staff/tasks/${encodeURIComponent(t.id)}`,
-    action: t.status === "COMPLETED" || t.status === "AWAITING_APPROVAL" ? M.view : M.openTask,
+    action: t.status === "COMPLETED" || t.status === "CANCELLED" ? M.view : M.openTask,
   };
 }
 export function returnWork(r: ReturnQueueItemDto): StaffWorkItem {

@@ -139,7 +139,7 @@ test("FM keeps one coordination destination and one staff directory with scoped 
   ).toBeVisible();
   const firstTask = state.tasks[0];
   if (!firstTask) throw new Error("Missing task fixture");
-  firstTask.status = "AWAITING_APPROVAL";
+  firstTask.status = "IN_PROGRESS";
   await coordination.getByRole("link", { name: "Báo cáo chờ duyệt", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Kiểm tra kho được giao", exact: true }),
@@ -167,8 +167,8 @@ test("pending reports include later API pages and exclude tasks still being perf
   state.tasks = Array.from({ length: 105 }, (_, index) => ({
     ...seed,
     id: f5id(100 + index),
-    title: `Task ${index}`,
-    status: index >= 103 ? "AWAITING_APPROVAL" : "IN_PROGRESS",
+    description: `Task ${index}`,
+    status: index >= 103 ? "COMPLETED" : "IN_PROGRESS",
   }));
   await page.goto("/facility-manager/tasks?view=reports");
   await expect(page.getByRole("heading", { name: "Task 104", exact: true })).toBeVisible();

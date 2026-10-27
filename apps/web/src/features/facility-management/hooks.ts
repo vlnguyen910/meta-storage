@@ -2,11 +2,9 @@
 
 import type {
   ApiFacility,
-  AssignFacilityTaskInput,
   CreateAssignmentBody,
   CreateFacilityBody,
   CreateFacilityTaskInput,
-  CreateFacilityTaskReportInput,
   CreateStorageUnitInput,
   CreateUnitTypeInput,
   FacilityTaskListQuery,
@@ -19,7 +17,6 @@ import type {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { useState } from "react";
-import { useToast } from "@/components/ui/toast";
 import { isMockMode } from "@/config/api-mode";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { api } from "@/lib/api";
@@ -28,7 +25,6 @@ import type { FacilityOption } from "./management.types";
 
 export function managementError(error: unknown) {
   if (isAxiosError(error)) {
-    if ((error.response?.status ?? 0) >= 500) return F5.saveError;
     const message = error.response?.data?.error?.message;
     if (typeof message === "string") return message;
   }
@@ -114,8 +110,8 @@ export function useFacilityTaskList(query: FacilityTaskListQuery) {
   const key = useManagementKey();
   return useQuery({
     queryKey: [...key, "tasks", query],
-    queryFn: ({ signal }) => api.flow5.tasks.list(query, signal),
-    enabled: Boolean(query.facilityId) && !isMockMode,
+    queryFn: ({ signal }) => api.flow5.tasks.listFacility(query, signal),
+    enabled: !isMockMode,
     refetchInterval: 30_000,
   });
 }
@@ -123,17 +119,14 @@ export function useFacilityTaskDetail(id: string) {
   const key = useManagementKey();
   return useQuery({
     queryKey: [...key, "task", id],
-    queryFn: ({ signal }) => api.flow5.tasks.get(id, signal),
+    queryFn: async ({ signal }) => {
+      const result = await api.flow5.tasks.listMine({ limit: 100, offset: 0 }, signal);
+      const task = result.items.find((item) => item.id === id);
+      if (!task) throw new Error(F5.loadError);
+      return task;
+    },
     enabled: Boolean(id) && !isMockMode,
     refetchInterval: 30_000,
-  });
-}
-export function useTaskReportHistory(id: string, offset: number) {
-  const key = useManagementKey();
-  return useQuery({
-    queryKey: [...key, "reports", id, offset],
-    queryFn: ({ signal }) => api.flow5.tasks.reports(id, offset, signal),
-    enabled: Boolean(id) && !isMockMode,
   });
 }
 export function useTaskStaff(facilityId: string, enabled = true) {
@@ -144,15 +137,6 @@ export function useTaskStaff(facilityId: string, enabled = true) {
     enabled: Boolean(facilityId) && enabled && !isMockMode,
   });
 }
-export function useTaskBookingOptions(facilityId: string, enabled: boolean) {
-  const key = useManagementKey();
-  return useQuery({
-    queryKey: [...key, "task-bookings", facilityId],
-    queryFn: () => api.bookings.listFacilityBookings(facilityId),
-    enabled: enabled && Boolean(facilityId) && !isMockMode,
-  });
-}
-
 export function useTaskUnitOptions(facilityId: string, enabled = true) {
   const key = useManagementKey();
   return useQuery({
@@ -165,19 +149,11 @@ export function useTaskUnitOptions(facilityId: string, enabled = true) {
   });
 }
 
-function useFlow5Write<T, R>(write: (input: T) => Promise<R>, successMessage: string = F5.saved) {
-  const { showToast } = useToast();
-  const role = useAuthStore((s) => s.session?.user.role);
+function useFlow5Write<T, R>(write: (input: T) => Promise<R>) {
   const client = useQueryClient();
   const key = useManagementKey();
   return useMutation({
     mutationFn: write,
-    onSuccess: () => {
-      if (role === "FACILITY_MANAGER") showToast(successMessage, "success");
-    },
-    onError: (error) => {
-      if (role === "FACILITY_MANAGER") showToast(managementError(error), "error");
-    },
     onSettled: async () => {
       await Promise.all([
         client.invalidateQueries({ queryKey: key }),
@@ -187,39 +163,21 @@ function useFlow5Write<T, R>(write: (input: T) => Promise<R>, successMessage: st
         client.invalidateQueries({ queryKey: ["pricing"] }),
         client.invalidateQueries({ queryKey: ["catalog"] }),
         client.invalidateQueries({ queryKey: ["unit-types"] }),
-        client.invalidateQueries({ queryKey: ["manager-overview"] }),
-        client.invalidateQueries({ queryKey: ["manager-monthly"] }),
-        client.invalidateQueries({ queryKey: ["manager-tabs"] }),
       ]);
     },
   });
 }
 export const useCreateUnit = (facilityId: string) =>
-  useFlow5Write(
-    (input: CreateStorageUnitInput) => api.flow5.units.create(facilityId, input),
-    F5.unitCreated,
-  );
+  useFlow5Write((input: CreateStorageUnitInput) => api.flow5.units.create(facilityId, input));
 export const useUpdateUnit = (id: string) =>
-  useFlow5Write(
-    (input: UpdateStorageUnitInput) => api.flow5.units.update(id, input),
-    F5.unitUpdated,
-  );
+  useFlow5Write((input: UpdateStorageUnitInput) => api.flow5.units.update(id, input));
 export const useUnitMaintenance = (id: string) =>
   useFlow5Write((input: StorageUnitMaintenanceTransition) => api.flow5.units.transition(id, input));
 export const useCreateTask = () =>
-  useFlow5Write((input: CreateFacilityTaskInput) => api.flow5.tasks.create(input), F5.taskCreated);
-export const useAssignTask = (id: string) =>
-  useFlow5Write(
-    (input: AssignFacilityTaskInput) => api.flow5.tasks.assign(id, input),
-    F5.taskReassigned,
-  );
-export const useReportTask = (id: string) =>
-  useFlow5Write((input: CreateFacilityTaskReportInput) => api.flow5.tasks.report(id, input));
-export const useStartTask = (id: string) => useFlow5Write(() => api.flow5.tasks.start(id));
-export const useAcceptTaskReport = (id: string) =>
-  useFlow5Write(
-    (reportId: string) => api.flow5.tasks.acceptReport(id, reportId),
-    F5.reportAccepted,
+  useFlow5Write((input: CreateFacilityTaskInput) => api.flow5.tasks.create(input));
+export const useUpdateTask = (id: string) =>
+  useFlow5Write((input: import("@metastorage/contracts").UpdateFacilityTaskInput) =>
+    api.flow5.tasks.update(id, input),
   );
 
 export function useManagedFacility(id: string) {
