@@ -9,6 +9,7 @@ import {
   RotateCcw,
   Send,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Card, PageHeader } from "@/components/ui/display";
@@ -16,7 +17,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { customerRoutes } from "@/config/routes";
 import { useRental } from "@/features/rentals/hooks";
-import { useCreateReturnRequest, useReturnSlots } from "./hooks";
+import { useCreateReturnRequest, useRentalReturns, useReturnSlots } from "./hooks";
 import { RETURNS_MESSAGES as M } from "./returns.messages";
 
 function dateFromParts(year: number, monthIndex: number, day: number): string {
@@ -86,10 +87,70 @@ export function CustomerReturnForm({ rentalId }: { rentalId: string }) {
 
   const slots = useReturnSlots(rentalId, date);
   const create = useCreateReturnRequest(rentalId);
+  const returnsQuery = useRentalReturns(rentalId);
 
-  if (rental.isLoading) return <LoadingState variant="detail" />;
+  if (rental.isLoading || returnsQuery.isLoading) return <LoadingState variant="detail" />;
   if (rental.isError || !rental.data)
     return <ErrorState message={M.loadError} onRetry={() => rental.refetch()} />;
+
+  const openRequest = returnsQuery.data?.find((request) =>
+    ["PENDING", "CONFIRMED", "INSPECTING", "FAILED"].includes(request.status),
+  );
+
+  if (openRequest) {
+    return (
+      <>
+        <PageHeader
+          eyebrow={M.sectionTitle}
+          title={M.requestTitle}
+          description={M.requestDescription}
+        />
+        <Card className="mx-auto grid max-w-xl gap-5 rounded-2xl border border-amber-200/80 bg-amber-50/40 p-6 shadow-2xs sm:p-8 text-center">
+          <div className="mx-auto grid size-12 place-items-center rounded-full bg-amber-100 text-amber-800">
+            <Clock size={24} />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-lg font-bold text-ink">{M.alreadyHasOpenRequestTitle}</h2>
+            <p className="text-sm text-slate-600 max-w-md mx-auto">{M.alreadyHasOpenRequestDesc}</p>
+          </div>
+          <div className="rounded-xl border border-amber-200 bg-white p-4 text-left shadow-2xs">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs text-muted">{M.schedule}:</span>
+              <strong className="text-sm text-ink">
+                {new Date(openRequest.startsAt).toLocaleString("vi-VN", {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                  timeZone: openRequest.timezone,
+                })}
+              </strong>
+            </div>
+            {openRequest.reason ? (
+              <div className="mt-2 text-xs text-slate-500">
+                <span className="font-semibold text-slate-700">{M.requestReason}: </span>
+                {openRequest.reason}
+              </div>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <Link
+              href={customerRoutes.returnRequest(openRequest.id)}
+              className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-bold text-white shadow-xs transition hover:bg-primary-dark"
+            >
+              <span>{M.viewExistingRequest}</span>
+              <ChevronRight size={16} />
+            </Link>
+            <Link
+              href={customerRoutes.rental(rentalId)}
+              className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-2xs transition hover:bg-slate-50"
+            >
+              <ArrowLeft size={16} />
+              <span>{M.back}</span>
+            </Link>
+          </div>
+        </Card>
+      </>
+    );
+  }
 
   return (
     <>
@@ -266,7 +327,9 @@ export function CustomerReturnForm({ rentalId }: { rentalId: string }) {
 
         {create.isError && (
           <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
-            {M.returnRequestFailed} {M.saveError}
+            {create.error instanceof Error && create.error.message
+              ? create.error.message
+              : `${M.returnRequestFailed} ${M.saveError}`}
           </p>
         )}
 

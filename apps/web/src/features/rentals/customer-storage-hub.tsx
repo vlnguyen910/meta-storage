@@ -1,11 +1,14 @@
 "use client";
 
 import {
+  AlertCircle,
   Archive,
   CalendarCheck2,
   CalendarDays,
+  Check,
   CheckCircle2,
   ChevronRight,
+  Clock,
   Plus,
   QrCode,
   RotateCcw,
@@ -327,13 +330,20 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
                       <td>
                         <span
                           className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded border ${
-                            r.status === "ACTIVE"
-                              ? "text-emerald-700 bg-emerald-50 border-emerald-200"
-                              : "text-slate-700 bg-slate-100 border-slate-200"
+                            M.rentalStatusClasses[r.status] ??
+                            "border-slate-200 bg-slate-100 text-slate-700"
                           }`}
                         >
-                          <CheckCircle2 className="size-3" />
-                          {r.status === "ACTIVE" ? M.rentalViewCurrent : r.status}
+                          {r.status === "ACTIVE" ? (
+                            <CheckCircle2 className="size-3" />
+                          ) : r.status === "RETURN_PENDING" ? (
+                            <Clock className="size-3" />
+                          ) : r.status === "OVERDUE" ? (
+                            <AlertCircle className="size-3" />
+                          ) : (
+                            <Check className="size-3" />
+                          )}
+                          {M.rentalStatuses[r.status] ?? r.status}
                         </span>
                       </td>
                       <td>
@@ -344,6 +354,14 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
                               className="inline-flex items-center px-2 py-1 text-xs font-semibold text-slate-700 hover:text-slate-900 border border-slate-200 rounded hover:bg-slate-50 transition-colors"
                             >
                               {M.returnAction}
+                            </Link>
+                          )}
+                          {r.status === "RETURN_PENDING" && (
+                            <Link
+                              href={customerRoutes.rental(r.id)}
+                              className="inline-flex items-center px-2 py-1 text-xs font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded transition-colors"
+                            >
+                              {M.viewReturnAction}
                             </Link>
                           )}
                           <Link

@@ -82,9 +82,7 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
                   <span>{rental.facility.address}</span>
                 </p>
               </div>
-              <StatusBadge
-                value={F3.status[rental.status as keyof typeof F3.status] ?? rental.status}
-              />
+              <StatusBadge value={rental.status} />
             </div>
 
             <div className="mt-6 grid grid-cols-1 gap-3.5 border-t border-slate-100 pt-6 sm:grid-cols-2">
