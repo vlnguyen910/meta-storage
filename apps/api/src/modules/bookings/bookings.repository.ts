@@ -572,11 +572,12 @@ export class BookingsRepository {
       .where(eq(facilityOperatingHours.facilityId, bookings.facilityId))
       .orderBy(facilityOperatingHours.dayOfWeek)
       .limit(1);
-    const today = sql<string>`(current_timestamp at time zone (${timezone}))::date`;
-    conditions.push(
-      gte(bookings.checkInDate, query.fromDate ?? query.toDate ?? today),
-      lte(bookings.checkInDate, query.toDate ?? query.fromDate ?? today),
-    );
+    if (query.fromDate || query.toDate) {
+      const fromDate = query.fromDate ?? query.toDate;
+      const toDate = query.toDate ?? query.fromDate;
+      if (fromDate) conditions.push(gte(bookings.checkInDate, fromDate));
+      if (toDate) conditions.push(lte(bookings.checkInDate, toDate));
+    }
 
     const slotStart = sql<Date>`(${bookings.checkInDate} + ${checkInSlots.startTime})
       at time zone (${timezone})`.mapWith((value) => new Date(value));

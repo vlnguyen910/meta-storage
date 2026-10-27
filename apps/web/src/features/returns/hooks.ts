@@ -270,3 +270,24 @@ export function useCompleteReturnInspection(requestId: string, facilityId: strin
     },
   });
 }
+
+export function useFinalizeReturnRequest(requestId: string, facilityId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: { globalLoading: true },
+    mutationFn: (input: ReturnVersion) => api.returns.finalize(requestId, input),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: returnKeys.request(requestId) }),
+        queryClient.invalidateQueries({ queryKey: returnKeys.queue(facilityId, "FACILITY_STAFF") }),
+        queryClient.invalidateQueries({
+          queryKey: returnKeys.queue(facilityId, "FACILITY_MANAGER"),
+        }),
+        queryClient.invalidateQueries({ queryKey: ["rentals"] }),
+      ]);
+    },
+    onError: async () => {
+      await queryClient.invalidateQueries({ queryKey: returnKeys.request(requestId) });
+    },
+  });
+}

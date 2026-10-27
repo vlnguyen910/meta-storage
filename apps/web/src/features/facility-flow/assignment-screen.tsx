@@ -229,6 +229,11 @@ export function AssignmentScreen() {
               </label>
             </div>
           </div>
+          <RentalDocuments
+            bookingId={booking.data.id}
+            manager={role === UserRole.FACILITY_MANAGER}
+            handover
+          />
           {error && !confirmation && (
             <p role="alert" className="rounded bg-[#ffdad6] p-3 text-[#93000a]">
               {error}
@@ -261,9 +266,6 @@ export function AssignmentScreen() {
             </Button>
           </Panel>
         </>
-      )}
-      {booking.data && (
-        <RentalDocuments bookingId={booking.data.id} manager={role === UserRole.FACILITY_MANAGER} />
       )}
       {confirmation && (
         <ReassignmentDialog

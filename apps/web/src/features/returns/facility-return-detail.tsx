@@ -30,12 +30,13 @@ import { api } from "@/lib/api";
 import type { FacilityReturnDetailProps } from "./facility-return-detail.types";
 import {
   useConfirmReturnRequest,
+  useFinalizeReturnRequest,
   useRecordPhysicalReturn,
   useReturnRequest,
   useStartReturnInspection,
 } from "./hooks";
 import { F3 } from "./integration.messages";
-import { facilityTimeToIso } from "./integration-utils";
+import { facilityTimeToIso, money } from "./integration-utils";
 import { ReturnFinancePanel } from "./return-finance-panel";
 import { ReturnInspectionWorkspace } from "./return-inspection-workspace";
 import { ReturnOperationalContext } from "./return-operational-context";
@@ -69,6 +70,7 @@ export function FacilityReturnDetail({ requestId, actorRole }: FacilityReturnDet
   const confirm = useConfirmReturnRequest(requestId, facilityId);
   const start = useStartReturnInspection(requestId, facilityId);
   const record = useRecordPhysicalReturn(requestId, facilityId);
+  const finalize = useFinalizeReturnRequest(requestId, facilityId);
 
   const [receiptAt, setReceiptAt] = useState("");
   const [receiptReason, setReceiptReason] = useState("");
@@ -113,8 +115,12 @@ export function FacilityReturnDetail({ requestId, actorRole }: FacilityReturnDet
 
   const latestInspection = inspections[0];
   const isStaff = actorRole === "FACILITY_STAFF";
+  const canFinalize = latestInspection?.status === "PASS" && request.status === "INSPECTING";
   const canRecordReceipt =
-    isStaff && !actualReturnAt && ["CONFIRMED", "INSPECTING", "FAILED"].includes(request.status);
+    isStaff &&
+    !actualReturnAt &&
+    !canFinalize &&
+    ["CONFIRMED", "INSPECTING", "FAILED"].includes(request.status);
   const showChecklist = isStaff && latestInspection?.status === "DRAFT";
   const canStartInspection = isStaff && ["CONFIRMED", "FAILED"].includes(request.status);
 
@@ -125,15 +131,17 @@ export function FacilityReturnDetail({ requestId, actorRole }: FacilityReturnDet
         ? M.nextStartInspection
         : showChecklist
           ? M.nextContinueInspection
-          : latestInspection?.status === "PASS" && request.status !== "COMPLETED"
-            ? F3.awaitingManager
+          : canFinalize
+            ? M.finalizeReturnReady
             : request.status === "COMPLETED"
               ? M.nextCompleted
               : M.nextWaiting
-    : M.nextManager;
+    : canFinalize
+      ? M.finalizeReturnReady
+      : M.nextManager;
 
   const shortId = request.id.slice(-8).toUpperCase();
-  const backHref = isStaff ? "/staff/returns" : "/facility-manager/tasks?view=returns";
+  const backHref = isStaff ? "/staff/tasks" : "/facility-manager/tasks?view=returns";
   const assignedStaffName =
     query.data.context?.assignedStaff?.name ??
     (request.assignedStaffId ? staffMap.get(request.assignedStaffId) : null);
@@ -228,13 +236,14 @@ export function FacilityReturnDetail({ requestId, actorRole }: FacilityReturnDet
 
             <p className="mt-4 text-sm leading-relaxed text-slate-700">{nextStep}</p>
 
-            {/* Action Buttons for FS */}
-            {(isStaff && request.status === "PENDING") ||
+            {/* Action Buttons for FS / FM */}
+            {request.status === "PENDING" ||
             canStartInspection ||
             showChecklist ||
+            canFinalize ||
             canRecordReceipt ? (
               <div className="mt-5 flex flex-wrap gap-3 border-t border-slate-100 pt-4">
-                {isStaff && request.status === "PENDING" && (
+                {request.status === "PENDING" && (
                   <Button
                     variant="primary"
                     type="button"
@@ -270,6 +279,19 @@ export function FacilityReturnDetail({ requestId, actorRole }: FacilityReturnDet
                   </a>
                 )}
 
+                {canFinalize && (
+                  <Button
+                    variant="primary"
+                    type="button"
+                    disabled={finalize.isPending}
+                    loading={finalize.isPending}
+                    onClick={() => finalize.mutate({ expectedVersion: request.version })}
+                  >
+                    <CheckCircle2 size={16} aria-hidden="true" />
+                    {finalize.isPending ? M.saving : M.finalizeReturnButton}
+                  </Button>
+                )}
+
                 {canRecordReceipt && (
                   <a
                     href="#physical-receipt"
@@ -283,7 +305,7 @@ export function FacilityReturnDetail({ requestId, actorRole }: FacilityReturnDet
             ) : null}
 
             {/* Stale or Mutation Errors */}
-            {(confirm.isError || start.isError) && (
+            {(confirm.isError || start.isError || finalize.isError) && (
               <p
                 role="alert"
                 className="mt-4 rounded-xl bg-rose-50 p-3 text-sm font-medium text-rose-800 border border-rose-200"
@@ -304,8 +326,66 @@ export function FacilityReturnDetail({ requestId, actorRole }: FacilityReturnDet
             )}
           </div>
 
-          {/* Card 2: Physical Receipt State or Form */}
-          {actualReturnAt ? (
+          {/* Card 2: Finalize Return & Refund Card or Physical Receipt State */}
+          {canFinalize ? (
+            <div
+              id="physical-receipt"
+              className="rounded-2xl border-2 border-emerald-300 bg-emerald-50/50 p-6 shadow-xs space-y-4"
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white">
+                  <CheckCircle2 className="size-6" aria-hidden="true" />
+                </div>
+                <div>
+                  <span className="block text-xs font-bold uppercase tracking-wider text-emerald-700">
+                    {M.inspectionStep} · Đạt yêu cầu (PASS)
+                  </span>
+                  <h2 className="m-0 text-base font-bold text-slate-900">
+                    {M.finalizeReturnTitle}
+                  </h2>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-700">
+                    {M.finalizeReturnReady}
+                  </p>
+                </div>
+              </div>
+
+              {query.data.context && (
+                <div className="grid gap-3 rounded-xl border border-emerald-200 bg-white p-4 sm:grid-cols-3 text-xs">
+                  <div>
+                    <span className="block text-slate-500">{F3.unitLabel}</span>
+                    <strong className="text-sm font-bold text-slate-900">
+                      {query.data.context.unit.code}
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="block text-slate-500">Tiền cọc hoàn trả khách</span>
+                    <strong className="text-sm font-bold text-emerald-700">
+                      {money(query.data.context.rental.depositSnapshot)}
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="block text-slate-500">Trạng thái sau xác nhận</span>
+                    <strong className="text-sm font-bold text-slate-900">
+                      Hoàn tất & Đóng hợp đồng
+                    </strong>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center justify-end gap-3 pt-1">
+                <Button
+                  variant="primary"
+                  type="button"
+                  disabled={finalize.isPending}
+                  loading={finalize.isPending}
+                  onClick={() => finalize.mutate({ expectedVersion: request.version })}
+                >
+                  <CheckCircle2 size={16} aria-hidden="true" />
+                  {finalize.isPending ? M.saving : M.finalizeReturnButton}
+                </Button>
+              </div>
+            </div>
+          ) : actualReturnAt ? (
             <div className="flex items-center justify-between rounded-2xl border border-emerald-200/80 bg-emerald-50/60 p-5 shadow-xs">
               <div className="flex items-center gap-3">
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600/15 text-emerald-800">
@@ -399,13 +479,16 @@ export function FacilityReturnDetail({ requestId, actorRole }: FacilityReturnDet
                 facilityId={facility.facilityId}
                 inspection={latestInspection}
                 timezone={request.timezone}
+                requestVersion={request.version}
               />
             </div>
           )}
 
           <ReturnInspectionReview detail={query.data} staff={isStaff} />
           <ReturnTimeChanges detail={query.data} staff={isStaff} />
-          {!isStaff && <ReturnFinancePanel detail={query.data} manager stale={query.isError} />}
+          {(!isStaff || query.data.settlements.length > 0) && (
+            <ReturnFinancePanel detail={query.data} manager={!isStaff} stale={query.isError} />
+          )}
 
           {/* Card 5: Activity Log / Audit Trail */}
           <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs">

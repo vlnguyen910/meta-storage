@@ -58,7 +58,7 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
   const title = M.title;
   const params = useSearchParams();
   const userId = useAuthStore((s) => s.session?.user.id);
-  const storageKey = `metastorage.staff-work:${userId}:${facilityId}`;
+  const storageKey = `metastorage.staff-work.v2:${userId}:${facilityId}`;
   const [filters, setFilters] = useState<StaffWorkFilters>(() => {
     let saved: Partial<StaffWorkFilters> = {};
     try {
@@ -71,12 +71,12 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
     const groups: StaffWorkGroup[] =
       kind === "TASK"
         ? ["pending", "review", "done"]
-        : kind === "CHECK_IN"
+        : kind === "CHECK_IN" || kind === "RETURN"
           ? ["pending", "done", "closed"]
           : ["pending", "review", "done", "closed"];
-    const date = params.get("date") ?? saved.date ?? staffWorkDate(new Date().toISOString());
+    const date = params.get("date") ?? saved.date ?? "all";
     return {
-      kind: kind === "CHECK_IN" || kind === "TASK" ? kind : "",
+      kind: kind === "CHECK_IN" || kind === "RETURN" || kind === "TASK" ? kind : "",
       group: groups.includes(group as StaffWorkGroup) ? (group as StaffWorkGroup) : "pending",
       date: date === "all" || /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : "all",
       search: typeof saved.search === "string" ? saved.search : "",
@@ -86,7 +86,7 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
   const groups: StaffWorkGroup[] =
     filters.kind === "TASK"
       ? ["pending", "review", "done"]
-      : filters.kind === "CHECK_IN"
+      : filters.kind === "CHECK_IN" || filters.kind === "RETURN"
         ? ["pending", "done", "closed"]
         : ["pending", "review", "done", "closed"];
   const work = useStaffWork(facilityId, filters.date, filters.kind);
@@ -231,7 +231,7 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
                   kind,
                   group:
                     (kind === "TASK" && filters.group === "closed") ||
-                    (kind === "CHECK_IN" && filters.group === "review")
+                    ((kind === "CHECK_IN" || kind === "RETURN") && filters.group === "review")
                       ? "pending"
                       : filters.group,
                 });
@@ -240,6 +240,7 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
             >
               <option value="">{M.allKinds}</option>
               <option value="CHECK_IN">{M.bookingTasksTitle}</option>
+              <option value="RETURN">{M.return}</option>
               <option value="TASK">{M.facilityTasksTitle}</option>
             </select>
           </div>

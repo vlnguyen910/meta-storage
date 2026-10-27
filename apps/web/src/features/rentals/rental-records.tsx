@@ -262,7 +262,17 @@ export function RentalDocuments({
         dataBase64: await readFileBase64(file),
         idempotencyKey: pendingUpload.current.key,
       });
-      return api.rentalDocuments.upload(bookingId, parsed);
+      const uploaded = await api.rentalDocuments.upload(bookingId, parsed);
+      if (uploaded.status === "UPLOADED") {
+        try {
+          return await api.rentalDocuments.issue(bookingId, uploaded.id, {
+            expectedCurrentIssuedId: query.data?.find((d) => d.currentIssued)?.id ?? null,
+          });
+        } catch {
+          return uploaded;
+        }
+      }
+      return uploaded;
     },
     onSuccess: () => {
       setFile(null);
@@ -336,7 +346,13 @@ export function RentalDocuments({
                     {F3.version(doc.version)} · {doc.filename}
                   </strong>
                 </div>
-                <span className="rounded-full border border-emerald-200/70 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">
+                <span
+                  className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
+                    doc.status === "ISSUED"
+                      ? "border-emerald-200/70 bg-emerald-50 text-emerald-800"
+                      : "border-amber-200/70 bg-amber-50 text-amber-800"
+                  }`}
+                >
                   {doc.status === "ISSUED" ? F3.issued : F3.uploaded}
                   {doc.currentIssued ? ` · ${F3.current}` : ""}
                   {doc.usedForHandover ? ` · ${F3.used}` : ""}

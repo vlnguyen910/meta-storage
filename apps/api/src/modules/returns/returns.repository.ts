@@ -189,7 +189,8 @@ export class ReturnsRepository {
       .orderBy(desc(returnRequests.createdAt), desc(returnRequests.id));
   }
   queue(tx: ReturnTransaction, facilityId: string, query: ReturnQueueQuery, staffId?: string) {
-    const today = sql<string>`(current_timestamp at time zone ${returnRequests.timezone})::date`;
+    const fromDate = query.fromDate ?? query.toDate;
+    const toDate = query.toDate ?? query.fromDate;
     return tx
       .select()
       .from(returnRequests)
@@ -198,8 +199,8 @@ export class ReturnsRepository {
           eq(returnRequests.facilityId, facilityId),
           query.status ? eq(returnRequests.status, query.status) : undefined,
           staffId ? eq(returnRequests.assignedStaffId, staffId) : undefined,
-          gte(returnRequests.date, query.fromDate ?? query.toDate ?? today),
-          lte(returnRequests.date, query.toDate ?? query.fromDate ?? today),
+          fromDate ? gte(returnRequests.date, fromDate) : undefined,
+          toDate ? lte(returnRequests.date, toDate) : undefined,
         ),
       )
       .orderBy(returnRequests.startsAt, returnRequests.id)

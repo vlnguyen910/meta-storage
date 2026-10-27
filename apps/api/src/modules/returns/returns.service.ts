@@ -379,7 +379,8 @@ export class ReturnsService {
 
   async confirm(actor: ReturnActor, id: string, expectedVersion: number) {
     return this.repository.lockedRequest(id, async (tx, _context, request) => {
-      await this.staff(tx, actor, request);
+      if (actor.role === "FACILITY_MANAGER") await this.manager(tx, actor, request.facilityId);
+      else await this.staff(tx, actor, request);
       if (request.status === "CONFIRMED") return requestDto(request);
       this.version(request.version, expectedVersion);
       if (request.status !== "PENDING") throw new ConflictError(m.conflict);
@@ -1497,6 +1498,144 @@ export class ReturnsService {
       );
       await this.repository.updateUnit(tx, context.rental.physicalUnitId, "AVAILABLE");
       return result;
+    });
+  }
+
+  async finalize(actor: ReturnActor, id: string, expectedVersion: number) {
+    return this.repository.lockedRequest(id, async (tx, context, request) => {
+      if (actor.role === "FACILITY_MANAGER") await this.manager(tx, actor, request.facilityId);
+      else await this.staff(tx, actor, request);
+      if (request.status === "COMPLETED") return requestDto(request);
+      this.version(request.version, expectedVersion);
+      if (request.status === "CANCELLED") throw new ConflictError(m.conflict);
+
+      const attempts = await this.repository.inspections(tx, id);
+      const latest = attempts[0];
+      if (!latest) throw new ConflictError(m.inspectionNotPassed);
+
+      if (latest.status === "DRAFT") {
+        const photos = await this.repository.photos(tx, latest.id);
+        const status = reviewInspection(
+          latest.definition,
+          latest.results,
+          photos.map((p) => p.id),
+        );
+        await this.repository.updateInspection(tx, latest.id, {
+          status,
+          completedBy: actor.id,
+          completedAt: new Date(),
+        });
+        await this.repository.audit(
+          tx,
+          actor.id,
+          "INSPECTION_COMPLETED",
+          { inspectionId: latest.id, status },
+          id,
+          request.facilityId,
+        );
+        if (status === "FAIL") {
+          await this.repository.updateRequest(tx, id, { status: "FAILED" });
+          await this.repository.updateUnit(tx, context.rental.physicalUnitId, "MAINTENANCE");
+          throw new ConflictError(m.inspectionNotPassed);
+        }
+      } else if (latest.status !== "PASS") {
+        throw new ConflictError(m.inspectionNotPassed);
+      }
+
+      if (!context.rental.actualReturnAt) {
+        const now = new Date();
+        const at = now < context.rental.startAt ? context.rental.startAt : now;
+        await this.repository.updateRental(tx, context.rental.id, { actualReturnAt: at });
+        context.rental.actualReturnAt = at;
+        await this.repository.audit(
+          tx,
+          actor.id,
+          "PHYSICAL_RETURN_CONFIRMED",
+          {
+            actualReturnAt: at.toISOString(),
+            recordedAt: now.toISOString(),
+            reason: "Xác nhận khách hàng đã bàn giao trả kho thực tế",
+          },
+          id,
+          request.facilityId,
+        );
+      }
+
+      const settleInput: SettleReturn = {
+        expectedVersion: request.version,
+        damageAmount: "0",
+        unusedRentRefundAmount: "0",
+        reason: "Hoàn tất kiểm tra, xác nhận trả kho thành công và kết thúc hợp đồng thuê",
+      };
+      const eligibility = await this.settlementEligibility(tx, context, request, settleInput);
+      const first = eligibility.blockingReasons[0];
+      if (first) {
+        if (
+          first.code === blockerCode.EVIDENCE_INVALID ||
+          first.code === blockerCode.DAMAGE_EVIDENCE_MISSING
+        )
+          throw new ValidationError(first.message);
+        throw new ConflictError(first.message);
+      }
+
+      await this.assess(tx, actor, context, request, settleInput);
+
+      const settlements = await this.repository.settlements(tx, id);
+      const refunds = await this.repository.refunds(tx, id);
+      const [latestSettlement] = settlements;
+      if (latestSettlement) {
+        const summary = refundSummary(latestSettlement, settlements, refunds);
+        const remaining = wholeVnd(summary.remainingRefund);
+        const payment = await this.repository.payment(tx, context.booking.id);
+        if (remaining > 0n && payment) {
+          const depositAvailable = wholeVnd(summary.remainingDepositRefund ?? "0");
+          const rentAvailable = wholeVnd(summary.remainingRentRefund ?? "0");
+          const refundRow = await this.repository.insertRefund(tx, {
+            requestId: id,
+            paymentId: payment.id,
+            settlementId: latestSettlement.id,
+            amount: remaining.toString(),
+            depositRefundAmount: depositAvailable.toString(),
+            rentRefundAmount: rentAvailable.toString(),
+            reference: `REFUND-${id.slice(0, 8).toUpperCase()}`,
+            evidencePhotoIds: [],
+            idempotencyKey: latestSettlement.id,
+            confirmedBy: actor.id,
+          });
+          if (refundRow) {
+            await this.repository.audit(
+              tx,
+              actor.id,
+              "MANUAL_REFUND_CONFIRMED",
+              {
+                refundId: refundRow.id,
+                amount: refundRow.amount,
+                depositRefundAmount: refundRow.depositRefundAmount,
+                rentRefundAmount: refundRow.rentRefundAmount,
+                reference: refundRow.reference,
+                evidencePhotoIds: [],
+              },
+              id,
+              request.facilityId,
+            );
+          }
+        }
+      }
+
+      const now = new Date();
+      const updated = await this.repository.updateRequest(tx, id, { status: "COMPLETED" });
+      await this.repository.updateRental(tx, context.rental.id, {
+        status: "CLOSED",
+        closedAt: now,
+      });
+      await this.repository.releaseOccupancy(
+        tx,
+        context.booking.id,
+        context.rental.physicalUnitId,
+        now,
+      );
+      await this.repository.updateUnit(tx, context.rental.physicalUnitId, "AVAILABLE");
+      return requestDto(updated);
     });
   }
 }

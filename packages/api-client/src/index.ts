@@ -589,6 +589,10 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
         http
           .post<ApiEnvelope<ReturnSettlementDto>>(`/return-requests/${requestId}/settlement`, input)
           .then(unwrap),
+      finalize: (requestId: string, input: ReturnVersion) =>
+        http
+          .post<ApiEnvelope<ReturnRequestDto>>(`/return-requests/${requestId}/finalize`, input)
+          .then(unwrap),
     },
     dashboards: {
       get: (role: UserRole, facilityId?: string) =>

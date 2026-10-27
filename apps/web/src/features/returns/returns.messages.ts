@@ -192,6 +192,13 @@ export const RETURNS_MESSAGES = {
   statCompleted: "Đã hoàn tất",
   manualReviewBadge: "Cần FM rà soát",
   backToQueue: "Quay lại danh sách",
+  finalizeReturnTitle: "Xác nhận trả kho thành công · Hoàn tiền & Kết thúc hợp đồng",
+  finalizeReturnReady:
+    "Biên bản kiểm tra đã đạt yêu cầu. Bấm xác nhận bên dưới để ghi nhận trả kho thành công, hoàn trả tiền cọc cho khách hàng và kết thúc hợp đồng thuê kho.",
+  finalizeReturnButton:
+    "Hoàn tất kiểm tra & Xác nhận trả kho thành công (Hoàn tiền & Kết thúc hợp đồng)",
+  finalizeCompletedBanner:
+    "Đã xác nhận trả kho thành công, hoàn trả tiền cọc cho khách hàng và kết thúc hợp đồng thuê kho.",
 } as const;
 
 export function returnStatusLabel(status: string) {
@@ -224,12 +231,17 @@ export function returnAuditLabel(action: string) {
     RETURN_REQUEST_CREATED: "Khách gửi yêu cầu trả kho",
     RETURN_REQUEST_EDITED: "Khách cập nhật yêu cầu",
     RETURN_REQUEST_CANCELLED: "Yêu cầu đã được hủy",
-    RETURN_REQUEST_CONFIRMED: "FS xác nhận lịch hẹn",
+    RETURN_REQUEST_CONFIRMED: "Xác nhận lịch hẹn trả kho",
     RETURN_STAFF_ASSIGNED: "FM phân công nhân viên",
+    STAFF_ASSIGNED: "FM phân công nhân viên",
     PHYSICAL_RETURN_CONFIRMED: "Cơ sở ghi nhận đã nhận lại kho",
     INSPECTION_STARTED: "Bắt đầu kiểm tra hiện trạng",
     INSPECTION_SAVED: "Đã lưu biên bản kiểm tra",
     INSPECTION_COMPLETED: "Đã hoàn tất kiểm tra",
+    SETTLEMENT_APPROVED: "Đã duyệt quyết toán & kết thúc hợp đồng thuê",
+    SETTLEMENT_ADJUSTED: "Đã điều chỉnh quyết toán trả kho",
+    MANUAL_REFUND_CONFIRMED: "Đã xác nhận hoàn tiền cọc cho khách hàng",
+    DAMAGE_FEES_APPROVED: "Đã ghi nhận khấu trừ phí hư hỏng",
   };
   return labels[action] ?? "Hoạt động cập nhật hồ sơ";
 }

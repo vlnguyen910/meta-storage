@@ -142,6 +142,40 @@ export class ContractsService {
     );
   }
   async list(actor: ContractActor, bookingId: string) {
+    const unissued = await this.repository.locked(bookingId, async (tx) => {
+      await this.access(tx, actor, bookingId);
+      if (actor.role !== "FACILITY_STAFF") return null;
+      const rows = await this.repository.list(bookingId, tx);
+      if (rows.some((row) => row.status === "ISSUED")) return null;
+      return rows.find((row) => row.status === "UPLOADED") ?? null;
+    });
+    if (unissued) {
+      try {
+        await this.readValid(unissued);
+        await this.repository.locked(bookingId, async (tx) => {
+          const context = await this.access(tx, actor, bookingId);
+          await this.mutable(tx, bookingId, context.booking.status);
+          const current = await this.repository.current(bookingId, tx);
+          if (current) return;
+          const terms = await this.terms(tx, bookingId);
+          const issued = await this.repository.issue(tx, unissued.id, unissued.uploadedBy, terms);
+          await this.repository.audit(
+            tx,
+            bookingId,
+            unissued.id,
+            unissued.uploadedBy,
+            "CONTRACT_ISSUED",
+            {
+              previousCurrentId: null,
+              version: issued.version,
+              autoIssuedOnStaffAccess: true,
+            },
+          );
+        });
+      } catch {
+        // Leave contract in UPLOADED state if auto-issuance preconditions are not met.
+      }
+    }
     return this.repository.locked(bookingId, async (tx) => {
       await this.access(tx, actor, bookingId);
       const rows = await this.repository.list(bookingId, tx),

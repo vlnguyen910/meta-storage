@@ -228,9 +228,14 @@ export function ReturnInspectionReview({
                 })}
               </p>
             )}
-            {staff && ["INSPECTING", "FAILED"].includes(detail.request.status) && (
-              <ReturnPropertyForm detail={detail} inspection={inspection} />
-            )}
+            {staff &&
+              ["INSPECTING", "FAILED"].includes(detail.request.status) &&
+              (inspection.propertyDisposition !== "NONE" ||
+                inspection.definition.some(
+                  (d) =>
+                    d.group === "REMAINING_PROPERTY" &&
+                    inspection.results.find((r) => r.code === d.code)?.issue,
+                )) && <ReturnPropertyForm detail={detail} inspection={inspection} />}
           </details>
         ))}
     </div>

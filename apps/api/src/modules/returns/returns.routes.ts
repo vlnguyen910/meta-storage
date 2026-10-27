@@ -366,4 +366,18 @@ export const returnsRoutes: FastifyPluginAsync<ReturnsRoutesOptions> = async (ap
     async (req) =>
       successResponse(await service.confirmRefund(actor(req), req.params.requestId, req.body)),
   );
+  typed.post(
+    "/return-requests/:requestId/finalize",
+    {
+      preHandler: [requireAuth],
+      schema: {
+        params: ReturnRequestParamsSchema,
+        body: ReturnVersionSchema,
+      },
+    },
+    async (req) =>
+      successResponse(
+        await service.finalize(actor(req), req.params.requestId, req.body.expectedVersion),
+      ),
+  );
 };

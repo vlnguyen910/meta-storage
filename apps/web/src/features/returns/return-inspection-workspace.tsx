@@ -7,7 +7,12 @@ import { useState } from "react";
 import { useGlobalLoading } from "@/components/providers/global-loading-provider";
 import { Card } from "@/components/ui/display";
 import { api } from "@/lib/api";
-import { returnKeys, useCompleteReturnInspection, useSaveReturnInspection } from "./hooks";
+import {
+  returnKeys,
+  useCompleteReturnInspection,
+  useFinalizeReturnRequest,
+  useSaveReturnInspection,
+} from "./hooks";
 import { facilityDateTime, facilityTimeToIso } from "./integration-utils";
 import { ReturnPrivatePhoto } from "./return-private-photo";
 import { RETURNS_MESSAGES as M, returnChecklistGroupLabel } from "./returns.messages";
@@ -32,11 +37,13 @@ export function ReturnInspectionWorkspace({
   facilityId,
   inspection,
   timezone,
+  requestVersion,
 }: {
   requestId: string;
   facilityId: string;
   inspection: ReturnInspectionDetailDto;
   timezone: string;
+  requestVersion?: number;
 }) {
   const { runWithGlobalLoading } = useGlobalLoading();
   const [items, setItems] = useState<Record<string, ItemState>>(() =>
@@ -69,6 +76,7 @@ export function ReturnInspectionWorkspace({
   const queryClient = useQueryClient();
   const save = useSaveReturnInspection(requestId);
   const complete = useCompleteReturnInspection(requestId, facilityId);
+  const finalize = useFinalizeReturnRequest(requestId, facilityId);
 
   const photoIds = new Set([
     ...inspection.photos.map((photo) => photo.id),
@@ -150,31 +158,56 @@ export function ReturnInspectionWorkspace({
     setDirty(true);
   }
 
+  function buildSavePayload() {
+    return {
+      expectedVersion: inspection.version,
+      results: inspection.definition.map((item) => ({
+        code: item.code,
+        issue: items[item.code]?.issue ?? false,
+        note: items[item.code]?.note ?? "",
+        photoIds: items[item.code]?.photoIds ?? [],
+      })),
+      propertyDisposition: propertyDisposition as "NONE" | "RESOLVED" | "STORED",
+      propertyReceiver: propertyDisposition === "STORED" ? propertyReceiver.trim() || null : null,
+      propertyHandledAt:
+        propertyDisposition === "NONE" || !propertyHandledAt
+          ? null
+          : facilityTimeToIso(propertyHandledAt, timezone),
+      propertyEvidencePhotoIds,
+    };
+  }
+
   function saveDraft() {
     if (!canSave) return;
     save.mutate(
       {
         inspectionId: inspection.id,
-        input: {
-          expectedVersion: inspection.version,
-          results: inspection.definition.map((item) => ({
-            code: item.code,
-            issue: items[item.code]?.issue ?? false,
-            note: items[item.code]?.note ?? "",
-            photoIds: items[item.code]?.photoIds ?? [],
-          })),
-          propertyDisposition: propertyDisposition as "NONE" | "RESOLVED" | "STORED",
-          propertyReceiver:
-            propertyDisposition === "STORED" ? propertyReceiver.trim() || null : null,
-          propertyHandledAt:
-            propertyDisposition === "NONE" || !propertyHandledAt
-              ? null
-              : facilityTimeToIso(propertyHandledAt, timezone),
-          propertyEvidencePhotoIds,
-        },
+        input: buildSavePayload(),
       },
       { onSuccess: () => setDirty(false) },
     );
+  }
+
+  const hasAnyIssue = inspection.definition.some((item) => items[item.code]?.issue);
+  const canFinalizeDirect =
+    canSave && !hasAnyIssue && !finalize.isPending && typeof requestVersion === "number";
+
+  async function saveAndFinalize() {
+    if (!canFinalizeDirect || typeof requestVersion !== "number") return;
+    let nextRequestVersion = requestVersion;
+    if (dirty || !inspectionSaved) {
+      await save.mutateAsync({
+        inspectionId: inspection.id,
+        input: buildSavePayload(),
+      });
+      setDirty(false);
+      const fresh = await queryClient.fetchQuery<ReturnRequestDetailDto>({
+        queryKey: returnKeys.request(requestId),
+        queryFn: () => api.returns.get(requestId),
+      });
+      nextRequestVersion = fresh.request.version;
+    }
+    finalize.mutate({ expectedVersion: nextRequestVersion });
   }
 
   return (
@@ -461,10 +494,20 @@ export function ReturnInspectionWorkspace({
                   });
                 }
               }}
-              className="min-h-11 rounded-lg bg-primary px-5 font-semibold text-white shadow-sm transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+              className="min-h-11 rounded-lg border border-primary/30 bg-primary/5 px-5 font-semibold text-primary transition-colors hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {complete.isPending ? M.saving : M.completeInspection}
             </button>
+            {typeof requestVersion === "number" && (
+              <button
+                type="button"
+                disabled={!canFinalizeDirect}
+                onClick={() => void saveAndFinalize()}
+                className="min-h-11 rounded-lg bg-emerald-600 px-5 font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {finalize.isPending || save.isPending ? M.saving : M.finalizeReturnButton}
+              </button>
+            )}
           </div>
         )}
       </Card>
