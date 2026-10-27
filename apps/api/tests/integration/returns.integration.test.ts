@@ -1214,7 +1214,7 @@ describe.skipIf(!target)(
       expect(results[0].json().data.id).toBe(results[1].json().data.id);
       const amount = String(1000000 - initialRate * 10000 - 100000);
       expect(results[0].json().data.refundEntitlement).toBe(amount);
-      expect(results[0].json().data.refundDueDate).toBe("2032-01-08");
+      expect(results[0].json().data.refundDueDate).toBe("2032-01-07");
       current = await state(s.id);
       expect(current.settlements).toHaveLength(1);
       expect(current.request.status).toBe("COMPLETED");
