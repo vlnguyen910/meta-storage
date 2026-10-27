@@ -1,4 +1,8 @@
-import { type FacilityStaffMember, UserRole } from "@metastorage/contracts";
+import {
+  type FacilityAssignmentRole,
+  type FacilityStaffMember,
+  UserRole,
+} from "@metastorage/contracts";
 import {
   and,
   bookings,
@@ -11,6 +15,7 @@ import {
   facilityAssignments,
   facilityTasks,
   gt,
+  inArray,
   isNull,
   lte,
   type NewFacilityAssignment,
@@ -22,6 +27,8 @@ import { ConflictError, ForbiddenError, NotFoundError } from "../../common/error
 import type { AssignedFacilityScope, FacilityScope } from "./facilities.access";
 import { FACILITY_MESSAGES } from "./facilities.messages";
 import { hasOpenAssignedWork } from "./staff-work.repository";
+
+export type FacilityAssignmentTransaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
 
 export class FacilityAssignmentsRepository {
   constructor(private readonly db: Database) {}
@@ -113,6 +120,48 @@ export class FacilityAssignmentsRepository {
         ),
       );
     return assignment;
+  }
+
+  async lockActiveAssignments(
+    tx: FacilityAssignmentTransaction,
+    facilityId: string,
+    expected: readonly { userId: string; role: FacilityAssignmentRole }[],
+  ): Promise<Set<string>> {
+    const userIds = [...new Set(expected.map(({ userId }) => userId))].sort();
+    if (!userIds.length) return new Set();
+
+    const people = await tx
+      .select({ id: users.id, role: users.role, status: users.status })
+      .from(users)
+      .where(inArray(users.id, userIds))
+      .orderBy(users.id)
+      .for("update");
+    const assignments = await tx
+      .select({ userId: facilityAssignments.userId, role: facilityAssignments.role })
+      .from(facilityAssignments)
+      .where(
+        and(
+          eq(facilityAssignments.facilityId, facilityId),
+          inArray(facilityAssignments.userId, userIds),
+          eq(facilityAssignments.isActive, true),
+          or(isNull(facilityAssignments.endedAt), gt(facilityAssignments.endedAt, new Date())),
+        ),
+      )
+      .orderBy(facilityAssignments.userId)
+      .for("update");
+
+    const activeUsers = new Map(
+      people.filter((user) => user.status === "ACTIVE").map((user) => [user.id, user.role]),
+    );
+    const activeRoles = new Map(assignments.map(({ userId, role }) => [userId, role]));
+    return new Set(
+      expected
+        .filter(
+          ({ userId, role }) =>
+            activeUsers.get(userId) === role && activeRoles.get(userId) === role,
+        )
+        .map(({ userId }) => userId),
+    );
   }
 
   async findAssignment(

@@ -960,120 +960,79 @@ export class BookingsRepository {
       .orderBy(desc(handoverInspections.updatedAt));
   }
 
-  async assignStaff(bookingId: string, staffId: string, managerId: string) {
-    return this.db.transaction(async (tx) => {
-      // 1. Lock and fetch booking
-      const [booking] = await tx
-        .select()
-        .from(bookings)
-        .where(eq(bookings.id, bookingId))
-        .for("update");
+  async assignStaff(tx: BookingTransaction, bookingId: string, staffId: string) {
+    // 1. Lock and fetch booking
+    const [booking] = await tx
+      .select()
+      .from(bookings)
+      .where(eq(bookings.id, bookingId))
+      .for("update");
 
-      if (!booking) {
-        return { error: "BOOKING_NOT_FOUND" as const };
-      }
+    if (!booking) {
+      return { error: "BOOKING_NOT_FOUND" as const };
+    }
 
-      if (booking.status !== "CONFIRMED") return { error: "INVALID_BOOKING_STATUS" as const };
+    if (booking.status !== "CONFIRMED") return { error: "INVALID_BOOKING_STATUS" as const };
 
-      // Serialize staff assignment with account changes and membership revocation.
-      await tx.select({ id: users.id }).from(users).where(eq(users.id, staffId)).for("share");
-      // 2. Verify staff member exists and has active FACILITY_STAFF assignment for this facility
-      const [staff] = await tx
-        .select({
-          user: users,
-          assignment: facilityAssignments,
-        })
-        .from(users)
-        .innerJoin(facilityAssignments, eq(users.id, facilityAssignments.userId))
-        .where(
-          and(
-            eq(users.id, staffId),
-            eq(users.role, "FACILITY_STAFF"),
-            eq(facilityAssignments.facilityId, booking.facilityId),
-            eq(facilityAssignments.role, "FACILITY_STAFF"),
-            eq(facilityAssignments.isActive, true),
-            or(isNull(facilityAssignments.endedAt), gt(facilityAssignments.endedAt, new Date())),
-          ),
-        )
-        .for("share", { of: facilityAssignments });
+    // Serialize staff assignment with account changes and membership revocation.
+    await tx.select({ id: users.id }).from(users).where(eq(users.id, staffId)).for("share");
+    // 2. Verify staff member exists and has active FACILITY_STAFF assignment for this facility
+    const [staff] = await tx
+      .select({
+        user: users,
+        assignment: facilityAssignments,
+      })
+      .from(users)
+      .innerJoin(facilityAssignments, eq(users.id, facilityAssignments.userId))
+      .where(
+        and(
+          eq(users.id, staffId),
+          eq(users.role, "FACILITY_STAFF"),
+          eq(facilityAssignments.facilityId, booking.facilityId),
+          eq(facilityAssignments.role, "FACILITY_STAFF"),
+          eq(facilityAssignments.isActive, true),
+          or(isNull(facilityAssignments.endedAt), gt(facilityAssignments.endedAt, new Date())),
+        ),
+      )
+      .for("share", { of: facilityAssignments });
 
-      if (!staff) {
-        return { error: "STAFF_NOT_IN_FACILITY" as const };
-      }
+    if (!staff) {
+      return { error: "STAFF_NOT_IN_FACILITY" as const };
+    }
 
-      if (staff.user.status !== "ACTIVE") {
-        return { error: "STAFF_INACTIVE" as const };
-      }
+    if (staff.user.status !== "ACTIVE") {
+      return { error: "STAFF_INACTIVE" as const };
+    }
 
-      if (booking.assignedStaffId !== staffId) {
-        await tx
-          .update(checkInVerifications)
-          .set({
-            status: "INVALIDATED",
-            invalidatedAt: new Date(),
-            invalidatedReason: "Staff assignment changed",
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(checkInVerifications.bookingId, bookingId),
-              eq(checkInVerifications.status, "VERIFIED"),
-            ),
-          );
-      }
-      // 3. Update booking assignedStaffId
+    if (booking.assignedStaffId !== staffId) {
       await tx
-        .update(bookings)
-        .set({ assignedStaffId: staffId, updatedAt: new Date() })
-        .where(and(eq(bookings.id, bookingId), ne(bookings.status, "DRAFT")));
-
-      const [activeTask] = await tx
-        .select()
-        .from(facilityTasks)
+        .update(checkInVerifications)
+        .set({
+          status: "INVALIDATED",
+          invalidatedAt: new Date(),
+          invalidatedReason: "Staff assignment changed",
+          updatedAt: new Date(),
+        })
         .where(
           and(
-            eq(facilityTasks.type, FacilityTaskType.CHECK_IN_HANDOVER),
-            eq(facilityTasks.referenceType, FacilityTaskReferenceType.BOOKING),
-            eq(facilityTasks.referenceId, bookingId),
-            inArray(facilityTasks.status, ["ASSIGNED", "IN_PROGRESS"]),
+            eq(checkInVerifications.bookingId, bookingId),
+            eq(checkInVerifications.status, "VERIFIED"),
           ),
-        )
-        .for("update");
-      const now = new Date();
-      if (activeTask) {
-        if (activeTask.assignedStaffId !== staffId)
-          await tx
-            .update(facilityTasks)
-            .set({
-              assignedStaffId: staffId,
-              assignedBy: managerId,
-              assignedAt: now,
-              status: "ASSIGNED",
-              startedAt: null,
-              updatedAt: now,
-              version: activeTask.version + 1,
-            })
-            .where(eq(facilityTasks.id, activeTask.id));
-      } else {
-        await tx.insert(facilityTasks).values({
-          facilityId: booking.facilityId,
-          type: FacilityTaskType.CHECK_IN_HANDOVER,
-          status: "ASSIGNED",
-          referenceType: FacilityTaskReferenceType.BOOKING,
-          referenceId: bookingId,
-          assignedStaffId: staffId,
-          assignedBy: managerId,
-          assignedAt: now,
-        });
-      }
+        );
+    }
+    // 3. Update booking assignedStaffId
+    await tx
+      .update(bookings)
+      .set({ assignedStaffId: staffId, updatedAt: new Date() })
+      .where(and(eq(bookings.id, bookingId), ne(bookings.status, "DRAFT")));
 
-      return {
-        success: true as const,
-        bookingId,
-        staffId,
-        changed: booking.assignedStaffId !== staffId,
-      };
-    });
+    return {
+      success: true as const,
+      bookingId,
+      facilityId: booking.facilityId,
+      staffId,
+      changed: booking.assignedStaffId !== staffId,
+    };
   }
 }
 
@@ -1184,7 +1143,7 @@ export async function closeBookingBeforeCheckIn(
     .where(and(eq(bookings.id, bookingId), eq(bookings.status, "CONFIRMED")));
   await tx
     .update(facilityTasks)
-    .set({ status: "CANCELLED", updatedAt: now, version: sql`${facilityTasks.version} + 1` })
+    .set({ status: "CANCELLED", updatedAt: now })
     .where(
       and(
         eq(facilityTasks.type, FacilityTaskType.CHECK_IN_HANDOVER),

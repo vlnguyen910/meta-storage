@@ -1,9 +1,13 @@
 import {
-  type AssignFacilityTaskInput,
   type CreateFacilityTaskInput,
+  type FacilityTaskDashboardSummary,
   type FacilityTaskListQuery,
   FacilityTaskReferenceType,
+  FacilityTaskStatus,
   FacilityTaskType,
+  FacilityTaskTypeReferenceSchema,
+  type StaffFacilityTaskListQuery,
+  type UpdateFacilityTaskInput,
 } from "@metastorage/contracts";
 import {
   aliasedTable,
@@ -13,56 +17,193 @@ import {
   type Database,
   desc,
   eq,
-  facilityAssignments,
   facilityTasks,
   getTableColumns,
-  gt,
   inArray,
-  isNull,
-  or,
+  sql,
   storageUnits,
   supportTickets,
   users,
 } from "@metastorage/database";
+import type { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
 import type {
+  FacilityTaskActor,
   FacilityTaskRecord,
-  LockedTaskActors,
   TaskTransaction,
   TaskWriteResult,
 } from "./facility-tasks.types";
 
 const assignee = aliasedTable(users, "task_assignee");
 const assigner = aliasedTable(users, "task_assigner");
-const columns = {
+const taskColumns = {
   ...getTableColumns(facilityTasks),
   assignedStaffName: assignee.name,
   assignerName: assigner.name,
 };
 
 export class FacilityTasksRepository {
-  constructor(private readonly db: Database) {}
+  constructor(
+    private readonly db: Database,
+    private readonly assignments: FacilityAssignmentsRepository,
+  ) {}
 
-  async findById(id: string): Promise<FacilityTaskRecord | undefined> {
-    const [task] = await this.db
-      .select(columns)
-      .from(facilityTasks)
-      .innerJoin(assignee, eq(assignee.id, facilityTasks.assignedStaffId))
-      .innerJoin(assigner, eq(assigner.id, facilityTasks.assignedBy))
-      .where(eq(facilityTasks.id, id));
-    return task;
+  async create(input: CreateFacilityTaskInput, actor: FacilityTaskActor): Promise<TaskWriteResult> {
+    return this.db.transaction(async (tx) => {
+      const activeAssignments = await this.assignments.lockActiveAssignments(tx, input.facilityId, [
+        { userId: actor.id, role: "FACILITY_MANAGER" },
+        { userId: input.assignedStaffId, role: "FACILITY_STAFF" },
+      ]);
+      if (!activeAssignments.has(actor.id)) return { error: "MANAGER_ACCESS_DENIED" };
+      if (!activeAssignments.has(input.assignedStaffId)) return { error: "STAFF_UNAVAILABLE" };
+      if (!FacilityTaskTypeReferenceSchema.safeParse(input).success)
+        return { error: "CONTEXT_MISMATCH" };
+      if (
+        !(await referenceExistsAtFacility(
+          tx,
+          input.referenceType,
+          input.referenceId,
+          input.facilityId,
+        ))
+      )
+        return { error: "CONTEXT_MISMATCH" };
+
+      const [task] = await tx
+        .insert(facilityTasks)
+        .values({
+          facilityId: input.facilityId,
+          type: input.type,
+          referenceType: input.referenceType,
+          referenceId: input.referenceId,
+          description: input.description?.trim() || null,
+          assignedStaffId: input.assignedStaffId,
+          assignedBy: actor.id,
+        })
+        .returning();
+      if (!task) throw new Error("Facility task insert returned no row");
+      return { task: await loadTask(tx, task.id) };
+    });
   }
 
-  async list(query: FacilityTaskListQuery) {
-    const filter = and(
-      eq(facilityTasks.facilityId, query.facilityId),
-      query.assignedStaffId ? eq(facilityTasks.assignedStaffId, query.assignedStaffId) : undefined,
-      query.type ? eq(facilityTasks.type, query.type) : undefined,
+  async assignBookingHandover(
+    tx: TaskTransaction,
+    facilityId: string,
+    bookingId: string,
+    staffId: string,
+    managerId: string,
+  ): Promise<void> {
+    const [activeTask] = await tx
+      .select()
+      .from(facilityTasks)
+      .where(
+        and(
+          eq(facilityTasks.type, FacilityTaskType.CHECK_IN_HANDOVER),
+          eq(facilityTasks.referenceType, FacilityTaskReferenceType.BOOKING),
+          eq(facilityTasks.referenceId, bookingId),
+          inArray(facilityTasks.status, [
+            FacilityTaskStatus.ASSIGNED,
+            FacilityTaskStatus.IN_PROGRESS,
+          ]),
+        ),
+      )
+      .for("update");
+    const now = new Date();
+    if (activeTask) {
+      if (activeTask.assignedStaffId !== staffId)
+        await tx
+          .update(facilityTasks)
+          .set({
+            assignedStaffId: staffId,
+            assignedBy: managerId,
+            assignedAt: now,
+            status: FacilityTaskStatus.ASSIGNED,
+            startedAt: null,
+            updatedAt: now,
+          })
+          .where(eq(facilityTasks.id, activeTask.id));
+      return;
+    }
+
+    await tx.insert(facilityTasks).values({
+      facilityId,
+      type: FacilityTaskType.CHECK_IN_HANDOVER,
+      status: FacilityTaskStatus.ASSIGNED,
+      referenceType: FacilityTaskReferenceType.BOOKING,
+      referenceId: bookingId,
+      assignedStaffId: staffId,
+      assignedBy: managerId,
+      assignedAt: now,
+    });
+  }
+
+  async listForStaff(staffId: string, facilityIds: string[], query: StaffFacilityTaskListQuery) {
+    return this.list(
+      and(
+        eq(facilityTasks.assignedStaffId, staffId),
+        inArray(facilityTasks.facilityId, facilityIds),
+        query.type ? eq(facilityTasks.type, query.type) : undefined,
+      ),
+      query,
     );
+  }
+
+  async listForFacility(facilityId: string, query: FacilityTaskListQuery) {
+    return this.list(
+      and(
+        eq(facilityTasks.facilityId, facilityId),
+        query.assignedStaffId
+          ? eq(facilityTasks.assignedStaffId, query.assignedStaffId)
+          : undefined,
+        query.type ? eq(facilityTasks.type, query.type) : undefined,
+      ),
+      query,
+    );
+  }
+
+  async dashboardForStaff(
+    staffId: string,
+    facilityIds: string[],
+  ): Promise<FacilityTaskDashboardSummary> {
+    const [summary] = await this.db
+      .select({
+        date: sql<string>`(current_timestamp at time zone 'Asia/Ho_Chi_Minh')::date::text`,
+        pendingCount: count().mapWith(Number),
+        byType: {
+          CHECK_IN_HANDOVER:
+            sql<number>`count(*) filter (where ${facilityTasks.type} = ${FacilityTaskType.CHECK_IN_HANDOVER})::int`.mapWith(
+              Number,
+            ),
+          UNIT_INSPECTION:
+            sql<number>`count(*) filter (where ${facilityTasks.type} = ${FacilityTaskType.UNIT_INSPECTION})::int`.mapWith(
+              Number,
+            ),
+          HANDLE_SUPPORT:
+            sql<number>`count(*) filter (where ${facilityTasks.type} = ${FacilityTaskType.HANDLE_SUPPORT})::int`.mapWith(
+              Number,
+            ),
+        },
+      })
+      .from(facilityTasks)
+      .where(
+        and(
+          eq(facilityTasks.assignedStaffId, staffId),
+          inArray(facilityTasks.facilityId, facilityIds),
+          inArray(facilityTasks.status, [
+            FacilityTaskStatus.ASSIGNED,
+            FacilityTaskStatus.IN_PROGRESS,
+          ]),
+          sql`(${facilityTasks.assignedAt} at time zone 'Asia/Ho_Chi_Minh')::date = (current_timestamp at time zone 'Asia/Ho_Chi_Minh')::date`,
+        ),
+      );
+    if (!summary) throw new Error("Facility task dashboard query returned no row");
+    return summary;
+  }
+
+  private async list(filter: ReturnType<typeof and>, query: { limit: number; offset: number }) {
     return this.db.transaction(
       async (tx) => {
         const [total] = await tx.select({ value: count() }).from(facilityTasks).where(filter);
         const items = await tx
-          .select(columns)
+          .select(taskColumns)
           .from(facilityTasks)
           .innerJoin(assignee, eq(assignee.id, facilityTasks.assignedStaffId))
           .innerJoin(assigner, eq(assigner.id, facilityTasks.assignedBy))
@@ -76,41 +217,10 @@ export class FacilityTasksRepository {
     );
   }
 
-  async create(input: CreateFacilityTaskInput, managerId: string): Promise<TaskWriteResult> {
-    return this.db.transaction(async (tx) => {
-      const actors = await lockTaskActors(tx, input.facilityId, managerId, input.assignedStaffId);
-      if ("error" in actors) return actors;
-      if (
-        !(await referenceMatchesFacility(
-          tx,
-          input.referenceType,
-          input.referenceId,
-          input.facilityId,
-        ))
-      )
-        return { error: "CONTEXT_MISMATCH" };
-      const [task] = await tx
-        .insert(facilityTasks)
-        .values({
-          facilityId: input.facilityId,
-          type: input.type,
-          referenceType: input.referenceType,
-          referenceId: input.referenceId,
-          assignedStaffId: input.assignedStaffId,
-          assignedBy: managerId,
-        })
-        .returning();
-      if (!task) throw new Error("Facility task insert returned no row");
-      return {
-        task: { ...task, assignedStaffName: actors.staff.name, assignerName: actors.manager.name },
-      };
-    });
-  }
-
-  async assign(
+  async update(
     id: string,
-    input: AssignFacilityTaskInput,
-    managerId: string,
+    input: UpdateFacilityTaskInput,
+    actor: FacilityTaskActor,
   ): Promise<TaskWriteResult> {
     return this.db.transaction(async (tx) => {
       const [current] = await tx
@@ -119,144 +229,149 @@ export class FacilityTasksRepository {
         .where(eq(facilityTasks.id, id))
         .for("update");
       if (!current) return { error: "TASK_NOT_FOUND" };
-      if (current.status === "COMPLETED" || current.status === "CANCELLED")
-        return { error: "INVALID_TASK_STATE" };
-      const actors = await lockTaskActors(tx, current.facilityId, managerId, input.assignedStaffId);
-      if ("error" in actors) return actors;
-      if (current.version !== input.version) return { error: "VERSION_CONFLICT" };
-      if (current.assignedStaffId === input.assignedStaffId) {
-        const [previousAssigner] = await tx
-          .select({ name: users.name })
-          .from(users)
-          .where(eq(users.id, current.assignedBy));
-        return {
-          task: {
-            ...current,
-            assignedStaffName: actors.staff.name,
-            assignerName: previousAssigner?.name ?? actors.manager.name,
-          },
-        };
-      }
-      const now = new Date();
-      const [task] = await tx
-        .update(facilityTasks)
-        .set({
-          assignedStaffId: input.assignedStaffId,
-          assignedBy: managerId,
-          assignedAt: now,
-          status: "ASSIGNED",
-          startedAt: null,
-          updatedAt: now,
-          version: current.version + 1,
-        })
-        .where(and(eq(facilityTasks.id, id), eq(facilityTasks.version, input.version)))
-        .returning();
-      if (!task) return { error: "VERSION_CONFLICT" };
-      return {
-        task: { ...task, assignedStaffName: actors.staff.name, assignerName: actors.manager.name },
-      };
+      if ("status" in input) return this.updateStatus(tx, current, input.status, actor);
+      return this.updateDetails(tx, current, input, actor);
     });
   }
 
-  async start(id: string, staffId: string): Promise<TaskWriteResult> {
-    return this.changeLifecycle(id, staffId, false);
-  }
-
-  async complete(id: string, staffId: string): Promise<TaskWriteResult> {
-    return this.changeLifecycle(id, staffId, true);
-  }
-
-  async cancel(id: string, managerId: string): Promise<TaskWriteResult> {
-    return this.db.transaction(async (tx) => {
-      const [task] = await tx
-        .select()
-        .from(facilityTasks)
-        .where(eq(facilityTasks.id, id))
-        .for("update");
-      if (!task) return { error: "TASK_NOT_FOUND" };
-      if (task.status === "COMPLETED" || task.status === "CANCELLED")
-        return { error: "INVALID_TASK_STATE" };
-      const manager = await lockManager(tx, task.facilityId, managerId);
-      if (!manager) return { error: "MANAGER_ACCESS_DENIED" };
-      const [updated] = await tx
-        .update(facilityTasks)
-        .set({ status: "CANCELLED", updatedAt: new Date(), version: task.version + 1 })
-        .where(and(eq(facilityTasks.id, id), eq(facilityTasks.version, task.version)))
-        .returning();
-      if (!updated) return { error: "VERSION_CONFLICT" };
-      return { task: await loadTaskRecord(tx, updated.id) };
-    });
-  }
-
-  private async changeLifecycle(
-    id: string,
-    staffId: string,
-    complete: boolean,
+  private async updateStatus(
+    tx: TaskTransaction,
+    current: typeof facilityTasks.$inferSelect,
+    status:
+      | FacilityTaskStatus.IN_PROGRESS
+      | FacilityTaskStatus.COMPLETED
+      | FacilityTaskStatus.CANCELLED,
+    actor: FacilityTaskActor,
   ): Promise<TaskWriteResult> {
-    return this.db.transaction(async (tx) => {
-      const [task] = await tx
-        .select()
-        .from(facilityTasks)
-        .where(eq(facilityTasks.id, id))
-        .for("update");
-      if (!task) return { error: "TASK_NOT_FOUND" };
-      if (task.assignedStaffId !== staffId) return { error: "TASK_ACCESS_DENIED" };
-      if (complete ? task.status !== "IN_PROGRESS" : task.status !== "ASSIGNED")
+    if (status === FacilityTaskStatus.CANCELLED) {
+      if (
+        current.status === FacilityTaskStatus.COMPLETED ||
+        current.status === FacilityTaskStatus.CANCELLED
+      )
         return { error: "INVALID_TASK_STATE" };
-      if (complete && task.type === FacilityTaskType.CHECK_IN_HANDOVER) {
+      const managers = await this.assignments.lockActiveAssignments(tx, current.facilityId, [
+        { userId: actor.id, role: "FACILITY_MANAGER" },
+      ]);
+      if (!managers.has(actor.id)) return { error: "MANAGER_ACCESS_DENIED" };
+    } else {
+      if (actor.role !== "FACILITY_STAFF" || current.assignedStaffId !== actor.id)
+        return { error: "TASK_ACCESS_DENIED" };
+      const staff = await this.assignments.lockActiveAssignments(tx, current.facilityId, [
+        { userId: actor.id, role: "FACILITY_STAFF" },
+      ]);
+      if (!staff.has(actor.id)) return { error: "TASK_ACCESS_DENIED" };
+      if (
+        (status === FacilityTaskStatus.IN_PROGRESS &&
+          current.status !== FacilityTaskStatus.ASSIGNED) ||
+        (status === FacilityTaskStatus.COMPLETED &&
+          current.status !== FacilityTaskStatus.IN_PROGRESS)
+      )
+        return { error: "INVALID_TASK_STATE" };
+      if (
+        status === FacilityTaskStatus.COMPLETED &&
+        current.type === FacilityTaskType.CHECK_IN_HANDOVER
+      ) {
         const [booking] = await tx
           .select({ status: bookings.status })
           .from(bookings)
-          .where(eq(bookings.id, task.referenceId));
+          .where(eq(bookings.id, current.referenceId));
         if (booking?.status !== "CHECKED_IN") return { error: "INVALID_TASK_STATE" };
       }
-      const [staff] = await tx
-        .select({ id: users.id, name: users.name, role: users.role, status: users.status })
-        .from(users)
-        .where(eq(users.id, staffId))
-        .for("update");
-      if (staff?.role !== "FACILITY_STAFF" || staff.status !== "ACTIVE")
-        return { error: "TASK_ACCESS_DENIED" };
-      const [assignment] = await tx
-        .select({ userId: facilityAssignments.userId })
-        .from(facilityAssignments)
-        .where(
-          and(
-            eq(facilityAssignments.userId, staffId),
-            eq(facilityAssignments.facilityId, task.facilityId),
-            eq(facilityAssignments.role, "FACILITY_STAFF"),
-            eq(facilityAssignments.isActive, true),
-            or(isNull(facilityAssignments.endedAt), gt(facilityAssignments.endedAt, new Date())),
-          ),
-        )
-        .for("update");
-      if (!assignment) return { error: "TASK_ACCESS_DENIED" };
-      const now = new Date();
-      const [updated] = await tx
-        .update(facilityTasks)
-        .set({
-          status: complete ? "COMPLETED" : "IN_PROGRESS",
-          startedAt: complete ? task.startedAt : now,
-          completedAt: complete ? now : null,
-          updatedAt: now,
-          version: task.version + 1,
-        })
-        .where(and(eq(facilityTasks.id, id), eq(facilityTasks.version, task.version)))
-        .returning();
-      if (!updated) return { error: "VERSION_CONFLICT" };
-      return {
-        task: await loadTaskRecord(tx, updated.id),
-      };
-    });
+    }
+
+    const now = new Date();
+    const [updated] = await tx
+      .update(facilityTasks)
+      .set({
+        status,
+        ...(status === FacilityTaskStatus.IN_PROGRESS ? { startedAt: now } : {}),
+        ...(status === FacilityTaskStatus.COMPLETED ? { completedAt: now } : {}),
+        updatedAt: now,
+      })
+      .where(eq(facilityTasks.id, current.id))
+      .returning();
+    if (!updated) return { error: "TASK_NOT_FOUND" };
+    return { task: await loadTask(tx, updated.id) };
+  }
+
+  private async updateDetails(
+    tx: TaskTransaction,
+    current: typeof facilityTasks.$inferSelect,
+    input: Exclude<UpdateFacilityTaskInput, { status: FacilityTaskStatus }>,
+    actor: FacilityTaskActor,
+  ): Promise<TaskWriteResult> {
+    if (actor.role !== "FACILITY_MANAGER") return { error: "MANAGER_ACCESS_DENIED" };
+    if (
+      current.status === FacilityTaskStatus.COMPLETED ||
+      current.status === FacilityTaskStatus.CANCELLED
+    )
+      return { error: "INVALID_TASK_STATE" };
+    const managers = await this.assignments.lockActiveAssignments(tx, current.facilityId, [
+      { userId: actor.id, role: "FACILITY_MANAGER" },
+    ]);
+    if (!managers.has(actor.id)) return { error: "MANAGER_ACCESS_DENIED" };
+    if (
+      input.type &&
+      (current.type === FacilityTaskType.CHECK_IN_HANDOVER ||
+        input.type === FacilityTaskType.CHECK_IN_HANDOVER)
+    )
+      return { error: "TASK_TYPE_LOCKED" };
+    if (
+      input.type &&
+      !FacilityTaskTypeReferenceSchema.safeParse({
+        type: input.type,
+        referenceType: current.referenceType,
+      }).success
+    )
+      return { error: "CONTEXT_MISMATCH" };
+
+    const staffId = input.assignedStaffId ?? current.assignedStaffId;
+    if (input.assignedStaffId && input.assignedStaffId !== current.assignedStaffId) {
+      const staff = await this.assignments.lockActiveAssignments(tx, current.facilityId, [
+        { userId: staffId, role: "FACILITY_STAFF" },
+      ]);
+      if (!staff.has(staffId)) return { error: "STAFF_UNAVAILABLE" };
+    }
+
+    const staffChanged = staffId !== current.assignedStaffId;
+    const typeChanged = input.type !== undefined && input.type !== current.type;
+    const description = input.description?.trim() || null;
+    const descriptionChanged =
+      input.description !== undefined && description !== current.description;
+    if (!staffChanged && !typeChanged && !descriptionChanged)
+      return { task: await loadTask(tx, current.id) };
+
+    const now = new Date();
+    const [updated] = await tx
+      .update(facilityTasks)
+      .set({
+        ...(typeChanged ? { type: input.type } : {}),
+        ...(descriptionChanged ? { description } : {}),
+        ...(staffChanged
+          ? {
+              assignedStaffId: staffId,
+              assignedBy: actor.id,
+              assignedAt: now,
+              status: FacilityTaskStatus.ASSIGNED,
+              startedAt: null,
+              completedAt: null,
+            }
+          : {}),
+        updatedAt: now,
+      })
+      .where(eq(facilityTasks.id, current.id))
+      .returning();
+    if (!updated) return { error: "TASK_NOT_FOUND" };
+    return { task: await loadTask(tx, updated.id) };
   }
 }
 
-async function referenceMatchesFacility(
+async function referenceExistsAtFacility(
   tx: TaskTransaction,
-  referenceType: CreateFacilityTaskInput["referenceType"],
+  referenceType: FacilityTaskReferenceType,
   referenceId: string,
   facilityId: string,
-): Promise<boolean> {
+) {
   if (referenceType === FacilityTaskReferenceType.BOOKING) {
     const [row] = await tx
       .select({ id: bookings.id })
@@ -281,80 +396,13 @@ async function referenceMatchesFacility(
   return Boolean(row);
 }
 
-async function lockTaskActors(
-  tx: TaskTransaction,
-  facilityId: string,
-  managerId: string,
-  staffId: string,
-): Promise<LockedTaskActors> {
-  const people = await tx
-    .select({ id: users.id, name: users.name, role: users.role, status: users.status })
-    .from(users)
-    .where(inArray(users.id, [managerId, staffId]))
-    .orderBy(users.id)
-    .for("update");
-  const assignments = await tx
-    .select()
-    .from(facilityAssignments)
-    .where(
-      and(
-        eq(facilityAssignments.facilityId, facilityId),
-        inArray(facilityAssignments.userId, [managerId, staffId]),
-        eq(facilityAssignments.isActive, true),
-        or(isNull(facilityAssignments.endedAt), gt(facilityAssignments.endedAt, new Date())),
-      ),
-    )
-    .orderBy(facilityAssignments.userId)
-    .for("update");
-  const manager = people.find(
-    (person) =>
-      person.id === managerId && person.role === "FACILITY_MANAGER" && person.status === "ACTIVE",
-  );
-  if (!manager || !assignments.some((a) => a.userId === managerId && a.role === "FACILITY_MANAGER"))
-    return { error: "MANAGER_ACCESS_DENIED" };
-  const staff = people.find(
-    (person) =>
-      person.id === staffId && person.role === "FACILITY_STAFF" && person.status === "ACTIVE",
-  );
-  if (!staff || !assignments.some((a) => a.userId === staffId && a.role === "FACILITY_STAFF"))
-    return { error: "STAFF_UNAVAILABLE" };
-  return { manager, staff };
-}
-
-async function lockManager(
-  tx: TaskTransaction,
-  facilityId: string,
-  managerId: string,
-): Promise<{ id: string; name: string } | null> {
-  const [manager] = await tx
-    .select({ id: users.id, name: users.name, role: users.role, status: users.status })
-    .from(users)
-    .where(eq(users.id, managerId))
-    .for("update");
-  if (manager?.role !== "FACILITY_MANAGER" || manager.status !== "ACTIVE") return null;
-  const [assignment] = await tx
-    .select({ userId: facilityAssignments.userId })
-    .from(facilityAssignments)
-    .where(
-      and(
-        eq(facilityAssignments.userId, managerId),
-        eq(facilityAssignments.facilityId, facilityId),
-        eq(facilityAssignments.role, "FACILITY_MANAGER"),
-        eq(facilityAssignments.isActive, true),
-        or(isNull(facilityAssignments.endedAt), gt(facilityAssignments.endedAt, new Date())),
-      ),
-    )
-    .for("update");
-  return assignment ? { id: manager.id, name: manager.name } : null;
-}
-
-async function loadTaskRecord(tx: TaskTransaction, id: string): Promise<FacilityTaskRecord> {
-  const [record] = await tx
-    .select(columns)
+async function loadTask(tx: TaskTransaction, id: string): Promise<FacilityTaskRecord> {
+  const [task] = await tx
+    .select(taskColumns)
     .from(facilityTasks)
     .innerJoin(assignee, eq(assignee.id, facilityTasks.assignedStaffId))
     .innerJoin(assigner, eq(assigner.id, facilityTasks.assignedBy))
     .where(eq(facilityTasks.id, id));
-  if (!record) throw new Error("Facility task disappeared during lifecycle update");
-  return record;
+  if (!task) throw new Error("Facility task was not found after update");
+  return task;
 }

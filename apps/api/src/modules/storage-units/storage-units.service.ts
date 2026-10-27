@@ -8,6 +8,7 @@ import {
 } from "@metastorage/contracts";
 import type { StorageUnit } from "@metastorage/database";
 import { ConflictError, ForbiddenError, NotFoundError } from "../../common/errors/app-error";
+import { mapPageDto } from "../../common/types/page.dto";
 import { getFacilityAccessScope, requireAssignedFacility } from "../facilities/facilities.access";
 import type { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
 import type { StorageUnitsRepository } from "./storage-units.repository";
@@ -29,16 +30,11 @@ export class StorageUnitsService {
     await requireAssignedFacility(this.assignmentsRepository, query.facilityId, scope);
     const result = await this.repository.listByFacility(query);
     if (!result) throw new NotFoundError(STORAGE_UNIT_MESSAGES.facilityNotFound);
-    return {
-      items: result.items.map((unit) => ({
-        ...unitDetail(unit),
-        unitTypeName: unit.unitTypeName,
-        unitTypeSizeLabel: unit.unitTypeSizeLabel,
-      })),
-      total: result.total,
-      limit: query.limit,
-      offset: query.offset,
-    };
+    return mapPageDto(result, query, (unit) => ({
+      ...unitDetail(unit),
+      unitTypeName: unit.unitTypeName,
+      unitTypeSizeLabel: unit.unitTypeSizeLabel,
+    }));
   }
 
   async getUnitDetails(id: string, actor: UnitTransitionUser): Promise<StorageUnitDetail> {

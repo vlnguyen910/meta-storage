@@ -1,6 +1,6 @@
 import { FacilityTaskReferenceType, FacilityTaskType } from "@metastorage/contracts/facility-tasks";
 import { sql } from "drizzle-orm";
-import { check, index, integer, pgEnum, pgTable, timestamp, uuid } from "drizzle-orm/pg-core";
+import { check, index, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { facilities } from "./facilities";
 import { users } from "./users";
 
@@ -26,13 +26,13 @@ export const facilityTasks = pgTable(
     status: facilityTaskStatusEnum().default("ASSIGNED").notNull(),
     referenceType: facilityTaskReferenceTypeEnum().notNull(),
     referenceId: uuid().notNull(),
+    description: text(),
     assignedStaffId: uuid()
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
     assignedBy: uuid()
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
-    version: integer().default(0).notNull(),
     startedAt: timestamp({ withTimezone: true }),
     completedAt: timestamp({ withTimezone: true }),
     assignedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
@@ -43,7 +43,6 @@ export const facilityTasks = pgTable(
     index("facility_tasks_staff_idx").on(t.facilityId, t.assignedStaffId),
     index("facility_tasks_type_idx").on(t.facilityId, t.type),
     index("facility_tasks_reference_idx").on(t.referenceType, t.referenceId),
-    check("facility_tasks_version_valid", sql`${t.version} >= 0`),
     check(
       "facility_tasks_lifecycle_valid",
       sql`(${t.status} = 'ASSIGNED' AND ${t.startedAt} IS NULL AND ${t.completedAt} IS NULL)

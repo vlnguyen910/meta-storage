@@ -119,8 +119,8 @@ seven-full-local-day boundary starting at midnight on the following date.
 and support handling. `type` is `CHECK_IN_HANDOVER`, `UNIT_INSPECTION`, or
 `HANDLE_SUPPORT`; `status` is `ASSIGNED`, `IN_PROGRESS`, `COMPLETED`, or
 `CANCELLED`. Each row has UUID id, facility_id, reference_type/reference_id,
-assigned_staff_id and assigned_by FKs, nonnegative version, nullable started_at and
-completed_at, assigned_at, created_at and updated_at. The polymorphic reference
+assigned_staff_id and assigned_by FKs, nullable description, nullable started_at
+and completed_at, assigned_at, created_at and updated_at. The polymorphic reference
 types are `BOOKING`, `STORAGE_UNIT`, and `SUPPORT_TICKET`; because one UUID column
 cannot have foreign keys to three tables, repositories validate target existence
 and same-facility scope under transaction locks.
@@ -128,11 +128,11 @@ and same-facility scope under transaction locks.
 `CHECK_IN_HANDOVER` always references a booking and is created or reassigned in the
 same transaction as FM booking staff assignment. `UNIT_INSPECTION` references a
 booking or storage unit; `HANDLE_SUPPORT` references a support ticket. Reassignment
-requires the expected version and resets an in-progress task to `ASSIGNED`; same
-assignee retries are no-ops. The assigned active Facility Staff starts and completes
-the task. An assigned-facility FM may cancel unfinished work. There is no separate
-task report, approval state, title, description, or completion actor field; the
-existing inspection and support records own their domain details.
+resets an in-progress task to `ASSIGNED`; same assignee retries are no-ops. The
+assigned active Facility Staff starts and completes the task. An assigned-facility
+FM may cancel unfinished work. There is no separate task report, approval state,
+title, or completion actor field; the existing inspection and support records own
+their domain details.
 
 Facility staff membership cannot be revoked while an assigned task is
 `ASSIGNED` or `IN_PROGRESS`; booking and return workflows retain their own
