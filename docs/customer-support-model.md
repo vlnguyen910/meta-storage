@@ -1,3 +1,10 @@
+# Archived design
+
+This handoff describes the former chat, image, audit, and assignment model. It
+was superseded on 2026-10-27 by the one-way request model in
+[db-diagram.md](db-diagram.md#customer-support-request-model-2026-10-27). Do not
+use this design for current implementation.
+
 # Customer Support — model và bàn giao #164 → #165/#166
 
 Ngày: 24/10/2026. **Trạng thái: ALIGNED WITH APPROVED POLICY.**

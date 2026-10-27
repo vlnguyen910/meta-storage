@@ -96,6 +96,7 @@ export const SupportTicketSchema = z.object({
   paymentId: uuid.nullable(),
   category: z.enum(SUPPORT_CATEGORIES),
   subject: z.string(),
+  description: z.string(),
   status: z.enum(SUPPORT_STATUSES),
   priority: z.enum(SUPPORT_PRIORITIES),
   version: z.number().int().nonnegative(),

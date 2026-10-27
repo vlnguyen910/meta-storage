@@ -8,7 +8,6 @@ import type {
 import {
   and,
   asc,
-  bookingContracts,
   bookings,
   count,
   type Database,
@@ -71,17 +70,6 @@ export class RentalsRepository {
         desc(payments.id),
       )
       .as("rental_initial_payment");
-    const contract = executor
-      .selectDistinctOn([bookingContracts.bookingId], {
-        bookingId: bookingContracts.bookingId,
-        id: bookingContracts.id,
-        version: bookingContracts.version,
-        issuedAt: bookingContracts.issuedAt,
-      })
-      .from(bookingContracts)
-      .where(eq(bookingContracts.status, "ISSUED"))
-      .orderBy(bookingContracts.bookingId, desc(bookingContracts.version))
-      .as("rental_issued_contract");
     return executor
       .select({
         rental: rentals,
@@ -107,15 +95,13 @@ export class RentalsRepository {
           currency: initialPayment.currency,
           paidAt: initialPayment.paidAt,
         },
-        contract: { id: contract.id, version: contract.version, issuedAt: contract.issuedAt },
       })
       .from(rentals)
       .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
       .innerJoin(bookingCustomer, eq(bookingCustomer.id, bookings.userId))
       .innerJoin(storageUnits, eq(storageUnits.id, rentals.physicalUnitId))
       .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
-      .leftJoin(initialPayment, eq(initialPayment.bookingId, bookings.id))
-      .leftJoin(contract, eq(contract.bookingId, bookings.id));
+      .leftJoin(initialPayment, eq(initialPayment.bookingId, bookings.id));
   }
 
   listForFacility(facilityId: string, query: FacilityRentalListQuery) {
