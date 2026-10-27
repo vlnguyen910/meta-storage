@@ -1,27 +1,19 @@
-import { FacilityTaskType } from "@metastorage/contracts/facility-tasks";
+import { FacilityTaskReferenceType, FacilityTaskType } from "@metastorage/contracts/facility-tasks";
 import { sql } from "drizzle-orm";
-import {
-  check,
-  index,
-  integer,
-  pgEnum,
-  pgTable,
-  text,
-  timestamp,
-  uuid,
-  varchar,
-} from "drizzle-orm/pg-core";
-import { bookings } from "./bookings";
+import { check, index, integer, pgEnum, pgTable, timestamp, uuid } from "drizzle-orm/pg-core";
 import { facilities } from "./facilities";
-import { storageUnits } from "./storage-units";
 import { users } from "./users";
 
 export const facilityTaskTypeEnum = pgEnum("facility_task_type", FacilityTaskType);
+export const facilityTaskReferenceTypeEnum = pgEnum(
+  "facility_task_reference_type",
+  FacilityTaskReferenceType,
+);
 export const facilityTaskStatusEnum = pgEnum("facility_task_status", [
   "ASSIGNED",
   "IN_PROGRESS",
-  "AWAITING_APPROVAL",
   "COMPLETED",
+  "CANCELLED",
 ]);
 export const facilityTasks = pgTable(
   "facility_tasks",
@@ -32,14 +24,9 @@ export const facilityTasks = pgTable(
       .references(() => facilities.id, { onDelete: "restrict" }),
     type: facilityTaskTypeEnum().notNull(),
     status: facilityTaskStatusEnum().default("ASSIGNED").notNull(),
-    title: varchar({ length: 200 }).notNull(),
-    description: text(),
-    storageUnitId: uuid().references(() => storageUnits.id, { onDelete: "restrict" }),
-    bookingId: uuid().references(() => bookings.id, { onDelete: "restrict" }),
+    referenceType: facilityTaskReferenceTypeEnum().notNull(),
+    referenceId: uuid().notNull(),
     assignedStaffId: uuid()
-      .notNull()
-      .references(() => users.id, { onDelete: "restrict" }),
-    createdBy: uuid()
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
     assignedBy: uuid()
@@ -47,12 +34,7 @@ export const facilityTasks = pgTable(
       .references(() => users.id, { onDelete: "restrict" }),
     version: integer().default(0).notNull(),
     startedAt: timestamp({ withTimezone: true }),
-    completedBy: uuid().references(() => users.id, { onDelete: "restrict" }),
     completedAt: timestamp({ withTimezone: true }),
-    reportId: uuid(),
-    reportContent: text(),
-    reportSubmittedBy: uuid().references(() => users.id, { onDelete: "restrict" }),
-    reportSubmittedAt: timestamp({ withTimezone: true }),
     assignedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
@@ -60,25 +42,18 @@ export const facilityTasks = pgTable(
   (t) => [
     index("facility_tasks_staff_idx").on(t.facilityId, t.assignedStaffId),
     index("facility_tasks_type_idx").on(t.facilityId, t.type),
+    index("facility_tasks_reference_idx").on(t.referenceType, t.referenceId),
     check("facility_tasks_version_valid", sql`${t.version} >= 0`),
     check(
       "facility_tasks_lifecycle_valid",
-      sql`(${t.status} = 'ASSIGNED' AND ${t.startedAt} IS NULL AND ${t.completedBy} IS NULL AND ${t.completedAt} IS NULL)
-        OR (${t.status} IN ('IN_PROGRESS', 'AWAITING_APPROVAL') AND ${t.startedAt} IS NOT NULL AND ${t.completedBy} IS NULL AND ${t.completedAt} IS NULL)
-        OR (${t.status} = 'COMPLETED' AND ${t.startedAt} IS NOT NULL AND ${t.completedBy} IS NOT NULL AND ${t.completedAt} IS NOT NULL)`,
+      sql`(${t.status} = 'ASSIGNED' AND ${t.startedAt} IS NULL AND ${t.completedAt} IS NULL)
+        OR (${t.status} = 'IN_PROGRESS' AND ${t.startedAt} IS NOT NULL AND ${t.completedAt} IS NULL)
+        OR (${t.status} = 'COMPLETED' AND ${t.startedAt} IS NOT NULL AND ${t.completedAt} IS NOT NULL)
+        OR ${t.status} = 'CANCELLED'`,
     ),
     check(
-      "facility_tasks_report_valid",
-      sql`(${t.reportId} IS NULL AND ${t.reportContent} IS NULL AND ${t.reportSubmittedBy} IS NULL AND ${t.reportSubmittedAt} IS NULL)
-        OR (${t.reportId} IS NOT NULL AND ${t.reportContent} IS NOT NULL AND ${t.reportSubmittedBy} IS NOT NULL AND ${t.reportSubmittedAt} IS NOT NULL AND length(btrim(${t.reportContent})) BETWEEN 1 AND 5000)`,
-    ),
-    check(
-      "facility_tasks_report_required_for_approval",
-      sql`${t.status} NOT IN ('AWAITING_APPROVAL', 'COMPLETED') OR ${t.reportId} IS NOT NULL`,
-    ),
-    check(
-      "facility_tasks_text_valid",
-      sql`length(btrim(${t.title})) BETWEEN 1 AND 200 AND (${t.description} IS NULL OR length(${t.description}) <= 2000)`,
+      "facility_tasks_reference_valid",
+      sql`(${t.type} = 'CHECK_IN_HANDOVER' AND ${t.referenceType} = 'BOOKING') OR (${t.type} = 'UNIT_INSPECTION' AND ${t.referenceType} IN ('BOOKING', 'STORAGE_UNIT')) OR (${t.type} = 'HANDLE_SUPPORT' AND ${t.referenceType} = 'SUPPORT_TICKET')`,
     ),
   ],
 );

@@ -5,7 +5,6 @@ import {
   facilities,
   facilityAssignments,
   inArray,
-  storageUnitMaintenanceHistory,
   storageUnits,
   unitTypes,
   users,
@@ -167,15 +166,6 @@ export async function createFacilityOperationsFixture() {
     async cleanup() {
       await app.close();
       await db.transaction(async (tx) => {
-        await tx
-          .delete(storageUnitMaintenanceHistory)
-          .where(
-            inArray(storageUnitMaintenanceHistory.storageUnitId, [
-              unitId,
-              maintenanceUnitId,
-              otherUnitId,
-            ]),
-          );
         await tx
           .delete(storageUnits)
           .where(inArray(storageUnits.facilityId, [facilityId, otherFacilityId]));

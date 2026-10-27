@@ -5,7 +5,6 @@ import type {
   FacilityTaskDetail,
   FacilityTaskReportDetail,
   StorageUnitListItem,
-  StorageUnitMaintenanceHistoryItem,
 } from "@metastorage/contracts";
 import type { Page } from "@playwright/test";
 
@@ -101,7 +100,6 @@ export function flow5Fixture() {
       },
     ] as ApiFacilityAssignment[],
     reports: [] as FacilityTaskReportDetail[],
-    history: [] as StorageUnitMaintenanceHistoryItem[],
     offerings: [
       {
         facilityId: f5facility,
@@ -278,25 +276,11 @@ export async function mockFlow5(
               item.unitTypeId === url.searchParams.get("unitTypeId")),
         ),
       );
-    } else if (path.match(/^\/storage-units\/[^/]+\/maintenance-history$/))
-      data = pageData(state.history.filter((row) => row.storageUnitId === path.split("/")[2]));
-    else if (path.match(/^\/storage-units\/[^/]+\/transitions$/)) {
+    } else if (path.match(/^\/storage-units\/[^/]+\/transitions$/)) {
       if (state.maintenanceConflict) return fail("Ô kho đang có booking còn hiệu lực");
       const unit = state.units.find((item) => item.id === path.split("/")[2]);
       if (!unit) return fail("Không tìm thấy ô kho", 404);
-      const previousStatus = unit.status;
       unit.status = input.action === "ENTER_MAINTENANCE" ? "MAINTENANCE" : "AVAILABLE";
-      state.history.unshift({
-        id: f5id(40 + state.history.length),
-        storageUnitId: unit.id,
-        action: input.action as "ENTER_MAINTENANCE" | "EXIT_MAINTENANCE",
-        previousStatus,
-        nextStatus: unit.status,
-        reason: (input.reason as string) || null,
-        changedBy: actorId,
-        changedByName: "Quản lý kiểm thử",
-        changedAt: f5now,
-      });
       data = unit;
     } else if (path.startsWith("/storage-units/")) {
       const unit = state.units.find((item) => item.id === path.split("/").at(-1));

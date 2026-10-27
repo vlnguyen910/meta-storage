@@ -239,7 +239,9 @@ export async function seedImmediateCheckInSlot(seedNow = getSeedNow()) {
     throw new Error("Local demo seeding is disabled in production");
   const local = new Date(seedNow.getTime() + 7 * HOUR_MS).toISOString();
   const date = local.slice(0, 10);
-  const startTime = `${local.slice(11, 16)}:00`;
+  const localMinutes = Number(local.slice(11, 13)) * 60 + Number(local.slice(14, 16));
+  const demoMinutes = Math.min(Math.max(localMinutes, 8 * 60), 19 * 60 + 59);
+  const startTime = `${String(Math.floor(demoMinutes / 60)).padStart(2, "0")}:${String(demoMinutes % 60).padStart(2, "0")}:00`;
   const start = new Date(`${date}T${startTime}+07:00`);
   const end = new Date(start.getTime() + 30 * DAY_MS);
   await db.transaction(async (tx) => {

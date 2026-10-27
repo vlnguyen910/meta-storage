@@ -47,20 +47,14 @@ facility. Type changes are rejected while the unit has an active rental or a liv
 booking assignment. Status changes must use the explicit transition APIs below.
 
 `POST /api/storage-units/:id/transitions` takes either
-`{ "action": "ENTER_MAINTENANCE", "reason": "..." }` or
-`{ "action": "EXIT_MAINTENANCE" }`. FM can operate within the assigned facility;
+`{ "action": "ENTER_MAINTENANCE" }` or `{ "action": "EXIT_MAINTENANCE" }`.
+FM can operate within the assigned facility;
 System Admin and BOM can operate globally. No Admin request/approval step is part
-of this Flow 5 implementation. Entering maintenance requires a reason of at least
-3 characters and is rejected for occupied, reserved, inactive, rented, or actively
-assigned units. Exiting returns the unit to `AVAILABLE`. The older
+of this Flow 5 implementation. Entering maintenance is rejected for occupied,
+reserved, inactive, rented, or actively assigned units. Exiting returns the unit to
+`AVAILABLE`. The older
 `PATCH /api/storage-units/:id/status` is kept for compatibility and uses the same
 state machine.
-
-`GET /api/storage-units/:id/maintenance-history?limit=20&offset=0` returns
-`{ items, total, limit, offset }` newest first. Each row includes action, previous
-and next status, reason, actor ID/name, and ISO timestamp. The state update and
-history insert are atomic. FM can read history in their facility; System Admin and
-BOM can read it globally.
 
 ## Facility, type catalog, and membership management
 
@@ -91,119 +85,58 @@ BOM can read it globally.
 Task completion ownership is confirmed: an FS report leaves the task awaiting
 approval, and an FM must accept the latest report before it becomes completed.
 
-## Manual task assignment
+## Facility task work queue
 
-`POST /api/facility-tasks` — assigned FM only; returns 201:
+`facility_tasks` covers `CHECK_IN_HANDOVER`, `UNIT_INSPECTION`, and `HANDLE_SUPPORT`.
+Statuses are `ASSIGNED`, `IN_PROGRESS`, `COMPLETED`, and `CANCELLED`. Each task has
+one `referenceType` (`BOOKING`, `STORAGE_UNIT`, or `SUPPORT_TICKET`) and one
+`referenceId`. The server validates that the referenced record exists at the same
+facility; a polymorphic reference cannot use a conventional foreign key.
+
+FM assigning staff to a confirmed booking creates or reassigns its
+`CHECK_IN_HANDOVER` task in the same transaction. This task cannot be created through
+the generic create endpoint. FM creates `UNIT_INSPECTION` or `HANDLE_SUPPORT` tasks
+through `POST /api/facility-tasks`, body:
 
 ```json
 {
   "facilityId": "<facility UUID>",
   "assignedStaffId": "<active staff UUID>",
-  "type": "INSPECT_UNIT",
-  "title": "Kiểm tra ô kho trước bàn giao",
-  "description": "Kiểm tra cửa và tình trạng bên trong",
-  "storageUnitId": "<optional unit UUID>",
-  "bookingId": "<optional booking UUID>"
+  "type": "UNIT_INSPECTION",
+  "referenceType": "STORAGE_UNIT",
+  "referenceId": "<unit UUID>"
 }
 ```
 
-Task types: `INSPECT_UNIT`, `PRINT_DOCUMENT`, `REPORT_TO_MANAGER`. Title is trimmed
-and required (1..200 characters); description is optional (max 2000). Optional
-unit/booking context must exist at the task facility. These links provide work
-context; they do not assert that the unit is the booking's active assignment.
-Unknown body fields are rejected. Actor IDs, versions and timestamps are set by
-the server. Creation never changes a booking's assigned staff/unit, an inspection,
-an issued document, a rental or unit status. Existing Flow 2 permissions still
-govern inspection execution; use the existing booking assignment API when the
-booking's responsible staff needs to change. A printing task does not generate,
-issue or physically print a document; the existing contract PDF API remains the
-source for documents.
+`UNIT_INSPECTION` may reference a booking or a storage unit. `HANDLE_SUPPORT` must
+reference a support ticket. Actor, version and timestamps come from the session or
+server. Reassignment requires the current version; changing staff resets an
+unfinished task to `ASSIGNED`. Repeating the same assignee is a no-op.
 
-`GET /api/facility-tasks?facilityId=<uuid>&assignedStaffId=<uuid>&type=INSPECT_UNIT&limit=20&offset=0`
+Minimum task API:
 
-- FM can view all tasks at the assigned facility and optionally filter assignee/type.
-- FS can view only their own tasks; requesting another assignee returns 403.
-- Same pagination bounds as inventory. Ordering is createdAt descending then ID
-  descending. `data` is `{ items, total, limit, offset }`.
+- `POST /api/facility-tasks` — FM creates and assigns an inspection or support task.
+- `GET /api/facility-tasks?facilityId=<uuid>&assignedStaffId=<uuid>&type=UNIT_INSPECTION&limit=20&offset=0` — FM lists facility tasks; FS sees only their own.
+- `GET /api/facility-tasks/:id` — same-facility FM or current assigned FS reads a task.
+- `PATCH /api/facility-tasks/:id` — FM changes the assigned staff member; body contains `assignedStaffId` and current `version`.
+- `POST /api/facility-tasks/:id/start` — assigned active FS moves `ASSIGNED` to `IN_PROGRESS`.
+- `POST /api/facility-tasks/:id/complete` — assigned active FS moves `IN_PROGRESS` to `COMPLETED`.
+- `POST /api/facility-tasks/:id/cancel` — assigned-facility FM cancels unfinished work.
 
-`GET /api/facility-tasks/:id` — same-facility FM or the currently assigned FS only.
+There are no report-submission or manager-approval endpoints. Inspection evidence
+and support-ticket content remain in their owning domain records. Completing a task
+only changes its work status; it does not replace inspection, booking, rental, unit
+or support-ticket lifecycle transitions. Booking cancellation/no-show cancels its
+open check-in/handover task in the same transaction.
 
-Task execution uses the server-managed status sequence:
-`ASSIGNED` → `IN_PROGRESS` → `AWAITING_APPROVAL` → `COMPLETED`.
-
-- `POST /api/facility-tasks/:id/start` — currently assigned active FS only, no body.
-  Moves a newly assigned task to `IN_PROGRESS` and records `startedAt`.
-- `POST /api/facility-tasks/:id/reports` saves the current report and moves the
-  task to `AWAITING_APPROVAL`. While waiting, FS may replace it with a newer
-  report; only the current report is retained and can be accepted. A report
-  cannot be submitted before the task starts or after completion.
-- `POST /api/facility-tasks/:id/reports/:reportId/accept` — active FM assigned to
-  the task's facility only. The server verifies the task is awaiting approval and
-  the requested ID matches the current report. In one transaction it records the
-  accepting FM/time on the task and marks it `COMPLETED`.
-  A stale report or invalid status returns 409. There is no reject action in this
-  workflow; non-accepted tasks remain open for an additional report.
-
-`POST /api/facility-tasks/:id/assign` — same-facility FM only:
-
-```json
-{
-  "assignedStaffId": "<active staff UUID>",
-  "version": 0
-}
-```
-
-`version` is the version returned by the last GET/create. A changed assignment
-increments it and saves the assigning FM/time. A stale version returns 409, so two
-concurrent requests cannot silently overwrite each other. Same assignee with the
-current version is a no-op preserving assignment actor/time/version. Previous staff
-immediately lose task access; the new assignee gains access subject to facility scope.
-
-Task DTOs contain ID, facility, type, status, title/description, nullable context IDs,
-assigned staff ID/name, original creator, assigning FM ID/name, version, nullable
-start/completion actor/time, and ISO assignment/create/update timestamps. Report DTOs
-include nullable accepting FM ID/name/time. No credentials or private PDF storage
-keys are exposed. Task responses use `private, no-store`.
-
-Errors use the existing API envelope: 400 invalid input/staff/context, 401 missing
-session, 403 role/facility/assignee access denied, 404 missing task/report/unit, 409
-stale version or invalid lifecycle/latest-report state. Successful calls use the
-existing `{ success, data, timestamp }` envelope.
-
-## Current staff work report
-
-`POST /api/facility-tasks/:id/reports` — currently assigned, active FS only:
-
-```json
-{ "content": "Đã kiểm tra cửa và tình trạng bên trong ô kho." }
-```
-
-Content is trimmed and required (1..5000 characters). Unknown fields are rejected;
-the session supplies the author and the server supplies the timestamp. A new
-submission replaces the current report, including repeated identical text. There
-is no report history, edit/delete endpoint, attachment, or automatic change to
-the unit/booking/rental/inspection. Task and membership are rechecked under row
-locks so submission serializes with reassignment and approval.
-
-201 `data`: `{ id, taskId, submittedBy, submitterName, content, submittedAt,
-acceptedBy, acceptedByName, acceptedAt }`; acceptance fields are null until FM review.
-`submittedAt` is ISO UTC; `submitterName` is the author's current display name.
-The original author ID is preserved after reassignment.
-
-`GET /api/facility-tasks/:id/reports?limit=20&offset=0` — active same-facility FM
-or current assigned FS. It returns zero or one report in the existing
-`{ items, total, limit, offset }` shape for compatibility. Limit is 1..100,
-offset is nonnegative. The new assignee can see the current report after
-reassignment; the previous assignee loses access under existing task authorization.
-
-Both endpoints use session auth, `private, no-store`, and the existing API envelope.
-Errors: 400 invalid body/query, 401 missing session, 403 wrong role, facility,
-assignee, inactive account or expired/revoked membership; 404 missing task.
+Successful responses use `{ success, data, timestamp }` and `private, no-store`.
+Errors use 400 for invalid references/input, 401 for missing session, 403 for role,
+facility or assignee violations, 404 for a missing task, and 409 for stale version
+or invalid lifecycle transitions.
 
 ## Database migration and verification
 
-`0046_youthful_nightmare.sql` (tasks), `0047_perpetual_sue_storm.sql` (reports),
-and `0049_cloudy_grey_gargoyle.sql` (FM acceptance and lifecycle state) are generated by `bun run db:generate`.
+The current task schema change is generated by `bun run db:generate`; apply it with `bun run db:migrate`. The migration preserves valid legacy inspection tasks and stops for manual resolution if unsupported legacy print/report tasks remain.
 Apply through
 `bun run db:migrate` to the intended database before serving task requests.
 Development/business data is not required for the regression tests.
@@ -215,7 +148,6 @@ matching loopback `DATABASE_URL`/`MY_STORAGE_LOCAL_DATABASE_URL` with a
 ```bash
 bun test --cwd apps/api tests/integration/flow5-storage-units.test.ts
 bun test --cwd apps/api tests/integration/flow5-facility-tasks.test.ts
-bun test --cwd apps/api tests/integration/flow5-task-reports.test.ts
 ```
 
 All three suites are also discovered by the existing `bun run --filter api test:db`

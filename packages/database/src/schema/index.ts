@@ -20,7 +20,6 @@ export * from "./rental-renewals";
 export * from "./rentals";
 export * from "./returns";
 export * from "./sessions";
-export * from "./storage-unit-maintenance-history";
 export * from "./storage-units";
 export * from "./support";
 export * from "./system-settings";

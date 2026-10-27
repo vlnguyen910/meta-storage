@@ -3,7 +3,6 @@ import {
   canTransitionStorageUnitStatus,
   STORAGE_UNIT_MESSAGES,
   type StorageUnitListQuery,
-  type StorageUnitMaintenanceHistoryQuery,
   type UpdateStorageUnitInput,
 } from "@metastorage/contracts";
 import {
@@ -14,7 +13,6 @@ import {
   checkInSlots,
   count,
   type Database,
-  desc,
   eq,
   facilities,
   gt,
@@ -28,12 +26,10 @@ import {
   rentals,
   type StorageUnit,
   sql,
-  storageUnitMaintenanceHistory,
   storageUnits,
   sum,
   unitAssignments,
   unitTypes,
-  users,
 } from "@metastorage/database";
 
 type DbExecutor = Database | Parameters<Parameters<Database["transaction"]>[0]>[0];
@@ -216,46 +212,9 @@ export class StorageUnitsRepository {
     });
   }
 
-  async listMaintenanceHistory(id: string, query: StorageUnitMaintenanceHistoryQuery) {
-    return this.db.transaction(
-      async (tx) => {
-        const filter = eq(storageUnitMaintenanceHistory.storageUnitId, id);
-        const [total] = await tx
-          .select({ value: count() })
-          .from(storageUnitMaintenanceHistory)
-          .where(filter);
-        const items = await tx
-          .select({
-            id: storageUnitMaintenanceHistory.id,
-            storageUnitId: storageUnitMaintenanceHistory.storageUnitId,
-            action: storageUnitMaintenanceHistory.action,
-            previousStatus: storageUnitMaintenanceHistory.previousStatus,
-            nextStatus: storageUnitMaintenanceHistory.nextStatus,
-            reason: storageUnitMaintenanceHistory.reason,
-            changedBy: storageUnitMaintenanceHistory.changedBy,
-            changedByName: users.name,
-            changedAt: storageUnitMaintenanceHistory.changedAt,
-          })
-          .from(storageUnitMaintenanceHistory)
-          .innerJoin(users, eq(users.id, storageUnitMaintenanceHistory.changedBy))
-          .where(filter)
-          .orderBy(
-            desc(storageUnitMaintenanceHistory.changedAt),
-            desc(storageUnitMaintenanceHistory.id),
-          )
-          .limit(query.limit)
-          .offset(query.offset);
-        return { items, total: total?.value ?? 0 };
-      },
-      { isolationLevel: "repeatable read", accessMode: "read only" },
-    );
-  }
-
   async transitionStatus(
     unitId: string,
     targetStatus: "AVAILABLE" | "MAINTENANCE",
-    reason: string | undefined,
-    actorId: string,
   ): Promise<TransitionUnitStatusResult> {
     const execute = async (tx: DbExecutor) => {
       const [unit] = await tx
@@ -317,15 +276,6 @@ export class StorageUnitsRepository {
       if (!updated) {
         throw new Error("Failed to update storage unit status");
       }
-
-      await tx.insert(storageUnitMaintenanceHistory).values({
-        storageUnitId: unit.id,
-        action: targetStatus === "MAINTENANCE" ? "ENTER_MAINTENANCE" : "EXIT_MAINTENANCE",
-        previousStatus: unit.status,
-        nextStatus: targetStatus,
-        reason: reason ?? null,
-        changedBy: actorId,
-      });
 
       return { success: true as const, unit: updated };
     };

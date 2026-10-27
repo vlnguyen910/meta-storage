@@ -27,7 +27,7 @@
 | Work | Blocking states |
 | --- | --- |
 | Booking | CONFIRMED |
-| Manual task | ASSIGNED, IN_PROGRESS, AWAITING_APPROVAL |
+| Facility task | ASSIGNED, IN_PROGRESS |
 | Support ticket | OPEN, IN_PROGRESS |
 | Return request | PENDING, CONFIRMED, INSPECTING, FAILED |
 

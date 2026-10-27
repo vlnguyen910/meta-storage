@@ -20,7 +20,6 @@ import type {
   StorageUnitDetail,
   StorageUnitListQuery,
   StorageUnitListResult,
-  StorageUnitMaintenanceHistoryResult,
   StorageUnitMaintenanceTransition,
   UnitTypeManagementQuery,
   UpdateFacilityBody,
@@ -109,13 +108,6 @@ export function createFlow5Client(http: AxiosInstance) {
         transition: (id: string, input: StorageUnitMaintenanceTransition) =>
           http
             .post<ApiEnvelope<StorageUnitDetail>>(`/storage-units/${id}/transitions`, input)
-            .then(unwrap),
-        history: (id: string, offset = 0, signal?: AbortSignal) =>
-          http
-            .get<ApiEnvelope<StorageUnitMaintenanceHistoryResult>>(
-              `/storage-units/${id}/maintenance-history`,
-              { params: { limit: 20, offset }, signal },
-            )
             .then(unwrap),
       },
       tasks: {

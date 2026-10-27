@@ -70,8 +70,6 @@ export const F5 = {
   editUnit: "Sửa ô kho",
   enterMaintenance: "Đưa vào bảo trì",
   exitMaintenance: "Kết thúc bảo trì",
-  maintenanceHistory: "Lịch sử bảo trì",
-  maintenanceReason: "Lý do bảo trì",
   maintenanceHint:
     "Kho đang được thuê hoặc được gán cho booking còn hiệu lực sẽ bị từ chối bảo trì.",
   exitHint: "Xác nhận ô kho đã sẵn sàng để chuyển về trạng thái trống.",

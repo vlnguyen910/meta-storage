@@ -7,6 +7,7 @@ import {
   numeric,
   pgTable,
   timestamp,
+  unique,
   uniqueIndex,
   uuid,
   varchar,
@@ -43,7 +44,7 @@ export const unitTypes = pgTable(
   },
   (table) => [
     uniqueIndex("unit_types_facility_code_idx").on(table.facilityId, table.code),
-    uniqueIndex("unit_types_facility_id_idx").on(table.facilityId, table.id),
+    unique("unit_types_facility_id_idx").on(table.facilityId, table.id),
     index("unit_types_price_range_idx").on(table.priceRangeId),
     check("unit_types_price_positive", sql`${table.monthlyPrice} > 0`),
     check("unit_types_version_valid", sql`${table.version} >= 0`),

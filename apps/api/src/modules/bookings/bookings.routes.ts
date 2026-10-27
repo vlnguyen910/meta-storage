@@ -277,14 +277,7 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
 
       const user = request.user;
       if (!user) throw new UnauthorizedError();
-      const scope = getFacilityAccessScope(user);
-
-      const booking = await service.getBookingById(id);
-      await requireAssignedFacility(assignmentsRepository, booking.facilityId, scope, [
-        "FACILITY_MANAGER",
-      ]);
-
-      const updatedBooking = await service.assignStaff(id, staffId);
+      const updatedBooking = await service.assignStaff(id, staffId, user.id);
       return reply.status(200).send(successResponse(updatedBooking));
     },
   );
