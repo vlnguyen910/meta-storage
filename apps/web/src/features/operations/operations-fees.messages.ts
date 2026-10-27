@@ -23,6 +23,8 @@ export const FEES_MESSAGES = {
   historyNewValue: "Giá trị mới",
   historyUpdatedAt: "Thời điểm cập nhật",
   historyActor: "Người thực hiện",
+  operatingHoursTitle: "Giờ hoạt động chung",
+  operatingHoursDescription: "Áp dụng cho tất cả cơ sở theo múi giờ Việt Nam.",
   historyHide: "Thu gọn lịch sử",
   historyShow: "Xem lịch sử thay đổi",
 } as const;

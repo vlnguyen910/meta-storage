@@ -1,6 +1,5 @@
 import type {
   ConfigureOverdueRate,
-  ConfigureReturnCalendar,
   ConfigureReturnChecklist,
   ConfirmReturnRefund,
   ConfirmReturnRefundDto,
@@ -176,12 +175,9 @@ export class ReturnsService {
     date: string,
     excludeId?: string,
   ) {
-    const calendar = await this.repository.calendar(facilityId, tx);
     const schedule = await this.repository.schedule(tx, facilityId, date);
     const hours = schedule.hours[0];
-    if (!calendar || !hours || hours.timezone !== calendar.timezone)
-      throw new ConflictError(m.configurationMissing);
-    if (calendar.holidays.includes(date)) return [];
+    if (!hours) throw new ConflictError(m.configurationMissing);
     const minutes = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
     const result = [];
     for (const slot of schedule.slots) {
@@ -196,7 +192,7 @@ export class ReturnsService {
         date,
         slot.startTime,
         slot.endTime,
-        calendar.timezone,
+        hours.timezone,
       );
       if (
         schedule.appointments.some(
@@ -207,7 +203,7 @@ export class ReturnsService {
         )
       )
         continue;
-      result.push({ slotId: slot.id, date, ...times, timezone: calendar.timezone });
+      result.push({ slotId: slot.id, date, ...times, timezone: hours.timezone });
     }
     return result;
   }
@@ -450,68 +446,6 @@ export class ReturnsService {
           createdAt: row.createdAt.toISOString(),
         }
       : null;
-  }
-  async configureCalendar(actor: ReturnActor, facilityId: string, input: ConfigureReturnCalendar) {
-    this.role(actor, "SYSTEM_ADMIN");
-    return this.repository.db.transaction(async (tx) => {
-      await this.repository.lockFacility(tx, facilityId);
-      const before = await this.repository.calendar(facilityId, tx);
-      this.version(before?.version ?? 0, input.expectedVersion);
-      const beforeHours = await this.repository.hours(facilityId, tx);
-      if (!input.operatingHours && beforeHours.some((h) => h.timezone !== input.timezone))
-        throw new ValidationError(m.configurationMissing);
-      if (input.operatingHours)
-        await this.repository.saveHours(tx, facilityId, input.timezone, input.operatingHours);
-      const row = await this.repository.saveCalendar(tx, {
-        facilityId,
-        timezone: input.timezone,
-        holidays: [...new Set(input.holidays)].sort(),
-        reminderTime: input.reminderTime,
-        version: input.expectedVersion + 1,
-        updatedBy: actor.id,
-        updatedAt: new Date(),
-      });
-      if (
-        before &&
-        (before.timezone !== input.timezone ||
-          JSON.stringify(before.holidays) !== JSON.stringify(row?.holidays) ||
-          input.operatingHours !== undefined)
-      )
-        await this.repository.flagAppointments(tx, facilityId);
-      await this.repository.audit(
-        tx,
-        actor.id,
-        "CALENDAR_CONFIGURED",
-        {
-          before: before ?? null,
-          after: row,
-          beforeHours,
-          afterHours: await this.repository.hours(facilityId, tx),
-        },
-        null,
-        facilityId,
-      );
-      return {
-        facilityId,
-        timezone: row?.timezone,
-        holidays: row?.holidays,
-        reminderTime: row?.reminderTime,
-        version: row?.version,
-      };
-    });
-  }
-  async calendar(actor: ReturnActor, facilityId: string) {
-    this.role(actor, "SYSTEM_ADMIN");
-    const row = await this.repository.calendar(facilityId);
-    if (!row) throw new NotFoundError(m.configurationMissing);
-    return {
-      facilityId,
-      timezone: row.timezone,
-      holidays: row.holidays,
-      reminderTime: row.reminderTime,
-      version: row.version,
-      operatingHours: await this.repository.hours(facilityId),
-    };
   }
   async rate(actor: ReturnActor) {
     this.role(actor, "BUSINESS_OPERATION_MANAGER");
@@ -1342,16 +1276,14 @@ export class ReturnsService {
       const { blockingReasons } = await this.settlementEligibility(tx, context, request, input);
       const settlements = await this.repository.settlements(tx, id);
       const previous = settlements[0];
-      const calendar =
-        previous?.calendarSnapshot ?? (await this.repository.calendar(request.facilityId, tx));
       const policy = previous ? { rate: previous.rateSnapshot } : await this.repository.rate(tx);
-      if (!calendar || !policy)
+      if (!policy)
         blockingReasons.push({
           code: blockerCode.CONFIGURATION_MISSING,
           message: m.configurationMissing,
         });
       let calculation: ReturnSettlementPreviewDto["calculation"] = null;
-      if (context.rental.actualReturnAt && calendar && policy) {
+      if (context.rental.actualReturnAt && policy) {
         const refunds = await this.repository.refunds(tx, id);
         const result = calculateSettlement({
           depositSnapshot: previous?.depositSnapshot ?? context.rental.depositAmount,
@@ -1385,10 +1317,8 @@ export class ReturnsService {
   ) {
     const at = context.rental.actualReturnAt;
     if (!at) throw new ConflictError(m.settlement);
-    const calendar =
-      previous?.calendarSnapshot ?? (await this.repository.calendar(request.facilityId, tx));
     const policy = previous ? { rate: previous.rateSnapshot } : await this.repository.lockRate(tx);
-    if (!calendar || !policy) throw new ConflictError(m.configurationMissing);
+    if (!policy) throw new ConflictError(m.configurationMissing);
     if (
       wholeVnd(input.unusedRentRefundAmount) > 0n &&
       (!previous ||
@@ -1418,8 +1348,8 @@ export class ReturnsService {
       refundDueDate:
         previous && wholeVnd(calculation.refundEntitlement) <= wholeVnd(previous.refundEntitlement)
           ? previous.refundDueDate
-          : refundDueDate(now, calendar.timezone, calendar.holidays),
-      calendarSnapshot: { timezone: calendar.timezone, holidays: calendar.holidays },
+          : refundDueDate(now, request.timezone),
+      calendarSnapshot: { timezone: request.timezone },
       approvedBy: actor.id,
       approvedAt: now,
       reason: input.reason,

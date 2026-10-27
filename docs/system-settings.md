@@ -2,7 +2,7 @@
 
 All global scalar configuration is stored in `system_settings`. This replaces
 pricing_settings, return_overdue_settings and rental_lifecycle_settings. The JSONB
-value supports scalar types; the current four registered keys are integers. Admin
+value supports scalar types; the current six registered keys are integers. Admin
 cannot create/delete keys or supply validation/permission rules through the API.
 
 | Key | Seed value | Validation | Read/write role | Effect |
@@ -11,6 +11,8 @@ cannot create/delete keys or supply validation/permission rules through the API.
 | ABANDONED_REVIEW_DAYS | 7 | Integer 0..2147483647 | SYSTEM_ADMIN | Next sweep; never clears an existing review flag |
 | OVERDUE_FEE_RATE | 25 | Integer 0..100 | BUSINESS_OPERATION_MANAGER | Future assessments; saved snapshots unchanged |
 | DEPOSIT_MONTHS | 1 | Integer 1..2147483647 | BUSINESS_OPERATION_MANAGER | Future quotes; saved booking/payment snapshots unchanged |
+| OPENING_HOUR | 8 | Integer 0..23 | BUSINESS_OPERATION_MANAGER | Shared across facilities, Asia/Ho_Chi_Minh |
+| CLOSING_HOUR | 20 | Integer 1..24 and greater than opening hour | BUSINESS_OPERATION_MANAGER | Shared across facilities; flags confirmed return appointments for review when changed |
 
 No new business limits were invented for day settings. PostgreSQL integer bounds
 are technical bounds. Keys, validation, role, category and unit are defined in the
@@ -47,9 +49,9 @@ schema rollout; there is no mixed-version compatibility with retired physical ta
 For fresh installations, `bun run db:seed` creates defaults; repeating it preserves
 Admin/BOM changes. No database creation/reset is required.
 
-Facility calendars, holiday lists and checklist versions remain domain entities, as
-do unit-type prices, booking snapshots and assessments. They are not redundant
-global config tables. This task does not turn every constant into an editable rule.
+Return holiday calendars are out of scope and removed. Return checklist versions remain
+domain data. Shared opening/closing hours are BOM-managed system settings. The UI exposes
+these two values from the existing Business Operations fees page.
 
 Candidates for a later policy migration (current values unchanged): magic-link TTL
 24h, session 30m, resend 3/booking/hour + 10/IP/hour, return slot 90m, buffer 15m,
@@ -57,4 +59,5 @@ Candidates for a later policy migration (current values unchanged): magic-link T
 Before exposing each key, specify whether changes affect existing tokens, scheduled
 appointments, in-flight payments or existing evidence. Security/provider credentials
 remain environment secrets; enums, protocol constants and retries are not arbitrary
-Admin-editable settings. No renewal/upgrade or frontend UI was added.
+Admin-editable settings. BOM manages shared opening/closing hours from the existing
+Business Operations fees page; no separate settings page or new setting table was added.
