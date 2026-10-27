@@ -52,7 +52,11 @@ const labels: Record<string, string> = {
   READY_HANDOVER: FLOW.readyHandover,
   SLOT_MISSING: FLOW.reasons.CHECKIN_SLOT_NOT_CONFIGURED ?? FLOW.notEligible,
 };
-export function FacilityBookingsView({ facilityId, facilityName }: FacilityBookingsViewProps) {
+export function FacilityBookingsView({
+  facilityId,
+  facilityName,
+  headingMode = "full",
+}: FacilityBookingsViewProps) {
   const isStaff = useAuthStore((s) => s.session?.user.role) === UserRole.FACILITY_STAFF;
   const root = isStaff ? "/staff" : "/facility-manager";
   const d = useDispatch(facilityId, isStaff);
@@ -62,33 +66,38 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
   const pageSize = 6;
   const pageCount = Math.max(1, Math.ceil(d.filtered.length / pageSize));
   const pageItems = d.filtered.slice((page - 1) * pageSize, page * pageSize);
+  const headingActions = (
+    <div className="flex gap-2">
+      <div className="rounded-lg bg-white px-4 py-2 text-xs shadow-sm">
+        <p className="text-[#5c6661]">{FLOW.syncTime}</p>
+        <strong>
+          {d.query.dataUpdatedAt
+            ? new Date(d.query.dataUpdatedAt).toLocaleTimeString("vi-VN", {
+                timeZone: "Asia/Ho_Chi_Minh",
+              })
+            : "—"}
+        </strong>
+      </div>
+      <Button variant="secondary" onClick={() => window.print()} icon={<Printer size={18} />}>
+        {FLOW.print}
+      </Button>
+    </div>
+  );
   // Reset pagination whenever the user changes a filter or search term.
   // biome-ignore lint/correctness/useExhaustiveDependencies: filter and search intentionally reset the local page.
   useEffect(() => setPage(1), [filter, search]);
   useEffect(() => setPage((value) => Math.min(value, pageCount)), [pageCount]);
   return (
     <>
-      <FlowHeading
-        title={isStaff ? FLOW.staffTasks : FLOW.managerDispatchTitle}
-        description={FLOW.dispatchDescription(facilityName ?? FLOW.noFacility)}
-        actions={
-          <div className="flex gap-2">
-            <div className="rounded-lg bg-white px-4 py-2 text-xs shadow-sm">
-              <p className="text-[#5c6661]">{FLOW.syncTime}</p>
-              <strong>
-                {d.query.dataUpdatedAt
-                  ? new Date(d.query.dataUpdatedAt).toLocaleTimeString("vi-VN", {
-                      timeZone: "Asia/Ho_Chi_Minh",
-                    })
-                  : "—"}
-              </strong>
-            </div>
-            <Button variant="secondary" onClick={() => window.print()} icon={<Printer size={18} />}>
-              {FLOW.print}
-            </Button>
-          </div>
-        }
-      />
+      {headingMode === "full" ? (
+        <FlowHeading
+          title={isStaff ? FLOW.staffTasks : FLOW.managerDispatchTitle}
+          description={FLOW.dispatchDescription(facilityName ?? FLOW.noFacility)}
+          actions={headingActions}
+        />
+      ) : (
+        <div className="flex justify-end">{headingActions}</div>
+      )}
       <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
         {[
           { label: FLOW.total, value: d.bookings.length, icon: Calendar },

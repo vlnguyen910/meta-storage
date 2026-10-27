@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, spyOn, test } from "bun:test";
 import { createHash, randomUUID } from "node:crypto";
 import type { SupportCreateInput, SupportDetail, SupportImageInput } from "@metastorage/contracts";
 import {
+  and,
   bookings,
   checkInSlots,
   db,
@@ -222,7 +223,12 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Customer Support", 
     const mail = await db
       .select()
       .from(notificationOutbox)
-      .where(eq(notificationOutbox.supportTicketId, t.ticket.id));
+      .where(
+        and(
+          eq(notificationOutbox.supportTicketId, t.ticket.id),
+          eq(notificationOutbox.recipientRole, "CUSTOMER"),
+        ),
+      );
     expect(mail).toHaveLength(1);
     expect(mail[0]).toMatchObject({
       recipientUserId: f.ids.customer,
@@ -294,7 +300,15 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Customer Support", 
       1,
     );
     expect(
-      await db.select().from(notificationOutbox).where(eq(notificationOutbox.supportTicketId, id)),
+      await db
+        .select()
+        .from(notificationOutbox)
+        .where(
+          and(
+            eq(notificationOutbox.supportTicketId, id),
+            eq(notificationOutbox.recipientRole, "CUSTOMER"),
+          ),
+        ),
     ).toHaveLength(1);
     expect(
       (
@@ -711,7 +725,12 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Customer Support", 
     const [mail] = await db
       .select()
       .from(notificationOutbox)
-      .where(eq(notificationOutbox.supportTicketId, t.ticket.id));
+      .where(
+        and(
+          eq(notificationOutbox.supportTicketId, t.ticket.id),
+          eq(notificationOutbox.recipientRole, "CUSTOMER"),
+        ),
+      );
     if (!mail) throw new Error("Missing receipt");
     const outbox = new OutboxRepository(db);
     expect(await outbox.authorized(mail, new Date())).toBe(true);
@@ -848,7 +867,12 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Customer Support", 
     const [row] = await db
       .select()
       .from(notificationOutbox)
-      .where(eq(notificationOutbox.supportTicketId, t.ticket.id));
+      .where(
+        and(
+          eq(notificationOutbox.supportTicketId, t.ticket.id),
+          eq(notificationOutbox.recipientRole, "CUSTOMER"),
+        ),
+      );
     if (!row) throw new Error("Missing receipt");
     const deliveries: string[] = [];
     const service = new OutboxService(new OutboxRepository(db), {

@@ -148,7 +148,7 @@ export function InventoryPanel({
       <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
         <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
           {/* Facility switcher if provided */}
-          {facilityOptions && facilityOptions.length > 0 && onSelectFacility && (
+          {facilityOptions && facilityOptions.length > 1 && onSelectFacility && (
             <div className="w-56">
               <DropdownSelect
                 value={facilityId}

@@ -156,6 +156,14 @@ async function fixture(
     assignedAt: now,
     endedAt: null,
   };
+  // Keep operational appointments on the Vietnam business day, including runs near midnight.
+  const fixtureDay = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  await page.clock.setFixedTime(new Date(`${fixtureDay}T12:00:00+07:00`));
   const booking: BookingListItem = {
     id,
     bookingCode: "BK-2026-0001",
@@ -171,8 +179,10 @@ async function fixture(
     totalAmount: 3000000,
     status: "CONFIRMED",
     paidAt: now,
-    checkInSlotStart: new Date(Date.now() - 4 * 3600000).toISOString(),
-    checkInSlotEnd: new Date(Date.now() + (elapsedSlot ? -3 : 1) * 3600000).toISOString(),
+    checkInSlotStart: new Date(`${fixtureDay}T09:00:00+07:00`).toISOString(),
+    checkInSlotEnd: new Date(
+      `${fixtureDay}T${elapsedSlot ? "10" : "13"}:00:00+07:00`,
+    ).toISOString(),
     rentalEndAt: new Date(Date.now() + 30 * 86400000).toISOString(),
     createdAt: now,
     assignedUnit: unassigned ? null : assignment,
@@ -418,7 +428,10 @@ async function fixture(
 test("manager navigation and assignment return to the new shell", async ({ page }) => {
   await fixture(page, { unassigned: true, role: "FACILITY_MANAGER" });
   await page.goto("/facility-manager/dashboard?view=check-in");
-  await expect(page.getByRole("heading", { name: "Chuẩn bị kho & Phân công Staff" })).toBeVisible();
+  await expect(page).toHaveURL(/\/facility-manager\/tasks\?view=bookings/);
+  await expect(
+    page.getByRole("heading", { name: "Chuẩn bị kho & Phân công Staff", exact: true }),
+  ).toBeVisible();
   await page.getByRole("link", { name: "Gán ô kho ngay" }).click();
   await expect(page.getByRole("heading", { name: "Gán & Đổi ô kho" })).toBeVisible();
   await page.getByRole("radio", { name: "HCM-01-002" }).check();
@@ -429,8 +442,11 @@ test("manager navigation and assignment return to the new shell", async ({ page 
   await page.getByRole("button", { name: "Quay lại danh sách" }).click();
   await page.getByRole("link", { name: "Tổng quan cơ sở", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Tổng quan cơ sở", exact: true })).toBeVisible();
-  await page.getByRole("link", { name: "Chuẩn bị & Phân công", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Chuẩn bị kho & Phân công Staff" })).toBeVisible();
+  await page.getByRole("link", { name: "Điều phối công việc", exact: true }).click();
+  await expect(page).toHaveURL(/\/facility-manager\/tasks\?view=bookings/);
+  await expect(
+    page.getByRole("heading", { name: "Chuẩn bị kho & Phân công Staff", exact: true }),
+  ).toBeVisible();
   await page.screenshot({ path: "/tmp/metastorage-flow2-dispatch.png", fullPage: true });
 });
 test("draft, real photo, review, immutable completion and reload", async ({ page }) => {
@@ -514,7 +530,10 @@ test("mobile sidebar and dispatch do not overflow", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await fixture(page, { role: "FACILITY_MANAGER" });
   await page.goto("/facility-manager/dashboard?view=check-in");
-  await expect(page.getByRole("heading", { name: "Chuẩn bị kho & Phân công Staff" })).toBeVisible();
+  await expect(page).toHaveURL(/\/facility-manager\/tasks\?view=bookings/);
+  await expect(
+    page.getByRole("heading", { name: "Chuẩn bị kho & Phân công Staff", exact: true }),
+  ).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole("button", { name: "Mở menu" }).click();
   await expect(page.getByRole("link", { name: "Kiểm tra kho", exact: true })).toHaveCount(0);
@@ -547,9 +566,9 @@ test("unsaved navigation is guarded and wrong unit blocks review", async ({ page
     page.getByRole("alert").filter({ hasText: "Ảnh phải là JPEG, PNG hoặc WebP" }),
   ).toBeVisible();
 });
-test("staff dashboard uses the same flow shell and limits assignment actions", async ({ page }) => {
+test("staff work board uses the flow shell and limits assignment actions", async ({ page }) => {
   await fixture(page, { role: "FACILITY_STAFF" });
-  await page.goto("/staff/dashboard?view=tasks");
+  await page.goto("/staff/tasks");
   await expect(page.getByRole("heading", { name: "Công việc của tôi" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Chỉ định / Đổi nhân viên" })).toHaveCount(0);
   await page.getByRole("link", { name: "Làm check-in", exact: true }).click();
@@ -863,39 +882,28 @@ for (const width of [1440, 390]) {
   });
 }
 
-for (const role of ["FACILITY_MANAGER", "FACILITY_STAFF"]) {
-  test(`${role} overview uses scoped API bookings instead of sample dashboard data`, async ({
-    page,
-  }) => {
-    const f = await fixture(page, { role });
-    f.booking.contactName = "Khách lấy từ API cơ sở";
-    f.booking.handoverStage = "READY_HANDOVER";
-    const requests: string[] = [];
-    page.on("request", (request) => requests.push(new URL(request.url()).pathname));
-    const root = role === "FACILITY_MANAGER" ? "/facility-manager" : "/staff";
-    await page.goto(`${root}/dashboard?view=overview`);
-    await expect(page.getByRole("heading", { name: "Booking tạo gần đây" })).toBeVisible();
-    await expect(page.getByText("Khách lấy từ API cơ sở", { exact: true })).toBeVisible();
-    await expect(page.getByRole("link", { name: "BK-2026-0001", exact: true })).toBeVisible();
-    expect(requests.some((path) => path.startsWith("/api/dashboards/"))).toBe(false);
-    expect(requests).toContain(
-      role === "FACILITY_STAFF"
-        ? "/api/bookings/assigned-to-me"
-        : `/api/facilities/${f.booking.facilityId}/bookings`,
-    );
-    if (role === "FACILITY_STAFF")
-      expect(requests).not.toContain(`/api/facilities/${f.booking.facilityId}/bookings`);
-    await page.reload();
-    await expect(page.getByText("Khách lấy từ API cơ sở", { exact: true })).toBeVisible();
-    await page.setViewportSize({ width: 390, height: 844 });
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
-      true,
-    );
-    const audit = await new AxeBuilder({ page }).analyze();
-    expect(audit.violations).toEqual([]);
-    await page.screenshot({ path: `/tmp/flow2-overview-${role}.png`, fullPage: true });
-  });
-}
+test("manager overview uses scoped API bookings instead of sample dashboard data", async ({
+  page,
+}) => {
+  const f = await fixture(page, { role: "FACILITY_MANAGER" });
+  f.booking.contactName = "Khách lấy từ API cơ sở";
+  f.booking.handoverStage = "READY_HANDOVER";
+  const requests: string[] = [];
+  page.on("request", (request) => requests.push(new URL(request.url()).pathname));
+  await page.goto("/facility-manager/dashboard?view=overview");
+  await expect(page.getByRole("heading", { name: "Booking tạo gần đây" })).toBeVisible();
+  await expect(page.getByText("Khách lấy từ API cơ sở", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "BK-2026-0001", exact: true })).toBeVisible();
+  expect(requests.some((path) => path.startsWith("/api/dashboards/"))).toBe(false);
+  expect(requests).toContain(`/api/facilities/${f.booking.facilityId}/bookings`);
+  await page.reload();
+  await expect(page.getByText("Khách lấy từ API cơ sở", { exact: true })).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  const audit = await new AxeBuilder({ page }).analyze();
+  expect(audit.violations).toEqual([]);
+  await page.screenshot({ path: "/tmp/flow2-overview-FACILITY_MANAGER.png", fullPage: true });
+});
 
 test("overview API failure shows retry without fabricated metrics", async ({ page }) => {
   const f = await fixture(page, { role: "FACILITY_MANAGER" });
@@ -1176,7 +1184,7 @@ test("Staff realtime refreshes assigned tasks, ignores invalid recipients and de
   await page.routeWebSocket("**/api/notifications/ws", (ws) => {
     push = (data) => ws.send(data);
   });
-  await page.goto("/staff/dashboard?view=tasks");
+  await page.goto("/staff/tasks");
   await expect(page.getByRole("heading", { name: "Công việc của tôi", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Mở thông báo", exact: true }).click();
   await expect(page.getByText("Đang nhận thông báo trực tiếp", { exact: true })).toBeVisible();
@@ -1223,7 +1231,7 @@ test("Staff realtime reconnects, refreshes missed tasks and closes when leaving 
     disconnect = () => ws.close({ code: 1012, reason: "Test restart" });
     ws.onClose(() => closes++);
   });
-  await page.goto("/staff/dashboard?view=tasks");
+  await page.goto("/staff/tasks");
   await expect(page.getByRole("heading", { name: "Công việc của tôi", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Mở thông báo", exact: true }).click();
   await expect(page.getByText("Đang nhận thông báo trực tiếp", { exact: true })).toBeVisible();
@@ -1242,7 +1250,10 @@ test("manager never opens a Staff notification socket", async ({ page }) => {
     connections++;
   });
   await page.goto("/facility-manager/dashboard?view=check-in");
-  await expect(page.getByRole("heading", { name: "Chuẩn bị kho & Phân công Staff" })).toBeVisible();
+  await expect(page).toHaveURL(/\/facility-manager\/tasks\?view=bookings/);
+  await expect(
+    page.getByRole("heading", { name: "Chuẩn bị kho & Phân công Staff", exact: true }),
+  ).toBeVisible();
   expect(connections).toBe(0);
   await expect(page.getByText("Đang nhận thông báo trực tiếp", { exact: true })).toHaveCount(0);
 });
@@ -1257,7 +1268,7 @@ for (const width of [1440, 390]) {
       connections++;
       reject = () => ws.close({ code: 1008, reason: "Session expired" });
     });
-    await page.goto("/staff/dashboard?view=tasks");
+    await page.goto("/staff/tasks");
     await expect(
       page.getByRole("heading", { name: "Công việc của tôi", exact: true }),
     ).toBeVisible();

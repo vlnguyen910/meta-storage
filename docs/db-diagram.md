@@ -1334,3 +1334,12 @@ alter bookings.assigned_staff_id, inherit check-in/inspection authority or chang
 occupancy/rental/payment/maintenance/access codes. Existing facility_tasks lifecycle
 and task approval remain governed by Flow 5. Future shared work lists may query
 both sources without merging their state machines.
+
+## Facility workspace support events
+
+The existing notification_outbox lifecycle enum additionally supports SUPPORT_UPDATED.
+Support operation events use the existing support_ticket_id, versioned event key and
+recipient uniqueness; IN_APP records are stored as SENT and are never mailed. Public
+replies/resolutions enqueue customer email; private notes never enter customer or FS
+notifications. Staff inbox visibility rechecks current ticket assignment and active
+facility membership. No new ticket/message table is introduced.

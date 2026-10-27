@@ -16,6 +16,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { Currency } from "@/components/ui/display";
 import { ErrorState, LoadingState } from "@/components/ui/states";
+import { facilityStaffRoutes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { AssignmentScreen } from "@/features/facility-flow/assignment-screen";
 import { FACILITY_OVERVIEW_MESSAGES } from "@/features/facility-flow/facility-overview.messages";
@@ -56,6 +57,8 @@ function CheckInFlowScreen() {
   const router = useRouter();
   const user = useAuthStore((s) => s.session?.user);
   const root = user?.role === UserRole.FACILITY_MANAGER ? "/facility-manager" : "/staff";
+  const returnTo =
+    user?.role === UserRole.FACILITY_STAFF ? facilityStaffRoutes.tasks : `${root}/dashboard`;
   const [lookupType, setLookupType] = useState<"BOOKING_CODE" | "QR_TOKEN">("BOOKING_CODE");
   const [input, setInput] = useState("");
   const result = flow.result;
@@ -101,7 +104,7 @@ function CheckInFlowScreen() {
         ) : !result ? (
           <Panel>
             <p>{FLOW.managerMonitorHint}</p>
-            <Link href={`${root}/dashboard`} className="underline">
+            <Link href={returnTo} className="underline">
               {FLOW.back}
             </Link>
           </Panel>
@@ -115,7 +118,7 @@ function CheckInFlowScreen() {
               </p>
               <Pill>{FLOW.statusLabels[result.booking.status]}</Pill>
               <div className="mt-4 flex flex-wrap gap-3">
-                <Button variant="secondary" onClick={() => router.push(`${root}/dashboard`)}>
+                <Button variant="secondary" onClick={() => router.push(returnTo)}>
                   <BackLabel />
                 </Button>
                 {result.booking.status === "CONFIRMED" && (
@@ -214,7 +217,7 @@ function CheckInFlowScreen() {
                   view="history"
                   readOnly
                   onNavigate={() => {}}
-                  onBack={() => router.push(`${root}/dashboard`)}
+                  onBack={() => router.push(returnTo)}
                 />
               ))
             ) : (
@@ -312,7 +315,7 @@ function CheckInFlowScreen() {
             result={result}
             view={inspectionView}
             onNavigate={flow.navigate}
-            onBack={() => (locked ? router.push(`${root}/dashboard`) : flow.navigate("verify"))}
+            onBack={() => (locked ? router.push(returnTo) : flow.navigate("verify"))}
           />
         ) : (
           <Panel className="py-12 text-center">
@@ -500,7 +503,7 @@ function CheckInFlowScreen() {
             <ErrorState message={FLOW.loadHistoryError} onRetry={() => flow.history.refetch()} />
           )}
           <Panel className="flex flex-wrap justify-between gap-3">
-            <Button variant="secondary" onClick={() => router.push(`${root}/dashboard`)}>
+            <Button variant="secondary" onClick={() => router.push(returnTo)}>
               <BackLabel />
             </Button>
             <Button

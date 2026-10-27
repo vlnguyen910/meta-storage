@@ -13,6 +13,7 @@ import {
   isNull,
   notificationOutbox,
   or,
+  supportTickets,
   unitTypes,
   users,
 } from "@metastorage/database";
@@ -124,7 +125,10 @@ export class LifecycleNotificationsRepository {
         and(
           eq(facilityAssignments.facilityId, notificationOutbox.facilityId),
           eq(facilityAssignments.userId, userId),
-          eq(facilityAssignments.role, "FACILITY_MANAGER"),
+          eq(
+            facilityAssignments.role,
+            role === "FACILITY_STAFF" ? "FACILITY_STAFF" : "FACILITY_MANAGER",
+          ),
           eq(facilityAssignments.isActive, true),
           or(isNull(facilityAssignments.endedAt), gt(facilityAssignments.endedAt, new Date())),
         ),
@@ -144,7 +148,36 @@ export class LifecycleNotificationsRepository {
         and(
           eq(notificationOutbox.recipientUserId, userId),
           eq(notificationOutbox.recipientRole, role),
-          role === "CUSTOMER" ? eq(bookings.userId, userId) : exists(facilityAccess),
+          role === "CUSTOMER"
+            ? eq(bookings.userId, userId)
+            : role === "BUSINESS_OPERATION_MANAGER"
+              ? exists(
+                  this.db
+                    .select({ id: supportTickets.id })
+                    .from(supportTickets)
+                    .where(
+                      and(
+                        eq(supportTickets.id, notificationOutbox.supportTicketId),
+                        eq(supportTickets.category, "PAYMENT"),
+                      ),
+                    ),
+                )
+              : role === "FACILITY_STAFF"
+                ? and(
+                    exists(facilityAccess),
+                    exists(
+                      this.db
+                        .select({ id: supportTickets.id })
+                        .from(supportTickets)
+                        .where(
+                          and(
+                            eq(supportTickets.id, notificationOutbox.supportTicketId),
+                            eq(supportTickets.assignedStaffId, userId),
+                          ),
+                        ),
+                    ),
+                  )
+                : exists(facilityAccess),
         ),
       )
       .orderBy(desc(notificationOutbox.occurredAt), desc(notificationOutbox.id))

@@ -43,6 +43,7 @@ import {
   textareaClass,
 } from "./management-ui";
 import { TASK_WORKSPACE_MESSAGES } from "./task-workspace.messages";
+import { useTaskReviewList } from "./use-task-review-list";
 
 const TASK_STATUS_BADGE_CLASS: Record<FacilityTaskDetail["status"], string> = {
   ASSIGNED: "border-sky-200 bg-sky-50 text-sky-900",
@@ -87,20 +88,23 @@ export function TaskWorkspace({ manager }: { manager: boolean }) {
   );
 }
 
-function TaskPanel({ facilityId, manager }: TaskPanelProps) {
+export function TaskPanel({ facilityId, manager, status }: TaskPanelProps) {
   const [offset, setOffset] = useState(0);
   const [type, setType] = useState<FacilityTaskType | "">("");
   const [staffId, setStaffId] = useState("");
   const [selected, select] = useState("");
   const [creating, setCreating] = useState(false);
   const staff = useTaskStaff(facilityId, manager);
-  const query = useFacilityTaskList({
+  const listQuery = {
     facilityId,
     limit: 20,
     offset,
     ...(type ? { type } : {}),
     ...(manager && staffId ? { assignedStaffId: staffId } : {}),
-  });
+  };
+  const tasksQuery = useFacilityTaskList({ ...listQuery, facilityId: status ? "" : facilityId });
+  const reviewsQuery = useTaskReviewList(listQuery, Boolean(status));
+  const query = status ? reviewsQuery : tasksQuery;
   return (
     <div className="grid gap-5">
       <div className="flex flex-wrap items-end gap-3">
@@ -152,7 +156,7 @@ function TaskPanel({ facilityId, manager }: TaskPanelProps) {
         >
           {F5.refresh}
         </Button>
-        {manager && (
+        {manager && !status && (
           <Button type="button" onClick={() => setCreating(true)}>
             {F5.createTask}
           </Button>

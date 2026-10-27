@@ -1,3 +1,4 @@
+import type { FacilityTaskStatus } from "@metastorage/contracts";
 import type { ReactElement, ReactNode } from "react";
 
 export interface FacilityOption {
@@ -18,6 +19,7 @@ export interface InventoryPanelProps extends FacilityPanelProps {
 }
 export interface TaskPanelProps extends FacilityPanelProps {
   manager: boolean;
+  status?: FacilityTaskStatus;
 }
 export interface ManagementFieldProps {
   label: string;

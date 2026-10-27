@@ -27,6 +27,7 @@ import {
   unitTypes,
   users,
 } from "@metastorage/database";
+import { recordSupportOperation } from "../facility-workspace/support-events";
 import type {
   SupportConnection,
   SupportCursor,
@@ -414,6 +415,13 @@ export class SupportRepository {
     await tx.insert(supportAudit).values(values);
   }
   async receipt(tx: SupportTransaction, values: typeof notificationOutbox.$inferInsert) {
+    if (values.eventType === "SUPPORT_CREATED" && values.supportTicketId) {
+      const [ticket] = await tx
+        .select()
+        .from(supportTickets)
+        .where(eq(supportTickets.id, values.supportTicketId));
+      if (ticket) await recordSupportOperation(tx, ticket, ticket.ownerUserId, "CREATED");
+    }
     await tx
       .insert(notificationOutbox)
       .values(values)

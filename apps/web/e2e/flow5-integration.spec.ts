@@ -74,7 +74,7 @@ test("FM creates a task and reloads the latest assignment version after a confli
 }) => {
   const state = flow5Fixture();
   await mockFlow5(page, state);
-  await page.goto("/facility-manager/tasks");
+  await page.goto("/facility-manager/tasks?view=tasks");
   await page.getByRole("button", { name: "Giao công việc", exact: true }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("Tiêu đề công việc").fill("In biên bản kiểm thử");
@@ -136,7 +136,7 @@ test("FS submits a report and FM accepts it to complete the task", async ({ page
   expect((await new AxeBuilder({ page }).include("main").analyze()).violations).toEqual([]);
   const managerPage = await context.newPage();
   await mockFlow5(managerPage, state);
-  await managerPage.goto("/facility-manager/tasks");
+  await managerPage.goto("/facility-manager/tasks?view=tasks");
   await managerPage.getByRole("button", { name: "Xem chi tiết", exact: true }).click();
   const managerDetail = managerPage.getByRole("region", {
     name: "Kiểm tra kho được giao",
@@ -276,7 +276,7 @@ test("Inventory handles server failure, retry, pagination and empty filters", as
 test("FS cannot open the FM task management route", async ({ page }) => {
   const state = flow5Fixture();
   await mockFlow5(page, state, "FACILITY_STAFF", f5staff);
-  await page.goto("/facility-manager/tasks");
+  await page.goto("/facility-manager/tasks?view=tasks");
   await expect(page).toHaveURL(/\/forbidden$/);
   expect(state.queries.some((query) => query.startsWith("GET /facility-tasks"))).toBe(false);
 });
