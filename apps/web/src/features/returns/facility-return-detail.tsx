@@ -21,9 +21,15 @@ import {
   UserX,
 } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/display";
+import {
+  OperationalBackLink,
+  OperationalPageHeader,
+  OperationalSectionHeader,
+} from "@/components/ui/operational";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useMyFacilityAssignments } from "@/features/check-in/hooks";
 import { api } from "@/lib/api";
@@ -61,6 +67,7 @@ function formatDateTime(value: string, timezone: string) {
 
 export function FacilityReturnDetail({ requestId, actorRole }: FacilityReturnDetailProps) {
   const assignments = useMyFacilityAssignments();
+  const searchParams = useSearchParams();
   const query = useReturnRequest(requestId);
   const facility = assignments.data?.find(
     (item) => item.isActive && item.facilityId === query.data?.request.facilityId,
@@ -130,10 +137,25 @@ export function FacilityReturnDetail({ requestId, actorRole }: FacilityReturnDet
             : request.status === "COMPLETED"
               ? M.nextCompleted
               : M.nextWaiting
-    : M.nextManager;
+    : request.status === "CANCELLED"
+      ? M.managerCancelled
+      : request.status === "COMPLETED"
+        ? M.managerCompleted
+        : !request.assignedStaffId
+          ? M.managerAssignNext
+          : !actualReturnAt
+            ? M.managerAwaitingReceipt
+            : latestInspection?.status === "PASS"
+              ? M.managerSettlementNext
+              : M.managerAwaitingInspection;
 
   const shortId = request.id.slice(-8).toUpperCase();
-  const backHref = isStaff ? "/staff/returns" : "/facility-manager/tasks?view=returns";
+  const backFilters = new URLSearchParams({
+    view: "returns",
+    returnStatus: searchParams.get("returnStatus") ?? "",
+    returnSearch: searchParams.get("returnSearch") ?? "",
+  });
+  const backHref = isStaff ? "/staff/returns" : `/facility-manager/tasks?${backFilters.toString()}`;
   const assignedStaffName =
     query.data.context?.assignedStaff?.name ??
     (request.assignedStaffId ? staffMap.get(request.assignedStaffId) : null);
@@ -155,23 +177,36 @@ export function FacilityReturnDetail({ requestId, actorRole }: FacilityReturnDet
     <div className={`mx-auto w-full ${isStaff ? "max-w-4xl" : "max-w-6xl"} space-y-6 pb-10`}>
       {/* Top Navigation & Header */}
       <div>
-        <Link
-          href={backHref}
-          className="mb-3 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 transition-colors hover:text-primary"
-        >
-          <ArrowLeft className="size-3.5" aria-hidden="true" />
-          <span>{M.backToQueue}</span>
-        </Link>
-
+        {isStaff ? (
+          <Link
+            href={backHref}
+            className="mb-3 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 transition-colors hover:text-primary"
+          >
+            <ArrowLeft className="size-3.5" aria-hidden="true" />
+            <span>{M.backToQueue}</span>
+          </Link>
+        ) : (
+          <div className="mb-5">
+            <OperationalBackLink href={backHref}>{M.backToQueue}</OperationalBackLink>
+          </div>
+        )}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <PageHeader
-              eyebrow={`${M.sectionTitle} · ${facility.facilityName ?? M.facilityFallback}`}
-              title={M.details}
-            />
-            <p className="-mt-5 text-sm text-slate-600">
-              {isStaff ? M.detailStaffDescription : M.detailManagerDescription}
-            </p>
+            {isStaff ? (
+              <>
+                <PageHeader
+                  eyebrow={`${M.sectionTitle} · ${facility.facilityName ?? M.facilityFallback}`}
+                  title={M.details}
+                />
+                <p className="-mt-5 text-sm text-slate-600">{M.detailStaffDescription}</p>
+              </>
+            ) : (
+              <OperationalPageHeader
+                title={M.details}
+                eyebrow={`${M.sectionTitle} · ${shortId}`}
+                description={M.detailManagerDescription}
+              />
+            )}
           </div>
 
           <div className="flex items-center gap-3 self-start sm:self-auto">
@@ -227,6 +262,19 @@ export function FacilityReturnDetail({ requestId, actorRole }: FacilityReturnDet
             </div>
 
             <p className="mt-4 text-sm leading-relaxed text-slate-700">{nextStep}</p>
+            {!isStaff && canChangeAssignment && !request.assignedStaffId && (
+              <Button className="mt-4" onClick={() => setAssignModalOpen(true)}>
+                {M.assignStaff}
+              </Button>
+            )}
+            {!isStaff && ["COMPLETED", "INSPECTING", "FAILED"].includes(request.status) && (
+              <a
+                href="#manager-settlement"
+                className="mt-4 inline-flex min-h-10 items-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-sm font-semibold text-emerald-900"
+              >
+                {M.jumpToSettlement}
+              </a>
+            )}
 
             {/* Action Buttons for FS */}
             {(isStaff && request.status === "PENDING") ||
@@ -405,14 +453,22 @@ export function FacilityReturnDetail({ requestId, actorRole }: FacilityReturnDet
 
           <ReturnInspectionReview detail={query.data} staff={isStaff} />
           <ReturnTimeChanges detail={query.data} staff={isStaff} />
-          {!isStaff && <ReturnFinancePanel detail={query.data} manager stale={query.isError} />}
+          {!isStaff && (
+            <div id="manager-settlement" className="scroll-mt-24">
+              <ReturnFinancePanel detail={query.data} manager stale={query.isError} />
+            </div>
+          )}
 
           {/* Card 5: Activity Log / Audit Trail */}
           <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs">
-            <div className="flex items-center gap-2.5 border-b border-slate-100 pb-4">
-              <Clock className="size-5 text-primary" aria-hidden="true" />
-              <h2 className="m-0 text-base font-bold text-slate-900">{M.activityTitle}</h2>
-            </div>
+            {isStaff ? (
+              <div className="flex items-center gap-2.5 border-b border-slate-100 pb-4">
+                <Clock className="size-5 text-primary" aria-hidden="true" />
+                <h2 className="m-0 text-base font-bold text-slate-900">{M.activityTitle}</h2>
+              </div>
+            ) : (
+              <OperationalSectionHeader title={M.activityTitle} icon={Clock} count={audit.length} />
+            )}
 
             {audit.length === 0 ? (
               <p className="mt-4 text-xs text-slate-500">{M.noActivity}</p>

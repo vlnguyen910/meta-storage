@@ -11,7 +11,8 @@ export const STAFF_DIRECTORY = {
   noMatches: "Không tìm thấy nhân viên phù hợp.",
   staffCount: (count: number) => `${count} nhân viên`,
   assignedBookings: "Booking đang phụ trách",
-  workloadHint: "Số booking CONFIRMED được giao; đây không phải số task Flow 5.",
+  workloadHint:
+    "Số booking đã xác nhận và đang được giao cho nhân viên. Công việc cơ sở được theo dõi riêng tại mục Điều phối công việc.",
   role: "Nhân viên cơ sở",
   active: "Đang hoạt động",
   email: "Email",

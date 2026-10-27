@@ -11,9 +11,10 @@
     "**/*.tsx",
     ".next-dev/types/**/*.ts",
     ".next-flow5/types/**/*.ts",
+    ".next-playwright/types/**/*.ts",
     ".next/types/**/*.ts",
     "next-env.d.ts",
-    ".next-playwright/types/**/*.ts"
+    ".next-manager-ui/types/**/*.ts"
   ],
   "exclude": ["node_modules", ".next", ".next-playwright"]
 }

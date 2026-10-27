@@ -231,9 +231,7 @@ test("FM opens a tenant rental and real transaction states within the selected f
 }, testInfo) => {
   const f = await tabsFixture(page);
   await page.goto("/facility-manager/rentals");
-  await expect(
-    page.getByRole("heading", { name: "Khách thuê kiểm thử", exact: true }),
-  ).toBeVisible();
+  await expect(page.getByText("Khách thuê kiểm thử", { exact: true })).toBeVisible();
   expect(
     f.queries.some(
       (q) =>
@@ -262,7 +260,7 @@ test("FM assigns a support ticket, retains drafts on conflict, accepts the repor
   await page.getByRole("link", { name: "Xem chi tiết", exact: true }).click();
   const action = page.getByRole("combobox", { name: "Thao tác", exact: true });
   await action.selectOption("ASSIGN");
-  await page.getByRole("button", { name: "Xác nhận thao tác", exact: true }).click();
+  await page.getByRole("button", { name: "Giao / Đổi nhân viên", exact: true }).click();
   await expect(
     page.getByText("Nhập nội dung hoặc lý do từ 3 ký tự.", { exact: true }),
   ).toBeVisible();
@@ -270,20 +268,26 @@ test("FM assigns a support ticket, retains drafts on conflict, accepts the repor
   await page
     .getByRole("textbox", { name: /^Nội dung \/ Lý do/ })
     .fill("Kiểm tra cửa kho với khách.");
-  await page.getByRole("button", { name: "Xác nhận thao tác", exact: true }).click();
-  await expect(page.getByText("Đã lưu thay đổi.", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Giao / Đổi nhân viên", exact: true }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Xác nhận thao tác", exact: true })
+    .click();
+  await expect(
+    page.getByText("Đã phân công nhân viên xử lý phiếu.", { exact: true }),
+  ).toBeVisible();
   expect(f.writes[0]).toMatchObject({ action: "ASSIGN", staffId: f5staff, version: 0 });
   f.conflict();
   await action.selectOption("NOTE");
   await page
     .getByRole("textbox", { name: /^Nội dung \/ Lý do/ })
     .fill("Ghi chú riêng cho quản lý.");
-  await page.getByRole("button", { name: "Xác nhận thao tác", exact: true }).click();
+  await page.getByRole("button", { name: "Thêm ghi chú nội bộ", exact: true }).click();
   await expect(page.getByRole("main").getByRole("alert")).toContainText("Hồ sơ đã thay đổi");
   await expect(page.getByRole("textbox", { name: /^Nội dung \/ Lý do/ })).toHaveValue(
     "Ghi chú riêng cho quản lý.",
   );
-  await page.getByRole("button", { name: "Xác nhận thao tác", exact: true }).click();
+  await page.getByRole("button", { name: "Thêm ghi chú nội bộ", exact: true }).click();
   await expect(page.getByText("Ghi chú riêng cho quản lý.", { exact: true })).toBeVisible();
   f.ticket.latestReportId = f5id(799);
   await page.reload();
@@ -291,7 +295,11 @@ test("FM assigns a support ticket, retains drafts on conflict, accepts the repor
   await page
     .getByLabel("Nội dung / Lý do", { exact: true })
     .fill("Đã kiểm tra báo cáo và xác nhận xử lý xong.");
-  await page.getByRole("button", { name: "Xác nhận thao tác", exact: true }).click();
+  await page.getByRole("button", { name: "Duyệt báo cáo và đóng phiếu", exact: true }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Xác nhận thao tác", exact: true })
+    .click();
   await expect(page.getByText("Đã đóng", { exact: true })).toBeVisible();
   await page.screenshot({
     path: `/tmp/metastorage-manager-features/support-${testInfo.project.name}.png`,
@@ -302,7 +310,11 @@ test("FM assigns a support ticket, retains drafts on conflict, accepts the repor
   await page
     .getByRole("textbox", { name: /^Nội dung \/ Lý do/ })
     .fill("Khách báo cần kiểm tra lại.");
-  await page.getByRole("button", { name: "Xác nhận thao tác", exact: true }).click();
+  await page.getByRole("button", { name: "Mở lại phiếu", exact: true }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Xác nhận thao tác", exact: true })
+    .click();
   await expect(page.getByText("Mới tiếp nhận", { exact: true })).toBeVisible();
   expect((await new AxeBuilder({ page }).include("main").analyze()).violations).toEqual([]);
 });
@@ -311,7 +323,7 @@ test("FM validates report dates and exports all results with the applied facilit
   page,
 }, testInfo) => {
   const f = await tabsFixture(page);
-  await page.goto("/facility-manager/reports");
+  await page.goto("/facility-manager/dashboard#manager-reports");
   await page.getByLabel("Từ ngày", { exact: true }).fill("2026-10-28");
   await page.getByLabel("Đến ngày", { exact: true }).fill("2026-10-01");
   await page.getByRole("button", { name: "Xem báo cáo", exact: true }).click();

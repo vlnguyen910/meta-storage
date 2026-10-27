@@ -3,6 +3,7 @@ import { FacilityTaskStatus } from "@metastorage/contracts";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { OperationalPageHeader } from "@/components/ui/operational";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/states";
 import { FacilityBookingsView } from "@/features/check-in/facility-bookings-view";
 import { FacilitySwitcher } from "@/features/facilities/facility-switcher";
@@ -32,7 +33,7 @@ function CoordinationContent() {
   if (!scope.currentFacility)
     return <EmptyState title={D.noAssignmentTitle} description={D.noAssignmentDescription} />;
   return (
-    <div className="space-y-6 pt-5">
+    <div className="space-y-6">
       {scope.isMultiFacility && (
         <FacilitySwitcher
           activeAssignments={scope.activeAssignments}
@@ -40,29 +41,21 @@ function CoordinationContent() {
           onSwitchFacility={scope.switchFacility}
         />
       )}
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-          {view === "bookings"
-            ? M.booking
-            : view === "returns"
-              ? M.returns
-              : view === "reports"
-                ? M.reviews
-                : M.tasks}
-        </h1>
-        <p className="mt-2 text-sm text-slate-600">
-          {view === "bookings"
-            ? M.bookingHint(scope.currentFacility.facilityName ?? "cơ sở được phân công")
+      <OperationalPageHeader
+        title={M.coordination}
+        description={
+          view === "bookings"
+            ? M.bookingHint(scope.currentFacility.facilityName ?? "")
             : view === "returns"
               ? M.returnsHint
               : view === "reports"
                 ? M.reviewsHint
-                : M.coordinationHint}
-        </p>
-      </header>
+                : M.coordinationHint
+        }
+      />
       <nav
         aria-label={M.navigation}
-        className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-2"
+        className="flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xs"
       >
         {[
           { id: "bookings", label: M.booking },
@@ -74,7 +67,7 @@ function CoordinationContent() {
             key={item.id}
             href={`/facility-manager/tasks?view=${item.id}`}
             aria-current={view === item.id ? "page" : undefined}
-            className={`inline-flex min-h-11 items-center rounded-xl px-4 text-sm font-semibold ${view === item.id ? "bg-emerald-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}
+            className={`inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-semibold ${view === item.id ? "bg-emerald-50 text-emerald-950 ring-1 ring-emerald-200" : "text-slate-600 hover:bg-slate-50"}`}
           >
             {item.label}
           </Link>

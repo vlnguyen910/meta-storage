@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { type ReactNode, Suspense, useState } from "react";
+import { type ReactNode, Suspense, useEffect, useRef, useState } from "react";
 import { isMockMode } from "@/config/api-mode";
 import { facilityManagerRoutes, facilityStaffRoutes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
@@ -38,6 +38,49 @@ function FacilityShellContent({
   onLogout: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
+  const [mobile, setMobile] = useState(false);
+  const navigationRef = useRef<HTMLElement>(null);
+  const menuRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 900px)");
+    const update = () => setMobile(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+  useEffect(() => {
+    if (!open || !mobile) return;
+    const menu = menuRef.current;
+    const targets = () =>
+      Array.from(
+        navigationRef.current?.querySelectorAll<HTMLElement>("a[href],button:not([disabled])") ??
+          [],
+      );
+    targets()[0]?.focus();
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setOpen(false);
+      }
+      if (event.key === "Tab") {
+        const elements = targets();
+        const first = elements[0],
+          last = elements.at(-1);
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last?.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first?.focus();
+        }
+      }
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("keydown", handleKey);
+      menu?.focus();
+    };
+  }, [open, mobile]);
   const user = useAuthStore((s) => s.session?.user);
   const pathname = usePathname();
   const currentView = useSearchParams().get("view");
@@ -66,9 +109,18 @@ function FacilityShellContent({
   ];
 
   return (
-    <div className={cn(flowFontClass, "min-h-screen bg-[#faf8ff]")}>
+    <div
+      className={cn(
+        flowFontClass,
+        isManager ? "min-h-screen bg-slate-50" : "min-h-screen bg-[#faf8ff]",
+      )}
+    >
       {isManager && (
         <aside
+          id="manager-navigation"
+          ref={navigationRef}
+          inert={mobile && !open}
+          aria-label={FLOW.operations}
           className={cn(
             isManager
               ? "fixed inset-y-0 left-0 z-50 flex w-60 flex-col justify-between border-r border-slate-200 bg-white text-ink transition-transform max-[900px]:-translate-x-full print:hidden"
@@ -76,7 +128,7 @@ function FacilityShellContent({
             open && "max-[900px]:translate-x-0",
           )}
         >
-          <div>
+          <div className="min-h-0 flex-1 overflow-y-auto">
             <Link
               href={`${root}/dashboard`}
               className={cn(
@@ -192,7 +244,12 @@ function FacilityShellContent({
               ))}
             </nav>
           </div>
-          <div className={cn("border-t p-4", isManager ? "border-slate-200" : "border-white/10")}>
+          <div
+            className={cn(
+              "shrink-0 border-t p-4",
+              isManager ? "border-slate-200" : "border-white/10",
+            )}
+          >
             <div
               className={cn(
                 "flex items-center gap-2 rounded-lg p-2",
@@ -242,10 +299,13 @@ function FacilityShellContent({
       )}
       <div className={cn(isManager ? "ml-60" : "ml-0", "max-[900px]:ml-0 print:ml-0")}>
         {isManager ? (
-          <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 bg-[#faf8ff]/90 px-4 shadow-sm backdrop-blur-xl print:hidden">
+          <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-4 backdrop-blur-xl print:hidden">
             <div className="flex min-w-0 items-center gap-2">
               <button
                 type="button"
+                ref={menuRef}
+                aria-controls="manager-navigation"
+                aria-expanded={open}
                 aria-label={open ? FLOW.closeMenu : FLOW.openMenu}
                 onClick={() => setOpen(!open)}
                 className="rounded p-2 min-[901px]:hidden"
@@ -336,7 +396,14 @@ function FacilityShellContent({
             </div>
           </header>
         )}
-        <main className="mx-auto max-w-[1504px] space-y-6 px-4 pb-8 sm:px-8">{children}</main>
+        <main
+          className={cn(
+            "mx-auto max-w-[1504px] space-y-6 px-4 pb-8 sm:px-8",
+            isManager && "min-w-0 pt-6",
+          )}
+        >
+          {children}
+        </main>
       </div>
     </div>
   );

@@ -4,7 +4,7 @@ export const MANAGER_WORKSPACE = {
   booking: "Booking & Bàn giao",
   bookingHint: (facilityName: string) =>
     `Theo dõi lịch tiếp đón, chuẩn bị và bàn giao kho tại ${facilityName}.`,
-  tasks: "Task cơ sở",
+  tasks: "Công việc cơ sở",
   reviews: "Báo cáo chờ duyệt",
   reviewsHint: "Xem báo cáo nhân viên đã gửi và chấp nhận trước khi hoàn tất công việc.",
   returns: "Yêu cầu trả kho",
@@ -29,6 +29,7 @@ export const MANAGER_WORKSPACE = {
   maintenance: "Bảo trì",
   reserved: "Đã giữ chỗ",
   other: "Trạng thái khác",
+  attentionHint: (count: number) => `${count} booking đã xác nhận đang chờ bàn giao tại cơ sở.`,
   attention: "Đi tới công việc cần xử lý",
   prepare: "Chuẩn bị & bàn giao booking",
   accept: "Duyệt báo cáo nhân viên",

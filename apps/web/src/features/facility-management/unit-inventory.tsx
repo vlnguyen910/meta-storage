@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { Input, Select } from "@/components/ui/form-controls";
 import { ListPagination } from "@/components/ui/list-pagination";
+import { OperationalPageHeader, OperationalSectionHeader } from "@/components/ui/operational";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import {
   Table,
@@ -52,10 +53,10 @@ import {
 
 const UNIT_STATUS_BADGE_CLASS: Record<StorageUnitStatus, string> = {
   [StorageUnitStatus.AVAILABLE]: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  [StorageUnitStatus.RESERVED]: "border-sky-200 bg-sky-50 text-sky-800",
+  [StorageUnitStatus.RESERVED]: "border-amber-200 bg-amber-50 text-amber-900",
   [StorageUnitStatus.OCCUPIED]: "border-blue-200 bg-blue-50 text-blue-800",
   [StorageUnitStatus.MAINTENANCE]: "border-amber-200 bg-amber-50 text-amber-900",
-  [StorageUnitStatus.INSPECTION]: "border-violet-200 bg-violet-50 text-violet-800",
+  [StorageUnitStatus.INSPECTION]: "border-blue-200 bg-blue-50 text-blue-800",
   [StorageUnitStatus.RETURN_PENDING]: "border-orange-200 bg-orange-50 text-orange-900",
   [StorageUnitStatus.LOCKED]: "border-slate-300 bg-slate-100 text-slate-700",
   [StorageUnitStatus.INACTIVE]: "border-slate-300 bg-slate-100 text-slate-700",
@@ -70,11 +71,8 @@ export function UnitInventoryWorkspace({ global = false }: Flow5ScopeProps) {
   if (scope.query.isError)
     return <ErrorState message={F5.loadError} onRetry={() => scope.query.refetch()} />;
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden min-h-0 gap-3">
-      <header className="shrink-0">
-        <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">{F5.inventory}</h1>
-        <p className="mt-1 text-xs text-slate-500">{F5.description}</p>
-      </header>
+    <div className="flex min-w-0 flex-col gap-5">
+      <OperationalPageHeader title={F5.inventory} description={F5.description} />
       {scope.query.data.length === 0 ? (
         <p role="status" className={panelClass}>
           {F5.noFacility}
@@ -143,10 +141,10 @@ export function InventoryPanel({
   }
 
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden min-h-0 gap-3">
+    <div className="flex min-w-0 flex-col gap-5">
       {/* Toolbar / Filters */}
       <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
-        <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
+        <div className="flex flex-wrap items-center gap-2.5 min-w-0 flex-1 sm:min-w-[280px]">
           {/* Facility switcher if provided */}
           {facilityOptions && facilityOptions.length > 1 && onSelectFacility && (
             <div className="w-56">
@@ -170,11 +168,12 @@ export function InventoryPanel({
           {/* Search box with submit button */}
           <form
             onSubmit={handleSearchSubmit}
-            className="flex items-center gap-2 flex-1 min-w-[220px]"
+            className="flex items-center gap-2 min-w-0 flex-1 sm:min-w-[220px]"
           >
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 size-4 text-slate-400" />
               <Input
+                aria-label={F5.searchUnit}
                 placeholder={F5.searchUnit}
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
@@ -187,7 +186,7 @@ export function InventoryPanel({
               className="h-9 px-3 text-xs font-semibold gap-1.5 shrink-0 border-slate-200"
             >
               <Search className="size-3.5" />
-              <span>Tìm kiếm</span>
+              <span>{F5.searchAction}</span>
             </Button>
           </form>
 
@@ -278,7 +277,7 @@ export function InventoryPanel({
               <TableRow>
                 <TableHead className="w-44 px-4 py-3">{F5.unit}</TableHead>
                 <TableHead className="w-56 px-4 py-3">{F5.unitType}</TableHead>
-                <TableHead className="w-36 px-4 py-3">{F5.sizeLabel}</TableHead>
+                <TableHead className="w-36 px-4 py-3">{F5.areaOrSize}</TableHead>
                 <TableHead className="px-4 py-3">{F5.location}</TableHead>
                 <TableHead className="w-36 px-4 py-3">{F5.status}</TableHead>
                 <TableHead className="w-36 text-right px-4 py-3">{F5.actions}</TableHead>
@@ -347,10 +346,11 @@ export function InventoryPanel({
                             type="button"
                             variant="outline"
                             onClick={() => setDetailUnitId(unit.id)}
-                            className="min-h-0 h-7 px-2 text-xs gap-1"
+                            className="min-h-10 px-3 text-xs gap-1.5"
+                            aria-label={F5.detail}
                             title={F5.detail}
                           >
-                            <Eye className="size-3.5 text-slate-500" />
+                            <Eye className="size-4 text-emerald-700" aria-hidden="true" />
                             <span className="hidden sm:inline">{F5.detail}</span>
                           </Button>
                         </div>
@@ -364,6 +364,11 @@ export function InventoryPanel({
         )}
       </div>
 
+      {searchQuery && (
+        <p role="status" className="text-xs text-slate-500">
+          {F5.searchPageHint}
+        </p>
+      )}
       {/* Pagination Footer */}
       <ListPagination
         label={F5.inventory}
@@ -372,7 +377,7 @@ export function InventoryPanel({
         total={totalItems}
         onPageChange={(p) => setOffset((p - 1) * PAGE_SIZE)}
         pending={query.isFetching}
-        unitLabel="ô kho"
+        unitLabel={F5.unitLabel}
       />
 
       {/* Detail Modal */}
@@ -508,7 +513,7 @@ function UnitDetailsModal({
               type="button"
               variant="outline"
               onClick={() => onEdit(unit)}
-              className="min-h-0 h-8 px-3 gap-1.5 text-xs"
+              className="min-h-10 px-3 gap-1.5 text-sm"
             >
               <Pencil className="size-3.5" />
               <span>{F5.edit}</span>
@@ -520,7 +525,7 @@ function UnitDetailsModal({
               type="button"
               variant={isMaintenance ? "primary" : "outline"}
               onClick={() => onMaintain(unit)}
-              className="min-h-0 h-8 px-3 gap-1.5 text-xs"
+              className="min-h-10 px-3 gap-1.5 text-sm"
             >
               <Wrench className="size-3.5" />
               <span>{isMaintenance ? F5.exitMaintenance : F5.enterMaintenance}</span>
@@ -530,7 +535,11 @@ function UnitDetailsModal({
 
         {/* Maintenance History */}
         <div className="grid gap-2.5 pt-2 border-t border-slate-200">
-          <h3 className="text-sm font-bold text-slate-900">{F5.maintenanceHistory}</h3>
+          <OperationalSectionHeader
+            title={F5.maintenanceHistory}
+            icon={Wrench}
+            count={history.data?.total}
+          />
           {history.isPending ? (
             <LoadingState variant="table" />
           ) : history.isError ? (
@@ -668,7 +677,11 @@ function UnitEditor({
             {managementError(mutation.error)}
           </p>
         )}
-        <Button type="submit" disabled={mutation.isPending || types.isPending || types.isError}>
+        <Button
+          type="submit"
+          loading={mutation.isPending}
+          disabled={mutation.isPending || types.isPending || types.isError}
+        >
           {F5.save}
         </Button>
       </form>
@@ -726,7 +739,7 @@ function MaintenanceEditor({
             {managementError(mutation.error)}
           </p>
         )}
-        <Button type="submit" disabled={mutation.isPending}>
+        <Button type="submit" loading={mutation.isPending} disabled={mutation.isPending}>
           {F5.save}
         </Button>
       </form>

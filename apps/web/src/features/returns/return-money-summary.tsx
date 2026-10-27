@@ -6,9 +6,14 @@ export function MoneyRows({ rows }: { rows: Array<readonly [string, string | nul
   return (
     <dl className="space-y-3 text-sm">
       {rows.map(([label, value]) => (
-        <div key={label} className="flex flex-wrap justify-between gap-2">
+        <div
+          key={label}
+          className="flex flex-wrap justify-between gap-2 border-b border-slate-100 py-2 last:border-0"
+        >
           <dt>{label}</dt>
-          <dd className="font-semibold">{value === null ? F3.unknown : money(value)}</dd>
+          <dd className="text-right font-semibold tabular-nums">
+            {value === null ? F3.unknown : money(value)}
+          </dd>
         </div>
       ))}
     </dl>
@@ -31,7 +36,7 @@ export function RefundBalances({ summary }: { summary: ReturnRefundSummaryDto })
 export function SettlementPreview({ preview }: { preview: ReturnSettlementPreviewDto }) {
   const values = preview.calculation;
   return (
-    <div className="space-y-4 rounded border border-[#BFCAC4] bg-slate-50 p-4">
+    <div className="space-y-4 rounded-xl border border-emerald-200 bg-emerald-50/40 p-4">
       <h3 className="font-bold">{F3.preview}</h3>
       {preview.blockingReasons.length > 0 && (
         <div
