@@ -17,10 +17,7 @@ import { checkInsRoutes } from "./modules/check-ins/check-ins.routes";
 import { facilityContextPlugin } from "./modules/facilities/facilities.guard";
 import { facilitiesRoutes } from "./modules/facilities/facilities.routes";
 import { facilityTasksRoutes } from "./modules/facility-tasks/facility-tasks.routes";
-import {
-  facilityWorkspaceRoutes,
-  supportWithdrawalRoutes,
-} from "./modules/facility-workspace/facility-workspace.routes";
+import { facilityWorkspaceRoutes } from "./modules/facility-workspace/facility-workspace.routes";
 import { inspectionsRoutes } from "./modules/inspections/inspections.routes";
 import { lifecycleNotificationsRoutes } from "./modules/notifications/lifecycle-notifications.routes";
 import { notificationsPlugin } from "./modules/notifications/notifications.plugin";
@@ -90,6 +87,5 @@ export function buildApp(): FastifyInstance {
   app.register(systemSettingsRoutes, { prefix: "/api" });
   app.register(supportRoutes, { prefix: "/api/support" });
   app.register(facilityWorkspaceRoutes, { prefix: "/api/facility-workspace" });
-  app.register(supportWithdrawalRoutes, { prefix: "/api/support" });
   return app;
 }
