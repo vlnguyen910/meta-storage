@@ -1,6 +1,6 @@
 {
-  "id": "c5cb0671-932a-4f32-8883-61a7f19786f1",
-  "prevId": "3afcb2ef-bba9-44d9-add7-a828ad9c1db8",
+  "id": "6dd6d667-0dce-46c0-b8de-0ab16cdd4328",
+  "prevId": "c5cb0671-932a-4f32-8883-61a7f19786f1",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -146,331 +146,6 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.booking_contract_audit": {
-      "name": "booking_contract_audit",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "booking_id": {
-          "name": "booking_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "contract_id": {
-          "name": "contract_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "actor_id": {
-          "name": "actor_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "action": {
-          "name": "action",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "details": {
-          "name": "details",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "occurred_at": {
-          "name": "occurred_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "booking_contract_audit_booking_idx": {
-          "name": "booking_contract_audit_booking_idx",
-          "columns": [
-            {
-              "expression": "booking_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "occurred_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "booking_contract_audit_booking_id_bookings_id_fk": {
-          "name": "booking_contract_audit_booking_id_bookings_id_fk",
-          "tableFrom": "booking_contract_audit",
-          "tableTo": "bookings",
-          "columnsFrom": [
-            "booking_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "booking_contract_audit_contract_id_booking_contracts_id_fk": {
-          "name": "booking_contract_audit_contract_id_booking_contracts_id_fk",
-          "tableFrom": "booking_contract_audit",
-          "tableTo": "booking_contracts",
-          "columnsFrom": [
-            "contract_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "booking_contract_audit_actor_id_users_id_fk": {
-          "name": "booking_contract_audit_actor_id_users_id_fk",
-          "tableFrom": "booking_contract_audit",
-          "tableTo": "users",
-          "columnsFrom": [
-            "actor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.booking_contracts": {
-      "name": "booking_contracts",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "booking_id": {
-          "name": "booking_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "version": {
-          "name": "version",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "booking_contract_status",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'UPLOADED'"
-        },
-        "filename": {
-          "name": "filename",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "byte_size": {
-          "name": "byte_size",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "page_count": {
-          "name": "page_count",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "sha256": {
-          "name": "sha256",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "object_key": {
-          "name": "object_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "idempotency_key": {
-          "name": "idempotency_key",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "uploaded_by": {
-          "name": "uploaded_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "uploaded_at": {
-          "name": "uploaded_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "issued_by": {
-          "name": "issued_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "issued_at": {
-          "name": "issued_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "terms_snapshot": {
-          "name": "terms_snapshot",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "booking_contract_version_idx": {
-          "name": "booking_contract_version_idx",
-          "columns": [
-            {
-              "expression": "booking_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "version",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "booking_contract_idempotency_idx": {
-          "name": "booking_contract_idempotency_idx",
-          "columns": [
-            {
-              "expression": "booking_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "idempotency_key",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "booking_contracts_booking_id_bookings_id_fk": {
-          "name": "booking_contracts_booking_id_bookings_id_fk",
-          "tableFrom": "booking_contracts",
-          "tableTo": "bookings",
-          "columnsFrom": [
-            "booking_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "booking_contracts_uploaded_by_users_id_fk": {
-          "name": "booking_contracts_uploaded_by_users_id_fk",
-          "tableFrom": "booking_contracts",
-          "tableTo": "users",
-          "columnsFrom": [
-            "uploaded_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "booking_contracts_issued_by_users_id_fk": {
-          "name": "booking_contracts_issued_by_users_id_fk",
-          "tableFrom": "booking_contracts",
-          "tableTo": "users",
-          "columnsFrom": [
-            "issued_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "booking_contracts_objectKey_unique": {
-          "name": "booking_contracts_objectKey_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "object_key"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {
-        "booking_contract_pdf_valid": {
-          "name": "booking_contract_pdf_valid",
-          "value": "\"booking_contracts\".\"byte_size\" BETWEEN 1 AND 20971520 AND \"booking_contracts\".\"page_count\" > 0 AND \"booking_contracts\".\"version\" > 0"
-        },
-        "booking_contract_issue_valid": {
-          "name": "booking_contract_issue_valid",
-          "value": "(\"booking_contracts\".\"status\" = 'UPLOADED' AND \"booking_contracts\".\"issued_by\" IS NULL AND \"booking_contracts\".\"issued_at\" IS NULL AND \"booking_contracts\".\"terms_snapshot\" IS NULL) OR (\"booking_contracts\".\"status\" = 'ISSUED' AND \"booking_contracts\".\"issued_by\" IS NOT NULL AND \"booking_contracts\".\"issued_at\" IS NOT NULL AND \"booking_contracts\".\"terms_snapshot\" IS NOT NULL)"
-        }
-      },
       "isRLSEnabled": false
     },
     "public.bookings": {
@@ -1958,12 +1633,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "contract_id": {
-          "name": "contract_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
         "unit_code": {
           "name": "unit_code",
           "type": "varchar(100)",
@@ -2144,19 +1813,6 @@
           "tableTo": "checkin_verifications",
           "columnsFrom": [
             "verification_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "handover_inspections_contract_id_booking_contracts_id_fk": {
-          "name": "handover_inspections_contract_id_booking_contracts_id_fk",
-          "tableFrom": "handover_inspections",
-          "tableTo": "booking_contracts",
-          "columnsFrom": [
-            "contract_id"
           ],
           "columnsTo": [
             "id"
@@ -8438,14 +8094,6 @@
     }
   },
   "enums": {
-    "public.booking_contract_status": {
-      "name": "booking_contract_status",
-      "schema": "public",
-      "values": [
-        "UPLOADED",
-        "ISSUED"
-      ]
-    },
     "public.capacity_allocation_kind": {
       "name": "capacity_allocation_kind",
       "schema": "public",
@@ -8769,5 +8417,5 @@
     "schemas": {},
     "tables": {}
   },
-  "tag": "0062_powerful_thunderbolt"
+  "tag": "0063_glamorous_miss_america"
 }
