@@ -11,10 +11,10 @@ import {
 import type { FastifyPluginAsync, FastifyRequest } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
-import { UnauthorizedError } from "../../common/errors/app-error";
+import { AppError, UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
 import { requireRole } from "../auth/auth.guard";
-import { SUPPORT_MESSAGES as m } from "./support.messages";
+import { SUPPORT_MESSAGES as m, SUPPORT_ROUTE_OUTDATED_MESSAGE } from "./support.messages";
 import { SupportRepository } from "./support.repository";
 import { SupportService } from "./support.service";
 import type { SupportRoutesOptions } from "./support.types";
@@ -96,5 +96,12 @@ export const supportRoutes: FastifyPluginAsync<SupportRoutesOptions> = async (ap
       },
     },
     async (req) => successResponse(await service.detail(actor(req), req.params.ticketId)),
+  );
+  typed.all(
+    "/tickets/:ticketId/close",
+    { preHandler: guards, schema: { ...schema, params: SupportTicketParamsSchema } },
+    async () => {
+      throw new AppError(SUPPORT_ROUTE_OUTDATED_MESSAGE, 410, "ROUTE_OUTDATED");
+    },
   );
 };

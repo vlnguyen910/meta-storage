@@ -1,5 +1,6 @@
 import {
   and,
+  type Database,
   eq,
   exists,
   facilityAssignments,
@@ -9,9 +10,8 @@ import {
   type SQL,
   users,
 } from "@metastorage/database";
-import type { SupportConnection } from "../support/support.types";
 export function workspaceMembership(
-  db: SupportConnection,
+  db: Database,
   userId: string,
   role: "FACILITY_MANAGER" | "FACILITY_STAFF",
   facilityId: string | SQL,
