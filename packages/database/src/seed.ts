@@ -961,9 +961,9 @@ async function seedFlow3Rentals(seedNow: Date) {
       expiryDays: 5,
       requestStatus: "PENDING",
       requestDay: 0,
-      slotIndex: 3,
+      slotIndex: 1,
     },
-    { status: "OVERDUE", expiryDays: -2, requestStatus: "CONFIRMED", requestDay: 0, slotIndex: 4 },
+    { status: "OVERDUE", expiryDays: -2, requestStatus: "CONFIRMED", requestDay: 0, slotIndex: 2 },
     {
       status: "CLOSED",
       expiryDays: -120,
