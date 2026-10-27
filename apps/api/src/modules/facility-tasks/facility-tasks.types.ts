@@ -1,4 +1,4 @@
-import type { Database, FacilityTask, FacilityTaskReport, Role } from "@metastorage/database";
+import type { Database, FacilityTask, Role } from "@metastorage/database";
 
 export type TaskTransaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
 
@@ -28,10 +28,17 @@ export type LockedTaskActors =
   | { manager: { id: string; name: string }; staff: { id: string; name: string } }
   | { error: "MANAGER_ACCESS_DENIED" | "STAFF_UNAVAILABLE" };
 
-export interface FacilityTaskReportRecord extends FacilityTaskReport {
+export type FacilityTaskReportRecord = {
+  id: string;
+  taskId: string;
+  submittedBy: string;
   submitterName: string;
+  content: string;
+  submittedAt: Date;
+  acceptedBy: string | null;
   acceptedByName: string | null;
-}
+  acceptedAt: Date | null;
+};
 export type TaskReportWriteResult =
   | { report: FacilityTaskReportRecord }
   | { error: "TASK_NOT_FOUND" | "REPORT_ACCESS_DENIED" | "INVALID_TASK_STATE" };

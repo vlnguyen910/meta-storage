@@ -6,7 +6,6 @@ import { checkInSlots } from "./check-in-slots";
 import { checkInVerifications } from "./checkin-verifications";
 import { facilities } from "./facilities";
 import { facilityAssignments } from "./facility-assignments";
-import { facilityOperatingHours } from "./facility-operating-hours";
 import { paymentProviderEvents } from "./payment-provider-events";
 import { payments } from "./payments";
 import {
@@ -105,7 +104,6 @@ export const facilitiesRelations = relations(facilities, ({ many }) => ({
   unitTypes: many(unitTypes),
   assignments: many(facilityAssignments),
   storageUnits: many(storageUnits),
-  operatingHours: many(facilityOperatingHours),
   capacityAllocations: many(capacityAllocations),
   bookings: many(bookings),
   rentals: many(rentals),
@@ -148,13 +146,6 @@ export const storageUnitsRelations = relations(storageUnits, ({ one, many }) => 
   }),
   assignments: many(unitAssignments),
   rentals: many(rentals),
-}));
-
-export const facilityOperatingHoursRelations = relations(facilityOperatingHours, ({ one }) => ({
-  facility: one(facilities, {
-    fields: [facilityOperatingHours.facilityId],
-    references: [facilities.id],
-  }),
 }));
 
 export const capacityAllocationsRelations = relations(capacityAllocations, ({ one }) => ({
