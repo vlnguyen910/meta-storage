@@ -1,17 +1,9 @@
 import {
-  SUPPORT_IMAGE_MAX_BYTES,
-  SupportAttachmentParamsSchema,
   SupportContextParamsSchema,
   SupportContextQuerySchema,
   SupportCreateInputSchema,
   SupportDetailSchema,
-  SupportImageInputSchema,
-  SupportImageResultSchema,
-  SupportMessagePageSchema,
-  SupportMessageParamsSchema,
   SupportPageQuerySchema,
-  SupportReplyInputSchema,
-  SupportReplyResultSchema,
   SupportTicketPageSchema,
   SupportTicketParamsSchema,
   SupportTicketQuerySchema,
@@ -41,10 +33,7 @@ function actor(request: FastifyRequest) {
 const schema = { tags: [m.tag], security: [{ sessionAuth: [] }] };
 
 export const supportRoutes: FastifyPluginAsync<SupportRoutesOptions> = async (app, options) => {
-  const service = new SupportService(
-    options.repository ?? new SupportRepository(app.db),
-    options.storage,
-  );
+  const service = new SupportService(options.repository ?? new SupportRepository(app.db));
   const typed = app.withTypeProvider<ZodTypeProvider>();
   app.addHook("onRequest", async (_req, reply) => {
     reply.header("Cache-Control", "private, no-store");
@@ -68,7 +57,6 @@ export const supportRoutes: FastifyPluginAsync<SupportRoutesOptions> = async (ap
     async (req) =>
       successResponse(await service.contextPayments(actor(req), req.params.bookingId, req.query)),
   );
-
   typed.post(
     "/tickets",
     {
@@ -108,78 +96,5 @@ export const supportRoutes: FastifyPluginAsync<SupportRoutesOptions> = async (ap
       },
     },
     async (req) => successResponse(await service.detail(actor(req), req.params.ticketId)),
-  );
-  typed.get(
-    "/tickets/:ticketId/messages",
-    {
-      preHandler: guards,
-      schema: {
-        ...schema,
-        summary: m.messagesSummary,
-        params: SupportTicketParamsSchema,
-        querystring: SupportPageQuerySchema,
-        response: { 200: envelope(SupportMessagePageSchema) },
-      },
-    },
-    async (req) =>
-      successResponse(await service.messages(actor(req), req.params.ticketId, req.query)),
-  );
-  typed.post(
-    "/tickets/:ticketId/messages",
-    {
-      preHandler: guards,
-      schema: {
-        ...schema,
-        summary: m.replySummary,
-        params: SupportTicketParamsSchema,
-        body: SupportReplyInputSchema,
-        response: { 201: envelope(SupportReplyResultSchema) },
-      },
-    },
-    async (req, reply) =>
-      reply
-        .status(201)
-        .send(successResponse(await service.reply(actor(req), req.params.ticketId, req.body))),
-  );
-  typed.post(
-    "/tickets/:ticketId/messages/:messageId/attachments",
-    {
-      preHandler: guards,
-      bodyLimit: Math.ceil(SUPPORT_IMAGE_MAX_BYTES / 3) * 4 + 4096,
-      schema: {
-        ...schema,
-        summary: m.uploadSummary,
-        params: SupportMessageParamsSchema,
-        body: SupportImageInputSchema,
-        response: { 201: envelope(SupportImageResultSchema) },
-      },
-    },
-    async (req, reply) =>
-      reply
-        .status(201)
-        .send(
-          successResponse(
-            await service.upload(actor(req), req.params.ticketId, req.params.messageId, req.body),
-          ),
-        ),
-  );
-  typed.get(
-    "/tickets/:ticketId/attachments/:attachmentId",
-    {
-      preHandler: guards,
-      schema: { ...schema, summary: m.imageSummary, params: SupportAttachmentParamsSchema },
-    },
-    async (req, reply) => {
-      const file = await service.image(actor(req), req.params.ticketId, req.params.attachmentId);
-      return reply
-        .type(file.attachment.mimeType)
-        .header("X-Content-Type-Options", "nosniff")
-        .header("Content-Security-Policy", "sandbox")
-        .header(
-          "Content-Disposition",
-          `inline; filename*=UTF-8''${encodeURIComponent(file.attachment.originalFilename)}`,
-        )
-        .send(Buffer.from(file.bytes));
-    },
   );
 };

@@ -42,13 +42,6 @@ function facilityRentalDto(row: FacilityRentalRow): FacilityRentalItem {
           paidAt: row.initialPayment.paidAt?.toISOString() ?? null,
         }
       : null,
-    currentIssuedContract: row.contract?.issuedAt
-      ? {
-          id: row.contract.id,
-          version: row.contract.version,
-          issuedAt: row.contract.issuedAt.toISOString(),
-        }
-      : null,
   };
 }
 
