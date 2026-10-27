@@ -101,5 +101,4 @@ describe("StorageUnitsService - Maintenance & Permission Operations (F4)", () =>
       { name: "NotFoundError" },
     );
   });
-
 });
