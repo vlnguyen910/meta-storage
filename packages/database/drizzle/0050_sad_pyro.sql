@@ -1,2 +1,0 @@
-DROP INDEX "payments_collected_rental_charge_idx";--> statement-breakpoint
-CREATE UNIQUE INDEX "payments_collected_rental_charge_idx" ON "payments" USING btree ("rental_charge_id") WHERE "payments"."rental_charge_id" IS NOT NULL AND "payments"."status" = 'SUCCEEDED';
