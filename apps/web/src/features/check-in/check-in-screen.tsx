@@ -36,8 +36,6 @@ import {
 } from "@/features/facility-flow/flow-ui";
 import { InspectionScreen } from "@/features/facility-flow/inspection-screen";
 import { flowError, useCheckInFlow } from "@/features/facility-flow/use-check-in-flow";
-import { CONTRACT_UI as C } from "@/features/rentals/contract.messages";
-import { RentalDocuments } from "@/features/rentals/rental-records";
 import { formatDateTime } from "@/lib/format";
 export function CheckInScreen() {
   return (
@@ -122,14 +120,6 @@ function CheckInFlowScreen() {
                   <BackLabel />
                 </Button>
                 {result.booking.status === "CONFIRMED" && (
-                  <a
-                    href="#booking-contracts"
-                    className="inline-flex min-h-11 items-center rounded border border-primary bg-white px-4 font-semibold text-primary hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-primary"
-                  >
-                    {C.manage}
-                  </a>
-                )}
-                {result.booking.status === "CONFIRMED" && (
                   <Link
                     className="rounded bg-[#b4efda] p-3 font-semibold"
                     href={`${root}/check-in?view=assign&bookingId=${result.booking.id}&bookingCode=${encodeURIComponent(result.booking.bookingCode)}`}
@@ -139,14 +129,6 @@ function CheckInFlowScreen() {
                 )}
               </div>
             </Panel>
-            <div id="booking-contracts" className="scroll-mt-24">
-              <RentalDocuments
-                key={result.booking.id}
-                bookingId={result.booking.id}
-                manager={result.booking.status === "CONFIRMED"}
-                handover
-              />
-            </div>
             <div className="grid gap-6 lg:grid-cols-2">
               <Panel className="space-y-4">
                 <SectionTitle icon={<User size={20} />}>{FLOW.dossier}</SectionTitle>
