@@ -566,7 +566,7 @@ describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
       debtAmount: "0",
       actualReturnAt: new Date("2026-10-20"),
       refundDueDate: "2026-10-26",
-      calendarSnapshot: { timezone: "Asia/Ho_Chi_Minh", holidays: [] },
+      calendarSnapshot: { timezone: "Asia/Ho_Chi_Minh" },
       approvedBy: ids.fm,
       reason: "Report fixture",
     };

@@ -136,18 +136,133 @@ export async function applyMigrations(database: Database, migrations: MigrationM
         statement.includes('ALTER TABLE "unit_types" ALTER COLUMN "facility_id" SET NOT NULL'),
       );
       if (contractsLocalTypes) await migrateFacilityUnitTypes(tx);
+      const removesTaskReportHistory = migration.sql.some((statement) =>
+        statement.includes('DROP TABLE "facility_task_reports"'),
+      );
+      const removesFacilitySchedules = migration.sql.some((statement) =>
+        statement.includes('DROP TABLE "facility_operating_hours"'),
+      );
+      if (removesFacilitySchedules) {
+        const [schedule] = await tx.execute<{
+          rows: number;
+          variants: number;
+          opening: string | null;
+          closing: string | null;
+          timezone: string | null;
+          invalid_minutes: number;
+        }>(sql`
+          SELECT count(*)::integer AS rows,
+                 count(DISTINCT (open_time, close_time, timezone))::integer AS variants,
+                 min(open_time)::text AS opening,
+                 min(close_time)::text AS closing,
+                 min(timezone)::text AS timezone,
+                 count(*) FILTER (WHERE extract(minute FROM open_time) <> 0 OR extract(minute FROM close_time) <> 0)::integer AS invalid_minutes
+          FROM facility_operating_hours
+        `);
+        const [coverage] = await tx.execute<{
+          facilities: number;
+          total_facilities: number;
+          incomplete: number;
+        }>(sql`
+          SELECT count(DISTINCT facility_id)::integer AS facilities,
+                 (SELECT count(*)::integer FROM facilities) AS total_facilities,
+                 count(*) FILTER (WHERE days <> 7)::integer AS incomplete
+          FROM (
+            SELECT facility_id, count(DISTINCT day_of_week)::integer AS days
+            FROM facility_operating_hours GROUP BY facility_id
+          ) hours
+        `);
+        const emptyInstallation = schedule?.rows === 0 && coverage?.total_facilities === 0;
+        if (
+          !schedule ||
+          !coverage ||
+          (!emptyInstallation &&
+            (schedule.rows === 0 ||
+              schedule.variants !== 1 ||
+              schedule.invalid_minutes !== 0 ||
+              !schedule.opening ||
+              !schedule.closing ||
+              schedule.opening >= schedule.closing ||
+              schedule.timezone !== "Asia/Ho_Chi_Minh" ||
+              coverage.facilities === 0 ||
+              coverage.facilities !== coverage.total_facilities ||
+              coverage.incomplete !== 0))
+        )
+          throw new Error(
+            "Facility schedules differ or are incomplete; resolve them before consolidation.",
+          );
+        for (const [key, value] of [
+          [
+            "OPENING_HOUR",
+            emptyInstallation
+              ? SYSTEM_SETTING_DEFINITIONS.OPENING_HOUR.defaultValue
+              : Number(schedule.opening?.slice(0, 2)),
+          ],
+          [
+            "CLOSING_HOUR",
+            emptyInstallation
+              ? SYSTEM_SETTING_DEFINITIONS.CLOSING_HOUR.defaultValue
+              : Number(schedule.closing?.slice(0, 2)),
+          ],
+        ] as const) {
+          const [existing] = await tx
+            .select()
+            .from(systemSettings)
+            .where(eq(systemSettings.key, key));
+          if (existing && existing.value !== value)
+            throw new Error(`Existing ${key} conflicts with the shared facility schedule.`);
+          if (!existing)
+            await tx.insert(systemSettings).values({
+              key,
+              value,
+              description: SYSTEM_SETTING_DEFINITIONS[key].description,
+              version: 0,
+            });
+        }
+      }
+      let statements = migration.sql;
+      if (removesTaskReportHistory) {
+        const reportRls = migration.sql.find((statement) =>
+          statement
+            .trimStart()
+            .startsWith('ALTER TABLE "facility_task_reports" DISABLE ROW LEVEL SECURITY'),
+        );
+        const reportColumns = migration.sql.filter((statement) =>
+          statement.trimStart().startsWith('ALTER TABLE "facility_tasks" ADD COLUMN "report_'),
+        );
+        if (reportRls) await tx.execute(sql.raw(reportRls));
+        for (const statement of reportColumns) await tx.execute(sql.raw(statement));
+        // Copy only each task's latest report before dropping the append-only history table.
+        await tx.execute(sql`
+          WITH latest AS (
+            SELECT DISTINCT ON (task_id) id, task_id, submitted_by, content, submitted_at
+            FROM facility_task_reports
+            ORDER BY task_id, submitted_at DESC, id DESC
+          )
+          UPDATE facility_tasks AS task
+          SET report_id = latest.id,
+              report_content = latest.content,
+              report_submitted_by = latest.submitted_by,
+              report_submitted_at = latest.submitted_at
+          FROM latest
+          WHERE task.id = latest.task_id
+        `);
+        statements = migration.sql.filter(
+          (statement) => statement !== reportRls && !reportColumns.includes(statement),
+        );
+      }
       // Drizzle can emit DROP TABLE CASCADE before explicit FK drops; execute those
       // trusted generated constraint drops first so PostgreSQL does not see missing constraints.
-      const dropsTableCascade = migration.sql.some(
+      const dropsTableCascade = statements.some(
         (statement) => statement.includes("DROP TABLE") && statement.includes("CASCADE"),
       );
-      const statements =
+      statements =
         contractsLocalTypes || dropsTableCascade
           ? [
-              ...migration.sql.filter((statement) => statement.includes(" DROP CONSTRAINT ")),
-              ...migration.sql.filter((statement) => !statement.includes(" DROP CONSTRAINT ")),
+              ...statements.filter((statement) => statement.includes(" DROP CONSTRAINT ")),
+              ...statements.filter((statement) => !statement.includes(" DROP CONSTRAINT ")),
             ]
-          : migration.sql;
+          : statements;
       for (const statement of statements) await tx.execute(sql.raw(statement));
       await tx.insert(journal).values({ hash: migration.hash, createdAt: migration.folderMillis });
       appliedHashes.add(migration.hash);

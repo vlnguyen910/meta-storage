@@ -8,7 +8,6 @@ import {
   db,
   eq,
   facilities,
-  facilityOperatingHours,
   payments,
   storageUnits,
   systemSettings,
@@ -108,9 +107,6 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
       .where(eq(unitTypes.facilityId, ids.facility));
     await db.update(storageUnits).set({ status: "AVAILABLE" }).where(eq(storageUnits.id, ids.unit));
     await db.delete(capacityAllocations).where(eq(capacityAllocations.facilityId, ids.facility));
-    await db
-      .delete(facilityOperatingHours)
-      .where(eq(facilityOperatingHours.facilityId, ids.facility));
     await db.delete(bookings).where(eq(bookings.checkInSlotId, ids.extraSlot));
     await db.delete(checkInSlots).where(eq(checkInSlots.id, ids.extraSlot));
   });
@@ -212,19 +208,6 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
   });
   test("rejects a missing check-in slot", async () => {
     const response = await createDraft({ ...input, checkInSlotId: randomUUID() });
-    expect(response.statusCode).toBe(400);
-    expect(response.json()).toMatchObject({
-      error: { code: 400, details: [{ field: "checkInSlotId" }] },
-    });
-  });
-  test("rejects a slot starting outside the facility operating hours", async () => {
-    await db.insert(facilityOperatingHours).values({
-      facilityId: ids.facility,
-      dayOfWeek: 2,
-      openTime: "09:15",
-      closeTime: "22:00",
-    });
-    const response = await createDraft();
     expect(response.statusCode).toBe(400);
     expect(response.json()).toMatchObject({
       error: { code: 400, details: [{ field: "checkInSlotId" }] },
