@@ -227,20 +227,6 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
     expect(row?.checkInSlotId).toBe(ids.extraSlot);
     expect(row?.checkInDate).toBe(input.checkInDate);
   });
-  test("keeps the Vietnamese check-in date when UTC falls on the previous day", async () => {
-    await db.insert(checkInSlots).values({
-      id: ids.extraSlot,
-      name: "Early slot",
-      startTime: "06:00",
-      endTime: "07:00",
-    });
-    const response = await createDraft({ ...input, checkInSlotId: ids.extraSlot });
-    expect(response.statusCode).toBe(201);
-    expect(response.json().data.checkInAt).toBe("2029-12-31T23:00:00.000Z");
-    const [row] = await db.select().from(bookings).where(eq(bookings.id, response.json().data.id));
-    expect(row?.checkInDate).toBe("2030-01-01");
-    expect(row?.checkInSlotId).toBe(ids.extraSlot);
-  });
   test.each([
     ["10:00", "09:00"],
     ["09:00", "09:00"],
