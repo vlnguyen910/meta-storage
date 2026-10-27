@@ -1,3 +1,10 @@
+# Archived policy
+
+This 2026-10-24 policy describes the former chat, image, and staff workflow. It
+was superseded on 2026-10-27 by the one-way request model in
+[db-diagram.md](db-diagram.md#customer-support-request-model-2026-10-27). Do not
+use the requirements below for current implementation.
+
 # Customer Support policy — #164
 
 Ngày cập nhật: 24/10/2026. Chủ issue: Tkaz095.
