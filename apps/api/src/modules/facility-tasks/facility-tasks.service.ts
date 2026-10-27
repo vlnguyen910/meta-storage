@@ -1,13 +1,11 @@
 import {
   type AssignFacilityTaskInput,
   type CreateFacilityTaskInput,
-  type CreateFacilityTaskReportInput,
   type FacilityTaskDetail,
   type FacilityTaskListQuery,
   type FacilityTaskListResult,
-  type FacilityTaskReportDetail,
-  type FacilityTaskReportListQuery,
-  type FacilityTaskReportListResult,
+  FacilityTaskReferenceType,
+  FacilityTaskType,
   FACILITY_TASK_MESSAGES as m,
 } from "@metastorage/contracts";
 import {
@@ -22,8 +20,6 @@ import type { FacilityTasksRepository } from "./facility-tasks.repository";
 import type {
   FacilityTaskActor,
   FacilityTaskRecord,
-  FacilityTaskReportRecord,
-  TaskLifecycleWriteResult,
   TaskWriteResult,
 } from "./facility-tasks.types";
 
@@ -37,7 +33,16 @@ export class FacilityTasksService {
     input: CreateFacilityTaskInput,
     actor: FacilityTaskActor,
   ): Promise<FacilityTaskDetail> {
-    this.assertRole(actor, true);
+    this.assertManager(actor);
+    if (input.type === FacilityTaskType.CHECK_IN_HANDOVER)
+      throw new BadRequestError(m.handoverTaskAutomatic);
+    if (
+      (input.type === FacilityTaskType.UNIT_INSPECTION &&
+        input.referenceType === FacilityTaskReferenceType.SUPPORT_TICKET) ||
+      (input.type === FacilityTaskType.HANDLE_SUPPORT &&
+        input.referenceType !== FacilityTaskReferenceType.SUPPORT_TICKET)
+    )
+      throw new BadRequestError(m.contextMismatch);
     await requireAssignedFacility(
       this.assignments,
       input.facilityId,
@@ -96,59 +101,36 @@ export class FacilityTasksService {
     input: AssignFacilityTaskInput,
     actor: FacilityTaskActor,
   ): Promise<FacilityTaskDetail> {
-    this.assertRole(actor, true);
+    this.assertManager(actor);
     await this.detail(id, actor);
     return writeResult(await this.repository.assign(id, input, actor.id));
-  }
-
-  async submitReport(
-    id: string,
-    input: CreateFacilityTaskReportInput,
-    actor: FacilityTaskActor,
-  ): Promise<FacilityTaskReportDetail> {
-    if (actor.role !== "FACILITY_STAFF") throw new ForbiddenError(m.accessDenied);
-    await this.detail(id, actor);
-    const result = await this.repository.submitReport(id, actor.id, input.content);
-    if ("report" in result) return reportDetail(result.report);
-    if (result.error === "TASK_NOT_FOUND") throw new NotFoundError(m.taskNotFound);
-    if (result.error === "INVALID_TASK_STATE") throw new ConflictError(m.taskNotReady);
-    throw new ForbiddenError(m.accessDenied);
   }
 
   async start(id: string, actor: FacilityTaskActor): Promise<FacilityTaskDetail> {
     if (actor.role !== "FACILITY_STAFF") throw new ForbiddenError(m.accessDenied);
     await this.detail(id, actor);
-    return lifecycleResult(await this.repository.start(id, actor.id));
+    return writeResult(await this.repository.start(id, actor.id));
   }
 
-  async acceptReport(
-    id: string,
-    reportId: string,
-    actor: FacilityTaskActor,
-  ): Promise<FacilityTaskDetail> {
+  async complete(id: string, actor: FacilityTaskActor): Promise<FacilityTaskDetail> {
+    if (actor.role !== "FACILITY_STAFF") throw new ForbiddenError(m.accessDenied);
+    await this.detail(id, actor);
+    return writeResult(await this.repository.complete(id, actor.id));
+  }
+
+  async cancel(id: string, actor: FacilityTaskActor): Promise<FacilityTaskDetail> {
+    this.assertManager(actor);
+    await this.detail(id, actor);
+    return writeResult(await this.repository.cancel(id, actor.id));
+  }
+
+  private assertManager(actor: FacilityTaskActor) {
     if (actor.role !== "FACILITY_MANAGER") throw new ForbiddenError(m.managerScopeRequired);
-    await this.detail(id, actor);
-    return lifecycleResult(await this.repository.acceptReport(id, reportId, actor.id));
   }
 
-  async listReports(
-    id: string,
-    query: FacilityTaskReportListQuery,
-    actor: FacilityTaskActor,
-  ): Promise<FacilityTaskReportListResult> {
-    await this.detail(id, actor);
-    const result = await this.repository.listReports(id, query);
-    return {
-      items: result.items.map(reportDetail),
-      total: result.total,
-      limit: query.limit,
-      offset: query.offset,
-    };
-  }
-
-  private assertRole(actor: FacilityTaskActor, managerOnly = false) {
-    if (actor.role !== "FACILITY_MANAGER" && (managerOnly || actor.role !== "FACILITY_STAFF"))
-      throw new ForbiddenError(managerOnly ? m.managerScopeRequired : m.accessDenied);
+  private assertRole(actor: FacilityTaskActor) {
+    if (actor.role !== "FACILITY_MANAGER" && actor.role !== "FACILITY_STAFF")
+      throw new ForbiddenError(m.accessDenied);
   }
 }
 
@@ -167,23 +149,8 @@ function writeResult(result: TaskWriteResult): FacilityTaskDetail {
       throw new ConflictError(m.versionConflict);
     case "INVALID_TASK_STATE":
       throw new ConflictError(m.taskNotReady);
-  }
-}
-
-function lifecycleResult(result: TaskLifecycleWriteResult): FacilityTaskDetail {
-  if ("task" in result) return taskDetail(result.task);
-  switch (result.error) {
-    case "TASK_NOT_FOUND":
-      throw new NotFoundError(m.taskNotFound);
-    case "REPORT_NOT_FOUND":
-      throw new NotFoundError(m.reportNotFound);
     case "TASK_ACCESS_DENIED":
-    case "MANAGER_ACCESS_DENIED":
       throw new ForbiddenError(m.accessDenied);
-    case "INVALID_TASK_STATE":
-      throw new ConflictError(m.taskNotReady);
-    case "REPORT_NOT_LATEST":
-      throw new ConflictError(m.reportNotLatest);
   }
 }
 
@@ -193,35 +160,17 @@ function taskDetail(task: FacilityTaskRecord): FacilityTaskDetail {
     facilityId: task.facilityId,
     type: task.type,
     status: task.status,
-    title: task.title,
-    description: task.description,
-    storageUnitId: task.storageUnitId,
-    bookingId: task.bookingId,
+    referenceType: task.referenceType,
+    referenceId: task.referenceId,
     assignedStaffId: task.assignedStaffId,
     assignedStaffName: task.assignedStaffName,
-    createdBy: task.createdBy,
     assignedBy: task.assignedBy,
     assignerName: task.assignerName,
     version: task.version,
     startedAt: task.startedAt?.toISOString() ?? null,
-    completedBy: task.completedBy,
     completedAt: task.completedAt?.toISOString() ?? null,
     assignedAt: task.assignedAt.toISOString(),
     createdAt: task.createdAt.toISOString(),
     updatedAt: task.updatedAt.toISOString(),
-  };
-}
-
-function reportDetail(report: FacilityTaskReportRecord): FacilityTaskReportDetail {
-  return {
-    id: report.id,
-    taskId: report.taskId,
-    submittedBy: report.submittedBy,
-    submitterName: report.submitterName,
-    content: report.content,
-    submittedAt: report.submittedAt.toISOString(),
-    acceptedBy: report.acceptedBy,
-    acceptedByName: report.acceptedByName,
-    acceptedAt: report.acceptedAt?.toISOString() ?? null,
   };
 }

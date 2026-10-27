@@ -99,6 +99,9 @@ function bookingsService(repository: BookingsRepository) {
     undefined as never,
     undefined as never,
     undefined as never,
+    { findActiveAssignment: async () => ({}) } as never,
+    undefined as never,
+    undefined as never,
   );
 }
 
@@ -227,7 +230,7 @@ describe("BookingsService - Facility Staff Assignment", () => {
         findBookingById: async () => mockBooking({ assignedStaff: mockStaffMember }),
       }),
     );
-    const updated = await service.assignStaff(bookingId, staffId);
+    const updated = await service.assignStaff(bookingId, staffId, userId);
 
     assert.equal(updated.assignedStaff?.id, staffId);
     assert.equal(updated.assignedStaff?.name, "Tran Quoc Huy");
@@ -240,7 +243,7 @@ describe("BookingsService - Facility Staff Assignment", () => {
       }),
     );
 
-    await assert.rejects(() => service.assignStaff(bookingId, staffId), {
+    await assert.rejects(() => service.assignStaff(bookingId, staffId, userId), {
       name: "NotFoundError",
     });
   });
@@ -252,7 +255,7 @@ describe("BookingsService - Facility Staff Assignment", () => {
       }),
     );
 
-    await assert.rejects(() => service.assignStaff(bookingId, staffId), {
+    await assert.rejects(() => service.assignStaff(bookingId, staffId, userId), {
       name: "BadRequestError",
     });
   });
@@ -264,7 +267,7 @@ describe("BookingsService - Facility Staff Assignment", () => {
       }),
     );
 
-    await assert.rejects(() => service.assignStaff(bookingId, staffId), {
+    await assert.rejects(() => service.assignStaff(bookingId, staffId, userId), {
       name: "BadRequestError",
     });
   });

@@ -1,7 +1,6 @@
 import {
   STORAGE_UNIT_MESSAGES,
   StorageUnitListQuerySchema,
-  StorageUnitMaintenanceHistoryQuerySchema,
   StorageUnitMaintenanceTransitionSchema,
   storageUnitIdParamSchema,
   UpdateStorageUnitSchema,
@@ -71,32 +70,6 @@ export const storageUnitsRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  typedApp.get(
-    "/:id/maintenance-history",
-    {
-      schema: {
-        params: storageUnitIdParamSchema,
-        querystring: StorageUnitMaintenanceHistoryQuerySchema,
-        tags: ["Storage Units"],
-        security: [{ sessionAuth: [] }],
-        summary: STORAGE_UNIT_MESSAGES.maintenanceHistorySummary,
-      },
-      preHandler: [
-        requireAuth,
-        requireRole("FACILITY_MANAGER", "SYSTEM_ADMIN", "BUSINESS_OPERATION_MANAGER"),
-      ],
-    },
-    async (request, reply) => {
-      if (!request.user) throw new UnauthorizedError();
-      reply.header("Cache-Control", "private, no-store");
-      return reply.send(
-        successResponse(
-          await service.maintenanceHistory(request.params.id, request.query, request.user),
-        ),
-      );
-    },
-  );
-
   // PATCH /api/storage-units/:id/status - Update storage unit status (Maintenance / Available)
   typedApp.patch(
     "/:id/status",
@@ -115,11 +88,11 @@ export const storageUnitsRoutes: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       const { id } = request.params;
-      const { status, reason } = request.body;
+      const { status } = request.body;
 
       if (!request.user) throw new UnauthorizedError();
 
-      const unit = await service.transitionStatus(id, status, reason, request.user);
+      const unit = await service.transitionStatus(id, status, request.user);
       const message =
         unit.status === "MAINTENANCE"
           ? STORAGE_UNIT_MESSAGES.unitMaintenanceSuccess
@@ -147,12 +120,12 @@ export const storageUnitsRoutes: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       const { id } = request.params;
-      const { action, reason } = request.body;
+      const { action } = request.body;
 
       if (!request.user) throw new UnauthorizedError();
 
       const targetStatus = action === "ENTER_MAINTENANCE" ? "MAINTENANCE" : "AVAILABLE";
-      const unit = await service.transitionStatus(id, targetStatus, reason, request.user);
+      const unit = await service.transitionStatus(id, targetStatus, request.user);
       const message =
         unit.status === "MAINTENANCE"
           ? STORAGE_UNIT_MESSAGES.unitMaintenanceSuccess

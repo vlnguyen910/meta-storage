@@ -1,11 +1,8 @@
 import {
   AssignFacilityTaskSchema,
-  CreateFacilityTaskReportSchema,
   CreateFacilityTaskSchema,
   FacilityTaskListQuerySchema,
   FacilityTaskParamsSchema,
-  FacilityTaskReportListQuerySchema,
-  FacilityTaskReportParamsSchema,
   FACILITY_TASK_MESSAGES as m,
 } from "@metastorage/contracts";
 import type { FastifyPluginAsync, FastifyRequest } from "fastify";
@@ -81,60 +78,35 @@ export const facilityTasksRoutes: FastifyPluginAsync = async (app) => {
     async (req) => successResponse(await service.start(req.params.id, actor(req)), m.taskStarted),
   );
   typed.post(
-    "/:id/reports",
+    "/:id/complete",
     {
-      config: { swaggerTransform: facilityTaskSwaggerTransform("report-create") },
+      config: { swaggerTransform: facilityTaskSwaggerTransform("complete") },
       preHandler: [requireRole("FACILITY_STAFF")],
       schema: {
         tags: ["Facility Tasks"],
-        summary: m.reportCreateSummary,
+        summary: m.taskCompleteSummary,
         params: FacilityTaskParamsSchema,
-        body: CreateFacilityTaskReportSchema,
-      },
-    },
-    async (req, reply) =>
-      reply
-        .status(201)
-        .send(
-          successResponse(
-            await service.submitReport(req.params.id, req.body, actor(req)),
-            m.reportCreated,
-          ),
-        ),
-  );
-  typed.get(
-    "/:id/reports",
-    {
-      config: { swaggerTransform: facilityTaskSwaggerTransform("report-list") },
-      preHandler: [requireRole("FACILITY_MANAGER", "FACILITY_STAFF")],
-      schema: {
-        tags: ["Facility Tasks"],
-        summary: m.reportListSummary,
-        params: FacilityTaskParamsSchema,
-        querystring: FacilityTaskReportListQuerySchema,
-      },
-    },
-    async (req) => successResponse(await service.listReports(req.params.id, req.query, actor(req))),
-  );
-  typed.post(
-    "/:id/reports/:reportId/accept",
-    {
-      config: { swaggerTransform: facilityTaskSwaggerTransform("accept-report") },
-      preHandler: [requireRole("FACILITY_MANAGER")],
-      schema: {
-        tags: ["Facility Tasks"],
-        summary: m.taskAcceptSummary,
-        params: FacilityTaskReportParamsSchema,
       },
     },
     async (req) =>
-      successResponse(
-        await service.acceptReport(req.params.id, req.params.reportId, actor(req)),
-        m.taskAccepted,
-      ),
+      successResponse(await service.complete(req.params.id, actor(req)), m.taskCompleted),
   );
   typed.post(
-    "/:id/assign",
+    "/:id/cancel",
+    {
+      config: { swaggerTransform: facilityTaskSwaggerTransform("cancel") },
+      preHandler: [requireRole("FACILITY_MANAGER")],
+      schema: {
+        tags: ["Facility Tasks"],
+        summary: m.taskCancelSummary,
+        params: FacilityTaskParamsSchema,
+      },
+    },
+    async (req) =>
+      successResponse(await service.cancel(req.params.id, actor(req)), m.taskCancelled),
+  );
+  typed.patch(
+    "/:id",
     {
       config: { swaggerTransform: facilityTaskSwaggerTransform("assign") },
       preHandler: [requireRole("FACILITY_MANAGER")],

@@ -101,14 +101,6 @@ export function useUnitDetail(id: string) {
     enabled: Boolean(id) && !isMockMode,
   });
 }
-export function useMaintenanceHistory(id: string, offset: number) {
-  const key = useManagementKey();
-  return useQuery({
-    queryKey: [...key, "maintenance", id, offset],
-    queryFn: ({ signal }) => api.flow5.units.history(id, offset, signal),
-    enabled: Boolean(id) && !isMockMode,
-  });
-}
 export function useFacilityTypeOptions(facilityId: string) {
   const key = useManagementKey();
   return useQuery({

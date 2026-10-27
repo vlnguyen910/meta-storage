@@ -67,9 +67,9 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Flow 5 manual facil
     return {
       facilityId: f.facilityId,
       assignedStaffId: f.ids.staff,
-      type: "INSPECT_UNIT",
-      title: "Kiểm tra kho trước bàn giao",
-      storageUnitId: f.unitId,
+      type: "UNIT_INSPECTION",
+      referenceType: "STORAGE_UNIT",
+      referenceId: f.unitId,
       ...overrides,
     };
   }
@@ -82,7 +82,7 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Flow 5 manual facil
     expect(
       paths["/api/facility-tasks/"].post.responses["201"].content["application/json"].schema
         .example,
-    ).toMatchObject({ success: true, data: { type: "INSPECT_UNIT", version: 0 } });
+    ).toMatchObject({ success: true, data: { type: "UNIT_INSPECTION", version: 0 } });
     expect(paths["/api/facility-tasks/"].post.security).toEqual([{ sessionAuth: [] }]);
     expect(paths["/api/facility-tasks/{id}/assign"].post.responses).toHaveProperty("409");
   });
@@ -91,31 +91,28 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Flow 5 manual facil
     expect(r.statusCode).toBe(201);
     return r.json().data;
   }
-  test("only the assigned FM can create; all task types persist with server actor metadata", async () => {
+  test("only the assigned FM can create facility inspection tasks", async () => {
     expect((await f.api(null, "POST", "/facility-tasks", input())).statusCode).toBe(401);
     for (const actor of ["staff", "customer", "otherManager", "admin", "bom"] as const) {
       expect((await f.api(actor, "POST", "/facility-tasks", input())).statusCode).toBe(403);
     }
-    for (const type of ["INSPECT_UNIT", "PRINT_DOCUMENT", "REPORT_TO_MANAGER"]) {
-      const task = await create({ type, bookingId });
-      expect(task).toMatchObject({
-        facilityId: f.facilityId,
-        assignedStaffId: f.ids.staff,
-        assignedBy: f.ids.manager,
-        createdBy: f.ids.manager,
-        type,
-        version: 0,
-        bookingId,
-        storageUnitId: f.unitId,
-      });
-      expect(typeof task.assignedAt).toBe("string");
-      const [saved] = await db.select().from(facilityTasks).where(eq(facilityTasks.id, task.id));
-      expect(saved?.assignedStaffId).toBe(f.ids.staff);
-      // Assignment metadata alone never grants authority or changes occupancy/booking assignments.
-      const [booking] = await db.select().from(bookings).where(eq(bookings.id, bookingId));
-      expect(booking?.assignedStaffId).toBe(f.ids.staff);
-      expect(booking?.status).toBe("CONFIRMED");
-    }
+    const task = await create({ referenceType: "BOOKING", referenceId: bookingId });
+    expect(task).toMatchObject({
+      facilityId: f.facilityId,
+      assignedStaffId: f.ids.staff,
+      assignedBy: f.ids.manager,
+      type: "UNIT_INSPECTION",
+      version: 0,
+      referenceType: "BOOKING",
+      referenceId: bookingId,
+    });
+    expect(task).not.toHaveProperty("createdBy");
+    expect(typeof task.assignedAt).toBe("string");
+    const [saved] = await db.select().from(facilityTasks).where(eq(facilityTasks.id, task.id));
+    expect(saved?.assignedStaffId).toBe(f.ids.staff);
+    const [booking] = await db.select().from(bookings).where(eq(bookings.id, bookingId));
+    expect(booking?.assignedStaffId).toBe(f.ids.staff);
+    expect(booking?.status).toBe("CONFIRMED");
   });
   test("rejects unavailable staff and cross-facility context without inserting a task", async () => {
     const before = await db.select({ id: facilityTasks.id }).from(facilityTasks);
@@ -131,10 +128,10 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Flow 5 manual facil
       ).toBe(400);
     }
     for (const overrides of [
-      { storageUnitId: f.otherUnitId },
-      { storageUnitId: randomUUID() },
-      { bookingId: otherBookingId },
-      { bookingId: randomUUID() },
+      { referenceId: f.otherUnitId },
+      { referenceId: randomUUID() },
+      { referenceType: "BOOKING", referenceId: otherBookingId },
+      { referenceType: "BOOKING", referenceId: randomUUID() },
     ]) {
       expect((await f.api("manager", "POST", "/facility-tasks", input(overrides))).statusCode).toBe(
         400,
@@ -146,12 +143,13 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Flow 5 manual facil
   });
   test("validates task input and cannot spoof the assigner or mutate an unrelated field", async () => {
     for (const overrides of [
-      { title: " " },
-      { title: "x".repeat(201) },
       { type: "MAINTENANCE" },
       { assignedBy: f.ids.admin },
       { assignedStaffId: "bad" },
       { version: -1 },
+      { referenceType: "UNKNOWN" },
+      { referenceId: "bad" },
+      { type: "CHECK_IN_HANDOVER" },
     ]) {
       expect((await f.api("manager", "POST", "/facility-tasks", input(overrides))).statusCode).toBe(
         400,
@@ -159,13 +157,12 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Flow 5 manual facil
     }
   });
   test("FM sees facility tasks; staff sees only their own with filters and pagination", async () => {
-    const own = await create({ title: "Own", type: "REPORT_TO_MANAGER" });
+    const own = await create({ type: "UNIT_INSPECTION" });
     const peer = await create({
-      title: "Peer",
       assignedStaffId: f.ids.peerStaff,
-      type: "REPORT_TO_MANAGER",
+      type: "UNIT_INSPECTION",
     });
-    const path = `/facility-tasks?facilityId=${f.facilityId}&type=REPORT_TO_MANAGER`;
+    const path = `/facility-tasks?facilityId=${f.facilityId}&type=UNIT_INSPECTION`;
     const manager = await f.api("manager", "GET", `${path}&limit=1&offset=0`);
     expect(manager.statusCode).toBe(200);
     expect(manager.json().data.items).toHaveLength(1);

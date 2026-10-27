@@ -1,3 +1,4 @@
+import { FacilityTaskReferenceType, FacilityTaskType } from "@metastorage/contracts";
 import {
   and,
   bookings,
@@ -5,11 +6,13 @@ import {
   type Database,
   desc,
   eq,
+  facilityTasks,
   handoverInspections,
   inArray,
   inspectionPhotos,
   payments,
   rentals,
+  sql,
   storageUnits,
   unitAssignments,
   users,
@@ -211,6 +214,24 @@ export class InspectionsRepository {
         updatedAt: now,
       })
       .where(eq(handoverInspections.id, record.id));
+    await tx
+      .update(facilityTasks)
+      .set({
+        status: "COMPLETED",
+        startedAt: sql`coalesce(${facilityTasks.startedAt}, ${now})`,
+        completedAt: now,
+        updatedAt: now,
+        version: sql`${facilityTasks.version} + 1`,
+      })
+      .where(
+        and(
+          eq(facilityTasks.type, FacilityTaskType.CHECK_IN_HANDOVER),
+          eq(facilityTasks.referenceType, FacilityTaskReferenceType.BOOKING),
+          eq(facilityTasks.referenceId, booking.id),
+          eq(facilityTasks.assignedStaffId, userId),
+          inArray(facilityTasks.status, ["ASSIGNED", "IN_PROGRESS"]),
+        ),
+      );
   }
 
   async byVerification(tx: InspectionTransaction, verificationId: string) {

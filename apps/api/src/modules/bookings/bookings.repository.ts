@@ -5,6 +5,8 @@ import {
   type CustomerBookingPageQuery,
   type EligibleUnit,
   type FacilityStaffMember,
+  FacilityTaskReferenceType,
+  FacilityTaskType,
   type PhysicalUnitAssignment,
   type StaffTasksQuery,
   UserRole,
@@ -22,6 +24,7 @@ import {
   exists,
   facilities,
   facilityAssignments,
+  facilityTasks,
   getTableColumns,
   gt,
   gte,
@@ -957,7 +960,7 @@ export class BookingsRepository {
       .orderBy(desc(handoverInspections.updatedAt));
   }
 
-  async assignStaff(bookingId: string, staffId: string) {
+  async assignStaff(bookingId: string, staffId: string, managerId: string) {
     return this.db.transaction(async (tx) => {
       // 1. Lock and fetch booking
       const [booking] = await tx
@@ -1023,6 +1026,46 @@ export class BookingsRepository {
         .update(bookings)
         .set({ assignedStaffId: staffId, updatedAt: new Date() })
         .where(and(eq(bookings.id, bookingId), ne(bookings.status, "DRAFT")));
+
+      const [activeTask] = await tx
+        .select()
+        .from(facilityTasks)
+        .where(
+          and(
+            eq(facilityTasks.type, FacilityTaskType.CHECK_IN_HANDOVER),
+            eq(facilityTasks.referenceType, FacilityTaskReferenceType.BOOKING),
+            eq(facilityTasks.referenceId, bookingId),
+            inArray(facilityTasks.status, ["ASSIGNED", "IN_PROGRESS"]),
+          ),
+        )
+        .for("update");
+      const now = new Date();
+      if (activeTask) {
+        if (activeTask.assignedStaffId !== staffId)
+          await tx
+            .update(facilityTasks)
+            .set({
+              assignedStaffId: staffId,
+              assignedBy: managerId,
+              assignedAt: now,
+              status: "ASSIGNED",
+              startedAt: null,
+              updatedAt: now,
+              version: activeTask.version + 1,
+            })
+            .where(eq(facilityTasks.id, activeTask.id));
+      } else {
+        await tx.insert(facilityTasks).values({
+          facilityId: booking.facilityId,
+          type: FacilityTaskType.CHECK_IN_HANDOVER,
+          status: "ASSIGNED",
+          referenceType: FacilityTaskReferenceType.BOOKING,
+          referenceId: bookingId,
+          assignedStaffId: staffId,
+          assignedBy: managerId,
+          assignedAt: now,
+        });
+      }
 
       return {
         success: true as const,
@@ -1139,6 +1182,17 @@ export async function closeBookingBeforeCheckIn(
     .update(bookings)
     .set({ status: target, assignedStaffId: null, updatedAt: now })
     .where(and(eq(bookings.id, bookingId), eq(bookings.status, "CONFIRMED")));
+  await tx
+    .update(facilityTasks)
+    .set({ status: "CANCELLED", updatedAt: now, version: sql`${facilityTasks.version} + 1` })
+    .where(
+      and(
+        eq(facilityTasks.type, FacilityTaskType.CHECK_IN_HANDOVER),
+        eq(facilityTasks.referenceType, FacilityTaskReferenceType.BOOKING),
+        eq(facilityTasks.referenceId, bookingId),
+        inArray(facilityTasks.status, ["ASSIGNED", "IN_PROGRESS"]),
+      ),
+    );
   for (const assignment of releasedAssignments.sort((a, b) =>
     a.physicalUnitId.localeCompare(b.physicalUnitId),
   ))

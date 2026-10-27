@@ -30,8 +30,10 @@ import {
   ValidationError,
 } from "../../common/errors/app-error";
 import { env } from "../../config/env";
+import { getFacilityAccessScope, requireAssignedFacility } from "../facilities/facilities.access";
 import { FacilitiesRepository } from "../facilities/facilities.repository";
 import { FacilitiesService } from "../facilities/facilities.service";
+import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
 import type { NotificationsService } from "../notifications/notifications.service";
 import { PricingRepository } from "../pricing/pricing.repository";
 import { PricingService } from "../pricing/pricing.service";
@@ -53,6 +55,7 @@ export class BookingsService {
     private readonly checkInSlotsService: CheckInSlotsService,
     private readonly storageUnitsService: StorageUnitsService,
     private readonly pricingService: PricingService,
+    private readonly assignments: FacilityAssignmentsRepository,
     private readonly mail?: BookingMailDependencies,
     private readonly notifications?: NotificationsService,
   ) {}
@@ -361,8 +364,19 @@ export class BookingsService {
     return result.assignment;
   }
 
-  async assignStaff(bookingId: string, staffId: string): Promise<BookingListItem> {
-    const result = await this.repository.assignStaff(bookingId, staffId);
+  async assignStaff(
+    bookingId: string,
+    staffId: string,
+    managerId: string,
+  ): Promise<BookingListItem> {
+    const booking = await this.getBookingById(bookingId);
+    await requireAssignedFacility(
+      this.assignments,
+      booking.facilityId,
+      getFacilityAccessScope({ id: managerId, role: "FACILITY_MANAGER" }),
+      ["FACILITY_MANAGER"],
+    );
+    const result = await this.repository.assignStaff(bookingId, staffId, managerId);
 
     if ("error" in result) {
       switch (result.error) {
@@ -417,6 +431,7 @@ export function createBookingsService(
     new CheckInSlotsService(new CheckInSlotsRepository(app.db)),
     new StorageUnitsService(new StorageUnitsRepository(app.db)),
     new PricingService(new PricingRepository(app.db)),
+    new FacilityAssignmentsRepository(app.db),
     mail ??
       (app.redis && app.mailQueue
         ? {

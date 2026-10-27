@@ -11,7 +11,6 @@ import {
   pricingChanges,
   queryClient,
   rentals,
-  storageUnitMaintenanceHistory,
   storageUnits,
   systemSettingChanges,
   systemSettings,
@@ -51,9 +50,6 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Flow 5 management A
         await db.delete(checkInSlots).where(eq(checkInSlots.id, maintenanceSlotId));
         await db.delete(facilityTasks).where(eq(facilityTasks.facilityId, f.facilityId));
         await db.delete(capacityAllocations).where(eq(capacityAllocations.id, allocationId));
-        await db
-          .delete(storageUnitMaintenanceHistory)
-          .where(eq(storageUnitMaintenanceHistory.storageUnitId, f.unitId));
         await db
           .update(systemSettings)
           .set({ updatedBy: null })
@@ -209,12 +205,11 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Flow 5 management A
     expect(deactivatedType.json().data.isActive).toBe(false);
   });
 
-  test("FM directly enters and exits maintenance, and history records actor and reason", async () => {
+  test("FM directly enters and exits maintenance", async () => {
     expect(
       (
         await f.api("manager", "POST", `/storage-units/${f.unitId}/transitions`, {
           action: "ENTER_MAINTENANCE",
-          reason: "Kiểm tra hệ thống cửa cuốn",
         })
       ).statusCode,
     ).toBe(200);
@@ -225,19 +220,6 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Flow 5 management A
         })
       ).statusCode,
     ).toBe(403);
-    const history = await f.api("manager", "GET", `/storage-units/${f.unitId}/maintenance-history`);
-    expect(history.statusCode).toBe(200);
-    expect(history.json().data.items[0]).toMatchObject({
-      action: "ENTER_MAINTENANCE",
-      previousStatus: "AVAILABLE",
-      nextStatus: "MAINTENANCE",
-      reason: "Kiểm tra hệ thống cửa cuốn",
-      changedBy: f.ids.manager,
-      changedByName: "manager",
-    });
-    expect(
-      (await f.api("staff", "GET", `/storage-units/${f.unitId}/maintenance-history`)).statusCode,
-    ).toBe(403);
     expect(
       (
         await f.api("manager", "POST", `/storage-units/${f.unitId}/transitions`, {
@@ -245,18 +227,6 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Flow 5 management A
         })
       ).statusCode,
     ).toBe(200);
-    const finalHistory = await f.api(
-      "bom",
-      "GET",
-      `/storage-units/${f.unitId}/maintenance-history`,
-    );
-    expect(
-      finalHistory
-        .json()
-        .data.items.map((item: { action: string }) => item.action)
-        .sort(),
-    ).toEqual(["ENTER_MAINTENANCE", "EXIT_MAINTENANCE"]);
-
     await db.insert(checkInSlots).values({
       id: maintenanceSlotId,
       name: "Maintenance guard",
@@ -349,9 +319,9 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Flow 5 management A
     const task = await f.api("manager", "POST", "/facility-tasks", {
       facilityId: f.facilityId,
       assignedStaffId: f.ids.staff,
-      type: "INSPECT_UNIT",
-      title: "Kiểm tra kho trước thu hồi tài khoản",
-      storageUnitId: f.unitId,
+      type: "UNIT_INSPECTION",
+      referenceType: "STORAGE_UNIT",
+      referenceId: f.unitId,
     });
     expect(task.statusCode).toBe(201);
     const taskId = task.json().data.id as string;

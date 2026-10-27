@@ -172,7 +172,6 @@ Mọi module (API, Web, Mobile, Background Worker) bắt buộc phải sử dụ
    - `STORAGE_UNIT_MESSAGES` (tuân thủ Rule 21 của AGENTS.md):
      - `cannotPutOccupiedUnitInMaintenance`
      - `cannotPutReservedUnitInMaintenance`
-     - `maintenanceReasonRequired`
      - `invalidStatusTransition`
      - `unitHasActiveRental`
      - `unitHasActiveAssignment`

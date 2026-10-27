@@ -28,14 +28,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { isMockMode } from "@/config/api-mode";
-import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
   managementError,
   useCreateUnit,
   useFacilityOptions,
   useFacilityTypeOptions,
-  useMaintenanceHistory,
   useUnitDetail,
   useUnitInventory,
   useUnitMaintenance,
@@ -43,13 +41,7 @@ import {
 } from "./hooks";
 import { F5 } from "./management.messages";
 import type { Flow5ScopeProps, InventoryPanelProps } from "./management.types";
-import {
-  ManagementDialog,
-  ManagementField,
-  PageControls,
-  panelClass,
-  textareaClass,
-} from "./management-ui";
+import { ManagementDialog, ManagementField, panelClass } from "./management-ui";
 
 const UNIT_STATUS_BADGE_CLASS: Record<StorageUnitStatus, string> = {
   [StorageUnitStatus.AVAILABLE]: "border-emerald-200 bg-emerald-50 text-emerald-800",
@@ -452,8 +444,6 @@ function UnitDetailsModal({
   onMaintain: (unit: StorageUnitDetail) => void;
 }) {
   const query = useUnitDetail(id);
-  const [historyOffset, setHistoryOffset] = useState(0);
-  const history = useMaintenanceHistory(id, historyOffset);
 
   if (query.isPending) {
     return (
@@ -530,66 +520,6 @@ function UnitDetailsModal({
               <Wrench className="size-3.5" />
               <span>{isMaintenance ? F5.exitMaintenance : F5.enterMaintenance}</span>
             </Button>
-          )}
-        </div>
-
-        {/* Maintenance History */}
-        <div className="grid gap-2.5 pt-2 border-t border-slate-200">
-          <OperationalSectionHeader
-            title={F5.maintenanceHistory}
-            icon={Wrench}
-            count={history.data?.total}
-          />
-          {history.isPending ? (
-            <LoadingState variant="table" />
-          ) : history.isError ? (
-            <ErrorState
-              message={managementError(history.error)}
-              onRetry={() => history.refetch()}
-            />
-          ) : history.data.items.length === 0 ? (
-            <p className="text-xs text-slate-500 italic py-2">{F5.empty}</p>
-          ) : (
-            <div className="grid gap-2">
-              {history.data.items.map((item) => (
-                <div
-                  key={item.id}
-                  className="rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-700"
-                >
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <span className="font-bold text-slate-900">
-                      {item.action === "ENTER_MAINTENANCE"
-                        ? F5.enterMaintenance
-                        : F5.exitMaintenance}
-                    </span>
-                    <span className="text-[11px] text-slate-500">
-                      {formatDateTime(item.changedAt)}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-600 mb-1">
-                    Bởi: <strong className="text-slate-800">{item.changedByName}</strong>
-                  </p>
-                  {item.reason && (
-                    <p className="text-slate-700 bg-slate-50 p-2 rounded border border-slate-100 whitespace-pre-wrap">
-                      {item.reason}
-                    </p>
-                  )}
-                </div>
-              ))}
-
-              {history.data.total > 5 && (
-                <div className="pt-2">
-                  <PageControls
-                    label={F5.maintenanceHistory}
-                    offset={historyOffset}
-                    count={history.data.items.length}
-                    total={history.data.total}
-                    onChange={setHistoryOffset}
-                    pending={history.isFetching}
-                  />
-                </div>
-              )}
-            </div>
           )}
         </div>
       </div>
@@ -702,7 +632,7 @@ function MaintenanceEditor({
   const mutation = useUnitMaintenance(unit.id);
   const form = useForm<StorageUnitMaintenanceTransition>({
     resolver: zodResolver(StorageUnitMaintenanceTransitionSchema),
-    defaultValues: { action, reason: "" },
+    defaultValues: { action },
   });
   return (
     <ManagementDialog
@@ -726,14 +656,6 @@ function MaintenanceEditor({
           {action === "ENTER_MAINTENANCE" ? F5.maintenanceHint : F5.exitHint}
         </p>
         <p className="font-bold">{unit.code}</p>
-        {action === "ENTER_MAINTENANCE" && (
-          <ManagementField
-            label={F5.maintenanceReason}
-            error={form.formState.errors.reason?.message}
-          >
-            <textarea className={textareaClass} {...form.register("reason")} />
-          </ManagementField>
-        )}
         {mutation.isError && (
           <p role="alert" className="text-danger">
             {managementError(mutation.error)}

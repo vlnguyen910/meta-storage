@@ -9,6 +9,7 @@ import {
   type FacilityAssignment,
   facilities,
   facilityAssignments,
+  facilityTasks,
   gt,
   isNull,
   lte,
@@ -27,11 +28,20 @@ export class FacilityAssignmentsRepository {
 
   async findFacilityStaff(facilityId: string): Promise<FacilityStaffMember[]> {
     const taskCountSql = sql<number>`(
-      select count(*)::int
-      from ${bookings}
-      where ${bookings.assignedStaffId} = ${users.id}
-        and ${bookings.facilityId} = ${facilityId}
-        and ${bookings.status} = 'CONFIRMED'
+      (select count(*)::int from ${facilityTasks}
+       where ${facilityTasks.assignedStaffId} = ${users.id}
+         and ${facilityTasks.facilityId} = ${facilityId}
+         and ${facilityTasks.status} in ('ASSIGNED', 'IN_PROGRESS'))
+      +
+      (select count(*)::int from ${bookings}
+       where ${bookings.assignedStaffId} = ${users.id}
+         and ${bookings.facilityId} = ${facilityId}
+         and ${bookings.status} = 'CONFIRMED'
+         and not exists (
+           select 1 from ${facilityTasks} t
+           where t.reference_type = 'BOOKING' and t.reference_id = ${bookings.id}
+             and t.type = 'CHECK_IN_HANDOVER' and t.status in ('ASSIGNED', 'IN_PROGRESS')
+         ))
     )`.mapWith(Number);
 
     const rows = await this.db
