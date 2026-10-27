@@ -14,9 +14,6 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useRef, useState } from "react";
-import { CONTRACT_UI as C } from "@/features/rentals/contract.messages";
-import { BookingContractAccess } from "@/features/rentals/rental-records";
-import { useRentalDocuments } from "@/features/rentals/use-rental-documents";
 import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { FLOW } from "./flow.messages";
@@ -196,7 +193,6 @@ export function InspectionScreen({
     );
   return (
     <div className="space-y-6">
-      <BookingContractAccess bookingId={result.booking.id} />
       {e.conflict && (
         <Panel className="border border-amber-300 bg-amber-50">
           <div role="alert">
@@ -573,10 +569,6 @@ function HandoverContent({
   onBack: () => void;
 }) {
   const h = useHandover(record);
-  const contracts = useRentalDocuments(result.booking.id);
-  const contractReady =
-    contracts.isSuccess &&
-    contracts.data.some((doc) => doc.status === "ISSUED" && doc.currentIssued);
   const handedOver = !!record.handedOverAt;
   return (
     <>
@@ -651,29 +643,6 @@ function HandoverContent({
             ) : (
               <>
                 <p className="mt-3 text-sm leading-6">{FLOW.handoverPending}</p>
-                {!contractReady && (
-                  <div
-                    role="status"
-                    className="mt-4 space-y-2 rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950"
-                  >
-                    <p>
-                      {contracts.isPending
-                        ? C.checking
-                        : contracts.isError
-                          ? C.checkFailed
-                          : C.handoverMissing}
-                    </p>
-                    {!contracts.isPending && (
-                      <button
-                        type="button"
-                        className="min-h-11 font-semibold underline"
-                        onClick={() => void contracts.refetch()}
-                      >
-                        {C.refresh}
-                      </button>
-                    )}
-                  </div>
-                )}
                 <label className="mt-5 flex items-start gap-3 text-sm">
                   <input
                     type="checkbox"
@@ -700,7 +669,7 @@ function HandoverContent({
         </Button>
         {!handedOver && (
           <Button
-            disabled={!h.received || !contractReady || result.booking.status !== "CONFIRMED"}
+            disabled={!h.received || result.booking.status !== "CONFIRMED"}
             loading={h.mutation.isPending}
             onClick={() => h.mutation.mutate()}
             icon={<CheckCircle2 size={18} />}

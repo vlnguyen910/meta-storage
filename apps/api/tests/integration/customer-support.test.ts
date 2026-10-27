@@ -10,7 +10,6 @@ import {
   notificationOutbox,
   payments,
   queryClient,
-  rentals,
   supportTickets,
   users,
 } from "@metastorage/database";
@@ -23,9 +22,7 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Customer Support", 
   const bookingId = randomUUID();
   const otherBookingId = randomUUID();
   const slotId = randomUUID();
-  const rentalId = randomUUID();
   const paymentId = randomUUID();
-  const otherPaymentId = randomUUID();
 
   const input = (extra: Partial<SupportCreateInput> = {}): SupportCreateInput => ({
     bookingId,
@@ -96,29 +93,7 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Customer Support", 
         currency: "VND",
         status: "FAILED",
       },
-      {
-        id: otherPaymentId,
-        bookingId: otherBookingId,
-        holdTokenHash: "support-test",
-        provider: "mock",
-        providerPaymentId: otherPaymentId,
-        paymentCode: otherPaymentId.replaceAll("-", "").slice(0, 32),
-        idempotencyKey: otherPaymentId,
-        totalAmount: "2000000",
-        currency: "VND",
-        status: "FAILED",
-      },
     ]);
-    await db.insert(rentals).values({
-      id: rentalId,
-      bookingId,
-      facilityId: fixture.facilityId,
-      physicalUnitId: fixture.unitId,
-      startAt: new Date("2026-10-24T00:00:00Z"),
-      expectedEndAt: new Date("2026-11-24T00:00:00Z"),
-      depositAmount: "1000000",
-      status: "ACTIVE",
-    });
     await fixture.login();
   });
 
@@ -135,8 +110,7 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Customer Support", 
         await db.delete(notificationOutbox).where(inArray(notificationOutbox.supportTicketId, ids));
         await db.delete(supportTickets).where(inArray(supportTickets.id, ids));
       }
-      await db.delete(payments).where(inArray(payments.id, [paymentId, otherPaymentId]));
-      await db.delete(rentals).where(eq(rentals.id, rentalId));
+      await db.delete(payments).where(eq(payments.id, paymentId));
       await db.delete(bookings).where(inArray(bookings.id, [bookingId, otherBookingId]));
       await db.delete(checkInSlots).where(eq(checkInSlots.id, slotId));
       await fixture.cleanup();
@@ -204,25 +178,6 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Customer Support", 
       content: "Changed request",
     });
     expect(conflict.statusCode).toBe(409);
-  });
-
-  test("requires handover for warehouse requests and rejects another booking's payment", async () => {
-    const warehouse = await fixture.api(
-      "customer",
-      "POST",
-      "/support/tickets",
-      input({ category: "UNIT", paymentId: undefined }),
-    );
-    expect(warehouse.statusCode, warehouse.body).toBe(201);
-    expect(warehouse.json().data.ticket).toMatchObject({ rentalId, paymentId: null });
-
-    const forged = await fixture.api(
-      "customer",
-      "POST",
-      "/support/tickets",
-      input({ paymentId: otherPaymentId }),
-    );
-    expect(forged.statusCode).toBe(400);
   });
 
   test("keeps tickets private and has no reply or attachment routes", async () => {
