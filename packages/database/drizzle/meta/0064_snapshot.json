@@ -1,6 +1,6 @@
 {
-  "id": "6dd6d667-0dce-46c0-b8de-0ab16cdd4328",
-  "prevId": "c5cb0671-932a-4f32-8883-61a7f19786f1",
+  "id": "2f43b7a4-a4b6-4fc0-8d2b-5e2f02c1f74a",
+  "prevId": "6dd6d667-0dce-46c0-b8de-0ab16cdd4328",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -6123,567 +6123,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.support_attachments": {
-      "name": "support_attachments",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "ticket_id": {
-          "name": "ticket_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "message_id": {
-          "name": "message_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "uploaded_by": {
-          "name": "uploaded_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "object_key": {
-          "name": "object_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "original_filename": {
-          "name": "original_filename",
-          "type": "varchar(120)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "mime_type": {
-          "name": "mime_type",
-          "type": "varchar(32)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "byte_size": {
-          "name": "byte_size",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "checksum": {
-          "name": "checksum",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "support_attachments_ticket_idx": {
-          "name": "support_attachments_ticket_idx",
-          "columns": [
-            {
-              "expression": "ticket_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "message_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "support_attachments_ticket_id_support_tickets_id_fk": {
-          "name": "support_attachments_ticket_id_support_tickets_id_fk",
-          "tableFrom": "support_attachments",
-          "tableTo": "support_tickets",
-          "columnsFrom": [
-            "ticket_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "support_attachments_uploaded_by_users_id_fk": {
-          "name": "support_attachments_uploaded_by_users_id_fk",
-          "tableFrom": "support_attachments",
-          "tableTo": "users",
-          "columnsFrom": [
-            "uploaded_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "support_attachments_message_fk": {
-          "name": "support_attachments_message_fk",
-          "tableFrom": "support_attachments",
-          "tableTo": "support_messages",
-          "columnsFrom": [
-            "ticket_id",
-            "message_id"
-          ],
-          "columnsTo": [
-            "ticket_id",
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "support_attachments_objectKey_unique": {
-          "name": "support_attachments_objectKey_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "object_key"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {
-        "support_image_bytes_valid": {
-          "name": "support_image_bytes_valid",
-          "value": "\"support_attachments\".\"byte_size\" BETWEEN 1 AND 5242880"
-        },
-        "support_image_mime_valid": {
-          "name": "support_image_mime_valid",
-          "value": "\"support_attachments\".\"mime_type\" IN ('image/jpeg', 'image/png', 'image/webp')"
-        },
-        "support_image_checksum_valid": {
-          "name": "support_image_checksum_valid",
-          "value": "length(\"support_attachments\".\"checksum\") = 64"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.support_audit": {
-      "name": "support_audit",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "ticket_id": {
-          "name": "ticket_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "actor_id": {
-          "name": "actor_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "action": {
-          "name": "action",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "previous_version": {
-          "name": "previous_version",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "next_version": {
-          "name": "next_version",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "old_status": {
-          "name": "old_status",
-          "type": "support_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "new_status": {
-          "name": "new_status",
-          "type": "support_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "previous_staff_id": {
-          "name": "previous_staff_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "next_staff_id": {
-          "name": "next_staff_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "assignment_version": {
-          "name": "assignment_version",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "reason": {
-          "name": "reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "details": {
-          "name": "details",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::jsonb"
-        },
-        "occurred_at": {
-          "name": "occurred_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "support_audit_ticket_idx": {
-          "name": "support_audit_ticket_idx",
-          "columns": [
-            {
-              "expression": "ticket_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "occurred_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "support_audit_ticket_id_support_tickets_id_fk": {
-          "name": "support_audit_ticket_id_support_tickets_id_fk",
-          "tableFrom": "support_audit",
-          "tableTo": "support_tickets",
-          "columnsFrom": [
-            "ticket_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "support_audit_actor_id_users_id_fk": {
-          "name": "support_audit_actor_id_users_id_fk",
-          "tableFrom": "support_audit",
-          "tableTo": "users",
-          "columnsFrom": [
-            "actor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "support_audit_previous_staff_id_users_id_fk": {
-          "name": "support_audit_previous_staff_id_users_id_fk",
-          "tableFrom": "support_audit",
-          "tableTo": "users",
-          "columnsFrom": [
-            "previous_staff_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "support_audit_next_staff_id_users_id_fk": {
-          "name": "support_audit_next_staff_id_users_id_fk",
-          "tableFrom": "support_audit",
-          "tableTo": "users",
-          "columnsFrom": [
-            "next_staff_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "support_audit_version_valid": {
-          "name": "support_audit_version_valid",
-          "value": "\"support_audit\".\"next_version\" >= 0"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.support_idempotency": {
-      "name": "support_idempotency",
-      "schema": "",
-      "columns": {
-        "actor_id": {
-          "name": "actor_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "operation": {
-          "name": "operation",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "idempotency_key": {
-          "name": "idempotency_key",
-          "type": "varchar(128)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "request_hash": {
-          "name": "request_hash",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "ticket_id": {
-          "name": "ticket_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "result_reference": {
-          "name": "result_reference",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "support_idempotency_actor_id_users_id_fk": {
-          "name": "support_idempotency_actor_id_users_id_fk",
-          "tableFrom": "support_idempotency",
-          "tableTo": "users",
-          "columnsFrom": [
-            "actor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "support_idempotency_ticket_id_support_tickets_id_fk": {
-          "name": "support_idempotency_ticket_id_support_tickets_id_fk",
-          "tableFrom": "support_idempotency",
-          "tableTo": "support_tickets",
-          "columnsFrom": [
-            "ticket_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "support_idempotency_actor_id_operation_idempotency_key_pk": {
-          "name": "support_idempotency_actor_id_operation_idempotency_key_pk",
-          "columns": [
-            "actor_id",
-            "operation",
-            "idempotency_key"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.support_messages": {
-      "name": "support_messages",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "ticket_id": {
-          "name": "ticket_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "author_id": {
-          "name": "author_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "kind": {
-          "name": "kind",
-          "type": "support_message_kind",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "content": {
-          "name": "content",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "support_messages_cursor_idx": {
-          "name": "support_messages_cursor_idx",
-          "columns": [
-            {
-              "expression": "ticket_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "support_messages_ticket_id_support_tickets_id_fk": {
-          "name": "support_messages_ticket_id_support_tickets_id_fk",
-          "tableFrom": "support_messages",
-          "tableTo": "support_tickets",
-          "columnsFrom": [
-            "ticket_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "support_messages_author_id_users_id_fk": {
-          "name": "support_messages_author_id_users_id_fk",
-          "tableFrom": "support_messages",
-          "tableTo": "users",
-          "columnsFrom": [
-            "author_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "support_messages_ticket_id_unique": {
-          "name": "support_messages_ticket_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "ticket_id",
-            "id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {
-        "support_message_content_valid": {
-          "name": "support_message_content_valid",
-          "value": "length(btrim(\"support_messages\".\"content\")) BETWEEN 1 AND 5000"
-        }
-      },
-      "isRLSEnabled": false
-    },
     "public.support_tickets": {
       "name": "support_tickets",
       "schema": "",
@@ -6719,12 +6158,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "storage_unit_id": {
-          "name": "storage_unit_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
         "payment_id": {
           "name": "payment_id",
           "type": "uuid",
@@ -6744,71 +6177,11 @@
           "primaryKey": false,
           "notNull": true
         },
-        "status": {
-          "name": "status",
-          "type": "support_status",
-          "typeSchema": "public",
+        "description": {
+          "name": "description",
+          "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "default": "'OPEN'"
-        },
-        "priority": {
-          "name": "priority",
-          "type": "support_priority",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'NORMAL'"
-        },
-        "assigned_staff_id": {
-          "name": "assigned_staff_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "assigned_by": {
-          "name": "assigned_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "assigned_at": {
-          "name": "assigned_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "assignment_version": {
-          "name": "assignment_version",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "version": {
-          "name": "version",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "first_assigned_at": {
-          "name": "first_assigned_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "first_onsite_started_at": {
-          "name": "first_onsite_started_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "first_bom_response_at": {
-          "name": "first_bom_response_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "action_due_at": {
           "name": "action_due_at",
@@ -6816,40 +6189,14 @@
           "primaryKey": false,
           "notNull": true
         },
-        "closed_by": {
-          "name": "closed_by",
-          "type": "uuid",
+        "idempotency_key": {
+          "name": "idempotency_key",
+          "type": "varchar(128)",
           "primaryKey": false,
-          "notNull": false
-        },
-        "closed_at": {
-          "name": "closed_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "closure_kind": {
-          "name": "closure_kind",
-          "type": "support_closure_kind",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "close_reason": {
-          "name": "close_reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "created_at": {
           "name": "created_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
           "type": "timestamp (3) with time zone",
           "primaryKey": false,
           "notNull": true,
@@ -6900,12 +6247,6 @@
               "nulls": "last"
             },
             {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
               "expression": "created_at",
               "isExpression": false,
               "asc": true,
@@ -6923,74 +6264,23 @@
           "method": "btree",
           "with": {}
         },
-        "support_tickets_staff_idx": {
-          "name": "support_tickets_staff_idx",
+        "support_tickets_owner_idempotency_idx": {
+          "name": "support_tickets_owner_idempotency_idx",
           "columns": [
             {
-              "expression": "assigned_staff_id",
+              "expression": "owner_user_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             },
             {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "id",
+              "expression": "idempotency_key",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             }
           ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "support_tickets_queue_idx": {
-          "name": "support_tickets_queue_idx",
-          "columns": [
-            {
-              "expression": "category",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "priority",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "action_due_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
+          "isUnique": true,
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -7049,19 +6339,6 @@
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "support_tickets_storage_unit_id_storage_units_id_fk": {
-          "name": "support_tickets_storage_unit_id_storage_units_id_fk",
-          "tableFrom": "support_tickets",
-          "tableTo": "storage_units",
-          "columnsFrom": [
-            "storage_unit_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
         "support_tickets_payment_id_payments_id_fk": {
           "name": "support_tickets_payment_id_payments_id_fk",
           "tableFrom": "support_tickets",
@@ -7074,74 +6351,27 @@
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
-        },
-        "support_tickets_assigned_staff_id_users_id_fk": {
-          "name": "support_tickets_assigned_staff_id_users_id_fk",
-          "tableFrom": "support_tickets",
-          "tableTo": "users",
-          "columnsFrom": [
-            "assigned_staff_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "support_tickets_assigned_by_users_id_fk": {
-          "name": "support_tickets_assigned_by_users_id_fk",
-          "tableFrom": "support_tickets",
-          "tableTo": "users",
-          "columnsFrom": [
-            "assigned_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "support_tickets_closed_by_users_id_fk": {
-          "name": "support_tickets_closed_by_users_id_fk",
-          "tableFrom": "support_tickets",
-          "tableTo": "users",
-          "columnsFrom": [
-            "closed_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
-        "support_ticket_versions_valid": {
-          "name": "support_ticket_versions_valid",
-          "value": "\"support_tickets\".\"version\" >= 0 AND \"support_tickets\".\"assignment_version\" >= 0"
-        },
         "support_ticket_subject_valid": {
           "name": "support_ticket_subject_valid",
           "value": "length(btrim(\"support_tickets\".\"subject\")) BETWEEN 1 AND 200"
         },
+        "support_ticket_description_valid": {
+          "name": "support_ticket_description_valid",
+          "value": "length(btrim(\"support_tickets\".\"description\")) BETWEEN 1 AND 5000"
+        },
         "support_ticket_context_valid": {
           "name": "support_ticket_context_valid",
-          "value": "\"support_tickets\".\"category\" = 'PAYMENT' OR (\"support_tickets\".\"rental_id\" IS NOT NULL AND \"support_tickets\".\"storage_unit_id\" IS NOT NULL AND \"support_tickets\".\"payment_id\" IS NULL)"
+          "value": "(\"support_tickets\".\"category\" = 'PAYMENT' AND \"support_tickets\".\"rental_id\" IS NULL) OR (\"support_tickets\".\"category\" != 'PAYMENT' AND \"support_tickets\".\"rental_id\" IS NOT NULL AND \"support_tickets\".\"payment_id\" IS NULL)"
         },
-        "support_ticket_assignment_valid": {
-          "name": "support_ticket_assignment_valid",
-          "value": "(\"support_tickets\".\"assigned_staff_id\" IS NULL AND \"support_tickets\".\"assigned_by\" IS NULL AND \"support_tickets\".\"assigned_at\" IS NULL) OR (\"support_tickets\".\"assigned_staff_id\" IS NOT NULL AND \"support_tickets\".\"assigned_by\" IS NOT NULL AND \"support_tickets\".\"assigned_at\" IS NOT NULL)"
-        },
-        "support_ticket_progress_valid": {
-          "name": "support_ticket_progress_valid",
-          "value": "\"support_tickets\".\"status\" != 'IN_PROGRESS' OR \"support_tickets\".\"category\" = 'PAYMENT' OR \"support_tickets\".\"assigned_staff_id\" IS NOT NULL"
-        },
-        "support_ticket_closure_valid": {
-          "name": "support_ticket_closure_valid",
-          "value": "(\"support_tickets\".\"status\" = 'CLOSED' AND \"support_tickets\".\"closed_by\" IS NOT NULL AND \"support_tickets\".\"closed_at\" IS NOT NULL AND \"support_tickets\".\"closure_kind\" IS NOT NULL AND \"support_tickets\".\"close_reason\" IS NOT NULL AND length(btrim(\"support_tickets\".\"close_reason\")) > 0) OR (\"support_tickets\".\"status\" != 'CLOSED' AND \"support_tickets\".\"closed_by\" IS NULL AND \"support_tickets\".\"closed_at\" IS NULL AND \"support_tickets\".\"closure_kind\" IS NULL AND \"support_tickets\".\"close_reason\" IS NULL)"
+        "support_ticket_due_valid": {
+          "name": "support_ticket_due_valid",
+          "value": "\"support_tickets\".\"action_due_at\" > \"support_tickets\".\"created_at\""
         }
       },
       "isRLSEnabled": false
@@ -8353,40 +7583,6 @@
         "PAYMENT"
       ]
     },
-    "public.support_closure_kind": {
-      "name": "support_closure_kind",
-      "schema": "public",
-      "values": [
-        "RESOLVED",
-        "CUSTOMER_WITHDREW"
-      ]
-    },
-    "public.support_message_kind": {
-      "name": "support_message_kind",
-      "schema": "public",
-      "values": [
-        "PUBLIC_REPLY",
-        "INTERNAL_NOTE",
-        "STAFF_REPORT"
-      ]
-    },
-    "public.support_priority": {
-      "name": "support_priority",
-      "schema": "public",
-      "values": [
-        "NORMAL",
-        "HIGH"
-      ]
-    },
-    "public.support_status": {
-      "name": "support_status",
-      "schema": "public",
-      "values": [
-        "OPEN",
-        "IN_PROGRESS",
-        "CLOSED"
-      ]
-    },
     "public.role": {
       "name": "role",
       "schema": "public",
@@ -8417,5 +7613,5 @@
     "schemas": {},
     "tables": {}
   },
-  "tag": "0063_glamorous_miss_america"
+  "tag": "0064_exotic_triton"
 }

@@ -2,8 +2,6 @@ import { randomUUID } from "node:crypto";
 import { HANDOVER_CHECKLIST_ITEMS } from "@metastorage/contracts";
 import {
   accounts,
-  bookingContractAudit,
-  bookingContracts,
   bookings,
   checkInSlots,
   checkInVerifications,
@@ -224,12 +222,10 @@ export async function createInspectionFixture(allowExistingLocal = false) {
           .select({ id: handoverInspections.id })
           .from(handoverInspections)
           .where(eq(handoverInspections.bookingId, bookingId));
-        await tx.delete(bookingContractAudit).where(eq(bookingContractAudit.bookingId, bookingId));
         await tx
           .delete(inspectionPhotos)
           .where(inArray(inspectionPhotos.inspectionId, inspections));
         await tx.delete(handoverInspections).where(eq(handoverInspections.bookingId, bookingId));
-        await tx.delete(bookingContracts).where(eq(bookingContracts.bookingId, bookingId));
         await tx.delete(notificationOutbox).where(eq(notificationOutbox.bookingId, bookingId));
         await tx.delete(rentals).where(eq(rentals.bookingId, bookingId));
         await tx.delete(checkInVerifications).where(eq(checkInVerifications.bookingId, bookingId));

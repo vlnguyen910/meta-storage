@@ -6,7 +6,6 @@ import {
   facilityTasks,
   inArray,
   returnRequests,
-  supportTickets,
 } from "@metastorage/database";
 
 type WorkConnection = Database | Parameters<Parameters<Database["transaction"]>[0]>[0];
@@ -35,18 +34,6 @@ export async function hasOpenAssignedWork(
             eq(facilityTasks.assignedStaffId, userId),
             inArray(facilityTasks.status, ["ASSIGNED", "IN_PROGRESS", "AWAITING_APPROVAL"]),
             facilityId ? eq(facilityTasks.facilityId, facilityId) : undefined,
-          ),
-        ),
-    )
-    .unionAll(
-      connection
-        .select({ id: supportTickets.id })
-        .from(supportTickets)
-        .where(
-          and(
-            eq(supportTickets.assignedStaffId, userId),
-            inArray(supportTickets.status, ["OPEN", "IN_PROGRESS"]),
-            facilityId ? eq(supportTickets.facilityId, facilityId) : undefined,
           ),
         ),
     )
