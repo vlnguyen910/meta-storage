@@ -198,8 +198,8 @@ export class ReturnsRepository {
           eq(returnRequests.facilityId, facilityId),
           query.status ? eq(returnRequests.status, query.status) : undefined,
           staffId ? eq(returnRequests.assignedStaffId, staffId) : undefined,
-          gte(returnRequests.date, query.fromDate ?? query.toDate ?? today),
-          lte(returnRequests.date, query.toDate ?? query.fromDate ?? today),
+          gte(returnRequests.date, query.fromDate ?? today),
+          query.toDate ? lte(returnRequests.date, query.toDate) : undefined,
         ),
       )
       .orderBy(returnRequests.startsAt, returnRequests.id)
