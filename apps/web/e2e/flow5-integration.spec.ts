@@ -69,9 +69,7 @@ test("FM creates and edits a unit, handles maintenance conflict and sees both hi
   expect((await new AxeBuilder({ page }).include("main").analyze()).violations).toEqual([]);
 });
 
-test("FM creates a task and reloads the latest assignment version after a conflict", async ({
-  page,
-}) => {
+test("FM creates a task and reloads the latest assignment after a conflict", async ({ page }) => {
   const state = flow5Fixture();
   await mockFlow5(page, state);
   await page.goto("/facility-manager/tasks?view=tasks");
