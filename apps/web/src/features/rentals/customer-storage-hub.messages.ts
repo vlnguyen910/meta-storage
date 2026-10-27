@@ -13,6 +13,18 @@ export const CUSTOMER_STORAGE_HUB_MESSAGES = {
   rentalViewHistory: "Lịch sử thuê",
   statusFilter: "Trạng thái",
   allStatuses: "Tất cả trạng thái",
+  rentalStatuses: {
+    ACTIVE: "Đang thuê",
+    RETURN_PENDING: "Đang chờ trả kho",
+    OVERDUE: "Quá hạn",
+    CLOSED: "Đã trả kho",
+  } as Record<string, string>,
+  rentalStatusClasses: {
+    ACTIVE: "border-emerald-200 bg-emerald-50 text-emerald-800",
+    RETURN_PENDING: "border-amber-200 bg-amber-50 text-amber-800",
+    OVERDUE: "border-rose-200 bg-rose-50 text-rose-800",
+    CLOSED: "border-slate-200 bg-slate-100 text-slate-700",
+  } as Record<string, string>,
   bookingStatuses: {
     CONFIRMED: "Đã xác nhận",
     CHECKED_IN: "Đã nhận kho",
@@ -44,6 +56,7 @@ export const CUSTOMER_STORAGE_HUB_MESSAGES = {
     "Thao tác",
   ] as const,
   returnAction: "Yêu cầu trả kho",
+  viewReturnAction: "Xem yêu cầu trả",
   detailsAction: "Xem chi tiết",
   qrAction: "Xem mã QR",
   emptyRentalsCurrent: "Bạn chưa có kho nào đang hoạt động",
