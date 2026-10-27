@@ -5,8 +5,6 @@ export * from "./check-in-slots";
 export * from "./checkin-verifications";
 export * from "./facilities";
 export * from "./facility-assignments";
-export * from "./facility-operating-hours";
-export * from "./facility-task-reports";
 export * from "./facility-tasks";
 export * from "./handover-inspections";
 export * from "./login-history";

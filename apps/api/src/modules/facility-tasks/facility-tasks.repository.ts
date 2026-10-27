@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import {
   type AssignFacilityTaskInput,
   type CreateFacilityTaskInput,
@@ -14,7 +15,6 @@ import {
   desc,
   eq,
   facilityAssignments,
-  facilityTaskReports,
   facilityTasks,
   getTableColumns,
   gt,
@@ -36,6 +36,7 @@ import type {
 
 const assignee = aliasedTable(users, "task_assignee");
 const assigner = aliasedTable(users, "task_assigner");
+const reportSubmitter = aliasedTable(users, "report_submitter");
 const reportAcceptor = aliasedTable(users, "report_acceptor");
 const columns = {
   ...getTableColumns(facilityTasks),
@@ -114,16 +115,40 @@ export class FacilityTasksRepository {
         )
         .for("update");
       if (!assignment) return { error: "REPORT_ACCESS_DENIED" };
-      const [report] = await tx
-        .insert(facilityTaskReports)
-        .values({ taskId: id, submittedBy: staffId, content })
-        .returning();
-      if (!report) throw new Error(FACILITY_TASK_MESSAGES.reportPersistenceFailed);
-      await tx
+      const now = new Date();
+      const [taskWithReport] = await tx
         .update(facilityTasks)
-        .set({ status: "AWAITING_APPROVAL", updatedAt: new Date() })
-        .where(eq(facilityTasks.id, id));
-      return { report: { ...report, submitterName: staff.name, acceptedByName: null } };
+        .set({
+          status: "AWAITING_APPROVAL",
+          reportId: randomUUID(),
+          reportContent: content,
+          reportSubmittedBy: staffId,
+          reportSubmittedAt: now,
+          updatedAt: now,
+        })
+        .where(eq(facilityTasks.id, id))
+        .returning();
+      if (!taskWithReport) throw new Error(FACILITY_TASK_MESSAGES.reportPersistenceFailed);
+      if (
+        !taskWithReport.reportId ||
+        !taskWithReport.reportSubmittedBy ||
+        !taskWithReport.reportContent ||
+        !taskWithReport.reportSubmittedAt
+      )
+        throw new Error(FACILITY_TASK_MESSAGES.reportPersistenceFailed);
+      return {
+        report: {
+          id: taskWithReport.reportId,
+          taskId: taskWithReport.id,
+          submittedBy: taskWithReport.reportSubmittedBy,
+          submitterName: staff.name,
+          content: taskWithReport.reportContent,
+          submittedAt: taskWithReport.reportSubmittedAt,
+          acceptedBy: null,
+          acceptedByName: null,
+          acceptedAt: null,
+        },
+      };
     });
   }
 
@@ -184,20 +209,9 @@ export class FacilityTasksRepository {
       if (task.status !== "AWAITING_APPROVAL") return { error: "INVALID_TASK_STATE" };
       if (!(await lockManagerAssignment(tx, task.facilityId, managerId)))
         return { error: "MANAGER_ACCESS_DENIED" };
-      const [latest] = await tx
-        .select({ id: facilityTaskReports.id })
-        .from(facilityTaskReports)
-        .where(eq(facilityTaskReports.taskId, id))
-        .orderBy(desc(facilityTaskReports.submittedAt), desc(facilityTaskReports.id))
-        .limit(1)
-        .for("update");
-      if (!latest) return { error: "REPORT_NOT_FOUND" };
-      if (latest.id !== reportId) return { error: "REPORT_NOT_LATEST" };
+      if (!task.reportId) return { error: "REPORT_NOT_FOUND" };
+      if (task.reportId !== reportId) return { error: "REPORT_NOT_LATEST" };
       const now = new Date();
-      await tx
-        .update(facilityTaskReports)
-        .set({ acceptedBy: managerId, acceptedAt: now })
-        .where(eq(facilityTaskReports.id, reportId));
       await tx
         .update(facilityTasks)
         .set({ status: "COMPLETED", completedBy: managerId, completedAt: now, updatedAt: now })
@@ -209,33 +223,39 @@ export class FacilityTasksRepository {
   }
 
   async listReports(id: string, query: FacilityTaskReportListQuery) {
-    return this.db.transaction(
-      async (tx) => {
-        const filter = eq(facilityTaskReports.taskId, id);
-        const [total] = await tx.select({ value: count() }).from(facilityTaskReports).where(filter);
-        const items: FacilityTaskReportRecord[] = await tx
-          .select({
-            id: facilityTaskReports.id,
-            taskId: facilityTaskReports.taskId,
-            submittedBy: facilityTaskReports.submittedBy,
-            submitterName: users.name,
-            content: facilityTaskReports.content,
-            submittedAt: facilityTaskReports.submittedAt,
-            acceptedBy: facilityTaskReports.acceptedBy,
-            acceptedByName: reportAcceptor.name,
-            acceptedAt: facilityTaskReports.acceptedAt,
-          })
-          .from(facilityTaskReports)
-          .innerJoin(users, eq(users.id, facilityTaskReports.submittedBy))
-          .leftJoin(reportAcceptor, eq(reportAcceptor.id, facilityTaskReports.acceptedBy))
-          .where(filter)
-          .orderBy(desc(facilityTaskReports.submittedAt), desc(facilityTaskReports.id))
-          .limit(query.limit)
-          .offset(query.offset);
-        return { items, total: total?.value ?? 0 };
-      },
-      { isolationLevel: "repeatable read", accessMode: "read only" },
-    );
+    const [row] = await this.db
+      .select({
+        id: facilityTasks.reportId,
+        taskId: facilityTasks.id,
+        submittedBy: facilityTasks.reportSubmittedBy,
+        submitterName: reportSubmitter.name,
+        content: facilityTasks.reportContent,
+        submittedAt: facilityTasks.reportSubmittedAt,
+        acceptedBy: facilityTasks.completedBy,
+        acceptedByName: reportAcceptor.name,
+        acceptedAt: facilityTasks.completedAt,
+      })
+      .from(facilityTasks)
+      .leftJoin(reportSubmitter, eq(reportSubmitter.id, facilityTasks.reportSubmittedBy))
+      .leftJoin(reportAcceptor, eq(reportAcceptor.id, facilityTasks.completedBy))
+      .where(eq(facilityTasks.id, id));
+    if (!row?.id || !row.content || !row.submittedBy || !row.submittedAt || !row.submitterName)
+      return { items: [], total: 0 };
+    const report: FacilityTaskReportRecord = {
+      id: row.id,
+      taskId: row.taskId,
+      submittedBy: row.submittedBy,
+      submitterName: row.submitterName,
+      content: row.content,
+      submittedAt: row.submittedAt,
+      acceptedBy: row.acceptedBy,
+      acceptedByName: row.acceptedByName,
+      acceptedAt: row.acceptedAt,
+    };
+    return {
+      items: query.offset === 0 && query.limit > 0 ? [report] : [],
+      total: 1,
+    };
   }
 
   async create(input: CreateFacilityTaskInput, managerId: string): Promise<TaskWriteResult> {
