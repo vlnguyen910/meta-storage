@@ -1,1 +1,0 @@
-CREATE UNIQUE INDEX "return_requests_reserved_slot_idx" ON "return_requests" USING btree ("facility_id","date","slot_id") WHERE "return_requests"."status" IN ('CONFIRMED','INSPECTING','FAILED');
