@@ -12,8 +12,6 @@ import {
   eq,
   facilities,
   facilityAssignments,
-  facilityOperatingHours,
-  facilityReturnCalendars,
   inArray,
   notificationOutbox,
   paymentProviderEvents,
@@ -267,22 +265,6 @@ describe.skipIf(!target)("rental renewal with isolated PostgreSQL", () => {
     await db
       .insert(checkInSlots)
       .values({ id: ids.slot, name: "Renewal slot", startTime: "10:00", endTime: "11:30" });
-    await db.insert(facilityReturnCalendars).values({
-      facilityId: ids.facility,
-      timezone: "Asia/Ho_Chi_Minh",
-      holidays: [],
-      version: 1,
-      updatedBy: ids.owner,
-    });
-    await db.insert(facilityOperatingHours).values(
-      Array.from({ length: 7 }, (_, dayOfWeek) => ({
-        facilityId: ids.facility,
-        dayOfWeek,
-        openTime: "08:00",
-        closeTime: "18:00",
-        timezone: "Asia/Ho_Chi_Minh",
-      })),
-    );
     await db
       .insert(facilityAssignments)
       .values({ facilityId: ids.facility, userId: ids.manager, role: "FACILITY_MANAGER" });
@@ -370,12 +352,6 @@ describe.skipIf(!target)("rental renewal with isolated PostgreSQL", () => {
     await db.delete(unitAssignments).where(inArray(unitAssignments.bookingId, bookingIds));
     await db.delete(bookings).where(eq(bookings.facilityId, ids.facility));
     await db.delete(storageUnits).where(eq(storageUnits.facilityId, ids.facility));
-    await db
-      .delete(facilityReturnCalendars)
-      .where(eq(facilityReturnCalendars.facilityId, ids.facility));
-    await db
-      .delete(facilityOperatingHours)
-      .where(eq(facilityOperatingHours.facilityId, ids.facility));
     await db.delete(facilityAssignments).where(eq(facilityAssignments.facilityId, ids.facility));
     await deleteTestUnitTypes(db, eq(unitTypes.id, ids.type));
 
@@ -728,25 +704,6 @@ describe.skipIf(!target)("rental renewal with isolated PostgreSQL", () => {
       expect((await quoteFor(item.rentalId)).status).toBe("QUOTED");
     } finally {
       await db.update(rentalCharges).set({ status: "VOID" }).where(eq(rentalCharges.id, charge.id));
-    }
-  });
-
-  test("facility timezone snapshots handle DST while the added term remains exactly 720 hours", async () => {
-    const item = await scenario(new Date("2032-02-29T15:00:00Z"));
-    await db
-      .update(facilityReturnCalendars)
-      .set({ timezone: "America/New_York" })
-      .where(eq(facilityReturnCalendars.facilityId, ids.facility));
-    try {
-      const quote = await quoteFor(item.rentalId);
-      expect(quote.timezone).toBe("America/New_York");
-      expect(quote.cutoffAt).toBe("2032-02-24T04:59:59.999Z");
-      expect(quote.newEndAt).toBe("2032-03-30T15:00:00.000Z");
-    } finally {
-      await db
-        .update(facilityReturnCalendars)
-        .set({ timezone: "Asia/Ho_Chi_Minh" })
-        .where(eq(facilityReturnCalendars.facilityId, ids.facility));
     }
   });
 

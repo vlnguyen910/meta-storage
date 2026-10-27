@@ -1,6 +1,5 @@
 import type { ApiFacility, ApiFacilityAssignment } from "@metastorage/contracts";
 import {
-  ConfigureReturnCalendarSchema,
   CreateStorageUnitSchema,
   CustomerAvailabilityQuerySchema,
   createAssignmentBodySchema,
@@ -215,40 +214,6 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
       if (!request.user) throw new UnauthorizedError();
       return successResponse(
         await returnsService.queue(request.user, request.params.facilityId, request.query),
-      );
-    },
-  );
-
-  typedApp.get(
-    "/:facilityId/return-calendar",
-    {
-      onRequest: privateReturnResponse,
-      preHandler: [requireRole("SYSTEM_ADMIN")],
-      schema: { params: ReturnFacilityParamsSchema },
-    },
-    async (request) => {
-      if (!request.user) throw new UnauthorizedError();
-      return successResponse(
-        await returnsService.calendar(request.user, request.params.facilityId),
-      );
-    },
-  );
-
-  typedApp.put(
-    "/:facilityId/return-calendar",
-    {
-      onRequest: privateReturnResponse,
-      preHandler: [requireRole("SYSTEM_ADMIN")],
-      schema: { params: ReturnFacilityParamsSchema, body: ConfigureReturnCalendarSchema },
-    },
-    async (request) => {
-      if (!request.user) throw new UnauthorizedError();
-      return successResponse(
-        await returnsService.configureCalendar(
-          request.user,
-          request.params.facilityId,
-          request.body,
-        ),
       );
     },
   );

@@ -21,6 +21,7 @@ import {
 import { businessOperationsRoutes as routes } from "@/config/routes";
 import { F3 } from "@/features/returns/integration.messages";
 import { integrationError } from "@/features/returns/integration-utils";
+import { SystemSettingFields } from "@/features/returns/system-setting-fields";
 import { useFlow3Identity } from "@/features/returns/use-flow3-identity";
 import { api } from "@/lib/api";
 import { OPERATIONS_MESSAGES as M } from "../operations.messages";
@@ -135,6 +136,15 @@ export function OperationsFeesView() {
 
       {/* Main Setting Editor Component */}
       <OverdueFeeRateSettingCard setting={overdueSetting} />
+      <Card className="border-slate-200 bg-white p-4">
+        <CardHeader className="p-0 pb-3">
+          <CardTitle>{FM.operatingHoursTitle}</CardTitle>
+          <CardDescription>{FM.operatingHoursDescription}</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <SystemSettingFields keys={["OPENING_HOUR", "CLOSING_HOUR"]} />
+        </CardContent>
+      </Card>
 
       {/* Business Policy Reference Notice Card */}
       <Card className="border-slate-200 bg-white p-3 shadow-xs">

@@ -4,7 +4,6 @@ import {
   checkInVerifications,
   db,
   eq,
-  facilityOperatingHours,
   payments,
   queryClient,
   unitAssignments,
@@ -67,13 +66,6 @@ describe.skipIf(!target)("development early check-in through real API and Postgr
     assertTestDatabase(target);
     fixture = await createInspectionFixture();
     checkInDate = new Date(Date.now() + 2 * 86400_000).toISOString().slice(0, 10);
-    await db.insert(facilityOperatingHours).values({
-      facilityId: fixture.facilityId,
-      dayOfWeek: 0,
-      openTime: "00:00:00",
-      closeTime: "23:59:59",
-      timezone: "Asia/Ho_Chi_Minh",
-    });
     await db.update(bookings).set({ checkInDate }).where(eq(bookings.id, fixture.bookingId));
   });
   beforeEach(async () => {
@@ -82,10 +74,6 @@ describe.skipIf(!target)("development early check-in through real API and Postgr
       .where(eq(checkInVerifications.bookingId, fixture.bookingId));
   });
   afterAll(async () => {
-    if (fixture)
-      await db
-        .delete(facilityOperatingHours)
-        .where(eq(facilityOperatingHours.facilityId, fixture.facilityId));
     await fixture?.cleanup();
     await queryClient.end();
   });

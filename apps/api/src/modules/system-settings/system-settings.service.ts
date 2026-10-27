@@ -8,7 +8,12 @@ import {
   type SystemSettingKeyValue,
   type SystemSettingUpdateResult,
 } from "@metastorage/contracts";
-import { ForbiddenError } from "../../common/errors/app-error";
+import {
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+  ValidationError,
+} from "../../common/errors/app-error";
 import { PricingRepository } from "../pricing/pricing.repository";
 import { RentalLifecycleSettingsRepository } from "../rental-lifecycle-settings/rental-lifecycle-settings.repository";
 import { RentalLifecycleSettingsService } from "../rental-lifecycle-settings/rental-lifecycle-settings.service";
@@ -57,6 +62,42 @@ export class SystemSettingsService {
       const result = await new ReturnsService(
         new ReturnsRepository(this.repository.db),
       ).configureRate(actor, { rate: input.value, expectedVersion: input.expectedVersion });
+      version = result.version;
+    } else if (input.key === "OPENING_HOUR" || input.key === "CLOSING_HOUR") {
+      const keys = ["CLOSING_HOUR", "OPENING_HOUR"] as const;
+      const result = await this.repository.db.transaction(async (tx) => {
+        const rows = new Map();
+        for (const key of keys) {
+          const row = await this.repository.lock(key, tx);
+          if (!row) throw new NotFoundError(m.notFound);
+          rows.set(key, row);
+        }
+        const before = rows.get(input.key);
+        if (before.version !== input.expectedVersion) throw new ConflictError(m.stale);
+        const opening =
+          input.key === "OPENING_HOUR" ? input.value : Number(rows.get("OPENING_HOUR").value);
+        const closing =
+          input.key === "CLOSING_HOUR" ? input.value : Number(rows.get("CLOSING_HOUR").value);
+        if (opening >= closing) throw new ValidationError(m.invalid);
+        const after = await this.repository.save(
+          input.key,
+          input.value,
+          before.version + 1,
+          actor.id,
+          tx,
+        );
+        if (!after) throw new NotFoundError(m.notFound);
+        if (Number(before.value) !== input.value)
+          await this.repository.flagConfirmedReturnAppointments(tx);
+        await this.repository.audit(
+          tx,
+          input.key,
+          actor.id,
+          { value: Number(before.value), version: before.version },
+          { value: Number(after.value), version: after.version },
+        );
+        return after;
+      });
       version = result.version;
     } else {
       const result = await new RentalLifecycleSettingsService(
