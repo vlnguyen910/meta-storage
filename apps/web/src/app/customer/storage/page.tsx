@@ -1,5 +1,5 @@
-import { RentalList } from "@/features/rentals/rental-list";
+import { CustomerStorageHub } from "@/features/rentals/customer-storage-hub";
 
 export default function CustomerStoragePage() {
-  return <RentalList />;
+  return <CustomerStorageHub defaultTab="rentals" />;
 }

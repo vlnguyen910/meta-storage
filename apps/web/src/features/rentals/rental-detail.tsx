@@ -1,6 +1,5 @@
 "use client";
 
-import { CUSTOMER_WORKSPACE as C } from "@metastorage/shared";
 import {
   ArrowLeft,
   Calendar,
@@ -8,6 +7,7 @@ import {
   Check,
   CheckCircle2,
   Clock,
+  HelpCircle,
   Info,
   MapPin,
   Warehouse,
@@ -43,21 +43,27 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
   const rental = query.data;
   return (
     <>
-      <Link href={`${customerRoutes.supportNew}?bookingId=${encodeURIComponent(rental.bookingId)}`}>
-        {C.newTicket}
-      </Link>
       <PageHeader
         eyebrow="Kho của tôi"
         title={rental.bookingCode}
         description={`${rental.facility.name} · ${rental.unitType.name}`}
         action={
-          <Link
-            href={customerRoutes.rentals}
-            className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-          >
-            <ArrowLeft size={16} />
-            {M.backToStorage}
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href={`${customerRoutes.supportNew}?bookingId=${encodeURIComponent(rental.bookingId)}`}
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              <HelpCircle size={15} />
+              <span>Gửi yêu cầu hỗ trợ</span>
+            </Link>
+            <Link
+              href={customerRoutes.rentals}
+              className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              <ArrowLeft size={15} />
+              <span>{M.backToStorage}</span>
+            </Link>
+          </div>
         }
       />
       <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">

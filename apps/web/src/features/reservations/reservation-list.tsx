@@ -1,1 +1,1 @@
-export { CustomerBookingList as ReservationList } from "@/features/bookings/customer-booking-view";
+export { CustomerStorageHub as ReservationList } from "@/features/rentals/customer-storage-hub";
