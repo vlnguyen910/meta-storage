@@ -70,7 +70,12 @@ export function AppShell({ children }: { children: ReactNode }) {
     return <FacilityShell onLogout={logout}>{children}</FacilityShell>;
   }
 
-  const isNoScroll = pathname.startsWith("/customer");
+  const isNoScroll =
+    pathname === routes.customer.dashboard ||
+    pathname === routes.customer.facilities ||
+    pathname === routes.customer.rentals ||
+    pathname === routes.customer.transactions ||
+    pathname === routes.customer.support;
 
   return (
     <div
