@@ -435,6 +435,41 @@
       "when": 1793087841385,
       "tag": "0061_lush_bromley",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1793088000000,
+      "tag": "0062_powerful_thunderbolt",
+      "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1793088100000,
+      "tag": "0063_glamorous_miss_america",
+      "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1793088200000,
+      "tag": "0064_exotic_triton",
+      "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1793088300000,
+      "tag": "0065_useful_warhawk",
+      "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1793088400000,
+      "tag": "0066_special_silverclaw",
+      "breakpoints": true
     }
   ]
 }

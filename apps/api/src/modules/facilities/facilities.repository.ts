@@ -8,11 +8,12 @@ import {
   eq,
   type Facility,
   facilities,
-  facilityOperatingHours,
   gt,
   inArray,
   type NewFacility,
   or,
+  systemSettingInteger,
+  systemSettings,
 } from "@metastorage/database";
 import type { FacilityListScope, FacilityScope } from "./facilities.access";
 import { FACILITY_MESSAGES } from "./facilities.messages";
@@ -25,17 +26,19 @@ export class FacilitiesRepository {
     this.assignmentsRepository = new FacilityAssignmentsRepository(db);
   }
 
-  async findOperatingHours(facilityId: string, dayOfWeek: number) {
-    const [hours] = await this.db
-      .select()
-      .from(facilityOperatingHours)
-      .where(
-        and(
-          eq(facilityOperatingHours.facilityId, facilityId),
-          eq(facilityOperatingHours.dayOfWeek, dayOfWeek),
-        ),
-      );
-    return hours;
+  async globalOperatingHours() {
+    const rows = await this.db
+      .select({ key: systemSettings.key, value: systemSettingInteger })
+      .from(systemSettings)
+      .where(inArray(systemSettings.key, ["OPENING_HOUR", "CLOSING_HOUR"]));
+    const values = Object.fromEntries(rows.map((row) => [row.key, row.value]));
+    return values.OPENING_HOUR === undefined || values.CLOSING_HOUR === undefined
+      ? undefined
+      : {
+          openTime: `${String(values.OPENING_HOUR).padStart(2, "0")}:00:00`,
+          closeTime: `${String(values.CLOSING_HOUR).padStart(2, "0")}:00:00`,
+          timezone: "Asia/Ho_Chi_Minh",
+        };
   }
 
   async createFacility(data: NewFacility): Promise<Facility> {

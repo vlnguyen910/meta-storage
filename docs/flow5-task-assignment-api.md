@@ -133,14 +133,14 @@ Task execution uses the server-managed status sequence:
 
 - `POST /api/facility-tasks/:id/start` — currently assigned active FS only, no body.
   Moves a newly assigned task to `IN_PROGRESS` and records `startedAt`.
-- `POST /api/facility-tasks/:id/reports` appends a report and moves the task to
-  `AWAITING_APPROVAL`. While waiting, FS may append a supplemental report; the
-  latest report is the one FM can accept. A report cannot be submitted before the
-  task starts or after completion.
+- `POST /api/facility-tasks/:id/reports` saves the current report and moves the
+  task to `AWAITING_APPROVAL`. While waiting, FS may replace it with a newer
+  report; only the current report is retained and can be accepted. A report
+  cannot be submitted before the task starts or after completion.
 - `POST /api/facility-tasks/:id/reports/:reportId/accept` — active FM assigned to
   the task's facility only. The server verifies the task is awaiting approval and
-  the requested report is the latest. In one transaction it records the accepting
-  FM and time on the report and marks the task `COMPLETED` with the same actor/time.
+  the requested ID matches the current report. In one transaction it records the
+  accepting FM/time on the task and marks it `COMPLETED`.
   A stale report or invalid status returns 409. There is no reject action in this
   workflow; non-accepted tasks remain open for an additional report.
 
@@ -170,7 +170,7 @@ session, 403 role/facility/assignee access denied, 404 missing task/report/unit,
 stale version or invalid lifecycle/latest-report state. Successful calls use the
 existing `{ success, data, timestamp }` envelope.
 
-## Staff work reports and history
+## Current staff work report
 
 `POST /api/facility-tasks/:id/reports` — currently assigned, active FS only:
 
@@ -179,11 +179,11 @@ existing `{ success, data, timestamp }` envelope.
 ```
 
 Content is trimmed and required (1..5000 characters). Unknown fields are rejected;
-the session supplies the author and the server supplies the timestamp. Every
-successful request appends a separate record, including repeated identical text.
-There is no edit/delete endpoint, attachment, or automatic change to the
-unit/booking/rental/inspection. Task and current staff membership are rechecked
-under row locks so submission serializes with task reassignment and approval.
+the session supplies the author and the server supplies the timestamp. A new
+submission replaces the current report, including repeated identical text. There
+is no report history, edit/delete endpoint, attachment, or automatic change to
+the unit/booking/rental/inspection. Task and membership are rechecked under row
+locks so submission serializes with reassignment and approval.
 
 201 `data`: `{ id, taskId, submittedBy, submitterName, content, submittedAt,
 acceptedBy, acceptedByName, acceptedAt }`; acceptance fields are null until FM review.
@@ -191,13 +191,10 @@ acceptedBy, acceptedByName, acceptedAt }`; acceptance fields are null until FM r
 The original author ID is preserved after reassignment.
 
 `GET /api/facility-tasks/:id/reports?limit=20&offset=0` — active same-facility FM
-or current assigned FS. FM opens a task from the existing task list to see its
-report history. This endpoint is per task, not an aggregate staff report feed.
-200 `data`: `{ items, total, limit, offset }`, ordered by submission time then ID,
-both descending. Limit is 1..100, offset is nonnegative. Empty/out-of-range pages
-return an empty list with the correct total. Reports remain visible to FM and the
-new assignee after reassignment; the previous assignee loses access, including
-to their earlier reports, consistently with existing task authorization.
+or current assigned FS. It returns zero or one report in the existing
+`{ items, total, limit, offset }` shape for compatibility. Limit is 1..100,
+offset is nonnegative. The new assignee can see the current report after
+reassignment; the previous assignee loses access under existing task authorization.
 
 Both endpoints use session auth, `private, no-store`, and the existing API envelope.
 Errors: 400 invalid body/query, 401 missing session, 403 wrong role, facility,

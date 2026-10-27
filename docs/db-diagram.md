@@ -65,14 +65,14 @@ must reject any linked local price outside the proposed bounds; no guessed defau
 positive dimensions, generated size_cbm, positive integer monthly_price and is_active remain local.
 Add nonnegative version (default 0) and nullable updated_by FK users (RESTRICT).
 Only the currently assigned active FM writes local types/prices. Dimension edits
-are rejected once any booking or reservation draft references the type; create a
+are rejected once any booking references the type; create a
 new type and move eligible free physical units instead. Price changes affect only
-new quotes; booking/renewal/PDF snapshots are immutable. There is no unit_type_changes.
+new quotes; booking and renewal snapshots are immutable. There is no unit_type_changes.
 FM price writes and BOM range writes append the existing pricing_changes ledger;
 the shared pricing revision remains serialized by the DEPOSIT_MONTHS settings row.
 
-`facility_unit_types` is retired. storage_units/bookings/reservation_drafts/
-capacity_allocations reference unit_types through (facility_id,unit_type_id),
+`facility_unit_types` is retired. storage_units/bookings/capacity_allocations
+reference unit_types through (facility_id,unit_type_id),
 preventing cross-facility types. Catalog, checkout and renewal lock the local type
 in place of the retired offering. Range validation uses range-first/type-second
 locks after the shared pricing revision; new quotes require configured active
@@ -83,7 +83,7 @@ local type (retaining the original UUID for the first facility and cloning other
 remaps the four composite references, then enforces NOT NULL/FKs and retires the
 join table. Unassigned or nonpositive-priced legacy types fail preflight for explicit
 resolution rather than silently losing data. Existing scalar settings, payment
-amounts, audit JSON and contract/renewal snapshots are not rewritten. The migration
+amounts, audit JSON and renewal snapshots are not rewritten. The migration
 runner performs the transfer within its existing atomic migration transaction.
 
 ## Rental renewals (#163, approved 2026-10-24)
@@ -102,7 +102,7 @@ Partial unique (rental_id,rental_version) for APPLIED prevents duplicate extensi
 
 `rentals.version` is nonnegative, starts at zero and increases once per applied
 renewal. `expected_end_at` remains the current term; original booking end/pricing
-and issued PDFs are unchanged. `notification_outbox.rental_term_version` is nullable
+is unchanged. `notification_outbox.rental_term_version` is nullable
 for legacy events; expiry/overdue/review events identify the current term, and the
 worker suppresses a queued event for an older version (legacy means version zero).
 Facility → booking → rental locks serialize renewal with return/lifecycle;
@@ -145,16 +145,14 @@ assigned; those items must be reassigned first.
 
 ## Flow 5 staff work reports (confirmed 2026-10-22)
 
-`facility_task_reports`: UUID id, task_id FK facility_tasks (RESTRICT),
-submitted_by FK users (RESTRICT), nullable accepted_by FK users and accepted_at,
-content text (trimmed, 1..5000 characters), submitted_at timestamptz default now.
-Index (task_id, submitted_at, id) supports ordered history; a partial unique index
-allows at most one accepted report per task. One task has many immutable
-submissions; each submission keeps its original author even after reassignment.
-No edit/delete report API.
+The latest task report is stored on `facility_tasks`: nullable report_id,
+report_content (trimmed, 1..5000), report_submitted_by FK users and
+report_submitted_at. These four fields are either all null or all present.
+Submitting again replaces the prior report; no report history is retained.
+The existing completed_by/completed_at columns record the accepting FM and time.
 
 Only the current active assigned FS with a valid same-facility assignment may
-submit. Same-facility FM and current assigned FS may read task report history.
+submit. Same-facility FM and current assigned FS may read the latest report.
 Submission rechecks authorization under task/account/membership row locks in the
 same order as task reassignment. Identity/time are server-generated. Reporting
 does not itself complete a task or mutate booking/unit/rental/inspection state.
@@ -169,29 +167,6 @@ changed_at. A status update and its history record commit in the same transactio
 The actor and reason are retained for audit; history prevents hard deletion of the
 physical unit and the acting account.
 
-## Booking contract PDFs (confirmed 2026-10-20)
-
-MVP customer identity uses account name/email and booking-specific contactPhone;
-no CCCD/passport columns or identity-document storage are introduced.
-`booking_contracts`: UUID id, booking_id FK, immutable positive version (unique per
-booking), UPLOADED/ISSUED status, filename, byte_size (1..20MiB), positive page_count,
-SHA256, private unique object_key, idempotency_key unique per booking, uploaded_by/at,
-issued_by/at nullable until issuance, JSONB terms_snapshot nullable until issuance.
-The latest ISSUED version is current; uploading alone never replaces the issued
-version or creates a signature. No revoke, signing, renewal or transfer workflow.
-`booking_contract_audit`: UUID id, booking_id/contract_id/actor_id FKs, action,
-JSONB details, occurred_at. Immutable upload/issuance/handover audit.
-`handover_inspections.contract_id`: nullable FK booking_contracts; existing handovers
-remain null, new handovers require an issued valid linked PDF and save its exact
-version. Booking → Rental remains the authoritative contract linkage after handover.
-Issue snapshots existing customer/facility/unit-type/pricing/deposit/term and verified
-successful payment. Issuance and new handover share booking-first row locks; a stale
-current-issued expectation conflicts. No uploads/issues after physical handover.
-Private authenticated Cloudinary raw PDFs use unique immutable object keys as public IDs;
-no public storage URLs in DTOs. Backend
-checks role, ownership/facility scope and linkage before reading bytes. Failed DB
-writes clean up only their new object; preserved versions are never deleted by API.
-
 ## Return workflow (confirmed 2026-10-20)
 
 This additive feature is independent of handover inspections/check-in checklist.
@@ -200,11 +175,12 @@ This additive feature is independent of handover inspections/check-in checklist.
 Admin appends a version with optimistic concurrency. There is no inferred initial
 checklist; all four confirmed groups must be configured before starting inspection.
 
-`facility_return_calendars`: facility_id PK/FK, timezone, JSONB holiday dates,
-reminder_time (09:00 default), version, updated_by FK users and updated_at. Admin
-configures it; operating hours and check_in_slots remain existing sources. Slots
-are 90 minutes, capacity one and a 15-minute cooldown; schedule changes flag
-confirmed appointments for manual review while preserving time snapshots.
+Global `system_settings` keys `OPENING_HOUR` and `CLOSING_HOUR` hold the shared
+operating window (default 08:00–20:00, Asia/Ho_Chi_Minh); BOM manages them with
+versioned audit history. Holiday calendars are out of scope. `check_in_slots` define
+appointment start times; return appointments are filtered by the shared hours and
+remain capacity one with a 15-minute cooldown. Existing appointments keep their
+saved UTC/timezone snapshots.
 
 `system_settings` key OVERDUE_FEE_RATE stores integer rate 0–100 (seed 25),
 version, updated_by FK users nullable for seed and updated_at. Changes are BOM-only
@@ -244,11 +220,11 @@ the current confirmed value to reject competing corrections.
 `return_settlements`: immutable UUID id and unique (request_id,revision), FK request,
 integer-VND numeric(14,0) deposit/overdue/damage/unused-rent-refund/refund-entitlement/
 debt snapshots, integer rate_snapshot, actual_return_at, refund_due_date,
-calendar_snapshot JSONB, approved_by FK, reason and approved_at. Corrections append
+timezone snapshot JSONB, approved_by FK, reason and approved_at. Corrections append
 new revisions, retain the original rate/deposit snapshot, and calculate debt if
 already-refunded money exceeds the corrected entitlement. No automatic collection.
-SLA is three business days following FM approval, excluding weekends and the saved
-holiday calendar. Original revision deadlines are retained in history.
+SLA is three business days following FM approval, skipping Saturday and Sunday.
+Original revision deadlines are retained in history.
 
 `return_refunds`: UUID id, request_id/payment_id/settlement_id FKs, positive integer-VND
 amount, reference, evidence_photo_ids JSONB, idempotency_key, confirmed_by FK and
@@ -299,9 +275,8 @@ Issue #24 adds `handover_inspections` and `inspection_photos` under the H6_V1 de
 - `version` plus booking/inspection row locks reject stale/concurrent writes. Only current
   verified assignments can be edited. Completed and superseded records remain readable by facility scope.
 - Photos are private authenticated evidence, bounded to 8 JPEG/PNG/WebP files, 3 MiB each.
-  New evidence is stored as authenticated Cloudinary assets, referenced by public ID and format.
-  Nullable Base64 content is retained only for legacy evidence until verified migration;
-  metadata-only DTOs avoid loading bytes in normal lists. Photo GET uses private/no-store caching.
+  Evidence is stored as authenticated Cloudinary assets, referenced by required public ID and
+  format. PostgreSQL stores metadata only. Photo GET uses private/no-store caching.
 - FM prepares unit/staff assignment and monitors records; only the assigned Facility Staff
   can verify, edit inspection evidence, complete inspection and confirm handover.
 - A separate handover transaction records `handed_over_by/at`, creates exactly one ACTIVE rental
@@ -328,18 +303,13 @@ erDiagram
     timestamptz started_at "nullable"
     uuid completed_by FK "nullable"
     timestamptz completed_at "nullable"
+    uuid report_id "nullable"
+    text report_content "nullable"
+    uuid report_submitted_by FK "nullable"
+    timestamptz report_submitted_at "nullable"
     timestamptz assigned_at
     timestamptz created_at
     timestamptz updated_at
-  }
-  facility_task_reports {
-    uuid id PK
-    uuid task_id FK
-    uuid submitted_by FK
-    uuid accepted_by FK "nullable"
-    timestamptz accepted_at "nullable"
-    text content
-    timestamptz submitted_at
   }
   facilities ||--o{ facility_tasks : scopes
   users ||--o{ facility_tasks : performs
@@ -347,9 +317,6 @@ erDiagram
   users ||--o{ facility_tasks : assigns
   storage_units o|--o{ facility_tasks : references
   bookings o|--o{ facility_tasks : references
-  facility_tasks ||--o{ facility_task_reports : records
-  users ||--o{ facility_task_reports : submits
-  users o|--o{ facility_task_reports : accepts
   system_settings {
     text key PK
     jsonb value
@@ -411,7 +378,6 @@ erDiagram
     varchar filename
     varchar mime_type
     integer byte_size
-    text data_base64 "nullable legacy"
     text cloudinary_public_id
     varchar cloudinary_format
     timestamptz created_at
@@ -424,14 +390,10 @@ erDiagram
   facilities ||--o{ unit_types : owns
   rental_price_ranges ||--o{ unit_types : constrains
   unit_types ||--o{ storage_units : materializes
-  unit_types ||--o{ reservation_drafts : selects
   unit_types ||--o{ capacity_allocations : allocates
   unit_types ||--o{ bookings : books
   unit_types ||--o{ storage_units : materializes
   facilities ||--o{ storage_units : contains
-  facilities ||--o{ facility_operating_hours : schedules
-  facilities ||--o{ reservation_drafts : receives
-  unit_types ||--o{ reservation_drafts : selects
   unit_types ||--o{ capacity_allocations : allocates
   facilities ||--o{ capacity_allocations : reserves
   users o|--o{ bookings : saves_history
@@ -481,7 +443,6 @@ erDiagram
     boolean email_verified
     text image
     varchar phone UK
-    varchar password_hash
     role role
     status status
     timestamptz created_at
@@ -602,32 +563,6 @@ erDiagram
   storage_units ||--o{ storage_unit_maintenance_history : records
   users ||--o{ storage_unit_maintenance_history : changes
 
-  facility_operating_hours {
-    uuid id PK
-    uuid facility_id FK
-    integer day_of_week
-    time open_time
-    time close_time
-    varchar timezone
-  }
-
-  reservation_drafts {
-    uuid id PK
-    uuid facility_id FK
-    uuid unit_type_id FK
-    timestamptz check_in_at
-    timestamptz rental_end_at
-    integer duration_months
-    varchar contact_name
-    varchar contact_email
-    varchar contact_phone
-    varchar access_token_hash "nullable; inactive legacy checkout"
-    reservation_draft_status status
-    reservation_pricing_status pricing_status
-    jsonb pricing "nullable, immutable checkout price snapshot"
-    timestamptz created_at
-    timestamptz updated_at
-  }
 
   capacity_allocations {
     uuid id PK
@@ -781,8 +716,7 @@ erDiagram
 
   payments {
     uuid id PK
-    uuid booking_id FK "nullable for legacy checkout; required in target flow"
-    uuid draft_id FK "nullable; legacy checkout only"
+    uuid booking_id FK "nullable for rental-charge payments"
     uuid rental_charge_id FK "nullable; source-specific charge attempt"
     varchar provider
     varchar provider_payment_id
@@ -854,23 +788,24 @@ erDiagram
   Legacy jobs remain readable; ENQUEUED differs from provider-confirmed SENT.
 
 - UUID primary keys on `users`, `facilities`, `facility_assignments`,
-  `facility_tasks`, `facility_task_reports`, `storage_unit_maintenance_history`,
-  `unit_types`, `storage_units`, `facility_operating_hours`, `check_in_slots`,
-  `reservation_drafts` and `capacity_allocations` default to generated random UUIDs. Auth tables
+  `facility_tasks`, `storage_unit_maintenance_history`,
+  `unit_types`, `storage_units`, `check_in_slots`,
+  and `capacity_allocations` default to generated random UUIDs. Auth tables
   `accounts`, `sessions` and `verifications` use text primary keys.
 - `users.email`, `users.phone`, `facilities.code`, `storage_units.code` and
   `sessions.token` are unique. `users.phone` is nullable. Booking contact email is not unique.
-- Varchar limits are `users.email` 255, `users.phone` 20,
-  `users.password_hash` 255; Booking contact name/email/phone 150/320/32; `facilities.code` 50, `facilities.name` 150;
+- Varchar limits are `users.email` 255, `users.phone` 20, Booking contact phone 32,
+  `facilities.code` 50 and `facilities.name` 150;
   `unit_types.code` 80, `unit_types.name` 100, `unit_types.size_label` 50;
-  `storage_units.code` 80; `facility_operating_hours.timezone` 64; and
-  reservation draft contact name/email/phone 150/320/32.
-- Nullable columns are `users.image`, `users.phone`, `users.password_hash`,
+  `storage_units.code` 80.
+- Nullable columns are `users.image`, `users.phone`,
   `users.role`, `users.status`, `facilities.description`,
   `facility_assignments.ended_at`, `storage_units.floor`,
   `storage_units.location_description`, `storage_unit_maintenance_history.reason`,
   `facility_tasks.description`, `facility_tasks.storage_unit_id`,
-  `facility_tasks.booking_id`,
+  `facility_tasks.booking_id`, `facility_tasks.report_id`,
+  `facility_tasks.report_content`, `facility_tasks.report_submitted_by`,
+  `facility_tasks.report_submitted_at`,
   `sessions.ip_address`,
   `sessions.user_agent`, and the optional token, expiry, scope and password
   fields in `accounts`. Every other column shown is required.
@@ -882,14 +817,12 @@ erDiagram
   `INSPECTION`, `RETURN_PENDING`, `LOCKED`, `INACTIVE`;
   `storage_unit_maintenance_action`: `ENTER_MAINTENANCE`, `EXIT_MAINTENANCE`;
   `facility_task_type`: `INSPECT_UNIT`, `PRINT_DOCUMENT`, `REPORT_TO_MANAGER`;
-  `reservation_draft_status`: `DRAFT`; `reservation_pricing_status`:
-  `PRICING_NOT_CONFIGURED`, `PRICED`; `capacity_allocation_kind`: `HOLD`, `BOOKING`; and
+  `capacity_allocation_kind`: `HOLD`, `BOOKING`; and
   `capacity_allocation_status`: `ACTIVE`, `RELEASED`, `EXPIRED`.
 - Composite unique `accounts(provider_id, account_id)` ensures one owner per provider
   identity, including concurrent OAuth linking. Existing duplicates must be resolved
   explicitly before applying this constraint; never merge users automatically.
-- Composite unique indexes exist on `facility_assignments(user_id, facility_id)` and
-  `facility_operating_hours(facility_id, day_of_week)`.
+- Composite unique indexes exist on `facility_assignments(user_id, facility_id)`.
 - Each User may work at at most one Facility at a time. A partial unique index
   `facility_assignments_active_user_idx` on `user_id WHERE is_active = true`
   enforces this rule, including concurrent assignments. Inactive assignments are
@@ -905,7 +838,7 @@ erDiagram
   multiple `is_active = true` assignments. Resolve them explicitly before
   migrating; the migration must not choose a Facility or discard history.
 - `unit_types.code` is unique within a facility; `(facility_id,id)` is unique.
-- `storage_units`, `bookings`, `reservation_drafts` and `capacity_allocations`
+- `storage_units`, `bookings` and `capacity_allocations`
   each use a composite foreign key `(facility_id,unit_type_id)` to
   `unit_types(facility_id,id)` with ON DELETE RESTRICT. Range and facility ownership
   references also use RESTRICT. `capacity_allocations.reference_id` remains a UUID
@@ -915,17 +848,15 @@ erDiagram
   Facility task/report and unit maintenance history references use `ON DELETE RESTRICT`
   to preserve assigned work, reports, transition history and actor references.
   Facility foreign keys use `ON DELETE CASCADE` for
-  `storage_units`, `facility_operating_hours` and `facility_assignments`, and
-  `ON DELETE RESTRICT` for reservation drafts and capacity allocations.
+  `storage_units` and `facility_assignments`, and
+  `ON DELETE RESTRICT` for capacity allocations.
 - `created_at` and `updated_at` columns default to `now()` wherever shown;
   `assigned_at` also defaults to `now()`. `facilities.is_active`,
   `unit_types.is_active`, `rental_price_ranges.is_active` and
   `facility_assignments.is_active` default to true.
   `storage_units.status` defaults to `AVAILABLE`,
-  `reservation_drafts.status` to `DRAFT`,
-  `reservation_drafts.pricing_status` to `PRICING_NOT_CONFIGURED`, and
   `capacity_allocations.status` to `ACTIVE`. The default operating timezone is
-  `Asia/Ho_Chi_Minh`.
+  `Asia/Ho_Chi_Minh`. Operating hours are now global system settings, not a table.
 
 Unit types belong to a facility and own their dimensions and monthly price within a
 BOM-managed rental price range. Exact length, width and height are positive meters;
@@ -949,11 +880,11 @@ never written back to users. ContactPhone may be NULL only while the booking is 
 Issued contracts retain their own immutable snapshots. Payments and rentals continue to
 derive ownership through booking. Accounts with bookings cannot be physically deleted;
 use the existing account lock/status workflow instead. Guest access endpoints are removed.
-The inactive legacy reservation-draft checkout cannot create unowned bookings anymore.
+The legacy reservation-draft checkout and table are removed.
 
 ## Payment and Booking notes (#18)
 
-- New checkout drafts store an immutable `pricing` snapshot: rental fee equals
+- Booking drafts store immutable pricing columns: rental fee equals
   the monthly rate times the requested months; the deposit equals one month's
   rate; total equals rental fee plus deposit, in VND. Payments use this stored
   quote even if catalog prices change later. Legacy unpriced drafts must be recreated.
@@ -972,11 +903,8 @@ The inactive legacy reservation-draft checkout cannot create unowned bookings an
   exclude DRAFT; drafts cannot be assigned a unit/staff or verified through QR.
 - Payment stores the transaction total, currency, provider references, status
   and paid_at; the monthly rate, rental fee and deposit breakdown belong to
-  Booking. The legacy checkout obtains this breakdown from the immutable draft
-  pricing snapshot when creating a confirmed Booking. Its readers project
-  booking contact and date/slot timestamps for the existing API contracts.
-  The payment simplification migration removes the redundant breakdown columns;
-  apply it together with the compatible backend before using the checkout.
+  Booking. Readers project booking contact and date/slot timestamps for the
+  existing API contracts.
 - Payment status values are PENDING, SUCCEEDED, FAILED, REFUND_PENDING and REFUNDED,
   defined in the payment contract and reused by Drizzle. A valid incoming payment
   that cannot receive capacity/check-in becomes REFUND_PENDING with paid_at and
@@ -1000,8 +928,8 @@ The inactive legacy reservation-draft checkout cannot create unowned bookings an
   `HOLD` to `BOOKING` inside the same transaction. No physical unit is assigned
   at checkout.
 - `payments.idempotency_key` and `(provider, provider_payment_id)` are unique.
-- `payments` references exactly one source: booking, legacy reservation draft, or
-  rental charge. Booking/draft attempts require a hold-token hash; charge attempts
+- `payments` references exactly one source: booking or rental charge. Booking attempts
+  require a hold-token hash; charge attempts
   do not. Partial unique indexes permit one pending attempt and one applied
   (`SUCCEEDED`) attempt per charge; late/duplicate provider captures remain
   separate refund-pending attempts. Charge payment quote expiry is stored separately from the
@@ -1011,16 +939,8 @@ The inactive legacy reservation-draft checkout cannot create unowned bookings an
   obligation with a typed FK. Future renewal rows will point to their charge in
   #163. No generic polymorphic source ID is used. Charge adjustments and refunds
   are append-only records; events retain submit/approve/dispute/payment/refund audit.
-- `payments.draft_id` is nullable during the #113 expansion; a CHECK requires
-  exactly one of booking_id, draft_id, or rental_charge_id. Legacy writers keep draft_id, while the target workflow
-  references the DRAFT Booking from payment start. Existing booking_id FK/index
-  and idempotency/provider uniqueness remain unchanged. Legacy replay still uses
-  draft_id plus hold-token hash until Payment refactoring; target replay uses
-  booking_id plus hold-token hash. Plaintext tokens are never stored.
-- Task 2 deliberately retains reservation_drafts and its FK for current writers.
-  The project is in development: existing data may be cleared and seeded again.
-  No legacy-data mapping/backfill or checkout compatibility layer is required.
-  Dropping the table follows the consumer refactor in the final contract phase.
+- The source CHECK requires exactly one of booking_id or rental_charge_id. Booking checkout
+  uses booking_id plus a hold-token hash. Plaintext tokens are never stored.
 
 Check-in slots are shared time-of-day definitions with exactly four required
 columns: `id`, `name`, `start_time`, `end_time`. A Booking stores a required
@@ -1099,13 +1019,13 @@ owning account session and use the existing customer endpoints.
 `system_settings` is the single active global configuration table: key PK, scalar JSONB
 value, description, nonnegative version, updated_by FK users and updated_at. API keys
 are an allowlist with per-key validation and permissions. Initial keys are
-EXPIRY_REMINDER_DAYS (7), ABANDONED_REVIEW_DAYS (7), OVERDUE_FEE_RATE (25) and
-DEPOSIT_MONTHS (1). Days use nonnegative PostgreSQL integers, rate 0–100 and months
-positive. DEPOSIT_MONTHS retains the positive shared pricing revision: price changes
+EXPIRY_REMINDER_DAYS (7), ABANDONED_REVIEW_DAYS (7), OVERDUE_FEE_RATE (25),
+DEPOSIT_MONTHS (1), OPENING_HOUR (8) and CLOSING_HOUR (20). Day/hour settings use
+bounded integers, rate 0–100 and months positive. DEPOSIT_MONTHS retains the positive shared pricing revision: price changes
 also lock/increment this row. Existing quote/rental/settlement snapshots are unchanged.
-System Admin manages rental-day settings; BOM exclusively manages financial settings.
-Facility calendars/checklists, unit type prices and financial snapshots remain relational
-domain data rather than global scalar settings. No new runtime fallback or cache.
+System Admin manages rental-day settings; BOM manages financial settings and shared
+operating hours. Return checklist versions, unit type prices and financial snapshots
+remain relational domain data. Holiday calendars are out of scope.
 
 `system_setting_changes`: UUID id, key FK, JSONB before/after value+version snapshots,
 actor_id FK, source and created_at. Append-only changes share the update transaction;
@@ -1117,195 +1037,40 @@ with original versions, descriptions and actor/timestamps in the same transactio
 The legacy configuration tables are retired only as part of that atomic migration.
 Use `bun run db:migrate`; invoking drizzle-kit migrate directly bypasses this data step.
 
-## Customer Support approved design (2026-10-24, #164)
+## Customer Support request model (2026-10-27)
 
-**Status: APPROVED DESIGN; #165 CUSTOMER FOUNDATION IMPLEMENTED.** The owner
-approved the Support policy on 2026-10-24. #165 introduces tickets, messages,
-attachments, audit, idempotency and an EMAIL receipt through the existing outbox.
-`support_work_reports`, operations transitions and IN_APP channels remain #166.
-Support timestamps use timestamptz(3) so JavaScript millisecond cursors preserve
-exact ordering. The outbox adds nullable `support_ticket_id` (RESTRICT FK) and
-`SUPPORT_CREATED`; existing booking/lifecycle delivery columns are preserved.
-
-Policy: [customer-support-policy.md](customer-support-policy.md), C01–C15 and
-R1–R5. Detailed design and implementation handoff:
-[customer-support-model.md](customer-support-model.md).
-
-### Relationships
-
-All new entity IDs are UUIDs. All Support foreign keys use ON DELETE RESTRICT
-to preserve customer conversation, evidence and operational audit. State names
-below are design values; runtime enums/migrations are created by #165/#166.
+Support is a one-way customer request. Customers can discover their booking and
+payment context, submit a subject and description, then view the immutable ticket.
+There is no support chat, image upload, staff assignment, or ticket lifecycle.
 
 ```mermaid
 erDiagram
   bookings ||--o{ support_tickets : context
   users ||--o{ support_tickets : owns
   facilities ||--o{ support_tickets : scopes
-  rentals o|--o{ support_tickets : after_handover
-  storage_units o|--o{ support_tickets : received_unit
+  rentals o|--o{ support_tickets : warehouse_context
   payments o|--o{ support_tickets : optional_transaction
-  support_tickets ||--|{ support_messages : contains
-  support_tickets ||--o{ support_attachments : limits_total
-  support_messages ||--o{ support_attachments : evidence
-  support_tickets ||--o{ support_work_reports : receives
-  support_messages ||--o| support_work_reports : report_content
-  support_tickets ||--|{ support_audit : records
-  support_tickets o|--o{ support_idempotency : result
-  support_tickets o|--o{ notification_outbox : support_event
+  support_tickets o|--o{ notification_outbox : receipt
 ```
-
-A committed ticket contains its initial public message and CREATED audit.
-The optional ticket association on an idempotency claim exists only until its
-result is committed; no successful command may return without its result record.
 
 ### support_tickets
 
-| Columns | Intended type and constraints |
+| Columns | Type and constraints |
 | --- | --- |
-| id | UUID PK, server generated |
-| booking_id, owner_user_id, facility_id | Required UUID FKs to bookings/users/facilities; server derives owner/facility from the authenticated booking context |
-| rental_id, storage_unit_id | Nullable UUID FKs; required for UNIT/LOCK/ACCESS_CODE/STORED_ITEMS to identify the rental and exact physical unit actually received |
-| payment_id | Nullable UUID FK payments; if present must belong to booking_id; successful payment is not a ticket prerequisite |
-| category | UNIT, LOCK, ACCESS_CODE, STORED_ITEMS or PAYMENT |
-| subject | Trimmed varchar(200), required and nonempty |
-| status | OPEN, IN_PROGRESS or CLOSED; required, default OPEN |
-| priority | NORMAL or HIGH; required, default NORMAL |
-| assigned_staff_id | Nullable UUID FK users; current Support assignee, independent of bookings.assigned_staff_id |
-| assigned_by, assigned_at | Nullable UUID FK users and timestamptz; current assignment actor/time |
-| assignment_version | Required nonnegative integer, default 0; increment on assign/reassign/clear |
-| version | Required nonnegative integer, default 0; optimistic concurrency for mutations |
-| first_assigned_at | Nullable timestamptz; preserve original assignment time after reassign |
-| first_onsite_started_at | Nullable timestamptz; assigned FS records arrival/start separately from assignment |
-| first_bom_response_at | Nullable timestamptz; first PAYMENT response/start by BOM |
-| action_due_at | Required timestamptz; created_at + 12 continuous hours |
-| closed_by, closed_at | Nullable UUID FK users and timestamptz; required together for CLOSED |
-| closure_kind, close_reason | Nullable RESOLVED/CUSTOMER_WITHDREW and text; required/nonempty for CLOSED |
-| created_at, updated_at | Required server-generated timestamptz |
+| id | UUID primary key, server generated |
+| booking_id, owner_user_id, facility_id | Required UUID foreign keys derived from the authenticated booking |
+| rental_id | Nullable UUID FK; required for warehouse categories and must belong to the booking |
+| payment_id | Nullable UUID FK; if present must belong to the booking |
+| category | UNIT, LOCK, ACCESS_CODE, STORED_ITEMS, or PAYMENT |
+| subject | Trimmed varchar(200), required |
+| description | Trimmed text, 1–5000 characters |
+| action_due_at | Required timestamp, created_at + 12 continuous hours |
+| idempotency_key | Required key, unique with owner_user_id; request fields are compared on retry |
+| created_at | Server-generated timestamp |
 
-OPEN/IN_PROGRESS have null current closure metadata. CLOSED has the complete
-closure metadata above. Reopen preserves prior closure in audit, clears current
-closure/assignment, increments version/assignment_version and returns to OPEN.
-Reassignment must not change owner/context, reset the original deadline, delete
-reports or reuse an earlier assignment generation's accepted report.
-
-For warehouse categories, creation requires an actual handed-over rental that
-is not closed, linked to the booking and physical unit. PAYMENT accepts the
-owner's pending/failed/cancelled-booking cases, including before rental creation.
-Single-column FKs alone cannot prove this linkage; application checks under the
-same transaction/locks validate every referenced context and current ownership.
-
-Warehouse IN_PROGRESS requires a current assignee. PAYMENT can enter IN_PROGRESS
-when BOM begins even without an FS. FM may assign a same-facility FS to assist
-with PAYMENT information; this does not grant FS/FM financial decision or
-PAYMENT closure/reopen authority.
-
-Intended indexes:
-(owner_user_id, created_at DESC, id DESC);
-(facility_id, category, status, created_at DESC, id DESC);
-(assigned_staff_id, status, created_at DESC, id DESC);
-(category, status, priority, action_due_at, id).
-HIGH is explicitly sorted ahead of NORMAL; do not rely on enum lexical ordering.
-
-### support_messages
-
-Required columns: id UUID PK, ticket_id UUID FK, author_id UUID FK users,
-kind PUBLIC_REPLY/INTERNAL_NOTE/STAFF_REPORT, content trimmed text (1..5000),
-created_at timestamptz. Unique (ticket_id, id) provides a composite reference
-target for same-ticket attachments/reports. Index (ticket_id, created_at, id)
-supports stable pagination. Content is append-only; no edit/delete API in MVP.
-
-Customer queries and DTOs select PUBLIC_REPLY only. INTERNAL_NOTE is write/read
-restricted to authorized FM/BOM; STAFF_REPORT is operational evidence read by
-the current assigned FS and authorized FM/BOM, not automatically public.
-A public resolution summary is a separate PUBLIC_REPLY when resolving a ticket.
-
-### support_attachments
-
-Required columns: id UUID PK, ticket_id UUID FK, message_id UUID FK,
-uploaded_by UUID FK users, unique object_key text, original_filename text,
-mime_type text, positive byte_size integer, checksum text, created_at timestamptz.
-Composite (ticket_id, message_id) references support_messages(ticket_id, id),
-preventing images being linked to a message from another ticket.
-
-Accept JPEG/PNG/WebP only, at most 5 MiB (5 * 1024 * 1024 bytes) per image and
-**10 images total per ticket**, including replies, notes and reports. Do not
-make attachments mandatory for all tickets. Validate real content/MIME as well
-as size; reject PDF/video/SVG masquerading as an accepted image.
-
-Files are private. Reading requires current ticket and message-kind authorization,
-not knowledge of an object key or ownership of an old upload. Reassigned FS lose
-old ticket/file access. Hold the ticket lock while counting/finalizing image
-references to enforce 10 under concurrency. Finalization is idempotent; no duplicate
-reference on retry. Cleanup may remove only definitely unreferenced new objects;
-uncertain DB commit outcome must not destroy possibly committed evidence.
-
-### support_work_reports
-
-Required columns: id UUID PK, ticket_id UUID FK, unique message_id UUID FK,
-assignment_version integer, submitted_by UUID FK users, submitted_at timestamptz.
-Nullable accepted_by UUID FK users and accepted_at timestamptz must be both null
-or both present. Content lives in the linked STAFF_REPORT message, not duplicated.
-
-Composite (ticket_id, message_id) references support_messages(ticket_id, id).
-Application checks enforce message kind STAFF_REPORT, current assignment_version,
-current author/assignee and active membership. Partial unique
-(ticket_id, assignment_version) WHERE accepted_at IS NOT NULL prevents accepting
-multiple results from the same assignment generation.
-
-FS submit only while currently assigned and IN_PROGRESS; reporting leaves the
-ticket IN_PROGRESS. FM accepts the latest report of the current assignment.
-Acceptance metadata, public resolution, warehouse ticket closure, audit and
-outbox commit together. FS assistance reports on PAYMENT do not replace BOM's
-authority to decide and close PAYMENT.
-
-### support_audit
-
-Required: id UUID PK, ticket_id UUID FK, actor_id UUID FK users, action text,
-next_version integer, occurred_at timestamptz. Nullable: previous_version integer,
-old_status/new_status, previous_staff_id/next_staff_id UUID FKs users,
-assignment_version integer, reason text. details JSONB is allowlisted metadata
-and child/event references, not raw requests, payment secrets or access codes.
-Index (ticket_id, occurred_at, id) supports ordered history.
-
-Audit is append-only. Record creation, assignments, priority changes, FS onsite/BOM
-start, reports, approval and close/reopen in the corresponding transaction.
-Reasons are required for reassign/close/reopen. Assignment history is stored here;
-there is no duplicate assignment-history table.
-
-### support_idempotency
-
-Columns: actor_id UUID FK users, operation text, idempotency_key text, request_hash
-text, nullable ticket_id UUID FK, result_reference JSONB allowlist and
-created_at timestamptz. Composite key/unique (actor_id, operation, idempotency_key).
-
-A committed successful command includes its result reference. Same key/hash
-replays the result subject to current authorization; a different hash conflicts.
-Do not cache internal note/file content that could bypass revoked access.
-Concurrent key claims are serialized using DB uniqueness/transactions.
-
-### notification_outbox extension for #166
-
-Preserve existing data and delivery/lease/retry behavior, booking_id/facility_id
-requirements, event_key/recipient_key dedupe, and the rental_term_version column
-already on origin/dev c8369ee. Add:
-
-- Nullable support_ticket_id FK support_tickets; required on Support events.
-- channel EMAIL/IN_APP, preserving existing lifecycle rows as EMAIL.
-- recipient_email nullable for IN_APP; EMAIL requires a valid nonempty address.
-- IN_APP requires recipient_user_id and the exact recipient_role.
-
-Support events: SUPPORT_CREATED, SUPPORT_ASSIGNED, SUPPORT_REASSIGNED,
-SUPPORT_REPORTED, SUPPORT_PUBLIC_REPLIED, SUPPORT_CLOSED, SUPPORT_REOPENED,
-SUPPORT_PRIORITY_CHANGED, SUPPORT_INTERNAL_NOTE_CREATED.
-INTERNAL_NOTE events target only authorized FM/BOM, never customer/FS.
-
-Store one logical row per event/version/recipient/channel. Keep the existing
-unique event_key/recipient_key by consistently encoding channel in the event key.
-Business mutation/audit/outbox commit atomically; dispatch/retry after commit.
-Customer delivery is automatic EMAIL; FM/FS/BOM receive their user-scoped IN_APP
-notifications. Existing /notifications authorization/projection must be extended
-for Support in #166; role name alone is not a broadcast audience.
+The initial request is the ticket itself. `notification_outbox` records the
+creation receipt in the same transaction. Removed tables: `support_messages`,
+`support_attachments`, `support_audit`, and `support_idempotency`.
 Recheck current ownership/facility/assignee at read or sensitive delivery time.
 Revoked FS can receive only a minimal revocation notice, without old ticket data.
 

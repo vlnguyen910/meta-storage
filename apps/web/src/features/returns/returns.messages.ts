@@ -31,6 +31,10 @@ export const RETURNS_MESSAGES = {
   completed: "Đã hoàn tất trả kho",
   cancelled: "Đã hủy",
   loadError: "Không thể tải yêu cầu trả kho. Hãy thử lại.",
+  alreadyHasOpenRequestTitle: "Đã có yêu cầu trả kho đang chờ xử lý",
+  alreadyHasOpenRequestDesc:
+    "Kho này hiện đã có một yêu cầu trả kho chưa hoàn tất. Bạn có thể xem chi tiết hoặc điều chỉnh lịch hẹn của yêu cầu hiện tại thay vì tạo mới.",
+  viewExistingRequest: "Xem yêu cầu trả kho hiện tại",
   saveError: "Không thể lưu thay đổi. Tải lại dữ liệu rồi thử lại.",
   saveSuccess: "Yêu cầu trả kho đã được cập nhật.",
   cancelConfirm: "Bạn có muốn hủy yêu cầu trả kho này không?",

@@ -29,15 +29,6 @@ const version = z.number().int().nonnegative().max(2147483646);
 const reason = z.string().trim().min(1, m.reason).max(4000);
 const money = z.string().regex(/^(0|[1-9]\d{0,13})$/, m.invalidMoney);
 const date = z.iso.date();
-const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
-const timezone = z.string().refine((value) => {
-  try {
-    new Intl.DateTimeFormat("en", { timeZone: value });
-    return true;
-  } catch {
-    return false;
-  }
-});
 export const ReturnChecklistItemSchema = z.strictObject({
   code: z.string().trim().min(1).max(80),
   label: z.string().trim().min(1).max(300),
@@ -57,26 +48,6 @@ export const ConfigureReturnChecklistSchema = z
   );
 export type ConfigureReturnChecklist = z.infer<typeof ConfigureReturnChecklistSchema>;
 export type ReturnChecklistItem = z.infer<typeof ReturnChecklistItemSchema>;
-export const ConfigureReturnCalendarSchema = z.strictObject({
-  expectedVersion: version,
-  timezone,
-  holidays: z.array(date),
-  reminderTime: time,
-  operatingHours: z
-    .array(
-      z
-        .strictObject({
-          dayOfWeek: z.number().int().min(0).max(6),
-          openTime: time,
-          closeTime: time,
-        })
-        .refine((hours) => hours.openTime < hours.closeTime, m.invalidSlot),
-    )
-    .max(7)
-    .refine((hours) => new Set(hours.map((h) => h.dayOfWeek)).size === hours.length, m.invalidSlot)
-    .optional(),
-});
-export type ConfigureReturnCalendar = z.infer<typeof ConfigureReturnCalendarSchema>;
 export const ConfigureOverdueRateSchema = z.strictObject({
   expectedVersion: version,
   rate: z.number().int().min(0).max(100),

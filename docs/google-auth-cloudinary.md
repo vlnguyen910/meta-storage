@@ -97,39 +97,28 @@ Google remains optional as described above. `PORT` must be an integer from 1 to 
 configuration. No environment secret is automatically generated or written to `.env`.
 
 `common/adapters/storage/cloudinary.adapter.ts` owns SDK calls, authenticated delivery,
-immutable uploads, bounded downloads, and idempotent deletion. Thin photo/contract
-adapters preserve the existing domain interfaces and error contracts. Resource type
-is explicit (`image` or `raw`); deletion must use the same type as upload. Old photo
-module imports re-export the moved boundary for compatibility.
+immutable uploads, bounded downloads, and idempotent deletion. The photo adapter
+preserves the existing domain interface and error contract. Resource type is explicit;
+deletion must use the same type as upload. Old photo module imports re-export the moved
+boundary for compatibility.
 
 - Evidence remains authenticated images under existing paths. Read endpoints generate
   five-minute private download URLs. Existing Base64 evidence remains readable.
-- Contract PDFs are authenticated raw assets. The exact DB `objectKey`, including
-  `.pdf`, is the Cloudinary public ID; no additional schema or URL persistence is needed.
-  Owner/facility/guest-session checks remain in domain services. Contract viewing still
-  proxies original PDF bytes through the API; issue/download/handover keep existing
-  validation and SHA-256 checks. Guest contract delivery also uses Cloudinary.
-- Domain services decide whether deletion is allowed. No contract-delete API is added.
-  A failed or unacknowledged upload is retained for reconciliation; only confirmed
-  uploads known not to be referenced are eligible for rollback cleanup. Uploads with
+- Domain services decide whether deletion is allowed. A failed or unacknowledged upload
+  is retained for reconciliation; only confirmed uploads known not to be referenced are
+  eligible for rollback cleanup. Uploads with
   `overwrite:false` returning an existing resource are rejected without deletion.
 
-Cloudinary must allow private raw PDF downloads and support the existing 20 MiB PDF
-limit. Account settings/limits are an operator prerequisite. Validate original bytes,
-hash and unauthenticated denial in a test environment before production cutover.
+Cloudinary account settings/limits are an operator prerequisite. Validate original bytes
+and unauthenticated denial in a test environment before production cutover.
 References: [upload parameters](https://cloudinary.com/documentation/upload_parameters),
 [Google provider](https://better-auth.com/docs/authentication/google),
 [explicit account linking](https://better-auth.com/docs/concepts/users-accounts).
 
 ## Existing data and verification
 
-Read-only local inventory on 2026-10-21 found zero contract references and zero
-duplicate provider/account keys. The generated unique index was applied locally.
-This does not establish production inventory. Before deploying against existing S3
-contracts: inventory every reference, copy original bytes to matching Cloudinary raw
-IDs, compare byte size/SHA-256, pause competing writes for cutover, and retain source
-objects for rollback. The old S3 adapter/dependency remains solely for that legacy
-transition; no application path instantiates it. No production data was migrated.
+Read-only local inventory on 2026-10-21 found zero duplicate provider/account keys.
+The generated unique index was applied locally. This does not establish production inventory.
 
 Per the user's override, integration tests use the current local database on port
 5433/metastorage, explicit `MY_STORAGE_LOCAL_DATABASE_URL=DATABASE_URL`, `NODE_ENV=test`
@@ -144,7 +133,6 @@ bun --env-file=/tmp/metastorage-google-cloudinary-test.env test apps/api/tests/i
 bun --env-file=/tmp/metastorage-google-cloudinary-test.env test apps/api/tests/integration/inspections.integration.test.ts
 bun --env-file=/tmp/metastorage-google-cloudinary-test.env test apps/api/tests/integration/handover.integration.test.ts
 bun --env-file=/tmp/metastorage-google-cloudinary-test.env test apps/api/tests/integration/returns.integration.test.ts
-bun --env-file=/tmp/metastorage-google-cloudinary-test.env test apps/api/tests/integration/rental-contracts.test.ts
 bun run --filter api check-types
 bun run --filter @metastorage/database check-types
 ```
@@ -153,13 +141,12 @@ OAuth tests mock only Google provider exchange/profile methods, with real routes
 state/cookies and PostgreSQL accounts/sessions. Storage boundary tests mock SDK/fetch;
 business integration suites inject storage. Neither proves live provider acceptance.
 
-Verification recorded on 2026-10-21: 65 focused backend tests passed (9 Google,
-16 configuration/storage/service, 1 inspections, 1 handover, 26 returns, 12 contracts).
+Verification recorded on 2026-10-21 covered Google, configuration, storage, inspections,
+handover and returns.
 API/database typechecks and API lint passed; scoped Biome checked all 27 changed
 TypeScript files. Three existing Chromium tests passed for Cloudinary image display,
 retry after delivery failure and cancelling evidence deletion; screenshots were
-inspected. They use mocked responses, not live Cloudinary. The current Web has no
-contract PDF viewer to exercise; PDF responses were checked by backend integration.
+inspected. They use mocked responses, not live Cloudinary.
 Database checksums after fixture cleanup matched all business tables, users, accounts
 and sessions; one expired temporary verification was automatically removed by Better
 Auth during the later OAuth tests. No business data was reset or reseeded.
@@ -171,34 +158,8 @@ node apps/web/node_modules/@playwright/test/cli.js test --config apps/web/flow2.
 ```
 
 GitNexus structured change analysis completed without partial/truncated results and
-reported HIGH risk around shared auth/contract flows; those flows received the focused
+reported HIGH risk around shared authentication flows; those flows received the focused
 regression tests above. Newly added files were reviewed directly as well. GitHub issue
 searches for Google and Cloudinary returned no matches. No live provider credentials
-were available; real OAuth consent and Cloudinary PDF/private delivery acceptance are
-still required before production use. No commit, push or deployment was performed.
-
-## Contract upload diagnosis — 2026-10-23
-
-The active local credentials pass Cloudinary's authenticated ping, but a signed
-private raw PDF upload returns HTTP 403 with `missing permissions (actions=["create"])`.
-The API maps that provider rejection to `503 CONTRACT_STORAGE_UNAVAILABLE`.
-The root and API env files have matching Cloudinary credentials; no secret values
-were printed or changed. The diagnostic used a new private diagnostic key, not a
-customer booking, and did not modify business records.
-
-An account administrator must check the API key/product-environment permissions
-and permitted folders, or supply a server key that can create the private raw PDF
-assets used under `contracts/`. Contract reading and rollback cleanup also require
-the corresponding read/delete access. Manage keys through Cloudinary Console
-Settings → API Keys ([official instructions](https://cloudinary.com/documentation/developer_onboarding_faq_find_credentials)).
-After a key change, update the server configuration sources actually used locally
-(`.env` and/or `apps/api/.env`) and restart the API. Keep the API secret server-side.
-Verify upload, issue and authenticated PDF read before retrying Staff handover.
-No public-storage fallback or simulated upload success was introduced.
-
-Web now displays contract readiness on the FM monitoring page, with inline upload,
-local PDF preview, a separate upload action and a distinct issued state. Staff sees
-the missing-contract condition and cannot submit final handover until an issued
-contract is returned. Browser-native inline PDF rendering may vary; a local preview
-link is also provided. UI regression tests use API fixtures, not successful live
-Cloudinary writes; live upload acceptance remains blocked by the permission above.
+were available; real OAuth consent and Cloudinary delivery acceptance are still required
+before production use. No commit, push or deployment was performed.

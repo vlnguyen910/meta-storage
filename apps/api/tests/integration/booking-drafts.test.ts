@@ -8,9 +8,7 @@ import {
   db,
   eq,
   facilities,
-  facilityOperatingHours,
   payments,
-  reservationDrafts,
   storageUnits,
   systemSettings,
   unitTypes,
@@ -109,9 +107,6 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
       .where(eq(unitTypes.facilityId, ids.facility));
     await db.update(storageUnits).set({ status: "AVAILABLE" }).where(eq(storageUnits.id, ids.unit));
     await db.delete(capacityAllocations).where(eq(capacityAllocations.facilityId, ids.facility));
-    await db
-      .delete(facilityOperatingHours)
-      .where(eq(facilityOperatingHours.facilityId, ids.facility));
     await db.delete(bookings).where(eq(bookings.checkInSlotId, ids.extraSlot));
     await db.delete(checkInSlots).where(eq(checkInSlots.id, ids.extraSlot));
   });
@@ -135,7 +130,6 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
 
   test("creates an account-owned draft with the selected slot and immutable pricing", async () => {
     const beforePayments = await db.select({ count: count() }).from(payments);
-    const beforeReservations = await db.select({ count: count() }).from(reservationDrafts);
     const response = await createDraft({
       ...input,
       contact: { fullName: "Ignored", email: "ignored@example.test", phone: "0900000000" },
@@ -178,7 +172,6 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
       "3000000.00",
     );
     expect(await db.select({ count: count() }).from(payments)).toEqual(beforePayments);
-    expect(await db.select({ count: count() }).from(reservationDrafts)).toEqual(beforeReservations);
     expect(
       await db
         .select()
@@ -220,19 +213,6 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
       error: { code: 400, details: [{ field: "checkInSlotId" }] },
     });
   });
-  test("rejects a slot starting outside the facility operating hours", async () => {
-    await db.insert(facilityOperatingHours).values({
-      facilityId: ids.facility,
-      dayOfWeek: 2,
-      openTime: "09:15",
-      closeTime: "22:00",
-    });
-    const response = await createDraft();
-    expect(response.statusCode).toBe(400);
-    expect(response.json()).toMatchObject({
-      error: { code: 400, details: [{ field: "checkInSlotId" }] },
-    });
-  });
   test("uses the explicitly selected slot even when slot times overlap", async () => {
     await db.insert(checkInSlots).values({
       id: ids.extraSlot,
@@ -246,20 +226,6 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
     const [row] = await db.select().from(bookings).where(eq(bookings.id, response.json().data.id));
     expect(row?.checkInSlotId).toBe(ids.extraSlot);
     expect(row?.checkInDate).toBe(input.checkInDate);
-  });
-  test("keeps the Vietnamese check-in date when UTC falls on the previous day", async () => {
-    await db.insert(checkInSlots).values({
-      id: ids.extraSlot,
-      name: "Early slot",
-      startTime: "06:00",
-      endTime: "07:00",
-    });
-    const response = await createDraft({ ...input, checkInSlotId: ids.extraSlot });
-    expect(response.statusCode).toBe(201);
-    expect(response.json().data.checkInAt).toBe("2029-12-31T23:00:00.000Z");
-    const [row] = await db.select().from(bookings).where(eq(bookings.id, response.json().data.id));
-    expect(row?.checkInDate).toBe("2030-01-01");
-    expect(row?.checkInSlotId).toBe(ids.extraSlot);
   });
   test.each([
     ["10:00", "09:00"],

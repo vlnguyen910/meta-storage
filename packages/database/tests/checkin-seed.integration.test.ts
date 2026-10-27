@@ -31,12 +31,15 @@ describe.skipIf(!target)("immediate check-in seed on an isolated database", () =
     if ((await database.db.select().from(database.bookings).limit(1)).length) {
       throw new Error("Seed regression requires a freshly migrated empty test database");
     }
-    const child = Bun.spawn([process.execPath, "run", "db:seed"], {
-      cwd: fileURLToPath(new URL("../../..", import.meta.url)),
-      env: { ...globalThis.process.env, SEED_NOW: now.toISOString() },
-      stdout: "ignore",
-      stderr: "inherit",
-    });
+    const child = Bun.spawn(
+      [process.execPath, "run", "--filter", "@metastorage/database", "db:seed"],
+      {
+        cwd: fileURLToPath(new URL("../../..", import.meta.url)),
+        env: { ...globalThis.process.env, SEED_NOW: now.toISOString() },
+        stdout: "ignore",
+        stderr: "inherit",
+      },
+    );
     expect(await child.exited).toBe(0);
     ({ seedImmediateCheckInSlot } = await import("../src/seed"));
     const { CheckInsService } = await import(

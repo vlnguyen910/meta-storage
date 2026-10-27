@@ -5,7 +5,6 @@ import type { Database } from "./client";
 import { bookings } from "./schema/bookings";
 import { capacityAllocations } from "./schema/capacity-allocations";
 import { rentalPriceRanges } from "./schema/rental-price-ranges";
-import { reservationDrafts } from "./schema/reservation-drafts";
 import { storageUnits } from "./schema/storage-units";
 import { unitTypes } from "./schema/unit-types";
 
@@ -14,6 +13,10 @@ const legacyOfferings = pgTable("facility_unit_types", {
   facilityId: uuid("facility_id").notNull(),
   unitTypeId: uuid("unit_type_id").notNull(),
   isActive: boolean("is_active").notNull(),
+});
+const legacyReservationDrafts = pgTable("reservation_drafts", {
+  facilityId: uuid("facility_id").notNull(),
+  unitTypeId: uuid("unit_type_id").notNull(),
 });
 export async function migrateFacilityUnitTypes(
   tx: Parameters<Parameters<Database["transaction"]>[0]>[0],
@@ -65,7 +68,7 @@ export async function migrateFacilityUnitTypes(
         await tx
           .insert(legacyOfferings)
           .values({ facilityId: link.facilityId, unitTypeId: id, isActive: link.isActive });
-        for (const table of [storageUnits, bookings, reservationDrafts, capacityAllocations])
+        for (const table of [storageUnits, bookings, legacyReservationDrafts, capacityAllocations])
           await tx
             .update(table)
             .set({ unitTypeId: id })

@@ -22,7 +22,6 @@ import {
   exists,
   facilities,
   facilityAssignments,
-  facilityOperatingHours,
   getTableColumns,
   gt,
   gte,
@@ -566,12 +565,7 @@ export class BookingsRepository {
       conditions.push(eq(bookings.facilityId, query.facilityId));
     }
 
-    const timezone = this.db
-      .select({ timezone: facilityOperatingHours.timezone })
-      .from(facilityOperatingHours)
-      .where(eq(facilityOperatingHours.facilityId, bookings.facilityId))
-      .orderBy(facilityOperatingHours.dayOfWeek)
-      .limit(1);
+    const timezone = sql`'Asia/Ho_Chi_Minh'`;
     if (query.fromDate || query.toDate) {
       const fromDate = query.fromDate ?? query.toDate;
       const toDate = query.toDate ?? query.fromDate;

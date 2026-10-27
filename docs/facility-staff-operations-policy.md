@@ -45,7 +45,7 @@
 
 ### Ràng buộc kỹ thuật & Nghiệp vụ
 1. **Phạm vi giờ làm việc (Operational Working Hours):**
-   - Nhân sự làm việc theo khung giờ hoạt động chuẩn của cơ sở mà mình đang có active assignment, được quy định tại bảng `facility_operating_hours` (`day_of_week`, `open_time`, `close_time`, `timezone`).
+   - Nhân sự làm việc theo khung giờ hoạt động chuẩn của cơ sở mà mình đang có active assignment, được cấu hình dùng chung toàn hệ thống tại System Settings bởi Business Operations Manager (múi giờ `Asia/Ho_Chi_Minh`).
    - Mọi lịch hẹn nhận kho của khách hàng (`check_in_slots`) đều được ràng buộc phải nằm trọn trong khung giờ mở cửa của cơ sở (`open_time` đến `close_time`).
 2. **Tiêu chuẩn nhân sự khả dụng (Staff Availability Criteria):**
    - Một nhân viên cơ sở được coi là sẵn sàng để nhận phân công công việc khi thỏa mãn đồng thời cả 4 điều kiện:
