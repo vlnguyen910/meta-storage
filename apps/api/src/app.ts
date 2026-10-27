@@ -14,7 +14,6 @@ import { authPlugin } from "./modules/auth/auth.guard";
 import { authRoutes } from "./modules/auth/auth.routes";
 import { bookingsRoutes } from "./modules/bookings/bookings.routes";
 import { checkInsRoutes } from "./modules/check-ins/check-ins.routes";
-import { contractsRoutes } from "./modules/contracts/contracts.routes";
 import { facilityContextPlugin } from "./modules/facilities/facilities.guard";
 import { facilitiesRoutes } from "./modules/facilities/facilities.routes";
 import { facilityTasksRoutes } from "./modules/facility-tasks/facility-tasks.routes";
@@ -86,7 +85,6 @@ export function buildApp(): FastifyInstance {
   app.register(reportsRoutes, { prefix: "/api/reports" });
   app.register(storageUnitsRoutes, { prefix: "/api/storage-units" });
   app.register(storageUnitsRoutes, { prefix: "/api/units" });
-  app.register(contractsRoutes, { prefix: "/api" });
   app.register(returnsRoutes, { prefix: "/api" });
   app.register(rentalLifecycleSettingsRoutes, { prefix: "/api" });
   app.register(systemSettingsRoutes, { prefix: "/api" });
