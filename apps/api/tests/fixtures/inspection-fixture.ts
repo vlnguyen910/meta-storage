@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { HANDOVER_CHECKLIST_ITEMS } from "@metastorage/contracts";
 import {
   accounts,
+  and,
   bookings,
   checkInSlots,
   checkInVerifications,
@@ -10,10 +11,11 @@ import {
   facilities,
   facilityAssignments,
   facilityTasks,
-  handoverInspections,
   inArray,
-  inspectionPhotos,
+  inspections,
+  mediaAssets,
   notificationOutbox,
+  or,
   payments,
   rentals,
   storageUnits,
@@ -219,14 +221,32 @@ export async function createInspectionFixture(allowExistingLocal = false) {
     password,
     async cleanup() {
       await db.transaction(async (tx) => {
-        const inspections = tx
-          .select({ id: handoverInspections.id })
-          .from(handoverInspections)
-          .where(eq(handoverInspections.bookingId, bookingId));
-        await tx
-          .delete(inspectionPhotos)
-          .where(inArray(inspectionPhotos.inspectionId, inspections));
-        await tx.delete(handoverInspections).where(eq(handoverInspections.bookingId, bookingId));
+        const taskRows = await tx
+          .select({ id: facilityTasks.id })
+          .from(facilityTasks)
+          .where(eq(facilityTasks.facilityId, facilityId));
+        const taskIds = taskRows.map((t) => t.id);
+
+        const inspectionRows = await tx
+          .select({ id: inspections.id })
+          .from(inspections)
+          .where(
+            taskIds.length > 0
+              ? or(eq(inspections.bookingId, bookingId), inArray(inspections.taskId, taskIds))
+              : eq(inspections.bookingId, bookingId),
+          );
+        const inspectionIds = inspectionRows.map((row) => row.id);
+        if (inspectionIds.length > 0) {
+          await tx
+            .delete(mediaAssets)
+            .where(
+              and(
+                eq(mediaAssets.ownerType, "INSPECTION"),
+                inArray(mediaAssets.ownerId, inspectionIds),
+              ),
+            );
+          await tx.delete(inspections).where(inArray(inspections.id, inspectionIds));
+        }
         await tx.delete(notificationOutbox).where(eq(notificationOutbox.bookingId, bookingId));
         await tx.delete(rentals).where(eq(rentals.bookingId, bookingId));
         await tx.delete(checkInVerifications).where(eq(checkInVerifications.bookingId, bookingId));
