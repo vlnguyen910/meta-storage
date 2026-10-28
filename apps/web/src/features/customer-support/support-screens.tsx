@@ -282,13 +282,21 @@ export function CustomerSupportCreate() {
   const params = useSearchParams();
   const router = useRouter();
   const client = useQueryClient();
+  const urlCategory = params.get("category");
+  const initialCategory =
+    urlCategory && (SUPPORT_CATEGORIES as readonly string[]).includes(urlCategory)
+      ? (urlCategory as SupportCreateInput["category"])
+      : "PAYMENT";
+  const urlBookingId = params.get("bookingId") ?? "";
+  const urlSubject = params.get("subject") ?? "";
+
   const form = useForm<SupportCreateInput>({
     resolver: zodResolver(SupportCreateInputSchema),
     defaultValues: {
-      bookingId: params.get("bookingId") ?? "",
+      bookingId: urlBookingId,
       paymentId: params.get("paymentId") ?? undefined,
-      category: "PAYMENT",
-      subject: "",
+      category: initialCategory,
+      subject: urlSubject,
       content: "",
       idempotencyKey: crypto.randomUUID(),
     },
