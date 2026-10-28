@@ -15,6 +15,34 @@
       "when": 1793141317906,
       "tag": "0001_facility_task_description_remove_version",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793149545715,
+      "tag": "0002_mature_banshee",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793150376771,
+      "tag": "0003_breezy_giant_girl",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793150874387,
+      "tag": "0004_sour_mac_gargan",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793150886772,
+      "tag": "0005_free_mister_sinister",
+      "breakpoints": true
     }
   ]
 }

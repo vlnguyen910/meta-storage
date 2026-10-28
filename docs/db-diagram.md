@@ -138,76 +138,29 @@ Facility staff membership cannot be revoked while an assigned task is
 `ASSIGNED` or `IN_PROGRESS`; booking and return workflows retain their own
 assignment constraints.
 
-## Return workflow (confirmed 2026-10-20)
+## Return workflow consolidation
 
-This additive feature is independent of handover inspections/check-in checklist.
-`return_checklist_versions`: UUID id, unique integer version, JSONB items
-(code/label/group/serious), created_by FK users and created_at. Versions are immutable;
-Admin appends a version with optimistic concurrency. There is no inferred initial
-checklist; all four confirmed groups must be configured before starting inspection.
+The return-specific tables and return audit table are removed. `rentals` is the
+aggregate for one return lifecycle per rental. It stores the optional return slot,
+local date, UTC start/end, timezone, return status, reason and manual-review flag. Its
+partial unique facility/date/slot index preserves capacity one for CONFIRMED,
+INSPECTING and FAILED returns. Staff assignment stays on the facility task.
 
-Global `system_settings` keys `OPENING_HOUR` and `CLOSING_HOUR` hold the shared
-operating window (default 08:00–20:00, Asia/Ho_Chi_Minh); BOM manages them with
-versioned audit history. Holiday calendars are out of scope. `check_in_slots` define
-appointment start times; return appointments are filtered by the shared hours and
-remain capacity one with a 15-minute cooldown. Existing appointments keep their
-saved UTC/timezone snapshots.
+The latest approved settlement snapshot is stored as JSONB on `rentals`, alongside
+its approving user, time and reason. This keeps the current financial result but no
+longer keeps earlier settlement revisions. Schedule edits update the rental directly;
+there is no separate request/approval history for time changes. The return checklist
+snapshot and results live in the CHECK_OUT row in `inspections.checklist`.
 
-`system_settings` key OVERDUE_FEE_RATE stores integer rate 0–100 (seed 25),
-version, updated_by FK users nullable for seed and updated_at. Changes are BOM-only
-and audited. Missing policy blocks financial assessment; no runtime fallback.
+`payments.type` distinguishes COLLECTION from RETURN_REFUND. A return-refund row
+links to the rental and original payment, stores amount/allocation, idempotency
+key, transfer reference and confirmer/time in payment columns. Evidence
+is stored in `media_assets`. Rental-charge adjustments/refunds no longer reference a
+settlement row; their rental context is derived through the charge.
 
-`return_requests`: UUID id, rental_id/facility_id/slot_id FKs, local date, UTC starts_at/
-ends_at and timezone snapshots, assigned_staff_id FK nullable, reason, status
-(PENDING/CONFIRMED/INSPECTING/FAILED/COMPLETED/CANCELLED), version, manual_review_required,
-created_by FK records the authenticated customer account, and created_at. Partial unique index permits only one open return per
-rental. Rental/booking locks serialize workflow and financial changes; schedule
-capacity/buffer checks serialize on the facility row.
-PENDING does not reserve capacity. A partial unique (facility_id,date,slot_id) index
-for CONFIRMED/INSPECTING/FAILED backs capacity-one confirmation; buffer conflicts
-between different slots are checked under the same facility lock.
-
-`return_inspections`: UUID id, request_id FK, unique (request_id, attempt),
-checklist_version_id FK, JSONB definition/results snapshots, DRAFT/PASS/FAIL status,
-version, property_disposition/receiver/handled_at/evidence_photo_ids, created_by,
-completed_by/at and created_at. FAILED retries append a new attempt and change the
-request FAILED → INSPECTING; frozen results are never overwritten. Remaining property
-does not by itself FAIL inspection but blocks closure until resolved or stored.
-`return_inspection_photos`: UUID id, inspection_id/uploaded_by FKs, filename, MIME,
-byte_size, private storage public_id/format and created_at; maximum five per inspection.
-No photo bytes or public URLs are persisted in the normal inspection DTO.
-`return_evidence_photos`: UUID id, request_id/uploaded_by FKs, purpose
-(TIME_CORRECTION or REFUND), filename/MIME/byte_size, private public_id/format and
-created_at. Financial/time evidence is independent of frozen inspection evidence
-and its five-photo limit, allowing proof to be added after rental closure.
-
-`return_time_changes`: UUID id, request_id FK, previous_at/proposed_at, reason,
-JSONB evidence_photo_ids, idempotency_key, PENDING/APPROVED/REJECTED status,
-proposed_by/decided_by FKs, decision_reason/decided_at and created_at. Unique
-(request_id,idempotency_key). FS proposes corrections; assigned-facility FM decides.
-Initial physical receipt is also audited. Approvals compare previous_at against
-the current confirmed value to reject competing corrections.
-
-`return_settlements`: immutable UUID id and unique (request_id,revision), FK request,
-integer-VND numeric(14,0) deposit/overdue/damage/unused-rent-refund/refund-entitlement/
-debt snapshots, integer rate_snapshot, actual_return_at, refund_due_date,
-timezone snapshot JSONB, approved_by FK, reason and approved_at. Corrections append
-new revisions, retain the original rate/deposit snapshot, and calculate debt if
-already-refunded money exceeds the corrected entitlement. No automatic collection.
-SLA is three business days following FM approval, skipping Saturday and Sunday.
-Original revision deadlines are retained in history.
-
-`return_refunds`: UUID id, request_id/payment_id/settlement_id FKs, positive integer-VND
-amount, reference, evidence_photo_ids JSONB, idempotency_key, confirmed_by FK and
-confirmed_at. Unique request/idempotency and transfer reference; rows represent
-explicitly confirmed manual transfers, not refund submissions. No existing payment
-status is overwritten. Settlement closure does not wait for transfers.
-
-`return_audit`: UUID id, nullable request_id/facility_id FKs, nullable actor_id FK, action,
-JSONB details and created_at. Customer and Staff mutations record their users FK;
-nullable actors remain available for scheduled/system records. Guest creation is removed.
-Append-only approvals/config/transition records.
-No unrelated workflow, renewal/upgrade or check-in policy is introduced.
+`system_settings` keys OPENING_HOUR/CLOSING_HOUR remain the shared operating window;
+holiday calendars are out of scope. OVERDUE_FEE_RATE remains an integer rate 0–100
+(seed 25), BOM-managed and audited. Missing policy blocks financial assessment.
 
 Flow 4 pricing: `system_settings` key DEPOSIT_MONTHS stores positive integer value
 and shared positive pricing version, nullable updated_by FK users and updated_at. The one-month starting policy is explicitly seeded, never a runtime
@@ -229,28 +182,29 @@ The existing-model sections record tables and columns declared in
 future implementation, including Customer Support (#164). Flow 2 activates rentals at Staff handover; customer access requires an account;
 Booking and Payment are introduced by issue #18.
 
-Issue #24 adds `handover_inspections` and `inspection_photos` under the H6_V1 decision:
+Issue #24's handover inspection data now resides in the shared `inspections` table,
+with evidence metadata in `media_assets`:
 
-- One inspection per check-in verification; linked to the booking, facility, exact assignment
-  and physical unit. A changed assignment/verification requires a new inspection, retaining history.
-- New inspections use checklist version `H6_4PASS_V1`: DRAFT accepts incomplete results;
-  COMPLETED requires PASS for ASSIGNED_UNIT, DOOR_LOCK, UNIT_CONDITION and EXISTING_INVENTORY.
-  Notes/photos/signature are optional. Results and the immutable definition snapshot are stored
-  with the inspection. Nullable checklist columns distinguish historical records; no inferred PASS
+- CHECK_IN inspections link to the booking and physical unit. The exact verification
+  and assignment linkage is validated by application logic, not stored as inspection FKs.
+- New CHECK_IN inspections use checklist version `H6_4PASS_V1`: PENDING/IN_PROGRESS
+  accepts incomplete results; PASSED requires PASS for ASSIGNED_UNIT, DOOR_LOCK,
+  UNIT_CONDITION and EXISTING_INVENTORY. Notes/photos/signature are optional. Results
+  and the immutable definition snapshot are stored in checklist JSONB. No inferred PASS
   or backfill. Saving explicit results on an old draft adopts the new policy; completed history stays unchanged.
 - FM assignment atomically sets a free physical unit RESERVED. Other bookings cannot reserve
   that unit, even for non-overlapping dates. Reassign/cancel/no-show release RESERVED units only
   if no other live assignment or ACTIVE rental remains. Handover changes RESERVED to OCCUPIED.
-- Completion records actor/time and freezes the baseline; it does not create a Rental,
+- PASSED records inspect_done_at and freezes the baseline; it does not create a Rental,
   consume verification, mark CHECKED_IN or change the unit's occupancy (#25).
-- `version` plus booking/inspection row locks reject stale/concurrent writes. Only current
+- Booking/inspection row locks reject conflicting writes. Only current
   verified assignments can be edited. Completed and superseded records remain readable by facility scope.
 - Photos are private authenticated evidence, bounded to 8 JPEG/PNG/WebP files, 3 MiB each.
   Evidence is stored as authenticated Cloudinary assets, referenced by required public ID and
   format. PostgreSQL stores metadata only. Photo GET uses private/no-store caching.
 - FM prepares unit/staff assignment and monitors records; only the assigned Facility Staff
   can verify, edit inspection evidence, complete inspection and confirm handover.
-- A separate handover transaction records `handed_over_by/at`, creates exactly one ACTIVE rental
+- A separate handover transaction creates exactly one ACTIVE rental
   per booking, marks booking CHECKED_IN, unit OCCUPIED (business In Use), and consumes verification.
   Rental dates use the registered booking period. No PIN/NFC or access-control requirement.
 - Signature is optional and not a completion requirement. No automatic AI comparison or
@@ -310,37 +264,31 @@ erDiagram
   }
   users o|--o{ system_settings : updates
   users ||--o{ pricing_changes : changes
-  handover_inspections {
+  inspections {
     uuid id PK
-    uuid booking_id FK
-    uuid facility_id FK
-    uuid physical_unit_id FK
-    uuid unit_assignment_id FK
-    uuid verification_id FK,UK
-    varchar unit_code
-    varchar policy_version
-    varchar checklist_version "nullable legacy"
-    jsonb checklist_results "nullable legacy"
-    jsonb checklist_definition "nullable legacy"
-    inspection_status status
-    integer version
-    boolean correct_unit
-    text condition_notes
-    uuid created_by FK
-    uuid completed_by FK
-    timestamptz completed_at
-    uuid handed_over_by FK
-    timestamptz handed_over_at
-    timestamptz created_at
-    timestamptz updated_at
+    uuid storage_unit_id FK
+    uuid rental_id FK "nullable"
+    uuid booking_id FK "nullable"
+    uuid inspected_by FK
+    uuid task_id FK
+    varchar inspection_type
+    varchar status
+    varchar condition "nullable"
+    jsonb checklist
+    text notes "nullable"
+    timestamptz inspected_at "nullable"
+    timestamptz inspect_done_at "nullable"
   }
-  inspection_photos {
+  media_assets {
     uuid id PK
-    uuid inspection_id FK
+    varchar owner_type
+    uuid owner_id
+    varchar purpose
     uuid uploaded_by FK
     varchar filename
     varchar mime_type
     integer byte_size
+    varchar cloudinary_resource_type
     text cloudinary_public_id
     varchar cloudinary_format
     timestamptz created_at
@@ -364,6 +312,8 @@ erDiagram
   bookings ||--o| rentals : becomes
   facilities ||--o{ rentals : hosts
   storage_units ||--o{ rentals : occupies
+  check_in_slots o|--o{ rentals : return_appointment
+  users o|--o{ rentals : approves_return_settlement
   rentals ||--o{ rental_charges : owes
   rentals ||--o{ rental_renewals : renews
   rental_renewals o|--o| rental_charges : collects_rent
@@ -372,22 +322,20 @@ erDiagram
   users o|--o{ rental_charges : approves
   rental_charges ||--o{ payments : attempts
   bookings ||--o{ payments : records
+  rentals ||--o{ payments : return_refunds
+  payments ||--o{ payments : refund_source
   users o|--o{ payments : confirms_manual_refund
   rental_charges ||--o{ rental_charge_adjustments : adjusts
   rental_charges ||--o{ rental_charge_events : audits
   rental_charges ||--o{ rental_charge_refunds : refunds
   payments ||--o{ rental_charge_refunds : refunds
-  return_requests ||--o{ return_settlements : revises
-  rental_charges o|--o{ return_settlements : debt_obligation
   bookings ||--o{ checkin_verifications : verifies
-  bookings ||--o{ handover_inspections : records_baseline
-  facilities ||--o{ handover_inspections : scopes
-  storage_units ||--o{ handover_inspections : inspected
-  unit_assignments ||--o{ handover_inspections : snapshots
-  checkin_verifications ||--o| handover_inspections : authorizes
-  users ||--o{ handover_inspections : creates_and_completes
-  handover_inspections ||--o{ inspection_photos : evidence
-  users ||--o{ inspection_photos : uploads
+  bookings o|--o{ inspections : checkin_context
+  rentals o|--o{ inspections : checkout_context
+  storage_units ||--o{ inspections : inspected
+  facility_tasks ||--o{ inspections : assigned_work
+  users ||--o{ inspections : inspects
+  users ||--o{ media_assets : uploads
   users ||--o{ checkin_verifications : performs
   facilities ||--o{ checkin_verifications : scopes
   unit_assignments ||--o{ checkin_verifications : snapshots
@@ -559,6 +507,18 @@ erDiagram
     integer version "nonnegative current term"
     timestamptz actual_return_at "nullable"
     timestamptz closed_at "nullable"
+    uuid return_slot_id FK "nullable"
+    date return_date "nullable"
+    timestamptz return_starts_at "nullable"
+    timestamptz return_ends_at "nullable"
+    text return_timezone "nullable"
+    rental_return_status return_status "nullable"
+    text return_reason "nullable"
+    boolean return_manual_review_required
+    jsonb return_settlement "nullable latest snapshot"
+    uuid return_settlement_approved_by FK "nullable"
+    timestamptz return_settlement_approved_at "nullable"
+    text return_settlement_reason "nullable"
     numeric deposit_amount
     timestamptz created_at
     timestamptz updated_at
@@ -611,7 +571,6 @@ erDiagram
   rental_charge_adjustments {
     uuid id PK
     uuid charge_id FK
-    uuid settlement_id FK "nullable"
     rental_charge_adjustment_direction direction
     numeric amount "positive integer VND"
     text reason
@@ -633,7 +592,6 @@ erDiagram
     uuid id PK
     uuid charge_id FK
     uuid payment_id FK
-    uuid settlement_id FK "nullable"
     numeric amount "positive integer VND"
     text reason
     rental_charge_refund_status status
@@ -643,33 +601,18 @@ erDiagram
     timestamptz created_at
   }
 
-  return_settlements {
-    uuid id PK
-    uuid request_id FK
-    uuid rental_charge_id FK "nullable debt obligation"
-    integer revision
-    numeric deposit_snapshot
-    integer rate_snapshot
-    numeric overdue_fee_amount
-    numeric damage_amount
-    numeric unused_rent_refund_amount
-    numeric refund_entitlement
-    numeric debt_amount
-    timestamptz actual_return_at
-    date refund_due_date
-    jsonb calendar_snapshot
-    uuid approved_by FK
-    text reason
-    timestamptz approved_at
-  }
-
   payments {
     uuid id PK
+    payment_type type
     uuid booking_id FK "nullable for rental-charge payments"
     uuid rental_charge_id FK "nullable; source-specific charge attempt"
-    varchar provider
-    varchar provider_payment_id
-    varchar payment_code UK
+    uuid rental_id FK "nullable return refund"
+    uuid source_payment_id FK "nullable original payment for return refund"
+    numeric deposit_refund_amount "nullable"
+    numeric rent_refund_amount "nullable"
+    varchar provider "nullable for manual refund"
+    varchar provider_payment_id "nullable"
+    varchar payment_code UK "nullable"
     varchar hold_token_hash "nullable for charge payment"
     varchar idempotency_key UK
     numeric total_amount
@@ -752,9 +695,14 @@ erDiagram
   `facility_assignments.ended_at`, `storage_units.floor`,
   `storage_units.location_description`,
   `facility_tasks.started_at`, `facility_tasks.completed_at`,
+  `rentals.actual_return_at`, `rentals.closed_at` and the optional return schedule,
+  settlement snapshot and settlement approval fields; `payments.booking_id`,
+  `rental_charge_id`, `rental_id`, `source_payment_id`, refund allocations,
+  provider checkout fields, `hold_token_hash`, `paid_at`, `expires_at`, and refund
+  metadata;
   `sessions.ip_address`,
   `sessions.user_agent`, and the optional token, expiry, scope and password
-  fields in `accounts`. Every other column shown is required.
+  fields in `accounts`. Other nullability follows the Drizzle schema.
 - User role/status values are defined once in `packages/contracts/src/users.ts` and
   reused by Drizzle and API contracts. Changing those values still requires a database migration.
 - Enum values are `role`: `CUSTOMER`, `FACILITY_STAFF`, `FACILITY_MANAGER`,
@@ -765,7 +713,10 @@ erDiagram
   `facility_task_status`: `ASSIGNED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`;
   `facility_task_reference_type`: `BOOKING`, `STORAGE_UNIT`, `SUPPORT_TICKET`;
   `capacity_allocation_kind`: `HOLD`, `BOOKING`; and
-  `capacity_allocation_status`: `ACTIVE`, `RELEASED`, `EXPIRED`.
+  `capacity_allocation_status`: `ACTIVE`, `RELEASED`, `EXPIRED`;
+  `payment_type`: `COLLECTION`, `RETURN_REFUND`;
+  `rental_return_status`: `PENDING`, `CONFIRMED`, `INSPECTING`, `FAILED`,
+  `COMPLETED`, `CANCELLED`.
 - Composite unique `accounts(provider_id, account_id)` ensures one owner per provider
   identity, including concurrent OAuth linking. Existing duplicates must be resolved
   explicitly before applying this constraint; never merge users automatically.
@@ -815,7 +766,7 @@ Customers select a type; operations assign the physical unit later.
 ## Account-required booking (approved 2026-10-25; supersedes guest decisions)
 
 Only active authenticated CUSTOMER accounts can create booking drafts, start payments,
-read payment status, cancel bookings, or access their rentals/documents/return requests.
+read payment status, cancel bookings, or access their rentals/documents and return details.
 Ownership is bookings.user_id, required with ON DELETE RESTRICT. No email-based claim,
 guest checkout token, magic link, guest cookie or guest actor grants business access.
 Existing guest business records are deleted before imposing NOT NULL; account-owned
@@ -874,19 +825,20 @@ The legacy reservation-draft checkout and table are removed.
   `HOLD` to `BOOKING` inside the same transaction. No physical unit is assigned
   at checkout.
 - `payments.idempotency_key` and `(provider, provider_payment_id)` are unique.
-- `payments` references exactly one source: booking or rental charge. Booking attempts
-  require a hold-token hash; charge attempts
-  do not. Partial unique indexes permit one pending attempt and one applied
+- `payments.type = COLLECTION` references exactly one source: booking or rental charge.
+  Booking attempts require a hold-token hash; charge attempts do not. `RETURN_REFUND`
+  references a rental and its source payment without provider checkout fields. Partial
+  unique indexes permit one pending attempt and one applied
   (`SUCCEEDED`) attempt per charge; late/duplicate provider captures remain
   separate refund-pending attempts. Charge payment quote expiry is stored separately from the
   charge due date; an expired quote can be retried with a new idempotency key.
 - `rental_charges` stores source-specific obligations in integer VND. `EXTRA` is
-  the charge itself; each return settlement revision points to its return-debt
-  obligation with a typed FK. Future renewal rows will point to their charge in
-  #163. No generic polymorphic source ID is used. Charge adjustments and refunds
+  the charge itself; return-debt charges are associated through `rental_id`, without
+  a settlement FK. Future renewal rows point to their charge in #163. No generic
+  polymorphic source ID is used. Charge adjustments and refunds
   are append-only records; events retain submit/approve/dispute/payment/refund audit.
-- The source CHECK requires exactly one of booking_id or rental_charge_id. Booking checkout
-  uses booking_id plus a hold-token hash. Plaintext tokens are never stored.
+- The COLLECTION source CHECK requires exactly one of booking_id or rental_charge_id.
+  Booking checkout uses booking_id plus a hold-token hash. Plaintext tokens are never stored.
 
 Check-in slots are shared time-of-day definitions with exactly four required
 columns: `id`, `name`, `start_time`, `end_time`. A Booking stores a required
@@ -924,17 +876,16 @@ All nonclosed rental statuses (ACTIVE, RETURN_PENDING, OVERDUE) block reassignme
 - Outbox insert shares business transactions. Unique logical keys deduplicate callbacks,
   retries, concurrent cron runs and immediate/scheduled expiry reminders.
   In-app reads enforce current ownership or current FM facility assignment.
-- Disposition updates may resolve property on an older failed inspection without
-  changing its original checklist or PASS/FAIL. Closure checks every inspection attempt.
+- Return inspection checklist and outcome are kept on the CHECK_OUT inspection row;
+  this schema no longer stores a separate return-inspection attempt history.
 
 ## Flow 3 review corrections (2026-10-20)
 
-Confirmed: partial mixed refunds explicitly allocate deposit/rent; depositHeld is
-refundable deposit after approved fees minus confirmed deposit refunds, floored at zero.
-`return_refunds.deposit_refund_amount` / `rent_refund_amount`: nullable numeric(14,0),
-both null for legacy data or both nonnegative with sum equal to amount. New API
-infers only unambiguous single-source refunds; mixed refunds require both components.
-Historical unallocatable refunds are reconciliation issues, never guessed.
+Return refunds are payment rows with type RETURN_REFUND. Deposit/rent allocation fields
+are nullable numeric(14,2); both are null or both are nonnegative and sum to the
+refund amount. The refund row links to its rental and source payment and records the
+manual transfer reference and confirmer. Earlier return-refund records and settlement
+revisions are not retained by this simplified schema.
 
 `notification_outbox.booking_email`: nullable JSONB snapshot (booking code, facility
 name, unit type, verified paidAt, optional tracking-link delivery id/createdAt/expiry),
@@ -952,7 +903,7 @@ No historical booking email replay. Old queue jobs are adopted by the same job I
 the legacy lifecycle API filters reads/writes to these two keys. Values are nonnegative PostgreSQL
 integers; no business min/max is imposed. Seed values are 7 days for each setting.
 System Administrator changes use optimistic version, store actor/time, and append
-system_setting_changes plus legacy return_audit in the same transaction. A sweep reads one settings snapshot for its
+system_setting_changes in the same transaction. A sweep reads one settings snapshot for its
 candidate query and state changes. Existing logical notification keys and review flags
 remain stable after configuration changes.
 
@@ -975,7 +926,7 @@ remain relational domain data. Holiday calendars are out of scope.
 
 `system_setting_changes`: UUID id, key FK, JSONB before/after value+version snapshots,
 actor_id FK, source and created_at. Append-only changes share the update transaction;
-existing pricing_changes and return_audit are retained for domain history.
+existing pricing_changes remain the pricing history source.
 
 The pre-production baseline creates the current settings schema directly. Existing
 development databases must be reset before applying it; no legacy configuration
