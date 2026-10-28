@@ -14,7 +14,6 @@ import {
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Currency } from "@/components/ui/display";
-import { operationalField } from "@/components/ui/operational";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { FLOW } from "@/features/facility-flow/flow.messages";
@@ -173,35 +172,9 @@ export function FacilityBookingsView({
             </Link>
           )}
         </div>
-        {!isStaff ? (
-          <label className="grid gap-2 text-xs font-semibold text-slate-600">
-            {MB.filters}
-            <select
-              aria-label={MB.filters}
-              value={d.filter}
-              onChange={(event) => d.setFilter(event.target.value)}
-              className={operationalField}
-            >
-              {[
-                "ALL",
-                "NEEDS_UNIT",
-                "NEEDS_STAFF",
-                "READY",
-                "INSPECTING",
-                "READY_HANDOVER",
-                "TOO_EARLY",
-                "NO_SHOW",
-                "CHECKED_IN",
-              ].map((value) => (
-                <option key={value} value={value}>
-                  {value === "ALL" ? FLOW.all : labels[value]} (
-                  {value === "ALL" ? d.bookings.length : d.count(value)})
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : (
-          <div className="flex flex-wrap gap-2">
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-slate-600">{MB.filters}</p>
+          <div className="flex flex-wrap items-center gap-2" role="toolbar" aria-label={MB.filters}>
             {[
               "ALL",
               "NEEDS_UNIT",
@@ -212,22 +185,34 @@ export function FacilityBookingsView({
               "TOO_EARLY",
               "NO_SHOW",
               "CHECKED_IN",
-            ].map((id) => (
-              <button
-                key={id}
-                type="button"
-                aria-pressed={d.filter === id}
-                onClick={() => d.setFilter(id)}
-                className={`rounded-md px-3 py-2 text-xs font-semibold ${d.filter === id ? "bg-[#003b2f] text-white" : "bg-[#f2f3ff] text-[#404945]"}`}
-              >
-                {id === "ALL" ? FLOW.all : labels[id]}{" "}
-                <span className="ml-1 opacity-70">
-                  {id === "ALL" ? d.bookings.length : d.count(id)}
-                </span>
-              </button>
-            ))}
+            ].map((id) => {
+              const active = d.filter === id;
+              const itemCount = id === "ALL" ? d.bookings.length : d.count(id);
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => d.setFilter(id)}
+                  className={`inline-flex items-center rounded-full px-3.5 py-1.5 text-xs font-medium transition-all ${
+                    active
+                      ? "bg-[#003b2f] text-white shadow-sm ring-1 ring-[#003b2f]"
+                      : "border border-transparent bg-[#f2f3ff] text-[#404945] hover:bg-[#e4e7fa]"
+                  }`}
+                >
+                  <span>{id === "ALL" ? FLOW.all : labels[id]}</span>
+                  <span
+                    className={`ml-1.5 rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                      active ? "bg-white/20 text-white" : "bg-slate-200/80 text-slate-700"
+                    }`}
+                  >
+                    {itemCount}
+                  </span>
+                </button>
+              );
+            })}
           </div>
-        )}
+        </div>
       </Panel>
       <p role="status" aria-live="polite" className="text-sm text-[#404945]">
         {d.query.isFetching ? FLOW.refreshing : FLOW.results(pageItems.length, d.filtered.length)}
