@@ -14,6 +14,7 @@ import {
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Currency } from "@/components/ui/display";
+import { operationalField } from "@/components/ui/operational";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { FLOW } from "@/features/facility-flow/flow.messages";
@@ -29,6 +30,8 @@ import {
 import { readiness, useDispatch } from "@/features/facility-flow/use-dispatch";
 import { formatDateTime } from "@/lib/format";
 import type { FacilityBookingsViewProps } from "./facility-bookings-view.types";
+import { ManagerBookingRow } from "./manager-booking-row";
+import { MANAGER_BOOKING_ROW as MB } from "./manager-booking-row.messages";
 import { StaffAssignmentModal } from "./staff-assignment-modal";
 
 function slotRemainingLabel(value: string) {
@@ -152,32 +155,61 @@ export function FacilityBookingsView({
             </Link>
           )}
         </div>
-        <div className="flex flex-wrap gap-2">
-          {[
-            "ALL",
-            "NEEDS_UNIT",
-            "NEEDS_STAFF",
-            "READY",
-            "INSPECTING",
-            "READY_HANDOVER",
-            "TOO_EARLY",
-            "NO_SHOW",
-            "CHECKED_IN",
-          ].map((id) => (
-            <button
-              key={id}
-              type="button"
-              aria-pressed={d.filter === id}
-              onClick={() => d.setFilter(id)}
-              className={`rounded-md px-3 py-2 text-xs font-semibold ${d.filter === id ? "bg-[#003b2f] text-white" : "bg-[#f2f3ff] text-[#404945]"}`}
+        {!isStaff ? (
+          <label className="grid gap-2 text-xs font-semibold text-slate-600">
+            {MB.filters}
+            <select
+              aria-label={MB.filters}
+              value={d.filter}
+              onChange={(event) => d.setFilter(event.target.value)}
+              className={operationalField}
             >
-              {id === "ALL" ? FLOW.all : labels[id]}{" "}
-              <span className="ml-1 opacity-70">
-                {id === "ALL" ? d.bookings.length : d.count(id)}
-              </span>
-            </button>
-          ))}
-        </div>
+              {[
+                "ALL",
+                "NEEDS_UNIT",
+                "NEEDS_STAFF",
+                "READY",
+                "INSPECTING",
+                "READY_HANDOVER",
+                "TOO_EARLY",
+                "NO_SHOW",
+                "CHECKED_IN",
+              ].map((value) => (
+                <option key={value} value={value}>
+                  {value === "ALL" ? FLOW.all : labels[value]} (
+                  {value === "ALL" ? d.bookings.length : d.count(value)})
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {[
+              "ALL",
+              "NEEDS_UNIT",
+              "NEEDS_STAFF",
+              "READY",
+              "INSPECTING",
+              "READY_HANDOVER",
+              "TOO_EARLY",
+              "NO_SHOW",
+              "CHECKED_IN",
+            ].map((id) => (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={d.filter === id}
+                onClick={() => d.setFilter(id)}
+                className={`rounded-md px-3 py-2 text-xs font-semibold ${d.filter === id ? "bg-[#003b2f] text-white" : "bg-[#f2f3ff] text-[#404945]"}`}
+              >
+                {id === "ALL" ? FLOW.all : labels[id]}{" "}
+                <span className="ml-1 opacity-70">
+                  {id === "ALL" ? d.bookings.length : d.count(id)}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </Panel>
       <p role="status" aria-live="polite" className="text-sm text-[#404945]">
         {d.query.isFetching ? FLOW.refreshing : FLOW.results(pageItems.length, d.filtered.length)}
@@ -222,6 +254,16 @@ export function FacilityBookingsView({
                 "TOO_EARLY",
               ].includes(state);
             const url = `${root}/check-in?bookingCode=${encodeURIComponent(b.bookingCode)}`;
+            if (!isStaff)
+              return (
+                <ManagerBookingRow
+                  key={b.id}
+                  booking={b}
+                  state={state}
+                  canAssign={canAssign}
+                  onAssignStaff={() => setStaffBooking(b)}
+                />
+              );
             return (
               <Panel
                 key={b.id}

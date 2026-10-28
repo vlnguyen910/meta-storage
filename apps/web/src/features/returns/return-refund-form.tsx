@@ -18,6 +18,7 @@ export function ReturnRefundForm({
     stale || !editor.ready || editor.mutation.refreshError || editor.uncertain || editor.recorded;
   return (
     <form
+      noValidate
       className="space-y-4 border-t border-slate-200 pt-4"
       onSubmit={editor.form.handleSubmit(editor.submit)}
     >
@@ -36,8 +37,14 @@ export function ReturnRefundForm({
             inputMode="numeric"
             pattern="[0-9]+"
             required
+            aria-invalid={Boolean(editor.form.formState.errors.depositRefundAmount)}
             {...editor.form.register("depositRefundAmount")}
           />
+          {editor.form.formState.errors.depositRefundAmount && (
+            <span role="alert" className="text-xs font-normal text-danger">
+              {editor.form.formState.errors.depositRefundAmount.message}
+            </span>
+          )}
         </label>
         <label className="grid gap-2 font-semibold text-sm">
           {F3.rentTransfer}
@@ -46,8 +53,14 @@ export function ReturnRefundForm({
             inputMode="numeric"
             pattern="[0-9]+"
             required
+            aria-invalid={Boolean(editor.form.formState.errors.rentRefundAmount)}
             {...editor.form.register("rentRefundAmount")}
           />
+          {editor.form.formState.errors.rentRefundAmount && (
+            <span role="alert" className="text-xs font-normal text-danger">
+              {editor.form.formState.errors.rentRefundAmount.message}
+            </span>
+          )}
         </label>
         <label className="grid gap-2 font-semibold text-sm">
           {F3.reference}
@@ -55,8 +68,14 @@ export function ReturnRefundForm({
             className={f3Input}
             maxLength={128}
             required
+            aria-invalid={Boolean(editor.form.formState.errors.reference)}
             {...editor.form.register("reference")}
           />
+          {editor.form.formState.errors.reference && (
+            <span role="alert" className="text-xs font-normal text-danger">
+              {editor.form.formState.errors.reference.message}
+            </span>
+          )}
         </label>
         <fieldset className="space-y-2">
           <legend className="font-semibold text-sm">{F3.savedProofs}</legend>

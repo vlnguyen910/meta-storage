@@ -1,4 +1,7 @@
 export const F3 = {
+  settlementSaved: "Đã xác nhận quyết toán và hoàn tất trả kho.",
+  refundSaved: "Đã ghi nhận khoản hoàn tiền.",
+  staffAssignedSaved: "Đã cập nhật nhân viên tiếp nhận trả kho.",
   unknownCustomer: "Khách thuê",
   bookingCode: "Mã đặt kho",
   unitLabel: "Ô kho",

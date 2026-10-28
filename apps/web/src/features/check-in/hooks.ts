@@ -107,6 +107,8 @@ export function useAssignStaffMutation() {
       Promise.all([
         queryClient.invalidateQueries({ queryKey: bookingKeys.all }),
         queryClient.invalidateQueries({ queryKey: ["facility-flow"] }),
+        queryClient.invalidateQueries({ queryKey: ["flow5"] }),
+        queryClient.invalidateQueries({ queryKey: ["manager-tabs"] }),
       ]),
   });
 }

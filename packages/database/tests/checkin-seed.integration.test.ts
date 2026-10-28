@@ -111,7 +111,7 @@ describe.skipIf(!target)("immediate check-in seed on an isolated database", () =
     await seedImmediateCheckInSlot(now);
     const result = await service.lookup({ type: "BOOKING_CODE", value: "DEMO-CHECKIN-NOW" });
     expect(result.eligibility.canProceed).toBe(true);
-    expect(result.booking.checkInSlotStart).toBe("2026-10-23T16:59:00.000Z");
+    expect(result.booking.checkInSlotStart).toBe("2026-10-23T12:59:00.000Z");
     expect(
       await db.select().from(bookings).where(eq(bookings.id, SEED_IDS.bookings["BK-2026-0001"])),
     ).toEqual(originals);

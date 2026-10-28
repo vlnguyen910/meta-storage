@@ -1,5 +1,4 @@
 "use client";
-import { FacilityTaskStatus } from "@metastorage/contracts";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
@@ -22,10 +21,7 @@ export function ManagerCoordinationScreen() {
 function CoordinationContent() {
   const scope = useFacilityContext();
   const requested = useSearchParams().get("view");
-  const view =
-    requested === "tasks" || requested === "reports" || requested === "returns"
-      ? requested
-      : "bookings";
+  const view = requested === "tasks" || requested === "returns" ? requested : "bookings";
   if (scope.isLoading) return <LoadingState variant="table" />;
   if (scope.isError)
     return <ErrorState message={D.errorLoadFacility} onRetry={() => scope.refetch()} />;
@@ -42,22 +38,14 @@ function CoordinationContent() {
       )}
       <header>
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-          {view === "bookings"
-            ? M.booking
-            : view === "returns"
-              ? M.returns
-              : view === "reports"
-                ? M.reviews
-                : M.tasks}
+          {view === "bookings" ? M.booking : view === "returns" ? M.returns : M.tasks}
         </h1>
         <p className="mt-2 text-sm text-slate-600">
           {view === "bookings"
             ? M.bookingHint(scope.currentFacility.facilityName ?? "cơ sở được phân công")
             : view === "returns"
               ? M.returnsHint
-              : view === "reports"
-                ? M.reviewsHint
-                : M.coordinationHint}
+              : M.coordinationHint}
         </p>
       </header>
       <nav
@@ -67,7 +55,6 @@ function CoordinationContent() {
         {[
           { id: "bookings", label: M.booking },
           { id: "tasks", label: M.tasks },
-          { id: "reports", label: M.reviews },
           { id: "returns", label: M.returns },
         ].map((item) => (
           <Link
@@ -97,7 +84,6 @@ function CoordinationContent() {
           key={`${scope.currentFacilityId}:${view}`}
           facilityId={scope.currentFacilityId}
           manager
-          status={view === "reports" ? FacilityTaskStatus.AWAITING_APPROVAL : undefined}
         />
       )}
     </div>

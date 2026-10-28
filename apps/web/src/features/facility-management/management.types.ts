@@ -31,6 +31,7 @@ export interface ManagementDialogProps {
   onClose: () => void;
   children: ReactNode;
   pending?: boolean;
+  wide?: boolean;
 }
 export interface PageControlsProps {
   label: string;

@@ -32,7 +32,7 @@ giữa hai snapshot dev đã kiểm tra:
 | bookings.ts | userId có thể null do guest; chỉ customer đăng nhập có ownership thật mới dùng Support. facilityId do server lấy; assignedStaffId của booking không phải phân công Support |
 | rentals.ts | bookingId unique, facilityId, physicalUnitId, createdAt là căn cứ nối sau bàn giao; không lấy booking.start date làm bằng chứng đã nhận kho |
 | facility-assignments.ts | FM/FS một active facility, kiểm tra role/account active/membership còn hạn; không gán membership FACILITY_MANAGER cho BOM để vượt quyền |
-| facility-tasks.ts | Task có ASSIGNED/IN_PROGRESS/AWAITING_APPROVAL/COMPLETED; chưa có stopped/cancelled; không thể dùng trực tiếp để thể hiện customer đóng rồi FS dừng |
+| facility-tasks.ts | HANDLE_SUPPORT task tham chiếu support ticket, theo dõi ASSIGNED/IN_PROGRESS/COMPLETED/CANCELLED; ticket vẫn giữ lifecycle/nội dung riêng |
 | notification-outbox.ts | booking/facility bắt buộc, recipientEmail bắt buộc, unique eventKey/recipientKey; dev mới có rentalTermVersion cần giữ |
 | lifecycle-notifications.routes.ts | Inbox hiện allow CUSTOMER/FM; mở cho FS/BOM và lọc Support là việc #166, chưa có trong runtime |
 | notifications.service.ts | Websocket STAFF_TASK_ASSIGNED thuộc booking, ephemeral; không phải durable Support notifications |

@@ -7,6 +7,7 @@ export interface FacilityReturnQueueProps {
 }
 
 export interface ReturnQueueRowProps {
+  returnFilters?: string;
   request: ReturnQueueItemDto;
   actorRole: "FACILITY_MANAGER" | "FACILITY_STAFF";
   assignedStaffName?: string | null;

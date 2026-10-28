@@ -1,5 +1,7 @@
 "use client";
 import type { ReturnRequestDetailDto } from "@metastorage/contracts";
+import { BadgeDollarSign, ReceiptText } from "lucide-react";
+import { OperationalSectionHeader } from "@/components/ui/operational";
 import { F3 } from "./integration.messages";
 import { f3Panel, money, readWholeVnd } from "./integration-utils";
 import { MoneyRows, RefundBalances } from "./return-money-summary";
@@ -22,7 +24,11 @@ export function ReturnFinancePanel({
   const refundable = summary && (readWholeVnd(summary.remainingRefund) ?? 0n) > 0n;
   return (
     <section className={className ?? f3Panel}>
-      <h2 className="font-bold text-lg">{F3.settlement}</h2>
+      {manager ? (
+        <OperationalSectionHeader title={F3.settlement} icon={BadgeDollarSign} />
+      ) : (
+        <h2 className="font-bold text-lg">{F3.settlement}</h2>
+      )}
       {!settlement && <p>{F3.noSettlement}</p>}
       {stale && (
         <p role="alert" className="text-amber-950">
@@ -41,6 +47,22 @@ export function ReturnFinancePanel({
           <summary className="min-h-11 cursor-pointer font-bold">
             {F3.version(entry.revision)}
           </summary>
+          {manager && (
+            <div className="mb-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                <p className="text-xs font-medium text-emerald-800">{F3.entitlement}</p>
+                <p className="mt-1 text-xl font-bold tabular-nums text-emerald-950">
+                  {money(entry.refundEntitlement)}
+                </p>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-medium text-slate-600">{F3.debt}</p>
+                <p className="mt-1 text-xl font-bold tabular-nums text-slate-900">
+                  {money(entry.debtAmount)}
+                </p>
+              </div>
+            </div>
+          )}
           <MoneyRows
             rows={[
               [F3.deposit, entry.depositSnapshot],
@@ -54,7 +76,15 @@ export function ReturnFinancePanel({
         </details>
       ))}
       {summary && <RefundBalances summary={summary} />}
-      <h3 className="font-semibold">{F3.refundHistory}</h3>
+      {manager ? (
+        <OperationalSectionHeader
+          title={F3.refundHistory}
+          icon={ReceiptText}
+          count={detail.refunds.length}
+        />
+      ) : (
+        <h3 className="font-semibold">{F3.refundHistory}</h3>
+      )}
       {detail.refunds.length === 0 ? (
         <p className="text-sm text-muted">Chưa có lần hoàn tiền nào.</p>
       ) : (

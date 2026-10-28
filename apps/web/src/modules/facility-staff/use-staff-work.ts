@@ -47,10 +47,7 @@ export function useStaffWork(facilityId: string, date: string, kind: StaffWorkFi
     queryFn: async ({ signal }) => {
       const items: FacilityTaskDetail[] = [];
       for (let offset = 0; ; offset += 100) {
-        const page = await api.flow5.tasks.list(
-          { facilityId, assignedStaffId: actorId, limit: 100, offset },
-          signal,
-        );
+        const page = await api.flow5.tasks.listMine({ limit: 100, offset }, signal);
         items.push(...page.items);
         if (offset + page.items.length >= page.total) break;
         if (!page.items.length) throw new Error(M.loadError);

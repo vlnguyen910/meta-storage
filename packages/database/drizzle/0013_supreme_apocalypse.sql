@@ -1,1 +1,0 @@
-ALTER TABLE "payments" ADD COLUMN "monthly_rate_snapshot" numeric(14, 2) NOT NULL;

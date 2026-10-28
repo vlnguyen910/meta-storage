@@ -1,2 +1,0 @@
-ALTER TABLE "unit_types" ADD COLUMN "size_cbm" numeric GENERATED ALWAYS AS ("length_m" * "width_m" * "height_m") STORED NOT NULL;--> statement-breakpoint
-ALTER TABLE "unit_types" DROP COLUMN "size_sqm";

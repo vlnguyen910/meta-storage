@@ -9,6 +9,7 @@ import {
   eq,
   facilities,
   facilityAssignments,
+  facilityTasks,
   handoverInspections,
   inArray,
   inspectionPhotos,
@@ -234,6 +235,7 @@ export async function createInspectionFixture(allowExistingLocal = false) {
         await tx.delete(bookings).where(eq(bookings.id, bookingId));
         await tx.delete(storageUnits).where(eq(storageUnits.id, unitId));
 
+        await tx.delete(facilityTasks).where(eq(facilityTasks.facilityId, facilityId));
         await tx.delete(facilityAssignments).where(eq(facilityAssignments.facilityId, facilityId));
         await deleteTestUnitTypes(tx, eq(unitTypes.id, unitTypeId));
         await tx.delete(facilities).where(eq(facilities.id, facilityId));

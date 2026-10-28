@@ -7,8 +7,11 @@ import type {
   SaveReturnInspection,
 } from "@metastorage/contracts";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/components/ui/toast";
 import { authStore } from "@/features/auth/auth-store";
 import { api } from "@/lib/api";
+import { F3 } from "./integration.messages";
+import { integrationError } from "./integration-utils";
 import { useFlow3Identity } from "./use-flow3-identity";
 
 const identity = () => {
@@ -152,10 +155,12 @@ type ReturnQueueStatus =
 
 export function useAssignReturnStaff(requestId: string, facilityId: string) {
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
   return useMutation({
     meta: { globalLoading: true },
     mutationFn: (input: AssignReturnStaff) => api.returns.assignStaff(requestId, input),
     onSuccess: async () => {
+      showToast(F3.staffAssignedSaved, "success");
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: returnKeys.queue(facilityId, "FACILITY_MANAGER"),
@@ -163,7 +168,8 @@ export function useAssignReturnStaff(requestId: string, facilityId: string) {
         queryClient.invalidateQueries({ queryKey: returnKeys.request(requestId) }),
       ]);
     },
-    onError: async () => {
+    onError: async (error) => {
+      showToast(integrationError(error), "error");
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: returnKeys.queue(facilityId, "FACILITY_MANAGER"),

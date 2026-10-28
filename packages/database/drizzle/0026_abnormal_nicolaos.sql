@@ -1,1 +1,0 @@
-CREATE UNIQUE INDEX "facility_assignments_active_user_idx" ON "facility_assignments" USING btree ("user_id") WHERE "facility_assignments"."is_active" = true;

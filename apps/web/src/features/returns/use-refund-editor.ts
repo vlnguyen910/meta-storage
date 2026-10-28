@@ -67,8 +67,10 @@ export function useRefundEditor(detail: ReturnRequestDetailDto) {
     }
     setReady(true);
   }, [storageKey, form]);
-  const mutation = useReturnWrite(detail.request.id, (input: ConfirmReturnRefund) =>
-    api.returnActions.confirmRefund(detail.request.id, input),
+  const mutation = useReturnWrite(
+    detail.request.id,
+    (input: ConfirmReturnRefund) => api.returnActions.confirmRefund(detail.request.id, input),
+    F3.refundSaved,
   );
   const recorded =
     pending.current &&
@@ -98,8 +100,15 @@ export function useRefundEditor(detail: ReturnRequestDetailDto) {
   }, [recorded, storageKey, form]);
   async function submit(values: RefundDraft) {
     if (busy.current || !ready || recorded || mutation.refreshError) return;
+    form.clearErrors();
     const amounts = refundAmounts(values, detail.refundSummary);
     if (!amounts || !values.confirmed) {
+      if (!amounts) {
+        form.setError("depositRefundAmount", { type: "validate", message: F3.invalid });
+        form.setError("rentRefundAmount", { type: "validate", message: F3.invalid });
+      }
+      if (!values.confirmed)
+        form.setError("confirmed", { type: "validate", message: F3.confirmTransfer });
       setMessage(F3.invalid);
       return;
     }
@@ -118,6 +127,11 @@ export function useRefundEditor(detail: ReturnRequestDetailDto) {
       expectedVersion: detail.request.version,
     });
     if (!input.success) {
+      for (const issue of input.error.issues) {
+        const field = issue.path[0];
+        if (field === "reference")
+          form.setError("reference", { type: "validate", message: F3.invalid });
+      }
       setMessage(F3.invalid);
       return;
     }

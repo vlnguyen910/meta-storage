@@ -44,8 +44,10 @@ export function useSettlementEditor(detail: ReturnRequestDetailDto) {
     setLoading(false);
     return () => controller.current?.abort();
   }, [signature]);
-  const mutation = useReturnWrite(detail.request.id, (input: SettleReturn) =>
-    api.returns.settle(detail.request.id, input),
+  const mutation = useReturnWrite(
+    detail.request.id,
+    (input: SettleReturn) => api.returns.settle(detail.request.id, input),
+    F3.settlementSaved,
   );
 
   async function loadPreview(confirm = false) {
@@ -53,7 +55,13 @@ export function useSettlementEditor(detail: ReturnRequestDetailDto) {
       ...form.getValues(),
       expectedVersion: detail.request.version,
     });
+    form.clearErrors();
     if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        const field = issue.path[0];
+        if (field === "damageAmount" || field === "unusedRentRefundAmount" || field === "reason")
+          form.setError(field, { type: "validate", message: F3.invalid });
+      }
       setMessage(F3.invalid);
       return;
     }

@@ -1,5 +1,6 @@
 "use client";
 import { Suspense } from "react";
+import { OperationalPageHeader } from "@/components/ui/operational";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/states";
 import { FacilitySwitcher } from "@/features/facilities/facility-switcher";
 import { useFacilityContext } from "@/features/facilities/use-facility-context";
@@ -19,7 +20,7 @@ function ScopedFrame({ title, description, children }: ManagerTabFrameProps) {
   if (!scope.currentFacility)
     return <EmptyState title={M.noFacility} description={M.noFacilityHint} />;
   return (
-    <div className="space-y-6 pt-5">
+    <div className="space-y-6">
       {scope.isMultiFacility && (
         <FacilitySwitcher
           activeAssignments={scope.activeAssignments}
@@ -27,10 +28,7 @@ function ScopedFrame({ title, description, children }: ManagerTabFrameProps) {
           onSwitchFacility={scope.switchFacility}
         />
       )}
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">{title}</h1>
-        <p className="mt-2 text-sm text-slate-600">{description}</p>
-      </header>
+      <OperationalPageHeader title={title} description={description} />
       <div key={scope.currentFacilityId}>{children(scope.currentFacilityId)}</div>
     </div>
   );

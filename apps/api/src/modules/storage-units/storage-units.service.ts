@@ -4,12 +4,11 @@ import {
   type StorageUnitDetail,
   type StorageUnitListQuery,
   type StorageUnitListResult,
-  type StorageUnitMaintenanceHistoryQuery,
-  type StorageUnitMaintenanceHistoryResult,
   type UpdateStorageUnitInput,
 } from "@metastorage/contracts";
 import type { StorageUnit } from "@metastorage/database";
 import { ConflictError, ForbiddenError, NotFoundError } from "../../common/errors/app-error";
+import { mapPageDto } from "../../common/types/page.dto";
 import { getFacilityAccessScope, requireAssignedFacility } from "../facilities/facilities.access";
 import type { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
 import type { StorageUnitsRepository } from "./storage-units.repository";
@@ -31,16 +30,11 @@ export class StorageUnitsService {
     await requireAssignedFacility(this.assignmentsRepository, query.facilityId, scope);
     const result = await this.repository.listByFacility(query);
     if (!result) throw new NotFoundError(STORAGE_UNIT_MESSAGES.facilityNotFound);
-    return {
-      items: result.items.map((unit) => ({
-        ...unitDetail(unit),
-        unitTypeName: unit.unitTypeName,
-        unitTypeSizeLabel: unit.unitTypeSizeLabel,
-      })),
-      total: result.total,
-      limit: query.limit,
-      offset: query.offset,
-    };
+    return mapPageDto(result, query, (unit) => ({
+      ...unitDetail(unit),
+      unitTypeName: unit.unitTypeName,
+      unitTypeSizeLabel: unit.unitTypeSizeLabel,
+    }));
   }
 
   async getUnitDetails(id: string, actor: UnitTransitionUser): Promise<StorageUnitDetail> {
@@ -68,7 +62,6 @@ export class StorageUnitsService {
   async transitionStatus(
     unitId: string,
     targetStatus: "AVAILABLE" | "MAINTENANCE",
-    reason: string | undefined,
     user: UnitTransitionUser,
   ): Promise<StorageUnit> {
     const unit = await this.getUnitById(unitId);
@@ -80,7 +73,7 @@ export class StorageUnitsService {
       ]);
     }
 
-    const result = await this.repository.transitionStatus(unitId, targetStatus, reason, user.id);
+    const result = await this.repository.transitionStatus(unitId, targetStatus);
 
     if ("error" in result) {
       if (result.error === "UNIT_NOT_FOUND") {
@@ -141,28 +134,6 @@ export class StorageUnitsService {
       throw new ConflictError(STORAGE_UNIT_MESSAGES.unitHasOperations);
     }
     return unitDetail(result);
-  }
-
-  async maintenanceHistory(
-    id: string,
-    query: StorageUnitMaintenanceHistoryQuery,
-    actor: UnitTransitionUser,
-  ): Promise<StorageUnitMaintenanceHistoryResult> {
-    const unit = await this.repository.findById(id);
-    if (!unit) throw new NotFoundError(STORAGE_UNIT_MESSAGES.unitNotFound);
-    await requireAssignedFacility(
-      this.requireAssignments(),
-      unit.facilityId,
-      getFacilityAccessScope(actor),
-      ["FACILITY_MANAGER"],
-    );
-    const result = await this.repository.listMaintenanceHistory(id, query);
-    return {
-      items: result.items.map((item) => ({ ...item, changedAt: item.changedAt.toISOString() })),
-      total: result.total,
-      limit: query.limit,
-      offset: query.offset,
-    };
   }
 
   private requireAssignments(): FacilityAssignmentsRepository {

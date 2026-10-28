@@ -1,1 +1,0 @@
-ALTER TABLE "unit_types" ADD CONSTRAINT "unit_types_price_positive" CHECK ("unit_types"."monthly_price" > 0);

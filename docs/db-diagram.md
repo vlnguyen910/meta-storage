@@ -12,7 +12,7 @@ make it pass. Existing bootstrap/seed is retained.
 
 Account role changes and locking serialize on the users row, then memberships.
 Block changes while directly assigned booking is CONFIRMED, manual task is
-ASSIGNED/IN_PROGRESS/AWAITING_APPROVAL, support ticket is OPEN/IN_PROGRESS, or return
+ASSIGNED/IN_PROGRESS, support ticket is OPEN/IN_PROGRESS, or return
 request is PENDING/CONFIRMED/INSPECTING/FAILED. Closed/completed historical work and
 created_by/assigned_by audit references do not block changes. The existing handoff
 flows remain authoritative; no automatic work transfer is introduced.
@@ -78,13 +78,9 @@ in place of the retired offering. Range validation uses range-first/type-second
 locks after the shared pricing revision; new quotes require configured active
 bounds. Captures of existing quotes retain saved prices rather than recalculating.
 
-Migration expands the schema, transfers every existing facility/type pair into a
-local type (retaining the original UUID for the first facility and cloning others),
-remaps the four composite references, then enforces NOT NULL/FKs and retires the
-join table. Unassigned or nonpositive-priced legacy types fail preflight for explicit
-resolution rather than silently losing data. Existing scalar settings, payment
-amounts, audit JSON and renewal snapshots are not rewritten. The migration
-runner performs the transfer within its existing atomic migration transaction.
+The pre-production baseline creates facility-owned unit types directly from this
+schema. Pre-baseline development databases are reset; the baseline does not migrate
+their data.
 
 ## Rental renewals (#163, approved 2026-10-24)
 
@@ -117,55 +113,30 @@ OVERDUE begins at the saved expiry instant for an unreturned rental. Return-fee
 assessment still compares local calendar dates; abandoned review keeps the existing
 seven-full-local-day boundary starting at midnight on the following date.
 
-## Flow 5 manual task assignment
+## Facility work tasks
 
-`facility_tasks` stores manual work assigned by the active Facility Manager to an
-active Facility Staff account at the same facility. Types are `INSPECT_UNIT`,
-`PRINT_DOCUMENT` and `REPORT_TO_MANAGER`. Columns: UUID id, facility_id,
-assigned_staff_id, created_by and assigned_by FKs, type, title (1..200 trimmed
-characters), nullable description (up to 2000 characters), nullable storage_unit_id
-and booking_id FKs, nonnegative integer version (default 0), lifecycle status,
-nullable started_at, completed_by and completed_at, assigned_at, created_at and
-updated_at. All foreign keys use RESTRICT to preserve assignments. Indexes cover
-(facility_id, assigned_staff_id) and (facility_id, type).
+`facility_tasks` is one staff work queue for check-in and handover, unit inspection,
+and support handling. `type` is `CHECK_IN_HANDOVER`, `UNIT_INSPECTION`, or
+`HANDLE_SUPPORT`; `status` is `ASSIGNED`, `IN_PROGRESS`, `COMPLETED`, or
+`CANCELLED`. Each row has UUID id, facility_id, reference_type/reference_id,
+assigned_staff_id and assigned_by FKs, nullable description, nullable started_at
+and completed_at, assigned_at, created_at and updated_at. The polymorphic reference
+types are `BOOKING`, `STORAGE_UNIT`, and `SUPPORT_TICKET`; because one UUID column
+cannot have foreign keys to three tables, repositories validate target existence
+and same-facility scope under transaction locks.
 
-Creation and reassignment validate current account roles, ACTIVE status and active,
-unexpired facility assignments under row locks. Optional unit/booking references
-must belong to the task facility. Reassignment uses the expected version; assigning
-the same current staff member at the current version is a no-op. Lifecycle is
-ASSIGNED → IN_PROGRESS → AWAITING_APPROVAL → COMPLETED. Only FM acceptance of the
-latest report completes a task; the report stores the accepting FM and time. Task
-metadata does not change booking assignees, inspection permissions, physical
-occupancy, contracts, rentals or maintenance. Existing Flow 2/contract APIs remain
-authoritative for execution; creating a printing task does not assert that a
-document has actually been printed.
+`CHECK_IN_HANDOVER` always references a booking and is created or reassigned in the
+same transaction as FM booking staff assignment. `UNIT_INSPECTION` references a
+booking or storage unit; `HANDLE_SUPPORT` references a support ticket. Reassignment
+resets an in-progress task to `ASSIGNED`; same assignee retries are no-ops. The
+assigned active Facility Staff starts and completes the task. An assigned-facility
+FM may cancel unfinished work. There is no separate task report, approval state,
+title, or completion actor field; the existing inspection and support records own
+their domain details.
 
-Facility staff membership cannot be revoked while bookings or tasks remain
-assigned; those items must be reassigned first.
-
-## Flow 5 staff work reports (confirmed 2026-10-22)
-
-The latest task report is stored on `facility_tasks`: nullable report_id,
-report_content (trimmed, 1..5000), report_submitted_by FK users and
-report_submitted_at. These four fields are either all null or all present.
-Submitting again replaces the prior report; no report history is retained.
-The existing completed_by/completed_at columns record the accepting FM and time.
-
-Only the current active assigned FS with a valid same-facility assignment may
-submit. Same-facility FM and current assigned FS may read the latest report.
-Submission rechecks authorization under task/account/membership row locks in the
-same order as task reassignment. Identity/time are server-generated. Reporting
-does not itself complete a task or mutate booking/unit/rental/inspection state.
-The assigned-facility FM accepts the latest report to complete the task.
-
-## Flow 5 physical-unit maintenance history
-
-`storage_unit_maintenance_history` records each allowed maintenance transition:
-UUID id, storage_unit_id FK, action (`ENTER_MAINTENANCE` or `EXIT_MAINTENANCE`),
-previous/next storage-unit status, optional reason, changed_by FK users, and
-changed_at. A status update and its history record commit in the same transaction.
-The actor and reason are retained for audit; history prevents hard deletion of the
-physical unit and the acting account.
+Facility staff membership cannot be revoked while an assigned task is
+`ASSIGNED` or `IN_PROGRESS`; booking and return workflows retain their own
+assignment constraints.
 
 ## Return workflow (confirmed 2026-10-20)
 
@@ -290,33 +261,25 @@ erDiagram
   facility_tasks {
     uuid id PK
     uuid facility_id FK
-    uuid assigned_staff_id FK
-    uuid created_by FK
-    uuid assigned_by FK
     facility_task_type type
     facility_task_status status
-    varchar title
-    text description
-    uuid storage_unit_id FK "nullable"
-    uuid booking_id FK "nullable"
+    facility_task_reference_type reference_type
+    uuid reference_id
+    uuid assigned_staff_id FK
+    uuid assigned_by FK
     integer version
     timestamptz started_at "nullable"
-    uuid completed_by FK "nullable"
     timestamptz completed_at "nullable"
-    uuid report_id "nullable"
-    text report_content "nullable"
-    uuid report_submitted_by FK "nullable"
-    timestamptz report_submitted_at "nullable"
     timestamptz assigned_at
     timestamptz created_at
     timestamptz updated_at
   }
   facilities ||--o{ facility_tasks : scopes
   users ||--o{ facility_tasks : performs
-  users ||--o{ facility_tasks : creates
   users ||--o{ facility_tasks : assigns
-  storage_units o|--o{ facility_tasks : references
-  bookings o|--o{ facility_tasks : references
+  facility_tasks }o--|| bookings : "reference when BOOKING"
+  facility_tasks }o--|| storage_units : "reference when STORAGE_UNIT"
+  facility_tasks }o--|| support_tickets : "reference when SUPPORT_TICKET"
   system_settings {
     text key PK
     jsonb value
@@ -550,20 +513,6 @@ erDiagram
     timestamptz updated_at
   }
 
-  storage_unit_maintenance_history {
-    uuid id PK
-    uuid storage_unit_id FK
-    storage_unit_maintenance_action action
-    storage_unit_status previous_status
-    storage_unit_status next_status
-    text reason "nullable"
-    uuid changed_by FK
-    timestamptz changed_at
-  }
-  storage_units ||--o{ storage_unit_maintenance_history : records
-  users ||--o{ storage_unit_maintenance_history : changes
-
-
   capacity_allocations {
     uuid id PK
     uuid facility_id FK
@@ -788,7 +737,7 @@ erDiagram
   Legacy jobs remain readable; ENQUEUED differs from provider-confirmed SENT.
 
 - UUID primary keys on `users`, `facilities`, `facility_assignments`,
-  `facility_tasks`, `storage_unit_maintenance_history`,
+  `facility_tasks`,
   `unit_types`, `storage_units`, `check_in_slots`,
   and `capacity_allocations` default to generated random UUIDs. Auth tables
   `accounts`, `sessions` and `verifications` use text primary keys.
@@ -801,11 +750,8 @@ erDiagram
 - Nullable columns are `users.image`, `users.phone`,
   `users.role`, `users.status`, `facilities.description`,
   `facility_assignments.ended_at`, `storage_units.floor`,
-  `storage_units.location_description`, `storage_unit_maintenance_history.reason`,
-  `facility_tasks.description`, `facility_tasks.storage_unit_id`,
-  `facility_tasks.booking_id`, `facility_tasks.report_id`,
-  `facility_tasks.report_content`, `facility_tasks.report_submitted_by`,
-  `facility_tasks.report_submitted_at`,
+  `storage_units.location_description`,
+  `facility_tasks.started_at`, `facility_tasks.completed_at`,
   `sessions.ip_address`,
   `sessions.user_agent`, and the optional token, expiry, scope and password
   fields in `accounts`. Every other column shown is required.
@@ -815,8 +761,9 @@ erDiagram
   `BUSINESS_OPERATION_MANAGER`, `SYSTEM_ADMIN`; `status`: `ACTIVE`, `INACTIVE`;
   `storage_unit_status`: `AVAILABLE`, `RESERVED`, `OCCUPIED`, `MAINTENANCE`,
   `INSPECTION`, `RETURN_PENDING`, `LOCKED`, `INACTIVE`;
-  `storage_unit_maintenance_action`: `ENTER_MAINTENANCE`, `EXIT_MAINTENANCE`;
-  `facility_task_type`: `INSPECT_UNIT`, `PRINT_DOCUMENT`, `REPORT_TO_MANAGER`;
+  `facility_task_type`: `CHECK_IN_HANDOVER`, `UNIT_INSPECTION`, `HANDLE_SUPPORT`;
+  `facility_task_status`: `ASSIGNED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`;
+  `facility_task_reference_type`: `BOOKING`, `STORAGE_UNIT`, `SUPPORT_TICKET`;
   `capacity_allocation_kind`: `HOLD`, `BOOKING`; and
   `capacity_allocation_status`: `ACTIVE`, `RELEASED`, `EXPIRED`.
 - Composite unique `accounts(provider_id, account_id)` ensures one owner per provider
@@ -845,8 +792,7 @@ erDiagram
   reference value without a database foreign key.
 - User foreign keys use `ON DELETE CASCADE` for `accounts`, `sessions` and
   `facility_assignments`, and `ON DELETE RESTRICT` for `bookings.user_id`.
-  Facility task/report and unit maintenance history references use `ON DELETE RESTRICT`
-  to preserve assigned work, reports, transition history and actor references.
+  Facility task references use `ON DELETE RESTRICT` to preserve assigned work.
   Facility foreign keys use `ON DELETE CASCADE` for
   `storage_units` and `facility_assignments`, and
   `ON DELETE RESTRICT` for capacity allocations.
@@ -1031,11 +977,9 @@ remain relational domain data. Holiday calendars are out of scope.
 actor_id FK, source and created_at. Append-only changes share the update transaction;
 existing pricing_changes and return_audit are retained for domain history.
 
-The migration runner snapshots legacy pricing_settings, return_overdue_settings and
-rental_lifecycle_settings under row locks, runs generated DDL, and restores values
-with original versions, descriptions and actor/timestamps in the same transaction.
-The legacy configuration tables are retired only as part of that atomic migration.
-Use `bun run db:migrate`; invoking drizzle-kit migrate directly bypasses this data step.
+The pre-production baseline creates the current settings schema directly. Existing
+development databases must be reset before applying it; no legacy configuration
+transfer is included.
 
 ## Customer Support request model (2026-10-27)
 
@@ -1094,11 +1038,9 @@ No new auto-dispatch, SLA engine, automatic escalation or realtime is approved.
 There is no cross-role ESCALATE action in MVP; overdue work stays with the
 authorized FM/BOM category owner and is visible in its manual queue.
 
-Support work remains on support_tickets. Do not create facility_tasks implicitly,
-alter bookings.assigned_staff_id, inherit check-in/inspection authority or change
-occupancy/rental/payment/maintenance/access codes. Existing facility_tasks lifecycle
-and task approval remain governed by Flow 5. Future shared work lists may query
-both sources without merging their state machines.
+Support ticket text remains on support_tickets; staff assignment is a linked
+HANDLE_SUPPORT facility task. The task does not replace ticket content or alter
+booking, inspection, occupancy, rental, payment, maintenance or access-code state.
 
 ## Facility workspace support events
 

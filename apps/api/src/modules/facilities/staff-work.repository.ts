@@ -32,7 +32,7 @@ export async function hasOpenAssignedWork(
         .where(
           and(
             eq(facilityTasks.assignedStaffId, userId),
-            inArray(facilityTasks.status, ["ASSIGNED", "IN_PROGRESS", "AWAITING_APPROVAL"]),
+            inArray(facilityTasks.status, ["ASSIGNED", "IN_PROGRESS"]),
             facilityId ? eq(facilityTasks.facilityId, facilityId) : undefined,
           ),
         ),

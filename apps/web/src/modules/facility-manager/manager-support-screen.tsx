@@ -2,6 +2,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { SupportOperation } from "@metastorage/contracts";
 import { useQuery } from "@tanstack/react-query";
+import { isAxiosError } from "axios";
+import { LifeBuoy, MessageSquareText } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -9,8 +11,15 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
+import {
+  OperationalBackLink,
+  OperationalBadge,
+  OperationalSectionHeader,
+  operationalField,
+} from "@/components/ui/operational";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/states";
 import { managementError, useTaskStaff } from "@/features/facility-management/hooks";
+import { ManagementDialog } from "@/features/facility-management/management-ui";
 import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { ManagerTabFrame } from "./manager-tab-frame";
@@ -24,7 +33,7 @@ import type {
 } from "./manager-tabs.types";
 import { useManagerKey, useManagerTicket, useManagerTicketAction } from "./use-manager-tabs";
 
-const field = "min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm";
+const field = operationalField;
 const schema = z
   .object({
     action: z.enum(["ASSIGN", "REPLY", "NOTE", "ACCEPT", "REOPEN", "PRIORITY"]),
@@ -67,6 +76,8 @@ function Support({ facilityId }: ManagerFacilityTabProps) {
     enabled: !selected,
   });
   if (selected) return <TicketDetail facilityId={facilityId} id={selected} />;
+  if (isAxiosError(query.error) && query.error.response?.status === 410)
+    return <EmptyState title={M.supportUnavailable} description={M.supportUnavailableHint} />;
   return (
     <div className="space-y-5">
       <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:grid-cols-2">
@@ -137,9 +148,12 @@ function Support({ facilityId }: ManagerFacilityTabProps) {
                 <p className="text-sm text-slate-600">
                   {ticket.customerName} · {ticket.bookingCode}
                 </p>
-                <p className="text-sm font-medium">
-                  {M.statuses[ticket.status]} · {ticket.assignedStaffName ?? M.unassigned}
-                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <OperationalBadge value={ticket.status} label={M.statuses[ticket.status]} />
+                  <span className="text-sm text-slate-600">
+                    {ticket.assignedStaffName ?? M.unassigned}
+                  </span>
+                </div>
                 <p className="text-xs text-slate-600">
                   {M.dueAt}: {formatDateTime(ticket.actionDueAt)}
                 </p>
@@ -183,18 +197,11 @@ function TicketDetail({ facilityId, id }: ManagerTicketProps) {
   const { ticket, messages } = query.data;
   return (
     <div className="space-y-5">
-      <Link
-        href="/facility-manager/support"
-        className="inline-flex min-h-11 items-center font-semibold text-emerald-900"
-      >
-        {M.back}
-      </Link>
+      <OperationalBackLink href="/facility-manager/support">{M.back}</OperationalBackLink>
       <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
         <div className="flex flex-wrap justify-between gap-3">
           <h2 className="text-xl font-bold">{ticket.subject}</h2>
-          <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-900">
-            {M.statuses[ticket.status]}
-          </span>
+          <OperationalBadge value={ticket.status} label={M.statuses[ticket.status]} />
         </div>
         <p className="text-sm">
           {ticket.customerName} · {ticket.bookingCode} · {M.categories[ticket.category]}
@@ -216,7 +223,11 @@ function TicketDetail({ facilityId, id }: ManagerTicketProps) {
       </section>
       <TicketForm ticket={ticket} onSaved={() => setOffset(0)} />
       <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
-        <h2 className="text-xl font-bold">{M.history}</h2>
+        <OperationalSectionHeader
+          title={M.history}
+          icon={MessageSquareText}
+          count={query.data.totalMessages}
+        />
         {messages.map((message) => (
           <article
             key={message.id}
@@ -289,6 +300,22 @@ function TicketForm({ ticket, onSaved }: ManagerTicketFormProps) {
       priority: ticket.priority,
     },
   });
+  const [pendingOperation, setPendingOperation] = useState<SupportOperation | null>(null);
+  async function execute(input: SupportOperation) {
+    try {
+      const result = await mutation.mutateAsync(input);
+      setPendingOperation(null);
+      form.reset({
+        action: result.ticket.status === "CLOSED" ? "REOPEN" : "REPLY",
+        content: "",
+        staffId: result.ticket.assignedStaffId ?? "",
+        priority: result.ticket.priority,
+      });
+      onSaved?.();
+    } catch {
+      /* Preserve the draft and show the API failure. */
+    }
+  }
   const action = form.watch("action");
   const permitted = actions.includes(action),
     firstAction = actions[0];
@@ -322,20 +349,13 @@ function TicketForm({ ticket, onSaved }: ManagerTicketFormProps) {
             reason: value.content,
           };
         else input = { ...base, action: "REOPEN", reason: value.content };
-        try {
-          const result = await mutation.mutateAsync(input);
-          form.reset({
-            action: result.ticket.status === "CLOSED" ? "REOPEN" : "REPLY",
-            content: "",
-            staffId: result.ticket.assignedStaffId ?? "",
-            priority: result.ticket.priority,
-          });
-          onSaved?.();
-        } catch {
-          /* Preserve draft after validation or version conflicts. */
-        }
+        if (["ASSIGN", "ACCEPT", "REOPEN"].includes(input.action)) setPendingOperation(input);
+        else await execute(input);
       })}
     >
+      <div className="sm:col-span-2">
+        <OperationalSectionHeader title={M.action} icon={LifeBuoy} />
+      </div>
       <label className="grid gap-2 text-sm font-semibold">
         {M.action}
         <select className={field} {...form.register("action")}>
@@ -395,17 +415,49 @@ function TicketForm({ ticket, onSaved }: ManagerTicketFormProps) {
           {managementError(mutation.error)}
         </p>
       )}
-      {mutation.isSuccess && (
-        <p role="status" className="text-sm text-emerald-900 sm:col-span-2">
-          {M.saved}
-        </p>
-      )}
       <Button
         type="submit"
+        className="w-fit"
+        loading={mutation.isPending}
         disabled={mutation.isPending || (action === "ASSIGN" && !staff.data?.length)}
       >
-        {M.submit}
+        {M.actions[action] ?? M.submit}
       </Button>
+      {pendingOperation && (
+        <ManagementDialog
+          title={M.confirmAction}
+          pending={mutation.isPending}
+          onClose={() => setPendingOperation(null)}
+        >
+          <p className="font-semibold">{ticket.subject}</p>
+          <p className="mt-2 text-sm text-slate-600">
+            {M.actions[pendingOperation.action]} · {ticket.bookingCode}
+          </p>
+          <p className="mt-3 text-sm leading-6 text-slate-600">{M.confirmActionHint}</p>
+          {mutation.isError && (
+            <p role="alert" className="mt-3 text-sm text-danger">
+              {managementError(mutation.error)}
+            </p>
+          )}
+          <div className="mt-5 flex flex-wrap justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={mutation.isPending}
+              onClick={() => setPendingOperation(null)}
+            >
+              {M.cancel}
+            </Button>
+            <Button
+              type="button"
+              loading={mutation.isPending}
+              onClick={() => execute(pendingOperation)}
+            >
+              {M.submit}
+            </Button>
+          </div>
+        </ManagementDialog>
+      )}
     </form>
   );
 }
