@@ -142,7 +142,8 @@ assignment constraints.
 
 The return-specific tables and return audit table are removed. `rentals` is the
 aggregate for one return lifecycle per rental. It stores the optional return slot,
-local date, UTC start/end, timezone, return status, reason and manual-review flag. Its
+local date, UTC start/end, timezone, return status as a PostgreSQL enum, reason and
+manual-review flag. Its
 partial unique facility/date/slot index preserves capacity one for CONFIRMED,
 INSPECTING and FAILED returns. Staff assignment stays on the facility task.
 
@@ -152,7 +153,8 @@ longer keeps earlier settlement revisions. Schedule edits update the rental dire
 there is no separate request/approval history for time changes. The return checklist
 snapshot and results live in the CHECK_OUT row in `inspections.checklist`.
 
-`payments.type` distinguishes COLLECTION from RETURN_REFUND. A return-refund row
+`payments.type`, `payments.status` and `payments.refund_reason` use PostgreSQL enums.
+Type distinguishes COLLECTION from RETURN_REFUND. A return-refund row
 links to the rental and original payment, stores amount/allocation, idempotency
 key, transfer reference and confirmer/time in payment columns. Evidence
 is stored in `media_assets`. Rental-charge adjustments/refunds no longer reference a
@@ -184,6 +186,12 @@ Booking and Payment are introduced by issue #18.
 
 Issue #24's handover inspection data now resides in the shared `inspections` table,
 with evidence metadata in `media_assets`:
+
+- Inspection type, status and condition use PostgreSQL enums declared with Drizzle
+  `pgEnum`; exported constants and TypeScript types remain available to application code.
+  Structural workflow checks remain database constraints.
+- `media_assets.cloudinary_resource_type` also uses a PostgreSQL enum. Its generic
+  `owner_type` and `purpose` remain varchar so additional modules can use shared media.
 
 - CHECK_IN inspections link to the booking and physical unit. The exact verification
   and assignment linkage is validated by application logic, not stored as inspection FKs.
@@ -271,9 +279,9 @@ erDiagram
     uuid booking_id FK "nullable"
     uuid inspected_by FK
     uuid task_id FK
-    varchar inspection_type
-    varchar status
-    varchar condition "nullable"
+    inspection_type inspection_type
+    inspection_status status
+    inspection_condition condition "nullable"
     jsonb checklist
     text notes "nullable"
     timestamptz inspected_at "nullable"
@@ -288,7 +296,7 @@ erDiagram
     varchar filename
     varchar mime_type
     integer byte_size
-    varchar cloudinary_resource_type
+    cloudinary_resource_type cloudinary_resource_type
     text cloudinary_public_id
     varchar cloudinary_format
     timestamptz created_at
@@ -501,7 +509,7 @@ erDiagram
     uuid booking_id FK,UK
     uuid facility_id FK
     uuid physical_unit_id FK
-    varchar status
+    rental_status status
     timestamptz start_at
     timestamptz expected_end_at
     integer version "nonnegative current term"
@@ -620,7 +628,7 @@ erDiagram
     payment_status status
     timestamptz paid_at
     timestamptz expires_at "nullable payment quote expiry"
-    varchar refund_reason "nullable; NO_CAPACITY, CHECK_IN_CLOSED, OFFERING_UNAVAILABLE, CUSTOMER_CANCELLATION or NO_SHOW"
+    payment_refund_reason_code refund_reason "nullable"
     numeric refund_amount "nullable; legacy refund falls back to total_amount"
     numeric deposit_forfeited_amount "NOT NULL DEFAULT 0"
     varchar refund_reference "nullable; bank transfer reference/evidence"
@@ -714,7 +722,15 @@ erDiagram
   `facility_task_reference_type`: `BOOKING`, `STORAGE_UNIT`, `SUPPORT_TICKET`;
   `capacity_allocation_kind`: `HOLD`, `BOOKING`; and
   `capacity_allocation_status`: `ACTIVE`, `RELEASED`, `EXPIRED`;
+  `inspection_type`: `CHECK_IN`, `CHECK_OUT`, `MAINTENANCE`;
+  `inspection_status`: `PENDING`, `IN_PROGRESS`, `PASSED`, `FAILED`;
+  `inspection_condition`: `GOOD`, `MINOR_DAMAGE`, `MAJOR_DAMAGE`;
+  `cloudinary_resource_type`: `image`, `video`, `raw`;
   `payment_type`: `COLLECTION`, `RETURN_REFUND`;
+  `payment_status`: `PENDING`, `SUCCEEDED`, `FAILED`, `REFUND_PENDING`, `REFUNDED`;
+  `payment_refund_reason_code`: `NO_CAPACITY`, `CHECK_IN_CLOSED`,
+  `OFFERING_UNAVAILABLE`, `CUSTOMER_CANCELLATION`, `NO_SHOW`;
+  `rental_status`: `ACTIVE`, `RETURN_PENDING`, `OVERDUE`, `CLOSED`;
   `rental_return_status`: `PENDING`, `CONFIRMED`, `INSPECTING`, `FAILED`,
   `COMPLETED`, `CANCELLED`.
 - Composite unique `accounts(provider_id, account_id)` ensures one owner per provider

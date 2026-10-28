@@ -34,6 +34,15 @@ export const PaymentStatus = {
 } as const;
 export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
 export const PAYMENT_STATUSES = Object.values(PaymentStatus);
+export const PAYMENT_REFUND_REASONS = [
+  "NO_CAPACITY",
+  "CHECK_IN_CLOSED",
+  "OFFERING_UNAVAILABLE",
+  "CUSTOMER_CANCELLATION",
+  "NO_SHOW",
+] as const;
+export const PaymentRefundReasonSchema = z.enum(PAYMENT_REFUND_REASONS);
+export type PaymentRefundReason = z.infer<typeof PaymentRefundReasonSchema>;
 
 export const ManualRefundQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),

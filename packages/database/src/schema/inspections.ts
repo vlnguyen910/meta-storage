@@ -1,10 +1,20 @@
 import { sql } from "drizzle-orm";
-import { check, index, jsonb, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { check, index, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { bookings } from "./bookings";
 import { facilityTasks } from "./facility-tasks";
 import { rentals } from "./rentals";
 import { storageUnits } from "./storage-units";
 import { users } from "./users";
+
+export const INSPECTION_TYPES = ["CHECK_IN", "CHECK_OUT", "MAINTENANCE"] as const;
+export const INSPECTION_STATUSES = ["PENDING", "IN_PROGRESS", "PASSED", "FAILED"] as const;
+export const INSPECTION_CONDITIONS = ["GOOD", "MINOR_DAMAGE", "MAJOR_DAMAGE"] as const;
+export type InspectionType = (typeof INSPECTION_TYPES)[number];
+export type InspectionStatus = (typeof INSPECTION_STATUSES)[number];
+export type InspectionCondition = (typeof INSPECTION_CONDITIONS)[number];
+export const inspectionTypeEnum = pgEnum("inspection_type", INSPECTION_TYPES);
+export const inspectionStatusEnum = pgEnum("inspection_status", INSPECTION_STATUSES);
+export const inspectionConditionEnum = pgEnum("inspection_condition", INSPECTION_CONDITIONS);
 
 export const inspections = pgTable(
   "inspections",
@@ -21,9 +31,9 @@ export const inspections = pgTable(
     taskId: uuid()
       .notNull()
       .references(() => facilityTasks.id, { onDelete: "restrict" }),
-    inspectionType: varchar({ length: 20 }).notNull(),
-    status: varchar({ length: 20 }).default("PENDING").notNull(),
-    condition: varchar({ length: 20 }),
+    inspectionType: inspectionTypeEnum().notNull(),
+    status: inspectionStatusEnum().default("PENDING").notNull(),
+    condition: inspectionConditionEnum(),
     checklist: jsonb().$type<Record<string, unknown>>().notNull().default({}),
     notes: text(),
     inspectedAt: timestamp({ withTimezone: true }),
@@ -33,18 +43,6 @@ export const inspections = pgTable(
     index("inspections_unit_idx").on(t.storageUnitId, t.inspectDoneAt),
     index("inspections_rental_idx").on(t.rentalId, t.inspectDoneAt),
     index("inspections_task_idx").on(t.taskId),
-    check(
-      "inspections_type_valid",
-      sql`${t.inspectionType} IN ('CHECK_IN', 'CHECK_OUT', 'MAINTENANCE')`,
-    ),
-    check(
-      "inspections_status_valid",
-      sql`${t.status} IN ('PENDING', 'IN_PROGRESS', 'PASSED', 'FAILED')`,
-    ),
-    check(
-      "inspections_condition_valid",
-      sql`${t.condition} IS NULL OR ${t.condition} IN ('GOOD', 'MINOR_DAMAGE', 'MAJOR_DAMAGE')`,
-    ),
     check(
       "inspections_context_valid",
       sql`(

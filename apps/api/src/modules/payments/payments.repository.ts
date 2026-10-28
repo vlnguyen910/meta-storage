@@ -16,6 +16,7 @@ import {
   isNull,
   lte,
   or,
+  type PaymentRefundReason,
   paymentProviderEvents,
   payments,
   rentalChargeAdjustments,
@@ -259,7 +260,7 @@ export class PaymentsRepository {
         const slots = new CheckInSlotsRepository(tx);
         const slot = await slots.findByIdForDate(booking.checkInSlotId, booking.checkInDate);
         const dayEnd = await slots.findDayEnd(booking.checkInDate);
-        let refundReason: string | null = null;
+        let refundReason: PaymentRefundReason | null = null;
         if (!slot || !dayEnd || new Date() >= dayEnd || booking.rentalEndAt <= new Date())
           refundReason = "CHECK_IN_CLOSED";
         else if (!hold) {

@@ -1,4 +1,8 @@
-import { PaymentStatus } from "@metastorage/contracts/payments";
+import {
+  PAYMENT_REFUND_REASONS,
+  type PaymentRefundReason,
+  PaymentStatus,
+} from "@metastorage/contracts/payments";
 import { sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
@@ -17,10 +21,17 @@ import { rentalCharges } from "./rental-charges";
 import { rentals } from "./rentals";
 import { users } from "./users";
 
-export { PAYMENT_STATUSES } from "@metastorage/contracts/payments";
-export const paymentStatusEnum = pgEnum("payment_status", PaymentStatus);
+export {
+  PAYMENT_REFUND_REASONS,
+  PAYMENT_STATUSES,
+  PaymentStatus,
+} from "@metastorage/contracts/payments";
 export const PAYMENT_TYPES = ["COLLECTION", "RETURN_REFUND"] as const;
+export type PaymentType = (typeof PAYMENT_TYPES)[number];
+export type { PaymentRefundReason };
+export const paymentStatusEnum = pgEnum("payment_status", PaymentStatus);
 export const paymentTypeEnum = pgEnum("payment_type", PAYMENT_TYPES);
+export const paymentRefundReasonEnum = pgEnum("payment_refund_reason_code", PAYMENT_REFUND_REASONS);
 
 export const payments = pgTable(
   "payments",
@@ -43,7 +54,7 @@ export const payments = pgTable(
     status: paymentStatusEnum().notNull(),
     paidAt: timestamp({ withTimezone: true }),
     expiresAt: timestamp({ withTimezone: true }),
-    refundReason: varchar({ length: 64 }),
+    refundReason: paymentRefundReasonEnum(),
     refundAmount: numeric({ precision: 14, scale: 2 }),
     depositForfeitedAmount: numeric({ precision: 14, scale: 2 }).default("0").notNull(),
     refundReference: varchar({ length: 128 }),
