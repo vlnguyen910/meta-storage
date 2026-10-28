@@ -14,7 +14,6 @@ import {
   useBooking,
   useEligibleUnits,
 } from "@/features/check-in/hooks";
-import { RentalDocuments } from "@/features/rentals/rental-records";
 import { formatDateTime } from "@/lib/format";
 import { FLOW } from "./flow.messages";
 import {
@@ -229,11 +228,6 @@ export function AssignmentScreen() {
               </label>
             </div>
           </div>
-          <RentalDocuments
-            bookingId={booking.data.id}
-            manager={role === UserRole.FACILITY_MANAGER}
-            handover
-          />
           {error && !confirmation && (
             <p role="alert" className="rounded bg-[#ffdad6] p-3 text-[#93000a]">
               {error}
