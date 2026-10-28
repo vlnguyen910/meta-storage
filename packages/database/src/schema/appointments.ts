@@ -13,25 +13,14 @@ import {
 } from "drizzle-orm/pg-core";
 import { enumToPgEnum } from "../enum-to-pg-enum";
 import { checkInSlots } from "./check-in-slots";
+import { AppointmentStatus, AppointmentType } from "./enums";
 import { facilities } from "./facilities";
 import { rentals } from "./rentals";
 import { reservations } from "./reservations";
 import { supportTickets } from "./support";
 import { users } from "./users";
 
-export enum AppointmentType {
-  CHECK_IN = "CHECK_IN",
-  CHECK_OUT = "CHECK_OUT",
-  SUPPORT = "SUPPORT",
-}
-
-export enum AppointmentStatus {
-  SCHEDULED = "SCHEDULED",
-  CONFIRMED = "CONFIRMED",
-  COMPLETED = "COMPLETED",
-  CANCELLED = "CANCELLED",
-  NO_SHOW = "NO_SHOW",
-}
+export { AppointmentStatus, AppointmentType } from "./enums";
 
 export const appointmentTypeEnum = pgEnum("appointment_type", enumToPgEnum(AppointmentType));
 export const appointmentStatusEnum = pgEnum("appointment_status", enumToPgEnum(AppointmentStatus));

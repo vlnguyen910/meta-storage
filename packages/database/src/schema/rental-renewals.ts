@@ -1,4 +1,3 @@
-import { RenewalStatus } from "@metastorage/contracts/renewals";
 import { sql } from "drizzle-orm";
 import {
   check,
@@ -13,12 +12,14 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import { enumToPgEnum } from "../enum-to-pg-enum";
+import { RenewalStatus } from "./enums";
 import { payments } from "./payments";
 import { rentalCharges } from "./rental-charges";
 import { rentals } from "./rentals";
 import { users } from "./users";
 
-export const renewalStatusEnum = pgEnum("renewal_status", RenewalStatus);
+export const renewalStatusEnum = pgEnum("renewal_status", enumToPgEnum(RenewalStatus));
 export const rentalRenewals = pgTable(
   "rental_renewals",
   {
@@ -35,7 +36,7 @@ export const rentalRenewals = pgTable(
       .unique()
       .references(() => payments.id, { onDelete: "restrict" }),
     idempotencyKey: varchar({ length: 128 }).notNull(),
-    status: renewalStatusEnum().default("QUOTED").notNull(),
+    status: renewalStatusEnum().default(RenewalStatus.QUOTED).notNull(),
     months: integer().notNull(),
     oldEndAt: timestamp({ withTimezone: true }).notNull(),
     newEndAt: timestamp({ withTimezone: true }).notNull(),

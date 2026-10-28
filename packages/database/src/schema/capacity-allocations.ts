@@ -1,17 +1,24 @@
 import { foreignKey, index, pgEnum, pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { enumToPgEnum } from "../enum-to-pg-enum";
 import { facilities } from "./facilities";
 import { unitTypes } from "./unit-types";
 
-export const CAPACITY_ALLOCATION_KINDS = ["HOLD", "BOOKING"] as const;
-export const CAPACITY_ALLOCATION_STATUSES = ["ACTIVE", "RELEASED", "EXPIRED"] as const;
-
+export enum CapacityAllocationKind {
+  HOLD = "HOLD",
+  BOOKING = "BOOKING",
+}
+export enum CapacityAllocationStatus {
+  ACTIVE = "ACTIVE",
+  RELEASED = "RELEASED",
+  EXPIRED = "EXPIRED",
+}
 export const capacityAllocationKindEnum = pgEnum(
   "capacity_allocation_kind",
-  CAPACITY_ALLOCATION_KINDS,
+  enumToPgEnum(CapacityAllocationKind),
 );
 export const capacityAllocationStatusEnum = pgEnum(
   "capacity_allocation_status",
-  CAPACITY_ALLOCATION_STATUSES,
+  enumToPgEnum(CapacityAllocationStatus),
 );
 
 export const capacityAllocations = pgTable(
@@ -25,7 +32,7 @@ export const capacityAllocations = pgTable(
     referenceId: uuid().notNull(),
     accessTokenHash: varchar({ length: 128 }),
     kind: capacityAllocationKindEnum().notNull(),
-    status: capacityAllocationStatusEnum().default("ACTIVE").notNull(),
+    status: capacityAllocationStatusEnum().default(CapacityAllocationStatus.ACTIVE).notNull(),
     startsAt: timestamp({ withTimezone: true }).notNull(),
     endsAt: timestamp({ withTimezone: true }).notNull(),
     expiresAt: timestamp({ withTimezone: true }),

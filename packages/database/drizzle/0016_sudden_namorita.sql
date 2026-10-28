@@ -1,0 +1,1 @@
+ALTER TABLE "reservations" ADD COLUMN "rental_start_at" timestamp with time zone;

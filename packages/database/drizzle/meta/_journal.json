@@ -113,6 +113,20 @@
       "when": 1793179172022,
       "tag": "0015_medical_white_tiger",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793180638466,
+      "tag": "0016_sudden_namorita",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793180644520,
+      "tag": "0017_reservation_start_backfill",
+      "breakpoints": true
     }
   ]
 }

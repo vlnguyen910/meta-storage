@@ -9,12 +9,17 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import { enumToPgEnum } from "../enum-to-pg-enum";
 import { payments } from "./payments";
 
-export const PAYMENT_PROVIDER_EVENT_STATUSES = ["PROCESSED", "IGNORED", "FAILED"] as const;
+export enum PaymentProviderEventStatus {
+  PROCESSED = "PROCESSED",
+  IGNORED = "IGNORED",
+  FAILED = "FAILED",
+}
 export const paymentProviderEventStatusEnum = pgEnum(
   "payment_provider_event_status",
-  PAYMENT_PROVIDER_EVENT_STATUSES,
+  enumToPgEnum(PaymentProviderEventStatus),
 );
 
 export const paymentProviderEvents = pgTable(

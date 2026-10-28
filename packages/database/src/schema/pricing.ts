@@ -1,11 +1,12 @@
-import { PricingChangeOperation, type PricingChangeValues } from "@metastorage/contracts/pricing";
 import { sql } from "drizzle-orm";
 import { check, integer, jsonb, pgEnum, pgTable, timestamp, uuid } from "drizzle-orm/pg-core";
+import { enumToPgEnum } from "../enum-to-pg-enum";
+import { PricingChangeOperation, type PricingChangeValues } from "./domain";
 import { users } from "./users";
 
 export const pricingChangeOperationEnum = pgEnum(
   "pricing_change_operation",
-  PricingChangeOperation,
+  enumToPgEnum(PricingChangeOperation),
 );
 export const pricingChanges = pgTable(
   "pricing_changes",

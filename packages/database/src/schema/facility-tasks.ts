@@ -1,11 +1,7 @@
-import {
-  FacilityTaskReferenceType,
-  FacilityTaskStatus,
-  FacilityTaskType,
-} from "@metastorage/contracts/facility-tasks";
 import { sql } from "drizzle-orm";
 import { check, index, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { enumToPgEnum } from "../enum-to-pg-enum";
+import { FacilityTaskReferenceType, FacilityTaskStatus, FacilityTaskType } from "./enums";
 import { facilities } from "./facilities";
 import { users } from "./users";
 

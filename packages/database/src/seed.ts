@@ -1,5 +1,4 @@
 import { createHash, createHmac } from "node:crypto";
-import { SYSTEM_SETTING_DEFINITIONS } from "@metastorage/contracts/system-settings";
 import { hashPassword } from "better-auth/crypto";
 import { and, asc, eq, gt, inArray, isNull, lt, notExists, or } from "drizzle-orm";
 import { db, queryClient } from "./client";
@@ -9,22 +8,32 @@ import {
   AppointmentType,
   accounts,
   appointments,
+  CapacityAllocationKind,
+  CapacityAllocationStatus,
   capacityAllocations,
   checkInSlots,
   checkInVerifications,
   facilities,
   facilityAssignments,
+  PaymentRefundReason,
+  PaymentStatus,
   payments,
+  RentalStatus,
   ReservationStatus,
+  ReturnRequestStatus,
   rentalPriceRanges,
   rentals,
   reservations,
+  StorageUnitStatus,
   storageUnits,
   systemSettings,
+  UserRole,
+  UserStatus,
   unitAssignments,
   unitTypes,
   users,
 } from "./schema";
+import { SYSTEM_SETTING_DEFINITIONS, SystemSettingKey } from "./schema/domain";
 
 type SeedTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -116,35 +125,35 @@ export const SEED_IDS = {
 export const SEED_USERS = [
   {
     id: "40000000-0000-4000-8000-000000000001",
-    role: "CUSTOMER",
+    role: UserRole.STORAGE_CUSTOMER,
     email: "customer@metastorage.vn",
     name: "Lê Thị Mai Linh",
     phone: "0900000001",
   },
   {
     id: "40000000-0000-4000-8000-000000000002",
-    role: "FACILITY_STAFF",
+    role: UserRole.FACILITY_STAFF,
     email: "staff@metastorage.vn",
     name: "Trần Quốc Huy",
     phone: "0900000002",
   },
   {
     id: "40000000-0000-4000-8000-000000000003",
-    role: "FACILITY_MANAGER",
+    role: UserRole.FACILITY_MANAGER,
     email: "manager@metastorage.vn",
     name: "Lê Thu Hà",
     phone: "0900000003",
   },
   {
     id: "40000000-0000-4000-8000-000000000004",
-    role: "BUSINESS_OPERATION_MANAGER",
+    role: UserRole.BUSINESS_OPERATIONS_MANAGER,
     email: "bom@metastorage.vn",
     name: "Business Operation Manager",
     phone: "0900000004",
   },
   {
     id: "40000000-0000-4000-8000-000000000005",
-    role: "SYSTEM_ADMIN",
+    role: UserRole.SYSTEM_ADMINISTRATOR,
     email: "admin@metastorage.vn",
     name: "Quản trị viên demo",
     phone: "0900000005",
@@ -154,7 +163,7 @@ export const SEED_USERS = [
 export const SEED_DEMO_USERS = [
   ...Array.from({ length: 6 }, (_, index) => ({
     id: `40000000-0000-4000-8000-${String(101 + index).padStart(12, "0")}`,
-    role: "CUSTOMER" as const,
+    role: UserRole.STORAGE_CUSTOMER,
     email: `customer${index + 1}@metastorage.test`,
     name:
       [
@@ -169,14 +178,14 @@ export const SEED_DEMO_USERS = [
   })),
   ...Array.from({ length: 9 }, (_, index) => ({
     id: `40000000-0000-4000-8000-${String(202 + index).padStart(12, "0")}`,
-    role: "FACILITY_MANAGER" as const,
+    role: UserRole.FACILITY_MANAGER,
     email: `manager.hcm${String(index + 2).padStart(2, "0")}@metastorage.test`,
     name: `Quản lý demo HCM-${String(index + 2).padStart(2, "0")}`,
     phone: `09020000${String(index + 2).padStart(2, "0")}`,
   })),
   ...Array.from({ length: 9 }, (_, index) => ({
     id: `40000000-0000-4000-8000-${String(302 + index).padStart(12, "0")}`,
-    role: "FACILITY_STAFF" as const,
+    role: UserRole.FACILITY_STAFF,
     email: `staff.hcm${String(index + 2).padStart(2, "0")}@metastorage.test`,
     name: `Nhân viên demo HCM-${String(index + 2).padStart(2, "0")}`,
     phone: `09030000${String(index + 2).padStart(2, "0")}`,
@@ -297,7 +306,7 @@ export async function seedImmediateCheckInSlot(seedNow = getSeedNow()) {
           and(
             eq(storageUnits.facilityId, source.facilityId),
             eq(storageUnits.unitTypeId, source.unitTypeId),
-            eq(storageUnits.status, "AVAILABLE"),
+            eq(storageUnits.status, StorageUnitStatus.AVAILABLE),
             notExists(
               tx
                 .select({ id: unitAssignments.id })
@@ -355,7 +364,7 @@ export async function seedImmediateCheckInSlot(seedNow = getSeedNow()) {
         paymentCode: "DEMO-CHECKIN-NOW-PAID",
         totalAmount: source.totalAmount,
         currency: "VND",
-        status: "SUCCEEDED",
+        status: PaymentStatus.SUCCEEDED,
         paidAt: seedNow,
       });
       await tx.insert(unitAssignments).values({
@@ -366,14 +375,17 @@ export async function seedImmediateCheckInSlot(seedNow = getSeedNow()) {
         status: "ACTIVE",
         reason: "Local demo: immediate check-in",
       });
-      await tx.update(storageUnits).set({ status: "RESERVED" }).where(eq(storageUnits.id, unit.id));
+      await tx
+        .update(storageUnits)
+        .set({ status: StorageUnitStatus.RESERVED })
+        .where(eq(storageUnits.id, unit.id));
       await tx.insert(capacityAllocations).values({
         id: id("a4000000", 2),
         facilityId: source.facilityId,
         unitTypeId: source.unitTypeId,
         referenceId: bookingId,
-        kind: "BOOKING",
-        status: "ACTIVE",
+        kind: CapacityAllocationKind.BOOKING,
+        status: CapacityAllocationStatus.ACTIVE,
         startsAt: start,
         endsAt: end,
       });
@@ -401,8 +413,8 @@ export async function seedImmediateCheckInSlot(seedNow = getSeedNow()) {
         .where(
           and(
             eq(capacityAllocations.referenceId, existing.id),
-            eq(capacityAllocations.kind, "BOOKING"),
-            eq(capacityAllocations.status, "ACTIVE"),
+            eq(capacityAllocations.kind, CapacityAllocationKind.BOOKING),
+            eq(capacityAllocations.status, CapacityAllocationStatus.ACTIVE),
           ),
         );
     }
@@ -421,7 +433,7 @@ async function seedDemoData(seedNow: Date) {
         SEED_DEMO_USERS.map((user) => ({
           ...user,
           emailVerified: true,
-          status: "ACTIVE" as const,
+          status: UserStatus.ACTIVE,
         })),
       )
       .onConflictDoNothing();
@@ -486,7 +498,7 @@ async function seedDemoData(seedNow: Date) {
               facilityId: facility.id,
               unitTypeId: type.id,
               code: `${facility.code}-${type.code}-${String(serial).padStart(3, "0")}`,
-              status: "AVAILABLE",
+              status: StorageUnitStatus.AVAILABLE,
               floor: serial < 4 ? "1" : "2",
               locationDescription: `Dãy ${serial < 4 ? "A" : "B"} · ${type.sizeLabel} · Ô ${String(serial).padStart(2, "0")}`,
             })
@@ -552,7 +564,7 @@ async function seedDemoData(seedNow: Date) {
             paymentCode: `DEMO${String(ordinal).padStart(6, "0")}`,
             totalAmount: row.totalAmount,
             currency: "VND",
-            status: "SUCCEEDED",
+            status: PaymentStatus.SUCCEEDED,
             paidAt: seedNow,
           })
           .onConflictDoNothing();
@@ -563,8 +575,8 @@ async function seedDemoData(seedNow: Date) {
             facilityId: facility.id,
             unitTypeId: type.id,
             referenceId: bookingId,
-            kind: "BOOKING",
-            status: "ACTIVE",
+            kind: CapacityAllocationKind.BOOKING,
+            status: CapacityAllocationStatus.ACTIVE,
             startsAt: start,
             endsAt: rentalEndAt,
           })
@@ -594,8 +606,13 @@ async function seedDemoData(seedNow: Date) {
             .onConflictDoNothing();
           await tx
             .update(storageUnits)
-            .set({ status: "RESERVED" })
-            .where(and(eq(storageUnits.id, unit.id), eq(storageUnits.status, "AVAILABLE")));
+            .set({ status: StorageUnitStatus.RESERVED })
+            .where(
+              and(
+                eq(storageUnits.id, unit.id),
+                eq(storageUnits.status, StorageUnitStatus.AVAILABLE),
+              ),
+            );
         }
       }
     }
@@ -653,7 +670,7 @@ async function seedDemoData(seedNow: Date) {
         paymentCode: "DEMO-FLOW2-PAID",
         totalAmount: String(flow2Type.monthlyPrice * 2),
         currency: "VND",
-        status: "SUCCEEDED",
+        status: PaymentStatus.SUCCEEDED,
         paidAt: seedNow,
       })
       .onConflictDoNothing();
@@ -664,8 +681,8 @@ async function seedDemoData(seedNow: Date) {
         facilityId: flow2Facility.id,
         unitTypeId: flow2Type.id,
         referenceId: flow2BookingId,
-        kind: "BOOKING",
-        status: "ACTIVE",
+        kind: CapacityAllocationKind.BOOKING,
+        status: CapacityAllocationStatus.ACTIVE,
         startsAt: flow2Start,
         endsAt: flow2End,
       })
@@ -731,11 +748,11 @@ async function seedDemoData(seedNow: Date) {
         if (assignment)
           await tx
             .update(storageUnits)
-            .set({ status: "RESERVED" })
+            .set({ status: StorageUnitStatus.RESERVED })
             .where(
               and(
                 eq(storageUnits.id, assignment.physicalUnitId),
-                eq(storageUnits.status, "AVAILABLE"),
+                eq(storageUnits.status, StorageUnitStatus.AVAILABLE),
               ),
             );
         await tx
@@ -745,8 +762,8 @@ async function seedDemoData(seedNow: Date) {
             facilityId: booking.facilityId,
             unitTypeId: booking.unitTypeId,
             referenceId: booking.id,
-            kind: "BOOKING",
-            status: "ACTIVE",
+            kind: CapacityAllocationKind.BOOKING,
+            status: CapacityAllocationStatus.ACTIVE,
             startsAt: start,
             endsAt: end,
           })
@@ -755,8 +772,8 @@ async function seedDemoData(seedNow: Date) {
         await tx
           .update(payments)
           .set({
-            status: "REFUND_PENDING",
-            refundReason: "NO_SHOW",
+            status: PaymentStatus.REFUND_PENDING,
+            refundReason: PaymentRefundReason.NO_SHOW,
             refundAmount: booking.rentalFeeAmount,
             depositForfeitedAmount: booking.depositAmount,
           })
@@ -822,12 +839,12 @@ async function seedDemoData(seedNow: Date) {
           totalAmount: String(type.monthlyPrice * 3),
           currency: "VND",
           status: cancelled
-            ? "REFUND_PENDING"
+            ? PaymentStatus.REFUND_PENDING
             : scenario === "FAILED_PAYMENT"
-              ? "FAILED"
-              : "PENDING",
+              ? PaymentStatus.FAILED
+              : PaymentStatus.PENDING,
           paidAt: cancelled ? seedNow : null,
-          refundReason: cancelled ? "CUSTOMER_CANCELLATION" : null,
+          refundReason: cancelled ? PaymentRefundReason.CUSTOMER_CANCELLATION : null,
           refundAmount: cancelled ? String(type.monthlyPrice * 2) : null,
           depositForfeitedAmount: cancelled ? String(type.monthlyPrice) : "0",
         })
@@ -841,8 +858,9 @@ async function seedDemoData(seedNow: Date) {
             unitTypeId: type.id,
             referenceId: bookingId,
             accessTokenHash: tokenHash,
-            kind: "HOLD",
-            status: index === 0 ? "ACTIVE" : "EXPIRED",
+            kind: CapacityAllocationKind.HOLD,
+            status:
+              index === 0 ? CapacityAllocationStatus.ACTIVE : CapacityAllocationStatus.EXPIRED,
             startsAt: start,
             endsAt: end,
             expiresAt: new Date(seedNow.getTime() + (index === 0 ? 600000 : -60000)),
@@ -853,7 +871,7 @@ async function seedDemoData(seedNow: Date) {
     // There is no active Rental for this legacy fixture; do not seed phantom occupancy.
     await tx
       .update(storageUnits)
-      .set({ status: "AVAILABLE" })
+      .set({ status: StorageUnitStatus.AVAILABLE })
       .where(eq(storageUnits.id, SEED_IDS.storageUnits["HCM-01-006"]));
     for (const code of Object.keys(SEED_IDS.storageUnits)) {
       await tx
@@ -895,16 +913,16 @@ async function seedFlow2Demo(seedNow: Date) {
         id: FLOW2_STAFF_ID,
         email: FLOW2_STAFF_EMAIL,
         name: "Trần Quốc Huy (Flow 2 demo)",
-        role: "FACILITY_STAFF",
-        status: "ACTIVE",
+        role: UserRole.FACILITY_STAFF,
+        status: UserStatus.ACTIVE,
         emailVerified: true,
       })
       .onConflictDoUpdate({
         target: users.email,
         set: {
           email: FLOW2_STAFF_EMAIL,
-          role: "FACILITY_STAFF",
-          status: "ACTIVE",
+          role: UserRole.FACILITY_STAFF,
+          status: UserStatus.ACTIVE,
           emailVerified: true,
         },
       })
@@ -912,7 +930,12 @@ async function seedFlow2Demo(seedNow: Date) {
     if (!staff) throw new Error("Flow 2 staff fixture could not be created");
     await tx
       .insert(facilityAssignments)
-      .values({ userId: staff.id, facilityId: facility.id, role: "FACILITY_STAFF", isActive: true })
+      .values({
+        userId: staff.id,
+        facilityId: facility.id,
+        role: UserRole.FACILITY_STAFF,
+        isActive: true,
+      })
       .onConflictDoUpdate({
         target: [facilityAssignments.userId, facilityAssignments.facilityId],
         set: { isActive: true, endedAt: null },
@@ -961,7 +984,7 @@ async function seedFlow2Demo(seedNow: Date) {
           code,
           facilityId: facility.id,
           unitTypeId: type.id,
-          status: "AVAILABLE",
+          status: StorageUnitStatus.AVAILABLE,
           floor: "Tầng trệt",
           locationDescription: `Khu demo Flow 2 · ${code}`,
         })
@@ -983,27 +1006,45 @@ async function seedFlow3Rentals(seedNow: Date) {
   const slots = await db.select().from(checkInSlots).orderBy(asc(checkInSlots.startTime));
   if (slots.length < 3) throw new Error("At least three shared return/check-in slots are required");
   const definitions = [
-    { status: "ACTIVE", expiryDays: 20, requestStatus: null, requestDay: 2, slotIndex: 0 },
     {
-      status: "RETURN_PENDING",
+      status: RentalStatus.ACTIVE,
+      expiryDays: 20,
+      requestStatus: null,
+      requestDay: 2,
+      slotIndex: 0,
+    },
+    {
+      status: RentalStatus.RETURN_PENDING,
       expiryDays: 5,
-      requestStatus: "PENDING",
+      requestStatus: ReturnRequestStatus.PENDING,
       requestDay: 0,
       slotIndex: 1,
     },
-    { status: "OVERDUE", expiryDays: -2, requestStatus: "CONFIRMED", requestDay: 0, slotIndex: 2 },
     {
-      status: "CLOSED",
+      status: RentalStatus.OVERDUE,
+      expiryDays: -2,
+      requestStatus: ReturnRequestStatus.CONFIRMED,
+      requestDay: 0,
+      slotIndex: 2,
+    },
+    {
+      status: RentalStatus.CLOSED,
       expiryDays: -120,
-      requestStatus: "COMPLETED",
+      requestStatus: ReturnRequestStatus.COMPLETED,
       requestDay: -119,
       slotIndex: 0,
     },
-    { status: "ACTIVE", expiryDays: 45, requestStatus: null, requestDay: 10, slotIndex: 1 },
     {
-      status: "RETURN_PENDING",
+      status: RentalStatus.ACTIVE,
+      expiryDays: 45,
+      requestStatus: null,
+      requestDay: 10,
+      slotIndex: 1,
+    },
+    {
+      status: RentalStatus.RETURN_PENDING,
       expiryDays: 12,
-      requestStatus: "PENDING",
+      requestStatus: ReturnRequestStatus.PENDING,
       requestDay: 0,
       slotIndex: 3,
     },
@@ -1029,13 +1070,21 @@ async function seedFlow3Rentals(seedNow: Date) {
           code: unitCode,
           facilityId: facility.id,
           unitTypeId: type.id,
-          status: scenario.status === "CLOSED" ? "AVAILABLE" : "OCCUPIED",
+          status:
+            scenario.status === RentalStatus.CLOSED
+              ? StorageUnitStatus.AVAILABLE
+              : StorageUnitStatus.OCCUPIED,
           floor: "1",
           locationDescription: `Khu demo Flow 3 · ${unitCode}`,
         })
         .onConflictDoUpdate({
           target: storageUnits.id,
-          set: { status: scenario.status === "CLOSED" ? "AVAILABLE" : "OCCUPIED" },
+          set: {
+            status:
+              scenario.status === RentalStatus.CLOSED
+                ? StorageUnitStatus.AVAILABLE
+                : StorageUnitStatus.OCCUPIED,
+          },
         });
       await tx
         .insert(reservations)
@@ -1081,7 +1130,7 @@ async function seedFlow3Rentals(seedNow: Date) {
           paymentCode: `F3PAY${index + 1}`,
           totalAmount: String(type.monthlyPrice * 2),
           currency: "VND",
-          status: "SUCCEEDED",
+          status: PaymentStatus.SUCCEEDED,
           paidAt: startAt,
         })
         .onConflictDoNothing();
@@ -1177,15 +1226,21 @@ async function seedFlow3Rentals(seedNow: Date) {
           facilityId: facility.id,
           unitTypeId: type.id,
           referenceId: bookingId,
-          kind: "BOOKING",
-          status: scenario.status === "CLOSED" ? "RELEASED" : "ACTIVE",
+          kind: CapacityAllocationKind.BOOKING,
+          status:
+            scenario.status === RentalStatus.CLOSED
+              ? CapacityAllocationStatus.RELEASED
+              : CapacityAllocationStatus.ACTIVE,
           startsAt: startAt,
           endsAt: expectedEndAt,
         })
         .onConflictDoUpdate({
           target: capacityAllocations.id,
           set: {
-            status: scenario.status === "CLOSED" ? "RELEASED" : "ACTIVE",
+            status:
+              scenario.status === RentalStatus.CLOSED
+                ? CapacityAllocationStatus.RELEASED
+                : CapacityAllocationStatus.ACTIVE,
             startsAt: startAt,
             endsAt: expectedEndAt,
           },
@@ -1198,7 +1253,7 @@ export async function seedPricingPolicy(seedNow = getSeedNow()) {
   await db
     .insert(systemSettings)
     .values({
-      key: "DEPOSIT_MONTHS",
+      key: SystemSettingKey.DEPOSIT_MONTHS,
       value: SYSTEM_SETTING_DEFINITIONS.DEPOSIT_MONTHS.defaultValue,
       description: SYSTEM_SETTING_DEFINITIONS.DEPOSIT_MONTHS.description,
       version: 1,
@@ -1210,11 +1265,11 @@ export async function seedPricingPolicy(seedNow = getSeedNow()) {
 async function seedPolicies(seedNow: Date) {
   await seedPricingPolicy(seedNow);
   const keys = [
-    "EXPIRY_REMINDER_DAYS",
-    "ABANDONED_REVIEW_DAYS",
-    "OVERDUE_FEE_RATE",
-    "OPENING_HOUR",
-    "CLOSING_HOUR",
+    SystemSettingKey.EXPIRY_REMINDER_DAYS,
+    SystemSettingKey.ABANDONED_REVIEW_DAYS,
+    SystemSettingKey.OVERDUE_FEE_RATE,
+    SystemSettingKey.OPENING_HOUR,
+    SystemSettingKey.CLOSING_HOUR,
   ] as const;
   await db
     .insert(systemSettings)
@@ -1374,8 +1429,8 @@ async function seed() {
 
   console.log("3. Seeding facility assignments...");
   for (const assignment of [
-    { userId: manager.id, role: "FACILITY_MANAGER" },
-    { userId: staff.id, role: "FACILITY_STAFF" },
+    { userId: manager.id, role: UserRole.FACILITY_MANAGER },
+    { userId: staff.id, role: UserRole.FACILITY_STAFF },
   ]) {
     await queryClient`
       INSERT INTO facility_assignments (id, user_id, facility_id, role, is_active)
@@ -1536,7 +1591,7 @@ async function seed() {
           facilityId: facility.id,
           unitTypeId: localType.id,
           code: `${facility.code}-${unitType.code}-001`,
-          status: "AVAILABLE",
+          status: StorageUnitStatus.AVAILABLE,
         })
         .onConflictDoNothing({ target: storageUnits.code });
     }
@@ -1548,49 +1603,49 @@ async function seed() {
       id: SEED_IDS.storageUnits["HCM-01-001"],
       code: "HCM-01-001",
       typeCode: "UT-2M",
-      status: "AVAILABLE",
+      status: StorageUnitStatus.AVAILABLE,
     },
     {
       id: SEED_IDS.storageUnits["HCM-01-002"],
       code: "HCM-01-002",
       typeCode: "UT-2M",
-      status: "AVAILABLE",
+      status: StorageUnitStatus.AVAILABLE,
     },
     {
       id: SEED_IDS.storageUnits["HCM-01-003"],
       code: "HCM-01-003",
       typeCode: "UT-4M",
-      status: "AVAILABLE",
+      status: StorageUnitStatus.AVAILABLE,
     },
     {
       id: SEED_IDS.storageUnits["HCM-01-004"],
       code: "HCM-01-004",
       typeCode: "UT-4M",
-      status: "AVAILABLE",
+      status: StorageUnitStatus.AVAILABLE,
     },
     {
       id: SEED_IDS.storageUnits["HCM-01-005"],
       code: "HCM-01-005",
       typeCode: "UT-6M",
-      status: "AVAILABLE",
+      status: StorageUnitStatus.AVAILABLE,
     },
     {
       id: SEED_IDS.storageUnits["HCM-01-006"],
       code: "HCM-01-006",
       typeCode: "UT-6M",
-      status: "OCCUPIED",
+      status: StorageUnitStatus.OCCUPIED,
     },
     {
       id: SEED_IDS.storageUnits["HCM-01-007"],
       code: "HCM-01-007",
       typeCode: "UT-AC-4M",
-      status: "MAINTENANCE",
+      status: StorageUnitStatus.MAINTENANCE,
     },
     {
       id: SEED_IDS.storageUnits["HCM-01-008"],
       code: "HCM-01-008",
       typeCode: "UT-AC-4M",
-      status: "INSPECTION",
+      status: StorageUnitStatus.INSPECTION,
     },
   ];
 

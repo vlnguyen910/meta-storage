@@ -3,6 +3,7 @@ export * from "./appointments";
 export * from "./capacity-allocations";
 export * from "./check-in-slots";
 export * from "./checkin-verifications";
+export * from "./enums";
 export * from "./facilities";
 export * from "./facility-assignments";
 export * from "./facility-tasks";

@@ -1,15 +1,18 @@
 import { index, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { enumToPgEnum } from "../enum-to-pg-enum";
 import { facilities } from "./facilities";
 import { reservations } from "./reservations";
 import { unitAssignments } from "./unit-assignments";
 import { users } from "./users";
 
-export const CHECKIN_VERIFICATION_STATUSES = ["VERIFIED", "CONSUMED", "INVALIDATED"] as const;
-export type CheckInVerificationStatus = (typeof CHECKIN_VERIFICATION_STATUSES)[number];
-
+export enum CheckInVerificationStatus {
+  VERIFIED = "VERIFIED",
+  CONSUMED = "CONSUMED",
+  INVALIDATED = "INVALIDATED",
+}
 export const checkInVerificationStatusEnum = pgEnum(
   "checkin_verification_status",
-  CHECKIN_VERIFICATION_STATUSES,
+  enumToPgEnum(CheckInVerificationStatus),
 );
 
 export const checkInVerifications = pgTable(
@@ -28,7 +31,7 @@ export const checkInVerifications = pgTable(
     unitAssignmentId: uuid()
       .notNull()
       .references(() => unitAssignments.id, { onDelete: "restrict" }),
-    status: checkInVerificationStatusEnum().default("VERIFIED").notNull(),
+    status: checkInVerificationStatusEnum().default(CheckInVerificationStatus.VERIFIED).notNull(),
     verifiedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
     consumedAt: timestamp({ withTimezone: true }),
     invalidatedAt: timestamp({ withTimezone: true }),

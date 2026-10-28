@@ -1,10 +1,6 @@
-import type {
-  SystemSettingKeyValue,
-  SystemSettingSnapshot,
-  SystemSettingValue,
-} from "@metastorage/contracts/system-settings";
 import { sql } from "drizzle-orm";
 import { check, index, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import type { SystemSettingKeyValue, SystemSettingSnapshot, SystemSettingValue } from "./domain";
 import { users } from "./users";
 
 export const systemSettings = pgTable(
