@@ -9,6 +9,7 @@ import {
   db,
   eq,
   payments,
+  RentalStatus,
   rentals,
   storageUnits,
   systemSettings,
@@ -22,8 +23,6 @@ import { bookingsRoutes } from "../../src/modules/bookings/bookings.routes";
 import { facilitiesRoutes } from "../../src/modules/facilities/facilities.routes";
 import { paymentsRoutes } from "../../src/modules/payments/payments.routes";
 import { SepayPaymentGateway } from "../../src/modules/payments/sepay.gateway";
-import { renewalsRoutes } from "../../src/modules/renewals/renewals.routes";
-import { rentalChargesRoutes } from "../../src/modules/rental-charges/rental-charges.routes";
 import { rentalsRoutes } from "../../src/modules/rentals/rentals.routes";
 import { supportRoutes } from "../../src/modules/support/support.routes";
 import { createFacilityOperationsFixture } from "./facility-operations";
@@ -44,8 +43,6 @@ await f.app.register(bookingsRoutes, { prefix: "/api" });
 await f.app.register(facilitiesRoutes, { prefix: "/api/facilities" });
 await f.app.register(paymentsRoutes, { prefix: "/api" });
 await f.app.register(rentalsRoutes, { prefix: "/api/rentals" });
-await f.app.register(renewalsRoutes, { prefix: "/api" });
-await f.app.register(rentalChargesRoutes, { prefix: "/api" });
 await f.app.register(supportRoutes, { prefix: "/api/support" });
 await db
   .insert(systemSettings)
@@ -125,14 +122,11 @@ for (let i = 0; i < 3; i++) {
   rentalRows.push({
     id: rentalId,
     bookingId: id,
-    facilityId: f.facilityId,
-    physicalUnitId: unitId,
+    userId: i === 3 ? f.ids.peerStaff : f.ids.customer,
+    storageUnitId: unitId,
     startAt: start,
-    expectedEndAt: end,
-    depositAmount: "1000000",
-    status: i === 2 ? "CLOSED" : "ACTIVE",
-    closedAt: i === 2 ? end : null,
-    actualReturnAt: i === 2 ? end : null,
+    endAt: end,
+    status: i === 2 ? RentalStatus.CLOSED : RentalStatus.ACTIVE,
   });
 }
 await db.update(users).set({ role: "CUSTOMER" }).where(eq(users.id, f.ids.peerStaff));

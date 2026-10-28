@@ -98,7 +98,7 @@ export function RentalList() {
                       {RENTAL_MESSAGES.termLabel}
                     </span>
                     <p className="text-sm font-semibold text-ink">
-                      {formatDate(rental.startAt)} – {formatDate(rental.expectedEndAt)}
+                      {formatDate(rental.startAt)} – {formatDate(rental.endAt)}
                     </p>
                   </div>
 
@@ -108,9 +108,9 @@ export function RentalList() {
                       {RENTAL_MESSAGES.unitLabel}
                     </span>
                     <p className="font-mono text-sm font-bold text-ink">
-                      {rental.physicalUnit?.code ? (
+                      {rental.storageUnit?.code ? (
                         <span className="rounded-md border border-slate-200/70 bg-slate-50 px-2 py-0.5 text-slate-800">
-                          {rental.physicalUnit.code}
+                          {rental.storageUnit.code}
                         </span>
                       ) : (
                         <span className="text-xs font-normal text-muted italic">

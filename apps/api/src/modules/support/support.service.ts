@@ -128,7 +128,7 @@ export class SupportService {
     return {
       items: rows.slice(0, input.limit).map((row) => ({
         ...row,
-        source: row.source ?? "BOOKING",
+        source: "BOOKING" as const,
         createdAt: row.createdAt.toISOString(),
       })),
       nextCursor: this.next(rows, input.limit),
@@ -159,20 +159,15 @@ export class SupportService {
       if (input.category !== "PAYMENT") {
         if (input.paymentId) throw new ValidationError(m.invalidPayment);
         const rental = await this.repository.lockRental(tx, booking.id);
-        if (
-          !rental ||
-          rental.closedAt ||
-          rental.facilityId !== booking.facilityId ||
-          booking.status !== "CHECKED_IN"
-        )
+        if (!rental || rental.status === "CLOSED" || booking.status !== "CHECKED_IN")
           throw new ConflictError(m.handoverRequired);
-        const unit = await this.repository.unit(tx, rental.physicalUnitId);
+        const unit = await this.repository.unit(tx, rental.storageUnitId);
         if (!unit || unit.facilityId !== booking.facilityId)
           throw new ConflictError(m.invalidContext);
         rentalId = rental.id;
       } else if (input.paymentId) {
         const payment = await this.repository.payment(tx, input.paymentId);
-        if (!payment || (payment.bookingId ?? payment.chargeBookingId) !== booking.id)
+        if (!payment || payment.bookingId !== booking.id)
           throw new ValidationError(m.invalidPayment);
       }
       const now = new Date();

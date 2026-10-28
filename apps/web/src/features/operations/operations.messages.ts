@@ -1,4 +1,6 @@
 export const OPERATIONS_MESSAGES = {
+  rentalFeesRetired: "Phí thuê kho đang được xây dựng lại",
+  rentalFeesRetiredHint: "Cấu hình phụ phí và phí quá hạn cũ đã được gỡ trong đợt tinh gọn rental.",
   priceSearch: "Tìm loại kho theo tên hoặc mã",
   noPriceMatch: "Không có loại kho phù hợp. Thử từ khóa khác hoặc xóa tìm kiếm.",
   role: "Quản lý vận hành kinh doanh",

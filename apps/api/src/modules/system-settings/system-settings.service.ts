@@ -15,8 +15,6 @@ import {
   ValidationError,
 } from "../../common/errors/app-error";
 import { PricingRepository } from "../pricing/pricing.repository";
-import { RentalLifecycleSettingsRepository } from "../rental-lifecycle-settings/rental-lifecycle-settings.repository";
-import { RentalLifecycleSettingsService } from "../rental-lifecycle-settings/rental-lifecycle-settings.service";
 import type { SystemSettingsRepository } from "./system-settings.repository";
 
 export class SystemSettingsService {
@@ -56,7 +54,7 @@ export class SystemSettingsService {
         actor.id,
       );
       version = result.version;
-    } else if (input.key === "OVERDUE_FEE_RATE") {
+    } else if (input.key !== "OPENING_HOUR" && input.key !== "CLOSING_HOUR") {
       version = await this.repository.db.transaction(async (tx) => {
         const before = await this.repository.lock(input.key, tx);
         if (!before) throw new NotFoundError(m.notFound);
@@ -78,7 +76,7 @@ export class SystemSettingsService {
         );
         return after.version;
       });
-    } else if (input.key === "OPENING_HOUR" || input.key === "CLOSING_HOUR") {
+    } else {
       const keys = ["CLOSING_HOUR", "OPENING_HOUR"] as const;
       const result = await this.repository.db.transaction(async (tx) => {
         const rows = new Map();
@@ -111,11 +109,6 @@ export class SystemSettingsService {
         );
         return after;
       });
-      version = result.version;
-    } else {
-      const result = await new RentalLifecycleSettingsService(
-        new RentalLifecycleSettingsRepository(this.repository.db),
-      ).update(actor, input);
       version = result.version;
     }
     return { key: input.key, value: input.value, version };

@@ -2,7 +2,7 @@ import { createHttpClient, createMetastorageApiClient } from "@metastorage/api-c
 import type { SessionTokens } from "@metastorage/contracts";
 import { HANDOVER_CHECKLIST_ITEMS } from "@metastorage/contracts";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { getMockDatabase, resetMockDatabase } from "./database";
+import { getMockDatabase, resetMockDatabase, saveMockDatabase } from "./database";
 import { installMockApi } from "./install-mock-api";
 
 let tokens: SessionTokens | null = null;
@@ -69,6 +69,12 @@ it("keeps FM assignment separate from Staff inspection and persists handover", a
   await login("manager@metastorage.test");
   expect(await client.facilities.myAssignments()).toHaveLength(1);
   const id = "b0000000-0000-0000-0000-000000000001";
+  const fixture = getMockDatabase();
+  const booking = fixture.bookings.find((b) => b.id === id);
+  const owner = fixture.users.find((u) => u.email === "customer@metastorage.test");
+  if (!booking || !owner) throw new Error("Missing account-owned booking fixture");
+  booking.userId = owner.id;
+  saveMockDatabase(fixture);
   const units = await client.bookings.getEligibleUnits(id);
   const unit = units.find((u) => u.isAvailableForPeriod);
   if (!unit) throw new Error("Missing available unit");
@@ -106,8 +112,7 @@ it("keeps FM assignment separate from Staff inspection and persists handover", a
   expect((await client.bookings.get(id)).status).toBe("CHECKED_IN");
   expect(getMockDatabase().units.find((u) => u.id === unit.id)?.status).toBe("OCCUPIED");
   await login("customer@metastorage.test");
-  // Guest bookings do not acquire ownership by matching a registered email.
-  expect((await client.rentals.mine()).items.some((r) => r.bookingId === id)).toBe(false);
+  expect((await client.rentals.mine()).items.some((r) => r.bookingId === id)).toBe(true);
 });
 it("fails closed for unknown endpoints", async () => {
   await expect(http.get("/missing-offline-endpoint")).rejects.toMatchObject({

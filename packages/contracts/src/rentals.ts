@@ -3,7 +3,7 @@ import { RENTAL_CONTRACT_MESSAGES } from "./rentals.messages";
 
 export type * from "./rentals.types";
 
-export const RENTAL_STATUSES = ["ACTIVE", "RETURN_PENDING", "OVERDUE", "CLOSED"] as const;
+export const RENTAL_STATUSES = ["ACTIVE", "CLOSED"] as const;
 export const RentalStatusSchema = z.enum(RENTAL_STATUSES);
 export type RentalStatus = z.infer<typeof RentalStatusSchema>;
 
@@ -17,6 +17,7 @@ export const FacilityRentalHistoryQuerySchema = z.strictObject({
 });
 export const FacilityRentalListQuerySchema = FacilityRentalHistoryQuerySchema.extend({
   status: RentalStatusSchema.optional(),
+  search: z.string().trim().max(200).optional(),
   unitTypeId: z.uuid().optional(),
 });
 export type FacilityRentalListQuery = z.infer<typeof FacilityRentalListQuerySchema>;
@@ -49,6 +50,7 @@ export type RentalActionState = z.infer<typeof RentalActionStateSchema>;
 export const RentalListItemSchema = z.object({
   id: z.string().uuid(),
   bookingId: z.string().uuid(),
+  userId: z.string().uuid(),
   bookingCode: z.string(),
   facility: z.object({
     id: z.string().uuid(),
@@ -60,9 +62,9 @@ export const RentalListItemSchema = z.object({
     name: z.string(),
     sizeLabel: z.string(),
   }),
-  physicalUnit: z.object({ id: z.string().uuid(), code: z.string() }).nullable(),
+  storageUnit: z.object({ id: z.string().uuid(), code: z.string() }).nullable(),
   startAt: z.string().datetime(),
-  expectedEndAt: z.string().datetime(),
+  endAt: z.string().datetime(),
   status: RentalStatusSchema,
   bookingStatus: z.string(),
   actions: RentalActionStateSchema,
@@ -71,18 +73,11 @@ export const RentalListItemSchema = z.object({
 export type RentalListItem = z.infer<typeof RentalListItemSchema>;
 
 export const RentalDetailSchema = RentalListItemSchema.extend({
-  actualReturnAt: z.string().datetime().nullable(),
-  closedAt: z.string().datetime().nullable(),
-  depositAmount: z.string(),
-  checkInSlotStart: z.string().datetime(),
-  checkInSlotEnd: z.string().datetime().nullable(),
-  timeline: z.array(
-    z.object({
-      label: z.string(),
-      status: z.enum(["DONE", "CURRENT", "UPCOMING"]),
-      at: z.string().datetime().nullable(),
-    }),
-  ),
+  customer: z.object({
+    userId: z.string().uuid(),
+    name: z.string().nullable(),
+    email: z.string(),
+    phone: z.string().nullable(),
+  }),
 });
-
 export type RentalDetail = z.infer<typeof RentalDetailSchema>;

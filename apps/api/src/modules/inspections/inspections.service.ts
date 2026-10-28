@@ -91,7 +91,7 @@ export class InspectionsService {
         const [rental] = await this.rentals.findByBookingId(tx, task.referenceId);
         if (!rental) return undefined;
         rentalId = rental.id;
-        storageUnitId = rental.physicalUnitId;
+        storageUnitId = rental.storageUnitId;
         inspectionType = InspectionType.CHECK_OUT;
       } else {
         return undefined;

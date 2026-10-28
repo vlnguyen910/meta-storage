@@ -1,7 +1,7 @@
 import { createHash, createHmac } from "node:crypto";
 import { SYSTEM_SETTING_DEFINITIONS } from "@metastorage/contracts/system-settings";
 import { hashPassword } from "better-auth/crypto";
-import { and, asc, eq, gt, inArray, isNull, lt, notExists, or } from "drizzle-orm";
+import { and, asc, eq, inArray, notExists } from "drizzle-orm";
 import { db, queryClient } from "./client";
 import { loadApiEnv } from "./env";
 import {
@@ -13,7 +13,7 @@ import {
   facilities,
   facilityAssignments,
   payments,
-  rentalPriceRanges,
+  RentalStatus,
   rentals,
   storageUnits,
   systemSettings,
@@ -403,11 +403,11 @@ async function seedDemoData(seedNow: Date) {
       }
       const facilityTypes = typeRows.filter((type) => type.facilityId === facility.id);
       for (const type of facilityTypes) {
-        const originalId = `71000000-0000-4000-8000-${facility.id.slice(-6)}${type.priceRangeId.slice(-6)}`;
+        const originalCode = `${facility.code}-${type.code}-001`;
         await tx
           .update(storageUnits)
           .set({ floor: "1", locationDescription: `Dãy A · ${type.sizeLabel} · Ô 01` })
-          .where(eq(storageUnits.id, originalId));
+          .where(eq(storageUnits.code, originalCode));
         for (let serial = 2; serial <= 4; serial++) {
           await tx
             .insert(storageUnits)
@@ -766,10 +766,6 @@ function localDate(date: Date) {
   }).format(date);
 }
 
-function localSlot(date: string, time: string) {
-  return new Date(`${date}T${time}+07:00`);
-}
-
 async function seedFlow2Demo(seedNow: Date) {
   const password = await hashPassword(FLOW2_STAFF_PASSWORD);
   await db.transaction(async (tx) => {
@@ -856,7 +852,7 @@ async function seedFlow2Demo(seedNow: Date) {
   });
 }
 
-async function seedFlow3Rentals(seedNow: Date) {
+async function seedBasicRentals(seedNow: Date) {
   const [facility] = await db.select().from(facilities).where(eq(facilities.code, "HCM-01"));
   if (!facility) throw new Error("HCM-01 is required for return seed data");
   const [type] = await db
@@ -869,30 +865,12 @@ async function seedFlow3Rentals(seedNow: Date) {
   const slots = await db.select().from(checkInSlots).orderBy(asc(checkInSlots.startTime));
   if (slots.length < 3) throw new Error("At least three shared return/check-in slots are required");
   const definitions = [
-    { status: "ACTIVE", expiryDays: 20, requestStatus: null, requestDay: 2, slotIndex: 0 },
-    {
-      status: "RETURN_PENDING",
-      expiryDays: 5,
-      requestStatus: "PENDING",
-      requestDay: 0,
-      slotIndex: 1,
-    },
-    { status: "OVERDUE", expiryDays: -2, requestStatus: "CONFIRMED", requestDay: 0, slotIndex: 2 },
-    {
-      status: "CLOSED",
-      expiryDays: -120,
-      requestStatus: "COMPLETED",
-      requestDay: -119,
-      slotIndex: 0,
-    },
-    { status: "ACTIVE", expiryDays: 45, requestStatus: null, requestDay: 10, slotIndex: 1 },
-    {
-      status: "RETURN_PENDING",
-      expiryDays: 12,
-      requestStatus: "PENDING",
-      requestDay: 0,
-      slotIndex: 3,
-    },
+    { status: "ACTIVE", expiryDays: 20 },
+    { status: "ACTIVE", expiryDays: 5 },
+    { status: "ACTIVE", expiryDays: -2 },
+    { status: "CLOSED", expiryDays: -120 },
+    { status: "ACTIVE", expiryDays: 45 },
+    { status: "ACTIVE", expiryDays: 12 },
   ] as const;
   for (const [index, scenario] of definitions.entries()) {
     const bookingId = FLOW3_IDS.bookings[index];
@@ -900,9 +878,8 @@ async function seedFlow3Rentals(seedNow: Date) {
     const unitId = FLOW3_IDS.units[index];
     const unitCode = `HCM-01-${String(index + 19).padStart(3, "0")}`;
     if (!bookingId || !rentalId || !unitId) continue;
-    const startAt = shiftDays(seedNow, -30);
     const expectedEndAt = shiftDays(seedNow, scenario.expiryDays);
-    const actualReturnAt = scenario.status === "CLOSED" ? shiftDays(expectedEndAt, 1) : null;
+    const startAt = shiftDays(seedNow, Math.min(-30, scenario.expiryDays - 30));
     const checkInDate = localDate(startAt);
     const bookingCode = FLOW3_BOOKING_CODES[index];
     await db.transaction(async (tx) => {
@@ -969,62 +946,13 @@ async function seedFlow3Rentals(seedNow: Date) {
         .values({
           id: rentalId,
           bookingId,
-          facilityId: facility.id,
-          physicalUnitId: unitId,
-          status: scenario.status,
+          userId: customer.id,
+          storageUnitId: unitId,
+          status: scenario.status === "CLOSED" ? RentalStatus.CLOSED : RentalStatus.ACTIVE,
           startAt,
-          expectedEndAt,
-          actualReturnAt,
-          closedAt: actualReturnAt,
-          returnSlotId: scenario.requestStatus ? slots[scenario.slotIndex]?.id : null,
-          returnDate: scenario.requestStatus
-            ? localDate(shiftDays(seedNow, scenario.requestDay))
-            : null,
-          returnStartsAt: scenario.requestStatus
-            ? localSlot(
-                localDate(shiftDays(seedNow, scenario.requestDay)),
-                slots[scenario.slotIndex]?.startTime ?? "00:00",
-              )
-            : null,
-          returnEndsAt: scenario.requestStatus
-            ? localSlot(
-                localDate(shiftDays(seedNow, scenario.requestDay)),
-                slots[scenario.slotIndex]?.endTime ?? "00:00",
-              )
-            : null,
-          returnTimezone: scenario.requestStatus ? "Asia/Ho_Chi_Minh" : null,
-          returnStatus: scenario.requestStatus,
-          returnReason: scenario.requestStatus ? "Demo Flow 3 return request" : null,
-          depositAmount: String(type.monthlyPrice),
+          endAt: expectedEndAt,
         })
-        .onConflictDoUpdate({
-          target: rentals.id,
-          set: {
-            status: scenario.status,
-            expectedEndAt,
-            actualReturnAt,
-            closedAt: actualReturnAt,
-            returnSlotId: scenario.requestStatus ? slots[scenario.slotIndex]?.id : null,
-            returnDate: scenario.requestStatus
-              ? localDate(shiftDays(seedNow, scenario.requestDay))
-              : null,
-            returnStartsAt: scenario.requestStatus
-              ? localSlot(
-                  localDate(shiftDays(seedNow, scenario.requestDay)),
-                  slots[scenario.slotIndex]?.startTime ?? "00:00",
-                )
-              : null,
-            returnEndsAt: scenario.requestStatus
-              ? localSlot(
-                  localDate(shiftDays(seedNow, scenario.requestDay)),
-                  slots[scenario.slotIndex]?.endTime ?? "00:00",
-                )
-              : null,
-            returnTimezone: scenario.requestStatus ? "Asia/Ho_Chi_Minh" : null,
-            returnStatus: scenario.requestStatus,
-            returnReason: scenario.requestStatus ? "Demo Flow 3 return request" : null,
-          },
-        });
+        .onConflictDoNothing({ target: rentals.id });
       await tx
         .insert(unitAssignments)
         .values({
@@ -1348,54 +1276,12 @@ async function seed() {
 
   const typeMap = new Map<string, string>();
   for (const [index, unitType] of unitTypesData.entries()) {
-    // Demo-only bounds: allow FM price changes around each fictional catalog price.
-    const minMonthlyPrice = Math.floor(unitType.monthlyPrice * 0.8);
-    const maxMonthlyPrice = Math.ceil(unitType.monthlyPrice * 1.2);
-    await db
-      .insert(rentalPriceRanges)
-      .values({
-        id: id("61000000", index + 1),
-        code: unitType.code,
-        name: unitType.name,
-        minMonthlyPrice,
-        maxMonthlyPrice,
-      })
-      .onConflictDoUpdate({
-        target: rentalPriceRanges.code,
-        set: { minMonthlyPrice, maxMonthlyPrice },
-        setWhere: and(
-          isNull(rentalPriceRanges.minMonthlyPrice),
-          isNull(rentalPriceRanges.maxMonthlyPrice),
-          eq(rentalPriceRanges.version, 0),
-          isNull(rentalPriceRanges.updatedBy),
-          eq(rentalPriceRanges.isActive, true),
-          notExists(
-            db
-              .select({ id: unitTypes.id })
-              .from(unitTypes)
-              .where(
-                and(
-                  eq(unitTypes.priceRangeId, rentalPriceRanges.id),
-                  or(
-                    lt(unitTypes.monthlyPrice, minMonthlyPrice),
-                    gt(unitTypes.monthlyPrice, maxMonthlyPrice),
-                  ),
-                ),
-              ),
-          ),
-        ),
-      });
-    const [range] = await db
-      .select({ id: rentalPriceRanges.id })
-      .from(rentalPriceRanges)
-      .where(eq(rentalPriceRanges.code, unitType.code));
-    if (!range) throw new Error(`Missing seed range ${unitType.code}`);
     for (const [facilityIndex, facility] of facilities.entries()) {
       const candidateId =
         facilityIndex === 0 ? unitType.id : id("62000000", facilityIndex * 100 + index + 1);
       await db
         .insert(unitTypes)
-        .values({ ...unitType, id: candidateId, facilityId: facility.id, priceRangeId: range.id })
+        .values({ ...unitType, id: candidateId, facilityId: facility.id })
         .onConflictDoNothing();
       const [localType] = await db
         .select({ id: unitTypes.id })
@@ -1670,7 +1556,7 @@ async function seed() {
 
   await seedDemoData(seedNow);
   await seedFlow2Demo(seedNow);
-  await seedFlow3Rentals(seedNow);
+  await seedBasicRentals(seedNow);
   await seedPolicies(seedNow);
   await seedAuthAccounts(seedNow);
   await seedImmediateCheckInSlot(seedNow);

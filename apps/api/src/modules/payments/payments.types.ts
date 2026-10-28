@@ -115,7 +115,6 @@ export type SepayCreateCheckoutInput = {
   description: string;
   paymentId: string;
   bookingId?: string;
-  rentalChargeId?: string;
 };
 
 export type SepayOrderDetailResponse = {

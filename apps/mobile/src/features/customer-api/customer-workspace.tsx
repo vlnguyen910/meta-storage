@@ -47,7 +47,6 @@ export function CustomerWorkspace({ owner }: { owner: string }) {
           screen: "payment",
           id,
           bookingId: parsed.searchParams.get("bookingId") ?? undefined,
-          chargeId: parsed.searchParams.get("chargeId") ?? undefined,
         };
         setStack([{ screen: "home" }, payment]);
         void saveCustomerCommand(owner, "payment", payment);

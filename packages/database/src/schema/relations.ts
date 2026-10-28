@@ -11,14 +11,6 @@ import { inspections } from "./inspections";
 import { mediaAssets } from "./media-assets";
 import { paymentProviderEvents } from "./payment-provider-events";
 import { payments } from "./payments";
-import {
-  rentalChargeAdjustments,
-  rentalChargeEvents,
-  rentalChargeRefunds,
-} from "./rental-charge-financials";
-import { rentalCharges } from "./rental-charges";
-import { rentalPriceRanges } from "./rental-price-ranges";
-import { rentalRenewals } from "./rental-renewals";
 import { rentals } from "./rentals";
 import { sessions } from "./sessions";
 import { storageUnits } from "./storage-units";
@@ -36,7 +28,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   assignedUnits: many(unitAssignments),
   checkInVerifications: many(checkInVerifications),
   inspections: many(inspections, { relationName: "inspectionInspector" }),
-  approvedReturnSettlements: many(rentals, { relationName: "rentalReturnSettlementApprover" }),
+  rentals: many(rentals),
   mediaAssets: many(mediaAssets),
 }));
 
@@ -59,54 +51,8 @@ export const mediaAssetsRelations = relations(mediaAssets, ({ one }) => ({
   uploader: one(users, { fields: [mediaAssets.uploadedBy], references: [users.id] }),
 }));
 
-export const paymentsRelations = relations(payments, ({ one, many }) => ({
+export const paymentsRelations = relations(payments, ({ one }) => ({
   booking: one(bookings, { fields: [payments.bookingId], references: [bookings.id] }),
-  rentalCharge: one(rentalCharges, {
-    fields: [payments.rentalChargeId],
-    references: [rentalCharges.id],
-  }),
-  rental: one(rentals, { fields: [payments.rentalId], references: [rentals.id] }),
-  sourcePayment: one(payments, {
-    fields: [payments.sourcePaymentId],
-    references: [payments.id],
-    relationName: "paymentRefundSource",
-  }),
-  refunds: many(payments, { relationName: "paymentRefundSource" }),
-}));
-
-export const rentalChargesRelations = relations(rentalCharges, ({ one, many }) => ({
-  rental: one(rentals, { fields: [rentalCharges.rentalId], references: [rentals.id] }),
-  creator: one(users, { fields: [rentalCharges.createdBy], references: [users.id] }),
-  approver: one(users, { fields: [rentalCharges.approvedBy], references: [users.id] }),
-  payments: many(payments),
-  adjustments: many(rentalChargeAdjustments),
-  events: many(rentalChargeEvents),
-  refunds: many(rentalChargeRefunds),
-}));
-
-export const rentalChargeAdjustmentsRelations = relations(rentalChargeAdjustments, ({ one }) => ({
-  charge: one(rentalCharges, {
-    fields: [rentalChargeAdjustments.chargeId],
-    references: [rentalCharges.id],
-  }),
-  creator: one(users, { fields: [rentalChargeAdjustments.createdBy], references: [users.id] }),
-}));
-
-export const rentalChargeEventsRelations = relations(rentalChargeEvents, ({ one }) => ({
-  charge: one(rentalCharges, {
-    fields: [rentalChargeEvents.chargeId],
-    references: [rentalCharges.id],
-  }),
-  actor: one(users, { fields: [rentalChargeEvents.actorId], references: [users.id] }),
-}));
-
-export const rentalChargeRefundsRelations = relations(rentalChargeRefunds, ({ one }) => ({
-  charge: one(rentalCharges, {
-    fields: [rentalChargeRefunds.chargeId],
-    references: [rentalCharges.id],
-  }),
-  payment: one(payments, { fields: [rentalChargeRefunds.paymentId], references: [payments.id] }),
-  confirmer: one(users, { fields: [rentalChargeRefunds.confirmedBy], references: [users.id] }),
 }));
 
 export const facilityTasksRelations = relations(facilityTasks, ({ many }) => ({
@@ -126,22 +72,13 @@ export const facilitiesRelations = relations(facilities, ({ many }) => ({
   storageUnits: many(storageUnits),
   capacityAllocations: many(capacityAllocations),
   bookings: many(bookings),
-  rentals: many(rentals),
   checkInVerifications: many(checkInVerifications),
 }));
 
 export const unitTypesRelations = relations(unitTypes, ({ many, one }) => ({
   facility: one(facilities, { fields: [unitTypes.facilityId], references: [facilities.id] }),
-  priceRange: one(rentalPriceRanges, {
-    fields: [unitTypes.priceRangeId],
-    references: [rentalPriceRanges.id],
-  }),
   storageUnits: many(storageUnits),
   bookings: many(bookings),
-}));
-
-export const rentalPriceRangesRelations = relations(rentalPriceRanges, ({ many }) => ({
-  unitTypes: many(unitTypes),
 }));
 
 export const facilityAssignmentsRelations = relations(facilityAssignments, ({ one }) => ({
@@ -244,38 +181,13 @@ export const checkInVerificationsRelations = relations(checkInVerifications, ({ 
 }));
 
 export const rentalsRelations = relations(rentals, ({ one, many }) => ({
-  booking: one(bookings, {
-    fields: [rentals.bookingId],
-    references: [bookings.id],
-  }),
-  facility: one(facilities, {
-    fields: [rentals.facilityId],
-    references: [facilities.id],
-  }),
-  physicalUnit: one(storageUnits, {
-    fields: [rentals.physicalUnitId],
+  booking: one(bookings, { fields: [rentals.bookingId], references: [bookings.id] }),
+  user: one(users, { fields: [rentals.userId], references: [users.id] }),
+  storageUnit: one(storageUnits, {
+    fields: [rentals.storageUnitId],
     references: [storageUnits.id],
   }),
-  returnSlot: one(checkInSlots, {
-    fields: [rentals.returnSlotId],
-    references: [checkInSlots.id],
-  }),
-  returnSettlementApprover: one(users, {
-    fields: [rentals.returnSettlementApprovedBy],
-    references: [users.id],
-    relationName: "rentalReturnSettlementApprover",
-  }),
-  charges: many(rentalCharges),
-  renewals: many(rentalRenewals),
   inspections: many(inspections),
-  payments: many(payments),
-}));
-
-export const rentalRenewalsRelations = relations(rentalRenewals, ({ one }) => ({
-  rental: one(rentals, { fields: [rentalRenewals.rentalId], references: [rentals.id] }),
-  customer: one(users, { fields: [rentalRenewals.customerId], references: [users.id] }),
-  charge: one(rentalCharges, { fields: [rentalRenewals.chargeId], references: [rentalCharges.id] }),
-  payment: one(payments, { fields: [rentalRenewals.paymentId], references: [payments.id] }),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -294,7 +206,6 @@ export const accountsRelations = relations(accounts, ({ one }) => ({
 
 export const checkInSlotsRelations = relations(checkInSlots, ({ many }) => ({
   bookings: many(bookings),
-  returnRentals: many(rentals),
 }));
 
 export const supportTicketsRelations = relations(supportTickets, ({ one }) => ({

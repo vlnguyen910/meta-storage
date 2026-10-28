@@ -15,63 +15,26 @@ import {
   eq,
   facilities,
   gt,
-  inArray,
-  isNotNull,
+  ilike,
   or,
   payments,
-  rentalChargeRefunds,
-  rentalCharges,
-  rentalRenewals,
+  RentalStatus,
   rentals,
   sql,
   storageUnits,
   unitTypes,
 } from "@metastorage/database";
-import { NotFoundError } from "../../common/errors/app-error";
-import { bookingCustomer, bookingReadFields } from "../bookings/bookings.projection";
-import type { BookingReadRecord } from "../bookings/bookings.types";
+import { bookingCustomer } from "../bookings/bookings.projection";
 import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
-import { RENTAL_MESSAGES } from "./rentals.messages";
-import type { RentalContext, RentalReadExecutor, RentalTransaction } from "./rentals.types";
-
-const ACTIONS = {
-  canCancel: false as const,
-  canReschedule: false as const,
-  note: "Các thao tác hủy, đổi lịch và yêu cầu hoàn tiền sẽ được bổ sung ở phiên bản sau.",
-};
+import { RENTAL_MESSAGES as M } from "./rentals.messages";
+import type { RentalReadExecutor } from "./rentals.types";
 
 export class RentalsRepository {
   constructor(private readonly db: Database) {}
 
-  async withLockedRental<T>(
-    rentalId: string,
-    work: (tx: RentalTransaction, context: RentalContext) => Promise<T>,
-  ): Promise<T> {
-    const [initial] = await this.db
-      .select({ bookingId: rentals.bookingId })
-      .from(rentals)
-      .where(eq(rentals.id, rentalId));
-    if (!initial) throw new NotFoundError(RENTAL_MESSAGES.rentalNotFound);
-    return this.db.transaction(async (tx) => {
-      const [booking] = await tx
-        .select()
-        .from(bookings)
-        .where(eq(bookings.id, initial.bookingId))
-        .for("update");
-      const [rental] = await tx
-        .select()
-        .from(rentals)
-        .where(eq(rentals.id, rentalId))
-        .for("update");
-      if (!booking || !rental) throw new NotFoundError(RENTAL_MESSAGES.rentalNotFound);
-      return work(tx, { booking, rental });
-    });
-  }
-
   findByBookingId(executor: RentalReadExecutor, bookingId: string) {
     return executor.select().from(rentals).where(eq(rentals.bookingId, bookingId)).limit(1);
   }
-
   managerAssignment(facilityId: string, userId: string) {
     return new FacilityAssignmentsRepository(this.db).findActiveAssignment(
       facilityId,
@@ -79,307 +42,138 @@ export class RentalsRepository {
       "FACILITY_MANAGER",
     );
   }
-
-  private facilityQuery(executor: RentalReadExecutor = this.db) {
-    const initialPayment = executor
-      .selectDistinctOn([payments.bookingId], {
-        bookingId: payments.bookingId,
-        id: payments.id,
-        status: payments.status,
-        amount: payments.totalAmount,
-        currency: payments.currency,
-        paidAt: payments.paidAt,
-      })
-      .from(payments)
-      .where(isNotNull(payments.bookingId))
-      .orderBy(
-        payments.bookingId,
-        desc(isNotNull(payments.paidAt)),
-        desc(payments.createdAt),
-        desc(payments.id),
-      )
-      .as("rental_initial_payment");
+  private query(executor: RentalReadExecutor = this.db) {
     return executor
       .select({
         rental: rentals,
-        booking: {
-          id: bookings.id,
-          bookingCode: bookings.bookingCode,
-          userId: bookings.userId,
-          name: bookingCustomer.name,
-          email: bookingCustomer.email,
-          phone: bookings.contactPhone,
-        },
-        unit: {
-          id: storageUnits.id,
-          code: storageUnits.code,
-          unitTypeId: unitTypes.id,
-          unitTypeName: unitTypes.name,
-          sizeLabel: unitTypes.sizeLabel,
-        },
-        initialPayment: {
-          id: initialPayment.id,
-          status: initialPayment.status,
-          amount: initialPayment.amount,
-          currency: initialPayment.currency,
-          paidAt: initialPayment.paidAt,
-        },
+        booking: bookings,
+        facility: facilities,
+        unitType: unitTypes,
+        storageUnit: storageUnits,
+        customer: bookingCustomer,
+        // Preserve PostgreSQL precision for keyset pagination.
+        cursorEndAt: sql<string>`to_char(${rentals.endAt} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`,
       })
       .from(rentals)
-      .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
-      .innerJoin(bookingCustomer, eq(bookingCustomer.id, bookings.userId))
-      .innerJoin(storageUnits, eq(storageUnits.id, rentals.physicalUnitId))
+      .innerJoin(
+        bookings,
+        and(eq(bookings.id, rentals.bookingId), eq(bookings.userId, rentals.userId)),
+      )
+      .innerJoin(bookingCustomer, eq(bookingCustomer.id, rentals.userId))
+      .innerJoin(facilities, eq(facilities.id, bookings.facilityId))
       .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
-      .leftJoin(initialPayment, eq(initialPayment.bookingId, bookings.id));
+      .innerJoin(
+        storageUnits,
+        and(
+          eq(storageUnits.id, rentals.storageUnitId),
+          eq(storageUnits.facilityId, bookings.facilityId),
+        ),
+      );
   }
-
+  async listPageByUserId(userId: string, query: RentalPageQuery, history: boolean) {
+    const end = query.afterEndAt ? sql`${query.afterEndAt}::timestamptz` : undefined;
+    return this.query()
+      .where(
+        and(
+          eq(rentals.userId, userId),
+          eq(rentals.status, history ? RentalStatus.CLOSED : RentalStatus.ACTIVE),
+          end && query.afterId
+            ? or(gt(rentals.endAt, end), and(eq(rentals.endAt, end), gt(rentals.id, query.afterId)))
+            : undefined,
+        ),
+      )
+      .orderBy(asc(rentals.endAt), asc(rentals.id))
+      .limit(query.limit + 1);
+  }
+  async findByIdAndUserId(id: string, userId: string): Promise<RentalDetail | null> {
+    const [row] = await this.query().where(and(eq(rentals.id, id), eq(rentals.userId, userId)));
+    return row
+      ? {
+          ...toListItem(row),
+          customer: {
+            userId: row.rental.userId,
+            name: row.customer.name,
+            email: row.customer.email,
+            phone: row.booking.contactPhone,
+          },
+        }
+      : null;
+  }
   listForFacility(facilityId: string, query: FacilityRentalListQuery) {
     return this.db.transaction(
       async (tx) => {
         const filter = and(
-          eq(rentals.facilityId, facilityId),
-          query.status ? eq(rentals.status, query.status) : undefined,
+          eq(bookings.facilityId, facilityId),
+          query.status ? eq(rentals.status, query.status as RentalStatus) : undefined,
           query.unitTypeId ? eq(bookings.unitTypeId, query.unitTypeId) : undefined,
+          query.search
+            ? or(
+                ilike(bookings.bookingCode, `%${query.search}%`),
+                ilike(bookingCustomer.name, `%${query.search}%`),
+                ilike(storageUnits.code, `%${query.search}%`),
+              )
+            : undefined,
         );
-        const [total] = await tx
-          .select({ value: count() })
-          .from(rentals)
-          .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
-          .where(filter);
-        const items = await this.facilityQuery(tx)
+        const rows = await this.query(tx)
           .where(filter)
-          .orderBy(asc(rentals.expectedEndAt), asc(rentals.id))
+          .orderBy(asc(rentals.endAt), asc(rentals.id))
           .limit(query.limit)
           .offset(query.offset);
-        return { items, total: total?.value ?? 0 };
+        const [total] = await tx
+          .select({ value: count() })
+          .from(this.query(tx).where(filter).as("scoped_rentals"));
+        return { items: rows, total: total?.value ?? 0 };
       },
       { isolationLevel: "repeatable read", accessMode: "read only" },
     );
   }
-
-  async findForFacility(facilityId: string, rentalId: string) {
-    const [row] = await this.facilityQuery().where(
-      and(eq(rentals.facilityId, facilityId), eq(rentals.id, rentalId)),
+  async findForFacility(facilityId: string, id: string) {
+    const [row] = await this.query().where(
+      and(eq(bookings.facilityId, facilityId), eq(rentals.id, id)),
     );
     return row;
   }
-
-  facilityPayments(bookingId: string, rentalId: string, query: FacilityRentalHistoryQuery) {
+  listPaymentsByUserId(rentalId: string, userId: string) {
+    return this.db
+      .select({ payment: payments })
+      .from(payments)
+      .innerJoin(rentals, eq(rentals.bookingId, payments.bookingId))
+      .where(and(eq(rentals.id, rentalId), eq(rentals.userId, userId)))
+      .orderBy(asc(payments.createdAt), asc(payments.id));
+  }
+  facilityPayments(bookingId: string, query: FacilityRentalHistoryQuery) {
     return this.db.transaction(
       async (tx) => {
-        const filter = or(eq(payments.bookingId, bookingId), eq(rentalCharges.rentalId, rentalId));
-        const [total] = await tx
-          .select({ value: count() })
-          .from(payments)
-          .leftJoin(rentalCharges, eq(rentalCharges.id, payments.rentalChargeId))
-          .where(filter);
+        const filter = eq(payments.bookingId, bookingId);
+        const [total] = await tx.select({ value: count() }).from(payments).where(filter);
         const items = await tx
-          .select({
-            id: payments.id,
-            paymentCode: payments.paymentCode,
-            chargeId: payments.rentalChargeId,
-            source: rentalCharges.source,
-            status: payments.status,
-            amount: payments.totalAmount,
-            currency: payments.currency,
-            paidAt: payments.paidAt,
-            refundAmount: payments.refundAmount,
-            refundReason: payments.refundReason,
-            refundedAt: payments.refundedAt,
-            createdAt: payments.createdAt,
-          })
+          .select()
           .from(payments)
-          .leftJoin(rentalCharges, eq(rentalCharges.id, payments.rentalChargeId))
           .where(filter)
           .orderBy(desc(payments.createdAt), desc(payments.id))
           .limit(query.limit)
           .offset(query.offset);
-        const ids = items.map((item) => item.id);
-        const chargeTransfers = await tx
-          .select({
-            id: rentalChargeRefunds.id,
-            paymentId: rentalChargeRefunds.paymentId,
-            amount: rentalChargeRefunds.amount,
-            reference: rentalChargeRefunds.reference,
-            confirmedAt: rentalChargeRefunds.confirmedAt,
-          })
-          .from(rentalChargeRefunds)
-          .where(
-            and(
-              inArray(rentalChargeRefunds.paymentId, ids),
-              eq(rentalChargeRefunds.status, "CONFIRMED"),
-            ),
-          )
-          .orderBy(asc(rentalChargeRefunds.confirmedAt), asc(rentalChargeRefunds.id));
-        return { items, total: total?.value ?? 0, chargeTransfers };
-      },
-      { isolationLevel: "repeatable read", accessMode: "read only" },
-    );
-  }
-
-  facilityRenewals(rentalId: string, query: FacilityRentalHistoryQuery) {
-    return this.db.transaction(
-      async (tx) => {
-        const filter = eq(rentalRenewals.rentalId, rentalId);
-        const [total] = await tx.select({ value: count() }).from(rentalRenewals).where(filter);
-        const items = await tx
-          .select()
-          .from(rentalRenewals)
-          .where(filter)
-          .orderBy(desc(rentalRenewals.createdAt), desc(rentalRenewals.id))
-          .limit(query.limit)
-          .offset(query.offset);
         return { items, total: total?.value ?? 0 };
       },
       { isolationLevel: "repeatable read", accessMode: "read only" },
     );
   }
-
-  private baseQuery() {
-    return this.db
-      .select({
-        rental: rentals,
-        booking: bookingReadFields,
-        facility: facilities,
-        unitType: unitTypes,
-        physicalUnit: storageUnits,
-        // Date drops microseconds. Keep an exact UTC cursor with PostgreSQL formatting,
-        // for which Drizzle has no helper, so equal-expiry pages never repeat rows.
-        cursorEndAt: sql<string>`to_char(${rentals.expectedEndAt} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`,
-      })
-      .from(rentals)
-      .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
-      .innerJoin(bookingCustomer, eq(bookingCustomer.id, bookings.userId))
-      .innerJoin(facilities, eq(facilities.id, rentals.facilityId))
-      .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
-      .leftJoin(storageUnits, eq(storageUnits.id, rentals.physicalUnitId));
-  }
-
-  async listPageByUserId(userId: string, query: RentalPageQuery, history: boolean) {
-    const afterEndAt = query.afterEndAt ? sql`${query.afterEndAt}::timestamptz` : undefined;
-    return this.baseQuery()
-      .where(
-        and(
-          eq(bookings.userId, userId),
-          inArray(rentals.status, history ? ["CLOSED"] : ["ACTIVE", "RETURN_PENDING", "OVERDUE"]),
-          afterEndAt && query.afterId
-            ? or(
-                gt(rentals.expectedEndAt, afterEndAt),
-                and(eq(rentals.expectedEndAt, afterEndAt), gt(rentals.id, query.afterId)),
-              )
-            : undefined,
-        ),
-      )
-      .orderBy(asc(rentals.expectedEndAt), asc(rentals.id))
-      .limit(query.limit + 1);
-  }
-
-  async listPaymentsByUserId(rentalId: string, userId: string) {
-    return this.db
-      .select({
-        id: payments.id,
-        chargeId: payments.rentalChargeId,
-        source: rentalCharges.source,
-        paymentCode: payments.paymentCode,
-        provider: payments.provider,
-        status: payments.status,
-        totalAmount: payments.totalAmount,
-        currency: payments.currency,
-        paidAt: payments.paidAt,
-        refundAmount: payments.refundAmount,
-        refundReason: payments.refundReason,
-        refundedAt: payments.refundedAt,
-        createdAt: payments.createdAt,
-      })
-      .from(payments)
-      .leftJoin(rentalCharges, eq(rentalCharges.id, payments.rentalChargeId))
-      .innerJoin(
-        rentals,
-        or(eq(rentals.bookingId, payments.bookingId), eq(rentals.id, rentalCharges.rentalId)),
-      )
-      .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
-      .where(and(eq(rentals.id, rentalId), eq(bookings.userId, userId)))
-      .orderBy(asc(payments.createdAt), asc(payments.id));
-  }
-
-  listChargeRefundsByUserId(rentalId: string, userId: string) {
-    return this.db
-      .select({
-        id: rentalChargeRefunds.id,
-        paymentId: rentalChargeRefunds.paymentId,
-        amount: rentalChargeRefunds.amount,
-        reference: rentalChargeRefunds.reference,
-        confirmedAt: rentalChargeRefunds.confirmedAt,
-      })
-      .from(rentalChargeRefunds)
-      .innerJoin(rentalCharges, eq(rentalCharges.id, rentalChargeRefunds.chargeId))
-      .innerJoin(rentals, eq(rentals.id, rentalCharges.rentalId))
-      .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
-      .where(
-        and(
-          eq(rentals.id, rentalId),
-          eq(bookings.userId, userId),
-          eq(rentalChargeRefunds.status, "CONFIRMED"),
-        ),
-      )
-      .orderBy(asc(rentalChargeRefunds.confirmedAt), asc(rentalChargeRefunds.id));
-  }
-
-  async findByIdAndUserId(rentalId: string, userId: string): Promise<RentalDetail | null> {
-    const [row] = await this.baseQuery().where(
-      and(eq(rentals.id, rentalId), eq(bookings.userId, userId)),
-    );
-    return row ? toDetail(row) : null;
-  }
 }
 
-type RentalRow = {
-  rental: typeof rentals.$inferSelect;
-  booking: BookingReadRecord;
-  facility: typeof facilities.$inferSelect;
-  unitType: typeof unitTypes.$inferSelect;
-  physicalUnit: typeof storageUnits.$inferSelect | null;
-};
-
+type RentalRow = Awaited<ReturnType<RentalsRepository["listPageByUserId"]>>[number];
 export function toListItem(row: RentalRow): RentalListItem {
   return {
     id: row.rental.id,
     bookingId: row.booking.id,
+    userId: row.rental.userId,
     bookingCode: row.booking.bookingCode ?? row.booking.id.slice(0, 8).toUpperCase(),
     facility: { id: row.facility.id, name: row.facility.name, address: row.facility.address },
     unitType: { id: row.unitType.id, name: row.unitType.name, sizeLabel: row.unitType.sizeLabel },
-    physicalUnit: row.physicalUnit
-      ? { id: row.physicalUnit.id, code: row.physicalUnit.code }
-      : null,
+    storageUnit: { id: row.storageUnit.id, code: row.storageUnit.code },
     startAt: row.rental.startAt.toISOString(),
-    expectedEndAt: row.rental.expectedEndAt.toISOString(),
+    endAt: row.rental.endAt.toISOString(),
     status: row.rental.status,
     bookingStatus: row.booking.status,
-    actions: ACTIONS,
-  };
-}
-
-function toDetail(row: RentalRow): RentalDetail {
-  const item = toListItem(row);
-  return {
-    ...item,
-    actualReturnAt: row.rental.actualReturnAt?.toISOString() ?? null,
-    closedAt: row.rental.closedAt?.toISOString() ?? null,
-    depositAmount: row.rental.depositAmount,
-    checkInSlotStart: row.booking.checkInSlotStart.toISOString(),
-    checkInSlotEnd: row.booking.checkInSlotEnd?.toISOString() ?? null,
-    timeline: [
-      { label: "Booking confirmed", status: "DONE", at: row.booking.paidAt?.toISOString() ?? null },
-      {
-        label: "Check-in",
-        status: row.rental.status === "ACTIVE" ? "CURRENT" : "DONE",
-        at: row.booking.checkInSlotStart.toISOString(),
-      },
-      {
-        label: "Return",
-        status: row.rental.closedAt ? "DONE" : "UPCOMING",
-        at: row.rental.expectedEndAt.toISOString(),
-      },
-    ],
+    actions: { canCancel: false, canReschedule: false, note: M.readOnly },
   };
 }
