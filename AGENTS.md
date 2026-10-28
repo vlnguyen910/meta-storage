@@ -77,7 +77,7 @@ Apply the rules relevant to the workspace and task. Keep implementation aligned 
 ### 3.2 Backend and Database
 
 5. **Database Schema and Migrations**: Follow `docs/db-diagram.md`; update it with `packages/database` schema changes. Generate migrations with `bun run db:generate`; never edit generated migrations directly. Clarify missing domain decisions before implementation.
-6. **Drizzle Conventions**: Prefer the query builder; use parameterized `sql` only when needed. The client and Drizzle Kit use `casing: "snake_case"`, so declare properties in camelCase and omit redundant physical column names. Preserve existing database names and verify migrations do not rename columns.
+6. **Drizzle Conventions**: Prefer the query builder; use parameterized `sql` only when needed. The client and Drizzle Kit use `casing: "snake_case"`, so declare properties in camelCase and omit redundant physical column names. Preserve existing database names and verify migrations do not rename columns. Declare PostgreSQL enum values as TypeScript `enum`s and pass them through `enumToPgEnum` when calling `pgEnum`, following `packages/database/src/schema/inspections.ts`; do not define PostgreSQL enums from value arrays.
 7. **Backend Boundaries**: Keep workflow coordination in services, persistence in repositories, and isolate external providers behind adapters. Avoid generic repository abstractions without a concrete use case.
 
 ### 3.3 Web Frontend
