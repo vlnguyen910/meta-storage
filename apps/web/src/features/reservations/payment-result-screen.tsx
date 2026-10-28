@@ -1,5 +1,4 @@
 "use client";
-import { CUSTOMER_WORKSPACE as C } from "@metastorage/shared";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import QRCode from "qrcode";
@@ -10,7 +9,6 @@ import { customerRoutes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { useCheckoutPaymentStatus } from "./booking-checkout.hooks";
 import type { CheckoutContext } from "./booking-checkout.types";
-import styles from "./checkout.module.css";
 import { CheckoutConfirmation } from "./checkout-confirmation";
 import { clearCheckoutContext, readCheckoutContext } from "./checkout-storage";
 import { paymentResultMessages as m } from "./payment-result.messages";
@@ -84,53 +82,58 @@ export function PaymentResultScreen() {
                     ? m.expired
                     : m.pending;
   const blockingPaymentCheck = canRead && query.isFetching && !query.data;
-  return (
-    <PublicLayout>
-      <main
-        aria-busy={blockingPaymentCheck}
-        className={`${styles.checkout} mx-auto min-h-[70vh] w-full max-w-5xl px-5 py-12`}
-      >
-        {paymentId && (
-          <a
-            className="mb-5 inline-flex min-h-11 items-center rounded border px-4"
-            href={`metastorage://payment-result?${new URLSearchParams({ paymentId, ...(bookingId ? { bookingId } : {}) })}`}
+  const isCustomer = pathname?.startsWith("/customer/");
+
+  const content = (
+    <main aria-busy={blockingPaymentCheck} className="mx-auto w-full max-w-4xl px-4 py-2 sm:py-3">
+      {blockingPaymentCheck && <Spinner label={m.loading} />}
+      {confirmation ? (
+        <CheckoutConfirmation
+          state={{ confirmation, qrDataUrl: qr, paidPricing: context?.draft.pricing ?? null }}
+        />
+      ) : (
+        <section className="grid gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-xs max-w-xl mx-auto">
+          <h1 className="text-xl font-bold text-slate-900">{m.title}</h1>
+          <p role={query.isError ? "alert" : "status"} className="text-sm text-slate-600">
+            {message}
+          </p>
+          {canRead && (
+            <>
+              <p className="text-xs text-slate-500">{m.pendingHint}</p>
+              <button
+                className="h-10 rounded-xl bg-[#165f4d] hover:bg-[#0f493b] px-4 text-xs font-bold text-white transition-colors cursor-pointer"
+                type="button"
+                disabled={query.isFetching}
+                onClick={() => query.refetch()}
+              >
+                {m.retry}
+              </button>
+            </>
+          )}
+          {!canRead && ready && (
+            <Link className="text-xs font-semibold text-[#165f4d] underline" href="/login">
+              {m.login}
+            </Link>
+          )}
+        </section>
+      )}
+      {!isCustomer && (
+        <div className="text-center mt-3">
+          <Link
+            aria-disabled={blockingPaymentCheck}
+            className={`inline-flex items-center text-xs font-semibold text-[#165f4d] hover:underline ${blockingPaymentCheck ? "pointer-events-none opacity-50" : ""}`}
+            href="/customer/booking/new?new=1"
           >
-            {C.openApp}
-          </a>
-        )}
-        {blockingPaymentCheck && <Spinner label={m.loading} />}
-        {confirmation ? (
-          <CheckoutConfirmation
-            state={{ confirmation, qrDataUrl: qr, paidPricing: context?.draft.pricing ?? null }}
-          />
-        ) : (
-          <section className="grid gap-5 rounded-xl border border-slate-200 bg-white p-8">
-            <h1 className="text-2xl font-bold">{m.title}</h1>
-            <p role={query.isError ? "alert" : "status"}>{message}</p>
-            {canRead && (
-              <>
-                <p>{m.pendingHint}</p>
-                <button
-                  className="min-h-11 rounded bg-emerald-900 px-5 text-white"
-                  type="button"
-                  disabled={query.isFetching}
-                  onClick={() => query.refetch()}
-                >
-                  {m.retry}
-                </button>
-              </>
-            )}
-            {!canRead && ready && <Link href="/login">{m.login}</Link>}
-          </section>
-        )}
-        <Link
-          aria-disabled={blockingPaymentCheck}
-          className={`mt-6 inline-flex min-h-11 items-center underline ${blockingPaymentCheck ? "pointer-events-none opacity-50" : ""}`}
-          href="/reservations/new?new=1"
-        >
-          {m.newBooking}
-        </Link>
-      </main>
-    </PublicLayout>
+            {m.newBooking}
+          </Link>
+        </div>
+      )}
+    </main>
   );
+
+  if (isCustomer) {
+    return content;
+  }
+
+  return <PublicLayout>{content}</PublicLayout>;
 }
