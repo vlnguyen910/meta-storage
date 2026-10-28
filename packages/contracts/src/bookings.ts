@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { BOOKING_CONTRACT_MESSAGES } from "./bookings.messages";
 import { FacilityStaffMemberSchema } from "./facilities";
-import { ReservationDraftContactSchema } from "./reservation-contact";
 
 export type {
   BookingClosure,
@@ -65,7 +64,6 @@ export const PaidBookingSchema = z.object({
   durationMonths: z.number().int().min(1).max(12),
   status: z.literal("CONFIRMED"),
   paidAt: z.string().datetime(),
-  contact: ReservationDraftContactSchema,
   pricing: z.object({
     rentalFeeAmount: z.string(),
     depositAmount: z.string(),

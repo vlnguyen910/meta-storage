@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import { accounts } from "./accounts";
+import { appointments } from "./appointments";
 import { bookings } from "./bookings";
 import { capacityAllocations } from "./capacity-allocations";
 import { checkInSlots } from "./check-in-slots";
@@ -11,6 +12,7 @@ import { mediaAssets } from "./media-assets";
 import { paymentProviderEvents } from "./payment-provider-events";
 import { payments } from "./payments";
 import { rentals } from "./rentals";
+import { reservations } from "./reservations";
 import { sessions } from "./sessions";
 import { storageUnits } from "./storage-units";
 import { supportTickets } from "./support";
@@ -23,6 +25,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   accounts: many(accounts),
   facilityAssignments: many(facilityAssignments),
   bookings: many(bookings, { relationName: "bookingOwner" }),
+  reservations: many(reservations),
+  appointments: many(appointments),
   assignedBookings: many(bookings, { relationName: "bookingStaff" }),
   assignedUnits: many(unitAssignments),
   inspections: many(inspections, { relationName: "inspectionInspector" }),
@@ -70,12 +74,15 @@ export const facilitiesRelations = relations(facilities, ({ many }) => ({
   storageUnits: many(storageUnits),
   capacityAllocations: many(capacityAllocations),
   bookings: many(bookings),
+  reservations: many(reservations),
+  appointments: many(appointments),
 }));
 
 export const unitTypesRelations = relations(unitTypes, ({ many, one }) => ({
   facility: one(facilities, { fields: [unitTypes.facilityId], references: [facilities.id] }),
   storageUnits: many(storageUnits),
   bookings: many(bookings),
+  reservations: many(reservations),
 }));
 
 export const facilityAssignmentsRelations = relations(facilityAssignments, ({ one }) => ({
@@ -165,6 +172,30 @@ export const rentalsRelations = relations(rentals, ({ one, many }) => ({
     references: [storageUnits.id],
   }),
   inspections: many(inspections),
+  appointments: many(appointments),
+}));
+
+export const reservationsRelations = relations(reservations, ({ one, many }) => ({
+  customer: one(users, { fields: [reservations.customerId], references: [users.id] }),
+  facility: one(facilities, { fields: [reservations.facilityId], references: [facilities.id] }),
+  unitType: one(unitTypes, { fields: [reservations.unitTypeId], references: [unitTypes.id] }),
+  appointments: many(appointments),
+}));
+
+export const appointmentsRelations = relations(appointments, ({ one }) => ({
+  facility: one(facilities, { fields: [appointments.facilityId], references: [facilities.id] }),
+  slot: one(checkInSlots, { fields: [appointments.slotId], references: [checkInSlots.id] }),
+  customer: one(users, { fields: [appointments.customerId], references: [users.id] }),
+  assignedStaff: one(users, { fields: [appointments.assignedStaffId], references: [users.id] }),
+  reservation: one(reservations, {
+    fields: [appointments.reservationId],
+    references: [reservations.id],
+  }),
+  rental: one(rentals, { fields: [appointments.rentalId], references: [rentals.id] }),
+  supportTicket: one(supportTickets, {
+    fields: [appointments.supportTicketId],
+    references: [supportTickets.id],
+  }),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -183,9 +214,10 @@ export const accountsRelations = relations(accounts, ({ one }) => ({
 
 export const checkInSlotsRelations = relations(checkInSlots, ({ many }) => ({
   bookings: many(bookings),
+  appointments: many(appointments),
 }));
 
-export const supportTicketsRelations = relations(supportTickets, ({ one }) => ({
+export const supportTicketsRelations = relations(supportTickets, ({ one, many }) => ({
   booking: one(bookings, { fields: [supportTickets.bookingId], references: [bookings.id] }),
   owner: one(users, {
     fields: [supportTickets.ownerUserId],
@@ -194,5 +226,6 @@ export const supportTicketsRelations = relations(supportTickets, ({ one }) => ({
   }),
   facility: one(facilities, { fields: [supportTickets.facilityId], references: [facilities.id] }),
   rental: one(rentals, { fields: [supportTickets.rentalId], references: [rentals.id] }),
+  appointments: many(appointments),
   payment: one(payments, { fields: [supportTickets.paymentId], references: [payments.id] }),
 }));

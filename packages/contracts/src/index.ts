@@ -39,8 +39,6 @@ export * from "./pricing";
 export * from "./rental-documents";
 export * from "./rentals";
 export * from "./reports";
-export * from "./reservation-contact";
-export * from "./reservations";
 export * from "./storage-units";
 export * from "./storage-units.messages";
 export * from "./support";
