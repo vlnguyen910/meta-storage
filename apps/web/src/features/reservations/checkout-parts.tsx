@@ -12,7 +12,7 @@ export function CheckoutProgress({ step }: { step: number }) {
   return (
     <nav
       aria-label="Tiến trình đặt kho"
-      className="mb-6 rounded-2xl border border-slate-200 bg-white p-3 shadow-xs"
+      className="mb-3 sm:mb-4 rounded-xl border border-slate-200 bg-white p-2 sm:p-2.5 shadow-xs"
     >
       <ol className="flex items-center justify-between">
         {m.steps.map((label, i) => {
@@ -24,16 +24,17 @@ export function CheckoutProgress({ step }: { step: number }) {
               aria-current={isCurrent ? "step" : undefined}
               className="flex-1 flex items-center last:flex-none"
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <span
                   className={cn(
-                    "flex size-7 items-center justify-center rounded-full text-xs font-bold transition-all shrink-0",
-                    isCurrent && "bg-[#165f4d] text-white shadow-xs ring-4 ring-[#165f4d]/15",
+                    "flex size-6 sm:size-7 items-center justify-center rounded-full text-[11px] sm:text-xs font-bold transition-all shrink-0",
+                    isCurrent &&
+                      "bg-[#165f4d] text-white shadow-xs ring-2 sm:ring-4 ring-[#165f4d]/15",
                     isComplete && "bg-emerald-100 text-[#165f4d]",
                     !isCurrent && !isComplete && "bg-slate-100 text-slate-400",
                   )}
                 >
-                  {isComplete ? <Check size={14} className="stroke-[2.5]" /> : i + 1}
+                  {isComplete ? <Check size={13} className="stroke-[2.5]" /> : i + 1}
                 </span>
                 <span
                   className={cn(
@@ -49,7 +50,7 @@ export function CheckoutProgress({ step }: { step: number }) {
               {i < m.steps.length - 1 && (
                 <div
                   className={cn(
-                    "mx-2 sm:mx-4 h-[2px] flex-1 rounded-full transition-colors",
+                    "mx-2 sm:mx-3 h-[2px] flex-1 rounded-full transition-colors",
                     isComplete ? "bg-[#165f4d]" : "bg-slate-200",
                   )}
                 />
@@ -110,15 +111,15 @@ export function CheckoutSummary({ state }: { state: CheckoutState }) {
 
   return (
     <aside
-      className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs sticky top-4"
+      className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs sticky top-4"
       aria-label={m.summary}
     >
-      <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 pb-3 border-b border-slate-100">
+      <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 pb-2.5 border-b border-slate-100">
         {step === 1 ? m.serviceSummary : step >= 2 ? m.billing : m.summary}
       </h2>
 
       {option && step > 0 ? (
-        <div className="aspect-[16/9] w-full relative rounded-xl overflow-hidden border border-slate-100 my-3">
+        <div className="h-20 w-full relative rounded-xl overflow-hidden border border-slate-100 my-2.5">
           <UnitPhoto
             index={state.availabilityQuery.data?.findIndex(
               (item) => item.unitTypeId === option.unitTypeId,
@@ -127,26 +128,26 @@ export function CheckoutSummary({ state }: { state: CheckoutState }) {
         </div>
       ) : null}
 
-      <div className="my-3">
+      <div className="my-2.5">
         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
           {m.unit}
         </span>
-        <h3 className="text-base font-bold text-slate-900 leading-tight">
+        <h3 className="text-sm font-bold text-slate-900 leading-tight">
           {option?.unitType ?? m.unitNotSelected}
         </h3>
         {option ? (
           <p className="text-xs text-slate-500 mt-0.5 font-medium">{option.sizeLabel}</p>
         ) : null}
-        <div className="text-xs text-slate-500 mt-2 flex items-start gap-1.5">
-          <MapPin size={14} className="shrink-0 text-slate-400 mt-0.5" />
+        <div className="text-xs text-slate-500 mt-1.5 flex items-start gap-1.5">
+          <MapPin size={13} className="shrink-0 text-slate-400 mt-0.5" />
           <div className="min-w-0">
-            <span className="font-semibold text-slate-700 block">{facility?.name}</span>
+            <span className="font-semibold text-slate-700 block text-xs">{facility?.name}</span>
             <span className="text-[11px] text-slate-400 block truncate">{facility?.address}</span>
           </div>
         </div>
       </div>
 
-      <div className="space-y-1.5 py-3 border-y border-slate-100 my-3">
+      <div className="space-y-1 py-2 border-y border-slate-100 my-2">
         <CheckoutRow label={m.unitPrice}>
           {option ? (
             <>
@@ -176,7 +177,7 @@ export function CheckoutSummary({ state }: { state: CheckoutState }) {
         <span className="text-xs font-semibold text-slate-600">
           {step >= 2 ? m.total : m.estimate}
         </span>
-        <strong className="text-lg font-bold text-[#165f4d]">
+        <strong className="text-base font-bold text-[#165f4d]">
           {step >= 2 ? (
             pricing ? (
               <Currency value={Number(pricing.totalAmount)} />
@@ -198,7 +199,7 @@ export function CheckoutSummary({ state }: { state: CheckoutState }) {
       {step === 0 ? (
         <button
           type="button"
-          className="mt-4 w-full h-11 bg-[#165f4d] hover:bg-[#0f493b] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+          className="mt-3 w-full h-10 bg-[#165f4d] hover:bg-[#0f493b] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           disabled={
             !option ||
             option.availableCount === 0 ||
@@ -208,18 +209,7 @@ export function CheckoutSummary({ state }: { state: CheckoutState }) {
           onClick={state.next}
         >
           <span>{m.nextContact}</span>
-          <ArrowRight size={15} />
-        </button>
-      ) : null}
-
-      {step === 2 ? (
-        <button
-          type="button"
-          className="mt-4 w-full h-11 bg-[#165f4d] hover:bg-[#0f493b] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer"
-          onClick={state.next}
-        >
-          <span>{m.checkout}</span>
-          <ArrowRight size={15} />
+          <ArrowRight size={14} />
         </button>
       ) : null}
 
@@ -231,8 +221,8 @@ export function CheckoutSummary({ state }: { state: CheckoutState }) {
         </p>
       ) : null}
 
-      <p className="mt-3 text-center text-[11px] text-slate-400 flex items-center justify-center gap-1.5">
-        <LockKeyhole size={12} className="text-slate-400" />
+      <p className="mt-2.5 text-center text-[11px] text-slate-400 flex items-center justify-center gap-1.5">
+        <LockKeyhole size={11} className="text-slate-400" />
         <span>{step < 2 ? m.noPaymentYet : m.paymentVerified}</span>
       </p>
     </aside>
