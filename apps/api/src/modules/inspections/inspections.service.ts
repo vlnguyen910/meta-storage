@@ -13,9 +13,14 @@ import {
 import { InspectionCondition, InspectionStatus, InspectionType } from "@metastorage/database";
 import { ConflictError, ForbiddenError, NotFoundError } from "../../common/errors/app-error";
 import { mapPageDto } from "../../common/types/page.dto";
+import type { BookingsService } from "../bookings/bookings.service";
+import type { CheckInsService } from "../check-ins/check-ins.service";
 import type { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
 import type { FacilityTasksRepository } from "../facility-tasks/facility-tasks.repository";
+import type { FacilityTasksService } from "../facility-tasks/facility-tasks.service";
 import type { MediaAssetsService } from "../media-assets/media-assets.service";
+import type { RentalsService } from "../rentals/rentals.service";
+import type { StorageUnitsService } from "../storage-units/storage-units.service";
 import { INSPECTIONS_API_MESSAGES as m } from "./inspections.messages";
 import type { InspectionRow, InspectionsRepository } from "./inspections.repository";
 
@@ -25,6 +30,11 @@ export class InspectionsService {
   constructor(
     private readonly repository: InspectionsRepository,
     private readonly tasks: FacilityTasksRepository,
+    private readonly taskLifecycle: FacilityTasksService,
+    private readonly rentals: RentalsService,
+    private readonly bookings: BookingsService,
+    private readonly storageUnits: StorageUnitsService,
+    private readonly checkIns: CheckInsService,
     private readonly assignments: FacilityAssignmentsService,
     private readonly media: MediaAssetsService,
   ) {}
@@ -57,14 +67,42 @@ export class InspectionsService {
 
   async startForBooking(bookingId: string, actor: InspectionActor): Promise<InspectionRecord> {
     await this.assertBookingAccess(bookingId, actor);
-    const result = await this.repository.startCheckIn(bookingId, actor.id);
-    if ("error" in result) {
-      if (result.error === "BOOKING_NOT_FOUND") throw new NotFoundError(m.bookingNotFound);
-      if (result.error === "NOT_ASSIGNED") throw new ForbiddenError(m.notAssigned);
-      if (result.error === "TASK_NOT_AVAILABLE") throw new ConflictError(m.taskNotAvailable);
-      throw new ConflictError(m.checkInNotReady);
-    }
-    return this.get(result.inspection.id, actor);
+    const inspection = await this.repository.transaction(async (tx) => {
+      const [booking] = await this.repository.findBookingForCheckIn(tx, bookingId);
+      if (!booking) throw new NotFoundError(m.bookingNotFound);
+      if (booking.assignedStaffId !== actor.id) throw new ForbiddenError(m.notAssigned);
+      if (booking.status !== "CONFIRMED") throw new ConflictError(m.checkInNotReady);
+
+      const [assignment] = await this.repository.findActiveUnitAssignment(tx, bookingId);
+      if (!assignment) throw new ConflictError(m.checkInNotReady);
+      const [verification] = await this.repository.findVerifiedCheckIn(
+        tx,
+        bookingId,
+        booking.facilityId,
+        actor.id,
+        assignment.id,
+      );
+      if (!verification) throw new ConflictError(m.checkInNotReady);
+
+      const task = await this.taskLifecycle.startBookingHandover(
+        tx,
+        bookingId,
+        booking.facilityId,
+        actor.id,
+      );
+      if (!task) throw new ConflictError(m.taskNotAvailable);
+      const [existing] = await this.repository.findInspectionByTask(tx, task.id);
+      if (existing) return existing;
+      const [created] = await this.repository.createCheckInInspection(tx, {
+        storageUnitId: assignment.physicalUnitId,
+        bookingId,
+        inspectedBy: actor.id,
+        taskId: task.id,
+      });
+      if (!created) throw new Error("Check-in inspection insert returned no row");
+      return created;
+    });
+    return this.get(inspection.id, actor);
   }
 
   private async assertBookingAccess(bookingId: string, actor: InspectionActor) {
@@ -192,13 +230,61 @@ export class InspectionsService {
     const current = await this.getAccessibleRow(id, actor);
     if (actor.role !== UserRole.FACILITY_STAFF || !current.bookingId)
       throw new ForbiddenError(m.notAssigned);
-    await this.assertBookingAccess(current.bookingId, actor);
-    const result = await this.repository.handover(id, actor.id);
-    if ("error" in result) {
-      if (result.error === "NOT_FOUND") throw new NotFoundError(m.notFound);
-      if (result.error === "NOT_ASSIGNED") throw new ForbiddenError(m.notAssigned);
-      throw new ConflictError(m.handoverNotReady);
-    }
+    const bookingId = current.bookingId;
+    await this.assertBookingAccess(bookingId, actor);
+    await this.repository.transaction(async (tx) => {
+      const [booking] = await this.repository.findBookingForHandover(tx, bookingId);
+      const [inspection] = await this.repository.findForUpdate(tx, id);
+      if (!booking || !inspection) throw new NotFoundError(m.notFound);
+      if (booking.assignedStaffId !== actor.id) throw new ForbiddenError(m.notAssigned);
+      if (
+        inspection.bookingId !== booking.id ||
+        inspection.inspectionType !== InspectionType.CHECK_IN ||
+        inspection.status !== InspectionStatus.PASSED
+      )
+        throw new ConflictError(m.handoverNotReady);
+
+      if (booking.status === "CHECKED_IN") {
+        const [existingRental] = await this.rentals.findHandoverRental(tx, booking.id);
+        if (!existingRental) throw new ConflictError(m.handoverNotReady);
+        return;
+      }
+      if (booking.status !== "CONFIRMED") throw new ConflictError(m.handoverNotReady);
+
+      const [assignment] = await this.repository.findActiveUnitAssignment(tx, booking.id);
+      if (!assignment || assignment.physicalUnitId !== inspection.storageUnitId)
+        throw new ConflictError(m.handoverNotReady);
+      const [verification] = await this.repository.findVerifiedCheckIn(
+        tx,
+        booking.id,
+        booking.facilityId,
+        actor.id,
+        assignment.id,
+      );
+      if (!verification) throw new ConflictError(m.handoverNotReady);
+
+      const now = new Date();
+      await this.rentals.createForHandover(tx, {
+        bookingId: booking.id,
+        userId: booking.userId,
+        storageUnitId: assignment.physicalUnitId,
+        startAt: now,
+        endAt: booking.rentalEndAt,
+      });
+      await this.storageUnits.markOccupied(tx, assignment.physicalUnitId, now);
+      await this.bookings.markCheckedIn(tx, booking.id, now);
+      await this.checkIns.consumeVerification(tx, verification.id, now);
+      if (
+        !(await this.taskLifecycle.completeBookingHandover(tx, {
+          taskId: inspection.taskId,
+          bookingId: booking.id,
+          facilityId: booking.facilityId,
+          staffId: actor.id,
+          now,
+        }))
+      )
+        throw new ConflictError(m.handoverNotReady);
+    });
     return this.get(id, actor);
   }
 

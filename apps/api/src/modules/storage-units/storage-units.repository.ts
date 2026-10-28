@@ -32,6 +32,7 @@ import {
   unitAssignments,
   unitTypes,
 } from "@metastorage/database";
+import type { TaskTransaction } from "../facility-tasks/facility-tasks.types";
 
 type DbExecutor = Database | Parameters<Parameters<Database["transaction"]>[0]>[0];
 
@@ -43,6 +44,13 @@ export type TransitionUnitStatusResult =
 
 export class StorageUnitsRepository {
   constructor(private readonly db: DbExecutor) {}
+
+  markOccupied(tx: TaskTransaction, unitId: string, now: Date) {
+    return tx
+      .update(storageUnits)
+      .set({ status: "OCCUPIED", updatedAt: now })
+      .where(eq(storageUnits.id, unitId));
+  }
 
   async listByFacility(query: StorageUnitListQuery) {
     const execute = async (tx: DbExecutor) => {

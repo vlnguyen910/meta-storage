@@ -9,6 +9,7 @@ import type {
 } from "@metastorage/contracts";
 import type { CheckInVerification as DbCheckInVerification } from "@metastorage/database";
 import { ConflictError, NotFoundError } from "../../common/errors/app-error";
+import type { TaskTransaction } from "../facility-tasks/facility-tasks.types";
 import { type CheckInPolicyEvaluation, evaluateCheckInEligibility } from "./check-ins.policy";
 import type { CheckInRecord, CheckInsRepository } from "./check-ins.repository";
 
@@ -92,6 +93,10 @@ export class CheckInsService {
     private readonly clock: () => Date = () => new Date(),
     private readonly allowEarlyCheckIn = false,
   ) {}
+
+  consumeVerification(tx: TaskTransaction, verificationId: string, now: Date) {
+    return this.repository.consumeVerification(tx, verificationId, now);
+  }
 
   async getFacilityIdForLookup(input: CheckInLookupInput): Promise<string> {
     const facilityId = await this.repository.findFacilityIdByLookup(input.type, input.value);

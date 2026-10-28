@@ -11,12 +11,20 @@ import { z } from "zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
 import { requireRole } from "../auth/auth.guard";
+import { createBookingsService } from "../bookings/bookings.service";
+import { CheckInsRepository } from "../check-ins/check-ins.repository";
+import { CheckInsService } from "../check-ins/check-ins.service";
 import { FacilitiesRepository } from "../facilities/facilities.repository";
 import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
 import { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
 import { FacilityTasksRepository } from "../facility-tasks/facility-tasks.repository";
+import { FacilityTasksService } from "../facility-tasks/facility-tasks.service";
 import { MediaAssetsRepository } from "../media-assets/media-assets.repository";
 import { MediaAssetsService } from "../media-assets/media-assets.service";
+import { RentalsRepository } from "../rentals/rentals.repository";
+import { RentalsService } from "../rentals/rentals.service";
+import { StorageUnitsRepository } from "../storage-units/storage-units.repository";
+import { StorageUnitsService } from "../storage-units/storage-units.service";
 import { INSPECTIONS_API_MESSAGES as m } from "./inspections.messages";
 import { InspectionsRepository } from "./inspections.repository";
 import { InspectionsService } from "./inspections.service";
@@ -36,6 +44,11 @@ export const inspectionsRoutes: FastifyPluginAsync = async (app) => {
   const service = new InspectionsService(
     new InspectionsRepository(app.db),
     tasks,
+    new FacilityTasksService(tasks, assignments),
+    new RentalsService(new RentalsRepository(app.db), assignments),
+    createBookingsService(app),
+    new StorageUnitsService(new StorageUnitsRepository(app.db)),
+    new CheckInsService(new CheckInsRepository(app.db)),
     assignments,
     media,
   );

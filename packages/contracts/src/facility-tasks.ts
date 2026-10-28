@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+//TODO: chuyển các export enum này xuống schema của facility task.
 export enum FacilityTaskType {
   CHECK_IN_HANDOVER = "CHECK_IN_HANDOVER",
   UNIT_INSPECTION = "UNIT_INSPECTION",

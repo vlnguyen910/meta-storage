@@ -11,6 +11,7 @@ import { ConflictError, ForbiddenError, NotFoundError } from "../../common/error
 import { mapPageDto } from "../../common/types/page.dto";
 import { getFacilityAccessScope, requireAssignedFacility } from "../facilities/facilities.access";
 import type { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
+import type { TaskTransaction } from "../facility-tasks/facility-tasks.types";
 import type { StorageUnitsRepository } from "./storage-units.repository";
 import type { UnitTransitionUser } from "./storage-units.types";
 
@@ -49,6 +50,10 @@ export class StorageUnitsService {
 
   async getAvailableCapacity(facilityId: string, unitTypeId: string, startsAt: Date, endsAt: Date) {
     return this.repository.getAvailableCapacity(facilityId, unitTypeId, startsAt, endsAt);
+  }
+
+  markOccupied(tx: TaskTransaction, unitId: string, now: Date) {
+    return this.repository.markOccupied(tx, unitId, now);
   }
 
   async getUnitById(id: string): Promise<StorageUnit> {
