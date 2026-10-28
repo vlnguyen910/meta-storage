@@ -48,6 +48,7 @@ export function useReservationCheckout() {
   const [holdSeconds, setHoldSeconds] = useState(0);
   const [confirmation, setConfirmation] = useState<BookingConfirmation | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const requestInFlight = useRef(false);
   const draftSelection = useRef("");
   const draftMutation = useBookingDraft();
@@ -307,6 +308,27 @@ export function useReservationCheckout() {
       });
       saveCheckoutContext({ ...context, payment: result });
       setPendingPayment(result);
+
+      if (typeof window !== "undefined" && result.checkoutUrl) {
+        setIsRedirecting(true);
+        if (result.checkoutFormFields && Object.keys(result.checkoutFormFields).length > 0) {
+          const formEl = document.createElement("form");
+          formEl.method = "POST";
+          formEl.action = result.checkoutUrl;
+          formEl.target = "_self";
+          for (const [key, val] of Object.entries(result.checkoutFormFields)) {
+            const inputEl = document.createElement("input");
+            inputEl.type = "hidden";
+            inputEl.name = key;
+            inputEl.value = String(val);
+            formEl.appendChild(inputEl);
+          }
+          document.body.appendChild(formEl);
+          formEl.submit();
+        } else {
+          window.location.assign(result.checkoutUrl);
+        }
+      }
     } catch (error) {
       setPaymentError(checkoutFailure(error, "payment").message);
       if (isAxiosError(error) && [400, 409, 422].includes(error.response?.status ?? 0)) {
@@ -355,6 +377,7 @@ export function useReservationCheckout() {
     paymentError,
     busy: draftMutation.isPending,
     paying: paymentMutation.isPending,
+    isRedirecting,
     next,
     pay,
   };
