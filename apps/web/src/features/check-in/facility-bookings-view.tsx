@@ -70,10 +70,12 @@ export function FacilityBookingsView({
   const pageCount = Math.max(1, Math.ceil(d.filtered.length / pageSize));
   const pageItems = d.filtered.slice((page - 1) * pageSize, page * pageSize);
   const headingActions = (
-    <div className="flex gap-2">
-      <div className="rounded-lg bg-white px-4 py-2 text-xs shadow-sm">
-        <p className="text-[#5c6661]">{FLOW.syncTime}</p>
-        <strong>
+    <div className="flex items-center gap-2">
+      <div className="flex h-[58px] flex-col justify-center rounded-lg bg-white px-3.5 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
+        <p className="text-[11px] font-medium uppercase tracking-wider text-[#5c6661]">
+          {FLOW.syncTime}
+        </p>
+        <strong className={`${titleClass} text-sm font-bold text-slate-900`}>
           {d.query.dataUpdatedAt
             ? new Date(d.query.dataUpdatedAt).toLocaleTimeString("vi-VN", {
                 timeZone: "Asia/Ho_Chi_Minh",
@@ -81,7 +83,12 @@ export function FacilityBookingsView({
             : "—"}
         </strong>
       </div>
-      <Button variant="secondary" onClick={() => window.print()} icon={<Printer size={18} />}>
+      <Button
+        variant="secondary"
+        onClick={() => window.print()}
+        icon={<Printer size={18} />}
+        className="h-[58px] px-4 font-semibold"
+      >
         {FLOW.print}
       </Button>
     </div>
@@ -92,49 +99,50 @@ export function FacilityBookingsView({
   useEffect(() => setPage((value) => Math.min(value, pageCount)), [pageCount]);
   return (
     <>
-      {headingMode === "full" ? (
+      {headingMode === "full" && (
         <FlowHeading
           title={isStaff ? FLOW.staffTasks : FLOW.managerDispatchTitle}
           description={FLOW.dispatchDescription(facilityName ?? FLOW.noFacility)}
           actions={headingActions}
         />
-      ) : (
-        <div className="flex justify-end">{headingActions}</div>
       )}
-      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
-        {[
-          { label: FLOW.total, value: d.bookings.length, icon: Calendar },
-          {
-            label: FLOW.needsAction,
-            value: d.count("NEEDS_UNIT") + d.count("NEEDS_STAFF"),
-            icon: Warehouse,
-          },
-          { label: FLOW.waiting, value: d.count("READY"), icon: UserCheck },
-          {
-            label: FLOW.inProgress,
-            value: d.count("INSPECTING") + d.count("READY_HANDOVER"),
-            icon: ClipboardCheck,
-          },
-          { label: FLOW.pendingAccess, value: d.count("CHECKED_IN"), icon: ClipboardCheck },
-        ].map(({ label, value, icon: Icon }) => (
-          <Panel key={label} className="px-3.5 py-2.5">
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <span className="block truncate text-[11px] font-medium uppercase tracking-wider text-[#5c6661]">
-                  {label}
-                </span>
-                <p
-                  className={`${titleClass} mt-0.5 text-2xl font-bold leading-tight text-slate-900`}
-                >
-                  {value}
-                </p>
+      <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
+        <div className="grid flex-1 gap-2 grid-cols-2 sm:grid-cols-3 xl:grid-cols-5">
+          {[
+            { label: FLOW.total, value: d.bookings.length, icon: Calendar },
+            {
+              label: FLOW.needsAction,
+              value: d.count("NEEDS_UNIT") + d.count("NEEDS_STAFF"),
+              icon: Warehouse,
+            },
+            { label: FLOW.waiting, value: d.count("READY"), icon: UserCheck },
+            {
+              label: FLOW.inProgress,
+              value: d.count("INSPECTING") + d.count("READY_HANDOVER"),
+              icon: ClipboardCheck,
+            },
+            { label: FLOW.pendingAccess, value: d.count("CHECKED_IN"), icon: ClipboardCheck },
+          ].map(({ label, value, icon: Icon }) => (
+            <Panel key={label} className="flex h-[58px] flex-col justify-center px-3.5 py-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <span className="block truncate text-[11px] font-medium uppercase tracking-wider text-[#5c6661]">
+                    {label}
+                  </span>
+                  <p className={`${titleClass} text-2xl font-bold leading-tight text-slate-900`}>
+                    {value}
+                  </p>
+                </div>
+                <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-[#003b2f]/10 text-[#003b2f]">
+                  <Icon size={16} />
+                </div>
               </div>
-              <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-[#003b2f]/10 text-[#003b2f]">
-                <Icon size={16} />
-              </div>
-            </div>
-          </Panel>
-        ))}
+            </Panel>
+          ))}
+        </div>
+        {headingMode !== "full" && (
+          <div className="flex shrink-0 items-center justify-end">{headingActions}</div>
+        )}
       </div>
       <Panel className="space-y-4">
         <div className="flex flex-wrap items-center gap-3">
