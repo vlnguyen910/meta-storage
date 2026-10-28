@@ -4,6 +4,7 @@ import {
   type FacilityTaskDetail,
   type FacilityTaskListQuery,
   type FacilityTaskListResult,
+  FacilityTaskReferenceType,
   FacilityTaskStatus,
   FacilityTaskType,
   FacilityTaskTypeReferenceSchema,
@@ -58,14 +59,66 @@ export class FacilityTasksService {
     };
   }
 
-  assignBookingHandover(
+  async assignBookingHandover(
     tx: TaskTransaction,
     facilityId: string,
     bookingId: string,
     staffId: string,
     managerId: string,
   ): Promise<void> {
-    return this.repository.assignBookingHandover(tx, facilityId, bookingId, staffId, managerId);
+    const [activeTask] = await this.repository.findActiveBookingHandover(tx, bookingId);
+    const now = new Date();
+    if (activeTask) {
+      if (activeTask.assignedStaffId !== staffId)
+        await this.repository.reassignBookingHandover(tx, activeTask.id, staffId, managerId, now);
+      return;
+    }
+    await this.repository.createBookingHandover(tx, {
+      facilityId,
+      bookingId,
+      staffId,
+      managerId,
+      now,
+    });
+  }
+
+  async startBookingHandover(
+    tx: TaskTransaction,
+    bookingId: string,
+    facilityId: string,
+    staffId: string,
+  ) {
+    const [task] = await this.repository.findActiveBookingHandover(tx, bookingId);
+    if (!task || task.facilityId !== facilityId || task.assignedStaffId !== staffId)
+      return undefined;
+    if (task.status === FacilityTaskStatus.ASSIGNED)
+      await this.repository.setWorkflowStatus(tx, task.id, FacilityTaskStatus.IN_PROGRESS, {
+        startedAt: new Date(),
+        updatedAt: new Date(),
+      });
+    return task;
+  }
+
+  async completeBookingHandover(
+    tx: TaskTransaction,
+    input: { taskId: string; bookingId: string; facilityId: string; staffId: string; now: Date },
+  ) {
+    const [task] = await this.repository.findForUpdate(tx, input.taskId);
+    if (
+      !task ||
+      task.type !== FacilityTaskType.CHECK_IN_HANDOVER ||
+      task.referenceType !== FacilityTaskReferenceType.BOOKING ||
+      task.referenceId !== input.bookingId ||
+      task.facilityId !== input.facilityId ||
+      task.assignedStaffId !== input.staffId ||
+      task.status !== FacilityTaskStatus.IN_PROGRESS
+    )
+      return false;
+    await this.repository.setWorkflowStatus(tx, task.id, FacilityTaskStatus.COMPLETED, {
+      completedAt: input.now,
+      updatedAt: input.now,
+    });
+    return true;
   }
 
   async listMineTask(
