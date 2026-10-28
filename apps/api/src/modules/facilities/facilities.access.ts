@@ -1,4 +1,4 @@
-import type { FacilityAssignmentRole } from "@metastorage/contracts";
+import { type FacilityAssignmentRole, UserRole } from "@metastorage/contracts";
 import type { Role } from "@metastorage/database";
 import { ForbiddenError } from "../../common/errors/app-error";
 import { FACILITY_MESSAGES } from "./facilities.messages";
@@ -21,12 +21,16 @@ export type FacilityListScope = FacilityScope | { kind: "public" };
 
 type FacilityUser = { id: string; role: Role | null | undefined };
 
-function isFacilityRole(role: Role | null | undefined): role is FacilityAssignmentRole {
-  return role === "FACILITY_STAFF" || role === "FACILITY_MANAGER";
+function isFacilityRole(
+  role: Role | null | undefined,
+): role is UserRole.FACILITY_STAFF | UserRole.FACILITY_MANAGER {
+  return role === UserRole.FACILITY_STAFF || role === UserRole.FACILITY_MANAGER;
 }
 
-function isGlobalFacilityRole(role: Role | null | undefined): role is GlobalFacilityScope["role"] {
-  return role === "SYSTEM_ADMIN" || role === "BUSINESS_OPERATION_MANAGER";
+function isGlobalFacilityRole(
+  role: Role | null | undefined,
+): role is UserRole.SYSTEM_ADMINISTRATOR | UserRole.BUSINESS_OPERATIONS_MANAGER {
+  return role === UserRole.SYSTEM_ADMINISTRATOR || role === UserRole.BUSINESS_OPERATIONS_MANAGER;
 }
 
 export function getFacilityListScope(user: FacilityUser): FacilityListScope {
@@ -36,7 +40,7 @@ export function getFacilityListScope(user: FacilityUser): FacilityListScope {
   if (isGlobalFacilityRole(user.role)) {
     return { kind: "global", userId: user.id, role: user.role };
   }
-  if (user.role === "CUSTOMER") {
+  if (user.role === UserRole.STORAGE_CUSTOMER) {
     return { kind: "public" };
   }
   throw new ForbiddenError(FACILITY_MESSAGES.facilityListAccessDenied);
