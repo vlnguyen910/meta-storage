@@ -17,7 +17,10 @@ export function ChargePaymentResult() {
   const identity = useFlow3Identity();
   const query = useQuery({
     queryKey: ["charge-payment-result", identity, id],
-    queryFn: () => api.payments.status(id!),
+    queryFn: () => {
+      if (!id) throw new Error();
+      return api.payments.status(id);
+    },
     enabled: Boolean(id) && !identity.startsWith("anonymous:"),
     retry: false,
     refetchInterval: (q) =>

@@ -1,15 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
-import {
-  and,
-  bookings,
-  checkInSlots,
-  db,
-  eq,
-  payments,
-  rentals,
-  users,
-} from "@metastorage/database";
+import { bookings, checkInSlots, db, eq, payments, rentals, users } from "@metastorage/database";
 import { facilityWorkspaceRoutes } from "../../src/modules/facility-workspace/facility-workspace.routes";
 import { createFacilityOperationsFixture } from "../fixtures/facility-operations";
 

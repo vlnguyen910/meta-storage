@@ -70,12 +70,14 @@ export function useCustomerTicket(owner: string, id: string) {
   };
   const reply = useMutation({
     mutationFn: async () => {
-      if (!replyCommand.current || replyCommand.current.content !== content.trim())
+      if (!replyCommand.current || replyCommand.current.content !== content.trim()) {
+        if (!detail.data) throw new Error();
         replyCommand.current = {
           content: content.trim(),
-          version: detail.data!.ticket.version,
+          version: detail.data.ticket.version,
           idempotencyKey: customerCommandId(),
         };
+      }
       await saveCustomerCommand(owner, `reply-${id}`, replyCommand.current);
       return api.support.reply(id, replyCommand.current);
     },
@@ -114,14 +116,17 @@ export function useCustomerTicket(owner: string, id: string) {
   const upload = useMutation({
     mutationFn: async (messageId: string) => {
       if (!image) return;
-      uploadCommand.current ??= {
-        messageId,
-        input: {
-          ...image,
-          version: detail.data!.ticket.version,
-          idempotencyKey: customerCommandId(),
-        },
-      };
+      if (!uploadCommand.current) {
+        if (!detail.data) throw new Error();
+        uploadCommand.current = {
+          messageId,
+          input: {
+            ...image,
+            version: detail.data.ticket.version,
+            idempotencyKey: customerCommandId(),
+          },
+        };
+      }
       return api.support.uploadImage(
         id,
         uploadCommand.current.messageId,

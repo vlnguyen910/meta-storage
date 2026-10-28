@@ -89,7 +89,12 @@ export function RentalFinancePanel({ rentalId }: { rentalId: string }) {
             </Button>
           )}
           {renewal.status === "AWAITING_PAYMENT" && renewal.chargeId && (
-            <Button disabled={pending} onClick={() => state.pay.mutate(renewal.chargeId!)}>
+            <Button
+              disabled={pending}
+              onClick={() => {
+                if (renewal.chargeId) state.pay.mutate(renewal.chargeId);
+              }}
+            >
               {M.payment}
             </Button>
           )}

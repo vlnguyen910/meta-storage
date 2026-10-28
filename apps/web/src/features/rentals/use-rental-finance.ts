@@ -45,7 +45,10 @@ export function useRentalFinance(rentalId: string) {
   };
   const renewal = useQuery({
     queryKey: ["rental-renewal", identity, renewalId],
-    queryFn: ({ signal }) => api.renewals.get(renewalId!, signal),
+    queryFn: ({ signal }) => {
+      if (!renewalId) throw new Error();
+      return api.renewals.get(renewalId, signal);
+    },
     enabled: Boolean(renewalId),
     refetchInterval: (q) =>
       !q.state.error && q.state.data?.status === "AWAITING_PAYMENT" && q.state.dataUpdateCount < 60
@@ -68,7 +71,10 @@ export function useRentalFinance(rentalId: string) {
   });
   const payment = useQuery({
     queryKey: ["rental-charge-payment", identity, paymentId],
-    queryFn: () => api.payments.status(paymentId!),
+    queryFn: () => {
+      if (!paymentId) throw new Error();
+      return api.payments.status(paymentId);
+    },
     enabled: Boolean(paymentId),
     refetchInterval: (q) =>
       !q.state.error && q.state.data?.status === "PENDING" && q.state.dataUpdateCount < 150
@@ -89,11 +95,13 @@ export function useRentalFinance(rentalId: string) {
     },
   });
   const accept = useMutation({
-    mutationFn: () =>
-      api.renewals.accept(renewalId!, {
+    mutationFn: () => {
+      if (!renewalId || !renewal.data) throw new Error();
+      return api.renewals.accept(renewalId, {
         acceptedTerms: true,
-        termsVersion: renewal.data!.termsVersion,
-      }),
+        termsVersion: renewal.data.termsVersion,
+      });
+    },
     onSuccess: invalidate,
   });
   const pay = useMutation({

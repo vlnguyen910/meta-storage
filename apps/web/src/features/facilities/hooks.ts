@@ -100,7 +100,10 @@ export function useAvailability(
 ) {
   const availability = useQuery({
     queryKey: [...facilityKeys.all, "period", id, period],
-    queryFn: ({ signal }) => api.facilities.availability(id, period!, signal),
+    queryFn: ({ signal }) => {
+      if (!period) throw new Error();
+      return api.facilities.availability(id, period, signal);
+    },
     enabled: Boolean(id && period),
     staleTime: 0,
   });

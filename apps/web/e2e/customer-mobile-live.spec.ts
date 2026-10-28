@@ -4,6 +4,16 @@ import { expect, test } from "@playwright/test";
 import type { CustomerLiveFixture } from "./support/customer-live.types";
 import { tomorrowInVietnam } from "./support/reservation-form";
 
+function requiredEnv(name: string) {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} is required`);
+  return value;
+}
+
+function customerFixture(): CustomerLiveFixture {
+  return JSON.parse(readFileSync(requiredEnv("CUSTOMER_E2E_FIXTURE"), "utf8"));
+}
+
 test.describe("Expo customer workspace with real API", () => {
   test.skip(
     !process.env.CUSTOMER_E2E_FIXTURE || !process.env.CUSTOMER_E2E_MOBILE_URL,
@@ -19,13 +29,11 @@ test.describe("Expo customer workspace with real API", () => {
     test(`session, booking recovery, rentals and support at ${width}x${height}`, async ({
       page,
     }) => {
-      const f = JSON.parse(
-        readFileSync(process.env.CUSTOMER_E2E_FIXTURE!, "utf8"),
-      ) as CustomerLiveFixture;
+      const f = customerFixture();
       const errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));
       await page.setViewportSize({ width, height });
-      await page.goto(process.env.CUSTOMER_E2E_MOBILE_URL!);
+      await page.goto(requiredEnv("CUSTOMER_E2E_MOBILE_URL"));
       await page.getByPlaceholder("customer@example.test").fill(f.email);
       await page.getByPlaceholder("Pass@123456").fill(f.password);
       await page.getByRole("button", { name: "Đăng nhập ngay", exact: true }).click();
@@ -59,11 +67,9 @@ test.describe("Expo customer workspace with real API", () => {
   test("creates and pays a native-workspace draft, then recovers its confirmed booking", async ({
     page,
   }) => {
-    const f = JSON.parse(
-      readFileSync(process.env.CUSTOMER_E2E_FIXTURE!, "utf8"),
-    ) as CustomerLiveFixture;
+    const f = customerFixture();
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto(process.env.CUSTOMER_E2E_MOBILE_URL!);
+    await page.goto(requiredEnv("CUSTOMER_E2E_MOBILE_URL"));
     await page.getByPlaceholder("customer@example.test").fill(f.email);
     await page.getByPlaceholder("Pass@123456").fill(f.password);
     await page.getByRole("button", { name: "Đăng nhập ngay", exact: true }).click();
