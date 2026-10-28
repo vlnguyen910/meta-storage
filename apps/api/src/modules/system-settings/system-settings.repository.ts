@@ -13,6 +13,10 @@ export class SystemSettingsRepository {
   list() {
     return this.db.select().from(systemSettings).orderBy(asc(systemSettings.key));
   }
+  async find(key: SystemSettingKeyValue) {
+    const [row] = await this.db.select().from(systemSettings).where(eq(systemSettings.key, key));
+    return row;
+  }
   history(key: SystemSettingKeyValue, query: SystemSettingHistoryQuery) {
     return this.db
       .select()

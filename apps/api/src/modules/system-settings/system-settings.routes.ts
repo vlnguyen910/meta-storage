@@ -1,4 +1,5 @@
 import {
+  ConfigureOverdueRateSchema,
   ConfigureSystemSettingSchema,
   SystemSettingHistoryQuerySchema,
   SystemSettingParamsSchema,
@@ -36,5 +37,16 @@ export const systemSettingsRoutes: FastifyPluginAsync = async (app) => {
       schema: { params: SystemSettingParamsSchema, querystring: SystemSettingHistoryQuerySchema },
     },
     async (req) => successResponse(await service.history(actor(req), req.params.key, req.query)),
+  );
+  typed.get("/return-policy/overdue-rate", { preHandler: [requireAuth] }, async (req) =>
+    successResponse(await service.getOverdueRate(actor(req))),
+  );
+  typed.put(
+    "/return-policy/overdue-rate",
+    {
+      preHandler: [requireAuth],
+      schema: { body: ConfigureOverdueRateSchema },
+    },
+    async (req) => successResponse(await service.configureOverdueRate(actor(req), req.body)),
   );
 };
