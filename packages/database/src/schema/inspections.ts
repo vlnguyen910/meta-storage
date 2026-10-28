@@ -1,20 +1,34 @@
 import { sql } from "drizzle-orm";
 import { check, index, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { enumToPgEnum } from "../enum-to-pg-enum";
 import { bookings } from "./bookings";
 import { facilityTasks } from "./facility-tasks";
 import { rentals } from "./rentals";
 import { storageUnits } from "./storage-units";
 import { users } from "./users";
 
-export const INSPECTION_TYPES = ["CHECK_IN", "CHECK_OUT", "MAINTENANCE"] as const;
-export const INSPECTION_STATUSES = ["PENDING", "IN_PROGRESS", "PASSED", "FAILED"] as const;
-export const INSPECTION_CONDITIONS = ["GOOD", "MINOR_DAMAGE", "MAJOR_DAMAGE"] as const;
-export type InspectionType = (typeof INSPECTION_TYPES)[number];
-export type InspectionStatus = (typeof INSPECTION_STATUSES)[number];
-export type InspectionCondition = (typeof INSPECTION_CONDITIONS)[number];
-export const inspectionTypeEnum = pgEnum("inspection_type", INSPECTION_TYPES);
-export const inspectionStatusEnum = pgEnum("inspection_status", INSPECTION_STATUSES);
-export const inspectionConditionEnum = pgEnum("inspection_condition", INSPECTION_CONDITIONS);
+export enum InspectionType {
+  CHECK_IN = "CHECK_IN",
+  CHECK_OUT = "CHECK_OUT",
+  MAINTENANCE = "MAINTENANCE",
+}
+export enum InspectionStatus {
+  PENDING = "PENDING",
+  IN_PROGRESS = "IN_PROGRESS",
+  PASSED = "PASSED",
+  FAILED = "FAILED",
+}
+export enum InspectionCondition {
+  GOOD = "GOOD",
+  MINOR_DAMAGE = "MINOR_DAMAGE",
+  MAJOR_DAMAGE = "MAJOR_DAMAGE",
+}
+export const inspectionTypeEnum = pgEnum("inspection_type", enumToPgEnum(InspectionType));
+export const inspectionStatusEnum = pgEnum("inspection_status", enumToPgEnum(InspectionStatus));
+export const inspectionConditionEnum = pgEnum(
+  "inspection_condition",
+  enumToPgEnum(InspectionCondition),
+);
 
 export const inspections = pgTable(
   "inspections",
@@ -32,7 +46,7 @@ export const inspections = pgTable(
       .notNull()
       .references(() => facilityTasks.id, { onDelete: "restrict" }),
     inspectionType: inspectionTypeEnum().notNull(),
-    status: inspectionStatusEnum().default("PENDING").notNull(),
+    status: inspectionStatusEnum().default(InspectionStatus.PENDING).notNull(),
     condition: inspectionConditionEnum(),
     checklist: jsonb().$type<Record<string, unknown>>().notNull().default({}),
     notes: text(),

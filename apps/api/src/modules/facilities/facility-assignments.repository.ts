@@ -3,6 +3,7 @@ import {
   type FacilityStaffMember,
   UserRole,
 } from "@metastorage/contracts";
+import { FacilityTaskStatus } from "@metastorage/contracts/facility-tasks";
 import {
   and,
   bookings,
@@ -38,7 +39,7 @@ export class FacilityAssignmentsRepository {
       (select count(*)::int from ${facilityTasks}
        where ${facilityTasks.assignedStaffId} = ${users.id}
          and ${facilityTasks.facilityId} = ${facilityId}
-         and ${facilityTasks.status} in ('ASSIGNED', 'IN_PROGRESS'))
+         and ${facilityTasks.status} in (${FacilityTaskStatus.ASSIGNED}, ${FacilityTaskStatus.IN_PROGRESS}))
       +
       (select count(*)::int from ${bookings}
        where ${bookings.assignedStaffId} = ${users.id}

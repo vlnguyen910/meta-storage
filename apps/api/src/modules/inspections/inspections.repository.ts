@@ -1,4 +1,8 @@
-import { FacilityTaskReferenceType, FacilityTaskType } from "@metastorage/contracts";
+import {
+  FacilityTaskReferenceType,
+  FacilityTaskStatus,
+  FacilityTaskType,
+} from "@metastorage/contracts";
 import {
   and,
   bookings,
@@ -222,7 +226,10 @@ export class InspectionsRepository {
           eq(facilityTasks.referenceType, FacilityTaskReferenceType.BOOKING),
           eq(facilityTasks.referenceId, booking.id),
           eq(facilityTasks.assignedStaffId, userId),
-          inArray(facilityTasks.status, ["ASSIGNED", "IN_PROGRESS"]),
+          inArray(facilityTasks.status, [
+            FacilityTaskStatus.ASSIGNED,
+            FacilityTaskStatus.IN_PROGRESS,
+          ]),
         ),
       )
       .for("update");
@@ -230,7 +237,7 @@ export class InspectionsRepository {
       await tx
         .update(facilityTasks)
         .set({
-          status: "COMPLETED",
+          status: FacilityTaskStatus.COMPLETED,
           startedAt: task.startedAt ?? now,
           completedAt: now,
           updatedAt: now,

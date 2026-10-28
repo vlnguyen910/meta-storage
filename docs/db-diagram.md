@@ -190,8 +190,9 @@ with evidence metadata in `media_assets`:
 - Inspection type, status and condition use PostgreSQL enums declared with Drizzle
   `pgEnum`; exported constants and TypeScript types remain available to application code.
   Structural workflow checks remain database constraints.
-- `media_assets.cloudinary_resource_type` also uses a PostgreSQL enum. Its generic
-  `owner_type` and `purpose` remain varchar so additional modules can use shared media.
+- `media_assets.cloudinary_resource_type` also uses a PostgreSQL enum with uppercase
+  values `IMAGE`, `VIDEO`, and `RAW`. Its generic `owner_type` and `purpose` remain
+  varchar so additional modules can use shared media.
 
 - CHECK_IN inspections link to the booking and physical unit. The exact verification
   and assignment linkage is validated by application logic, not stored as inspection FKs.

@@ -10,6 +10,7 @@ import {
   FACILITY_TASK_MESSAGES as m,
   type StaffFacilityTaskListQuery,
   type UpdateFacilityTaskInput,
+  UserRole,
 } from "@metastorage/contracts";
 import {
   BadRequestError,
@@ -44,7 +45,7 @@ export class FacilityTasksService {
     if (!FacilityTaskTypeReferenceSchema.safeParse(input).success)
       throw new BadRequestError(m.contextMismatch);
     await this.assignments.requireFacilityAccess(input.facilityId, getFacilityAccessScope(actor), [
-      "FACILITY_MANAGER",
+      UserRole.FACILITY_MANAGER,
     ]);
     const task = await this.write(this.repository.create(input, actor));
     return {
@@ -94,7 +95,10 @@ export class FacilityTasksService {
     actor: FacilityTaskActor,
   ): Promise<FacilityTaskListResult> {
     this.assertManager(actor);
-    const facilityId = await this.assignments.getActiveFacilityId(actor.id, "FACILITY_MANAGER");
+    const facilityId = await this.assignments.getActiveFacilityId(
+      actor.id,
+      UserRole.FACILITY_MANAGER,
+    );
     const result = await this.repository.listForFacility(facilityId, query);
     return mapPageDto(result, query, (task) => ({
       ...task,
@@ -140,11 +144,11 @@ export class FacilityTasksService {
   }
 
   private assertManager(actor: FacilityTaskActor) {
-    if (actor.role !== "FACILITY_MANAGER") throw new ForbiddenError(m.managerScopeRequired);
+    if (actor.role !== UserRole.FACILITY_MANAGER) throw new ForbiddenError(m.managerScopeRequired);
   }
 
   private assertStaff(actor: FacilityTaskActor) {
-    if (actor.role !== "FACILITY_STAFF") throw new ForbiddenError(m.accessDenied);
+    if (actor.role !== UserRole.FACILITY_STAFF) throw new ForbiddenError(m.accessDenied);
   }
 
   private assertTypeCanBeAssigned(type: FacilityTaskType) {
