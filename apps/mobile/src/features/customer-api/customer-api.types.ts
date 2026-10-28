@@ -1,5 +1,14 @@
 export type CustomerRoute =
-  | { screen: "home" | "catalog" | "bookings" | "rentals" | "support" }
+  | {
+      screen:
+        | "home"
+        | "catalog"
+        | "bookings"
+        | "rentals"
+        | "support"
+        | "transactions"
+        | "notifications";
+    }
   | { screen: "checkout"; facilityId: string; unitTypeId: string }
   | { screen: "booking" | "rental" | "ticket"; id: string }
   | { screen: "support-new"; bookingId?: string; paymentId?: string }

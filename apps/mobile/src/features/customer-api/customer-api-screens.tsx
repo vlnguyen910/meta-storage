@@ -5,7 +5,7 @@ import * as WebBrowser from "expo-web-browser";
 import QRCode from "qrcode";
 import { useMemo, useState } from "react";
 import { Controller } from "react-hook-form";
-import { Alert, Platform, Text, View } from "react-native";
+import { Alert, Platform, Pressable, Text, View } from "react-native";
 import {
   Button,
   Card,
@@ -17,10 +17,12 @@ import {
   Row,
 } from "../../components/ui/mobile-ui";
 import {
+  useCustomerAllTransactions,
   useCustomerBooking,
   useCustomerBookings,
   useCustomerCatalog,
   useCustomerCheckout,
+  useCustomerNotifications,
   useCustomerPayment,
   useCustomerRental,
   useCustomerRentals,
@@ -105,16 +107,39 @@ function FacilityTypes({ id, go }: { id: string; go: CustomerNavigation }) {
 export function CustomerCatalogScreen({ go }: { go: CustomerNavigation }) {
   const query = useCustomerCatalog();
   const [selected, setSelected] = useState<string>();
+  const [search, setSearch] = useState("");
+
+  const facilities = query.data?.pages.flat() ?? [];
+  const filtered = useMemo(() => {
+    if (!search.trim()) return facilities;
+    const term = search.toLowerCase();
+    return facilities.filter(
+      (f) => f.name.toLowerCase().includes(term) || f.address.toLowerCase().includes(term),
+    );
+  }, [facilities, search]);
+
   return (
     <>
       <Heading>{M.facility}</Heading>
+      <Notice>Chọn cơ sở và xem danh mục loại kho có sẵn với giá niêm yết minh bạch.</Notice>
+      <Field
+        label="Tìm kiếm cơ sở kho"
+        placeholder="Nhập tên cơ sở hoặc khu vực (Cầu Giấy, Nam Từ Liêm...)"
+        value={search}
+        onChangeText={setSearch}
+      />
       <QueryNotice query={query} />
-      {query.data?.pages.flat().map((f) => (
+      {filtered.length === 0 && !query.isPending && (
+        <Card>
+          <Text className="text-center text-sm text-[#52635A]">Không tìm thấy cơ sở phù hợp.</Text>
+        </Card>
+      )}
+      {filtered.map((f) => (
         <Card title={f.name} key={f.id}>
-          <Text className="mb-3">{f.address}</Text>
+          <Text className="mb-3 text-sm text-[#52635A]">{f.address}</Text>
           <Button
-            label={M.choose}
-            secondary
+            label={selected === f.id ? "Thu gọn loại kho" : "Xem các loại kho"}
+            secondary={selected !== f.id}
             onPress={() => setSelected(selected === f.id ? undefined : f.id)}
           />
           {selected === f.id && <FacilityTypes id={f.id} go={go} />}
@@ -130,59 +155,208 @@ export function CustomerCatalogScreen({ go }: { go: CustomerNavigation }) {
     </>
   );
 }
+
 export function CustomerHomeScreen({ owner, go }: { owner: string; go: CustomerNavigation }) {
   const query = useCustomerBookings(owner);
   const rentals = useCustomerRentals(owner, "current");
+
+  const bookingsList = query.data?.pages.flatMap((p) => p.items) ?? [];
+  const rentalsList = rentals.data?.pages.flatMap((p) => p.items) ?? [];
+
+  const upcomingBooking = bookingsList.find((b) => b.status === "CONFIRMED");
+  const activeRental = rentalsList.find((r) => r.status === "ACTIVE");
+
   return (
     <>
-      <Heading>{M.dashboard}</Heading>
-      <Button label={M.newBooking} onPress={() => go({ screen: "catalog" })} />
-      <Card title={M.recent}>
-        <QueryNotice query={query} />
-        {query.data?.pages[0]?.items.slice(0, 3).map((b) => (
+      <View className="mb-4">
+        <Text className="text-xs font-bold uppercase tracking-wider text-[#125345]">
+          storeX Workspace
+        </Text>
+        <Heading>Tổng quan</Heading>
+      </View>
+
+      {/* 3 Quick Stat Cards */}
+      <View className="mb-4 flex-row gap-2">
+        <View className="flex-1 rounded-[6px] border border-[#BFCAC4] bg-white p-3 shadow-xs">
+          <Text className="text-[11px] font-bold uppercase tracking-wider text-[#52635A]">
+            Kho đang thuê
+          </Text>
+          <Text className="mt-1 text-2xl font-black text-[#125345]">{rentalsList.length}</Text>
+        </View>
+        <View className="flex-1 rounded-[6px] border border-[#BFCAC4] bg-white p-3 shadow-xs">
+          <Text className="text-[11px] font-bold uppercase tracking-wider text-[#52635A]">
+            Chờ nhận kho
+          </Text>
+          <Text className="mt-1 text-2xl font-black text-amber-700">
+            {bookingsList.filter((b) => b.status === "CONFIRMED").length}
+          </Text>
+        </View>
+        <View className="flex-1 rounded-[6px] border border-[#BFCAC4] bg-white p-3 shadow-xs">
+          <Text className="text-[11px] font-bold uppercase tracking-wider text-[#52635A]">
+            Đã thanh toán
+          </Text>
+          <Text className="mt-1 text-2xl font-black text-slate-800">
+            {bookingsList.filter((b) => b.paymentStatus === "SUCCEEDED").length}
+          </Text>
+        </View>
+      </View>
+
+      {/* Quick Action Buttons Grid */}
+      <Card title="Thao tác nhanh">
+        <View className="gap-2">
+          <Button label="🏢 Tìm & Đặt kho lưu trữ mới" onPress={() => go({ screen: "catalog" })} />
+          <View className="flex-row gap-2">
+            <View className="flex-1">
+              <Button secondary label="📦 Kho của tôi" onPress={() => go({ screen: "rentals" })} />
+            </View>
+            <View className="flex-1">
+              <Button secondary label="📑 Đơn đặt chỗ" onPress={() => go({ screen: "bookings" })} />
+            </View>
+          </View>
+          <View className="flex-row gap-2">
+            <View className="flex-1">
+              <Button
+                secondary
+                label="💳 Lịch sử giao dịch"
+                onPress={() => go({ screen: "transactions" })}
+              />
+            </View>
+            <View className="flex-1">
+              <Button
+                secondary
+                label="🔔 Hộp thông báo"
+                onPress={() => go({ screen: "notifications" })}
+              />
+            </View>
+          </View>
+        </View>
+      </Card>
+
+      {/* Upcoming Check-in Card (with QR Fast Access) */}
+      {upcomingBooking && (
+        <Card title="Lịch hẹn nhận kho sắp tới">
+          <Notice>✓ Đơn đã xác nhận - Hãy đến cơ sở đúng slot hẹn để nhân viên bàn giao kho</Notice>
+          <Row label="Mã booking" value={upcomingBooking.bookingCode ?? upcomingBooking.id} />
+          <Row label="Cơ sở" value={upcomingBooking.facility.name} />
+          <Row label="Slot check-in" value={dateTime(upcomingBooking.checkInSlotStart)} />
+          <Button
+            label="📱 Mở mã QR Check-in nhận kho"
+            onPress={() => go({ screen: "booking", id: upcomingBooking.id })}
+          />
+        </Card>
+      )}
+
+      {/* Active Rental Card */}
+      {activeRental && (
+        <Card title="Kho đang sử dụng">
+          <Row label="Cơ sở" value={activeRental.facility.name} />
+          <Row
+            label="Mã kho"
+            value={activeRental.physicalUnit?.code ?? activeRental.unitType.name}
+          />
+          <Row label="Hạn kết thúc" value={dateTime(activeRental.expectedEndAt)} />
           <Button
             secondary
-            key={b.id}
-            label={`${b.bookingCode ?? b.id} · ${b.status} · ${dateTime(b.checkInSlotStart)}`}
-            onPress={() => go({ screen: "booking", id: b.id })}
+            label="Xem chi tiết & Gia hạn kho"
+            onPress={() => go({ screen: "rental", id: activeRental.id })}
           />
-        ))}
-        {query.data?.pages[0]?.items.length === 0 && <Text>{M.empty}</Text>}
-      </Card>
-      <Card title={M.storage}>
-        <QueryNotice query={rentals} />
-        {rentals.data?.pages[0]?.items.slice(0, 3).map((r) => (
-          <Button
-            secondary
-            key={r.id}
-            label={`${r.facility.name} · ${r.physicalUnit?.code ?? r.unitType.name}`}
-            onPress={() => go({ screen: "rental", id: r.id })}
-          />
-        ))}
-      </Card>
+        </Card>
+      )}
+
+      {/* Empty State Help */}
+      {rentalsList.length === 0 && bookingsList.length === 0 && !query.isPending && (
+        <Card title="Chào mừng bạn đến với storeX!">
+          <Text className="mb-3 text-sm leading-5 text-[#52635A]">
+            Bạn chưa có đơn đặt kho nào. Hãy khám phá mạng lưới cơ sở kho thông minh và đặt kho chỉ
+            với vài thao tác.
+          </Text>
+          <Button label="Khám phá cơ sở kho ngay" onPress={() => go({ screen: "catalog" })} />
+        </Card>
+      )}
     </>
   );
 }
+
 export function CustomerBookingsScreen({ owner, go }: { owner: string; go: CustomerNavigation }) {
   const query = useCustomerBookings(owner);
+  const items = query.data?.pages.flatMap((p) => p.items) ?? [];
+  const [filter, setFilter] = useState<string>("ALL");
+
+  const filtered = useMemo(() => {
+    if (filter === "ALL") return items;
+    return items.filter((b) => b.status === filter);
+  }, [items, filter]);
+
   return (
     <>
       <Heading>{M.bookings}</Heading>
-      <QueryNotice query={query} />
-      {query.data?.pages
-        .flatMap((p) => p.items)
-        .map((b) => (
-          <Card title={b.bookingCode ?? b.id} key={b.id}>
-            <Text>
-              {b.facility.name} · {b.unitType.name}
+      <Notice>Quản lý các lượt đặt chỗ, xem slot hẹn và lấy mã QR nhận kho.</Notice>
+
+      {/* Status Filter Pills */}
+      <View className="mb-4 flex-row flex-wrap gap-1.5">
+        {[
+          { id: "ALL", label: `Tất cả (${items.length})` },
+          {
+            id: "CONFIRMED",
+            label: `Chờ nhận kho (${items.filter((i) => i.status === "CONFIRMED").length})`,
+          },
+          {
+            id: "CHECKED_IN",
+            label: `Đã nhận kho (${items.filter((i) => i.status === "CHECKED_IN").length})`,
+          },
+          {
+            id: "CANCELLED",
+            label: `Đã hủy (${items.filter((i) => i.status === "CANCELLED").length})`,
+          },
+        ].map((f) => (
+          <Pressable
+            key={f.id}
+            onPress={() => setFilter(f.id)}
+            className={`rounded-full px-3.5 py-1.5 border ${
+              filter === f.id ? "bg-[#125345] border-[#125345]" : "bg-white border-[#BFCAC4]"
+            }`}
+          >
+            <Text
+              className={`text-xs font-semibold ${
+                filter === f.id ? "text-white" : "text-[#52635A]"
+              }`}
+            >
+              {f.label}
             </Text>
-            <Row label={M.paymentStatus} value={b.paymentStatus} />
-            <Row label={M.appointment} value={dateTime(b.checkInSlotStart)} />
-            <Text>{b.status}</Text>
-            <Button label={M.choose} onPress={() => go({ screen: "booking", id: b.id })} />
-          </Card>
+          </Pressable>
         ))}
-      {query.data?.pages[0]?.items.length === 0 && <Text>{M.empty}</Text>}
+      </View>
+
+      <QueryNotice query={query} />
+      {filtered.length === 0 && !query.isPending && (
+        <Card>
+          <Text className="text-center text-sm text-[#52635A]">{M.empty}</Text>
+        </Card>
+      )}
+      {filtered.map((b) => (
+        <Card title={b.bookingCode ?? b.id} key={b.id}>
+          <Notice>
+            {b.status === "CONFIRMED"
+              ? "✓ Chờ nhận kho · Xuất trình QR"
+              : b.status === "CHECKED_IN"
+                ? "✓ Đã nhận kho thành công"
+                : b.status === "CANCELLED"
+                  ? "Đã hủy đơn"
+                  : b.status}
+          </Notice>
+          <Row label="Cơ sở" value={b.facility.name} />
+          <Row label="Loại kho" value={b.unitType.name} />
+          <Row label={M.appointment} value={dateTime(b.checkInSlotStart)} />
+          <Row
+            label={M.paymentStatus}
+            value={b.paymentStatus === "SUCCEEDED" ? "Đã thanh toán" : b.paymentStatus}
+          />
+          <Button
+            label="Xem chi tiết & Mã QR"
+            onPress={() => go({ screen: "booking", id: b.id })}
+          />
+        </Card>
+      ))}
       {query.hasNextPage && (
         <Button
           label={M.more}
@@ -193,6 +367,7 @@ export function CustomerBookingsScreen({ owner, go }: { owner: string; go: Custo
     </>
   );
 }
+
 export function CustomerBookingScreen({
   owner,
   id,
@@ -210,17 +385,42 @@ export function CustomerBookingScreen({
       {b && (
         <>
           <Heading>{b.bookingCode ?? b.id}</Heading>
+
+          {/* QR Code Card for Check-in */}
+          {b.status === "CONFIRMED" && (
+            <Card title="Mã QR Check-in">
+              <Text className="mb-2 text-center text-xs text-[#52635A]">
+                Xuất trình mã này cho nhân viên tại cơ sở khi bạn đến nhận kho
+              </Text>
+              {b.confirmation ? (
+                <QrCode value={b.confirmation.qrUrl} />
+              ) : (
+                <QrCode value={`metastorage-booking:${b.bookingCode ?? b.id}`} />
+              )}
+              <Text className="text-center font-bold text-[#125345]">{b.bookingCode}</Text>
+            </Card>
+          )}
+
           <Card title={b.facility.name}>
-            <Text>{b.facility.address}</Text>
-            <Text>{b.status}</Text>
+            <Text className="mb-2 text-sm text-[#52635A]">{b.facility.address}</Text>
+            <Notice>
+              {b.status === "CONFIRMED"
+                ? "✓ Đã xác nhận · Chờ đến giờ nhận kho"
+                : b.status === "CHECKED_IN"
+                  ? "✓ Đã hoàn tất nhận kho"
+                  : b.status}
+            </Notice>
             <Row label={M.appointment} value={dateTime(b.checkInSlotStart)} />
-            <Row label={M.assigned} value={b.assignedUnit?.code ?? M.noUnit} />
-            <Row label={M.handover} value={b.handoverStage} />
+            <Row label="Kho chỉ định" value={b.assignedUnit?.code ?? "Đang phân kho"} />
+            <Row label="Giai đoạn bàn giao" value={b.handoverStage} />
             <Row label={M.initialRent} value={money(b.pricing.rentalFeeAmount)} />
             <Row label={M.deposit} value={money(b.pricing.depositAmount)} />
             <Row label={M.total} value={money(b.pricing.totalAmount)} />
-            <Row label={M.paymentStatus} value={b.paymentStatus} />
-            {b.confirmation ? <QrCode value={b.confirmation.qrUrl} /> : <Text>{M.noQr}</Text>}
+            <Row
+              label="Thanh toán"
+              value={b.paymentStatus === "SUCCEEDED" ? "Đã thanh toán đủ" : b.paymentStatus}
+            />
+
             {b.rentalId && (
               <Button
                 label={M.viewRental}
@@ -457,27 +657,67 @@ export function CustomerPaymentScreen({
 export function CustomerRentalsScreen({ owner, go }: { owner: string; go: CustomerNavigation }) {
   const [view, setView] = useState<"current" | "history">("current");
   const query = useCustomerRentals(owner, view);
+  const items = query.data?.pages.flatMap((p) => p.items) ?? [];
+
   return (
     <>
       <Heading>{M.storage}</Heading>
-      <View className="mb-3 flex-row gap-3">
-        <Button secondary label={M.current} onPress={() => setView("current")} />
-        <Button secondary label={M.history} onPress={() => setView("history")} />
+      <Notice>Danh sách các kho bạn đang thuê và lịch sử thuê kho tại các cơ sở.</Notice>
+      <View className="mb-4 flex-row gap-2">
+        <Pressable
+          onPress={() => setView("current")}
+          className={`flex-1 rounded-[6px] py-2.5 items-center border ${
+            view === "current" ? "bg-[#125345] border-[#125345]" : "bg-white border-[#BFCAC4]"
+          }`}
+        >
+          <Text
+            className={`font-semibold text-sm ${
+              view === "current" ? "text-white" : "text-[#52635A]"
+            }`}
+          >
+            Đang thuê
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => setView("history")}
+          className={`flex-1 rounded-[6px] py-2.5 items-center border ${
+            view === "history" ? "bg-[#125345] border-[#125345]" : "bg-white border-[#BFCAC4]"
+          }`}
+        >
+          <Text
+            className={`font-semibold text-sm ${
+              view === "history" ? "text-white" : "text-[#52635A]"
+            }`}
+          >
+            Lịch sử đã trả
+          </Text>
+        </Pressable>
       </View>
       <QueryNotice query={query} />
-      {query.data?.pages
-        .flatMap((p) => p.items)
-        .map((r) => (
-          <Card
-            key={r.id}
-            title={`${r.facility.name} · ${r.physicalUnit?.code ?? r.unitType.name}`}
-          >
-            <Text>{r.status}</Text>
-            <Row label={M.oldEnd} value={dateTime(r.expectedEndAt)} />
-            <Button label={M.choose} onPress={() => go({ screen: "rental", id: r.id })} />
-          </Card>
-        ))}
-      {query.data?.pages[0]?.items.length === 0 && <Text>{M.empty}</Text>}
+      {items.length === 0 && !query.isPending && (
+        <Card>
+          <Text className="text-center text-sm text-[#52635A]">{M.empty}</Text>
+        </Card>
+      )}
+      {items.map((r) => (
+        <Card key={r.id} title={`${r.facility.name} · ${r.physicalUnit?.code ?? r.unitType.name}`}>
+          <Notice>
+            {r.status === "ACTIVE"
+              ? "✓ Đang hoạt động"
+              : r.status === "OVERDUE"
+                ? "⚠ Quá hạn thuê"
+                : r.status === "CLOSED"
+                  ? "Đã đóng hợp đồng"
+                  : r.status}
+          </Notice>
+          <Row label="Ngày bắt đầu" value={dateTime(r.startAt)} />
+          <Row label="Hạn kết thúc" value={dateTime(r.expectedEndAt)} />
+          <Button
+            label="Xem chi tiết & Gia hạn"
+            onPress={() => go({ screen: "rental", id: r.id })}
+          />
+        </Card>
+      ))}
       {query.hasNextPage && (
         <Button
           label={M.more}
@@ -507,7 +747,17 @@ export function CustomerRentalScreen({
         <>
           <Heading>{`${r.facility.name} · ${r.physicalUnit?.code ?? r.unitType.name}`}</Heading>
           <Card title={M.storage}>
-            <Text>{r.status}</Text>
+            <Notice>
+              {r.status === "ACTIVE"
+                ? "✓ Hợp đồng đang hoạt động"
+                : r.status === "OVERDUE"
+                  ? "⚠ Đã quá hạn lưu kho - Hãy gia hạn hoặc liên hệ cơ sở"
+                  : r.status}
+            </Notice>
+            <Row label="Cơ sở" value={r.facility.name} />
+            <Row label="Địa chỉ" value={r.facility.address} />
+            <Row label="Kho chỉ định" value={r.physicalUnit?.code ?? r.unitType.name} />
+            <Row label="Ngày bắt đầu" value={dateTime(r.startAt)} />
             <Row label={M.oldEnd} value={dateTime(r.expectedEndAt)} />
             <Button
               label={M.newTicket}
@@ -526,6 +776,23 @@ export function CustomerRentalScreen({
             />
           </Card>
           <Card title={M.renewal}>
+            <Text className="mb-2 text-xs font-semibold text-[#52635A]">
+              Chọn nhanh số tháng gia hạn:
+            </Text>
+            <View className="mb-3 flex-row flex-wrap gap-2">
+              {[1, 3, 6, 12].map((m) => (
+                <Pressable
+                  key={m}
+                  onPress={() => {
+                    state.quoteForm.setValue("months", m);
+                    state.quote.mutate(m);
+                  }}
+                  className="rounded-full border border-[#125345] bg-[#E8F3EF] px-3.5 py-1.5"
+                >
+                  <Text className="text-xs font-semibold text-[#125345]">+{m} tháng</Text>
+                </Pressable>
+              ))}
+            </View>
             <Controller
               control={state.quoteForm.control}
               name="months"
@@ -923,6 +1190,146 @@ export function CustomerTicketScreen({ owner, id }: { owner: string; id: string 
             </>
           )}
         </>
+      )}
+    </>
+  );
+}
+
+export function CustomerTransactionsScreen({
+  owner,
+  go,
+}: {
+  owner: string;
+  go: CustomerNavigation;
+}) {
+  const { transactions, isPending, refetch } = useCustomerAllTransactions(owner);
+  const [filter, setFilter] = useState<string>("ALL");
+
+  const filtered = useMemo(() => {
+    if (filter === "ALL") return transactions;
+    if (filter === "EXTRA")
+      return transactions.filter(
+        (t) => t.payment.source === "EXTRA" || t.payment.source === "RETURN_DEBT",
+      );
+    return transactions.filter((t) => (t.payment.source ?? "BOOKING") === filter);
+  }, [transactions, filter]);
+
+  return (
+    <>
+      <Heading>Lịch sử giao dịch</Heading>
+      <Notice>Toàn bộ lịch sử các khoản thanh toán tiền thuê, cọc và gia hạn của bạn.</Notice>
+      {/* Filters: ALL, BOOKING, RENEWAL, CHARGE */}
+      <View className="mb-4 flex-row flex-wrap gap-1.5">
+        {[
+          { id: "ALL", label: `Tất cả (${transactions.length})` },
+          {
+            id: "BOOKING",
+            label: `Đặt kho (${transactions.filter((t) => (t.payment.source ?? "BOOKING") === "BOOKING").length})`,
+          },
+          {
+            id: "RENEWAL",
+            label: `Gia hạn (${transactions.filter((t) => t.payment.source === "RENEWAL").length})`,
+          },
+          {
+            id: "EXTRA",
+            label: `Phí khác (${transactions.filter((t) => t.payment.source === "EXTRA" || t.payment.source === "RETURN_DEBT").length})`,
+          },
+        ].map((f) => (
+          <Pressable
+            key={f.id}
+            onPress={() => setFilter(f.id)}
+            className={`rounded-full px-3.5 py-1.5 border ${
+              filter === f.id ? "bg-[#125345] border-[#125345]" : "bg-white border-[#BFCAC4]"
+            }`}
+          >
+            <Text
+              className={`text-xs font-semibold ${
+                filter === f.id ? "text-white" : "text-[#52635A]"
+              }`}
+            >
+              {f.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      {isPending && <Notice>{M.loading}</Notice>}
+      {!isPending && filtered.length === 0 && (
+        <Card>
+          <Text className="text-center text-sm text-[#52635A]">Chưa có giao dịch nào.</Text>
+        </Card>
+      )}
+      {filtered.map(({ rental, payment }) => (
+        <Card
+          key={payment.id}
+          title={payment.paymentCode ? `Mã: ${payment.paymentCode}` : payment.id}
+        >
+          <Row
+            label="Kho"
+            value={`${rental.facility.name} · ${rental.physicalUnit?.code ?? rental.unitType.name}`}
+          />
+          <Row
+            label="Loại giao dịch"
+            value={M.source[payment.source ?? "BOOKING"] ?? payment.source ?? "Đặt kho"}
+          />
+          <Row label="Số tiền" value={money(payment.totalAmount)} />
+          <Row label="Thời gian" value={dateTime(payment.paidAt ?? payment.createdAt)} />
+          <Row label="Trạng thái" value={payment.status} />
+          {payment.refundAmount && <Row label={M.refund} value={money(payment.refundAmount)} />}
+          <Button
+            secondary
+            label="Yêu cầu hỗ trợ về khoản này"
+            onPress={() =>
+              go({
+                screen: "support-new",
+                bookingId: rental.bookingId,
+                paymentId: payment.id,
+              })
+            }
+          />
+        </Card>
+      ))}
+      <Button secondary label="Tải lại danh sách" onPress={() => void refetch()} />
+    </>
+  );
+}
+
+export function CustomerNotificationsScreen({ go }: { go: CustomerNavigation }) {
+  const query = useCustomerNotifications();
+  const items = query.data?.pages.flat() ?? [];
+
+  return (
+    <>
+      <Heading>Hộp thư thông báo</Heading>
+      <Notice>
+        Cập nhật tự động về lịch hẹn check-in, thanh toán và vòng đời thuê kho của bạn.
+      </Notice>
+      <QueryNotice query={query} />
+      {!query.isPending && items.length === 0 && (
+        <Card>
+          <Text className="text-center text-sm text-[#52635A]">
+            Bạn không có thông báo nào mới.
+          </Text>
+        </Card>
+      )}
+      {items.map((item) => (
+        <Card key={item.id} title={item.subject || "Thông báo hệ thống"}>
+          <Text className="mb-2 text-sm leading-5 text-[#131B2E]">{item.body}</Text>
+          <Row label="Thời gian" value={dateTime(item.occurredAt)} />
+          {item.bookingId && (
+            <Button
+              secondary
+              label="Xem chi tiết đơn"
+              onPress={() => go({ screen: "booking", id: item.bookingId })}
+            />
+          )}
+        </Card>
+      ))}
+      {query.hasNextPage && (
+        <Button
+          label={M.more}
+          disabled={query.isFetchingNextPage}
+          onPress={() => void query.fetchNextPage()}
+        />
       )}
     </>
   );

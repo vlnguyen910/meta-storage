@@ -1,10 +1,16 @@
-import { CUSTOMER_WORKSPACE as M } from "@metastorage/shared";
 import { focusManager, useQueryClient } from "@tanstack/react-query";
 import * as Linking from "expo-linking";
 import { useEffect, useState } from "react";
-import { AppState, KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import {
+  AppState,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Button } from "../../components/ui/mobile-ui";
 import { authClient } from "../../lib/auth-client";
 import type { CustomerRoute } from "./customer-api.types";
 import {
@@ -13,12 +19,14 @@ import {
   CustomerCatalogScreen,
   CustomerCheckoutScreen,
   CustomerHomeScreen,
+  CustomerNotificationsScreen,
   CustomerPaymentScreen,
   CustomerRentalScreen,
   CustomerRentalsScreen,
   CustomerSupportNewScreen,
   CustomerSupportScreen,
   CustomerTicketScreen,
+  CustomerTransactionsScreen,
 } from "./customer-api-screens";
 import {
   clearCustomerCommand,
@@ -29,6 +37,8 @@ import {
 
 export function CustomerWorkspace({ owner }: { owner: string }) {
   const client = useQueryClient();
+  const session = authClient.useSession();
+  const userName = session.data?.user?.name ?? "Quý khách";
   const [stack, setStack] = useState<CustomerRoute[]>([{ screen: "home" }]);
   const route = stack.at(-1) ?? { screen: "home" as const };
   const go = (next: CustomerRoute) => setStack((s) => [...s, next]);
@@ -112,6 +122,12 @@ export function CustomerWorkspace({ owner }: { owner: string }) {
     case "rental":
       screen = <CustomerRentalScreen owner={owner} id={route.id} go={go} />;
       break;
+    case "transactions":
+      screen = <CustomerTransactionsScreen owner={owner} go={go} />;
+      break;
+    case "notifications":
+      screen = <CustomerNotificationsScreen go={go} />;
+      break;
     case "support":
       screen = <CustomerSupportScreen owner={owner} go={go} />;
       break;
@@ -135,23 +151,77 @@ export function CustomerWorkspace({ owner }: { owner: string }) {
         className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <View className="flex-row flex-wrap justify-between gap-2 border-b border-[#BFCAC4] bg-white p-3">
-          <Button
-            label={M.back}
-            secondary
-            onPress={() => setStack((s) => (s.length > 1 ? s.slice(0, -1) : s))}
-          />
-          <Button label={M.dashboard} secondary onPress={() => setStack([{ screen: "home" }])} />
-          <Button
-            label={M.logout}
-            secondary
-            onPress={() => {
-              void Promise.all(
-                ["checkout", "payment", "support-draft"].map((k) => clearCustomerCommand(owner, k)),
-              ).then(() => authClient.signOut());
-            }}
-          />
+        {/* Top Header */}
+        <View className="flex-row items-center justify-between border-b border-[#BFCAC4] bg-white px-4 py-2.5 shadow-xs">
+          <View className="flex-row items-center gap-1.5">
+            {stack.length > 1 && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Quay lại"
+                onPress={() => setStack((s) => (s.length > 1 ? s.slice(0, -1) : s))}
+                className="mr-1 py-1 pr-2 active:opacity-70"
+              >
+                <Text className="text-lg font-bold text-[#125345]">←</Text>
+              </Pressable>
+            )}
+            <View className="flex-row items-center gap-1">
+              <Text className="text-lg font-black text-[#125345]">storeX</Text>
+              <Text className="text-xs font-bold text-emerald-500">●</Text>
+            </View>
+            <Text className="ml-1 text-xs text-slate-500 max-w-[120px]" numberOfLines={1}>
+              {userName}
+            </Text>
+          </View>
+          <View className="flex-row items-center gap-1">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Lịch sử giao dịch"
+              onPress={() => go({ screen: "transactions" })}
+              className={`rounded-full px-2.5 py-1.5 border active:opacity-70 ${
+                route.screen === "transactions"
+                  ? "bg-[#125345] border-[#125345]"
+                  : "bg-slate-50 border-slate-200"
+              }`}
+            >
+              <Text
+                className={`text-xs font-semibold ${route.screen === "transactions" ? "text-white" : "text-slate-700"}`}
+              >
+                💳 Giao dịch
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Thông báo"
+              onPress={() => go({ screen: "notifications" })}
+              className={`rounded-full px-2.5 py-1.5 border active:opacity-70 ${
+                route.screen === "notifications"
+                  ? "bg-[#125345] border-[#125345]"
+                  : "bg-slate-50 border-slate-200"
+              }`}
+            >
+              <Text
+                className={`text-xs font-semibold ${route.screen === "notifications" ? "text-white" : "text-slate-700"}`}
+              >
+                🔔
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Đăng xuất"
+              onPress={() => {
+                void Promise.all(
+                  ["checkout", "payment", "support-draft"].map((k) =>
+                    clearCustomerCommand(owner, k),
+                  ),
+                ).then(() => authClient.signOut());
+              }}
+              className="py-1 px-2 active:opacity-70"
+            >
+              <Text className="text-xs font-semibold text-rose-700">Thoát</Text>
+            </Pressable>
+          </View>
         </View>
+
         <ScrollView
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
@@ -164,11 +234,39 @@ export function CustomerWorkspace({ owner }: { owner: string }) {
             {screen}
           </View>
         </ScrollView>
-        <View className="flex-row flex-wrap justify-center gap-2 border-t border-[#BFCAC4] bg-white p-2">
-          <Button label={M.facility} secondary onPress={() => go({ screen: "catalog" })} />
-          <Button label={M.bookings} secondary onPress={() => go({ screen: "bookings" })} />
-          <Button label={M.storage} secondary onPress={() => go({ screen: "rentals" })} />
-          <Button label={M.support} secondary onPress={() => go({ screen: "support" })} />
+
+        {/* Bottom Tab Bar */}
+        <View className="flex-row items-center justify-around border-t border-[#BFCAC4] bg-white py-2 px-1 shadow-lg">
+          {[
+            { screen: "home" as const, icon: "🏠", label: "Tổng quan" },
+            { screen: "catalog" as const, icon: "🏢", label: "Tìm kho" },
+            { screen: "rentals" as const, icon: "📦", label: "Kho của tôi" },
+            { screen: "bookings" as const, icon: "📑", label: "Đơn đặt" },
+            { screen: "support" as const, icon: "💬", label: "Hỗ trợ" },
+          ].map((tab) => {
+            const active = route.screen === tab.screen;
+            return (
+              <Pressable
+                key={tab.screen}
+                accessibilityRole="tab"
+                accessibilityLabel={tab.label}
+                onPress={() => {
+                  if (tab.screen === "home") setStack([{ screen: "home" }]);
+                  else go({ screen: tab.screen });
+                }}
+                className={`flex-1 items-center py-1 rounded-[6px] ${active ? "bg-[#E8F3EF]" : ""}`}
+              >
+                <Text className="text-base">{tab.icon}</Text>
+                <Text
+                  className={`text-[11px] font-semibold mt-0.5 ${
+                    active ? "text-[#125345] font-bold" : "text-[#52635A]"
+                  }`}
+                >
+                  {tab.label}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

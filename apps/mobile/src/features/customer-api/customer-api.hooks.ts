@@ -14,9 +14,15 @@ import {
   SupportCreateInputSchema,
 } from "@metastorage/contracts";
 import { CUSTOMER_WORKSPACE as M } from "@metastorage/shared";
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { isAxiosError } from "axios";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { api } from "../../lib/api";
 import type { CustomerCheckoutCommand, CustomerNavigation } from "./customer-api.types";
@@ -446,4 +452,65 @@ export function useCustomerSupportForm(
     create.mutate(input);
   });
   return { form, contexts, attempts, create, submit };
+}
+
+export function useCustomerNotifications() {
+  return useInfiniteQuery({
+    queryKey: ["customer-notifications"],
+    initialPageParam: 0,
+    queryFn: ({ pageParam, signal }) => api.inbox(pageParam, signal),
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length === 20 ? allPages.length * 20 : undefined,
+  });
+}
+
+export function useCustomerAllTransactions(owner: string) {
+  const current = useCustomerRentals(owner, "current");
+  const history = useCustomerRentals(owner, "history");
+
+  const rentals = useMemo(() => {
+    const pages = [...(current.data?.pages ?? []), ...(history.data?.pages ?? [])];
+    const seen = new Set<string>();
+    return pages
+      .flatMap((page) => page.items)
+      .filter((r) => {
+        if (seen.has(r.id)) return false;
+        seen.add(r.id);
+        return true;
+      });
+  }, [current.data?.pages, history.data?.pages]);
+
+  const paymentQueries = useQueries({
+    queries: rentals.map((r) => ({
+      queryKey: ["rental-payments", r.id],
+      queryFn: ({ signal }: { signal: AbortSignal }) => api.rentalPayments(r.id, signal),
+      staleTime: 30_000,
+    })),
+  });
+
+  const transactions = useMemo(() => {
+    return rentals
+      .flatMap((rental, index) =>
+        (paymentQueries[index]?.data ?? []).map((payment) => ({ rental, payment })),
+      )
+      .sort(
+        (a, b) =>
+          Date.parse(b.payment.paidAt ?? b.payment.createdAt) -
+            Date.parse(a.payment.paidAt ?? a.payment.createdAt) ||
+          a.payment.id.localeCompare(b.payment.id),
+      );
+  }, [paymentQueries, rentals]);
+
+  const isPending =
+    current.isPending || history.isPending || paymentQueries.some((q) => q.isPending);
+
+  return {
+    transactions,
+    isPending,
+    refetch: () => {
+      void current.refetch();
+      void history.refetch();
+      paymentQueries.forEach((q) => void q.refetch());
+    },
+  };
 }
