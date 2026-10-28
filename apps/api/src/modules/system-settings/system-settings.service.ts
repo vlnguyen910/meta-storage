@@ -131,4 +131,22 @@ export class SystemSettingsService {
       createdAt: row.createdAt.toISOString(),
     }));
   }
+  async getOverdueRate(actor: { role: string | null | undefined }) {
+    this.authorize(actor.role, "OVERDUE_FEE_RATE");
+    const row = await this.repository.find("OVERDUE_FEE_RATE");
+    if (!row) throw new NotFoundError(m.notFound);
+    return { rate: Number(row.value), version: row.version };
+  }
+  async configureOverdueRate(
+    actor: { id: string; role: string | null | undefined },
+    input: { rate: number; expectedVersion: number },
+  ) {
+    this.authorize(actor.role, "OVERDUE_FEE_RATE");
+    const result = await this.update(actor, {
+      key: "OVERDUE_FEE_RATE",
+      value: input.rate,
+      expectedVersion: input.expectedVersion,
+    });
+    return { rate: result.value, version: result.version };
+  }
 }

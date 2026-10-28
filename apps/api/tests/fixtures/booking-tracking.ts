@@ -12,8 +12,8 @@ import {
 import {
   bookingDeliveryKey,
   bookingMagicKey,
+  createBookingTrackingLink,
 } from "../../../../packages/shared/src/booking-access";
-import { createBookingTrackingLink } from "../../src/modules/bookings/bookings.repository";
 import { createTestUnitType, deleteTestUnitTypes } from "./facility-catalog";
 
 export async function createTrackingFixture() {
