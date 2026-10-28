@@ -30,15 +30,15 @@ export const unitTypes = pgTable(
     updatedBy: uuid().references(() => users.id, { onDelete: "restrict" }),
     code: varchar({ length: 80 }).notNull(),
     name: varchar({ length: 100 }).notNull(),
-    sizeLabel: varchar("size_label", { length: 50 }).notNull(),
-    lengthM: numeric("length_m", { mode: "number" }).notNull(),
-    widthM: numeric("width_m", { mode: "number" }).notNull(),
-    heightM: numeric("height_m", { mode: "number" }).notNull(),
-    sizeCbm: numeric("size_cbm", { mode: "number" })
+    sizeLabel: varchar({ length: 50 }).notNull(),
+    lengthM: numeric({ mode: "number" }).notNull(),
+    widthM: numeric({ mode: "number" }).notNull(),
+    heightM: numeric({ mode: "number" }).notNull(),
+    sizeCbm: numeric({ mode: "number" })
       .generatedAlwaysAs(sql`"length_m" * "width_m" * "height_m"`)
       .notNull(),
-    monthlyPrice: integer("monthly_price").notNull(),
-    isActive: boolean("is_active").default(true).notNull(),
+    monthlyPrice: integer().notNull(),
+    isActive: boolean().default(true).notNull(),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
   },
