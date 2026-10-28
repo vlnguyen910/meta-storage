@@ -161,13 +161,6 @@ export enum FacilityStatus {
   MAINTENANCE = "MAINTENANCE",
 }
 
-export enum LegacyReservationStatus {
-  CONFIRMED = "CONFIRMED",
-  CANCELLED = "CANCELLED",
-  EXPIRED = "EXPIRED",
-  CHECKED_IN = "CHECKED_IN",
-}
-
 export enum AppointmentType {
   CHECK_IN = "CHECK_IN",
   CHECK_OUT = "CHECK_OUT",
