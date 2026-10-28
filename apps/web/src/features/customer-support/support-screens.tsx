@@ -1,8 +1,8 @@
 "use client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  SUPPORT_CATEGORIES,
   SUPPORT_STATUSES,
+  SupportCategory,
   type SupportCreateInput,
   SupportCreateInputSchema,
   type SupportImageInput,
@@ -154,7 +154,7 @@ export function CustomerSupportList() {
           placeholder={SM.categoryFilter}
           options={[
             { value: "", label: SM.allCategories },
-            ...SUPPORT_CATEGORIES.map((c) => ({
+            ...Object.values(SupportCategory).map((c) => ({
               value: c,
               label: SM.categories[c] ?? c,
             })),
@@ -320,7 +320,7 @@ export function CustomerSupportCreate() {
               form.setValue("paymentId", undefined);
             }}
           >
-            {SUPPORT_CATEGORIES.map((c) => (
+            {Object.values(SupportCategory).map((c) => (
               <option value={c} key={c}>
                 {M.categories[c]}
               </option>

@@ -2,7 +2,12 @@ import type { NextConfig } from "next";
 import { PHASE_DEVELOPMENT_SERVER } from "next/constants";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@metastorage/shared", "@metastorage/contracts", "@metastorage/api-client"],
+  transpilePackages: [
+    "@metastorage/shared",
+    "@metastorage/contracts",
+    "@metastorage/database",
+    "@metastorage/api-client",
+  ],
   reactStrictMode: true,
   devIndicators: false,
 };
