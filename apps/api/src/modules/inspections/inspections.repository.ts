@@ -14,8 +14,8 @@ import {
   eq,
   facilityTasks,
   type Inspection as InspectionRecord,
-  InspectionType,
   type InspectionStatus,
+  InspectionType,
   inArray,
   inspections,
   storageUnits,
@@ -112,12 +112,7 @@ export class InspectionsRepository {
       const [assignment] = await tx
         .select({ id: unitAssignments.id, physicalUnitId: unitAssignments.physicalUnitId })
         .from(unitAssignments)
-        .where(
-          and(
-            eq(unitAssignments.bookingId, bookingId),
-            eq(unitAssignments.status, "ACTIVE"),
-          ),
-        )
+        .where(and(eq(unitAssignments.bookingId, bookingId), eq(unitAssignments.status, "ACTIVE")))
         .for("update");
       if (!assignment) return { error: "UNIT_NOT_ASSIGNED" as const };
 
@@ -155,10 +150,7 @@ export class InspectionsRepository {
         .for("update");
       if (!task) return { error: "TASK_NOT_AVAILABLE" as const };
 
-      const [existing] = await tx
-        .select()
-        .from(inspections)
-        .where(eq(inspections.taskId, task.id));
+      const [existing] = await tx.select().from(inspections).where(eq(inspections.taskId, task.id));
       if (existing) return { inspection: existing };
 
       const [inspection] = await tx
