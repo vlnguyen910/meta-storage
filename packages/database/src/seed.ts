@@ -5,22 +5,64 @@ import { and, asc, eq, gt, inArray, isNull, lt, notExists, or } from "drizzle-or
 import { db, queryClient } from "./client";
 import { loadApiEnv } from "./env";
 import {
+  AppointmentStatus,
+  AppointmentType,
   accounts,
-  bookings,
+  appointments,
   capacityAllocations,
   checkInSlots,
   checkInVerifications,
   facilities,
   facilityAssignments,
   payments,
+  ReservationStatus,
   rentalPriceRanges,
   rentals,
+  reservations,
   storageUnits,
   systemSettings,
   unitAssignments,
   unitTypes,
   users,
 } from "./schema";
+
+type SeedTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+async function saveCheckInAppointment(
+  tx: SeedTransaction,
+  input: {
+    reservationId: string;
+    facilityId: string;
+    customerId: string;
+    contactPhone?: string | null;
+    scheduledDate: string;
+    slotId: string;
+    createdBy: string;
+    status: AppointmentStatus;
+    assignedStaffId?: string | null;
+  },
+) {
+  const [existing] = await tx
+    .select({ id: appointments.id })
+    .from(appointments)
+    .where(
+      and(
+        eq(appointments.reservationId, input.reservationId),
+        eq(appointments.appointmentType, AppointmentType.CHECK_IN),
+      ),
+    );
+  const { contactPhone, ...appointment } = input;
+  const values = {
+    ...appointment,
+    appointmentType: AppointmentType.CHECK_IN,
+    ...(contactPhone !== undefined ? { contactPhone } : {}),
+  };
+  if (existing) {
+    await tx.update(appointments).set(values).where(eq(appointments.id, existing.id));
+  } else {
+    await tx.insert(appointments).values(values);
+  }
+}
 
 // Stable local fixtures only. Keep IDs unchanged when adding or reordering seed data.
 export const SEED_IDS = {
@@ -64,7 +106,7 @@ export const SEED_IDS = {
     "HCM-01-007": "70000000-0000-4000-8000-000000000007",
     "HCM-01-008": "70000000-0000-4000-8000-000000000008",
   },
-  bookings: {
+  reservations: {
     "BK-2026-0001": "80000000-0000-4000-8000-000000000001",
     "BK-2026-0002": "80000000-0000-4000-8000-000000000002",
     "BK-2026-0003": "80000000-0000-4000-8000-000000000003",
@@ -148,7 +190,7 @@ const FLOW2_STAFF_EMAIL = "staff@metastorage.test";
 const FLOW2_STAFF_PASSWORD = "12345678";
 export const DEV_AUTH_PASSWORD = "12345678";
 const FLOW3_IDS = {
-  bookings: [
+  reservations: [
     "84000000-0000-4000-8000-000000000001",
     "84000000-0000-4000-8000-000000000002",
     "84000000-0000-4000-8000-000000000003",
@@ -207,18 +249,18 @@ export async function seedImmediateCheckInSlot(seedNow = getSeedNow()) {
   await db.transaction(async (tx) => {
     const [existing] = await tx
       .select()
-      .from(bookings)
-      .where(eq(bookings.id, SEED_IDS.demoCheckInBooking))
+      .from(reservations)
+      .where(eq(reservations.id, SEED_IDS.demoCheckInBooking))
       .for("update");
     if (existing) {
       const [rental] = await tx
         .select({ id: rentals.id })
         .from(rentals)
-        .where(eq(rentals.bookingId, existing.id));
+        .where(eq(rentals.reservationId, existing.id));
       const [verification] = await tx
         .select({ id: checkInVerifications.id })
         .from(checkInVerifications)
-        .where(eq(checkInVerifications.bookingId, existing.id));
+        .where(eq(checkInVerifications.reservationId, existing.id));
       if (existing.status !== "CONFIRMED" || rental || verification) {
         console.log("DEMO-CHECKIN-NOW already progressed; keeping its booking and slot unchanged.");
         return;
@@ -236,9 +278,18 @@ export async function seedImmediateCheckInSlot(seedNow = getSeedNow()) {
     if (!existing) {
       const [source] = await tx
         .select()
-        .from(bookings)
-        .where(eq(bookings.id, SEED_IDS.bookings["BK-2026-0001"]));
+        .from(reservations)
+        .where(eq(reservations.id, SEED_IDS.reservations["BK-2026-0001"]));
       if (!source) throw new Error("Run db:seed before preparing the immediate check-in demo");
+      const [sourceAppointment] = await tx
+        .select({ contactPhone: appointments.contactPhone })
+        .from(appointments)
+        .where(
+          and(
+            eq(appointments.reservationId, source.id),
+            eq(appointments.appointmentType, AppointmentType.CHECK_IN),
+          ),
+        );
       const [unit] = await tx
         .select()
         .from(storageUnits)
@@ -263,18 +314,15 @@ export async function seedImmediateCheckInSlot(seedNow = getSeedNow()) {
         .orderBy(storageUnits.code)
         .limit(1)
         .for("update", { skipLocked: true });
-      if (!unit) throw new Error("No available demo unit; existing bookings were preserved");
+      if (!unit) throw new Error("No available demo unit; existing reservations were preserved");
       const bookingId = SEED_IDS.demoCheckInBooking;
       const tokenHash = hash(hash(`local-seed:${bookingId}`));
-      await tx.insert(bookings).values({
+      await tx.insert(reservations).values({
         ...source,
         id: bookingId,
-        bookingCode: "DEMO-CHECKIN-NOW",
-        checkInDate: date,
-        checkInSlotId: SEED_IDS.demoCheckInSlot,
+        reservationCode: "DEMO-CHECKIN-NOW",
         rentalEndAt: end,
-        status: "CONFIRMED",
-        assignedStaffId: SEED_USERS[1].id,
+        status: ReservationStatus.CONFIRMED,
         qrTokenHash: hash(
           createHmac(
             "sha256",
@@ -286,9 +334,20 @@ export async function seedImmediateCheckInSlot(seedNow = getSeedNow()) {
         createdAt: seedNow,
         updatedAt: seedNow,
       });
+      await saveCheckInAppointment(tx, {
+        reservationId: bookingId,
+        facilityId: source.facilityId,
+        customerId: source.customerId,
+        contactPhone: sourceAppointment?.contactPhone ?? null,
+        scheduledDate: date,
+        slotId: SEED_IDS.demoCheckInSlot,
+        createdBy: source.customerId,
+        status: AppointmentStatus.CONFIRMED,
+        assignedStaffId: SEED_USERS[1].id,
+      });
       await tx.insert(payments).values({
         id: id("13000000", 2),
-        bookingId,
+        reservationId: bookingId,
         holdTokenHash: tokenHash,
         provider: "MOCK",
         providerPaymentId: `local-seed:${bookingId}`,
@@ -301,7 +360,7 @@ export async function seedImmediateCheckInSlot(seedNow = getSeedNow()) {
       });
       await tx.insert(unitAssignments).values({
         id: id("b4000000", 2),
-        bookingId,
+        reservationId: bookingId,
         physicalUnitId: unit.id,
         assignedBy: SEED_USERS[2].id,
         status: "ACTIVE",
@@ -320,14 +379,22 @@ export async function seedImmediateCheckInSlot(seedNow = getSeedNow()) {
       });
     } else {
       await tx
-        .update(bookings)
+        .update(reservations)
         .set({
-          checkInDate: date,
-          checkInSlotId: SEED_IDS.demoCheckInSlot,
           rentalEndAt: end,
           updatedAt: seedNow,
         })
-        .where(eq(bookings.id, existing.id));
+        .where(eq(reservations.id, existing.id));
+      await saveCheckInAppointment(tx, {
+        reservationId: existing.id,
+        facilityId: existing.facilityId,
+        customerId: existing.customerId,
+        scheduledDate: date,
+        slotId: SEED_IDS.demoCheckInSlot,
+        createdBy: existing.customerId,
+        status: AppointmentStatus.CONFIRMED,
+        assignedStaffId: SEED_USERS[1].id,
+      });
       await tx
         .update(capacityAllocations)
         .set({ startsAt: start, endsAt: end, updatedAt: seedNow })
@@ -447,30 +514,37 @@ async function seedDemoData(seedNow: Date) {
         const qr = createHmac("sha256", qrSecret).update(bookingId).digest("hex");
         const row = {
           id: bookingId,
-          bookingCode: paid ? code : null,
-          userId: customer.id,
+          reservationCode: paid ? code : null,
+          customerId: customer.id,
           facilityId: facility.id,
           unitTypeId: type.id,
-          checkInDate,
-          checkInSlotId: slot.id,
           requestedMonths: months,
           rentalEndAt,
           monthlyRateSnapshot: String(type.monthlyPrice),
           rentalFeeAmount: String(type.monthlyPrice * months),
           depositAmount: String(type.monthlyPrice),
           totalAmount: String(type.monthlyPrice * (months + 1)),
-          contactPhone: paid ? `+84${customer.phone.slice(1)}` : null,
-          status: paid ? "CONFIRMED" : "DRAFT",
-          assignedStaffId: scenario === 1 ? staff.id : null,
+          status: paid ? ReservationStatus.CONFIRMED : ReservationStatus.DRAFT,
           qrTokenHash: paid ? hash(qr) : null,
         };
-        await tx.insert(bookings).values(row).onConflictDoNothing();
+        await tx.insert(reservations).values(row).onConflictDoNothing();
+        await saveCheckInAppointment(tx, {
+          reservationId: bookingId,
+          facilityId: facility.id,
+          customerId: customer.id,
+          contactPhone: paid ? `+84${customer.phone.slice(1)}` : null,
+          scheduledDate: checkInDate,
+          slotId: slot.id,
+          createdBy: customer.id,
+          status: paid ? AppointmentStatus.CONFIRMED : AppointmentStatus.SCHEDULED,
+          assignedStaffId: scenario === 1 ? staff.id : null,
+        });
         if (!paid) continue;
         await tx
           .insert(payments)
           .values({
             id: id("11000000", ordinal),
-            bookingId,
+            reservationId: bookingId,
             holdTokenHash: tokenHash,
             provider: "MOCK",
             providerPaymentId: `local-seed:${bookingId}`,
@@ -511,7 +585,7 @@ async function seedDemoData(seedNow: Date) {
             .insert(unitAssignments)
             .values({
               id: id("b1000000", ordinal),
-              bookingId,
+              reservationId: bookingId,
               physicalUnitId: unit.id,
               assignedBy: manager.id,
               status: "ACTIVE",
@@ -540,31 +614,38 @@ async function seedDemoData(seedNow: Date) {
     flow2End.setUTCMonth(flow2End.getUTCMonth() + 1);
     const flow2TokenHash = hash(hash(`local-seed:${flow2BookingId}`));
     await tx
-      .insert(bookings)
+      .insert(reservations)
       .values({
         id: flow2BookingId,
-        bookingCode: "DEMO-FLOW2-READY",
-        userId: SEED_USERS[0].id,
+        reservationCode: "DEMO-FLOW2-READY",
+        customerId: SEED_USERS[0].id,
         facilityId: flow2Facility.id,
         unitTypeId: flow2Type.id,
-        checkInDate: today,
-        checkInSlotId: flow2Slot.id,
         requestedMonths: 1,
         rentalEndAt: flow2End,
         monthlyRateSnapshot: String(flow2Type.monthlyPrice),
         rentalFeeAmount: String(flow2Type.monthlyPrice),
         depositAmount: String(flow2Type.monthlyPrice),
         totalAmount: String(flow2Type.monthlyPrice * 2),
-        contactPhone: `+84${SEED_USERS[0].phone.slice(1)}`,
         qrTokenHash: hash(createHmac("sha256", qrSecret).update(flow2BookingId).digest("hex")),
-        status: "CONFIRMED",
+        status: ReservationStatus.CONFIRMED,
       })
       .onConflictDoNothing();
+    await saveCheckInAppointment(tx, {
+      reservationId: flow2BookingId,
+      facilityId: flow2Facility.id,
+      customerId: SEED_USERS[0].id,
+      contactPhone: `+84${SEED_USERS[0].phone.slice(1)}`,
+      scheduledDate: today,
+      slotId: flow2Slot.id,
+      createdBy: SEED_USERS[0].id,
+      status: AppointmentStatus.CONFIRMED,
+    });
     await tx
       .insert(payments)
       .values({
         id: id("13000000", 1),
-        bookingId: flow2BookingId,
+        reservationId: flow2BookingId,
         holdTokenHash: flow2TokenHash,
         provider: "MOCK",
         providerPaymentId: `local-seed:${flow2BookingId}`,
@@ -593,29 +674,59 @@ async function seedDemoData(seedNow: Date) {
     // Keep the original Swagger IDs usable for check-in and snapshot-based capacity.
     const originals = await tx
       .select()
-      .from(bookings)
-      .where(inArray(bookings.id, Object.values(SEED_IDS.bookings)));
+      .from(reservations)
+      .where(inArray(reservations.id, Object.values(SEED_IDS.reservations)));
     for (const [index, booking] of originals.entries()) {
-      const slot = slots.find((slot) => slot.id === booking.checkInSlotId);
-      if (!slot) throw new Error("Missing original seed slot");
-      const start = new Date(`${booking.checkInDate}T${slot.startTime}+07:00`);
+      const [appointment] = await tx
+        .select()
+        .from(appointments)
+        .where(
+          and(
+            eq(appointments.reservationId, booking.id),
+            eq(appointments.appointmentType, AppointmentType.CHECK_IN),
+          ),
+        );
+      const slot = slots.find((slot) => slot.id === appointment?.slotId);
+      if (!appointment || !slot) throw new Error("Missing original seed appointment or slot");
+      const start = new Date(`${appointment.scheduledDate}T${slot.startTime}+07:00`);
       const end = new Date(start);
       end.setUTCMonth(end.getUTCMonth() + booking.requestedMonths);
       await tx
-        .update(bookings)
+        .update(reservations)
         .set({
           rentalEndAt: end,
-          contactPhone: booking.contactPhone?.replace(/^0/, "+84"),
-          assignedStaffId: booking.status === "CONFIRMED" ? SEED_USERS[1].id : null,
           qrTokenHash: hash(createHmac("sha256", qrSecret).update(booking.id).digest("hex")),
         })
-        .where(eq(bookings.id, booking.id));
+        .where(eq(reservations.id, booking.id));
+      await saveCheckInAppointment(tx, {
+        reservationId: booking.id,
+        facilityId: booking.facilityId,
+        customerId: booking.customerId,
+        contactPhone: appointment.contactPhone,
+        scheduledDate: appointment.scheduledDate,
+        slotId: appointment.slotId,
+        createdBy: booking.customerId,
+        status:
+          booking.status === ReservationStatus.CANCELLED
+            ? AppointmentStatus.CANCELLED
+            : booking.status === ReservationStatus.NO_SHOW
+              ? AppointmentStatus.NO_SHOW
+              : booking.status === ReservationStatus.CHECKED_IN
+                ? AppointmentStatus.COMPLETED
+                : booking.status === ReservationStatus.CONFIRMED
+                  ? AppointmentStatus.CONFIRMED
+                  : AppointmentStatus.SCHEDULED,
+        assignedStaffId: booking.status === ReservationStatus.CONFIRMED ? SEED_USERS[1].id : null,
+      });
       if (booking.status === "CONFIRMED") {
         const [assignment] = await tx
           .select({ physicalUnitId: unitAssignments.physicalUnitId })
           .from(unitAssignments)
           .where(
-            and(eq(unitAssignments.bookingId, booking.id), eq(unitAssignments.status, "ACTIVE")),
+            and(
+              eq(unitAssignments.reservationId, booking.id),
+              eq(unitAssignments.status, "ACTIVE"),
+            ),
           );
         if (assignment)
           await tx
@@ -649,7 +760,7 @@ async function seedDemoData(seedNow: Date) {
             refundAmount: booking.rentalFeeAmount,
             depositForfeitedAmount: booking.depositAmount,
           })
-          .where(eq(payments.bookingId, booking.id));
+          .where(eq(payments.reservationId, booking.id));
       }
     }
     const facilityId = SEED_IDS.facilities["HCM-01"];
@@ -672,30 +783,37 @@ async function seedDemoData(seedNow: Date) {
       const tokenHash = hash(hash(`local-seed:${bookingId}`));
       const cancelled = scenario === "CANCELLED_REFUND";
       await tx
-        .insert(bookings)
+        .insert(reservations)
         .values({
           id: bookingId,
-          bookingCode: cancelled ? `DEMO-${scenario}` : null,
-          userId: SEED_USERS[0].id,
+          reservationCode: cancelled ? `DEMO-${scenario}` : null,
+          customerId: SEED_USERS[0].id,
           facilityId,
           unitTypeId: type.id,
-          checkInDate,
-          checkInSlotId: slot.id,
           requestedMonths: 2,
           rentalEndAt: end,
           monthlyRateSnapshot: String(type.monthlyPrice),
           rentalFeeAmount: String(type.monthlyPrice * 2),
           depositAmount: String(type.monthlyPrice),
           totalAmount: String(type.monthlyPrice * 3),
-          status: cancelled ? "CANCELLED" : "DRAFT",
-          contactPhone: `+84${SEED_USERS[0].phone.slice(1)}`,
+          status: cancelled ? ReservationStatus.CANCELLED : ReservationStatus.DRAFT,
         })
         .onConflictDoNothing();
+      await saveCheckInAppointment(tx, {
+        reservationId: bookingId,
+        facilityId,
+        customerId: SEED_USERS[0].id,
+        contactPhone: `+84${SEED_USERS[0].phone.slice(1)}`,
+        scheduledDate: checkInDate,
+        slotId: slot.id,
+        createdBy: SEED_USERS[0].id,
+        status: cancelled ? AppointmentStatus.CANCELLED : AppointmentStatus.SCHEDULED,
+      });
       await tx
         .insert(payments)
         .values({
           id: id("12000000", index + 1),
-          bookingId,
+          reservationId: bookingId,
           holdTokenHash: tokenHash,
           provider: "MOCK",
           providerPaymentId: `local-seed:${bookingId}`,
@@ -746,7 +864,7 @@ async function seedDemoData(seedNow: Date) {
     return today;
   });
   console.log(
-    "Core demo ready: 10 facilities, 8 types, 328 units, 29 users, 38 bookings, paid/pending/failed/refund/expired-hold scenarios.",
+    "Core demo ready: 10 facilities, 8 types, 328 units, 29 users, 38 reservations, paid/pending/failed/refund/expired-hold scenarios.",
   );
   console.log(
     `Flow 2 Swagger booking: DEMO-FLOW2-READY (${id("83000000", 1)}), check-in ${flow2CheckInDate}.`,
@@ -764,10 +882,6 @@ function localDate(date: Date) {
     month: "2-digit",
     day: "2-digit",
   }).format(date);
-}
-
-function localSlot(date: string, time: string) {
-  return new Date(`${date}T${time}+07:00`);
 }
 
 async function seedFlow2Demo(seedNow: Date) {
@@ -895,7 +1009,7 @@ async function seedFlow3Rentals(seedNow: Date) {
     },
   ] as const;
   for (const [index, scenario] of definitions.entries()) {
-    const bookingId = FLOW3_IDS.bookings[index];
+    const bookingId = FLOW3_IDS.reservations[index];
     const rentalId = FLOW3_IDS.rentals[index];
     const unitId = FLOW3_IDS.units[index];
     const unitCode = `HCM-01-${String(index + 19).padStart(3, "0")}`;
@@ -924,35 +1038,42 @@ async function seedFlow3Rentals(seedNow: Date) {
           set: { status: scenario.status === "CLOSED" ? "AVAILABLE" : "OCCUPIED" },
         });
       await tx
-        .insert(bookings)
+        .insert(reservations)
         .values({
           id: bookingId,
-          bookingCode,
-          userId: customer.id,
-          contactPhone: customer.phone,
+          reservationCode: bookingCode,
+          customerId: customer.id,
           facilityId: facility.id,
           unitTypeId: type.id,
           requestedMonths: 1,
-          checkInDate,
-          checkInSlotId: checkInSlot.id,
           rentalEndAt: expectedEndAt,
           monthlyRateSnapshot: String(type.monthlyPrice),
           rentalFeeAmount: String(type.monthlyPrice),
           depositAmount: String(type.monthlyPrice),
           totalAmount: String(type.monthlyPrice * 2),
-          status: "CHECKED_IN",
-          assignedStaffId: staff.id,
+          status: ReservationStatus.CHECKED_IN,
         })
         .onConflictDoUpdate({
-          target: bookings.id,
-          set: { status: "CHECKED_IN", rentalEndAt: expectedEndAt },
+          target: reservations.id,
+          set: { status: ReservationStatus.CHECKED_IN, rentalEndAt: expectedEndAt },
         });
+      await saveCheckInAppointment(tx, {
+        reservationId: bookingId,
+        facilityId: facility.id,
+        customerId: customer.id,
+        contactPhone: customer.phone,
+        scheduledDate: checkInDate,
+        slotId: checkInSlot.id,
+        createdBy: customer.id,
+        status: AppointmentStatus.COMPLETED,
+        assignedStaffId: staff.id,
+      });
       const paymentId = id("89000000", index + 1);
       await tx
         .insert(payments)
         .values({
           id: paymentId,
-          bookingId,
+          reservationId: bookingId,
           holdTokenHash: `seed-${bookingId}`,
           provider: "MOCK",
           providerPaymentId: `seed-flow3-payment-${bookingId}`,
@@ -968,7 +1089,7 @@ async function seedFlow3Rentals(seedNow: Date) {
         .insert(rentals)
         .values({
           id: rentalId,
-          bookingId,
+          reservationId: bookingId,
           facilityId: facility.id,
           physicalUnitId: unitId,
           status: scenario.status,
@@ -976,23 +1097,6 @@ async function seedFlow3Rentals(seedNow: Date) {
           expectedEndAt,
           actualReturnAt,
           closedAt: actualReturnAt,
-          returnSlotId: scenario.requestStatus ? slots[scenario.slotIndex]?.id : null,
-          returnDate: scenario.requestStatus
-            ? localDate(shiftDays(seedNow, scenario.requestDay))
-            : null,
-          returnStartsAt: scenario.requestStatus
-            ? localSlot(
-                localDate(shiftDays(seedNow, scenario.requestDay)),
-                slots[scenario.slotIndex]?.startTime ?? "00:00",
-              )
-            : null,
-          returnEndsAt: scenario.requestStatus
-            ? localSlot(
-                localDate(shiftDays(seedNow, scenario.requestDay)),
-                slots[scenario.slotIndex]?.endTime ?? "00:00",
-              )
-            : null,
-          returnTimezone: scenario.requestStatus ? "Asia/Ho_Chi_Minh" : null,
           returnStatus: scenario.requestStatus,
           returnReason: scenario.requestStatus ? "Demo Flow 3 return request" : null,
           depositAmount: String(type.monthlyPrice),
@@ -1004,32 +1108,54 @@ async function seedFlow3Rentals(seedNow: Date) {
             expectedEndAt,
             actualReturnAt,
             closedAt: actualReturnAt,
-            returnSlotId: scenario.requestStatus ? slots[scenario.slotIndex]?.id : null,
-            returnDate: scenario.requestStatus
-              ? localDate(shiftDays(seedNow, scenario.requestDay))
-              : null,
-            returnStartsAt: scenario.requestStatus
-              ? localSlot(
-                  localDate(shiftDays(seedNow, scenario.requestDay)),
-                  slots[scenario.slotIndex]?.startTime ?? "00:00",
-                )
-              : null,
-            returnEndsAt: scenario.requestStatus
-              ? localSlot(
-                  localDate(shiftDays(seedNow, scenario.requestDay)),
-                  slots[scenario.slotIndex]?.endTime ?? "00:00",
-                )
-              : null,
-            returnTimezone: scenario.requestStatus ? "Asia/Ho_Chi_Minh" : null,
             returnStatus: scenario.requestStatus,
             returnReason: scenario.requestStatus ? "Demo Flow 3 return request" : null,
           },
         });
+      if (scenario.requestStatus) {
+        const scheduledDate = localDate(shiftDays(seedNow, scenario.requestDay));
+        const slot = slots[scenario.slotIndex];
+        if (!slot) throw new Error("Flow 3 checkout slot fixture is missing");
+        const [existingAppointment] = await tx
+          .select({ id: appointments.id })
+          .from(appointments)
+          .where(
+            and(
+              eq(appointments.rentalId, rentalId),
+              eq(appointments.appointmentType, AppointmentType.CHECK_OUT),
+            ),
+          );
+        const appointmentValues = {
+          facilityId: facility.id,
+          appointmentType: AppointmentType.CHECK_OUT,
+          scheduledDate,
+          slotId: slot.id,
+          customerId: customer.id,
+          contactPhone: customer.phone,
+          status:
+            scenario.requestStatus === "CONFIRMED"
+              ? AppointmentStatus.CONFIRMED
+              : scenario.requestStatus === "COMPLETED"
+                ? AppointmentStatus.COMPLETED
+                : AppointmentStatus.SCHEDULED,
+          rentalId,
+          createdBy: customer.id,
+          notes: "Demo Flow 3 return request",
+        };
+        if (existingAppointment) {
+          await tx
+            .update(appointments)
+            .set(appointmentValues)
+            .where(eq(appointments.id, existingAppointment.id));
+        } else {
+          await tx.insert(appointments).values(appointmentValues);
+        }
+      }
       await tx
         .insert(unitAssignments)
         .values({
           id: id("89100000", index + 1),
-          bookingId,
+          reservationId: bookingId,
           physicalUnitId: unitId,
           assignedBy: manager.id,
           status: scenario.status === "CLOSED" ? "COMPLETED" : "ACTIVE",
@@ -1521,11 +1647,11 @@ async function seed() {
     `;
   }
 
-  console.log("7. Seeding bookings, payments and assignments...");
+  console.log("7. Seeding reservations, payments and assignments...");
   const now = seedNow.getTime();
   const bookingData = [
     {
-      id: SEED_IDS.bookings["BK-2026-0001"],
+      id: SEED_IDS.reservations["BK-2026-0001"],
       code: "BK-2026-0001",
       scenario: "CONFIRMED_TODAY",
       typeCode: "UT-2M",
@@ -1541,7 +1667,7 @@ async function seed() {
       paymentStatus: "SUCCEEDED",
     },
     {
-      id: SEED_IDS.bookings["BK-2026-0002"],
+      id: SEED_IDS.reservations["BK-2026-0002"],
       code: "BK-2026-0002",
       scenario: "TOO_EARLY",
       typeCode: "UT-4M",
@@ -1557,7 +1683,7 @@ async function seed() {
       paymentStatus: "SUCCEEDED",
     },
     {
-      id: SEED_IDS.bookings["BK-2026-0003"],
+      id: SEED_IDS.reservations["BK-2026-0003"],
       code: "BK-2026-0003",
       scenario: "NO_SHOW",
       typeCode: "UT-6M",
@@ -1593,29 +1719,25 @@ async function seed() {
     const paymentId = `10000000-0000-4000-8000-${suffix}`;
 
     const [booking] = await queryClient`
-      INSERT INTO bookings (
-        id, booking_code, user_id, contact_phone,
+      INSERT INTO reservations (
+        id, reservation_code, customer_id,
         facility_id, unit_type_id, requested_months,
-        check_in_date, check_in_slot_id,
         rental_end_at, monthly_rate_snapshot, rental_fee_amount, deposit_amount, total_amount,
         status
       )
       VALUES (
         ${bookingSeed.id}, ${bookingSeed.code}, ${customer.id},
-        ${bookingSeed.contactPhone},
         ${facHcm.id}, ${typeId}, ${bookingSeed.months},
-        ${checkInDate}, ${slotId}, ${rentalEndAt.toISOString()},
+        ${rentalEndAt.toISOString()},
         ${bookingSeed.monthlyRate}, ${rentalFeeAmount}, ${depositAmount}, ${totalAmount},
         ${bookingSeed.status}
       )
       ON CONFLICT (id) DO UPDATE SET
-        user_id = EXCLUDED.user_id,
-        contact_phone = EXCLUDED.contact_phone,
+        reservation_code = EXCLUDED.reservation_code,
+        customer_id = EXCLUDED.customer_id,
         facility_id = EXCLUDED.facility_id,
         unit_type_id = EXCLUDED.unit_type_id,
         requested_months = EXCLUDED.requested_months,
-        check_in_date = EXCLUDED.check_in_date,
-        check_in_slot_id = EXCLUDED.check_in_slot_id,
         rental_end_at = EXCLUDED.rental_end_at,
         monthly_rate_snapshot = EXCLUDED.monthly_rate_snapshot,
         rental_fee_amount = EXCLUDED.rental_fee_amount,
@@ -1628,9 +1750,28 @@ async function seed() {
 
     if (!booking) continue;
 
+    const appointmentStatus = bookingSeed.status === "NO_SHOW" ? "NO_SHOW" : bookingSeed.status;
+    await queryClient`
+      INSERT INTO appointments (
+        reservation_id, facility_id, appointment_type, scheduled_date, slot_id,
+        status, customer_id, contact_phone, created_by, assigned_staff_id
+      )
+      VALUES (
+        ${booking.id}, ${facHcm.id}, 'CHECK_IN', ${checkInDate}, ${slotId},
+        ${appointmentStatus === "NO_SHOW" ? "NO_SHOW" : "CONFIRMED"}, ${customer.id},
+        ${bookingSeed.contactPhone}, ${customer.id},
+        ${bookingSeed.assignCode ? manager.id : null}
+      )
+      ON CONFLICT (reservation_id) WHERE appointment_type = 'CHECK_IN'
+      DO UPDATE SET scheduled_date = EXCLUDED.scheduled_date,
+        slot_id = EXCLUDED.slot_id, status = EXCLUDED.status,
+        customer_id = EXCLUDED.customer_id, contact_phone = EXCLUDED.contact_phone,
+        assigned_staff_id = EXCLUDED.assigned_staff_id, updated_at = ${seedNow.toISOString()}
+    `;
+
     await queryClient`
       INSERT INTO payments (
-        id, booking_id, hold_token_hash, provider, provider_payment_id,
+        id, reservation_id, hold_token_hash, provider, provider_payment_id,
         idempotency_key, payment_code, total_amount,
         currency, status, paid_at
       )
@@ -1641,7 +1782,7 @@ async function seed() {
         ${bookingSeed.paymentStatus}, ${new Date(now + bookingSeed.paidOffset).toISOString()}
       )
       ON CONFLICT (id) DO UPDATE SET
-        booking_id = EXCLUDED.booking_id,
+        reservation_id = EXCLUDED.reservation_id,
         payment_code = EXCLUDED.payment_code,
         status = EXCLUDED.status,
         paid_at = EXCLUDED.paid_at,
@@ -1649,14 +1790,14 @@ async function seed() {
     `;
 
     // A rerun restores a clean scenario after manual check-in experiments.
-    await queryClient`DELETE FROM checkin_verifications WHERE booking_id = ${booking.id}`;
-    await queryClient`DELETE FROM unit_assignments WHERE booking_id = ${booking.id}`;
+    await queryClient`DELETE FROM checkin_verifications WHERE reservation_id = ${booking.id}`;
+    await queryClient`DELETE FROM unit_assignments WHERE reservation_id = ${booking.id}`;
 
     if (bookingSeed.assignCode) {
       const physicalUnitId = unitMap.get(bookingSeed.assignCode);
       if (physicalUnitId) {
         await queryClient`
-          INSERT INTO unit_assignments (id, booking_id, physical_unit_id, assigned_by, status, reason)
+          INSERT INTO unit_assignments (id, reservation_id, physical_unit_id, assigned_by, status, reason)
           VALUES (
             ${`b0000000-0000-4000-8000-${booking.id.slice(-12)}`}, ${booking.id}, ${physicalUnitId}, ${manager.id}, 'ACTIVE',
             ${`Seed scenario: ${bookingSeed.scenario}`}
