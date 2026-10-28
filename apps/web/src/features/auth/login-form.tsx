@@ -8,12 +8,9 @@ import {
   ArrowRight,
   Eye,
   EyeOff,
-  Headphones,
   KeyRound,
   Lock,
   Mail,
-  QrCode,
-  Shield,
   ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
@@ -268,18 +265,9 @@ export function LoginForm() {
         </div>
 
         {/* Alternative SSO Buttons */}
-        <div className="space-y-2.5">
+        <div>
           {/* Google SSO */}
           <GoogleSignInButton disabled={!hydrated} />
-
-          {/* QR Code App Login */}
-          <button
-            type="button"
-            className="w-full h-10 px-4 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium flex items-center justify-center gap-2.5 transition-colors duration-150 shadow-xs cursor-pointer"
-          >
-            <QrCode className="w-4 h-4 text-slate-500" />
-            <span>{AUTH_MESSAGES.qrLogin}</span>
-          </button>
         </div>
 
         {/* Demo Accounts (in Mock Mode) */}
@@ -324,33 +312,6 @@ export function LoginForm() {
               {AUTH_MESSAGES.registerNow}
             </Link>
           </p>
-        </div>
-
-        {/* Hotline Help Note */}
-        <div className="mt-4 pt-3 border-t border-slate-100 text-center">
-          <p className="text-xs text-slate-500 flex items-center justify-center gap-1.5">
-            <Headphones className="w-4 h-4 text-slate-600" />
-            <span>{AUTH_MESSAGES.hotlineLabel}</span>
-            <a
-              href={`tel:${AUTH_MESSAGES.hotlineNumber.replace(/\s+/g, "")}`}
-              className="font-semibold text-[#165f4d] hover:underline"
-            >
-              {AUTH_MESSAGES.hotlineNumber}
-            </a>
-          </p>
-        </div>
-      </div>
-
-      {/* Security & Trust Micro-indicators under Card */}
-      <div className="mt-5 flex flex-wrap items-center justify-center gap-3 text-slate-500 text-xs">
-        <div className="flex items-center gap-1.5">
-          <Lock className="w-3.5 h-3.5 text-[#165f4d]" />
-          <span>{AUTH_MESSAGES.sslSecurity}</span>
-        </div>
-        <span className="inline-block w-1 h-1 rounded-full bg-slate-300" />
-        <div className="flex items-center gap-1.5">
-          <Shield className="w-3.5 h-3.5 text-[#165f4d]" />
-          <span>{AUTH_MESSAGES.isoSecurity}</span>
         </div>
       </div>
 
