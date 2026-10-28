@@ -4,44 +4,41 @@ import type {
   UpdateReservationInput,
 } from "@metastorage/contracts";
 import { UserRole } from "@metastorage/contracts";
-import { ReservationStatus, type Role } from "@metastorage/database";
-import {
-  BadRequestError,
-  ConflictError,
-  ForbiddenError,
-  NotFoundError,
-} from "../../common/errors/app-error";
+import { BadRequestError, ForbiddenError, NotFoundError } from "../../common/errors/app-error";
+import type { AuthenticatedActor } from "../auth/authenticated-actor";
 import { getFacilityAccessScope } from "../facilities/facilities.access";
 import type { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
 import { RESERVATION_MESSAGES } from "./reservations.messages";
 import type { ReservationsRepository } from "./reservations.repository";
 
-type ReservationActor = { id: string; role: Role | null | undefined };
+const VIETNAM_UTC_OFFSET_MILLISECONDS = 7 * 60 * 60 * 1000;
 
 function calculateRentalEndAt(startAt: string, months: number) {
-  const start = new Date(startAt);
-  if (start <= new Date()) throw new BadRequestError(RESERVATION_MESSAGES.futureStart);
-  const vietnamOffsetMilliseconds = 7 * 60 * 60 * 1000;
-  const localStart = new Date(start.getTime() + vietnamOffsetMilliseconds);
+  const rentalStart = new Date(startAt);
+  if (rentalStart <= new Date()) throw new BadRequestError(RESERVATION_MESSAGES.futureStart);
+  const localStart = new Date(rentalStart.getTime() + VIETNAM_UTC_OFFSET_MILLISECONDS);
   const startDay = localStart.getUTCDate();
   localStart.setUTCDate(1);
   localStart.setUTCMonth(localStart.getUTCMonth() + months + 1, 0);
   localStart.setUTCDate(Math.min(startDay, localStart.getUTCDate()));
-  return new Date(localStart.getTime() - vietnamOffsetMilliseconds);
+  return new Date(localStart.getTime() - VIETNAM_UTC_OFFSET_MILLISECONDS);
 }
 
 export class ReservationsService {
   constructor(
-    private readonly repository: ReservationsRepository,
-    private readonly assignments: FacilityAssignmentsService,
+    private readonly reservationsRepository: ReservationsRepository,
+    private readonly facilityAssignmentsService: FacilityAssignmentsService,
   ) {}
 
-  async create(input: CreateReservationInput, actor: ReservationActor) {
-    const unitType = await this.repository.findActiveUnitType(input.facilityId, input.unitTypeId);
+  async createReservation(input: CreateReservationInput, actor: AuthenticatedActor) {
+    const unitType = await this.reservationsRepository.findActiveUnitType(
+      input.facilityId,
+      input.unitTypeId,
+    );
     if (!unitType) throw new NotFoundError(RESERVATION_MESSAGES.unitTypeNotFound);
     const rentalEndAt = calculateRentalEndAt(input.startAt, input.requestedMonths);
     const monthlyRate = unitType.monthlyPrice;
-    return this.repository.create({
+    return this.reservationsRepository.createReservation({
       customerId: actor.id,
       facilityId: input.facilityId,
       unitTypeId: input.unitTypeId,
@@ -55,48 +52,62 @@ export class ReservationsService {
     });
   }
 
-  async list(query: ReservationQuery, actor: ReservationActor) {
+  async listReservations(query: ReservationQuery, actor: AuthenticatedActor) {
     if (actor.role === UserRole.STORAGE_CUSTOMER)
-      return this.repository.list(query, actor.id, query.facilityId);
-    const scope = getFacilityAccessScope(actor);
+      return this.reservationsRepository.listReservations(
+        query,
+        actor.id,
+        actor.facilityId ?? query.facilityId,
+      );
+    const facilityScope = getFacilityAccessScope(actor);
     const facilityId =
+      actor.facilityId ??
       query.facilityId ??
-      (scope.kind === "assigned"
-        ? await this.assignments.getActiveFacilityId(actor.id, scope.role)
+      (facilityScope.kind === "assigned"
+        ? await this.facilityAssignmentsService.getActiveFacilityId(actor.id, facilityScope.role)
         : undefined);
-    if (facilityId) await this.assignments.requireFacilityAccess(facilityId, scope);
-    return this.repository.list(query, undefined, facilityId);
+    if (facilityId)
+      await this.facilityAssignmentsService.requireFacilityAccess(facilityId, facilityScope);
+    return this.reservationsRepository.listReservations(query, undefined, facilityId);
   }
 
-  async get(id: string, actor: ReservationActor) {
-    const reservation = await this.repository.findById(id);
+  async getReservation(reservationId: string, actor: AuthenticatedActor) {
+    const reservation = await this.reservationsRepository.findReservationById(reservationId);
     if (!reservation) throw new NotFoundError(RESERVATION_MESSAGES.notFound);
     if (actor.role === UserRole.STORAGE_CUSTOMER) {
       if (reservation.customerId !== actor.id) throw new ForbiddenError();
     } else
-      await this.assignments.requireFacilityAccess(
+      await this.facilityAssignmentsService.requireFacilityAccess(
         reservation.facilityId,
         getFacilityAccessScope(actor),
       );
     return reservation;
   }
 
-  async update(id: string, input: UpdateReservationInput, actor: ReservationActor) {
-    const reservation = await this.get(id, actor);
+  async updateReservation(
+    reservationId: string,
+    input: UpdateReservationInput,
+    actor: AuthenticatedActor,
+  ) {
+    const reservation = await this.getReservation(reservationId, actor);
     if (actor.role !== UserRole.STORAGE_CUSTOMER || reservation.customerId !== actor.id)
       throw new ForbiddenError();
-    if (reservation.status !== ReservationStatus.DRAFT)
-      throw new ConflictError(RESERVATION_MESSAGES.draftOnly);
     const rentalEndAt = calculateRentalEndAt(input.startAt, input.requestedMonths);
     const monthlyRate = Number(reservation.monthlyRateSnapshot);
-    const result = await this.repository.updateDraft(id, actor.id, {
-      rentalEndAt,
-      rentalStartAt: new Date(input.startAt),
-      requestedMonths: input.requestedMonths,
-      rentalFeeAmount: String(monthlyRate * input.requestedMonths),
-      totalAmount: String(monthlyRate * input.requestedMonths + Number(reservation.depositAmount)),
-    });
-    if (!result) throw new ConflictError(RESERVATION_MESSAGES.draftOnly);
-    return result;
+    const updatedReservation = await this.reservationsRepository.updateReservation(
+      reservationId,
+      actor.id,
+      {
+        rentalEndAt,
+        rentalStartAt: new Date(input.startAt),
+        requestedMonths: input.requestedMonths,
+        rentalFeeAmount: String(monthlyRate * input.requestedMonths),
+        totalAmount: String(
+          monthlyRate * input.requestedMonths + Number(reservation.depositAmount),
+        ),
+      },
+    );
+    if (!updatedReservation) throw new NotFoundError(RESERVATION_MESSAGES.notFound);
+    return updatedReservation;
   }
 }

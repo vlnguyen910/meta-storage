@@ -4,79 +4,109 @@ import {
   ResourceIdSchema,
   UpdateReservationSchema,
   UserRole,
-  UserRoleSchema,
 } from "@metastorage/contracts";
-import type { FastifyPluginAsync, FastifyRequest } from "fastify";
+import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
-import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
 import { requireRole } from "../auth/auth.guard";
+import { getAuthenticatedActor } from "../auth/authenticated-actor";
 import { FacilitiesRepository } from "../facilities/facilities.repository";
 import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
 import { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
+import { RESERVATION_MESSAGES } from "./reservations.messages";
 import { ReservationsRepository } from "./reservations.repository";
 import { ReservationsService } from "./reservations.service";
 
 export const reservationsRoutes: FastifyPluginAsync = async (app) => {
   const typedApp = app.withTypeProvider<ZodTypeProvider>();
-  const assignments = new FacilityAssignmentsService(
+  const facilityAssignmentsService = new FacilityAssignmentsService(
     new FacilityAssignmentsRepository(app.db),
     new FacilitiesRepository(app.db),
   );
-  const service = new ReservationsService(new ReservationsRepository(app.db), assignments);
-  const readers = requireRole(
+  const reservationsService = new ReservationsService(
+    new ReservationsRepository(app.db),
+    facilityAssignmentsService,
+  );
+  const reservationReadAccess = requireRole(
     UserRole.STORAGE_CUSTOMER,
     UserRole.FACILITY_STAFF,
     UserRole.FACILITY_MANAGER,
   );
-  const customer = requireRole(UserRole.STORAGE_CUSTOMER);
+  const customerAccess = requireRole(UserRole.STORAGE_CUSTOMER);
 
   typedApp.post(
     "/",
     {
-      preHandler: [customer],
-      schema: { tags: ["Đặt kho"], summary: "Tạo đặt kho", body: CreateReservationSchema },
+      preHandler: [customerAccess],
+      schema: {
+        tags: [RESERVATION_MESSAGES.tag],
+        summary: RESERVATION_MESSAGES.createSummary,
+        body: CreateReservationSchema,
+      },
     },
     async (request, reply) =>
-      reply.status(201).send(successResponse(await service.create(request.body, actor(request)))),
+      reply
+        .status(201)
+        .send(
+          successResponse(
+            await reservationsService.createReservation(
+              request.body,
+              getAuthenticatedActor(request),
+            ),
+          ),
+        ),
   );
   typedApp.get(
     "/",
     {
-      preHandler: [readers],
+      preHandler: [reservationReadAccess],
       schema: {
-        tags: ["Đặt kho"],
-        summary: "Danh sách đặt kho",
+        tags: [RESERVATION_MESSAGES.tag],
+        summary: RESERVATION_MESSAGES.listSummary,
         querystring: ReservationQuerySchema,
       },
     },
-    async (request) => successResponse(await service.list(request.query, actor(request))),
+    async (request) =>
+      successResponse(
+        await reservationsService.listReservations(
+          request.query,
+          getAuthenticatedActor(request, request.query.facilityId),
+        ),
+      ),
   );
   typedApp.get(
     "/:id",
     {
-      preHandler: [readers],
-      schema: { tags: ["Đặt kho"], summary: "Chi tiết đặt kho", params: ResourceIdSchema },
+      preHandler: [reservationReadAccess],
+      schema: {
+        tags: [RESERVATION_MESSAGES.tag],
+        summary: RESERVATION_MESSAGES.detailSummary,
+        params: ResourceIdSchema,
+      },
     },
-    async (request) => successResponse(await service.get(request.params.id, actor(request))),
+    async (request) =>
+      successResponse(
+        await reservationsService.getReservation(request.params.id, getAuthenticatedActor(request)),
+      ),
   );
   typedApp.patch(
     "/:id",
     {
-      preHandler: [customer],
+      preHandler: [customerAccess],
       schema: {
-        tags: ["Đặt kho"],
-        summary: "Chỉnh sửa bản nháp đặt kho",
+        tags: [RESERVATION_MESSAGES.tag],
+        summary: RESERVATION_MESSAGES.updateSummary,
         params: ResourceIdSchema,
         body: UpdateReservationSchema,
       },
     },
     async (request) =>
-      successResponse(await service.update(request.params.id, request.body, actor(request))),
+      successResponse(
+        await reservationsService.updateReservation(
+          request.params.id,
+          request.body,
+          getAuthenticatedActor(request),
+        ),
+      ),
   );
 };
-
-function actor(request: FastifyRequest) {
-  if (!request.user) throw new UnauthorizedError();
-  return { id: request.user.id, role: UserRoleSchema.parse(request.user.role) };
-}

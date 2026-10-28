@@ -1,6 +1,6 @@
 import { type AppointmentQuery, UserRole, UserStatus } from "@metastorage/contracts";
 import {
-  type AppointmentStatus,
+  type Appointment,
   and,
   appointments,
   checkInSlots,
@@ -18,83 +18,87 @@ import {
   supportTickets,
   users,
 } from "@metastorage/database";
+import type { PageDto } from "../../common/types/page.dto";
 import { APPOINTMENT_MESSAGES } from "./appointments.messages";
 
 export class AppointmentsRepository {
-  constructor(private readonly db: Database) {}
+  constructor(private readonly database: Database) {}
 
-  async findById(id: string) {
-    const [row] = await this.db.select().from(appointments).where(eq(appointments.id, id));
-    return row;
+  async findAppointmentById(appointmentId: string) {
+    const [appointment] = await this.database
+      .select()
+      .from(appointments)
+      .where(eq(appointments.id, appointmentId));
+    return appointment;
   }
 
-  async findReservationContext(id: string) {
-    const [row] = await this.db
+  async findReservationContext(reservationId: string) {
+    const [reservationContext] = await this.database
       .select({ customerId: reservations.customerId, facilityId: reservations.facilityId })
       .from(reservations)
-      .where(eq(reservations.id, id));
-    return row;
+      .where(eq(reservations.id, reservationId));
+    return reservationContext;
   }
 
-  async findRentalContext(id: string) {
-    const [row] = await this.db
+  async findRentalContext(rentalId: string) {
+    const [rentalContext] = await this.database
       .select({ customerId: reservations.customerId, facilityId: rentals.facilityId })
       .from(rentals)
       .innerJoin(reservations, eq(rentals.reservationId, reservations.id))
-      .where(eq(rentals.id, id));
-    return row;
+      .where(eq(rentals.id, rentalId));
+    return rentalContext;
   }
 
-  async findSupportTicketContext(id: string) {
-    const [row] = await this.db
+  async findSupportTicketContext(supportTicketId: string) {
+    const [supportTicketContext] = await this.database
       .select({ customerId: supportTickets.ownerUserId, facilityId: supportTickets.facilityId })
       .from(supportTickets)
-      .where(eq(supportTickets.id, id));
-    return row;
+      .where(eq(supportTickets.id, supportTicketId));
+    return supportTicketContext;
   }
 
-  async isFacilityActive(id: string) {
-    const [row] = await this.db
+  async isFacilityActive(facilityId: string) {
+    const [facility] = await this.database
       .select({ id: facilities.id })
       .from(facilities)
-      .where(and(eq(facilities.id, id), eq(facilities.isActive, true)));
-    return !!row;
+      .where(and(eq(facilities.id, facilityId), eq(facilities.isActive, true)));
+    return !!facility;
   }
 
-  async isCustomerActive(id: string) {
-    const [row] = await this.db
+  async isCustomerActive(customerId: string) {
+    const [customer] = await this.database
       .select({ id: users.id })
       .from(users)
       .where(
         and(
-          eq(users.id, id),
+          eq(users.id, customerId),
           eq(users.role, UserRole.STORAGE_CUSTOMER),
           eq(users.status, UserStatus.ACTIVE),
         ),
       );
-    return !!row;
+    return !!customer;
   }
 
-  async slotExists(id: string) {
-    const [row] = await this.db
+  async slotExists(slotId: string) {
+    const [slot] = await this.database
       .select({ id: checkInSlots.id })
       .from(checkInSlots)
-      .where(eq(checkInSlots.id, id));
-    return !!row;
+      .where(eq(checkInSlots.id, slotId));
+    return !!slot;
   }
 
   async listSlots() {
-    return this.db.select().from(checkInSlots).orderBy(checkInSlots.startTime);
+    return this.database.select().from(checkInSlots).orderBy(checkInSlots.startTime);
   }
 
-  async isStaffAssignedToFacility(id: string, facilityId: string) {
-    const [row] = await this.db
+  async isStaffAssignedToFacility(staffId: string, facilityId: string) {
+    const [staff] = await this.database
       .select({ id: users.id })
       .from(users)
       .innerJoin(facilityAssignments, eq(facilityAssignments.userId, users.id))
       .where(
         and(
-          eq(users.id, id),
+          eq(users.id, staffId),
           eq(users.role, UserRole.FACILITY_STAFF),
           eq(users.status, UserStatus.ACTIVE),
           eq(facilityAssignments.role, UserRole.FACILITY_STAFF),
@@ -103,46 +107,55 @@ export class AppointmentsRepository {
           or(isNull(facilityAssignments.endedAt), gt(facilityAssignments.endedAt, new Date())),
         ),
       );
-    return !!row;
+    return !!staff;
   }
 
-  async list(query: AppointmentQuery, customerId?: string, facilityId?: string) {
-    const where = and(
+  async listAppointments(
+    query: AppointmentQuery,
+    customerId?: string,
+    facilityId?: string,
+  ): Promise<PageDto<Appointment>> {
+    const filterConditions = and(
       customerId ? eq(appointments.customerId, customerId) : undefined,
+      customerId ? eq(appointments.createdBy, customerId) : undefined,
       facilityId ? eq(appointments.facilityId, facilityId) : undefined,
       query.date ? eq(appointments.scheduledDate, query.date) : undefined,
       query.type ? eq(appointments.appointmentType, query.type) : undefined,
       query.status ? eq(appointments.status, query.status) : undefined,
     );
-    const [items, [total]] = await Promise.all([
-      this.db
+    const [appointmentItems, [totalCount]] = await Promise.all([
+      this.database
         .select()
         .from(appointments)
-        .where(where)
+        .where(filterConditions)
         .orderBy(desc(appointments.scheduledDate), desc(appointments.id))
         .limit(query.limit)
         .offset(query.offset),
-      this.db.select({ value: count() }).from(appointments).where(where),
+      this.database.select({ value: count() }).from(appointments).where(filterConditions),
     ]);
-    return { items, total: total?.value ?? 0, limit: query.limit, offset: query.offset };
+    return {
+      items: appointmentItems,
+      total: totalCount?.value ?? 0,
+      limit: query.limit,
+      offset: query.offset,
+    };
   }
 
-  async create(input: typeof appointments.$inferInsert) {
-    const [row] = await this.db.insert(appointments).values(input).returning();
-    if (!row) throw new Error(APPOINTMENT_MESSAGES.createFailed);
-    return row;
+  async createAppointment(input: typeof appointments.$inferInsert) {
+    const [appointment] = await this.database.insert(appointments).values(input).returning();
+    if (!appointment) throw new Error(APPOINTMENT_MESSAGES.createFailed);
+    return appointment;
   }
 
-  async update(
-    id: string,
-    status: AppointmentStatus,
-    values: Partial<typeof appointments.$inferInsert>,
+  async updateAppointment(
+    appointmentId: string,
+    updates: Partial<typeof appointments.$inferInsert>,
   ) {
-    const [row] = await this.db
+    const [appointment] = await this.database
       .update(appointments)
-      .set({ ...values, updatedAt: new Date() })
-      .where(and(eq(appointments.id, id), eq(appointments.status, status)))
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(appointments.id, appointmentId))
       .returning();
-    return row;
+    return appointment;
   }
 }
