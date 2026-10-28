@@ -17,9 +17,9 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { enumToPgEnum } from "../enum-to-pg-enum";
-import { bookings } from "./bookings";
 import { rentalCharges } from "./rental-charges";
 import { rentals } from "./rentals";
+import { reservations } from "./reservations";
 import { users } from "./users";
 
 export {
@@ -44,7 +44,7 @@ export const payments = pgTable(
   {
     id: uuid().defaultRandom().primaryKey(),
     type: paymentTypeEnum().default(PaymentType.COLLECTION).notNull(),
-    bookingId: uuid().references(() => bookings.id, { onDelete: "restrict" }),
+    reservationId: uuid().references(() => reservations.id, { onDelete: "restrict" }),
     rentalChargeId: uuid().references(() => rentalCharges.id, { onDelete: "restrict" }),
     rentalId: uuid().references(() => rentals.id, { onDelete: "restrict" }),
     sourcePaymentId: uuid().references((): AnyPgColumn => payments.id, { onDelete: "restrict" }),
@@ -82,8 +82,8 @@ export const payments = pgTable(
     check(
       "payments_source_reference",
       sql`(
-        (${table.type} = 'COLLECTION' AND ${table.rentalId} IS NULL AND ${table.sourcePaymentId} IS NULL AND ${table.provider} IS NOT NULL AND ${table.paymentCode} IS NOT NULL AND ${table.providerPaymentId} IS NOT NULL AND ((${table.bookingId} IS NOT NULL AND ${table.rentalChargeId} IS NULL AND ${table.holdTokenHash} IS NOT NULL) OR (${table.bookingId} IS NULL AND ${table.rentalChargeId} IS NOT NULL AND ${table.holdTokenHash} IS NULL))) OR
-        (${table.type} = 'RETURN_REFUND' AND ${table.bookingId} IS NULL AND ${table.rentalChargeId} IS NULL AND ${table.rentalId} IS NOT NULL AND ${table.sourcePaymentId} IS NOT NULL AND ${table.holdTokenHash} IS NULL AND ${table.provider} IS NULL AND ${table.paymentCode} IS NULL AND ${table.providerPaymentId} IS NULL AND ${table.status} = 'SUCCEEDED' AND ${table.totalAmount} > 0 AND ${table.refundReference} IS NOT NULL AND ${table.refundedAt} IS NOT NULL AND ${table.refundedBy} IS NOT NULL)
+        (${table.type} = 'COLLECTION' AND ${table.rentalId} IS NULL AND ${table.sourcePaymentId} IS NULL AND ${table.provider} IS NOT NULL AND ${table.paymentCode} IS NOT NULL AND ${table.providerPaymentId} IS NOT NULL AND ((${table.reservationId} IS NOT NULL AND ${table.rentalChargeId} IS NULL AND ${table.holdTokenHash} IS NOT NULL) OR (${table.reservationId} IS NULL AND ${table.rentalChargeId} IS NOT NULL AND ${table.holdTokenHash} IS NULL))) OR
+        (${table.type} = 'RETURN_REFUND' AND ${table.reservationId} IS NULL AND ${table.rentalChargeId} IS NULL AND ${table.rentalId} IS NOT NULL AND ${table.sourcePaymentId} IS NOT NULL AND ${table.holdTokenHash} IS NULL AND ${table.provider} IS NULL AND ${table.paymentCode} IS NULL AND ${table.providerPaymentId} IS NULL AND ${table.status} = 'SUCCEEDED' AND ${table.totalAmount} > 0 AND ${table.refundReference} IS NOT NULL AND ${table.refundedAt} IS NOT NULL AND ${table.refundedBy} IS NOT NULL)
       )`,
     ),
     check(
@@ -95,7 +95,7 @@ export const payments = pgTable(
       .on(table.sourcePaymentId, table.refundReference)
       .where(sql`${table.type} = 'RETURN_REFUND'`),
     uniqueIndex("payments_idempotency_idx").on(table.idempotencyKey),
-    index("payments_booking_idx").on(table.bookingId),
+    index("payments_reservation_idx").on(table.reservationId),
     index("payments_rental_charge_idx").on(table.rentalChargeId),
     index("payments_rental_idx").on(table.rentalId),
     uniqueIndex("payments_pending_rental_charge_idx")

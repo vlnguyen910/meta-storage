@@ -1,5 +1,5 @@
 export * from "./accounts";
-export * from "./bookings";
+export * from "./appointments";
 export * from "./capacity-allocations";
 export * from "./check-in-slots";
 export * from "./checkin-verifications";
@@ -19,6 +19,7 @@ export * from "./rental-charges";
 export * from "./rental-price-ranges";
 export * from "./rental-renewals";
 export * from "./rentals";
+export * from "./reservations";
 export * from "./sessions";
 export * from "./storage-units";
 export * from "./support";

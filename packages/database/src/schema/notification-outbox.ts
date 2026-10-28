@@ -14,8 +14,8 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
-import { bookings } from "./bookings";
 import { facilities } from "./facilities";
+import { reservations } from "./reservations";
 import { supportTickets } from "./support";
 import { users } from "./users";
 
@@ -35,9 +35,9 @@ export const notificationOutbox = pgTable(
     recipientKey: text().notNull(),
     eventType: lifecycleNotificationEventEnum().notNull(),
     supportTicketId: uuid().references(() => supportTickets.id, { onDelete: "restrict" }),
-    bookingId: uuid()
+    reservationId: uuid()
       .notNull()
-      .references(() => bookings.id, { onDelete: "restrict" }),
+      .references(() => reservations.id, { onDelete: "restrict" }),
     rentalTermVersion: integer(),
     facilityId: uuid()
       .notNull()

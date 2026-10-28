@@ -11,10 +11,10 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { bookings } from "./bookings";
 import { facilities } from "./facilities";
 import { payments } from "./payments";
 import { rentals } from "./rentals";
+import { reservations } from "./reservations";
 import { users } from "./users";
 
 export const supportCategoryEnum = pgEnum("support_category", SUPPORT_CATEGORIES);
@@ -24,9 +24,9 @@ export const supportTickets = pgTable(
   "support_tickets",
   {
     id: uuid().defaultRandom().primaryKey(),
-    bookingId: uuid()
+    reservationId: uuid()
       .notNull()
-      .references(() => bookings.id, { onDelete: "restrict" }),
+      .references(() => reservations.id, { onDelete: "restrict" }),
     ownerUserId: uuid()
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
