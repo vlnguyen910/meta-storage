@@ -163,16 +163,16 @@ export function CheckoutSelection({ state }: { state: CheckoutState }) {
                     </span>
                   </div>
 
-                  <div className="mt-1 flex items-center gap-1.5 text-[11px] text-emerald-800 bg-emerald-50 w-fit px-2 py-0.5 rounded-md font-medium">
-                    <Sparkles size={11} className="text-emerald-700" />
-                    <span>
-                      {isUnavailable
-                        ? m.unavailablePeriod
-                        : option.availableCount === null
-                          ? m.chooseSchedule
-                          : m.availableCount(option.availableCount)}
-                    </span>
-                  </div>
+                  {isUnavailable ? (
+                    <div className="mt-1 flex items-center gap-1.5 text-[11px] text-rose-800 bg-rose-50 w-fit px-2 py-0.5 rounded-md font-medium">
+                      <span>{m.unavailablePeriod}</span>
+                    </div>
+                  ) : option.availableCount !== null ? (
+                    <div className="mt-1 flex items-center gap-1.5 text-[11px] text-emerald-800 bg-emerald-50 w-fit px-2 py-0.5 rounded-md font-medium">
+                      <Sparkles size={11} className="text-emerald-700" />
+                      <span>{m.availableCount(option.availableCount)}</span>
+                    </div>
+                  ) : null}
 
                   <div className="mt-2.5 flex items-center gap-4 text-xs text-slate-500">
                     <div>
