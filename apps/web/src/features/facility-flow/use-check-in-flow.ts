@@ -5,6 +5,8 @@ import type {
   UpdateInspectionInput,
 } from "@metastorage/contracts";
 import {
+  FacilityTaskStatus,
+  FacilityTaskType,
   HANDOVER_CHECKLIST_ITEMS,
   HandoverChecklistCompletionSchema,
   HandoverChecklistItemResultSchema,
@@ -18,7 +20,6 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useGlobalLoading } from "@/components/providers/global-loading-provider";
 import { useToast } from "@/components/ui/toast";
-import { useAuthStore } from "@/features/auth/auth-store";
 import { api } from "@/lib/api";
 import { FLOW } from "./flow.messages";
 
@@ -49,13 +50,15 @@ export function useCheckInFlow() {
   const pathname = usePathname();
   const params = useSearchParams();
   const { showToast } = useToast();
-  const userId = useAuthStore((state) => state.session?.user.id);
   const code = params.get("bookingCode") ?? "";
   const token = params.get("qrToken") ?? "";
   const lookup = useQuery({
     queryKey: ["facility-flow", "lookup", code, token],
     queryFn: () =>
-      api.checkIns.lookup({ type: token ? "QR_TOKEN" : "BOOKING_CODE", value: token || code }),
+      api.bookings.checkInLookup({
+        type: token ? "QR_TOKEN" : "BOOKING_CODE",
+        value: token || code,
+      }),
     enabled: !!(code || token),
     retry: false,
     staleTime: 0,
@@ -85,36 +88,30 @@ export function useCheckInFlow() {
     router.push(`${pathname}?${query.toString()}`);
   };
   const queryClient = useQueryClient();
+  async function startInspection() {
+    const { items } = await api.flow5.tasks.listMine({
+      type: FacilityTaskType.CHECK_IN_HANDOVER,
+      referenceId: bookingId,
+      limit: 100,
+      offset: 0,
+    });
+    const task = items.find((item) => item.referenceId === bookingId);
+    if (!task) throw new Error(FLOW.taskNotFound);
+    if (task.status === FacilityTaskStatus.ASSIGNED)
+      await api.flow5.tasks.update(task.id, { status: FacilityTaskStatus.IN_PROGRESS });
+    else if (task.status !== FacilityTaskStatus.IN_PROGRESS) throw new Error(FLOW.taskNotReady);
+    return api.inspections.start(bookingId);
+  }
   const verify = useMutation({
     meta: { globalLoading: true },
-    mutationFn: () =>
-      result?.booking.status === "CHECKED_IN" ||
-      (result?.verification?.status === "VERIFIED" && result.verification.staffId === userId)
-        ? Promise.resolve(result)
-        : api.checkIns.confirm(bookingId),
-    onSuccess: async (data) => {
-      queryClient.setQueryData(["facility-flow", "lookup", code, token], data);
+    mutationFn: startInspection,
+    onSuccess: async (inspection) => {
       await queryClient.invalidateQueries({ queryKey: ["bookings"] });
       const response = await history.refetch();
-      if (
-        !response.isError &&
-        !response.data?.some(
-          (inspection) =>
-            inspection.inspectionType === "CHECK_IN" &&
-            inspection.reservationId === bookingId &&
-            inspection.storageUnitId === data.assignedUnit?.physicalUnitId,
-        )
-      ) {
-        try {
-          const inspection = await api.inspections.start(bookingId);
-          queryClient.setQueryData(inspectionKey(bookingId), [
-            inspection,
-            ...(response.data ?? []),
-          ]);
-        } catch (error) {
-          showToast(flowError(error), "error");
-        }
-      }
+      queryClient.setQueryData(inspectionKey(bookingId), [
+        inspection,
+        ...(response.data ?? []).filter((item) => item.id !== inspection.id),
+      ]);
       navigate("inspect");
     },
     onError: async (error) => {
@@ -125,7 +122,7 @@ export function useCheckInFlow() {
   });
   const start = useMutation({
     meta: { globalLoading: true },
-    mutationFn: () => api.inspections.start(bookingId),
+    mutationFn: startInspection,
     onSuccess: async (inspection) => {
       queryClient.setQueryData(inspectionKey(bookingId), (old: InspectionRecord[] | undefined) => [
         inspection,

@@ -1,4 +1,5 @@
 import {
+  FacilityTaskStatus,
   HANDOVER_CHECKLIST_ITEMS,
   HandoverChecklistCompletionSchema,
   INSPECTION_CHECKLIST_VERSION,
@@ -47,17 +48,15 @@ export function registerInspectionHandlers(mock: MockAdapter): void {
     if (!booking) return [404, errorBody(404, M.missing)];
     if (user?.role !== UserRole.FACILITY_STAFF || !canReadBooking(user, booking))
       return [403, errorBody(403, M.forbidden)];
-    const lookup = lookupResult(db, booking);
-    const verification = lookup.verification;
+    const lookup = lookupResult(booking);
     if (
       !lookup.eligibility.canProceed ||
       !booking.assignedUnit ||
-      verification?.status !== "VERIFIED" ||
-      verification.staffId !== user.id
+      booking.taskStatus !== "IN_PROGRESS"
     )
       return [409, errorBody(409, M.notReady)];
     const existing = db.inspections.find(
-      (i) => i.bookingId === booking.id && i.verificationId === verification.id,
+      (i) => i.bookingId === booking.id && i.unitAssignmentId === booking.assignedUnit?.id,
     );
     if (existing) return [200, envelope(existing)];
     const now = new Date().toISOString();
@@ -68,7 +67,6 @@ export function registerInspectionHandlers(mock: MockAdapter): void {
       physicalUnitId: booking.assignedUnit.physicalUnitId,
       unitCode: booking.assignedUnit.physicalUnitCode,
       unitAssignmentId: booking.assignedUnit.id,
-      verificationId: verification.id,
       policyVersion: "H6_V1",
       status: "DRAFT",
       version: 0,
@@ -118,14 +116,8 @@ export function registerInspectionHandlers(mock: MockAdapter): void {
     if (action === "handover" && inspection.handedOverAt) return [200, envelope(inspection)];
     const body = parseBody<{ version: number }>(config.data);
     if (body.version !== inspection.version) return [409, errorBody(409, M.stale)];
-    const lookup = lookupResult(db, booking);
-    if (
-      !lookup.eligibility.canProceed ||
-      lookup.verification?.status !== "VERIFIED" ||
-      lookup.verification.id !== inspection.verificationId ||
-      lookup.verification.staffId !== user.id ||
-      booking.assignedUnit?.id !== inspection.unitAssignmentId
-    )
+    const lookup = lookupResult(booking);
+    if (!lookup.eligibility.canProceed || booking.assignedUnit?.id !== inspection.unitAssignmentId)
       return [409, errorBody(409, M.notReady)];
     if (action !== "handover" && inspection.status !== "DRAFT")
       return [409, errorBody(409, M.locked)];
@@ -194,9 +186,7 @@ export function registerInspectionHandlers(mock: MockAdapter): void {
       booking.handoverStage = "HANDED_OVER";
       booking.status = "CHECKED_IN";
       unit.status = StorageUnitStatus.OCCUPIED;
-      lookup.verification.status = "CONSUMED";
-      lookup.verification.consumedAt = inspection.handedOverAt;
-      // lookupResult returns the persisted verification object, so this transition is saved together.
+      booking.taskStatus = FacilityTaskStatus.COMPLETED;
       const facility = db.facilities.find((f) => f.id === booking.facilityId);
       db.rentals.push({
         userId: booking.userId,

@@ -207,9 +207,9 @@ async function fixture(
       currency: "VND",
     },
     eligibility: { canProceed: !unassigned, reasons: unassigned ? ["UNIT_NOT_ASSIGNED"] : [] },
-    verification: null,
   };
   let inspection: Inspection | null = null;
+  const task = { id: "a4444444-4444-4444-8444-444444444444", referenceId: id, status: "ASSIGNED" };
   let versionConflict = false;
   await page.route("**/api/**", async (route) => {
     const req = route.request();
@@ -262,24 +262,14 @@ async function fixture(
       path === "/bookings/assigned-to-me"
     )
       data = [booking];
-    else if (path === "/facility-tasks") data = { items: [], total: 0, limit: 100, offset: 0 };
-    else if (/^\/facilities\/[^/]+\/return-requests$/.test(path)) data = [];
-    else if (path === "/check-ins/lookup") data = lookup;
-    else if (path === `/check-ins/${id}/confirm`) {
-      lookup.verification = {
-        id: "a1111111-1111-1111-1111-111111111111",
-        bookingId: id,
-        facilityId: booking.facilityId,
-        staffId: assignment.assignedBy,
-        unitAssignmentId: assignment.id,
-        status: "VERIFIED",
-        verifiedAt: now,
-        consumedAt: null,
-        invalidatedAt: null,
-        invalidatedReason: null,
-      };
-      data = lookup;
-    } else if (path === `/bookings/${id}/eligible-units`)
+    else if (path === "/facility-tasks/my")
+      data = { items: [task], total: 1, limit: 100, offset: 0 };
+    else if (path === `/facility-tasks/${task.id}` && method === "PATCH") {
+      task.status = input.status;
+      data = task;
+    } else if (/^\/facilities\/[^/]+\/return-requests$/.test(path)) data = [];
+    else if (path === "/bookings/check-in/lookup") data = lookup;
+    else if (path === `/bookings/${id}/eligible-units`)
       data = [
         {
           id: assignment.physicalUnitId,
@@ -320,7 +310,6 @@ async function fixture(
           physicalUnitId: assignment.physicalUnitId,
           unitCode: assignment.physicalUnitCode,
           unitAssignmentId: assignment.id,
-          verificationId: lookup.verification?.id ?? "",
           policyVersion: "H6_V1",
           status: "DRAFT",
           version: 0,
@@ -394,7 +383,6 @@ async function fixture(
       inspection.version++;
       booking.status = "CHECKED_IN";
       lookup.booking.status = "CHECKED_IN";
-      if (lookup.verification) lookup.verification.status = "CONSUMED";
       data = inspection;
     } else if (path.startsWith("/dashboards/"))
       data = {
@@ -517,7 +505,7 @@ test("draft, real photo, review, immutable completion and reload", async ({ page
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: "/tmp/metastorage-flow2-handover.png", fullPage: true });
 });
-test("API error does not leave verification stuck", async ({ page }) => {
+test("inspection history API error leaves the task ready to retry", async ({ page }) => {
   await fixture(page, { failHistory: true });
   await page.goto("/staff/check-in?bookingCode=BK-2026-0001");
   await page.getByRole("button", { name: "Xác minh booking & Chuyển sang kiểm tra kho" }).click();
@@ -779,29 +767,6 @@ test("FM filters real handover progress and only opens monitoring", async ({ pag
   await expect(page.getByRole("link", { name: "Làm check-in", exact: true })).toHaveCount(0);
   await expect(page.getByText("Staff được phân công", { exact: true })).toBeVisible();
   await page.screenshot({ path: "/tmp/metastorage-fm-preparation-final.png", fullPage: true });
-});
-
-test("Staff re-verifies a legacy FM verification before editing", async ({ page }) => {
-  const f = await fixture(page);
-  f.lookup.verification = {
-    id: "a1111111-1111-1111-1111-111111111111",
-    bookingId: id,
-    facilityId: f.booking.facilityId,
-    staffId: "d0000000-0000-4000-8000-000000000099",
-    unitAssignmentId: f.booking.assignedUnit?.id ?? "",
-    status: "VERIFIED",
-    verifiedAt: now,
-    consumedAt: null,
-    invalidatedAt: null,
-    invalidatedReason: null,
-  };
-  await page.goto("/staff/check-in?bookingCode=BK-2026-0001&view=inspect");
-  await expect(
-    page.getByRole("button", { name: "Xác minh booking & Chuyển sang kiểm tra kho" }),
-  ).toBeVisible();
-  await expect(page.locator("input[type=file]")).toHaveCount(0);
-  await page.getByRole("button", { name: "Xác minh booking & Chuyển sang kiểm tra kho" }).click();
-  await expect(page.getByRole("textbox", { name: "Biên bản ghi nhận hiện trường" })).toBeVisible();
 });
 
 test("staff assignment handles backend errors and retries with only persisted fields", async ({

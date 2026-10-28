@@ -106,7 +106,7 @@ describe("mobile demo policies", () => {
     db.sessionId = demoId(101);
     expect(mobileWorkspace(db).bookings.some((b) => b.id === demoId(202))).toBe(false);
     expect(() =>
-      call(db, "/check-ins/lookup", { type: "BOOKING_CODE", value: "BK-2026-0002" }),
+      call(db, "/bookings/check-in/lookup", { type: "BOOKING_CODE", value: "BK-2026-0002" }),
     ).toThrow();
   });
   test("reschedule preserves paid attributes, checks capacity, and allows no more than two changes", () => {
@@ -159,18 +159,24 @@ describe("mobile demo policies", () => {
       remainingDemoCapacity(db, b.facilityId, b.unitTypeId, b.checkInSlotStart, b.rentalEndAt),
     ).toBe(before + 1);
   });
-  test("verify and completed inspection never activate rental; only explicit handover does, once", () => {
+  test("task arrival and inspection never activate rental; only explicit handover does, once", () => {
     const db = createMobileSeed();
     db.sessionId = demoId(101);
     const b = fixture(db.bookings.find((b) => b.id === demoId(201)));
-    expect(() => call(db, `/demo/bookings/${b.id}/inspection`)).toThrow();
-    const verified = call(db, `/check-ins/${b.id}/confirm`);
-    expect(CheckInLookupResultSchema.safeParse(verified).success).toBe(true);
+    expect(
+      CheckInLookupResultSchema.safeParse(
+        call(db, "/bookings/check-in/lookup", {
+          type: "BOOKING_CODE",
+          value: b.bookingCode,
+        }),
+      ).success,
+    ).toBe(true);
     expect(b.status).toBe("CONFIRMED");
     const inspection = call(
       db,
       `/demo/bookings/${b.id}/inspection`,
     ) as (typeof db.inspections)[number];
+    expect(b.taskStatus).toBe("IN_PROGRESS");
     expect(() => call(db, `/demo/inspections/${inspection.id}/complete`, { version: 0 })).toThrow();
     call(
       db,
