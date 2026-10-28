@@ -224,7 +224,9 @@ export function CustomerBookingScreen({
             {b.rentalId && (
               <Button
                 label={M.viewRental}
-                onPress={() => go({ screen: "rental", id: b.rentalId! })}
+                onPress={() => {
+                  if (b.rentalId) go({ screen: "rental", id: b.rentalId });
+                }}
               />
             )}
             {b.status === "CONFIRMED" && (
@@ -579,7 +581,9 @@ export function CustomerRentalScreen({
                   <Button
                     label={M.payment}
                     disabled={state.pay.isPending}
-                    onPress={() => state.pay.mutate(renewal.chargeId!)}
+                    onPress={() => {
+                      if (renewal.chargeId) state.pay.mutate(renewal.chargeId);
+                    }}
                   />
                 )}
                 <Notice>

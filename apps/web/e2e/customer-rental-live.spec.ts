@@ -10,6 +10,12 @@ const providerTimestamp = () =>
 import type { CustomerLiveFixture } from "./support/customer-live.types";
 import { selectCheckInDate, tomorrowInVietnam } from "./support/reservation-form";
 
+function requiredEnv(name: string) {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} is required`);
+  return value;
+}
+
 test.describe("Customer rental flow against isolated real API", () => {
   test.skip(
     !process.env.CUSTOMER_E2E_FIXTURE,
@@ -20,7 +26,7 @@ test.describe("Customer rental flow against isolated real API", () => {
   test.setTimeout(120000);
   let f: CustomerLiveFixture;
   test.beforeAll(() => {
-    f = JSON.parse(readFileSync(process.env.CUSTOMER_E2E_FIXTURE!, "utf8"));
+    f = JSON.parse(readFileSync(requiredEnv("CUSTOMER_E2E_FIXTURE"), "utf8"));
   });
   test.beforeEach(async ({ page }) => {
     const response = await page.request.post("/api/auth/sign-in/email", {

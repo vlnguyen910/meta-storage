@@ -7,6 +7,7 @@ import {
 import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
+import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
 import { requireRole } from "../auth/auth.guard";
 import { BookingsRepository } from "../bookings/bookings.repository";
@@ -51,13 +52,13 @@ export const inspectionsRoutes: FastifyPluginAsync = async (app) => {
         querystring: InspectionListQuerySchema,
       },
     },
-    async (request) =>
-      successResponse(
-        await service.listForStaff(request.query, {
-          id: request.user!.id,
-          role: request.user!.role as UserRole,
-        }),
-      ),
+    async (request) => {
+      const user = request.user;
+      if (!user) throw new UnauthorizedError();
+      return successResponse(
+        await service.listForStaff(request.query, { id: user.id, role: user.role as UserRole }),
+      );
+    },
   );
 
   typed.get(
@@ -70,13 +71,13 @@ export const inspectionsRoutes: FastifyPluginAsync = async (app) => {
         querystring: InspectionListQuerySchema,
       },
     },
-    async (request) =>
-      successResponse(
-        await service.listForFacility(request.query, {
-          id: request.user!.id,
-          role: request.user!.role as UserRole,
-        }),
-      ),
+    async (request) => {
+      const user = request.user;
+      if (!user) throw new UnauthorizedError();
+      return successResponse(
+        await service.listForFacility(request.query, { id: user.id, role: user.role as UserRole }),
+      );
+    },
   );
 
   typed.post(
@@ -89,15 +90,17 @@ export const inspectionsRoutes: FastifyPluginAsync = async (app) => {
         body: CreateInspectionInputSchema,
       },
     },
-    async (request, reply) =>
-      reply.status(201).send(
-        successResponse(
-          await service.create(request.body, {
-            id: request.user!.id,
-            role: request.user!.role as UserRole,
-          }),
-        ),
-      ),
+    async (request, reply) => {
+      const user = request.user;
+      if (!user) throw new UnauthorizedError();
+      return reply
+        .status(201)
+        .send(
+          successResponse(
+            await service.create(request.body, { id: user.id, role: user.role as UserRole }),
+          ),
+        );
+    },
   );
 
   typed.get(
@@ -106,13 +109,13 @@ export const inspectionsRoutes: FastifyPluginAsync = async (app) => {
       preHandler: [requireRole(UserRole.FACILITY_STAFF, UserRole.FACILITY_MANAGER)],
       schema: { tags: ["Inspections"], summary: m.detailSummary, params: inspectionParams },
     },
-    async (request) =>
-      successResponse(
-        await service.get(request.params.id, {
-          id: request.user!.id,
-          role: request.user!.role as UserRole,
-        }),
-      ),
+    async (request) => {
+      const user = request.user;
+      if (!user) throw new UnauthorizedError();
+      return successResponse(
+        await service.get(request.params.id, { id: user.id, role: user.role as UserRole }),
+      );
+    },
   );
 
   typed.patch(
@@ -126,12 +129,15 @@ export const inspectionsRoutes: FastifyPluginAsync = async (app) => {
         body: UpdateInspectionInputSchema,
       },
     },
-    async (request) =>
-      successResponse(
+    async (request) => {
+      const user = request.user;
+      if (!user) throw new UnauthorizedError();
+      return successResponse(
         await service.update(request.params.id, request.body, {
-          id: request.user!.id,
-          role: request.user!.role as UserRole,
+          id: user.id,
+          role: user.role as UserRole,
         }),
-      ),
+      );
+    },
   );
 };
