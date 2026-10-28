@@ -63,7 +63,7 @@ export function canVerifyBooking(booking: MobilePaidBooking, now = Date.now()) {
 export function validateReschedule(db: DemoDatabase, booking: MobilePaidBooking, start: string) {
   if (
     booking.status !== "CONFIRMED" ||
-    db.verifiedBookingIds.includes(booking.id) ||
+    db.inspections.some((inspection) => inspection.bookingId === booking.id) ||
     Date.parse(booking.checkInSlotStart) - Date.now() < 86400000 ||
     booking.rescheduleCount >= 2
   )

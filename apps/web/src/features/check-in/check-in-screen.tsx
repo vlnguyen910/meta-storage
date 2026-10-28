@@ -68,13 +68,11 @@ function CheckInFlowScreen() {
   const [input, setInput] = useState("");
   const result = flow.result;
   const reasons = result?.eligibility.reasons ?? [];
-  const verified =
-    result?.verification?.staffId === user?.id &&
-    ["VERIFIED", "CONSUMED"].includes(result?.verification?.status ?? "");
+  const inspectionStarted = Boolean(flow.current);
   const wantsInspection = ["inspect", "review", "handover"].includes(flow.view);
   const locked = flow.current?.status === "PASSED" || flow.current?.status === "FAILED";
   const inspectionView = locked ? "handover" : flow.view === "handover" ? "review" : flow.view;
-  const active = wantsInspection && verified ? (locked ? 3 : 2) : 1;
+  const active = wantsInspection && inspectionStarted ? (locked ? 3 : 2) : 1;
   const title =
     active === 3
       ? FLOW.handoverTitle
@@ -227,7 +225,7 @@ function CheckInFlowScreen() {
         active={active}
         completed={[
           ...(result?.assignedUnit ? [0] : []),
-          ...(verified ? [1] : []),
+          ...(inspectionStarted ? [1] : []),
           ...(locked ? [2] : []),
           ...(result?.booking.status === "CHECKED_IN" ? [3] : []),
         ]}
@@ -293,7 +291,7 @@ function CheckInFlowScreen() {
           <h2 className={`${titleClass} mt-5 text-xl`}>{FLOW.emptyTitle}</h2>
           <p className="mt-2 text-sm text-[#707975]">{FLOW.emptyHint}</p>
         </Panel>
-      ) : wantsInspection && verified ? (
+      ) : wantsInspection && inspectionStarted ? (
         flow.history.isLoading ? (
           <LoadingState label={FLOW.loading} variant="table" />
         ) : flow.history.isError && !flow.history.data ? (
@@ -341,13 +339,13 @@ function CheckInFlowScreen() {
               },
               {
                 label: FLOW.receptionStatus,
-                value: verified
-                  ? FLOW.verified
+                value: inspectionStarted
+                  ? FLOW.inspecting
                   : result.eligibility.canProceed
                     ? FLOW.eligible
                     : FLOW.notEligible,
                 tone:
-                  verified || result.eligibility.canProceed
+                  inspectionStarted || result.eligibility.canProceed
                     ? ("green" as const)
                     : ("amber" as const),
                 icon: User,
@@ -489,7 +487,7 @@ function CheckInFlowScreen() {
               </ul>
             </Panel>
           )}
-          {verified && flow.history.isError && (
+          {inspectionStarted && flow.history.isError && (
             <ErrorState message={FLOW.loadHistoryError} onRetry={() => flow.history.refetch()} />
           )}
           <Panel className="flex flex-wrap justify-between gap-3">
@@ -500,13 +498,13 @@ function CheckInFlowScreen() {
               disabled={
                 result.booking.status === "CHECKED_IN"
                   ? !flow.current
-                  : !verified && !result.eligibility.canProceed
+                  : !inspectionStarted && !result.eligibility.canProceed
               }
               loading={flow.verify.isPending}
               onClick={proceed}
               icon={<ArrowRight size={18} />}
             >
-              {verified ? FLOW.continueInspect : FLOW.verifyProceed}
+              {inspectionStarted ? FLOW.continueInspect : FLOW.verifyProceed}
             </Button>
           </Panel>
         </>

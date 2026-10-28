@@ -34,7 +34,6 @@ export function createSeedDatabase(): MockDatabase {
     drafts: [],
     holds: [],
     checkoutResults: [],
-    verifications: [],
     inspections: [],
     photoContents: [],
     rentals: [],

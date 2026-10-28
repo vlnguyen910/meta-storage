@@ -84,6 +84,8 @@ export const FLOW = {
   loading: "Đang tải hồ sơ…",
   retry: "Thử lại",
   error: "Không thể xử lý yêu cầu. Vui lòng thử lại.",
+  taskNotFound: "Không tìm thấy task handover được giao cho bạn.",
+  taskNotReady: "Task handover không ở trạng thái có thể bắt đầu kiểm tra.",
   refresh: "Làm mới",
   print: "In danh sách",
   back: "Quay lại danh sách",

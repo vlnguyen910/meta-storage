@@ -196,8 +196,6 @@ export function createMobileSeed(now = Date.now()): DemoDatabase {
       makeBooking(4, at(86400000), "CONFIRMED", other.id),
     ],
     drafts: [heldDraft(1, false), heldDraft(2, true)],
-    verifiedBookingIds: [demoId(203)],
-    verificationTimes: { [demoId(203)]: at(-2 * 86400000) },
     inspections: [
       {
         id: demoId(700),

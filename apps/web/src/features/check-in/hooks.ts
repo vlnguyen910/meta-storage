@@ -31,14 +31,7 @@ export const checkInKeys = {
 
 export function useCheckInLookupMutation() {
   return useMutation({
-    mutationFn: (input: CheckInLookupInput) => api.checkIns.lookup(input),
-  });
-}
-
-export function useCheckInConfirmMutation() {
-  return useMutation({
-    meta: { globalLoading: true },
-    mutationFn: (bookingId: string) => api.checkIns.confirm(bookingId),
+    mutationFn: (input: CheckInLookupInput) => api.bookings.checkInLookup(input),
   });
 }
 

@@ -62,7 +62,7 @@ export function useMobileStaff({ route, data, run, go }: MobileScreenProps) {
   const lookup = (value = code) =>
     run(
       () =>
-        mobileApi.checkIns.lookup({
+        mobileApi.bookings.checkInLookup({
           type: value.startsWith("demo-qr-") ? "QR_TOKEN" : "BOOKING_CODE",
           value: value.trim(),
         }),
@@ -88,7 +88,6 @@ export function useMobileStaff({ route, data, run, go }: MobileScreenProps) {
       booking
         ? run(
             async () => {
-              await mobileApi.checkIns.confirm(booking.id);
               return mobileWorkflows.startInspection(booking.id);
             },
             () => go("M-FS05", booking.id),

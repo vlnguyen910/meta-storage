@@ -8,7 +8,6 @@ export interface DemoDatabase extends Omit<MobileWorkspace, "session"> {
   version: 1;
   accounts: DemoAccount[];
   sessionId: string | null;
-  verificationTimes?: Record<string, string>;
   recoveryRequestedAtByEmail?: Record<string, string>;
 }
 export type ScreenCode =

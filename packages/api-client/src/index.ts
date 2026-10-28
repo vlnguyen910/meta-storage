@@ -16,7 +16,6 @@ import type {
   CatalogFacility,
   CatalogFacilityListParams,
   CatalogUnitType,
-  CheckInConfirmResult,
   CheckInLookupInput,
   CheckInLookupResult,
   CheckInSlotOption,
@@ -383,6 +382,10 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
           .then(unwrap),
       checkInSlots: () =>
         http.get<ApiEnvelope<CheckInSlotOption[]>>("/bookings/check-in-slots").then(unwrap),
+      checkInLookup: (input: CheckInLookupInput) =>
+        http
+          .post<ApiEnvelope<CheckInLookupResult>>("/bookings/check-in/lookup", input)
+          .then(unwrap),
       createDraft: (input: BookingDraftInput) =>
         http.post<ApiEnvelope<BookingDraft>>("/bookings/drafts", input).then(unwrap),
       pay: (bookingId: string, input: BookingPaymentInput) =>
@@ -457,14 +460,6 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
           .then(unwrap),
       handover: (id: string, input: ConfirmInspectionHandoverInput) =>
         http.post<ApiEnvelope<InspectionRecord>>(`/inspections/${id}/handover`, input).then(unwrap),
-    },
-    checkIns: {
-      lookup: (input: CheckInLookupInput) =>
-        http.post<ApiEnvelope<CheckInLookupResult>>("/check-ins/lookup", input).then(unwrap),
-      confirm: (bookingId: string) =>
-        http
-          .post<ApiEnvelope<CheckInConfirmResult>>(`/check-ins/${bookingId}/confirm`)
-          .then(unwrap),
     },
     rentals: {
       facilityList: (facilityId: string, params: Partial<FacilityRentalListQuery> = {}) =>

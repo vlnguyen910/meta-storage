@@ -8,12 +8,7 @@ import {
   UserRole,
 } from "@metastorage/contracts";
 import type MockAdapter from "axios-mock-adapter";
-import {
-  canManageBooking,
-  canReadBooking,
-  invalidateVerification,
-  lookupResult,
-} from "../core/flow";
+import { canManageBooking, canReadBooking, lookupResult } from "../core/flow";
 import { currentUser, envelope, errorBody, parseBody } from "../core/http";
 import { getMockDatabase, saveMockDatabase } from "../database";
 import { MOCK_MESSAGES as M } from "../mock.messages";
@@ -66,7 +61,7 @@ export function registerBookingHandlers(mock: MockAdapter): void {
       ),
     ];
   });
-  mock.onPost("/check-ins/lookup").reply((config) => {
+  mock.onPost("/bookings/check-in/lookup").reply((config) => {
     const db = getMockDatabase();
     const user = currentUser(config, db);
     const input = parseBody<CheckInLookupInput>(config.data);
@@ -78,33 +73,7 @@ export function registerBookingHandlers(mock: MockAdapter): void {
     );
     if (!booking) return [404, errorBody(404, M.missing)];
     if (!canReadBooking(user, booking)) return [403, errorBody(403, M.forbidden)];
-    return [200, envelope(lookupResult(db, booking))];
-  });
-  mock.onPost(/\/check-ins\/[^/]+\/confirm$/).reply((config) => {
-    const db = getMockDatabase();
-    const user = currentUser(config, db);
-    const booking = db.bookings.find((b) => b.id === config.url?.split("/")[2]);
-    if (!booking) return [404, errorBody(404, M.missing)];
-    if (user?.role !== UserRole.FACILITY_STAFF || !canReadBooking(user, booking))
-      return [403, errorBody(403, M.forbidden)];
-    const result = lookupResult(db, booking);
-    if (!result.eligibility.canProceed || !booking.assignedUnit)
-      return [409, errorBody(409, M.notReady)];
-    if (!result.verification)
-      db.verifications.push({
-        id: crypto.randomUUID(),
-        bookingId: booking.id,
-        facilityId: booking.facilityId,
-        staffId: user.id,
-        unitAssignmentId: booking.assignedUnit.id,
-        status: "VERIFIED",
-        verifiedAt: new Date().toISOString(),
-        consumedAt: null,
-        invalidatedAt: null,
-        invalidatedReason: null,
-      });
-    saveMockDatabase(db);
-    return [200, envelope(lookupResult(db, booking))];
+    return [200, envelope(lookupResult(booking))];
   });
   mock.onGet(/\/bookings\/[^/]+\/eligible-units$/).reply((config) => {
     const db = getMockDatabase();
@@ -150,7 +119,6 @@ export function registerBookingHandlers(mock: MockAdapter): void {
       endedAt: null,
       reason: body.reason ?? null,
     };
-    invalidateVerification(db, booking);
     booking.assignedUnit = assignment;
     unit.status = StorageUnitStatus.RESERVED;
     saveMockDatabase(db);
@@ -170,7 +138,6 @@ export function registerBookingHandlers(mock: MockAdapter): void {
         u.assignedFacilityIds.includes(booking.facilityId),
     );
     if (!staff || booking.status !== "CONFIRMED") return [409, errorBody(409, M.forbidden)];
-    if (booking.assignedStaff?.id !== staff.id) invalidateVerification(db, booking);
     booking.assignedStaff = {
       id: staff.id,
       name: staff.name,

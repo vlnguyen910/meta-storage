@@ -53,12 +53,12 @@ export function useMobileCustomer({ data, route, run, go }: MobileScreenProps) {
       booking.status === "CONFIRMED" &&
       booking.rescheduleCount < 2 &&
       Date.parse(booking.checkInSlotStart) - Date.now() >= 86400000 &&
-      !data.verifiedBookingIds.includes(booking.id),
+      !data.inspections.some((inspection) => inspection.bookingId === booking.id),
     canCancel:
       data.session?.role === "CUSTOMER" &&
       !!booking &&
       booking.status === "CONFIRMED" &&
-      !data.verifiedBookingIds.includes(booking.id),
+      !data.inspections.some((inspection) => inspection.bookingId === booking.id),
     cancel: () =>
       booking
         ? run(
