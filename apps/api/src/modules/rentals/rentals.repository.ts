@@ -43,6 +43,10 @@ const ACTIONS = {
 export class RentalsRepository {
   constructor(private readonly db: Database) {}
 
+  findByBookingId(executor: RentalReadExecutor, bookingId: string) {
+    return executor.select().from(rentals).where(eq(rentals.bookingId, bookingId)).limit(1);
+  }
+
   managerAssignment(facilityId: string, userId: string) {
     return new FacilityAssignmentsRepository(this.db).findActiveAssignment(
       facilityId,

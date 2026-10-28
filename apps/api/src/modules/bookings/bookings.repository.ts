@@ -122,6 +122,14 @@ function toCustomerBooking(row: CustomerBookingQueryRow) {
 export class BookingsRepository {
   constructor(private readonly db: Database) {}
 
+  findActiveUnitAssignment(tx: BookingTransaction, bookingId: string) {
+    return tx
+      .select({ physicalUnitId: unitAssignments.physicalUnitId })
+      .from(unitAssignments)
+      .where(and(eq(unitAssignments.bookingId, bookingId), eq(unitAssignments.status, "ACTIVE")))
+      .limit(1);
+  }
+
   private customerBookingQuery() {
     const latestPayments = this.db
       .selectDistinctOn([payments.bookingId], {
