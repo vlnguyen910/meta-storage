@@ -28,6 +28,7 @@ import {
 import { bookingCustomer, bookingReadFields } from "../bookings/bookings.projection";
 import { closeBookingBeforeCheckIn } from "../bookings/bookings.repository";
 import type { BookingReadRecord } from "../bookings/bookings.types";
+import type { TaskTransaction } from "../facility-tasks/facility-tasks.types";
 import { assertAssignedStaff } from "./check-in-access";
 import type { CheckInPolicyEvaluation } from "./check-ins.policy";
 
@@ -59,6 +60,13 @@ function normalizedBookingCode(value: string): string {
 
 export class CheckInsRepository {
   constructor(private readonly db: Database) {}
+
+  consumeVerification(tx: TaskTransaction, verificationId: string, now: Date) {
+    return tx
+      .update(checkInVerifications)
+      .set({ status: "CONSUMED", consumedAt: now, updatedAt: now })
+      .where(eq(checkInVerifications.id, verificationId));
+  }
 
   private async selectRecord(
     executor: QueryExecutor,

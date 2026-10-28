@@ -23,6 +23,7 @@ import {
   unitTypes,
 } from "@metastorage/database";
 import { bookingCustomer } from "../bookings/bookings.projection";
+import type { TaskTransaction } from "../facility-tasks/facility-tasks.types";
 import type { RentalQueryExecutor } from "./rentals.types";
 
 export class RentalsRepository {
@@ -30,6 +31,18 @@ export class RentalsRepository {
 
   findRentalByBookingId(executor: RentalQueryExecutor, bookingId: string) {
     return executor.select().from(rentals).where(eq(rentals.bookingId, bookingId)).limit(1);
+  }
+  createForHandover(
+    tx: TaskTransaction,
+    input: {
+      bookingId: string;
+      userId: string;
+      storageUnitId: string;
+      startAt: Date;
+      endAt: Date;
+    },
+  ) {
+    return tx.insert(rentals).values(input).returning();
   }
   private buildRentalDetailsQuery(executor: RentalQueryExecutor = this.db) {
     return executor

@@ -12,6 +12,7 @@ import type {
 } from "@metastorage/contracts";
 import { ForbiddenError, NotFoundError } from "../../common/errors/app-error";
 import type { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
+import type { TaskTransaction } from "../facility-tasks/facility-tasks.types";
 import { RENTAL_MESSAGES as M } from "./rentals.messages";
 import type { RentalsRepository } from "./rentals.repository";
 import type { RentalActor, RentalWithDetails } from "./rentals.types";
@@ -46,6 +47,21 @@ export class RentalsService {
     private readonly repository: RentalsRepository,
     private readonly facilityAssignments: FacilityAssignmentsService,
   ) {}
+  createForHandover(
+    tx: TaskTransaction,
+    input: {
+      bookingId: string;
+      userId: string;
+      storageUnitId: string;
+      startAt: Date;
+      endAt: Date;
+    },
+  ) {
+    return this.repository.createForHandover(tx, input);
+  }
+  findHandoverRental(tx: TaskTransaction, bookingId: string) {
+    return this.repository.findRentalByBookingId(tx, bookingId);
+  }
   private async assertFacilityManagerAccess(actor: RentalActor, facilityId: string) {
     if (actor.role !== "FACILITY_MANAGER") throw new ForbiddenError(M.facilityAccessDenied);
     await this.facilityAssignments.requireFacilityAccess(

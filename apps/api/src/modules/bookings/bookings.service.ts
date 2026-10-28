@@ -47,7 +47,11 @@ import { FacilityUnitTypesRepository } from "../unit-types/facility-unit-types.r
 import { FacilityUnitTypesService } from "../unit-types/facility-unit-types.service";
 import { BOOKING_MESSAGES } from "./bookings.messages";
 import { BookingsRepository, bookingLocalDate } from "./bookings.repository";
-import type { BookingMailDependencies, BookingReadRecord } from "./bookings.types";
+import type {
+  BookingMailDependencies,
+  BookingReadRecord,
+  BookingTransaction,
+} from "./bookings.types";
 import { CheckInSlotsRepository } from "./check-in-slots.repository";
 import { CheckInSlotsService } from "./check-in-slots.service";
 
@@ -65,6 +69,10 @@ export class BookingsService {
     private readonly mail?: BookingMailDependencies,
     private readonly notifications?: NotificationsService,
   ) {}
+
+  markCheckedIn(tx: BookingTransaction, bookingId: string, now: Date) {
+    return this.repository.markCheckedIn(tx, bookingId, now);
+  }
 
   async cancelBooking(
     bookingId: string,

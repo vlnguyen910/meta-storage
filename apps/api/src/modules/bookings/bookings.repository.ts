@@ -124,6 +124,13 @@ function toCustomerBooking(row: CustomerBookingQueryRow) {
 export class BookingsRepository {
   constructor(private readonly db: Database) {}
 
+  markCheckedIn(tx: BookingTransaction, bookingId: string, now: Date) {
+    return tx
+      .update(bookings)
+      .set({ status: "CHECKED_IN", updatedAt: now })
+      .where(eq(bookings.id, bookingId));
+  }
+
   findActiveUnitAssignment(tx: BookingTransaction, bookingId: string) {
     return tx
       .select({ physicalUnitId: unitAssignments.physicalUnitId })
