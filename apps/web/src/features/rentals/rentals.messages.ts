@@ -1,7 +1,10 @@
 export const RENTAL_MESSAGES = {
+  unitCode: "Ô kho",
+  facilityAddress: "Địa chỉ cơ sở",
+  support: "Gửi yêu cầu hỗ trợ",
   currentTitle: "Kho đang thuê",
   historyTitle: "Lịch sử thuê kho",
-  description: "Xem thông tin kho, thời hạn thuê và các yêu cầu trả kho của bạn.",
+  description: "Xem thông tin kho và thời hạn thuê của bạn.",
   viewLabel: "Chọn danh sách kho",
   currentTab: "Đang thuê",
   historyTab: "Lịch sử",

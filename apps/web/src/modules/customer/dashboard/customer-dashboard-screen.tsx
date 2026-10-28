@@ -365,10 +365,10 @@ export function CustomerDashboardScreen() {
                   {pagedRentals.map((r) => (
                     <tr key={r.id}>
                       <td>
-                        {r.physicalUnit?.code ? (
+                        {r.storageUnit?.code ? (
                           <span className="font-mono text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
                             {D.unitPrefix}
-                            {r.physicalUnit.code}
+                            {r.storageUnit.code}
                           </span>
                         ) : (
                           <span className="font-mono text-xs font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
@@ -388,7 +388,7 @@ export function CustomerDashboardScreen() {
                       </td>
                       <td>
                         <span className="text-xs font-medium text-slate-700">
-                          {formatDate(r.expectedEndAt)}
+                          {formatDate(r.endAt)}
                         </span>
                       </td>
                       <td>

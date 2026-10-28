@@ -12,6 +12,4 @@ export const customerRoutes = {
   notifications: "/customer/notifications",
   paymentResult: "/customer/payments/result",
   rental: (rentalId: string) => `/customer/storage/${rentalId}`,
-  newReturn: (rentalId: string) => `/customer/storage/${rentalId}/return`,
-  returnRequest: (requestId: string) => `/customer/returns/${requestId}`,
 } as const;

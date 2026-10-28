@@ -1,3 +1,5 @@
+> **Cập nhật 2026-10-28:** Tài liệu này mô tả phiên bản trước đợt tinh gọn rental. Các phần gia hạn, khoản thu rental và khung giá đã được gỡ. Xem [trạng thái hiện tại](./rental-reset.md) trước khi sử dụng endpoint trong tài liệu.
+
 # Flow 4 — global pricing and deposit policy API
 
 Implemented scope: global unit-type monthly prices and one shared deposit-month

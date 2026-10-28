@@ -1,11 +1,8 @@
 import {
-  CreateRentalPriceRangeSchema,
   PRICING_MESSAGES,
   PricingQuerySchema,
   PricingUnitTypeParamsSchema,
-  RentalPriceRangeParamsSchema,
   UpdateDepositPolicySchema,
-  UpdateRentalPriceRangeSchema,
   UpdateUnitTypePriceSchema,
 } from "@metastorage/contracts";
 import type { FastifyPluginAsync } from "fastify";
@@ -23,47 +20,6 @@ export const pricingRoutes: FastifyPluginAsync = async (fastify) => {
   const service = new PricingService(new PricingRepository(fastify.db));
   const catalog = new UnitTypesService(new UnitTypesRepository(fastify.db));
   const preHandler = [requireRole("BUSINESS_OPERATION_MANAGER")];
-  app.get(
-    "/rental-price-ranges",
-    {
-      preHandler: [requireRole("BUSINESS_OPERATION_MANAGER", "FACILITY_MANAGER")],
-      schema: { querystring: PricingQuerySchema, tags: ["Pricing"] },
-    },
-    async (request, reply) => {
-      reply.header("Cache-Control", "private, no-store");
-      return successResponse(await service.ranges(request.query));
-    },
-  );
-  app.post(
-    "/rental-price-ranges",
-    {
-      preHandler,
-      schema: { body: CreateRentalPriceRangeSchema, tags: ["Pricing"] },
-    },
-    async (request, reply) => {
-      if (!request.user) throw new UnauthorizedError();
-      return reply
-        .status(201)
-        .send(successResponse(await service.createRange(request.body, request.user.id)));
-    },
-  );
-  app.patch(
-    "/rental-price-ranges/:priceRangeId",
-    {
-      preHandler,
-      schema: {
-        params: RentalPriceRangeParamsSchema,
-        body: UpdateRentalPriceRangeSchema,
-        tags: ["Pricing"],
-      },
-    },
-    async (request) => {
-      if (!request.user) throw new UnauthorizedError();
-      return successResponse(
-        await service.updateRange(request.params.priceRangeId, request.body, request.user.id),
-      );
-    },
-  );
   app.get(
     "/pricing",
     { preHandler, schema: { querystring: PricingQuerySchema, tags: ["Pricing"] } },

@@ -1,9 +1,6 @@
 import type {
   ApiEnvelope,
-  FacilityRentalDetail,
   FacilitySupportQuery,
-  FacilityWorkspaceQuery,
-  FacilityWorkspaceRentalPage,
   SupportOperation,
   SupportOperationsDetail,
   SupportOperationsPage,
@@ -14,20 +11,6 @@ const unwrap = <T>(response: { data: ApiEnvelope<T> }) => response.data.data;
 export function createFacilityWorkspaceClient(http: AxiosInstance) {
   return {
     facilityWorkspace: {
-      rentals: (params: Partial<FacilityWorkspaceQuery>, signal?: AbortSignal) =>
-        http
-          .get<ApiEnvelope<FacilityWorkspaceRentalPage>>("/facility-workspace/rentals", {
-            params,
-            signal,
-          })
-          .then(unwrap),
-      rental: (id: string, signal?: AbortSignal) =>
-        http
-          .get<ApiEnvelope<FacilityRentalDetail>>(
-            `/facility-workspace/rentals/${encodeURIComponent(id)}`,
-            { signal },
-          )
-          .then(unwrap),
       tickets: (params: Partial<FacilitySupportQuery>, signal?: AbortSignal) =>
         http
           .get<ApiEnvelope<SupportOperationsPage>>("/facility-workspace/support", {

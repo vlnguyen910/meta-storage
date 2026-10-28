@@ -3,7 +3,7 @@ export type CustomerRoute =
   | { screen: "checkout"; facilityId: string; unitTypeId: string }
   | { screen: "booking" | "rental" | "ticket"; id: string }
   | { screen: "support-new"; bookingId?: string; paymentId?: string }
-  | { screen: "payment"; id: string; bookingId?: string; chargeId?: string };
+  | { screen: "payment"; id: string; bookingId?: string };
 export type CustomerNavigation = (route: CustomerRoute) => void;
 export type CheckoutSession = {
   checkoutUrl: string;

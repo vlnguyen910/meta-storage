@@ -1,14 +1,12 @@
 "use client";
 
 import {
-  AlertCircle,
   Archive,
   CalendarCheck2,
   CalendarDays,
   Check,
   CheckCircle2,
   ChevronRight,
-  Clock,
   Plus,
   QrCode,
   RotateCcw,
@@ -72,7 +70,7 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
     return allRentals.filter(
       (r) =>
         r.bookingCode.toLowerCase().includes(query) ||
-        r.physicalUnit?.code?.toLowerCase().includes(query) ||
+        r.storageUnit?.code?.toLowerCase().includes(query) ||
         r.unitType.name.toLowerCase().includes(query) ||
         r.facility.name.toLowerCase().includes(query) ||
         r.facility.address.toLowerCase().includes(query),
@@ -304,10 +302,10 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
                           <span className="font-mono text-xs font-bold text-slate-800">
                             {r.bookingCode}
                           </span>
-                          {r.physicalUnit?.code && (
+                          {r.storageUnit?.code && (
                             <span className="font-mono text-[11px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.2 rounded w-fit border border-emerald-200">
                               {M.unitPrefix}
-                              {r.physicalUnit.code}
+                              {r.storageUnit.code}
                             </span>
                           )}
                         </div>
@@ -324,7 +322,7 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
                       </td>
                       <td>
                         <span className="text-xs text-slate-700 font-medium">
-                          {formatDate(r.startAt)} – {formatDate(r.expectedEndAt)}
+                          {formatDate(r.startAt)} – {formatDate(r.endAt)}
                         </span>
                       </td>
                       <td>
@@ -336,10 +334,6 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
                         >
                           {r.status === "ACTIVE" ? (
                             <CheckCircle2 className="size-3" />
-                          ) : r.status === "RETURN_PENDING" ? (
-                            <Clock className="size-3" />
-                          ) : r.status === "OVERDUE" ? (
-                            <AlertCircle className="size-3" />
                           ) : (
                             <Check className="size-3" />
                           )}
@@ -348,22 +342,6 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
                       </td>
                       <td>
                         <div className="flex items-center gap-1.5">
-                          {r.status === "ACTIVE" && (
-                            <Link
-                              href={customerRoutes.newReturn(r.id)}
-                              className="inline-flex items-center px-2 py-1 text-xs font-semibold text-slate-700 hover:text-slate-900 border border-slate-200 rounded hover:bg-slate-50 transition-colors"
-                            >
-                              {M.returnAction}
-                            </Link>
-                          )}
-                          {r.status === "RETURN_PENDING" && (
-                            <Link
-                              href={customerRoutes.rental(r.id)}
-                              className="inline-flex items-center px-2 py-1 text-xs font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded transition-colors"
-                            >
-                              {M.viewReturnAction}
-                            </Link>
-                          )}
                           <Link
                             href={customerRoutes.rental(r.id)}
                             className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary-soft rounded transition-colors"

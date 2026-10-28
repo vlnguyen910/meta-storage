@@ -20,23 +20,12 @@ import { Card, StatusBadge } from "@/components/ui/display";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import { bookingLookupMessages } from "./booking-lookup.messages";
 import { BookingLookupForm } from "./booking-lookup-form";
-import { GuestRentalRecords } from "./guest-rental-records";
 import { trackingMessages as m } from "./tracking.messages";
 import { useBookingTracking } from "./use-booking-tracking";
 
 export function BookingTrackingScreen() {
-  const {
-    booking,
-    loading,
-    lookup,
-    message,
-    revoke,
-    revoking,
-    revokeError,
-    retry,
-    expire,
-    startLookup,
-  } = useBookingTracking();
+  const { booking, loading, lookup, message, revoke, revoking, revokeError, retry, startLookup } =
+    useBookingTracking();
 
   if (lookup && !loading) {
     return (
@@ -167,7 +156,6 @@ export function BookingTrackingScreen() {
               </Card>
 
               {/* Storage Units & Contracts */}
-              <GuestRentalRecords code={booking.bookingCode} onExpired={expire} />
             </div>
 
             {/* RIGHT COLUMN: Payment, Contact & Session Actions */}

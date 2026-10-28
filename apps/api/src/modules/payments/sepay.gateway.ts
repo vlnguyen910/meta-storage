@@ -153,9 +153,8 @@ export class SepayPaymentGateway {
     if (!this.pgClient) return null;
     const checkoutUrl = this.pgClient.checkout.initCheckoutUrl();
     const webUrl = this.config.webUrl || "http://localhost:3000";
-    const isCharge = Boolean(input.rentalChargeId);
-    const resultUrl = `${webUrl}/${isCharge ? "rental-charges" : "bookings"}/payment-result`;
-    const reference = `paymentId=${input.paymentId}&${isCharge ? "chargeId" : "bookingId"}=${input.rentalChargeId ?? input.bookingId}`;
+    const resultUrl = `${webUrl}/bookings/payment-result`;
+    const reference = `paymentId=${input.paymentId}&bookingId=${input.bookingId}`;
     const successUrl = `${resultUrl}?status=success&${reference}`;
     const errorUrl = `${resultUrl}?status=error&${reference}`;
     const cancelUrl = `${resultUrl}?status=cancel&${reference}`;

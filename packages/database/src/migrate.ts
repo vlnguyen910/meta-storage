@@ -4,6 +4,13 @@ import { type MigrationMeta, readMigrationFiles } from "drizzle-orm/migrator";
 import { bigint, pgSchema, serial, text } from "drizzle-orm/pg-core";
 import { type Database, db, queryClient } from "./client";
 
+import {
+  finishRentalReset,
+  prepareRentalReset,
+  RENTAL_RESET_TIMESTAMP,
+  rentalResetStatements,
+} from "./rental-reset-migration";
+
 const journal = pgSchema("drizzle").table("__drizzle_migrations", {
   id: serial().primaryKey(),
   hash: text().notNull(),
@@ -29,7 +36,11 @@ export async function applyMigrations(database: Database, migrations: MigrationM
     for (const migration of migrations) {
       if (appliedHashes.has(migration.hash) || latestTimestamp >= migration.folderMillis) continue;
 
-      for (const statement of migration.sql) await tx.execute(sql.raw(statement));
+      const isRentalReset = migration.folderMillis === RENTAL_RESET_TIMESTAMP;
+      if (isRentalReset) await prepareRentalReset(tx);
+      const statements = isRentalReset ? rentalResetStatements(migration.sql) : migration.sql;
+      for (const statement of statements) await tx.execute(sql.raw(statement));
+      if (isRentalReset) await finishRentalReset(tx);
       await tx.insert(journal).values({ hash: migration.hash, createdAt: migration.folderMillis });
       appliedHashes.add(migration.hash);
       latestTimestamp = migration.folderMillis;

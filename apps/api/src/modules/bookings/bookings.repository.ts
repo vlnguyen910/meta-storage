@@ -44,6 +44,7 @@ import {
   notificationOutbox,
   or,
   payments,
+  RentalStatus,
   rentals,
   sql,
   storageUnits,
@@ -737,12 +738,12 @@ export class BookingsRepository {
         ),
       );
     const active = await this.db
-      .select({ physicalUnitId: rentals.physicalUnitId })
+      .select({ physicalUnitId: rentals.storageUnitId })
       .from(rentals)
       .where(
         and(
-          inArray(rentals.physicalUnitId, unitIds),
-          inArray(rentals.status, ["ACTIVE", "RETURN_PENDING", "OVERDUE"]),
+          inArray(rentals.storageUnitId, unitIds),
+          inArray(rentals.status, [RentalStatus.ACTIVE]),
         ),
       );
     return allUnits.map((unit) => ({
@@ -826,10 +827,7 @@ export class BookingsRepository {
         .select({ id: rentals.id })
         .from(rentals)
         .where(
-          and(
-            eq(rentals.physicalUnitId, unit.id),
-            inArray(rentals.status, ["ACTIVE", "RETURN_PENDING", "OVERDUE"]),
-          ),
+          and(eq(rentals.storageUnitId, unit.id), inArray(rentals.status, [RentalStatus.ACTIVE])),
         )
         .for("update");
 
@@ -1194,12 +1192,7 @@ async function releaseReservedUnit(tx: BookingTransaction, unitId: string, now: 
   const [rental] = await tx
     .select({ id: rentals.id })
     .from(rentals)
-    .where(
-      and(
-        eq(rentals.physicalUnitId, unitId),
-        inArray(rentals.status, ["ACTIVE", "RETURN_PENDING", "OVERDUE"]),
-      ),
-    )
+    .where(and(eq(rentals.storageUnitId, unitId), inArray(rentals.status, [RentalStatus.ACTIVE])))
     .limit(1);
   if (!assignment && !rental)
     await tx

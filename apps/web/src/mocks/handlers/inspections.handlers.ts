@@ -184,6 +184,7 @@ export function registerInspectionHandlers(mock: MockAdapter): void {
       inspection.completedByName = user.name;
     }
     if (action === "handover") {
+      if (!booking.userId) return [409, errorBody(409, M.invalid)];
       const unit = db.units.find((u) => u.id === inspection.physicalUnitId);
       if (inspection.status !== "COMPLETED" || unit?.status !== "RESERVED")
         return [409, errorBody(409, M.notReady)];
@@ -198,7 +199,7 @@ export function registerInspectionHandlers(mock: MockAdapter): void {
       // lookupResult returns the persisted verification object, so this transition is saved together.
       const facility = db.facilities.find((f) => f.id === booking.facilityId);
       db.rentals.push({
-        userId: booking.userId ?? null,
+        userId: booking.userId,
         id: crypto.randomUUID(),
         bookingId: booking.id,
         bookingCode: booking.bookingCode,
@@ -212,22 +213,18 @@ export function registerInspectionHandlers(mock: MockAdapter): void {
           name: booking.unitTypeName,
           sizeLabel: booking.unitTypeSizeLabel,
         },
-        physicalUnit: { id: unit.id, code: unit.code },
+        storageUnit: { id: unit.id, code: unit.code },
         startAt: inspection.handedOverAt,
-        expectedEndAt: booking.rentalEndAt,
+        endAt: booking.rentalEndAt,
         status: "ACTIVE",
         bookingStatus: "CHECKED_IN",
         actions: { canCancel: false, canReschedule: false, note: M.locked },
-        actualReturnAt: null,
-        closedAt: null,
-        depositAmount: String(booking.totalAmount / (booking.requestedMonths + 1)),
-        checkInSlotStart: booking.checkInSlotStart,
-        checkInSlotEnd: booking.checkInSlotEnd,
-        timeline: [
-          { label: "Thanh toán mô phỏng", status: "DONE", at: booking.paidAt },
-          { label: "Bàn giao kho", status: "DONE", at: inspection.handedOverAt },
-          { label: "Trả kho", status: "UPCOMING", at: booking.rentalEndAt },
-        ],
+        customer: {
+          userId: booking.userId,
+          name: booking.contactName,
+          email: booking.contactEmail,
+          phone: booking.contactPhone,
+        },
       });
     }
     inspection.version++;

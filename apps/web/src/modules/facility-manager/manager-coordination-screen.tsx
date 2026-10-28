@@ -7,7 +7,6 @@ import { FacilityBookingsView } from "@/features/check-in/facility-bookings-view
 import { FacilitySwitcher } from "@/features/facilities/facility-switcher";
 import { useFacilityContext } from "@/features/facilities/use-facility-context";
 import { TaskPanel } from "@/features/facility-management/task-workspace";
-import { FacilityReturnQueue } from "@/features/returns/facility-return-queue";
 import { FACILITY_DASHBOARD_MESSAGES as D } from "./dashboard/facility-dashboard.messages";
 import { MANAGER_WORKSPACE as M } from "./manager-workspace.messages";
 
@@ -21,7 +20,7 @@ export function ManagerCoordinationScreen() {
 function CoordinationContent() {
   const scope = useFacilityContext();
   const requested = useSearchParams().get("view");
-  const view = requested === "tasks" || requested === "returns" ? requested : "bookings";
+  const view = requested === "tasks" ? requested : "bookings";
   if (scope.isLoading) return <LoadingState variant="table" />;
   if (scope.isError)
     return <ErrorState message={D.errorLoadFacility} onRetry={() => scope.refetch()} />;
@@ -38,14 +37,12 @@ function CoordinationContent() {
       )}
       <header>
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-          {view === "bookings" ? M.booking : view === "returns" ? M.returns : M.tasks}
+          {view === "bookings" ? M.booking : M.tasks}
         </h1>
         <p className="mt-2 text-sm text-slate-600">
           {view === "bookings"
             ? M.bookingHint(scope.currentFacility.facilityName ?? "cơ sở được phân công")
-            : view === "returns"
-              ? M.returnsHint
-              : M.coordinationHint}
+            : M.coordinationHint}
         </p>
       </header>
       <nav
@@ -55,7 +52,6 @@ function CoordinationContent() {
         {[
           { id: "bookings", label: M.booking },
           { id: "tasks", label: M.tasks },
-          { id: "returns", label: M.returns },
         ].map((item) => (
           <Link
             key={item.id}
@@ -72,12 +68,6 @@ function CoordinationContent() {
           facilityId={scope.currentFacilityId}
           facilityName={scope.currentFacility.facilityName}
           headingMode="actions-only"
-        />
-      ) : view === "returns" ? (
-        <FacilityReturnQueue
-          actorRole="FACILITY_MANAGER"
-          facilityId={scope.currentFacilityId}
-          embedded
         />
       ) : (
         <TaskPanel

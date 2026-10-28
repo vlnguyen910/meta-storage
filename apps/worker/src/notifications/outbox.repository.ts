@@ -11,7 +11,6 @@ import {
   lte,
   notificationOutbox,
   or,
-  rentals,
   sql,
   supportTickets,
   users,
@@ -203,22 +202,7 @@ export class OutboxRepository {
       return Boolean(owner && owner.email === row.recipientEmail);
     }
     if (["UPCOMING_EXPIRY", "RENTAL_OVERDUE", "ABANDONED_REVIEW"].includes(row.eventType)) {
-      const [rental] = await this.db
-        .select({
-          version: rentals.version,
-          status: rentals.status,
-          closedAt: rentals.closedAt,
-          expectedEndAt: rentals.expectedEndAt,
-        })
-        .from(rentals)
-        .where(eq(rentals.bookingId, row.bookingId));
-      if (!rental || rental.closedAt || rental.version !== (row.rentalTermVersion ?? 0))
-        return false;
-      if (
-        row.eventType === "UPCOMING_EXPIRY" &&
-        (!["ACTIVE", "RETURN_PENDING"].includes(rental.status) || now >= rental.expectedEndAt)
-      )
-        return false;
+      return false; // Rental lifecycle notifications are retired until the new workflow is implemented.
     }
     if (row.recipientRole === "CUSTOMER") return true; // Booking contact may be a guest; never require an account for email.
     if (row.recipientRole !== "FACILITY_MANAGER" || !row.recipientUserId) return false;

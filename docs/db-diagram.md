@@ -1,5 +1,40 @@
 # metastorage database diagram
 
+## Rental tối giản (2026-10-28)
+
+Schema code: `packages/database/src/schema/rentals.ts`. Bản xem trước đã được
+chuyển thành schema chính. Đã sinh `0008_nostalgic_blacklash.sql` cùng snapshot.
+Migration đã đạt kiểm tra trên DB mới và nâng cấp DB tạm có dữ liệu cũ
+(xem `docs/rental-reset.md`); chưa áp vào DB ứng dụng, DB hiện hữu chưa đổi cấu trúc.
+
+| Field | Kiểu | Quy tắc |
+| --- | --- | --- |
+| id | UUID | PK, tự sinh |
+| bookingId | UUID | FK bookings.id, UNIQUE, NOT NULL, RESTRICT |
+| userId | UUID | FK users.id, NOT NULL, RESTRICT; khách thuê |
+| storageUnitId | UUID | FK storage_units.id, NOT NULL, RESTRICT |
+| status | rental_status | ACTIVE hoặc CLOSED, mặc định ACTIVE |
+| startAt | TIMESTAMPTZ | NOT NULL |
+| endAt | TIMESTAMPTZ | NOT NULL, lớn hơn startAt |
+| createdAt | TIMESTAMPTZ | NOT NULL, mặc định now() |
+| updatedAt | TIMESTAMPTZ | NOT NULL, mặc định now(); cập nhật khi ghi |
+
+Tên camelCase ánh xạ snake_case qua cấu hình Drizzle. Index theo userId và
+(storageUnitId,status,endAt). Không UNIQUE storageUnitId vì kho có thể được thuê
+qua nhiều kỳ khác nhau. userId phải lấy từ chủ booking; service phải kiểm tra ô
+kho thuộc đúng cơ sở/loại kho và không trùng thời gian, không nhận chủ thuê tùy ý.
+
+Các chức năng gia hạn, phụ phí/công nợ, điều chỉnh, hoàn tiền rental, lịch trả kho,
+quyết toán và nhắc hạn/quá hạn đã được gỡ để xây lại từng phần. Sáu bảng phụ cũ
+được bỏ khỏi schema code. Không có bảng thay thế hoặc JSON để giấu cấu trúc cũ.
+Thanh toán booking và hoàn tiền do hủy booking vẫn giữ riêng trong payments.
+Loại kho giữ giá monthlyPrice tại cơ sở, chưa áp dụng khung giá BOM cũ.
+
+API đọc Customer vẫn ở /api/rentals; API FM thống nhất ở
+/api/rentals/facility/:facilityId, kiểm tra phân công cơ sở đang hoạt động.
+DTO trả userId, storageUnit, startAt và endAt; dữ liệu hiển thị cơ sở/loại kho
+được join từ các quan hệ. Bộ API rental trùng trong facility-workspace đã gỡ.
+
 ## System administrator and account lifecycle (#185, approved 2026-10-25)
 
 `users` keeps its existing single role per account. Add partial unique index
@@ -51,67 +86,7 @@ follows #185. Retention/cleanup remain TBD; no automatic cleanup is authorized.
 User profile edits allow only own name/phone; administrators cannot edit another
 user's profile.
 
-## Facility-owned catalog and BOM ranges (approved 2026-10-24)
 
-`rental_price_ranges`: UUID id, unique code, name, nullable integer-VND
-min_monthly_price/max_monthly_price (both null for unconfigured/migrated ranges, or
-0 < min <= max), is_active, nonnegative version, nullable updated_by FK users
-(RESTRICT), created_at/updated_at. BOM alone creates/updates ranges. A range update
-must reject any linked local price outside the proposed bounds; no guessed defaults.
-
-`unit_types` belongs to exactly one facility through required facility_id FK
-(RESTRICT) and one required price_range_id FK (RESTRICT). Code is unique per facility;
-(facility_id,id) is also unique for composite references. Existing name/size_label,
-positive dimensions, generated size_cbm, positive integer monthly_price and is_active remain local.
-Add nonnegative version (default 0) and nullable updated_by FK users (RESTRICT).
-Only the currently assigned active FM writes local types/prices. Dimension edits
-are rejected once any booking references the type; create a
-new type and move eligible free physical units instead. Price changes affect only
-new quotes; booking and renewal snapshots are immutable. There is no unit_type_changes.
-FM price writes and BOM range writes append the existing pricing_changes ledger;
-the shared pricing revision remains serialized by the DEPOSIT_MONTHS settings row.
-
-`facility_unit_types` is retired. storage_units/bookings/capacity_allocations
-reference unit_types through (facility_id,unit_type_id),
-preventing cross-facility types. Catalog, checkout and renewal lock the local type
-in place of the retired offering. Range validation uses range-first/type-second
-locks after the shared pricing revision; new quotes require configured active
-bounds. Captures of existing quotes retain saved prices rather than recalculating.
-
-The pre-production baseline creates facility-owned unit types directly from this
-schema. Pre-baseline development databases are reset; the baseline does not migrate
-their data.
-
-## Rental renewals (#163, approved 2026-10-24)
-
-`rental_renewals` retains immutable quote/acceptance facts: UUID id, rental_id FK,
-nullable customer_id FK (SET NULL on account deletion), rental_version, unique
-nullable charge_id/payment_id FKs, per-rental idempotency_key, status
-(QUOTED/AWAITING_PAYMENT/APPLIED/EXPIRED/REFUND_REQUIRED), months 1..12,
-old_end_at/new_end_at, positive integer-VND monthly_rate/amount, VND currency,
-timezone/cutoff_at/expires_at, terms_version/terms, accepted_at/applied_at,
-failure_reason and created_at. Amount equals months × snapshotted rate; each month
-adds exactly 720 hours; expiry is at most 15 minutes after creation and no later
-than the saved local cutoff. Acceptance creates one OPEN RENEWAL/RENEWAL_RENT
-charge. Applied terms require an identified payment and application timestamp.
-Partial unique (rental_id,rental_version) for APPLIED prevents duplicate extension.
-
-`rentals.version` is nonnegative, starts at zero and increases once per applied
-renewal. `expected_end_at` remains the current term; original booking end/pricing
-is unchanged. `notification_outbox.rental_term_version` is nullable
-for legacy events; expiry/overdue/review events identify the current term, and the
-worker suppresses a queued event for an older version (legacy means version zero).
-Facility → booking → rental locks serialize renewal with return/lifecycle;
-the existing facility/type offering lock serializes capacity with checkout.
-Quotes hold no capacity. Expired/conflicting captures create source-linked refunds
-instead of extending or moving the physical unit. Unpaid RETURN_DEBT anywhere on
-the customer's rentals blocks renewal; EXTRA is a separate obligation.
-No unused rent refund for early return, including initial and renewal terms.
-Historical refunds/snapshots remain recorded; captured but unapplied renewal money
-uses the controlled charge-refund workflow.
-OVERDUE begins at the saved expiry instant for an unreturned rental. Return-fee
-assessment still compares local calendar dates; abandoned review keeps the existing
-seven-full-local-day boundary starting at midnight on the following date.
 
 ## Facility work tasks
 
@@ -138,86 +113,101 @@ Facility staff membership cannot be revoked while an assigned task is
 `ASSIGNED` or `IN_PROGRESS`; booking and return workflows retain their own
 assignment constraints.
 
-## Return workflow consolidation
 
-The return-specific tables and return audit table are removed. `rentals` is the
-aggregate for one return lifecycle per rental. It stores the optional return slot,
-local date, UTC start/end, timezone, return status as a PostgreSQL enum, reason and
-manual-review flag. Its
-partial unique facility/date/slot index preserves capacity one for CONFIRMED,
-INSPECTING and FAILED returns. Staff assignment stays on the facility task.
+## Existing constraints and behavior
 
-The latest approved settlement snapshot is stored as JSONB on `rentals`, alongside
-its approving user, time and reason. This keeps the current financial result but no
-longer keeps earlier settlement revisions. Schedule edits update the rental directly;
-there is no separate request/approval history for time changes. The return checklist
-snapshot and results live in the CHECK_OUT row in `inspections.checklist`.
+- Booking confirmation emails have an intent/snapshot in the existing durable outbox,
+  inserted in the payment transaction. The worker prepares an authenticated account
+  booking URL and encrypted payload, then bridges to the existing BullMQ job/delivery ID.
+  Legacy jobs remain readable; ENQUEUED differs from provider-confirmed SENT.
 
-`payments.type`, `payments.status` and `payments.refund_reason` use PostgreSQL enums.
-Type distinguishes COLLECTION from RETURN_REFUND. A return-refund row
-links to the rental and original payment, stores amount/allocation, idempotency
-key, transfer reference and confirmer/time in payment columns. Evidence
-is stored in `media_assets`. Rental-charge adjustments/refunds no longer reference a
-settlement row; their rental context is derived through the charge.
+- UUID primary keys on `users`, `facilities`, `facility_assignments`,
+  `facility_tasks`,
+  `unit_types`, `storage_units`, `check_in_slots`,
+  and `capacity_allocations` default to generated random UUIDs. Auth tables
+  `accounts`, `sessions` and `verifications` use text primary keys.
+- `users.email`, `users.phone`, `facilities.code`, `storage_units.code` and
+  `sessions.token` are unique. `users.phone` is nullable. Booking contact email is not unique.
+- Varchar limits are `users.email` 255, `users.phone` 20, Booking contact phone 32,
+  `facilities.code` 50 and `facilities.name` 150;
+  `unit_types.code` 80, `unit_types.name` 100, `unit_types.size_label` 50;
+  `storage_units.code` 80.
+- Nullable columns are `users.image`, `users.phone`,
+  `users.role`, `users.status`, `facilities.description`,
+  `facility_assignments.ended_at`, `storage_units.floor`,
+  `storage_units.location_description`,
+  `facility_tasks.started_at`, `facility_tasks.completed_at`,
+  payment provider checkout fields, `paid_at`, `expires_at`, and booking refund metadata;
+  All nine rental columns are NOT NULL;
+  `sessions.ip_address`,
+  `sessions.user_agent`, and the optional token, expiry, scope and password
+  fields in `accounts`. Other nullability follows the Drizzle schema.
+- User role/status values are defined once in `packages/contracts/src/users.ts` and
+  reused by Drizzle and API contracts. Changing those values still requires a database migration.
+- Enum values are `role`: `CUSTOMER`, `FACILITY_STAFF`, `FACILITY_MANAGER`,
+  `BUSINESS_OPERATION_MANAGER`, `SYSTEM_ADMIN`; `status`: `ACTIVE`, `INACTIVE`;
+  `storage_unit_status`: `AVAILABLE`, `RESERVED`, `OCCUPIED`, `MAINTENANCE`,
+  `INSPECTION`, `RETURN_PENDING`, `LOCKED`, `INACTIVE`;
+  `facility_task_type`: `CHECK_IN_HANDOVER`, `UNIT_INSPECTION`, `HANDLE_SUPPORT`;
+  `facility_task_status`: `ASSIGNED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`;
+  `facility_task_reference_type`: `BOOKING`, `STORAGE_UNIT`, `SUPPORT_TICKET`;
+  `capacity_allocation_kind`: `HOLD`, `BOOKING`; and
+  `capacity_allocation_status`: `ACTIVE`, `RELEASED`, `EXPIRED`;
+  `inspection_type`: `CHECK_IN`, `CHECK_OUT`, `MAINTENANCE`;
+  `inspection_status`: `PENDING`, `IN_PROGRESS`, `PASSED`, `FAILED`;
+  `inspection_condition`: `GOOD`, `MINOR_DAMAGE`, `MAJOR_DAMAGE`;
+  `cloudinary_resource_type`: `image`, `video`, `raw`;
+  `payment_status`: `PENDING`, `SUCCEEDED`, `FAILED`, `REFUND_PENDING`, `REFUNDED`;
+  `payment_refund_reason_code`: `NO_CAPACITY`, `CHECK_IN_CLOSED`,
+  `OFFERING_UNAVAILABLE`, `CUSTOMER_CANCELLATION`, `NO_SHOW`;
+  `rental_status`: `ACTIVE`, `CLOSED`.
+- Composite unique `accounts(provider_id, account_id)` ensures one owner per provider
+  identity, including concurrent OAuth linking. Existing duplicates must be resolved
+  explicitly before applying this constraint; never merge users automatically.
+- Composite unique indexes exist on `facility_assignments(user_id, facility_id)`.
+- Each User may work at at most one Facility at a time. A partial unique index
+  `facility_assignments_active_user_idx` on `user_id WHERE is_active = true`
+  enforces this rule, including concurrent assignments. Inactive assignments are
+  retained. End or revoke the current assignment before assigning another Facility;
+  elapsed `ended_at` rows must be deactivated before reassigning. The API does not
+  automatically revoke a still-effective assignment to another Facility.
+- Login through the shared API client and `GET /api/auth/me` include
+  `user.assignedFacilityId`: the current assignment's Facility ID or `null`.
+  Only assignments matching the User's Facility Staff/Manager role, with
+  `is_active = true` and no elapsed `ended_at`, qualify. This field is derived,
+  not a new column on User or Session, and does not replace backend scope checks.
+- Before applying the single-Facility index migration, check for Users with
+  multiple `is_active = true` assignments. Resolve them explicitly before
+  migrating; the migration must not choose a Facility or discard history.
+- `unit_types.code` is unique within a facility; `(facility_id,id)` is unique.
+- `storage_units`, `bookings` and `capacity_allocations`
+  each use a composite foreign key `(facility_id,unit_type_id)` to
+  `unit_types(facility_id,id)` with ON DELETE RESTRICT. Range and facility ownership
+  references also use RESTRICT. `capacity_allocations.reference_id` remains a UUID
+  reference value without a database foreign key.
+- User foreign keys use `ON DELETE CASCADE` for `accounts`, `sessions` and
+  `facility_assignments`, and `ON DELETE RESTRICT` for `bookings.user_id`.
+  Facility task references use `ON DELETE RESTRICT` to preserve assigned work.
+  Facility foreign keys use `ON DELETE CASCADE` for
+  `storage_units` and `facility_assignments`, and
+  `ON DELETE RESTRICT` for capacity allocations.
+- `created_at` and `updated_at` columns default to `now()` wherever shown;
+  `assigned_at` also defaults to `now()`. `facilities.is_active`,
+  `unit_types.is_active` and
+  `facility_assignments.is_active` default to true.
+  `storage_units.status` defaults to `AVAILABLE`,
+  `capacity_allocations.status` to `ACTIVE`. The default operating timezone is
+  `Asia/Ho_Chi_Minh`. Operating hours are now global system settings, not a table.
 
-`system_settings` keys OPENING_HOUR/CLOSING_HOUR remain the shared operating window;
-holiday calendars are out of scope. OVERDUE_FEE_RATE remains an integer rate 0–100
-(seed 25), BOM-managed and audited. Missing policy blocks financial assessment.
+Unit types belong to a facility and own their dimensions and monthly price within a
+BOM-managed rental price range. Exact length, width and height are positive meters;
+`size_cbm` is generated as their product, and floor area is calculated when reading.
+Physical units inherit the dimensions of their local type. Availability and capacity
+are scoped to `(facility_id,unit_type_id)`. Public catalog requires an active facility,
+active type and active configured range containing its price.
+Customers select a type; operations assign the physical unit later.
 
-Flow 4 pricing: `system_settings` key DEPOSIT_MONTHS stores positive integer value
-and shared positive pricing version, nullable updated_by FK users and updated_at. The one-month starting policy is explicitly seeded, never a runtime
-fallback. Missing policy prevents new quotes. `unit_types.monthly_price` remains
-the current local price per facility-owned type. Updating a price, range or deposit locks
-the settings row first, validates the relevant expectedVersion, increments the shared version
-and appends `pricing_changes` in the same transaction. Existing booking monetary
-snapshots are never recalculated. Drafts created before a change keep their
-snapshot, including when they start payment after the change.
-
-`pricing_changes`: UUID `id`, unique positive integer `version`, enum `operation`
-(`DEPOSIT_POLICY`, `UNIT_TYPE_PRICE`, `RENTAL_PRICE_RANGE`), required JSONB `before`/`after` storing the
-specific changed values, required `changed_by` FK users (RESTRICT), and timestamp
-`changed_at`. No API modifies or deletes audit records. Settings are not exposed
-to public/FS/FM/SA callers; configuration endpoints require BOM.
-
-The existing-model sections record tables and columns declared in
-`packages/database/src/schema`; separately labeled approved-design sections describe
-future implementation, including Customer Support (#164). Flow 2 activates rentals at Staff handover; customer access requires an account;
-Booking and Payment are introduced by issue #18.
-
-Issue #24's handover inspection data now resides in the shared `inspections` table,
-with evidence metadata in `media_assets`:
-
-- Inspection type, status and condition use PostgreSQL enums declared with Drizzle
-  `pgEnum`; exported constants and TypeScript types remain available to application code.
-  Structural workflow checks remain database constraints.
-- `media_assets.cloudinary_resource_type` also uses a PostgreSQL enum with uppercase
-  values `IMAGE`, `VIDEO`, and `RAW`. Its generic `owner_type` and `purpose` remain
-  varchar so additional modules can use shared media.
-
-- CHECK_IN inspections link to the booking and physical unit. The exact verification
-  and assignment linkage is validated by application logic, not stored as inspection FKs.
-- New CHECK_IN inspections use checklist version `H6_4PASS_V1`: PENDING/IN_PROGRESS
-  accepts incomplete results; PASSED requires PASS for ASSIGNED_UNIT, DOOR_LOCK,
-  UNIT_CONDITION and EXISTING_INVENTORY. Notes/photos/signature are optional. Results
-  and the immutable definition snapshot are stored in checklist JSONB. No inferred PASS
-  or backfill. Saving explicit results on an old draft adopts the new policy; completed history stays unchanged.
-- FM assignment atomically sets a free physical unit RESERVED. Other bookings cannot reserve
-  that unit, even for non-overlapping dates. Reassign/cancel/no-show release RESERVED units only
-  if no other live assignment or ACTIVE rental remains. Handover changes RESERVED to OCCUPIED.
-- PASSED records inspect_done_at and freezes the baseline; it does not create a Rental,
-  consume verification, mark CHECKED_IN or change the unit's occupancy (#25).
-- Booking/inspection row locks reject conflicting writes. Only current
-  verified assignments can be edited. Completed and superseded records remain readable by facility scope.
-- Photos are private authenticated evidence, bounded to 8 JPEG/PNG/WebP files, 3 MiB each.
-  Evidence is stored as authenticated Cloudinary assets, referenced by required public ID and
-  format. PostgreSQL stores metadata only. Photo GET uses private/no-store caching.
-- FM prepares unit/staff assignment and monitors records; only the assigned Facility Staff
-  can verify, edit inspection evidence, complete inspection and confirm handover.
-- A separate handover transaction creates exactly one ACTIVE rental
-  per booking, marks booking CHECKED_IN, unit OCCUPIED (business In Use), and consumes verification.
-  Rental dates use the registered booking period. No PIN/NFC or access-control requirement.
-- Signature is optional and not a completion requirement. No automatic AI comparison or
-  checkout/deposit charging is implemented by this issue.
+## Sơ đồ quan hệ hiện tại trong code
 
 ```mermaid
 erDiagram
@@ -308,7 +298,6 @@ erDiagram
   users ||--o{ facility_assignments : receives
   facilities ||--o{ facility_assignments : has
   facilities ||--o{ unit_types : owns
-  rental_price_ranges ||--o{ unit_types : constrains
   unit_types ||--o{ storage_units : materializes
   unit_types ||--o{ capacity_allocations : allocates
   unit_types ||--o{ bookings : books
@@ -319,25 +308,10 @@ erDiagram
   users o|--o{ bookings : saves_history
   users o|--o{ bookings : assigned_to
   bookings ||--o| rentals : becomes
-  facilities ||--o{ rentals : hosts
+  users ||--o{ rentals : rents
   storage_units ||--o{ rentals : occupies
-  check_in_slots o|--o{ rentals : return_appointment
-  users o|--o{ rentals : approves_return_settlement
-  rentals ||--o{ rental_charges : owes
-  rentals ||--o{ rental_renewals : renews
-  rental_renewals o|--o| rental_charges : collects_rent
-  payments o|--o| rental_renewals : applies
-  users ||--o{ rental_charges : submits
-  users o|--o{ rental_charges : approves
-  rental_charges ||--o{ payments : attempts
   bookings ||--o{ payments : records
-  rentals ||--o{ payments : return_refunds
-  payments ||--o{ payments : refund_source
   users o|--o{ payments : confirms_manual_refund
-  rental_charges ||--o{ rental_charge_adjustments : adjusts
-  rental_charges ||--o{ rental_charge_events : audits
-  rental_charges ||--o{ rental_charge_refunds : refunds
-  payments ||--o{ rental_charge_refunds : refunds
   bookings ||--o{ checkin_verifications : verifies
   bookings o|--o{ inspections : checkin_context
   rentals o|--o{ inspections : checkout_context
@@ -426,23 +400,10 @@ erDiagram
     timestamptz updated_at
   }
 
-  rental_price_ranges {
-    uuid id PK
-    varchar code UK
-    varchar name
-    integer min_monthly_price "nullable paired bounds"
-    integer max_monthly_price "nullable paired bounds"
-    boolean is_active
-    integer version
-    uuid updated_by FK "nullable"
-    timestamptz created_at
-    timestamptz updated_at
-  }
 
   unit_types {
     uuid id PK
     uuid facility_id FK
-    uuid price_range_id FK
     varchar code "unique within facility"
     varchar name
     varchar size_label
@@ -508,117 +469,24 @@ erDiagram
   rentals {
     uuid id PK
     uuid booking_id FK,UK
-    uuid facility_id FK
-    uuid physical_unit_id FK
+    uuid user_id FK
+    uuid storage_unit_id FK
     rental_status status
     timestamptz start_at
-    timestamptz expected_end_at
-    integer version "nonnegative current term"
-    timestamptz actual_return_at "nullable"
-    timestamptz closed_at "nullable"
-    uuid return_slot_id FK "nullable"
-    date return_date "nullable"
-    timestamptz return_starts_at "nullable"
-    timestamptz return_ends_at "nullable"
-    text return_timezone "nullable"
-    rental_return_status return_status "nullable"
-    text return_reason "nullable"
-    boolean return_manual_review_required
-    jsonb return_settlement "nullable latest snapshot"
-    uuid return_settlement_approved_by FK "nullable"
-    timestamptz return_settlement_approved_at "nullable"
-    text return_settlement_reason "nullable"
-    numeric deposit_amount
+    timestamptz end_at
     timestamptz created_at
     timestamptz updated_at
   }
 
-  rental_charges {
-    uuid id PK
-    uuid rental_id FK
-    rental_charge_source source
-    rental_charge_category category
-    numeric amount "integer VND"
-    varchar currency "VND"
-    text evidence
-    date due_date "nullable for return debt; extra charges require a due date"
-    rental_charge_status status
-    uuid created_by FK
-    uuid approved_by FK "nullable"
-    text decision_reason "nullable"
-    timestamptz disputed_at "nullable"
-    timestamptz created_at
-    timestamptz updated_at
-  }
 
-  rental_renewals {
-    uuid id PK
-    uuid rental_id FK
-    uuid customer_id FK "nullable on account deletion"
-    integer rental_version
-    uuid charge_id FK,UK "nullable until acceptance"
-    uuid payment_id FK,UK "nullable until capture"
-    varchar idempotency_key "unique per rental"
-    renewal_status status
-    integer months "1..12, 30 days each"
-    timestamptz old_end_at
-    timestamptz new_end_at
-    numeric monthly_rate "integer VND"
-    numeric amount "rate * months"
-    varchar currency "VND"
-    text timezone
-    timestamptz cutoff_at
-    timestamptz expires_at
-    varchar terms_version
-    text terms
-    timestamptz accepted_at "nullable"
-    timestamptz applied_at "nullable"
-    text failure_reason "nullable"
-    timestamptz created_at
-  }
 
-  rental_charge_adjustments {
-    uuid id PK
-    uuid charge_id FK
-    rental_charge_adjustment_direction direction
-    numeric amount "positive integer VND"
-    text reason
-    uuid created_by FK
-    timestamptz created_at
-  }
 
-  rental_charge_events {
-    uuid id PK
-    uuid charge_id FK
-    rental_charge_event_type type
-    uuid actor_id FK "nullable for provider/system events"
-    text reason "nullable"
-    jsonb details
-    timestamptz created_at
-  }
 
-  rental_charge_refunds {
-    uuid id PK
-    uuid charge_id FK
-    uuid payment_id FK
-    numeric amount "positive integer VND"
-    text reason
-    rental_charge_refund_status status
-    text reference "nullable until confirmed"
-    uuid confirmed_by FK "nullable"
-    timestamptz confirmed_at "nullable"
-    timestamptz created_at
-  }
 
   payments {
     uuid id PK
-    payment_type type
     uuid booking_id FK "nullable for rental-charge payments"
-    uuid rental_charge_id FK "nullable; source-specific charge attempt"
     uuid rental_id FK "nullable return refund"
-    uuid source_payment_id FK "nullable original payment for return refund"
-    numeric deposit_refund_amount "nullable"
-    numeric rent_refund_amount "nullable"
     varchar provider "nullable for manual refund"
     varchar provider_payment_id "nullable"
     varchar payment_code UK "nullable"
@@ -680,105 +548,6 @@ erDiagram
     timestamptz updated_at
   }
 ```
-
-## Existing constraints and behavior
-
-- Booking confirmation emails have an intent/snapshot in the existing durable outbox,
-  inserted in the payment transaction. The worker prepares an authenticated account
-  booking URL and encrypted payload, then bridges to the existing BullMQ job/delivery ID.
-  Legacy jobs remain readable; ENQUEUED differs from provider-confirmed SENT.
-
-- UUID primary keys on `users`, `facilities`, `facility_assignments`,
-  `facility_tasks`,
-  `unit_types`, `storage_units`, `check_in_slots`,
-  and `capacity_allocations` default to generated random UUIDs. Auth tables
-  `accounts`, `sessions` and `verifications` use text primary keys.
-- `users.email`, `users.phone`, `facilities.code`, `storage_units.code` and
-  `sessions.token` are unique. `users.phone` is nullable. Booking contact email is not unique.
-- Varchar limits are `users.email` 255, `users.phone` 20, Booking contact phone 32,
-  `facilities.code` 50 and `facilities.name` 150;
-  `unit_types.code` 80, `unit_types.name` 100, `unit_types.size_label` 50;
-  `storage_units.code` 80.
-- Nullable columns are `users.image`, `users.phone`,
-  `users.role`, `users.status`, `facilities.description`,
-  `facility_assignments.ended_at`, `storage_units.floor`,
-  `storage_units.location_description`,
-  `facility_tasks.started_at`, `facility_tasks.completed_at`,
-  `rentals.actual_return_at`, `rentals.closed_at` and the optional return schedule,
-  settlement snapshot and settlement approval fields; `payments.booking_id`,
-  `rental_charge_id`, `rental_id`, `source_payment_id`, refund allocations,
-  provider checkout fields, `hold_token_hash`, `paid_at`, `expires_at`, and refund
-  metadata;
-  `sessions.ip_address`,
-  `sessions.user_agent`, and the optional token, expiry, scope and password
-  fields in `accounts`. Other nullability follows the Drizzle schema.
-- User role/status values are defined once in `packages/contracts/src/users.ts` and
-  reused by Drizzle and API contracts. Changing those values still requires a database migration.
-- Enum values are `role`: `CUSTOMER`, `FACILITY_STAFF`, `FACILITY_MANAGER`,
-  `BUSINESS_OPERATION_MANAGER`, `SYSTEM_ADMIN`; `status`: `ACTIVE`, `INACTIVE`;
-  `storage_unit_status`: `AVAILABLE`, `RESERVED`, `OCCUPIED`, `MAINTENANCE`,
-  `INSPECTION`, `RETURN_PENDING`, `LOCKED`, `INACTIVE`;
-  `facility_task_type`: `CHECK_IN_HANDOVER`, `UNIT_INSPECTION`, `HANDLE_SUPPORT`;
-  `facility_task_status`: `ASSIGNED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`;
-  `facility_task_reference_type`: `BOOKING`, `STORAGE_UNIT`, `SUPPORT_TICKET`;
-  `capacity_allocation_kind`: `HOLD`, `BOOKING`; and
-  `capacity_allocation_status`: `ACTIVE`, `RELEASED`, `EXPIRED`;
-  `inspection_type`: `CHECK_IN`, `CHECK_OUT`, `MAINTENANCE`;
-  `inspection_status`: `PENDING`, `IN_PROGRESS`, `PASSED`, `FAILED`;
-  `inspection_condition`: `GOOD`, `MINOR_DAMAGE`, `MAJOR_DAMAGE`;
-  `cloudinary_resource_type`: `image`, `video`, `raw`;
-  `payment_type`: `COLLECTION`, `RETURN_REFUND`;
-  `payment_status`: `PENDING`, `SUCCEEDED`, `FAILED`, `REFUND_PENDING`, `REFUNDED`;
-  `payment_refund_reason_code`: `NO_CAPACITY`, `CHECK_IN_CLOSED`,
-  `OFFERING_UNAVAILABLE`, `CUSTOMER_CANCELLATION`, `NO_SHOW`;
-  `rental_status`: `ACTIVE`, `RETURN_PENDING`, `OVERDUE`, `CLOSED`;
-  `rental_return_status`: `PENDING`, `CONFIRMED`, `INSPECTING`, `FAILED`,
-  `COMPLETED`, `CANCELLED`.
-- Composite unique `accounts(provider_id, account_id)` ensures one owner per provider
-  identity, including concurrent OAuth linking. Existing duplicates must be resolved
-  explicitly before applying this constraint; never merge users automatically.
-- Composite unique indexes exist on `facility_assignments(user_id, facility_id)`.
-- Each User may work at at most one Facility at a time. A partial unique index
-  `facility_assignments_active_user_idx` on `user_id WHERE is_active = true`
-  enforces this rule, including concurrent assignments. Inactive assignments are
-  retained. End or revoke the current assignment before assigning another Facility;
-  elapsed `ended_at` rows must be deactivated before reassigning. The API does not
-  automatically revoke a still-effective assignment to another Facility.
-- Login through the shared API client and `GET /api/auth/me` include
-  `user.assignedFacilityId`: the current assignment's Facility ID or `null`.
-  Only assignments matching the User's Facility Staff/Manager role, with
-  `is_active = true` and no elapsed `ended_at`, qualify. This field is derived,
-  not a new column on User or Session, and does not replace backend scope checks.
-- Before applying the single-Facility index migration, check for Users with
-  multiple `is_active = true` assignments. Resolve them explicitly before
-  migrating; the migration must not choose a Facility or discard history.
-- `unit_types.code` is unique within a facility; `(facility_id,id)` is unique.
-- `storage_units`, `bookings` and `capacity_allocations`
-  each use a composite foreign key `(facility_id,unit_type_id)` to
-  `unit_types(facility_id,id)` with ON DELETE RESTRICT. Range and facility ownership
-  references also use RESTRICT. `capacity_allocations.reference_id` remains a UUID
-  reference value without a database foreign key.
-- User foreign keys use `ON DELETE CASCADE` for `accounts`, `sessions` and
-  `facility_assignments`, and `ON DELETE RESTRICT` for `bookings.user_id`.
-  Facility task references use `ON DELETE RESTRICT` to preserve assigned work.
-  Facility foreign keys use `ON DELETE CASCADE` for
-  `storage_units` and `facility_assignments`, and
-  `ON DELETE RESTRICT` for capacity allocations.
-- `created_at` and `updated_at` columns default to `now()` wherever shown;
-  `assigned_at` also defaults to `now()`. `facilities.is_active`,
-  `unit_types.is_active`, `rental_price_ranges.is_active` and
-  `facility_assignments.is_active` default to true.
-  `storage_units.status` defaults to `AVAILABLE`,
-  `capacity_allocations.status` to `ACTIVE`. The default operating timezone is
-  `Asia/Ho_Chi_Minh`. Operating hours are now global system settings, not a table.
-
-Unit types belong to a facility and own their dimensions and monthly price within a
-BOM-managed rental price range. Exact length, width and height are positive meters;
-`size_cbm` is generated as their product, and floor area is calculated when reading.
-Physical units inherit the dimensions of their local type. Availability and capacity
-are scoped to `(facility_id,unit_type_id)`. Public catalog requires an active facility,
-active type and active configured range containing its price.
-Customers select a type; operations assign the physical unit later.
 
 ## Account-required booking (approved 2026-10-25; supersedes guest decisions)
 
@@ -842,20 +611,9 @@ The legacy reservation-draft checkout and table are removed.
   `HOLD` to `BOOKING` inside the same transaction. No physical unit is assigned
   at checkout.
 - `payments.idempotency_key` and `(provider, provider_payment_id)` are unique.
-- `payments.type = COLLECTION` references exactly one source: booking or rental charge.
-  Booking attempts require a hold-token hash; charge attempts do not. `RETURN_REFUND`
-  references a rental and its source payment without provider checkout fields. Partial
-  unique indexes permit one pending attempt and one applied
-  (`SUCCEEDED`) attempt per charge; late/duplicate provider captures remain
-  separate refund-pending attempts. Charge payment quote expiry is stored separately from the
-  charge due date; an expired quote can be retried with a new idempotency key.
-- `rental_charges` stores source-specific obligations in integer VND. `EXTRA` is
-  the charge itself; return-debt charges are associated through `rental_id`, without
-  a settlement FK. Future renewal rows point to their charge in #163. No generic
-  polymorphic source ID is used. Charge adjustments and refunds
-  are append-only records; events retain submit/approve/dispute/payment/refund audit.
-- The COLLECTION source CHECK requires exactly one of booking_id or rental_charge_id.
-  Booking checkout uses booking_id plus a hold-token hash. Plaintext tokens are never stored.
+- Payments now reference their booking directly. Rental-charge and return-transfer
+  references are retired. Booking payment idempotency, provider transaction uniqueness
+  and cancellation refund metadata remain.
 
 Check-in slots are shared time-of-day definitions with exactly four required
 columns: `id`, `name`, `start_time`, `end_time`. A Booking stores a required
@@ -869,64 +627,11 @@ slot (start inclusive, end exclusive) and normalize draft/hold dates to that
 slot's start before charging. A request outside the slots is rejected. Previously
 created drafts with an unnormalized schedule must be recreated before payment.
 
-Return closure marks the linked active unit assignment `COMPLETED` with `ended_at`,
-and releases the linked active BOOKING capacity allocation in the same transaction.
-`unit_assignments.status` is varchar; the shared status list now includes `COMPLETED`.
-All nonclosed rental statuses (ACTIVE, RETURN_PENDING, OVERDUE) block reassignment/handover.
+ACTIVE rentals block unit reassignment. The old return-closure workflow is retired.
 
 
-## Flow 3 review fixes — durable notifications and overdue review
 
-- `rentals.abandoned_review_at`: nullable server timestamp, set once after seven
-  full facility-local calendar days from the first overdue midnight while physical return remains unconfirmed.
-  This flags FM manual review only; it grants no disposal or forfeiture authority.
-- `notification_outbox`: one row per `(event_key, recipient_key)` with UUID id,
-  booking/facility foreign keys, optional recipient user, snapshotted recipient email,
-  event type, subject/text, occurred_at and in-app visibility. Customer email uses
-  booking owner account; FM recipients are active facility assignments. No guest identity schema.
-- Email delivery fields: PENDING/PROCESSING/SENT/REVIEW_REQUIRED, attempt count,
-  next_attempt_at, first_attempt_at, lease token/expiry, provider message id and sent_at.
-  Worker claims rows with row locks, sends outside the transaction, and conditionally
-  acknowledges its lease. Retried sends retain one provider idempotency key and frozen
-  content. Stop automatic retries after the provider's 24-hour idempotency window;
-  retain REVIEW_REQUIRED for manual investigation. Do not promise exactly-once delivery.
-- Outbox insert shares business transactions. Unique logical keys deduplicate callbacks,
-  retries, concurrent cron runs and immediate/scheduled expiry reminders.
-  In-app reads enforce current ownership or current FM facility assignment.
-- Return inspection checklist and outcome are kept on the CHECK_OUT inspection row;
-  this schema no longer stores a separate return-inspection attempt history.
 
-## Flow 3 review corrections (2026-10-20)
-
-Return refunds are payment rows with type RETURN_REFUND. Deposit/rent allocation fields
-are nullable numeric(14,2); both are null or both are nonnegative and sum to the
-refund amount. The refund row links to its rental and source payment and records the
-manual transfer reference and confirmer. Earlier return-refund records and settlement
-revisions are not retained by this simplified schema.
-
-`notification_outbox.booking_email`: nullable JSONB snapshot (booking code, facility
-name, unit type, verified paidAt, optional tracking-link delivery id/createdAt/expiry),
-for customer BOOKING_CONFIRMED emails; legacy guest tracking-link deliveries are suppressed.
-`mail_payload`: nullable encrypted existing mail-job payload; `mail_expires_at`: nullable
-timestamp; `queued_at`: nullable timestamp. ENQUEUED means queued, not provider SENT.
-No raw token in inbox or logs. The existing BullMQ queue/job ID/delivery ID and
-24-hour TTL from link creation remain authoritative. Provider attempts record first_attempt_at
-at send time, not enqueue time; ambiguous outcomes beyond 24h require review.
-No historical booking email replay. Old queue jobs are adopted by the same job ID.
-
-## Rental lifecycle configuration (2026-10-20)
-
-`system_settings` includes `EXPIRY_REMINDER_DAYS` and `ABANDONED_REVIEW_DAYS`;
-the legacy lifecycle API filters reads/writes to these two keys. Values are nonnegative PostgreSQL
-integers; no business min/max is imposed. Seed values are 7 days for each setting.
-System Administrator changes use optimistic version, store actor/time, and append
-system_setting_changes in the same transaction. A sweep reads one settings snapshot for its
-candidate query and state changes. Existing logical notification keys and review flags
-remain stable after configuration changes.
-
-Guest tracking, resend and return endpoints are removed. The obsolete booking_access_audit
-table is dropped. Customer rental, payment, document and return operations require the
-owning account session and use the existing customer endpoints.
 
 ## Unified system settings (2026-10-20; supersedes global settings tables above)
 

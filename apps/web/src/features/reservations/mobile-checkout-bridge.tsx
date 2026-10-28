@@ -1,7 +1,7 @@
 "use client";
 import { CUSTOMER_WORKSPACE as M } from "@metastorage/shared";
 import { useEffect, useState } from "react";
-import { CheckoutPostForm } from "@/features/rentals/rental-finance-panel";
+import { CheckoutPostForm } from "./checkout-post-form";
 import type { MobileCheckoutBridge } from "./mobile-checkout-bridge.types";
 
 export function MobileCheckoutBridgeScreen() {

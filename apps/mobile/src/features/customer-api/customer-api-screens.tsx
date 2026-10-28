@@ -1,7 +1,6 @@
 import { SUPPORT_CATEGORIES } from "@metastorage/contracts";
 import { CUSTOMER_WORKSPACE as M } from "@metastorage/shared";
 import { useMutation } from "@tanstack/react-query";
-import * as WebBrowser from "expo-web-browser";
 import QRCode from "qrcode";
 import { useMemo, useState } from "react";
 import { Controller } from "react-hook-form";
@@ -155,7 +154,7 @@ export function CustomerHomeScreen({ owner, go }: { owner: string; go: CustomerN
           <Button
             secondary
             key={r.id}
-            label={`${r.facility.name} · ${r.physicalUnit?.code ?? r.unitType.name}`}
+            label={`${r.facility.name} · ${r.storageUnit?.code ?? r.unitType.name}`}
             onPress={() => go({ screen: "rental", id: r.id })}
           />
         ))}
@@ -418,7 +417,6 @@ export function CustomerPaymentScreen({
               onPress={() => go({ screen: "support-new", bookingId, paymentId: id })}
             />
           )}
-          {p.chargeId && <Text>{M.renewalWaiting}</Text>}
         </Card>
       )}
       {p && (p.status === "FAILED" || expired || (p.status === "PENDING" && !p.checkoutUrl)) && (
@@ -468,12 +466,9 @@ export function CustomerRentalsScreen({ owner, go }: { owner: string; go: Custom
       {query.data?.pages
         .flatMap((p) => p.items)
         .map((r) => (
-          <Card
-            key={r.id}
-            title={`${r.facility.name} · ${r.physicalUnit?.code ?? r.unitType.name}`}
-          >
+          <Card key={r.id} title={`${r.facility.name} · ${r.storageUnit?.code ?? r.unitType.name}`}>
             <Text>{r.status}</Text>
-            <Row label={M.oldEnd} value={dateTime(r.expectedEndAt)} />
+            <Row label={M.oldEnd} value={dateTime(r.endAt)} />
             <Button label={M.choose} onPress={() => go({ screen: "rental", id: r.id })} />
           </Card>
         ))}
@@ -497,185 +492,32 @@ export function CustomerRentalScreen({
   id: string;
   go: CustomerNavigation;
 }) {
-  const state = useCustomerRental(owner, id, go);
-  const r = state.rental.data;
-  const renewal = state.renewal.data;
+  const state = useCustomerRental(owner, id),
+    r = state.rental.data;
   return (
     <>
       <QueryNotice query={state.rental} />
       {r && (
         <>
-          <Heading>{`${r.facility.name} · ${r.physicalUnit?.code ?? r.unitType.name}`}</Heading>
+          <Heading>{`${r.facility.name} · ${r.storageUnit?.code ?? r.unitType.name}`}</Heading>
           <Card title={M.storage}>
             <Text>{r.status}</Text>
-            <Row label={M.oldEnd} value={dateTime(r.expectedEndAt)} />
+            <Row label={M.oldEnd} value={dateTime(r.endAt)} />
             <Button
               label={M.newTicket}
               secondary
               onPress={() => go({ screen: "support-new", bookingId: r.bookingId })}
             />
-            <Button
-              label={M.returnStorage}
-              secondary
-              onPress={() => {
-                if (process.env.EXPO_PUBLIC_WEB_BASE_URL)
-                  void WebBrowser.openBrowserAsync(
-                    `${process.env.EXPO_PUBLIC_WEB_BASE_URL}/customer/storage/${id}/return`,
-                  );
-              }}
-            />
-          </Card>
-          <Card title={M.renewal}>
-            <Controller
-              control={state.quoteForm.control}
-              name="months"
-              render={({ field, fieldState }) => (
-                <Field
-                  label={M.months}
-                  value={String(field.value)}
-                  onChangeText={(value) => field.onChange(Number(value))}
-                  keyboardType="number-pad"
-                  error={fieldState.error?.message}
-                />
-              )}
-            />
-            <Button
-              label={M.quote}
-              disabled={state.quote.isPending}
-              onPress={() =>
-                void state.quoteForm.handleSubmit((input) => state.quote.mutate(input.months))()
-              }
-            />
-            {renewal && (
-              <>
-                <Text>{renewal.status}</Text>
-                <Row
-                  label={M.oldEnd}
-                  value={new Date(renewal.oldEndAt).toLocaleString("vi-VN", {
-                    timeZone: renewal.timezone,
-                  })}
-                />
-                <Row
-                  label={M.newEnd}
-                  value={new Date(renewal.newEndAt).toLocaleString("vi-VN", {
-                    timeZone: renewal.timezone,
-                  })}
-                />
-                <Row label={M.total} value={money(renewal.amount)} />
-                <Row
-                  label={M.expires}
-                  value={new Date(renewal.expiresAt).toLocaleString("vi-VN", {
-                    timeZone: renewal.timezone,
-                  })}
-                />
-                <Text className="mb-4">{renewal.terms}</Text>
-                {renewal.failureReason && <Notice error>{renewal.failureReason}</Notice>}
-                {renewal.status === "QUOTED" && (
-                  <Button
-                    label={M.accept}
-                    disabled={state.accept.isPending}
-                    onPress={() => state.accept.mutate()}
-                  />
-                )}
-                {renewal.status === "AWAITING_PAYMENT" && renewal.chargeId && (
-                  <Button
-                    label={M.payment}
-                    disabled={state.pay.isPending}
-                    onPress={() => {
-                      if (renewal.chargeId) state.pay.mutate(renewal.chargeId);
-                    }}
-                  />
-                )}
-                <Notice>
-                  {renewal.status === "APPLIED" ? M.renewalApplied : M.renewalWaiting}
-                </Notice>
-              </>
-            )}
-            <QueryNotice query={state.history} />
-            {state.history.data?.pages.flat().map((q) => (
-              <Button
-                key={q.id}
-                secondary
-                label={`${q.status} · ${money(q.amount)} · ${new Date(q.newEndAt).toLocaleString("vi-VN", { timeZone: q.timezone })}`}
-                onPress={() => void state.selectRenewal(q.id)}
-              />
-            ))}
-            {state.history.hasNextPage && (
-              <Button label={M.more} onPress={() => void state.history.fetchNextPage()} />
-            )}
-          </Card>
-          <Card title={M.charges}>
-            <QueryNotice query={state.charges} />
-            <Controller
-              control={state.disputeForm.control}
-              name="reason"
-              render={({ field, fieldState }) => (
-                <Field
-                  label={M.reason}
-                  value={field.value}
-                  onChangeText={field.onChange}
-                  multiline
-                  error={fieldState.error?.message}
-                />
-              )}
-            />
-            {state.charges.data?.pages
-              .flatMap((page) => page.items)
-              .map((c) => (
-                <Card key={c.id} title={M.source[c.source]}>
-                  <Text>
-                    {c.status} · {c.evidence}
-                  </Text>
-                  <Row label={M.outstanding} value={money(c.outstandingAmount)} />
-                  <Row label={M.dueDate} value={c.dueDate ?? M.noDueDate} />
-                  {c.status === "OPEN" && (
-                    <Button
-                      label={M.payment}
-                      disabled={state.pay.isPending}
-                      onPress={() => state.pay.mutate(c.id)}
-                    />
-                  )}
-                  {c.status === "OPEN" && c.source === "EXTRA" && (
-                    <Button
-                      label={M.dispute}
-                      secondary
-                      disabled={state.dispute.isPending}
-                      onPress={() =>
-                        void state.disputeForm.handleSubmit((input) =>
-                          state.dispute.mutate({ chargeId: c.id, reason: input.reason }),
-                        )()
-                      }
-                    />
-                  )}
-                </Card>
-              ))}
-            {state.charges.hasNextPage && (
-              <Button
-                secondary
-                label={M.more}
-                disabled={state.charges.isFetchingNextPage}
-                onPress={() => void state.charges.fetchNextPage()}
-              />
-            )}
           </Card>
           <Card title={M.transactions}>
             <QueryNotice query={state.payments} />
             {state.payments.data?.map((p) => (
               <Card key={p.id} title={p.paymentCode ?? undefined}>
-                <Text>
-                  {M.source[p.source ?? "BOOKING"]} · {p.status}
-                </Text>
+                <Text>{p.status}</Text>
                 <Text>{money(p.totalAmount)}</Text>
-                {p.refundAmount && <Row label={M.refund} value={money(p.refundAmount)} />}
-                {p.chargeRefunds?.map((f) => (
-                  <Row key={f.id} label={M.refund} value={money(f.amount)} />
-                ))}
-                {p.returnRefunds.map((f) => (
-                  <Row key={f.id} label={M.refund} value={money(f.amount)} />
-                ))}
                 <Button
-                  secondary
                   label={M.newTicket}
+                  secondary
                   onPress={() =>
                     go({ screen: "support-new", bookingId: r.bookingId, paymentId: p.id })
                   }
@@ -683,32 +525,7 @@ export function CustomerRentalScreen({
               </Card>
             ))}
           </Card>
-          <Card title={M.documents}>
-            <QueryNotice query={state.documents} />
-            {state.documents.data?.map((d) => (
-              <Button
-                key={d.id}
-                label={`${M.documents} · ${d.version}`}
-                disabled={state.document.isPending}
-                onPress={() => state.document.mutate(d.id)}
-              />
-            ))}
-          </Card>
         </>
-      )}
-      {Object.entries({
-        quote: state.quote,
-        accept: state.accept,
-        pay: state.pay,
-        dispute: state.dispute,
-        document: state.document,
-      }).map(
-        ([key, q]) =>
-          q.isError && (
-            <Notice error key={key}>
-              {customerError(q.error)}
-            </Notice>
-          ),
       )}
     </>
   );

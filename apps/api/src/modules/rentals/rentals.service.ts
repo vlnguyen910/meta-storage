@@ -4,186 +4,160 @@ import type {
   FacilityRentalListQuery,
   FacilityRentalPage,
   FacilityRentalPaymentPage,
-  FacilityRentalRenewalPage,
+  RentalDetail,
+  RentalListItem,
   RentalPage,
   RentalPageQuery,
   RentalPaymentItem,
 } from "@metastorage/contracts";
 import { ForbiddenError, NotFoundError } from "../../common/errors/app-error";
-import { renewalDto } from "../renewals/renewals.service";
-import { RENTAL_MESSAGES } from "./rentals.messages";
-import { type RentalsRepository, toListItem } from "./rentals.repository";
-import type { FacilityRentalActor, FacilityRentalRow } from "./rentals.types";
+import type { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
+import { RENTAL_MESSAGES as M } from "./rentals.messages";
+import type { RentalsRepository } from "./rentals.repository";
+import type { RentalActor, RentalWithDetails } from "./rentals.types";
 
-function facilityRentalDto(row: FacilityRentalRow): FacilityRentalItem {
+function toFacilityRentalItem(row: RentalWithDetails): FacilityRentalItem {
   return {
     id: row.rental.id,
     bookingId: row.booking.id,
+    userId: row.rental.userId,
     bookingCode: row.booking.bookingCode,
-    facilityId: row.rental.facilityId,
+    facilityId: row.booking.facilityId,
     status: row.rental.status,
-    version: row.rental.version,
     customer: {
-      userId: row.booking.userId,
-      name: row.booking.name,
-      email: row.booking.email,
-      phone: row.booking.phone,
+      userId: row.rental.userId,
+      name: row.customer.name,
+      email: row.customer.email,
+      phone: row.booking.contactPhone,
     },
-    unit: row.unit,
+    unit: {
+      id: row.storageUnit.id,
+      code: row.storageUnit.code,
+      unitTypeId: row.unitType.id,
+      unitTypeName: row.unitType.name,
+      sizeLabel: row.unitType.sizeLabel,
+    },
     startAt: row.rental.startAt.toISOString(),
-    expectedEndAt: row.rental.expectedEndAt.toISOString(),
-    actualReturnAt: row.rental.actualReturnAt?.toISOString() ?? null,
-    closedAt: row.rental.closedAt?.toISOString() ?? null,
-    abandonedReviewAt: row.rental.abandonedReviewAt?.toISOString() ?? null,
-    depositAmount: row.rental.depositAmount,
-    initialPayment: row.initialPayment
-      ? {
-          ...row.initialPayment,
-          paidAt: row.initialPayment.paidAt?.toISOString() ?? null,
-        }
-      : null,
+    endAt: row.rental.endAt.toISOString(),
   };
 }
-
 export class RentalsService {
-  constructor(private readonly repository: RentalsRepository) {}
-
-  private async managerScope(actor: FacilityRentalActor, facilityId: string) {
-    if (
-      actor.role !== "FACILITY_MANAGER" ||
-      !(await this.repository.managerAssignment(facilityId, actor.id))
-    )
-      throw new ForbiddenError(RENTAL_MESSAGES.facilityAccessDenied);
+  constructor(
+    private readonly repository: RentalsRepository,
+    private readonly facilityAssignments: FacilityAssignmentsService,
+  ) {}
+  private async assertFacilityManagerAccess(actor: RentalActor, facilityId: string) {
+    if (actor.role !== "FACILITY_MANAGER") throw new ForbiddenError(M.facilityAccessDenied);
+    await this.facilityAssignments.requireFacilityAccess(
+      facilityId,
+      { kind: "assigned", userId: actor.id, role: actor.role },
+      ["FACILITY_MANAGER"],
+    );
   }
-
-  async facilityList(
-    actor: FacilityRentalActor,
+  async listFacilityRentals(
+    actor: RentalActor,
     facilityId: string,
     query: FacilityRentalListQuery,
   ): Promise<FacilityRentalPage> {
-    await this.managerScope(actor, facilityId);
-    const result = await this.repository.listForFacility(facilityId, query);
+    await this.assertFacilityManagerAccess(actor, facilityId);
+    const result = await this.repository.findFacilityRentals(facilityId, query);
     return {
-      items: result.items.map(facilityRentalDto),
+      items: result.items.map(toFacilityRentalItem),
       total: result.total,
       limit: query.limit,
       offset: query.offset,
     };
   }
-
-  async facilityDetail(
-    actor: FacilityRentalActor,
-    facilityId: string,
-    rentalId: string,
-  ): Promise<FacilityRentalItem> {
-    await this.managerScope(actor, facilityId);
-    const result = await this.repository.findForFacility(facilityId, rentalId);
-    if (!result) throw new NotFoundError(RENTAL_MESSAGES.rentalNotFound);
-    return facilityRentalDto(result);
+  async getFacilityRental(actor: RentalActor, facilityId: string, rentalId: string) {
+    await this.assertFacilityManagerAccess(actor, facilityId);
+    const row = await this.repository.findFacilityRentalById(facilityId, rentalId);
+    if (!row) throw new NotFoundError(M.rentalNotFound);
+    return toFacilityRentalItem(row);
   }
-
-  async facilityPayments(
-    actor: FacilityRentalActor,
+  async listFacilityRentalPayments(
+    actor: RentalActor,
     facilityId: string,
     rentalId: string,
     query: FacilityRentalHistoryQuery,
   ): Promise<FacilityRentalPaymentPage> {
-    const rental = await this.facilityDetail(actor, facilityId, rentalId);
-    const result = await this.repository.facilityPayments(rental.bookingId, rentalId, query);
+    const rental = await this.getFacilityRental(actor, facilityId, rentalId);
+    const result = await this.repository.findBookingPayments(rental.bookingId, query);
     return {
-      items: result.items.map((row) => ({
-        ...row,
-        source: row.source ?? "BOOKING",
-        paidAt: row.paidAt?.toISOString() ?? null,
-        refundedAt: row.refundedAt?.toISOString() ?? null,
-        createdAt: row.createdAt.toISOString(),
-        confirmedRefunds: result.chargeTransfers.flatMap((refund) =>
-          refund.paymentId === row.id && refund.confirmedAt
-            ? [
-                {
-                  id: refund.id,
-                  source: "CHARGE" as const,
-                  amount: refund.amount,
-                  reference: refund.reference,
-                  confirmedAt: refund.confirmedAt.toISOString(),
-                },
-              ]
-            : [],
-        ),
+      items: result.items.map((payment) => ({
+        id: payment.id,
+        paymentCode: payment.paymentCode,
+        status: payment.status,
+        amount: payment.totalAmount,
+        currency: payment.currency,
+        paidAt: payment.paidAt?.toISOString() ?? null,
+        refundAmount: payment.refundAmount,
+        refundReason: payment.refundReason,
+        refundedAt: payment.refundedAt?.toISOString() ?? null,
+        createdAt: payment.createdAt.toISOString(),
       })),
       total: result.total,
       limit: query.limit,
       offset: query.offset,
     };
   }
-
-  async facilityRenewals(
-    actor: FacilityRentalActor,
-    facilityId: string,
-    rentalId: string,
-    query: FacilityRentalHistoryQuery,
-  ): Promise<FacilityRentalRenewalPage> {
-    await this.facilityDetail(actor, facilityId, rentalId);
-    const result = await this.repository.facilityRenewals(rentalId, query);
+  async listCustomerRentals(userId: string, query: RentalPageQuery): Promise<RentalPage> {
+    const rows = await this.repository.findCustomerRentals(userId, query);
+    const page = rows.slice(0, query.limit),
+      last = page.at(-1);
     return {
-      items: result.items.map(renewalDto),
-      total: result.total,
-      limit: query.limit,
-      offset: query.offset,
-    };
-  }
-
-  async pageMine(userId: string, query: RentalPageQuery): Promise<RentalPage> {
-    const rows = await this.repository.listPageByUserId(userId, query, query.view === "history");
-    const pageRows = rows.slice(0, query.limit);
-    const items = pageRows.map(toListItem);
-    const last = pageRows.at(-1);
-    return {
-      items,
+      items: page.map(toCustomerRentalItem),
       nextCursor:
         rows.length > query.limit && last
           ? { afterEndAt: last.cursorEndAt, afterId: last.rental.id }
           : null,
     };
   }
-
-  async paymentsMine(rentalId: string, userId: string): Promise<RentalPaymentItem[]> {
-    await this.getMine(rentalId, userId);
-    const rows = await this.repository.listPaymentsByUserId(rentalId, userId);
-    const chargeRefunds = await this.repository.listChargeRefundsByUserId(rentalId, userId);
-    return rows.map((row) => ({
-      id: row.id,
-      paymentCode: row.paymentCode,
-      chargeId: row.chargeId,
-      source: row.source ?? "BOOKING",
-      provider: row.provider,
-      status: row.status,
-      totalAmount: row.totalAmount,
-      currency: row.currency,
-      returnRefunds: [],
-      chargeRefunds: chargeRefunds.flatMap((refund) =>
-        refund.paymentId === row.id && refund.confirmedAt
-          ? [
-              {
-                id: refund.id,
-                amount: refund.amount,
-                reference: refund.reference,
-                confirmedAt: refund.confirmedAt.toISOString(),
-              },
-            ]
-          : [],
-      ),
-      refundAmount: row.refundAmount,
-      refundReason: row.refundReason,
-      paidAt: row.paidAt?.toISOString() ?? null,
-      refundedAt: row.refundedAt?.toISOString() ?? null,
-      createdAt: row.createdAt.toISOString(),
-    }));
+  async getCustomerRental(rentalId: string, userId: string) {
+    const row = await this.repository.findCustomerRentalById(rentalId, userId);
+    if (!row) throw new NotFoundError(M.rentalNotFound);
+    return {
+      ...toCustomerRentalItem(row),
+      customer: {
+        userId: row.rental.userId,
+        name: row.customer.name,
+        email: row.customer.email,
+        phone: row.booking.contactPhone,
+      },
+    } satisfies RentalDetail;
   }
-
-  async getMine(rentalId: string, userId: string) {
-    const rental = await this.repository.findByIdAndUserId(rentalId, userId);
-    if (!rental) throw new NotFoundError(RENTAL_MESSAGES.rentalNotFound);
-    return rental;
+  async listCustomerRentalPayments(rentalId: string, userId: string): Promise<RentalPaymentItem[]> {
+    await this.getCustomerRental(rentalId, userId);
+    return (await this.repository.findCustomerRentalPayments(rentalId, userId)).map(
+      ({ payment }) => ({
+        id: payment.id,
+        paymentCode: payment.paymentCode,
+        provider: payment.provider,
+        status: payment.status,
+        totalAmount: payment.totalAmount,
+        currency: payment.currency,
+        paidAt: payment.paidAt?.toISOString() ?? null,
+        refundAmount: payment.refundAmount,
+        refundReason: payment.refundReason,
+        refundedAt: payment.refundedAt?.toISOString() ?? null,
+        createdAt: payment.createdAt.toISOString(),
+      }),
+    );
   }
+}
+
+function toCustomerRentalItem(row: RentalWithDetails): RentalListItem {
+  return {
+    id: row.rental.id,
+    bookingId: row.booking.id,
+    userId: row.rental.userId,
+    bookingCode: row.booking.bookingCode ?? row.booking.id.slice(0, 8).toUpperCase(),
+    facility: { id: row.facility.id, name: row.facility.name, address: row.facility.address },
+    unitType: { id: row.unitType.id, name: row.unitType.name, sizeLabel: row.unitType.sizeLabel },
+    storageUnit: { id: row.storageUnit.id, code: row.storageUnit.code },
+    startAt: row.rental.startAt.toISOString(),
+    endAt: row.rental.endAt.toISOString(),
+    status: row.rental.status,
+    bookingStatus: row.booking.status,
+    actions: { canCancel: false, canReschedule: false, note: M.readOnly },
+  };
 }

@@ -328,11 +328,10 @@ export class InspectionsRepository {
       const now = new Date();
       await tx.insert(rentals).values({
         bookingId: booking.id,
-        facilityId: booking.facilityId,
-        physicalUnitId: assignment.physicalUnitId,
+        userId: booking.userId,
+        storageUnitId: assignment.physicalUnitId,
         startAt: now,
-        expectedEndAt: booking.rentalEndAt,
-        depositAmount: booking.depositAmount,
+        endAt: booking.rentalEndAt,
       });
       await tx
         .update(storageUnits)

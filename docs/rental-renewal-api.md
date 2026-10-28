@@ -1,3 +1,5 @@
+> **Cập nhật 2026-10-28:** Tài liệu này mô tả phiên bản trước đợt tinh gọn rental. Các phần gia hạn, khoản thu rental và khung giá đã được gỡ. Xem [trạng thái hiện tại](./rental-reset.md) trước khi sử dụng endpoint trong tài liệu.
+
 # Gia hạn rental — issue #163
 
 Policy: [customer-financial-policy.md](./customer-financial-policy.md).
