@@ -224,7 +224,9 @@ export function CustomerBookingScreen({
             {b.rentalId && (
               <Button
                 label={M.viewRental}
-                onPress={() => go({ screen: "rental", id: b.rentalId! })}
+                onPress={() => {
+                  if (b.rentalId) go({ screen: "rental", id: b.rentalId });
+                }}
               />
             )}
             {b.status === "CONFIRMED" && (
@@ -383,7 +385,7 @@ export function CustomerPaymentScreen({
       <Heading>{M.payment}</Heading>
       <QueryNotice query={query} />
       {p && (
-        <Card title={p.paymentCode}>
+        <Card title={p.paymentCode ?? undefined}>
           <Row label={M.paymentStatus} value={p.status} />
           {p.status === "PENDING" && <Notice>{M.paymentPending}</Notice>}
           {p.status === "FAILED" && <Notice error>{M.paymentFailed}</Notice>}
@@ -579,7 +581,9 @@ export function CustomerRentalScreen({
                   <Button
                     label={M.payment}
                     disabled={state.pay.isPending}
-                    onPress={() => state.pay.mutate(renewal.chargeId!)}
+                    onPress={() => {
+                      if (renewal.chargeId) state.pay.mutate(renewal.chargeId);
+                    }}
                   />
                 )}
                 <Notice>
@@ -657,7 +661,7 @@ export function CustomerRentalScreen({
           <Card title={M.transactions}>
             <QueryNotice query={state.payments} />
             {state.payments.data?.map((p) => (
-              <Card key={p.id} title={p.paymentCode}>
+              <Card key={p.id} title={p.paymentCode ?? undefined}>
                 <Text>
                   {M.source[p.source ?? "BOOKING"]} · {p.status}
                 </Text>

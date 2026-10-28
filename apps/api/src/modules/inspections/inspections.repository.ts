@@ -1,284 +1,128 @@
-import { FacilityTaskReferenceType, FacilityTaskType } from "@metastorage/contracts";
+import type { InspectionListQuery } from "@metastorage/contracts";
 import {
   and,
-  bookings,
-  checkInVerifications,
+  count,
   type Database,
   desc,
   eq,
   facilityTasks,
-  handoverInspections,
+  type Inspection as InspectionRecord,
+  type InspectionStatus,
+  type InspectionType,
   inArray,
-  inspectionPhotos,
-  payments,
-  rentals,
+  inspections,
   storageUnits,
-  unitAssignments,
-  users,
 } from "@metastorage/database";
-import { bookingCustomer, bookingReadFields } from "../bookings/bookings.projection";
-import type { BookingReadRecord } from "../bookings/bookings.types";
-import { recordImmediateExpiry } from "../rentals/rental-lifecycle.service";
-import type { InspectionRow, InspectionTransaction, NewInspectionRow } from "./inspections.types";
+import type { TaskTransaction } from "../facility-tasks/facility-tasks.types";
+
+export type InspectionRow = InspectionRecord & {
+  facilityId: string;
+  unitCode: string;
+  assignedStaffId: string;
+};
 
 export class InspectionsRepository {
-  constructor(readonly db: Database) {}
+  constructor(private readonly db: Database) {}
 
-  async booking(bookingId: string) {
-    const [booking] = await this.db
-      .select(bookingReadFields)
-      .from(bookings)
-      .innerJoin(bookingCustomer, eq(bookingCustomer.id, bookings.userId))
-      .where(eq(bookings.id, bookingId));
-    return booking;
+  transaction<T>(callback: (tx: TaskTransaction) => Promise<T>) {
+    return this.db.transaction(callback);
   }
 
-  async find(id: string) {
-    const [record] = await this.db
-      .select()
-      .from(handoverInspections)
-      .where(eq(handoverInspections.id, id));
-    return record;
-  }
-
-  async history(bookingId: string) {
-    return this.db
-      .select()
-      .from(handoverInspections)
-      .where(eq(handoverInspections.bookingId, bookingId))
-      .orderBy(desc(handoverInspections.createdAt));
-  }
-
-  async actorNames(ids: string[]) {
-    return this.db
-      .select({ id: users.id, name: users.name })
-      .from(users)
-      .where(inArray(users.id, ids));
-  }
-
-  async photos(id: string) {
-    // Never load photo bytes into list/detail responses.
-    return this.db
+  async find(id: string): Promise<InspectionRow | undefined> {
+    const [row] = await this.db
       .select({
-        id: inspectionPhotos.id,
-        filename: inspectionPhotos.filename,
-        mimeType: inspectionPhotos.mimeType,
-        byteSize: inspectionPhotos.byteSize,
-        createdAt: inspectionPhotos.createdAt,
+        inspection: inspections,
+        facilityId: facilityTasks.facilityId,
+        unitCode: storageUnits.code,
+        assignedStaffId: facilityTasks.assignedStaffId,
       })
-      .from(inspectionPhotos)
-      .where(eq(inspectionPhotos.inspectionId, id));
+      .from(inspections)
+      .innerJoin(facilityTasks, eq(facilityTasks.id, inspections.taskId))
+      .innerJoin(storageUnits, eq(storageUnits.id, inspections.storageUnitId))
+      .where(eq(inspections.id, id));
+    return row
+      ? {
+          ...row.inspection,
+          facilityId: row.facilityId,
+          unitCode: row.unitCode,
+          assignedStaffId: row.assignedStaffId,
+        }
+      : undefined;
   }
 
-  async photo(inspectionId: string, photoId: string) {
-    const [record] = await this.db
-      .select()
-      .from(inspectionPhotos)
-      .where(
-        and(eq(inspectionPhotos.inspectionId, inspectionId), eq(inspectionPhotos.id, photoId)),
-      );
-    return record;
-  }
-
-  async photoByPublicId(publicId: string) {
-    const [photo] = await this.db
-      .select({ id: inspectionPhotos.id })
-      .from(inspectionPhotos)
-      .where(eq(inspectionPhotos.cloudinaryPublicId, publicId));
-    return photo;
-  }
-
-  async locked<T>(
-    bookingId: string,
-    action: (
-      tx: InspectionTransaction,
-      context: Awaited<ReturnType<InspectionsRepository["context"]>>,
-    ) => Promise<T>,
+  list(
+    query: InspectionListQuery,
+    scope: { staffId: string; facilityIds: string[] } | { facilityId: string },
   ) {
-    return this.db.transaction(async (tx) => {
-      await tx
-        .select({ id: bookings.id })
-        .from(bookings)
-        .where(eq(bookings.id, bookingId))
-        .for("update");
-      return action(tx, await this.context(tx, bookingId));
-    });
+    const filters =
+      "staffId" in scope
+        ? [
+            eq(facilityTasks.assignedStaffId, scope.staffId),
+            inArray(facilityTasks.facilityId, scope.facilityIds),
+          ]
+        : [eq(facilityTasks.facilityId, scope.facilityId)];
+    return this.listByFilters(filters, query);
   }
 
-  private async context(tx: InspectionTransaction, bookingId: string) {
-    const [booking] = await tx
-      .select(bookingReadFields)
-      .from(bookings)
-      .innerJoin(bookingCustomer, eq(bookingCustomer.id, bookings.userId))
-      .where(eq(bookings.id, bookingId));
-    const [verification] = await tx
-      .select()
-      .from(checkInVerifications)
-      .where(
-        and(
-          eq(checkInVerifications.bookingId, bookingId),
-          eq(checkInVerifications.status, "VERIFIED"),
-        ),
-      )
-      .orderBy(desc(checkInVerifications.verifiedAt))
-      .limit(1);
-    const [assignment] = await tx
-      .select()
-      .from(unitAssignments)
-      .where(and(eq(unitAssignments.bookingId, bookingId), eq(unitAssignments.status, "ACTIVE")))
-      .limit(1);
-    const [unit] = assignment
-      ? await tx.select().from(storageUnits).where(eq(storageUnits.id, assignment.physicalUnitId))
-      : [];
-    return { booking, verification, assignment, unit };
+  private async listByFilters(scopeFilters: ReturnType<typeof eq>[], query: InspectionListQuery) {
+    const filters = [...scopeFilters];
+    if (query.status) filters.push(eq(inspections.status, query.status as InspectionStatus));
+    if (query.inspectionType)
+      filters.push(eq(inspections.inspectionType, query.inspectionType as InspectionType));
+    if (query.storageUnitId) filters.push(eq(inspections.storageUnitId, query.storageUnitId));
+    const where = and(...filters);
+    const [total] = await this.db
+      .select({ total: count() })
+      .from(inspections)
+      .innerJoin(facilityTasks, eq(facilityTasks.id, inspections.taskId))
+      .where(where);
+    const rows = await this.db
+      .select({
+        inspection: inspections,
+        facilityId: facilityTasks.facilityId,
+        unitCode: storageUnits.code,
+        assignedStaffId: facilityTasks.assignedStaffId,
+      })
+      .from(inspections)
+      .innerJoin(facilityTasks, eq(facilityTasks.id, inspections.taskId))
+      .innerJoin(storageUnits, eq(storageUnits.id, inspections.storageUnitId))
+      .where(where)
+      .orderBy(desc(facilityTasks.assignedAt), desc(inspections.inspectDoneAt))
+      .limit(query.limit)
+      .offset(query.offset);
+    return {
+      items: rows.map((row) => ({
+        ...row.inspection,
+        facilityId: row.facilityId,
+        unitCode: row.unitCode,
+        assignedStaffId: row.assignedStaffId,
+      })),
+      total: total?.total ?? 0,
+    };
   }
 
-  async rental(tx: InspectionTransaction, bookingId: string) {
-    const [rental] = await tx.select().from(rentals).where(eq(rentals.bookingId, bookingId));
-    return rental;
+  findForUpdate(tx: TaskTransaction, id: string) {
+    return tx.select().from(inspections).where(eq(inspections.id, id)).for("update");
   }
 
-  async activeRental(tx: InspectionTransaction, unitId: string) {
-    const [rental] = await tx
-      .select()
-      .from(rentals)
-      .where(
-        and(
-          eq(rentals.physicalUnitId, unitId),
-          inArray(rentals.status, ["ACTIVE", "RETURN_PENDING", "OVERDUE"]),
-        ),
-      );
-    return rental;
+  findByTask(tx: TaskTransaction, taskId: string) {
+    return tx.select().from(inspections).where(eq(inspections.taskId, taskId));
   }
 
-  async payment(tx: InspectionTransaction, bookingId: string) {
-    const [payment] = await tx
-      .select()
-      .from(payments)
-      .where(eq(payments.bookingId, bookingId))
-      .orderBy(desc(payments.createdAt))
-      .limit(1);
-    return payment;
+  create(tx: TaskTransaction, input: typeof inspections.$inferInsert) {
+    return tx.insert(inspections).values(input).returning();
   }
 
-  async lockUnit(tx: InspectionTransaction, unitId: string) {
-    const [unit] = await tx
-      .select()
-      .from(storageUnits)
-      .where(eq(storageUnits.id, unitId))
-      .for("update");
-    return unit;
-  }
-
-  async activateRental(
-    tx: InspectionTransaction,
-    booking: BookingReadRecord,
-    record: InspectionRow,
-    userId: string,
-    now: Date,
+  update(
+    tx: TaskTransaction,
+    id: string,
+    input: Partial<
+      Pick<
+        InspectionRecord,
+        "status" | "condition" | "checklist" | "notes" | "inspectedAt" | "inspectDoneAt"
+      >
+    >,
   ) {
-    const [rental] = await tx
-      .insert(rentals)
-      .values({
-        bookingId: booking.id,
-        facilityId: booking.facilityId,
-        physicalUnitId: record.physicalUnitId,
-        status: "ACTIVE",
-        startAt: booking.checkInSlotStart,
-        expectedEndAt: booking.rentalEndAt,
-        depositAmount: booking.depositAmount,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .returning();
-    if (rental) await recordImmediateExpiry(tx, rental, now);
-    await tx
-      .update(bookings)
-      .set({ status: "CHECKED_IN", updatedAt: now })
-      .where(eq(bookings.id, booking.id));
-    await tx
-      .update(storageUnits)
-      .set({ status: "OCCUPIED", updatedAt: now })
-      .where(eq(storageUnits.id, record.physicalUnitId));
-    await tx
-      .update(checkInVerifications)
-      .set({ status: "CONSUMED", consumedAt: now, updatedAt: now })
-      .where(eq(checkInVerifications.id, record.verificationId));
-    await tx
-      .update(handoverInspections)
-      .set({
-        handedOverBy: userId,
-        handedOverAt: now,
-        version: (record.version ?? 0) + 1,
-        updatedAt: now,
-      })
-      .where(eq(handoverInspections.id, record.id));
-    const tasks = await tx
-      .select({ id: facilityTasks.id, startedAt: facilityTasks.startedAt })
-      .from(facilityTasks)
-      .where(
-        and(
-          eq(facilityTasks.type, FacilityTaskType.CHECK_IN_HANDOVER),
-          eq(facilityTasks.referenceType, FacilityTaskReferenceType.BOOKING),
-          eq(facilityTasks.referenceId, booking.id),
-          eq(facilityTasks.assignedStaffId, userId),
-          inArray(facilityTasks.status, ["ASSIGNED", "IN_PROGRESS"]),
-        ),
-      )
-      .for("update");
-    for (const task of tasks)
-      await tx
-        .update(facilityTasks)
-        .set({
-          status: "COMPLETED",
-          startedAt: task.startedAt ?? now,
-          completedAt: now,
-          updatedAt: now,
-        })
-        .where(eq(facilityTasks.id, task.id));
-  }
-
-  async byVerification(tx: InspectionTransaction, verificationId: string) {
-    const [record] = await tx
-      .select()
-      .from(handoverInspections)
-      .where(eq(handoverInspections.verificationId, verificationId));
-    return record;
-  }
-
-  async create(tx: InspectionTransaction, input: NewInspectionRow) {
-    const [record] = await tx.insert(handoverInspections).values(input).returning();
-    return record;
-  }
-
-  async lockInspection(tx: InspectionTransaction, id: string) {
-    const [record] = await tx
-      .select()
-      .from(handoverInspections)
-      .where(eq(handoverInspections.id, id))
-      .for("update");
-    return record;
-  }
-
-  async updateInspection(tx: InspectionTransaction, id: string, fields: Partial<NewInspectionRow>) {
-    await tx.update(handoverInspections).set(fields).where(eq(handoverInspections.id, id));
-  }
-
-  photoIds(tx: InspectionTransaction, inspectionId: string) {
-    return tx
-      .select({ id: inspectionPhotos.id })
-      .from(inspectionPhotos)
-      .where(eq(inspectionPhotos.inspectionId, inspectionId));
-  }
-
-  async insertPhoto(tx: InspectionTransaction, input: typeof inspectionPhotos.$inferInsert) {
-    await tx.insert(inspectionPhotos).values(input);
-  }
-
-  async deletePhoto(tx: InspectionTransaction, inspectionId: string, photoId: string) {
-    return tx
-      .delete(inspectionPhotos)
-      .where(and(eq(inspectionPhotos.inspectionId, inspectionId), eq(inspectionPhotos.id, photoId)))
-      .returning({ id: inspectionPhotos.id });
+    return tx.update(inspections).set(input).where(eq(inspections.id, id)).returning();
   }
 }

@@ -2,6 +2,9 @@ import type { SwaggerTransform } from "@fastify/swagger";
 import {
   type FacilityTaskDashboardSummary,
   type FacilityTaskDetail,
+  FacilityTaskReferenceType,
+  FacilityTaskStatus,
+  FacilityTaskType,
   FACILITY_TASK_MESSAGES as m,
 } from "@metastorage/contracts";
 import { createJsonSchemaTransform } from "fastify-type-provider-zod";
@@ -11,9 +14,9 @@ const timestamp = "2026-10-28T03:00:00.000Z";
 const task: FacilityTaskDetail = {
   id: "00000000-0000-4000-8000-000000000001",
   facilityId: "00000000-0000-4000-8000-000000000002",
-  type: "UNIT_INSPECTION",
-  status: "ASSIGNED",
-  referenceType: "STORAGE_UNIT",
+  type: FacilityTaskType.UNIT_INSPECTION,
+  status: FacilityTaskStatus.ASSIGNED,
+  referenceType: FacilityTaskReferenceType.STORAGE_UNIT,
   referenceId: "00000000-0000-4000-8000-000000000005",
   assignedStaffId: "00000000-0000-4000-8000-000000000003",
   assignedStaffName: "Staff demo",
@@ -29,7 +32,11 @@ const task: FacilityTaskDetail = {
 const dashboard: FacilityTaskDashboardSummary = {
   date: "2026-10-28",
   pendingCount: 2,
-  byType: { CHECK_IN_HANDOVER: 1, UNIT_INSPECTION: 1, HANDLE_SUPPORT: 0 },
+  byType: {
+    [FacilityTaskType.CHECK_IN_HANDOVER]: 1,
+    [FacilityTaskType.UNIT_INSPECTION]: 1,
+    [FacilityTaskType.HANDLE_SUPPORT]: 0,
+  },
 };
 
 function errorExample(code: number, message: string) {

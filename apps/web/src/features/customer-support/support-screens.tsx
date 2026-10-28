@@ -500,12 +500,14 @@ export function CustomerSupportDetail({ ticketId }: { ticketId: string }) {
   };
   const reply = useMutation({
     mutationFn: async () => {
-      if (!replyCommand.current || replyCommand.current.content !== content.trim())
+      if (!replyCommand.current || replyCommand.current.content !== content.trim()) {
+        if (!detail.data) throw new Error();
         replyCommand.current = {
           content: content.trim(),
-          version: detail.data!.ticket.version,
+          version: detail.data.ticket.version,
           idempotencyKey: crypto.randomUUID(),
         };
+      }
       const result = await api.support.reply(ticketId, replyCommand.current);
       replyCommand.current = undefined;
       setContent("");
@@ -517,17 +519,19 @@ export function CustomerSupportDetail({ ticketId }: { ticketId: string }) {
   const upload = useMutation({
     mutationFn: async (messageId: string) => {
       if (!file) return;
-      if (!uploadCommand.current)
+      if (!uploadCommand.current) {
+        if (!detail.data) throw new Error();
         uploadCommand.current = {
           messageId,
           input: {
             filename: file.name,
             mimeType: file.type as SupportImageInput["mimeType"],
             dataBase64: await readFileBase64(file),
-            version: detail.data!.ticket.version,
+            version: detail.data.ticket.version,
             idempotencyKey: crypto.randomUUID(),
           },
         };
+      }
       await api.support.uploadImage(
         ticketId,
         uploadCommand.current.messageId,

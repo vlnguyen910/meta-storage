@@ -23,16 +23,16 @@ import {
   rentalCharges,
   rentalRenewals,
   rentals,
-  returnRefunds,
   sql,
   storageUnits,
   unitTypes,
 } from "@metastorage/database";
-
+import { NotFoundError } from "../../common/errors/app-error";
 import { bookingCustomer, bookingReadFields } from "../bookings/bookings.projection";
 import type { BookingReadRecord } from "../bookings/bookings.types";
 import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
-import type { RentalReadExecutor } from "./rentals.types";
+import { RENTAL_MESSAGES } from "./rentals.messages";
+import type { RentalContext, RentalReadExecutor, RentalTransaction } from "./rentals.types";
 
 const ACTIONS = {
   canCancel: false as const,
@@ -42,6 +42,35 @@ const ACTIONS = {
 
 export class RentalsRepository {
   constructor(private readonly db: Database) {}
+
+  async withLockedRental<T>(
+    rentalId: string,
+    work: (tx: RentalTransaction, context: RentalContext) => Promise<T>,
+  ): Promise<T> {
+    const [initial] = await this.db
+      .select({ bookingId: rentals.bookingId })
+      .from(rentals)
+      .where(eq(rentals.id, rentalId));
+    if (!initial) throw new NotFoundError(RENTAL_MESSAGES.rentalNotFound);
+    return this.db.transaction(async (tx) => {
+      const [booking] = await tx
+        .select()
+        .from(bookings)
+        .where(eq(bookings.id, initial.bookingId))
+        .for("update");
+      const [rental] = await tx
+        .select()
+        .from(rentals)
+        .where(eq(rentals.id, rentalId))
+        .for("update");
+      if (!booking || !rental) throw new NotFoundError(RENTAL_MESSAGES.rentalNotFound);
+      return work(tx, { booking, rental });
+    });
+  }
+
+  findByBookingId(executor: RentalReadExecutor, bookingId: string) {
+    return executor.select().from(rentals).where(eq(rentals.bookingId, bookingId)).limit(1);
+  }
 
   managerAssignment(facilityId: string, userId: string) {
     return new FacilityAssignmentsRepository(this.db).findActiveAssignment(
@@ -166,17 +195,6 @@ export class RentalsRepository {
           .limit(query.limit)
           .offset(query.offset);
         const ids = items.map((item) => item.id);
-        const returnTransfers = await tx
-          .select({
-            id: returnRefunds.id,
-            paymentId: returnRefunds.paymentId,
-            amount: returnRefunds.amount,
-            reference: returnRefunds.reference,
-            confirmedAt: returnRefunds.confirmedAt,
-          })
-          .from(returnRefunds)
-          .where(inArray(returnRefunds.paymentId, ids))
-          .orderBy(asc(returnRefunds.confirmedAt), asc(returnRefunds.id));
         const chargeTransfers = await tx
           .select({
             id: rentalChargeRefunds.id,
@@ -193,7 +211,7 @@ export class RentalsRepository {
             ),
           )
           .orderBy(asc(rentalChargeRefunds.confirmedAt), asc(rentalChargeRefunds.id));
-        return { items, total: total?.value ?? 0, returnTransfers, chargeTransfers };
+        return { items, total: total?.value ?? 0, chargeTransfers };
       },
       { isolationLevel: "repeatable read", accessMode: "read only" },
     );
@@ -305,24 +323,6 @@ export class RentalsRepository {
         ),
       )
       .orderBy(asc(rentalChargeRefunds.confirmedAt), asc(rentalChargeRefunds.id));
-  }
-
-  listReturnRefundsByUserId(rentalId: string, userId: string) {
-    return this.db
-      .select({
-        id: returnRefunds.id,
-        paymentId: returnRefunds.paymentId,
-        amount: returnRefunds.amount,
-        reference: returnRefunds.reference,
-        confirmedAt: returnRefunds.confirmedAt,
-        settlementId: returnRefunds.settlementId,
-      })
-      .from(returnRefunds)
-      .innerJoin(payments, eq(payments.id, returnRefunds.paymentId))
-      .innerJoin(bookings, eq(bookings.id, payments.bookingId))
-      .innerJoin(rentals, eq(rentals.bookingId, bookings.id))
-      .where(and(eq(rentals.id, rentalId), eq(bookings.userId, userId)))
-      .orderBy(asc(returnRefunds.confirmedAt), asc(returnRefunds.id));
   }
 
   async findByIdAndUserId(rentalId: string, userId: string): Promise<RentalDetail | null> {

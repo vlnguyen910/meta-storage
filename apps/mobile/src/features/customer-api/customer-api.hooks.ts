@@ -288,7 +288,10 @@ export function useCustomerRental(owner: string, id: string, go: CustomerNavigat
   const renewalId = savedRenewal.data;
   const renewal = useQuery({
     queryKey: ["renewal", owner, renewalId],
-    queryFn: ({ signal }) => api.renewals.get(renewalId!, signal),
+    queryFn: ({ signal }) => {
+      if (!renewalId) throw new Error();
+      return api.renewals.get(renewalId, signal);
+    },
     enabled: Boolean(renewalId),
     refetchInterval: (q) =>
       !q.state.error && q.state.data?.status === "AWAITING_PAYMENT" && q.state.dataUpdateCount < 60
@@ -324,11 +327,13 @@ export function useCustomerRental(owner: string, id: string, go: CustomerNavigat
     },
   });
   const accept = useMutation({
-    mutationFn: () =>
-      api.renewals.accept(renewalId!, {
+    mutationFn: () => {
+      if (!renewalId || !renewal.data) throw new Error();
+      return api.renewals.accept(renewalId, {
         acceptedTerms: true,
-        termsVersion: renewal.data!.termsVersion,
-      }),
+        termsVersion: renewal.data.termsVersion,
+      });
+    },
     onSuccess: refresh,
   });
   const pay = useMutation({
@@ -354,7 +359,8 @@ export function useCustomerRental(owner: string, id: string, go: CustomerNavigat
   });
   const document = useMutation({
     mutationFn: async (documentId: string) => {
-      const bytes = await api.rentalDocuments.pdfBytes(rental.data!.bookingId, documentId);
+      if (!rental.data) throw new Error();
+      const bytes = await api.rentalDocuments.pdfBytes(rental.data.bookingId, documentId);
       await sharePrivateFile(new Uint8Array(bytes), `${documentId}.pdf`, "application/pdf");
     },
   });

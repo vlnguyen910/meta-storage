@@ -1,6 +1,6 @@
 "use client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { ReportExportQuery } from "@metastorage/contracts";
+import { RENTAL_STATUSES, type ReportExportQuery } from "@metastorage/contracts";
 import { Download, FileChartColumn } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -19,7 +19,7 @@ const schema = z
     type: z.enum(["revenue", "revenue-monthly", "utilization", "rentals"]),
     from: z.string(),
     to: z.string(),
-    status: z.string(),
+    status: z.enum(RENTAL_STATUSES).or(z.literal("")),
   })
   .superRefine((v, ctx) => {
     if (["revenue", "revenue-monthly"].includes(v.type) && (!v.from || !v.to || v.to < v.from))
@@ -40,13 +40,16 @@ export function ManagerReportsPanel({ facilityId }: ManagerFacilityTabProps) {
     month: "2-digit",
     day: "2-digit",
   }).format(new Date());
-  const defaults = {
+  const defaults: z.input<typeof schema> = {
     type: "revenue" as const,
     from: `${today.slice(0, 7)}-01`,
     to: today,
     status: "",
   };
-  const form = useForm({ resolver: zodResolver(schema), defaultValues: defaults });
+  const form = useForm<z.input<typeof schema>>({
+    resolver: zodResolver(schema),
+    defaultValues: defaults,
+  });
   const [filters, setFilters] = useState<ReportExportQuery>({
     type: "revenue",
     facilityId,

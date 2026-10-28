@@ -17,8 +17,6 @@ import {
 import { PricingRepository } from "../pricing/pricing.repository";
 import { RentalLifecycleSettingsRepository } from "../rental-lifecycle-settings/rental-lifecycle-settings.repository";
 import { RentalLifecycleSettingsService } from "../rental-lifecycle-settings/rental-lifecycle-settings.service";
-import { ReturnsRepository } from "../returns/returns.repository";
-import { ReturnsService } from "../returns/returns.service";
 import type { SystemSettingsRepository } from "./system-settings.repository";
 
 export class SystemSettingsService {
@@ -59,10 +57,27 @@ export class SystemSettingsService {
       );
       version = result.version;
     } else if (input.key === "OVERDUE_FEE_RATE") {
-      const result = await new ReturnsService(
-        new ReturnsRepository(this.repository.db),
-      ).configureRate(actor, { rate: input.value, expectedVersion: input.expectedVersion });
-      version = result.version;
+      version = await this.repository.db.transaction(async (tx) => {
+        const before = await this.repository.lock(input.key, tx);
+        if (!before) throw new NotFoundError(m.notFound);
+        if (before.version !== input.expectedVersion) throw new ConflictError(m.stale);
+        const after = await this.repository.save(
+          input.key,
+          input.value,
+          before.version + 1,
+          actor.id,
+          tx,
+        );
+        if (!after) throw new NotFoundError(m.notFound);
+        await this.repository.audit(
+          tx,
+          input.key,
+          actor.id,
+          { value: Number(before.value), version: before.version },
+          { value: Number(after.value), version: after.version },
+        );
+        return after.version;
+      });
     } else if (input.key === "OPENING_HOUR" || input.key === "CLOSING_HOUR") {
       const keys = ["CLOSING_HOUR", "OPENING_HOUR"] as const;
       const result = await this.repository.db.transaction(async (tx) => {
@@ -87,8 +102,6 @@ export class SystemSettingsService {
           tx,
         );
         if (!after) throw new NotFoundError(m.notFound);
-        if (Number(before.value) !== input.value)
-          await this.repository.flagConfirmedReturnAppointments(tx);
         await this.repository.audit(
           tx,
           input.key,

@@ -1,4 +1,5 @@
 "use client";
+import { type RentalStatus, RentalStatusSchema } from "@metastorage/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarClock, Mail, Phone, ReceiptText, UserRound, Warehouse } from "lucide-react";
 import Link from "next/link";
@@ -30,7 +31,7 @@ function Rentals({ facilityId }: ManagerFacilityTabProps) {
   const key = useManagerKey(),
     selected = useSearchParams().get("rentalId");
   const [search, setSearch] = useState(""),
-    [status, setStatus] = useState("ACTIVE"),
+    [status, setStatus] = useState<RentalStatus | "">("ACTIVE"),
     [offset, setOffset] = useState(0);
   const query = useQuery({
     queryKey: [...key, "rentals", facilityId, search, status, offset],
@@ -65,12 +66,13 @@ function Rentals({ facilityId }: ManagerFacilityTabProps) {
             className={operationalField}
             value={status}
             onChange={(event) => {
-              setStatus(event.target.value);
+              const parsedStatus = RentalStatusSchema.safeParse(event.target.value);
+              setStatus(parsedStatus.success ? parsedStatus.data : "");
               setOffset(0);
             }}
           >
             <option value="">{M.all}</option>
-            {["ACTIVE", "RETURN_PENDING", "OVERDUE", "CLOSED", "ABANDONED_REVIEW"].map((s) => (
+            {["ACTIVE", "RETURN_PENDING", "OVERDUE", "CLOSED"].map((s) => (
               <option key={s} value={s}>
                 {M.statuses[s]}
               </option>

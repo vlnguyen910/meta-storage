@@ -1,12 +1,5 @@
-import {
-  and,
-  bookings,
-  type Database,
-  eq,
-  facilityTasks,
-  inArray,
-  returnRequests,
-} from "@metastorage/database";
+import { FacilityTaskStatus } from "@metastorage/contracts/facility-tasks";
+import { and, bookings, type Database, eq, facilityTasks, inArray } from "@metastorage/database";
 
 type WorkConnection = Database | Parameters<Parameters<Database["transaction"]>[0]>[0];
 
@@ -32,20 +25,11 @@ export async function hasOpenAssignedWork(
         .where(
           and(
             eq(facilityTasks.assignedStaffId, userId),
-            inArray(facilityTasks.status, ["ASSIGNED", "IN_PROGRESS"]),
+            inArray(facilityTasks.status, [
+              FacilityTaskStatus.ASSIGNED,
+              FacilityTaskStatus.IN_PROGRESS,
+            ]),
             facilityId ? eq(facilityTasks.facilityId, facilityId) : undefined,
-          ),
-        ),
-    )
-    .unionAll(
-      connection
-        .select({ id: returnRequests.id })
-        .from(returnRequests)
-        .where(
-          and(
-            eq(returnRequests.assignedStaffId, userId),
-            inArray(returnRequests.status, ["PENDING", "CONFIRMED", "INSPECTING", "FAILED"]),
-            facilityId ? eq(returnRequests.facilityId, facilityId) : undefined,
           ),
         ),
     )

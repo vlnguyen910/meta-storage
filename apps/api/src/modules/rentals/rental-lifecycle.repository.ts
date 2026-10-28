@@ -14,6 +14,7 @@ import {
 } from "@metastorage/database";
 
 import type { NotificationTransaction } from "../notifications/lifecycle-notifications.types";
+import type { RentalTransaction } from "./rentals.types";
 
 export async function facilityLifecycleClock(_tx: NotificationTransaction, _facilityId: string) {
   return { timezone: "Asia/Ho_Chi_Minh", reminderTime: "09:00" };
@@ -27,6 +28,12 @@ export class RentalLifecycleRepository {
       .from(systemSettings)
       .where(inArray(systemSettings.key, ["EXPIRY_REMINDER_DAYS", "ABANDONED_REVIEW_DAYS"]));
     return Object.fromEntries(rows.map((row) => [row.key, row.value]));
+  }
+  update(tx: RentalTransaction, id: string, values: Partial<typeof rentals.$inferInsert>) {
+    return tx
+      .update(rentals)
+      .set({ ...values, updatedAt: new Date() })
+      .where(eq(rentals.id, id));
   }
   candidates(
     now: Date,

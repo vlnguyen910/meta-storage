@@ -7,7 +7,6 @@ import {
   inArray,
   pricingChanges,
   queryClient,
-  returnAudit,
   sql,
   systemSettingChanges,
   systemSettings,
@@ -24,7 +23,6 @@ import { PricingRepository } from "../../src/modules/pricing/pricing.repository"
 import { pricingRoutes } from "../../src/modules/pricing/pricing.routes";
 import { RentalLifecycleSettingsRepository } from "../../src/modules/rental-lifecycle-settings/rental-lifecycle-settings.repository";
 import { rentalLifecycleSettingsRoutes } from "../../src/modules/rental-lifecycle-settings/rental-lifecycle-settings.routes";
-import { returnsRoutes } from "../../src/modules/returns/returns.routes";
 import { systemSettingsRoutes } from "../../src/modules/system-settings/system-settings.routes";
 import { createTestUnitType, deleteTestUnitTypes } from "../fixtures/facility-catalog";
 import { assertTestDatabase } from "../fixtures/test-database";
@@ -106,7 +104,6 @@ describe.skipIf(!localUrl)("unified settings using existing local PostgreSQL", (
     await app.register(systemSettingsRoutes, { prefix: "/api" });
     await app.register(rentalLifecycleSettingsRoutes, { prefix: "/api" });
     await app.register(pricingRoutes, { prefix: "/api/business-rules" });
-    await app.register(returnsRoutes, { prefix: "/api" });
     await app.ready();
   });
   afterAll(async () => {
@@ -120,7 +117,6 @@ describe.skipIf(!localUrl)("unified settings using existing local PostgreSQL", (
             .delete(systemSettingChanges)
             .where(inArray(systemSettingChanges.actorId, actors));
           await tx.delete(pricingChanges).where(inArray(pricingChanges.changedBy, actors));
-          await tx.delete(returnAudit).where(inArray(returnAudit.actorId, actors));
           for (const original of originals)
             await tx
               .update(systemSettings)

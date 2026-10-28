@@ -3,6 +3,10 @@ import { RENTAL_CONTRACT_MESSAGES } from "./rentals.messages";
 
 export type * from "./rentals.types";
 
+export const RENTAL_STATUSES = ["ACTIVE", "RETURN_PENDING", "OVERDUE", "CLOSED"] as const;
+export const RentalStatusSchema = z.enum(RENTAL_STATUSES);
+export type RentalStatus = z.infer<typeof RentalStatusSchema>;
+
 export const RentalIdParamsSchema = z.object({ rentalId: z.string().uuid() });
 
 export const FacilityRentalParamsSchema = z.object({ facilityId: z.uuid(), rentalId: z.uuid() });
@@ -12,7 +16,7 @@ export const FacilityRentalHistoryQuerySchema = z.strictObject({
   offset: z.coerce.number().int().nonnegative().default(0),
 });
 export const FacilityRentalListQuerySchema = FacilityRentalHistoryQuerySchema.extend({
-  status: z.enum(["ACTIVE", "RETURN_PENDING", "OVERDUE", "CLOSED"]).optional(),
+  status: RentalStatusSchema.optional(),
   unitTypeId: z.uuid().optional(),
 });
 export type FacilityRentalListQuery = z.infer<typeof FacilityRentalListQuerySchema>;
@@ -33,10 +37,6 @@ export const RentalPageQuerySchema = z
   });
 
 export type RentalPageQuery = z.infer<typeof RentalPageQuerySchema>;
-
-export const RentalStatusSchema = z.string().min(1);
-
-export type RentalStatus = z.infer<typeof RentalStatusSchema>;
 
 export const RentalActionStateSchema = z.object({
   canCancel: z.literal(false),

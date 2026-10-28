@@ -15,10 +15,10 @@ export const pricingChanges = pgTable(
     operation: pricingChangeOperationEnum().notNull(),
     before: jsonb().$type<PricingChangeValues>().notNull(),
     after: jsonb().$type<PricingChangeValues>().notNull(),
-    changedBy: uuid("changed_by")
+    changedBy: uuid()
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
-    changedAt: timestamp("changed_at", { withTimezone: true }).defaultNow().notNull(),
+    changedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [check("pricing_changes_positive_version", sql`${table.version} > 0`)],
 );

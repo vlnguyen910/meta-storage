@@ -1,11 +1,12 @@
 import { z } from "zod";
 import { FACILITY_WORKSPACE_MESSAGES as M } from "./facility-workspace.messages";
+import { RentalStatusSchema } from "./rentals";
 import { SUPPORT_CATEGORIES, SUPPORT_PRIORITIES, SUPPORT_STATUSES } from "./support";
 export const FacilityWorkspaceQuerySchema = z
   .object({
     facilityId: z.string().uuid(),
     search: z.string().trim().max(200).optional(),
-    status: z.string().max(50).optional(),
+    status: RentalStatusSchema.optional(),
     limit: z.coerce.number().int().min(1).max(100).default(20),
     offset: z.coerce.number().int().nonnegative().default(0),
   })

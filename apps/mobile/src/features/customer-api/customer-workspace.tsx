@@ -30,7 +30,7 @@ import {
 export function CustomerWorkspace({ owner }: { owner: string }) {
   const client = useQueryClient();
   const [stack, setStack] = useState<CustomerRoute[]>([{ screen: "home" }]);
-  const route = stack.at(-1)!;
+  const route = stack.at(-1) ?? { screen: "home" as const };
   const go = (next: CustomerRoute) => setStack((s) => [...s, next]);
   useEffect(() => {
     clearPrivateFiles();

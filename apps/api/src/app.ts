@@ -28,7 +28,6 @@ import { rentalChargesRoutes } from "./modules/rental-charges/rental-charges.rou
 import { rentalLifecycleSettingsRoutes } from "./modules/rental-lifecycle-settings/rental-lifecycle-settings.routes";
 import { rentalsRoutes } from "./modules/rentals/rentals.routes";
 import { reportsRoutes } from "./modules/reports/reports.routes";
-import { returnsRoutes } from "./modules/returns/returns.routes";
 import { storageUnitsRoutes } from "./modules/storage-units/storage-units.routes";
 import { supportRoutes } from "./modules/support/support.routes";
 import { systemSettingsRoutes } from "./modules/system-settings/system-settings.routes";
@@ -82,7 +81,6 @@ export function buildApp(): FastifyInstance {
   app.register(reportsRoutes, { prefix: "/api/reports" });
   app.register(storageUnitsRoutes, { prefix: "/api/storage-units" });
   app.register(storageUnitsRoutes, { prefix: "/api/units" });
-  app.register(returnsRoutes, { prefix: "/api" });
   app.register(rentalLifecycleSettingsRoutes, { prefix: "/api" });
   app.register(systemSettingsRoutes, { prefix: "/api" });
   app.register(supportRoutes, { prefix: "/api/support" });

@@ -15,9 +15,6 @@ import {
   payments,
   rentalPriceRanges,
   rentals,
-  returnChecklistVersions,
-  returnInspections,
-  returnRequests,
   storageUnits,
   systemSettings,
   unitAssignments,
@@ -167,16 +164,6 @@ const FLOW3_IDS = {
     "85000000-0000-4000-8000-000000000005",
     "85000000-0000-4000-8000-000000000006",
   ],
-  requests: [
-    "86000000-0000-4000-8000-000000000001",
-    "86000000-0000-4000-8000-000000000002",
-    "86000000-0000-4000-8000-000000000003",
-    "86000000-0000-4000-8000-000000000004",
-    "86000000-0000-4000-8000-000000000005",
-    "86000000-0000-4000-8000-000000000006",
-  ],
-  inspections: ["87000000-0000-4000-8000-000000000001"],
-  checklist: "88000000-0000-4000-8000-000000000001",
   units: [
     "70000000-0000-4000-8000-000000000019",
     "70000000-0000-4000-8000-000000000020",
@@ -194,33 +181,6 @@ const FLOW3_BOOKING_CODES = [
   "DEMO-FLOW3-ACTIVE-2",
   "DEMO-FLOW3-RETURN-PENDING-2",
 ];
-const FLOW3_DEMO_CHECKLIST = [
-  {
-    code: "DEMO_REMAINING_PROPERTY",
-    label: "Tài sản còn lại đã được xử lý hoặc bàn giao lưu giữ",
-    group: "REMAINING_PROPERTY",
-    serious: false,
-  },
-  {
-    code: "DEMO_UNIT_CONDITION",
-    label: "Tình trạng Unit không có lỗi nghiêm trọng",
-    group: "UNIT_CONDITION",
-    serious: true,
-  },
-  {
-    code: "DEMO_HYGIENE_SAFETY",
-    label: "Vệ sinh và an toàn đạt yêu cầu",
-    group: "HYGIENE_SAFETY",
-    serious: true,
-  },
-  {
-    code: "DEMO_OTHER_ISSUES",
-    label: "Không còn vấn đề khác cần xử lý",
-    group: "EVIDENCE",
-    serious: false,
-  },
-] as const;
-
 function getSeedNow() {
   const configured = process.env.SEED_NOW;
   if (!configured) return new Date();
@@ -903,32 +863,11 @@ async function seedFlow3Rentals(seedNow: Date) {
     .select()
     .from(unitTypes)
     .where(and(eq(unitTypes.code, "UT-2M"), eq(unitTypes.facilityId, facility.id)));
-  const [customer, staff, manager, , admin] = SEED_USERS;
-  if (!facility || !type || !customer || !staff || !manager || !admin)
+  const [customer, staff, manager] = SEED_USERS;
+  if (!facility || !type || !customer || !staff || !manager)
     throw new Error("Flow 3 fixture prerequisites are missing");
   const slots = await db.select().from(checkInSlots).orderBy(asc(checkInSlots.startTime));
   if (slots.length < 3) throw new Error("At least three shared return/check-in slots are required");
-  const existingChecklist = await db
-    .select()
-    .from(returnChecklistVersions)
-    .orderBy(asc(returnChecklistVersions.version));
-  const checklist = existingChecklist.at(-1);
-  const checklistVersion =
-    checklist ??
-    (
-      await db
-        .insert(returnChecklistVersions)
-        .values({
-          id: FLOW3_IDS.checklist,
-          version: 1,
-          items: [...FLOW3_DEMO_CHECKLIST],
-          createdBy: admin.id,
-        })
-        .onConflictDoNothing()
-        .returning()
-    )[0];
-  if (!checklistVersion) throw new Error("Flow 3 checklist fixture could not be created");
-
   const definitions = [
     { status: "ACTIVE", expiryDays: 20, requestStatus: null, requestDay: 2, slotIndex: 0 },
     {
@@ -1037,6 +976,25 @@ async function seedFlow3Rentals(seedNow: Date) {
           expectedEndAt,
           actualReturnAt,
           closedAt: actualReturnAt,
+          returnSlotId: scenario.requestStatus ? slots[scenario.slotIndex]?.id : null,
+          returnDate: scenario.requestStatus
+            ? localDate(shiftDays(seedNow, scenario.requestDay))
+            : null,
+          returnStartsAt: scenario.requestStatus
+            ? localSlot(
+                localDate(shiftDays(seedNow, scenario.requestDay)),
+                slots[scenario.slotIndex]?.startTime ?? "00:00",
+              )
+            : null,
+          returnEndsAt: scenario.requestStatus
+            ? localSlot(
+                localDate(shiftDays(seedNow, scenario.requestDay)),
+                slots[scenario.slotIndex]?.endTime ?? "00:00",
+              )
+            : null,
+          returnTimezone: scenario.requestStatus ? "Asia/Ho_Chi_Minh" : null,
+          returnStatus: scenario.requestStatus,
+          returnReason: scenario.requestStatus ? "Demo Flow 3 return request" : null,
           depositAmount: String(type.monthlyPrice),
         })
         .onConflictDoUpdate({
@@ -1046,6 +1004,25 @@ async function seedFlow3Rentals(seedNow: Date) {
             expectedEndAt,
             actualReturnAt,
             closedAt: actualReturnAt,
+            returnSlotId: scenario.requestStatus ? slots[scenario.slotIndex]?.id : null,
+            returnDate: scenario.requestStatus
+              ? localDate(shiftDays(seedNow, scenario.requestDay))
+              : null,
+            returnStartsAt: scenario.requestStatus
+              ? localSlot(
+                  localDate(shiftDays(seedNow, scenario.requestDay)),
+                  slots[scenario.slotIndex]?.startTime ?? "00:00",
+                )
+              : null,
+            returnEndsAt: scenario.requestStatus
+              ? localSlot(
+                  localDate(shiftDays(seedNow, scenario.requestDay)),
+                  slots[scenario.slotIndex]?.endTime ?? "00:00",
+                )
+              : null,
+            returnTimezone: scenario.requestStatus ? "Asia/Ho_Chi_Minh" : null,
+            returnStatus: scenario.requestStatus,
+            returnReason: scenario.requestStatus ? "Demo Flow 3 return request" : null,
           },
         });
       await tx
@@ -1087,91 +1064,6 @@ async function seedFlow3Rentals(seedNow: Date) {
             endsAt: expectedEndAt,
           },
         });
-      if (!scenario.requestStatus) return;
-      const requestId = FLOW3_IDS.requests[index];
-      if (!requestId) return;
-      const date = localDate(shiftDays(seedNow, scenario.requestDay));
-      const slot = slots[scenario.slotIndex];
-      if (!slot) throw new Error(`Return slot ${scenario.slotIndex} is missing`);
-      const startsAt = localSlot(date, slot.startTime);
-      const endsAt = localSlot(date, slot.endTime);
-      await tx
-        .insert(returnRequests)
-        .values({
-          id: requestId,
-          rentalId,
-          facilityId: facility.id,
-          slotId: slot.id,
-          date,
-          startsAt,
-          endsAt,
-          timezone: "Asia/Ho_Chi_Minh",
-          status: scenario.requestStatus,
-          assignedStaffId: scenario.requestStatus === "PENDING" ? null : staff.id,
-          reason: "Demo Flow 3 return request",
-          createdBy: customer.id,
-        })
-        .onConflictDoUpdate({
-          target: returnRequests.id,
-          set: {
-            rentalId,
-            facilityId: facility.id,
-            slotId: slot.id,
-            date,
-            startsAt,
-            endsAt,
-            timezone: "Asia/Ho_Chi_Minh",
-            status: scenario.requestStatus,
-            assignedStaffId: scenario.requestStatus === "PENDING" ? null : staff.id,
-            reason: "Demo Flow 3 return request",
-          },
-        });
-      if (scenario.requestStatus === "COMPLETED") {
-        const inspectionId = FLOW3_IDS.inspections[0];
-        if (!inspectionId || !actualReturnAt)
-          throw new Error("Closed rental inspection fixture is incomplete");
-        await tx
-          .insert(returnInspections)
-          .values({
-            id: inspectionId,
-            requestId,
-            attempt: 1,
-            checklistVersionId: checklistVersion.id,
-            definition: checklistVersion.items,
-            results: checklistVersion.items.map((item) => ({
-              code: item.code,
-              issue: false,
-              note: "Demo inspection",
-              photoIds: [],
-            })),
-            status: "PASS",
-            propertyDisposition: "NONE",
-            createdBy: staff.id,
-            completedBy: staff.id,
-            createdAt: actualReturnAt,
-            completedAt: actualReturnAt,
-          })
-          .onConflictDoUpdate({
-            target: returnInspections.id,
-            set: {
-              requestId,
-              checklistVersionId: checklistVersion.id,
-              definition: checklistVersion.items,
-              results: checklistVersion.items.map((item) => ({
-                code: item.code,
-                issue: false,
-                note: "Demo inspection",
-                photoIds: [],
-              })),
-              status: "PASS",
-              createdBy: staff.id,
-              completedBy: staff.id,
-              createdAt: actualReturnAt,
-              completedAt: actualReturnAt,
-              propertyDisposition: "NONE",
-            },
-          });
-      }
     });
   }
 }

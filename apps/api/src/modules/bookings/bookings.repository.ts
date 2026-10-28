@@ -6,6 +6,7 @@ import {
   type EligibleUnit,
   type FacilityStaffMember,
   FacilityTaskReferenceType,
+  FacilityTaskStatus,
   FacilityTaskType,
   type PhysicalUnitAssignment,
   type StaffTasksQuery,
@@ -28,8 +29,9 @@ import {
   getTableColumns,
   gt,
   gte,
-  handoverInspections,
+  InspectionType,
   inArray,
+  inspections,
   isNotNull,
   isNull,
   lt,
@@ -120,6 +122,14 @@ function toCustomerBooking(row: CustomerBookingQueryRow) {
 
 export class BookingsRepository {
   constructor(private readonly db: Database) {}
+
+  findActiveUnitAssignment(tx: BookingTransaction, bookingId: string) {
+    return tx
+      .select({ physicalUnitId: unitAssignments.physicalUnitId })
+      .from(unitAssignments)
+      .where(and(eq(unitAssignments.bookingId, bookingId), eq(unitAssignments.status, "ACTIVE")))
+      .limit(1);
+  }
 
   private customerBookingQuery() {
     const latestPayments = this.db
@@ -936,29 +946,17 @@ export class BookingsRepository {
     if (!bookingIds.length) return [];
     return this.db
       .select({
-        bookingId: handoverInspections.bookingId,
-        status: handoverInspections.status,
-        handedOverAt: handoverInspections.handedOverAt,
+        bookingId: inspections.bookingId,
+        status: inspections.status,
       })
-      .from(handoverInspections)
-      .innerJoin(bookings, eq(bookings.id, handoverInspections.bookingId))
-      .innerJoin(
-        unitAssignments,
+      .from(inspections)
+      .where(
         and(
-          eq(unitAssignments.id, handoverInspections.unitAssignmentId),
-          eq(unitAssignments.status, "ACTIVE"),
+          eq(inspections.inspectionType, InspectionType.CHECK_IN),
+          inArray(inspections.bookingId, bookingIds),
         ),
       )
-      .innerJoin(
-        checkInVerifications,
-        and(
-          eq(checkInVerifications.id, handoverInspections.verificationId),
-          inArray(checkInVerifications.status, ["VERIFIED", "CONSUMED"]),
-          eq(checkInVerifications.staffId, bookings.assignedStaffId),
-        ),
-      )
-      .where(inArray(handoverInspections.bookingId, bookingIds))
-      .orderBy(desc(handoverInspections.updatedAt));
+      .orderBy(desc(inspections.inspectDoneAt), desc(inspections.id));
   }
 
   async assignStaff(tx: BookingTransaction, bookingId: string, staffId: string) {
@@ -1144,13 +1142,16 @@ export async function closeBookingBeforeCheckIn(
     .where(and(eq(bookings.id, bookingId), eq(bookings.status, "CONFIRMED")));
   await tx
     .update(facilityTasks)
-    .set({ status: "CANCELLED", updatedAt: now })
+    .set({ status: FacilityTaskStatus.CANCELLED, updatedAt: now })
     .where(
       and(
         eq(facilityTasks.type, FacilityTaskType.CHECK_IN_HANDOVER),
         eq(facilityTasks.referenceType, FacilityTaskReferenceType.BOOKING),
         eq(facilityTasks.referenceId, bookingId),
-        inArray(facilityTasks.status, ["ASSIGNED", "IN_PROGRESS"]),
+        inArray(facilityTasks.status, [
+          FacilityTaskStatus.ASSIGNED,
+          FacilityTaskStatus.IN_PROGRESS,
+        ]),
       ),
     );
   for (const assignment of releasedAssignments.sort((a, b) =>

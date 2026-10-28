@@ -39,8 +39,8 @@ export type ManualRefundConfirmation = {
 export type PaymentStatusResponse = {
   paymentId: string;
   status: PaymentStatus;
-  provider: string;
-  paymentCode: string;
+  provider: string | null;
+  paymentCode: string | null;
   chargeId?: string;
   transferInstructions?: SepayPaymentInstructions;
   checkoutUrl?: string;

@@ -91,9 +91,9 @@ export const FacilityTaskDashboardSummarySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   pendingCount: z.number().int().nonnegative(),
   byType: z.object({
-    CHECK_IN_HANDOVER: z.number().int().nonnegative(),
-    UNIT_INSPECTION: z.number().int().nonnegative(),
-    HANDLE_SUPPORT: z.number().int().nonnegative(),
+    [FacilityTaskType.CHECK_IN_HANDOVER]: z.number().int().nonnegative(),
+    [FacilityTaskType.UNIT_INSPECTION]: z.number().int().nonnegative(),
+    [FacilityTaskType.HANDLE_SUPPORT]: z.number().int().nonnegative(),
   }),
 });
 
