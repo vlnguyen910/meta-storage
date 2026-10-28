@@ -867,7 +867,7 @@ async function seedFlow3Rentals(seedNow: Date) {
   if (!facility || !type || !customer || !staff || !manager)
     throw new Error("Flow 3 fixture prerequisites are missing");
   const slots = await db.select().from(checkInSlots).orderBy(asc(checkInSlots.startTime));
-  if (slots.length < 3) throw new Error("At least three shared return/check-in slots are required");
+  if (slots.length < 4) throw new Error("At least four shared return/check-in slots are required");
   const definitions = [
     { status: "ACTIVE", expiryDays: 20, requestStatus: null, requestDay: 2, slotIndex: 0 },
     {
@@ -1145,6 +1145,14 @@ async function seed() {
   const nodeEnv = process.env.NODE_ENV ?? loadApiEnv().NODE_ENV;
   if (nodeEnv?.trim().toLowerCase() === "production")
     throw new Error("Local demo seeding is disabled in production");
+  const [schema] = await queryClient<{ bookings: string | null }[]>`
+    SELECT to_regclass('public.bookings') AS bookings
+  `;
+  if (!schema?.bookings) {
+    throw new Error(
+      "The database is missing public.bookings. Apply the current database migrations before seeding; this database still has the legacy schema.",
+    );
+  }
   const seedNow = getSeedNow();
   console.log("Starting local database seeding via raw SQL client...");
 

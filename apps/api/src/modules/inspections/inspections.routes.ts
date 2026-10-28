@@ -10,19 +10,18 @@ import { z } from "zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
 import { requireRole } from "../auth/auth.guard";
-import { BookingsRepository } from "../bookings/bookings.repository";
 import { FacilitiesRepository } from "../facilities/facilities.repository";
 import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
 import { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
 import { FacilityTasksRepository } from "../facility-tasks/facility-tasks.repository";
 import { MediaAssetsRepository } from "../media-assets/media-assets.repository";
 import { MediaAssetsService } from "../media-assets/media-assets.service";
-import { RentalsRepository } from "../rentals/rentals.repository";
 import { INSPECTIONS_API_MESSAGES as m } from "./inspections.messages";
 import { InspectionsRepository } from "./inspections.repository";
 import { InspectionsService } from "./inspections.service";
 
 const inspectionParams = z.object({ id: z.string().uuid() });
+const bookingParams = z.object({ bookingId: z.string().uuid() });
 
 export const inspectionsRoutes: FastifyPluginAsync = async (app) => {
   const typed = app.withTypeProvider<ZodTypeProvider>();
@@ -35,11 +34,53 @@ export const inspectionsRoutes: FastifyPluginAsync = async (app) => {
   const media = new MediaAssetsService(new MediaAssetsRepository(app.db));
   const service = new InspectionsService(
     new InspectionsRepository(app.db),
-    new BookingsRepository(app.db),
     tasks,
-    new RentalsRepository(app.db),
     assignments,
     media,
+  );
+
+  typed.get(
+    "/inspections/bookings/:bookingId",
+    {
+      preHandler: [requireRole(UserRole.FACILITY_STAFF)],
+      schema: {
+        tags: ["Inspections"],
+        summary: m.bookingHistorySummary,
+        params: bookingParams,
+      },
+    },
+    async (request) => {
+      const user = request.user;
+      if (!user) throw new UnauthorizedError();
+      return successResponse(
+        await service.historyForBooking(request.params.bookingId, {
+          id: user.id,
+          role: user.role as UserRole,
+        }),
+      );
+    },
+  );
+
+  typed.post(
+    "/inspections/bookings/:bookingId",
+    {
+      preHandler: [requireRole(UserRole.FACILITY_STAFF)],
+      schema: {
+        tags: ["Inspections"],
+        summary: m.startBookingSummary,
+        params: bookingParams,
+      },
+    },
+    async (request) => {
+      const user = request.user;
+      if (!user) throw new UnauthorizedError();
+      return successResponse(
+        await service.startForBooking(request.params.bookingId, {
+          id: user.id,
+          role: user.role as UserRole,
+        }),
+      );
+    },
   );
 
   typed.get(

@@ -123,7 +123,7 @@ export const InspectionRecordSchema = z.object({
   storageUnitId: z.string().uuid(),
   unitCode: z.string(),
   rentalId: z.string().uuid().nullable(),
-  bookingId: z.string().uuid().nullable(),
+  reservationId: z.string().uuid().nullable(),
   inspectedBy: z.string().uuid(),
   taskId: z.string().uuid(),
   facilityId: z.string().uuid(),
