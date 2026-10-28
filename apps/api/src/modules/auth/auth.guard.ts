@@ -1,4 +1,4 @@
-import type { Role } from "@metastorage/database";
+import type { UserRole } from "@metastorage/contracts";
 import { fromNodeHeaders } from "better-auth/node";
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
@@ -38,7 +38,7 @@ export async function optionalAuth(request: FastifyRequest) {
   request.session = sessionData.session;
 }
 
-export function requireRole(...allowedRoles: Role[]) {
+export function requireRole(...allowedRoles: UserRole[]) {
   return async function requireRolePreHandler(request: FastifyRequest, reply: FastifyReply) {
     await requireAuth(request, reply);
     // requireAuth always sets the user when it resolves.
