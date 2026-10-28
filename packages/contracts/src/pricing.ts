@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { PRICING_MESSAGES as m } from "./pricing.messages";
 
+export { PricingChangeOperation } from "@metastorage/database/schema-domain";
 export { PRICING_MESSAGES } from "./pricing.messages";
 export type {
   PricingChange,
@@ -9,12 +10,6 @@ export type {
   PricingUpdateResult,
   RentalPriceRangeDto,
 } from "./pricing.types";
-
-export const PricingChangeOperation = {
-  DEPOSIT_POLICY: "DEPOSIT_POLICY",
-  UNIT_TYPE_PRICE: "UNIT_TYPE_PRICE",
-  RENTAL_PRICE_RANGE: "RENTAL_PRICE_RANGE",
-} as const;
 
 const version = z
   .number({ error: m.invalidVersion })

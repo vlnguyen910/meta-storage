@@ -4,35 +4,21 @@ import { RENTAL_CHARGE_CONTRACT_MESSAGES as m } from "./rental-charges.messages"
 export { RENTAL_CHARGE_CONTRACT_MESSAGES } from "./rental-charges.messages";
 export type * from "./rental-charges.types";
 
-export const RentalChargeSource = {
-  EXTRA: "EXTRA",
-  RETURN_DEBT: "RETURN_DEBT",
-  RENEWAL: "RENEWAL",
-} as const;
-export type RentalChargeSource = (typeof RentalChargeSource)[keyof typeof RentalChargeSource];
+import {
+  RentalChargeAdjustmentDirection,
+  RentalChargeCategory,
+  RentalChargeSource,
+  RentalChargeStatus,
+} from "@metastorage/database/schema-domain";
 
-export const RentalChargeCategory = {
-  LOCK_REPLACEMENT: "LOCK_REPLACEMENT",
-  KEY_REPLACEMENT: "KEY_REPLACEMENT",
-  ACCESS_DEVICE_REPLACEMENT: "ACCESS_DEVICE_REPLACEMENT",
-  FACILITY_SERVICE: "FACILITY_SERVICE",
-  CLEANING: "CLEANING",
-  RETURN_DEBT: "RETURN_DEBT",
-  RENEWAL_RENT: "RENEWAL_RENT",
-} as const;
-export type RentalChargeCategory = (typeof RentalChargeCategory)[keyof typeof RentalChargeCategory];
-
-export const RentalChargeStatus = {
-  PENDING_APPROVAL: "PENDING_APPROVAL",
-  OPEN: "OPEN",
-  DISPUTED: "DISPUTED",
-  PAID: "PAID",
-  VOID: "VOID",
-  REFUND_DUE: "REFUND_DUE",
-  PARTIALLY_REFUNDED: "PARTIALLY_REFUNDED",
-  REFUNDED: "REFUNDED",
-} as const;
-export type RentalChargeStatus = (typeof RentalChargeStatus)[keyof typeof RentalChargeStatus];
+export {
+  RentalChargeAdjustmentDirection,
+  RentalChargeCategory,
+  RentalChargeEventType,
+  RentalChargeRefundStatus,
+  RentalChargeSource,
+  RentalChargeStatus,
+} from "@metastorage/database/schema-domain";
 
 export const RentalChargeDecisionAction = {
   APPROVE: "APPROVE",
@@ -40,39 +26,6 @@ export const RentalChargeDecisionAction = {
 } as const;
 export type RentalChargeDecisionAction =
   (typeof RentalChargeDecisionAction)[keyof typeof RentalChargeDecisionAction];
-
-export const RentalChargeAdjustmentDirection = {
-  INCREASE: "INCREASE",
-  REDUCTION: "REDUCTION",
-} as const;
-export type RentalChargeAdjustmentDirection =
-  (typeof RentalChargeAdjustmentDirection)[keyof typeof RentalChargeAdjustmentDirection];
-
-export const RentalChargeEventType = {
-  SUBMITTED: "SUBMITTED",
-  APPROVED: "APPROVED",
-  REJECTED: "REJECTED",
-  DISPUTED: "DISPUTED",
-  DISPUTE_UPHELD: "DISPUTE_UPHELD",
-  DISPUTE_REDUCED: "DISPUTE_REDUCED",
-  DISPUTE_WAIVED: "DISPUTE_WAIVED",
-  ADJUSTED: "ADJUSTED",
-  PAID: "PAID",
-  REFUND_CREATED: "REFUND_CREATED",
-  REFUND_CONFIRMED: "REFUND_CONFIRMED",
-  REFUND_CANCELLED: "REFUND_CANCELLED",
-  VOIDED: "VOIDED",
-} as const;
-export type RentalChargeEventType =
-  (typeof RentalChargeEventType)[keyof typeof RentalChargeEventType];
-
-export const RentalChargeRefundStatus = {
-  PENDING: "PENDING",
-  CONFIRMED: "CONFIRMED",
-  CANCELLED: "CANCELLED",
-} as const;
-export type RentalChargeRefundStatus =
-  (typeof RentalChargeRefundStatus)[keyof typeof RentalChargeRefundStatus];
 
 const positiveAmount = z
   .number()

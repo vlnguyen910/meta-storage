@@ -1,10 +1,10 @@
+import type { SystemSettingSnapshot } from "@metastorage/database/schema-domain";
 import type { SystemSettingKeyValue } from "./system-settings";
 
-export type SystemSettingValue = number | string | boolean;
-export interface SystemSettingSnapshot {
-  value: SystemSettingValue;
-  version: number;
-}
+export type {
+  SystemSettingSnapshot,
+  SystemSettingValue,
+} from "@metastorage/database/schema-domain";
 export interface SystemSettingDto extends SystemSettingSnapshot {
   key: SystemSettingKeyValue;
   description: string;

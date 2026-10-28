@@ -14,18 +14,9 @@ export interface PricingConfiguration {
   }[];
 }
 
-export type PricingChangeValues =
-  | { depositMonths: number }
-  | { unitTypeId: string; monthlyPrice: number }
-  | { facilityId: string; unitTypeId: string; priceRangeId: string; monthlyPrice: number | null }
-  | {
-      priceRangeId: string;
-      code: string;
-      name: string;
-      minMonthlyPrice: number | null;
-      maxMonthlyPrice: number | null;
-      isActive: boolean;
-    };
+import type { PricingChangeValues } from "@metastorage/database/schema-domain";
+
+export type { PricingChangeValues } from "@metastorage/database/schema-domain";
 
 export interface PricingChange {
   id: string;

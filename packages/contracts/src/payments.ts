@@ -25,24 +25,10 @@ export const BookingPaymentInputSchema = z.object({
 });
 export type BookingPaymentInput = z.infer<typeof BookingPaymentInputSchema>;
 
-export const PaymentStatus = {
-  PENDING: "PENDING",
-  SUCCEEDED: "SUCCEEDED",
-  FAILED: "FAILED",
-  REFUND_PENDING: "REFUND_PENDING",
-  REFUNDED: "REFUNDED",
-} as const;
-export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
-export const PAYMENT_STATUSES = Object.values(PaymentStatus);
-export const PAYMENT_REFUND_REASONS = [
-  "NO_CAPACITY",
-  "CHECK_IN_CLOSED",
-  "OFFERING_UNAVAILABLE",
-  "CUSTOMER_CANCELLATION",
-  "NO_SHOW",
-] as const;
-export const PaymentRefundReasonSchema = z.enum(PAYMENT_REFUND_REASONS);
-export type PaymentRefundReason = z.infer<typeof PaymentRefundReasonSchema>;
+import { PaymentRefundReason, PaymentStatus } from "@metastorage/database/schema-domain";
+
+export { PaymentRefundReason, PaymentStatus } from "@metastorage/database/schema-domain";
+export const PaymentRefundReasonSchema = z.enum(PaymentRefundReason);
 
 export const ManualRefundQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
