@@ -39,6 +39,7 @@ describe("LoginForm", () => {
     expect(screen.getByText("Ghi nhớ đăng nhập trên thiết bị này")).toBeInTheDocument();
     expect(screen.getByText("Quên mật khẩu?")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Đăng nhập" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Đăng ký ngay" })).toHaveAttribute("href", "/register");
   });
 
   it("toggles password visibility when clicking toggle button", async () => {
