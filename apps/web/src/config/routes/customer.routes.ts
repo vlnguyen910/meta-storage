@@ -5,7 +5,7 @@ export const customerRoutes = {
   dashboard: "/customer/dashboard",
   facilities: "/customer/facilities",
   reservations: "/customer/reservations",
-  newReservation: "/customer/reservations/new",
+  newReservation: "/customer/booking/new",
   reservation: (reservationId: string) => `/customer/reservations/${reservationId}`,
   rentals: "/customer/storage",
   transactions: "/customer/transactions",
