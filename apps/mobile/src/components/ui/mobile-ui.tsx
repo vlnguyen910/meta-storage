@@ -3,7 +3,7 @@ import type { MobileButtonProps, MobileCardProps, MobileFieldProps } from "./mob
 
 export function Card({ children, title }: MobileCardProps) {
   return (
-    <View className="mb-4 rounded-[4px] border border-[#BFCAC4] bg-white p-4 shadow-sm">
+    <View className="mb-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       {title ? (
         <Text accessibilityRole="header" className="mb-3 text-lg font-bold text-[#131B2E]">
           {title}
@@ -30,7 +30,7 @@ export function Button({
         accessibilityState={{ disabled: !!disabled }}
         disabled={disabled}
         onPress={onPress}
-        className={`min-h-12 justify-center rounded-[4px] border px-4 py-3 ${disabled ? "border-[#BFCAC4] bg-[#E8EEEA]" : danger ? "border-red-700 bg-red-50" : secondary ? "border-[#BFCAC4] bg-white" : "border-[#125345] bg-[#125345]"}`}
+        className={`min-h-12 justify-center rounded-xl border px-4 py-3 ${disabled ? "border-slate-200 bg-[#E8EEEA]" : danger ? "border-red-700 bg-red-50" : secondary ? "border-slate-200 bg-white" : "border-[#125345] bg-[#125345]"}`}
       >
         <Text
           className={`text-center text-[15px] font-semibold ${disabled ? "text-[#65756C]" : danger ? "text-red-800" : secondary ? "text-[#125345]" : "text-white"}`}
@@ -51,7 +51,7 @@ export function Field({ label, error, hint, ref, ...props }: MobileFieldProps) {
         accessibilityLabel={label}
         placeholderTextColor="#66756C"
         {...props}
-        className={`min-h-12 rounded-[4px] border bg-white px-3 py-3 text-[16px] text-[#131B2E] ${error ? "border-red-700" : "border-[#BFCAC4]"}`}
+        className={`min-h-12 rounded-xl border bg-white px-3 py-3 text-[16px] text-[#131B2E] ${error ? "border-red-700" : "border-slate-200"}`}
       />
       {error ? (
         <Text accessibilityLiveRegion="polite" className="mt-1 text-sm text-red-700">
@@ -66,7 +66,7 @@ export function Field({ label, error, hint, ref, ...props }: MobileFieldProps) {
 export function Notice({ children, error = false }: { children: string; error?: boolean }) {
   return (
     <View
-      className={`mb-4 rounded-[4px] border p-3 ${error ? "border-red-300 bg-red-50" : "border-[#BFCAC4] bg-[#E8F3EF]"}`}
+      className={`mb-4 rounded-xl border p-3 ${error ? "border-red-300 bg-red-50" : "border-slate-200 bg-[#E8F3EF]"}`}
     >
       <Text
         accessibilityLiveRegion="polite"
@@ -81,7 +81,9 @@ export function Row({ label, value }: { label: string; value: string }) {
   return (
     <View className="mb-2 flex-row flex-wrap justify-between gap-2 border-b border-[#E8EEEA] pb-2">
       <Text className="text-sm text-[#52635A]">{label}</Text>
-      <Text className="max-w-[65%] text-right text-sm font-semibold text-[#131B2E]">{value}</Text>
+      <Text className="min-w-0 flex-1 text-right text-sm font-semibold text-[#131B2E]">
+        {value}
+      </Text>
     </View>
   );
 }

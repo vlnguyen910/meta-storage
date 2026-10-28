@@ -2,10 +2,10 @@ import { expoClient } from "@better-auth/expo/client";
 import { createAuthClient } from "better-auth/react";
 import * as SecureStore from "expo-secure-store";
 
-const apiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api";
+import { API_BASE_URL } from "./runtime-config";
 
 export const authClient = createAuthClient({
-  baseURL: `${apiBaseUrl}/auth`,
+  baseURL: `${API_BASE_URL}/auth`,
   plugins: [
     expoClient({
       scheme: "metastorage",

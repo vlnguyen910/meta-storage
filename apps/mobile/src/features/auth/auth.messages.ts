@@ -4,7 +4,8 @@ export const AUTH_MESSAGES = {
   termsRequired: "Vui lòng đồng ý với điều khoản sử dụng và chính sách bảo mật.",
   verificationCallbackReceived: "Đã mở liên kết xác thực. Hãy đăng nhập để kiểm tra kết quả.",
   // Brand & General
-  brandName: "storeX",
+  brandName: "metastorage",
+  back: "Trở lại",
   brandSubtitle: "Hệ thống kho tự quản vật lý tại Việt Nam",
   brandStorageSystem: "Hệ thống kho lưu trữ tự quản vật lý Việt Nam.",
   requestFailed: "Không thể hoàn tất yêu cầu. Vui lòng thử lại.",
@@ -22,7 +23,7 @@ export const AUTH_MESSAGES = {
   // Login (M-A01)
   loginTitle: "Đăng nhập hệ thống",
   loginSubtitle:
-    "Dành cho Khách thuê kho (Customer) và Nhân viên cơ sở (FS) trực thuộc hệ thống storeX.",
+    "Dành cho Khách thuê kho (Customer) và Nhân viên cơ sở (FS) trực thuộc hệ thống metastorage.",
   emailLabel: "Địa chỉ email",
   emailTagCustomerFS: "Khách hàng hoặc FS",
   emailPlaceholder: "customer@example.test",
@@ -40,7 +41,7 @@ export const AUTH_MESSAGES = {
   dontHaveAccount: "Chưa có tài khoản?",
   dontHaveAccountDesc: "Đăng ký tài khoản để thuê kho và quản lý buồng chứa",
   registerNow: "Đăng ký ngay",
-  continueAsGuest: "Tiếp tục tìm kho với tư cách Khách vãng lai (Guest)",
+  continueAsGuest: "Tiếp tục tìm kho",
   troubleshootLoginTitle: "Hướng dẫn xử lý sự cố đăng nhập",
   troubleshootStep1:
     "1. Quên mật khẩu: Bấm liên kết 'Quên mật khẩu?' ở trên để nhận email thiết lập lại mật khẩu an toàn.",
@@ -59,7 +60,7 @@ export const AUTH_MESSAGES = {
   registerBadge: "KHÁCH HÀNG CÁ NHÂN & GIA ĐÌNH",
   registerTitle: "Đăng ký tài khoản",
   registerSubtitle:
-    "Tạo tài khoản thuê kho lưu trữ cá nhân tại hệ thống storeX để quản lý buồng kho, đặt lịch nhận phòng và theo dõi hợp đồng.",
+    "Tạo tài khoản thuê kho lưu trữ cá nhân tại hệ thống metastorage để quản lý buồng kho, đặt lịch nhận phòng và theo dõi hợp đồng.",
   fullNameLabel: "Họ và tên",
   fullNamePlaceholder: "Ví dụ: Nguyễn Minh Anh",
   phoneLabel: "Số điện thoại di động",

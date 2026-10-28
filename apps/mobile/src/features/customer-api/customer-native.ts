@@ -1,16 +1,15 @@
-import { CUSTOMER_WORKSPACE as M } from "@metastorage/shared";
 import * as FileSystem from "expo-file-system";
 import * as SecureStore from "expo-secure-store";
 import * as Sharing from "expo-sharing";
 import * as WebBrowser from "expo-web-browser";
 import { Platform } from "react-native";
+import { WEB_BASE_URL } from "../../lib/runtime-config";
 import type { CheckoutSession } from "./customer-api.types";
 
 const privateFiles = new Set<string>();
 const privateDirectory = () => new FileSystem.Directory(FileSystem.Paths.cache, "customer-private");
 export async function openCustomerCheckout(session: CheckoutSession) {
-  if (!process.env.EXPO_PUBLIC_WEB_BASE_URL) throw new Error(M.error);
-  const target = new URL("/payments/mobile-checkout", process.env.EXPO_PUBLIC_WEB_BASE_URL);
+  const target = new URL("/payments/mobile-checkout", WEB_BASE_URL);
   target.hash = encodeURIComponent(JSON.stringify(session));
   await WebBrowser.openBrowserAsync(target.toString());
 }

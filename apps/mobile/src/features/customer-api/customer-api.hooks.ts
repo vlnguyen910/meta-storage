@@ -85,6 +85,7 @@ export function useCustomerTypes(id: string) {
     initialPageParam: 0,
     queryFn: ({ pageParam }) => api.facilities.listUnitTypes(id, { limit: 20, offset: pageParam }),
     getNextPageParam: (p, pages) => (p.length === 20 ? pages.length * 20 : undefined),
+    enabled: Boolean(id),
   });
 }
 export function useCustomerCheckout(
