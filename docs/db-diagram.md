@@ -71,7 +71,7 @@ new quotes; booking and renewal snapshots are immutable. There is no unit_type_c
 FM price writes and BOM range writes append the existing pricing_changes ledger;
 the shared pricing revision remains serialized by the DEPOSIT_MONTHS settings row.
 
-`facility_unit_types` is retired. storage_units/bookings/capacity_allocations
+`facility_unit_types` is retired. storage_units/reservations/capacity_allocations
 reference unit_types through (facility_id,unit_type_id),
 preventing cross-facility types. Catalog, checkout and renewal lock the local type
 in place of the retired offering. Range validation uses range-first/type-second
@@ -201,7 +201,7 @@ with evidence metadata in `media_assets`:
   UNIT_CONDITION and EXISTING_INVENTORY. Notes/photos/signature are optional. Results
   and the immutable definition snapshot are stored in checklist JSONB. No inferred PASS
   or backfill. Saving explicit results on an old draft adopts the new policy; completed history stays unchanged.
-- FM assignment atomically sets a free physical unit RESERVED. Other bookings cannot reserve
+- FM assignment atomically sets a free physical unit RESERVED. Other reservations cannot reserve
   that unit, even for non-overlapping dates. Reassign/cancel/no-show release RESERVED units only
   if no other live assignment or ACTIVE rental remains. Handover changes RESERVED to OCCUPIED.
 - PASSED records inspect_done_at and freezes the baseline; it does not create a Rental,
@@ -240,7 +240,7 @@ erDiagram
   facilities ||--o{ facility_tasks : scopes
   users ||--o{ facility_tasks : performs
   users ||--o{ facility_tasks : assigns
-  facility_tasks }o--|| bookings : "reference when BOOKING"
+  facility_tasks }o--|| reservations : "reference when BOOKING"
   facility_tasks }o--|| storage_units : "reference when STORAGE_UNIT"
   facility_tasks }o--|| support_tickets : "reference when SUPPORT_TICKET"
   system_settings {
@@ -277,7 +277,7 @@ erDiagram
     uuid id PK
     uuid storage_unit_id FK
     uuid rental_id FK "nullable"
-    uuid booking_id FK "nullable"
+    uuid reservation_id FK "nullable"
     uuid inspected_by FK
     uuid task_id FK
     inspection_type inspection_type
@@ -302,7 +302,7 @@ erDiagram
     varchar cloudinary_format
     timestamptz created_at
   }
-  check_in_slots ||--o{ bookings : schedules
+  check_in_slots ||--o{ appointments : schedules
   users ||--o{ accounts : authenticates_with
   users ||--o{ sessions : signs_in_with
   users ||--o{ facility_assignments : receives
@@ -311,17 +311,21 @@ erDiagram
   rental_price_ranges ||--o{ unit_types : constrains
   unit_types ||--o{ storage_units : materializes
   unit_types ||--o{ capacity_allocations : allocates
-  unit_types ||--o{ bookings : books
+  unit_types ||--o{ reservations : reserves
   unit_types ||--o{ storage_units : materializes
   facilities ||--o{ storage_units : contains
   unit_types ||--o{ capacity_allocations : allocates
   facilities ||--o{ capacity_allocations : reserves
-  users o|--o{ bookings : saves_history
-  users o|--o{ bookings : assigned_to
-  bookings ||--o| rentals : becomes
+  users ||--o{ reservations : owns
+  reservations ||--o| appointments : check_in
+  rentals ||--o| appointments : check_out
+  support_tickets o|--o| appointments : support
+  users ||--o{ appointments : customer
+  users o|--o{ appointments : assigned_to
+  users ||--o{ appointments : creates
+  reservations ||--o| rentals : becomes
   facilities ||--o{ rentals : hosts
   storage_units ||--o{ rentals : occupies
-  check_in_slots o|--o{ rentals : return_appointment
   users o|--o{ rentals : approves_return_settlement
   rentals ||--o{ rental_charges : owes
   rentals ||--o{ rental_renewals : renews
@@ -330,7 +334,7 @@ erDiagram
   users ||--o{ rental_charges : submits
   users o|--o{ rental_charges : approves
   rental_charges ||--o{ payments : attempts
-  bookings ||--o{ payments : records
+  reservations ||--o{ payments : records
   rentals ||--o{ payments : return_refunds
   payments ||--o{ payments : refund_source
   users o|--o{ payments : confirms_manual_refund
@@ -338,8 +342,8 @@ erDiagram
   rental_charges ||--o{ rental_charge_events : audits
   rental_charges ||--o{ rental_charge_refunds : refunds
   payments ||--o{ rental_charge_refunds : refunds
-  bookings ||--o{ checkin_verifications : verifies
-  bookings o|--o{ inspections : checkin_context
+  reservations ||--o{ checkin_verifications : verifies
+  reservations o|--o{ inspections : checkin_context
   rentals o|--o{ inspections : checkout_context
   storage_units ||--o{ inspections : inspected
   facility_tasks ||--o{ inspections : assigned_work
@@ -483,31 +487,46 @@ erDiagram
     timestamptz updated_at
   }
 
-  bookings {
+  reservations {
     uuid id PK
-    varchar booking_code UK
-    uuid user_id FK "required; ON DELETE RESTRICT"
-    varchar contact_phone "nullable before payment; booking-specific"
+    varchar reservation_code UK
+    uuid customer_id FK "required; ON DELETE RESTRICT"
     uuid facility_id FK
     uuid unit_type_id FK
     integer requested_months
-    date check_in_date
-    uuid check_in_slot_id FK
     timestamptz rental_end_at
     numeric monthly_rate_snapshot
     numeric rental_fee_amount
     numeric deposit_amount
     numeric total_amount
-    varchar status "default DRAFT"
-    uuid assigned_staff_id FK "nullable"
+    reservation_status status "default DRAFT"
     varchar qr_token_hash UK
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+  appointments {
+    uuid id PK
+    uuid facility_id FK
+    appointment_type appointment_type
+    date scheduled_date
+    uuid slot_id FK
+    appointment_status status
+    uuid customer_id FK
+    varchar contact_phone "nullable; appointment-specific"
+    uuid reservation_id FK "nullable; check-in"
+    uuid rental_id FK "nullable; check-out"
+    uuid support_ticket_id FK "nullable; support"
+    uuid assigned_staff_id FK "nullable"
+    uuid created_by FK
+    text notes "nullable"
     timestamptz created_at
     timestamptz updated_at
   }
 
   rentals {
     uuid id PK
-    uuid booking_id FK,UK
+    uuid reservation_id FK,UK
     uuid facility_id FK
     uuid physical_unit_id FK
     rental_status status
@@ -516,11 +535,6 @@ erDiagram
     integer version "nonnegative current term"
     timestamptz actual_return_at "nullable"
     timestamptz closed_at "nullable"
-    uuid return_slot_id FK "nullable"
-    date return_date "nullable"
-    timestamptz return_starts_at "nullable"
-    timestamptz return_ends_at "nullable"
-    text return_timezone "nullable"
     rental_return_status return_status "nullable"
     text return_reason "nullable"
     boolean return_manual_review_required
@@ -613,7 +627,7 @@ erDiagram
   payments {
     uuid id PK
     payment_type type
-    uuid booking_id FK "nullable for rental-charge payments"
+    uuid reservation_id FK "nullable for rental-charge payments"
     uuid rental_charge_id FK "nullable; source-specific charge attempt"
     uuid rental_id FK "nullable return refund"
     uuid source_payment_id FK "nullable original payment for return refund"
@@ -656,7 +670,7 @@ erDiagram
 
   unit_assignments {
     uuid id PK
-    uuid booking_id FK
+    uuid reservation_id FK
     uuid physical_unit_id FK
     uuid assigned_by FK
     varchar status
@@ -667,7 +681,7 @@ erDiagram
 
   checkin_verifications {
     uuid id PK
-    uuid booking_id FK
+    uuid reservation_id FK
     uuid facility_id FK
     uuid staff_id FK
     uuid unit_assignment_id FK
@@ -694,8 +708,8 @@ erDiagram
   and `capacity_allocations` default to generated random UUIDs. Auth tables
   `accounts`, `sessions` and `verifications` use text primary keys.
 - `users.email`, `users.phone`, `facilities.code`, `storage_units.code` and
-  `sessions.token` are unique. `users.phone` is nullable. Booking contact email is not unique.
-- Varchar limits are `users.email` 255, `users.phone` 20, Booking contact phone 32,
+  `sessions.token` are unique. `users.phone` is nullable.
+- Varchar limits are `users.email` 255, `users.phone` 20, appointment contact phone 32,
   `facilities.code` 50 and `facilities.name` 150;
   `unit_types.code` 80, `unit_types.name` 100, `unit_types.size_label` 50;
   `storage_units.code` 80.
@@ -704,8 +718,8 @@ erDiagram
   `facility_assignments.ended_at`, `storage_units.floor`,
   `storage_units.location_description`,
   `facility_tasks.started_at`, `facility_tasks.completed_at`,
-  `rentals.actual_return_at`, `rentals.closed_at` and the optional return schedule,
-  settlement snapshot and settlement approval fields; `payments.booking_id`,
+  `appointments.contact_phone`, `rentals.actual_return_at`, `rentals.closed_at`,
+  settlement snapshot and settlement approval fields; `payments.reservation_id`,
   `rental_charge_id`, `rental_id`, `source_payment_id`, refund allocations,
   provider checkout fields, `hold_token_hash`, `paid_at`, `expires_at`, and refund
   metadata;
@@ -731,6 +745,9 @@ erDiagram
   `payment_status`: `PENDING`, `SUCCEEDED`, `FAILED`, `REFUND_PENDING`, `REFUNDED`;
   `payment_refund_reason_code`: `NO_CAPACITY`, `CHECK_IN_CLOSED`,
   `OFFERING_UNAVAILABLE`, `CUSTOMER_CANCELLATION`, `NO_SHOW`;
+  `reservation_status`: `DRAFT`, `CONFIRMED`, `CANCELLED`, `NO_SHOW`, `CHECKED_IN`;
+  `appointment_type`: `CHECK_IN`, `CHECK_OUT`, `SUPPORT`;
+  `appointment_status`: `SCHEDULED`, `CONFIRMED`, `COMPLETED`, `CANCELLED`, `NO_SHOW`;
   `rental_status`: `ACTIVE`, `RETURN_PENDING`, `OVERDUE`, `CLOSED`;
   `rental_return_status`: `PENDING`, `CONFIRMED`, `INSPECTING`, `FAILED`,
   `COMPLETED`, `CANCELLED`.
@@ -753,13 +770,13 @@ erDiagram
   multiple `is_active = true` assignments. Resolve them explicitly before
   migrating; the migration must not choose a Facility or discard history.
 - `unit_types.code` is unique within a facility; `(facility_id,id)` is unique.
-- `storage_units`, `bookings` and `capacity_allocations`
+- `storage_units`, `reservations` and `capacity_allocations`
   each use a composite foreign key `(facility_id,unit_type_id)` to
   `unit_types(facility_id,id)` with ON DELETE RESTRICT. Range and facility ownership
   references also use RESTRICT. `capacity_allocations.reference_id` remains a UUID
   reference value without a database foreign key.
 - User foreign keys use `ON DELETE CASCADE` for `accounts`, `sessions` and
-  `facility_assignments`, and `ON DELETE RESTRICT` for `bookings.user_id`.
+  `facility_assignments`, and `ON DELETE RESTRICT` for `reservations.customer_id`.
   Facility task references use `ON DELETE RESTRICT` to preserve assigned work.
   Facility foreign keys use `ON DELETE CASCADE` for
   `storage_units` and `facility_assignments`, and
@@ -783,16 +800,15 @@ Customers select a type; operations assign the physical unit later.
 ## Account-required booking (approved 2026-10-25; supersedes guest decisions)
 
 Only active authenticated CUSTOMER accounts can create booking drafts, start payments,
-read payment status, cancel bookings, or access their rentals/documents and return details.
-Ownership is bookings.user_id, required with ON DELETE RESTRICT. No email-based claim,
+read payment status, cancel reservations, or access their rentals/documents and return details.
+Ownership is reservations.customer_id, required with ON DELETE RESTRICT. No email-based claim,
 guest checkout token, magic link, guest cookie or guest actor grants business access.
 Existing guest business records are deleted before imposing NOT NULL; account-owned
-records remain. Name and email are read from users, not copied onto bookings.
-Signup does not require phone. At payment, contactPhone can be supplied for this booking;
-otherwise users.phone is used. A valid phone is required, stored on bookings only, and
-never written back to users. ContactPhone may be NULL only while the booking is DRAFT.
+records remain. Name and email are read from users, not copied onto reservations.
+Signup does not require phone. An appointment may store a contact phone supplied by its
+customer or sourced from users.phone; it is never written back to users.
 Issued contracts retain their own immutable snapshots. Payments and rentals continue to
-derive ownership through booking. Accounts with bookings cannot be physically deleted;
+derive ownership through booking. Accounts with reservations cannot be physically deleted;
 use the existing account lock/status workflow instead. Guest access endpoints are removed.
 The legacy reservation-draft checkout and table are removed.
 
@@ -803,8 +819,9 @@ The legacy reservation-draft checkout and table are removed.
   rate; total equals rental fee plus deposit, in VND. Payments use this stored
   quote even if catalog prices change later. Legacy unpriced drafts must be recreated.
 
-- Booking stores per-booking phone and pricing snapshots; name/email come from users.
-- bookings.user_id is required, indexed and references users with ON DELETE RESTRICT.
+- Reservation stores pricing snapshots; name/email come from users. Appointment stores its
+  customer and contact phone directly so support appointments can exist without a reservation.
+- reservations.customer_id is required, indexed and references users with ON DELETE RESTRICT.
   Payment and Rental have no customer_id columns.
 - paidAt comes from the earliest non-null payments.paid_at with status SUCCEEDED,
   REFUND_PENDING or REFUNDED. Booking queries join slots and aggregate payments before joining,
@@ -812,12 +829,12 @@ The legacy reservation-draft checkout and table are removed.
   projection until their dedicated query refactors.
 - Booking status defaults to DRAFT; a CHECK limits it to DRAFT, CONFIRMED,
   CANCELLED, NO_SHOW or CHECKED_IN. Pricing columns remain required.
-- Bookings retain nullable unique booking_code/qr_token_hash, nullable
-  assigned_staff_id and required user_id. Operational lists/details
+- Reservations retain nullable unique reservation_code/qr_token_hash and required customer_id.
+  Operational lists/details
   exclude DRAFT; drafts cannot be assigned a unit/staff or verified through QR.
 - Payment stores the transaction total, currency, provider references, status
   and paid_at; the monthly rate, rental fee and deposit breakdown belong to
-  Booking. Readers project booking contact and date/slot timestamps for the
+  Reservation. Readers project appointment contact and date/slot timestamps for the
   existing API contracts.
 - Payment status values are PENDING, SUCCEEDED, FAILED, REFUND_PENDING and REFUNDED,
   defined in the payment contract and reused by Drizzle. A valid incoming payment
@@ -828,8 +845,8 @@ The legacy reservation-draft checkout and table are removed.
   nonblank transfer reference, server timestamp and actor. Replays with the same
   reference preserve the original audit; a different reference conflicts.
 - Customer cancellation and NO_SHOW retain the original payment total and snapshot
-  `refund_amount = bookings.rental_fee_amount` and
-  `deposit_forfeited_amount = bookings.deposit_amount`. Refund reasons distinguish
+  `refund_amount = reservations.rental_fee_amount` and
+  `deposit_forfeited_amount = reservations.deposit_amount`. Refund reasons distinguish
   CUSTOMER_CANCELLATION and NO_SHOW from full refunds for unfulfillable checkout.
   Refund amounts and forfeitures must be nonnegative, cannot individually exceed
   total_amount, and their sum cannot exceed total_amount. Existing pending/refunded
@@ -854,20 +871,19 @@ The legacy reservation-draft checkout and table are removed.
   a settlement FK. Future renewal rows point to their charge in #163. No generic
   polymorphic source ID is used. Charge adjustments and refunds
   are append-only records; events retain submit/approve/dispute/payment/refund audit.
-- The COLLECTION source CHECK requires exactly one of booking_id or rental_charge_id.
-  Booking checkout uses booking_id plus a hold-token hash. Plaintext tokens are never stored.
+- The COLLECTION source CHECK requires exactly one of reservation_id or rental_charge_id.
+  Booking checkout uses reservation_id plus a hold-token hash. Plaintext tokens are never stored.
 
-Check-in slots are shared time-of-day definitions with exactly four required
-columns: `id`, `name`, `start_time`, `end_time`. A Booking stores a required
-`check_in_date` and `check_in_slot_id` instead of start/end timestamps. The
-calendar date is interpreted in the facility timezone (currently Vietnam time).
-Referenced slots cannot be deleted (`ON DELETE RESTRICT`). This change is
-represented in the database by date and slot. Booking, payment, check-in and
-rental readers project the start/end timestamps into existing API DTOs in
-Asia/Ho_Chi_Minh time. Legacy draft requests map check_in_at to the containing
-slot (start inclusive, end exclusive) and normalize draft/hold dates to that
-slot's start before charging. A request outside the slots is rejected. Previously
-created drafts with an unnormalized schedule must be recreated before payment.
+`check_in_slots` stores shared time-of-day definitions. `appointments` stores the
+local `scheduled_date`, required `slot_id`, customer, and appointment-specific
+contact phone. The date is interpreted in the facility timezone (currently
+Vietnam time). Check-in appointments link to a reservation, check-out appointments
+link to a rental, and support appointments may link to a support ticket. Check-in/out
+require their parent link; support can stand alone. For linked appointments, the API must
+ensure `customer_id` matches the customer reached through the parent record. The
+API projects slot start/end timestamps in Asia/Ho_Chi_Minh time for existing
+clients. Appointment types are CHECK_IN, CHECK_OUT and SUPPORT; statuses are
+SCHEDULED, CONFIRMED, COMPLETED, CANCELLED and NO_SHOW.
 
 Return closure marks the linked active unit assignment `COMPLETED` with `ended_at`,
 and releases the linked active BOOKING capacity allocation in the same transaction.
@@ -957,7 +973,7 @@ There is no support chat, image upload, staff assignment, or ticket lifecycle.
 
 ```mermaid
 erDiagram
-  bookings ||--o{ support_tickets : context
+  reservations ||--o{ support_tickets : context
   users ||--o{ support_tickets : owns
   facilities ||--o{ support_tickets : scopes
   rentals o|--o{ support_tickets : warehouse_context
@@ -970,9 +986,9 @@ erDiagram
 | Columns | Type and constraints |
 | --- | --- |
 | id | UUID primary key, server generated |
-| booking_id, owner_user_id, facility_id | Required UUID foreign keys derived from the authenticated booking |
-| rental_id | Nullable UUID FK; required for warehouse categories and must belong to the booking |
-| payment_id | Nullable UUID FK; if present must belong to the booking |
+| reservation_id, owner_user_id, facility_id | Required UUID foreign keys derived from the authenticated reservation |
+| rental_id | Nullable UUID FK; required for warehouse categories and must belong to the reservation |
+| payment_id | Nullable UUID FK; if present must belong to the reservation |
 | category | UNIT, LOCK, ACCESS_CODE, STORED_ITEMS, or PAYMENT |
 | subject | Trimmed varchar(200), required |
 | description | Trimmed text, 1–5000 characters |
