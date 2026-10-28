@@ -2,7 +2,6 @@ import type { InspectionListQuery } from "@metastorage/contracts";
 import {
   and,
   bookings,
-  checkInVerifications,
   count,
   type Database,
   desc,
@@ -97,28 +96,6 @@ export class InspectionsRepository {
       .select()
       .from(unitAssignments)
       .where(and(eq(unitAssignments.bookingId, bookingId), eq(unitAssignments.status, "ACTIVE")))
-      .for("update");
-  }
-
-  findVerifiedCheckIn(
-    tx: TaskTransaction,
-    bookingId: string,
-    facilityId: string,
-    staffId: string,
-    assignmentId: string,
-  ) {
-    return tx
-      .select()
-      .from(checkInVerifications)
-      .where(
-        and(
-          eq(checkInVerifications.bookingId, bookingId),
-          eq(checkInVerifications.facilityId, facilityId),
-          eq(checkInVerifications.staffId, staffId),
-          eq(checkInVerifications.unitAssignmentId, assignmentId),
-          eq(checkInVerifications.status, "VERIFIED"),
-        ),
-      )
       .for("update");
   }
 

@@ -3,7 +3,6 @@ import { accounts } from "./accounts";
 import { bookings } from "./bookings";
 import { capacityAllocations } from "./capacity-allocations";
 import { checkInSlots } from "./check-in-slots";
-import { checkInVerifications } from "./checkin-verifications";
 import { facilities } from "./facilities";
 import { facilityAssignments } from "./facility-assignments";
 import { facilityTasks } from "./facility-tasks";
@@ -26,7 +25,6 @@ export const usersRelations = relations(users, ({ many }) => ({
   bookings: many(bookings, { relationName: "bookingOwner" }),
   assignedBookings: many(bookings, { relationName: "bookingStaff" }),
   assignedUnits: many(unitAssignments),
-  checkInVerifications: many(checkInVerifications),
   inspections: many(inspections, { relationName: "inspectionInspector" }),
   rentals: many(rentals),
   mediaAssets: many(mediaAssets),
@@ -72,7 +70,6 @@ export const facilitiesRelations = relations(facilities, ({ many }) => ({
   storageUnits: many(storageUnits),
   capacityAllocations: many(capacityAllocations),
   bookings: many(bookings),
-  checkInVerifications: many(checkInVerifications),
 }));
 
 export const unitTypesRelations = relations(unitTypes, ({ many, one }) => ({
@@ -142,7 +139,6 @@ export const bookingsRelations = relations(bookings, ({ one, many }) => ({
   }),
   unitAssignments: many(unitAssignments),
   rental: one(rentals),
-  checkInVerifications: many(checkInVerifications),
   inspections: many(inspections),
 }));
 
@@ -158,25 +154,6 @@ export const unitAssignmentsRelations = relations(unitAssignments, ({ one }) => 
   assigner: one(users, {
     fields: [unitAssignments.assignedBy],
     references: [users.id],
-  }),
-}));
-
-export const checkInVerificationsRelations = relations(checkInVerifications, ({ one }) => ({
-  booking: one(bookings, {
-    fields: [checkInVerifications.bookingId],
-    references: [bookings.id],
-  }),
-  facility: one(facilities, {
-    fields: [checkInVerifications.facilityId],
-    references: [facilities.id],
-  }),
-  staff: one(users, {
-    fields: [checkInVerifications.staffId],
-    references: [users.id],
-  }),
-  unitAssignment: one(unitAssignments, {
-    fields: [checkInVerifications.unitAssignmentId],
-    references: [unitAssignments.id],
   }),
 }));
 

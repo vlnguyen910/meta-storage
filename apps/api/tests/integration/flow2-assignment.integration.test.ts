@@ -8,8 +8,9 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
       "../fixtures/inspection-fixture"
     );
     assertIsolatedDatabase();
-    const { db, bookings, payments, storageUnits, unitAssignments, checkInVerifications, and, eq } =
-      await import("@metastorage/database");
+    const { db, bookings, payments, storageUnits, unitAssignments, and, eq } = await import(
+      "@metastorage/database"
+    );
     const { closeBookingBeforeCheckIn } = await import(
       "../../src/modules/bookings/bookings.repository"
     );
@@ -52,12 +53,13 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
       const [payment] = await db.select().from(payments).where(eq(payments.bookingId, f.bookingId));
       if (!original || !payment) throw new Error("Missing fixture");
       const nextId = randomUUID();
+      const nextBookingCode = `BK-${randomUUID()}`;
       const accessToken = createHash("sha256").update(randomUUID()).digest("hex");
       const accessTokenHash = createHash("sha256").update(accessToken).digest("hex");
       await db.insert(bookings).values({
         ...original,
         id: nextId,
-        bookingCode: `BK-${randomUUID()}`,
+        bookingCode: nextBookingCode,
         checkInDate: new Date(Date.now() + 7 * 86400_000).toISOString().slice(0, 10),
         accessTokenHash,
       });
@@ -89,15 +91,18 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
       const assigned = responses.find((r) => r.statusCode === 200)?.json().data;
       expect((await assign(winner, f.unitId)).json().data.id).toBe(assigned.id);
       expect((await assign(loser, f.unitId)).statusCode).toBe(400);
-      // Verify the winning booking's current assignment, whichever request won the race.
-      const winnerVerificationId = randomUUID();
-      await db.insert(checkInVerifications).values({
-        id: winnerVerificationId,
-        bookingId: winner,
-        facilityId: f.facilityId,
-        staffId: f.userId,
-        unitAssignmentId: assigned.id,
+      // Lookup follows the booking's current assignment directly.
+      const lookup = await app.inject({
+        method: "POST",
+        url: "/api/bookings/check-in/lookup",
+        headers: { cookie, origin },
+        payload: {
+          type: "BOOKING_CODE",
+          value: winner === f.bookingId ? f.bookingCode : nextBookingCode,
+        },
       });
+      expect(lookup.statusCode).toBe(200);
+      expect(lookup.json().data.assignedUnit.id).toBe(assigned.id);
       const eligible = await app.inject({
         method: "GET",
         url: `/api/bookings/${loser}/eligible-units`,
@@ -122,14 +127,6 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
           .from(unitAssignments)
           .where(and(eq(unitAssignments.bookingId, winner), eq(unitAssignments.status, "ACTIVE"))),
       ).toHaveLength(1);
-      expect(
-        (
-          await db
-            .select()
-            .from(checkInVerifications)
-            .where(eq(checkInVerifications.id, winnerVerificationId))
-        )[0]?.status,
-      ).toBe("INVALIDATED");
       const cancellation = await app.inject({
         method: "POST",
         url: `/api/bookings/${winner}/cancel`,

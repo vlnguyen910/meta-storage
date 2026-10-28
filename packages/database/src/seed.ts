@@ -9,7 +9,6 @@ import {
   bookings,
   capacityAllocations,
   checkInSlots,
-  checkInVerifications,
   facilities,
   facilityAssignments,
   payments,
@@ -215,11 +214,7 @@ export async function seedImmediateCheckInSlot(seedNow = getSeedNow()) {
         .select({ id: rentals.id })
         .from(rentals)
         .where(eq(rentals.bookingId, existing.id));
-      const [verification] = await tx
-        .select({ id: checkInVerifications.id })
-        .from(checkInVerifications)
-        .where(eq(checkInVerifications.bookingId, existing.id));
-      if (existing.status !== "CONFIRMED" || rental || verification) {
+      if (existing.status !== "CONFIRMED" || rental) {
         console.log("DEMO-CHECKIN-NOW already progressed; keeping its booking and slot unchanged.");
         return;
       }
@@ -1543,7 +1538,6 @@ async function seed() {
     `;
 
     // A rerun restores a clean scenario after manual check-in experiments.
-    await queryClient`DELETE FROM checkin_verifications WHERE booking_id = ${booking.id}`;
     await queryClient`DELETE FROM unit_assignments WHERE booking_id = ${booking.id}`;
 
     if (bookingSeed.assignCode) {

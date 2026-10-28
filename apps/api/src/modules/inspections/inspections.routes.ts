@@ -12,8 +12,6 @@ import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
 import { requireRole } from "../auth/auth.guard";
 import { createBookingsService } from "../bookings/bookings.service";
-import { CheckInsRepository } from "../check-ins/check-ins.repository";
-import { CheckInsService } from "../check-ins/check-ins.service";
 import { FacilitiesRepository } from "../facilities/facilities.repository";
 import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
 import { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
@@ -48,7 +46,6 @@ export const inspectionsRoutes: FastifyPluginAsync = async (app) => {
     new RentalsService(new RentalsRepository(app.db), assignments),
     createBookingsService(app),
     new StorageUnitsService(new StorageUnitsRepository(app.db)),
-    new CheckInsService(new CheckInsRepository(app.db)),
     assignments,
     media,
   );

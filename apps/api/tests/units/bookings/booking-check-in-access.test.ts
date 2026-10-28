@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   assertAssignedStaff,
   assertFlowReadAccess,
-} from "../../../src/modules/check-ins/check-in-access";
+} from "../../../src/modules/bookings/booking-check-in-access";
 
 describe("Flow 2 responsibility boundaries", () => {
   test("only the assigned Staff can execute a task", () => {

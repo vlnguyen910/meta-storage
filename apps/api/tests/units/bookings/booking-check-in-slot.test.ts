@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { getCheckInSlotEnd } from "../../../src/modules/check-ins/check-in-slot";
-import { evaluateCheckInEligibility } from "../../../src/modules/check-ins/check-ins.policy";
+import { evaluateCheckInEligibility } from "../../../src/modules/bookings/booking-check-in.policy";
+import { getCheckInSlotEnd } from "../../../src/modules/bookings/booking-check-in-slot";
 
 describe("two-hour check-in slot", () => {
   it("uses the selected appointment rather than payment time", () => {
@@ -24,7 +24,6 @@ describe("two-hour check-in slot", () => {
       hasAssignedUnit: true,
       checkInSlotStart: start,
       checkInDayEnd: new Date("2026-12-15T11:00:00.000Z"),
-      verification: null,
     };
     const during = evaluateCheckInEligibility(record, new Date("2026-12-15T03:00:00.000Z"));
     assert.equal(during.canProceed, true);
@@ -45,7 +44,6 @@ describe("two-hour check-in slot", () => {
       hasAssignedUnit: true,
       checkInSlotStart: new Date("2026-12-16T02:00:00Z"),
       checkInDayEnd: new Date("2026-12-16T11:00:00Z"),
-      verification: null,
     };
     const now = new Date("2026-12-15T03:00:00Z");
     assert.deepEqual(evaluateCheckInEligibility(record, now).reasons, ["TOO_EARLY"]);

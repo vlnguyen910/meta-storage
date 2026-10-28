@@ -59,7 +59,6 @@ export const InspectionSchema = z.object({
   physicalUnitId: z.string().uuid(),
   unitCode: z.string(),
   unitAssignmentId: z.string().uuid(),
-  verificationId: z.string().uuid(),
   policyVersion: z.literal("H6_V1"),
   status: z.enum(["DRAFT", "COMPLETED"]),
   version: z.number().int(),

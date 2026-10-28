@@ -1,11 +1,10 @@
 export const BOOKING_MESSAGES = {
-  unitAssignmentChanged: "Kho được phân công đã thay đổi.",
   cancellationAccessRequired: "Cần đăng nhập tài khoản sở hữu booking để hủy.",
   cancellationClosed: "Chỉ được hủy booking đã thanh toán, chưa bàn giao và chưa hết hạn check-in.",
   cancellationPaymentInvalid: "Không thể xác định khoản thanh toán hợp lệ để hoàn tiền thuê.",
   cancellationSummary: "Cancel a paid booking before check-in handover",
   cancellationDescription:
-    "Requires the active booking owner's CUSTOMER session. CONFIRMED bookings may be cancelled before the final check-in slot ends, including when verification is VERIFIED but handover is incomplete. Rental fee is queued for manual refund; the deposit is forfeited. Releases capacity and cancels assignments in one transaction. Repeated cancellation returns the persisted result. No money is transferred by this endpoint.",
+    "Requires the active booking owner's CUSTOMER session. CONFIRMED bookings may be cancelled before the final check-in slot ends, including after an inspection starts but before handover. Rental fee is queued for manual refund; the deposit is forfeited. Releases capacity and cancels assignments in one transaction. Repeated cancellation returns the persisted result. No money is transferred by this endpoint.",
   cancellationReason: "Khách hủy trước bàn giao kho; hoàn tiền thuê và giữ tiền cọc.",
   noShowReason: "Booking chưa bàn giao khi hết slot cuối ngày; hoàn tiền thuê và giữ tiền cọc.",
   checkInInPast: "Ngày và giờ nhận kho phải sau thời điểm hiện tại (giờ Việt Nam).",

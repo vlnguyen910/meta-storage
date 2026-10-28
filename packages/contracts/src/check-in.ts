@@ -24,25 +24,6 @@ export const CheckInEligibilityReasonCodeSchema = z.enum([
 
 export type CheckInEligibilityReasonCode = z.infer<typeof CheckInEligibilityReasonCodeSchema>;
 
-export const CheckInVerificationStatusSchema = z.enum(["VERIFIED", "CONSUMED", "INVALIDATED"]);
-
-export type CheckInVerificationStatus = z.infer<typeof CheckInVerificationStatusSchema>;
-
-export const CheckInVerificationSchema = z.object({
-  id: z.string().uuid(),
-  bookingId: z.string().uuid(),
-  facilityId: z.string().uuid(),
-  staffId: z.string().uuid(),
-  unitAssignmentId: z.string().uuid(),
-  status: CheckInVerificationStatusSchema,
-  verifiedAt: z.string().datetime(),
-  consumedAt: z.string().datetime().nullable(),
-  invalidatedAt: z.string().datetime().nullable(),
-  invalidatedReason: z.string().nullable(),
-});
-
-export type CheckInVerification = z.infer<typeof CheckInVerificationSchema>;
-
 export const CheckInPaymentSummarySchema = z.object({
   status: z.nativeEnum(PaymentStatus).nullable(),
   paidAt: z.string().datetime().nullable(),
@@ -87,11 +68,6 @@ export const CheckInLookupResultSchema = z.object({
   payment: CheckInPaymentSummarySchema,
   assignedUnit: PhysicalUnitAssignmentSchema.nullable(),
   eligibility: CheckInEligibilitySchema,
-  verification: CheckInVerificationSchema.nullable(),
 });
 
 export type CheckInLookupResult = z.infer<typeof CheckInLookupResultSchema>;
-
-export const CheckInConfirmResultSchema = CheckInLookupResultSchema;
-
-export type CheckInConfirmResult = z.infer<typeof CheckInConfirmResultSchema>;

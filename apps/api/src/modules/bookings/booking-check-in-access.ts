@@ -1,5 +1,5 @@
 import { ForbiddenError } from "../../common/errors/app-error";
-import { CHECK_IN_ACCESS_MESSAGES as M } from "./check-in-access.messages";
+import { CHECK_IN_ACCESS_MESSAGES as M } from "./booking-check-in-access.messages";
 
 export type FlowActor = { id: string; role?: string | null };
 export function assertAssignedStaff(actor: FlowActor, assignedStaffId: string | null | undefined) {
