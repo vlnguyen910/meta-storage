@@ -4,7 +4,6 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
-  date,
   index,
   integer,
   jsonb,
@@ -13,13 +12,11 @@ import {
   pgTable,
   text,
   timestamp,
-  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import { enumToPgEnum } from "../enum-to-pg-enum";
-import { bookings } from "./bookings";
-import { checkInSlots } from "./check-in-slots";
 import { facilities } from "./facilities";
+import { reservations } from "./reservations";
 import { storageUnits } from "./storage-units";
 import { users } from "./users";
 
@@ -36,10 +33,10 @@ export const rentals = pgTable(
   "rentals",
   {
     id: uuid().defaultRandom().primaryKey(),
-    bookingId: uuid()
+    reservationId: uuid()
       .notNull()
       .unique()
-      .references(() => bookings.id),
+      .references(() => reservations.id),
     facilityId: uuid()
       .notNull()
       .references(() => facilities.id),
@@ -53,11 +50,6 @@ export const rentals = pgTable(
     actualReturnAt: timestamp({ withTimezone: true }),
     closedAt: timestamp({ withTimezone: true }),
     abandonedReviewAt: timestamp({ withTimezone: true }),
-    returnSlotId: uuid().references(() => checkInSlots.id, { onDelete: "restrict" }),
-    returnDate: date(),
-    returnStartsAt: timestamp({ withTimezone: true }),
-    returnEndsAt: timestamp({ withTimezone: true }),
-    returnTimezone: text(),
     returnStatus: rentalReturnStatusEnum(),
     returnReason: text(),
     returnManualReviewRequired: boolean().default(false).notNull(),
@@ -84,12 +76,8 @@ export const rentals = pgTable(
   (table) => [
     check("rentals_version_nonnegative", sql`${table.version} >= 0`),
     check(
-      "rentals_return_schedule_valid",
-      sql`(
-        ${table.returnDate} IS NULL AND ${table.returnSlotId} IS NULL AND ${table.returnStartsAt} IS NULL AND ${table.returnEndsAt} IS NULL AND ${table.returnTimezone} IS NULL AND ${table.returnStatus} IS NULL AND ${table.returnReason} IS NULL
-      ) OR (
-        ${table.returnDate} IS NOT NULL AND ${table.returnSlotId} IS NOT NULL AND ${table.returnStartsAt} IS NOT NULL AND ${table.returnEndsAt} IS NOT NULL AND ${table.returnTimezone} IS NOT NULL AND ${table.returnStatus} IS NOT NULL AND ${table.returnReason} IS NOT NULL AND ${table.returnEndsAt} > ${table.returnStartsAt}
-      )`,
+      "rentals_return_state_valid",
+      sql`(${table.returnStatus} IS NULL AND ${table.returnReason} IS NULL) OR (${table.returnStatus} IS NOT NULL AND ${table.returnReason} IS NOT NULL)`,
     ),
     check(
       "rentals_return_settlement_valid",
@@ -97,10 +85,6 @@ export const rentals = pgTable(
     ),
     index("rentals_facility_idx").on(table.facilityId),
     index("rentals_active_unit_idx").on(table.physicalUnitId, table.status, table.expectedEndAt),
-    index("rentals_return_schedule_idx").on(table.facilityId, table.returnDate, table.returnSlotId),
-    uniqueIndex("rentals_return_slot_capacity_idx")
-      .on(table.facilityId, table.returnDate, table.returnSlotId)
-      .where(sql`${table.returnStatus} IN ('CONFIRMED', 'INSPECTING', 'FAILED')`),
   ],
 );
 

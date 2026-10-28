@@ -1,9 +1,9 @@
 import { sql } from "drizzle-orm";
 import { check, index, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { enumToPgEnum } from "../enum-to-pg-enum";
-import { bookings } from "./bookings";
 import { facilityTasks } from "./facility-tasks";
 import { rentals } from "./rentals";
+import { reservations } from "./reservations";
 import { storageUnits } from "./storage-units";
 import { users } from "./users";
 
@@ -38,7 +38,7 @@ export const inspections = pgTable(
       .notNull()
       .references(() => storageUnits.id, { onDelete: "restrict" }),
     rentalId: uuid().references(() => rentals.id, { onDelete: "restrict" }),
-    bookingId: uuid().references(() => bookings.id, { onDelete: "restrict" }),
+    reservationId: uuid().references(() => reservations.id, { onDelete: "restrict" }),
     inspectedBy: uuid()
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
@@ -60,9 +60,9 @@ export const inspections = pgTable(
     check(
       "inspections_context_valid",
       sql`(
-        (${t.inspectionType} = 'CHECK_IN' AND ${t.bookingId} IS NOT NULL AND ${t.rentalId} IS NULL) OR
-        (${t.inspectionType} = 'CHECK_OUT' AND ${t.rentalId} IS NOT NULL AND ${t.bookingId} IS NULL) OR
-        (${t.inspectionType} = 'MAINTENANCE' AND ${t.bookingId} IS NULL)
+        (${t.inspectionType} = 'CHECK_IN' AND ${t.reservationId} IS NOT NULL AND ${t.rentalId} IS NULL) OR
+        (${t.inspectionType} = 'CHECK_OUT' AND ${t.rentalId} IS NOT NULL AND ${t.reservationId} IS NULL) OR
+        (${t.inspectionType} = 'MAINTENANCE' AND ${t.reservationId} IS NULL)
       )`,
     ),
     check(

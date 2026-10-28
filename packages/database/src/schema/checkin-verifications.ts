@@ -1,6 +1,6 @@
 import { index, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
-import { bookings } from "./bookings";
 import { facilities } from "./facilities";
+import { reservations } from "./reservations";
 import { unitAssignments } from "./unit-assignments";
 import { users } from "./users";
 
@@ -16,9 +16,9 @@ export const checkInVerifications = pgTable(
   "checkin_verifications",
   {
     id: uuid().defaultRandom().primaryKey(),
-    bookingId: uuid()
+    reservationId: uuid()
       .notNull()
-      .references(() => bookings.id, { onDelete: "restrict" }),
+      .references(() => reservations.id, { onDelete: "restrict" }),
     facilityId: uuid()
       .notNull()
       .references(() => facilities.id, { onDelete: "restrict" }),
@@ -37,7 +37,7 @@ export const checkInVerifications = pgTable(
     updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
-    index("checkin_verifications_booking_status_idx").on(table.bookingId, table.status),
+    index("checkin_verifications_reservation_status_idx").on(table.reservationId, table.status),
     index("checkin_verifications_facility_verified_idx").on(table.facilityId, table.verifiedAt),
   ],
 );
