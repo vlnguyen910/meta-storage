@@ -1,6 +1,7 @@
 import {
   RETURN_MESSAGES as m,
   type ReturnQueueQuery,
+  SYSTEM_SETTING_DEFINITIONS,
   SystemSettingKey,
 } from "@metastorage/contracts";
 import {
@@ -152,11 +153,14 @@ export class ReturnsRepository {
       .from(systemSettings)
       .where(inArray(systemSettings.key, ["OPENING_HOUR", "CLOSING_HOUR"]));
     const settings = Object.fromEntries(rows.map((row) => [row.key, row.value]));
-    if (settings.OPENING_HOUR === undefined || settings.CLOSING_HOUR === undefined) return [];
+    const openingHour =
+      settings.OPENING_HOUR ?? SYSTEM_SETTING_DEFINITIONS.OPENING_HOUR.defaultValue;
+    const closingHour =
+      settings.CLOSING_HOUR ?? SYSTEM_SETTING_DEFINITIONS.CLOSING_HOUR.defaultValue;
     return [
       {
-        openTime: `${String(settings.OPENING_HOUR).padStart(2, "0")}:00:00`,
-        closeTime: `${String(settings.CLOSING_HOUR).padStart(2, "0")}:00:00`,
+        openTime: `${String(openingHour).padStart(2, "0")}:00:00`,
+        closeTime: `${String(closingHour).padStart(2, "0")}:00:00`,
         timezone: "Asia/Ho_Chi_Minh",
       },
     ];
