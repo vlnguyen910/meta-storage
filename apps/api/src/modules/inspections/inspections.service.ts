@@ -3,6 +3,7 @@ import {
   FacilityTaskReferenceType,
   FacilityTaskStatus,
   FacilityTaskType,
+  HandoverChecklistCompletionSchema,
   INSPECTION_PHOTO_MAX_COUNT,
   type InspectionListQuery,
   type InspectionRecord,
@@ -140,6 +141,8 @@ export class InspectionsService {
     const updated = await this.repository.transaction(async (tx) => {
       const [locked] = await this.repository.findForUpdate(tx, id);
       if (!locked) return undefined;
+      if (locked.status === InspectionStatus.PASSED || locked.status === InspectionStatus.FAILED)
+        throw new ConflictError(m.alreadyCompleted);
       const [task] = await this.tasks.find(tx, locked.taskId);
       if (!task || task.assignedStaffId !== actor.id) return undefined;
 
@@ -149,6 +152,12 @@ export class InspectionsService {
         !(input.condition ?? locked.condition)
       )
         throw new ConflictError(m.conditionRequired);
+      if (nextStatus === InspectionStatus.PASSED) {
+        const checklist = input.checklist ?? locked.checklist;
+        const results = Array.isArray(checklist.results) ? checklist.results : [];
+        if (!HandoverChecklistCompletionSchema.safeParse(results).success)
+          throw new ConflictError(m.checklistRequired);
+      }
 
       const condition =
         input.condition === undefined
@@ -174,6 +183,20 @@ export class InspectionsService {
     for (const assetId of removed) await this.media.removeImage("INSPECTION", id, assetId);
     for (const evidence of input.addEvidence ?? [])
       await this.media.uploadImage("INSPECTION", id, "EVIDENCE_PHOTO", actor.id, evidence);
+    return this.get(id, actor);
+  }
+
+  async handover(id: string, actor: InspectionActor): Promise<InspectionRecord> {
+    const current = await this.getAccessibleRow(id, actor);
+    if (actor.role !== UserRole.FACILITY_STAFF || !current.bookingId)
+      throw new ForbiddenError(m.notAssigned);
+    await this.assertBookingAccess(current.bookingId, actor);
+    const result = await this.repository.handover(id, actor.id);
+    if ("error" in result) {
+      if (result.error === "NOT_FOUND") throw new NotFoundError(m.notFound);
+      if (result.error === "NOT_ASSIGNED") throw new ForbiddenError(m.notAssigned);
+      throw new ConflictError(m.handoverNotReady);
+    }
     return this.get(id, actor);
   }
 

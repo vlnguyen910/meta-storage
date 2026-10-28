@@ -23,6 +23,7 @@ import type {
   CheckInLookupResult,
   CheckInSlotOption,
   ClientSession,
+  ConfirmInspectionHandoverInput,
   ConfirmManualRefundInput,
   ConfirmReservationInput,
   CookieSession,
@@ -41,10 +42,8 @@ import type {
   FacilityListParams,
   FacilityQuery,
   FacilityStaffMember,
-  Inspection,
-  InspectionDraftInput,
-  InspectionPhotoContent,
-  InspectionPhotoInput,
+  InspectionEvidenceInput,
+  InspectionRecord,
   LoginInput,
   ManualRefund,
   ManualRefundConfirmation,
@@ -114,6 +113,7 @@ import type {
   StorageUnitResponse,
   UnitTypeListParams,
   UpdateDepositPolicy,
+  UpdateInspectionInput,
   UpdateStorageUnitStatusBody,
   UpdateUnitTypePrice,
   UpdateUserRoleWithoutCustomerInput,
@@ -461,28 +461,27 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
     },
     inspections: {
       history: (bookingId: string) =>
-        http.get<ApiEnvelope<Inspection[]>>(`/bookings/${bookingId}/inspections`).then(unwrap),
-      start: (bookingId: string) =>
-        http.post<ApiEnvelope<Inspection>>(`/bookings/${bookingId}/inspections`).then(unwrap),
-      get: (id: string) => http.get<ApiEnvelope<Inspection>>(`/inspections/${id}`).then(unwrap),
-      save: (id: string, input: InspectionDraftInput) =>
-        http.patch<ApiEnvelope<Inspection>>(`/inspections/${id}`, input).then(unwrap),
-      upload: (id: string, input: InspectionPhotoInput) =>
-        http.post<ApiEnvelope<Inspection>>(`/inspections/${id}/photos`, input).then(unwrap),
-      photo: (id: string, photoId: string) =>
         http
-          .get<ApiEnvelope<InspectionPhotoContent>>(`/inspections/${id}/photos/${photoId}`)
+          .get<ApiEnvelope<InspectionRecord[]>>(`/inspections/bookings/${bookingId}`)
           .then(unwrap),
-      removePhoto: (id: string, photoId: string, version: number) =>
+      start: (bookingId: string) =>
+        http.post<ApiEnvelope<InspectionRecord>>(`/inspections/bookings/${bookingId}`).then(unwrap),
+      get: (id: string) =>
+        http.get<ApiEnvelope<InspectionRecord>>(`/inspections/${id}`).then(unwrap),
+      save: (id: string, input: UpdateInspectionInput) =>
+        http.patch<ApiEnvelope<InspectionRecord>>(`/inspections/${id}`, input).then(unwrap),
+      upload: (id: string, input: InspectionEvidenceInput) =>
         http
-          .delete<ApiEnvelope<Inspection>>(`/inspections/${id}/photos/${photoId}`, {
-            data: { version },
+          .patch<ApiEnvelope<InspectionRecord>>(`/inspections/${id}`, { addEvidence: [input] })
+          .then(unwrap),
+      removePhoto: (id: string, photoId: string) =>
+        http
+          .patch<ApiEnvelope<InspectionRecord>>(`/inspections/${id}`, {
+            removeEvidenceIds: [photoId],
           })
           .then(unwrap),
-      handover: (id: string, version: number) =>
-        http.post<ApiEnvelope<Inspection>>(`/inspections/${id}/handover`, { version }).then(unwrap),
-      complete: (id: string, version: number) =>
-        http.post<ApiEnvelope<Inspection>>(`/inspections/${id}/complete`, { version }).then(unwrap),
+      handover: (id: string, input: ConfirmInspectionHandoverInput) =>
+        http.post<ApiEnvelope<InspectionRecord>>(`/inspections/${id}/handover`, input).then(unwrap),
     },
     checkIns: {
       lookup: (input: CheckInLookupInput) =>

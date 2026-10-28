@@ -1,4 +1,5 @@
 import {
+  ConfirmInspectionHandoverInputSchema,
   CreateInspectionInputSchema,
   InspectionListQuerySchema,
   UpdateInspectionInputSchema,
@@ -178,6 +179,26 @@ export const inspectionsRoutes: FastifyPluginAsync = async (app) => {
           id: user.id,
           role: user.role as UserRole,
         }),
+      );
+    },
+  );
+
+  typed.post(
+    "/inspections/:id/handover",
+    {
+      preHandler: [requireRole(UserRole.FACILITY_STAFF)],
+      schema: {
+        tags: ["Inspections"],
+        summary: m.handoverSummary,
+        params: inspectionParams,
+        body: ConfirmInspectionHandoverInputSchema,
+      },
+    },
+    async (request) => {
+      const user = request.user;
+      if (!user) throw new UnauthorizedError();
+      return successResponse(
+        await service.handover(request.params.id, { id: user.id, role: user.role as UserRole }),
       );
     },
   );

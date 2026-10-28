@@ -72,7 +72,7 @@ function CheckInFlowScreen() {
     result?.verification?.staffId === user?.id &&
     ["VERIFIED", "CONSUMED"].includes(result?.verification?.status ?? "");
   const wantsInspection = ["inspect", "review", "handover"].includes(flow.view);
-  const locked = flow.current?.status === "COMPLETED";
+  const locked = flow.current?.status === "PASSED" || flow.current?.status === "FAILED";
   const inspectionView = locked ? "handover" : flow.view === "handover" ? "review" : flow.view;
   const active = wantsInspection && verified ? (locked ? 3 : 2) : 1;
   const title =
@@ -229,7 +229,7 @@ function CheckInFlowScreen() {
           ...(result?.assignedUnit ? [0] : []),
           ...(verified ? [1] : []),
           ...(locked ? [2] : []),
-          ...(flow.current?.handedOverAt ? [3] : []),
+          ...(result?.booking.status === "CHECKED_IN" ? [3] : []),
         ]}
       />
       <FlowHelp />

@@ -104,6 +104,12 @@ export const InspectionEvidenceInputSchema = z.object({
     .min(1)
     .max(Math.ceil(INSPECTION_PHOTO_MAX_BYTES / 3) * 4),
 });
+export type InspectionEvidenceInput = z.infer<typeof InspectionEvidenceInputSchema>;
+
+export const ConfirmInspectionHandoverInputSchema = z.object({
+  customerReceivedUnit: z.literal(true),
+});
+export type ConfirmInspectionHandoverInput = z.infer<typeof ConfirmInspectionHandoverInputSchema>;
 
 export const UpdateInspectionInputSchema = z
   .object({

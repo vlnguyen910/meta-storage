@@ -4,6 +4,7 @@ export const INSPECTIONS_API_MESSAGES = {
   createSummary: "Tạo phiếu kiểm tra từ task được giao.",
   detailSummary: "Xem chi tiết phiếu kiểm tra.",
   updateSummary: "Cập nhật checklist, tình trạng, ghi chú và ảnh minh chứng.",
+  handoverSummary: "Xác nhận bàn giao, kích hoạt rental và cập nhật booking.",
   bookingHistorySummary: "Xem các phiếu kiểm tra bàn giao của booking.",
   startBookingSummary: "Bắt đầu hoặc tiếp tục kiểm tra bàn giao của booking.",
   notFound: "Không tìm thấy phiếu kiểm tra.",
@@ -14,4 +15,7 @@ export const INSPECTIONS_API_MESSAGES = {
   conditionRequired: "Cần ghi nhận tình trạng kho trước khi hoàn tất kiểm tra.",
   evidenceLimit: "Mỗi phiếu kiểm tra được đính kèm tối đa 8 ảnh.",
   evidenceNotFound: "Không tìm thấy ảnh minh chứng.",
+  handoverNotReady: "Inspection chưa PASSED hoặc booking không còn đủ điều kiện bàn giao.",
+  alreadyCompleted: "Inspection đã hoàn tất và không thể chỉnh sửa.",
+  checklistRequired: "Cần hoàn thành toàn bộ checklist trước khi PASS inspection.",
 } as const;
