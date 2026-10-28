@@ -18,6 +18,7 @@ import {
   InspectionType,
   inArray,
   inspections,
+  rentals,
   storageUnits,
   unitAssignments,
 } from "@metastorage/database";
@@ -249,5 +250,107 @@ export class InspectionsRepository {
     >,
   ) {
     return tx.update(inspections).set(input).where(eq(inspections.id, id)).returning();
+  }
+
+  handover(id: string, staffId: string) {
+    return this.db.transaction(async (tx) => {
+      const [reference] = await tx
+        .select({ bookingId: inspections.bookingId })
+        .from(inspections)
+        .where(eq(inspections.id, id));
+      if (!reference?.bookingId) return { error: "NOT_FOUND" as const };
+
+      const [booking] = await tx
+        .select()
+        .from(bookings)
+        .where(eq(bookings.id, reference.bookingId))
+        .for("update");
+      if (!booking) return { error: "NOT_FOUND" as const };
+      if (booking.assignedStaffId !== staffId) return { error: "NOT_ASSIGNED" as const };
+
+      const [inspection] = await tx
+        .select()
+        .from(inspections)
+        .where(eq(inspections.id, id))
+        .for("update");
+      if (
+        !inspection ||
+        inspection.bookingId !== booking.id ||
+        inspection.inspectionType !== InspectionType.CHECK_IN ||
+        inspection.status !== "PASSED"
+      )
+        return { error: "NOT_READY" as const };
+
+      if (booking.status === "CHECKED_IN") {
+        const [rental] = await tx.select().from(rentals).where(eq(rentals.bookingId, booking.id));
+        return rental ? { inspection } : { error: "NOT_READY" as const };
+      }
+      if (booking.status !== "CONFIRMED") return { error: "NOT_READY" as const };
+
+      const [assignment] = await tx
+        .select()
+        .from(unitAssignments)
+        .where(and(eq(unitAssignments.bookingId, booking.id), eq(unitAssignments.status, "ACTIVE")))
+        .for("update");
+      if (!assignment || assignment.physicalUnitId !== inspection.storageUnitId)
+        return { error: "NOT_READY" as const };
+
+      const [verification] = await tx
+        .select()
+        .from(checkInVerifications)
+        .where(
+          and(
+            eq(checkInVerifications.bookingId, booking.id),
+            eq(checkInVerifications.facilityId, booking.facilityId),
+            eq(checkInVerifications.staffId, staffId),
+            eq(checkInVerifications.unitAssignmentId, assignment.id),
+            eq(checkInVerifications.status, "VERIFIED"),
+          ),
+        )
+        .for("update");
+      const [task] = await tx
+        .select()
+        .from(facilityTasks)
+        .where(
+          and(
+            eq(facilityTasks.id, inspection.taskId),
+            eq(facilityTasks.type, FacilityTaskType.CHECK_IN_HANDOVER),
+            eq(facilityTasks.referenceType, FacilityTaskReferenceType.BOOKING),
+            eq(facilityTasks.referenceId, booking.id),
+            eq(facilityTasks.facilityId, booking.facilityId),
+            eq(facilityTasks.assignedStaffId, staffId),
+            eq(facilityTasks.status, FacilityTaskStatus.IN_PROGRESS),
+          ),
+        )
+        .for("update");
+      if (!verification || !task) return { error: "NOT_READY" as const };
+
+      const now = new Date();
+      await tx.insert(rentals).values({
+        bookingId: booking.id,
+        facilityId: booking.facilityId,
+        physicalUnitId: assignment.physicalUnitId,
+        startAt: now,
+        expectedEndAt: booking.rentalEndAt,
+        depositAmount: booking.depositAmount,
+      });
+      await tx
+        .update(storageUnits)
+        .set({ status: "OCCUPIED", updatedAt: now })
+        .where(eq(storageUnits.id, assignment.physicalUnitId));
+      await tx
+        .update(bookings)
+        .set({ status: "CHECKED_IN", updatedAt: now })
+        .where(eq(bookings.id, booking.id));
+      await tx
+        .update(checkInVerifications)
+        .set({ status: "CONSUMED", consumedAt: now, updatedAt: now })
+        .where(eq(checkInVerifications.id, verification.id));
+      await tx
+        .update(facilityTasks)
+        .set({ status: FacilityTaskStatus.COMPLETED, completedAt: now, updatedAt: now })
+        .where(eq(facilityTasks.id, task.id));
+      return { inspection };
+    });
   }
 }
