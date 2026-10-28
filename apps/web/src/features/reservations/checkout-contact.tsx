@@ -69,9 +69,9 @@ export function CheckoutContact({ state }: { state: CheckoutState }) {
   }, [selectedDate]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
       <form
-        className="lg:col-span-8 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-xs"
+        className="lg:col-span-7 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm"
         onSubmit={(event) => {
           event.preventDefault();
           void state.next();
@@ -79,15 +79,15 @@ export function CheckoutContact({ state }: { state: CheckoutState }) {
         noValidate
       >
         {/* Header - Compact without redundant badge or subtitle */}
-        <div className="mb-2.5">
-          <h2 className="text-base font-bold text-slate-900">{m.contactTitle}</h2>
+        <div className="mb-3.5">
+          <h2 className="text-base sm:text-lg font-bold text-slate-900">{m.contactTitle}</h2>
         </div>
 
-        {/* Section 1: Customer Contact Info (Compact 3-column row) */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-2.5">
+        {/* Section 1: Customer Contact Info (Expanded 3-column row) */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3.5">
           {/* Full Name */}
           <div>
-            <label htmlFor="fullName" className="block text-xs font-bold text-slate-700 mb-0.5">
+            <label htmlFor="fullName" className="block text-xs font-bold text-slate-700 mb-1">
               {m.fullName}
             </label>
             <input
@@ -96,10 +96,10 @@ export function CheckoutContact({ state }: { state: CheckoutState }) {
               readOnly={!isMockMode}
               autoComplete="name"
               {...form.register("fullName")}
-              className="w-full h-8.5 px-2.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none focus:border-[#165f4d] focus:ring-1 focus:ring-[#165f4d] transition-colors"
+              className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:border-[#165f4d] focus:ring-1 focus:ring-[#165f4d] transition-colors"
             />
             {form.formState.errors.fullName?.message && (
-              <p className="mt-0.5 text-[10px] text-rose-600">
+              <p className="mt-1 text-[11px] text-rose-600">
                 {form.formState.errors.fullName.message}
               </p>
             )}
@@ -107,7 +107,7 @@ export function CheckoutContact({ state }: { state: CheckoutState }) {
 
           {/* Phone */}
           <div>
-            <label htmlFor="phone" className="block text-xs font-bold text-slate-700 mb-0.5">
+            <label htmlFor="phone" className="block text-xs font-bold text-slate-700 mb-1">
               {m.phone}
             </label>
             <input
@@ -117,10 +117,10 @@ export function CheckoutContact({ state }: { state: CheckoutState }) {
               autoComplete="tel-national"
               placeholder="0901234567"
               {...form.register("phone")}
-              className="w-full h-8.5 px-2.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none focus:border-[#165f4d] focus:ring-1 focus:ring-[#165f4d] transition-colors"
+              className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:border-[#165f4d] focus:ring-1 focus:ring-[#165f4d] transition-colors"
             />
             {form.formState.errors.phone?.message ? (
-              <p className="mt-0.5 text-[10px] text-rose-600">
+              <p className="mt-1 text-[11px] text-rose-600">
                 {form.formState.errors.phone.message}
               </p>
             ) : null}
@@ -128,12 +128,12 @@ export function CheckoutContact({ state }: { state: CheckoutState }) {
 
           {/* Email (LOCKED / DISABLED) */}
           <div>
-            <div className="flex items-center justify-between mb-0.5">
+            <div className="flex items-center justify-between mb-1">
               <label htmlFor="email" className="text-xs font-bold text-slate-700">
                 {m.email}
               </label>
-              <span className="flex items-center gap-1 text-[9px] text-slate-400 font-medium">
-                <Lock size={9} />
+              <span className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
+                <Lock size={10} />
                 <span>Đã khóa</span>
               </span>
             </div>
@@ -144,31 +144,29 @@ export function CheckoutContact({ state }: { state: CheckoutState }) {
               readOnly
               autoComplete="email"
               value={form.watch("email") || ""}
-              className="w-full h-8.5 px-2.5 rounded-lg border border-slate-200 bg-slate-100 text-xs font-medium text-slate-500 cursor-not-allowed select-none"
+              className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-100 text-xs sm:text-sm font-medium text-slate-500 cursor-not-allowed select-none"
             />
           </div>
         </div>
 
-        {/* Section 2: Duration, Slots and Calendar (2 Compact Columns to fit 100% zoom) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-2.5 border-t border-slate-100">
+        {/* Section 2: Duration, Slots and Calendar */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3.5 border-t border-slate-100">
           {/* Left Column: Duration Months + Check-in Slot */}
-          <div className="space-y-3">
+          <div className="space-y-3.5">
             {/* Duration */}
             <div>
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center justify-between mb-1.5">
                 <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  <Clock size={13} className="text-[#165f4d]" />
+                  <Clock size={14} className="text-[#165f4d]" />
                   <span>{m.duration}</span>
                 </div>
                 {selectedDuration && (
-                  <span className="text-[11px] font-bold text-[#165f4d]">
-                    {selectedDuration} tháng
-                  </span>
+                  <span className="text-xs font-bold text-[#165f4d]">{selectedDuration} tháng</span>
                 )}
               </div>
 
               {/* 12 months buttons grid - labeled clearly as 'X tháng' */}
-              <div className="grid grid-cols-4 gap-1">
+              <div className="grid grid-cols-4 gap-1.5">
                 {Array.from({ length: 12 }, (_, i) => i + 1).map((mth) => {
                   const isSelected = selectedDuration === mth;
                   return (
@@ -183,7 +181,7 @@ export function CheckoutContact({ state }: { state: CheckoutState }) {
                         })
                       }
                       className={cn(
-                        "h-7 rounded-lg text-[11px] font-semibold transition-all border flex items-center justify-center cursor-pointer",
+                        "h-8 sm:h-8.5 rounded-lg text-xs font-semibold transition-all border flex items-center justify-center cursor-pointer",
                         isSelected
                           ? "bg-[#165f4d] text-white border-[#165f4d] shadow-xs"
                           : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300",
@@ -195,7 +193,7 @@ export function CheckoutContact({ state }: { state: CheckoutState }) {
                 })}
               </div>
               {form.formState.errors.durationMonths?.message && (
-                <p className="mt-1 text-[10px] text-rose-600">
+                <p className="mt-1 text-[11px] text-rose-600">
                   {form.formState.errors.durationMonths.message}
                 </p>
               )}
@@ -203,12 +201,12 @@ export function CheckoutContact({ state }: { state: CheckoutState }) {
 
             {/* Check-in Slot Picker */}
             <div>
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center justify-between mb-1.5">
                 <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  <Clock3 size={13} className="text-[#165f4d]" />
+                  <Clock3 size={14} className="text-[#165f4d]" />
                   <span>{m.slotPickerTitle}</span>
                 </div>
-                <span className="text-[10px] text-slate-400">{m.timeHint}</span>
+                <span className="text-[11px] text-slate-400">{m.timeHint}</span>
               </div>
 
               {state.slotsQuery.isLoading ? (
@@ -216,7 +214,7 @@ export function CheckoutContact({ state }: { state: CheckoutState }) {
               ) : null}
 
               {state.slotsQuery.isError ? (
-                <div className="rounded-lg border border-rose-200 bg-rose-50 p-1.5 text-xs text-rose-800 flex items-center justify-between">
+                <div className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-xs text-rose-800 flex items-center justify-between">
                   <span>{m.slotsUnavailable}</span>
                   <button
                     type="button"
@@ -240,26 +238,26 @@ export function CheckoutContact({ state }: { state: CheckoutState }) {
                           form.setValue("checkInSlotId", slot.id, { shouldValidate: true })
                         }
                         className={cn(
-                          "px-2.5 py-1.5 rounded-lg border text-left transition-all flex items-center justify-between cursor-pointer",
+                          "px-3 py-2 min-h-10 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer",
                           isSelected
                             ? "border-[#165f4d] bg-emerald-50/40 text-slate-900 ring-1 ring-[#165f4d]"
                             : "border-slate-200 bg-white hover:bg-slate-50 text-slate-700",
                         )}
                       >
-                        <div className="flex items-center gap-1.5 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
                           <div
                             className={cn(
-                              "size-3.5 rounded-full border flex items-center justify-center shrink-0",
+                              "size-4 rounded-full border flex items-center justify-center shrink-0",
                               isSelected ? "border-[#165f4d]" : "border-slate-300",
                             )}
                           >
-                            {isSelected && <div className="size-1.5 rounded-full bg-[#165f4d]" />}
+                            {isSelected && <div className="size-2 rounded-full bg-[#165f4d]" />}
                           </div>
-                          <span className="text-xs font-semibold truncate max-w-[85px]">
+                          <span className="text-xs font-semibold truncate max-w-[90px]">
                             {slot.name}
                           </span>
                         </div>
-                        <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-1 py-0.5 rounded shrink-0">
+                        <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded shrink-0">
                           {slot.startTime.slice(0, 5)} - {slot.endTime.slice(0, 5)}
                         </span>
                       </button>
@@ -269,7 +267,7 @@ export function CheckoutContact({ state }: { state: CheckoutState }) {
               ) : null}
 
               {form.formState.errors.checkInSlotId?.message && (
-                <p className="mt-1 text-[10px] text-rose-600">
+                <p className="mt-1 text-[11px] text-rose-600">
                   {form.formState.errors.checkInSlotId.message}
                 </p>
               )}
@@ -278,16 +276,16 @@ export function CheckoutContact({ state }: { state: CheckoutState }) {
 
           {/* Right Column: Check-in Date (Compact Calendar + Quick Chips) */}
           <div>
-            <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center justify-between mb-1.5">
               <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                <CalendarDays size={13} className="text-[#165f4d]" />
+                <CalendarDays size={14} className="text-[#165f4d]" />
                 <span>{m.datePickerTitle}</span>
               </div>
-              <span className="text-[10px] text-slate-400">Từ ngày mai</span>
+              <span className="text-[11px] text-slate-400">Từ ngày mai</span>
             </div>
 
             {/* Quick date chips */}
-            <div className="flex items-center gap-1 mb-1.5">
+            <div className="flex items-center gap-1.5 mb-2">
               {[
                 { label: "Ngày mai", date: tomorrow },
                 {
@@ -305,7 +303,7 @@ export function CheckoutContact({ state }: { state: CheckoutState }) {
                     key={chip.date}
                     type="button"
                     className={cn(
-                      "px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all cursor-pointer border",
+                      "px-2.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer border",
                       isSelected
                         ? "bg-[#165f4d] text-white border-[#165f4d] shadow-xs"
                         : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100",
@@ -325,34 +323,32 @@ export function CheckoutContact({ state }: { state: CheckoutState }) {
               })}
             </div>
 
-            {/* Compact Month Calendar */}
-            <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-2">
+            {/* Month Calendar */}
+            <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-2.5 sm:p-3">
               {/* Calendar Header */}
-              <div className="flex items-center justify-between pb-1.5 mb-1 border-b border-slate-200/60">
+              <div className="flex items-center justify-between pb-2 mb-1.5 border-b border-slate-200/60">
                 <button
                   type="button"
                   disabled={calendarMonth <= currentMonth}
                   onClick={() => setCalendarMonth(shiftMonth(calendarMonth, -1))}
-                  className="size-5.5 flex items-center justify-center rounded hover:bg-slate-200/70 text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                  className="size-6 flex items-center justify-center rounded hover:bg-slate-200/70 text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                 >
-                  <ChevronLeft size={13} />
+                  <ChevronLeft size={14} />
                 </button>
-                <span className="text-[11px] font-bold text-slate-800 capitalize">
-                  {monthLabel}
-                </span>
+                <span className="text-xs font-bold text-slate-800 capitalize">{monthLabel}</span>
                 <button
                   type="button"
                   onClick={() => setCalendarMonth(shiftMonth(calendarMonth, 1))}
-                  className="size-5.5 flex items-center justify-center rounded hover:bg-slate-200/70 text-slate-600 cursor-pointer"
+                  className="size-6 flex items-center justify-center rounded hover:bg-slate-200/70 text-slate-600 cursor-pointer"
                 >
-                  <ChevronRight size={13} />
+                  <ChevronRight size={14} />
                 </button>
               </div>
 
               {/* Weekday Row */}
-              <div className="grid grid-cols-7 gap-1 text-center mb-0.5">
+              <div className="grid grid-cols-7 gap-1 text-center mb-1">
                 {m.datePickerWeekdays.map((weekday) => (
-                  <span key={weekday} className="text-[9px] font-bold text-slate-400">
+                  <span key={weekday} className="text-[10px] font-bold text-slate-400">
                     {weekday}
                   </span>
                 ))}
@@ -381,7 +377,7 @@ export function CheckoutContact({ state }: { state: CheckoutState }) {
                         form.clearErrors("checkInDate");
                       }}
                       className={cn(
-                        "h-6 w-full flex items-center justify-center rounded text-[10px] font-semibold transition-all cursor-pointer",
+                        "h-7 sm:h-7.5 w-full flex items-center justify-center rounded-lg text-xs font-semibold transition-all cursor-pointer",
                         disabled && "text-slate-300 cursor-not-allowed",
                         isSelected &&
                           "bg-[#165f4d] text-white font-bold shadow-xs hover:bg-[#0f493b]",
@@ -398,45 +394,45 @@ export function CheckoutContact({ state }: { state: CheckoutState }) {
             </div>
 
             {selectedDate && (
-              <p className="mt-1 text-[10px] text-[#165f4d] font-semibold">
+              <p className="mt-1.5 text-xs text-[#165f4d] font-semibold">
                 Đã chọn: {formatCalendarDate(selectedDate)}
               </p>
             )}
 
             {form.formState.errors.checkInDate?.message && (
-              <p className="mt-1 text-[10px] text-rose-600">
+              <p className="mt-1 text-[11px] text-rose-600">
                 {form.formState.errors.checkInDate.message}
               </p>
             )}
           </div>
         </div>
 
-        {/* Optional Note - Compact single line */}
-        <div className="mt-2.5 pt-2 border-t border-slate-100">
+        {/* Optional Note */}
+        <div className="mt-3 pt-2.5 border-t border-slate-100">
           <input
             id="note"
             type="text"
             value={state.note}
             placeholder="Ghi chú thêm cho cơ sở (không bắt buộc)..."
             onChange={(e) => state.setNote(e.target.value)}
-            className="w-full h-8 px-2.5 rounded-lg border border-slate-200 bg-slate-50/40 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#165f4d] focus:ring-1 focus:ring-[#165f4d] transition-colors"
+            className="w-full h-9 px-3 rounded-xl border border-slate-200 bg-slate-50/40 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#165f4d] focus:ring-1 focus:ring-[#165f4d] transition-colors"
           />
         </div>
 
         {state.submissionError && (
-          <p role="alert" className="mt-1.5 text-xs text-rose-600 font-medium">
+          <p role="alert" className="mt-2 text-xs text-rose-600 font-medium">
             {state.submissionError}
           </p>
         )}
 
         {/* Navigation Buttons */}
-        <div className="mt-3 flex items-center justify-between pt-2 border-t border-slate-100">
+        <div className="mt-4 flex items-center justify-between pt-3 border-t border-slate-100">
           <button
             type="button"
-            className="h-9 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="h-10 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
             onClick={() => state.setStep(0)}
           >
-            <ArrowLeft size={13} />
+            <ArrowLeft size={14} />
             <span>{m.back}</span>
           </button>
 
@@ -448,16 +444,16 @@ export function CheckoutContact({ state }: { state: CheckoutState }) {
               state.availabilityQuery.isError ||
               state.selectedOption?.availableCount === 0
             }
-            className="h-9 px-4.5 rounded-xl bg-[#165f4d] hover:bg-[#0f493b] text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            className="h-10 px-5 rounded-xl bg-[#165f4d] hover:bg-[#0f493b] text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <span>{state.busy ? m.loading : m.review}</span>
-            <ArrowRight size={13} />
+            <ArrowRight size={14} />
           </button>
         </div>
       </form>
 
       {/* Right Column: Summary Sidebar */}
-      <div className="lg:col-span-4">
+      <div className="lg:col-span-5">
         <CheckoutSummary state={state} />
       </div>
     </div>

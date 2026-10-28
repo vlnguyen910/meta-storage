@@ -116,7 +116,7 @@ export function CheckoutSelection({ state }: { state: CheckoutState }) {
 
       {/* Main Layout: Unit Type list + Summary Sidebar */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <div className="lg:col-span-8 space-y-3.5">
+        <div className="lg:col-span-7 space-y-3.5">
           {availabilityQuery.isLoading ? <LoadingState label={m.loading} variant="form" /> : null}
           {availabilityQuery.isError ? (
             <ErrorState message={m.availabilityError} onRetry={() => availabilityQuery.refetch()} />
@@ -158,9 +158,11 @@ export function CheckoutSelection({ state }: { state: CheckoutState }) {
                     <h2 className="text-sm font-bold text-slate-900 group-hover:text-[#165f4d] transition-colors">
                       {option.unitType}
                     </h2>
-                    <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
-                      {option.sizeSqm} m²
-                    </span>
+                    {!option.unitType.includes(`${option.sizeSqm} m²`) && (
+                      <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+                        {option.sizeSqm} m²
+                      </span>
+                    )}
                   </div>
 
                   {isUnavailable ? (
@@ -183,7 +185,7 @@ export function CheckoutSelection({ state }: { state: CheckoutState }) {
                     <div>
                       <span className="text-[11px] text-slate-400 block">{m.dimensions}</span>
                       <span className="text-slate-800 font-medium">
-                        {option.lengthM} × {option.widthM} × {option.heightM} m
+                        {option.lengthM}m × {option.widthM}m × {option.heightM}m
                       </span>
                     </div>
                   </div>
@@ -242,7 +244,7 @@ export function CheckoutSelection({ state }: { state: CheckoutState }) {
         </div>
 
         {/* Sidebar Summary */}
-        <div className="lg:col-span-4">
+        <div className="lg:col-span-5">
           <CheckoutSummary state={state} />
         </div>
       </div>

@@ -111,15 +111,15 @@ export function CheckoutSummary({ state }: { state: CheckoutState }) {
 
   return (
     <aside
-      className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs sticky top-4"
+      className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm sticky top-4"
       aria-label={m.summary}
     >
-      <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 pb-2.5 border-b border-slate-100">
+      <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 pb-3 border-b border-slate-100">
         {step === 1 ? m.serviceSummary : step >= 2 ? m.billing : m.summary}
       </h2>
 
       {option && step > 0 ? (
-        <div className="h-20 w-full relative rounded-xl overflow-hidden border border-slate-100 my-2.5">
+        <div className="h-28 w-full relative rounded-xl overflow-hidden border border-slate-100 my-3">
           <UnitPhoto
             index={state.availabilityQuery.data?.findIndex(
               (item) => item.unitTypeId === option.unitTypeId,
@@ -128,18 +128,18 @@ export function CheckoutSummary({ state }: { state: CheckoutState }) {
         </div>
       ) : null}
 
-      <div className="my-2.5">
+      <div className="my-3">
         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
           {m.unit}
         </span>
         <h3 className="text-sm font-bold text-slate-900 leading-tight">
           {option?.unitType ?? m.unitNotSelected}
         </h3>
-        {option ? (
-          <p className="text-xs text-slate-500 mt-0.5 font-medium">{option.sizeLabel}</p>
+        {option && !option.unitType.includes(option.sizeLabel) ? (
+          <p className="text-xs text-slate-500 mt-1 font-medium">{option.sizeLabel}</p>
         ) : null}
-        <div className="text-xs text-slate-500 mt-1.5 flex items-start gap-1.5">
-          <MapPin size={13} className="shrink-0 text-slate-400 mt-0.5" />
+        <div className="text-xs text-slate-500 mt-2 flex items-start gap-1.5">
+          <MapPin size={14} className="shrink-0 text-slate-400 mt-0.5" />
           <div className="min-w-0">
             <span className="font-semibold text-slate-700 block text-xs">{facility?.name}</span>
             <span className="text-[11px] text-slate-400 block truncate">{facility?.address}</span>
@@ -147,7 +147,7 @@ export function CheckoutSummary({ state }: { state: CheckoutState }) {
         </div>
       </div>
 
-      <div className="space-y-1 py-2 border-y border-slate-100 my-2">
+      <div className="space-y-1.5 py-3 border-y border-slate-100 my-3">
         <CheckoutRow label={m.unitPrice}>
           {option ? (
             <>
@@ -199,7 +199,7 @@ export function CheckoutSummary({ state }: { state: CheckoutState }) {
       {step === 0 ? (
         <button
           type="button"
-          className="mt-3 w-full h-10 bg-[#165f4d] hover:bg-[#0f493b] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+          className="mt-4 w-full h-10 bg-[#165f4d] hover:bg-[#0f493b] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           disabled={
             !option ||
             option.availableCount === 0 ||
@@ -221,7 +221,7 @@ export function CheckoutSummary({ state }: { state: CheckoutState }) {
         </p>
       ) : null}
 
-      <p className="mt-2.5 text-center text-[11px] text-slate-400 flex items-center justify-center gap-1.5">
+      <p className="mt-3 text-center text-[11px] text-slate-400 flex items-center justify-center gap-1.5">
         <LockKeyhole size={11} className="text-slate-400" />
         <span>{step < 2 ? m.noPaymentYet : m.paymentVerified}</span>
       </p>
