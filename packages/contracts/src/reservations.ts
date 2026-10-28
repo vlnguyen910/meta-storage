@@ -1,10 +1,10 @@
-import { LegacyReservationStatus as ReservationStatus } from "@metastorage/database/schema-domain";
+import { ReservationStatus } from "@metastorage/database/schema-domain";
 import { z } from "zod";
 import { FacilitySchema } from "./facilities";
 import { PaymentSchema } from "./payments";
 import { ReservationDraftContactSchema } from "./reservation-contact";
 
-export { LegacyReservationStatus as ReservationStatus } from "@metastorage/database/schema-domain";
+export { ReservationStatus } from "@metastorage/database/schema-domain";
 
 export const ReservationQuoteSchema = z.object({
   id: z.string(),
