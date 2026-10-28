@@ -12,11 +12,9 @@ import {
 import { InspectionCondition, InspectionStatus, InspectionType } from "@metastorage/database";
 import { ConflictError, ForbiddenError, NotFoundError } from "../../common/errors/app-error";
 import { mapPageDto } from "../../common/types/page.dto";
-import type { BookingsRepository } from "../bookings/bookings.repository";
 import type { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
 import type { FacilityTasksRepository } from "../facility-tasks/facility-tasks.repository";
 import type { MediaAssetsService } from "../media-assets/media-assets.service";
-import type { RentalsRepository } from "../rentals/rentals.repository";
 import { INSPECTIONS_API_MESSAGES as m } from "./inspections.messages";
 import type { InspectionRow, InspectionsRepository } from "./inspections.repository";
 
@@ -25,9 +23,7 @@ type InspectionActor = { id: string; role: UserRole };
 export class InspectionsService {
   constructor(
     private readonly repository: InspectionsRepository,
-    private readonly bookings: BookingsRepository,
     private readonly tasks: FacilityTasksRepository,
-    private readonly rentals: RentalsRepository,
     private readonly assignments: FacilityAssignmentsService,
     private readonly media: MediaAssetsService,
   ) {}
@@ -52,6 +48,33 @@ export class InspectionsService {
     return mapPageDto(result, query, (row) => this.toListItem(row));
   }
 
+  async historyForBooking(bookingId: string, actor: InspectionActor): Promise<InspectionRecord[]> {
+    await this.assertBookingAccess(bookingId, actor);
+    const rows = await this.repository.listForBooking(bookingId, actor.id);
+    return Promise.all(rows.map((row) => this.get(row.id, actor)));
+  }
+
+  async startForBooking(bookingId: string, actor: InspectionActor): Promise<InspectionRecord> {
+    await this.assertBookingAccess(bookingId, actor);
+    const result = await this.repository.startCheckIn(bookingId, actor.id);
+    if ("error" in result) {
+      if (result.error === "BOOKING_NOT_FOUND") throw new NotFoundError(m.bookingNotFound);
+      if (result.error === "NOT_ASSIGNED") throw new ForbiddenError(m.notAssigned);
+      if (result.error === "TASK_NOT_AVAILABLE") throw new ConflictError(m.taskNotAvailable);
+      throw new ConflictError(m.checkInNotReady);
+    }
+    return this.get(result.inspection.id, actor);
+  }
+
+  private async assertBookingAccess(bookingId: string, actor: InspectionActor) {
+    const booking = await this.repository.findAssignedBooking(bookingId);
+    if (!booking) throw new NotFoundError(m.bookingNotFound);
+    if (booking.assignedStaffId !== actor.id) throw new ForbiddenError(m.notAssigned);
+    const assignments = await this.assignments.listUserAssignments(actor.id, actor.role);
+    if (!assignments.some((assignment) => assignment.facilityId === booking.facilityId))
+      throw new ForbiddenError(m.notAssigned);
+  }
+
   async create(input: CreateInspectionInput, actor: InspectionActor): Promise<InspectionRecord> {
     const record = await this.repository.transaction(async (tx) => {
       const [task] = await this.tasks.findForUpdate(tx, input.taskId);
@@ -66,33 +89,11 @@ export class InspectionsService {
       if (existing) return existing;
 
       let storageUnitId: string | undefined;
-      let rentalId: string | null = null;
-      let bookingId: string | null = null;
-      let inspectionType: InspectionType;
-
       if (
-        task.type === FacilityTaskType.CHECK_IN_HANDOVER &&
-        task.referenceType === FacilityTaskReferenceType.BOOKING
-      ) {
-        bookingId = task.referenceId;
-        inspectionType = InspectionType.CHECK_IN;
-        const [assignment] = await this.bookings.findActiveUnitAssignment(tx, bookingId);
-        storageUnitId = assignment?.physicalUnitId;
-      } else if (
         task.type === FacilityTaskType.UNIT_INSPECTION &&
         task.referenceType === FacilityTaskReferenceType.STORAGE_UNIT
       ) {
         storageUnitId = task.referenceId;
-        inspectionType = InspectionType.MAINTENANCE;
-      } else if (
-        task.type === FacilityTaskType.UNIT_INSPECTION &&
-        task.referenceType === FacilityTaskReferenceType.BOOKING
-      ) {
-        const [rental] = await this.rentals.findByBookingId(tx, task.referenceId);
-        if (!rental) return undefined;
-        rentalId = rental.id;
-        storageUnitId = rental.physicalUnitId;
-        inspectionType = InspectionType.CHECK_OUT;
       } else {
         return undefined;
       }
@@ -100,11 +101,9 @@ export class InspectionsService {
 
       const [created] = await this.repository.create(tx, {
         storageUnitId,
-        rentalId,
-        bookingId,
         inspectedBy: actor.id,
         taskId: task.id,
-        inspectionType,
+        inspectionType: InspectionType.MAINTENANCE,
         status: InspectionStatus.PENDING,
       });
       return created;
@@ -197,9 +196,10 @@ export class InspectionsService {
   }
 
   private toListItem(row: InspectionRow) {
-    const { assignedStaffId: _assignedStaffId, ...fields } = row;
+    const { assignedStaffId: _assignedStaffId, bookingId, ...fields } = row;
     return {
       ...fields,
+      reservationId: bookingId,
       inspectedAt: fields.inspectedAt?.toISOString() ?? null,
       inspectDoneAt: fields.inspectDoneAt?.toISOString() ?? null,
     };
@@ -209,9 +209,10 @@ export class InspectionsService {
     row: InspectionRow,
     evidence: Awaited<ReturnType<MediaAssetsService["listImages"]>>,
   ): InspectionRecord {
-    const { assignedStaffId: _assignedStaffId, ...fields } = row;
+    const { assignedStaffId: _assignedStaffId, bookingId, ...fields } = row;
     return {
       ...fields,
+      reservationId: bookingId,
       inspectedAt: fields.inspectedAt?.toISOString() ?? null,
       inspectDoneAt: fields.inspectDoneAt?.toISOString() ?? null,
       evidence: evidence.map((asset) => ({

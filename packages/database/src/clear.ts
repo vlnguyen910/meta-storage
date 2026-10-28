@@ -1,22 +1,14 @@
-import { getTableName, is } from "drizzle-orm";
-import { PgTable } from "drizzle-orm/pg-core";
 import { queryClient } from "./client";
-import * as schema from "./schema";
 
 async function clear() {
-  // A schema change can be present in code before its migration has run.
   const existingTables = await queryClient<{ tablename: string }[]>`
-    SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = 'public'
+    SELECT tablename
+    FROM pg_catalog.pg_tables
+    WHERE schemaname = 'public' AND tablename <> '__drizzle_migrations'
   `;
-  const existingTableNames = new Set(existingTables.map((table) => table.tablename));
-  // Schema exports contain application tables only; migration history stays intact.
-  const tableNames = Object.values(schema)
-    .filter((value) => is(value, PgTable))
-    .map((table) => getTableName(table))
-    .filter((name) => existingTableNames.has(name));
+  const tableNames = existingTables.map((table) => table.tablename);
 
   console.log("Clearing all application data, including users and sessions...");
-  // One atomic statement handles foreign keys between all application tables.
   if (tableNames.length > 0) {
     await queryClient`TRUNCATE TABLE ${queryClient(tableNames)} RESTART IDENTITY`;
   }

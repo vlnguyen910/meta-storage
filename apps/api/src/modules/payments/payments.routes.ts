@@ -9,9 +9,12 @@ import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
 import { requireRole } from "../auth/auth.guard";
 import { AUTH_MESSAGES } from "../auth/auth.messages";
-import { privateTrackingResponse } from "../bookings/bookings.access";
 import { PAYMENT_MESSAGES } from "./payments.messages";
 import { createPaymentsService } from "./payments.service";
+
+const privateTrackingResponse = async (_request: FastifyRequest, reply: FastifyReply) => {
+  reply.header("Cache-Control", "private, no-store");
+};
 
 export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
   const service = createPaymentsService(fastify);
