@@ -18,7 +18,6 @@ import {
 } from "drizzle-orm/pg-core";
 import { payments } from "./payments";
 import { rentalCharges } from "./rental-charges";
-import { returnSettlements } from "./returns";
 import { users } from "./users";
 
 export const rentalChargeAdjustmentDirectionEnum = pgEnum(
@@ -38,7 +37,6 @@ export const rentalChargeAdjustments = pgTable(
     chargeId: uuid()
       .notNull()
       .references(() => rentalCharges.id, { onDelete: "restrict" }),
-    settlementId: uuid().references(() => returnSettlements.id, { onDelete: "restrict" }),
     direction: rentalChargeAdjustmentDirectionEnum().notNull(),
     amount: numeric({ precision: 14, scale: 0 }).notNull(),
     reason: text().notNull(),
@@ -80,7 +78,6 @@ export const rentalChargeRefunds = pgTable(
     paymentId: uuid()
       .notNull()
       .references(() => payments.id, { onDelete: "restrict" }),
-    settlementId: uuid().references(() => returnSettlements.id, { onDelete: "restrict" }),
     amount: numeric({ precision: 14, scale: 0 }).notNull(),
     reason: text().notNull(),
     status: rentalChargeRefundStatusEnum().default("PENDING").notNull(),

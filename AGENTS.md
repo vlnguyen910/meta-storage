@@ -1,5 +1,25 @@
 # Repository Guidelines & Architecture Summary
 
+## Project Context
+
+Read [`README.md`](README.md) first for the project overview, workspace layout, stack, and local setup. Use the domain-specific documents listed below when a task needs deeper business or architecture details.
+
+## User's Coding Preferences
+
+Apply these preferences when refactoring or adding backend features:
+
+- Prefer the smallest implementation that fully supports the confirmed workflow. Keep APIs and layers only when they serve a concrete use case.
+- Keep endpoints focused on business actions. Avoid CRUD or separate lifecycle endpoints when one validated update endpoint expresses the required operation clearly.
+- Let the backend derive identity and facility scope from the authenticated session and active assignments when available; do not require redundant frontend parameters.
+- Put workflow coordination and cross-module calls in services. Keep repositories focused on database reads/writes and transaction-specific persistence.
+- Reuse the facility-assignment authorization service, shared pagination DTOs, and Zod schemas instead of adding parallel checks or mapping helpers.
+- Model task references with one reference ID and an explicit reference type when the supported contexts share the same workflow. Do not add fields such as task version or completion actor without a confirmed need.
+- Reduce tables only when their data and lifecycle are truly redundant. Preserve records needed for distinct workflows, financial facts, audit, or history; update the schema and database diagram together for approved changes.
+- Prefer readable code over extra abstraction. Do not split a module solely because a file is long; split along distinct business responsibilities when that makes workflows easier to follow.
+- For behavior-preserving refactors, keep API contracts and transaction boundaries stable, especially when one workflow creates or updates records across modules.
+
+See [`docs/module-refactor-priorities.md`](docs/module-refactor-priorities.md) for the current module review order and proposed refactor scope.
+
 ## 1. Project Structure & Architecture
 
 ```text
