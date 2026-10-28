@@ -1,8 +1,3 @@
-import {
-  RentalChargeAdjustmentDirection,
-  RentalChargeEventType,
-  RentalChargeRefundStatus,
-} from "@metastorage/contracts/rental-charges";
 import { sql } from "drizzle-orm";
 import {
   check,
@@ -16,18 +11,27 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { enumToPgEnum } from "../enum-to-pg-enum";
+import {
+  RentalChargeAdjustmentDirection,
+  RentalChargeEventType,
+  RentalChargeRefundStatus,
+} from "./enums";
 import { payments } from "./payments";
 import { rentalCharges } from "./rental-charges";
 import { users } from "./users";
 
 export const rentalChargeAdjustmentDirectionEnum = pgEnum(
   "rental_charge_adjustment_direction",
-  RentalChargeAdjustmentDirection,
+  enumToPgEnum(RentalChargeAdjustmentDirection),
 );
-export const rentalChargeEventTypeEnum = pgEnum("rental_charge_event_type", RentalChargeEventType);
+export const rentalChargeEventTypeEnum = pgEnum(
+  "rental_charge_event_type",
+  enumToPgEnum(RentalChargeEventType),
+);
 export const rentalChargeRefundStatusEnum = pgEnum(
   "rental_charge_refund_status",
-  RentalChargeRefundStatus,
+  enumToPgEnum(RentalChargeRefundStatus),
 );
 
 export const rentalChargeAdjustments = pgTable(
@@ -80,7 +84,7 @@ export const rentalChargeRefunds = pgTable(
       .references(() => payments.id, { onDelete: "restrict" }),
     amount: numeric({ precision: 14, scale: 0 }).notNull(),
     reason: text().notNull(),
-    status: rentalChargeRefundStatusEnum().default("PENDING").notNull(),
+    status: rentalChargeRefundStatusEnum().default(RentalChargeRefundStatus.PENDING).notNull(),
     reference: text(),
     confirmedBy: uuid().references(() => users.id, { onDelete: "restrict" }),
     confirmedAt: timestamp({ withTimezone: true }),

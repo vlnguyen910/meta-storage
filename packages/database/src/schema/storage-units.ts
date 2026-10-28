@@ -1,19 +1,10 @@
 import { foreignKey, index, pgEnum, pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { enumToPgEnum } from "../enum-to-pg-enum";
+import { StorageUnitStatus } from "./enums";
 import { facilities } from "./facilities";
 import { unitTypes } from "./unit-types";
 
-export const STORAGE_UNIT_STATUSES = [
-  "AVAILABLE",
-  "RESERVED",
-  "OCCUPIED",
-  "MAINTENANCE",
-  "INSPECTION",
-  "RETURN_PENDING",
-  "LOCKED",
-  "INACTIVE",
-] as const;
-
-export const storageUnitStatusEnum = pgEnum("storage_unit_status", STORAGE_UNIT_STATUSES);
+export const storageUnitStatusEnum = pgEnum("storage_unit_status", enumToPgEnum(StorageUnitStatus));
 
 export const storageUnits = pgTable(
   "storage_units",
@@ -26,7 +17,7 @@ export const storageUnits = pgTable(
     code: varchar({ length: 80 }).notNull().unique(),
     floor: varchar({ length: 50 }),
     locationDescription: varchar({ length: 255 }),
-    status: storageUnitStatusEnum().default("AVAILABLE").notNull(),
+    status: storageUnitStatusEnum().default(StorageUnitStatus.AVAILABLE).notNull(),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
   },

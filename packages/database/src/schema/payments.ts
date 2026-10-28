@@ -1,8 +1,3 @@
-import {
-  PAYMENT_REFUND_REASONS,
-  type PaymentRefundReason,
-  PaymentStatus,
-} from "@metastorage/contracts/payments";
 import { sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
@@ -17,26 +12,21 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { enumToPgEnum } from "../enum-to-pg-enum";
+import { PaymentRefundReason, PaymentStatus } from "./enums";
 import { rentalCharges } from "./rental-charges";
 import { rentals } from "./rentals";
 import { reservations } from "./reservations";
 import { users } from "./users";
 
-export {
-  PAYMENT_REFUND_REASONS,
-  PAYMENT_STATUSES,
-  PaymentStatus,
-} from "@metastorage/contracts/payments";
 export enum PaymentType {
   COLLECTION = "COLLECTION",
   RETURN_REFUND = "RETURN_REFUND",
 }
-export type { PaymentRefundReason };
 export const paymentStatusEnum = pgEnum("payment_status", enumToPgEnum(PaymentStatus));
 export const paymentTypeEnum = pgEnum("payment_type", enumToPgEnum(PaymentType));
 export const paymentRefundReasonEnum = pgEnum(
   "payment_refund_reason_code",
-  enumToPgEnum(PAYMENT_REFUND_REASONS),
+  enumToPgEnum(PaymentRefundReason),
 );
 
 export const payments = pgTable(

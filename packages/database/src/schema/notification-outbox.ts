@@ -1,8 +1,3 @@
-import type { BookingEmailSnapshot } from "@metastorage/contracts";
-import {
-  LifecycleNotificationEvent,
-  NotificationDeliveryStatus,
-} from "@metastorage/contracts/lifecycle-notifications";
 import {
   index,
   integer,
@@ -14,6 +9,9 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { enumToPgEnum } from "../enum-to-pg-enum";
+import type { BookingEmailSnapshot } from "./domain";
+import { LifecycleNotificationEvent, NotificationDeliveryStatus } from "./enums";
 import { facilities } from "./facilities";
 import { reservations } from "./reservations";
 import { supportTickets } from "./support";
@@ -21,11 +19,11 @@ import { users } from "./users";
 
 export const lifecycleNotificationEventEnum = pgEnum(
   "lifecycle_notification_event",
-  LifecycleNotificationEvent,
+  enumToPgEnum(LifecycleNotificationEvent),
 );
 export const notificationDeliveryStatusEnum = pgEnum(
   "notification_delivery_status",
-  NotificationDeliveryStatus,
+  enumToPgEnum(NotificationDeliveryStatus),
 );
 export const notificationOutbox = pgTable(
   "notification_outbox",
@@ -52,7 +50,7 @@ export const notificationOutbox = pgTable(
     mailExpiresAt: timestamp({ withTimezone: true }),
     queuedAt: timestamp({ withTimezone: true }),
     occurredAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
-    status: notificationDeliveryStatusEnum().default("PENDING").notNull(),
+    status: notificationDeliveryStatusEnum().default(NotificationDeliveryStatus.PENDING).notNull(),
     attempts: integer().default(0).notNull(),
     nextAttemptAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
     firstAttemptAt: timestamp({ withTimezone: true }),

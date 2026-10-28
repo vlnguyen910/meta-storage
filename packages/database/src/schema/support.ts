@@ -1,4 +1,3 @@
-import { SUPPORT_CATEGORIES } from "@metastorage/contracts/support";
 import { sql } from "drizzle-orm";
 import {
   check,
@@ -11,13 +10,15 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import { enumToPgEnum } from "../enum-to-pg-enum";
+import { SupportCategory } from "./enums";
 import { facilities } from "./facilities";
 import { payments } from "./payments";
 import { rentals } from "./rentals";
 import { reservations } from "./reservations";
 import { users } from "./users";
 
-export const supportCategoryEnum = pgEnum("support_category", SUPPORT_CATEGORIES);
+export const supportCategoryEnum = pgEnum("support_category", enumToPgEnum(SupportCategory));
 const at = () => timestamp({ precision: 3, withTimezone: true });
 
 export const supportTickets = pgTable(

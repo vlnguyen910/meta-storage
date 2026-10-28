@@ -10,7 +10,8 @@
     "./schema": "./src/schema/index.ts",
     "./client": "./src/client.ts",
     "./env": "./src/env.ts",
-    "./seed": "./src/seed.ts"
+    "./seed": "./src/seed.ts",
+    "./schema-domain": "./src/schema/domain.ts"
   },
   "scripts": {
     "db:generate": "drizzle-kit generate",
@@ -24,7 +25,6 @@
     "test": "bun test tests"
   },
   "dependencies": {
-    "@metastorage/contracts": "workspace:*",
     "better-auth": "1.7.5",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.45.2",

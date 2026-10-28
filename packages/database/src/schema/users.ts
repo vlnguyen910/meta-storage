@@ -1,4 +1,3 @@
-import { UserRole, UserStatus } from "@metastorage/contracts/users";
 import { sql } from "drizzle-orm";
 import {
   boolean,
@@ -10,11 +9,13 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import { enumToPgEnum } from "../enum-to-pg-enum";
+import { UserRole, UserStatus } from "./enums";
 
-export { ROLES, USER_STATUS, type UserStatus } from "@metastorage/contracts/users";
+export { UserRole, UserStatus } from "./enums";
 export type Role = UserRole;
-export const roleEnum = pgEnum("role", UserRole);
-export const statusEnum = pgEnum("status", UserStatus);
+export const roleEnum = pgEnum("role", enumToPgEnum(UserRole));
+export const statusEnum = pgEnum("status", enumToPgEnum(UserStatus));
 
 export const users = pgTable(
   "users",

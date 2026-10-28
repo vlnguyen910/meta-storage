@@ -1,14 +1,3 @@
-import type {
-  RentalChargeCategory,
-  RentalChargeEventType,
-  RentalChargeSource,
-  RentalChargeStatus,
-} from "@metastorage/contracts/rental-charges";
-import {
-  RentalChargeCategory as ChargeCategory,
-  RentalChargeSource as ChargeSource,
-  RentalChargeStatus as ChargeStatus,
-} from "@metastorage/contracts/rental-charges";
 import { sql } from "drizzle-orm";
 import {
   check,
@@ -22,12 +11,22 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import { enumToPgEnum } from "../enum-to-pg-enum";
+import {
+  RentalChargeCategory as ChargeCategory,
+  RentalChargeSource as ChargeSource,
+  RentalChargeStatus as ChargeStatus,
+  type RentalChargeEventType,
+} from "./enums";
 import { rentals } from "./rentals";
 import { users } from "./users";
 
-export const rentalChargeSourceEnum = pgEnum("rental_charge_source", ChargeSource);
-export const rentalChargeCategoryEnum = pgEnum("rental_charge_category", ChargeCategory);
-export const rentalChargeStatusEnum = pgEnum("rental_charge_status", ChargeStatus);
+export const rentalChargeSourceEnum = pgEnum("rental_charge_source", enumToPgEnum(ChargeSource));
+export const rentalChargeCategoryEnum = pgEnum(
+  "rental_charge_category",
+  enumToPgEnum(ChargeCategory),
+);
+export const rentalChargeStatusEnum = pgEnum("rental_charge_status", enumToPgEnum(ChargeStatus));
 
 export const rentalCharges = pgTable(
   "rental_charges",
@@ -42,7 +41,7 @@ export const rentalCharges = pgTable(
     currency: varchar({ length: 3 }).default("VND").notNull(),
     evidence: text().notNull(),
     dueDate: date(),
-    status: rentalChargeStatusEnum().default("PENDING_APPROVAL").notNull(),
+    status: rentalChargeStatusEnum().default(ChargeStatus.PENDING_APPROVAL).notNull(),
     createdBy: uuid()
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
@@ -67,7 +66,7 @@ export const rentalCharges = pgTable(
 
 export type RentalCharge = typeof rentalCharges.$inferSelect;
 export type NewRentalCharge = typeof rentalCharges.$inferInsert;
-export type RentalChargeSourceValue = RentalChargeSource;
-export type RentalChargeCategoryValue = RentalChargeCategory;
-export type RentalChargeStatusValue = RentalChargeStatus;
+export type RentalChargeSourceValue = ChargeSource;
+export type RentalChargeCategoryValue = ChargeCategory;
+export type RentalChargeStatusValue = ChargeStatus;
 export type RentalChargeEventTypeValue = RentalChargeEventType;

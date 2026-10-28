@@ -10,17 +10,12 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { enumToPgEnum } from "../enum-to-pg-enum";
+import { ReservationStatus } from "./enums";
 import { facilities } from "./facilities";
 import { unitTypes } from "./unit-types";
 import { users } from "./users";
 
-export enum ReservationStatus {
-  DRAFT = "DRAFT",
-  CONFIRMED = "CONFIRMED",
-  CANCELLED = "CANCELLED",
-  NO_SHOW = "NO_SHOW",
-  CHECKED_IN = "CHECKED_IN",
-}
+export { ReservationStatus } from "./enums";
 
 export const reservationStatusEnum = pgEnum("reservation_status", enumToPgEnum(ReservationStatus));
 
@@ -37,6 +32,7 @@ export const reservations = pgTable(
       .references(() => facilities.id),
     unitTypeId: uuid().notNull(),
     requestedMonths: integer().notNull(),
+    rentalStartAt: timestamp({ withTimezone: true }),
     rentalEndAt: timestamp({ withTimezone: true }).notNull(),
     monthlyRateSnapshot: numeric({ precision: 14, scale: 2 }).notNull(),
     rentalFeeAmount: numeric({ precision: 14, scale: 2 }).notNull(),
