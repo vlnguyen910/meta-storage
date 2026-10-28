@@ -317,7 +317,7 @@ export function CustomerSupportCreate() {
   const paymentItems = payments.data?.pages.flatMap((p) => p.items) ?? [];
 
   return (
-    <>
+    <div className="mx-auto w-full max-w-2xl space-y-4">
       <PageHeader
         title={M.newTicket}
         action={
@@ -330,7 +330,7 @@ export function CustomerSupportCreate() {
           </Link>
         }
       />
-      <Card className="max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
+      <Card className="w-full rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
         <form onSubmit={submit} className="grid gap-5">
           {/* Category Dropdown */}
           <div className="grid gap-1.5">
@@ -568,7 +568,7 @@ export function CustomerSupportCreate() {
           </div>
         </form>
       </Card>
-    </>
+    </div>
   );
 }
 
