@@ -2,9 +2,6 @@ import type { FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
 import { BookingsRepository } from "../../modules/bookings/bookings.repository";
 import { createPaymentsService } from "../../modules/payments/payments.service";
-import { RentalLifecycleRepository } from "../../modules/rentals/rental-lifecycle.repository";
-import { RentalLifecycleService } from "../../modules/rentals/rental-lifecycle.service";
-import { RentalsRepository } from "../../modules/rentals/rentals.repository";
 import type { CronOptions } from "./cron.types";
 import { expireCapacityHolds } from "./expire-capacity-holds";
 
@@ -17,12 +14,6 @@ const cronPluginAsync: FastifyPluginAsync<CronOptions> = async (fastify, options
   const sweep = () => {
     if (running) return running;
     running = Promise.allSettled([
-      new RentalLifecycleService(
-        new RentalLifecycleRepository(fastify.db),
-        new RentalsRepository(fastify.db),
-      )
-        .sweep(new Date(), options.facilityId)
-        .then(() => undefined),
       createPaymentsService(fastify)
         .reconcilePendingPayments(options.facilityId)
         .then(({ failed }) => {

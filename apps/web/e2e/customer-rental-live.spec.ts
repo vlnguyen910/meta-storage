@@ -57,7 +57,9 @@ test.describe("Customer rental flow against isolated real API", () => {
       await expect(page).toHaveURL(new RegExp(`/customer/storage/${f.rentalIds[0]}`), {
         timeout: 20000,
       });
-      await expect(page.getByRole("heading", { name: M.renewal, exact: true })).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "LIVE-CUSTOMER-1", exact: true }),
+      ).toBeVisible();
       await page.goto("/customer/storage");
       await expect(page.getByText("LIVE-CUSTOMER-1", { exact: true })).toBeVisible();
       await expect(page.getByText("LIVE-CUSTOMER-2", { exact: true })).toBeVisible();
@@ -104,53 +106,6 @@ test.describe("Customer rental flow against isolated real API", () => {
       expect(legacy).toEqual([]);
     });
   }
-
-  test("renewal quote/accept/payment applies once through the real webhook", async ({ page }) => {
-    await page.goto(`/customer/storage/${f.rentalIds[0]}`);
-    await page.getByRole("button", { name: M.quote, exact: true }).click();
-    await expect(page).toHaveURL(/renewalId=/);
-    await page.getByRole("button", { name: M.accept, exact: true }).click();
-    const paymentResponse = page.waitForResponse(
-      (r) =>
-        r.request().method() === "POST" &&
-        /\/api\/rental-charges\/.+\/payments$/.test(new URL(r.url()).pathname),
-    );
-    await page.getByRole("button", { name: M.payment, exact: true }).first().click();
-    const response = await paymentResponse;
-    expect(response.status(), await response.text()).toBe(201);
-    const payment = (await response.json()).data;
-    const renewalId = new URL(page.url()).searchParams.get("renewalId");
-    const quote = (await (await page.request.get(`/api/rental-renewals/${renewalId}`)).json()).data;
-    const event = {
-      notification_type: "ORDER_PAID",
-      order: {
-        order_invoice_number: payment.paymentCode,
-        order_status: "CAPTURED",
-        order_currency: "VND",
-        order_amount: quote.amount,
-      },
-      transaction: {
-        transaction_id: `live-${Date.now()}`,
-        transaction_amount: quote.amount,
-        transaction_currency: "VND",
-        transaction_status: "APPROVED",
-        transaction_type: "PAYMENT",
-        transaction_date: providerTimestamp(),
-      },
-    };
-    for (let i = 0; i < 2; i++) {
-      const webhook = await page.request.post("/api/payments/webhooks/sepay", {
-        headers: { "x-secret-key": "customer-live-test-provider-secret" },
-        data: event,
-      });
-      expect(webhook.status(), await webhook.text()).toBe(200);
-    }
-    await expect(page.getByText(M.renewalApplied, { exact: true })).toBeVisible({ timeout: 15000 });
-    const rental = (await (await page.request.get(`/api/rentals/${f.rentalIds[0]}`)).json()).data;
-    expect(rental.expectedEndAt).toBe(quote.newEndAt);
-    await page.reload();
-    await expect(page.getByText(M.renewalApplied, { exact: true })).toBeVisible();
-  });
 
   test("catalog period lookup and checkout survive pending return and confirmed refresh", async ({
     page,
@@ -213,90 +168,6 @@ test.describe("Customer rental flow against isolated real API", () => {
     await expect(page).toHaveURL(new RegExp(`/customer/reservations/${session.bookingId}`));
     await page.reload();
     await expect(page.getByRole("img", { name: M.qr })).toBeVisible();
-  });
-
-  test("customer pays one approved extra and disputes another without creating obligations", async ({
-    page,
-    playwright,
-  }) => {
-    const staff = await playwright.request.newContext({ baseURL: new URL(f.api).origin });
-    const manager = await playwright.request.newContext({ baseURL: new URL(f.api).origin });
-    try {
-      for (const [context, email] of [
-        [staff, f.staffEmail],
-        [manager, f.managerEmail],
-      ] as const)
-        expect(
-          (
-            await context.post("/api/auth/sign-in/email", {
-              data: { email, password: f.password },
-            })
-          ).status(),
-        ).toBe(200);
-      const charges: Array<{ id: string; evidence: string }> = [];
-      for (const evidence of ["Live charge to pay", "Live charge to dispute"]) {
-        const created = await staff.post(`/api/rentals/${f.rentalIds[0]}/charges`, {
-          data: { category: "CLEANING", amount: 25000, evidence, dueDate: "2034-01-01" },
-        });
-        expect(created.status(), await created.text()).toBe(201);
-        const charge = (await created.json()).data;
-        charges.push(charge);
-        expect(
-          (
-            await manager.post(`/api/rental-charges/${charge.id}/decision`, {
-              data: { decision: "APPROVE", reason: "Live fixture evidence verified" },
-            })
-          ).status(),
-        ).toBe(200);
-      }
-      await page.goto(`/customer/storage/${f.rentalIds[0]}`);
-      const disputed = page.locator("article").filter({ hasText: "Live charge to dispute" });
-      await disputed.getByLabel(M.reason).fill("Please review this cleaning charge.");
-      await disputed.getByRole("button", { name: M.dispute, exact: true }).click();
-      await expect(disputed.getByText(/DISPUTED/)).toBeVisible();
-      const payable = page.locator("article").filter({ hasText: "Live charge to pay" });
-      const firstCharge = charges[0];
-      if (!firstCharge) throw new Error("Missing test charge");
-      const sessionResponse = page.waitForResponse(
-        (response) =>
-          response.request().method() === "POST" &&
-          response.url().endsWith(`/rental-charges/${firstCharge.id}/payments`),
-      );
-      await payable.getByRole("button", { name: M.payment, exact: true }).click();
-      const response = await sessionResponse;
-      expect(response.status(), await response.text()).toBe(201);
-      const payment = (await response.json()).data;
-      const webhook = await page.request.post("/api/payments/webhooks/sepay", {
-        headers: { "x-secret-key": "customer-live-test-provider-secret" },
-        data: {
-          notification_type: "ORDER_PAID",
-          order: {
-            order_invoice_number: payment.paymentCode,
-            order_status: "CAPTURED",
-            order_currency: "VND",
-            order_amount: 25000,
-          },
-          transaction: {
-            transaction_id: `extra-${Date.now()}`,
-            transaction_amount: 25000,
-            transaction_currency: "VND",
-            transaction_status: "APPROVED",
-            transaction_type: "PAYMENT",
-            transaction_date: providerTimestamp(),
-          },
-        },
-      });
-      expect(webhook.status(), await webhook.text()).toBe(200);
-      await expect(payable.getByText(/PAID/)).toBeVisible();
-      const history = (
-        await (await page.request.get(`/api/rentals/${f.rentalIds[0]}/payments`)).json()
-      ).data;
-      expect(history.filter((p: { id: string }) => p.id === payment.paymentId)).toHaveLength(1);
-      expect(history.find((p: { id: string }) => p.id === payment.paymentId).source).toBe("EXTRA");
-    } finally {
-      await staff.dispose();
-      await manager.dispose();
-    }
   });
 
   for (const category of ["UNIT", "LOCK", "ACCESS_CODE", "STORED_ITEMS"] as const) {

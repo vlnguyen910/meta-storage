@@ -41,7 +41,7 @@ export type PaymentStatusResponse = {
   status: PaymentStatus;
   provider: string | null;
   paymentCode: string | null;
-  chargeId?: string;
+
   transferInstructions?: SepayPaymentInstructions;
   checkoutUrl?: string;
   checkoutFormFields?: Record<string, string | number>;

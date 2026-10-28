@@ -1,3 +1,5 @@
+> **Cập nhật 2026-10-28:** Tài liệu này mô tả phiên bản trước đợt tinh gọn rental. Các phần gia hạn, khoản thu rental và khung giá đã được gỡ. Xem [trạng thái hiện tại](./rental-reset.md) trước khi sử dụng endpoint trong tài liệu.
+
 # Rental charges API (MVP backend)
 
 This API records source-specific charges separately from payment attempts. All money is integer VND; the server supplies the amount for payment. Initial booking checkout remains unchanged. See [customer financial policy](./customer-financial-policy.md) and [database diagram](./db-diagram.md).

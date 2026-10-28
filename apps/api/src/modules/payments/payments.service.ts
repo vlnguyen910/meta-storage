@@ -8,10 +8,6 @@ import type {
   ManualRefundQuery,
   PaymentStatusResponse,
 } from "@metastorage/contracts";
-import type {
-  RentalChargePaymentSession,
-  StartRentalChargePayment,
-} from "@metastorage/contracts/rental-charges";
 import type { FastifyBaseLogger, FastifyInstance } from "fastify";
 import { AppError, NotFoundError, UnauthorizedError } from "../../common/errors/app-error";
 import { env } from "../../config/env";
@@ -99,42 +95,6 @@ export class PaymentsService {
     };
   }
 
-  async startRentalChargePayment(
-    chargeId: string,
-    userId: string,
-    input: StartRentalChargePayment,
-  ): Promise<RentalChargePaymentSession> {
-    if (!this.sepayGateway?.checkoutConfigured)
-      throw new AppError(PAYMENT_MESSAGES.sepayUnavailable, 503, "PAYMENT_PROVIDER_UNAVAILABLE");
-    const { payment, expiresAt } = await this.repository.prepareRentalChargePayment({
-      chargeId,
-      userId,
-      idempotencyKey: input.idempotencyKey,
-      paymentCode: `${this.sepayGateway.paymentPrefix}${randomBytes(7).toString("hex").toUpperCase()}`,
-    });
-    const paymentCode = requirePaymentCode(payment.paymentCode);
-    const session = this.sepayGateway.createCheckoutSession({
-      rentalChargeId: chargeId,
-      paymentId: payment.id,
-      paymentCode,
-      amount: Number(payment.totalAmount),
-      currency: payment.currency,
-      description: PAYMENT_MESSAGES.checkoutDescription(paymentCode),
-    });
-    if (!session)
-      throw new AppError(PAYMENT_MESSAGES.sepayUnavailable, 503, "PAYMENT_PROVIDER_UNAVAILABLE");
-    return {
-      chargeId,
-      paymentId: payment.id,
-      provider: "sepay",
-      status: "PENDING",
-      paymentCode,
-      checkoutUrl: session.checkoutUrl,
-      checkoutFormFields: session.formFields,
-      expiresAt: expiresAt.toISOString(),
-    };
-  }
-
   private async confirmationWithEmail(completed: {
     booking: BookingReadRecord;
     confirmation: BookingConfirmation;
@@ -161,8 +121,6 @@ export class PaymentsService {
         paymentId: bookingResult.paymentId,
       };
     }
-    const chargeResult = await this.repository.processRentalChargePaymentEvent(event);
-    if (chargeResult) return chargeResult;
     const existingEvent = await this.repository.findProviderEvent("sepay", event.providerEventId);
     if (existingEvent && existingEvent.status !== "FAILED") return { duplicate: true };
     const recorded =
@@ -206,7 +164,6 @@ export class PaymentsService {
       if (!event) return;
       const result = await this.repository.processBookingPaymentEvent(event);
       if (result?.completed) await this.confirmationWithEmail(result.completed);
-      if (!result) await this.repository.processRentalChargePaymentEvent(event);
     } catch (error) {
       this.logger?.warn(
         {
@@ -255,7 +212,7 @@ export class PaymentsService {
     const hold =
       payment.status === "PENDING" ? await this.repository.findActiveHoldForPayment(payment) : null;
     const transferInstructions =
-      payment.status === "PENDING" && this.sepayGateway && (hold || payment.rentalChargeId)
+      payment.status === "PENDING" && this.sepayGateway && hold
         ? this.sepayGateway.createInstructions({
             paymentCode: requirePaymentCode(payment.paymentCode),
             amount: payment.totalAmount,
@@ -264,10 +221,7 @@ export class PaymentsService {
           })
         : undefined;
     const checkoutSession =
-      payment.status === "PENDING" &&
-      this.sepayGateway &&
-      (payment.bookingId || payment.rentalChargeId) &&
-      (hold || payment.rentalChargeId)
+      payment.status === "PENDING" && this.sepayGateway && payment.bookingId && hold
         ? this.sepayGateway.createCheckoutSession({
             paymentCode: requirePaymentCode(payment.paymentCode),
             amount: Number(payment.totalAmount),
@@ -276,7 +230,6 @@ export class PaymentsService {
               requirePaymentCode(payment.paymentCode),
             ),
             bookingId: payment.bookingId ?? undefined,
-            rentalChargeId: payment.rentalChargeId ?? undefined,
             paymentId: payment.id,
           })
         : null;
@@ -285,7 +238,6 @@ export class PaymentsService {
       status: payment.status,
       provider: payment.provider,
       paymentCode: payment.paymentCode,
-      chargeId: payment.rentalChargeId ?? undefined,
       transferInstructions,
       refund:
         payment.status === "REFUND_PENDING" || payment.status === "REFUNDED"

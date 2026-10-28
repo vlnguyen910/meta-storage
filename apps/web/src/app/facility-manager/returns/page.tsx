@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-
-export default function FacilityManagerReturnsPage() {
-  redirect("/facility-manager/tasks?view=returns");
+export default function Page() {
+  redirect("/facility-manager/tasks");
 }

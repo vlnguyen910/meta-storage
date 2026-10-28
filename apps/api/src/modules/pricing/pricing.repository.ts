@@ -1,10 +1,4 @@
-import type {
-  CreateRentalPriceRange,
-  PricingChangeValues,
-  PricingQuery,
-  UpdateDepositPolicy,
-  UpdateRentalPriceRange,
-} from "@metastorage/contracts";
+import type { PricingQuery, UpdateDepositPolicy } from "@metastorage/contracts";
 import { PRICING_MESSAGES as m, SystemSettingKey } from "@metastorage/contracts";
 import {
   and,
@@ -13,21 +7,14 @@ import {
   desc,
   eq,
   getTableColumns,
-  gt,
-  gte,
-  isNotNull,
-  lt,
-  lte,
-  or,
   pricingChanges,
-  rentalPriceRanges,
   systemSettingChanges,
   systemSettingInteger,
   systemSettings,
   unitTypes,
   users,
 } from "@metastorage/database";
-import { AppError, ConflictError, NotFoundError } from "../../common/errors/app-error";
+import { AppError, ConflictError } from "../../common/errors/app-error";
 import type { PricingRevision, PricingTransaction, PricingWrite } from "./pricing.types";
 
 const pricingPolicyFields = {
@@ -95,7 +82,6 @@ export class PricingRepository {
         .select({
           unitTypeId: unitTypes.id,
           facilityId: unitTypes.facilityId,
-          priceRangeId: unitTypes.priceRangeId,
           code: unitTypes.code,
           name: unitTypes.name,
           monthlyPrice: unitTypes.monthlyPrice,
@@ -120,18 +106,7 @@ export class PricingRepository {
       .select({ monthlyPrice: unitTypes.monthlyPrice, depositMonths: systemSettingInteger })
       .from(unitTypes)
       .innerJoin(systemSettings, eq(systemSettings.key, SystemSettingKey.DEPOSIT_MONTHS))
-      .innerJoin(rentalPriceRanges, eq(rentalPriceRanges.id, unitTypes.priceRangeId))
-      .where(
-        and(
-          eq(unitTypes.id, unitTypeId),
-          eq(unitTypes.isActive, true),
-          eq(rentalPriceRanges.isActive, true),
-          isNotNull(rentalPriceRanges.minMonthlyPrice),
-          isNotNull(rentalPriceRanges.maxMonthlyPrice),
-          gte(unitTypes.monthlyPrice, rentalPriceRanges.minMonthlyPrice),
-          lte(unitTypes.monthlyPrice, rentalPriceRanges.maxMonthlyPrice),
-        ),
-      );
+      .where(and(eq(unitTypes.id, unitTypeId), eq(unitTypes.isActive, true)));
     return row ?? null;
   }
 
@@ -143,87 +118,6 @@ export class PricingRepository {
         before: { depositMonths: settings.depositMonths },
         after: { depositMonths: input.depositMonths },
       });
-    });
-  }
-
-  ranges(query: PricingQuery) {
-    return this.db
-      .select()
-      .from(rentalPriceRanges)
-      .orderBy(asc(rentalPriceRanges.code))
-      .limit(query.limit)
-      .offset(query.offset);
-  }
-
-  createRange(input: CreateRentalPriceRange, actor: string) {
-    return this.db.transaction(async (tx) => {
-      const settings = await lockPricingRevision(tx);
-      const [row] = await tx
-        .insert(rentalPriceRanges)
-        .values({ ...input, updatedBy: actor })
-        .onConflictDoNothing({ target: rentalPriceRanges.code })
-        .returning();
-      if (!row) throw new ConflictError(m.rangeCodeExists);
-      await recordPricingChange(tx, settings, actor, {
-        operation: "RENTAL_PRICE_RANGE",
-        before: {
-          priceRangeId: row.id,
-          code: row.code,
-          name: row.name,
-          minMonthlyPrice: null,
-          maxMonthlyPrice: null,
-          isActive: row.isActive,
-        },
-        after: rangeValues(row),
-      });
-      return row;
-    });
-  }
-
-  updateRange(id: string, input: UpdateRentalPriceRange, actor: string) {
-    return this.db.transaction(async (tx) => {
-      const settings = await lockPricingRevision(tx);
-      const [before] = await tx
-        .select()
-        .from(rentalPriceRanges)
-        .where(eq(rentalPriceRanges.id, id))
-        .for("update");
-      if (!before) throw new NotFoundError(m.rangeNotFound);
-      if (before.version !== input.expectedVersion) throw new ConflictError(m.conflict);
-      const [outside] = await tx
-        .select({ id: unitTypes.id })
-        .from(unitTypes)
-        .where(
-          and(
-            eq(unitTypes.priceRangeId, id),
-            or(
-              lt(unitTypes.monthlyPrice, input.minMonthlyPrice),
-              gt(unitTypes.monthlyPrice, input.maxMonthlyPrice),
-            ),
-          ),
-        )
-        .limit(1);
-      if (outside) throw new ConflictError(m.rangeInUse);
-      const [row] = await tx
-        .update(rentalPriceRanges)
-        .set({
-          name: input.name ?? before.name,
-          minMonthlyPrice: input.minMonthlyPrice,
-          maxMonthlyPrice: input.maxMonthlyPrice,
-          isActive: input.isActive ?? before.isActive,
-          version: before.version + 1,
-          updatedBy: actor,
-          updatedAt: new Date(),
-        })
-        .where(eq(rentalPriceRanges.id, id))
-        .returning();
-      if (!row) throw new NotFoundError(m.rangeNotFound);
-      await recordPricingChange(tx, settings, actor, {
-        operation: "RENTAL_PRICE_RANGE",
-        before: rangeValues(before),
-        after: rangeValues(row),
-      });
-      return row;
     });
   }
 
@@ -241,15 +135,4 @@ export class PricingRepository {
       .limit(query.limit)
       .offset(query.offset);
   }
-}
-
-function rangeValues(row: typeof rentalPriceRanges.$inferSelect): PricingChangeValues {
-  return {
-    priceRangeId: row.id,
-    code: row.code,
-    name: row.name,
-    minMonthlyPrice: row.minMonthlyPrice,
-    maxMonthlyPrice: row.maxMonthlyPrice,
-    isActive: row.isActive,
-  };
 }

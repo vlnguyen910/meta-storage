@@ -114,3 +114,10 @@ export type ConfigureSystemSetting = z.infer<typeof ConfigureSystemSettingSchema
 export type SystemSettingHistoryQuery = z.infer<typeof SystemSettingHistoryQuerySchema>;
 export { SYSTEM_SETTING_MESSAGES } from "./system-settings.messages";
 export type * from "./system-settings.types";
+
+// Compatibility endpoint retained by dev; this does not restore rental return workflows.
+export const ConfigureOverdueRateSchema = z.strictObject({
+  expectedVersion: version,
+  rate: z.number().int().min(0).max(100),
+});
+export type ConfigureOverdueRate = z.infer<typeof ConfigureOverdueRateSchema>;

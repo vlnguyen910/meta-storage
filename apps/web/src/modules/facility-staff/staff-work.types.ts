@@ -13,7 +13,7 @@ export interface StaffWorkItem {
   action: string;
 }
 export interface StaffWorkFilters {
-  kind: "" | "CHECK_IN" | "RETURN" | "TASK";
+  kind: "" | "CHECK_IN" | "TASK";
   date: string;
   group: StaffWorkGroup;
   search: string;

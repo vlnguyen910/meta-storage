@@ -1,12 +1,7 @@
 "use client";
 
-import type {
-  GuestRentalPaymentItemDto,
-  RentalDocumentDto,
-  RentalPaymentItem,
-} from "@metastorage/contracts";
+import type { RentalDocumentDto, RentalPaymentItem } from "@metastorage/contracts";
 import { CONTRACT_PDF_MAX_BYTES, ContractUploadSchema } from "@metastorage/contracts";
-import { CUSTOMER_WORKSPACE as W } from "@metastorage/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { Clock, CreditCard, FileCheck, FileText, Receipt } from "lucide-react";
@@ -57,12 +52,7 @@ export function BookingContractAccess({ bookingId }: { bookingId: string }) {
   return <RentalDocuments bookingId={bookingId} handover />;
 }
 
-export function PaymentRecords({
-  items,
-}: {
-  items: (GuestRentalPaymentItemDto &
-    Pick<RentalPaymentItem, "source" | "chargeId" | "chargeRefunds">)[];
-}) {
+export function PaymentRecords({ items }: { items: RentalPaymentItem[] }) {
   const [page, setPage] = useState(1);
   const pageSize = 6;
   const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
@@ -83,7 +73,6 @@ export function PaymentRecords({
                 <strong className="max-w-full break-all font-mono text-sm text-ink">
                   {item.paymentCode}
                 </strong>
-                {item.source && <span className="text-xs text-muted">{W.source[item.source]}</span>}
               </div>
               <StatusBadge value={item.status} />
             </div>
@@ -99,23 +88,12 @@ export function PaymentRecords({
                 {new Date(item.paidAt ?? item.createdAt).toLocaleString("vi-VN")}
               </p>
             </div>
-            {item.chargeRefunds?.map((refund) => (
-              <p className="text-sm text-emerald-900" key={refund.id}>
-                {W.refund}: {money(refund.amount)} ? {refund.reference}
-              </p>
-            ))}
             {item.refundedAt && item.refundAmount && (
               <p className="m-0 text-sm text-amber-800">
                 {F3.refunded}: <strong>{money(item.refundAmount)}</strong> ·{" "}
                 {new Date(item.refundedAt).toLocaleString("vi-VN")}
               </p>
             )}
-            {item.returnRefunds.map((r) => (
-              <p key={r.id} className="m-0 text-xs text-emerald-800">
-                {F3.returnedRefund}: <strong>{money(r.amount)}</strong> · {r.reference} ·{" "}
-                {new Date(r.confirmedAt).toLocaleString("vi-VN")}
-              </p>
-            ))}
           </li>
         ))}
       </ul>

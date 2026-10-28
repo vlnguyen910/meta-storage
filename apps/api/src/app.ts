@@ -23,9 +23,6 @@ import { lifecycleNotificationsRoutes } from "./modules/notifications/lifecycle-
 import { notificationsPlugin } from "./modules/notifications/notifications.plugin";
 import { paymentsRoutes } from "./modules/payments/payments.routes";
 import { pricingRoutes } from "./modules/pricing/pricing.routes";
-import { renewalsRoutes } from "./modules/renewals/renewals.routes";
-import { rentalChargesRoutes } from "./modules/rental-charges/rental-charges.routes";
-import { rentalLifecycleSettingsRoutes } from "./modules/rental-lifecycle-settings/rental-lifecycle-settings.routes";
 import { rentalsRoutes } from "./modules/rentals/rentals.routes";
 import { reportsRoutes } from "./modules/reports/reports.routes";
 import { storageUnitsRoutes } from "./modules/storage-units/storage-units.routes";
@@ -71,8 +68,6 @@ export function buildApp(): FastifyInstance {
   app.register(unitTypesRoutes, { prefix: "/api/unit-types" });
   app.register(facilityTasksRoutes, { prefix: "/api/facility-tasks" });
   app.register(rentalsRoutes, { prefix: "/api/rentals" });
-  app.register(rentalChargesRoutes, { prefix: "/api" });
-  app.register(renewalsRoutes, { prefix: "/api" });
   app.register(bookingsRoutes, { prefix: "/api" });
   app.register(checkInsRoutes, { prefix: "/api" });
   app.register(inspectionsRoutes, { prefix: "/api" });
@@ -81,7 +76,6 @@ export function buildApp(): FastifyInstance {
   app.register(reportsRoutes, { prefix: "/api/reports" });
   app.register(storageUnitsRoutes, { prefix: "/api/storage-units" });
   app.register(storageUnitsRoutes, { prefix: "/api/units" });
-  app.register(rentalLifecycleSettingsRoutes, { prefix: "/api" });
   app.register(systemSettingsRoutes, { prefix: "/api" });
   app.register(supportRoutes, { prefix: "/api/support" });
   app.register(facilityWorkspaceRoutes, { prefix: "/api/facility-workspace" });

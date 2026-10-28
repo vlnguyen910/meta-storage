@@ -6,8 +6,6 @@ import {
   BookingPaymentInputSchema,
   type BookingPaymentSession,
   type CustomerBookingPageCursor,
-  QuoteRenewalSchema,
-  RentalChargeDisputeSchema,
   type RentalPageCursor,
   type SupportContextQuery,
   type SupportCreateInput,
@@ -36,7 +34,6 @@ import {
   customerCommandId,
   readCustomerCommand,
   saveCustomerCommand,
-  sharePrivateFile,
 } from "./customer-native";
 
 export function useCustomerBookings(owner: string) {
@@ -223,20 +220,13 @@ export function useCustomerPayment(owner: string, id: string) {
         "customer-booking",
         "rentals",
         "rental",
-        "rental-charges",
         "rental-payments",
-        "renewal",
-        "renewal-history",
       ])
         void client.invalidateQueries({ queryKey: [key] });
     }
   }, [paymentStatus, owner, id, client.invalidateQueries]);
   const restart = useMutation({
     mutationFn: async () => {
-      if (query.data?.chargeId) {
-        await clearCustomerCommand(owner, `charge-${query.data.chargeId}`);
-        return null;
-      }
       const saved = await readCustomerCommand<CustomerCheckoutCommand>(owner, "checkout");
       if (!saved) return null;
       saved.payment = undefined;
@@ -248,141 +238,13 @@ export function useCustomerPayment(owner: string, id: string) {
   });
   return { ...query, restart };
 }
-export function useCustomerRental(owner: string, id: string, go: CustomerNavigation) {
-  const client = useQueryClient();
-  const quoteForm = useForm({
-    resolver: zodResolver(QuoteRenewalSchema.omit({ idempotencyKey: true })),
-    defaultValues: { months: 1 },
-  });
-  const disputeForm = useForm({
-    resolver: zodResolver(RentalChargeDisputeSchema),
-    defaultValues: { reason: "" },
-  });
+export function useCustomerRental(owner: string, id: string) {
   const rental = useQuery({ queryKey: ["rental", owner, id], queryFn: () => api.rentals.get(id) });
-  const charges = useInfiniteQuery({
-    queryKey: ["rental-charges", owner, id],
-    initialPageParam: 0,
-    queryFn: ({ pageParam, signal }) =>
-      api.rentalCharges.list(id, { limit: 20, offset: pageParam }, signal),
-    getNextPageParam: (page) =>
-      page.offset + page.items.length < page.total ? page.offset + page.items.length : undefined,
-  });
   const payments = useQuery({
     queryKey: ["rental-payments", owner, id],
     queryFn: ({ signal }) => api.rentalPayments(id, signal),
   });
-  const documents = useQuery({
-    queryKey: ["rental-documents", owner, id],
-    queryFn: ({ signal }) => api.rentalDocuments.rental(id, signal),
-  });
-  const history = useInfiniteQuery({
-    queryKey: ["renewal-history", owner, id],
-    initialPageParam: 0,
-    queryFn: ({ pageParam }) => api.renewals.list(id, { limit: 20, offset: pageParam }),
-    getNextPageParam: (p, pages) => (p.length === 20 ? pages.length * 20 : undefined),
-  });
-  const savedRenewal = useQuery({
-    queryKey: ["saved-renewal", owner, id],
-    queryFn: () => readCustomerCommand<string>(owner, `renewal-${id}`),
-  });
-  const renewalId = savedRenewal.data;
-  const renewal = useQuery({
-    queryKey: ["renewal", owner, renewalId],
-    queryFn: ({ signal }) => {
-      if (!renewalId) throw new Error();
-      return api.renewals.get(renewalId, signal);
-    },
-    enabled: Boolean(renewalId),
-    refetchInterval: (q) =>
-      !q.state.error && q.state.data?.status === "AWAITING_PAYMENT" && q.state.dataUpdateCount < 60
-        ? 3000
-        : false,
-  });
-  const key = async (operation: string) => {
-    const old = await readCustomerCommand<string>(owner, operation);
-    if (old) return old;
-    const next = customerCommandId();
-    await saveCustomerCommand(owner, operation, next);
-    return next;
-  };
-  const refresh = async () => {
-    for (const k of [
-      "rentals",
-      "rental",
-      "rental-charges",
-      "rental-payments",
-      "renewal",
-      "renewal-history",
-    ])
-      await client.invalidateQueries({ queryKey: [k] });
-  };
-  const quote = useMutation({
-    mutationFn: async (months: number) =>
-      api.renewals.quote(id, { months, idempotencyKey: await key(`quote-${id}-${months}`) }),
-    onSuccess: async (r) => {
-      await clearCustomerCommand(owner, `quote-${id}-${r.months}`);
-      await saveCustomerCommand(owner, `renewal-${id}`, r.id);
-      await savedRenewal.refetch();
-      await refresh();
-    },
-  });
-  const accept = useMutation({
-    mutationFn: () => {
-      if (!renewalId || !renewal.data) throw new Error();
-      return api.renewals.accept(renewalId, {
-        acceptedTerms: true,
-        termsVersion: renewal.data.termsVersion,
-      });
-    },
-    onSuccess: refresh,
-  });
-  const pay = useMutation({
-    mutationFn: async (chargeId: string) =>
-      api.rentalCharges.pay(chargeId, { idempotencyKey: await key(`charge-${chargeId}`) }),
-    onError: async (error, chargeId) => {
-      if (isAxiosError(error) && error.response?.status === 409)
-        await clearCustomerCommand(owner, `charge-${chargeId}`);
-    },
-    onSuccess: async (r) => {
-      await saveCustomerCommand(owner, "payment", {
-        screen: "payment",
-        id: r.paymentId,
-        chargeId: r.chargeId,
-      });
-      go({ screen: "payment", id: r.paymentId, chargeId: r.chargeId });
-    },
-  });
-  const dispute = useMutation({
-    mutationFn: ({ chargeId, reason }: { chargeId: string; reason: string }) =>
-      api.rentalCharges.dispute(chargeId, { reason }),
-    onSuccess: refresh,
-  });
-  const document = useMutation({
-    mutationFn: async (documentId: string) => {
-      if (!rental.data) throw new Error();
-      const bytes = await api.rentalDocuments.pdfBytes(rental.data.bookingId, documentId);
-      await sharePrivateFile(new Uint8Array(bytes), `${documentId}.pdf`, "application/pdf");
-    },
-  });
-  return {
-    rental,
-    charges,
-    payments,
-    documents,
-    history,
-    renewal,
-    quote,
-    accept,
-    pay,
-    dispute,
-    document,
-    quoteForm,
-    disputeForm,
-    selectRenewal: async (renewalId: string) => {
-      await saveCustomerCommand(owner, `renewal-${id}`, renewalId);
-      await savedRenewal.refetch();
-    },
-  };
+  return { rental, payments };
 }
 export function useCustomerTickets(owner: string) {
   return useInfiniteQuery({

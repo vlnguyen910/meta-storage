@@ -7,12 +7,11 @@ import {
   eq,
   facilities,
   getTableColumns,
-  isNull,
   lt,
   notificationOutbox,
   or,
   payments,
-  rentalCharges,
+  RentalStatus,
   rentals,
   sql,
   storageUnits,
@@ -59,10 +58,8 @@ export class SupportRepository {
 
   async payment(tx: SupportTransaction, id: string) {
     const [row] = await tx
-      .select({ bookingId: payments.bookingId, chargeBookingId: rentals.bookingId })
+      .select({ bookingId: payments.bookingId })
       .from(payments)
-      .leftJoin(rentalCharges, eq(rentalCharges.id, payments.rentalChargeId))
-      .leftJoin(rentals, eq(rentals.id, rentalCharges.rentalId))
       .where(eq(payments.id, id));
     return row;
   }
@@ -110,7 +107,7 @@ export class SupportRepository {
       .innerJoin(facilities, eq(facilities.id, bookings.facilityId))
       .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
       .leftJoin(rentals, eq(rentals.bookingId, bookings.id))
-      .leftJoin(storageUnits, eq(storageUnits.id, rentals.physicalUnitId))
+      .leftJoin(storageUnits, eq(storageUnits.id, rentals.storageUnitId))
       .where(
         and(
           eq(bookings.userId, actorId),
@@ -120,8 +117,8 @@ export class SupportRepository {
             ? undefined
             : and(
                 eq(bookings.status, "CHECKED_IN"),
-                isNull(rentals.closedAt),
-                eq(rentals.facilityId, bookings.facilityId),
+                eq(rentals.status, RentalStatus.ACTIVE),
+                eq(rentals.userId, actorId),
                 eq(storageUnits.facilityId, bookings.facilityId),
               ),
           cursor
@@ -165,20 +162,13 @@ export class SupportRepository {
       .select({
         id: payments.id,
         paymentCode: payments.paymentCode,
-        chargeId: payments.rentalChargeId,
-        source: rentalCharges.source,
         status: payments.status,
         amount: payments.totalAmount,
         currency: payments.currency,
         createdAt,
       })
       .from(payments)
-      .leftJoin(rentalCharges, eq(rentalCharges.id, payments.rentalChargeId))
-      .leftJoin(rentals, eq(rentals.id, rentalCharges.rentalId))
-      .innerJoin(
-        bookings,
-        or(eq(bookings.id, payments.bookingId), eq(bookings.id, rentals.bookingId)),
-      )
+      .innerJoin(bookings, eq(bookings.id, payments.bookingId))
       .where(
         and(
           eq(bookings.id, bookingId),

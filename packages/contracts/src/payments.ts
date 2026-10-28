@@ -142,7 +142,7 @@ export const PaymentStatusResponseSchema = z.object({
   status: z.enum(PaymentStatus),
   provider: z.string().nullable(),
   paymentCode: z.string().nullable(),
-  chargeId: z.string().uuid().optional(),
+
   transferInstructions: SepayPaymentInstructionsSchema.optional(),
   checkoutUrl: z.string().url().optional(),
   checkoutFormFields: z.record(z.string(), z.union([z.string(), z.number()])).optional(),

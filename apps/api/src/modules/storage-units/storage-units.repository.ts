@@ -23,6 +23,7 @@ import {
   notExists,
   notInArray,
   or,
+  RentalStatus,
   rentals,
   type StorageUnit,
   sql,
@@ -178,7 +179,7 @@ export class StorageUnitsRepository {
         const [rental] = await tx
           .select({ id: rentals.id })
           .from(rentals)
-          .where(and(eq(rentals.physicalUnitId, id), eq(rentals.status, "ACTIVE")))
+          .where(and(eq(rentals.storageUnitId, id), eq(rentals.status, RentalStatus.ACTIVE)))
           .limit(1);
         const [assignment] = await tx
           .select({ id: unitAssignments.id })
@@ -231,7 +232,7 @@ export class StorageUnitsRepository {
       const [activeRental] = await tx
         .select({ id: rentals.id })
         .from(rentals)
-        .where(and(eq(rentals.physicalUnitId, unit.id), eq(rentals.status, "ACTIVE")))
+        .where(and(eq(rentals.storageUnitId, unit.id), eq(rentals.status, RentalStatus.ACTIVE)))
         .limit(1);
 
       // Check active unit assignments

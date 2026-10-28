@@ -90,11 +90,13 @@ export class InspectionsService {
       if (existing) return existing;
 
       let storageUnitId: string | undefined;
+      let inspectionType: InspectionType;
       if (
         task.type === FacilityTaskType.UNIT_INSPECTION &&
         task.referenceType === FacilityTaskReferenceType.STORAGE_UNIT
       ) {
         storageUnitId = task.referenceId;
+        inspectionType = InspectionType.MAINTENANCE;
       } else {
         return undefined;
       }
@@ -104,7 +106,7 @@ export class InspectionsService {
         storageUnitId,
         inspectedBy: actor.id,
         taskId: task.id,
-        inspectionType: InspectionType.MAINTENANCE,
+        inspectionType,
         status: InspectionStatus.PENDING,
       });
       return created;
