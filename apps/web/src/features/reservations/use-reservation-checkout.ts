@@ -164,10 +164,26 @@ export function useReservationCheckout() {
   }, [form]);
   useEffect(() => {
     if (!isMockMode && session) {
-      form.setValue("fullName", session.user.name);
-      form.setValue("email", session.user.email);
+      if (session.user.name && !form.getValues("fullName")) {
+        form.setValue("fullName", session.user.name);
+      }
+      if (session.user.email && !form.getValues("email")) {
+        form.setValue("email", session.user.email);
+      }
+      const userPhone = (session.user as { phone?: string | null })?.phone;
+      if (userPhone && !form.getValues("phone")) {
+        form.setValue("phone", String(userPhone).replace(/^\+84/, "0"));
+      }
     }
   }, [form, session]);
+  useEffect(() => {
+    const firstSlot = slotsQuery.data?.[0];
+    if (!checkInSlotId && firstSlot) {
+      form.setValue("checkInSlotId", firstSlot.id, {
+        shouldValidate: true,
+      });
+    }
+  }, [checkInSlotId, form, slotsQuery.data]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: Scroll on step transitions.
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });

@@ -146,16 +146,22 @@ export function CheckoutSelection({ state }: { state: CheckoutState }) {
                     aria-pressed={selected?.unitTypeId === option.unitTypeId}
                     disabled={option.availableCount === 0 || availabilityQuery.isFetching}
                     className={`${s.cardSelect} ${selected?.unitTypeId === option.unitTypeId ? s.primary : s.secondary}`}
-                    onClick={() =>
-                      state.form.setValue("unitTypeId", option.unitTypeId, { shouldValidate: true })
-                    }
+                    onClick={() => {
+                      if (selected?.unitTypeId === option.unitTypeId) {
+                        void state.next();
+                      } else {
+                        state.form.setValue("unitTypeId", option.unitTypeId, {
+                          shouldValidate: true,
+                        });
+                      }
+                    }}
                   >
                     {option.availableCount === 0 ? (
                       m.unavailable
                     ) : selected?.unitTypeId === option.unitTypeId ? (
                       <>
                         <Check size={14} />
-                        {m.selected}
+                        {m.selected} · Tiếp tục →
                       </>
                     ) : (
                       m.select
@@ -168,6 +174,23 @@ export function CheckoutSelection({ state }: { state: CheckoutState }) {
         </div>
         <CheckoutSummary state={state} />
       </div>
+      {selected && (
+        <div className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-between border-t border-slate-200 bg-white/95 p-3 px-4 shadow-lg backdrop-blur md:hidden">
+          <div className="min-w-0 pr-2">
+            <span className="block truncate text-xs text-slate-500">{selected.unitType}</span>
+            <strong className="text-sm font-bold text-[#003b2f]">
+              <Currency value={selected.monthlyPrice} /> / tháng
+            </strong>
+          </div>
+          <button
+            type="button"
+            className={`${s.primary} shrink-0 px-4 py-2 text-xs`}
+            onClick={() => void state.next()}
+          >
+            {m.nextContact} →
+          </button>
+        </div>
+      )}
     </>
   );
 }
