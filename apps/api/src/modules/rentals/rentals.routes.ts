@@ -1,6 +1,8 @@
 import {
+  FacilityRentalHistoryQuerySchema,
   FacilityRentalListParamsSchema,
   FacilityRentalListQuerySchema,
+  FacilityRentalParamsSchema,
   RentalIdParamsSchema,
   RentalPageQuerySchema,
 } from "@metastorage/contracts";
@@ -74,47 +76,49 @@ export const rentalsRoutes: FastifyPluginAsync = async (fastify) => {
       );
     },
   );
-  // typedApp.get(
-  //   "/facility/:facilityId/:rentalId",
-  //   {
-  //     schema: { tags: ["Rentals"], params: FacilityRentalParamsSchema },
-  //     preHandler: [requireRole("FACILITY_MANAGER")],
-  //   },
-  //   async (request, reply) => {
-  //     reply.header("Cache-Control", "private, no-store");
-  //     if (!request.user) throw new UnauthorizedError();
-  //     return successResponse(
-  //       await service.getFacilityRental(
-  //         request.user,
-  //         request.params.facilityId,
-  //         request.params.rentalId,
-  //       ),
-  //     );
-  //   },
-  // );
-  // typedApp.get(
-  //   "/facility/:facilityId/:rentalId/payments",
-  //   {
-  //     schema: {
-  //       tags: ["Rentals"],
-  //       params: FacilityRentalParamsSchema,
-  //       querystring: FacilityRentalHistoryQuerySchema,
-  //     },
-  //     preHandler: [requireRole("FACILITY_MANAGER")],
-  //   },
-  //   async (request, reply) => {
-  //     reply.header("Cache-Control", "private, no-store");
-  //     if (!request.user) throw new UnauthorizedError();
-  //     return successResponse(
-  //       await service.listFacilityRentalPayments(
-  //         request.user,
-  //         request.params.facilityId,
-  //         request.params.rentalId,
-  //         request.query,
-  //       ),
-  //     );
-  //   },
-  // );
+
+  typedApp.get(
+    "/facility/:facilityId/:rentalId",
+    {
+      schema: { tags: ["Rentals"], params: FacilityRentalParamsSchema },
+      preHandler: [requireRole("FACILITY_MANAGER")],
+    },
+    async (request, reply) => {
+      reply.header("Cache-Control", "private, no-store");
+      if (!request.user) throw new UnauthorizedError();
+      return successResponse(
+        await service.getFacilityRental(
+          request.user,
+          request.params.facilityId,
+          request.params.rentalId,
+        ),
+      );
+    },
+  );
+
+  typedApp.get(
+    "/facility/:facilityId/:rentalId/payments",
+    {
+      schema: {
+        tags: ["Rentals"],
+        params: FacilityRentalParamsSchema,
+        querystring: FacilityRentalHistoryQuerySchema,
+      },
+      preHandler: [requireRole("FACILITY_MANAGER")],
+    },
+    async (request, reply) => {
+      reply.header("Cache-Control", "private, no-store");
+      if (!request.user) throw new UnauthorizedError();
+      return successResponse(
+        await service.listFacilityRentalPayments(
+          request.user,
+          request.params.facilityId,
+          request.params.rentalId,
+          request.query,
+        ),
+      );
+    },
+  );
 };
 
 function createRentalsService(database: Database) {
