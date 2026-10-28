@@ -313,8 +313,21 @@ export function LoginForm() {
           </div>
         )}
 
-        {/* Hotline Help Note */}
+        {/* Registration Prompt */}
         <div className="mt-6 pt-4 border-t border-slate-200 text-center">
+          <p className="text-xs text-slate-600">
+            {AUTH_MESSAGES.noAccountPrompt}{" "}
+            <Link
+              href={routes.register}
+              className="font-bold text-[#165f4d] hover:underline transition-colors"
+            >
+              {AUTH_MESSAGES.registerNow}
+            </Link>
+          </p>
+        </div>
+
+        {/* Hotline Help Note */}
+        <div className="mt-4 pt-3 border-t border-slate-100 text-center">
           <p className="text-xs text-slate-500 flex items-center justify-center gap-1.5">
             <Headphones className="w-4 h-4 text-slate-600" />
             <span>{AUTH_MESSAGES.hotlineLabel}</span>
