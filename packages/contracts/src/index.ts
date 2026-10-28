@@ -1,4 +1,5 @@
 export * from "./api-response";
+export * from "./appointment-reservation";
 export * from "./auth";
 export * from "./bookings";
 export * from "./catalog";

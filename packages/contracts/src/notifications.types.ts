@@ -16,13 +16,4 @@ export interface LifecycleNotificationItem {
   occurredAt: string;
 }
 
-export interface BookingEmailSnapshot {
-  bookingCode: string | null;
-  facilityName: string;
-  unitTypeName: string;
-  paidAt: string;
-  kind?: "BOOKING_CONFIRMATION" | "TRACKING_LINK";
-  deliveryId?: string;
-  linkCreatedAt?: string;
-  linkExpiresAt?: string;
-}
+export type { BookingEmailSnapshot } from "@metastorage/database/schema-domain";

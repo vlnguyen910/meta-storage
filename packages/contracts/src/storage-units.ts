@@ -1,3 +1,4 @@
+import { StorageUnitStatus } from "@metastorage/database/schema-domain";
 import { z } from "zod";
 import { STORAGE_UNIT_MESSAGES } from "./storage-units.messages";
 import type {
@@ -5,16 +6,7 @@ import type {
   StorageUnitTransitionValidationResult,
 } from "./storage-units.types";
 
-export enum StorageUnitStatus {
-  AVAILABLE = "AVAILABLE",
-  RESERVED = "RESERVED",
-  OCCUPIED = "OCCUPIED",
-  MAINTENANCE = "MAINTENANCE",
-  INSPECTION = "INSPECTION",
-  RETURN_PENDING = "RETURN_PENDING",
-  LOCKED = "LOCKED",
-  INACTIVE = "INACTIVE",
-}
+export { StorageUnitStatus } from "@metastorage/database/schema-domain";
 
 export const StorageUnitListQuerySchema = z.object({
   facilityId: z.string().uuid(),

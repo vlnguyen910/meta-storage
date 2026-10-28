@@ -4,14 +4,9 @@ import { RETURN_MESSAGES as m } from "./returns.messages";
 export { RETURN_MESSAGES } from "./returns.messages";
 export type * from "./returns.types";
 
-export const ReturnRequestStatus = {
-  PENDING: "PENDING",
-  CONFIRMED: "CONFIRMED",
-  INSPECTING: "INSPECTING",
-  FAILED: "FAILED",
-  COMPLETED: "COMPLETED",
-  CANCELLED: "CANCELLED",
-} as const;
+import { ReturnRequestStatus } from "@metastorage/database/schema-domain";
+
+export { ReturnRequestStatus } from "@metastorage/database/schema-domain";
 export const ReturnInspectionStatus = { DRAFT: "DRAFT", PASS: "PASS", FAIL: "FAIL" } as const;
 export const ReturnTimeChangeStatus = {
   PENDING: "PENDING",

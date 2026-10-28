@@ -1,11 +1,8 @@
+import { FacilityStatus } from "@metastorage/database/schema-domain";
 import { z } from "zod";
 import { UserRole } from "./users";
 
-export enum FacilityStatus {
-  ACTIVE = "ACTIVE",
-  INACTIVE = "INACTIVE",
-  MAINTENANCE = "MAINTENANCE",
-}
+export { FacilityStatus } from "@metastorage/database/schema-domain";
 
 export const FacilityAddressSchema = z.object({
   line1: z.string(),

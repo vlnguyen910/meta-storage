@@ -3,9 +3,10 @@ import { RENTAL_CONTRACT_MESSAGES } from "./rentals.messages";
 
 export type * from "./rentals.types";
 
-export const RENTAL_STATUSES = ["ACTIVE", "RETURN_PENDING", "OVERDUE", "CLOSED"] as const;
-export const RentalStatusSchema = z.enum(RENTAL_STATUSES);
-export type RentalStatus = z.infer<typeof RentalStatusSchema>;
+import { RentalStatus } from "@metastorage/database/schema-domain";
+
+export { RentalStatus } from "@metastorage/database/schema-domain";
+export const RentalStatusSchema = z.enum(RentalStatus);
 
 export const RentalIdParamsSchema = z.object({ rentalId: z.string().uuid() });
 

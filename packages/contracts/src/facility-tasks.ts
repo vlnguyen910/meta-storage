@@ -1,23 +1,15 @@
+import {
+  FacilityTaskReferenceType,
+  FacilityTaskStatus,
+  FacilityTaskType,
+} from "@metastorage/database/schema-domain";
 import { z } from "zod";
 
-export enum FacilityTaskType {
-  CHECK_IN_HANDOVER = "CHECK_IN_HANDOVER",
-  UNIT_INSPECTION = "UNIT_INSPECTION",
-  HANDLE_SUPPORT = "HANDLE_SUPPORT",
-}
-
-export enum FacilityTaskStatus {
-  ASSIGNED = "ASSIGNED",
-  IN_PROGRESS = "IN_PROGRESS",
-  COMPLETED = "COMPLETED",
-  CANCELLED = "CANCELLED",
-}
-
-export enum FacilityTaskReferenceType {
-  BOOKING = "BOOKING",
-  STORAGE_UNIT = "STORAGE_UNIT",
-  SUPPORT_TICKET = "SUPPORT_TICKET",
-}
+export {
+  FacilityTaskReferenceType,
+  FacilityTaskStatus,
+  FacilityTaskType,
+} from "@metastorage/database/schema-domain";
 
 export const FacilityTaskTypeReferenceSchema = z.discriminatedUnion("type", [
   z.object({

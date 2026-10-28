@@ -1,14 +1,10 @@
+import { LegacyReservationStatus as ReservationStatus } from "@metastorage/database/schema-domain";
 import { z } from "zod";
 import { FacilitySchema } from "./facilities";
 import { PaymentSchema } from "./payments";
 import { ReservationDraftContactSchema } from "./reservation-contact";
 
-export enum ReservationStatus {
-  CONFIRMED = "CONFIRMED",
-  CANCELLED = "CANCELLED",
-  EXPIRED = "EXPIRED",
-  CHECKED_IN = "CHECKED_IN",
-}
+export { LegacyReservationStatus as ReservationStatus } from "@metastorage/database/schema-domain";
 
 export const ReservationQuoteSchema = z.object({
   id: z.string(),

@@ -1,13 +1,8 @@
+import { SupportCategory } from "@metastorage/database/schema-domain";
 import { z } from "zod";
 import { SUPPORT_MESSAGES as m } from "./support.messages";
 
-export const SUPPORT_CATEGORIES = [
-  "UNIT",
-  "LOCK",
-  "ACCESS_CODE",
-  "STORED_ITEMS",
-  "PAYMENT",
-] as const;
+export { SupportCategory } from "@metastorage/database/schema-domain";
 export const SUPPORT_STATUSES = ["OPEN", "IN_PROGRESS", "CLOSED"] as const;
 export const SUPPORT_PRIORITIES = ["NORMAL", "HIGH"] as const;
 export const SUPPORT_MESSAGE_KINDS = ["PUBLIC_REPLY", "INTERNAL_NOTE", "STAFF_REPORT"] as const;
@@ -32,7 +27,7 @@ export const SupportAttachmentParamsSchema = SupportTicketParamsSchema.extend({
 });
 export const SupportCreateInputSchema = z.strictObject({
   bookingId: uuid,
-  category: z.enum(SUPPORT_CATEGORIES),
+  category: z.enum(SupportCategory),
   paymentId: uuid.optional(),
   subject: z.string().trim().min(1, m.required).max(200, m.subjectLimit),
   content,
@@ -68,14 +63,14 @@ export const SupportPageQuerySchema = z.strictObject({
   cursor: z.string().min(1, m.invalidCursor).max(768, m.invalidCursor).optional(),
 });
 export const SupportContextQuerySchema = SupportPageQuerySchema.extend({
-  category: z.enum(SUPPORT_CATEGORIES),
+  category: z.enum(SupportCategory),
 });
 export const SupportContextParamsSchema = z.strictObject({ bookingId: uuid });
 export type SupportContextQuery = z.infer<typeof SupportContextQuerySchema>;
 
 export const SupportTicketQuerySchema = SupportPageQuerySchema.extend({
   bookingId: uuid.optional(),
-  category: z.enum(SUPPORT_CATEGORIES).optional(),
+  category: z.enum(SupportCategory).optional(),
   status: z.enum(SUPPORT_STATUSES).optional(),
 });
 export const SupportAttachmentSchema = z.object({
@@ -94,7 +89,7 @@ export const SupportTicketSchema = z.object({
   rentalId: uuid.nullable(),
   storageUnitId: uuid.nullable(),
   paymentId: uuid.nullable(),
-  category: z.enum(SUPPORT_CATEGORIES),
+  category: z.enum(SupportCategory),
   subject: z.string(),
   description: z.string(),
   status: z.enum(SUPPORT_STATUSES),

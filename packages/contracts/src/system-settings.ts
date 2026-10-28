@@ -1,67 +1,9 @@
+import { SystemSettingKey } from "@metastorage/database/schema-domain";
 import { z } from "zod";
 import { SYSTEM_SETTING_MESSAGES as m } from "./system-settings.messages";
 
-export const SystemSettingKey = {
-  EXPIRY_REMINDER_DAYS: "EXPIRY_REMINDER_DAYS",
-  ABANDONED_REVIEW_DAYS: "ABANDONED_REVIEW_DAYS",
-  OVERDUE_FEE_RATE: "OVERDUE_FEE_RATE",
-  DEPOSIT_MONTHS: "DEPOSIT_MONTHS",
-  OPENING_HOUR: "OPENING_HOUR",
-  CLOSING_HOUR: "CLOSING_HOUR",
-} as const;
-export type SystemSettingKeyValue = (typeof SystemSettingKey)[keyof typeof SystemSettingKey];
-
-// This catalog owns validation and permissions. Admins cannot create arbitrary keys.
-export const SYSTEM_SETTING_DEFINITIONS = {
-  EXPIRY_REMINDER_DAYS: {
-    category: "RENTAL",
-    unit: "DAYS",
-    valueType: "INTEGER",
-    role: "SYSTEM_ADMIN",
-    description: "Số ngày trước hạn thuê để nhắc khách.",
-    defaultValue: 7,
-  },
-  ABANDONED_REVIEW_DAYS: {
-    category: "RENTAL",
-    unit: "DAYS",
-    valueType: "INTEGER",
-    role: "SYSTEM_ADMIN",
-    description: "Số ngày quá hạn đầy đủ trước khi chuyển cho Facility Manager xem xét.",
-    defaultValue: 7,
-  },
-  OVERDUE_FEE_RATE: {
-    category: "FINANCE",
-    unit: "PERCENT",
-    valueType: "INTEGER",
-    role: "BUSINESS_OPERATION_MANAGER",
-    description: "Tỷ lệ phí quá hạn tính theo phần trăm tiền cọc.",
-    defaultValue: 25,
-  },
-  DEPOSIT_MONTHS: {
-    category: "FINANCE",
-    unit: "MONTHS",
-    valueType: "INTEGER",
-    role: "BUSINESS_OPERATION_MANAGER",
-    description: "Số tháng tiền thuê dùng để tính tiền cọc.",
-    defaultValue: 1,
-  },
-  OPENING_HOUR: {
-    category: "OPERATIONS",
-    unit: "HOUR",
-    valueType: "INTEGER",
-    role: "BUSINESS_OPERATION_MANAGER",
-    description: "Giờ mở cửa chung của các cơ sở (giờ Việt Nam).",
-    defaultValue: 8,
-  },
-  CLOSING_HOUR: {
-    category: "OPERATIONS",
-    unit: "HOUR",
-    valueType: "INTEGER",
-    role: "BUSINESS_OPERATION_MANAGER",
-    description: "Giờ đóng cửa chung của các cơ sở (giờ Việt Nam).",
-    defaultValue: 20,
-  },
-} as const;
+export type { SystemSettingKeyValue } from "@metastorage/database/schema-domain";
+export { SYSTEM_SETTING_DEFINITIONS, SystemSettingKey } from "@metastorage/database/schema-domain";
 
 const integer = z
   .number({ error: m.invalid })

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { FACILITY_WORKSPACE_MESSAGES as M } from "./facility-workspace.messages";
 import { RentalStatusSchema } from "./rentals";
-import { SUPPORT_CATEGORIES, SUPPORT_PRIORITIES, SUPPORT_STATUSES } from "./support";
+import { SUPPORT_PRIORITIES, SUPPORT_STATUSES, SupportCategory } from "./support";
 export const FacilityWorkspaceQuerySchema = z
   .object({
     facilityId: z.string().uuid(),
@@ -13,7 +13,7 @@ export const FacilityWorkspaceQuerySchema = z
   .strict();
 export const FacilitySupportQuerySchema = FacilityWorkspaceQuerySchema.extend({
   status: z.enum(SUPPORT_STATUSES).optional(),
-  category: z.enum(SUPPORT_CATEGORIES).optional(),
+  category: z.enum(SupportCategory).optional(),
   priority: z.enum(SUPPORT_PRIORITIES).optional(),
   overdue: z
     .preprocess(

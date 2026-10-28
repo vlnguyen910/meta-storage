@@ -25,7 +25,8 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "zod": "^4.6.5"
+    "zod": "^4.6.5",
+    "@metastorage/database": "workspace:*"
   },
   "devDependencies": {
     "@metastorage/typescript-config": "workspace:*",

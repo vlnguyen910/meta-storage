@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { RENTAL_STATUSES } from "./rentals";
+import { RentalStatus } from "./rentals";
 import { REPORT_MESSAGES as m } from "./reports.messages";
 
 export { REPORT_MESSAGES } from "./reports.messages";
@@ -34,14 +34,14 @@ export const UtilizationReportQuerySchema = z.strictObject({ ...scope, ...page }
 export const RentalReportQuerySchema = z.strictObject({
   ...scope,
   ...page,
-  status: z.enum(RENTAL_STATUSES).optional(),
+  status: z.enum(RentalStatus).optional(),
 });
 export const ReportExportQuerySchema = z
   .strictObject({
     ...scope,
     ...period,
     type: z.enum(["revenue", "revenue-monthly", "utilization", "rentals"]),
-    status: z.enum(RENTAL_STATUSES).optional(),
+    status: z.enum(RentalStatus).optional(),
   })
   .refine((q) => (!q.from && !q.to) || Boolean(q.from && q.to && q.to >= q.from), {
     message: m.invalidPeriod,

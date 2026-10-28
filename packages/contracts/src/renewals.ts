@@ -1,16 +1,8 @@
 import { z } from "zod";
 
+export { RenewalStatus } from "@metastorage/database/schema-domain";
 export { RENEWAL_MESSAGES } from "./renewals.messages";
 export type * from "./renewals.types";
-
-export const RenewalStatus = {
-  QUOTED: "QUOTED",
-  AWAITING_PAYMENT: "AWAITING_PAYMENT",
-  APPLIED: "APPLIED",
-  EXPIRED: "EXPIRED",
-  REFUND_REQUIRED: "REFUND_REQUIRED",
-} as const;
-export type RenewalStatus = (typeof RenewalStatus)[keyof typeof RenewalStatus];
 
 export const RenewalRentalParamsSchema = z.object({ rentalId: z.uuid() });
 export const RenewalParamsSchema = z.object({ renewalId: z.uuid() });
