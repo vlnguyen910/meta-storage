@@ -1,5 +1,6 @@
 import Fastify, { type FastifyInstance } from "fastify";
 import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
+import { z } from "zod";
 import { cronPlugin } from "./common/cron/plugin";
 import { databasePlugin } from "./common/database/plugin";
 import { setupErrorHandler } from "./common/errors/error-handler";
@@ -10,9 +11,9 @@ import { healthPlugin } from "./common/plugins/health";
 import { swaggerPlugin } from "./common/plugins/swagger";
 import { redisPlugin } from "./common/redis/plugin";
 import { env } from "./config/env";
+import { appointmentsRoutes } from "./modules/appointments/appointments.routes";
 import { authPlugin } from "./modules/auth/auth.guard";
 import { authRoutes } from "./modules/auth/auth.routes";
-import { bookingsRoutes } from "./modules/bookings/bookings.routes";
 import { checkInsRoutes } from "./modules/check-ins/check-ins.routes";
 import { facilityContextPlugin } from "./modules/facilities/facilities.guard";
 import { facilitiesRoutes } from "./modules/facilities/facilities.routes";
@@ -28,6 +29,7 @@ import { rentalChargesRoutes } from "./modules/rental-charges/rental-charges.rou
 import { rentalLifecycleSettingsRoutes } from "./modules/rental-lifecycle-settings/rental-lifecycle-settings.routes";
 import { rentalsRoutes } from "./modules/rentals/rentals.routes";
 import { reportsRoutes } from "./modules/reports/reports.routes";
+import { reservationsRoutes } from "./modules/reservations/reservations.routes";
 import { storageUnitsRoutes } from "./modules/storage-units/storage-units.routes";
 import { supportRoutes } from "./modules/support/support.routes";
 import { systemSettingsRoutes } from "./modules/system-settings/system-settings.routes";
@@ -37,6 +39,7 @@ import { userHistoryRoutes } from "./modules/user-history/user-history.routes";
 import { usersRoutes } from "./modules/users/users.routes";
 
 export function buildApp(): FastifyInstance {
+  z.config(z.locales.vi());
   const app = Fastify({
     logger: loggerConfig,
     trustProxy: env.TRUSTED_PROXY_CIDRS,
@@ -73,7 +76,8 @@ export function buildApp(): FastifyInstance {
   app.register(rentalsRoutes, { prefix: "/api/rentals" });
   app.register(rentalChargesRoutes, { prefix: "/api" });
   app.register(renewalsRoutes, { prefix: "/api" });
-  app.register(bookingsRoutes, { prefix: "/api" });
+  app.register(appointmentsRoutes, { prefix: "/api/appointments" });
+  app.register(reservationsRoutes, { prefix: "/api/reservations" });
   app.register(checkInsRoutes, { prefix: "/api" });
   app.register(inspectionsRoutes, { prefix: "/api" });
   app.register(paymentsRoutes, { prefix: "/api" });

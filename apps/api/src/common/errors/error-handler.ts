@@ -39,7 +39,7 @@ export function setupErrorHandler(fastify: FastifyInstance): void {
       return reply.status(400).send(
         errorResponse({
           code: 400,
-          message: error.message || ERROR_MESSAGES.validationFailed,
+          message: ERROR_MESSAGES.requestValidationFailed,
           details,
         }),
       );

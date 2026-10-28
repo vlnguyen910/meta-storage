@@ -1,4 +1,5 @@
-import { ROLES, type Role } from "@metastorage/database";
+import { UserRoleSchema, UserStatus } from "@metastorage/contracts";
+import type { Role } from "@metastorage/database";
 import { ForbiddenError } from "../../common/errors/app-error";
 import { AUTH_MESSAGES } from "./auth.messages";
 
@@ -8,13 +9,13 @@ type AuthorizationUser = {
 };
 
 function isRole(value: string | null | undefined): value is Role {
-  return typeof value === "string" && ROLES.includes(value as Role);
+  return UserRoleSchema.safeParse(value).success;
 }
 
 export function assertActiveUser(user: AuthorizationUser): asserts user is AuthorizationUser & {
-  status: "ACTIVE";
+  status: UserStatus.ACTIVE;
 } {
-  if (user.status !== "ACTIVE") {
+  if (user.status !== UserStatus.ACTIVE) {
     throw new ForbiddenError(AUTH_MESSAGES.accountDisabled);
   }
 }
