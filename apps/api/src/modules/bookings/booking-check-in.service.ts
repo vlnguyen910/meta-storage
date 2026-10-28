@@ -1,17 +1,17 @@
 import type {
   CheckInBookingSummary,
-  CheckInConfirmResult,
   CheckInLookupInput,
   CheckInLookupResult,
   CheckInPaymentSummary,
-  CheckInVerification,
   PhysicalUnitAssignment,
 } from "@metastorage/contracts";
-import type { CheckInVerification as DbCheckInVerification } from "@metastorage/database";
-import { ConflictError, NotFoundError } from "../../common/errors/app-error";
-import type { TaskTransaction } from "../facility-tasks/facility-tasks.types";
-import { type CheckInPolicyEvaluation, evaluateCheckInEligibility } from "./check-ins.policy";
-import type { CheckInRecord, CheckInsRepository } from "./check-ins.repository";
+import { NotFoundError } from "../../common/errors/app-error";
+import {
+  type CheckInPolicyEvaluation,
+  evaluateCheckInEligibility,
+} from "./booking-check-in.policy";
+import type { BookingCheckInRepository, CheckInRecord } from "./booking-check-in.repository";
+import { closeBookingBeforeCheckIn } from "./bookings.repository";
 
 function toAssignedUnit(record: CheckInRecord): PhysicalUnitAssignment | null {
   if (!record.assignment || !record.assignedUnit) return null;
@@ -36,22 +36,6 @@ function toPayment(record: CheckInRecord): CheckInPaymentSummary {
     rentalFeeAmount: record.payment ? Number(record.booking.rentalFeeAmount) : null,
     depositAmount: record.payment ? Number(record.booking.depositAmount) : null,
     currency: record.payment?.currency ?? null,
-  };
-}
-
-function toVerification(verification: DbCheckInVerification | null): CheckInVerification | null {
-  if (!verification) return null;
-  return {
-    id: verification.id,
-    bookingId: verification.bookingId,
-    facilityId: verification.facilityId,
-    staffId: verification.staffId,
-    unitAssignmentId: verification.unitAssignmentId,
-    status: verification.status,
-    verifiedAt: verification.verifiedAt.toISOString(),
-    consumedAt: verification.consumedAt?.toISOString() ?? null,
-    invalidatedAt: verification.invalidatedAt?.toISOString() ?? null,
-    invalidatedReason: verification.invalidatedReason ?? null,
   };
 }
 
@@ -83,20 +67,15 @@ function toResult(record: CheckInRecord, evaluation: CheckInPolicyEvaluation): C
       canProceed: evaluation.canProceed,
       reasons: evaluation.reasons,
     },
-    verification: toVerification(record.verification),
   };
 }
 
-export class CheckInsService {
+export class BookingCheckInService {
   constructor(
-    private readonly repository: CheckInsRepository,
+    private readonly repository: BookingCheckInRepository,
     private readonly clock: () => Date = () => new Date(),
     private readonly allowEarlyCheckIn = false,
   ) {}
-
-  consumeVerification(tx: TaskTransaction, verificationId: string, now: Date) {
-    return this.repository.consumeVerification(tx, verificationId, now);
-  }
 
   async getFacilityIdForLookup(input: CheckInLookupInput): Promise<string> {
     const facilityId = await this.repository.findFacilityIdByLookup(input.type, input.value);
@@ -104,10 +83,9 @@ export class CheckInsService {
     return facilityId;
   }
 
-  async getFacilityIdForBooking(bookingId: string): Promise<string> {
-    const facilityId = await this.repository.findFacilityIdByBookingId(bookingId);
-    if (!facilityId) throw new NotFoundError("Không tìm thấy booking");
-    return facilityId;
+  async getAssignedStaffForLookup(input: CheckInLookupInput): Promise<string | null> {
+    const record = await this.repository.findByLookup(input.type, input.value);
+    return record?.booking.assignedStaffId ?? null;
   }
 
   async lookup(input: CheckInLookupInput): Promise<CheckInLookupResult> {
@@ -122,32 +100,17 @@ export class CheckInsService {
         hasAssignedUnit: Boolean(record.assignment && record.assignedUnit),
         checkInSlotStart: record.booking.checkInSlotStart,
         checkInDayEnd: record.checkInDayEnd,
-        verification: record.verification,
       },
       now,
       this.allowEarlyCheckIn,
     );
 
     if (evaluation.shouldMarkNoShow) {
-      await this.repository.confirmVerification(
-        record.booking.id,
-        "system-check-in-expiry",
-        now,
-        (candidate, now) =>
-          evaluateCheckInEligibility(
-            {
-              bookingStatus: candidate.booking.status,
-              payment: candidate.payment,
-              hasAssignedUnit: Boolean(candidate.assignment && candidate.assignedUnit),
-              checkInSlotStart: candidate.booking.checkInSlotStart,
-              checkInDayEnd: candidate.checkInDayEnd,
-              verification: candidate.verification,
-            },
-            now,
-            this.allowEarlyCheckIn,
-          ),
+      const bookingId = record.booking.id;
+      await this.repository.transaction((tx) =>
+        closeBookingBeforeCheckIn(tx, bookingId, "NO_SHOW", now),
       );
-      record = await this.repository.findByBookingId(record.booking.id);
+      record = await this.repository.findByBookingId(bookingId);
       if (!record) throw new NotFoundError("Không tìm thấy booking");
       evaluation = evaluateCheckInEligibility(
         {
@@ -156,7 +119,6 @@ export class CheckInsService {
           hasAssignedUnit: Boolean(record.assignment && record.assignedUnit),
           checkInSlotStart: record.booking.checkInSlotStart,
           checkInDayEnd: record.checkInDayEnd,
-          verification: record.verification,
         },
         this.clock(),
         this.allowEarlyCheckIn,
@@ -164,52 +126,5 @@ export class CheckInsService {
     }
 
     return toResult(record, evaluation);
-  }
-
-  async confirm(bookingId: string, staffId: string): Promise<CheckInConfirmResult> {
-    const now = this.clock();
-    const result = await this.repository.confirmVerification(
-      bookingId,
-      staffId,
-      now,
-      (record, now) =>
-        evaluateCheckInEligibility(
-          {
-            bookingStatus: record.booking.status,
-            payment: record.payment,
-            hasAssignedUnit: Boolean(record.assignment && record.assignedUnit),
-            checkInSlotStart: record.booking.checkInSlotStart,
-            checkInDayEnd: record.checkInDayEnd,
-            verification: record.verification,
-          },
-          now,
-          this.allowEarlyCheckIn,
-        ),
-    );
-    if (!result) throw new NotFoundError("Không tìm thấy booking");
-
-    const evaluation = evaluateCheckInEligibility(
-      {
-        bookingStatus: result.record.booking.status,
-        payment: result.record.payment,
-        hasAssignedUnit: Boolean(result.record.assignment && result.record.assignedUnit),
-        checkInSlotStart: result.record.booking.checkInSlotStart,
-        checkInDayEnd: result.record.checkInDayEnd,
-        verification: result.record.verification,
-      },
-      now,
-      this.allowEarlyCheckIn,
-    );
-    const response = toResult(result.record, evaluation);
-
-    if (result.kind === "INELIGIBLE" || result.kind === "NO_SHOW") {
-      throw new ConflictError(
-        result.kind === "NO_SHOW"
-          ? "Booking đã chuyển NO_SHOW vì quá grace period"
-          : "Booking chưa đủ điều kiện để tiếp tục check-in",
-      );
-    }
-
-    return response;
   }
 }

@@ -5,7 +5,6 @@ import {
   and,
   bookings,
   checkInSlots,
-  checkInVerifications,
   db,
   eq,
   facilities,
@@ -55,7 +54,6 @@ export async function createInspectionFixture(allowExistingLocal = false) {
     unitId = randomUUID(),
     bookingId = randomUUID(),
     assignmentId = randomUUID(),
-    verificationId = randomUUID(),
     slotId = randomUUID();
   const email = `inspection-${suffix}@example.test`,
     outsiderEmail = `outside-${suffix}@example.test`,
@@ -195,13 +193,6 @@ export async function createInspectionFixture(allowExistingLocal = false) {
     await tx
       .insert(unitAssignments)
       .values({ id: assignmentId, bookingId, physicalUnitId: unitId, assignedBy: userId });
-    await tx.insert(checkInVerifications).values({
-      id: verificationId,
-      bookingId,
-      facilityId,
-      staffId: userId,
-      unitAssignmentId: assignmentId,
-    });
   });
   return {
     customerId,
@@ -214,7 +205,6 @@ export async function createInspectionFixture(allowExistingLocal = false) {
     bookingId,
     bookingCode: `BK-TEST-${suffix.toUpperCase()}`,
     assignmentId,
-    verificationId,
     unitId,
     email,
     outsiderEmail,
@@ -249,7 +239,6 @@ export async function createInspectionFixture(allowExistingLocal = false) {
         }
         await tx.delete(notificationOutbox).where(eq(notificationOutbox.bookingId, bookingId));
         await tx.delete(rentals).where(eq(rentals.bookingId, bookingId));
-        await tx.delete(checkInVerifications).where(eq(checkInVerifications.bookingId, bookingId));
         await tx.delete(unitAssignments).where(eq(unitAssignments.bookingId, bookingId));
         await tx.delete(payments).where(eq(payments.bookingId, bookingId));
         await tx.delete(bookings).where(eq(bookings.id, bookingId));

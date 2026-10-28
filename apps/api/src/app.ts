@@ -13,7 +13,6 @@ import { env } from "./config/env";
 import { authPlugin } from "./modules/auth/auth.guard";
 import { authRoutes } from "./modules/auth/auth.routes";
 import { bookingsRoutes } from "./modules/bookings/bookings.routes";
-import { checkInsRoutes } from "./modules/check-ins/check-ins.routes";
 import { facilityContextPlugin } from "./modules/facilities/facilities.guard";
 import { facilitiesRoutes } from "./modules/facilities/facilities.routes";
 import { facilityTasksRoutes } from "./modules/facility-tasks/facility-tasks.routes";
@@ -69,7 +68,6 @@ export function buildApp(): FastifyInstance {
   app.register(facilityTasksRoutes, { prefix: "/api/facility-tasks" });
   app.register(rentalsRoutes, { prefix: "/api/rentals" });
   app.register(bookingsRoutes, { prefix: "/api" });
-  app.register(checkInsRoutes, { prefix: "/api" });
   app.register(inspectionsRoutes, { prefix: "/api" });
   app.register(paymentsRoutes, { prefix: "/api" });
   app.register(pricingRoutes, { prefix: "/api/business-rules" });

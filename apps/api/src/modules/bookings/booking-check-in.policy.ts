@@ -1,5 +1,4 @@
 import type { CheckInEligibility, CheckInEligibilityReasonCode } from "@metastorage/contracts";
-import type { CheckInVerification } from "@metastorage/database";
 
 export type CheckInPolicyRecord = {
   bookingStatus: string;
@@ -7,7 +6,6 @@ export type CheckInPolicyRecord = {
   hasAssignedUnit: boolean;
   checkInSlotStart: Date;
   checkInDayEnd: Date | null;
-  verification: CheckInVerification | null;
 };
 
 export type CheckInPolicyEvaluation = CheckInEligibility & {

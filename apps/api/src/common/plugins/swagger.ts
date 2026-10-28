@@ -14,7 +14,6 @@ const openApiSchemaTransform = createJsonSchemaTransform({
 
 function moduleTag(url: string): string | undefined {
   if (url.startsWith("/api/auth/")) return "Authentication";
-  if (url.startsWith("/api/check-ins/")) return "Check-ins";
   if (url.startsWith("/api/inspections/") || /\/api\/bookings\/[^/]+\/inspections/.test(url))
     return "Inspections";
   if (url.startsWith("/api/bookings/") || url.startsWith("/api/booking/")) return "Bookings";

@@ -19,6 +19,7 @@ export interface MobilePaidBooking extends BookingListItem {
   rescheduleCount: number;
   history: { action: "RESCHEDULE" | "CANCEL"; at: string; previousSlot: string }[];
   assignedStaff?: FacilityStaffMember | null;
+  taskStatus?: "ASSIGNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
 }
 export interface MobileHeldDraft extends ReservationDraft {
   ownerId: string;
@@ -60,7 +61,6 @@ export interface MobileWorkspace {
   unitTypes: (CatalogUnitType & { facilityId: string })[];
   bookings: MobilePaidBooking[];
   drafts: MobileHeldDraft[];
-  verifiedBookingIds: string[];
   inspections: MobileInspection[];
   rentals: MobileRental[];
   requests: MobileRentalRequest[];

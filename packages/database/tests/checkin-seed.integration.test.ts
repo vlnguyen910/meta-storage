@@ -9,7 +9,7 @@ const target = process.env.SEED_TEST_DATABASE_URL;
 let database: typeof import("../src/index");
 let fixtures: typeof import("../src/seed");
 let seedImmediateCheckInSlot: typeof import("../src/seed").seedImmediateCheckInSlot;
-let service: import("../../../apps/api/src/modules/check-ins/check-ins.service").CheckInsService;
+let service: import("../../../apps/api/src/modules/bookings/booking-check-in.service").BookingCheckInService;
 let now = new Date("2026-10-23T07:00:30Z");
 let bookingId: string;
 
@@ -42,13 +42,13 @@ describe.skipIf(!target)("immediate check-in seed on an isolated database", () =
     );
     expect(await child.exited).toBe(0);
     ({ seedImmediateCheckInSlot } = await import("../src/seed"));
-    const { CheckInsService } = await import(
-      "../../../apps/api/src/modules/check-ins/check-ins.service"
+    const { BookingCheckInService } = await import(
+      "../../../apps/api/src/modules/bookings/booking-check-in.service"
     );
-    const { CheckInsRepository } = await import(
-      "../../../apps/api/src/modules/check-ins/check-ins.repository"
+    const { BookingCheckInRepository } = await import(
+      "../../../apps/api/src/modules/bookings/booking-check-in.repository"
     );
-    service = new CheckInsService(new CheckInsRepository(database.db), () => now);
+    service = new BookingCheckInService(new BookingCheckInRepository(database.db), () => now);
   });
   afterAll(async () => {
     await database?.queryClient.end();
@@ -119,9 +119,7 @@ describe.skipIf(!target)("immediate check-in seed on an isolated database", () =
       await db.select().from(checkInSlots).where(eq(checkInSlots.id, SEED_IDS.demoCheckInSlot)),
     ).toHaveLength(1);
   });
-  test("preserves the demo booking and slot after verification", async () => {
-    const { SEED_USERS } = fixtures;
-    await service.confirm(bookingId, SEED_USERS[1].id);
+  test("preserves the demo booking and slot after lookup", async () => {
     const { db, bookings, checkInSlots, eq } = database;
     const [before] = await db.select().from(bookings).where(eq(bookings.id, bookingId));
     assert(before);

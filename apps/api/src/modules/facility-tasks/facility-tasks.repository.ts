@@ -172,6 +172,7 @@ export class FacilityTasksRepository {
         eq(facilityTasks.assignedStaffId, staffId),
         inArray(facilityTasks.facilityId, facilityIds),
         query.type ? eq(facilityTasks.type, query.type) : undefined,
+        query.referenceId ? eq(facilityTasks.referenceId, query.referenceId) : undefined,
       ),
       query,
     );

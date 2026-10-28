@@ -312,16 +312,12 @@ erDiagram
   storage_units ||--o{ rentals : occupies
   bookings ||--o{ payments : records
   users o|--o{ payments : confirms_manual_refund
-  bookings ||--o{ checkin_verifications : verifies
   bookings o|--o{ inspections : checkin_context
   rentals o|--o{ inspections : checkout_context
   storage_units ||--o{ inspections : inspected
   facility_tasks ||--o{ inspections : assigned_work
   users ||--o{ inspections : inspects
   users ||--o{ media_assets : uploads
-  users ||--o{ checkin_verifications : performs
-  facilities ||--o{ checkin_verifications : scopes
-  unit_assignments ||--o{ checkin_verifications : snapshots
 
   check_in_slots {
     uuid id PK
@@ -533,20 +529,6 @@ erDiagram
     text reason
   }
 
-  checkin_verifications {
-    uuid id PK
-    uuid booking_id FK
-    uuid facility_id FK
-    uuid staff_id FK
-    uuid unit_assignment_id FK
-    checkin_verification_status status
-    timestamptz verified_at
-    timestamptz consumed_at
-    timestamptz invalidated_at
-    text invalidated_reason
-    timestamptz created_at
-    timestamptz updated_at
-  }
 ```
 
 ## Account-required booking (approved 2026-10-25; supersedes guest decisions)

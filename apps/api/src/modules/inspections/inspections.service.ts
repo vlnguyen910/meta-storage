@@ -14,7 +14,6 @@ import { InspectionCondition, InspectionStatus, InspectionType } from "@metastor
 import { ConflictError, ForbiddenError, NotFoundError } from "../../common/errors/app-error";
 import { mapPageDto } from "../../common/types/page.dto";
 import type { BookingsService } from "../bookings/bookings.service";
-import type { CheckInsService } from "../check-ins/check-ins.service";
 import type { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
 import type { FacilityTasksRepository } from "../facility-tasks/facility-tasks.repository";
 import type { FacilityTasksService } from "../facility-tasks/facility-tasks.service";
@@ -34,7 +33,6 @@ export class InspectionsService {
     private readonly rentals: RentalsService,
     private readonly bookings: BookingsService,
     private readonly storageUnits: StorageUnitsService,
-    private readonly checkIns: CheckInsService,
     private readonly assignments: FacilityAssignmentsService,
     private readonly media: MediaAssetsService,
   ) {}
@@ -75,16 +73,7 @@ export class InspectionsService {
 
       const [assignment] = await this.repository.findActiveUnitAssignment(tx, bookingId);
       if (!assignment) throw new ConflictError(m.checkInNotReady);
-      const [verification] = await this.repository.findVerifiedCheckIn(
-        tx,
-        bookingId,
-        booking.facilityId,
-        actor.id,
-        assignment.id,
-      );
-      if (!verification) throw new ConflictError(m.checkInNotReady);
-
-      const task = await this.taskLifecycle.startBookingHandover(
+      const task = await this.taskLifecycle.findStartedBookingHandover(
         tx,
         bookingId,
         booking.facilityId,
@@ -254,15 +243,6 @@ export class InspectionsService {
       const [assignment] = await this.repository.findActiveUnitAssignment(tx, booking.id);
       if (!assignment || assignment.physicalUnitId !== inspection.storageUnitId)
         throw new ConflictError(m.handoverNotReady);
-      const [verification] = await this.repository.findVerifiedCheckIn(
-        tx,
-        booking.id,
-        booking.facilityId,
-        actor.id,
-        assignment.id,
-      );
-      if (!verification) throw new ConflictError(m.handoverNotReady);
-
       const now = new Date();
       await this.rentals.createForHandover(tx, {
         bookingId: booking.id,
@@ -273,7 +253,6 @@ export class InspectionsService {
       });
       await this.storageUnits.markOccupied(tx, assignment.physicalUnitId, now);
       await this.bookings.markCheckedIn(tx, booking.id, now);
-      await this.checkIns.consumeVerification(tx, verification.id, now);
       if (
         !(await this.taskLifecycle.completeBookingHandover(tx, {
           taskId: inspection.taskId,

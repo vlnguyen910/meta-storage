@@ -82,20 +82,20 @@ export class FacilityTasksService {
     });
   }
 
-  async startBookingHandover(
+  async findStartedBookingHandover(
     tx: TaskTransaction,
     bookingId: string,
     facilityId: string,
     staffId: string,
   ) {
     const [task] = await this.repository.findActiveBookingHandover(tx, bookingId);
-    if (!task || task.facilityId !== facilityId || task.assignedStaffId !== staffId)
+    if (
+      !task ||
+      task.status !== FacilityTaskStatus.IN_PROGRESS ||
+      task.facilityId !== facilityId ||
+      task.assignedStaffId !== staffId
+    )
       return undefined;
-    if (task.status === FacilityTaskStatus.ASSIGNED)
-      await this.repository.setWorkflowStatus(tx, task.id, FacilityTaskStatus.IN_PROGRESS, {
-        startedAt: new Date(),
-        updatedAt: new Date(),
-      });
     return task;
   }
 

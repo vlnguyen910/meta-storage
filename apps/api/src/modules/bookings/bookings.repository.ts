@@ -18,7 +18,6 @@ import {
   bookings,
   capacityAllocations,
   checkInSlots,
-  checkInVerifications,
   type Database,
   desc,
   eq,
@@ -913,20 +912,6 @@ export class BookingsRepository {
         .update(storageUnits)
         .set({ status: "RESERVED", updatedAt: now })
         .where(eq(storageUnits.id, unit.id));
-      await tx
-        .update(checkInVerifications)
-        .set({
-          status: "INVALIDATED",
-          invalidatedAt: now,
-          invalidatedReason: BOOKING_MESSAGES.unitAssignmentChanged,
-          updatedAt: now,
-        })
-        .where(
-          and(
-            eq(checkInVerifications.bookingId, bookingId),
-            eq(checkInVerifications.status, "VERIFIED"),
-          ),
-        );
       for (const old of previous) {
         if (old.physicalUnitId !== unit.id) await releaseReservedUnit(tx, old.physicalUnitId, now);
       }
@@ -1008,22 +993,6 @@ export class BookingsRepository {
       return { error: "STAFF_INACTIVE" as const };
     }
 
-    if (booking.assignedStaffId !== staffId) {
-      await tx
-        .update(checkInVerifications)
-        .set({
-          status: "INVALIDATED",
-          invalidatedAt: new Date(),
-          invalidatedReason: "Staff assignment changed",
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(checkInVerifications.bookingId, bookingId),
-            eq(checkInVerifications.status, "VERIFIED"),
-          ),
-        );
-    }
     // 3. Update booking assignedStaffId
     await tx
       .update(bookings)
@@ -1041,7 +1010,7 @@ export class BookingsRepository {
 }
 
 // Caller supplies a transaction. Booking is always locked before payment, matching
-// checkout, verification and handover so only one lifecycle transition can win.
+// checkout, inspection start and handover so only one lifecycle transition can win.
 export async function closeBookingBeforeCheckIn(
   tx: BookingTransaction,
   bookingId: string,
@@ -1122,15 +1091,6 @@ export async function closeBookingBeforeCheckIn(
         eq(capacityAllocations.referenceId, bookingId),
         eq(capacityAllocations.kind, "BOOKING"),
         eq(capacityAllocations.status, "ACTIVE"),
-      ),
-    );
-  await tx
-    .update(checkInVerifications)
-    .set({ status: "INVALIDATED", invalidatedAt: now, invalidatedReason: reason, updatedAt: now })
-    .where(
-      and(
-        eq(checkInVerifications.bookingId, bookingId),
-        eq(checkInVerifications.status, "VERIFIED"),
       ),
     );
   const releasedAssignments = await tx
