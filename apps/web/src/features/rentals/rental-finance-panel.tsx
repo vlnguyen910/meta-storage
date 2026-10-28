@@ -300,7 +300,9 @@ export function RentalFinancePanel({
                   {renewal.status === "AWAITING_PAYMENT" && renewal.chargeId && (
                     <Button
                       disabled={pending}
-                      onClick={() => state.pay.mutate(renewal.chargeId!)}
+                      onClick={() => {
+                        if (renewal.chargeId) state.pay.mutate(renewal.chargeId);
+                      }}
                       className="min-h-11 rounded-xl bg-emerald-600 px-6 text-sm font-bold text-white shadow-xs transition hover:bg-emerald-700"
                     >
                       <CreditCard size={16} />
