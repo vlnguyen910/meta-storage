@@ -1,4 +1,5 @@
 export * from "./accounts";
+export * from "./appointments";
 export * from "./bookings";
 export * from "./capacity-allocations";
 export * from "./check-in-slots";
@@ -14,6 +15,7 @@ export * from "./payments";
 export * from "./pricing";
 export * from "./relations";
 export * from "./rentals";
+export * from "./reservations";
 export * from "./sessions";
 export * from "./storage-units";
 export * from "./support";

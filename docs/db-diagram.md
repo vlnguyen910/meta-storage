@@ -1,5 +1,22 @@
 # metastorage database diagram
 
+## Additive reservation and appointment foundation
+
+`reservations` and `appointments` are additive workflow tables. The existing
+`bookings` table and its API remain unchanged; no legacy booking rows are moved.
+This foundation does not create capacity holds or payments and does not complete
+check-in/check-out, rental closure, inspection, refund, or facility-task workflows.
+
+| Table | Main data and rules |
+| --- | --- |
+| `reservations` | Customer, facility, unit type, requested months, rental start/end, integer price snapshots, total, and `DRAFT`/`CONFIRMED`/`CANCELLED`/`EXPIRED`/`CHECKED_IN`/`NO_SHOW` status. Customer is derived from session; composite facility/unit-type FK ensures the selected type belongs to that facility. Only draft records can be edited through this scaffold. |
+| `appointments` | Facility, `CHECK_IN`/`CHECK_OUT`/`SUPPORT` type, local date, existing slot, customer, optional assigned staff, status and notes. Check-in references a reservation; check-out references a rental; support may reference a support ticket or be facility-scoped. Customer/facility context is resolved server-side. |
+
+Appointments have partial uniqueness for one check-in appointment per reservation
+and one confirmed check-out per facility/date/slot. Slot capacity and calendar
+availability are not modeled here. API routes are `/api/reservations` and
+`/api/appointments`; they do not replace `/api/bookings`.
+
 ## Rental tối giản (2026-10-28)
 
 Schema code: `packages/database/src/schema/rentals.ts`. Bản xem trước đã được

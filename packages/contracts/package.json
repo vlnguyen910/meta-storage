@@ -14,6 +14,8 @@
     "./pricing": "./src/pricing.ts",
     "./system-settings": "./src/system-settings.ts",
     "./rental-documents": "./src/rental-documents.ts",
+    "./appointments": "./src/appointments.ts",
+    "./reservations": "./src/reservations.ts",
     "./lifecycle-notifications": "./src/lifecycle-notifications.ts"
   },
   "scripts": {
