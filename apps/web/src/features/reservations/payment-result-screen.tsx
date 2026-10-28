@@ -89,7 +89,12 @@ export function PaymentResultScreen() {
       {blockingPaymentCheck && <Spinner label={m.loading} />}
       {confirmation ? (
         <CheckoutConfirmation
-          state={{ confirmation, qrDataUrl: qr, paidPricing: context?.draft.pricing ?? null }}
+          state={{
+            confirmation,
+            qrDataUrl: qr,
+            paidPricing: context?.draft.pricing ?? null,
+            contact: context?.contactPhone ? { phone: context.contactPhone } : null,
+          }}
         />
       ) : (
         <section className="grid gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-xs max-w-xl mx-auto">
