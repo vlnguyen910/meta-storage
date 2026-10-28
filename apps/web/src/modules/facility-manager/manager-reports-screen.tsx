@@ -1,6 +1,6 @@
 "use client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { RENTAL_STATUSES, type ReportExportQuery } from "@metastorage/contracts";
+import { RentalStatus, type ReportExportQuery } from "@metastorage/contracts";
 import { Download, FileChartColumn } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -19,7 +19,7 @@ const schema = z
     type: z.enum(["revenue", "revenue-monthly", "utilization", "rentals"]),
     from: z.string(),
     to: z.string(),
-    status: z.enum(RENTAL_STATUSES).or(z.literal("")),
+    status: z.enum(RentalStatus).or(z.literal("")),
   })
   .superRefine((v, ctx) => {
     if (["revenue", "revenue-monthly"].includes(v.type) && (!v.from || !v.to || v.to < v.from))

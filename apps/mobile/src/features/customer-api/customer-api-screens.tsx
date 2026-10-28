@@ -1,4 +1,4 @@
-import { SUPPORT_CATEGORIES } from "@metastorage/contracts";
+import { SupportCategory } from "@metastorage/contracts";
 import { CUSTOMER_WORKSPACE as M } from "@metastorage/shared";
 import { useMutation } from "@tanstack/react-query";
 import * as WebBrowser from "expo-web-browser";
@@ -757,7 +757,7 @@ export function CustomerSupportNewScreen({
     <>
       <Heading>{M.newTicket}</Heading>
       <Text className="mb-3 font-bold">{M.category}</Text>
-      {SUPPORT_CATEGORIES.map((c) => (
+      {Object.values(SupportCategory).map((c) => (
         <Button
           secondary
           key={c}

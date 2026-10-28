@@ -77,7 +77,7 @@ Apply the rules relevant to the workspace and task. Keep implementation aligned 
 ### 3.2 Backend and Database
 
 5. **Database Schema and Migrations**: Follow `docs/db-diagram.md`; update it with `packages/database` schema changes. Generate migrations with `bun run db:generate`; never edit generated migrations directly. Clarify missing domain decisions before implementation.
-6. **Drizzle Conventions**: Prefer the query builder; use parameterized `sql` only when needed. The client and Drizzle Kit use `casing: "snake_case"`, so declare properties in camelCase and omit redundant physical column names. Preserve existing database names and verify migrations do not rename columns. Declare PostgreSQL enum values as TypeScript `enum`s and pass them through `enumToPgEnum` when calling `pgEnum`, following `packages/database/src/schema/inspections.ts`; do not define PostgreSQL enums from value arrays.
+6. **Drizzle Conventions**: Prefer the query builder; use parameterized `sql` only when needed. The client and Drizzle Kit use `casing: "snake_case"`, so declare properties in camelCase and omit redundant physical column names. Preserve existing database names and verify migrations do not rename columns. Declare PostgreSQL enum values as TypeScript `enum`s in the database schema and pass them through `enumToPgEnum` when calling `pgEnum`, following `packages/database/src/schema/inspections.ts`; do not declare them in contracts or define PostgreSQL enums from value arrays.
 7. **Backend Boundaries**: Keep workflow coordination in services, persistence in repositories, and isolate external providers behind adapters. Avoid generic repository abstractions without a concrete use case.
 
 ### 3.3 Web Frontend
@@ -113,6 +113,7 @@ bun run check:fix                    # Apply Biome auto-fixes
 - **TypeScript**: Strict mode across all packages.
 - **Formatting & Linting**: Biome is the source of truth (2 spaces, double quotes, semicolons, 100 max line length). Run `bun run check:fix` before committing.
 - **Naming**: PascalCase for components/types, camelCase for functions/variables, kebab-case for route and config filenames.
+- **Meaningful names**: Choose specific, searchable names that express intent in context. Avoid unclear abbreviations, type prefixes, misleading collection names, and vague names such as `data` or `temp` when they obscure meaning. Use the same term for the same domain concept. Name functions with verbs and classes with nouns; name constants for their meaning instead of using unexplained literals. Names need only be as long as clarity requires; short loop variables are acceptable when their purpose is obvious.
 - **Contracts**: Always use shared types/schemas (`packages/contracts` or `@metastorage/shared`).
 
 ## 6. Commit & Git Hook Guidelines

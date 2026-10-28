@@ -494,6 +494,7 @@ erDiagram
     uuid facility_id FK
     uuid unit_type_id FK
     integer requested_months
+    timestamptz rental_start_at "nullable for legacy records without a check-in appointment"
     timestamptz rental_end_at
     numeric monthly_rate_snapshot
     numeric rental_fee_amount
@@ -726,7 +727,7 @@ erDiagram
   `sessions.ip_address`,
   `sessions.user_agent`, and the optional token, expiry, scope and password
   fields in `accounts`. Other nullability follows the Drizzle schema.
-- User role/status values are defined once in `packages/contracts/src/users.ts` and
+- User role/status values are defined in `packages/database/src/schema/enums.ts` and
   reused by Drizzle and API contracts. Changing those values still requires a database migration.
 - Enum values are `role`: `CUSTOMER`, `FACILITY_STAFF`, `FACILITY_MANAGER`,
   `BUSINESS_OPERATION_MANAGER`, `SYSTEM_ADMIN`; `status`: `ACTIVE`, `INACTIVE`;
@@ -837,7 +838,7 @@ The legacy reservation-draft checkout and table are removed.
   Reservation. Readers project appointment contact and date/slot timestamps for the
   existing API contracts.
 - Payment status values are PENDING, SUCCEEDED, FAILED, REFUND_PENDING and REFUNDED,
-  defined in the payment contract and reused by Drizzle. A valid incoming payment
+  defined in the database schema and reused by API contracts. A valid incoming payment
   that cannot receive capacity/check-in becomes REFUND_PENDING with paid_at and
   refund_reason, while its booking stays DRAFT and holds are released. The full
   payment total (rent plus deposit) must be refunded manually. Only an admin or
