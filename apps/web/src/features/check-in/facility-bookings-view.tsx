@@ -117,12 +117,22 @@ export function FacilityBookingsView({
           },
           { label: FLOW.pendingAccess, value: d.count("CHECKED_IN"), icon: ClipboardCheck },
         ].map(({ label, value, icon: Icon }) => (
-          <Panel key={label}>
-            <div className="flex items-center justify-between gap-1 text-[11px] uppercase tracking-wider text-[#5c6661]">
-              <span>{label}</span>
-              <Icon size={20} className="text-[#003b2f]" />
+          <Panel key={label} className="px-3.5 py-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <span className="block truncate text-[11px] font-medium uppercase tracking-wider text-[#5c6661]">
+                  {label}
+                </span>
+                <p
+                  className={`${titleClass} mt-0.5 text-2xl font-bold leading-tight text-slate-900`}
+                >
+                  {value}
+                </p>
+              </div>
+              <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-[#003b2f]/10 text-[#003b2f]">
+                <Icon size={16} />
+              </div>
             </div>
-            <p className={`${titleClass} mt-3 text-5xl leading-[56px]`}>{value}</p>
           </Panel>
         ))}
       </div>
