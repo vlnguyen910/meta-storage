@@ -1,6 +1,6 @@
 import { describe, expect, it, mock } from "bun:test";
 import { CreateAppointmentSchema, UserRole, UserStatus } from "@metastorage/contracts";
-import { AppointmentStatus, AppointmentType } from "@metastorage/database";
+import { AppointmentStatus, AppointmentType, ReservationStatus } from "@metastorage/database";
 import type { AppointmentsRepository } from "../../src/modules/appointments/appointments.repository";
 import { AppointmentsService } from "../../src/modules/appointments/appointments.service";
 import { assertActiveUser, assertUserHasRole } from "../../src/modules/auth/auth.authorization";
@@ -23,15 +23,15 @@ describe("quyền người dùng", () => {
 
 describe("appointment service", () => {
   it("tạo lịch hỗ trợ độc lập và lấy khách từ phiên đăng nhập", async () => {
-    const create = mock(async (input: unknown) => input);
+    const createAppointment = mock(async (input: unknown) => input);
     const repository = {
       isFacilityActive: async () => true,
       isCustomerActive: async () => true,
       slotExists: async () => true,
-      create,
+      createAppointment,
     } as unknown as AppointmentsRepository;
     const service = new AppointmentsService(repository, assignments);
-    await service.create(
+    await service.createAppointment(
       {
         appointmentType: AppointmentType.SUPPORT,
         facilityId: "facility",
@@ -40,7 +40,7 @@ describe("appointment service", () => {
       },
       customer,
     );
-    expect(create).toHaveBeenCalledWith(
+    expect(createAppointment).toHaveBeenCalledWith(
       expect.objectContaining({
         customerId: "customer",
         facilityId: "facility",
@@ -52,28 +52,89 @@ describe("appointment service", () => {
 
   it("không cho khách xem lịch của khách khác", async () => {
     const repository = {
-      findById: async () => ({ customerId: "other", facilityId: "facility" }),
+      findAppointmentById: async () => ({ customerId: "other", facilityId: "facility" }),
     } as unknown as AppointmentsRepository;
     await expect(
-      new AppointmentsService(repository, assignments).get("id", customer),
+      new AppointmentsService(repository, assignments).getAppointment("id", customer),
     ).rejects.toMatchObject({ statusCode: 403 });
   });
 
-  it("không cho cập nhật lịch đã hoàn thành", async () => {
+  it("không cho khách xem lịch được tạo bởi người khác", async () => {
     const repository = {
-      findById: async () => ({ customerId: "customer", status: AppointmentStatus.COMPLETED }),
+      findAppointmentById: async () => ({ customerId: "customer", createdBy: "staff" }),
     } as unknown as AppointmentsRepository;
     await expect(
-      new AppointmentsService(repository, assignments).update("id", { notes: "ghi chú" }, customer),
-    ).rejects.toMatchObject({ statusCode: 409 });
+      new AppointmentsService(repository, assignments).getAppointment("id", customer),
+    ).rejects.toMatchObject({ statusCode: 403 });
+  });
+
+  it("chỉ yêu cầu danh sách lịch do khách đăng nhập tạo", async () => {
+    const listAppointments = mock(async () => ({ items: [], total: 0, limit: 20, offset: 0 }));
+    const repository = { listAppointments } as unknown as AppointmentsRepository;
+    await new AppointmentsService(repository, assignments).listAppointments(
+      { limit: 20, offset: 0 },
+      customer,
+    );
+    expect(listAppointments).toHaveBeenCalledWith({ limit: 20, offset: 0 }, customer.id, undefined);
+  });
+
+  it("dùng cơ sở đang chọn của staff và kiểm tra assignment", async () => {
+    const listAppointments = mock(async () => ({ items: [], total: 0, limit: 20, offset: 0 }));
+    const requireFacilityAccess = mock(async () => undefined);
+    const repository = { listAppointments } as unknown as AppointmentsRepository;
+    const facilityAssignmentsService = {
+      requireFacilityAccess,
+    } as unknown as FacilityAssignmentsService;
+    const actor = {
+      id: "staff",
+      role: UserRole.FACILITY_STAFF,
+      facilityId: "selected-facility",
+    };
+    await new AppointmentsService(repository, facilityAssignmentsService).listAppointments(
+      { limit: 20, offset: 0 },
+      actor,
+    );
+    expect(listAppointments).toHaveBeenCalledWith(
+      { limit: 20, offset: 0 },
+      undefined,
+      "selected-facility",
+    );
+    expect(requireFacilityAccess).toHaveBeenCalledWith(
+      "selected-facility",
+      expect.objectContaining({ userId: actor.id, role: actor.role }),
+    );
+  });
+
+  it("cho phép chỉnh sửa lịch đã hoàn thành", async () => {
+    const updateAppointment = mock(async () => ({ status: AppointmentStatus.COMPLETED }));
+    const repository = {
+      findAppointmentById: async () => ({
+        customerId: "customer",
+        createdBy: "customer",
+        status: AppointmentStatus.COMPLETED,
+      }),
+      updateAppointment,
+    } as unknown as AppointmentsRepository;
+    await expect(
+      new AppointmentsService(repository, assignments).updateAppointment(
+        "id",
+        { notes: "ghi chú" },
+        customer,
+      ),
+    ).resolves.toMatchObject({ status: AppointmentStatus.COMPLETED });
+    expect(updateAppointment).toHaveBeenCalledWith("id", { notes: "ghi chú" });
   });
 
   it("không cho khách xác nhận lịch hẹn", async () => {
     const repository = {
-      findById: async () => ({ customerId: "customer", status: AppointmentStatus.SCHEDULED }),
+      findAppointmentById: async () => ({
+        customerId: "customer",
+        createdBy: "customer",
+        status: AppointmentStatus.SCHEDULED,
+      }),
     } as unknown as AppointmentsRepository;
     await expect(
-      new AppointmentsService(repository, assignments).update(
+      new AppointmentsService(repository, assignments).updateAppointment(
         "id",
         { status: AppointmentStatus.CONFIRMED },
         customer,
@@ -86,7 +147,7 @@ describe("appointment service", () => {
       findReservationContext: async () => ({ customerId: "other", facilityId: "facility" }),
     } as unknown as AppointmentsRepository;
     await expect(
-      new AppointmentsService(repository, assignments).create(
+      new AppointmentsService(repository, assignments).createAppointment(
         {
           appointmentType: AppointmentType.CHECK_IN,
           reservationId: "reservation",
@@ -98,24 +159,29 @@ describe("appointment service", () => {
     ).rejects.toMatchObject({ statusCode: 403 });
   });
 
-  it("không cho nhân viên hoàn thành lịch chưa xác nhận", async () => {
+  it("cho phép nhân viên cập nhật trạng thái mà không kiểm tra trạng thái hiện tại", async () => {
+    const updateAppointment = mock(async () => ({ status: AppointmentStatus.COMPLETED }));
     const repository = {
-      findById: async () => ({
+      findAppointmentById: async () => ({
         customerId: "customer",
         facilityId: "facility",
         status: AppointmentStatus.SCHEDULED,
       }),
+      updateAppointment,
     } as unknown as AppointmentsRepository;
     const access = {
       requireFacilityAccess: async () => undefined,
     } as unknown as FacilityAssignmentsService;
     await expect(
-      new AppointmentsService(repository, access).update(
+      new AppointmentsService(repository, access).updateAppointment(
         "id",
         { status: AppointmentStatus.COMPLETED },
         { id: "staff", role: UserRole.FACILITY_STAFF },
       ),
-    ).rejects.toMatchObject({ statusCode: 409 });
+    ).resolves.toMatchObject({ status: AppointmentStatus.COMPLETED });
+    expect(updateAppointment).toHaveBeenCalledWith("id", {
+      status: AppointmentStatus.COMPLETED,
+    });
   });
 
   it("yêu cầu hồ sơ phù hợp với loại lịch", () => {
@@ -130,13 +196,86 @@ describe("appointment service", () => {
 });
 
 describe("reservation service", () => {
+  it("không cho khách xem đặt kho của khách khác", async () => {
+    const repository = {
+      findReservationById: async () => ({ customerId: "other" }),
+    } as unknown as ReservationsRepository;
+    await expect(
+      new ReservationsService(repository, assignments).getReservation("id", customer),
+    ).rejects.toMatchObject({ statusCode: 403 });
+  });
+
+  it("chỉ yêu cầu danh sách đặt kho của khách đăng nhập", async () => {
+    const listReservations = mock(async () => ({ items: [], total: 0, limit: 20, offset: 0 }));
+    const repository = { listReservations } as unknown as ReservationsRepository;
+    await new ReservationsService(repository, assignments).listReservations(
+      { limit: 20, offset: 0 },
+      customer,
+    );
+    expect(listReservations).toHaveBeenCalledWith({ limit: 20, offset: 0 }, customer.id, undefined);
+  });
+
+  it("dùng cơ sở đang chọn của staff và kiểm tra assignment", async () => {
+    const listReservations = mock(async () => ({ items: [], total: 0, limit: 20, offset: 0 }));
+    const requireFacilityAccess = mock(async () => undefined);
+    const repository = { listReservations } as unknown as ReservationsRepository;
+    const facilityAssignmentsService = {
+      requireFacilityAccess,
+    } as unknown as FacilityAssignmentsService;
+    const actor = {
+      id: "staff",
+      role: UserRole.FACILITY_STAFF,
+      facilityId: "selected-facility",
+    };
+    await new ReservationsService(repository, facilityAssignmentsService).listReservations(
+      { limit: 20, offset: 0 },
+      actor,
+    );
+    expect(listReservations).toHaveBeenCalledWith(
+      { limit: 20, offset: 0 },
+      undefined,
+      "selected-facility",
+    );
+    expect(requireFacilityAccess).toHaveBeenCalledWith(
+      "selected-facility",
+      expect.objectContaining({ userId: actor.id, role: actor.role }),
+    );
+  });
+
+  it("cho phép khách cập nhật đặt kho không ở trạng thái nháp", async () => {
+    const updateReservation = mock(async () => ({ status: ReservationStatus.CONFIRMED }));
+    const repository = {
+      findReservationById: async () => ({
+        customerId: customer.id,
+        status: ReservationStatus.CONFIRMED,
+        monthlyRateSnapshot: "100000",
+        depositAmount: "100000",
+      }),
+      updateReservation,
+    } as unknown as ReservationsRepository;
+    const updatedReservation = await new ReservationsService(
+      repository,
+      assignments,
+    ).updateReservation(
+      "reservation",
+      { startAt: "2100-01-31T00:00:00+07:00", requestedMonths: 1 },
+      customer,
+    );
+    expect(updatedReservation).toMatchObject({ status: ReservationStatus.CONFIRMED });
+    expect(updateReservation).toHaveBeenCalledWith(
+      "reservation",
+      customer.id,
+      expect.objectContaining({ rentalFeeAmount: "100000", totalAmount: "200000" }),
+    );
+  });
+
   it("tính giá từ loại kho và ngày kết thúc theo tháng", async () => {
-    const create = mock(async (input: unknown) => input);
+    const createReservation = mock(async (input: unknown) => input);
     const repository = {
       findActiveUnitType: async () => ({ monthlyPrice: 100000 }),
-      create,
+      createReservation,
     } as unknown as ReservationsRepository;
-    await new ReservationsService(repository, assignments).create(
+    await new ReservationsService(repository, assignments).createReservation(
       {
         facilityId: "facility",
         unitTypeId: "type",
@@ -145,7 +284,7 @@ describe("reservation service", () => {
       },
       customer,
     );
-    expect(create).toHaveBeenCalledWith(
+    expect(createReservation).toHaveBeenCalledWith(
       expect.objectContaining({
         customerId: "customer",
         rentalStartAt: new Date("2100-01-31T00:00:00+07:00"),

@@ -1,4 +1,10 @@
 export const APPOINTMENT_MESSAGES = {
+  tag: "Lịch hẹn",
+  listSlotsSummary: "Danh sách khung giờ hẹn",
+  createSummary: "Tạo lịch hẹn",
+  listSummary: "Danh sách lịch hẹn",
+  detailSummary: "Chi tiết lịch hẹn",
+  updateSummary: "Chỉnh sửa lịch hẹn",
   notFound: "Không tìm thấy lịch hẹn",
   createFailed: "Không thể tạo lịch hẹn",
   contextNotFound: "Không tìm thấy hồ sơ liên quan đến lịch hẹn",
@@ -7,8 +13,5 @@ export const APPOINTMENT_MESSAGES = {
   customerNotFound: "Không tìm thấy khách hàng đang hoạt động",
   slotNotFound: "Không tìm thấy khung giờ hẹn",
   invalidStaff: "Nhân viên không làm việc tại cơ sở này",
-  invalidStatus: "Không thể chuyển lịch hẹn sang trạng thái này",
-  closed: "Không thể chỉnh sửa lịch hẹn đã kết thúc",
-  changed: "Lịch hẹn đã thay đổi, vui lòng thử lại",
   duplicate: "Lịch hẹn hoặc khung giờ này đã tồn tại",
 };

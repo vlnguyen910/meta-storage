@@ -6,22 +6,26 @@ import {
   desc,
   eq,
   facilities,
-  ReservationStatus,
+  type Reservation,
   reservations,
   unitTypes,
 } from "@metastorage/database";
+import type { PageDto } from "../../common/types/page.dto";
 import { RESERVATION_MESSAGES } from "./reservations.messages";
 
 export class ReservationsRepository {
-  constructor(private readonly db: Database) {}
+  constructor(private readonly database: Database) {}
 
-  async findById(id: string) {
-    const [row] = await this.db.select().from(reservations).where(eq(reservations.id, id));
-    return row;
+  async findReservationById(reservationId: string) {
+    const [reservation] = await this.database
+      .select()
+      .from(reservations)
+      .where(eq(reservations.id, reservationId));
+    return reservation;
   }
 
   async findActiveUnitType(facilityId: string, unitTypeId: string) {
-    const [row] = await this.db
+    const [matchingUnitType] = await this.database
       .select({ unitType: unitTypes })
       .from(unitTypes)
       .innerJoin(facilities, eq(unitTypes.facilityId, facilities.id))
@@ -33,50 +37,53 @@ export class ReservationsRepository {
           eq(facilities.isActive, true),
         ),
       );
-    return row?.unitType;
+    return matchingUnitType?.unitType;
   }
 
-  async list(query: ReservationQuery, ownerId?: string, facilityId?: string) {
-    const where = and(
-      ownerId ? eq(reservations.customerId, ownerId) : undefined,
+  async listReservations(
+    query: ReservationQuery,
+    customerId?: string,
+    facilityId?: string,
+  ): Promise<PageDto<Reservation>> {
+    const filterConditions = and(
+      customerId ? eq(reservations.customerId, customerId) : undefined,
       facilityId ? eq(reservations.facilityId, facilityId) : undefined,
       query.status ? eq(reservations.status, query.status) : undefined,
     );
-    const [items, [total]] = await Promise.all([
-      this.db
+    const [reservationItems, [totalCount]] = await Promise.all([
+      this.database
         .select()
         .from(reservations)
-        .where(where)
+        .where(filterConditions)
         .orderBy(desc(reservations.createdAt), desc(reservations.id))
         .limit(query.limit)
         .offset(query.offset),
-      this.db.select({ value: count() }).from(reservations).where(where),
+      this.database.select({ value: count() }).from(reservations).where(filterConditions),
     ]);
-    return { items, total: total?.value ?? 0, limit: query.limit, offset: query.offset };
+    return {
+      items: reservationItems,
+      total: totalCount?.value ?? 0,
+      limit: query.limit,
+      offset: query.offset,
+    };
   }
 
-  async create(input: typeof reservations.$inferInsert) {
-    const [row] = await this.db.insert(reservations).values(input).returning();
-    if (!row) throw new Error(RESERVATION_MESSAGES.createFailed);
-    return row;
+  async createReservation(input: typeof reservations.$inferInsert) {
+    const [reservation] = await this.database.insert(reservations).values(input).returning();
+    if (!reservation) throw new Error(RESERVATION_MESSAGES.createFailed);
+    return reservation;
   }
 
-  async updateDraft(
-    id: string,
+  async updateReservation(
+    reservationId: string,
     customerId: string,
-    values: Partial<typeof reservations.$inferInsert>,
+    updates: Partial<typeof reservations.$inferInsert>,
   ) {
-    const [row] = await this.db
+    const [reservation] = await this.database
       .update(reservations)
-      .set({ ...values, updatedAt: new Date() })
-      .where(
-        and(
-          eq(reservations.id, id),
-          eq(reservations.customerId, customerId),
-          eq(reservations.status, ReservationStatus.DRAFT),
-        ),
-      )
+      .set({ ...updates, updatedAt: new Date() })
+      .where(and(eq(reservations.id, reservationId), eq(reservations.customerId, customerId)))
       .returning();
-    return row;
+    return reservation;
   }
 }
