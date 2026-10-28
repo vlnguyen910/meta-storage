@@ -29,7 +29,7 @@ export function CustomerTransactionsScreen() {
       if (!search) return true;
       const q = search.toLowerCase();
       return (
-        payment.paymentCode.toLowerCase().includes(q) ||
+        payment.paymentCode?.toLowerCase().includes(q) ||
         rental.bookingCode.toLowerCase().includes(q) ||
         rental.facility.name.toLowerCase().includes(q) ||
         rental.unitType.name.toLowerCase().includes(q)

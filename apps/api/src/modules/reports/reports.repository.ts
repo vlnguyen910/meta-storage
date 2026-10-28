@@ -6,7 +6,6 @@ import {
   capacityAllocations,
   count,
   type Database,
-  desc,
   eq,
   facilities,
   gt,
@@ -18,9 +17,6 @@ import {
   rentalChargeRefunds,
   rentalCharges,
   rentals,
-  returnRefunds,
-  returnRequests,
-  returnSettlements,
   type SQL,
   sql,
   storageUnits,
@@ -36,64 +32,7 @@ const amount = (condition: SQL, value: SQL) =>
 const quantity = (condition: SQL) =>
   sql<number>`count(case when ${condition} then 1 end)`.mapWith(Number);
 
-// One row per booking: aggregate transfers before joining the latest effective revision.
-// This prevents a revision × refund fan-out from multiplying receipts/refunds.
-function returnAccounting(tx: ReportTransaction, asOf: Date, start: Date, end: Date) {
-  const deposit = sql`greatest(${returnSettlements.depositSnapshot} - ${returnSettlements.overdueFeeAmount} - ${returnSettlements.damageAmount}, 0)`;
-  const allocatedDeposit = sql`coalesce(${returnRefunds.depositRefundAmount}, case
-    when ${returnSettlements.unusedRentRefundAmount} = 0 then ${returnRefunds.amount}
-    when ${deposit} = 0 then 0
-    when ${returnRefunds.amount} = ${returnSettlements.refundEntitlement} then ${deposit}
-    else null end)`;
-  const transfers = tx
-    .select({
-      requestId: returnRefunds.requestId,
-      total: sql<string>`sum(${returnRefunds.amount})`.as("refund_total"),
-      inPeriod:
-        sql<string>`sum(case when ${returnRefunds.confirmedAt} >= ${start.toISOString()} and ${returnRefunds.confirmedAt} < ${end.toISOString()} then ${returnRefunds.amount} else 0 end)`.as(
-          "period_refund",
-        ),
-      depositPaid: sql<string>`coalesce(sum(${allocatedDeposit}), 0)`.as("deposit_paid"),
-      unknown: sql<boolean>`bool_or(${allocatedDeposit} is null)`.as("refund_unknown"),
-    })
-    .from(returnRefunds)
-    .innerJoin(returnSettlements, eq(returnSettlements.id, returnRefunds.settlementId))
-    .where(lte(returnRefunds.confirmedAt, asOf))
-    .groupBy(returnRefunds.requestId)
-    .as("return_transfers");
-  const latest = tx
-    .selectDistinctOn([rentals.bookingId], {
-      bookingId: rentals.bookingId,
-      requestId: returnSettlements.requestId,
-      entitlement: returnSettlements.refundEntitlement,
-      deposit: sql<string>`${deposit}`.as("deposit_available"),
-    })
-    .from(returnSettlements)
-    .innerJoin(returnRequests, eq(returnRequests.id, returnSettlements.requestId))
-    .innerJoin(rentals, eq(rentals.id, returnRequests.rentalId))
-    .where(lte(returnSettlements.approvedAt, asOf))
-    .orderBy(rentals.bookingId, desc(returnSettlements.revision))
-    .as("latest_return_settlement");
-  return tx
-    .select({
-      bookingId: latest.bookingId,
-      requestId: latest.requestId,
-      inPeriod: sql<string>`coalesce(${transfers.inPeriod}, 0)`.as("return_cash_refunded"),
-      pending: sql<string>`greatest(${latest.entitlement} - coalesce(${transfers.total}, 0), 0)`.as(
-        "return_pending",
-      ),
-      held: sql<string>`greatest(${latest.deposit} - coalesce(${transfers.depositPaid}, 0), 0)`.as(
-        "return_deposit_held",
-      ),
-      unknown: sql<boolean>`coalesce(${transfers.unknown}, false)`.as("return_unclassified"),
-    })
-    .from(latest)
-    .leftJoin(transfers, eq(transfers.requestId, latest.requestId))
-    .as("return_accounting");
-}
-
-// Shared by aggregates and their drill-down so an alert identifies the same rows.
-function financialRules(asOf: Date, accounting: ReturnType<typeof returnAccounting>) {
+function financialRules(asOf: Date) {
   const vn = sql`${payments.currency} = 'VND'`;
   const captured = sql`${payments.paidAt} is not null and ${payments.paidAt} <= ${asOf.toISOString()}`;
   const known = sql`${bookings.rentalFeeAmount} >= 0 and ${bookings.depositAmount} >= 0 and ${payments.totalAmount} = ${bookings.rentalFeeAmount} + ${bookings.depositAmount} and ${payments.depositForfeitedAmount} <= ${bookings.depositAmount}`;
@@ -101,10 +40,8 @@ function financialRules(asOf: Date, accounting: ReturnType<typeof returnAccounti
   const settledRefund = sql`${payments.status} = 'REFUNDED' and ${payments.refundedAt} is not null and ${payments.refundedAt} <= ${asOf.toISOString()}`;
   const knownRefund = sql`${settledRefund} and (${refund} = ${payments.totalAmount} or (${refund} = ${bookings.rentalFeeAmount} and ${payments.depositForfeitedAmount} = ${bookings.depositAmount}))`;
   const legacyHeldKnown = sql`coalesce((${known} and (${payments.status} = 'SUCCEEDED' or ((${payments.status} = 'REFUND_PENDING' or (${knownRefund})) and ${refund} + ${payments.depositForfeitedAmount} <= ${payments.totalAmount}))), false)`;
-  const returnKnown = sql`${accounting.requestId} is not null and ${payments.status} = 'SUCCEEDED'`;
-  const heldKnown = sql`(${legacyHeldKnown} and (not (${returnKnown}) or not ${accounting.unknown}))`;
   const knownSnapshot = sql`coalesce((${known}), false)`;
-  return { vn, captured, refund, settledRefund, heldKnown, knownSnapshot, returnKnown };
+  return { vn, captured, refund, settledRefund, heldKnown: legacyHeldKnown, knownSnapshot };
 }
 
 export class ReportsRepository {
@@ -147,9 +84,8 @@ export class ReportsRepository {
     return this.db.transaction(
       async (tx) => {
         const scoped = await this.scope(tx, actor, filter);
-        const accounting = returnAccounting(tx, asOf, start, end);
-        const { vn, captured, refund, settledRefund, heldKnown, knownSnapshot, returnKnown } =
-          financialRules(asOf, accounting);
+        const { vn, captured, refund, settledRefund, heldKnown, knownSnapshot } =
+          financialRules(asOf);
         const inPeriod = sql`${captured} and ${payments.paidAt} >= ${start.toISOString()} and ${payments.paidAt} < ${end.toISOString()}`;
         const refundInPeriod = sql`${settledRefund} and ${payments.refundedAt} >= ${start.toISOString()} and ${payments.refundedAt} < ${end.toISOString()}`;
         const scopedPayment = and(
@@ -172,32 +108,20 @@ export class ReportsRepository {
                   sql`${vn} and ${inPeriod} and ${knownSnapshot}`,
                   sql`${bookings.depositAmount}`,
                 ),
-                cashRefunded:
-                  sql<string>`${amount(sql`${vn} and ${refundInPeriod}`, refund)}::numeric + ${amount(sql`${vn} and ${captured} and ${returnKnown}`, sql`${accounting.inPeriod}`)}::numeric`.as(
-                    "cash_refunded",
-                  ),
+                cashRefunded: amount(sql`${vn} and ${refundInPeriod}`, refund),
                 depositHeld: amount(
                   sql`${vn} and ${captured} and ${heldKnown} and ${payments.status} <> 'REFUNDED'`,
-                  sql`case when ${returnKnown} then ${accounting.held} else ${bookings.depositAmount} - ${payments.depositForfeitedAmount} end`,
+                  sql`${bookings.depositAmount} - ${payments.depositForfeitedAmount}`,
                 ),
                 depositForfeited: amount(
                   sql`${vn} and ${captured}`,
                   sql`${payments.depositForfeitedAmount}`,
                 ),
                 pendingRefundAmount: amount(
-                  sql`${vn} and (${payments.status} = 'REFUND_PENDING' or (${captured} and ${returnKnown}))`,
-                  sql`case when ${returnKnown} then ${accounting.pending} else ${refund} end`,
+                  sql`${vn} and ${payments.status} = 'REFUND_PENDING'`,
+                  refund,
                 ),
-                pendingRefundCount: quantity(
-                  sql`${vn} and (${payments.status} = 'REFUND_PENDING' or (${captured} and ${returnKnown} and ${accounting.pending} > 0))`,
-                ),
-                pendingReturnRefundAmount: amount(
-                  sql`${vn} and ${captured} and ${returnKnown}`,
-                  sql`${accounting.pending}`,
-                ),
-                pendingReturnRefundCount: quantity(
-                  sql`${vn} and ${captured} and ${returnKnown} and ${accounting.pending} > 0`,
-                ),
+                pendingRefundCount: quantity(sql`${vn} and ${payments.status} = 'REFUND_PENDING'`),
                 paymentsReceivedCount: quantity(sql`${vn} and ${inPeriod}`),
                 unclassifiedCollectedPayments: quantity(
                   sql`${vn} and ${inPeriod} and not ${knownSnapshot}`,
@@ -209,7 +133,6 @@ export class ReportsRepository {
               })
               .from(payments)
               .leftJoin(bookings, eq(bookings.id, payments.bookingId))
-              .leftJoin(accounting, eq(accounting.bookingId, payments.bookingId))
               .where(
                 and(
                   scopedPayment,
@@ -354,8 +277,7 @@ export class ReportsRepository {
     return this.db.transaction(
       async (tx) => {
         const scoped = await this.scope(tx, actor, filter);
-        const accounting = returnAccounting(tx, asOf, start, end);
-        const rules = financialRules(asOf, accounting);
+        const rules = financialRules(asOf);
         const predicate = and(
           isNull(payments.rentalChargeId),
           or(
@@ -470,8 +392,7 @@ export class ReportsRepository {
     return this.db.transaction(
       async (tx) => {
         const scoped = await this.scope(tx, actor, query);
-        const accounting = returnAccounting(tx, asOf, new Date(0), asOf);
-        const rules = financialRules(asOf, accounting);
+        const rules = financialRules(asOf);
         const predicate = and(
           isNull(payments.rentalChargeId),
           or(
@@ -486,7 +407,6 @@ export class ReportsRepository {
           .select({ count: count() })
           .from(payments)
           .leftJoin(bookings, eq(bookings.id, payments.bookingId))
-          .leftJoin(accounting, eq(accounting.bookingId, payments.bookingId))
           .where(predicate);
         const bookingItems = await tx
           .select({
@@ -504,7 +424,6 @@ export class ReportsRepository {
           })
           .from(payments)
           .leftJoin(bookings, eq(bookings.id, payments.bookingId))
-          .leftJoin(accounting, eq(accounting.bookingId, payments.bookingId))
           .where(predicate)
           .orderBy(asc(payments.paidAt), asc(payments.id))
           .limit(query.limit + query.offset);

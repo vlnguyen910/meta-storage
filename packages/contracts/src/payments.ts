@@ -140,8 +140,8 @@ export type PaymentResponse = PaymentResult | PaymentPendingResponse;
 export const PaymentStatusResponseSchema = z.object({
   paymentId: z.string().uuid(),
   status: z.enum(PaymentStatus),
-  provider: z.string(),
-  paymentCode: z.string(),
+  provider: z.string().nullable(),
+  paymentCode: z.string().nullable(),
   chargeId: z.string().uuid().optional(),
   transferInstructions: SepayPaymentInstructionsSchema.optional(),
   checkoutUrl: z.string().url().optional(),

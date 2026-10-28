@@ -385,7 +385,7 @@ export function CustomerPaymentScreen({
       <Heading>{M.payment}</Heading>
       <QueryNotice query={query} />
       {p && (
-        <Card title={p.paymentCode}>
+        <Card title={p.paymentCode ?? undefined}>
           <Row label={M.paymentStatus} value={p.status} />
           {p.status === "PENDING" && <Notice>{M.paymentPending}</Notice>}
           {p.status === "FAILED" && <Notice error>{M.paymentFailed}</Notice>}
@@ -661,7 +661,7 @@ export function CustomerRentalScreen({
           <Card title={M.transactions}>
             <QueryNotice query={state.payments} />
             {state.payments.data?.map((p) => (
-              <Card key={p.id} title={p.paymentCode}>
+              <Card key={p.id} title={p.paymentCode ?? undefined}>
                 <Text>
                   {M.source[p.source ?? "BOOKING"]} · {p.status}
                 </Text>

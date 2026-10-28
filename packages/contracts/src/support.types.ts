@@ -40,7 +40,7 @@ export type SupportBookingContext = {
 };
 export type SupportPaymentContext = {
   id: string;
-  paymentCode: string;
+  paymentCode: string | null;
   chargeId: string | null;
   source: "BOOKING" | "RENEWAL" | "EXTRA" | "RETURN_DEBT";
   status: import("./payments").PaymentStatus;

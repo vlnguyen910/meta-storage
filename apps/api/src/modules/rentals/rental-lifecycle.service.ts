@@ -1,16 +1,16 @@
 import { RentalLifecycleSettingKey } from "@metastorage/contracts";
 import type { rentals } from "@metastorage/database";
 import { eq, systemSettingInteger, systemSettings } from "@metastorage/database";
+import { localDate } from "../../common/date";
 import { lifecycleExpiryDetail } from "../notifications/lifecycle-notifications.messages";
 import { recordLifecycleEvent } from "../notifications/lifecycle-notifications.repository";
 import type { NotificationTransaction } from "../notifications/lifecycle-notifications.types";
-import { localDate } from "../returns/returns.policy";
-import type { ReturnsRepository } from "../returns/returns.repository";
 import { recordOverdueEvent, rentalLifecycleEventKey } from "./rental-lifecycle.events";
 import {
   facilityLifecycleClock,
   type RentalLifecycleRepository,
 } from "./rental-lifecycle.repository";
+import type { RentalsRepository } from "./rentals.repository";
 
 function dayIndex(date: string) {
   return Date.parse(`${date}T00:00:00Z`) / 86400000;
@@ -49,7 +49,7 @@ export async function recordImmediateExpiry(
 export class RentalLifecycleService {
   constructor(
     private readonly repository: RentalLifecycleRepository,
-    private readonly returns: ReturnsRepository,
+    private readonly rentals: RentalsRepository,
   ) {}
   async sweep(now = new Date(), facilityId?: string) {
     const settings = await this.repository.settings();
@@ -69,7 +69,7 @@ export class RentalLifecycleService {
       );
       if (!candidates.length) break;
       for (const candidate of candidates)
-        await this.returns.locked(candidate.id, async (tx, { rental }) => {
+        await this.rentals.withLockedRental(candidate.id, async (tx, { rental }) => {
           if (rental.closedAt || rental.status === "CLOSED") return;
           const calendar = await facilityLifecycleClock(tx, rental.facilityId);
           if (!calendar) return;
@@ -81,7 +81,7 @@ export class RentalLifecycleService {
             rental.actualReturnAt && rental.actualReturnAt <= rental.expectedEndAt;
           if (expired && !returnedOnTime) {
             if (rental.status !== "OVERDUE")
-              await this.returns.updateRental(tx, rental.id, { status: "OVERDUE" });
+              await this.repository.update(tx, rental.id, { status: "OVERDUE" });
             await recordOverdueEvent(tx, rental, calendar.timezone, now);
           }
           if (
@@ -90,7 +90,7 @@ export class RentalLifecycleService {
             !rental.actualReturnAt &&
             !rental.abandonedReviewAt
           ) {
-            await this.returns.updateRental(tx, rental.id, { abandonedReviewAt: now });
+            await this.repository.update(tx, rental.id, { abandonedReviewAt: now });
             await recordLifecycleEvent(tx, {
               key: rentalLifecycleEventKey(rental, "abandoned-review"),
               rentalTermVersion: rental.version,

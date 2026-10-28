@@ -256,11 +256,6 @@ export class ReportsService {
         a.facility.code.localeCompare(b.facility.code),
     );
     const canManage = actor.role === "BUSINESS_OPERATION_MANAGER" || actor.role === "SYSTEM_ADMIN";
-    const returnAmount = data.financial.reduce(
-      (sum, row) => sum + parseCents(row.pendingReturnRefundAmount),
-      0n,
-    );
-    const returnCount = data.financial.reduce((sum, row) => sum + row.pendingReturnRefundCount, 0);
     return {
       period: { from: period.from, to: period.to, timeZone: period.timeZone },
       asOf: now.toISOString(),
@@ -268,8 +263,8 @@ export class ReportsService {
       summary: { financial: money, inventory: units },
       attention: {
         refunds: {
-          count: money.pendingRefundCount - returnCount,
-          amount: formatCents(parseCents(money.pendingRefundAmount) - returnAmount),
+          count: money.pendingRefundCount,
+          amount: money.pendingRefundAmount,
           canManage,
           endpoint: canManage ? "/api/payments/refunds" : null,
           description: m.refundAction,
@@ -280,11 +275,6 @@ export class ReportsService {
           canManage,
           endpoint: canManage ? "/api/rental-charge-refunds" : null,
           description: m.chargeRefundAction,
-        },
-        returnRefunds: {
-          count: returnCount,
-          amount: formatCents(returnAmount),
-          description: m.returnRefundAction,
         },
         vacantCapacity: { count: units.availableUnits, description: m.vacantAction },
         maintenance: { count: units.maintenanceUnits, description: m.maintenanceAction },

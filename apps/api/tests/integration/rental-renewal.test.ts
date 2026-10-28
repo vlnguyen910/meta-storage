@@ -1,6 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, setSystemTime, test } from "bun:test";
 import { randomUUID } from "node:crypto";
-import { SettleReturnSchema } from "@metastorage/contracts";
 import type { RentalRenewalDto } from "@metastorage/contracts/renewals";
 import {
   accounts,
@@ -21,8 +20,6 @@ import {
   rentalCharges,
   rentalRenewals,
   rentals,
-  returnAudit,
-  returnRequests,
   storageUnits,
   systemSettings,
   unitAssignments,
@@ -47,11 +44,10 @@ import {
   RentalLifecycleService,
   recordImmediateExpiry,
 } from "../../src/modules/rentals/rental-lifecycle.service";
+import { RentalsRepository } from "../../src/modules/rentals/rentals.repository";
 import { rentalsRoutes } from "../../src/modules/rentals/rentals.routes";
 import { ReportsRepository } from "../../src/modules/reports/reports.repository";
 import { ReportsService } from "../../src/modules/reports/reports.service";
-import { ReturnsRepository } from "../../src/modules/returns/returns.repository";
-import { returnsRoutes } from "../../src/modules/returns/returns.routes";
 import { createTestUnitType, deleteTestUnitTypes } from "../fixtures/facility-catalog";
 import { assertTestDatabase } from "../fixtures/test-database";
 
@@ -125,14 +121,6 @@ describe.skipIf(!target)("rental renewal with isolated PostgreSQL", () => {
       paidAt: new Date(),
     };
   }
-
-  const requestReturn = (id: string) =>
-    app.inject({
-      method: "POST",
-      url: `/api/rentals/${id}/return-requests`,
-      headers: { cookie },
-      payload: { date: "2032-01-20", slotId: ids.slot, reason: "Return test" },
-    });
 
   async function scenario(endAt = expiry) {
     const [unit] = await db
@@ -208,7 +196,6 @@ describe.skipIf(!target)("rental renewal with isolated PostgreSQL", () => {
     await app.register(rentalsRoutes, { prefix: "/api/rentals" });
     await app.register(renewalsRoutes, { prefix: "/api" });
     await app.register(rentalChargesRoutes, { prefix: "/api" });
-    await app.register(returnsRoutes, { prefix: "/api" });
     await app.ready();
     const password = "Renewal-test-password-123";
     const context = await auth.$context;
@@ -336,14 +323,12 @@ describe.skipIf(!target)("rental renewal with isolated PostgreSQL", () => {
       .delete(paymentProviderEvents)
       .where(inArray(paymentProviderEvents.paymentId, paymentIds));
     await db.delete(notificationOutbox).where(eq(notificationOutbox.facilityId, ids.facility));
-    await db.delete(returnAudit).where(eq(returnAudit.facilityId, ids.facility));
     await db.delete(rentalRenewals).where(inArray(rentalRenewals.rentalId, rentalIds));
     await db.delete(rentalChargeEvents).where(inArray(rentalChargeEvents.chargeId, chargeIds));
     await db.delete(rentalChargeRefunds).where(inArray(rentalChargeRefunds.chargeId, chargeIds));
     await db.delete(payments).where(inArray(payments.id, paymentIds));
     await db.delete(rentalCharges).where(inArray(rentalCharges.id, chargeIds));
     await db.delete(capacityAllocations).where(eq(capacityAllocations.facilityId, ids.facility));
-    await db.delete(returnRequests).where(eq(returnRequests.facilityId, ids.facility));
     await db.delete(rentals).where(eq(rentals.facilityId, ids.facility));
     const bookingIds = db
       .select({ id: bookings.id })
@@ -796,38 +781,6 @@ describe.skipIf(!target)("rental renewal with isolated PostgreSQL", () => {
     ).toBe("OCCUPIED");
   });
 
-  test("return committed before payment prevents application; concurrent return uses the same lock", async () => {
-    const first = await scenario();
-    const pending = await acceptedPayment(first.rentalId);
-    expect((await requestReturn(first.rentalId)).statusCode).toBe(201);
-    await new PaymentsRepository(db).processRentalChargePaymentEvent(
-      success(pending.payment.paymentCode),
-    );
-    expect(
-      (await db.select().from(rentalRenewals).where(eq(rentalRenewals.id, pending.quote.id)))[0]
-        ?.status,
-    ).toBe("REFUND_REQUIRED");
-    const second = await scenario();
-    const racing = await acceptedPayment(second.rentalId);
-    const results = await Promise.all([
-      new PaymentsRepository(db).processRentalChargePaymentEvent(
-        success(racing.payment.paymentCode),
-      ),
-      requestReturn(second.rentalId),
-    ]);
-    expect(results[1].statusCode).toBe(201);
-    const [renewal] = await db
-      .select()
-      .from(rentalRenewals)
-      .where(eq(rentalRenewals.id, racing.quote.id));
-    const [rental] = await db.select().from(rentals).where(eq(rentals.id, second.rentalId));
-    expect(rental?.version).toBe(renewal?.status === "APPLIED" ? 1 : 0);
-    expect(rental?.status).toBe("RETURN_PENDING");
-    expect(
-      (await db.select().from(storageUnits).where(eq(storageUnits.id, second.unitId)))[0]?.status,
-    ).toBe("OCCUPIED");
-  });
-
   test("confirmed competing capacity wins over a quote that has no hold", async () => {
     const item = await scenario();
     const { quote, payment } = await acceptedPayment(item.rentalId);
@@ -867,7 +820,7 @@ describe.skipIf(!target)("rental renewal with isolated PostgreSQL", () => {
     await Promise.all([
       new RentalLifecycleService(
         new RentalLifecycleRepository(db),
-        new ReturnsRepository(db),
+        new RentalsRepository(db),
       ).sweep(new Date(), ids.facility),
       new PaymentsRepository(db).processRentalChargePaymentEvent(event),
     ]);
@@ -916,7 +869,7 @@ describe.skipIf(!target)("rental renewal with isolated PostgreSQL", () => {
     });
     await new RentalLifecycleService(
       new RentalLifecycleRepository(db),
-      new ReturnsRepository(db),
+      new RentalsRepository(db),
     ).sweep(reminderAt, ids.facility);
     const reminders = await db
       .select()
@@ -934,24 +887,5 @@ describe.skipIf(!target)("rental renewal with isolated PostgreSQL", () => {
     expect(await worker.authorized(reminder, reminderAt)).toBe(true);
     await db.update(rentals).set({ status: "RETURN_PENDING" }).where(eq(rentals.id, item.rentalId));
     expect(await worker.authorized(reminder, reminderAt)).toBe(true);
-  });
-
-  test("early return never authorizes a new unused-rent refund", () => {
-    expect(
-      SettleReturnSchema.safeParse({
-        expectedVersion: 0,
-        damageAmount: "0",
-        unusedRentRefundAmount: "1",
-        reason: "Early return",
-      }).success,
-    ).toBe(false);
-    expect(
-      SettleReturnSchema.safeParse({
-        expectedVersion: 0,
-        damageAmount: "0",
-        unusedRentRefundAmount: "0",
-        reason: "Deposit settlement",
-      }).success,
-    ).toBe(true);
   });
 });

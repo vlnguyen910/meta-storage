@@ -29,8 +29,9 @@ import {
   getTableColumns,
   gt,
   gte,
-  handoverInspections,
+  InspectionType,
   inArray,
+  inspections,
   isNotNull,
   isNull,
   lt,
@@ -944,29 +945,17 @@ export class BookingsRepository {
     if (!bookingIds.length) return [];
     return this.db
       .select({
-        bookingId: handoverInspections.bookingId,
-        status: handoverInspections.status,
-        handedOverAt: handoverInspections.handedOverAt,
+        bookingId: inspections.bookingId,
+        status: inspections.status,
       })
-      .from(handoverInspections)
-      .innerJoin(bookings, eq(bookings.id, handoverInspections.bookingId))
-      .innerJoin(
-        unitAssignments,
+      .from(inspections)
+      .where(
         and(
-          eq(unitAssignments.id, handoverInspections.unitAssignmentId),
-          eq(unitAssignments.status, "ACTIVE"),
+          eq(inspections.inspectionType, InspectionType.CHECK_IN),
+          inArray(inspections.bookingId, bookingIds),
         ),
       )
-      .innerJoin(
-        checkInVerifications,
-        and(
-          eq(checkInVerifications.id, handoverInspections.verificationId),
-          inArray(checkInVerifications.status, ["VERIFIED", "CONSUMED"]),
-          eq(checkInVerifications.staffId, bookings.assignedStaffId),
-        ),
-      )
-      .where(inArray(handoverInspections.bookingId, bookingIds))
-      .orderBy(desc(handoverInspections.updatedAt));
+      .orderBy(desc(inspections.inspectDoneAt), desc(inspections.id));
   }
 
   async assignStaff(tx: BookingTransaction, bookingId: string, staffId: string) {

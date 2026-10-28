@@ -17,7 +17,7 @@ export function useOperationsRentals(filter: OperationsRentalsFilter) {
       {
         facilityId: filter.facilityId === "all" ? undefined : filter.facilityId,
         unitTypeId: filter.unitTypeId === "all" ? undefined : filter.unitTypeId,
-        status: filter.status === "all" ? undefined : filter.status,
+        status: filter.status,
         limit: filter.limit,
         offset: filter.offset,
       },
@@ -26,7 +26,7 @@ export function useOperationsRentals(filter: OperationsRentalsFilter) {
       api.reports.getRentals({
         facilityId: filter.facilityId === "all" ? undefined : filter.facilityId,
         unitTypeId: filter.unitTypeId === "all" ? undefined : filter.unitTypeId,
-        status: filter.status === "all" ? undefined : filter.status,
+        status: filter.status,
         limit: filter.limit,
         offset: filter.offset,
       }),

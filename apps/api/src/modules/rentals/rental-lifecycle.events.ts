@@ -1,8 +1,8 @@
 import type { rentals } from "@metastorage/database";
+import { localDate } from "../../common/date";
 import { lifecycleExpiryDetail } from "../notifications/lifecycle-notifications.messages";
 import { recordLifecycleEvent } from "../notifications/lifecycle-notifications.repository";
 import type { NotificationTransaction } from "../notifications/lifecycle-notifications.types";
-import { localDate } from "../returns/returns.policy";
 
 export function rentalLifecycleEventKey(
   rental: Pick<typeof rentals.$inferSelect, "id" | "version">,

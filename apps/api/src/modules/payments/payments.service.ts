@@ -22,6 +22,11 @@ import { PaymentsRepository } from "./payments.repository";
 import type { PaymentStatusCredentials } from "./payments.types";
 import { SepayPaymentGateway } from "./sepay.gateway";
 
+function requirePaymentCode(code: string | null): string {
+  if (!code) throw new AppError(PAYMENT_MESSAGES.paymentCodeMissing, 500);
+  return code;
+}
+
 export class PaymentsService {
   constructor(
     private readonly repository: PaymentsRepository,
@@ -71,13 +76,14 @@ export class PaymentsService {
       paymentCode: `${this.sepayGateway.paymentPrefix}${randomBytes(7).toString("hex").toUpperCase()}`,
       holdDurationMs: 10 * 60_000,
     });
+    const paymentCode = requirePaymentCode(payment.paymentCode);
     const session = this.sepayGateway.createCheckoutSession({
       bookingId,
       paymentId: payment.id,
-      paymentCode: payment.paymentCode,
+      paymentCode,
       amount: Number(payment.totalAmount),
       currency: payment.currency,
-      description: PAYMENT_MESSAGES.checkoutDescription(payment.paymentCode),
+      description: PAYMENT_MESSAGES.checkoutDescription(paymentCode),
     });
     if (!session)
       throw new AppError(PAYMENT_MESSAGES.sepayUnavailable, 503, "PAYMENT_PROVIDER_UNAVAILABLE");
@@ -86,7 +92,7 @@ export class PaymentsService {
       paymentId: payment.id,
       provider: "sepay",
       status: "PENDING",
-      paymentCode: payment.paymentCode,
+      paymentCode,
       checkoutUrl: session.checkoutUrl,
       checkoutFormFields: session.formFields,
       expiresAt: expiresAt.toISOString(),
@@ -106,13 +112,14 @@ export class PaymentsService {
       idempotencyKey: input.idempotencyKey,
       paymentCode: `${this.sepayGateway.paymentPrefix}${randomBytes(7).toString("hex").toUpperCase()}`,
     });
+    const paymentCode = requirePaymentCode(payment.paymentCode);
     const session = this.sepayGateway.createCheckoutSession({
       rentalChargeId: chargeId,
       paymentId: payment.id,
-      paymentCode: payment.paymentCode,
+      paymentCode,
       amount: Number(payment.totalAmount),
       currency: payment.currency,
-      description: PAYMENT_MESSAGES.checkoutDescription(payment.paymentCode),
+      description: PAYMENT_MESSAGES.checkoutDescription(paymentCode),
     });
     if (!session)
       throw new AppError(PAYMENT_MESSAGES.sepayUnavailable, 503, "PAYMENT_PROVIDER_UNAVAILABLE");
@@ -121,7 +128,7 @@ export class PaymentsService {
       paymentId: payment.id,
       provider: "sepay",
       status: "PENDING",
-      paymentCode: payment.paymentCode,
+      paymentCode,
       checkoutUrl: session.checkoutUrl,
       checkoutFormFields: session.formFields,
       expiresAt: expiresAt.toISOString(),
@@ -192,7 +199,10 @@ export class PaymentsService {
     const payment = await this.repository.claimPaymentReconciliation(paymentId);
     if (!payment) return;
     try {
-      const event = await this.sepayGateway.retrievePayment(payment);
+      const event = await this.sepayGateway.retrievePayment({
+        ...payment,
+        paymentCode: requirePaymentCode(payment.paymentCode),
+      });
       if (!event) return;
       const result = await this.repository.processBookingPaymentEvent(event);
       if (result?.completed) await this.confirmationWithEmail(result.completed);
@@ -233,9 +243,11 @@ export class PaymentsService {
     // Authorize before any provider request or state transition. Never use data
     // from the browser return URL to decide whether payment was received.
     if (payment.status === "PENDING") {
+      requirePaymentCode(payment.paymentCode);
       await this.reconcilePayment(payment.id);
       payment = (await this.repository.findPayment(payment.id)) ?? payment;
     }
+    if (payment.status === "PENDING") requirePaymentCode(payment.paymentCode);
     const completed =
       payment.status === "SUCCEEDED"
         ? await this.repository.findCompletedByPaymentId(payment.id)
@@ -245,7 +257,7 @@ export class PaymentsService {
     const transferInstructions =
       payment.status === "PENDING" && this.sepayGateway && (hold || payment.rentalChargeId)
         ? this.sepayGateway.createInstructions({
-            paymentCode: payment.paymentCode,
+            paymentCode: requirePaymentCode(payment.paymentCode),
             amount: payment.totalAmount,
             currency: payment.currency,
             expiresAt: hold?.expiresAt ?? payment.expiresAt ?? new Date(Date.now() + 10 * 60_000),
@@ -257,10 +269,12 @@ export class PaymentsService {
       (payment.bookingId || payment.rentalChargeId) &&
       (hold || payment.rentalChargeId)
         ? this.sepayGateway.createCheckoutSession({
-            paymentCode: payment.paymentCode,
+            paymentCode: requirePaymentCode(payment.paymentCode),
             amount: Number(payment.totalAmount),
             currency: payment.currency,
-            description: PAYMENT_MESSAGES.checkoutDescription(payment.paymentCode),
+            description: PAYMENT_MESSAGES.checkoutDescription(
+              requirePaymentCode(payment.paymentCode),
+            ),
             bookingId: payment.bookingId ?? undefined,
             rentalChargeId: payment.rentalChargeId ?? undefined,
             paymentId: payment.id,

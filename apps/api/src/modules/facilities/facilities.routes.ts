@@ -17,9 +17,6 @@ import {
   facilityQuerySchema,
   facilityStorageUnitParamsSchema,
   facilityUnitTypeParamsSchema,
-  ReturnFacilityParamsSchema,
-  ReturnQueueEnvelopeSchema,
-  ReturnQueueQuerySchema,
   SetFacilityUnitTypeSchema,
   STORAGE_UNIT_MESSAGES,
   UnitTypeListQuerySchema,
@@ -37,8 +34,6 @@ import { RentalChargesRepository } from "../rental-charges/rental-charges.reposi
 import { RentalChargesService } from "../rental-charges/rental-charges.service";
 import { RentalsRepository } from "../rentals/rentals.repository";
 import { RentalsService } from "../rentals/rentals.service";
-import { ReturnsRepository } from "../returns/returns.repository";
-import { ReturnsService } from "../returns/returns.service";
 import { StorageUnitsRepository } from "../storage-units/storage-units.repository";
 import { StorageUnitsService } from "../storage-units/storage-units.service";
 import { FacilityUnitTypesRepository } from "../unit-types/facility-unit-types.repository";
@@ -71,8 +66,7 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
     new StorageUnitsRepository(fastify.db),
     new FacilityAssignmentsRepository(fastify.db),
   );
-  const returnsService = new ReturnsService(new ReturnsRepository(fastify.db));
-  const privateReturnResponse: onRequestAsyncHookHandler = async (_request, reply) => {
+  const privateNoStore: onRequestAsyncHookHandler = async (_request, reply) => {
     reply.header("Cache-Control", "private, no-store");
   };
 
@@ -97,7 +91,7 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
   typedApp.get(
     "/:facilityId/rentals",
     {
-      onRequest: privateReturnResponse,
+      onRequest: privateNoStore,
       preHandler: [requireRole("FACILITY_MANAGER")],
       schema: {
         tags: ["Rentals"],
@@ -115,7 +109,7 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
   typedApp.get(
     "/:facilityId/rentals/:rentalId",
     {
-      onRequest: privateReturnResponse,
+      onRequest: privateNoStore,
       preHandler: [requireRole("FACILITY_MANAGER")],
       schema: { tags: ["Rentals"], params: FacilityRentalParamsSchema },
     },
@@ -133,7 +127,7 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
   typedApp.get(
     "/:facilityId/rentals/:rentalId/payments",
     {
-      onRequest: privateReturnResponse,
+      onRequest: privateNoStore,
       preHandler: [requireRole("FACILITY_MANAGER")],
       schema: {
         tags: ["Rentals"],
@@ -156,7 +150,7 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
   typedApp.get(
     "/:facilityId/rentals/:rentalId/renewals",
     {
-      onRequest: privateReturnResponse,
+      onRequest: privateNoStore,
       preHandler: [requireRole("FACILITY_MANAGER")],
       schema: {
         tags: ["Renewals"],
@@ -179,7 +173,7 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
   typedApp.get(
     "/:facilityId/rental-charges",
     {
-      onRequest: privateReturnResponse,
+      onRequest: privateNoStore,
       preHandler: [requireRole("FACILITY_MANAGER")],
       schema: {
         tags: ["Rental Charges"],
@@ -195,25 +189,6 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
           request.params.facilityId,
           request.query,
         ),
-      );
-    },
-  );
-
-  typedApp.get(
-    "/:facilityId/return-requests",
-    {
-      onRequest: privateReturnResponse,
-      preHandler: [requireAuth],
-      schema: {
-        params: ReturnFacilityParamsSchema,
-        querystring: ReturnQueueQuerySchema,
-        response: { 200: ReturnQueueEnvelopeSchema },
-      },
-    },
-    async (request) => {
-      if (!request.user) throw new UnauthorizedError();
-      return successResponse(
-        await returnsService.queue(request.user, request.params.facilityId, request.query),
       );
     },
   );
