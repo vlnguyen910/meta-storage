@@ -8,10 +8,12 @@ import {
   FacilityTaskTypeReferenceSchema,
   type StaffFacilityTaskListQuery,
   type UpdateFacilityTaskInput,
+  UserRole,
 } from "@metastorage/contracts";
 import {
   aliasedTable,
   and,
+  BookingStatus,
   bookings,
   count,
   type Database,
@@ -50,8 +52,8 @@ export class FacilityTasksRepository {
   async create(input: CreateFacilityTaskInput, actor: FacilityTaskActor): Promise<TaskWriteResult> {
     return this.db.transaction(async (tx) => {
       const activeAssignments = await this.assignments.lockActiveAssignments(tx, input.facilityId, [
-        { userId: actor.id, role: "FACILITY_MANAGER" },
-        { userId: input.assignedStaffId, role: "FACILITY_STAFF" },
+        { userId: actor.id, role: UserRole.FACILITY_MANAGER },
+        { userId: input.assignedStaffId, role: UserRole.FACILITY_STAFF },
       ]);
       if (!activeAssignments.has(actor.id)) return { error: "MANAGER_ACCESS_DENIED" };
       if (!activeAssignments.has(input.assignedStaffId)) return { error: "STAFF_UNAVAILABLE" };
@@ -250,14 +252,14 @@ export class FacilityTasksRepository {
       )
         return { error: "INVALID_TASK_STATE" };
       const managers = await this.assignments.lockActiveAssignments(tx, current.facilityId, [
-        { userId: actor.id, role: "FACILITY_MANAGER" },
+        { userId: actor.id, role: UserRole.FACILITY_MANAGER },
       ]);
       if (!managers.has(actor.id)) return { error: "MANAGER_ACCESS_DENIED" };
     } else {
-      if (actor.role !== "FACILITY_STAFF" || current.assignedStaffId !== actor.id)
+      if (actor.role !== UserRole.FACILITY_STAFF || current.assignedStaffId !== actor.id)
         return { error: "TASK_ACCESS_DENIED" };
       const staff = await this.assignments.lockActiveAssignments(tx, current.facilityId, [
-        { userId: actor.id, role: "FACILITY_STAFF" },
+        { userId: actor.id, role: UserRole.FACILITY_STAFF },
       ]);
       if (!staff.has(actor.id)) return { error: "TASK_ACCESS_DENIED" };
       if (
@@ -275,7 +277,7 @@ export class FacilityTasksRepository {
           .select({ status: bookings.status })
           .from(bookings)
           .where(eq(bookings.id, current.referenceId));
-        if (booking?.status !== "CHECKED_IN") return { error: "INVALID_TASK_STATE" };
+        if (booking?.status !== BookingStatus.CHECKED_IN) return { error: "INVALID_TASK_STATE" };
       }
     }
 
@@ -300,14 +302,14 @@ export class FacilityTasksRepository {
     input: Exclude<UpdateFacilityTaskInput, { status: FacilityTaskStatus }>,
     actor: FacilityTaskActor,
   ): Promise<TaskWriteResult> {
-    if (actor.role !== "FACILITY_MANAGER") return { error: "MANAGER_ACCESS_DENIED" };
+    if (actor.role !== UserRole.FACILITY_MANAGER) return { error: "MANAGER_ACCESS_DENIED" };
     if (
       current.status === FacilityTaskStatus.COMPLETED ||
       current.status === FacilityTaskStatus.CANCELLED
     )
       return { error: "INVALID_TASK_STATE" };
     const managers = await this.assignments.lockActiveAssignments(tx, current.facilityId, [
-      { userId: actor.id, role: "FACILITY_MANAGER" },
+      { userId: actor.id, role: UserRole.FACILITY_MANAGER },
     ]);
     if (!managers.has(actor.id)) return { error: "MANAGER_ACCESS_DENIED" };
     if (
@@ -328,7 +330,7 @@ export class FacilityTasksRepository {
     const staffId = input.assignedStaffId ?? current.assignedStaffId;
     if (input.assignedStaffId && input.assignedStaffId !== current.assignedStaffId) {
       const staff = await this.assignments.lockActiveAssignments(tx, current.facilityId, [
-        { userId: staffId, role: "FACILITY_STAFF" },
+        { userId: staffId, role: UserRole.FACILITY_STAFF },
       ]);
       if (!staff.has(staffId)) return { error: "STAFF_UNAVAILABLE" };
     }

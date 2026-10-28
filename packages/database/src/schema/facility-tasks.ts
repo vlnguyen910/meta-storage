@@ -1,20 +1,23 @@
-import { FacilityTaskReferenceType, FacilityTaskType } from "@metastorage/contracts/facility-tasks";
+import {
+  FacilityTaskReferenceType,
+  FacilityTaskStatus,
+  FacilityTaskType,
+} from "@metastorage/contracts/facility-tasks";
 import { sql } from "drizzle-orm";
 import { check, index, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { enumToPgEnum } from "../enum-to-pg-enum";
 import { facilities } from "./facilities";
 import { users } from "./users";
 
-export const facilityTaskTypeEnum = pgEnum("facility_task_type", FacilityTaskType);
+export const facilityTaskTypeEnum = pgEnum("facility_task_type", enumToPgEnum(FacilityTaskType));
 export const facilityTaskReferenceTypeEnum = pgEnum(
   "facility_task_reference_type",
-  FacilityTaskReferenceType,
+  enumToPgEnum(FacilityTaskReferenceType),
 );
-export const facilityTaskStatusEnum = pgEnum("facility_task_status", [
-  "ASSIGNED",
-  "IN_PROGRESS",
-  "COMPLETED",
-  "CANCELLED",
-]);
+export const facilityTaskStatusEnum = pgEnum(
+  "facility_task_status",
+  enumToPgEnum(FacilityTaskStatus),
+);
 export const facilityTasks = pgTable(
   "facility_tasks",
   {
@@ -23,7 +26,7 @@ export const facilityTasks = pgTable(
       .notNull()
       .references(() => facilities.id, { onDelete: "restrict" }),
     type: facilityTaskTypeEnum().notNull(),
-    status: facilityTaskStatusEnum().default("ASSIGNED").notNull(),
+    status: facilityTaskStatusEnum().default(FacilityTaskStatus.ASSIGNED).notNull(),
     referenceType: facilityTaskReferenceTypeEnum().notNull(),
     referenceId: uuid().notNull(),
     description: text(),

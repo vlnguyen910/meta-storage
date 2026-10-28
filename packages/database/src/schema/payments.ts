@@ -16,6 +16,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import { enumToPgEnum } from "../enum-to-pg-enum";
 import { bookings } from "./bookings";
 import { rentalCharges } from "./rental-charges";
 import { rentals } from "./rentals";
@@ -26,18 +27,23 @@ export {
   PAYMENT_STATUSES,
   PaymentStatus,
 } from "@metastorage/contracts/payments";
-export const PAYMENT_TYPES = ["COLLECTION", "RETURN_REFUND"] as const;
-export type PaymentType = (typeof PAYMENT_TYPES)[number];
+export enum PaymentType {
+  COLLECTION = "COLLECTION",
+  RETURN_REFUND = "RETURN_REFUND",
+}
 export type { PaymentRefundReason };
-export const paymentStatusEnum = pgEnum("payment_status", PaymentStatus);
-export const paymentTypeEnum = pgEnum("payment_type", PAYMENT_TYPES);
-export const paymentRefundReasonEnum = pgEnum("payment_refund_reason_code", PAYMENT_REFUND_REASONS);
+export const paymentStatusEnum = pgEnum("payment_status", enumToPgEnum(PaymentStatus));
+export const paymentTypeEnum = pgEnum("payment_type", enumToPgEnum(PaymentType));
+export const paymentRefundReasonEnum = pgEnum(
+  "payment_refund_reason_code",
+  enumToPgEnum(PAYMENT_REFUND_REASONS),
+);
 
 export const payments = pgTable(
   "payments",
   {
     id: uuid().defaultRandom().primaryKey(),
-    type: paymentTypeEnum().default("COLLECTION").notNull(),
+    type: paymentTypeEnum().default(PaymentType.COLLECTION).notNull(),
     bookingId: uuid().references(() => bookings.id, { onDelete: "restrict" }),
     rentalChargeId: uuid().references(() => rentalCharges.id, { onDelete: "restrict" }),
     rentalId: uuid().references(() => rentals.id, { onDelete: "restrict" }),

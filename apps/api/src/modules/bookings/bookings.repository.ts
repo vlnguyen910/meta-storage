@@ -6,6 +6,7 @@ import {
   type EligibleUnit,
   type FacilityStaffMember,
   FacilityTaskReferenceType,
+  FacilityTaskStatus,
   FacilityTaskType,
   type PhysicalUnitAssignment,
   type StaffTasksQuery,
@@ -1143,13 +1144,16 @@ export async function closeBookingBeforeCheckIn(
     .where(and(eq(bookings.id, bookingId), eq(bookings.status, "CONFIRMED")));
   await tx
     .update(facilityTasks)
-    .set({ status: "CANCELLED", updatedAt: now })
+    .set({ status: FacilityTaskStatus.CANCELLED, updatedAt: now })
     .where(
       and(
         eq(facilityTasks.type, FacilityTaskType.CHECK_IN_HANDOVER),
         eq(facilityTasks.referenceType, FacilityTaskReferenceType.BOOKING),
         eq(facilityTasks.referenceId, bookingId),
-        inArray(facilityTasks.status, ["ASSIGNED", "IN_PROGRESS"]),
+        inArray(facilityTasks.status, [
+          FacilityTaskStatus.ASSIGNED,
+          FacilityTaskStatus.IN_PROGRESS,
+        ]),
       ),
     );
   for (const assignment of releasedAssignments.sort((a, b) =>

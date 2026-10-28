@@ -10,13 +10,17 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import { enumToPgEnum } from "../enum-to-pg-enum";
 import { users } from "./users";
 
-export const CLOUDINARY_RESOURCE_TYPES = ["image", "video", "raw"] as const;
-export type CloudinaryResourceType = (typeof CLOUDINARY_RESOURCE_TYPES)[number];
+export enum CloudinaryResourceType {
+  IMAGE = "IMAGE",
+  VIDEO = "VIDEO",
+  RAW = "RAW",
+}
 export const cloudinaryResourceTypeEnum = pgEnum(
   "cloudinary_resource_type",
-  CLOUDINARY_RESOURCE_TYPES,
+  enumToPgEnum(CloudinaryResourceType),
 );
 
 export const mediaAssets = pgTable(

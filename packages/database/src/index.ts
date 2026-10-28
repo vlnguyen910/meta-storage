@@ -26,5 +26,6 @@ export {
 } from "drizzle-orm";
 export { alias } from "drizzle-orm/pg-core";
 export * from "./client";
+export { enumToPgEnum } from "./enum-to-pg-enum";
 export * from "./env";
 export * from "./schema";

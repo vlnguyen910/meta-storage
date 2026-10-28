@@ -2,9 +2,11 @@ import {
   CreateFacilityTaskSchema,
   FacilityTaskListQuerySchema,
   FacilityTaskParamsSchema,
+  FacilityTaskStatus,
   FACILITY_TASK_MESSAGES as m,
   StaffFacilityTaskListQuerySchema,
   UpdateFacilityTaskSchema,
+  UserRole,
 } from "@metastorage/contracts";
 import type { FastifyPluginAsync, FastifyRequest } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
@@ -34,7 +36,7 @@ export const facilityTasksRoutes: FastifyPluginAsync = async (app) => {
     "/dashboard/my",
     {
       config: { swaggerTransform: facilityTaskSwaggerTransform("dashboard") },
-      preHandler: [requireRole("FACILITY_STAFF")],
+      preHandler: [requireRole(UserRole.FACILITY_STAFF)],
       schema: { tags: ["Facility Tasks"], summary: m.myDashboardSummary },
     },
     async (request) => successResponse(await service.dashboardForStaff(actor(request))),
@@ -44,7 +46,7 @@ export const facilityTasksRoutes: FastifyPluginAsync = async (app) => {
     "/",
     {
       config: { swaggerTransform: facilityTaskSwaggerTransform("create") },
-      preHandler: [requireRole("FACILITY_MANAGER")],
+      preHandler: [requireRole(UserRole.FACILITY_MANAGER)],
       schema: {
         tags: ["Facility Tasks"],
         summary: m.createSummary,
@@ -59,7 +61,7 @@ export const facilityTasksRoutes: FastifyPluginAsync = async (app) => {
     "/my",
     {
       config: { swaggerTransform: facilityTaskSwaggerTransform("list") },
-      preHandler: [requireRole("FACILITY_STAFF")],
+      preHandler: [requireRole(UserRole.FACILITY_STAFF)],
       schema: {
         tags: ["Facility Tasks"],
         summary: m.myTasksSummary,
@@ -73,7 +75,7 @@ export const facilityTasksRoutes: FastifyPluginAsync = async (app) => {
     "/facility",
     {
       config: { swaggerTransform: facilityTaskSwaggerTransform("list") },
-      preHandler: [requireRole("FACILITY_MANAGER")],
+      preHandler: [requireRole(UserRole.FACILITY_MANAGER)],
       schema: {
         tags: ["Facility Tasks"],
         summary: m.facilityTasksSummary,
@@ -87,7 +89,7 @@ export const facilityTasksRoutes: FastifyPluginAsync = async (app) => {
     "/:id",
     {
       config: { swaggerTransform: facilityTaskSwaggerTransform("update") },
-      preHandler: [requireRole("FACILITY_MANAGER", "FACILITY_STAFF")],
+      preHandler: [requireRole(UserRole.FACILITY_MANAGER, UserRole.FACILITY_STAFF)],
       schema: {
         tags: ["Facility Tasks"],
         summary: m.updateSummary,
@@ -98,7 +100,7 @@ export const facilityTasksRoutes: FastifyPluginAsync = async (app) => {
     async (request) =>
       successResponse(
         await service.update(request.params.id, request.body, actor(request)),
-        "status" in request.body && request.body.status === "CANCELLED"
+        "status" in request.body && request.body.status === FacilityTaskStatus.CANCELLED
           ? m.taskCancelled
           : m.updated,
       ),

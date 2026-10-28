@@ -16,14 +16,13 @@ import { facilities } from "./facilities";
 import { unitTypes } from "./unit-types";
 import { users } from "./users";
 
-export const BOOKING_STATUSES = [
-  "DRAFT",
-  "CONFIRMED",
-  "CANCELLED",
-  "NO_SHOW",
-  "CHECKED_IN",
-] as const;
-export type BookingStatus = (typeof BOOKING_STATUSES)[number];
+export enum BookingStatus {
+  DRAFT = "DRAFT",
+  CONFIRMED = "CONFIRMED",
+  CANCELLED = "CANCELLED",
+  NO_SHOW = "NO_SHOW",
+  CHECKED_IN = "CHECKED_IN",
+}
 
 export const bookings = pgTable(
   "bookings",
@@ -39,8 +38,8 @@ export const bookings = pgTable(
       .references(() => facilities.id),
     unitTypeId: uuid().notNull(),
     requestedMonths: integer().notNull(),
-    checkInDate: date("check_in_date").notNull(),
-    checkInSlotId: uuid("check_in_slot_id")
+    checkInDate: date().notNull(),
+    checkInSlotId: uuid()
       .notNull()
       .references(() => checkInSlots.id, { onDelete: "restrict" }),
     rentalEndAt: timestamp({ withTimezone: true }).notNull(),
@@ -48,8 +47,8 @@ export const bookings = pgTable(
     rentalFeeAmount: numeric({ precision: 14, scale: 2 }).notNull(),
     depositAmount: numeric({ precision: 14, scale: 2 }).notNull(),
     totalAmount: numeric({ precision: 14, scale: 2 }).notNull(),
-    status: varchar({ length: 50 }).default("DRAFT").notNull(),
-    assignedStaffId: uuid("assigned_staff_id").references(() => users.id),
+    status: varchar({ length: 50 }).default(BookingStatus.DRAFT).notNull(),
+    assignedStaffId: uuid().references(() => users.id),
     qrTokenHash: varchar({ length: 255 }).unique(),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),

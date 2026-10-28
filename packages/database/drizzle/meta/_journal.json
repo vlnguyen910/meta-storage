@@ -50,6 +50,13 @@
       "when": 1793152369764,
       "tag": "0006_sad_ozymandias",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793153563908,
+      "tag": "0007_next_blue_blade",
+      "breakpoints": true
     }
   ]
 }

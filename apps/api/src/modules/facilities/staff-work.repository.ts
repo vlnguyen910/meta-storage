@@ -1,3 +1,4 @@
+import { FacilityTaskStatus } from "@metastorage/contracts/facility-tasks";
 import {
   and,
   bookings,
@@ -32,7 +33,10 @@ export async function hasOpenAssignedWork(
         .where(
           and(
             eq(facilityTasks.assignedStaffId, userId),
-            inArray(facilityTasks.status, ["ASSIGNED", "IN_PROGRESS"]),
+            inArray(facilityTasks.status, [
+              FacilityTaskStatus.ASSIGNED,
+              FacilityTaskStatus.IN_PROGRESS,
+            ]),
             facilityId ? eq(facilityTasks.facilityId, facilityId) : undefined,
           ),
         ),
