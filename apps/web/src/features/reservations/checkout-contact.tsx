@@ -102,6 +102,34 @@ export function CheckoutContact({ state }: { state: CheckoutState }) {
             }
           >
             <legend className={s.durationLegend}>{m.duration}</legend>
+            <div className="mb-2 flex flex-wrap items-center gap-1.5 text-xs">
+              <span className="mr-1 text-xs font-medium text-[#5c6661]">Gợi ý nhanh:</span>
+              {[
+                { months: 1, label: "1 tháng" },
+                { months: 3, label: "3 tháng" },
+                { months: 6, label: "6 tháng" },
+                { months: 12, label: "12 tháng" },
+              ].map((item) => (
+                <button
+                  key={item.months}
+                  type="button"
+                  className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-all ${
+                    selectedDuration === item.months
+                      ? "bg-[#003b2f] text-white shadow-sm"
+                      : "bg-[#f2f3ff] text-[#404945] hover:bg-[#e4e7fa]"
+                  }`}
+                  onClick={() =>
+                    form.setValue("durationMonths", item.months, {
+                      shouldDirty: true,
+                      shouldTouch: true,
+                      shouldValidate: true,
+                    })
+                  }
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
             <div className={s.durationGrid}>
               {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => (
                 <label
@@ -148,6 +176,48 @@ export function CheckoutContact({ state }: { state: CheckoutState }) {
               <CalendarDays size={18} aria-hidden="true" />
               <span>{m.datePickerTitle}</span>
             </legend>
+            <div className="mb-3 flex flex-wrap items-center gap-1.5">
+              <span className="w-full text-xs font-semibold text-slate-600">
+                Chọn nhanh ngày nhận kho:
+              </span>
+              {[
+                { label: "Ngày mai", date: tomorrow },
+                {
+                  label: "Ngày kia",
+                  date: toLocalDateTimeInput(new Date(Date.now() + 172_800_000)).slice(0, 10),
+                },
+                {
+                  label: "Sau 3 ngày",
+                  date: toLocalDateTimeInput(new Date(Date.now() + 259_200_000)).slice(0, 10),
+                },
+              ].map((chip) => {
+                const isSelected = selectedDate === chip.date;
+                return (
+                  <button
+                    key={chip.date}
+                    type="button"
+                    className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
+                      isSelected
+                        ? "bg-[#003b2f] text-white shadow-sm ring-1 ring-[#003b2f]"
+                        : "border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+                    }`}
+                    onClick={() => {
+                      form.setValue("checkInDate", chip.date, {
+                        shouldDirty: true,
+                        shouldTouch: true,
+                        shouldValidate: true,
+                      });
+                      form.clearErrors("checkInDate");
+                    }}
+                  >
+                    <span>{chip.label}</span>
+                    <span className="text-[11px] opacity-80">
+                      ({formatCalendarDate(chip.date).split(", ")[1] || chip.date})
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
             <div className={s.calendarPanel} data-calendar-month={calendarMonth}>
               <div className={s.calendarHeader}>
                 <button

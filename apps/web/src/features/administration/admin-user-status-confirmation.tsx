@@ -25,7 +25,7 @@ export function AdminUserStatusConfirmation({
   return (
     <AlertDialog
       open={user !== null}
-      onOpenChange={(open) => {
+      onOpenChange={(open: boolean) => {
         if (!open && !pending) onCancel();
       }}
     >

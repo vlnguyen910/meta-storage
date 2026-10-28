@@ -23,6 +23,15 @@ export function useRentalFinance(rentalId: string) {
     for (const [k, v] of Object.entries(values)) next.set(k, v);
     router.replace(`${pathname}?${next}`, { scroll: false });
   };
+  const clearRenewal = useCallback(() => {
+    const next = new URLSearchParams(params);
+    next.delete("renewalId");
+    next.delete("paymentId");
+    next.delete("chargeId");
+    const qs = next.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }, [params, pathname, router]);
+
   const invalidate = useCallback(async () => {
     await Promise.all(
       [
@@ -122,6 +131,7 @@ export function useRentalFinance(rentalId: string) {
     onSuccess: invalidate,
   });
   return {
+    renewalId,
     renewal,
     history,
     charges,
@@ -131,5 +141,6 @@ export function useRentalFinance(rentalId: string) {
     pay,
     dispute,
     selectRenewal: (id: string) => setParams({ renewalId: id }),
+    clearRenewal,
   };
 }

@@ -384,7 +384,7 @@ export class BookingsRepository {
       .leftJoin(users, eq(unitAssignments.assignedBy, users.id))
       .leftJoin(assignedStaffUsers, eq(bookings.assignedStaffId, assignedStaffUsers.id))
       .where(and(...conditions))
-      .orderBy(slotStart);
+      .orderBy(desc(bookings.createdAt), slotStart);
 
     return rows.map(
       ({
@@ -578,12 +578,13 @@ export class BookingsRepository {
       conditions.push(eq(bookings.facilityId, query.facilityId));
     }
 
-    const today = sql<string>`(current_timestamp at time zone 'Asia/Ho_Chi_Minh')::date`;
     const timezone = sql`'Asia/Ho_Chi_Minh'`;
-    conditions.push(
-      gte(bookings.checkInDate, query.fromDate ?? query.toDate ?? today),
-      lte(bookings.checkInDate, query.toDate ?? query.fromDate ?? today),
-    );
+    if (query.fromDate || query.toDate) {
+      const fromDate = query.fromDate ?? query.toDate;
+      const toDate = query.toDate ?? query.fromDate;
+      if (fromDate) conditions.push(gte(bookings.checkInDate, fromDate));
+      if (toDate) conditions.push(lte(bookings.checkInDate, toDate));
+    }
 
     const slotStart = sql<Date>`(${bookings.checkInDate} + ${checkInSlots.startTime})
       at time zone (${timezone})`.mapWith((value) => new Date(value));

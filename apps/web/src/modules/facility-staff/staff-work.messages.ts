@@ -52,7 +52,7 @@ export const STAFF_WORK = {
   cancelled: "Đã hủy",
   noShow: "Khách vắng hẹn",
   returnFailed: "Cần kiểm tra lại",
-  returnAwaitingManager: "Chờ FM xác nhận lịch",
+  returnAwaitingManager: "Chờ xác nhận lịch trả kho",
   received: "Đã nhận kho",
   scheduleMissing: "Chưa có lịch hợp lệ",
   booking: "Booking",

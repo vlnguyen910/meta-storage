@@ -14,7 +14,6 @@ import {
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Currency } from "@/components/ui/display";
-import { operationalField } from "@/components/ui/operational";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { FLOW } from "@/features/facility-flow/flow.messages";
@@ -70,10 +69,12 @@ export function FacilityBookingsView({
   const pageCount = Math.max(1, Math.ceil(d.filtered.length / pageSize));
   const pageItems = d.filtered.slice((page - 1) * pageSize, page * pageSize);
   const headingActions = (
-    <div className="flex gap-2">
-      <div className="rounded-lg bg-white px-4 py-2 text-xs shadow-sm">
-        <p className="text-[#5c6661]">{FLOW.syncTime}</p>
-        <strong>
+    <div className="flex items-center gap-2">
+      <div className="flex h-[58px] flex-col justify-center rounded-lg bg-white px-3.5 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
+        <p className="text-[11px] font-medium uppercase tracking-wider text-[#5c6661]">
+          {FLOW.syncTime}
+        </p>
+        <strong className={`${titleClass} text-sm font-bold text-slate-900`}>
           {d.query.dataUpdatedAt
             ? new Date(d.query.dataUpdatedAt).toLocaleTimeString("vi-VN", {
                 timeZone: "Asia/Ho_Chi_Minh",
@@ -81,7 +82,12 @@ export function FacilityBookingsView({
             : "—"}
         </strong>
       </div>
-      <Button variant="secondary" onClick={() => window.print()} icon={<Printer size={18} />}>
+      <Button
+        variant="secondary"
+        onClick={() => window.print()}
+        icon={<Printer size={18} />}
+        className="h-[58px] px-4 font-semibold"
+      >
         {FLOW.print}
       </Button>
     </div>
@@ -92,39 +98,50 @@ export function FacilityBookingsView({
   useEffect(() => setPage((value) => Math.min(value, pageCount)), [pageCount]);
   return (
     <>
-      {headingMode === "full" ? (
+      {headingMode === "full" && (
         <FlowHeading
           title={isStaff ? FLOW.staffTasks : FLOW.managerDispatchTitle}
           description={FLOW.dispatchDescription(facilityName ?? FLOW.noFacility)}
           actions={headingActions}
         />
-      ) : (
-        <div className="flex justify-end">{headingActions}</div>
       )}
-      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
-        {[
-          { label: FLOW.total, value: d.bookings.length, icon: Calendar },
-          {
-            label: FLOW.needsAction,
-            value: d.count("NEEDS_UNIT") + d.count("NEEDS_STAFF"),
-            icon: Warehouse,
-          },
-          { label: FLOW.waiting, value: d.count("READY"), icon: UserCheck },
-          {
-            label: FLOW.inProgress,
-            value: d.count("INSPECTING") + d.count("READY_HANDOVER"),
-            icon: ClipboardCheck,
-          },
-          { label: FLOW.pendingAccess, value: d.count("CHECKED_IN"), icon: ClipboardCheck },
-        ].map(({ label, value, icon: Icon }) => (
-          <Panel key={label}>
-            <div className="flex items-center justify-between gap-1 text-[11px] uppercase tracking-wider text-[#5c6661]">
-              <span>{label}</span>
-              <Icon size={20} className="text-[#003b2f]" />
-            </div>
-            <p className={`${titleClass} mt-3 text-5xl leading-[56px]`}>{value}</p>
-          </Panel>
-        ))}
+      <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
+        <div className="grid flex-1 gap-2 grid-cols-2 sm:grid-cols-3 xl:grid-cols-5">
+          {[
+            { label: FLOW.total, value: d.bookings.length, icon: Calendar },
+            {
+              label: FLOW.needsAction,
+              value: d.count("NEEDS_UNIT") + d.count("NEEDS_STAFF"),
+              icon: Warehouse,
+            },
+            { label: FLOW.waiting, value: d.count("READY"), icon: UserCheck },
+            {
+              label: FLOW.inProgress,
+              value: d.count("INSPECTING") + d.count("READY_HANDOVER"),
+              icon: ClipboardCheck,
+            },
+            { label: FLOW.pendingAccess, value: d.count("CHECKED_IN"), icon: ClipboardCheck },
+          ].map(({ label, value, icon: Icon }) => (
+            <Panel key={label} className="flex h-[58px] flex-col justify-center px-3.5 py-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <span className="block truncate text-[11px] font-medium uppercase tracking-wider text-[#5c6661]">
+                    {label}
+                  </span>
+                  <p className={`${titleClass} text-2xl font-bold leading-tight text-slate-900`}>
+                    {value}
+                  </p>
+                </div>
+                <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-[#003b2f]/10 text-[#003b2f]">
+                  <Icon size={16} />
+                </div>
+              </div>
+            </Panel>
+          ))}
+        </div>
+        {headingMode !== "full" && (
+          <div className="flex shrink-0 items-center justify-end">{headingActions}</div>
+        )}
       </div>
       <Panel className="space-y-4">
         <div className="flex flex-wrap items-center gap-3">
@@ -155,35 +172,9 @@ export function FacilityBookingsView({
             </Link>
           )}
         </div>
-        {!isStaff ? (
-          <label className="grid gap-2 text-xs font-semibold text-slate-600">
-            {MB.filters}
-            <select
-              aria-label={MB.filters}
-              value={d.filter}
-              onChange={(event) => d.setFilter(event.target.value)}
-              className={operationalField}
-            >
-              {[
-                "ALL",
-                "NEEDS_UNIT",
-                "NEEDS_STAFF",
-                "READY",
-                "INSPECTING",
-                "READY_HANDOVER",
-                "TOO_EARLY",
-                "NO_SHOW",
-                "CHECKED_IN",
-              ].map((value) => (
-                <option key={value} value={value}>
-                  {value === "ALL" ? FLOW.all : labels[value]} (
-                  {value === "ALL" ? d.bookings.length : d.count(value)})
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : (
-          <div className="flex flex-wrap gap-2">
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-slate-600">{MB.filters}</p>
+          <div className="flex flex-wrap items-center gap-2" role="toolbar" aria-label={MB.filters}>
             {[
               "ALL",
               "NEEDS_UNIT",
@@ -194,22 +185,34 @@ export function FacilityBookingsView({
               "TOO_EARLY",
               "NO_SHOW",
               "CHECKED_IN",
-            ].map((id) => (
-              <button
-                key={id}
-                type="button"
-                aria-pressed={d.filter === id}
-                onClick={() => d.setFilter(id)}
-                className={`rounded-md px-3 py-2 text-xs font-semibold ${d.filter === id ? "bg-[#003b2f] text-white" : "bg-[#f2f3ff] text-[#404945]"}`}
-              >
-                {id === "ALL" ? FLOW.all : labels[id]}{" "}
-                <span className="ml-1 opacity-70">
-                  {id === "ALL" ? d.bookings.length : d.count(id)}
-                </span>
-              </button>
-            ))}
+            ].map((id) => {
+              const active = d.filter === id;
+              const itemCount = id === "ALL" ? d.bookings.length : d.count(id);
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => d.setFilter(id)}
+                  className={`inline-flex items-center rounded-full px-3.5 py-1.5 text-xs font-medium transition-all ${
+                    active
+                      ? "bg-[#003b2f] text-white shadow-sm ring-1 ring-[#003b2f]"
+                      : "border border-transparent bg-[#f2f3ff] text-[#404945] hover:bg-[#e4e7fa]"
+                  }`}
+                >
+                  <span>{id === "ALL" ? FLOW.all : labels[id]}</span>
+                  <span
+                    className={`ml-1.5 rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                      active ? "bg-white/20 text-white" : "bg-slate-200/80 text-slate-700"
+                    }`}
+                  >
+                    {itemCount}
+                  </span>
+                </button>
+              );
+            })}
           </div>
-        )}
+        </div>
       </Panel>
       <p role="status" aria-live="polite" className="text-sm text-[#404945]">
         {d.query.isFetching ? FLOW.refreshing : FLOW.results(pageItems.length, d.filtered.length)}

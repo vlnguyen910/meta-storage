@@ -101,7 +101,7 @@ export function AdminDrawer({ title, children, onClose }: Readonly<AdminDrawerPr
 
 export function AdminDialog({ title, children, onClose }: Readonly<AdminDialogProps>) {
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
+    <Dialog open onOpenChange={(open: boolean) => !open && onClose()}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto rounded-card border-line p-0 sm:max-w-xl">
         <DialogHeader className="border-b border-line px-6 py-4 text-left">
           <DialogTitle className="font-['Space_Grotesk'] text-xl font-bold text-ink">

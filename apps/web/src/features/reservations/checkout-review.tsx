@@ -1,5 +1,5 @@
 "use client";
-import { ArrowLeft, CalendarDays, Clock3, UserRound } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarDays, Clock3, UserRound } from "lucide-react";
 import { checkoutMessages as m } from "./checkout.messages";
 import s from "./checkout.module.css";
 import type { CheckoutState } from "./checkout.types";
@@ -92,6 +92,10 @@ export function CheckoutReview({ state }: { state: CheckoutState }) {
             <button type="button" className={s.secondary} onClick={() => state.setStep(1)}>
               <ArrowLeft size={14} className="inline mr-2" />
               {m.back}
+            </button>
+            <button type="button" className={s.primary} onClick={state.next}>
+              {m.checkout}
+              <ArrowRight size={16} />
             </button>
           </div>
         </div>

@@ -100,7 +100,7 @@ test("Staff lands on assigned work and opens bookings and facility task details"
   await expect(page.getByRole("navigation", { name: "Điều hướng nhân viên cơ sở" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Tổng quan cơ sở", exact: true })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Kiểm tra kho được giao" })).toBeVisible();
-  await expect(page.getByRole("tab", { name: /Cần xử lý/ })).toContainText("2");
+  await expect(page.getByRole("tab", { name: /Cần xử lý/ })).toContainText("3");
   await page.goto("/staff");
   await expect(page).toHaveURL(/\/staff$/);
   await expect(page.getByRole("heading", { name: "Công việc của tôi", exact: true })).toBeVisible();
