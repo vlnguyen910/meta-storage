@@ -13,7 +13,7 @@ import {
 import { CUSTOMER_WORKSPACE as M } from "@metastorage/shared";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { ChevronRight, Headphones, Plus, RotateCcw, Search } from "lucide-react";
+import { ArrowLeft, ChevronRight, Headphones, Plus, RotateCcw, Search, Send } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -22,10 +22,18 @@ import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CustomerTable } from "@/components/ui/customer-table";
-import { PageHeader } from "@/components/ui/display";
+import { Card, PageHeader } from "@/components/ui/display";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { ListPagination } from "@/components/ui/list-pagination";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ShadcnButton } from "@/components/ui/shadcn-button";
+import { Spinner } from "@/components/ui/spinner";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { customerRoutes } from "@/config/routes";
 import { customerApiError } from "@/features/bookings/customer-error";
@@ -305,115 +313,261 @@ export function CustomerSupportCreate() {
     form.setValue("idempotencyKey", input.idempotencyKey);
     create.mutate(input);
   });
+  const bookingItems = contexts.data?.pages.flatMap((p) => p.items) ?? [];
+  const paymentItems = payments.data?.pages.flatMap((p) => p.items) ?? [];
+
   return (
     <>
-      <PageHeader title={M.newTicket} />
-      <form onSubmit={submit} className="grid max-w-2xl gap-4">
-        <label>
-          {M.category}
-          <select
-            className={field}
-            {...form.register("category")}
-            onChange={(e) => {
-              form.setValue("category", e.target.value as typeof category);
-              form.setValue("bookingId", "");
-              form.setValue("paymentId", undefined);
-            }}
+      <PageHeader
+        title={M.newTicket}
+        action={
+          <Link
+            href={customerRoutes.support}
+            className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 hover:text-slate-900"
           >
-            {SUPPORT_CATEGORIES.map((c) => (
-              <option value={c} key={c}>
-                {M.categories[c]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          {M.booking}
-          <select
-            className={field}
-            aria-label={M.booking}
-            {...form.register("bookingId")}
-            onChange={(e) => {
-              form.setValue("bookingId", e.target.value);
-              form.setValue("paymentId", undefined);
-            }}
-          >
-            <option value="">{M.choose}</option>
-            {contexts.data?.pages
-              .flatMap((p) => p.items)
-              .map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.bookingCode ?? b.id} · {b.facility.name} · {b.status}
-                </option>
-              ))}
-          </select>
-        </label>
-        {contexts.isPending && <p role="status">{M.loading}</p>}
-        {contexts.isError && (
-          <ErrorState
-            message={customerApiError(contexts.error)}
-            onRetry={() => contexts.refetch()}
-          />
-        )}
-        {contexts.hasNextPage && (
-          <Button
-            type="button"
-            disabled={contexts.isFetchingNextPage}
-            onClick={() => contexts.fetchNextPage()}
-          >
-            {M.more}
-          </Button>
-        )}
-        {category === "PAYMENT" && (
-          <label>
-            {M.optionalPayment}
-            <select
-              className={field}
-              aria-label={M.optionalPayment}
-              {...form.register("paymentId", { setValueAs: (v) => v || undefined })}
+            <ArrowLeft size={15} />
+            <span>Quay lại</span>
+          </Link>
+        }
+      />
+      <Card className="max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
+        <form onSubmit={submit} className="grid gap-5">
+          {/* Category Dropdown */}
+          <div className="grid gap-1.5">
+            <label
+              htmlFor="support-category"
+              className="text-xs sm:text-sm font-bold text-slate-700"
             >
-              <option value="">{M.choose}</option>
-              {payments.data?.pages
-                .flatMap((p) => p.items)
-                .map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.paymentCode} · {p.status} · {p.amount} {p.currency}
-                  </option>
+              {M.category} <span className="text-rose-500">*</span>
+            </label>
+            <Select
+              value={category}
+              onValueChange={(val) => {
+                form.setValue("category", val as typeof category);
+                form.setValue("bookingId", "");
+                form.setValue("paymentId", undefined);
+              }}
+            >
+              <SelectTrigger
+                id="support-category"
+                className="h-11 rounded-xl border-slate-200 bg-white text-sm font-medium text-slate-800"
+              >
+                <SelectValue placeholder={M.category} />
+              </SelectTrigger>
+              <SelectContent>
+                {SUPPORT_CATEGORIES.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {M.categories[c]}
+                  </SelectItem>
                 ))}
-            </select>
-          </label>
-        )}
-        {payments.isError && (
-          <ErrorState
-            message={customerApiError(payments.error)}
-            onRetry={() => payments.refetch()}
-          />
-        )}
-        {payments.hasNextPage && (
-          <Button
-            type="button"
-            disabled={payments.isFetchingNextPage}
-            onClick={() => payments.fetchNextPage()}
-          >
-            {M.more}
-          </Button>
-        )}
-        <label>
-          {M.subject}
-          <input className={field} {...form.register("subject")} maxLength={200} />
-        </label>
-        <label>
-          {M.content}
-          <textarea className={field} {...form.register("content")} rows={6} maxLength={5000} />
-        </label>
-        {Object.entries(form.formState.errors).map(([name, error]) => (
-          <p role="alert" key={name}>
-            {error.message}
-          </p>
-        ))}
-        {create.isError && <p role="alert">{customerApiError(create.error)}</p>}
-        <Button disabled={create.isPending}>{M.save}</Button>
-      </form>
+              </SelectContent>
+            </Select>
+            {form.formState.errors.category && (
+              <p role="alert" className="text-xs text-rose-600 font-medium">
+                {form.formState.errors.category.message}
+              </p>
+            )}
+          </div>
+
+          {/* Booking Context Dropdown */}
+          <div className="grid gap-1.5">
+            <label
+              htmlFor="support-booking"
+              className="text-xs sm:text-sm font-bold text-slate-700"
+            >
+              {M.booking} <span className="text-rose-500">*</span>
+            </label>
+            <Select
+              value={bookingId || "none"}
+              onValueChange={(val) => {
+                form.setValue("bookingId", val === "none" ? "" : val);
+                form.setValue("paymentId", undefined);
+              }}
+            >
+              <SelectTrigger
+                id="support-booking"
+                className="h-11 rounded-xl border-slate-200 bg-white text-sm font-medium text-slate-800"
+              >
+                <SelectValue placeholder={M.choose} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">-- {M.choose} --</SelectItem>
+                {bookingItems.map((b) => (
+                  <SelectItem key={b.id} value={b.id}>
+                    {b.bookingCode ?? b.id} · {b.facility.name} · {b.status}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {contexts.isPending && (
+              <div className="flex items-center gap-2 text-xs text-slate-500 py-1">
+                <Spinner size="sm" variant="brand" />
+                <span>{M.loading}</span>
+              </div>
+            )}
+            {contexts.isError && (
+              <ErrorState
+                message={customerApiError(contexts.error)}
+                onRetry={() => contexts.refetch()}
+              />
+            )}
+            {contexts.hasNextPage && (
+              <Button
+                type="button"
+                variant="outline"
+                className="justify-self-start text-xs h-8"
+                disabled={contexts.isFetchingNextPage}
+                onClick={() => contexts.fetchNextPage()}
+              >
+                {M.more}
+              </Button>
+            )}
+            {form.formState.errors.bookingId && (
+              <p role="alert" className="text-xs text-rose-600 font-medium">
+                {form.formState.errors.bookingId.message}
+              </p>
+            )}
+          </div>
+
+          {/* Optional Payment Context Dropdown */}
+          {category === "PAYMENT" && (
+            <div className="grid gap-1.5">
+              <label
+                htmlFor="support-payment"
+                className="text-xs sm:text-sm font-bold text-slate-700"
+              >
+                {M.optionalPayment}
+              </label>
+              <Select
+                value={form.watch("paymentId") || "none"}
+                onValueChange={(val) => {
+                  form.setValue("paymentId", val === "none" ? undefined : val);
+                }}
+              >
+                <SelectTrigger
+                  id="support-payment"
+                  className="h-11 rounded-xl border-slate-200 bg-white text-sm font-medium text-slate-800"
+                >
+                  <SelectValue placeholder={M.choose} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">-- {M.choose} --</SelectItem>
+                  {paymentItems.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.paymentCode} · {p.status} · {p.amount} {p.currency}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {payments.isError && (
+                <ErrorState
+                  message={customerApiError(payments.error)}
+                  onRetry={() => payments.refetch()}
+                />
+              )}
+              {payments.hasNextPage && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="justify-self-start text-xs h-8"
+                  disabled={payments.isFetchingNextPage}
+                  onClick={() => payments.fetchNextPage()}
+                >
+                  {M.more}
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Subject Input */}
+          <div className="grid gap-1.5">
+            <label
+              htmlFor="support-subject"
+              className="text-xs sm:text-sm font-bold text-slate-700"
+            >
+              {M.subject} <span className="text-rose-500">*</span>
+            </label>
+            <input
+              id="support-subject"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 transition focus:border-[#165f4d] focus:outline-none focus:ring-2 focus:ring-[#165f4d]/20 placeholder:text-slate-400"
+              placeholder="Nhập tiêu đề yêu cầu hỗ trợ..."
+              {...form.register("subject")}
+              maxLength={200}
+            />
+            {form.formState.errors.subject && (
+              <p role="alert" className="text-xs text-rose-600 font-medium">
+                {form.formState.errors.subject.message}
+              </p>
+            )}
+          </div>
+
+          {/* Content Textarea */}
+          <div className="grid gap-1.5">
+            <div className="flex items-center justify-between">
+              <label
+                htmlFor="support-content"
+                className="text-xs sm:text-sm font-bold text-slate-700"
+              >
+                {M.content} <span className="text-rose-500">*</span>
+              </label>
+              <span className="text-xs text-slate-400">
+                {form.watch("content")?.length || 0} / 5000 ký tự
+              </span>
+            </div>
+            <textarea
+              id="support-content"
+              className="w-full rounded-xl border border-slate-200 bg-white p-3.5 text-sm text-slate-900 transition focus:border-[#165f4d] focus:outline-none focus:ring-2 focus:ring-[#165f4d]/20 placeholder:text-slate-400"
+              placeholder="Mô tả chi tiết nội dung cần hỗ trợ..."
+              {...form.register("content")}
+              rows={5}
+              maxLength={5000}
+            />
+            {form.formState.errors.content && (
+              <p role="alert" className="text-xs text-rose-600 font-medium">
+                {form.formState.errors.content.message}
+              </p>
+            )}
+          </div>
+
+          {create.isError && (
+            <p
+              role="alert"
+              className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700"
+            >
+              {customerApiError(create.error)}
+            </p>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => router.push(customerRoutes.support)}
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 hover:text-slate-900"
+            >
+              <ArrowLeft size={16} />
+              <span>Quay lại</span>
+            </button>
+            <button
+              type="submit"
+              disabled={create.isPending}
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#165f4d] hover:bg-[#0f493b] px-6 text-sm font-bold text-white shadow-xs transition disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {create.isPending ? (
+                <>
+                  <Spinner size="sm" variant="button" />
+                  <span>Đang gửi...</span>
+                </>
+              ) : (
+                <>
+                  <Send size={16} />
+                  <span>{M.save}</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </Card>
     </>
   );
 }
