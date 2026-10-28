@@ -7,6 +7,7 @@ import {
   Clock,
   HelpCircle,
   MapPin,
+  RotateCcw,
   Warehouse,
 } from "lucide-react";
 import Link from "next/link";
@@ -37,18 +38,32 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
 
   return (
     <div className="space-y-6">
+      {/* Top Header / Action Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <OperationalBackLink href="/customer/storage">{M.backToStorage}</OperationalBackLink>
-        <Link
-          href={`/customer/support/new?bookingId=${encodeURIComponent(r.bookingId)}`}
-          className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 hover:text-slate-900"
-        >
-          <HelpCircle className="size-3.5 text-primary" />
-          <span>{M.support}</span>
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href={`/customer/support/new?bookingId=${encodeURIComponent(r.bookingId)}`}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 hover:text-slate-900"
+          >
+            <HelpCircle className="size-3.5 text-primary" />
+            <span>{M.support}</span>
+          </Link>
+
+          {r.status === "ACTIVE" && (
+            <Link
+              href={`/customer/support/new?bookingId=${encodeURIComponent(r.bookingId)}&category=UNIT&subject=${encodeURIComponent(`Yêu cầu trả kho - ${r.bookingCode}`)}`}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-primary-dark"
+            >
+              <RotateCcw className="size-3.5" />
+              <span>{M.returnAction}</span>
+            </Link>
+          )}
+        </div>
       </div>
 
-      <Card className="rounded-2xl border border-slate-200/80 p-6 shadow-xs">
+      {/* Card 1: Rental Overview */}
+      <Card className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <span className="inline-block rounded-md border border-slate-200/70 bg-slate-100 px-2.5 py-0.5 font-mono text-xs font-bold tracking-wider text-slate-600 uppercase">
@@ -114,12 +129,14 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
               <span className="block text-[11px] font-bold tracking-wider text-slate-400 uppercase">
                 {M.bookingStatus}
               </span>
-              <strong className="text-sm font-bold text-slate-900">{r.bookingStatus}</strong>
+              <strong className="text-sm font-bold text-slate-900">
+                {M.bookingStatuses[r.bookingStatus] ?? r.bookingStatus}
+              </strong>
             </div>
           </div>
         </div>
 
-        {/* Thời gian đến hạn trả kho */}
+        {/* Thời gian đến hạn trả kho & Hành động trả kho */}
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-950">
           <div>
             <span className="block text-xs font-bold uppercase tracking-wide text-amber-800">
@@ -129,13 +146,26 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
               {remainingLabel(r.endAt)}
             </strong>
           </div>
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-800 bg-white/80 border border-amber-200/60 px-3 py-1.5 rounded-lg shadow-2xs">
-            <Clock size={14} className="text-amber-700" />
-            <span>Hạn dự kiến: {formatDate(r.endAt)}</span>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-800 bg-white/90 border border-amber-200/60 px-3 py-1.5 rounded-lg shadow-2xs">
+              <Clock size={14} className="text-amber-700" />
+              <span>Hạn dự kiến: {formatDate(r.endAt)}</span>
+            </div>
+
+            {r.status === "ACTIVE" && (
+              <Link
+                href={`/customer/support/new?bookingId=${encodeURIComponent(r.bookingId)}&category=UNIT&subject=${encodeURIComponent(`Yêu cầu trả kho - ${r.bookingCode}`)}`}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-[#165f4d] px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#0f493b]"
+              >
+                <RotateCcw size={13} />
+                <span>{M.returnAction}</span>
+              </Link>
+            )}
           </div>
         </div>
       </Card>
 
+      {/* Card 2: Payment Records */}
       <RentalPayments rentalId={rentalId} />
     </div>
   );

@@ -7,6 +7,7 @@ import { isAxiosError } from "axios";
 import { Clock, CreditCard, FileCheck, FileText, Receipt } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button, buttonClassName } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/display";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ErrorState, LoadingState } from "@/components/ui/states";
@@ -30,21 +31,37 @@ export function RentalPayments({ rentalId }: { rentalId: string }) {
     queryFn: ({ signal }) => api.rentalPayments(rentalId, signal),
   });
   return (
-    <section className={f3Panel}>
-      <div className="mb-4 flex items-center gap-2.5">
-        <div className="grid size-9 place-items-center rounded-lg bg-emerald-50 text-primary">
-          <CreditCard size={18} />
+    <Card className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-100/70 text-[#165f4d]">
+            <CreditCard className="size-5" />
+          </div>
+          <div>
+            <h3 className="m-0 text-lg font-bold text-slate-900">{F3.payments}</h3>
+            <p className="m-0 mt-0.5 text-xs text-slate-500">
+              Chi tiết các khoản thanh toán tiền thuê, cọc và hoàn tiền của đơn thuê này.
+            </p>
+          </div>
         </div>
-        <h2 className="text-lg font-bold text-ink">{F3.payments}</h2>
+
+        {query.data && query.data.length > 0 && (
+          <span className="rounded-full bg-slate-100 px-3 py-1 font-mono text-xs font-semibold text-slate-600">
+            {query.data.length} giao dịch
+          </span>
+        )}
       </div>
-      {query.isPending ? (
-        <LoadingState variant="table" />
-      ) : query.isError ? (
-        <ErrorState message={integrationError(query.error)} onRetry={() => query.refetch()} />
-      ) : (
-        <PaymentRecords items={query.data} />
-      )}
-    </section>
+
+      <div className="pt-4">
+        {query.isPending ? (
+          <LoadingState variant="table" />
+        ) : query.isError ? (
+          <ErrorState message={integrationError(query.error)} onRetry={() => query.refetch()} />
+        ) : (
+          <PaymentRecords items={query.data} />
+        )}
+      </div>
+    </Card>
   );
 }
 
@@ -58,53 +75,77 @@ export function PaymentRecords({ items }: { items: RentalPaymentItem[] }) {
   const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
   const safePage = Math.min(page, pageCount);
   const visibleItems = items.slice((safePage - 1) * pageSize, safePage * pageSize);
-  if (!items.length) return <p className="text-sm text-muted">{F3.noPayments}</p>;
+  if (!items.length) {
+    return (
+      <div className="py-8 text-center text-sm text-slate-400">
+        <Receipt className="mx-auto size-8 text-slate-300 mb-2" />
+        <p className="m-0 font-medium">{F3.noPayments}</p>
+      </div>
+    );
+  }
   return (
-    <>
-      <ul className="list-none space-y-3 p-0">
+    <div className="space-y-4">
+      <ul className="m-0 list-none space-y-3 p-0">
         {visibleItems.map((item) => (
           <li
             key={item.id}
-            className="space-y-2.5 rounded-xl border border-slate-200/80 bg-white p-4 shadow-2xs"
+            className="flex flex-col gap-3 rounded-xl border border-slate-100 bg-slate-50/60 p-4 transition-all hover:border-slate-200/80 hover:bg-slate-50"
           >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <Receipt size={16} className="text-primary" />
-                <strong className="max-w-full break-all font-mono text-sm text-ink">
-                  {item.paymentCode}
-                </strong>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="grid size-8 shrink-0 place-items-center rounded-lg border border-slate-200/70 bg-white text-primary shadow-2xs">
+                  <Receipt size={16} />
+                </div>
+                <div>
+                  <span className="block font-mono text-xs font-bold text-slate-800">
+                    {item.paymentCode}
+                  </span>
+                  <span className="mt-0.5 flex items-center gap-1.5 text-[11px] text-slate-400">
+                    <Clock size={12} className="text-slate-400" />
+                    <span>{new Date(item.paidAt ?? item.createdAt).toLocaleString("vi-VN")}</span>
+                  </span>
+                </div>
               </div>
-              <StatusBadge value={item.status} />
+
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    {F3.paid}
+                  </span>
+                  <strong className="text-base font-extrabold text-[#165f4d]">
+                    {money(item.totalAmount)}
+                  </strong>
+                </div>
+                <StatusBadge value={item.status} />
+              </div>
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2.5">
-              <p className="m-0 text-sm">
-                <span className="text-muted">{F3.paid}: </span>
-                <strong className="text-base font-bold text-primary">
-                  {money(item.totalAmount)}
-                </strong>
-              </p>
-              <p className="m-0 flex items-center gap-1.5 text-xs text-muted">
-                <Clock size={13} className="text-slate-400" />
-                {new Date(item.paidAt ?? item.createdAt).toLocaleString("vi-VN")}
-              </p>
-            </div>
+
             {item.refundedAt && item.refundAmount && (
-              <p className="m-0 text-sm text-amber-800">
-                {F3.refunded}: <strong>{money(item.refundAmount)}</strong> ·{" "}
-                {new Date(item.refundedAt).toLocaleString("vi-VN")}
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-1.5 text-xs text-amber-900">
+                <span className="font-semibold">
+                  {F3.refunded}: <strong>{money(item.refundAmount)}</strong>
+                  {item.refundReason ? ` · ${item.refundReason}` : ""}
+                </span>
+                <span className="text-[11px] text-amber-700">
+                  {new Date(item.refundedAt).toLocaleString("vi-VN")}
+                </span>
+              </div>
             )}
           </li>
         ))}
       </ul>
-      <ListPagination
-        label={F3.payments}
-        page={safePage}
-        pageSize={pageSize}
-        total={items.length}
-        onPageChange={setPage}
-      />
-    </>
+      {items.length > pageSize && (
+        <div className="pt-2">
+          <ListPagination
+            label={F3.payments}
+            page={safePage}
+            pageSize={pageSize}
+            total={items.length}
+            onPageChange={setPage}
+          />
+        </div>
+      )}
+    </div>
   );
 }
 

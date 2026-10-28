@@ -2,6 +2,7 @@ export const RENTAL_MESSAGES = {
   unitCode: "Ô kho",
   facilityAddress: "Địa chỉ cơ sở",
   support: "Gửi yêu cầu hỗ trợ",
+  returnAction: "Yêu cầu trả kho",
   currentTitle: "Kho đang thuê",
   historyTitle: "Lịch sử thuê kho",
   description: "Xem thông tin kho và thời hạn thuê của bạn.",
@@ -25,4 +26,13 @@ export const RENTAL_MESSAGES = {
   remainingTime: "Thời gian đến hạn trả kho",
   permissionsTitle: "Quyền thao tác hiện tại",
   notFoundOrForbidden: "Không tìm thấy kho hoặc bạn không có quyền xem.",
+  bookingStatuses: {
+    DRAFT: "Bản nháp",
+    CONFIRMED: "Đã xác nhận",
+    CHECKED_IN: "Đã nhận kho",
+    CHECK_IN: "Đã nhận kho",
+    CANCELLED: "Đã hủy",
+    NO_SHOW: "Không đến",
+    COMPLETED: "Đã hoàn tất",
+  } as Record<string, string>,
 } as const;
