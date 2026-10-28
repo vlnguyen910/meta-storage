@@ -57,6 +57,18 @@ export class FacilityTasksRepository {
     return tx.select().from(facilityTasks).where(eq(facilityTasks.id, id)).for("update");
   }
 
+  setWorkflowStatus(
+    tx: TaskTransaction,
+    id: string,
+    status: FacilityTaskStatus,
+    timestamps: { startedAt?: Date; completedAt?: Date; updatedAt: Date },
+  ) {
+    return tx
+      .update(facilityTasks)
+      .set({ status, ...timestamps })
+      .where(eq(facilityTasks.id, id));
+  }
+
   async create(input: CreateFacilityTaskInput, actor: FacilityTaskActor): Promise<TaskWriteResult> {
     return this.db.transaction(async (tx) => {
       const activeAssignments = await this.assignments.lockActiveAssignments(tx, input.facilityId, [
@@ -94,14 +106,8 @@ export class FacilityTasksRepository {
     });
   }
 
-  async assignBookingHandover(
-    tx: TaskTransaction,
-    facilityId: string,
-    bookingId: string,
-    staffId: string,
-    managerId: string,
-  ): Promise<void> {
-    const [activeTask] = await tx
+  findActiveBookingHandover(tx: TaskTransaction, bookingId: string) {
+    return tx
       .select()
       .from(facilityTasks)
       .where(
@@ -116,32 +122,47 @@ export class FacilityTasksRepository {
         ),
       )
       .for("update");
-    const now = new Date();
-    if (activeTask) {
-      if (activeTask.assignedStaffId !== staffId)
-        await tx
-          .update(facilityTasks)
-          .set({
-            assignedStaffId: staffId,
-            assignedBy: managerId,
-            assignedAt: now,
-            status: FacilityTaskStatus.ASSIGNED,
-            startedAt: null,
-            updatedAt: now,
-          })
-          .where(eq(facilityTasks.id, activeTask.id));
-      return;
-    }
+  }
 
-    await tx.insert(facilityTasks).values({
-      facilityId,
+  reassignBookingHandover(
+    tx: TaskTransaction,
+    taskId: string,
+    staffId: string,
+    managerId: string,
+    now: Date,
+  ) {
+    return tx
+      .update(facilityTasks)
+      .set({
+        assignedStaffId: staffId,
+        assignedBy: managerId,
+        assignedAt: now,
+        status: FacilityTaskStatus.ASSIGNED,
+        startedAt: null,
+        updatedAt: now,
+      })
+      .where(eq(facilityTasks.id, taskId));
+  }
+
+  createBookingHandover(
+    tx: TaskTransaction,
+    input: {
+      facilityId: string;
+      bookingId: string;
+      staffId: string;
+      managerId: string;
+      now: Date;
+    },
+  ) {
+    return tx.insert(facilityTasks).values({
+      facilityId: input.facilityId,
       type: FacilityTaskType.CHECK_IN_HANDOVER,
       status: FacilityTaskStatus.ASSIGNED,
       referenceType: FacilityTaskReferenceType.BOOKING,
-      referenceId: bookingId,
-      assignedStaffId: staffId,
-      assignedBy: managerId,
-      assignedAt: now,
+      referenceId: input.bookingId,
+      assignedStaffId: input.staffId,
+      assignedBy: input.managerId,
+      assignedAt: input.now,
     });
   }
 
