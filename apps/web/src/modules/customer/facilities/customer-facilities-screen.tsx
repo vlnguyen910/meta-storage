@@ -231,21 +231,6 @@ export function CustomerFacilitiesScreen() {
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                           className="object-cover transition-transform duration-300 group-hover:scale-105"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent" />
-                        <div className="absolute top-3 left-3">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/90 backdrop-blur-xs px-2.5 py-0.5 text-[11px] font-bold text-white shadow-xs">
-                            <CheckCircle2 className="size-3" />
-                            {M.activeStatus}
-                          </span>
-                        </div>
-                        <div className="absolute top-3 right-3">
-                          <span className="rounded-md bg-slate-900/75 backdrop-blur-xs px-2 py-0.5 text-[11px] font-medium text-slate-200">
-                            {getCity(facility.address)}
-                          </span>
-                        </div>
-                        <div className="absolute bottom-2.5 left-3 font-mono text-xs font-bold text-white/90">
-                          {facility.code}
-                        </div>
                       </div>
 
                       {/* Card Body */}
@@ -259,20 +244,7 @@ export function CustomerFacilitiesScreen() {
                         </p>
 
                         {/* Card Footer */}
-                        <div className="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                          <div>
-                            <span className="block text-[10px] uppercase font-semibold text-slate-400">
-                              {M.priceLabel}
-                            </span>
-                            {facility.startingMonthlyPrice ? (
-                              <p className="m-0 text-sm font-bold text-primary">
-                                {M.priceFrom(formatCurrency(facility.startingMonthlyPrice))}
-                              </p>
-                            ) : (
-                              <p className="m-0 text-xs italic text-slate-400">{M.priceUpdating}</p>
-                            )}
-                          </div>
-
+                        <div className="mt-auto pt-3 border-t border-slate-100 flex items-center justify-end">
                           <Link
                             href={`${customerRoutes.newReservation}?facilityId=${facility.id}&new=1`}
                             className="inline-flex items-center gap-1 rounded-xl bg-primary px-3.5 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-primary-dark"
