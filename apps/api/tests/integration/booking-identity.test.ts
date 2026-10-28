@@ -149,9 +149,10 @@ describe.skipIf(!testUrl)("Account-owned booking identity with PostgreSQL", () =
           .where(eq(bookings.facilityId, ids.facility))
       ).map((item) => item.id);
       await tx.delete(notificationOutbox).where(eq(notificationOutbox.facilityId, ids.facility));
-      await tx.delete(rentals).where(eq(rentals.facilityId, ids.facility));
-      if (bookingIds.length)
+      if (bookingIds.length) {
+        await tx.delete(rentals).where(inArray(rentals.bookingId, bookingIds));
         await tx.delete(payments).where(inArray(payments.bookingId, bookingIds));
+      }
       await tx.delete(bookings).where(eq(bookings.facilityId, ids.facility));
       await tx.delete(capacityAllocations).where(eq(capacityAllocations.facilityId, ids.facility));
       await tx.delete(storageUnits).where(eq(storageUnits.id, ids.unit));
