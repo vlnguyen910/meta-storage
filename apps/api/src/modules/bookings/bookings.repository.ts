@@ -374,7 +374,7 @@ export class BookingsRepository {
       .leftJoin(users, eq(unitAssignments.assignedBy, users.id))
       .leftJoin(assignedStaffUsers, eq(bookings.assignedStaffId, assignedStaffUsers.id))
       .where(and(...conditions))
-      .orderBy(slotStart);
+      .orderBy(desc(bookings.createdAt), slotStart);
 
     return rows.map(
       ({

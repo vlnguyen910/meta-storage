@@ -35,7 +35,9 @@ export function useDispatch(facilityId: string, staff = false) {
     const timer = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(timer);
   }, []);
-  const bookings = query.data ?? [];
+  const bookings = [...(query.data ?? [])].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
   const filtered = bookings.filter(
     (b) =>
       (filter === "ALL" || readiness(b, now) === filter) &&
