@@ -16,7 +16,7 @@ const emptyValues = {
   remember: false,
 };
 
-export function useAuthFlow() {
+export function useAuthFlow(callbackUrl?: string) {
   const [mode, setMode] = useState<AuthMode>("login");
   const [values, setValues] = useState(emptyValues);
   const [errors, setErrors] = useState<SignupErrors>({});
@@ -63,10 +63,11 @@ export function useAuthFlow() {
       setMode("verify-email");
     }
 
+    handleUrl(callbackUrl ?? null);
     void NativeLinking.getInitialURL().then(handleUrl);
     const subscription = NativeLinking.addEventListener("url", ({ url }) => handleUrl(url));
     return () => subscription.remove();
-  }, []);
+  }, [callbackUrl]);
 
   // Countdown timer for email resend
   useEffect(() => {
@@ -132,7 +133,7 @@ export function useAuthFlow() {
       }
 
       if (result.error) {
-        throw new Error(result.error.message || AUTH_MESSAGES.requestFailed);
+        throw new Error(getErrorMessage(result.error));
       }
     } catch (error) {
       setMessage(getErrorMessage(error));
@@ -309,6 +310,18 @@ export function useAuthFlow() {
 }
 
 function getErrorMessage(error: unknown): string {
+  if (error && typeof error === "object") {
+    if (
+      "error" in error &&
+      error.error &&
+      typeof error.error === "object" &&
+      "message" in error.error &&
+      typeof error.error.message === "string"
+    )
+      return error.error.message;
+    if ("message" in error && typeof error.message === "string" && error.message)
+      return error.message;
+  }
   if (error && typeof error === "object" && "response" in error) {
     const response = (error as { response?: unknown }).response;
     if (response && typeof response === "object" && "data" in response) {

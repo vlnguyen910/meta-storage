@@ -4,7 +4,10 @@ import { useMutation } from "@tanstack/react-query";
 import QRCode from "qrcode";
 import { useMemo, useState } from "react";
 import { Controller } from "react-hook-form";
-import { Alert, Platform, Text, View } from "react-native";
+import { Alert, Platform, Pressable, Text, View } from "react-native";
+import { CalendarField } from "../../components/ui/calendar-field";
+import { ChoiceTabs } from "../../components/ui/choice-tabs";
+import { MobilePhoto } from "../../components/ui/mobile-photo";
 import {
   Button,
   Card,
@@ -15,10 +18,10 @@ import {
   Notice,
   Row,
 } from "../../components/ui/mobile-ui";
+import { StatusPill } from "../../components/ui/workspace-ui";
 import {
   useCustomerBooking,
   useCustomerBookings,
-  useCustomerCatalog,
   useCustomerCheckout,
   useCustomerPayment,
   useCustomerRental,
@@ -29,22 +32,11 @@ import {
 } from "./customer-api.hooks";
 import type { CustomerNavigation } from "./customer-api.types";
 import { openCustomerCheckout } from "./customer-native";
+import { CUSTOMER_MOBILE_UI as U } from "./customer-ui.messages";
+import { QueryNotice } from "./query-notice";
 import { customerError, useCustomerTicket } from "./use-customer-ticket";
+import { useMobileCatalog } from "./use-mobile-catalog";
 
-export function QueryNotice({
-  query,
-}: {
-  query: { isPending: boolean; isError: boolean; error: unknown; refetch: () => unknown };
-}) {
-  return query.isPending ? (
-    <Notice>{M.loading}</Notice>
-  ) : query.isError ? (
-    <>
-      <Notice error>{customerError(query.error)}</Notice>
-      <Button label={M.retry} onPress={() => void query.refetch()} />
-    </>
-  ) : null;
-}
 function QrCode({ value }: { value: string }) {
   const matrix = useMemo(
     () => QRCode.create(value, { errorCorrectionLevel: "M" }).modules,
@@ -102,28 +94,62 @@ function FacilityTypes({ id, go }: { id: string; go: CustomerNavigation }) {
   );
 }
 export function CustomerCatalogScreen({ go }: { go: CustomerNavigation }) {
-  const query = useCustomerCatalog();
-  const [selected, setSelected] = useState<string>();
+  const state = useMobileCatalog();
+  if (state.facility)
+    return (
+      <>
+        <Button secondary label={U.backToFacilities} onPress={() => state.setSelected(undefined)} />
+        <Heading>{state.facility.name}</Heading>
+        <MobilePhoto tall label={U.facility} source={require("../../../assets/landing/8.png")} />
+        <Card title={U.facility}>
+          <Text className="mb-3 text-sm leading-6 text-slate-600">{state.facility.address}</Text>
+          {state.facility.description && (
+            <Text className="text-sm leading-6 text-slate-500">{state.facility.description}</Text>
+          )}
+        </Card>
+        <Heading>{U.unitTypes}</Heading>
+        <FacilityTypes id={state.facility.id} go={go} />
+      </>
+    );
   return (
     <>
-      <Heading>{M.facility}</Heading>
-      <QueryNotice query={query} />
-      {query.data?.pages.flat().map((f) => (
-        <Card title={f.name} key={f.id}>
-          <Text className="mb-3">{f.address}</Text>
-          <Button
-            label={M.choose}
-            secondary
-            onPress={() => setSelected(selected === f.id ? undefined : f.id)}
-          />
-          {selected === f.id && <FacilityTypes id={f.id} go={go} />}
+      <Heading>{U.findFacilities}</Heading>
+      <Text className="mb-5 text-sm leading-6 text-slate-500">{U.catalogDescription}</Text>
+      <Field label={U.catalogSearch} value={state.search} onChangeText={state.setSearch} />
+      <ChoiceTabs
+        options={[
+          { value: "", label: U.allCities },
+          ...["Hồ Chí Minh", "Hà Nội", "Đà Nẵng"].map((city) => ({ value: city, label: city })),
+        ]}
+        value={state.city}
+        onChange={state.setCity}
+      />
+      <ChoiceTabs
+        options={[
+          { value: "name", label: U.sortName },
+          { value: "price", label: U.sortPrice },
+        ]}
+        value={state.sort}
+        onChange={state.setSort}
+      />
+      <QueryNotice query={state.query} />
+      {state.items.map((facility) => (
+        <Card key={facility.id}>
+          <MobilePhoto label={U.facility} source={require("../../../assets/landing/8.png")} />
+          <Text className="mb-3 text-xl font-bold text-slate-900">{facility.name}</Text>
+          <Text className="mb-4 text-sm leading-6 text-slate-500">{facility.address}</Text>
+          {facility.price != null && <Row label={M.monthlyRate} value={money(facility.price)} />}
+          <Button label={U.detail} onPress={() => state.setSelected(facility.id)} />
         </Card>
       ))}
-      {query.hasNextPage && (
+      {state.query.isSuccess && !state.items.length && <Notice>{M.empty}</Notice>}
+      {state.query.hasNextPage && (
         <Button
           label={M.more}
-          disabled={query.isFetchingNextPage}
-          onPress={() => void query.fetchNextPage()}
+          disabled={state.query.isFetchingNextPage}
+          onPress={() => {
+            void state.query.fetchNextPage();
+          }}
         />
       )}
     </>
@@ -132,33 +158,102 @@ export function CustomerCatalogScreen({ go }: { go: CustomerNavigation }) {
 export function CustomerHomeScreen({ owner, go }: { owner: string; go: CustomerNavigation }) {
   const query = useCustomerBookings(owner);
   const rentals = useCustomerRentals(owner, "current");
+  const [tab, setTab] = useState("bookings");
+  const bookings = query.data?.pages.flatMap((p) => p.items) ?? [];
+  const storages = rentals.data?.pages.flatMap((p) => p.items) ?? [];
   return (
     <>
-      <Heading>{M.dashboard}</Heading>
+      <Text className="mb-2 text-xs font-bold uppercase tracking-widest text-emerald-700">
+        {U.portal}
+      </Text>
+      <Heading>{U.dashboard}</Heading>
+      <Text className="mb-5 text-sm leading-6 text-slate-500">{U.dashboardDescription}</Text>
       <Button label={M.newBooking} onPress={() => go({ screen: "catalog" })} />
-      <Card title={M.recent}>
-        <QueryNotice query={query} />
-        {query.data?.pages[0]?.items.slice(0, 3).map((b) => (
-          <Button
-            secondary
-            key={b.id}
-            label={`${b.bookingCode ?? b.id} · ${b.status} · ${dateTime(b.checkInSlotStart)}`}
-            onPress={() => go({ screen: "booking", id: b.id })}
-          />
+      <View className="my-4 flex-row flex-wrap">
+        {[
+          {
+            label: U.activeRentals,
+            value: rentals.data
+              ? `${storages.filter((r) => r.status === "ACTIVE").length}${rentals.hasNextPage ? "+" : ""}`
+              : "—",
+            route: "rentals",
+          },
+          {
+            label: U.bookings,
+            value: query.data
+              ? `${bookings.filter((b) => b.status === "CONFIRMED").length}${query.hasNextPage ? "+" : ""}`
+              : "—",
+            route: "bookings",
+          },
+          { label: U.facility, value: U.findFacilities, route: "catalog" },
+          { label: U.support, value: U.supportHint, route: "support" },
+        ].map((card) => (
+          <View key={card.route} className="w-1/2 p-1.5">
+            <Pressable
+              accessibilityRole="button"
+              onPress={() =>
+                go({ screen: card.route as "rentals" | "bookings" | "catalog" | "support" })
+              }
+              className="min-h-28 rounded-2xl border border-slate-200 bg-white p-4"
+            >
+              <Text className="mb-3 text-xs font-semibold text-slate-500">{card.label}</Text>
+              <Text className="text-lg font-bold text-emerald-900">{card.value}</Text>
+              <Text className="mt-3 text-xs font-semibold text-emerald-700">
+                {U.detailAction} →
+              </Text>
+            </Pressable>
+          </View>
         ))}
-        {query.data?.pages[0]?.items.length === 0 && <Text>{M.empty}</Text>}
-      </Card>
-      <Card title={M.storage}>
-        <QueryNotice query={rentals} />
-        {rentals.data?.pages[0]?.items.slice(0, 3).map((r) => (
-          <Button
-            secondary
-            key={r.id}
-            label={`${r.facility.name} · ${r.storageUnit?.code ?? r.unitType.name}`}
-            onPress={() => go({ screen: "rental", id: r.id })}
-          />
-        ))}
-      </Card>
+      </View>
+      <ChoiceTabs
+        options={[
+          { value: "bookings", label: U.appointments },
+          { value: "rentals", label: U.activeRentals },
+        ]}
+        value={tab}
+        onChange={setTab}
+      />
+      <QueryNotice query={tab === "bookings" ? query : rentals} />
+      {tab === "bookings"
+        ? bookings.slice(0, 5).map((b) => (
+            <Card key={b.id} title={b.bookingCode ?? undefined}>
+              <StatusPill
+                label={U.status[b.status] ?? b.status}
+                tone={b.status === "CANCELLED" ? "neutral" : "blue"}
+              />
+              <Text className="my-3 font-semibold text-slate-700">{b.facility.name}</Text>
+              <Row label={M.appointment} value={dateTime(b.checkInSlotStart)} />
+              <Row label={M.paymentStatus} value={U.status[b.paymentStatus] ?? b.paymentStatus} />
+              <Button
+                secondary
+                label={U.qrAction}
+                onPress={() => go({ screen: "booking", id: b.id })}
+              />
+            </Card>
+          ))
+        : storages.slice(0, 5).map((r) => (
+            <Card key={r.id} title={r.storageUnit?.code ?? r.unitType.name}>
+              <Text className="mb-3 text-sm text-slate-500">{r.facility.name}</Text>
+              <Row label={M.oldEnd} value={dateTime(r.endAt)} />
+              <Button
+                secondary
+                label={U.detailAction}
+                onPress={() => go({ screen: "rental", id: r.id })}
+              />
+            </Card>
+          ))}
+      {(tab === "bookings"
+        ? query.isSuccess && !bookings.length
+        : rentals.isSuccess && !storages.length) && (
+        <Card title={U.noBookingsOrRentals}>
+          <Text className="text-sm leading-6 text-slate-500">{U.noBookingsOrRentalsHint}</Text>
+        </Card>
+      )}
+      <Button
+        secondary
+        label={U.viewAll}
+        onPress={() => go({ screen: tab === "bookings" ? "bookings" : "rentals" })}
+      />
     </>
   );
 }
@@ -175,9 +270,9 @@ export function CustomerBookingsScreen({ owner, go }: { owner: string; go: Custo
             <Text>
               {b.facility.name} · {b.unitType.name}
             </Text>
-            <Row label={M.paymentStatus} value={b.paymentStatus} />
+            <Row label={M.paymentStatus} value={U.status[b.paymentStatus] ?? b.paymentStatus} />
             <Row label={M.appointment} value={dateTime(b.checkInSlotStart)} />
-            <Text>{b.status}</Text>
+            <StatusPill label={U.status[b.status] ?? b.status} tone="blue" />
             <Button label={M.choose} onPress={() => go({ screen: "booking", id: b.id })} />
           </Card>
         ))}
@@ -211,14 +306,14 @@ export function CustomerBookingScreen({
           <Heading>{b.bookingCode ?? b.id}</Heading>
           <Card title={b.facility.name}>
             <Text>{b.facility.address}</Text>
-            <Text>{b.status}</Text>
+            <StatusPill label={U.status[b.status] ?? b.status} tone="blue" />
             <Row label={M.appointment} value={dateTime(b.checkInSlotStart)} />
             <Row label={M.assigned} value={b.assignedUnit?.code ?? M.noUnit} />
             <Row label={M.handover} value={b.handoverStage} />
             <Row label={M.initialRent} value={money(b.pricing.rentalFeeAmount)} />
             <Row label={M.deposit} value={money(b.pricing.depositAmount)} />
             <Row label={M.total} value={money(b.pricing.totalAmount)} />
-            <Row label={M.paymentStatus} value={b.paymentStatus} />
+            <Row label={M.paymentStatus} value={U.status[b.paymentStatus] ?? b.paymentStatus} />
             {b.confirmation ? <QrCode value={b.confirmation.qrUrl} /> : <Text>{M.noQr}</Text>}
             {b.rentalId && (
               <Button
@@ -276,12 +371,11 @@ export function CustomerCheckoutScreen({
         control={state.form.control}
         name="checkInDate"
         render={({ field, fieldState }) => (
-          <Field
+          <CalendarField
             label={M.checkInDate}
             value={field.value}
-            onChangeText={field.onChange}
+            onChange={field.onChange}
             error={fieldState.error?.message}
-            placeholder="YYYY-MM-DD"
           />
         )}
       />
@@ -453,31 +547,66 @@ export function CustomerPaymentScreen({
   );
 }
 export function CustomerRentalsScreen({ owner, go }: { owner: string; go: CustomerNavigation }) {
-  const [view, setView] = useState<"current" | "history">("current");
+  const [tab, setTab] = useState("rentals");
+  return (
+    <>
+      <Heading>{U.storage}</Heading>
+      <ChoiceTabs
+        options={[
+          { value: "rentals", label: U.rentals },
+          { value: "bookings", label: U.bookings },
+          { value: "history", label: U.history },
+        ]}
+        value={tab}
+        onChange={setTab}
+      />
+      {tab === "bookings" ? (
+        <CustomerBookingsScreen owner={owner} go={go} />
+      ) : (
+        <RentalList
+          key={tab}
+          owner={owner}
+          go={go}
+          view={tab === "history" ? "history" : "current"}
+        />
+      )}
+    </>
+  );
+}
+function RentalList({
+  owner,
+  go,
+  view,
+}: {
+  owner: string;
+  go: CustomerNavigation;
+  view: "current" | "history";
+}) {
   const query = useCustomerRentals(owner, view);
   return (
     <>
-      <Heading>{M.storage}</Heading>
-      <View className="mb-3 flex-row gap-3">
-        <Button secondary label={M.current} onPress={() => setView("current")} />
-        <Button secondary label={M.history} onPress={() => setView("history")} />
-      </View>
       <QueryNotice query={query} />
       {query.data?.pages
-        .flatMap((p) => p.items)
+        .flatMap((page) => page.items)
         .map((r) => (
-          <Card key={r.id} title={`${r.facility.name} · ${r.storageUnit?.code ?? r.unitType.name}`}>
-            <Text>{r.status}</Text>
+          <Card key={r.id} title={r.storageUnit?.code ?? r.unitType.name}>
+            <StatusPill
+              label={U.status[r.status] ?? r.status}
+              tone={r.status === "ACTIVE" ? "green" : "neutral"}
+            />
+            <Text className="my-3 text-sm text-slate-600">{r.facility.name}</Text>
             <Row label={M.oldEnd} value={dateTime(r.endAt)} />
             <Button label={M.choose} onPress={() => go({ screen: "rental", id: r.id })} />
           </Card>
         ))}
-      {query.data?.pages[0]?.items.length === 0 && <Text>{M.empty}</Text>}
+      {query.data?.pages[0]?.items.length === 0 && <Notice>{M.empty}</Notice>}
       {query.hasNextPage && (
         <Button
           label={M.more}
           disabled={query.isFetchingNextPage}
-          onPress={() => void query.fetchNextPage()}
+          onPress={() => {
+            void query.fetchNextPage();
+          }}
         />
       )}
     </>
@@ -501,7 +630,7 @@ export function CustomerRentalScreen({
         <>
           <Heading>{`${r.facility.name} · ${r.storageUnit?.code ?? r.unitType.name}`}</Heading>
           <Card title={M.storage}>
-            <Text>{r.status}</Text>
+            <StatusPill label={U.status[r.status] ?? r.status} tone="green" />
             <Row label={M.oldEnd} value={dateTime(r.endAt)} />
             <Button
               label={M.newTicket}
@@ -513,7 +642,7 @@ export function CustomerRentalScreen({
             <QueryNotice query={state.payments} />
             {state.payments.data?.map((p) => (
               <Card key={p.id} title={p.paymentCode ?? undefined}>
-                <Text>{p.status}</Text>
+                <Text>{U.status[p.status] ?? p.status}</Text>
                 <Text>{money(p.totalAmount)}</Text>
                 <Button
                   label={M.newTicket}

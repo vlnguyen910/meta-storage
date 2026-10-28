@@ -24,4 +24,5 @@ export type SignupErrors = Partial<Record<SignupField | "terms", string>>;
 
 export interface AuthViewProps {
   auth: ReturnType<typeof useAuthFlow>;
+  onBrowse?: () => void;
 }
