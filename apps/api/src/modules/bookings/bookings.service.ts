@@ -156,7 +156,7 @@ export class BookingsService {
       const handoverStage: BookingListItem["handoverStage"] =
         booking.status === "CHECKED_IN"
           ? "HANDED_OVER"
-          : record?.status === "COMPLETED"
+          : record?.status === "PASSED"
             ? "READY_HANDOVER"
             : record
               ? "INSPECTING"
@@ -272,14 +272,15 @@ export class BookingsService {
     const progress = await this.repository.handoverProgress(pageRows.map((booking) => booking.id));
     const latestProgress = new Map<string, (typeof progress)[number]>();
     for (const record of progress) {
-      if (!latestProgress.has(record.bookingId)) latestProgress.set(record.bookingId, record);
+      if (record.bookingId && !latestProgress.has(record.bookingId))
+        latestProgress.set(record.bookingId, record);
     }
     const items: CustomerBooking[] = pageRows.map(({ cursorCreatedAt: _cursor, ...booking }) => ({
       ...booking,
       handoverStage:
         booking.status === "CHECKED_IN"
           ? "HANDED_OVER"
-          : latestProgress.get(booking.id)?.status === "COMPLETED"
+          : latestProgress.get(booking.id)?.status === "PASSED"
             ? "READY_HANDOVER"
             : latestProgress.has(booking.id)
               ? "INSPECTING"
@@ -310,7 +311,7 @@ export class BookingsService {
       handoverStage:
         booking.status === "CHECKED_IN"
           ? "HANDED_OVER"
-          : progress[0]?.status === "COMPLETED"
+          : progress[0]?.status === "PASSED"
             ? "READY_HANDOVER"
             : progress[0]
               ? "INSPECTING"

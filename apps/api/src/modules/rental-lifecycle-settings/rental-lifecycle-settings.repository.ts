@@ -3,7 +3,6 @@ import {
   type Database,
   eq,
   inArray,
-  returnAudit,
   systemSettingChanges,
   systemSettingInteger,
   systemSettings,
@@ -72,13 +71,6 @@ export class RentalLifecycleSettingsRepository {
       after: details.after,
       actorId: userId,
       source: "RENTAL_LIFECYCLE_SETTING_CONFIGURED",
-    });
-    await tx.insert(returnAudit).values({
-      requestId: null,
-      facilityId: null,
-      actorId: userId,
-      action: "RENTAL_LIFECYCLE_SETTING_CONFIGURED",
-      details,
     });
   }
 }

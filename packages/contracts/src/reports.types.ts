@@ -122,7 +122,6 @@ export interface OperationsOverview {
       endpoint: string | null;
       description: string;
     };
-    returnRefunds?: { count: number; amount: string; description: string };
     vacantCapacity: { count: number; description: string };
     maintenance: { count: number; description: string };
     dataQuality: {

@@ -97,30 +97,19 @@ export class RentalsService {
         paidAt: row.paidAt?.toISOString() ?? null,
         refundedAt: row.refundedAt?.toISOString() ?? null,
         createdAt: row.createdAt.toISOString(),
-        confirmedRefunds: [
-          ...result.returnTransfers
-            .filter((refund) => refund.paymentId === row.id)
-            .map((refund) => ({
-              id: refund.id,
-              source: "RETURN" as const,
-              amount: refund.amount,
-              reference: refund.reference,
-              confirmedAt: refund.confirmedAt.toISOString(),
-            })),
-          ...result.chargeTransfers.flatMap((refund) =>
-            refund.paymentId === row.id && refund.confirmedAt
-              ? [
-                  {
-                    id: refund.id,
-                    source: "CHARGE" as const,
-                    amount: refund.amount,
-                    reference: refund.reference,
-                    confirmedAt: refund.confirmedAt.toISOString(),
-                  },
-                ]
-              : [],
-          ),
-        ],
+        confirmedRefunds: result.chargeTransfers.flatMap((refund) =>
+          refund.paymentId === row.id && refund.confirmedAt
+            ? [
+                {
+                  id: refund.id,
+                  source: "CHARGE" as const,
+                  amount: refund.amount,
+                  reference: refund.reference,
+                  confirmedAt: refund.confirmedAt.toISOString(),
+                },
+              ]
+            : [],
+        ),
       })),
       total: result.total,
       limit: query.limit,
@@ -161,7 +150,6 @@ export class RentalsService {
   async paymentsMine(rentalId: string, userId: string): Promise<RentalPaymentItem[]> {
     await this.getMine(rentalId, userId);
     const rows = await this.repository.listPaymentsByUserId(rentalId, userId);
-    const refunds = await this.repository.listReturnRefundsByUserId(rentalId, userId);
     const chargeRefunds = await this.repository.listChargeRefundsByUserId(rentalId, userId);
     return rows.map((row) => ({
       id: row.id,
@@ -172,15 +160,7 @@ export class RentalsService {
       status: row.status,
       totalAmount: row.totalAmount,
       currency: row.currency,
-      returnRefunds: refunds
-        .filter((refund) => refund.paymentId === row.id)
-        .map((refund) => ({
-          id: refund.id,
-          amount: refund.amount,
-          reference: refund.reference,
-          confirmedAt: refund.confirmedAt.toISOString(),
-          settlementId: refund.settlementId,
-        })),
+      returnRefunds: [],
       chargeRefunds: chargeRefunds.flatMap((refund) =>
         refund.paymentId === row.id && refund.confirmedAt
           ? [

@@ -4,8 +4,6 @@ import {
   type Database,
   desc,
   eq,
-  returnRequests,
-  sql,
   systemSettingChanges,
   systemSettings,
 } from "@metastorage/database";
@@ -59,11 +57,5 @@ export class SystemSettingsRepository {
     await tx
       .insert(systemSettingChanges)
       .values({ key, before, after, actorId, source: "SYSTEM_SETTING_CONFIGURED" });
-  }
-  flagConfirmedReturnAppointments(tx: Parameters<Parameters<Database["transaction"]>[0]>[0]) {
-    return tx
-      .update(returnRequests)
-      .set({ manualReviewRequired: true, version: sql`${returnRequests.version} + 1` })
-      .where(eq(returnRequests.status, "CONFIRMED"));
   }
 }

@@ -42,7 +42,7 @@ import { recordLifecycleEvent } from "../notifications/lifecycle-notifications.r
 import { RENEWAL_MESSAGES } from "../renewals/renewals.messages";
 import { RenewalsRepository } from "../renewals/renewals.repository";
 import type { RenewalTransaction } from "../renewals/renewals.types";
-import { ReturnsRepository } from "../returns/returns.repository";
+import { RentalsRepository } from "../rentals/rentals.repository";
 import { StorageUnitsRepository } from "../storage-units/storage-units.repository";
 import { PAYMENT_MESSAGES } from "./payments.messages";
 import type {
@@ -641,8 +641,8 @@ export class PaymentsRepository {
       .from(rentalCharges)
       .where(eq(rentalCharges.id, chargeId));
     if (charge?.source === "RENEWAL") {
-      // Match return/cron before taking charge/payment locks; checkout shares the offering lock.
-      return new ReturnsRepository(this.db).locked(charge.rentalId, (tx) => work(tx));
+      // Match lifecycle locking before charge/payment locks; checkout shares the offering lock.
+      return new RentalsRepository(this.db).withLockedRental(charge.rentalId, (tx) => work(tx));
     }
     return this.db.transaction(work);
   }

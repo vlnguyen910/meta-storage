@@ -24,7 +24,6 @@ import {
   rentalPriceRanges,
   rentalRenewals,
   rentals,
-  returnRequests,
   sql,
   storageUnits,
   unitTypes,
@@ -34,8 +33,8 @@ import { lifecycleExpiryDetail } from "../notifications/lifecycle-notifications.
 import { recordLifecycleEvent } from "../notifications/lifecycle-notifications.repository";
 import { facilityLifecycleClock } from "../rentals/rental-lifecycle.repository";
 import { recordImmediateExpiry } from "../rentals/rental-lifecycle.service";
-import { ReturnsRepository } from "../returns/returns.repository";
-import type { ReturnContext } from "../returns/returns.types";
+import { RentalsRepository } from "../rentals/rentals.repository";
+import type { RentalContext } from "../rentals/rentals.types";
 import { StorageUnitsRepository } from "../storage-units/storage-units.repository";
 import { RENEWAL_MONTH_MS, renewalTermFailure } from "./renewals.policy";
 import type { PayableRenewal, RenewalFailure, RenewalTransaction } from "./renewals.types";
@@ -44,7 +43,7 @@ export class RenewalsRepository {
   constructor(private readonly db: Database) {}
 
   async quote(rentalId: string, customerId: string, input: QuoteRenewal) {
-    return new ReturnsRepository(this.db).locked(rentalId, async (tx, context) => {
+    return new RentalsRepository(this.db).withLockedRental(rentalId, async (tx, context) => {
       if (context.booking.userId !== customerId) throw new NotFoundError(m.notFound);
       const [existing] = await tx
         .select()
@@ -128,51 +127,54 @@ export class RenewalsRepository {
 
   async accept(renewalId: string, customerId: string, termsVersion: string) {
     const initial = await this.find(renewalId, customerId);
-    return new ReturnsRepository(this.db).locked(initial.rentalId, async (tx, context) => {
-      if (context.booking.userId !== customerId) throw new NotFoundError(m.notFound);
-      const [quote] = await tx
-        .select()
-        .from(rentalRenewals)
-        .where(eq(rentalRenewals.id, renewalId))
-        .for("update");
-      if (!quote) throw new NotFoundError(m.notFound);
-      if (quote.termsVersion !== termsVersion) throw new ConflictError(m.stale);
-      if (quote.acceptedAt) return quote;
-      const now = new Date();
-      const failure =
-        renewalTermFailure(context.rental, quote, now) ??
-        (await this.eligibility(tx, context, quote.newEndAt));
-      if (failure) throw new ConflictError(m[failure]);
-      const [charge] = await tx
-        .insert(rentalCharges)
-        .values({
-          rentalId: quote.rentalId,
-          source: "RENEWAL",
-          category: "RENEWAL_RENT",
-          amount: quote.amount,
-          currency: "VND",
-          evidence: quote.terms,
-          createdBy: customerId,
-          status: "OPEN",
-          createdAt: now,
-          updatedAt: now,
-        })
-        .returning();
-      if (!charge) throw new AppError(m.persistence, 500);
-      await tx.insert(rentalChargeEvents).values({
-        chargeId: charge.id,
-        type: "SUBMITTED",
-        actorId: customerId,
-        details: { renewalId, termsVersion, acceptedAt: now.toISOString() },
-      });
-      const [updated] = await tx
-        .update(rentalRenewals)
-        .set({ chargeId: charge.id, acceptedAt: now, status: "AWAITING_PAYMENT" })
-        .where(eq(rentalRenewals.id, renewalId))
-        .returning();
-      if (!updated) throw new AppError(m.persistence, 500);
-      return updated;
-    });
+    return new RentalsRepository(this.db).withLockedRental(
+      initial.rentalId,
+      async (tx, context) => {
+        if (context.booking.userId !== customerId) throw new NotFoundError(m.notFound);
+        const [quote] = await tx
+          .select()
+          .from(rentalRenewals)
+          .where(eq(rentalRenewals.id, renewalId))
+          .for("update");
+        if (!quote) throw new NotFoundError(m.notFound);
+        if (quote.termsVersion !== termsVersion) throw new ConflictError(m.stale);
+        if (quote.acceptedAt) return quote;
+        const now = new Date();
+        const failure =
+          renewalTermFailure(context.rental, quote, now) ??
+          (await this.eligibility(tx, context, quote.newEndAt));
+        if (failure) throw new ConflictError(m[failure]);
+        const [charge] = await tx
+          .insert(rentalCharges)
+          .values({
+            rentalId: quote.rentalId,
+            source: "RENEWAL",
+            category: "RENEWAL_RENT",
+            amount: quote.amount,
+            currency: "VND",
+            evidence: quote.terms,
+            createdBy: customerId,
+            status: "OPEN",
+            createdAt: now,
+            updatedAt: now,
+          })
+          .returning();
+        if (!charge) throw new AppError(m.persistence, 500);
+        await tx.insert(rentalChargeEvents).values({
+          chargeId: charge.id,
+          type: "SUBMITTED",
+          actorId: customerId,
+          details: { renewalId, termsVersion, acceptedAt: now.toISOString() },
+        });
+        const [updated] = await tx
+          .update(rentalRenewals)
+          .set({ chargeId: charge.id, acceptedAt: now, status: "AWAITING_PAYMENT" })
+          .where(eq(rentalRenewals.id, renewalId))
+          .returning();
+        if (!updated) throw new AppError(m.persistence, 500);
+        return updated;
+      },
+    );
   }
 
   async find(id: string, customerId: string) {
@@ -292,16 +294,11 @@ export class RenewalsRepository {
 
   private async eligibility(
     tx: RenewalTransaction,
-    context: ReturnContext,
+    context: RentalContext,
     newEndAt: Date,
   ): Promise<RenewalFailure | null> {
     if (!context.booking.userId || context.rental.expectedEndAt <= new Date()) return "ineligible";
-    const [request] = await tx
-      .select({ id: returnRequests.id })
-      .from(returnRequests)
-      .where(eq(returnRequests.rentalId, context.rental.id))
-      .limit(1);
-    if (request) return "returnStarted";
+    if (context.rental.returnStatus) return "returnStarted";
     const debtAdjustments = tx
       .select({
         chargeId: rentalChargeAdjustments.chargeId,

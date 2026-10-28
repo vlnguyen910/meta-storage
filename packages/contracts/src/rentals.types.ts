@@ -17,8 +17,8 @@ export interface RentalPaymentItem {
   chargeId?: string | null;
   source?: "BOOKING" | "RENEWAL" | "EXTRA" | "RETURN_DEBT";
   id: string;
-  paymentCode: string;
-  provider: string;
+  paymentCode: string | null;
+  provider: string | null;
   status: PaymentStatus;
   totalAmount: string;
   currency: string;
@@ -78,7 +78,7 @@ export interface FacilityRentalPage {
 
 export interface FacilityRentalPaymentItem {
   id: string;
-  paymentCode: string;
+  paymentCode: string | null;
   chargeId: string | null;
   source: "BOOKING" | "EXTRA" | "RETURN_DEBT" | "RENEWAL";
   status: PaymentStatus;

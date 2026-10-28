@@ -13,10 +13,11 @@ import type {
 } from "@metastorage/contracts/rental-charges";
 import type { RentalCharge } from "@metastorage/database";
 import { ConflictError, ForbiddenError, NotFoundError } from "../../common/errors/app-error";
-import { wholeVnd } from "../returns/returns.policy";
 import { RENTAL_CHARGE_MESSAGES as m } from "./rental-charges.messages";
 import type { RentalChargesRepository } from "./rental-charges.repository";
 import type { FacilityChargeReadRow, RentalChargeActor } from "./rental-charges.types";
+
+const wholeVnd = (value: string) => BigInt(value.replace(/\.0+$/, ""));
 
 function facilityChargeDto(row: FacilityChargeReadRow): FacilityRentalChargeItem {
   const outstanding = wholeVnd(row.adjustedAmount) - wholeVnd(row.paidAmount);
@@ -243,7 +244,6 @@ export class RentalChargesService {
       id: refund.id,
       chargeId: refund.chargeId,
       paymentId: refund.paymentId,
-      settlementId: refund.settlementId,
       amount: refund.amount,
       reason: refund.reason,
       status: refund.status,

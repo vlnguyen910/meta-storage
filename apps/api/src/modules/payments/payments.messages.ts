@@ -41,6 +41,7 @@ export const PAYMENT_MESSAGES = {
   paymentFailed: "Payment thất bại",
   paymentReceivedPendingReconciliation: "Payment đã nhận nhưng đang chờ đối soát",
   paymentTimestampMissing: "Payment thiếu thời điểm thanh toán",
+  paymentCodeMissing: "Payment thiếu mã thanh toán",
   bookingPaymentInformationMissing: "Booking thiếu thông tin thanh toán",
   failedToCreatePendingPayment: "Failed to create pending payment",
   failedToCreateBookingAfterPayment: "Failed to create booking after payment",

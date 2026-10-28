@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { type RentalStatus, RentalStatusSchema } from "@metastorage/contracts";
 import axios from "axios";
 import { ArrowRight, CheckCircle2, Download, RefreshCw, RotateCcw, Search, X } from "lucide-react";
 import Link from "next/link";
@@ -130,7 +131,7 @@ export function OperationsReportsHub() {
 function RentalsTab() {
   const [facilityId, setFacilityId] = useState("all");
   const [unitTypeId, setUnitTypeId] = useState("all");
-  const [status, setStatus] = useState("all");
+  const [status, setStatus] = useState<RentalStatus | "all">("all");
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -320,7 +321,8 @@ function RentalsTab() {
             <DropdownSelect
               value={status}
               onChange={(newStatus) => {
-                setStatus(newStatus);
+                const parsedStatus = RentalStatusSchema.safeParse(newStatus);
+                setStatus(parsedStatus.success ? parsedStatus.data : "all");
                 setPage(1);
               }}
               className="w-full"
