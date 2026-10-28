@@ -3,6 +3,7 @@ import {
   check,
   index,
   integer,
+  pgEnum,
   pgTable,
   text,
   timestamp,
@@ -10,6 +11,13 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { users } from "./users";
+
+export const CLOUDINARY_RESOURCE_TYPES = ["image", "video", "raw"] as const;
+export type CloudinaryResourceType = (typeof CLOUDINARY_RESOURCE_TYPES)[number];
+export const cloudinaryResourceTypeEnum = pgEnum(
+  "cloudinary_resource_type",
+  CLOUDINARY_RESOURCE_TYPES,
+);
 
 export const mediaAssets = pgTable(
   "media_assets",
@@ -24,7 +32,7 @@ export const mediaAssets = pgTable(
     filename: varchar({ length: 255 }).notNull(),
     mimeType: varchar({ length: 100 }).notNull(),
     byteSize: integer().notNull(),
-    cloudinaryResourceType: varchar({ length: 20 }).notNull(),
+    cloudinaryResourceType: cloudinaryResourceTypeEnum().notNull(),
     cloudinaryPublicId: text().notNull().unique(),
     cloudinaryFormat: varchar({ length: 30 }).notNull(),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
@@ -33,10 +41,6 @@ export const mediaAssets = pgTable(
     index("media_assets_owner_idx").on(t.ownerType, t.ownerId, t.purpose),
     index("media_assets_uploaded_by_idx").on(t.uploadedBy, t.createdAt),
     check("media_assets_size_valid", sql`${t.byteSize} >= 0`),
-    check(
-      "media_assets_cloudinary_type_valid",
-      sql`${t.cloudinaryResourceType} IN ('image', 'video', 'raw')`,
-    ),
   ],
 );
 

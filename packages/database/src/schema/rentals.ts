@@ -1,3 +1,4 @@
+import { RENTAL_STATUSES, type RentalStatus } from "@metastorage/contracts";
 import { ReturnRequestStatus } from "@metastorage/contracts/returns";
 import { sql } from "drizzle-orm";
 import {
@@ -14,7 +15,6 @@ import {
   timestamp,
   uniqueIndex,
   uuid,
-  varchar,
 } from "drizzle-orm/pg-core";
 import { bookings } from "./bookings";
 import { checkInSlots } from "./check-in-slots";
@@ -22,7 +22,11 @@ import { facilities } from "./facilities";
 import { storageUnits } from "./storage-units";
 import { users } from "./users";
 
+type RentalReturnStatus = keyof typeof ReturnRequestStatus;
+export const rentalStatusEnum = pgEnum("rental_status", RENTAL_STATUSES);
 export const rentalReturnStatusEnum = pgEnum("rental_return_status", ReturnRequestStatus);
+export type { RentalReturnStatus, RentalStatus };
+export { ReturnRequestStatus };
 
 export const rentals = pgTable(
   "rentals",
@@ -38,7 +42,7 @@ export const rentals = pgTable(
     physicalUnitId: uuid()
       .notNull()
       .references(() => storageUnits.id),
-    status: varchar({ length: 50 }).default("ACTIVE").notNull(),
+    status: rentalStatusEnum().default("ACTIVE").notNull(),
     startAt: timestamp({ withTimezone: true }).notNull(),
     expectedEndAt: timestamp({ withTimezone: true }).notNull(),
     version: integer().default(0).notNull(),
