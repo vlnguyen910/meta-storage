@@ -35,128 +35,131 @@ export function CustomerReturnDetail({ requestId }: { requestId: string }) {
         description={M.sectionDescription}
         action={<Link href={customerRoutes.rental(request.rentalId)}>{M.back}</Link>}
       />
-      <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
-        <Card className="grid gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="m-0 text-xl font-bold">{M.details}</h2>
-            <ReturnStatusBadge status={request.status} />
-          </div>
-          <div>
-            <small className="block text-muted">{M.schedule}</small>
-            <strong>
-              {new Date(request.startsAt).toLocaleString("vi-VN", {
-                dateStyle: "full",
-                timeStyle: "short",
-                timeZone: request.timezone,
-              })}
-            </strong>
-          </div>
-          <div>
-            <small className="block text-muted">{M.requestReason}</small>
-            <p className="mb-0">{request.reason}</p>
-          </div>
-          <div>
-            <small className="block text-muted">{M.actualReceipt}</small>
-            <strong>{actualReturnAt ? formatDate(actualReturnAt) : M.notReceived}</strong>
-          </div>
-          {timeChanges.length > 0 && (
-            <section>
-              <h3 className="text-lg font-semibold">Lịch sử đề xuất đổi giờ</h3>
-              <ul className="grid gap-2">
-                {timeChanges.map((change) => (
-                  <li key={change.id} className="rounded border border-line p-3">
-                    <strong>
-                      {new Date(change.proposedAt).toLocaleString("vi-VN", {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      })}
-                    </strong>
-                    <span className="ml-3 text-muted">{change.status}</span>
-                    <p className="mb-0 text-sm text-muted">
-                      {change.decisionReason ?? change.reason}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-          <div className="flex flex-wrap gap-3">
-            {pending && (
-              <button
-                type="button"
-                onClick={() => setEditOpen((value) => !value)}
-                className="min-h-11 rounded-md border border-line px-4 font-semibold"
-              >
-                {M.edit}
-              </button>
-            )}
-            {pending && (
-              <button
-                type="button"
-                onClick={() => setConfirmCancel(true)}
-                className="min-h-11 rounded-md border border-red-700 px-4 font-semibold text-red-700"
-              >
-                {M.cancel}
-              </button>
-            )}
-            {confirmCancel && (
-              <div
-                role="alertdialog"
-                aria-labelledby="cancel-title"
-                className="w-full rounded-md border border-line bg-slate-50 p-4"
-              >
-                <p id="cancel-title">{M.cancelConfirm}</p>
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setConfirmCancel(false)}
-                    className="min-h-11 rounded border border-line px-3"
-                  >
-                    Giữ yêu cầu
-                  </button>
-                  <button
-                    type="button"
-                    disabled={cancel.isPending}
-                    onClick={() =>
-                      cancel.mutate(
-                        { expectedVersion: request.version },
-                        { onSuccess: () => setConfirmCancel(false) },
-                      )
-                    }
-                    className="min-h-11 rounded bg-red-700 px-3 font-semibold text-white disabled:opacity-60"
-                  >
-                    Xác nhận hủy
-                  </button>
-                </div>
-                {cancel.isError && (
-                  <p role="alert" className="mt-2 text-red-700">
-                    {M.stale}
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-          {editOpen && pending && (
-            <ReturnRequestEditor
-              requestId={request.id}
-              rentalId={request.rentalId}
-              version={request.version}
-              initialDate={new Intl.DateTimeFormat("en-CA", {
-                timeZone: request.timezone,
-                year: "numeric",
-                month: "2-digit",
-                day: "2-digit",
-              }).format(new Date(request.startsAt))}
-              initialReason={request.reason}
-              onClose={() => setEditOpen(false)}
-            />
-          )}
-        </Card>
-        <div className="grid content-start gap-5">
-          <ReturnInspectionReview detail={query.data} staff={false} />
-          <ReturnFinancePanel detail={query.data} manager={false} />
+      <Card className="grid gap-5 rounded-2xl border border-slate-200/80 p-6 shadow-2xs">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+          <h2 className="m-0 text-xl font-bold">{M.details}</h2>
+          <ReturnStatusBadge status={request.status} />
         </div>
-      </div>
+        <div>
+          <small className="block text-muted">{M.schedule}</small>
+          <strong>
+            {new Date(request.startsAt).toLocaleString("vi-VN", {
+              dateStyle: "full",
+              timeStyle: "short",
+              timeZone: request.timezone,
+            })}
+          </strong>
+        </div>
+        <div>
+          <small className="block text-muted">{M.requestReason}</small>
+          <p className="mb-0">{request.reason}</p>
+        </div>
+        <div>
+          <small className="block text-muted">{M.actualReceipt}</small>
+          <strong>{actualReturnAt ? formatDate(actualReturnAt) : M.notReceived}</strong>
+        </div>
+
+        {/* Báo cáo kiểm tra nếu có */}
+        <ReturnInspectionReview detail={query.data} staff={false} />
+
+        {/* Quyết toán và hoàn tiền được gộp xuống dưới phần thời điểm cơ sở nhận lại kho */}
+        <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-5">
+          <ReturnFinancePanel detail={query.data} manager={false} className="space-y-4" />
+        </div>
+
+        {timeChanges.length > 0 && (
+          <section>
+            <h3 className="text-lg font-semibold">Lịch sử đề xuất đổi giờ</h3>
+            <ul className="grid gap-2">
+              {timeChanges.map((change) => (
+                <li key={change.id} className="rounded border border-line p-3">
+                  <strong>
+                    {new Date(change.proposedAt).toLocaleString("vi-VN", {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })}
+                  </strong>
+                  <span className="ml-3 text-muted">{change.status}</span>
+                  <p className="mb-0 text-sm text-muted">
+                    {change.decisionReason ?? change.reason}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+        <div className="flex flex-wrap gap-3 border-t border-slate-100 pt-4">
+          {pending && (
+            <button
+              type="button"
+              onClick={() => setEditOpen((value) => !value)}
+              className="min-h-11 rounded-xl border border-line px-4 font-semibold hover:bg-slate-50 transition"
+            >
+              {M.edit}
+            </button>
+          )}
+          {pending && (
+            <button
+              type="button"
+              onClick={() => setConfirmCancel(true)}
+              className="min-h-11 rounded-xl border border-red-700 px-4 font-semibold text-red-700 hover:bg-red-50 transition"
+            >
+              {M.cancel}
+            </button>
+          )}
+          {confirmCancel && (
+            <div
+              role="alertdialog"
+              aria-labelledby="cancel-title"
+              className="w-full rounded-xl border border-line bg-slate-50 p-4"
+            >
+              <p id="cancel-title">{M.cancelConfirm}</p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setConfirmCancel(false)}
+                  className="min-h-11 rounded-xl border border-line px-3"
+                >
+                  Giữ yêu cầu
+                </button>
+                <button
+                  type="button"
+                  disabled={cancel.isPending}
+                  onClick={() =>
+                    cancel.mutate(
+                      { expectedVersion: request.version },
+                      { onSuccess: () => setConfirmCancel(false) },
+                    )
+                  }
+                  className="min-h-11 rounded-xl bg-red-700 px-3 font-semibold text-white disabled:opacity-60"
+                >
+                  Xác nhận hủy
+                </button>
+              </div>
+              {cancel.isError && (
+                <p role="alert" className="mt-2 text-red-700">
+                  {M.stale}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+        {editOpen && pending && (
+          <ReturnRequestEditor
+            requestId={request.id}
+            rentalId={request.rentalId}
+            version={request.version}
+            initialDate={new Intl.DateTimeFormat("en-CA", {
+              timeZone: request.timezone,
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+            }).format(new Date(request.startsAt))}
+            initialReason={request.reason}
+            onClose={() => setEditOpen(false)}
+          />
+        )}
+      </Card>
     </>
   );
 }

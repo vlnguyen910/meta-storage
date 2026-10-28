@@ -10,16 +10,18 @@ export function ReturnFinancePanel({
   detail,
   manager,
   stale = false,
+  className,
 }: {
   detail: ReturnRequestDetailDto;
   manager: boolean;
   stale?: boolean;
+  className?: string;
 }) {
   const settlement = detail.settlements[0];
   const summary = detail.refundSummary;
   const refundable = summary && (readWholeVnd(summary.remainingRefund) ?? 0n) > 0n;
   return (
-    <section className={f3Panel}>
+    <section className={className ?? f3Panel}>
       <h2 className="font-bold text-lg">{F3.settlement}</h2>
       {!settlement && <p>{F3.noSettlement}</p>}
       {stale && (
@@ -53,27 +55,33 @@ export function ReturnFinancePanel({
       ))}
       {summary && <RefundBalances summary={summary} />}
       <h3 className="font-semibold">{F3.refundHistory}</h3>
-      <ul className="space-y-2">
-        {detail.refunds.map((refund) => (
-          <li
-            key={refund.id}
-            className="rounded border border-emerald-200 bg-emerald-50 p-3 text-sm break-words"
-          >
-            <strong>{money(refund.amount)}</strong> · {refund.reference}
-            <p>
-              {F3.deposit}:{" "}
-              {refund.depositRefundAmount === null ? F3.unknown : money(refund.depositRefundAmount)}{" "}
-              · {F3.rentRefund}:{" "}
-              {refund.rentRefundAmount === null ? F3.unknown : money(refund.rentRefundAmount)}
-            </p>
-            <p>
-              {new Date(refund.confirmedAt).toLocaleString("vi-VN", {
-                timeZone: detail.request.timezone,
-              })}
-            </p>
-          </li>
-        ))}
-      </ul>
+      {detail.refunds.length === 0 ? (
+        <p className="text-sm text-muted">Chưa có lần hoàn tiền nào.</p>
+      ) : (
+        <ul className="space-y-2">
+          {detail.refunds.map((refund) => (
+            <li
+              key={refund.id}
+              className="rounded border border-emerald-200 bg-emerald-50 p-3 text-sm break-words"
+            >
+              <strong>{money(refund.amount)}</strong> · {refund.reference}
+              <p>
+                {F3.deposit}:{" "}
+                {refund.depositRefundAmount === null
+                  ? F3.unknown
+                  : money(refund.depositRefundAmount)}{" "}
+                · {F3.rentRefund}:{" "}
+                {refund.rentRefundAmount === null ? F3.unknown : money(refund.rentRefundAmount)}
+              </p>
+              <p>
+                {new Date(refund.confirmedAt).toLocaleString("vi-VN", {
+                  timeZone: detail.request.timezone,
+                })}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
       {manager &&
         refundable &&
         (detail.request.status !== "COMPLETED" ? (

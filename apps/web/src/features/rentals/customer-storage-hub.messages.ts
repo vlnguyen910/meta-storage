@@ -42,7 +42,7 @@ export const CUSTOMER_STORAGE_HUB_MESSAGES = {
     "Mã đơn / Ô kho",
     "Loại kho",
     "Cơ sở lưu trữ",
-    "Thời hạn hợp đồng",
+    "Thời hạn thuê",
     "Trạng thái",
     "Thao tác",
   ] as const,
