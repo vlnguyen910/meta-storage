@@ -77,3 +77,71 @@ export const InspectionSchema = z.object({
   photos: z.array(InspectionPhotoSchema),
 });
 export type Inspection = z.infer<typeof InspectionSchema> & InspectionChecklistData;
+
+export const InspectionTypeValueSchema = z.enum(["CHECK_IN", "CHECK_OUT", "MAINTENANCE"]);
+export const InspectionStatusValueSchema = z.enum(["PENDING", "IN_PROGRESS", "PASSED", "FAILED"]);
+export const InspectionConditionValueSchema = z.enum(["GOOD", "MINOR_DAMAGE", "MAJOR_DAMAGE"]);
+
+export const CreateInspectionInputSchema = z.object({ taskId: z.string().uuid() }).strict();
+export type CreateInspectionInput = z.infer<typeof CreateInspectionInputSchema>;
+
+export const InspectionListQuerySchema = z
+  .object({
+    status: InspectionStatusValueSchema.optional(),
+    inspectionType: InspectionTypeValueSchema.optional(),
+    storageUnitId: z.string().uuid().optional(),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+    offset: z.coerce.number().int().min(0).default(0),
+  })
+  .strict();
+export type InspectionListQuery = z.infer<typeof InspectionListQuerySchema>;
+
+export const InspectionEvidenceInputSchema = z.object({
+  filename: z.string().trim().min(1).max(255),
+  mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+  dataBase64: z
+    .string()
+    .min(1)
+    .max(Math.ceil(INSPECTION_PHOTO_MAX_BYTES / 3) * 4),
+});
+
+export const UpdateInspectionInputSchema = z
+  .object({
+    status: InspectionStatusValueSchema.optional(),
+    condition: InspectionConditionValueSchema.nullable().optional(),
+    checklist: z.record(z.string(), z.unknown()).optional(),
+    notes: z.string().max(4000, INSPECTION_MESSAGES.notesLimit).nullable().optional(),
+    addEvidence: z.array(InspectionEvidenceInputSchema).max(1).optional(),
+    removeEvidenceIds: z.array(z.string().uuid()).max(INSPECTION_PHOTO_MAX_COUNT).optional(),
+  })
+  .strict()
+  .refine((input) => Object.keys(input).length > 0);
+export type UpdateInspectionInput = z.infer<typeof UpdateInspectionInputSchema>;
+
+export const InspectionRecordSchema = z.object({
+  id: z.string().uuid(),
+  storageUnitId: z.string().uuid(),
+  unitCode: z.string(),
+  rentalId: z.string().uuid().nullable(),
+  bookingId: z.string().uuid().nullable(),
+  inspectedBy: z.string().uuid(),
+  taskId: z.string().uuid(),
+  facilityId: z.string().uuid(),
+  inspectionType: InspectionTypeValueSchema,
+  status: InspectionStatusValueSchema,
+  condition: InspectionConditionValueSchema.nullable(),
+  checklist: z.record(z.string(), z.unknown()),
+  notes: z.string().nullable(),
+  inspectedAt: z.string().datetime().nullable(),
+  inspectDoneAt: z.string().datetime().nullable(),
+  evidence: z.array(InspectionPhotoSchema.extend({ url: z.string().url() })),
+});
+export type InspectionRecord = z.infer<typeof InspectionRecordSchema>;
+export const InspectionListItemSchema = InspectionRecordSchema.omit({ evidence: true });
+export const InspectionPageSchema = z.object({
+  items: z.array(InspectionListItemSchema),
+  total: z.number().int().nonnegative(),
+  limit: z.number().int().positive(),
+  offset: z.number().int().nonnegative(),
+});
+export type InspectionPage = z.infer<typeof InspectionPageSchema>;

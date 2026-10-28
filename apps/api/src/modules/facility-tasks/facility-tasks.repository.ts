@@ -49,6 +49,14 @@ export class FacilityTasksRepository {
     private readonly assignments: FacilityAssignmentsRepository,
   ) {}
 
+  find(tx: TaskTransaction, id: string) {
+    return tx.select().from(facilityTasks).where(eq(facilityTasks.id, id));
+  }
+
+  findForUpdate(tx: TaskTransaction, id: string) {
+    return tx.select().from(facilityTasks).where(eq(facilityTasks.id, id)).for("update");
+  }
+
   async create(input: CreateFacilityTaskInput, actor: FacilityTaskActor): Promise<TaskWriteResult> {
     return this.db.transaction(async (tx) => {
       const activeAssignments = await this.assignments.lockActiveAssignments(tx, input.facilityId, [

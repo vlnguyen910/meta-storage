@@ -1,0 +1,16 @@
+export const INSPECTIONS_API_MESSAGES = {
+  staffListSummary: "Danh sách phiếu kiểm tra được giao cho nhân viên.",
+  facilityListSummary: "Danh sách phiếu kiểm tra tại cơ sở của quản lý.",
+  createSummary: "Tạo phiếu kiểm tra từ task được giao.",
+  detailSummary: "Xem chi tiết phiếu kiểm tra.",
+  updateSummary: "Cập nhật checklist, tình trạng, ghi chú và ảnh minh chứng.",
+  handoverSummary: "Xác nhận bàn giao kho sau khi kiểm tra và xác minh check-in.",
+  notFound: "Không tìm thấy phiếu kiểm tra.",
+  taskNotAvailable: "Task kiểm tra không còn được phân công cho nhân viên này.",
+  notAssigned: "Bạn không được phân công xử lý phiếu kiểm tra này.",
+  invalidTransition: "Trạng thái phiếu kiểm tra không hợp lệ.",
+  conditionRequired: "Cần ghi nhận tình trạng kho trước khi hoàn tất kiểm tra.",
+  handoverInvalid: "Booking, thanh toán, kiểm tra hoặc kho không còn đủ điều kiện bàn giao.",
+  evidenceLimit: "Mỗi phiếu kiểm tra được đính kèm tối đa 8 ảnh.",
+  evidenceNotFound: "Không tìm thấy ảnh minh chứng.",
+} as const;
