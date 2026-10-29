@@ -66,6 +66,7 @@ export const RentalListItemSchema = z.object({
   storageUnit: z.object({ id: z.string().uuid(), code: z.string() }).nullable(),
   startAt: z.string().datetime(),
   endAt: z.string().datetime(),
+  closedAt: z.string().datetime().nullable(),
   status: RentalStatusSchema,
   bookingStatus: z.string(),
   actions: RentalActionStateSchema,

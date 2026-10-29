@@ -44,6 +44,7 @@ export class PaymentsService {
       throw new AppError(PAYMENT_MESSAGES.failedToFinalizePayment, 500);
     return {
       paymentId: payment.id,
+      type: payment.type,
       status: "REFUNDED",
       amount: payment.refundAmount ?? payment.totalAmount,
       depositForfeitedAmount: payment.depositForfeitedAmount,
@@ -176,6 +177,7 @@ export class PaymentsService {
         : null;
     return {
       paymentId: payment.id,
+      type: payment.type,
       ...(payment.reservationId ? { reservationId: payment.reservationId } : {}),
       status: payment.status,
       provider: payment.provider,

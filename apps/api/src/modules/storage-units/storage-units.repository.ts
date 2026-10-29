@@ -177,6 +177,45 @@ export class StorageUnitsRepository {
       .where(eq(storageUnits.id, unitId));
   }
 
+  async makeAvailableAfterReturn(
+    tx: TaskTransaction,
+    unitId: string,
+    rentalId: string,
+    reservationId: string | null,
+    now: Date,
+  ) {
+    const [unit] = await tx
+      .select()
+      .from(storageUnits)
+      .where(eq(storageUnits.id, unitId))
+      .for("update");
+    if (unit?.status !== "OCCUPIED") return false;
+    if (reservationId) await this.closeReservationAssignment(tx, reservationId, "COMPLETED");
+    const [otherRental] = await tx
+      .select({ id: rentals.id })
+      .from(rentals)
+      .where(
+        and(
+          eq(rentals.storageUnitId, unitId),
+          eq(rentals.status, RentalStatus.ACTIVE),
+          ne(rentals.id, rentalId),
+        ),
+      )
+      .limit(1);
+    const [assignment] = await tx
+      .select({ id: unitAssignments.id })
+      .from(unitAssignments)
+      .where(and(eq(unitAssignments.physicalUnitId, unitId), eq(unitAssignments.status, "ACTIVE")))
+      .limit(1);
+    if (otherRental || assignment) return false;
+    const [updated] = await tx
+      .update(storageUnits)
+      .set({ status: "AVAILABLE", updatedAt: now })
+      .where(and(eq(storageUnits.id, unitId), eq(storageUnits.status, "OCCUPIED")))
+      .returning({ id: storageUnits.id });
+    return Boolean(updated);
+  }
+
   async listByFacility(query: StorageUnitListQuery) {
     const execute = async (tx: DbExecutor) => {
       const [facility] = await tx

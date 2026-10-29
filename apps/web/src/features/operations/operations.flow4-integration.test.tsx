@@ -150,6 +150,7 @@ describe("Flow 4 actual form, hook and cache integration", () => {
     vi.mocked(api.payments.listRefunds).mockImplementation(async (params) =>
       Array.from({ length: params?.offset ? 55 : 100 }, (_, i) => ({
         paymentId: `payment-${(params?.offset ?? 0) + i}`,
+        type: "CHARGE",
         bookingId: null,
         amount: "100",
         paidAt: null,

@@ -122,6 +122,15 @@ export class StorageUnitsService {
   markOccupied(tx: TaskTransaction, unitId: string, now: Date) {
     return this.repository.markOccupied(tx, unitId, now);
   }
+  makeAvailableAfterReturn(
+    tx: TaskTransaction,
+    unitId: string,
+    rentalId: string,
+    reservationId: string | null,
+    now: Date,
+  ) {
+    return this.repository.makeAvailableAfterReturn(tx, unitId, rentalId, reservationId, now);
+  }
 
   async getUnitById(id: string): Promise<StorageUnit> {
     const unit = await this.repository.findById(id);

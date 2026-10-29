@@ -1,10 +1,7 @@
-import {
-  PAYMENT_REFUND_REASONS,
-  type PaymentRefundReason,
-  PaymentStatus,
-} from "@metastorage/contracts/payments";
+import { PAYMENT_REFUND_REASONS, PaymentStatus } from "@metastorage/contracts/payments";
 import { sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   check,
   index,
   numeric,
@@ -17,31 +14,40 @@ import {
 } from "drizzle-orm/pg-core";
 import { enumToPgEnum } from "../enum-to-pg-enum";
 import { bookings } from "./bookings";
+import { rentals } from "./rentals";
 import { reservations } from "./reservations";
 import { users } from "./users";
 
+export type { PaymentRefundReason } from "@metastorage/contracts/payments";
 export {
   PAYMENT_REFUND_REASONS,
   PAYMENT_STATUSES,
   PaymentStatus,
 } from "@metastorage/contracts/payments";
-export type { PaymentRefundReason };
 export const paymentStatusEnum = pgEnum("payment_status", enumToPgEnum(PaymentStatus));
 export const paymentRefundReasonEnum = pgEnum(
   "payment_refund_reason_code",
   enumToPgEnum(PAYMENT_REFUND_REASONS),
 );
+export enum PaymentType {
+  CHARGE = "CHARGE",
+  DEPOSIT_REFUND = "DEPOSIT_REFUND",
+}
+export const paymentTypeEnum = pgEnum("payment_type", enumToPgEnum(PaymentType));
 
 export const payments = pgTable(
   "payments",
   {
     id: uuid().defaultRandom().primaryKey(),
+    type: paymentTypeEnum().default(PaymentType.CHARGE).notNull(),
     bookingId: uuid().references(() => bookings.id, { onDelete: "restrict" }),
     reservationId: uuid().references(() => reservations.id, { onDelete: "restrict" }),
-    holdTokenHash: varchar({ length: 128 }).notNull(),
-    provider: varchar({ length: 32 }).notNull(),
-    paymentCode: varchar({ length: 32 }).notNull().unique(),
-    providerPaymentId: varchar({ length: 128 }).notNull(),
+    rentalId: uuid().references(() => rentals.id, { onDelete: "restrict" }),
+    sourcePaymentId: uuid().references((): AnyPgColumn => payments.id, { onDelete: "restrict" }),
+    holdTokenHash: varchar({ length: 128 }),
+    provider: varchar({ length: 32 }),
+    paymentCode: varchar({ length: 32 }).unique(),
+    providerPaymentId: varchar({ length: 128 }),
     idempotencyKey: varchar({ length: 128 }).notNull(),
     totalAmount: numeric({ precision: 14, scale: 2 }).notNull(),
     currency: varchar({ length: 3 }).notNull(),
@@ -60,7 +66,7 @@ export const payments = pgTable(
   (table) => [
     check(
       "payments_context_valid",
-      sql`num_nonnulls(${table.bookingId}, ${table.reservationId}) = 1`,
+      sql`(${table.type} = 'CHARGE' AND num_nonnulls(${table.bookingId}, ${table.reservationId}) = 1 AND ${table.rentalId} IS NULL AND ${table.sourcePaymentId} IS NULL AND ${table.provider} IS NOT NULL AND ${table.paymentCode} IS NOT NULL AND ${table.providerPaymentId} IS NOT NULL AND ${table.holdTokenHash} IS NOT NULL) OR (${table.type} = 'DEPOSIT_REFUND' AND num_nonnulls(${table.bookingId}, ${table.reservationId}) <= 1 AND ${table.rentalId} IS NOT NULL AND ${table.sourcePaymentId} IS NOT NULL AND ${table.provider} IS NULL AND ${table.paymentCode} IS NULL AND ${table.providerPaymentId} IS NULL AND ${table.holdTokenHash} IS NULL AND ${table.status} IN ('REFUND_PENDING', 'REFUNDED'))`,
     ),
     check(
       "payments_refund_amount_valid",
@@ -73,6 +79,9 @@ export const payments = pgTable(
     ),
     uniqueIndex("payments_provider_payment_idx").on(table.provider, table.providerPaymentId),
     uniqueIndex("payments_idempotency_idx").on(table.idempotencyKey),
+    uniqueIndex("payments_rental_refund_idx")
+      .on(table.rentalId)
+      .where(sql`${table.type} = 'DEPOSIT_REFUND'`),
     index("payments_booking_idx").on(table.bookingId),
   ],
 );

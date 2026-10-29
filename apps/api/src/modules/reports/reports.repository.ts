@@ -1,5 +1,6 @@
 import { REPORT_MESSAGES as m, type RentalReportQuery } from "@metastorage/contracts";
 import {
+  alias,
   and,
   asc,
   bookings,
@@ -9,10 +10,14 @@ import {
   eq,
   facilities,
   gt,
+  gte,
   inArray,
+  inspections,
   isNull,
+  notExists,
   or,
   payments,
+  policyViolationFees,
   type RentalStatus,
   ReservationStatus,
   rentals,
@@ -42,15 +47,27 @@ const rentalSnapshot = sql`coalesce(${bookings.rentalFeeAmount}, ${reservations.
 const depositSnapshot = sql`coalesce(${bookings.depositAmount}, ${reservations.depositAmount})`;
 
 function financialRules(asOf: Date) {
+  const returnedRental = alias(rentals, "returned_rental");
   const vn = sql`${payments.currency} = 'VND'`;
-  const captured = sql`${payments.paidAt} is not null and ${payments.paidAt} <= ${asOf.toISOString()}`;
+  const captured = sql`${payments.type} = 'CHARGE' and ${payments.paidAt} is not null and ${payments.paidAt} <= ${asOf.toISOString()}`;
   const known = sql`${rentalSnapshot} >= 0 and ${depositSnapshot} >= 0 and ${payments.totalAmount} = ${rentalSnapshot} + ${depositSnapshot} and ${payments.depositForfeitedAmount} <= ${depositSnapshot}`;
-  const refund = sql`coalesce(${payments.refundAmount}, ${payments.totalAmount})`;
+  const refund = sql`case when ${payments.type} = 'DEPOSIT_REFUND' then ${payments.totalAmount} else coalesce(${payments.refundAmount}, ${payments.totalAmount}) end`;
   const settledRefund = sql`${payments.status} = 'REFUNDED' and ${payments.refundedAt} is not null and ${payments.refundedAt} <= ${asOf.toISOString()}`;
   const knownRefund = sql`${settledRefund} and (${refund} = ${payments.totalAmount} or (${refund} = ${rentalSnapshot} and ${payments.depositForfeitedAmount} = ${depositSnapshot}))`;
+  const notReturned = notExists(
+    sql`select 1 from ${returnedRental} where ${returnedRental.status} = 'CLOSED' and ((${returnedRental.bookingId} is not null and ${returnedRental.bookingId} = ${payments.bookingId}) or (${returnedRental.reservationId} is not null and ${returnedRental.reservationId} = ${payments.reservationId}))`,
+  );
   const legacyHeldKnown = sql`coalesce((${known} and (${payments.status} = 'SUCCEEDED' or ((${payments.status} = 'REFUND_PENDING' or (${knownRefund})) and ${refund} + ${payments.depositForfeitedAmount} <= ${payments.totalAmount}))), false)`;
   const knownSnapshot = sql`coalesce((${known}), false)`;
-  return { vn, captured, refund, settledRefund, heldKnown: legacyHeldKnown, knownSnapshot };
+  return {
+    vn,
+    captured,
+    refund,
+    settledRefund,
+    heldKnown: legacyHeldKnown,
+    knownSnapshot,
+    notReturned,
+  };
 }
 
 export class ReportsRepository {
@@ -93,7 +110,7 @@ export class ReportsRepository {
     return this.db.transaction(
       async (tx) => {
         const scoped = await this.scope(tx, actor, filter);
-        const { vn, captured, refund, settledRefund, heldKnown, knownSnapshot } =
+        const { vn, captured, refund, settledRefund, heldKnown, knownSnapshot, notReturned } =
           financialRules(asOf);
         const inPeriod = sql`${captured} and ${payments.paidAt} >= ${start.toISOString()} and ${payments.paidAt} < ${end.toISOString()}`;
         const refundInPeriod = sql`${settledRefund} and ${payments.refundedAt} >= ${start.toISOString()} and ${payments.refundedAt} < ${end.toISOString()}`;
@@ -118,7 +135,7 @@ export class ReportsRepository {
                 ),
                 cashRefunded: amount(sql`${vn} and ${refundInPeriod}`, refund),
                 depositHeld: amount(
-                  sql`${vn} and ${captured} and ${heldKnown} and ${payments.status} <> 'REFUNDED'`,
+                  sql`${vn} and ${captured} and ${heldKnown} and ${notReturned} and ${payments.status} <> 'REFUNDED'`,
                   sql`${depositSnapshot} - ${payments.depositForfeitedAmount}`,
                 ),
                 depositForfeited: amount(
@@ -135,7 +152,7 @@ export class ReportsRepository {
                   sql`${vn} and ${inPeriod} and not ${knownSnapshot}`,
                 ),
                 unclassifiedDepositPayments: quantity(
-                  sql`${vn} and ${captured} and not ${heldKnown}`,
+                  sql`${vn} and ${captured} and not ${heldKnown} and ${notReturned}`,
                 ),
                 unsupportedCurrencyPayments: quantity(sql`not (${vn}) and ${captured}`),
               })
@@ -149,6 +166,28 @@ export class ReportsRepository {
                 ),
               )
               .groupBy(paymentFacilityId)
+          : [];
+        const returnPenalties = includeFinancial
+          ? await tx
+              .select({
+                facilityId: storageUnits.facilityId,
+                amount: sql<string>`coalesce(sum(${policyViolationFees.amount}), 0)::text`,
+              })
+              .from(policyViolationFees)
+              .innerJoin(inspections, eq(inspections.id, policyViolationFees.referenceId))
+              .innerJoin(rentals, eq(rentals.id, inspections.rentalId))
+              .innerJoin(storageUnits, eq(storageUnits.id, rentals.storageUnitId))
+              .where(
+                and(
+                  eq(policyViolationFees.referenceType, "INSPECTION"),
+                  eq(policyViolationFees.isActive, false),
+                  gte(rentals.closedAt, start),
+                  sql`${rentals.closedAt} < ${end.toISOString()}`,
+                  filter.unitTypeId ? eq(storageUnits.unitTypeId, filter.unitTypeId) : undefined,
+                  inArray(storageUnits.facilityId, scoped.ids),
+                ),
+              )
+              .groupBy(storageUnits.facilityId)
           : [];
         const inventory = await tx
           .select({
@@ -191,6 +230,7 @@ export class ReportsRepository {
         return {
           facilities: scoped.facilities,
           financial,
+          returnPenalties,
           inventory,
           holds,
           awaiting,

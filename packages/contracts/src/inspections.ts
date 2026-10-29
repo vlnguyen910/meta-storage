@@ -3,6 +3,46 @@ import { HANDOVER_CHECKLIST_ITEMS, HandoverChecklistItemResultSchema } from "./h
 import { INSPECTION_MESSAGES } from "./inspections.messages";
 import type { InspectionChecklistData } from "./inspections.types";
 
+export const PolicyViolationFeeSchema = z.strictObject({
+  code: z
+    .string()
+    .trim()
+    .min(1)
+    .max(64)
+    .regex(/^[A-Z0-9_]+$/),
+  name: z.string().trim().min(1).max(200),
+  amount: z.number().int().nonnegative().max(2_147_483_647),
+  isActive: z.boolean(),
+});
+export type PolicyViolationFee = z.infer<typeof PolicyViolationFeeSchema>;
+export const PolicyViolationFeeCatalogSchema = z.object({
+  version: z.number().int().nonnegative(),
+  items: z.array(PolicyViolationFeeSchema),
+});
+export const UpdatePolicyViolationFeeCatalogSchema = z.strictObject({
+  expectedVersion: z.number().int().nonnegative().max(2_147_483_646),
+  items: z
+    .array(PolicyViolationFeeSchema)
+    .max(100)
+    .superRefine((items, ctx) => {
+      const codes = new Set<string>();
+      items.forEach((item, index) => {
+        if (codes.has(item.code))
+          ctx.addIssue({
+            code: "custom",
+            path: [index, "code"],
+            message: INSPECTION_MESSAGES.duplicateViolationCode,
+          });
+        codes.add(item.code);
+      });
+    }),
+});
+export type UpdatePolicyViolationFeeCatalog = z.infer<typeof UpdatePolicyViolationFeeCatalogSchema>;
+const InspectionViolationInputSchema = z.strictObject({
+  code: z.string().trim().min(1).max(64),
+  note: z.string().trim().max(1000).optional(),
+});
+
 export const INSPECTION_PHOTO_MAX_BYTES = 3 * 1024 * 1024;
 export const INSPECTION_PHOTO_MAX_COUNT = 8;
 export const INSPECTION_CHECKLIST_VERSION = "H6_4PASS_V1";
@@ -120,8 +160,28 @@ export const UpdateInspectionInputSchema = z
     notes: z.string().max(4000, INSPECTION_MESSAGES.notesLimit).nullable().optional(),
     addEvidence: z.array(InspectionEvidenceInputSchema).max(1).optional(),
     removeEvidenceIds: z.array(z.string().uuid()).max(INSPECTION_PHOTO_MAX_COUNT).optional(),
+    violations: z.array(InspectionViolationInputSchema).max(100).optional(),
+    policyVersion: z.number().int().nonnegative().optional(),
   })
   .strict()
+  .superRefine((input, ctx) => {
+    if (input.violations !== undefined && input.policyVersion === undefined)
+      ctx.addIssue({
+        code: "custom",
+        path: ["policyVersion"],
+        message: INSPECTION_MESSAGES.policyVersionRequired,
+      });
+    const seen = new Set<string>();
+    input.violations?.forEach((item, index) => {
+      if (seen.has(item.code))
+        ctx.addIssue({
+          code: "custom",
+          path: ["violations", index, "code"],
+          message: INSPECTION_MESSAGES.duplicateViolationCode,
+        });
+      seen.add(item.code);
+    });
+  })
   .refine((input) => Object.keys(input).length > 0);
 export type UpdateInspectionInput = z.infer<typeof UpdateInspectionInputSchema>;
 
@@ -142,6 +202,31 @@ export const InspectionRecordSchema = z.object({
   inspectedAt: z.string().datetime().nullable(),
   inspectDoneAt: z.string().datetime().nullable(),
   evidence: z.array(InspectionPhotoSchema.extend({ url: z.string().url() })),
+  returnContext: z
+    .object({
+      depositAmount: z.number().int().nonnegative(),
+      policyVersion: z.number().int().nonnegative(),
+      penalties: z.array(
+        z.object({ code: z.string(), name: z.string(), amount: z.number().int().nonnegative() }),
+      ),
+      fees: z.array(
+        z.object({
+          code: z.string(),
+          name: z.string(),
+          amount: z.number().int().nonnegative(),
+          note: z.string().nullable(),
+        }),
+      ),
+      checkIn: z
+        .object({
+          condition: InspectionConditionValueSchema.nullable(),
+          checklist: z.record(z.string(), z.unknown()),
+          notes: z.string().nullable(),
+          inspectedAt: z.string().datetime().nullable(),
+        })
+        .nullable(),
+    })
+    .optional(),
 });
 export type InspectionRecord = z.infer<typeof InspectionRecordSchema>;
 export const InspectionListItemSchema = InspectionRecordSchema.omit({ evidence: true });

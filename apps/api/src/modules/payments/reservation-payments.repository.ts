@@ -83,7 +83,7 @@ export class ReservationPaymentsRepository {
   }
 
   async findHold(tx: ReservationTransaction, payment: typeof payments.$inferSelect) {
-    if (!payment.reservationId) return undefined;
+    if (!payment.reservationId || !payment.holdTokenHash) return undefined;
     const [hold] = await tx
       .select()
       .from(capacityAllocations)
