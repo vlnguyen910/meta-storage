@@ -53,3 +53,16 @@ export const UpdateAppointmentSchema = z.object({
 export type AppointmentQuery = z.infer<typeof AppointmentQuerySchema>;
 export type CreateAppointmentInput = z.infer<typeof CreateAppointmentSchema>;
 export type UpdateAppointmentInput = z.infer<typeof UpdateAppointmentSchema>;
+
+export type AppointmentRecordDto = Omit<
+  import("@metastorage/database/schema/appointments").AppointmentRecord,
+  "createdAt" | "updatedAt"
+> & {
+  customerName?: string | null;
+  slotName?: string;
+  slotStart?: string;
+  slotEnd?: string;
+  reservation?: { unitTypeId: string; rentalStartAt: string; rentalEndAt: string } | null;
+  createdAt: string;
+  updatedAt: string;
+};

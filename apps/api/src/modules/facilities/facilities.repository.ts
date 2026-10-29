@@ -1,7 +1,6 @@
 import {
   and,
   asc,
-  bookings,
   capacityAllocations,
   type Database,
   desc,
@@ -12,6 +11,8 @@ import {
   inArray,
   type NewFacility,
   or,
+  ReservationStatus,
+  reservations,
   systemSettingInteger,
   systemSettings,
 } from "@metastorage/database";
@@ -129,12 +130,16 @@ export class FacilitiesRepository {
   async hasOpenOperations(id: string): Promise<boolean> {
     const now = new Date();
     const [booking] = await this.db
-      .select({ id: bookings.id })
-      .from(bookings)
+      .select({ id: reservations.id })
+      .from(reservations)
       .where(
         and(
-          eq(bookings.facilityId, id),
-          inArray(bookings.status, ["DRAFT", "CONFIRMED", "CHECKED_IN"]),
+          eq(reservations.facilityId, id),
+          inArray(reservations.status, [
+            ReservationStatus.DRAFT,
+            ReservationStatus.CONFIRMED,
+            ReservationStatus.CHECKED_IN,
+          ]),
         ),
       )
       .limit(1);
@@ -148,7 +153,7 @@ export class FacilitiesRepository {
           eq(capacityAllocations.facilityId, id),
           eq(capacityAllocations.status, "ACTIVE"),
           or(
-            eq(capacityAllocations.kind, "BOOKING"),
+            inArray(capacityAllocations.kind, ["BOOKING", "RESERVATION"]),
             and(eq(capacityAllocations.kind, "HOLD"), gt(capacityAllocations.expiresAt, now)),
           ),
         ),

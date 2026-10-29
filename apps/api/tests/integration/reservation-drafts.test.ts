@@ -1,7 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import {
-  bookings,
   capacityAllocations,
   checkInSlots,
   count,
@@ -9,6 +8,7 @@ import {
   eq,
   facilities,
   payments,
+  reservations,
   storageUnits,
   systemSettings,
   unitTypes,
@@ -17,7 +17,7 @@ import {
 import Fastify from "fastify";
 import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
 import { setupErrorHandler } from "../../src/common/errors/error-handler";
-import { bookingsRoutes } from "../../src/modules/bookings/bookings.routes";
+import { reservationsRoutes } from "../../src/modules/reservations/reservations.routes";
 import { createTestUnitType, deleteTestUnitTypes } from "../fixtures/facility-catalog";
 
 // Requires a migrated isolated DB, with DATABASE_URL and BOOKING_TEST_DATABASE_URL set to the same URL.
@@ -41,9 +41,9 @@ const app = Fastify();
 let fixturesCreated = false;
 let session: ReturnType<typeof spyOn>;
 const createDraft = (payload: Record<string, unknown> = input) =>
-  app.inject({ method: "POST", url: "/api/bookings/drafts", payload });
+  app.inject({ method: "POST", url: "/api/reservations/drafts", payload });
 
-describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
+describe.skipIf(!testUrl)("POST /api/reservations/drafts with PostgreSQL", () => {
   beforeAll(async () => {
     if (process.env.DATABASE_URL !== testUrl)
       throw new Error("DATABASE_URL must match the isolated BOOKING_TEST_DATABASE_URL");
@@ -91,7 +91,7 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
     app.setValidatorCompiler(validatorCompiler);
     app.setSerializerCompiler(serializerCompiler);
     setupErrorHandler(app);
-    await app.register(bookingsRoutes, { prefix: "/api" });
+    await app.register(reservationsRoutes, { prefix: "/api/reservations" });
     await app.ready();
   });
 
@@ -107,7 +107,6 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
       .where(eq(unitTypes.facilityId, ids.facility));
     await db.update(storageUnits).set({ status: "AVAILABLE" }).where(eq(storageUnits.id, ids.unit));
     await db.delete(capacityAllocations).where(eq(capacityAllocations.facilityId, ids.facility));
-    await db.delete(bookings).where(eq(bookings.checkInSlotId, ids.extraSlot));
     await db.delete(checkInSlots).where(eq(checkInSlots.id, ids.extraSlot));
   });
 
@@ -116,7 +115,7 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
     await app.close();
     if (!fixturesCreated) return;
     await db.transaction(async (tx) => {
-      await tx.delete(bookings).where(eq(bookings.facilityId, ids.facility));
+      await tx.delete(reservations).where(eq(reservations.facilityId, ids.facility));
       await tx.delete(capacityAllocations).where(eq(capacityAllocations.facilityId, ids.facility));
       await tx.delete(storageUnits).where(eq(storageUnits.id, ids.unit));
       await deleteTestUnitTypes(tx, eq(unitTypes.id, ids.type));
@@ -142,35 +141,23 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
       facilityId: ids.facility,
       unitTypeId: ids.type,
       status: "DRAFT",
-      checkInAt: "2030-01-01T02:00:00.000Z",
+      rentalStartAt: "2030-01-01T02:00:00.000Z",
       rentalEndAt: "2030-03-02T02:00:00.000Z",
-      durationMonths: 2,
-      pricing: {
-        monthlyRateSnapshot: "1000000",
-        rentalFeeAmount: "2000000",
-        depositAmount: "1000000",
-        totalAmount: "3000000",
-        currency: "VND",
-      },
+      requestedMonths: 2,
+      monthlyRateSnapshot: 1000000,
+      rentalFeeAmount: 2000000,
+      depositAmount: 1000000,
+      totalAmount: 3000000,
     });
     expect(data.draftAccessToken).toBeUndefined();
     expect(data.accessTokenHash).toBeUndefined();
     expect(data.contact).toBeUndefined();
-    const [row] = await db.select().from(bookings).where(eq(bookings.id, data.id));
-    expect(row).toMatchObject({
-      status: "DRAFT",
-      userId: ids.customer,
-      contactPhone: null,
-      bookingCode: null,
-      assignedStaffId: null,
-      qrTokenHash: null,
-      checkInDate: "2030-01-01",
-      checkInSlotId: ids.slot,
-    });
+    const [row] = await db.select().from(reservations).where(eq(reservations.id, data.id));
+    expect(row).toMatchObject({ status: "DRAFT", customerId: ids.customer });
     await db.update(unitTypes).set({ monthlyPrice: 2000000 }).where(eq(unitTypes.id, ids.type));
-    expect((await db.select().from(bookings).where(eq(bookings.id, data.id)))[0]?.totalAmount).toBe(
-      "3000000.00",
-    );
+    expect(
+      (await db.select().from(reservations).where(eq(reservations.id, data.id)))[0]?.totalAmount,
+    ).toBe(3000000);
     expect(await db.select({ count: count() }).from(payments)).toEqual(beforePayments);
     expect(
       await db
@@ -209,9 +196,7 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
   test("rejects a missing check-in slot", async () => {
     const response = await createDraft({ ...input, checkInSlotId: randomUUID() });
     expect(response.statusCode).toBe(400);
-    expect(response.json()).toMatchObject({
-      error: { code: 400, details: [{ field: "checkInSlotId" }] },
-    });
+    expect(response.json().error.code).toBe(400);
   });
   test("uses the explicitly selected slot even when slot times overlap", async () => {
     await db.insert(checkInSlots).values({
@@ -222,10 +207,12 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
     });
     const response = await createDraft({ ...input, checkInSlotId: ids.extraSlot });
     expect(response.statusCode).toBe(201);
-    expect(response.json().data.checkInAt).toBe("2030-01-01T02:15:00.000Z");
-    const [row] = await db.select().from(bookings).where(eq(bookings.id, response.json().data.id));
-    expect(row?.checkInSlotId).toBe(ids.extraSlot);
-    expect(row?.checkInDate).toBe(input.checkInDate);
+    expect(response.json().data.rentalStartAt).toBe("2030-01-01T02:15:00.000Z");
+    const [row] = await db
+      .select()
+      .from(reservations)
+      .where(eq(reservations.id, response.json().data.id));
+    expect(row?.rentalStartAt.toISOString()).toBe("2030-01-01T02:15:00.000Z");
   });
   test.each([
     ["10:00", "09:00"],

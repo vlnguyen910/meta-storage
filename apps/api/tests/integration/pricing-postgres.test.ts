@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import {
-  bookings,
+  reservations as bookings,
   checkInSlots,
   db,
   eq,
@@ -20,8 +20,8 @@ import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod
 import { seedPricingPolicy } from "../../../../packages/database/src/seed";
 import { setupErrorHandler } from "../../src/common/errors/error-handler";
 import { auth } from "../../src/modules/auth/auth";
-import { bookingsRoutes } from "../../src/modules/bookings/bookings.routes";
 import { pricingRoutes } from "../../src/modules/pricing/pricing.routes";
+import { reservationsRoutes as bookingsRoutes } from "../../src/modules/reservations/reservations.routes";
 import { createTestUnitType, deleteTestUnitTypes } from "../fixtures/facility-catalog";
 
 const testUrl = process.env.PRICING_TEST_DATABASE_URL;
@@ -41,7 +41,7 @@ describe.skipIf(!testUrl)("pricing transactions with isolated PostgreSQL", () =>
   const draft = () =>
     app.inject({
       method: "POST",
-      url: "/api/bookings/drafts",
+      url: "/api/reservations/drafts",
       headers: { "x-customer": "1" },
       payload: {
         facilityId: ids.facility,
@@ -127,7 +127,7 @@ describe.skipIf(!testUrl)("pricing transactions with isolated PostgreSQL", () =>
     app.setSerializerCompiler(serializerCompiler);
     setupErrorHandler(app);
     await app.register(pricingRoutes, { prefix: "/api/business-rules" });
-    await app.register(bookingsRoutes, { prefix: "/api" });
+    await app.register(bookingsRoutes, { prefix: "/api/reservations" });
     await app.ready();
   });
   beforeEach(async () => {
@@ -169,18 +169,18 @@ describe.skipIf(!testUrl)("pricing transactions with isolated PostgreSQL", () =>
   test("updates price/policy with audit and keeps pre-existing draft snapshots", async () => {
     const first = await draft();
     expect(first.statusCode).toBe(201);
-    expect(first.json().data.pricing.totalAmount).toBe("2250000");
+    expect(first.json().data.totalAmount).toBe(2250000);
     expect(
       (await patch({ expectedVersion: 0, monthlyPrice: 900000 }, `/${ids.type}`)).statusCode,
     ).toBe(200);
     expect((await patch({ expectedVersion: 2, depositMonths: 2 })).statusCode).toBe(200);
     const next = await draft();
     expect(next.statusCode).toBe(201);
-    expect(next.json().data.pricing).toMatchObject({
-      monthlyRateSnapshot: "900000",
-      depositAmount: "1800000",
-      rentalFeeAmount: "1800000",
-      totalAmount: "3600000",
+    expect(next.json().data).toMatchObject({
+      monthlyRateSnapshot: 900000,
+      depositAmount: 1800000,
+      rentalFeeAmount: 1800000,
+      totalAmount: 3600000,
     });
     const [old] = await db.select().from(bookings).where(eq(bookings.id, first.json().data.id));
     expect(Number(old?.totalAmount)).toBe(2250000);

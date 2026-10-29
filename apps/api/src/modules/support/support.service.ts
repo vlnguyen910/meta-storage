@@ -61,6 +61,7 @@ export class SupportService {
     return {
       id: row.id,
       bookingId: row.bookingId,
+      reservationId: row.reservationId,
       facilityId: row.facilityId,
       rentalId: row.rentalId,
       storageUnitId: null,
@@ -82,7 +83,8 @@ export class SupportService {
 
   private sameRequest(row: SupportTicketRow, input: SupportCreateInput) {
     return (
-      row.bookingId === input.bookingId &&
+      row.bookingId === (input.bookingId ?? null) &&
+      row.reservationId === (input.reservationId ?? null) &&
       row.category === input.category &&
       row.paymentId === (input.paymentId ?? null) &&
       row.subject === input.subject &&
@@ -134,7 +136,7 @@ export class SupportService {
     return {
       items: rows.slice(0, input.limit).map((row) => ({
         ...row,
-        source: "BOOKING" as const,
+        source: "RESERVATION" as const,
         createdAt: row.createdAt.toISOString(),
       })),
       nextCursor: this.next(rows, input.limit),
@@ -159,12 +161,20 @@ export class SupportService {
   async create(actorId: string, input: SupportCreateInput): Promise<SupportDetail> {
     const ticketId = await this.repository.transaction(async (tx) => {
       const actor = await this.requireCustomer(tx, actorId);
-      const booking = await this.repository.lockBooking(tx, input.bookingId, actorId);
+      const booking = input.reservationId
+        ? await this.repository.lockReservation(tx, input.reservationId, actorId)
+        : input.bookingId
+          ? await this.repository.lockBooking(tx, input.bookingId, actorId)
+          : undefined;
       if (!booking) throw new NotFoundError(m.notFound);
       let rentalId: string | null = null;
       if (input.category !== "PAYMENT") {
         if (input.paymentId) throw new ValidationError(m.invalidPayment);
-        const rental = await this.repository.lockRental(tx, booking.id);
+        const rental = await this.repository.lockRental(
+          tx,
+          booking.id,
+          Boolean(input.reservationId),
+        );
         if (!rental || rental.status === "CLOSED" || booking.status !== "CHECKED_IN")
           throw new ConflictError(m.handoverRequired);
         const unit = await this.repository.unit(tx, rental.storageUnitId);
@@ -173,12 +183,16 @@ export class SupportService {
         rentalId = rental.id;
       } else if (input.paymentId) {
         const payment = await this.repository.payment(tx, input.paymentId);
-        if (!payment || payment.bookingId !== booking.id)
+        if (
+          !payment ||
+          (input.reservationId ? payment.reservationId : payment.bookingId) !== booking.id
+        )
           throw new ValidationError(m.invalidPayment);
       }
       const now = new Date();
       const created = await this.repository.insertTicket(tx, {
-        bookingId: booking.id,
+        bookingId: input.bookingId ? booking.id : null,
+        reservationId: input.reservationId ? booking.id : null,
         ownerUserId: actorId,
         facilityId: booking.facilityId,
         rentalId,
@@ -205,7 +219,8 @@ export class SupportService {
         recipientKey: `user:${actorId}`,
         eventType: "SUPPORT_CREATED",
         supportTicketId: created.id,
-        bookingId: booking.id,
+        bookingId: input.bookingId ? booking.id : null,
+        reservationId: input.reservationId ? booking.id : null,
         facilityId: booking.facilityId,
         recipientUserId: actorId,
         recipientRole: "CUSTOMER",

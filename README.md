@@ -173,11 +173,18 @@ REDIS_TEST_URL=redis://localhost:6379/15 bun run --filter api test
 
 API mặc định chạy tại port `4000`. Có thể thay đổi port trong `apps/api/.env`.
 
-Demo check-in ngay sau khi đặt booking: chạy API với `NODE_ENV=development`
-hoặc `NODE_ENV=develop`. Booking đã thanh toán (`CONFIRMED`/`SUCCEEDED`), đã gán
-kho và Staff có thể xác nhận check-in trước giờ/ngày hẹn. Không cần đổi ngày
-booking hoặc chạy seed lại. Production và test vẫn yêu cầu đến giờ hẹn.
-Hạn cuối check-in, quyền truy cập, checklist và hợp đồng bàn giao vẫn được kiểm tra.
+Luồng nhận kho dùng reservation → thanh toán → appointment → task → inspection →
+bàn giao. Manager xác nhận và gán Staff tại màn hình lịch hẹn; Staff bắt đầu task
+khi tới giờ hẹn, chọn Unit và hoàn tất checklist trước khi bàn giao.
+Khi `NODE_ENV=develop` hoặc `development`, API cho phép demo đặt kho/nhận kho
+trong ngày, dùng slot demo ngoài giờ hoạt động và bắt đầu task/bàn giao trước hoặc
+sau giờ hẹn. Cron không tự đánh dấu reservation no-show trong hai môi trường này.
+Không cần biến môi trường bổ sung. Thanh toán phải được xác minh, staff phải được
+giao việc và inspection/checklist vẫn bắt buộc; `test`/`production` giữ kiểm tra
+thời gian đầy đủ. Cần chạy production bằng đúng `NODE_ENV=production`.
+
+API booking cũ đã được gỡ; xem [hướng dẫn chuyển đổi](docs/booking-retirement.md)
+trước khi nâng cấp database và khởi động phiên bản mới.
 
 Khôi phục mật khẩu dùng Better Auth và Resend: đặt `WEB_URL` thành origin Web đã
 khai báo trong `AUTH_TRUSTED_ORIGINS`. Cả Web và Mobile yêu cầu qua
@@ -333,14 +340,12 @@ bun run db:seed
 Chỉ cần lệnh seed ở trên (`bun run db:seed`); toàn bộ dữ liệu và logic seed
 nằm trong `packages/database/src/seed.ts`, bao gồm tài khoản và demo check-in ngay.
 
-Lệnh tạo booking riêng `DEMO-CHECKIN-NOW` tại `HCM-01`, đã thanh toán giả lập,
-gán một Unit còn trống và gán Staff `staff@metastorage.vn`, mật khẩu development
-là `12345678`. Chạy seed lại sẽ khôi phục các kịch bản mẫu và mật khẩu development.
-Slot bắt đầu ở phút hiện tại theo giờ Việt Nam và kết thúc cuối ngày. Có thể đăng nhập
-Staff và tìm mã booking để xác nhận check-in ngay; inspection và hợp đồng vẫn tuân theo
-điều kiện bàn giao hiện có. Lệnh không gửi email; chỉ dời giờ `DEMO-CHECKIN-NOW`
-khi booking còn `CONFIRMED`, chưa verification hoặc rental.
-Nếu demo đã đi tiếp, lệnh giữ nguyên trạng thái đó. Không chạy trong production.
+Seed tạo kịch bản nhận kho tại `HCM-01`, thanh toán giả lập và Staff
+`staff@metastorage.vn` (mật khẩu development `12345678`), rồi chuyển các bản ghi
+mẫu sang reservation/appointment. Manager xác nhận và giao task từ lịch hẹn; Staff
+tiếp tục inspection và bàn giao. Lệnh không gửi email. Khi đã có reservation, chạy seed lại giữ nguyên lịch
+sử nghiệp vụ và chỉ làm mới tài khoản/cấu hình mẫu; dùng `db:clear` để tạo lại toàn
+bộ dataset. Không chạy seed trong production.
 
 Kiểm thử seed trên database loopback mới, đã migrate, có tên kết thúc `_seed_test`:
 

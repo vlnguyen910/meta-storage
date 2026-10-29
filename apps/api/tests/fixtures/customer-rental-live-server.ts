@@ -17,13 +17,15 @@ import {
   unitTypes,
   users,
 } from "@metastorage/database";
+import { migrateBookingsToReservations } from "../../../../packages/database/src/migrate-bookings-to-reservations";
 import { corsPlugin } from "../../src/common/plugins/cors";
+import { appointmentsRoutes } from "../../src/modules/appointments/appointments.routes";
 import { authRoutes } from "../../src/modules/auth/auth.routes";
-import { bookingsRoutes } from "../../src/modules/bookings/bookings.routes";
 import { facilitiesRoutes } from "../../src/modules/facilities/facilities.routes";
 import { paymentsRoutes } from "../../src/modules/payments/payments.routes";
 import { SepayPaymentGateway } from "../../src/modules/payments/sepay.gateway";
 import { rentalsRoutes } from "../../src/modules/rentals/rentals.routes";
+import { reservationsRoutes } from "../../src/modules/reservations/reservations.routes";
 import { supportRoutes } from "../../src/modules/support/support.routes";
 import { createFacilityOperationsFixture } from "./facility-operations";
 import { assertTestDatabase } from "./test-database";
@@ -39,7 +41,8 @@ await db
   .where(eq(unitTypes.id, f.typeId));
 await f.app.register(corsPlugin);
 await f.app.register(authRoutes, { prefix: "/api/auth" });
-await f.app.register(bookingsRoutes, { prefix: "/api" });
+await f.app.register(reservationsRoutes, { prefix: "/api/reservations" });
+await f.app.register(appointmentsRoutes, { prefix: "/api/appointments" });
 await f.app.register(facilitiesRoutes, { prefix: "/api/facilities" });
 await f.app.register(paymentsRoutes, { prefix: "/api" });
 await f.app.register(rentalsRoutes, { prefix: "/api/rentals" });
@@ -163,6 +166,7 @@ await f.login();
 await db.insert(rentals).values(rentalRows);
 for (const id of bookingIds)
   await db.update(bookings).set({ status: "CHECKED_IN" }).where(eq(bookings.id, id));
+await db.transaction(migrateBookingsToReservations);
 const address = await f.app.listen({
   host: "127.0.0.1",
   port: Number(process.env.CUSTOMER_E2E_API_PORT ?? 4100),

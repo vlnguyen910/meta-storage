@@ -2,10 +2,14 @@
 
 ## Reservation and appointment workflows
 
-`reservations` and `appointments` are additive workflows. Existing `bookings`
-records and endpoints remain supported; no booking data is moved or deleted.
-Migration `0011_real_iron_lad.sql` extends payments, capacity allocations and task
-references without changing existing booking references.
+`reservations` owns checkout and rental pricing; `appointments` owns meetings,
+assignment and receiving. The backend booking module and `/api/bookings` routes
+are retired. The `bookings` table remains an archive; new business writes use the
+new modules. See [booking cutover](booking-retirement.md) before deployment.
+Migration `0013_nostalgic_raza.sql` adds reservation references to support tickets
+and notification outbox, each requiring exactly one booking/reservation parent.
+After schema commit, the migration runner converts historical records atomically,
+keeping IDs, financial facts, rental/inspection history and assigned tasks.
 
 | Table | Main data and rules |
 | --- | --- |
@@ -13,7 +17,7 @@ references without changing existing booking references.
 | `appointments` | CHECK_IN references a paid reservation; CHECK_OUT references an active customer rental; SUPPORT references an owned support ticket. Facility/customer scope is derived from that context. Date and slot must be future and within operating hours. One active appointment per context is enforced by service parent locks. The check-in unique index applies to SCHEDULED/CONFIRMED records so cancelled history does not prevent rebooking. One confirmed return per facility/date/slot remains enforced by a partial unique index. |
 | `payments` | Exactly one of booking_id or reservation_id is required. The existing provider, idempotency, payment status, provider-event deduplication and manual refund workflow also support reservations. |
 | `capacity_allocations` | HOLD reserves capacity for ten minutes during checkout. A successful reservation payment changes it to RESERVATION without expiry. All allocation kinds contribute to the existing capacity calculation. |
-| `facility_tasks` | APPOINTMENT is an additional reference type. CHECK_IN creates CHECK_IN_HANDOVER, CHECK_OUT creates UNIT_INSPECTION and SUPPORT creates HANDLE_SUPPORT. Assignment/reassignment belongs to the appointment workflow. Staff start through the existing task API; completion/cancellation commits with the appointment. |
+| `facility_tasks` | APPOINTMENT owns scheduled work; BOOKING is retained only for archived tasks. CHECK_IN creates CHECK_IN_HANDOVER, CHECK_OUT creates UNIT_INSPECTION and SUPPORT creates HANDLE_SUPPORT. Assignment/reassignment belongs to the appointment workflow. Staff start through the existing task API; completion/cancellation commits with the appointment. |
 
 ```mermaid
 erDiagram
@@ -23,6 +27,8 @@ erDiagram
   reservations ||--o{ appointments : check_in
   reservations ||--o| rentals : handover
   reservations ||--o{ inspections : check_in
+  reservations ||--o{ support_tickets : support
+  reservations ||--o{ notification_outbox : lifecycle
   rentals ||--o{ appointments : check_out
   support_tickets ||--o{ appointments : support
   appointments ||--o{ facility_tasks : reference_type_APPOINTMENT
@@ -166,9 +172,9 @@ types are `BOOKING`, `STORAGE_UNIT`, and `SUPPORT_TICKET`; because one UUID colu
 cannot have foreign keys to three tables, repositories validate target existence
 and same-facility scope under transaction locks.
 
-`CHECK_IN_HANDOVER` always references a booking and is created or reassigned in the
-same transaction as FM booking staff assignment. `UNIT_INSPECTION` references a
-booking or storage unit; `HANDLE_SUPPORT` references a support ticket. Reassignment
+`CHECK_IN_HANDOVER` references an appointment and is created or reassigned in the
+same transaction as manager appointment assignment. `UNIT_INSPECTION` references an
+appointment or storage unit; `HANDLE_SUPPORT` references a support ticket. Reassignment
 resets an in-progress task to `ASSIGNED`; same assignee retries are no-ops. The
 assigned active Facility Staff starts and completes the task. An assigned-facility
 FM may cancel unfinished work. There is no separate task report, approval state,
@@ -597,7 +603,12 @@ erDiagram
 
 ```
 
-## Account-required booking (approved 2026-10-25; supersedes guest decisions)
+## Historical booking design (superseded by reservation cutover)
+
+The following booking-specific notes describe archived records and retired routes.
+Current receiving behavior is defined at the top of this document.
+
+### Account-required booking (approved 2026-10-25; supersedes guest decisions)
 
 Only active authenticated CUSTOMER accounts can create booking drafts, start payments,
 read payment status, cancel bookings, or access their rentals/documents and return details.

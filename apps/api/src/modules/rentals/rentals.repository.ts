@@ -4,10 +4,12 @@ import type {
   RentalPageQuery,
 } from "@metastorage/contracts";
 import {
+  alias,
   and,
   asc,
   bookings,
   count,
+  users as customerUsers,
   type Database,
   desc,
   eq,
@@ -23,7 +25,9 @@ import {
   storageUnits,
   unitTypes,
 } from "@metastorage/database";
-import { bookingCustomer } from "../bookings/bookings.projection";
+
+const bookingCustomer = alias(customerUsers, "booking_customer");
+
 import type { TaskTransaction } from "../facility-tasks/facility-tasks.types";
 import type { RentalQueryExecutor } from "./rentals.types";
 

@@ -30,14 +30,20 @@ export const SupportMessageParamsSchema = SupportTicketParamsSchema.extend({ mes
 export const SupportAttachmentParamsSchema = SupportTicketParamsSchema.extend({
   attachmentId: uuid,
 });
-export const SupportCreateInputSchema = z.strictObject({
-  bookingId: uuid,
-  category: z.enum(SUPPORT_CATEGORIES),
-  paymentId: uuid.optional(),
-  subject: z.string().trim().min(1, m.required).max(200, m.subjectLimit),
-  content,
-  idempotencyKey: key,
-});
+export const SupportCreateInputSchema = z
+  .strictObject({
+    bookingId: uuid.optional(),
+    reservationId: uuid.optional(),
+    category: z.enum(SUPPORT_CATEGORIES),
+    paymentId: uuid.optional(),
+    subject: z.string().trim().min(1, m.required).max(200, m.subjectLimit),
+    content,
+    idempotencyKey: key,
+  })
+  .refine((input) => Boolean(input.bookingId) !== Boolean(input.reservationId), {
+    message: m.required,
+    path: ["reservationId"],
+  });
 export const SupportReplyInputSchema = z.strictObject({
   content,
   version: z.number().int().nonnegative(),
@@ -75,6 +81,7 @@ export type SupportContextQuery = z.infer<typeof SupportContextQuerySchema>;
 
 export const SupportTicketQuerySchema = SupportPageQuerySchema.extend({
   bookingId: uuid.optional(),
+  reservationId: uuid.optional(),
   category: z.enum(SUPPORT_CATEGORIES).optional(),
   status: z.enum(SUPPORT_STATUSES).optional(),
 });
@@ -89,7 +96,8 @@ export const SupportAttachmentSchema = z.object({
 });
 export const SupportTicketSchema = z.object({
   id: uuid,
-  bookingId: uuid,
+  bookingId: uuid.nullable(),
+  reservationId: uuid.nullable().optional(),
   facilityId: uuid,
   rentalId: uuid.nullable(),
   storageUnitId: uuid.nullable(),

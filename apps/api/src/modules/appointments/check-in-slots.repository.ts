@@ -1,9 +1,12 @@
+import type { Database } from "@metastorage/database";
 import { asc, checkInSlots, eq, max, sql } from "@metastorage/database";
-import type { BookingQueryExecutor } from "./bookings.types";
+
+type SlotQueryExecutor = Database | Parameters<Parameters<Database["transaction"]>[0]>[0];
+
 import type { ResolvedCheckInSlot } from "./check-in-slots.types";
 
 export class CheckInSlotsRepository {
-  constructor(private readonly executor: BookingQueryExecutor) {}
+  constructor(private readonly executor: SlotQueryExecutor) {}
 
   async findDayEnd(checkInDate: string): Promise<Date | null> {
     const [row] = await this.executor

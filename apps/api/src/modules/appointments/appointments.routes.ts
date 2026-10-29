@@ -14,7 +14,7 @@ import { requireAuth, requireRole } from "../auth/auth.guard";
 import { createAppointmentsService } from "./appointments.service";
 
 export const appointmentsRoutes: FastifyPluginAsync = async (app) => {
-  const service = createAppointmentsService(app.db);
+  const service = createAppointmentsService(app.db, app.notifications);
   const typed = app.withTypeProvider<ZodTypeProvider>();
 
   typed.get("/check-in-slots", async (_request, reply) =>

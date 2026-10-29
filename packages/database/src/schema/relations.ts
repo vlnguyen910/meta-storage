@@ -41,6 +41,10 @@ export const inspectionsRelations = relations(inspections, ({ one }) => ({
   }),
   rental: one(rentals, { fields: [inspections.rentalId], references: [rentals.id] }),
   booking: one(bookings, { fields: [inspections.bookingId], references: [bookings.id] }),
+  reservation: one(reservations, {
+    fields: [inspections.reservationId],
+    references: [reservations.id],
+  }),
   inspector: one(users, {
     fields: [inspections.inspectedBy],
     references: [users.id],
@@ -55,6 +59,10 @@ export const mediaAssetsRelations = relations(mediaAssets, ({ one }) => ({
 
 export const paymentsRelations = relations(payments, ({ one }) => ({
   booking: one(bookings, { fields: [payments.bookingId], references: [bookings.id] }),
+  reservation: one(reservations, {
+    fields: [payments.reservationId],
+    references: [reservations.id],
+  }),
 }));
 
 export const facilityTasksRelations = relations(facilityTasks, ({ many }) => ({

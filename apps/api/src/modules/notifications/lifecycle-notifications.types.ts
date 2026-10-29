@@ -5,7 +5,8 @@ export type NotificationTransaction = Parameters<Parameters<Database["transactio
 export interface LifecycleEventInput {
   key: string;
   type: LifecycleNotificationEvent;
-  bookingId: string;
+  bookingId?: string;
+  reservationId?: string;
   rentalTermVersion?: number;
   detail?: string;
   managers?: boolean;

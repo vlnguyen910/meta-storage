@@ -216,7 +216,10 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"Start payment: status\", () => pm.response.to.have.status(201));",
-                  "const d=pm.response.json().data;pm.environment.set(\"paymentCode\",d.paymentCode);pm.environment.set(\"paymentId\",d.paymentId);pm.test(\"Signed checkout\",()=>pm.expect(d.checkoutUrl).to.be.a(\"string\"));"
+                  "const d=pm.response.json().data;pm.environment.set(\"paymentCode\",d.paymentCode);pm.environment.set(\"paymentId\",d.paymentId);pm.test(\"Signed checkout\",()=>pm.expect(d.checkoutUrl).to.be.a(\"string\"));",
+                  "pm.test(\"Checkout success returns to Web\", () => { const url = new URL(d.checkoutFormFields.success_url); pm.expect(url.origin).to.eql(new URL(pm.environment.get(\"webUrl\")).origin); pm.expect(url.pathname).to.eql(\"/customer/payments/result\"); pm.expect(url.searchParams.get(\"paymentId\")).to.eql(d.paymentId); pm.expect(url.searchParams.get(\"reservationId\")).to.eql(d.reservationId); pm.expect(url.searchParams.get(\"status\")).to.eql(\"success\"); });",
+                  "pm.test(\"Checkout error returns to Web\", () => { const url = new URL(d.checkoutFormFields.error_url); pm.expect(url.origin).to.eql(new URL(pm.environment.get(\"webUrl\")).origin); pm.expect(url.pathname).to.eql(\"/customer/payments/result\"); pm.expect(url.searchParams.get(\"paymentId\")).to.eql(d.paymentId); pm.expect(url.searchParams.get(\"reservationId\")).to.eql(d.reservationId); pm.expect(url.searchParams.get(\"status\")).to.eql(\"error\"); });",
+                  "pm.test(\"Checkout cancel returns to Web\", () => { const url = new URL(d.checkoutFormFields.cancel_url); pm.expect(url.origin).to.eql(new URL(pm.environment.get(\"webUrl\")).origin); pm.expect(url.pathname).to.eql(\"/customer/payments/result\"); pm.expect(url.searchParams.get(\"paymentId\")).to.eql(d.paymentId); pm.expect(url.searchParams.get(\"reservationId\")).to.eql(d.reservationId); pm.expect(url.searchParams.get(\"status\")).to.eql(\"cancel\"); });"
                 ]
               }
             }
@@ -316,6 +319,68 @@
                 "exec": [
                   "pm.test(\"Payment succeeded: status\", () => pm.response.to.have.status(200));",
                   "pm.test(\"Payment succeeded\",()=>pm.expect(pm.response.json().data.status).to.eql(\"SUCCEEDED\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Customer receives reservation confirmation",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/notifications"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Customer receives reservation confirmation: status\",()=>pm.response.to.have.status(200));",
+                  "pm.test(\"Reservation notification\",()=>pm.expect(pm.response.json().data.some(n=>n.reservationId===pm.environment.get(\"reservationId\"))).to.be.true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Customer creates reservation payment support ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/support/tickets",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"reservationId\": \"{{reservationId}}\", \"paymentId\": \"{{paymentId}}\", \"category\": \"PAYMENT\", \"subject\": \"Workflow payment question\", \"content\": \"Test support for a reservation payment.\", \"idempotencyKey\": \"{{$guid}}\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Customer creates reservation payment support ticket: status\",()=>pm.response.to.have.status(201));",
+                  "pm.test(\"Support uses reservation\",()=>{pm.expect(pm.response.json().data.ticket.reservationId).to.eql(pm.environment.get(\"reservationId\"));pm.expect(pm.response.json().data.ticket.bookingId).to.eql(null);});"
                 ]
               }
             }
@@ -473,6 +538,35 @@
                 "exec": [
                   "pm.test(\"Manager sees appointment: status\", () => pm.response.to.have.status(200));",
                   "pm.test(\"New appointment visible\",()=>pm.expect(pm.response.json().data.some(x=>x.id===pm.environment.get(\"appointmentId\"))).to.be.true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Manager receives reservation notification",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/notifications"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Manager receives reservation notification: status\",()=>pm.response.to.have.status(200));",
+                  "pm.test(\"Manager notified\",()=>pm.expect(pm.response.json().data.some(n=>n.reservationId===pm.environment.get(\"reservationId\"))).to.be.true);"
                 ]
               }
             }
@@ -736,6 +830,35 @@
           ]
         },
         {
+          "name": "Staff lists available physical units",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/storage-units?facilityId={{facilityId}}&unitTypeId={{unitTypeId}}&status=AVAILABLE&limit=100&offset=0"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Staff lists available physical units: status\",()=>pm.response.to.have.status(200));",
+                  "pm.test(\"Expected unit visible\",()=>pm.expect(pm.response.json().data.items.some(u=>u.id===pm.environment.get(\"unitId\"))).to.be.true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Inspect selected physical unit",
           "request": {
             "method": "POST",
@@ -763,6 +886,35 @@
                 "exec": [
                   "pm.test(\"Inspect selected physical unit: status\", () => pm.response.to.have.status(201));",
                   "pm.environment.set(\"inspectionId\",pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Recover inspection by appointment",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/inspections/appointments/{{appointmentId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Recover inspection by appointment: status\",()=>pm.response.to.have.status(200));",
+                  "pm.test(\"Inspection survives reload\",()=>pm.expect(pm.response.json().data.some(i=>i.id===pm.environment.get(\"inspectionId\"))).to.be.true);"
                 ]
               }
             }

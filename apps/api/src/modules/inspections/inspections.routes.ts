@@ -12,13 +12,10 @@ import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
 import { createAppointmentsService } from "../appointments/appointments.service";
 import { requireRole } from "../auth/auth.guard";
-import { createBookingCheckInService } from "../bookings/booking-check-in.service";
-import { createBookingsService } from "../bookings/bookings.service";
 import { FacilitiesRepository } from "../facilities/facilities.repository";
 import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
 import { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
 import { FacilityTasksRepository } from "../facility-tasks/facility-tasks.repository";
-import { FacilityTasksService } from "../facility-tasks/facility-tasks.service";
 import { MediaAssetsRepository } from "../media-assets/media-assets.repository";
 import { MediaAssetsService } from "../media-assets/media-assets.service";
 import { RentalsRepository } from "../rentals/rentals.repository";
@@ -31,7 +28,6 @@ import { InspectionsRepository } from "./inspections.repository";
 import { InspectionsService } from "./inspections.service";
 
 const inspectionParams = z.object({ id: z.string().uuid() });
-const bookingParams = z.object({ bookingId: z.string().uuid() });
 
 export const inspectionsRoutes: FastifyPluginAsync = async (app) => {
   const typed = app.withTypeProvider<ZodTypeProvider>();
@@ -45,9 +41,7 @@ export const inspectionsRoutes: FastifyPluginAsync = async (app) => {
   const service = new InspectionsService(
     new InspectionsRepository(app.db),
     tasks,
-    new FacilityTasksService(tasks, assignments, createBookingCheckInService(app.db)),
     new RentalsService(new RentalsRepository(app.db), assignments),
-    createBookingsService(app),
     new StorageUnitsService(new StorageUnitsRepository(app.db)),
     assignments,
     media,
@@ -56,44 +50,17 @@ export const inspectionsRoutes: FastifyPluginAsync = async (app) => {
   );
 
   typed.get(
-    "/inspections/bookings/:bookingId",
+    "/inspections/appointments/:appointmentId",
     {
-      preHandler: [requireRole(UserRole.FACILITY_STAFF)],
-      schema: {
-        tags: ["Inspections"],
-        summary: m.bookingHistorySummary,
-        params: bookingParams,
-      },
+      preHandler: [requireRole(UserRole.FACILITY_STAFF, UserRole.FACILITY_MANAGER)],
+      schema: { tags: ["Inspections"], params: z.object({ appointmentId: z.uuid() }) },
     },
     async (request) => {
-      const user = request.user;
-      if (!user) throw new UnauthorizedError();
+      if (!request.user) throw new UnauthorizedError();
       return successResponse(
-        await service.historyForBooking(request.params.bookingId, {
-          id: user.id,
-          role: user.role as UserRole,
-        }),
-      );
-    },
-  );
-
-  typed.post(
-    "/inspections/bookings/:bookingId",
-    {
-      preHandler: [requireRole(UserRole.FACILITY_STAFF)],
-      schema: {
-        tags: ["Inspections"],
-        summary: m.startBookingSummary,
-        params: bookingParams,
-      },
-    },
-    async (request) => {
-      const user = request.user;
-      if (!user) throw new UnauthorizedError();
-      return successResponse(
-        await service.startForBooking(request.params.bookingId, {
-          id: user.id,
-          role: user.role as UserRole,
+        await service.historyForAppointment(request.params.appointmentId, {
+          id: request.user.id,
+          role: request.user.role as UserRole,
         }),
       );
     },

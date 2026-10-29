@@ -15,7 +15,7 @@ export const BookingPaymentParamsSchema = z.object({
 });
 export type BookingPaymentParams = z.infer<typeof BookingPaymentParamsSchema>;
 
-export const BookingPaymentInputSchema = z.object({
+export const CheckoutSessionInputSchema = z.object({
   idempotencyKey: z.string().min(16).max(128),
   contactPhone: z
     .string()
@@ -23,7 +23,9 @@ export const BookingPaymentInputSchema = z.object({
     .regex(/^(?:\+[1-9]\d{7,14}|0\d{9})$/)
     .optional(),
 });
-export type BookingPaymentInput = z.infer<typeof BookingPaymentInputSchema>;
+export type CheckoutSessionInput = z.infer<typeof CheckoutSessionInputSchema>;
+export { CheckoutSessionInputSchema as BookingPaymentInputSchema };
+export type BookingPaymentInput = CheckoutSessionInput;
 
 export const PaymentStatus = {
   PENDING: "PENDING",

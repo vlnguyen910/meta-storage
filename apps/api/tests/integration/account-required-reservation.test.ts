@@ -2,18 +2,18 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import Fastify from "fastify";
 import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
 import { setupErrorHandler } from "../../src/common/errors/error-handler";
-import { bookingsRoutes } from "../../src/modules/bookings/bookings.routes";
 import { paymentsRoutes } from "../../src/modules/payments/payments.routes";
+import { reservationsRoutes } from "../../src/modules/reservations/reservations.routes";
 
 const app = Fastify();
 const id = "00000000-0000-4000-8000-000000000001";
 
-describe("customer account required for booking", () => {
+describe("customer account required for reservation", () => {
   beforeAll(async () => {
     app.setValidatorCompiler(validatorCompiler);
     app.setSerializerCompiler(serializerCompiler);
     setupErrorHandler(app);
-    await app.register(bookingsRoutes, { prefix: "/api" });
+    await app.register(reservationsRoutes, { prefix: "/api/reservations" });
     await app.register(paymentsRoutes, { prefix: "/api" });
     await app.ready();
   });
@@ -22,7 +22,7 @@ describe("customer account required for booking", () => {
   test.each([
     [
       "POST",
-      "/bookings/drafts",
+      "/reservations/drafts",
       {
         facilityId: id,
         unitTypeId: id,
@@ -31,8 +31,12 @@ describe("customer account required for booking", () => {
         durationMonths: 1,
       },
     ],
-    ["POST", `/bookings/${id}/pay`, { idempotencyKey: "account-required-payment" }],
-    ["POST", `/bookings/${id}/cancel`, {}],
+    [
+      "POST",
+      `/reservations/${id}/make-payment`,
+      { idempotencyKey: "00000000-0000-4000-8000-000000000002" },
+    ],
+    ["PATCH", `/reservations/${id}`, { status: "CANCELLED" }],
     ["GET", `/payments/${id}/status`, undefined],
   ] as const)("rejects anonymous %s %s", async (method, path, payload) => {
     const response = await app.inject({ method, url: `/api${path}`, payload });

@@ -1,13 +1,15 @@
 import { randomBytes } from "node:crypto";
 import {
-  type BookingPaymentInput,
-  BookingPaymentInputSchema,
+  type CheckoutSessionInput,
+  CheckoutSessionInputSchema,
   type ReservationPaymentSession,
 } from "@metastorage/contracts";
 import type { Database, PaymentRefundReason, ReservationRecord } from "@metastorage/database";
 import { ReservationStatus } from "@metastorage/database/schema/reservations";
 import { localDate } from "../../common/date";
 import { AppError, ConflictError, NotFoundError } from "../../common/errors/app-error";
+import { isDevelopmentEnvironment } from "../../config/env";
+import { recordLifecycleEvent } from "../notifications/lifecycle-notifications.repository";
 import {
   ReservationsRepository,
   type ReservationTransaction,
@@ -34,10 +36,10 @@ export class ReservationPaymentsService {
 
   async startPayment(
     reservationId: string,
-    input: BookingPaymentInput,
+    input: CheckoutSessionInput,
     customerId: string,
   ): Promise<ReservationPaymentSession> {
-    input = BookingPaymentInputSchema.parse(input);
+    input = CheckoutSessionInputSchema.parse(input);
     const gateway = this.gateway;
     if (!gateway?.checkoutConfigured)
       throw new AppError(m.sepayUnavailable, 503, "PAYMENT_PROVIDER_UNAVAILABLE");
@@ -64,8 +66,9 @@ export class ReservationPaymentsService {
       if (await this.repository.findOpenPayment(tx, reservation.id))
         throw new ConflictError(m.paymentPendingReconciliation);
       if (
+        !isDevelopmentEnvironment() &&
         localDate(reservation.rentalStartAt, "Asia/Ho_Chi_Minh") <=
-        localDate(new Date(), "Asia/Ho_Chi_Minh")
+          localDate(new Date(), "Asia/Ho_Chi_Minh")
       )
         throw new ConflictError(m.checkInTomorrow);
       const offering = await this.repository.lockOffering(
@@ -162,7 +165,11 @@ export class ReservationPaymentsService {
       const hold = await this.repository.findHold(tx, payment);
       let reason: PaymentRefundReason | null = null;
       if (reservation.status !== ReservationStatus.DRAFT) reason = "CUSTOMER_CANCELLATION";
-      else if (reservation.rentalStartAt <= new Date()) reason = "CHECK_IN_CLOSED";
+      else if (
+        reservation.rentalEndAt <= new Date() ||
+        (!isDevelopmentEnvironment() && reservation.rentalStartAt <= new Date())
+      )
+        reason = "CHECK_IN_CLOSED";
       else if (!offering?.active || !offering.facilityActive) reason = "OFFERING_UNAVAILABLE";
       else if (
         !(hold?.status === "ACTIVE" && hold.expiresAt && hold.expiresAt > new Date()) &&
@@ -201,6 +208,13 @@ export class ReservationPaymentsService {
           providerPaymentId: event.referenceCode ?? event.providerEventId,
         });
         await this.reservations.updateStatus(reservation.id, ReservationStatus.CONFIRMED, tx);
+        await recordLifecycleEvent(tx, {
+          key: `reservation:${reservation.id}:confirmed`,
+          type: "BOOKING_CONFIRMED",
+          reservationId: reservation.id,
+          managers: true,
+          occurredAt: event.paidAt ?? new Date(),
+        });
       }
       return { duplicate: false, processed: true, paymentId: payment.id };
     });

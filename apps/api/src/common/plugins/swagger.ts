@@ -14,9 +14,9 @@ const openApiSchemaTransform = createJsonSchemaTransform({
 
 function moduleTag(url: string): string | undefined {
   if (url.startsWith("/api/auth/")) return "Authentication";
-  if (url.startsWith("/api/inspections/") || /\/api\/bookings\/[^/]+\/inspections/.test(url))
-    return "Inspections";
-  if (url.startsWith("/api/bookings/") || url.startsWith("/api/booking/")) return "Bookings";
+  if (url.startsWith("/api/inspections")) return "Inspections";
+  if (url.startsWith("/api/reservations")) return "Reservations";
+  if (url.startsWith("/api/appointments")) return "Appointments";
   if (url.startsWith("/api/payments/") || url === "/api/sepay/ipn") return "Payments";
   if (url.startsWith("/api/facilities/")) return "Facilities";
   if (url.startsWith("/api/rentals/")) return "Rentals";
@@ -51,7 +51,8 @@ const swaggerPluginCallback: FastifyPluginAsync = async (fastify) => {
       tags: [
         { name: "Authentication" },
         { name: "Facilities" },
-        { name: "Bookings" },
+        { name: "Reservations" },
+        { name: "Appointments" },
         { name: "Check-ins" },
         { name: "Inspections" },
         { name: "Payments" },

@@ -112,3 +112,27 @@ export interface ConfirmReservationInput {
   cardBrand: string;
   cardLast4: string;
 }
+
+// Dates are serialized by the API; database records retain Date internally.
+export type ReservationRecordDto = Omit<
+  import("@metastorage/database/schema/reservations").ReservationRecord,
+  "rentalStartAt" | "rentalEndAt" | "createdAt" | "updatedAt"
+> & {
+  facility?: { id: string; name: string; address: string };
+  unitType?: { id: string; name: string; sizeLabel: string };
+  paymentStatus?: string | null;
+  rentalStartAt: string;
+  rentalEndAt: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export const CreateReservationDraftSchema = z.object({
+  facilityId: z.string().uuid(),
+  unitTypeId: z.string().uuid(),
+  checkInSlotId: z.string().uuid(),
+  checkInDate: z.iso.date(),
+  durationMonths: z.number().int().min(1).max(12),
+});
+
+export type CreateReservationDraftInput = z.infer<typeof CreateReservationDraftSchema>;

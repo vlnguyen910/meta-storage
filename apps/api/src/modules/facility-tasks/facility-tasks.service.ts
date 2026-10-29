@@ -21,12 +21,9 @@ import {
   NotFoundError,
 } from "../../common/errors/app-error";
 import { mapPageDto } from "../../common/types/page.dto";
-import {
-  type BookingCheckInService,
-  createBookingCheckInService,
-} from "../bookings/booking-check-in.service";
-import { CheckInSlotsRepository } from "../bookings/check-in-slots.repository";
-import { CheckInSlotsService } from "../bookings/check-in-slots.service";
+import { isDevelopmentEnvironment } from "../../config/env";
+import { CheckInSlotsRepository } from "../appointments/check-in-slots.repository";
+import { CheckInSlotsService } from "../appointments/check-in-slots.service";
 import { getFacilityAccessScope } from "../facilities/facilities.access";
 import { FacilitiesRepository } from "../facilities/facilities.repository";
 import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
@@ -42,7 +39,6 @@ export class FacilityTasksService {
   constructor(
     private readonly repository: FacilityTasksRepository,
     private readonly assignments: FacilityAssignmentsService,
-    private readonly bookings: BookingCheckInService,
     private readonly appointmentSlots?: CheckInSlotsService,
   ) {}
 
@@ -106,7 +102,11 @@ export class FacilityTasksService {
     actor: FacilityTaskActor,
   ): Promise<FacilityTaskDetail> {
     this.assertManager(actor);
-    if (input.referenceType === FacilityTaskReferenceType.APPOINTMENT)
+    if (
+      [FacilityTaskReferenceType.APPOINTMENT, FacilityTaskReferenceType.BOOKING].includes(
+        input.referenceType,
+      )
+    )
       throw new BadRequestError(m.appointmentWorkflowRequired);
     if (input.type === FacilityTaskType.CHECK_IN_HANDOVER)
       throw new BadRequestError(m.handoverTaskAutomatic);
@@ -124,68 +124,6 @@ export class FacilityTasksService {
       createdAt: task.createdAt.toISOString(),
       updatedAt: task.updatedAt.toISOString(),
     };
-  }
-
-  async assignBookingHandover(
-    tx: TaskTransaction,
-    facilityId: string,
-    bookingId: string,
-    staffId: string,
-    managerId: string,
-  ): Promise<void> {
-    const [activeTask] = await this.repository.findActiveBookingHandover(tx, bookingId);
-    const now = new Date();
-    if (activeTask) {
-      if (activeTask.assignedStaffId !== staffId)
-        await this.repository.reassignTask(tx, activeTask.id, staffId, managerId, now);
-      return;
-    }
-    await this.repository.createBookingHandover(tx, {
-      facilityId,
-      bookingId,
-      staffId,
-      managerId,
-      now,
-    });
-  }
-
-  async findStartedBookingHandover(
-    tx: TaskTransaction,
-    bookingId: string,
-    facilityId: string,
-    staffId: string,
-  ) {
-    const [task] = await this.repository.findActiveBookingHandover(tx, bookingId);
-    if (
-      !task ||
-      task.status !== FacilityTaskStatus.IN_PROGRESS ||
-      task.facilityId !== facilityId ||
-      task.assignedStaffId !== staffId
-    )
-      return undefined;
-    return task;
-  }
-
-  async completeBookingHandover(
-    tx: TaskTransaction,
-    input: { taskId: string; bookingId: string; facilityId: string; staffId: string; now: Date },
-  ) {
-    const [task] = await this.repository.findForUpdate(tx, input.taskId);
-    if (
-      !task ||
-      task.type !== FacilityTaskType.CHECK_IN_HANDOVER ||
-      task.referenceType !== FacilityTaskReferenceType.BOOKING ||
-      task.referenceId !== input.bookingId ||
-      task.facilityId !== input.facilityId ||
-      task.assignedStaffId !== input.staffId ||
-      task.status !== FacilityTaskStatus.IN_PROGRESS
-    )
-      return false;
-    await this.repository.setWorkflowStatus(tx, task.id, FacilityTaskStatus.COMPLETED, {
-      completedAt: input.now,
-      updatedAt: input.now,
-    });
-    return true;
   }
 
   async listMineTask(
@@ -246,6 +184,8 @@ export class FacilityTasksService {
     actor: FacilityTaskActor,
   ): Promise<FacilityTaskDetail> {
     const [current] = await this.repository.findById(id);
+    if (current?.referenceType === FacilityTaskReferenceType.BOOKING)
+      throw new ConflictError(m.appointmentWorkflowRequired);
     if (current?.referenceType === FacilityTaskReferenceType.APPOINTMENT) {
       // Appointment owns assignment and terminal states so both records commit together.
       if (!("status" in input) || input.status !== FacilityTaskStatus.IN_PROGRESS)
@@ -260,8 +200,8 @@ export class FacilityTasksService {
       if (
         appointment?.status !== "CONFIRMED" ||
         !slot ||
-        new Date() < slot.startsAt ||
-        new Date() >= slot.endsAt
+        (!(isDevelopmentEnvironment() && appointment.appointmentType === "CHECK_IN") &&
+          (new Date() < slot.startsAt || new Date() >= slot.endsAt))
       )
         throw new ConflictError(m.taskNotReady);
     }
@@ -271,23 +211,6 @@ export class FacilityTasksService {
     } else {
       this.assertManager(actor);
       if (input.type) this.assertTypeCanBeAssigned(input.type);
-    }
-    if ("status" in input && input.status === FacilityTaskStatus.IN_PROGRESS) {
-      const [task] = await this.repository.findById(id);
-      if (
-        task?.type === FacilityTaskType.CHECK_IN_HANDOVER &&
-        task.referenceType === FacilityTaskReferenceType.BOOKING
-      ) {
-        if (actor.role !== UserRole.FACILITY_STAFF || task.assignedStaffId !== actor.id)
-          throw new ForbiddenError(m.accessDenied);
-        if (task.status !== FacilityTaskStatus.ASSIGNED) throw new ConflictError(m.taskNotReady);
-        await this.assignments.requireFacilityAccess(
-          task.facilityId,
-          getFacilityAccessScope(actor),
-          [UserRole.FACILITY_STAFF],
-        );
-        await this.bookings.assertCheckInCanStart(task.referenceId);
-      }
     }
     const task = await this.write(this.repository.update(id, input, actor));
     return {
@@ -340,7 +263,6 @@ export function createFacilityTasksService(db: Database) {
   return new FacilityTasksService(
     new FacilityTasksRepository(db, assignments),
     new FacilityAssignmentsService(assignments, new FacilitiesRepository(db)),
-    createBookingCheckInService(db),
     new CheckInSlotsService(new CheckInSlotsRepository(db)),
   );
 }

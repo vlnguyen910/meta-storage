@@ -4,11 +4,15 @@ import {
   type Database,
   desc,
   eq,
+  facilities,
+  getTableColumns,
   type NewReservationRecord,
+  payments,
   type ReservationRecord,
   ReservationStatus,
   reservations,
   sql,
+  unitTypes,
 } from "@metastorage/database";
 
 export type ReservationTransaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
@@ -41,8 +45,23 @@ export class ReservationsRepository {
     return reservation;
   }
 
+  private readQuery() {
+    return this.db
+      .select({
+        ...getTableColumns(reservations),
+        facility: { id: facilities.id, name: facilities.name, address: facilities.address },
+        unitType: { id: unitTypes.id, name: unitTypes.name, sizeLabel: unitTypes.sizeLabel },
+        paymentStatus: sql<
+          string | null
+        >`(select ${payments.status}::text from ${payments} where ${payments.reservationId} = ${reservations.id} order by ${payments.createdAt} desc, ${payments.id} desc limit 1)`,
+      })
+      .from(reservations)
+      .innerJoin(facilities, eq(facilities.id, reservations.facilityId))
+      .innerJoin(unitTypes, eq(unitTypes.id, reservations.unitTypeId));
+  }
+
   async findById(id: string) {
-    const [reservation] = await this.db.select().from(reservations).where(eq(reservations.id, id));
+    const [reservation] = await this.readQuery().where(eq(reservations.id, id));
     return reservation;
   }
 
@@ -56,9 +75,7 @@ export class ReservationsRepository {
   }
 
   list(query: ReservationQuery & { customerId?: string }) {
-    return this.db
-      .select()
-      .from(reservations)
+    return this.readQuery()
       .where(
         and(
           query.customerId ? eq(reservations.customerId, query.customerId) : undefined,

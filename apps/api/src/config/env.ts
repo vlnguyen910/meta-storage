@@ -44,3 +44,7 @@ function parseEnv(): Env {
 }
 
 export const env = parseEnv();
+
+export function isDevelopmentEnvironment(nodeEnv = env.NODE_ENV): boolean {
+  return nodeEnv === "develop" || nodeEnv === "development";
+}

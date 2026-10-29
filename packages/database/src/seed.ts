@@ -4,6 +4,7 @@ import { hashPassword } from "better-auth/crypto";
 import { and, asc, eq, inArray, notExists } from "drizzle-orm";
 import { db, queryClient } from "./client";
 import { loadApiEnv } from "./env";
+import { migrateBookingsToReservations } from "./migrate-bookings-to-reservations";
 import {
   accounts,
   bookings,
@@ -1077,6 +1078,17 @@ async function seed() {
     );
   }
   const seedNow = getSeedNow();
+  const existingReservations = await queryClient`select id from reservations limit 1`;
+  if (existingReservations.length) {
+    await seedPolicies(seedNow);
+    await seedAuthAccounts(seedNow);
+    console.log(
+      "Reservation data already exists; preserved workflow history and refreshed policies/accounts. Use db:clear for a clean demo reset.",
+    );
+    await queryClient.end();
+    return;
+  }
+
   console.log("Starting local database seeding via raw SQL client...");
 
   console.log("1. Seeding facilities...");
@@ -1562,6 +1574,7 @@ async function seed() {
   await seedPolicies(seedNow);
   await seedAuthAccounts(seedNow);
   await seedImmediateCheckInSlot(seedNow);
+  await db.transaction(migrateBookingsToReservations);
   console.log("✅ Seeding completed successfully!");
   await queryClient.end();
 }

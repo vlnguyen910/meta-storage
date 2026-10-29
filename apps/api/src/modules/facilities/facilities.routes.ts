@@ -23,7 +23,7 @@ import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
 import { requireAuth, requireRole } from "../auth/auth.guard";
-import { createBookingsService } from "../bookings/bookings.service";
+import { createReservationsService } from "../reservations/reservations.service";
 import { StorageUnitsRepository } from "../storage-units/storage-units.repository";
 import { StorageUnitsService } from "../storage-units/storage-units.service";
 import { FacilityUnitTypesRepository } from "../unit-types/facility-unit-types.repository";
@@ -56,7 +56,7 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
   );
 
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
-  const bookingService = createBookingsService(fastify);
+  const reservationService = createReservationsService(fastify.db);
   typedApp.get(
     "/:facilityId/availability",
     {
@@ -65,7 +65,7 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       reply.header("Cache-Control", "no-store");
       return successResponse(
-        await bookingService.availability({
+        await reservationService.availability({
           ...request.query,
           facilityId: request.params.facilityId,
         }),

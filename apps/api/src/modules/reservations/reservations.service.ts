@@ -1,7 +1,7 @@
 import {
-  type BookingDraftInput,
-  BookingDraftInputSchema,
-  type BookingPaymentInput,
+  type CheckoutSessionInput,
+  type CreateReservationDraftInput,
+  CreateReservationDraftSchema,
   type ReservationQuery,
 } from "@metastorage/contracts";
 import type { Database, ReservationRecord } from "@metastorage/database";
@@ -15,9 +15,10 @@ import {
   ConflictError,
   NotFoundError,
 } from "../../common/errors/app-error";
+import { isDevelopmentEnvironment } from "../../config/env";
 import { AppointmentsRepository } from "../appointments/appointments.repository";
-import { CheckInSlotsRepository } from "../bookings/check-in-slots.repository";
-import { CheckInSlotsService } from "../bookings/check-in-slots.service";
+import { CheckInSlotsRepository } from "../appointments/check-in-slots.repository";
+import { CheckInSlotsService } from "../appointments/check-in-slots.service";
 import { getFacilityAccessScope } from "../facilities/facilities.access";
 import { FacilitiesRepository } from "../facilities/facilities.repository";
 import { FacilitiesService } from "../facilities/facilities.service";
@@ -58,17 +59,42 @@ export class ReservationsService {
     private readonly settings: SystemSettingsService,
   ) {}
 
-  async createReservationDraft(input: BookingDraftInput, customerId: string) {
-    input = BookingDraftInputSchema.parse(input);
-    if (input.checkInDate <= localDate(new Date(), "Asia/Ho_Chi_Minh"))
+  private async resolveRentalPeriod(input: CreateReservationDraftInput) {
+    input = CreateReservationDraftSchema.parse(input);
+    const today = localDate(new Date(), "Asia/Ho_Chi_Minh");
+    const demo = isDevelopmentEnvironment();
+    if (input.checkInDate < today || (!demo && input.checkInDate === today))
       throw new BadRequestError(m.futureDateRequired);
     await this.facilities.requireActiveFacility(input.facilityId);
     const unitType = await this.unitTypes.requireActiveUnitType(input.facilityId, input.unitTypeId);
     const slot = await this.slots.findByIdForDate(input.checkInSlotId, input.checkInDate);
-    if (!slot || slot.startsAt <= new Date()) throw new BadRequestError(m.invalidSlot);
-    await this.facilities.assertCheckInWithinOperatingHours(input.facilityId, slot.startsAt);
+    if (!slot || (!demo && slot.startsAt <= new Date())) throw new BadRequestError(m.invalidSlot);
+    if (!demo)
+      await this.facilities.assertCheckInWithinOperatingHours(input.facilityId, slot.startsAt);
     const rentalEndAt = new Date(slot.startsAt);
     rentalEndAt.setUTCDate(rentalEndAt.getUTCDate() + input.durationMonths * 30);
+    return { slot, unitType, rentalEndAt };
+  }
+
+  async availability(input: CreateReservationDraftInput) {
+    const { slot, rentalEndAt } = await this.resolveRentalPeriod(input);
+    return {
+      facilityId: input.facilityId,
+      unitTypeId: input.unitTypeId,
+      period: { startsAt: slot.startsAt.toISOString(), endsAt: rentalEndAt.toISOString() },
+      availableCount: await this.storageUnits.getAvailableCapacity(
+        input.facilityId,
+        input.unitTypeId,
+        slot.startsAt,
+        rentalEndAt,
+      ),
+      asOf: new Date().toISOString(),
+    };
+  }
+
+  async createReservationDraft(input: CreateReservationDraftInput, customerId: string) {
+    input = CreateReservationDraftSchema.parse(input);
+    const { slot, unitType, rentalEndAt } = await this.resolveRentalPeriod(input);
     if (
       (await this.storageUnits.getAvailableCapacity(
         input.facilityId,
@@ -157,7 +183,7 @@ export class ReservationsService {
     });
   }
 
-  startReservationPayment(id: string, input: BookingPaymentInput, customerId: string) {
+  startReservationPayment(id: string, input: CheckoutSessionInput, customerId: string) {
     return this.payments.startPayment(id, input, customerId);
   }
 
@@ -186,6 +212,7 @@ export class ReservationsService {
   }
 
   async sweepNoShows(now = new Date(), facilityId?: string) {
+    if (isDevelopmentEnvironment()) return { processed: 0 };
     const closingHour = await this.settings.getClosingHour();
     return this.repository.transaction(async (tx) => {
       const reservations = await this.repository.findNoShows(tx, now, closingHour, facilityId);

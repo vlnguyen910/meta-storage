@@ -1,5 +1,5 @@
 export const HANDOVER_CHECKLIST_MESSAGES = {
-  assignedUnit: "Đúng ô kho đã được gán cho booking",
+  assignedUnit: "Đúng ô kho theo lịch nhận kho",
   doorLock: "Cửa và khóa hoạt động bình thường",
   unitCondition: "Ô kho không bị hư hỏng",
   existingInventory: "Đồ dùng có sẵn trong kho đầy đủ, không mất hoặc hư hại",

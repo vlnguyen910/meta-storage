@@ -42,7 +42,7 @@ export type SupportPaymentContext = {
   id: string;
   paymentCode: string | null;
 
-  source: "BOOKING";
+  source: "RESERVATION";
   status: import("./payments").PaymentStatus;
   amount: string;
   currency: string;

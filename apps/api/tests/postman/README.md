@@ -7,9 +7,12 @@ the real webhook verifier. It makes no bank transfer or outbound SePay request.
 
 The `Reserve` folder covers facility/type discovery, availability, draft/payment,
 appointment creation, manager visibility/assignment and early-start rejection.
+Checkout assertions also verify all three provider return URLs point to the Web
+page `/customer/payments/result` and preserve payment/reservation IDs. Set `webUrl`
+to the API configuration `WEB_URL` when running the collection manually.
 `CheckIn` covers inspection/checklist, handover, replay protection, completed
-appointment/task and customer/manager rental and payment reads. There are 39
-requests and 56 assertions. Results are local (`--no-report-events`).
+appointment/task and customer/manager rental and payment reads. It also checks reservation support, inspection recovery and lifecycle notifications.
+There are 44 requests and 69 assertions. Results are local (`--no-report-events`).
 
 Run from the repository root with Bun, Docker PostgreSQL and Postman CLI installed.
 Create an empty database dedicated to this test (never use the application DB):

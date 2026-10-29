@@ -23,8 +23,10 @@ export class BookingMailService {
     const snapshot = row.bookingEmail;
     if (!snapshot) throw new Error("Missing booking mail snapshot");
     if (snapshot.kind === "TRACKING_LINK") return { status: "SUPPRESSED" as const };
-    const deliveryId = snapshot.deliveryId ?? row.bookingId;
-    const jobId = mailJobId(row.bookingId);
+    const referenceId = row.reservationId ?? row.bookingId;
+    if (!referenceId) throw new Error("Missing reservation mail reference");
+    const deliveryId = snapshot.deliveryId ?? referenceId;
+    const jobId = mailJobId(referenceId);
     const job = await this.options.queue.getJob(jobId);
     if (job) {
       const state = await job.getState();
@@ -52,7 +54,7 @@ export class BookingMailService {
     if (job) return { status: "ENQUEUED" as const };
     if (!row.mailPayload) {
       const trackingUrl = new URL(
-        `/customer/reservations/${row.bookingId}`,
+        `/customer/reservations/${referenceId}`,
         this.options.publicAppUrl,
       ).href;
       const payload = encryptMailPayload(
@@ -63,7 +65,9 @@ export class BookingMailService {
           facilityName: snapshot.facilityName,
           unitTypeName: snapshot.unitTypeName,
           trackingUrl,
-          qrUrl: `${new URL("/check-in", this.options.publicAppUrl)}?token=${createHmac("sha256", this.options.qrTokenSecret).update(row.bookingId).digest("hex")}`,
+          qrUrl: row.reservationId
+            ? trackingUrl
+            : `${new URL("/check-in", this.options.publicAppUrl)}?token=${createHmac("sha256", this.options.qrTokenSecret).update(referenceId).digest("hex")}`,
         }),
         this.options.secret,
         deliveryId,
