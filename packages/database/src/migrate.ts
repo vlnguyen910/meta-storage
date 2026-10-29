@@ -3,6 +3,7 @@ import { desc, sql } from "drizzle-orm";
 import { type MigrationMeta, readMigrationFiles } from "drizzle-orm/migrator";
 import { bigint, pgSchema, serial, text } from "drizzle-orm/pg-core";
 import { type Database, db, queryClient } from "./client";
+import { migrateBookingsToReservations } from "./migrate-bookings-to-reservations";
 
 import {
   finishRentalReset,
@@ -59,9 +60,13 @@ if (import.meta.main) {
         migrationsFolder: fileURLToPath(new URL("../drizzle", import.meta.url)),
       }),
     );
-    console.log(`Applied ${count} migrations.`);
+    const { converted } = await db.transaction(migrateBookingsToReservations);
+    console.log(`Applied ${count} schema migrations; converted ${converted} historical bookings.`);
   } catch (error) {
-    console.error("Database migration failed; transaction rolled back:", error);
+    console.error(
+      "Database migration failed; the failing phase rolled back. Retry after resolving the error:",
+      error,
+    );
     process.exitCode = 1;
   } finally {
     await queryClient.end();

@@ -44,15 +44,8 @@ export const BookingTrackingParamsSchema = z.object({
     .max(50, BOOKING_CONTRACT_MESSAGES.invalidBookingCode),
 });
 
-export const BookingDraftInputSchema = z.object({
-  facilityId: z.string().uuid(),
-  unitTypeId: z.string().uuid(),
-  checkInSlotId: z.string().uuid(),
-  checkInDate: z.iso.date(),
-  durationMonths: z.number().int().min(1).max(12),
-});
-
-export type BookingDraftInput = z.infer<typeof BookingDraftInputSchema>;
+export type { CreateReservationDraftInput as BookingDraftInput } from "./reservations";
+export { CreateReservationDraftSchema as BookingDraftInputSchema } from "./reservations";
 
 export const PaidBookingSchema = z.object({
   id: z.string().uuid(),

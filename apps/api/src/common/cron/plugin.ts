@@ -1,6 +1,5 @@
 import type { FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
-import { createBookingsService } from "../../modules/bookings/bookings.service";
 import { createPaymentsService } from "../../modules/payments/payments.service";
 import { createReservationsService } from "../../modules/reservations/reservations.service";
 import type { CronOptions } from "./cron.types";
@@ -28,23 +27,21 @@ const cronPluginAsync: FastifyPluginAsync<CronOptions> = async (fastify, options
           if (skipped) fastify.log.debug("Capacity hold expiry skipped: another sweep is running");
         },
       ),
-      createBookingsService(fastify)
-        .sweepNoShows(new Date(), options.facilityId)
-        .then(({ processed }) => {
-          if (processed > 0) fastify.log.info({ processed }, "Processed booking no-shows");
-        }),
     ])
       .then((results) => {
         for (const result of results) {
           if (result.status === "rejected")
             fastify.log.error(
               { err: result.reason },
-              "Booking lifecycle sweep failed; retrying on the next interval",
+              "Reservation lifecycle sweep failed; retrying on the next interval",
             );
         }
       })
       .catch((err: unknown) => {
-        fastify.log.error({ err }, "Booking lifecycle sweep failed; retrying on the next interval");
+        fastify.log.error(
+          { err },
+          "Reservation lifecycle sweep failed; retrying on the next interval",
+        );
       })
       .finally(() => {
         running = undefined;

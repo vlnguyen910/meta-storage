@@ -2,7 +2,7 @@ import type { FacilityAssignmentRole, FacilityStaffMember } from "@metastorage/c
 import { FacilityTaskStatus } from "@metastorage/contracts/facility-tasks";
 import {
   and,
-  bookings,
+  appointments,
   type Database,
   desc,
   eq,
@@ -38,14 +38,14 @@ export class FacilityAssignmentsRepository {
          and ${facilityTasks.facilityId} = ${facilityId}
          and ${facilityTasks.status} in (${FacilityTaskStatus.ASSIGNED}, ${FacilityTaskStatus.IN_PROGRESS}))
       +
-      (select count(*)::int from ${bookings}
-       where ${bookings.assignedStaffId} = ${users.id}
-         and ${bookings.facilityId} = ${facilityId}
-         and ${bookings.status} = 'CONFIRMED'
+      (select count(*)::int from ${appointments}
+       where ${appointments.assignedStaffId} = ${users.id}
+         and ${appointments.facilityId} = ${facilityId}
+         and ${appointments.status} in ('SCHEDULED', 'CONFIRMED')
          and not exists (
            select 1 from ${facilityTasks} t
-           where t.reference_type = 'BOOKING' and t.reference_id = ${bookings.id}
-             and t.type = 'CHECK_IN_HANDOVER' and t.status in ('ASSIGNED', 'IN_PROGRESS')
+           where t.reference_type = 'APPOINTMENT' and t.reference_id = ${appointments.id}
+             and t.status in ('ASSIGNED', 'IN_PROGRESS')
          ))
     )`.mapWith(Number);
 

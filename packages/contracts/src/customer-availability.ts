@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { BookingDraftInputSchema } from "./bookings";
+import { CreateReservationDraftSchema } from "./reservations";
 
-export const CustomerAvailabilityQuerySchema = BookingDraftInputSchema.omit({
+export const CustomerAvailabilityQuerySchema = CreateReservationDraftSchema.omit({
   facilityId: true,
 }).extend({ durationMonths: z.coerce.number().int().min(1).max(12) });
 export type CustomerAvailabilityQuery = z.infer<typeof CustomerAvailabilityQuerySchema>;

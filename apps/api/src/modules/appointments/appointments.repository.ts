@@ -3,10 +3,14 @@ import {
   and,
   appointments,
   asc,
+  checkInSlots,
   type Database,
   eq,
+  getTableColumns,
   inArray,
   type NewAppointmentRecord,
+  reservations,
+  users,
 } from "@metastorage/database";
 import { APPOINTMENT_STATUSES as Status } from "@metastorage/database/schema/appointments";
 import { ConflictError } from "../../common/errors/app-error";
@@ -63,8 +67,28 @@ export class AppointmentsRepository {
     return appointment;
   }
 
+  private readQuery() {
+    return this.db
+      .select({
+        ...getTableColumns(appointments),
+        customerName: users.name,
+        slotName: checkInSlots.name,
+        slotStart: checkInSlots.startTime,
+        slotEnd: checkInSlots.endTime,
+        reservation: {
+          unitTypeId: reservations.unitTypeId,
+          rentalStartAt: reservations.rentalStartAt,
+          rentalEndAt: reservations.rentalEndAt,
+        },
+      })
+      .from(appointments)
+      .innerJoin(users, eq(users.id, appointments.customerId))
+      .innerJoin(checkInSlots, eq(checkInSlots.id, appointments.slotId))
+      .leftJoin(reservations, eq(reservations.id, appointments.reservationId));
+  }
+
   async findById(id: string) {
-    const [appointment] = await this.db.select().from(appointments).where(eq(appointments.id, id));
+    const [appointment] = await this.readQuery().where(eq(appointments.id, id));
     return appointment;
   }
 
@@ -78,9 +102,7 @@ export class AppointmentsRepository {
   }
 
   list(query: AppointmentQuery & { customerId?: string; assignedStaffId?: string }) {
-    return this.db
-      .select()
-      .from(appointments)
+    return this.readQuery()
       .where(
         and(
           query.customerId ? eq(appointments.customerId, query.customerId) : undefined,

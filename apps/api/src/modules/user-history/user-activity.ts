@@ -1,7 +1,6 @@
 import type { ActivityRequest, UserActivityInput } from "./user-activity.types";
 
 const excludedRoutes = new Set([
-  "/api/bookings/check-in/lookup",
   "/api/booking/magic-link/exchange",
   "/api/booking/session/revoke",
   "/api/payments/webhooks/sepay",

@@ -2,7 +2,6 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import type { SupportCreateInput } from "@metastorage/contracts";
 import {
-  bookings,
   checkInSlots,
   db,
   eq,
@@ -10,6 +9,7 @@ import {
   notificationOutbox,
   payments,
   queryClient,
+  reservations,
   supportTickets,
   users,
 } from "@metastorage/database";
@@ -19,13 +19,13 @@ import { createFacilityOperationsFixture } from "../fixtures/facility-operations
 
 describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Customer Support", () => {
   let fixture: Awaited<ReturnType<typeof createFacilityOperationsFixture>>;
-  const bookingId = randomUUID();
-  const otherBookingId = randomUUID();
+  const reservationId = randomUUID();
+  const otherReservationId = randomUUID();
   const slotId = randomUUID();
   const paymentId = randomUUID();
 
   const input = (extra: Partial<SupportCreateInput> = {}): SupportCreateInput => ({
-    bookingId,
+    reservationId,
     category: "PAYMENT",
     paymentId,
     subject: "Payment not recorded",
@@ -47,43 +47,39 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Customer Support", 
       startTime: "09:00",
       endTime: "10:00",
     });
-    await db.insert(bookings).values([
+    await db.insert(reservations).values([
       {
-        id: bookingId,
-        userId: fixture.ids.customer,
+        id: reservationId,
+        customerId: fixture.ids.customer,
         facilityId: fixture.facilityId,
         unitTypeId: fixture.typeId,
-        checkInSlotId: slotId,
-        contactPhone: "0901234567",
-        checkInDate: "2026-10-24",
+        rentalStartAt: new Date("2026-10-24T02:00:00Z"),
         requestedMonths: 1,
         rentalEndAt: new Date("2026-11-24T00:00:00Z"),
-        monthlyRateSnapshot: "1000000",
-        rentalFeeAmount: "1000000",
-        depositAmount: "1000000",
-        totalAmount: "2000000",
+        monthlyRateSnapshot: 1000000,
+        rentalFeeAmount: 1000000,
+        depositAmount: 1000000,
+        totalAmount: 2000000,
         status: "CHECKED_IN",
       },
       {
-        id: otherBookingId,
-        userId: fixture.ids.peerStaff,
+        id: otherReservationId,
+        customerId: fixture.ids.peerStaff,
         facilityId: fixture.otherFacilityId,
         unitTypeId: fixture.foreignTypeId,
-        checkInSlotId: slotId,
-        contactPhone: "0901234567",
-        checkInDate: "2026-10-24",
+        rentalStartAt: new Date("2026-10-24T02:00:00Z"),
         requestedMonths: 1,
         rentalEndAt: new Date("2026-11-24T00:00:00Z"),
-        monthlyRateSnapshot: "1000000",
-        rentalFeeAmount: "1000000",
-        depositAmount: "1000000",
-        totalAmount: "2000000",
+        monthlyRateSnapshot: 1000000,
+        rentalFeeAmount: 1000000,
+        depositAmount: 1000000,
+        totalAmount: 2000000,
       },
     ]);
     await db.insert(payments).values([
       {
         id: paymentId,
-        bookingId,
+        reservationId,
         holdTokenHash: "support-test",
         provider: "mock",
         providerPaymentId: paymentId,
@@ -104,14 +100,16 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Customer Support", 
         await db
           .select({ id: supportTickets.id })
           .from(supportTickets)
-          .where(inArray(supportTickets.bookingId, [bookingId, otherBookingId]))
+          .where(inArray(supportTickets.reservationId, [reservationId, otherReservationId]))
       ).map((row) => row.id);
       if (ids.length) {
         await db.delete(notificationOutbox).where(inArray(notificationOutbox.supportTicketId, ids));
         await db.delete(supportTickets).where(inArray(supportTickets.id, ids));
       }
       await db.delete(payments).where(eq(payments.id, paymentId));
-      await db.delete(bookings).where(inArray(bookings.id, [bookingId, otherBookingId]));
+      await db
+        .delete(reservations)
+        .where(inArray(reservations.id, [reservationId, otherReservationId]));
       await db.delete(checkInSlots).where(eq(checkInSlots.id, slotId));
       await fixture.cleanup();
     } finally {
@@ -123,21 +121,21 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Customer Support", 
     const contexts = await fixture.api("customer", "GET", "/support/contexts?category=PAYMENT");
     expect(contexts.statusCode, contexts.body).toBe(200);
     expect(contexts.json().data.items).toEqual(
-      expect.arrayContaining([expect.objectContaining({ id: bookingId })]),
+      expect.arrayContaining([expect.objectContaining({ id: reservationId })]),
     );
-    expect(contexts.body).not.toContain(otherBookingId);
+    expect(contexts.body).not.toContain(otherReservationId);
 
     const attempts = await fixture.api(
       "customer",
       "GET",
-      `/support/contexts/${bookingId}/payments`,
+      `/support/contexts/${reservationId}/payments`,
     );
     expect(attempts.statusCode, attempts.body).toBe(200);
     expect(attempts.json().data.items).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: paymentId, status: "FAILED" })]),
     );
     expect(
-      (await fixture.api("customer", "GET", `/support/contexts/${otherBookingId}/payments`))
+      (await fixture.api("customer", "GET", `/support/contexts/${otherReservationId}/payments`))
         .statusCode,
     ).toBe(404);
   });
@@ -153,7 +151,7 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Customer Support", 
     const detail = first.json().data;
     expect(retry.json().data.ticket.id).toBe(detail.ticket.id);
     expect(detail.ticket).toMatchObject({
-      bookingId,
+      reservationId,
       paymentId,
       subject: payload.subject,
       description: payload.content,

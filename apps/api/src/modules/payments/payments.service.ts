@@ -1,8 +1,4 @@
-import { randomBytes } from "node:crypto";
 import type {
-  BookingConfirmation,
-  BookingPaymentInput,
-  BookingPaymentSession,
   ManualRefund,
   ManualRefundConfirmation,
   ManualRefundQuery,
@@ -11,8 +7,6 @@ import type {
 import type { FastifyBaseLogger, FastifyInstance } from "fastify";
 import { AppError, NotFoundError, UnauthorizedError } from "../../common/errors/app-error";
 import { env } from "../../config/env";
-import { type BookingsService, createBookingsService } from "../bookings/bookings.service";
-import type { BookingReadRecord } from "../bookings/bookings.types";
 import { PAYMENT_MESSAGES } from "./payments.messages";
 import { PaymentsRepository } from "./payments.repository";
 import type { PaymentStatusCredentials } from "./payments.types";
@@ -31,7 +25,6 @@ export class PaymentsService {
   constructor(
     private readonly repository: PaymentsRepository,
     private readonly sepayGateway?: SepayPaymentGateway,
-    private readonly bookingEmail?: Pick<BookingsService, "enqueueConfirmation" | "getStatus">,
     private readonly logger?: Pick<FastifyBaseLogger, "warn">,
     private readonly reservationPayments?: ReservationPaymentsService,
   ) {}
@@ -61,55 +54,6 @@ export class PaymentsService {
     };
   }
 
-  async startBookingPayment(
-    bookingId: string,
-    input: BookingPaymentInput,
-    userId: string,
-  ): Promise<BookingPaymentSession> {
-    if (!this.sepayGateway?.checkoutConfigured)
-      throw new AppError(PAYMENT_MESSAGES.sepayUnavailable, 503, "PAYMENT_PROVIDER_UNAVAILABLE");
-    const { payment, expiresAt } = await this.repository.prepareBookingPayment({
-      bookingId,
-      userId,
-      holdTokenHash: randomBytes(32).toString("hex"),
-      contactPhone: input.contactPhone,
-      idempotencyKey: input.idempotencyKey,
-      paymentCode: `${this.sepayGateway.paymentPrefix}${randomBytes(7).toString("hex").toUpperCase()}`,
-      holdDurationMs: 10 * 60_000,
-    });
-    const paymentCode = requirePaymentCode(payment.paymentCode);
-    const session = this.sepayGateway.createCheckoutSession({
-      bookingId,
-      paymentId: payment.id,
-      paymentCode,
-      amount: Number(payment.totalAmount),
-      currency: payment.currency,
-      description: PAYMENT_MESSAGES.checkoutDescription(paymentCode),
-    });
-    if (!session)
-      throw new AppError(PAYMENT_MESSAGES.sepayUnavailable, 503, "PAYMENT_PROVIDER_UNAVAILABLE");
-    return {
-      bookingId,
-      paymentId: payment.id,
-      provider: "sepay",
-      status: "PENDING",
-      paymentCode,
-      checkoutUrl: session.checkoutUrl,
-      checkoutFormFields: session.formFields,
-      expiresAt: expiresAt.toISOString(),
-    };
-  }
-
-  private async confirmationWithEmail(completed: {
-    booking: BookingReadRecord;
-    confirmation: BookingConfirmation;
-  }): Promise<BookingConfirmation> {
-    const emailStatus =
-      (await this.bookingEmail?.enqueueConfirmation(completed.booking, completed.confirmation)) ??
-      "FAILED";
-    return { ...completed.confirmation, emailStatus };
-  }
-
   async handleSepayWebhook(
     headers: Record<string, string | string[] | undefined>,
     rawBody: string,
@@ -117,15 +61,6 @@ export class PaymentsService {
     if (!this.sepayGateway)
       throw new AppError(PAYMENT_MESSAGES.sepayUnavailable, 503, "PAYMENT_PROVIDER_UNAVAILABLE");
     const event = this.sepayGateway.verifyWebhook(headers, rawBody);
-    const bookingResult = await this.repository.processBookingPaymentEvent(event);
-    if (bookingResult) {
-      if (bookingResult.completed) await this.confirmationWithEmail(bookingResult.completed);
-      return {
-        duplicate: bookingResult.duplicate,
-        processed: bookingResult.processed,
-        paymentId: bookingResult.paymentId,
-      };
-    }
     const reservationResult = await this.reservationPayments?.processEvent(event);
     if (reservationResult) return reservationResult;
     const existingEvent = await this.repository.findProviderEvent("sepay", event.providerEventId);
@@ -169,9 +104,7 @@ export class PaymentsService {
         paymentCode: requirePaymentCode(payment.paymentCode),
       });
       if (!event) return;
-      const result = await this.repository.processBookingPaymentEvent(event);
-      if (result?.completed) await this.confirmationWithEmail(result.completed);
-      if (!result) await this.reservationPayments?.processEvent(event);
+      await this.reservationPayments?.processEvent(event);
     } catch (error) {
       this.logger?.warn(
         {
@@ -213,10 +146,6 @@ export class PaymentsService {
       payment = (await this.repository.findPayment(payment.id)) ?? payment;
     }
     if (payment.status === "PENDING") requirePaymentCode(payment.paymentCode);
-    const completed =
-      payment.status === "SUCCEEDED"
-        ? await this.repository.findCompletedByPaymentId(payment.id)
-        : undefined;
     const hold =
       payment.status === "PENDING" ? await this.repository.findActiveHoldForPayment(payment) : null;
     const transferInstructions =
@@ -262,12 +191,6 @@ export class PaymentsService {
           : undefined,
       checkoutUrl: checkoutSession?.checkoutUrl,
       checkoutFormFields: checkoutSession?.formFields,
-      confirmation: completed
-        ? {
-            ...completed.confirmation,
-            emailStatus: (await this.confirmationWithEmail(completed)).emailStatus,
-          }
-        : undefined,
     };
   }
 }
@@ -290,16 +213,12 @@ export function createSepayGateway() {
     : undefined;
 }
 
-export function createPaymentsService(
-  fastify: FastifyInstance,
-  bookingService?: Pick<BookingsService, "enqueueConfirmation" | "getStatus">,
-): PaymentsService {
+export function createPaymentsService(fastify: FastifyInstance): PaymentsService {
   const sepayGateway = createSepayGateway();
   const repository = new PaymentsRepository(fastify.db);
   return new PaymentsService(
     repository,
     sepayGateway,
-    bookingService ?? createBookingsService(fastify),
     fastify.log,
     createReservationPaymentsService(fastify.db, sepayGateway),
   );

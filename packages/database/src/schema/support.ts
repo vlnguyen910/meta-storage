@@ -15,6 +15,7 @@ import { bookings } from "./bookings";
 import { facilities } from "./facilities";
 import { payments } from "./payments";
 import { rentals } from "./rentals";
+import { reservations } from "./reservations";
 import { users } from "./users";
 
 export const supportCategoryEnum = pgEnum("support_category", SUPPORT_CATEGORIES);
@@ -24,9 +25,8 @@ export const supportTickets = pgTable(
   "support_tickets",
   {
     id: uuid().defaultRandom().primaryKey(),
-    bookingId: uuid()
-      .notNull()
-      .references(() => bookings.id, { onDelete: "restrict" }),
+    reservationId: uuid().references(() => reservations.id, { onDelete: "restrict" }),
+    bookingId: uuid().references(() => bookings.id, { onDelete: "restrict" }),
     ownerUserId: uuid()
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
@@ -43,6 +43,10 @@ export const supportTickets = pgTable(
     createdAt: at().defaultNow().notNull(),
   },
   (t) => [
+    check(
+      "support_ticket_reference_valid",
+      sql`num_nonnulls(${t.bookingId}, ${t.reservationId}) = 1`,
+    ),
     index("support_tickets_owner_idx").on(t.ownerUserId, t.createdAt, t.id),
     index("support_tickets_facility_idx").on(t.facilityId, t.category, t.createdAt, t.id),
     uniqueIndex("support_tickets_owner_idempotency_idx").on(t.ownerUserId, t.idempotencyKey),

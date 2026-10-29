@@ -122,7 +122,7 @@ export class SepayPaymentGateway {
     if (order.order_status !== "CAPTURED") return null;
     // CAPTURED is SePay's paid order state. Sandbox can return transactions: [].
     // A stable order event makes polling/restarts replay-safe; payment row locking
-    // in processBookingPaymentEvent also deduplicates an optional concurrent IPN.
+    // in the reservation payment workflow also deduplicates an optional concurrent IPN.
     return {
       providerEventId: `ORDER:${order.order_id}`,
       referenceCode: order.order_id,
@@ -153,7 +153,10 @@ export class SepayPaymentGateway {
     if (!this.pgClient) return null;
     const checkoutUrl = this.pgClient.checkout.initCheckoutUrl();
     const webUrl = this.config.webUrl || "http://localhost:3000";
-    const resultUrl = `${webUrl}/bookings/payment-result`;
+    const resultUrl = new URL(
+      input.reservationId ? "/customer/payments/result" : "/bookings/payment-result",
+      webUrl,
+    ).toString();
     const reference = `paymentId=${input.paymentId}&${input.reservationId ? `reservationId=${input.reservationId}` : `bookingId=${input.bookingId}`}`;
     const successUrl = `${resultUrl}?status=success&${reference}`;
     const errorUrl = `${resultUrl}?status=error&${reference}`;

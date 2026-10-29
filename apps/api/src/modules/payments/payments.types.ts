@@ -1,29 +1,9 @@
-import type { BookingConfirmation, BookingPaymentInput } from "@metastorage/contracts";
-import type { Payment } from "@metastorage/database";
-import type { BookingReadRecord } from "../bookings/bookings.types";
-
-export type CompletedPayment = {
-  payment: Payment;
-  booking: BookingReadRecord;
-  confirmation: BookingConfirmation;
-};
-
 export type PaymentStatusCredentials = {
   userId?: string;
 };
 
 export type PaymentStatusAccess = {
   userId?: string;
-};
-
-export type PrepareBookingPaymentInput = {
-  bookingId: string;
-  userId: string;
-  holdTokenHash: string;
-  idempotencyKey: string;
-  contactPhone?: BookingPaymentInput["contactPhone"];
-  paymentCode: string;
-  holdDurationMs: number;
 };
 
 export type GatewayPaymentResult = {
@@ -52,13 +32,6 @@ export type VerifiedPaymentEvent = {
   currency?: string;
   successful?: boolean;
   paidAt?: Date;
-};
-
-export type BookingWebhookResult = {
-  duplicate: boolean;
-  processed: boolean;
-  paymentId?: string;
-  completed?: CompletedPayment;
 };
 
 export interface PaymentGateway {

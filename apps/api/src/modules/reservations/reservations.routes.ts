@@ -1,6 +1,6 @@
 import {
-  BookingDraftInputSchema,
-  BookingPaymentInputSchema,
+  CheckoutSessionInputSchema,
+  CreateReservationDraftSchema,
   FacilityBookingsParamsSchema,
   ReservationIdSchema,
   ReservationQuerySchema,
@@ -21,7 +21,7 @@ export const reservationsRoutes: FastifyPluginAsync = async (app) => {
 
   typed.post(
     "/drafts",
-    { schema: { body: BookingDraftInputSchema }, preHandler: [requireRole("CUSTOMER")] },
+    { schema: { body: CreateReservationDraftSchema }, preHandler: [requireRole("CUSTOMER")] },
     async (request, reply) => {
       if (!request.user) throw new UnauthorizedError();
       return reply
@@ -33,7 +33,7 @@ export const reservationsRoutes: FastifyPluginAsync = async (app) => {
   typed.post(
     "/:id/make-payment",
     {
-      schema: { params: ReservationIdSchema, body: BookingPaymentInputSchema },
+      schema: { params: ReservationIdSchema, body: CheckoutSessionInputSchema },
       preHandler: [requireRole(UserRole.STORAGE_CUSTOMER)],
     },
     async (request, reply) => {

@@ -11,6 +11,7 @@ import {
   lte,
   notificationOutbox,
   or,
+  reservations,
   sql,
   supportTickets,
   users,
@@ -186,15 +187,23 @@ export class OutboxRepository {
       const [owner] = await this.db
         .select({ email: users.email })
         .from(supportTickets)
-        .innerJoin(bookings, eq(bookings.id, supportTickets.bookingId))
+        .leftJoin(bookings, eq(bookings.id, supportTickets.bookingId))
+        .leftJoin(reservations, eq(reservations.id, supportTickets.reservationId))
         .innerJoin(users, eq(users.id, supportTickets.ownerUserId))
         .where(
           and(
             eq(supportTickets.id, row.supportTicketId),
-            eq(supportTickets.bookingId, row.bookingId),
+            row.reservationId
+              ? eq(supportTickets.reservationId, row.reservationId)
+              : row.bookingId
+                ? eq(supportTickets.bookingId, row.bookingId)
+                : sql`false`,
             eq(supportTickets.facilityId, row.facilityId),
             eq(supportTickets.ownerUserId, row.recipientUserId),
-            eq(bookings.userId, row.recipientUserId),
+            or(
+              eq(bookings.userId, row.recipientUserId),
+              eq(reservations.customerId, row.recipientUserId),
+            ),
             eq(users.role, "CUSTOMER"),
             eq(users.status, "ACTIVE"),
           ),

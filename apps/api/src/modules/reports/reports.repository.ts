@@ -178,29 +178,16 @@ export class ReportsRepository {
           )
           .groupBy(capacityAllocations.facilityId);
         const awaiting = await tx
-          .select({ facilityId: bookings.facilityId, count: count() })
-          .from(bookings)
+          .select({ facilityId: reservations.facilityId, count: count() })
+          .from(reservations)
           .where(
             and(
-              inArray(bookings.facilityId, scoped.ids),
-              eq(bookings.status, "CONFIRMED"),
-              filter.unitTypeId ? eq(bookings.unitTypeId, filter.unitTypeId) : undefined,
+              inArray(reservations.facilityId, scoped.ids),
+              eq(reservations.status, ReservationStatus.CONFIRMED),
+              filter.unitTypeId ? eq(reservations.unitTypeId, filter.unitTypeId) : undefined,
             ),
           )
-          .groupBy(bookings.facilityId)
-          .unionAll(
-            tx
-              .select({ facilityId: reservations.facilityId, count: count() })
-              .from(reservations)
-              .where(
-                and(
-                  inArray(reservations.facilityId, scoped.ids),
-                  eq(reservations.status, ReservationStatus.CONFIRMED),
-                  filter.unitTypeId ? eq(reservations.unitTypeId, filter.unitTypeId) : undefined,
-                ),
-              )
-              .groupBy(reservations.facilityId),
-          );
+          .groupBy(reservations.facilityId);
         return {
           facilities: scoped.facilities,
           financial,

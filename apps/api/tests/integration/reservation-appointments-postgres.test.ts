@@ -12,7 +12,12 @@ import { randomUUID } from "node:crypto";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { FacilityTaskStatus } from "@metastorage/contracts";
+import {
+  FacilityTaskReferenceType,
+  FacilityTaskStatus,
+  FacilityTaskType,
+  HANDOVER_CHECKLIST_ITEMS,
+} from "@metastorage/contracts";
 import {
   accounts,
   appointments,
@@ -26,6 +31,7 @@ import {
   facilityTasks,
   inArray,
   inspections,
+  notificationOutbox,
   paymentProviderEvents,
   payments,
   RentalStatus,
@@ -34,6 +40,7 @@ import {
   storageUnits,
   supportTickets,
   systemSettings,
+  unitAssignments,
   unitTypes,
   users,
 } from "@metastorage/database";
@@ -46,16 +53,20 @@ import { UserRole } from "@metastorage/database/schema/user-enums";
 import { hashPassword } from "better-auth/crypto";
 import Fastify from "fastify";
 import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
+import { migrateBookingsToReservations } from "../../../../packages/database/src/migrate-bookings-to-reservations";
 import { localDate } from "../../src/common/date";
 import { setupErrorHandler } from "../../src/common/errors/error-handler";
+import { env } from "../../src/config/env";
 import { appointmentsRoutes } from "../../src/modules/appointments/appointments.routes";
 import { createAppointmentsService } from "../../src/modules/appointments/appointments.service";
 import { auth } from "../../src/modules/auth/auth";
 import { authRoutes } from "../../src/modules/auth/auth.routes";
 import { facilitiesRoutes } from "../../src/modules/facilities/facilities.routes";
+import { FacilityAssignmentsRepository } from "../../src/modules/facilities/facility-assignments.repository";
 import { facilityTasksRoutes } from "../../src/modules/facility-tasks/facility-tasks.routes";
 import { createFacilityTasksService } from "../../src/modules/facility-tasks/facility-tasks.service";
 import { inspectionsRoutes } from "../../src/modules/inspections/inspections.routes";
+import { lifecycleNotificationsRoutes } from "../../src/modules/notifications/lifecycle-notifications.routes";
 import { PaymentsRepository } from "../../src/modules/payments/payments.repository";
 import { paymentsRoutes } from "../../src/modules/payments/payments.routes";
 import { PaymentsService } from "../../src/modules/payments/payments.service";
@@ -69,6 +80,8 @@ import { rentalsRoutes } from "../../src/modules/rentals/rentals.routes";
 import { ReportsRepository } from "../../src/modules/reports/reports.repository";
 import { reservationsRoutes } from "../../src/modules/reservations/reservations.routes";
 import { createReservationsService } from "../../src/modules/reservations/reservations.service";
+import { storageUnitsRoutes } from "../../src/modules/storage-units/storage-units.routes";
+import { supportRoutes } from "../../src/modules/support/support.routes";
 import { assertTestDatabase } from "../fixtures/test-database";
 
 const testUrl = process.env.BOOKING_TEST_DATABASE_URL;
@@ -97,7 +110,6 @@ const taskService = createFacilityTasksService(db);
 const paymentService = new PaymentsService(
   new PaymentsRepository(db),
   gateway,
-  undefined,
   undefined,
   paymentWorkflow,
 );
@@ -236,6 +248,12 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
         .select({ id: reservations.id })
         .from(reservations)
         .where(eq(reservations.facilityId, f.id.facility));
+      await db.delete(notificationOutbox).where(eq(notificationOutbox.facilityId, f.id.facility));
+      await db.delete(unitAssignments).where(eq(unitAssignments.physicalUnitId, f.id.unit));
+      await db.delete(inspections).where(eq(inspections.storageUnitId, f.id.unit));
+      await db.delete(facilityTasks).where(eq(facilityTasks.facilityId, f.id.facility));
+      await db.delete(appointments).where(eq(appointments.facilityId, f.id.facility));
+      await db.delete(supportTickets).where(eq(supportTickets.facilityId, f.id.facility));
       const paymentIds = await db
         .select({ id: payments.id })
         .from(payments)
@@ -259,10 +277,6 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
             records.map((row) => row.id),
           ),
         );
-      await db.delete(inspections).where(eq(inspections.storageUnitId, f.id.unit));
-      await db.delete(facilityTasks).where(eq(facilityTasks.facilityId, f.id.facility));
-      await db.delete(appointments).where(eq(appointments.facilityId, f.id.facility));
-      await db.delete(supportTickets).where(eq(supportTickets.facilityId, f.id.facility));
       await db.delete(capacityAllocations).where(eq(capacityAllocations.facilityId, f.id.facility));
       await db.delete(rentals).where(eq(rentals.storageUnitId, f.id.unit));
       await db.delete(reservations).where(eq(reservations.facilityId, f.id.facility));
@@ -294,12 +308,18 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
           password: hashed,
         });
       }
+      const retrieve = spyOn(SepayPaymentGateway.prototype, "retrievePayment").mockResolvedValue(
+        null,
+      );
       const app = Fastify();
       app.decorate("db", db);
       app.setValidatorCompiler(validatorCompiler);
       app.setSerializerCompiler(serializerCompiler);
       setupErrorHandler(app);
       await app.register(authRoutes, { prefix: "/api/auth" });
+      await app.register(lifecycleNotificationsRoutes, { prefix: "/api" });
+      await app.register(supportRoutes, { prefix: "/api/support" });
+      await app.register(storageUnitsRoutes, { prefix: "/api/storage-units" });
       await app.register(facilitiesRoutes, { prefix: "/api/facilities" });
       await app.register(reservationsRoutes, { prefix: "/api/reservations" });
       await app.register(appointmentsRoutes, { prefix: "/api/appointments" });
@@ -313,6 +333,7 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
       const values = {
         origin: process.env.AUTH_TRUSTED_ORIGINS?.split(",")[0] ?? "http://localhost:3000",
         baseUrl,
+        webUrl: process.env.WEB_URL,
         password,
         customerEmail: `${f.id.customer}@example.test`,
         managerEmail: `${f.id.manager}@example.test`,
@@ -406,10 +427,253 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
         expect(allocation?.status).toBe("RELEASED");
       } finally {
         await app.close();
+        retrieve.mockRestore();
         await rm(temp, { recursive: true, force: true });
       }
     },
     60000,
+  );
+
+  test("retiring booking preserves money, assigned work and history across migration and handover", async () => {
+    const f = await fixture();
+    const bookingId = randomUUID();
+    const taskId = randomUUID();
+    const paymentId = randomUUID();
+    await db.insert(bookings).values({
+      id: bookingId,
+      userId: f.id.customer,
+      facilityId: f.id.facility,
+      unitTypeId: f.id.type,
+      assignedStaffId: f.id.staff,
+      requestedMonths: 2,
+      checkInDate: f.date,
+      checkInSlotId: f.id.slot,
+      rentalEndAt: new Date(new Date(`${f.date}T09:00:00+07:00`).getTime() + 60 * 86400000),
+      monthlyRateSnapshot: "100000",
+      rentalFeeAmount: "200000",
+      depositAmount: "100000",
+      totalAmount: "300000",
+      status: "CONFIRMED",
+      contactPhone: "0900000000",
+    });
+    await db.insert(payments).values({
+      id: paymentId,
+      bookingId,
+      provider: "sepay",
+      holdTokenHash: randomUUID(),
+      providerPaymentId: randomUUID(),
+      idempotencyKey: randomUUID(),
+      paymentCode: randomUUID().replaceAll("-", ""),
+      totalAmount: "300000",
+      currency: "VND",
+      status: "SUCCEEDED",
+      paidAt: new Date(),
+    });
+    await db.insert(facilityTasks).values({
+      id: taskId,
+      facilityId: f.id.facility,
+      type: FacilityTaskType.CHECK_IN_HANDOVER,
+      referenceType: FacilityTaskReferenceType.BOOKING,
+      referenceId: bookingId,
+      assignedStaffId: f.id.staff,
+      assignedBy: f.id.manager,
+      status: FacilityTaskStatus.IN_PROGRESS,
+      startedAt: new Date(),
+    });
+    await db
+      .insert(unitAssignments)
+      .values({ bookingId, physicalUnitId: f.id.unit, assignedBy: f.id.manager });
+    await db.update(storageUnits).set({ status: "RESERVED" }).where(eq(storageUnits.id, f.id.unit));
+    await db.update(bookings).set({ totalAmount: "300000.50" }).where(eq(bookings.id, bookingId));
+    await expect(db.transaction(migrateBookingsToReservations)).rejects.toThrow("integer VND");
+    expect(await db.select().from(reservations).where(eq(reservations.id, bookingId))).toHaveLength(
+      0,
+    );
+    expect((await db.select().from(payments).where(eq(payments.id, paymentId)))[0]?.bookingId).toBe(
+      bookingId,
+    );
+    await db.update(bookings).set({ totalAmount: "300000" }).where(eq(bookings.id, bookingId));
+    await db.transaction(migrateBookingsToReservations);
+    const migrated = await reservationService.getCustomerReservation(bookingId, f.id.customer);
+    expect(migrated.totalAmount).toBe(300000);
+    expect(migrated.customerId).toBe(f.id.customer);
+    expect(
+      (await new FacilityAssignmentsRepository(db).findFacilityStaff(f.id.facility))[0]
+        ?.assignedTasksCount,
+    ).toBe(1);
+    const [payment] = await db.select().from(payments).where(eq(payments.id, paymentId));
+    expect(payment).toMatchObject({
+      bookingId: null,
+      reservationId: bookingId,
+      status: "SUCCEEDED",
+      totalAmount: "300000.00",
+    });
+    expect((await appointmentService.getAppointment(bookingId, f.manager)).assignedStaffId).toBe(
+      f.id.staff,
+    );
+    const [task] = await db.select().from(facilityTasks).where(eq(facilityTasks.id, taskId));
+    expect(task).toMatchObject({
+      referenceType: FacilityTaskReferenceType.APPOINTMENT,
+      referenceId: bookingId,
+      status: FacilityTaskStatus.IN_PROGRESS,
+    });
+    const app = Fastify();
+    app.decorate("db", db);
+    app.setValidatorCompiler(validatorCompiler);
+    app.setSerializerCompiler(serializerCompiler);
+    setupErrorHandler(app);
+    const session = spyOn(auth.api, "getSession").mockResolvedValue({
+      user: { ...f.staff, status: "ACTIVE" },
+      session: {},
+    } as never);
+    try {
+      await app.register(inspectionsRoutes, { prefix: "/api" });
+      setSystemTime(new Date(`${f.date}T09:15:00+07:00`));
+      const history = await app.inject({
+        method: "GET",
+        url: `/api/inspections/appointments/${bookingId}`,
+      });
+      expect(history.statusCode).toBe(200);
+      const inspection = history.json().data[0];
+      expect(inspection.storageUnitId).toBe(f.id.unit);
+      const results = HANDOVER_CHECKLIST_ITEMS.map((item) => ({
+        itemCode: item.code,
+        resultType: "PASS_FAIL",
+        result: "PASS",
+        note: null,
+        photos: [],
+      }));
+      const completed = await app.inject({
+        method: "PATCH",
+        url: `/api/inspections/${inspection.id}`,
+        payload: { status: "PASSED", condition: "GOOD", checklist: { results } },
+      });
+      expect(completed.statusCode).toBe(200);
+      const handover = await app.inject({
+        method: "POST",
+        url: `/api/inspections/${inspection.id}/handover`,
+        payload: { customerReceivedUnit: true },
+      });
+      expect(handover.statusCode).toBe(200);
+      await db.transaction(migrateBookingsToReservations);
+      expect(
+        (await reservationService.getCustomerReservation(bookingId, f.id.customer)).status,
+      ).toBe(ReservationStatus.CHECKED_IN);
+      expect(
+        await db.select().from(rentals).where(eq(rentals.reservationId, bookingId)),
+      ).toHaveLength(1);
+      const [archived] = await db.select().from(bookings).where(eq(bookings.id, bookingId));
+      expect(archived?.totalAmount).toBe("300000.00");
+      expect(
+        (await new FacilityAssignmentsRepository(db).findFacilityStaff(f.id.facility))[0]
+          ?.assignedTasksCount,
+      ).toBe(0);
+    } finally {
+      session.mockRestore();
+      await app.close();
+    }
+  });
+
+  test.each(["develop", "development"] as const)(
+    "%s supports same-day demo check-in through real inspection and handover",
+    async (mode) => {
+      const previous = env.NODE_ENV;
+      const f = await fixture();
+      const app = Fastify();
+      app.decorate("db", db);
+      app.setValidatorCompiler(validatorCompiler);
+      app.setSerializerCompiler(serializerCompiler);
+      setupErrorHandler(app);
+      const session = spyOn(auth.api, "getSession").mockResolvedValue({
+        user: { ...f.staff, status: "ACTIVE" },
+        session: {},
+      } as never);
+      try {
+        env.NODE_ENV = mode;
+        setSystemTime(new Date(`${f.date}T15:15:00+07:00`));
+        await db
+          .update(checkInSlots)
+          .set({ startTime: "15:13", endTime: "23:59:59.999999" })
+          .where(eq(checkInSlots.id, f.id.slot));
+        const paid = await checkout(f);
+        await paymentWorkflow.processEvent(paid.event);
+        expect(
+          (await reservationService.getCustomerReservation(paid.reservation.id, f.id.customer))
+            .status,
+        ).toBe(ReservationStatus.CONFIRMED);
+        const appointment = await appointmentService.scheduleAppointment(
+          {
+            appointmentType: Type.CHECK_IN,
+            reservationId: paid.reservation.id,
+            scheduledDate: f.date,
+            slotId: f.id.slot,
+          },
+          f.id.customer,
+        );
+        await appointmentService.updateAppointment(
+          appointment.id,
+          { status: Status.CONFIRMED, assignedStaffId: f.id.staff },
+          f.manager,
+        );
+        const [task] = await db
+          .select()
+          .from(facilityTasks)
+          .where(eq(facilityTasks.referenceId, appointment.id));
+        if (!task) throw new Error("Missing demo task");
+        setSystemTime(new Date(new Date(`${f.date}T00:01:00+07:00`).getTime() + 86400000));
+        expect(await reservationService.sweepNoShows()).toEqual({ processed: 0 });
+        await taskService.update(task.id, { status: FacilityTaskStatus.IN_PROGRESS }, f.staff);
+        await app.register(inspectionsRoutes, { prefix: "/api" });
+        const created = await app.inject({
+          method: "POST",
+          url: "/api/inspections",
+          payload: { taskId: task.id, storageUnitId: f.id.unit },
+        });
+        expect(created.statusCode, created.body).toBe(201);
+        const inspectionId = created.json().data.id;
+        const early = await app.inject({
+          method: "POST",
+          url: `/api/inspections/${inspectionId}/handover`,
+          payload: { customerReceivedUnit: true },
+        });
+        expect(early.statusCode).toBe(409);
+        const checked = await app.inject({
+          method: "PATCH",
+          url: `/api/inspections/${inspectionId}`,
+          payload: {
+            status: "PASSED",
+            condition: "GOOD",
+            checklist: {
+              results: HANDOVER_CHECKLIST_ITEMS.map((item) => ({
+                itemCode: item.code,
+                resultType: "PASS_FAIL",
+                result: "PASS",
+                note: null,
+                photos: [],
+              })),
+            },
+          },
+        });
+        expect(checked.statusCode, checked.body).toBe(200);
+        const handedOver = await app.inject({
+          method: "POST",
+          url: `/api/inspections/${inspectionId}/handover`,
+          payload: { customerReceivedUnit: true },
+        });
+        expect(handedOver.statusCode, handedOver.body).toBe(200);
+        expect((await appointmentService.getAppointment(appointment.id, f.staff)).status).toBe(
+          Status.COMPLETED,
+        );
+        expect(
+          (await reservationService.getCustomerReservation(paid.reservation.id, f.id.customer))
+            .status,
+        ).toBe(ReservationStatus.CHECKED_IN);
+      } finally {
+        env.NODE_ENV = previous;
+        session.mockRestore();
+        await app.close();
+      }
+    },
   );
 
   test("HTTP routes await services and honor the facility from the validated path", async () => {
@@ -426,6 +690,7 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
     try {
       await app.register(reservationsRoutes, { prefix: "/api/reservations" });
       await app.register(appointmentsRoutes, { prefix: "/api/appointments" });
+      expect((await app.inject({ method: "GET", url: "/api/bookings/mine" })).statusCode).toBe(404);
       const draft = await app.inject({
         method: "POST",
         url: "/api/reservations/drafts",

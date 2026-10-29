@@ -20,8 +20,7 @@ import {
   ForbiddenError,
   NotFoundError,
 } from "../../common/errors/app-error";
-import { CheckInSlotsRepository } from "../bookings/check-in-slots.repository";
-import { CheckInSlotsService } from "../bookings/check-in-slots.service";
+import { isDevelopmentEnvironment } from "../../config/env";
 import { getFacilityAccessScope } from "../facilities/facilities.access";
 import { FacilitiesRepository } from "../facilities/facilities.repository";
 import { FacilitiesService } from "../facilities/facilities.service";
@@ -31,6 +30,7 @@ import {
   createFacilityTasksService,
   type FacilityTasksService,
 } from "../facility-tasks/facility-tasks.service";
+import type { NotificationsService } from "../notifications/notifications.service";
 import { RentalsRepository } from "../rentals/rentals.repository";
 import { RentalsService } from "../rentals/rentals.service";
 import {
@@ -41,6 +41,8 @@ import { SupportRepository } from "../support/support.repository";
 import { SupportService } from "../support/support.service";
 import { APPOINTMENT_MESSAGES as m } from "./appointments.messages";
 import { AppointmentsRepository, type AppointmentTransaction } from "./appointments.repository";
+import { CheckInSlotsRepository } from "./check-in-slots.repository";
+import { CheckInSlotsService } from "./check-in-slots.service";
 
 type Actor = { id: string; role: Role | null | undefined };
 
@@ -54,6 +56,7 @@ export class AppointmentsService {
     private readonly rentals: RentalsService,
     private readonly support: SupportService,
     private readonly tasks: FacilityTasksService,
+    private readonly notifications?: NotificationsService,
   ) {}
 
   async requireInspectionContext(tx: AppointmentTransaction, id: string, actor: Actor) {
@@ -72,8 +75,9 @@ export class AppointmentsService {
     const slot = await this.slots.findByIdForDate(appointment.slotId, appointment.scheduledDate);
     if (
       !slot ||
-      new Date() < slot.startsAt ||
-      new Date() >= new Date(`${appointment.scheduledDate}T23:59:59.999+07:00`)
+      (!(isDevelopmentEnvironment() && appointment.appointmentType === Type.CHECK_IN) &&
+        (new Date() < slot.startsAt ||
+          new Date() >= new Date(`${appointment.scheduledDate}T23:59:59.999+07:00`)))
     )
       throw new ConflictError(m.completionNotReady);
     if (appointment.status !== Status.CONFIRMED && appointment.status !== Status.COMPLETED)
@@ -94,8 +98,9 @@ export class AppointmentsService {
 
   async scheduleAppointment(input: CreateAppointmentInput, customerId: string) {
     input = CreateAppointmentSchema.parse(input);
+    const demo = isDevelopmentEnvironment() && input.appointmentType === Type.CHECK_IN;
     const slot = await this.slots.findByIdForDate(input.slotId, input.scheduledDate);
-    if (!slot || slot.startsAt <= new Date()) throw new BadRequestError(m.invalidSlot);
+    if (!slot || (!demo && slot.startsAt <= new Date())) throw new BadRequestError(m.invalidSlot);
     return this.repository.transaction(async (tx) => {
       let facilityId: string;
       if (input.appointmentType === Type.CHECK_IN) {
@@ -131,11 +136,13 @@ export class AppointmentsService {
       if (input.facilityId && input.facilityId !== facilityId)
         throw new BadRequestError(m.contextMismatch);
       await this.facilities.requireActiveFacility(facilityId);
-      await this.facilities.assertCheckInWithinOperatingHours(facilityId, slot.startsAt);
-      await this.facilities.assertCheckInWithinOperatingHours(
-        facilityId,
-        new Date(slot.endsAt.getTime() - 1),
-      );
+      if (!demo) {
+        await this.facilities.assertCheckInWithinOperatingHours(facilityId, slot.startsAt);
+        await this.facilities.assertCheckInWithinOperatingHours(
+          facilityId,
+          new Date(slot.endsAt.getTime() - 1),
+        );
+      }
       if (await this.repository.findActiveForContext(tx, input))
         throw new ConflictError(m.alreadyScheduled);
       const appointment = await this.repository.create(
@@ -210,7 +217,8 @@ export class AppointmentsService {
     input = UpdateAppointmentSchema.parse(input);
     if (!Object.keys(input).length) throw new BadRequestError(m.emptyUpdate);
     const current = await this.getAppointment(id, actor);
-    return this.repository.transaction(async (tx) => {
+    const demo = isDevelopmentEnvironment() && current.appointmentType === Type.CHECK_IN;
+    const updated = await this.repository.transaction(async (tx) => {
       // Use the same parent -> appointment lock order as reservation cancellation.
       const reservation = current.reservationId
         ? await this.reservations.requireCustomerReservation(
@@ -256,8 +264,9 @@ export class AppointmentsService {
           (actor.role !== UserRole.FACILITY_STAFF ||
             appointment.assignedStaffId !== actor.id ||
             appointment.status !== Status.CONFIRMED ||
-            now < slot.startsAt ||
-            now >= new Date(`${appointment.scheduledDate}T23:59:59.999+07:00`))
+            (!demo &&
+              (now < slot.startsAt ||
+                now >= new Date(`${appointment.scheduledDate}T23:59:59.999+07:00`))))
         )
           throw new ConflictError(m.completionNotReady);
         if (
@@ -292,7 +301,7 @@ export class AppointmentsService {
       if (status === Status.CONFIRMED && !assignedStaffId)
         throw new BadRequestError(m.staffRequired);
       if (input.assignedStaffId) {
-        if (now >= slot.endsAt) throw new ConflictError(m.closed);
+        if (!demo && now >= slot.endsAt) throw new ConflictError(m.closed);
         await this.tasks.assignAppointment(
           tx,
           { ...appointment, assignedStaffId: input.assignedStaffId },
@@ -310,10 +319,22 @@ export class AppointmentsService {
       if (!updated) throw new AppError(m.writeFailed);
       return updated;
     });
+    if (
+      input.assignedStaffId &&
+      input.assignedStaffId !== current.assignedStaffId &&
+      this.notifications
+    ) {
+      try {
+        await this.notifications.assignedAppointment(id, input.assignedStaffId);
+      } catch {
+        console.error("Appointment assignment notification failed");
+      }
+    }
+    return updated;
   }
 }
 
-export function createAppointmentsService(db: Database) {
+export function createAppointmentsService(db: Database, notifications?: NotificationsService) {
   const facilities = new FacilitiesRepository(db);
   const assignmentRepo = new FacilityAssignmentsRepository(db);
   const assignments = new FacilityAssignmentsService(assignmentRepo, facilities);
@@ -326,5 +347,6 @@ export function createAppointmentsService(db: Database) {
     new RentalsService(new RentalsRepository(db), assignments),
     new SupportService(new SupportRepository(db)),
     createFacilityTasksService(db),
+    notifications,
   );
 }

@@ -1,7 +1,7 @@
 import type { InspectionListQuery } from "@metastorage/contracts";
+import { FacilityTaskReferenceType } from "@metastorage/contracts";
 import {
   and,
-  bookings,
   count,
   type Database,
   desc,
@@ -9,11 +9,10 @@ import {
   facilityTasks,
   type Inspection as InspectionRecord,
   type InspectionStatus,
-  InspectionType,
+  type InspectionType,
   inArray,
   inspections,
   storageUnits,
-  unitAssignments,
 } from "@metastorage/database";
 import type { TaskTransaction } from "../facility-tasks/facility-tasks.types";
 
@@ -28,6 +27,20 @@ export class InspectionsRepository {
 
   transaction<T>(callback: (tx: TaskTransaction) => Promise<T>) {
     return this.db.transaction(callback);
+  }
+
+  async listForAppointment(appointmentId: string) {
+    return this.db
+      .select({ id: inspections.id })
+      .from(inspections)
+      .innerJoin(facilityTasks, eq(facilityTasks.id, inspections.taskId))
+      .where(
+        and(
+          eq(facilityTasks.referenceId, appointmentId),
+          eq(facilityTasks.referenceType, FacilityTaskReferenceType.APPOINTMENT),
+        ),
+      )
+      .orderBy(desc(inspections.inspectedAt), desc(inspections.id));
   }
 
   async findTaskContext(taskId: string) {
@@ -57,77 +70,12 @@ export class InspectionsRepository {
       : undefined;
   }
 
-  async findAssignedBooking(bookingId: string) {
-    const [booking] = await this.db
-      .select({ assignedStaffId: bookings.assignedStaffId, facilityId: bookings.facilityId })
-      .from(bookings)
-      .where(eq(bookings.id, bookingId));
-    return booking;
-  }
-
-  async listForBooking(bookingId: string, staffId: string) {
-    const rows = await this.db
-      .select({
-        inspection: inspections,
-        facilityId: facilityTasks.facilityId,
-        unitCode: storageUnits.code,
-        assignedStaffId: facilityTasks.assignedStaffId,
-      })
-      .from(inspections)
-      .innerJoin(facilityTasks, eq(facilityTasks.id, inspections.taskId))
-      .innerJoin(storageUnits, eq(storageUnits.id, inspections.storageUnitId))
-      .where(
-        and(
-          eq(inspections.bookingId, bookingId),
-          eq(inspections.inspectionType, InspectionType.CHECK_IN),
-          eq(facilityTasks.assignedStaffId, staffId),
-        ),
-      )
-      .orderBy(desc(facilityTasks.assignedAt), desc(inspections.inspectDoneAt));
-    return rows.map((row) => ({
-      ...row.inspection,
-      facilityId: row.facilityId,
-      unitCode: row.unitCode,
-      assignedStaffId: row.assignedStaffId,
-    }));
-  }
-
-  findBookingForCheckIn(tx: TaskTransaction, bookingId: string) {
-    return tx.select().from(bookings).where(eq(bookings.id, bookingId)).for("update");
-  }
-
-  findActiveUnitAssignment(tx: TaskTransaction, bookingId: string) {
-    return tx
-      .select()
-      .from(unitAssignments)
-      .where(and(eq(unitAssignments.bookingId, bookingId), eq(unitAssignments.status, "ACTIVE")))
-      .for("update");
-  }
-
   findInspectionTask(tx: TaskTransaction, taskId: string) {
     return tx.select().from(facilityTasks).where(eq(facilityTasks.id, taskId)).for("update");
   }
 
   findInspectionByTask(tx: TaskTransaction, taskId: string) {
     return tx.select().from(inspections).where(eq(inspections.taskId, taskId));
-  }
-
-  createCheckInInspection(
-    tx: TaskTransaction,
-    input: {
-      storageUnitId: string;
-      bookingId: string;
-      inspectedBy: string;
-      taskId: string;
-    },
-  ) {
-    return tx
-      .insert(inspections)
-      .values({
-        ...input,
-        inspectionType: InspectionType.CHECK_IN,
-      })
-      .returning();
   }
 
   list(
@@ -204,9 +152,5 @@ export class InspectionsRepository {
     >,
   ) {
     return tx.update(inspections).set(input).where(eq(inspections.id, id)).returning();
-  }
-
-  findBookingForHandover(tx: TaskTransaction, bookingId: string) {
-    return tx.select().from(bookings).where(eq(bookings.id, bookingId)).for("update");
   }
 }
