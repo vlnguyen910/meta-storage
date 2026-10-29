@@ -92,7 +92,7 @@ export class InspectionsService {
       )
         return undefined;
 
-      const [existing] = await this.repository.findByTask(tx, task.id);
+      const [existing] = await this.repository.findByTask(task.id, tx);
       if (existing) return existing;
 
       let storageUnitId: string | undefined;
@@ -128,7 +128,7 @@ export class InspectionsService {
   ) {
     const appointments = this.appointments;
     if (!appointments) throw new ConflictError(m.taskNotAvailable);
-    const existing = await this.repository.findExistingByTask(input.taskId);
+    const [existing] = await this.repository.findByTask(input.taskId);
     if (existing) return this.get(existing.id, actor);
     const record = await this.repository.transaction(async (tx) => {
       const { appointment, reservation, rental } = await appointments.requireInspectionContext(
@@ -145,7 +145,7 @@ export class InspectionsService {
         appointment.status !== AppointmentStatus.CONFIRMED
       )
         throw new ConflictError(m.taskNotAvailable);
-      const [existing] = await this.repository.findByTask(tx, task.id);
+      const [existing] = await this.repository.findByTask(task.id, tx);
       if (existing) return existing;
       if (
         appointment.appointmentType === AppointmentType.CHECK_OUT &&
@@ -296,6 +296,9 @@ export class InspectionsService {
 
     let alreadyCompleted = false;
     const updated = await this.repository.transaction(async (tx) => {
+      let appointmentContext:
+        | Awaited<ReturnType<AppointmentsService["requireInspectionContext"]>>
+        | undefined;
       if (current.inspectionType === InspectionType.CHECK_OUT) {
         const taskContext = await this.repository.findTaskContext(current.taskId, tx);
         if (
@@ -304,7 +307,11 @@ export class InspectionsService {
         )
           throw new ConflictError(m.handoverNotReady);
         try {
-          await this.appointments.requireInspectionContext(tx, taskContext.referenceId, actor);
+          appointmentContext = await this.appointments.requireInspectionContext(
+            tx,
+            taskContext.referenceId,
+            actor,
+          );
         } catch (error) {
           if (input.status === InspectionStatus.PASSED) {
             const [completed] = await this.repository.findForUpdate(tx, id);
@@ -375,7 +382,8 @@ export class InspectionsService {
         locked.inspectionType === InspectionType.CHECK_OUT &&
         nextStatus === InspectionStatus.PASSED
       ) {
-        await this.completeReturn(tx, locked, task, actor, input);
+        if (!appointmentContext) throw new ConflictError(m.handoverNotReady);
+        await this.completeReturn(tx, locked, task, actor, input, appointmentContext);
       }
 
       const condition =
@@ -433,6 +441,7 @@ export class InspectionsService {
     task: Awaited<ReturnType<FacilityTasksRepository["findForUpdate"]>>[number],
     actor: InspectionActor,
     input: UpdateInspectionInput,
+    context: Awaited<ReturnType<AppointmentsService["requireInspectionContext"]>>,
   ) {
     if (
       !this.appointments ||
@@ -441,11 +450,7 @@ export class InspectionsService {
       task.referenceType !== FacilityTaskReferenceType.APPOINTMENT
     )
       throw new ConflictError(m.handoverNotReady);
-    const { appointment, rental } = await this.appointments.requireInspectionContext(
-      tx,
-      task.referenceId,
-      actor,
-    );
+    const { appointment, rental } = context;
     if (
       appointment.appointmentType !== AppointmentType.CHECK_OUT ||
       appointment.status !== AppointmentStatus.CONFIRMED ||
