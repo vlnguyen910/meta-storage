@@ -1,72 +1,20 @@
 "use client";
 
-import {
-  ArrowLeft,
-  ArrowRight,
-  CalendarDays,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  Clock3,
-  Lock,
-} from "lucide-react";
-import { useEffect, useState } from "react";
+import { ArrowLeft, ArrowRight, Lock } from "lucide-react";
 import { isMockMode } from "@/config/api-mode";
 import { cn } from "@/lib/utils";
+import { BookingSchedulePicker } from "./booking-schedule-picker";
 import { checkoutMessages as m } from "./checkout.messages";
 import type { CheckoutState } from "./checkout.types";
 import { CheckoutSummary } from "./checkout-parts";
 import { toLocalDateTimeInput } from "./checkout-validation";
 
-function dateFromParts(year: number, monthIndex: number, day: number): string {
-  return `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-}
-
-function monthFromDate(value: string): string {
-  return value.slice(0, 7);
-}
-
-function shiftMonth(value: string, amount: number): string {
-  const [year, month] = value.split("-").map(Number);
-  const shifted = new Date(Date.UTC(year ?? 0, (month ?? 1) - 1 + amount, 1));
-  return `${shifted.getUTCFullYear()}-${String(shifted.getUTCMonth() + 1).padStart(2, "0")}`;
-}
-
-function formatCalendarDate(value: string): string {
-  const [year, month, day] = value.split("-").map(Number);
-  return new Intl.DateTimeFormat("vi-VN", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(Date.UTC(year ?? 0, (month ?? 1) - 1, day ?? 1, 12)));
-}
-
 export function CheckoutContact({ state }: { state: CheckoutState }) {
   const { form } = state;
-  const today = toLocalDateTimeInput(new Date()).slice(0, 10);
   const tomorrow = toLocalDateTimeInput(new Date(Date.now() + 86_400_000)).slice(0, 10);
   const selectedDate = form.watch("checkInDate");
   const selectedSlotId = form.watch("checkInSlotId");
   const selectedDuration = form.watch("durationMonths");
-
-  const [calendarMonth, setCalendarMonth] = useState(() => monthFromDate(today));
-  const [year, month] = calendarMonth.split("-").map(Number);
-  const monthYear = year ?? 0;
-  const monthIndex = (month ?? 1) - 1;
-  const firstWeekday = new Date(Date.UTC(monthYear, monthIndex, 1)).getUTCDay();
-  const daysInMonth = new Date(Date.UTC(monthYear, monthIndex + 1, 0)).getUTCDate();
-  const monthLabel = new Intl.DateTimeFormat("vi-VN", {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(Date.UTC(monthYear, monthIndex, 1, 12)));
-  const currentMonth = monthFromDate(today);
-
-  useEffect(() => {
-    if (selectedDate) setCalendarMonth(monthFromDate(selectedDate));
-  }, [selectedDate]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -149,262 +97,73 @@ export function CheckoutContact({ state }: { state: CheckoutState }) {
           </div>
         </div>
 
-        {/* Section 2: Duration, Slots and Calendar */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3.5 border-t border-slate-100">
-          {/* Left Column: Duration Months + Check-in Slot */}
-          <div className="space-y-3.5">
-            {/* Duration */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  <Clock size={14} className="text-[#165f4d]" />
-                  <span>{m.duration}</span>
-                </div>
-                {selectedDuration && (
-                  <span className="text-xs font-bold text-[#165f4d]">{selectedDuration} tháng</span>
-                )}
-              </div>
-
-              {/* 12 months buttons grid - labeled clearly as 'X tháng' */}
-              <div className="grid grid-cols-4 gap-1.5">
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((mth) => {
-                  const isSelected = selectedDuration === mth;
-                  return (
-                    <button
-                      key={mth}
-                      type="button"
-                      onClick={() =>
-                        form.setValue("durationMonths", mth, {
-                          shouldDirty: true,
-                          shouldTouch: true,
-                          shouldValidate: true,
-                        })
-                      }
-                      className={cn(
-                        "h-8 sm:h-8.5 rounded-lg text-xs font-semibold transition-all border flex items-center justify-center cursor-pointer",
-                        isSelected
-                          ? "bg-[#165f4d] text-white border-[#165f4d] shadow-xs"
-                          : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300",
-                      )}
-                    >
-                      {mth} tháng
-                    </button>
-                  );
-                })}
-              </div>
-              {form.formState.errors.durationMonths?.message && (
-                <p className="mt-1 text-[11px] text-rose-600">
-                  {form.formState.errors.durationMonths.message}
-                </p>
-              )}
-            </div>
-
-            {/* Check-in Slot Picker */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  <Clock3 size={14} className="text-[#165f4d]" />
-                  <span>{m.slotPickerTitle}</span>
-                </div>
-                <span className="text-[11px] text-slate-400">{m.timeHint}</span>
-              </div>
-
-              {state.slotsQuery.isLoading ? (
-                <p className="text-xs text-slate-500 py-1.5">{m.slotsLoading}</p>
-              ) : null}
-
-              {state.slotsQuery.isError ? (
-                <div className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-xs text-rose-800 flex items-center justify-between">
-                  <span>{m.slotsUnavailable}</span>
-                  <button
-                    type="button"
-                    className="underline font-bold"
-                    onClick={() => state.slotsQuery.refetch()}
-                  >
-                    {m.refreshSlots}
-                  </button>
-                </div>
-              ) : null}
-
-              {state.slotsQuery.data?.length ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                  {state.slotsQuery.data.map((slot) => {
-                    const isSelected = selectedSlotId === slot.id;
-                    return (
-                      <button
-                        key={slot.id}
-                        type="button"
-                        onClick={() =>
-                          form.setValue("checkInSlotId", slot.id, { shouldValidate: true })
-                        }
-                        className={cn(
-                          "px-3 py-2 min-h-10 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer",
-                          isSelected
-                            ? "border-[#165f4d] bg-emerald-50/40 text-slate-900 ring-1 ring-[#165f4d]"
-                            : "border-slate-200 bg-white hover:bg-slate-50 text-slate-700",
-                        )}
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div
-                            className={cn(
-                              "size-4 rounded-full border flex items-center justify-center shrink-0",
-                              isSelected ? "border-[#165f4d]" : "border-slate-300",
-                            )}
-                          >
-                            {isSelected && <div className="size-2 rounded-full bg-[#165f4d]" />}
-                          </div>
-                          <span className="text-xs font-semibold truncate max-w-[90px]">
-                            {slot.name}
-                          </span>
-                        </div>
-                        <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded shrink-0">
-                          {slot.startTime.slice(0, 5)} - {slot.endTime.slice(0, 5)}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : null}
-
-              {form.formState.errors.checkInSlotId?.message && (
-                <p className="mt-1 text-[11px] text-rose-600">
-                  {form.formState.errors.checkInSlotId.message}
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Right Column: Check-in Date (Compact Calendar + Quick Chips) */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                <CalendarDays size={14} className="text-[#165f4d]" />
-                <span>{m.datePickerTitle}</span>
-              </div>
-              <span className="text-[11px] text-slate-400">Từ ngày mai</span>
-            </div>
-
-            {/* Quick date chips */}
-            <div className="flex items-center gap-1.5 mb-2">
-              {[
-                { label: "Ngày mai", date: tomorrow },
-                {
-                  label: "Ngày kia",
-                  date: toLocalDateTimeInput(new Date(Date.now() + 172_800_000)).slice(0, 10),
-                },
-                {
-                  label: "Sau 3 ngày",
-                  date: toLocalDateTimeInput(new Date(Date.now() + 259_200_000)).slice(0, 10),
-                },
-              ].map((chip) => {
-                const isSelected = selectedDate === chip.date;
-                return (
-                  <button
-                    key={chip.date}
-                    type="button"
-                    className={cn(
-                      "px-2.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer border",
-                      isSelected
-                        ? "bg-[#165f4d] text-white border-[#165f4d] shadow-xs"
-                        : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100",
-                    )}
-                    onClick={() => {
-                      form.setValue("checkInDate", chip.date, {
-                        shouldDirty: true,
-                        shouldTouch: true,
-                        shouldValidate: true,
-                      });
-                      form.clearErrors("checkInDate");
-                    }}
-                  >
-                    {chip.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Month Calendar */}
-            <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-2.5 sm:p-3">
-              {/* Calendar Header */}
-              <div className="flex items-center justify-between pb-2 mb-1.5 border-b border-slate-200/60">
+        <div className="border-t border-slate-100 pt-4">
+          <div className="mb-4">
+            <p className="mb-2 text-xs font-bold text-slate-800">{m.duration}</p>
+            <div className="grid grid-cols-4 gap-2">
+              {Array.from({ length: 12 }, (_, index) => index + 1).map((months) => (
                 <button
+                  key={months}
                   type="button"
-                  disabled={calendarMonth <= currentMonth}
-                  onClick={() => setCalendarMonth(shiftMonth(calendarMonth, -1))}
-                  className="size-6 flex items-center justify-center rounded hover:bg-slate-200/70 text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                  aria-pressed={selectedDuration === months}
+                  onClick={() =>
+                    form.setValue("durationMonths", months, {
+                      shouldDirty: true,
+                      shouldTouch: true,
+                      shouldValidate: true,
+                    })
+                  }
+                  className={cn(
+                    "min-h-9 rounded-lg border text-xs font-semibold",
+                    selectedDuration === months
+                      ? "border-primary bg-primary text-white"
+                      : "border-line bg-white text-ink hover:bg-canvas",
+                  )}
                 >
-                  <ChevronLeft size={14} />
+                  {m.month(months)}
                 </button>
-                <span className="text-xs font-bold text-slate-800 capitalize">{monthLabel}</span>
-                <button
-                  type="button"
-                  onClick={() => setCalendarMonth(shiftMonth(calendarMonth, 1))}
-                  className="size-6 flex items-center justify-center rounded hover:bg-slate-200/70 text-slate-600 cursor-pointer"
-                >
-                  <ChevronRight size={14} />
-                </button>
-              </div>
-
-              {/* Weekday Row */}
-              <div className="grid grid-cols-7 gap-1 text-center mb-1">
-                {m.datePickerWeekdays.map((weekday) => (
-                  <span key={weekday} className="text-[10px] font-bold text-slate-400">
-                    {weekday}
-                  </span>
-                ))}
-              </div>
-
-              {/* Days Grid */}
-              <div className="grid grid-cols-7 gap-1 text-center">
-                {Array.from({ length: daysInMonth }, (_, index) => {
-                  const day = index + 1;
-                  const value = dateFromParts(monthYear, monthIndex, day);
-                  const disabled = value < tomorrow;
-                  const isSelected = value === selectedDate;
-
-                  return (
-                    <button
-                      key={value}
-                      type="button"
-                      disabled={disabled}
-                      style={day === 1 ? { gridColumnStart: firstWeekday + 1 } : undefined}
-                      onClick={() => {
-                        form.setValue("checkInDate", value, {
-                          shouldDirty: true,
-                          shouldTouch: true,
-                          shouldValidate: true,
-                        });
-                        form.clearErrors("checkInDate");
-                      }}
-                      className={cn(
-                        "h-7 sm:h-7.5 w-full flex items-center justify-center rounded-lg text-xs font-semibold transition-all cursor-pointer",
-                        disabled && "text-slate-300 cursor-not-allowed",
-                        isSelected &&
-                          "bg-[#165f4d] text-white font-bold shadow-xs hover:bg-[#0f493b]",
-                        !isSelected &&
-                          !disabled &&
-                          "text-slate-700 hover:bg-emerald-50 hover:text-[#165f4d]",
-                      )}
-                    >
-                      {day}
-                    </button>
-                  );
-                })}
-              </div>
+              ))}
             </div>
-
-            {selectedDate && (
-              <p className="mt-1.5 text-xs text-[#165f4d] font-semibold">
-                Đã chọn: {formatCalendarDate(selectedDate)}
-              </p>
-            )}
-
-            {form.formState.errors.checkInDate?.message && (
+            {form.formState.errors.durationMonths?.message && (
               <p className="mt-1 text-[11px] text-rose-600">
-                {form.formState.errors.checkInDate.message}
+                {form.formState.errors.durationMonths.message}
               </p>
             )}
           </div>
+          <BookingSchedulePicker
+            date={selectedDate}
+            onDateChange={(value) => {
+              form.setValue("checkInDate", value, {
+                shouldDirty: true,
+                shouldTouch: true,
+                shouldValidate: true,
+              });
+              form.clearErrors("checkInDate");
+            }}
+            slotId={selectedSlotId}
+            onSlotChange={(value) =>
+              form.setValue("checkInSlotId", value, { shouldValidate: true })
+            }
+            slots={state.slotsQuery.data ?? []}
+            minDate={tomorrow}
+            dateTitle={m.datePickerTitle}
+            slotTitle={m.slotPickerTitle}
+            dateHint={m.datePickerHint}
+            timeHint={m.timeHint}
+            slotsLoading={state.slotsQuery.isLoading}
+            slotsError={state.slotsQuery.isError}
+            onRetrySlots={() => void state.slotsQuery.refetch()}
+          />
+          {form.formState.errors.checkInDate?.message && (
+            <p className="mt-1 text-[11px] text-rose-600">
+              {form.formState.errors.checkInDate.message}
+            </p>
+          )}
+          {form.formState.errors.checkInSlotId?.message && (
+            <p className="mt-1 text-[11px] text-rose-600">
+              {form.formState.errors.checkInSlotId.message}
+            </p>
+          )}
         </div>
 
         {/* Optional Note */}
