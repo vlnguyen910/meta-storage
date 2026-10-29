@@ -1,0 +1,83 @@
+{
+  "info": {
+    "name": "Rental renewal own-unit capacity regression",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Login customer",
+      "protocolProfileBehavior": {
+        "disableCookies": true
+      },
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Origin",
+            "value": "http://localhost:3000"
+          }
+        ],
+        "url": "{{api}}/auth/sign-in/email",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\": \"{{email}}\", \"password\": \"{{password}}\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set(\"customerCookie\", pm.response.headers.all().filter(h => h.key.toLowerCase() === \"set-cookie\").map(h=>h.value.split(\";\")[0]).join(\"; \"));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Own occupied unit is renewable without spare inventory",
+      "protocolProfileBehavior": {
+        "disableCookies": true
+      },
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Origin",
+            "value": "http://localhost:3000"
+          },
+          {
+            "key": "Cookie",
+            "value": "{{customerCookie}}"
+          }
+        ],
+        "url": "{{api}}/rentals/{{rentalId}}/renewals",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"months\": 1, \"idempotencyKey\": \"{{key}}-own-unit\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201 for conflict-free occupied own unit\",()=>pm.response.to.have.status(201));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

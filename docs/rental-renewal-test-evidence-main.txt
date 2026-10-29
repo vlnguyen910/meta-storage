@@ -1,0 +1,324 @@
+No authorization data found. Please use the `postman login` command.
+Refer:https://learning.postman.com/docs/postman-cli/postman-cli-options/#postman-login
+
+Running your collection...
+postman
+
+Rental renewal API regression
+
+Root 01 Unauthenticated history
+
+  GET http://127.0.0.1:35723/api/rentals/319e4d9a-fcf3-440f-b63b-6f2be105b4ae/renewals [401 Unauthorized, 490 B, 11 ms]
+  Pass  HTTP 401
+
+Root Login other
+
+  POST http://127.0.0.1:35723/api/auth/sign-in/email [200 OK, 860 B, 72 ms]
+  Pass  HTTP 200
+
+Root 02 Other customer cannot see rental
+
+  GET http://127.0.0.1:35723/api/rentals/319e4d9a-fcf3-440f-b63b-6f2be105b4ae/renewals [404 Not Found, 486 B, 6 ms]
+  Pass  HTTP 404
+
+Root Login manager
+
+  POST http://127.0.0.1:35723/api/auth/sign-in/email [200 OK, 866 B, 57 ms]
+  Pass  HTTP 200
+
+Root 03 Manager cannot create quote
+
+  POST http://127.0.0.1:35723/api/rentals/319e4d9a-fcf3-440f-b63b-6f2be105b4ae/renewals [403 Forbidden, 480 B, 5 ms]
+  Pass  HTTP 403
+
+Root Login customer
+
+  POST http://127.0.0.1:35723/api/auth/sign-in/email [200 OK, 857 B, 60 ms]
+  Pass  HTTP 200
+
+Root 04 Current rental snapshot
+
+  GET http://127.0.0.1:35723/api/rentals/319e4d9a-fcf3-440f-b63b-6f2be105b4ae [200 OK, 1.24 KB, 12 ms]
+  Pass  HTTP 200
+
+Root 05 Invalid months
+
+  POST http://127.0.0.1:35723/api/rentals/319e4d9a-fcf3-440f-b63b-6f2be105b4ae/renewals [400 Bad Request, 557 B, 3 ms]
+  Pass  HTTP 400
+
+Root 06 Reject client supplied price
+
+  POST http://127.0.0.1:35723/api/rentals/319e4d9a-fcf3-440f-b63b-6f2be105b4ae/renewals [400 Bad Request, 546 B, 3 ms]
+  Pass  HTTP 400
+
+Root 07 Invalid UUID
+
+  GET http://127.0.0.1:35723/api/rentals/not-uuid/renewals [400 Bad Request, 515 B, 2 ms]
+  Pass  HTTP 400
+
+Root 08 Closed rental rejected
+
+  POST http://127.0.0.1:35723/api/rentals/e95d360a-55ee-4a72-96e5-70d2c472ff2c/renewals [409 Conflict, 528 B, 7 ms]
+  Pass  HTTP 409
+
+Root 09 Create quote
+
+  POST http://127.0.0.1:35723/api/rentals/319e4d9a-fcf3-440f-b63b-6f2be105b4ae/renewals [201 Created, 877 B, 16 ms]
+  Pass  HTTP 201
+  Pass  Quote snapshots correct term and rent only
+
+Root 10 Quote same key replay
+
+  POST http://127.0.0.1:35723/api/rentals/319e4d9a-fcf3-440f-b63b-6f2be105b4ae/renewals [201 Created, 877 B, 9 ms]
+  Pass  HTTP 201
+  Pass  Same renewal
+
+Root 11 Quote key different payload
+
+  POST http://127.0.0.1:35723/api/rentals/319e4d9a-fcf3-440f-b63b-6f2be105b4ae/renewals [409 Conflict, 520 B, 4 ms]
+  Pass  HTTP 409
+
+Root 12 Paginated history
+
+  GET http://127.0.0.1:35723/api/rentals/319e4d9a-fcf3-440f-b63b-6f2be105b4ae/renewals?limit=1&offset=0 [200 OK, 915 B, 7 ms]
+  Pass  HTTP 200
+  Pass  History contains quote
+
+Root 13 Quote detail
+
+  GET http://127.0.0.1:35723/api/rentals/319e4d9a-fcf3-440f-b63b-6f2be105b4ae/renewals/63012bf8-baa1-4c25-92bf-b7ac28c1161d [200 OK, 872 B, 5 ms]
+  Pass  HTTP 200
+  Pass  Private response
+
+Root 14 Start checkout
+
+  POST http://127.0.0.1:35723/api/rentals/319e4d9a-fcf3-440f-b63b-6f2be105b4ae/renewals/63012bf8-baa1-4c25-92bf-b7ac28c1161d/payments [201 Created, 1.49 KB, 14 ms]
+  Pass  HTTP 201
+  Pass  Checkout prepared
+
+Root 15 Checkout retry
+
+  POST http://127.0.0.1:35723/api/rentals/319e4d9a-fcf3-440f-b63b-6f2be105b4ae/renewals/63012bf8-baa1-4c25-92bf-b7ac28c1161d/payments [201 Created, 1.49 KB, 5 ms]
+  Pass  HTTP 201
+  Pass  Same payment
+
+Root 15b Checkout different key rejected
+
+  POST http://127.0.0.1:35723/api/rentals/319e4d9a-fcf3-440f-b63b-6f2be105b4ae/renewals/63012bf8-baa1-4c25-92bf-b7ac28c1161d/payments [409 Conflict, 519 B, 5 ms]
+  Pass  HTTP 409
+
+Root 15c Return blocked during pending renewal
+
+  POST http://127.0.0.1:35723/api/appointments [409 Conflict, 485 B, 7 ms]
+  Pass  HTTP 409
+  Pass  Renewal payment blocks return
+
+Root 16 Payment status pending
+
+  GET http://127.0.0.1:35723/api/payments/2beb5cc5-4d66-47c5-9216-3b50a9b79748/status [200 OK, 1.64 KB, 9 ms]
+  Pass  HTTP 200
+  Pass  Pending
+
+Root 16b Other customer cannot poll payment
+
+  GET http://127.0.0.1:35723/api/payments/2beb5cc5-4d66-47c5-9216-3b50a9b79748/status [404 Not Found, 487 B, 5 ms]
+  Pass  HTTP 404
+
+Root 17 Forged webhook denied
+
+  POST http://127.0.0.1:35723/api/payments/webhooks/sepay [401 Unauthorized, 465 B, 3 ms]
+  Pass  HTTP 401
+
+Root 18 Wrong amount ignored
+
+  POST http://127.0.0.1:35723/api/payments/webhooks/sepay [200 OK, 345 B, 7 ms]
+  Pass  HTTP 200
+
+Root 19 Wrong amount did not extend rental
+
+  GET http://127.0.0.1:35723/api/rentals/319e4d9a-fcf3-440f-b63b-6f2be105b4ae [200 OK, 1.24 KB, 7 ms]
+  Pass  HTTP 200
+  Pass  Term unchanged
+
+Root 20 Verified successful webhook
+
+  POST http://127.0.0.1:35723/api/payments/webhooks/sepay [200 OK, 345 B, 10 ms]
+  Pass  HTTP 200
+
+Root 21 Renewal applied
+
+  GET http://127.0.0.1:35723/api/rentals/319e4d9a-fcf3-440f-b63b-6f2be105b4ae/renewals/63012bf8-baa1-4c25-92bf-b7ac28c1161d [200 OK, 929 B, 4 ms]
+  Pass  HTTP 200
+  Pass  Applied once
+
+Root 22 Rental new expiry
+
+  GET http://127.0.0.1:35723/api/rentals/319e4d9a-fcf3-440f-b63b-6f2be105b4ae [200 OK, 1.24 KB, 6 ms]
+  Pass  HTTP 200
+  Pass  Rental extended
+
+Root 23 Replay successful webhook
+
+  POST http://127.0.0.1:35723/api/payments/webhooks/sepay [200 OK, 345 B, 5 ms]
+  Pass  HTTP 200
+
+Root 24 Replay does not extend twice
+
+  GET http://127.0.0.1:35723/api/rentals/319e4d9a-fcf3-440f-b63b-6f2be105b4ae [200 OK, 1.24 KB, 6 ms]
+  Pass  HTTP 200
+  Pass  Expiry stable
+
+Root 25 Payment succeeded
+
+  GET http://127.0.0.1:35723/api/payments/2beb5cc5-4d66-47c5-9216-3b50a9b79748/status [200 OK, 568 B, 5 ms]
+  Pass  HTTP 200
+  Pass  Succeeded
+
+Root 26 Payment in rental history
+
+  GET http://127.0.0.1:35723/api/rentals/319e4d9a-fcf3-440f-b63b-6f2be105b4ae/payments [200 OK, 1.04 KB, 8 ms]
+  Pass  HTTP 200
+  Pass  Renewal transaction present
+
+Root 27 Second term quote
+
+  POST http://127.0.0.1:35723/api/rentals/319e4d9a-fcf3-440f-b63b-6f2be105b4ae/renewals [201 Created, 877 B, 11 ms]
+  Pass  HTTP 201
+
+Root 28 Second checkout
+
+  POST http://127.0.0.1:35723/api/rentals/319e4d9a-fcf3-440f-b63b-6f2be105b4ae/renewals/48527e15-cc65-4dbf-8af4-5187599e40b8/payments [201 Created, 1.49 KB, 10 ms]
+  Pass  HTTP 201
+
+Root 29 Provider reports money after deadline
+
+  POST http://127.0.0.1:35723/api/payments/webhooks/sepay [200 OK, 345 B, 7 ms]
+  Pass  HTTP 200
+
+Root 30 Renewal requires refund
+
+  GET http://127.0.0.1:35723/api/rentals/319e4d9a-fcf3-440f-b63b-6f2be105b4ae/renewals/48527e15-cc65-4dbf-8af4-5187599e40b8 [200 OK, 935 B, 4 ms]
+  Pass  HTTP 200
+  Pass  Refund required
+
+Root 31 Payment refund pending
+
+  GET http://127.0.0.1:35723/api/payments/1a99d506-f506-406c-8c9c-65fa52b9642b/status [200 OK, 669 B, 6 ms]
+  Pass  HTTP 200
+  Pass  Refund amount preserved
+
+Root 32 Late payment did not extend
+
+  GET http://127.0.0.1:35723/api/rentals/319e4d9a-fcf3-440f-b63b-6f2be105b4ae [200 OK, 1.24 KB, 6 ms]
+  Pass  HTTP 200
+  Pass  Expiry stable after late payment
+
+Root 33 Cutoff window closed
+
+  POST http://127.0.0.1:35723/api/rentals/7c42daa8-f3b5-4f08-83ff-9504ef72a493/renewals [409 Conflict, 528 B, 7 ms]
+  Pass  HTTP 409
+
+Root 34 Capture snapshot cutoff
+
+  GET http://127.0.0.1:35723/api/rentals/319e4d9a-fcf3-440f-b63b-6f2be105b4ae/renewals/48527e15-cc65-4dbf-8af4-5187599e40b8 [200 OK, 935 B, 6 ms]
+  Pass  HTTP 200
+
+Root Login bom
+
+  POST http://127.0.0.1:35723/api/auth/sign-in/email [200 OK, 874 B, 71 ms]
+  Pass  HTTP 200
+
+Root 35 BOM reads settings
+
+  GET http://127.0.0.1:35723/api/system-settings [200 OK, 1.62 KB, 5 ms]
+  Pass  HTTP 200
+  Pass  Default notice seven days
+
+Root 36 Customer cannot change settings
+
+  PUT http://127.0.0.1:35723/api/system-settings [403 Forbidden, 514 B, 5 ms]
+  Pass  HTTP 403
+
+Root 37 BOM updates notice
+
+  PUT http://127.0.0.1:35723/api/system-settings [200 OK, 478 B, 8 ms]
+  Pass  HTTP 200
+  Pass  Version increments
+
+Root 38 Stale setting update denied
+
+  PUT http://127.0.0.1:35723/api/system-settings [409 Conflict, 538 B, 6 ms]
+  Pass  HTTP 409
+
+Root 39 Settings audit
+
+  GET http://127.0.0.1:35723/api/system-settings/RENEWAL_NOTICE_DAYS/history [200 OK, 692 B, 6 ms]
+  Pass  HTTP 200
+  Pass  Audit exists
+
+Root 40 Existing quote keeps cutoff
+
+  GET http://127.0.0.1:35723/api/rentals/319e4d9a-fcf3-440f-b63b-6f2be105b4ae/renewals/48527e15-cc65-4dbf-8af4-5187599e40b8 [200 OK, 935 B, 8 ms]
+  Pass  HTTP 200
+  Pass  Snapshot unchanged
+
+Root 41 New quote uses changed notice
+
+  POST http://127.0.0.1:35723/api/rentals/319e4d9a-fcf3-440f-b63b-6f2be105b4ae/renewals [201 Created, 877 B, 11 ms]
+  Pass  HTTP 201
+  Pass  New eight day cutoff
+
+Root 42 BOM refund queue
+
+  GET http://127.0.0.1:35723/api/payments/refunds [200 OK, 785 B, 6 ms]
+  Pass  HTTP 200
+  Pass  Renewal visible with customer
+
+Root 43 Confirm controlled refund
+
+  POST http://127.0.0.1:35723/api/payments/1a99d506-f506-406c-8c9c-65fa52b9642b/refund/confirm [200 OK, 707 B, 8 ms]
+  Pass  HTTP 200
+  Pass  Refunded
+
+Root 44 Refund confirmation replay
+
+  POST http://127.0.0.1:35723/api/payments/1a99d506-f506-406c-8c9c-65fa52b9642b/refund/confirm [200 OK, 707 B, 7 ms]
+  Pass  HTTP 200
+
+Root 45 Customer sees refunded
+
+  GET http://127.0.0.1:35723/api/payments/1a99d506-f506-406c-8c9c-65fa52b9642b/status [200 OK, 663 B, 6 ms]
+  Pass  HTTP 200
+  Pass  Refund status
+
+Root 46 Open return appointment
+
+  POST http://127.0.0.1:35723/api/appointments [201 Created, 954 B, 30 ms]
+  Pass  HTTP 201
+
+Root 47 Open return blocks quote
+
+  POST http://127.0.0.1:35723/api/rentals/319e4d9a-fcf3-440f-b63b-6f2be105b4ae/renewals [409 Conflict, 551 B, 17 ms]
+  Pass  HTTP 409
+
+---------------------------------------------------------------------
+|                         |           executed |             failed |
+--------------------------+--------------------+---------------------
+|              iterations |                  1 |                  0 |
+--------------------------+--------------------+---------------------
+|                requests |                 54 |                  0 |
+--------------------------+--------------------+---------------------
+|            test-scripts |                 54 |                  0 |
+--------------------------+--------------------+---------------------
+|      prerequest-scripts |                  0 |                  0 |
+--------------------------+--------------------+---------------------
+|              assertions |                 79 |                  0 |
+---------------------------------------------------------------------
+| total run duration: 1264 ms                                       |
+---------------------------------------------------------------------
+| total data received: 23.36 KB (approx)                            |
+---------------------------------------------------------------------
+| average response time: 11 ms [min: 2 ms, max: 72 ms, s.d.: 15 ms] |
+---------------------------------------------------------------------
+Postman credentials are required for publishing run details to Postman cloud.
+Please specify it by using the `postman login` command
