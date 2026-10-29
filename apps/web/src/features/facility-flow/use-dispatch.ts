@@ -23,8 +23,8 @@ export function useDispatch(facilityId: string, staff = false) {
     queryKey: staff ? bookingKeys.staffTasks(facilityId) : bookingKeys.facility(facilityId),
     queryFn: () =>
       staff
-        ? api.bookings.listAssignedToMe(facilityId)
-        : api.bookings.listFacilityBookings(facilityId),
+        ? api.legacyBookings.listAssignedToMe(facilityId)
+        : api.legacyBookings.listFacilityBookings(facilityId),
     enabled: !!facilityId,
     refetchInterval: 30000,
   });

@@ -107,7 +107,7 @@ export function UnitPhoto({ index = 0 }: { index?: number }) {
 export function CheckoutSummary({ state }: { state: CheckoutState }) {
   const { selectedOption: option, selectedFacility: facility, form, step } = state;
   const months = form.watch("durationMonths");
-  const pricing = state.draft?.pricing;
+  const pricing = state.paidPricing;
 
   return (
     <aside

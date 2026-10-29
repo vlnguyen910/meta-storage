@@ -31,7 +31,7 @@ export function useBookingTracking() {
   }, [client]);
   const exchange = useMutation({
     meta: { globalLoading: true },
-    mutationFn: api.bookings.exchangeMagicLink,
+    mutationFn: api.legacyBookings.exchangeMagicLink,
     gcTime: 0,
     retry: false,
   });
@@ -70,7 +70,7 @@ export function useBookingTracking() {
   }, [client, mutateAsync, reset]);
   const query = useQuery({
     queryKey: [...queryRoot, bookingCode],
-    queryFn: () => api.bookings.tracking(bookingCode ?? ""),
+    queryFn: () => api.legacyBookings.tracking(bookingCode ?? ""),
     enabled: Boolean(bookingCode) && !message,
     retry: false,
     staleTime: 30_000,
@@ -93,7 +93,7 @@ export function useBookingTracking() {
   }, [expiresAt, expire]);
   const revoke = useMutation({
     meta: { globalLoading: true },
-    mutationFn: api.bookings.revokeTrackingSession,
+    mutationFn: api.legacyBookings.revokeTrackingSession,
     onSuccess: async () => {
       // Cancel outstanding requests before removing cached private data.
       await client.cancelQueries({ queryKey: queryRoot });

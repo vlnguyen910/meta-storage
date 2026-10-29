@@ -95,7 +95,7 @@ export function AssignmentScreen() {
   }
   return (
     <>
-      <OperationalBackLink href="/facility-manager/tasks?view=bookings">
+      <OperationalBackLink href="/facility-manager/tasks?view=appointments">
         {FLOW.back}
       </OperationalBackLink>
       <OperationalPageHeader title={FLOW.assignmentTitle} description={FLOW.assignmentWarning} />
@@ -236,7 +236,7 @@ export function AssignmentScreen() {
           <Panel className="flex flex-wrap items-center justify-between gap-3">
             <Button
               variant="secondary"
-              onClick={() => router.push("/facility-manager/tasks?view=bookings")}
+              onClick={() => router.push("/facility-manager/tasks?view=appointments")}
             >
               <BackLabel />
             </Button>

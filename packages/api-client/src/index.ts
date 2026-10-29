@@ -3,6 +3,8 @@ import type {
   ApiFacility,
   ApiFacilityAssignment,
   ApiUnitType,
+  AppointmentQuery,
+  AppointmentRecordDto,
   AssignBookingStaffInput,
   AssignPhysicalUnitInput,
   BookingDraft,
@@ -19,11 +21,15 @@ import type {
   CheckInLookupInput,
   CheckInLookupResult,
   CheckInSlotOption,
+  CheckoutSessionInput,
   ClientSession,
   ConfirmInspectionHandoverInput,
   ConfirmManualRefundInput,
   ConfirmReservationInput,
   CookieSession,
+  CreateAppointmentInput,
+  CreateInspectionInput,
+  CreateReservationDraftInput,
   CustomerAvailability,
   CustomerAvailabilityQuery,
   CustomerBookingDetail,
@@ -72,8 +78,11 @@ import type {
   ReservationDraft,
   ReservationDraftInput,
   ReservationHold,
+  ReservationPaymentSession,
+  ReservationQuery,
   ReservationQuote,
   ReservationQuoteInput,
+  ReservationRecordDto,
   ResetPasswordInput,
   RevenueReport,
   RevenueReportQuery,
@@ -86,6 +95,7 @@ import type {
   StorageUnitMaintenanceTransition,
   StorageUnitResponse,
   UnitTypeListParams,
+  UpdateAppointmentInput,
   UpdateDepositPolicy,
   UpdateInspectionInput,
   UpdateStorageUnitStatusBody,
@@ -325,6 +335,58 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
           .then(unwrap),
     },
     reservations: {
+      createDraft: (input: CreateReservationDraftInput) =>
+        http.post<ApiEnvelope<ReservationRecordDto>>("/reservations/drafts", input).then(unwrap),
+      pay: (id: string, input: CheckoutSessionInput) =>
+        http
+          .post<ApiEnvelope<ReservationPaymentSession>>(`/reservations/${id}/make-payment`, input)
+          .then(unwrap),
+      mine: (params: ReservationQuery = {}) =>
+        http
+          .get<ApiEnvelope<ReservationRecordDto[]>>("/reservations/mine", { params })
+          .then(unwrap),
+      get: (id: string) =>
+        http.get<ApiEnvelope<ReservationRecordDto>>(`/reservations/${id}`).then(unwrap),
+      cancel: (id: string) =>
+        http
+          .patch<ApiEnvelope<ReservationRecordDto>>(`/reservations/${id}`, { status: "CANCELLED" })
+          .then(unwrap),
+      listFacility: (facilityId: string, params: ReservationQuery = {}) =>
+        http
+          .get<ApiEnvelope<ReservationRecordDto[]>>(`/reservations/facilities/${facilityId}`, {
+            params,
+          })
+          .then(unwrap),
+    },
+    appointments: {
+      slots: () =>
+        http.get<ApiEnvelope<CheckInSlotOption[]>>("/appointments/check-in-slots").then(unwrap),
+      create: (input: CreateAppointmentInput) =>
+        http.post<ApiEnvelope<AppointmentRecordDto>>("/appointments", input).then(unwrap),
+      mine: (params: AppointmentQuery = {}) =>
+        http
+          .get<ApiEnvelope<AppointmentRecordDto[]>>("/appointments/mine", { params })
+          .then(unwrap),
+      listFacility: (facilityId: string, params: AppointmentQuery = {}) =>
+        http
+          .get<ApiEnvelope<AppointmentRecordDto[]>>(`/appointments/facilities/${facilityId}`, {
+            params,
+          })
+          .then(unwrap),
+      assignedToMe: (params: AppointmentQuery = {}) =>
+        http
+          .get<ApiEnvelope<AppointmentRecordDto[]>>("/appointments/assigned-to-me", { params })
+          .then(unwrap),
+      get: (id: string) =>
+        http.get<ApiEnvelope<AppointmentRecordDto>>(`/appointments/${id}`).then(unwrap),
+      update: (id: string, input: UpdateAppointmentInput) =>
+        http.patch<ApiEnvelope<AppointmentRecordDto>>(`/appointments/${id}`, input).then(unwrap),
+      assignStaff: (id: string, staffId: string) =>
+        http
+          .post<ApiEnvelope<AppointmentRecordDto>>(`/appointments/${id}/assign-staff`, { staffId })
+          .then(unwrap),
+    },
+    legacyReservations: {
       createDraft: (input: ReservationDraftInput) =>
         http.post<ApiEnvelope<ReservationDraft>>("/reservations/drafts", input).then(unwrap),
       createHold: (draftId: string, draftAccessToken: string) =>
@@ -363,7 +425,7 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
           )
           .then(unwrap),
     },
-    bookings: {
+    legacyBookings: {
       cancel: (bookingId: string) =>
         http
           .post<ApiEnvelope<import("@metastorage/contracts").BookingClosure>>(
@@ -437,13 +499,19 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
           })
           .then(unwrap),
     },
-    inspections: {
+    legacyInspections: {
       history: (bookingId: string) =>
         http
           .get<ApiEnvelope<InspectionRecord[]>>(`/inspections/bookings/${bookingId}`)
           .then(unwrap),
       start: (bookingId: string) =>
         http.post<ApiEnvelope<InspectionRecord>>(`/inspections/bookings/${bookingId}`).then(unwrap),
+    },
+    inspections: {
+      create: (input: CreateInspectionInput) =>
+        http.post<ApiEnvelope<InspectionRecord>>("/inspections", input).then(unwrap),
+      forAppointment: (id: string) =>
+        http.get<ApiEnvelope<InspectionRecord[]>>(`/inspections/appointments/${id}`).then(unwrap),
       get: (id: string) =>
         http.get<ApiEnvelope<InspectionRecord>>(`/inspections/${id}`).then(unwrap),
       save: (id: string, input: UpdateInspectionInput) =>

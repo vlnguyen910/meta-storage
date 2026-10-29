@@ -1,6 +1,6 @@
 export const TASK_ASSIGNMENT_MESSAGES = {
   title: "Giao việc cho nhân viên",
-  hint: "Chọn nhân viên và booking hoặc ô kho cần kiểm tra.",
+  hint: "Chọn nhân viên và ô kho cần kiểm tra.",
   referenceType: "Đối tượng cần kiểm tra",
   booking: "Booking liên quan",
   unit: "Ô kho cần kiểm tra",
@@ -18,9 +18,9 @@ export const TASK_ASSIGNMENT_MESSAGES = {
   descriptionPlaceholder: "Ví dụ: kiểm tra cửa, khóa và tình trạng bên trong ô kho.",
   descriptionLimit: "Tối đa 2.000 ký tự.",
   staffRequired: "Vui lòng chọn nhân viên đang hoạt động tại cơ sở.",
-  referenceRequired: "Vui lòng chọn booking hoặc ô kho trong danh sách.",
+  referenceRequired: "Vui lòng chọn ô kho trong danh sách.",
   handoverHint: "Phân công nhận kho và bàn giao tại",
-  handoverLink: "Booking & Bàn giao",
+  handoverLink: "Lịch hẹn và bàn giao",
   supportUnavailable: "Giao việc xử lý hỗ trợ hiện chưa khả dụng.",
   noUnit: "Chưa gán ô kho",
   taskTypes: {

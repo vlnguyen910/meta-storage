@@ -29,24 +29,24 @@ beforeEach(() => {
 });
 afterEach(() => vi.useRealTimers());
 it("keeps guest pricing and payment booking together without an API server", async () => {
-  const draft = await client.reservations.createDraft({
+  const draft = await client.legacyReservations.createDraft({
     facilityId: "fac-hcm-central",
     unitTypeId: "00000000-0000-0000-0001-000000000003",
     checkInAt: new Date(Date.now() + 86400000).toISOString(),
     durationMonths: 3,
     contact: { fullName: "Demo", email: "customer@metastorage.test", phone: "+84901234567" },
   });
-  const hold = await client.reservations.createHold(draft.id, draft.draftAccessToken);
+  const hold = await client.legacyReservations.createHold(draft.id, draft.draftAccessToken);
   const input = {
     draftAccessToken: draft.draftAccessToken,
     holdToken: hold.holdToken,
     idempotencyKey: crypto.randomUUID(),
     paymentMethodToken: "fail",
   };
-  await expect(client.reservations.pay(draft.id, input)).rejects.toMatchObject({
+  await expect(client.legacyReservations.pay(draft.id, input)).rejects.toMatchObject({
     response: { status: 402 },
   });
-  const result = await client.reservations.pay(draft.id, {
+  const result = await client.legacyReservations.pay(draft.id, {
     ...input,
     paymentMethodToken: "success",
   });
@@ -54,7 +54,7 @@ it("keeps guest pricing and payment booking together without an API server", asy
   expect(result.pricing.totalAmount).toBe("6000000");
   expect(result.pricing.depositAmount).toBe("1500000");
   expect(getMockDatabase().bookings.some((b) => b.id === result.booking?.id)).toBe(true);
-  const retry = await client.reservations.pay(draft.id, {
+  const retry = await client.legacyReservations.pay(draft.id, {
     ...input,
     paymentMethodToken: "success",
   });

@@ -20,7 +20,7 @@ function FacilityManagerDashboardContent() {
     view === "staff"
       ? "/facility-manager/staff"
       : view === "check-in"
-        ? "/facility-manager/tasks?view=bookings"
+        ? "/facility-manager/tasks?view=appointments"
         : null;
   useEffect(() => {
     if (destination) router.replace(destination);

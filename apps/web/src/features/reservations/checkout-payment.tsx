@@ -43,7 +43,7 @@ export function CheckoutPayment({ state }: { state: CheckoutState }) {
             </div>
           </div>
 
-          {!state.draft?.pricing ? (
+          {!state.paidPricing ? (
             <div
               role="status"
               className="p-3 rounded-xl border border-amber-200 bg-amber-50 text-xs text-amber-800"
@@ -141,7 +141,7 @@ export function CheckoutPayment({ state }: { state: CheckoutState }) {
           {pending && state.draft && (
             <Link
               className="inline-block text-xs font-semibold text-[#165f4d] hover:underline"
-              href={`${routes.customer.supportNew}?bookingId=${encodeURIComponent(state.draft.id)}&paymentId=${encodeURIComponent(pending.paymentId)}`}
+              href={`${routes.customer.supportNew}?reservationId=${encodeURIComponent(state.draft.id)}&paymentId=${encodeURIComponent(pending.paymentId)}`}
             >
               {C.newTicket} →
             </Link>
@@ -174,7 +174,7 @@ export function CheckoutPayment({ state }: { state: CheckoutState }) {
             <button
               type="button"
               className="w-full h-11 bg-[#165f4d] hover:bg-[#0f493b] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 shadow-xs cursor-pointer transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-              disabled={!state.draft?.pricing || state.paying || state.isRedirecting}
+              disabled={!state.paidPricing || state.paying || state.isRedirecting}
               onClick={state.pay}
             >
               {state.paying || state.isRedirecting ? (
@@ -182,7 +182,7 @@ export function CheckoutPayment({ state }: { state: CheckoutState }) {
                   <Loader2 size={15} className="animate-spin" />
                   <span>Đang chuyển đến cổng thanh toán...</span>
                 </>
-              ) : state.draft?.pricing ? (
+              ) : state.paidPricing ? (
                 <>
                   <span>Thanh toán ngay bằng SePay</span>
                   <ArrowRight size={15} />

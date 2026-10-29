@@ -31,14 +31,14 @@ export const checkInKeys = {
 
 export function useCheckInLookupMutation() {
   return useMutation({
-    mutationFn: (input: CheckInLookupInput) => api.bookings.checkInLookup(input),
+    mutationFn: (input: CheckInLookupInput) => api.legacyBookings.checkInLookup(input),
   });
 }
 
 export function useFacilityBookings(facilityId: string, status?: string) {
   return useQuery({
     queryKey: bookingKeys.facility(facilityId, status),
-    queryFn: () => api.bookings.listFacilityBookings(facilityId, status),
+    queryFn: () => api.legacyBookings.listFacilityBookings(facilityId, status),
     enabled: Boolean(facilityId),
   });
 }
@@ -53,7 +53,7 @@ export function useMyFacilityAssignments() {
 export function useBooking(bookingId: string) {
   return useQuery({
     queryKey: bookingKeys.detail(bookingId),
-    queryFn: () => api.bookings.get(bookingId),
+    queryFn: () => api.legacyBookings.get(bookingId),
     enabled: Boolean(bookingId),
   });
 }
@@ -61,7 +61,7 @@ export function useBooking(bookingId: string) {
 export function useEligibleUnits(bookingId: string) {
   return useQuery({
     queryKey: bookingKeys.eligibleUnits(bookingId),
-    queryFn: () => api.bookings.getEligibleUnits(bookingId),
+    queryFn: () => api.legacyBookings.getEligibleUnits(bookingId),
     enabled: Boolean(bookingId),
   });
 }
@@ -72,7 +72,7 @@ export function useAssignPhysicalUnitMutation() {
   return useMutation({
     meta: { globalLoading: true },
     mutationFn: ({ bookingId, input }: { bookingId: string; input: AssignPhysicalUnitInput }) =>
-      api.bookings.assignUnit(bookingId, input),
+      api.legacyBookings.assignUnit(bookingId, input),
     onSettled: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: bookingKeys.all }),
@@ -95,7 +95,7 @@ export function useAssignStaffMutation() {
   return useMutation({
     meta: { globalLoading: true },
     mutationFn: ({ bookingId, input }: { bookingId: string; input: AssignBookingStaffInput }) =>
-      api.bookings.assignStaff(bookingId, input),
+      api.legacyBookings.assignStaff(bookingId, input),
     onSettled: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: bookingKeys.all }),
@@ -109,7 +109,7 @@ export function useAssignStaffMutation() {
 export function useStaffTasks(facilityId?: string) {
   return useQuery({
     queryKey: bookingKeys.staffTasks(facilityId),
-    queryFn: () => api.bookings.listAssignedToMe(facilityId),
+    queryFn: () => api.legacyBookings.listAssignedToMe(facilityId),
     refetchInterval: 5000,
     refetchOnWindowFocus: true,
   });

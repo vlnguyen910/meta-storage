@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/states";
-import { FacilityBookingsView } from "@/features/check-in/facility-bookings-view";
+import { AppointmentWorkspace } from "@/features/appointments/appointment-workspace";
 import { FacilitySwitcher } from "@/features/facilities/facility-switcher";
 import { useFacilityContext } from "@/features/facilities/use-facility-context";
 import { TaskPanel } from "@/features/facility-management/task-workspace";
@@ -20,7 +20,7 @@ export function ManagerCoordinationScreen() {
 function CoordinationContent() {
   const scope = useFacilityContext();
   const requested = useSearchParams().get("view");
-  const view = requested === "tasks" ? requested : "bookings";
+  const view = requested === "tasks" ? requested : "appointments";
   if (scope.isLoading) return <LoadingState variant="table" />;
   if (scope.isError)
     return <ErrorState message={D.errorLoadFacility} onRetry={() => scope.refetch()} />;
@@ -37,10 +37,10 @@ function CoordinationContent() {
       )}
       <header>
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-          {view === "bookings" ? M.booking : M.tasks}
+          {view === "appointments" ? M.booking : M.tasks}
         </h1>
         <p className="mt-2 text-sm text-slate-600">
-          {view === "bookings"
+          {view === "appointments"
             ? M.bookingHint(scope.currentFacility.facilityName ?? "cơ sở được phân công")
             : M.coordinationHint}
         </p>
@@ -50,7 +50,7 @@ function CoordinationContent() {
         className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-2"
       >
         {[
-          { id: "bookings", label: M.booking },
+          { id: "appointments", label: M.booking },
           { id: "tasks", label: M.tasks },
         ].map((item) => (
           <Link
@@ -63,12 +63,8 @@ function CoordinationContent() {
           </Link>
         ))}
       </nav>
-      {view === "bookings" ? (
-        <FacilityBookingsView
-          facilityId={scope.currentFacilityId}
-          facilityName={scope.currentFacility.facilityName}
-          headingMode="actions-only"
-        />
+      {view === "appointments" ? (
+        <AppointmentWorkspace facilityId={scope.currentFacilityId} manager />
       ) : (
         <TaskPanel
           key={`${scope.currentFacilityId}:${view}`}

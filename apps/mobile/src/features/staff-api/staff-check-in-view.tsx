@@ -1,5 +1,5 @@
 import {
-  type BookingListItem,
+  type AppointmentRecordDto,
   HANDOVER_CHECKLIST_ITEMS,
   HandoverChecklistCompletionSchema,
   type HandoverChecklistItemResult,
@@ -11,75 +11,57 @@ import {
 import { useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { MobilePhoto } from "../../components/ui/mobile-photo";
-import { Button, Card, dateTime, Field, Heading, Notice, Row } from "../../components/ui/mobile-ui";
-import { StatusPill } from "../../components/ui/workspace-ui";
+import { Button, Card, Field, Heading, Notice, Row } from "../../components/ui/mobile-ui";
 import { STAFF_API_UI as M } from "./staff-api.messages";
 import { staffError, useStaffCheckIn } from "./use-staff-workspace";
 
-export function StaffCheckInView({ owner, booking }: { owner: string; booking: BookingListItem }) {
-  const flow = useStaffCheckIn(owner, booking.bookingCode);
+export function StaffCheckInView({
+  owner,
+  appointment,
+}: {
+  owner: string;
+  appointment: AppointmentRecordDto;
+}) {
+  const flow = useStaffCheckIn(owner, appointment.id);
   const [received, setReceived] = useState(false);
-  const done = flow.lookup.data?.booking.status === "CHECKED_IN";
+  const [unitId, setUnitId] = useState("");
+  const done = flow.appointment.data?.status === "COMPLETED";
+  if (appointment.appointmentType !== "CHECK_IN") return <Notice>{M.nonCheckIn}</Notice>;
   return (
     <>
-      <Heading>{booking.bookingCode}</Heading>
+      <Heading>{appointment.customerName ?? appointment.id}</Heading>
       <Card>
-        <Row label={M.customer} value={booking.contactName} />
-        <Row label={M.phone} value={booking.contactPhone} />
         <Row
-          label={M.unit}
-          value={
-            flow.lookup.data?.assignedUnit?.physicalUnitCode ??
-            booking.assignedUnit?.physicalUnitCode ??
-            M.noUnit
-          }
+          label={M.time}
+          value={`${appointment.scheduledDate} · ${appointment.slotName ?? ""}`}
         />
-        <Row label={M.time} value={dateTime(booking.checkInSlotStart)} />
-        {done ? (
-          <Notice>{M.handedOver}</Notice>
-        ) : (
-          <StatusPill label={M.status[booking.status] ?? booking.status} tone="blue" />
-        )}
+        {appointment.contactPhone && <Row label={M.phone} value={appointment.contactPhone} />}
       </Card>
-      {(flow.lookup.isPending || (flow.verified && flow.history.isPending)) && (
-        <ActivityIndicator color="#065f46" accessibilityLabel={M.loading} />
-      )}
-      {flow.error && (
+      {flow.appointment.isPending && <ActivityIndicator accessibilityLabel={M.loading} />}
+      {flow.error && <Notice error>{staffError(flow.error)}</Notice>}
+      {done ? (
+        <Notice>{M.handedOver}</Notice>
+      ) : (
         <>
-          <Notice error>{staffError(flow.error)}</Notice>
-          <Button
-            secondary
-            label={M.retry}
-            onPress={() => {
-              void flow.lookup.refetch();
-              if (flow.verified) void flow.history.refetch();
-            }}
-          />
-        </>
-      )}
-      {!done && flow.lookup.isSuccess && (
-        <>
-          {!flow.verified && (
-            <Card title={M.verify}>
-              <Text className="mb-4 leading-6 text-slate-500">{M.lookupRequired}</Text>
-              {flow.lookup.data.checkInReadiness.reasons.length > 0 && (
-                <Notice>
-                  {flow.lookup.data.checkInReadiness.reasons
-                    .map((reason) => M.reasons[reason] ?? reason)
-                    .join(" ")}
-                </Notice>
-              )}
+          {flow.task?.status === "ASSIGNED" && (
+            <Button label={M.verify} disabled={flow.busy} onPress={() => flow.begin.mutate()} />
+          )}
+          {flow.task?.status === "IN_PROGRESS" && !flow.record && (
+            <Card title={M.unit}>
+              {flow.units.data?.map((unit) => (
+                <Button
+                  key={unit.id}
+                  secondary
+                  label={`${unitId === unit.id ? "✓ " : ""}${unit.code}`}
+                  onPress={() => setUnitId(unit.id)}
+                />
+              ))}
               <Button
-                label={M.verify}
-                disabled={
-                  !flow.lookup.data.checkInReadiness.canProceed || !flow.tasks.data || flow.busy
-                }
-                onPress={() => flow.begin.mutate()}
+                label={M.inspect}
+                disabled={!unitId || flow.busy}
+                onPress={() => flow.start.mutate(unitId)}
               />
             </Card>
-          )}
-          {flow.verified && flow.history.isSuccess && !flow.record && (
-            <Button label={M.inspect} disabled={flow.busy} onPress={() => flow.start.mutate()} />
           )}
           {flow.record && (
             <InspectionEditor
@@ -98,14 +80,10 @@ export function StaffCheckInView({ owner, booking }: { owner: string; booking: B
                 accessibilityState={{ checked: received, disabled: flow.busy }}
                 disabled={flow.busy}
                 onPress={() => setReceived((value) => !value)}
-                className="mb-5 min-h-12 flex-row items-center gap-3"
+                className="min-h-12 flex-row items-center gap-3"
               >
-                <View
-                  className={`h-6 w-6 items-center justify-center rounded-md border ${received ? "border-emerald-800 bg-emerald-800" : "border-slate-300 bg-white"}`}
-                >
-                  <Text className="font-bold text-white">{received ? "✓" : ""}</Text>
-                </View>
-                <Text className="flex-1 text-sm leading-6 text-slate-700">{M.received}</Text>
+                <Text>{received ? "✓" : "○"}</Text>
+                <Text className="flex-1">{M.received}</Text>
               </Pressable>
               <Button
                 label={M.handover}
@@ -119,6 +97,7 @@ export function StaffCheckInView({ owner, booking }: { owner: string; booking: B
     </>
   );
 }
+
 function InspectionEditor({
   record,
   busy,

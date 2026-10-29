@@ -73,7 +73,7 @@ export function StaffWorkFiltersBar({
 }) {
   const [open, setOpen] = useState(false);
   const kindLabel =
-    filters.kind === "booking"
+    filters.kind === "appointment"
       ? M.bookings
       : filters.kind === "task"
         ? M.tasks
@@ -195,7 +195,7 @@ function StaffFilterSheet({
       <ChoiceTabs
         options={[
           { value: "all", label: M.all },
-          { value: "booking", label: M.bookings },
+          { value: "appointment", label: M.bookings },
           { value: "return", label: M.returns },
           { value: "task", label: M.tasks },
         ]}

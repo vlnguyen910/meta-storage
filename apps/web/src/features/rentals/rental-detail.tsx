@@ -35,7 +35,11 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
     return <ErrorState message={M.notFoundOrForbidden} onRetry={() => query.refetch()} />;
 
   const r = query.data;
-  const bookingQuery = r.bookingId ? `bookingId=${encodeURIComponent(r.bookingId)}&` : "";
+  const bookingQuery = r.reservationId
+    ? `reservationId=${encodeURIComponent(r.reservationId)}&`
+    : r.bookingId
+      ? `bookingId=${encodeURIComponent(r.bookingId)}&`
+      : "";
 
   return (
     <div className="space-y-6">
@@ -44,7 +48,7 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
         <OperationalBackLink href="/customer/storage">{M.backToStorage}</OperationalBackLink>
         <div className="flex flex-wrap items-center gap-2">
           <Link
-            href={`/customer/support/new${r.bookingId ? `?bookingId=${encodeURIComponent(r.bookingId)}` : ""}`}
+            href={`/customer/support/new${r.reservationId ? `?reservationId=${encodeURIComponent(r.reservationId)}` : r.bookingId ? `?bookingId=${encodeURIComponent(r.bookingId)}` : ""}`}
             className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 hover:text-slate-900"
           >
             <HelpCircle className="size-3.5 text-primary" />

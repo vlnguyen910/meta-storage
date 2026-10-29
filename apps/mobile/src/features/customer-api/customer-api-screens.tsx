@@ -1,8 +1,7 @@
 import { SUPPORT_CATEGORIES } from "@metastorage/contracts";
 import { CUSTOMER_WORKSPACE as M } from "@metastorage/shared";
 import { useMutation } from "@tanstack/react-query";
-import QRCode from "qrcode";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Controller } from "react-hook-form";
 import { Alert, Platform, Pressable, Text, View } from "react-native";
 import { CalendarField } from "../../components/ui/calendar-field";
@@ -24,6 +23,7 @@ import {
   useCustomerBookings,
   useCustomerCheckout,
   useCustomerPayment,
+  useCustomerReceivingAppointment,
   useCustomerRental,
   useCustomerRentals,
   useCustomerSupportForm,
@@ -37,34 +37,6 @@ import { QueryNotice } from "./query-notice";
 import { customerError, useCustomerTicket } from "./use-customer-ticket";
 import { useMobileCatalog } from "./use-mobile-catalog";
 
-function QrCode({ value }: { value: string }) {
-  const matrix = useMemo(
-    () => QRCode.create(value, { errorCorrectionLevel: "M" }).modules,
-    [value],
-  );
-  const rows = Array.from({ length: matrix.size }, (_, y) => ({
-    y,
-    cells: Array.from({ length: matrix.size }, (_, x) => ({ x, dark: matrix.get(y, x) })),
-  }));
-  return (
-    <View
-      accessible
-      accessibilityLabel={M.qr}
-      className="my-4 self-center border-8 border-white bg-white"
-    >
-      {rows.map((row) => (
-        <View key={row.y} className="flex-row">
-          {row.cells.map((cell) => (
-            <View
-              key={cell.x}
-              style={{ width: 4, height: 4, backgroundColor: cell.dark ? "#000" : "#fff" }}
-            />
-          ))}
-        </View>
-      ))}
-    </View>
-  );
-}
 function FacilityTypes({ id, go }: { id: string; go: CustomerNavigation }) {
   const query = useCustomerTypes(id);
   return (
@@ -216,14 +188,19 @@ export function CustomerHomeScreen({ owner, go }: { owner: string; go: CustomerN
       <QueryNotice query={tab === "bookings" ? query : rentals} />
       {tab === "bookings"
         ? bookings.slice(0, 5).map((b) => (
-            <Card key={b.id} title={b.bookingCode ?? undefined}>
+            <Card key={b.id} title={b.id}>
               <StatusPill
                 label={U.status[b.status] ?? b.status}
                 tone={b.status === "CANCELLED" ? "neutral" : "blue"}
               />
-              <Text className="my-3 font-semibold text-slate-700">{b.facility.name}</Text>
-              <Row label={M.appointment} value={dateTime(b.checkInSlotStart)} />
-              <Row label={M.paymentStatus} value={U.status[b.paymentStatus] ?? b.paymentStatus} />
+              <Text className="my-3 font-semibold text-slate-700">
+                {b.facility?.name ?? b.facilityId}
+              </Text>
+              <Row label={M.appointment} value={dateTime(b.rentalStartAt)} />
+              <Row
+                label={M.paymentStatus}
+                value={U.status[b.paymentStatus ?? "PENDING"] ?? b.paymentStatus ?? M.unknown}
+              />
               <Button
                 secondary
                 label={U.qrAction}
@@ -266,12 +243,15 @@ export function CustomerBookingsScreen({ owner, go }: { owner: string; go: Custo
       {query.data?.pages
         .flatMap((p) => p.items)
         .map((b) => (
-          <Card title={b.bookingCode ?? b.id} key={b.id}>
+          <Card title={b.id} key={b.id}>
             <Text>
-              {b.facility.name} · {b.unitType.name}
+              {b.facility?.name ?? b.facilityId} · {b.unitType?.name ?? b.unitTypeId}
             </Text>
-            <Row label={M.paymentStatus} value={U.status[b.paymentStatus] ?? b.paymentStatus} />
-            <Row label={M.appointment} value={dateTime(b.checkInSlotStart)} />
+            <Row
+              label={M.paymentStatus}
+              value={U.status[b.paymentStatus ?? "PENDING"] ?? b.paymentStatus ?? M.unknown}
+            />
+            <Row label={M.appointment} value={dateTime(b.rentalStartAt)} />
             <StatusPill label={U.status[b.status] ?? b.status} tone="blue" />
             <Button label={M.choose} onPress={() => go({ screen: "booking", id: b.id })} />
           </Card>
@@ -303,26 +283,15 @@ export function CustomerBookingScreen({
       <QueryNotice query={query} />
       {b && (
         <>
-          <Heading>{b.bookingCode ?? b.id}</Heading>
-          <Card title={b.facility.name}>
-            <Text>{b.facility.address}</Text>
+          <Heading>{b.id}</Heading>
+          <Card title={b.facility?.name ?? b.facilityId}>
+            <Text>{b.facility?.address ?? ""}</Text>
             <StatusPill label={U.status[b.status] ?? b.status} tone="blue" />
-            <Row label={M.appointment} value={dateTime(b.checkInSlotStart)} />
-            <Row label={M.assigned} value={b.assignedUnit?.code ?? M.noUnit} />
-            <Row label={M.handover} value={b.handoverStage} />
-            <Row label={M.initialRent} value={money(b.pricing.rentalFeeAmount)} />
-            <Row label={M.deposit} value={money(b.pricing.depositAmount)} />
-            <Row label={M.total} value={money(b.pricing.totalAmount)} />
-            <Row label={M.paymentStatus} value={U.status[b.paymentStatus] ?? b.paymentStatus} />
-            {b.confirmation ? <QrCode value={b.confirmation.qrUrl} /> : <Text>{M.noQr}</Text>}
-            {b.rentalId && (
-              <Button
-                label={M.viewRental}
-                onPress={() => {
-                  if (b.rentalId) go({ screen: "rental", id: b.rentalId });
-                }}
-              />
-            )}
+            <Row label={M.appointment} value={dateTime(b.rentalStartAt)} />
+            <Row label={M.initialRent} value={money(b.rentalFeeAmount)} />
+            <Row label={M.deposit} value={money(b.depositAmount)} />
+            <Row label={M.total} value={money(b.totalAmount)} />
+            <CustomerReceivingAppointment owner={owner} reservation={b} />
             {b.status === "CONFIRMED" && (
               <Button
                 danger
@@ -340,17 +309,47 @@ export function CustomerBookingScreen({
               />
             )}
             {cancel.isError && <Notice error>{customerError(cancel.error)}</Notice>}
-            <Button
-              label={M.newTicket}
-              secondary
-              onPress={() => go({ screen: "support-new", bookingId: id })}
-            />
+            <Button label={M.newTicket} secondary onPress={() => go({ screen: "support-new" })} />
           </Card>
         </>
       )}
     </>
   );
 }
+function CustomerReceivingAppointment({
+  owner,
+  reservation,
+}: {
+  owner: string;
+  reservation: import("@metastorage/contracts").ReservationRecordDto;
+}) {
+  const flow = useCustomerReceivingAppointment(owner, reservation);
+  if (reservation.status !== "CONFIRMED") return null;
+  return (
+    <View>
+      <QueryNotice query={flow.appointments} />
+      {flow.existing ? (
+        <Row
+          label={M.appointment}
+          value={`${flow.existing.scheduledDate} · ${U.status[flow.existing.status] ?? flow.existing.status}`}
+        />
+      ) : (
+        <>
+          {flow.slots.map((slot) => (
+            <Button
+              key={slot.id}
+              label={`${M.appointment}: ${slot.name}`}
+              disabled={flow.create.isPending}
+              onPress={() => flow.create.mutate(slot.id)}
+            />
+          ))}
+          {flow.create.isError && <Notice error>{customerError(flow.create.error)}</Notice>}
+        </>
+      )}
+    </View>
+  );
+}
+
 export function CustomerCheckoutScreen({
   owner,
   facilityId,
@@ -423,10 +422,10 @@ export function CustomerCheckoutScreen({
       {state.prepare.isError && <Notice error>{customerError(state.prepare.error)}</Notice>}
       {state.draft && (
         <Card title={M.payment}>
-          <Row label={M.monthlyRate} value={money(state.draft.pricing.monthlyRateSnapshot)} />
-          <Row label={M.initialRent} value={money(state.draft.pricing.rentalFeeAmount)} />
-          <Row label={M.deposit} value={money(state.draft.pricing.depositAmount)} />
-          <Row label={M.total} value={money(state.draft.pricing.totalAmount)} />
+          <Row label={M.monthlyRate} value={money(state.draft.monthlyRateSnapshot)} />
+          <Row label={M.initialRent} value={money(state.draft.rentalFeeAmount)} />
+          <Row label={M.deposit} value={money(state.draft.depositAmount)} />
+          <Row label={M.total} value={money(state.draft.totalAmount)} />
           <Controller
             control={state.paymentForm.control}
             name="contactPhone"
@@ -458,18 +457,21 @@ export function CustomerCheckoutScreen({
 export function CustomerPaymentScreen({
   owner,
   id,
-  bookingId,
+  reservationId,
   go,
 }: {
   owner: string;
   id: string;
-  bookingId?: string;
+  reservationId?: string;
   go: CustomerNavigation;
 }) {
   const query = useCustomerPayment(owner, id);
   const open = useMutation({ mutationFn: openCustomerCheckout });
   const p = query.data;
-  const confirmation = p?.confirmation;
+  const receipt = useCustomerBooking(
+    owner,
+    p?.status === "SUCCEEDED" ? (p.reservationId ?? "") : "",
+  );
   const expired = Boolean(
     p?.transferInstructions && Date.parse(p.transferInstructions.expiresAt) <= Date.now(),
   );
@@ -495,20 +497,20 @@ export function CustomerPaymentScreen({
               }}
             />
           )}
-          {confirmation && (
-            <>
-              <QrCode value={confirmation.qrUrl} />
-              <Button
-                label={M.booking}
-                onPress={() => go({ screen: "booking", id: confirmation.bookingId })}
-              />
-            </>
+          {receipt.query.data && (
+            <CustomerReceivingAppointment owner={owner} reservation={receipt.query.data} />
           )}
-          {bookingId && (
+          {p.status === "SUCCEEDED" && p.reservationId && (
+            <Button
+              label={M.booking}
+              onPress={() => go({ screen: "booking", id: p.reservationId ?? "" })}
+            />
+          )}
+          {reservationId && (
             <Button
               secondary
               label={M.newTicket}
-              onPress={() => go({ screen: "support-new", bookingId, paymentId: id })}
+              onPress={() => go({ screen: "support-new", reservationId, paymentId: id })}
             />
           )}
         </Card>
@@ -635,7 +637,9 @@ export function CustomerRentalScreen({
             <Button
               label={M.newTicket}
               secondary
-              onPress={() => go({ screen: "support-new", bookingId: r.bookingId ?? undefined })}
+              onPress={() =>
+                go({ screen: "support-new", reservationId: r.reservationId ?? undefined })
+              }
             />
           </Card>
           <Card title={M.transactions}>
@@ -650,7 +654,7 @@ export function CustomerRentalScreen({
                   onPress={() =>
                     go({
                       screen: "support-new",
-                      bookingId: r.bookingId ?? undefined,
+                      reservationId: r.reservationId ?? undefined,
                       paymentId: p.id,
                     })
                   }
@@ -693,15 +697,15 @@ export function CustomerSupportScreen({ owner, go }: { owner: string; go: Custom
 export function CustomerSupportNewScreen({
   owner,
   go,
-  bookingId,
+  reservationId,
   paymentId,
 }: {
   owner: string;
   go: CustomerNavigation;
-  bookingId?: string;
+  reservationId?: string;
   paymentId?: string;
 }) {
-  const state = useCustomerSupportForm(owner, go, bookingId, paymentId);
+  const state = useCustomerSupportForm(owner, go, reservationId, paymentId);
   const category = state.form.watch("category");
   return (
     <>
@@ -714,7 +718,7 @@ export function CustomerSupportNewScreen({
           label={`${category === c ? "✓ " : ""}${M.categories[c]}`}
           onPress={() => {
             state.form.setValue("category", c);
-            state.form.setValue("bookingId", "");
+            state.form.setValue("reservationId", "");
             state.form.setValue("paymentId", undefined);
           }}
         />
@@ -727,9 +731,9 @@ export function CustomerSupportNewScreen({
           <Button
             key={b.id}
             secondary
-            label={`${state.form.watch("bookingId") === b.id ? "✓ " : ""}${b.bookingCode ?? b.id} · ${b.facility.name}`}
+            label={`${state.form.watch("reservationId") === b.id ? "✓ " : ""}${b.id} · ${b.facility.name}`}
             onPress={() => {
-              state.form.setValue("bookingId", b.id);
+              state.form.setValue("reservationId", b.id);
               state.form.setValue("paymentId", undefined);
             }}
           />
@@ -737,7 +741,7 @@ export function CustomerSupportNewScreen({
       {state.contexts.hasNextPage && (
         <Button label={M.more} onPress={() => void state.contexts.fetchNextPage()} />
       )}
-      {category === "PAYMENT" && state.form.watch("bookingId") && (
+      {category === "PAYMENT" && state.form.watch("reservationId") && (
         <>
           <Text className="mb-3 font-bold">{M.optionalPayment}</Text>
           <QueryNotice query={state.attempts} />

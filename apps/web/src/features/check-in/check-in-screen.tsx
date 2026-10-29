@@ -63,7 +63,7 @@ function CheckInFlowScreen() {
   const returnTo =
     user?.role === UserRole.FACILITY_STAFF
       ? facilityStaffRoutes.tasks
-      : `${root}/tasks?view=bookings`;
+      : `${root}/tasks?view=appointments`;
   const [lookupType, setLookupType] = useState<"BOOKING_CODE" | "QR_TOKEN">("BOOKING_CODE");
   const [input, setInput] = useState("");
   const result = flow.result;

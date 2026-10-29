@@ -1,4 +1,8 @@
-import { type FacilityTaskDetail, FacilityTaskStatus } from "@metastorage/contracts";
+import {
+  type FacilityTaskDetail,
+  FacilityTaskStatus,
+  StorageUnitStatus,
+} from "@metastorage/contracts";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { api } from "../../lib/api";
@@ -26,13 +30,7 @@ export function useStaffWorkspace(owner: string, filters: StaffWorkFilters) {
   const facility = assignments.data?.find((item) => item.isActive && !item.endedAt);
   const bookings = useQuery({
     queryKey: ["mobile-staff-bookings", owner, facility?.facilityId, filters.date],
-    queryFn: () =>
-      api.bookings.listAssignedToMe(
-        facility?.facilityId,
-        filters.date
-          ? { fromDate: filters.date, toDate: filters.date }
-          : { fromDate: "0001-01-01", toDate: "9999-12-31" },
-      ),
+    queryFn: () => api.appointments.assignedToMe({ facilityId: facility?.facilityId }),
     enabled: Boolean(facility),
     refetchInterval: 30000,
   });
@@ -49,14 +47,14 @@ export function useStaffWorkspace(owner: string, filters: StaffWorkFilters) {
   const bookingItems = bookings.data ?? [];
   const items: StaffSelection[] = [
     ...bookingItems
-      .filter((b) => b.assignedStaff?.id === owner && b.facilityId === facility?.facilityId)
-      .map((booking): StaffSelection => ({ kind: "booking", booking })),
+      .filter((b) => b.assignedStaffId === owner && b.facilityId === facility?.facilityId)
+      .map((booking): StaffSelection => ({ kind: "appointment", appointment: booking })),
     ...(tasks.data?.pages.flatMap((p) => p.items) ?? [])
       .filter(
         (t) =>
           t.assignedStaffId === owner &&
           t.facilityId === facility?.facilityId &&
-          !(t.type === "CHECK_IN_HANDOVER" && bookingItems.some((b) => b.id === t.referenceId)),
+          t.referenceType !== "APPOINTMENT",
       )
       .map((task): StaffSelection => ({ kind: "task", task })),
   ];
@@ -91,102 +89,134 @@ export function useStaffTaskAction(owner: string, task: FacilityTaskDetail) {
     onSuccess: () => client.invalidateQueries({ queryKey: ["mobile-staff-tasks", owner] }),
   });
 }
-export function useStaffCheckIn(owner: string, bookingCode: string) {
+export function useStaffCheckIn(owner: string, appointmentId: string) {
   const client = useQueryClient();
-  const lookup = useQuery({
-    queryKey: ["mobile-check-in", owner, bookingCode],
-    queryFn: () => api.bookings.checkInLookup({ type: "BOOKING_CODE", value: bookingCode }),
-    retry: false,
+  const appointment = useQuery({
+    queryKey: ["mobile-appointments", owner, appointmentId],
+    queryFn: () => api.appointments.get(appointmentId),
+    refetchInterval: 15000,
   });
-  const bookingId = lookup.data?.booking.id ?? "";
   const tasks = useQuery({
-    queryKey: ["mobile-staff-tasks", owner],
-    queryFn: () => api.flow5.tasks.listMine({ limit: 100, offset: 0 }),
-    enabled: Boolean(bookingId),
+    queryKey: ["mobile-appointment-tasks", owner],
+    queryFn: async () => {
+      const items: FacilityTaskDetail[] = [];
+      for (let offset = 0; ; offset += 100) {
+        const page = await api.flow5.tasks.listMine({ limit: 100, offset });
+        items.push(...page.items);
+        if (offset + page.items.length >= page.total || !page.items.length) return items;
+      }
+    },
   });
-  const task = tasks.data?.items.find(
-    (item) => item.referenceType === "BOOKING" && item.referenceId === bookingId,
-  );
-  const verified = task?.status === "IN_PROGRESS" || task?.status === "COMPLETED";
-  const historyKey = ["mobile-inspection", owner, bookingId];
-  const history = useQuery({
-    queryKey: historyKey,
-    queryFn: () => api.inspections.history(bookingId),
-    enabled: Boolean(bookingId && verified),
-  });
-  const record = history.data?.find(
+  const task = tasks.data?.find(
     (item) =>
-      item.storageUnitId === lookup.data?.assignedUnit?.physicalUnitId &&
-      item.inspectionType === "CHECK_IN",
+      item.referenceType === "APPOINTMENT" &&
+      item.referenceId === appointmentId &&
+      item.status !== "CANCELLED",
   );
+  const history = useQuery({
+    queryKey: ["mobile-inspection", owner, appointmentId],
+    queryFn: () => api.inspections.forAppointment(appointmentId),
+  });
+  const record = history.data?.find((item) => item.taskId === task?.id);
+  const context = appointment.data;
+  const units = useQuery({
+    queryKey: [
+      "mobile-handover-units",
+      owner,
+      context?.facilityId,
+      context?.reservation?.unitTypeId,
+    ],
+    queryFn: async () => {
+      if (!context?.reservation) return [];
+      const items: import("@metastorage/contracts").StorageUnitDetail[] = [];
+      for (let offset = 0; ; offset += 100) {
+        const page = await api.flow5.units.list({
+          facilityId: context.facilityId,
+          unitTypeId: context.reservation.unitTypeId,
+          status: StorageUnitStatus.AVAILABLE,
+          limit: 100,
+          offset,
+        });
+        items.push(...page.items);
+        if (offset + page.items.length >= page.total || !page.items.length) return items;
+      }
+    },
+    enabled: Boolean(context?.reservation) && !record,
+  });
+  const refresh = async () => {
+    await Promise.all([
+      appointment.refetch(),
+      tasks.refetch(),
+      history.refetch(),
+      client.invalidateQueries({ queryKey: ["mobile-staff-bookings", owner] }),
+      client.invalidateQueries({ queryKey: ["mobile-staff-tasks", owner] }),
+    ]);
+  };
   const begin = useMutation({
     mutationFn: () => {
       if (!task) throw new Error(M.taskNotFound);
       return api.flow5.tasks.update(task.id, { status: FacilityTaskStatus.IN_PROGRESS });
     },
-    onSuccess: async () => {
-      await Promise.all([tasks.refetch(), history.refetch()]);
-      await client.invalidateQueries({ queryKey: ["mobile-staff-tasks", owner] });
-    },
+    onSuccess: refresh,
   });
   const start = useMutation({
-    mutationFn: () => api.inspections.start(bookingId),
-    onSuccess: () => history.refetch(),
+    mutationFn: (storageUnitId: string) => {
+      if (!task) throw new Error(M.taskNotFound);
+      return api.inspections.create({ taskId: task.id, storageUnitId });
+    },
+    onSuccess: refresh,
   });
   const save = useMutation({
     mutationFn: (input: import("@metastorage/contracts").UpdateInspectionInput) =>
       api.inspections.save(record?.id ?? "", input),
-    onSuccess: () => history.refetch(),
+    onSuccess: refresh,
   });
   const photo = useMutation({
     mutationFn: async (camera: boolean) => {
       const input = await pickImage(camera);
       return input ? api.inspections.upload(record?.id ?? "", input) : null;
     },
-    onSuccess: () => history.refetch(),
+    onSuccess: refresh,
   });
   const removePhoto = useMutation({
     mutationFn: (id: string) => api.inspections.removePhoto(record?.id ?? "", id),
-    onSuccess: () => history.refetch(),
+    onSuccess: refresh,
   });
   const handover = useMutation({
     mutationFn: () => api.inspections.handover(record?.id ?? "", { customerReceivedUnit: true }),
-    onSuccess: async () => {
-      await Promise.all([
-        lookup.refetch(),
-        history.refetch(),
-        client.invalidateQueries({ queryKey: ["mobile-staff-bookings", owner] }),
-      ]);
-    },
+    onSuccess: refresh,
   });
   return {
-    lookup,
+    appointment,
     tasks,
+    task,
     history,
     record,
-    verified,
+    units,
     begin,
     start,
     save,
-    handover,
     photo,
     removePhoto,
+    handover,
+    refresh,
     busy:
       begin.isPending ||
       start.isPending ||
       save.isPending ||
-      handover.isPending ||
       photo.isPending ||
-      removePhoto.isPending,
+      removePhoto.isPending ||
+      handover.isPending,
     error:
-      lookup.error ??
-      history.error ??
+      appointment.error ??
       tasks.error ??
+      history.error ??
+      units.error ??
       begin.error ??
       start.error ??
       save.error ??
-      handover.error ??
       photo.error ??
-      removePhoto.error,
+      removePhoto.error ??
+      handover.error,
   };
 }

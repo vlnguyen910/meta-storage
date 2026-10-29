@@ -21,8 +21,8 @@ function isTaskEvent(value: unknown): value is StaffTaskAssignedNotification {
     typeof event.id === "string" &&
     event.id.length > 0 &&
     typeof event.recipientId === "string" &&
-    typeof event.bookingId === "string" &&
-    event.bookingId.length > 0 &&
+    ((typeof event.appointmentId === "string" && event.appointmentId.length > 0) ||
+      (typeof event.bookingId === "string" && event.bookingId.length > 0)) &&
     typeof event.occurredAt === "string" &&
     Number.isFinite(Date.parse(event.occurredAt))
   );
@@ -51,7 +51,9 @@ export function useStaffTaskNotifications() {
     const seen = new Set<string>();
     let lastToastAt = 0;
     const refresh = () => {
+      void queryClient.invalidateQueries({ queryKey: ["appointments"] });
       void queryClient.invalidateQueries({ queryKey: bookingKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ["appointment-tasks"] });
     };
     const schedule = () => {
       if (stopped || denied || !navigator.onLine) return;

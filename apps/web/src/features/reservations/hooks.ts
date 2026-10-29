@@ -17,26 +17,26 @@ export const reservationKeys = {
 };
 
 export function useMyReservations() {
-  return useQuery({ queryKey: reservationKeys.mine, queryFn: api.reservations.mine });
+  return useQuery({ queryKey: reservationKeys.mine, queryFn: api.legacyReservations.mine });
 }
 
 export function useReservation(id: string) {
   return useQuery({
     queryKey: reservationKeys.detail(id),
-    queryFn: () => api.reservations.get(id),
+    queryFn: () => api.legacyReservations.get(id),
   });
 }
 
 export function useReservationQuote() {
   return useMutation({
-    mutationFn: (input: ReservationQuoteInput) => api.reservations.quote(input),
+    mutationFn: (input: ReservationQuoteInput) => api.legacyReservations.quote(input),
   });
 }
 
 export function useReservationDraft() {
   return useMutation({
     meta: { globalLoading: true },
-    mutationFn: (input: ReservationDraftInput) => api.reservations.createDraft(input),
+    mutationFn: (input: ReservationDraftInput) => api.legacyReservations.createDraft(input),
   });
 }
 
@@ -44,7 +44,7 @@ export function useReservationHold() {
   return useMutation({
     meta: { globalLoading: true },
     mutationFn: ({ draftId, draftAccessToken }: { draftId: string; draftAccessToken: string }) =>
-      api.reservations.createHold(draftId, draftAccessToken),
+      api.legacyReservations.createHold(draftId, draftAccessToken),
   });
 }
 
@@ -53,7 +53,7 @@ export function useReservationPayment() {
   return useMutation({
     meta: { globalLoading: true },
     mutationFn: ({ draftId, input }: { draftId: string; input: PaymentCheckoutInput }) =>
-      api.reservations.pay(draftId, input),
+      api.legacyReservations.pay(draftId, input),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: reservationKeys.all }),
   });
 }
@@ -71,7 +71,7 @@ export function useConfirmReservation() {
   const queryClient = useQueryClient();
   return useMutation({
     meta: { globalLoading: true },
-    mutationFn: (input: ConfirmReservationInput) => api.reservations.confirm(input),
+    mutationFn: (input: ConfirmReservationInput) => api.legacyReservations.confirm(input),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: reservationKeys.all }),
   });
 }

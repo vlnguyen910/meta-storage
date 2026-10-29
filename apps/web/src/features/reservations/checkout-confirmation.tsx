@@ -1,5 +1,6 @@
 "use client";
 
+import type { BookingConfirmation, BookingDraftPricing } from "@metastorage/contracts";
 import { ArrowLeft, Check, Copy, Mail, Phone, UserRound } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -10,13 +11,16 @@ import { isMockMode } from "@/config/api-mode";
 import { routes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { checkoutMessages as m } from "./checkout.messages";
-import type { CheckoutState } from "./checkout.types";
 import { CheckoutRow, UnitPhoto } from "./checkout-parts";
 
 export function CheckoutConfirmation({
   state,
 }: {
-  state: Pick<CheckoutState, "confirmation" | "qrDataUrl" | "paidPricing"> & {
+  state: {
+    confirmation: BookingConfirmation | null;
+    qrDataUrl: string | null;
+    paidPricing: BookingDraftPricing | null;
+  } & {
     contact?: { fullName?: string; phone?: string; email?: string } | null;
   };
 }) {
