@@ -8,6 +8,24 @@ export const RentalStatusSchema = z.enum(RENTAL_STATUSES);
 export type RentalStatus = z.infer<typeof RentalStatusSchema>;
 
 export const RentalIdParamsSchema = z.object({ rentalId: z.string().uuid() });
+export const CreateRentalRenewalSchema = z.strictObject({
+  months: z.number().int().min(1).max(12),
+  idempotencyKey: z.string().min(16).max(128),
+});
+export const RentalRenewalPaymentInputSchema = z.strictObject({
+  idempotencyKey: z.string().min(16).max(128),
+});
+export const RentalRenewalIdParamsSchema = z.strictObject({
+  rentalId: z.uuid(),
+  renewalId: z.uuid(),
+});
+export const RentalRenewalPageQuerySchema = z.strictObject({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().nonnegative().default(0),
+});
+export type CreateRentalRenewal = z.infer<typeof CreateRentalRenewalSchema>;
+export type RentalRenewalPaymentInput = z.infer<typeof RentalRenewalPaymentInputSchema>;
+export type RentalRenewalPageQuery = z.infer<typeof RentalRenewalPageQuerySchema>;
 
 export const FacilityRentalParamsSchema = z.object({ facilityId: z.uuid(), rentalId: z.uuid() });
 export const FacilityRentalListParamsSchema = z.object({ facilityId: z.uuid() });

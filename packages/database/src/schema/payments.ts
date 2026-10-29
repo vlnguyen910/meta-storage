@@ -14,6 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { enumToPgEnum } from "../enum-to-pg-enum";
 import { bookings } from "./bookings";
+import { rentalRenewals } from "./rental-renewals";
 import { rentals } from "./rentals";
 import { reservations } from "./reservations";
 import { users } from "./users";
@@ -43,6 +44,7 @@ export const payments = pgTable(
     bookingId: uuid().references(() => bookings.id, { onDelete: "restrict" }),
     reservationId: uuid().references(() => reservations.id, { onDelete: "restrict" }),
     rentalId: uuid().references(() => rentals.id, { onDelete: "restrict" }),
+    renewalId: uuid().references(() => rentalRenewals.id, { onDelete: "restrict" }),
     sourcePaymentId: uuid().references((): AnyPgColumn => payments.id, { onDelete: "restrict" }),
     holdTokenHash: varchar({ length: 128 }),
     provider: varchar({ length: 32 }),
@@ -66,7 +68,7 @@ export const payments = pgTable(
   (table) => [
     check(
       "payments_context_valid",
-      sql`(${table.type} = 'CHARGE' AND num_nonnulls(${table.bookingId}, ${table.reservationId}) = 1 AND ${table.rentalId} IS NULL AND ${table.sourcePaymentId} IS NULL AND ${table.provider} IS NOT NULL AND ${table.paymentCode} IS NOT NULL AND ${table.providerPaymentId} IS NOT NULL AND ${table.holdTokenHash} IS NOT NULL) OR (${table.type} = 'DEPOSIT_REFUND' AND num_nonnulls(${table.bookingId}, ${table.reservationId}) <= 1 AND ${table.rentalId} IS NOT NULL AND ${table.sourcePaymentId} IS NOT NULL AND ${table.provider} IS NULL AND ${table.paymentCode} IS NULL AND ${table.providerPaymentId} IS NULL AND ${table.holdTokenHash} IS NULL AND ${table.status} IN ('REFUND_PENDING', 'REFUNDED'))`,
+      sql`(${table.type} = 'CHARGE' AND num_nonnulls(${table.bookingId}, ${table.reservationId}, ${table.renewalId}) = 1 AND ${table.rentalId} IS NULL AND ${table.sourcePaymentId} IS NULL AND ${table.provider} IS NOT NULL AND ${table.paymentCode} IS NOT NULL AND ${table.providerPaymentId} IS NOT NULL AND ${table.holdTokenHash} IS NOT NULL) OR (${table.type} = 'DEPOSIT_REFUND' AND num_nonnulls(${table.bookingId}, ${table.reservationId}) <= 1 AND ${table.rentalId} IS NOT NULL AND ${table.renewalId} IS NULL AND ${table.sourcePaymentId} IS NOT NULL AND ${table.provider} IS NULL AND ${table.paymentCode} IS NULL AND ${table.providerPaymentId} IS NULL AND ${table.holdTokenHash} IS NULL AND ${table.status} IN ('REFUND_PENDING', 'REFUNDED'))`,
     ),
     check(
       "payments_refund_amount_valid",
@@ -78,6 +80,9 @@ export const payments = pgTable(
         AND (${table.refundAmount} IS NULL OR ${table.refundAmount} + ${table.depositForfeitedAmount} <= ${table.totalAmount})`,
     ),
     uniqueIndex("payments_provider_payment_idx").on(table.provider, table.providerPaymentId),
+    uniqueIndex("payments_renewal_charge_idx")
+      .on(table.renewalId)
+      .where(sql`${table.type} = 'CHARGE'`),
     uniqueIndex("payments_idempotency_idx").on(table.idempotencyKey),
     uniqueIndex("payments_rental_refund_idx")
       .on(table.rentalId)

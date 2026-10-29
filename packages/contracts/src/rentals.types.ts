@@ -11,6 +11,42 @@ export interface RentalPage {
   nextCursor: RentalPageCursor | null;
 }
 
+export interface RentalRenewalDto {
+  id: string;
+  rentalId: string;
+  status: "QUOTED" | "PENDING_PAYMENT" | "APPLIED" | "REFUND_REQUIRED" | "EXPIRED";
+  months: number;
+  oldEndAt: string;
+  newEndAt: string;
+  monthlyRateSnapshot: string;
+  amount: string;
+  currency: "VND";
+  cutoffAt: string;
+  expiresAt: string;
+  createdAt: string;
+  appliedAt: string | null;
+  failureReason: string | null;
+  paymentId: string | null;
+}
+
+export interface RentalRenewalPage {
+  items: RentalRenewalDto[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface RentalRenewalPaymentSession {
+  renewalId: string;
+  paymentId: string;
+  provider: "sepay";
+  status: "PENDING";
+  paymentCode: string;
+  checkoutUrl: string;
+  checkoutFormFields: Record<string, string | number>;
+  expiresAt: string;
+}
+
 /** Booking payments associated with a rental. */
 export interface RentalPaymentItem {
   id: string;
