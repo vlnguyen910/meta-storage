@@ -23,7 +23,8 @@ Customer tạo `CHECK_OUT` từ `rentalId`; Customer/facility được backend s
 | Customer — chi tiết kho `/customer/storage/[rentalId]` | Tạo lịch trả theo `rentalId`; lịch trả đang mở đổi nút thành “Hủy yêu cầu”; hủy gửi `status: CANCELLED`; trả trước hạn có bước xác nhận; lỗi tải lịch cho phép retry và không thể gửi khi chưa xác minh lịch/slot. Lịch sử thanh toán không hiển thị trên trang này theo yêu cầu UI. Rental `CLOSED` hiển thị ngày trả thực tế thay cho bộ đếm đến hạn. |
 | Customer — danh sách kho `/customer/storage` | Rental `CLOSED` hiển thị thêm ngày trả thực tế cạnh thời hạn thuê; trạng thái tiếp tục dùng `ACTIVE`/`CLOSED` từ API. |
 | Customer — form lịch trả | Dialog dùng lịch và slot của luồng đặt kho; hiển thị lịch trả hiện có, trạng thái tải/lỗi, lỗi gửi/hủy và chặn gửi trùng khi đã có lịch `SCHEDULED`/`CONFIRMED`. Ngày có thể chọn từ hôm nay; slot trong ngày đã qua bị khóa, đổi ngày sẽ xóa slot cũ. Backend vẫn là nguồn quyết định cuối cùng cho lịch hợp lệ. |
-| FM — điều phối | Có tab `CHECK_IN`/`CHECK_OUT`; danh sách trả dùng `GET /appointments/facilities/:facilityId?appointmentType=CHECK_OUT`; FM xác nhận và phân Staff bằng `PATCH /appointments/:id`. Thẻ trả kho không hiển thị thanh toán `0đ` giả từ DTO reservation và không yêu cầu phân Unit mới; mã rental mở trang rental để xem Unit. Bộ đếm đổi sang trạng thái phù hợp `CHECK_OUT`. |
+| FM — điều phối | Danh sách mặc định tải appointment qua `GET /appointments/facilities/:facilityId`, lọc theo `ALL`/`CHECK_IN`/`CHECK_OUT`, có số lượng mỗi loại; Sheet chi tiết hiển thị loại kho hoặc Unit trong hồ sơ thuê. FM xác nhận appointment trả kho và gán Staff bằng `PATCH /appointments/:id`; sau đó backend tạo task Staff. Thẻ trả kho không phụ thuộc reservation, không hiển thị thanh toán `0đ` giả và không yêu cầu phân Unit mới. |
+| FM — công việc cơ sở | Dùng `CustomerTable` hiển thị task, loại, nhân viên nhận, trạng thái và đối tượng liên quan; Sheet xem thời gian, người giao, mô tả và context appointment/Unit. Nút “Tạo task” mở form giao việc hiện có trong Dialog. |
 | Staff — danh sách việc | Có bộ lọc loại `RETURN`; CHECK_OUT gắn với task qua `referenceType: APPOINTMENT` và mở `/staff/tasks/[taskId]`. Tab điều phối CHECK_OUT cũng điều hướng về danh sách task, không đưa Staff vào luồng check-in. |
 | Staff — chi tiết task/inspection | Bắt đầu task, tạo/tiếp tục inspection; đối chiếu thông tin CHECK_IN; hiển thị lịch trả và mã Unit; ghi checklist/ghi chú; thêm/xóa ảnh bằng PATCH inspection; chọn phí từ context; xem tiền cọc và số hoàn dự kiến; lưu nháp hoặc “Chốt trả kho”. Ảnh giới hạn JPEG/PNG/WebP, 3 MB/ảnh và 8 ảnh/biên bản. |
 | FM — chi tiết rental | Hiển thị `closedAt`, payment type (`CHARGE`/`DEPOSIT_REFUND`), trạng thái và biên bản trả kho gồm Unit, condition, ghi chú và phí snapshot. |
@@ -65,7 +66,7 @@ API client tập trung tại `packages/api-client/src/index.ts`; UI không gọi
 - `BookingSchedulePicker` tại `apps/web/src/features/reservations/booking-schedule-picker.tsx` được tách từ lịch/slot của luồng đặt kho để chia sẻ với dialog trả kho.
 - `CustomerAppointmentsView` gom lịch, filter, table và chi tiết cho tab lịch hẹn; FullCalendar xử lý month/week/day view. Thêm `Sheet` theo mẫu shadcn trên Radix Dialog do dự án chưa có panel trượt sẵn.
 - `InspectionPhotoCard` trong `features/facility-flow/inspection-screen.tsx` được tái sử dụng ở task trả kho.
-- `CustomerTable`, Button, Card, Select, Dialog/confirm và trạng thái tải/lỗi dùng component/pattern sẵn có. Không tạo route mới cho các flow này.
+- `CustomerTable`, Button, Card, Select, Dialog/Sheet và trạng thái tải/lỗi dùng component/pattern sẵn có. Không tạo component dùng chung hay route mới cho các flow này.
 
 ## 6. Phạm vi và kiểm chứng
 
