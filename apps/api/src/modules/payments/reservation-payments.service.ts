@@ -112,13 +112,15 @@ export class ReservationPaymentsService {
         await this.appointments.setReservationContact(tx, reservation.id, input.contactPhone);
       return { payment, expiresAt };
     });
+    const paymentCode = prepared.payment.paymentCode;
+    if (!paymentCode) throw new AppError(m.paymentCodeMissing, 500);
     const session = gateway.createCheckoutSession({
       paymentId: prepared.payment.id,
       reservationId,
-      paymentCode: prepared.payment.paymentCode,
+      paymentCode,
       amount: Number(prepared.payment.totalAmount),
       currency: prepared.payment.currency,
-      description: m.checkoutDescription(prepared.payment.paymentCode),
+      description: m.checkoutDescription(paymentCode),
     });
     if (!session) throw new AppError(m.sepayUnavailable, 503);
     return {
@@ -126,7 +128,7 @@ export class ReservationPaymentsService {
       paymentId: prepared.payment.id,
       provider: "sepay" as const,
       status: "PENDING" as const,
-      paymentCode: prepared.payment.paymentCode,
+      paymentCode,
       checkoutUrl: session.checkoutUrl,
       checkoutFormFields: session.formFields,
       expiresAt: prepared.expiresAt.toISOString(),

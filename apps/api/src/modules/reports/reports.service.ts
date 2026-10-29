@@ -22,7 +22,10 @@ import type { ReportActor, ReportDataset, ReportFinancialRow } from "./reports.t
 // Resource bound for synchronous exports, not a business/financial threshold.
 const MAX_SYNC_EXPORT_ROWS = 10000;
 
-function financial(rows: ReportFinancialRow[]): ReportFinancialMetrics {
+function financial(
+  rows: ReportFinancialRow[],
+  returnPenalties: { facilityId: string; amount: string }[] = [],
+): ReportFinancialMetrics {
   const money = (
     key:
       | "cashReceived"
@@ -41,6 +44,7 @@ function financial(rows: ReportFinancialRow[]): ReportFinancialMetrics {
       | "unclassifiedDepositPayments"
       | "unsupportedCurrencyPayments",
   ) => rows.reduce((sum, row) => sum + row[key], 0);
+  const returnedPenalties = returnPenalties.reduce((sum, row) => sum + parseCents(row.amount), 0n);
   return {
     cashReceived: formatCents(money("cashReceived")),
     rentalCollected: total("unclassifiedCollectedPayments")
@@ -52,7 +56,7 @@ function financial(rows: ReportFinancialRow[]): ReportFinancialMetrics {
     cashRefunded: formatCents(money("cashRefunded")),
     netCash: formatCents(money("cashReceived") - money("cashRefunded")),
     depositHeld: total("unclassifiedDepositPayments") ? null : formatCents(money("depositHeld")),
-    depositForfeited: formatCents(money("depositForfeited")),
+    depositForfeited: formatCents(money("depositForfeited") + returnedPenalties),
     pendingRefundAmount: formatCents(money("pendingRefundAmount")),
     pendingRefundCount: total("pendingRefundCount"),
     paymentsReceivedCount: total("paymentsReceivedCount"),
@@ -137,7 +141,10 @@ export class ReportsService {
     const data = await this.repository.read(actor, query, period.start, period.end, now);
     const rows = data.facilities.map((facility) => ({
       facility,
-      metrics: financial(data.financial.filter((row) => row.facilityId === facility.id)),
+      metrics: financial(
+        data.financial.filter((row) => row.facilityId === facility.id),
+        data.returnPenalties.filter((row) => row.facilityId === facility.id),
+      ),
     }));
     rows.sort((a, b) => {
       const delta =
@@ -149,7 +156,7 @@ export class ReportsService {
       period: { from: period.from, to: period.to, timeZone: period.timeZone },
       asOf: now.toISOString(),
       currency: "VND",
-      summary: financial(data.financial),
+      summary: financial(data.financial, data.returnPenalties),
       items: all ? rows : rows.slice(query.offset, query.offset + query.limit),
       unattributed: unattributed.length ? financial(unattributed) : null,
       total: rows.length,
@@ -188,11 +195,14 @@ export class ReportsService {
     const now = new Date(),
       period = resolveReportPeriod(query, now);
     const data = await this.repository.read(actor, query, period.start, period.end, now);
-    const money = financial(data.financial),
+    const money = financial(data.financial, data.returnPenalties),
       units = inventory(data);
     const rows = data.facilities.map((facility) => ({
       facility,
-      financial: financial(data.financial.filter((row) => row.facilityId === facility.id)),
+      financial: financial(
+        data.financial.filter((row) => row.facilityId === facility.id),
+        data.returnPenalties.filter((row) => row.facilityId === facility.id),
+      ),
       inventory: inventory(data, facility.id),
     }));
     rows.sort(

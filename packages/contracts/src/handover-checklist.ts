@@ -144,3 +144,11 @@ export function createHandoverChecklistCompletionSchema(
 
 export const HandoverChecklistCompletionSchema =
   createHandoverChecklistCompletionSchema(HANDOVER_CHECKLIST_ITEMS);
+
+export const ReturnChecklistCompletionSchema = createHandoverChecklistCompletionSchema(
+  HANDOVER_CHECKLIST_ITEMS.map((item) => ({
+    ...item,
+    mustPass: false,
+    noteRequiredWhenFailed: true,
+  })),
+);

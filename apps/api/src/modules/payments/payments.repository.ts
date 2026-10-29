@@ -13,6 +13,7 @@ import {
   or,
   paymentProviderEvents,
   payments,
+  rentals,
   reservations,
   sql,
   users,
@@ -103,8 +104,11 @@ export class PaymentsRepository {
     return this.db
       .select({
         paymentId: payments.id,
-        bookingId: payments.bookingId,
-        reservationId: payments.reservationId,
+        type: payments.type,
+        bookingId: sql<string | null>`coalesce(${payments.bookingId}, ${rentals.bookingId})`,
+        reservationId: sql<
+          string | null
+        >`coalesce(${payments.reservationId}, ${rentals.reservationId})`,
         amount: sql<string>`coalesce(${payments.refundAmount}, ${payments.totalAmount})`,
         depositForfeitedAmount: payments.depositForfeitedAmount,
         currency: payments.currency,
@@ -117,14 +121,24 @@ export class PaymentsRepository {
         >`coalesce(${bookings.contactPhone}, ${bookingCustomer.phone})`,
       })
       .from(payments)
-      .leftJoin(bookings, eq(bookings.id, payments.bookingId))
-      .leftJoin(reservations, eq(reservations.id, payments.reservationId))
+      .leftJoin(rentals, eq(rentals.id, payments.rentalId))
+      .leftJoin(
+        bookings,
+        eq(bookings.id, sql`coalesce(${payments.bookingId}, ${rentals.bookingId})`),
+      )
+      .leftJoin(
+        reservations,
+        eq(reservations.id, sql`coalesce(${payments.reservationId}, ${rentals.reservationId})`),
+      )
       .leftJoin(
         bookingCustomer,
-        eq(bookingCustomer.id, sql`coalesce(${bookings.userId}, ${reservations.customerId})`),
+        eq(
+          bookingCustomer.id,
+          sql`coalesce(${bookings.userId}, ${reservations.customerId}, ${rentals.userId})`,
+        ),
       )
       .where(eq(payments.status, "REFUND_PENDING"))
-      .orderBy(desc(payments.paidAt), payments.id)
+      .orderBy(desc(sql`coalesce(${payments.paidAt}, ${payments.createdAt})`), payments.id)
       .limit(query.limit)
       .offset(query.offset);
   }

@@ -12,6 +12,7 @@ export * from "./media-assets";
 export * from "./notification-outbox";
 export * from "./payment-provider-events";
 export * from "./payments";
+export * from "./policy-violation-fees";
 export * from "./pricing";
 export * from "./relations";
 export * from "./rentals";

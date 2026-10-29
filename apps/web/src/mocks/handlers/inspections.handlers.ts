@@ -209,6 +209,7 @@ export function registerInspectionHandlers(mock: MockAdapter): void {
         storageUnit: { id: unit.id, code: unit.code },
         startAt: inspection.handedOverAt,
         endAt: booking.rentalEndAt,
+        closedAt: null,
         status: "ACTIVE",
         bookingStatus: "CHECKED_IN",
         actions: { canCancel: false, canReschedule: false, note: M.locked },

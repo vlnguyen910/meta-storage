@@ -71,6 +71,9 @@ export class AppointmentsService {
           tx,
         )
       : undefined;
+    const rental = current.rentalId
+      ? await this.rentals.requireAppointmentContext(tx, current.rentalId, current.customerId)
+      : undefined;
     const appointment = await this.requireAppointment(id, tx);
     await this.assertAccess(appointment, actor);
     if (actor.role !== UserRole.FACILITY_STAFF || appointment.assignedStaffId !== actor.id)
@@ -85,7 +88,7 @@ export class AppointmentsService {
       throw new ConflictError(m.completionNotReady);
     if (appointment.status !== Status.CONFIRMED && appointment.status !== Status.COMPLETED)
       throw new ConflictError(m.completionNotReady);
-    return { appointment, reservation };
+    return { appointment, reservation, rental };
   }
 
   async completeHandover(tx: AppointmentTransaction, id: string, actor: Actor) {

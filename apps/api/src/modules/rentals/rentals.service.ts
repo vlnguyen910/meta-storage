@@ -41,6 +41,7 @@ function toFacilityRentalItem(row: RentalWithDetails): FacilityRentalItem {
     },
     startAt: row.rental.startAt.toISOString(),
     endAt: row.rental.endAt.toISOString(),
+    closedAt: row.rental.closedAt?.toISOString() ?? null,
   };
 }
 export class RentalsService {
@@ -112,10 +113,12 @@ export class RentalsService {
       rental.bookingId,
       query,
       rental.reservationId,
+      rental.id,
     );
     return {
       items: result.items.map((payment) => ({
         id: payment.id,
+        type: payment.type,
         paymentCode: payment.paymentCode,
         status: payment.status,
         amount: payment.totalAmount,
@@ -161,6 +164,7 @@ export class RentalsService {
     return (await this.repository.findCustomerRentalPayments(rentalId, userId)).map(
       ({ payment }) => ({
         id: payment.id,
+        type: payment.type,
         paymentCode: payment.paymentCode,
         provider: payment.provider,
         status: payment.status,
@@ -188,6 +192,7 @@ function toCustomerRentalItem(row: RentalWithDetails): RentalListItem {
     storageUnit: { id: row.storageUnit.id, code: row.storageUnit.code },
     startAt: row.rental.startAt.toISOString(),
     endAt: row.rental.endAt.toISOString(),
+    closedAt: row.rental.closedAt?.toISOString() ?? null,
     status: row.rental.status,
     bookingStatus: row.booking.status,
     actions: { canCancel: false, canReschedule: false, note: M.readOnly },

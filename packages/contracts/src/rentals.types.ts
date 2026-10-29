@@ -1,4 +1,4 @@
-import type { PaymentStatus } from "./payments";
+import type { PaymentStatus, PaymentType } from "./payments";
 import type { RentalListItem } from "./rentals";
 
 export interface RentalPageCursor {
@@ -14,6 +14,7 @@ export interface RentalPage {
 /** Booking payments associated with a rental. */
 export interface RentalPaymentItem {
   id: string;
+  type: PaymentType;
   paymentCode: string | null;
   provider: string | null;
   status: PaymentStatus;
@@ -43,6 +44,7 @@ export interface FacilityRentalItem {
   unit: { id: string; code: string; unitTypeId: string; unitTypeName: string; sizeLabel: string };
   startAt: string;
   endAt: string;
+  closedAt: string | null;
 }
 
 export interface FacilityRentalPage {
@@ -54,6 +56,7 @@ export interface FacilityRentalPage {
 
 export interface FacilityRentalPaymentItem {
   id: string;
+  type: PaymentType;
   paymentCode: string | null;
   status: PaymentStatus;
   amount: string;

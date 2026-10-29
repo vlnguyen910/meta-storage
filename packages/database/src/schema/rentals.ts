@@ -32,6 +32,7 @@ export const rentals = pgTable(
     status: rentalStatusEnum().default(RentalStatus.ACTIVE).notNull(),
     startAt: timestamp({ withTimezone: true }).notNull(),
     endAt: timestamp({ withTimezone: true }).notNull(),
+    closedAt: timestamp({ withTimezone: true }),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
   },

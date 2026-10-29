@@ -7,7 +7,9 @@ import {
   INSPECTION_PHOTO_MAX_COUNT,
   type InspectionListQuery,
   type InspectionRecord,
+  ReturnChecklistCompletionSchema,
   type UpdateInspectionInput,
+  type UpdatePolicyViolationFeeCatalog,
 } from "@metastorage/contracts";
 import {
   InspectionCondition,
@@ -25,6 +27,7 @@ import { mapPageDto } from "../../common/types/page.dto";
 import type { AppointmentsService } from "../appointments/appointments.service";
 import type { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
 import type { FacilityTasksRepository } from "../facility-tasks/facility-tasks.repository";
+import type { TaskTransaction } from "../facility-tasks/facility-tasks.types";
 import type { MediaAssetsService } from "../media-assets/media-assets.service";
 import type { RentalsService } from "../rentals/rentals.service";
 import type { ReservationsService } from "../reservations/reservations.service";
@@ -125,8 +128,10 @@ export class InspectionsService {
   ) {
     const appointments = this.appointments;
     if (!appointments) throw new ConflictError(m.taskNotAvailable);
+    const existing = await this.repository.findExistingByTask(input.taskId);
+    if (existing) return this.get(existing.id, actor);
     const record = await this.repository.transaction(async (tx) => {
-      const { appointment, reservation } = await appointments.requireInspectionContext(
+      const { appointment, reservation, rental } = await appointments.requireInspectionContext(
         tx,
         appointmentId,
         actor,
@@ -142,6 +147,20 @@ export class InspectionsService {
         throw new ConflictError(m.taskNotAvailable);
       const [existing] = await this.repository.findByTask(tx, task.id);
       if (existing) return existing;
+      if (
+        appointment.appointmentType === AppointmentType.CHECK_OUT &&
+        rental?.rental.status === "ACTIVE"
+      ) {
+        const [created] = await this.repository.create(tx, {
+          storageUnitId: rental.rental.storageUnitId,
+          rentalId: rental.rental.id,
+          inspectedBy: actor.id,
+          taskId: task.id,
+          inspectionType: InspectionType.CHECK_OUT,
+        });
+        if (!created) throw new Error("Return inspection insert returned no row");
+        return created;
+      }
       if (
         appointment.appointmentType !== AppointmentType.CHECK_IN ||
         !reservation ||
@@ -257,6 +276,12 @@ export class InspectionsService {
     const current = await this.getAccessibleRow(id, actor);
     if (actor.role !== UserRole.FACILITY_STAFF || current.assignedStaffId !== actor.id)
       throw new ForbiddenError(m.notAssigned);
+    if (
+      current.inspectionType === InspectionType.CHECK_OUT &&
+      current.status === InspectionStatus.PASSED &&
+      input.status === InspectionStatus.PASSED
+    )
+      return this.get(id, actor);
     const existingEvidence = await this.media.listImages("INSPECTION", id, "EVIDENCE_PHOTO");
     const removed = new Set(input.removeEvidenceIds ?? []);
     if (removed.size !== (input.removeEvidenceIds ?? []).length)
@@ -269,9 +294,38 @@ export class InspectionsService {
     )
       throw new ConflictError(m.evidenceLimit);
 
+    let alreadyCompleted = false;
     const updated = await this.repository.transaction(async (tx) => {
+      if (current.inspectionType === InspectionType.CHECK_OUT) {
+        const taskContext = await this.repository.findTaskContext(current.taskId, tx);
+        if (
+          !this.appointments ||
+          taskContext?.referenceType !== FacilityTaskReferenceType.APPOINTMENT
+        )
+          throw new ConflictError(m.handoverNotReady);
+        try {
+          await this.appointments.requireInspectionContext(tx, taskContext.referenceId, actor);
+        } catch (error) {
+          if (input.status === InspectionStatus.PASSED) {
+            const [completed] = await this.repository.findForUpdate(tx, id);
+            if (completed?.status === InspectionStatus.PASSED) {
+              alreadyCompleted = true;
+              return completed;
+            }
+          }
+          throw error;
+        }
+      }
       const [locked] = await this.repository.findForUpdate(tx, id);
       if (!locked) return undefined;
+      if (
+        locked.inspectionType === InspectionType.CHECK_OUT &&
+        locked.status === InspectionStatus.PASSED &&
+        input.status === InspectionStatus.PASSED
+      ) {
+        alreadyCompleted = true;
+        return locked;
+      }
       if (locked.status === InspectionStatus.PASSED || locked.status === InspectionStatus.FAILED)
         throw new ConflictError(m.alreadyCompleted);
       const [task] = await this.tasks.findForUpdate(tx, locked.taskId);
@@ -284,6 +338,11 @@ export class InspectionsService {
 
       const nextStatus = input.status ?? InspectionStatus.IN_PROGRESS;
       if (
+        locked.inspectionType === InspectionType.CHECK_OUT &&
+        nextStatus === InspectionStatus.FAILED
+      )
+        throw new ConflictError(m.returnInspectionCannotFail);
+      if (
         (nextStatus === InspectionStatus.PASSED || nextStatus === InspectionStatus.FAILED) &&
         !(input.condition ?? locked.condition)
       )
@@ -291,8 +350,32 @@ export class InspectionsService {
       if (nextStatus === InspectionStatus.PASSED) {
         const checklist = input.checklist ?? locked.checklist;
         const results = Array.isArray(checklist.results) ? checklist.results : [];
-        if (!HandoverChecklistCompletionSchema.safeParse(results).success)
+        const completionSchema =
+          locked.inspectionType === InspectionType.CHECK_OUT
+            ? ReturnChecklistCompletionSchema
+            : HandoverChecklistCompletionSchema;
+        if (!completionSchema.safeParse(results).success)
           throw new ConflictError(m.checklistRequired);
+      }
+
+      if (locked.inspectionType === InspectionType.CHECK_OUT && input.violations !== undefined) {
+        if (input.policyVersion === undefined) throw new ConflictError(m.returnPolicyStale);
+        const fees = await this.repository.replaceInspectionFees(
+          tx,
+          locked.id,
+          input.policyVersion,
+          input.violations,
+        );
+        if (!fees) throw new ConflictError(m.returnPolicyStale);
+      } else if (input.violations !== undefined) {
+        throw new ConflictError(m.returnPolicyStale);
+      }
+
+      if (
+        locked.inspectionType === InspectionType.CHECK_OUT &&
+        nextStatus === InspectionStatus.PASSED
+      ) {
+        await this.completeReturn(tx, locked, task, actor, input);
       }
 
       const condition =
@@ -316,9 +399,11 @@ export class InspectionsService {
     });
     if (!updated) throw new NotFoundError(m.notFound);
 
-    for (const assetId of removed) await this.media.removeImage("INSPECTION", id, assetId);
-    for (const evidence of input.addEvidence ?? [])
-      await this.media.uploadImage("INSPECTION", id, "EVIDENCE_PHOTO", actor.id, evidence);
+    if (!alreadyCompleted) {
+      for (const assetId of removed) await this.media.removeImage("INSPECTION", id, assetId);
+      for (const evidence of input.addEvidence ?? [])
+        await this.media.uploadImage("INSPECTION", id, "EVIDENCE_PHOTO", actor.id, evidence);
+    }
     return this.get(id, actor);
   }
 
@@ -326,6 +411,88 @@ export class InspectionsService {
     const current = await this.getAccessibleRow(id, actor);
     if (!current.reservationId) throw new ConflictError(m.handoverNotReady);
     return this.handoverReservation(current, actor);
+  }
+
+  async getPolicyCatalog(actor: InspectionActor) {
+    if (actor.role !== UserRole.BUSINESS_OPERATIONS_MANAGER)
+      throw new ForbiddenError(m.policyCatalogForbidden);
+    return this.repository.policyCatalog();
+  }
+
+  async updatePolicyCatalog(actor: InspectionActor, input: UpdatePolicyViolationFeeCatalog) {
+    if (actor.role !== UserRole.BUSINESS_OPERATIONS_MANAGER)
+      throw new ForbiddenError(m.policyCatalogForbidden);
+    const result = await this.repository.updatePolicyCatalog(input);
+    if (!result) throw new ConflictError(m.policyCatalogStale);
+    return result;
+  }
+
+  private async completeReturn(
+    tx: TaskTransaction,
+    inspection: Awaited<ReturnType<InspectionsRepository["findForUpdate"]>>[number],
+    task: Awaited<ReturnType<FacilityTasksRepository["findForUpdate"]>>[number],
+    actor: InspectionActor,
+    input: UpdateInspectionInput,
+  ) {
+    if (
+      !this.appointments ||
+      !task ||
+      task.status !== FacilityTaskStatus.IN_PROGRESS ||
+      task.referenceType !== FacilityTaskReferenceType.APPOINTMENT
+    )
+      throw new ConflictError(m.handoverNotReady);
+    const { appointment, rental } = await this.appointments.requireInspectionContext(
+      tx,
+      task.referenceId,
+      actor,
+    );
+    if (
+      appointment.appointmentType !== AppointmentType.CHECK_OUT ||
+      appointment.status !== AppointmentStatus.CONFIRMED ||
+      !rental ||
+      rental.rental.status !== "ACTIVE" ||
+      rental.rental.id !== inspection.rentalId ||
+      rental.rental.storageUnitId !== inspection.storageUnitId
+    )
+      throw new ConflictError(m.handoverNotReady);
+    if ((input.condition ?? inspection.condition) !== InspectionCondition.GOOD)
+      throw new ConflictError(m.returnUnitUnavailable);
+
+    const fees = await this.repository.listInspectionFees(inspection.id, tx);
+    const totalFees = fees.reduce((total, fee) => total + fee.amount, 0);
+    const source = await this.repository.lockSourcePayment(tx, rental.rental.id);
+    if (
+      !source ||
+      Number(source.payment.totalAmount) <= 0 ||
+      Number(source.payment.totalAmount) !== source.quoteTotal
+    )
+      throw new ConflictError(m.returnPaymentMissing);
+    if (totalFees > source.depositAmount) throw new ConflictError(m.returnPenaltyExceedsDeposit);
+
+    const now = new Date();
+    const closed = await this.repository.closeRental(tx, rental.rental.id, now);
+    if (!closed.length) throw new ConflictError(m.handoverNotReady);
+    if (
+      !(await this.storageUnits.makeAvailableAfterReturn(
+        tx,
+        rental.rental.storageUnitId,
+        rental.rental.id,
+        rental.rental.reservationId,
+        now,
+      ))
+    )
+      throw new ConflictError(m.returnUnitUnavailable);
+    const refundAmount = source.depositAmount - totalFees;
+    if (refundAmount > 0)
+      await this.repository.createDepositRefund(tx, {
+        rentalId: rental.rental.id,
+        sourcePaymentId: source.payment.id,
+        bookingId: source.bookingId,
+        reservationId: source.reservationId,
+        amount: refundAmount,
+        currency: source.payment.currency,
+      });
+    await this.appointments.completeHandover(tx, appointment.id, actor);
   }
 
   private async getAccessibleRow(id: string, actor: InspectionActor): Promise<InspectionRow> {
@@ -361,11 +528,15 @@ export class InspectionsService {
     };
   }
 
-  private toRecord(
+  private async toRecord(
     row: InspectionRow,
     evidence: Awaited<ReturnType<MediaAssetsService["listImages"]>>,
-  ): InspectionRecord {
+  ): Promise<InspectionRecord> {
     const { assignedStaffId: _assignedStaffId, bookingId, ...fields } = row;
+    const returnContext =
+      fields.inspectionType === InspectionType.CHECK_OUT
+        ? await this.returnContext(fields.id)
+        : undefined;
     return {
       ...fields,
       reservationId: fields.reservationId ?? bookingId,
@@ -379,6 +550,37 @@ export class InspectionsService {
         createdAt: asset.createdAt.toISOString(),
         url: asset.url,
       })),
+      ...(returnContext ? { returnContext } : {}),
+    };
+  }
+
+  private async returnContext(inspectionId: string) {
+    const [context, catalog, fees] = await Promise.all([
+      this.repository.findReturnContext(inspectionId),
+      this.repository.policyCatalog(),
+      this.repository.listInspectionFees(inspectionId),
+    ]);
+    if (!context || context.depositAmount === null) return undefined;
+    return {
+      depositAmount: context.depositAmount,
+      policyVersion: catalog.version,
+      penalties: catalog.items
+        .filter((item) => item.isActive)
+        .map(({ code, name, amount }) => ({ code, name, amount })),
+      fees: fees.map((fee) => ({
+        code: fee.violationCode,
+        name: fee.violationName,
+        amount: fee.amount,
+        note: fee.note,
+      })),
+      checkIn: context.checkIn
+        ? {
+            condition: context.checkIn.condition,
+            checklist: context.checkIn.checklist,
+            notes: context.checkIn.notes,
+            inspectedAt: context.checkIn.inspectedAt?.toISOString() ?? null,
+          }
+        : null,
     };
   }
 }

@@ -43,6 +43,8 @@ export const PAYMENT_REFUND_REASONS = [
   "CUSTOMER_CANCELLATION",
   "NO_SHOW",
 ] as const;
+export type PaymentType = "CHARGE" | "DEPOSIT_REFUND";
+export const PaymentTypeSchema = z.enum(["CHARGE", "DEPOSIT_REFUND"]);
 export const PaymentRefundReasonSchema = z.enum(PAYMENT_REFUND_REASONS);
 export type PaymentRefundReason = z.infer<typeof PaymentRefundReasonSchema>;
 
@@ -140,6 +142,7 @@ export type PaymentPendingResponse = z.infer<typeof PaymentPendingResponseSchema
 export type PaymentResponse = PaymentResult | PaymentPendingResponse;
 
 export const PaymentStatusResponseSchema = z.object({
+  type: PaymentTypeSchema,
   reservationId: z.uuid().optional(),
   paymentId: z.string().uuid(),
   status: z.enum(PaymentStatus),

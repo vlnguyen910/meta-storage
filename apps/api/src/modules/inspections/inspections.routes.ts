@@ -3,6 +3,7 @@ import {
   CreateInspectionInputSchema,
   InspectionListQuerySchema,
   UpdateInspectionInputSchema,
+  UpdatePolicyViolationFeeCatalogSchema,
 } from "@metastorage/contracts";
 import { UserRole } from "@metastorage/database/schema/user-enums";
 import type { FastifyPluginAsync } from "fastify";
@@ -47,6 +48,35 @@ export const inspectionsRoutes: FastifyPluginAsync = async (app) => {
     media,
     createAppointmentsService(app.db),
     createReservationsService(app.db),
+  );
+
+  typed.get(
+    "/policy-violation-fees",
+    { preHandler: [requireRole(UserRole.BUSINESS_OPERATIONS_MANAGER)] },
+    async (request) => {
+      const user = request.user;
+      if (!user) throw new UnauthorizedError();
+      return successResponse(
+        await service.getPolicyCatalog({ id: user.id, role: user.role as UserRole }),
+      );
+    },
+  );
+  typed.put(
+    "/policy-violation-fees",
+    {
+      preHandler: [requireRole(UserRole.BUSINESS_OPERATIONS_MANAGER)],
+      schema: { body: UpdatePolicyViolationFeeCatalogSchema },
+    },
+    async (request) => {
+      const user = request.user;
+      if (!user) throw new UnauthorizedError();
+      return successResponse(
+        await service.updatePolicyCatalog(
+          { id: user.id, role: user.role as UserRole },
+          request.body,
+        ),
+      );
+    },
   );
 
   typed.get(

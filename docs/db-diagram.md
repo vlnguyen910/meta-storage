@@ -15,7 +15,8 @@ keeping IDs, financial facts, rental/inspection history and assigned tasks.
 | --- | --- |
 | `reservations` | Customer/facility/unit type, requested months, rental period, integer price snapshots and lifecycle. Draft creation checks active offering, schedule, pricing and available capacity. Price snapshots must fit PostgreSQL INTEGER. |
 | `appointments` | CHECK_IN references a paid reservation; CHECK_OUT references an active customer rental; SUPPORT references an owned support ticket. Facility/customer scope is derived from that context. Date and slot must be future and within operating hours. One active appointment per context is enforced by service parent locks. The check-in unique index applies to SCHEDULED/CONFIRMED records so cancelled history does not prevent rebooking. One confirmed return per facility/date/slot remains enforced by a partial unique index. |
-| `payments` | Exactly one of booking_id or reservation_id is required. The existing provider, idempotency, payment status, provider-event deduplication and manual refund workflow also support reservations. |
+| `payments` | CHARGE retains one booking/reservation context and provider fields. DEPOSIT_REFUND links to the rental and source charge, has no provider checkout references, and stays REFUND_PENDING until the existing manual confirmation records the transfer. |
+| `policy_violation_fee` | Stores BOM catalog rows (null reference, versioned and soft-disabled) and applied fee snapshots (INSPECTION reference, code/name/VND amount/version/note). Applied rows do not change when the catalog changes. |
 | `capacity_allocations` | HOLD reserves capacity for ten minutes during checkout. A successful reservation payment changes it to RESERVATION without expiry. All allocation kinds contribute to the existing capacity calculation. |
 | `facility_tasks` | APPOINTMENT owns scheduled work; BOOKING is retained only for archived tasks. CHECK_IN creates CHECK_IN_HANDOVER, CHECK_OUT creates UNIT_INSPECTION and SUPPORT creates HANDLE_SUPPORT. Assignment/reassignment belongs to the appointment workflow. Staff start through the existing task API; completion/cancellation commits with the appointment. |
 
@@ -30,6 +31,10 @@ erDiagram
   reservations ||--o{ support_tickets : support
   reservations ||--o{ notification_outbox : lifecycle
   rentals ||--o{ appointments : check_out
+  rentals ||--o{ payments : deposit_refund
+  payments o|--o{ payments : source_charge
+  inspections ||--o{ policy_violation_fee : applied_violations
+  rentals ||--o{ inspections : check_out
   support_tickets ||--o{ appointments : support
   appointments ||--o{ facility_tasks : reference_type_APPOINTMENT
 ```
@@ -49,11 +54,11 @@ Appointment states are SCHEDULED → CONFIRMED → COMPLETED, with CANCELLED/NO_
 terminal alternatives. Manager confirmation requires assigned active staff. Only
 the assigned staff can complete a confirmed appointment after starting its task.
 Check-in completion additionally requires reservation CHECKED_IN; check-out
-completion requires rental CLOSED. FM assigns a matching physical unit and staff through PATCH appointment; this creates the task atomically. Staff start the task, then POST `/api/inspections` with taskId and storageUnitId.
-The backend derives the reservation and checks that the physical unit belongs to
-its facility/type and has no active assignment, rental or other active check-in
-inspection. Unit row locks serialize competing staff selections. Existing
-inspection update/checklist/evidence APIs apply. POST `/api/inspections/:id/handover`
+completion requires rental CLOSED. FM assigns staff through PATCH appointment;
+this creates the task atomically. Staff start the task, then POST `/api/inspections`
+with taskId. For CHECK_OUT the backend derives the Unit from the rental and does
+not accept a client-selected Unit. Existing inspection update/checklist/evidence
+APIs apply. POST `/api/inspections/:id/handover`
 with customerReceivedUnit=true requires a PASSED inspection and a confirmed
 appointment. One transaction creates the rental, marks the unit OCCUPIED,
 marks the reservation CHECKED_IN, releases its capacity allocation and completes
@@ -62,8 +67,7 @@ Migration `0012_thin_gateway.sql` adds reservation_id to inspections and rentals
 rentals require exactly one booking/reservation reference, individually unique.
 Customer, facility rental reads, payment history and rental reports support both
 references; bookingId is nullable and reservationId identifies the new context.
-Return inspection, closure and settlement are separate from this receiving flow. SUPPORT completion finishes
-the meeting/task without inventing a support-ticket lifecycle.
+Return inspection closes the rental, records `closed_at`, releases its occupied Unit, snapshots selected violation fees and creates a pending deposit-refund payment in one transaction. Failed checklist items require a note; an inspection with recorded violations can still pass. Only a GOOD unit condition becomes AVAILABLE in this implementation. SUPPORT completion finishes the meeting/task without inventing a support-ticket lifecycle.
 
 Routes remain `/api/reservations` and `/api/appointments`. Reservation cancellation
 uses PATCH `/:id` with CANCELLED; appointment staff can list `/assigned-to-me`.
@@ -117,6 +121,7 @@ Migration đã đạt kiểm tra trên DB mới và nâng cấp DB tạm có d�
 | status | rental_status | ACTIVE hoặc CLOSED, mặc định ACTIVE |
 | startAt | TIMESTAMPTZ | NOT NULL |
 | endAt | TIMESTAMPTZ | NOT NULL, lớn hơn startAt |
+| closedAt | TIMESTAMPTZ | nullable, giờ trả thực tế; endAt vẫn là hạn thuê |
 | createdAt | TIMESTAMPTZ | NOT NULL, mặc định now() |
 | updatedAt | TIMESTAMPTZ | NOT NULL, mặc định now(); cập nhật khi ghi |
 
@@ -566,11 +571,13 @@ erDiagram
   rentals {
     uuid id PK
     uuid booking_id FK,UK
+    uuid reservation_id FK,UK
     uuid user_id FK
     uuid storage_unit_id FK
     rental_status status
     timestamptz start_at
     timestamptz end_at
+    timestamptz closed_at "nullable actual return time"
     timestamptz created_at
     timestamptz updated_at
   }
@@ -582,12 +589,15 @@ erDiagram
 
   payments {
     uuid id PK
+    payment_type type "CHARGE or DEPOSIT_REFUND"
     uuid booking_id FK "nullable for rental-charge payments"
-    uuid rental_id FK "nullable return refund"
-    varchar provider "nullable for manual refund"
+    uuid reservation_id FK "nullable"
+    uuid rental_id FK "nullable; return refund"
+    uuid source_payment_id FK "nullable; original charge"
+    varchar provider "nullable for deposit refund"
     varchar provider_payment_id "nullable"
-    varchar payment_code UK "nullable"
-    varchar hold_token_hash "nullable for charge payment"
+    varchar payment_code UK "nullable for refund"
+    varchar hold_token_hash "nullable for refund"
     varchar idempotency_key UK
     numeric total_amount
     varchar currency
@@ -602,6 +612,19 @@ erDiagram
     uuid refunded_by FK "nullable; ON DELETE RESTRICT"
     timestamptz created_at
     timestamptz updated_at
+  }
+
+  policy_violation_fee {
+    uuid id PK
+    varchar reference_type "nullable for catalog; INSPECTION for applied fee"
+    uuid reference_id "nullable for catalog"
+    varchar violation_code
+    varchar violation_name
+    integer amount "snapshot VND"
+    integer policy_version
+    text note "nullable"
+    boolean is_active "catalog enablement; applied rows false"
+    timestamptz created_at
   }
 
   payment_provider_events {

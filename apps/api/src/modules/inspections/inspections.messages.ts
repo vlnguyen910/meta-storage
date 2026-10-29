@@ -18,4 +18,12 @@ export const INSPECTIONS_API_MESSAGES = {
   handoverNotReady: "Inspection chưa PASSED hoặc booking không còn đủ điều kiện bàn giao.",
   alreadyCompleted: "Inspection đã hoàn tất và không thể chỉnh sửa.",
   checklistRequired: "Cần hoàn thành toàn bộ checklist trước khi PASS inspection.",
+  returnPolicyStale: "Danh mục phí đã thay đổi; tải lại inspection trước khi lưu.",
+  returnPenaltyUnknown: "Một khoản phí không còn nằm trong danh mục đang áp dụng.",
+  returnPenaltyExceedsDeposit: "Tổng phí phạt không được vượt quá tiền cọc.",
+  returnPaymentMissing: "Không tìm thấy khoản thanh toán tiền cọc đã xác nhận.",
+  returnUnitUnavailable: "Kho chưa đủ điều kiện để kết thúc lượt trả.",
+  returnInspectionCannotFail: "Inspection trả kho phải được chốt bằng checklist và phí vi phạm.",
+  policyCatalogForbidden: "Bạn không có quyền quản lý danh mục phí vi phạm.",
+  policyCatalogStale: "Danh mục phí đã thay đổi. Hãy tải lại trước khi lưu.",
 } as const;

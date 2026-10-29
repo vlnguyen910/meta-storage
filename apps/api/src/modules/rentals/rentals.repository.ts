@@ -190,6 +190,7 @@ export class RentalsRepository {
         or(
           eq(rentals.bookingId, payments.bookingId),
           eq(rentals.reservationId, payments.reservationId),
+          eq(rentals.id, payments.rentalId),
         ),
       )
       .where(and(eq(rentals.id, rentalId), eq(rentals.userId, userId)))
@@ -199,14 +200,16 @@ export class RentalsRepository {
     bookingId: string | null,
     query: FacilityRentalHistoryQuery,
     reservationId?: string | null,
+    rentalId?: string,
   ) {
     return this.db.transaction(
       async (tx) => {
-        const filter = bookingId
-          ? eq(payments.bookingId, bookingId)
-          : reservationId
-            ? eq(payments.reservationId, reservationId)
-            : sql`false`;
+        const filter =
+          or(
+            bookingId ? eq(payments.bookingId, bookingId) : undefined,
+            reservationId ? eq(payments.reservationId, reservationId) : undefined,
+            rentalId ? eq(payments.rentalId, rentalId) : undefined,
+          ) ?? sql`false`;
         const [total] = await tx.select({ value: count() }).from(payments).where(filter);
         const items = await tx
           .select()
