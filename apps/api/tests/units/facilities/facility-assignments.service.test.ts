@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { type FacilityStaffMember, UserRole } from "@metastorage/contracts";
+import type { FacilityStaffMember } from "@metastorage/contracts";
 import type { FacilityAssignment } from "@metastorage/database";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import type { FacilityScope } from "../../../src/modules/facilities/facilities.access";
 import type { FacilitiesRepository } from "../../../src/modules/facilities/facilities.repository";
 import type { FacilityAssignmentsRepository } from "../../../src/modules/facilities/facility-assignments.repository";

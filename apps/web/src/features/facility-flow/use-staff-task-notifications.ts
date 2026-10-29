@@ -1,6 +1,7 @@
 "use client";
 
-import { type StaffTaskAssignedNotification, UserRole } from "@metastorage/contracts";
+import type { StaffTaskAssignedNotification } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useToast } from "@/components/ui/toast";

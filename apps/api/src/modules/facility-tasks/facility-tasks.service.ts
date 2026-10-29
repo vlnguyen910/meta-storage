@@ -11,8 +11,8 @@ import {
   FACILITY_TASK_MESSAGES as m,
   type StaffFacilityTaskListQuery,
   type UpdateFacilityTaskInput,
-  UserRole,
 } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import {
   BadRequestError,
   ConflictError,

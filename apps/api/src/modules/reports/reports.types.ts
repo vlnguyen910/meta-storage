@@ -1,5 +1,5 @@
-import type { UserRole } from "@metastorage/contracts";
 import type { Database } from "@metastorage/database";
+import type { UserRole } from "@metastorage/database/schema/user-enums";
 import type { ReportsRepository } from "./reports.repository";
 export interface ReportActor {
   id: string;

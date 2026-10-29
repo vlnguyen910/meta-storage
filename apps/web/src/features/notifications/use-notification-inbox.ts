@@ -1,6 +1,6 @@
 "use client";
 
-import { UserRole } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { isMockMode } from "@/config/api-mode";
 import { useAuthStore } from "@/features/auth/auth-store";

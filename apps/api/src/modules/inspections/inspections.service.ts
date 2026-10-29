@@ -8,9 +8,9 @@ import {
   type InspectionListQuery,
   type InspectionRecord,
   type UpdateInspectionInput,
-  UserRole,
 } from "@metastorage/contracts";
 import { InspectionCondition, InspectionStatus, InspectionType } from "@metastorage/database";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { ConflictError, ForbiddenError, NotFoundError } from "../../common/errors/app-error";
 import { mapPageDto } from "../../common/types/page.dto";
 import type { BookingsService } from "../bookings/bookings.service";

@@ -1,4 +1,4 @@
-import { UserRole } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { describe, expect, it } from "vitest";
 import { applyAdminChange, csvCell, isFacilityRole, matchesDate } from "./admin.helpers";
 import { adminMockData } from "./admin.mock";

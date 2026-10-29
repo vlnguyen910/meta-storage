@@ -7,8 +7,8 @@ import {
   InspectionDraftInputSchema,
   InspectionPhotoInputSchema,
   StorageUnitStatus,
-  UserRole,
 } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import type { AxiosRequestConfig } from "axios";
 import type MockAdapter from "axios-mock-adapter";
 import { canReadBooking, lookupResult } from "../core/flow";

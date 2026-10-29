@@ -55,6 +55,7 @@
         "@hookform/resolvers": "^5.2.2",
         "@metastorage/api-client": "workspace:*",
         "@metastorage/contracts": "workspace:*",
+        "@metastorage/database": "workspace:*",
         "@metastorage/shared": "workspace:*",
         "@tanstack/react-query": "^5.90.2",
         "axios": "^1.12.2",
@@ -102,6 +103,7 @@
         "@hookform/resolvers": "^5.2.2",
         "@metastorage/api-client": "workspace:*",
         "@metastorage/contracts": "workspace:*",
+        "@metastorage/database": "workspace:*",
         "@metastorage/shared": "workspace:*",
         "@tanstack/react-query": "^5.90.2",
         "axios": "^1.12.2",
@@ -163,6 +165,7 @@
       "version": "0.0.1",
       "dependencies": {
         "@metastorage/contracts": "workspace:*",
+        "@metastorage/database": "workspace:*",
         "axios": "^1.12.2",
       },
       "devDependencies": {
@@ -174,6 +177,7 @@
       "name": "@metastorage/contracts",
       "version": "0.0.1",
       "dependencies": {
+        "@metastorage/database": "workspace:*",
         "zod": "^4.6.5",
       },
       "devDependencies": {

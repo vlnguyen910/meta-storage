@@ -3,8 +3,8 @@ import {
   CreateInspectionInputSchema,
   InspectionListQuerySchema,
   UpdateInspectionInputSchema,
-  UserRole,
 } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";

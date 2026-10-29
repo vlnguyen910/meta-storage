@@ -1,5 +1,6 @@
 import { createHttpClient, createMetastorageApiClient } from "@metastorage/api-client";
-import { type SessionTokens, UserRole } from "@metastorage/contracts";
+import type { SessionTokens } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { beforeAll, describe, expect, it } from "vitest";
 import { resetMockDatabase } from "./database";
 import { installMockApi } from "./install-mock-api";

@@ -1,4 +1,4 @@
-import { UserRole, type UserStatus } from "@metastorage/contracts";
+import { UserRole, type UserStatus } from "@metastorage/database/schema/user-enums";
 import type MockAdapter from "axios-mock-adapter";
 import { currentUser, envelope, errorBody, parseBody, publicUser } from "../core/http";
 import { getMockDatabase, saveMockDatabase } from "../database";

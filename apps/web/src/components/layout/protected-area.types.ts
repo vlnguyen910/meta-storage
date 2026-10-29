@@ -1,4 +1,4 @@
-import type { UserRole } from "@metastorage/contracts";
+import type { UserRole } from "@metastorage/database/schema/user-enums";
 import type { ReactNode } from "react";
 
 export interface ProtectedAreaProps {

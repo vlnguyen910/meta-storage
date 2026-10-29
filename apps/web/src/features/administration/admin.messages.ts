@@ -1,4 +1,4 @@
-import { UserRole } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 
 export const ADMIN_ROLE_LABELS: Readonly<Record<UserRole, string>> = {
   [UserRole.STORAGE_CUSTOMER]: "Khách thuê kho",

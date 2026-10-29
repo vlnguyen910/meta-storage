@@ -1,4 +1,5 @@
-import { type BookingListItem, type FacilityStaffMember, UserRole } from "@metastorage/contracts";
+import type { BookingListItem, FacilityStaffMember } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 
 export const mockStaffHuy: FacilityStaffMember = {
   id: "user-2",

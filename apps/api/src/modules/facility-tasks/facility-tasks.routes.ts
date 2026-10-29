@@ -6,8 +6,8 @@ import {
   FACILITY_TASK_MESSAGES as m,
   StaffFacilityTaskListQuerySchema,
   UpdateFacilityTaskSchema,
-  UserRole,
 } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import type { FastifyPluginAsync, FastifyRequest } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { UnauthorizedError } from "../../common/errors/app-error";

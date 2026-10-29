@@ -1,6 +1,6 @@
 "use client";
 
-import { UserRole } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { customerRoutes, facilityManagerRoutes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { NotificationInbox } from "@/features/notifications/notification-inbox";

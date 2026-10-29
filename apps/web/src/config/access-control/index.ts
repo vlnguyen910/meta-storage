@@ -1,4 +1,4 @@
-import { UserRole } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { businessOperationsPermissions } from "./business-operations.permissions";
 import { customerPermissions } from "./customer.permissions";
 import { facilityManagerPermissions } from "./facility-manager.permissions";

@@ -1,5 +1,6 @@
 "use client";
-import { type BookingListItem, UserRole } from "@metastorage/contracts";
+import type { BookingListItem } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import {
   ArrowRight,
   Calendar,
