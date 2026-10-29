@@ -1,5 +1,7 @@
 > **Cập nhật 2026-10-28:** Tài liệu này mô tả phiên bản trước đợt tinh gọn rental. Các phần gia hạn, khoản thu rental và khung giá đã được gỡ. Xem [trạng thái hiện tại](./rental-reset.md) trước khi sử dụng endpoint trong tài liệu.
 
+> **Cập nhật 2026-10-30:** Hợp đồng lịch sử bên dưới đã được thay thế. Backend hiện thực theo [đặc tả gia hạn kỳ thuê mới](./rental-renewal-implementation.md); các route Customer đang hoạt động là quote, history, detail và tạo payment session dưới `/api/rentals/:rentalId/renewals`.
+
 # Gia hạn rental — issue #163
 
 Policy: [customer-financial-policy.md](./customer-financial-policy.md).

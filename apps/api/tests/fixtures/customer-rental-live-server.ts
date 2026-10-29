@@ -27,6 +27,7 @@ import { SepayPaymentGateway } from "../../src/modules/payments/sepay.gateway";
 import { rentalsRoutes } from "../../src/modules/rentals/rentals.routes";
 import { reservationsRoutes } from "../../src/modules/reservations/reservations.routes";
 import { supportRoutes } from "../../src/modules/support/support.routes";
+import { systemSettingsRoutes } from "../../src/modules/system-settings/system-settings.routes";
 import { createFacilityOperationsFixture } from "./facility-operations";
 import { assertTestDatabase } from "./test-database";
 
@@ -47,6 +48,7 @@ await f.app.register(facilitiesRoutes, { prefix: "/api/facilities" });
 await f.app.register(paymentsRoutes, { prefix: "/api" });
 await f.app.register(rentalsRoutes, { prefix: "/api/rentals" });
 await f.app.register(supportRoutes, { prefix: "/api/support" });
+await f.app.register(systemSettingsRoutes, { prefix: "/api" });
 await db
   .insert(systemSettings)
   .values(
@@ -186,6 +188,7 @@ await writeFile(
     password: "FacilityOperationsTest123!",
     otherEmail: `${f.ids.peerStaff}@example.test`,
     managerEmail: `${f.ids.manager}@example.test`,
+    bomEmail: `${f.ids.bom}@example.test`,
     staffEmail: `${f.ids.staff}@example.test`,
   }),
 );

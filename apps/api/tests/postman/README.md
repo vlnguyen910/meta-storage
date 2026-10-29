@@ -1,5 +1,21 @@
 # Reservation → appointment → check-in
 
+## Rental renewal
+
+Run `bun apps/api/tests/run-rental-renewal-postman.ts` from the repository root.
+The runner creates and migrates a unique loopback PostgreSQL database on port
+5433, starts the existing real API fixture and runs the two renewal collections
+with Postman CLI and `--no-report-events`. It deletes its database and temporary
+credentials afterward. SePay lookup is substituted; signed checkout and the real
+webhook verifier use local test credentials, without bank transfers.
+
+The main collection currently passes 54 requests / 79 assertions. The own-unit
+capacity collection deliberately expects a valid occupied rental to be renewable
+without spare AVAILABLE inventory; it currently fails (expected 201, actual 409).
+The runner preserves that nonzero exit code. Logs are written to
+`/tmp/rental-renewal-postman.log` and `/tmp/rental-renewal-capacity-postman.log`.
+See `docs/rental-renewal-test-report.md` for per-request results and the workflow.
+
 `reservation-check-in.postman_collection.json` runs against real API routes and
 PostgreSQL with actual customer, manager and staff logins. The fixture uses local
 SePay credentials to sign checkout fields and sends a simulated paid IPN through
