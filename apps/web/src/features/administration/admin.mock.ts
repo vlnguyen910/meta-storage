@@ -1,4 +1,4 @@
-import { UserRole as Role } from "@metastorage/contracts";
+import { UserRole as Role } from "@metastorage/database/schema/user-enums";
 import type { AdminMockData } from "./admin.types";
 
 export const adminMockData: AdminMockData = {

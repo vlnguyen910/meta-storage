@@ -5,8 +5,8 @@ import {
   HandoverChecklistCompletionSchema,
   INSPECTION_CHECKLIST_VERSION,
   PaymentStatus,
-  UserRole,
 } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { expect, type Page, test } from "@playwright/test";
 import { FLOW } from "../src/features/facility-flow/flow.messages";
 import { CONTRACT_UI as C } from "../src/features/rentals/contract.messages";

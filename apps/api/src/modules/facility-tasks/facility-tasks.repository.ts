@@ -8,7 +8,6 @@ import {
   FacilityTaskTypeReferenceSchema,
   type StaffFacilityTaskListQuery,
   type UpdateFacilityTaskInput,
-  UserRole,
 } from "@metastorage/contracts";
 import {
   aliasedTable,
@@ -27,6 +26,7 @@ import {
   supportTickets,
   users,
 } from "@metastorage/database";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import type { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
 import type {
   FacilityTaskActor,

@@ -1,4 +1,5 @@
-import type { User, UserRole } from "@metastorage/contracts";
+import type { User } from "@metastorage/contracts";
+import type { UserRole } from "@metastorage/database/schema/user-enums";
 import type { ReactNode } from "react";
 
 export type AdminSection = "users" | "assignments" | "login-history" | "activity-logs";

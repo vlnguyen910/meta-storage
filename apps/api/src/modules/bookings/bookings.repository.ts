@@ -10,7 +10,6 @@ import {
   FacilityTaskType,
   type PhysicalUnitAssignment,
   type StaffTasksQuery,
-  UserRole,
 } from "@metastorage/contracts";
 import {
   aliasedTable,
@@ -50,6 +49,7 @@ import {
   unitTypes,
   users,
 } from "@metastorage/database";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { AppError } from "../../common/errors/app-error";
 import { PaymentsRepository } from "../payments/payments.repository";
 import { BOOKING_MESSAGES } from "./bookings.messages";

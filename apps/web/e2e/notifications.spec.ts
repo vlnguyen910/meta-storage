@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
-import { type LifecycleNotificationItem, UserRole } from "@metastorage/contracts";
+import type { LifecycleNotificationItem } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { expect, type Page, test } from "@playwright/test";
 import { STAFF_NOTIFICATIONS as S } from "../src/features/facility-flow/staff-task-notifications.messages";
 import { NOTIFICATIONS as M } from "../src/features/notifications/notifications.messages";

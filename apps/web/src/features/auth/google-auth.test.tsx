@@ -1,4 +1,5 @@
-import { type SessionUser, UserRole } from "@metastorage/contracts";
+import type { SessionUser } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";

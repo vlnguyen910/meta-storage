@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import AxeBuilder from "@axe-core/playwright";
-import { UserRole } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { expect, type Page, test } from "@playwright/test";
 import { ADMIN_MESSAGES as AM } from "../src/features/administration/admin.messages";
 import type { AdminMockData } from "../src/features/administration/admin.types";

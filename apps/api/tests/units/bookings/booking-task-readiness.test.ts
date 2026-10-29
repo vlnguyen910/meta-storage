@@ -3,8 +3,8 @@ import {
   FacilityTaskReferenceType,
   FacilityTaskStatus,
   FacilityTaskType,
-  UserRole,
 } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import type { BookingCheckInService } from "../../../src/modules/bookings/booking-check-in.service";
 import type { FacilityAssignmentsService } from "../../../src/modules/facilities/facility-assignments.service";
 import type { FacilityTasksRepository } from "../../../src/modules/facility-tasks/facility-tasks.repository";

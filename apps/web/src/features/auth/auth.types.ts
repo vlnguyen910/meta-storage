@@ -1,4 +1,5 @@
-import type { CustomerSignUpInput, UserRole } from "@metastorage/contracts";
+import type { CustomerSignUpInput } from "@metastorage/contracts";
+import type { UserRole } from "@metastorage/database/schema/user-enums";
 
 export interface LoginFormValues {
   email: string;

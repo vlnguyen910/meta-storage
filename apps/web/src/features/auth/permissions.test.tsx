@@ -1,4 +1,5 @@
-import { type Session, UserRole } from "@metastorage/contracts";
+import type { Session } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { Permission } from "@/config/access-control";

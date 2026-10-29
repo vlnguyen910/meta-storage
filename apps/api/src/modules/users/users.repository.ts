@@ -1,11 +1,10 @@
 import { randomUUID } from "node:crypto";
-import {
-  type CreateUserInput,
-  type CustomerRegistrationStats,
-  type UpdateOwnProfileInput,
-  type UpdateUserInput,
-  type UserListQuery,
-  UserRole,
+import type {
+  CreateUserInput,
+  CustomerRegistrationStats,
+  UpdateOwnProfileInput,
+  UpdateUserInput,
+  UserListQuery,
 } from "@metastorage/contracts";
 import {
   accounts,
@@ -28,6 +27,7 @@ import {
   type User,
   users,
 } from "@metastorage/database";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { ConflictError } from "../../common/errors/app-error";
 import { hasOpenAssignedWork } from "../facilities/staff-work.repository";
 import { USER_MESSAGES } from "./users.messages";

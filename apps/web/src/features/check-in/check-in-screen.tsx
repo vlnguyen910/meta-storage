@@ -1,5 +1,5 @@
 "use client";
-import { UserRole } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import {
   ArrowRight,
   BadgeCheck,

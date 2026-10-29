@@ -1,8 +1,4 @@
-import {
-  type FacilityAssignmentRole,
-  type FacilityStaffMember,
-  UserRole,
-} from "@metastorage/contracts";
+import type { FacilityAssignmentRole, FacilityStaffMember } from "@metastorage/contracts";
 import { FacilityTaskStatus } from "@metastorage/contracts/facility-tasks";
 import {
   and,
@@ -24,6 +20,7 @@ import {
   sql,
   users,
 } from "@metastorage/database";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { ConflictError, ForbiddenError, NotFoundError } from "../../common/errors/app-error";
 import type { AssignedFacilityScope, FacilityScope } from "./facilities.access";
 import { FACILITY_MESSAGES } from "./facilities.messages";

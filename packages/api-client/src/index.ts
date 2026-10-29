@@ -94,10 +94,10 @@ import type {
   UpdateUserStatusInput,
   User,
   UserListQuery,
-  UserRole,
   UtilizationReport,
   UtilizationReportQuery,
 } from "@metastorage/contracts";
+import type { UserRole } from "@metastorage/database/schema/user-enums";
 import axios, { type AxiosError, type AxiosInstance } from "axios";
 import { createFacilityWorkspaceClient } from "./facility-workspace";
 import { createFlow3Client } from "./flow3";

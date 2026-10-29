@@ -5,8 +5,8 @@ import {
   type PhysicalUnitAssignment,
   type RequestGuestAccessLink,
   StorageUnitStatus,
-  UserRole,
 } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import type MockAdapter from "axios-mock-adapter";
 import { canManageBooking, canReadBooking, lookupResult } from "../core/flow";
 import { currentUser, envelope, errorBody, parseBody } from "../core/http";

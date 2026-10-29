@@ -3,8 +3,8 @@ import {
   type CheckInLookupResult,
   PaymentStatus,
   SYSTEM_SETTING_DEFINITIONS,
-  UserRole,
 } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import type { MockUser } from "../types";
 export function canReadBooking(user: MockUser | null, booking: BookingListItem): boolean {
   return Boolean(

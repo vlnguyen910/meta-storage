@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { UserRole } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { isFacilityRole } from "./admin.helpers";
