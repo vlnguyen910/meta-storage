@@ -508,6 +508,24 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
         http.post<ApiEnvelope<InspectionRecord>>(`/inspections/bookings/${bookingId}`).then(unwrap),
     },
     inspections: {
+      policyFees: () =>
+        http
+          .get<
+            ApiEnvelope<{
+              version: number;
+              items: import("@metastorage/contracts").PolicyViolationFee[];
+            }>
+          >("/policy-violation-fees")
+          .then(unwrap),
+      updatePolicyFees: (input: import("@metastorage/contracts").UpdatePolicyViolationFeeCatalog) =>
+        http
+          .put<
+            ApiEnvelope<{
+              version: number;
+              items: import("@metastorage/contracts").PolicyViolationFee[];
+            }>
+          >("/policy-violation-fees", input)
+          .then(unwrap),
       create: (input: CreateInspectionInput) =>
         http.post<ApiEnvelope<InspectionRecord>>("/inspections", input).then(unwrap),
       forAppointment: (id: string) =>

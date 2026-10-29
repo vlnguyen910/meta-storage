@@ -534,7 +534,7 @@ function ReconciliationTab() {
             <div className="relative flex-1">
               <Input
                 type="search"
-                placeholder="Tìm mã thanh toán, mã đặt chỗ..."
+                placeholder={R.refundSearch}
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 className="h-8 text-xs pl-8 pr-3"
@@ -764,7 +764,11 @@ function RefundsQueueTab() {
   const filteredRefunds = (refunds ?? []).filter((r) => {
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
-    return r.paymentId.toLowerCase().includes(q) || Boolean(r.bookingId?.toLowerCase().includes(q));
+    return (
+      r.paymentId.toLowerCase().includes(q) ||
+      Boolean(r.reservationId?.toLowerCase().includes(q)) ||
+      Boolean(r.bookingId?.toLowerCase().includes(q))
+    );
   });
 
   const paginatedRefunds = filteredRefunds.slice(offset, offset + PAGE_SIZE);
@@ -776,9 +780,7 @@ function RefundsQueueTab() {
         <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-slate-100">
           <div>
             <h3 className="text-sm font-bold text-slate-900">{M.tabRefundQueueTitle}</h3>
-            <p className="m-0 text-xs text-slate-500">
-              Hàng chờ các khoản hoàn tiền trạng thái REFUND_PENDING cần xác nhận đối soát.
-            </p>
+            <p className="m-0 text-xs text-slate-500">{R.refundWaitingDescription}</p>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs font-medium text-slate-500">
@@ -876,7 +878,10 @@ function RefundsQueueTab() {
                   Mã giao dịch
                 </TableHead>
                 <TableHead className="font-semibold text-xs text-slate-700 py-2.5 px-4">
-                  Mã đặt chỗ
+                  {R.refundType}
+                </TableHead>
+                <TableHead className="font-semibold text-xs text-slate-700 py-2.5 px-4">
+                  {R.reservationId}
                 </TableHead>
                 <TableHead className="font-semibold text-xs text-slate-700 py-2.5 px-4">
                   Số tiền hoàn
@@ -895,14 +900,23 @@ function RefundsQueueTab() {
                   <TableCell className="font-mono text-xs font-semibold text-primary py-2.5 px-4 whitespace-nowrap">
                     {refund.paymentId.slice(0, 8)}...
                   </TableCell>
+                  <TableCell className="py-2.5 px-4 whitespace-nowrap">
+                    <span className="rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-900">
+                      {refund.type === "DEPOSIT_REFUND" ? R.depositRefund : R.otherRefund}
+                    </span>
+                  </TableCell>
                   <TableCell className="font-mono text-xs text-slate-700 py-2.5 px-4 whitespace-nowrap">
-                    {refund.bookingId ? `${refund.bookingId.slice(0, 8)}...` : "—"}
+                    {refund.reservationId
+                      ? `${refund.reservationId.slice(0, 8)}...`
+                      : refund.bookingId
+                        ? `${refund.bookingId.slice(0, 8)}...`
+                        : "—"}
                   </TableCell>
                   <TableCell className="font-bold tabular-nums text-xs text-rose-600 py-2.5 px-4 whitespace-nowrap">
                     {formatMoneyWithCurrency(refund.amount, refund.currency)}
                   </TableCell>
                   <TableCell className="text-xs text-slate-600 tabular-nums py-2.5 px-4 whitespace-nowrap">
-                    {formatDateTimeVn(refund.paidAt)}
+                    {refund.paidAt ? formatDateTimeVn(refund.paidAt) : R.refundTimeUnknown}
                   </TableCell>
                   <TableCell className="py-2.5 px-4 text-right whitespace-nowrap">
                     <Button

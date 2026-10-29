@@ -1,4 +1,22 @@
 export const OPERATIONS_MESSAGES = {
+  policyFeesTitle: "Phí vi phạm",
+  policyFeesVersion: "Phiên bản chính sách",
+  policyFeeAdd: "Thêm khoản phí",
+  policyFeeCode: "Mã (VD: DAMAGE)",
+  policyFeeName: "Tên khoản phí",
+  policyFeeAmount: "Số tiền VND",
+  policyFeeInvalid:
+    "Mã phải viết hoa và không trùng; nhập tên và số tiền nguyên không âm (tối đa 100 khoản phí).",
+  policyFeeActive: "Đang áp dụng",
+  policyFeeRemove: "Xóa khoản phí",
+  policyFeeSave: "Lưu chính sách",
+  policyFeeSaving: "Đang lưu…",
+  policyFeeSaveError: "Không lưu được. Hãy tải lại danh mục vì chính sách có thể đã thay đổi.",
+  policyFeeConflict:
+    "Danh mục phí đã đổi trên hệ thống. Tải lại để xem phiên bản mới trước khi tiếp tục.",
+  policyFeeReload: "Tải lại danh mục",
+  policyFeeReloading: "Đang tải lại…",
+  policyFeeReloadConfirm: "Tải lại sẽ bỏ các thay đổi phí chưa lưu của bạn.",
   rentalFeesRetired: "Phí thuê kho đang được xây dựng lại",
   rentalFeesRetiredHint: "Cấu hình phụ phí và phí quá hạn cũ đã được gỡ trong đợt tinh gọn rental.",
   priceSearch: "Tìm loại kho theo tên hoặc mã",
