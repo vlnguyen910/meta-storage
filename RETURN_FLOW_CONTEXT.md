@@ -217,3 +217,54 @@ Phạm vi code triển khai:
 
 Chạy kiểm tra liên quan phù hợp phạm vi thay đổi khi implement. Tài liệu này không
 ghi nhận bất kỳ kiểm thử API/DB hay triển khai code nào đã hoàn tất.
+
+## 8. Cập nhật triển khai hiện tại và điểm có thể tinh gọn
+
+Phần này là cập nhật mới nhất, thay thế những mô tả trạng thái/thiết kế cũ phía
+trên nếu có mâu thuẫn. Backend và schema cho flow CHECK_OUT đã được implement;
+migration đã sinh nhưng chưa áp dụng vào database. UI chưa được triển khai.
+
+- Không dùng `system_settings` cho phí. `policy_violation_fee` lưu cả danh mục BOM
+  (reference null) và snapshot phí đã áp dụng (reference INSPECTION); đây là lựa
+  chọn đã chốt với người dùng.
+- `payments.type` dùng enum `CHARGE`/`DEPOSIT_REFUND`. Hoàn cọc là payment riêng,
+  trạng thái ban đầu `REFUND_PENDING`, sau đó dùng endpoint xác nhận refund hiện có.
+- Luồng chỉ chốt khi Unit có condition GOOD và tổng phí không vượt cọc. Phí bằng
+  cọc thì không tạo payment hoàn bằng 0. Các nhánh Unit hỏng và công nợ vượt cọc
+  chưa được xây dựng.
+- Endpoint mới là GET/PUT `/api/policy-violation-fees`. Các endpoint inspection,
+  rental payment history và refund confirmation hiện có được mở rộng/tái sử dụng;
+  không thêm endpoint riêng để đóng rental hoặc trả Unit.
+
+### Các điểm tinh gọn và quyết định cấu trúc
+
+1. Đã gộp `findExistingByTask` vào `findByTask(taskId, executor = this.db)` để
+   dùng cùng một truy vấn ở cả trong và ngoài transaction.
+2. PATCH CHECK_OUT giờ truyền kết quả `requireInspectionContext` đã đọc/khóa vào
+   `completeReturn`, bỏ lần đọc appointment/rental thứ hai và vẫn giữ thứ tự khóa.
+3. `policyCatalog` và `activePolicyFees` dùng chung truy vấn danh mục; nhánh áp
+   snapshot vẫn lấy advisory lock và `FOR SHARE` để giữ policyVersion nhất quán.
+4. `InspectionsRepository` vẫn chứa thao tác ghi rental và payment để transaction
+   trả kho commit đồng bộ. Nếu cần ranh giới module chặt hơn, có thể chuyển các
+   thao tác đó sang RentalsRepository/PaymentsRepository và để service điều phối.
+   Đây là refactor lớn hơn, chưa cần thiết để hoàn thiện happy path và không nên
+   tách file/module chỉ vì kích thước.
+5. Migration 0016 chỉ siết lại constraint payment vừa thêm ở 0015. Nếu cả hai
+   chưa được publish hoặc áp dụng ở bất kỳ môi trường nào, có thể sinh lại thành
+   một migration; nếu đã dùng ở môi trường chung thì giữ nguyên thứ tự migration.
+
+### Kết quả Postman API test
+
+- Đã chạy lại collection sau các tinh gọn qua Postman CLI với API/Fastify thật và
+  PostgreSQL riêng `metastorage_inspection_test_return_refactor_20261029`;
+  database đã được xóa sau lượt test. Không dùng database ứng dụng hoặc gửi giao
+  dịch ngân hàng.
+- Bốn folder chạy theo thứ tự `Reserve` → `CheckIn` → `ReturnSchedule` → `Return`;
+  tổng 71 request, 112 assertion, 0 assertion lỗi. Test runner có 1 pass, 0 fail.
+- Test chính: deposit 100.000 VND, phí 10.000 VND, refund 90.000 VND. API tạo
+  refund `REFUND_PENDING`; BOM xác nhận qua endpoint hiện có, lịch sử rental thấy
+  `REFUNDED`. Rental CLOSED/closedAt, Unit AVAILABLE, appointment/task COMPLETED.
+- Các kiểm tra nhánh lỗi/idempotency cũng đạt: bắt đầu task trước slot trả 409,
+  cập nhật catalog bằng policyVersion cũ trả 409, lặp PATCH hoàn trả không tạo
+  thêm refund. SePay chỉ được giả lập cục bộ; không xác minh giao dịch chuyển tiền
+  thật hoặc báo cáo lên Postman Cloud.
