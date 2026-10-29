@@ -35,6 +35,7 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
     return <ErrorState message={M.notFoundOrForbidden} onRetry={() => query.refetch()} />;
 
   const r = query.data;
+  const bookingQuery = r.bookingId ? `bookingId=${encodeURIComponent(r.bookingId)}&` : "";
 
   return (
     <div className="space-y-6">
@@ -43,7 +44,7 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
         <OperationalBackLink href="/customer/storage">{M.backToStorage}</OperationalBackLink>
         <div className="flex flex-wrap items-center gap-2">
           <Link
-            href={`/customer/support/new?bookingId=${encodeURIComponent(r.bookingId)}`}
+            href={`/customer/support/new${r.bookingId ? `?bookingId=${encodeURIComponent(r.bookingId)}` : ""}`}
             className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 hover:text-slate-900"
           >
             <HelpCircle className="size-3.5 text-primary" />
@@ -52,7 +53,7 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
 
           {r.status === "ACTIVE" && (
             <Link
-              href={`/customer/support/new?bookingId=${encodeURIComponent(r.bookingId)}&category=UNIT&subject=${encodeURIComponent(`Yêu cầu trả kho - ${r.bookingCode}`)}`}
+              href={`/customer/support/new?${bookingQuery}category=UNIT&subject=${encodeURIComponent(`Yêu cầu trả kho - ${r.bookingCode}`)}`}
               className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-primary-dark"
             >
               <RotateCcw className="size-3.5" />
@@ -154,7 +155,7 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
 
             {r.status === "ACTIVE" && (
               <Link
-                href={`/customer/support/new?bookingId=${encodeURIComponent(r.bookingId)}&category=UNIT&subject=${encodeURIComponent(`Yêu cầu trả kho - ${r.bookingCode}`)}`}
+                href={`/customer/support/new?${bookingQuery}category=UNIT&subject=${encodeURIComponent(`Yêu cầu trả kho - ${r.bookingCode}`)}`}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-[#165f4d] px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#0f493b]"
               >
                 <RotateCcw size={13} />

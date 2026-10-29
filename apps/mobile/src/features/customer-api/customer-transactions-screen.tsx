@@ -74,7 +74,11 @@ export function CustomerTransactionsScreen({
             secondary
             label={M.paymentSupport}
             onPress={() =>
-              go({ screen: "support-new", bookingId: rental.bookingId, paymentId: payment.id })
+              go({
+                screen: "support-new",
+                bookingId: rental.bookingId ?? undefined,
+                paymentId: payment.id,
+              })
             }
           />
         </Card>
