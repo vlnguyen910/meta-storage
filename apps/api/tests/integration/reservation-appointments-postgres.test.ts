@@ -20,6 +20,7 @@ import {
 } from "@metastorage/contracts";
 import {
   accounts,
+  and,
   appointments,
   bookings,
   capacityAllocations,
@@ -31,9 +32,12 @@ import {
   facilityTasks,
   inArray,
   inspections,
+  isNull,
   notificationOutbox,
+  or,
   paymentProviderEvents,
   payments,
+  policyViolationFees,
   RentalStatus,
   rentals,
   reservations,
@@ -121,6 +125,7 @@ async function fixture() {
     outsider: randomUUID(),
     manager: randomUUID(),
     staff: randomUUID(),
+    businessOps: randomUUID(),
     facility: randomUUID(),
     type: randomUUID(),
     unit: randomUUID(),
@@ -154,6 +159,13 @@ async function fixture() {
       name: "Staff",
       status: "ACTIVE",
       role: UserRole.FACILITY_STAFF,
+    },
+    {
+      id: id.businessOps,
+      email: `${id.businessOps}@example.test`,
+      name: "Business Operations",
+      status: "ACTIVE",
+      role: UserRole.BUSINESS_OPERATIONS_MANAGER,
     },
   ]);
   await db
@@ -244,6 +256,24 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
   afterEach(() => setSystemTime());
   afterAll(async () => {
     for (const f of fixtures) {
+      const inspectionRows = await db
+        .select({ id: inspections.id })
+        .from(inspections)
+        .where(eq(inspections.storageUnitId, f.id.unit));
+      await db.delete(policyViolationFees).where(
+        or(
+          inspectionRows.length
+            ? inArray(
+                policyViolationFees.referenceId,
+                inspectionRows.map((row) => row.id),
+              )
+            : undefined,
+          and(
+            isNull(policyViolationFees.referenceId),
+            eq(policyViolationFees.violationCode, "RETURN_CLEANING"),
+          ),
+        ),
+      );
       const records = await db
         .select({ id: reservations.id })
         .from(reservations)
@@ -288,17 +318,25 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
       await db.delete(checkInSlots).where(eq(checkInSlots.id, f.id.slot));
       await db
         .delete(users)
-        .where(inArray(users.id, [f.id.customer, f.id.outsider, f.id.manager, f.id.staff]));
+        .where(
+          inArray(users.id, [
+            f.id.customer,
+            f.id.outsider,
+            f.id.manager,
+            f.id.staff,
+            f.id.businessOps,
+          ]),
+        );
     }
   });
 
   test.skipIf(process.env.RUN_POSTMAN_FLOW !== "1")(
-    "Postman CLI drives real authenticated customer to staff check-in APIs",
+    "Postman CLI drives authenticated customer through check-in and return APIs",
     async () => {
       const f = await fixture();
       const password = randomUUID();
       const hashed = await hashPassword(password);
-      for (const id of [f.id.customer, f.id.manager, f.id.staff]) {
+      for (const id of [f.id.customer, f.id.manager, f.id.staff, f.id.businessOps]) {
         await db.update(users).set({ emailVerified: true }).where(eq(users.id, id));
         await db.insert(accounts).values({
           id: randomUUID(),
@@ -338,6 +376,7 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
         customerEmail: `${f.id.customer}@example.test`,
         managerEmail: `${f.id.manager}@example.test`,
         staffEmail: `${f.id.staff}@example.test`,
+        businessOpsEmail: `${f.id.businessOps}@example.test`,
         customerId: f.id.customer,
         facilityId: f.id.facility,
         unitTypeId: f.id.type,
@@ -345,6 +384,10 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
         slotId: f.id.slot,
         staffId: f.id.staff,
         date: f.date,
+        returnDate: localDate(
+          new Date(new Date(`${f.date}T12:00:00+07:00`).getTime() + 86400000),
+          "Asia/Ho_Chi_Minh",
+        ),
         sepaySecret: process.env.SEPAY_SECRET_KEY,
       };
       await writeFile(
@@ -355,8 +398,9 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
         }),
       );
       try {
-        for (const folder of ["Reserve", "CheckIn"]) {
+        for (const folder of ["Reserve", "CheckIn", "ReturnSchedule", "Return"]) {
           if (folder === "CheckIn") setSystemTime(new Date(`${f.date}T09:15:00+07:00`));
+          if (folder === "Return") setSystemTime(new Date(`${values.returnDate}T09:15:00+07:00`));
           const child = Bun.spawn(
             [
               "postman",
@@ -408,12 +452,83 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
               }),
             );
           }
+          if (folder === "CheckIn") {
+            const [rental] = await db
+              .select()
+              .from(rentals)
+              .where(eq(rentals.storageUnitId, f.id.unit));
+            if (!rental) throw new Error("Rental was not created by check-in");
+            const [reservation] = await db
+              .select()
+              .from(reservations)
+              .where(eq(reservations.id, rental.reservationId ?? ""));
+            const [appointment] = await db
+              .select()
+              .from(appointments)
+              .where(eq(appointments.reservationId, reservation?.id ?? ""));
+            const [task] = appointment
+              ? await db
+                  .select()
+                  .from(facilityTasks)
+                  .where(eq(facilityTasks.referenceId, appointment.id))
+              : [];
+            if (!reservation || !appointment || !task)
+              throw new Error("Check-in API context was not persisted");
+            const returnDate = localDate(
+              new Date(new Date(`${f.date}T12:00:00+07:00`).getTime() + 86400000),
+              "Asia/Ho_Chi_Minh",
+            );
+            await writeFile(
+              environment,
+              JSON.stringify({
+                name: "Isolated workflow test",
+                values: Object.entries({
+                  ...values,
+                  reservationId: reservation.id,
+                  appointmentId: appointment.id,
+                  taskId: task.id,
+                  rentalId: rental.id,
+                  returnDate,
+                }).map(([key, value]) => ({ key, value, enabled: true })),
+              }),
+            );
+          }
+          if (folder === "ReturnSchedule") {
+            const [rental] = await db
+              .select()
+              .from(rentals)
+              .where(eq(rentals.storageUnitId, f.id.unit));
+            if (!rental) throw new Error("Rental is unavailable for return scheduling");
+            const [appointment] = await db
+              .select()
+              .from(appointments)
+              .where(eq(appointments.rentalId, rental.id));
+            if (!appointment) throw new Error("Return appointment was not created");
+            await writeFile(
+              environment,
+              JSON.stringify({
+                name: "Isolated workflow test",
+                values: Object.entries({
+                  ...values,
+                  reservationId: rental.reservationId,
+                  rentalId: rental.id,
+                  returnAppointmentId: appointment.id,
+                }).map(([key, value]) => ({ key, value, enabled: true })),
+              }),
+            );
+          }
         }
-        const active = await db.select().from(rentals).where(eq(rentals.storageUnitId, f.id.unit));
-        expect(active).toHaveLength(1);
-        expect(active[0]?.reservationId).toBeTruthy();
-        const rental = active[0];
+        const closed = await db.select().from(rentals).where(eq(rentals.storageUnitId, f.id.unit));
+        expect(closed).toHaveLength(1);
+        expect(closed[0]?.status).toBe(RentalStatus.CLOSED);
+        expect(closed[0]?.closedAt).toBeTruthy();
+        const rental = closed[0];
         if (!rental?.reservationId) throw new Error("Reservation rental was not created");
+        const [unit] = await db.select().from(storageUnits).where(eq(storageUnits.id, f.id.unit));
+        expect(unit?.status).toBe("AVAILABLE");
+        const [refund] = await db.select().from(payments).where(eq(payments.rentalId, rental.id));
+        expect(refund).toMatchObject({ type: "DEPOSIT_REFUND", status: "REFUNDED" });
+        expect(refund?.totalAmount).toBe("90000.00");
         const report = await new ReportsRepository(db).rentalReport(f.manager, {
           facilityId: f.id.facility,
           limit: 20,

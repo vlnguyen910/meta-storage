@@ -59,11 +59,6 @@ export class InspectionsRepository {
     return task;
   }
 
-  async findExistingByTask(taskId: string) {
-    const [row] = await this.db.select().from(inspections).where(eq(inspections.taskId, taskId));
-    return row;
-  }
-
   async find(id: string): Promise<InspectionRow | undefined> {
     const [row] = await this.db
       .select({
@@ -86,12 +81,17 @@ export class InspectionsRepository {
       : undefined;
   }
 
-  async policyCatalog(executor: Database | TaskTransaction = this.db) {
-    const items = await executor
+  private policyRows(executor: Database | TaskTransaction, lock = false) {
+    const query = executor
       .select()
       .from(policyViolationFees)
       .where(isNull(policyViolationFees.referenceId))
       .orderBy(policyViolationFees.violationCode);
+    return lock ? query.for("share") : query;
+  }
+
+  async policyCatalog(executor: Database | TaskTransaction = this.db) {
+    const items = await this.policyRows(executor);
     return {
       version: items.reduce((version, item) => Math.max(version, item.policyVersion), 0),
       items: items.map(({ violationCode: code, violationName: name, amount, isActive }) => ({
@@ -144,12 +144,7 @@ export class InspectionsRepository {
 
   async activePolicyFees(tx: TaskTransaction) {
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext('policy_violation_fee_catalog'))`);
-    const rows = await tx
-      .select()
-      .from(policyViolationFees)
-      .where(isNull(policyViolationFees.referenceId))
-      .orderBy(policyViolationFees.violationCode)
-      .for("share");
+    const rows = await this.policyRows(tx, true);
     return {
       version: rows.reduce((version, row) => Math.max(version, row.policyVersion), 0),
       rows: rows.filter((row) => row.isActive),
@@ -377,8 +372,8 @@ export class InspectionsRepository {
     return tx.select().from(inspections).where(eq(inspections.id, id)).for("update");
   }
 
-  findByTask(tx: TaskTransaction, taskId: string) {
-    return tx.select().from(inspections).where(eq(inspections.taskId, taskId));
+  findByTask(taskId: string, executor: Database | TaskTransaction = this.db) {
+    return executor.select().from(inspections).where(eq(inspections.taskId, taskId));
   }
 
   create(tx: TaskTransaction, input: typeof inspections.$inferInsert) {
