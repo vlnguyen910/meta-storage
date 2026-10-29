@@ -6,6 +6,7 @@ export function InspectionChecklist({
   results,
   disabled,
   onChange,
+  onNoteChange,
 }: InspectionChecklistProps) {
   return (
     <div className="space-y-3">
@@ -36,7 +37,21 @@ export function InspectionChecklist({
               ))}
             </div>
             {value?.result === "FAIL" && (
-              <p className="mt-2 text-sm text-[#93000a]">{FLOW.checklistFailure}</p>
+              <div className="mt-3 space-y-2">
+                <p className="text-sm text-[#93000a]">{FLOW.checklistFailure}</p>
+                {onNoteChange && (
+                  <label className="block text-xs font-semibold">
+                    {FLOW.checklistFailureNote}
+                    <textarea
+                      className="mt-1 min-h-20 w-full rounded-lg border border-line bg-white p-2 text-sm text-ink focus-visible:outline-2 focus-visible:outline-primary"
+                      maxLength={1000}
+                      value={value.note ?? ""}
+                      disabled={disabled}
+                      onChange={(event) => onNoteChange(item.code, event.target.value)}
+                    />
+                  </label>
+                )}
+              </div>
             )}
           </fieldset>
         ) : (

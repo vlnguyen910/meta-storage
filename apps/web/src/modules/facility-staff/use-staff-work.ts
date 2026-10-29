@@ -47,25 +47,43 @@ export function useStaffWork(facilityId: string, date: string, kind: StaffWorkFi
               (item) =>
                 item.assignedStaffId === actorId &&
                 item.facilityId === facilityId &&
+                (kind === "RETURN"
+                  ? item.appointmentType === "CHECK_OUT"
+                  : kind === "CHECK_IN"
+                    ? item.appointmentType === "CHECK_IN"
+                    : true) &&
                 (date === "all" || item.scheduledDate === date),
             )
-            .map((item): import("./staff-work.types").StaffWorkItem => ({
-              id: `appointment:${item.id}`,
-              kind: item.appointmentType === "CHECK_IN" ? "CHECK_IN" : "TASK",
-              group:
-                item.status === "COMPLETED"
-                  ? "done"
-                  : ["CANCELLED", "NO_SHOW"].includes(item.status)
-                    ? "closed"
-                    : "pending",
-              title: item.customerName ?? item.customerId,
-              typeLabel: APPOINTMENTS_UI.types[item.appointmentType] ?? item.appointmentType,
-              statusLabel: APPOINTMENTS_UI.statuses[item.status] ?? item.status,
-              reference: item.reservationId ?? item.id,
-              startsAt: `${item.scheduledDate}T${item.slotStart ?? "00:00:00"}+07:00`,
-              href: `/staff/check-in?appointmentId=${item.id}`,
-              action: M.openTask,
-            }))
+            .map((item): import("./staff-work.types").StaffWorkItem => {
+              const assignedTask = (tasks.data ?? []).find(
+                (task) => task.referenceType === "APPOINTMENT" && task.referenceId === item.id,
+              );
+              return {
+                id: `appointment:${item.id}`,
+                kind:
+                  item.appointmentType === "CHECK_IN"
+                    ? "CHECK_IN"
+                    : item.appointmentType === "CHECK_OUT"
+                      ? "RETURN"
+                      : "TASK",
+                group:
+                  item.status === "COMPLETED"
+                    ? "done"
+                    : ["CANCELLED", "NO_SHOW"].includes(item.status)
+                      ? "closed"
+                      : "pending",
+                title: item.customerName ?? item.customerId,
+                typeLabel: APPOINTMENTS_UI.types[item.appointmentType] ?? item.appointmentType,
+                statusLabel: APPOINTMENTS_UI.statuses[item.status] ?? item.status,
+                reference: item.reservationId ?? item.id,
+                startsAt: `${item.scheduledDate}T${item.slotStart ?? "00:00:00"}+07:00`,
+                href:
+                  item.appointmentType === "CHECK_OUT" && assignedTask
+                    ? `/staff/tasks/${assignedTask.id}`
+                    : `/staff/check-in?appointmentId=${item.id}`,
+                action: M.openTask,
+              };
+            })
         : []),
       ...(kind !== "CHECK_IN" && !isMockMode
         ? (tasks.data ?? [])
