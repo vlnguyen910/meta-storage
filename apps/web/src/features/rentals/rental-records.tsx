@@ -100,6 +100,9 @@ export function PaymentRecords({ items }: { items: RentalPaymentItem[] }) {
                   <span className="block font-mono text-xs font-bold text-slate-800">
                     {item.paymentCode}
                   </span>
+                  <span className="mt-1 inline-flex rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-semibold text-primary">
+                    {item.type === "DEPOSIT_REFUND" ? F3.paymentDepositRefund : F3.paymentCharge}
+                  </span>
                   <span className="mt-0.5 flex items-center gap-1.5 text-[11px] text-slate-400">
                     <Clock size={12} className="text-slate-400" />
                     <span>{new Date(item.paidAt ?? item.createdAt).toLocaleString("vi-VN")}</span>

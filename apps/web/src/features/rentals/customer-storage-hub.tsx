@@ -330,6 +330,11 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
                         <span className="text-xs text-slate-700 font-medium">
                           {formatDate(r.startAt)} – {formatDate(r.endAt)}
                         </span>
+                        {r.closedAt && (
+                          <span className="mt-1 block text-xs font-medium text-emerald-800">
+                            {M.actualReturnDate}: {formatDate(r.closedAt)}
+                          </span>
+                        )}
                       </td>
                       <td>
                         <span

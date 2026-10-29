@@ -17,6 +17,7 @@ export const CUSTOMER_STORAGE_HUB_MESSAGES = {
     ACTIVE: "Đang thuê",
     CLOSED: "Đã đóng",
   } as Record<string, string>,
+  actualReturnDate: "Trả thực tế",
   rentalStatusClasses: {
     ACTIVE: "border-emerald-200 bg-emerald-50 text-emerald-800",
     CLOSED: "border-slate-200 bg-slate-100 text-slate-700",
