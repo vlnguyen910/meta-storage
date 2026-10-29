@@ -82,6 +82,7 @@ export type SepayCheckoutSession = {
 };
 
 export type SepayCreateCheckoutInput = {
+  rentalId?: string;
   reservationId?: string;
   renewalId?: string;
   paymentCode: string;

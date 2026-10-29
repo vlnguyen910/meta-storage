@@ -177,8 +177,26 @@ export class RentalsService {
   async getCustomerRental(rentalId: string, userId: string) {
     const row = await this.repository.findCustomerRentalById(rentalId, userId);
     if (!row) throw new NotFoundError(M.rentalNotFound);
+    const renewalWindow = await this.repository.db.transaction(async (tx) => {
+      const setting = await new SystemSettingsService(
+        new SystemSettingsRepository(this.repository.db),
+      ).getRenewalNoticeSetting(tx);
+      const cutoffAt = setting
+        ? new Date(row.rental.endAt.getTime() - Number(setting.value) * 86_400_000)
+        : null;
+      const now = new Date();
+      const reason = !cutoffAt
+        ? RENTAL_RENEWAL_MESSAGES.unavailable
+        : row.rental.status !== "ACTIVE" || now < row.rental.startAt || now >= cutoffAt
+          ? RENTAL_RENEWAL_MESSAGES.requestWindowClosed
+          : (await this.repository.hasOpenReturn(tx, rentalId))
+            ? RENTAL_RENEWAL_MESSAGES.returnOpen
+            : null;
+      return { cutoffAt: cutoffAt?.toISOString() ?? null, canRequest: reason === null, reason };
+    });
     return {
       ...toCustomerRentalItem(row),
+      renewalWindow,
       customer: {
         userId: row.rental.userId,
         name: row.customer.name,
@@ -380,6 +398,7 @@ export class RentalsService {
     const session = gateway.createCheckoutSession({
       paymentId: prepared.payment.id,
       renewalId,
+      rentalId,
       paymentCode,
       amount: Number(prepared.payment.totalAmount),
       currency: prepared.payment.currency,

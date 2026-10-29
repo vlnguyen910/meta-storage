@@ -93,6 +93,13 @@ export const RentalListItemSchema = z.object({
 export type RentalListItem = z.infer<typeof RentalListItemSchema>;
 
 export const RentalDetailSchema = RentalListItemSchema.extend({
+  renewalWindow: z
+    .object({
+      cutoffAt: z.string().datetime().nullable(),
+      canRequest: z.boolean(),
+      reason: z.string().nullable(),
+    })
+    .optional(),
   customer: z.object({
     userId: z.string().uuid(),
     name: z.string().nullable(),

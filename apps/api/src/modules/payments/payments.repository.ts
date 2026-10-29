@@ -30,6 +30,14 @@ import type { PaymentStatusAccess, VerifiedPaymentEvent } from "./payments.types
 export class PaymentsRepository {
   constructor(private readonly db: Database) {}
 
+  async findRenewalRentalId(renewalId: string) {
+    const [row] = await this.db
+      .select({ rentalId: rentalRenewals.rentalId })
+      .from(rentalRenewals)
+      .where(eq(rentalRenewals.id, renewalId));
+    return row?.rentalId;
+  }
+
   async recordEventInTransaction(
     tx: Parameters<Parameters<Database["transaction"]>[0]>[0],
     event: VerifiedPaymentEvent,
