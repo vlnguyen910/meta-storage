@@ -1,4 +1,3 @@
-import { ReservationStatus as ReservationStatusEnum } from "@metastorage/database/schema/reservations";
 import { z } from "zod";
 import type { Facility } from "./facilities";
 import type { Payment } from "./payments";
@@ -8,8 +7,15 @@ export type ReservationPaymentSession = Omit<BookingPaymentSession, "bookingId">
   reservationId: string;
 };
 
-export { ReservationStatusEnum as ReservationStatus };
-export const ReservationStatusSchema = z.enum(ReservationStatusEnum);
+export enum ReservationStatus {
+  DRAFT = "DRAFT",
+  CONFIRMED = "CONFIRMED",
+  CANCELLED = "CANCELLED",
+  EXPIRED = "EXPIRED",
+  CHECKED_IN = "CHECKED_IN",
+  NO_SHOW = "NO_SHOW",
+}
+export const ReservationStatusSchema = z.enum(ReservationStatus);
 
 export const CreateReservationSchema = z.object({
   facilityId: z.uuid(),
@@ -23,7 +29,7 @@ export const ReservationQuerySchema = z.object({
   status: ReservationStatusSchema.optional(),
 });
 export const UpdateReservationSchema = z.object({
-  status: z.literal(ReservationStatusEnum.CANCELLED),
+  status: z.literal(ReservationStatus.CANCELLED),
 });
 export type CreateReservationInput = z.infer<typeof CreateReservationSchema>;
 export type ReservationQuery = z.infer<typeof ReservationQuerySchema>;
@@ -69,7 +75,7 @@ export interface Reservation {
   startDate: string;
   endDate: string;
   durationMonths: number;
-  status: ReservationStatusEnum;
+  status: ReservationStatus;
   monthlyPrice: number;
   depositAmount: number;
   totalEstimated: number;
@@ -115,7 +121,22 @@ export interface ConfirmReservationInput {
 
 // Dates are serialized by the API; database records retain Date internally.
 export type ReservationRecordDto = Omit<
-  import("@metastorage/database/schema/reservations").ReservationRecord,
+  {
+    id: string;
+    customerId: string;
+    facilityId: string;
+    unitTypeId: string;
+    requestedMonths: number;
+    rentalStartAt: Date;
+    rentalEndAt: Date;
+    monthlyRateSnapshot: number;
+    rentalFeeAmount: number;
+    depositAmount: number;
+    totalAmount: number;
+    status: ReservationStatus;
+    createdAt: Date;
+    updatedAt: Date;
+  },
   "rentalStartAt" | "rentalEndAt" | "createdAt" | "updatedAt"
 > & {
   facility?: { id: string; name: string; address: string };
