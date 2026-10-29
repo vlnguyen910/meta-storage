@@ -1,9 +1,9 @@
 export const MANAGER_WORKSPACE = {
   coordination: "Điều phối công việc",
   coordinationHint: "Chuẩn bị booking, giao việc và duyệt báo cáo của nhân viên trong cơ sở.",
-  booking: "Booking & Bàn giao",
+  booking: "Lịch hẹn & Điều phối",
   bookingHint: (facilityName: string) =>
-    `Theo dõi lịch tiếp đón, chuẩn bị và bàn giao kho tại ${facilityName}.`,
+    `Theo dõi lịch nhận kho, trả kho và phân công nhân viên tại ${facilityName}.`,
   tasks: "Công việc cơ sở",
   reviews: "Báo cáo chờ duyệt",
   reviewsHint: "Xem báo cáo nhân viên đã gửi và chấp nhận trước khi hoàn tất công việc.",

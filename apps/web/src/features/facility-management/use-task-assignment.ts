@@ -13,7 +13,7 @@ import { useCreateTask, useTaskStaff, useTaskUnitOptions } from "./hooks";
 import { F5 } from "./management.messages";
 import { TASK_ASSIGNMENT_MESSAGES as M } from "./task-assignment.messages";
 
-export function useTaskAssignment(facilityId: string) {
+export function useTaskAssignment(facilityId: string, onCreated?: () => void) {
   const create = useCreateTask();
   const form = useForm<CreateFacilityTaskInput>({
     resolver: zodResolver(CreateFacilityTaskSchema),
@@ -66,6 +66,7 @@ export function useTaskAssignment(facilityId: string) {
       {
         onSuccess: () => {
           form.reset({ ...input, referenceId: "", description: "" });
+          onCreated?.();
         },
       },
     );

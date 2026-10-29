@@ -21,6 +21,7 @@ export type TaskWriteResult =
         | "STAFF_UNAVAILABLE"
         | "CONTEXT_MISMATCH"
         | "INVALID_TASK_STATE"
+        | "INVALID_STATUS_TRANSITION"
         | "TASK_ACCESS_DENIED"
         | "TASK_TYPE_LOCKED";
     };

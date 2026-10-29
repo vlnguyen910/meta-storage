@@ -197,13 +197,19 @@ export class FacilityTasksService {
           appointment.slotId,
           appointment.scheduledDate,
         ));
+      if (appointment?.status !== "CONFIRMED") throw new ConflictError(m.appointmentNotConfirmed);
+      if (!slot) throw new ConflictError(m.appointmentSlotUnavailable);
+      const now = new Date();
+      const developmentMode = isDevelopmentEnvironment();
+      if (!developmentMode && now < slot.startsAt) throw new ConflictError(m.appointmentNotStarted);
       if (
-        appointment?.status !== "CONFIRMED" ||
-        !slot ||
-        (!(isDevelopmentEnvironment() && appointment.appointmentType === "CHECK_IN") &&
-          (new Date() < slot.startsAt || new Date() >= slot.endsAt))
+        !developmentMode &&
+        now >=
+          (appointment.appointmentType === "CHECK_OUT"
+            ? new Date(`${appointment.scheduledDate}T23:59:59.999+07:00`)
+            : slot.endsAt)
       )
-        throw new ConflictError(m.taskNotReady);
+        throw new ConflictError(m.appointmentWindowClosed);
     }
     if ("status" in input) {
       if (input.status === FacilityTaskStatus.CANCELLED) this.assertManager(actor);
@@ -250,6 +256,8 @@ export class FacilityTasksService {
         throw new BadRequestError(m.contextMismatch);
       case "INVALID_TASK_STATE":
         throw new ConflictError(m.taskNotReady);
+      case "INVALID_STATUS_TRANSITION":
+        throw new ConflictError(m.taskStatusTransitionInvalid);
       case "TASK_ACCESS_DENIED":
         throw new ForbiddenError(m.accessDenied);
       case "TASK_TYPE_LOCKED":

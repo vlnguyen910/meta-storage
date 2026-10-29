@@ -15,4 +15,6 @@ export const MANAGER_BOOKING_ROW = {
   filters: "Lọc tiến trình xử lý",
   progress: "Tiến trình",
   payment: "Thanh toán",
+  details: "Chi tiết lịch",
+  relatedLoadError: "Không tải được thông tin hồ sơ thuê.",
 } as const;

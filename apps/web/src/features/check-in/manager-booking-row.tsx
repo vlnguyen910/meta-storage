@@ -13,6 +13,7 @@ export function ManagerBookingRow({
   state,
   canAssign,
   onAssignStaff,
+  onViewDetails,
 }: ManagerBookingRowProps) {
   const returnFlow = b.appointmentType === "CHECK_OUT";
   const url =
@@ -87,6 +88,9 @@ export function ManagerBookingRow({
         </p>
       )}
       <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 bg-slate-50/50 px-5 py-3">
+        <Button variant="outline" onClick={onViewDetails} className="min-h-10 text-sm">
+          {M.details}
+        </Button>
         {canAssign && b.assignedUnit && !returnFlow && (
           <Link
             href={returnFlow ? url : `${url}&view=assign&bookingId=${b.id}`}

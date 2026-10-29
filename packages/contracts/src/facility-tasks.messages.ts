@@ -3,6 +3,13 @@ export const FACILITY_TASK_MESSAGES = {
     "Update appointment assignment and completion through the appointment workflow.",
   taskCancelled: "Đã hủy công việc.",
   taskNotReady: "Công việc chưa ở trạng thái phù hợp để thực hiện thao tác này.",
+  taskStatusTransitionInvalid:
+    "Không thể đổi trạng thái công việc: chỉ có thể bắt đầu khi task ĐÃ GIAO hoặc hoàn tất khi task ĐANG THỰC HIỆN.",
+  appointmentNotConfirmed: "Không thể bắt đầu kiểm tra trả kho vì lịch hẹn chưa được xác nhận.",
+  appointmentSlotUnavailable: "Không thể bắt đầu kiểm tra trả kho vì không tìm thấy khung giờ hẹn.",
+  appointmentNotStarted: "Chưa đến giờ hẹn nên chưa thể bắt đầu kiểm tra trả kho.",
+  appointmentWindowClosed:
+    "Đã hết thời gian tiếp nhận của lịch hẹn nên không thể bắt đầu kiểm tra trả kho.",
   handoverTaskAutomatic:
     "Công việc check-in và bàn giao được tạo khi FM phân công nhân viên cho booking.",
   accessDenied: "Bạn không có quyền truy cập công việc này.",

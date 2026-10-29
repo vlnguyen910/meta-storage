@@ -11,17 +11,27 @@ import { ManagementField, panelClass, textareaClass } from "./management-ui";
 import { TASK_ASSIGNMENT_MESSAGES as M } from "./task-assignment.messages";
 import { useTaskAssignment } from "./use-task-assignment";
 
-export function TaskAssignmentForm({ facilityId }: { facilityId: string }) {
-  const work = useTaskAssignment(facilityId);
+export function TaskAssignmentForm({
+  facilityId,
+  hideHeading = false,
+  onCreated,
+}: {
+  facilityId: string;
+  hideHeading?: boolean;
+  onCreated?: () => void;
+}) {
+  const work = useTaskAssignment(facilityId, onCreated);
   const errors = work.form.formState.errors;
   const referenceLabel = M.unit;
   const loading = work.referenceQuery.isPending;
   return (
     <form onSubmit={work.submit} className={`${panelClass} grid gap-5`}>
-      <header>
-        <h2 className="text-lg font-bold text-slate-900">{M.title}</h2>
-        <p className="mt-1 text-sm text-slate-600">{M.hint}</p>
-      </header>
+      {!hideHeading && (
+        <header>
+          <h2 className="text-lg font-bold text-slate-900">{M.title}</h2>
+          <p className="mt-1 text-sm text-slate-600">{M.hint}</p>
+        </header>
+      )}
       <fieldset disabled={work.create.isPending} className="grid min-w-0 gap-4 sm:grid-cols-2">
         <ManagementField label={F5.staff} error={errors.assignedStaffId && M.staffRequired}>
           <DropdownSelect
