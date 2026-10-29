@@ -1,22 +1,30 @@
-import {
-  APPOINTMENT_STATUSES as AppointmentStatusEnum,
-  APPOINTMENT_TYPES as AppointmentTypeEnum,
-} from "@metastorage/database/schema/appointments";
 import { z } from "zod";
 import type { ReservationRecordDto } from "./reservations";
 
-export { AppointmentStatusEnum as APPOINTMENT_STATUSES, AppointmentTypeEnum as APPOINTMENT_TYPES };
+export enum APPOINTMENT_TYPES {
+  CHECK_IN = "CHECK_IN",
+  CHECK_OUT = "CHECK_OUT",
+  SUPPORT = "SUPPORT",
+}
+
+export enum APPOINTMENT_STATUSES {
+  SCHEDULED = "SCHEDULED",
+  CONFIRMED = "CONFIRMED",
+  COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED",
+  NO_SHOW = "NO_SHOW",
+}
 
 export const AppointmentIdSchema = z.object({ id: z.uuid() });
 export const AppointmentQuerySchema = z.object({
   facilityId: z.uuid().optional(),
-  appointmentType: z.enum(AppointmentTypeEnum).optional(),
-  status: z.enum(AppointmentStatusEnum).optional(),
+  appointmentType: z.enum(APPOINTMENT_TYPES).optional(),
+  status: z.enum(APPOINTMENT_STATUSES).optional(),
 });
 export const CreateAppointmentSchema = z
   .object({
     facilityId: z.uuid().optional(),
-    appointmentType: z.enum(AppointmentTypeEnum),
+    appointmentType: z.enum(APPOINTMENT_TYPES),
     scheduledDate: z.iso.date(),
     slotId: z.uuid(),
     contactPhone: z.string().max(20).optional(),
@@ -47,7 +55,7 @@ export const CreateAppointmentSchema = z
       });
   });
 export const UpdateAppointmentSchema = z.object({
-  status: z.enum(AppointmentStatusEnum).optional(),
+  status: z.enum(APPOINTMENT_STATUSES).optional(),
   assignedStaffId: z.uuid().optional(),
   physicalUnitId: z.uuid().optional(),
   assignmentReason: z.string().max(500).optional(),
@@ -57,10 +65,25 @@ export type AppointmentQuery = z.infer<typeof AppointmentQuerySchema>;
 export type CreateAppointmentInput = z.infer<typeof CreateAppointmentSchema>;
 export type UpdateAppointmentInput = z.infer<typeof UpdateAppointmentSchema>;
 
-export type AppointmentRecordDto = Omit<
-  import("@metastorage/database/schema/appointments").AppointmentRecord,
-  "createdAt" | "updatedAt"
-> & {
+export type AppointmentRecordDto = {
+  id: string;
+  facilityId: string;
+  appointmentType: APPOINTMENT_TYPES;
+  scheduledDate: string;
+  slotId: string;
+  status: APPOINTMENT_STATUSES;
+  customerId: string;
+  contactPhone: string | null;
+  reservationId: string | null;
+  rentalId: string | null;
+  supportTicketId: string | null;
+  assignedStaffId: string | null;
+  createdBy: string;
+  notes: string | null;
+  physicalUnitId?: string | null;
+  assignmentReason?: string | null;
+  createdAt: string;
+  updatedAt: string;
   customerName?: string | null;
   customerEmail?: string | null;
   assignedStaffName?: string | null;
@@ -83,6 +106,4 @@ export type AppointmentRecordDto = Omit<
   handoverStage?: "WAITING_CUSTOMER" | "INSPECTING" | "READY_HANDOVER" | "HANDED_OVER";
   paidAt?: string | null;
   paymentStatus?: string | null;
-  createdAt: string;
-  updatedAt: string;
 };

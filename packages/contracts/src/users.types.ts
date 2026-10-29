@@ -1,4 +1,4 @@
-import type { UserRole, UserStatus } from "@metastorage/database/schema/user-enums";
+import type { UserRole, UserStatus } from "./users";
 
 export interface User {
   id: string;

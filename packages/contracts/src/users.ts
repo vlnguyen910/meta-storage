@@ -1,6 +1,23 @@
-import { UserRole, UserStatus } from "@metastorage/database/schema/user-enums";
 import { z } from "zod";
 import { USER_INPUT_MESSAGES } from "./users.messages";
+
+export const UserRole = {
+  STORAGE_CUSTOMER: "CUSTOMER",
+  FACILITY_STAFF: "FACILITY_STAFF",
+  FACILITY_MANAGER: "FACILITY_MANAGER",
+  BUSINESS_OPERATIONS_MANAGER: "BUSINESS_OPERATION_MANAGER",
+  SYSTEM_ADMINISTRATOR: "SYSTEM_ADMIN",
+} as const;
+export type UserRole = (typeof UserRole)[keyof typeof UserRole];
+
+export const UserStatus = {
+  ACTIVE: "ACTIVE",
+  INACTIVE: "INACTIVE",
+} as const;
+export type UserStatus = (typeof UserStatus)[keyof typeof UserStatus];
+
+export const ROLES = Object.values(UserRole);
+export const USER_STATUS = Object.values(UserStatus);
 
 export const UserRoleSchema = z.enum(UserRole);
 export const BusinessUserRoleSchema = UserRoleSchema.exclude(["SYSTEM_ADMINISTRATOR"]);

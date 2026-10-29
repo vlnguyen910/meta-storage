@@ -1,5 +1,5 @@
-import { UserRole } from "@metastorage/database/schema/user-enums";
 import { z } from "zod";
+import { UserRole } from "./users";
 
 export enum FacilityStatus {
   ACTIVE = "ACTIVE",
