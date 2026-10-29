@@ -1,4 +1,4 @@
-export type StorageHubTab = "rentals" | "reservations";
+export type StorageHubTab = "rentals" | "reservations" | "appointments";
 export type StorageRentalView = "current" | "history";
 
 export interface CustomerStorageHubProps {

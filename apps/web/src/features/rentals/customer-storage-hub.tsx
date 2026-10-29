@@ -30,6 +30,7 @@ import { useMyRentals } from "@/features/rentals/hooks";
 import { useFlow3Identity } from "@/features/returns/use-flow3-identity";
 import { api } from "@/lib/api";
 import { formatDate, formatDateTime } from "@/lib/format";
+import { CustomerAppointmentsView } from "./customer-appointments-view";
 import { CUSTOMER_STORAGE_HUB_MESSAGES as M } from "./customer-storage-hub.messages";
 import type {
   CustomerStorageHubProps,
@@ -42,7 +43,9 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
   const activeTab: StorageHubTab =
-    tabParam === "reservations" || tabParam === "rentals" ? tabParam : defaultTab;
+    tabParam === "reservations" || tabParam === "appointments" || tabParam === "rentals"
+      ? tabParam
+      : defaultTab;
 
   // Rental state
   const [rentalView, setRentalView] = useState<StorageRentalView>("current");
@@ -174,6 +177,20 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
               {allRentals.length}
             </span>
           )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => switchTab("appointments")}
+          aria-current={activeTab === "appointments" ? "page" : undefined}
+          className={`flex items-center gap-2 border-b-2 px-4 py-2 text-xs font-bold transition-colors cursor-pointer ${
+            activeTab === "appointments"
+              ? "border-primary text-primary"
+              : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800"
+          }`}
+        >
+          <CalendarDays className="size-3.5" aria-hidden="true" />
+          <span>{M.tabAppointments}</span>
         </button>
 
         <button
@@ -553,6 +570,12 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
               </>
             )}
           </div>
+        </div>
+      )}
+
+      {activeTab === "appointments" && (
+        <div className="min-h-0 flex-1 overflow-y-auto pb-2">
+          <CustomerAppointmentsView />
         </div>
       )}
     </div>

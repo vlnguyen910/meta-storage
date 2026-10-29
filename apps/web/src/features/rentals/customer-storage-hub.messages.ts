@@ -5,6 +5,7 @@ export const CUSTOMER_STORAGE_HUB_MESSAGES = {
   newStorageAction: "Đặt kho mới",
   tabRentals: "Kho đang thuê",
   tabReservations: "Đơn đặt kho",
+  tabAppointments: "Lịch hẹn",
   searchPlaceholder: "Tìm mã đơn, tên kho, địa chỉ...",
   searchConfirm: "Tìm kiếm",
   resetFilters: "Đặt lại bộ lọc",

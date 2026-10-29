@@ -24,6 +24,15 @@ export function getMockDatabase(): MockDatabase {
   try {
     const parsed = JSON.parse(persisted) as MockDatabase;
     if (parsed.version === 4 && Array.isArray(parsed.bookings)) {
+      if (!Array.isArray(parsed.appointments)) {
+        const seed = createSeedDatabase();
+        parsed.appointments = seed.appointments;
+        if (!parsed.rentals.some((rental) => rental.id === seed.rentals[0]?.id)) {
+          const demoRental = seed.rentals[0];
+          if (demoRental) parsed.rentals.push(demoRental);
+        }
+        saveMockDatabase(parsed);
+      }
       if (parsed.demoScheduleRevision !== DEMO_BOOKING_SCHEDULE_REVISION) {
         applyDemoBookingSchedule(parsed);
         saveMockDatabase(parsed);
