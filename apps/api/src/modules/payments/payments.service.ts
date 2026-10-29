@@ -163,6 +163,9 @@ export class PaymentsService {
             expiresAt: hold?.expiresAt ?? payment.expiresAt ?? new Date(Date.now() + 10 * 60_000),
           })
         : undefined;
+    const rentalId = payment.renewalId
+      ? await this.repository.findRenewalRentalId(payment.renewalId)
+      : undefined;
     const checkoutSession =
       payment.status === "PENDING" &&
       this.sepayGateway &&
@@ -178,6 +181,7 @@ export class PaymentsService {
             bookingId: payment.bookingId ?? undefined,
             reservationId: payment.reservationId ?? undefined,
             renewalId: payment.renewalId ?? undefined,
+            rentalId,
             paymentId: payment.id,
           })
         : null;

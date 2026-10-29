@@ -154,7 +154,11 @@ export class SepayPaymentGateway {
     const checkoutUrl = this.pgClient.checkout.initCheckoutUrl();
     const webUrl = this.config.webUrl || "http://localhost:3000";
     const resultUrl = new URL(
-      input.reservationId ? "/customer/payments/result" : "/bookings/payment-result",
+      input.renewalId && input.rentalId
+        ? `/customer/storage/${input.rentalId}/renew`
+        : input.reservationId
+          ? "/customer/payments/result"
+          : "/bookings/payment-result",
       webUrl,
     ).toString();
     const reference = `paymentId=${input.paymentId}&${input.reservationId ? `reservationId=${input.reservationId}` : input.renewalId ? `renewalId=${input.renewalId}` : `bookingId=${input.bookingId}`}`;
