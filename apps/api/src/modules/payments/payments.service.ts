@@ -7,6 +7,7 @@ import type {
 import type { FastifyBaseLogger, FastifyInstance } from "fastify";
 import { AppError, NotFoundError, UnauthorizedError } from "../../common/errors/app-error";
 import { env } from "../../config/env";
+import { RentalRenewalsService } from "../rentals/rental-renewals.service";
 import { PAYMENT_MESSAGES } from "./payments.messages";
 import { PaymentsRepository } from "./payments.repository";
 import type { PaymentStatusCredentials } from "./payments.types";
@@ -27,6 +28,7 @@ export class PaymentsService {
     private readonly sepayGateway?: SepayPaymentGateway,
     private readonly logger?: Pick<FastifyBaseLogger, "warn">,
     private readonly reservationPayments?: ReservationPaymentsService,
+    private readonly rentalRenewals?: RentalRenewalsService,
   ) {}
 
   async listManualRefunds(query: ManualRefundQuery): Promise<ManualRefund[]> {
@@ -62,6 +64,8 @@ export class PaymentsService {
     if (!this.sepayGateway)
       throw new AppError(PAYMENT_MESSAGES.sepayUnavailable, 503, "PAYMENT_PROVIDER_UNAVAILABLE");
     const event = this.sepayGateway.verifyWebhook(headers, rawBody);
+    const renewalResult = await this.rentalRenewals?.processEvent(event);
+    if (renewalResult) return renewalResult;
     const reservationResult = await this.reservationPayments?.processEvent(event);
     if (reservationResult) return reservationResult;
     const existingEvent = await this.repository.findProviderEvent("sepay", event.providerEventId);
@@ -105,7 +109,8 @@ export class PaymentsService {
         paymentCode: requirePaymentCode(payment.paymentCode),
       });
       if (!event) return;
-      await this.reservationPayments?.processEvent(event);
+      const renewalResult = await this.rentalRenewals?.processEvent(event);
+      if (!renewalResult) await this.reservationPayments?.processEvent(event);
     } catch (error) {
       this.logger?.warn(
         {
@@ -161,7 +166,7 @@ export class PaymentsService {
     const checkoutSession =
       payment.status === "PENDING" &&
       this.sepayGateway &&
-      (payment.bookingId || payment.reservationId) &&
+      (payment.bookingId || payment.reservationId || payment.renewalId) &&
       hold
         ? this.sepayGateway.createCheckoutSession({
             paymentCode: requirePaymentCode(payment.paymentCode),
@@ -172,6 +177,7 @@ export class PaymentsService {
             ),
             bookingId: payment.bookingId ?? undefined,
             reservationId: payment.reservationId ?? undefined,
+            renewalId: payment.renewalId ?? undefined,
             paymentId: payment.id,
           })
         : null;
@@ -223,5 +229,6 @@ export function createPaymentsService(fastify: FastifyInstance): PaymentsService
     sepayGateway,
     fastify.log,
     createReservationPaymentsService(fastify.db, sepayGateway),
+    new RentalRenewalsService(fastify.db, sepayGateway),
   );
 }

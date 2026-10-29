@@ -13,12 +13,15 @@ import {
   type Database,
   desc,
   eq,
+  exists,
   facilities,
   gt,
   ilike,
   or,
   payments,
+  RentalRenewalStatus,
   RentalStatus,
+  rentalRenewals,
   rentals,
   reservations,
   sql,
@@ -42,6 +45,22 @@ export class RentalsRepository {
       .where(and(eq(rentals.id, id), eq(rentals.userId, customerId)))
       .for("update", { of: rentals });
     return row;
+  }
+  async hasPendingRenewalPayment(tx: TaskTransaction, rentalId: string) {
+    const [payment] = await tx
+      .select({ id: payments.id })
+      .from(rentalRenewals)
+      .innerJoin(payments, eq(payments.renewalId, rentalRenewals.id))
+      .where(
+        and(
+          eq(rentalRenewals.rentalId, rentalId),
+          eq(rentalRenewals.status, RentalRenewalStatus.PENDING_PAYMENT),
+          eq(payments.status, "PENDING"),
+          gt(payments.expiresAt, new Date()),
+        ),
+      )
+      .limit(1);
+    return Boolean(payment);
   }
 
   async findRentalByReservationId(tx: TaskTransaction, reservationId: string) {
@@ -191,6 +210,17 @@ export class RentalsRepository {
           eq(rentals.bookingId, payments.bookingId),
           eq(rentals.reservationId, payments.reservationId),
           eq(rentals.id, payments.rentalId),
+          exists(
+            this.db
+              .select({ id: rentalRenewals.id })
+              .from(rentalRenewals)
+              .where(
+                and(
+                  eq(rentalRenewals.id, payments.renewalId),
+                  eq(rentalRenewals.rentalId, rentals.id),
+                ),
+              ),
+          ),
         ),
       )
       .where(and(eq(rentals.id, rentalId), eq(rentals.userId, userId)))
@@ -209,6 +239,19 @@ export class RentalsRepository {
             bookingId ? eq(payments.bookingId, bookingId) : undefined,
             reservationId ? eq(payments.reservationId, reservationId) : undefined,
             rentalId ? eq(payments.rentalId, rentalId) : undefined,
+            rentalId
+              ? exists(
+                  this.db
+                    .select({ id: rentalRenewals.id })
+                    .from(rentalRenewals)
+                    .where(
+                      and(
+                        eq(rentalRenewals.id, payments.renewalId),
+                        eq(rentalRenewals.rentalId, rentalId),
+                      ),
+                    ),
+                )
+              : undefined,
           ) ?? sql`false`;
         const [total] = await tx.select({ value: count() }).from(payments).where(filter);
         const items = await tx
