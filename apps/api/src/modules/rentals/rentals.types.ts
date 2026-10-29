@@ -5,3 +5,5 @@ export type RentalQueryExecutor = Database | Parameters<Parameters<Database["tra
 export type RentalWithDetails = Awaited<
   ReturnType<import("./rentals.repository").RentalsRepository["findCustomerRentals"]>
 >[number];
+
+export type RentalTransaction = Parameters<Parameters<Database["transaction"]>[0]>[0];

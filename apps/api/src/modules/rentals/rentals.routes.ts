@@ -10,23 +10,16 @@ import {
   RentalRenewalPageQuerySchema,
   RentalRenewalPaymentInputSchema,
 } from "@metastorage/contracts";
-import type { Database } from "@metastorage/database";
 import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
 import { requireRole } from "../auth/auth.guard";
-import { FacilitiesRepository } from "../facilities/facilities.repository";
-import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
-import { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
 import { createSepayGateway } from "../payments/payments.service";
-import { RentalRenewalsService } from "./rental-renewals.service";
-import { RentalsRepository } from "./rentals.repository";
-import { RentalsService } from "./rentals.service";
+import { createRentalsService } from "./rentals.service";
 
 export const rentalsRoutes: FastifyPluginAsync = async (fastify) => {
-  const service = createRentalsService(fastify.db);
-  const renewals = new RentalRenewalsService(fastify.db, createSepayGateway());
+  const service = createRentalsService(fastify.db, createSepayGateway());
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
 
   typedApp.post(
@@ -42,7 +35,7 @@ export const rentalsRoutes: FastifyPluginAsync = async (fastify) => {
         .status(201)
         .send(
           successResponse(
-            await renewals.quote(
+            await service.quoteRenewal(
               request.params.rentalId,
               request.user.id,
               request.body.months,
@@ -64,7 +57,7 @@ export const rentalsRoutes: FastifyPluginAsync = async (fastify) => {
       if (!request.user) throw new UnauthorizedError();
       return reply.send(
         successResponse(
-          await renewals.list(request.params.rentalId, request.user.id, request.query),
+          await service.listRenewals(request.params.rentalId, request.user.id, request.query),
         ),
       );
     },
@@ -78,7 +71,11 @@ export const rentalsRoutes: FastifyPluginAsync = async (fastify) => {
       if (!request.user) throw new UnauthorizedError();
       return reply.send(
         successResponse(
-          await renewals.get(request.params.rentalId, request.params.renewalId, request.user.id),
+          await service.getRenewal(
+            request.params.rentalId,
+            request.params.renewalId,
+            request.user.id,
+          ),
         ),
       );
     },
@@ -97,7 +94,7 @@ export const rentalsRoutes: FastifyPluginAsync = async (fastify) => {
         .status(201)
         .send(
           successResponse(
-            await renewals.startPayment(
+            await service.startRenewalPayment(
               request.params.rentalId,
               request.params.renewalId,
               request.user.id,
@@ -206,13 +203,3 @@ export const rentalsRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 };
-
-function createRentalsService(database: Database) {
-  return new RentalsService(
-    new RentalsRepository(database),
-    new FacilityAssignmentsService(
-      new FacilityAssignmentsRepository(database),
-      new FacilitiesRepository(database),
-    ),
-  );
-}

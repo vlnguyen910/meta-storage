@@ -8,6 +8,7 @@ import {
   type SystemSettingKeyValue,
   type SystemSettingUpdateResult,
 } from "@metastorage/contracts";
+import type { Database } from "@metastorage/database";
 import {
   ConflictError,
   ForbiddenError,
@@ -19,6 +20,9 @@ import type { SystemSettingsRepository } from "./system-settings.repository";
 
 export class SystemSettingsService {
   constructor(private readonly repository: SystemSettingsRepository) {}
+  getRenewalNoticeSetting(tx: Parameters<Parameters<Database["transaction"]>[0]>[0]) {
+    return this.repository.find("RENEWAL_NOTICE_DAYS", tx);
+  }
   async getOpeningHour(): Promise<number> {
     const setting = await this.repository.find("OPENING_HOUR");
     if (!setting) throw new NotFoundError(m.notFound);
