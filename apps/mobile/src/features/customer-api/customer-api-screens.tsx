@@ -635,7 +635,7 @@ export function CustomerRentalScreen({
             <Button
               label={M.newTicket}
               secondary
-              onPress={() => go({ screen: "support-new", bookingId: r.bookingId })}
+              onPress={() => go({ screen: "support-new", bookingId: r.bookingId ?? undefined })}
             />
           </Card>
           <Card title={M.transactions}>
@@ -648,7 +648,11 @@ export function CustomerRentalScreen({
                   label={M.newTicket}
                   secondary
                   onPress={() =>
-                    go({ screen: "support-new", bookingId: r.bookingId, paymentId: p.id })
+                    go({
+                      screen: "support-new",
+                      bookingId: r.bookingId ?? undefined,
+                      paymentId: p.id,
+                    })
                   }
                 />
               </Card>
