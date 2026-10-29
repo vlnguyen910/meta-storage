@@ -64,6 +64,7 @@ export const PaidBookingSchema = z.object({
   durationMonths: z.number().int().min(1).max(12),
   status: z.literal("CONFIRMED"),
   paidAt: z.string().datetime(),
+  contact: z.object({ fullName: z.string(), email: z.email(), phone: z.string() }).optional(),
   pricing: z.object({
     rentalFeeAmount: z.string(),
     depositAmount: z.string(),

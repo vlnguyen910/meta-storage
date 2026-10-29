@@ -180,6 +180,11 @@ export function handleMobileRequest(
       throw new Error(m.capacity);
     const draft = {
       ...d,
+      contact: d.contact ?? {
+        fullName: account(db)?.name ?? "Guest",
+        email: account(db)?.email ?? "guest@example.com",
+        phone: account(db)?.phone ?? "",
+      },
       id: newDemoId(),
       ownerId: owner(db),
       rentalEndAt: end,
