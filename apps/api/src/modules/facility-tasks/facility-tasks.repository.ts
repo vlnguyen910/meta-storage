@@ -53,6 +53,10 @@ export class FacilityTasksRepository {
     return tx.select().from(facilityTasks).where(eq(facilityTasks.id, id));
   }
 
+  findById(id: string) {
+    return this.db.select().from(facilityTasks).where(eq(facilityTasks.id, id));
+  }
+
   findForUpdate(tx: TaskTransaction, id: string) {
     return tx.select().from(facilityTasks).where(eq(facilityTasks.id, id)).for("update");
   }

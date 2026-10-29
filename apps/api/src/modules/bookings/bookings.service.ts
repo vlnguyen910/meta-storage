@@ -30,7 +30,6 @@ import {
   UnauthorizedError,
   ValidationError,
 } from "../../common/errors/app-error";
-import { env } from "../../config/env";
 import { getFacilityAccessScope, requireAssignedFacility } from "../facilities/facilities.access";
 import { FacilitiesRepository } from "../facilities/facilities.repository";
 import { FacilitiesService } from "../facilities/facilities.service";
@@ -43,8 +42,12 @@ import { PricingRepository } from "../pricing/pricing.repository";
 import { PricingService } from "../pricing/pricing.service";
 import { StorageUnitsRepository } from "../storage-units/storage-units.repository";
 import { StorageUnitsService } from "../storage-units/storage-units.service";
+import { SystemSettingsRepository } from "../system-settings/system-settings.repository";
+import { SystemSettingsService } from "../system-settings/system-settings.service";
 import { FacilityUnitTypesRepository } from "../unit-types/facility-unit-types.repository";
 import { FacilityUnitTypesService } from "../unit-types/facility-unit-types.service";
+import { getCheckInOpensAt } from "./booking-check-in.policy";
+import { createBookingCheckInService } from "./booking-check-in.service";
 import { BOOKING_MESSAGES } from "./bookings.messages";
 import { BookingsRepository, bookingLocalDate } from "./bookings.repository";
 import type {
@@ -66,6 +69,7 @@ export class BookingsService {
     private readonly storageUnitsService: StorageUnitsService,
     private readonly pricingService: PricingService,
     private readonly assignments: FacilityAssignmentsRepository,
+    private readonly settings: SystemSettingsService,
     private readonly mail?: BookingMailDependencies,
     private readonly notifications?: NotificationsService,
   ) {}
@@ -83,6 +87,10 @@ export class BookingsService {
     return this.repository.cancelBooking(bookingId, {
       userId: credentials.userId,
     });
+  }
+
+  async sweepNoShows(now = new Date(), facilityId?: string) {
+    return this.repository.sweepNoShows(now, facilityId, await this.settings.getClosingHour());
   }
 
   async getStatus(bookingId: string): Promise<BookingConfirmation["emailStatus"]> {
@@ -158,8 +166,14 @@ export class BookingsService {
   }
 
   private async withHandoverProgress(bookings: BookingListItem[]): Promise<BookingListItem[]> {
-    const records = await this.repository.handoverProgress(bookings.map((b) => b.id));
+    const [records, openingHour] = await Promise.all([
+      this.repository.handoverProgress(bookings.map((b) => b.id)),
+      this.settings.getOpeningHour(),
+    ]);
     return bookings.map((booking) => {
+      const checkInDate = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Ho_Chi_Minh",
+      }).format(new Date(booking.checkInSlotStart));
       const record = records.find((r) => r.bookingId === booking.id);
       const handoverStage: BookingListItem["handoverStage"] =
         booking.status === "CHECKED_IN"
@@ -171,8 +185,8 @@ export class BookingsService {
               : "WAITING_CUSTOMER";
       return {
         ...booking,
+        checkInOpensAt: getCheckInOpensAt(checkInDate, openingHour).toISOString(),
         handoverStage,
-        earlyCheckInAllowed: env.NODE_ENV === "development" || env.NODE_ENV === "develop",
       };
     });
   }
@@ -454,6 +468,7 @@ export function createBookingsService(
   const facilityTasks = new FacilityTasksService(
     new FacilityTasksRepository(app.db, assignmentsRepository),
     new FacilityAssignmentsService(assignmentsRepository, facilitiesRepository),
+    createBookingCheckInService(app.db),
   );
   return new BookingsService(
     app.db,
@@ -465,6 +480,7 @@ export function createBookingsService(
     new StorageUnitsService(new StorageUnitsRepository(app.db)),
     new PricingService(new PricingRepository(app.db)),
     assignmentsRepository,
+    new SystemSettingsService(new SystemSettingsRepository(app.db)),
     mail ??
       (app.redis && app.mailQueue
         ? {

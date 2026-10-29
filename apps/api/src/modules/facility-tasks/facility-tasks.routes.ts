@@ -13,6 +13,7 @@ import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
 import { requireRole } from "../auth/auth.guard";
+import { createBookingCheckInService } from "../bookings/booking-check-in.service";
 import { FacilitiesRepository } from "../facilities/facilities.repository";
 import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
 import { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
@@ -26,6 +27,7 @@ export const facilityTasksRoutes: FastifyPluginAsync = async (app) => {
   const service = new FacilityTasksService(
     new FacilityTasksRepository(app.db, assignmentRepository),
     new FacilityAssignmentsService(assignmentRepository, new FacilitiesRepository(app.db)),
+    createBookingCheckInService(app.db),
   );
 
   app.addHook("onRequest", async (_request, reply) => {

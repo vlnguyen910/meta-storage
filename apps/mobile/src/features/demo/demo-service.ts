@@ -15,6 +15,8 @@ import { DEMO_MESSAGES as m } from "./demo.messages";
 import type { DemoDatabase } from "./demo.types";
 import {
   canVerifyBooking,
+  demoCheckInDeadlineAt,
+  demoCheckInOpensAt,
   remainingDemoCapacity,
   requireCompleteChecklist,
   requirePeriod,
@@ -455,12 +457,10 @@ export function handleMobileRequest(
   throw new Error(m.missing);
 }
 function checkInResult(b: MobilePaidBooking): CheckInLookupResult {
-  const graceEndsAt = new Date(
-    Date.parse(b.checkInSlotEnd ?? b.checkInSlotStart) + 7200000,
-  ).toISOString();
+  const checkInDeadlineAt = demoCheckInDeadlineAt(b.checkInSlotStart).toISOString();
   const canProceed = canVerifyBooking(b);
   return {
-    booking: { ...b, graceEndsAt },
+    booking: { ...b, checkInDeadlineAt },
     payment: {
       status: b.paidAt ? PaymentStatus.SUCCEEDED : null,
       paidAt: b.paidAt,
@@ -470,7 +470,7 @@ function checkInResult(b: MobilePaidBooking): CheckInLookupResult {
       currency: "VND",
     },
     assignedUnit: b.assignedUnit ?? null,
-    eligibility: {
+    checkInReadiness: {
       canProceed,
       reasons: canProceed
         ? []
@@ -478,7 +478,7 @@ function checkInResult(b: MobilePaidBooking): CheckInLookupResult {
           ? ["INVALID_BOOKING_STATUS"]
           : !b.assignedUnit
             ? ["UNIT_NOT_ASSIGNED"]
-            : Date.now() < Date.parse(b.checkInSlotStart)
+            : Date.now() < demoCheckInOpensAt(b.checkInSlotStart).getTime()
               ? ["TOO_EARLY"]
               : ["DEADLINE_PASSED"],
     },

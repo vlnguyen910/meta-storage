@@ -11,6 +11,7 @@ import { z } from "zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
 import { requireRole } from "../auth/auth.guard";
+import { createBookingCheckInService } from "../bookings/booking-check-in.service";
 import { createBookingsService } from "../bookings/bookings.service";
 import { FacilitiesRepository } from "../facilities/facilities.repository";
 import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
@@ -42,7 +43,7 @@ export const inspectionsRoutes: FastifyPluginAsync = async (app) => {
   const service = new InspectionsService(
     new InspectionsRepository(app.db),
     tasks,
-    new FacilityTasksService(tasks, assignments),
+    new FacilityTasksService(tasks, assignments, createBookingCheckInService(app.db)),
     new RentalsService(new RentalsRepository(app.db), assignments),
     createBookingsService(app),
     new StorageUnitsService(new StorageUnitsRepository(app.db)),

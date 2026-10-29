@@ -62,7 +62,7 @@ Local Next.js development uses `.next-dev`; the dedicated Flow 2 Playwright serv
 
 ### Appointment slot persistence
 
-Payment completion persists `checkInSlotEnd = checkInAt + 2 hours` alongside the chosen start, using the check-in slot policy shared by the repair script. This applies to mock checkout, sandbox confirmation and SePay webhook completion. The separate 2-hour grace period after slot end remains unchanged. Existing missing ends can be filled without changing appointment starts or booking statuses:
+Payment completion persists `checkInSlotEnd = checkInAt + 2 hours` alongside the chosen start, using the check-in slot policy shared by the repair script. This applies to mock checkout, sandbox confirmation and SePay webhook completion. `checkInSlotEnd` describes the appointment only; readiness starts at `OPENING_HOUR`, while readiness and NO_SHOW end at `CLOSING_HOUR` from system settings on the same local date. In development mode, the readiness check skips this time window for demos. Existing missing ends can be filled without changing appointment starts or booking statuses:
 
 ```sh
 bun --env-file=apps/api/.env apps/api/src/scripts/backfill-check-in-slots.ts
@@ -166,7 +166,7 @@ The original local seed's bookings include today-morning, tomorrow and terminal 
 - Completion freezes the baseline. Staff handover still creates the rental through
   the existing backend transaction; FM monitors without Staff mutation controls.
 - Dispatch reads NO_SHOW from backend booking status. It does not calculate a
-  deadline from slot end plus two hours. Check-in details show API `graceEndsAt`.
+  deadline from slot end plus two hours. Check-in details show API `checkInDeadlineAt`.
 
 Validation: browser coverage for partial/FAIL drafts, reload, four PASS completion
 without notes/photos, version conflicts, handover and desktop/mobile accessibility;

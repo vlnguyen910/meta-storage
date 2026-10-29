@@ -206,7 +206,7 @@ export const FLOW = {
   verifyProceed: "Xác minh booking & Chuyển sang kiểm tra kho",
   continueInspect: "Tiếp tục kiểm tra hiện trạng",
   reasonActions: {
-    TOO_EARLY: "Đối chiếu thời gian bắt đầu trong lịch hẹn; xác minh lại khi tới giờ.",
+    TOO_EARLY: "Chỉ nhận kho từ OPENING_HOUR trong ngày check-in đã đặt.",
     DEADLINE_PASSED:
       "Liên hệ quản lý cơ sở để xử lý booking quá hạn; không bàn giao kho ở bước này.",
     CHECKIN_SLOT_NOT_CONFIGURED:
@@ -218,7 +218,7 @@ export const FLOW = {
     UNIT_NOT_ASSIGNED: "Quản lý cơ sở chọn Gán ô kho ngay để phân bổ ô kho trước khi xác minh.",
   } as Record<string, string>,
   reasons: {
-    TOO_EARLY: "Chưa tới thời gian check-in.",
+    TOO_EARLY: "Chưa tới giờ mở cửa nhận kho.",
     DEADLINE_PASSED: "Đã quá hạn nhận kho (grace period).",
     CHECKIN_SLOT_NOT_CONFIGURED: "Booking chưa có khung giờ nhận kho đầy đủ.",
     INVALID_BOOKING_STATUS: "Trạng thái booking không cho phép check-in.",

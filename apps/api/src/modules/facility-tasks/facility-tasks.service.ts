@@ -20,6 +20,7 @@ import {
   NotFoundError,
 } from "../../common/errors/app-error";
 import { mapPageDto } from "../../common/types/page.dto";
+import type { BookingCheckInService } from "../bookings/booking-check-in.service";
 import { getFacilityAccessScope } from "../facilities/facilities.access";
 import type { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
 import type { FacilityTasksRepository } from "./facility-tasks.repository";
@@ -29,11 +30,11 @@ import type {
   TaskTransaction,
   TaskWriteResult,
 } from "./facility-tasks.types";
-
 export class FacilityTasksService {
   constructor(
     private readonly repository: FacilityTasksRepository,
     private readonly assignments: FacilityAssignmentsService,
+    private readonly bookings: BookingCheckInService,
   ) {}
 
   async create(
@@ -184,6 +185,20 @@ export class FacilityTasksService {
     } else {
       this.assertManager(actor);
       if (input.type) this.assertTypeCanBeAssigned(input.type);
+    }
+    if ("status" in input && input.status === FacilityTaskStatus.IN_PROGRESS) {
+      const [task] = await this.repository.findById(id);
+      if (task?.type === FacilityTaskType.CHECK_IN_HANDOVER) {
+        if (actor.role !== UserRole.FACILITY_STAFF || task.assignedStaffId !== actor.id)
+          throw new ForbiddenError(m.accessDenied);
+        if (task.status !== FacilityTaskStatus.ASSIGNED) throw new ConflictError(m.taskNotReady);
+        await this.assignments.requireFacilityAccess(
+          task.facilityId,
+          getFacilityAccessScope(actor),
+          [UserRole.FACILITY_STAFF],
+        );
+        await this.bookings.assertCheckInCanStart(task.referenceId);
+      }
     }
     const task = await this.write(this.repository.update(id, input, actor));
     return {

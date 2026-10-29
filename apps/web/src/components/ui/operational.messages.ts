@@ -33,7 +33,7 @@ export const OPERATIONAL_LABELS: Record<string, string> = {
   NEEDS_STAFF: "Chưa phân công",
   NEEDS_UNIT: "Chưa gán ô kho",
   READY_HANDOVER: "Chờ bàn giao",
-  TOO_EARLY: "Chưa tới lịch hẹn",
+  TOO_EARLY: "Chưa tới giờ mở cửa",
   SLOT_MISSING: "Chưa cấu hình lịch hẹn",
   PAYMENT_PENDING: "Chưa thanh toán",
 };

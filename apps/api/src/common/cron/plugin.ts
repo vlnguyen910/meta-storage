@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
-import { BookingsRepository } from "../../modules/bookings/bookings.repository";
+import { createBookingsService } from "../../modules/bookings/bookings.service";
 import { createPaymentsService } from "../../modules/payments/payments.service";
 import type { CronOptions } from "./cron.types";
 import { expireCapacityHolds } from "./expire-capacity-holds";
@@ -26,7 +26,7 @@ const cronPluginAsync: FastifyPluginAsync<CronOptions> = async (fastify, options
           if (skipped) fastify.log.debug("Capacity hold expiry skipped: another sweep is running");
         },
       ),
-      new BookingsRepository(fastify.db)
+      createBookingsService(fastify)
         .sweepNoShows(new Date(), options.facilityId)
         .then(({ processed }) => {
           if (processed > 0) fastify.log.info({ processed }, "Processed booking no-shows");

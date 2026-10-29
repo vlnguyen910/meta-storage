@@ -1,25 +1,37 @@
-import type { CheckInEligibility, CheckInEligibilityReasonCode } from "@metastorage/contracts";
+import type { CheckInReadiness, CheckInReadinessReasonCode } from "@metastorage/contracts";
 
 export type CheckInPolicyRecord = {
   bookingStatus: string;
   payment: { status: string } | null;
   hasAssignedUnit: boolean;
+  checkInOpensAt: Date;
   checkInSlotStart: Date;
-  checkInDayEnd: Date | null;
+  checkInDeadline: Date | null;
 };
 
-export type CheckInPolicyEvaluation = CheckInEligibility & {
-  graceEndsAt: Date | null;
+export type CheckInPolicyEvaluation = CheckInReadiness & {
+  checkInDeadlineAt: Date | null;
   shouldMarkNoShow: boolean;
 };
 
-export function evaluateCheckInEligibility(
+export function getCheckInDeadlineAt(checkInDate: string, closingHour: number): Date {
+  const midnight = new Date(`${checkInDate}T00:00:00+07:00`);
+  return closingHour === 24
+    ? new Date(midnight.getTime() + 24 * 60 * 60 * 1000)
+    : new Date(`${checkInDate}T${String(closingHour).padStart(2, "0")}:00:00+07:00`);
+}
+
+export function getCheckInOpensAt(checkInDate: string, openingHour: number): Date {
+  return new Date(`${checkInDate}T${String(openingHour).padStart(2, "0")}:00:00+07:00`);
+}
+
+export function evaluateCheckInReadiness(
   record: CheckInPolicyRecord,
   now: Date,
-  allowEarlyCheckIn = false,
+  skipTimeWindow = false,
 ): CheckInPolicyEvaluation {
-  const reasons: CheckInEligibilityReasonCode[] = [];
-  const graceEndsAt = record.checkInDayEnd;
+  const reasons: CheckInReadinessReasonCode[] = [];
+  const checkInDeadline = record.checkInDeadline;
 
   if (record.bookingStatus !== "CONFIRMED") {
     reasons.push("INVALID_BOOKING_STATUS");
@@ -33,18 +45,25 @@ export function evaluateCheckInEligibility(
     reasons.push("UNIT_NOT_ASSIGNED");
   }
 
-  if (!graceEndsAt) {
+  if (
+    !checkInDeadline ||
+    !Number.isFinite(record.checkInOpensAt.getTime()) ||
+    !Number.isFinite(record.checkInSlotStart.getTime())
+  ) {
     reasons.push("CHECKIN_SLOT_NOT_CONFIGURED");
-  } else if (!allowEarlyCheckIn && now < record.checkInSlotStart) {
+  } else if (!skipTimeWindow && now < record.checkInOpensAt) {
     reasons.push("TOO_EARLY");
-  } else if (now >= graceEndsAt) {
+  } else if (!skipTimeWindow && now >= checkInDeadline) {
     reasons.push("DEADLINE_PASSED");
   }
 
   return {
     canProceed: reasons.length === 0,
     reasons,
-    graceEndsAt,
-    shouldMarkNoShow: record.bookingStatus === "CONFIRMED" && reasons.includes("DEADLINE_PASSED"),
+    checkInDeadlineAt: checkInDeadline,
+    shouldMarkNoShow:
+      !skipTimeWindow &&
+      record.bookingStatus === "CONFIRMED" &&
+      reasons.includes("DEADLINE_PASSED"),
   };
 }
