@@ -347,6 +347,29 @@ erDiagram
     uuid updated_by FK
     timestamptz updated_at
   }
+  rental_renewals {
+    uuid id PK
+    uuid rental_id FK
+    uuid storage_unit_id FK
+    varchar idempotency_key
+    timestamptz old_end_at
+    timestamptz new_end_at
+    integer months
+    numeric monthly_rate_snapshot
+    numeric amount
+    varchar currency
+    integer notice_days_snapshot
+    integer setting_version_snapshot
+    timestamptz cutoff_at
+    timestamptz expires_at
+    rental_renewal_status status
+    timestamptz applied_at "nullable"
+    varchar failure_reason "nullable"
+    timestamptz created_at
+    timestamptz updated_at
+  }
+  rentals ||--o{ rental_renewals : renewals
+  storage_units ||--o{ rental_renewals : snapshots
   system_setting_changes {
     uuid id PK
     text key FK
@@ -420,6 +443,9 @@ erDiagram
   users o|--o{ payments : confirms_manual_refund
   bookings o|--o{ inspections : checkin_context
   rentals o|--o{ inspections : checkout_context
+  rentals ||--o{ rental_renewals : renews
+  storage_units ||--o{ rental_renewals : snapshots
+  rental_renewals ||--o| payments : charges
   storage_units ||--o{ inspections : inspected
   facility_tasks ||--o{ inspections : assigned_work
   users ||--o{ inspections : inspects
@@ -538,10 +564,12 @@ erDiagram
     uuid facility_id FK
     uuid unit_type_id FK
     uuid reference_id
+    varchar access_token_hash "nullable during capacity hold"
     capacity_allocation_kind kind
     capacity_allocation_status status
     timestamptz starts_at
     timestamptz ends_at
+    timestamptz expires_at "nullable"
     timestamptz created_at
     timestamptz updated_at
   }
@@ -593,6 +621,7 @@ erDiagram
     uuid booking_id FK "nullable for rental-charge payments"
     uuid reservation_id FK "nullable"
     uuid rental_id FK "nullable; return refund"
+    uuid renewal_id FK "nullable; renewal charge"
     uuid source_payment_id FK "nullable; original charge"
     varchar provider "nullable for deposit refund"
     varchar provider_payment_id "nullable"

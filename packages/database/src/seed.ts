@@ -1010,6 +1010,7 @@ async function seedPolicies(seedNow: Date) {
   const keys = [
     "EXPIRY_REMINDER_DAYS",
     "ABANDONED_REVIEW_DAYS",
+    "RENEWAL_NOTICE_DAYS",
     "OVERDUE_FEE_RATE",
     "OPENING_HOUR",
     "CLOSING_HOUR",

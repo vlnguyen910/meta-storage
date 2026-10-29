@@ -42,6 +42,7 @@ export const PAYMENT_REFUND_REASONS = [
   "OFFERING_UNAVAILABLE",
   "CUSTOMER_CANCELLATION",
   "NO_SHOW",
+  "RENEWAL_NOT_APPLIED",
 ] as const;
 export type PaymentType = "CHARGE" | "DEPOSIT_REFUND";
 export const PaymentTypeSchema = z.enum(["CHARGE", "DEPOSIT_REFUND"]);

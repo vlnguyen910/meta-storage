@@ -15,6 +15,7 @@ export * from "./payments";
 export * from "./policy-violation-fees";
 export * from "./pricing";
 export * from "./relations";
+export * from "./rental-renewals";
 export * from "./rentals";
 export * from "./reservations";
 export * from "./sessions";

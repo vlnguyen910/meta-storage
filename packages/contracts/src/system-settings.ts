@@ -3,6 +3,7 @@ import { SYSTEM_SETTING_MESSAGES as m } from "./system-settings.messages";
 
 export const SystemSettingKey = {
   EXPIRY_REMINDER_DAYS: "EXPIRY_REMINDER_DAYS",
+  RENEWAL_NOTICE_DAYS: "RENEWAL_NOTICE_DAYS",
   ABANDONED_REVIEW_DAYS: "ABANDONED_REVIEW_DAYS",
   OVERDUE_FEE_RATE: "OVERDUE_FEE_RATE",
   DEPOSIT_MONTHS: "DEPOSIT_MONTHS",
@@ -27,6 +28,14 @@ export const SYSTEM_SETTING_DEFINITIONS = {
     valueType: "INTEGER",
     role: "SYSTEM_ADMIN",
     description: "Số ngày quá hạn đầy đủ trước khi chuyển cho Facility Manager xem xét.",
+    defaultValue: 7,
+  },
+  RENEWAL_NOTICE_DAYS: {
+    category: "RENTAL",
+    unit: "DAYS",
+    valueType: "INTEGER",
+    role: "BUSINESS_OPERATION_MANAGER",
+    description: "Số ngày trước hạn thuê mà khách không thể gửi yêu cầu gia hạn.",
     defaultValue: 7,
   },
   OVERDUE_FEE_RATE: {
@@ -81,6 +90,11 @@ export const ConfigureSystemSettingSchema = z.discriminatedUnion("key", [
   }),
   z.strictObject({
     key: z.literal(SystemSettingKey.ABANDONED_REVIEW_DAYS),
+    value: integer,
+    expectedVersion: version,
+  }),
+  z.strictObject({
+    key: z.literal(SystemSettingKey.RENEWAL_NOTICE_DAYS),
     value: integer,
     expectedVersion: version,
   }),
