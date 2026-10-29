@@ -72,6 +72,7 @@ export const STAFF_API_UI = {
   startTask: "Bắt đầu thực hiện",
   completeTask: "Hoàn tất công việc",
   updated: "Đã cập nhật công việc.",
+  taskNotFound: "Không tìm thấy công việc nhận kho được giao cho bạn.",
   verify: "Xác nhận khách đến",
   inspect: "Bắt đầu kiểm tra",
   checklist: "Kiểm tra hiện trạng",

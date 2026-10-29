@@ -62,17 +62,19 @@ export function StaffCheckInView({ owner, booking }: { owner: string; booking: B
           {!flow.verified && (
             <Card title={M.verify}>
               <Text className="mb-4 leading-6 text-slate-500">{M.lookupRequired}</Text>
-              {flow.lookup.data.eligibility.reasons.length > 0 && (
+              {flow.lookup.data.checkInReadiness.reasons.length > 0 && (
                 <Notice>
-                  {flow.lookup.data.eligibility.reasons
+                  {flow.lookup.data.checkInReadiness.reasons
                     .map((reason) => M.reasons[reason] ?? reason)
                     .join(" ")}
                 </Notice>
               )}
               <Button
                 label={M.verify}
-                disabled={!flow.lookup.data.eligibility.canProceed || flow.busy}
-                onPress={() => flow.verify.mutate()}
+                disabled={
+                  !flow.lookup.data.checkInReadiness.canProceed || !flow.tasks.data || flow.busy
+                }
+                onPress={() => flow.begin.mutate()}
               />
             </Card>
           )}

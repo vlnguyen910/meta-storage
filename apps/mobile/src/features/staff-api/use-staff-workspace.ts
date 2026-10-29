@@ -95,13 +95,19 @@ export function useStaffCheckIn(owner: string, bookingCode: string) {
   const client = useQueryClient();
   const lookup = useQuery({
     queryKey: ["mobile-check-in", owner, bookingCode],
-    queryFn: () => api.checkIns.lookup({ type: "BOOKING_CODE", value: bookingCode }),
+    queryFn: () => api.bookings.checkInLookup({ type: "BOOKING_CODE", value: bookingCode }),
     retry: false,
   });
   const bookingId = lookup.data?.booking.id ?? "";
-  const verified =
-    lookup.data?.verification?.staffId === owner &&
-    ["VERIFIED", "CONSUMED"].includes(lookup.data.verification.status);
+  const tasks = useQuery({
+    queryKey: ["mobile-staff-tasks", owner],
+    queryFn: () => api.flow5.tasks.listMine({ limit: 100, offset: 0 }),
+    enabled: Boolean(bookingId),
+  });
+  const task = tasks.data?.items.find(
+    (item) => item.referenceType === "BOOKING" && item.referenceId === bookingId,
+  );
+  const verified = task?.status === "IN_PROGRESS" || task?.status === "COMPLETED";
   const historyKey = ["mobile-inspection", owner, bookingId];
   const history = useQuery({
     queryKey: historyKey,
@@ -113,9 +119,15 @@ export function useStaffCheckIn(owner: string, bookingCode: string) {
       item.storageUnitId === lookup.data?.assignedUnit?.physicalUnitId &&
       item.inspectionType === "CHECK_IN",
   );
-  const verify = useMutation({
-    mutationFn: () => api.checkIns.confirm(bookingId),
-    onSuccess: () => lookup.refetch(),
+  const begin = useMutation({
+    mutationFn: () => {
+      if (!task) throw new Error(M.taskNotFound);
+      return api.flow5.tasks.update(task.id, { status: FacilityTaskStatus.IN_PROGRESS });
+    },
+    onSuccess: async () => {
+      await Promise.all([tasks.refetch(), history.refetch()]);
+      await client.invalidateQueries({ queryKey: ["mobile-staff-tasks", owner] });
+    },
   });
   const start = useMutation({
     mutationFn: () => api.inspections.start(bookingId),
@@ -149,17 +161,18 @@ export function useStaffCheckIn(owner: string, bookingCode: string) {
   });
   return {
     lookup,
+    tasks,
     history,
     record,
     verified,
-    verify,
+    begin,
     start,
     save,
     handover,
     photo,
     removePhoto,
     busy:
-      verify.isPending ||
+      begin.isPending ||
       start.isPending ||
       save.isPending ||
       handover.isPending ||
@@ -168,7 +181,8 @@ export function useStaffCheckIn(owner: string, bookingCode: string) {
     error:
       lookup.error ??
       history.error ??
-      verify.error ??
+      tasks.error ??
+      begin.error ??
       start.error ??
       save.error ??
       handover.error ??
