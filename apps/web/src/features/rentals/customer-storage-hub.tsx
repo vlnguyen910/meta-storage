@@ -26,7 +26,7 @@ import { ListPagination } from "@/components/ui/list-pagination";
 import { ShadcnButton } from "@/components/ui/shadcn-button";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { customerRoutes } from "@/config/routes";
-import { useMyRentals } from "@/features/rentals/hooks";
+import { useAllMyRentals, useMyRentals } from "@/features/rentals/hooks";
 import { useFlow3Identity } from "@/features/returns/use-flow3-identity";
 import { api } from "@/lib/api";
 import { formatDate, formatDateTime } from "@/lib/format";
@@ -48,7 +48,7 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
       : defaultTab;
 
   // Rental state
-  const [rentalView, setRentalView] = useState<StorageRentalView>("current");
+  const [rentalView, setRentalView] = useState<StorageRentalView>("all");
   const [rentalSearch, setRentalSearch] = useState("");
   const [rentalSearchInput, setRentalSearchInput] = useState("");
   const [rentalPage, setRentalPage] = useState(1);
@@ -62,14 +62,27 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
   const bookingPageSize = 8;
 
   // Data queries
-  const rentalsQuery = useMyRentals(rentalView);
+  const currentRentalsQuery = useMyRentals("current", rentalView === "current");
+  const historyRentalsQuery = useMyRentals("history", rentalView === "history");
+  const allRentalsQuery = useAllMyRentals(rentalView === "all");
   const owner = useFlow3Identity();
   const bookingsQuery = useQuery({
     queryKey: ["reservations", owner, "mine"],
     queryFn: () => api.reservations.mine(),
   });
 
-  const allRentals = rentalsQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const allRentals =
+    rentalView === "all"
+      ? (allRentalsQuery.data ?? [])
+      : rentalView === "history"
+        ? (historyRentalsQuery.data?.pages.flatMap((page) => page.items) ?? [])
+        : (currentRentalsQuery.data?.pages.flatMap((page) => page.items) ?? []);
+  const rentalsQuery =
+    rentalView === "all"
+      ? allRentalsQuery
+      : rentalView === "history"
+        ? historyRentalsQuery
+        : currentRentalsQuery;
   const allBookings = bookingsQuery.data ?? [];
 
   // Filter rentals
@@ -268,6 +281,7 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
               triggerClassName="h-9 min-h-9 text-xs bg-white border-line"
               placeholder={M.rentalViewFilter}
               options={[
+                { value: "all", label: M.rentalViewAll },
                 { value: "current", label: M.rentalViewCurrent },
                 { value: "history", label: M.rentalViewHistory },
               ]}
@@ -300,12 +314,20 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
               <section className="text-center py-8 rounded-card border border-line bg-white shadow-card flex-1 flex flex-col items-center justify-center p-6">
                 <Warehouse className="mx-auto size-10 text-slate-400" />
                 <h3 className="mt-2 text-sm font-semibold text-slate-800">
-                  {rentalView === "current" ? M.emptyRentalsCurrent : M.emptyRentalsHistory}
+                  {rentalView === "current"
+                    ? M.emptyRentalsCurrent
+                    : rentalView === "history"
+                      ? M.emptyRentalsHistory
+                      : M.emptyRentalsAll}
                 </h3>
                 <p className="mt-1 text-xs text-slate-500 max-w-sm">
-                  {rentalView === "current" ? M.emptyRentalsDescCurrent : M.emptyRentalsDescHistory}
+                  {rentalView === "current"
+                    ? M.emptyRentalsDescCurrent
+                    : rentalView === "history"
+                      ? M.emptyRentalsDescHistory
+                      : M.emptyRentalsDescAll}
                 </p>
-                {rentalView === "current" && (
+                {rentalView !== "history" && (
                   <Link
                     href={customerRoutes.facilities}
                     className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-primary-dark"
