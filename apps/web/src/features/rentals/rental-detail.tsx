@@ -24,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { Button, buttonClassName } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StatusBadge } from "@/components/ui/display";
@@ -35,6 +35,8 @@ import { toLocalDateTimeInput } from "@/features/reservations/checkout-validatio
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { useRental } from "./hooks";
+import { RENEWAL_MESSAGES as RM } from "./renewal.messages";
+import { RenewalHistory } from "./renewal-history";
 import { RENTAL_MESSAGES as M } from "./rentals.messages";
 
 function remainingLabel(endAt: string): string {
@@ -155,6 +157,16 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
         </p>
       )}
 
+      <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6">
+        <div>
+          <h2 className="text-xl font-bold">{RM.title}</h2>
+          <p className="mt-2 text-sm text-secondary">{r.renewalWindow?.reason ?? RM.intro}</p>
+        </div>
+        <Link className={buttonClassName("primary")} href={`/customer/storage/${rentalId}/renew`}>
+          {RM.title}
+        </Link>
+      </section>
+      <RenewalHistory rentalId={rentalId} />
       {/* Card 1: Rental Overview */}
       <Card className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs">
         <div className="flex flex-wrap items-start justify-between gap-4">

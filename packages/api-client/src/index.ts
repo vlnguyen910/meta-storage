@@ -552,6 +552,39 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
       handover: (id: string, input: ConfirmInspectionHandoverInput) =>
         http.post<ApiEnvelope<InspectionRecord>>(`/inspections/${id}/handover`, input).then(unwrap),
     },
+    renewals: {
+      quote: (rentalId: string, input: import("@metastorage/contracts").CreateRentalRenewal) =>
+        http
+          .post<ApiEnvelope<import("@metastorage/contracts").RentalRenewalDto>>(
+            `/rentals/${rentalId}/renewals`,
+            input,
+          )
+          .then(unwrap),
+      list: (rentalId: string, offset = 0) =>
+        http
+          .get<ApiEnvelope<import("@metastorage/contracts").RentalRenewalPage>>(
+            `/rentals/${rentalId}/renewals`,
+            { params: { limit: 10, offset } },
+          )
+          .then(unwrap),
+      get: (rentalId: string, renewalId: string) =>
+        http
+          .get<ApiEnvelope<import("@metastorage/contracts").RentalRenewalDto>>(
+            `/rentals/${rentalId}/renewals/${renewalId}`,
+          )
+          .then(unwrap),
+      pay: (
+        rentalId: string,
+        renewalId: string,
+        input: import("@metastorage/contracts").RentalRenewalPaymentInput,
+      ) =>
+        http
+          .post<ApiEnvelope<import("@metastorage/contracts").RentalRenewalPaymentSession>>(
+            `/rentals/${rentalId}/renewals/${renewalId}/payments`,
+            input,
+          )
+          .then(unwrap),
+    },
     rentals: {
       facilityList: (facilityId: string, params: Partial<FacilityRentalListQuery> = {}) =>
         http
