@@ -1,6 +1,5 @@
 import { REPORT_MESSAGES as m, type RentalReportQuery } from "@metastorage/contracts";
 import {
-  alias,
   and,
   asc,
   bookings,
@@ -47,7 +46,6 @@ const rentalSnapshot = sql`coalesce(${bookings.rentalFeeAmount}, ${reservations.
 const depositSnapshot = sql`coalesce(${bookings.depositAmount}, ${reservations.depositAmount})`;
 
 function financialRules(asOf: Date) {
-  const returnedRental = alias(rentals, "returned_rental");
   const vn = sql`${payments.currency} = 'VND'`;
   const captured = sql`${payments.type} = 'CHARGE' and ${payments.paidAt} is not null and ${payments.paidAt} <= ${asOf.toISOString()}`;
   const known = sql`${rentalSnapshot} >= 0 and ${depositSnapshot} >= 0 and ${payments.totalAmount} = ${rentalSnapshot} + ${depositSnapshot} and ${payments.depositForfeitedAmount} <= ${depositSnapshot}`;
@@ -55,7 +53,7 @@ function financialRules(asOf: Date) {
   const settledRefund = sql`${payments.status} = 'REFUNDED' and ${payments.refundedAt} is not null and ${payments.refundedAt} <= ${asOf.toISOString()}`;
   const knownRefund = sql`${settledRefund} and (${refund} = ${payments.totalAmount} or (${refund} = ${rentalSnapshot} and ${payments.depositForfeitedAmount} = ${depositSnapshot}))`;
   const notReturned = notExists(
-    sql`select 1 from ${returnedRental} where ${returnedRental.status} = 'CLOSED' and ((${returnedRental.bookingId} is not null and ${returnedRental.bookingId} = ${payments.bookingId}) or (${returnedRental.reservationId} is not null and ${returnedRental.reservationId} = ${payments.reservationId}))`,
+    sql`(select 1 from ${rentals} where ${rentals.status} = 'CLOSED' and ((${rentals.bookingId} is not null and ${rentals.bookingId} = ${payments.bookingId}) or (${rentals.reservationId} is not null and ${rentals.reservationId} = ${payments.reservationId})))`,
   );
   const legacyHeldKnown = sql`coalesce((${known} and (${payments.status} = 'SUCCEEDED' or ((${payments.status} = 'REFUND_PENDING' or (${knownRefund})) and ${refund} + ${payments.depositForfeitedAmount} <= ${payments.totalAmount}))), false)`;
   const knownSnapshot = sql`coalesce((${known}), false)`;
