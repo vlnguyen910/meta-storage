@@ -190,6 +190,39 @@
           ]
         },
         {
+          "name": "Create receiving appointment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/appointments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"appointmentType\": \"CHECK_IN\", \"reservationId\": \"{{reservationId}}\", \"scheduledDate\": \"{{date}}\", \"slotId\": \"{{slotId}}\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Create receiving appointment: status\", () => pm.response.to.have.status(201));",
+                  "pm.environment.set(\"appointmentId\",pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Start payment",
           "request": {
             "method": "POST",
@@ -206,7 +239,7 @@
             "url": "{{baseUrl}}/api/reservations/{{reservationId}}/make-payment",
             "body": {
               "mode": "raw",
-              "raw": "{\"idempotencyKey\": \"{{$guid}}\"}"
+              "raw": "{\"idempotencyKey\":\"{{$guid}}\",\"contactPhone\":\"0901234567\"}"
             }
           },
           "event": [
@@ -387,39 +420,6 @@
           ]
         },
         {
-          "name": "Create receiving appointment",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Origin",
-                "value": "{{origin}}"
-              }
-            ],
-            "url": "{{baseUrl}}/api/appointments",
-            "body": {
-              "mode": "raw",
-              "raw": "{\"appointmentType\": \"CHECK_IN\", \"reservationId\": \"{{reservationId}}\", \"scheduledDate\": \"{{date}}\", \"slotId\": \"{{slotId}}\"}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Create receiving appointment: status\", () => pm.response.to.have.status(201));",
-                  "pm.environment.set(\"appointmentId\",pm.response.json().data.id);"
-                ]
-              }
-            }
-          ]
-        },
-        {
           "name": "Reject duplicate receiving appointment",
           "request": {
             "method": "POST",
@@ -537,7 +537,8 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"Manager sees appointment: status\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"New appointment visible\",()=>pm.expect(pm.response.json().data.some(x=>x.id===pm.environment.get(\"appointmentId\"))).to.be.true);"
+                  "pm.test(\"New appointment visible\",()=>pm.expect(pm.response.json().data.some(x=>x.id===pm.environment.get(\"appointmentId\"))).to.be.true);",
+                  "pm.test(\"Checkout contact appears on the appointment\",()=>pm.expect(pm.response.json().data.find(x=>x.id===pm.environment.get(\"appointmentId\")).contactPhone).to.eql(\"0901234567\"));"
                 ]
               }
             }
@@ -618,7 +619,7 @@
             "url": "{{baseUrl}}/api/appointments/{{appointmentId}}",
             "body": {
               "mode": "raw",
-              "raw": "{\"status\": \"CONFIRMED\", \"assignedStaffId\": \"{{staffId}}\"}"
+              "raw": "{\"status\":\"CONFIRMED\",\"assignedStaffId\":\"{{staffId}}\",\"physicalUnitId\":\"{{unitId}}\"}"
             }
           },
           "event": [
@@ -830,7 +831,7 @@
           ]
         },
         {
-          "name": "Staff lists available physical units",
+          "name": "Staff sees the physical unit assigned by manager",
           "request": {
             "method": "GET",
             "header": [
@@ -843,7 +844,7 @@
                 "value": "{{origin}}"
               }
             ],
-            "url": "{{baseUrl}}/api/storage-units?facilityId={{facilityId}}&unitTypeId={{unitTypeId}}&status=AVAILABLE&limit=100&offset=0"
+            "url": "{{baseUrl}}/api/storage-units/{{unitId}}"
           },
           "event": [
             {
@@ -851,8 +852,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Staff lists available physical units: status\",()=>pm.response.to.have.status(200));",
-                  "pm.test(\"Expected unit visible\",()=>pm.expect(pm.response.json().data.items.some(u=>u.id===pm.environment.get(\"unitId\"))).to.be.true);"
+                  "pm.test(\"Assigned unit: status\",()=>pm.response.to.have.status(200));",
+                  "pm.test(\"Manager reserved the unit\",()=>{const d=pm.response.json().data;pm.expect(d.id).to.eql(pm.environment.get(\"unitId\"));pm.expect(d.status).to.eql(\"RESERVED\");});"
                 ]
               }
             }

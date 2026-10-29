@@ -5,7 +5,7 @@ import { ArrowLeft, Check, Copy, Mail, Phone, UserRound } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { Currency } from "@/components/ui/display";
 import { isMockMode } from "@/config/api-mode";
 import { routes } from "@/config/routes";
@@ -15,14 +15,22 @@ import { CheckoutRow, UnitPhoto } from "./checkout-parts";
 
 export function CheckoutConfirmation({
   state,
+  children,
+  qrHint = m.qrHint,
 }: {
   state: {
-    confirmation: BookingConfirmation | null;
+    confirmation:
+      | (Omit<BookingConfirmation, "bookingId" | "qrToken" | "qrUrl" | "emailStatus"> & {
+          emailStatus?: BookingConfirmation["emailStatus"];
+        })
+      | null;
     qrDataUrl: string | null;
     paidPricing: BookingDraftPricing | null;
   } & {
     contact?: { fullName?: string; phone?: string; email?: string } | null;
   };
+  children?: ReactNode;
+  qrHint?: string;
 }) {
   const [copied, setCopied] = useState(false);
   const pathname = usePathname();
@@ -43,7 +51,7 @@ export function CheckoutConfirmation({
     <div className="w-full max-w-4xl mx-auto space-y-4">
       {/* Success Hero Banner */}
       <section className="rounded-2xl border border-emerald-200 bg-white p-5 sm:p-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-center sm:justify-between gap-4">
           <div className="flex items-center gap-4 text-left">
             <div className="size-12 rounded-2xl bg-emerald-100 text-[#165f4d] flex items-center justify-center shrink-0 shadow-xs">
               <Check size={24} className="stroke-[2.5]" />
@@ -60,10 +68,10 @@ export function CheckoutConfirmation({
           </div>
 
           {/* Booking Code Banner */}
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs sm:text-sm">
+          <div className="flex min-w-0 max-w-full items-center gap-2">
+            <div className="inline-flex items-center gap-2 min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs sm:text-sm">
               <span className="text-xs text-slate-500">{m.bookingId}:</span>
-              <strong className="font-mono text-xs sm:text-sm font-bold text-slate-900">
+              <strong className="min-w-0 break-all font-mono text-xs sm:text-sm font-bold text-slate-900">
                 {confirmation.bookingCode}
               </strong>
               <button
@@ -93,7 +101,11 @@ export function CheckoutConfirmation({
           role="status"
           className="mt-3 text-xs text-slate-500 bg-slate-50/70 px-3 py-1.5 rounded-lg border border-slate-100 text-center sm:text-left"
         >
-          {isMockMode ? m.mockEmail : m.emailStatuses[confirmation.emailStatus]}
+          {isMockMode
+            ? m.mockEmail
+            : confirmation.emailStatus
+              ? m.emailStatuses[confirmation.emailStatus]
+              : m.reservationConfirmed}
         </p>
       </section>
 
@@ -104,7 +116,7 @@ export function CheckoutConfirmation({
           <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
             {m.qrTitle}
           </h2>
-          <strong className="block text-sm font-mono font-bold text-slate-800 mb-2">
+          <strong className="block max-w-full break-all text-sm font-mono font-bold text-slate-800 mb-2">
             {confirmation.bookingCode}
           </strong>
           <div className="flex justify-center my-2">
@@ -116,7 +128,7 @@ export function CheckoutConfirmation({
               <p className="text-xs text-slate-400 py-8">{m.qrUnavailable}</p>
             )}
           </div>
-          <p className="text-xs text-slate-400 mt-1">{m.qrHint}</p>
+          <p className="text-xs text-slate-400 mt-1">{qrHint}</p>
         </div>
 
         {/* Summary Details Panel */}
@@ -196,6 +208,8 @@ export function CheckoutConfirmation({
           ) : null}
         </div>
       </div>
+
+      {children}
 
       {/* Action Links - "Booking" button removed as requested */}
       <div className="flex items-center justify-center pt-2">

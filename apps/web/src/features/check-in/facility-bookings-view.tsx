@@ -1,5 +1,4 @@
 "use client";
-import type { BookingListItem } from "@metastorage/contracts";
 import { UserRole } from "@metastorage/database/schema/user-enums";
 import {
   ArrowRight,
@@ -27,6 +26,7 @@ import {
   titleClass,
   UnitPlaceholder,
 } from "@/features/facility-flow/flow-ui";
+import type { DispatchItem } from "@/features/facility-flow/use-dispatch";
 import { readiness, useDispatch } from "@/features/facility-flow/use-dispatch";
 import { formatDateTime } from "@/lib/format";
 import type { FacilityBookingsViewProps } from "./facility-bookings-view.types";
@@ -64,7 +64,7 @@ export function FacilityBookingsView({
   const root = isStaff ? "/staff" : "/facility-manager";
   const d = useDispatch(facilityId, isStaff);
   const { filter, search } = d;
-  const [staffBooking, setStaffBooking] = useState<BookingListItem | null>(null);
+  const [staffBooking, setStaffBooking] = useState<DispatchItem | null>(null);
   const [page, setPage] = useState(1);
   const pageSize = 6;
   const pageCount = Math.max(1, Math.ceil(d.filtered.length / pageSize));
@@ -257,7 +257,7 @@ export function FacilityBookingsView({
                 "READY_HANDOVER",
                 "TOO_EARLY",
               ].includes(state);
-            const url = `${root}/check-in?bookingCode=${encodeURIComponent(b.bookingCode)}`;
+            const url = `${root}/check-in?appointmentId=${encodeURIComponent(b.id)}`;
             if (!isStaff)
               return (
                 <ManagerBookingRow
@@ -374,7 +374,7 @@ export function FacilityBookingsView({
                         {FLOW.reassign}
                       </Link>
                     )}
-                    {!isStaff && b.status === "CONFIRMED" && (
+                    {!isStaff && canAssign && (
                       <button
                         type="button"
                         className="text-[#306858] underline"

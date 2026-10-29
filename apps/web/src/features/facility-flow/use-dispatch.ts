@@ -1,30 +1,88 @@
 "use client";
-import type { BookingListItem } from "@metastorage/contracts";
+import type { AppointmentRecordDto, BookingListItem } from "@metastorage/contracts";
+import { APPOINTMENT_TYPES } from "@metastorage/database/schema/appointments";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { bookingKeys } from "@/features/check-in/hooks";
+import { useFlow3Identity } from "@/features/returns/use-flow3-identity";
 import { api } from "@/lib/api";
-export function readiness(b: BookingListItem, now = Date.now()) {
+export type DispatchItem = Omit<BookingListItem, "assignedUnit" | "assignedStaff" | "status"> & {
+  reservationId: string | null;
+  status: string;
+  appointmentStatus: string;
+  assignedUnit: AppointmentRecordDto["assignedUnit"];
+  assignedStaff: { id: string; name: string } | null;
+  paymentStatus: string | null;
+};
+export function appointmentItem(a: AppointmentRecordDto): DispatchItem {
+  const r = a.reservation;
+  return {
+    id: a.id,
+    reservationId: a.reservationId,
+    appointmentStatus: a.status,
+    bookingCode: a.reservationId ?? a.id,
+    facilityId: a.facilityId,
+    facilityName: a.facility?.name ?? a.facilityId,
+    unitTypeId: r?.unitTypeId ?? "",
+    unitTypeName: a.unitType?.name ?? a.appointmentType,
+    unitTypeSizeLabel: a.unitType?.sizeLabel ?? "",
+    contactName: a.customerName ?? a.customerId,
+    contactEmail: a.customerEmail ?? "",
+    contactPhone: a.contactPhone ?? "",
+    checkInSlotStart: `${a.scheduledDate}T${a.slotStart ?? "00:00:00"}+07:00`,
+    checkInSlotEnd: a.slotEnd ? `${a.scheduledDate}T${a.slotEnd}+07:00` : null,
+    rentalEndAt: r?.rentalEndAt ?? `${a.scheduledDate}T23:59:59+07:00`,
+    requestedMonths: r?.requestedMonths ?? 0,
+    totalAmount: r?.totalAmount ?? 0,
+    status:
+      a.status === "COMPLETED" && a.appointmentType === "CHECK_IN"
+        ? "CHECKED_IN"
+        : ["CANCELLED", "NO_SHOW"].includes(a.status)
+          ? a.status
+          : (r?.status ?? a.status),
+    handoverStage: a.handoverStage,
+    paidAt: a.paidAt ?? null,
+    paymentStatus: a.paymentStatus ?? null,
+    assignedUnit: a.assignedUnit,
+    assignedStaff: a.assignedStaffId
+      ? { id: a.assignedStaffId, name: a.assignedStaffName ?? a.assignedStaffId }
+      : null,
+    createdAt: a.createdAt,
+  };
+}
+export async function loadAppointmentItem(id: string) {
+  return appointmentItem(await api.appointments.get(id));
+}
+export function readiness(b: DispatchItem, _now = Date.now()): string {
   if (b.status === "CHECKED_IN") return "CHECKED_IN";
   if (b.status === "CANCELLED") return "CANCELLED";
   if (b.status === "NO_SHOW") return "NO_SHOW";
-  if (!b.paidAt) return "PAYMENT_PENDING";
-  // Backend owns the day-end deadline and NO_SHOW transition; slot end is not the deadline.
+  if (b.paymentStatus !== "SUCCEEDED") return "PAYMENT_PENDING";
   if (!b.assignedUnit) return "NEEDS_UNIT";
-  if (!b.assignedStaff) return "NEEDS_STAFF";
+  if (!b.assignedStaff || b.appointmentStatus !== "CONFIRMED") return "NEEDS_STAFF";
   if (!b.checkInSlotEnd) return "SLOT_MISSING";
-  if (b.checkInOpensAt && now < Date.parse(b.checkInOpensAt)) return "TOO_EARLY";
   if (b.handoverStage === "INSPECTING" || b.handoverStage === "READY_HANDOVER")
     return b.handoverStage;
   return "READY";
 }
 export function useDispatch(facilityId: string, staff = false) {
+  const owner = useFlow3Identity();
   const query = useQuery({
-    queryKey: staff ? bookingKeys.staffTasks(facilityId) : bookingKeys.facility(facilityId),
-    queryFn: () =>
-      staff
-        ? api.legacyBookings.listAssignedToMe(facilityId)
-        : api.legacyBookings.listFacilityBookings(facilityId),
+    queryKey: [
+      ...(staff ? bookingKeys.staffTasks(facilityId) : bookingKeys.facility(facilityId)),
+      owner,
+    ],
+    queryFn: async () =>
+      (
+        await (staff
+          ? api.appointments.assignedToMe({
+              facilityId,
+              appointmentType: APPOINTMENT_TYPES.CHECK_IN,
+            })
+          : api.appointments.listFacility(facilityId, {
+              appointmentType: APPOINTMENT_TYPES.CHECK_IN,
+            }))
+      ).map(appointmentItem),
     enabled: !!facilityId,
     refetchInterval: 30000,
   });
@@ -36,7 +94,7 @@ export function useDispatch(facilityId: string, staff = false) {
     return () => clearInterval(timer);
   }, []);
   const bookings = [...(query.data ?? [])].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    (a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt),
   );
   const filtered = bookings.filter(
     (b) =>

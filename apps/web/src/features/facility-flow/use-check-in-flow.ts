@@ -1,5 +1,6 @@
 "use client";
 import type {
+  AppointmentRecordDto,
   CheckInLookupInput,
   InspectionRecord,
   UpdateInspectionInput,
@@ -22,6 +23,7 @@ import { useGlobalLoading } from "@/components/providers/global-loading-provider
 import { useToast } from "@/components/ui/toast";
 import { api } from "@/lib/api";
 import { FLOW } from "./flow.messages";
+import { appointmentItem } from "./use-dispatch";
 
 export function flowError(error: unknown) {
   return axios.isAxiosError(error)
@@ -50,15 +52,62 @@ export function useCheckInFlow() {
   const pathname = usePathname();
   const params = useSearchParams();
   const { showToast } = useToast();
-  const code = params.get("bookingCode") ?? "";
+  const code = params.get("appointmentId") ?? params.get("bookingCode") ?? "";
   const token = params.get("qrToken") ?? "";
   const lookup = useQuery({
     queryKey: ["facility-flow", "lookup", code, token],
-    queryFn: () =>
-      api.legacyBookings.checkInLookup({
-        type: token ? "QR_TOKEN" : "BOOKING_CODE",
-        value: token || code,
-      }),
+    queryFn: async () => {
+      let id = token ? normalizeLookup(token) : code;
+      try {
+        const url = new URL(id);
+        id =
+          url.searchParams.get("appointmentId") ??
+          url.pathname.split("/").filter(Boolean).at(-1) ??
+          id;
+      } catch {}
+      const isId = /^[0-9a-f-]{36}$/i.test(id);
+      let appointment: AppointmentRecordDto | undefined;
+      try {
+        appointment = isId ? await api.appointments.get(id) : undefined;
+      } catch (error) {
+        if (!axios.isAxiosError(error) || error.response?.status !== 404) throw error;
+      }
+      if (!appointment) {
+        const assignments = await api.facilities.myAssignments();
+        const scope = assignments.filter((x) => x.isActive);
+        for (const facility of scope) {
+          const list = await (pathname.startsWith("/staff")
+            ? api.appointments.assignedToMe({ facilityId: facility.facilityId })
+            : api.appointments.listFacility(facility.facilityId));
+          appointment = list.find((x) => x.id === id || x.reservationId === id);
+          if (appointment) break;
+        }
+      }
+      if (!appointment) throw new Error(FLOW.emptyTitle);
+      const booking = {
+        ...appointmentItem(appointment),
+        checkInDeadlineAt: `${appointment.scheduledDate}T23:59:59.999+07:00`,
+      };
+      const r = appointment.reservation;
+      const reasons = [];
+      if (booking.status !== "CONFIRMED" || appointment.status !== "CONFIRMED")
+        reasons.push("INVALID_BOOKING_STATUS");
+      if (appointment.paymentStatus !== "SUCCEEDED") reasons.push("PAYMENT_NOT_SUCCEEDED");
+      if (!booking.assignedUnit) reasons.push("UNIT_NOT_ASSIGNED");
+      return {
+        booking,
+        payment: {
+          status: appointment.paymentStatus,
+          paidAt: appointment.paidAt ?? null,
+          totalAmount: r?.totalAmount ?? null,
+          rentalFeeAmount: r?.rentalFeeAmount ?? null,
+          depositAmount: r?.depositAmount ?? null,
+          currency: r ? "VND" : null,
+        },
+        assignedUnit: booking.assignedUnit,
+        checkInReadiness: { canProceed: reasons.length === 0, reasons },
+      };
+    },
     enabled: !!(code || token),
     retry: false,
     staleTime: 0,
@@ -66,9 +115,10 @@ export function useCheckInFlow() {
   });
   const result = lookup.data;
   const bookingId = result?.booking.id ?? "";
+  const recordKey = inspectionKey(result?.booking.reservationId ?? bookingId);
   const history = useQuery({
-    queryKey: inspectionKey(bookingId),
-    queryFn: () => api.legacyInspections.history(bookingId),
+    queryKey: recordKey,
+    queryFn: () => api.inspections.forAppointment(bookingId),
     enabled: !!bookingId,
     retry: false,
     staleTime: 0,
@@ -77,7 +127,6 @@ export function useCheckInFlow() {
   const current = history.data?.find(
     (inspection) =>
       inspection.inspectionType === "CHECK_IN" &&
-      inspection.reservationId === bookingId &&
       inspection.storageUnitId === result?.assignedUnit?.physicalUnitId,
   );
   const view = params.get("view") ?? "verify";
@@ -100,7 +149,11 @@ export function useCheckInFlow() {
     if (task.status === FacilityTaskStatus.ASSIGNED)
       await api.flow5.tasks.update(task.id, { status: FacilityTaskStatus.IN_PROGRESS });
     else if (task.status !== FacilityTaskStatus.IN_PROGRESS) throw new Error(FLOW.taskNotReady);
-    return api.legacyInspections.start(bookingId);
+    if (!result?.assignedUnit) throw new Error(FLOW.unassigned);
+    return api.inspections.create({
+      taskId: task.id,
+      storageUnitId: result.assignedUnit.physicalUnitId,
+    });
   }
   const verify = useMutation({
     meta: { globalLoading: true },
@@ -108,7 +161,7 @@ export function useCheckInFlow() {
     onSuccess: async (inspection) => {
       await queryClient.invalidateQueries({ queryKey: ["bookings"] });
       const response = await history.refetch();
-      queryClient.setQueryData(inspectionKey(bookingId), [
+      queryClient.setQueryData(recordKey, [
         inspection,
         ...(response.data ?? []).filter((item) => item.id !== inspection.id),
       ]);
@@ -124,7 +177,7 @@ export function useCheckInFlow() {
     meta: { globalLoading: true },
     mutationFn: startInspection,
     onSuccess: async (inspection) => {
-      queryClient.setQueryData(inspectionKey(bookingId), (old: InspectionRecord[] | undefined) => [
+      queryClient.setQueryData(recordKey, (old: InspectionRecord[] | undefined) => [
         inspection,
         ...(old ?? []).filter((item) => item.id !== inspection.id),
       ]);

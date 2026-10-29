@@ -5,7 +5,7 @@ export const APPOINTMENT_MESSAGES = {
     "The rental return must be finalized before completing its check-out appointment.",
   notFound: "Appointment not found.",
   invalidSlot: "The appointment slot is invalid or has already started.",
-  reservationNotConfirmed: "The reservation must be paid and confirmed before scheduling check-in.",
+  reservationNotConfirmed: "The reservation is not eligible for this appointment operation.",
   scheduleMismatch: "The appointment does not match the reservation or rental period.",
   contextMismatch: "The appointment context belongs to another facility.",
   alreadyScheduled: "An active appointment already exists for this request.",

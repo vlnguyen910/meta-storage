@@ -10,6 +10,7 @@ import {
   payments,
   type ReservationRecord,
   ReservationStatus,
+  rentals,
   reservations,
   sql,
   unitTypes,
@@ -51,6 +52,9 @@ export class ReservationsRepository {
         ...getTableColumns(reservations),
         facility: { id: facilities.id, name: facilities.name, address: facilities.address },
         unitType: { id: unitTypes.id, name: unitTypes.name, sizeLabel: unitTypes.sizeLabel },
+        rentalId: sql<
+          string | null
+        >`(select ${rentals.id} from ${rentals} where ${rentals.reservationId} = ${reservations.id} limit 1)`,
         paymentStatus: sql<
           string | null
         >`(select ${payments.status}::text from ${payments} where ${payments.reservationId} = ${reservations.id} order by ${payments.createdAt} desc, ${payments.id} desc limit 1)`,

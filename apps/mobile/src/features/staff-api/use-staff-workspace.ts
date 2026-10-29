@@ -1,8 +1,4 @@
-import {
-  type FacilityTaskDetail,
-  FacilityTaskStatus,
-  StorageUnitStatus,
-} from "@metastorage/contracts";
+import { type FacilityTaskDetail, FacilityTaskStatus } from "@metastorage/contracts";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { api } from "../../lib/api";
@@ -118,31 +114,6 @@ export function useStaffCheckIn(owner: string, appointmentId: string) {
     queryFn: () => api.inspections.forAppointment(appointmentId),
   });
   const record = history.data?.find((item) => item.taskId === task?.id);
-  const context = appointment.data;
-  const units = useQuery({
-    queryKey: [
-      "mobile-handover-units",
-      owner,
-      context?.facilityId,
-      context?.reservation?.unitTypeId,
-    ],
-    queryFn: async () => {
-      if (!context?.reservation) return [];
-      const items: import("@metastorage/contracts").StorageUnitDetail[] = [];
-      for (let offset = 0; ; offset += 100) {
-        const page = await api.flow5.units.list({
-          facilityId: context.facilityId,
-          unitTypeId: context.reservation.unitTypeId,
-          status: StorageUnitStatus.AVAILABLE,
-          limit: 100,
-          offset,
-        });
-        items.push(...page.items);
-        if (offset + page.items.length >= page.total || !page.items.length) return items;
-      }
-    },
-    enabled: Boolean(context?.reservation) && !record,
-  });
   const refresh = async () => {
     await Promise.all([
       appointment.refetch(),
@@ -192,7 +163,6 @@ export function useStaffCheckIn(owner: string, appointmentId: string) {
     task,
     history,
     record,
-    units,
     begin,
     start,
     save,
@@ -211,7 +181,6 @@ export function useStaffCheckIn(owner: string, appointmentId: string) {
       appointment.error ??
       tasks.error ??
       history.error ??
-      units.error ??
       begin.error ??
       start.error ??
       save.error ??

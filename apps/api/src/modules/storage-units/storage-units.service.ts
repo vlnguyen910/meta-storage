@@ -61,6 +61,7 @@ export class StorageUnitsService {
       unitTypeId: string;
       startsAt: Date;
       endsAt: Date;
+      reservationId?: string;
     },
   ) {
     const unit = await this.repository.lockAvailableForHandover(
@@ -69,12 +70,55 @@ export class StorageUnitsService {
       input.taskId,
       input.startsAt,
       input.endsAt,
+      input.reservationId,
     );
     if (!unit || unit.facilityId !== input.facilityId || unit.unitTypeId !== input.unitTypeId)
       throw new ConflictError(STORAGE_UNIT_MESSAGES.unitHasOperations);
     return unit;
   }
 
+  async assignReservationUnit(
+    tx: TaskTransaction,
+    input: {
+      reservationId: string;
+      unitId: string;
+      facilityId: string;
+      unitTypeId: string;
+      startsAt: Date;
+      endsAt: Date;
+      managerId: string;
+      reason?: string;
+    },
+  ) {
+    const current = await this.repository.findReservationAssignment(tx, input.reservationId);
+    await this.repository.lockAssignmentUnits(tx, [
+      input.unitId,
+      ...(current ? [current.physicalUnitId] : []),
+    ]);
+    if (current?.physicalUnitId === input.unitId) return;
+    if (await this.repository.hasReservationInspection(tx, input.reservationId))
+      throw new ConflictError(STORAGE_UNIT_MESSAGES.unitHasOperations);
+    await this.requireHandoverUnit(tx, { ...input, taskId: input.reservationId });
+    if (current)
+      await this.repository.closeReservationAssignment(
+        tx,
+        input.reservationId,
+        "REASSIGNED",
+        input.reason,
+      );
+    await this.repository.createReservationAssignment(tx, {
+      reservationId: input.reservationId,
+      physicalUnitId: input.unitId,
+      assignedBy: input.managerId,
+      reason: input.reason,
+    });
+  }
+  findReservationAssignment(tx: TaskTransaction, id: string) {
+    return this.repository.findReservationAssignment(tx, id);
+  }
+  closeReservationAssignment(tx: TaskTransaction, id: string, status: "CANCELLED" | "COMPLETED") {
+    return this.repository.closeReservationAssignment(tx, id, status);
+  }
   markOccupied(tx: TaskTransaction, unitId: string, now: Date) {
     return this.repository.markOccupied(tx, unitId, now);
   }

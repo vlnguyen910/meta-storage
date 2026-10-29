@@ -32,7 +32,8 @@ import { flowError } from "./use-check-in-flow";
 export function AssignmentScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const id = useSearchParams().get("bookingId") ?? "";
+  const params = useSearchParams();
+  const id = params.get("appointmentId") ?? params.get("bookingId") ?? "";
   const booking = useBooking(id);
   const units = useEligibleUnits(id);
   const mutation = useAssignPhysicalUnitMutation();
@@ -87,7 +88,7 @@ export function AssignmentScreen() {
           : FLOW.assignedSuccess,
         "success",
       );
-      router.push(`${root}/check-in?bookingCode=${encodeURIComponent(change.bookingCode)}`);
+      router.push(`${root}/check-in?appointmentId=${encodeURIComponent(change.bookingId)}`);
     } catch (e) {
       setError(flowError(e));
       showToast(flowError(e), "error");

@@ -1,15 +1,24 @@
 import type { AppointmentQuery, UpdateAppointmentInput } from "@metastorage/contracts";
 import {
+  aliasedTable,
   and,
   appointments,
   asc,
   checkInSlots,
   type Database,
   eq,
+  facilities,
+  facilityTasks,
   getTableColumns,
   inArray,
+  inspections,
   type NewAppointmentRecord,
+  payments,
   reservations,
+  sql,
+  storageUnits,
+  unitAssignments,
+  unitTypes,
   users,
 } from "@metastorage/database";
 import { APPOINTMENT_STATUSES as Status } from "@metastorage/database/schema/appointments";
@@ -18,9 +27,22 @@ import { APPOINTMENT_MESSAGES as m } from "./appointments.messages";
 
 export type AppointmentTransaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
 
+const staff = aliasedTable(users, "appointment_staff");
+
 export class AppointmentsRepository {
   constructor(private readonly db: Database) {}
 
+  setReservationContact(tx: AppointmentTransaction, reservationId: string, phone: string) {
+    return tx
+      .update(appointments)
+      .set({ contactPhone: phone, updatedAt: new Date() })
+      .where(
+        and(
+          eq(appointments.reservationId, reservationId),
+          inArray(appointments.status, [Status.SCHEDULED, Status.CONFIRMED]),
+        ),
+      );
+  }
   closeForReservation(
     tx: AppointmentTransaction,
     reservationId: string,
@@ -72,19 +94,46 @@ export class AppointmentsRepository {
       .select({
         ...getTableColumns(appointments),
         customerName: users.name,
+        contactPhone: sql<string | null>`coalesce(${appointments.contactPhone}, ${users.phone})`,
+        customerEmail: users.email,
+        assignedStaffName: staff.name,
+        assignedUnit: {
+          id: unitAssignments.id,
+          physicalUnitId: unitAssignments.physicalUnitId,
+          physicalUnitCode: storageUnits.code,
+          assignedBy: unitAssignments.assignedBy,
+          assignedAt: unitAssignments.assignedAt,
+          endedAt: unitAssignments.endedAt,
+          reason: unitAssignments.reason,
+          status: unitAssignments.status,
+        },
         slotName: checkInSlots.name,
         slotStart: checkInSlots.startTime,
         slotEnd: checkInSlots.endTime,
-        reservation: {
-          unitTypeId: reservations.unitTypeId,
-          rentalStartAt: reservations.rentalStartAt,
-          rentalEndAt: reservations.rentalEndAt,
-        },
+        reservation: { ...getTableColumns(reservations) },
+        facility: { id: facilities.id, name: facilities.name, address: facilities.address },
+        unitType: { id: unitTypes.id, name: unitTypes.name, sizeLabel: unitTypes.sizeLabel },
+        handoverStage: sql<string>`case when ${appointments.status} = 'COMPLETED' then 'HANDED_OVER' when exists(select 1 from ${inspections} i join ${facilityTasks} t on t.id = i.task_id where t.reference_type = 'APPOINTMENT' and t.reference_id = ${appointments.id} and t.status <> 'CANCELLED' and i.status = 'PASSED') then 'READY_HANDOVER' when exists(select 1 from ${facilityTasks} t where t.reference_type = 'APPOINTMENT' and t.reference_id = ${appointments.id} and t.status = 'IN_PROGRESS') then 'INSPECTING' else 'WAITING_CUSTOMER' end`,
+        paidAt: sql<Date | null>`(select ${payments.paidAt} from ${payments} where ${payments.reservationId} = ${appointments.reservationId} and ${payments.paidAt} is not null order by ${payments.paidAt} desc limit 1)`,
+        paymentStatus: sql<
+          string | null
+        >`(select ${payments.status}::text from ${payments} where ${payments.reservationId} = ${appointments.reservationId} order by ${payments.createdAt} desc, ${payments.id} desc limit 1)`,
       })
       .from(appointments)
       .innerJoin(users, eq(users.id, appointments.customerId))
+      .innerJoin(facilities, eq(facilities.id, appointments.facilityId))
       .innerJoin(checkInSlots, eq(checkInSlots.id, appointments.slotId))
-      .leftJoin(reservations, eq(reservations.id, appointments.reservationId));
+      .leftJoin(reservations, eq(reservations.id, appointments.reservationId))
+      .leftJoin(unitTypes, eq(unitTypes.id, reservations.unitTypeId))
+      .leftJoin(staff, eq(staff.id, appointments.assignedStaffId))
+      .leftJoin(
+        unitAssignments,
+        eq(
+          unitAssignments.id,
+          sql`(select ua.id from unit_assignments ua where ua.reservation_id = ${appointments.reservationId} order by ua.assigned_at desc,ua.id desc limit 1)`,
+        ),
+      )
+      .leftJoin(storageUnits, eq(storageUnits.id, unitAssignments.physicalUnitId));
   }
 
   async findById(id: string) {
@@ -121,9 +170,10 @@ export class AppointmentsRepository {
 
   async update(id: string, data: UpdateAppointmentInput, tx: AppointmentTransaction) {
     try {
+      const { physicalUnitId: _unit, assignmentReason: _reason, ...fields } = data;
       const [appointment] = await tx
         .update(appointments)
-        .set({ ...data, updatedAt: new Date() })
+        .set({ ...fields, updatedAt: new Date() })
         .where(eq(appointments.id, id))
         .returning();
       return appointment;

@@ -11,7 +11,8 @@ import {
 import { useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { MobilePhoto } from "../../components/ui/mobile-photo";
-import { Button, Card, Field, Heading, Notice, Row } from "../../components/ui/mobile-ui";
+import { Button, Card, dateTime, Field, Heading, Notice, Row } from "../../components/ui/mobile-ui";
+import { StatusPill } from "../../components/ui/workspace-ui";
 import { STAFF_API_UI as M } from "./staff-api.messages";
 import { staffError, useStaffCheckIn } from "./use-staff-workspace";
 
@@ -24,44 +25,75 @@ export function StaffCheckInView({
 }) {
   const flow = useStaffCheckIn(owner, appointment.id);
   const [received, setReceived] = useState(false);
-  const [unitId, setUnitId] = useState("");
   const done = flow.appointment.data?.status === "COMPLETED";
-  if (appointment.appointmentType !== "CHECK_IN") return <Notice>{M.nonCheckIn}</Notice>;
+  const verified = flow.task?.status === "IN_PROGRESS" || Boolean(flow.record);
+  const reasons = flow.appointment.data?.assignedUnit ? [] : ["UNIT_NOT_ASSIGNED"];
+  const canProceed = flow.appointment.data?.status === "CONFIRMED" && reasons.length === 0;
   return (
     <>
-      <Heading>{appointment.customerName ?? appointment.id}</Heading>
+      <Heading>{appointment.reservationId ?? appointment.id}</Heading>
       <Card>
+        <Row label={M.customer} value={appointment.customerName ?? appointment.customerId} />
+        <Row label={M.phone} value={appointment.contactPhone ?? ""} />
+        <Row
+          label={M.unit}
+          value={
+            flow.appointment.data?.assignedUnit?.physicalUnitCode ??
+            appointment.assignedUnit?.physicalUnitCode ??
+            M.noUnit
+          }
+        />
         <Row
           label={M.time}
-          value={`${appointment.scheduledDate} · ${appointment.slotName ?? ""}`}
-        />
-        {appointment.contactPhone && <Row label={M.phone} value={appointment.contactPhone} />}
-      </Card>
-      {flow.appointment.isPending && <ActivityIndicator accessibilityLabel={M.loading} />}
-      {flow.error && <Notice error>{staffError(flow.error)}</Notice>}
-      {done ? (
-        <Notice>{M.handedOver}</Notice>
-      ) : (
-        <>
-          {flow.task?.status === "ASSIGNED" && (
-            <Button label={M.verify} disabled={flow.busy} onPress={() => flow.begin.mutate()} />
+          value={dateTime(
+            `${appointment.scheduledDate}T${appointment.slotStart ?? "00:00:00"}+07:00`,
           )}
-          {flow.task?.status === "IN_PROGRESS" && !flow.record && (
-            <Card title={M.unit}>
-              {flow.units.data?.map((unit) => (
-                <Button
-                  key={unit.id}
-                  secondary
-                  label={`${unitId === unit.id ? "✓ " : ""}${unit.code}`}
-                  onPress={() => setUnitId(unit.id)}
-                />
-              ))}
+        />
+        {done ? (
+          <Notice>{M.handedOver}</Notice>
+        ) : (
+          <StatusPill label={M.status[appointment.status] ?? appointment.status} tone="blue" />
+        )}
+      </Card>
+      {(flow.appointment.isPending || (verified && flow.history.isPending)) && (
+        <ActivityIndicator color="#065f46" accessibilityLabel={M.loading} />
+      )}
+      {flow.error && (
+        <>
+          <Notice error>{staffError(flow.error)}</Notice>
+          <Button
+            secondary
+            label={M.retry}
+            onPress={() => {
+              void flow.appointment.refetch();
+              if (verified) void flow.history.refetch();
+            }}
+          />
+        </>
+      )}
+      {!done && flow.appointment.isSuccess && (
+        <>
+          {!verified && (
+            <Card title={M.verify}>
+              <Text className="mb-4 leading-6 text-slate-500">{M.lookupRequired}</Text>
+              {reasons.length > 0 && (
+                <Notice>{reasons.map((reason) => M.reasons[reason] ?? reason).join(" ")}</Notice>
+              )}
               <Button
-                label={M.inspect}
-                disabled={!unitId || flow.busy}
-                onPress={() => flow.start.mutate(unitId)}
+                label={M.verify}
+                disabled={!canProceed || !flow.tasks.data || flow.busy}
+                onPress={() => flow.begin.mutate()}
               />
             </Card>
+          )}
+          {verified && flow.history.isSuccess && !flow.record && (
+            <Button
+              label={M.inspect}
+              disabled={flow.busy}
+              onPress={() =>
+                flow.start.mutate(flow.appointment.data?.assignedUnit?.physicalUnitId ?? "")
+              }
+            />
           )}
           {flow.record && (
             <InspectionEditor
@@ -80,10 +112,14 @@ export function StaffCheckInView({
                 accessibilityState={{ checked: received, disabled: flow.busy }}
                 disabled={flow.busy}
                 onPress={() => setReceived((value) => !value)}
-                className="min-h-12 flex-row items-center gap-3"
+                className="mb-5 min-h-12 flex-row items-center gap-3"
               >
-                <Text>{received ? "✓" : "○"}</Text>
-                <Text className="flex-1">{M.received}</Text>
+                <View
+                  className={`h-6 w-6 items-center justify-center rounded-md border ${received ? "border-emerald-800 bg-emerald-800" : "border-slate-300 bg-white"}`}
+                >
+                  <Text className="font-bold text-white">{received ? "✓" : ""}</Text>
+                </View>
+                <Text className="flex-1 text-sm leading-6 text-slate-700">{M.received}</Text>
               </Pressable>
               <Button
                 label={M.handover}
@@ -97,7 +133,6 @@ export function StaffCheckInView({
     </>
   );
 }
-
 function InspectionEditor({
   record,
   busy,

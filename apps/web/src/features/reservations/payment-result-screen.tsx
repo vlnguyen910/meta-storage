@@ -75,7 +75,7 @@ export function PaymentResultScreen() {
     <main aria-busy={blockingPaymentCheck} className="mx-auto w-full max-w-4xl px-4 py-2 sm:py-3">
       {blockingPaymentCheck && <Spinner label={m.loading} />}
       {confirmedId ? (
-        <ReservationReceipt key={confirmedId} reservationId={confirmedId} />
+        <ReservationReceipt key={confirmedId} reservationId={confirmedId} variant="confirmation" />
       ) : (
         <section className="grid gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-xs max-w-xl mx-auto">
           <h1 className="text-xl font-bold text-slate-900">{m.title}</h1>

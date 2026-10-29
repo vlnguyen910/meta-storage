@@ -137,6 +137,9 @@ export const checkoutMessages = {
   expiry: "Thời gian giữ chỗ còn lại",
   expired:
     "Thời gian giữ chỗ đã hết. Vui lòng kiểm tra kết quả giao dịch trước khi thanh toán tiếp.",
+  reservationConfirmed:
+    "Thanh toán đã được xác nhận. Hãy lưu mã đặt kho để đối chiếu khi đến nhận kho.",
+  reservationQrHint: "Quét QR để mở chi tiết đặt kho. Cần đăng nhập bằng tài khoản đã đặt.",
   successful: "Đặt thuê kho thành công!",
   successDescription:
     "Thanh toán đã được xác nhận. Lưu mã xác nhận và đến chi nhánh theo lịch nhận kho.",

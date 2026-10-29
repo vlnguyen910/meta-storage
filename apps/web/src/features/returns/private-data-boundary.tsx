@@ -4,6 +4,9 @@ import { useEffect } from "react";
 import { authStore } from "@/features/auth/auth-store";
 
 const privateRoots = new Set([
+  "facility-flow",
+  "customer-booking",
+  "customer-bookings",
   "reservations",
   "appointments",
   "appointment-tasks",

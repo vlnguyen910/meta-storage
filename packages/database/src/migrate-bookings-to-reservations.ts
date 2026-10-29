@@ -2,7 +2,7 @@ import {
   FacilityTaskReferenceType,
   FacilityTaskStatus,
 } from "@metastorage/contracts/facility-tasks";
-import { and, eq, inArray, notExists, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import type { Database } from "./client";
 import { APPOINTMENT_STATUSES, APPOINTMENT_TYPES, appointments } from "./schema/appointments";
 import { bookings } from "./schema/bookings";
@@ -243,36 +243,41 @@ export async function migrateBookingsToReservations(tx: Transaction) {
           eq(capacityAllocations.kind, "BOOKING"),
         ),
       );
-    const assignments = await tx
+    const movedAssignments = await tx
       .update(unitAssignments)
-      .set({
-        status: "COMPLETED",
-        endedAt: new Date(),
-        reason: "Migrated to reservation appointment",
-      })
-      .where(and(eq(unitAssignments.bookingId, booking.id), eq(unitAssignments.status, "ACTIVE")))
-      .returning({ unitId: unitAssignments.physicalUnitId });
-    for (const assignment of assignments)
-      await tx
-        .update(storageUnits)
-        .set({ status: "AVAILABLE", updatedAt: new Date() })
-        .where(
-          and(
-            eq(storageUnits.id, assignment.unitId),
-            eq(storageUnits.status, "RESERVED"),
-            notExists(
-              tx
-                .select({ id: rentals.id })
-                .from(rentals)
-                .where(
-                  and(
-                    eq(rentals.storageUnitId, assignment.unitId),
-                    eq(rentals.status, RentalStatus.ACTIVE),
-                  ),
-                ),
+      .set({ reservationId: booking.id, bookingId: null })
+      .where(eq(unitAssignments.bookingId, booking.id))
+      .returning();
+    if (booking.status !== "CONFIRMED")
+      for (const assignment of movedAssignments.filter((a) => a.status === "ACTIVE")) {
+        await tx
+          .update(unitAssignments)
+          .set({
+            status: booking.status === "CHECKED_IN" ? "COMPLETED" : "CANCELLED",
+            endedAt: new Date(),
+          })
+          .where(eq(unitAssignments.id, assignment.id));
+        const [activeRental] = await tx
+          .select({ id: rentals.id })
+          .from(rentals)
+          .where(
+            and(
+              eq(rentals.storageUnitId, assignment.physicalUnitId),
+              eq(rentals.status, RentalStatus.ACTIVE),
             ),
-          ),
-        );
+          )
+          .limit(1);
+        if (!activeRental)
+          await tx
+            .update(storageUnits)
+            .set({ status: "AVAILABLE", updatedAt: new Date() })
+            .where(
+              and(
+                eq(storageUnits.id, assignment.physicalUnitId),
+                eq(storageUnits.status, "RESERVED"),
+              ),
+            );
+      }
   }
   return { converted };
 }

@@ -1,5 +1,16 @@
-import { index, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import {
+  check,
+  index,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
 import { bookings } from "./bookings";
+import { reservations } from "./reservations";
 import { storageUnits } from "./storage-units";
 import { users } from "./users";
 
@@ -10,9 +21,8 @@ export const unitAssignments = pgTable(
   "unit_assignments",
   {
     id: uuid().defaultRandom().primaryKey(),
-    bookingId: uuid()
-      .notNull()
-      .references(() => bookings.id, { onDelete: "cascade" }),
+    reservationId: uuid().references(() => reservations.id, { onDelete: "restrict" }),
+    bookingId: uuid().references(() => bookings.id, { onDelete: "cascade" }),
     physicalUnitId: uuid()
       .notNull()
       .references(() => storageUnits.id, { onDelete: "restrict" }),
@@ -25,6 +35,14 @@ export const unitAssignments = pgTable(
     reason: text(),
   },
   (table) => [
+    check(
+      "unit_assignments_reference_valid",
+      sql`num_nonnulls(${table.bookingId}, ${table.reservationId}) = 1`,
+    ),
+    index("unit_assignments_reservation_idx").on(table.reservationId),
+    uniqueIndex("unit_assignments_active_reservation_idx")
+      .on(table.reservationId)
+      .where(sql`${table.status} = 'ACTIVE'`),
     index("unit_assignments_booking_idx").on(table.bookingId),
     index("unit_assignments_physical_unit_idx").on(table.physicalUnitId),
     index("unit_assignments_booking_status_idx").on(table.bookingId, table.status),

@@ -49,7 +49,7 @@ Appointment states are SCHEDULED → CONFIRMED → COMPLETED, with CANCELLED/NO_
 terminal alternatives. Manager confirmation requires assigned active staff. Only
 the assigned staff can complete a confirmed appointment after starting its task.
 Check-in completion additionally requires reservation CHECKED_IN; check-out
-completion requires rental CLOSED. Staff start the task, then POST `/api/inspections` with taskId and storageUnitId.
+completion requires rental CLOSED. FM assigns a matching physical unit and staff through PATCH appointment; this creates the task atomically. Staff start the task, then POST `/api/inspections` with taskId and storageUnitId.
 The backend derives the reservation and checks that the physical unit belongs to
 its facility/type and has no active assignment, rental or other active check-in
 inspection. Unit row locks serialize competing staff selections. Existing
@@ -70,6 +70,35 @@ uses PATCH `/:id` with CANCELLED; appointment staff can list `/assigned-to-me`.
 Facility list paths are validated and service authorization uses the path facility,
 not a frontend-supplied query override. Business writes use transactions and row
 locks; no generic deletion endpoints are introduced.
+
+## Physical-unit assignment for reservations
+
+Migration `0014_mushy_the_executioner.sql` extends `unit_assignments` with nullable
+`reservation_id` (RESTRICT), makes `booking_id` nullable and requires exactly one
+parent. A partial unique index permits one ACTIVE assignment per reservation.
+Historical booking assignments remain; conversion preserves references/history.
+
+FM uses PATCH `/api/appointments/:id` with `physicalUnitId`, `assignedStaffId` and
+CONFIRMED. It may select the unit before confirming staff using the same endpoint.
+The paid reservation and appointment are locked, units are locked in UUID order,
+and facility/type/availability are validated. The unit becomes RESERVED; staff
+inspect this unit and cannot choose a different unit. Reassignment ends the old
+assignment and is refused after inspection has started. Cancellation/no-show
+releases the unit; handover completes the assignment and makes the unit OCCUPIED.
+Assigned capacity is counted once: the reserved physical unit is removed from
+inventory and its reservation allocation is excluded from unassigned demand.
+
+A customer CHECK_IN appointment may reference a DRAFT reservation so the schedule
+exists before payment. DRAFT only stores the quote; verified payment confirms the
+reservation. FM cannot assign a unit, confirm staff or create receiving work for
+an unpaid reservation. Existing appointment-after-payment clients remain supported.
+
+```mermaid
+erDiagram
+  reservations ||--o{ unit_assignments : physical_unit_history
+  bookings o|--o{ unit_assignments : archived_assignment
+  storage_units ||--o{ unit_assignments : assigned
+```
 
 ## Rental tối giản (2026-10-28)
 
@@ -592,7 +621,8 @@ erDiagram
 
   unit_assignments {
     uuid id PK
-    uuid booking_id FK
+    uuid reservation_id FK "nullable; exactly one parent"
+    uuid booking_id FK "nullable; archived context"
     uuid physical_unit_id FK
     uuid assigned_by FK
     varchar status

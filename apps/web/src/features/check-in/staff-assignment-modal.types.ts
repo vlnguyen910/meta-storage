@@ -1,7 +1,7 @@
-import type { BookingListItem } from "@metastorage/contracts";
+import type { DispatchItem } from "@/features/facility-flow/use-dispatch";
 
 export interface StaffAssignmentModalProps {
-  booking: BookingListItem;
+  booking: DispatchItem;
   isOpen: boolean;
   onClose: () => void;
 }
