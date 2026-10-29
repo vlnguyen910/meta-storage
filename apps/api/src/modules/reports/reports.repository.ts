@@ -14,7 +14,9 @@ import {
   or,
   payments,
   type RentalStatus,
+  ReservationStatus,
   rentals,
+  reservations,
   type SQL,
   sql,
   storageUnits,
@@ -30,13 +32,22 @@ const amount = (condition: SQL, value: SQL) =>
 const quantity = (condition: SQL) =>
   sql<number>`count(case when ${condition} then 1 end)`.mapWith(Number);
 
+const paymentFacilityId = sql<
+  string | null
+>`coalesce(${bookings.facilityId}, ${reservations.facilityId})`;
+const paymentUnitTypeId = sql<
+  string | null
+>`coalesce(${bookings.unitTypeId}, ${reservations.unitTypeId})`;
+const rentalSnapshot = sql`coalesce(${bookings.rentalFeeAmount}, ${reservations.rentalFeeAmount})`;
+const depositSnapshot = sql`coalesce(${bookings.depositAmount}, ${reservations.depositAmount})`;
+
 function financialRules(asOf: Date) {
   const vn = sql`${payments.currency} = 'VND'`;
   const captured = sql`${payments.paidAt} is not null and ${payments.paidAt} <= ${asOf.toISOString()}`;
-  const known = sql`${bookings.rentalFeeAmount} >= 0 and ${bookings.depositAmount} >= 0 and ${payments.totalAmount} = ${bookings.rentalFeeAmount} + ${bookings.depositAmount} and ${payments.depositForfeitedAmount} <= ${bookings.depositAmount}`;
+  const known = sql`${rentalSnapshot} >= 0 and ${depositSnapshot} >= 0 and ${payments.totalAmount} = ${rentalSnapshot} + ${depositSnapshot} and ${payments.depositForfeitedAmount} <= ${depositSnapshot}`;
   const refund = sql`coalesce(${payments.refundAmount}, ${payments.totalAmount})`;
   const settledRefund = sql`${payments.status} = 'REFUNDED' and ${payments.refundedAt} is not null and ${payments.refundedAt} <= ${asOf.toISOString()}`;
-  const knownRefund = sql`${settledRefund} and (${refund} = ${payments.totalAmount} or (${refund} = ${bookings.rentalFeeAmount} and ${payments.depositForfeitedAmount} = ${bookings.depositAmount}))`;
+  const knownRefund = sql`${settledRefund} and (${refund} = ${payments.totalAmount} or (${refund} = ${rentalSnapshot} and ${payments.depositForfeitedAmount} = ${depositSnapshot}))`;
   const legacyHeldKnown = sql`coalesce((${known} and (${payments.status} = 'SUCCEEDED' or ((${payments.status} = 'REFUND_PENDING' or (${knownRefund})) and ${refund} + ${payments.depositForfeitedAmount} <= ${payments.totalAmount}))), false)`;
   const knownSnapshot = sql`coalesce((${known}), false)`;
   return { vn, captured, refund, settledRefund, heldKnown: legacyHeldKnown, knownSnapshot };
@@ -88,27 +99,27 @@ export class ReportsRepository {
         const refundInPeriod = sql`${settledRefund} and ${payments.refundedAt} >= ${start.toISOString()} and ${payments.refundedAt} < ${end.toISOString()}`;
         const scopedPayment = and(
           or(
-            inArray(bookings.facilityId, scoped.ids),
-            scoped.includeUnattributed ? isNull(payments.bookingId) : undefined,
+            inArray(paymentFacilityId, scoped.ids),
+            scoped.includeUnattributed ? isNull(paymentFacilityId) : undefined,
           ),
         );
         const financial = includeFinancial
           ? await tx
               .select({
-                facilityId: bookings.facilityId,
+                facilityId: paymentFacilityId,
                 cashReceived: amount(sql`${vn} and ${inPeriod}`, sql`${payments.totalAmount}`),
                 rentalCollected: amount(
                   sql`${vn} and ${inPeriod} and ${knownSnapshot}`,
-                  sql`${bookings.rentalFeeAmount}`,
+                  sql`${rentalSnapshot}`,
                 ),
                 depositCollected: amount(
                   sql`${vn} and ${inPeriod} and ${knownSnapshot}`,
-                  sql`${bookings.depositAmount}`,
+                  sql`${depositSnapshot}`,
                 ),
                 cashRefunded: amount(sql`${vn} and ${refundInPeriod}`, refund),
                 depositHeld: amount(
                   sql`${vn} and ${captured} and ${heldKnown} and ${payments.status} <> 'REFUNDED'`,
-                  sql`${bookings.depositAmount} - ${payments.depositForfeitedAmount}`,
+                  sql`${depositSnapshot} - ${payments.depositForfeitedAmount}`,
                 ),
                 depositForfeited: amount(
                   sql`${vn} and ${captured}`,
@@ -130,13 +141,14 @@ export class ReportsRepository {
               })
               .from(payments)
               .leftJoin(bookings, eq(bookings.id, payments.bookingId))
+              .leftJoin(reservations, eq(reservations.id, payments.reservationId))
               .where(
                 and(
                   scopedPayment,
-                  filter.unitTypeId ? eq(bookings.unitTypeId, filter.unitTypeId) : undefined,
+                  filter.unitTypeId ? eq(paymentUnitTypeId, filter.unitTypeId) : undefined,
                 ),
               )
-              .groupBy(bookings.facilityId)
+              .groupBy(paymentFacilityId)
           : [];
         const inventory = await tx
           .select({
@@ -175,7 +187,20 @@ export class ReportsRepository {
               filter.unitTypeId ? eq(bookings.unitTypeId, filter.unitTypeId) : undefined,
             ),
           )
-          .groupBy(bookings.facilityId);
+          .groupBy(bookings.facilityId)
+          .unionAll(
+            tx
+              .select({ facilityId: reservations.facilityId, count: count() })
+              .from(reservations)
+              .where(
+                and(
+                  inArray(reservations.facilityId, scoped.ids),
+                  eq(reservations.status, ReservationStatus.CONFIRMED),
+                  filter.unitTypeId ? eq(reservations.unitTypeId, filter.unitTypeId) : undefined,
+                ),
+              )
+              .groupBy(reservations.facilityId),
+          );
         return {
           facilities: scoped.facilities,
           financial,
@@ -201,10 +226,10 @@ export class ReportsRepository {
         const rules = financialRules(asOf);
         const predicate = and(
           or(
-            inArray(bookings.facilityId, scoped.ids),
-            scoped.includeUnattributed ? isNull(payments.bookingId) : undefined,
+            inArray(paymentFacilityId, scoped.ids),
+            scoped.includeUnattributed ? isNull(paymentFacilityId) : undefined,
           ),
-          filter.unitTypeId ? eq(bookings.unitTypeId, filter.unitTypeId) : undefined,
+          filter.unitTypeId ? eq(paymentUnitTypeId, filter.unitTypeId) : undefined,
         );
         // Group at the database: only monthly aggregates cross the boundary, not payment rows.
         const receiptMonth = sql<string>`to_char(${payments.paidAt} at time zone 'Asia/Ho_Chi_Minh', 'YYYY-MM')`;
@@ -215,17 +240,18 @@ export class ReportsRepository {
             cashReceived: amount(rules.vn, sql`${payments.totalAmount}`),
             rentalCollected: amount(
               sql`${rules.vn} and ${rules.knownSnapshot}`,
-              sql`${bookings.rentalFeeAmount}`,
+              sql`${rentalSnapshot}`,
             ),
             depositCollected: amount(
               sql`${rules.vn} and ${rules.knownSnapshot}`,
-              sql`${bookings.depositAmount}`,
+              sql`${depositSnapshot}`,
             ),
             unclassified: quantity(sql`${rules.vn} and not ${rules.knownSnapshot}`),
             unsupportedCurrencyPayments: quantity(sql`not (${rules.vn})`),
           })
           .from(payments)
           .leftJoin(bookings, eq(bookings.id, payments.bookingId))
+          .leftJoin(reservations, eq(reservations.id, payments.reservationId))
           .where(
             and(
               predicate,
@@ -241,6 +267,7 @@ export class ReportsRepository {
           })
           .from(payments)
           .leftJoin(bookings, eq(bookings.id, payments.bookingId))
+          .leftJoin(reservations, eq(reservations.id, payments.reservationId))
           .where(
             and(
               predicate,
@@ -262,10 +289,10 @@ export class ReportsRepository {
         const rules = financialRules(asOf);
         const predicate = and(
           or(
-            inArray(bookings.facilityId, scoped.ids),
-            scoped.includeUnattributed ? isNull(payments.bookingId) : undefined,
+            inArray(paymentFacilityId, scoped.ids),
+            scoped.includeUnattributed ? isNull(paymentFacilityId) : undefined,
           ),
-          query.unitTypeId ? eq(bookings.unitTypeId, query.unitTypeId) : undefined,
+          query.unitTypeId ? eq(paymentUnitTypeId, query.unitTypeId) : undefined,
           rules.captured,
           sql`(not ${rules.knownSnapshot} or not ${rules.heldKnown} or not (${rules.vn}))`,
         );
@@ -273,13 +300,14 @@ export class ReportsRepository {
           .select({ count: count() })
           .from(payments)
           .leftJoin(bookings, eq(bookings.id, payments.bookingId))
+          .leftJoin(reservations, eq(reservations.id, payments.reservationId))
           .where(predicate);
         const bookingItems = await tx
           .select({
             paymentId: payments.id,
             chargeId: sql<string | null>`null`,
             bookingId: payments.bookingId,
-            facilityId: bookings.facilityId,
+            facilityId: paymentFacilityId,
             currency: payments.currency,
             totalAmount: payments.totalAmount,
             status: payments.status,
@@ -290,6 +318,7 @@ export class ReportsRepository {
           })
           .from(payments)
           .leftJoin(bookings, eq(bookings.id, payments.bookingId))
+          .leftJoin(reservations, eq(reservations.id, payments.reservationId))
           .where(predicate)
           .orderBy(asc(payments.paidAt), asc(payments.id))
           .limit(query.limit + query.offset);
@@ -311,22 +340,24 @@ export class ReportsRepository {
       async (tx) => {
         const scoped = await this.scope(tx, actor, query);
         const predicate = and(
-          inArray(bookings.facilityId, scoped.ids),
-          query.unitTypeId ? eq(bookings.unitTypeId, query.unitTypeId) : undefined,
+          inArray(storageUnits.facilityId, scoped.ids),
+          query.unitTypeId ? eq(storageUnits.unitTypeId, query.unitTypeId) : undefined,
           query.status ? eq(rentals.status, query.status as RentalStatus) : undefined,
         );
         const byStatus = await tx
           .select({ status: rentals.status, count: count() })
           .from(rentals)
-          .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
+          .innerJoin(storageUnits, eq(storageUnits.id, rentals.storageUnitId))
           .where(predicate)
           .groupBy(rentals.status)
           .orderBy(asc(rentals.status));
         const items = await tx
           .select({
             id: rentals.id,
-            bookingCode: bookings.bookingCode,
-            facilityId: bookings.facilityId,
+            bookingCode: sql<
+              string | null
+            >`coalesce(${bookings.bookingCode}, upper(left(${reservations.id}::text, 8)))`,
+            facilityId: storageUnits.facilityId,
             facilityName: facilities.name,
             unitCode: storageUnits.code,
             unitTypeName: unitTypes.name,
@@ -335,10 +366,11 @@ export class ReportsRepository {
             expectedEndAt: rentals.endAt,
           })
           .from(rentals)
-          .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
-          .innerJoin(facilities, eq(facilities.id, bookings.facilityId))
+          .leftJoin(bookings, eq(bookings.id, rentals.bookingId))
+          .leftJoin(reservations, eq(reservations.id, rentals.reservationId))
           .innerJoin(storageUnits, eq(storageUnits.id, rentals.storageUnitId))
-          .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
+          .innerJoin(facilities, eq(facilities.id, storageUnits.facilityId))
+          .innerJoin(unitTypes, eq(unitTypes.id, storageUnits.unitTypeId))
           .where(predicate)
           .orderBy(asc(rentals.endAt), asc(rentals.id))
           .limit(query.limit)

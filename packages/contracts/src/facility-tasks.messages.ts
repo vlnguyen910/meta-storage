@@ -1,4 +1,6 @@
 export const FACILITY_TASK_MESSAGES = {
+  appointmentWorkflowRequired:
+    "Update appointment assignment and completion through the appointment workflow.",
   taskCancelled: "Đã hủy công việc.",
   taskNotReady: "Công việc chưa ở trạng thái phù hợp để thực hiện thao tác này.",
   handoverTaskAutomatic:

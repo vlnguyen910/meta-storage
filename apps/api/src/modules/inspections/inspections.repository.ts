@@ -30,6 +30,11 @@ export class InspectionsRepository {
     return this.db.transaction(callback);
   }
 
+  async findTaskContext(taskId: string) {
+    const [task] = await this.db.select().from(facilityTasks).where(eq(facilityTasks.id, taskId));
+    return task;
+  }
+
   async find(id: string): Promise<InspectionRow | undefined> {
     const [row] = await this.db
       .select({

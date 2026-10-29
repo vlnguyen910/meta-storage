@@ -1,0 +1,842 @@
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  setSystemTime,
+  spyOn,
+  test,
+} from "bun:test";
+import { randomUUID } from "node:crypto";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { FacilityTaskStatus } from "@metastorage/contracts";
+import {
+  accounts,
+  appointments,
+  bookings,
+  capacityAllocations,
+  checkInSlots,
+  db,
+  eq,
+  facilities,
+  facilityAssignments,
+  facilityTasks,
+  inArray,
+  inspections,
+  paymentProviderEvents,
+  payments,
+  RentalStatus,
+  rentals,
+  reservations,
+  storageUnits,
+  supportTickets,
+  systemSettings,
+  unitTypes,
+  users,
+} from "@metastorage/database";
+import {
+  APPOINTMENT_STATUSES as Status,
+  APPOINTMENT_TYPES as Type,
+} from "@metastorage/database/schema/appointments";
+import { ReservationStatus } from "@metastorage/database/schema/reservations";
+import { UserRole } from "@metastorage/database/schema/user-enums";
+import { hashPassword } from "better-auth/crypto";
+import Fastify from "fastify";
+import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
+import { localDate } from "../../src/common/date";
+import { setupErrorHandler } from "../../src/common/errors/error-handler";
+import { appointmentsRoutes } from "../../src/modules/appointments/appointments.routes";
+import { createAppointmentsService } from "../../src/modules/appointments/appointments.service";
+import { auth } from "../../src/modules/auth/auth";
+import { authRoutes } from "../../src/modules/auth/auth.routes";
+import { facilitiesRoutes } from "../../src/modules/facilities/facilities.routes";
+import { facilityTasksRoutes } from "../../src/modules/facility-tasks/facility-tasks.routes";
+import { createFacilityTasksService } from "../../src/modules/facility-tasks/facility-tasks.service";
+import { inspectionsRoutes } from "../../src/modules/inspections/inspections.routes";
+import { PaymentsRepository } from "../../src/modules/payments/payments.repository";
+import { paymentsRoutes } from "../../src/modules/payments/payments.routes";
+import { PaymentsService } from "../../src/modules/payments/payments.service";
+import type {
+  SepayCreateCheckoutInput,
+  VerifiedPaymentEvent,
+} from "../../src/modules/payments/payments.types";
+import { createReservationPaymentsService } from "../../src/modules/payments/reservation-payments.service";
+import { SepayPaymentGateway } from "../../src/modules/payments/sepay.gateway";
+import { rentalsRoutes } from "../../src/modules/rentals/rentals.routes";
+import { ReportsRepository } from "../../src/modules/reports/reports.repository";
+import { reservationsRoutes } from "../../src/modules/reservations/reservations.routes";
+import { createReservationsService } from "../../src/modules/reservations/reservations.service";
+import { assertTestDatabase } from "../fixtures/test-database";
+
+const testUrl = process.env.BOOKING_TEST_DATABASE_URL;
+
+// Local checkout adapter: tests persist real transactions without calling the provider.
+class LocalGateway extends SepayPaymentGateway {
+  constructor() {
+    super({ paymentPrefix: "TEST" });
+  }
+  override get checkoutConfigured() {
+    return true;
+  }
+  override createCheckoutSession(input: SepayCreateCheckoutInput) {
+    return {
+      checkoutUrl: "https://checkout.example.test",
+      formFields: { order: input.paymentCode },
+    };
+  }
+}
+
+const gateway = new LocalGateway();
+const paymentWorkflow = createReservationPaymentsService(db, gateway);
+const reservationService = createReservationsService(db);
+const appointmentService = createAppointmentsService(db);
+const taskService = createFacilityTasksService(db);
+const paymentService = new PaymentsService(
+  new PaymentsRepository(db),
+  gateway,
+  undefined,
+  undefined,
+  paymentWorkflow,
+);
+const fixtures: Awaited<ReturnType<typeof fixture>>[] = [];
+
+async function fixture() {
+  const id = {
+    customer: randomUUID(),
+    outsider: randomUUID(),
+    manager: randomUUID(),
+    staff: randomUUID(),
+    facility: randomUUID(),
+    type: randomUUID(),
+    unit: randomUUID(),
+    slot: randomUUID(),
+  };
+  await db.insert(users).values([
+    {
+      id: id.customer,
+      email: `${id.customer}@example.test`,
+      name: "Customer",
+      status: "ACTIVE",
+      role: UserRole.STORAGE_CUSTOMER,
+    },
+    {
+      id: id.outsider,
+      email: `${id.outsider}@example.test`,
+      name: "Other",
+      status: "ACTIVE",
+      role: UserRole.STORAGE_CUSTOMER,
+    },
+    {
+      id: id.manager,
+      email: `${id.manager}@example.test`,
+      name: "Manager",
+      status: "ACTIVE",
+      role: UserRole.FACILITY_MANAGER,
+    },
+    {
+      id: id.staff,
+      email: `${id.staff}@example.test`,
+      name: "Staff",
+      status: "ACTIVE",
+      role: UserRole.FACILITY_STAFF,
+    },
+  ]);
+  await db
+    .insert(facilities)
+    .values({ id: id.facility, code: id.facility, name: "Workflow test", address: "Test" });
+  await db.insert(facilityAssignments).values([
+    { userId: id.manager, facilityId: id.facility, role: UserRole.FACILITY_MANAGER },
+    { userId: id.staff, facilityId: id.facility, role: UserRole.FACILITY_STAFF },
+  ]);
+  await db.insert(unitTypes).values({
+    id: id.type,
+    facilityId: id.facility,
+    code: id.type,
+    name: "Test type",
+    sizeLabel: "S",
+    lengthM: 1,
+    widthM: 1,
+    heightM: 1,
+    monthlyPrice: 100000,
+  });
+  await db
+    .insert(storageUnits)
+    .values({ id: id.unit, facilityId: id.facility, unitTypeId: id.type, code: id.unit });
+  await db
+    .insert(checkInSlots)
+    .values({ id: id.slot, name: "Test slot", startTime: "09:00", endTime: "10:00" });
+  const date = localDate(new Date(Date.now() + 2 * 86400000), "Asia/Ho_Chi_Minh");
+  const input = {
+    facilityId: id.facility,
+    unitTypeId: id.type,
+    durationMonths: 2,
+    checkInDate: date,
+    checkInSlotId: id.slot,
+  };
+  const result = {
+    id,
+    date,
+    input,
+    manager: { id: id.manager, role: UserRole.FACILITY_MANAGER },
+    staff: { id: id.staff, role: UserRole.FACILITY_STAFF },
+  };
+  fixtures.push(result);
+  return result;
+}
+
+async function checkout(f: Awaited<ReturnType<typeof fixture>>) {
+  const reservation = await reservationService.createReservationDraft(f.input, f.id.customer);
+  const input = { idempotencyKey: randomUUID() };
+  const session = await paymentWorkflow.startPayment(reservation.id, input, f.id.customer);
+  const event: VerifiedPaymentEvent = {
+    providerEventId: randomUUID(),
+    paymentCode: session.paymentCode,
+    amount: reservation.totalAmount,
+    transferType: "in",
+    referenceCode: randomUUID(),
+    metadata: {},
+  };
+  return { reservation, input, session, event };
+}
+
+async function scheduled(f: Awaited<ReturnType<typeof fixture>>) {
+  const paid = await checkout(f);
+  await paymentWorkflow.processEvent(paid.event);
+  const appointment = await appointmentService.scheduleAppointment(
+    {
+      appointmentType: Type.CHECK_IN,
+      reservationId: paid.reservation.id,
+      scheduledDate: f.date,
+      slotId: f.id.slot,
+    },
+    f.id.customer,
+  );
+  return { ...paid, appointment };
+}
+
+describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL", () => {
+  beforeAll(async () => {
+    assertTestDatabase(testUrl);
+    await db
+      .insert(systemSettings)
+      .values([
+        { key: "DEPOSIT_MONTHS", value: 1, version: 1, description: "Test" },
+        { key: "OPENING_HOUR", value: 8, description: "Test" },
+        { key: "CLOSING_HOUR", value: 20, description: "Test" },
+      ])
+      .onConflictDoNothing();
+  });
+  afterEach(() => setSystemTime());
+  afterAll(async () => {
+    for (const f of fixtures) {
+      const records = await db
+        .select({ id: reservations.id })
+        .from(reservations)
+        .where(eq(reservations.facilityId, f.id.facility));
+      const paymentIds = await db
+        .select({ id: payments.id })
+        .from(payments)
+        .where(
+          inArray(
+            payments.reservationId,
+            records.map((row) => row.id),
+          ),
+        );
+      if (paymentIds.length)
+        await db.delete(paymentProviderEvents).where(
+          inArray(
+            paymentProviderEvents.paymentId,
+            paymentIds.map((row) => row.id),
+          ),
+        );
+      if (records.length)
+        await db.delete(payments).where(
+          inArray(
+            payments.reservationId,
+            records.map((row) => row.id),
+          ),
+        );
+      await db.delete(inspections).where(eq(inspections.storageUnitId, f.id.unit));
+      await db.delete(facilityTasks).where(eq(facilityTasks.facilityId, f.id.facility));
+      await db.delete(appointments).where(eq(appointments.facilityId, f.id.facility));
+      await db.delete(supportTickets).where(eq(supportTickets.facilityId, f.id.facility));
+      await db.delete(capacityAllocations).where(eq(capacityAllocations.facilityId, f.id.facility));
+      await db.delete(rentals).where(eq(rentals.storageUnitId, f.id.unit));
+      await db.delete(reservations).where(eq(reservations.facilityId, f.id.facility));
+      await db.delete(bookings).where(eq(bookings.facilityId, f.id.facility));
+      await db.delete(facilityAssignments).where(eq(facilityAssignments.facilityId, f.id.facility));
+      await db.delete(storageUnits).where(eq(storageUnits.facilityId, f.id.facility));
+      await db.delete(unitTypes).where(eq(unitTypes.facilityId, f.id.facility));
+      await db.delete(facilities).where(eq(facilities.id, f.id.facility));
+      await db.delete(checkInSlots).where(eq(checkInSlots.id, f.id.slot));
+      await db
+        .delete(users)
+        .where(inArray(users.id, [f.id.customer, f.id.outsider, f.id.manager, f.id.staff]));
+    }
+  });
+
+  test.skipIf(process.env.RUN_POSTMAN_FLOW !== "1")(
+    "Postman CLI drives real authenticated customer to staff check-in APIs",
+    async () => {
+      const f = await fixture();
+      const password = randomUUID();
+      const hashed = await hashPassword(password);
+      for (const id of [f.id.customer, f.id.manager, f.id.staff]) {
+        await db.update(users).set({ emailVerified: true }).where(eq(users.id, id));
+        await db.insert(accounts).values({
+          id: randomUUID(),
+          userId: id,
+          accountId: id,
+          providerId: "credential",
+          password: hashed,
+        });
+      }
+      const app = Fastify();
+      app.decorate("db", db);
+      app.setValidatorCompiler(validatorCompiler);
+      app.setSerializerCompiler(serializerCompiler);
+      setupErrorHandler(app);
+      await app.register(authRoutes, { prefix: "/api/auth" });
+      await app.register(facilitiesRoutes, { prefix: "/api/facilities" });
+      await app.register(reservationsRoutes, { prefix: "/api/reservations" });
+      await app.register(appointmentsRoutes, { prefix: "/api/appointments" });
+      await app.register(facilityTasksRoutes, { prefix: "/api/facility-tasks" });
+      await app.register(inspectionsRoutes, { prefix: "/api" });
+      await app.register(paymentsRoutes, { prefix: "/api" });
+      await app.register(rentalsRoutes, { prefix: "/api/rentals" });
+      const baseUrl = await app.listen({ host: "127.0.0.1", port: 0 });
+      const temp = await mkdtemp(join(tmpdir(), "reservation-postman-"));
+      const environment = join(temp, "environment.json");
+      const values = {
+        origin: process.env.AUTH_TRUSTED_ORIGINS?.split(",")[0] ?? "http://localhost:3000",
+        baseUrl,
+        password,
+        customerEmail: `${f.id.customer}@example.test`,
+        managerEmail: `${f.id.manager}@example.test`,
+        staffEmail: `${f.id.staff}@example.test`,
+        customerId: f.id.customer,
+        facilityId: f.id.facility,
+        unitTypeId: f.id.type,
+        unitId: f.id.unit,
+        slotId: f.id.slot,
+        staffId: f.id.staff,
+        date: f.date,
+        sepaySecret: process.env.SEPAY_SECRET_KEY,
+      };
+      await writeFile(
+        environment,
+        JSON.stringify({
+          name: "Isolated workflow test",
+          values: Object.entries(values).map(([key, value]) => ({ key, value, enabled: true })),
+        }),
+      );
+      try {
+        for (const folder of ["Reserve", "CheckIn"]) {
+          if (folder === "CheckIn") setSystemTime(new Date(`${f.date}T09:15:00+07:00`));
+          const child = Bun.spawn(
+            [
+              "postman",
+              "collection",
+              "run",
+              join(import.meta.dirname, "../postman/reservation-check-in.postman_collection.json"),
+              "-i",
+              folder,
+              "-e",
+              environment,
+              "--no-report-events",
+            ],
+            { stdout: "pipe", stderr: "pipe" },
+          );
+          const [stdout, stderr, code] = await Promise.all([
+            new Response(child.stdout).text(),
+            new Response(child.stderr).text(),
+            child.exited,
+          ]);
+          if (code !== 0) throw new Error(`Postman ${folder} failed:\n${stdout}\n${stderr}`);
+          console.log(`Postman ${folder}:\n${stdout.slice(-1700)}`);
+          expect(code).toBe(0);
+          if (folder === "Reserve") {
+            const [reservation] = await db
+              .select()
+              .from(reservations)
+              .where(eq(reservations.facilityId, f.id.facility));
+            if (!reservation) throw new Error("Reservation was not created");
+            const [appointment] = await db
+              .select()
+              .from(appointments)
+              .where(eq(appointments.reservationId, reservation.id));
+            if (!appointment) throw new Error("Appointment was not created");
+            const [task] = await db
+              .select()
+              .from(facilityTasks)
+              .where(eq(facilityTasks.referenceId, appointment.id));
+            if (!task) throw new Error("Task was not created");
+            await writeFile(
+              environment,
+              JSON.stringify({
+                name: "Isolated workflow test",
+                values: Object.entries({
+                  ...values,
+                  reservationId: reservation.id,
+                  appointmentId: appointment.id,
+                  taskId: task.id,
+                }).map(([key, value]) => ({ key, value, enabled: true })),
+              }),
+            );
+          }
+        }
+        const active = await db.select().from(rentals).where(eq(rentals.storageUnitId, f.id.unit));
+        expect(active).toHaveLength(1);
+        expect(active[0]?.reservationId).toBeTruthy();
+        const rental = active[0];
+        if (!rental?.reservationId) throw new Error("Reservation rental was not created");
+        const report = await new ReportsRepository(db).rentalReport(f.manager, {
+          facilityId: f.id.facility,
+          limit: 20,
+          offset: 0,
+        });
+        expect(report.items.some((item) => item.id === rental.id)).toBe(true);
+        const [allocation] = await db
+          .select()
+          .from(capacityAllocations)
+          .where(eq(capacityAllocations.referenceId, rental.reservationId));
+        expect(allocation?.status).toBe("RELEASED");
+      } finally {
+        await app.close();
+        await rm(temp, { recursive: true, force: true });
+      }
+    },
+    60000,
+  );
+
+  test("HTTP routes await services and honor the facility from the validated path", async () => {
+    const f = await fixture();
+    const app = Fastify();
+    app.decorate("db", db);
+    app.setValidatorCompiler(validatorCompiler);
+    app.setSerializerCompiler(serializerCompiler);
+    setupErrorHandler(app);
+    const session = spyOn(auth.api, "getSession").mockResolvedValue({
+      user: { id: f.id.customer, role: UserRole.STORAGE_CUSTOMER, status: "ACTIVE" },
+      session: {},
+    } as never);
+    try {
+      await app.register(reservationsRoutes, { prefix: "/api/reservations" });
+      await app.register(appointmentsRoutes, { prefix: "/api/appointments" });
+      const draft = await app.inject({
+        method: "POST",
+        url: "/api/reservations/drafts",
+        payload: f.input,
+      });
+      expect(draft.statusCode).toBe(201);
+      expect(draft.json().data.customerId).toBe(f.id.customer);
+      const detail = await app.inject({
+        method: "GET",
+        url: `/api/reservations/${draft.json().data.id}`,
+      });
+      expect(detail.statusCode).toBe(200);
+      expect(detail.json().data.totalAmount).toBe(300000);
+      session.mockResolvedValue({ user: { ...f.manager, status: "ACTIVE" }, session: {} } as never);
+      const list = await app.inject({
+        method: "GET",
+        url: `/api/appointments/facilities/${f.id.facility}?facilityId=${randomUUID()}`,
+      });
+      expect(list.statusCode).toBe(200);
+      expect(list.json().data).toEqual([]);
+      const forbidden = await app.inject({
+        method: "GET",
+        url: `/api/appointments/facilities/${randomUUID()}?facilityId=${f.id.facility}`,
+      });
+      expect(forbidden.statusCode).toBe(403);
+    } finally {
+      session.mockRestore();
+      await app.close();
+    }
+  });
+
+  test("drafts snapshot pricing and enforce owner/facility boundaries", async () => {
+    const f = await fixture();
+    const reservation = await reservationService.createReservationDraft(f.input, f.id.customer);
+    expect(reservation.totalAmount).toBe(300000);
+    expect(reservation.rentalFeeAmount).toBe(200000);
+    await expect(
+      reservationService.getReservation(reservation.id, {
+        id: f.id.outsider,
+        role: UserRole.STORAGE_CUSTOMER,
+      }),
+    ).rejects.toMatchObject({ statusCode: 404 });
+    await expect(
+      reservationService.listFacilityReservations(randomUUID(), {}, f.id.manager),
+    ).rejects.toMatchObject({ statusCode: 403 });
+    await expect(
+      reservationService.createReservationDraft(
+        { ...f.input, checkInDate: localDate(new Date(), "Asia/Ho_Chi_Minh") },
+        f.id.customer,
+      ),
+    ).rejects.toMatchObject({ statusCode: 400 });
+  });
+
+  test("payment replay reuses its hold and competing checkouts cannot oversell", async () => {
+    const f = await fixture();
+    const first = await checkout(f);
+    const replay = await paymentWorkflow.startPayment(
+      first.reservation.id,
+      first.input,
+      f.id.customer,
+    );
+    expect(replay.paymentId).toBe(first.session.paymentId);
+    await expect(
+      reservationService.cancelReservation(first.reservation.id, f.id.customer),
+    ).rejects.toMatchObject({ statusCode: 409 });
+    const [second] = await db
+      .insert(reservations)
+      .values({ ...first.reservation, id: randomUUID() })
+      .returning();
+    if (!second) throw new Error("Missing fixture");
+    await expect(
+      paymentWorkflow.startPayment(second.id, { idempotencyKey: randomUUID() }, f.id.customer),
+    ).rejects.toMatchObject({ statusCode: 409 });
+    const holds = await db
+      .select()
+      .from(capacityAllocations)
+      .where(eq(capacityAllocations.facilityId, f.id.facility));
+    expect(holds).toHaveLength(1);
+  });
+
+  test("simultaneous checkouts serialize capacity across different reservations", async () => {
+    const f = await fixture();
+    const drafts = await Promise.all([
+      reservationService.createReservationDraft(f.input, f.id.customer),
+      reservationService.createReservationDraft(f.input, f.id.customer),
+    ]);
+    const results = await Promise.allSettled(
+      drafts.map((draft) =>
+        paymentWorkflow.startPayment(draft.id, { idempotencyKey: randomUUID() }, f.id.customer),
+      ),
+    );
+    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(results.filter((result) => result.status === "rejected")).toHaveLength(1);
+    expect(
+      await db
+        .select()
+        .from(capacityAllocations)
+        .where(eq(capacityAllocations.facilityId, f.id.facility)),
+    ).toHaveLength(1);
+  });
+
+  test("verified payments confirm once, preserve capacity, and authorize status reads", async () => {
+    const f = await fixture();
+    const paid = await checkout(f);
+    expect((await paymentWorkflow.processEvent({ ...paid.event, amount: 1 }))?.processed).toBe(
+      false,
+    );
+    const verified = spyOn(gateway, "verifyWebhook").mockReturnValue(paid.event);
+    try {
+      expect((await paymentService.handleSepayWebhook({}, "verified-fixture")).processed).toBe(
+        true,
+      );
+      expect((await paymentService.handleSepayWebhook({}, "verified-fixture")).duplicate).toBe(
+        true,
+      );
+    } finally {
+      verified.mockRestore();
+    }
+    expect((await paymentWorkflow.processEvent(paid.event))?.duplicate).toBe(true);
+    expect(
+      (await reservationService.getCustomerReservation(paid.reservation.id, f.id.customer)).status,
+    ).toBe(ReservationStatus.CONFIRMED);
+    const reports = new ReportsRepository(db);
+    const from = new Date(Date.now() - 86400000),
+      to = new Date(Date.now() + 86400000),
+      asOf = new Date(Date.now() + 1000);
+    const report = await reports.read(f.manager, { facilityId: f.id.facility }, from, to, asOf);
+    expect(Number(report.financial[0]?.rentalCollected)).toBe(200000);
+    expect(Number(report.financial[0]?.depositCollected)).toBe(100000);
+    expect(report.financial[0]?.unclassifiedCollectedPayments).toBe(0);
+    expect(report.awaiting.reduce((sum, row) => sum + row.count, 0)).toBe(1);
+    const monthly = await reports.monthlyRevenue(
+      f.manager,
+      { facilityId: f.id.facility },
+      from,
+      to,
+      asOf,
+    );
+    expect(Number(monthly.receipts[0]?.cashReceived)).toBe(300000);
+    const [hold] = await db
+      .select()
+      .from(capacityAllocations)
+      .where(eq(capacityAllocations.referenceId, paid.reservation.id));
+    expect(hold?.kind).toBe("RESERVATION");
+    await expect(
+      paymentService.getStatus(paid.session.paymentId, { userId: f.id.outsider }),
+    ).rejects.toMatchObject({ statusCode: 404 });
+    expect(
+      (await paymentService.getStatus(paid.session.paymentId, { userId: f.id.customer }))
+        .reservationId,
+    ).toBe(paid.reservation.id);
+  });
+
+  test("late payment with lost capacity is queued for a full refund", async () => {
+    const f = await fixture();
+    const paid = await checkout(f);
+    await db
+      .update(capacityAllocations)
+      .set({ status: "EXPIRED" })
+      .where(eq(capacityAllocations.referenceId, paid.reservation.id));
+    await db.insert(capacityAllocations).values({
+      facilityId: f.id.facility,
+      unitTypeId: f.id.type,
+      referenceId: randomUUID(),
+      kind: "RESERVATION",
+      startsAt: paid.reservation.rentalStartAt,
+      endsAt: paid.reservation.rentalEndAt,
+    });
+    await paymentWorkflow.processEvent(paid.event);
+    const [payment] = await db
+      .select()
+      .from(payments)
+      .where(eq(payments.id, paid.session.paymentId));
+    expect(payment?.status).toBe("REFUND_PENDING");
+    expect(payment?.refundReason).toBe("NO_CAPACITY");
+    expect(Number(payment?.refundAmount)).toBe(paid.reservation.totalAmount);
+  });
+
+  test("cancellation closes linked work and refunds rental fees while forfeiting deposit", async () => {
+    const f = await fixture();
+    const paid = await scheduled(f);
+    await appointmentService.assignAppointmentStaff(
+      paid.appointment.id,
+      { staffId: f.id.staff },
+      f.id.manager,
+    );
+    await reservationService.cancelReservation(paid.reservation.id, f.id.customer);
+    expect((await appointmentService.getAppointment(paid.appointment.id, f.manager)).status).toBe(
+      Status.CANCELLED,
+    );
+    const [task] = await db
+      .select()
+      .from(facilityTasks)
+      .where(eq(facilityTasks.referenceId, paid.appointment.id));
+    expect(task?.status).toBe(FacilityTaskStatus.CANCELLED);
+    const refunds = await paymentService.listManualRefunds({ limit: 100, offset: 0 });
+    const refund = refunds.find((row) => row.paymentId === paid.session.paymentId);
+    expect(Number(refund?.amount)).toBe(200000);
+    expect(Number(refund?.depositForfeitedAmount)).toBe(100000);
+    expect(refund?.contactEmail).toBe(`${f.id.customer}@example.test`);
+    expect(
+      (
+        await paymentService.confirmManualRefund(
+          paid.session.paymentId,
+          "test-bank-transfer",
+          f.id.manager,
+        )
+      ).status,
+    ).toBe("REFUNDED");
+  });
+
+  test("appointment tasks require assignment, schedule, and completed handover", async () => {
+    const f = await fixture();
+    const paid = await scheduled(f);
+    await expect(
+      appointmentService.updateAppointment(
+        paid.appointment.id,
+        { status: Status.CONFIRMED },
+        f.manager,
+      ),
+    ).rejects.toMatchObject({ statusCode: 400 });
+    await expect(
+      appointmentService.assignAppointmentStaff(
+        paid.appointment.id,
+        { staffId: f.id.outsider },
+        f.id.manager,
+      ),
+    ).rejects.toMatchObject({ statusCode: 403 });
+    await appointmentService.updateAppointment(
+      paid.appointment.id,
+      { assignedStaffId: f.id.staff, status: Status.CONFIRMED },
+      f.manager,
+    );
+    const [task] = await db
+      .select()
+      .from(facilityTasks)
+      .where(eq(facilityTasks.referenceId, paid.appointment.id));
+    if (!task) throw new Error("Missing task");
+    await expect(
+      taskService.update(task.id, { status: FacilityTaskStatus.IN_PROGRESS }, f.staff),
+    ).rejects.toMatchObject({ statusCode: 409 });
+    setSystemTime(new Date(`${f.date}T09:15:00+07:00`));
+    await taskService.update(task.id, { status: FacilityTaskStatus.IN_PROGRESS }, f.staff);
+    await expect(
+      appointmentService.updateAppointment(
+        paid.appointment.id,
+        { status: Status.COMPLETED },
+        f.staff,
+      ),
+    ).rejects.toMatchObject({ statusCode: 409 });
+    await expect(
+      taskService.update(task.id, { status: FacilityTaskStatus.COMPLETED }, f.staff),
+    ).rejects.toMatchObject({ statusCode: 409 });
+    // Simulate the handover module's committed result; the appointment cannot create it.
+    await db
+      .update(reservations)
+      .set({ status: ReservationStatus.CHECKED_IN })
+      .where(eq(reservations.id, paid.reservation.id));
+    await appointmentService.updateAppointment(
+      paid.appointment.id,
+      { status: Status.COMPLETED },
+      f.staff,
+    );
+    const [completed] = await db.select().from(facilityTasks).where(eq(facilityTasks.id, task.id));
+    expect(completed?.status).toBe(FacilityTaskStatus.COMPLETED);
+  });
+
+  test("return and support appointments use their owning modules and serialize confirmed slots", async () => {
+    const f = await fixture();
+    const rentalIds: string[] = [];
+    for (let index = 0; index < 2; index++) {
+      const [booking] = await db
+        .insert(bookings)
+        .values({
+          userId: f.id.customer,
+          facilityId: f.id.facility,
+          unitTypeId: f.id.type,
+          requestedMonths: 2,
+          checkInDate: f.date,
+          checkInSlotId: f.id.slot,
+          rentalEndAt: new Date(Date.now() + 60 * 86400000),
+          monthlyRateSnapshot: "100000",
+          rentalFeeAmount: "200000",
+          depositAmount: "100000",
+          totalAmount: "300000",
+          status: "CHECKED_IN",
+          contactPhone: "0901234567",
+        })
+        .returning();
+      if (!booking) throw new Error("Missing booking");
+      const [rental] = await db
+        .insert(rentals)
+        .values({
+          bookingId: booking.id,
+          userId: f.id.customer,
+          storageUnitId: f.id.unit,
+          startAt: new Date(Date.now() - 86400000),
+          endAt: booking.rentalEndAt,
+        })
+        .returning();
+      if (!rental) throw new Error("Missing rental");
+      rentalIds.push(rental.id);
+    }
+    const returnInput = {
+      appointmentType: Type.CHECK_OUT,
+      rentalId: rentalIds[0],
+      scheduledDate: f.date,
+      slotId: f.id.slot,
+    };
+    await expect(
+      appointmentService.scheduleAppointment(returnInput, f.id.outsider),
+    ).rejects.toMatchObject({ statusCode: 404 });
+    const first = await appointmentService.scheduleAppointment(returnInput, f.id.customer);
+    const second = await appointmentService.scheduleAppointment(
+      { ...returnInput, rentalId: rentalIds[1] },
+      f.id.customer,
+    );
+    await appointmentService.updateAppointment(
+      first.id,
+      { assignedStaffId: f.id.staff, status: Status.CONFIRMED },
+      f.manager,
+    );
+    await expect(
+      appointmentService.updateAppointment(
+        second.id,
+        { assignedStaffId: f.id.staff, status: Status.CONFIRMED },
+        f.manager,
+      ),
+    ).rejects.toMatchObject({ statusCode: 409 });
+    const [rental] = await db
+      .select()
+      .from(rentals)
+      .where(eq(rentals.id, rentalIds[0] ?? ""));
+    if (!rental) throw new Error("Missing rental");
+    const [ticket] = await db
+      .insert(supportTickets)
+      .values({
+        bookingId: rental.bookingId,
+        ownerUserId: f.id.customer,
+        facilityId: f.id.facility,
+        rentalId: rental.id,
+        category: "UNIT",
+        subject: "Test",
+        description: "Test request",
+        actionDueAt: new Date(Date.now() + 12 * 3600000),
+        idempotencyKey: randomUUID(),
+      })
+      .returning();
+    if (!ticket) throw new Error("Missing ticket");
+    const support = await appointmentService.scheduleAppointment(
+      {
+        appointmentType: Type.SUPPORT,
+        supportTicketId: ticket.id,
+        scheduledDate: f.date,
+        slotId: f.id.slot,
+      },
+      f.id.customer,
+    );
+    await appointmentService.updateAppointment(
+      support.id,
+      { assignedStaffId: f.id.staff, status: Status.CONFIRMED },
+      f.manager,
+    );
+    setSystemTime(new Date(`${f.date}T09:15:00+07:00`));
+    for (const meeting of [first, support]) {
+      const [task] = await db
+        .select()
+        .from(facilityTasks)
+        .where(eq(facilityTasks.referenceId, meeting.id));
+      if (!task) throw new Error("Missing task");
+      await taskService.update(task.id, { status: FacilityTaskStatus.IN_PROGRESS }, f.staff);
+    }
+    await expect(
+      appointmentService.updateAppointment(first.id, { status: Status.COMPLETED }, f.staff),
+    ).rejects.toMatchObject({ statusCode: 409 });
+    await db.update(rentals).set({ status: RentalStatus.CLOSED }).where(eq(rentals.id, rental.id));
+    expect(
+      (await appointmentService.updateAppointment(first.id, { status: Status.COMPLETED }, f.staff))
+        .status,
+    ).toBe(Status.COMPLETED);
+    expect(
+      (
+        await appointmentService.updateAppointment(
+          support.id,
+          { status: Status.COMPLETED },
+          f.staff,
+        )
+      ).status,
+    ).toBe(Status.COMPLETED);
+  });
+
+  test("no-show sweep uses closing time and releases paid capacity exactly once", async () => {
+    const f = await fixture();
+    const paid = await scheduled(f);
+    expect(
+      (await reservationService.sweepNoShows(new Date(`${f.date}T19:59:00+07:00`), f.id.facility))
+        .processed,
+    ).toBe(0);
+    expect(
+      (await reservationService.sweepNoShows(new Date(`${f.date}T20:00:00+07:00`), f.id.facility))
+        .processed,
+    ).toBe(1);
+    expect(
+      (await reservationService.sweepNoShows(new Date(`${f.date}T21:00:00+07:00`), f.id.facility))
+        .processed,
+    ).toBe(0);
+    const [payment] = await db
+      .select()
+      .from(payments)
+      .where(eq(payments.id, paid.session.paymentId));
+    expect(payment?.refundReason).toBe("NO_SHOW");
+    expect(Number(payment?.refundAmount)).toBe(200000);
+  });
+});

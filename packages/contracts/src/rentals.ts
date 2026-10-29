@@ -49,7 +49,8 @@ export type RentalActionState = z.infer<typeof RentalActionStateSchema>;
 
 export const RentalListItemSchema = z.object({
   id: z.string().uuid(),
-  bookingId: z.string().uuid(),
+  bookingId: z.string().uuid().nullable(),
+  reservationId: z.string().uuid().nullable().optional(),
   userId: z.string().uuid(),
   bookingCode: z.string(),
   facility: z.object({

@@ -10,7 +10,7 @@ import type {
   RentalPageQuery,
   RentalPaymentItem,
 } from "@metastorage/contracts";
-import { ForbiddenError, NotFoundError } from "../../common/errors/app-error";
+import { ConflictError, ForbiddenError, NotFoundError } from "../../common/errors/app-error";
 import type { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
 import type { TaskTransaction } from "../facility-tasks/facility-tasks.types";
 import { RENTAL_MESSAGES as M } from "./rentals.messages";
@@ -20,7 +20,8 @@ import type { RentalActor, RentalWithDetails } from "./rentals.types";
 function toFacilityRentalItem(row: RentalWithDetails): FacilityRentalItem {
   return {
     id: row.rental.id,
-    bookingId: row.booking.id,
+    bookingId: row.rental.bookingId,
+    reservationId: row.rental.reservationId,
     userId: row.rental.userId,
     bookingCode: row.booking.bookingCode,
     facilityId: row.booking.facilityId,
@@ -47,10 +48,17 @@ export class RentalsService {
     private readonly repository: RentalsRepository,
     private readonly facilityAssignments: FacilityAssignmentsService,
   ) {}
+  async requireAppointmentContext(tx: TaskTransaction, rentalId: string, customerId: string) {
+    const context = await this.repository.findAppointmentContext(tx, rentalId, customerId);
+    if (!context) throw new NotFoundError(M.rentalNotFound);
+    if (context.rental.status !== "ACTIVE") throw new ConflictError(M.rentalNotActive);
+    return context;
+  }
   createForHandover(
     tx: TaskTransaction,
     input: {
-      bookingId: string;
+      bookingId?: string;
+      reservationId?: string;
       userId: string;
       storageUnitId: string;
       startAt: Date;
@@ -58,6 +66,9 @@ export class RentalsService {
     },
   ) {
     return this.repository.createForHandover(tx, input);
+  }
+  findReservationRental(tx: TaskTransaction, reservationId: string) {
+    return this.repository.findRentalByReservationId(tx, reservationId);
   }
   findHandoverRental(tx: TaskTransaction, bookingId: string) {
     return this.repository.findRentalByBookingId(tx, bookingId);
@@ -97,7 +108,11 @@ export class RentalsService {
     query: FacilityRentalHistoryQuery,
   ): Promise<FacilityRentalPaymentPage> {
     const rental = await this.getFacilityRental(actor, facilityId, rentalId);
-    const result = await this.repository.findBookingPayments(rental.bookingId, query);
+    const result = await this.repository.findBookingPayments(
+      rental.bookingId,
+      query,
+      rental.reservationId,
+    );
     return {
       items: result.items.map((payment) => ({
         id: payment.id,
@@ -164,7 +179,8 @@ export class RentalsService {
 function toCustomerRentalItem(row: RentalWithDetails): RentalListItem {
   return {
     id: row.rental.id,
-    bookingId: row.booking.id,
+    bookingId: row.rental.bookingId,
+    reservationId: row.rental.reservationId,
     userId: row.rental.userId,
     bookingCode: row.booking.bookingCode ?? row.booking.id.slice(0, 8).toUpperCase(),
     facility: { id: row.facility.id, name: row.facility.name, address: row.facility.address },

@@ -1,4 +1,5 @@
 export const PAYMENT_MESSAGES = {
+  reservationNotFound: "Reservation not found.",
   bookingPhoneRequired: "Vui lòng nhập số điện thoại liên hệ cho booking.",
   chargeRefundRequired: "Payment received after quote expiry or charge closure",
   startSummary: "Start payment for a booking draft",

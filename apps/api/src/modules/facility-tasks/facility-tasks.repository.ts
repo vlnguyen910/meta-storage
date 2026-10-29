@@ -12,6 +12,7 @@ import {
 import {
   aliasedTable,
   and,
+  appointments,
   BookingStatus,
   bookings,
   count,
@@ -48,6 +49,32 @@ export class FacilityTasksRepository {
     private readonly db: Database,
     private readonly assignments: FacilityAssignmentsRepository,
   ) {}
+
+  async findAppointment(id: string) {
+    const [appointment] = await this.db.select().from(appointments).where(eq(appointments.id, id));
+    return appointment;
+  }
+
+  findActiveAppointmentTask(tx: TaskTransaction, appointmentId: string) {
+    return tx
+      .select()
+      .from(facilityTasks)
+      .where(
+        and(
+          eq(facilityTasks.referenceType, FacilityTaskReferenceType.APPOINTMENT),
+          eq(facilityTasks.referenceId, appointmentId),
+          inArray(facilityTasks.status, [
+            FacilityTaskStatus.ASSIGNED,
+            FacilityTaskStatus.IN_PROGRESS,
+          ]),
+        ),
+      )
+      .for("update");
+  }
+
+  createAppointmentTask(tx: TaskTransaction, input: typeof facilityTasks.$inferInsert) {
+    return tx.insert(facilityTasks).values(input).returning();
+  }
 
   find(tx: TaskTransaction, id: string) {
     return tx.select().from(facilityTasks).where(eq(facilityTasks.id, id));
@@ -128,13 +155,7 @@ export class FacilityTasksRepository {
       .for("update");
   }
 
-  reassignBookingHandover(
-    tx: TaskTransaction,
-    taskId: string,
-    staffId: string,
-    managerId: string,
-    now: Date,
-  ) {
+  reassignTask(tx: TaskTransaction, taskId: string, staffId: string, managerId: string, now: Date) {
     return tx
       .update(facilityTasks)
       .set({

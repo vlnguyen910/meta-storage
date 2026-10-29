@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
 import { createBookingsService } from "../../modules/bookings/bookings.service";
 import { createPaymentsService } from "../../modules/payments/payments.service";
+import { createReservationsService } from "../../modules/reservations/reservations.service";
 import type { CronOptions } from "./cron.types";
 import { expireCapacityHolds } from "./expire-capacity-holds";
 
@@ -14,6 +15,7 @@ const cronPluginAsync: FastifyPluginAsync<CronOptions> = async (fastify, options
   const sweep = () => {
     if (running) return running;
     running = Promise.allSettled([
+      createReservationsService(fastify.db).sweepNoShows(new Date(), options.facilityId),
       createPaymentsService(fastify)
         .reconcilePendingPayments(options.facilityId)
         .then(({ failed }) => {

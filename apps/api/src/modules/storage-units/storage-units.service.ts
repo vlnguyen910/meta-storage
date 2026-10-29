@@ -52,6 +52,29 @@ export class StorageUnitsService {
     return this.repository.getAvailableCapacity(facilityId, unitTypeId, startsAt, endsAt);
   }
 
+  async requireHandoverUnit(
+    tx: TaskTransaction,
+    input: {
+      unitId: string;
+      taskId: string;
+      facilityId: string;
+      unitTypeId: string;
+      startsAt: Date;
+      endsAt: Date;
+    },
+  ) {
+    const unit = await this.repository.lockAvailableForHandover(
+      tx,
+      input.unitId,
+      input.taskId,
+      input.startsAt,
+      input.endsAt,
+    );
+    if (!unit || unit.facilityId !== input.facilityId || unit.unitTypeId !== input.unitTypeId)
+      throw new ConflictError(STORAGE_UNIT_MESSAGES.unitHasOperations);
+    return unit;
+  }
+
   markOccupied(tx: TaskTransaction, unitId: string, now: Date) {
     return this.repository.markOccupied(tx, unitId, now);
   }

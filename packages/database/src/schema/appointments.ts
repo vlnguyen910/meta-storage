@@ -86,7 +86,9 @@ export const appointments = pgTable(
     index("appointments_customer_idx").on(table.customerId, table.scheduledDate),
     uniqueIndex("appointments_check_in_reservation_idx")
       .on(table.reservationId)
-      .where(sql`${table.appointmentType} = 'CHECK_IN'`),
+      .where(
+        sql`${table.appointmentType} = 'CHECK_IN' AND ${table.status} IN ('SCHEDULED', 'CONFIRMED')`,
+      ),
     uniqueIndex("appointments_check_out_slot_idx")
       .on(table.facilityId, table.scheduledDate, table.slotId)
       .where(sql`${table.appointmentType} = 'CHECK_OUT' AND ${table.status} = 'CONFIRMED'`),

@@ -3,6 +3,7 @@ import {
   AppointmentQuerySchema,
   AssignStaffBodySchema,
   CreateAppointmentSchema,
+  FacilityBookingsParamsSchema,
   UpdateAppointmentSchema,
 } from "@metastorage/contracts";
 import type { FastifyPluginAsync } from "fastify";
@@ -10,14 +11,14 @@ import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
 import { requireAuth, requireRole } from "../auth/auth.guard";
-import { AppointmentsService } from "./appointments.service";
+import { createAppointmentsService } from "./appointments.service";
 
 export const appointmentsRoutes: FastifyPluginAsync = async (app) => {
-  const service = new AppointmentsService();
+  const service = createAppointmentsService(app.db);
   const typed = app.withTypeProvider<ZodTypeProvider>();
 
   typed.get("/check-in-slots", async (_request, reply) =>
-    reply.send(successResponse(service.listCheckInSlots())),
+    reply.send(successResponse(await service.listCheckInSlots())),
   );
 
   typed.post(
@@ -27,7 +28,7 @@ export const appointmentsRoutes: FastifyPluginAsync = async (app) => {
       if (!request.user) throw new UnauthorizedError();
       return reply
         .status(201)
-        .send(successResponse(service.scheduleAppointment(request.body, request.user.id)));
+        .send(successResponse(await service.scheduleAppointment(request.body, request.user.id)));
     },
   );
 
@@ -37,18 +38,41 @@ export const appointmentsRoutes: FastifyPluginAsync = async (app) => {
     async (request, reply) => {
       if (!request.user) throw new UnauthorizedError();
       return reply.send(
-        successResponse(service.listCustomerAppointments(request.query, request.user.id)),
+        successResponse(await service.listCustomerAppointments(request.query, request.user.id)),
       );
     },
   );
 
   typed.get(
     "/facilities/:facilityId",
-    { schema: { querystring: AppointmentQuerySchema }, preHandler: [requireAuth] },
+    {
+      schema: { params: FacilityBookingsParamsSchema, querystring: AppointmentQuerySchema },
+      preHandler: [requireRole("FACILITY_MANAGER")],
+    },
     async (request, reply) => {
       if (!request.user) throw new UnauthorizedError();
       return reply.send(
-        successResponse(service.listFacilityAppointments(request.query, request.user.id)),
+        successResponse(
+          await service.listFacilityAppointments(
+            request.params.facilityId,
+            request.query,
+            request.user,
+          ),
+        ),
+      );
+    },
+  );
+
+  typed.get(
+    "/assigned-to-me",
+    {
+      schema: { querystring: AppointmentQuerySchema },
+      preHandler: [requireRole("FACILITY_STAFF")],
+    },
+    async (request, reply) => {
+      if (!request.user) throw new UnauthorizedError();
+      return reply.send(
+        successResponse(await service.listAssignedAppointments(request.user.id, request.query)),
       );
     },
   );
@@ -59,7 +83,7 @@ export const appointmentsRoutes: FastifyPluginAsync = async (app) => {
     async (request, reply) => {
       if (!request.user) throw new UnauthorizedError();
       return reply.send(
-        successResponse(service.getAppointment(request.params.id, request.user.id)),
+        successResponse(await service.getAppointment(request.params.id, request.user)),
       );
     },
   );
@@ -74,7 +98,7 @@ export const appointmentsRoutes: FastifyPluginAsync = async (app) => {
       if (!request.user) throw new UnauthorizedError();
       return reply.send(
         successResponse(
-          service.assignAppointmentStaff(request.params.id, request.body, request.user.id),
+          await service.assignAppointmentStaff(request.params.id, request.body, request.user.id),
         ),
       );
     },
@@ -90,7 +114,7 @@ export const appointmentsRoutes: FastifyPluginAsync = async (app) => {
       if (!request.user) throw new UnauthorizedError();
       return reply.send(
         successResponse(
-          service.updateAppointment(request.params.id, request.body, request.user.id),
+          await service.updateAppointment(request.params.id, request.body, request.user),
         ),
       );
     },

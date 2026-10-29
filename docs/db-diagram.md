@@ -1,21 +1,69 @@
 # metastorage database diagram
 
-## Additive reservation and appointment foundation
+## Reservation and appointment workflows
 
-`reservations` and `appointments` are additive workflow tables. The existing
-`bookings` table and its API remain unchanged; no legacy booking rows are moved.
-This foundation does not create capacity holds or payments and does not complete
-check-in/check-out, rental closure, inspection, refund, or facility-task workflows.
+`reservations` and `appointments` are additive workflows. Existing `bookings`
+records and endpoints remain supported; no booking data is moved or deleted.
+Migration `0011_real_iron_lad.sql` extends payments, capacity allocations and task
+references without changing existing booking references.
 
 | Table | Main data and rules |
 | --- | --- |
-| `reservations` | Customer, facility, unit type, requested months, rental start/end, integer price snapshots, total, and `DRAFT`/`CONFIRMED`/`CANCELLED`/`EXPIRED`/`CHECKED_IN`/`NO_SHOW` status. Customer is derived from session; composite facility/unit-type FK ensures the selected type belongs to that facility. Only draft records can be edited through this scaffold. |
-| `appointments` | Facility, `CHECK_IN`/`CHECK_OUT`/`SUPPORT` type, local date, existing slot, customer, optional assigned staff, status and notes. Check-in references a reservation; check-out references a rental; support may reference a support ticket or be facility-scoped. Customer/facility context is resolved server-side. |
+| `reservations` | Customer/facility/unit type, requested months, rental period, integer price snapshots and lifecycle. Draft creation checks active offering, schedule, pricing and available capacity. Price snapshots must fit PostgreSQL INTEGER. |
+| `appointments` | CHECK_IN references a paid reservation; CHECK_OUT references an active customer rental; SUPPORT references an owned support ticket. Facility/customer scope is derived from that context. Date and slot must be future and within operating hours. One active appointment per context is enforced by service parent locks. The check-in unique index applies to SCHEDULED/CONFIRMED records so cancelled history does not prevent rebooking. One confirmed return per facility/date/slot remains enforced by a partial unique index. |
+| `payments` | Exactly one of booking_id or reservation_id is required. The existing provider, idempotency, payment status, provider-event deduplication and manual refund workflow also support reservations. |
+| `capacity_allocations` | HOLD reserves capacity for ten minutes during checkout. A successful reservation payment changes it to RESERVATION without expiry. All allocation kinds contribute to the existing capacity calculation. |
+| `facility_tasks` | APPOINTMENT is an additional reference type. CHECK_IN creates CHECK_IN_HANDOVER, CHECK_OUT creates UNIT_INSPECTION and SUPPORT creates HANDLE_SUPPORT. Assignment/reassignment belongs to the appointment workflow. Staff start through the existing task API; completion/cancellation commits with the appointment. |
 
-Appointments have partial uniqueness for one check-in appointment per reservation
-and one confirmed check-out per facility/date/slot. Slot capacity and calendar
-availability are not modeled here. API routes are `/api/reservations` and
-`/api/appointments`; they do not replace `/api/bookings`.
+```mermaid
+erDiagram
+  users ||--o{ reservations : owns
+  reservations ||--o{ payments : checkout
+  bookings ||--o{ payments : legacy_checkout
+  reservations ||--o{ appointments : check_in
+  reservations ||--o| rentals : handover
+  reservations ||--o{ inspections : check_in
+  rentals ||--o{ appointments : check_out
+  support_tickets ||--o{ appointments : support
+  appointments ||--o{ facility_tasks : reference_type_APPOINTMENT
+```
+
+Payment holds and capacity checks serialize on the same offering rows as legacy
+booking checkout. A verified, matching payment confirms a reservation atomically
+with its paid allocation. Late payments are accepted only if the offering,
+schedule and capacity remain available; otherwise the full amount enters
+REFUND_PENDING. Cancellation after payment and no-show refund the rental fee and
+forfeit the deposit, matching the approved pre-handover booking policy.
+Reservation no-shows are swept at the configured closing hour on the check-in day.
+Cancelling a reservation cancels its active appointments and tasks in the same
+transaction. Refunds remain manual transfers followed by the existing refund
+confirmation endpoint; a webhook does not claim money was already refunded.
+
+Appointment states are SCHEDULED → CONFIRMED → COMPLETED, with CANCELLED/NO_SHOW
+terminal alternatives. Manager confirmation requires assigned active staff. Only
+the assigned staff can complete a confirmed appointment after starting its task.
+Check-in completion additionally requires reservation CHECKED_IN; check-out
+completion requires rental CLOSED. Staff start the task, then POST `/api/inspections` with taskId and storageUnitId.
+The backend derives the reservation and checks that the physical unit belongs to
+its facility/type and has no active assignment, rental or other active check-in
+inspection. Unit row locks serialize competing staff selections. Existing
+inspection update/checklist/evidence APIs apply. POST `/api/inspections/:id/handover`
+with customerReceivedUnit=true requires a PASSED inspection and a confirmed
+appointment. One transaction creates the rental, marks the unit OCCUPIED,
+marks the reservation CHECKED_IN, releases its capacity allocation and completes
+both appointment and task. Replaying handover does not create another rental.
+Migration `0012_thin_gateway.sql` adds reservation_id to inspections and rentals;
+rentals require exactly one booking/reservation reference, individually unique.
+Customer, facility rental reads, payment history and rental reports support both
+references; bookingId is nullable and reservationId identifies the new context.
+Return inspection, closure and settlement are separate from this receiving flow. SUPPORT completion finishes
+the meeting/task without inventing a support-ticket lifecycle.
+
+Routes remain `/api/reservations` and `/api/appointments`. Reservation cancellation
+uses PATCH `/:id` with CANCELLED; appointment staff can list `/assigned-to-me`.
+Facility list paths are validated and service authorization uses the path facility,
+not a frontend-supplied query override. Business writes use transactions and row
+locks; no generic deletion endpoints are introduced.
 
 ## Rental tối giản (2026-10-28)
 
@@ -27,7 +75,8 @@ Migration đã đạt kiểm tra trên DB mới và nâng cấp DB tạm có d�
 | Field | Kiểu | Quy tắc |
 | --- | --- | --- |
 | id | UUID | PK, tự sinh |
-| bookingId | UUID | FK bookings.id, UNIQUE, NOT NULL, RESTRICT |
+| bookingId | UUID | FK bookings.id, UNIQUE, nullable, RESTRICT |
+| reservationId | UUID | FK reservations.id, UNIQUE, nullable, RESTRICT; đúng một trong bookingId/reservationId |
 | userId | UUID | FK users.id, NOT NULL, RESTRICT; khách thuê |
 | storageUnitId | UUID | FK storage_units.id, NOT NULL, RESTRICT |
 | status | rental_status | ACTIVE hoặc CLOSED, mặc định ACTIVE |

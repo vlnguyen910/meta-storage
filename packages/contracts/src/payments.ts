@@ -138,6 +138,7 @@ export type PaymentPendingResponse = z.infer<typeof PaymentPendingResponseSchema
 export type PaymentResponse = PaymentResult | PaymentPendingResponse;
 
 export const PaymentStatusResponseSchema = z.object({
+  reservationId: z.uuid().optional(),
   paymentId: z.string().uuid(),
   status: z.enum(PaymentStatus),
   provider: z.string().nullable(),

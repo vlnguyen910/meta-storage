@@ -15,6 +15,7 @@ export enum FacilityTaskStatus {
 }
 
 export enum FacilityTaskReferenceType {
+  APPOINTMENT = "APPOINTMENT",
   BOOKING = "BOOKING",
   STORAGE_UNIT = "STORAGE_UNIT",
   SUPPORT_TICKET = "SUPPORT_TICKET",
@@ -23,18 +24,25 @@ export enum FacilityTaskReferenceType {
 export const FacilityTaskTypeReferenceSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal(FacilityTaskType.CHECK_IN_HANDOVER),
-    referenceType: z.literal(FacilityTaskReferenceType.BOOKING),
+    referenceType: z.enum([
+      FacilityTaskReferenceType.BOOKING,
+      FacilityTaskReferenceType.APPOINTMENT,
+    ]),
   }),
   z.object({
     type: z.literal(FacilityTaskType.UNIT_INSPECTION),
     referenceType: z.enum([
       FacilityTaskReferenceType.BOOKING,
       FacilityTaskReferenceType.STORAGE_UNIT,
+      FacilityTaskReferenceType.APPOINTMENT,
     ]),
   }),
   z.object({
     type: z.literal(FacilityTaskType.HANDLE_SUPPORT),
-    referenceType: z.literal(FacilityTaskReferenceType.SUPPORT_TICKET),
+    referenceType: z.enum([
+      FacilityTaskReferenceType.SUPPORT_TICKET,
+      FacilityTaskReferenceType.APPOINTMENT,
+    ]),
   }),
 ]);
 

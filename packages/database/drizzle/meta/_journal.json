@@ -78,6 +78,20 @@
       "when": 1793229847997,
       "tag": "0010_skinny_yellowjacket",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793235361408,
+      "tag": "0011_real_iron_lad",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793237139385,
+      "tag": "0012_thin_gateway",
+      "breakpoints": true
     }
   ]
 }

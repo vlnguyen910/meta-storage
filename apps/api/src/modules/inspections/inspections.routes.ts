@@ -10,6 +10,7 @@ import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
+import { createAppointmentsService } from "../appointments/appointments.service";
 import { requireRole } from "../auth/auth.guard";
 import { createBookingCheckInService } from "../bookings/booking-check-in.service";
 import { createBookingsService } from "../bookings/bookings.service";
@@ -22,6 +23,7 @@ import { MediaAssetsRepository } from "../media-assets/media-assets.repository";
 import { MediaAssetsService } from "../media-assets/media-assets.service";
 import { RentalsRepository } from "../rentals/rentals.repository";
 import { RentalsService } from "../rentals/rentals.service";
+import { createReservationsService } from "../reservations/reservations.service";
 import { StorageUnitsRepository } from "../storage-units/storage-units.repository";
 import { StorageUnitsService } from "../storage-units/storage-units.service";
 import { INSPECTIONS_API_MESSAGES as m } from "./inspections.messages";
@@ -49,6 +51,8 @@ export const inspectionsRoutes: FastifyPluginAsync = async (app) => {
     new StorageUnitsService(new StorageUnitsRepository(app.db)),
     assignments,
     media,
+    createAppointmentsService(app.db),
+    createReservationsService(app.db),
   );
 
   typed.get(

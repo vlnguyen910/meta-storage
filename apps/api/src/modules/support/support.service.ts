@@ -21,6 +21,12 @@ import type { SupportCursor, SupportTransaction } from "./support.types";
 export class SupportService {
   constructor(private readonly repository: SupportRepository) {}
 
+  async requireCustomerTicket(tx: SupportTransaction, id: string, customerId: string) {
+    const ticket = await this.repository.lockCustomerTicket(tx, id, customerId);
+    if (!ticket) throw new NotFoundError(m.notFound);
+    return ticket;
+  }
+
   private cursor(input?: string): SupportCursor | undefined {
     if (!input) return;
     try {

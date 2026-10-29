@@ -12,6 +12,7 @@ import {
   type StaffFacilityTaskListQuery,
   type UpdateFacilityTaskInput,
 } from "@metastorage/contracts";
+import type { AppointmentRecord, Database } from "@metastorage/database";
 import { UserRole } from "@metastorage/database/schema/user-enums";
 import {
   BadRequestError,
@@ -20,10 +21,17 @@ import {
   NotFoundError,
 } from "../../common/errors/app-error";
 import { mapPageDto } from "../../common/types/page.dto";
-import type { BookingCheckInService } from "../bookings/booking-check-in.service";
+import {
+  type BookingCheckInService,
+  createBookingCheckInService,
+} from "../bookings/booking-check-in.service";
+import { CheckInSlotsRepository } from "../bookings/check-in-slots.repository";
+import { CheckInSlotsService } from "../bookings/check-in-slots.service";
 import { getFacilityAccessScope } from "../facilities/facilities.access";
-import type { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
-import type { FacilityTasksRepository } from "./facility-tasks.repository";
+import { FacilitiesRepository } from "../facilities/facilities.repository";
+import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
+import { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
+import { FacilityTasksRepository } from "./facility-tasks.repository";
 import type {
   FacilityTaskActor,
   FacilityTaskRecord,
@@ -35,13 +43,71 @@ export class FacilityTasksService {
     private readonly repository: FacilityTasksRepository,
     private readonly assignments: FacilityAssignmentsService,
     private readonly bookings: BookingCheckInService,
+    private readonly appointmentSlots?: CheckInSlotsService,
   ) {}
+
+  async assignAppointment(tx: TaskTransaction, appointment: AppointmentRecord, managerId: string) {
+    if (!appointment.assignedStaffId) throw new BadRequestError(m.staffUnavailable);
+    await this.assignments.requireActiveAssignments(tx, appointment.facilityId, [
+      { userId: managerId, role: UserRole.FACILITY_MANAGER },
+      { userId: appointment.assignedStaffId, role: UserRole.FACILITY_STAFF },
+    ]);
+    const [task] = await this.repository.findActiveAppointmentTask(tx, appointment.id);
+    if (task) {
+      if (task.assignedStaffId === appointment.assignedStaffId) return;
+      if (task.status === FacilityTaskStatus.IN_PROGRESS) throw new ConflictError(m.taskNotReady);
+      await this.repository.reassignTask(
+        tx,
+        task.id,
+        appointment.assignedStaffId,
+        managerId,
+        new Date(),
+      );
+      return;
+    }
+    await this.repository.createAppointmentTask(tx, {
+      facilityId: appointment.facilityId,
+      type:
+        appointment.appointmentType === "CHECK_IN"
+          ? FacilityTaskType.CHECK_IN_HANDOVER
+          : appointment.appointmentType === "CHECK_OUT"
+            ? FacilityTaskType.UNIT_INSPECTION
+            : FacilityTaskType.HANDLE_SUPPORT,
+      referenceType: FacilityTaskReferenceType.APPOINTMENT,
+      referenceId: appointment.id,
+      assignedStaffId: appointment.assignedStaffId,
+      assignedBy: managerId,
+    });
+  }
+
+  async finishAppointment(
+    tx: TaskTransaction,
+    appointmentId: string,
+    completed: boolean,
+    actorId: string,
+  ) {
+    const [task] = await this.repository.findActiveAppointmentTask(tx, appointmentId);
+    if (
+      completed &&
+      (!task || task.status !== FacilityTaskStatus.IN_PROGRESS || task.assignedStaffId !== actorId)
+    )
+      throw new ConflictError(m.taskNotReady);
+    if (task)
+      await this.repository.setWorkflowStatus(
+        tx,
+        task.id,
+        completed ? FacilityTaskStatus.COMPLETED : FacilityTaskStatus.CANCELLED,
+        { ...(completed ? { completedAt: new Date() } : {}), updatedAt: new Date() },
+      );
+  }
 
   async create(
     input: CreateFacilityTaskInput,
     actor: FacilityTaskActor,
   ): Promise<FacilityTaskDetail> {
     this.assertManager(actor);
+    if (input.referenceType === FacilityTaskReferenceType.APPOINTMENT)
+      throw new BadRequestError(m.appointmentWorkflowRequired);
     if (input.type === FacilityTaskType.CHECK_IN_HANDOVER)
       throw new BadRequestError(m.handoverTaskAutomatic);
     if (!FacilityTaskTypeReferenceSchema.safeParse(input).success)
@@ -71,7 +137,7 @@ export class FacilityTasksService {
     const now = new Date();
     if (activeTask) {
       if (activeTask.assignedStaffId !== staffId)
-        await this.repository.reassignBookingHandover(tx, activeTask.id, staffId, managerId, now);
+        await this.repository.reassignTask(tx, activeTask.id, staffId, managerId, now);
       return;
     }
     await this.repository.createBookingHandover(tx, {
@@ -179,6 +245,26 @@ export class FacilityTasksService {
     input: UpdateFacilityTaskInput,
     actor: FacilityTaskActor,
   ): Promise<FacilityTaskDetail> {
+    const [current] = await this.repository.findById(id);
+    if (current?.referenceType === FacilityTaskReferenceType.APPOINTMENT) {
+      // Appointment owns assignment and terminal states so both records commit together.
+      if (!("status" in input) || input.status !== FacilityTaskStatus.IN_PROGRESS)
+        throw new ConflictError(m.appointmentWorkflowRequired);
+      const appointment = await this.repository.findAppointment(current.referenceId);
+      const slot =
+        appointment &&
+        (await this.appointmentSlots?.findByIdForDate(
+          appointment.slotId,
+          appointment.scheduledDate,
+        ));
+      if (
+        appointment?.status !== "CONFIRMED" ||
+        !slot ||
+        new Date() < slot.startsAt ||
+        new Date() >= slot.endsAt
+      )
+        throw new ConflictError(m.taskNotReady);
+    }
     if ("status" in input) {
       if (input.status === FacilityTaskStatus.CANCELLED) this.assertManager(actor);
       else this.assertStaff(actor);
@@ -188,7 +274,10 @@ export class FacilityTasksService {
     }
     if ("status" in input && input.status === FacilityTaskStatus.IN_PROGRESS) {
       const [task] = await this.repository.findById(id);
-      if (task?.type === FacilityTaskType.CHECK_IN_HANDOVER) {
+      if (
+        task?.type === FacilityTaskType.CHECK_IN_HANDOVER &&
+        task.referenceType === FacilityTaskReferenceType.BOOKING
+      ) {
         if (actor.role !== UserRole.FACILITY_STAFF || task.assignedStaffId !== actor.id)
           throw new ForbiddenError(m.accessDenied);
         if (task.status !== FacilityTaskStatus.ASSIGNED) throw new ConflictError(m.taskNotReady);
@@ -244,4 +333,14 @@ export class FacilityTasksService {
         throw new BadRequestError(m.handoverTaskAutomatic);
     }
   }
+}
+
+export function createFacilityTasksService(db: Database) {
+  const assignments = new FacilityAssignmentsRepository(db);
+  return new FacilityTasksService(
+    new FacilityTasksRepository(db, assignments),
+    new FacilityAssignmentsService(assignments, new FacilitiesRepository(db)),
+    createBookingCheckInService(db),
+    new CheckInSlotsService(new CheckInSlotsRepository(db)),
+  );
 }

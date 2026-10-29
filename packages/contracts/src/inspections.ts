@@ -81,7 +81,9 @@ export const InspectionTypeValueSchema = z.enum(["CHECK_IN", "CHECK_OUT", "MAINT
 export const InspectionStatusValueSchema = z.enum(["PENDING", "IN_PROGRESS", "PASSED", "FAILED"]);
 export const InspectionConditionValueSchema = z.enum(["GOOD", "MINOR_DAMAGE", "MAJOR_DAMAGE"]);
 
-export const CreateInspectionInputSchema = z.object({ taskId: z.string().uuid() }).strict();
+export const CreateInspectionInputSchema = z
+  .object({ taskId: z.string().uuid(), storageUnitId: z.string().uuid().optional() })
+  .strict();
 export type CreateInspectionInput = z.infer<typeof CreateInspectionInputSchema>;
 
 export const InspectionListQuerySchema = z

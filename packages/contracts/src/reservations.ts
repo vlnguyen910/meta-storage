@@ -2,6 +2,11 @@ import { ReservationStatus as ReservationStatusEnum } from "@metastorage/databas
 import { z } from "zod";
 import type { Facility } from "./facilities";
 import type { Payment } from "./payments";
+import type { BookingPaymentSession } from "./payments.types";
+
+export type ReservationPaymentSession = Omit<BookingPaymentSession, "bookingId"> & {
+  reservationId: string;
+};
 
 export { ReservationStatusEnum as ReservationStatus };
 export const ReservationStatusSchema = z.enum(ReservationStatusEnum);
