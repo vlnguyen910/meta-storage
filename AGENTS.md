@@ -78,16 +78,18 @@ Apply the rules relevant to the workspace and task. Keep implementation aligned 
 
 5. **Database Schema and Migrations**: Follow `docs/db-diagram.md`; update it with `packages/database` schema changes. Generate migrations with `bun run db:generate`; never edit generated migrations directly. Clarify missing domain decisions before implementation.
 6. **Drizzle Conventions**: Prefer the query builder; use parameterized `sql` only when needed. The client and Drizzle Kit use `casing: "snake_case"`, so declare properties in camelCase and omit redundant physical column names. Preserve existing database names and verify migrations do not rename columns.
-7. **Backend Boundaries**: Keep workflow coordination in services, persistence in repositories, and isolate external providers behind adapters. Avoid generic repository abstractions without a concrete use case.
+7. **Database Enums**: Represent backend enums with TypeScript `enum` declarations, not arrays of strings. Declare each enum in the schema file for the table that owns it, then use `enumToPgEnum` when defining its PostgreSQL enum.
+8. **Backend Boundaries**: Keep workflow coordination in services, persistence in repositories, and isolate external providers behind adapters. Avoid generic repository abstractions without a concrete use case.
+9. **Keep Modules Compact**: Avoid creating extra files when the existing module file can hold the implementation. Add service logic to the module's existing service file instead of creating another service file unless a distinct responsibility requires it.
 
 ### 3.3 Web Frontend
 
-8. **State Separation**: Use TanStack Query for server state, Zustand when client state needs sharing, and React Hook Form + Zod for forms.
-9. **API Requests**: Use the centralized API client; do not make scattered requests from UI components.
+10. **State Separation**: Use TanStack Query for server state, Zustand when client state needs sharing, and React Hook Form + Zod for forms.
+11. **API Requests**: Use the centralized API client; do not make scattered requests from UI components.
 
 ### 3.4 Mobile
 
-10. **Screen/Hook/API Flow**: Keep screens focused on UI, workflow logic in feature hooks/services, and backend calls in the centralized API client.
+12. **Screen/Hook/API Flow**: Keep screens focused on UI, workflow logic in feature hooks/services, and backend calls in the centralized API client.
 
 ## 4. Build, Lint, and Development Commands
 
