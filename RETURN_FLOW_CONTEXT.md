@@ -222,7 +222,7 @@ ghi nhận bất kỳ kiểm thử API/DB hay triển khai code nào đã hoàn 
 
 Phần này là cập nhật mới nhất, thay thế những mô tả trạng thái/thiết kế cũ phía
 trên nếu có mâu thuẫn. Backend và schema cho flow CHECK_OUT đã được implement;
-migration đã sinh nhưng chưa áp dụng vào database. UI chưa được triển khai.
+migration đã sinh nhưng chưa áp dụng vào database. UI Web cho flow trả kho đã được triển khai; xem trạng thái chi tiết trong [`RETURN_FLOW_UI_CONTEXT.md`](RETURN_FLOW_UI_CONTEXT.md). UI Mobile chưa được cập nhật.
 
 - Không dùng `system_settings` cho phí. `policy_violation_fee` lưu cả danh mục BOM
   (reference null) và snapshot phí đã áp dụng (reference INSPECTION); đây là lựa
