@@ -1,6 +1,7 @@
 import {
   AppointmentIdSchema,
   AppointmentQuerySchema,
+  AssignStaffBodySchema,
   CreateAppointmentSchema,
   UpdateAppointmentSchema,
 } from "@metastorage/contracts";
@@ -9,19 +10,16 @@ import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
 import { requireAuth, requireRole } from "../auth/auth.guard";
-import { FacilitiesRepository } from "../facilities/facilities.repository";
-import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
-import { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
-import { AppointmentsRepository } from "./appointments.repository";
 import { AppointmentsService } from "./appointments.service";
 
 export const appointmentsRoutes: FastifyPluginAsync = async (app) => {
-  const assignmentRepository = new FacilityAssignmentsRepository(app.db);
-  const service = new AppointmentsService(
-    new AppointmentsRepository(app.db),
-    new FacilityAssignmentsService(assignmentRepository, new FacilitiesRepository(app.db)),
-  );
+  const service = new AppointmentsService();
   const typed = app.withTypeProvider<ZodTypeProvider>();
+
+  typed.get("/check-in-slots", async (_request, reply) =>
+    reply.send(successResponse(service.listCheckInSlots())),
+  );
+
   typed.post(
     "/",
     { schema: { body: CreateAppointmentSchema }, preHandler: [requireRole("CUSTOMER")] },
@@ -29,25 +27,59 @@ export const appointmentsRoutes: FastifyPluginAsync = async (app) => {
       if (!request.user) throw new UnauthorizedError();
       return reply
         .status(201)
-        .send(successResponse(await service.create(request.body, request.user)));
+        .send(successResponse(service.scheduleAppointment(request.body, request.user.id)));
     },
   );
+
   typed.get(
-    "/",
+    "/mine",
     { schema: { querystring: AppointmentQuerySchema }, preHandler: [requireAuth] },
     async (request, reply) => {
       if (!request.user) throw new UnauthorizedError();
-      return reply.send(successResponse(await service.list(request.query, request.user)));
+      return reply.send(
+        successResponse(service.listCustomerAppointments(request.query, request.user.id)),
+      );
     },
   );
+
+  typed.get(
+    "/facilities/:facilityId",
+    { schema: { querystring: AppointmentQuerySchema }, preHandler: [requireAuth] },
+    async (request, reply) => {
+      if (!request.user) throw new UnauthorizedError();
+      return reply.send(
+        successResponse(service.listFacilityAppointments(request.query, request.user.id)),
+      );
+    },
+  );
+
   typed.get(
     "/:id",
     { schema: { params: AppointmentIdSchema }, preHandler: [requireAuth] },
     async (request, reply) => {
       if (!request.user) throw new UnauthorizedError();
-      return reply.send(successResponse(await service.get(request.params.id, request.user)));
+      return reply.send(
+        successResponse(service.getAppointment(request.params.id, request.user.id)),
+      );
     },
   );
+
+  typed.post(
+    "/:id/assign-staff",
+    {
+      schema: { params: AppointmentIdSchema, body: AssignStaffBodySchema },
+      preHandler: [requireRole("FACILITY_MANAGER")],
+    },
+    async (request, reply) => {
+      if (!request.user) throw new UnauthorizedError();
+      return reply.send(
+        successResponse(
+          service.assignAppointmentStaff(request.params.id, request.body, request.user.id),
+        ),
+      );
+    },
+  );
+
   typed.patch(
     "/:id",
     {
@@ -57,7 +89,9 @@ export const appointmentsRoutes: FastifyPluginAsync = async (app) => {
     async (request, reply) => {
       if (!request.user) throw new UnauthorizedError();
       return reply.send(
-        successResponse(await service.update(request.params.id, request.body, request.user)),
+        successResponse(
+          service.updateAppointment(request.params.id, request.body, request.user.id),
+        ),
       );
     },
   );
