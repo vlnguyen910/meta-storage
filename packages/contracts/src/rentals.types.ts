@@ -28,7 +28,8 @@ export interface RentalPaymentItem {
 
 export interface FacilityRentalItem {
   id: string;
-  bookingId: string;
+  bookingId: string | null;
+  reservationId?: string | null;
   userId: string;
   bookingCode: string | null;
   facilityId: string;

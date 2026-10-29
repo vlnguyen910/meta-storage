@@ -17,6 +17,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { enumToPgEnum } from "../enum-to-pg-enum";
 import { bookings } from "./bookings";
+import { reservations } from "./reservations";
 import { users } from "./users";
 
 export {
@@ -35,9 +36,8 @@ export const payments = pgTable(
   "payments",
   {
     id: uuid().defaultRandom().primaryKey(),
-    bookingId: uuid()
-      .notNull()
-      .references(() => bookings.id, { onDelete: "restrict" }),
+    bookingId: uuid().references(() => bookings.id, { onDelete: "restrict" }),
+    reservationId: uuid().references(() => reservations.id, { onDelete: "restrict" }),
     holdTokenHash: varchar({ length: 128 }).notNull(),
     provider: varchar({ length: 32 }).notNull(),
     paymentCode: varchar({ length: 32 }).notNull().unique(),
@@ -58,6 +58,10 @@ export const payments = pgTable(
     updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
+    check(
+      "payments_context_valid",
+      sql`num_nonnulls(${table.bookingId}, ${table.reservationId}) = 1`,
+    ),
     check(
       "payments_refund_amount_valid",
       sql`${table.refundAmount} IS NULL OR (${table.refundAmount} >= 0 AND ${table.refundAmount} <= ${table.totalAmount})`,

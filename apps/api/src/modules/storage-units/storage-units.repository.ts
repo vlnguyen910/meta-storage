@@ -1,6 +1,7 @@
 import {
   type CreateStorageUnitInput,
   canTransitionStorageUnitStatus,
+  FacilityTaskStatus,
   STORAGE_UNIT_MESSAGES,
   type StorageUnitListQuery,
   type UpdateStorageUnitInput,
@@ -15,7 +16,11 @@ import {
   type Database,
   eq,
   facilities,
+  facilityTasks,
   gt,
+  InspectionType,
+  inArray,
+  inspections,
   isNull,
   lt,
   max,
@@ -44,6 +49,55 @@ export type TransitionUnitStatusResult =
 
 export class StorageUnitsRepository {
   constructor(private readonly db: DbExecutor) {}
+
+  async lockAvailableForHandover(
+    tx: TaskTransaction,
+    unitId: string,
+    taskId: string,
+    startsAt: Date,
+    endsAt: Date,
+  ) {
+    const [unit] = await tx
+      .select()
+      .from(storageUnits)
+      .where(eq(storageUnits.id, unitId))
+      .for("update");
+    if (unit?.status !== "AVAILABLE") return undefined;
+    const [assignment] = await tx
+      .select({ id: unitAssignments.id })
+      .from(unitAssignments)
+      .where(and(eq(unitAssignments.physicalUnitId, unitId), eq(unitAssignments.status, "ACTIVE")))
+      .limit(1);
+    const [rental] = await tx
+      .select({ id: rentals.id })
+      .from(rentals)
+      .where(
+        and(
+          eq(rentals.storageUnitId, unitId),
+          eq(rentals.status, RentalStatus.ACTIVE),
+          lt(rentals.startAt, endsAt),
+          gt(rentals.endAt, startsAt),
+        ),
+      )
+      .limit(1);
+    const [inspection] = await tx
+      .select({ id: inspections.id })
+      .from(inspections)
+      .innerJoin(facilityTasks, eq(facilityTasks.id, inspections.taskId))
+      .where(
+        and(
+          eq(inspections.storageUnitId, unitId),
+          ne(inspections.taskId, taskId),
+          eq(inspections.inspectionType, InspectionType.CHECK_IN),
+          inArray(facilityTasks.status, [
+            FacilityTaskStatus.ASSIGNED,
+            FacilityTaskStatus.IN_PROGRESS,
+          ]),
+        ),
+      )
+      .limit(1);
+    return assignment || rental || inspection ? undefined : unit;
+  }
 
   markOccupied(tx: TaskTransaction, unitId: string, now: Date) {
     return tx

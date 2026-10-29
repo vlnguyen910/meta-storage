@@ -24,6 +24,15 @@ import type { SupportCursor, SupportTransaction } from "./support.types";
 export class SupportRepository {
   constructor(readonly db: Database) {}
 
+  async lockCustomerTicket(tx: SupportTransaction, id: string, customerId: string) {
+    const [ticket] = await tx
+      .select()
+      .from(supportTickets)
+      .where(and(eq(supportTickets.id, id), eq(supportTickets.ownerUserId, customerId)))
+      .for("update");
+    return ticket;
+  }
+
   transaction<T>(fn: (tx: SupportTransaction) => Promise<T>): Promise<T> {
     return this.db.transaction(fn);
   }

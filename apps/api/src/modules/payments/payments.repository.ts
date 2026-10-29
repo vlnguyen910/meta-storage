@@ -16,6 +16,7 @@ import {
   type PaymentRefundReason,
   paymentProviderEvents,
   payments,
+  reservations,
   type SQL,
   sql,
   unitTypes,
@@ -68,16 +69,44 @@ function toConfirmation(
 export class PaymentsRepository {
   constructor(private readonly db: Database) {}
 
+  async recordEventInTransaction(
+    tx: Parameters<Parameters<Database["transaction"]>[0]>[0],
+    event: VerifiedPaymentEvent,
+    paymentId: string,
+  ) {
+    const [recorded] = await tx
+      .insert(paymentProviderEvents)
+      .values({
+        provider: "sepay",
+        providerEventId: event.providerEventId,
+        paymentId,
+        paymentCode: event.paymentCode,
+        amount: event.amount,
+        transferType: event.transferType,
+        referenceCode: event.referenceCode,
+        status: "PROCESSED",
+        payloadMetadata: event.metadata,
+      })
+      .onConflictDoNothing({
+        target: [paymentProviderEvents.provider, paymentProviderEvents.providerEventId],
+      })
+      .returning();
+    return Boolean(recorded);
+  }
+
   async listPendingSepayPayments(facilityId?: string) {
     return this.db
       .select({ id: payments.id })
       .from(payments)
-      .innerJoin(bookings, eq(bookings.id, payments.bookingId))
+      .leftJoin(bookings, eq(bookings.id, payments.bookingId))
+      .leftJoin(reservations, eq(reservations.id, payments.reservationId))
       .where(
         and(
           eq(payments.provider, "sepay"),
           eq(payments.status, "PENDING"),
-          facilityId ? eq(bookings.facilityId, facilityId) : undefined,
+          facilityId
+            ? or(eq(bookings.facilityId, facilityId), eq(reservations.facilityId, facilityId))
+            : undefined,
         ),
       )
       .orderBy(asc(payments.updatedAt), asc(payments.id))
@@ -517,6 +546,7 @@ export class PaymentsRepository {
       .select({
         paymentId: payments.id,
         bookingId: payments.bookingId,
+        reservationId: payments.reservationId,
         amount: sql<string>`coalesce(${payments.refundAmount}, ${payments.totalAmount})`,
         depositForfeitedAmount: payments.depositForfeitedAmount,
         currency: payments.currency,
@@ -524,11 +554,17 @@ export class PaymentsRepository {
         paidAt: payments.paidAt,
         contactName: bookingCustomer.name,
         contactEmail: bookingCustomer.email,
-        contactPhone: bookings.contactPhone,
+        contactPhone: sql<
+          string | null
+        >`coalesce(${bookings.contactPhone}, ${bookingCustomer.phone})`,
       })
       .from(payments)
       .leftJoin(bookings, eq(bookings.id, payments.bookingId))
-      .leftJoin(bookingCustomer, eq(bookingCustomer.id, bookings.userId))
+      .leftJoin(reservations, eq(reservations.id, payments.reservationId))
+      .leftJoin(
+        bookingCustomer,
+        eq(bookingCustomer.id, sql`coalesce(${bookings.userId}, ${reservations.customerId})`),
+      )
       .where(eq(payments.status, "REFUND_PENDING"))
       .orderBy(desc(payments.paidAt), payments.id)
       .limit(query.limit)
@@ -617,18 +653,25 @@ export class PaymentsRepository {
       .select({ payment: payments })
       .from(payments)
       .leftJoin(bookings, eq(bookings.id, payments.bookingId))
-      .where(and(eq(payments.id, paymentId), eq(bookings.userId, access.userId)));
+      .leftJoin(reservations, eq(reservations.id, payments.reservationId))
+      .where(
+        and(
+          eq(payments.id, paymentId),
+          or(eq(bookings.userId, access.userId), eq(reservations.customerId, access.userId)),
+        ),
+      );
     return row?.payment;
   }
 
   async findActiveHoldForPayment(payment: typeof payments.$inferSelect) {
-    if (!payment.holdTokenHash || !payment.bookingId) return null;
+    const referenceId = payment.bookingId ?? payment.reservationId;
+    if (!payment.holdTokenHash || !referenceId) return null;
     const [hold] = await this.db
       .select({ id: capacityAllocations.id, expiresAt: capacityAllocations.expiresAt })
       .from(capacityAllocations)
       .where(
         and(
-          eq(capacityAllocations.referenceId, payment.bookingId),
+          eq(capacityAllocations.referenceId, referenceId),
           eq(capacityAllocations.kind, "HOLD"),
           eq(capacityAllocations.status, "ACTIVE"),
           eq(capacityAllocations.accessTokenHash, payment.holdTokenHash),

@@ -53,9 +53,10 @@ export const facilityTasks = pgTable(
         OR (${t.status} = 'COMPLETED' AND ${t.startedAt} IS NOT NULL AND ${t.completedAt} IS NOT NULL)
         OR ${t.status} = 'CANCELLED'`,
     ),
+    // Text comparison lets enum additions and constraint changes migrate in one transaction.
     check(
       "facility_tasks_reference_valid",
-      sql`(${t.type} = 'CHECK_IN_HANDOVER' AND ${t.referenceType} = 'BOOKING') OR (${t.type} = 'UNIT_INSPECTION' AND ${t.referenceType} IN ('BOOKING', 'STORAGE_UNIT')) OR (${t.type} = 'HANDLE_SUPPORT' AND ${t.referenceType} = 'SUPPORT_TICKET')`,
+      sql`(${t.type} = 'CHECK_IN_HANDOVER' AND ${t.referenceType}::text IN ('BOOKING', 'APPOINTMENT')) OR (${t.type} = 'UNIT_INSPECTION' AND ${t.referenceType}::text IN ('BOOKING', 'STORAGE_UNIT', 'APPOINTMENT')) OR (${t.type} = 'HANDLE_SUPPORT' AND ${t.referenceType}::text IN ('SUPPORT_TICKET', 'APPOINTMENT'))`,
     ),
   ],
 );

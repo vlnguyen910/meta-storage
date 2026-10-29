@@ -16,6 +16,10 @@ import type { BookingReadRecord } from "../bookings/bookings.types";
 import { PAYMENT_MESSAGES } from "./payments.messages";
 import { PaymentsRepository } from "./payments.repository";
 import type { PaymentStatusCredentials } from "./payments.types";
+import {
+  createReservationPaymentsService,
+  type ReservationPaymentsService,
+} from "./reservation-payments.service";
 import { SepayPaymentGateway } from "./sepay.gateway";
 
 function requirePaymentCode(code: string | null): string {
@@ -29,6 +33,7 @@ export class PaymentsService {
     private readonly sepayGateway?: SepayPaymentGateway,
     private readonly bookingEmail?: Pick<BookingsService, "enqueueConfirmation" | "getStatus">,
     private readonly logger?: Pick<FastifyBaseLogger, "warn">,
+    private readonly reservationPayments?: ReservationPaymentsService,
   ) {}
 
   async listManualRefunds(query: ManualRefundQuery): Promise<ManualRefund[]> {
@@ -121,6 +126,8 @@ export class PaymentsService {
         paymentId: bookingResult.paymentId,
       };
     }
+    const reservationResult = await this.reservationPayments?.processEvent(event);
+    if (reservationResult) return reservationResult;
     const existingEvent = await this.repository.findProviderEvent("sepay", event.providerEventId);
     if (existingEvent && existingEvent.status !== "FAILED") return { duplicate: true };
     const recorded =
@@ -164,6 +171,7 @@ export class PaymentsService {
       if (!event) return;
       const result = await this.repository.processBookingPaymentEvent(event);
       if (result?.completed) await this.confirmationWithEmail(result.completed);
+      if (!result) await this.reservationPayments?.processEvent(event);
     } catch (error) {
       this.logger?.warn(
         {
@@ -221,7 +229,10 @@ export class PaymentsService {
           })
         : undefined;
     const checkoutSession =
-      payment.status === "PENDING" && this.sepayGateway && payment.bookingId && hold
+      payment.status === "PENDING" &&
+      this.sepayGateway &&
+      (payment.bookingId || payment.reservationId) &&
+      hold
         ? this.sepayGateway.createCheckoutSession({
             paymentCode: requirePaymentCode(payment.paymentCode),
             amount: Number(payment.totalAmount),
@@ -230,11 +241,13 @@ export class PaymentsService {
               requirePaymentCode(payment.paymentCode),
             ),
             bookingId: payment.bookingId ?? undefined,
+            reservationId: payment.reservationId ?? undefined,
             paymentId: payment.id,
           })
         : null;
     return {
       paymentId: payment.id,
+      ...(payment.reservationId ? { reservationId: payment.reservationId } : {}),
       status: payment.status,
       provider: payment.provider,
       paymentCode: payment.paymentCode,
@@ -259,31 +272,35 @@ export class PaymentsService {
   }
 }
 
+export function createSepayGateway() {
+  const isSepay = env.PAYMENT_PROVIDER === "sepay";
+  const hasPgConfig = Boolean(env.SEPAY_MERCHANT_ID && env.SEPAY_SECRET_KEY);
+
+  return isSepay && hasPgConfig
+    ? new SepayPaymentGateway({
+        paymentPrefix: env.SEPAY_PAYMENT_PREFIX,
+        env: env.SEPAY_ENV,
+        merchantId: env.SEPAY_MERCHANT_ID,
+        secretKey: env.SEPAY_SECRET_KEY,
+        webUrl: env.WEB_URL,
+        bankName: env.SEPAY_BANK_NAME,
+        accountNumber: env.SEPAY_BANK_ACCOUNT_NUMBER,
+        accountName: env.SEPAY_BANK_ACCOUNT_NAME,
+      })
+    : undefined;
+}
+
 export function createPaymentsService(
   fastify: FastifyInstance,
   bookingService?: Pick<BookingsService, "enqueueConfirmation" | "getStatus">,
 ): PaymentsService {
-  const isSepay = env.PAYMENT_PROVIDER === "sepay";
-  const hasPgConfig = Boolean(env.SEPAY_MERCHANT_ID && env.SEPAY_SECRET_KEY);
-
-  const sepayGateway =
-    isSepay && hasPgConfig
-      ? new SepayPaymentGateway({
-          paymentPrefix: env.SEPAY_PAYMENT_PREFIX,
-          env: env.SEPAY_ENV,
-          merchantId: env.SEPAY_MERCHANT_ID,
-          secretKey: env.SEPAY_SECRET_KEY,
-          webUrl: env.WEB_URL,
-          bankName: env.SEPAY_BANK_NAME,
-          accountNumber: env.SEPAY_BANK_ACCOUNT_NUMBER,
-          accountName: env.SEPAY_BANK_ACCOUNT_NAME,
-        })
-      : undefined;
+  const sepayGateway = createSepayGateway();
   const repository = new PaymentsRepository(fastify.db);
   return new PaymentsService(
     repository,
     sepayGateway,
     bookingService ?? createBookingsService(fastify),
     fastify.log,
+    createReservationPaymentsService(fastify.db, sepayGateway),
   );
 }

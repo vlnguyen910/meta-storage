@@ -13,6 +13,7 @@ export type BookingPaymentSession = {
 };
 
 export type ManualRefund = {
+  reservationId?: string | null;
   paymentId: string;
   bookingId: string | null;
   amount: string;
@@ -37,6 +38,7 @@ export type ManualRefundConfirmation = {
 };
 
 export type PaymentStatusResponse = {
+  reservationId?: string;
   paymentId: string;
   status: PaymentStatus;
   provider: string | null;
