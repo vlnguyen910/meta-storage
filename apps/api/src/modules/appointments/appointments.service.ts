@@ -3,7 +3,7 @@ import type {
   CreateAppointmentInput,
   UpdateAppointmentInput,
 } from "@metastorage/contracts";
-import { APPOINTMENT_STATUSES, APPOINTMENT_TYPES, type Role } from "@metastorage/database";
+import { APPOINTMENT_STATUSES, type Role } from "@metastorage/database";
 import {
   BadRequestError,
   ConflictError,
@@ -16,9 +16,16 @@ import { APPOINTMENT_MESSAGES as m } from "./appointments.messages";
 import type { AppointmentsRepository } from "./appointments.repository";
 
 type Actor = { id: string; role: Role | null | undefined };
-const transitions: Record<string, readonly string[]> = {
-  SCHEDULED: ["CONFIRMED", "CANCELLED"],
-  CONFIRMED: ["COMPLETED", "CANCELLED", "NO_SHOW"],
+const transitions: Partial<Record<APPOINTMENT_STATUSES, readonly APPOINTMENT_STATUSES[]>> = {
+  [APPOINTMENT_STATUSES.SCHEDULED]: [
+    APPOINTMENT_STATUSES.CONFIRMED,
+    APPOINTMENT_STATUSES.CANCELLED,
+  ],
+  [APPOINTMENT_STATUSES.CONFIRMED]: [
+    APPOINTMENT_STATUSES.COMPLETED,
+    APPOINTMENT_STATUSES.CANCELLED,
+    APPOINTMENT_STATUSES.NO_SHOW,
+  ],
 };
 
 export class AppointmentsService {
@@ -28,7 +35,6 @@ export class AppointmentsService {
   ) {}
 
   async create(input: CreateAppointmentInput, actor: Actor) {
-    if (!isAppointmentType(input.appointmentType)) throw new BadRequestError(m.invalidType);
     let context: { facilityId: string; customerId: string } | undefined;
     if (input.appointmentType === "CHECK_IN" && input.reservationId) {
       const row = await this.repository.reservationContext(input.reservationId);
@@ -40,8 +46,9 @@ export class AppointmentsService {
       if (row?.status !== "ACTIVE") throw new NotFoundError(m.contextNotFound);
       context = row;
     } else if (input.supportTicketId) {
-      context = await this.repository.supportContext(input.supportTicketId);
-      if (!context) throw new NotFoundError(m.contextNotFound);
+      const support = await this.repository.supportContext(input.supportTicketId);
+      if (!support) throw new NotFoundError(m.contextNotFound);
+      context = support;
     }
 
     if (context && context.customerId !== actor.id) throw new ForbiddenError();
@@ -74,10 +81,6 @@ export class AppointmentsService {
   }
 
   async list(query: AppointmentQuery, actor: Actor) {
-    if (query.appointmentType && !isAppointmentType(query.appointmentType))
-      throw new BadRequestError(m.invalidType);
-    if (query.status && !isAppointmentStatus(query.status))
-      throw new BadRequestError(m.invalidStatus);
     if (actor.role === "CUSTOMER") return this.repository.list(query, actor.id);
     if (actor.role === "FACILITY_STAFF") {
       const scope = getFacilityAccessScope(actor);
@@ -122,8 +125,6 @@ export class AppointmentsService {
     const appointment = await this.get(id, actor);
     const isCustomer = actor.role === "CUSTOMER";
     const isStaff = actor.role === "FACILITY_STAFF";
-    if (input.status && !isAppointmentStatus(input.status))
-      throw new BadRequestError(m.invalidStatus);
     if (
       isCustomer &&
       (Object.keys(input).some((key) => key !== "status") || input.status !== "CANCELLED")
@@ -151,14 +152,6 @@ export class AppointmentsService {
       throw error;
     }
   }
-}
-
-function isAppointmentType(value: string): value is APPOINTMENT_TYPES {
-  return Object.values(APPOINTMENT_TYPES).includes(value as APPOINTMENT_TYPES);
-}
-
-function isAppointmentStatus(value: string): value is APPOINTMENT_STATUSES {
-  return Object.values(APPOINTMENT_STATUSES).includes(value as APPOINTMENT_STATUSES);
 }
 
 function isUniqueViolation(error: unknown): boolean {

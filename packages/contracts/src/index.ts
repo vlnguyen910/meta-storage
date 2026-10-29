@@ -1,4 +1,5 @@
 export * from "./api-response";
+export * from "./appointments";
 export * from "./auth";
 export * from "./bookings";
 export * from "./catalog";
@@ -39,6 +40,7 @@ export * from "./pricing";
 export * from "./rental-documents";
 export * from "./rentals";
 export * from "./reports";
+export * from "./reservations";
 export * from "./storage-units";
 export * from "./storage-units.messages";
 export * from "./support";
