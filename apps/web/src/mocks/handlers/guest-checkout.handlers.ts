@@ -30,8 +30,14 @@ export function registerGuestCheckoutHandlers(mock: MockAdapter): void {
       Date.parse(input.checkInAt) < Date.now()
     )
       return [400, errorBody(400, M.invalid)];
+    const user = currentUser(config, db);
     const draft = {
       ...input,
+      contact: input.contact ?? {
+        fullName: user?.name ?? "Guest",
+        email: user?.email ?? "guest@example.com",
+        phone: user?.phone ?? "",
+      },
       id: crypto.randomUUID(),
       rentalEndAt: addMonths(input.checkInAt, input.durationMonths),
       draftAccessToken: `mock-draft-${crypto.randomUUID()}`,
@@ -103,7 +109,13 @@ export function registerGuestCheckoutHandlers(mock: MockAdapter): void {
     const bookingId = crypto.randomUUID();
     const paymentId = crypto.randomUUID();
     const code = `BK-MOCK-${bookingId.slice(0, 8).toUpperCase()}`;
-    const userId = currentUser(config, db)?.id ?? null;
+    const user = currentUser(config, db);
+    const userId = user?.id ?? null;
+    const contact = draft.contact ?? {
+      fullName: user?.name ?? "Guest",
+      email: user?.email ?? "guest@example.com",
+      phone: user?.phone ?? "",
+    };
     const slotEnd = new Date(Date.parse(draft.checkInAt) + 7200000).toISOString();
     const booking: MockBooking = {
       id: bookingId,
@@ -114,9 +126,9 @@ export function registerGuestCheckoutHandlers(mock: MockAdapter): void {
       unitTypeName: unit.unitType,
       unitTypeSizeLabel: unit.sizeLabel,
       userId,
-      contactName: draft.contact.fullName,
-      contactEmail: draft.contact.email,
-      contactPhone: draft.contact.phone,
+      contactName: contact.fullName,
+      contactEmail: contact.email,
+      contactPhone: contact.phone,
       checkInSlotStart: draft.checkInAt,
       checkInSlotEnd: slotEnd,
       rentalEndAt: draft.rentalEndAt,
@@ -146,7 +158,7 @@ export function registerGuestCheckoutHandlers(mock: MockAdapter): void {
         durationMonths: draft.durationMonths,
         status: "CONFIRMED",
         paidAt: now,
-        contact: draft.contact,
+        contact,
         pricing: draft.pricing,
       },
       confirmation: {
