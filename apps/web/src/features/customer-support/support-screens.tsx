@@ -287,13 +287,13 @@ export function CustomerSupportCreate() {
     urlCategory && (SUPPORT_CATEGORIES as readonly string[]).includes(urlCategory)
       ? (urlCategory as SupportCreateInput["category"])
       : "PAYMENT";
-  const urlBookingId = params.get("bookingId") ?? "";
+  const urlBookingId = params.get("reservationId") ?? "";
   const urlSubject = params.get("subject") ?? "";
 
   const form = useForm<SupportCreateInput>({
     resolver: zodResolver(SupportCreateInputSchema),
     defaultValues: {
-      bookingId: urlBookingId,
+      reservationId: urlBookingId,
       paymentId: params.get("paymentId") ?? undefined,
       category: initialCategory,
       subject: urlSubject,
@@ -302,9 +302,9 @@ export function CustomerSupportCreate() {
     },
   });
   const category = form.watch("category");
-  const bookingId = form.watch("bookingId");
+  const reservationId = form.watch("reservationId");
   const contexts = useSupportContexts(category);
-  const payments = useSupportPaymentContexts(bookingId, category === "PAYMENT");
+  const payments = useSupportPaymentContexts(reservationId ?? "", category === "PAYMENT");
   const create = useMutation({
     mutationFn: api.support.create,
     onSuccess: async (result) => {
@@ -352,7 +352,7 @@ export function CustomerSupportCreate() {
               value={category}
               onValueChange={(val) => {
                 form.setValue("category", val as typeof category);
-                form.setValue("bookingId", "");
+                form.setValue("reservationId", "");
                 form.setValue("paymentId", undefined);
               }}
             >
@@ -386,9 +386,9 @@ export function CustomerSupportCreate() {
               {M.booking} <span className="text-rose-500">*</span>
             </label>
             <Select
-              value={bookingId || "none"}
+              value={reservationId || "none"}
               onValueChange={(val) => {
-                form.setValue("bookingId", val === "none" ? "" : val);
+                form.setValue("reservationId", val === "none" ? "" : val);
                 form.setValue("paymentId", undefined);
               }}
             >
@@ -430,9 +430,9 @@ export function CustomerSupportCreate() {
                 {M.more}
               </Button>
             )}
-            {form.formState.errors.bookingId && (
+            {form.formState.errors.reservationId && (
               <p role="alert" className="text-xs text-rose-600 font-medium">
-                {form.formState.errors.bookingId.message}
+                {form.formState.errors.reservationId.message}
               </p>
             )}
           </div>

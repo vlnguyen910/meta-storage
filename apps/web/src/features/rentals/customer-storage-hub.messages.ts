@@ -54,7 +54,7 @@ export const CUSTOMER_STORAGE_HUB_MESSAGES = {
   returnAction: "Yêu cầu trả kho",
   viewReturnAction: "Xem yêu cầu trả",
   detailsAction: "Xem chi tiết",
-  qrAction: "Xem mã QR",
+  qrAction: "Chi tiết đặt kho",
   emptyRentalsCurrent: "Bạn chưa có kho nào đang hoạt động",
   emptyRentalsHistory: "Chưa có lịch sử thuê kho",
   emptyRentalsDescCurrent:

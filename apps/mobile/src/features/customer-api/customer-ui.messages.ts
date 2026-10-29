@@ -8,7 +8,7 @@ export const CUSTOMER_MOBILE_UI = {
   supportHint: "Gửi yêu cầu hỗ trợ",
   detailAction: "Xem chi tiết",
   appointments: "Lịch hẹn nhận kho",
-  qrAction: "Mã QR nhận kho",
+  qrAction: "Chi tiết đặt kho",
   noBookingsOrRentals: "Chưa có hồ sơ trong danh sách này",
   noBookingsOrRentalsHint: "Chọn cơ sở để đặt kho. Kho thuê sẽ hiển thị sau khi bạn nhận bàn giao.",
   all: "Tất cả",

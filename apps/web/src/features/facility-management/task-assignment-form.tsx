@@ -14,7 +14,7 @@ import { useTaskAssignment } from "./use-task-assignment";
 export function TaskAssignmentForm({ facilityId }: { facilityId: string }) {
   const work = useTaskAssignment(facilityId);
   const errors = work.form.formState.errors;
-  const referenceLabel = work.isBooking ? M.booking : M.unit;
+  const referenceLabel = M.unit;
   const loading = work.referenceQuery.isPending;
   return (
     <form onSubmit={work.submit} className={`${panelClass} grid gap-5`}>
@@ -51,7 +51,6 @@ export function TaskAssignmentForm({ facilityId }: { facilityId: string }) {
             }
           >
             <option value={FacilityTaskReferenceType.STORAGE_UNIT}>{F5.unit}</option>
-            <option value={FacilityTaskReferenceType.BOOKING}>{M.booking}</option>
           </Select>
         </ManagementField>
         <div className="min-w-0">
@@ -64,7 +63,7 @@ export function TaskAssignmentForm({ facilityId }: { facilityId: string }) {
                 work.form.setValue("referenceId", value, { shouldValidate: true })
               }
               options={work.referenceOptions}
-              placeholder={loading ? M.loading : work.isBooking ? M.chooseBooking : M.chooseUnit}
+              placeholder={loading ? M.loading : M.chooseUnit}
               disabled={loading || work.referenceQuery.isError || !work.referenceOptions.length}
               className="w-full min-w-0"
               triggerClassName="min-h-11 h-auto w-full bg-white py-2.5 text-sm text-left [&_span.truncate]:whitespace-normal"
@@ -99,7 +98,7 @@ export function TaskAssignmentForm({ facilityId }: { facilityId: string }) {
         )}
         {work.referenceQuery.isSuccess && !work.referenceOptions.length && (
           <p role="status" className="text-sm text-slate-600 sm:col-span-2">
-            {work.isBooking ? M.noBookings : M.noUnits}
+            {M.noUnits}
           </p>
         )}
         <div className="sm:col-span-2">
@@ -132,7 +131,7 @@ export function TaskAssignmentForm({ facilityId }: { facilityId: string }) {
         <p>
           {M.handoverHint}{" "}
           <Link
-            href="/facility-manager/tasks?view=bookings"
+            href="/facility-manager/tasks?view=appointments"
             className="font-semibold text-primary underline underline-offset-2"
           >
             {M.handoverLink}

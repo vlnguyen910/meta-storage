@@ -1,4 +1,5 @@
 export const STAFF_API_UI = {
+  nonCheckIn: "Lịch hẹn này không phải lịch nhận kho.",
   date: "Ngày làm việc",
   account: "Tài khoản nhân viên",
   closeSheet: "Đóng bảng lựa chọn",

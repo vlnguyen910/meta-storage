@@ -8,7 +8,7 @@ import { BookingLookupForm } from "./booking-lookup-form";
 
 const { requestGuestAccessLink } = vi.hoisted(() => ({ requestGuestAccessLink: vi.fn() }));
 
-vi.mock("@/lib/api", () => ({ api: { bookings: { requestGuestAccessLink } } }));
+vi.mock("@/lib/api", () => ({ api: { legacyBookings: { requestGuestAccessLink } } }));
 vi.mock("@/config/api-mode", () => ({ isMockMode: false }));
 
 function renderForm() {

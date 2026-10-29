@@ -11,8 +11,8 @@ export type CustomerRoute =
     }
   | { screen: "checkout"; facilityId: string; unitTypeId: string }
   | { screen: "booking" | "rental" | "ticket"; id: string }
-  | { screen: "support-new"; bookingId?: string; paymentId?: string }
-  | { screen: "payment"; id: string; bookingId?: string };
+  | { screen: "support-new"; reservationId?: string; paymentId?: string }
+  | { screen: "payment"; id: string; reservationId?: string };
 export type CustomerNavigation = (route: CustomerRoute) => void;
 export type CheckoutSession = {
   checkoutUrl: string;
@@ -21,9 +21,9 @@ export type CheckoutSession = {
 
 export type CustomerCheckoutCommand = {
   signature: string;
-  draft: import("@metastorage/contracts").BookingDraft;
+  draft: import("@metastorage/contracts").ReservationRecordDto;
   key: string;
-  values: import("@metastorage/contracts").BookingDraftInput;
+  values: import("@metastorage/contracts").CreateReservationDraftInput;
   contactPhone?: string;
-  payment?: import("@metastorage/contracts").BookingPaymentSession;
+  payment?: import("@metastorage/contracts").ReservationPaymentSession;
 };

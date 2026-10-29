@@ -36,7 +36,7 @@ function ConnectedScreens() {
         setDestination({
           screen: "payment",
           id,
-          bookingId: parsed.searchParams.get("bookingId") ?? undefined,
+          reservationId: parsed.searchParams.get("reservationId") ?? undefined,
         });
         setView("auth");
       }

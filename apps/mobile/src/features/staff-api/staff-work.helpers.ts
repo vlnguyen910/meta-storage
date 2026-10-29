@@ -10,7 +10,7 @@ export function staffWorkDate(value: string) {
   }).format(new Date(value));
 }
 export function staffWorkGroup(item: StaffSelection): StaffWorkGroup {
-  const status = item.kind === "booking" ? item.booking.status : item.task.status;
+  const status = item.kind === "appointment" ? item.appointment.status : item.task.status;
   return ["CHECKED_IN", "COMPLETED"].includes(status)
     ? "done"
     : ["CANCELLED", "NO_SHOW"].includes(status)
@@ -18,12 +18,13 @@ export function staffWorkGroup(item: StaffSelection): StaffWorkGroup {
       : "pending";
 }
 export function staffWorkScheduledAt(item: StaffSelection): string | null {
-  return item.kind === "booking" ? item.booking.checkInSlotStart : null;
+  return item.kind === "appointment"
+    ? `${item.appointment.scheduledDate}T${item.appointment.slotStart ?? "00:00:00"}+07:00`
+    : null;
 }
 function inProgress(item: StaffSelection) {
-  return item.kind === "booking"
-    ? item.booking.status === "CONFIRMED" &&
-        ["INSPECTING", "READY_HANDOVER"].includes(item.booking.handoverStage ?? "")
+  return item.kind === "appointment"
+    ? item.appointment.status === "CONFIRMED"
     : item.task.status === "IN_PROGRESS";
 }
 export function filterStaffWork(items: StaffSelection[], filters: StaffWorkFilters) {
@@ -32,8 +33,8 @@ export function filterStaffWork(items: StaffSelection[], filters: StaffWorkFilte
     const date = staffWorkScheduledAt(item);
     if (filters.date && date && staffWorkDate(date) !== filters.date) return false;
     const text =
-      item.kind === "booking"
-        ? `${item.booking.contactName} ${item.booking.bookingCode} ${item.booking.assignedUnit?.physicalUnitCode ?? ""}`
+      item.kind === "appointment"
+        ? `${item.appointment.customerName ?? ""} ${item.appointment.id} ${item.appointment.contactPhone ?? ""}`
         : `${item.task.description ?? ""} ${M.type[item.task.type] ?? ""}`;
     return text.toLocaleLowerCase("vi").includes(filters.search.trim().toLocaleLowerCase("vi"));
   });

@@ -93,7 +93,7 @@ export function useMobileCustomer({ data, route, run, go }: MobileScreenProps) {
     renew: () =>
       draft
         ? run(
-            () => mobileApi.reservations.createHold(draft.id, draft.draftAccessToken),
+            () => mobileApi.legacyReservations.createHold(draft.id, draft.draftAccessToken),
             () => go("M-CK03", draft.id),
           )
         : undefined,

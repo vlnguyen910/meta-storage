@@ -111,9 +111,9 @@ describe("FM task assignment", () => {
     expect(screen.queryByText("Reference ID")).not.toBeInTheDocument();
     expect(screen.queryByText("Reference type")).not.toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "Check-in handover" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Booking & Bàn giao" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Lịch hẹn và bàn giao" })).toHaveAttribute(
       "href",
-      "/facility-manager/tasks?view=bookings",
+      "/facility-manager/tasks?view=appointments",
     );
     expect(calls.bookings).not.toHaveBeenCalled();
     expect(calls.units).toHaveBeenCalledWith(
@@ -122,27 +122,13 @@ describe("FM task assignment", () => {
     );
   });
 
-  it("clears the old unit when switching to booking and submits the booking UUID", async () => {
-    const user = setup();
-    await chooseStaff(user);
-    await chooseUnit(user);
-    await user.selectOptions(screen.getByLabelText("Đối tượng cần kiểm tra"), "BOOKING");
-    expect(screen.getByRole("button", { name: "Giao công việc" })).toBeDisabled();
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Booking liên quan" })).toBeEnabled(),
-    );
-    await user.click(screen.getByRole("button", { name: "Booking liên quan" }));
-    expect(screen.queryByRole("option", { name: /OTHER-BOOKING/ })).not.toBeInTheDocument();
-    await user.click(
-      screen.getByRole("option", { name: /SX-BOOKING-001.*Khách kiểm thử.*HCM-02-4M-001/ }),
-    );
-    await user.click(screen.getByRole("button", { name: "Giao công việc" }));
-    await waitFor(() =>
-      expect(calls.create).toHaveBeenCalledWith(
-        expect.objectContaining({ referenceType: "BOOKING", referenceId: booking.id }),
-      ),
-    );
-    expect(calls.bookings).toHaveBeenCalledWith(facilityId);
+  it("keeps appointment assignment in the appointment workflow", async () => {
+    setup();
+    expect(screen.queryByRole("option", { name: "Booking liên quan" })).not.toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Đối tượng cần kiểm tra").querySelector('option[value="BOOKING"]'),
+    ).toBeNull();
+    expect(calls.bookings).not.toHaveBeenCalled();
   });
 
   it("excludes inactive staff and units belonging to another facility", async () => {

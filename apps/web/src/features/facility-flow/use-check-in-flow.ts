@@ -55,7 +55,7 @@ export function useCheckInFlow() {
   const lookup = useQuery({
     queryKey: ["facility-flow", "lookup", code, token],
     queryFn: () =>
-      api.bookings.checkInLookup({
+      api.legacyBookings.checkInLookup({
         type: token ? "QR_TOKEN" : "BOOKING_CODE",
         value: token || code,
       }),
@@ -68,7 +68,7 @@ export function useCheckInFlow() {
   const bookingId = result?.booking.id ?? "";
   const history = useQuery({
     queryKey: inspectionKey(bookingId),
-    queryFn: () => api.inspections.history(bookingId),
+    queryFn: () => api.legacyInspections.history(bookingId),
     enabled: !!bookingId,
     retry: false,
     staleTime: 0,
@@ -100,7 +100,7 @@ export function useCheckInFlow() {
     if (task.status === FacilityTaskStatus.ASSIGNED)
       await api.flow5.tasks.update(task.id, { status: FacilityTaskStatus.IN_PROGRESS });
     else if (task.status !== FacilityTaskStatus.IN_PROGRESS) throw new Error(FLOW.taskNotReady);
-    return api.inspections.start(bookingId);
+    return api.legacyInspections.start(bookingId);
   }
   const verify = useMutation({
     meta: { globalLoading: true },

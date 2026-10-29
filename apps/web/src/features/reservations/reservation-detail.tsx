@@ -1,4 +1,4 @@
-import { CustomerBookingDetail } from "@/features/bookings/customer-booking-view";
+import { ReservationReceipt } from "./reservation-receipt";
 export function ReservationDetail({ reservationId }: { reservationId: string }) {
-  return <CustomerBookingDetail id={reservationId} />;
+  return <ReservationReceipt key={reservationId} reservationId={reservationId} />;
 }

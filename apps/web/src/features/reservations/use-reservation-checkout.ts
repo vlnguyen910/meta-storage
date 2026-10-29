@@ -1,19 +1,16 @@
 "use client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import type {
-  BookingConfirmation,
-  BookingDraft,
-  BookingPaymentSession,
-} from "@metastorage/contracts";
+import type { ReservationPaymentSession, ReservationRecordDto } from "@metastorage/contracts";
+import { useQuery } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { useSearchParams } from "next/navigation";
-import QRCode from "qrcode";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
 import { isMockMode } from "@/config/api-mode";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { useAvailability, useFacilities } from "@/features/facilities/hooks";
+import { api } from "@/lib/api";
 import {
   useBookingDraft,
   useBookingPayment,
@@ -42,12 +39,11 @@ export function useReservationCheckout() {
   const [note, setNote] = useState("");
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
-  const [draft, setDraft] = useState<BookingDraft | null>(null);
-  const [pendingPayment, setPendingPayment] = useState<BookingPaymentSession | null>(null);
+  const [draft, setDraft] = useState<ReservationRecordDto | null>(null);
+  const [pendingPayment, setPendingPayment] = useState<ReservationPaymentSession | null>(null);
   const [paymentKey, setPaymentKey] = useState(() => crypto.randomUUID());
   const [holdSeconds, setHoldSeconds] = useState(0);
-  const [confirmation, setConfirmation] = useState<BookingConfirmation | null>(null);
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+
   const [isRedirecting, setIsRedirecting] = useState(false);
   const requestInFlight = useRef(false);
   const draftSelection = useRef("");
@@ -99,8 +95,6 @@ export function useReservationCheckout() {
     setChangingFacility(!searchParams.get("facilityId"));
     setDraft(null);
     setPendingPayment(null);
-    setConfirmation(null);
-    setQrDataUrl(null);
     setPaymentError(null);
     setSubmissionError(null);
     setPaymentKey(crypto.randomUUID());
@@ -142,14 +136,14 @@ export function useReservationCheckout() {
       saved.draft.unitTypeId,
       saved.checkInDate,
       saved.checkInSlotId,
-      saved.draft.durationMonths,
+      saved.draft.requestedMonths,
     ]);
     form.reset({
       facilityId: saved.draft.facilityId,
       unitTypeId: saved.draft.unitTypeId,
       checkInDate: saved.checkInDate,
       checkInSlotId: saved.checkInSlotId,
-      durationMonths: saved.draft.durationMonths,
+      durationMonths: saved.draft.requestedMonths,
       fullName: form.getValues("fullName"),
       email: form.getValues("email"),
       phone: "",
@@ -199,30 +193,28 @@ export function useReservationCheckout() {
     const timer = window.setInterval(update, 1000);
     return () => window.clearInterval(timer);
   }, [pendingPayment]);
-  useEffect(() => {
-    if (!confirmation) return;
-    let active = true;
-    QRCode.toDataURL(confirmation.qrUrl, { margin: 1, width: 320 })
-      .then((url) => {
-        if (active) setQrDataUrl(url);
-      })
-      .catch(() => {
-        if (active) setQrDataUrl(null);
-      });
-    return () => {
-      active = false;
-    };
-  }, [confirmation]);
+  const confirmationQuery = useQuery({
+    queryKey: ["reservations", session?.user.id, "receipt", pendingPayment?.reservationId],
+    queryFn: () => api.reservations.get(pendingPayment?.reservationId ?? ""),
+    enabled:
+      paymentStatusQuery.data?.status === "SUCCEEDED" &&
+      Boolean(pendingPayment?.reservationId) &&
+      paymentStatusQuery.data.reservationId === pendingPayment?.reservationId,
+  });
+  const confirmation = confirmationQuery.data ?? null;
   useEffect(() => {
     const result = paymentStatusQuery.data;
-    if (result?.status === "SUCCEEDED" && result.confirmation) {
-      setConfirmation(result.confirmation);
+    if (
+      result?.status === "SUCCEEDED" &&
+      result.reservationId &&
+      result.reservationId === pendingPayment?.reservationId
+    ) {
       setPaymentError(null);
       setStep(4);
     } else if (result?.status === "FAILED") setPaymentError(checkoutMessages.paymentNotCompleted);
     else if (result?.status === "REFUND_PENDING") setPaymentError(checkoutMessages.refundPending);
     else if (result?.status === "REFUNDED") setPaymentError(checkoutMessages.refunded);
-  }, [paymentStatusQuery.data]);
+  }, [paymentStatusQuery.data, pendingPayment?.reservationId]);
 
   async function next() {
     if (
@@ -369,8 +361,8 @@ export function useReservationCheckout() {
     hold: pendingPayment,
     holdSeconds,
     confirmation,
-    qrDataUrl,
-    paidPricing: draft?.pricing ?? null,
+    qrDataUrl: null,
+    paidPricing: draft,
     pendingPayment,
     paymentStatusQuery,
     submissionError,

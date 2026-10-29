@@ -62,7 +62,7 @@ export function useMobileStaff({ route, data, run, go }: MobileScreenProps) {
   const lookup = (value = code) =>
     run(
       () =>
-        mobileApi.bookings.checkInLookup({
+        mobileApi.legacyBookings.checkInLookup({
           type: value.startsWith("demo-qr-") ? "QR_TOKEN" : "BOOKING_CODE",
           value: value.trim(),
         }),

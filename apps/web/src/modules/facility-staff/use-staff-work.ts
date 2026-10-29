@@ -2,11 +2,12 @@
 import type { FacilityTaskDetail } from "@metastorage/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { isMockMode } from "@/config/api-mode";
+import { APPOINTMENTS_UI } from "@/features/appointments/appointments.messages";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { bookingKeys } from "@/features/check-in/hooks";
 import { useManagementKey } from "@/features/facility-management/hooks";
 import { api } from "@/lib/api";
-import { bookingWork, facilityWork } from "./staff-work.data";
+import { facilityWork } from "./staff-work.data";
 import { STAFF_WORK as M } from "./staff-work.messages";
 import type { StaffWorkFilters } from "./staff-work.types";
 
@@ -15,13 +16,7 @@ export function useStaffWork(facilityId: string, date: string, kind: StaffWorkFi
   const key = useManagementKey();
   const bookings = useQuery({
     queryKey: [...bookingKeys.staffTasks(facilityId), actorId, date],
-    queryFn: () =>
-      api.bookings.listAssignedToMe(
-        facilityId,
-        date === "all"
-          ? { fromDate: "0001-01-01", toDate: "9999-12-31" }
-          : { fromDate: date, toDate: date },
-      ),
+    queryFn: () => api.appointments.assignedToMe({ facilityId }),
     enabled: kind !== "TASK" && Boolean(facilityId && actorId),
     refetchInterval: 30_000,
   });
@@ -48,12 +43,38 @@ export function useStaffWork(facilityId: string, date: string, kind: StaffWorkFi
     items: [
       ...(kind !== "TASK"
         ? (bookings.data ?? [])
-            .filter((b) => b.assignedStaff?.id === actorId && b.facilityId === facilityId)
-            .map(bookingWork)
+            .filter(
+              (item) =>
+                item.assignedStaffId === actorId &&
+                item.facilityId === facilityId &&
+                (date === "all" || item.scheduledDate === date),
+            )
+            .map((item): import("./staff-work.types").StaffWorkItem => ({
+              id: `appointment:${item.id}`,
+              kind: item.appointmentType === "CHECK_IN" ? "CHECK_IN" : "TASK",
+              group:
+                item.status === "COMPLETED"
+                  ? "done"
+                  : ["CANCELLED", "NO_SHOW"].includes(item.status)
+                    ? "closed"
+                    : "pending",
+              title: item.customerName ?? item.customerId,
+              typeLabel: APPOINTMENTS_UI.types[item.appointmentType] ?? item.appointmentType,
+              statusLabel: APPOINTMENTS_UI.statuses[item.status] ?? item.status,
+              reference: item.reservationId ?? item.id,
+              startsAt: `${item.scheduledDate}T${item.slotStart ?? "00:00:00"}+07:00`,
+              href: `/staff/check-in?appointmentId=${item.id}`,
+              action: M.openTask,
+            }))
         : []),
       ...(kind !== "CHECK_IN" && !isMockMode
         ? (tasks.data ?? [])
-            .filter((t) => t.assignedStaffId === actorId && t.facilityId === facilityId)
+            .filter(
+              (t) =>
+                t.assignedStaffId === actorId &&
+                t.facilityId === facilityId &&
+                t.referenceType !== "APPOINTMENT",
+            )
             .map(facilityWork)
         : []),
     ],

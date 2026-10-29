@@ -5,12 +5,12 @@ import Link from "next/link";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { customerRoutes } from "@/config/routes";
 import { checkoutMessages as m } from "./checkout.messages";
-import { CheckoutConfirmation } from "./checkout-confirmation";
 import { CheckoutContact } from "./checkout-contact";
 import { CheckoutProgress } from "./checkout-parts";
 import { CheckoutPayment } from "./checkout-payment";
 import { CheckoutReview } from "./checkout-review";
 import { CheckoutSelection } from "./checkout-selection";
+import { ReservationReceipt } from "./reservation-receipt";
 import { useReservationCheckout } from "./use-reservation-checkout";
 
 export function ReservationWizard() {
@@ -76,7 +76,9 @@ export function ReservationWizard() {
       {state.step === 1 ? <CheckoutContact state={state} /> : null}
       {state.step === 2 ? <CheckoutReview state={state} /> : null}
       {state.step === 3 ? <CheckoutPayment state={state} /> : null}
-      {state.step === 4 ? <CheckoutConfirmation state={state} /> : null}
+      {state.step === 4 ? (
+        <ReservationReceipt reservationId={state.confirmation?.id ?? state.draft?.id ?? ""} />
+      ) : null}
     </div>
   );
 }

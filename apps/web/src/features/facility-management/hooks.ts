@@ -149,15 +149,6 @@ export function useTaskUnitOptions(facilityId: string, enabled = true) {
   });
 }
 
-export function useTaskBookingOptions(facilityId: string, enabled = true) {
-  const key = useManagementKey();
-  return useQuery({
-    queryKey: [...key, "task-bookings", facilityId],
-    queryFn: () => api.bookings.listFacilityBookings(facilityId),
-    enabled: Boolean(facilityId) && enabled && !isMockMode,
-  });
-}
-
 function useFlow5Write<T, R>(write: (input: T) => Promise<R>) {
   const client = useQueryClient();
   const key = useManagementKey();

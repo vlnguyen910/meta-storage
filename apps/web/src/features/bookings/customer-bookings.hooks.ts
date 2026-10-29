@@ -9,7 +9,7 @@ export function useCustomerBookings() {
   return useInfiniteQuery({
     queryKey: ["customer-bookings", identity],
     initialPageParam: undefined as CustomerBookingPageCursor | undefined,
-    queryFn: ({ pageParam }) => api.bookings.mine({ limit: 6, ...pageParam }),
+    queryFn: ({ pageParam }) => api.legacyBookings.mine({ limit: 6, ...pageParam }),
     getNextPageParam: (page) => page.nextCursor ?? undefined,
   });
 }
@@ -17,7 +17,7 @@ export function useCustomerBooking(id: string) {
   const identity = useFlow3Identity();
   return useQuery({
     queryKey: ["customer-booking", identity, id],
-    queryFn: () => api.bookings.getMine(id),
+    queryFn: () => api.legacyBookings.getMine(id),
     refetchInterval: (query) =>
       !query.state.error &&
       query.state.data?.status === "CONFIRMED" &&
@@ -29,7 +29,7 @@ export function useCustomerBooking(id: string) {
 export function useCancelCustomerBooking(id: string) {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: () => api.bookings.cancel(id),
+    mutationFn: () => api.legacyBookings.cancel(id),
     onSuccess: async () => {
       await Promise.all([
         client.invalidateQueries({ queryKey: ["customer-bookings"] }),

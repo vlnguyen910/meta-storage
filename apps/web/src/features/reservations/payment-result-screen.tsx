@@ -1,7 +1,6 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import QRCode from "qrcode";
 import { useEffect, useState } from "react";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { Spinner } from "@/components/ui/spinner";
@@ -9,20 +8,20 @@ import { customerRoutes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { useCheckoutPaymentStatus } from "./booking-checkout.hooks";
 import type { CheckoutContext } from "./booking-checkout.types";
-import { CheckoutConfirmation } from "./checkout-confirmation";
-import { clearCheckoutContext, readCheckoutContext } from "./checkout-storage";
+import { readCheckoutContext } from "./checkout-storage";
 import { paymentResultMessages as m } from "./payment-result.messages";
+import { ReservationReceipt } from "./reservation-receipt";
 
 export function PaymentResultScreen() {
   const params = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
   const paymentId = params.get("paymentId");
-  const bookingId = params.get("bookingId");
+  const reservationId = params.get("reservationId");
   const session = useAuthStore((state) => state.session);
+  const authReady = useAuthStore((state) => state.authReady);
   const [context, setContext] = useState<CheckoutContext | null>(null);
   const [ready, setReady] = useState(false);
-  const [qr, setQr] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     if (!session || pathname !== "/bookings/payment-result") return;
@@ -31,40 +30,28 @@ export function PaymentResultScreen() {
   }, [pathname, params, router, session]);
   useEffect(() => {
     const saved = readCheckoutContext();
-    if (saved?.payment?.paymentId === paymentId && (!bookingId || saved.draft.id === bookingId))
+    if (
+      saved?.payment?.paymentId === paymentId &&
+      (!reservationId || saved.draft.id === reservationId)
+    )
       setContext(saved);
     else setContext(null);
     setReady(true);
-  }, [paymentId, bookingId]);
-  const canRead = ready && Boolean(context || session);
+  }, [paymentId, reservationId]);
+  const canRead = ready && authReady && Boolean(session);
   const query = useCheckoutPaymentStatus(paymentId, undefined, canRead);
-  const confirmation =
+  const confirmedId =
     canRead && !query.isError && query.data?.status === "SUCCEEDED"
-      ? query.data.confirmation
+      ? query.data.reservationId
       : undefined;
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
-  useEffect(() => {
-    if (!confirmation) return;
-    clearCheckoutContext();
-    let active = true;
-    QRCode.toDataURL(confirmation.qrUrl, { width: 320, margin: 1 })
-      .then((url) => {
-        if (active) setQr(url);
-      })
-      .catch(() => {
-        if (active) setQr(null);
-      });
-    return () => {
-      active = false;
-    };
-  }, [confirmation]);
   const expired = context?.payment && Date.parse(context.payment.expiresAt) <= now;
   const message = !paymentId
     ? m.missing
-    : !ready
+    : !ready || !authReady
       ? m.loading
       : !canRead
         ? m.accessRequired
@@ -87,15 +74,8 @@ export function PaymentResultScreen() {
   const content = (
     <main aria-busy={blockingPaymentCheck} className="mx-auto w-full max-w-4xl px-4 py-2 sm:py-3">
       {blockingPaymentCheck && <Spinner label={m.loading} />}
-      {confirmation ? (
-        <CheckoutConfirmation
-          state={{
-            confirmation,
-            qrDataUrl: qr,
-            paidPricing: context?.draft.pricing ?? null,
-            contact: context?.contactPhone ? { phone: context.contactPhone } : null,
-          }}
-        />
+      {confirmedId ? (
+        <ReservationReceipt key={confirmedId} reservationId={confirmedId} />
       ) : (
         <section className="grid gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-xs max-w-xl mx-auto">
           <h1 className="text-xl font-bold text-slate-900">{m.title}</h1>

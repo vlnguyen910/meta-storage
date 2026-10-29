@@ -76,7 +76,7 @@ export function CustomerTransactionsScreen({
             onPress={() =>
               go({
                 screen: "support-new",
-                bookingId: rental.bookingId ?? undefined,
+                reservationId: rental.reservationId ?? undefined,
                 paymentId: payment.id,
               })
             }

@@ -59,7 +59,7 @@ export const CUSTOMER_DASHBOARD_MESSAGES = {
   emptyBookingsDesc: "Hãy chọn một cơ sở lưu trữ phù hợp để đặt kho ngay.",
   emptyRentalsTitle: "Bạn chưa có ô kho nào đang thuê",
   emptyRentalsDesc: "Kho sẽ hiển thị tại đây sau khi hoàn tất thủ tục nhận kho tại cơ sở.",
-  qrAction: "Mã QR nhận kho",
+  qrAction: "Chi tiết đặt kho",
   detailsAction: "Chi tiết",
   activeStatus: "Đang thuê",
   unitPrefix: "Ô kho: ",

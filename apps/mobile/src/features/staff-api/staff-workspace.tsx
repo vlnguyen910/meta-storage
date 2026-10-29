@@ -5,7 +5,6 @@ import {
   BackHandler,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   RefreshControl,
   ScrollView,
   Text,
@@ -20,7 +19,7 @@ import { NotificationScreen } from "../notifications/notification-screen";
 import { STAFF_API_UI as M } from "./staff-api.messages";
 import type { StaffSelection, StaffWorkFilters, StaffWorkspaceProps } from "./staff-api.types";
 import { StaffCheckInView } from "./staff-check-in-view";
-import { staffWorkDate, staffWorkGroup, staffWorkScheduledAt } from "./staff-work.helpers";
+import { staffWorkGroup, staffWorkScheduledAt } from "./staff-work.helpers";
 import { StaffStatusTabs, StaffWorkFiltersBar } from "./staff-work-filters";
 import { StaffWorkspaceHeader } from "./staff-workspace-header";
 import { staffError, useStaffTaskAction, useStaffWorkspace } from "./use-staff-workspace";
@@ -39,8 +38,8 @@ export function StaffWorkspace({ owner, name, onHome }: StaffWorkspaceProps) {
   const scroll = useRef<ScrollView>(null);
   const selectionId = notifications
     ? "notifications"
-    : selection?.kind === "booking"
-      ? selection.booking.id
+    : selection?.kind === "appointment"
+      ? selection.appointment.id
       : selection?.task.id;
   const previousRoute = useRef(selectionId);
   const back = () => {
@@ -110,11 +109,11 @@ export function StaffWorkspace({ owner, name, onHome }: StaffWorkspaceProps) {
             {notifications ? (
               <NotificationScreen owner={owner} />
             ) : selection ? (
-              selection.kind === "booking" ? (
+              selection.kind === "appointment" ? (
                 <StaffCheckInView
-                  key={selection.booking.id}
+                  key={selection.appointment.id}
                   owner={owner}
-                  booking={selection.booking}
+                  appointment={selection.appointment}
                 />
               ) : (
                 <StaffTaskView key={selection.task.id} owner={owner} selection={selection} />
@@ -180,8 +179,8 @@ export function StaffWorkspace({ owner, name, onHome }: StaffWorkspaceProps) {
                 {work.items.map((item) => (
                   <StaffWorkCard
                     key={
-                      item.kind === "booking"
-                        ? `booking:${item.booking.id}`
+                      item.kind === "appointment"
+                        ? `booking:${item.appointment.id}`
                         : `task:${item.task.id}`
                     }
                     item={item}
@@ -207,94 +206,25 @@ export function StaffWorkspace({ owner, name, onHome }: StaffWorkspaceProps) {
   );
 }
 function StaffWorkCard({ item, onOpen }: { item: StaffSelection; onOpen: () => void }) {
-  const booking = item.kind === "booking" ? item.booking : null;
+  const appointment = item.kind === "appointment" ? item.appointment : null;
   const task = item.kind === "task" ? item.task : null;
-  const status = booking?.status ?? task?.status ?? "";
   const group = staffWorkGroup(item);
-  const done = group === "done",
-    closed = group === "closed";
-  const action =
-    done || closed
-      ? M.view
-      : booking
-        ? booking.handoverStage === "READY_HANDOVER"
-          ? M.continueHandover
-          : booking.handoverStage === "INSPECTING"
-            ? M.continueInspection
-            : M.checkIn
-        : task?.status === "IN_PROGRESS"
-          ? M.continueTask
-          : M.open;
   const date = staffWorkScheduledAt(item);
-  const activeBooking = booking?.status === "CONFIRMED";
-  const statusLabel =
-    activeBooking && booking.handoverStage === "INSPECTING"
-      ? M.status.INSPECTING
-      : activeBooking && booking.handoverStage === "READY_HANDOVER"
-        ? M.readyHandover
-        : (M.status[status] ?? status);
-  const timeLabel = date
-    ? new Intl.DateTimeFormat("vi-VN", {
-        timeZone: "Asia/Ho_Chi_Minh",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      }).format(new Date(date))
-    : M.noTime;
-  const dateLabel = date
-    ? staffWorkDate(date) === facilityDay()
-      ? M.today
-      : new Intl.DateTimeFormat("vi-VN", {
-          timeZone: "Asia/Ho_Chi_Minh",
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-        }).format(new Date(date))
-    : "";
   return (
-    <View className="mb-3 rounded-2xl border border-slate-200 bg-white p-4">
-      <View className="mb-3 flex-row items-center justify-between gap-2">
-        <View className="min-w-0 flex-1 flex-row items-center gap-2">
-          <View className="h-7 w-7 items-center justify-center rounded-lg bg-emerald-50">
-            <Text className="text-base font-bold text-emerald-800">{booking ? "↘" : "✓"}</Text>
-          </View>
-          <Text numberOfLines={1} className="min-w-0 flex-1 text-xs font-semibold text-emerald-800">
-            {booking ? M.bookings : M.type[task?.type ?? ""]}
-          </Text>
-        </View>
-        <StatusPill label={statusLabel} tone={done ? "green" : closed ? "neutral" : "blue"} />
-      </View>
-      <Text numberOfLines={2} className="mb-1 text-base font-bold leading-6 text-slate-900">
-        {booking?.contactName ?? task?.description ?? M.type[task?.type ?? ""]}
-      </Text>
-      {booking && (
-        <>
-          <Text numberOfLines={1} className="mt-1 text-xs text-slate-500">
-            {booking?.bookingCode}
-          </Text>
-          <Text numberOfLines={1} className="mt-1 text-xs text-slate-600">
-            {booking?.assignedUnit?.physicalUnitCode ?? M.noUnit}
-          </Text>
-        </>
-      )}
-      <View className="mt-4 flex-row items-center justify-between gap-3 border-t border-slate-100 pt-3">
-        <View className="min-w-0 flex-1">
-          <Text className="text-sm font-semibold text-slate-800">{timeLabel}</Text>
-          {!!dateLabel && <Text className="mt-1 text-xs text-slate-500">{dateLabel}</Text>}
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={action}
-          onPress={onOpen}
-          className={`min-h-11 flex-row items-center justify-center gap-2 rounded-xl px-3 ${done || closed ? "bg-slate-100" : "bg-emerald-900"}`}
-        >
-          <Text className={`text-xs font-bold ${done || closed ? "text-slate-700" : "text-white"}`}>
-            {action}
-          </Text>
-          <Text className={done || closed ? "text-slate-600" : "text-emerald-100"}>→</Text>
-        </Pressable>
-      </View>
-    </View>
+    <Card title={appointment?.customerName ?? task?.description ?? M.title}>
+      <StatusPill
+        label={
+          M.status[appointment?.status ?? task?.status ?? ""] ??
+          appointment?.status ??
+          task?.status ??
+          ""
+        }
+        tone={group === "done" ? "green" : "blue"}
+      />
+      {date && <Row label={M.time} value={dateTime(date)} />}
+      {appointment?.contactPhone && <Row label={M.phone} value={appointment.contactPhone} />}
+      <Button label={M.open} onPress={onOpen} />
+    </Card>
   );
 }
 

@@ -86,7 +86,7 @@ export function ManagerOverview({ facilityId }: ManagerOverviewProps) {
         />
         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
           {[
-            { href: "/facility-manager/tasks?view=bookings", label: M.prepare },
+            { href: "/facility-manager/tasks?view=appointments", label: M.prepare },
             { href: "/facility-manager/tasks?view=reports", label: M.accept },
             { href: "/facility-manager/storage-units", label: M.units },
             { href: "/facility-manager/staff", label: M.people },

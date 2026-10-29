@@ -100,7 +100,7 @@ export function CustomerWorkspace({
         const payment: CustomerRoute = {
           screen: "payment",
           id,
-          bookingId: parsed.searchParams.get("bookingId") ?? undefined,
+          reservationId: parsed.searchParams.get("reservationId") ?? undefined,
         };
         setStack([{ screen: "home" }, payment]);
         void saveCustomerCommand(owner, "payment", payment);
@@ -162,7 +162,12 @@ export function CustomerWorkspace({
       break;
     case "payment":
       screen = (
-        <CustomerPaymentScreen owner={owner} id={route.id} bookingId={route.bookingId} go={go} />
+        <CustomerPaymentScreen
+          owner={owner}
+          id={route.id}
+          reservationId={route.reservationId}
+          go={go}
+        />
       );
       break;
     case "rentals":
@@ -179,7 +184,7 @@ export function CustomerWorkspace({
         <CustomerSupportNewScreen
           owner={owner}
           go={go}
-          bookingId={route.bookingId}
+          reservationId={route.reservationId}
           paymentId={route.paymentId}
         />
       );
@@ -202,7 +207,7 @@ export function CustomerWorkspace({
           onBack={stack.length > 1 ? () => setStack((s) => s.slice(0, -1)) : undefined}
           onLogout={() => {
             void Promise.all(
-              ["checkout", "payment", "support-draft"].map((key) =>
+              ["checkout", "reservation-checkout-v2", "payment", "support-draft"].map((key) =>
                 clearCustomerCommand(owner, key),
               ),
             ).then(() => authClient.signOut());

@@ -1,5 +1,5 @@
-import { CheckInScreen } from "@/features/check-in/check-in-screen";
+import { ManagerCoordinationScreen } from "@/modules/facility-manager/manager-coordination-screen";
 
 export default function FacilityManagerCheckInPage() {
-  return <CheckInScreen />;
+  return <ManagerCoordinationScreen />;
 }
