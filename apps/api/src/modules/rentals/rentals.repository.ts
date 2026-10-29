@@ -2,12 +2,17 @@ import type {
   FacilityRentalHistoryQuery,
   FacilityRentalListQuery,
   RentalPageQuery,
+  RentalRenewalPageQuery,
 } from "@metastorage/contracts";
 import {
+  APPOINTMENT_STATUSES,
+  APPOINTMENT_TYPES,
   alias,
   and,
+  appointments,
   asc,
   bookings,
+  capacityAllocations,
   count,
   users as customerUsers,
   type Database,
@@ -16,8 +21,13 @@ import {
   exists,
   facilities,
   gt,
+  InspectionStatus,
+  InspectionType,
   ilike,
+  inArray,
+  inspections,
   or,
+  PaymentType,
   payments,
   RentalRenewalStatus,
   RentalStatus,
@@ -28,14 +38,13 @@ import {
   storageUnits,
   unitTypes,
 } from "@metastorage/database";
+import type { TaskTransaction } from "../facility-tasks/facility-tasks.types";
+import type { RentalQueryExecutor, RentalTransaction } from "./rentals.types";
 
 const bookingCustomer = alias(customerUsers, "booking_customer");
 
-import type { TaskTransaction } from "../facility-tasks/facility-tasks.types";
-import type { RentalQueryExecutor } from "./rentals.types";
-
 export class RentalsRepository {
-  constructor(private readonly db: Database) {}
+  constructor(readonly db: Database) {}
 
   async findAppointmentContext(tx: TaskTransaction, id: string, customerId: string) {
     const [row] = await tx
@@ -265,5 +274,236 @@ export class RentalsRepository {
       },
       { isolationLevel: "repeatable read", accessMode: "read only" },
     );
+  }
+  lockRenewalHold(tx: RentalTransaction, renewalId: string, holdTokenHash: string) {
+    return tx
+      .select()
+      .from(capacityAllocations)
+      .where(
+        and(
+          eq(capacityAllocations.referenceId, renewalId),
+          eq(capacityAllocations.accessTokenHash, holdTokenHash),
+          eq(capacityAllocations.kind, "HOLD"),
+        ),
+      )
+      .for("update");
+  }
+  lockPayment(tx: RentalTransaction, paymentId: string) {
+    return tx.select().from(payments).where(eq(payments.id, paymentId)).for("update");
+  }
+  lockRenewal(tx: RentalTransaction, renewalId: string) {
+    return tx.select().from(rentalRenewals).where(eq(rentalRenewals.id, renewalId)).for("update");
+  }
+  findRenewalRentalId(tx: RentalTransaction, renewalId: string) {
+    return tx
+      .select({ rentalId: rentalRenewals.rentalId })
+      .from(rentalRenewals)
+      .where(eq(rentalRenewals.id, renewalId));
+  }
+  findRenewalPaymentByCode(paymentCode: string) {
+    return this.db.select().from(payments).where(eq(payments.paymentCode, paymentCode));
+  }
+  lockRenewalUnit(tx: RentalTransaction, unitId: string) {
+    return tx
+      .select({
+        facilityId: storageUnits.facilityId,
+        unitTypeId: storageUnits.unitTypeId,
+        active: unitTypes.isActive,
+      })
+      .from(storageUnits)
+      .innerJoin(unitTypes, eq(unitTypes.id, storageUnits.unitTypeId))
+      .where(eq(storageUnits.id, unitId))
+      .for("update");
+  }
+  findPendingRenewalPayment(tx: RentalTransaction, rentalId: string, now: Date) {
+    return tx
+      .select({ id: payments.id })
+      .from(rentalRenewals)
+      .innerJoin(payments, eq(payments.renewalId, rentalRenewals.id))
+      .where(
+        and(
+          eq(rentalRenewals.rentalId, rentalId),
+          eq(rentalRenewals.status, RentalRenewalStatus.PENDING_PAYMENT),
+          eq(payments.status, "PENDING"),
+          gt(payments.expiresAt, now),
+        ),
+      )
+      .limit(1);
+  }
+  lockRenewalPayment(tx: RentalTransaction, renewalId: string) {
+    return tx.select().from(payments).where(eq(payments.renewalId, renewalId)).for("update");
+  }
+  lockRentalRenewal(tx: RentalTransaction, rentalId: string, renewalId: string) {
+    return tx
+      .select()
+      .from(rentalRenewals)
+      .where(and(eq(rentalRenewals.id, renewalId), eq(rentalRenewals.rentalId, rentalId)))
+      .for("update");
+  }
+  findCustomerRenewal(rentalId: string, renewalId: string, customerId: string) {
+    return this.db
+      .select({ renewal: rentalRenewals, paymentId: payments.id })
+      .from(rentalRenewals)
+      .innerJoin(rentals, eq(rentals.id, rentalRenewals.rentalId))
+      .leftJoin(
+        payments,
+        and(eq(payments.renewalId, rentalRenewals.id), eq(payments.type, PaymentType.CHARGE)),
+      )
+      .where(
+        and(
+          eq(rentals.id, rentalId),
+          eq(rentals.userId, customerId),
+          eq(rentalRenewals.id, renewalId),
+        ),
+      );
+  }
+  findRenewals(rentalId: string, query: RentalRenewalPageQuery) {
+    return this.db
+      .select({ renewal: rentalRenewals, paymentId: payments.id })
+      .from(rentalRenewals)
+      .leftJoin(
+        payments,
+        and(eq(payments.renewalId, rentalRenewals.id), eq(payments.type, PaymentType.CHARGE)),
+      )
+      .where(eq(rentalRenewals.rentalId, rentalId))
+      .orderBy(desc(rentalRenewals.createdAt), desc(rentalRenewals.id))
+      .limit(query.limit)
+      .offset(query.offset);
+  }
+  countRenewals(rentalId: string) {
+    return this.db
+      .select({ value: count() })
+      .from(rentalRenewals)
+      .where(eq(rentalRenewals.rentalId, rentalId));
+  }
+  findOwnedRental(rentalId: string, customerId: string) {
+    return this.db
+      .select({ id: rentals.id })
+      .from(rentals)
+      .where(and(eq(rentals.id, rentalId), eq(rentals.userId, customerId)));
+  }
+  findRenewalUnit(tx: RentalTransaction, unitId: string) {
+    return tx
+      .select({
+        facilityId: storageUnits.facilityId,
+        unitTypeId: storageUnits.unitTypeId,
+        price: unitTypes.monthlyPrice,
+        active: unitTypes.isActive,
+      })
+      .from(storageUnits)
+      .innerJoin(unitTypes, eq(unitTypes.id, storageUnits.unitTypeId))
+      .where(eq(storageUnits.id, unitId));
+  }
+  findRenewalByIdempotencyKey(tx: RentalTransaction, rentalId: string, idempotencyKey: string) {
+    return tx
+      .select()
+      .from(rentalRenewals)
+      .where(
+        and(
+          eq(rentalRenewals.rentalId, rentalId),
+          eq(rentalRenewals.idempotencyKey, idempotencyKey),
+        ),
+      )
+      .for("update");
+  }
+  lockRental(tx: RentalTransaction, rentalId: string) {
+    return tx.select().from(rentals).where(eq(rentals.id, rentalId)).for("update");
+  }
+  async findRenewalPaymentId(tx: RentalTransaction, renewalId: string) {
+    const [payment] = await tx
+      .select({ id: payments.id })
+      .from(payments)
+      .where(eq(payments.renewalId, renewalId));
+    return payment?.id ?? null;
+  }
+
+  async hasOpenReturn(tx: RentalTransaction, rentalId: string) {
+    const [appointment] = await tx
+      .select({ id: appointments.id })
+      .from(appointments)
+      .where(
+        and(
+          eq(appointments.rentalId, rentalId),
+          eq(appointments.appointmentType, APPOINTMENT_TYPES.CHECK_OUT),
+          inArray(appointments.status, [
+            APPOINTMENT_STATUSES.SCHEDULED,
+            APPOINTMENT_STATUSES.CONFIRMED,
+          ]),
+        ),
+      )
+      .limit(1);
+    if (appointment) return true;
+    const [inspection] = await tx
+      .select({ id: inspections.id })
+      .from(inspections)
+      .where(
+        and(
+          eq(inspections.rentalId, rentalId),
+          eq(inspections.inspectionType, InspectionType.CHECK_OUT),
+          inArray(inspections.status, [InspectionStatus.PENDING, InspectionStatus.IN_PROGRESS]),
+        ),
+      )
+      .limit(1);
+    return Boolean(inspection);
+  }
+
+  createRenewal(tx: RentalTransaction, input: typeof rentalRenewals.$inferInsert) {
+    return tx.insert(rentalRenewals).values(input).returning();
+  }
+  createRenewalPayment(tx: RentalTransaction, input: typeof payments.$inferInsert) {
+    return tx
+      .insert(payments)
+      .values(input)
+      .onConflictDoNothing({ target: payments.idempotencyKey })
+      .returning();
+  }
+  createRenewalAllocation(tx: RentalTransaction, input: typeof capacityAllocations.$inferInsert) {
+    return tx.insert(capacityAllocations).values(input);
+  }
+  updateRenewal(
+    tx: RentalTransaction,
+    id: string,
+    input: Partial<typeof rentalRenewals.$inferInsert>,
+  ) {
+    return tx.update(rentalRenewals).set(input).where(eq(rentalRenewals.id, id));
+  }
+  updateRenewalPayment(
+    tx: RentalTransaction,
+    id: string,
+    input: Partial<typeof payments.$inferInsert>,
+  ) {
+    return tx.update(payments).set(input).where(eq(payments.id, id));
+  }
+  updateRenewedRental(
+    tx: RentalTransaction,
+    id: string,
+    input: Partial<typeof rentals.$inferInsert>,
+  ) {
+    return tx.update(rentals).set(input).where(eq(rentals.id, id));
+  }
+  confirmRenewalAllocation(
+    tx: RentalTransaction,
+    allocationId: string,
+    input: Partial<typeof capacityAllocations.$inferInsert>,
+  ) {
+    return tx
+      .update(capacityAllocations)
+      .set(input)
+      .where(eq(capacityAllocations.id, allocationId));
+  }
+  releaseRenewalAllocations(
+    tx: RentalTransaction,
+    renewalId: string,
+    input: Partial<typeof capacityAllocations.$inferInsert>,
+  ) {
+    return tx
+      .update(capacityAllocations)
+      .set(input)
+      .where(
+        and(
+          eq(capacityAllocations.referenceId, renewalId),
+          eq(capacityAllocations.status, "ACTIVE"),
+        ),
+      );
   }
 }

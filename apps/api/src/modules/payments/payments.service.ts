@@ -7,7 +7,7 @@ import type {
 import type { FastifyBaseLogger, FastifyInstance } from "fastify";
 import { AppError, NotFoundError, UnauthorizedError } from "../../common/errors/app-error";
 import { env } from "../../config/env";
-import { RentalRenewalsService } from "../rentals/rental-renewals.service";
+import { createRentalsService, type RentalsService } from "../rentals/rentals.service";
 import { PAYMENT_MESSAGES } from "./payments.messages";
 import { PaymentsRepository } from "./payments.repository";
 import type { PaymentStatusCredentials } from "./payments.types";
@@ -28,7 +28,7 @@ export class PaymentsService {
     private readonly sepayGateway?: SepayPaymentGateway,
     private readonly logger?: Pick<FastifyBaseLogger, "warn">,
     private readonly reservationPayments?: ReservationPaymentsService,
-    private readonly rentalRenewals?: RentalRenewalsService,
+    private readonly rentals?: RentalsService,
   ) {}
 
   async listManualRefunds(query: ManualRefundQuery): Promise<ManualRefund[]> {
@@ -64,7 +64,7 @@ export class PaymentsService {
     if (!this.sepayGateway)
       throw new AppError(PAYMENT_MESSAGES.sepayUnavailable, 503, "PAYMENT_PROVIDER_UNAVAILABLE");
     const event = this.sepayGateway.verifyWebhook(headers, rawBody);
-    const renewalResult = await this.rentalRenewals?.processEvent(event);
+    const renewalResult = await this.rentals?.processRenewalPaymentEvent(event);
     if (renewalResult) return renewalResult;
     const reservationResult = await this.reservationPayments?.processEvent(event);
     if (reservationResult) return reservationResult;
@@ -109,7 +109,7 @@ export class PaymentsService {
         paymentCode: requirePaymentCode(payment.paymentCode),
       });
       if (!event) return;
-      const renewalResult = await this.rentalRenewals?.processEvent(event);
+      const renewalResult = await this.rentals?.processRenewalPaymentEvent(event);
       if (!renewalResult) await this.reservationPayments?.processEvent(event);
     } catch (error) {
       this.logger?.warn(
@@ -229,6 +229,6 @@ export function createPaymentsService(fastify: FastifyInstance): PaymentsService
     sepayGateway,
     fastify.log,
     createReservationPaymentsService(fastify.db, sepayGateway),
-    new RentalRenewalsService(fastify.db, sepayGateway),
+    createRentalsService(fastify.db, sepayGateway),
   );
 }
