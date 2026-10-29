@@ -11,6 +11,10 @@ import { addMonths, currentUser, envelope, errorBody, optionsForUnits } from "..
 import { getMockDatabase, hydrateFacility } from "../database";
 
 export function registerFacilityHandlers(mock: MockAdapter): void {
+  mock
+    .onGet("/facilities/operating-hours")
+    .reply(() => [200, envelope({ openingHour: 8, closingHour: 20 })]);
+
   // GET /facilities/:facilityId/staff
   mock.onGet(/\/facilities\/[^/]+\/staff/).reply((config) => {
     const database = getMockDatabase();

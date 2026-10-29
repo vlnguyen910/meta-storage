@@ -58,6 +58,19 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
   const reservationService = createReservationsService(fastify.db);
   typedApp.get(
+    "/operating-hours",
+    {
+      schema: {
+        tags: ["Facilities"],
+        security: [{ sessionAuth: [] }],
+        summary: FACILITY_MESSAGES.operatingHoursSummary,
+      },
+      preHandler: [requireAuth],
+    },
+    async (_request, reply) => reply.send(successResponse(await service.getOperatingHours())),
+  );
+
+  typedApp.get(
     "/:facilityId/availability",
     {
       schema: { params: facilityIdNestedParamSchema, querystring: CustomerAvailabilityQuerySchema },
