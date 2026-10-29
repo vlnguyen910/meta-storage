@@ -323,7 +323,7 @@ export class FacilityTasksRepository {
         (status === FacilityTaskStatus.COMPLETED &&
           current.status !== FacilityTaskStatus.IN_PROGRESS)
       )
-        return { error: "INVALID_TASK_STATE" };
+        return { error: "INVALID_STATUS_TRANSITION" };
       if (
         status === FacilityTaskStatus.COMPLETED &&
         current.type === FacilityTaskType.CHECK_IN_HANDOVER

@@ -1,7 +1,15 @@
 export const FLOW = {
   appointmentType: "Loại lịch hẹn",
+  appointmentDetails: "Chi tiết lịch hẹn",
+  schedule: "Thời gian hẹn",
+  bookingReference: "Mã booking",
+  unit: "Ô kho",
+  rentalPeriod: "Thời hạn thuê",
+  openRentalRecord: "Mở hồ sơ thuê",
   checkInAppointments: "Nhận kho",
   checkOutAppointments: "Trả kho",
+  allAppointments: "Nhận kho & Trả kho",
+  totalAppointments: "Tổng lịch nhận/trả",
   rentalReference: "Hồ sơ thuê",
   returnUnitLookup: "Mở hồ sơ thuê để xem ô kho",
   returnAppointmentType: "Nghiệp vụ",
@@ -26,6 +34,9 @@ export const FLOW = {
   managerCoordination: "Điều phối công việc",
   managerDispatchTitle: "Chuẩn bị kho & Phân công Staff",
   managerReturnDispatchTitle: "Điều phối trả kho",
+  managerAppointmentsTitle: "Điều phối lịch hẹn",
+  managerAppointmentsDescription: (name: string) =>
+    `Xem và xử lý lịch nhận kho, trả kho tại ${name}.`,
   monitor: "Theo dõi hồ sơ",
   managerMonitorHint:
     "FM gán ô kho, phân công Staff và theo dõi hồ sơ. Staff được phân công thực hiện xác minh, kiểm tra và bàn giao.",

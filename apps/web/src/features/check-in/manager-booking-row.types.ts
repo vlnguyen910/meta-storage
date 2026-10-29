@@ -4,4 +4,5 @@ export interface ManagerBookingRowProps {
   state: string;
   canAssign: boolean;
   onAssignStaff: () => void;
+  onViewDetails: () => void;
 }

@@ -16,6 +16,7 @@ export type DispatchItem = Omit<BookingListItem, "assignedUnit" | "assignedStaff
   assignedStaff: { id: string; name: string } | null;
   paymentStatus: string | null;
 };
+export type DispatchAppointmentType = APPOINTMENT_TYPES | "ALL";
 export function appointmentItem(a: AppointmentRecordDto): DispatchItem {
   const r = a.reservation;
   return {
@@ -74,7 +75,7 @@ export function readiness(b: DispatchItem, _now = Date.now()): string {
 export function useDispatch(
   facilityId: string,
   staff = false,
-  appointmentType: APPOINTMENT_TYPES = APPOINTMENT_TYPES.CHECK_IN,
+  appointmentType: DispatchAppointmentType = APPOINTMENT_TYPES.CHECK_IN,
 ) {
   const owner = useFlow3Identity();
   const query = useQuery({
@@ -83,17 +84,24 @@ export function useDispatch(
       owner,
       appointmentType,
     ],
-    queryFn: async () =>
-      (
-        await (staff
-          ? api.appointments.assignedToMe({
-              facilityId,
-              appointmentType,
-            })
-          : api.appointments.listFacility(facilityId, {
-              appointmentType,
-            }))
-      ).map(appointmentItem),
+    queryFn: async () => {
+      const appointments = await (staff
+        ? api.appointments.assignedToMe({
+            facilityId,
+            ...(appointmentType === "ALL" ? {} : { appointmentType }),
+          })
+        : api.appointments.listFacility(facilityId, {
+            ...(appointmentType === "ALL" ? {} : { appointmentType }),
+          }));
+      return appointments
+        .filter(
+          (item) =>
+            appointmentType !== "ALL" ||
+            item.appointmentType === APPOINTMENT_TYPES.CHECK_IN ||
+            item.appointmentType === APPOINTMENT_TYPES.CHECK_OUT,
+        )
+        .map(appointmentItem);
+    },
     enabled: !!facilityId,
     refetchInterval: 30000,
   });

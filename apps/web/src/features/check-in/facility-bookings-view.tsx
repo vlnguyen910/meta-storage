@@ -1,6 +1,7 @@
 "use client";
 import { APPOINTMENT_TYPES } from "@metastorage/contracts";
 import { UserRole } from "@metastorage/database/schema/user-enums";
+import { useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
   Calendar,
@@ -15,6 +16,8 @@ import {
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Currency } from "@/components/ui/display";
+import { OperationalBadge } from "@/components/ui/operational";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { FLOW } from "@/features/facility-flow/flow.messages";
@@ -27,8 +30,9 @@ import {
   titleClass,
   UnitPlaceholder,
 } from "@/features/facility-flow/flow-ui";
-import type { DispatchItem } from "@/features/facility-flow/use-dispatch";
+import type { DispatchAppointmentType, DispatchItem } from "@/features/facility-flow/use-dispatch";
 import { readiness, useDispatch } from "@/features/facility-flow/use-dispatch";
+import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import type { FacilityBookingsViewProps } from "./facility-bookings-view.types";
 import { ManagerBookingRow } from "./manager-booking-row";
@@ -66,15 +70,26 @@ export function FacilityBookingsView({
 }: FacilityBookingsViewProps) {
   const isStaff = useAuthStore((s) => s.session?.user.role) === UserRole.FACILITY_STAFF;
   const root = isStaff ? "/staff" : "/facility-manager";
-  const [appointmentType, setAppointmentType] = useState(APPOINTMENT_TYPES.CHECK_IN);
+  const [appointmentType, setAppointmentType] = useState<DispatchAppointmentType>(
+    isStaff ? APPOINTMENT_TYPES.CHECK_IN : "ALL",
+  );
   const showingReturns = appointmentType === APPOINTMENT_TYPES.CHECK_OUT;
+  const showingAll = appointmentType === "ALL";
   const d = useDispatch(facilityId, isStaff, appointmentType);
   const { filter, search } = d;
   const [staffBooking, setStaffBooking] = useState<DispatchItem | null>(null);
+  const [detailsId, setDetailsId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const pageSize = 6;
   const pageCount = Math.max(1, Math.ceil(d.filtered.length / pageSize));
   const pageItems = d.filtered.slice((page - 1) * pageSize, page * pageSize);
+  const details = d.bookings.find((item) => item.id === detailsId) ?? null;
+  const detailsRentalId = details?.rentalId ?? "";
+  const detailsRental = useQuery({
+    queryKey: ["manager-appointment-rental-detail", facilityId, detailsRentalId],
+    queryFn: () => api.rentals.facilityDetail(facilityId, detailsRentalId),
+    enabled: Boolean(detailsRentalId) && details?.appointmentType === APPOINTMENT_TYPES.CHECK_OUT,
+  });
   const headingActions = (
     <div className="flex items-center gap-2">
       <div className="flex h-[58px] flex-col justify-center rounded-lg bg-white px-3.5 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
@@ -110,21 +125,29 @@ export function FacilityBookingsView({
           title={
             isStaff
               ? FLOW.staffTasks
-              : showingReturns
-                ? FLOW.managerReturnDispatchTitle
-                : FLOW.managerDispatchTitle
+              : showingAll
+                ? FLOW.managerAppointmentsTitle
+                : showingReturns
+                  ? FLOW.managerReturnDispatchTitle
+                  : FLOW.managerDispatchTitle
           }
           description={
-            showingReturns
-              ? FLOW.returnDispatchDescription(facilityName ?? FLOW.noFacility)
-              : FLOW.dispatchDescription(facilityName ?? FLOW.noFacility)
+            showingAll
+              ? FLOW.managerAppointmentsDescription(facilityName ?? FLOW.noFacility)
+              : showingReturns
+                ? FLOW.returnDispatchDescription(facilityName ?? FLOW.noFacility)
+                : FLOW.dispatchDescription(facilityName ?? FLOW.noFacility)
           }
           actions={headingActions}
         />
       )}
       <fieldset className="flex gap-2">
         <legend className="sr-only">{FLOW.appointmentType}</legend>
-        {[APPOINTMENT_TYPES.CHECK_IN, APPOINTMENT_TYPES.CHECK_OUT].map((type) => (
+        {[
+          ...(!isStaff ? (["ALL"] as const) : []),
+          APPOINTMENT_TYPES.CHECK_IN,
+          APPOINTMENT_TYPES.CHECK_OUT,
+        ].map((type) => (
           <button
             key={type}
             type="button"
@@ -135,49 +158,85 @@ export function FacilityBookingsView({
             }}
             className={`rounded-full px-4 py-2 text-sm font-semibold ${appointmentType === type ? "bg-primary text-white" : "border border-line bg-white text-ink"}`}
           >
-            {type === APPOINTMENT_TYPES.CHECK_IN
-              ? FLOW.checkInAppointments
-              : FLOW.checkOutAppointments}
+            {type === "ALL"
+              ? FLOW.allAppointments
+              : type === APPOINTMENT_TYPES.CHECK_IN
+                ? FLOW.checkInAppointments
+                : FLOW.checkOutAppointments}
+            <span className="ml-1.5 rounded-full bg-black/10 px-2 py-0.5 text-xs">
+              {type === "ALL"
+                ? d.bookings.length
+                : d.bookings.filter((item) => item.appointmentType === type).length}
+            </span>
           </button>
         ))}
       </fieldset>
       <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
-        <div className="grid flex-1 gap-2 grid-cols-2 sm:grid-cols-3 xl:grid-cols-5">
-          {(showingReturns
+        <div
+          className={`grid flex-1 grid-cols-2 gap-2 sm:grid-cols-3 ${showingAll ? "xl:grid-cols-4" : "xl:grid-cols-5"}`}
+        >
+          {(showingAll
             ? [
-                { label: FLOW.total, value: d.bookings.length, icon: Calendar },
+                { label: FLOW.totalAppointments, value: d.bookings.length, icon: Calendar },
+                {
+                  label: FLOW.checkInAppointments,
+                  value: d.bookings.filter(
+                    (item) => item.appointmentType === APPOINTMENT_TYPES.CHECK_IN,
+                  ).length,
+                  icon: Warehouse,
+                },
+                {
+                  label: FLOW.checkOutAppointments,
+                  value: d.bookings.filter(
+                    (item) => item.appointmentType === APPOINTMENT_TYPES.CHECK_OUT,
+                  ).length,
+                  icon: UserCheck,
+                },
                 {
                   label: FLOW.returnNeedsConfirmation,
-                  value: d.count("SCHEDULED"),
-                  icon: Warehouse,
-                },
-                { label: FLOW.returnConfirmed, value: d.count("CONFIRMED"), icon: UserCheck },
-                {
-                  label: FLOW.returnCompleted,
-                  value: d.count("COMPLETED"),
-                  icon: ClipboardCheck,
-                },
-                {
-                  label: FLOW.returnClosed,
-                  value: d.count("CANCELLED") + d.count("NO_SHOW"),
+                  value: d.bookings.filter(
+                    (item) =>
+                      item.appointmentType === APPOINTMENT_TYPES.CHECK_OUT &&
+                      readiness(item, d.now) === "SCHEDULED",
+                  ).length,
                   icon: ClipboardCheck,
                 },
               ]
-            : [
-                { label: FLOW.total, value: d.bookings.length, icon: Calendar },
-                {
-                  label: FLOW.needsAction,
-                  value: d.count("NEEDS_UNIT") + d.count("NEEDS_STAFF"),
-                  icon: Warehouse,
-                },
-                { label: FLOW.waiting, value: d.count("READY"), icon: UserCheck },
-                {
-                  label: FLOW.inProgress,
-                  value: d.count("INSPECTING") + d.count("READY_HANDOVER"),
-                  icon: ClipboardCheck,
-                },
-                { label: FLOW.pendingAccess, value: d.count("CHECKED_IN"), icon: ClipboardCheck },
-              ]
+            : showingReturns
+              ? [
+                  { label: FLOW.total, value: d.bookings.length, icon: Calendar },
+                  {
+                    label: FLOW.returnNeedsConfirmation,
+                    value: d.count("SCHEDULED"),
+                    icon: Warehouse,
+                  },
+                  { label: FLOW.returnConfirmed, value: d.count("CONFIRMED"), icon: UserCheck },
+                  {
+                    label: FLOW.returnCompleted,
+                    value: d.count("COMPLETED"),
+                    icon: ClipboardCheck,
+                  },
+                  {
+                    label: FLOW.returnClosed,
+                    value: d.count("CANCELLED") + d.count("NO_SHOW"),
+                    icon: ClipboardCheck,
+                  },
+                ]
+              : [
+                  { label: FLOW.total, value: d.bookings.length, icon: Calendar },
+                  {
+                    label: FLOW.needsAction,
+                    value: d.count("NEEDS_UNIT") + d.count("NEEDS_STAFF"),
+                    icon: Warehouse,
+                  },
+                  { label: FLOW.waiting, value: d.count("READY"), icon: UserCheck },
+                  {
+                    label: FLOW.inProgress,
+                    value: d.count("INSPECTING") + d.count("READY_HANDOVER"),
+                    icon: ClipboardCheck,
+                  },
+                  { label: FLOW.pendingAccess, value: d.count("CHECKED_IN"), icon: ClipboardCheck },
+                ]
           ).map(({ label, value, icon: Icon }) => (
             <Panel key={label} className="flex h-[58px] flex-col justify-center px-3.5 py-1.5">
               <div className="flex items-center justify-between gap-2">
@@ -232,19 +291,37 @@ export function FacilityBookingsView({
         <div className="space-y-2">
           <p className="text-xs font-semibold text-slate-600">{MB.filters}</p>
           <div className="flex flex-wrap items-center gap-2" role="toolbar" aria-label={MB.filters}>
-            {(appointmentType === APPOINTMENT_TYPES.CHECK_IN
+            {(showingAll
               ? [
                   "ALL",
                   "NEEDS_UNIT",
                   "NEEDS_STAFF",
+                  "PAYMENT_PENDING",
                   "READY",
+                  "SLOT_MISSING",
                   "INSPECTING",
                   "READY_HANDOVER",
                   "TOO_EARLY",
-                  "NO_SHOW",
                   "CHECKED_IN",
+                  "SCHEDULED",
+                  "CONFIRMED",
+                  "COMPLETED",
+                  "CANCELLED",
+                  "NO_SHOW",
                 ]
-              : ["ALL", "SCHEDULED", "CONFIRMED", "COMPLETED", "CANCELLED"]
+              : appointmentType === APPOINTMENT_TYPES.CHECK_IN
+                ? [
+                    "ALL",
+                    "NEEDS_UNIT",
+                    "NEEDS_STAFF",
+                    "READY",
+                    "INSPECTING",
+                    "READY_HANDOVER",
+                    "TOO_EARLY",
+                    "NO_SHOW",
+                    "CHECKED_IN",
+                  ]
+                : ["ALL", "SCHEDULED", "CONFIRMED", "COMPLETED", "CANCELLED"]
             ).map((id) => {
               const active = d.filter === id;
               const itemCount = id === "ALL" ? d.bookings.length : d.count(id);
@@ -309,7 +386,7 @@ export function FacilityBookingsView({
             const returnFlow = b.appointmentType === APPOINTMENT_TYPES.CHECK_OUT;
             const canAssign =
               !isStaff &&
-              (appointmentType === APPOINTMENT_TYPES.CHECK_OUT
+              (returnFlow
                 ? ["SCHEDULED", "CONFIRMED"]
                 : [
                     "READY",
@@ -331,6 +408,7 @@ export function FacilityBookingsView({
                   state={state}
                   canAssign={canAssign}
                   onAssignStaff={() => setStaffBooking(b)}
+                  onViewDetails={() => setDetailsId(b.id)}
                 />
               );
             return (
@@ -507,6 +585,90 @@ export function FacilityBookingsView({
       {staffBooking && (
         <StaffAssignmentModal booking={staffBooking} isOpen onClose={() => setStaffBooking(null)} />
       )}
+      <Sheet open={Boolean(details)} onOpenChange={(open) => !open && setDetailsId(null)}>
+        <SheetContent className="w-full max-w-xl p-5 sm:p-7">
+          {details && (
+            <>
+              <SheetHeader className="pr-12">
+                <SheetTitle>{FLOW.appointmentDetails}</SheetTitle>
+                <OperationalBadge value={details.appointmentStatus} />
+              </SheetHeader>
+              <section className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm sm:grid-cols-2">
+                <DetailValue
+                  label={FLOW.appointmentType}
+                  value={
+                    details.appointmentType === APPOINTMENT_TYPES.CHECK_OUT
+                      ? FLOW.checkOutAppointments
+                      : FLOW.checkInAppointments
+                  }
+                />
+                <DetailValue label={MB.customer} value={details.contactName} />
+                <DetailValue
+                  label={FLOW.schedule}
+                  value={formatDateTime(details.checkInSlotStart)}
+                />
+                <DetailValue
+                  label={FLOW.assignedStaff}
+                  value={details.assignedStaff?.name ?? FLOW.needsStaff}
+                />
+                {details.appointmentType === APPOINTMENT_TYPES.CHECK_IN ? (
+                  <>
+                    <DetailValue label={FLOW.bookingReference} value={details.bookingCode} />
+                    <DetailValue
+                      label={FLOW.unitType}
+                      value={`${details.unitTypeName}${details.unitTypeSizeLabel ? ` · ${details.unitTypeSizeLabel}` : ""}`}
+                    />
+                    {details.assignedUnit && (
+                      <DetailValue
+                        label={FLOW.unit}
+                        value={details.assignedUnit.physicalUnitCode}
+                      />
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <DetailValue label={FLOW.rentalReference} value={details.rentalId ?? "—"} />
+                    {detailsRental.isPending ? (
+                      <LoadingState variant="detail" />
+                    ) : detailsRental.isError ? (
+                      <ErrorState
+                        message={MB.relatedLoadError}
+                        onRetry={() => void detailsRental.refetch()}
+                      />
+                    ) : detailsRental.data ? (
+                      <>
+                        <DetailValue
+                          label={FLOW.unit}
+                          value={`${detailsRental.data.unit.code} · ${detailsRental.data.unit.unitTypeName}`}
+                        />
+                        <DetailValue
+                          label={FLOW.rentalPeriod}
+                          value={`${formatDateTime(detailsRental.data.startAt)} – ${formatDateTime(detailsRental.data.endAt)}`}
+                        />
+                        <Link
+                          className="font-semibold text-primary underline underline-offset-2 sm:col-span-2"
+                          href={`/facility-manager/rentals?rentalId=${encodeURIComponent(details.rentalId ?? "")}`}
+                        >
+                          {FLOW.openRentalRecord}
+                        </Link>
+                      </>
+                    ) : null}
+                  </>
+                )}
+              </section>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </>
+  );
+}
+
+function DetailValue({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="grid min-w-0 gap-1">
+      <span className="text-xs text-slate-500">{label}</span>
+      <span className="break-words font-medium text-slate-900">{value}</span>
+    </div>
   );
 }

@@ -81,7 +81,7 @@ export class AppointmentsService {
     const slot = await this.slots.findByIdForDate(appointment.slotId, appointment.scheduledDate);
     if (
       !slot ||
-      (!(isDevelopmentEnvironment() && appointment.appointmentType === Type.CHECK_IN) &&
+      (!isDevelopmentEnvironment() &&
         (new Date() < slot.startsAt ||
           new Date() >= new Date(`${appointment.scheduledDate}T23:59:59.999+07:00`)))
     )
@@ -227,7 +227,7 @@ export class AppointmentsService {
     input = UpdateAppointmentSchema.parse(input);
     if (!Object.keys(input).length) throw new BadRequestError(m.emptyUpdate);
     const current = await this.getAppointment(id, actor);
-    const demo = isDevelopmentEnvironment() && current.appointmentType === Type.CHECK_IN;
+    const demo = isDevelopmentEnvironment();
     const updated = await this.repository.transaction(async (tx) => {
       // Use the same parent -> appointment lock order as reservation cancellation.
       const reservation = current.reservationId
