@@ -15,15 +15,13 @@ import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
-import { env } from "../../config/env";
 import { requireAuth, requireRole } from "../auth/auth.guard";
 import { getFacilityAccessScope, requireAssignedFacility } from "../facilities/facilities.access";
 import { requireFacilityAccess } from "../facilities/facilities.guard";
 import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
 import { PAYMENT_MESSAGES } from "../payments/payments.messages";
 import { createPaymentsService } from "../payments/payments.service";
-import { BookingCheckInRepository } from "./booking-check-in.repository";
-import { BookingCheckInService } from "./booking-check-in.service";
+import { createBookingCheckInService } from "./booking-check-in.service";
 import { assertFlowReadAccess } from "./booking-check-in-access";
 import { privateTrackingResponse } from "./bookings.access";
 import { BOOKING_MESSAGES } from "./bookings.messages";
@@ -36,12 +34,7 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
   const assignmentsRepository = new FacilityAssignmentsRepository(fastify.db);
   const checkInSlotsService = new CheckInSlotsService(new CheckInSlotsRepository(fastify.db));
   const service = createBookingsService(fastify);
-  const checkInRepository = new BookingCheckInRepository(fastify.db);
-  const checkInService = new BookingCheckInService(
-    checkInRepository,
-    undefined,
-    env.NODE_ENV === "development" || env.NODE_ENV === "develop",
-  );
+  const checkInService = createBookingCheckInService(fastify.db);
   const paymentsService = createPaymentsService(fastify, service);
 
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();

@@ -2,6 +2,7 @@ import {
   HANDOVER_CHECKLIST_ITEMS,
   HandoverChecklistCompletionSchema,
   type MobilePaidBooking,
+  SYSTEM_SETTING_DEFINITIONS,
 } from "@metastorage/contracts";
 import { DEMO_MESSAGES as m } from "./demo.messages";
 import type { DemoDatabase } from "./demo.types";
@@ -56,9 +57,29 @@ export function canVerifyBooking(booking: MobilePaidBooking, now = Date.now()) {
     !!booking.paidAt &&
     !!booking.assignedUnit &&
     !!booking.assignedStaff &&
-    now >= Date.parse(booking.checkInSlotStart) &&
-    now <= Date.parse(booking.checkInSlotEnd ?? booking.checkInSlotStart) + 7200000
+    now >= demoCheckInOpensAt(booking.checkInSlotStart).getTime() &&
+    now < demoCheckInDeadlineAt(booking.checkInSlotStart).getTime()
   );
+}
+export function demoCheckInOpensAt(
+  checkInAt: string,
+  openingHour = SYSTEM_SETTING_DEFINITIONS.OPENING_HOUR.defaultValue,
+) {
+  const date = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).format(
+    new Date(checkInAt),
+  );
+  return new Date(`${date}T${String(openingHour).padStart(2, "0")}:00:00+07:00`);
+}
+export function demoCheckInDeadlineAt(
+  checkInAt: string,
+  closingHour: number = SYSTEM_SETTING_DEFINITIONS.CLOSING_HOUR.defaultValue,
+) {
+  const date = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).format(
+    new Date(checkInAt),
+  );
+  return closingHour === 24
+    ? new Date(new Date(`${date}T00:00:00+07:00`).getTime() + 86400000)
+    : new Date(`${date}T${String(closingHour).padStart(2, "0")}:00:00+07:00`);
 }
 export function validateReschedule(db: DemoDatabase, booking: MobilePaidBooking, start: string) {
   if (

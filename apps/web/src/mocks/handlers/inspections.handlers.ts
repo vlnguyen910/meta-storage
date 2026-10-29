@@ -50,7 +50,7 @@ export function registerInspectionHandlers(mock: MockAdapter): void {
       return [403, errorBody(403, M.forbidden)];
     const lookup = lookupResult(booking);
     if (
-      !lookup.eligibility.canProceed ||
+      !lookup.checkInReadiness.canProceed ||
       !booking.assignedUnit ||
       booking.taskStatus !== "IN_PROGRESS"
     )
@@ -117,7 +117,10 @@ export function registerInspectionHandlers(mock: MockAdapter): void {
     const body = parseBody<{ version: number }>(config.data);
     if (body.version !== inspection.version) return [409, errorBody(409, M.stale)];
     const lookup = lookupResult(booking);
-    if (!lookup.eligibility.canProceed || booking.assignedUnit?.id !== inspection.unitAssignmentId)
+    if (
+      !lookup.checkInReadiness.canProceed ||
+      booking.assignedUnit?.id !== inspection.unitAssignmentId
+    )
       return [409, errorBody(409, M.notReady)];
     if (action !== "handover" && inspection.status !== "DRAFT")
       return [409, errorBody(409, M.locked)];

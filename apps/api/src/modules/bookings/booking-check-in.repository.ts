@@ -11,13 +11,10 @@ import type {
 import {
   and,
   bookings,
-  checkInSlots,
   desc,
   eq,
   facilities,
-  max,
   payments,
-  sql,
   storageUnits,
   unitAssignments,
   unitTypes,
@@ -35,7 +32,6 @@ export type CheckInRecord = {
   payment: Payment | null;
   assignment: UnitAssignment | null;
   assignedUnit: StorageUnit | null;
-  checkInDayEnd: Date | null;
 };
 
 function hashQrToken(qrToken: string): string {
@@ -65,11 +61,6 @@ export class BookingCheckInRepository {
         payment: payments,
         assignment: unitAssignments,
         assignedUnit: storageUnits,
-        checkInDayEnd: sql<Date | null>`(${bookings.checkInDate} +
-          (${executor.select({ end: max(checkInSlots.endTime) }).from(checkInSlots)}))
-          at time zone 'Asia/Ho_Chi_Minh'`.mapWith((value) =>
-          value === null ? null : new Date(value),
-        ),
       })
       .from(bookings)
       .innerJoin(bookingCustomer, eq(bookingCustomer.id, bookings.userId))

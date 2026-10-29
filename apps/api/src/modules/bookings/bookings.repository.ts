@@ -35,7 +35,6 @@ import {
   isNull,
   lt,
   lte,
-  max,
   type NewBooking,
   ne,
   notExists,
@@ -295,10 +294,9 @@ export class BookingsRepository {
     });
   }
 
-  async sweepNoShows(now = new Date(), facilityId?: string) {
+  async sweepNoShows(now: Date, facilityId: string | undefined, closingHour: number) {
     return this.db.transaction(async (tx) => {
-      const dayEnd = sql`(${bookings.checkInDate} +
-        (${tx.select({ end: max(checkInSlots.endTime) }).from(checkInSlots)}))
+      const checkInDeadline = sql`(${bookings.checkInDate} + ${closingHour} * interval '1 hour')
         at time zone 'Asia/Ho_Chi_Minh'`;
       const candidates = await tx
         .select({ id: bookings.id })
@@ -307,8 +305,7 @@ export class BookingsRepository {
           and(
             eq(bookings.status, "CONFIRMED"),
             facilityId ? eq(bookings.facilityId, facilityId) : undefined,
-            lte(bookings.checkInDate, bookingLocalDate(now)),
-            lte(dayEnd, now.toISOString()),
+            lte(checkInDeadline, now.toISOString()),
             exists(
               tx
                 .select({ id: payments.id })
@@ -1049,8 +1046,10 @@ export async function closeBookingBeforeCheckIn(
     };
   }
   if (booking.status !== "CONFIRMED") return null;
-  const dayEnd = await new CheckInSlotsRepository(tx).findDayEnd(booking.checkInDate);
-  if (!dayEnd || (target === "NO_SHOW" ? now < dayEnd : now >= dayEnd)) return null;
+  if (target === "CANCELLED") {
+    const dayEnd = await new CheckInSlotsRepository(tx).findDayEnd(booking.checkInDate);
+    if (!dayEnd || now >= dayEnd) return null;
+  }
   const [rental] = await tx
     .select({ id: rentals.id })
     .from(rentals)

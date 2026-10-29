@@ -19,6 +19,16 @@ import type { SystemSettingsRepository } from "./system-settings.repository";
 
 export class SystemSettingsService {
   constructor(private readonly repository: SystemSettingsRepository) {}
+  async getOpeningHour(): Promise<number> {
+    const setting = await this.repository.find("OPENING_HOUR");
+    if (!setting) throw new NotFoundError(m.notFound);
+    return Number(setting.value);
+  }
+  async getClosingHour(): Promise<number> {
+    const setting = await this.repository.find("CLOSING_HOUR");
+    if (!setting) throw new NotFoundError(m.notFound);
+    return Number(setting.value);
+  }
   private authorize(role: string | null | undefined, key?: SystemSettingKeyValue) {
     if (
       key

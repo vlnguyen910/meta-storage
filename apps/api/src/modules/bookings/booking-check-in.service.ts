@@ -5,12 +5,19 @@ import type {
   CheckInPaymentSummary,
   PhysicalUnitAssignment,
 } from "@metastorage/contracts";
-import { NotFoundError } from "../../common/errors/app-error";
+import type { Database } from "@metastorage/database";
+import { ConflictError, NotFoundError } from "../../common/errors/app-error";
+import { env } from "../../config/env";
+import { SystemSettingsRepository } from "../system-settings/system-settings.repository";
+import { SystemSettingsService } from "../system-settings/system-settings.service";
 import {
   type CheckInPolicyEvaluation,
-  evaluateCheckInEligibility,
+  evaluateCheckInReadiness,
+  getCheckInDeadlineAt,
+  getCheckInOpensAt,
 } from "./booking-check-in.policy";
-import type { BookingCheckInRepository, CheckInRecord } from "./booking-check-in.repository";
+import { BookingCheckInRepository, type CheckInRecord } from "./booking-check-in.repository";
+import { BOOKING_MESSAGES } from "./bookings.messages";
 import { closeBookingBeforeCheckIn } from "./bookings.repository";
 
 function toAssignedUnit(record: CheckInRecord): PhysicalUnitAssignment | null {
@@ -55,7 +62,7 @@ function toResult(record: CheckInRecord, evaluation: CheckInPolicyEvaluation): C
     requestedMonths: record.booking.requestedMonths,
     checkInSlotStart: record.booking.checkInSlotStart.toISOString(),
     checkInSlotEnd: record.booking.checkInSlotEnd?.toISOString() ?? null,
-    graceEndsAt: evaluation.graceEndsAt?.toISOString() ?? null,
+    checkInDeadlineAt: evaluation.checkInDeadlineAt?.toISOString() ?? null,
     rentalEndAt: record.booking.rentalEndAt.toISOString(),
   };
 
@@ -63,7 +70,7 @@ function toResult(record: CheckInRecord, evaluation: CheckInPolicyEvaluation): C
     booking,
     payment: toPayment(record),
     assignedUnit: toAssignedUnit(record),
-    eligibility: {
+    checkInReadiness: {
       canProceed: evaluation.canProceed,
       reasons: evaluation.reasons,
     },
@@ -73,9 +80,26 @@ function toResult(record: CheckInRecord, evaluation: CheckInPolicyEvaluation): C
 export class BookingCheckInService {
   constructor(
     private readonly repository: BookingCheckInRepository,
+    private readonly settings: Pick<SystemSettingsService, "getOpeningHour" | "getClosingHour">,
     private readonly clock: () => Date = () => new Date(),
-    private readonly allowEarlyCheckIn = false,
+    private readonly skipTimeWindow = env.NODE_ENV === "develop" || env.NODE_ENV === "development",
   ) {}
+
+  async assertCheckInCanStart(bookingId: string): Promise<void> {
+    const record = await this.repository.findByBookingId(bookingId);
+    if (!record) throw new NotFoundError(BOOKING_MESSAGES.bookingNotFound);
+    const { evaluation } = await this.resolveReadiness(record, true);
+    if (!evaluation.canProceed) {
+      const details = evaluation.reasons.map((reason) => ({
+        field: `checkInReadiness.${reason}`,
+        message: BOOKING_MESSAGES.checkInReadinessReasons[reason],
+      }));
+      throw new ConflictError(
+        BOOKING_MESSAGES.checkInNotReady(details.map(({ message }) => message)),
+        details,
+      );
+    }
+  }
 
   async getFacilityIdForLookup(input: CheckInLookupInput): Promise<string> {
     const facilityId = await this.repository.findFacilityIdByLookup(input.type, input.value);
@@ -89,42 +113,62 @@ export class BookingCheckInService {
   }
 
   async lookup(input: CheckInLookupInput): Promise<CheckInLookupResult> {
-    let record = await this.repository.findByLookup(input.type, input.value);
+    const record = await this.repository.findByLookup(input.type, input.value);
     if (!record) throw new NotFoundError("QR hoặc Booking ID không hợp lệ");
+    const resolved = await this.resolveReadiness(record);
+    return toResult(resolved.record, resolved.evaluation);
+  }
 
+  private async resolveReadiness(record: CheckInRecord, markNoShow = false) {
     const now = this.clock();
-    let evaluation = evaluateCheckInEligibility(
+    const [openingHour, closingHour] = await Promise.all([
+      this.settings.getOpeningHour(),
+      this.settings.getClosingHour(),
+    ]);
+    const checkInOpensAt = getCheckInOpensAt(record.booking.checkInDate, openingHour);
+    const checkInDeadline = getCheckInDeadlineAt(record.booking.checkInDate, closingHour);
+    let evaluation = evaluateCheckInReadiness(
       {
         bookingStatus: record.booking.status,
         payment: record.payment,
         hasAssignedUnit: Boolean(record.assignment && record.assignedUnit),
+        checkInOpensAt,
         checkInSlotStart: record.booking.checkInSlotStart,
-        checkInDayEnd: record.checkInDayEnd,
+        checkInDeadline,
       },
       now,
-      this.allowEarlyCheckIn,
+      this.skipTimeWindow,
     );
 
-    if (evaluation.shouldMarkNoShow) {
+    if (markNoShow && evaluation.shouldMarkNoShow) {
       const bookingId = record.booking.id;
       await this.repository.transaction((tx) =>
         closeBookingBeforeCheckIn(tx, bookingId, "NO_SHOW", now),
       );
-      record = await this.repository.findByBookingId(bookingId);
-      if (!record) throw new NotFoundError("Không tìm thấy booking");
-      evaluation = evaluateCheckInEligibility(
+      const refreshedRecord = await this.repository.findByBookingId(bookingId);
+      if (!refreshedRecord) throw new NotFoundError(BOOKING_MESSAGES.bookingNotFound);
+      record = refreshedRecord;
+      evaluation = evaluateCheckInReadiness(
         {
           bookingStatus: record.booking.status,
           payment: record.payment,
           hasAssignedUnit: Boolean(record.assignment && record.assignedUnit),
+          checkInOpensAt,
           checkInSlotStart: record.booking.checkInSlotStart,
-          checkInDayEnd: record.checkInDayEnd,
+          checkInDeadline,
         },
         this.clock(),
-        this.allowEarlyCheckIn,
+        this.skipTimeWindow,
       );
     }
-
-    return toResult(record, evaluation);
+    return { record, evaluation };
   }
+}
+
+export function createBookingCheckInService(db: Database, clock: () => Date = () => new Date()) {
+  return new BookingCheckInService(
+    new BookingCheckInRepository(db),
+    new SystemSettingsService(new SystemSettingsRepository(db)),
+    clock,
+  );
 }

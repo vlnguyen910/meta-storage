@@ -14,7 +14,7 @@ export type DemoBooking = {
   facility: string;
   startAt: Date;
   slotEndAt: Date;
-  graceEndsAt: Date;
+  checkInDeadlineAt: Date;
   rentalEndAt: Date;
   paidAt: Date;
   totalAmount: number;
@@ -43,7 +43,7 @@ export function buildDemoBookings(now = Date.now()): DemoBooking[] {
       facility: "metastorage Sài Gòn Central",
       startAt: makeDate(-30 * 60 * 1000),
       slotEndAt: makeDate(90 * 60 * 1000),
-      graceEndsAt: makeDate(210 * 60 * 1000),
+      checkInDeadlineAt: makeDate(210 * 60 * 1000),
       rentalEndAt: makeDate(30 * DAY_MS),
       paidAt: makeDate(-2 * HOUR_MS),
       totalAmount: 1_800_000,
@@ -64,12 +64,12 @@ export function buildDemoBookings(now = Date.now()): DemoBooking[] {
       facility: "metastorage Sài Gòn Central",
       startAt: makeDate(DAY_MS),
       slotEndAt: makeDate(DAY_MS + 2 * HOUR_MS),
-      graceEndsAt: makeDate(DAY_MS + 4 * HOUR_MS),
+      checkInDeadlineAt: makeDate(DAY_MS + 4 * HOUR_MS),
       rentalEndAt: makeDate(DAY_MS + 90 * DAY_MS),
       paidAt: makeDate(-6 * HOUR_MS),
       totalAmount: 6_000_000,
       depositAmount: 1_500_000,
-      reasons: ["Chưa tới thời gian bắt đầu check-in"],
+      reasons: ["Chưa tới giờ mở cửa nhận kho"],
     },
     {
       code: "BK-2026-0003",
@@ -85,7 +85,7 @@ export function buildDemoBookings(now = Date.now()): DemoBooking[] {
       facility: "metastorage Sài Gòn Central",
       startAt: makeDate(-6 * HOUR_MS),
       slotEndAt: makeDate(-4 * HOUR_MS),
-      graceEndsAt: makeDate(-2 * HOUR_MS),
+      checkInDeadlineAt: makeDate(-2 * HOUR_MS),
       rentalEndAt: makeDate(180 * DAY_MS),
       paidAt: makeDate(-24 * HOUR_MS),
       totalAmount: 14_700_000,

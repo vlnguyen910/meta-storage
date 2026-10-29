@@ -196,7 +196,7 @@ async function fixture(
     },
   };
   const lookup: CheckInLookupResult = {
-    booking: { ...booking, graceEndsAt: new Date(Date.now() + 3 * 3600000).toISOString() },
+    booking: { ...booking, checkInDeadlineAt: new Date(Date.now() + 3 * 3600000).toISOString() },
     assignedUnit: booking.assignedUnit ?? null,
     payment: {
       status: PaymentStatus.SUCCEEDED,
@@ -206,7 +206,7 @@ async function fixture(
       depositAmount: 1500000,
       currency: "VND",
     },
-    eligibility: { canProceed: !unassigned, reasons: unassigned ? ["UNIT_NOT_ASSIGNED"] : [] },
+    checkInReadiness: { canProceed: !unassigned, reasons: unassigned ? ["UNIT_NOT_ASSIGNED"] : [] },
   };
   let inspection: Inspection | null = null;
   const task = { id: "a4444444-4444-4444-8444-444444444444", referenceId: id, status: "ASSIGNED" };
@@ -285,7 +285,7 @@ async function fixture(
     else if (path === `/bookings/${id}/assign-unit`) {
       booking.assignedUnit = assignment;
       lookup.assignedUnit = assignment;
-      lookup.eligibility = { canProceed: true, reasons: [] };
+      lookup.checkInReadiness = { canProceed: true, reasons: [] };
       data = assignment;
     } else if (path === `/facilities/${booking.facilityId}/staff`) data = [booking.assignedStaff];
     else if (path === `/bookings/${id}/assign-staff`) {
@@ -1065,7 +1065,7 @@ test("incomplete and failed checklist drafts persist; four PASS unlock without n
   await expect(page.getByText("Cửa và khóa hoạt động bình thường", { exact: true })).toBeVisible();
 });
 
-test("dispatch does not invent NO_SHOW after slot end plus two hours", async ({ page }) => {
+test("dispatch does not invent NO_SHOW before CLOSING_HOUR", async ({ page }) => {
   await fixture(page, { role: "FACILITY_MANAGER", elapsedSlot: true });
   await page.goto("/facility-manager/dashboard?view=tasks");
   const card = page

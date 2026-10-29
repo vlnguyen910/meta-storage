@@ -20,7 +20,7 @@ const readinessMeta: Record<
     icon: "✓",
   },
   TOO_EARLY: {
-    label: "Chưa tới giờ",
+    label: "Chưa tới giờ mở cửa",
     background: "bg-blue-100",
     text: "text-blue-800",
     icon: "◷",
@@ -135,7 +135,7 @@ function BookingResult({
         </Text>
         <InfoRow label="Bắt đầu slot" value={formatDateTime(booking.startAt)} />
         <InfoRow label="Kết thúc slot" value={formatDateTime(booking.slotEndAt)} />
-        <InfoRow label="Kết thúc grace" value={formatDateTime(booking.graceEndsAt)} />
+        <InfoRow label="Hạn nhận kho" value={formatDateTime(booking.checkInDeadlineAt)} />
         <InfoRow label="Kết thúc thuê" value={formatDateTime(booking.rentalEndAt)} />
       </View>
 

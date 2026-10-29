@@ -30,8 +30,8 @@
 
 ### No-show
 
-- Hạn check-in kết thúc tại **giờ kết thúc slot cuối cùng của ngày nhận kho** (Asia/Ho_Chi_Minh); thay thế grace period 2 giờ trước đây. Khách bỏ lỡ slot đã chọn vẫn có thể check-in muộn hơn trong cùng ngày sau khi payment thành công và manager đã gán kho.
-- Đúng hoặc sau giờ kết thúc slot cuối ngày, Booking vẫn `CONFIRMED` thì chuyển `CONFIRMED → NO_SHOW`. Chỉ `CHECKED_IN` sau bàn giao mới được miễn NO_SHOW; verification `VERIFIED` chưa phải mốc đã đến theo quyết định nghiệp vụ hiện tại.
+- Check-in bắt đầu từ `OPENING_HOUR` và kết thúc tại `CLOSING_HOUR` trong system settings của cùng ngày nhận kho (Asia/Ho_Chi_Minh). Slot là giờ hẹn; khách đến sau slot vẫn có thể nhận kho tới giờ đóng cửa nếu payment thành công và manager đã gán kho.
+- Đúng hoặc sau `CLOSING_HOUR`, Booking vẫn `CONFIRMED` thì chuyển `CONFIRMED → NO_SHOW`. Chỉ `CHECKED_IN` sau bàn giao mới được miễn NO_SHOW; verification `VERIFIED` chưa phải mốc đã đến theo quyết định nghiệp vụ hiện tại.
 - No-show hoàn rental fee đã thanh toán, mất toàn bộ deposit và release reserved Unit Type capacity.
 - `NO_SHOW` là terminal Booking state.
 
@@ -40,7 +40,7 @@
 | Trạng thái hiện tại | Sự kiện / điều kiện | Trạng thái tiếp theo | Kết quả |
 | --- | --- | --- | --- |
 | `CONFIRMED` | Customer hủy trước check-in, Rental chưa active | `CANCELLED` | Hoàn rental fee, mất deposit, release capacity |
-| `CONFIRMED` | Đã tới giờ kết thúc slot cuối ngày và chưa check-in | `NO_SHOW` | Hoàn rental fee, mất deposit, release capacity |
+| `CONFIRMED` | Đã tới `CLOSING_HOUR` trong ngày nhận kho và chưa check-in | `NO_SHOW` | Hoàn rental fee, mất deposit, release capacity |
 | `CONFIRMED` | Check-in/handover thành công | `CHECKED_IN` | Các bước tiếp theo thuộc Rental lifecycle |
 | `CONFIRMED` | Reschedule hợp lệ và đủ capacity | `CONFIRMED` | Dời check-in slot, ghi history, giữ giá |
 
@@ -56,8 +56,8 @@ Các ca hủy/NO_SHOW được kiểm thử tích hợp với PostgreSQL; giới
 | Đặt trước quá giới hạn | Check-in cách thời điểm đặt hơn 30 ngày | Từ chối |
 | Hủy sau payment | Booking `CONFIRMED`, chưa check-in, Rental chưa active | `CANCELLED`; hoàn rental fee; mất toàn bộ deposit; release capacity |
 | Hủy sau handover | Booking `CHECKED_IN` hoặc Rental đã active | Không thực hiện Booking cancellation; chuyển sang Rental return/termination flow |
-| No-show trước hạn | Chưa check-in, chưa tới giờ kết thúc slot cuối ngày | Không chuyển `NO_SHOW` |
-| No-show đúng/sau hạn | Booking còn `CONFIRMED`, chưa check-in, đã tới giờ kết thúc slot cuối ngày | `NO_SHOW`; hoàn rental fee; mất toàn bộ deposit; release capacity |
+| No-show trước hạn | Chưa check-in, chưa tới `CLOSING_HOUR` trong ngày nhận kho | Không chuyển `NO_SHOW` |
+| No-show đúng/sau hạn | Booking còn `CONFIRMED`, chưa check-in, đã tới `CLOSING_HOUR` trong ngày nhận kho | `NO_SHOW`; hoàn rental fee; mất toàn bộ deposit; release capacity |
 | Đã check-in | Booking đã `CHECKED_IN` khi đến hạn no-show | Không chuyển `NO_SHOW` |
 | Reschedule hợp lệ | `CONFIRMED`, còn ít nhất 24 giờ, chưa vượt 2 lần, đủ capacity toàn kỳ mới | Đổi check-in date/time; giữ Facility, Unit Type, duration, giá và trạng thái `CONFIRMED`; ghi count/history |
 | Reschedule quá muộn hoặc quá số lần | Dưới 24 giờ trước slot hoặc đã reschedule 2 lần | Từ chối; Booking cũ giữ nguyên |

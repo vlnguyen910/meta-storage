@@ -67,7 +67,7 @@ function CheckInFlowScreen() {
   const [lookupType, setLookupType] = useState<"BOOKING_CODE" | "QR_TOKEN">("BOOKING_CODE");
   const [input, setInput] = useState("");
   const result = flow.result;
-  const reasons = result?.eligibility.reasons ?? [];
+  const reasons = result?.checkInReadiness.reasons ?? [];
   const inspectionStarted = Boolean(flow.current);
   const wantsInspection = ["inspect", "review", "handover"].includes(flow.view);
   const locked = flow.current?.status === "PASSED" || flow.current?.status === "FAILED";
@@ -154,7 +154,7 @@ function CheckInFlowScreen() {
                     {formatDateTime(result.booking.checkInSlotEnd)}
                   </DataPair>
                   <DataPair label={FLOW.deadline}>
-                    {formatDateTime(result.booking.graceEndsAt)}
+                    {formatDateTime(result.booking.checkInDeadlineAt)}
                   </DataPair>
                   <DataPair label={FLOW.rentalEnd}>
                     {formatDateTime(result.booking.rentalEndAt)}
@@ -341,11 +341,11 @@ function CheckInFlowScreen() {
                 label: FLOW.receptionStatus,
                 value: inspectionStarted
                   ? FLOW.inspecting
-                  : result.eligibility.canProceed
+                  : result.checkInReadiness.canProceed
                     ? FLOW.eligible
                     : FLOW.notEligible,
                 tone:
-                  inspectionStarted || result.eligibility.canProceed
+                  inspectionStarted || result.checkInReadiness.canProceed
                     ? ("green" as const)
                     : ("amber" as const),
                 icon: User,
@@ -463,7 +463,7 @@ function CheckInFlowScreen() {
                   {[
                     { label: FLOW.slotStart, value: result.booking.checkInSlotStart },
                     { label: FLOW.slotEnd, value: result.booking.checkInSlotEnd },
-                    { label: FLOW.deadline, value: result.booking.graceEndsAt },
+                    { label: FLOW.deadline, value: result.booking.checkInDeadlineAt },
                   ].map(({ label, value }) => (
                     <div key={label}>
                       <strong>{formatDateTime(value)}</strong>
@@ -498,7 +498,7 @@ function CheckInFlowScreen() {
               disabled={
                 result.booking.status === "CHECKED_IN"
                   ? !flow.current
-                  : !inspectionStarted && !result.eligibility.canProceed
+                  : !inspectionStarted && !result.checkInReadiness.canProceed
               }
               loading={flow.verify.isPending}
               onClick={proceed}

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { HANDOVER_CHECKLIST_ITEMS } from "@metastorage/contracts";
+import { HANDOVER_CHECKLIST_ITEMS, SYSTEM_SETTING_DEFINITIONS } from "@metastorage/contracts";
 import {
   accounts,
   and,
@@ -18,6 +18,7 @@ import {
   payments,
   rentals,
   storageUnits,
+  systemSettings,
   unitAssignments,
   unitTypes,
   users,
@@ -62,6 +63,23 @@ export async function createInspectionFixture(allowExistingLocal = false) {
   const now = Date.now();
   const rentalEnd = new Date(now + 30 * 86400_000);
   await db.transaction(async (tx) => {
+    await tx
+      .insert(systemSettings)
+      .values([
+        {
+          key: "OPENING_HOUR",
+          value: SYSTEM_SETTING_DEFINITIONS.OPENING_HOUR.defaultValue,
+          description: SYSTEM_SETTING_DEFINITIONS.OPENING_HOUR.description,
+          version: 1,
+        },
+        {
+          key: "CLOSING_HOUR",
+          value: SYSTEM_SETTING_DEFINITIONS.CLOSING_HOUR.defaultValue,
+          description: SYSTEM_SETTING_DEFINITIONS.CLOSING_HOUR.description,
+          version: 1,
+        },
+      ])
+      .onConflictDoNothing();
     await tx.insert(users).values([
       {
         id: customerId,
