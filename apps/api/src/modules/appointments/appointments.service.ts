@@ -132,6 +132,7 @@ export class AppointmentsService {
           input.rentalId,
           customerId,
         );
+        await this.rentals.requireNoPendingRenewalPayment(tx, context.rental.id);
         if (slot.startsAt < context.rental.startAt) throw new BadRequestError(m.scheduleMismatch);
         facilityId = context.facilityId;
       } else {

@@ -83,6 +83,7 @@ export type SepayCheckoutSession = {
 
 export type SepayCreateCheckoutInput = {
   reservationId?: string;
+  renewalId?: string;
   paymentCode: string;
   amount: number;
   currency: string;

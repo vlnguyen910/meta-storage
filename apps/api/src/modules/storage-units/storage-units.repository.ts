@@ -28,7 +28,9 @@ import {
   notExists,
   notInArray,
   or,
+  RentalRenewalStatus,
   RentalStatus,
+  rentalRenewals,
   rentals,
   type StorageUnit,
   sql,
@@ -81,6 +83,22 @@ export class StorageUnitsRepository {
         ),
       )
       .limit(1);
+    const [renewalHold] = await tx
+      .select({ id: capacityAllocations.id })
+      .from(capacityAllocations)
+      .innerJoin(rentalRenewals, eq(rentalRenewals.id, capacityAllocations.referenceId))
+      .where(
+        and(
+          eq(rentalRenewals.storageUnitId, unitId),
+          eq(rentalRenewals.status, RentalRenewalStatus.PENDING_PAYMENT),
+          eq(capacityAllocations.kind, "HOLD"),
+          eq(capacityAllocations.status, "ACTIVE"),
+          lt(capacityAllocations.startsAt, endsAt),
+          gt(capacityAllocations.endsAt, startsAt),
+          or(isNull(capacityAllocations.expiresAt), gt(capacityAllocations.expiresAt, new Date())),
+        ),
+      )
+      .limit(1);
     const [inspection] = await tx
       .select({ id: inspections.id })
       .from(inspections)
@@ -102,7 +120,10 @@ export class StorageUnitsRepository {
         ? await this.findReservationAssignment(tx, reservationId)
         : undefined;
     if (unit.status === "RESERVED" && ownAssignment?.physicalUnitId !== unitId) return undefined;
-    return (assignment && assignment.id !== ownAssignment?.id) || rental || inspection
+    return (assignment && assignment.id !== ownAssignment?.id) ||
+      rental ||
+      inspection ||
+      renewalHold
       ? undefined
       : unit;
   }

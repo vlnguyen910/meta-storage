@@ -13,9 +13,11 @@ import {
   or,
   paymentProviderEvents,
   payments,
+  rentalRenewals,
   rentals,
   reservations,
   sql,
+  storageUnits,
   users,
 } from "@metastorage/database";
 import { AppError } from "../../common/errors/app-error";
@@ -59,12 +61,19 @@ export class PaymentsRepository {
       .from(payments)
       .leftJoin(bookings, eq(bookings.id, payments.bookingId))
       .leftJoin(reservations, eq(reservations.id, payments.reservationId))
+      .leftJoin(rentalRenewals, eq(rentalRenewals.id, payments.renewalId))
+      .leftJoin(rentals, eq(rentals.id, rentalRenewals.rentalId))
+      .leftJoin(storageUnits, eq(storageUnits.id, rentals.storageUnitId))
       .where(
         and(
           eq(payments.provider, "sepay"),
           eq(payments.status, "PENDING"),
           facilityId
-            ? or(eq(bookings.facilityId, facilityId), eq(reservations.facilityId, facilityId))
+            ? or(
+                eq(bookings.facilityId, facilityId),
+                eq(reservations.facilityId, facilityId),
+                eq(storageUnits.facilityId, facilityId),
+              )
             : undefined,
         ),
       )
@@ -121,7 +130,11 @@ export class PaymentsRepository {
         >`coalesce(${bookings.contactPhone}, ${bookingCustomer.phone})`,
       })
       .from(payments)
-      .leftJoin(rentals, eq(rentals.id, payments.rentalId))
+      .leftJoin(rentalRenewals, eq(rentalRenewals.id, payments.renewalId))
+      .leftJoin(
+        rentals,
+        or(eq(rentals.id, payments.rentalId), eq(rentals.id, rentalRenewals.rentalId)),
+      )
       .leftJoin(
         bookings,
         eq(bookings.id, sql`coalesce(${payments.bookingId}, ${rentals.bookingId})`),
@@ -200,17 +213,23 @@ export class PaymentsRepository {
       .from(payments)
       .leftJoin(bookings, eq(bookings.id, payments.bookingId))
       .leftJoin(reservations, eq(reservations.id, payments.reservationId))
+      .leftJoin(rentalRenewals, eq(rentalRenewals.id, payments.renewalId))
+      .leftJoin(rentals, eq(rentals.id, rentalRenewals.rentalId))
       .where(
         and(
           eq(payments.id, paymentId),
-          or(eq(bookings.userId, access.userId), eq(reservations.customerId, access.userId)),
+          or(
+            eq(bookings.userId, access.userId),
+            eq(reservations.customerId, access.userId),
+            eq(rentals.userId, access.userId),
+          ),
         ),
       );
     return row?.payment;
   }
 
   async findActiveHoldForPayment(payment: typeof payments.$inferSelect) {
-    const referenceId = payment.bookingId ?? payment.reservationId;
+    const referenceId = payment.bookingId ?? payment.reservationId ?? payment.renewalId;
     if (!payment.holdTokenHash || !referenceId) return null;
     const [hold] = await this.db
       .select({ id: capacityAllocations.id, expiresAt: capacityAllocations.expiresAt })

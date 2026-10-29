@@ -13,7 +13,7 @@ import type {
 import { ConflictError, ForbiddenError, NotFoundError } from "../../common/errors/app-error";
 import type { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
 import type { TaskTransaction } from "../facility-tasks/facility-tasks.types";
-import { RENTAL_MESSAGES as M } from "./rentals.messages";
+import { RENTAL_MESSAGES as M, RENTAL_RENEWAL_MESSAGES } from "./rentals.messages";
 import type { RentalsRepository } from "./rentals.repository";
 import type { RentalActor, RentalWithDetails } from "./rentals.types";
 
@@ -54,6 +54,10 @@ export class RentalsService {
     if (!context) throw new NotFoundError(M.rentalNotFound);
     if (context.rental.status !== "ACTIVE") throw new ConflictError(M.rentalNotActive);
     return context;
+  }
+  async requireNoPendingRenewalPayment(tx: TaskTransaction, rentalId: string) {
+    if (await this.repository.hasPendingRenewalPayment(tx, rentalId))
+      throw new ConflictError(RENTAL_RENEWAL_MESSAGES.paymentOpen);
   }
   createForHandover(
     tx: TaskTransaction,
