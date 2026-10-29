@@ -19,6 +19,7 @@ Customer tạo `CHECK_OUT` từ `rentalId`; Customer/facility được backend s
 
 | Người dùng / màn hình | Hành vi hiện tại |
 | --- | --- |
+| Customer — tab lịch hẹn trong `/customer/storage?tab=appointments` | Xem lịch FullCalendar mặc định theo tuần, chuyển tháng/ngày; week/day chỉ hiển thị từ giờ mở cửa đến giờ đóng cửa đọc từ System Settings; lọc cơ sở/trạng thái; xem dạng bảng dùng `CustomerTable`; mở chi tiết bằng Sheet. Chỉ hiện thao tác hủy với lịch `SCHEDULED`/`CONFIRMED` còn trước giờ bắt đầu; liên kết về reservation, rental hoặc support ticket khi có reference. |
 | Customer — chi tiết kho `/customer/storage/[rentalId]` | Tạo lịch trả theo `rentalId`; lịch trả đang mở đổi nút thành “Hủy yêu cầu”; hủy gửi `status: CANCELLED`; trả trước hạn có bước xác nhận; lỗi tải lịch cho phép retry và không thể gửi khi chưa xác minh lịch/slot. Lịch sử thanh toán không hiển thị trên trang này theo yêu cầu UI. Rental `CLOSED` hiển thị ngày trả thực tế thay cho bộ đếm đến hạn. |
 | Customer — danh sách kho `/customer/storage` | Rental `CLOSED` hiển thị thêm ngày trả thực tế cạnh thời hạn thuê; trạng thái tiếp tục dùng `ACTIVE`/`CLOSED` từ API. |
 | Customer — form lịch trả | Dialog dùng lịch và slot của luồng đặt kho; hiển thị lịch trả hiện có, trạng thái tải/lỗi, lỗi gửi/hủy và chặn gửi trùng khi đã có lịch `SCHEDULED`/`CONFIRMED`. Ngày có thể chọn từ hôm nay; slot trong ngày đã qua bị khóa, đổi ngày sẽ xóa slot cũ. Backend vẫn là nguồn quyết định cuối cùng cho lịch hợp lệ. |
@@ -36,6 +37,7 @@ Không tạo route mới cho bước trả kho. Không tạo component cơ sở 
 | Bước | API |
 | --- | --- |
 | Customer lấy rental | `GET /api/rentals/:rentalId` |
+| Customer hiển thị lịch | `GET /api/facilities/operating-hours` trả riêng `openingHour` và `closingHour` |
 | Customer tải slot và lịch trả | `GET /api/appointments/check-in-slots`; `GET /api/appointments/mine?appointmentType=CHECK_OUT`, sau đó lọc theo `rentalId` |
 | Customer tạo/hủy lịch | `POST /api/appointments` với `appointmentType`, `rentalId`, `scheduledDate`, `slotId`; `PATCH /api/appointments/:id` với `status: CANCELLED` |
 | FM đọc/điều phối | `GET /api/appointments/facilities/:facilityId?appointmentType=CHECK_OUT`; `GET /api/facilities/:facilityId/staff`; `PATCH /api/appointments/:id` với `status: CONFIRMED`, `assignedStaffId` |
@@ -60,12 +62,14 @@ API client tập trung tại `packages/api-client/src/index.ts`; UI không gọi
 
 ## 5. Component và tái sử dụng
 
-- `BookingSchedulePicker` tại `apps/web/src/features/reservations/booking-schedule-picker.tsx` được tách từ lịch/slot của luồng đặt kho để chia sẻ với dialog trả kho. Đây là component nghiệp vụ duy nhất được tạo mới cho UI flow này.
+- `BookingSchedulePicker` tại `apps/web/src/features/reservations/booking-schedule-picker.tsx` được tách từ lịch/slot của luồng đặt kho để chia sẻ với dialog trả kho.
+- `CustomerAppointmentsView` gom lịch, filter, table và chi tiết cho tab lịch hẹn; FullCalendar xử lý month/week/day view. Thêm `Sheet` theo mẫu shadcn trên Radix Dialog do dự án chưa có panel trượt sẵn.
 - `InspectionPhotoCard` trong `features/facility-flow/inspection-screen.tsx` được tái sử dụng ở task trả kho.
-- Dialog/confirm, Button, Card, Input, trạng thái tải/lỗi và checklist dùng component/pattern sẵn có. Chỉnh sửa tiếp nên mở rộng các phần hiện có, không tạo route/component nếu chưa có nhu cầu khác biệt.
+- `CustomerTable`, Button, Card, Select, Dialog/confirm và trạng thái tải/lỗi dùng component/pattern sẵn có. Không tạo route mới cho các flow này.
 
 ## 6. Phạm vi và kiểm chứng
 
-- Phạm vi triển khai là Web; Mobile chưa được cập nhật theo flow CHECK_OUT.
-- Đã chạy `bun run --filter web check-types`, Biome và `git diff --check` trong các lượt chỉnh sửa UI.
-- Design detector không phát hiện lỗi cơ học mới; có advisory về cỡ chữ 10/11px ở các nhãn đã tồn tại trong danh sách/điều phối. Các dòng đó không nằm trong thay đổi API lần này nên chưa mở rộng chỉnh sửa typography. Chưa chạy browser/Playwright hoặc axe cho các route trả kho; bố cục runtime desktop/mobile vẫn cần được kiểm tra trong trình duyệt.
+- Phạm vi triển khai là Web; Mobile không đổi theo yêu cầu hiện tại.
+- Đã chạy Web typecheck, Biome và `git diff --check` trong các lượt chỉnh sửa UI.
+- Có dữ liệu mock appointment và rental để xem lịch, chi tiết, bộ lọc và dialog trả kho mà không cần API thật.
+- Design detector không phát hiện lỗi cơ học mới; có advisory về cỡ chữ 10/11px ở một số nhãn dense đã có từ trước. Các dòng đó không thuộc thay đổi lần này nên chưa mở rộng typography. Playwright/axe không chạy theo yêu cầu; người dùng sẽ tự review các màn Web trên browser ở desktop và viewport hẹp.
