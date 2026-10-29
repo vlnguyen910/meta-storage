@@ -285,6 +285,7 @@ describe.skipIf(!target)("My Storage reads against existing local container Post
     expect(rental.userId).toBe(ids.owner);
     expect(rental.storageUnit.id).toBe(ids.unit);
     expect(rental.endAt).toBeDefined();
+    expect(rental.closedAt).toBeNull();
     for (const field of [
       "physicalUnit",
       "expectedEndAt",
@@ -292,7 +293,6 @@ describe.skipIf(!target)("My Storage reads against existing local container Post
       "depositAmount",
       "returnSettlement",
       "actualReturnAt",
-      "closedAt",
     ])
       expect(rental).not.toHaveProperty(field);
   });
