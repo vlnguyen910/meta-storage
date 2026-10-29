@@ -1,4 +1,5 @@
 import type {
+  AppointmentRecordDto,
   BookingListItem,
   Facility,
   FacilityTaskStatus,
@@ -48,6 +49,7 @@ export interface MockDatabase {
   reservations: Reservation[];
   payments: Payment[];
   bookings: MockBooking[];
+  appointments: AppointmentRecordDto[];
 }
 
 export interface MockBooking extends BookingListItem {

@@ -1,4 +1,10 @@
-import { StorageUnitStatus } from "@metastorage/contracts";
+import {
+  APPOINTMENT_STATUSES,
+  APPOINTMENT_TYPES,
+  type AppointmentRecordDto,
+  type RentalDetail,
+  StorageUnitStatus,
+} from "@metastorage/contracts";
 import type { MockDatabase } from "../types";
 import { bookingSeeds, mockStaffHuy } from "./bookings.seed";
 import { facilitySeeds } from "./facilities.seed";
@@ -21,6 +27,129 @@ export function createSeedDatabase(): MockDatabase {
       });
   }
   const bookings = structuredClone(bookingSeeds);
+  const facility = facilitySeeds[0];
+  const customer = userSeeds[0];
+  const demoRental: RentalDetail = {
+    id: "c0000000-0000-0000-0000-000000000001",
+    bookingId: "b0000000-0000-0000-0000-000000000001",
+    reservationId: "a0000000-0000-0000-0000-000000000001",
+    userId: customer?.id ?? "user-1",
+    bookingCode: "BK-2026-RETURN-DEMO",
+    facility: {
+      id: facility?.id ?? "fac-hcm-central",
+      name: facility?.name ?? "metastorage Sài Gòn Central",
+      address: facility
+        ? `${facility.address.line1}, ${facility.address.ward}, ${facility.address.district}, ${facility.address.city}`
+        : "118 Nguyễn Văn Linh, Quận 7, TP. Hồ Chí Minh",
+    },
+    unitType: {
+      id: "00000000-0000-0000-0001-000000000001",
+      name: "Kho tiêu chuẩn",
+      sizeLabel: "2 m²",
+    },
+    storageUnit: { id: "hcm-01-unit-9", code: "HCM-01-009" },
+    startAt: new Date(Date.now() - 20 * 86400000).toISOString(),
+    endAt: new Date(Date.now() + 30 * 86400000).toISOString(),
+    closedAt: null,
+    status: "ACTIVE",
+    bookingStatus: "CHECKED_IN",
+    actions: { canCancel: false, canReschedule: false, note: "" },
+    customer: {
+      userId: customer?.id ?? "user-1",
+      name: customer?.name ?? "Nguyễn Minh Anh",
+      email: customer?.email ?? "customer@metastorage.test",
+      phone: customer?.phone ?? "0900000001",
+    },
+  };
+  const localDate = (offset: number) => {
+    const date = new Date(Date.now() + offset * 86400000);
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Ho_Chi_Minh",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date);
+  };
+  const demoAppointments: AppointmentRecordDto[] = [
+    {
+      id: "d0000000-0000-0000-0000-000000000001",
+      facilityId: demoRental.facility.id,
+      appointmentType: APPOINTMENT_TYPES.CHECK_IN,
+      scheduledDate: localDate(1),
+      slotId: "e0000000-0000-0000-0000-000000000001",
+      status: APPOINTMENT_STATUSES.CONFIRMED,
+      customerId: demoRental.userId,
+      contactPhone: demoRental.customer.phone,
+      reservationId: demoRental.reservationId ?? null,
+      rentalId: null,
+      supportTicketId: null,
+      assignedStaffId: null,
+      createdBy: demoRental.userId,
+      notes: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      slotName: "Ca nhận kho",
+      slotStart: "09:00:00",
+      slotEnd: "10:00:00",
+      facility: {
+        id: demoRental.facility.id,
+        name: demoRental.facility.name,
+        address: demoRental.facility.address,
+      },
+    },
+    {
+      id: "d0000000-0000-0000-0000-000000000002",
+      facilityId: demoRental.facility.id,
+      appointmentType: APPOINTMENT_TYPES.CHECK_OUT,
+      scheduledDate: localDate(3),
+      slotId: "e0000000-0000-0000-0000-000000000002",
+      status: APPOINTMENT_STATUSES.CANCELLED,
+      customerId: demoRental.userId,
+      contactPhone: demoRental.customer.phone,
+      reservationId: null,
+      rentalId: demoRental.id,
+      supportTicketId: null,
+      assignedStaffId: null,
+      createdBy: demoRental.userId,
+      notes: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      slotName: "Ca trả kho",
+      slotStart: "14:00:00",
+      slotEnd: "15:00:00",
+      facility: {
+        id: demoRental.facility.id,
+        name: demoRental.facility.name,
+        address: demoRental.facility.address,
+      },
+    },
+    {
+      id: "d0000000-0000-0000-0000-000000000003",
+      facilityId: demoRental.facility.id,
+      appointmentType: APPOINTMENT_TYPES.SUPPORT,
+      scheduledDate: localDate(-1),
+      slotId: "e0000000-0000-0000-0000-000000000003",
+      status: APPOINTMENT_STATUSES.COMPLETED,
+      customerId: demoRental.userId,
+      contactPhone: demoRental.customer.phone,
+      reservationId: null,
+      rentalId: null,
+      supportTicketId: "f0000000-0000-0000-0000-000000000001",
+      assignedStaffId: null,
+      createdBy: demoRental.userId,
+      notes: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      slotName: "Hỗ trợ khách hàng",
+      slotStart: "10:00:00",
+      slotEnd: "10:30:00",
+      facility: {
+        id: demoRental.facility.id,
+        name: demoRental.facility.name,
+        address: demoRental.facility.address,
+      },
+    },
+  ];
   for (const booking of bookings) {
     const unit = units.find((u) => u.unitTypeId === booking.unitTypeId);
     if (unit) booking.totalAmount = unit.monthlyPrice * (booking.requestedMonths + 1);
@@ -44,7 +173,9 @@ export function createSeedDatabase(): MockDatabase {
     reservations: [],
     payments: [],
     bookings,
+    appointments: demoAppointments,
   };
+  if (customer) database.rentals.push({ ...demoRental, userId: customer.id });
   applyDemoBookingSchedule(database);
   return database;
 }
