@@ -1,201 +1,71 @@
-# Context tích hợp UI cho flow trả kho
+# Context tích hợp UI Web cho flow trả kho
 
-Lưu ngày: 2026-10-30.
+Cập nhật: 2026-10-30. Tài liệu này ghi trạng thái UI Web sau khi nối các API trả kho; đối chiếu cùng `AGENTS.md`, `docs/DESIGN.md` và `RETURN_FLOW_CONTEXT.md`. Backend/API đã được implement trước lượt UI này; bảng bên dưới mô tả hợp đồng đang dùng, không phải đề xuất endpoint mới.
 
-Tài liệu lưu lại toàn bộ nội dung đối chiếu UI Web/Mobile với backend trong câu
-trả lời trước, để tham khảo khi triển khai. Đây là kết quả đọc code và contract,
-chưa kiểm chứng bằng chạy UI trên trình duyệt/thiết bị. Các đề xuất dưới đây chưa
-được triển khai trong lượt phân tích hoặc lượt lưu tài liệu này.
+## 1. Mô hình nghiệp vụ và API
 
-Đọc cùng `AGENTS.md` và `RETURN_FLOW_CONTEXT.md`. Khi triển khai cần đối chiếu lại
-code hiện tại; các URL/view đề xuất không đồng nghĩa đã tồn tại.
-
-## 1. Kết quả đối chiếu tổng thể
-
-UI chưa nối đủ flow trả kho; phần lớn có thể mở rộng màn hình đang có. Chỉ có
-`GET/PUT /api/policy-violation-fees` là endpoint mới; các bước khác dùng API hiện
-hữu đã được mở rộng.
-
-Phí vi phạm dùng bảng `policy_violation_fee`, không triển khai cấu hình phí qua
-`system_settings`.
-
-## 2. Reservation và appointment cần được thể hiện thế nào?
-
-UI cần phân biệt ba đối tượng:
-
-| Đối tượng | Vai trò trong flow | UI sử dụng |
+| Đối tượng | Vai trò | UI/API sử dụng |
 | --- | --- | --- |
-| Reservation | Đặt chỗ, thanh toán và theo dõi nhận kho | Màn đặt kho, thanh toán, biên nhận |
-| Appointment | Lịch thực hiện nghiệp vụ: `CHECK_IN`, `CHECK_OUT`, `SUPPORT` | Chọn lịch, FM xác nhận và phân công |
-| Rental | Kho thực tế khách đang thuê | Chi tiết kho, yêu cầu trả kho, lịch sử hoàn cọc |
+| Reservation | Ghi nhận lần đặt và thanh toán nhận kho | Luồng đặt kho/nhận kho hiện có; không tạo reservation khi trả |
+| Appointment | Lịch nghiệp vụ `CHECK_IN`, `CHECK_OUT`, `SUPPORT` | Chọn lịch, điều phối FM, phân công Staff |
+| Rental | Kho khách đang thuê | Chi tiết rental, lịch trả, ngày đóng thực tế, payment history của FM |
+| Inspection | Biên bản Staff kiểm tra Unit khi trả | Checklist, ảnh, phí, đối chiếu check-in và thao tác chốt |
+| Policy fee catalog | Danh mục phí hiện hành của BOM | `GET/PUT /api/policy-violation-fees`, có `expectedVersion` |
+| Deposit refund | Nghĩa vụ hoàn cọc được tạo khi chốt | Payment riêng `DEPOSIT_REFUND`; `REFUND_PENDING` chỉ chuyển thành `REFUNDED` sau xác nhận thực tế |
 
-Phần đặt kho hiện đã gọi API reservation và tạo appointment `CHECK_IN` trong
-[`booking-checkout.hooks.ts`](apps/web/src/features/reservations/booking-checkout.hooks.ts).
+Customer tạo `CHECK_OUT` từ `rentalId`; Customer/facility được backend suy ra. FM xác nhận appointment và gán Staff; backend tạo task `UNIT_INSPECTION` tham chiếu appointment. Staff bắt đầu task rồi tạo/tiếp tục inspection qua `taskId`. Chốt inspection `PASSED` sẽ đóng rental, cập nhật Unit, hoàn tất appointment/task và tạo khoản hoàn cọc nếu số tiền hoàn lớn hơn 0.
 
-Khi trả kho, UI phải xuất phát từ **`rentalId`**, tạo appointment `CHECK_OUT`.
-Reservation được giữ làm lịch sử đặt chỗ; không tạo lại reservation cho lần trả kho.
+## 2. Trạng thái UI Web đã nối API
 
-## 3. Những màn hình hiện có cần sửa
-
-| Màn hình | Hiện trạng trong code | Thay đổi cần làm và lý do |
-| --- | --- | --- |
-| **Customer — Chi tiết kho** `/customer/storage/[rentalId]` | Hai nút “Trả kho” đều dẫn sang tạo ticket hỗ trợ | Mở form chọn ngày/slot và tạo appointment `CHECK_OUT`. Hiển thị lịch đang chờ xác nhận, đã xác nhận, hoàn tất; tránh gửi yêu cầu trùng |
-| **Customer — Danh sách kho/lịch sử** `/customer/storage` | Đã có danh sách rental hiện tại/lịch sử | Sau trả kho cần cập nhật `CLOSED`, thời điểm `closedAt`, điều hướng về chi tiết. Tách “hạn thuê” khỏi “ngày trả thực tế” |
-| **FM — Điều phối** `/facility-manager/tasks` | Tab nghiệp vụ hiện chỉ tải appointment `CHECK_IN` | Thêm tab/bộ lọc “Trả kho”, xem yêu cầu `CHECK_OUT`, xác nhận và phân Staff. Trả kho dùng Unit của rental nên không có bước chọn/gán Unit mới |
-| **Staff — Danh sách công việc** `/staff/tasks` | Appointment khác `CHECK_IN` vẫn được đưa vào đường dẫn `/staff/check-in`; task tham chiếu appointment bị loại khỏi danh sách task để tránh trùng | Phân nhánh điều hướng theo `appointmentType`. Giữ một mục công việc cho mỗi appointment, đưa `CHECK_OUT` vào giao diện kiểm tra trả kho |
-| **Staff — Chi tiết công việc/inspection** | Trang task chung có nút hoàn tất trực tiếp; editor inspection hiện phục vụ check-in | Với task trả kho, mở inspection để ghi checklist/phí và chốt. Hoàn tất task riêng không thực hiện đầy đủ việc đóng rental và tạo hoàn cọc |
-| **Customer/FM — Lịch sử thanh toán** | Chủ yếu hiển thị số tiền, trạng thái; chưa phân biệt đầy đủ loại giao dịch | Hiển thị `CHARGE` là khoản thu, `DEPOSIT_REFUND` là hoàn cọc; phân biệt `REFUND_PENDING` và `REFUNDED` để tránh hiểu rằng đã chuyển tiền |
-| **FM — Chi tiết rental** `/facility-manager/rentals` | Có rental và payment history | Bổ sung ngày trả thực tế, loại giao dịch hoàn cọc và liên kết xem inspection trả kho |
-| **BOM — Phí** `/operations/fees` | API mode chỉ hiển thị trạng thái trống | Triển khai danh mục mã vi phạm, tên, số tiền VND, bật/tắt và lưu phiên bản qua API mới |
-| **BOM — Hàng chờ hoàn tiền** `/operations/reports`, tab hoàn tiền | Đã có danh sách và form xác nhận hoàn | Dùng lại, thêm nhãn hoàn cọc và thông tin `reservationId`; hiện bảng/tìm kiếm còn thiên về `bookingId` |
-
-Các vị trí thể hiện rõ khoảng cách hiện tại:
-
-- Nút trả kho mở support:
-  [`rental-detail.tsx`](apps/web/src/features/rentals/rental-detail.tsx).
-- Danh sách FM chỉ lấy `CHECK_IN`:
-  [`use-dispatch.ts`](apps/web/src/features/facility-flow/use-dispatch.ts).
-- Staff đưa appointment vào trang check-in:
-  [`use-staff-work.ts`](apps/web/src/modules/facility-staff/use-staff-work.ts).
-- Trang task chung có hành động hoàn tất:
-  [`staff-task-detail-screen.tsx`](apps/web/src/modules/facility-staff/staff-task-detail-screen.tsx).
-- Trang phí đang trống:
-  [`operations-fees-view.tsx`](apps/web/src/features/operations/components/operations-fees-view.tsx).
-- Hàng chờ hoàn tiền hiện có:
-  [`operations-reports-hub.tsx`](apps/web/src/features/operations/components/operations-reports-hub.tsx)
-  và [`use-operations-refunds.ts`](apps/web/src/features/operations/hooks/use-operations-refunds.ts).
-
-## 4. API cần nối theo thứ tự flow
-
-Tất cả đường dẫn trong bảng dưới đây có tiền tố `/api`.
-
-| Bước / người dùng | API cần nối | Dữ liệu và hành vi UI |
-| --- | --- | --- |
-| Customer mở kho | `GET /rentals/:rentalId` | Hiện Unit, thời hạn, trạng thái và ngày trả thực tế |
-| Customer chọn lịch | `GET /appointments/check-in-slots` | Backend hiện dùng chung danh sách slot cho appointment, dù URL có tên check-in |
-| Customer xem lịch trả đã có | `GET /appointments/mine?appointmentType=CHECK_OUT` | Lọc theo `rentalId` trên kết quả; query hiện chưa nhận `rentalId` |
-| Customer gửi yêu cầu | `POST /appointments` | Gửi `appointmentType`, `rentalId`, ngày và slot |
-| Customer hủy lịch | `PATCH /appointments/:id` | Gửi `status: CANCELLED`; backend kiểm tra thời hạn được hủy |
-| FM xem yêu cầu | `GET /appointments/facilities/:facilityId?appointmentType=CHECK_OUT` | Hiển thị lịch trả tại cơ sở đang quản lý |
-| FM chọn Staff | `GET /facilities/:facilityId/staff` | Dùng lại danh sách Staff đang hoạt động |
-| FM xác nhận/phân công | `PATCH /appointments/:id` | Gửi `status: CONFIRMED`, `assignedStaffId`; backend tạo task |
-| Staff mở công việc | `GET /appointments/assigned-to-me` và `GET /facility-tasks/my` | Ghép task qua `referenceType: APPOINTMENT`, `referenceId: appointment.id` |
-| Staff bắt đầu | `PATCH /facility-tasks/:taskId` | Gửi `status: IN_PROGRESS` |
-| Staff tạo/tiếp tục inspection | `POST /inspections`; `GET /inspections/appointments/:appointmentId` | Tạo bằng `taskId`; tìm lại inspection khi mở lại màn hình |
-| Staff xem chi tiết | `GET /inspections/:id` | Lấy checklist, ảnh, `returnContext`, danh mục phí và phí đã lưu |
-| Staff lưu/chốt | `PATCH /inspections/:id` | Lưu nháp hoặc chốt bằng `status: PASSED` |
-| Customer xem hoàn cọc | `GET /rentals/:rentalId/payments` | Hiện khoản hoàn riêng và trạng thái thực tế |
-| FM xem hoàn cọc | `GET /rentals/facility/:facilityId/:rentalId/payments` | Theo dõi lịch sử trong phạm vi cơ sở |
-| BOM xác nhận đã chuyển tiền | `GET /payments/refunds`; `POST /payments/:paymentId/refund/confirm` | Dùng hàng chờ hiện có; nhập `reference` sau khi thực tế hoàn tiền |
-| BOM quản lý phí | **`GET /policy-violation-fees`; `PUT /policy-violation-fees`** | Đọc danh mục và cập nhật bằng `expectedVersion` |
-
-Ví dụ Customer đặt lịch trả:
-
-```json
-{
-  "appointmentType": "CHECK_OUT",
-  "rentalId": "<rental-id>",
-  "scheduledDate": "2026-11-02",
-  "slotId": "<slot-id>"
-}
-```
-
-Customer và cơ sở được backend xác định từ session/rental. UI không cần gửi thêm
-các thông tin định danh này.
-
-Hiện API client đã có các hàm appointment, task, inspection và refund cần thiết.
-**Còn thiếu hàm client cho `GET/PUT /policy-violation-fees`** trong
-[`packages/api-client/src/index.ts`](packages/api-client/src/index.ts).
-
-## 5. Giao diện inspection trả kho cần khác check-in ở đâu?
-
-Có thể dùng lại component checklist, ảnh, ghi chú và trạng thái lưu. Phần điều
-phối cần phân nhánh theo `inspectionType`.
-
-| Phần | UI trả kho cần làm |
+| Người dùng / màn hình | Hành vi hiện tại |
 | --- | --- |
-| Unit | Hiển thị Unit backend suy ra từ rental. Tạo inspection bằng `{ taskId }` |
-| Đối chiếu nhận kho | Hiện `returnContext.checkIn` ở chế độ chỉ đọc cạnh kết quả kiểm tra mới |
-| Checklist | Bắt buộc trả lời đủ mục; cho phép `FAIL` nhưng phải có ghi chú từng mục |
-| Phí | Chọn từ `returnContext.penalties`; gửi `violations: [{ code, note }]` và `policyVersion` |
-| Tiền cọc/phí/hoàn dự kiến | Hiện cọc từ `returnContext.depositAmount`, phí đã lưu từ `returnContext.fees`; số tính trên UI chỉ là dự kiến |
-| Chốt | Dùng nhãn “Chốt trả kho”; gọi PATCH inspection với `status: PASSED` |
-| Sau chốt | Hiển thị biên bản chỉ đọc và làm mới appointment/task/rental/Unit/payment |
+| Customer — chi tiết kho `/customer/storage/[rentalId]` | Tạo lịch trả theo `rentalId`; lịch trả đang mở đổi nút thành “Hủy yêu cầu”; hủy gửi `status: CANCELLED`; trả trước hạn có bước xác nhận; lỗi tải lịch cho phép retry và không thể gửi khi chưa xác minh lịch/slot. Lịch sử thanh toán không hiển thị trên trang này theo yêu cầu UI. Rental `CLOSED` hiển thị ngày trả thực tế thay cho bộ đếm đến hạn. |
+| Customer — danh sách kho `/customer/storage` | Rental `CLOSED` hiển thị thêm ngày trả thực tế cạnh thời hạn thuê; trạng thái tiếp tục dùng `ACTIVE`/`CLOSED` từ API. |
+| Customer — form lịch trả | Dialog dùng lịch và slot của luồng đặt kho; hiển thị lịch trả hiện có, trạng thái tải/lỗi, lỗi gửi/hủy và chặn gửi trùng khi đã có lịch `SCHEDULED`/`CONFIRMED`. Ngày có thể chọn từ hôm nay; slot trong ngày đã qua bị khóa, đổi ngày sẽ xóa slot cũ. Backend vẫn là nguồn quyết định cuối cùng cho lịch hợp lệ. |
+| FM — điều phối | Có tab `CHECK_IN`/`CHECK_OUT`; danh sách trả dùng `GET /appointments/facilities/:facilityId?appointmentType=CHECK_OUT`; FM xác nhận và phân Staff bằng `PATCH /appointments/:id`. Thẻ trả kho không hiển thị thanh toán `0đ` giả từ DTO reservation và không yêu cầu phân Unit mới; mã rental mở trang rental để xem Unit. Bộ đếm đổi sang trạng thái phù hợp `CHECK_OUT`. |
+| Staff — danh sách việc | Có bộ lọc loại `RETURN`; CHECK_OUT gắn với task qua `referenceType: APPOINTMENT` và mở `/staff/tasks/[taskId]`. Tab điều phối CHECK_OUT cũng điều hướng về danh sách task, không đưa Staff vào luồng check-in. |
+| Staff — chi tiết task/inspection | Bắt đầu task, tạo/tiếp tục inspection; đối chiếu thông tin CHECK_IN; hiển thị lịch trả và mã Unit; ghi checklist/ghi chú; thêm/xóa ảnh bằng PATCH inspection; chọn phí từ context; xem tiền cọc và số hoàn dự kiến; lưu nháp hoặc “Chốt trả kho”. Ảnh giới hạn JPEG/PNG/WebP, 3 MB/ảnh và 8 ảnh/biên bản. |
+| FM — chi tiết rental | Hiển thị `closedAt`, payment type (`CHARGE`/`DEPOSIT_REFUND`), trạng thái và biên bản trả kho gồm Unit, condition, ghi chú và phí snapshot. |
+| BOM — `/operations/fees` | Đọc/sửa danh mục bằng GET/PUT; gửi `expectedVersion`; thêm, xóa, bật/tắt mã phí; kiểm tra item bằng shared Zod schema; xử lý `409` bằng cách yêu cầu tải lại catalog, có xác nhận trước khi bỏ thay đổi chưa lưu. |
+| BOM — hàng chờ refund | Tìm kiếm được payment/reservation/booking ID; phân biệt `DEPOSIT_REFUND`; `paidAt` null hiển thị là chưa có thời điểm xác nhận, không diễn đạt `REFUND_PENDING` thành đã hoàn. |
 
-Editor hiện dùng `HandoverChecklistCompletionSchema` và sau hoàn tất chuyển sang
-bước handover tại
-[`use-check-in-flow.ts`](apps/web/src/features/facility-flow/use-check-in-flow.ts).
-Với trả kho cần dùng **`ReturnChecklistCompletionSchema`**; component checklist
-cũng cần thêm ô ghi chú cho mục `FAIL`.
+Không tạo route mới cho bước trả kho. Không tạo component cơ sở UI mới; tái sử dụng Button, Card, Dialog, AlertDialog, ErrorState/LoadingState và component ảnh kiểm tra hiện có.
 
-`PASSED` ở CHECK_OUT mang nghĩa đã chốt việc nhận lại kho. Checklist vẫn có thể
-chứa vi phạm. Backend hiện chỉ chốt khi:
+## 3. API/contract Web đang gọi
 
-- `condition: GOOD`;
-- tổng phí không vượt cọc;
-- task/appointment và quyền Staff hợp lệ.
+| Bước | API |
+| --- | --- |
+| Customer lấy rental | `GET /api/rentals/:rentalId` |
+| Customer tải slot và lịch trả | `GET /api/appointments/check-in-slots`; `GET /api/appointments/mine?appointmentType=CHECK_OUT`, sau đó lọc theo `rentalId` |
+| Customer tạo/hủy lịch | `POST /api/appointments` với `appointmentType`, `rentalId`, `scheduledDate`, `slotId`; `PATCH /api/appointments/:id` với `status: CANCELLED` |
+| FM đọc/điều phối | `GET /api/appointments/facilities/:facilityId?appointmentType=CHECK_OUT`; `GET /api/facilities/:facilityId/staff`; `PATCH /api/appointments/:id` với `status: CONFIRMED`, `assignedStaffId` |
+| Staff đọc/bắt đầu task | `GET /api/appointments/assigned-to-me`; `GET /api/facility-tasks/my`; `PATCH /api/facility-tasks/:taskId` với `IN_PROGRESS` |
+| Staff inspection | `POST /api/inspections` với `{ taskId }`; `GET /api/inspections/appointments/:appointmentId`; `PATCH /api/inspections/:id` để lưu checklist/condition/notes/violations/policyVersion/ảnh hoặc chốt `PASSED` |
+| Staff ảnh | Cùng PATCH inspection với `addEvidence` hoặc `removeEvidenceIds`; API client có `inspections.upload` và `inspections.removePhoto` |
+| BOM phí | `GET /api/policy-violation-fees`; `PUT /api/policy-violation-fees` với `expectedVersion` và các item |
+| Chi tiết payment | `GET /api/rentals/facility/:facilityId/:rentalId/payments`; `GET /api/payments/refunds`; xác nhận đã chuyển tiền bằng `POST /api/payments/:paymentId/refund/confirm` ở thao tác sẵn có của hàng chờ |
 
-PATCH chốt đã đóng rental, giải phóng Unit, hoàn tất appointment/task và tạo
-khoản hoàn nếu có. UI chỉ cần một hành động chốt nghiệp vụ; endpoint
-`/inspections/:id/handover` phục vụ nhận kho.
+API client tập trung tại `packages/api-client/src/index.ts`; UI không gọi HTTP trực tiếp.
 
-Khi chính sách phí đã đổi và backend trả `409`, UI cần tải lại mức phí và yêu cầu
-Staff kiểm tra trước khi gửi lại.
+## 4. Quy tắc backend ảnh hưởng UI
 
-## 6. Màn hình nào thực sự cần tạo mới?
+- Lịch `CHECK_OUT` đang mở gồm `SCHEDULED`/`CONFIRMED`; hủy chỉ hợp lệ trước giờ hẹn. UI hiển thị lỗi nếu backend từ chối hủy.
+- Task inspection CHECK_OUT phải được gán và bắt đầu trước; backend suy ra Unit từ rental. UI không gửi Unit ID để quyết định Unit trả.
+- Checklist trả kho phải đủ kết quả; mục `FAIL` cần ghi chú. Trạng thái `PASSED` là chốt nghiệp vụ nhận lại kho, không có nghĩa checklist không có vi phạm.
+- Backend chỉ chốt hiện tại khi `condition: GOOD` và tổng phí không vượt tiền cọc. UI chỉ tính tiền hoàn dự kiến; số cuối cùng do backend tính. Chưa có luồng nợ vượt cọc hoặc đưa Unit hỏng vào bảo trì.
+- Phí được lưu snapshot khi áp dụng. Nếu policy version đổi trong lúc Staff đang lập biên bản, API trả `409`; UI tải catalog mới, loại lựa chọn không còn hợp lệ và yêu cầu Staff rà soát trước lần lưu tiếp.
+- `REFUND_PENDING` là đang chờ chuyển tiền. UI chỉ hiển thị `REFUNDED` sau xác nhận của người có quyền; không tạo refund 0 đồng.
+- Customer chưa có quyền xem inspection; UI khách không dựa vào checklist/fees/ảnh của biên bản. Chi tiết rental khách chủ động không hiển thị lịch sử thanh toán theo yêu cầu.
+- API refund queue hiện không cung cấp thời điểm tạo refund riêng trong DTO đang dùng; khi `paidAt` null UI không suy đoán thời gian.
 
-Đề xuất tối giản là **thêm hai view nghiệp vụ**, có thể đặt trong các trang đang có:
+## 5. Component và tái sử dụng
 
-| View cần bổ sung | Vị trí đề xuất | Lý do |
-| --- | --- | --- |
-| **Đặt lịch trả kho** | Form/dialog trong trang chi tiết rental | Hiện chưa có thao tác tạo `CHECK_OUT`; khách cần chọn ngày/slot và xem kết quả |
-| **Kiểm tra và chốt trả kho** | Nhánh trả kho trong workspace Staff, dùng lại checklist/ảnh hiện có | Cần đối chiếu check-in, ghi vi phạm/phí và chốt transaction trả kho |
+- `BookingSchedulePicker` tại `apps/web/src/features/reservations/booking-schedule-picker.tsx` được tách từ lịch/slot của luồng đặt kho để chia sẻ với dialog trả kho. Đây là component nghiệp vụ duy nhất được tạo mới cho UI flow này.
+- `InspectionPhotoCard` trong `features/facility-flow/inspection-screen.tsx` được tái sử dụng ở task trả kho.
+- Dialog/confirm, Button, Card, Input, trạng thái tải/lỗi và checklist dùng component/pattern sẵn có. Chỉnh sửa tiếp nên mở rộng các phần hiện có, không tạo route/component nếu chưa có nhu cầu khác biệt.
 
-Các phần còn lại mở rộng trang hiện có:
+## 6. Phạm vi và kiểm chứng
 
-- FM thêm tab trả kho trong điều phối.
-- BOM triển khai danh mục phí tại `/operations/fees`.
-- Xác nhận hoàn cọc dùng hàng chờ hoàn tiền đang có.
-- Biên bản sau chốt là trạng thái chỉ đọc của inspection.
-- Customer theo dõi trả kho và hoàn cọc trong chi tiết rental.
-
-Như vậy chưa có nhu cầu bắt buộc tạo thêm route riêng cho từng bước.
-
-## 7. Những giới hạn dữ liệu cần lưu ý trước khi triển khai UI
-
-Có một số nội dung không thể chỉ nối API rồi hiển thị đầy đủ:
-
-- **Appointment CHECK_OUT chưa có sẵn thông tin Unit như CHECK_IN.** Truy vấn
-  hiện lấy `assignedUnit` qua reservation assignment; CHECK_OUT dùng `rentalId`.
-  FM có thể bổ sung thông tin từ API rental hiện có. Staff nhận đúng Unit khi tạo
-  inspection; nếu muốn hiện trước bước này cần bổ sung dữ liệu phù hợp.
-- **Customer chưa có quyền đọc inspection.** Customer hiện xem được lịch trả,
-  rental và payment history. Nếu muốn khách xem từng khoản phạt/checklist/biên
-  bản thì cần mở rộng response hoặc API có kiểm tra chủ rental.
-- **`returnContext` chưa trả ảnh check-in gốc, refund ID hoặc trạng thái refund.**
-  Hiện có condition, checklist, ghi chú và thời gian check-in. Không nên thiết
-  kế UI dựa trên những trường chưa có.
-- **Hàng chờ refund đang hiển thị `paidAt`.** Giao dịch hoàn cọc mới có thể có
-  `paidAt: null`; nếu cần “thời điểm tạo yêu cầu hoàn” thì response cần có thời
-  điểm tương ứng.
-
-## 8. Phạm vi Mobile
-
-Với Mobile, các thay đổi tương tự nằm ở:
-
-- `CustomerRentalScreen` trong
-  [`customer-api-screens.tsx`](apps/mobile/src/features/customer-api/customer-api-screens.tsx).
-- [`StaffWorkspace`](apps/mobile/src/features/staff-api/staff-workspace.tsx).
-- [`StaffCheckInView`](apps/mobile/src/features/staff-api/staff-check-in-view.tsx).
-- Hook [`use-staff-workspace.ts`](apps/mobile/src/features/staff-api/use-staff-workspace.ts).
-
-Workspace Staff hiện mở cùng view check-in cho mọi appointment và còn khai báo
-`returnsUnavailable: true`; cần bổ sung nhánh CHECK_OUT dùng API thật.
-
-## 9. Trạng thái kiểm chứng và rủi ro
-
-Chưa chạy UI trên trình duyệt/thiết bị hoặc test runtime; đây là đối chiếu code
-và contract. Lượt phân tích không thay đổi file; lượt hiện tại chỉ lưu tài liệu.
-
-Rủi ro chính là tái sử dụng nguyên logic check-in sẽ chặn nhầm CHECK_OUT do thiếu
-assignment/payment context hoặc áp sai điều kiện checklist.
+- Phạm vi triển khai là Web; Mobile chưa được cập nhật theo flow CHECK_OUT.
+- Đã chạy `bun run --filter web check-types`, Biome và `git diff --check` trong các lượt chỉnh sửa UI.
+- Design detector không phát hiện lỗi cơ học mới; có advisory về cỡ chữ 10/11px ở các nhãn đã tồn tại trong danh sách/điều phối. Các dòng đó không nằm trong thay đổi API lần này nên chưa mở rộng chỉnh sửa typography. Chưa chạy browser/Playwright hoặc axe cho các route trả kho; bố cục runtime desktop/mobile vẫn cần được kiểm tra trong trình duyệt.
