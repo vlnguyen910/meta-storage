@@ -1,5 +1,5 @@
-import { AppointmentCheckInScreen } from "@/features/appointments/appointment-workspace";
+import { CheckInScreen } from "@/features/check-in/check-in-screen";
 
-export default function StaffCheckInPage() {
-  return <AppointmentCheckInScreen />;
+export default function CheckInPage() {
+  return <CheckInScreen />;
 }

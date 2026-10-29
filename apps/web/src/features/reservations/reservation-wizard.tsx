@@ -77,7 +77,10 @@ export function ReservationWizard() {
       {state.step === 2 ? <CheckoutReview state={state} /> : null}
       {state.step === 3 ? <CheckoutPayment state={state} /> : null}
       {state.step === 4 ? (
-        <ReservationReceipt reservationId={state.confirmation?.id ?? state.draft?.id ?? ""} />
+        <ReservationReceipt
+          reservationId={state.confirmation?.id ?? state.draft?.id ?? ""}
+          variant="confirmation"
+        />
       ) : null}
     </div>
   );

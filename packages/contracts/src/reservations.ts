@@ -121,6 +121,7 @@ export type ReservationRecordDto = Omit<
   facility?: { id: string; name: string; address: string };
   unitType?: { id: string; name: string; sizeLabel: string };
   paymentStatus?: string | null;
+  rentalId?: string | null;
   rentalStartAt: string;
   rentalEndAt: string;
   createdAt: string;

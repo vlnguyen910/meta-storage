@@ -37,6 +37,8 @@ import {
   createReservationsService,
   type ReservationsService,
 } from "../reservations/reservations.service";
+import { StorageUnitsRepository } from "../storage-units/storage-units.repository";
+import { StorageUnitsService } from "../storage-units/storage-units.service";
 import { SupportRepository } from "../support/support.repository";
 import { SupportService } from "../support/support.service";
 import { APPOINTMENT_MESSAGES as m } from "./appointments.messages";
@@ -56,6 +58,7 @@ export class AppointmentsService {
     private readonly rentals: RentalsService,
     private readonly support: SupportService,
     private readonly tasks: FacilityTasksService,
+    private readonly storageUnits: StorageUnitsService,
     private readonly notifications?: NotificationsService,
   ) {}
 
@@ -110,7 +113,11 @@ export class AppointmentsService {
           customerId,
           tx,
         );
-        if (reservation.status !== ReservationStatus.CONFIRMED)
+        if (
+          ![ReservationStatus.DRAFT, ReservationStatus.CONFIRMED].includes(
+            reservation.status as ReservationStatus.DRAFT | ReservationStatus.CONFIRMED,
+          )
+        )
           throw new ConflictError(m.reservationNotConfirmed);
         if (slot.startsAt.getTime() !== reservation.rentalStartAt.getTime())
           throw new ConflictError(m.scheduleMismatch);
@@ -239,6 +246,8 @@ export class AppointmentsService {
         if (
           input.status !== Status.CANCELLED ||
           input.assignedStaffId !== undefined ||
+          input.physicalUnitId !== undefined ||
+          input.assignmentReason !== undefined ||
           input.notes !== undefined
         )
           throw new ForbiddenError(m.accessDenied);
@@ -297,6 +306,32 @@ export class AppointmentsService {
         if (status === Status.CONFIRMED && actor.role !== UserRole.FACILITY_MANAGER)
           throw new ForbiddenError(m.accessDenied);
       }
+      if (
+        reservation &&
+        (input.physicalUnitId || input.assignedStaffId || status === Status.CONFIRMED) &&
+        reservation.status !== ReservationStatus.CONFIRMED
+      )
+        throw new ConflictError(m.reservationNotConfirmed);
+      if (input.physicalUnitId) {
+        if (
+          actor.role !== UserRole.FACILITY_MANAGER ||
+          !reservation ||
+          appointment.appointmentType !== Type.CHECK_IN
+        )
+          throw new ForbiddenError(m.accessDenied);
+        await this.storageUnits.assignReservationUnit(tx, {
+          reservationId: reservation.id,
+          unitId: input.physicalUnitId,
+          facilityId: reservation.facilityId,
+          unitTypeId: reservation.unitTypeId,
+          startsAt: reservation.rentalStartAt,
+          endsAt: reservation.rentalEndAt,
+          managerId: actor.id,
+          reason: input.assignmentReason,
+        });
+      }
+      if (status === Status.CANCELLED && reservation)
+        await this.storageUnits.closeReservationAssignment(tx, reservation.id, "CANCELLED");
       const assignedStaffId = input.assignedStaffId ?? appointment.assignedStaffId;
       if (status === Status.CONFIRMED && !assignedStaffId)
         throw new BadRequestError(m.staffRequired);
@@ -347,6 +382,7 @@ export function createAppointmentsService(db: Database, notifications?: Notifica
     new RentalsService(new RentalsRepository(db), assignments),
     new SupportService(new SupportRepository(db)),
     createFacilityTasksService(db),
+    new StorageUnitsService(new StorageUnitsRepository(db)),
     notifications,
   );
 }

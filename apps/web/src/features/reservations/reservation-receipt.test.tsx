@@ -1,8 +1,14 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import QRCode from "qrcode";
 import { beforeEach, expect, it, vi } from "vitest";
 import { ReservationReceipt } from "./reservation-receipt";
 
 const { state } = vi.hoisted(() => ({ state: { value: {} as Record<string, unknown> } }));
+vi.mock("@/config/api-mode", () => ({ isMockMode: false }));
+vi.mock("next/navigation", () => ({ usePathname: () => "/customer/payments/result" }));
+vi.mock("qrcode", () => ({
+  default: { toDataURL: vi.fn().mockResolvedValue("data:image/png;base64,test") },
+}));
 vi.mock("./reservation.hooks", () => ({ useReservationRecord: () => state.value }));
 
 beforeEach(() => {
@@ -50,4 +56,23 @@ it("does not create another appointment when one exists or payment is unconfirme
   (state.value.record as { status: string }).status = "DRAFT";
   view.rerender(<ReservationReceipt reservationId="reservation" />);
   expect((state.value.createAppointment as { mutate: unknown }).mutate).not.toHaveBeenCalled();
+});
+
+it("keeps the original success, QR and summary UI while adding the receiving appointment", async () => {
+  state.value.appointment = { scheduledDate: "2030-06-01", status: "SCHEDULED" };
+  state.value.facility = { name: "Kho Thủ Đức", address: "Thủ Đức, TP.HCM" };
+  state.value.unitType = { name: "Kho nhỏ", sizeLabel: "5 m²" };
+  (state.value.record as Record<string, unknown>).requestedMonths = 1;
+  render(<ReservationReceipt reservationId="reservation" variant="confirmation" />);
+  expect(screen.getByRole("heading", { name: "Đặt thuê kho thành công!" })).toBeInTheDocument();
+  expect(screen.getByText("Mã xác nhận & QR")).toBeInTheDocument();
+  expect(screen.getByText("Kho Thủ Đức")).toBeInTheDocument();
+  expect(screen.getByText("Lịch hẹn nhận kho")).toBeInTheDocument();
+  expect(screen.queryByText("Xác nhận đã được gửi tới email của bạn.")).not.toBeInTheDocument();
+  expect(screen.queryByText("Email xác nhận đang chờ gửi.")).not.toBeInTheDocument();
+  await waitFor(() => expect(screen.getByAltText("Mã xác nhận & QR")).toBeInTheDocument());
+  expect(QRCode.toDataURL).toHaveBeenCalledWith(
+    `${window.location.origin}/customer/reservations/reservation`,
+    { width: 320, margin: 1 },
+  );
 });

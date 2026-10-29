@@ -1,8 +1,6 @@
 # Chuyển từ booking sang reservation và appointment
 
-Backend không còn đăng ký `/api/bookings` hoặc module booking. Web/mobile ở chế
-độ API dùng `reservations` để đặt kho/thanh toán và `appointments` để tạo lịch
-nhận kho, manager xác nhận/giao staff, rồi kiểm tra và bàn giao qua inspection.
+Backend không còn đăng ký `/api/bookings` hoặc module booking. Web/mobile giữ UI trước commit `2445056`, nối API mới: chọn cơ sở/loại kho → lịch nhận kho/slot → thanh toán xác nhận reservation → FM gán kho và staff → task → inspection/bàn giao. Reservation DRAFT là dữ liệu báo giá nội bộ; appointment được tạo trước thanh toán.
 
 | Nghiệp vụ | API hiện tại |
 | --- | --- |
@@ -15,7 +13,7 @@ nhận kho, manager xác nhận/giao staff, rồi kiểm tra và bàn giao qua i
 | Tạo lịch nhận kho | POST `/api/appointments` |
 | Lịch của customer / staff | GET `/api/appointments/mine` / `/assigned-to-me` |
 | Manager xem lịch | GET `/api/appointments/facilities/:facilityId` |
-| Xác nhận và giao staff | PATCH `/api/appointments/:id` |
+| Gán kho / xác nhận và giao staff | PATCH `/api/appointments/:id` với `physicalUnitId`, `assignedStaffId`, `status: CONFIRMED` |
 | Tạo / khôi phục inspection | POST `/api/inspections` / GET `/api/inspections/appointments/:appointmentId` |
 | Bàn giao | POST `/api/inspections/:id/handover` |
 

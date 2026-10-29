@@ -46,6 +46,11 @@ export function useCustomerBookings(owner: string) {
 }
 export function useCustomerBooking(owner: string, id: string) {
   const client = useQueryClient();
+  const appointments = useQuery({
+    queryKey: ["customer-appointments", owner],
+    queryFn: () => api.appointments.mine(),
+    enabled: Boolean(id),
+  });
   const query = useQuery({
     queryKey: ["customer-booking", owner, id],
     queryFn: () => api.reservations.get(id),
@@ -62,7 +67,7 @@ export function useCustomerBooking(owner: string, id: string) {
       await client.invalidateQueries({ queryKey: ["customer-bookings"] });
     },
   });
-  return { query, cancel };
+  return { query, cancel, appointments };
 }
 export function useCustomerRentals(owner: string, view: "current" | "history") {
   return useInfiniteQuery({
@@ -135,6 +140,12 @@ export function useCustomerCheckout(
       const signature = checkoutSelectionKey(input);
       if (!draftRef.current || draftRef.current.signature !== signature) {
         const draft = await api.reservations.createDraft(input);
+        await api.appointments.create({
+          appointmentType: APPOINTMENT_TYPES.CHECK_IN,
+          reservationId: draft.id,
+          scheduledDate: input.checkInDate,
+          slotId: input.checkInSlotId,
+        });
         draftRef.current = { signature, draft, key: customerCommandId(), values: input };
         await saveCustomerCommand(owner, "reservation-checkout-v2", draftRef.current);
       }

@@ -14,7 +14,7 @@ export function ManagerBookingRow({
   canAssign,
   onAssignStaff,
 }: ManagerBookingRowProps) {
-  const url = `/facility-manager/check-in?bookingCode=${encodeURIComponent(b.bookingCode)}`;
+  const url = `/facility-manager/check-in?appointmentId=${encodeURIComponent(b.id)}`;
   return (
     <article className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
@@ -84,7 +84,7 @@ export function ManagerBookingRow({
             {FLOW.reassign}
           </Link>
         )}
-        {b.status === "CONFIRMED" && (
+        {canAssign && (
           <Button
             variant={b.assignedStaff ? "outline" : "primary"}
             onClick={onAssignStaff}

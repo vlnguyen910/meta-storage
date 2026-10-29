@@ -130,6 +130,7 @@ export class ReservationsService {
 
   async markCheckedIn(tx: ReservationTransaction, id: string) {
     await this.payments.releaseAfterHandover(tx, id);
+    await this.storageUnits.closeReservationAssignment(tx, id, "COMPLETED");
     return this.repository.updateStatus(id, ReservationStatus.CHECKED_IN, tx);
   }
 
@@ -206,6 +207,7 @@ export class ReservationsService {
     );
     for (const appointment of appointments)
       await this.tasks.finishAppointment(tx, appointment.id, false, reservation.customerId);
+    await this.storageUnits.closeReservationAssignment(tx, reservation.id, "CANCELLED");
     const updated = await this.repository.updateStatus(reservation.id, status, tx);
     if (!updated) throw new AppError(m.writeFailed);
     return updated;

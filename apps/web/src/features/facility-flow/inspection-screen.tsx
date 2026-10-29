@@ -1,5 +1,5 @@
 "use client";
-import type { CheckInLookupResult, InspectionRecord } from "@metastorage/contracts";
+import type { InspectionRecord } from "@metastorage/contracts";
 import { HANDOVER_CHECKLIST_ITEMS } from "@metastorage/contracts";
 import {
   Camera,
@@ -25,6 +25,7 @@ import {
   titleClass,
 } from "./flow-ui";
 import { InspectionChecklist } from "./inspection-checklist";
+import type { useCheckInFlow } from "./use-check-in-flow";
 import { flowError, readResults, useHandover, useInspectionEditor } from "./use-check-in-flow";
 
 type Evidence = InspectionRecord["evidence"][number];
@@ -83,7 +84,7 @@ export function InspectionScreen({
 }: {
   readOnly?: boolean;
   record: InspectionRecord;
-  result: CheckInLookupResult;
+  result: NonNullable<ReturnType<typeof useCheckInFlow>["result"]>;
   view: string;
   onNavigate: (view: string) => void;
   onBack: () => void;
@@ -94,7 +95,7 @@ export function InspectionScreen({
   const review = view === "review";
   const historical =
     record.storageUnitId !== result.assignedUnit?.physicalUnitId ||
-    record.reservationId !== result.booking.id;
+    record.reservationId !== result.booking.reservationId;
   function back() {
     if (!editor.dirty || window.confirm(FLOW.confirmLeave)) onBack();
   }
@@ -351,7 +352,7 @@ function HandoverContent({
   onBack,
 }: {
   record: InspectionRecord;
-  result: CheckInLookupResult;
+  result: NonNullable<ReturnType<typeof useCheckInFlow>["result"]>;
   onBack: () => void;
 }) {
   const handover = useHandover(record);

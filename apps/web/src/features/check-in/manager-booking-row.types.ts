@@ -1,6 +1,6 @@
-import type { BookingListItem } from "@metastorage/contracts";
+import type { DispatchItem } from "@/features/facility-flow/use-dispatch";
 export interface ManagerBookingRowProps {
-  booking: BookingListItem;
+  booking: DispatchItem;
   state: string;
   canAssign: boolean;
   onAssignStaff: () => void;

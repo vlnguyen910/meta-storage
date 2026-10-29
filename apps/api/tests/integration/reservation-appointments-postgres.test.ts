@@ -612,7 +612,7 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
         );
         await appointmentService.updateAppointment(
           appointment.id,
-          { status: Status.CONFIRMED, assignedStaffId: f.id.staff },
+          { status: Status.CONFIRMED, assignedStaffId: f.id.staff, physicalUnitId: f.id.unit },
           f.manager,
         );
         const [task] = await db
@@ -900,6 +900,55 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
         )
       ).status,
     ).toBe("REFUNDED");
+  });
+
+  test("FM unit assignment preserves capacity, rejects competing assignments and releases on cancellation", async () => {
+    const f = await fixture();
+    await db
+      .insert(storageUnits)
+      .values({ facilityId: f.id.facility, unitTypeId: f.id.type, code: randomUUID() });
+    const first = await scheduled(f),
+      second = await scheduled(f);
+    const assignments = await Promise.allSettled(
+      [first, second].map((p) =>
+        appointmentService.updateAppointment(
+          p.appointment.id,
+          { physicalUnitId: f.id.unit, assignedStaffId: f.id.staff, status: Status.CONFIRMED },
+          f.manager,
+        ),
+      ),
+    );
+    expect(assignments.filter((x) => x.status === "fulfilled")).toHaveLength(1);
+    expect(assignments.filter((x) => x.status === "rejected")).toHaveLength(1);
+    const winner = assignments[0]?.status === "fulfilled" ? first : second;
+    expect(
+      (await appointmentService.getAppointment(winner.appointment.id, f.manager)).assignedUnit
+        ?.physicalUnitId,
+    ).toBe(f.id.unit);
+    expect(
+      (await db.select().from(storageUnits).where(eq(storageUnits.id, f.id.unit)))[0]?.status,
+    ).toBe("RESERVED");
+    const availability = await reservationService.availability(f.input);
+    expect(availability.availableCount).toBe(0);
+    await expect(
+      appointmentService.updateAppointment(
+        winner.appointment.id,
+        { physicalUnitId: f.id.unit },
+        { id: f.id.customer, role: UserRole.STORAGE_CUSTOMER },
+      ),
+    ).rejects.toMatchObject({ statusCode: 403 });
+    await reservationService.cancelReservation(winner.reservation.id, f.id.customer);
+    expect(
+      (await db.select().from(storageUnits).where(eq(storageUnits.id, f.id.unit)))[0]?.status,
+    ).toBe("AVAILABLE");
+    expect(
+      (
+        await db
+          .select()
+          .from(unitAssignments)
+          .where(eq(unitAssignments.reservationId, winner.reservation.id))
+      )[0]?.status,
+    ).toBe("CANCELLED");
   });
 
   test("appointment tasks require assignment, schedule, and completed handover", async () => {

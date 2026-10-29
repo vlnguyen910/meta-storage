@@ -9,6 +9,7 @@ import { ReservationStatus } from "@metastorage/database/schema/reservations";
 import { localDate } from "../../common/date";
 import { AppError, ConflictError, NotFoundError } from "../../common/errors/app-error";
 import { isDevelopmentEnvironment } from "../../config/env";
+import { AppointmentsRepository } from "../appointments/appointments.repository";
 import { recordLifecycleEvent } from "../notifications/lifecycle-notifications.repository";
 import {
   ReservationsRepository,
@@ -27,6 +28,7 @@ export class ReservationPaymentsService {
     private readonly repository: ReservationPaymentsRepository,
     private readonly reservations: ReservationsRepository,
     private readonly events: PaymentsRepository,
+    private readonly appointments: AppointmentsRepository,
     private readonly gateway?: SepayPaymentGateway,
   ) {}
 
@@ -106,6 +108,8 @@ export class ReservationPaymentsService {
         expiresAt,
       });
       if (!payment) throw new ConflictError(m.idempotencyKeyUsedForAnotherCheckout);
+      if (input.contactPhone)
+        await this.appointments.setReservationContact(tx, reservation.id, input.contactPhone);
       return { payment, expiresAt };
     });
     const session = gateway.createCheckoutSession({
@@ -246,6 +250,7 @@ export function createReservationPaymentsService(db: Database, gateway?: SepayPa
     new ReservationPaymentsRepository(db),
     new ReservationsRepository(db),
     new PaymentsRepository(db),
+    new AppointmentsRepository(db),
     gateway,
   );
 }

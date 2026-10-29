@@ -1,5 +1,6 @@
 "use client";
 import type { CheckoutSessionInput, CreateReservationDraftInput } from "@metastorage/contracts";
+import { APPOINTMENT_TYPES } from "@metastorage/database/schema/appointments";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { useFlow3Identity } from "@/features/returns/use-flow3-identity";
@@ -11,7 +12,16 @@ export function useBookingSlots() {
 export function useBookingDraft() {
   return useMutation({
     meta: { globalLoading: true },
-    mutationFn: (input: CreateReservationDraftInput) => api.reservations.createDraft(input),
+    mutationFn: async (input: CreateReservationDraftInput) => {
+      const draft = await api.reservations.createDraft(input);
+      await api.appointments.create({
+        appointmentType: APPOINTMENT_TYPES.CHECK_IN,
+        reservationId: draft.id,
+        scheduledDate: input.checkInDate,
+        slotId: input.checkInSlotId,
+      });
+      return draft;
+    },
   });
 }
 export function useBookingPayment() {

@@ -149,11 +149,15 @@ export class InspectionsService {
         !input.storageUnitId
       )
         throw new ConflictError(m.handoverNotReady);
+      const assignment = await this.storageUnits.findReservationAssignment(tx, reservation.id);
+      if (!assignment || assignment.physicalUnitId !== input.storageUnitId)
+        throw new ConflictError(m.handoverNotReady);
       await this.storageUnits.requireHandoverUnit(tx, {
         unitId: input.storageUnitId,
         taskId: task.id,
         facilityId: reservation.facilityId,
         unitTypeId: reservation.unitTypeId,
+        reservationId: reservation.id,
         startsAt: reservation.rentalStartAt,
         endsAt: reservation.rentalEndAt,
       });
@@ -222,6 +226,7 @@ export class InspectionsService {
         taskId: task.id,
         facilityId: reservation.facilityId,
         unitTypeId: reservation.unitTypeId,
+        reservationId: reservation.id,
         startsAt: now,
         endsAt: reservation.rentalEndAt,
       });

@@ -56,13 +56,14 @@ export class StorageUnitsRepository {
     taskId: string,
     startsAt: Date,
     endsAt: Date,
+    reservationId?: string,
   ) {
     const [unit] = await tx
       .select()
       .from(storageUnits)
       .where(eq(storageUnits.id, unitId))
       .for("update");
-    if (unit?.status !== "AVAILABLE") return undefined;
+    if (!unit || !["AVAILABLE", "RESERVED"].includes(unit.status)) return undefined;
     const [assignment] = await tx
       .select({ id: unitAssignments.id })
       .from(unitAssignments)
@@ -96,9 +97,79 @@ export class StorageUnitsRepository {
         ),
       )
       .limit(1);
-    return assignment || rental || inspection ? undefined : unit;
+    const ownAssignment =
+      assignment && reservationId
+        ? await this.findReservationAssignment(tx, reservationId)
+        : undefined;
+    if (unit.status === "RESERVED" && ownAssignment?.physicalUnitId !== unitId) return undefined;
+    return (assignment && assignment.id !== ownAssignment?.id) || rental || inspection
+      ? undefined
+      : unit;
   }
 
+  async findReservationAssignment(tx: TaskTransaction, reservationId: string) {
+    const [assignment] = await tx
+      .select()
+      .from(unitAssignments)
+      .where(
+        and(eq(unitAssignments.reservationId, reservationId), eq(unitAssignments.status, "ACTIVE")),
+      );
+    return assignment;
+  }
+  async hasReservationInspection(tx: TaskTransaction, reservationId: string) {
+    const [row] = await tx
+      .select({ id: inspections.id })
+      .from(inspections)
+      .innerJoin(facilityTasks, eq(facilityTasks.id, inspections.taskId))
+      .where(
+        and(
+          eq(inspections.reservationId, reservationId),
+          inArray(facilityTasks.status, [
+            FacilityTaskStatus.ASSIGNED,
+            FacilityTaskStatus.IN_PROGRESS,
+          ]),
+        ),
+      )
+      .limit(1);
+    return Boolean(row);
+  }
+  lockAssignmentUnits(tx: TaskTransaction, ids: string[]) {
+    return tx
+      .select()
+      .from(storageUnits)
+      .where(inArray(storageUnits.id, ids))
+      .orderBy(storageUnits.id)
+      .for("update");
+  }
+  async closeReservationAssignment(
+    tx: TaskTransaction,
+    reservationId: string,
+    status: "CANCELLED" | "COMPLETED" | "REASSIGNED",
+    reason?: string,
+  ) {
+    const rows = await tx
+      .update(unitAssignments)
+      .set({ status, endedAt: new Date(), ...(reason ? { reason } : {}) })
+      .where(
+        and(eq(unitAssignments.reservationId, reservationId), eq(unitAssignments.status, "ACTIVE")),
+      )
+      .returning();
+    for (const row of rows)
+      await tx
+        .update(storageUnits)
+        .set({ status: "AVAILABLE", updatedAt: new Date() })
+        .where(and(eq(storageUnits.id, row.physicalUnitId), eq(storageUnits.status, "RESERVED")));
+  }
+  async createReservationAssignment(
+    tx: TaskTransaction,
+    input: typeof unitAssignments.$inferInsert,
+  ) {
+    await tx.insert(unitAssignments).values(input);
+    await tx
+      .update(storageUnits)
+      .set({ status: "RESERVED", updatedAt: new Date() })
+      .where(eq(storageUnits.id, input.physicalUnitId));
+  }
   markOccupied(tx: TaskTransaction, unitId: string, now: Date) {
     return tx
       .update(storageUnits)
@@ -246,14 +317,7 @@ export class StorageUnitsRepository {
         const [assignment] = await tx
           .select({ id: unitAssignments.id })
           .from(unitAssignments)
-          .innerJoin(bookings, eq(bookings.id, unitAssignments.bookingId))
-          .where(
-            and(
-              eq(unitAssignments.physicalUnitId, id),
-              eq(unitAssignments.status, "ACTIVE"),
-              notInArray(bookings.status, ["CANCELLED", "NO_SHOW"]),
-            ),
-          )
+          .where(and(eq(unitAssignments.physicalUnitId, id), eq(unitAssignments.status, "ACTIVE")))
           .limit(1);
         if (rental || assignment) return { error: "UNIT_HAS_OPERATIONS" };
       }
@@ -301,13 +365,8 @@ export class StorageUnitsRepository {
       const [activeAssignment] = await tx
         .select({ id: unitAssignments.id })
         .from(unitAssignments)
-        .innerJoin(bookings, eq(bookings.id, unitAssignments.bookingId))
         .where(
-          and(
-            eq(unitAssignments.physicalUnitId, unit.id),
-            eq(unitAssignments.status, "ACTIVE"),
-            notInArray(bookings.status, ["CANCELLED", "NO_SHOW"]),
-          ),
+          and(eq(unitAssignments.physicalUnitId, unit.id), eq(unitAssignments.status, "ACTIVE")),
         )
         .limit(1);
 
@@ -401,7 +460,10 @@ export class StorageUnitsRepository {
       .innerJoin(storageUnits, eq(storageUnits.id, unitAssignments.physicalUnitId))
       .where(
         and(
-          eq(unitAssignments.bookingId, capacityAllocations.referenceId),
+          or(
+            eq(unitAssignments.bookingId, capacityAllocations.referenceId),
+            eq(unitAssignments.reservationId, capacityAllocations.referenceId),
+          ),
           eq(unitAssignments.status, "ACTIVE"),
           eq(storageUnits.facilityId, capacityAllocations.facilityId),
           eq(storageUnits.unitTypeId, capacityAllocations.unitTypeId),
@@ -428,7 +490,10 @@ export class StorageUnitsRepository {
               isNull(capacityAllocations.expiresAt),
               gt(capacityAllocations.expiresAt, new Date()),
             ),
-            or(ne(capacityAllocations.kind, "BOOKING"), notExists(assignedBooking)),
+            or(
+              notInArray(capacityAllocations.kind, ["BOOKING", "RESERVATION"]),
+              notExists(assignedBooking),
+            ),
           ),
         ),
     );

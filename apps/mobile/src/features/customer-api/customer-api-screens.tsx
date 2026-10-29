@@ -1,7 +1,8 @@
 import { SUPPORT_CATEGORIES } from "@metastorage/contracts";
 import { CUSTOMER_WORKSPACE as M } from "@metastorage/shared";
 import { useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import QRCode from "qrcode";
+import { useMemo, useState } from "react";
 import { Controller } from "react-hook-form";
 import { Alert, Platform, Pressable, Text, View } from "react-native";
 import { CalendarField } from "../../components/ui/calendar-field";
@@ -18,6 +19,7 @@ import {
   Row,
 } from "../../components/ui/mobile-ui";
 import { StatusPill } from "../../components/ui/workspace-ui";
+import { WEB_BASE_URL } from "../../lib/runtime-config";
 import {
   useCustomerBooking,
   useCustomerBookings,
@@ -37,6 +39,34 @@ import { QueryNotice } from "./query-notice";
 import { customerError, useCustomerTicket } from "./use-customer-ticket";
 import { useMobileCatalog } from "./use-mobile-catalog";
 
+function QrCode({ value }: { value: string }) {
+  const matrix = useMemo(
+    () => QRCode.create(value, { errorCorrectionLevel: "M" }).modules,
+    [value],
+  );
+  const rows = Array.from({ length: matrix.size }, (_, y) => ({
+    y,
+    cells: Array.from({ length: matrix.size }, (_, x) => ({ x, dark: matrix.get(y, x) })),
+  }));
+  return (
+    <View
+      accessible
+      accessibilityLabel={M.qr}
+      className="my-4 self-center border-8 border-white bg-white"
+    >
+      {rows.map((row) => (
+        <View key={row.y} className="flex-row">
+          {row.cells.map((cell) => (
+            <View
+              key={cell.x}
+              style={{ width: 4, height: 4, backgroundColor: cell.dark ? "#000" : "#fff" }}
+            />
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+}
 function FacilityTypes({ id, go }: { id: string; go: CustomerNavigation }) {
   const query = useCustomerTypes(id);
   return (
@@ -276,8 +306,11 @@ export function CustomerBookingScreen({
   id: string;
   go: CustomerNavigation;
 }) {
-  const { query, cancel } = useCustomerBooking(owner, id);
+  const { query, cancel, appointments } = useCustomerBooking(owner, id);
   const b = query.data;
+  const appointment = appointments.data?.find(
+    (a) => a.reservationId === id && !["CANCELLED", "NO_SHOW"].includes(a.status),
+  );
   return (
     <>
       <QueryNotice query={query} />
@@ -288,10 +321,31 @@ export function CustomerBookingScreen({
             <Text>{b.facility?.address ?? ""}</Text>
             <StatusPill label={U.status[b.status] ?? b.status} tone="blue" />
             <Row label={M.appointment} value={dateTime(b.rentalStartAt)} />
+            <Row
+              label={M.assigned}
+              value={appointment?.assignedUnit?.physicalUnitCode ?? M.noUnit}
+            />
+            <Row label={M.handover} value={appointment?.handoverStage ?? M.noUnit} />
             <Row label={M.initialRent} value={money(b.rentalFeeAmount)} />
             <Row label={M.deposit} value={money(b.depositAmount)} />
             <Row label={M.total} value={money(b.totalAmount)} />
-            <CustomerReceivingAppointment owner={owner} reservation={b} />
+            <Row
+              label={M.paymentStatus}
+              value={U.status[b.paymentStatus ?? "PENDING"] ?? b.paymentStatus ?? M.unknown}
+            />
+            {b.paymentStatus === "SUCCEEDED" ? (
+              <QrCode value={`${WEB_BASE_URL}/customer/reservations/${b.id}`} />
+            ) : (
+              <Text>{M.noQr}</Text>
+            )}
+            {b.rentalId && (
+              <Button
+                label={M.viewRental}
+                onPress={() => {
+                  if (b.rentalId) go({ screen: "rental", id: b.rentalId });
+                }}
+              />
+            )}
             {b.status === "CONFIRMED" && (
               <Button
                 danger
@@ -309,7 +363,11 @@ export function CustomerBookingScreen({
               />
             )}
             {cancel.isError && <Notice error>{customerError(cancel.error)}</Notice>}
-            <Button label={M.newTicket} secondary onPress={() => go({ screen: "support-new" })} />
+            <Button
+              label={M.newTicket}
+              secondary
+              onPress={() => go({ screen: "support-new", reservationId: id })}
+            />
           </Card>
         </>
       )}
@@ -498,7 +556,13 @@ export function CustomerPaymentScreen({
             />
           )}
           {receipt.query.data && (
-            <CustomerReceivingAppointment owner={owner} reservation={receipt.query.data} />
+            <>
+              <QrCode value={`${WEB_BASE_URL}/customer/reservations/${receipt.query.data.id}`} />
+              <Row label={M.initialRent} value={money(receipt.query.data.rentalFeeAmount)} />
+              <Row label={M.deposit} value={money(receipt.query.data.depositAmount)} />
+              <Row label={M.total} value={money(receipt.query.data.totalAmount)} />
+              <CustomerReceivingAppointment owner={owner} reservation={receipt.query.data} />
+            </>
           )}
           {p.status === "SUCCEEDED" && p.reservationId && (
             <Button
