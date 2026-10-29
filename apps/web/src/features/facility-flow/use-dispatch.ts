@@ -7,7 +7,9 @@ import { bookingKeys } from "@/features/check-in/hooks";
 import { useFlow3Identity } from "@/features/returns/use-flow3-identity";
 import { api } from "@/lib/api";
 export type DispatchItem = Omit<BookingListItem, "assignedUnit" | "assignedStaff" | "status"> & {
+  appointmentType: APPOINTMENT_TYPES;
   reservationId: string | null;
+  rentalId: string | null;
   status: string;
   appointmentStatus: string;
   assignedUnit: AppointmentRecordDto["assignedUnit"];
@@ -18,7 +20,9 @@ export function appointmentItem(a: AppointmentRecordDto): DispatchItem {
   const r = a.reservation;
   return {
     id: a.id,
+    appointmentType: a.appointmentType,
     reservationId: a.reservationId,
+    rentalId: a.rentalId,
     appointmentStatus: a.status,
     bookingCode: a.reservationId ?? a.id,
     facilityId: a.facilityId,
@@ -54,6 +58,8 @@ export async function loadAppointmentItem(id: string) {
   return appointmentItem(await api.appointments.get(id));
 }
 export function readiness(b: DispatchItem, _now = Date.now()): string {
+  if (b.appointmentType === APPOINTMENT_TYPES.CHECK_OUT)
+    return b.appointmentStatus === "COMPLETED" ? "COMPLETED" : b.appointmentStatus;
   if (b.status === "CHECKED_IN") return "CHECKED_IN";
   if (b.status === "CANCELLED") return "CANCELLED";
   if (b.status === "NO_SHOW") return "NO_SHOW";
@@ -65,22 +71,27 @@ export function readiness(b: DispatchItem, _now = Date.now()): string {
     return b.handoverStage;
   return "READY";
 }
-export function useDispatch(facilityId: string, staff = false) {
+export function useDispatch(
+  facilityId: string,
+  staff = false,
+  appointmentType: APPOINTMENT_TYPES = APPOINTMENT_TYPES.CHECK_IN,
+) {
   const owner = useFlow3Identity();
   const query = useQuery({
     queryKey: [
       ...(staff ? bookingKeys.staffTasks(facilityId) : bookingKeys.facility(facilityId)),
       owner,
+      appointmentType,
     ],
     queryFn: async () =>
       (
         await (staff
           ? api.appointments.assignedToMe({
               facilityId,
-              appointmentType: APPOINTMENT_TYPES.CHECK_IN,
+              appointmentType,
             })
           : api.appointments.listFacility(facilityId, {
-              appointmentType: APPOINTMENT_TYPES.CHECK_IN,
+              appointmentType,
             }))
       ).map(appointmentItem),
     enabled: !!facilityId,
@@ -99,9 +110,13 @@ export function useDispatch(facilityId: string, staff = false) {
   const filtered = bookings.filter(
     (b) =>
       (filter === "ALL" || readiness(b, now) === filter) &&
-      [b.bookingCode, b.contactName, b.contactPhone, b.assignedUnit?.physicalUnitCode ?? ""].some(
-        (v) => v.toLowerCase().includes(search.trim().toLowerCase()),
-      ),
+      [
+        b.bookingCode,
+        b.rentalId ?? "",
+        b.contactName,
+        b.contactPhone,
+        b.assignedUnit?.physicalUnitCode ?? "",
+      ].some((v) => v.toLowerCase().includes(search.trim().toLowerCase())),
   );
   const count = (status: string) => bookings.filter((b) => readiness(b, now) === status).length;
   return { query, bookings, filtered, filter, setFilter, search, setSearch, count, now };

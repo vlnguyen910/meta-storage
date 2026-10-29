@@ -1,0 +1,15 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "*",
+        "files": ["apps/web/src/modules/facility-staff/staff-work-list.tsx"],
+        "createdAt": "2026-10-29T19:29:34.441Z",
+        "reason": "Agent: the active tab uses border-b-2 as its underline; rounded top corners shape the tab and do not create a card outline"
+      }
+    ]
+  }
+}

@@ -1,4 +1,5 @@
 "use client";
+import { APPOINTMENT_TYPES } from "@metastorage/contracts";
 import { UserRole } from "@metastorage/database/schema/user-enums";
 import {
   ArrowRight,
@@ -54,6 +55,9 @@ const labels: Record<string, string> = {
   INSPECTING: FLOW.inspecting,
   READY_HANDOVER: FLOW.readyHandover,
   SLOT_MISSING: FLOW.reasons.CHECKIN_SLOT_NOT_CONFIGURED ?? FLOW.notEligible,
+  SCHEDULED: FLOW.scheduled,
+  CONFIRMED: FLOW.confirmed,
+  COMPLETED: FLOW.completed,
 };
 export function FacilityBookingsView({
   facilityId,
@@ -62,7 +66,9 @@ export function FacilityBookingsView({
 }: FacilityBookingsViewProps) {
   const isStaff = useAuthStore((s) => s.session?.user.role) === UserRole.FACILITY_STAFF;
   const root = isStaff ? "/staff" : "/facility-manager";
-  const d = useDispatch(facilityId, isStaff);
+  const [appointmentType, setAppointmentType] = useState(APPOINTMENT_TYPES.CHECK_IN);
+  const showingReturns = appointmentType === APPOINTMENT_TYPES.CHECK_OUT;
+  const d = useDispatch(facilityId, isStaff, appointmentType);
   const { filter, search } = d;
   const [staffBooking, setStaffBooking] = useState<DispatchItem | null>(null);
   const [page, setPage] = useState(1);
@@ -101,28 +107,78 @@ export function FacilityBookingsView({
     <>
       {headingMode === "full" && (
         <FlowHeading
-          title={isStaff ? FLOW.staffTasks : FLOW.managerDispatchTitle}
-          description={FLOW.dispatchDescription(facilityName ?? FLOW.noFacility)}
+          title={
+            isStaff
+              ? FLOW.staffTasks
+              : showingReturns
+                ? FLOW.managerReturnDispatchTitle
+                : FLOW.managerDispatchTitle
+          }
+          description={
+            showingReturns
+              ? FLOW.returnDispatchDescription(facilityName ?? FLOW.noFacility)
+              : FLOW.dispatchDescription(facilityName ?? FLOW.noFacility)
+          }
           actions={headingActions}
         />
       )}
+      <fieldset className="flex gap-2">
+        <legend className="sr-only">{FLOW.appointmentType}</legend>
+        {[APPOINTMENT_TYPES.CHECK_IN, APPOINTMENT_TYPES.CHECK_OUT].map((type) => (
+          <button
+            key={type}
+            type="button"
+            aria-pressed={appointmentType === type}
+            onClick={() => {
+              setAppointmentType(type);
+              d.setFilter("ALL");
+            }}
+            className={`rounded-full px-4 py-2 text-sm font-semibold ${appointmentType === type ? "bg-primary text-white" : "border border-line bg-white text-ink"}`}
+          >
+            {type === APPOINTMENT_TYPES.CHECK_IN
+              ? FLOW.checkInAppointments
+              : FLOW.checkOutAppointments}
+          </button>
+        ))}
+      </fieldset>
       <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
         <div className="grid flex-1 gap-2 grid-cols-2 sm:grid-cols-3 xl:grid-cols-5">
-          {[
-            { label: FLOW.total, value: d.bookings.length, icon: Calendar },
-            {
-              label: FLOW.needsAction,
-              value: d.count("NEEDS_UNIT") + d.count("NEEDS_STAFF"),
-              icon: Warehouse,
-            },
-            { label: FLOW.waiting, value: d.count("READY"), icon: UserCheck },
-            {
-              label: FLOW.inProgress,
-              value: d.count("INSPECTING") + d.count("READY_HANDOVER"),
-              icon: ClipboardCheck,
-            },
-            { label: FLOW.pendingAccess, value: d.count("CHECKED_IN"), icon: ClipboardCheck },
-          ].map(({ label, value, icon: Icon }) => (
+          {(showingReturns
+            ? [
+                { label: FLOW.total, value: d.bookings.length, icon: Calendar },
+                {
+                  label: FLOW.returnNeedsConfirmation,
+                  value: d.count("SCHEDULED"),
+                  icon: Warehouse,
+                },
+                { label: FLOW.returnConfirmed, value: d.count("CONFIRMED"), icon: UserCheck },
+                {
+                  label: FLOW.returnCompleted,
+                  value: d.count("COMPLETED"),
+                  icon: ClipboardCheck,
+                },
+                {
+                  label: FLOW.returnClosed,
+                  value: d.count("CANCELLED") + d.count("NO_SHOW"),
+                  icon: ClipboardCheck,
+                },
+              ]
+            : [
+                { label: FLOW.total, value: d.bookings.length, icon: Calendar },
+                {
+                  label: FLOW.needsAction,
+                  value: d.count("NEEDS_UNIT") + d.count("NEEDS_STAFF"),
+                  icon: Warehouse,
+                },
+                { label: FLOW.waiting, value: d.count("READY"), icon: UserCheck },
+                {
+                  label: FLOW.inProgress,
+                  value: d.count("INSPECTING") + d.count("READY_HANDOVER"),
+                  icon: ClipboardCheck,
+                },
+                { label: FLOW.pendingAccess, value: d.count("CHECKED_IN"), icon: ClipboardCheck },
+              ]
+          ).map(({ label, value, icon: Icon }) => (
             <Panel key={label} className="flex h-[58px] flex-col justify-center px-3.5 py-1.5">
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
@@ -176,17 +232,20 @@ export function FacilityBookingsView({
         <div className="space-y-2">
           <p className="text-xs font-semibold text-slate-600">{MB.filters}</p>
           <div className="flex flex-wrap items-center gap-2" role="toolbar" aria-label={MB.filters}>
-            {[
-              "ALL",
-              "NEEDS_UNIT",
-              "NEEDS_STAFF",
-              "READY",
-              "INSPECTING",
-              "READY_HANDOVER",
-              "TOO_EARLY",
-              "NO_SHOW",
-              "CHECKED_IN",
-            ].map((id) => {
+            {(appointmentType === APPOINTMENT_TYPES.CHECK_IN
+              ? [
+                  "ALL",
+                  "NEEDS_UNIT",
+                  "NEEDS_STAFF",
+                  "READY",
+                  "INSPECTING",
+                  "READY_HANDOVER",
+                  "TOO_EARLY",
+                  "NO_SHOW",
+                  "CHECKED_IN",
+                ]
+              : ["ALL", "SCHEDULED", "CONFIRMED", "COMPLETED", "CANCELLED"]
+            ).map((id) => {
               const active = d.filter === id;
               const itemCount = id === "ALL" ? d.bookings.length : d.count(id);
               return (
@@ -247,17 +306,23 @@ export function FacilityBookingsView({
         <div className="grid gap-4">
           {pageItems.map((b) => {
             const state = readiness(b, d.now);
+            const returnFlow = b.appointmentType === APPOINTMENT_TYPES.CHECK_OUT;
             const canAssign =
               !isStaff &&
-              [
-                "READY",
-                "NEEDS_UNIT",
-                "NEEDS_STAFF",
-                "INSPECTING",
-                "READY_HANDOVER",
-                "TOO_EARLY",
-              ].includes(state);
-            const url = `${root}/check-in?appointmentId=${encodeURIComponent(b.id)}`;
+              (appointmentType === APPOINTMENT_TYPES.CHECK_OUT
+                ? ["SCHEDULED", "CONFIRMED"]
+                : [
+                    "READY",
+                    "NEEDS_UNIT",
+                    "NEEDS_STAFF",
+                    "INSPECTING",
+                    "READY_HANDOVER",
+                    "TOO_EARLY",
+                  ]
+              ).includes(state);
+            const url = returnFlow
+              ? "/staff/tasks"
+              : `${root}/check-in?appointmentId=${encodeURIComponent(b.id)}`;
             if (!isStaff)
               return (
                 <ManagerBookingRow
@@ -282,7 +347,9 @@ export function FacilityBookingsView({
                         tone={
                           ["NO_SHOW", "CANCELLED"].includes(state)
                             ? "red"
-                            : state === "NEEDS_UNIT" || state === "PAYMENT_PENDING"
+                            : state === "NEEDS_UNIT" ||
+                                state === "PAYMENT_PENDING" ||
+                                (returnFlow && state === "SCHEDULED")
                               ? "amber"
                               : "green"
                         }
@@ -299,12 +366,18 @@ export function FacilityBookingsView({
                 </div>
                 <div className="grid flex-1 gap-4 rounded-lg bg-[#f2f3ff]/60 p-4 sm:grid-cols-3">
                   <div>
-                    <p className="text-[11px] uppercase text-[#5c6661]">{FLOW.position}</p>
+                    <p className="text-[11px] uppercase text-[#5c6661]">
+                      {returnFlow ? FLOW.rentalReference : FLOW.position}
+                    </p>
                     <p className="mt-1 font-semibold">
-                      {b.assignedUnit?.physicalUnitCode ?? FLOW.unassigned}
+                      {returnFlow
+                        ? (b.rentalId?.slice(0, 8) ?? FLOW.unassigned)
+                        : (b.assignedUnit?.physicalUnitCode ?? FLOW.unassigned)}
                     </p>
                     <p className="text-xs text-[#404945]">
-                      {b.unitTypeName} · {b.unitTypeSizeLabel}
+                      {returnFlow
+                        ? FLOW.returnUnitLookup
+                        : `${b.unitTypeName} · ${b.unitTypeSizeLabel}`}
                     </p>
                   </div>
                   <div>
@@ -317,17 +390,32 @@ export function FacilityBookingsView({
                       </p>
                     ) : null}
                   </div>
-                  <div>
-                    <p className="text-[11px] uppercase text-[#5c6661]">{FLOW.payment}</p>
-                    <p className="mt-1 text-xs font-semibold text-[#125345]">
-                      {b.paidAt ? FLOW.paid : FLOW.unpaid}
-                    </p>
-                    <Currency value={b.totalAmount} />
-                    <p className="mt-2 text-xs text-[#404945]">
-                      {FLOW.assignedStaff}:{" "}
-                      <strong>{b.assignedStaff?.name ?? FLOW.needsStaff}</strong>
-                    </p>
-                  </div>
+                  {returnFlow ? (
+                    <div>
+                      <p className="text-[11px] uppercase text-[#5c6661]">
+                        {FLOW.returnAppointmentType}
+                      </p>
+                      <p className="mt-1 text-xs font-semibold text-[#125345]">
+                        {FLOW.checkOutAppointments}
+                      </p>
+                      <p className="mt-2 text-xs text-[#404945]">
+                        {FLOW.assignedStaff}:{" "}
+                        <strong>{b.assignedStaff?.name ?? FLOW.needsStaff}</strong>
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-[11px] uppercase text-[#5c6661]">{FLOW.payment}</p>
+                      <p className="mt-1 text-xs font-semibold text-[#125345]">
+                        {b.paidAt ? FLOW.paid : FLOW.unpaid}
+                      </p>
+                      <Currency value={b.totalAmount} />
+                      <p className="mt-2 text-xs text-[#404945]">
+                        {FLOW.assignedStaff}:{" "}
+                        <strong>{b.assignedStaff?.name ?? FLOW.needsStaff}</strong>
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <div className="flex flex-col gap-2 xl:w-[22%]">
                   {canAssign ||
@@ -362,7 +450,7 @@ export function FacilityBookingsView({
                       href={url}
                       className="rounded-lg bg-[#eaedff] px-4 py-3 text-center text-xs font-semibold"
                     >
-                      {FLOW.lookup}
+                      {returnFlow ? FLOW.openReturnTask : FLOW.lookup}
                     </Link>
                   )}
                   <div className="flex flex-wrap justify-end gap-3 text-[11px]">
