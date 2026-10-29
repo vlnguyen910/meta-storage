@@ -41,6 +41,7 @@ import type {
   EligibleUnit,
   Facility,
   FacilityListParams,
+  FacilityOperatingHours,
   FacilityQuery,
   FacilityRentalHistoryQuery,
   FacilityRentalItem,
@@ -284,6 +285,10 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
         http.patch<ApiEnvelope<User>>(`/users/${userId}/role`, { role }).then(unwrap),
     },
     facilities: {
+      operatingHours: (signal?: AbortSignal) =>
+        http
+          .get<ApiEnvelope<FacilityOperatingHours>>("/facilities/operating-hours", { signal })
+          .then(unwrap),
       listActive: (params: Partial<Pick<FacilityQuery, "limit" | "offset">> = {}) =>
         http.get<ApiEnvelope<ApiFacility[]>>("/facilities", { params }).then(unwrap),
       listUnitTypes: (facilityId: string, params: UnitTypeListParams = {}) =>

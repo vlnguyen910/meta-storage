@@ -36,9 +36,8 @@ export class FacilitiesRepository {
     return values.OPENING_HOUR === undefined || values.CLOSING_HOUR === undefined
       ? undefined
       : {
-          openTime: `${String(values.OPENING_HOUR).padStart(2, "0")}:00:00`,
-          closeTime: `${String(values.CLOSING_HOUR).padStart(2, "0")}:00:00`,
-          timezone: "Asia/Ho_Chi_Minh",
+          openingHour: values.OPENING_HOUR,
+          closingHour: values.CLOSING_HOUR,
         };
   }
 
