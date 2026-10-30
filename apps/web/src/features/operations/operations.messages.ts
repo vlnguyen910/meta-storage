@@ -17,6 +17,15 @@ export const OPERATIONS_MESSAGES = {
   policyFeeReload: "Tải lại danh mục",
   policyFeeReloading: "Đang tải lại…",
   policyFeeReloadConfirm: "Tải lại sẽ bỏ các thay đổi phí chưa lưu của bạn.",
+  priceReadOnlyHint:
+    "Giá loại kho do quản lý cơ sở cập nhật. BOM theo dõi giá và điều chỉnh chính sách cọc tại mục chính sách.",
+  refreshPricing: "Làm mới bảng giá",
+  priceReloadError:
+    "Chưa tải được bảng giá mới. Dữ liệu đang hiển thị là lần tải thành công gần nhất.",
+  searchPrices: "Tìm tên hoặc mã loại kho",
+  priceTypeName: "Tên loại kho",
+  priceTypeCode: "Mã loại kho",
+  priceStatus: "Trạng thái",
   rentalFeesRetired: "Phí thuê kho đang được xây dựng lại",
   rentalFeesRetiredHint: "Cấu hình phụ phí và phí quá hạn cũ đã được gỡ trong đợt tinh gọn rental.",
   priceSearch: "Tìm loại kho theo tên hoặc mã",

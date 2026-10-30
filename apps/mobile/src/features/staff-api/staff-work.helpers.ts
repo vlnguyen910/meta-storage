@@ -1,3 +1,4 @@
+import { formatReference } from "@metastorage/shared";
 import { STAFF_API_UI as M } from "./staff-api.messages";
 import type { StaffSelection, StaffWorkFilters, StaffWorkGroup } from "./staff-api.types";
 
@@ -34,7 +35,7 @@ export function filterStaffWork(items: StaffSelection[], filters: StaffWorkFilte
     if (filters.date && date && staffWorkDate(date) !== filters.date) return false;
     const text =
       item.kind === "appointment"
-        ? `${item.appointment.customerName ?? ""} ${item.appointment.id} ${item.appointment.contactPhone ?? ""}`
+        ? `${item.appointment.customerName ?? ""} ${item.appointment.id} ${item.appointment.contactPhone ?? ""} ${item.appointment.assignedUnit?.physicalUnitCode ?? ""} ${formatReference(item.appointment.reservationId ?? item.appointment.id, item.appointment.reservationId ? "BK" : "LH")}`
         : `${item.task.description ?? ""} ${M.type[item.task.type] ?? ""}`;
     return text.toLocaleLowerCase("vi").includes(filters.search.trim().toLocaleLowerCase("vi"));
   });

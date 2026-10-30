@@ -1,11 +1,13 @@
 "use client";
 import type { AppointmentRecordDto, BookingListItem } from "@metastorage/contracts";
 import { APPOINTMENT_TYPES } from "@metastorage/database/schema/appointments";
+import { formatReference } from "@metastorage/shared";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { bookingKeys } from "@/features/check-in/hooks";
 import { useFlow3Identity } from "@/features/returns/use-flow3-identity";
 import { api } from "@/lib/api";
+import { FLOW } from "./flow.messages";
 export type DispatchItem = Omit<BookingListItem, "assignedUnit" | "assignedStaff" | "status"> & {
   appointmentType: APPOINTMENT_TYPES;
   reservationId: string | null;
@@ -25,13 +27,13 @@ export function appointmentItem(a: AppointmentRecordDto): DispatchItem {
     reservationId: a.reservationId,
     rentalId: a.rentalId,
     appointmentStatus: a.status,
-    bookingCode: a.reservationId ?? a.id,
+    bookingCode: formatReference(a.reservationId ?? a.id, a.reservationId ? "BK" : "LH"),
     facilityId: a.facilityId,
-    facilityName: a.facility?.name ?? a.facilityId,
+    facilityName: a.facility?.name ?? FLOW.noFacility,
     unitTypeId: r?.unitTypeId ?? "",
     unitTypeName: a.unitType?.name ?? a.appointmentType,
     unitTypeSizeLabel: a.unitType?.sizeLabel ?? "",
-    contactName: a.customerName ?? a.customerId,
+    contactName: a.customerName ?? FLOW.customer,
     contactEmail: a.customerEmail ?? "",
     contactPhone: a.contactPhone ?? "",
     checkInSlotStart: `${a.scheduledDate}T${a.slotStart ?? "00:00:00"}+07:00`,
@@ -50,7 +52,7 @@ export function appointmentItem(a: AppointmentRecordDto): DispatchItem {
     paymentStatus: a.paymentStatus ?? null,
     assignedUnit: a.assignedUnit,
     assignedStaff: a.assignedStaffId
-      ? { id: a.assignedStaffId, name: a.assignedStaffName ?? a.assignedStaffId }
+      ? { id: a.assignedStaffId, name: a.assignedStaffName ?? FLOW.assignedStaff }
       : null,
     createdAt: a.createdAt,
   };

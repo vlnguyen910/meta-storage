@@ -5,19 +5,26 @@ import {
   SUPPORT_STATUSES,
   type SupportCreateInput,
   SupportCreateInputSchema,
-  type SupportImageInput,
-  type SupportReplyInput,
-  SupportReplyInputSchema,
   type SupportTicketQuery,
 } from "@metastorage/contracts";
-import { CUSTOMER_WORKSPACE as M } from "@metastorage/shared";
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
-import { ArrowLeft, ChevronRight, Headphones, Plus, RotateCcw, Search, Send } from "lucide-react";
-import Image from "next/image";
+import { formatReference, CUSTOMER_WORKSPACE as M } from "@metastorage/shared";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  ArrowLeft,
+  ArrowUpRight,
+  CalendarDays,
+  ChevronRight,
+  FileText,
+  Headphones,
+  Mail,
+  Plus,
+  RotateCcw,
+  Search,
+  Send,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type FormEvent, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,8 +44,6 @@ import { Spinner } from "@/components/ui/spinner";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { customerRoutes } from "@/config/routes";
 import { customerApiError } from "@/features/bookings/customer-error";
-import { readFileBase64 } from "@/features/returns/integration-utils";
-import { useFlow3Identity } from "@/features/returns/use-flow3-identity";
 import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { SUPPORT_MESSAGES as SM } from "./support.messages";
@@ -48,8 +53,6 @@ import {
   useSupportTicket,
   useSupportTickets,
 } from "./support-hooks";
-
-const field = "min-h-11 w-full rounded-lg border border-slate-300 bg-white p-3";
 
 export function CustomerSupportList() {
   const router = useRouter();
@@ -68,7 +71,11 @@ export function CustomerSupportList() {
       if (category && t.category !== category) return false;
       if (!search) return true;
       const q = search.toLowerCase();
-      return t.id.toLowerCase().includes(q) || t.subject.toLowerCase().includes(q);
+      return (
+        t.id.toLowerCase().includes(q) ||
+        formatReference(t.id, "YC").toLowerCase().includes(q) ||
+        t.subject.toLowerCase().includes(q)
+      );
     });
   }, [allTickets, category, search]);
 
@@ -102,8 +109,8 @@ export function CustomerSupportList() {
   return (
     <div className="flex flex-col h-full w-full overflow-hidden min-h-0 gap-3.5">
       {/* 1. Header (Compact) */}
-      <header className="shrink-0 flex items-center justify-between gap-4">
-        <div>
+      <header className="shrink-0 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+        <div className="min-w-0">
           <p className="mb-0.5 mt-0 text-xs font-semibold text-primary">{SM.eyebrow}</p>
           <h1 className="m-0 font-['Space_Grotesk'] text-xl sm:text-2xl font-bold tracking-tight">
             {SM.title}
@@ -123,7 +130,7 @@ export function CustomerSupportList() {
       {/* 2. Compact Single-row Toolbar */}
       <section
         aria-label={SM.searchConfirm}
-        className="shrink-0 flex items-center gap-2 rounded-card border border-line bg-white p-2 shadow-card min-h-12 relative z-20"
+        className="shrink-0 flex flex-wrap items-center gap-2 rounded-card border border-line bg-white p-2 shadow-card min-h-12 relative z-20"
       >
         <form
           onSubmit={handleSearchSubmit}
@@ -225,7 +232,7 @@ export function CustomerSupportList() {
                 <tr key={t.id}>
                   <td>
                     <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">
-                      {t.id}
+                      {formatReference(t.id, "YC")}
                     </span>
                   </td>
                   <td>
@@ -251,6 +258,7 @@ export function CustomerSupportList() {
                   <td>
                     <Link
                       href={customerRoutes.supportTicket(t.id)}
+                      scroll={false}
                       className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary-soft rounded transition-colors"
                     >
                       <span>{SM.detailsAction}</span>
@@ -309,7 +317,8 @@ export function CustomerSupportCreate() {
     mutationFn: api.support.create,
     onSuccess: async (result) => {
       await client.invalidateQueries({ queryKey: ["support-tickets"] });
-      router.replace(customerRoutes.supportTicket(result.ticket.id));
+      // Open the canonical route so the popup is backed by the list, not the submitted form.
+      window.location.replace(customerRoutes.supportTicket(result.ticket.id));
     },
   });
   const previous = useRef("");
@@ -402,7 +411,7 @@ export function CustomerSupportCreate() {
                 <SelectItem value="none">-- {M.choose} --</SelectItem>
                 {bookingItems.map((b) => (
                   <SelectItem key={b.id} value={b.id}>
-                    {b.bookingCode ?? b.id} · {b.facility.name} · {b.status}
+                    {formatReference(b.bookingCode ?? b.id, "BK")} · {b.facility.name} · {b.status}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -580,235 +589,111 @@ export function CustomerSupportCreate() {
   );
 }
 
-function PrivateSupportImage({
+export function CustomerSupportDetail({
   ticketId,
-  imageId,
-  filename,
+  inDialog = false,
 }: {
   ticketId: string;
-  imageId: string;
-  filename: string;
+  inDialog?: boolean;
 }) {
-  const identity = useFlow3Identity();
-  const query = useQuery({
-    queryKey: ["support-image", identity, ticketId, imageId],
-    queryFn: ({ signal }) => api.support.image(ticketId, imageId, signal),
-  });
-  const [url, setUrl] = useState<string>();
-  useEffect(() => {
-    if (!query.data) return;
-    const next = URL.createObjectURL(new Blob([query.data]));
-    setUrl(next);
-    return () => {
-      URL.revokeObjectURL(next);
-      setUrl(undefined);
-    };
-  }, [query.data]);
-  return query.isError ? (
-    <ErrorState message={M.error} onRetry={() => query.refetch()} />
-  ) : url ? (
-    <a href={url} target="_blank" rel="noreferrer">
-      <Image
-        unoptimized
-        className="max-h-48 max-w-full object-contain"
-        src={url}
-        alt={filename}
-        width={240}
-        height={180}
-      />
-    </a>
-  ) : (
-    <p>{M.loading}</p>
-  );
-}
-
-export function CustomerSupportDetail({ ticketId }: { ticketId: string }) {
   const detail = useSupportTicket(ticketId);
-  const identity = useFlow3Identity();
-  const client = useQueryClient();
-  const replyForm = useForm<SupportReplyInput>({
-    resolver: zodResolver(SupportReplyInputSchema),
-    defaultValues: { content: "", version: 0, idempotencyKey: crypto.randomUUID() },
-  });
-  const content = replyForm.watch("content");
-  const setContent = (value: string) => replyForm.setValue("content", value);
-  const [file, setFile] = useState<File>();
-  const [notice, setNotice] = useState("");
-  const replyCommand = useRef<SupportReplyInput | undefined>(undefined);
-  const uploadCommand = useRef<{ messageId: string; input: SupportImageInput } | undefined>(
-    undefined,
-  );
-  const messages = useInfiniteQuery({
-    queryKey: ["support-messages", identity, ticketId],
-    initialPageParam: undefined as string | undefined,
-    queryFn: ({ pageParam, signal }) =>
-      api.support.messages(ticketId, { limit: 20, cursor: pageParam }, signal),
-    getNextPageParam: (p) => p.nextCursor ?? undefined,
-  });
-  const refresh = async () => {
-    await Promise.all([
-      detail.refetch(),
-      client.invalidateQueries({ queryKey: ["support-messages"] }),
-      client.invalidateQueries({ queryKey: ["support-tickets"] }),
-    ]);
-  };
-  const handleError = async (error: unknown) => {
-    if (axios.isAxiosError(error) && error.response?.status === 409) {
-      replyCommand.current = undefined;
-      uploadCommand.current = undefined;
-      await refresh();
-      setNotice(M.conflict);
-    } else setNotice(customerApiError(error));
-  };
-  const reply = useMutation({
-    mutationFn: async () => {
-      if (!replyCommand.current || replyCommand.current.content !== content.trim()) {
-        if (!detail.data) throw new Error();
-        replyCommand.current = {
-          content: content.trim(),
-          version: detail.data.ticket.version,
-          idempotencyKey: crypto.randomUUID(),
-        };
-      }
-      const result = await api.support.reply(ticketId, replyCommand.current);
-      replyCommand.current = undefined;
-      setContent("");
-      return result;
-    },
-    onSuccess: refresh,
-    onError: handleError,
-  });
-  const upload = useMutation({
-    mutationFn: async (messageId: string) => {
-      if (!file) return;
-      if (!uploadCommand.current) {
-        if (!detail.data) throw new Error();
-        uploadCommand.current = {
-          messageId,
-          input: {
-            filename: file.name,
-            mimeType: file.type as SupportImageInput["mimeType"],
-            dataBase64: await readFileBase64(file),
-            version: detail.data.ticket.version,
-            idempotencyKey: crypto.randomUUID(),
-          },
-        };
-      }
-      await api.support.uploadImage(
-        ticketId,
-        uploadCommand.current.messageId,
-        uploadCommand.current.input,
-      );
-      uploadCommand.current = undefined;
-      setFile(undefined);
-    },
-    onSuccess: refresh,
-    onError: handleError,
-  });
-  if (detail.isPending) return <LoadingState />;
+  if (detail.isPending) return <LoadingState variant="detail" />;
   if (detail.isError)
     return <ErrorState message={customerApiError(detail.error)} onRetry={() => detail.refetch()} />;
-  const closed = detail.data.ticket.status === "CLOSED";
-  const busy = reply.isPending || upload.isPending;
+  const ticket = detail.data.ticket;
   return (
-    <>
-      <PageHeader
-        title={detail.data.ticket.subject}
-        description={`${M.categories[detail.data.ticket.category]} · ${detail.data.ticket.status}`}
-      />
-      {notice && <p role="alert">{notice}</p>}
-      <p>{M.imageHelp}</p>
-      {!closed && (
-        <label>
-          {M.chooseImage}
-          <input
-            className={field}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            disabled={busy}
-            onChange={(e) => {
-              const selected = e.target.files?.[0];
-              if (
-                selected &&
-                (!["image/jpeg", "image/png", "image/webp"].includes(selected.type) ||
-                  selected.size > 5 * 1024 * 1024)
-              ) {
-                setNotice(M.imageError);
-                setFile(undefined);
-                uploadCommand.current = undefined;
-                e.target.value = "";
-                return;
-              }
-              setFile(selected);
-              uploadCommand.current = undefined;
-            }}
-          />
-        </label>
-      )}
-      <div className="my-5 grid gap-4">
-        {messages.isPending ? (
-          <LoadingState />
-        ) : messages.isError ? (
-          <ErrorState
-            message={customerApiError(messages.error)}
-            onRetry={() => messages.refetch()}
-          />
-        ) : (
-          messages.data.pages
-            .flatMap((p) => p.items)
-            .map((message) => (
-              <article className="rounded-xl border bg-white p-5" key={message.id}>
-                <strong>{message.authorName}</strong>
-                <p className="whitespace-pre-wrap break-words">{message.content}</p>
-                <time>{new Date(message.createdAt).toLocaleString("vi-VN")}</time>
-                <div className="my-3 flex flex-wrap gap-3">
-                  {message.attachments.map((a) => (
-                    <PrivateSupportImage
-                      key={a.id}
-                      ticketId={ticketId}
-                      imageId={a.id}
-                      filename={a.filename}
-                    />
-                  ))}
-                </div>
-                {!closed && message.authorRole === "CUSTOMER" && (
-                  <Button disabled={!file || busy} onClick={() => upload.mutate(message.id)}>
-                    {M.image}
-                  </Button>
-                )}
-              </article>
-            ))
-        )}
-        {messages.hasNextPage && (
-          <Button disabled={messages.isFetchingNextPage} onClick={() => messages.fetchNextPage()}>
-            {M.more}
-          </Button>
-        )}
-      </div>
-      {closed ? (
-        <p>{M.closed}</p>
-      ) : (
-        <form
-          className="grid gap-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            setNotice("");
-            reply.mutate();
-          }}
+    <div className={inDialog ? "min-w-0 space-y-5" : "mx-auto w-full max-w-5xl space-y-6 pb-6"}>
+      {!inDialog && (
+        <Link
+          href={customerRoutes.support}
+          className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-primary"
         >
-          <label>
-            {M.content}
-            <textarea
-              className={field}
-              value={content}
-              maxLength={5000}
-              required
-              onChange={(e) => setContent(e.target.value)}
-            />
-          </label>
-          <Button disabled={busy || !content.trim()}>{M.reply}</Button>
-        </form>
+          <ArrowLeft size={16} />
+          {SM.backToList}
+        </Link>
       )}
-    </>
+      <header className="space-y-4">
+        {!inDialog && (
+          <p className="text-xs font-bold uppercase tracking-widest text-primary">
+            {SM.detailEyebrow}
+          </p>
+        )}
+        <h2 className="break-words text-2xl font-bold leading-tight tracking-tight text-slate-900 sm:text-3xl">
+          {ticket.subject}
+        </h2>
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <Badge variant="outline" className={SM.statusClasses[ticket.status]}>
+            <span aria-hidden="true" className="mr-1.5 size-1.5 rounded-full bg-current" />
+            {SM.statuses[ticket.status]}
+          </Badge>
+          <span className="text-slate-600">{SM.categories[ticket.category]}</span>
+        </div>
+      </header>
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <section className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4 sm:px-6">
+            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-emerald-50 text-primary">
+              <FileText aria-hidden="true" size={18} />
+            </span>
+            <h2 className="text-base font-semibold text-slate-900">{SM.submittedContent}</h2>
+          </div>
+          <p className="whitespace-pre-wrap break-words px-5 py-6 text-sm leading-7 text-slate-700 sm:px-6 sm:text-base">
+            {ticket.description?.trim() ? ticket.description : SM.emptyContent}
+          </p>
+          <dl className="space-y-4 border-t border-slate-100 bg-slate-50/70 px-5 py-5 sm:px-6">
+            <div>
+              <dt className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                <CalendarDays aria-hidden="true" size={14} />
+                {SM.submittedAt}
+              </dt>
+              <dd className="mt-1.5 text-sm text-slate-700">{formatDateTime(ticket.createdAt)}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-medium text-slate-500">{SM.ticketReference}</dt>
+              <dd className="mt-1.5 break-all font-mono text-xs leading-5 text-slate-600">
+                {formatReference(ticket.id, "YC")}
+              </dd>
+            </div>
+          </dl>
+        </section>
+        <aside className="min-w-0 space-y-5">
+          <section
+            role="status"
+            className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-5"
+          >
+            <span className="mb-4 grid size-10 place-items-center rounded-xl border border-emerald-100 bg-white text-primary">
+              <Mail aria-hidden="true" size={20} />
+            </span>
+            <h2 className="font-semibold text-emerald-950">{SM.nextStep}</h2>
+            <p className="mt-2 text-sm leading-6 text-emerald-900">{SM.followUpHint}</p>
+          </section>
+          {(ticket.reservationId || ticket.rentalId) && (
+            <Card className="rounded-2xl p-5 shadow-sm">
+              <h2 className="mb-3 text-sm font-semibold">{SM.relatedRecords}</h2>
+              <div className="space-y-2">
+                {ticket.reservationId && (
+                  <Link
+                    href={customerRoutes.reservation(ticket.reservationId)}
+                    className="flex min-h-11 items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm font-semibold text-primary hover:bg-emerald-50"
+                  >
+                    {SM.relatedBooking}
+                    <ArrowUpRight aria-hidden="true" size={16} className="shrink-0" />
+                  </Link>
+                )}
+                {ticket.rentalId && (
+                  <Link
+                    href={customerRoutes.rental(ticket.rentalId)}
+                    className="flex min-h-11 items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm font-semibold text-primary hover:bg-emerald-50"
+                  >
+                    {SM.relatedRental}
+                    <ArrowUpRight aria-hidden="true" size={16} className="shrink-0" />
+                  </Link>
+                )}
+              </div>
+            </Card>
+          )}
+        </aside>
+      </div>
+    </div>
   );
 }

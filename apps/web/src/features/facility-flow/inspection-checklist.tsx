@@ -1,3 +1,4 @@
+import { CheckCircle2, CircleHelp, XCircle } from "lucide-react";
 import { FLOW } from "./flow.messages";
 import type { InspectionChecklistProps } from "./inspection-checklist.types";
 
@@ -16,14 +17,14 @@ export function InspectionChecklist({
           <fieldset
             key={item.code}
             disabled={disabled}
-            className="rounded-lg border border-[#bfc9c4] p-4"
+            className="rounded-xl border border-slate-200 bg-slate-50/40 p-4"
           >
             <legend className="px-1 text-sm font-semibold">{item.label}</legend>
             <div className="flex flex-wrap gap-3">
               {(["PASS", "FAIL"] as const).map((result) => (
                 <label
                   key={result}
-                  className="flex min-h-11 cursor-pointer items-center gap-2 rounded bg-[#f2f3ff] px-4"
+                  className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-4 text-sm transition-colors ${value?.result === result ? (result === "PASS" ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-rose-200 bg-rose-50 text-rose-900") : "border-slate-200 bg-white text-slate-600"}`}
                 >
                   <input
                     type="radio"
@@ -57,10 +58,23 @@ export function InspectionChecklist({
         ) : (
           <div
             key={item.code}
-            className="flex flex-wrap items-start justify-between gap-2 rounded bg-[#f2f3ff] p-3 text-sm"
+            className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/70 p-3 text-sm"
           >
-            <span>{item.label}</span>
-            <strong className={value?.result === "PASS" ? "text-[#306858]" : "text-[#93000a]"}>
+            {value?.result === "PASS" ? (
+              <CheckCircle2
+                aria-hidden="true"
+                size={18}
+                className="mt-0.5 shrink-0 text-emerald-700"
+              />
+            ) : value?.result === "FAIL" ? (
+              <XCircle aria-hidden="true" size={18} className="mt-0.5 shrink-0 text-rose-700" />
+            ) : (
+              <CircleHelp aria-hidden="true" size={18} className="mt-0.5 shrink-0 text-slate-500" />
+            )}
+            <span className="min-w-0 flex-1 leading-6">{item.label}</span>
+            <strong
+              className={`shrink-0 pt-0.5 text-xs ${value?.result === "PASS" ? "text-emerald-800" : value?.result === "FAIL" ? "text-rose-700" : "text-slate-500"}`}
+            >
               {value?.result === "PASS"
                 ? FLOW.checklistPass
                 : value?.result === "FAIL"

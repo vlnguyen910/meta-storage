@@ -107,3 +107,16 @@ describe("Staff work presentation", () => {
     expect(filterStaffWork(source, filters).items).toEqual([source[2]]);
   });
 });
+
+test("staff can search the displayed reservation reference and unit without changing the selected ID", () => {
+  const item = appointment("71000000-0000-4000-8000-000000000005");
+  if (item.kind !== "appointment") throw new Error("Expected appointment fixture");
+  item.appointment.reservationId = "81000000-0000-4000-8000-000000000005";
+  for (const search of ["BK-8100-000005", "HCM-02-4M-001"]) {
+    const result = filterStaffWork([item], { ...filters, search });
+    expect(result.items).toEqual([item]);
+    expect(result.items[0]?.kind === "appointment" && result.items[0].appointment.id).toBe(
+      item.appointment.id,
+    );
+  }
+});

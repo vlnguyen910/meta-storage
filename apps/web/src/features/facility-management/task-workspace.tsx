@@ -1,6 +1,7 @@
 "use client";
 
-import { FacilityTaskReferenceType, FacilityTaskStatus } from "@metastorage/contracts";
+import { FacilityTaskReferenceType } from "@metastorage/contracts";
+import { formatReference } from "@metastorage/shared";
 import { useQuery } from "@tanstack/react-query";
 import { Eye, Plus } from "lucide-react";
 import Link from "next/link";
@@ -16,25 +17,23 @@ import { ErrorState, LoadingState } from "@/components/ui/states";
 import { isMockMode } from "@/config/api-mode";
 import { api } from "@/lib/api";
 import { formatDate, formatDateTime } from "@/lib/format";
-import {
-  managementError,
-  useFacilityOptions,
-  useFacilityTaskList,
-  useTaskStaff,
-  useUpdateTask,
-} from "./hooks";
+import { managementError, useFacilityOptions, useFacilityTaskList, useTaskStaff } from "./hooks";
 import { F5 } from "./management.messages";
 import type { TaskPanelProps } from "./management.types";
 import { ManagementField, PageControls, panelClass } from "./management-ui";
 import { TASK_ASSIGNMENT_MESSAGES as M } from "./task-assignment.messages";
 import { TaskAssignmentForm } from "./task-assignment-form";
 
-const statuses = [
-  FacilityTaskStatus.ASSIGNED,
-  FacilityTaskStatus.IN_PROGRESS,
-  FacilityTaskStatus.COMPLETED,
-  FacilityTaskStatus.CANCELLED,
-];
+function taskReference(type: string, id: string) {
+  const prefixes: Record<string, string> = {
+    APPOINTMENT: "LH",
+    STORAGE_UNIT: "OK",
+    BOOKING: "BK",
+    SUPPORT_TICKET: "YC",
+  };
+  const prefix = prefixes[type] ?? "CV";
+  return formatReference(id, prefix);
+}
 
 export function TaskWorkspace({ manager }: { manager: boolean }) {
   const scope = useFacilityOptions();
@@ -142,7 +141,7 @@ export function TaskPanel({ facilityId, manager }: TaskPanelProps) {
                   {task.description || M.noDescription}
                 </span>
                 <span className="mt-1 block font-mono text-xs text-muted">
-                  {M.taskCode}: {task.id.slice(0, 8)}
+                  {M.taskCode}: {formatReference(task.id, "CV")}
                 </span>
               </td>
               <td>{M.taskTypes[task.type]}</td>
@@ -151,9 +150,9 @@ export function TaskPanel({ facilityId, manager }: TaskPanelProps) {
                 <OperationalBadge value={task.status} label={M.taskStatuses[task.status]} />
               </td>
               <td>
-                <span>{M.referenceType}</span>
+                <span>{M.referenceTypes[task.referenceType]}</span>
                 <span className="mt-1 block font-mono text-xs text-muted">
-                  {task.referenceId.slice(0, 8)}
+                  {taskReference(task.referenceType, task.referenceId)}
                 </span>
               </td>
               <td>
@@ -196,9 +195,12 @@ export function TaskPanel({ facilityId, manager }: TaskPanelProps) {
                 <DetailValue label={F5.taskType} value={M.taskTypes[selectedTask.type]} />
                 <div className="grid gap-1">
                   <span className="text-xs text-muted">{F5.status}</span>
-                  <TaskStatus taskId={selectedTask.id} status={selectedTask.status} />
+                  <OperationalBadge
+                    value={selectedTask.status}
+                    label={M.taskStatuses[selectedTask.status]}
+                  />
                 </div>
-                <DetailValue label={M.taskCode} value={selectedTask.id} />
+                <DetailValue label={M.taskCode} value={formatReference(selectedTask.id, "CV")} />
                 <DetailValue label={F5.staff} value={selectedTask.assignedStaffName} />
                 <DetailValue label={M.assignedBy} value={selectedTask.assignerName} />
                 <DetailValue label={M.assignedAt} value={formatDateTime(selectedTask.assignedAt)} />
@@ -211,8 +213,14 @@ export function TaskPanel({ facilityId, manager }: TaskPanelProps) {
                   value={selectedTask.completedAt ? formatDateTime(selectedTask.completedAt) : "—"}
                 />
                 <DetailValue label={M.createdAt} value={formatDateTime(selectedTask.createdAt)} />
-                <DetailValue label={M.referenceType} value={selectedTask.referenceType} />
-                <DetailValue label={M.referenceId} value={selectedTask.referenceId} />
+                <DetailValue
+                  label={M.referenceType}
+                  value={M.referenceTypes[selectedTask.referenceType]}
+                />
+                <DetailValue
+                  label={M.referenceId}
+                  value={taskReference(selectedTask.referenceType, selectedTask.referenceId)}
+                />
                 <div className="grid gap-1 sm:col-span-2">
                   <span className="text-xs text-muted">{M.description}</span>
                   <p className="font-medium text-ink">
@@ -262,7 +270,10 @@ export function TaskPanel({ facilityId, manager }: TaskPanelProps) {
                           <>
                             <DetailValue
                               label={M.rentalRecord}
-                              value={rental.data.bookingCode ?? rental.data.id}
+                              value={formatReference(
+                                rental.data.bookingCode ?? rental.data.id,
+                                "KT",
+                              )}
                             />
                             <DetailValue
                               label={F5.unit}
@@ -299,7 +310,10 @@ export function TaskPanel({ facilityId, manager }: TaskPanelProps) {
                   ) : null)}
                 {selectedTask.referenceType !== FacilityTaskReferenceType.APPOINTMENT &&
                   selectedTask.referenceType !== FacilityTaskReferenceType.STORAGE_UNIT && (
-                    <DetailValue label={M.referenceId} value={selectedTask.referenceId} />
+                    <DetailValue
+                      label={M.referenceId}
+                      value={taskReference(selectedTask.referenceType, selectedTask.referenceId)}
+                    />
                   )}
               </section>
             </>
@@ -321,31 +335,6 @@ export function TaskPanel({ facilityId, manager }: TaskPanelProps) {
         </DialogContent>
       </Dialog>
     </div>
-  );
-}
-
-function TaskStatus({ taskId, status }: { taskId: string; status: `${FacilityTaskStatus}` }) {
-  const update = useUpdateTask(taskId);
-  const options =
-    status === FacilityTaskStatus.ASSIGNED
-      ? statuses.slice(0, 1).concat(statuses.slice(1))
-      : statuses;
-  return (
-    <Select
-      aria-label={F5.status}
-      value={status}
-      onChange={(event) => {
-        const next = event.target.value as FacilityTaskStatus;
-        if (next !== FacilityTaskStatus.ASSIGNED) update.mutate({ status: next });
-      }}
-      disabled={update.isPending}
-    >
-      {options.map((value) => (
-        <option key={value} value={value}>
-          {M.taskStatuses[value]}
-        </option>
-      ))}
-    </Select>
   );
 }
 

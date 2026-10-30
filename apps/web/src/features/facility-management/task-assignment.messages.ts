@@ -15,6 +15,12 @@ export const TASK_ASSIGNMENT_MESSAGES = {
   noDescription: "Chưa có mô tả",
   relatedInfo: "Thông tin liên quan",
   referenceId: "Mã đối tượng liên quan",
+  referenceTypes: {
+    APPOINTMENT: "Lịch hẹn",
+    STORAGE_UNIT: "Ô kho",
+    BOOKING: "Đặt kho",
+    SUPPORT_TICKET: "Yêu cầu hỗ trợ",
+  },
   assignedBy: "Người giao việc",
   assignedAt: "Thời điểm giao",
   startedAt: "Bắt đầu lúc",

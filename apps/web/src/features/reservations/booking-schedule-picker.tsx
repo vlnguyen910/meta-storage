@@ -29,6 +29,8 @@ function formatCalendarDate(value: string): string {
 }
 
 export function BookingSchedulePicker({
+  dateFirst = false,
+  selectedDateLabel = m.datePickerSelectedDate,
   date,
   onDateChange,
   slotId,
@@ -43,6 +45,8 @@ export function BookingSchedulePicker({
   slotsError = false,
   onRetrySlots,
 }: {
+  dateFirst?: boolean;
+  selectedDateLabel?: (value: string) => string;
   date: string;
   onDateChange: (value: string) => void;
   slotId: string;
@@ -95,7 +99,9 @@ export function BookingSchedulePicker({
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-2">
+    <div
+      className={dateFirst ? "grid items-start gap-6 md:grid-cols-2" : "grid gap-5 lg:grid-cols-2"}
+    >
       <section aria-label={slotTitle}>
         <div className="mb-2 flex items-center justify-between">
           <h3 className="flex items-center gap-1.5 text-sm font-bold text-slate-800">
@@ -118,7 +124,7 @@ export function BookingSchedulePicker({
           </div>
         ) : slots.length ? (
           <>
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className={dateFirst ? "grid gap-2" : "grid gap-2 sm:grid-cols-2"}>
               {slots.map((slot) => {
                 const selected = slotId === slot.id;
                 const passed = slotHasPassed(slot.startTime);
@@ -127,7 +133,7 @@ export function BookingSchedulePicker({
                     key={slot.id}
                     type="button"
                     aria-pressed={selected}
-                    disabled={passed}
+                    disabled={passed || (dateFirst && !date)}
                     onClick={() => onSlotChange(slot.id)}
                     className={cn(
                       "flex min-h-11 items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left text-sm disabled:cursor-not-allowed disabled:opacity-50",
@@ -138,10 +144,23 @@ export function BookingSchedulePicker({
                           : "border-line bg-white hover:bg-canvas",
                     )}
                   >
-                    <span className="font-semibold">{slot.name}</span>
-                    <span className="text-xs text-muted">
-                      {m.slotRange(slot.startTime.slice(0, 5), slot.endTime.slice(0, 5))}
-                    </span>
+                    {dateFirst ? (
+                      <span className="min-w-0">
+                        <strong className="block text-sm tabular-nums">
+                          {m.slotRange(slot.startTime.slice(0, 5), slot.endTime.slice(0, 5))}
+                        </strong>
+                        <span className="mt-1 block text-xs leading-5 text-slate-500">
+                          {slot.name}
+                        </span>
+                      </span>
+                    ) : (
+                      <>
+                        <span className="font-semibold">{slot.name}</span>
+                        <span className="text-xs text-muted">
+                          {m.slotRange(slot.startTime.slice(0, 5), slot.endTime.slice(0, 5))}
+                        </span>
+                      </>
+                    )}
                   </button>
                 );
               })}
@@ -156,7 +175,7 @@ export function BookingSchedulePicker({
           <p className="text-sm text-muted">{m.slotsEmpty}</p>
         ) : null}
       </section>
-      <section aria-label={dateTitle}>
+      <section aria-label={dateTitle} className={dateFirst ? "order-first" : undefined}>
         <div className="mb-2 flex items-center justify-between">
           <h3 className="flex items-center gap-1.5 text-sm font-bold text-slate-800">
             <CalendarDays size={15} className="text-primary" /> {dateTitle}
@@ -241,7 +260,7 @@ export function BookingSchedulePicker({
         </div>
         {date && (
           <p className="mt-2 text-xs font-semibold text-primary">
-            {m.datePickerSelectedDate(formatCalendarDate(date))}
+            {selectedDateLabel(formatCalendarDate(date))}
           </p>
         )}
       </section>

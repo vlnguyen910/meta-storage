@@ -1,11 +1,13 @@
 "use client";
 import type { InspectionRecord } from "@metastorage/contracts";
 import { HANDOVER_CHECKLIST_ITEMS } from "@metastorage/contracts";
+import { formatReference } from "@metastorage/shared";
 import {
   Camera,
   CheckCircle2,
   ClipboardCheck,
   Lock,
+  Printer,
   ShieldCheck,
   Trash2,
   Warehouse,
@@ -15,7 +17,6 @@ import { useRef } from "react";
 import { formatDateTime } from "@/lib/format";
 import { FLOW } from "./flow.messages";
 import {
-  BackLabel,
   FlowButton as Button,
   DataPair,
   inputClass,
@@ -48,17 +49,17 @@ export function InspectionPhotoCard({
             width={480}
             height={360}
             src={photo.url}
-            alt={photo.filename}
+            alt={FLOW.evidencePhoto}
             className="h-full w-full object-cover"
           />
         </a>
         {onRemove && (
           <button
             type="button"
-            aria-label={`${FLOW.removePhoto}: ${photo.filename}`}
+            aria-label={`${FLOW.removePhoto}: ${FLOW.evidencePhoto}`}
             disabled={disabled}
             onClick={() => {
-              if (window.confirm(FLOW.deletePhotoConfirm(photo.filename))) onRemove(photo.id);
+              if (window.confirm(FLOW.deletePhotoConfirm(FLOW.evidencePhoto))) onRemove(photo.id);
             }}
             className="absolute right-2 top-2 rounded bg-white p-2 text-[#93000a] shadow-sm disabled:opacity-50"
           >
@@ -67,7 +68,7 @@ export function InspectionPhotoCard({
         )}
       </div>
       <div className="p-3">
-        <p className="truncate text-xs font-semibold">{photo.filename}</p>
+        <p className="truncate text-xs font-semibold">{FLOW.evidencePhoto}</p>
         <p className="mt-1 text-[11px] text-[#5c6661]">{formatDateTime(photo.createdAt)}</p>
       </div>
     </div>
@@ -91,7 +92,7 @@ export function InspectionScreen({
 }) {
   const editor = useInspectionEditor(record, onNavigate);
   const fileRef = useRef<HTMLInputElement>(null);
-  const handover = view === "handover" && editor.locked;
+  const handover = view === "handover" && record.status === "PASSED";
   const review = view === "review";
   const historical =
     record.storageUnitId !== result.assignedUnit?.physicalUnitId ||
@@ -106,9 +107,15 @@ export function InspectionScreen({
         <SectionTitle>{FLOW.readonlyRecord}</SectionTitle>
         {historical && <Pill tone="amber">{FLOW.historicalRecord}</Pill>}
         <p className="break-all text-xs">
-          {FLOW.recordId}: {record.id} · {record.unitCode}
+          {FLOW.recordId}: {formatReference(record.id, "BB")} · {record.unitCode}
         </p>
-        <Pill>{record.status}</Pill>
+        <Pill
+          tone={
+            record.status === "FAILED" ? "red" : record.status === "PASSED" ? "green" : "neutral"
+          }
+        >
+          {FLOW.inspectionStatusLabels[record.status]}
+        </Pill>
         <InspectionChecklist items={HANDOVER_CHECKLIST_ITEMS} results={editor.values.results} />
         <p className="whitespace-pre-wrap">{record.notes || FLOW.noNotes}</p>
         <p className="text-xs">{formatDateTime(record.inspectDoneAt ?? record.inspectedAt)}</p>
@@ -123,27 +130,33 @@ export function InspectionScreen({
 
   return (
     <div className="space-y-6">
-      <Panel className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Warehouse size={30} className="text-[#003b2f]" />
-          <div>
-            <p className="text-xs text-[#5c6661]">{result.booking.bookingCode}</p>
-            <h2 className={`${titleClass} text-xl`}>{result.booking.contactName}</h2>
+      {!handover && (
+        <Panel className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Warehouse size={30} className="text-[#003b2f]" />
+            <div>
+              <p className="text-xs text-[#5c6661]">{result.booking.bookingCode}</p>
+              <h2 className={`${titleClass} text-xl`}>{result.booking.contactName}</h2>
+            </div>
           </div>
-        </div>
-        <div>
-          <p className="text-[11px] uppercase text-[#5c6661]">{FLOW.assigned}</p>
-          <strong className={`${titleClass} text-xl text-[#003b2f]`}>{record.unitCode}</strong>
-          <p className="text-xs text-[#5c6661]">{result.booking.unitTypeSizeLabel}</p>
-        </div>
-        <div>
-          <p className="text-[11px] uppercase text-[#5c6661]">{FLOW.recordId}</p>
-          <p className="max-w-[220px] break-all text-xs">{record.id}</p>
-          <Pill tone={editor.locked ? "green" : "neutral"}>
-            {editor.locked ? record.status : editor.dirty ? FLOW.unsaved : FLOW.saved}
-          </Pill>
-        </div>
-      </Panel>
+          <div>
+            <p className="text-[11px] uppercase text-[#5c6661]">{FLOW.assigned}</p>
+            <strong className={`${titleClass} text-xl text-[#003b2f]`}>{record.unitCode}</strong>
+            <p className="text-xs text-[#5c6661]">{result.booking.unitTypeSizeLabel}</p>
+          </div>
+          <div>
+            <p className="text-[11px] uppercase text-[#5c6661]">{FLOW.recordId}</p>
+            <p className="max-w-[220px] break-all text-xs">{formatReference(record.id, "BB")}</p>
+            <Pill tone={record.status === "FAILED" ? "red" : editor.locked ? "green" : "neutral"}>
+              {editor.locked
+                ? FLOW.inspectionStatusLabels[record.status]
+                : editor.dirty
+                  ? FLOW.unsaved
+                  : FLOW.saved}
+            </Pill>
+          </div>
+        </Panel>
+      )}
 
       {handover ? (
         <HandoverContent record={record} result={result} onBack={back} />
@@ -359,85 +372,118 @@ function HandoverContent({
   const handedOver = result.booking.status === "CHECKED_IN";
   return (
     <>
-      <Panel className="flex flex-wrap items-center justify-between gap-4 bg-[#b4efda]/40">
-        <div className="flex gap-3">
-          <ShieldCheck size={28} className="text-[#003b2f]" />
-          <div>
-            <h2 className={`${titleClass} text-lg`}>{FLOW.locked}</h2>
-            <p className="mt-1 text-xs">
-              {FLOW.lockedAt}: {formatDateTime(record.inspectDoneAt)}
+      <Panel className="rounded-2xl border border-emerald-200/70 bg-emerald-50/70 p-5 sm:p-6">
+        <div className="flex items-start gap-4">
+          <span className="grid size-12 shrink-0 place-items-center rounded-2xl border border-emerald-200 bg-white text-emerald-800">
+            <ShieldCheck aria-hidden="true" size={25} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className={`${titleClass} text-xl text-emerald-950 sm:text-2xl`}>
+                {handedOver ? FLOW.handoverCompletedTitle : FLOW.handoverReadyTitle}
+              </h2>
+              <Pill>{handedOver ? FLOW.done : FLOW.inspectionStatusLabels.PASSED}</Pill>
+            </div>
+            <p className="mt-2 text-sm leading-6 text-emerald-900">
+              {handedOver ? FLOW.handoverSuccess : FLOW.handoverReadyHint}
+            </p>
+            <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs font-medium text-emerald-800">
+              <span className="break-all">
+                {FLOW.bookingCode}: {result.booking.bookingCode}
+              </span>
+              <span className="break-all">
+                {FLOW.assigned}: {record.unitCode}
+              </span>
             </p>
           </div>
         </div>
-        <Pill>{FLOW.done}</Pill>
       </Panel>
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,8fr)_minmax(0,4fr)]">
-        <div className="space-y-6">
-          <Panel>
-            <SectionTitle>{FLOW.reception}</SectionTitle>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <DataPair label={FLOW.customer}>{result.booking.contactName}</DataPair>
-              <DataPair label={FLOW.assigned}>{record.unitCode}</DataPair>
-              <DataPair label={FLOW.phone}>{result.booking.contactPhone}</DataPair>
-              <DataPair label={FLOW.email}>{result.booking.contactEmail}</DataPair>
-              <DataPair label={FLOW.period}>{FLOW.months(result.booking.requestedMonths)}</DataPair>
-              <DataPair label={FLOW.rentalEnd}>
-                {formatDateTime(result.booking.rentalEndAt)}
-              </DataPair>
-            </div>
-          </Panel>
-          <Panel>
-            <div className="flex flex-wrap justify-between gap-3">
-              <SectionTitle>{FLOW.receptionBaseline}</SectionTitle>
-              <Button variant="secondary" onClick={() => window.print()}>
-                {FLOW.printRecord}
-              </Button>
-            </div>
-            <div className="mt-4">
-              <InspectionChecklist
-                items={HANDOVER_CHECKLIST_ITEMS}
-                results={readResults(record.checklist)}
-              />
-            </div>
-            <p className="my-4 whitespace-pre-wrap text-sm leading-6">
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+        <Panel className="rounded-2xl border border-slate-200/80 p-5 sm:p-6">
+          <SectionTitle
+            icon={<Warehouse aria-hidden="true" size={20} className="text-emerald-800" />}
+          >
+            {FLOW.handoverCustomerInfo}
+          </SectionTitle>
+          <div className="mt-5 grid gap-x-5 gap-y-6 sm:grid-cols-2">
+            <DataPair label={FLOW.customer}>{result.booking.contactName}</DataPair>
+            <DataPair label={FLOW.assigned}>{record.unitCode}</DataPair>
+            <DataPair label={FLOW.phone}>{result.booking.contactPhone}</DataPair>
+            <DataPair label={FLOW.email}>{result.booking.contactEmail}</DataPair>
+            <DataPair label={FLOW.period}>{FLOW.months(result.booking.requestedMonths)}</DataPair>
+            <DataPair label={FLOW.rentalEnd}>{formatDateTime(result.booking.rentalEndAt)}</DataPair>
+          </div>
+        </Panel>
+        <Panel className="rounded-2xl border border-slate-200/80 p-5 sm:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <SectionTitle
+              icon={<ClipboardCheck aria-hidden="true" size={20} className="text-emerald-800" />}
+            >
+              {FLOW.handoverInspection}
+            </SectionTitle>
+            <Button
+              className="print:hidden"
+              variant="secondary"
+              icon={<Printer size={16} />}
+              onClick={() => window.print()}
+            >
+              {FLOW.printRecord}
+            </Button>
+          </div>
+          <p className="mt-4 text-xs text-slate-500">
+            {FLOW.inspectionCompletedAt}: {formatDateTime(record.inspectDoneAt)}
+          </p>
+          <div className="mt-4">
+            <InspectionChecklist
+              items={HANDOVER_CHECKLIST_ITEMS}
+              results={readResults(record.checklist)}
+            />
+          </div>
+          <div className="mt-5 border-t border-slate-100 pt-4">
+            <h3 className="text-xs font-semibold text-slate-500">{FLOW.inspectionNotes}</h3>
+            <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">
               {record.notes || FLOW.noNotes}
             </p>
-            <div className="grid gap-3 sm:grid-cols-3">
-              {record.evidence.map((photo) => (
-                <InspectionPhotoCard key={photo.id} photo={photo} />
-              ))}
+          </div>
+          {record.evidence.length > 0 && (
+            <div className="mt-5 border-t border-slate-100 pt-4">
+              <h3 className="mb-3 text-sm font-semibold">
+                {FLOW.inspectionEvidence}{" "}
+                <span className="ml-1 text-slate-500">({record.evidence.length})</span>
+              </h3>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {record.evidence.map((photo) => (
+                  <InspectionPhotoCard key={photo.id} photo={photo} />
+                ))}
+              </div>
             </div>
-          </Panel>
-        </div>
-        <Panel className={handedOver ? "bg-[#b4efda]/40" : "bg-[#f2f3ff]"}>
-          <SectionTitle>{handedOver ? FLOW.rentalActive : FLOW.confirmHandover}</SectionTitle>
-          {handedOver ? (
-            <p className="mt-3">{FLOW.handoverSuccess}</p>
-          ) : (
-            <>
-              <p className="mt-3 text-sm leading-6">{FLOW.handoverPending}</p>
-              <label className="mt-5 flex items-start gap-3 text-sm">
-                <input
-                  type="checkbox"
-                  checked={handover.received}
-                  onChange={(event) => handover.setReceived(event.target.checked)}
-                  disabled={handover.mutation.isPending}
-                  className="mt-1 size-4"
-                />
-                {FLOW.customerReceived}
-              </label>
-            </>
           )}
+        </Panel>
+      </div>
+      {!handedOver && (
+        <Panel className="rounded-2xl border border-amber-200 bg-amber-50/60 p-5 sm:p-6">
+          <SectionTitle>{FLOW.confirmHandover}</SectionTitle>
+          <p className="mt-3 text-sm leading-6">{FLOW.handoverPending}</p>
+          <label className="mt-5 flex items-start gap-3 text-sm">
+            <input
+              type="checkbox"
+              checked={handover.received}
+              onChange={(event) => handover.setReceived(event.target.checked)}
+              disabled={handover.mutation.isPending}
+              className="mt-1 size-4"
+            />
+            {FLOW.customerReceived}
+          </label>
           {handover.mutation.isError && (
             <p role="alert" className="mt-3 text-sm text-[#93000a]">
               {flowError(handover.mutation.error)}
             </p>
           )}
         </Panel>
-      </div>
-      <Panel className="flex flex-wrap items-center justify-between gap-3">
+      )}
+      <div className="flex flex-col-reverse justify-between gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:items-center print:hidden">
         <Button onClick={onBack} variant="secondary">
-          <BackLabel />
+          {FLOW.backToMyWork}
         </Button>
         {!handedOver && (
           <Button
@@ -449,7 +495,7 @@ function HandoverContent({
             {FLOW.handover}
           </Button>
         )}
-      </Panel>
+      </div>
     </>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 import type { FacilityTaskDetail } from "@metastorage/contracts";
+import { formatReference } from "@metastorage/shared";
 import { useQuery } from "@tanstack/react-query";
 import { isMockMode } from "@/config/api-mode";
 import { APPOINTMENTS_UI } from "@/features/appointments/appointments.messages";
@@ -72,10 +73,15 @@ export function useStaffWork(facilityId: string, date: string, kind: StaffWorkFi
                     : ["CANCELLED", "NO_SHOW"].includes(item.status)
                       ? "closed"
                       : "pending",
-                title: item.customerName ?? item.customerId,
+                title: item.customerName ?? M.customer,
                 typeLabel: APPOINTMENTS_UI.types[item.appointmentType] ?? item.appointmentType,
                 statusLabel: APPOINTMENTS_UI.statuses[item.status] ?? item.status,
-                reference: item.reservationId ?? item.id,
+                reference: [
+                  item.assignedUnit?.physicalUnitCode,
+                  formatReference(item.reservationId ?? item.id, item.reservationId ? "BK" : "LH"),
+                ]
+                  .filter(Boolean)
+                  .join(" · "),
                 startsAt: `${item.scheduledDate}T${item.slotStart ?? "00:00:00"}+07:00`,
                 href:
                   item.appointmentType === "CHECK_OUT" && assignedTask

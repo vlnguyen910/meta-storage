@@ -1,4 +1,5 @@
 "use client";
+import { formatReference } from "@metastorage/shared";
 
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -281,15 +282,15 @@ export function CustomerDashboardScreen() {
                     <tr key={b.id}>
                       <td>
                         <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">
-                          {b.id}
+                          {formatReference(b.id, "BK")}
                         </span>
                       </td>
                       <td>
                         <div className="font-semibold text-slate-900">
-                          {b.facility?.name ?? b.facilityId}
+                          {b.facility?.name ?? formatReference(b.facilityId, "CS")}
                         </div>
                         <div className="text-xs text-slate-500">
-                          {b.unitType?.name ?? b.unitTypeId}
+                          {b.unitType?.name ?? formatReference(b.unitTypeId, "LK")}
                         </div>
                       </td>
                       <td>
@@ -382,7 +383,7 @@ export function CustomerDashboardScreen() {
                           </span>
                         ) : (
                           <span className="font-mono text-xs font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
-                            {r.bookingCode}
+                            {formatReference(r.bookingCode, "BK")}
                           </span>
                         )}
                       </td>

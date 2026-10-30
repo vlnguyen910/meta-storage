@@ -1,3 +1,4 @@
+import { formatReference } from "@metastorage/shared";
 import Link from "next/link";
 import { buttonClassName } from "@/components/ui/button";
 import { businessOperationsRoutes as routes } from "@/config/routes";
@@ -55,7 +56,7 @@ export function OperationsReports({
             {samples.map((sample) => (
               <tr key={sample.id}>
                 <th scope="row" className="px-5 py-4">
-                  {sample.id}
+                  {formatReference(sample.id, "KT")}
                 </th>
                 <td className="px-5 py-4">
                   {facilities.find((item) => item.id === sample.facilityId)?.name}

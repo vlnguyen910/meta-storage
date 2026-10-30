@@ -8,6 +8,7 @@ import {
   type InspectionRecord,
   type UpdateInspectionInput,
 } from "@metastorage/contracts";
+import { formatReference } from "@metastorage/shared";
 import { useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { MobilePhoto } from "../../components/ui/mobile-photo";
@@ -31,9 +32,9 @@ export function StaffCheckInView({
   const canProceed = flow.appointment.data?.status === "CONFIRMED" && reasons.length === 0;
   return (
     <>
-      <Heading>{appointment.reservationId ?? appointment.id}</Heading>
+      <Heading>{`${appointment.assignedUnit?.physicalUnitCode ?? M.bookings} · ${formatReference(appointment.reservationId ?? appointment.id, appointment.reservationId ? "BK" : "LH")}`}</Heading>
       <Card>
-        <Row label={M.customer} value={appointment.customerName ?? appointment.customerId} />
+        <Row label={M.customer} value={appointment.customerName ?? M.customer} />
         <Row label={M.phone} value={appointment.contactPhone ?? ""} />
         <Row
           label={M.unit}
@@ -158,7 +159,7 @@ function InspectionEditor({
   const [condition, setCondition] = useState<"GOOD" | "MINOR_DAMAGE" | "MAJOR_DAMAGE">(
     record.condition ?? "GOOD",
   );
-  const locked = record.status === "PASSED";
+  const locked = record.status === "PASSED" || record.status === "FAILED";
   const canPass =
     HandoverChecklistCompletionSchema.safeParse(results).success && condition !== "MAJOR_DAMAGE";
   const input = (status: "IN_PROGRESS" | "PASSED"): UpdateInspectionInput => ({

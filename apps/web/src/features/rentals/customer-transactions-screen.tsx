@@ -1,4 +1,5 @@
 "use client";
+import { formatReference } from "@metastorage/shared";
 
 import { ArrowRight, CreditCard, HelpCircle, RotateCcw, Search } from "lucide-react";
 import Link from "next/link";
@@ -29,8 +30,9 @@ export function CustomerTransactionsScreen() {
       if (!search) return true;
       const q = search.toLowerCase();
       return (
-        payment.paymentCode?.toLowerCase().includes(q) ||
+        formatReference(payment.paymentCode, "TT").toLowerCase().includes(q) ||
         rental.bookingCode.toLowerCase().includes(q) ||
+        formatReference(rental.bookingCode, "BK").toLowerCase().includes(q) ||
         rental.facility.name.toLowerCase().includes(q) ||
         rental.unitType.name.toLowerCase().includes(q)
       );
@@ -179,16 +181,16 @@ export function CustomerTransactionsScreen() {
                   <td>
                     <div className="flex flex-col gap-0.5">
                       <span className="font-mono text-xs font-bold text-slate-800">
-                        {payment.paymentCode}
-                      </span>
-                      <span className="font-mono text-[11px] text-slate-500">
-                        {rental.bookingCode}
+                        {formatReference(payment.paymentCode, "TT")}
                       </span>
                     </div>
                   </td>
                   <td>
                     <div className="font-semibold text-slate-900">{rental.unitType.name}</div>
-                    <div className="text-xs text-slate-500">{rental.facility.name}</div>
+                    <div className="text-xs text-slate-500">
+                      {rental.facility.name}
+                      {rental.storageUnit?.code ? ` · ${rental.storageUnit.code}` : ""}
+                    </div>
                   </td>
                   <td>
                     <div className="flex flex-col gap-0.5">

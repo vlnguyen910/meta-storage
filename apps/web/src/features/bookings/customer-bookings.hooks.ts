@@ -4,6 +4,7 @@ import type {
   CustomerBookingPageCursor,
   ReservationRecordDto,
 } from "@metastorage/contracts";
+import { formatReference } from "@metastorage/shared";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useFlow3Identity } from "@/features/returns/use-flow3-identity";
 import { api } from "@/lib/api";
@@ -15,9 +16,17 @@ function reservationView(
 ) {
   return {
     ...r,
-    bookingCode: r.id,
-    facility: r.facility ?? { id: r.facilityId, name: r.facilityId, address: "" },
-    unitType: r.unitType ?? { id: r.unitTypeId, name: r.unitTypeId, sizeLabel: "" },
+    bookingCode: formatReference(r.id, "BK"),
+    facility: r.facility ?? {
+      id: r.facilityId,
+      name: formatReference(r.facilityId, "CS"),
+      address: "",
+    },
+    unitType: r.unitType ?? {
+      id: r.unitTypeId,
+      name: formatReference(r.unitTypeId, "LK"),
+      sizeLabel: "",
+    },
     checkInSlotStart: r.rentalStartAt,
     checkInSlotEnd: appointment?.slotEnd
       ? `${appointment.scheduledDate}T${appointment.slotEnd}+07:00`

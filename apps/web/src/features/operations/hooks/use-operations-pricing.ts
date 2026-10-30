@@ -34,45 +34,6 @@ export function useOperationsPricing() {
     staleTime: 60_000,
   });
 
-  const updatePriceMutation = useMutation({
-    meta: { globalLoading: true },
-    mutationFn: async ({
-      unitTypeId,
-      expectedVersion,
-      monthlyPrice,
-    }: {
-      unitTypeId: string;
-      expectedVersion: number;
-      monthlyPrice: number;
-    }) => {
-      setConflictError(null);
-      setMutationError(null);
-      return api.pricing.updateUnitTypePrice(unitTypeId, {
-        expectedVersion,
-        monthlyPrice,
-      });
-    },
-    onSuccess: () => {
-      setConflictError(null);
-      setMutationError(null);
-      void queryClient.invalidateQueries({ queryKey: ["pricing"] });
-      void queryClient.invalidateQueries({ queryKey: ["catalog"] });
-      void queryClient.invalidateQueries({ queryKey: ["unit-types"] });
-      void queryClient.invalidateQueries({ queryKey: ["facilities"] });
-    },
-    onError: (error) => {
-      if (axios.isAxiosError(error)) {
-        if (error.response?.status === 409) {
-          setConflictError(M.conflictMessage);
-        } else {
-          setMutationError(error.response?.data?.message || error.message || R.mutationError);
-        }
-      } else {
-        setMutationError(R.mutationError);
-      }
-    },
-  });
-
   const updateDepositMutation = useMutation({
     meta: { globalLoading: true },
     mutationFn: async ({
@@ -122,7 +83,6 @@ export function useOperationsPricing() {
   return {
     configQuery,
     historyQuery,
-    updatePriceMutation,
     updateDepositMutation,
     conflictError,
     mutationError,
