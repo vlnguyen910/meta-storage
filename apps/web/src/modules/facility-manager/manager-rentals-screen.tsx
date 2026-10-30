@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/operational";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/states";
 import { PageControls } from "@/features/facility-management/management-ui";
+import { DebtPanel, SettlementSummary } from "@/features/rentals/debt-panel";
 import { api } from "@/lib/api";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import { ManagerTabFrame } from "./manager-tab-frame";
@@ -22,7 +23,12 @@ const rentalColumns = "lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_8.5rem_8rem]
 export function ManagerRentalsScreen() {
   return (
     <ManagerTabFrame title={M.rentals} description={M.rentalsHint}>
-      {(facilityId) => <Rentals facilityId={facilityId} />}
+      {(facilityId) => (
+        <div className="space-y-5">
+          <Rentals facilityId={facilityId} />
+          <DebtPanel />
+        </div>
+      )}
     </ManagerTabFrame>
   );
 }
@@ -199,6 +205,7 @@ function Detail({ facilityId, id }: { facilityId: string; id: string }) {
           </p>
         )}
       </section>
+      <SettlementSummary settlement={r.settlement} />
       <section className="space-y-3 rounded-xl border bg-white p-5">
         <h2 className="text-lg font-bold">{M.payments}</h2>
         {payments.isPending ? (
@@ -212,7 +219,13 @@ function Detail({ facilityId, id }: { facilityId: string; id: string }) {
             {payments.data.items.map((p) => (
               <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
                 <div>
-                  <strong>{p.type === "DEPOSIT_REFUND" ? M.depositRefund : M.charge}</strong>
+                  <strong>
+                    {p.type === "DEPOSIT_REFUND"
+                      ? M.depositRefund
+                      : p.type === "DEBT_COLLECTION"
+                        ? M.debtCollection
+                        : M.charge}
+                  </strong>
                   <p className="text-xs text-muted">{formatReference(p.paymentCode, "TT")}</p>
                 </div>
                 <OperationalBadge

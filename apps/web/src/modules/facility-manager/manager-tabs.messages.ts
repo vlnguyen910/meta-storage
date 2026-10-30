@@ -12,6 +12,7 @@ export const MANAGER_TABS = {
     REFUND_PENDING: "Chờ hoàn tiền",
   } as Record<string, string>,
   charge: "Khoản thu",
+  debtCollection: "Thu công nợ",
   depositRefund: "Hoàn cọc",
   returnConditions: {
     GOOD: "Tốt",

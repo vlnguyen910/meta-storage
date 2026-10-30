@@ -35,6 +35,7 @@ import { BookingSchedulePicker } from "@/features/reservations/booking-schedule-
 import { toLocalDateTimeInput } from "@/features/reservations/checkout-validation";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
+import { DebtPanel, SettlementSummary } from "./debt-panel";
 import { useRental } from "./hooks";
 import { RENEWAL_MESSAGES as RM } from "./renewal.messages";
 import { RentalPaymentHistory } from "./rental-payment-history";
@@ -137,6 +138,8 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
         </p>
       )}
 
+      <SettlementSummary settlement={r.settlement} />
+      {r.status === "CLOSED" && <DebtPanel rentalId={rentalId} />}
       {/* Card 1: Rental Overview */}
       <Card className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs">
         <div className="flex flex-wrap items-start justify-between gap-4">

@@ -30,6 +30,10 @@ import type {
   CustomerRegistrationStats,
   CustomerSignUpInput,
   DashboardSummary,
+  DebtDetail,
+  DebtPaymentInput,
+  DebtQuery,
+  DebtRecord,
   Facility,
   FacilityListParams,
   FacilityOperatingHours,
@@ -399,6 +403,18 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
       mine: () => http.get<ApiEnvelope<Reservation[]>>("/reservations/mine").then(unwrap),
       get: (reservationId: string) =>
         http.get<ApiEnvelope<Reservation>>(`/reservations/${reservationId}`).then(unwrap),
+    },
+    debts: {
+      list: (params: Partial<DebtQuery> = {}) =>
+        http
+          .get<ApiEnvelope<{ items: DebtRecord[]; total: number; limit: number; offset: number }>>(
+            "/debts",
+            { params },
+          )
+          .then(unwrap),
+      get: (id: string) => http.get<ApiEnvelope<DebtDetail>>(`/debts/${id}`).then(unwrap),
+      collect: (id: string, input: DebtPaymentInput) =>
+        http.post<ApiEnvelope<DebtDetail>>(`/debts/${id}/payments`, input).then(unwrap),
     },
     payments: {
       status: (paymentId: string, accessToken?: string) =>
