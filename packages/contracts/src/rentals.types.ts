@@ -1,5 +1,5 @@
 import type { PaymentStatus, PaymentType } from "./payments";
-import type { RentalListItem } from "./rentals";
+import type { RentalListItem, ReturnSettlement } from "./rentals";
 
 export interface RentalPageCursor {
   afterEndAt: string;
@@ -64,6 +64,7 @@ export interface RentalPaymentItem {
 }
 
 export interface FacilityRentalItem {
+  settlement?: ReturnSettlement | null;
   id: string;
   bookingId: string | null;
   reservationId?: string | null;

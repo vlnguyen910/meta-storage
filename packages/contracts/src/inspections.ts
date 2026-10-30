@@ -2,6 +2,7 @@ import { z } from "zod";
 import { HANDOVER_CHECKLIST_ITEMS, HandoverChecklistItemResultSchema } from "./handover-checklist";
 import { INSPECTION_MESSAGES } from "./inspections.messages";
 import type { InspectionChecklistData } from "./inspections.types";
+import { ManualPaymentInputSchema } from "./payments";
 
 export const PolicyViolationFeeSchema = z.strictObject({
   code: z
@@ -128,6 +129,13 @@ export type CreateInspectionInput = z.infer<typeof CreateInspectionInputSchema>;
 
 export const InspectionListQuerySchema = z
   .object({
+    settlement: z
+      .strictObject({
+        confirmed: z.literal(true),
+        deductionAmount: z.number().int().nonnegative(),
+        refund: ManualPaymentInputSchema.optional(),
+      })
+      .optional(),
     status: InspectionStatusValueSchema.optional(),
     inspectionType: InspectionTypeValueSchema.optional(),
     storageUnitId: z.string().uuid().optional(),
@@ -154,6 +162,13 @@ export type ConfirmInspectionHandoverInput = z.infer<typeof ConfirmInspectionHan
 
 export const UpdateInspectionInputSchema = z
   .object({
+    settlement: z
+      .strictObject({
+        confirmed: z.literal(true),
+        deductionAmount: z.number().int().nonnegative(),
+        refund: ManualPaymentInputSchema.optional(),
+      })
+      .optional(),
     status: InspectionStatusValueSchema.optional(),
     condition: InspectionConditionValueSchema.nullable().optional(),
     checklist: z.record(z.string(), z.unknown()).optional(),
@@ -205,6 +220,9 @@ export const InspectionRecordSchema = z.object({
   returnContext: z
     .object({
       depositAmount: z.number().int().nonnegative(),
+      deductionAmount: z.number().int().nonnegative().optional(),
+      refundAmount: z.number().int().nonnegative().optional(),
+      debtAmount: z.number().int().nonnegative().optional(),
       policyVersion: z.number().int().nonnegative(),
       penalties: z.array(
         z.object({ code: z.string(), name: z.string(), amount: z.number().int().nonnegative() }),
