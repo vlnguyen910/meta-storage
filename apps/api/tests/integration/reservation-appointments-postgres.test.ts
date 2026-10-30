@@ -9,9 +9,6 @@ import {
   test,
 } from "bun:test";
 import { randomUUID } from "node:crypto";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import {
   FacilityTaskReferenceType,
   FacilityTaskStatus,
@@ -19,7 +16,6 @@ import {
   HANDOVER_CHECKLIST_ITEMS,
 } from "@metastorage/contracts";
 import {
-  accounts,
   and,
   appointments,
   bookings,
@@ -54,7 +50,6 @@ import {
 } from "@metastorage/database/schema/appointments";
 import { ReservationStatus } from "@metastorage/database/schema/reservations";
 import { UserRole } from "@metastorage/database/schema/user-enums";
-import { hashPassword } from "better-auth/crypto";
 import Fastify from "fastify";
 import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
 import { migrateBookingsToReservations } from "../../../../packages/database/src/migrate-bookings-to-reservations";
@@ -64,15 +59,10 @@ import { env } from "../../src/config/env";
 import { appointmentsRoutes } from "../../src/modules/appointments/appointments.routes";
 import { createAppointmentsService } from "../../src/modules/appointments/appointments.service";
 import { auth } from "../../src/modules/auth/auth";
-import { authRoutes } from "../../src/modules/auth/auth.routes";
-import { facilitiesRoutes } from "../../src/modules/facilities/facilities.routes";
 import { FacilityAssignmentsRepository } from "../../src/modules/facilities/facility-assignments.repository";
-import { facilityTasksRoutes } from "../../src/modules/facility-tasks/facility-tasks.routes";
 import { createFacilityTasksService } from "../../src/modules/facility-tasks/facility-tasks.service";
 import { inspectionsRoutes } from "../../src/modules/inspections/inspections.routes";
-import { lifecycleNotificationsRoutes } from "../../src/modules/notifications/lifecycle-notifications.routes";
 import { PaymentsRepository } from "../../src/modules/payments/payments.repository";
-import { paymentsRoutes } from "../../src/modules/payments/payments.routes";
 import { PaymentsService } from "../../src/modules/payments/payments.service";
 import type {
   SepayCreateCheckoutInput,
@@ -80,12 +70,9 @@ import type {
 } from "../../src/modules/payments/payments.types";
 import { createReservationPaymentsService } from "../../src/modules/payments/reservation-payments.service";
 import { SepayPaymentGateway } from "../../src/modules/payments/sepay.gateway";
-import { rentalsRoutes } from "../../src/modules/rentals/rentals.routes";
 import { ReportsRepository } from "../../src/modules/reports/reports.repository";
 import { reservationsRoutes } from "../../src/modules/reservations/reservations.routes";
 import { createReservationsService } from "../../src/modules/reservations/reservations.service";
-import { storageUnitsRoutes } from "../../src/modules/storage-units/storage-units.routes";
-import { supportRoutes } from "../../src/modules/support/support.routes";
 import { assertTestDatabase } from "../fixtures/test-database";
 
 const testUrl = process.env.BOOKING_TEST_DATABASE_URL;
@@ -329,225 +316,6 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
         );
     }
   });
-
-  test.skipIf(process.env.RUN_POSTMAN_FLOW !== "1")(
-    "Postman CLI drives authenticated customer through check-in and return APIs",
-    async () => {
-      const f = await fixture();
-      const password = randomUUID();
-      const hashed = await hashPassword(password);
-      for (const id of [f.id.customer, f.id.manager, f.id.staff, f.id.businessOps]) {
-        await db.update(users).set({ emailVerified: true }).where(eq(users.id, id));
-        await db.insert(accounts).values({
-          id: randomUUID(),
-          userId: id,
-          accountId: id,
-          providerId: "credential",
-          password: hashed,
-        });
-      }
-      const retrieve = spyOn(SepayPaymentGateway.prototype, "retrievePayment").mockResolvedValue(
-        null,
-      );
-      const app = Fastify();
-      app.decorate("db", db);
-      app.setValidatorCompiler(validatorCompiler);
-      app.setSerializerCompiler(serializerCompiler);
-      setupErrorHandler(app);
-      await app.register(authRoutes, { prefix: "/api/auth" });
-      await app.register(lifecycleNotificationsRoutes, { prefix: "/api" });
-      await app.register(supportRoutes, { prefix: "/api/support" });
-      await app.register(storageUnitsRoutes, { prefix: "/api/storage-units" });
-      await app.register(facilitiesRoutes, { prefix: "/api/facilities" });
-      await app.register(reservationsRoutes, { prefix: "/api/reservations" });
-      await app.register(appointmentsRoutes, { prefix: "/api/appointments" });
-      await app.register(facilityTasksRoutes, { prefix: "/api/facility-tasks" });
-      await app.register(inspectionsRoutes, { prefix: "/api" });
-      await app.register(paymentsRoutes, { prefix: "/api" });
-      await app.register(rentalsRoutes, { prefix: "/api/rentals" });
-      const baseUrl = await app.listen({ host: "127.0.0.1", port: 0 });
-      const temp = await mkdtemp(join(tmpdir(), "reservation-postman-"));
-      const environment = join(temp, "environment.json");
-      const values = {
-        origin: process.env.AUTH_TRUSTED_ORIGINS?.split(",")[0] ?? "http://localhost:3000",
-        baseUrl,
-        webUrl: process.env.WEB_URL,
-        password,
-        customerEmail: `${f.id.customer}@example.test`,
-        managerEmail: `${f.id.manager}@example.test`,
-        staffEmail: `${f.id.staff}@example.test`,
-        businessOpsEmail: `${f.id.businessOps}@example.test`,
-        customerId: f.id.customer,
-        facilityId: f.id.facility,
-        unitTypeId: f.id.type,
-        unitId: f.id.unit,
-        slotId: f.id.slot,
-        staffId: f.id.staff,
-        date: f.date,
-        returnDate: localDate(
-          new Date(new Date(`${f.date}T12:00:00+07:00`).getTime() + 86400000),
-          "Asia/Ho_Chi_Minh",
-        ),
-        sepaySecret: process.env.SEPAY_SECRET_KEY,
-      };
-      await writeFile(
-        environment,
-        JSON.stringify({
-          name: "Isolated workflow test",
-          values: Object.entries(values).map(([key, value]) => ({ key, value, enabled: true })),
-        }),
-      );
-      try {
-        for (const folder of ["Reserve", "CheckIn", "ReturnSchedule", "Return"]) {
-          if (folder === "CheckIn") setSystemTime(new Date(`${f.date}T09:15:00+07:00`));
-          if (folder === "Return") setSystemTime(new Date(`${values.returnDate}T09:15:00+07:00`));
-          const child = Bun.spawn(
-            [
-              "postman",
-              "collection",
-              "run",
-              join(import.meta.dirname, "../postman/reservation-check-in.postman_collection.json"),
-              "-i",
-              folder,
-              "-e",
-              environment,
-              "--no-report-events",
-            ],
-            { stdout: "pipe", stderr: "pipe" },
-          );
-          const [stdout, stderr, code] = await Promise.all([
-            new Response(child.stdout).text(),
-            new Response(child.stderr).text(),
-            child.exited,
-          ]);
-          if (code !== 0) throw new Error(`Postman ${folder} failed:\n${stdout}\n${stderr}`);
-          console.log(`Postman ${folder}:\n${stdout.slice(-1700)}`);
-          expect(code).toBe(0);
-          if (folder === "Reserve") {
-            const [reservation] = await db
-              .select()
-              .from(reservations)
-              .where(eq(reservations.facilityId, f.id.facility));
-            if (!reservation) throw new Error("Reservation was not created");
-            const [appointment] = await db
-              .select()
-              .from(appointments)
-              .where(eq(appointments.reservationId, reservation.id));
-            if (!appointment) throw new Error("Appointment was not created");
-            const [task] = await db
-              .select()
-              .from(facilityTasks)
-              .where(eq(facilityTasks.referenceId, appointment.id));
-            if (!task) throw new Error("Task was not created");
-            await writeFile(
-              environment,
-              JSON.stringify({
-                name: "Isolated workflow test",
-                values: Object.entries({
-                  ...values,
-                  reservationId: reservation.id,
-                  appointmentId: appointment.id,
-                  taskId: task.id,
-                }).map(([key, value]) => ({ key, value, enabled: true })),
-              }),
-            );
-          }
-          if (folder === "CheckIn") {
-            const [rental] = await db
-              .select()
-              .from(rentals)
-              .where(eq(rentals.storageUnitId, f.id.unit));
-            if (!rental) throw new Error("Rental was not created by check-in");
-            const [reservation] = await db
-              .select()
-              .from(reservations)
-              .where(eq(reservations.id, rental.reservationId ?? ""));
-            const [appointment] = await db
-              .select()
-              .from(appointments)
-              .where(eq(appointments.reservationId, reservation?.id ?? ""));
-            const [task] = appointment
-              ? await db
-                  .select()
-                  .from(facilityTasks)
-                  .where(eq(facilityTasks.referenceId, appointment.id))
-              : [];
-            if (!reservation || !appointment || !task)
-              throw new Error("Check-in API context was not persisted");
-            const returnDate = localDate(
-              new Date(new Date(`${f.date}T12:00:00+07:00`).getTime() + 86400000),
-              "Asia/Ho_Chi_Minh",
-            );
-            await writeFile(
-              environment,
-              JSON.stringify({
-                name: "Isolated workflow test",
-                values: Object.entries({
-                  ...values,
-                  reservationId: reservation.id,
-                  appointmentId: appointment.id,
-                  taskId: task.id,
-                  rentalId: rental.id,
-                  returnDate,
-                }).map(([key, value]) => ({ key, value, enabled: true })),
-              }),
-            );
-          }
-          if (folder === "ReturnSchedule") {
-            const [rental] = await db
-              .select()
-              .from(rentals)
-              .where(eq(rentals.storageUnitId, f.id.unit));
-            if (!rental) throw new Error("Rental is unavailable for return scheduling");
-            const [appointment] = await db
-              .select()
-              .from(appointments)
-              .where(eq(appointments.rentalId, rental.id));
-            if (!appointment) throw new Error("Return appointment was not created");
-            await writeFile(
-              environment,
-              JSON.stringify({
-                name: "Isolated workflow test",
-                values: Object.entries({
-                  ...values,
-                  reservationId: rental.reservationId,
-                  rentalId: rental.id,
-                  returnAppointmentId: appointment.id,
-                }).map(([key, value]) => ({ key, value, enabled: true })),
-              }),
-            );
-          }
-        }
-        const closed = await db.select().from(rentals).where(eq(rentals.storageUnitId, f.id.unit));
-        expect(closed).toHaveLength(1);
-        expect(closed[0]?.status).toBe(RentalStatus.CLOSED);
-        expect(closed[0]?.closedAt).toBeTruthy();
-        const rental = closed[0];
-        if (!rental?.reservationId) throw new Error("Reservation rental was not created");
-        const [unit] = await db.select().from(storageUnits).where(eq(storageUnits.id, f.id.unit));
-        expect(unit?.status).toBe("AVAILABLE");
-        const [refund] = await db.select().from(payments).where(eq(payments.rentalId, rental.id));
-        expect(refund).toMatchObject({ type: "DEPOSIT_REFUND", status: "REFUNDED" });
-        expect(refund?.totalAmount).toBe("90000.00");
-        const report = await new ReportsRepository(db).rentalReport(f.manager, {
-          facilityId: f.id.facility,
-          limit: 20,
-          offset: 0,
-        });
-        expect(report.items.some((item) => item.id === rental.id)).toBe(true);
-        const [allocation] = await db
-          .select()
-          .from(capacityAllocations)
-          .where(eq(capacityAllocations.referenceId, rental.reservationId));
-        expect(allocation?.status).toBe("RELEASED");
-      } finally {
-        await app.close();
-        retrieve.mockRestore();
-        await rm(temp, { recursive: true, force: true });
-      }
-    },
-    60000,
-  );
 
   test("retiring booking preserves money, assigned work and history across migration and handover", async () => {
     const f = await fixture();

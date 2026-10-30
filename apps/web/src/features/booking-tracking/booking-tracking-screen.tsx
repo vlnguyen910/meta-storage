@@ -14,9 +14,14 @@ import {
   Warehouse,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { Card, StatusBadge } from "@/components/ui/display";
+import { LoadingState } from "@/components/ui/states";
+import { isMockMode } from "@/config/api-mode";
+import { customerRoutes } from "@/config/routes";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import { bookingLookupMessages } from "./booking-lookup.messages";
 import { BookingLookupForm } from "./booking-lookup-form";
@@ -24,6 +29,20 @@ import { trackingMessages as m } from "./tracking.messages";
 import { useBookingTracking } from "./use-booking-tracking";
 
 export function BookingTrackingScreen() {
+  return isMockMode ? <MockBookingTrackingScreen /> : <ReservationTrackingRedirect />;
+}
+
+function ReservationTrackingRedirect() {
+  const router = useRouter();
+  useEffect(() => {
+    // Retired guest credentials must not follow the redirect to the authenticated workspace.
+    window.history.replaceState(null, "", window.location.pathname);
+    router.replace(customerRoutes.reservations);
+  }, [router]);
+  return <LoadingState />;
+}
+
+function MockBookingTrackingScreen() {
   const { booking, loading, lookup, message, revoke, revoking, revokeError, retry, startLookup } =
     useBookingTracking();
 

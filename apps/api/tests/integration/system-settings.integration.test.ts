@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, spyOn, test } from "bun:test";
 import { randomUUID } from "node:crypto";
+import { SYSTEM_SETTING_DEFINITIONS } from "@metastorage/contracts/system-settings";
 import {
   db,
   eq,
@@ -65,7 +66,9 @@ describe.skipIf(!localUrl)("unified settings using existing local PostgreSQL", (
   beforeAll(async () => {
     assertTestDatabase(localUrl, process.env, true);
     originals = await db.select().from(systemSettings);
-    expect(originals).toHaveLength(6);
+    expect(originals.map((setting) => setting.key).sort()).toEqual(
+      Object.keys(SYSTEM_SETTING_DEFINITIONS).sort(),
+    );
     await db.insert(users).values(
       Object.entries(roles).map(([key, role]) => ({
         id: ids[key as keyof typeof roles],
@@ -145,7 +148,13 @@ describe.skipIf(!localUrl)("unified settings using existing local PostgreSQL", (
         .json()
         .data.map((r: { key: string }) => r.key)
         .sort(),
-    ).toEqual(["CLOSING_HOUR", "DEPOSIT_MONTHS", "OPENING_HOUR", "OVERDUE_FEE_RATE"]);
+    ).toEqual([
+      "CLOSING_HOUR",
+      "DEPOSIT_MONTHS",
+      "OPENING_HOUR",
+      "OVERDUE_FEE_RATE",
+      "RENEWAL_NOTICE_DAYS",
+    ]);
     const value = await row("OVERDUE_FEE_RATE");
     expect(
       (
