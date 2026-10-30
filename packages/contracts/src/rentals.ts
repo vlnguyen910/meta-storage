@@ -92,7 +92,21 @@ export const RentalListItemSchema = z.object({
 
 export type RentalListItem = z.infer<typeof RentalListItemSchema>;
 
+export const ReturnSettlementSchema = z.object({
+  id: z.uuid(),
+  inspectionId: z.uuid(),
+  depositAmount: z.string(),
+  deductionAmount: z.string(),
+  refundAmount: z.string(),
+  debtAmount: z.string(),
+  currency: z.string(),
+  settledAt: z.string().datetime(),
+  settledBy: z.uuid(),
+});
+export type ReturnSettlement = z.infer<typeof ReturnSettlementSchema>;
+
 export const RentalDetailSchema = RentalListItemSchema.extend({
+  settlement: ReturnSettlementSchema.nullable().optional(),
   renewalWindow: z
     .object({
       cutoffAt: z.string().datetime().nullable(),

@@ -15,7 +15,9 @@ keeping IDs, financial facts, rental/inspection history and assigned tasks.
 | --- | --- |
 | `reservations` | Customer/facility/unit type, requested months, rental period, integer price snapshots and lifecycle. Draft creation checks active offering, schedule, pricing and available capacity. Price snapshots must fit PostgreSQL INTEGER. |
 | `appointments` | CHECK_IN references a paid reservation; CHECK_OUT references an active customer rental; SUPPORT references an owned support ticket. Facility/customer scope is derived from that context. Date and slot must be future and within operating hours. One active appointment per context is enforced by service parent locks. The check-in unique index applies to SCHEDULED/CONFIRMED records so cancelled history does not prevent rebooking. One confirmed return per facility/date/slot remains enforced by a partial unique index. |
-| `payments` | CHARGE retains one booking/reservation context and provider fields. DEPOSIT_REFUND links to the rental and source charge, has no provider checkout references, and stays REFUND_PENDING until the existing manual confirmation records the transfer. |
+| `payments` | CHARGE retains provider fields. DEPOSIT_REFUND links to a rental and source charge; assigned Staff records it as REFUNDED when completing return settlement. DEBT_COLLECTION records an external receipt linked to a Debt. |
+| `return_settlements` | One immutable deposit/deduction snapshot per returned Rental and inspection, with source charge, currency, Staff and server timestamp. |
+| `debts` | Created only for deductions exceeding the deposit. Tracks original amount, paid amount and UNPAID/PARTIALLY_PAID/PAID independently of Rental closure. |
 | `policy_violation_fee` | Stores BOM catalog rows (null reference, versioned and soft-disabled) and applied fee snapshots (INSPECTION reference, code/name/VND amount/version/note). Applied rows do not change when the catalog changes. |
 | `capacity_allocations` | HOLD reserves capacity for ten minutes during checkout. A successful reservation payment changes it to RESERVATION without expiry. All allocation kinds contribute to the existing capacity calculation. |
 | `facility_tasks` | APPOINTMENT owns scheduled work; BOOKING is retained only for archived tasks. CHECK_IN creates CHECK_IN_HANDOVER, CHECK_OUT creates UNIT_INSPECTION and SUPPORT creates HANDLE_SUPPORT. Assignment/reassignment belongs to the appointment workflow. Staff start through the existing task API; completion/cancellation commits with the appointment. |
@@ -31,7 +33,12 @@ erDiagram
   reservations ||--o{ support_tickets : support
   reservations ||--o{ notification_outbox : lifecycle
   rentals ||--o{ appointments : check_out
-  rentals ||--o{ payments : deposit_refund
+  rentals ||--o{ payments : refund_or_debt_receipt
+  rentals ||--o| return_settlements : settles
+  inspections ||--o| return_settlements : settlement_evidence
+  payments ||--o{ return_settlements : source_charge
+  return_settlements ||--o| debts : excess_deductions
+  debts ||--o{ payments : receipts
   payments o|--o{ payments : source_charge
   inspections ||--o{ policy_violation_fee : applied_violations
   rentals ||--o{ inspections : check_out
@@ -67,7 +74,7 @@ Migration `0012_thin_gateway.sql` adds reservation_id to inspections and rentals
 rentals require exactly one booking/reservation reference, individually unique.
 Customer, facility rental reads, payment history and rental reports support both
 references; bookingId is nullable and reservationId identifies the new context.
-Return inspection closes the rental, records `closed_at`, releases its occupied Unit, snapshots selected violation fees and creates a pending deposit-refund payment in one transaction. Failed checklist items require a note; an inspection with recorded violations can still pass. Only a GOOD unit condition becomes AVAILABLE in this implementation. SUPPORT completion finishes the meeting/task without inventing a support-ticket lifecycle.
+Return completion uses PATCH `/api/inspections/:id` with status PASSED and a settlement confirmation. The assigned Staff confirms the computed deduction amount and, when refunding a positive balance externally, supplies CASH or BANK_TRANSFER (transfer reference required). One transaction stores the immutable settlement, records the confirmed REFUNDED deposit payment or creates a Debt for excess deductions, closes Rental, releases the assignment and completes the appointment/task. GOOD Units become AVAILABLE; damaged Units become MAINTENANCE. Failed checklist items require a note and do not block a documented return. A zero refund creates no payment. An outstanding Debt never blocks Rental closure. Identical retries preserve the original settlement; changed financial confirmations conflict. SUPPORT completion finishes the meeting/task without inventing a support-ticket lifecycle.
 
 Routes remain `/api/reservations` and `/api/appointments`. Reservation cancellation
 uses PATCH `/:id` with CANCELLED; appointment staff can list `/assigned-to-me`.
@@ -617,7 +624,11 @@ erDiagram
 
   payments {
     uuid id PK
-    payment_type type "CHARGE or DEPOSIT_REFUND"
+    payment_type type "CHARGE, DEPOSIT_REFUND or DEBT_COLLECTION"
+    uuid debt_id FK "nullable; debt receipt"
+    payment_method method "nullable; CASH or BANK_TRANSFER"
+    varchar reference "nullable; external receipt reference"
+    uuid recorded_by FK "nullable; Staff recording a receipt"
     uuid booking_id FK "nullable for rental-charge payments"
     uuid reservation_id FK "nullable"
     uuid rental_id FK "nullable; return refund"
@@ -639,6 +650,28 @@ erDiagram
     varchar refund_reference "nullable; bank transfer reference/evidence"
     timestamptz refunded_at "nullable"
     uuid refunded_by FK "nullable; ON DELETE RESTRICT"
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+  return_settlements {
+    uuid id PK
+    uuid rental_id FK,UK
+    uuid inspection_id FK,UK
+    uuid source_payment_id FK
+    numeric deposit_amount
+    numeric deduction_amount
+    varchar currency
+    uuid settled_by FK
+    timestamptz settled_at
+  }
+
+  debts {
+    uuid id PK
+    uuid settlement_id FK,UK
+    numeric original_amount "positive"
+    numeric paid_amount "0 through original_amount"
+    debt_status status "UNPAID, PARTIALLY_PAID, PAID"
     timestamptz created_at
     timestamptz updated_at
   }
@@ -864,3 +897,15 @@ recipient uniqueness; IN_APP records are stored as SENT and are never mailed. Pu
 replies/resolutions enqueue customer email; private notes never enter customer or FS
 notifications. Staff inbox visibility rechecks current ticket assignment and active
 facility membership. No new ticket/message table is introduced.
+
+### Return settlement and debt API
+
+- Existing PATCH `/api/inspections/:id` accepts `settlement: { confirmed: true, deductionAmount, refund?: { method, reference? } }` when completing a CHECK_OUT. `deductionAmount` is a confirmation of the server-calculated fee total, not a caller override. No FM approval is required. Financial confirmation and return completion commit together. Applied inspection fees remain frozen after completion.
+- Inspection detail returnContext includes deposit, applied fees, deduction total, refund estimate and debt estimate. Final confirmation rechecks server totals inside the transaction.
+- Rental detail for Customer and FM includes `settlement` (null for unsettled or historical returns): deposit, deductions, refund entitlement, debt created, inspection, currency, Staff and server timestamp.
+- GET `/api/debts` supports rentalId, status and existing limit/offset pagination. Customer sees only owned debts; Staff and FM see only actively assigned facilities. GET `/api/debts/:id` adds receipt history. Scope and actor come from the authenticated session/assignments.
+- POST `/api/debts/:id/payments` is Staff-only and accepts a positive integer VND amount, method CASH/BANK_TRANSFER, transfer reference when applicable, and idempotencyKey. It records money already received externally. Active assignment and Debt row locks protect collection, prevent overpayment, and serialize concurrent receipts. Replaying the same payload/key reuses the receipt; conflicting reuse is rejected.
+- A receipt inserts a SUCCEEDED DEBT_COLLECTION payment and updates Debt paid_amount/status atomically. No Debt or Payment is created for a zero balance. Source CHARGE amounts and status remain unchanged. Financial reports count debt receipts as cash received and cap applied deposit deductions at the deposit; the excess remains a receivable until collected.
+- BOM/System Admin manual refund endpoints remain for cancellation/no-show/provider exceptions and historical pending refunds; new deposit-return refunds are confirmed by assigned Staff during completion. Historical records retain their existing reconciliation path and are not automatically marked paid or migrated to new settlements.
+
+Deployment compatibility: completing CHECK_OUT now requires settlement confirmation. Existing web/mobile clients must be updated in their later phase before exposing return completion against this backend. This phase changes no frontend code.
