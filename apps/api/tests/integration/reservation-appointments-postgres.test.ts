@@ -22,6 +22,7 @@ import {
   capacityAllocations,
   checkInSlots,
   db,
+  debts,
   eq,
   facilities,
   facilityAssignments,
@@ -31,12 +32,14 @@ import {
   isNull,
   notificationOutbox,
   or,
+  PaymentType,
   paymentProviderEvents,
   payments,
   policyViolationFees,
   RentalStatus,
   rentals,
   reservations,
+  returnSettlements,
   storageUnits,
   supportTickets,
   systemSettings,
@@ -63,6 +66,7 @@ import { FacilityAssignmentsRepository } from "../../src/modules/facilities/faci
 import { createFacilityTasksService } from "../../src/modules/facility-tasks/facility-tasks.service";
 import { inspectionsRoutes } from "../../src/modules/inspections/inspections.routes";
 import { PaymentsRepository } from "../../src/modules/payments/payments.repository";
+import { paymentsRoutes } from "../../src/modules/payments/payments.routes";
 import { PaymentsService } from "../../src/modules/payments/payments.service";
 import type {
   SepayCreateCheckoutInput,
@@ -267,6 +271,26 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
         .where(eq(reservations.facilityId, f.id.facility));
       await db.delete(notificationOutbox).where(eq(notificationOutbox.facilityId, f.id.facility));
       await db.delete(unitAssignments).where(eq(unitAssignments.physicalUnitId, f.id.unit));
+      const closedRentals = await db
+        .select({ id: rentals.id })
+        .from(rentals)
+        .where(eq(rentals.storageUnitId, f.id.unit));
+      const rentalIds = closedRentals.map((rental) => rental.id);
+      if (rentalIds.length) {
+        await db.delete(payments).where(inArray(payments.rentalId, rentalIds));
+        const settlements = await db
+          .select({ id: returnSettlements.id })
+          .from(returnSettlements)
+          .where(inArray(returnSettlements.rentalId, rentalIds));
+        if (settlements.length)
+          await db.delete(debts).where(
+            inArray(
+              debts.settlementId,
+              settlements.map((row) => row.id),
+            ),
+          );
+        await db.delete(returnSettlements).where(inArray(returnSettlements.rentalId, rentalIds));
+      }
       await db.delete(inspections).where(eq(inspections.storageUnitId, f.id.unit));
       await db.delete(facilityTasks).where(eq(facilityTasks.facilityId, f.id.facility));
       await db.delete(appointments).where(eq(appointments.facilityId, f.id.facility));
@@ -889,6 +913,254 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
     const [completed] = await db.select().from(facilityTasks).where(eq(facilityTasks.id, task.id));
     expect(completed?.status).toBe(FacilityTaskStatus.COMPLETED);
   });
+
+  for (const deductionAmount of [0, 100000, 150000]) {
+    test(`return settlement handles deductions ${deductionAmount}, maintenance and subsequent debt collection`, async () => {
+      const f = await fixture();
+      const paid = await checkout(f);
+      await paymentWorkflow.processEvent(paid.event);
+      await db
+        .update(reservations)
+        .set({ status: ReservationStatus.CHECKED_IN })
+        .where(eq(reservations.id, paid.reservation.id));
+      await db
+        .update(storageUnits)
+        .set({ status: "OCCUPIED" })
+        .where(eq(storageUnits.id, f.id.unit));
+      const [rental] = await db
+        .insert(rentals)
+        .values({
+          reservationId: paid.reservation.id,
+          userId: f.id.customer,
+          storageUnitId: f.id.unit,
+          startAt: new Date(`${f.date}T08:00:00+07:00`),
+          endAt: new Date(new Date(`${f.date}T08:00:00+07:00`).getTime() + 60 * 86400000),
+        })
+        .returning();
+      if (!rental) throw new Error("Missing rental");
+      const appointment = await appointmentService.scheduleAppointment(
+        {
+          appointmentType: Type.CHECK_OUT,
+          rentalId: rental.id,
+          scheduledDate: f.date,
+          slotId: f.id.slot,
+        },
+        f.id.customer,
+      );
+      await appointmentService.updateAppointment(
+        appointment.id,
+        { status: Status.CONFIRMED, assignedStaffId: f.id.staff },
+        f.manager,
+      );
+      setSystemTime(new Date(`${f.date}T09:15:00+07:00`));
+      const [task] = await db
+        .select()
+        .from(facilityTasks)
+        .where(eq(facilityTasks.referenceId, appointment.id));
+      if (!task) throw new Error("Missing task");
+      await taskService.update(task.id, { status: FacilityTaskStatus.IN_PROGRESS }, f.staff);
+      const app = Fastify();
+      app.decorate("db", db);
+      app.setValidatorCompiler(validatorCompiler);
+      app.setSerializerCompiler(serializerCompiler);
+      setupErrorHandler(app);
+      const session = spyOn(auth.api, "getSession").mockResolvedValue({
+        user: { ...f.staff, status: "ACTIVE" },
+        session: {},
+      } as never);
+      try {
+        await app.register(inspectionsRoutes, { prefix: "/api" });
+        await app.register(paymentsRoutes, { prefix: "/api" });
+        const created = await app.inject({
+          method: "POST",
+          url: "/api/inspections",
+          payload: { taskId: task.id },
+        });
+        expect(created.statusCode).toBe(201);
+        const inspection = created.json().data;
+        if (deductionAmount)
+          await db.insert(policyViolationFees).values({
+            referenceType: "INSPECTION",
+            referenceId: inspection.id,
+            violationCode: "TEST_DAMAGE",
+            violationName: "Damage",
+            amount: deductionAmount,
+            policyVersion: 1,
+            isActive: false,
+          });
+        const payload = {
+          status: "PASSED",
+          condition: deductionAmount ? "MAJOR_DAMAGE" : "GOOD",
+          checklist: {
+            results: HANDOVER_CHECKLIST_ITEMS.map((item) => ({
+              itemCode: item.code,
+              resultType: "PASS_FAIL",
+              result: deductionAmount ? "FAIL" : "PASS",
+              note: deductionAmount ? "Documented damage" : null,
+              photos: [],
+            })),
+          },
+          settlement: {
+            confirmed: true,
+            deductionAmount,
+            ...(deductionAmount < 100000
+              ? { refund: { method: "BANK_TRANSFER", reference: "RETURN-TEST" } }
+              : {}),
+          },
+        };
+        const missingConfirmation = await app.inject({
+          method: "PATCH",
+          url: `/api/inspections/${inspection.id}`,
+          payload: { ...payload, settlement: undefined },
+        });
+        expect(missingConfirmation.statusCode).toBe(409);
+        expect((await db.select().from(rentals).where(eq(rentals.id, rental.id)))[0]?.status).toBe(
+          "ACTIVE",
+        );
+        const completed = await app.inject({
+          method: "PATCH",
+          url: `/api/inspections/${inspection.id}`,
+          payload,
+        });
+        expect(completed.statusCode).toBe(200);
+        expect((await db.select().from(rentals).where(eq(rentals.id, rental.id)))[0]?.status).toBe(
+          "CLOSED",
+        );
+        expect(
+          (await db.select().from(storageUnits).where(eq(storageUnits.id, f.id.unit)))[0]?.status,
+        ).toBe(deductionAmount ? "MAINTENANCE" : "AVAILABLE");
+        expect(
+          (await app.inject({ method: "PATCH", url: `/api/inspections/${inspection.id}`, payload }))
+            .statusCode,
+        ).toBe(200);
+        const settlements = await db
+          .select()
+          .from(returnSettlements)
+          .where(eq(returnSettlements.rentalId, rental.id));
+        expect(settlements).toHaveLength(1);
+        const changedReplay = await app.inject({
+          method: "PATCH",
+          url: `/api/inspections/${inspection.id}`,
+          payload: {
+            ...payload,
+            settlement: { ...payload.settlement, deductionAmount: deductionAmount + 1 },
+          },
+        });
+        expect(changedReplay.statusCode).toBe(409);
+        const source = (
+          await db.select().from(payments).where(eq(payments.id, paid.session.paymentId))
+        )[0];
+        expect(source).toMatchObject({ status: "SUCCEEDED", totalAmount: "300000.00" });
+        const reports = new ReportsRepository(db);
+        const from = new Date(Date.now() - 10 * 86400000),
+          to = new Date(Date.now() + 86400000);
+        const report = await reports.read(
+          f.manager,
+          { facilityId: f.id.facility },
+          from,
+          to,
+          new Date(),
+        );
+        expect(Number(report.financial[0]?.cashReceived)).toBe(300000);
+        expect(Number(report.financial[0]?.cashRefunded)).toBe(
+          Math.max(0, 100000 - deductionAmount),
+        );
+        expect(Number(report.returnPenalties[0]?.amount)).toBe(Math.min(100000, deductionAmount));
+
+        const refunds = await db
+          .select()
+          .from(payments)
+          .where(
+            and(eq(payments.rentalId, rental.id), eq(payments.type, PaymentType.DEPOSIT_REFUND)),
+          );
+        expect(refunds).toHaveLength(deductionAmount < 100000 ? 1 : 0);
+        if (refunds[0])
+          expect(refunds[0]).toMatchObject({
+            status: "REFUNDED",
+            refundedBy: f.id.staff,
+            refundReference: "RETURN-TEST",
+          });
+        const list = await app.inject({ method: "GET", url: `/api/debts?rentalId=${rental.id}` });
+        expect(list.statusCode).toBe(200);
+        expect(list.json().data.items).toHaveLength(deductionAmount > 100000 ? 1 : 0);
+        if (deductionAmount <= 100000) return;
+        const debt = list.json().data.items[0];
+        const input = { amount: 20000, method: "CASH", idempotencyKey: randomUUID() };
+        const collect = () =>
+          app.inject({ method: "POST", url: `/api/debts/${debt.id}/payments`, payload: input });
+        const concurrent = await Promise.all([collect(), collect()]);
+        expect(concurrent.map((response) => response.statusCode)).toEqual([200, 200]);
+        expect(concurrent[1]?.json().data).toMatchObject({
+          status: "PARTIALLY_PAID",
+          paidAmount: "20000.00",
+          remainingAmount: "30000",
+        });
+        expect(concurrent[1]?.json().data.payments).toHaveLength(1);
+        const excess = await app.inject({
+          method: "POST",
+          url: `/api/debts/${debt.id}/payments`,
+          payload: { ...input, amount: 30001, idempotencyKey: randomUUID() },
+        });
+        expect(excess.statusCode).toBe(409);
+        const conflict = await app.inject({
+          method: "POST",
+          url: `/api/debts/${debt.id}/payments`,
+          payload: { ...input, amount: 20001 },
+        });
+        expect(conflict.statusCode).toBe(409);
+        session.mockResolvedValue({
+          user: { id: f.id.outsider, role: "CUSTOMER", status: "ACTIVE" },
+          session: {},
+        } as never);
+        expect((await app.inject({ method: "GET", url: `/api/debts/${debt.id}` })).statusCode).toBe(
+          404,
+        );
+        session.mockResolvedValue({
+          user: { ...f.manager, status: "ACTIVE" },
+          session: {},
+        } as never);
+        expect((await collect()).statusCode).toBe(403);
+        expect((await app.inject({ method: "GET", url: `/api/debts/${debt.id}` })).statusCode).toBe(
+          200,
+        );
+        session.mockResolvedValue({ user: { ...f.staff, status: "ACTIVE" }, session: {} } as never);
+        const finalPayment = await app.inject({
+          method: "POST",
+          url: `/api/debts/${debt.id}/payments`,
+          payload: {
+            amount: 30000,
+            method: "BANK_TRANSFER",
+            reference: "DEBT-FINAL",
+            idempotencyKey: randomUUID(),
+          },
+        });
+        expect(finalPayment.statusCode).toBe(200);
+        expect(finalPayment.json().data).toMatchObject({ status: "PAID", remainingAmount: "0" });
+        const collectedReport = await reports.read(
+          f.manager,
+          { facilityId: f.id.facility },
+          from,
+          to,
+          new Date(),
+        );
+        expect(Number(collectedReport.financial[0]?.cashReceived)).toBe(350000);
+        expect(collectedReport.financial[0]?.unclassifiedCollectedPayments).toBe(0);
+        const monthly = await reports.monthlyRevenue(
+          f.manager,
+          { facilityId: f.id.facility },
+          from,
+          to,
+          new Date(),
+        );
+        expect(
+          monthly.receipts.reduce((sum, receipt) => sum + Number(receipt.cashReceived), 0),
+        ).toBe(350000);
+      } finally {
+        session.mockRestore();
+        await app.close();
+      }
+    });
+  }
 
   test("return and support appointments use their owning modules and serialize confirmed slots", async () => {
     const f = await fixture();

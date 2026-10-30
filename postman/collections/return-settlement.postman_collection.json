@@ -1,0 +1,2828 @@
+{
+  "info": {
+    "name": "Return settlement and debt",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:39901"
+    },
+    {
+      "key": "date",
+      "value": "2026-10-31"
+    },
+    {
+      "key": "slotId",
+      "value": "eabd7133-2050-4171-bc21-37190a1643b6"
+    },
+    {
+      "key": "staffId",
+      "value": "9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b"
+    },
+    {
+      "key": "customerCookie",
+      "value": ""
+    },
+    {
+      "key": "customerEmail",
+      "value": "customer-51363290-c197-4575-9e38-c1c90bd2fd56@example.test"
+    },
+    {
+      "key": "staffCookie",
+      "value": ""
+    },
+    {
+      "key": "staffEmail",
+      "value": "staff-9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b@example.test"
+    },
+    {
+      "key": "managerCookie",
+      "value": ""
+    },
+    {
+      "key": "managerEmail",
+      "value": "manager-f1caf4de-30f8-4f6d-ab1b-9f63f5dcdc6b@example.test"
+    },
+    {
+      "key": "bomCookie",
+      "value": ""
+    },
+    {
+      "key": "bomEmail",
+      "value": "bom-12127d02-7b63-4d00-a6da-bcb843abbef2@example.test"
+    },
+    {
+      "key": "outsiderCookie",
+      "value": ""
+    },
+    {
+      "key": "outsiderEmail",
+      "value": "outsider-75e27286-40d9-492a-8cb1-a53ee8124edd@example.test"
+    },
+    {
+      "key": "unassignedCookie",
+      "value": ""
+    },
+    {
+      "key": "unassignedEmail",
+      "value": "unassigned-a32ea155-0063-4b4c-aad5-ba8ed8c93f5f@example.test"
+    },
+    {
+      "key": "surplusRental",
+      "value": "5bcb16a5-a1a7-410d-85d2-f524d8fce810"
+    },
+    {
+      "key": "surplusFacility",
+      "value": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e"
+    },
+    {
+      "key": "surplusUnit",
+      "value": "20640c10-44b1-4698-8c28-3d79874bc6d5"
+    },
+    {
+      "key": "surplusPayment",
+      "value": "b9bc7145-3755-44c7-b083-688adea9a935"
+    },
+    {
+      "key": "surplusType",
+      "value": "e3e3cc8c-e5c7-44c9-985d-264ef942b1b6"
+    },
+    {
+      "key": "equalRental",
+      "value": "fa63abfb-525a-49f3-8117-8bc904332158"
+    },
+    {
+      "key": "equalFacility",
+      "value": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e"
+    },
+    {
+      "key": "equalUnit",
+      "value": "6d6e953c-c6b3-4c73-a533-6e23accdd4f8"
+    },
+    {
+      "key": "equalPayment",
+      "value": "b5d2f75e-8e9d-4c53-831f-59ac184d9e98"
+    },
+    {
+      "key": "equalType",
+      "value": "d9a10a52-9560-4a89-b5b8-6174213a3e5b"
+    },
+    {
+      "key": "debtRental",
+      "value": "a490a37d-4cf2-4e19-8a12-63aa0588fad6"
+    },
+    {
+      "key": "debtFacility",
+      "value": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e"
+    },
+    {
+      "key": "debtUnit",
+      "value": "34d9a88d-a702-4f22-a652-cc30129f5911"
+    },
+    {
+      "key": "debtPayment",
+      "value": "b010b1f7-d4d4-4b47-abba-5dc2a8ef1653"
+    },
+    {
+      "key": "debtType",
+      "value": "a0d1c934-4303-4464-beb5-730db8a1a8e8"
+    },
+    {
+      "key": "surplusAppointment",
+      "value": "02dc121b-684e-4d96-9c99-bd63fb883f17"
+    },
+    {
+      "key": "surplusTask",
+      "value": "52963a05-ce05-432f-ac87-140207404c10"
+    },
+    {
+      "key": "equalAppointment",
+      "value": "f6809315-4c2f-4661-9674-4591e63cff5c"
+    },
+    {
+      "key": "equalTask",
+      "value": "8f74f85c-c4c4-4509-9182-da3c9337b24a"
+    },
+    {
+      "key": "debtAppointment",
+      "value": "1e6f2f56-5498-4562-81fb-d1ac412ff5e8"
+    },
+    {
+      "key": "debtTask",
+      "value": "8a5fc35d-c23a-43a2-a8d6-614aceff61b2"
+    },
+    {
+      "key": "policyVersion",
+      "value": "1"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 Schedule",
+      "item": [
+        {
+          "name": "01 Login customer",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/sign-in/email",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"customer-51363290-c197-4575-9e38-c1c90bd2fd56@example.test\",\"password\":\"local-return-postman-123\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 Login staff",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/sign-in/email",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"staff-9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b@example.test\",\"password\":\"local-return-postman-123\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 Login manager",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/sign-in/email",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"manager-f1caf4de-30f8-4f6d-ab1b-9f63f5dcdc6b@example.test\",\"password\":\"local-return-postman-123\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 Login bom",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/sign-in/email",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"bom-12127d02-7b63-4d00-a6da-bcb843abbef2@example.test\",\"password\":\"local-return-postman-123\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 BOM updates fee policy",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{bomCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/policy-violation-fees",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"expectedVersion\":0,\"items\":[{\"code\":\"SURPLUS\",\"name\":\"surplus\",\"amount\":50000,\"isActive\":true},{\"code\":\"EQUAL\",\"name\":\"equal\",\"amount\":100000,\"isActive\":true},{\"code\":\"DEBT\",\"name\":\"debt\",\"amount\":150000,\"isActive\":true}]}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.collectionVariables.set(\"policyVersion\", data.version); pm.test(\"Three policy fees\", () => pm.expect(data.items.length).eq(3));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 surplus: Customer requests return",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{customerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/appointments/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"appointmentType\":\"CHECK_OUT\",\"rentalId\":\"5bcb16a5-a1a7-410d-85d2-f524d8fce810\",\"scheduledDate\":\"2026-10-31\",\"slotId\":\"1d747079-173d-4533-b17b-9ca5bf416489\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const data = pm.response.json().data;",
+                  "pm.collectionVariables.set(\"surplusAppointment\", data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 surplus: FM confirms and assigns Staff",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{managerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/appointments/{{surplusAppointment}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"CONFIRMED\",\"assignedStaffId\":\"9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 equal: Customer requests return",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{customerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/appointments/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"appointmentType\":\"CHECK_OUT\",\"rentalId\":\"fa63abfb-525a-49f3-8117-8bc904332158\",\"scheduledDate\":\"2026-10-31\",\"slotId\":\"556d7161-0810-4328-92b7-0ed7d963849d\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const data = pm.response.json().data;",
+                  "pm.collectionVariables.set(\"equalAppointment\", data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "09 equal: FM confirms and assigns Staff",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{managerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/appointments/{{equalAppointment}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"CONFIRMED\",\"assignedStaffId\":\"9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "10 debt: Customer requests return",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{customerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/appointments/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"appointmentType\":\"CHECK_OUT\",\"rentalId\":\"a490a37d-4cf2-4e19-8a12-63aa0588fad6\",\"scheduledDate\":\"2026-10-31\",\"slotId\":\"cf5eec57-a011-4720-bcda-19d5f947634b\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const data = pm.response.json().data;",
+                  "pm.collectionVariables.set(\"debtAppointment\", data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "11 debt: FM confirms and assigns Staff",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{managerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/appointments/{{debtAppointment}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"CONFIRMED\",\"assignedStaffId\":\"9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 Return and collect",
+      "item": [
+        {
+          "name": "12 surplus: Staff starts task",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/facility-tasks/{{surplusTask}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"IN_PROGRESS\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "13 surplus: Staff creates inspection",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/inspections",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"taskId\":\"{{surplusTask}}\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const data = pm.response.json().data;",
+                  "pm.collectionVariables.set(\"surplusInspection\", data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "14 surplus: Save inspection and applied fees",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/inspections/{{surplusInspection}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"IN_PROGRESS\",\"condition\":\"GOOD\",\"checklist\":{\"results\":[{\"itemCode\":\"ASSIGNED_UNIT\",\"resultType\":\"PASS_FAIL\",\"result\":\"PASS\",\"note\":null,\"photos\":[]},{\"itemCode\":\"DOOR_LOCK\",\"resultType\":\"PASS_FAIL\",\"result\":\"PASS\",\"note\":null,\"photos\":[]},{\"itemCode\":\"UNIT_CONDITION\",\"resultType\":\"PASS_FAIL\",\"result\":\"PASS\",\"note\":null,\"photos\":[]},{\"itemCode\":\"EXISTING_INVENTORY\",\"resultType\":\"PASS_FAIL\",\"result\":\"PASS\",\"note\":null,\"photos\":[]}]},\"violations\":[{\"code\":\"SURPLUS\",\"note\":\"Policy fee\"}],\"policyVersion\":1}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "15 surplus: Read settlement estimate",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/inspections/{{surplusInspection}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"Server estimate\", () => { pm.expect(data.returnContext.deductionAmount).eq(50000); pm.expect(data.returnContext.refundAmount).eq(50000); pm.expect(data.returnContext.debtAmount).eq(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "16 surplus: Reject missing settlement confirmation",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/inspections/{{surplusInspection}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"PASSED\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "17 surplus: Complete return and settlement",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/inspections/{{surplusInspection}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"PASSED\",\"settlement\":{\"confirmed\":true,\"deductionAmount\":50000,\"refund\":{\"method\":\"BANK_TRANSFER\",\"reference\":\"POSTMAN-REFUND\"}}}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"Inspection finalized\", () => pm.expect(data.status).eq(\"PASSED\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "18 surplus: Replay completion",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/inspections/{{surplusInspection}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"PASSED\",\"settlement\":{\"confirmed\":true,\"deductionAmount\":50000,\"refund\":{\"method\":\"BANK_TRANSFER\",\"reference\":\"POSTMAN-REFUND\"}}}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "19 surplus: Reject changed completion",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/inspections/{{surplusInspection}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"PASSED\",\"settlement\":{\"confirmed\":true,\"deductionAmount\":50001,\"refund\":{\"method\":\"BANK_TRANSFER\",\"reference\":\"POSTMAN-REFUND\"}}}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "20 surplus: Customer reads closed Rental",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{customerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/rentals/5bcb16a5-a1a7-410d-85d2-f524d8fce810"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"Closed Rental and immutable settlement\", () => { pm.expect(data.status).eq(\"CLOSED\"); pm.expect(Number(data.settlement.deductionAmount)).eq(50000); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "21 surplus: FM verifies Unit status",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{managerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/storage-units/?facilityId=8cc667c5-9141-4db0-b95d-5840ed1d8f5e&limit=100"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"Unit after return\", () => pm.expect(data.items.find(u => u.id === \"20640c10-44b1-4698-8c28-3d79874bc6d5\").status).eq(\"AVAILABLE\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "22 surplus: FM reads closed Rental",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{managerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/rentals/facility/8cc667c5-9141-4db0-b95d-5840ed1d8f5e/5bcb16a5-a1a7-410d-85d2-f524d8fce810"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"FM settlement visible\", () => pm.expect(data.settlement).not.eq(null));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "23 surplus: Customer reads payment history",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{customerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/rentals/5bcb16a5-a1a7-410d-85d2-f524d8fce810/payments"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"Refund records\", () => pm.expect(data.filter(p => p.type === \"DEPOSIT_REFUND\").length).eq(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "24 surplus: FM reads payment history",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{managerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/rentals/facility/8cc667c5-9141-4db0-b95d-5840ed1d8f5e/5bcb16a5-a1a7-410d-85d2-f524d8fce810/payments"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "25 surplus: Source charge status preserved",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{customerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/payments/b9bc7145-3755-44c7-b083-688adea9a935/status"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"Source CHARGE succeeded\", () => { pm.expect(data.type).eq(\"CHARGE\"); pm.expect(data.status).eq(\"SUCCEEDED\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "26 surplus: Staff lists Debt",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/debts?rentalId=5bcb16a5-a1a7-410d-85d2-f524d8fce810"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"Debt count\", () => pm.expect(data.total).eq(0)); "
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "27 equal: Staff starts task",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/facility-tasks/{{equalTask}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"IN_PROGRESS\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "28 equal: Staff creates inspection",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/inspections",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"taskId\":\"{{equalTask}}\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const data = pm.response.json().data;",
+                  "pm.collectionVariables.set(\"equalInspection\", data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "29 equal: Save inspection and applied fees",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/inspections/{{equalInspection}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"IN_PROGRESS\",\"condition\":\"MAJOR_DAMAGE\",\"checklist\":{\"results\":[{\"itemCode\":\"ASSIGNED_UNIT\",\"resultType\":\"PASS_FAIL\",\"result\":\"FAIL\",\"note\":\"Documented damage\",\"photos\":[]},{\"itemCode\":\"DOOR_LOCK\",\"resultType\":\"PASS_FAIL\",\"result\":\"FAIL\",\"note\":\"Documented damage\",\"photos\":[]},{\"itemCode\":\"UNIT_CONDITION\",\"resultType\":\"PASS_FAIL\",\"result\":\"FAIL\",\"note\":\"Documented damage\",\"photos\":[]},{\"itemCode\":\"EXISTING_INVENTORY\",\"resultType\":\"PASS_FAIL\",\"result\":\"FAIL\",\"note\":\"Documented damage\",\"photos\":[]}]},\"violations\":[{\"code\":\"EQUAL\",\"note\":\"Policy fee\"}],\"policyVersion\":1}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "30 equal: Read settlement estimate",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/inspections/{{equalInspection}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"Server estimate\", () => { pm.expect(data.returnContext.deductionAmount).eq(100000); pm.expect(data.returnContext.refundAmount).eq(0); pm.expect(data.returnContext.debtAmount).eq(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "31 equal: Reject missing settlement confirmation",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/inspections/{{equalInspection}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"PASSED\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "32 equal: Complete return and settlement",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/inspections/{{equalInspection}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"PASSED\",\"settlement\":{\"confirmed\":true,\"deductionAmount\":100000}}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"Inspection finalized\", () => pm.expect(data.status).eq(\"PASSED\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "33 equal: Replay completion",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/inspections/{{equalInspection}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"PASSED\",\"settlement\":{\"confirmed\":true,\"deductionAmount\":100000}}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "34 equal: Reject changed completion",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/inspections/{{equalInspection}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"PASSED\",\"settlement\":{\"confirmed\":true,\"deductionAmount\":100001}}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "35 equal: Customer reads closed Rental",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{customerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/rentals/fa63abfb-525a-49f3-8117-8bc904332158"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"Closed Rental and immutable settlement\", () => { pm.expect(data.status).eq(\"CLOSED\"); pm.expect(Number(data.settlement.deductionAmount)).eq(100000); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "36 equal: FM verifies Unit status",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{managerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/storage-units/?facilityId=8cc667c5-9141-4db0-b95d-5840ed1d8f5e&limit=100"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"Unit after return\", () => pm.expect(data.items.find(u => u.id === \"6d6e953c-c6b3-4c73-a533-6e23accdd4f8\").status).eq(\"MAINTENANCE\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "37 equal: FM reads closed Rental",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{managerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/rentals/facility/8cc667c5-9141-4db0-b95d-5840ed1d8f5e/fa63abfb-525a-49f3-8117-8bc904332158"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"FM settlement visible\", () => pm.expect(data.settlement).not.eq(null));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "38 equal: Customer reads payment history",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{customerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/rentals/fa63abfb-525a-49f3-8117-8bc904332158/payments"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"Refund records\", () => pm.expect(data.filter(p => p.type === \"DEPOSIT_REFUND\").length).eq(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "39 equal: FM reads payment history",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{managerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/rentals/facility/8cc667c5-9141-4db0-b95d-5840ed1d8f5e/fa63abfb-525a-49f3-8117-8bc904332158/payments"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "40 equal: Source charge status preserved",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{customerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/payments/b5d2f75e-8e9d-4c53-831f-59ac184d9e98/status"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"Source CHARGE succeeded\", () => { pm.expect(data.type).eq(\"CHARGE\"); pm.expect(data.status).eq(\"SUCCEEDED\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "41 equal: Staff lists Debt",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/debts?rentalId=fa63abfb-525a-49f3-8117-8bc904332158"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"Debt count\", () => pm.expect(data.total).eq(0)); "
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "42 debt: Staff starts task",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/facility-tasks/{{debtTask}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"IN_PROGRESS\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "43 debt: Staff creates inspection",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/inspections",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"taskId\":\"{{debtTask}}\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const data = pm.response.json().data;",
+                  "pm.collectionVariables.set(\"debtInspection\", data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "44 debt: Save inspection and applied fees",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/inspections/{{debtInspection}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"IN_PROGRESS\",\"condition\":\"MAJOR_DAMAGE\",\"checklist\":{\"results\":[{\"itemCode\":\"ASSIGNED_UNIT\",\"resultType\":\"PASS_FAIL\",\"result\":\"FAIL\",\"note\":\"Documented damage\",\"photos\":[]},{\"itemCode\":\"DOOR_LOCK\",\"resultType\":\"PASS_FAIL\",\"result\":\"FAIL\",\"note\":\"Documented damage\",\"photos\":[]},{\"itemCode\":\"UNIT_CONDITION\",\"resultType\":\"PASS_FAIL\",\"result\":\"FAIL\",\"note\":\"Documented damage\",\"photos\":[]},{\"itemCode\":\"EXISTING_INVENTORY\",\"resultType\":\"PASS_FAIL\",\"result\":\"FAIL\",\"note\":\"Documented damage\",\"photos\":[]}]},\"violations\":[{\"code\":\"DEBT\",\"note\":\"Policy fee\"}],\"policyVersion\":1}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "45 debt: Read settlement estimate",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/inspections/{{debtInspection}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"Server estimate\", () => { pm.expect(data.returnContext.deductionAmount).eq(150000); pm.expect(data.returnContext.refundAmount).eq(0); pm.expect(data.returnContext.debtAmount).eq(50000); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "46 debt: Reject missing settlement confirmation",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/inspections/{{debtInspection}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"PASSED\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "47 debt: Complete return and settlement",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/inspections/{{debtInspection}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"PASSED\",\"settlement\":{\"confirmed\":true,\"deductionAmount\":150000}}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"Inspection finalized\", () => pm.expect(data.status).eq(\"PASSED\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "48 debt: Replay completion",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/inspections/{{debtInspection}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"PASSED\",\"settlement\":{\"confirmed\":true,\"deductionAmount\":150000}}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "49 debt: Reject changed completion",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/inspections/{{debtInspection}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"PASSED\",\"settlement\":{\"confirmed\":true,\"deductionAmount\":150001}}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "50 debt: Customer reads closed Rental",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{customerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/rentals/a490a37d-4cf2-4e19-8a12-63aa0588fad6"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"Closed Rental and immutable settlement\", () => { pm.expect(data.status).eq(\"CLOSED\"); pm.expect(Number(data.settlement.deductionAmount)).eq(150000); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "51 debt: FM verifies Unit status",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{managerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/storage-units/?facilityId=8cc667c5-9141-4db0-b95d-5840ed1d8f5e&limit=100"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"Unit after return\", () => pm.expect(data.items.find(u => u.id === \"34d9a88d-a702-4f22-a652-cc30129f5911\").status).eq(\"MAINTENANCE\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "52 debt: FM reads closed Rental",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{managerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/rentals/facility/8cc667c5-9141-4db0-b95d-5840ed1d8f5e/a490a37d-4cf2-4e19-8a12-63aa0588fad6"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"FM settlement visible\", () => pm.expect(data.settlement).not.eq(null));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "53 debt: Customer reads payment history",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{customerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/rentals/a490a37d-4cf2-4e19-8a12-63aa0588fad6/payments"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"Refund records\", () => pm.expect(data.filter(p => p.type === \"DEPOSIT_REFUND\").length).eq(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "54 debt: FM reads payment history",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{managerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/rentals/facility/8cc667c5-9141-4db0-b95d-5840ed1d8f5e/a490a37d-4cf2-4e19-8a12-63aa0588fad6/payments"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "55 debt: Source charge status preserved",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{customerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/payments/b010b1f7-d4d4-4b47-abba-5dc2a8ef1653/status"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"Source CHARGE succeeded\", () => { pm.expect(data.type).eq(\"CHARGE\"); pm.expect(data.status).eq(\"SUCCEEDED\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "56 debt: Staff lists Debt",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/debts?rentalId=a490a37d-4cf2-4e19-8a12-63aa0588fad6"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"Debt count\", () => pm.expect(data.total).eq(1)); pm.collectionVariables.set(\"debtId\", data.items[0].id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "57 Customer reads own unpaid Debt",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{customerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/debts/{{debtId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"UNPAID 50000\", () => { pm.expect(data.status).eq(\"UNPAID\"); pm.expect(Number(data.remainingAmount)).eq(50000); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "58 FM lists unpaid Debt",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{managerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/debts?status=UNPAID"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"One unpaid debt\", () => pm.expect(data.total).eq(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "59 Outsider cannot read Debt",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{outsiderCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/debts/{{debtId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "60 Anonymous cannot list Debt",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/debts"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "61 FM cannot collect Debt",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{managerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/debts/{{debtId}}/payments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"amount\":20000,\"method\":\"CASH\",\"idempotencyKey\":\"aac5b6e2-1dc9-4182-a70b-06c640a05c70\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "62 Unassigned Staff cannot collect Debt",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{unassignedCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/debts/{{debtId}}/payments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"amount\":20000,\"method\":\"CASH\",\"idempotencyKey\":\"aac5b6e2-1dc9-4182-a70b-06c640a05c70\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "63 Transfer requires reference",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/debts/{{debtId}}/payments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"amount\":20000,\"method\":\"BANK_TRANSFER\",\"idempotencyKey\":\"aac5b6e2-1dc9-4182-a70b-06c640a05c70\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "64 Staff collects partial payment",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/debts/{{debtId}}/payments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"amount\":20000,\"method\":\"CASH\",\"idempotencyKey\":\"aac5b6e2-1dc9-4182-a70b-06c640a05c70\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"PARTIALLY_PAID 30000 remaining\", () => { pm.expect(data.status).eq(\"PARTIALLY_PAID\"); pm.expect(Number(data.remainingAmount)).eq(30000); pm.expect(data.payments.length).eq(1); pm.collectionVariables.set(\"receiptId\", data.payments[0].id); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "65 FM filters partially paid Debt",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{managerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/debts?status=PARTIALLY_PAID"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"One partial Debt\", () => pm.expect(data.total).eq(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "66 Debt pagination retains total beyond last page",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{managerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/debts?limit=1&offset=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"Empty page with total one\", () => { pm.expect(data.items.length).eq(0); pm.expect(data.total).eq(1); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "67 Replay partial receipt",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/debts/{{debtId}}/payments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"amount\":20000,\"method\":\"CASH\",\"idempotencyKey\":\"aac5b6e2-1dc9-4182-a70b-06c640a05c70\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"No duplicated receipt\", () => pm.expect(data.payments.length).eq(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "68 Reject conflicting receipt key",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/debts/{{debtId}}/payments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"amount\":20001,\"method\":\"CASH\",\"idempotencyKey\":\"aac5b6e2-1dc9-4182-a70b-06c640a05c70\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "69 Reject overpayment",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/debts/{{debtId}}/payments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"amount\":30001,\"method\":\"CASH\",\"idempotencyKey\":\"345dd250-da35-4fa8-90da-858de1a8a868\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "70 Staff collects final transfer",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{staffCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/debts/{{debtId}}/payments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"amount\":30000,\"method\":\"BANK_TRANSFER\",\"reference\":\"POSTMAN-DEBT-FINAL\",\"idempotencyKey\":\"e38ad0fe-781f-47cc-8a05-69a0b2364860\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"PAID with two receipts\", () => { pm.expect(data.status).eq(\"PAID\"); pm.expect(Number(data.remainingAmount)).eq(0); pm.expect(data.payments.length).eq(2); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "71 Customer reads debt receipt status",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{customerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/payments/{{receiptId}}/status"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"Debt receipt SUCCEEDED\", () => { pm.expect(data.type).eq(\"DEBT_COLLECTION\"); pm.expect(data.status).eq(\"SUCCEEDED\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "72 Customer payment history includes both receipts",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{customerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/rentals/{{debtRental}}/payments"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"Two debt receipts\", () => pm.expect(data.filter(p => p.type === \"DEBT_COLLECTION\").length).eq(2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "73 FM revenue includes debt cash",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{managerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/reports/revenue?facilityId={{debtFacility}}&unitTypeId={{debtType}}&from=2026-10-30&to=2026-10-31"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"350000 cash received\", () => pm.expect(Number(data.summary.cashReceived)).eq(350000));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "74 FM monthly revenue",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{managerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/reports/revenue/monthly?facilityId={{debtFacility}}&unitTypeId={{debtType}}&from=2026-10-30&to=2026-10-31"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "75 FM overview",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{managerCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/reports/overview?facilityId={{debtFacility}}&unitTypeId={{debtType}}&from=2026-10-30&to=2026-10-31"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "76 BOM pending refund queue excludes completed refund",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{bomCookie}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/payments/refunds"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"RESULT \" + JSON.stringify({name: pm.info.requestName, code: pm.response.code, body: (() => { const body = pm.response.json(); if (body.token) body.token = \"[redacted test token]\"; return body; })()}));",
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"No pending refunds\", () => pm.expect(data.length).eq(0));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
