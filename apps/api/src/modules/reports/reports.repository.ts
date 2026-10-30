@@ -21,6 +21,7 @@ import {
   ReservationStatus,
   rentals,
   reservations,
+  returnSettlements,
   type SQL,
   sql,
   storageUnits,
@@ -38,16 +39,17 @@ const quantity = (condition: SQL) =>
 
 const paymentFacilityId = sql<
   string | null
->`coalesce(${bookings.facilityId}, ${reservations.facilityId})`;
+>`coalesce(${bookings.facilityId}, ${reservations.facilityId}, (select unit.facility_id from rentals rental join storage_units unit on unit.id = rental.storage_unit_id where rental.id = ${payments.rentalId}))`;
 const paymentUnitTypeId = sql<
   string | null
->`coalesce(${bookings.unitTypeId}, ${reservations.unitTypeId})`;
+>`coalesce(${bookings.unitTypeId}, ${reservations.unitTypeId}, (select unit.unit_type_id from rentals rental join storage_units unit on unit.id = rental.storage_unit_id where rental.id = ${payments.rentalId}))`;
 const rentalSnapshot = sql`coalesce(${bookings.rentalFeeAmount}, ${reservations.rentalFeeAmount})`;
 const depositSnapshot = sql`coalesce(${bookings.depositAmount}, ${reservations.depositAmount})`;
 
 function financialRules(asOf: Date) {
   const vn = sql`${payments.currency} = 'VND'`;
   const captured = sql`${payments.type} = 'CHARGE' and ${payments.paidAt} is not null and ${payments.paidAt} <= ${asOf.toISOString()}`;
+  const cashCaptured = sql`(${captured} or (${payments.type} = 'DEBT_COLLECTION' and ${payments.status} = 'SUCCEEDED' and ${payments.paidAt} <= ${asOf.toISOString()}))`;
   const known = sql`${rentalSnapshot} >= 0 and ${depositSnapshot} >= 0 and ${payments.totalAmount} = ${rentalSnapshot} + ${depositSnapshot} and ${payments.depositForfeitedAmount} <= ${depositSnapshot}`;
   const refund = sql`case when ${payments.type} = 'DEPOSIT_REFUND' then ${payments.totalAmount} else coalesce(${payments.refundAmount}, ${payments.totalAmount}) end`;
   const settledRefund = sql`${payments.status} = 'REFUNDED' and ${payments.refundedAt} is not null and ${payments.refundedAt} <= ${asOf.toISOString()}`;
@@ -60,6 +62,7 @@ function financialRules(asOf: Date) {
   return {
     vn,
     captured,
+    cashCaptured,
     refund,
     settledRefund,
     heldKnown: legacyHeldKnown,
@@ -108,9 +111,17 @@ export class ReportsRepository {
     return this.db.transaction(
       async (tx) => {
         const scoped = await this.scope(tx, actor, filter);
-        const { vn, captured, refund, settledRefund, heldKnown, knownSnapshot, notReturned } =
-          financialRules(asOf);
-        const inPeriod = sql`${captured} and ${payments.paidAt} >= ${start.toISOString()} and ${payments.paidAt} < ${end.toISOString()}`;
+        const {
+          vn,
+          captured,
+          cashCaptured,
+          refund,
+          settledRefund,
+          heldKnown,
+          knownSnapshot,
+          notReturned,
+        } = financialRules(asOf);
+        const inPeriod = sql`${cashCaptured} and ${payments.paidAt} >= ${start.toISOString()} and ${payments.paidAt} < ${end.toISOString()}`;
         const refundInPeriod = sql`${settledRefund} and ${payments.refundedAt} >= ${start.toISOString()} and ${payments.refundedAt} < ${end.toISOString()}`;
         const scopedPayment = and(
           or(
@@ -150,7 +161,7 @@ export class ReportsRepository {
                   ),
                   paymentsReceivedCount: quantity(sql`${vn} and ${inPeriod}`),
                   unclassifiedCollectedPayments: quantity(
-                    sql`${vn} and ${inPeriod} and not ${knownSnapshot}`,
+                    sql`${vn} and ${inPeriod} and ${payments.type} = 'CHARGE' and not ${knownSnapshot}`,
                   ),
                   unclassifiedDepositPayments: quantity(
                     sql`${vn} and ${captured} and not ${heldKnown} and ${notReturned}`,
@@ -173,16 +184,14 @@ export class ReportsRepository {
             ? await tx
                 .select({
                   facilityId: storageUnits.facilityId,
-                  amount: sql<string>`coalesce(sum(${policyViolationFees.amount}), 0)::text`,
+                  amount: sql<string>`coalesce(sum(coalesce(
+            (select least(${returnSettlements.depositAmount}, ${returnSettlements.deductionAmount}) from ${returnSettlements} where ${returnSettlements.rentalId} = ${rentals.id}),
+            (select sum(${policyViolationFees.amount}) from ${policyViolationFees} join ${inspections} on ${inspections.id} = ${policyViolationFees.referenceId} where ${inspections.rentalId} = ${rentals.id} and ${policyViolationFees.referenceType} = 'INSPECTION' and ${policyViolationFees.isActive} = false), 0)), 0)::text`,
                 })
-                .from(policyViolationFees)
-                .innerJoin(inspections, eq(inspections.id, policyViolationFees.referenceId))
-                .innerJoin(rentals, eq(rentals.id, inspections.rentalId))
+                .from(rentals)
                 .innerJoin(storageUnits, eq(storageUnits.id, rentals.storageUnitId))
                 .where(
                   and(
-                    eq(policyViolationFees.referenceType, "INSPECTION"),
-                    eq(policyViolationFees.isActive, false),
                     gte(rentals.closedAt, start),
                     sql`${rentals.closedAt} < ${end.toISOString()}`,
                     filter.unitTypeId ? eq(storageUnits.unitTypeId, filter.unitTypeId) : undefined,
@@ -286,7 +295,9 @@ export class ReportsRepository {
               sql`${rules.vn} and ${rules.knownSnapshot}`,
               sql`${depositSnapshot}`,
             ),
-            unclassified: quantity(sql`${rules.vn} and not ${rules.knownSnapshot}`),
+            unclassified: quantity(
+              sql`${rules.vn} and ${payments.type} = 'CHARGE' and not ${rules.knownSnapshot}`,
+            ),
             unsupportedCurrencyPayments: quantity(sql`not (${rules.vn})`),
           })
           .from(payments)
@@ -295,7 +306,7 @@ export class ReportsRepository {
           .where(
             and(
               predicate,
-              rules.captured,
+              rules.cashCaptured,
               sql`${payments.paidAt} >= ${start.toISOString()} and ${payments.paidAt} < ${end.toISOString()}`,
             ),
           )

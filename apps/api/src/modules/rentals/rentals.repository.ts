@@ -34,6 +34,7 @@ import {
   rentalRenewals,
   rentals,
   reservations,
+  returnSettlements,
   sql,
   storageUnits,
   unitTypes,
@@ -209,6 +210,14 @@ export class RentalsRepository {
     );
     return row;
   }
+  async findReturnSettlement(rentalId: string) {
+    const [settlement] = await this.db
+      .select()
+      .from(returnSettlements)
+      .where(eq(returnSettlements.rentalId, rentalId));
+    return settlement;
+  }
+
   findCustomerRentalPayments(rentalId: string, userId: string) {
     return this.db
       .select({ payment: payments })

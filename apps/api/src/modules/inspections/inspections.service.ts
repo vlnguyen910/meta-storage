@@ -15,6 +15,7 @@ import {
   InspectionCondition,
   InspectionStatus,
   InspectionType,
+  PaymentMethod,
   ReservationStatus,
 } from "@metastorage/database";
 import {
@@ -280,8 +281,10 @@ export class InspectionsService {
       current.inspectionType === InspectionType.CHECK_OUT &&
       current.status === InspectionStatus.PASSED &&
       input.status === InspectionStatus.PASSED
-    )
+    ) {
+      await this.repository.transaction((tx) => this.assertReturnReplay(tx, id, input));
       return this.get(id, actor);
+    }
     const existingEvidence = await this.media.listImages("INSPECTION", id, "EVIDENCE_PHOTO");
     const removed = new Set(input.removeEvidenceIds ?? []);
     if (removed.size !== (input.removeEvidenceIds ?? []).length)
@@ -316,6 +319,7 @@ export class InspectionsService {
           if (input.status === InspectionStatus.PASSED) {
             const [completed] = await this.repository.findForUpdate(tx, id);
             if (completed?.status === InspectionStatus.PASSED) {
+              await this.assertReturnReplay(tx, completed.id, input);
               alreadyCompleted = true;
               return completed;
             }
@@ -330,6 +334,7 @@ export class InspectionsService {
         locked.status === InspectionStatus.PASSED &&
         input.status === InspectionStatus.PASSED
       ) {
+        await this.assertReturnReplay(tx, locked.id, input);
         alreadyCompleted = true;
         return locked;
       }
@@ -435,6 +440,24 @@ export class InspectionsService {
     return result;
   }
 
+  private async assertReturnReplay(
+    tx: TaskTransaction,
+    inspectionId: string,
+    input: UpdateInspectionInput,
+  ) {
+    const recorded = await this.repository.findReturnSettlement(tx, inspectionId);
+    if (!recorded) return; // Historical returns were completed before settlements were recorded.
+    if (
+      !input.settlement ||
+      input.settlement.deductionAmount !== Number(recorded.settlement.deductionAmount) ||
+      (recorded.refund
+        ? input.settlement.refund?.method !== recorded.refund.method ||
+          (input.settlement.refund?.reference ?? "CASH") !== recorded.refund.refundReference
+        : Boolean(input.settlement.refund))
+    )
+      throw new ConflictError(m.returnSettlementChanged);
+  }
+
   private async completeReturn(
     tx: TaskTransaction,
     inspection: Awaited<ReturnType<InspectionsRepository["findForUpdate"]>>[number],
@@ -460,8 +483,6 @@ export class InspectionsService {
       rental.rental.storageUnitId !== inspection.storageUnitId
     )
       throw new ConflictError(m.handoverNotReady);
-    if ((input.condition ?? inspection.condition) !== InspectionCondition.GOOD)
-      throw new ConflictError(m.returnUnitUnavailable);
 
     const fees = await this.repository.listInspectionFees(inspection.id, tx);
     const totalFees = fees.reduce((total, fee) => total + fee.amount, 0);
@@ -472,23 +493,43 @@ export class InspectionsService {
       Number(source.payment.totalAmount) !== source.quoteTotal
     )
       throw new ConflictError(m.returnPaymentMissing);
-    if (totalFees > source.depositAmount) throw new ConflictError(m.returnPenaltyExceedsDeposit);
+    if (!input.settlement?.confirmed || input.settlement.deductionAmount !== totalFees)
+      throw new ConflictError(m.returnSettlementChanged);
+    const refundAmount = Math.max(0, source.depositAmount - totalFees);
+    const refund = input.settlement.refund;
+    if (refundAmount > 0 && !refund) throw new ConflictError(m.returnRefundRequired);
+    if (refundAmount === 0 && refund) throw new ConflictError(m.returnSettlementChanged);
 
     const now = new Date();
     const closed = await this.repository.closeRental(tx, rental.rental.id, now);
     if (!closed.length) throw new ConflictError(m.handoverNotReady);
     if (
-      !(await this.storageUnits.makeAvailableAfterReturn(
+      !(await this.storageUnits.completeReturn(
         tx,
         rental.rental.storageUnitId,
         rental.rental.id,
         rental.rental.reservationId,
         now,
+        (input.condition ?? inspection.condition) === InspectionCondition.GOOD
+          ? "AVAILABLE"
+          : "MAINTENANCE",
       ))
     )
       throw new ConflictError(m.returnUnitUnavailable);
-    const refundAmount = source.depositAmount - totalFees;
-    if (refundAmount > 0)
+    const settlement = await this.repository.createReturnSettlement(tx, {
+      rentalId: rental.rental.id,
+      inspectionId: inspection.id,
+      sourcePaymentId: source.payment.id,
+      depositAmount: String(source.depositAmount),
+      deductionAmount: String(totalFees),
+      currency: source.payment.currency,
+      settledBy: actor.id,
+      settledAt: now,
+    });
+    if (!settlement) throw new ConflictError(m.returnSettlementChanged);
+    if (totalFees > source.depositAmount)
+      await this.repository.createDebt(tx, settlement.id, totalFees - source.depositAmount);
+    if (refundAmount > 0 && refund)
       await this.repository.createDepositRefund(tx, {
         rentalId: rental.rental.id,
         sourcePaymentId: source.payment.id,
@@ -496,6 +537,10 @@ export class InspectionsService {
         reservationId: source.reservationId,
         amount: refundAmount,
         currency: source.payment.currency,
+        method: PaymentMethod[refund.method],
+        reference: refund.reference,
+        actorId: actor.id,
+        now,
       });
     await this.appointments.completeHandover(tx, appointment.id, actor);
   }
@@ -566,8 +611,12 @@ export class InspectionsService {
       this.repository.listInspectionFees(inspectionId),
     ]);
     if (!context || context.depositAmount === null) return undefined;
+    const deductionAmount = fees.reduce((total, fee) => total + fee.amount, 0);
     return {
       depositAmount: context.depositAmount,
+      deductionAmount,
+      refundAmount: Math.max(0, context.depositAmount - deductionAmount),
+      debtAmount: Math.max(0, deductionAmount - context.depositAmount),
       policyVersion: catalog.version,
       penalties: catalog.items
         .filter((item) => item.isActive)

@@ -128,7 +128,7 @@ export class RentalsService {
     await this.assertFacilityManagerAccess(actor, facilityId);
     const row = await this.repository.findFacilityRentalById(facilityId, rentalId);
     if (!row) throw new NotFoundError(M.rentalNotFound);
-    return toFacilityRentalItem(row);
+    return { ...toFacilityRentalItem(row), settlement: await this.getReturnSettlement(rentalId) };
   }
   async listFacilityRentalPayments(
     actor: RentalActor,
@@ -197,6 +197,7 @@ export class RentalsService {
     return {
       ...toCustomerRentalItem(row),
       renewalWindow,
+      settlement: await this.getReturnSettlement(rentalId),
       customer: {
         userId: row.rental.userId,
         name: row.customer.name,
@@ -205,6 +206,26 @@ export class RentalsService {
       },
     } satisfies RentalDetail;
   }
+  private async getReturnSettlement(rentalId: string) {
+    const settlement = await this.repository.findReturnSettlement(rentalId);
+    if (!settlement) return null;
+    return {
+      id: settlement.id,
+      inspectionId: settlement.inspectionId,
+      depositAmount: settlement.depositAmount,
+      deductionAmount: settlement.deductionAmount,
+      refundAmount: String(
+        Math.max(0, Number(settlement.depositAmount) - Number(settlement.deductionAmount)),
+      ),
+      debtAmount: String(
+        Math.max(0, Number(settlement.deductionAmount) - Number(settlement.depositAmount)),
+      ),
+      currency: settlement.currency,
+      settledAt: settlement.settledAt.toISOString(),
+      settledBy: settlement.settledBy,
+    };
+  }
+
   async listCustomerRentalPayments(rentalId: string, userId: string): Promise<RentalPaymentItem[]> {
     await this.getCustomerRental(rentalId, userId);
     return (await this.repository.findCustomerRentalPayments(rentalId, userId)).map(

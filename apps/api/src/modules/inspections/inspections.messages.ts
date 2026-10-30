@@ -20,6 +20,9 @@ export const INSPECTIONS_API_MESSAGES = {
   checklistRequired: "Cần hoàn thành toàn bộ checklist trước khi PASS inspection.",
   returnPolicyStale: "Danh mục phí đã thay đổi; tải lại inspection trước khi lưu.",
   returnPenaltyUnknown: "Một khoản phí không còn nằm trong danh mục đang áp dụng.",
+  returnSettlementChanged:
+    "Thông tin quyết toán đã thay đổi; kiểm tra lại số tiền và xác nhận trước khi hoàn tất.",
+  returnRefundRequired: "Cần xác nhận đã hoàn phần cọc còn dư và ghi nhận phương thức hoàn tiền.",
   returnPenaltyExceedsDeposit: "Tổng phí phạt không được vượt quá tiền cọc.",
   returnPaymentMissing: "Không tìm thấy khoản thanh toán tiền cọc đã xác nhận.",
   returnUnitUnavailable: "Kho chưa đủ điều kiện để kết thúc lượt trả.",

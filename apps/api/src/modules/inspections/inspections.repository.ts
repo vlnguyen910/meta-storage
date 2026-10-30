@@ -6,6 +6,7 @@ import {
   bookings,
   count,
   type Database,
+  debts,
   desc,
   eq,
   facilityTasks,
@@ -16,12 +17,14 @@ import {
   inspections,
   isNull,
   or,
+  type PaymentMethod,
   PaymentType,
   payments,
   policyViolationFees,
   RentalStatus,
   rentals,
   reservations,
+  returnSettlements,
   sql,
   storageUnits,
 } from "@metastorage/database";
@@ -291,6 +294,10 @@ export class InspectionsRepository {
       reservationId: string | null;
       amount: number;
       currency: string;
+      method: PaymentMethod;
+      reference?: string;
+      actorId: string;
+      now: Date;
     },
   ) {
     return tx
@@ -304,9 +311,41 @@ export class InspectionsRepository {
         idempotencyKey: `return-deposit:${input.rentalId}`,
         totalAmount: String(input.amount),
         currency: input.currency,
-        status: "REFUND_PENDING",
+        status: "REFUNDED",
+        refundAmount: String(input.amount),
+        method: input.method,
+        refundReference: input.reference ?? "CASH",
+        refundedAt: input.now,
+        refundedBy: input.actorId,
       })
       .returning();
+  }
+
+  async findReturnSettlement(tx: TaskTransaction, inspectionId: string) {
+    const [settlement] = await tx
+      .select()
+      .from(returnSettlements)
+      .where(eq(returnSettlements.inspectionId, inspectionId));
+    if (!settlement) return undefined;
+    const [refund] = await tx
+      .select()
+      .from(payments)
+      .where(
+        and(
+          eq(payments.rentalId, settlement.rentalId),
+          eq(payments.type, PaymentType.DEPOSIT_REFUND),
+        ),
+      );
+    return { settlement, refund };
+  }
+
+  async createReturnSettlement(tx: TaskTransaction, input: typeof returnSettlements.$inferInsert) {
+    const [settlement] = await tx.insert(returnSettlements).values(input).returning();
+    return settlement;
+  }
+
+  createDebt(tx: TaskTransaction, settlementId: string, amount: number) {
+    return tx.insert(debts).values({ settlementId, originalAmount: String(amount) });
   }
 
   findInspectionTask(tx: TaskTransaction, taskId: string) {
