@@ -71,7 +71,6 @@ async function run() {
     GOOGLE_CLIENT_ID: "local-test-google-client",
     GOOGLE_CLIENT_SECRET: "local-test-google-secret",
     PAYMENT_PROVIDER: "mock",
-    RUN_POSTMAN_FLOW: "1",
     SEPAY_ENV: "sandbox",
     SEPAY_MERCHANT_ID: "workflow-test",
     SEPAY_SECRET_KEY: "workflow-test-local-only",

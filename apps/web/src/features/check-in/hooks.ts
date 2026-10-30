@@ -7,7 +7,7 @@ import type {
 } from "@metastorage/contracts";
 import { APPOINTMENT_STATUSES } from "@metastorage/database/schema/appointments";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { appointmentItem, loadAppointmentItem } from "@/features/facility-flow/use-dispatch";
+import { loadAppointmentItem } from "@/features/facility-flow/use-dispatch";
 import { api } from "@/lib/api";
 
 export const bookingKeys = {
@@ -118,14 +118,5 @@ export function useAssignStaffMutation() {
         queryClient.invalidateQueries({ queryKey: ["flow5"] }),
         queryClient.invalidateQueries({ queryKey: ["manager-tabs"] }),
       ]),
-  });
-}
-
-export function useStaffTasks(facilityId?: string) {
-  return useQuery({
-    queryKey: bookingKeys.staffTasks(facilityId),
-    queryFn: async () => (await api.appointments.assignedToMe({ facilityId })).map(appointmentItem),
-    refetchInterval: 5000,
-    refetchOnWindowFocus: true,
   });
 }

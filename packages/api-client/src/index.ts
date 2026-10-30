@@ -6,12 +6,7 @@ import type {
   AppointmentQuery,
   AppointmentRecordDto,
   AssignBookingStaffInput,
-  AssignPhysicalUnitInput,
-  BookingDraft,
-  BookingDraftInput,
   BookingListItem,
-  BookingPaymentInput,
-  BookingPaymentSession,
   BookingTracking,
   BookingTrackingSession,
   CatalogAvailabilityParams,
@@ -32,13 +27,9 @@ import type {
   CreateReservationDraftInput,
   CustomerAvailability,
   CustomerAvailabilityQuery,
-  CustomerBookingDetail,
-  CustomerBookingPage,
-  CustomerBookingPageQuery,
   CustomerRegistrationStats,
   CustomerSignUpInput,
   DashboardSummary,
-  EligibleUnit,
   Facility,
   FacilityListParams,
   FacilityOperatingHours,
@@ -62,7 +53,6 @@ import type {
   PaymentCheckoutInput,
   PaymentResponse,
   PaymentStatusResponse,
-  PhysicalUnitAssignment,
   PricingChange,
   PricingConfiguration,
   PricingQuery,
@@ -431,33 +421,15 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
           .then(unwrap),
     },
     legacyBookings: {
-      cancel: (bookingId: string) =>
-        http
-          .post<ApiEnvelope<import("@metastorage/contracts").BookingClosure>>(
-            `/bookings/${encodeURIComponent(bookingId)}/cancel`,
-          )
-          .then(unwrap),
-      mine: (params: Partial<CustomerBookingPageQuery> = {}) =>
-        http.get<ApiEnvelope<CustomerBookingPage>>("/bookings/mine", { params }).then(unwrap),
-      getMine: (bookingId: string) =>
-        http.get<ApiEnvelope<CustomerBookingDetail>>(`/bookings/mine/${bookingId}`).then(unwrap),
       requestGuestAccessLink: (input: RequestGuestAccessLink) =>
         http
           .post<ApiEnvelope<{ message: string }>>("/booking/access-link", input, {
             skipAuthRefresh: true,
           } as RetryConfig)
           .then(unwrap),
-      checkInSlots: () =>
-        http.get<ApiEnvelope<CheckInSlotOption[]>>("/bookings/check-in-slots").then(unwrap),
       checkInLookup: (input: CheckInLookupInput) =>
         http
           .post<ApiEnvelope<CheckInLookupResult>>("/bookings/check-in/lookup", input)
-          .then(unwrap),
-      createDraft: (input: BookingDraftInput) =>
-        http.post<ApiEnvelope<BookingDraft>>("/bookings/drafts", input).then(unwrap),
-      pay: (bookingId: string, input: BookingPaymentInput) =>
-        http
-          .post<ApiEnvelope<BookingPaymentSession>>(`/bookings/${bookingId}/pay`, input)
           .then(unwrap),
       exchangeMagicLink: (token: string) =>
         http
@@ -476,20 +448,6 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
         http
           .post("/booking/session/revoke", undefined, { skipAuthRefresh: true } as RetryConfig)
           .then(() => undefined),
-      listFacilityBookings: (facilityId: string, status?: string) =>
-        http
-          .get<ApiEnvelope<BookingListItem[]>>(`/facilities/${facilityId}/bookings`, {
-            params: { status },
-          })
-          .then(unwrap),
-      get: (bookingId: string) =>
-        http.get<ApiEnvelope<BookingListItem>>(`/bookings/${bookingId}`).then(unwrap),
-      getEligibleUnits: (bookingId: string) =>
-        http.get<ApiEnvelope<EligibleUnit[]>>(`/bookings/${bookingId}/eligible-units`).then(unwrap),
-      assignUnit: (bookingId: string, input: AssignPhysicalUnitInput) =>
-        http
-          .post<ApiEnvelope<PhysicalUnitAssignment>>(`/bookings/${bookingId}/assign-unit`, input)
-          .then(unwrap),
       assignStaff: (bookingId: string, input: AssignBookingStaffInput) =>
         http
           .post<ApiEnvelope<BookingListItem>>(`/bookings/${bookingId}/assign-staff`, input)
@@ -503,14 +461,6 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
             params: { ...dates, facilityId },
           })
           .then(unwrap),
-    },
-    legacyInspections: {
-      history: (bookingId: string) =>
-        http
-          .get<ApiEnvelope<InspectionRecord[]>>(`/inspections/bookings/${bookingId}`)
-          .then(unwrap),
-      start: (bookingId: string) =>
-        http.post<ApiEnvelope<InspectionRecord>>(`/inspections/bookings/${bookingId}`).then(unwrap),
     },
     inspections: {
       policyFees: () =>

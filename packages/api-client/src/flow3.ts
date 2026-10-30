@@ -1,10 +1,7 @@
 import type {
   ApiEnvelope,
   ConfigureSystemSetting,
-  ContractIssue,
-  ContractUpload,
   LifecycleNotificationItem,
-  RentalDocumentDto,
   RentalPaymentItem,
   SystemSettingChangeDto,
   SystemSettingDto,
@@ -28,40 +25,6 @@ export function createFlow3Client(http: AxiosInstance) {
           signal,
         })
         .then(unwrap),
-    rentalDocuments: {
-      pdfBytes: (bookingId: string, id: string, signal?: AbortSignal) =>
-        http
-          .get<ArrayBuffer>(`/bookings/${bookingId}/contracts/${id}/pdf`, {
-            responseType: "arraybuffer",
-            signal,
-          })
-          .then((r) => r.data),
-      list: (bookingId: string, signal?: AbortSignal) =>
-        http
-          .get<ApiEnvelope<RentalDocumentDto[]>>(`/bookings/${bookingId}/contracts`, { signal })
-          .then(unwrap),
-      rental: (id: string, signal?: AbortSignal) =>
-        http
-          .get<ApiEnvelope<RentalDocumentDto[]>>(`/rentals/${id}/contracts`, { signal })
-          .then(unwrap),
-      upload: (id: string, input: ContractUpload) =>
-        http
-          .post<ApiEnvelope<RentalDocumentDto>>(`/bookings/${id}/contracts`, input, {
-            timeout: 60000,
-          })
-          .then(unwrap),
-      issue: (bookingId: string, id: string, input: ContractIssue) =>
-        http
-          .post<ApiEnvelope<RentalDocumentDto>>(
-            `/bookings/${bookingId}/contracts/${id}/issue`,
-            input,
-          )
-          .then(unwrap),
-      pdf: (bookingId: string, id: string, signal?: AbortSignal) =>
-        http
-          .get<Blob>(`/bookings/${bookingId}/contracts/${id}/pdf`, { responseType: "blob", signal })
-          .then((r) => r.data),
-    },
     systemSettings: {
       list: (signal?: AbortSignal) =>
         http.get<ApiEnvelope<SystemSettingDto[]>>("/system-settings", { signal }).then(unwrap),
