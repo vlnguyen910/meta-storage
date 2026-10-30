@@ -909,3 +909,5 @@ facility membership. No new ticket/message table is introduced.
 - BOM/System Admin manual refund endpoints remain for cancellation/no-show/provider exceptions and historical pending refunds; new deposit-return refunds are confirmed by assigned Staff during completion. Historical records retain their existing reconciliation path and are not automatically marked paid or migrated to new settlements.
 
 Deployment compatibility: completing CHECK_OUT now requires settlement confirmation. Existing web/mobile clients must be updated in their later phase before exposing return completion against this backend. This phase changes no frontend code.
+
+Migration execution commits additions to existing PostgreSQL enums before running generated schema/data statements that use those values. Enum additions are additive and idempotent on retry; the main schema/data phase and migration journal entries roll back together on failure. A failed schema phase can therefore leave the new enum labels present, without marking the migration applied. Generated SQL files remain unchanged. Fresh-schema and existing-enum upgrade/retry paths are tested separately.

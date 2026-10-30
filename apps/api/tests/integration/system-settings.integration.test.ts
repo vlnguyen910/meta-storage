@@ -341,6 +341,54 @@ describe.skipIf(!localUrl)("unified settings using existing local PostgreSQL", (
     }
   });
 
+  test("upgrading an existing enum commits additions before CHECK constraints and safely retries failed DDL", async () => {
+    const suffix = randomUUID().replaceAll("-", "");
+    const enumName = `payment_upgrade_${suffix}`;
+    const table = `payment_upgrade_rows_${suffix}`;
+    const hash = randomUUID();
+    const migration = {
+      hash,
+      bps: true,
+      folderMillis: Date.now() + 1000000000000,
+      sql: [
+        `ALTER TYPE "public"."${enumName}" ADD VALUE 'DEBT_COLLECTION';`,
+        `alter table "${table}" add column migrated boolean default true`,
+        `alter table "${table}" add constraint payment_context check (kind in ('CHARGE', 'DEBT_COLLECTION'))`,
+        "select nonexistent_enum_migration_function()",
+      ],
+    };
+    try {
+      await db.execute(sql.raw(`create type "${enumName}" as enum ('CHARGE')`));
+      await db.execute(sql.raw(`create table "${table}" (kind "${enumName}" not null)`));
+      await db.execute(sql.raw(`insert into "${table}" values ('CHARGE')`));
+      await expect(applyMigrations(db, [migration])).rejects.toThrow();
+      const [column] = await db.execute(
+        sql`select count(*)::int as total from information_schema.columns where table_schema = 'public' and table_name = ${table} and column_name = 'migrated'`,
+      );
+      expect(column?.total).toBe(0);
+      expect(
+        await db.execute(sql`select hash from drizzle.__drizzle_migrations where hash = ${hash}`),
+      ).toHaveLength(0);
+      const [value] = await db.execute(
+        sql`select enumlabel from pg_enum where enumtypid = to_regtype(${enumName}) and enumlabel = 'DEBT_COLLECTION'`,
+      );
+      expect(value?.enumlabel).toBe("DEBT_COLLECTION");
+      const retry = { ...migration, sql: migration.sql.slice(0, -1) };
+      expect(await applyMigrations(db, [retry])).toBe(1);
+      expect(await applyMigrations(db, [retry])).toBe(0);
+      await db.execute(sql.raw(`insert into "${table}" (kind) values ('DEBT_COLLECTION')`));
+      const rows = await db.execute(sql.raw(`select kind, migrated from "${table}" order by kind`));
+      expect(rows).toHaveLength(2);
+      expect(rows[0]?.kind).toBe("CHARGE");
+      expect(rows[1]?.kind).toBe("DEBT_COLLECTION");
+      expect(rows[1]?.migrated).toBe(true);
+    } finally {
+      await db.execute(sql.raw(`drop table if exists "${table}"`));
+      await db.execute(sql.raw(`drop type if exists "${enumName}"`));
+      await db.execute(sql`delete from drizzle.__drizzle_migrations where hash = ${hash}`);
+    }
+  });
+
   test("migration failure rolls back generated DDL, journal and data writes", async () => {
     const before = await row("ABANDONED_REVIEW_DAYS");
     const table = `settings_rollback_${randomUUID().replaceAll("-", "")}`;

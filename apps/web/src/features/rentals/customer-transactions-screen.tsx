@@ -136,6 +136,7 @@ export function CustomerTransactionsScreen() {
             { value: "", label: M.allStatuses },
             { value: "SUCCEEDED", label: M.paid },
             { value: "PENDING", label: M.pending },
+            { value: "REFUND_PENDING", label: M.refundPending },
             { value: "REFUNDED", label: M.refunded },
             { value: "FAILED", label: M.failed },
           ]}
@@ -181,7 +182,13 @@ export function CustomerTransactionsScreen() {
                   <td>
                     <div className="flex flex-col gap-0.5">
                       <span className="font-mono text-xs font-bold text-slate-800">
-                        {formatReference(payment.paymentCode, "TT")}
+                        {payment.paymentCode
+                          ? formatReference(payment.paymentCode, "TT")
+                          : payment.type === "DEBT_COLLECTION"
+                            ? M.debtCollection
+                            : payment.type === "DEPOSIT_REFUND"
+                              ? M.returnRefund
+                              : formatReference(payment.id, "TT")}
                       </span>
                     </div>
                   </td>
@@ -216,7 +223,7 @@ export function CustomerTransactionsScreen() {
                           ? "bg-emerald-50 text-emerald-800 border-emerald-200"
                           : payment.status === "REFUNDED"
                             ? "bg-amber-50 text-amber-800 border-amber-200"
-                            : payment.status === "PENDING"
+                            : payment.status === "PENDING" || payment.status === "REFUND_PENDING"
                               ? "bg-sky-50 text-sky-800 border-sky-200"
                               : "bg-rose-50 text-rose-800 border-rose-200"
                       }`}
@@ -225,8 +232,10 @@ export function CustomerTransactionsScreen() {
                         ? M.paid
                         : payment.status === "REFUNDED"
                           ? M.refunded
-                          : payment.status === "PENDING"
-                            ? M.pending
+                          : payment.status === "PENDING" || payment.status === "REFUND_PENDING"
+                            ? payment.status === "REFUND_PENDING"
+                              ? M.refundPending
+                              : M.pending
                             : M.failed}
                     </span>
                   </td>

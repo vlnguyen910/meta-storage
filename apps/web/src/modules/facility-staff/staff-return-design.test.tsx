@@ -115,7 +115,9 @@ it("keeps start, draft save and validated completion working in the new staff la
   expect(calls.update).toHaveBeenCalledWith("task", { status: "IN_PROGRESS" });
   expect(calls.create).toHaveBeenCalledWith({ taskId: "task" });
   expect(screen.getByText(/Tình trạng khi nhận kho: Tốt/, { selector: "p" })).toBeVisible();
-  expect(screen.getByRole("button", { name: "Hoàn tất trả kho" })).toBeDisabled();
+  expect(
+    screen.getByRole("button", { name: "Xác nhận quyết toán và hoàn tất trả kho" }),
+  ).toBeDisabled();
   await user.click(screen.getByRole("button", { name: "Lưu bản nháp" }));
   await waitFor(() =>
     expect(calls.save).toHaveBeenCalledWith(
@@ -129,11 +131,16 @@ it("keeps start, draft save and validated completion working in the new staff la
         name: "Đạt",
       }),
     );
-  await user.click(screen.getByRole("button", { name: "Hoàn tất trả kho" }));
+  await user.click(screen.getByLabelText("Tôi xác nhận đã hoàn đủ phần cọc còn dư cho khách."));
+  await user.click(screen.getByRole("button", { name: "Xác nhận quyết toán và hoàn tất trả kho" }));
   await waitFor(() =>
     expect(calls.save).toHaveBeenCalledWith(
       "inspection",
-      expect.objectContaining({ status: "PASSED", condition: "GOOD" }),
+      expect.objectContaining({
+        status: "PASSED",
+        condition: "GOOD",
+        settlement: { confirmed: true, deductionAmount: 0, refund: { method: "CASH" } },
+      }),
     ),
   );
   await waitFor(() => expect(calls.push).toHaveBeenCalledWith("/staff/tasks"));

@@ -72,6 +72,9 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
   } | null>(null);
   const [policyNeedsReview, setPolicyNeedsReview] = useState(false);
   const photoInput = useRef<HTMLInputElement>(null);
+  const [settlementConfirmed, setSettlementConfirmed] = useState(false);
+  const [refundMethod, setRefundMethod] = useState<"CASH" | "BANK_TRANSFER">("CASH");
+  const [refundReference, setRefundReference] = useState("");
   const [photoError, setPhotoError] = useState("");
   useEffect(() => {
     if (!record || record.id === recordId) return;
@@ -112,24 +115,52 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
         checklist: { ...record.checklist, results },
         policyVersion: policyCatalog?.version ?? record.returnContext.policyVersion,
         violations,
+        ...(status === "PASSED"
+          ? {
+              settlement: {
+                confirmed: true as const,
+                deductionAmount: feeTotal,
+                ...(refundAmount > 0
+                  ? {
+                      refund: {
+                        method: refundMethod,
+                        reference: refundReference.trim() || undefined,
+                      },
+                    }
+                  : {}),
+              },
+            }
+          : {}),
       });
     },
     onError: async (error) => {
       if (!axios.isAxiosError(error) || error.response?.status !== 409) return;
       try {
-        const catalog = await api.inspections.policyFees();
-        const activeItems = catalog.items.filter((fee) => fee.isActive);
-        setPolicyCatalog({ ...catalog, items: activeItems });
-        setViolations((current) =>
-          current.filter((violation) => activeItems.some((fee) => fee.code === violation.code)),
-        );
-        setPolicyNeedsReview(true);
+        setSettlementConfirmed(false);
+        const refreshed = await api.inspections.get(record?.id ?? "");
+        const context = refreshed.returnContext;
+        if (
+          context &&
+          context.policyVersion !== (policyCatalog?.version ?? record?.returnContext?.policyVersion)
+        ) {
+          setPolicyCatalog({
+            version: context.policyVersion,
+            items: context.penalties.map((fee) => ({ ...fee, isActive: true })),
+          });
+          setViolations((current) =>
+            current.filter((violation) =>
+              context.penalties.some((fee) => fee.code === violation.code),
+            ),
+          );
+          setPolicyNeedsReview(true);
+        }
       } catch {
         // Keep the original inspection data so the staff member can retry after refreshing.
       }
     },
     onSuccess: async (updated) => {
       setRecordId("");
+      setSettlementConfirmed(false);
       setPolicyNeedsReview(false);
       setPolicyCatalog(null);
       await Promise.all([
@@ -179,17 +210,23 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
     MINOR_DAMAGE: M.minorDamage,
     MAJOR_DAMAGE: M.majorDamage,
   };
-  const availableFees = policyCatalog?.items ?? record?.returnContext?.penalties ?? [];
+  const availableFees =
+    record?.status === "PASSED"
+      ? (record.returnContext?.fees ?? [])
+      : (policyCatalog?.items ?? record?.returnContext?.penalties ?? []);
   const selectedFees = availableFees.filter((fee) =>
     violations.some((item) => item.code === fee.code),
   );
   const feeTotal = selectedFees.reduce((sum, fee) => sum + fee.amount, 0);
+  const refundAmount = Math.max(0, (record?.returnContext?.depositAmount ?? 0) - feeTotal);
+  const debtAmount = Math.max(0, feeTotal - (record?.returnContext?.depositAmount ?? 0));
   const evidencePending = uploadEvidence.isPending || removeEvidence.isPending;
   const canFinalize =
     Boolean(record?.returnContext) &&
     ReturnChecklistCompletionSchema.safeParse(results).success &&
-    condition === "GOOD" &&
-    feeTotal <= (record?.returnContext?.depositAmount ?? 0);
+    Boolean(condition) &&
+    settlementConfirmed &&
+    (refundAmount === 0 || refundMethod === "CASH" || Boolean(refundReference.trim()));
   function setChecklistResult(code: string, result: "PASS" | "FAIL") {
     setResults((previous) => {
       const old = previous.find((item) => item.itemCode === code);
@@ -532,9 +569,10 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
                                     saveReturn.isPending ||
                                     evidencePending
                                   }
-                                  onChange={(event) =>
-                                    toggleViolation(fee.code, event.target.checked)
-                                  }
+                                  onChange={(event) => {
+                                    setSettlementConfirmed(false);
+                                    toggleViolation(fee.code, event.target.checked);
+                                  }}
                                 />
                                 <span>{fee.name}</span>
                               </label>
@@ -587,9 +625,66 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
                   )}
                 </aside>
               </div>
+              {record.status !== "PASSED" && (
+                <Card className="space-y-3 p-5">
+                  <h2 className="text-lg font-semibold">{M.settlement}</h2>
+                  <p>
+                    {M.totalDeductions}: <strong>{feeTotal.toLocaleString("vi-VN")} đ</strong>
+                  </p>
+                  <p>
+                    {M.outstandingDebt}: <strong>{debtAmount.toLocaleString("vi-VN")} đ</strong>
+                  </p>
+                  <p className="text-sm text-muted">
+                    {condition === "GOOD" ? M.unitAvailable : M.unitMaintenance}
+                  </p>
+                  {refundAmount > 0 && (
+                    <>
+                      <label className="grid gap-2 text-sm font-semibold">
+                        {M.refundMethod}
+                        <select
+                          className="min-h-11 rounded-lg border border-line px-3"
+                          value={refundMethod}
+                          disabled={saveReturn.isPending}
+                          onChange={(event) => {
+                            setRefundMethod(event.target.value as "CASH" | "BANK_TRANSFER");
+                            setSettlementConfirmed(false);
+                          }}
+                        >
+                          <option value="CASH">{M.cash}</option>
+                          <option value="BANK_TRANSFER">{M.bankTransfer}</option>
+                        </select>
+                      </label>
+                      {refundMethod === "BANK_TRANSFER" && (
+                        <label className="grid gap-2 text-sm font-semibold">
+                          {M.refundReference}
+                          <input
+                            className="min-h-11 rounded-lg border border-line px-3"
+                            maxLength={128}
+                            value={refundReference}
+                            disabled={saveReturn.isPending}
+                            onChange={(event) => {
+                              setRefundReference(event.target.value);
+                              setSettlementConfirmed(false);
+                            }}
+                          />
+                        </label>
+                      )}
+                    </>
+                  )}
+                  <label className="flex min-h-11 items-center gap-3 text-sm font-semibold">
+                    <input
+                      type="checkbox"
+                      checked={settlementConfirmed}
+                      disabled={saveReturn.isPending}
+                      onChange={(event) => setSettlementConfirmed(event.target.checked)}
+                    />
+                    {refundAmount > 0 ? M.refundConfirmed : M.settlementConfirmed}
+                  </label>
+                </Card>
+              )}
               {saveReturn.isError && (
                 <p role="alert" className="text-sm text-danger">
-                  {M.returnSaveError}
+                  {managementError(saveReturn.error)}
                 </p>
               )}
               {policyNeedsReview && (
@@ -631,18 +726,12 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
                   {M.returnFinalized}
                 </p>
               )}
-              {(!ReturnChecklistCompletionSchema.safeParse(results).success ||
-                condition !== "GOOD") &&
+              {(!ReturnChecklistCompletionSchema.safeParse(results).success || !condition) &&
                 record.status !== "PASSED" && (
                   <p className="text-sm text-muted">
-                    {condition !== "GOOD" ? M.returnConditionRequired : M.returnChecklistRequired}
+                    {!condition ? M.returnConditionRequired : M.returnChecklistRequired}
                   </p>
                 )}
-              {feeTotal > (record.returnContext?.depositAmount ?? 0) && (
-                <p role="alert" className="text-sm text-danger">
-                  {M.returnFeeLimit}
-                </p>
-              )}
             </>
           )}
           {startReturn.isError && (
