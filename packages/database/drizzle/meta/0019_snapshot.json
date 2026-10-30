@@ -1,6 +1,6 @@
 {
-  "id": "7d1990ad-9a33-4651-a1df-d7b25a563db0",
-  "prevId": "b24328e7-7f3d-4521-b576-84a42ed19e4a",
+  "id": "a8223618-6477-4ccd-9321-1b4c4183ab16",
+  "prevId": "1d60f419-521d-44e5-9429-ff4a6e3e2959",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -146,240 +146,6 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.debts": {
-      "name": "debts",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "settlement_id": {
-          "name": "settlement_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "original_amount": {
-          "name": "original_amount",
-          "type": "numeric(14, 2)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "paid_amount": {
-          "name": "paid_amount",
-          "type": "numeric(14, 2)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'0'"
-        },
-        "status": {
-          "name": "status",
-          "type": "debt_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'UNPAID'"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "debts_settlement_id_return_settlements_id_fk": {
-          "name": "debts_settlement_id_return_settlements_id_fk",
-          "tableFrom": "debts",
-          "tableTo": "return_settlements",
-          "columnsFrom": [
-            "settlement_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "debts_settlementId_unique": {
-          "name": "debts_settlementId_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "settlement_id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {
-        "debts_amounts_valid": {
-          "name": "debts_amounts_valid",
-          "value": "\"debts\".\"original_amount\" > 0 AND \"debts\".\"paid_amount\" >= 0 AND \"debts\".\"paid_amount\" <= \"debts\".\"original_amount\""
-        },
-        "debts_status_valid": {
-          "name": "debts_status_valid",
-          "value": "(\"debts\".\"paid_amount\" = 0 AND \"debts\".\"status\" = 'UNPAID') OR (\"debts\".\"paid_amount\" > 0 AND \"debts\".\"paid_amount\" < \"debts\".\"original_amount\" AND \"debts\".\"status\" = 'PARTIALLY_PAID') OR (\"debts\".\"paid_amount\" = \"debts\".\"original_amount\" AND \"debts\".\"status\" = 'PAID')"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.return_settlements": {
-      "name": "return_settlements",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "rental_id": {
-          "name": "rental_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "inspection_id": {
-          "name": "inspection_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "source_payment_id": {
-          "name": "source_payment_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "deposit_amount": {
-          "name": "deposit_amount",
-          "type": "numeric(14, 2)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "deduction_amount": {
-          "name": "deduction_amount",
-          "type": "numeric(14, 2)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "currency": {
-          "name": "currency",
-          "type": "varchar(3)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "settled_by": {
-          "name": "settled_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "settled_at": {
-          "name": "settled_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "return_settlements_rental_id_rentals_id_fk": {
-          "name": "return_settlements_rental_id_rentals_id_fk",
-          "tableFrom": "return_settlements",
-          "tableTo": "rentals",
-          "columnsFrom": [
-            "rental_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "return_settlements_inspection_id_inspections_id_fk": {
-          "name": "return_settlements_inspection_id_inspections_id_fk",
-          "tableFrom": "return_settlements",
-          "tableTo": "inspections",
-          "columnsFrom": [
-            "inspection_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "return_settlements_source_payment_id_payments_id_fk": {
-          "name": "return_settlements_source_payment_id_payments_id_fk",
-          "tableFrom": "return_settlements",
-          "tableTo": "payments",
-          "columnsFrom": [
-            "source_payment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "return_settlements_settled_by_users_id_fk": {
-          "name": "return_settlements_settled_by_users_id_fk",
-          "tableFrom": "return_settlements",
-          "tableTo": "users",
-          "columnsFrom": [
-            "settled_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "return_settlements_rentalId_unique": {
-          "name": "return_settlements_rentalId_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "rental_id"
-          ]
-        },
-        "return_settlements_inspectionId_unique": {
-          "name": "return_settlements_inspectionId_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "inspection_id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {
-        "return_settlements_amounts_valid": {
-          "name": "return_settlements_amounts_valid",
-          "value": "\"return_settlements\".\"deposit_amount\" >= 0 AND \"return_settlements\".\"deduction_amount\" >= 0"
-        }
-      },
       "isRLSEnabled": false
     },
     "public.appointments": {
@@ -2695,31 +2461,6 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "debt_id": {
-          "name": "debt_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "method": {
-          "name": "method",
-          "type": "payment_method",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "reference": {
-          "name": "reference",
-          "type": "varchar(128)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "recorded_by": {
-          "name": "recorded_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
         "type": {
           "name": "type",
           "type": "payment_type",
@@ -2873,21 +2614,6 @@
         }
       },
       "indexes": {
-        "payments_debt_idx": {
-          "name": "payments_debt_idx",
-          "columns": [
-            {
-              "expression": "debt_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "payments_provider_payment_idx": {
           "name": "payments_provider_payment_idx",
           "columns": [
@@ -2973,32 +2699,6 @@
         }
       },
       "foreignKeys": {
-        "payments_debt_id_debts_id_fk": {
-          "name": "payments_debt_id_debts_id_fk",
-          "tableFrom": "payments",
-          "tableTo": "debts",
-          "columnsFrom": [
-            "debt_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "payments_recorded_by_users_id_fk": {
-          "name": "payments_recorded_by_users_id_fk",
-          "tableFrom": "payments",
-          "tableTo": "users",
-          "columnsFrom": [
-            "recorded_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
         "payments_booking_id_bookings_id_fk": {
           "name": "payments_booking_id_bookings_id_fk",
           "tableFrom": "payments",
@@ -3092,11 +2792,7 @@
       "checkConstraints": {
         "payments_context_valid": {
           "name": "payments_context_valid",
-          "value": "(\"payments\".\"type\" = 'CHARGE' AND \"payments\".\"debt_id\" IS NULL AND num_nonnulls(\"payments\".\"booking_id\", \"payments\".\"reservation_id\", \"payments\".\"renewal_id\") = 1 AND \"payments\".\"rental_id\" IS NULL AND \"payments\".\"source_payment_id\" IS NULL AND \"payments\".\"provider\" IS NOT NULL AND \"payments\".\"payment_code\" IS NOT NULL AND \"payments\".\"provider_payment_id\" IS NOT NULL AND \"payments\".\"hold_token_hash\" IS NOT NULL) OR (\"payments\".\"type\" = 'DEPOSIT_REFUND' AND \"payments\".\"debt_id\" IS NULL AND num_nonnulls(\"payments\".\"booking_id\", \"payments\".\"reservation_id\") <= 1 AND \"payments\".\"rental_id\" IS NOT NULL AND \"payments\".\"renewal_id\" IS NULL AND \"payments\".\"source_payment_id\" IS NOT NULL AND \"payments\".\"provider\" IS NULL AND \"payments\".\"payment_code\" IS NULL AND \"payments\".\"provider_payment_id\" IS NULL AND \"payments\".\"hold_token_hash\" IS NULL AND \"payments\".\"status\" IN ('REFUND_PENDING', 'REFUNDED')) OR (\"payments\".\"type\" = 'DEBT_COLLECTION' AND \"payments\".\"debt_id\" IS NOT NULL AND \"payments\".\"rental_id\" IS NOT NULL AND num_nonnulls(\"payments\".\"booking_id\", \"payments\".\"reservation_id\", \"payments\".\"renewal_id\", \"payments\".\"source_payment_id\", \"payments\".\"provider\", \"payments\".\"provider_payment_id\", \"payments\".\"hold_token_hash\") = 0 AND \"payments\".\"status\" = 'SUCCEEDED' AND \"payments\".\"paid_at\" IS NOT NULL AND \"payments\".\"recorded_by\" IS NOT NULL AND \"payments\".\"method\" IS NOT NULL AND \"payments\".\"total_amount\" > 0)"
-        },
-        "payments_manual_reference_valid": {
-          "name": "payments_manual_reference_valid",
-          "value": "\"payments\".\"method\" IS DISTINCT FROM 'BANK_TRANSFER' OR length(trim(coalesce(\"payments\".\"reference\", \"payments\".\"refund_reference\", ''))) > 0"
+          "value": "(\"payments\".\"type\" = 'CHARGE' AND num_nonnulls(\"payments\".\"booking_id\", \"payments\".\"reservation_id\", \"payments\".\"renewal_id\") = 1 AND \"payments\".\"rental_id\" IS NULL AND \"payments\".\"source_payment_id\" IS NULL AND \"payments\".\"provider\" IS NOT NULL AND \"payments\".\"payment_code\" IS NOT NULL AND \"payments\".\"provider_payment_id\" IS NOT NULL AND \"payments\".\"hold_token_hash\" IS NOT NULL) OR (\"payments\".\"type\" = 'DEPOSIT_REFUND' AND num_nonnulls(\"payments\".\"booking_id\", \"payments\".\"reservation_id\") <= 1 AND \"payments\".\"rental_id\" IS NOT NULL AND \"payments\".\"renewal_id\" IS NULL AND \"payments\".\"source_payment_id\" IS NOT NULL AND \"payments\".\"provider\" IS NULL AND \"payments\".\"payment_code\" IS NULL AND \"payments\".\"provider_payment_id\" IS NULL AND \"payments\".\"hold_token_hash\" IS NULL AND \"payments\".\"status\" IN ('REFUND_PENDING', 'REFUNDED'))"
         },
         "payments_refund_amount_valid": {
           "name": "payments_refund_amount_valid",
@@ -3345,6 +3041,210 @@
         "pricing_changes_positive_version": {
           "name": "pricing_changes_positive_version",
           "value": "\"pricing_changes\".\"version\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.rentals": {
+      "name": "rentals",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "booking_id": {
+          "name": "booking_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reservation_id": {
+          "name": "reservation_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "storage_unit_id": {
+          "name": "storage_unit_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "rental_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ACTIVE'"
+        },
+        "start_at": {
+          "name": "start_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "end_at": {
+          "name": "end_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "closed_at": {
+          "name": "closed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "rentals_user_idx": {
+          "name": "rentals_user_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "rentals_unit_status_idx": {
+          "name": "rentals_unit_status_idx",
+          "columns": [
+            {
+              "expression": "storage_unit_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "end_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "rentals_booking_id_bookings_id_fk": {
+          "name": "rentals_booking_id_bookings_id_fk",
+          "tableFrom": "rentals",
+          "tableTo": "bookings",
+          "columnsFrom": [
+            "booking_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "rentals_reservation_id_reservations_id_fk": {
+          "name": "rentals_reservation_id_reservations_id_fk",
+          "tableFrom": "rentals",
+          "tableTo": "reservations",
+          "columnsFrom": [
+            "reservation_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "rentals_user_id_users_id_fk": {
+          "name": "rentals_user_id_users_id_fk",
+          "tableFrom": "rentals",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "rentals_storage_unit_id_storage_units_id_fk": {
+          "name": "rentals_storage_unit_id_storage_units_id_fk",
+          "tableFrom": "rentals",
+          "tableTo": "storage_units",
+          "columnsFrom": [
+            "storage_unit_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "rentals_bookingId_unique": {
+          "name": "rentals_bookingId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "booking_id"
+          ]
+        },
+        "rentals_reservationId_unique": {
+          "name": "rentals_reservationId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "reservation_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "rentals_reference_valid": {
+          "name": "rentals_reference_valid",
+          "value": "num_nonnulls(\"rentals\".\"booking_id\", \"rentals\".\"reservation_id\") = 1"
+        },
+        "rentals_period_valid": {
+          "name": "rentals_period_valid",
+          "value": "\"rentals\".\"end_at\" > \"rentals\".\"start_at\""
         }
       },
       "isRLSEnabled": false
@@ -3601,210 +3501,6 @@
         "rental_renewals_application_valid": {
           "name": "rental_renewals_application_valid",
           "value": "(\"rental_renewals\".\"status\" = 'APPLIED' and \"rental_renewals\".\"applied_at\" is not null) or (\"rental_renewals\".\"status\" <> 'APPLIED' and \"rental_renewals\".\"applied_at\" is null)"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.rentals": {
-      "name": "rentals",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "booking_id": {
-          "name": "booking_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "reservation_id": {
-          "name": "reservation_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "storage_unit_id": {
-          "name": "storage_unit_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "rental_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'ACTIVE'"
-        },
-        "start_at": {
-          "name": "start_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "end_at": {
-          "name": "end_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "closed_at": {
-          "name": "closed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "rentals_user_idx": {
-          "name": "rentals_user_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "rentals_unit_status_idx": {
-          "name": "rentals_unit_status_idx",
-          "columns": [
-            {
-              "expression": "storage_unit_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "end_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "rentals_booking_id_bookings_id_fk": {
-          "name": "rentals_booking_id_bookings_id_fk",
-          "tableFrom": "rentals",
-          "tableTo": "bookings",
-          "columnsFrom": [
-            "booking_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "rentals_reservation_id_reservations_id_fk": {
-          "name": "rentals_reservation_id_reservations_id_fk",
-          "tableFrom": "rentals",
-          "tableTo": "reservations",
-          "columnsFrom": [
-            "reservation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "rentals_user_id_users_id_fk": {
-          "name": "rentals_user_id_users_id_fk",
-          "tableFrom": "rentals",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "rentals_storage_unit_id_storage_units_id_fk": {
-          "name": "rentals_storage_unit_id_storage_units_id_fk",
-          "tableFrom": "rentals",
-          "tableTo": "storage_units",
-          "columnsFrom": [
-            "storage_unit_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "rentals_bookingId_unique": {
-          "name": "rentals_bookingId_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "booking_id"
-          ]
-        },
-        "rentals_reservationId_unique": {
-          "name": "rentals_reservationId_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "reservation_id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {
-        "rentals_reference_valid": {
-          "name": "rentals_reference_valid",
-          "value": "num_nonnulls(\"rentals\".\"booking_id\", \"rentals\".\"reservation_id\") = 1"
-        },
-        "rentals_period_valid": {
-          "name": "rentals_period_valid",
-          "value": "\"rentals\".\"end_at\" > \"rentals\".\"start_at\""
         }
       },
       "isRLSEnabled": false
@@ -5508,15 +5204,6 @@
     }
   },
   "enums": {
-    "public.debt_status": {
-      "name": "debt_status",
-      "schema": "public",
-      "values": [
-        "UNPAID",
-        "PARTIALLY_PAID",
-        "PAID"
-      ]
-    },
     "public.appointment_status": {
       "name": "appointment_status",
       "schema": "public",
@@ -5661,14 +5348,6 @@
         "FAILED"
       ]
     },
-    "public.payment_method": {
-      "name": "payment_method",
-      "schema": "public",
-      "values": [
-        "CASH",
-        "BANK_TRANSFER"
-      ]
-    },
     "public.payment_refund_reason_code": {
       "name": "payment_refund_reason_code",
       "schema": "public",
@@ -5709,6 +5388,14 @@
         "UNIT_TYPE_PRICE"
       ]
     },
+    "public.rental_status": {
+      "name": "rental_status",
+      "schema": "public",
+      "values": [
+        "ACTIVE",
+        "CLOSED"
+      ]
+    },
     "public.rental_renewal_status": {
       "name": "rental_renewal_status",
       "schema": "public",
@@ -5717,14 +5404,6 @@
         "PENDING_PAYMENT",
         "APPLIED",
         "REFUND_REQUIRED"
-      ]
-    },
-    "public.rental_status": {
-      "name": "rental_status",
-      "schema": "public",
-      "values": [
-        "ACTIVE",
-        "CLOSED"
       ]
     },
     "public.reservation_record_status": {

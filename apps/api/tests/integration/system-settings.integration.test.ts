@@ -367,4 +367,50 @@ describe.skipIf(!localUrl)("unified settings using existing local PostgreSQL", (
     );
     expect(journalRows).toHaveLength(0);
   });
+
+  test("commits enum additions before later migrations use them", async () => {
+    const suffix = randomUUID().replaceAll("-", "");
+    const enumName = `migration_enum_${suffix}`;
+    const table = `migration_enum_use_${suffix}`;
+    const hashes = [randomUUID(), randomUUID(), randomUUID()];
+    const timestamp = Date.now() + 1000000000000;
+    try {
+      expect(
+        await applyMigrations(db, [
+          {
+            hash: hashes[0] ?? "",
+            bps: true,
+            folderMillis: timestamp,
+            sql: [`create type ${enumName} as enum ('BASE')`],
+          },
+          {
+            hash: hashes[1] ?? "",
+            bps: true,
+            folderMillis: timestamp + 1,
+            sql: [`alter type ${enumName} add value 'DEBT_COLLECTION'`],
+          },
+          {
+            hash: hashes[2] ?? "",
+            bps: true,
+            folderMillis: timestamp + 2,
+            sql: [
+              `create table ${table} (kind ${enumName} not null check (kind <> 'DEBT_COLLECTION'))`,
+            ],
+          },
+        ]),
+      ).toBe(3);
+      expect(
+        await db.execute(sql`select enumlabel from pg_enum where enumtypid = ${enumName}::regtype`),
+      ).toHaveLength(2);
+      expect(await db.execute(sql`select to_regclass(${table}) as name`)).toMatchObject([
+        { name: table },
+      ]);
+    } finally {
+      await db.execute(sql`drop table if exists ${sql.identifier(table)}`);
+      await db.execute(sql`drop type if exists ${sql.identifier(enumName)}`);
+      await db.execute(
+        sql`delete from drizzle.__drizzle_migrations where hash in (${hashes[0] ?? ""}, ${hashes[1] ?? ""}, ${hashes[2] ?? ""})`,
+      );
+    }
+  });
 });
