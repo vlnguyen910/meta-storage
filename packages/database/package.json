@@ -24,7 +24,7 @@
     "db:clear": "bun src/clear.ts",
     "lint": "biome check src",
     "check-types": "tsc --noEmit",
-    "test": "bun -e 'console.log(\"No database test suite\")'"
+    "test": "bun test tests"
   },
   "dependencies": {
     "@metastorage/contracts": "workspace:*",
