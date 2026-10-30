@@ -1,6 +1,7 @@
 "use client";
 import { APPOINTMENT_TYPES } from "@metastorage/contracts";
 import { UserRole } from "@metastorage/database/schema/user-enums";
+import { formatReference } from "@metastorage/shared";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
@@ -627,7 +628,10 @@ export function FacilityBookingsView({
                   </>
                 ) : (
                   <>
-                    <DetailValue label={FLOW.rentalReference} value={details.rentalId ?? "—"} />
+                    <DetailValue
+                      label={FLOW.rentalReference}
+                      value={formatReference(details.rentalId, "KT")}
+                    />
                     {detailsRental.isPending ? (
                       <LoadingState variant="detail" />
                     ) : detailsRental.isError ? (

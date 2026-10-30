@@ -1,3 +1,4 @@
+import { formatReference } from "@metastorage/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -165,18 +166,11 @@ export function StaffWorkspace({ owner, name, onHome }: StaffWorkspaceProps) {
                   </>
                 )}
                 {work.assignments.isSuccess && !work.facility && <Notice>{M.noFacility}</Notice>}
-                {work.returnsUnavailable && filters.kind === "return" && (
-                  <Notice>{M.returnsUnavailable}</Notice>
+                {!work.pending && !work.error && work.facility && !work.items.length && (
+                  <Card title={M.empty}>
+                    <Text className="text-sm leading-6 text-slate-500">{M.emptyHint}</Text>
+                  </Card>
                 )}
-                {!work.pending &&
-                  !work.error &&
-                  work.facility &&
-                  !work.items.length &&
-                  !(work.returnsUnavailable && filters.kind === "return") && (
-                    <Card title={M.empty}>
-                      <Text className="text-sm leading-6 text-slate-500">{M.emptyHint}</Text>
-                    </Card>
-                  )}
                 {work.items.map((item) => (
                   <StaffWorkCard
                     key={
@@ -212,7 +206,10 @@ function StaffWorkCard({ item, onOpen }: { item: StaffSelection; onOpen: () => v
     ? {
         status: appointment.status,
         contactName: appointment.customerName,
-        bookingCode: appointment.reservationId ?? appointment.id,
+        bookingCode: formatReference(
+          appointment.reservationId ?? appointment.id,
+          appointment.reservationId ? "BK" : "LH",
+        ),
         assignedUnit: appointment.assignedUnit,
         handoverStage: undefined as string | undefined,
       }

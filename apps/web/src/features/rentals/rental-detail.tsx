@@ -1,6 +1,7 @@
 "use client";
 
 import { APPOINTMENT_STATUSES, APPOINTMENT_TYPES } from "@metastorage/contracts";
+import { formatReference } from "@metastorage/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Calendar,
@@ -36,7 +37,7 @@ import { api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { useRental } from "./hooks";
 import { RENEWAL_MESSAGES as RM } from "./renewal.messages";
-import { RenewalHistory } from "./renewal-history";
+import { RentalPaymentHistory } from "./rental-payment-history";
 import { RENTAL_MESSAGES as M } from "./rentals.messages";
 
 function remainingLabel(endAt: string): string {
@@ -128,27 +129,6 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
             <HelpCircle className="size-3.5 text-primary" />
             <span>{M.support}</span>
           </Link>
-
-          {r.status === "ACTIVE" && (
-            <Button
-              variant={hasPendingReturn ? "outline" : "primary"}
-              disabled={appointments.isPending || cancelReturn.isPending}
-              onClick={() =>
-                activeReturn ? cancelReturn.mutate(activeReturn.id) : setShowReturnForm(true)
-              }
-            >
-              <RotateCcw className="size-3.5" />
-              <span>
-                {appointments.isPending
-                  ? M.returnAppointmentsLoading
-                  : hasPendingReturn
-                    ? cancelReturn.isPending
-                      ? M.returnCancelling
-                      : M.returnCancel
-                    : M.returnAction}
-              </span>
-            </Button>
-          )}
         </div>
       </div>
       {cancelReturn.isError && (
@@ -157,22 +137,12 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
         </p>
       )}
 
-      <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6">
-        <div>
-          <h2 className="text-xl font-bold">{RM.title}</h2>
-          <p className="mt-2 text-sm text-secondary">{r.renewalWindow?.reason ?? RM.intro}</p>
-        </div>
-        <Link className={buttonClassName("primary")} href={`/customer/storage/${rentalId}/renew`}>
-          {RM.title}
-        </Link>
-      </section>
-      <RenewalHistory rentalId={rentalId} />
       {/* Card 1: Rental Overview */}
       <Card className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <span className="inline-block rounded-md border border-slate-200/70 bg-slate-100 px-2.5 py-0.5 font-mono text-xs font-bold tracking-wider text-slate-600 uppercase">
-              {r.bookingCode}
+              {formatReference(r.bookingCode, "BK")}
             </span>
             <h2 className="mt-2 text-2xl font-bold text-slate-900">
               {r.unitType.name.includes(r.unitType.sizeLabel)
@@ -269,91 +239,164 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
             <strong className="mt-1 block text-base">{formatDate(r.closedAt)}</strong>
           </div>
         ) : null}
+        {r.status === "ACTIVE" && (
+          <div className="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs leading-5 text-slate-500">
+              {r.renewalWindow?.reason ?? RM.intro}
+            </p>
+            <div className="flex flex-wrap gap-2 sm:shrink-0">
+              <Link
+                className={buttonClassName("primary")}
+                href={`/customer/storage/${rentalId}/renew`}
+              >
+                {RM.title}
+              </Link>
+              {r.status === "ACTIVE" && (
+                <Button
+                  variant="outline"
+                  disabled={appointments.isPending || cancelReturn.isPending}
+                  onClick={() =>
+                    activeReturn ? cancelReturn.mutate(activeReturn.id) : setShowReturnForm(true)
+                  }
+                >
+                  <RotateCcw className="size-3.5" />
+                  <span>
+                    {appointments.isPending
+                      ? M.returnAppointmentsLoading
+                      : hasPendingReturn
+                        ? cancelReturn.isPending
+                          ? M.returnCancelling
+                          : M.returnCancel
+                        : M.returnSchedule}
+                  </span>
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
       </Card>
+      <RentalPaymentHistory key={rentalId} rentalId={rentalId} />
 
       <Dialog open={showReturnForm && r.status === "ACTIVE"} onOpenChange={setShowReturnForm}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-h-[90dvh] max-w-5xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{M.returnAction}</DialogTitle>
+        <DialogContent
+          aria-describedby="return-form-description"
+          className="flex max-h-[92dvh] w-[calc(100vw-1rem)] max-w-[820px] flex-col gap-0 overflow-hidden p-0 sm:max-w-[820px]"
+        >
+          <DialogHeader className="shrink-0 border-b border-slate-100 px-5 py-5 pr-14 sm:px-7">
+            <DialogTitle className="text-xl">{M.returnSchedule}</DialogTitle>
+            <p id="return-form-description" className="text-sm leading-6 text-slate-500">
+              {M.returnFormHint}
+            </p>
           </DialogHeader>
-          {appointments.isPending ? (
-            <p role="status" className="text-sm text-muted">
-              {M.returnAppointmentsLoading}
-            </p>
-          ) : appointments.isError ? (
-            <ErrorState
-              message={M.returnAppointmentsLoadError}
-              onRetry={() => void appointments.refetch()}
-            />
-          ) : hasPendingReturn ? (
-            <div role="status" className="space-y-3 text-sm">
-              <p>{M.returnPending}</p>
-              {appointments.data
-                ?.filter((item) => ["SCHEDULED", "CONFIRMED"].includes(item.status))
-                .map((item) => (
-                  <p key={item.id}>
-                    {formatDate(item.scheduledDate)} · {item.slotName ?? ""} ·{" "}
-                    {M.returnStatuses[item.status] ?? item.status}
-                  </p>
-                ))}
+          <div className="min-h-0 overflow-y-auto px-5 py-5 sm:px-7">
+            <div className="mb-5 flex flex-wrap justify-between gap-3 rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm">
+              <div>
+                <strong className="block text-emerald-950">
+                  {r.storageUnit?.code ?? r.unitType.name}
+                </strong>
+                <p className="mt-1 text-xs text-slate-600">{r.facility.name}</p>
+              </div>
+              <div className="text-xs leading-6 text-slate-600">
+                {M.endDate}
+                <strong className="block text-sm text-slate-900">{formatDate(r.endAt)}</strong>
+              </div>
             </div>
-          ) : (
-            <BookingSchedulePicker
-              date={scheduledDate}
-              onDateChange={setScheduledDate}
-              slotId={slotId}
-              onSlotChange={setSlotId}
-              slots={slots.data ?? []}
-              minDate={today}
-              dateTitle={M.returnDate}
-              slotTitle={M.returnSlot}
-              dateHint={M.returnDateHint}
-              timeHint={M.returnTimeHint}
-              slotsLoading={slots.isPending}
-              slotsError={slots.isError}
-              onRetrySlots={() => void slots.refetch()}
-            />
-          )}
-          {!appointments.isPending &&
-            !appointments.isError &&
-            !hasPendingReturn &&
-            Boolean(appointments.data?.length) && (
-              <section aria-label={M.returnHistory} className="space-y-2 border-t border-line pt-3">
-                <h3 className="text-sm font-semibold">{M.returnHistory}</h3>
-                {appointments.data?.map((item) => (
-                  <p key={item.id} className="text-sm text-muted">
-                    {formatDate(item.scheduledDate)} · {item.slotName ?? ""} ·{" "}
-                    {M.returnStatuses[item.status] ?? item.status}
-                  </p>
-                ))}
-              </section>
+            {appointments.isPending ? (
+              <p role="status" className="text-sm text-muted">
+                {M.returnAppointmentsLoading}
+              </p>
+            ) : appointments.isError ? (
+              <ErrorState
+                message={M.returnAppointmentsLoadError}
+                onRetry={() => void appointments.refetch()}
+              />
+            ) : hasPendingReturn ? (
+              <div role="status" className="space-y-3 text-sm">
+                <p>{M.returnPending}</p>
+                {appointments.data
+                  ?.filter((item) => ["SCHEDULED", "CONFIRMED"].includes(item.status))
+                  .map((item) => (
+                    <p key={item.id}>
+                      {formatDate(item.scheduledDate)} · {item.slotName ?? ""} ·{" "}
+                      {M.returnStatuses[item.status] ?? item.status}
+                    </p>
+                  ))}
+              </div>
+            ) : (
+              <BookingSchedulePicker
+                dateFirst
+                selectedDateLabel={M.returnSelectedDate}
+                date={scheduledDate}
+                onDateChange={setScheduledDate}
+                slotId={slotId}
+                onSlotChange={setSlotId}
+                slots={slots.data ?? []}
+                minDate={today}
+                dateTitle={M.returnDate}
+                slotTitle={M.returnSlot}
+                dateHint={M.returnDateHint}
+                timeHint={M.returnTimeHint}
+                slotsLoading={slots.isPending}
+                slotsError={slots.isError}
+                onRetrySlots={() => void slots.refetch()}
+              />
             )}
-          {createReturn.isError && (
-            <p role="alert" className="text-sm text-danger">
-              {M.returnCreateError}
-            </p>
-          )}
-          <div className="flex justify-end gap-2 border-t border-line pt-3">
-            <Button variant="outline" onClick={() => setShowReturnForm(false)}>
-              {M.cancel}
-            </Button>
-            {!appointments.isPending && !appointments.isError && !hasPendingReturn && (
-              <Button
-                variant="primary"
-                disabled={
-                  !scheduledDate ||
-                  !slotId ||
-                  !selectedSlot ||
-                  selectedSlotIsPast ||
-                  slots.isPending ||
-                  slots.isError ||
-                  createReturn.isPending
-                }
-                onClick={submitReturnRequest}
-              >
-                {createReturn.isPending ? M.saving : M.returnSubmit}
+            {!appointments.isPending &&
+              !appointments.isError &&
+              !hasPendingReturn &&
+              Boolean(appointments.data?.length) && (
+                <section
+                  aria-label={M.returnHistory}
+                  className="space-y-2 border-t border-line pt-3"
+                >
+                  <h3 className="text-sm font-semibold">{M.returnHistory}</h3>
+                  {appointments.data?.map((item) => (
+                    <p key={item.id} className="text-sm text-muted">
+                      {formatDate(item.scheduledDate)} · {item.slotName ?? ""} ·{" "}
+                      {M.returnStatuses[item.status] ?? item.status}
+                    </p>
+                  ))}
+                </section>
+              )}
+            {createReturn.isError && (
+              <p role="alert" className="text-sm text-danger">
+                {M.returnCreateError}
+              </p>
+            )}
+          </div>
+          <div className="shrink-0 border-t border-slate-100 bg-slate-50/70 px-5 py-4 sm:px-7">
+            {!hasPendingReturn && (
+              <div className="mb-3 text-sm">
+                <p className="text-xs font-semibold text-slate-500">{M.returnSelection}</p>
+                <p className="mt-1 font-semibold text-primary">
+                  {scheduledDate && selectedSlot
+                    ? `${formatDate(scheduledDate)} · ${selectedSlot.startTime.slice(0, 5)}–${selectedSlot.endTime.slice(0, 5)}`
+                    : M.returnSelectionEmpty}
+                </p>
+              </div>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowReturnForm(false)}>
+                {M.cancel}
               </Button>
-            )}
+              {!appointments.isPending && !appointments.isError && !hasPendingReturn && (
+                <Button
+                  variant="primary"
+                  disabled={
+                    !scheduledDate ||
+                    !slotId ||
+                    !selectedSlot ||
+                    selectedSlotIsPast ||
+                    slots.isPending ||
+                    slots.isError ||
+                    createReturn.isPending
+                  }
+                  onClick={submitReturnRequest}
+                >
+                  {createReturn.isPending ? M.saving : M.returnScheduleSubmit}
+                </Button>
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>

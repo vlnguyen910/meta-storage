@@ -2,11 +2,21 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CreateRentalRenewalSchema } from "@metastorage/contracts";
 import axios from "axios";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CalendarDays,
+  CheckCircle2,
+  MapPin,
+  ShieldCheck,
+  Warehouse,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { ErrorState, LoadingState } from "@/components/ui/states";
+import { cn } from "@/lib/cn";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import { useRental } from "./hooks";
 import { useRenewal, useRenewalHistory } from "./renewal.hooks";
@@ -29,6 +39,7 @@ export function RenewalScreen({
     defaultValues: { months: 1 },
   });
   const renewal = detail.data;
+  const selectedMonths = form.watch("months");
   const expired = renewal && Date.parse(renewal.expiresAt) <= now;
   const pending = history.data?.items.find((item) => item.status === "PENDING_PAYMENT");
   function submitCheckout(session: {
@@ -76,9 +87,10 @@ export function RenewalScreen({
   return (
     <main className="mx-auto max-w-6xl space-y-6 pb-32 md:pb-8">
       <Link
-        className="inline-flex min-h-11 items-center text-sm font-semibold text-primary underline underline-offset-4"
+        className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-primary hover:underline underline-offset-4"
         href={`/customer/storage/${rentalId}`}
       >
+        <ArrowLeft size={16} aria-hidden="true" />
         {M.back}
       </Link>
       <header className="space-y-2">
@@ -86,7 +98,7 @@ export function RenewalScreen({
         <p className="text-secondary">{M.intro}</p>
       </header>
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-        <section className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6">
+        <section className="space-y-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
           {!renewalId ? (
             <>
               {pending ? (
@@ -105,22 +117,40 @@ export function RenewalScreen({
                   })}
                 >
                   <div className="space-y-2">
-                    <label htmlFor="renewal-months" className="block font-semibold">
-                      {M.months}
-                    </label>
-                    <select
-                      id="renewal-months"
-                      className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 focus-visible:outline-2 focus-visible:outline-primary"
-                      aria-describedby="renewal-duration"
-                      {...form.register("months", { valueAsNumber: true })}
-                    >
-                      {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => (
-                        <option key={month} value={month}>
-                          {month} {M.month}
-                        </option>
-                      ))}
-                    </select>
-                    <p id="renewal-duration" className="text-sm text-secondary">
+                    <fieldset aria-describedby="renewal-duration">
+                      <legend className="mb-4 text-lg font-bold">{M.months}</legend>
+                      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+                        {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => (
+                          <label key={month} className="cursor-pointer">
+                            <input
+                              type="radio"
+                              name="months"
+                              value={month}
+                              checked={selectedMonths === month}
+                              onChange={() =>
+                                form.setValue("months", month, {
+                                  shouldValidate: true,
+                                  shouldDirty: true,
+                                })
+                              }
+                              className="peer sr-only"
+                            />
+                            <span
+                              className={cn(
+                                "flex min-h-16 items-center justify-center gap-1.5 rounded-xl border transition hover:border-primary/50 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-4 peer-focus-visible:outline-primary",
+                                selectedMonths === month
+                                  ? "border-primary bg-primary/5 text-primary ring-1 ring-primary"
+                                  : "border-slate-200 bg-white text-secondary",
+                              )}
+                            >
+                              <span className="text-xl font-bold">{month}</span>{" "}
+                              <span className="text-sm">{M.month}</span>
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+                    <p id="renewal-duration" className="pt-2 text-sm leading-6 text-secondary">
                       {M.duration}
                     </p>
                     {form.formState.errors.months && (
@@ -128,6 +158,24 @@ export function RenewalScreen({
                         {M.blocked}
                       </p>
                     )}
+                  </div>
+                  <div className="flex items-start gap-3 rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
+                    <CalendarDays
+                      size={21}
+                      className="mt-0.5 shrink-0 text-primary"
+                      aria-hidden="true"
+                    />
+                    <div className="space-y-1">
+                      <p className="text-sm text-secondary">{M.projectedEnd}</p>
+                      <p className="font-bold text-primary">
+                        {formatDateTime(
+                          new Date(
+                            Date.parse(r.endAt) + Number(selectedMonths) * 30 * 86400000,
+                          ).toISOString(),
+                        )}
+                      </p>
+                      <p className="text-xs leading-5 text-secondary">{M.previewHint}</p>
+                    </div>
                   </div>
                   {!canQuote && (
                     <p role="status" className="text-sm text-secondary">
@@ -137,11 +185,12 @@ export function RenewalScreen({
                   <div className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:static md:border-0 md:p-0">
                     <Button
                       type="submit"
-                      className="w-full rounded-lg"
+                      className="min-h-12 w-full rounded-xl"
                       loading={quote.isPending}
                       disabled={!canQuote || history.isPending || history.isError}
                     >
-                      {M.quote}
+                      {quote.isPending ? M.quoting : M.quote}
+                      {!quote.isPending && <ArrowRight size={18} aria-hidden="true" />}
                     </Button>
                   </div>
                 </form>
@@ -153,22 +202,41 @@ export function RenewalScreen({
           ) : (
             renewal && (
               <>
-                <h2 className="text-xl font-bold">{M.status[renewal.status]}</h2>
-                <p role="status" className="text-secondary">
-                  {renewal.status === "APPLIED"
-                    ? M.success
-                    : renewal.status === "REFUND_REQUIRED"
-                      ? payment.data?.status === "REFUNDED"
-                        ? M.refunded
-                        : M.refund
-                      : expired
-                        ? M.expired
-                        : renewal.status === "PENDING_PAYMENT"
-                          ? M.pending
-                          : M.hold}
-                </p>
+                {renewal.status === "APPLIED" ? (
+                  <div
+                    role="status"
+                    className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-950"
+                  >
+                    <CheckCircle2
+                      aria-hidden="true"
+                      className="mt-0.5 size-6 shrink-0 text-emerald-700"
+                    />
+                    <div>
+                      <h2 className="text-xl font-bold">{M.successTitle}</h2>
+                      <p className="mt-2 text-sm leading-6">{M.success}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <h2 className="text-xl font-bold">{M.status[renewal.status]}</h2>
+                    <p role="status" className="text-secondary">
+                      {renewal.status === "REFUND_REQUIRED"
+                        ? payment.data?.status === "REFUNDED"
+                          ? M.refunded
+                          : M.refund
+                        : expired
+                          ? M.expired
+                          : renewal.status === "PENDING_PAYMENT"
+                            ? M.pending
+                            : M.hold}
+                    </p>
+                  </>
+                )}
                 <dl className="space-y-4">
-                  <Row label={M.currentEnd} value={formatDateTime(renewal.oldEndAt)} />
+                  <Row
+                    label={renewal.status === "APPLIED" ? M.previousEnd : M.currentEnd}
+                    value={formatDateTime(renewal.oldEndAt)}
+                  />
                   <Row
                     label={renewal.status === "APPLIED" ? M.newEnd : M.projectedEnd}
                     value={formatDateTime(renewal.newEndAt)}
@@ -215,16 +283,25 @@ export function RenewalScreen({
                     </Button>
                   </div>
                 )}
-                <Button
-                  variant="outline"
-                  loading={detail.isFetching || payment.isFetching}
-                  onClick={() => {
-                    void detail.refetch();
-                    if (renewal.paymentId) void payment.refetch();
-                  }}
-                >
-                  {M.refresh}
-                </Button>
+                {renewal.status === "APPLIED" ? (
+                  <Link
+                    className={buttonClassName("primary")}
+                    href={`/customer/storage/${rentalId}`}
+                  >
+                    {M.viewRental}
+                  </Link>
+                ) : (
+                  <Button
+                    variant="outline"
+                    loading={detail.isFetching || payment.isFetching}
+                    onClick={() => {
+                      void detail.refetch();
+                      if (renewal.paymentId) void payment.refetch();
+                    }}
+                  >
+                    {M.refresh}
+                  </Button>
+                )}
                 {expired &&
                   renewal.status !== "APPLIED" &&
                   renewal.status !== "REFUND_REQUIRED" &&
@@ -257,19 +334,30 @@ export function RenewalScreen({
             </p>
           )}
         </section>
-        <aside className="space-y-5 rounded-2xl bg-primary/5 p-6">
-          <h2 className="text-xl font-bold text-ink">{M.summary}</h2>
+        <aside className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7 lg:sticky lg:top-6">
+          <div className="flex items-center gap-3">
+            <span className="grid size-11 place-items-center rounded-xl bg-primary/5 text-primary">
+              <Warehouse size={22} aria-hidden="true" />
+            </span>
+            <h2 className="text-xl font-bold text-ink">{M.summary}</h2>
+          </div>
           <p className="font-semibold">
             {r.unitType.name} · {r.storageUnit?.code}
           </p>
-          <p className="text-sm text-secondary">{r.facility.address}</p>
-          <dl className="space-y-4">
+          <p className="flex items-start gap-2 text-sm leading-6 text-secondary">
+            <MapPin size={16} className="mt-1 shrink-0" aria-hidden="true" />
+            {r.facility.address}
+          </p>
+          <dl className="space-y-4 border-t border-slate-100 pt-5">
             <Row label={M.currentEnd} value={formatDateTime(r.endAt)} />
             {r.renewalWindow?.cutoffAt && (
               <Row label={M.cutoff} value={formatDateTime(r.renewalWindow.cutoffAt)} />
             )}
           </dl>
-          <p className="text-sm text-secondary">{M.duration}</p>
+          <p className="flex items-start gap-2 rounded-xl bg-primary/5 p-3 text-sm leading-6 text-primary">
+            <ShieldCheck size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
+            {M.depositUnchanged}
+          </p>
         </aside>
       </div>
     </main>

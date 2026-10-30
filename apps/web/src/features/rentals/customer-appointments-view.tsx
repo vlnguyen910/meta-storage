@@ -7,6 +7,7 @@ import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import type { AppointmentRecordDto } from "@metastorage/contracts";
 import { APPOINTMENT_STATUSES } from "@metastorage/contracts";
+import { formatReference } from "@metastorage/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ArrowRight, CalendarDays, List, Plus } from "lucide-react";
 import Link from "next/link";
@@ -70,9 +71,11 @@ function statusClass(status: string): string {
 }
 
 function relatedLabel(item: AppointmentRecordDto): string {
-  if (item.reservationId) return `${M.linkedReservation} · ${item.reservationId}`;
-  if (item.rentalId) return `${M.linkedRental} · ${item.rentalId}`;
-  if (item.supportTicketId) return `${M.linkedTicket} · ${item.supportTicketId}`;
+  if (item.reservationId)
+    return `${M.linkedReservation} · ${formatReference(item.reservationId, "BK")}`;
+  if (item.rentalId) return `${M.linkedRental} · ${formatReference(item.rentalId, "KT")}`;
+  if (item.supportTicketId)
+    return `${M.linkedTicket} · ${formatReference(item.supportTicketId, "YC")}`;
   return "—";
 }
 
@@ -120,7 +123,10 @@ export function CustomerAppointmentsView() {
     () =>
       Array.from(
         new Map(
-          allAppointments.map((item) => [item.facilityId, item.facility?.name ?? item.facilityId]),
+          allAppointments.map((item) => [
+            item.facilityId,
+            item.facility?.name ?? formatReference(item.facilityId, "CS"),
+          ]),
         ),
       ).sort((a, b) => a[1].localeCompare(b[1], "vi")),
     [allAppointments],
@@ -421,7 +427,7 @@ export function CustomerAppointmentsView() {
                       {item.slotEnd ? `–${item.slotEnd.slice(0, 5)}` : ""}
                     </span>
                   </td>
-                  <td>{item.facility?.name ?? item.facilityId}</td>
+                  <td>{item.facility?.name ?? formatReference(item.facilityId, "CS")}</td>
                   <td className="max-w-56 truncate">{relatedLabel(item)}</td>
                   <td>
                     <AppointmentStatus item={item} />
@@ -461,7 +467,7 @@ export function CustomerAppointmentsView() {
                 <section>
                   <h3 className="font-semibold text-ink">{appointmentLabel(selected)}</h3>
                   <p className="mt-1 font-mono text-xs text-muted">
-                    {M.appointmentId}: {selected.id}
+                    {M.appointmentId}: {formatReference(selected.id, "LH")}
                   </p>
                 </section>
                 <div className="space-y-3 rounded-xl border border-line bg-canvas p-4 text-sm">
@@ -477,7 +483,7 @@ export function CustomerAppointmentsView() {
                   <div>
                     <p className="text-xs font-semibold text-muted">{M.facility}</p>
                     <p className="mt-1 font-medium text-ink">
-                      {selected.facility?.name ?? selected.facilityId}
+                      {selected.facility?.name ?? formatReference(selected.facilityId, "CS")}
                     </p>
                     {selected.facility?.address && (
                       <p className="mt-1 text-muted">{selected.facility.address}</p>

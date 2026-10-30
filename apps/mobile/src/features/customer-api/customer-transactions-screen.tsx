@@ -1,3 +1,4 @@
+import { formatReference } from "@metastorage/shared";
 import { useState } from "react";
 import { Text } from "react-native";
 import { ChoiceTabs } from "../../components/ui/choice-tabs";
@@ -21,7 +22,7 @@ export function CustomerTransactionsScreen({
   const items = query.items.filter(
     ({ rental, payment }) =>
       (status === "all" || payment.status === status) &&
-      `${rental.bookingCode} ${rental.facility.name} ${payment.paymentCode ?? ""}`
+      `${rental.bookingCode} ${formatReference(rental.bookingCode, "BK")} ${rental.facility.name} ${formatReference(payment.paymentCode, "TT")}`
         .toLocaleLowerCase("vi")
         .includes(search.trim().toLocaleLowerCase("vi")),
   );
@@ -48,7 +49,10 @@ export function CustomerTransactionsScreen({
         </Card>
       )}
       {items.map(({ rental, payment }) => (
-        <Card key={payment.id} title={payment.paymentCode ?? rental.bookingCode}>
+        <Card
+          key={payment.id}
+          title={formatReference(payment.paymentCode ?? rental.bookingCode, "TT")}
+        >
           <StatusPill
             label={M.status[payment.status] ?? payment.status}
             tone={

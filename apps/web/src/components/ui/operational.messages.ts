@@ -10,7 +10,6 @@ export const OPERATIONAL_LABELS: Record<string, string> = {
   INACTIVE: "Ngừng hoạt động",
   ASSIGNED: "Đã giao",
   IN_PROGRESS: "Đang thực hiện",
-  AWAITING_APPROVAL: "Chờ duyệt báo cáo",
   COMPLETED: "Đã hoàn tất",
   OPEN: "Mới tiếp nhận",
   PENDING: "Đang chờ",

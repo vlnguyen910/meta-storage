@@ -14,6 +14,7 @@ import type {
   UpdateStorageUnitInput,
   UpdateUnitTypeInput,
 } from "@metastorage/contracts";
+import { formatReference } from "@metastorage/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { useState } from "react";
@@ -59,7 +60,7 @@ export function useFacilityOptions(global = false) {
         .filter((row) => row.isActive)
         .map((row) => ({
           id: row.facilityId,
-          name: row.facilityName ?? row.facilityId,
+          name: row.facilityName ?? formatReference(row.facilityId, "CS"),
           code: row.facilityCode ?? "",
         }));
     },
@@ -120,8 +121,7 @@ export function useFacilityTaskDetail(id: string) {
   return useQuery({
     queryKey: [...key, "task", id],
     queryFn: async ({ signal }) => {
-      const result = await api.flow5.tasks.listMine({ limit: 100, offset: 0 }, signal);
-      const task = result.items.find((item) => item.id === id);
+      const task = await api.flow5.tasks.findMine(id, signal);
       if (!task) throw new Error(F5.loadError);
       return task;
     },
@@ -188,22 +188,18 @@ export function useManagedFacility(id: string) {
     enabled: Boolean(id) && !isMockMode,
   });
 }
-export function useManagedTypes() {
+export function useManagedTypes(facilityId?: string) {
   const key = useManagementKey();
   return useQuery({
-    queryKey: [...key, "types"],
+    queryKey: [...key, "types", facilityId],
     queryFn: ({ signal }) =>
-      allPages((offset) => api.flow5.unitTypes.list({ limit: 100, offset }, signal)),
+      allPages((offset) =>
+        api.flow5.unitTypes.list(
+          { limit: 100, offset, ...(facilityId ? { facilityId } : {}) },
+          signal,
+        ),
+      ),
     enabled: !isMockMode,
-  });
-}
-export function useOfferings(id: string) {
-  const key = useManagementKey();
-  return useQuery({
-    queryKey: [...key, "offerings", id],
-    queryFn: ({ signal }) =>
-      allPages((offset) => api.flow5.facilities.offerings(id, offset, signal)),
-    enabled: Boolean(id) && !isMockMode,
   });
 }
 export function useMemberships(id: string) {
@@ -231,10 +227,6 @@ export const useCreateType = () =>
   useFlow5Write((input: CreateUnitTypeInput) => api.flow5.unitTypes.create(input));
 export const useUpdateType = (id: string) =>
   useFlow5Write((input: UpdateUnitTypeInput) => api.flow5.unitTypes.update(id, input));
-export const useSetOffering = (id: string) =>
-  useFlow5Write((input: { unitTypeId: string; isActive: boolean }) =>
-    api.flow5.facilities.setOffering(id, input.unitTypeId, input.isActive),
-  );
 export const useAssignMember = (id: string) =>
   useFlow5Write((input: CreateAssignmentBody) => api.flow5.facilities.assign(id, input));
 export const useRevokeMember = (id: string) =>

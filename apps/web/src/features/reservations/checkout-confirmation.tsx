@@ -1,6 +1,7 @@
 "use client";
 
 import type { BookingConfirmation, BookingDraftPricing } from "@metastorage/contracts";
+import { formatReference } from "@metastorage/shared";
 import { ArrowLeft, Check, Copy, Mail, Phone, UserRound } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -72,7 +73,7 @@ export function CheckoutConfirmation({
             <div className="inline-flex items-center gap-2 min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs sm:text-sm">
               <span className="text-xs text-slate-500">{m.bookingId}:</span>
               <strong className="min-w-0 break-all font-mono text-xs sm:text-sm font-bold text-slate-900">
-                {confirmation.bookingCode}
+                {formatReference(confirmation.bookingCode, "BK")}
               </strong>
               <button
                 type="button"
@@ -117,7 +118,7 @@ export function CheckoutConfirmation({
             {m.qrTitle}
           </h2>
           <strong className="block max-w-full break-all text-sm font-mono font-bold text-slate-800 mb-2">
-            {confirmation.bookingCode}
+            {formatReference(confirmation.bookingCode, "BK")}
           </strong>
           <div className="flex justify-center my-2">
             {state.qrDataUrl ? (

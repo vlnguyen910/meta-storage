@@ -9,7 +9,9 @@ import {
   notificationOutbox,
   payments,
   queryClient,
+  rentals,
   reservations,
+  storageUnits,
   supportTickets,
   users,
 } from "@metastorage/database";
@@ -23,6 +25,7 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Customer Support", 
   const otherReservationId = randomUUID();
   const slotId = randomUUID();
   const paymentId = randomUUID();
+  const rentalId = randomUUID();
 
   const input = (extra: Partial<SupportCreateInput> = {}): SupportCreateInput => ({
     reservationId,
@@ -76,6 +79,19 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Customer Support", 
         totalAmount: 2000000,
       },
     ]);
+    await db.insert(rentals).values({
+      id: rentalId,
+      reservationId,
+      userId: fixture.ids.customer,
+      storageUnitId: fixture.unitId,
+      status: "ACTIVE",
+      startAt: new Date("2026-10-24T00:00:00Z"),
+      endAt: new Date("2026-11-24T00:00:00Z"),
+    });
+    await db
+      .update(storageUnits)
+      .set({ status: "OCCUPIED" })
+      .where(eq(storageUnits.id, fixture.unitId));
     await db.insert(payments).values([
       {
         id: paymentId,
@@ -107,6 +123,7 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Customer Support", 
         await db.delete(supportTickets).where(inArray(supportTickets.id, ids));
       }
       await db.delete(payments).where(eq(payments.id, paymentId));
+      await db.delete(rentals).where(eq(rentals.id, rentalId));
       await db
         .delete(reservations)
         .where(inArray(reservations.id, [reservationId, otherReservationId]));
@@ -189,5 +206,65 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Customer Support", 
     expect(
       (await fixture.api("customer", "POST", `/support/tickets/${id}/attachments`, {})).statusCode,
     ).toBe(404);
+  });
+
+  test("records an owned unit support ticket without closing the rental", async () => {
+    const payload = input({
+      category: "UNIT",
+      paymentId: undefined,
+      subject: "Kiểm tra cửa kho - TEST",
+      content: "Cửa kho cần được kiểm tra.",
+    });
+    const first = await fixture.api("customer", "POST", "/support/tickets", payload);
+    expect(first.statusCode, first.body).toBe(201);
+    const ticket = first.json().data.ticket;
+    expect(ticket).toMatchObject({
+      reservationId,
+      rentalId,
+      category: "UNIT",
+      paymentId: null,
+      subject: payload.subject,
+      description: payload.content,
+      status: "OPEN",
+    });
+    const retry = await fixture.api("customer", "POST", "/support/tickets", payload);
+    expect(retry.statusCode, retry.body).toBe(201);
+    expect(retry.json().data.ticket.id).toBe(ticket.id);
+    expect(
+      await db
+        .select()
+        .from(notificationOutbox)
+        .where(eq(notificationOutbox.supportTicketId, ticket.id)),
+    ).toHaveLength(1);
+    expect((await db.select().from(rentals).where(eq(rentals.id, rentalId)))[0]?.status).toBe(
+      "ACTIVE",
+    );
+    expect((await fixture.api("customer", "GET", `/support/tickets/${ticket.id}`)).statusCode).toBe(
+      200,
+    );
+    expect(
+      (await fixture.api("peerStaff", "GET", `/support/tickets/${ticket.id}`)).statusCode,
+    ).toBe(404);
+  });
+
+  test("rejects unit support requests for another customer or a closed rental", async () => {
+    const payload = input({ category: "UNIT", paymentId: undefined, subject: "Kiểm tra cửa kho" });
+    expect((await fixture.api("peerStaff", "POST", "/support/tickets", payload)).statusCode).toBe(
+      404,
+    );
+    await db.update(rentals).set({ status: "CLOSED" }).where(eq(rentals.id, rentalId));
+    try {
+      expect((await fixture.api("customer", "POST", "/support/tickets", payload)).statusCode).toBe(
+        409,
+      );
+      expect(
+        await db
+          .select()
+          .from(supportTickets)
+          .where(eq(supportTickets.idempotencyKey, payload.idempotencyKey)),
+      ).toHaveLength(0);
+    } finally {
+      await db.update(rentals).set({ status: "ACTIVE" }).where(eq(rentals.id, rentalId));
+    }
   });
 });

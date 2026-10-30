@@ -1,4 +1,5 @@
 import type { BookingListItem, FacilityTaskDetail } from "@metastorage/contracts";
+import { formatReference } from "@metastorage/shared";
 import { STAFF_WORK as M } from "./staff-work.messages";
 import type { StaffWorkItem } from "./staff-work.types";
 
@@ -52,7 +53,7 @@ export function facilityWork(t: FacilityTaskDetail): StaffWorkItem {
     id: `task:${t.id}`,
     kind: "TASK",
     group: t.status === "COMPLETED" ? "done" : t.status === "CANCELLED" ? "closed" : "pending",
-    title: t.description ?? t.referenceId,
+    title: t.description || M.inspect,
     typeLabel: {
       CHECK_IN_HANDOVER: M.checkIn,
       UNIT_INSPECTION: M.inspect,
@@ -64,7 +65,7 @@ export function facilityWork(t: FacilityTaskDetail): StaffWorkItem {
       COMPLETED: M.complete,
       CANCELLED: M.cancelled,
     }[t.status],
-    reference: "",
+    reference: formatReference(t.id, "CV"),
     startsAt: null,
     href: `/staff/tasks/${encodeURIComponent(t.id)}`,
     action: t.status === "COMPLETED" || t.status === "CANCELLED" ? M.view : M.openTask,

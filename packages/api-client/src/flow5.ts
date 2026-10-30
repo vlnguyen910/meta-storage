@@ -13,7 +13,6 @@ import type {
   FacilityTaskListQuery,
   FacilityTaskListResult,
   FacilityUnitTypeDto,
-  FacilityUnitTypeManagementItem,
   StaffFacilityTaskListQuery,
   StorageUnitDetail,
   StorageUnitListQuery,
@@ -51,20 +50,6 @@ export function createFlow5Client(http: AxiosInstance) {
           http.post<ApiEnvelope<ApiFacility>>("/facilities", input).then(unwrap),
         update: (id: string, input: UpdateFacilityBody) =>
           http.patch<ApiEnvelope<ApiFacility>>(`/facilities/${id}`, input).then(unwrap),
-        offerings: (id: string, offset = 0, signal?: AbortSignal) =>
-          http
-            .get<ApiEnvelope<FacilityUnitTypeManagementItem[]>>(
-              `/facilities/${id}/unit-types/management`,
-              { params: { limit: 100, offset }, signal },
-            )
-            .then(unwrap),
-        setOffering: (id: string, typeId: string, isActive: boolean) =>
-          http
-            .patch<ApiEnvelope<FacilityUnitTypeManagementItem>>(
-              `/facilities/${id}/unit-types/${typeId}`,
-              { isActive },
-            )
-            .then(unwrap),
         assignments: (id: string, offset = 0, signal?: AbortSignal) =>
           http
             .get<ApiEnvelope<ApiFacilityAssignment[]>>(`/facilities/${id}/assignments`, {
@@ -110,6 +95,19 @@ export function createFlow5Client(http: AxiosInstance) {
             .then(unwrap),
       },
       tasks: {
+        findMine: async (id: string, signal?: AbortSignal) => {
+          for (let offset = 0; ; offset += 100) {
+            const page = await http
+              .get<ApiEnvelope<FacilityTaskListResult>>("/facility-tasks/my", {
+                params: { limit: 100, offset },
+                signal,
+              })
+              .then(unwrap);
+            const task = page.items.find((item) => item.id === id);
+            if (task) return task;
+            if (!page.items.length || offset + page.items.length >= page.total) return undefined;
+          }
+        },
         dashboardMine: (signal?: AbortSignal) =>
           http
             .get<ApiEnvelope<FacilityTaskDashboardSummary>>("/facility-tasks/dashboard/my", {

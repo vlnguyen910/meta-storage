@@ -27,7 +27,6 @@ export function OperationalBadge({ value, label, tone }: OperationalBadgeProps) 
           ? "blue"
           : [
                 "ASSIGNED",
-                "AWAITING_APPROVAL",
                 "OPEN",
                 "PENDING",
                 "RESERVED",

@@ -71,10 +71,13 @@ function CheckInFlowScreen() {
   const inspectionStarted = Boolean(flow.current);
   const wantsInspection = ["inspect", "review", "handover"].includes(flow.view);
   const locked = flow.current?.status === "PASSED" || flow.current?.status === "FAILED";
-  const inspectionView = locked ? "handover" : flow.view === "handover" ? "review" : flow.view;
-  const active = wantsInspection && inspectionStarted ? (locked ? 3 : 2) : 1;
-  const title =
-    active === 3
+  const passed = flow.current?.status === "PASSED";
+  const inspectionView = passed ? "handover" : flow.view === "handover" ? "review" : flow.view;
+  const active = wantsInspection && inspectionStarted ? (passed ? 3 : 2) : 1;
+  const completedHandover = wantsInspection && passed && result?.booking.status === "CHECKED_IN";
+  const title = completedHandover
+    ? FLOW.handoverResultTitle
+    : active === 3
       ? FLOW.handoverTitle
       : active === 2
         ? inspectionView === "review"
@@ -221,16 +224,20 @@ function CheckInFlowScreen() {
   return (
     <>
       <FlowHeading title={title} />
-      <Steps
-        active={active}
-        completed={[
-          ...(result?.assignedUnit ? [0] : []),
-          ...(inspectionStarted ? [1] : []),
-          ...(locked ? [2] : []),
-          ...(result?.booking.status === "CHECKED_IN" ? [3] : []),
-        ]}
-      />
-      <FlowHelp />
+      {!completedHandover && (
+        <>
+          <Steps
+            active={active}
+            completed={[
+              ...(result?.assignedUnit ? [0] : []),
+              ...(inspectionStarted ? [1] : []),
+              ...(locked ? [2] : []),
+              ...(result?.booking.status === "CHECKED_IN" ? [3] : []),
+            ]}
+          />
+          <FlowHelp />
+        </>
+      )}
       {!wantsInspection && (
         <Panel>
           <form

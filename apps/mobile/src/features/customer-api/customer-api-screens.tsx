@@ -1,5 +1,5 @@
 import { SUPPORT_CATEGORIES } from "@metastorage/contracts";
-import { CUSTOMER_WORKSPACE as M } from "@metastorage/shared";
+import { formatReference, CUSTOMER_WORKSPACE as M } from "@metastorage/shared";
 import { useMutation } from "@tanstack/react-query";
 import QRCode from "qrcode";
 import { useMemo, useState } from "react";
@@ -218,13 +218,13 @@ export function CustomerHomeScreen({ owner, go }: { owner: string; go: CustomerN
       <QueryNotice query={tab === "bookings" ? query : rentals} />
       {tab === "bookings"
         ? bookings.slice(0, 5).map((b) => (
-            <Card key={b.id} title={b.id}>
+            <Card key={b.id} title={formatReference(b.id, "BK")}>
               <StatusPill
                 label={U.status[b.status] ?? b.status}
                 tone={b.status === "CANCELLED" ? "neutral" : "blue"}
               />
               <Text className="my-3 font-semibold text-slate-700">
-                {b.facility?.name ?? b.facilityId}
+                {b.facility?.name ?? formatReference(b.facilityId, "CS")}
               </Text>
               <Row label={M.appointment} value={dateTime(b.rentalStartAt)} />
               <Row
@@ -273,9 +273,10 @@ export function CustomerBookingsScreen({ owner, go }: { owner: string; go: Custo
       {query.data?.pages
         .flatMap((p) => p.items)
         .map((b) => (
-          <Card title={b.id} key={b.id}>
+          <Card title={formatReference(b.id, "BK")} key={b.id}>
             <Text>
-              {b.facility?.name ?? b.facilityId} · {b.unitType?.name ?? b.unitTypeId}
+              {b.facility?.name ?? formatReference(b.facilityId, "CS")} ·{" "}
+              {b.unitType?.name ?? formatReference(b.unitTypeId, "LK")}
             </Text>
             <Row
               label={M.paymentStatus}
@@ -316,8 +317,8 @@ export function CustomerBookingScreen({
       <QueryNotice query={query} />
       {b && (
         <>
-          <Heading>{b.id}</Heading>
-          <Card title={b.facility?.name ?? b.facilityId}>
+          <Heading>{formatReference(b.id, "BK")}</Heading>
+          <Card title={b.facility?.name ?? formatReference(b.facilityId, "CS")}>
             <Text>{b.facility?.address ?? ""}</Text>
             <StatusPill label={U.status[b.status] ?? b.status} tone="blue" />
             <Row label={M.appointment} value={dateTime(b.rentalStartAt)} />
@@ -538,7 +539,7 @@ export function CustomerPaymentScreen({
       <Heading>{M.payment}</Heading>
       <QueryNotice query={query} />
       {p && (
-        <Card title={p.paymentCode ?? undefined}>
+        <Card title={formatReference(p.paymentCode, "TT")}>
           <Row label={M.paymentStatus} value={p.status} />
           {p.status === "PENDING" && <Notice>{M.paymentPending}</Notice>}
           {p.status === "FAILED" && <Notice error>{M.paymentFailed}</Notice>}
@@ -709,7 +710,7 @@ export function CustomerRentalScreen({
           <Card title={M.transactions}>
             <QueryNotice query={state.payments} />
             {state.payments.data?.map((p) => (
-              <Card key={p.id} title={p.paymentCode ?? undefined}>
+              <Card key={p.id} title={formatReference(p.paymentCode, "TT")}>
                 <Text>{U.status[p.status] ?? p.status}</Text>
                 <Text>{money(p.totalAmount)}</Text>
                 <Button
@@ -795,7 +796,7 @@ export function CustomerSupportNewScreen({
           <Button
             key={b.id}
             secondary
-            label={`${state.form.watch("reservationId") === b.id ? "✓ " : ""}${b.id} · ${b.facility.name}`}
+            label={`${state.form.watch("reservationId") === b.id ? "✓ " : ""}${formatReference(b.bookingCode ?? b.id, "BK")} · ${b.facility.name}`}
             onPress={() => {
               state.form.setValue("reservationId", b.id);
               state.form.setValue("paymentId", undefined);
@@ -815,7 +816,7 @@ export function CustomerSupportNewScreen({
               <Button
                 key={p.id}
                 secondary
-                label={`${state.form.watch("paymentId") === p.id ? "✓ " : ""}${p.paymentCode} · ${p.status}`}
+                label={`${state.form.watch("paymentId") === p.id ? "✓ " : ""}${formatReference(p.paymentCode, "TT")} · ${p.status}`}
                 onPress={() =>
                   state.form.setValue(
                     "paymentId",
@@ -866,80 +867,20 @@ export function CustomerSupportNewScreen({
   );
 }
 export function CustomerTicketScreen({ owner, id }: { owner: string; id: string }) {
-  const state = useCustomerTicket(owner, id);
-  const ticket = state.detail.data?.ticket;
-  const busy = state.reply.isPending || state.upload.isPending;
+  const query = useCustomerTicket(owner, id);
+  const ticket = query.data?.ticket;
   return (
     <>
-      <QueryNotice query={state.detail} />
+      <QueryNotice query={query} />
       {ticket && (
         <>
           <Heading>{ticket.subject}</Heading>
-          <Text className="mb-3">{ticket.status}</Text>
-          {state.notice && <Notice error>{state.notice}</Notice>}
-          <QueryNotice query={state.messages} />
-          {!ticket.closedAt && (
-            <>
-              <Button
-                label={M.chooseImage}
-                secondary
-                disabled={busy}
-                onPress={() => state.pick.mutate()}
-              />
-              <Text className="mb-4">{state.image?.filename ?? M.imageHelp}</Text>
-            </>
-          )}
-          {state.messages.data?.pages
-            .flatMap((p) => p.items)
-            .map((message) => (
-              <Card key={message.id} title={message.authorName}>
-                <Text className="mb-3">{message.content}</Text>
-                <Text className="mb-3">{dateTime(message.createdAt)}</Text>
-                {message.attachments.map((a) => (
-                  <Button
-                    key={a.id}
-                    secondary
-                    label={a.filename}
-                    onPress={() =>
-                      state.openImage.mutate({
-                        imageId: a.id,
-                        filename: a.filename,
-                        mimeType: a.mimeType,
-                      })
-                    }
-                  />
-                ))}
-                {!ticket.closedAt && message.authorRole === "CUSTOMER" && (
-                  <Button
-                    label={M.image}
-                    secondary
-                    disabled={!state.image || busy}
-                    onPress={() => state.upload.mutate(message.id)}
-                  />
-                )}
-              </Card>
-            ))}
-          {state.messages.hasNextPage && (
-            <Button label={M.more} onPress={() => void state.messages.fetchNextPage()} />
-          )}
-          {ticket.closedAt ? (
-            <Notice>{M.closed}</Notice>
-          ) : (
-            <>
-              <Field
-                label={M.content}
-                value={state.content}
-                onChangeText={state.setContent}
-                multiline
-                maxLength={5000}
-              />
-              <Button
-                label={M.reply}
-                disabled={!state.content.trim() || busy}
-                onPress={() => state.reply.mutate()}
-              />
-            </>
-          )}
+          <Card title={M.categories[ticket.category]}>
+            <Text className="mb-3">{U.supportStatuses[ticket.status]}</Text>
+            <Text className="mb-3">{dateTime(ticket.createdAt)}</Text>
+            <Text className="leading-7">{ticket.description}</Text>
+          </Card>
+          <Notice>{U.supportFollowUp}</Notice>
         </>
       )}
     </>

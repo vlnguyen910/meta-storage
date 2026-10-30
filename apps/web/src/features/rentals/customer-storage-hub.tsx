@@ -1,4 +1,5 @@
 "use client";
+import { formatReference } from "@metastorage/shared";
 
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -92,6 +93,7 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
     return allRentals.filter(
       (r) =>
         r.bookingCode.toLowerCase().includes(query) ||
+        formatReference(r.bookingCode, "BK").toLowerCase().includes(query) ||
         r.storageUnit?.code?.toLowerCase().includes(query) ||
         r.unitType.name.toLowerCase().includes(query) ||
         r.facility.name.toLowerCase().includes(query) ||
@@ -108,6 +110,7 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
       const query = bookingSearch.toLowerCase();
       return (
         b.id.toLowerCase().includes(query) ||
+        formatReference(b.id, "BK").toLowerCase().includes(query) ||
         (b.facility?.name ?? b.facilityId).toLowerCase().includes(query) ||
         (b.unitType?.name ?? b.unitTypeId).toLowerCase().includes(query)
       );
@@ -345,7 +348,7 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
                       <td>
                         <div className="flex flex-col gap-0.5">
                           <span className="font-mono text-xs font-bold text-slate-800">
-                            {r.bookingCode}
+                            {formatReference(r.bookingCode, "BK")}
                           </span>
                           {r.storageUnit?.code && (
                             <span className="font-mono text-[11px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.2 rounded w-fit border border-emerald-200">
@@ -525,15 +528,15 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
                     <tr key={b.id}>
                       <td>
                         <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">
-                          {b.id}
+                          {formatReference(b.id, "BK")}
                         </span>
                       </td>
                       <td>
                         <div className="font-semibold text-slate-900">
-                          {b.facility?.name ?? b.facilityId}
+                          {b.facility?.name ?? formatReference(b.facilityId, "CS")}
                         </div>
                         <div className="text-xs text-slate-500">
-                          {b.unitType?.name ?? b.unitTypeId}
+                          {b.unitType?.name ?? formatReference(b.unitTypeId, "LK")}
                         </div>
                       </td>
                       <td>

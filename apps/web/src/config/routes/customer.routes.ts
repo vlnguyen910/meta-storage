@@ -1,7 +1,7 @@
 export const customerRoutes = {
   support: "/customer/support",
   supportNew: "/customer/support/new",
-  supportTicket: (id: string) => `/customer/support/${id}`,
+  supportTicket: (id: string) => `/customer/support/tickets/${id}`,
   dashboard: "/customer/dashboard",
   facilities: "/customer/facilities",
   reservations: "/customer/reservations",
@@ -12,4 +12,5 @@ export const customerRoutes = {
   notifications: "/customer/notifications",
   paymentResult: "/customer/payments/result",
   rental: (rentalId: string) => `/customer/storage/${rentalId}`,
+  rentalReturn: (rentalId: string) => `/customer/storage/${rentalId}/return`,
 } as const;

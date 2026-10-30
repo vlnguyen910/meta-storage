@@ -1,4 +1,7 @@
 export const CUSTOMER_MOBILE_UI = {
+  supportStatuses: { OPEN: "Đã tiếp nhận", IN_PROGRESS: "Đang xử lý", CLOSED: "Đã đóng" },
+  supportFollowUp:
+    "Yêu cầu đã được ghi nhận. Đội ngũ hỗ trợ sẽ liên hệ qua email. Hiện chưa hỗ trợ trao đổi hoặc đính kèm ảnh tại đây.",
   backToFacilities: "Về danh sách cơ sở",
   findFacilities: "Tìm kho gần bạn",
   portal: "Cổng dịch vụ khách hàng",

@@ -7,7 +7,7 @@ export const TRANSACTION_MESSAGES = {
   current: "Kho đang thuê",
   history: "Kho đã kết thúc",
   viewFilter: "Chế độ xem",
-  searchPlaceholder: "Tìm mã giao dịch, mã đơn, tên kho...",
+  searchPlaceholder: "Tìm mã giao dịch, tên kho...",
   searchConfirm: "Tìm kiếm",
   resetFilters: "Đặt lại bộ lọc",
   paymentCode: "Mã giao dịch",
@@ -37,7 +37,7 @@ export const TRANSACTION_MESSAGES = {
   failed: "Thất bại",
   tableTitle: "Danh sách giao dịch",
   tableHeadings: [
-    "Mã giao dịch / Mã đơn",
+    "Mã giao dịch",
     "Kho lưu trữ",
     "Số tiền thanh toán",
     "Thời gian giao dịch",

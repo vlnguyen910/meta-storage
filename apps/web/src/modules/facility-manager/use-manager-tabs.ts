@@ -1,6 +1,7 @@
 "use client";
-import type { ReportExportQuery, SupportOperation } from "@metastorage/contracts";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ReportExportQuery } from "@metastorage/contracts";
+import { formatReference } from "@metastorage/shared";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/toast";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { managementError } from "@/features/facility-management/hooks";
@@ -54,7 +55,7 @@ export function useManagerReport(filters: ReportExportQuery) {
       return (await api.reports.getRentals({ ...scope, status: filters.status })).items.map(
         (r) => ({
           id: r.id,
-          label: `${r.bookingCode ?? r.id} · ${r.unitCode}`,
+          label: `${formatReference(r.bookingCode ?? r.id, "BK")} · ${r.unitCode}`,
           value: r.status,
           detail: formatDate(r.expectedEndAt),
         }),
@@ -70,26 +71,4 @@ export function useManagerReport(filters: ReportExportQuery) {
     },
   });
   return { report, download };
-}
-export function useManagerTicket(id: string, offset: number) {
-  const key = useManagerKey();
-  return useQuery({
-    queryKey: [...key, "ticket", id, offset],
-    queryFn: ({ signal }) => api.facilityWorkspace.ticket(id, offset, signal),
-    enabled: Boolean(id),
-  });
-}
-export function useManagerTicketAction(id: string) {
-  const { showToast } = useToast();
-  const key = useManagerKey(),
-    client = useQueryClient();
-  return useMutation({
-    mutationFn: (input: SupportOperation) => api.facilityWorkspace.ticketAction(id, input),
-    onSuccess: (_result, input) => showToast(M.actionSuccess[input.action] ?? M.saved, "success"),
-    onError: (error) => showToast(managementError(error), "error"),
-    onSettled: async () => {
-      await client.invalidateQueries({ queryKey: key });
-      await client.invalidateQueries({ queryKey: ["lifecycle-notifications"] });
-    },
-  });
 }

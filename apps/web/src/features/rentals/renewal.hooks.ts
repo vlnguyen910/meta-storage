@@ -1,6 +1,7 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useToast } from "@/components/ui/toast";
 import { useFlow3Identity } from "@/features/returns/use-flow3-identity";
 import { api } from "@/lib/api";
 import { RENEWAL_MESSAGES as M } from "./renewal.messages";
@@ -29,6 +30,8 @@ export function useRenewalHistory(rentalId: string, offset: number) {
 export function useRenewal(rentalId: string, renewalId: string | null) {
   const identity = useFlow3Identity();
   const client = useQueryClient();
+  const { showToast } = useToast();
+  const notifiedRenewal = useRef<string | null>(null);
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -62,11 +65,13 @@ export function useRenewal(rentalId: string, renewalId: string | null) {
     if (payment.data?.status === "SUCCEEDED") void detail.refetch();
   }, [payment.data?.status, detail.refetch]);
   useEffect(() => {
-    if (detail.data?.status === "APPLIED") {
+    if (detail.data?.status === "APPLIED" && notifiedRenewal.current !== detail.data.id) {
+      notifiedRenewal.current = detail.data.id;
+      showToast(M.success, "success");
       for (const key of ["rentals", "renewals", "rental-payments"])
         void client.invalidateQueries({ queryKey: [key] });
     }
-  }, [detail.data?.status, client]);
+  }, [detail.data?.id, detail.data?.status, client, showToast]);
   const quote = useMutation({
     mutationFn: (months: number) =>
       api.renewals.quote(rentalId, {

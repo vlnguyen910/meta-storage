@@ -15,6 +15,7 @@ import {
   INSPECTION_PHOTO_MAX_COUNT,
   InspectionConditionValueSchema,
 } from "@metastorage/contracts";
+import { formatReference } from "@metastorage/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -79,7 +80,15 @@ export function useCheckInFlow() {
           const list = await (pathname.startsWith("/staff")
             ? api.appointments.assignedToMe({ facilityId: facility.facilityId })
             : api.appointments.listFacility(facility.facilityId));
-          appointment = list.find((x) => x.id === id || x.reservationId === id);
+          appointment = list.find(
+            (x) =>
+              x.id === id ||
+              x.reservationId === id ||
+              formatReference(
+                x.reservationId ?? x.id,
+                x.reservationId ? "BK" : "LH",
+              ).toUpperCase() === id.trim().toUpperCase(),
+          );
           if (appointment) break;
         }
       }
@@ -144,7 +153,12 @@ export function useCheckInFlow() {
       limit: 100,
       offset: 0,
     });
-    const task = items.find((item) => item.referenceId === bookingId);
+    const task = items.find(
+      (item) =>
+        item.referenceId === bookingId &&
+        (item.status === FacilityTaskStatus.ASSIGNED ||
+          item.status === FacilityTaskStatus.IN_PROGRESS),
+    );
     if (!task) throw new Error(FLOW.taskNotFound);
     if (task.status === FacilityTaskStatus.ASSIGNED)
       await api.flow5.tasks.update(task.id, { status: FacilityTaskStatus.IN_PROGRESS });

@@ -1,5 +1,6 @@
 "use client";
 import { APPOINTMENT_TYPES, RENTAL_STATUSES, type RentalStatus } from "@metastorage/contracts";
+import { formatReference } from "@metastorage/shared";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -16,6 +17,8 @@ import { formatCurrency, formatDateTime } from "@/lib/format";
 import { ManagerTabFrame } from "./manager-tab-frame";
 import { MANAGER_TABS as M } from "./manager-tabs.messages";
 import { useManagerKey } from "./use-manager-tabs";
+
+const rentalColumns = "lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_8.5rem_8rem]";
 export function ManagerRentalsScreen() {
   return (
     <ManagerTabFrame title={M.rentals} description={M.rentalsHint}>
@@ -83,28 +86,58 @@ function Rentals({ facilityId }: { facilityId: string }) {
         <EmptyState title={M.empty} description={M.emptyHint} />
       ) : (
         <>
-          <ul className="divide-y rounded-xl border bg-white">
-            {list.data.items.map((r) => (
-              <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
-                <div>
-                  <strong>{r.customer.name}</strong>
-                  <p>
-                    {r.bookingCode} · {r.unit.code}
-                  </p>
-                  <p>
-                    {formatDateTime(r.startAt)} – {formatDateTime(r.endAt)}
-                  </p>
-                </div>
-                <OperationalBadge value={r.status} />
-                <Link
-                  className="font-semibold text-primary underline"
-                  href={`/facility-manager/rentals?rentalId=${r.id}`}
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div
+              aria-hidden="true"
+              className={`hidden items-center gap-5 border-b border-slate-200 bg-slate-50 px-5 py-3 text-xs font-semibold text-slate-500 lg:grid ${rentalColumns}`}
+            >
+              <span>{M.customerDetails}</span>
+              <span>{M.period}</span>
+              <span className="text-center">{M.status}</span>
+              <span className="text-right">{M.action}</span>
+            </div>
+            <ul aria-label={M.rentals} className="divide-y divide-slate-100">
+              {list.data.items.map((r) => (
+                <li
+                  key={r.id}
+                  className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-5 gap-y-4 p-5 ${rentalColumns}`}
                 >
-                  {M.view}
-                </Link>
-              </li>
-            ))}
-          </ul>
+                  <div className="col-span-2 min-w-0 space-y-1.5 lg:col-span-1">
+                    <strong className="block break-words text-sm text-slate-900">
+                      {r.customer.name || M.missing}
+                    </strong>
+                    <p className="break-all font-mono text-xs leading-5 text-slate-500">
+                      {formatReference(r.bookingCode, "BK")}
+                    </p>
+                    <p className="break-words text-sm text-slate-600">
+                      <span className="text-slate-500">{M.unit}: </span>
+                      {r.unit.code}
+                    </p>
+                  </div>
+                  <div className="col-span-2 min-w-0 space-y-1 text-xs leading-5 text-slate-600 lg:col-span-1">
+                    <p className="mb-1 font-semibold text-slate-500 lg:hidden">{M.period}</p>
+                    <p>
+                      <span className="mr-1 text-slate-500">{M.rentalStart}:</span>
+                      <time dateTime={r.startAt}>{formatDateTime(r.startAt)}</time>
+                    </p>
+                    <p>
+                      <span className="mr-1 text-slate-500">{M.rentalEnd}:</span>
+                      <time dateTime={r.endAt}>{formatDateTime(r.endAt)}</time>
+                    </p>
+                  </div>
+                  <div className="min-w-0 lg:justify-self-center">
+                    <OperationalBadge value={r.status} />
+                  </div>
+                  <Link
+                    className="inline-flex min-h-11 items-center justify-center justify-self-end rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-semibold text-primary transition hover:bg-emerald-100 focus-visible:outline-2 focus-visible:outline-primary"
+                    href={`/facility-manager/rentals?rentalId=${r.id}`}
+                  >
+                    {M.view}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
           <PageControls
             label={M.rentals}
             offset={offset}
@@ -148,7 +181,7 @@ function Detail({ facilityId, id }: { facilityId: string; id: string }) {
       <OperationalBackLink href="/facility-manager/rentals">{M.back}</OperationalBackLink>
       <section className="space-y-4 rounded-xl border bg-white p-5">
         <h2 className="text-xl font-bold">
-          {r.customer.name} · {r.bookingCode}
+          {r.customer.name} · {formatReference(r.bookingCode, "BK")}
         </h2>
         <OperationalBadge value={r.status} />
         <p>
@@ -180,7 +213,7 @@ function Detail({ facilityId, id }: { facilityId: string; id: string }) {
               <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
                 <div>
                   <strong>{p.type === "DEPOSIT_REFUND" ? M.depositRefund : M.charge}</strong>
-                  <p className="text-xs text-muted">{p.paymentCode ?? M.missing}</p>
+                  <p className="text-xs text-muted">{formatReference(p.paymentCode, "TT")}</p>
                 </div>
                 <OperationalBadge
                   value={p.status}

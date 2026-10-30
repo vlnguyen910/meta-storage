@@ -15,8 +15,8 @@ export function prepareImageUpload(
 
   const padding = value.endsWith("==") ? 2 : value.endsWith("=") ? 1 : 0;
   if (
-    (padding === 2 && (BASE64.indexOf(value[value.length - 3]) & 15) !== 0) ||
-    (padding === 1 && (BASE64.indexOf(value[value.length - 2]) & 3) !== 0)
+    (padding === 2 && (BASE64.indexOf(value.charAt(value.length - 3)) & 15) !== 0) ||
+    (padding === 1 && (BASE64.indexOf(value.charAt(value.length - 2)) & 3) !== 0)
   )
     throw new Error(M.invalidData);
   const byteSize = (value.length / 4) * 3 - padding;
@@ -26,7 +26,8 @@ export function prepareImageUpload(
   const byteAt = (index: number) => {
     const bit = index * 8;
     const offset = Math.floor(bit / 6);
-    const pair = (BASE64.indexOf(value[offset]) << 6) | BASE64.indexOf(value[offset + 1]);
+    const pair =
+      (BASE64.indexOf(value.charAt(offset)) << 6) | BASE64.indexOf(value.charAt(offset + 1));
     return (pair >> (4 - (bit % 6))) & 255;
   };
   const header = String.fromCharCode(
