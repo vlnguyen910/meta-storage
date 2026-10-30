@@ -138,7 +138,14 @@ export class ReportsService {
   ): Promise<RevenueReport> {
     const now = new Date(),
       period = resolveReportPeriod(query, now);
-    const data = await this.repository.read(actor, query, period.start, period.end, now);
+    const data = await this.repository.read(
+      actor,
+      query,
+      period.start,
+      period.end,
+      now,
+      "financial",
+    );
     const rows = data.facilities.map((facility) => ({
       facility,
       metrics: financial(
@@ -171,7 +178,14 @@ export class ReportsService {
   ): Promise<UtilizationReport> {
     const now = new Date(),
       period = resolveReportPeriod({}, now);
-    const data = await this.repository.read(actor, query, period.start, period.end, now, false);
+    const data = await this.repository.read(
+      actor,
+      query,
+      period.start,
+      period.end,
+      now,
+      "inventory",
+    );
     const rows = data.facilities.map((facility) => ({
       facility,
       metrics: inventory(data, facility.id),
