@@ -103,7 +103,7 @@ export class ReportsRepository {
     start: Date,
     end: Date,
     asOf: Date,
-    includeFinancial = true,
+    metrics: "all" | "financial" | "inventory" = "all",
   ) {
     return this.db.transaction(
       async (tx) => {
@@ -118,113 +118,128 @@ export class ReportsRepository {
             scoped.includeUnattributed ? isNull(paymentFacilityId) : undefined,
           ),
         );
-        const financial = includeFinancial
-          ? await tx
-              .select({
-                facilityId: paymentFacilityId,
-                cashReceived: amount(sql`${vn} and ${inPeriod}`, sql`${payments.totalAmount}`),
-                rentalCollected: amount(
-                  sql`${vn} and ${inPeriod} and ${knownSnapshot}`,
-                  sql`${rentalSnapshot}`,
-                ),
-                depositCollected: amount(
-                  sql`${vn} and ${inPeriod} and ${knownSnapshot}`,
-                  sql`${depositSnapshot}`,
-                ),
-                cashRefunded: amount(sql`${vn} and ${refundInPeriod}`, refund),
-                depositHeld: amount(
-                  sql`${vn} and ${captured} and ${heldKnown} and ${notReturned} and ${payments.status} <> 'REFUNDED'`,
-                  sql`${depositSnapshot} - ${payments.depositForfeitedAmount}`,
-                ),
-                depositForfeited: amount(
-                  sql`${vn} and ${captured}`,
-                  sql`${payments.depositForfeitedAmount}`,
-                ),
-                pendingRefundAmount: amount(
-                  sql`${vn} and ${payments.status} = 'REFUND_PENDING'`,
-                  refund,
-                ),
-                pendingRefundCount: quantity(sql`${vn} and ${payments.status} = 'REFUND_PENDING'`),
-                paymentsReceivedCount: quantity(sql`${vn} and ${inPeriod}`),
-                unclassifiedCollectedPayments: quantity(
-                  sql`${vn} and ${inPeriod} and not ${knownSnapshot}`,
-                ),
-                unclassifiedDepositPayments: quantity(
-                  sql`${vn} and ${captured} and not ${heldKnown} and ${notReturned}`,
-                ),
-                unsupportedCurrencyPayments: quantity(sql`not (${vn}) and ${captured}`),
-              })
-              .from(payments)
-              .leftJoin(bookings, eq(bookings.id, payments.bookingId))
-              .leftJoin(reservations, eq(reservations.id, payments.reservationId))
-              .where(
-                and(
-                  scopedPayment,
-                  filter.unitTypeId ? eq(paymentUnitTypeId, filter.unitTypeId) : undefined,
-                ),
-              )
-              .groupBy(paymentFacilityId)
-          : [];
-        const returnPenalties = includeFinancial
-          ? await tx
-              .select({
-                facilityId: storageUnits.facilityId,
-                amount: sql<string>`coalesce(sum(${policyViolationFees.amount}), 0)::text`,
-              })
-              .from(policyViolationFees)
-              .innerJoin(inspections, eq(inspections.id, policyViolationFees.referenceId))
-              .innerJoin(rentals, eq(rentals.id, inspections.rentalId))
-              .innerJoin(storageUnits, eq(storageUnits.id, rentals.storageUnitId))
-              .where(
-                and(
-                  eq(policyViolationFees.referenceType, "INSPECTION"),
-                  eq(policyViolationFees.isActive, false),
-                  gte(rentals.closedAt, start),
-                  sql`${rentals.closedAt} < ${end.toISOString()}`,
-                  filter.unitTypeId ? eq(storageUnits.unitTypeId, filter.unitTypeId) : undefined,
-                  inArray(storageUnits.facilityId, scoped.ids),
-                ),
-              )
-              .groupBy(storageUnits.facilityId)
-          : [];
-        const inventory = await tx
-          .select({
-            facilityId: storageUnits.facilityId,
-            status: storageUnits.status,
-            count: count(),
-          })
-          .from(storageUnits)
-          .where(
-            and(
-              inArray(storageUnits.facilityId, scoped.ids),
-              filter.unitTypeId ? eq(storageUnits.unitTypeId, filter.unitTypeId) : undefined,
-            ),
-          )
-          .groupBy(storageUnits.facilityId, storageUnits.status);
-        const holds = await tx
-          .select({ facilityId: capacityAllocations.facilityId, count: count() })
-          .from(capacityAllocations)
-          .where(
-            and(
-              inArray(capacityAllocations.facilityId, scoped.ids),
-              eq(capacityAllocations.kind, "HOLD"),
-              eq(capacityAllocations.status, "ACTIVE"),
-              gt(capacityAllocations.expiresAt, asOf),
-              filter.unitTypeId ? eq(capacityAllocations.unitTypeId, filter.unitTypeId) : undefined,
-            ),
-          )
-          .groupBy(capacityAllocations.facilityId);
-        const awaiting = await tx
-          .select({ facilityId: reservations.facilityId, count: count() })
-          .from(reservations)
-          .where(
-            and(
-              inArray(reservations.facilityId, scoped.ids),
-              eq(reservations.status, ReservationStatus.CONFIRMED),
-              filter.unitTypeId ? eq(reservations.unitTypeId, filter.unitTypeId) : undefined,
-            ),
-          )
-          .groupBy(reservations.facilityId);
+        const financial =
+          metrics !== "inventory"
+            ? await tx
+                .select({
+                  facilityId: paymentFacilityId,
+                  cashReceived: amount(sql`${vn} and ${inPeriod}`, sql`${payments.totalAmount}`),
+                  rentalCollected: amount(
+                    sql`${vn} and ${inPeriod} and ${knownSnapshot}`,
+                    sql`${rentalSnapshot}`,
+                  ),
+                  depositCollected: amount(
+                    sql`${vn} and ${inPeriod} and ${knownSnapshot}`,
+                    sql`${depositSnapshot}`,
+                  ),
+                  cashRefunded: amount(sql`${vn} and ${refundInPeriod}`, refund),
+                  depositHeld: amount(
+                    sql`${vn} and ${captured} and ${heldKnown} and ${notReturned} and ${payments.status} <> 'REFUNDED'`,
+                    sql`${depositSnapshot} - ${payments.depositForfeitedAmount}`,
+                  ),
+                  depositForfeited: amount(
+                    sql`${vn} and ${captured}`,
+                    sql`${payments.depositForfeitedAmount}`,
+                  ),
+                  pendingRefundAmount: amount(
+                    sql`${vn} and ${payments.status} = 'REFUND_PENDING'`,
+                    refund,
+                  ),
+                  pendingRefundCount: quantity(
+                    sql`${vn} and ${payments.status} = 'REFUND_PENDING'`,
+                  ),
+                  paymentsReceivedCount: quantity(sql`${vn} and ${inPeriod}`),
+                  unclassifiedCollectedPayments: quantity(
+                    sql`${vn} and ${inPeriod} and not ${knownSnapshot}`,
+                  ),
+                  unclassifiedDepositPayments: quantity(
+                    sql`${vn} and ${captured} and not ${heldKnown} and ${notReturned}`,
+                  ),
+                  unsupportedCurrencyPayments: quantity(sql`not (${vn}) and ${captured}`),
+                })
+                .from(payments)
+                .leftJoin(bookings, eq(bookings.id, payments.bookingId))
+                .leftJoin(reservations, eq(reservations.id, payments.reservationId))
+                .where(
+                  and(
+                    scopedPayment,
+                    filter.unitTypeId ? eq(paymentUnitTypeId, filter.unitTypeId) : undefined,
+                  ),
+                )
+                .groupBy(paymentFacilityId)
+            : [];
+        const returnPenalties =
+          metrics !== "inventory"
+            ? await tx
+                .select({
+                  facilityId: storageUnits.facilityId,
+                  amount: sql<string>`coalesce(sum(${policyViolationFees.amount}), 0)::text`,
+                })
+                .from(policyViolationFees)
+                .innerJoin(inspections, eq(inspections.id, policyViolationFees.referenceId))
+                .innerJoin(rentals, eq(rentals.id, inspections.rentalId))
+                .innerJoin(storageUnits, eq(storageUnits.id, rentals.storageUnitId))
+                .where(
+                  and(
+                    eq(policyViolationFees.referenceType, "INSPECTION"),
+                    eq(policyViolationFees.isActive, false),
+                    gte(rentals.closedAt, start),
+                    sql`${rentals.closedAt} < ${end.toISOString()}`,
+                    filter.unitTypeId ? eq(storageUnits.unitTypeId, filter.unitTypeId) : undefined,
+                    inArray(storageUnits.facilityId, scoped.ids),
+                  ),
+                )
+                .groupBy(storageUnits.facilityId)
+            : [];
+        const inventory =
+          metrics !== "financial"
+            ? await tx
+                .select({
+                  facilityId: storageUnits.facilityId,
+                  status: storageUnits.status,
+                  count: count(),
+                })
+                .from(storageUnits)
+                .where(
+                  and(
+                    inArray(storageUnits.facilityId, scoped.ids),
+                    filter.unitTypeId ? eq(storageUnits.unitTypeId, filter.unitTypeId) : undefined,
+                  ),
+                )
+                .groupBy(storageUnits.facilityId, storageUnits.status)
+            : [];
+        const holds =
+          metrics !== "financial"
+            ? await tx
+                .select({ facilityId: capacityAllocations.facilityId, count: count() })
+                .from(capacityAllocations)
+                .where(
+                  and(
+                    inArray(capacityAllocations.facilityId, scoped.ids),
+                    eq(capacityAllocations.kind, "HOLD"),
+                    eq(capacityAllocations.status, "ACTIVE"),
+                    gt(capacityAllocations.expiresAt, asOf),
+                    filter.unitTypeId
+                      ? eq(capacityAllocations.unitTypeId, filter.unitTypeId)
+                      : undefined,
+                  ),
+                )
+                .groupBy(capacityAllocations.facilityId)
+            : [];
+        const awaiting =
+          metrics !== "financial"
+            ? await tx
+                .select({ facilityId: reservations.facilityId, count: count() })
+                .from(reservations)
+                .where(
+                  and(
+                    inArray(reservations.facilityId, scoped.ids),
+                    eq(reservations.status, ReservationStatus.CONFIRMED),
+                    filter.unitTypeId ? eq(reservations.unitTypeId, filter.unitTypeId) : undefined,
+                  ),
+                )
+                .groupBy(reservations.facilityId)
+            : [];
         return {
           facilities: scoped.facilities,
           financial,
