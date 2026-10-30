@@ -93,11 +93,15 @@ export function useStaffCheckIn(owner: string, appointmentId: string) {
     refetchInterval: 15000,
   });
   const tasks = useQuery({
-    queryKey: ["mobile-appointment-tasks", owner],
+    queryKey: ["mobile-appointment-tasks", owner, appointmentId],
     queryFn: async () => {
       const items: FacilityTaskDetail[] = [];
       for (let offset = 0; ; offset += 100) {
-        const page = await api.flow5.tasks.listMine({ limit: 100, offset });
+        const page = await api.flow5.tasks.listMine({
+          referenceId: appointmentId,
+          limit: 100,
+          offset,
+        });
         items.push(...page.items);
         if (offset + page.items.length >= page.total || !page.items.length) return items;
       }
