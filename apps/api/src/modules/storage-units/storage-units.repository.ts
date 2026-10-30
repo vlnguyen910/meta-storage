@@ -198,12 +198,13 @@ export class StorageUnitsRepository {
       .where(eq(storageUnits.id, unitId));
   }
 
-  async makeAvailableAfterReturn(
+  async completeReturn(
     tx: TaskTransaction,
     unitId: string,
     rentalId: string,
     reservationId: string | null,
     now: Date,
+    status: "AVAILABLE" | "MAINTENANCE",
   ) {
     const [unit] = await tx
       .select()
@@ -231,7 +232,7 @@ export class StorageUnitsRepository {
     if (otherRental || assignment) return false;
     const [updated] = await tx
       .update(storageUnits)
-      .set({ status: "AVAILABLE", updatedAt: now })
+      .set({ status, updatedAt: now })
       .where(and(eq(storageUnits.id, unitId), eq(storageUnits.status, "OCCUPIED")))
       .returning({ id: storageUnits.id });
     return Boolean(updated);

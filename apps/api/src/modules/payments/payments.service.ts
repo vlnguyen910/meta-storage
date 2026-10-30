@@ -1,12 +1,27 @@
 import type {
+  DebtPaymentInput,
+  DebtQuery,
+  DebtRecord,
   ManualRefund,
   ManualRefundConfirmation,
   ManualRefundQuery,
   PaymentStatusResponse,
 } from "@metastorage/contracts";
+import { DebtStatus, PaymentMethod, PaymentType } from "@metastorage/database";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import type { FastifyBaseLogger, FastifyInstance } from "fastify";
-import { AppError, NotFoundError, UnauthorizedError } from "../../common/errors/app-error";
+import {
+  AppError,
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+  UnauthorizedError,
+} from "../../common/errors/app-error";
+import { mapPageDto } from "../../common/types/page.dto";
 import { env } from "../../config/env";
+import { FacilitiesRepository } from "../facilities/facilities.repository";
+import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
+import { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
 import { createRentalsService, type RentalsService } from "../rentals/rentals.service";
 import { PAYMENT_MESSAGES } from "./payments.messages";
 import { PaymentsRepository } from "./payments.repository";
@@ -29,7 +44,120 @@ export class PaymentsService {
     private readonly logger?: Pick<FastifyBaseLogger, "warn">,
     private readonly reservationPayments?: ReservationPaymentsService,
     private readonly rentals?: RentalsService,
+    private readonly assignments?: FacilityAssignmentsService,
   ) {}
+
+  private toDebtRecord(
+    row: Omit<NonNullable<Awaited<ReturnType<PaymentsRepository["findDebt"]>>>, "facilityId">,
+  ): DebtRecord {
+    return {
+      id: row.debt.id,
+      rentalId: row.rentalId,
+      customerId: row.customerId,
+      customerName: row.customerName,
+      unitCode: row.unitCode,
+      originalAmount: row.debt.originalAmount,
+      paidAmount: row.debt.paidAmount,
+      remainingAmount: String(Number(row.debt.originalAmount) - Number(row.debt.paidAmount)),
+      status: row.debt.status,
+      currency: row.currency,
+      createdAt: row.debt.createdAt.toISOString(),
+    };
+  }
+
+  async listDebts(query: DebtQuery, actor: { id: string; role: string }) {
+    if (!this.assignments) throw new ForbiddenError(PAYMENT_MESSAGES.debtAccessDenied);
+    const scope =
+      actor.role === UserRole.STORAGE_CUSTOMER
+        ? { customerId: actor.id }
+        : {
+            facilityIds: (
+              await this.assignments.listUserAssignments(actor.id, actor.role as UserRole)
+            ).map((row) => row.facilityId),
+          };
+    const page = await this.repository.listDebts(scope, query);
+    return mapPageDto(page, query, (row) => this.toDebtRecord(row));
+  }
+
+  async getDebt(id: string, actor: { id: string; role: string }) {
+    const row = await this.repository.findDebt(id);
+    if (!row) throw new NotFoundError(PAYMENT_MESSAGES.debtNotFound);
+    if (actor.role === UserRole.STORAGE_CUSTOMER) {
+      if (row.customerId !== actor.id) throw new NotFoundError(PAYMENT_MESSAGES.debtNotFound);
+    } else {
+      if (
+        !this.assignments ||
+        (actor.role !== UserRole.FACILITY_STAFF && actor.role !== UserRole.FACILITY_MANAGER)
+      )
+        throw new ForbiddenError(PAYMENT_MESSAGES.debtAccessDenied);
+      await this.assignments.requireFacilityAccess(
+        row.facilityId,
+        { kind: "assigned", userId: actor.id, role: actor.role },
+        [actor.role],
+      );
+    }
+    const history = await this.repository.listDebtPayments(id);
+    return {
+      ...this.toDebtRecord(row),
+      payments: history.map((payment) => ({
+        ...payment,
+        paidAt: payment.paidAt?.toISOString() ?? null,
+      })),
+    };
+  }
+
+  async collectDebt(id: string, input: DebtPaymentInput, actor: { id: string; role: string }) {
+    if (actor.role !== UserRole.FACILITY_STAFF || !this.assignments)
+      throw new ForbiddenError(PAYMENT_MESSAGES.debtAccessDenied);
+    const assignments = this.assignments;
+    await this.repository.transaction(async (tx) => {
+      const context = await this.repository.findDebt(id, tx);
+      if (!context) throw new NotFoundError(PAYMENT_MESSAGES.debtNotFound);
+      await assignments.requireActiveAssignments(tx, context.facilityId, [
+        { userId: actor.id, role: UserRole.FACILITY_STAFF },
+      ]);
+      const debt = await this.repository.lockDebt(tx, id);
+      if (!debt) throw new NotFoundError(PAYMENT_MESSAGES.debtNotFound);
+      const key = `debt:${input.idempotencyKey}`;
+      const existing = await this.repository.findDebtPayment(tx, key);
+      if (existing) {
+        if (
+          existing.debtId !== id ||
+          Number(existing.totalAmount) !== input.amount ||
+          existing.method !== input.method ||
+          existing.reference !== (input.reference ?? null) ||
+          existing.recordedBy !== actor.id
+        )
+          throw new ConflictError(PAYMENT_MESSAGES.debtPaymentConflict);
+        return;
+      }
+      const paidAmount = Number(debt.paidAmount) + input.amount;
+      if (paidAmount > Number(debt.originalAmount))
+        throw new ConflictError(PAYMENT_MESSAGES.debtAmountExceeded);
+      const now = new Date();
+      const recorded = await this.repository.insertDebtPayment(tx, {
+        debtId: id,
+        rentalId: context.rentalId,
+        type: PaymentType.DEBT_COLLECTION,
+        totalAmount: String(input.amount),
+        currency: context.currency,
+        method: PaymentMethod[input.method],
+        reference: input.reference,
+        recordedBy: actor.id,
+        status: "SUCCEEDED",
+        paidAt: now,
+        idempotencyKey: key,
+      });
+      if (!recorded.length) throw new ConflictError(PAYMENT_MESSAGES.debtPaymentConflict);
+      await this.repository.updateDebt(tx, id, {
+        paidAmount: String(paidAmount),
+        status:
+          paidAmount === Number(debt.originalAmount) ? DebtStatus.PAID : DebtStatus.PARTIALLY_PAID,
+        updatedAt: now,
+      });
+    });
+    return this.getDebt(id, actor);
+  }
 
   async listManualRefunds(query: ManualRefundQuery): Promise<ManualRefund[]> {
     const rows = await this.repository.listManualRefunds(query);
@@ -234,5 +362,9 @@ export function createPaymentsService(fastify: FastifyInstance): PaymentsService
     fastify.log,
     createReservationPaymentsService(fastify.db, sepayGateway),
     createRentalsService(fastify.db, sepayGateway),
+    new FacilityAssignmentsService(
+      new FacilityAssignmentsRepository(fastify.db),
+      new FacilitiesRepository(fastify.db),
+    ),
   );
 }

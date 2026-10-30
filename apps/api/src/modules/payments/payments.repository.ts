@@ -1,14 +1,18 @@
-import type { ManualRefundQuery } from "@metastorage/contracts";
+import type { DebtQuery, ManualRefundQuery } from "@metastorage/contracts";
 import {
   alias,
   and,
   asc,
   bookings,
   capacityAllocations,
+  count,
   type Database,
+  DebtStatus,
+  debts,
   desc,
   eq,
   gt,
+  inArray,
   lte,
   or,
   paymentProviderEvents,
@@ -16,6 +20,7 @@ import {
   rentalRenewals,
   rentals,
   reservations,
+  returnSettlements,
   sql,
   storageUnits,
   users,
@@ -29,6 +34,120 @@ import type { PaymentStatusAccess, VerifiedPaymentEvent } from "./payments.types
 
 export class PaymentsRepository {
   constructor(private readonly db: Database) {}
+
+  transaction<T>(
+    callback: (tx: Parameters<Parameters<Database["transaction"]>[0]>[0]) => Promise<T>,
+  ) {
+    return this.db.transaction(callback);
+  }
+
+  private debtFilter(scope: { customerId?: string; facilityIds?: string[] }, query: DebtQuery) {
+    return and(
+      scope.customerId
+        ? eq(rentals.userId, scope.customerId)
+        : inArray(storageUnits.facilityId, scope.facilityIds ?? []),
+      query.rentalId ? eq(rentals.id, query.rentalId) : undefined,
+      query.status ? eq(debts.status, DebtStatus[query.status]) : undefined,
+    );
+  }
+
+  async listDebts(scope: { customerId?: string; facilityIds?: string[] }, query: DebtQuery) {
+    const filter = this.debtFilter(scope, query);
+    const rows = await this.db
+      .select({
+        debt: debts,
+        rentalId: rentals.id,
+        customerId: rentals.userId,
+        customerName: users.name,
+        unitCode: storageUnits.code,
+        currency: returnSettlements.currency,
+        total: sql<number>`count(*) over()`.mapWith(Number),
+      })
+      .from(debts)
+      .innerJoin(returnSettlements, eq(returnSettlements.id, debts.settlementId))
+      .innerJoin(rentals, eq(rentals.id, returnSettlements.rentalId))
+      .innerJoin(storageUnits, eq(storageUnits.id, rentals.storageUnitId))
+      .innerJoin(users, eq(users.id, rentals.userId))
+      .where(filter)
+      .orderBy(desc(debts.createdAt), debts.id)
+      .limit(query.limit)
+      .offset(query.offset);
+    if (rows.length) return { items: rows, total: rows[0]?.total ?? 0 };
+    const [total] = await this.db
+      .select({ value: count() })
+      .from(debts)
+      .innerJoin(returnSettlements, eq(returnSettlements.id, debts.settlementId))
+      .innerJoin(rentals, eq(rentals.id, returnSettlements.rentalId))
+      .innerJoin(storageUnits, eq(storageUnits.id, rentals.storageUnitId))
+      .where(filter);
+    return { items: rows, total: total?.value ?? 0 };
+  }
+
+  async findDebt(
+    id: string,
+    executor: Database | Parameters<Parameters<Database["transaction"]>[0]>[0] = this.db,
+  ) {
+    const [row] = await executor
+      .select({
+        debt: debts,
+        rentalId: rentals.id,
+        customerId: rentals.userId,
+        customerName: users.name,
+        unitCode: storageUnits.code,
+        facilityId: storageUnits.facilityId,
+        currency: returnSettlements.currency,
+      })
+      .from(debts)
+      .innerJoin(returnSettlements, eq(returnSettlements.id, debts.settlementId))
+      .innerJoin(rentals, eq(rentals.id, returnSettlements.rentalId))
+      .innerJoin(storageUnits, eq(storageUnits.id, rentals.storageUnitId))
+      .innerJoin(users, eq(users.id, rentals.userId))
+      .where(eq(debts.id, id));
+    return row;
+  }
+
+  listDebtPayments(id: string) {
+    return this.db
+      .select({
+        id: payments.id,
+        totalAmount: payments.totalAmount,
+        method: payments.method,
+        reference: payments.reference,
+        paidAt: payments.paidAt,
+      })
+      .from(payments)
+      .where(eq(payments.debtId, id))
+      .orderBy(desc(payments.paidAt), payments.id);
+  }
+
+  async lockDebt(tx: Parameters<Parameters<Database["transaction"]>[0]>[0], id: string) {
+    const [row] = await tx.select().from(debts).where(eq(debts.id, id)).for("update");
+    return row;
+  }
+
+  async findDebtPayment(tx: Parameters<Parameters<Database["transaction"]>[0]>[0], key: string) {
+    const [row] = await tx.select().from(payments).where(eq(payments.idempotencyKey, key));
+    return row;
+  }
+
+  insertDebtPayment(
+    tx: Parameters<Parameters<Database["transaction"]>[0]>[0],
+    input: typeof payments.$inferInsert,
+  ) {
+    return tx
+      .insert(payments)
+      .values(input)
+      .onConflictDoNothing({ target: payments.idempotencyKey })
+      .returning();
+  }
+
+  updateDebt(
+    tx: Parameters<Parameters<Database["transaction"]>[0]>[0],
+    id: string,
+    input: Pick<typeof debts.$inferInsert, "paidAmount" | "status" | "updatedAt">,
+  ) {
+    return tx.update(debts).set(input).where(eq(debts.id, id));
+  }
 
   async findRenewalRentalId(renewalId: string) {
     const [row] = await this.db
@@ -222,7 +341,10 @@ export class PaymentsRepository {
       .leftJoin(bookings, eq(bookings.id, payments.bookingId))
       .leftJoin(reservations, eq(reservations.id, payments.reservationId))
       .leftJoin(rentalRenewals, eq(rentalRenewals.id, payments.renewalId))
-      .leftJoin(rentals, eq(rentals.id, rentalRenewals.rentalId))
+      .leftJoin(
+        rentals,
+        or(eq(rentals.id, rentalRenewals.rentalId), eq(rentals.id, payments.rentalId)),
+      )
       .where(
         and(
           eq(payments.id, paymentId),

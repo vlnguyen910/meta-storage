@@ -1,10 +1,13 @@
 import {
   ConfirmManualRefundInputSchema,
+  DebtPaymentInputSchema,
+  DebtQuerySchema,
   ManualRefundQuerySchema,
   PaymentIdParamsSchema,
 } from "@metastorage/contracts";
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
+import { z } from "zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
 import { requireRole } from "../auth/auth.guard";
@@ -19,6 +22,58 @@ const privateTrackingResponse = async (_request: FastifyRequest, reply: FastifyR
 export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
   const service = createPaymentsService(fastify);
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
+
+  typedApp.get(
+    "/debts",
+    {
+      preHandler: [requireRole("CUSTOMER", "FACILITY_STAFF", "FACILITY_MANAGER")],
+      schema: { querystring: DebtQuerySchema },
+    },
+    async (request, reply) => {
+      if (!request.user) throw new UnauthorizedError();
+      reply.header("Cache-Control", "private, no-store");
+      return successResponse(
+        await service.listDebts(request.query, {
+          id: request.user.id,
+          role: request.user.role ?? "",
+        }),
+      );
+    },
+  );
+  typedApp.get(
+    "/debts/:id",
+    {
+      preHandler: [requireRole("CUSTOMER", "FACILITY_STAFF", "FACILITY_MANAGER")],
+      schema: { params: z.object({ id: z.uuid() }) },
+    },
+    async (request, reply) => {
+      if (!request.user) throw new UnauthorizedError();
+      reply.header("Cache-Control", "private, no-store");
+      return successResponse(
+        await service.getDebt(request.params.id, {
+          id: request.user.id,
+          role: request.user.role ?? "",
+        }),
+      );
+    },
+  );
+  typedApp.post(
+    "/debts/:id/payments",
+    {
+      preHandler: [requireRole("FACILITY_STAFF")],
+      schema: { params: z.object({ id: z.uuid() }), body: DebtPaymentInputSchema },
+    },
+    async (request, reply) => {
+      if (!request.user) throw new UnauthorizedError();
+      reply.header("Cache-Control", "private, no-store");
+      return successResponse(
+        await service.collectDebt(request.params.id, request.body, {
+          id: request.user.id,
+          role: request.user.role ?? "",
+        }),
+      );
+    },
+  );
 
   const handleWebhook = async (request: FastifyRequest, reply: FastifyReply) => {
     await service.handleSepayWebhook(
