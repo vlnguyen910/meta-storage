@@ -4,7 +4,7 @@ import {
   type Database,
   facilities,
   payments,
-  policyViolationFees,
+  rentals,
   reservations,
   storageUnits,
 } from "@metastorage/database";
@@ -48,7 +48,7 @@ const period = { from: "2026-10-01", to: "2026-10-31", limit: 20, offset: 0 };
 test("revenue keeps its financial results without querying inventory, holds or reservations", async () => {
   const { tables, service } = fixture();
   const result = await service.revenue(period, actor);
-  expect(tables).toEqual([facilities, payments, policyViolationFees]);
+  expect(tables).toEqual([facilities, payments, rentals]);
   expect(result.summary.cashReceived).toBe("0.00");
   expect(result.summary.netCash).toBe("0.00");
   expect(result.items).toEqual([]);
@@ -67,7 +67,7 @@ test("overview still queries both financial and inventory data in one snapshot",
   expect(tables).toEqual([
     facilities,
     payments,
-    policyViolationFees,
+    rentals,
     storageUnits,
     capacityAllocations,
     reservations,

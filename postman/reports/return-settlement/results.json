@@ -1,0 +1,2980 @@
+[
+  {
+    "name": "01 Login customer",
+    "code": 200,
+    "body": {
+      "redirect": false,
+      "token": "[redacted test token]",
+      "user": {
+        "name": "customer",
+        "email": "customer-51363290-c197-4575-9e38-c1c90bd2fd56@example.test",
+        "emailVerified": true,
+        "image": null,
+        "createdAt": "2026-10-30T07:15:13.927Z",
+        "updatedAt": "2026-10-30T07:15:13.927Z",
+        "phone": null,
+        "role": "CUSTOMER",
+        "status": "ACTIVE",
+        "id": "51363290-c197-4575-9e38-c1c90bd2fd56"
+      }
+    }
+  },
+  {
+    "name": "02 Login staff",
+    "code": 200,
+    "body": {
+      "redirect": false,
+      "token": "[redacted test token]",
+      "user": {
+        "name": "staff",
+        "email": "staff-9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b@example.test",
+        "emailVerified": true,
+        "image": null,
+        "createdAt": "2026-10-30T07:15:13.994Z",
+        "updatedAt": "2026-10-30T07:15:13.994Z",
+        "phone": null,
+        "role": "FACILITY_STAFF",
+        "status": "ACTIVE",
+        "id": "9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b"
+      }
+    }
+  },
+  {
+    "name": "03 Login manager",
+    "code": 200,
+    "body": {
+      "redirect": false,
+      "token": "[redacted test token]",
+      "user": {
+        "name": "manager",
+        "email": "manager-f1caf4de-30f8-4f6d-ab1b-9f63f5dcdc6b@example.test",
+        "emailVerified": true,
+        "image": null,
+        "createdAt": "2026-10-30T07:15:14.044Z",
+        "updatedAt": "2026-10-30T07:15:14.044Z",
+        "phone": null,
+        "role": "FACILITY_MANAGER",
+        "status": "ACTIVE",
+        "id": "f1caf4de-30f8-4f6d-ab1b-9f63f5dcdc6b"
+      }
+    }
+  },
+  {
+    "name": "04 Login bom",
+    "code": 200,
+    "body": {
+      "redirect": false,
+      "token": "[redacted test token]",
+      "user": {
+        "name": "bom",
+        "email": "bom-12127d02-7b63-4d00-a6da-bcb843abbef2@example.test",
+        "emailVerified": true,
+        "image": null,
+        "createdAt": "2026-10-30T07:15:14.095Z",
+        "updatedAt": "2026-10-30T07:15:14.095Z",
+        "phone": null,
+        "role": "BUSINESS_OPERATION_MANAGER",
+        "status": "ACTIVE",
+        "id": "12127d02-7b63-4d00-a6da-bcb843abbef2"
+      }
+    }
+  },
+  {
+    "name": "05 BOM updates fee policy",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "version": 1,
+        "items": [
+          {
+            "code": "SURPLUS",
+            "name": "surplus",
+            "amount": 50000,
+            "isActive": true
+          },
+          {
+            "code": "EQUAL",
+            "name": "equal",
+            "amount": 100000,
+            "isActive": true
+          },
+          {
+            "code": "DEBT",
+            "name": "debt",
+            "amount": 150000,
+            "isActive": true
+          }
+        ]
+      },
+      "timestamp": "2026-10-30T07:15:16.189Z"
+    }
+  },
+  {
+    "name": "06 surplus: Customer requests return",
+    "code": 201,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "02dc121b-684e-4d96-9c99-bd63fb883f17",
+        "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+        "appointmentType": "CHECK_OUT",
+        "scheduledDate": "2026-10-31",
+        "slotId": "1d747079-173d-4533-b17b-9ca5bf416489",
+        "status": "SCHEDULED",
+        "customerId": "51363290-c197-4575-9e38-c1c90bd2fd56",
+        "contactPhone": null,
+        "reservationId": null,
+        "rentalId": "5bcb16a5-a1a7-410d-85d2-f524d8fce810",
+        "supportTicketId": null,
+        "assignedStaffId": null,
+        "createdBy": "51363290-c197-4575-9e38-c1c90bd2fd56",
+        "notes": null,
+        "createdAt": "2026-10-30T07:15:16.209Z",
+        "updatedAt": "2026-10-30T07:15:16.209Z"
+      },
+      "timestamp": "2026-10-30T07:15:16.223Z"
+    }
+  },
+  {
+    "name": "07 surplus: FM confirms and assigns Staff",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "02dc121b-684e-4d96-9c99-bd63fb883f17",
+        "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+        "appointmentType": "CHECK_OUT",
+        "scheduledDate": "2026-10-31",
+        "slotId": "1d747079-173d-4533-b17b-9ca5bf416489",
+        "status": "CONFIRMED",
+        "customerId": "51363290-c197-4575-9e38-c1c90bd2fd56",
+        "contactPhone": null,
+        "reservationId": null,
+        "rentalId": "5bcb16a5-a1a7-410d-85d2-f524d8fce810",
+        "supportTicketId": null,
+        "assignedStaffId": "9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b",
+        "createdBy": "51363290-c197-4575-9e38-c1c90bd2fd56",
+        "notes": null,
+        "createdAt": "2026-10-30T07:15:16.209Z",
+        "updatedAt": "2026-10-30T07:15:16.258Z"
+      },
+      "timestamp": "2026-10-30T07:15:16.260Z"
+    }
+  },
+  {
+    "name": "08 equal: Customer requests return",
+    "code": 201,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "f6809315-4c2f-4661-9674-4591e63cff5c",
+        "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+        "appointmentType": "CHECK_OUT",
+        "scheduledDate": "2026-10-31",
+        "slotId": "556d7161-0810-4328-92b7-0ed7d963849d",
+        "status": "SCHEDULED",
+        "customerId": "51363290-c197-4575-9e38-c1c90bd2fd56",
+        "contactPhone": null,
+        "reservationId": null,
+        "rentalId": "fa63abfb-525a-49f3-8117-8bc904332158",
+        "supportTicketId": null,
+        "assignedStaffId": null,
+        "createdBy": "51363290-c197-4575-9e38-c1c90bd2fd56",
+        "notes": null,
+        "createdAt": "2026-10-30T07:15:16.277Z",
+        "updatedAt": "2026-10-30T07:15:16.277Z"
+      },
+      "timestamp": "2026-10-30T07:15:16.293Z"
+    }
+  },
+  {
+    "name": "09 equal: FM confirms and assigns Staff",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "f6809315-4c2f-4661-9674-4591e63cff5c",
+        "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+        "appointmentType": "CHECK_OUT",
+        "scheduledDate": "2026-10-31",
+        "slotId": "556d7161-0810-4328-92b7-0ed7d963849d",
+        "status": "CONFIRMED",
+        "customerId": "51363290-c197-4575-9e38-c1c90bd2fd56",
+        "contactPhone": null,
+        "reservationId": null,
+        "rentalId": "fa63abfb-525a-49f3-8117-8bc904332158",
+        "supportTicketId": null,
+        "assignedStaffId": "9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b",
+        "createdBy": "51363290-c197-4575-9e38-c1c90bd2fd56",
+        "notes": null,
+        "createdAt": "2026-10-30T07:15:16.277Z",
+        "updatedAt": "2026-10-30T07:15:16.325Z"
+      },
+      "timestamp": "2026-10-30T07:15:16.327Z"
+    }
+  },
+  {
+    "name": "10 debt: Customer requests return",
+    "code": 201,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "1e6f2f56-5498-4562-81fb-d1ac412ff5e8",
+        "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+        "appointmentType": "CHECK_OUT",
+        "scheduledDate": "2026-10-31",
+        "slotId": "cf5eec57-a011-4720-bcda-19d5f947634b",
+        "status": "SCHEDULED",
+        "customerId": "51363290-c197-4575-9e38-c1c90bd2fd56",
+        "contactPhone": null,
+        "reservationId": null,
+        "rentalId": "a490a37d-4cf2-4e19-8a12-63aa0588fad6",
+        "supportTicketId": null,
+        "assignedStaffId": null,
+        "createdBy": "51363290-c197-4575-9e38-c1c90bd2fd56",
+        "notes": null,
+        "createdAt": "2026-10-30T07:15:16.348Z",
+        "updatedAt": "2026-10-30T07:15:16.348Z"
+      },
+      "timestamp": "2026-10-30T07:15:16.354Z"
+    }
+  },
+  {
+    "name": "11 debt: FM confirms and assigns Staff",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "1e6f2f56-5498-4562-81fb-d1ac412ff5e8",
+        "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+        "appointmentType": "CHECK_OUT",
+        "scheduledDate": "2026-10-31",
+        "slotId": "cf5eec57-a011-4720-bcda-19d5f947634b",
+        "status": "CONFIRMED",
+        "customerId": "51363290-c197-4575-9e38-c1c90bd2fd56",
+        "contactPhone": null,
+        "reservationId": null,
+        "rentalId": "a490a37d-4cf2-4e19-8a12-63aa0588fad6",
+        "supportTicketId": null,
+        "assignedStaffId": "9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b",
+        "createdBy": "51363290-c197-4575-9e38-c1c90bd2fd56",
+        "notes": null,
+        "createdAt": "2026-10-30T07:15:16.348Z",
+        "updatedAt": "2026-10-30T07:15:16.381Z"
+      },
+      "timestamp": "2026-10-30T07:15:16.382Z"
+    }
+  },
+  {
+    "name": "12 surplus: Staff starts task",
+    "code": 200,
+    "body": {
+      "success": true,
+      "message": "Đã cập nhật công việc.",
+      "data": {
+        "id": "52963a05-ce05-432f-ac87-140207404c10",
+        "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+        "type": "UNIT_INSPECTION",
+        "status": "IN_PROGRESS",
+        "referenceType": "APPOINTMENT",
+        "referenceId": "02dc121b-684e-4d96-9c99-bd63fb883f17",
+        "description": null,
+        "assignedStaffId": "9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b",
+        "assignedBy": "f1caf4de-30f8-4f6d-ab1b-9f63f5dcdc6b",
+        "startedAt": "2026-10-31T05:15:00.000Z",
+        "completedAt": null,
+        "assignedAt": "2026-10-30T07:15:16.252Z",
+        "createdAt": "2026-10-30T07:15:16.252Z",
+        "updatedAt": "2026-10-31T05:15:00.000Z",
+        "assignedStaffName": "staff",
+        "assignerName": "manager"
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "13 surplus: Staff creates inspection",
+    "code": 201,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "5e5eb880-2b9d-49ce-8e6c-40a386324b6e",
+        "storageUnitId": "20640c10-44b1-4698-8c28-3d79874bc6d5",
+        "rentalId": "5bcb16a5-a1a7-410d-85d2-f524d8fce810",
+        "reservationId": null,
+        "inspectedBy": "9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b",
+        "taskId": "52963a05-ce05-432f-ac87-140207404c10",
+        "inspectionType": "CHECK_OUT",
+        "status": "PENDING",
+        "condition": null,
+        "checklist": {},
+        "notes": null,
+        "inspectedAt": null,
+        "inspectDoneAt": null,
+        "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+        "unitCode": "surplus",
+        "evidence": [],
+        "returnContext": {
+          "depositAmount": 100000,
+          "deductionAmount": 0,
+          "refundAmount": 100000,
+          "debtAmount": 0,
+          "policyVersion": 1,
+          "penalties": [
+            {
+              "code": "DEBT",
+              "name": "debt",
+              "amount": 150000
+            },
+            {
+              "code": "EQUAL",
+              "name": "equal",
+              "amount": 100000
+            },
+            {
+              "code": "SURPLUS",
+              "name": "surplus",
+              "amount": 50000
+            }
+          ],
+          "fees": [],
+          "checkIn": null
+        }
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "14 surplus: Save inspection and applied fees",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "5e5eb880-2b9d-49ce-8e6c-40a386324b6e",
+        "storageUnitId": "20640c10-44b1-4698-8c28-3d79874bc6d5",
+        "rentalId": "5bcb16a5-a1a7-410d-85d2-f524d8fce810",
+        "reservationId": null,
+        "inspectedBy": "9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b",
+        "taskId": "52963a05-ce05-432f-ac87-140207404c10",
+        "inspectionType": "CHECK_OUT",
+        "status": "IN_PROGRESS",
+        "condition": "GOOD",
+        "checklist": {
+          "results": [
+            {
+              "note": null,
+              "photos": [],
+              "result": "PASS",
+              "itemCode": "ASSIGNED_UNIT",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": null,
+              "photos": [],
+              "result": "PASS",
+              "itemCode": "DOOR_LOCK",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": null,
+              "photos": [],
+              "result": "PASS",
+              "itemCode": "UNIT_CONDITION",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": null,
+              "photos": [],
+              "result": "PASS",
+              "itemCode": "EXISTING_INVENTORY",
+              "resultType": "PASS_FAIL"
+            }
+          ]
+        },
+        "notes": null,
+        "inspectedAt": "2026-10-31T05:15:00.000Z",
+        "inspectDoneAt": null,
+        "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+        "unitCode": "surplus",
+        "evidence": [],
+        "returnContext": {
+          "depositAmount": 100000,
+          "deductionAmount": 50000,
+          "refundAmount": 50000,
+          "debtAmount": 0,
+          "policyVersion": 1,
+          "penalties": [
+            {
+              "code": "DEBT",
+              "name": "debt",
+              "amount": 150000
+            },
+            {
+              "code": "EQUAL",
+              "name": "equal",
+              "amount": 100000
+            },
+            {
+              "code": "SURPLUS",
+              "name": "surplus",
+              "amount": 50000
+            }
+          ],
+          "fees": [
+            {
+              "code": "SURPLUS",
+              "name": "surplus",
+              "amount": 50000,
+              "note": "Policy fee"
+            }
+          ],
+          "checkIn": null
+        }
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "15 surplus: Read settlement estimate",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "5e5eb880-2b9d-49ce-8e6c-40a386324b6e",
+        "storageUnitId": "20640c10-44b1-4698-8c28-3d79874bc6d5",
+        "rentalId": "5bcb16a5-a1a7-410d-85d2-f524d8fce810",
+        "reservationId": null,
+        "inspectedBy": "9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b",
+        "taskId": "52963a05-ce05-432f-ac87-140207404c10",
+        "inspectionType": "CHECK_OUT",
+        "status": "IN_PROGRESS",
+        "condition": "GOOD",
+        "checklist": {
+          "results": [
+            {
+              "note": null,
+              "photos": [],
+              "result": "PASS",
+              "itemCode": "ASSIGNED_UNIT",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": null,
+              "photos": [],
+              "result": "PASS",
+              "itemCode": "DOOR_LOCK",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": null,
+              "photos": [],
+              "result": "PASS",
+              "itemCode": "UNIT_CONDITION",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": null,
+              "photos": [],
+              "result": "PASS",
+              "itemCode": "EXISTING_INVENTORY",
+              "resultType": "PASS_FAIL"
+            }
+          ]
+        },
+        "notes": null,
+        "inspectedAt": "2026-10-31T05:15:00.000Z",
+        "inspectDoneAt": null,
+        "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+        "unitCode": "surplus",
+        "evidence": [],
+        "returnContext": {
+          "depositAmount": 100000,
+          "deductionAmount": 50000,
+          "refundAmount": 50000,
+          "debtAmount": 0,
+          "policyVersion": 1,
+          "penalties": [
+            {
+              "code": "DEBT",
+              "name": "debt",
+              "amount": 150000
+            },
+            {
+              "code": "EQUAL",
+              "name": "equal",
+              "amount": 100000
+            },
+            {
+              "code": "SURPLUS",
+              "name": "surplus",
+              "amount": 50000
+            }
+          ],
+          "fees": [
+            {
+              "code": "SURPLUS",
+              "name": "surplus",
+              "amount": 50000,
+              "note": "Policy fee"
+            }
+          ],
+          "checkIn": null
+        }
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "16 surplus: Reject missing settlement confirmation",
+    "code": 409,
+    "body": {
+      "success": false,
+      "error": {
+        "code": 409,
+        "message": "Thông tin quyết toán đã thay đổi; kiểm tra lại số tiền và xác nhận trước khi hoàn tất."
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "17 surplus: Complete return and settlement",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "5e5eb880-2b9d-49ce-8e6c-40a386324b6e",
+        "storageUnitId": "20640c10-44b1-4698-8c28-3d79874bc6d5",
+        "rentalId": "5bcb16a5-a1a7-410d-85d2-f524d8fce810",
+        "reservationId": null,
+        "inspectedBy": "9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b",
+        "taskId": "52963a05-ce05-432f-ac87-140207404c10",
+        "inspectionType": "CHECK_OUT",
+        "status": "PASSED",
+        "condition": "GOOD",
+        "checklist": {
+          "results": [
+            {
+              "note": null,
+              "photos": [],
+              "result": "PASS",
+              "itemCode": "ASSIGNED_UNIT",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": null,
+              "photos": [],
+              "result": "PASS",
+              "itemCode": "DOOR_LOCK",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": null,
+              "photos": [],
+              "result": "PASS",
+              "itemCode": "UNIT_CONDITION",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": null,
+              "photos": [],
+              "result": "PASS",
+              "itemCode": "EXISTING_INVENTORY",
+              "resultType": "PASS_FAIL"
+            }
+          ]
+        },
+        "notes": null,
+        "inspectedAt": "2026-10-31T05:15:00.000Z",
+        "inspectDoneAt": "2026-10-31T05:15:00.000Z",
+        "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+        "unitCode": "surplus",
+        "evidence": [],
+        "returnContext": {
+          "depositAmount": 100000,
+          "deductionAmount": 50000,
+          "refundAmount": 50000,
+          "debtAmount": 0,
+          "policyVersion": 1,
+          "penalties": [
+            {
+              "code": "DEBT",
+              "name": "debt",
+              "amount": 150000
+            },
+            {
+              "code": "EQUAL",
+              "name": "equal",
+              "amount": 100000
+            },
+            {
+              "code": "SURPLUS",
+              "name": "surplus",
+              "amount": 50000
+            }
+          ],
+          "fees": [
+            {
+              "code": "SURPLUS",
+              "name": "surplus",
+              "amount": 50000,
+              "note": "Policy fee"
+            }
+          ],
+          "checkIn": null
+        }
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "18 surplus: Replay completion",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "5e5eb880-2b9d-49ce-8e6c-40a386324b6e",
+        "storageUnitId": "20640c10-44b1-4698-8c28-3d79874bc6d5",
+        "rentalId": "5bcb16a5-a1a7-410d-85d2-f524d8fce810",
+        "reservationId": null,
+        "inspectedBy": "9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b",
+        "taskId": "52963a05-ce05-432f-ac87-140207404c10",
+        "inspectionType": "CHECK_OUT",
+        "status": "PASSED",
+        "condition": "GOOD",
+        "checklist": {
+          "results": [
+            {
+              "note": null,
+              "photos": [],
+              "result": "PASS",
+              "itemCode": "ASSIGNED_UNIT",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": null,
+              "photos": [],
+              "result": "PASS",
+              "itemCode": "DOOR_LOCK",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": null,
+              "photos": [],
+              "result": "PASS",
+              "itemCode": "UNIT_CONDITION",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": null,
+              "photos": [],
+              "result": "PASS",
+              "itemCode": "EXISTING_INVENTORY",
+              "resultType": "PASS_FAIL"
+            }
+          ]
+        },
+        "notes": null,
+        "inspectedAt": "2026-10-31T05:15:00.000Z",
+        "inspectDoneAt": "2026-10-31T05:15:00.000Z",
+        "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+        "unitCode": "surplus",
+        "evidence": [],
+        "returnContext": {
+          "depositAmount": 100000,
+          "deductionAmount": 50000,
+          "refundAmount": 50000,
+          "debtAmount": 0,
+          "policyVersion": 1,
+          "penalties": [
+            {
+              "code": "DEBT",
+              "name": "debt",
+              "amount": 150000
+            },
+            {
+              "code": "EQUAL",
+              "name": "equal",
+              "amount": 100000
+            },
+            {
+              "code": "SURPLUS",
+              "name": "surplus",
+              "amount": 50000
+            }
+          ],
+          "fees": [
+            {
+              "code": "SURPLUS",
+              "name": "surplus",
+              "amount": 50000,
+              "note": "Policy fee"
+            }
+          ],
+          "checkIn": null
+        }
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "19 surplus: Reject changed completion",
+    "code": 409,
+    "body": {
+      "success": false,
+      "error": {
+        "code": 409,
+        "message": "Thông tin quyết toán đã thay đổi; kiểm tra lại số tiền và xác nhận trước khi hoàn tất."
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "20 surplus: Customer reads closed Rental",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "5bcb16a5-a1a7-410d-85d2-f524d8fce810",
+        "bookingId": "6c4c3c9c-59ae-4721-bcd5-1ec4d2507923",
+        "reservationId": null,
+        "userId": "51363290-c197-4575-9e38-c1c90bd2fd56",
+        "bookingCode": "6C4C3C9C",
+        "facility": {
+          "id": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+          "name": "Postman",
+          "address": "Synthetic fixture"
+        },
+        "unitType": {
+          "id": "e3e3cc8c-e5c7-44c9-985d-264ef942b1b6",
+          "name": "surplus",
+          "sizeLabel": "S"
+        },
+        "storageUnit": {
+          "id": "20640c10-44b1-4698-8c28-3d79874bc6d5",
+          "code": "surplus"
+        },
+        "startAt": "2026-10-29T07:15:14.278Z",
+        "endAt": "2026-12-29T07:15:14.278Z",
+        "closedAt": "2026-10-31T05:15:00.000Z",
+        "status": "CLOSED",
+        "bookingStatus": "CHECKED_IN",
+        "actions": {
+          "canCancel": false,
+          "canReschedule": false,
+          "note": "Hồ sơ thuê hiện chỉ hỗ trợ xem thông tin."
+        },
+        "renewalWindow": {
+          "cutoffAt": "2026-12-22T07:15:14.278Z",
+          "canRequest": false,
+          "reason": "Rental không còn trong thời hạn được yêu cầu gia hạn."
+        },
+        "settlement": {
+          "id": "f379ce6e-20da-44dc-8d84-61cf80b5ece3",
+          "inspectionId": "5e5eb880-2b9d-49ce-8e6c-40a386324b6e",
+          "depositAmount": "100000.00",
+          "deductionAmount": "50000.00",
+          "refundAmount": "50000",
+          "debtAmount": "0",
+          "currency": "VND",
+          "settledAt": "2026-10-31T05:15:00.000Z",
+          "settledBy": "9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b"
+        },
+        "customer": {
+          "userId": "51363290-c197-4575-9e38-c1c90bd2fd56",
+          "name": "customer",
+          "email": "customer-51363290-c197-4575-9e38-c1c90bd2fd56@example.test",
+          "phone": "0901234567"
+        }
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "21 surplus: FM verifies Unit status",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "items": [
+          {
+            "id": "34d9a88d-a702-4f22-a652-cc30129f5911",
+            "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+            "unitTypeId": "a0d1c934-4303-4464-beb5-730db8a1a8e8",
+            "code": "debt",
+            "floor": null,
+            "locationDescription": null,
+            "status": "OCCUPIED",
+            "createdAt": "2026-10-30T07:15:14.295Z",
+            "updatedAt": "2026-10-30T07:15:14.295Z",
+            "unitTypeName": "debt",
+            "unitTypeSizeLabel": "S"
+          },
+          {
+            "id": "6d6e953c-c6b3-4c73-a533-6e23accdd4f8",
+            "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+            "unitTypeId": "d9a10a52-9560-4a89-b5b8-6174213a3e5b",
+            "code": "equal",
+            "floor": null,
+            "locationDescription": null,
+            "status": "OCCUPIED",
+            "createdAt": "2026-10-30T07:15:14.285Z",
+            "updatedAt": "2026-10-30T07:15:14.285Z",
+            "unitTypeName": "equal",
+            "unitTypeSizeLabel": "S"
+          },
+          {
+            "id": "20640c10-44b1-4698-8c28-3d79874bc6d5",
+            "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+            "unitTypeId": "e3e3cc8c-e5c7-44c9-985d-264ef942b1b6",
+            "code": "surplus",
+            "floor": null,
+            "locationDescription": null,
+            "status": "AVAILABLE",
+            "createdAt": "2026-10-30T07:15:14.274Z",
+            "updatedAt": "2026-10-31T05:15:00.000Z",
+            "unitTypeName": "surplus",
+            "unitTypeSizeLabel": "S"
+          }
+        ],
+        "total": 3,
+        "limit": 100,
+        "offset": 0
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "22 surplus: FM reads closed Rental",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "5bcb16a5-a1a7-410d-85d2-f524d8fce810",
+        "bookingId": "6c4c3c9c-59ae-4721-bcd5-1ec4d2507923",
+        "reservationId": null,
+        "userId": "51363290-c197-4575-9e38-c1c90bd2fd56",
+        "bookingCode": null,
+        "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+        "status": "CLOSED",
+        "customer": {
+          "userId": "51363290-c197-4575-9e38-c1c90bd2fd56",
+          "name": "customer",
+          "email": "customer-51363290-c197-4575-9e38-c1c90bd2fd56@example.test",
+          "phone": "0901234567"
+        },
+        "unit": {
+          "id": "20640c10-44b1-4698-8c28-3d79874bc6d5",
+          "code": "surplus",
+          "unitTypeId": "e3e3cc8c-e5c7-44c9-985d-264ef942b1b6",
+          "unitTypeName": "surplus",
+          "sizeLabel": "S"
+        },
+        "startAt": "2026-10-29T07:15:14.278Z",
+        "endAt": "2026-12-29T07:15:14.278Z",
+        "closedAt": "2026-10-31T05:15:00.000Z",
+        "settlement": {
+          "id": "f379ce6e-20da-44dc-8d84-61cf80b5ece3",
+          "inspectionId": "5e5eb880-2b9d-49ce-8e6c-40a386324b6e",
+          "depositAmount": "100000.00",
+          "deductionAmount": "50000.00",
+          "refundAmount": "50000",
+          "debtAmount": "0",
+          "currency": "VND",
+          "settledAt": "2026-10-31T05:15:00.000Z",
+          "settledBy": "9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b"
+        }
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "23 surplus: Customer reads payment history",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": [
+        {
+          "id": "b9bc7145-3755-44c7-b083-688adea9a935",
+          "type": "CHARGE",
+          "paymentCode": "638199dd5dcd4047800445d0933062ab",
+          "provider": "sepay",
+          "status": "SUCCEEDED",
+          "totalAmount": "300000.00",
+          "currency": "VND",
+          "paidAt": "2026-10-30T07:15:14.279Z",
+          "refundAmount": null,
+          "refundReason": null,
+          "refundedAt": null,
+          "createdAt": "2026-10-30T07:15:14.280Z"
+        },
+        {
+          "id": "7d052782-ff26-4783-85c0-e0bf2b45def9",
+          "type": "DEPOSIT_REFUND",
+          "paymentCode": null,
+          "provider": null,
+          "status": "REFUNDED",
+          "totalAmount": "50000.00",
+          "currency": "VND",
+          "paidAt": null,
+          "refundAmount": "50000.00",
+          "refundReason": null,
+          "refundedAt": "2026-10-31T05:15:00.000Z",
+          "createdAt": "2026-10-30T07:15:18.134Z"
+        }
+      ],
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "24 surplus: FM reads payment history",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "items": [
+          {
+            "id": "7d052782-ff26-4783-85c0-e0bf2b45def9",
+            "type": "DEPOSIT_REFUND",
+            "paymentCode": null,
+            "status": "REFUNDED",
+            "amount": "50000.00",
+            "currency": "VND",
+            "paidAt": null,
+            "refundAmount": "50000.00",
+            "refundReason": null,
+            "refundedAt": "2026-10-31T05:15:00.000Z",
+            "createdAt": "2026-10-30T07:15:18.134Z"
+          },
+          {
+            "id": "b9bc7145-3755-44c7-b083-688adea9a935",
+            "type": "CHARGE",
+            "paymentCode": "638199dd5dcd4047800445d0933062ab",
+            "status": "SUCCEEDED",
+            "amount": "300000.00",
+            "currency": "VND",
+            "paidAt": "2026-10-30T07:15:14.279Z",
+            "refundAmount": null,
+            "refundReason": null,
+            "refundedAt": null,
+            "createdAt": "2026-10-30T07:15:14.280Z"
+          }
+        ],
+        "total": 2,
+        "limit": 20,
+        "offset": 0
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "25 surplus: Source charge status preserved",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "paymentId": "b9bc7145-3755-44c7-b083-688adea9a935",
+        "type": "CHARGE",
+        "status": "SUCCEEDED",
+        "provider": "sepay",
+        "paymentCode": "638199dd5dcd4047800445d0933062ab"
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "26 surplus: Staff lists Debt",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "items": [],
+        "total": 0,
+        "limit": 20,
+        "offset": 0
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "27 equal: Staff starts task",
+    "code": 200,
+    "body": {
+      "success": true,
+      "message": "Đã cập nhật công việc.",
+      "data": {
+        "id": "8f74f85c-c4c4-4509-9182-da3c9337b24a",
+        "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+        "type": "UNIT_INSPECTION",
+        "status": "IN_PROGRESS",
+        "referenceType": "APPOINTMENT",
+        "referenceId": "f6809315-4c2f-4661-9674-4591e63cff5c",
+        "description": null,
+        "assignedStaffId": "9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b",
+        "assignedBy": "f1caf4de-30f8-4f6d-ab1b-9f63f5dcdc6b",
+        "startedAt": "2026-10-31T05:15:00.000Z",
+        "completedAt": null,
+        "assignedAt": "2026-10-30T07:15:16.320Z",
+        "createdAt": "2026-10-30T07:15:16.320Z",
+        "updatedAt": "2026-10-31T05:15:00.000Z",
+        "assignedStaffName": "staff",
+        "assignerName": "manager"
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "28 equal: Staff creates inspection",
+    "code": 201,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "1749b142-182d-4199-958e-1143a6fa0c41",
+        "storageUnitId": "6d6e953c-c6b3-4c73-a533-6e23accdd4f8",
+        "rentalId": "fa63abfb-525a-49f3-8117-8bc904332158",
+        "reservationId": null,
+        "inspectedBy": "9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b",
+        "taskId": "8f74f85c-c4c4-4509-9182-da3c9337b24a",
+        "inspectionType": "CHECK_OUT",
+        "status": "PENDING",
+        "condition": null,
+        "checklist": {},
+        "notes": null,
+        "inspectedAt": null,
+        "inspectDoneAt": null,
+        "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+        "unitCode": "equal",
+        "evidence": [],
+        "returnContext": {
+          "depositAmount": 100000,
+          "deductionAmount": 0,
+          "refundAmount": 100000,
+          "debtAmount": 0,
+          "policyVersion": 1,
+          "penalties": [
+            {
+              "code": "DEBT",
+              "name": "debt",
+              "amount": 150000
+            },
+            {
+              "code": "EQUAL",
+              "name": "equal",
+              "amount": 100000
+            },
+            {
+              "code": "SURPLUS",
+              "name": "surplus",
+              "amount": 50000
+            }
+          ],
+          "fees": [],
+          "checkIn": null
+        }
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "29 equal: Save inspection and applied fees",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "1749b142-182d-4199-958e-1143a6fa0c41",
+        "storageUnitId": "6d6e953c-c6b3-4c73-a533-6e23accdd4f8",
+        "rentalId": "fa63abfb-525a-49f3-8117-8bc904332158",
+        "reservationId": null,
+        "inspectedBy": "9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b",
+        "taskId": "8f74f85c-c4c4-4509-9182-da3c9337b24a",
+        "inspectionType": "CHECK_OUT",
+        "status": "IN_PROGRESS",
+        "condition": "MAJOR_DAMAGE",
+        "checklist": {
+          "results": [
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "ASSIGNED_UNIT",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "DOOR_LOCK",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "UNIT_CONDITION",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "EXISTING_INVENTORY",
+              "resultType": "PASS_FAIL"
+            }
+          ]
+        },
+        "notes": null,
+        "inspectedAt": "2026-10-31T05:15:00.000Z",
+        "inspectDoneAt": null,
+        "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+        "unitCode": "equal",
+        "evidence": [],
+        "returnContext": {
+          "depositAmount": 100000,
+          "deductionAmount": 100000,
+          "refundAmount": 0,
+          "debtAmount": 0,
+          "policyVersion": 1,
+          "penalties": [
+            {
+              "code": "DEBT",
+              "name": "debt",
+              "amount": 150000
+            },
+            {
+              "code": "EQUAL",
+              "name": "equal",
+              "amount": 100000
+            },
+            {
+              "code": "SURPLUS",
+              "name": "surplus",
+              "amount": 50000
+            }
+          ],
+          "fees": [
+            {
+              "code": "EQUAL",
+              "name": "equal",
+              "amount": 100000,
+              "note": "Policy fee"
+            }
+          ],
+          "checkIn": null
+        }
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "30 equal: Read settlement estimate",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "1749b142-182d-4199-958e-1143a6fa0c41",
+        "storageUnitId": "6d6e953c-c6b3-4c73-a533-6e23accdd4f8",
+        "rentalId": "fa63abfb-525a-49f3-8117-8bc904332158",
+        "reservationId": null,
+        "inspectedBy": "9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b",
+        "taskId": "8f74f85c-c4c4-4509-9182-da3c9337b24a",
+        "inspectionType": "CHECK_OUT",
+        "status": "IN_PROGRESS",
+        "condition": "MAJOR_DAMAGE",
+        "checklist": {
+          "results": [
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "ASSIGNED_UNIT",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "DOOR_LOCK",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "UNIT_CONDITION",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "EXISTING_INVENTORY",
+              "resultType": "PASS_FAIL"
+            }
+          ]
+        },
+        "notes": null,
+        "inspectedAt": "2026-10-31T05:15:00.000Z",
+        "inspectDoneAt": null,
+        "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+        "unitCode": "equal",
+        "evidence": [],
+        "returnContext": {
+          "depositAmount": 100000,
+          "deductionAmount": 100000,
+          "refundAmount": 0,
+          "debtAmount": 0,
+          "policyVersion": 1,
+          "penalties": [
+            {
+              "code": "DEBT",
+              "name": "debt",
+              "amount": 150000
+            },
+            {
+              "code": "EQUAL",
+              "name": "equal",
+              "amount": 100000
+            },
+            {
+              "code": "SURPLUS",
+              "name": "surplus",
+              "amount": 50000
+            }
+          ],
+          "fees": [
+            {
+              "code": "EQUAL",
+              "name": "equal",
+              "amount": 100000,
+              "note": "Policy fee"
+            }
+          ],
+          "checkIn": null
+        }
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "31 equal: Reject missing settlement confirmation",
+    "code": 409,
+    "body": {
+      "success": false,
+      "error": {
+        "code": 409,
+        "message": "Thông tin quyết toán đã thay đổi; kiểm tra lại số tiền và xác nhận trước khi hoàn tất."
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "32 equal: Complete return and settlement",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "1749b142-182d-4199-958e-1143a6fa0c41",
+        "storageUnitId": "6d6e953c-c6b3-4c73-a533-6e23accdd4f8",
+        "rentalId": "fa63abfb-525a-49f3-8117-8bc904332158",
+        "reservationId": null,
+        "inspectedBy": "9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b",
+        "taskId": "8f74f85c-c4c4-4509-9182-da3c9337b24a",
+        "inspectionType": "CHECK_OUT",
+        "status": "PASSED",
+        "condition": "MAJOR_DAMAGE",
+        "checklist": {
+          "results": [
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "ASSIGNED_UNIT",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "DOOR_LOCK",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "UNIT_CONDITION",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "EXISTING_INVENTORY",
+              "resultType": "PASS_FAIL"
+            }
+          ]
+        },
+        "notes": null,
+        "inspectedAt": "2026-10-31T05:15:00.000Z",
+        "inspectDoneAt": "2026-10-31T05:15:00.000Z",
+        "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+        "unitCode": "equal",
+        "evidence": [],
+        "returnContext": {
+          "depositAmount": 100000,
+          "deductionAmount": 100000,
+          "refundAmount": 0,
+          "debtAmount": 0,
+          "policyVersion": 1,
+          "penalties": [
+            {
+              "code": "DEBT",
+              "name": "debt",
+              "amount": 150000
+            },
+            {
+              "code": "EQUAL",
+              "name": "equal",
+              "amount": 100000
+            },
+            {
+              "code": "SURPLUS",
+              "name": "surplus",
+              "amount": 50000
+            }
+          ],
+          "fees": [
+            {
+              "code": "EQUAL",
+              "name": "equal",
+              "amount": 100000,
+              "note": "Policy fee"
+            }
+          ],
+          "checkIn": null
+        }
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "33 equal: Replay completion",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "1749b142-182d-4199-958e-1143a6fa0c41",
+        "storageUnitId": "6d6e953c-c6b3-4c73-a533-6e23accdd4f8",
+        "rentalId": "fa63abfb-525a-49f3-8117-8bc904332158",
+        "reservationId": null,
+        "inspectedBy": "9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b",
+        "taskId": "8f74f85c-c4c4-4509-9182-da3c9337b24a",
+        "inspectionType": "CHECK_OUT",
+        "status": "PASSED",
+        "condition": "MAJOR_DAMAGE",
+        "checklist": {
+          "results": [
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "ASSIGNED_UNIT",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "DOOR_LOCK",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "UNIT_CONDITION",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "EXISTING_INVENTORY",
+              "resultType": "PASS_FAIL"
+            }
+          ]
+        },
+        "notes": null,
+        "inspectedAt": "2026-10-31T05:15:00.000Z",
+        "inspectDoneAt": "2026-10-31T05:15:00.000Z",
+        "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+        "unitCode": "equal",
+        "evidence": [],
+        "returnContext": {
+          "depositAmount": 100000,
+          "deductionAmount": 100000,
+          "refundAmount": 0,
+          "debtAmount": 0,
+          "policyVersion": 1,
+          "penalties": [
+            {
+              "code": "DEBT",
+              "name": "debt",
+              "amount": 150000
+            },
+            {
+              "code": "EQUAL",
+              "name": "equal",
+              "amount": 100000
+            },
+            {
+              "code": "SURPLUS",
+              "name": "surplus",
+              "amount": 50000
+            }
+          ],
+          "fees": [
+            {
+              "code": "EQUAL",
+              "name": "equal",
+              "amount": 100000,
+              "note": "Policy fee"
+            }
+          ],
+          "checkIn": null
+        }
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "34 equal: Reject changed completion",
+    "code": 409,
+    "body": {
+      "success": false,
+      "error": {
+        "code": 409,
+        "message": "Thông tin quyết toán đã thay đổi; kiểm tra lại số tiền và xác nhận trước khi hoàn tất."
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "35 equal: Customer reads closed Rental",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "fa63abfb-525a-49f3-8117-8bc904332158",
+        "bookingId": "644040f6-59e3-4455-b31e-fbe0762d24a8",
+        "reservationId": null,
+        "userId": "51363290-c197-4575-9e38-c1c90bd2fd56",
+        "bookingCode": "644040F6",
+        "facility": {
+          "id": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+          "name": "Postman",
+          "address": "Synthetic fixture"
+        },
+        "unitType": {
+          "id": "d9a10a52-9560-4a89-b5b8-6174213a3e5b",
+          "name": "equal",
+          "sizeLabel": "S"
+        },
+        "storageUnit": {
+          "id": "6d6e953c-c6b3-4c73-a533-6e23accdd4f8",
+          "code": "equal"
+        },
+        "startAt": "2026-10-29T07:15:14.287Z",
+        "endAt": "2026-12-29T07:15:14.287Z",
+        "closedAt": "2026-10-31T05:15:00.000Z",
+        "status": "CLOSED",
+        "bookingStatus": "CHECKED_IN",
+        "actions": {
+          "canCancel": false,
+          "canReschedule": false,
+          "note": "Hồ sơ thuê hiện chỉ hỗ trợ xem thông tin."
+        },
+        "renewalWindow": {
+          "cutoffAt": "2026-12-22T07:15:14.287Z",
+          "canRequest": false,
+          "reason": "Rental không còn trong thời hạn được yêu cầu gia hạn."
+        },
+        "settlement": {
+          "id": "15b00272-90a3-496c-9170-dfb460f466e4",
+          "inspectionId": "1749b142-182d-4199-958e-1143a6fa0c41",
+          "depositAmount": "100000.00",
+          "deductionAmount": "100000.00",
+          "refundAmount": "0",
+          "debtAmount": "0",
+          "currency": "VND",
+          "settledAt": "2026-10-31T05:15:00.000Z",
+          "settledBy": "9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b"
+        },
+        "customer": {
+          "userId": "51363290-c197-4575-9e38-c1c90bd2fd56",
+          "name": "customer",
+          "email": "customer-51363290-c197-4575-9e38-c1c90bd2fd56@example.test",
+          "phone": "0901234567"
+        }
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "36 equal: FM verifies Unit status",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "items": [
+          {
+            "id": "34d9a88d-a702-4f22-a652-cc30129f5911",
+            "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+            "unitTypeId": "a0d1c934-4303-4464-beb5-730db8a1a8e8",
+            "code": "debt",
+            "floor": null,
+            "locationDescription": null,
+            "status": "OCCUPIED",
+            "createdAt": "2026-10-30T07:15:14.295Z",
+            "updatedAt": "2026-10-30T07:15:14.295Z",
+            "unitTypeName": "debt",
+            "unitTypeSizeLabel": "S"
+          },
+          {
+            "id": "6d6e953c-c6b3-4c73-a533-6e23accdd4f8",
+            "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+            "unitTypeId": "d9a10a52-9560-4a89-b5b8-6174213a3e5b",
+            "code": "equal",
+            "floor": null,
+            "locationDescription": null,
+            "status": "MAINTENANCE",
+            "createdAt": "2026-10-30T07:15:14.285Z",
+            "updatedAt": "2026-10-31T05:15:00.000Z",
+            "unitTypeName": "equal",
+            "unitTypeSizeLabel": "S"
+          },
+          {
+            "id": "20640c10-44b1-4698-8c28-3d79874bc6d5",
+            "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+            "unitTypeId": "e3e3cc8c-e5c7-44c9-985d-264ef942b1b6",
+            "code": "surplus",
+            "floor": null,
+            "locationDescription": null,
+            "status": "AVAILABLE",
+            "createdAt": "2026-10-30T07:15:14.274Z",
+            "updatedAt": "2026-10-31T05:15:00.000Z",
+            "unitTypeName": "surplus",
+            "unitTypeSizeLabel": "S"
+          }
+        ],
+        "total": 3,
+        "limit": 100,
+        "offset": 0
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "37 equal: FM reads closed Rental",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "fa63abfb-525a-49f3-8117-8bc904332158",
+        "bookingId": "644040f6-59e3-4455-b31e-fbe0762d24a8",
+        "reservationId": null,
+        "userId": "51363290-c197-4575-9e38-c1c90bd2fd56",
+        "bookingCode": null,
+        "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+        "status": "CLOSED",
+        "customer": {
+          "userId": "51363290-c197-4575-9e38-c1c90bd2fd56",
+          "name": "customer",
+          "email": "customer-51363290-c197-4575-9e38-c1c90bd2fd56@example.test",
+          "phone": "0901234567"
+        },
+        "unit": {
+          "id": "6d6e953c-c6b3-4c73-a533-6e23accdd4f8",
+          "code": "equal",
+          "unitTypeId": "d9a10a52-9560-4a89-b5b8-6174213a3e5b",
+          "unitTypeName": "equal",
+          "sizeLabel": "S"
+        },
+        "startAt": "2026-10-29T07:15:14.287Z",
+        "endAt": "2026-12-29T07:15:14.287Z",
+        "closedAt": "2026-10-31T05:15:00.000Z",
+        "settlement": {
+          "id": "15b00272-90a3-496c-9170-dfb460f466e4",
+          "inspectionId": "1749b142-182d-4199-958e-1143a6fa0c41",
+          "depositAmount": "100000.00",
+          "deductionAmount": "100000.00",
+          "refundAmount": "0",
+          "debtAmount": "0",
+          "currency": "VND",
+          "settledAt": "2026-10-31T05:15:00.000Z",
+          "settledBy": "9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b"
+        }
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "38 equal: Customer reads payment history",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": [
+        {
+          "id": "b5d2f75e-8e9d-4c53-831f-59ac184d9e98",
+          "type": "CHARGE",
+          "paymentCode": "794ede86588e45929954fc6dec856c0c",
+          "provider": "sepay",
+          "status": "SUCCEEDED",
+          "totalAmount": "300000.00",
+          "currency": "VND",
+          "paidAt": "2026-10-30T07:15:14.289Z",
+          "refundAmount": null,
+          "refundReason": null,
+          "refundedAt": null,
+          "createdAt": "2026-10-30T07:15:14.290Z"
+        }
+      ],
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "39 equal: FM reads payment history",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "items": [
+          {
+            "id": "b5d2f75e-8e9d-4c53-831f-59ac184d9e98",
+            "type": "CHARGE",
+            "paymentCode": "794ede86588e45929954fc6dec856c0c",
+            "status": "SUCCEEDED",
+            "amount": "300000.00",
+            "currency": "VND",
+            "paidAt": "2026-10-30T07:15:14.289Z",
+            "refundAmount": null,
+            "refundReason": null,
+            "refundedAt": null,
+            "createdAt": "2026-10-30T07:15:14.290Z"
+          }
+        ],
+        "total": 1,
+        "limit": 20,
+        "offset": 0
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "40 equal: Source charge status preserved",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "paymentId": "b5d2f75e-8e9d-4c53-831f-59ac184d9e98",
+        "type": "CHARGE",
+        "status": "SUCCEEDED",
+        "provider": "sepay",
+        "paymentCode": "794ede86588e45929954fc6dec856c0c"
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "41 equal: Staff lists Debt",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "items": [],
+        "total": 0,
+        "limit": 20,
+        "offset": 0
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "42 debt: Staff starts task",
+    "code": 200,
+    "body": {
+      "success": true,
+      "message": "Đã cập nhật công việc.",
+      "data": {
+        "id": "8a5fc35d-c23a-43a2-a8d6-614aceff61b2",
+        "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+        "type": "UNIT_INSPECTION",
+        "status": "IN_PROGRESS",
+        "referenceType": "APPOINTMENT",
+        "referenceId": "1e6f2f56-5498-4562-81fb-d1ac412ff5e8",
+        "description": null,
+        "assignedStaffId": "9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b",
+        "assignedBy": "f1caf4de-30f8-4f6d-ab1b-9f63f5dcdc6b",
+        "startedAt": "2026-10-31T05:15:00.000Z",
+        "completedAt": null,
+        "assignedAt": "2026-10-30T07:15:16.376Z",
+        "createdAt": "2026-10-30T07:15:16.376Z",
+        "updatedAt": "2026-10-31T05:15:00.000Z",
+        "assignedStaffName": "staff",
+        "assignerName": "manager"
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "43 debt: Staff creates inspection",
+    "code": 201,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "b8242768-12fb-495a-9393-74756444f368",
+        "storageUnitId": "34d9a88d-a702-4f22-a652-cc30129f5911",
+        "rentalId": "a490a37d-4cf2-4e19-8a12-63aa0588fad6",
+        "reservationId": null,
+        "inspectedBy": "9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b",
+        "taskId": "8a5fc35d-c23a-43a2-a8d6-614aceff61b2",
+        "inspectionType": "CHECK_OUT",
+        "status": "PENDING",
+        "condition": null,
+        "checklist": {},
+        "notes": null,
+        "inspectedAt": null,
+        "inspectDoneAt": null,
+        "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+        "unitCode": "debt",
+        "evidence": [],
+        "returnContext": {
+          "depositAmount": 100000,
+          "deductionAmount": 0,
+          "refundAmount": 100000,
+          "debtAmount": 0,
+          "policyVersion": 1,
+          "penalties": [
+            {
+              "code": "DEBT",
+              "name": "debt",
+              "amount": 150000
+            },
+            {
+              "code": "EQUAL",
+              "name": "equal",
+              "amount": 100000
+            },
+            {
+              "code": "SURPLUS",
+              "name": "surplus",
+              "amount": 50000
+            }
+          ],
+          "fees": [],
+          "checkIn": null
+        }
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "44 debt: Save inspection and applied fees",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "b8242768-12fb-495a-9393-74756444f368",
+        "storageUnitId": "34d9a88d-a702-4f22-a652-cc30129f5911",
+        "rentalId": "a490a37d-4cf2-4e19-8a12-63aa0588fad6",
+        "reservationId": null,
+        "inspectedBy": "9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b",
+        "taskId": "8a5fc35d-c23a-43a2-a8d6-614aceff61b2",
+        "inspectionType": "CHECK_OUT",
+        "status": "IN_PROGRESS",
+        "condition": "MAJOR_DAMAGE",
+        "checklist": {
+          "results": [
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "ASSIGNED_UNIT",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "DOOR_LOCK",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "UNIT_CONDITION",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "EXISTING_INVENTORY",
+              "resultType": "PASS_FAIL"
+            }
+          ]
+        },
+        "notes": null,
+        "inspectedAt": "2026-10-31T05:15:00.000Z",
+        "inspectDoneAt": null,
+        "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+        "unitCode": "debt",
+        "evidence": [],
+        "returnContext": {
+          "depositAmount": 100000,
+          "deductionAmount": 150000,
+          "refundAmount": 0,
+          "debtAmount": 50000,
+          "policyVersion": 1,
+          "penalties": [
+            {
+              "code": "DEBT",
+              "name": "debt",
+              "amount": 150000
+            },
+            {
+              "code": "EQUAL",
+              "name": "equal",
+              "amount": 100000
+            },
+            {
+              "code": "SURPLUS",
+              "name": "surplus",
+              "amount": 50000
+            }
+          ],
+          "fees": [
+            {
+              "code": "DEBT",
+              "name": "debt",
+              "amount": 150000,
+              "note": "Policy fee"
+            }
+          ],
+          "checkIn": null
+        }
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "45 debt: Read settlement estimate",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "b8242768-12fb-495a-9393-74756444f368",
+        "storageUnitId": "34d9a88d-a702-4f22-a652-cc30129f5911",
+        "rentalId": "a490a37d-4cf2-4e19-8a12-63aa0588fad6",
+        "reservationId": null,
+        "inspectedBy": "9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b",
+        "taskId": "8a5fc35d-c23a-43a2-a8d6-614aceff61b2",
+        "inspectionType": "CHECK_OUT",
+        "status": "IN_PROGRESS",
+        "condition": "MAJOR_DAMAGE",
+        "checklist": {
+          "results": [
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "ASSIGNED_UNIT",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "DOOR_LOCK",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "UNIT_CONDITION",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "EXISTING_INVENTORY",
+              "resultType": "PASS_FAIL"
+            }
+          ]
+        },
+        "notes": null,
+        "inspectedAt": "2026-10-31T05:15:00.000Z",
+        "inspectDoneAt": null,
+        "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+        "unitCode": "debt",
+        "evidence": [],
+        "returnContext": {
+          "depositAmount": 100000,
+          "deductionAmount": 150000,
+          "refundAmount": 0,
+          "debtAmount": 50000,
+          "policyVersion": 1,
+          "penalties": [
+            {
+              "code": "DEBT",
+              "name": "debt",
+              "amount": 150000
+            },
+            {
+              "code": "EQUAL",
+              "name": "equal",
+              "amount": 100000
+            },
+            {
+              "code": "SURPLUS",
+              "name": "surplus",
+              "amount": 50000
+            }
+          ],
+          "fees": [
+            {
+              "code": "DEBT",
+              "name": "debt",
+              "amount": 150000,
+              "note": "Policy fee"
+            }
+          ],
+          "checkIn": null
+        }
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "46 debt: Reject missing settlement confirmation",
+    "code": 409,
+    "body": {
+      "success": false,
+      "error": {
+        "code": 409,
+        "message": "Thông tin quyết toán đã thay đổi; kiểm tra lại số tiền và xác nhận trước khi hoàn tất."
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "47 debt: Complete return and settlement",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "b8242768-12fb-495a-9393-74756444f368",
+        "storageUnitId": "34d9a88d-a702-4f22-a652-cc30129f5911",
+        "rentalId": "a490a37d-4cf2-4e19-8a12-63aa0588fad6",
+        "reservationId": null,
+        "inspectedBy": "9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b",
+        "taskId": "8a5fc35d-c23a-43a2-a8d6-614aceff61b2",
+        "inspectionType": "CHECK_OUT",
+        "status": "PASSED",
+        "condition": "MAJOR_DAMAGE",
+        "checklist": {
+          "results": [
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "ASSIGNED_UNIT",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "DOOR_LOCK",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "UNIT_CONDITION",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "EXISTING_INVENTORY",
+              "resultType": "PASS_FAIL"
+            }
+          ]
+        },
+        "notes": null,
+        "inspectedAt": "2026-10-31T05:15:00.000Z",
+        "inspectDoneAt": "2026-10-31T05:15:00.000Z",
+        "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+        "unitCode": "debt",
+        "evidence": [],
+        "returnContext": {
+          "depositAmount": 100000,
+          "deductionAmount": 150000,
+          "refundAmount": 0,
+          "debtAmount": 50000,
+          "policyVersion": 1,
+          "penalties": [
+            {
+              "code": "DEBT",
+              "name": "debt",
+              "amount": 150000
+            },
+            {
+              "code": "EQUAL",
+              "name": "equal",
+              "amount": 100000
+            },
+            {
+              "code": "SURPLUS",
+              "name": "surplus",
+              "amount": 50000
+            }
+          ],
+          "fees": [
+            {
+              "code": "DEBT",
+              "name": "debt",
+              "amount": 150000,
+              "note": "Policy fee"
+            }
+          ],
+          "checkIn": null
+        }
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "48 debt: Replay completion",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "b8242768-12fb-495a-9393-74756444f368",
+        "storageUnitId": "34d9a88d-a702-4f22-a652-cc30129f5911",
+        "rentalId": "a490a37d-4cf2-4e19-8a12-63aa0588fad6",
+        "reservationId": null,
+        "inspectedBy": "9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b",
+        "taskId": "8a5fc35d-c23a-43a2-a8d6-614aceff61b2",
+        "inspectionType": "CHECK_OUT",
+        "status": "PASSED",
+        "condition": "MAJOR_DAMAGE",
+        "checklist": {
+          "results": [
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "ASSIGNED_UNIT",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "DOOR_LOCK",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "UNIT_CONDITION",
+              "resultType": "PASS_FAIL"
+            },
+            {
+              "note": "Documented damage",
+              "photos": [],
+              "result": "FAIL",
+              "itemCode": "EXISTING_INVENTORY",
+              "resultType": "PASS_FAIL"
+            }
+          ]
+        },
+        "notes": null,
+        "inspectedAt": "2026-10-31T05:15:00.000Z",
+        "inspectDoneAt": "2026-10-31T05:15:00.000Z",
+        "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+        "unitCode": "debt",
+        "evidence": [],
+        "returnContext": {
+          "depositAmount": 100000,
+          "deductionAmount": 150000,
+          "refundAmount": 0,
+          "debtAmount": 50000,
+          "policyVersion": 1,
+          "penalties": [
+            {
+              "code": "DEBT",
+              "name": "debt",
+              "amount": 150000
+            },
+            {
+              "code": "EQUAL",
+              "name": "equal",
+              "amount": 100000
+            },
+            {
+              "code": "SURPLUS",
+              "name": "surplus",
+              "amount": 50000
+            }
+          ],
+          "fees": [
+            {
+              "code": "DEBT",
+              "name": "debt",
+              "amount": 150000,
+              "note": "Policy fee"
+            }
+          ],
+          "checkIn": null
+        }
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "49 debt: Reject changed completion",
+    "code": 409,
+    "body": {
+      "success": false,
+      "error": {
+        "code": 409,
+        "message": "Thông tin quyết toán đã thay đổi; kiểm tra lại số tiền và xác nhận trước khi hoàn tất."
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "50 debt: Customer reads closed Rental",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "a490a37d-4cf2-4e19-8a12-63aa0588fad6",
+        "bookingId": "98f787a4-a823-4286-9c7e-697da0914d07",
+        "reservationId": null,
+        "userId": "51363290-c197-4575-9e38-c1c90bd2fd56",
+        "bookingCode": "98F787A4",
+        "facility": {
+          "id": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+          "name": "Postman",
+          "address": "Synthetic fixture"
+        },
+        "unitType": {
+          "id": "a0d1c934-4303-4464-beb5-730db8a1a8e8",
+          "name": "debt",
+          "sizeLabel": "S"
+        },
+        "storageUnit": {
+          "id": "34d9a88d-a702-4f22-a652-cc30129f5911",
+          "code": "debt"
+        },
+        "startAt": "2026-10-29T07:15:14.298Z",
+        "endAt": "2026-12-29T07:15:14.298Z",
+        "closedAt": "2026-10-31T05:15:00.000Z",
+        "status": "CLOSED",
+        "bookingStatus": "CHECKED_IN",
+        "actions": {
+          "canCancel": false,
+          "canReschedule": false,
+          "note": "Hồ sơ thuê hiện chỉ hỗ trợ xem thông tin."
+        },
+        "renewalWindow": {
+          "cutoffAt": "2026-12-22T07:15:14.298Z",
+          "canRequest": false,
+          "reason": "Rental không còn trong thời hạn được yêu cầu gia hạn."
+        },
+        "settlement": {
+          "id": "5890288a-f991-4b92-bb30-f9607c2a5448",
+          "inspectionId": "b8242768-12fb-495a-9393-74756444f368",
+          "depositAmount": "100000.00",
+          "deductionAmount": "150000.00",
+          "refundAmount": "0",
+          "debtAmount": "50000",
+          "currency": "VND",
+          "settledAt": "2026-10-31T05:15:00.000Z",
+          "settledBy": "9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b"
+        },
+        "customer": {
+          "userId": "51363290-c197-4575-9e38-c1c90bd2fd56",
+          "name": "customer",
+          "email": "customer-51363290-c197-4575-9e38-c1c90bd2fd56@example.test",
+          "phone": "0901234567"
+        }
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "51 debt: FM verifies Unit status",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "items": [
+          {
+            "id": "34d9a88d-a702-4f22-a652-cc30129f5911",
+            "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+            "unitTypeId": "a0d1c934-4303-4464-beb5-730db8a1a8e8",
+            "code": "debt",
+            "floor": null,
+            "locationDescription": null,
+            "status": "MAINTENANCE",
+            "createdAt": "2026-10-30T07:15:14.295Z",
+            "updatedAt": "2026-10-31T05:15:00.000Z",
+            "unitTypeName": "debt",
+            "unitTypeSizeLabel": "S"
+          },
+          {
+            "id": "6d6e953c-c6b3-4c73-a533-6e23accdd4f8",
+            "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+            "unitTypeId": "d9a10a52-9560-4a89-b5b8-6174213a3e5b",
+            "code": "equal",
+            "floor": null,
+            "locationDescription": null,
+            "status": "MAINTENANCE",
+            "createdAt": "2026-10-30T07:15:14.285Z",
+            "updatedAt": "2026-10-31T05:15:00.000Z",
+            "unitTypeName": "equal",
+            "unitTypeSizeLabel": "S"
+          },
+          {
+            "id": "20640c10-44b1-4698-8c28-3d79874bc6d5",
+            "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+            "unitTypeId": "e3e3cc8c-e5c7-44c9-985d-264ef942b1b6",
+            "code": "surplus",
+            "floor": null,
+            "locationDescription": null,
+            "status": "AVAILABLE",
+            "createdAt": "2026-10-30T07:15:14.274Z",
+            "updatedAt": "2026-10-31T05:15:00.000Z",
+            "unitTypeName": "surplus",
+            "unitTypeSizeLabel": "S"
+          }
+        ],
+        "total": 3,
+        "limit": 100,
+        "offset": 0
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "52 debt: FM reads closed Rental",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "a490a37d-4cf2-4e19-8a12-63aa0588fad6",
+        "bookingId": "98f787a4-a823-4286-9c7e-697da0914d07",
+        "reservationId": null,
+        "userId": "51363290-c197-4575-9e38-c1c90bd2fd56",
+        "bookingCode": null,
+        "facilityId": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+        "status": "CLOSED",
+        "customer": {
+          "userId": "51363290-c197-4575-9e38-c1c90bd2fd56",
+          "name": "customer",
+          "email": "customer-51363290-c197-4575-9e38-c1c90bd2fd56@example.test",
+          "phone": "0901234567"
+        },
+        "unit": {
+          "id": "34d9a88d-a702-4f22-a652-cc30129f5911",
+          "code": "debt",
+          "unitTypeId": "a0d1c934-4303-4464-beb5-730db8a1a8e8",
+          "unitTypeName": "debt",
+          "sizeLabel": "S"
+        },
+        "startAt": "2026-10-29T07:15:14.298Z",
+        "endAt": "2026-12-29T07:15:14.298Z",
+        "closedAt": "2026-10-31T05:15:00.000Z",
+        "settlement": {
+          "id": "5890288a-f991-4b92-bb30-f9607c2a5448",
+          "inspectionId": "b8242768-12fb-495a-9393-74756444f368",
+          "depositAmount": "100000.00",
+          "deductionAmount": "150000.00",
+          "refundAmount": "0",
+          "debtAmount": "50000",
+          "currency": "VND",
+          "settledAt": "2026-10-31T05:15:00.000Z",
+          "settledBy": "9ee60c10-ffd7-4ab8-8e7b-2e223ba9837b"
+        }
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "53 debt: Customer reads payment history",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": [
+        {
+          "id": "b010b1f7-d4d4-4b47-abba-5dc2a8ef1653",
+          "type": "CHARGE",
+          "paymentCode": "dcf9d3c8f9d44acaa0daaecbc8960e4d",
+          "provider": "sepay",
+          "status": "SUCCEEDED",
+          "totalAmount": "300000.00",
+          "currency": "VND",
+          "paidAt": "2026-10-30T07:15:14.299Z",
+          "refundAmount": null,
+          "refundReason": null,
+          "refundedAt": null,
+          "createdAt": "2026-10-30T07:15:14.299Z"
+        }
+      ],
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "54 debt: FM reads payment history",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "items": [
+          {
+            "id": "b010b1f7-d4d4-4b47-abba-5dc2a8ef1653",
+            "type": "CHARGE",
+            "paymentCode": "dcf9d3c8f9d44acaa0daaecbc8960e4d",
+            "status": "SUCCEEDED",
+            "amount": "300000.00",
+            "currency": "VND",
+            "paidAt": "2026-10-30T07:15:14.299Z",
+            "refundAmount": null,
+            "refundReason": null,
+            "refundedAt": null,
+            "createdAt": "2026-10-30T07:15:14.299Z"
+          }
+        ],
+        "total": 1,
+        "limit": 20,
+        "offset": 0
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "55 debt: Source charge status preserved",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "paymentId": "b010b1f7-d4d4-4b47-abba-5dc2a8ef1653",
+        "type": "CHARGE",
+        "status": "SUCCEEDED",
+        "provider": "sepay",
+        "paymentCode": "dcf9d3c8f9d44acaa0daaecbc8960e4d"
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "56 debt: Staff lists Debt",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "items": [
+          {
+            "id": "42436bfa-bd11-40e8-ab65-cc63e550cb03",
+            "rentalId": "a490a37d-4cf2-4e19-8a12-63aa0588fad6",
+            "customerId": "51363290-c197-4575-9e38-c1c90bd2fd56",
+            "customerName": "customer",
+            "unitCode": "debt",
+            "originalAmount": "50000.00",
+            "paidAmount": "0.00",
+            "remainingAmount": "50000",
+            "status": "UNPAID",
+            "currency": "VND",
+            "createdAt": "2026-10-30T07:15:18.902Z"
+          }
+        ],
+        "total": 1,
+        "limit": 20,
+        "offset": 0
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "57 Customer reads own unpaid Debt",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "42436bfa-bd11-40e8-ab65-cc63e550cb03",
+        "rentalId": "a490a37d-4cf2-4e19-8a12-63aa0588fad6",
+        "customerId": "51363290-c197-4575-9e38-c1c90bd2fd56",
+        "customerName": "customer",
+        "unitCode": "debt",
+        "originalAmount": "50000.00",
+        "paidAmount": "0.00",
+        "remainingAmount": "50000",
+        "status": "UNPAID",
+        "currency": "VND",
+        "createdAt": "2026-10-30T07:15:18.902Z",
+        "payments": []
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "58 FM lists unpaid Debt",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "items": [
+          {
+            "id": "42436bfa-bd11-40e8-ab65-cc63e550cb03",
+            "rentalId": "a490a37d-4cf2-4e19-8a12-63aa0588fad6",
+            "customerId": "51363290-c197-4575-9e38-c1c90bd2fd56",
+            "customerName": "customer",
+            "unitCode": "debt",
+            "originalAmount": "50000.00",
+            "paidAmount": "0.00",
+            "remainingAmount": "50000",
+            "status": "UNPAID",
+            "currency": "VND",
+            "createdAt": "2026-10-30T07:15:18.902Z"
+          }
+        ],
+        "total": 1,
+        "limit": 20,
+        "offset": 0
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "59 Outsider cannot read Debt",
+    "code": 404,
+    "body": {
+      "success": false,
+      "error": {
+        "code": 404,
+        "message": "Không tìm thấy công nợ."
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "60 Anonymous cannot list Debt",
+    "code": 401,
+    "body": {
+      "success": false,
+      "error": {
+        "code": 401,
+        "message": "Bạn cần đăng nhập để thực hiện thao tác này"
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "61 FM cannot collect Debt",
+    "code": 403,
+    "body": {
+      "success": false,
+      "error": {
+        "code": 403,
+        "message": "Bạn không có quyền thực hiện thao tác này"
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "62 Unassigned Staff cannot collect Debt",
+    "code": 403,
+    "body": {
+      "success": false,
+      "error": {
+        "code": 403,
+        "message": "Bạn không có quyền truy cập cơ sở này"
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "63 Transfer requires reference",
+    "code": 400,
+    "body": {
+      "success": false,
+      "error": {
+        "code": 400,
+        "message": "body/reference Cần cung cấp mã giao dịch hoặc bằng chứng đã hoàn tiền.",
+        "details": [
+          {
+            "field": "reference",
+            "message": "Cần cung cấp mã giao dịch hoặc bằng chứng đã hoàn tiền."
+          }
+        ]
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "64 Staff collects partial payment",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "42436bfa-bd11-40e8-ab65-cc63e550cb03",
+        "rentalId": "a490a37d-4cf2-4e19-8a12-63aa0588fad6",
+        "customerId": "51363290-c197-4575-9e38-c1c90bd2fd56",
+        "customerName": "customer",
+        "unitCode": "debt",
+        "originalAmount": "50000.00",
+        "paidAmount": "20000.00",
+        "remainingAmount": "30000",
+        "status": "PARTIALLY_PAID",
+        "currency": "VND",
+        "createdAt": "2026-10-30T07:15:18.902Z",
+        "payments": [
+          {
+            "id": "3e1d9e6b-eb4c-4a29-9f31-7f5584c5f625",
+            "totalAmount": "20000.00",
+            "method": "CASH",
+            "reference": null,
+            "paidAt": "2026-10-31T05:15:00.000Z"
+          }
+        ]
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "65 FM filters partially paid Debt",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "items": [
+          {
+            "id": "42436bfa-bd11-40e8-ab65-cc63e550cb03",
+            "rentalId": "a490a37d-4cf2-4e19-8a12-63aa0588fad6",
+            "customerId": "51363290-c197-4575-9e38-c1c90bd2fd56",
+            "customerName": "customer",
+            "unitCode": "debt",
+            "originalAmount": "50000.00",
+            "paidAmount": "20000.00",
+            "remainingAmount": "30000",
+            "status": "PARTIALLY_PAID",
+            "currency": "VND",
+            "createdAt": "2026-10-30T07:15:18.902Z"
+          }
+        ],
+        "total": 1,
+        "limit": 20,
+        "offset": 0
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "66 Debt pagination retains total beyond last page",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "items": [],
+        "total": 1,
+        "limit": 1,
+        "offset": 1
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "67 Replay partial receipt",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "42436bfa-bd11-40e8-ab65-cc63e550cb03",
+        "rentalId": "a490a37d-4cf2-4e19-8a12-63aa0588fad6",
+        "customerId": "51363290-c197-4575-9e38-c1c90bd2fd56",
+        "customerName": "customer",
+        "unitCode": "debt",
+        "originalAmount": "50000.00",
+        "paidAmount": "20000.00",
+        "remainingAmount": "30000",
+        "status": "PARTIALLY_PAID",
+        "currency": "VND",
+        "createdAt": "2026-10-30T07:15:18.902Z",
+        "payments": [
+          {
+            "id": "3e1d9e6b-eb4c-4a29-9f31-7f5584c5f625",
+            "totalAmount": "20000.00",
+            "method": "CASH",
+            "reference": null,
+            "paidAt": "2026-10-31T05:15:00.000Z"
+          }
+        ]
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "68 Reject conflicting receipt key",
+    "code": 409,
+    "body": {
+      "success": false,
+      "error": {
+        "code": 409,
+        "message": "Thông tin khoản thu không khớp với giao dịch đã ghi nhận."
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "69 Reject overpayment",
+    "code": 409,
+    "body": {
+      "success": false,
+      "error": {
+        "code": 409,
+        "message": "Số tiền thu vượt quá công nợ còn lại."
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "70 Staff collects final transfer",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "id": "42436bfa-bd11-40e8-ab65-cc63e550cb03",
+        "rentalId": "a490a37d-4cf2-4e19-8a12-63aa0588fad6",
+        "customerId": "51363290-c197-4575-9e38-c1c90bd2fd56",
+        "customerName": "customer",
+        "unitCode": "debt",
+        "originalAmount": "50000.00",
+        "paidAmount": "50000.00",
+        "remainingAmount": "0",
+        "status": "PAID",
+        "currency": "VND",
+        "createdAt": "2026-10-30T07:15:18.902Z",
+        "payments": [
+          {
+            "id": "2b41e188-4793-404e-916b-38ee2bd0b2c5",
+            "totalAmount": "30000.00",
+            "method": "BANK_TRANSFER",
+            "reference": "POSTMAN-DEBT-FINAL",
+            "paidAt": "2026-10-31T05:15:00.000Z"
+          },
+          {
+            "id": "3e1d9e6b-eb4c-4a29-9f31-7f5584c5f625",
+            "totalAmount": "20000.00",
+            "method": "CASH",
+            "reference": null,
+            "paidAt": "2026-10-31T05:15:00.000Z"
+          }
+        ]
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "71 Customer reads debt receipt status",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "paymentId": "3e1d9e6b-eb4c-4a29-9f31-7f5584c5f625",
+        "type": "DEBT_COLLECTION",
+        "status": "SUCCEEDED",
+        "provider": null,
+        "paymentCode": null
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "72 Customer payment history includes both receipts",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": [
+        {
+          "id": "b010b1f7-d4d4-4b47-abba-5dc2a8ef1653",
+          "type": "CHARGE",
+          "paymentCode": "dcf9d3c8f9d44acaa0daaecbc8960e4d",
+          "provider": "sepay",
+          "status": "SUCCEEDED",
+          "totalAmount": "300000.00",
+          "currency": "VND",
+          "paidAt": "2026-10-30T07:15:14.299Z",
+          "refundAmount": null,
+          "refundReason": null,
+          "refundedAt": null,
+          "createdAt": "2026-10-30T07:15:14.299Z"
+        },
+        {
+          "id": "3e1d9e6b-eb4c-4a29-9f31-7f5584c5f625",
+          "type": "DEBT_COLLECTION",
+          "paymentCode": null,
+          "provider": null,
+          "status": "SUCCEEDED",
+          "totalAmount": "20000.00",
+          "currency": "VND",
+          "paidAt": "2026-10-31T05:15:00.000Z",
+          "refundAmount": null,
+          "refundReason": null,
+          "refundedAt": null,
+          "createdAt": "2026-10-30T07:15:19.225Z"
+        },
+        {
+          "id": "2b41e188-4793-404e-916b-38ee2bd0b2c5",
+          "type": "DEBT_COLLECTION",
+          "paymentCode": null,
+          "provider": null,
+          "status": "SUCCEEDED",
+          "totalAmount": "30000.00",
+          "currency": "VND",
+          "paidAt": "2026-10-31T05:15:00.000Z",
+          "refundAmount": null,
+          "refundReason": null,
+          "refundedAt": null,
+          "createdAt": "2026-10-30T07:15:19.336Z"
+        }
+      ],
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "73 FM revenue includes debt cash",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "period": {
+          "from": "2026-10-30",
+          "to": "2026-10-31",
+          "timeZone": "Asia/Ho_Chi_Minh"
+        },
+        "asOf": "2026-10-31T05:15:00.000Z",
+        "currency": "VND",
+        "summary": {
+          "cashReceived": "350000.00",
+          "rentalCollected": "200000.00",
+          "depositCollected": "100000.00",
+          "cashRefunded": "0.00",
+          "netCash": "350000.00",
+          "depositHeld": "0.00",
+          "depositForfeited": "100000.00",
+          "pendingRefundAmount": "0.00",
+          "pendingRefundCount": 0,
+          "paymentsReceivedCount": 3,
+          "unclassifiedCollectedPayments": 0,
+          "unclassifiedDepositPayments": 0,
+          "unsupportedCurrencyPayments": 0
+        },
+        "items": [
+          {
+            "facility": {
+              "id": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+              "code": "POSTMAN",
+              "name": "Postman",
+              "isActive": true
+            },
+            "metrics": {
+              "cashReceived": "350000.00",
+              "rentalCollected": "200000.00",
+              "depositCollected": "100000.00",
+              "cashRefunded": "0.00",
+              "netCash": "350000.00",
+              "depositHeld": "0.00",
+              "depositForfeited": "100000.00",
+              "pendingRefundAmount": "0.00",
+              "pendingRefundCount": 0,
+              "paymentsReceivedCount": 3,
+              "unclassifiedCollectedPayments": 0,
+              "unclassifiedDepositPayments": 0,
+              "unsupportedCurrencyPayments": 0
+            }
+          }
+        ],
+        "unattributed": null,
+        "total": 1,
+        "limit": 20,
+        "offset": 0
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "74 FM monthly revenue",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "period": {
+          "from": "2026-10-30",
+          "to": "2026-10-31",
+          "timeZone": "Asia/Ho_Chi_Minh"
+        },
+        "asOf": "2026-10-31T05:15:00.000Z",
+        "currency": "VND",
+        "items": [
+          {
+            "month": "2026-10",
+            "cashReceived": "350000.00",
+            "cashRefunded": "0.00",
+            "rentalCollected": "200000.00",
+            "depositCollected": "100000.00",
+            "netCash": "350000.00",
+            "unsupportedCurrencyPayments": 0
+          }
+        ]
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "75 FM overview",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "period": {
+          "from": "2026-10-30",
+          "to": "2026-10-31",
+          "timeZone": "Asia/Ho_Chi_Minh"
+        },
+        "asOf": "2026-10-31T05:15:00.000Z",
+        "currency": "VND",
+        "summary": {
+          "financial": {
+            "cashReceived": "350000.00",
+            "rentalCollected": "200000.00",
+            "depositCollected": "100000.00",
+            "cashRefunded": "0.00",
+            "netCash": "350000.00",
+            "depositHeld": "0.00",
+            "depositForfeited": "100000.00",
+            "pendingRefundAmount": "0.00",
+            "pendingRefundCount": 0,
+            "paymentsReceivedCount": 3,
+            "unclassifiedCollectedPayments": 0,
+            "unclassifiedDepositPayments": 0,
+            "unsupportedCurrencyPayments": 0
+          },
+          "inventory": {
+            "totalUnits": 1,
+            "inactiveUnits": 0,
+            "activeUnits": 1,
+            "occupiedUnits": 0,
+            "availableUnits": 0,
+            "maintenanceUnits": 1,
+            "reservedUnits": 0,
+            "inspectionUnits": 0,
+            "returnPendingUnits": 0,
+            "lockedUnits": 0,
+            "utilizationPercent": 0,
+            "activeCheckoutHolds": 0,
+            "confirmedAwaitingHandover": 0
+          }
+        },
+        "attention": {
+          "refunds": {
+            "count": 0,
+            "amount": "0.00",
+            "canManage": false,
+            "endpoint": null,
+            "description": "Xem các khoản chờ hoàn và xử lý theo quy trình hoàn tiền thủ công."
+          },
+          "vacantCapacity": {
+            "count": 0,
+            "description": "Kiểm tra cơ sở có nhiều ô AVAILABLE để lên kế hoạch khai thác; sức chứa đặt kho vẫn phải kiểm tra theo kỳ."
+          },
+          "maintenance": {
+            "count": 1,
+            "description": "Rà các ô bảo trì để khôi phục khả năng khai thác."
+          },
+          "dataQuality": {
+            "endpoint": "/api/reports/reconciliation",
+            "hasIssues": false,
+            "unclassifiedCollectedPayments": 0,
+            "unclassifiedDepositPayments": 0,
+            "unsupportedCurrencyPayments": 0,
+            "description": "Đối chiếu giao dịch chưa đủ dữ liệu phân loại trước khi sử dụng số liệu tài chính."
+          }
+        },
+        "facilities": [
+          {
+            "facility": {
+              "id": "8cc667c5-9141-4db0-b95d-5840ed1d8f5e",
+              "code": "POSTMAN",
+              "name": "Postman",
+              "isActive": true
+            },
+            "financial": {
+              "cashReceived": "350000.00",
+              "rentalCollected": "200000.00",
+              "depositCollected": "100000.00",
+              "cashRefunded": "0.00",
+              "netCash": "350000.00",
+              "depositHeld": "0.00",
+              "depositForfeited": "100000.00",
+              "pendingRefundAmount": "0.00",
+              "pendingRefundCount": 0,
+              "paymentsReceivedCount": 3,
+              "unclassifiedCollectedPayments": 0,
+              "unclassifiedDepositPayments": 0,
+              "unsupportedCurrencyPayments": 0
+            },
+            "inventory": {
+              "totalUnits": 1,
+              "inactiveUnits": 0,
+              "activeUnits": 1,
+              "occupiedUnits": 0,
+              "availableUnits": 0,
+              "maintenanceUnits": 1,
+              "reservedUnits": 0,
+              "inspectionUnits": 0,
+              "returnPendingUnits": 0,
+              "lockedUnits": 0,
+              "utilizationPercent": 0,
+              "activeCheckoutHolds": 0,
+              "confirmedAwaitingHandover": 0
+            }
+          }
+        ],
+        "total": 1,
+        "limit": 20,
+        "offset": 0
+      },
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  },
+  {
+    "name": "76 BOM pending refund queue excludes completed refund",
+    "code": 200,
+    "body": {
+      "success": true,
+      "data": [],
+      "timestamp": "2026-10-31T05:15:00.000Z"
+    }
+  }
+]
