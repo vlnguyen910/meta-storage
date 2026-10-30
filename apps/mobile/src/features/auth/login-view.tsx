@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, Text, TextInput, View } from "react-nativ
 import { AUTH_MESSAGES } from "./auth.messages";
 import type { AuthViewProps } from "./auth-screen.types";
 
-export function LoginView({ auth }: AuthViewProps) {
+export function LoginView({ auth, onBrowse }: AuthViewProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isTroubleshootOpen, setIsTroubleshootOpen] = useState(false);
 
@@ -161,18 +161,16 @@ export function LoginView({ auth }: AuthViewProps) {
       </View>
 
       {/* Continue as Guest Link */}
-      <View className="mt-5 items-center">
-        <Pressable
-          className="flex-row items-center gap-1.5 py-1"
-          onPress={() => {
-            // Fill guest / demo or trigger guest browse
-            auth.fillDemo("customer@metastorage.test", "12345678");
-          }}
-        >
-          <Text className="text-xs font-bold text-[#125345]">{AUTH_MESSAGES.continueAsGuest}</Text>
-          <Text className="text-xs font-bold text-[#125345]">›</Text>
-        </Pressable>
-      </View>
+      {onBrowse && (
+        <View className="mt-5 items-center">
+          <Pressable className="flex-row items-center gap-1.5 py-1" onPress={onBrowse}>
+            <Text className="text-xs font-bold text-[#125345]">
+              {AUTH_MESSAGES.continueAsGuest}
+            </Text>
+            <Text className="text-xs font-bold text-[#125345]">›</Text>
+          </Pressable>
+        </View>
+      )}
 
       <View className="my-5 border-t border-slate-200/80" />
 

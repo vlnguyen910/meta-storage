@@ -80,7 +80,7 @@ export const FacilityStaffMemberSchema = z.object({
 
 export type FacilityStaffMember = z.infer<typeof FacilityStaffMemberSchema>;
 
-export type { FacilityListParams } from "./facilities.types";
+export type { FacilityListParams, FacilityOperatingHours } from "./facilities.types";
 
 export const facilityIdParamSchema = z.object({
   id: z.string().uuid(),

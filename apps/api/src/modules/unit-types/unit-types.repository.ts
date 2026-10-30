@@ -1,5 +1,4 @@
 import type { CreateUnitTypeInput, UpdateUnitTypeInput } from "@metastorage/contracts";
-import { PRICING_MESSAGES as P } from "@metastorage/contracts";
 import {
   and,
   bookings,
@@ -11,8 +10,6 @@ import {
   isNull,
   ne,
   or,
-  rentalPriceRanges,
-  reservationDrafts,
   type UnitType,
   unitTypes,
   users,
@@ -65,15 +62,6 @@ export class UnitTypesRepository {
     return this.db.transaction(async (tx) => {
       const revision = await lockPricingRevision(tx);
       await this.manager(tx, input.facilityId, actor);
-      const [range] = await tx
-        .select()
-        .from(rentalPriceRanges)
-        .where(eq(rentalPriceRanges.id, input.priceRangeId))
-        .for("update");
-      if (!range?.isActive || range.minMonthlyPrice === null || range.maxMonthlyPrice === null)
-        throw new ConflictError(P.rangeUnavailable);
-      if (input.monthlyPrice < range.minMonthlyPrice || input.monthlyPrice > range.maxMonthlyPrice)
-        throw new ConflictError(P.priceOutsideRange);
       const [created] = await tx
         .insert(unitTypes)
         .values({ ...input, updatedBy: actor })
@@ -85,13 +73,13 @@ export class UnitTypesRepository {
         before: {
           facilityId: created.facilityId,
           unitTypeId: created.id,
-          priceRangeId: created.priceRangeId,
+
           monthlyPrice: null,
         },
         after: {
           facilityId: created.facilityId,
           unitTypeId: created.id,
-          priceRangeId: created.priceRangeId,
+
           monthlyPrice: created.monthlyPrice,
         },
       });
@@ -130,19 +118,9 @@ export class UnitTypesRepository {
     return this.db.transaction(async (tx) => {
       const revision = await lockPricingRevision(tx);
       await this.manager(tx, initial.facilityId, actor);
-      const [range] = await tx
-        .select()
-        .from(rentalPriceRanges)
-        .where(eq(rentalPriceRanges.id, input.priceRangeId ?? initial.priceRangeId))
-        .for("update");
-      if (!range) throw new NotFoundError(P.rangeNotFound);
       const [before] = await tx.select().from(unitTypes).where(eq(unitTypes.id, id)).for("update");
       if (!before) throw new NotFoundError(M.unitTypeNotFound);
-      if (
-        before.version !== input.expectedVersion ||
-        (!input.priceRangeId && before.priceRangeId !== range.id)
-      )
-        throw new ConflictError(M.stale);
+      if (before.version !== input.expectedVersion) throw new ConflictError(M.stale);
       if (input.code && input.code !== before.code) {
         const [duplicate] = await tx
           .select({ id: unitTypes.id })
@@ -167,23 +145,7 @@ export class UnitTypesRepository {
           .from(bookings)
           .where(eq(bookings.unitTypeId, id))
           .limit(1);
-        const [draft] = await tx
-          .select({ id: reservationDrafts.id })
-          .from(reservationDrafts)
-          .where(eq(reservationDrafts.unitTypeId, id))
-          .limit(1);
-        if (booking || draft) throw new ConflictError(M.dimensionsInUse);
-      }
-      const price = input.monthlyPrice ?? before.monthlyPrice;
-      if (
-        input.monthlyPrice !== undefined ||
-        input.priceRangeId !== undefined ||
-        input.isActive === true
-      ) {
-        if (!range.isActive || range.minMonthlyPrice === null || range.maxMonthlyPrice === null)
-          throw new ConflictError(P.rangeUnavailable);
-        if (price < range.minMonthlyPrice || price > range.maxMonthlyPrice)
-          throw new ConflictError(P.priceOutsideRange);
+        if (booking) throw new ConflictError(M.dimensionsInUse);
       }
       const { expectedVersion: _version, ...values } = input;
       const [updated] = await tx
@@ -192,22 +154,19 @@ export class UnitTypesRepository {
         .where(eq(unitTypes.id, id))
         .returning();
       if (!updated) throw new NotFoundError(M.unitTypeNotFound);
-      if (
-        before.monthlyPrice !== updated.monthlyPrice ||
-        before.priceRangeId !== updated.priceRangeId
-      )
+      if (before.monthlyPrice !== updated.monthlyPrice)
         await recordPricingChange(tx, revision, actor, {
           operation: "UNIT_TYPE_PRICE",
           before: {
             facilityId: before.facilityId,
             unitTypeId: id,
-            priceRangeId: before.priceRangeId,
+
             monthlyPrice: before.monthlyPrice,
           },
           after: {
             facilityId: updated.facilityId,
             unitTypeId: id,
-            priceRangeId: updated.priceRangeId,
+
             monthlyPrice: updated.monthlyPrice,
           },
         });

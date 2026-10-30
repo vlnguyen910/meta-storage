@@ -3,7 +3,29 @@ import { RENTAL_CONTRACT_MESSAGES } from "./rentals.messages";
 
 export type * from "./rentals.types";
 
+export const RENTAL_STATUSES = ["ACTIVE", "CLOSED"] as const;
+export const RentalStatusSchema = z.enum(RENTAL_STATUSES);
+export type RentalStatus = z.infer<typeof RentalStatusSchema>;
+
 export const RentalIdParamsSchema = z.object({ rentalId: z.string().uuid() });
+export const CreateRentalRenewalSchema = z.strictObject({
+  months: z.number().int().min(1).max(12),
+  idempotencyKey: z.string().min(16).max(128),
+});
+export const RentalRenewalPaymentInputSchema = z.strictObject({
+  idempotencyKey: z.string().min(16).max(128),
+});
+export const RentalRenewalIdParamsSchema = z.strictObject({
+  rentalId: z.uuid(),
+  renewalId: z.uuid(),
+});
+export const RentalRenewalPageQuerySchema = z.strictObject({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().nonnegative().default(0),
+});
+export type CreateRentalRenewal = z.infer<typeof CreateRentalRenewalSchema>;
+export type RentalRenewalPaymentInput = z.infer<typeof RentalRenewalPaymentInputSchema>;
+export type RentalRenewalPageQuery = z.infer<typeof RentalRenewalPageQuerySchema>;
 
 export const FacilityRentalParamsSchema = z.object({ facilityId: z.uuid(), rentalId: z.uuid() });
 export const FacilityRentalListParamsSchema = z.object({ facilityId: z.uuid() });
@@ -12,7 +34,8 @@ export const FacilityRentalHistoryQuerySchema = z.strictObject({
   offset: z.coerce.number().int().nonnegative().default(0),
 });
 export const FacilityRentalListQuerySchema = FacilityRentalHistoryQuerySchema.extend({
-  status: z.enum(["ACTIVE", "RETURN_PENDING", "OVERDUE", "CLOSED"]).optional(),
+  status: RentalStatusSchema.optional(),
+  search: z.string().trim().max(200).optional(),
   unitTypeId: z.uuid().optional(),
 });
 export type FacilityRentalListQuery = z.infer<typeof FacilityRentalListQuerySchema>;
@@ -34,10 +57,6 @@ export const RentalPageQuerySchema = z
 
 export type RentalPageQuery = z.infer<typeof RentalPageQuerySchema>;
 
-export const RentalStatusSchema = z.string().min(1);
-
-export type RentalStatus = z.infer<typeof RentalStatusSchema>;
-
 export const RentalActionStateSchema = z.object({
   canCancel: z.literal(false),
   canReschedule: z.literal(false),
@@ -48,7 +67,9 @@ export type RentalActionState = z.infer<typeof RentalActionStateSchema>;
 
 export const RentalListItemSchema = z.object({
   id: z.string().uuid(),
-  bookingId: z.string().uuid(),
+  bookingId: z.string().uuid().nullable(),
+  reservationId: z.string().uuid().nullable().optional(),
+  userId: z.string().uuid(),
   bookingCode: z.string(),
   facility: z.object({
     id: z.string().uuid(),
@@ -60,9 +81,10 @@ export const RentalListItemSchema = z.object({
     name: z.string(),
     sizeLabel: z.string(),
   }),
-  physicalUnit: z.object({ id: z.string().uuid(), code: z.string() }).nullable(),
+  storageUnit: z.object({ id: z.string().uuid(), code: z.string() }).nullable(),
   startAt: z.string().datetime(),
-  expectedEndAt: z.string().datetime(),
+  endAt: z.string().datetime(),
+  closedAt: z.string().datetime().nullable(),
   status: RentalStatusSchema,
   bookingStatus: z.string(),
   actions: RentalActionStateSchema,
@@ -71,18 +93,18 @@ export const RentalListItemSchema = z.object({
 export type RentalListItem = z.infer<typeof RentalListItemSchema>;
 
 export const RentalDetailSchema = RentalListItemSchema.extend({
-  actualReturnAt: z.string().datetime().nullable(),
-  closedAt: z.string().datetime().nullable(),
-  depositAmount: z.string(),
-  checkInSlotStart: z.string().datetime(),
-  checkInSlotEnd: z.string().datetime().nullable(),
-  timeline: z.array(
-    z.object({
-      label: z.string(),
-      status: z.enum(["DONE", "CURRENT", "UPCOMING"]),
-      at: z.string().datetime().nullable(),
-    }),
-  ),
+  renewalWindow: z
+    .object({
+      cutoffAt: z.string().datetime().nullable(),
+      canRequest: z.boolean(),
+      reason: z.string().nullable(),
+    })
+    .optional(),
+  customer: z.object({
+    userId: z.string().uuid(),
+    name: z.string().nullable(),
+    email: z.string(),
+    phone: z.string().nullable(),
+  }),
 });
-
 export type RentalDetail = z.infer<typeof RentalDetailSchema>;

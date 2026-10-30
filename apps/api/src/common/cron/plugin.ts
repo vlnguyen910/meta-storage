@@ -1,10 +1,7 @@
 import type { FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
-import { BookingsRepository } from "../../modules/bookings/bookings.repository";
 import { createPaymentsService } from "../../modules/payments/payments.service";
-import { RentalLifecycleRepository } from "../../modules/rentals/rental-lifecycle.repository";
-import { RentalLifecycleService } from "../../modules/rentals/rental-lifecycle.service";
-import { ReturnsRepository } from "../../modules/returns/returns.repository";
+import { createReservationsService } from "../../modules/reservations/reservations.service";
 import type { CronOptions } from "./cron.types";
 import { expireCapacityHolds } from "./expire-capacity-holds";
 
@@ -17,12 +14,7 @@ const cronPluginAsync: FastifyPluginAsync<CronOptions> = async (fastify, options
   const sweep = () => {
     if (running) return running;
     running = Promise.allSettled([
-      new RentalLifecycleService(
-        new RentalLifecycleRepository(fastify.db),
-        new ReturnsRepository(fastify.db),
-      )
-        .sweep(new Date(), options.facilityId)
-        .then(() => undefined),
+      createReservationsService(fastify.db).sweepNoShows(new Date(), options.facilityId),
       createPaymentsService(fastify)
         .reconcilePendingPayments(options.facilityId)
         .then(({ failed }) => {
@@ -35,23 +27,21 @@ const cronPluginAsync: FastifyPluginAsync<CronOptions> = async (fastify, options
           if (skipped) fastify.log.debug("Capacity hold expiry skipped: another sweep is running");
         },
       ),
-      new BookingsRepository(fastify.db)
-        .sweepNoShows(new Date(), options.facilityId)
-        .then(({ processed }) => {
-          if (processed > 0) fastify.log.info({ processed }, "Processed booking no-shows");
-        }),
     ])
       .then((results) => {
         for (const result of results) {
           if (result.status === "rejected")
             fastify.log.error(
               { err: result.reason },
-              "Booking lifecycle sweep failed; retrying on the next interval",
+              "Reservation lifecycle sweep failed; retrying on the next interval",
             );
         }
       })
       .catch((err: unknown) => {
-        fastify.log.error({ err }, "Booking lifecycle sweep failed; retrying on the next interval");
+        fastify.log.error(
+          { err },
+          "Reservation lifecycle sweep failed; retrying on the next interval",
+        );
       })
       .finally(() => {
         running = undefined;

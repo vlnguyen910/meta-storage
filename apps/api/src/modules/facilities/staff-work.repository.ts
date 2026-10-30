@@ -1,13 +1,13 @@
+import { FacilityTaskStatus } from "@metastorage/contracts/facility-tasks";
 import {
   and,
-  bookings,
+  appointments,
   type Database,
   eq,
   facilityTasks,
   inArray,
-  returnRequests,
-  supportTickets,
 } from "@metastorage/database";
+import { APPOINTMENT_STATUSES } from "@metastorage/database/schema/appointments";
 
 type WorkConnection = Database | Parameters<Parameters<Database["transaction"]>[0]>[0];
 
@@ -17,13 +17,16 @@ export async function hasOpenAssignedWork(
   facilityId?: string,
 ): Promise<boolean> {
   const rows = await connection
-    .select({ id: bookings.id })
-    .from(bookings)
+    .select({ id: appointments.id })
+    .from(appointments)
     .where(
       and(
-        eq(bookings.assignedStaffId, userId),
-        eq(bookings.status, "CONFIRMED"),
-        facilityId ? eq(bookings.facilityId, facilityId) : undefined,
+        eq(appointments.assignedStaffId, userId),
+        inArray(appointments.status, [
+          APPOINTMENT_STATUSES.SCHEDULED,
+          APPOINTMENT_STATUSES.CONFIRMED,
+        ]),
+        facilityId ? eq(appointments.facilityId, facilityId) : undefined,
       ),
     )
     .unionAll(
@@ -33,32 +36,11 @@ export async function hasOpenAssignedWork(
         .where(
           and(
             eq(facilityTasks.assignedStaffId, userId),
-            inArray(facilityTasks.status, ["ASSIGNED", "IN_PROGRESS", "AWAITING_APPROVAL"]),
+            inArray(facilityTasks.status, [
+              FacilityTaskStatus.ASSIGNED,
+              FacilityTaskStatus.IN_PROGRESS,
+            ]),
             facilityId ? eq(facilityTasks.facilityId, facilityId) : undefined,
-          ),
-        ),
-    )
-    .unionAll(
-      connection
-        .select({ id: supportTickets.id })
-        .from(supportTickets)
-        .where(
-          and(
-            eq(supportTickets.assignedStaffId, userId),
-            inArray(supportTickets.status, ["OPEN", "IN_PROGRESS"]),
-            facilityId ? eq(supportTickets.facilityId, facilityId) : undefined,
-          ),
-        ),
-    )
-    .unionAll(
-      connection
-        .select({ id: returnRequests.id })
-        .from(returnRequests)
-        .where(
-          and(
-            eq(returnRequests.assignedStaffId, userId),
-            inArray(returnRequests.status, ["PENDING", "CONFIRMED", "INSPECTING", "FAILED"]),
-            facilityId ? eq(returnRequests.facilityId, facilityId) : undefined,
           ),
         ),
     )

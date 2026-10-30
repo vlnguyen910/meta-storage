@@ -1,6 +1,7 @@
 import type { LifecycleNotificationEvent } from "@metastorage/contracts";
 
 export const LIFECYCLE_NOTIFICATION_SUBJECTS: Record<LifecycleNotificationEvent, string> = {
+  SUPPORT_UPDATED: "STOREX — Cập nhật phiếu hỗ trợ",
   SUPPORT_CREATED: "STOREX — Đã tiếp nhận phiếu hỗ trợ",
   PAYMENT_CONFIRMED: "STOREX — Thanh toán đã được xác nhận",
   BOOKING_CONFIRMED: "STOREX — Booking đã được xác nhận",
@@ -18,18 +19,3 @@ export const lifecycleNotificationBody = (subject: string, bookingCode: string, 
   `${subject}\nBooking: ${bookingCode}${detail ? `\n${detail}` : ""}`;
 
 export const lifecycleExpiryDetail = (date: string) => `Ngày hết hạn: ${date}`;
-export function lifecycleReturnDetail(details: Record<string, unknown>): string {
-  const labels = {
-    startsAt: "Lịch hẹn",
-    status: "Kết quả",
-    overdueFeeAmount: "Phí quá hạn (VND)",
-    refundEntitlement: "Tổng được hoàn (VND)",
-    debtAmount: "Nợ còn lại (VND)",
-    amount: "Số tiền (VND)",
-    proposedAt: "Thời điểm trả kho đề xuất",
-    actualReturnAt: "Thời điểm trả kho",
-  } as const;
-  return Object.entries(labels)
-    .flatMap(([key, label]) => (details[key] === undefined ? [] : [`${label}: ${details[key]}`]))
-    .join("\n");
-}

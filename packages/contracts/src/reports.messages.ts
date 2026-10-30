@@ -7,21 +7,17 @@ export const REPORT_MESSAGES = {
     "cashReceivedVnd",
     "rentalCollectedVnd",
     "depositCollectedVnd",
-    "renewalCollectedVnd",
-    "extraChargeCollectedVnd",
-    "returnDebtCollectedVnd",
     "cashRefundedVnd",
-    "chargeRefundedVnd",
     "netCashVnd",
     "unsupportedCurrencyPayments",
   ],
   monthlyRange:
     "Monthly reports support at most 60 calendar months per request. Narrow the date range.",
   monthlyDescription:
-    "Monthly VND cash receipts and refunds are grouped by provider paidAt/confirmed refund time in Asia/Ho_Chi_Minh. Initial rent and deposit use booking snapshots; renewals, extra charges, return debt, and their refunds remain separate. Months without activity are included; at most 60 calendar months per request.",
+    "Monthly booking receipts and booking refunds are grouped by payment/refund time in Asia/Ho_Chi_Minh; at most 60 calendar months per request.",
   overviewSummary: "Tổng quan tiền, năng lực khai thác và công việc cần chú ý",
   revenueDescription:
-    "Thu theo paidAt và hoàn theo thời điểm xác nhận, múi giờ Việt Nam. Tiền thuê ban đầu, cọc, gia hạn, phí phát sinh, công nợ trả kho và charge-refund được tách riêng. from/to bao gồm cả hai ngày; mặc định từ đầu tháng đến hôm nay. Cọc đang giữ/mất và khoản chờ hoàn là hiện trạng tại asOf. Dòng tiền ròng không phải lợi nhuận.",
+    "Báo cáo thu và hoàn tiền booking theo múi giờ Việt Nam. Giá thuê và tiền cọc lấy từ dữ liệu đã chốt của booking. Dòng tiền ròng không phải lợi nhuận.",
   utilizationDescription:
     "Hiện trạng: OCCUPIED / tổng ô chưa INACTIVE. Bảo trì vẫn thuộc mẫu số; hold/booking chờ bàn giao được đếm riêng, không cộng vào OCCUPIED. Cơ sở không có mẫu số trả null. Không hỗ trợ hồi dựng utilization quá khứ.",
   reconciliationDescription:
@@ -34,8 +30,6 @@ export const REPORT_MESSAGES = {
   invalidExportFilter: "Bộ lọc không áp dụng cho loại báo cáo này.",
   returnRefundAction: "FM của cơ sở xử lý khoản hoàn trả kho qua yêu cầu trả kho tương ứng.",
   refundAction: "Xem các khoản chờ hoàn và xử lý theo quy trình hoàn tiền thủ công.",
-  chargeRefundAction:
-    "Xác nhận các khoản hoàn từ phí phát sinh hoặc công nợ theo chứng từ chuyển tiền.",
   vacantAction:
     "Kiểm tra cơ sở có nhiều ô AVAILABLE để lên kế hoạch khai thác; sức chứa đặt kho vẫn phải kiểm tra theo kỳ.",
   maintenanceAction: "Rà các ô bảo trì để khôi phục khả năng khai thác.",
@@ -51,18 +45,12 @@ export const REPORT_MESSAGES = {
     "Tiền thực thu VND",
     "Tiền thuê đã thu VND",
     "Cọc đã thu VND",
-    "Tiền gia hạn đã thu VND",
-    "Phí phát sinh đã thu VND",
-    "Công nợ trả kho đã thu VND",
     "Tiền đã hoàn VND",
-    "Hoàn phí khoản phải thu VND",
     "Dòng tiền ròng VND",
     "Cọc đang giữ VND",
     "Cọc mất VND",
     "Chờ hoàn VND",
     "Số khoản chờ hoàn",
-    "Charge chờ hoàn VND",
-    "Số charge chờ hoàn",
     "Giao dịch thu chưa phân loại",
     "Cọc chưa phân loại",
     "Giao dịch ngoại tệ",

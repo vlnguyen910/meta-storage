@@ -1,6 +1,6 @@
 "use client";
 
-import { UserRole } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { Button } from "@/components/ui/button";
 import { FieldShell, Input, Select } from "@/components/ui/form-controls";
 import { ADMIN_ROLE_LABELS, ADMIN_MESSAGES as M } from "./admin.messages";

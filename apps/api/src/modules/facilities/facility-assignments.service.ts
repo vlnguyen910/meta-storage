@@ -1,10 +1,13 @@
-import type { FacilityStaffMember } from "@metastorage/contracts";
+import type { FacilityAssignmentRole, FacilityStaffMember } from "@metastorage/contracts";
 import type { FacilityAssignment, Role } from "@metastorage/database";
 import { ConflictError, ForbiddenError, NotFoundError } from "../../common/errors/app-error";
-import type { FacilityScope } from "./facilities.access";
+import { type FacilityScope, requireAssignedFacility } from "./facilities.access";
 import { FACILITY_MESSAGES } from "./facilities.messages";
 import type { FacilitiesRepository } from "./facilities.repository";
-import type { FacilityAssignmentsRepository } from "./facility-assignments.repository";
+import type {
+  FacilityAssignmentsRepository,
+  FacilityAssignmentTransaction,
+} from "./facility-assignments.repository";
 
 export class FacilityAssignmentsService {
   constructor(
@@ -12,8 +15,35 @@ export class FacilityAssignmentsService {
     private readonly facilitiesRepository: FacilitiesRepository,
   ) {}
 
+  async requireActiveAssignments(
+    tx: FacilityAssignmentTransaction,
+    facilityId: string,
+    expected: readonly { userId: string; role: FacilityAssignmentRole }[],
+  ) {
+    const active = await this.assignmentsRepository.lockActiveAssignments(tx, facilityId, expected);
+    if (expected.some(({ userId }) => !active.has(userId)))
+      throw new ForbiddenError(FACILITY_MESSAGES.facilityAccessDenied);
+  }
+
   async getFacilityStaff(facilityId: string): Promise<FacilityStaffMember[]> {
     return this.assignmentsRepository.findFacilityStaff(facilityId);
+  }
+
+  async requireFacilityAccess(
+    facilityId: string,
+    scope: FacilityScope,
+    allowedRoles?: readonly FacilityAssignmentRole[],
+  ): Promise<FacilityScope> {
+    return requireAssignedFacility(this.assignmentsRepository, facilityId, scope, allowedRoles);
+  }
+
+  async getActiveFacilityId(userId: string, role: FacilityAssignmentRole): Promise<string> {
+    const [assignment] = await this.assignmentsRepository.listUserAssignmentsWithFacilities(
+      userId,
+      role,
+    );
+    if (!assignment) throw new ForbiddenError(FACILITY_MESSAGES.facilityAccessDenied);
+    return assignment.assignment.facilityId;
   }
 
   async revokeAssignment(facilityId: string, userId: string): Promise<FacilityAssignment> {

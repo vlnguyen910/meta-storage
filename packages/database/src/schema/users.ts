@@ -1,4 +1,3 @@
-import { UserRole, UserStatus } from "@metastorage/contracts/users";
 import { sql } from "drizzle-orm";
 import {
   boolean,
@@ -10,9 +9,9 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import { UserRole, UserStatus } from "./user-enums";
 
-export { ROLES, USER_STATUS, type UserStatus } from "@metastorage/contracts/users";
-export type Role = UserRole;
+export { ROLES, type Role, USER_STATUS, UserRole, UserStatus } from "./user-enums";
 export const roleEnum = pgEnum("role", UserRole);
 export const statusEnum = pgEnum("status", UserStatus);
 
@@ -25,7 +24,6 @@ export const users = pgTable(
     emailVerified: boolean().default(false).notNull(),
     image: text(),
     phone: varchar({ length: 20 }).unique(),
-    passwordHash: varchar({ length: 255 }),
     role: roleEnum(),
     status: statusEnum(),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),

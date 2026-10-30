@@ -3,9 +3,7 @@ import type {
   ApiFacilityAssignment,
   ApiUnitType,
   FacilityTaskDetail,
-  FacilityTaskReportDetail,
   StorageUnitListItem,
-  StorageUnitMaintenanceHistoryItem,
 } from "@metastorage/contracts";
 import type { Page } from "@playwright/test";
 
@@ -67,20 +65,16 @@ export function flow5Fixture() {
       {
         id: f5id(7),
         facilityId: f5facility,
-        type: "INSPECT_UNIT",
+        type: "UNIT_INSPECTION",
         status: "ASSIGNED",
-        title: "Kiểm tra kho được giao",
+        referenceType: "STORAGE_UNIT",
+        referenceId: f5id(6),
         description: "Kiểm tra tình trạng cửa kho",
-        storageUnitId: f5id(6),
-        bookingId: null,
         assignedStaffId: f5staff,
         assignedStaffName: "Nhân viên một",
-        createdBy: f5manager,
         assignedBy: f5manager,
         assignerName: "Quản lý kiểm thử",
-        version: 0,
         startedAt: null,
-        completedBy: null,
         completedAt: null,
         assignedAt: f5now,
         createdAt: f5now,
@@ -100,8 +94,17 @@ export function flow5Fixture() {
         userEmail: "staff1@example.test",
       },
     ] as ApiFacilityAssignment[],
-    reports: [] as FacilityTaskReportDetail[],
-    history: [] as StorageUnitMaintenanceHistoryItem[],
+    reports: [] as {
+      id: string;
+      taskId: string;
+      submittedBy: string;
+      submitterName: string;
+      content: string;
+      submittedAt: string;
+      acceptedBy: string | null;
+      acceptedByName: string | null;
+      acceptedAt: string | null;
+    }[],
     offerings: [
       {
         facilityId: f5facility,
@@ -195,6 +198,11 @@ export async function mockFlow5(
           assignedAt: f5now,
         },
       ];
+    else if (
+      path === "/bookings/assigned-to-me" ||
+      /^\/facilities\/[^/]+\/return-requests$/.test(path)
+    )
+      data = [];
     else if (path === "/facilities/management") data = state.facilities;
     else if (path === "/facilities" && method === "POST") {
       const row = { ...state.facilities[0], ...input, id: f5id(30) } as ApiFacility;
@@ -273,25 +281,11 @@ export async function mockFlow5(
               item.unitTypeId === url.searchParams.get("unitTypeId")),
         ),
       );
-    } else if (path.match(/^\/storage-units\/[^/]+\/maintenance-history$/))
-      data = pageData(state.history.filter((row) => row.storageUnitId === path.split("/")[2]));
-    else if (path.match(/^\/storage-units\/[^/]+\/transitions$/)) {
+    } else if (path.match(/^\/storage-units\/[^/]+\/transitions$/)) {
       if (state.maintenanceConflict) return fail("Ô kho đang có booking còn hiệu lực");
       const unit = state.units.find((item) => item.id === path.split("/")[2]);
       if (!unit) return fail("Không tìm thấy ô kho", 404);
-      const previousStatus = unit.status;
       unit.status = input.action === "ENTER_MAINTENANCE" ? "MAINTENANCE" : "AVAILABLE";
-      state.history.unshift({
-        id: f5id(40 + state.history.length),
-        storageUnitId: unit.id,
-        action: input.action as "ENTER_MAINTENANCE" | "EXIT_MAINTENANCE",
-        previousStatus,
-        nextStatus: unit.status,
-        reason: (input.reason as string) || null,
-        changedBy: actorId,
-        changedByName: "Quản lý kiểm thử",
-        changedAt: f5now,
-      });
       data = unit;
     } else if (path.startsWith("/storage-units/")) {
       const unit = state.units.find((item) => item.id === path.split("/").at(-1));
@@ -334,7 +328,7 @@ export async function mockFlow5(
         };
         state.reports.unshift(report);
         const task = state.tasks.find((item) => item.id === taskId);
-        if (task) task.status = "AWAITING_APPROVAL";
+        if (task) task.status = "IN_PROGRESS";
         data = report;
       } else data = pageData(state.reports.filter((row) => row.taskId === taskId));
     } else if (path.match(/^\/facility-tasks\/[^/]+\/start$/)) {
@@ -351,7 +345,6 @@ export async function mockFlow5(
       const report = state.reports.find((item) => item.id === reportId && item.taskId === taskId);
       if (!task || !report) return fail("Không tìm thấy báo cáo của công việc", 404);
       task.status = "COMPLETED";
-      task.completedBy = actorId;
       task.completedAt = f5now;
       report.acceptedBy = actorId;
       report.acceptedByName = "Quản lý kiểm thử";
@@ -362,14 +355,11 @@ export async function mockFlow5(
       if (!task) return fail("Không tìm thấy công việc", 404);
       if (state.assignmentConflict) {
         state.assignmentConflict = false;
-        task.version++;
         return fail("Phân công đã thay đổi, vui lòng tải lại");
       }
-      if (input.version !== task.version) return fail("Phiên bản cũ");
       task.assignedStaffId = String(input.assignedStaffId);
       task.assignedStaffName =
         accounts.find((item) => item.id === input.assignedStaffId)?.name ?? "";
-      task.version++;
       data = task;
     } else if (path.startsWith("/facility-tasks/")) {
       const task = state.tasks.find((item) => item.id === path.split("/").at(-1));

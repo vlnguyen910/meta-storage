@@ -1,18 +1,20 @@
 import {
   and,
   asc,
-  bookings,
   capacityAllocations,
   type Database,
   desc,
   eq,
   type Facility,
   facilities,
-  facilityOperatingHours,
   gt,
   inArray,
   type NewFacility,
   or,
+  ReservationStatus,
+  reservations,
+  systemSettingInteger,
+  systemSettings,
 } from "@metastorage/database";
 import type { FacilityListScope, FacilityScope } from "./facilities.access";
 import { FACILITY_MESSAGES } from "./facilities.messages";
@@ -25,17 +27,18 @@ export class FacilitiesRepository {
     this.assignmentsRepository = new FacilityAssignmentsRepository(db);
   }
 
-  async findOperatingHours(facilityId: string, dayOfWeek: number) {
-    const [hours] = await this.db
-      .select()
-      .from(facilityOperatingHours)
-      .where(
-        and(
-          eq(facilityOperatingHours.facilityId, facilityId),
-          eq(facilityOperatingHours.dayOfWeek, dayOfWeek),
-        ),
-      );
-    return hours;
+  async globalOperatingHours() {
+    const rows = await this.db
+      .select({ key: systemSettings.key, value: systemSettingInteger })
+      .from(systemSettings)
+      .where(inArray(systemSettings.key, ["OPENING_HOUR", "CLOSING_HOUR"]));
+    const values = Object.fromEntries(rows.map((row) => [row.key, row.value]));
+    return values.OPENING_HOUR === undefined || values.CLOSING_HOUR === undefined
+      ? undefined
+      : {
+          openingHour: values.OPENING_HOUR,
+          closingHour: values.CLOSING_HOUR,
+        };
   }
 
   async createFacility(data: NewFacility): Promise<Facility> {
@@ -126,12 +129,16 @@ export class FacilitiesRepository {
   async hasOpenOperations(id: string): Promise<boolean> {
     const now = new Date();
     const [booking] = await this.db
-      .select({ id: bookings.id })
-      .from(bookings)
+      .select({ id: reservations.id })
+      .from(reservations)
       .where(
         and(
-          eq(bookings.facilityId, id),
-          inArray(bookings.status, ["DRAFT", "CONFIRMED", "CHECKED_IN"]),
+          eq(reservations.facilityId, id),
+          inArray(reservations.status, [
+            ReservationStatus.DRAFT,
+            ReservationStatus.CONFIRMED,
+            ReservationStatus.CHECKED_IN,
+          ]),
         ),
       )
       .limit(1);
@@ -145,7 +152,7 @@ export class FacilitiesRepository {
           eq(capacityAllocations.facilityId, id),
           eq(capacityAllocations.status, "ACTIVE"),
           or(
-            eq(capacityAllocations.kind, "BOOKING"),
+            inArray(capacityAllocations.kind, ["BOOKING", "RESERVATION"]),
             and(eq(capacityAllocations.kind, "HOLD"), gt(capacityAllocations.expiresAt, now)),
           ),
         ),

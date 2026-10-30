@@ -1,24 +1,34 @@
 "use client";
-import type { BookingDraftInput, BookingPaymentInput } from "@metastorage/contracts";
+import type { CheckoutSessionInput, CreateReservationDraftInput } from "@metastorage/contracts";
+import { APPOINTMENT_TYPES } from "@metastorage/database/schema/appointments";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { useFlow3Identity } from "@/features/returns/use-flow3-identity";
 import { api } from "@/lib/api";
 
 export function useBookingSlots() {
-  return useQuery({ queryKey: ["bookings", "slots"], queryFn: api.bookings.checkInSlots });
+  return useQuery({ queryKey: ["bookings", "slots"], queryFn: api.appointments.slots });
 }
 export function useBookingDraft() {
   return useMutation({
     meta: { globalLoading: true },
-    mutationFn: (input: BookingDraftInput) => api.bookings.createDraft(input),
+    mutationFn: async (input: CreateReservationDraftInput) => {
+      const draft = await api.reservations.createDraft(input);
+      await api.appointments.create({
+        appointmentType: APPOINTMENT_TYPES.CHECK_IN,
+        reservationId: draft.id,
+        scheduledDate: input.checkInDate,
+        slotId: input.checkInSlotId,
+      });
+      return draft;
+    },
   });
 }
 export function useBookingPayment() {
   return useMutation({
     meta: { globalLoading: true },
-    mutationFn: ({ bookingId, input }: { bookingId: string; input: BookingPaymentInput }) =>
-      api.bookings.pay(bookingId, input),
+    mutationFn: ({ bookingId, input }: { bookingId: string; input: CheckoutSessionInput }) =>
+      api.reservations.pay(bookingId, input),
   });
 }
 export function useCheckoutPaymentStatus(
@@ -43,11 +53,7 @@ export function useCheckoutPaymentStatus(
       if (axios.isAxiosError(error) && [400, 401, 403, 404].includes(error.response?.status ?? 0))
         return false;
       if (error || query.state.dataUpdateCount >= 150) return false;
-      return !query.state.data ||
-        query.state.data.status === "PENDING" ||
-        (query.state.data.status === "SUCCEEDED" && !query.state.data.confirmation)
-        ? 2000
-        : false;
+      return !query.state.data || query.state.data.status === "PENDING" || false ? 2000 : false;
     },
   });
 }

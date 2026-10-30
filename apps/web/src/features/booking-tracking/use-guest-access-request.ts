@@ -12,7 +12,7 @@ export function useGuestAccessRequest() {
   const busy = useRef(false);
   const mutation = useMutation({
     meta: { globalLoading: true },
-    mutationFn: api.bookings.requestGuestAccessLink,
+    mutationFn: api.legacyBookings.requestGuestAccessLink,
     retry: false,
     onSuccess: () => setSubmitted(true),
     onSettled: () => {

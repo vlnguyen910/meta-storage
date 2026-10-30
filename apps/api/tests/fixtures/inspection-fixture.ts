@@ -1,28 +1,30 @@
 import { randomUUID } from "node:crypto";
-import { HANDOVER_CHECKLIST_ITEMS } from "@metastorage/contracts";
+import { HANDOVER_CHECKLIST_ITEMS, SYSTEM_SETTING_DEFINITIONS } from "@metastorage/contracts";
 import {
   accounts,
-  bookingContractAudit,
-  bookingContracts,
-  bookings,
+  and,
+  appointments,
   checkInSlots,
-  checkInVerifications,
   db,
   eq,
   facilities,
   facilityAssignments,
-  handoverInspections,
+  facilityTasks,
   inArray,
-  inspectionPhotos,
+  inspections,
+  mediaAssets,
   notificationOutbox,
+  or,
   payments,
+  ReservationStatus,
   rentals,
-  reservationDrafts,
+  reservations,
   storageUnits,
-  unitAssignments,
+  systemSettings,
   unitTypes,
   users,
 } from "@metastorage/database";
+import { APPOINTMENT_STATUSES, APPOINTMENT_TYPES } from "@metastorage/database/schema/appointments";
 import { hashPassword } from "better-auth/crypto";
 import { createTestUnitType, deleteTestUnitTypes } from "./facility-catalog";
 import { assertTestDatabase } from "./test-database";
@@ -54,18 +56,31 @@ export async function createInspectionFixture(allowExistingLocal = false) {
     unitTypeId = randomUUID(),
     unitId = randomUUID(),
     bookingId = randomUUID(),
-    assignmentId = randomUUID(),
-    verificationId = randomUUID(),
-    draftId = randomUUID(),
     slotId = randomUUID();
   const email = `inspection-${suffix}@example.test`,
     outsiderEmail = `outside-${suffix}@example.test`,
     managerEmail = `manager-${suffix}@example.test`,
     password = "InspectionTest123!";
-  const now = Date.now(),
-    start = new Date(now - 30 * 60_000),
-    rentalEnd = new Date(now + 30 * 86400_000);
+  const now = Date.now();
+  const rentalEnd = new Date(now + 30 * 86400_000);
   await db.transaction(async (tx) => {
+    await tx
+      .insert(systemSettings)
+      .values([
+        {
+          key: "OPENING_HOUR",
+          value: SYSTEM_SETTING_DEFINITIONS.OPENING_HOUR.defaultValue,
+          description: SYSTEM_SETTING_DEFINITIONS.OPENING_HOUR.description,
+          version: 1,
+        },
+        {
+          key: "CLOSING_HOUR",
+          value: SYSTEM_SETTING_DEFINITIONS.CLOSING_HOUR.defaultValue,
+          description: SYSTEM_SETTING_DEFINITIONS.CLOSING_HOUR.description,
+          version: 1,
+        },
+      ])
+      .onConflictDoNothing();
     await tx.insert(users).values([
       {
         id: customerId,
@@ -148,7 +163,7 @@ export async function createInspectionFixture(allowExistingLocal = false) {
       monthlyPrice: 1000000,
     });
 
-    const local = new Date(now + 7 * 3600000).toISOString();
+    const local = new Date(now + 86400000 + 7 * 3600000).toISOString();
     await tx.insert(checkInSlots).values({
       id: slotId,
       name: `Test slot ${suffix}`,
@@ -162,39 +177,34 @@ export async function createInspectionFixture(allowExistingLocal = false) {
       code: `TEST-UNIT-${suffix}`,
       status: "RESERVED",
     });
-    await tx.insert(reservationDrafts).values({
-      id: draftId,
-      facilityId,
-      unitTypeId,
-      checkInAt: start,
-      rentalEndAt: rentalEnd,
-      durationMonths: 1,
-      contactName: "Test customer",
-      contactEmail: `customer-${suffix}@example.test`,
-      contactPhone: "0900000000",
-    });
-    await tx.insert(bookings).values({
+    await tx.insert(reservations).values({
       id: bookingId,
-      bookingCode: `BK-TEST-${suffix.toUpperCase()}`,
-      userId: customerId,
-      contactName: "Test customer",
-      contactEmail: `customer-${suffix}@example.test`,
-      contactPhone: "0900000000",
+      customerId,
       facilityId,
       unitTypeId,
       requestedMonths: 1,
-      checkInDate: local.slice(0, 10),
-      checkInSlotId: slotId,
-      status: "CONFIRMED",
+      rentalStartAt: new Date(`${local.slice(0, 10)}T00:00:00+07:00`),
       rentalEndAt: rentalEnd,
-      monthlyRateSnapshot: "1000000",
-      rentalFeeAmount: "1000000",
-      depositAmount: "500000",
-      totalAmount: "1500000",
-      assignedStaffId: userId,
+      monthlyRateSnapshot: 1000000,
+      rentalFeeAmount: 1000000,
+      depositAmount: 500000,
+      totalAmount: 1500000,
+      status: ReservationStatus.CONFIRMED,
+    });
+    await tx.insert(appointments).values({
+      id: bookingId,
+      reservationId: bookingId,
+      facilityId,
+      customerId,
+      createdBy: customerId,
+      appointmentType: APPOINTMENT_TYPES.CHECK_IN,
+      scheduledDate: local.slice(0, 10),
+      slotId,
+      status: APPOINTMENT_STATUSES.SCHEDULED,
+      contactPhone: "0900000000",
     });
     await tx.insert(payments).values({
-      bookingId,
+      reservationId: bookingId,
       holdTokenHash: suffix,
       provider: "mock",
       paymentCode: `TEST-${suffix}`,
@@ -204,16 +214,6 @@ export async function createInspectionFixture(allowExistingLocal = false) {
       currency: "VND",
       status: "SUCCEEDED",
       paidAt: new Date(now - 86400_000),
-    });
-    await tx
-      .insert(unitAssignments)
-      .values({ id: assignmentId, bookingId, physicalUnitId: unitId, assignedBy: userId });
-    await tx.insert(checkInVerifications).values({
-      id: verificationId,
-      bookingId,
-      facilityId,
-      staffId: userId,
-      unitAssignmentId: assignmentId,
     });
   });
   return {
@@ -226,33 +226,46 @@ export async function createInspectionFixture(allowExistingLocal = false) {
     facilityId,
     bookingId,
     bookingCode: `BK-TEST-${suffix.toUpperCase()}`,
-    assignmentId,
-    verificationId,
     unitId,
     email,
     outsiderEmail,
     password,
     async cleanup() {
       await db.transaction(async (tx) => {
-        const inspections = tx
-          .select({ id: handoverInspections.id })
-          .from(handoverInspections)
-          .where(eq(handoverInspections.bookingId, bookingId));
-        await tx.delete(bookingContractAudit).where(eq(bookingContractAudit.bookingId, bookingId));
-        await tx
-          .delete(inspectionPhotos)
-          .where(inArray(inspectionPhotos.inspectionId, inspections));
-        await tx.delete(handoverInspections).where(eq(handoverInspections.bookingId, bookingId));
-        await tx.delete(bookingContracts).where(eq(bookingContracts.bookingId, bookingId));
-        await tx.delete(notificationOutbox).where(eq(notificationOutbox.bookingId, bookingId));
-        await tx.delete(rentals).where(eq(rentals.bookingId, bookingId));
-        await tx.delete(checkInVerifications).where(eq(checkInVerifications.bookingId, bookingId));
-        await tx.delete(unitAssignments).where(eq(unitAssignments.bookingId, bookingId));
-        await tx.delete(payments).where(eq(payments.bookingId, bookingId));
-        await tx.delete(bookings).where(eq(bookings.id, bookingId));
-        await tx.delete(reservationDrafts).where(eq(reservationDrafts.id, draftId));
+        const taskRows = await tx
+          .select({ id: facilityTasks.id })
+          .from(facilityTasks)
+          .where(eq(facilityTasks.facilityId, facilityId));
+        const taskIds = taskRows.map((t) => t.id);
+
+        const inspectionRows = await tx
+          .select({ id: inspections.id })
+          .from(inspections)
+          .where(
+            taskIds.length > 0
+              ? or(eq(inspections.reservationId, bookingId), inArray(inspections.taskId, taskIds))
+              : eq(inspections.reservationId, bookingId),
+          );
+        const inspectionIds = inspectionRows.map((row) => row.id);
+        if (inspectionIds.length > 0) {
+          await tx
+            .delete(mediaAssets)
+            .where(
+              and(
+                eq(mediaAssets.ownerType, "INSPECTION"),
+                inArray(mediaAssets.ownerId, inspectionIds),
+              ),
+            );
+          await tx.delete(inspections).where(inArray(inspections.id, inspectionIds));
+        }
+        await tx.delete(notificationOutbox).where(eq(notificationOutbox.reservationId, bookingId));
+        await tx.delete(appointments).where(eq(appointments.reservationId, bookingId));
+        await tx.delete(rentals).where(eq(rentals.reservationId, bookingId));
+        await tx.delete(payments).where(eq(payments.reservationId, bookingId));
+        await tx.delete(reservations).where(eq(reservations.id, bookingId));
         await tx.delete(storageUnits).where(eq(storageUnits.id, unitId));
 
+        await tx.delete(facilityTasks).where(eq(facilityTasks.facilityId, facilityId));
         await tx.delete(facilityAssignments).where(eq(facilityAssignments.facilityId, facilityId));
         await deleteTestUnitTypes(tx, eq(unitTypes.id, unitTypeId));
         await tx.delete(facilities).where(eq(facilities.id, facilityId));

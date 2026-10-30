@@ -1,4 +1,11 @@
 export const REPORTING_MESSAGES = {
+  refundType: "Loại giao dịch",
+  depositRefund: "Hoàn cọc",
+  otherRefund: "Hoàn tiền",
+  reservationId: "Mã reservation",
+  refundSearch: "Tìm mã thanh toán, mã reservation hoặc booking…",
+  refundTimeUnknown: "Chưa có thời điểm thanh toán",
+  refundWaitingDescription: "Hàng chờ khoản hoàn cần xác nhận đối soát.",
   facilityRevenueHeadings: [
     "Cơ sở",
     "Thực thu (gồm cọc)",

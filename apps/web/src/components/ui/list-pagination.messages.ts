@@ -7,4 +7,7 @@ export const LIST_PAGINATION_MESSAGES = {
   jumpPrompt: "Nhập số trang để nhảy tới...",
   jumpTo: "Đi tới",
   jump: "Đi",
+  summaryShowing: "Hiển thị",
+  summaryOf: "trên tổng số",
+  pagePlaceholder: "Trang",
 } as const;

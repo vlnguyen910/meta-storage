@@ -1,16 +1,9 @@
 import type { ApiFacility, ApiFacilityAssignment } from "@metastorage/contracts";
 import {
-  ConfigureReturnCalendarSchema,
   CreateStorageUnitSchema,
   CustomerAvailabilityQuerySchema,
   createAssignmentBodySchema,
   createFacilityBodySchema,
-  FacilityRentalChargeParamsSchema,
-  FacilityRentalChargeQuerySchema,
-  FacilityRentalHistoryQuerySchema,
-  FacilityRentalListParamsSchema,
-  FacilityRentalListQuerySchema,
-  FacilityRentalParamsSchema,
   facilityAssignmentListQuerySchema,
   facilityAssignmentParamSchema,
   facilityIdNestedParamSchema,
@@ -18,9 +11,6 @@ import {
   facilityQuerySchema,
   facilityStorageUnitParamsSchema,
   facilityUnitTypeParamsSchema,
-  ReturnFacilityParamsSchema,
-  ReturnQueueEnvelopeSchema,
-  ReturnQueueQuerySchema,
   SetFacilityUnitTypeSchema,
   STORAGE_UNIT_MESSAGES,
   UnitTypeListQuerySchema,
@@ -28,18 +18,12 @@ import {
   updateFacilityIdParamSchema,
 } from "@metastorage/contracts";
 import type { Facility, FacilityAssignment } from "@metastorage/database";
-import type { FastifyPluginAsync, onRequestAsyncHookHandler } from "fastify";
+import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
 import { requireAuth, requireRole } from "../auth/auth.guard";
-import { createBookingsService } from "../bookings/bookings.service";
-import { RentalChargesRepository } from "../rental-charges/rental-charges.repository";
-import { RentalChargesService } from "../rental-charges/rental-charges.service";
-import { RentalsRepository } from "../rentals/rentals.repository";
-import { RentalsService } from "../rentals/rentals.service";
-import { ReturnsRepository } from "../returns/returns.repository";
-import { ReturnsService } from "../returns/returns.service";
+import { createReservationsService } from "../reservations/reservations.service";
 import { StorageUnitsRepository } from "../storage-units/storage-units.repository";
 import { StorageUnitsService } from "../storage-units/storage-units.service";
 import { FacilityUnitTypesRepository } from "../unit-types/facility-unit-types.repository";
@@ -55,8 +39,6 @@ import { FacilityAssignmentsRepository } from "./facility-assignments.repository
 import { FacilityAssignmentsService } from "./facility-assignments.service";
 
 export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
-  const rentalsService = new RentalsService(new RentalsRepository(fastify.db));
-  const chargesService = new RentalChargesService(new RentalChargesRepository(fastify.db));
   const facilitiesRepository = new FacilitiesRepository(fastify.db);
   const catalogService = new UnitTypesService(new UnitTypesRepository(fastify.db));
   const service = new FacilitiesService(facilitiesRepository);
@@ -72,13 +54,22 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
     new StorageUnitsRepository(fastify.db),
     new FacilityAssignmentsRepository(fastify.db),
   );
-  const returnsService = new ReturnsService(new ReturnsRepository(fastify.db));
-  const privateReturnResponse: onRequestAsyncHookHandler = async (_request, reply) => {
-    reply.header("Cache-Control", "private, no-store");
-  };
 
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
-  const bookingService = createBookingsService(fastify);
+  const reservationService = createReservationsService(fastify.db);
+  typedApp.get(
+    "/operating-hours",
+    {
+      schema: {
+        tags: ["Facilities"],
+        security: [{ sessionAuth: [] }],
+        summary: FACILITY_MESSAGES.operatingHoursSummary,
+      },
+      preHandler: [requireAuth],
+    },
+    async (_request, reply) => reply.send(successResponse(await service.getOperatingHours())),
+  );
+
   typedApp.get(
     "/:facilityId/availability",
     {
@@ -87,168 +78,10 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       reply.header("Cache-Control", "no-store");
       return successResponse(
-        await bookingService.availability({
+        await reservationService.availability({
           ...request.query,
           facilityId: request.params.facilityId,
         }),
-      );
-    },
-  );
-
-  typedApp.get(
-    "/:facilityId/rentals",
-    {
-      onRequest: privateReturnResponse,
-      preHandler: [requireRole("FACILITY_MANAGER")],
-      schema: {
-        tags: ["Rentals"],
-        params: FacilityRentalListParamsSchema,
-        querystring: FacilityRentalListQuerySchema,
-      },
-    },
-    async (request) => {
-      if (!request.user) throw new UnauthorizedError();
-      return successResponse(
-        await rentalsService.facilityList(request.user, request.params.facilityId, request.query),
-      );
-    },
-  );
-  typedApp.get(
-    "/:facilityId/rentals/:rentalId",
-    {
-      onRequest: privateReturnResponse,
-      preHandler: [requireRole("FACILITY_MANAGER")],
-      schema: { tags: ["Rentals"], params: FacilityRentalParamsSchema },
-    },
-    async (request) => {
-      if (!request.user) throw new UnauthorizedError();
-      return successResponse(
-        await rentalsService.facilityDetail(
-          request.user,
-          request.params.facilityId,
-          request.params.rentalId,
-        ),
-      );
-    },
-  );
-  typedApp.get(
-    "/:facilityId/rentals/:rentalId/payments",
-    {
-      onRequest: privateReturnResponse,
-      preHandler: [requireRole("FACILITY_MANAGER")],
-      schema: {
-        tags: ["Rentals"],
-        params: FacilityRentalParamsSchema,
-        querystring: FacilityRentalHistoryQuerySchema,
-      },
-    },
-    async (request) => {
-      if (!request.user) throw new UnauthorizedError();
-      return successResponse(
-        await rentalsService.facilityPayments(
-          request.user,
-          request.params.facilityId,
-          request.params.rentalId,
-          request.query,
-        ),
-      );
-    },
-  );
-  typedApp.get(
-    "/:facilityId/rentals/:rentalId/renewals",
-    {
-      onRequest: privateReturnResponse,
-      preHandler: [requireRole("FACILITY_MANAGER")],
-      schema: {
-        tags: ["Renewals"],
-        params: FacilityRentalParamsSchema,
-        querystring: FacilityRentalHistoryQuerySchema,
-      },
-    },
-    async (request) => {
-      if (!request.user) throw new UnauthorizedError();
-      return successResponse(
-        await rentalsService.facilityRenewals(
-          request.user,
-          request.params.facilityId,
-          request.params.rentalId,
-          request.query,
-        ),
-      );
-    },
-  );
-  typedApp.get(
-    "/:facilityId/rental-charges",
-    {
-      onRequest: privateReturnResponse,
-      preHandler: [requireRole("FACILITY_MANAGER")],
-      schema: {
-        tags: ["Rental Charges"],
-        params: FacilityRentalChargeParamsSchema,
-        querystring: FacilityRentalChargeQuerySchema,
-      },
-    },
-    async (request) => {
-      if (!request.user?.role) throw new UnauthorizedError();
-      return successResponse(
-        await chargesService.facilityQueue(
-          { id: request.user.id, role: request.user.role },
-          request.params.facilityId,
-          request.query,
-        ),
-      );
-    },
-  );
-
-  typedApp.get(
-    "/:facilityId/return-requests",
-    {
-      onRequest: privateReturnResponse,
-      preHandler: [requireAuth],
-      schema: {
-        params: ReturnFacilityParamsSchema,
-        querystring: ReturnQueueQuerySchema,
-        response: { 200: ReturnQueueEnvelopeSchema },
-      },
-    },
-    async (request) => {
-      if (!request.user) throw new UnauthorizedError();
-      return successResponse(
-        await returnsService.queue(request.user, request.params.facilityId, request.query),
-      );
-    },
-  );
-
-  typedApp.get(
-    "/:facilityId/return-calendar",
-    {
-      onRequest: privateReturnResponse,
-      preHandler: [requireRole("SYSTEM_ADMIN")],
-      schema: { params: ReturnFacilityParamsSchema },
-    },
-    async (request) => {
-      if (!request.user) throw new UnauthorizedError();
-      return successResponse(
-        await returnsService.calendar(request.user, request.params.facilityId),
-      );
-    },
-  );
-
-  typedApp.put(
-    "/:facilityId/return-calendar",
-    {
-      onRequest: privateReturnResponse,
-      preHandler: [requireRole("SYSTEM_ADMIN")],
-      schema: { params: ReturnFacilityParamsSchema, body: ConfigureReturnCalendarSchema },
-    },
-    async (request) => {
-      if (!request.user) throw new UnauthorizedError();
-      return successResponse(
-        await returnsService.configureCalendar(
-          request.user,
-          request.params.facilityId,
-          request.body,
-        ),
       );
     },
   );

@@ -70,39 +70,13 @@ export type StorageUnitResponse = z.infer<typeof StorageUnitResponseSchema>;
 
 export const StorageUnitTransitionActionSchema = z.enum(["ENTER_MAINTENANCE", "EXIT_MAINTENANCE"]);
 
-export const StorageUnitMaintenanceTransitionSchema = z
-  .object({
-    action: StorageUnitTransitionActionSchema,
-    reason: z.string().trim().max(500).optional(),
-  })
-  .superRefine((data, ctx) => {
-    if (data.action === "ENTER_MAINTENANCE") {
-      if (!data.reason || data.reason.trim().length < 3) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: STORAGE_UNIT_MESSAGES.maintenanceReasonRequired,
-          path: ["reason"],
-        });
-      }
-    }
-  });
+export const StorageUnitMaintenanceTransitionSchema = z.object({
+  action: StorageUnitTransitionActionSchema,
+});
 
-export const UpdateStorageUnitStatusBodySchema = z
-  .object({
-    status: z.enum(["AVAILABLE", "MAINTENANCE"]),
-    reason: z.string().trim().max(500).optional(),
-  })
-  .superRefine((data, ctx) => {
-    if (data.status === "MAINTENANCE") {
-      if (!data.reason || data.reason.trim().length < 3) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: STORAGE_UNIT_MESSAGES.maintenanceReasonRequired,
-          path: ["reason"],
-        });
-      }
-    }
-  });
+export const UpdateStorageUnitStatusBodySchema = z.object({
+  status: z.enum(["AVAILABLE", "MAINTENANCE"]),
+});
 
 export function canTransitionStorageUnitStatus(
   currentStatus: StorageUnitStatus | string,
@@ -203,12 +177,6 @@ export const CreateStorageUnitSchema = z
 export const UpdateStorageUnitSchema = CreateStorageUnitSchema.partial().refine(
   (v) => Object.keys(v).length > 0,
 );
-export const StorageUnitMaintenanceHistoryQuerySchema = z
-  .object({
-    limit: z.coerce.number().int().min(1).max(100).default(20),
-    offset: z.coerce.number().int().min(0).default(0),
-  })
-  .strict();
 export const SetFacilityUnitTypeSchema = z
   .object({
     isActive: z.boolean(),
@@ -217,7 +185,4 @@ export const SetFacilityUnitTypeSchema = z
   .strict();
 export type CreateStorageUnitInput = z.infer<typeof CreateStorageUnitSchema>;
 export type UpdateStorageUnitInput = z.infer<typeof UpdateStorageUnitSchema>;
-export type StorageUnitMaintenanceHistoryQuery = z.infer<
-  typeof StorageUnitMaintenanceHistoryQuerySchema
->;
 export type SetFacilityUnitTypeInput = z.infer<typeof SetFacilityUnitTypeSchema>;

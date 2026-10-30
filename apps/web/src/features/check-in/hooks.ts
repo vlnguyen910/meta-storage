@@ -5,7 +5,9 @@ import type {
   AssignPhysicalUnitInput,
   CheckInLookupInput,
 } from "@metastorage/contracts";
+import { APPOINTMENT_STATUSES } from "@metastorage/database/schema/appointments";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { loadAppointmentItem } from "@/features/facility-flow/use-dispatch";
 import { api } from "@/lib/api";
 
 export const bookingKeys = {
@@ -29,27 +31,6 @@ export const checkInKeys = {
   lookup: (input: CheckInLookupInput) => [...checkInKeys.all, input.type, input.value] as const,
 };
 
-export function useCheckInLookupMutation() {
-  return useMutation({
-    mutationFn: (input: CheckInLookupInput) => api.checkIns.lookup(input),
-  });
-}
-
-export function useCheckInConfirmMutation() {
-  return useMutation({
-    meta: { globalLoading: true },
-    mutationFn: (bookingId: string) => api.checkIns.confirm(bookingId),
-  });
-}
-
-export function useFacilityBookings(facilityId: string, status?: string) {
-  return useQuery({
-    queryKey: bookingKeys.facility(facilityId, status),
-    queryFn: () => api.bookings.listFacilityBookings(facilityId, status),
-    enabled: Boolean(facilityId),
-  });
-}
-
 export function useMyFacilityAssignments() {
   return useQuery({
     queryKey: facilityKeys.myAssignments(),
@@ -60,7 +41,7 @@ export function useMyFacilityAssignments() {
 export function useBooking(bookingId: string) {
   return useQuery({
     queryKey: bookingKeys.detail(bookingId),
-    queryFn: () => api.bookings.get(bookingId),
+    queryFn: () => loadAppointmentItem(bookingId),
     enabled: Boolean(bookingId),
   });
 }
@@ -68,7 +49,25 @@ export function useBooking(bookingId: string) {
 export function useEligibleUnits(bookingId: string) {
   return useQuery({
     queryKey: bookingKeys.eligibleUnits(bookingId),
-    queryFn: () => api.bookings.getEligibleUnits(bookingId),
+    queryFn: async () => {
+      const item = await loadAppointmentItem(bookingId);
+      const units = [];
+      for (let offset = 0; ; offset += 100) {
+        const page = await api.flow5.units.list({
+          facilityId: item.facilityId,
+          unitTypeId: item.unitTypeId,
+          limit: 100,
+          offset,
+        });
+        units.push(...page.items);
+        if (offset + page.items.length >= page.total || !page.items.length) break;
+      }
+      return units.map((unit) => ({
+        ...unit,
+        isAvailableForPeriod:
+          unit.status === "AVAILABLE" || unit.id === item.assignedUnit?.physicalUnitId,
+      }));
+    },
     enabled: Boolean(bookingId),
   });
 }
@@ -79,11 +78,15 @@ export function useAssignPhysicalUnitMutation() {
   return useMutation({
     meta: { globalLoading: true },
     mutationFn: ({ bookingId, input }: { bookingId: string; input: AssignPhysicalUnitInput }) =>
-      api.bookings.assignUnit(bookingId, input),
+      api.appointments.update(bookingId, {
+        physicalUnitId: input.physicalUnitId,
+        assignmentReason: input.reason,
+      }),
     onSettled: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: bookingKeys.all }),
         queryClient.invalidateQueries({ queryKey: ["facility-flow"] }),
+        queryClient.invalidateQueries({ queryKey: ["appointments"] }),
       ]),
   });
 }
@@ -102,20 +105,18 @@ export function useAssignStaffMutation() {
   return useMutation({
     meta: { globalLoading: true },
     mutationFn: ({ bookingId, input }: { bookingId: string; input: AssignBookingStaffInput }) =>
-      api.bookings.assignStaff(bookingId, input),
+      api.appointments.update(bookingId, {
+        assignedStaffId: input.staffId,
+        status: APPOINTMENT_STATUSES.CONFIRMED,
+        notes: input.notes,
+      }),
     onSettled: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: bookingKeys.all }),
         queryClient.invalidateQueries({ queryKey: ["facility-flow"] }),
+        queryClient.invalidateQueries({ queryKey: ["appointments"] }),
+        queryClient.invalidateQueries({ queryKey: ["flow5"] }),
+        queryClient.invalidateQueries({ queryKey: ["manager-tabs"] }),
       ]),
-  });
-}
-
-export function useStaffTasks(facilityId?: string) {
-  return useQuery({
-    queryKey: bookingKeys.staffTasks(facilityId),
-    queryFn: () => api.bookings.listAssignedToMe(facilityId),
-    refetchInterval: 5000,
-    refetchOnWindowFocus: true,
   });
 }

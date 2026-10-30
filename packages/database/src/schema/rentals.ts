@@ -1,47 +1,46 @@
 import { sql } from "drizzle-orm";
-import {
-  check,
-  index,
-  integer,
-  numeric,
-  pgTable,
-  timestamp,
-  uuid,
-  varchar,
-} from "drizzle-orm/pg-core";
+import { check, index, pgEnum, pgTable, timestamp, uuid } from "drizzle-orm/pg-core";
+import { enumToPgEnum } from "../enum-to-pg-enum";
 import { bookings } from "./bookings";
-import { facilities } from "./facilities";
+import { reservations } from "./reservations";
 import { storageUnits } from "./storage-units";
+import { users } from "./users";
+
+export enum RentalStatus {
+  ACTIVE = "ACTIVE",
+  CLOSED = "CLOSED",
+}
+
+export const rentalStatusEnum = pgEnum("rental_status", enumToPgEnum(RentalStatus));
 
 export const rentals = pgTable(
   "rentals",
   {
     id: uuid().defaultRandom().primaryKey(),
     bookingId: uuid()
-      .notNull()
       .unique()
-      .references(() => bookings.id),
-    facilityId: uuid()
+      .references(() => bookings.id, { onDelete: "restrict" }),
+    reservationId: uuid()
+      .unique()
+      .references(() => reservations.id, { onDelete: "restrict" }),
+    userId: uuid()
       .notNull()
-      .references(() => facilities.id),
-    physicalUnitId: uuid()
+      .references(() => users.id, { onDelete: "restrict" }),
+    storageUnitId: uuid()
       .notNull()
-      .references(() => storageUnits.id),
-    status: varchar({ length: 50 }).default("ACTIVE").notNull(),
+      .references(() => storageUnits.id, { onDelete: "restrict" }),
+    status: rentalStatusEnum().default(RentalStatus.ACTIVE).notNull(),
     startAt: timestamp({ withTimezone: true }).notNull(),
-    expectedEndAt: timestamp({ withTimezone: true }).notNull(),
-    version: integer().default(0).notNull(),
-    actualReturnAt: timestamp({ withTimezone: true }),
+    endAt: timestamp({ withTimezone: true }).notNull(),
     closedAt: timestamp({ withTimezone: true }),
-    abandonedReviewAt: timestamp({ withTimezone: true }),
-    depositAmount: numeric({ precision: 14, scale: 2 }).notNull(),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
   },
-  (table) => [
-    check("rentals_version_nonnegative", sql`${table.version} >= 0`),
-    index("rentals_facility_idx").on(table.facilityId),
-    index("rentals_active_unit_idx").on(table.physicalUnitId, table.status, table.expectedEndAt),
+  (t) => [
+    check("rentals_reference_valid", sql`num_nonnulls(${t.bookingId}, ${t.reservationId}) = 1`),
+    check("rentals_period_valid", sql`${t.endAt} > ${t.startAt}`),
+    index("rentals_user_idx").on(t.userId),
+    index("rentals_unit_status_idx").on(t.storageUnitId, t.status, t.endAt),
   ],
 );
 

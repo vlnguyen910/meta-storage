@@ -1,12 +1,27 @@
 export * from "./api-response";
+export * from "./appointments";
 export * from "./auth";
 export * from "./bookings";
 export * from "./catalog";
-export * from "./check-in";
 export * from "./customer-availability";
 export * from "./dashboard.types";
 export * from "./facilities";
 export * from "./facility-tasks";
+export type {
+  FacilitySupportQuery,
+  FacilityWorkspaceQuery,
+  SupportOperation,
+  SupportOperationsDetail,
+  SupportOperationsMessage,
+  SupportOperationsPage,
+  SupportOperationsTicket,
+} from "./facility-workspace";
+export {
+  FACILITY_WORKSPACE_MESSAGES,
+  FacilitySupportQuerySchema,
+  FacilityWorkspaceQuerySchema,
+  SupportOperationSchema,
+} from "./facility-workspace";
 export type * from "./flow3-read.types";
 export * from "./handover-checklist";
 export * from "./handover-checklist.messages";
@@ -22,17 +37,10 @@ export type {
 } from "./notifications.types";
 export * from "./payments";
 export * from "./pricing";
-export * from "./renewals";
-export * from "./rental-charges";
 export * from "./rental-documents";
-export * from "./rental-lifecycle-settings";
-export * from "./rental-lifecycle-settings.messages";
-export type * from "./rental-lifecycle-settings.types";
 export * from "./rentals";
 export * from "./reports";
-export * from "./reservation-contact";
 export * from "./reservations";
-export * from "./returns";
 export * from "./storage-units";
 export * from "./storage-units.messages";
 export * from "./support";

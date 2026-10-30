@@ -1,5 +1,5 @@
 "use client";
-import { UserRole } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import {
   ArrowRight,
   BadgeCheck,
@@ -15,7 +15,13 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { Currency } from "@/components/ui/display";
+import {
+  OperationalBackLink,
+  OperationalBadge,
+  OperationalPageHeader,
+} from "@/components/ui/operational";
 import { ErrorState, LoadingState } from "@/components/ui/states";
+import { facilityStaffRoutes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { AssignmentScreen } from "@/features/facility-flow/assignment-screen";
 import { FACILITY_OVERVIEW_MESSAGES } from "@/features/facility-flow/facility-overview.messages";
@@ -35,8 +41,6 @@ import {
 } from "@/features/facility-flow/flow-ui";
 import { InspectionScreen } from "@/features/facility-flow/inspection-screen";
 import { flowError, useCheckInFlow } from "@/features/facility-flow/use-check-in-flow";
-import { CONTRACT_UI as C } from "@/features/rentals/contract.messages";
-import { RentalDocuments } from "@/features/rentals/rental-records";
 import { formatDateTime } from "@/lib/format";
 export function CheckInScreen() {
   return (
@@ -56,17 +60,19 @@ function CheckInFlowScreen() {
   const router = useRouter();
   const user = useAuthStore((s) => s.session?.user);
   const root = user?.role === UserRole.FACILITY_MANAGER ? "/facility-manager" : "/staff";
+  const returnTo =
+    user?.role === UserRole.FACILITY_STAFF
+      ? facilityStaffRoutes.tasks
+      : `${root}/tasks?view=appointments`;
   const [lookupType, setLookupType] = useState<"BOOKING_CODE" | "QR_TOKEN">("BOOKING_CODE");
   const [input, setInput] = useState("");
   const result = flow.result;
-  const reasons = result?.eligibility.reasons ?? [];
-  const verified =
-    result?.verification?.staffId === user?.id &&
-    ["VERIFIED", "CONSUMED"].includes(result?.verification?.status ?? "");
+  const reasons = result?.checkInReadiness.reasons ?? [];
+  const inspectionStarted = Boolean(flow.current);
   const wantsInspection = ["inspect", "review", "handover"].includes(flow.view);
-  const locked = flow.current?.status === "COMPLETED";
+  const locked = flow.current?.status === "PASSED" || flow.current?.status === "FAILED";
   const inspectionView = locked ? "handover" : flow.view === "handover" ? "review" : flow.view;
-  const active = wantsInspection && verified ? (locked ? 3 : 2) : 1;
+  const active = wantsInspection && inspectionStarted ? (locked ? 3 : 2) : 1;
   const title =
     active === 3
       ? FLOW.handoverTitle
@@ -90,7 +96,8 @@ function CheckInFlowScreen() {
   if (user?.role === UserRole.FACILITY_MANAGER)
     return (
       <>
-        <FlowHeading title={FLOW.monitor} description={FLOW.managerMonitorHint} />
+        <OperationalBackLink href={returnTo}>{FLOW.back}</OperationalBackLink>
+        <OperationalPageHeader title={FLOW.monitor} description={FLOW.managerMonitorHint} />
         {flow.lookup.isLoading ? (
           <LoadingState label={FLOW.loading} variant="detail" />
         ) : flow.lookup.isError ? (
@@ -101,7 +108,7 @@ function CheckInFlowScreen() {
         ) : !result ? (
           <Panel>
             <p>{FLOW.managerMonitorHint}</p>
-            <Link href={`${root}/dashboard`} className="underline">
+            <Link href={returnTo} className="underline">
               {FLOW.back}
             </Link>
           </Panel>
@@ -113,19 +120,11 @@ function CheckInFlowScreen() {
                 {result.booking.bookingCode} ·{" "}
                 {result.assignedUnit?.physicalUnitCode ?? FLOW.unassigned}
               </p>
-              <Pill>{FLOW.statusLabels[result.booking.status]}</Pill>
+              <OperationalBadge
+                value={result.booking.status}
+                label={FLOW.statusLabels[result.booking.status]}
+              />
               <div className="mt-4 flex flex-wrap gap-3">
-                <Button variant="secondary" onClick={() => router.push(`${root}/dashboard`)}>
-                  <BackLabel />
-                </Button>
-                {result.booking.status === "CONFIRMED" && (
-                  <a
-                    href="#booking-contracts"
-                    className="inline-flex min-h-11 items-center rounded border border-primary bg-white px-4 font-semibold text-primary hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-primary"
-                  >
-                    {C.manage}
-                  </a>
-                )}
                 {result.booking.status === "CONFIRMED" && (
                   <Link
                     className="rounded bg-[#b4efda] p-3 font-semibold"
@@ -136,14 +135,6 @@ function CheckInFlowScreen() {
                 )}
               </div>
             </Panel>
-            <div id="booking-contracts" className="scroll-mt-24">
-              <RentalDocuments
-                key={result.booking.id}
-                bookingId={result.booking.id}
-                manager={result.booking.status === "CONFIRMED"}
-                handover
-              />
-            </div>
             <div className="grid gap-6 lg:grid-cols-2">
               <Panel className="space-y-4">
                 <SectionTitle icon={<User size={20} />}>{FLOW.dossier}</SectionTitle>
@@ -163,7 +154,7 @@ function CheckInFlowScreen() {
                     {formatDateTime(result.booking.checkInSlotEnd)}
                   </DataPair>
                   <DataPair label={FLOW.deadline}>
-                    {formatDateTime(result.booking.graceEndsAt)}
+                    {formatDateTime(result.booking.checkInDeadlineAt)}
                   </DataPair>
                   <DataPair label={FLOW.rentalEnd}>
                     {formatDateTime(result.booking.rentalEndAt)}
@@ -214,7 +205,7 @@ function CheckInFlowScreen() {
                   view="history"
                   readOnly
                   onNavigate={() => {}}
-                  onBack={() => router.push(`${root}/dashboard`)}
+                  onBack={() => router.push(returnTo)}
                 />
               ))
             ) : (
@@ -234,9 +225,9 @@ function CheckInFlowScreen() {
         active={active}
         completed={[
           ...(result?.assignedUnit ? [0] : []),
-          ...(verified ? [1] : []),
+          ...(inspectionStarted ? [1] : []),
           ...(locked ? [2] : []),
-          ...(flow.current?.handedOverAt ? [3] : []),
+          ...(result?.booking.status === "CHECKED_IN" ? [3] : []),
         ]}
       />
       <FlowHelp />
@@ -300,7 +291,7 @@ function CheckInFlowScreen() {
           <h2 className={`${titleClass} mt-5 text-xl`}>{FLOW.emptyTitle}</h2>
           <p className="mt-2 text-sm text-[#707975]">{FLOW.emptyHint}</p>
         </Panel>
-      ) : wantsInspection && verified ? (
+      ) : wantsInspection && inspectionStarted ? (
         flow.history.isLoading ? (
           <LoadingState label={FLOW.loading} variant="table" />
         ) : flow.history.isError && !flow.history.data ? (
@@ -312,7 +303,7 @@ function CheckInFlowScreen() {
             result={result}
             view={inspectionView}
             onNavigate={flow.navigate}
-            onBack={() => (locked ? router.push(`${root}/dashboard`) : flow.navigate("verify"))}
+            onBack={() => (locked ? router.push(returnTo) : flow.navigate("verify"))}
           />
         ) : (
           <Panel className="py-12 text-center">
@@ -348,13 +339,13 @@ function CheckInFlowScreen() {
               },
               {
                 label: FLOW.receptionStatus,
-                value: verified
-                  ? FLOW.verified
-                  : result.eligibility.canProceed
+                value: inspectionStarted
+                  ? FLOW.inspecting
+                  : result.checkInReadiness.canProceed
                     ? FLOW.eligible
                     : FLOW.notEligible,
                 tone:
-                  verified || result.eligibility.canProceed
+                  inspectionStarted || result.checkInReadiness.canProceed
                     ? ("green" as const)
                     : ("amber" as const),
                 icon: User,
@@ -472,7 +463,7 @@ function CheckInFlowScreen() {
                   {[
                     { label: FLOW.slotStart, value: result.booking.checkInSlotStart },
                     { label: FLOW.slotEnd, value: result.booking.checkInSlotEnd },
-                    { label: FLOW.deadline, value: result.booking.graceEndsAt },
+                    { label: FLOW.deadline, value: result.booking.checkInDeadlineAt },
                   ].map(({ label, value }) => (
                     <div key={label}>
                       <strong>{formatDateTime(value)}</strong>
@@ -496,24 +487,24 @@ function CheckInFlowScreen() {
               </ul>
             </Panel>
           )}
-          {verified && flow.history.isError && (
+          {inspectionStarted && flow.history.isError && (
             <ErrorState message={FLOW.loadHistoryError} onRetry={() => flow.history.refetch()} />
           )}
           <Panel className="flex flex-wrap justify-between gap-3">
-            <Button variant="secondary" onClick={() => router.push(`${root}/dashboard`)}>
+            <Button variant="secondary" onClick={() => router.push(returnTo)}>
               <BackLabel />
             </Button>
             <Button
               disabled={
                 result.booking.status === "CHECKED_IN"
                   ? !flow.current
-                  : !verified && !result.eligibility.canProceed
+                  : !inspectionStarted && !result.checkInReadiness.canProceed
               }
               loading={flow.verify.isPending}
               onClick={proceed}
               icon={<ArrowRight size={18} />}
             >
-              {verified ? FLOW.continueInspect : FLOW.verifyProceed}
+              {inspectionStarted ? FLOW.continueInspect : FLOW.verifyProceed}
             </Button>
           </Panel>
         </>

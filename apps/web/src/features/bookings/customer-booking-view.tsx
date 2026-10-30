@@ -165,7 +165,7 @@ export function CustomerBookingDetail({ id }: { id: string }) {
         action={
           <div className="flex flex-wrap gap-2">
             <Link
-              href={`${customerRoutes.supportNew}?bookingId=${encodeURIComponent(id)}`}
+              href={`${customerRoutes.supportNew}?reservationId=${encodeURIComponent(id)}`}
               className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 hover:text-slate-900"
             >
               <HelpCircle className="size-4" />

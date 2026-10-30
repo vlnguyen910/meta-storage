@@ -8,4 +8,5 @@ export interface InspectionChecklistProps {
   results: HandoverChecklistItemResult[];
   disabled?: boolean;
   onChange?: (code: string, result: "PASS" | "FAIL") => void;
+  onNoteChange?: (code: string, note: string) => void;
 }

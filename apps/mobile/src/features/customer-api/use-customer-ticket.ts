@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
+  SUPPORT_IMAGE_MAX_BYTES,
   type SupportImageInput,
   type SupportReplyInput,
   SupportReplyInputSchema,
@@ -11,6 +12,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { api } from "../../lib/api";
+import { prepareImageUpload } from "../../lib/prepare-image-upload";
 import {
   customerCommandId,
   readCustomerCommand,
@@ -19,6 +21,8 @@ import {
 } from "./customer-native";
 
 export function customerError(error: unknown) {
+  if (axios.isAxiosError(error) && (!error.response || error.response.status >= 500))
+    return M.error;
   return axios.isAxiosError(error)
     ? (error.response?.data?.error?.message ?? M.error)
     : error instanceof Error
@@ -70,12 +74,14 @@ export function useCustomerTicket(owner: string, id: string) {
   };
   const reply = useMutation({
     mutationFn: async () => {
-      if (!replyCommand.current || replyCommand.current.content !== content.trim())
+      if (!replyCommand.current || replyCommand.current.content !== content.trim()) {
+        if (!detail.data) throw new Error();
         replyCommand.current = {
           content: content.trim(),
-          version: detail.data!.ticket.version,
+          version: detail.data.ticket.version,
           idempotencyKey: customerCommandId(),
         };
+      }
       await saveCustomerCommand(owner, `reply-${id}`, replyCommand.current);
       return api.support.reply(id, replyCommand.current);
     },
@@ -95,18 +101,8 @@ export function useCustomerTicket(owner: string, id: string) {
         quality: 1,
       });
       const asset = result.assets?.[0];
-      if (!asset) return;
-      if (
-        !asset.base64 ||
-        !["image/jpeg", "image/png", "image/webp"].includes(asset.mimeType ?? "") ||
-        (asset.fileSize ?? Math.floor((asset.base64.length * 3) / 4)) > 5 * 1024 * 1024
-      )
-        throw new Error(M.imageError);
-      setImage({
-        filename: asset.fileName ?? "image.jpg",
-        mimeType: asset.mimeType as SupportImageInput["mimeType"],
-        dataBase64: asset.base64,
-      });
+      if (result.canceled || !asset) return;
+      setImage(prepareImageUpload(asset, SUPPORT_IMAGE_MAX_BYTES));
       uploadCommand.current = undefined;
     },
     onError,
@@ -114,14 +110,17 @@ export function useCustomerTicket(owner: string, id: string) {
   const upload = useMutation({
     mutationFn: async (messageId: string) => {
       if (!image) return;
-      uploadCommand.current ??= {
-        messageId,
-        input: {
-          ...image,
-          version: detail.data!.ticket.version,
-          idempotencyKey: customerCommandId(),
-        },
-      };
+      if (!uploadCommand.current) {
+        if (!detail.data) throw new Error();
+        uploadCommand.current = {
+          messageId,
+          input: {
+            ...image,
+            version: detail.data.ticket.version,
+            idempotencyKey: customerCommandId(),
+          },
+        };
+      }
       return api.support.uploadImage(
         id,
         uploadCommand.current.messageId,

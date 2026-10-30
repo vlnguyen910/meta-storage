@@ -10,7 +10,7 @@ export const rentalKeys = {
   detail: (id: string) => ["rentals", "detail", id] as const,
 };
 
-export function useMyRentals(view: "current" | "history" = "current") {
+export function useMyRentals(view: "current" | "history" = "current", enabled = true) {
   const identity = useFlow3Identity();
   return useInfiniteQuery({
     queryKey: [...rentalKeys.mine, view, identity],
@@ -18,6 +18,35 @@ export function useMyRentals(view: "current" | "history" = "current") {
     queryFn: ({ pageParam }) =>
       api.rentals.mine({ view, limit: 20, ...(pageParam ? pageParam : {}) }),
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    enabled,
+  });
+}
+
+async function loadRentals(view: "current" | "history") {
+  const items = [];
+  let cursor: { afterEndAt: string; afterId: string } | undefined;
+  do {
+    const page = await api.rentals.mine({ view, limit: 100, ...(cursor ?? {}) });
+    items.push(...page.items);
+    cursor = page.nextCursor ?? undefined;
+  } while (cursor);
+  return items;
+}
+
+export function useAllMyRentals(enabled = true) {
+  const identity = useFlow3Identity();
+  return useQuery({
+    queryKey: [...rentalKeys.mine, "all", identity],
+    queryFn: async () => {
+      const [current, history] = await Promise.all([
+        loadRentals("current"),
+        loadRentals("history"),
+      ]);
+      return [...current, ...history].sort(
+        (a, b) => Date.parse(b.endAt) - Date.parse(a.endAt) || b.id.localeCompare(a.id),
+      );
+    },
+    enabled,
   });
 }
 

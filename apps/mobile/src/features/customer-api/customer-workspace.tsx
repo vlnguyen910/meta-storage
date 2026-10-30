@@ -1,11 +1,18 @@
-import { CUSTOMER_WORKSPACE as M } from "@metastorage/shared";
 import { focusManager, useQueryClient } from "@tanstack/react-query";
 import * as Linking from "expo-linking";
-import { useEffect, useState } from "react";
-import { AppState, KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Button } from "../../components/ui/mobile-ui";
+import { useEffect, useRef, useState } from "react";
+import {
+  AppState,
+  BackHandler,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  View,
+} from "react-native";
+import { ScreenFrame } from "../../components/ui/screen-frame";
+import { WorkspaceHeader, WorkspaceTabs } from "../../components/ui/workspace-ui";
 import { authClient } from "../../lib/auth-client";
+import { NotificationScreen } from "../notifications/notification-screen";
 import type { CustomerRoute } from "./customer-api.types";
 import {
   CustomerBookingScreen,
@@ -26,12 +33,59 @@ import {
   readCustomerCommand,
   saveCustomerCommand,
 } from "./customer-native";
+import { CustomerTransactionsScreen } from "./customer-transactions-screen";
+import { CUSTOMER_MOBILE_UI as U } from "./customer-ui.messages";
 
-export function CustomerWorkspace({ owner }: { owner: string }) {
+export function CustomerWorkspace({
+  owner,
+  name,
+  initialRoute,
+  onHome,
+}: {
+  owner: string;
+  name: string;
+  initialRoute?: CustomerRoute;
+  onHome: () => void;
+}) {
   const client = useQueryClient();
-  const [stack, setStack] = useState<CustomerRoute[]>([{ screen: "home" }]);
-  const route = stack.at(-1)!;
+  const [stack, setStack] = useState<CustomerRoute[]>(
+    initialRoute ? [{ screen: "home" }, initialRoute] : [{ screen: "home" }],
+  );
+  const route = stack.at(-1) ?? { screen: "home" as const };
   const go = (next: CustomerRoute) => setStack((s) => [...s, next]);
+  const scroll = useRef<ScrollView>(null);
+  const routeKey = `${route.screen}:${"id" in route ? route.id : ""}`;
+  const previousRoute = useRef(routeKey);
+  useEffect(() => {
+    if (previousRoute.current !== routeKey) {
+      scroll.current?.scrollTo({ y: 0, animated: false });
+      previousRoute.current = routeKey;
+    }
+  }, [routeKey]);
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    const listener = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (stack.length < 2) {
+        onHome();
+        return true;
+      }
+      setStack((s) => s.slice(0, -1));
+      return true;
+    });
+    return () => listener.remove();
+  }, [stack.length, onHome]);
+  const selectedTab = ["booking", "bookings", "payment"].includes(route.screen)
+    ? "rentals"
+    : ["rental", "rentals"].includes(route.screen)
+      ? "rentals"
+      : route.screen === "transactions"
+        ? "transactions"
+        : ["ticket", "support", "support-new"].includes(route.screen)
+          ? "support"
+          : ["catalog", "checkout"].includes(route.screen)
+            ? "catalog"
+            : "home";
+
   useEffect(() => {
     clearPrivateFiles();
     let active = true;
@@ -46,8 +100,7 @@ export function CustomerWorkspace({ owner }: { owner: string }) {
         const payment: CustomerRoute = {
           screen: "payment",
           id,
-          bookingId: parsed.searchParams.get("bookingId") ?? undefined,
-          chargeId: parsed.searchParams.get("chargeId") ?? undefined,
+          reservationId: parsed.searchParams.get("reservationId") ?? undefined,
         };
         setStack([{ screen: "home" }, payment]);
         void saveCustomerCommand(owner, "payment", payment);
@@ -79,6 +132,12 @@ export function CustomerWorkspace({ owner }: { owner: string }) {
   }, [owner, client]);
   let screen: import("react").ReactNode = null;
   switch (route.screen) {
+    case "transactions":
+      screen = <CustomerTransactionsScreen owner={owner} go={go} />;
+      break;
+    case "notifications":
+      screen = <NotificationScreen owner={owner} />;
+      break;
     case "home":
       screen = <CustomerHomeScreen owner={owner} go={go} />;
       break;
@@ -103,7 +162,12 @@ export function CustomerWorkspace({ owner }: { owner: string }) {
       break;
     case "payment":
       screen = (
-        <CustomerPaymentScreen owner={owner} id={route.id} bookingId={route.bookingId} go={go} />
+        <CustomerPaymentScreen
+          owner={owner}
+          id={route.id}
+          reservationId={route.reservationId}
+          go={go}
+        />
       );
       break;
     case "rentals":
@@ -120,7 +184,7 @@ export function CustomerWorkspace({ owner }: { owner: string }) {
         <CustomerSupportNewScreen
           owner={owner}
           go={go}
-          bookingId={route.bookingId}
+          reservationId={route.reservationId}
           paymentId={route.paymentId}
         />
       );
@@ -130,47 +194,52 @@ export function CustomerWorkspace({ owner }: { owner: string }) {
       break;
   }
   return (
-    <SafeAreaView className="flex-1 bg-[#F6F8F6]">
+    <ScreenFrame>
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <View className="flex-row flex-wrap justify-between gap-2 border-b border-[#BFCAC4] bg-white p-3">
-          <Button
-            label={M.back}
-            secondary
-            onPress={() => setStack((s) => (s.length > 1 ? s.slice(0, -1) : s))}
-          />
-          <Button label={M.dashboard} secondary onPress={() => setStack([{ screen: "home" }])} />
-          <Button
-            label={M.logout}
-            secondary
-            onPress={() => {
-              void Promise.all(
-                ["checkout", "payment", "support-draft"].map((k) => clearCustomerCommand(owner, k)),
-              ).then(() => authClient.signOut());
-            }}
-          />
-        </View>
+        <WorkspaceHeader
+          name={name}
+          subtitle={U.customer}
+          onHome={onHome}
+          onNotifications={() => go({ screen: "notifications" })}
+          onBack={stack.length > 1 ? () => setStack((s) => s.slice(0, -1)) : undefined}
+          onLogout={() => {
+            void Promise.all(
+              ["checkout", "reservation-checkout-v2", "payment", "support-draft"].map((key) =>
+                clearCustomerCommand(owner, key),
+              ),
+            ).then(() => authClient.signOut());
+          }}
+        />
         <ScrollView
+          ref={scroll}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
-          contentContainerClassName="grow p-4"
+          contentContainerClassName="grow px-4 py-6 sm:px-6"
         >
           <View
-            className="mx-auto w-full max-w-xl"
+            className="mx-auto w-full max-w-3xl"
             key={`${route.screen}:${"id" in route ? route.id : ""}`}
           >
             {screen}
           </View>
         </ScrollView>
-        <View className="flex-row flex-wrap justify-center gap-2 border-t border-[#BFCAC4] bg-white p-2">
-          <Button label={M.facility} secondary onPress={() => go({ screen: "catalog" })} />
-          <Button label={M.bookings} secondary onPress={() => go({ screen: "bookings" })} />
-          <Button label={M.storage} secondary onPress={() => go({ screen: "rentals" })} />
-          <Button label={M.support} secondary onPress={() => go({ screen: "support" })} />
-        </View>
+        <WorkspaceTabs
+          tabs={U.tabs}
+          selected={selectedTab}
+          onSelect={(key) => {
+            const tab = U.tabs.find((item) => item.key === key);
+            if (tab)
+              setStack(
+                tab.key === "home"
+                  ? [{ screen: "home" }]
+                  : [{ screen: "home" }, { screen: tab.key }],
+              );
+          }}
+        />
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </ScreenFrame>
   );
 }

@@ -12,7 +12,9 @@ export const lifecycleNotificationsRoutes: FastifyPluginAsync = async (app) => {
   app.withTypeProvider<ZodTypeProvider>().get(
     "/notifications",
     {
-      preHandler: [requireRole("CUSTOMER", "FACILITY_MANAGER")],
+      preHandler: [
+        requireRole("CUSTOMER", "FACILITY_MANAGER", "FACILITY_STAFF", "BUSINESS_OPERATION_MANAGER"),
+      ],
       schema: { querystring: NotificationInboxQuerySchema },
     },
     async (request, reply) => {

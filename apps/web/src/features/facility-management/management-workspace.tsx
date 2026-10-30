@@ -1287,7 +1287,7 @@ function TypeEditor({ type, onClose }: { type?: FacilityUnitTypeDto; onClose: ()
     resolver: zodResolver(CreateUnitTypeSchema),
     defaultValues: {
       facilityId: type?.facilityId ?? "",
-      priceRangeId: type?.priceRangeId ?? "",
+
       code: type?.code ?? "",
       name: type?.name ?? "",
       sizeLabel: type?.sizeLabel ?? "",

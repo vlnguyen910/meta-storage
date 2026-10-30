@@ -2,28 +2,26 @@ import type {
   ApiEnvelope,
   ApiFacility,
   ApiFacilityAssignment,
-  AssignFacilityTaskInput,
   CreateAssignmentBody,
   CreateFacilityBody,
   CreateFacilityTaskInput,
-  CreateFacilityTaskReportInput,
   CreateStorageUnitInput,
   CreateUnitTypeInput,
   FacilityQuery,
+  FacilityTaskDashboardSummary,
   FacilityTaskDetail,
   FacilityTaskListQuery,
   FacilityTaskListResult,
-  FacilityTaskReportDetail,
-  FacilityTaskReportListResult,
   FacilityUnitTypeDto,
   FacilityUnitTypeManagementItem,
+  StaffFacilityTaskListQuery,
   StorageUnitDetail,
   StorageUnitListQuery,
   StorageUnitListResult,
-  StorageUnitMaintenanceHistoryResult,
   StorageUnitMaintenanceTransition,
   UnitTypeManagementQuery,
   UpdateFacilityBody,
+  UpdateFacilityTaskInput,
   UpdateStorageUnitInput,
   UpdateUnitTypeInput,
 } from "@metastorage/contracts";
@@ -110,48 +108,29 @@ export function createFlow5Client(http: AxiosInstance) {
           http
             .post<ApiEnvelope<StorageUnitDetail>>(`/storage-units/${id}/transitions`, input)
             .then(unwrap),
-        history: (id: string, offset = 0, signal?: AbortSignal) =>
-          http
-            .get<ApiEnvelope<StorageUnitMaintenanceHistoryResult>>(
-              `/storage-units/${id}/maintenance-history`,
-              { params: { limit: 20, offset }, signal },
-            )
-            .then(unwrap),
       },
       tasks: {
-        list: (params: FacilityTaskListQuery, signal?: AbortSignal) =>
+        dashboardMine: (signal?: AbortSignal) =>
           http
-            .get<ApiEnvelope<FacilityTaskListResult>>("/facility-tasks", { params, signal })
-            .then(unwrap),
-        get: (id: string, signal?: AbortSignal) =>
-          http
-            .get<ApiEnvelope<FacilityTaskDetail>>(`/facility-tasks/${id}`, { signal })
-            .then(unwrap),
-        create: (input: CreateFacilityTaskInput) =>
-          http.post<ApiEnvelope<FacilityTaskDetail>>("/facility-tasks", input).then(unwrap),
-        assign: (id: string, input: AssignFacilityTaskInput) =>
-          http
-            .post<ApiEnvelope<FacilityTaskDetail>>(`/facility-tasks/${id}/assign`, input)
-            .then(unwrap),
-        start: (id: string) =>
-          http.post<ApiEnvelope<FacilityTaskDetail>>(`/facility-tasks/${id}/start`).then(unwrap),
-        acceptReport: (id: string, reportId: string) =>
-          http
-            .post<ApiEnvelope<FacilityTaskDetail>>(
-              `/facility-tasks/${id}/reports/${reportId}/accept`,
-            )
-            .then(unwrap),
-        report: (id: string, input: CreateFacilityTaskReportInput) =>
-          http
-            .post<ApiEnvelope<FacilityTaskReportDetail>>(`/facility-tasks/${id}/reports`, input)
-            .then(unwrap),
-        reports: (id: string, offset = 0, signal?: AbortSignal) =>
-          http
-            .get<ApiEnvelope<FacilityTaskReportListResult>>(`/facility-tasks/${id}/reports`, {
-              params: { limit: 20, offset },
+            .get<ApiEnvelope<FacilityTaskDashboardSummary>>("/facility-tasks/dashboard/my", {
               signal,
             })
             .then(unwrap),
+        listMine: (params: StaffFacilityTaskListQuery, signal?: AbortSignal) =>
+          http
+            .get<ApiEnvelope<FacilityTaskListResult>>("/facility-tasks/my", { params, signal })
+            .then(unwrap),
+        listFacility: (params: FacilityTaskListQuery, signal?: AbortSignal) =>
+          http
+            .get<ApiEnvelope<FacilityTaskListResult>>("/facility-tasks/facility", {
+              params,
+              signal,
+            })
+            .then(unwrap),
+        create: (input: CreateFacilityTaskInput) =>
+          http.post<ApiEnvelope<FacilityTaskDetail>>("/facility-tasks", input).then(unwrap),
+        update: (id: string, input: UpdateFacilityTaskInput) =>
+          http.patch<ApiEnvelope<FacilityTaskDetail>>(`/facility-tasks/${id}`, input).then(unwrap),
       },
     },
   };

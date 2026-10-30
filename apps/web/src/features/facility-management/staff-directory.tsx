@@ -5,6 +5,7 @@ import { Building2, Mail, Phone, UsersRound } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { Input } from "@/components/ui/form-controls";
+import { OperationalPageHeader } from "@/components/ui/operational";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { isMockMode } from "@/config/api-mode";
 import { useFacilityOptions, useTaskStaff } from "./hooks";
@@ -49,23 +50,22 @@ export function StaffDirectoryWorkspace() {
 
   return (
     <div className="grid gap-6">
-      <header>
-        <h1 className="text-3xl font-bold">{M.title}</h1>
-        <p className="mt-2 text-sm text-slate-600">{M.description}</p>
-      </header>
-      <ManagementField label={F5.facility}>
-        <DropdownSelect
-          value={scope.facilityId}
-          onChange={(val) => scope.select(val)}
-          className="w-full"
-          triggerClassName="h-10 min-h-10 w-full bg-white border-slate-200"
-          options={scope.query.data.map((facility) => ({
-            value: facility.id,
-            label: `${facility.code} · ${facility.name}`,
-          }))}
-          maxVisibleItems={6}
-        />
-      </ManagementField>
+      <OperationalPageHeader title={M.title} description={M.description} />
+      {scope.query.data.length > 1 && (
+        <ManagementField label={F5.facility}>
+          <DropdownSelect
+            value={scope.facilityId}
+            onChange={(val) => scope.select(val)}
+            className="w-full"
+            triggerClassName="h-10 min-h-10 w-full bg-white border-slate-200"
+            options={scope.query.data.map((facility) => ({
+              value: facility.id,
+              label: `${facility.code} · ${facility.name}`,
+            }))}
+            maxVisibleItems={6}
+          />
+        </ManagementField>
+      )}
       <StaffPanel
         key={scope.facilityId}
         staff={pageItems}
@@ -162,7 +162,7 @@ function StaffPanel({
           {M.noMatches}
         </p>
       ) : (
-        <ul className="grid list-none gap-4 p-0 sm:grid-cols-2 xl:grid-cols-3">
+        <ul className="grid list-none gap-4 p-0 md:grid-cols-2 xl:grid-cols-3">
           {staff.map((person) => (
             <li key={person.id}>
               <StaffCard person={person} />
@@ -201,7 +201,7 @@ function StaffPanel({
 function StaffCard({ person }: { person: FacilityStaffMember }) {
   const assignedBookings = person.assignedTasksCount ?? 0;
   return (
-    <article className={`${panelClass} grid h-full content-start gap-4`}>
+    <article className={`${panelClass} grid h-full content-start gap-3`}>
       <header className="flex items-start gap-3">
         <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-900">
           <UsersRound aria-hidden="true" size={21} />
@@ -225,7 +225,7 @@ function StaffCard({ person }: { person: FacilityStaffMember }) {
         </div>
       </header>
       <dl className="grid gap-3 border-t border-slate-200 pt-4 text-sm">
-        <div className="flex min-w-0 items-start gap-2 rounded-xl border border-emerald-100 bg-emerald-50/70 p-3">
+        <div className="flex min-w-0 items-start gap-2">
           <Mail aria-hidden="true" className="mt-0.5 shrink-0 text-emerald-800" size={16} />
           <div className="min-w-0">
             <dt className="text-xs font-semibold text-slate-600">{M.email}</dt>
@@ -262,7 +262,7 @@ function StaffCard({ person }: { person: FacilityStaffMember }) {
           </div>
         </div>
       </dl>
-      <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <div className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2.5">
         <span className="text-sm font-semibold text-slate-700">{M.assignedBookings}</span>
         <span
           className={`rounded-full border px-3 py-1 text-lg font-extrabold tabular-nums shadow-sm ${

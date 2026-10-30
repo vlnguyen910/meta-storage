@@ -138,7 +138,7 @@ components:
     backgroundColor: "{colors.ring}"
 ---
 
-# StoreX Visual Identity & Design System Specification
+# MetaStorage Visual Identity & Design System Specification
 
 ## Overview
 

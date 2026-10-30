@@ -15,7 +15,7 @@ export const BookingPaymentParamsSchema = z.object({
 });
 export type BookingPaymentParams = z.infer<typeof BookingPaymentParamsSchema>;
 
-export const BookingPaymentInputSchema = z.object({
+export const CheckoutSessionInputSchema = z.object({
   idempotencyKey: z.string().min(16).max(128),
   contactPhone: z
     .string()
@@ -23,7 +23,9 @@ export const BookingPaymentInputSchema = z.object({
     .regex(/^(?:\+[1-9]\d{7,14}|0\d{9})$/)
     .optional(),
 });
-export type BookingPaymentInput = z.infer<typeof BookingPaymentInputSchema>;
+export type CheckoutSessionInput = z.infer<typeof CheckoutSessionInputSchema>;
+export { CheckoutSessionInputSchema as BookingPaymentInputSchema };
+export type BookingPaymentInput = CheckoutSessionInput;
 
 export const PaymentStatus = {
   PENDING: "PENDING",
@@ -34,6 +36,18 @@ export const PaymentStatus = {
 } as const;
 export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
 export const PAYMENT_STATUSES = Object.values(PaymentStatus);
+export const PAYMENT_REFUND_REASONS = [
+  "NO_CAPACITY",
+  "CHECK_IN_CLOSED",
+  "OFFERING_UNAVAILABLE",
+  "CUSTOMER_CANCELLATION",
+  "NO_SHOW",
+  "RENEWAL_NOT_APPLIED",
+] as const;
+export type PaymentType = "CHARGE" | "DEPOSIT_REFUND";
+export const PaymentTypeSchema = z.enum(["CHARGE", "DEPOSIT_REFUND"]);
+export const PaymentRefundReasonSchema = z.enum(PAYMENT_REFUND_REASONS);
+export type PaymentRefundReason = z.infer<typeof PaymentRefundReasonSchema>;
 
 export const ManualRefundQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
@@ -129,11 +143,13 @@ export type PaymentPendingResponse = z.infer<typeof PaymentPendingResponseSchema
 export type PaymentResponse = PaymentResult | PaymentPendingResponse;
 
 export const PaymentStatusResponseSchema = z.object({
+  type: PaymentTypeSchema,
+  reservationId: z.uuid().optional(),
   paymentId: z.string().uuid(),
   status: z.enum(PaymentStatus),
-  provider: z.string(),
-  paymentCode: z.string(),
-  chargeId: z.string().uuid().optional(),
+  provider: z.string().nullable(),
+  paymentCode: z.string().nullable(),
+
   transferInstructions: SepayPaymentInstructionsSchema.optional(),
   checkoutUrl: z.string().url().optional(),
   checkoutFormFields: z.record(z.string(), z.union([z.string(), z.number()])).optional(),

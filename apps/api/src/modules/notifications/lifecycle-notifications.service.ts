@@ -12,6 +12,7 @@ export class LifecycleNotificationsService {
       id: row.id,
       type: row.type,
       bookingId: row.bookingId,
+      reservationId: row.reservationId,
       subject: row.subject,
       body: row.body,
       occurredAt: row.occurredAt.toISOString(),

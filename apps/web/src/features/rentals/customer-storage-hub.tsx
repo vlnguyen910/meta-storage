@@ -1,119 +1,187 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import {
   Archive,
   CalendarCheck2,
   CalendarDays,
+  Check,
   CheckCircle2,
   ChevronRight,
-  Clock,
-  History,
-  MapPin,
   Plus,
   QrCode,
+  RotateCcw,
+  Search,
+  WalletCards,
   Warehouse,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { type FormEvent, Suspense, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { PageHeader, StatusBadge } from "@/components/ui/display";
+import { Button } from "@/components/ui/button";
+import { CustomerTable } from "@/components/ui/customer-table";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ShadcnButton } from "@/components/ui/shadcn-button";
-import { Spinner } from "@/components/ui/spinner";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { customerRoutes } from "@/config/routes";
-import { useCustomerBookings } from "@/features/bookings/customer-bookings.hooks";
-import { customerApiError } from "@/features/bookings/customer-error";
-import { useMyRentals } from "@/features/rentals/hooks";
-import { RENTAL_MESSAGES } from "@/features/rentals/rentals.messages";
+import { useAllMyRentals, useMyRentals } from "@/features/rentals/hooks";
+import { useFlow3Identity } from "@/features/returns/use-flow3-identity";
+import { api } from "@/lib/api";
 import { formatDate, formatDateTime } from "@/lib/format";
+import { CustomerAppointmentsView } from "./customer-appointments-view";
+import { CUSTOMER_STORAGE_HUB_MESSAGES as M } from "./customer-storage-hub.messages";
+import type {
+  CustomerStorageHubProps,
+  StorageHubTab,
+  StorageRentalView,
+} from "./customer-storage-hub.types";
 
-export interface CustomerStorageHubProps {
-  defaultTab?: "rentals" | "reservations";
-}
-
-const bookingStatusLabels: Record<string, string> = {
-  CONFIRMED: "Đã xác nhận",
-  CHECKED_IN: "Đã nhận kho",
-  NO_SHOW: "Không đến",
-  CANCELLED: "Đã hủy",
-};
-
-const bookingStatusClasses: Record<string, string> = {
-  CONFIRMED: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  CHECKED_IN: "border-sky-200 bg-sky-50 text-sky-800",
-  NO_SHOW: "border-rose-200 bg-rose-50 text-rose-800",
-  CANCELLED: "border-slate-200 bg-slate-100 text-slate-700",
-};
-
-function StorageHubContent({ defaultTab = "rentals" }: CustomerStorageHubProps) {
+function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageHubProps>) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
-  const activeTab: "rentals" | "reservations" =
-    tabParam === "reservations" || tabParam === "rentals" ? tabParam : defaultTab;
+  const activeTab: StorageHubTab =
+    tabParam === "reservations" || tabParam === "appointments" || tabParam === "rentals"
+      ? tabParam
+      : defaultTab;
 
-  const [rentalView, setRentalView] = useState<"current" | "history">("current");
+  // Rental state
+  const [rentalView, setRentalView] = useState<StorageRentalView>("all");
+  const [rentalSearch, setRentalSearch] = useState("");
+  const [rentalSearchInput, setRentalSearchInput] = useState("");
+  const [rentalPage, setRentalPage] = useState(1);
+  const rentalPageSize = 8;
+
+  // Booking state
+  const [bookingSearch, setBookingSearch] = useState("");
+  const [bookingSearchInput, setBookingSearchInput] = useState("");
+  const [bookingStatus, setBookingStatus] = useState("");
   const [bookingPage, setBookingPage] = useState(1);
-  const bookingPageSize = 6;
+  const bookingPageSize = 8;
 
   // Data queries
-  const rentalsQuery = useMyRentals(rentalView);
-  const bookingsQuery = useCustomerBookings();
+  const currentRentalsQuery = useMyRentals("current", rentalView === "current");
+  const historyRentalsQuery = useMyRentals("history", rentalView === "history");
+  const allRentalsQuery = useAllMyRentals(rentalView === "all");
+  const owner = useFlow3Identity();
+  const bookingsQuery = useQuery({
+    queryKey: ["reservations", owner, "mine"],
+    queryFn: () => api.reservations.mine(),
+  });
 
-  const allRentals = rentalsQuery.data?.pages.flatMap((page) => page.items) ?? [];
-  const allBookings = bookingsQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const allRentals =
+    rentalView === "all"
+      ? (allRentalsQuery.data ?? [])
+      : rentalView === "history"
+        ? (historyRentalsQuery.data?.pages.flatMap((page) => page.items) ?? [])
+        : (currentRentalsQuery.data?.pages.flatMap((page) => page.items) ?? []);
+  const rentalsQuery =
+    rentalView === "all"
+      ? allRentalsQuery
+      : rentalView === "history"
+        ? historyRentalsQuery
+        : currentRentalsQuery;
+  const allBookings = bookingsQuery.data ?? [];
 
-  // Paged bookings
-  const safeBookingPage = Math.min(
-    bookingPage,
-    Math.max(1, Math.ceil(allBookings.length / bookingPageSize)),
+  // Filter rentals
+  const filteredRentals = useMemo(() => {
+    if (!rentalSearch) return allRentals;
+    const query = rentalSearch.toLowerCase();
+    return allRentals.filter(
+      (r) =>
+        r.bookingCode.toLowerCase().includes(query) ||
+        r.storageUnit?.code?.toLowerCase().includes(query) ||
+        r.unitType.name.toLowerCase().includes(query) ||
+        r.facility.name.toLowerCase().includes(query) ||
+        r.facility.address.toLowerCase().includes(query),
+    );
+  }, [allRentals, rentalSearch]);
+
+  // Filter bookings
+  const filteredBookings = useMemo(() => {
+    return allBookings.filter((b) => {
+      const matchesStatus = !bookingStatus || b.status === bookingStatus;
+      if (!matchesStatus) return false;
+      if (!bookingSearch) return true;
+      const query = bookingSearch.toLowerCase();
+      return (
+        b.id.toLowerCase().includes(query) ||
+        (b.facility?.name ?? b.facilityId).toLowerCase().includes(query) ||
+        (b.unitType?.name ?? b.unitTypeId).toLowerCase().includes(query)
+      );
+    });
+  }, [allBookings, bookingSearch, bookingStatus]);
+
+  // Sliced data
+  const pagedRentals = filteredRentals.slice(
+    (rentalPage - 1) * rentalPageSize,
+    rentalPage * rentalPageSize,
   );
-  const visibleBookings = allBookings.slice(
-    (safeBookingPage - 1) * bookingPageSize,
-    safeBookingPage * bookingPageSize,
+  const pagedBookings = filteredBookings.slice(
+    (bookingPage - 1) * bookingPageSize,
+    bookingPage * bookingPageSize,
   );
 
-  const switchTab = (tab: "rentals" | "reservations") => {
+  const switchTab = (tab: StorageHubTab) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", tab);
     router.replace(`?${params.toString()}`, { scroll: false });
   };
 
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="Quản lý kho lưu trữ"
-        title="Kho của tôi"
-        description="Theo dõi toàn bộ các kho bạn đang lưu trữ và các đơn hẹn nhận kho tại Metastorage."
-        action={
-          <ShadcnButton
-            className="w-full bg-primary hover:bg-primary-dark sm:w-auto"
-            onClick={() => router.push(customerRoutes.facilities)}
-          >
-            <Plus className="size-4" aria-hidden="true" />
-            Đặt kho mới
-          </ShadcnButton>
-        }
-      />
+  const handleRentalSearchSubmit = (e?: FormEvent) => {
+    e?.preventDefault();
+    setRentalSearch(rentalSearchInput.trim());
+    setRentalPage(1);
+  };
 
-      {/* Main Unified Navigation Tabs */}
-      <div className="flex border-b border-slate-200">
+  const handleBookingSearchSubmit = (e?: FormEvent) => {
+    e?.preventDefault();
+    setBookingSearch(bookingSearchInput.trim());
+    setBookingPage(1);
+  };
+
+  return (
+    <div className="flex flex-col h-full w-full overflow-hidden min-h-0 gap-3">
+      {/* 1. Header (Compact) */}
+      <header className="shrink-0 flex items-center justify-between gap-4">
+        <div>
+          <p className="mb-0.5 mt-0 text-xs font-semibold text-primary">{M.eyebrow}</p>
+          <h1 className="m-0 font-['Space_Grotesk'] text-xl sm:text-2xl font-bold tracking-tight">
+            {M.title}
+          </h1>
+          <p className="mb-0 mt-0.5 text-xs text-slate-600">{M.description}</p>
+        </div>
+
+        <ShadcnButton
+          className="shrink-0 bg-primary hover:bg-primary-dark text-xs h-9 font-semibold"
+          onClick={() => router.push(customerRoutes.facilities)}
+        >
+          <Plus className="size-3.5" aria-hidden="true" />
+          {M.newStorageAction}
+        </ShadcnButton>
+      </header>
+
+      {/* 2. Main Navigation Tabs */}
+      <div className="shrink-0 flex border-b border-slate-200">
         <button
           type="button"
-          onClick={() => switchTab("rentals")}
-          className={`flex items-center gap-2 border-b-2 px-5 py-3 text-sm font-semibold transition-colors ${
+          onClick={() => {
+            switchTab("rentals");
+            setRentalPage(1);
+          }}
+          className={`flex items-center gap-2 border-b-2 px-4 py-2 text-xs font-bold transition-colors cursor-pointer ${
             activeTab === "rentals"
               ? "border-primary text-primary"
               : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800"
           }`}
         >
-          <Archive className="size-4.5" />
-          <span>Kho đang thuê</span>
+          <Archive className="size-3.5" />
+          <span>{M.tabRentals}</span>
           {allRentals.length > 0 && (
             <span
-              className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+              className={`rounded-full px-1.5 py-0.2 text-[10px] font-extrabold ${
                 activeTab === "rentals"
                   ? "bg-primary-soft text-primary"
                   : "bg-slate-100 text-slate-600"
@@ -126,18 +194,35 @@ function StorageHubContent({ defaultTab = "rentals" }: CustomerStorageHubProps) 
 
         <button
           type="button"
-          onClick={() => switchTab("reservations")}
-          className={`flex items-center gap-2 border-b-2 px-5 py-3 text-sm font-semibold transition-colors ${
+          onClick={() => switchTab("appointments")}
+          aria-current={activeTab === "appointments" ? "page" : undefined}
+          className={`flex items-center gap-2 border-b-2 px-4 py-2 text-xs font-bold transition-colors cursor-pointer ${
+            activeTab === "appointments"
+              ? "border-primary text-primary"
+              : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800"
+          }`}
+        >
+          <CalendarDays className="size-3.5" aria-hidden="true" />
+          <span>{M.tabAppointments}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            switchTab("reservations");
+            setBookingPage(1);
+          }}
+          className={`flex items-center gap-2 border-b-2 px-4 py-2 text-xs font-bold transition-colors cursor-pointer ${
             activeTab === "reservations"
               ? "border-primary text-primary"
               : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800"
           }`}
         >
-          <CalendarCheck2 className="size-4.5" />
-          <span>Đơn đặt kho</span>
+          <CalendarCheck2 className="size-3.5" />
+          <span>{M.tabReservations}</span>
           {allBookings.length > 0 && (
             <span
-              className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+              className={`rounded-full px-1.5 py-0.2 text-[10px] font-extrabold ${
                 activeTab === "reservations"
                   ? "bg-primary-soft text-primary"
                   : "bg-slate-100 text-slate-600"
@@ -149,297 +234,379 @@ function StorageHubContent({ defaultTab = "rentals" }: CustomerStorageHubProps) 
         </button>
       </div>
 
-      {/* TAB 1: RENTALS (Kho đang thuê) */}
+      {/* TAB 1: RENTALS */}
       {activeTab === "rentals" && (
-        <div className="space-y-6">
-          {/* Sub-filter for Current vs History */}
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="inline-flex rounded-xl border border-slate-200/80 bg-slate-100 p-1 shadow-inner">
-              <button
-                type="button"
-                onClick={() => setRentalView("current")}
-                className={`rounded-lg px-4 py-1.5 text-sm font-semibold transition ${
-                  rentalView === "current"
-                    ? "bg-white text-primary shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                Đang sử dụng
-              </button>
-              <button
-                type="button"
-                onClick={() => setRentalView("history")}
-                className={`rounded-lg px-4 py-1.5 text-sm font-semibold transition ${
-                  rentalView === "history"
-                    ? "bg-white text-primary shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                Lịch sử thuê
-              </button>
-            </div>
-            <p className="text-xs text-slate-500">
-              {rentalView === "current"
-                ? "Danh sách các ô kho bạn đang có quyền sử dụng"
-                : "Các hợp đồng kho đã kết thúc hoặc hoàn tất trả kho"}
-            </p>
-          </div>
-
-          {rentalsQuery.isLoading ? (
-            <LoadingState variant="table" />
-          ) : rentalsQuery.isError ? (
-            <ErrorState
-              message={RENTAL_MESSAGES.loadFailed}
-              onRetry={() => rentalsQuery.refetch()}
-            />
-          ) : allRentals.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-12 text-center">
-              <div className="mx-auto mb-4 grid size-14 place-items-center rounded-2xl bg-white text-slate-400 shadow-xs">
-                <Warehouse className="size-7 text-primary/70" />
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden gap-2.5">
+          {/* Single-row Compact Toolbar */}
+          <section
+            aria-label={M.searchConfirm}
+            className="shrink-0 flex items-center gap-2 rounded-card border border-line bg-white p-2 shadow-card min-h-12 relative z-20"
+          >
+            <form
+              onSubmit={handleRentalSearchSubmit}
+              className="flex items-center gap-1.5 flex-1 min-w-44 max-w-xs shrink-0"
+            >
+              <div className="relative flex-1">
+                <Search
+                  aria-hidden="true"
+                  size={15}
+                  className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted"
+                />
+                <input
+                  type="search"
+                  value={rentalSearchInput}
+                  placeholder={M.searchPlaceholder}
+                  onChange={(e) => setRentalSearchInput(e.target.value)}
+                  className="h-9 w-full rounded-lg border border-line bg-canvas pl-8 pr-2 text-xs text-ink placeholder:text-muted outline-none transition focus:border-primary focus:ring-1 focus:ring-primary shadow-2xs"
+                />
               </div>
-              <h3 className="text-lg font-bold text-slate-800">
-                {rentalView === "current"
-                  ? "Bạn chưa có kho nào đang hoạt động"
-                  : "Chưa có lịch sử thuê kho"}
-              </h3>
-              <p className="mx-auto mt-1.5 max-w-md text-sm text-slate-500">
-                {rentalView === "current"
-                  ? "Sau khi nhận bàn giao kho tại cơ sở, ô kho của bạn sẽ xuất hiện tại đây để tiện quản lý và theo dõi."
-                  : "Các kho đã hoàn tất trả kho sẽ được lưu lại lịch sử tại đây."}
-              </p>
-              {rentalView === "current" && (
-                <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <Button
+                type="submit"
+                variant="primary"
+                className="h-9 min-h-9 px-3 text-xs font-semibold gap-1.5 shrink-0"
+                icon={<Search size={14} aria-hidden="true" />}
+              >
+                {M.searchConfirm}
+              </Button>
+            </form>
+
+            <DropdownSelect
+              value={rentalView}
+              onChange={(val) => {
+                setRentalView(val as StorageRentalView);
+                setRentalPage(1);
+              }}
+              placement="bottom"
+              className="w-40 shrink-0"
+              triggerClassName="h-9 min-h-9 text-xs bg-white border-line"
+              placeholder={M.rentalViewFilter}
+              options={[
+                { value: "all", label: M.rentalViewAll },
+                { value: "current", label: M.rentalViewCurrent },
+                { value: "history", label: M.rentalViewHistory },
+              ]}
+              maxVisibleItems={6}
+            />
+
+            <div className="flex items-center gap-1.5 ml-auto shrink-0">
+              <Button
+                variant="outline"
+                className="h-9 min-h-9 px-2.5 text-xs font-semibold gap-1.5"
+                icon={<RotateCcw size={14} aria-hidden="true" />}
+                onClick={() => {
+                  setRentalSearchInput("");
+                  setRentalSearch("");
+                  setRentalPage(1);
+                }}
+              >
+                {M.resetFilters}
+              </Button>
+            </div>
+          </section>
+
+          {/* Rentals Table & Pagination */}
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden gap-2">
+            {rentalsQuery.isLoading ? (
+              <LoadingState variant="table" />
+            ) : rentalsQuery.isError ? (
+              <ErrorState message={M.error} onRetry={() => rentalsQuery.refetch()} />
+            ) : filteredRentals.length === 0 ? (
+              <section className="text-center py-8 rounded-card border border-line bg-white shadow-card flex-1 flex flex-col items-center justify-center p-6">
+                <Warehouse className="mx-auto size-10 text-slate-400" />
+                <h3 className="mt-2 text-sm font-semibold text-slate-800">
+                  {rentalView === "current"
+                    ? M.emptyRentalsCurrent
+                    : rentalView === "history"
+                      ? M.emptyRentalsHistory
+                      : M.emptyRentalsAll}
+                </h3>
+                <p className="mt-1 text-xs text-slate-500 max-w-sm">
+                  {rentalView === "current"
+                    ? M.emptyRentalsDescCurrent
+                    : rentalView === "history"
+                      ? M.emptyRentalsDescHistory
+                      : M.emptyRentalsDescAll}
+                </p>
+                {rentalView !== "history" && (
                   <Link
                     href={customerRoutes.facilities}
-                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark"
+                    className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-primary-dark"
                   >
-                    <Plus className="size-4" />
-                    Khám phá & Đặt kho ngay
+                    <Plus className="size-3.5" />
+                    {M.bookNowAction}
                   </Link>
-                  <button
-                    type="button"
-                    onClick={() => switchTab("reservations")}
-                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                  >
-                    <CalendarCheck2 className="size-4" />
-                    Xem đơn đặt nhận kho
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="grid gap-4">
-              {allRentals.map((rental) => (
-                <div
-                  key={rental.id}
-                  className="group relative rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs transition hover:border-primary/40 hover:shadow-md"
-                >
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="flex items-start gap-4">
-                      <div className="hidden size-12 shrink-0 place-items-center rounded-xl bg-emerald-50 text-primary transition-colors group-hover:bg-primary group-hover:text-white sm:grid">
-                        <Warehouse className="size-6" />
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-md border border-slate-200/70 bg-slate-50 px-2 py-0.5 font-mono text-xs font-bold text-slate-700 uppercase">
-                            Mã đơn: {rental.bookingCode}
+                )}
+              </section>
+            ) : (
+              <>
+                <CustomerTable title={M.tableRentalsTitle} headings={M.tableRentalsHeadings}>
+                  {pagedRentals.map((r) => (
+                    <tr key={r.id}>
+                      <td>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-mono text-xs font-bold text-slate-800">
+                            {r.bookingCode}
                           </span>
-                          {rental.physicalUnit?.code && (
-                            <span className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-mono text-xs font-bold text-emerald-800">
-                              Ô kho: {rental.physicalUnit.code}
+                          {r.storageUnit?.code && (
+                            <span className="font-mono text-[11px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.2 rounded w-fit border border-emerald-200">
+                              {M.unitPrefix}
+                              {r.storageUnit.code}
                             </span>
                           )}
-                          <StatusBadge value={rental.status} />
                         </div>
-                        <h3 className="text-lg font-bold text-slate-900 transition-colors group-hover:text-primary">
-                          {rental.unitType.name} · {rental.unitType.sizeLabel}
-                        </h3>
-                        <p className="flex items-center gap-1.5 text-sm text-slate-500">
-                          <MapPin className="size-3.5 shrink-0 text-slate-400" />
-                          <span>{rental.facility.name}</span>
-                          <span className="text-slate-300">·</span>
-                          <span className="text-xs text-slate-400">{rental.facility.address}</span>
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-4 border-t border-slate-100 pt-3 lg:border-t-0 lg:pt-0">
-                      <div className="rounded-xl bg-slate-50 px-4 py-2 text-left">
-                        <span className="flex items-center gap-1 text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
-                          <CalendarDays className="size-3 text-slate-400" />
-                          Thời hạn hợp đồng
+                      </td>
+                      <td>
+                        <div className="font-semibold text-slate-900">{r.unitType.name}</div>
+                        <div className="text-xs text-slate-500">{r.unitType.sizeLabel}</div>
+                      </td>
+                      <td>
+                        <div className="text-xs font-medium text-slate-800">{r.facility.name}</div>
+                        <div className="text-[11px] text-slate-400 truncate max-w-xs">
+                          {r.facility.address}
+                        </div>
+                      </td>
+                      <td>
+                        <span className="text-xs text-slate-700 font-medium">
+                          {formatDate(r.startAt)} – {formatDate(r.endAt)}
                         </span>
-                        <p className="mt-0.5 text-sm font-semibold text-slate-800">
-                          {formatDate(rental.startAt)} – {formatDate(rental.expectedEndAt)}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {rental.status === "ACTIVE" && (
-                          <Link
-                            href={customerRoutes.newReturn(rental.id)}
-                            className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-200 px-3.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
-                          >
-                            Yêu cầu trả kho
-                          </Link>
+                        {r.closedAt && (
+                          <span className="mt-1 block text-xs font-medium text-emerald-800">
+                            {M.actualReturnDate}: {formatDate(r.closedAt)}
+                          </span>
                         )}
-                        <Link
-                          href={customerRoutes.rental(rental.id)}
-                          className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-primary px-4 text-xs font-semibold text-white shadow-xs transition hover:bg-primary-dark"
+                      </td>
+                      <td>
+                        <span
+                          className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded border ${
+                            M.rentalStatusClasses[r.status] ??
+                            "border-slate-200 bg-slate-100 text-slate-700"
+                          }`}
                         >
-                          <span>Xem chi tiết</span>
-                          <ChevronRight className="size-4" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                          {r.status === "ACTIVE" ? (
+                            <CheckCircle2 className="size-3" />
+                          ) : (
+                            <Check className="size-3" />
+                          )}
+                          {M.rentalStatuses[r.status] ?? r.status}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="flex items-center gap-1.5">
+                          <Link
+                            href={customerRoutes.rental(r.id)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary-soft rounded transition-colors"
+                          >
+                            <span>{M.detailsAction}</span>
+                            <ChevronRight className="size-3.5" />
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </CustomerTable>
 
-              {rentalsQuery.hasNextPage && (
-                <button
-                  type="button"
-                  onClick={() => void rentalsQuery.fetchNextPage()}
-                  disabled={rentalsQuery.isFetchingNextPage}
-                  className="mx-auto mt-4 flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-primary transition hover:bg-slate-50 disabled:opacity-60"
-                >
-                  {rentalsQuery.isFetchingNextPage ? (
-                    <Spinner variant="brand" size="sm" />
-                  ) : (
-                    <History className="size-4" />
-                  )}
-                  {rentalsQuery.isFetchingNextPage ? "Đang tải thêm…" : "Tải thêm kho"}
-                </button>
-              )}
-            </div>
-          )}
+                <div className="shrink-0 [&>nav]:shadow-2xs">
+                  <ListPagination
+                    label={M.tabRentals}
+                    page={rentalPage}
+                    pageSize={rentalPageSize}
+                    total={filteredRentals.length}
+                    unitLabel={M.unitLabel}
+                    onPageChange={(page) => setRentalPage(page)}
+                  />
+                </div>
+              </>
+            )}
+          </div>
         </div>
       )}
 
-      {/* TAB 2: RESERVATIONS (Đơn đặt kho) */}
+      {/* TAB 2: RESERVATIONS */}
       {activeTab === "reservations" && (
-        <div className="space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <p className="text-sm text-slate-600">
-              Các đơn đặt trước và lịch hẹn bàn giao nhận ô kho của bạn.
-            </p>
-            <Link
-              href={customerRoutes.facilities}
-              className="text-xs font-bold text-primary hover:underline"
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden gap-2.5">
+          {/* Single-row Compact Toolbar */}
+          <section
+            aria-label={M.searchConfirm}
+            className="shrink-0 flex items-center gap-2 rounded-card border border-line bg-white p-2 shadow-card min-h-12 relative z-20"
+          >
+            <form
+              onSubmit={handleBookingSearchSubmit}
+              className="flex items-center gap-1.5 flex-1 min-w-44 max-w-xs shrink-0"
             >
-              + Đặt thêm đơn mới
-            </Link>
-          </div>
-
-          {bookingsQuery.isPending ? (
-            <LoadingState />
-          ) : bookingsQuery.isError ? (
-            <ErrorState
-              message={customerApiError(bookingsQuery.error)}
-              onRetry={() => bookingsQuery.refetch()}
-            />
-          ) : allBookings.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-12 text-center">
-              <div className="mx-auto mb-4 grid size-14 place-items-center rounded-2xl bg-white text-slate-400 shadow-xs">
-                <CalendarCheck2 className="size-7 text-primary/70" />
+              <div className="relative flex-1">
+                <Search
+                  aria-hidden="true"
+                  size={15}
+                  className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted"
+                />
+                <input
+                  type="search"
+                  value={bookingSearchInput}
+                  placeholder={M.searchPlaceholder}
+                  onChange={(e) => setBookingSearchInput(e.target.value)}
+                  className="h-9 w-full rounded-lg border border-line bg-canvas pl-8 pr-2 text-xs text-ink placeholder:text-muted outline-none transition focus:border-primary focus:ring-1 focus:ring-primary shadow-2xs"
+                />
               </div>
-              <h3 className="text-lg font-bold text-slate-800">Chưa có đơn đặt kho nào</h3>
-              <p className="mx-auto mt-1.5 max-w-md text-sm text-slate-500">
-                Tìm cơ sở lưu trữ gần nhất và chọn khung giờ nhận kho phù hợp với bạn.
-              </p>
-              <div className="mt-6">
+              <Button
+                type="submit"
+                variant="primary"
+                className="h-9 min-h-9 px-3 text-xs font-semibold gap-1.5 shrink-0"
+                icon={<Search size={14} aria-hidden="true" />}
+              >
+                {M.searchConfirm}
+              </Button>
+            </form>
+
+            <DropdownSelect
+              value={bookingStatus}
+              onChange={(val) => {
+                setBookingStatus(val);
+                setBookingPage(1);
+              }}
+              placement="bottom"
+              className="w-44 shrink-0"
+              triggerClassName="h-9 min-h-9 text-xs bg-white border-line"
+              placeholder={M.statusFilter}
+              options={[
+                { value: "", label: M.allStatuses },
+                ...Object.entries(M.bookingStatuses).map(([value, label]) => ({
+                  value,
+                  label,
+                })),
+              ]}
+              maxVisibleItems={6}
+            />
+
+            <div className="flex items-center gap-1.5 ml-auto shrink-0">
+              <Button
+                variant="outline"
+                className="h-9 min-h-9 px-2.5 text-xs font-semibold gap-1.5"
+                icon={<RotateCcw size={14} aria-hidden="true" />}
+                onClick={() => {
+                  setBookingSearchInput("");
+                  setBookingSearch("");
+                  setBookingStatus("");
+                  setBookingPage(1);
+                }}
+              >
+                {M.resetFilters}
+              </Button>
+            </div>
+          </section>
+
+          {/* Reservations Table & Pagination */}
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden gap-2">
+            {bookingsQuery.isLoading ? (
+              <LoadingState variant="table" />
+            ) : bookingsQuery.isError ? (
+              <ErrorState message={M.error} onRetry={() => bookingsQuery.refetch()} />
+            ) : filteredBookings.length === 0 ? (
+              <section className="text-center py-8 rounded-card border border-line bg-white shadow-card flex-1 flex flex-col items-center justify-center p-6">
+                <CalendarCheck2 className="mx-auto size-10 text-slate-400" />
+                <h3 className="mt-2 text-sm font-semibold text-slate-800">
+                  {M.emptyBookingsTitle}
+                </h3>
+                <p className="mt-1 text-xs text-slate-500 max-w-sm">{M.emptyBookingsDesc}</p>
                 <Link
                   href={customerRoutes.facilities}
-                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark"
+                  className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-primary-dark"
                 >
-                  <Plus className="size-4" />
-                  Đặt kho lưu trữ
+                  <Plus className="size-3.5" />
+                  {M.bookNowAction}
                 </Link>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="grid gap-4">
-                {visibleBookings.map((b) => (
-                  <div
-                    key={b.id}
-                    className="group rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs transition hover:border-primary/40 hover:shadow-md"
-                  >
-                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                      <div className="space-y-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-md border border-slate-200/70 bg-slate-100 px-2.5 py-0.5 font-mono text-xs font-bold text-slate-700">
-                            {b.bookingCode ?? b.id}
-                          </span>
-                          <Badge
-                            className={
-                              bookingStatusClasses[b.status] ??
-                              "border-slate-200 bg-slate-100 text-slate-700"
-                            }
-                          >
-                            {bookingStatusLabels[b.status] ?? b.status}
-                          </Badge>
-                          <span
-                            className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${
-                              b.paymentStatus === "SUCCEEDED"
-                                ? "bg-emerald-50 text-emerald-700"
-                                : "bg-amber-50 text-amber-700"
-                            }`}
-                          >
-                            <CheckCircle2 className="size-3" />
-                            {b.paymentStatus === "SUCCEEDED" ? "Đã thanh toán" : "Chờ thanh toán"}
-                          </span>
+              </section>
+            ) : (
+              <>
+                <CustomerTable
+                  title={M.tableReservationsTitle}
+                  headings={M.tableReservationsHeadings}
+                >
+                  {pagedBookings.map((b) => (
+                    <tr key={b.id}>
+                      <td>
+                        <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">
+                          {b.id}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="font-semibold text-slate-900">
+                          {b.facility?.name ?? b.facilityId}
                         </div>
-
-                        <h3 className="text-lg font-bold text-slate-900">
-                          {b.facility.name} · {b.unitType.name}
-                        </h3>
-
-                        <div className="grid gap-1.5 text-sm text-slate-600 sm:grid-cols-2">
-                          <p className="flex items-center gap-1.5">
-                            <MapPin className="size-3.5 shrink-0 text-slate-400" />
-                            <span>{b.facility.address}</span>
-                          </p>
-                          <p className="flex items-center gap-1.5">
-                            <Clock className="size-3.5 shrink-0 text-slate-400" />
-                            <span>Nhận kho: {formatDateTime(b.checkInSlotStart)}</span>
-                          </p>
+                        <div className="text-xs text-slate-500">
+                          {b.unitType?.name ?? b.unitTypeId}
                         </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 border-t border-slate-100 pt-3 md:border-t-0 md:pt-0">
-                        <Link
-                          href={customerRoutes.reservation(b.id)}
-                          className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-primary px-4 text-xs font-semibold text-white shadow-xs transition hover:bg-primary-dark"
+                      </td>
+                      <td>
+                        <span className="flex items-center gap-1 text-xs text-slate-700">
+                          <CalendarDays className="size-3 text-slate-400 shrink-0" />
+                          {formatDateTime(b.rentalStartAt)}
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          className={`inline-flex items-center gap-1 text-xs font-medium ${
+                            b.paymentStatus === "SUCCEEDED"
+                              ? "text-emerald-700 font-semibold"
+                              : "text-amber-700"
+                          }`}
                         >
-                          <QrCode className="size-4" />
-                          <span>Chi tiết & QR nhận kho</span>
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                          <WalletCards className="size-3" />
+                          {b.paymentStatus === "SUCCEEDED" ? M.paymentPaid : M.paymentPending}
+                        </span>
+                      </td>
+                      <td>
+                        <Badge
+                          className={
+                            M.bookingStatusClasses[b.status] ??
+                            "border-slate-200 bg-slate-100 text-slate-700"
+                          }
+                        >
+                          {M.bookingStatuses[b.status] ?? b.status}
+                        </Badge>
+                      </td>
+                      <td>
+                        <div className="flex items-center gap-1.5">
+                          <Link
+                            href={customerRoutes.reservation(b.id)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold text-primary hover:bg-primary-soft transition-colors"
+                          >
+                            <QrCode className="size-3.5" />
+                            <span>{M.qrAction}</span>
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </CustomerTable>
 
-              <ListPagination
-                label="Đơn đặt kho"
-                page={safeBookingPage}
-                pageSize={bookingPageSize}
-                total={allBookings.length}
-                pending={bookingsQuery.isFetchingNextPage}
-                onPageChange={setBookingPage}
-              />
-            </div>
-          )}
+                <div className="shrink-0 [&>nav]:shadow-2xs">
+                  <ListPagination
+                    label={M.tabReservations}
+                    page={bookingPage}
+                    pageSize={bookingPageSize}
+                    total={filteredBookings.length}
+                    unitLabel={M.bookingUnitLabel}
+                    onPageChange={(page) => setBookingPage(page)}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === "appointments" && (
+        <div className="min-h-0 flex-1 overflow-y-auto pb-2">
+          <CustomerAppointmentsView />
         </div>
       )}
     </div>
   );
 }
 
-export function CustomerStorageHub(props: CustomerStorageHubProps) {
+export function CustomerStorageHub(props: Readonly<CustomerStorageHubProps>) {
   return (
-    <Suspense fallback={<LoadingState />}>
+    <Suspense fallback={<LoadingState variant="table" />}>
       <StorageHubContent {...props} />
     </Suspense>
   );

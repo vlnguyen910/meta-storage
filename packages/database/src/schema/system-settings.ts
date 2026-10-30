@@ -26,7 +26,7 @@ export const systemSettings = pgTable(
     // Preserve database-level bounds of the former financial policy tables.
     check(
       "system_settings_known_integer",
-      sql`${t.key} not in ('EXPIRY_REMINDER_DAYS', 'ABANDONED_REVIEW_DAYS', 'OVERDUE_FEE_RATE', 'DEPOSIT_MONTHS') or (jsonb_typeof(${t.value}) = 'number' and (${t.value} #>> '{}')::numeric between 0 and 2147483647 and trunc((${t.value} #>> '{}')::numeric) = (${t.value} #>> '{}')::numeric)`,
+      sql`${t.key} not in ('EXPIRY_REMINDER_DAYS', 'ABANDONED_REVIEW_DAYS', 'RENEWAL_NOTICE_DAYS', 'OVERDUE_FEE_RATE', 'DEPOSIT_MONTHS', 'OPENING_HOUR', 'CLOSING_HOUR') or (jsonb_typeof(${t.value}) = 'number' and (${t.value} #>> '{}')::numeric between 0 and 2147483647 and trunc((${t.value} #>> '{}')::numeric) = (${t.value} #>> '{}')::numeric)`,
     ),
     check(
       "system_settings_overdue_rate",
@@ -35,6 +35,10 @@ export const systemSettings = pgTable(
     check(
       "system_settings_deposit_policy",
       sql`${t.key} <> 'DEPOSIT_MONTHS' or ((${t.value} #>> '{}')::numeric > 0 and ${t.version} > 0)`,
+    ),
+    check(
+      "system_settings_operating_hour",
+      sql`${t.key} not in ('OPENING_HOUR', 'CLOSING_HOUR') or (${t.value} #>> '{}')::integer between 0 and 24`,
     ),
   ],
 );

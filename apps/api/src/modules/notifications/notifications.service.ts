@@ -40,14 +40,15 @@ export class NotificationsService {
     this.connections.clear();
   }
 
-  async assigned(bookingId: string, staffId: string) {
+  async assignedAppointment(appointmentId: string, staffId: string) {
     const group = this.connections.get(staffId);
     if (!group?.size) return;
     const event: StaffTaskAssignedNotification = {
       id: randomUUID(),
       type: "STAFF_TASK_ASSIGNED",
       recipientId: staffId,
-      bookingId,
+      bookingId: null,
+      appointmentId,
       occurredAt: new Date().toISOString(),
     };
     for (const c of group) {
@@ -63,10 +64,13 @@ export class NotificationsService {
         c.socket.close(1008, NOTIFICATION_MESSAGES.sessionExpired);
         continue;
       }
-      const booking = await new NotificationsRepository(this.db).currentBooking(bookingId);
-      if (!booking || booking.staffId !== staffId || booking.status !== "CONFIRMED") return;
+      const appointment = await new NotificationsRepository(this.db).currentAppointment(
+        appointmentId,
+      );
+      if (!appointment || appointment.staffId !== staffId || appointment.status !== "CONFIRMED")
+        return;
       const facility = await new FacilityAssignmentsRepository(this.db).findActiveAssignment(
-        booking.facilityId,
+        appointment.facilityId,
         staffId,
         "FACILITY_STAFF",
       );

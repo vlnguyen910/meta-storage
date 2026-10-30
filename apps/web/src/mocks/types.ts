@@ -1,7 +1,8 @@
 import type {
+  AppointmentRecordDto,
   BookingListItem,
-  CheckInVerification,
   Facility,
+  FacilityTaskStatus,
   Inspection,
   InspectionPhotoContent,
   Payment,
@@ -38,7 +39,6 @@ export interface MockDatabase {
   drafts: ReservationDraft[];
   holds: (ReservationHold & { draftId: string })[];
   checkoutResults: (PaymentResult & { draftId: string })[];
-  verifications: CheckInVerification[];
   inspections: Inspection[];
   photoContents: (InspectionPhotoContent & { inspectionId: string })[];
   rentals: (RentalDetail & { userId: string | null })[];
@@ -49,8 +49,10 @@ export interface MockDatabase {
   reservations: Reservation[];
   payments: Payment[];
   bookings: MockBooking[];
+  appointments: AppointmentRecordDto[];
 }
 
 export interface MockBooking extends BookingListItem {
   userId?: string | null;
+  taskStatus?: FacilityTaskStatus;
 }

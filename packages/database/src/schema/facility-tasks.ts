@@ -1,28 +1,23 @@
-import { FacilityTaskType } from "@metastorage/contracts/facility-tasks";
-import { sql } from "drizzle-orm";
 import {
-  check,
-  index,
-  integer,
-  pgEnum,
-  pgTable,
-  text,
-  timestamp,
-  uuid,
-  varchar,
-} from "drizzle-orm/pg-core";
-import { bookings } from "./bookings";
+  FacilityTaskReferenceType,
+  FacilityTaskStatus,
+  FacilityTaskType,
+} from "@metastorage/contracts/facility-tasks";
+import { sql } from "drizzle-orm";
+import { check, index, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { enumToPgEnum } from "../enum-to-pg-enum";
 import { facilities } from "./facilities";
-import { storageUnits } from "./storage-units";
 import { users } from "./users";
 
-export const facilityTaskTypeEnum = pgEnum("facility_task_type", FacilityTaskType);
-export const facilityTaskStatusEnum = pgEnum("facility_task_status", [
-  "ASSIGNED",
-  "IN_PROGRESS",
-  "AWAITING_APPROVAL",
-  "COMPLETED",
-]);
+export const facilityTaskTypeEnum = pgEnum("facility_task_type", enumToPgEnum(FacilityTaskType));
+export const facilityTaskReferenceTypeEnum = pgEnum(
+  "facility_task_reference_type",
+  enumToPgEnum(FacilityTaskReferenceType),
+);
+export const facilityTaskStatusEnum = pgEnum(
+  "facility_task_status",
+  enumToPgEnum(FacilityTaskStatus),
+);
 export const facilityTasks = pgTable(
   "facility_tasks",
   {
@@ -31,23 +26,17 @@ export const facilityTasks = pgTable(
       .notNull()
       .references(() => facilities.id, { onDelete: "restrict" }),
     type: facilityTaskTypeEnum().notNull(),
-    status: facilityTaskStatusEnum().default("ASSIGNED").notNull(),
-    title: varchar({ length: 200 }).notNull(),
+    status: facilityTaskStatusEnum().default(FacilityTaskStatus.ASSIGNED).notNull(),
+    referenceType: facilityTaskReferenceTypeEnum().notNull(),
+    referenceId: uuid().notNull(),
     description: text(),
-    storageUnitId: uuid().references(() => storageUnits.id, { onDelete: "restrict" }),
-    bookingId: uuid().references(() => bookings.id, { onDelete: "restrict" }),
     assignedStaffId: uuid()
-      .notNull()
-      .references(() => users.id, { onDelete: "restrict" }),
-    createdBy: uuid()
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
     assignedBy: uuid()
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
-    version: integer().default(0).notNull(),
     startedAt: timestamp({ withTimezone: true }),
-    completedBy: uuid().references(() => users.id, { onDelete: "restrict" }),
     completedAt: timestamp({ withTimezone: true }),
     assignedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
@@ -56,16 +45,18 @@ export const facilityTasks = pgTable(
   (t) => [
     index("facility_tasks_staff_idx").on(t.facilityId, t.assignedStaffId),
     index("facility_tasks_type_idx").on(t.facilityId, t.type),
-    check("facility_tasks_version_valid", sql`${t.version} >= 0`),
+    index("facility_tasks_reference_idx").on(t.referenceType, t.referenceId),
     check(
       "facility_tasks_lifecycle_valid",
-      sql`(${t.status} = 'ASSIGNED' AND ${t.startedAt} IS NULL AND ${t.completedBy} IS NULL AND ${t.completedAt} IS NULL)
-        OR (${t.status} IN ('IN_PROGRESS', 'AWAITING_APPROVAL') AND ${t.startedAt} IS NOT NULL AND ${t.completedBy} IS NULL AND ${t.completedAt} IS NULL)
-        OR (${t.status} = 'COMPLETED' AND ${t.startedAt} IS NOT NULL AND ${t.completedBy} IS NOT NULL AND ${t.completedAt} IS NOT NULL)`,
+      sql`(${t.status} = 'ASSIGNED' AND ${t.startedAt} IS NULL AND ${t.completedAt} IS NULL)
+        OR (${t.status} = 'IN_PROGRESS' AND ${t.startedAt} IS NOT NULL AND ${t.completedAt} IS NULL)
+        OR (${t.status} = 'COMPLETED' AND ${t.startedAt} IS NOT NULL AND ${t.completedAt} IS NOT NULL)
+        OR ${t.status} = 'CANCELLED'`,
     ),
+    // Text comparison lets enum additions and constraint changes migrate in one transaction.
     check(
-      "facility_tasks_text_valid",
-      sql`length(btrim(${t.title})) BETWEEN 1 AND 200 AND (${t.description} IS NULL OR length(${t.description}) <= 2000)`,
+      "facility_tasks_reference_valid",
+      sql`(${t.type} = 'CHECK_IN_HANDOVER' AND ${t.referenceType}::text IN ('BOOKING', 'APPOINTMENT')) OR (${t.type} = 'UNIT_INSPECTION' AND ${t.referenceType}::text IN ('BOOKING', 'STORAGE_UNIT', 'APPOINTMENT')) OR (${t.type} = 'HANDLE_SUPPORT' AND ${t.referenceType}::text IN ('SUPPORT_TICKET', 'APPOINTMENT'))`,
     ),
   ],
 );

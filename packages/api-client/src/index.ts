@@ -1,50 +1,47 @@
 import type {
-  AcceptRenewal,
   ApiEnvelope,
   ApiFacility,
   ApiFacilityAssignment,
   ApiUnitType,
+  AppointmentQuery,
+  AppointmentRecordDto,
   AssignBookingStaffInput,
-  AssignPhysicalUnitInput,
-  AssignReturnStaff,
-  BookingDraft,
-  BookingDraftInput,
   BookingListItem,
-  BookingPaymentInput,
-  BookingPaymentSession,
   BookingTracking,
   BookingTrackingSession,
   CatalogAvailabilityParams,
   CatalogFacility,
   CatalogFacilityListParams,
   CatalogUnitType,
-  CheckInConfirmResult,
   CheckInLookupInput,
   CheckInLookupResult,
   CheckInSlotOption,
+  CheckoutSessionInput,
   ClientSession,
+  ConfirmInspectionHandoverInput,
   ConfirmManualRefundInput,
   ConfirmReservationInput,
   CookieSession,
-  CreateRentalCharge,
-  CreateReturnRequest,
+  CreateAppointmentInput,
+  CreateInspectionInput,
+  CreateReservationDraftInput,
   CustomerAvailability,
   CustomerAvailabilityQuery,
-  CustomerBookingDetail,
-  CustomerBookingPage,
-  CustomerBookingPageQuery,
   CustomerRegistrationStats,
   CustomerSignUpInput,
   DashboardSummary,
-  EligibleUnit,
   Facility,
   FacilityListParams,
+  FacilityOperatingHours,
   FacilityQuery,
+  FacilityRentalHistoryQuery,
+  FacilityRentalItem,
+  FacilityRentalListQuery,
+  FacilityRentalPage,
+  FacilityRentalPaymentPage,
   FacilityStaffMember,
-  Inspection,
-  InspectionDraftInput,
-  InspectionPhotoContent,
-  InspectionPhotoInput,
+  InspectionEvidenceInput,
+  InspectionRecord,
   LoginInput,
   ManualRefund,
   ManualRefundConfirmation,
@@ -56,27 +53,14 @@ import type {
   PaymentCheckoutInput,
   PaymentResponse,
   PaymentStatusResponse,
-  PhysicalUnitAssignment,
   PricingChange,
   PricingConfiguration,
   PricingQuery,
   PricingUpdateResult,
-  QuoteRenewal,
   ReconciliationReport,
-  RecordPhysicalReturn,
-  RenewalPageQuery,
-  RentalChargeAdjustment,
-  RentalChargeDecision,
-  RentalChargeDispute,
-  RentalChargeDto,
-  RentalChargePage,
-  RentalChargePageQuery,
-  RentalChargePaymentSession,
-  RentalChargeRefundDto,
   RentalDetail,
   RentalPage,
   RentalPageQuery,
-  RentalRenewalDto,
   RentalReport,
   RentalReportQuery,
   ReportExportQuery,
@@ -85,45 +69,38 @@ import type {
   ReservationDraft,
   ReservationDraftInput,
   ReservationHold,
+  ReservationPaymentSession,
+  ReservationQuery,
   ReservationQuote,
   ReservationQuoteInput,
+  ReservationRecordDto,
   ResetPasswordInput,
-  ResolveRentalChargeDispute,
-  ReturnInspectionDto,
-  ReturnPhotoInput,
-  ReturnQueueItemDto,
-  ReturnQueueQuery,
-  ReturnRequestDetailDto,
-  ReturnRequestDto,
-  ReturnSettlementDto,
-  ReturnSettlementPreviewDto,
-  ReturnSlotDto,
-  ReturnVersion,
   RevenueReport,
   RevenueReportQuery,
-  SaveReturnInspection,
   Session,
   SessionTokens,
   SessionUser,
-  SettleReturn,
   SocialAuthInput,
   SocialAuthResponse,
-  StartRentalChargePayment,
+  StaffTasksQuery,
   StorageUnitMaintenanceTransition,
   StorageUnitResponse,
   UnitTypeListParams,
+  UpdateAppointmentInput,
   UpdateDepositPolicy,
+  UpdateInspectionInput,
   UpdateStorageUnitStatusBody,
   UpdateUnitTypePrice,
   UpdateUserRoleWithoutCustomerInput,
   UpdateUserStatusInput,
   User,
   UserListQuery,
-  UserRole,
   UtilizationReport,
   UtilizationReportQuery,
 } from "@metastorage/contracts";
+import type { UserRole } from "@metastorage/database/schema/user-enums";
 import axios, { type AxiosError, type AxiosInstance } from "axios";
+import { createFacilityWorkspaceClient } from "./facility-workspace";
 import { createFlow3Client } from "./flow3";
 import { createFlow5Client } from "./flow5";
 import { createSupportClient } from "./support";
@@ -203,6 +180,7 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
     ...createFlow3Client(http),
     ...createFlow5Client(http),
     ...createSupportClient(http),
+    ...createFacilityWorkspaceClient(http),
     http,
     notifications: {
       webSocketUrl: (origin: string) => {
@@ -297,6 +275,10 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
         http.patch<ApiEnvelope<User>>(`/users/${userId}/role`, { role }).then(unwrap),
     },
     facilities: {
+      operatingHours: (signal?: AbortSignal) =>
+        http
+          .get<ApiEnvelope<FacilityOperatingHours>>("/facilities/operating-hours", { signal })
+          .then(unwrap),
       listActive: (params: Partial<Pick<FacilityQuery, "limit" | "offset">> = {}) =>
         http.get<ApiEnvelope<ApiFacility[]>>("/facilities", { params }).then(unwrap),
       listUnitTypes: (facilityId: string, params: UnitTypeListParams = {}) =>
@@ -348,6 +330,58 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
           .then(unwrap),
     },
     reservations: {
+      createDraft: (input: CreateReservationDraftInput) =>
+        http.post<ApiEnvelope<ReservationRecordDto>>("/reservations/drafts", input).then(unwrap),
+      pay: (id: string, input: CheckoutSessionInput) =>
+        http
+          .post<ApiEnvelope<ReservationPaymentSession>>(`/reservations/${id}/make-payment`, input)
+          .then(unwrap),
+      mine: (params: ReservationQuery = {}) =>
+        http
+          .get<ApiEnvelope<ReservationRecordDto[]>>("/reservations/mine", { params })
+          .then(unwrap),
+      get: (id: string) =>
+        http.get<ApiEnvelope<ReservationRecordDto>>(`/reservations/${id}`).then(unwrap),
+      cancel: (id: string) =>
+        http
+          .patch<ApiEnvelope<ReservationRecordDto>>(`/reservations/${id}`, { status: "CANCELLED" })
+          .then(unwrap),
+      listFacility: (facilityId: string, params: ReservationQuery = {}) =>
+        http
+          .get<ApiEnvelope<ReservationRecordDto[]>>(`/reservations/facilities/${facilityId}`, {
+            params,
+          })
+          .then(unwrap),
+    },
+    appointments: {
+      slots: () =>
+        http.get<ApiEnvelope<CheckInSlotOption[]>>("/appointments/check-in-slots").then(unwrap),
+      create: (input: CreateAppointmentInput) =>
+        http.post<ApiEnvelope<AppointmentRecordDto>>("/appointments", input).then(unwrap),
+      mine: (params: AppointmentQuery = {}) =>
+        http
+          .get<ApiEnvelope<AppointmentRecordDto[]>>("/appointments/mine", { params })
+          .then(unwrap),
+      listFacility: (facilityId: string, params: AppointmentQuery = {}) =>
+        http
+          .get<ApiEnvelope<AppointmentRecordDto[]>>(`/appointments/facilities/${facilityId}`, {
+            params,
+          })
+          .then(unwrap),
+      assignedToMe: (params: AppointmentQuery = {}) =>
+        http
+          .get<ApiEnvelope<AppointmentRecordDto[]>>("/appointments/assigned-to-me", { params })
+          .then(unwrap),
+      get: (id: string) =>
+        http.get<ApiEnvelope<AppointmentRecordDto>>(`/appointments/${id}`).then(unwrap),
+      update: (id: string, input: UpdateAppointmentInput) =>
+        http.patch<ApiEnvelope<AppointmentRecordDto>>(`/appointments/${id}`, input).then(unwrap),
+      assignStaff: (id: string, staffId: string) =>
+        http
+          .post<ApiEnvelope<AppointmentRecordDto>>(`/appointments/${id}/assign-staff`, { staffId })
+          .then(unwrap),
+    },
+    legacyReservations: {
       createDraft: (input: ReservationDraftInput) =>
         http.post<ApiEnvelope<ReservationDraft>>("/reservations/drafts", input).then(unwrap),
       createHold: (draftId: string, draftAccessToken: string) =>
@@ -386,30 +420,16 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
           )
           .then(unwrap),
     },
-    bookings: {
-      cancel: (bookingId: string) =>
-        http
-          .post<ApiEnvelope<import("@metastorage/contracts").BookingClosure>>(
-            `/bookings/${encodeURIComponent(bookingId)}/cancel`,
-          )
-          .then(unwrap),
-      mine: (params: Partial<CustomerBookingPageQuery> = {}) =>
-        http.get<ApiEnvelope<CustomerBookingPage>>("/bookings/mine", { params }).then(unwrap),
-      getMine: (bookingId: string) =>
-        http.get<ApiEnvelope<CustomerBookingDetail>>(`/bookings/mine/${bookingId}`).then(unwrap),
+    legacyBookings: {
       requestGuestAccessLink: (input: RequestGuestAccessLink) =>
         http
           .post<ApiEnvelope<{ message: string }>>("/booking/access-link", input, {
             skipAuthRefresh: true,
           } as RetryConfig)
           .then(unwrap),
-      checkInSlots: () =>
-        http.get<ApiEnvelope<CheckInSlotOption[]>>("/bookings/check-in-slots").then(unwrap),
-      createDraft: (input: BookingDraftInput) =>
-        http.post<ApiEnvelope<BookingDraft>>("/bookings/drafts", input).then(unwrap),
-      pay: (bookingId: string, input: BookingPaymentInput) =>
+      checkInLookup: (input: CheckInLookupInput) =>
         http
-          .post<ApiEnvelope<BookingPaymentSession>>(`/bookings/${bookingId}/pay`, input)
+          .post<ApiEnvelope<CheckInLookupResult>>("/bookings/check-in/lookup", input)
           .then(unwrap),
       exchangeMagicLink: (token: string) =>
         http
@@ -428,161 +448,117 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
         http
           .post("/booking/session/revoke", undefined, { skipAuthRefresh: true } as RetryConfig)
           .then(() => undefined),
-      listFacilityBookings: (facilityId: string, status?: string) =>
-        http
-          .get<ApiEnvelope<BookingListItem[]>>(`/facilities/${facilityId}/bookings`, {
-            params: { status },
-          })
-          .then(unwrap),
-      get: (bookingId: string) =>
-        http.get<ApiEnvelope<BookingListItem>>(`/bookings/${bookingId}`).then(unwrap),
-      getEligibleUnits: (bookingId: string) =>
-        http.get<ApiEnvelope<EligibleUnit[]>>(`/bookings/${bookingId}/eligible-units`).then(unwrap),
-      assignUnit: (bookingId: string, input: AssignPhysicalUnitInput) =>
-        http
-          .post<ApiEnvelope<PhysicalUnitAssignment>>(`/bookings/${bookingId}/assign-unit`, input)
-          .then(unwrap),
       assignStaff: (bookingId: string, input: AssignBookingStaffInput) =>
         http
           .post<ApiEnvelope<BookingListItem>>(`/bookings/${bookingId}/assign-staff`, input)
           .then(unwrap),
-      listAssignedToMe: (facilityId?: string) =>
+      listAssignedToMe: (
+        facilityId?: string,
+        dates: Pick<StaffTasksQuery, "fromDate" | "toDate"> = {},
+      ) =>
         http
           .get<ApiEnvelope<BookingListItem[]>>("/bookings/assigned-to-me", {
-            params: { facilityId },
+            params: { ...dates, facilityId },
           })
           .then(unwrap),
     },
     inspections: {
-      history: (bookingId: string) =>
-        http.get<ApiEnvelope<Inspection[]>>(`/bookings/${bookingId}/inspections`).then(unwrap),
-      start: (bookingId: string) =>
-        http.post<ApiEnvelope<Inspection>>(`/bookings/${bookingId}/inspections`).then(unwrap),
-      get: (id: string) => http.get<ApiEnvelope<Inspection>>(`/inspections/${id}`).then(unwrap),
-      save: (id: string, input: InspectionDraftInput) =>
-        http.patch<ApiEnvelope<Inspection>>(`/inspections/${id}`, input).then(unwrap),
-      upload: (id: string, input: InspectionPhotoInput) =>
-        http.post<ApiEnvelope<Inspection>>(`/inspections/${id}/photos`, input).then(unwrap),
-      photo: (id: string, photoId: string) =>
+      policyFees: () =>
         http
-          .get<ApiEnvelope<InspectionPhotoContent>>(`/inspections/${id}/photos/${photoId}`)
+          .get<
+            ApiEnvelope<{
+              version: number;
+              items: import("@metastorage/contracts").PolicyViolationFee[];
+            }>
+          >("/policy-violation-fees")
           .then(unwrap),
-      removePhoto: (id: string, photoId: string, version: number) =>
+      updatePolicyFees: (input: import("@metastorage/contracts").UpdatePolicyViolationFeeCatalog) =>
         http
-          .delete<ApiEnvelope<Inspection>>(`/inspections/${id}/photos/${photoId}`, {
-            data: { version },
+          .put<
+            ApiEnvelope<{
+              version: number;
+              items: import("@metastorage/contracts").PolicyViolationFee[];
+            }>
+          >("/policy-violation-fees", input)
+          .then(unwrap),
+      create: (input: CreateInspectionInput) =>
+        http.post<ApiEnvelope<InspectionRecord>>("/inspections", input).then(unwrap),
+      forAppointment: (id: string) =>
+        http.get<ApiEnvelope<InspectionRecord[]>>(`/inspections/appointments/${id}`).then(unwrap),
+      get: (id: string) =>
+        http.get<ApiEnvelope<InspectionRecord>>(`/inspections/${id}`).then(unwrap),
+      save: (id: string, input: UpdateInspectionInput) =>
+        http.patch<ApiEnvelope<InspectionRecord>>(`/inspections/${id}`, input).then(unwrap),
+      upload: (id: string, input: InspectionEvidenceInput) =>
+        http
+          .patch<ApiEnvelope<InspectionRecord>>(`/inspections/${id}`, { addEvidence: [input] })
+          .then(unwrap),
+      removePhoto: (id: string, photoId: string) =>
+        http
+          .patch<ApiEnvelope<InspectionRecord>>(`/inspections/${id}`, {
+            removeEvidenceIds: [photoId],
           })
           .then(unwrap),
-      handover: (id: string, version: number) =>
-        http.post<ApiEnvelope<Inspection>>(`/inspections/${id}/handover`, { version }).then(unwrap),
-      complete: (id: string, version: number) =>
-        http.post<ApiEnvelope<Inspection>>(`/inspections/${id}/complete`, { version }).then(unwrap),
+      handover: (id: string, input: ConfirmInspectionHandoverInput) =>
+        http.post<ApiEnvelope<InspectionRecord>>(`/inspections/${id}/handover`, input).then(unwrap),
     },
-    checkIns: {
-      lookup: (input: CheckInLookupInput) =>
-        http.post<ApiEnvelope<CheckInLookupResult>>("/check-ins/lookup", input).then(unwrap),
-      confirm: (bookingId: string) =>
+    renewals: {
+      quote: (rentalId: string, input: import("@metastorage/contracts").CreateRentalRenewal) =>
         http
-          .post<ApiEnvelope<CheckInConfirmResult>>(`/check-ins/${bookingId}/confirm`)
+          .post<ApiEnvelope<import("@metastorage/contracts").RentalRenewalDto>>(
+            `/rentals/${rentalId}/renewals`,
+            input,
+          )
+          .then(unwrap),
+      list: (rentalId: string, offset = 0) =>
+        http
+          .get<ApiEnvelope<import("@metastorage/contracts").RentalRenewalPage>>(
+            `/rentals/${rentalId}/renewals`,
+            { params: { limit: 10, offset } },
+          )
+          .then(unwrap),
+      get: (rentalId: string, renewalId: string) =>
+        http
+          .get<ApiEnvelope<import("@metastorage/contracts").RentalRenewalDto>>(
+            `/rentals/${rentalId}/renewals/${renewalId}`,
+          )
+          .then(unwrap),
+      pay: (
+        rentalId: string,
+        renewalId: string,
+        input: import("@metastorage/contracts").RentalRenewalPaymentInput,
+      ) =>
+        http
+          .post<ApiEnvelope<import("@metastorage/contracts").RentalRenewalPaymentSession>>(
+            `/rentals/${rentalId}/renewals/${renewalId}/payments`,
+            input,
+          )
           .then(unwrap),
     },
     rentals: {
+      facilityList: (facilityId: string, params: Partial<FacilityRentalListQuery> = {}) =>
+        http
+          .get<ApiEnvelope<FacilityRentalPage>>(`/rentals/facility/${facilityId}`, { params })
+          .then(unwrap),
+      facilityDetail: (facilityId: string, rentalId: string) =>
+        http
+          .get<ApiEnvelope<FacilityRentalItem>>(`/rentals/facility/${facilityId}/${rentalId}`)
+          .then(unwrap),
+      facilityPayments: (
+        facilityId: string,
+        rentalId: string,
+        params: Partial<FacilityRentalHistoryQuery> = {},
+      ) =>
+        http
+          .get<ApiEnvelope<FacilityRentalPaymentPage>>(
+            `/rentals/facility/${facilityId}/${rentalId}/payments`,
+            { params },
+          )
+          .then(unwrap),
       mine: (params: Partial<RentalPageQuery> = {}) =>
         http.get<ApiEnvelope<RentalPage>>("/rentals/mine", { params }).then(unwrap),
       get: (rentalId: string) =>
         http.get<ApiEnvelope<RentalDetail>>(`/rentals/${rentalId}`).then(unwrap),
-      returns: (rentalId: string) =>
-        http
-          .get<ApiEnvelope<ReturnRequestDto[]>>(`/rentals/${rentalId}/return-requests`)
-          .then(unwrap),
-      returnSlots: (rentalId: string, date: string) =>
-        http
-          .get<ApiEnvelope<ReturnSlotDto[]>>(`/rentals/${rentalId}/return-slots`, {
-            params: { date },
-          })
-          .then(unwrap),
-      createReturn: (rentalId: string, input: CreateReturnRequest) =>
-        http
-          .post<ApiEnvelope<ReturnRequestDto>>(`/rentals/${rentalId}/return-requests`, input)
-          .then(unwrap),
-    },
-    returns: {
-      get: (requestId: string) =>
-        http.get<ApiEnvelope<ReturnRequestDetailDto>>(`/return-requests/${requestId}`).then(unwrap),
-      update: (requestId: string, input: CreateReturnRequest & ReturnVersion) =>
-        http
-          .patch<ApiEnvelope<ReturnRequestDto>>(`/return-requests/${requestId}`, input)
-          .then(unwrap),
-      cancel: (requestId: string, input: ReturnVersion) =>
-        http
-          .post<ApiEnvelope<ReturnRequestDto>>(`/return-requests/${requestId}/cancel`, input)
-          .then(unwrap),
-      confirm: (requestId: string, input: ReturnVersion) =>
-        http
-          .post<ApiEnvelope<ReturnRequestDto>>(`/return-requests/${requestId}/confirm`, input)
-          .then(unwrap),
-      queue: (facilityId: string, params: Partial<ReturnQueueQuery> = {}) =>
-        http
-          .get<ApiEnvelope<ReturnQueueItemDto[]>>(`/facilities/${facilityId}/return-requests`, {
-            params,
-          })
-          .then(unwrap),
-      assignStaff: (requestId: string, input: AssignReturnStaff) =>
-        http
-          .patch<ApiEnvelope<ReturnRequestDto>>(`/return-requests/${requestId}/staff`, input)
-          .then(unwrap),
-      startInspection: (requestId: string, input: ReturnVersion) =>
-        http
-          .post<ApiEnvelope<ReturnInspectionDto>>(
-            `/return-requests/${requestId}/inspections`,
-            input,
-          )
-          .then(unwrap),
-      saveInspection: (requestId: string, inspectionId: string, input: SaveReturnInspection) =>
-        http
-          .put<ApiEnvelope<ReturnInspectionDto>>(
-            `/return-requests/${requestId}/inspections/${inspectionId}`,
-            input,
-          )
-          .then(unwrap),
-      completeInspection: (requestId: string, inspectionId: string, input: ReturnVersion) =>
-        http
-          .post<ApiEnvelope<ReturnInspectionDto>>(
-            `/return-requests/${requestId}/inspections/${inspectionId}/complete`,
-            input,
-          )
-          .then(unwrap),
-      recordPhysicalReturn: (requestId: string, input: RecordPhysicalReturn) =>
-        http
-          .post<ApiEnvelope<ReturnRequestDto>>(
-            `/return-requests/${requestId}/physical-return`,
-            input,
-          )
-          .then(unwrap),
-      uploadInspectionPhoto: (requestId: string, inspectionId: string, input: ReturnPhotoInput) =>
-        http
-          .post<
-            ApiEnvelope<{
-              id: string;
-              inspectionId: string;
-              filename: string;
-              mimeType: string;
-              byteSize: number;
-            }>
-          >(`/return-requests/${requestId}/inspections/${inspectionId}/photos`, input)
-          .then(unwrap),
-      previewSettlement: (requestId: string, input: SettleReturn, signal?: AbortSignal) =>
-        http
-          .post<ApiEnvelope<ReturnSettlementPreviewDto>>(
-            `/return-requests/${requestId}/settlement/preview`,
-            input,
-            { signal },
-          )
-          .then(unwrap),
-      settle: (requestId: string, input: SettleReturn) =>
-        http
-          .post<ApiEnvelope<ReturnSettlementDto>>(`/return-requests/${requestId}/settlement`, input)
-          .then(unwrap),
     },
     dashboards: {
       get: (role: UserRole, facilityId?: string) =>
@@ -607,68 +583,6 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
         http
           .patch<ApiEnvelope<PricingUpdateResult>>(`/business-rules/pricing/${unitTypeId}`, input)
           .then(unwrap),
-    },
-    renewals: {
-      quote: (rentalId: string, input: QuoteRenewal) =>
-        http
-          .post<ApiEnvelope<RentalRenewalDto>>(`/rentals/${rentalId}/renewals`, input)
-          .then(unwrap),
-      accept: (renewalId: string, input: AcceptRenewal) =>
-        http
-          .post<ApiEnvelope<RentalRenewalDto>>(`/rental-renewals/${renewalId}/accept`, input)
-          .then(unwrap),
-      get: (renewalId: string, signal?: AbortSignal) =>
-        http
-          .get<ApiEnvelope<RentalRenewalDto>>(`/rental-renewals/${renewalId}`, { signal })
-          .then(unwrap),
-      list: (rentalId: string, params: Partial<RenewalPageQuery> = {}) =>
-        http
-          .get<ApiEnvelope<RentalRenewalDto[]>>(`/rentals/${rentalId}/renewals`, { params })
-          .then(unwrap),
-    },
-    rentalCharges: {
-      list: (rentalId: string, params: Partial<RentalChargePageQuery> = {}, signal?: AbortSignal) =>
-        http
-          .get<ApiEnvelope<RentalChargePage>>(`/rentals/${rentalId}/charges`, { params, signal })
-          .then(unwrap),
-      create: (rentalId: string, input: CreateRentalCharge) =>
-        http.post<ApiEnvelope<RentalChargeDto>>(`/rentals/${rentalId}/charges`, input).then(unwrap),
-      decide: (chargeId: string, input: RentalChargeDecision) =>
-        http
-          .post<ApiEnvelope<RentalChargeDto>>(`/rental-charges/${chargeId}/decision`, input)
-          .then(unwrap),
-      adjust: (chargeId: string, input: RentalChargeAdjustment) =>
-        http
-          .post<ApiEnvelope<RentalChargeDto>>(`/rental-charges/${chargeId}/adjustments`, input)
-          .then(unwrap),
-      dispute: (chargeId: string, input: RentalChargeDispute) =>
-        http
-          .post<ApiEnvelope<RentalChargeDto>>(`/rental-charges/${chargeId}/dispute`, input)
-          .then(unwrap),
-      resolveDispute: (chargeId: string, input: ResolveRentalChargeDispute) =>
-        http
-          .post<ApiEnvelope<RentalChargeDto>>(`/rental-charges/${chargeId}/dispute/resolve`, input)
-          .then(unwrap),
-      pay: (chargeId: string, input: StartRentalChargePayment) =>
-        http
-          .post<ApiEnvelope<RentalChargePaymentSession>>(
-            `/rental-charges/${chargeId}/payments`,
-            input,
-          )
-          .then(unwrap),
-      refunds: {
-        list: (params: Partial<RentalChargePageQuery> = {}) =>
-          http
-            .get<ApiEnvelope<RentalChargeRefundDto[]>>("/rental-charge-refunds", { params })
-            .then(unwrap),
-        confirm: (refundId: string, reference: string) =>
-          http
-            .post<ApiEnvelope<RentalChargeRefundDto>>(
-              `/rental-charge-refunds/${refundId}/confirm`,
-              { reference },
-            )
-            .then(unwrap),
-      },
     },
     reports: {
       getMonthlyRevenue: (params: MonthlyRevenueQuery = {}) =>

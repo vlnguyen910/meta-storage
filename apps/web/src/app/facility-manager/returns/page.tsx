@@ -1,5 +1,4 @@
-import { FacilityReturnQueue } from "@/features/returns/facility-return-queue";
-
-export default function FacilityManagerReturnsPage() {
-  return <FacilityReturnQueue actorRole="FACILITY_MANAGER" />;
+import { redirect } from "next/navigation";
+export default function Page() {
+  redirect("/facility-manager/tasks");
 }

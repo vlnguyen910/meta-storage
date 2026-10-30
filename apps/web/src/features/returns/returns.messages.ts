@@ -1,4 +1,19 @@
 export const RETURNS_MESSAGES = {
+  loadedQueue: (count: number) => `Đã tải ${count} yêu cầu theo bộ lọc hiện tại.`,
+  moreQueue: "Có thêm yêu cầu chưa tải. Dùng nút tải thêm để xem tiếp.",
+  managerCancelled: "Yêu cầu đã hủy. Không còn thao tác tiếp nhận hoặc phân công.",
+  managerCompleted:
+    "Yêu cầu đã hoàn tất. Có thể xem quyết toán và kiểm tra việc hoàn tiền đã ghi nhận.",
+  managerAwaitingInspection:
+    "Nhân viên cần tiếp nhận, kiểm tra kho và gửi kết quả trước khi quản lý quyết toán.",
+  managerAssignNext: "Phân công nhân viên phụ trách để tiếp nhận và kiểm tra kho theo lịch hẹn.",
+  managerAwaitingReceipt:
+    "Nhân viên chưa ghi nhận thời điểm thực tế nhận lại kho. Cần hoàn tất bước này trước khi quyết toán.",
+  managerSettlementNext:
+    "Kiểm tra kết quả trả kho và xem trước quyết toán. Số tiền cuối cùng do hệ thống xác nhận.",
+  jumpToSettlement: "Xem quyết toán và hoàn tiền",
+  searchLabel: "Tìm trong các yêu cầu đã tải",
+
   sectionTitle: "Yêu cầu trả kho",
   sectionDescription: "Chọn lịch để gửi yêu cầu. Cơ sở sẽ xác nhận lịch hẹn.",
   newRequest: "Gửi yêu cầu trả kho",
@@ -31,6 +46,10 @@ export const RETURNS_MESSAGES = {
   completed: "Đã hoàn tất trả kho",
   cancelled: "Đã hủy",
   loadError: "Không thể tải yêu cầu trả kho. Hãy thử lại.",
+  alreadyHasOpenRequestTitle: "Đã có yêu cầu trả kho đang chờ xử lý",
+  alreadyHasOpenRequestDesc:
+    "Kho này hiện đã có một yêu cầu trả kho chưa hoàn tất. Bạn có thể xem chi tiết hoặc điều chỉnh lịch hẹn của yêu cầu hiện tại thay vì tạo mới.",
+  viewExistingRequest: "Xem yêu cầu trả kho hiện tại",
   saveError: "Không thể lưu thay đổi. Tải lại dữ liệu rồi thử lại.",
   saveSuccess: "Yêu cầu trả kho đã được cập nhật.",
   cancelConfirm: "Bạn có muốn hủy yêu cầu trả kho này không?",
@@ -192,6 +211,13 @@ export const RETURNS_MESSAGES = {
   statCompleted: "Đã hoàn tất",
   manualReviewBadge: "Cần FM rà soát",
   backToQueue: "Quay lại danh sách",
+  finalizeReturnTitle: "Xác nhận trả kho thành công · Hoàn tiền & Kết thúc hợp đồng",
+  finalizeReturnReady:
+    "Biên bản kiểm tra đã đạt yêu cầu. Bấm xác nhận bên dưới để ghi nhận trả kho thành công, hoàn trả tiền cọc cho khách hàng và kết thúc hợp đồng thuê kho.",
+  finalizeReturnButton:
+    "Hoàn tất kiểm tra & Xác nhận trả kho thành công (Hoàn tiền & Kết thúc hợp đồng)",
+  finalizeCompletedBanner:
+    "Đã xác nhận trả kho thành công, hoàn trả tiền cọc cho khách hàng và kết thúc hợp đồng thuê kho.",
 } as const;
 
 export function returnStatusLabel(status: string) {
@@ -224,12 +250,17 @@ export function returnAuditLabel(action: string) {
     RETURN_REQUEST_CREATED: "Khách gửi yêu cầu trả kho",
     RETURN_REQUEST_EDITED: "Khách cập nhật yêu cầu",
     RETURN_REQUEST_CANCELLED: "Yêu cầu đã được hủy",
-    RETURN_REQUEST_CONFIRMED: "FS xác nhận lịch hẹn",
+    RETURN_REQUEST_CONFIRMED: "Xác nhận lịch hẹn trả kho",
     RETURN_STAFF_ASSIGNED: "FM phân công nhân viên",
+    STAFF_ASSIGNED: "FM phân công nhân viên",
     PHYSICAL_RETURN_CONFIRMED: "Cơ sở ghi nhận đã nhận lại kho",
     INSPECTION_STARTED: "Bắt đầu kiểm tra hiện trạng",
     INSPECTION_SAVED: "Đã lưu biên bản kiểm tra",
     INSPECTION_COMPLETED: "Đã hoàn tất kiểm tra",
+    SETTLEMENT_APPROVED: "Đã duyệt quyết toán & kết thúc hợp đồng thuê",
+    SETTLEMENT_ADJUSTED: "Đã điều chỉnh quyết toán trả kho",
+    MANUAL_REFUND_CONFIRMED: "Đã xác nhận hoàn tiền cọc cho khách hàng",
+    DAMAGE_FEES_APPROVED: "Đã ghi nhận khấu trừ phí hư hỏng",
   };
   return labels[action] ?? "Hoạt động cập nhật hồ sơ";
 }

@@ -1,4 +1,9 @@
 export const F3 = {
+  paymentCharge: "Khoản thu",
+  paymentDepositRefund: "Hoàn cọc",
+  settlementSaved: "Đã xác nhận quyết toán và hoàn tất trả kho.",
+  refundSaved: "Đã ghi nhận khoản hoàn tiền.",
+  staffAssignedSaved: "Đã cập nhật nhân viên tiếp nhận trả kho.",
   unknownCustomer: "Khách thuê",
   bookingCode: "Mã đặt kho",
   unitLabel: "Ô kho",
@@ -127,10 +132,8 @@ export const F3 = {
   },
   timelineStatuses: { DONE: "Đã hoàn tất", CURRENT: "Hiện tại", UPCOMING: "Chưa diễn ra" },
   settings: "Cấu hình trả kho",
-  settingsDescription: "Cấu hình danh mục và lịch hoàn trả kho",
+  settingsDescription: "Cấu hình checklist và chính sách trả kho",
   checklist: "Checklist kiểm tra",
-  calendar: "Lịch trả kho của cơ sở",
-  calendarDescription: "Cấu hình thời gian hoạt động và ngày nghỉ của cơ sở",
   reminders: "Nhắc hạn và rà soát",
   overdueRate: "Tỷ lệ phí quá hạn trên tiền cọc (%)",
   rateHelp:
@@ -148,18 +151,8 @@ export const F3 = {
   remove: "Bỏ tiêu chí",
   checklistHelp:
     "Phải có đủ 4 nhóm và mã không trùng. Phiên bản mới áp dụng cho lần kiểm tra mới; hồ sơ cũ giữ snapshot.",
-  holidays: "Ngày nghỉ (YYYY-MM-DD, mỗi dòng một ngày)",
-  reminderTime: "Giờ gửi nhắc tại cơ sở",
-  operatingHours: "Giờ hoạt động",
-  open: "Mở cửa",
-  shut: "Đóng cửa",
-  activeDay: "Hoạt động",
-  calendarWarning:
-    "Thay đổi giờ hoạt động cũng ảnh hưởng lịch check-in. Lịch đã xác nhận giữ snapshot và có thể cần rà soát.",
-  confirmCalendar: "Tôi đã kiểm tra ảnh hưởng tới lịch check-in và trả kho",
   expiryDays: "Số ngày nhắc trước hạn",
   reviewDays: "Số ngày quá hạn trước khi FM rà soát",
-  days: ["Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy"],
   groups: {
     REMAINING_PROPERTY: "Tài sản còn lại",
     UNIT_CONDITION: "Hiện trạng kho",

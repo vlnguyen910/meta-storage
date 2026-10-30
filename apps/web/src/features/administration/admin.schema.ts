@@ -1,4 +1,4 @@
-import { UserRole } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { z } from "zod";
 import { ADMIN_MESSAGES as M } from "./admin.messages";
 

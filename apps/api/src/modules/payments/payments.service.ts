@@ -1,33 +1,34 @@
-import { randomBytes } from "node:crypto";
 import type {
-  BookingConfirmation,
-  BookingPaymentInput,
-  BookingPaymentSession,
   ManualRefund,
   ManualRefundConfirmation,
   ManualRefundQuery,
   PaymentStatusResponse,
 } from "@metastorage/contracts";
-import type {
-  RentalChargePaymentSession,
-  StartRentalChargePayment,
-} from "@metastorage/contracts/rental-charges";
 import type { FastifyBaseLogger, FastifyInstance } from "fastify";
 import { AppError, NotFoundError, UnauthorizedError } from "../../common/errors/app-error";
 import { env } from "../../config/env";
-import { type BookingsService, createBookingsService } from "../bookings/bookings.service";
-import type { BookingReadRecord } from "../bookings/bookings.types";
+import { createRentalsService, type RentalsService } from "../rentals/rentals.service";
 import { PAYMENT_MESSAGES } from "./payments.messages";
 import { PaymentsRepository } from "./payments.repository";
 import type { PaymentStatusCredentials } from "./payments.types";
+import {
+  createReservationPaymentsService,
+  type ReservationPaymentsService,
+} from "./reservation-payments.service";
 import { SepayPaymentGateway } from "./sepay.gateway";
+
+function requirePaymentCode(code: string | null): string {
+  if (!code) throw new AppError(PAYMENT_MESSAGES.paymentCodeMissing, 500);
+  return code;
+}
 
 export class PaymentsService {
   constructor(
     private readonly repository: PaymentsRepository,
     private readonly sepayGateway?: SepayPaymentGateway,
-    private readonly bookingEmail?: Pick<BookingsService, "enqueueConfirmation" | "getStatus">,
     private readonly logger?: Pick<FastifyBaseLogger, "warn">,
+    private readonly reservationPayments?: ReservationPaymentsService,
+    private readonly rentals?: RentalsService,
   ) {}
 
   async listManualRefunds(query: ManualRefundQuery): Promise<ManualRefund[]> {
@@ -45,6 +46,7 @@ export class PaymentsService {
       throw new AppError(PAYMENT_MESSAGES.failedToFinalizePayment, 500);
     return {
       paymentId: payment.id,
+      type: payment.type,
       status: "REFUNDED",
       amount: payment.refundAmount ?? payment.totalAmount,
       depositForfeitedAmount: payment.depositForfeitedAmount,
@@ -55,89 +57,6 @@ export class PaymentsService {
     };
   }
 
-  async startBookingPayment(
-    bookingId: string,
-    input: BookingPaymentInput,
-    userId: string,
-  ): Promise<BookingPaymentSession> {
-    if (!this.sepayGateway?.checkoutConfigured)
-      throw new AppError(PAYMENT_MESSAGES.sepayUnavailable, 503, "PAYMENT_PROVIDER_UNAVAILABLE");
-    const { payment, expiresAt } = await this.repository.prepareBookingPayment({
-      bookingId,
-      userId,
-      holdTokenHash: randomBytes(32).toString("hex"),
-      contactPhone: input.contactPhone,
-      idempotencyKey: input.idempotencyKey,
-      paymentCode: `${this.sepayGateway.paymentPrefix}${randomBytes(7).toString("hex").toUpperCase()}`,
-      holdDurationMs: 10 * 60_000,
-    });
-    const session = this.sepayGateway.createCheckoutSession({
-      bookingId,
-      paymentId: payment.id,
-      paymentCode: payment.paymentCode,
-      amount: Number(payment.totalAmount),
-      currency: payment.currency,
-      description: PAYMENT_MESSAGES.checkoutDescription(payment.paymentCode),
-    });
-    if (!session)
-      throw new AppError(PAYMENT_MESSAGES.sepayUnavailable, 503, "PAYMENT_PROVIDER_UNAVAILABLE");
-    return {
-      bookingId,
-      paymentId: payment.id,
-      provider: "sepay",
-      status: "PENDING",
-      paymentCode: payment.paymentCode,
-      checkoutUrl: session.checkoutUrl,
-      checkoutFormFields: session.formFields,
-      expiresAt: expiresAt.toISOString(),
-    };
-  }
-
-  async startRentalChargePayment(
-    chargeId: string,
-    userId: string,
-    input: StartRentalChargePayment,
-  ): Promise<RentalChargePaymentSession> {
-    if (!this.sepayGateway?.checkoutConfigured)
-      throw new AppError(PAYMENT_MESSAGES.sepayUnavailable, 503, "PAYMENT_PROVIDER_UNAVAILABLE");
-    const { payment, expiresAt } = await this.repository.prepareRentalChargePayment({
-      chargeId,
-      userId,
-      idempotencyKey: input.idempotencyKey,
-      paymentCode: `${this.sepayGateway.paymentPrefix}${randomBytes(7).toString("hex").toUpperCase()}`,
-    });
-    const session = this.sepayGateway.createCheckoutSession({
-      rentalChargeId: chargeId,
-      paymentId: payment.id,
-      paymentCode: payment.paymentCode,
-      amount: Number(payment.totalAmount),
-      currency: payment.currency,
-      description: PAYMENT_MESSAGES.checkoutDescription(payment.paymentCode),
-    });
-    if (!session)
-      throw new AppError(PAYMENT_MESSAGES.sepayUnavailable, 503, "PAYMENT_PROVIDER_UNAVAILABLE");
-    return {
-      chargeId,
-      paymentId: payment.id,
-      provider: "sepay",
-      status: "PENDING",
-      paymentCode: payment.paymentCode,
-      checkoutUrl: session.checkoutUrl,
-      checkoutFormFields: session.formFields,
-      expiresAt: expiresAt.toISOString(),
-    };
-  }
-
-  private async confirmationWithEmail(completed: {
-    booking: BookingReadRecord;
-    confirmation: BookingConfirmation;
-  }): Promise<BookingConfirmation> {
-    const emailStatus =
-      (await this.bookingEmail?.enqueueConfirmation(completed.booking, completed.confirmation)) ??
-      "FAILED";
-    return { ...completed.confirmation, emailStatus };
-  }
-
   async handleSepayWebhook(
     headers: Record<string, string | string[] | undefined>,
     rawBody: string,
@@ -145,17 +64,10 @@ export class PaymentsService {
     if (!this.sepayGateway)
       throw new AppError(PAYMENT_MESSAGES.sepayUnavailable, 503, "PAYMENT_PROVIDER_UNAVAILABLE");
     const event = this.sepayGateway.verifyWebhook(headers, rawBody);
-    const bookingResult = await this.repository.processBookingPaymentEvent(event);
-    if (bookingResult) {
-      if (bookingResult.completed) await this.confirmationWithEmail(bookingResult.completed);
-      return {
-        duplicate: bookingResult.duplicate,
-        processed: bookingResult.processed,
-        paymentId: bookingResult.paymentId,
-      };
-    }
-    const chargeResult = await this.repository.processRentalChargePaymentEvent(event);
-    if (chargeResult) return chargeResult;
+    const renewalResult = await this.rentals?.processRenewalPaymentEvent(event);
+    if (renewalResult) return renewalResult;
+    const reservationResult = await this.reservationPayments?.processEvent(event);
+    if (reservationResult) return reservationResult;
     const existingEvent = await this.repository.findProviderEvent("sepay", event.providerEventId);
     if (existingEvent && existingEvent.status !== "FAILED") return { duplicate: true };
     const recorded =
@@ -192,11 +104,13 @@ export class PaymentsService {
     const payment = await this.repository.claimPaymentReconciliation(paymentId);
     if (!payment) return;
     try {
-      const event = await this.sepayGateway.retrievePayment(payment);
+      const event = await this.sepayGateway.retrievePayment({
+        ...payment,
+        paymentCode: requirePaymentCode(payment.paymentCode),
+      });
       if (!event) return;
-      const result = await this.repository.processBookingPaymentEvent(event);
-      if (result?.completed) await this.confirmationWithEmail(result.completed);
-      if (!result) await this.repository.processRentalChargePaymentEvent(event);
+      const renewalResult = await this.rentals?.processRenewalPaymentEvent(event);
+      if (!renewalResult) await this.reservationPayments?.processEvent(event);
     } catch (error) {
       this.logger?.warn(
         {
@@ -233,45 +147,51 @@ export class PaymentsService {
     // Authorize before any provider request or state transition. Never use data
     // from the browser return URL to decide whether payment was received.
     if (payment.status === "PENDING") {
+      requirePaymentCode(payment.paymentCode);
       await this.reconcilePayment(payment.id);
       payment = (await this.repository.findPayment(payment.id)) ?? payment;
     }
-    const completed =
-      payment.status === "SUCCEEDED"
-        ? await this.repository.findCompletedByPaymentId(payment.id)
-        : undefined;
+    if (payment.status === "PENDING") requirePaymentCode(payment.paymentCode);
     const hold =
       payment.status === "PENDING" ? await this.repository.findActiveHoldForPayment(payment) : null;
     const transferInstructions =
-      payment.status === "PENDING" && this.sepayGateway && (hold || payment.rentalChargeId)
+      payment.status === "PENDING" && this.sepayGateway && hold
         ? this.sepayGateway.createInstructions({
-            paymentCode: payment.paymentCode,
+            paymentCode: requirePaymentCode(payment.paymentCode),
             amount: payment.totalAmount,
             currency: payment.currency,
             expiresAt: hold?.expiresAt ?? payment.expiresAt ?? new Date(Date.now() + 10 * 60_000),
           })
         : undefined;
+    const rentalId = payment.renewalId
+      ? await this.repository.findRenewalRentalId(payment.renewalId)
+      : undefined;
     const checkoutSession =
       payment.status === "PENDING" &&
       this.sepayGateway &&
-      (payment.bookingId || payment.rentalChargeId) &&
-      (hold || payment.rentalChargeId)
+      (payment.bookingId || payment.reservationId || payment.renewalId) &&
+      hold
         ? this.sepayGateway.createCheckoutSession({
-            paymentCode: payment.paymentCode,
+            paymentCode: requirePaymentCode(payment.paymentCode),
             amount: Number(payment.totalAmount),
             currency: payment.currency,
-            description: PAYMENT_MESSAGES.checkoutDescription(payment.paymentCode),
+            description: PAYMENT_MESSAGES.checkoutDescription(
+              requirePaymentCode(payment.paymentCode),
+            ),
             bookingId: payment.bookingId ?? undefined,
-            rentalChargeId: payment.rentalChargeId ?? undefined,
+            reservationId: payment.reservationId ?? undefined,
+            renewalId: payment.renewalId ?? undefined,
+            rentalId,
             paymentId: payment.id,
           })
         : null;
     return {
       paymentId: payment.id,
+      type: payment.type,
+      ...(payment.reservationId ? { reservationId: payment.reservationId } : {}),
       status: payment.status,
       provider: payment.provider,
       paymentCode: payment.paymentCode,
-      chargeId: payment.rentalChargeId ?? undefined,
       transferInstructions,
       refund:
         payment.status === "REFUND_PENDING" || payment.status === "REFUNDED"
@@ -283,41 +203,36 @@ export class PaymentsService {
           : undefined,
       checkoutUrl: checkoutSession?.checkoutUrl,
       checkoutFormFields: checkoutSession?.formFields,
-      confirmation: completed
-        ? {
-            ...completed.confirmation,
-            emailStatus: (await this.confirmationWithEmail(completed)).emailStatus,
-          }
-        : undefined,
     };
   }
 }
 
-export function createPaymentsService(
-  fastify: FastifyInstance,
-  bookingService?: Pick<BookingsService, "enqueueConfirmation" | "getStatus">,
-): PaymentsService {
+export function createSepayGateway() {
   const isSepay = env.PAYMENT_PROVIDER === "sepay";
   const hasPgConfig = Boolean(env.SEPAY_MERCHANT_ID && env.SEPAY_SECRET_KEY);
 
-  const sepayGateway =
-    isSepay && hasPgConfig
-      ? new SepayPaymentGateway({
-          paymentPrefix: env.SEPAY_PAYMENT_PREFIX,
-          env: env.SEPAY_ENV,
-          merchantId: env.SEPAY_MERCHANT_ID,
-          secretKey: env.SEPAY_SECRET_KEY,
-          webUrl: env.WEB_URL,
-          bankName: env.SEPAY_BANK_NAME,
-          accountNumber: env.SEPAY_BANK_ACCOUNT_NUMBER,
-          accountName: env.SEPAY_BANK_ACCOUNT_NAME,
-        })
-      : undefined;
+  return isSepay && hasPgConfig
+    ? new SepayPaymentGateway({
+        paymentPrefix: env.SEPAY_PAYMENT_PREFIX,
+        env: env.SEPAY_ENV,
+        merchantId: env.SEPAY_MERCHANT_ID,
+        secretKey: env.SEPAY_SECRET_KEY,
+        webUrl: env.WEB_URL,
+        bankName: env.SEPAY_BANK_NAME,
+        accountNumber: env.SEPAY_BANK_ACCOUNT_NUMBER,
+        accountName: env.SEPAY_BANK_ACCOUNT_NAME,
+      })
+    : undefined;
+}
+
+export function createPaymentsService(fastify: FastifyInstance): PaymentsService {
+  const sepayGateway = createSepayGateway();
   const repository = new PaymentsRepository(fastify.db);
   return new PaymentsService(
     repository,
     sepayGateway,
-    bookingService ?? createBookingsService(fastify),
     fastify.log,
+    createReservationPaymentsService(fastify.db, sepayGateway),
+    createRentalsService(fastify.db, sepayGateway),
   );
 }

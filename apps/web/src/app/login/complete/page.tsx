@@ -1,6 +1,6 @@
 "use client";
 
-import { UserRole } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef } from "react";
 import { FullScreenLoading } from "@/components/ui/states";

@@ -1,25 +1,20 @@
 import { createHash, createHmac } from "node:crypto";
 import { SYSTEM_SETTING_DEFINITIONS } from "@metastorage/contracts/system-settings";
 import { hashPassword } from "better-auth/crypto";
-import { and, asc, eq, gt, inArray, isNull, lt, notExists, or } from "drizzle-orm";
+import { and, asc, eq, inArray, notExists } from "drizzle-orm";
 import { db, queryClient } from "./client";
 import { loadApiEnv } from "./env";
+import { migrateBookingsToReservations } from "./migrate-bookings-to-reservations";
 import {
   accounts,
   bookings,
   capacityAllocations,
   checkInSlots,
-  checkInVerifications,
   facilities,
   facilityAssignments,
-  facilityOperatingHours,
-  facilityReturnCalendars,
   payments,
-  rentalPriceRanges,
+  RentalStatus,
   rentals,
-  returnChecklistVersions,
-  returnInspections,
-  returnRequests,
   storageUnits,
   systemSettings,
   unitAssignments,
@@ -169,16 +164,6 @@ const FLOW3_IDS = {
     "85000000-0000-4000-8000-000000000005",
     "85000000-0000-4000-8000-000000000006",
   ],
-  requests: [
-    "86000000-0000-4000-8000-000000000001",
-    "86000000-0000-4000-8000-000000000002",
-    "86000000-0000-4000-8000-000000000003",
-    "86000000-0000-4000-8000-000000000004",
-    "86000000-0000-4000-8000-000000000005",
-    "86000000-0000-4000-8000-000000000006",
-  ],
-  inspections: ["87000000-0000-4000-8000-000000000001"],
-  checklist: "88000000-0000-4000-8000-000000000001",
   units: [
     "70000000-0000-4000-8000-000000000019",
     "70000000-0000-4000-8000-000000000020",
@@ -196,33 +181,6 @@ const FLOW3_BOOKING_CODES = [
   "DEMO-FLOW3-ACTIVE-2",
   "DEMO-FLOW3-RETURN-PENDING-2",
 ];
-const FLOW3_DEMO_CHECKLIST = [
-  {
-    code: "DEMO_REMAINING_PROPERTY",
-    label: "Tài sản còn lại đã được xử lý hoặc bàn giao lưu giữ",
-    group: "REMAINING_PROPERTY",
-    serious: false,
-  },
-  {
-    code: "DEMO_UNIT_CONDITION",
-    label: "Tình trạng Unit không có lỗi nghiêm trọng",
-    group: "UNIT_CONDITION",
-    serious: true,
-  },
-  {
-    code: "DEMO_HYGIENE_SAFETY",
-    label: "Vệ sinh và an toàn đạt yêu cầu",
-    group: "HYGIENE_SAFETY",
-    serious: true,
-  },
-  {
-    code: "DEMO_OTHER_ISSUES",
-    label: "Không còn vấn đề khác cần xử lý",
-    group: "EVIDENCE",
-    serious: false,
-  },
-] as const;
-
 function getSeedNow() {
   const configured = process.env.SEED_NOW;
   if (!configured) return new Date();
@@ -241,7 +199,9 @@ export async function seedImmediateCheckInSlot(seedNow = getSeedNow()) {
     throw new Error("Local demo seeding is disabled in production");
   const local = new Date(seedNow.getTime() + 7 * HOUR_MS).toISOString();
   const date = local.slice(0, 10);
-  const startTime = `${local.slice(11, 16)}:00`;
+  const localMinutes = Number(local.slice(11, 13)) * 60 + Number(local.slice(14, 16));
+  const demoMinutes = Math.min(Math.max(localMinutes, 8 * 60), 19 * 60 + 59);
+  const startTime = `${String(Math.floor(demoMinutes / 60)).padStart(2, "0")}:${String(demoMinutes % 60).padStart(2, "0")}:00`;
   const start = new Date(`${date}T${startTime}+07:00`);
   const end = new Date(start.getTime() + 30 * DAY_MS);
   await db.transaction(async (tx) => {
@@ -255,11 +215,7 @@ export async function seedImmediateCheckInSlot(seedNow = getSeedNow()) {
         .select({ id: rentals.id })
         .from(rentals)
         .where(eq(rentals.bookingId, existing.id));
-      const [verification] = await tx
-        .select({ id: checkInVerifications.id })
-        .from(checkInVerifications)
-        .where(eq(checkInVerifications.bookingId, existing.id));
-      if (existing.status !== "CONFIRMED" || rental || verification) {
+      if (existing.status !== "CONFIRMED" || rental) {
         console.log("DEMO-CHECKIN-NOW already progressed; keeping its booking and slot unchanged.");
         return;
       }
@@ -441,25 +397,13 @@ async function seedDemoData(seedNow: Date) {
           .values({ userId: person.id, facilityId: facility.id, role: person.role })
           .onConflictDoNothing();
       }
-      for (let day = 0; day < 7; day++) {
-        await tx
-          .insert(facilityOperatingHours)
-          .values({
-            facilityId: facility.id,
-            dayOfWeek: day,
-            openTime: "08:00:00",
-            closeTime: "20:00:00",
-            timezone: "Asia/Ho_Chi_Minh",
-          })
-          .onConflictDoNothing();
-      }
       const facilityTypes = typeRows.filter((type) => type.facilityId === facility.id);
       for (const type of facilityTypes) {
-        const originalId = `71000000-0000-4000-8000-${facility.id.slice(-6)}${type.priceRangeId.slice(-6)}`;
+        const originalCode = `${facility.code}-${type.code}-001`;
         await tx
           .update(storageUnits)
           .set({ floor: "1", locationDescription: `Dãy A · ${type.sizeLabel} · Ô 01` })
-          .where(eq(storageUnits.id, originalId));
+          .where(eq(storageUnits.code, originalCode));
         for (let serial = 2; serial <= 4; serial++) {
           await tx
             .insert(storageUnits)
@@ -818,10 +762,6 @@ function localDate(date: Date) {
   }).format(date);
 }
 
-function localSlot(date: string, time: string) {
-  return new Date(`${date}T${time}+07:00`);
-}
-
 async function seedFlow2Demo(seedNow: Date) {
   const password = await hashPassword(FLOW2_STAFF_PASSWORD);
   await db.transaction(async (tx) => {
@@ -908,77 +848,25 @@ async function seedFlow2Demo(seedNow: Date) {
   });
 }
 
-async function seedFlow3Rentals(seedNow: Date) {
+async function seedBasicRentals(seedNow: Date) {
   const [facility] = await db.select().from(facilities).where(eq(facilities.code, "HCM-01"));
   if (!facility) throw new Error("HCM-01 is required for return seed data");
   const [type] = await db
     .select()
     .from(unitTypes)
     .where(and(eq(unitTypes.code, "UT-2M"), eq(unitTypes.facilityId, facility.id)));
-  const [customer, staff, manager, , admin] = SEED_USERS;
-  if (!facility || !type || !customer || !staff || !manager || !admin)
+  const [customer, staff, manager] = SEED_USERS;
+  if (!facility || !type || !customer || !staff || !manager)
     throw new Error("Flow 3 fixture prerequisites are missing");
   const slots = await db.select().from(checkInSlots).orderBy(asc(checkInSlots.startTime));
-  if (slots.length < 3) throw new Error("At least three shared return/check-in slots are required");
-  const existingChecklist = await db
-    .select()
-    .from(returnChecklistVersions)
-    .orderBy(asc(returnChecklistVersions.version));
-  const checklist = existingChecklist.at(-1);
-  const checklistVersion =
-    checklist ??
-    (
-      await db
-        .insert(returnChecklistVersions)
-        .values({
-          id: FLOW3_IDS.checklist,
-          version: 1,
-          items: [...FLOW3_DEMO_CHECKLIST],
-          createdBy: admin.id,
-        })
-        .onConflictDoNothing()
-        .returning()
-    )[0];
-  if (!checklistVersion) throw new Error("Flow 3 checklist fixture could not be created");
-
-  await db
-    .insert(facilityReturnCalendars)
-    .values({
-      facilityId: facility.id,
-      timezone: "Asia/Ho_Chi_Minh",
-      holidays: [],
-      reminderTime: "09:00",
-      version: 1,
-      updatedBy: admin.id,
-      updatedAt: seedNow,
-    })
-    .onConflictDoNothing();
-
+  if (slots.length < 4) throw new Error("At least four shared return/check-in slots are required");
   const definitions = [
-    { status: "ACTIVE", expiryDays: 20, requestStatus: null, requestDay: 2, slotIndex: 0 },
-    {
-      status: "RETURN_PENDING",
-      expiryDays: 5,
-      requestStatus: "PENDING",
-      requestDay: 3,
-      slotIndex: 2,
-    },
-    { status: "OVERDUE", expiryDays: -2, requestStatus: "CONFIRMED", requestDay: 4, slotIndex: 2 },
-    {
-      status: "CLOSED",
-      expiryDays: -120,
-      requestStatus: "COMPLETED",
-      requestDay: -119,
-      slotIndex: 0,
-    },
-    { status: "ACTIVE", expiryDays: 45, requestStatus: null, requestDay: 10, slotIndex: 1 },
-    {
-      status: "RETURN_PENDING",
-      expiryDays: 12,
-      requestStatus: "PENDING",
-      requestDay: 14,
-      slotIndex: 1,
-    },
+    { status: "ACTIVE", expiryDays: 20 },
+    { status: "ACTIVE", expiryDays: 5 },
+    { status: "ACTIVE", expiryDays: -2 },
+    { status: "CLOSED", expiryDays: -120 },
+    { status: "ACTIVE", expiryDays: 45 },
+    { status: "ACTIVE", expiryDays: 12 },
   ] as const;
   for (const [index, scenario] of definitions.entries()) {
     const bookingId = FLOW3_IDS.bookings[index];
@@ -986,9 +874,8 @@ async function seedFlow3Rentals(seedNow: Date) {
     const unitId = FLOW3_IDS.units[index];
     const unitCode = `HCM-01-${String(index + 19).padStart(3, "0")}`;
     if (!bookingId || !rentalId || !unitId) continue;
-    const startAt = shiftDays(seedNow, -30);
     const expectedEndAt = shiftDays(seedNow, scenario.expiryDays);
-    const actualReturnAt = scenario.status === "CLOSED" ? shiftDays(expectedEndAt, 1) : null;
+    const startAt = shiftDays(seedNow, Math.min(-30, scenario.expiryDays - 30));
     const checkInDate = localDate(startAt);
     const bookingCode = FLOW3_BOOKING_CODES[index];
     await db.transaction(async (tx) => {
@@ -1055,24 +942,13 @@ async function seedFlow3Rentals(seedNow: Date) {
         .values({
           id: rentalId,
           bookingId,
-          facilityId: facility.id,
-          physicalUnitId: unitId,
-          status: scenario.status,
+          userId: customer.id,
+          storageUnitId: unitId,
+          status: scenario.status === "CLOSED" ? RentalStatus.CLOSED : RentalStatus.ACTIVE,
           startAt,
-          expectedEndAt,
-          actualReturnAt,
-          closedAt: actualReturnAt,
-          depositAmount: String(type.monthlyPrice),
+          endAt: expectedEndAt,
         })
-        .onConflictDoUpdate({
-          target: rentals.id,
-          set: {
-            status: scenario.status,
-            expectedEndAt,
-            actualReturnAt,
-            closedAt: actualReturnAt,
-          },
-        });
+        .onConflictDoNothing({ target: rentals.id });
       await tx
         .insert(unitAssignments)
         .values({
@@ -1112,91 +988,6 @@ async function seedFlow3Rentals(seedNow: Date) {
             endsAt: expectedEndAt,
           },
         });
-      if (!scenario.requestStatus) return;
-      const requestId = FLOW3_IDS.requests[index];
-      if (!requestId) return;
-      const date = localDate(shiftDays(seedNow, scenario.requestDay));
-      const slot = slots[scenario.slotIndex];
-      if (!slot) throw new Error(`Return slot ${scenario.slotIndex} is missing`);
-      const startsAt = localSlot(date, slot.startTime);
-      const endsAt = localSlot(date, slot.endTime);
-      await tx
-        .insert(returnRequests)
-        .values({
-          id: requestId,
-          rentalId,
-          facilityId: facility.id,
-          slotId: slot.id,
-          date,
-          startsAt,
-          endsAt,
-          timezone: "Asia/Ho_Chi_Minh",
-          status: scenario.requestStatus,
-          assignedStaffId: scenario.requestStatus === "PENDING" ? null : staff.id,
-          reason: "Demo Flow 3 return request",
-          createdBy: customer.id,
-        })
-        .onConflictDoUpdate({
-          target: returnRequests.id,
-          set: {
-            rentalId,
-            facilityId: facility.id,
-            slotId: slot.id,
-            date,
-            startsAt,
-            endsAt,
-            timezone: "Asia/Ho_Chi_Minh",
-            status: scenario.requestStatus,
-            assignedStaffId: scenario.requestStatus === "PENDING" ? null : staff.id,
-            reason: "Demo Flow 3 return request",
-          },
-        });
-      if (scenario.requestStatus === "COMPLETED") {
-        const inspectionId = FLOW3_IDS.inspections[0];
-        if (!inspectionId || !actualReturnAt)
-          throw new Error("Closed rental inspection fixture is incomplete");
-        await tx
-          .insert(returnInspections)
-          .values({
-            id: inspectionId,
-            requestId,
-            attempt: 1,
-            checklistVersionId: checklistVersion.id,
-            definition: checklistVersion.items,
-            results: checklistVersion.items.map((item) => ({
-              code: item.code,
-              issue: false,
-              note: "Demo inspection",
-              photoIds: [],
-            })),
-            status: "PASS",
-            propertyDisposition: "NONE",
-            createdBy: staff.id,
-            completedBy: staff.id,
-            createdAt: actualReturnAt,
-            completedAt: actualReturnAt,
-          })
-          .onConflictDoUpdate({
-            target: returnInspections.id,
-            set: {
-              requestId,
-              checklistVersionId: checklistVersion.id,
-              definition: checklistVersion.items,
-              results: checklistVersion.items.map((item) => ({
-                code: item.code,
-                issue: false,
-                note: "Demo inspection",
-                photoIds: [],
-              })),
-              status: "PASS",
-              createdBy: staff.id,
-              completedBy: staff.id,
-              createdAt: actualReturnAt,
-              completedAt: actualReturnAt,
-              propertyDisposition: "NONE",
-            },
-          });
-      }
     });
   }
 }
@@ -1216,7 +1007,14 @@ export async function seedPricingPolicy(seedNow = getSeedNow()) {
 
 async function seedPolicies(seedNow: Date) {
   await seedPricingPolicy(seedNow);
-  const keys = ["EXPIRY_REMINDER_DAYS", "ABANDONED_REVIEW_DAYS", "OVERDUE_FEE_RATE"] as const;
+  const keys = [
+    "EXPIRY_REMINDER_DAYS",
+    "ABANDONED_REVIEW_DAYS",
+    "RENEWAL_NOTICE_DAYS",
+    "OVERDUE_FEE_RATE",
+    "OPENING_HOUR",
+    "CLOSING_HOUR",
+  ] as const;
   await db
     .insert(systemSettings)
     .values(
@@ -1272,7 +1070,26 @@ async function seed() {
   const nodeEnv = process.env.NODE_ENV ?? loadApiEnv().NODE_ENV;
   if (nodeEnv?.trim().toLowerCase() === "production")
     throw new Error("Local demo seeding is disabled in production");
+  const [schema] = await queryClient<{ bookings: string | null }[]>`
+    SELECT to_regclass('public.bookings') AS bookings
+  `;
+  if (!schema?.bookings) {
+    throw new Error(
+      "The database is missing public.bookings. Apply the current database migrations before seeding; this database still has the legacy schema.",
+    );
+  }
   const seedNow = getSeedNow();
+  const existingReservations = await queryClient`select id from reservations limit 1`;
+  if (existingReservations.length) {
+    await seedPolicies(seedNow);
+    await seedAuthAccounts(seedNow);
+    console.log(
+      "Reservation data already exists; preserved workflow history and refreshed policies/accounts. Use db:clear for a clean demo reset.",
+    );
+    await queryClient.end();
+    return;
+  }
+
   console.log("Starting local database seeding via raw SQL client...");
 
   console.log("1. Seeding facilities...");
@@ -1475,54 +1292,12 @@ async function seed() {
 
   const typeMap = new Map<string, string>();
   for (const [index, unitType] of unitTypesData.entries()) {
-    // Demo-only bounds: allow FM price changes around each fictional catalog price.
-    const minMonthlyPrice = Math.floor(unitType.monthlyPrice * 0.8);
-    const maxMonthlyPrice = Math.ceil(unitType.monthlyPrice * 1.2);
-    await db
-      .insert(rentalPriceRanges)
-      .values({
-        id: id("61000000", index + 1),
-        code: unitType.code,
-        name: unitType.name,
-        minMonthlyPrice,
-        maxMonthlyPrice,
-      })
-      .onConflictDoUpdate({
-        target: rentalPriceRanges.code,
-        set: { minMonthlyPrice, maxMonthlyPrice },
-        setWhere: and(
-          isNull(rentalPriceRanges.minMonthlyPrice),
-          isNull(rentalPriceRanges.maxMonthlyPrice),
-          eq(rentalPriceRanges.version, 0),
-          isNull(rentalPriceRanges.updatedBy),
-          eq(rentalPriceRanges.isActive, true),
-          notExists(
-            db
-              .select({ id: unitTypes.id })
-              .from(unitTypes)
-              .where(
-                and(
-                  eq(unitTypes.priceRangeId, rentalPriceRanges.id),
-                  or(
-                    lt(unitTypes.monthlyPrice, minMonthlyPrice),
-                    gt(unitTypes.monthlyPrice, maxMonthlyPrice),
-                  ),
-                ),
-              ),
-          ),
-        ),
-      });
-    const [range] = await db
-      .select({ id: rentalPriceRanges.id })
-      .from(rentalPriceRanges)
-      .where(eq(rentalPriceRanges.code, unitType.code));
-    if (!range) throw new Error(`Missing seed range ${unitType.code}`);
     for (const [facilityIndex, facility] of facilities.entries()) {
       const candidateId =
         facilityIndex === 0 ? unitType.id : id("62000000", facilityIndex * 100 + index + 1);
       await db
         .insert(unitTypes)
-        .values({ ...unitType, id: candidateId, facilityId: facility.id, priceRangeId: range.id })
+        .values({ ...unitType, id: candidateId, facilityId: facility.id })
         .onConflictDoNothing();
       const [localType] = await db
         .select({ id: unitTypes.id })
@@ -1757,19 +1532,18 @@ async function seed() {
 
     await queryClient`
       INSERT INTO payments (
-        id, booking_id, draft_id, hold_token_hash, provider, provider_payment_id,
+        id, booking_id, hold_token_hash, provider, provider_payment_id,
         idempotency_key, payment_code, total_amount,
         currency, status, paid_at
       )
       VALUES (
-        ${paymentId}, ${booking.id}, NULL, ${`seed-hold-${bookingSeed.code}`},
+        ${paymentId}, ${booking.id}, ${`seed-hold-${bookingSeed.code}`},
         'MOCK', ${`seed-payment-${bookingSeed.code}`}, ${`seed-idempotency-${bookingSeed.code}`}, ${`SEED${bookingSeed.code}`},
         ${totalAmount}, 'VND',
         ${bookingSeed.paymentStatus}, ${new Date(now + bookingSeed.paidOffset).toISOString()}
       )
       ON CONFLICT (id) DO UPDATE SET
         booking_id = EXCLUDED.booking_id,
-        draft_id = EXCLUDED.draft_id,
         payment_code = EXCLUDED.payment_code,
         status = EXCLUDED.status,
         paid_at = EXCLUDED.paid_at,
@@ -1777,7 +1551,6 @@ async function seed() {
     `;
 
     // A rerun restores a clean scenario after manual check-in experiments.
-    await queryClient`DELETE FROM checkin_verifications WHERE booking_id = ${booking.id}`;
     await queryClient`DELETE FROM unit_assignments WHERE booking_id = ${booking.id}`;
 
     if (bookingSeed.assignCode) {
@@ -1798,10 +1571,11 @@ async function seed() {
 
   await seedDemoData(seedNow);
   await seedFlow2Demo(seedNow);
-  await seedFlow3Rentals(seedNow);
+  await seedBasicRentals(seedNow);
   await seedPolicies(seedNow);
   await seedAuthAccounts(seedNow);
   await seedImmediateCheckInSlot(seedNow);
+  await db.transaction(migrateBookingsToReservations);
   console.log("✅ Seeding completed successfully!");
   await queryClient.end();
 }

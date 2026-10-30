@@ -27,6 +27,7 @@ export const FACILITY_MESSAGES = {
   assignmentCreated: "Đã phân công nhân sự vào cơ sở.",
   assignmentRevoked: "Đã thu hồi phân công nhân sự.",
   managementSummary: "Quản lý danh sách cơ sở",
+  operatingHoursSummary: "Xem giờ mở cửa và đóng cửa chung trong cài đặt hệ thống",
   detailSummary: "Xem chi tiết cơ sở theo quyền truy cập",
   updateSummary: "Cập nhật thông tin cơ sở",
   assignmentsSummary: "Quản lý thành viên được phân công tại cơ sở",

@@ -8,8 +8,8 @@ import {
   UpdateUserInputSchema,
   type User,
   type UserListQuery,
-  type UserRole,
 } from "@metastorage/contracts";
+import type { UserRole } from "@metastorage/database/schema/user-enums";
 import { ConflictError, ForbiddenError, NotFoundError } from "../../common/errors/app-error";
 import type { AuthService } from "../auth/auth.service";
 import { toUserDto } from "./users.dto";

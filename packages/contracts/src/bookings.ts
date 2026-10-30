@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { BOOKING_CONTRACT_MESSAGES } from "./bookings.messages";
 import { FacilityStaffMemberSchema } from "./facilities";
-import { ReservationDraftContactSchema } from "./reservation-contact";
 
 export type {
   BookingClosure,
@@ -45,15 +44,8 @@ export const BookingTrackingParamsSchema = z.object({
     .max(50, BOOKING_CONTRACT_MESSAGES.invalidBookingCode),
 });
 
-export const BookingDraftInputSchema = z.object({
-  facilityId: z.string().uuid(),
-  unitTypeId: z.string().uuid(),
-  checkInSlotId: z.string().uuid(),
-  checkInDate: z.iso.date(),
-  durationMonths: z.number().int().min(1).max(12),
-});
-
-export type BookingDraftInput = z.infer<typeof BookingDraftInputSchema>;
+export type { CreateReservationDraftInput as BookingDraftInput } from "./reservations";
+export { CreateReservationDraftSchema as BookingDraftInputSchema } from "./reservations";
 
 export const PaidBookingSchema = z.object({
   id: z.string().uuid(),
@@ -65,7 +57,7 @@ export const PaidBookingSchema = z.object({
   durationMonths: z.number().int().min(1).max(12),
   status: z.literal("CONFIRMED"),
   paidAt: z.string().datetime(),
-  contact: ReservationDraftContactSchema,
+  contact: z.object({ fullName: z.string(), email: z.email(), phone: z.string() }).optional(),
   pricing: z.object({
     rentalFeeAmount: z.string(),
     depositAmount: z.string(),
@@ -108,6 +100,69 @@ export const PhysicalUnitAssignmentSchema = z.object({
 
 export type PhysicalUnitAssignment = z.infer<typeof PhysicalUnitAssignmentSchema>;
 
+export const CheckInLookupTypeSchema = z.enum(["QR_TOKEN", "BOOKING_CODE"]);
+export type CheckInLookupType = z.infer<typeof CheckInLookupTypeSchema>;
+
+export const CheckInLookupInputSchema = z.object({
+  type: CheckInLookupTypeSchema,
+  value: z.string().trim().min(1).max(500),
+});
+export type CheckInLookupInput = z.infer<typeof CheckInLookupInputSchema>;
+
+export const CheckInReadinessReasonCodeSchema = z.enum([
+  "TOO_EARLY",
+  "DEADLINE_PASSED",
+  "CHECKIN_SLOT_NOT_CONFIGURED",
+  "INVALID_BOOKING_STATUS",
+  "PAYMENT_NOT_SUCCEEDED",
+  "UNIT_NOT_ASSIGNED",
+]);
+export type CheckInReadinessReasonCode = z.infer<typeof CheckInReadinessReasonCodeSchema>;
+
+export const CheckInReadinessSchema = z.object({
+  canProceed: z.boolean(),
+  reasons: z.array(CheckInReadinessReasonCodeSchema),
+});
+export type CheckInReadiness = z.infer<typeof CheckInReadinessSchema>;
+
+export const CheckInBookingSummarySchema = z.object({
+  id: z.string().uuid(),
+  bookingCode: z.string(),
+  status: z.enum(["CONFIRMED", "CANCELLED", "NO_SHOW", "CHECKED_IN"]),
+  facilityId: z.string().uuid(),
+  facilityName: z.string(),
+  unitTypeName: z.string(),
+  unitTypeSizeLabel: z.string(),
+  contactName: z.string(),
+  contactEmail: z.string(),
+  contactPhone: z.string(),
+  totalAmount: z.number().nonnegative(),
+  requestedMonths: z.number().int(),
+  checkInSlotStart: z.string().datetime(),
+  checkInSlotEnd: z.string().datetime().nullable(),
+  checkInDeadlineAt: z.string().datetime().nullable(),
+  rentalEndAt: z.string().datetime(),
+});
+export type CheckInBookingSummary = z.infer<typeof CheckInBookingSummarySchema>;
+
+export const CheckInPaymentSummarySchema = z.object({
+  status: z.enum(["PENDING", "SUCCEEDED", "FAILED", "REFUND_PENDING", "REFUNDED"]).nullable(),
+  paidAt: z.string().datetime().nullable(),
+  totalAmount: z.number().nonnegative().nullable(),
+  rentalFeeAmount: z.number().nonnegative().nullable(),
+  depositAmount: z.number().nonnegative().nullable(),
+  currency: z.string().length(3).nullable(),
+});
+export type CheckInPaymentSummary = z.infer<typeof CheckInPaymentSummarySchema>;
+
+export const CheckInLookupResultSchema = z.object({
+  booking: CheckInBookingSummarySchema,
+  payment: CheckInPaymentSummarySchema,
+  assignedUnit: PhysicalUnitAssignmentSchema.nullable(),
+  checkInReadiness: CheckInReadinessSchema,
+});
+export type CheckInLookupResult = z.infer<typeof CheckInLookupResultSchema>;
+
 export const AssignBookingStaffInputSchema = z.object({
   staffId: z.string().uuid(),
   notes: z.string().max(500).optional(),
@@ -126,6 +181,7 @@ export const BookingListItemSchema = z.object({
   contactName: z.string(),
   contactEmail: z.string(),
   contactPhone: z.string(),
+  checkInOpensAt: z.string().datetime().optional(),
   checkInSlotStart: z.string().datetime(),
   checkInSlotEnd: z.string().datetime().nullable(),
   rentalEndAt: z.string().datetime(),
@@ -138,7 +194,6 @@ export const BookingListItemSchema = z.object({
   handoverStage: z
     .enum(["WAITING_CUSTOMER", "INSPECTING", "READY_HANDOVER", "HANDED_OVER"])
     .optional(),
-  earlyCheckInAllowed: z.boolean().optional(),
   createdAt: z.string().datetime(),
 });
 

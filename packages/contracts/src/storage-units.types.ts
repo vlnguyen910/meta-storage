@@ -45,21 +45,3 @@ export interface StorageUnitTransitionValidationResult {
   allowed: boolean;
   error?: string;
 }
-
-export interface StorageUnitMaintenanceHistoryItem {
-  id: string;
-  storageUnitId: string;
-  action: "ENTER_MAINTENANCE" | "EXIT_MAINTENANCE";
-  previousStatus: string;
-  nextStatus: string;
-  reason: string | null;
-  changedBy: string;
-  changedByName: string;
-  changedAt: string;
-}
-export interface StorageUnitMaintenanceHistoryResult {
-  items: StorageUnitMaintenanceHistoryItem[];
-  total: number;
-  limit: number;
-  offset: number;
-}

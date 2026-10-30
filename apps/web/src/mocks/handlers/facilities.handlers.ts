@@ -1,16 +1,20 @@
-import {
-  type CatalogFacility,
-  type Facility,
-  type FacilityStaffMember,
-  type PaginatedResult,
-  UserRole,
+import type {
+  CatalogFacility,
+  Facility,
+  FacilityStaffMember,
+  PaginatedResult,
 } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import type MockAdapter from "axios-mock-adapter";
 import { remainingCapacity } from "../core/availability";
 import { addMonths, currentUser, envelope, errorBody, optionsForUnits } from "../core/http";
 import { getMockDatabase, hydrateFacility } from "../database";
 
 export function registerFacilityHandlers(mock: MockAdapter): void {
+  mock
+    .onGet("/facilities/operating-hours")
+    .reply(() => [200, envelope({ openingHour: 8, closingHour: 20 })]);
+
   // GET /facilities/:facilityId/staff
   mock.onGet(/\/facilities\/[^/]+\/staff/).reply((config) => {
     const database = getMockDatabase();

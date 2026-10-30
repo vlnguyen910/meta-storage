@@ -9,7 +9,7 @@ metadata:
     url: "https://github.com/humanlayer/skills/blob/main/plugins/show-me/skills/show-me/SKILL.md"
 ---
 
-Use this template for writing the PR body:
+Use this template for writing the PR body, use Vietnamese as main languages keep techinical terms in origin English:
 
 ```markdown
 ## Summary

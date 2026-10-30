@@ -29,7 +29,6 @@ describe("own profile boundary", () => {
       image: null,
       createdAt: new Date(),
       updatedAt: new Date(),
-      passwordHash: "private",
       token: "private",
       password: "private",
     };

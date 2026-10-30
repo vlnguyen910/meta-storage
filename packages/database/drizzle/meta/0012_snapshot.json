@@ -1,6 +1,6 @@
 {
-  "id": "2f570fb0-5ada-453a-9060-7e6577cdba75",
-  "prevId": "45876a3f-8711-411b-9075-cbc1e013a34f",
+  "id": "8987e183-7c28-4ba4-b7c8-29830d1f8356",
+  "prevId": "2589598a-e2c6-4b12-9811-63e9130774b0",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -104,6 +104,27 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "accounts_provider_account_idx": {
+          "name": "accounts_provider_account_idx",
+          "columns": [
+            {
+              "expression": "provider_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "account_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -127,6 +148,357 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.appointments": {
+      "name": "appointments",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "facility_id": {
+          "name": "facility_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "appointment_type": {
+          "name": "appointment_type",
+          "type": "appointment_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scheduled_date": {
+          "name": "scheduled_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slot_id": {
+          "name": "slot_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "appointment_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'SCHEDULED'"
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contact_phone": {
+          "name": "contact_phone",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reservation_id": {
+          "name": "reservation_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rental_id": {
+          "name": "rental_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "support_ticket_id": {
+          "name": "support_ticket_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "assigned_staff_id": {
+          "name": "assigned_staff_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "appointments_facility_schedule_idx": {
+          "name": "appointments_facility_schedule_idx",
+          "columns": [
+            {
+              "expression": "facility_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "scheduled_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "appointment_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "appointments_staff_schedule_idx": {
+          "name": "appointments_staff_schedule_idx",
+          "columns": [
+            {
+              "expression": "assigned_staff_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "scheduled_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "appointments_customer_idx": {
+          "name": "appointments_customer_idx",
+          "columns": [
+            {
+              "expression": "customer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "scheduled_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "appointments_check_in_reservation_idx": {
+          "name": "appointments_check_in_reservation_idx",
+          "columns": [
+            {
+              "expression": "reservation_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"appointments\".\"appointment_type\" = 'CHECK_IN' AND \"appointments\".\"status\" IN ('SCHEDULED', 'CONFIRMED')",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "appointments_check_out_slot_idx": {
+          "name": "appointments_check_out_slot_idx",
+          "columns": [
+            {
+              "expression": "facility_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "scheduled_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "slot_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"appointments\".\"appointment_type\" = 'CHECK_OUT' AND \"appointments\".\"status\" = 'CONFIRMED'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "appointments_facility_id_facilities_id_fk": {
+          "name": "appointments_facility_id_facilities_id_fk",
+          "tableFrom": "appointments",
+          "tableTo": "facilities",
+          "columnsFrom": [
+            "facility_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "appointments_slot_id_check_in_slots_id_fk": {
+          "name": "appointments_slot_id_check_in_slots_id_fk",
+          "tableFrom": "appointments",
+          "tableTo": "check_in_slots",
+          "columnsFrom": [
+            "slot_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "appointments_customer_id_users_id_fk": {
+          "name": "appointments_customer_id_users_id_fk",
+          "tableFrom": "appointments",
+          "tableTo": "users",
+          "columnsFrom": [
+            "customer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "appointments_reservation_id_reservations_id_fk": {
+          "name": "appointments_reservation_id_reservations_id_fk",
+          "tableFrom": "appointments",
+          "tableTo": "reservations",
+          "columnsFrom": [
+            "reservation_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "appointments_rental_id_rentals_id_fk": {
+          "name": "appointments_rental_id_rentals_id_fk",
+          "tableFrom": "appointments",
+          "tableTo": "rentals",
+          "columnsFrom": [
+            "rental_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "appointments_support_ticket_id_support_tickets_id_fk": {
+          "name": "appointments_support_ticket_id_support_tickets_id_fk",
+          "tableFrom": "appointments",
+          "tableTo": "support_tickets",
+          "columnsFrom": [
+            "support_ticket_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "appointments_assigned_staff_id_users_id_fk": {
+          "name": "appointments_assigned_staff_id_users_id_fk",
+          "tableFrom": "appointments",
+          "tableTo": "users",
+          "columnsFrom": [
+            "assigned_staff_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "appointments_created_by_users_id_fk": {
+          "name": "appointments_created_by_users_id_fk",
+          "tableFrom": "appointments",
+          "tableTo": "users",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "appointments_context_valid": {
+          "name": "appointments_context_valid",
+          "value": "(\"appointments\".\"appointment_type\" = 'CHECK_IN' AND \"appointments\".\"reservation_id\" IS NOT NULL AND \"appointments\".\"rental_id\" IS NULL AND \"appointments\".\"support_ticket_id\" IS NULL) OR (\"appointments\".\"appointment_type\" = 'CHECK_OUT' AND \"appointments\".\"reservation_id\" IS NULL AND \"appointments\".\"rental_id\" IS NOT NULL AND \"appointments\".\"support_ticket_id\" IS NULL) OR (\"appointments\".\"appointment_type\" = 'SUPPORT' AND \"appointments\".\"reservation_id\" IS NULL AND \"appointments\".\"rental_id\" IS NULL)"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.bookings": {
       "name": "bookings",
       "schema": "",
@@ -144,11 +516,17 @@
           "primaryKey": false,
           "notNull": false
         },
-        "customer_id": {
-          "name": "customer_id",
+        "user_id": {
+          "name": "user_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
+        },
+        "contact_phone": {
+          "name": "contact_phone",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": false
         },
         "facility_id": {
           "name": "facility_id",
@@ -168,35 +546,17 @@
           "primaryKey": false,
           "notNull": true
         },
-        "contact_name": {
-          "name": "contact_name",
-          "type": "varchar(150)",
+        "check_in_date": {
+          "name": "check_in_date",
+          "type": "date",
           "primaryKey": false,
           "notNull": true
         },
-        "contact_email": {
-          "name": "contact_email",
-          "type": "varchar(320)",
+        "check_in_slot_id": {
+          "name": "check_in_slot_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
-        },
-        "contact_phone": {
-          "name": "contact_phone",
-          "type": "varchar(30)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "check_in_slot_start": {
-          "name": "check_in_slot_start",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "check_in_slot_end": {
-          "name": "check_in_slot_end",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
         },
         "rental_end_at": {
           "name": "rental_end_at",
@@ -228,29 +588,22 @@
           "primaryKey": false,
           "notNull": true
         },
-        "currency": {
-          "name": "currency",
-          "type": "varchar(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'VND'"
-        },
         "status": {
           "name": "status",
           "type": "varchar(50)",
           "primaryKey": false,
           "notNull": true,
-          "default": "'CONFIRMED'"
+          "default": "'DRAFT'"
         },
-        "qr_token": {
-          "name": "qr_token",
-          "type": "varchar(255)",
+        "assigned_staff_id": {
+          "name": "assigned_staff_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
-        "paid_at": {
-          "name": "paid_at",
-          "type": "timestamp with time zone",
+        "qr_token_hash": {
+          "name": "qr_token_hash",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": false
         },
@@ -291,11 +644,26 @@
           "method": "btree",
           "with": {}
         },
-        "bookings_customer_idx": {
-          "name": "bookings_customer_idx",
+        "bookings_user_idx": {
+          "name": "bookings_user_idx",
           "columns": [
             {
-              "expression": "customer_id",
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "bookings_assigned_staff_idx": {
+          "name": "bookings_assigned_staff_idx",
+          "columns": [
+            {
+              "expression": "assigned_staff_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -310,7 +678,7 @@
           "name": "bookings_dates_idx",
           "columns": [
             {
-              "expression": "check_in_slot_start",
+              "expression": "check_in_date",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -326,20 +694,35 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "bookings_check_in_slot_idx": {
+          "name": "bookings_check_in_slot_idx",
+          "columns": [
+            {
+              "expression": "check_in_slot_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
-        "bookings_customer_id_customers_id_fk": {
-          "name": "bookings_customer_id_customers_id_fk",
+        "bookings_user_id_users_id_fk": {
+          "name": "bookings_user_id_users_id_fk",
           "tableFrom": "bookings",
-          "tableTo": "customers",
+          "tableTo": "users",
           "columnsFrom": [
-            "customer_id"
+            "user_id"
           ],
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "restrict",
           "onUpdate": "no action"
         },
         "bookings_facility_id_facilities_id_fk": {
@@ -355,17 +738,43 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "bookings_unit_type_id_facility_id_unit_types_id_facility_id_fk": {
-          "name": "bookings_unit_type_id_facility_id_unit_types_id_facility_id_fk",
+        "bookings_check_in_slot_id_check_in_slots_id_fk": {
+          "name": "bookings_check_in_slot_id_check_in_slots_id_fk",
+          "tableFrom": "bookings",
+          "tableTo": "check_in_slots",
+          "columnsFrom": [
+            "check_in_slot_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "bookings_assigned_staff_id_users_id_fk": {
+          "name": "bookings_assigned_staff_id_users_id_fk",
+          "tableFrom": "bookings",
+          "tableTo": "users",
+          "columnsFrom": [
+            "assigned_staff_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "bookings_facility_id_unit_type_id_unit_types_facility_id_id_fk": {
+          "name": "bookings_facility_id_unit_type_id_unit_types_facility_id_id_fk",
           "tableFrom": "bookings",
           "tableTo": "unit_types",
           "columnsFrom": [
-            "unit_type_id",
-            "facility_id"
+            "facility_id",
+            "unit_type_id"
           ],
           "columnsTo": [
-            "id",
-            "facility_id"
+            "facility_id",
+            "id"
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
@@ -380,16 +789,1983 @@
             "booking_code"
           ]
         },
-        "bookings_qrToken_unique": {
-          "name": "bookings_qrToken_unique",
+        "bookings_qrTokenHash_unique": {
+          "name": "bookings_qrTokenHash_unique",
           "nullsNotDistinct": false,
           "columns": [
-            "qr_token"
+            "qr_token_hash"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "bookings_valid_status": {
+          "name": "bookings_valid_status",
+          "value": "\"bookings\".\"status\" IN ('DRAFT', 'CONFIRMED', 'CANCELLED', 'NO_SHOW', 'CHECKED_IN')"
+        },
+        "bookings_phone_after_draft": {
+          "name": "bookings_phone_after_draft",
+          "value": "\"bookings\".\"status\" = 'DRAFT' OR \"bookings\".\"contact_phone\" IS NOT NULL"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.capacity_allocations": {
+      "name": "capacity_allocations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "facility_id": {
+          "name": "facility_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unit_type_id": {
+          "name": "unit_type_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reference_id": {
+          "name": "reference_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "access_token_hash": {
+          "name": "access_token_hash",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "capacity_allocation_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "capacity_allocation_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ACTIVE'"
+        },
+        "starts_at": {
+          "name": "starts_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ends_at": {
+          "name": "ends_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "capacity_allocations_unit_type_period_idx": {
+          "name": "capacity_allocations_unit_type_period_idx",
+          "columns": [
+            {
+              "expression": "facility_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "unit_type_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "starts_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ends_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "capacity_allocations_reference_idx": {
+          "name": "capacity_allocations_reference_idx",
+          "columns": [
+            {
+              "expression": "reference_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "capacity_allocations_facility_id_facilities_id_fk": {
+          "name": "capacity_allocations_facility_id_facilities_id_fk",
+          "tableFrom": "capacity_allocations",
+          "tableTo": "facilities",
+          "columnsFrom": [
+            "facility_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "capacity_allocations_facility_id_unit_type_id_unit_types_facility_id_id_fk": {
+          "name": "capacity_allocations_facility_id_unit_type_id_unit_types_facility_id_id_fk",
+          "tableFrom": "capacity_allocations",
+          "tableTo": "unit_types",
+          "columnsFrom": [
+            "facility_id",
+            "unit_type_id"
+          ],
+          "columnsTo": [
+            "facility_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.check_in_slots": {
+      "name": "check_in_slots",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "start_time": {
+          "name": "start_time",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "end_time": {
+          "name": "end_time",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.facilities": {
+      "name": "facilities",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "code": {
+          "name": "code",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "address": {
+          "name": "address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "facilities_code_unique": {
+          "name": "facilities_code_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "code"
           ]
         }
       },
       "policies": {},
       "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.facility_assignments": {
+      "name": "facility_assignments",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "facility_id": {
+          "name": "facility_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "assigned_at": {
+          "name": "assigned_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "ended_at": {
+          "name": "ended_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "role": {
+          "name": "role",
+          "type": "role",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "facility_assignments_user_facility_idx": {
+          "name": "facility_assignments_user_facility_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "facility_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "facility_assignments_active_user_idx": {
+          "name": "facility_assignments_active_user_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"facility_assignments\".\"is_active\" = true",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "facility_assignments_facility_idx": {
+          "name": "facility_assignments_facility_idx",
+          "columns": [
+            {
+              "expression": "facility_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "facility_assignments_user_id_users_id_fk": {
+          "name": "facility_assignments_user_id_users_id_fk",
+          "tableFrom": "facility_assignments",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "facility_assignments_facility_id_facilities_id_fk": {
+          "name": "facility_assignments_facility_id_facilities_id_fk",
+          "tableFrom": "facility_assignments",
+          "tableTo": "facilities",
+          "columnsFrom": [
+            "facility_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.facility_tasks": {
+      "name": "facility_tasks",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "facility_id": {
+          "name": "facility_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "facility_task_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "facility_task_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ASSIGNED'"
+        },
+        "reference_type": {
+          "name": "reference_type",
+          "type": "facility_task_reference_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reference_id": {
+          "name": "reference_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "assigned_staff_id": {
+          "name": "assigned_staff_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "assigned_by": {
+          "name": "assigned_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "assigned_at": {
+          "name": "assigned_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "facility_tasks_staff_idx": {
+          "name": "facility_tasks_staff_idx",
+          "columns": [
+            {
+              "expression": "facility_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "assigned_staff_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "facility_tasks_type_idx": {
+          "name": "facility_tasks_type_idx",
+          "columns": [
+            {
+              "expression": "facility_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "facility_tasks_reference_idx": {
+          "name": "facility_tasks_reference_idx",
+          "columns": [
+            {
+              "expression": "reference_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "reference_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "facility_tasks_facility_id_facilities_id_fk": {
+          "name": "facility_tasks_facility_id_facilities_id_fk",
+          "tableFrom": "facility_tasks",
+          "tableTo": "facilities",
+          "columnsFrom": [
+            "facility_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "facility_tasks_assigned_staff_id_users_id_fk": {
+          "name": "facility_tasks_assigned_staff_id_users_id_fk",
+          "tableFrom": "facility_tasks",
+          "tableTo": "users",
+          "columnsFrom": [
+            "assigned_staff_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "facility_tasks_assigned_by_users_id_fk": {
+          "name": "facility_tasks_assigned_by_users_id_fk",
+          "tableFrom": "facility_tasks",
+          "tableTo": "users",
+          "columnsFrom": [
+            "assigned_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "facility_tasks_lifecycle_valid": {
+          "name": "facility_tasks_lifecycle_valid",
+          "value": "(\"facility_tasks\".\"status\" = 'ASSIGNED' AND \"facility_tasks\".\"started_at\" IS NULL AND \"facility_tasks\".\"completed_at\" IS NULL)\n        OR (\"facility_tasks\".\"status\" = 'IN_PROGRESS' AND \"facility_tasks\".\"started_at\" IS NOT NULL AND \"facility_tasks\".\"completed_at\" IS NULL)\n        OR (\"facility_tasks\".\"status\" = 'COMPLETED' AND \"facility_tasks\".\"started_at\" IS NOT NULL AND \"facility_tasks\".\"completed_at\" IS NOT NULL)\n        OR \"facility_tasks\".\"status\" = 'CANCELLED'"
+        },
+        "facility_tasks_reference_valid": {
+          "name": "facility_tasks_reference_valid",
+          "value": "(\"facility_tasks\".\"type\" = 'CHECK_IN_HANDOVER' AND \"facility_tasks\".\"reference_type\"::text IN ('BOOKING', 'APPOINTMENT')) OR (\"facility_tasks\".\"type\" = 'UNIT_INSPECTION' AND \"facility_tasks\".\"reference_type\"::text IN ('BOOKING', 'STORAGE_UNIT', 'APPOINTMENT')) OR (\"facility_tasks\".\"type\" = 'HANDLE_SUPPORT' AND \"facility_tasks\".\"reference_type\"::text IN ('SUPPORT_TICKET', 'APPOINTMENT'))"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.inspections": {
+      "name": "inspections",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "storage_unit_id": {
+          "name": "storage_unit_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rental_id": {
+          "name": "rental_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "booking_id": {
+          "name": "booking_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reservation_id": {
+          "name": "reservation_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "inspected_by": {
+          "name": "inspected_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "task_id": {
+          "name": "task_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "inspection_type": {
+          "name": "inspection_type",
+          "type": "inspection_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "inspection_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PENDING'"
+        },
+        "condition": {
+          "name": "condition",
+          "type": "inspection_condition",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "checklist": {
+          "name": "checklist",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "inspected_at": {
+          "name": "inspected_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "inspect_done_at": {
+          "name": "inspect_done_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "inspections_unit_idx": {
+          "name": "inspections_unit_idx",
+          "columns": [
+            {
+              "expression": "storage_unit_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "inspect_done_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "inspections_rental_idx": {
+          "name": "inspections_rental_idx",
+          "columns": [
+            {
+              "expression": "rental_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "inspect_done_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "inspections_task_idx": {
+          "name": "inspections_task_idx",
+          "columns": [
+            {
+              "expression": "task_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "inspections_storage_unit_id_storage_units_id_fk": {
+          "name": "inspections_storage_unit_id_storage_units_id_fk",
+          "tableFrom": "inspections",
+          "tableTo": "storage_units",
+          "columnsFrom": [
+            "storage_unit_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "inspections_rental_id_rentals_id_fk": {
+          "name": "inspections_rental_id_rentals_id_fk",
+          "tableFrom": "inspections",
+          "tableTo": "rentals",
+          "columnsFrom": [
+            "rental_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "inspections_booking_id_bookings_id_fk": {
+          "name": "inspections_booking_id_bookings_id_fk",
+          "tableFrom": "inspections",
+          "tableTo": "bookings",
+          "columnsFrom": [
+            "booking_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "inspections_reservation_id_reservations_id_fk": {
+          "name": "inspections_reservation_id_reservations_id_fk",
+          "tableFrom": "inspections",
+          "tableTo": "reservations",
+          "columnsFrom": [
+            "reservation_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "inspections_inspected_by_users_id_fk": {
+          "name": "inspections_inspected_by_users_id_fk",
+          "tableFrom": "inspections",
+          "tableTo": "users",
+          "columnsFrom": [
+            "inspected_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "inspections_task_id_facility_tasks_id_fk": {
+          "name": "inspections_task_id_facility_tasks_id_fk",
+          "tableFrom": "inspections",
+          "tableTo": "facility_tasks",
+          "columnsFrom": [
+            "task_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "inspections_context_valid": {
+          "name": "inspections_context_valid",
+          "value": "(\n        (\"inspections\".\"inspection_type\" = 'CHECK_IN' AND num_nonnulls(\"inspections\".\"booking_id\", \"inspections\".\"reservation_id\") = 1 AND \"inspections\".\"rental_id\" IS NULL) OR\n        (\"inspections\".\"inspection_type\" = 'CHECK_OUT' AND \"inspections\".\"rental_id\" IS NOT NULL AND \"inspections\".\"booking_id\" IS NULL AND \"inspections\".\"reservation_id\" IS NULL) OR\n        (\"inspections\".\"inspection_type\" = 'MAINTENANCE' AND \"inspections\".\"booking_id\" IS NULL AND \"inspections\".\"reservation_id\" IS NULL)\n      )"
+        },
+        "inspections_completion_valid": {
+          "name": "inspections_completion_valid",
+          "value": "(\"inspections\".\"status\" = 'PENDING' AND \"inspections\".\"inspected_at\" IS NULL AND \"inspections\".\"inspect_done_at\" IS NULL) OR (\"inspections\".\"status\" = 'IN_PROGRESS' AND \"inspections\".\"inspected_at\" IS NOT NULL AND \"inspections\".\"inspect_done_at\" IS NULL) OR (\"inspections\".\"status\" IN ('PASSED', 'FAILED') AND \"inspections\".\"inspected_at\" IS NOT NULL AND \"inspections\".\"inspect_done_at\" IS NOT NULL)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.login_history": {
+      "name": "login_history",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "session_id": {
+          "name": "session_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "occurred_at": {
+          "name": "occurred_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "device": {
+          "name": "device",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "operating_system": {
+          "name": "operating_system",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "browser": {
+          "name": "browser",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "model": {
+          "name": "model",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "login_history_time_idx": {
+          "name": "login_history_time_idx",
+          "columns": [
+            {
+              "expression": "occurred_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "login_history_user_time_idx": {
+          "name": "login_history_user_time_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "occurred_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "login_history_user_id_users_id_fk": {
+          "name": "login_history_user_id_users_id_fk",
+          "tableFrom": "login_history",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "login_history_sessionId_unique": {
+          "name": "login_history_sessionId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "session_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.media_assets": {
+      "name": "media_assets",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "owner_type": {
+          "name": "owner_type",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "purpose": {
+          "name": "purpose",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uploaded_by": {
+          "name": "uploaded_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "filename": {
+          "name": "filename",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mime_type": {
+          "name": "mime_type",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "byte_size": {
+          "name": "byte_size",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cloudinary_resource_type": {
+          "name": "cloudinary_resource_type",
+          "type": "cloudinary_resource_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cloudinary_public_id": {
+          "name": "cloudinary_public_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cloudinary_format": {
+          "name": "cloudinary_format",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "media_assets_owner_idx": {
+          "name": "media_assets_owner_idx",
+          "columns": [
+            {
+              "expression": "owner_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "owner_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "purpose",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "media_assets_uploaded_by_idx": {
+          "name": "media_assets_uploaded_by_idx",
+          "columns": [
+            {
+              "expression": "uploaded_by",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "media_assets_uploaded_by_users_id_fk": {
+          "name": "media_assets_uploaded_by_users_id_fk",
+          "tableFrom": "media_assets",
+          "tableTo": "users",
+          "columnsFrom": [
+            "uploaded_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "media_assets_cloudinaryPublicId_unique": {
+          "name": "media_assets_cloudinaryPublicId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "cloudinary_public_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "media_assets_size_valid": {
+          "name": "media_assets_size_valid",
+          "value": "\"media_assets\".\"byte_size\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.notification_outbox": {
+      "name": "notification_outbox",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_key": {
+          "name": "event_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recipient_key": {
+          "name": "recipient_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_type": {
+          "name": "event_type",
+          "type": "lifecycle_notification_event",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "support_ticket_id": {
+          "name": "support_ticket_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "booking_id": {
+          "name": "booking_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rental_term_version": {
+          "name": "rental_term_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "facility_id": {
+          "name": "facility_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recipient_user_id": {
+          "name": "recipient_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recipient_role": {
+          "name": "recipient_role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recipient_email": {
+          "name": "recipient_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subject": {
+          "name": "subject",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "body": {
+          "name": "body",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "booking_email": {
+          "name": "booking_email",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mail_payload": {
+          "name": "mail_payload",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mail_expires_at": {
+          "name": "mail_expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "queued_at": {
+          "name": "queued_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "occurred_at": {
+          "name": "occurred_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "status": {
+          "name": "status",
+          "type": "notification_delivery_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PENDING'"
+        },
+        "attempts": {
+          "name": "attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "next_attempt_at": {
+          "name": "next_attempt_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "first_attempt_at": {
+          "name": "first_attempt_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lease_token": {
+          "name": "lease_token",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lease_until": {
+          "name": "lease_until",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "provider_message_id": {
+          "name": "provider_message_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sent_at": {
+          "name": "sent_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "notification_outbox_event_recipient_idx": {
+          "name": "notification_outbox_event_recipient_idx",
+          "columns": [
+            {
+              "expression": "event_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "recipient_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "notification_outbox_dispatch_idx": {
+          "name": "notification_outbox_dispatch_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "next_attempt_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "notification_outbox_inbox_idx": {
+          "name": "notification_outbox_inbox_idx",
+          "columns": [
+            {
+              "expression": "recipient_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "occurred_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "notification_outbox_support_ticket_id_support_tickets_id_fk": {
+          "name": "notification_outbox_support_ticket_id_support_tickets_id_fk",
+          "tableFrom": "notification_outbox",
+          "tableTo": "support_tickets",
+          "columnsFrom": [
+            "support_ticket_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "notification_outbox_booking_id_bookings_id_fk": {
+          "name": "notification_outbox_booking_id_bookings_id_fk",
+          "tableFrom": "notification_outbox",
+          "tableTo": "bookings",
+          "columnsFrom": [
+            "booking_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "notification_outbox_facility_id_facilities_id_fk": {
+          "name": "notification_outbox_facility_id_facilities_id_fk",
+          "tableFrom": "notification_outbox",
+          "tableTo": "facilities",
+          "columnsFrom": [
+            "facility_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "notification_outbox_recipient_user_id_users_id_fk": {
+          "name": "notification_outbox_recipient_user_id_users_id_fk",
+          "tableFrom": "notification_outbox",
+          "tableTo": "users",
+          "columnsFrom": [
+            "recipient_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.payment_provider_events": {
+      "name": "payment_provider_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "provider": {
+          "name": "provider",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider_event_id": {
+          "name": "provider_event_id",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "payment_id": {
+          "name": "payment_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "payment_code": {
+          "name": "payment_code",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount": {
+          "name": "amount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "transfer_type": {
+          "name": "transfer_type",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reference_code": {
+          "name": "reference_code",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "payment_provider_event_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "payload_metadata": {
+          "name": "payload_metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "payment_provider_events_provider_event_idx": {
+          "name": "payment_provider_events_provider_event_idx",
+          "columns": [
+            {
+              "expression": "provider",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "provider_event_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "payment_provider_events_payment_idx": {
+          "name": "payment_provider_events_payment_idx",
+          "columns": [
+            {
+              "expression": "payment_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "payment_provider_events_payment_id_payments_id_fk": {
+          "name": "payment_provider_events_payment_id_payments_id_fk",
+          "tableFrom": "payment_provider_events",
+          "tableTo": "payments",
+          "columnsFrom": [
+            "payment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.payments": {
+      "name": "payments",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "booking_id": {
+          "name": "booking_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reservation_id": {
+          "name": "reservation_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hold_token_hash": {
+          "name": "hold_token_hash",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider": {
+          "name": "provider",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "payment_code": {
+          "name": "payment_code",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider_payment_id": {
+          "name": "provider_payment_id",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "idempotency_key": {
+          "name": "idempotency_key",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "total_amount": {
+          "name": "total_amount",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "currency": {
+          "name": "currency",
+          "type": "varchar(3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "payment_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "paid_at": {
+          "name": "paid_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refund_reason": {
+          "name": "refund_reason",
+          "type": "payment_refund_reason_code",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refund_amount": {
+          "name": "refund_amount",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deposit_forfeited_amount": {
+          "name": "deposit_forfeited_amount",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "refund_reference": {
+          "name": "refund_reference",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refunded_at": {
+          "name": "refunded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refunded_by": {
+          "name": "refunded_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "payments_provider_payment_idx": {
+          "name": "payments_provider_payment_idx",
+          "columns": [
+            {
+              "expression": "provider",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "provider_payment_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "payments_idempotency_idx": {
+          "name": "payments_idempotency_idx",
+          "columns": [
+            {
+              "expression": "idempotency_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "payments_booking_idx": {
+          "name": "payments_booking_idx",
+          "columns": [
+            {
+              "expression": "booking_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "payments_booking_id_bookings_id_fk": {
+          "name": "payments_booking_id_bookings_id_fk",
+          "tableFrom": "payments",
+          "tableTo": "bookings",
+          "columnsFrom": [
+            "booking_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "payments_reservation_id_reservations_id_fk": {
+          "name": "payments_reservation_id_reservations_id_fk",
+          "tableFrom": "payments",
+          "tableTo": "reservations",
+          "columnsFrom": [
+            "reservation_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "payments_refunded_by_users_id_fk": {
+          "name": "payments_refunded_by_users_id_fk",
+          "tableFrom": "payments",
+          "tableTo": "users",
+          "columnsFrom": [
+            "refunded_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "payments_paymentCode_unique": {
+          "name": "payments_paymentCode_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "payment_code"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "payments_context_valid": {
+          "name": "payments_context_valid",
+          "value": "num_nonnulls(\"payments\".\"booking_id\", \"payments\".\"reservation_id\") = 1"
+        },
+        "payments_refund_amount_valid": {
+          "name": "payments_refund_amount_valid",
+          "value": "\"payments\".\"refund_amount\" IS NULL OR (\"payments\".\"refund_amount\" >= 0 AND \"payments\".\"refund_amount\" <= \"payments\".\"total_amount\")"
+        },
+        "payments_deposit_forfeited_valid": {
+          "name": "payments_deposit_forfeited_valid",
+          "value": "\"payments\".\"deposit_forfeited_amount\" >= 0 AND \"payments\".\"deposit_forfeited_amount\" <= \"payments\".\"total_amount\"\n        AND (\"payments\".\"refund_amount\" IS NULL OR \"payments\".\"refund_amount\" + \"payments\".\"deposit_forfeited_amount\" <= \"payments\".\"total_amount\")"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.pricing_changes": {
+      "name": "pricing_changes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "operation": {
+          "name": "operation",
+          "type": "pricing_change_operation",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "before": {
+          "name": "before",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "after": {
+          "name": "after",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "changed_by": {
+          "name": "changed_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "changed_at": {
+          "name": "changed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "pricing_changes_changed_by_users_id_fk": {
+          "name": "pricing_changes_changed_by_users_id_fk",
+          "tableFrom": "pricing_changes",
+          "tableTo": "users",
+          "columnsFrom": [
+            "changed_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "pricing_changes_version_unique": {
+          "name": "pricing_changes_version_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "version"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "pricing_changes_positive_version": {
+          "name": "pricing_changes_positive_version",
+          "value": "\"pricing_changes\".\"version\" > 0"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.rentals": {
@@ -407,29 +2783,30 @@
           "name": "booking_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
-        "customer_id": {
-          "name": "customer_id",
+        "reservation_id": {
+          "name": "reservation_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_id": {
+          "name": "user_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
-        "facility_id": {
-          "name": "facility_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "physical_unit_id": {
-          "name": "physical_unit_id",
+        "storage_unit_id": {
+          "name": "storage_unit_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "status": {
           "name": "status",
-          "type": "varchar(50)",
+          "type": "rental_status",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'ACTIVE'"
@@ -440,27 +2817,9 @@
           "primaryKey": false,
           "notNull": true
         },
-        "expected_end_at": {
-          "name": "expected_end_at",
+        "end_at": {
+          "name": "end_at",
           "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "actual_return_at": {
-          "name": "actual_return_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "closed_at": {
-          "name": "closed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "deposit_amount": {
-          "name": "deposit_amount",
-          "type": "numeric(14, 2)",
           "primaryKey": false,
           "notNull": true
         },
@@ -480,11 +2839,11 @@
         }
       },
       "indexes": {
-        "rentals_facility_idx": {
-          "name": "rentals_facility_idx",
+        "rentals_user_idx": {
+          "name": "rentals_user_idx",
           "columns": [
             {
-              "expression": "facility_id",
+              "expression": "user_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -495,26 +2854,11 @@
           "method": "btree",
           "with": {}
         },
-        "rentals_customer_idx": {
-          "name": "rentals_customer_idx",
+        "rentals_unit_status_idx": {
+          "name": "rentals_unit_status_idx",
           "columns": [
             {
-              "expression": "customer_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "rentals_active_unit_idx": {
-          "name": "rentals_active_unit_idx",
-          "columns": [
-            {
-              "expression": "physical_unit_id",
+              "expression": "storage_unit_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -526,7 +2870,7 @@
               "nulls": "last"
             },
             {
-              "expression": "expected_end_at",
+              "expression": "end_at",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -549,46 +2893,46 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "rentals_customer_id_customers_id_fk": {
-          "name": "rentals_customer_id_customers_id_fk",
+        "rentals_reservation_id_reservations_id_fk": {
+          "name": "rentals_reservation_id_reservations_id_fk",
           "tableFrom": "rentals",
-          "tableTo": "customers",
+          "tableTo": "reservations",
           "columnsFrom": [
-            "customer_id"
+            "reservation_id"
           ],
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "rentals_facility_id_facilities_id_fk": {
-          "name": "rentals_facility_id_facilities_id_fk",
+        "rentals_user_id_users_id_fk": {
+          "name": "rentals_user_id_users_id_fk",
           "tableFrom": "rentals",
-          "tableTo": "facilities",
+          "tableTo": "users",
           "columnsFrom": [
-            "facility_id"
+            "user_id"
           ],
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "rentals_physical_unit_id_storage_units_id_fk": {
-          "name": "rentals_physical_unit_id_storage_units_id_fk",
+        "rentals_storage_unit_id_storage_units_id_fk": {
+          "name": "rentals_storage_unit_id_storage_units_id_fk",
           "tableFrom": "rentals",
           "tableTo": "storage_units",
           "columnsFrom": [
-            "physical_unit_id"
+            "storage_unit_id"
           ],
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "restrict",
           "onUpdate": "no action"
         }
       },
@@ -600,10 +2944,937 @@
           "columns": [
             "booking_id"
           ]
+        },
+        "rentals_reservationId_unique": {
+          "name": "rentals_reservationId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "reservation_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "rentals_reference_valid": {
+          "name": "rentals_reference_valid",
+          "value": "num_nonnulls(\"rentals\".\"booking_id\", \"rentals\".\"reservation_id\") = 1"
+        },
+        "rentals_period_valid": {
+          "name": "rentals_period_valid",
+          "value": "\"rentals\".\"end_at\" > \"rentals\".\"start_at\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.reservations": {
+      "name": "reservations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "facility_id": {
+          "name": "facility_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unit_type_id": {
+          "name": "unit_type_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "requested_months": {
+          "name": "requested_months",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rental_start_at": {
+          "name": "rental_start_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rental_end_at": {
+          "name": "rental_end_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "monthly_rate_snapshot": {
+          "name": "monthly_rate_snapshot",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rental_fee_amount": {
+          "name": "rental_fee_amount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deposit_amount": {
+          "name": "deposit_amount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "total_amount": {
+          "name": "total_amount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "reservation_record_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'DRAFT'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "reservations_customer_idx": {
+          "name": "reservations_customer_idx",
+          "columns": [
+            {
+              "expression": "customer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "reservations_facility_status_idx": {
+          "name": "reservations_facility_status_idx",
+          "columns": [
+            {
+              "expression": "facility_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "reservations_customer_id_users_id_fk": {
+          "name": "reservations_customer_id_users_id_fk",
+          "tableFrom": "reservations",
+          "tableTo": "users",
+          "columnsFrom": [
+            "customer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "reservations_facility_id_facilities_id_fk": {
+          "name": "reservations_facility_id_facilities_id_fk",
+          "tableFrom": "reservations",
+          "tableTo": "facilities",
+          "columnsFrom": [
+            "facility_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "reservations_facility_id_unit_type_id_unit_types_facility_id_id_fk": {
+          "name": "reservations_facility_id_unit_type_id_unit_types_facility_id_id_fk",
+          "tableFrom": "reservations",
+          "tableTo": "unit_types",
+          "columnsFrom": [
+            "facility_id",
+            "unit_type_id"
+          ],
+          "columnsTo": [
+            "facility_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "reservations_months_valid": {
+          "name": "reservations_months_valid",
+          "value": "\"reservations\".\"requested_months\" BETWEEN 1 AND 12"
+        },
+        "reservations_period_valid": {
+          "name": "reservations_period_valid",
+          "value": "\"reservations\".\"rental_end_at\" > \"reservations\".\"rental_start_at\""
+        },
+        "reservations_amounts_valid": {
+          "name": "reservations_amounts_valid",
+          "value": "\"reservations\".\"monthly_rate_snapshot\" >= 0 AND \"reservations\".\"rental_fee_amount\" >= 0 AND \"reservations\".\"deposit_amount\" >= 0 AND \"reservations\".\"total_amount\" = \"reservations\".\"rental_fee_amount\" + \"reservations\".\"deposit_amount\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.sessions": {
+      "name": "sessions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ip_address": {
+          "name": "ip_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_agent": {
+          "name": "user_agent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "sessions_user_id_idx": {
+          "name": "sessions_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "sessions_user_id_users_id_fk": {
+          "name": "sessions_user_id_users_id_fk",
+          "tableFrom": "sessions",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "sessions_token_unique": {
+          "name": "sessions_token_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "token"
+          ]
         }
       },
       "policies": {},
       "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.storage_units": {
+      "name": "storage_units",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "facility_id": {
+          "name": "facility_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unit_type_id": {
+          "name": "unit_type_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "code": {
+          "name": "code",
+          "type": "varchar(80)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "floor": {
+          "name": "floor",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "location_description": {
+          "name": "location_description",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "storage_unit_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'AVAILABLE'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "storage_units_facility_idx": {
+          "name": "storage_units_facility_idx",
+          "columns": [
+            {
+              "expression": "facility_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "storage_units_facility_status_idx": {
+          "name": "storage_units_facility_status_idx",
+          "columns": [
+            {
+              "expression": "facility_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "storage_units_unit_type_idx": {
+          "name": "storage_units_unit_type_idx",
+          "columns": [
+            {
+              "expression": "unit_type_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "storage_units_facility_id_facilities_id_fk": {
+          "name": "storage_units_facility_id_facilities_id_fk",
+          "tableFrom": "storage_units",
+          "tableTo": "facilities",
+          "columnsFrom": [
+            "facility_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "storage_units_facility_id_unit_type_id_unit_types_facility_id_id_fk": {
+          "name": "storage_units_facility_id_unit_type_id_unit_types_facility_id_id_fk",
+          "tableFrom": "storage_units",
+          "tableTo": "unit_types",
+          "columnsFrom": [
+            "facility_id",
+            "unit_type_id"
+          ],
+          "columnsTo": [
+            "facility_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "storage_units_code_unique": {
+          "name": "storage_units_code_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "code"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.support_tickets": {
+      "name": "support_tickets",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "booking_id": {
+          "name": "booking_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "owner_user_id": {
+          "name": "owner_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "facility_id": {
+          "name": "facility_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rental_id": {
+          "name": "rental_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "payment_id": {
+          "name": "payment_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "category": {
+          "name": "category",
+          "type": "support_category",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subject": {
+          "name": "subject",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "action_due_at": {
+          "name": "action_due_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "idempotency_key": {
+          "name": "idempotency_key",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "support_tickets_owner_idx": {
+          "name": "support_tickets_owner_idx",
+          "columns": [
+            {
+              "expression": "owner_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "support_tickets_facility_idx": {
+          "name": "support_tickets_facility_idx",
+          "columns": [
+            {
+              "expression": "facility_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "category",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "support_tickets_owner_idempotency_idx": {
+          "name": "support_tickets_owner_idempotency_idx",
+          "columns": [
+            {
+              "expression": "owner_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "idempotency_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "support_tickets_booking_id_bookings_id_fk": {
+          "name": "support_tickets_booking_id_bookings_id_fk",
+          "tableFrom": "support_tickets",
+          "tableTo": "bookings",
+          "columnsFrom": [
+            "booking_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "support_tickets_owner_user_id_users_id_fk": {
+          "name": "support_tickets_owner_user_id_users_id_fk",
+          "tableFrom": "support_tickets",
+          "tableTo": "users",
+          "columnsFrom": [
+            "owner_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "support_tickets_facility_id_facilities_id_fk": {
+          "name": "support_tickets_facility_id_facilities_id_fk",
+          "tableFrom": "support_tickets",
+          "tableTo": "facilities",
+          "columnsFrom": [
+            "facility_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "support_tickets_rental_id_rentals_id_fk": {
+          "name": "support_tickets_rental_id_rentals_id_fk",
+          "tableFrom": "support_tickets",
+          "tableTo": "rentals",
+          "columnsFrom": [
+            "rental_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "support_tickets_payment_id_payments_id_fk": {
+          "name": "support_tickets_payment_id_payments_id_fk",
+          "tableFrom": "support_tickets",
+          "tableTo": "payments",
+          "columnsFrom": [
+            "payment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "support_ticket_subject_valid": {
+          "name": "support_ticket_subject_valid",
+          "value": "length(btrim(\"support_tickets\".\"subject\")) BETWEEN 1 AND 200"
+        },
+        "support_ticket_description_valid": {
+          "name": "support_ticket_description_valid",
+          "value": "length(btrim(\"support_tickets\".\"description\")) BETWEEN 1 AND 5000"
+        },
+        "support_ticket_context_valid": {
+          "name": "support_ticket_context_valid",
+          "value": "(\"support_tickets\".\"category\" = 'PAYMENT' AND \"support_tickets\".\"rental_id\" IS NULL) OR (\"support_tickets\".\"category\" != 'PAYMENT' AND \"support_tickets\".\"rental_id\" IS NOT NULL AND \"support_tickets\".\"payment_id\" IS NULL)"
+        },
+        "support_ticket_due_valid": {
+          "name": "support_ticket_due_valid",
+          "value": "\"support_tickets\".\"action_due_at\" > \"support_tickets\".\"created_at\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.system_setting_changes": {
+      "name": "system_setting_changes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "before": {
+          "name": "before",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "after": {
+          "name": "after",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_id": {
+          "name": "actor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "system_setting_changes_key_idx": {
+          "name": "system_setting_changes_key_idx",
+          "columns": [
+            {
+              "expression": "key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "system_setting_changes_key_system_settings_key_fk": {
+          "name": "system_setting_changes_key_system_settings_key_fk",
+          "tableFrom": "system_setting_changes",
+          "tableTo": "system_settings",
+          "columnsFrom": [
+            "key"
+          ],
+          "columnsTo": [
+            "key"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "system_setting_changes_actor_id_users_id_fk": {
+          "name": "system_setting_changes_actor_id_users_id_fk",
+          "tableFrom": "system_setting_changes",
+          "tableTo": "users",
+          "columnsFrom": [
+            "actor_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.system_settings": {
+      "name": "system_settings",
+      "schema": "",
+      "columns": {
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "system_settings_updated_by_users_id_fk": {
+          "name": "system_settings_updated_by_users_id_fk",
+          "tableFrom": "system_settings",
+          "tableTo": "users",
+          "columnsFrom": [
+            "updated_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "system_settings_version_valid": {
+          "name": "system_settings_version_valid",
+          "value": "\"system_settings\".\"version\" >= 0"
+        },
+        "system_settings_value_scalar": {
+          "name": "system_settings_value_scalar",
+          "value": "jsonb_typeof(\"system_settings\".\"value\") in ('number', 'string', 'boolean')"
+        },
+        "system_settings_known_integer": {
+          "name": "system_settings_known_integer",
+          "value": "\"system_settings\".\"key\" not in ('EXPIRY_REMINDER_DAYS', 'ABANDONED_REVIEW_DAYS', 'OVERDUE_FEE_RATE', 'DEPOSIT_MONTHS', 'OPENING_HOUR', 'CLOSING_HOUR') or (jsonb_typeof(\"system_settings\".\"value\") = 'number' and (\"system_settings\".\"value\" #>> '{}')::numeric between 0 and 2147483647 and trunc((\"system_settings\".\"value\" #>> '{}')::numeric) = (\"system_settings\".\"value\" #>> '{}')::numeric)"
+        },
+        "system_settings_overdue_rate": {
+          "name": "system_settings_overdue_rate",
+          "value": "\"system_settings\".\"key\" <> 'OVERDUE_FEE_RATE' or (\"system_settings\".\"value\" #>> '{}')::numeric between 0 and 100"
+        },
+        "system_settings_deposit_policy": {
+          "name": "system_settings_deposit_policy",
+          "value": "\"system_settings\".\"key\" <> 'DEPOSIT_MONTHS' or ((\"system_settings\".\"value\" #>> '{}')::numeric > 0 and \"system_settings\".\"version\" > 0)"
+        },
+        "system_settings_operating_hour": {
+          "name": "system_settings_operating_hour",
+          "value": "\"system_settings\".\"key\" not in ('OPENING_HOUR', 'CLOSING_HOUR') or (\"system_settings\".\"value\" #>> '{}')::integer between 0 and 24"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.unit_assignments": {
@@ -762,883 +4033,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.customers": {
-      "name": "customers",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "full_name": {
-          "name": "full_name",
-          "type": "varchar(150)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "email": {
-          "name": "email",
-          "type": "varchar(320)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "phone": {
-          "name": "phone",
-          "type": "varchar(32)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "customers_user_id_idx": {
-          "name": "customers_user_id_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "customers_email_normalized_idx": {
-          "name": "customers_email_normalized_idx",
-          "columns": [
-            {
-              "expression": "lower(btrim(\"email\"))",
-              "asc": true,
-              "isExpression": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "customers_user_id_users_id_fk": {
-          "name": "customers_user_id_users_id_fk",
-          "tableFrom": "customers",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.capacity_allocations": {
-      "name": "capacity_allocations",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "facility_id": {
-          "name": "facility_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "unit_type_id": {
-          "name": "unit_type_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "reference_id": {
-          "name": "reference_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "access_token_hash": {
-          "name": "access_token_hash",
-          "type": "varchar(128)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "kind": {
-          "name": "kind",
-          "type": "capacity_allocation_kind",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "capacity_allocation_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'ACTIVE'"
-        },
-        "starts_at": {
-          "name": "starts_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "ends_at": {
-          "name": "ends_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "capacity_allocations_unit_type_period_idx": {
-          "name": "capacity_allocations_unit_type_period_idx",
-          "columns": [
-            {
-              "expression": "unit_type_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "starts_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "ends_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "capacity_allocations_reference_idx": {
-          "name": "capacity_allocations_reference_idx",
-          "columns": [
-            {
-              "expression": "reference_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "capacity_allocations_facility_id_facilities_id_fk": {
-          "name": "capacity_allocations_facility_id_facilities_id_fk",
-          "tableFrom": "capacity_allocations",
-          "tableTo": "facilities",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "capacity_allocations_unit_type_id_facility_id_unit_types_id_facility_id_fk": {
-          "name": "capacity_allocations_unit_type_id_facility_id_unit_types_id_facility_id_fk",
-          "tableFrom": "capacity_allocations",
-          "tableTo": "unit_types",
-          "columnsFrom": [
-            "unit_type_id",
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id",
-            "facility_id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.facilities": {
-      "name": "facilities",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "code": {
-          "name": "code",
-          "type": "varchar(50)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(150)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "address": {
-          "name": "address",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "is_active": {
-          "name": "is_active",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "facilities_code_unique": {
-          "name": "facilities_code_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.facility_assignments": {
-      "name": "facility_assignments",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "facility_id": {
-          "name": "facility_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "assigned_at": {
-          "name": "assigned_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "ended_at": {
-          "name": "ended_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "is_active": {
-          "name": "is_active",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "role": {
-          "name": "role",
-          "type": "role",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "facility_assignments_user_facility_idx": {
-          "name": "facility_assignments_user_facility_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "facility_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "facility_assignments_facility_idx": {
-          "name": "facility_assignments_facility_idx",
-          "columns": [
-            {
-              "expression": "facility_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "facility_assignments_user_id_users_id_fk": {
-          "name": "facility_assignments_user_id_users_id_fk",
-          "tableFrom": "facility_assignments",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "facility_assignments_facility_id_facilities_id_fk": {
-          "name": "facility_assignments_facility_id_facilities_id_fk",
-          "tableFrom": "facility_assignments",
-          "tableTo": "facilities",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.facility_operating_hours": {
-      "name": "facility_operating_hours",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "facility_id": {
-          "name": "facility_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "day_of_week": {
-          "name": "day_of_week",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "open_time": {
-          "name": "open_time",
-          "type": "time",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "close_time": {
-          "name": "close_time",
-          "type": "time",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "timezone": {
-          "name": "timezone",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'Asia/Ho_Chi_Minh'"
-        }
-      },
-      "indexes": {
-        "facility_operating_hours_facility_day_idx": {
-          "name": "facility_operating_hours_facility_day_idx",
-          "columns": [
-            {
-              "expression": "facility_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "day_of_week",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "facility_operating_hours_facility_idx": {
-          "name": "facility_operating_hours_facility_idx",
-          "columns": [
-            {
-              "expression": "facility_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "facility_operating_hours_facility_id_facilities_id_fk": {
-          "name": "facility_operating_hours_facility_id_facilities_id_fk",
-          "tableFrom": "facility_operating_hours",
-          "tableTo": "facilities",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.reservation_drafts": {
-      "name": "reservation_drafts",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "facility_id": {
-          "name": "facility_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "unit_type_id": {
-          "name": "unit_type_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "check_in_at": {
-          "name": "check_in_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "rental_end_at": {
-          "name": "rental_end_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "duration_months": {
-          "name": "duration_months",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "contact_name": {
-          "name": "contact_name",
-          "type": "varchar(150)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "contact_email": {
-          "name": "contact_email",
-          "type": "varchar(320)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "contact_phone": {
-          "name": "contact_phone",
-          "type": "varchar(32)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "access_token_hash": {
-          "name": "access_token_hash",
-          "type": "varchar(128)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "status": {
-          "name": "status",
-          "type": "reservation_draft_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'DRAFT'"
-        },
-        "pricing_status": {
-          "name": "pricing_status",
-          "type": "reservation_pricing_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'PRICING_NOT_CONFIGURED'"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "reservation_drafts_facility_idx": {
-          "name": "reservation_drafts_facility_idx",
-          "columns": [
-            {
-              "expression": "facility_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "reservation_drafts_unit_type_idx": {
-          "name": "reservation_drafts_unit_type_idx",
-          "columns": [
-            {
-              "expression": "unit_type_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "reservation_drafts_facility_id_facilities_id_fk": {
-          "name": "reservation_drafts_facility_id_facilities_id_fk",
-          "tableFrom": "reservation_drafts",
-          "tableTo": "facilities",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "reservation_drafts_unit_type_id_facility_id_unit_types_id_facility_id_fk": {
-          "name": "reservation_drafts_unit_type_id_facility_id_unit_types_id_facility_id_fk",
-          "tableFrom": "reservation_drafts",
-          "tableTo": "unit_types",
-          "columnsFrom": [
-            "unit_type_id",
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id",
-            "facility_id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.storage_units": {
-      "name": "storage_units",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "facility_id": {
-          "name": "facility_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "unit_type_id": {
-          "name": "unit_type_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "code": {
-          "name": "code",
-          "type": "varchar(80)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "storage_unit_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'AVAILABLE'"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "storage_units_facility_idx": {
-          "name": "storage_units_facility_idx",
-          "columns": [
-            {
-              "expression": "facility_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "storage_units_facility_status_idx": {
-          "name": "storage_units_facility_status_idx",
-          "columns": [
-            {
-              "expression": "facility_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "storage_units_unit_type_idx": {
-          "name": "storage_units_unit_type_idx",
-          "columns": [
-            {
-              "expression": "unit_type_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "storage_units_facility_id_facilities_id_fk": {
-          "name": "storage_units_facility_id_facilities_id_fk",
-          "tableFrom": "storage_units",
-          "tableTo": "facilities",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "storage_units_unit_type_id_facility_id_unit_types_id_facility_id_fk": {
-          "name": "storage_units_unit_type_id_facility_id_unit_types_id_facility_id_fk",
-          "tableFrom": "storage_units",
-          "tableTo": "unit_types",
-          "columnsFrom": [
-            "unit_type_id",
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id",
-            "facility_id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "storage_units_code_unique": {
-          "name": "storage_units_code_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.unit_types": {
       "name": "unit_types",
       "schema": "",
@@ -1655,6 +4049,19 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
         },
         "code": {
           "name": "code",
@@ -1674,11 +4081,33 @@
           "primaryKey": false,
           "notNull": true
         },
-        "size_sqm": {
-          "name": "size_sqm",
-          "type": "real",
+        "length_m": {
+          "name": "length_m",
+          "type": "numeric",
           "primaryKey": false,
           "notNull": true
+        },
+        "width_m": {
+          "name": "width_m",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "height_m": {
+          "name": "height_m",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "size_cbm": {
+          "name": "size_cbm",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": true,
+          "generated": {
+            "as": "\"length_m\" * \"width_m\" * \"height_m\"",
+            "type": "stored"
+          }
         },
         "monthly_price": {
           "name": "monthly_price",
@@ -1729,42 +4158,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "unit_types_id_facility_idx": {
-          "name": "unit_types_id_facility_idx",
-          "columns": [
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "facility_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "unit_types_facility_idx": {
-          "name": "unit_types_facility_idx",
-          "columns": [
-            {
-              "expression": "facility_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
@@ -1778,18 +4171,53 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "unit_types_updated_by_users_id_fk": {
+          "name": "unit_types_updated_by_users_id_fk",
+          "tableFrom": "unit_types",
+          "tableTo": "users",
+          "columnsFrom": [
+            "updated_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "unit_types_facility_id_idx": {
+          "name": "unit_types_facility_id_idx",
+          "nullsNotDistinct": false,
+          "columns": [
+            "facility_id",
+            "id"
+          ]
+        }
+      },
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "unit_types_price_positive": {
+          "name": "unit_types_price_positive",
+          "value": "\"unit_types\".\"monthly_price\" > 0"
+        },
+        "unit_types_version_valid": {
+          "name": "unit_types_version_valid",
+          "value": "\"unit_types\".\"version\" >= 0"
+        },
+        "unit_types_positive_dimensions": {
+          "name": "unit_types_positive_dimensions",
+          "value": "\"unit_types\".\"length_m\" > 0 AND \"unit_types\".\"width_m\" > 0 AND \"unit_types\".\"height_m\" > 0"
+        }
+      },
       "isRLSEnabled": false
     },
-    "public.payments": {
-      "name": "payments",
+    "public.user_activity_logs": {
+      "name": "user_activity_logs",
       "schema": "",
       "columns": {
         "id": {
@@ -1799,94 +4227,38 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "booking_id": {
-          "name": "booking_id",
+        "actor_id": {
+          "name": "actor_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
-        "draft_id": {
-          "name": "draft_id",
-          "type": "uuid",
+        "action": {
+          "name": "action",
+          "type": "varchar(120)",
           "primaryKey": false,
           "notNull": true
         },
-        "hold_token_hash": {
-          "name": "hold_token_hash",
-          "type": "varchar(128)",
+        "entity_type": {
+          "name": "entity_type",
+          "type": "varchar(80)",
           "primaryKey": false,
           "notNull": true
         },
-        "customer_id": {
-          "name": "customer_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "provider": {
-          "name": "provider",
-          "type": "varchar(32)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "provider_payment_id": {
-          "name": "provider_payment_id",
-          "type": "varchar(128)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "idempotency_key": {
-          "name": "idempotency_key",
-          "type": "varchar(128)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "rental_fee_amount": {
-          "name": "rental_fee_amount",
-          "type": "numeric(14, 2)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "deposit_amount": {
-          "name": "deposit_amount",
-          "type": "numeric(14, 2)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "total_amount": {
-          "name": "total_amount",
-          "type": "numeric(14, 2)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "currency": {
-          "name": "currency",
-          "type": "varchar(3)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "payment_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "paid_at": {
-          "name": "paid_at",
-          "type": "timestamp with time zone",
+        "entity_id": {
+          "name": "entity_id",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": false
         },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
+        "facility_id": {
+          "name": "facility_id",
+          "type": "uuid",
           "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
+          "notNull": false
         },
-        "updated_at": {
-          "name": "updated_at",
+        "occurred_at": {
+          "name": "occurred_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
@@ -1894,47 +4266,104 @@
         }
       },
       "indexes": {
-        "payments_provider_payment_idx": {
-          "name": "payments_provider_payment_idx",
+        "user_activity_logs_time_idx": {
+          "name": "user_activity_logs_time_idx",
           "columns": [
             {
-              "expression": "provider",
+              "expression": "occurred_at",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             },
             {
-              "expression": "provider_payment_id",
+              "expression": "id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             }
           ],
-          "isUnique": true,
+          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}
         },
-        "payments_idempotency_idx": {
-          "name": "payments_idempotency_idx",
+        "user_activity_logs_actor_time_idx": {
+          "name": "user_activity_logs_actor_time_idx",
           "columns": [
             {
-              "expression": "idempotency_key",
+              "expression": "actor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "occurred_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             }
           ],
-          "isUnique": true,
+          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}
         },
-        "payments_booking_idx": {
-          "name": "payments_booking_idx",
+        "user_activity_logs_entity_idx": {
+          "name": "user_activity_logs_entity_idx",
           "columns": [
             {
-              "expression": "booking_id",
+              "expression": "entity_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "entity_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "occurred_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "user_activity_logs_facility_time_idx": {
+          "name": "user_activity_logs_facility_time_idx",
+          "columns": [
+            {
+              "expression": "facility_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "occurred_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1947,149 +4376,35 @@
         }
       },
       "foreignKeys": {
-        "payments_booking_id_bookings_id_fk": {
-          "name": "payments_booking_id_bookings_id_fk",
-          "tableFrom": "payments",
-          "tableTo": "bookings",
+        "user_activity_logs_actor_id_users_id_fk": {
+          "name": "user_activity_logs_actor_id_users_id_fk",
+          "tableFrom": "user_activity_logs",
+          "tableTo": "users",
           "columnsFrom": [
-            "booking_id"
+            "actor_id"
           ],
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
+          "onDelete": "set null",
           "onUpdate": "no action"
         },
-        "payments_draft_id_reservation_drafts_id_fk": {
-          "name": "payments_draft_id_reservation_drafts_id_fk",
-          "tableFrom": "payments",
-          "tableTo": "reservation_drafts",
+        "user_activity_logs_facility_id_facilities_id_fk": {
+          "name": "user_activity_logs_facility_id_facilities_id_fk",
+          "tableFrom": "user_activity_logs",
+          "tableTo": "facilities",
           "columnsFrom": [
-            "draft_id"
+            "facility_id"
           ],
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "payments_customer_id_customers_id_fk": {
-          "name": "payments_customer_id_customers_id_fk",
-          "tableFrom": "payments",
-          "tableTo": "customers",
-          "columnsFrom": [
-            "customer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.sessions": {
-      "name": "sessions",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "token": {
-          "name": "token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "ip_address": {
-          "name": "ip_address",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "user_agent": {
-          "name": "user_agent",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "sessions_user_id_idx": {
-          "name": "sessions_user_id_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "sessions_user_id_users_id_fk": {
-          "name": "sessions_user_id_users_id_fk",
-          "tableFrom": "sessions",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "sessions_token_unique": {
-          "name": "sessions_token_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "token"
-          ]
-        }
-      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -2136,23 +4451,15 @@
           "primaryKey": false,
           "notNull": false
         },
-        "password_hash": {
-          "name": "password_hash",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": false
-        },
         "role": {
           "name": "role",
           "type": "role",
-          "typeSchema": "public",
           "primaryKey": false,
           "notNull": false
         },
         "status": {
           "name": "status",
           "type": "status",
-          "typeSchema": "public",
           "primaryKey": false,
           "notNull": false
         },
@@ -2171,7 +4478,24 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "users_single_system_admin_idx": {
+          "name": "users_single_system_admin_idx",
+          "columns": [
+            {
+              "expression": "role",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"users\".\"role\" = 'SYSTEM_ADMIN'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
@@ -2263,12 +4587,33 @@
     }
   },
   "enums": {
+    "public.appointment_status": {
+      "name": "appointment_status",
+      "schema": "public",
+      "values": [
+        "SCHEDULED",
+        "CONFIRMED",
+        "COMPLETED",
+        "CANCELLED",
+        "NO_SHOW"
+      ]
+    },
+    "public.appointment_type": {
+      "name": "appointment_type",
+      "schema": "public",
+      "values": [
+        "CHECK_IN",
+        "CHECK_OUT",
+        "SUPPORT"
+      ]
+    },
     "public.capacity_allocation_kind": {
       "name": "capacity_allocation_kind",
       "schema": "public",
       "values": [
         "HOLD",
-        "BOOKING"
+        "BOOKING",
+        "RESERVATION"
       ]
     },
     "public.capacity_allocation_status": {
@@ -2280,18 +4625,160 @@
         "EXPIRED"
       ]
     },
-    "public.reservation_draft_status": {
-      "name": "reservation_draft_status",
+    "public.facility_task_reference_type": {
+      "name": "facility_task_reference_type",
       "schema": "public",
       "values": [
-        "DRAFT"
+        "APPOINTMENT",
+        "BOOKING",
+        "STORAGE_UNIT",
+        "SUPPORT_TICKET"
       ]
     },
-    "public.reservation_pricing_status": {
-      "name": "reservation_pricing_status",
+    "public.facility_task_status": {
+      "name": "facility_task_status",
       "schema": "public",
       "values": [
-        "PRICING_NOT_CONFIGURED"
+        "ASSIGNED",
+        "IN_PROGRESS",
+        "COMPLETED",
+        "CANCELLED"
+      ]
+    },
+    "public.facility_task_type": {
+      "name": "facility_task_type",
+      "schema": "public",
+      "values": [
+        "CHECK_IN_HANDOVER",
+        "UNIT_INSPECTION",
+        "HANDLE_SUPPORT"
+      ]
+    },
+    "public.inspection_condition": {
+      "name": "inspection_condition",
+      "schema": "public",
+      "values": [
+        "GOOD",
+        "MINOR_DAMAGE",
+        "MAJOR_DAMAGE"
+      ]
+    },
+    "public.inspection_status": {
+      "name": "inspection_status",
+      "schema": "public",
+      "values": [
+        "PENDING",
+        "IN_PROGRESS",
+        "PASSED",
+        "FAILED"
+      ]
+    },
+    "public.inspection_type": {
+      "name": "inspection_type",
+      "schema": "public",
+      "values": [
+        "CHECK_IN",
+        "CHECK_OUT",
+        "MAINTENANCE"
+      ]
+    },
+    "public.cloudinary_resource_type": {
+      "name": "cloudinary_resource_type",
+      "schema": "public",
+      "values": [
+        "IMAGE",
+        "VIDEO",
+        "RAW"
+      ]
+    },
+    "public.lifecycle_notification_event": {
+      "name": "lifecycle_notification_event",
+      "schema": "public",
+      "values": [
+        "SUPPORT_CREATED",
+        "SUPPORT_UPDATED",
+        "PAYMENT_CONFIRMED",
+        "BOOKING_CONFIRMED",
+        "UPCOMING_EXPIRY",
+        "RENTAL_OVERDUE",
+        "ABANDONED_REVIEW",
+        "RETURN_SCHEDULED",
+        "RETURN_CHANGED",
+        "RETURN_INSPECTION",
+        "RETURN_SETTLED",
+        "RETURN_REFUND",
+        "RETURN_TIME_CHANGED"
+      ]
+    },
+    "public.notification_delivery_status": {
+      "name": "notification_delivery_status",
+      "schema": "public",
+      "values": [
+        "PENDING",
+        "PROCESSING",
+        "ENQUEUED",
+        "SENT",
+        "REVIEW_REQUIRED",
+        "SUPPRESSED"
+      ]
+    },
+    "public.payment_provider_event_status": {
+      "name": "payment_provider_event_status",
+      "schema": "public",
+      "values": [
+        "PROCESSED",
+        "IGNORED",
+        "FAILED"
+      ]
+    },
+    "public.payment_refund_reason_code": {
+      "name": "payment_refund_reason_code",
+      "schema": "public",
+      "values": [
+        "NO_CAPACITY",
+        "CHECK_IN_CLOSED",
+        "OFFERING_UNAVAILABLE",
+        "CUSTOMER_CANCELLATION",
+        "NO_SHOW"
+      ]
+    },
+    "public.payment_status": {
+      "name": "payment_status",
+      "schema": "public",
+      "values": [
+        "PENDING",
+        "SUCCEEDED",
+        "FAILED",
+        "REFUND_PENDING",
+        "REFUNDED"
+      ]
+    },
+    "public.pricing_change_operation": {
+      "name": "pricing_change_operation",
+      "schema": "public",
+      "values": [
+        "DEPOSIT_POLICY",
+        "UNIT_TYPE_PRICE"
+      ]
+    },
+    "public.rental_status": {
+      "name": "rental_status",
+      "schema": "public",
+      "values": [
+        "ACTIVE",
+        "CLOSED"
+      ]
+    },
+    "public.reservation_record_status": {
+      "name": "reservation_record_status",
+      "schema": "public",
+      "values": [
+        "DRAFT",
+        "CONFIRMED",
+        "CANCELLED",
+        "EXPIRED",
+        "CHECKED_IN",
+        "NO_SHOW"
       ]
     },
     "public.storage_unit_status": {
@@ -2308,14 +4795,15 @@
         "INACTIVE"
       ]
     },
-    "public.payment_status": {
-      "name": "payment_status",
+    "public.support_category": {
+      "name": "support_category",
       "schema": "public",
       "values": [
-        "PENDING",
-        "SUCCEEDED",
-        "FAILED",
-        "REFUNDED"
+        "UNIT",
+        "LOCK",
+        "ACCESS_CODE",
+        "STORED_ITEMS",
+        "PAYMENT"
       ]
     },
     "public.role": {

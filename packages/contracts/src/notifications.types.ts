@@ -2,15 +2,18 @@ import type { LifecycleNotificationEvent } from "./lifecycle-notifications";
 export interface StaffTaskAssignedNotification {
   id: string;
   type: "STAFF_TASK_ASSIGNED";
+  appointmentId?: string;
   recipientId: string;
-  bookingId: string;
+  bookingId: string | null;
+  reservationId?: string | null;
   occurredAt: string;
 }
 
 export interface LifecycleNotificationItem {
   id: string;
   type: LifecycleNotificationEvent;
-  bookingId: string;
+  bookingId: string | null;
+  reservationId?: string | null;
   subject: string;
   body: string;
   occurredAt: string;

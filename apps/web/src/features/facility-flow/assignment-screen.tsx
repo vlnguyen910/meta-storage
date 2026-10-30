@@ -1,10 +1,11 @@
 "use client";
-import { UserRole } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, ArrowRight, CheckCircle2, RefreshCw, Warehouse } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Currency } from "@/components/ui/display";
+import { OperationalBackLink, OperationalPageHeader } from "@/components/ui/operational";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
 import { useAuthStore } from "@/features/auth/auth-store";
@@ -13,20 +14,16 @@ import {
   useBooking,
   useEligibleUnits,
 } from "@/features/check-in/hooks";
-import { RentalDocuments } from "@/features/rentals/rental-records";
 import { formatDateTime } from "@/lib/format";
 import { FLOW } from "./flow.messages";
 import {
   BackLabel,
   FlowButton as Button,
   DataPair,
-  FlowHeading,
-  FlowHelp,
   inputClass,
   Panel,
   Pill,
   SectionTitle,
-  Steps,
   titleClass,
 } from "./flow-ui";
 import { ReassignmentDialog } from "./reassignment-dialog";
@@ -35,7 +32,8 @@ import { flowError } from "./use-check-in-flow";
 export function AssignmentScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const id = useSearchParams().get("bookingId") ?? "";
+  const params = useSearchParams();
+  const id = params.get("appointmentId") ?? params.get("bookingId") ?? "";
   const booking = useBooking(id);
   const units = useEligibleUnits(id);
   const mutation = useAssignPhysicalUnitMutation();
@@ -90,16 +88,18 @@ export function AssignmentScreen() {
           : FLOW.assignedSuccess,
         "success",
       );
-      router.push(`${root}/check-in?bookingCode=${encodeURIComponent(change.bookingCode)}`);
+      router.push(`${root}/check-in?appointmentId=${encodeURIComponent(change.bookingId)}`);
     } catch (e) {
       setError(flowError(e));
+      showToast(flowError(e), "error");
     }
   }
   return (
     <>
-      <FlowHeading title={FLOW.assignmentTitle} />
-      <Steps active={0} />
-      <FlowHelp />
+      <OperationalBackLink href="/facility-manager/tasks?view=appointments">
+        {FLOW.back}
+      </OperationalBackLink>
+      <OperationalPageHeader title={FLOW.assignmentTitle} description={FLOW.assignmentWarning} />
       {booking.isLoading ? (
         <LoadingState label={FLOW.loading} variant="detail" />
       ) : booking.isError || !booking.data ? (
@@ -116,7 +116,7 @@ export function AssignmentScreen() {
                 {booking.data.paidAt ? FLOW.paid : FLOW.unpaid}
               </Pill>
             </div>
-            <div className="mt-4 grid gap-4 rounded bg-[#f2f3ff] p-3 sm:grid-cols-4">
+            <div className="mt-4 grid gap-4 rounded bg-slate-50 p-3 sm:grid-cols-4">
               <DataPair label={FLOW.customer}>{booking.data.contactName}</DataPair>
               <DataPair label={FLOW.phone}>{booking.data.contactPhone}</DataPair>
               <DataPair label={FLOW.period}>{FLOW.months(booking.data.requestedMonths)}</DataPair>
@@ -125,7 +125,7 @@ export function AssignmentScreen() {
               </DataPair>
             </div>
           </Panel>
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,4fr)_minmax(0,8fr)]">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,7fr)]">
             <div className="space-y-4">
               <Panel>
                 <SectionTitle icon={<Warehouse size={20} />}>{FLOW.spec}</SectionTitle>
@@ -140,7 +140,7 @@ export function AssignmentScreen() {
                   </DataPair>
                 </div>
               </Panel>
-              <Panel className="bg-[#ffdcc3]/50">
+              <Panel className="border-amber-200 bg-amber-50">
                 <SectionTitle icon={<AlertTriangle size={20} />}>
                   {FLOW.assignmentWarningTitle}
                 </SectionTitle>
@@ -181,8 +181,8 @@ export function AssignmentScreen() {
                     >
                       <div className="flex flex-wrap items-start justify-between gap-4 p-4">
                         <div className="flex flex-1 items-center gap-4">
-                          <div className="grid h-28 w-32 shrink-0 place-items-center rounded bg-[#f2f3ff] text-[#306858]">
-                            <Warehouse size={40} aria-hidden="true" />
+                          <div className="grid size-14 shrink-0 place-items-center rounded bg-slate-50 text-[#306858]">
+                            <Warehouse size={26} aria-hidden="true" />
                           </div>
                           <div>
                             <Pill tone={available ? "green" : "red"}>
@@ -205,7 +205,7 @@ export function AssignmentScreen() {
                           className="size-5 accent-[#003b2f]"
                         />
                       </div>
-                      <div className="flex items-center justify-between gap-3 bg-[#f2f3ff] px-4 py-3 text-xs">
+                      <div className="flex items-center justify-between gap-3 bg-slate-50 px-4 py-3 text-xs">
                         <span className="flex items-center gap-2">
                           <CheckCircle2 size={16} />
                           {FLOW.match}
@@ -235,7 +235,10 @@ export function AssignmentScreen() {
             </p>
           )}
           <Panel className="flex flex-wrap items-center justify-between gap-3">
-            <Button variant="secondary" onClick={() => router.push(`${root}/dashboard`)}>
+            <Button
+              variant="secondary"
+              onClick={() => router.push("/facility-manager/tasks?view=appointments")}
+            >
               <BackLabel />
             </Button>
             <div className="text-sm">
@@ -261,9 +264,6 @@ export function AssignmentScreen() {
             </Button>
           </Panel>
         </>
-      )}
-      {booking.data && (
-        <RentalDocuments bookingId={booking.data.id} manager={role === UserRole.FACILITY_MANAGER} />
       )}
       {confirmation && (
         <ReassignmentDialog

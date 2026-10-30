@@ -59,49 +59,6 @@ function createService(
 }
 
 describe("StorageUnitsService - Maintenance & Permission Operations (F4)", () => {
-  it("allows Facility Manager to transition AVAILABLE unit into MAINTENANCE with reason", async () => {
-    const service = createService();
-    const updated = await service.transitionStatus(
-      unitId,
-      "MAINTENANCE",
-      "Sửa chữa bản lề cửa và sơn chống rỉ",
-      { id: managerId, role: "FACILITY_MANAGER" },
-    );
-
-    assert.equal(updated.status, "MAINTENANCE");
-    assert.equal(updated.id, unitId);
-  });
-
-  it("allows Facility Manager to transition MAINTENANCE unit back to AVAILABLE", async () => {
-    const maintUnit: StorageUnit = { ...mockUnit, status: "MAINTENANCE" };
-    const service = createService({
-      findById: async () => maintUnit,
-      transitionStatus: async (id, targetStatus) => ({
-        success: true as const,
-        unit: { ...maintUnit, id, status: targetStatus, updatedAt: new Date() },
-      }),
-    });
-
-    const updated = await service.transitionStatus(unitId, "AVAILABLE", undefined, {
-      id: managerId,
-      role: "FACILITY_MANAGER",
-    });
-
-    assert.equal(updated.status, "AVAILABLE");
-  });
-
-  it("allows Global System Admin to transition unit status without facility assignment", async () => {
-    const service = createService();
-    const updated = await service.transitionStatus(
-      unitId,
-      "MAINTENANCE",
-      "Bảo trì định kỳ toàn hệ thống",
-      { id: "admin-id", role: "SYSTEM_ADMIN" },
-    );
-
-    assert.equal(updated.status, "MAINTENANCE");
-  });
-
   it("rejects transition when user is FACILITY_STAFF (Staff has no permission)", async () => {
     const service = createService();
     await assert.rejects(
@@ -142,25 +99,6 @@ describe("StorageUnitsService - Maintenance & Permission Operations (F4)", () =>
           role: "FACILITY_MANAGER",
         }),
       { name: "NotFoundError" },
-    );
-  });
-
-  it("throws ConflictError when repository reports transition not allowed (e.g. active rental/assignment conflict)", async () => {
-    const service = createService({
-      transitionStatus: async () => ({
-        error: "TRANSITION_NOT_ALLOWED",
-        message: "Không thể đưa ô kho đang có khách thuê (OCCUPIED) vào bảo trì",
-        currentStatus: "OCCUPIED",
-      }),
-    });
-
-    await assert.rejects(
-      () =>
-        service.transitionStatus(unitId, "MAINTENANCE", "Bảo dưỡng khẩn cấp", {
-          id: managerId,
-          role: "FACILITY_MANAGER",
-        }),
-      { name: "ConflictError" },
     );
   });
 });

@@ -2,17 +2,16 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
-  index,
   integer,
   numeric,
   pgTable,
   timestamp,
+  unique,
   uniqueIndex,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
 import { facilities } from "./facilities";
-import { rentalPriceRanges } from "./rental-price-ranges";
 import { users } from "./users";
 
 export const unitTypes = pgTable(
@@ -22,29 +21,25 @@ export const unitTypes = pgTable(
     facilityId: uuid()
       .notNull()
       .references(() => facilities.id, { onDelete: "restrict" }),
-    priceRangeId: uuid()
-      .notNull()
-      .references(() => rentalPriceRanges.id, { onDelete: "restrict" }),
     version: integer().default(0).notNull(),
     updatedBy: uuid().references(() => users.id, { onDelete: "restrict" }),
     code: varchar({ length: 80 }).notNull(),
     name: varchar({ length: 100 }).notNull(),
-    sizeLabel: varchar("size_label", { length: 50 }).notNull(),
-    lengthM: numeric("length_m", { mode: "number" }).notNull(),
-    widthM: numeric("width_m", { mode: "number" }).notNull(),
-    heightM: numeric("height_m", { mode: "number" }).notNull(),
-    sizeCbm: numeric("size_cbm", { mode: "number" })
+    sizeLabel: varchar({ length: 50 }).notNull(),
+    lengthM: numeric({ mode: "number" }).notNull(),
+    widthM: numeric({ mode: "number" }).notNull(),
+    heightM: numeric({ mode: "number" }).notNull(),
+    sizeCbm: numeric({ mode: "number" })
       .generatedAlwaysAs(sql`"length_m" * "width_m" * "height_m"`)
       .notNull(),
-    monthlyPrice: integer("monthly_price").notNull(),
-    isActive: boolean("is_active").default(true).notNull(),
+    monthlyPrice: integer().notNull(),
+    isActive: boolean().default(true).notNull(),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     uniqueIndex("unit_types_facility_code_idx").on(table.facilityId, table.code),
-    uniqueIndex("unit_types_facility_id_idx").on(table.facilityId, table.id),
-    index("unit_types_price_range_idx").on(table.priceRangeId),
+    unique("unit_types_facility_id_idx").on(table.facilityId, table.id),
     check("unit_types_price_positive", sql`${table.monthlyPrice} > 0`),
     check("unit_types_version_valid", sql`${table.version} >= 0`),
     check(

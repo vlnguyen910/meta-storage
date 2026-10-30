@@ -1,8 +1,10 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useReservationCheckout } from "./use-reservation-checkout";
 
 const mocks = vi.hoisted(() => ({
+  get: vi.fn(),
   pay: vi.fn(),
   draft: vi.fn(),
   hold: vi.fn(),
@@ -26,14 +28,21 @@ vi.mock("./booking-checkout.hooks", () => ({
   useCheckoutPaymentStatus: () => mocks.status,
 }));
 
-const confirmation = { qrUrl: "https://example.test/qr", bookingCode: "BK-SERVER" };
-const pending = { status: "PENDING", paymentId: "payment", paymentCode: "SX123" };
+vi.mock("@/lib/api", () => ({ api: { reservations: { get: mocks.get } } }));
+const confirmation = { id: "draft", status: "CONFIRMED", totalAmount: 2 };
+const pending = {
+  status: "PENDING",
+  reservationId: "draft",
+  paymentId: "payment",
+  paymentCode: "SX123",
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
   sessionStorage.clear();
   vi.spyOn(window, "scrollTo").mockImplementation(() => {});
   mocks.status.data = undefined;
+  mocks.get.mockResolvedValue(confirmation);
   mocks.draft.mockImplementation(async (input) => ({
     ...input,
     id: "draft",
@@ -53,7 +62,12 @@ beforeEach(() => {
 });
 
 async function checkout() {
-  const hook = renderHook(() => useReservationCheckout());
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const hook = renderHook(() => useReservationCheckout(), {
+    wrapper: ({ children }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    ),
+  });
   await act(async () => {
     await hook.result.current.next();
   });
@@ -108,19 +122,19 @@ describe("checkout payment reconciliation", () => {
     });
     expect(mocks.pay).toHaveBeenCalledTimes(1);
   });
-  it("shows Booking ID and QR only after the server confirms success", async () => {
+  it("loads the reservation receipt after the server confirms its payment", async () => {
     mocks.pay.mockResolvedValue(pending);
     const { result, rerender } = await checkout();
     await act(async () => {
       await result.current.pay();
     });
-    mocks.status.data = { status: "SUCCEEDED", confirmation };
+    mocks.status.data = { status: "SUCCEEDED", reservationId: "draft" };
     rerender();
     await waitFor(() => expect(result.current.step).toBe(4));
-    expect(result.current.confirmation).toEqual(confirmation);
+    await waitFor(() => expect(result.current.confirmation).toEqual(confirmation));
     expect(result.current.pendingPayment).toEqual(pending);
   });
-  it("does not show success for a response missing booking confirmation", async () => {
+  it("does not confirm a payment response missing its reservation reference", async () => {
     mocks.pay.mockResolvedValue(pending);
     const { result, rerender } = await checkout();
     await act(async () => {

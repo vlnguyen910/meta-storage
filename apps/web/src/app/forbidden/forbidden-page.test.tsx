@@ -1,4 +1,5 @@
-import { type ClientSession, UserRole } from "@metastorage/contracts";
+import type { ClientSession } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AUTH_MESSAGES } from "@/features/auth/auth.messages";

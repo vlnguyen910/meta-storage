@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, spyOn, test } from "bun:test";
 import { randomUUID } from "node:crypto";
+import { SYSTEM_SETTING_DEFINITIONS } from "@metastorage/contracts/system-settings";
 import {
   db,
   eq,
@@ -7,7 +8,6 @@ import {
   inArray,
   pricingChanges,
   queryClient,
-  returnAudit,
   sql,
   systemSettingChanges,
   systemSettings,
@@ -22,9 +22,7 @@ import { setupErrorHandler } from "../../src/common/errors/error-handler";
 import { auth } from "../../src/modules/auth/auth";
 import { PricingRepository } from "../../src/modules/pricing/pricing.repository";
 import { pricingRoutes } from "../../src/modules/pricing/pricing.routes";
-import { RentalLifecycleSettingsRepository } from "../../src/modules/rental-lifecycle-settings/rental-lifecycle-settings.repository";
-import { rentalLifecycleSettingsRoutes } from "../../src/modules/rental-lifecycle-settings/rental-lifecycle-settings.routes";
-import { returnsRoutes } from "../../src/modules/returns/returns.routes";
+import { SystemSettingsRepository } from "../../src/modules/system-settings/system-settings.repository";
 import { systemSettingsRoutes } from "../../src/modules/system-settings/system-settings.routes";
 import { createTestUnitType, deleteTestUnitTypes } from "../fixtures/facility-catalog";
 import { assertTestDatabase } from "../fixtures/test-database";
@@ -68,7 +66,9 @@ describe.skipIf(!localUrl)("unified settings using existing local PostgreSQL", (
   beforeAll(async () => {
     assertTestDatabase(localUrl, process.env, true);
     originals = await db.select().from(systemSettings);
-    expect(originals).toHaveLength(4);
+    expect(originals.map((setting) => setting.key).sort()).toEqual(
+      Object.keys(SYSTEM_SETTING_DEFINITIONS).sort(),
+    );
     await db.insert(users).values(
       Object.entries(roles).map(([key, role]) => ({
         id: ids[key as keyof typeof roles],
@@ -104,9 +104,7 @@ describe.skipIf(!localUrl)("unified settings using existing local PostgreSQL", (
     app.setSerializerCompiler(serializerCompiler);
     setupErrorHandler(app);
     await app.register(systemSettingsRoutes, { prefix: "/api" });
-    await app.register(rentalLifecycleSettingsRoutes, { prefix: "/api" });
     await app.register(pricingRoutes, { prefix: "/api/business-rules" });
-    await app.register(returnsRoutes, { prefix: "/api" });
     await app.ready();
   });
   afterAll(async () => {
@@ -120,7 +118,6 @@ describe.skipIf(!localUrl)("unified settings using existing local PostgreSQL", (
             .delete(systemSettingChanges)
             .where(inArray(systemSettingChanges.actorId, actors));
           await tx.delete(pricingChanges).where(inArray(pricingChanges.changedBy, actors));
-          await tx.delete(returnAudit).where(inArray(returnAudit.actorId, actors));
           for (const original of originals)
             await tx
               .update(systemSettings)
@@ -151,7 +148,13 @@ describe.skipIf(!localUrl)("unified settings using existing local PostgreSQL", (
         .json()
         .data.map((r: { key: string }) => r.key)
         .sort(),
-    ).toEqual(["DEPOSIT_MONTHS", "OVERDUE_FEE_RATE"]);
+    ).toEqual([
+      "CLOSING_HOUR",
+      "DEPOSIT_MONTHS",
+      "OPENING_HOUR",
+      "OVERDUE_FEE_RATE",
+      "RENEWAL_NOTICE_DAYS",
+    ]);
     const value = await row("OVERDUE_FEE_RATE");
     expect(
       (
@@ -180,7 +183,7 @@ describe.skipIf(!localUrl)("unified settings using existing local PostgreSQL", (
       expect((await request("admin", "PUT", "/system-settings", payload)).statusCode).toBe(400);
   });
 
-  test("concurrent common/legacy updates share one lock/version and one audit", async () => {
+  test("concurrent scalar setting updates share one lock/version and one audit", async () => {
     const before = await row("EXPIRY_REMINDER_DAYS");
     const results = await Promise.all([
       request("admin", "PUT", "/system-settings", {
@@ -188,7 +191,7 @@ describe.skipIf(!localUrl)("unified settings using existing local PostgreSQL", (
         value: 0,
         expectedVersion: before.version,
       }),
-      request("admin", "PUT", "/return-policy/lifecycle-settings", {
+      request("admin", "PUT", "/system-settings", {
         key: before.key,
         value: 9,
         expectedVersion: before.version,
@@ -209,7 +212,7 @@ describe.skipIf(!localUrl)("unified settings using existing local PostgreSQL", (
       actorId: ids.admin,
     });
     expect(
-      (await request("admin", "GET", "/return-policy/lifecycle-settings"))
+      (await request("admin", "GET", "/system-settings"))
         .json()
         .data.find((r: { key: string }) => r.key === before.key).value,
     ).toBe(current.value);
@@ -217,8 +220,8 @@ describe.skipIf(!localUrl)("unified settings using existing local PostgreSQL", (
 
   test("audit failure rolls back both setting and inserted audit history", async () => {
     const before = await row("ABANDONED_REVIEW_DAYS");
-    const originalAudit = RentalLifecycleSettingsRepository.prototype.audit;
-    const audit = spyOn(RentalLifecycleSettingsRepository.prototype, "audit").mockImplementation(
+    const originalAudit = SystemSettingsRepository.prototype.audit;
+    const audit = spyOn(SystemSettingsRepository.prototype, "audit").mockImplementation(
       async function (...args) {
         await originalAudit.apply(this, args);
         throw new Error("Injected audit failure");
@@ -243,60 +246,25 @@ describe.skipIf(!localUrl)("unified settings using existing local PostgreSQL", (
     }
   });
 
-  test("financial settings reuse pricing revision and overdue APIs without granting Admin approval", async () => {
+  test("deposit settings share pricing revision without granting Admin approval", async () => {
     const before = await row("DEPOSIT_MONTHS");
-    expect(
-      (
-        await request("bom", "PATCH", `/business-rules/rental-price-ranges/${ids.type}`, {
-          minMonthlyPrice: 1,
-          maxMonthlyPrice: 200000,
-          expectedVersion: 0,
-        })
-      ).statusCode,
-    ).toBe(200);
     expect(
       (
         await request("bom", "PUT", "/system-settings", {
           key: before.key,
           value: 2,
-          expectedVersion: before.version + 1,
+          expectedVersion: before.version,
         })
       ).statusCode,
     ).toBe(200);
     const current = await row(before.key);
-    const pricing = await request("bom", "GET", "/business-rules/pricing");
-    expect(pricing.json().data).toMatchObject({
+    expect((await request("bom", "GET", "/business-rules/pricing")).json().data).toMatchObject({
       depositMonths: current.value,
       version: current.version,
     });
-    const quote = await new PricingRepository(db).findQuote(ids.type);
-    expect(quote?.depositMonths).toBe(current.value);
-    const rate = await row("OVERDUE_FEE_RATE");
-    expect(
-      (
-        await request("bom", "PUT", "/system-settings", {
-          key: rate.key,
-          value: 0,
-          expectedVersion: rate.version,
-        })
-      ).statusCode,
-    ).toBe(200);
-    expect((await request("bom", "GET", "/return-policy/overdue-rate")).json().data).toEqual({
-      rate: 0,
-      version: rate.version + 1,
-    });
-    expect(
-      (
-        await request("bom", "PUT", "/return-policy/overdue-rate", {
-          rate: 100,
-          expectedVersion: rate.version + 1,
-        })
-      ).statusCode,
-    ).toBe(200);
-    expect((await row(rate.key)).value).toBe(100);
-    expect(
-      (await request("bom", "GET", `/system-settings/${rate.key}/history`)).json().data,
-    ).toHaveLength(2);
+    expect((await new PricingRepository(db).findQuote(ids.type))?.depositMonths).toBe(
+      current.value,
+    );
   });
 
   test("failed financial audit actor rolls back policy, shared revision and domain history", async () => {

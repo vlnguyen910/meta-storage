@@ -8,9 +8,11 @@ import {
   db,
   eq,
   facilities,
+  facilityAssignments,
   inArray,
   payments,
   queryClient,
+  type RentalStatus,
   rentals,
   sql,
   storageUnits,
@@ -23,7 +25,10 @@ import { setupErrorHandler } from "../../src/common/errors/error-handler";
 import { auth } from "../../src/modules/auth/auth";
 import { authPlugin } from "../../src/modules/auth/auth.guard";
 import { authRoutes } from "../../src/modules/auth/auth.routes";
+import { facilitiesRoutes } from "../../src/modules/facilities/facilities.routes";
 import { rentalsRoutes } from "../../src/modules/rentals/rentals.routes";
+import { ReportsRepository } from "../../src/modules/reports/reports.repository";
+import { SupportRepository } from "../../src/modules/support/support.repository";
 import { createTestUnitType, deleteTestUnitTypes } from "../fixtures/facility-catalog";
 import { assertTestDatabase } from "../fixtures/test-database";
 
@@ -37,6 +42,7 @@ const ids = {
   owner: randomUUID(),
   other: randomUUID(),
   staff: randomUUID(),
+  manager: randomUUID(),
 };
 const password = "RentalReadTest123!";
 const end = "2032-02-01T03:00:00.123456Z";
@@ -46,6 +52,7 @@ let foreignRental = "";
 let guestRental = "";
 let ownerCookie = "";
 let staffCookie = "";
+let managerCookie = "";
 let fixtureStarted = false;
 let paidBookingId = "";
 
@@ -74,10 +81,7 @@ async function createBooking(userId: string | null, status = "CHECKED_IN") {
       rentalFeeAmount: "1000000",
       depositAmount: "1000000",
       totalAmount: "2000000",
-      contactName: "Rental read fixture",
-      contactEmail: `${ids.owner}@example.test`,
       contactPhone: "0900000000",
-      accessTokenHash: "private-booking-hash",
       status,
     })
     .returning({ id: bookings.id });
@@ -85,19 +89,17 @@ async function createBooking(userId: string | null, status = "CHECKED_IN") {
   return booking.id;
 }
 
-async function createRental(userId: string | null, status: string, expectedEndAt = end) {
+async function createRental(userId: string, status: string, expectedEndAt = end) {
   const bookingId = await createBooking(userId);
   const [rental] = await db
     .insert(rentals)
     .values({
       bookingId,
-      facilityId: ids.facility,
-      physicalUnitId: ids.unit,
-      status,
+      userId,
+      storageUnitId: ids.unit,
+      status: status as RentalStatus,
       startAt: new Date("2032-01-01T03:00:00Z"),
-      expectedEndAt: new Date(expectedEndAt),
-      closedAt: status === "CLOSED" ? new Date(expectedEndAt) : null,
-      depositAmount: "1000000",
+      endAt: new Date(expectedEndAt),
     })
     .returning({ id: rentals.id });
   if (!rental) throw new Error("Missing rental fixture");
@@ -119,6 +121,7 @@ describe.skipIf(!target)("My Storage reads against existing local container Post
         [ids.owner, "CUSTOMER"],
         [ids.other, "CUSTOMER"],
         [ids.staff, "FACILITY_STAFF"],
+        [ids.manager, "FACILITY_MANAGER"],
       ] as const) {
         await tx.insert(users).values({
           id,
@@ -142,6 +145,9 @@ describe.skipIf(!target)("My Storage reads against existing local container Post
         name: "Rental read fixture",
         address: "Local test facility",
       });
+      await tx
+        .insert(facilityAssignments)
+        .values({ userId: ids.manager, facilityId: ids.facility, role: "FACILITY_MANAGER" });
       await createTestUnitType(tx, {
         facilityId: ids.facility,
         id: ids.type,
@@ -167,15 +173,13 @@ describe.skipIf(!target)("My Storage reads against existing local container Post
         endTime: "10:30",
       });
     });
-    for (const status of ["ACTIVE", "RETURN_PENDING", "OVERDUE"]) {
+    for (const status of ["ACTIVE", "ACTIVE", "ACTIVE"]) {
       const rental = await createRental(ids.owner, status);
       active.push(rental.id);
       paidBookingId = rental.bookingId;
     }
     active.sort();
-    active.unshift(
-      (await createRental(ids.owner, "RETURN_PENDING", "2032-01-20T03:00:00.000Z")).id,
-    );
+    active.unshift((await createRental(ids.owner, "ACTIVE", "2032-01-20T03:00:00.000Z")).id);
     for (let i = 0; i < 2; i++) closed.push((await createRental(ids.owner, "CLOSED")).id);
     closed.sort();
     foreignRental = (await createRental(ids.other, "ACTIVE")).id;
@@ -183,8 +187,19 @@ describe.skipIf(!target)("My Storage reads against existing local container Post
     // Preserve PostgreSQL precision beyond JavaScript Date's millisecond precision.
     await db
       .update(rentals)
-      .set({ expectedEndAt: sql`${end}::timestamptz` })
-      .where(and(eq(rentals.facilityId, ids.facility), eq(rentals.expectedEndAt, new Date(end))));
+      .set({ endAt: sql`${end}::timestamptz` })
+      .where(
+        and(
+          inArray(
+            rentals.bookingId,
+            db
+              .select({ id: bookings.id })
+              .from(bookings)
+              .where(eq(bookings.facilityId, ids.facility)),
+          ),
+          eq(rentals.endAt, new Date(end)),
+        ),
+      );
     await createBooking(ids.owner, "CONFIRMED"); // Paid/confirmed is not yet a rental.
     for (const status of [
       "PENDING",
@@ -217,9 +232,11 @@ describe.skipIf(!target)("My Storage reads against existing local container Post
     await app.register(authPlugin);
     await app.register(authRoutes, { prefix: "/api/auth" });
     await app.register(rentalsRoutes, { prefix: "/api/rentals" });
+    await app.register(facilitiesRoutes, { prefix: "/api/facilities" });
     await app.ready();
     ownerCookie = await login(ids.owner);
     staffCookie = await login(ids.staff);
+    managerCookie = await login(ids.manager);
   });
 
   afterAll(async () => {
@@ -232,18 +249,131 @@ describe.skipIf(!target)("My Storage reads against existing local container Post
           .from(bookings)
           .where(eq(bookings.facilityId, ids.facility));
         await tx.delete(payments).where(inArray(payments.bookingId, fixtureBookings));
-        await tx.delete(rentals).where(eq(rentals.facilityId, ids.facility));
+        await tx
+          .delete(rentals)
+          .where(
+            inArray(
+              rentals.bookingId,
+              db
+                .select({ id: bookings.id })
+                .from(bookings)
+                .where(eq(bookings.facilityId, ids.facility)),
+            ),
+          );
         await tx.delete(bookings).where(eq(bookings.facilityId, ids.facility));
         await tx.delete(storageUnits).where(eq(storageUnits.id, ids.unit));
         await deleteTestUnitTypes(tx, eq(unitTypes.id, ids.type));
 
+        await tx
+          .delete(facilityAssignments)
+          .where(eq(facilityAssignments.facilityId, ids.facility));
         await tx.delete(facilities).where(eq(facilities.id, ids.facility));
         await tx.delete(checkInSlots).where(eq(checkInSlots.id, ids.slot));
-        await tx.delete(users).where(inArray(users.id, [ids.owner, ids.other, ids.staff]));
+        await tx
+          .delete(users)
+          .where(inArray(users.id, [ids.owner, ids.other, ids.staff, ids.manager]));
       });
     } finally {
       await queryClient.end();
     }
+  });
+
+  test("minimal detail uses the new names and omits removed finance/return fields", async () => {
+    const response = await read(`/${active[0]}`);
+    expect(response.statusCode).toBe(200);
+    const rental = response.json().data;
+    expect(rental.userId).toBe(ids.owner);
+    expect(rental.storageUnit.id).toBe(ids.unit);
+    expect(rental.endAt).toBeDefined();
+    expect(rental.closedAt).toBeNull();
+    for (const field of [
+      "physicalUnit",
+      "expectedEndAt",
+      "version",
+      "depositAmount",
+      "returnSettlement",
+      "actualReturnAt",
+    ])
+      expect(rental).not.toHaveProperty(field);
+  });
+  test("FM reads only rentals and booking payments of the assigned facility", async () => {
+    const request = (path: string, cookie = managerCookie) =>
+      app.inject({ method: "GET", url: `/api/rentals/facility/${path}`, headers: { cookie } });
+    const list = await request(`${ids.facility}?status=ACTIVE&limit=2`);
+    expect(list.statusCode).toBe(200);
+    expect(list.json().data.total).toBe(6);
+    expect(list.json().data.items).toHaveLength(2);
+    const detail = await request(`${ids.facility}/${active[0]}`);
+    expect(detail.statusCode).toBe(200);
+    expect(detail.json().data.userId).toBe(ids.owner);
+    const [paidRental] = await db
+      .select({ id: rentals.id })
+      .from(rentals)
+      .where(eq(rentals.bookingId, paidBookingId));
+    if (!paidRental) throw new Error("Missing rental payment fixture");
+    const paymentHistory = await request(`${ids.facility}/${paidRental.id}/payments?limit=2`);
+    expect(paymentHistory.statusCode).toBe(200);
+    expect(paymentHistory.json().data.total).toBe(5);
+    expect(paymentHistory.json().data.items).toHaveLength(2);
+    expect(paymentHistory.headers["cache-control"]).toBe("private, no-store");
+    expect(paymentHistory.body).not.toContain("holdTokenHash");
+    expect((await request(`${ids.facility}/${paidRental.id}/payments?limit=0`)).statusCode).toBe(
+      400,
+    );
+    expect((await request(`${randomUUID()}`)).statusCode).toBe(403);
+    expect((await request(`${ids.facility}`, staffCookie)).statusCode).toBe(403);
+    expect((await request(`${ids.facility}`, ownerCookie)).statusCode).toBe(403);
+    expect((await request("invalid-facility")).statusCode).toBe(400);
+    expect((await request(`${ids.facility}/invalid-rental`)).statusCode).toBe(400);
+    expect((await request(`${ids.facility}/${active[0]}/renewals`)).statusCode).toBe(404);
+    expect((await request(`${ids.facility}?status=OVERDUE`)).statusCode).toBe(400);
+  });
+  test("retained support and report queries do not join retired rental tables", async () => {
+    const support = new SupportRepository(db);
+    const attempts = await support.contextPayments(ids.owner, paidBookingId, { limit: 20 });
+    expect(attempts).toHaveLength(5);
+    expect(await support.contextPayments(ids.other, paidBookingId, { limit: 20 })).toHaveLength(0);
+    const reports = new ReportsRepository(db),
+      actor = { id: ids.manager, role: "FACILITY_MANAGER" as const };
+    const periodStart = new Date("2032-01-01T00:00:00Z"),
+      periodEnd = new Date("2032-02-01T00:00:00Z"),
+      asOf = new Date("2032-02-02T00:00:00Z");
+    const data = await reports.read(
+      actor,
+      { facilityId: ids.facility },
+      periodStart,
+      periodEnd,
+      asOf,
+    );
+    expect(data).not.toHaveProperty("chargePayments");
+    expect(data).not.toHaveProperty("chargeRefunds");
+    expect(data.financial.length).toBeGreaterThan(0);
+    const monthly = await reports.monthlyRevenue(
+      actor,
+      { facilityId: ids.facility },
+      periodStart,
+      periodEnd,
+      asOf,
+    );
+    expect(monthly.receipts.length).toBeGreaterThan(0);
+    const rentals = await reports.rentalReport(actor, {
+      facilityId: ids.facility,
+      limit: 20,
+      offset: 0,
+    });
+    expect(rentals.total).toBe(8);
+  });
+
+  test("database rejects duplicate booking rentals and invalid rental periods", async () => {
+    const id = active[0];
+    if (!id) throw new Error("Missing rental fixture");
+    const [rental] = await db.select().from(rentals).where(eq(rentals.id, id));
+    if (!rental) throw new Error("Missing rental fixture");
+    const { id: _id, ...values } = rental;
+    await expect(db.insert(rentals).values(values).execute()).rejects.toThrow();
+    await expect(
+      db.update(rentals).set({ endAt: rental.startAt }).where(eq(rentals.id, rental.id)).execute(),
+    ).rejects.toThrow();
   });
 
   test("default list is paginated current view and excludes closed/unhanded-over/guest/other rentals", async () => {
@@ -256,7 +386,7 @@ describe.skipIf(!target)("My Storage reads against existing local container Post
         .json()
         .data.items.map((item: { status: string }) => item.status)
         .sort(),
-    ).toEqual(["ACTIVE", "OVERDUE", "RETURN_PENDING", "RETURN_PENDING"]);
+    ).toEqual(["ACTIVE", "ACTIVE", "ACTIVE", "ACTIVE"]);
   });
 
   test("current pagination is stable for equal expiry dates and does not require cursor row", async () => {

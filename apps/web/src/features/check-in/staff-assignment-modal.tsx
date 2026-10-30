@@ -50,6 +50,7 @@ export function StaffAssignmentModal({ booking, isOpen, onClose }: StaffAssignme
       onClose();
     } catch (cause) {
       setError(flowError(cause));
+      showToast(flowError(cause), "error");
     }
   }
 
