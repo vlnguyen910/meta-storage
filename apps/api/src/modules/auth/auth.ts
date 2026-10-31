@@ -21,6 +21,7 @@ export const auth = betterAuth({
   trustedOrigins: [
     ...env.AUTH_TRUSTED_ORIGINS.split(",").map((origin) => origin.trim()),
     "metastorage://",
+    "exp://",
   ],
   database: authDatabase,
   socialProviders:
