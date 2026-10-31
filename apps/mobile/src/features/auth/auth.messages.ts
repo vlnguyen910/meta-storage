@@ -51,7 +51,7 @@ export const AUTH_MESSAGES = {
     "3. Nhân viên cơ sở (FS): Đăng nhập bằng email công vụ đã được Quản lý (FM) cấp quyền trực thuộc trạm.",
   demoQuickFillTitle: "Tài khoản mẫu (1 chạm)",
   customerDemoLabel: "Khách hàng cá nhân",
-  customerDemoEmail: "customer@metastorage.test",
+  customerDemoEmail: "customer@metastorage.vn",
   demoPassword: "12345678",
   loginEmailNotVerified:
     "Email chưa xác minh. StoreX đã gửi lại liên kết nếu thông tin đăng nhập đúng.",
