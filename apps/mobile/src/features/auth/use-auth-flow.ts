@@ -1,6 +1,6 @@
 import { CustomerSignUpInputSchema } from "@metastorage/contracts";
 import { useEffect, useState } from "react";
-import { Linking as NativeLinking } from "react-native";
+import { Linking as NativeLinking, Platform } from "react-native";
 import { api } from "../../lib/api";
 import { authClient } from "../../lib/auth-client";
 import { AUTH_MESSAGES } from "./auth.messages";
@@ -30,6 +30,7 @@ export function useAuthFlow(callbackUrl?: string) {
   const [resendCountdown, setResendCountdown] = useState(45);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const sessionState = authClient.useSession();
 
   // Listen to deep link callback
@@ -140,6 +141,34 @@ export function useAuthFlow(callbackUrl?: string) {
       setIsSuccessMessage(false);
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function signInWithGoogle() {
+    setMessage(null);
+    setIsSuccessMessage(false);
+    setIsGoogleLoading(true);
+    try {
+      const callbackURL =
+        Platform.OS === "web"
+          ? typeof window !== "undefined"
+            ? `${window.location.origin}/auth/callback`
+            : "http://localhost:8081"
+          : "metastorage://auth";
+
+      const result = await authClient.signIn.social({
+        provider: "google",
+        callbackURL,
+      });
+
+      if (result?.error) {
+        throw new Error(getErrorMessage(result.error));
+      }
+    } catch (error) {
+      setMessage(getErrorMessage(error) || AUTH_MESSAGES.googleAuthFailed);
+      setIsSuccessMessage(false);
+    } finally {
+      setIsGoogleLoading(false);
     }
   }
 
@@ -293,6 +322,8 @@ export function useAuthFlow(callbackUrl?: string) {
     resendCountdown,
     isSubmitting,
     isResending,
+    isGoogleLoading,
+    signInWithGoogle,
     user: sessionState.data?.user ?? null,
     isSessionPending: sessionState.isPending,
     updateField,

@@ -67,10 +67,10 @@ export const CUSTOMER_MOBILE_UI = {
     RESOLVED: "Đã xử lý",
   } as Record<string, string>,
   tabs: [
-    { key: "home", label: "Trang chủ", icon: "⌂" },
-    { key: "catalog", label: "Tìm kho", icon: "⌕" },
-    { key: "rentals", label: "Kho của tôi", icon: "▦" },
-    { key: "transactions", label: "Giao dịch", icon: "▤" },
-    { key: "support", label: "Hỗ trợ", icon: "?" },
+    { key: "home", label: "Tổng quan", icon: "⊞" },
+    { key: "catalog", label: "Tìm kho", icon: "🏢" },
+    { key: "rentals", label: "Kho của tôi", icon: "📦" },
+    { key: "transactions", label: "Lịch sử giao dịch", icon: "💳" },
+    { key: "support", label: "Yêu cầu hỗ trợ", icon: "❓" },
   ] as const,
 };

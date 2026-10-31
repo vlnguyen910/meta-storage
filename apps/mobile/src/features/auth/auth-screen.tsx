@@ -86,26 +86,36 @@ export function AuthScreen({ onBack, callbackUrl }: { onBack?: () => void; callb
               </Pressable>
             </View>
           ) : auth.mode === "login" ? (
-            // M-A01 Header: [← Trở lại] [[+] storeX] [📞]
+            // M-A01 Header: [storeX •] [📞]
             <View className="flex-1 flex-row items-center justify-between">
-              <Pressable
-                accessibilityRole="button"
-                className="flex-row items-center gap-1 py-1.5 pr-2 active:opacity-70"
-                onPress={() => {
-                  // Switch to register or back
-                  onBack?.();
-                }}
-              >
-                <Text className="text-base text-slate-800">←</Text>
-                <Text className="text-xs font-semibold text-slate-800">{AUTH_MESSAGES.back}</Text>
-              </Pressable>
-
-              <View className="flex-row items-center gap-1.5">
-                <View className="h-6 w-6 items-center justify-center rounded bg-[#125345]">
-                  <Text className="text-xs font-black text-white">◫</Text>
+              {onBack ? (
+                <Pressable
+                  accessibilityRole="button"
+                  className="flex-row items-center gap-1 py-1.5 pr-2 active:opacity-70"
+                  onPress={() => onBack()}
+                >
+                  <Text className="text-base text-slate-800">←</Text>
+                  <Text className="text-xs font-semibold text-slate-800">{AUTH_MESSAGES.back}</Text>
+                </Pressable>
+              ) : (
+                <View className="flex-row items-center gap-1.5">
+                  <View className="h-7 w-7 items-center justify-center rounded-lg bg-[#0B2F24]">
+                    <Text className="text-xs font-black text-[#52D1A6]">⊞</Text>
+                  </View>
+                  <Text className="text-lg font-black text-[#0B2F24]">storeX</Text>
                 </View>
-                <Text className="text-lg font-black text-[#125345]">{AUTH_MESSAGES.brandName}</Text>
-              </View>
+              )}
+
+              {onBack ? (
+                <View className="flex-row items-center gap-1.5">
+                  <View className="h-6 w-6 items-center justify-center rounded bg-[#125345]">
+                    <Text className="text-xs font-black text-white">◫</Text>
+                  </View>
+                  <Text className="text-lg font-black text-[#125345]">
+                    {AUTH_MESSAGES.brandName}
+                  </Text>
+                </View>
+              ) : null}
 
               <Pressable
                 accessibilityRole="button"

@@ -6,11 +6,12 @@ import {
   BackHandler,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
+  Text,
   View,
 } from "react-native";
 import { ScreenFrame } from "../../components/ui/screen-frame";
-import { WorkspaceHeader, WorkspaceTabs } from "../../components/ui/workspace-ui";
 import { authClient } from "../../lib/auth-client";
 import { NotificationScreen } from "../notifications/notification-screen";
 import type { CustomerRoute } from "./customer-api.types";
@@ -33,6 +34,7 @@ import {
   readCustomerCommand,
   saveCustomerCommand,
 } from "./customer-native";
+import { CustomerNavDrawer } from "./customer-nav-drawer";
 import { CustomerTransactionsScreen } from "./customer-transactions-screen";
 import { CUSTOMER_MOBILE_UI as U } from "./customer-ui.messages";
 
@@ -45,9 +47,12 @@ export function CustomerWorkspace({
   owner: string;
   name: string;
   initialRoute?: CustomerRoute;
-  onHome: () => void;
+  onHome?: () => void;
 }) {
   const client = useQueryClient();
+  const session = authClient.useSession();
+  const email = session.data?.user?.email;
+  const [drawerVisible, setDrawerVisible] = useState(false);
   const [stack, setStack] = useState<CustomerRoute[]>(
     initialRoute ? [{ screen: "home" }, initialRoute] : [{ screen: "home" }],
   );
@@ -56,17 +61,19 @@ export function CustomerWorkspace({
   const scroll = useRef<ScrollView>(null);
   const routeKey = `${route.screen}:${"id" in route ? route.id : ""}`;
   const previousRoute = useRef(routeKey);
+
   useEffect(() => {
     if (previousRoute.current !== routeKey) {
       scroll.current?.scrollTo({ y: 0, animated: false });
       previousRoute.current = routeKey;
     }
   }, [routeKey]);
+
   useEffect(() => {
     if (Platform.OS !== "android") return;
     const listener = BackHandler.addEventListener("hardwareBackPress", () => {
       if (stack.length < 2) {
-        onHome();
+        if (onHome) onHome();
         return true;
       }
       setStack((s) => s.slice(0, -1));
@@ -74,17 +81,38 @@ export function CustomerWorkspace({
     });
     return () => listener.remove();
   }, [stack.length, onHome]);
-  const selectedTab = ["booking", "bookings", "payment"].includes(route.screen)
+
+  const selectedTab: "home" | "catalog" | "rentals" | "transactions" | "support" = [
+    "booking",
+    "bookings",
+    "payment",
+    "rental",
+    "rentals",
+  ].includes(route.screen)
     ? "rentals"
-    : ["rental", "rentals"].includes(route.screen)
-      ? "rentals"
-      : route.screen === "transactions"
-        ? "transactions"
-        : ["ticket", "support", "support-new"].includes(route.screen)
-          ? "support"
-          : ["catalog", "checkout"].includes(route.screen)
-            ? "catalog"
-            : "home";
+    : route.screen === "transactions"
+      ? "transactions"
+      : ["ticket", "support", "support-new"].includes(route.screen)
+        ? "support"
+        : ["catalog", "checkout"].includes(route.screen)
+          ? "catalog"
+          : "home";
+
+  const handleSelectTab = (key: "home" | "catalog" | "rentals" | "transactions" | "support") => {
+    if (key === "home") {
+      setStack([{ screen: "home" }]);
+    } else {
+      setStack([{ screen: "home" }, { screen: key }]);
+    }
+  };
+
+  const handleLogout = () => {
+    void Promise.all(
+      ["checkout", "reservation-checkout-v2", "payment", "support-draft"].map((key) =>
+        clearCustomerCommand(owner, key),
+      ),
+    ).then(() => authClient.signOut());
+  };
 
   useEffect(() => {
     clearPrivateFiles();
@@ -130,6 +158,7 @@ export function CustomerWorkspace({
       clearPrivateFiles();
     };
   }, [owner, client]);
+
   let screen: import("react").ReactNode = null;
   switch (route.screen) {
     case "transactions":
@@ -193,26 +222,71 @@ export function CustomerWorkspace({
       screen = <CustomerTicketScreen owner={owner} id={route.id} />;
       break;
   }
+
   return (
     <ScreenFrame>
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <WorkspaceHeader
-          name={name}
-          subtitle={U.customer}
-          onHome={onHome}
-          onNotifications={() => go({ screen: "notifications" })}
-          onBack={stack.length > 1 ? () => setStack((s) => s.slice(0, -1)) : undefined}
-          onLogout={() => {
-            void Promise.all(
-              ["checkout", "reservation-checkout-v2", "payment", "support-draft"].map((key) =>
-                clearCustomerCommand(owner, key),
-              ),
-            ).then(() => authClient.signOut());
-          }}
-        />
+        {/* Top Header */}
+        <View className="border-b border-slate-200 bg-white px-4 py-2.5 shadow-2xs">
+          <View className="mx-auto w-full max-w-3xl flex-row items-center justify-between">
+            <View className="flex-row items-center gap-2">
+              {stack.length > 1 ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Quay lại"
+                  onPress={() => setStack((s) => s.slice(0, -1))}
+                  className="mr-1 h-9 w-9 items-center justify-center rounded-xl bg-slate-100 active:bg-slate-200"
+                >
+                  <Text className="text-lg font-bold text-slate-800">←</Text>
+                </Pressable>
+              ) : null}
+
+              {/* Menu Drawer Toggle Button */}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Mở danh mục điều hướng"
+                onPress={() => setDrawerVisible(true)}
+                className="h-10 w-10 items-center justify-center rounded-xl bg-[#0B2F24] active:bg-[#184E40]"
+              >
+                <Text className="text-base font-black text-[#52D1A6]">☰</Text>
+              </Pressable>
+
+              <View>
+                <View className="flex-row items-center gap-1">
+                  <Text className="text-base font-black text-[#0B2F24]">storeX</Text>
+                  <Text className="text-xs font-bold text-[#52D1A6]">●</Text>
+                </View>
+                <Text numberOfLines={1} className="text-[11px] text-slate-500 max-w-[140px]">
+                  {name}
+                </Text>
+              </View>
+            </View>
+
+            {/* Right Quick Controls */}
+            <View className="flex-row items-center gap-2">
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Thông báo"
+                onPress={() => go({ screen: "notifications" })}
+                className="h-9 w-9 items-center justify-center rounded-xl bg-slate-100 active:bg-slate-200"
+              >
+                <Text className="text-sm">🔔</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Đăng xuất"
+                onPress={handleLogout}
+                className="h-9 w-9 items-center justify-center rounded-xl bg-slate-100 active:bg-slate-200"
+              >
+                <Text className="text-sm text-slate-700">↪</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+
         <ScrollView
           ref={scroll}
           keyboardShouldPersistTaps="handled"
@@ -226,18 +300,51 @@ export function CustomerWorkspace({
             {screen}
           </View>
         </ScrollView>
-        <WorkspaceTabs
-          tabs={U.tabs}
-          selected={selectedTab}
-          onSelect={(key) => {
-            const tab = U.tabs.find((item) => item.key === key);
-            if (tab)
-              setStack(
-                tab.key === "home"
-                  ? [{ screen: "home" }]
-                  : [{ screen: "home" }, { screen: tab.key }],
+
+        {/* Dark Green Bottom Navigation Bar Matching User Design */}
+        <View className="border-t border-[#184E40] bg-[#0B2F24] px-1 py-1.5 shadow-lg">
+          <View className="mx-auto w-full max-w-3xl flex-row items-center justify-around">
+            {U.tabs.map((tab) => {
+              const isActive = selectedTab === tab.key;
+              return (
+                <Pressable
+                  key={tab.key}
+                  accessibilityRole="tab"
+                  accessibilityLabel={tab.label}
+                  accessibilityState={{ selected: isActive }}
+                  onPress={() => handleSelectTab(tab.key)}
+                  className={`flex-1 items-center justify-center py-1.5 rounded-xl ${
+                    isActive ? "bg-[#184E40]" : "bg-transparent"
+                  }`}
+                >
+                  <Text className={`text-base ${isActive ? "text-[#52D1A6]" : "text-[#8FAFA5]"}`}>
+                    {tab.icon}
+                  </Text>
+                  <Text
+                    numberOfLines={1}
+                    className={`mt-0.5 text-[10px] font-bold ${
+                      isActive ? "text-white" : "text-[#8FAFA5]"
+                    }`}
+                  >
+                    {tab.label}
+                  </Text>
+                </Pressable>
               );
-          }}
+            })}
+          </View>
+        </View>
+
+        {/* Slide-over Dark Green Drawer Modal */}
+        <CustomerNavDrawer
+          visible={drawerVisible}
+          onClose={() => setDrawerVisible(false)}
+          currentTab={selectedTab}
+          onSelectTab={handleSelectTab}
+          onOpenNotifications={() => go({ screen: "notifications" })}
+          owner={owner}
+          name={name}
+          email={email}
+          onLogout={handleLogout}
         />
       </KeyboardAvoidingView>
     </ScreenFrame>

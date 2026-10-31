@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ActivityIndicator, Pressable, Text, TextInput, View } from "react-native";
 import { AUTH_MESSAGES } from "./auth.messages";
 import type { AuthViewProps } from "./auth-screen.types";
+import { GoogleButton } from "./google-button";
 
 export function LoginView({ auth, onBrowse }: AuthViewProps) {
   const [showPassword, setShowPassword] = useState(false);
@@ -131,6 +132,22 @@ export function LoginView({ auth, onBrowse }: AuthViewProps) {
               <Text className="text-sm font-bold text-white">{AUTH_MESSAGES.loginButton}</Text>
             )}
           </Pressable>
+
+          {/* OR Divider */}
+          <View className="my-1 flex-row items-center gap-3">
+            <View className="h-px flex-1 bg-slate-200" />
+            <Text className="text-[11px] font-semibold text-slate-400">
+              {AUTH_MESSAGES.orDivider}
+            </Text>
+            <View className="h-px flex-1 bg-slate-200" />
+          </View>
+
+          {/* Google SSO Button */}
+          <GoogleButton
+            isLoading={auth.isGoogleLoading}
+            disabled={auth.isSubmitting}
+            onPress={() => void auth.signInWithGoogle()}
+          />
         </View>
       </View>
 
