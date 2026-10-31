@@ -1,4 +1,5 @@
 "use client";
+import { formatReference } from "@metastorage/shared";
 
 import { Building2 } from "lucide-react";
 import { FACILITY_CONTEXT_MESSAGES } from "./facility-context.messages";
@@ -31,7 +32,9 @@ export function FacilitySwitcher({
         </span>
         {!isMultiFacility && (
           <span className="rounded-md bg-primary-soft px-2.5 py-1 font-bold text-primary">
-            {current?.facilityName || current?.facilityCode || current?.facilityId}
+            {current?.facilityName ||
+              current?.facilityCode ||
+              formatReference(current?.facilityId, "CS")}
           </span>
         )}
       </div>
@@ -46,7 +49,9 @@ export function FacilitySwitcher({
           >
             {activeAssignments.map((assignment) => (
               <option key={assignment.facilityId} value={assignment.facilityId}>
-                {assignment.facilityName || assignment.facilityCode || assignment.facilityId}
+                {assignment.facilityName ||
+                  assignment.facilityCode ||
+                  formatReference(assignment.facilityId, "CS")}
                 {assignment.facilityCode ? ` (${assignment.facilityCode})` : ""}
               </option>
             ))}

@@ -2,7 +2,11 @@ export const MANAGER_BOOKING_ROW = {
   customer: "Khách hàng",
   booking: "Booking",
   unit: "Ô kho",
+  rentalRef: "Hồ sơ thuê",
+  returnAppointment: "Lịch trả",
+  openRentalRecordForUnit: "Mở hồ sơ thuê để xem ô kho",
   schedule: "Lịch nhận kho",
+  returnSchedule: "Lịch trả kho",
   staff: "Nhân viên phụ trách",
   paymentRecorded: "Đã ghi nhận thanh toán",
   noPayment: "Chưa ghi nhận thanh toán",
@@ -11,4 +15,6 @@ export const MANAGER_BOOKING_ROW = {
   filters: "Lọc tiến trình xử lý",
   progress: "Tiến trình",
   payment: "Thanh toán",
+  details: "Chi tiết lịch",
+  relatedLoadError: "Không tải được thông tin hồ sơ thuê.",
 } as const;

@@ -1,9 +1,4 @@
-import { Suspense } from "react";
-import { ChargePaymentResult } from "@/features/rentals/charge-payment-result";
+import { redirect } from "next/navigation";
 export default function Page() {
-  return (
-    <Suspense>
-      <ChargePaymentResult />
-    </Suspense>
-  );
+  redirect("/customer/storage");
 }

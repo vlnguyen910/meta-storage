@@ -15,4 +15,6 @@ export const INSPECTION_MESSAGES = {
   invalidPhoto: "Ảnh phải là JPEG, PNG hoặc WebP hợp lệ, tối đa 3 MB.",
   photoLimit: "Mỗi inspection lưu tối đa 8 ảnh.",
   notesLimit: "Mô tả hiện trạng tối đa 4000 ký tự.",
+  duplicateViolationCode: "Mã phí bị trùng.",
+  policyVersionRequired: "Cần gửi phiên bản danh mục phí đang xem.",
 } as const;

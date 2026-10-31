@@ -1,5 +1,7 @@
 "use client";
+import { formatReference } from "@metastorage/shared";
 
+import { useQuery } from "@tanstack/react-query";
 import {
   Archive,
   ArrowRight,
@@ -23,8 +25,9 @@ import { ListPagination } from "@/components/ui/list-pagination";
 import { ShadcnButton } from "@/components/ui/shadcn-button";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { customerRoutes } from "@/config/routes";
-import { useCustomerBookings } from "@/features/bookings/customer-bookings.hooks";
 import { useMyRentals } from "@/features/rentals/hooks";
+import { useFlow3Identity } from "@/features/returns/use-flow3-identity";
+import { api } from "@/lib/api";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { CUSTOMER_DASHBOARD_MESSAGES as D } from "./customer-dashboard.messages";
 import type { CustomerDashboardTab } from "./customer-dashboard.types";
@@ -37,10 +40,14 @@ export function CustomerDashboardScreen() {
   const [rentalPage, setRentalPage] = useState(1);
   const pageSize = 5;
 
-  const bookings = useCustomerBookings();
+  const owner = useFlow3Identity();
+  const bookings = useQuery({
+    queryKey: ["reservations", owner, "mine"],
+    queryFn: () => api.reservations.mine(),
+  });
   const rentals = useMyRentals("current");
 
-  const allBookings = bookings.data?.pages.flatMap((page) => page.items) ?? [];
+  const allBookings = bookings.data ?? [];
   const allRentals = rentals.data?.pages.flatMap((page) => page.items) ?? [];
 
   const activeRentalsCount = allRentals.filter((r) => r.status === "ACTIVE").length;
@@ -275,17 +282,21 @@ export function CustomerDashboardScreen() {
                     <tr key={b.id}>
                       <td>
                         <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">
-                          {b.bookingCode ?? b.id}
+                          {formatReference(b.id, "BK")}
                         </span>
                       </td>
                       <td>
-                        <div className="font-semibold text-slate-900">{b.facility.name}</div>
-                        <div className="text-xs text-slate-500">{b.unitType.name}</div>
+                        <div className="font-semibold text-slate-900">
+                          {b.facility?.name ?? formatReference(b.facilityId, "CS")}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {b.unitType?.name ?? formatReference(b.unitTypeId, "LK")}
+                        </div>
                       </td>
                       <td>
                         <span className="flex items-center gap-1 text-xs text-slate-700">
                           <CalendarDays className="size-3 text-slate-400 shrink-0" />
-                          {formatDateTime(b.checkInSlotStart)}
+                          {formatDateTime(b.rentalStartAt)}
                         </span>
                       </td>
                       <td>
@@ -365,14 +376,14 @@ export function CustomerDashboardScreen() {
                   {pagedRentals.map((r) => (
                     <tr key={r.id}>
                       <td>
-                        {r.physicalUnit?.code ? (
+                        {r.storageUnit?.code ? (
                           <span className="font-mono text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
                             {D.unitPrefix}
-                            {r.physicalUnit.code}
+                            {r.storageUnit.code}
                           </span>
                         ) : (
                           <span className="font-mono text-xs font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
-                            {r.bookingCode}
+                            {formatReference(r.bookingCode, "BK")}
                           </span>
                         )}
                       </td>
@@ -388,7 +399,7 @@ export function CustomerDashboardScreen() {
                       </td>
                       <td>
                         <span className="text-xs font-medium text-slate-700">
-                          {formatDate(r.expectedEndAt)}
+                          {formatDate(r.endAt)}
                         </span>
                       </td>
                       <td>

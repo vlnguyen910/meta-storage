@@ -1,6 +1,8 @@
 import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
 import {
   ActivityIndicator,
+  BackHandler,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -8,7 +10,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { ScreenFrame } from "../../components/ui/screen-frame";
 import { AUTH_MESSAGES } from "./auth.messages";
 import { ForgotPasswordView } from "./forgot-password-view";
 import { LoginView } from "./login-view";
@@ -16,8 +18,23 @@ import { RegisterView } from "./register-view";
 import { useAuthFlow } from "./use-auth-flow";
 import { VerifyEmailView } from "./verify-email-view";
 
-export function AuthScreen() {
-  const auth = useAuthFlow();
+export function AuthScreen({ onBack, callbackUrl }: { onBack?: () => void; callbackUrl?: string }) {
+  const auth = useAuthFlow(callbackUrl);
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    const handler = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (auth.mode !== "login") {
+        auth.setMode("login");
+        return true;
+      }
+      if (onBack) {
+        onBack();
+        return true;
+      }
+      return false;
+    });
+    return () => handler.remove();
+  }, [auth.mode, auth.setMode, onBack]);
 
   if (auth.isSessionPending) {
     return (
@@ -33,7 +50,7 @@ export function AuthScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-[#f8faf9]" edges={["top", "left", "right"]}>
+    <ScreenFrame>
       <StatusBar style="dark" />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -56,7 +73,7 @@ export function AuthScreen() {
               </Pressable>
 
               <View className="flex-row items-center gap-1">
-                <Text className="text-lg font-black text-[#125345]">storeX</Text>
+                <Text className="text-lg font-black text-[#125345]">{AUTH_MESSAGES.brandName}</Text>
                 <Text className="text-sm font-bold text-emerald-400">●</Text>
               </View>
 
@@ -76,18 +93,18 @@ export function AuthScreen() {
                 className="flex-row items-center gap-1 py-1.5 pr-2 active:opacity-70"
                 onPress={() => {
                   // Switch to register or back
-                  auth.setMode("register");
+                  onBack?.();
                 }}
               >
                 <Text className="text-base text-slate-800">←</Text>
-                <Text className="text-xs font-semibold text-slate-800">Trở lại</Text>
+                <Text className="text-xs font-semibold text-slate-800">{AUTH_MESSAGES.back}</Text>
               </Pressable>
 
               <View className="flex-row items-center gap-1.5">
                 <View className="h-6 w-6 items-center justify-center rounded bg-[#125345]">
                   <Text className="text-xs font-black text-white">◫</Text>
                 </View>
-                <Text className="text-lg font-black text-[#125345]">storeX</Text>
+                <Text className="text-lg font-black text-[#125345]">{AUTH_MESSAGES.brandName}</Text>
               </View>
 
               <Pressable
@@ -113,7 +130,7 @@ export function AuthScreen() {
                 <View className="h-6 w-6 items-center justify-center rounded bg-[#125345]">
                   <Text className="text-xs font-black text-white">◫</Text>
                 </View>
-                <Text className="text-lg font-black text-[#125345]">storeX</Text>
+                <Text className="text-lg font-black text-[#125345]">{AUTH_MESSAGES.brandName}</Text>
               </View>
 
               <Pressable
@@ -184,11 +201,11 @@ export function AuthScreen() {
             ) : auth.mode === "forgot-password" ? (
               <ForgotPasswordView auth={auth} />
             ) : (
-              <LoginView auth={auth} />
+              <LoginView auth={auth} onBrowse={onBack} />
             )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </ScreenFrame>
   );
 }

@@ -1,5 +1,5 @@
 "use client";
-import { UserRole } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import {
   ArrowRight,
   BadgeCheck,
@@ -63,20 +63,21 @@ function CheckInFlowScreen() {
   const returnTo =
     user?.role === UserRole.FACILITY_STAFF
       ? facilityStaffRoutes.tasks
-      : `${root}/tasks?view=bookings`;
+      : `${root}/tasks?view=appointments`;
   const [lookupType, setLookupType] = useState<"BOOKING_CODE" | "QR_TOKEN">("BOOKING_CODE");
   const [input, setInput] = useState("");
   const result = flow.result;
-  const reasons = result?.eligibility.reasons ?? [];
-  const verified =
-    result?.verification?.staffId === user?.id &&
-    ["VERIFIED", "CONSUMED"].includes(result?.verification?.status ?? "");
+  const reasons = result?.checkInReadiness.reasons ?? [];
+  const inspectionStarted = Boolean(flow.current);
   const wantsInspection = ["inspect", "review", "handover"].includes(flow.view);
-  const locked = flow.current?.status === "COMPLETED";
-  const inspectionView = locked ? "handover" : flow.view === "handover" ? "review" : flow.view;
-  const active = wantsInspection && verified ? (locked ? 3 : 2) : 1;
-  const title =
-    active === 3
+  const locked = flow.current?.status === "PASSED" || flow.current?.status === "FAILED";
+  const passed = flow.current?.status === "PASSED";
+  const inspectionView = passed ? "handover" : flow.view === "handover" ? "review" : flow.view;
+  const active = wantsInspection && inspectionStarted ? (passed ? 3 : 2) : 1;
+  const completedHandover = wantsInspection && passed && result?.booking.status === "CHECKED_IN";
+  const title = completedHandover
+    ? FLOW.handoverResultTitle
+    : active === 3
       ? FLOW.handoverTitle
       : active === 2
         ? inspectionView === "review"
@@ -156,7 +157,7 @@ function CheckInFlowScreen() {
                     {formatDateTime(result.booking.checkInSlotEnd)}
                   </DataPair>
                   <DataPair label={FLOW.deadline}>
-                    {formatDateTime(result.booking.graceEndsAt)}
+                    {formatDateTime(result.booking.checkInDeadlineAt)}
                   </DataPair>
                   <DataPair label={FLOW.rentalEnd}>
                     {formatDateTime(result.booking.rentalEndAt)}
@@ -223,16 +224,20 @@ function CheckInFlowScreen() {
   return (
     <>
       <FlowHeading title={title} />
-      <Steps
-        active={active}
-        completed={[
-          ...(result?.assignedUnit ? [0] : []),
-          ...(verified ? [1] : []),
-          ...(locked ? [2] : []),
-          ...(flow.current?.handedOverAt ? [3] : []),
-        ]}
-      />
-      <FlowHelp />
+      {!completedHandover && (
+        <>
+          <Steps
+            active={active}
+            completed={[
+              ...(result?.assignedUnit ? [0] : []),
+              ...(inspectionStarted ? [1] : []),
+              ...(locked ? [2] : []),
+              ...(result?.booking.status === "CHECKED_IN" ? [3] : []),
+            ]}
+          />
+          <FlowHelp />
+        </>
+      )}
       {!wantsInspection && (
         <Panel>
           <form
@@ -293,7 +298,7 @@ function CheckInFlowScreen() {
           <h2 className={`${titleClass} mt-5 text-xl`}>{FLOW.emptyTitle}</h2>
           <p className="mt-2 text-sm text-[#707975]">{FLOW.emptyHint}</p>
         </Panel>
-      ) : wantsInspection && verified ? (
+      ) : wantsInspection && inspectionStarted ? (
         flow.history.isLoading ? (
           <LoadingState label={FLOW.loading} variant="table" />
         ) : flow.history.isError && !flow.history.data ? (
@@ -341,13 +346,13 @@ function CheckInFlowScreen() {
               },
               {
                 label: FLOW.receptionStatus,
-                value: verified
-                  ? FLOW.verified
-                  : result.eligibility.canProceed
+                value: inspectionStarted
+                  ? FLOW.inspecting
+                  : result.checkInReadiness.canProceed
                     ? FLOW.eligible
                     : FLOW.notEligible,
                 tone:
-                  verified || result.eligibility.canProceed
+                  inspectionStarted || result.checkInReadiness.canProceed
                     ? ("green" as const)
                     : ("amber" as const),
                 icon: User,
@@ -465,7 +470,7 @@ function CheckInFlowScreen() {
                   {[
                     { label: FLOW.slotStart, value: result.booking.checkInSlotStart },
                     { label: FLOW.slotEnd, value: result.booking.checkInSlotEnd },
-                    { label: FLOW.deadline, value: result.booking.graceEndsAt },
+                    { label: FLOW.deadline, value: result.booking.checkInDeadlineAt },
                   ].map(({ label, value }) => (
                     <div key={label}>
                       <strong>{formatDateTime(value)}</strong>
@@ -489,7 +494,7 @@ function CheckInFlowScreen() {
               </ul>
             </Panel>
           )}
-          {verified && flow.history.isError && (
+          {inspectionStarted && flow.history.isError && (
             <ErrorState message={FLOW.loadHistoryError} onRetry={() => flow.history.refetch()} />
           )}
           <Panel className="flex flex-wrap justify-between gap-3">
@@ -500,13 +505,13 @@ function CheckInFlowScreen() {
               disabled={
                 result.booking.status === "CHECKED_IN"
                   ? !flow.current
-                  : !verified && !result.eligibility.canProceed
+                  : !inspectionStarted && !result.checkInReadiness.canProceed
               }
               loading={flow.verify.isPending}
               onClick={proceed}
               icon={<ArrowRight size={18} />}
             >
-              {verified ? FLOW.continueInspect : FLOW.verifyProceed}
+              {inspectionStarted ? FLOW.continueInspect : FLOW.verifyProceed}
             </Button>
           </Panel>
         </>

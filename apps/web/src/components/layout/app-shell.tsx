@@ -1,6 +1,6 @@
 "use client";
 
-import { UserRole } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { APP_NAME } from "@metastorage/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { LogOut, Menu, RotateCcw, Warehouse, X } from "lucide-react";

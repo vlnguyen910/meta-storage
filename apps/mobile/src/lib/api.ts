@@ -1,9 +1,10 @@
 import { createHttpClient, createMetastorageApiClient } from "@metastorage/api-client";
 import { Platform } from "react-native";
 import { authClient } from "./auth-client";
+import { API_BASE_URL } from "./runtime-config";
 
 const http = createHttpClient({
-  baseURL: process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api",
+  baseURL: API_BASE_URL,
   tokenProvider: {
     getAccessToken: () => null,
     getRefreshToken: () => null,

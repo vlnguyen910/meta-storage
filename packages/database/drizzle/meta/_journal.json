@@ -57,6 +57,90 @@
       "when": 1793153563908,
       "tag": "0007_next_blue_blade",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793177329722,
+      "tag": "0008_nostalgic_blacklash",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793216715697,
+      "tag": "0009_perfect_cannonball",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793229847997,
+      "tag": "0010_skinny_yellowjacket",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793235361408,
+      "tag": "0011_real_iron_lad",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793237139385,
+      "tag": "0012_thin_gateway",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793242914389,
+      "tag": "0013_nostalgic_raza",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793265534856,
+      "tag": "0014_mushy_the_executioner",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1793288073100,
+      "tag": "0015_amused_miracleman",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793288518531,
+      "tag": "0016_open_unicorn",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793311216517,
+      "tag": "0017_nostalgic_network",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793311925458,
+      "tag": "0018_lowly_human_torch",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793343032742,
+      "tag": "0019_remarkable_songbird",
+      "breakpoints": true
     }
   ]
 }

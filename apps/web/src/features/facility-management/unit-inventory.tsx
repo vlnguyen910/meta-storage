@@ -9,6 +9,7 @@ import {
   StorageUnitMaintenanceTransitionSchema,
   StorageUnitStatus,
 } from "@metastorage/contracts";
+import { formatReference } from "@metastorage/shared";
 import { Boxes, Eye, Pencil, Plus, RefreshCw, Search, Wrench } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -583,7 +584,7 @@ function UnitEditor({
           <Select {...form.register("unitTypeId")}>
             <option value="">{F5.choose}</option>
             {unit && !types.data?.some((item) => item.id === unit.unitTypeId) && (
-              <option value={unit.unitTypeId}>{unit.unitTypeId}</option>
+              <option value={unit.unitTypeId}>{formatReference(unit.unitTypeId, "LK")}</option>
             )}
             {types.data?.map((item) => (
               <option key={item.id} value={item.id}>

@@ -8,6 +8,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./schema": "./src/schema/index.ts",
+    "./schema/user-enums": "./src/schema/user-enums.ts",
+    "./schema/reservations": "./src/schema/reservations.ts",
+    "./schema/appointments": "./src/schema/appointments.ts",
     "./client": "./src/client.ts",
     "./env": "./src/env.ts",
     "./seed": "./src/seed.ts"

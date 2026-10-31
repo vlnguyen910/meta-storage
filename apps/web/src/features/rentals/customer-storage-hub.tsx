@@ -1,14 +1,14 @@
 "use client";
+import { formatReference } from "@metastorage/shared";
 
+import { useQuery } from "@tanstack/react-query";
 import {
-  AlertCircle,
   Archive,
   CalendarCheck2,
   CalendarDays,
   Check,
   CheckCircle2,
   ChevronRight,
-  Clock,
   Plus,
   QrCode,
   RotateCcw,
@@ -27,9 +27,11 @@ import { ListPagination } from "@/components/ui/list-pagination";
 import { ShadcnButton } from "@/components/ui/shadcn-button";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { customerRoutes } from "@/config/routes";
-import { useCustomerBookings } from "@/features/bookings/customer-bookings.hooks";
-import { useMyRentals } from "@/features/rentals/hooks";
+import { useAllMyRentals, useMyRentals } from "@/features/rentals/hooks";
+import { useFlow3Identity } from "@/features/returns/use-flow3-identity";
+import { api } from "@/lib/api";
 import { formatDate, formatDateTime } from "@/lib/format";
+import { CustomerAppointmentsView } from "./customer-appointments-view";
 import { CUSTOMER_STORAGE_HUB_MESSAGES as M } from "./customer-storage-hub.messages";
 import type {
   CustomerStorageHubProps,
@@ -42,10 +44,12 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
   const activeTab: StorageHubTab =
-    tabParam === "reservations" || tabParam === "rentals" ? tabParam : defaultTab;
+    tabParam === "reservations" || tabParam === "appointments" || tabParam === "rentals"
+      ? tabParam
+      : defaultTab;
 
   // Rental state
-  const [rentalView, setRentalView] = useState<StorageRentalView>("current");
+  const [rentalView, setRentalView] = useState<StorageRentalView>("all");
   const [rentalSearch, setRentalSearch] = useState("");
   const [rentalSearchInput, setRentalSearchInput] = useState("");
   const [rentalPage, setRentalPage] = useState(1);
@@ -59,11 +63,28 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
   const bookingPageSize = 8;
 
   // Data queries
-  const rentalsQuery = useMyRentals(rentalView);
-  const bookingsQuery = useCustomerBookings();
+  const currentRentalsQuery = useMyRentals("current", rentalView === "current");
+  const historyRentalsQuery = useMyRentals("history", rentalView === "history");
+  const allRentalsQuery = useAllMyRentals(rentalView === "all");
+  const owner = useFlow3Identity();
+  const bookingsQuery = useQuery({
+    queryKey: ["reservations", owner, "mine"],
+    queryFn: () => api.reservations.mine(),
+  });
 
-  const allRentals = rentalsQuery.data?.pages.flatMap((page) => page.items) ?? [];
-  const allBookings = bookingsQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const allRentals =
+    rentalView === "all"
+      ? (allRentalsQuery.data ?? [])
+      : rentalView === "history"
+        ? (historyRentalsQuery.data?.pages.flatMap((page) => page.items) ?? [])
+        : (currentRentalsQuery.data?.pages.flatMap((page) => page.items) ?? []);
+  const rentalsQuery =
+    rentalView === "all"
+      ? allRentalsQuery
+      : rentalView === "history"
+        ? historyRentalsQuery
+        : currentRentalsQuery;
+  const allBookings = bookingsQuery.data ?? [];
 
   // Filter rentals
   const filteredRentals = useMemo(() => {
@@ -72,7 +93,8 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
     return allRentals.filter(
       (r) =>
         r.bookingCode.toLowerCase().includes(query) ||
-        r.physicalUnit?.code?.toLowerCase().includes(query) ||
+        formatReference(r.bookingCode, "BK").toLowerCase().includes(query) ||
+        r.storageUnit?.code?.toLowerCase().includes(query) ||
         r.unitType.name.toLowerCase().includes(query) ||
         r.facility.name.toLowerCase().includes(query) ||
         r.facility.address.toLowerCase().includes(query),
@@ -87,9 +109,10 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
       if (!bookingSearch) return true;
       const query = bookingSearch.toLowerCase();
       return (
-        (b.bookingCode ?? b.id).toLowerCase().includes(query) ||
-        b.facility.name.toLowerCase().includes(query) ||
-        b.unitType.name.toLowerCase().includes(query)
+        b.id.toLowerCase().includes(query) ||
+        formatReference(b.id, "BK").toLowerCase().includes(query) ||
+        (b.facility?.name ?? b.facilityId).toLowerCase().includes(query) ||
+        (b.unitType?.name ?? b.unitTypeId).toLowerCase().includes(query)
       );
     });
   }, [allBookings, bookingSearch, bookingStatus]);
@@ -174,6 +197,20 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
 
         <button
           type="button"
+          onClick={() => switchTab("appointments")}
+          aria-current={activeTab === "appointments" ? "page" : undefined}
+          className={`flex items-center gap-2 border-b-2 px-4 py-2 text-xs font-bold transition-colors cursor-pointer ${
+            activeTab === "appointments"
+              ? "border-primary text-primary"
+              : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800"
+          }`}
+        >
+          <CalendarDays className="size-3.5" aria-hidden="true" />
+          <span>{M.tabAppointments}</span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => {
             switchTab("reservations");
             setBookingPage(1);
@@ -247,6 +284,7 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
               triggerClassName="h-9 min-h-9 text-xs bg-white border-line"
               placeholder={M.rentalViewFilter}
               options={[
+                { value: "all", label: M.rentalViewAll },
                 { value: "current", label: M.rentalViewCurrent },
                 { value: "history", label: M.rentalViewHistory },
               ]}
@@ -279,12 +317,20 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
               <section className="text-center py-8 rounded-card border border-line bg-white shadow-card flex-1 flex flex-col items-center justify-center p-6">
                 <Warehouse className="mx-auto size-10 text-slate-400" />
                 <h3 className="mt-2 text-sm font-semibold text-slate-800">
-                  {rentalView === "current" ? M.emptyRentalsCurrent : M.emptyRentalsHistory}
+                  {rentalView === "current"
+                    ? M.emptyRentalsCurrent
+                    : rentalView === "history"
+                      ? M.emptyRentalsHistory
+                      : M.emptyRentalsAll}
                 </h3>
                 <p className="mt-1 text-xs text-slate-500 max-w-sm">
-                  {rentalView === "current" ? M.emptyRentalsDescCurrent : M.emptyRentalsDescHistory}
+                  {rentalView === "current"
+                    ? M.emptyRentalsDescCurrent
+                    : rentalView === "history"
+                      ? M.emptyRentalsDescHistory
+                      : M.emptyRentalsDescAll}
                 </p>
-                {rentalView === "current" && (
+                {rentalView !== "history" && (
                   <Link
                     href={customerRoutes.facilities}
                     className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-primary-dark"
@@ -302,12 +348,12 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
                       <td>
                         <div className="flex flex-col gap-0.5">
                           <span className="font-mono text-xs font-bold text-slate-800">
-                            {r.bookingCode}
+                            {formatReference(r.bookingCode, "BK")}
                           </span>
-                          {r.physicalUnit?.code && (
+                          {r.storageUnit?.code && (
                             <span className="font-mono text-[11px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.2 rounded w-fit border border-emerald-200">
                               {M.unitPrefix}
-                              {r.physicalUnit.code}
+                              {r.storageUnit.code}
                             </span>
                           )}
                         </div>
@@ -324,8 +370,13 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
                       </td>
                       <td>
                         <span className="text-xs text-slate-700 font-medium">
-                          {formatDate(r.startAt)} – {formatDate(r.expectedEndAt)}
+                          {formatDate(r.startAt)} – {formatDate(r.endAt)}
                         </span>
+                        {r.closedAt && (
+                          <span className="mt-1 block text-xs font-medium text-emerald-800">
+                            {M.actualReturnDate}: {formatDate(r.closedAt)}
+                          </span>
+                        )}
                       </td>
                       <td>
                         <span
@@ -336,10 +387,6 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
                         >
                           {r.status === "ACTIVE" ? (
                             <CheckCircle2 className="size-3" />
-                          ) : r.status === "RETURN_PENDING" ? (
-                            <Clock className="size-3" />
-                          ) : r.status === "OVERDUE" ? (
-                            <AlertCircle className="size-3" />
                           ) : (
                             <Check className="size-3" />
                           )}
@@ -348,22 +395,6 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
                       </td>
                       <td>
                         <div className="flex items-center gap-1.5">
-                          {r.status === "ACTIVE" && (
-                            <Link
-                              href={customerRoutes.newReturn(r.id)}
-                              className="inline-flex items-center px-2 py-1 text-xs font-semibold text-slate-700 hover:text-slate-900 border border-slate-200 rounded hover:bg-slate-50 transition-colors"
-                            >
-                              {M.returnAction}
-                            </Link>
-                          )}
-                          {r.status === "RETURN_PENDING" && (
-                            <Link
-                              href={customerRoutes.rental(r.id)}
-                              className="inline-flex items-center px-2 py-1 text-xs font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded transition-colors"
-                            >
-                              {M.viewReturnAction}
-                            </Link>
-                          )}
                           <Link
                             href={customerRoutes.rental(r.id)}
                             className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary-soft rounded transition-colors"
@@ -497,17 +528,21 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
                     <tr key={b.id}>
                       <td>
                         <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">
-                          {b.bookingCode ?? b.id}
+                          {formatReference(b.id, "BK")}
                         </span>
                       </td>
                       <td>
-                        <div className="font-semibold text-slate-900">{b.facility.name}</div>
-                        <div className="text-xs text-slate-500">{b.unitType.name}</div>
+                        <div className="font-semibold text-slate-900">
+                          {b.facility?.name ?? formatReference(b.facilityId, "CS")}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {b.unitType?.name ?? formatReference(b.unitTypeId, "LK")}
+                        </div>
                       </td>
                       <td>
                         <span className="flex items-center gap-1 text-xs text-slate-700">
                           <CalendarDays className="size-3 text-slate-400 shrink-0" />
-                          {formatDateTime(b.checkInSlotStart)}
+                          {formatDateTime(b.rentalStartAt)}
                         </span>
                       </td>
                       <td>
@@ -560,6 +595,12 @@ function StorageHubContent({ defaultTab = "rentals" }: Readonly<CustomerStorageH
               </>
             )}
           </div>
+        </div>
+      )}
+
+      {activeTab === "appointments" && (
+        <div className="min-h-0 flex-1 overflow-y-auto pb-2">
+          <CustomerAppointmentsView />
         </div>
       )}
     </div>

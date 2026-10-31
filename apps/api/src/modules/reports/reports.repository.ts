@@ -9,14 +9,19 @@ import {
   eq,
   facilities,
   gt,
+  gte,
   inArray,
+  inspections,
   isNull,
-  lte,
+  notExists,
   or,
   payments,
-  rentalChargeRefunds,
-  rentalCharges,
+  policyViolationFees,
+  type RentalStatus,
+  ReservationStatus,
   rentals,
+  reservations,
+  returnSettlements,
   type SQL,
   sql,
   storageUnits,
@@ -32,16 +37,38 @@ const amount = (condition: SQL, value: SQL) =>
 const quantity = (condition: SQL) =>
   sql<number>`count(case when ${condition} then 1 end)`.mapWith(Number);
 
+const paymentFacilityId = sql<
+  string | null
+>`coalesce(${bookings.facilityId}, ${reservations.facilityId}, (select unit.facility_id from rentals rental join storage_units unit on unit.id = rental.storage_unit_id where rental.id = ${payments.rentalId}))`;
+const paymentUnitTypeId = sql<
+  string | null
+>`coalesce(${bookings.unitTypeId}, ${reservations.unitTypeId}, (select unit.unit_type_id from rentals rental join storage_units unit on unit.id = rental.storage_unit_id where rental.id = ${payments.rentalId}))`;
+const rentalSnapshot = sql`coalesce(${bookings.rentalFeeAmount}, ${reservations.rentalFeeAmount})`;
+const depositSnapshot = sql`coalesce(${bookings.depositAmount}, ${reservations.depositAmount})`;
+
 function financialRules(asOf: Date) {
   const vn = sql`${payments.currency} = 'VND'`;
-  const captured = sql`${payments.paidAt} is not null and ${payments.paidAt} <= ${asOf.toISOString()}`;
-  const known = sql`${bookings.rentalFeeAmount} >= 0 and ${bookings.depositAmount} >= 0 and ${payments.totalAmount} = ${bookings.rentalFeeAmount} + ${bookings.depositAmount} and ${payments.depositForfeitedAmount} <= ${bookings.depositAmount}`;
-  const refund = sql`coalesce(${payments.refundAmount}, ${payments.totalAmount})`;
+  const captured = sql`${payments.type} = 'CHARGE' and ${payments.paidAt} is not null and ${payments.paidAt} <= ${asOf.toISOString()}`;
+  const cashCaptured = sql`(${captured} or (${payments.type} = 'DEBT_COLLECTION' and ${payments.status} = 'SUCCEEDED' and ${payments.paidAt} <= ${asOf.toISOString()}))`;
+  const known = sql`${rentalSnapshot} >= 0 and ${depositSnapshot} >= 0 and ${payments.totalAmount} = ${rentalSnapshot} + ${depositSnapshot} and ${payments.depositForfeitedAmount} <= ${depositSnapshot}`;
+  const refund = sql`case when ${payments.type} = 'DEPOSIT_REFUND' then ${payments.totalAmount} else coalesce(${payments.refundAmount}, ${payments.totalAmount}) end`;
   const settledRefund = sql`${payments.status} = 'REFUNDED' and ${payments.refundedAt} is not null and ${payments.refundedAt} <= ${asOf.toISOString()}`;
-  const knownRefund = sql`${settledRefund} and (${refund} = ${payments.totalAmount} or (${refund} = ${bookings.rentalFeeAmount} and ${payments.depositForfeitedAmount} = ${bookings.depositAmount}))`;
+  const knownRefund = sql`${settledRefund} and (${refund} = ${payments.totalAmount} or (${refund} = ${rentalSnapshot} and ${payments.depositForfeitedAmount} = ${depositSnapshot}))`;
+  const notReturned = notExists(
+    sql`(select 1 from ${rentals} where ${rentals.status} = 'CLOSED' and ((${rentals.bookingId} is not null and ${rentals.bookingId} = ${payments.bookingId}) or (${rentals.reservationId} is not null and ${rentals.reservationId} = ${payments.reservationId})))`,
+  );
   const legacyHeldKnown = sql`coalesce((${known} and (${payments.status} = 'SUCCEEDED' or ((${payments.status} = 'REFUND_PENDING' or (${knownRefund})) and ${refund} + ${payments.depositForfeitedAmount} <= ${payments.totalAmount}))), false)`;
   const knownSnapshot = sql`coalesce((${known}), false)`;
-  return { vn, captured, refund, settledRefund, heldKnown: legacyHeldKnown, knownSnapshot };
+  return {
+    vn,
+    captured,
+    cashCaptured,
+    refund,
+    settledRefund,
+    heldKnown: legacyHeldKnown,
+    knownSnapshot,
+    notReturned,
+  };
 }
 
 export class ReportsRepository {
@@ -79,185 +106,153 @@ export class ReportsRepository {
     start: Date,
     end: Date,
     asOf: Date,
-    includeFinancial = true,
+    metrics: "all" | "financial" | "inventory" = "all",
   ) {
     return this.db.transaction(
       async (tx) => {
         const scoped = await this.scope(tx, actor, filter);
-        const { vn, captured, refund, settledRefund, heldKnown, knownSnapshot } =
-          financialRules(asOf);
-        const inPeriod = sql`${captured} and ${payments.paidAt} >= ${start.toISOString()} and ${payments.paidAt} < ${end.toISOString()}`;
+        const {
+          vn,
+          captured,
+          cashCaptured,
+          refund,
+          settledRefund,
+          heldKnown,
+          knownSnapshot,
+          notReturned,
+        } = financialRules(asOf);
+        const inPeriod = sql`${cashCaptured} and ${payments.paidAt} >= ${start.toISOString()} and ${payments.paidAt} < ${end.toISOString()}`;
         const refundInPeriod = sql`${settledRefund} and ${payments.refundedAt} >= ${start.toISOString()} and ${payments.refundedAt} < ${end.toISOString()}`;
         const scopedPayment = and(
-          isNull(payments.rentalChargeId),
           or(
-            inArray(bookings.facilityId, scoped.ids),
-            scoped.includeUnattributed ? isNull(payments.bookingId) : undefined,
+            inArray(paymentFacilityId, scoped.ids),
+            scoped.includeUnattributed ? isNull(paymentFacilityId) : undefined,
           ),
         );
-        const financial = includeFinancial
-          ? await tx
-              .select({
-                facilityId: bookings.facilityId,
-                cashReceived: amount(sql`${vn} and ${inPeriod}`, sql`${payments.totalAmount}`),
-                rentalCollected: amount(
-                  sql`${vn} and ${inPeriod} and ${knownSnapshot}`,
-                  sql`${bookings.rentalFeeAmount}`,
-                ),
-                depositCollected: amount(
-                  sql`${vn} and ${inPeriod} and ${knownSnapshot}`,
-                  sql`${bookings.depositAmount}`,
-                ),
-                cashRefunded: amount(sql`${vn} and ${refundInPeriod}`, refund),
-                depositHeld: amount(
-                  sql`${vn} and ${captured} and ${heldKnown} and ${payments.status} <> 'REFUNDED'`,
-                  sql`${bookings.depositAmount} - ${payments.depositForfeitedAmount}`,
-                ),
-                depositForfeited: amount(
-                  sql`${vn} and ${captured}`,
-                  sql`${payments.depositForfeitedAmount}`,
-                ),
-                pendingRefundAmount: amount(
-                  sql`${vn} and ${payments.status} = 'REFUND_PENDING'`,
-                  refund,
-                ),
-                pendingRefundCount: quantity(sql`${vn} and ${payments.status} = 'REFUND_PENDING'`),
-                paymentsReceivedCount: quantity(sql`${vn} and ${inPeriod}`),
-                unclassifiedCollectedPayments: quantity(
-                  sql`${vn} and ${inPeriod} and not ${knownSnapshot}`,
-                ),
-                unclassifiedDepositPayments: quantity(
-                  sql`${vn} and ${captured} and not ${heldKnown}`,
-                ),
-                unsupportedCurrencyPayments: quantity(sql`not (${vn}) and ${captured}`),
-              })
-              .from(payments)
-              .leftJoin(bookings, eq(bookings.id, payments.bookingId))
-              .where(
-                and(
-                  scopedPayment,
-                  filter.unitTypeId ? eq(bookings.unitTypeId, filter.unitTypeId) : undefined,
-                ),
-              )
-              .groupBy(bookings.facilityId)
-          : [];
-        const chargePayments = includeFinancial
-          ? await tx
-              .select({
-                facilityId: rentals.facilityId,
-                renewalCollected: amount(
-                  sql`${payments.currency} = 'VND' and ${rentalCharges.source} = 'RENEWAL' and ${payments.paidAt} >= ${start.toISOString()} and ${payments.paidAt} < ${end.toISOString()}`,
-                  sql`${payments.totalAmount}`,
-                ),
-                extraChargeCollected: amount(
-                  sql`${payments.currency} = 'VND' and ${rentalCharges.source} = 'EXTRA' and ${payments.paidAt} >= ${start.toISOString()} and ${payments.paidAt} < ${end.toISOString()}`,
-                  sql`${payments.totalAmount}`,
-                ),
-                returnDebtCollected: amount(
-                  sql`${payments.currency} = 'VND' and ${rentalCharges.source} = 'RETURN_DEBT' and ${payments.paidAt} >= ${start.toISOString()} and ${payments.paidAt} < ${end.toISOString()}`,
-                  sql`${payments.totalAmount}`,
-                ),
-                cashReceived: amount(
-                  sql`${payments.currency} = 'VND' and ${payments.paidAt} >= ${start.toISOString()} and ${payments.paidAt} < ${end.toISOString()}`,
-                  sql`${payments.totalAmount}`,
-                ),
-                paymentsReceivedCount: quantity(
-                  sql`${payments.currency} = 'VND' and ${payments.paidAt} >= ${start.toISOString()} and ${payments.paidAt} < ${end.toISOString()}`,
-                ),
-                unsupportedCurrencyPayments: quantity(sql`${payments.currency} <> 'VND'`),
-              })
-              .from(payments)
-              .innerJoin(rentalCharges, eq(rentalCharges.id, payments.rentalChargeId))
-              .innerJoin(rentals, eq(rentals.id, rentalCharges.rentalId))
-              .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
-              .where(
-                and(
-                  inArray(rentals.facilityId, scoped.ids),
-                  sql`${payments.status} in ('SUCCEEDED','REFUND_PENDING','REFUNDED') and ${payments.paidAt} is not null and ${payments.paidAt} <= ${asOf.toISOString()}`,
-                  filter.unitTypeId ? eq(bookings.unitTypeId, filter.unitTypeId) : undefined,
-                ),
-              )
-              .groupBy(rentals.facilityId)
-          : [];
-        const chargeRefunds = includeFinancial
-          ? await tx
-              .select({
-                facilityId: rentals.facilityId,
-                chargeRefunded: amount(
-                  sql`${rentalChargeRefunds.status} = 'CONFIRMED' and ${rentalChargeRefunds.confirmedAt} >= ${start.toISOString()} and ${rentalChargeRefunds.confirmedAt} < ${end.toISOString()} and ${rentalChargeRefunds.confirmedAt} <= ${asOf.toISOString()}`,
-                  sql`${rentalChargeRefunds.amount}`,
-                ),
-                pendingChargeRefundAmount: amount(
-                  eq(rentalChargeRefunds.status, "PENDING"),
-                  sql`${rentalChargeRefunds.amount}`,
-                ),
-                pendingChargeRefundCount: quantity(eq(rentalChargeRefunds.status, "PENDING")),
-              })
-              .from(rentalChargeRefunds)
-              .innerJoin(rentalCharges, eq(rentalCharges.id, rentalChargeRefunds.chargeId))
-              .innerJoin(rentals, eq(rentals.id, rentalCharges.rentalId))
-              .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
-              .where(
-                and(
-                  inArray(rentals.facilityId, scoped.ids),
-                  filter.unitTypeId ? eq(bookings.unitTypeId, filter.unitTypeId) : undefined,
-                  or(
-                    and(
-                      eq(rentalChargeRefunds.status, "PENDING"),
-                      lte(rentalChargeRefunds.createdAt, asOf),
-                    ),
-                    and(
-                      eq(rentalChargeRefunds.status, "CONFIRMED"),
-                      lte(rentalChargeRefunds.confirmedAt, asOf),
-                    ),
+        const financial =
+          metrics !== "inventory"
+            ? await tx
+                .select({
+                  facilityId: paymentFacilityId,
+                  cashReceived: amount(sql`${vn} and ${inPeriod}`, sql`${payments.totalAmount}`),
+                  rentalCollected: amount(
+                    sql`${vn} and ${inPeriod} and ${knownSnapshot}`,
+                    sql`${rentalSnapshot}`,
                   ),
-                ),
-              )
-              .groupBy(rentals.facilityId)
-          : [];
-        const inventory = await tx
-          .select({
-            facilityId: storageUnits.facilityId,
-            status: storageUnits.status,
-            count: count(),
-          })
-          .from(storageUnits)
-          .where(
-            and(
-              inArray(storageUnits.facilityId, scoped.ids),
-              filter.unitTypeId ? eq(storageUnits.unitTypeId, filter.unitTypeId) : undefined,
-            ),
-          )
-          .groupBy(storageUnits.facilityId, storageUnits.status);
-        const holds = await tx
-          .select({ facilityId: capacityAllocations.facilityId, count: count() })
-          .from(capacityAllocations)
-          .where(
-            and(
-              inArray(capacityAllocations.facilityId, scoped.ids),
-              eq(capacityAllocations.kind, "HOLD"),
-              eq(capacityAllocations.status, "ACTIVE"),
-              gt(capacityAllocations.expiresAt, asOf),
-              filter.unitTypeId ? eq(capacityAllocations.unitTypeId, filter.unitTypeId) : undefined,
-            ),
-          )
-          .groupBy(capacityAllocations.facilityId);
-        const awaiting = await tx
-          .select({ facilityId: bookings.facilityId, count: count() })
-          .from(bookings)
-          .where(
-            and(
-              inArray(bookings.facilityId, scoped.ids),
-              eq(bookings.status, "CONFIRMED"),
-              filter.unitTypeId ? eq(bookings.unitTypeId, filter.unitTypeId) : undefined,
-            ),
-          )
-          .groupBy(bookings.facilityId);
+                  depositCollected: amount(
+                    sql`${vn} and ${inPeriod} and ${knownSnapshot}`,
+                    sql`${depositSnapshot}`,
+                  ),
+                  cashRefunded: amount(sql`${vn} and ${refundInPeriod}`, refund),
+                  depositHeld: amount(
+                    sql`${vn} and ${captured} and ${heldKnown} and ${notReturned} and ${payments.status} <> 'REFUNDED'`,
+                    sql`${depositSnapshot} - ${payments.depositForfeitedAmount}`,
+                  ),
+                  depositForfeited: amount(
+                    sql`${vn} and ${captured}`,
+                    sql`${payments.depositForfeitedAmount}`,
+                  ),
+                  pendingRefundAmount: amount(
+                    sql`${vn} and ${payments.status} = 'REFUND_PENDING'`,
+                    refund,
+                  ),
+                  pendingRefundCount: quantity(
+                    sql`${vn} and ${payments.status} = 'REFUND_PENDING'`,
+                  ),
+                  paymentsReceivedCount: quantity(sql`${vn} and ${inPeriod}`),
+                  unclassifiedCollectedPayments: quantity(
+                    sql`${vn} and ${inPeriod} and ${payments.type} = 'CHARGE' and not ${knownSnapshot}`,
+                  ),
+                  unclassifiedDepositPayments: quantity(
+                    sql`${vn} and ${captured} and not ${heldKnown} and ${notReturned}`,
+                  ),
+                  unsupportedCurrencyPayments: quantity(sql`not (${vn}) and ${captured}`),
+                })
+                .from(payments)
+                .leftJoin(bookings, eq(bookings.id, payments.bookingId))
+                .leftJoin(reservations, eq(reservations.id, payments.reservationId))
+                .where(
+                  and(
+                    scopedPayment,
+                    filter.unitTypeId ? eq(paymentUnitTypeId, filter.unitTypeId) : undefined,
+                  ),
+                )
+                .groupBy(paymentFacilityId)
+            : [];
+        const returnPenalties =
+          metrics !== "inventory"
+            ? await tx
+                .select({
+                  facilityId: storageUnits.facilityId,
+                  amount: sql<string>`coalesce(sum(coalesce(
+            (select least(${returnSettlements.depositAmount}, ${returnSettlements.deductionAmount}) from ${returnSettlements} where ${returnSettlements.rentalId} = ${rentals.id}),
+            (select sum(${policyViolationFees.amount}) from ${policyViolationFees} join ${inspections} on ${inspections.id} = ${policyViolationFees.referenceId} where ${inspections.rentalId} = ${rentals.id} and ${policyViolationFees.referenceType} = 'INSPECTION' and ${policyViolationFees.isActive} = false), 0)), 0)::text`,
+                })
+                .from(rentals)
+                .innerJoin(storageUnits, eq(storageUnits.id, rentals.storageUnitId))
+                .where(
+                  and(
+                    gte(rentals.closedAt, start),
+                    sql`${rentals.closedAt} < ${end.toISOString()}`,
+                    filter.unitTypeId ? eq(storageUnits.unitTypeId, filter.unitTypeId) : undefined,
+                    inArray(storageUnits.facilityId, scoped.ids),
+                  ),
+                )
+                .groupBy(storageUnits.facilityId)
+            : [];
+        const inventory =
+          metrics !== "financial"
+            ? await tx
+                .select({
+                  facilityId: storageUnits.facilityId,
+                  status: storageUnits.status,
+                  count: count(),
+                })
+                .from(storageUnits)
+                .where(
+                  and(
+                    inArray(storageUnits.facilityId, scoped.ids),
+                    filter.unitTypeId ? eq(storageUnits.unitTypeId, filter.unitTypeId) : undefined,
+                  ),
+                )
+                .groupBy(storageUnits.facilityId, storageUnits.status)
+            : [];
+        const holds =
+          metrics !== "financial"
+            ? await tx
+                .select({ facilityId: capacityAllocations.facilityId, count: count() })
+                .from(capacityAllocations)
+                .where(
+                  and(
+                    inArray(capacityAllocations.facilityId, scoped.ids),
+                    eq(capacityAllocations.kind, "HOLD"),
+                    eq(capacityAllocations.status, "ACTIVE"),
+                    gt(capacityAllocations.expiresAt, asOf),
+                    filter.unitTypeId
+                      ? eq(capacityAllocations.unitTypeId, filter.unitTypeId)
+                      : undefined,
+                  ),
+                )
+                .groupBy(capacityAllocations.facilityId)
+            : [];
+        const awaiting =
+          metrics !== "financial"
+            ? await tx
+                .select({ facilityId: reservations.facilityId, count: count() })
+                .from(reservations)
+                .where(
+                  and(
+                    inArray(reservations.facilityId, scoped.ids),
+                    eq(reservations.status, ReservationStatus.CONFIRMED),
+                    filter.unitTypeId ? eq(reservations.unitTypeId, filter.unitTypeId) : undefined,
+                  ),
+                )
+                .groupBy(reservations.facilityId)
+            : [];
         return {
           facilities: scoped.facilities,
           financial,
-          chargePayments,
-          chargeRefunds,
+          returnPenalties,
           inventory,
           holds,
           awaiting,
@@ -279,12 +274,11 @@ export class ReportsRepository {
         const scoped = await this.scope(tx, actor, filter);
         const rules = financialRules(asOf);
         const predicate = and(
-          isNull(payments.rentalChargeId),
           or(
-            inArray(bookings.facilityId, scoped.ids),
-            scoped.includeUnattributed ? isNull(payments.bookingId) : undefined,
+            inArray(paymentFacilityId, scoped.ids),
+            scoped.includeUnattributed ? isNull(paymentFacilityId) : undefined,
           ),
-          filter.unitTypeId ? eq(bookings.unitTypeId, filter.unitTypeId) : undefined,
+          filter.unitTypeId ? eq(paymentUnitTypeId, filter.unitTypeId) : undefined,
         );
         // Group at the database: only monthly aggregates cross the boundary, not payment rows.
         const receiptMonth = sql<string>`to_char(${payments.paidAt} at time zone 'Asia/Ho_Chi_Minh', 'YYYY-MM')`;
@@ -295,21 +289,24 @@ export class ReportsRepository {
             cashReceived: amount(rules.vn, sql`${payments.totalAmount}`),
             rentalCollected: amount(
               sql`${rules.vn} and ${rules.knownSnapshot}`,
-              sql`${bookings.rentalFeeAmount}`,
+              sql`${rentalSnapshot}`,
             ),
             depositCollected: amount(
               sql`${rules.vn} and ${rules.knownSnapshot}`,
-              sql`${bookings.depositAmount}`,
+              sql`${depositSnapshot}`,
             ),
-            unclassified: quantity(sql`${rules.vn} and not ${rules.knownSnapshot}`),
+            unclassified: quantity(
+              sql`${rules.vn} and ${payments.type} = 'CHARGE' and not ${rules.knownSnapshot}`,
+            ),
             unsupportedCurrencyPayments: quantity(sql`not (${rules.vn})`),
           })
           .from(payments)
           .leftJoin(bookings, eq(bookings.id, payments.bookingId))
+          .leftJoin(reservations, eq(reservations.id, payments.reservationId))
           .where(
             and(
               predicate,
-              rules.captured,
+              rules.cashCaptured,
               sql`${payments.paidAt} >= ${start.toISOString()} and ${payments.paidAt} < ${end.toISOString()}`,
             ),
           )
@@ -321,6 +318,7 @@ export class ReportsRepository {
           })
           .from(payments)
           .leftJoin(bookings, eq(bookings.id, payments.bookingId))
+          .leftJoin(reservations, eq(reservations.id, payments.reservationId))
           .where(
             and(
               predicate,
@@ -329,60 +327,7 @@ export class ReportsRepository {
             ),
           )
           .groupBy(refundMonth);
-        const chargeReceiptMonth = sql<string>`to_char(${payments.paidAt} at time zone 'Asia/Ho_Chi_Minh', 'YYYY-MM')`;
-        const chargeReceipts = await tx
-          .select({
-            month: chargeReceiptMonth,
-            cashReceived: amount(eq(payments.currency, "VND"), sql`${payments.totalAmount}`),
-            renewalCollected: amount(
-              sql`${payments.currency} = 'VND' and ${rentalCharges.source} = 'RENEWAL'`,
-              sql`${payments.totalAmount}`,
-            ),
-            extraChargeCollected: amount(
-              sql`${payments.currency} = 'VND' and ${rentalCharges.source} = 'EXTRA'`,
-              sql`${payments.totalAmount}`,
-            ),
-            returnDebtCollected: amount(
-              sql`${payments.currency} = 'VND' and ${rentalCharges.source} = 'RETURN_DEBT'`,
-              sql`${payments.totalAmount}`,
-            ),
-            unsupportedCurrencyPayments: quantity(sql`${payments.currency} <> 'VND'`),
-          })
-          .from(payments)
-          .innerJoin(rentalCharges, eq(rentalCharges.id, payments.rentalChargeId))
-          .innerJoin(rentals, eq(rentals.id, rentalCharges.rentalId))
-          .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
-          .where(
-            and(
-              inArray(rentals.facilityId, scoped.ids),
-              filter.unitTypeId ? eq(bookings.unitTypeId, filter.unitTypeId) : undefined,
-              inArray(payments.status, ["SUCCEEDED", "REFUND_PENDING", "REFUNDED"]),
-              lte(payments.paidAt, asOf),
-              sql`${payments.paidAt} >= ${start.toISOString()} and ${payments.paidAt} < ${end.toISOString()}`,
-            ),
-          )
-          .groupBy(chargeReceiptMonth);
-        const chargeRefundMonth = sql<string>`to_char(${rentalChargeRefunds.confirmedAt} at time zone 'Asia/Ho_Chi_Minh', 'YYYY-MM')`;
-        const chargeRefundMonths = await tx
-          .select({
-            month: chargeRefundMonth,
-            chargeRefunded: amount(sql`true`, sql`${rentalChargeRefunds.amount}`),
-          })
-          .from(rentalChargeRefunds)
-          .innerJoin(rentalCharges, eq(rentalCharges.id, rentalChargeRefunds.chargeId))
-          .innerJoin(rentals, eq(rentals.id, rentalCharges.rentalId))
-          .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
-          .where(
-            and(
-              inArray(rentals.facilityId, scoped.ids),
-              filter.unitTypeId ? eq(bookings.unitTypeId, filter.unitTypeId) : undefined,
-              eq(rentalChargeRefunds.status, "CONFIRMED"),
-              lte(rentalChargeRefunds.confirmedAt, asOf),
-              sql`${rentalChargeRefunds.confirmedAt} >= ${start.toISOString()} and ${rentalChargeRefunds.confirmedAt} < ${end.toISOString()}`,
-            ),
-          )
-          .groupBy(chargeRefundMonth);
-        return { receipts, refunds, chargeReceipts, chargeRefunds: chargeRefundMonths };
+        return { receipts, refunds };
       },
       { isolationLevel: "repeatable read", accessMode: "read only" },
     );
@@ -394,12 +339,11 @@ export class ReportsRepository {
         const scoped = await this.scope(tx, actor, query);
         const rules = financialRules(asOf);
         const predicate = and(
-          isNull(payments.rentalChargeId),
           or(
-            inArray(bookings.facilityId, scoped.ids),
-            scoped.includeUnattributed ? isNull(payments.bookingId) : undefined,
+            inArray(paymentFacilityId, scoped.ids),
+            scoped.includeUnattributed ? isNull(paymentFacilityId) : undefined,
           ),
-          query.unitTypeId ? eq(bookings.unitTypeId, query.unitTypeId) : undefined,
+          query.unitTypeId ? eq(paymentUnitTypeId, query.unitTypeId) : undefined,
           rules.captured,
           sql`(not ${rules.knownSnapshot} or not ${rules.heldKnown} or not (${rules.vn}))`,
         );
@@ -407,13 +351,14 @@ export class ReportsRepository {
           .select({ count: count() })
           .from(payments)
           .leftJoin(bookings, eq(bookings.id, payments.bookingId))
+          .leftJoin(reservations, eq(reservations.id, payments.reservationId))
           .where(predicate);
         const bookingItems = await tx
           .select({
             paymentId: payments.id,
             chargeId: sql<string | null>`null`,
             bookingId: payments.bookingId,
-            facilityId: bookings.facilityId,
+            facilityId: paymentFacilityId,
             currency: payments.currency,
             totalAmount: payments.totalAmount,
             status: payments.status,
@@ -424,51 +369,18 @@ export class ReportsRepository {
           })
           .from(payments)
           .leftJoin(bookings, eq(bookings.id, payments.bookingId))
+          .leftJoin(reservations, eq(reservations.id, payments.reservationId))
           .where(predicate)
           .orderBy(asc(payments.paidAt), asc(payments.id))
           .limit(query.limit + query.offset);
-        const chargePredicate = and(
-          inArray(rentals.facilityId, scoped.ids),
-          query.unitTypeId ? eq(bookings.unitTypeId, query.unitTypeId) : undefined,
-          sql`${payments.paidAt} is not null and ${payments.paidAt} <= ${asOf.toISOString()} and ${payments.status} in ('SUCCEEDED','REFUND_PENDING','REFUNDED')`,
-          sql`(${payments.currency} <> 'VND' or (${payments.status} = 'REFUND_PENDING' and ${rentalCharges.status} = 'REFUND_DUE') or (${payments.status} = 'SUCCEEDED' and ${rentalCharges.status} <> 'PAID'))`,
-        );
-        const [chargeTotal] = await tx
-          .select({ count: count() })
-          .from(payments)
-          .innerJoin(rentalCharges, eq(rentalCharges.id, payments.rentalChargeId))
-          .innerJoin(rentals, eq(rentals.id, rentalCharges.rentalId))
-          .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
-          .where(chargePredicate);
-        const chargeItems = await tx
-          .select({
-            paymentId: payments.id,
-            chargeId: rentalCharges.id,
-            bookingId: sql<string | null>`null`,
-            facilityId: rentals.facilityId,
-            currency: payments.currency,
-            totalAmount: payments.totalAmount,
-            status: payments.status,
-            paidAt: payments.paidAt,
-            missingSnapshot: sql<boolean>`false`,
-            unclassifiedDeposit: sql<boolean>`false`,
-            unsupportedCurrency: sql<boolean>`${payments.currency} <> 'VND'`,
-          })
-          .from(payments)
-          .innerJoin(rentalCharges, eq(rentalCharges.id, payments.rentalChargeId))
-          .innerJoin(rentals, eq(rentals.id, rentalCharges.rentalId))
-          .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
-          .where(chargePredicate)
-          .orderBy(asc(payments.paidAt), asc(payments.id))
-          .limit(query.limit + query.offset);
-        const items = [...bookingItems, ...chargeItems]
+        const items = bookingItems
           .sort(
             (a, b) =>
               (a.paidAt?.getTime() ?? 0) - (b.paidAt?.getTime() ?? 0) ||
               a.paymentId.localeCompare(b.paymentId),
           )
           .slice(query.offset, query.offset + query.limit);
-        return { items, total: (total?.count ?? 0) + (chargeTotal?.count ?? 0) };
+        return { items, total: total?.count ?? 0 };
       },
       { isolationLevel: "repeatable read", accessMode: "read only" },
     );
@@ -479,36 +391,39 @@ export class ReportsRepository {
       async (tx) => {
         const scoped = await this.scope(tx, actor, query);
         const predicate = and(
-          inArray(rentals.facilityId, scoped.ids),
-          query.unitTypeId ? eq(bookings.unitTypeId, query.unitTypeId) : undefined,
-          query.status ? eq(rentals.status, query.status) : undefined,
+          inArray(storageUnits.facilityId, scoped.ids),
+          query.unitTypeId ? eq(storageUnits.unitTypeId, query.unitTypeId) : undefined,
+          query.status ? eq(rentals.status, query.status as RentalStatus) : undefined,
         );
         const byStatus = await tx
           .select({ status: rentals.status, count: count() })
           .from(rentals)
-          .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
+          .innerJoin(storageUnits, eq(storageUnits.id, rentals.storageUnitId))
           .where(predicate)
           .groupBy(rentals.status)
           .orderBy(asc(rentals.status));
         const items = await tx
           .select({
             id: rentals.id,
-            bookingCode: bookings.bookingCode,
-            facilityId: rentals.facilityId,
+            bookingCode: sql<
+              string | null
+            >`coalesce(${bookings.bookingCode}, upper(left(${reservations.id}::text, 8)))`,
+            facilityId: storageUnits.facilityId,
             facilityName: facilities.name,
             unitCode: storageUnits.code,
             unitTypeName: unitTypes.name,
             status: rentals.status,
             startAt: rentals.startAt,
-            expectedEndAt: rentals.expectedEndAt,
+            expectedEndAt: rentals.endAt,
           })
           .from(rentals)
-          .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
-          .innerJoin(facilities, eq(facilities.id, rentals.facilityId))
-          .innerJoin(storageUnits, eq(storageUnits.id, rentals.physicalUnitId))
-          .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
+          .leftJoin(bookings, eq(bookings.id, rentals.bookingId))
+          .leftJoin(reservations, eq(reservations.id, rentals.reservationId))
+          .innerJoin(storageUnits, eq(storageUnits.id, rentals.storageUnitId))
+          .innerJoin(facilities, eq(facilities.id, storageUnits.facilityId))
+          .innerJoin(unitTypes, eq(unitTypes.id, storageUnits.unitTypeId))
           .where(predicate)
-          .orderBy(asc(rentals.expectedEndAt), asc(rentals.id))
+          .orderBy(asc(rentals.endAt), asc(rentals.id))
           .limit(query.limit)
           .offset(query.offset);
         return { items, byStatus, total: byStatus.reduce((total, row) => total + row.count, 0) };

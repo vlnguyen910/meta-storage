@@ -7,13 +7,14 @@ import {
   eq,
   facilities,
   getTableColumns,
-  isNull,
   lt,
   notificationOutbox,
   or,
   payments,
-  rentalCharges,
+  RentalStatus,
+  ReservationStatus,
   rentals,
+  reservations,
   sql,
   storageUnits,
   supportTickets,
@@ -25,12 +26,30 @@ import type { SupportCursor, SupportTransaction } from "./support.types";
 export class SupportRepository {
   constructor(readonly db: Database) {}
 
+  async lockCustomerTicket(tx: SupportTransaction, id: string, customerId: string) {
+    const [ticket] = await tx
+      .select()
+      .from(supportTickets)
+      .where(and(eq(supportTickets.id, id), eq(supportTickets.ownerUserId, customerId)))
+      .for("update");
+    return ticket;
+  }
+
   transaction<T>(fn: (tx: SupportTransaction) => Promise<T>): Promise<T> {
     return this.db.transaction(fn);
   }
 
   async lockActor(tx: SupportTransaction, id: string) {
     const [row] = await tx.select().from(users).where(eq(users.id, id)).for("share");
+    return row;
+  }
+
+  async lockReservation(tx: SupportTransaction, id: string, ownerId: string) {
+    const [row] = await tx
+      .select()
+      .from(reservations)
+      .where(and(eq(reservations.id, id), eq(reservations.customerId, ownerId)))
+      .for("update");
     return row;
   }
 
@@ -43,11 +62,11 @@ export class SupportRepository {
     return row;
   }
 
-  async lockRental(tx: SupportTransaction, bookingId: string) {
+  async lockRental(tx: SupportTransaction, bookingId: string, reservation = false) {
     const [row] = await tx
       .select()
       .from(rentals)
-      .where(eq(rentals.bookingId, bookingId))
+      .where(reservation ? eq(rentals.reservationId, bookingId) : eq(rentals.bookingId, bookingId))
       .for("update");
     return row;
   }
@@ -59,10 +78,8 @@ export class SupportRepository {
 
   async payment(tx: SupportTransaction, id: string) {
     const [row] = await tx
-      .select({ bookingId: payments.bookingId, chargeBookingId: rentals.bookingId })
+      .select({ bookingId: payments.bookingId, reservationId: payments.reservationId })
       .from(payments)
-      .leftJoin(rentalCharges, eq(rentalCharges.id, payments.rentalChargeId))
-      .leftJoin(rentals, eq(rentals.id, rentalCharges.rentalId))
       .where(eq(payments.id, id));
     return row;
   }
@@ -70,7 +87,7 @@ export class SupportRepository {
   private ownerFilter(actorId: string) {
     return and(
       eq(supportTickets.ownerUserId, actorId),
-      eq(bookings.userId, actorId),
+      or(eq(bookings.userId, actorId), eq(reservations.customerId, actorId)),
       eq(users.id, actorId),
       eq(users.role, "CUSTOMER"),
       eq(users.status, "ACTIVE"),
@@ -81,7 +98,8 @@ export class SupportRepository {
     const [row] = await this.db
       .select(getTableColumns(supportTickets))
       .from(supportTickets)
-      .innerJoin(bookings, eq(bookings.id, supportTickets.bookingId))
+      .leftJoin(bookings, eq(bookings.id, supportTickets.bookingId))
+      .leftJoin(reservations, eq(reservations.id, supportTickets.reservationId))
       .innerJoin(users, eq(users.id, supportTickets.ownerUserId))
       .where(and(eq(supportTickets.id, id), this.ownerFilter(actorId)));
     return row;
@@ -92,59 +110,59 @@ export class SupportRepository {
     input: import("@metastorage/contracts").SupportContextQuery,
     cursor?: SupportCursor,
   ) {
-    const createdAt = sql<Date>`date_trunc('milliseconds', ${bookings.createdAt})`.mapWith(
-      bookings.createdAt,
+    const createdAt = sql<Date>`date_trunc('milliseconds', ${reservations.createdAt})`.mapWith(
+      reservations.createdAt,
     );
     return this.db
       .select({
-        id: bookings.id,
-        bookingCode: bookings.bookingCode,
-        status: bookings.status,
+        id: reservations.id,
+        bookingCode: sql<string>`upper(left(${reservations.id}::text,8))`,
+        status: reservations.status,
         facility: { id: facilities.id, name: facilities.name },
         unitType: { id: unitTypes.id, name: unitTypes.name },
-        checkInDate: bookings.checkInDate,
+        checkInDate: sql<string>`(${reservations.rentalStartAt} at time zone 'Asia/Ho_Chi_Minh')::date::text`,
         createdAt,
       })
-      .from(bookings)
-      .innerJoin(users, eq(users.id, bookings.userId))
-      .innerJoin(facilities, eq(facilities.id, bookings.facilityId))
-      .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
-      .leftJoin(rentals, eq(rentals.bookingId, bookings.id))
-      .leftJoin(storageUnits, eq(storageUnits.id, rentals.physicalUnitId))
+      .from(reservations)
+      .innerJoin(users, eq(users.id, reservations.customerId))
+      .innerJoin(facilities, eq(facilities.id, reservations.facilityId))
+      .innerJoin(unitTypes, eq(unitTypes.id, reservations.unitTypeId))
+      .leftJoin(rentals, eq(rentals.reservationId, reservations.id))
+      .leftJoin(storageUnits, eq(storageUnits.id, rentals.storageUnitId))
       .where(
         and(
-          eq(bookings.userId, actorId),
+          eq(reservations.customerId, actorId),
           eq(users.role, "CUSTOMER"),
           eq(users.status, "ACTIVE"),
           input.category === "PAYMENT"
             ? undefined
             : and(
-                eq(bookings.status, "CHECKED_IN"),
-                isNull(rentals.closedAt),
-                eq(rentals.facilityId, bookings.facilityId),
-                eq(storageUnits.facilityId, bookings.facilityId),
+                eq(reservations.status, ReservationStatus.CHECKED_IN),
+                eq(rentals.status, RentalStatus.ACTIVE),
+                eq(rentals.userId, actorId),
+                eq(storageUnits.facilityId, reservations.facilityId),
               ),
           cursor
             ? or(
                 lt(createdAt, cursor.createdAt),
-                and(eq(createdAt, cursor.createdAt), lt(bookings.id, cursor.id)),
+                and(eq(createdAt, cursor.createdAt), lt(reservations.id, cursor.id)),
               )
             : undefined,
         ),
       )
-      .orderBy(desc(createdAt), desc(bookings.id))
+      .orderBy(desc(createdAt), desc(reservations.id))
       .limit(input.limit + 1);
   }
 
   async contextBooking(actorId: string, id: string) {
     const [row] = await this.db
-      .select({ id: bookings.id })
-      .from(bookings)
-      .innerJoin(users, eq(users.id, bookings.userId))
+      .select({ id: reservations.id })
+      .from(reservations)
+      .innerJoin(users, eq(users.id, reservations.customerId))
       .where(
         and(
-          eq(bookings.id, id),
-          eq(bookings.userId, actorId),
+          eq(reservations.id, id),
+          eq(reservations.customerId, actorId),
           eq(users.role, "CUSTOMER"),
           eq(users.status, "ACTIVE"),
         ),
@@ -165,24 +183,20 @@ export class SupportRepository {
       .select({
         id: payments.id,
         paymentCode: payments.paymentCode,
-        chargeId: payments.rentalChargeId,
-        source: rentalCharges.source,
         status: payments.status,
         amount: payments.totalAmount,
         currency: payments.currency,
         createdAt,
       })
       .from(payments)
-      .leftJoin(rentalCharges, eq(rentalCharges.id, payments.rentalChargeId))
-      .leftJoin(rentals, eq(rentals.id, rentalCharges.rentalId))
-      .innerJoin(
-        bookings,
-        or(eq(bookings.id, payments.bookingId), eq(bookings.id, rentals.bookingId)),
-      )
+      .leftJoin(reservations, eq(reservations.id, payments.reservationId))
+      .leftJoin(bookings, eq(bookings.id, payments.bookingId))
       .where(
         and(
-          eq(bookings.id, bookingId),
-          eq(bookings.userId, actorId),
+          or(
+            and(eq(reservations.id, bookingId), eq(reservations.customerId, actorId)),
+            and(eq(bookings.id, bookingId), eq(bookings.userId, actorId)),
+          ),
           cursor
             ? or(
                 lt(createdAt, cursor.createdAt),
@@ -199,12 +213,14 @@ export class SupportRepository {
     return this.db
       .select(getTableColumns(supportTickets))
       .from(supportTickets)
-      .innerJoin(bookings, eq(bookings.id, supportTickets.bookingId))
+      .leftJoin(bookings, eq(bookings.id, supportTickets.bookingId))
+      .leftJoin(reservations, eq(reservations.id, supportTickets.reservationId))
       .innerJoin(users, eq(users.id, supportTickets.ownerUserId))
       .where(
         and(
           this.ownerFilter(actorId),
           input.bookingId ? eq(supportTickets.bookingId, input.bookingId) : undefined,
+          input.reservationId ? eq(supportTickets.reservationId, input.reservationId) : undefined,
           input.category ? eq(supportTickets.category, input.category) : undefined,
           cursor
             ? or(

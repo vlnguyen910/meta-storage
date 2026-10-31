@@ -1,5 +1,5 @@
 export type StaffWorkKind = "CHECK_IN" | "RETURN" | "TASK";
-export type StaffWorkGroup = "pending" | "review" | "done" | "closed";
+export type StaffWorkGroup = "pending" | "done" | "closed";
 export interface StaffWorkItem {
   id: string;
   kind: StaffWorkKind;

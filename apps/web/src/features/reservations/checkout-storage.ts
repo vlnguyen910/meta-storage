@@ -2,7 +2,7 @@ import { authStore } from "@/features/auth/auth-store";
 import type { CheckoutContext } from "./booking-checkout.types";
 
 const key = () =>
-  `metastorage.booking-checkout:${authStore.getState().session?.user.id ?? "anonymous"}`;
+  `metastorage.reservation-checkout:v2:${authStore.getState().session?.user.id ?? "anonymous"}`;
 
 export function clearCheckoutContext() {
   sessionStorage.removeItem(key());
@@ -19,7 +19,6 @@ export function readCheckoutContext(): CheckoutContext | null {
 }
 
 export function saveCheckoutContext(context: CheckoutContext) {
-  // Required before leaving this tab for SePay. Surface storage failures to the
-  // checkout so a guest is never redirected without a return credential.
+  // Persist before leaving this tab so payment and appointment retries keep the same context.
   sessionStorage.setItem(key(), JSON.stringify(context));
 }

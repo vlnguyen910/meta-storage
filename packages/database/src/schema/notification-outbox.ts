@@ -3,7 +3,9 @@ import {
   LifecycleNotificationEvent,
   NotificationDeliveryStatus,
 } from "@metastorage/contracts/lifecycle-notifications";
+import { sql } from "drizzle-orm";
 import {
+  check,
   index,
   integer,
   jsonb,
@@ -16,6 +18,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { bookings } from "./bookings";
 import { facilities } from "./facilities";
+import { reservations } from "./reservations";
 import { supportTickets } from "./support";
 import { users } from "./users";
 
@@ -35,9 +38,8 @@ export const notificationOutbox = pgTable(
     recipientKey: text().notNull(),
     eventType: lifecycleNotificationEventEnum().notNull(),
     supportTicketId: uuid().references(() => supportTickets.id, { onDelete: "restrict" }),
-    bookingId: uuid()
-      .notNull()
-      .references(() => bookings.id, { onDelete: "restrict" }),
+    reservationId: uuid().references(() => reservations.id, { onDelete: "restrict" }),
+    bookingId: uuid().references(() => bookings.id, { onDelete: "restrict" }),
     rentalTermVersion: integer(),
     facilityId: uuid()
       .notNull()
@@ -62,6 +64,10 @@ export const notificationOutbox = pgTable(
     sentAt: timestamp({ withTimezone: true }),
   },
   (t) => [
+    check(
+      "notification_outbox_reference_valid",
+      sql`num_nonnulls(${t.bookingId}, ${t.reservationId}) = 1`,
+    ),
     uniqueIndex("notification_outbox_event_recipient_idx").on(t.eventKey, t.recipientKey),
     index("notification_outbox_dispatch_idx").on(t.status, t.nextAttemptAt),
     index("notification_outbox_inbox_idx").on(t.recipientUserId, t.occurredAt),

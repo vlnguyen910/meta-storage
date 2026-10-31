@@ -1,4 +1,5 @@
 "use client";
+import { formatReference } from "@metastorage/shared";
 
 import { ArrowRight, CreditCard, HelpCircle, RotateCcw, Search } from "lucide-react";
 import Link from "next/link";
@@ -29,8 +30,9 @@ export function CustomerTransactionsScreen() {
       if (!search) return true;
       const q = search.toLowerCase();
       return (
-        payment.paymentCode?.toLowerCase().includes(q) ||
+        formatReference(payment.paymentCode, "TT").toLowerCase().includes(q) ||
         rental.bookingCode.toLowerCase().includes(q) ||
+        formatReference(rental.bookingCode, "BK").toLowerCase().includes(q) ||
         rental.facility.name.toLowerCase().includes(q) ||
         rental.unitType.name.toLowerCase().includes(q)
       );
@@ -134,6 +136,7 @@ export function CustomerTransactionsScreen() {
             { value: "", label: M.allStatuses },
             { value: "SUCCEEDED", label: M.paid },
             { value: "PENDING", label: M.pending },
+            { value: "REFUND_PENDING", label: M.refundPending },
             { value: "REFUNDED", label: M.refunded },
             { value: "FAILED", label: M.failed },
           ]}
@@ -179,16 +182,22 @@ export function CustomerTransactionsScreen() {
                   <td>
                     <div className="flex flex-col gap-0.5">
                       <span className="font-mono text-xs font-bold text-slate-800">
-                        {payment.paymentCode}
-                      </span>
-                      <span className="font-mono text-[11px] text-slate-500">
-                        {rental.bookingCode}
+                        {payment.paymentCode
+                          ? formatReference(payment.paymentCode, "TT")
+                          : payment.type === "DEBT_COLLECTION"
+                            ? M.debtCollection
+                            : payment.type === "DEPOSIT_REFUND"
+                              ? M.returnRefund
+                              : formatReference(payment.id, "TT")}
                       </span>
                     </div>
                   </td>
                   <td>
                     <div className="font-semibold text-slate-900">{rental.unitType.name}</div>
-                    <div className="text-xs text-slate-500">{rental.facility.name}</div>
+                    <div className="text-xs text-slate-500">
+                      {rental.facility.name}
+                      {rental.storageUnit?.code ? ` · ${rental.storageUnit.code}` : ""}
+                    </div>
                   </td>
                   <td>
                     <div className="flex flex-col gap-0.5">
@@ -214,7 +223,7 @@ export function CustomerTransactionsScreen() {
                           ? "bg-emerald-50 text-emerald-800 border-emerald-200"
                           : payment.status === "REFUNDED"
                             ? "bg-amber-50 text-amber-800 border-amber-200"
-                            : payment.status === "PENDING"
+                            : payment.status === "PENDING" || payment.status === "REFUND_PENDING"
                               ? "bg-sky-50 text-sky-800 border-sky-200"
                               : "bg-rose-50 text-rose-800 border-rose-200"
                       }`}
@@ -223,8 +232,10 @@ export function CustomerTransactionsScreen() {
                         ? M.paid
                         : payment.status === "REFUNDED"
                           ? M.refunded
-                          : payment.status === "PENDING"
-                            ? M.pending
+                          : payment.status === "PENDING" || payment.status === "REFUND_PENDING"
+                            ? payment.status === "REFUND_PENDING"
+                              ? M.refundPending
+                              : M.pending
                             : M.failed}
                     </span>
                   </td>

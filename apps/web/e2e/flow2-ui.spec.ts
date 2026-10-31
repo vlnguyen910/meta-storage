@@ -5,137 +5,14 @@ import {
   HandoverChecklistCompletionSchema,
   INSPECTION_CHECKLIST_VERSION,
   PaymentStatus,
-  UserRole,
 } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { expect, type Page, test } from "@playwright/test";
-import { FLOW } from "../src/features/facility-flow/flow.messages";
-import { CONTRACT_UI as C } from "../src/features/rentals/contract.messages";
-import { F3 } from "../src/features/returns/integration.messages";
 
 const id = "b0000000-0000-4000-8000-000000000001";
 const now = new Date().toISOString();
 const photoData =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
-const contractPdf = Buffer.from(
-  "JVBERi0xLjcKJYGBgYEKCjYgMCBvYmoKPDwKL0ZpbHRlciAvRmxhdGVEZWNvZGUKL0xlbmd0aCAxMjEKPj4Kc3RyZWFtCnicHYrBCsJADETv8xU5C2I23U12QTwILR68CPkBkSpKe1DE728qAzM83rxxdDCt+TywO43Tb/w+b9etcau5stVGScjvkEx+RvpfE0kUM/mMfeks62CipVRh7XTQ3nJw0jDCxqsz1RZtwTk2zIH8Bd+gd1ywAC69HXsKZW5kc3RyZWFtCmVuZG9iagoKNyAwIG9iago8PAovRmlsdGVyIC9GbGF0ZURlY29kZQovVHlwZSAvT2JqU3RtCi9OIDUKL0ZpcnN0IDI2Ci9MZW5ndGggMzYxCj4+CnN0cmVhbQp4nNVSTUvDQBC976+Yox5kP5LmQ0qhbRIFKUorKIqHbbKUSNmVZCP13zuTpJYexLOEx+7MvNl9m3kSBCgIQwggTiCESaBgArGUMJ0y/vj1YYA/6J1pGb+rqxZekSNgDW+ML11nPUg2m7ETd6m93rsdG5pAEvnIeGhc1ZWmgWmRF4UQsRAiChGRECrDdYlIEQpjrKkE94g4HIG5OBAimGOtGBDFQw/Ve+5k7M9xRW5EnGzghskQ/9xLd+XDGeovPemM8ZWrMu0NXGTXSqhIChWINEhl8nKJv6Mx2rv/+7hef+3sry88mzONl4bcGPJAP2W+Nq3rmhLHTrzCYYU2t2b/aXxd6qtYpAnqjJMUPTYagz/fb99N2VMpzA/+ZuNJw5Cg3MpUtV64A7pP4IcvB1RNHpxb6zy5svej9aiGomj06JlkEsT4ptv6PqSkZHyhW9NLPelEEbZ0VW13wJ9qO7dtfUzQid8tGsXmCmVuZHN0cmVhbQplbmRvYmoKCjggMCBvYmoKPDwKL1NpemUgOQovUm9vdCAyIDAgUgovSW5mbyAzIDAgUgovRmlsdGVyIC9GbGF0ZURlY29kZQovVHlwZSAvWFJlZgovTGVuZ3RoIDQxCi9XIFsgMSAyIDIgXQovSW5kZXggWyAwIDkgXQo+PgpzdHJlYW0KeJwVxLERACAMA7G3wx0t+3esxEIJViGg22xISk6Vljgg3s8XBmIVA74KZW5kc3RyZWFtCmVuZG9iagoKc3RhcnR4cmVmCjY3MwolJUVPRg==",
-  "base64",
-);
-
-for (const width of [1440, 375, 390, 430]) {
-  test(`contract manager uploads with local preview and recovers storage error at ${width}px`, async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width, height: 1000 });
-    await fixture(page, { role: "FACILITY_MANAGER" });
-    let document: Record<string, unknown> | null = null;
-    let uploads = 0;
-    await page.route(`**/api/bookings/${id}/contracts`, async (route) => {
-      if (route.request().method() === "POST") {
-        uploads++;
-        if (uploads === 1)
-          return route.fulfill({
-            status: 503,
-            json: {
-              success: false,
-              error: { code: "CONTRACT_STORAGE_UNAVAILABLE", message: "Storage unavailable" },
-            },
-          });
-        document = {
-          id,
-          bookingId: id,
-          filename: "contract-demo.pdf",
-          status: "UPLOADED",
-          currentIssued: false,
-          usedForHandover: false,
-          version: 1,
-          byteSize: contractPdf.length,
-          pageCount: 1,
-          uploadedAt: now,
-          issuedAt: null,
-        };
-        return route.fulfill({ json: { success: true, data: document } });
-      }
-      return route.fulfill({ json: { success: true, data: document ? [document] : [] } });
-    });
-    await page.route(`**/api/bookings/${id}/contracts/${id}/issue`, async (route) => {
-      document = { ...document, status: "ISSUED", currentIssued: true, issuedAt: now };
-      return route.fulfill({ json: { success: true, data: document } });
-    });
-    await page.goto("/facility-manager/check-in?bookingCode=BK-2026-0001");
-    await expect(page.getByText(C.missing, { exact: true })).toBeVisible();
-    await expect(page.getByRole("link", { name: C.manage })).toBeVisible();
-    const chooser = page.waitForEvent("filechooser");
-    await page.getByRole("button", { name: C.select, exact: false }).click();
-    await (await chooser).setFiles({
-      name: "contract-demo.pdf",
-      mimeType: "application/pdf",
-      buffer: contractPdf,
-    });
-    await expect(page.getByRole("heading", { name: C.localPreview, exact: true })).toBeVisible();
-    await expect(page.getByRole("link", { name: C.openLocal, exact: true })).toHaveAttribute(
-      "href",
-      /^blob:/,
-    );
-    expect(uploads).toBe(0);
-    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
-    expect(
-      await page.evaluate(() => globalThis.document.documentElement.scrollWidth <= innerWidth),
-    ).toBe(true);
-    await page.screenshot({ path: `test-results/contract-preview-${width}.png`, fullPage: true });
-    await page.getByRole("button", { name: F3.upload, exact: true }).click();
-    await expect(page.getByText(C.storageFailure)).toBeVisible();
-    await expect(page.getByRole("heading", { name: C.localPreview, exact: true })).toBeVisible();
-    await page.getByRole("button", { name: F3.upload, exact: true }).click();
-    await expect(page.getByText(C.pendingIssue)).toBeVisible();
-    await expect(page.getByRole("heading", { name: C.localPreview, exact: true })).toHaveCount(0);
-    await expect(page.getByText(C.ready, { exact: true })).toHaveCount(0);
-    await page.getByRole("button", { name: F3.issue, exact: true }).click();
-    await page.getByRole("button", { name: F3.issue, exact: true }).last().click();
-    await expect(page.getByText(C.ready, { exact: true })).toBeVisible();
-    expect(uploads).toBe(2);
-  });
-}
-
-test("contract missing blocks Staff handover early and refresh recovers after FM issues", async ({
-  page,
-}) => {
-  await fixture(page);
-  let issued = false;
-  await page.route(`**/api/bookings/${id}/contracts`, (route) =>
-    route.fulfill({
-      json: {
-        success: true,
-        data: issued
-          ? [
-              {
-                id,
-                bookingId: id,
-                filename: "issued.pdf",
-                status: "ISSUED",
-                currentIssued: true,
-                version: 1,
-              },
-            ]
-          : [],
-      },
-    }),
-  );
-  await page.goto("/staff/check-in?bookingCode=BK-2026-0001");
-  await page.getByRole("button", { name: FLOW.verifyProceed }).click();
-  await expect(page.getByText(C.missing, { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: C.select, exact: false })).toHaveCount(0);
-  await passChecklist(page);
-  await page.getByRole("button", { name: FLOW.review, exact: true }).click();
-  await page.getByRole("checkbox", { name: FLOW.confirmLock }).check();
-  await page.getByRole("button", { name: FLOW.complete, exact: true }).click();
-  await expect(page.getByText(C.handoverMissing)).toBeVisible();
-  await page.getByRole("checkbox", { name: FLOW.customerReceived }).check();
-  await expect(page.getByRole("button", { name: FLOW.handover, exact: true })).toBeDisabled();
-  issued = true;
-  await page.getByRole("button", { name: C.refresh, exact: true }).click();
-  await expect(page.getByRole("button", { name: FLOW.handover, exact: true })).toBeEnabled();
-});
-
 async function fixture(
   page: Page,
   {
@@ -196,7 +73,7 @@ async function fixture(
     },
   };
   const lookup: CheckInLookupResult = {
-    booking: { ...booking, graceEndsAt: new Date(Date.now() + 3 * 3600000).toISOString() },
+    booking: { ...booking, checkInDeadlineAt: new Date(Date.now() + 3 * 3600000).toISOString() },
     assignedUnit: booking.assignedUnit ?? null,
     payment: {
       status: PaymentStatus.SUCCEEDED,
@@ -206,10 +83,10 @@ async function fixture(
       depositAmount: 1500000,
       currency: "VND",
     },
-    eligibility: { canProceed: !unassigned, reasons: unassigned ? ["UNIT_NOT_ASSIGNED"] : [] },
-    verification: null,
+    checkInReadiness: { canProceed: !unassigned, reasons: unassigned ? ["UNIT_NOT_ASSIGNED"] : [] },
   };
   let inspection: Inspection | null = null;
+  const task = { id: "a4444444-4444-4444-8444-444444444444", referenceId: id, status: "ASSIGNED" };
   let versionConflict = false;
   await page.route("**/api/**", async (route) => {
     const req = route.request();
@@ -262,24 +139,14 @@ async function fixture(
       path === "/bookings/assigned-to-me"
     )
       data = [booking];
-    else if (path === "/facility-tasks") data = { items: [], total: 0, limit: 100, offset: 0 };
-    else if (/^\/facilities\/[^/]+\/return-requests$/.test(path)) data = [];
-    else if (path === "/check-ins/lookup") data = lookup;
-    else if (path === `/check-ins/${id}/confirm`) {
-      lookup.verification = {
-        id: "a1111111-1111-1111-1111-111111111111",
-        bookingId: id,
-        facilityId: booking.facilityId,
-        staffId: assignment.assignedBy,
-        unitAssignmentId: assignment.id,
-        status: "VERIFIED",
-        verifiedAt: now,
-        consumedAt: null,
-        invalidatedAt: null,
-        invalidatedReason: null,
-      };
-      data = lookup;
-    } else if (path === `/bookings/${id}/eligible-units`)
+    else if (path === "/facility-tasks/my")
+      data = { items: [task], total: 1, limit: 100, offset: 0 };
+    else if (path === `/facility-tasks/${task.id}` && method === "PATCH") {
+      task.status = input.status;
+      data = task;
+    } else if (/^\/facilities\/[^/]+\/return-requests$/.test(path)) data = [];
+    else if (path === "/bookings/check-in/lookup") data = lookup;
+    else if (path === `/bookings/${id}/eligible-units`)
       data = [
         {
           id: assignment.physicalUnitId,
@@ -295,7 +162,7 @@ async function fixture(
     else if (path === `/bookings/${id}/assign-unit`) {
       booking.assignedUnit = assignment;
       lookup.assignedUnit = assignment;
-      lookup.eligibility = { canProceed: true, reasons: [] };
+      lookup.checkInReadiness = { canProceed: true, reasons: [] };
       data = assignment;
     } else if (path === `/facilities/${booking.facilityId}/staff`) data = [booking.assignedStaff];
     else if (path === `/bookings/${id}/assign-staff`) {
@@ -320,7 +187,6 @@ async function fixture(
           physicalUnitId: assignment.physicalUnitId,
           unitCode: assignment.physicalUnitCode,
           unitAssignmentId: assignment.id,
-          verificationId: lookup.verification?.id ?? "",
           policyVersion: "H6_V1",
           status: "DRAFT",
           version: 0,
@@ -394,7 +260,6 @@ async function fixture(
       inspection.version++;
       booking.status = "CHECKED_IN";
       lookup.booking.status = "CHECKED_IN";
-      if (lookup.verification) lookup.verification.status = "CONSUMED";
       data = inspection;
     } else if (path.startsWith("/dashboards/"))
       data = {
@@ -517,7 +382,7 @@ test("draft, real photo, review, immutable completion and reload", async ({ page
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: "/tmp/metastorage-flow2-handover.png", fullPage: true });
 });
-test("API error does not leave verification stuck", async ({ page }) => {
+test("inspection history API error leaves the task ready to retry", async ({ page }) => {
   await fixture(page, { failHistory: true });
   await page.goto("/staff/check-in?bookingCode=BK-2026-0001");
   await page.getByRole("button", { name: "Xác minh booking & Chuyển sang kiểm tra kho" }).click();
@@ -779,29 +644,6 @@ test("FM filters real handover progress and only opens monitoring", async ({ pag
   await expect(page.getByRole("link", { name: "Làm check-in", exact: true })).toHaveCount(0);
   await expect(page.getByText("Staff được phân công", { exact: true })).toBeVisible();
   await page.screenshot({ path: "/tmp/metastorage-fm-preparation-final.png", fullPage: true });
-});
-
-test("Staff re-verifies a legacy FM verification before editing", async ({ page }) => {
-  const f = await fixture(page);
-  f.lookup.verification = {
-    id: "a1111111-1111-1111-1111-111111111111",
-    bookingId: id,
-    facilityId: f.booking.facilityId,
-    staffId: "d0000000-0000-4000-8000-000000000099",
-    unitAssignmentId: f.booking.assignedUnit?.id ?? "",
-    status: "VERIFIED",
-    verifiedAt: now,
-    consumedAt: null,
-    invalidatedAt: null,
-    invalidatedReason: null,
-  };
-  await page.goto("/staff/check-in?bookingCode=BK-2026-0001&view=inspect");
-  await expect(
-    page.getByRole("button", { name: "Xác minh booking & Chuyển sang kiểm tra kho" }),
-  ).toBeVisible();
-  await expect(page.locator("input[type=file]")).toHaveCount(0);
-  await page.getByRole("button", { name: "Xác minh booking & Chuyển sang kiểm tra kho" }).click();
-  await expect(page.getByRole("textbox", { name: "Biên bản ghi nhận hiện trường" })).toBeVisible();
 });
 
 test("staff assignment handles backend errors and retries with only persisted fields", async ({
@@ -1100,7 +942,7 @@ test("incomplete and failed checklist drafts persist; four PASS unlock without n
   await expect(page.getByText("Cửa và khóa hoạt động bình thường", { exact: true })).toBeVisible();
 });
 
-test("dispatch does not invent NO_SHOW after slot end plus two hours", async ({ page }) => {
+test("dispatch does not invent NO_SHOW before CLOSING_HOUR", async ({ page }) => {
   await fixture(page, { role: "FACILITY_MANAGER", elapsedSlot: true });
   await page.goto("/facility-manager/dashboard?view=tasks");
   const card = page

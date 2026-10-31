@@ -1,5 +1,6 @@
 import { createHttpClient, createMetastorageApiClient } from "@metastorage/api-client";
-import { type SessionTokens, UserRole } from "@metastorage/contracts";
+import type { SessionTokens } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { beforeAll, describe, expect, it } from "vitest";
 import { resetMockDatabase } from "./database";
 import { installMockApi } from "./install-mock-api";
@@ -58,7 +59,7 @@ describe("mock reservation API", () => {
   });
 
   it("does not create a reservation when payment fails and can retry successfully", async () => {
-    const quote = await client.reservations.quote({
+    const quote = await client.legacyReservations.quote({
       facilityId: "fac-hcm-central",
       unitTypeId: "00000000-0000-0000-0001-000000000001",
       startDate: "2026-10-01",
@@ -68,23 +69,23 @@ describe("mock reservation API", () => {
     expect(quote.rentalTotal).toBe(quote.monthlyPrice * 3);
 
     await expect(
-      client.reservations.confirm({
+      client.legacyReservations.confirm({
         quoteId: quote.id,
         paymentToken: "tok_fail",
         cardBrand: "Visa",
         cardLast4: "0002",
       }),
     ).rejects.toMatchObject({ response: { status: 402 } });
-    expect(await client.reservations.mine()).toHaveLength(0);
+    expect(await client.legacyReservations.mine()).toHaveLength(0);
 
-    const reservation = await client.reservations.confirm({
+    const reservation = await client.legacyReservations.confirm({
       quoteId: quote.id,
       paymentToken: "tok_success",
       cardBrand: "Visa",
       cardLast4: "4242",
     });
     expect(reservation.payment.last4).toBe("4242");
-    expect((await client.reservations.mine())[0]?.id).toBe(reservation.id);
+    expect((await client.legacyReservations.mine())[0]?.id).toBe(reservation.id);
   });
 
   it("allows FM to assign staff and allows Staff to view assigned tasks", async () => {
@@ -100,7 +101,7 @@ describe("mock reservation API", () => {
     const targetStaff = staffList[0];
     if (!targetStaff) throw new Error("Staff not found");
 
-    const assignedBooking = await client.bookings.assignStaff(
+    const assignedBooking = await client.legacyBookings.assignStaff(
       "b0000000-0000-0000-0000-000000000001",
       { staffId: targetStaff.id, notes: "Ca sáng" },
     );
@@ -113,7 +114,7 @@ describe("mock reservation API", () => {
     });
     tokens = staffSession;
 
-    const tasks = await client.bookings.listAssignedToMe("fac-hcm-central");
+    const tasks = await client.legacyBookings.listAssignedToMe("fac-hcm-central");
     expect(tasks.length).toBeGreaterThan(0);
     expect(tasks.some((t) => t.bookingCode === "BK-2026-0001")).toBe(true);
   });

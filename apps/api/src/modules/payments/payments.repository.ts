@@ -1,119 +1,210 @@
-import type { ManualRefundQuery } from "@metastorage/contracts";
-import type { Facility, UnitType } from "@metastorage/database";
+import type { DebtQuery, ManualRefundQuery } from "@metastorage/contracts";
 import {
+  alias,
   and,
   asc,
   bookings,
   capacityAllocations,
+  count,
   type Database,
+  DebtStatus,
+  debts,
   desc,
   eq,
-  exists,
-  facilities,
   gt,
   inArray,
-  isNotNull,
-  isNull,
   lte,
   or,
-  type PaymentRefundReason,
   paymentProviderEvents,
   payments,
-  rentalChargeAdjustments,
-  rentalChargeEvents,
-  rentalChargeRefunds,
-  rentalCharges,
+  rentalRenewals,
   rentals,
-  type SQL,
+  reservations,
+  returnSettlements,
   sql,
-  unitTypes,
+  storageUnits,
+  users,
 } from "@metastorage/database";
 import { AppError } from "../../common/errors/app-error";
-import { bookingCustomer, bookingReadFields } from "../bookings/bookings.projection";
-import {
-  bookingCode,
-  bookingLocalDate,
-  hashQrToken,
-  qrTokenForBooking,
-} from "../bookings/bookings.repository";
-import type { BookingReadRecord } from "../bookings/bookings.types";
-import { CheckInSlotsRepository } from "../bookings/check-in-slots.repository";
-import { recordLifecycleEvent } from "../notifications/lifecycle-notifications.repository";
-import { RENEWAL_MESSAGES } from "../renewals/renewals.messages";
-import { RenewalsRepository } from "../renewals/renewals.repository";
-import type { RenewalTransaction } from "../renewals/renewals.types";
-import { RentalsRepository } from "../rentals/rentals.repository";
-import { StorageUnitsRepository } from "../storage-units/storage-units.repository";
-import { PAYMENT_MESSAGES } from "./payments.messages";
-import type {
-  BookingWebhookResult,
-  PaymentStatusAccess,
-  PrepareBookingPaymentInput,
-  VerifiedPaymentEvent,
-} from "./payments.types";
 
-function toConfirmation(
-  booking: Pick<
-    BookingReadRecord,
-    "id" | "bookingCode" | "checkInSlotStart" | "checkInSlotEnd" | "rentalEndAt" | "requestedMonths"
-  >,
-  facility: Pick<Facility, "name" | "address">,
-  unitType: Pick<UnitType, "name" | "sizeLabel">,
-) {
-  const qrToken = qrTokenForBooking(booking.id);
-  return {
-    bookingId: booking.id,
-    bookingCode: booking.bookingCode ?? booking.id.slice(0, 8).toUpperCase(),
-    qrToken,
-    qrUrl: `${process.env.PUBLIC_APP_URL ?? "http://localhost:3000"}/check-in?token=${qrToken}`,
-    facility: { name: facility.name, address: facility.address },
-    checkInSlotStart: booking.checkInSlotStart.toISOString(),
-    checkInSlotEnd: booking.checkInSlotEnd?.toISOString() ?? null,
-    rentalEndAt: booking.rentalEndAt.toISOString(),
-    unitTypeName: unitType.name,
-    sizeLabel: unitType.sizeLabel,
-    durationMonths: booking.requestedMonths,
-    emailStatus: "QUEUED" as const,
-  };
-}
+const bookingCustomer = alias(users, "booking_customer");
+
+import { PAYMENT_MESSAGES } from "./payments.messages";
+import type { PaymentStatusAccess, VerifiedPaymentEvent } from "./payments.types";
 
 export class PaymentsRepository {
   constructor(private readonly db: Database) {}
+
+  transaction<T>(
+    callback: (tx: Parameters<Parameters<Database["transaction"]>[0]>[0]) => Promise<T>,
+  ) {
+    return this.db.transaction(callback);
+  }
+
+  private debtFilter(scope: { customerId?: string; facilityIds?: string[] }, query: DebtQuery) {
+    return and(
+      scope.customerId
+        ? eq(rentals.userId, scope.customerId)
+        : inArray(storageUnits.facilityId, scope.facilityIds ?? []),
+      query.rentalId ? eq(rentals.id, query.rentalId) : undefined,
+      query.status ? eq(debts.status, DebtStatus[query.status]) : undefined,
+    );
+  }
+
+  async listDebts(scope: { customerId?: string; facilityIds?: string[] }, query: DebtQuery) {
+    const filter = this.debtFilter(scope, query);
+    const rows = await this.db
+      .select({
+        debt: debts,
+        rentalId: rentals.id,
+        customerId: rentals.userId,
+        customerName: users.name,
+        unitCode: storageUnits.code,
+        currency: returnSettlements.currency,
+        total: sql<number>`count(*) over()`.mapWith(Number),
+      })
+      .from(debts)
+      .innerJoin(returnSettlements, eq(returnSettlements.id, debts.settlementId))
+      .innerJoin(rentals, eq(rentals.id, returnSettlements.rentalId))
+      .innerJoin(storageUnits, eq(storageUnits.id, rentals.storageUnitId))
+      .innerJoin(users, eq(users.id, rentals.userId))
+      .where(filter)
+      .orderBy(desc(debts.createdAt), debts.id)
+      .limit(query.limit)
+      .offset(query.offset);
+    if (rows.length) return { items: rows, total: rows[0]?.total ?? 0 };
+    const [total] = await this.db
+      .select({ value: count() })
+      .from(debts)
+      .innerJoin(returnSettlements, eq(returnSettlements.id, debts.settlementId))
+      .innerJoin(rentals, eq(rentals.id, returnSettlements.rentalId))
+      .innerJoin(storageUnits, eq(storageUnits.id, rentals.storageUnitId))
+      .where(filter);
+    return { items: rows, total: total?.value ?? 0 };
+  }
+
+  async findDebt(
+    id: string,
+    executor: Database | Parameters<Parameters<Database["transaction"]>[0]>[0] = this.db,
+  ) {
+    const [row] = await executor
+      .select({
+        debt: debts,
+        rentalId: rentals.id,
+        customerId: rentals.userId,
+        customerName: users.name,
+        unitCode: storageUnits.code,
+        facilityId: storageUnits.facilityId,
+        currency: returnSettlements.currency,
+      })
+      .from(debts)
+      .innerJoin(returnSettlements, eq(returnSettlements.id, debts.settlementId))
+      .innerJoin(rentals, eq(rentals.id, returnSettlements.rentalId))
+      .innerJoin(storageUnits, eq(storageUnits.id, rentals.storageUnitId))
+      .innerJoin(users, eq(users.id, rentals.userId))
+      .where(eq(debts.id, id));
+    return row;
+  }
+
+  listDebtPayments(id: string) {
+    return this.db
+      .select({
+        id: payments.id,
+        totalAmount: payments.totalAmount,
+        method: payments.method,
+        reference: payments.reference,
+        paidAt: payments.paidAt,
+      })
+      .from(payments)
+      .where(eq(payments.debtId, id))
+      .orderBy(desc(payments.paidAt), payments.id);
+  }
+
+  async lockDebt(tx: Parameters<Parameters<Database["transaction"]>[0]>[0], id: string) {
+    const [row] = await tx.select().from(debts).where(eq(debts.id, id)).for("update");
+    return row;
+  }
+
+  async findDebtPayment(tx: Parameters<Parameters<Database["transaction"]>[0]>[0], key: string) {
+    const [row] = await tx.select().from(payments).where(eq(payments.idempotencyKey, key));
+    return row;
+  }
+
+  insertDebtPayment(
+    tx: Parameters<Parameters<Database["transaction"]>[0]>[0],
+    input: typeof payments.$inferInsert,
+  ) {
+    return tx
+      .insert(payments)
+      .values(input)
+      .onConflictDoNothing({ target: payments.idempotencyKey })
+      .returning();
+  }
+
+  updateDebt(
+    tx: Parameters<Parameters<Database["transaction"]>[0]>[0],
+    id: string,
+    input: Pick<typeof debts.$inferInsert, "paidAmount" | "status" | "updatedAt">,
+  ) {
+    return tx.update(debts).set(input).where(eq(debts.id, id));
+  }
+
+  async findRenewalRentalId(renewalId: string) {
+    const [row] = await this.db
+      .select({ rentalId: rentalRenewals.rentalId })
+      .from(rentalRenewals)
+      .where(eq(rentalRenewals.id, renewalId));
+    return row?.rentalId;
+  }
+
+  async recordEventInTransaction(
+    tx: Parameters<Parameters<Database["transaction"]>[0]>[0],
+    event: VerifiedPaymentEvent,
+    paymentId: string,
+  ) {
+    const [recorded] = await tx
+      .insert(paymentProviderEvents)
+      .values({
+        provider: "sepay",
+        providerEventId: event.providerEventId,
+        paymentId,
+        paymentCode: event.paymentCode,
+        amount: event.amount,
+        transferType: event.transferType,
+        referenceCode: event.referenceCode,
+        status: "PROCESSED",
+        payloadMetadata: event.metadata,
+      })
+      .onConflictDoNothing({
+        target: [paymentProviderEvents.provider, paymentProviderEvents.providerEventId],
+      })
+      .returning();
+    return Boolean(recorded);
+  }
 
   async listPendingSepayPayments(facilityId?: string) {
     return this.db
       .select({ id: payments.id })
       .from(payments)
       .leftJoin(bookings, eq(bookings.id, payments.bookingId))
+      .leftJoin(reservations, eq(reservations.id, payments.reservationId))
+      .leftJoin(rentalRenewals, eq(rentalRenewals.id, payments.renewalId))
+      .leftJoin(rentals, eq(rentals.id, rentalRenewals.rentalId))
+      .leftJoin(storageUnits, eq(storageUnits.id, rentals.storageUnitId))
       .where(
         and(
           eq(payments.provider, "sepay"),
+          eq(payments.status, "PENDING"),
           facilityId
             ? or(
                 eq(bookings.facilityId, facilityId),
-                exists(
-                  this.db
-                    .select({ id: rentals.id })
-                    .from(rentals)
-                    .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
-                    .innerJoin(rentalCharges, eq(rentalCharges.rentalId, rentals.id))
-                    .where(
-                      and(
-                        eq(rentalCharges.id, payments.rentalChargeId),
-                        eq(bookings.facilityId, facilityId),
-                      ),
-                    ),
-                ),
+                eq(reservations.facilityId, facilityId),
+                eq(storageUnits.facilityId, facilityId),
               )
             : undefined,
-          eq(payments.status, "PENDING"),
-          or(
-            and(isNotNull(payments.bookingId), isNull(payments.rentalChargeId)),
-            isNotNull(payments.rentalChargeId),
-          ),
         ),
       )
-      .orderBy(asc(payments.updatedAt), payments.id)
+      .orderBy(asc(payments.updatedAt), asc(payments.id))
       .limit(10);
   }
 
@@ -134,10 +225,7 @@ export class PaymentsRepository {
           eq(payments.id, paymentId),
           eq(payments.provider, "sepay"),
           eq(payments.status, "PENDING"),
-          or(
-            and(isNotNull(payments.bookingId), isNull(payments.rentalChargeId)),
-            isNotNull(payments.rentalChargeId),
-          ),
+
           or(
             eq(payments.updatedAt, payments.createdAt),
             lte(payments.updatedAt, new Date(now.getTime() - 15_000)),
@@ -148,652 +236,15 @@ export class PaymentsRepository {
     return payment;
   }
 
-  async processBookingPaymentEvent(
-    event: VerifiedPaymentEvent,
-  ): Promise<BookingWebhookResult | null> {
-    return this.db.transaction(
-      async (tx) => {
-        const [candidate] = await tx
-          .select({
-            id: payments.id,
-            bookingId: payments.bookingId,
-            rentalChargeId: payments.rentalChargeId,
-          })
-          .from(payments)
-          .where(and(eq(payments.provider, "sepay"), eq(payments.paymentCode, event.paymentCode)));
-        if (!candidate?.bookingId || candidate.rentalChargeId) return null;
-        // Match checkout's booking -> payment -> offering lock order.
-        const [checkout] = await tx
-          .select({ booking: bookings, facility: facilities, unitType: unitTypes })
-          .from(bookings)
-          .innerJoin(facilities, eq(facilities.id, bookings.facilityId))
-          .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
-          .where(eq(bookings.id, candidate.bookingId))
-          .for("update", { of: bookings });
-        if (!checkout) throw new AppError(PAYMENT_MESSAGES.paymentMissingBookingInformation, 500);
-        const [payment] = await tx
-          .select()
-          .from(payments)
-          .where(eq(payments.id, candidate.id))
-          .for("update");
-        if (!payment) throw new AppError(PAYMENT_MESSAGES.paymentNotFound, 404);
-        if (!payment.holdTokenHash) return null;
-        const now = new Date();
-        const [recorded] = await tx
-          .insert(paymentProviderEvents)
-          .values({
-            provider: "sepay",
-            providerEventId: event.providerEventId,
-            paymentId: payment.id,
-            paymentCode: event.paymentCode,
-            amount: event.amount,
-            transferType: event.transferType,
-            referenceCode: event.referenceCode,
-            status: "FAILED",
-            payloadMetadata: event.metadata,
-          })
-          .onConflictDoNothing({
-            target: [paymentProviderEvents.provider, paymentProviderEvents.providerEventId],
-          })
-          .returning();
-        const [existing] = recorded
-          ? [recorded]
-          : await tx
-              .select()
-              .from(paymentProviderEvents)
-              .where(
-                and(
-                  eq(paymentProviderEvents.provider, "sepay"),
-                  eq(paymentProviderEvents.providerEventId, event.providerEventId),
-                ),
-              )
-              .for("update");
-        if (!existing) throw new AppError(PAYMENT_MESSAGES.failedToFinalizePayment, 500);
-        if (!recorded && existing.status !== "FAILED")
-          return { duplicate: true, processed: false, paymentId: payment.id };
-        if (
-          existing.paymentCode !== event.paymentCode ||
-          (existing.paymentId && existing.paymentId !== payment.id)
-        )
-          return { duplicate: true, processed: false };
-        if (
-          payment.status !== "PENDING" ||
-          event.successful === false ||
-          event.transferType !== "in" ||
-          event.amount !== Number(payment.totalAmount) ||
-          (event.currency && event.currency !== payment.currency)
-        ) {
-          await tx
-            .update(paymentProviderEvents)
-            .set({ status: "IGNORED", updatedAt: now })
-            .where(eq(paymentProviderEvents.id, existing.id));
-          return { duplicate: false, processed: false, paymentId: payment.id };
-        }
-        const booking = checkout.booking;
-        if (booking.status !== "DRAFT") throw new AppError(PAYMENT_MESSAGES.bookingNotDraft, 409);
-        const [offering] = await tx
-          .select({
-            active: unitTypes.isActive,
-            facilityActive: facilities.isActive,
-            typeActive: unitTypes.isActive,
-          })
-          .from(unitTypes)
-          .innerJoin(facilities, eq(facilities.id, unitTypes.facilityId))
-          .where(
-            and(eq(unitTypes.facilityId, booking.facilityId), eq(unitTypes.id, booking.unitTypeId)),
-          )
-          .for("update");
-        const [hold] = await tx
-          .select()
-          .from(capacityAllocations)
-          .where(
-            and(
-              eq(capacityAllocations.referenceId, booking.id),
-              eq(capacityAllocations.kind, "HOLD"),
-              eq(capacityAllocations.accessTokenHash, payment.holdTokenHash),
-              eq(capacityAllocations.status, "ACTIVE"),
-              gt(capacityAllocations.expiresAt, new Date()),
-            ),
-          )
-          .for("update");
-        let allocationId = hold?.id;
-        const slots = new CheckInSlotsRepository(tx);
-        const slot = await slots.findByIdForDate(booking.checkInSlotId, booking.checkInDate);
-        const dayEnd = await slots.findDayEnd(booking.checkInDate);
-        let refundReason: PaymentRefundReason | null = null;
-        if (!slot || !dayEnd || new Date() >= dayEnd || booking.rentalEndAt <= new Date())
-          refundReason = "CHECK_IN_CLOSED";
-        else if (!hold) {
-          if (!offering?.active || !offering.facilityActive || !offering.typeActive)
-            refundReason = "OFFERING_UNAVAILABLE";
-          else {
-            const available = await new StorageUnitsRepository(tx).getAvailableCapacity(
-              booking.facilityId,
-              booking.unitTypeId,
-              slot.startsAt,
-              booking.rentalEndAt,
-            );
-            if (available < 1) refundReason = "NO_CAPACITY";
-          }
-          if (!refundReason) {
-            // Reuse the expired hold where possible; this is a paid allocation,
-            // never a renewal of the ten-minute checkout deadline.
-            const [expired] = await tx
-              .select({ id: capacityAllocations.id })
-              .from(capacityAllocations)
-              .where(
-                and(
-                  eq(capacityAllocations.referenceId, booking.id),
-                  eq(capacityAllocations.kind, "HOLD"),
-                  eq(capacityAllocations.accessTokenHash, payment.holdTokenHash),
-                  inArray(capacityAllocations.status, ["ACTIVE", "EXPIRED"]),
-                ),
-              )
-              .for("update");
-            if (expired) allocationId = expired.id;
-            else {
-              const [created] = await tx
-                .insert(capacityAllocations)
-                .values({
-                  facilityId: booking.facilityId,
-                  unitTypeId: booking.unitTypeId,
-                  referenceId: booking.id,
-                  kind: "BOOKING",
-                  status: "ACTIVE",
-                  startsAt: slot.startsAt,
-                  endsAt: booking.rentalEndAt,
-                })
-                .returning({ id: capacityAllocations.id });
-              allocationId = created?.id;
-            }
-          }
-        }
-        if (refundReason) {
-          await tx
-            .update(payments)
-            .set({
-              status: "REFUND_PENDING",
-              refundReason,
-              refundAmount: payment.totalAmount,
-              paidAt: now,
-              providerPaymentId: event.referenceCode ?? event.providerEventId,
-              updatedAt: now,
-            })
-            .where(eq(payments.id, payment.id));
-          await tx
-            .update(capacityAllocations)
-            .set({ status: "RELEASED", updatedAt: now })
-            .where(
-              and(
-                eq(capacityAllocations.referenceId, booking.id),
-                eq(capacityAllocations.kind, "HOLD"),
-                eq(capacityAllocations.accessTokenHash, payment.holdTokenHash),
-              ),
-            );
-          await tx
-            .update(paymentProviderEvents)
-            .set({ status: "PROCESSED", paymentId: payment.id, updatedAt: now })
-            .where(eq(paymentProviderEvents.id, existing.id));
-          return { duplicate: false, processed: true, paymentId: payment.id };
-        }
-        if (!allocationId) throw new AppError(PAYMENT_MESSAGES.failedToFinalizePayment, 500);
-        const [confirmed] = await tx
-          .update(bookings)
-          .set({
-            status: "CONFIRMED",
-            bookingCode: bookingCode(),
-            qrTokenHash: hashQrToken(qrTokenForBooking(booking.id)),
-            updatedAt: now,
-          })
-          .where(and(eq(bookings.id, booking.id), eq(bookings.status, "DRAFT")))
-          .returning();
-        if (!confirmed) throw new AppError(PAYMENT_MESSAGES.failedToFinalizePayment, 500);
-        const [paid] = await tx
-          .update(payments)
-          .set({
-            status: "SUCCEEDED",
-            providerPaymentId: event.referenceCode ?? event.providerEventId,
-            paidAt: now,
-            updatedAt: now,
-          })
-          .where(and(eq(payments.id, payment.id), eq(payments.status, "PENDING")))
-          .returning();
-        if (!paid) throw new AppError(PAYMENT_MESSAGES.failedToFinalizePayment, 500);
-        await recordLifecycleEvent(tx, {
-          key: `payment:${paid.id}:confirmed`,
-          type: "PAYMENT_CONFIRMED",
-          bookingId: booking.id,
-          occurredAt: now,
-        });
-        await recordLifecycleEvent(tx, {
-          key: `booking:${booking.id}:confirmed`,
-          type: "BOOKING_CONFIRMED",
-          bookingId: booking.id,
-          managers: true,
-          occurredAt: now,
-        });
-        await tx
-          .update(capacityAllocations)
-          .set({
-            kind: "BOOKING",
-            status: "ACTIVE",
-            accessTokenHash: null,
-            expiresAt: null,
-            updatedAt: now,
-          })
-          .where(eq(capacityAllocations.id, allocationId));
-        await tx
-          .update(paymentProviderEvents)
-          .set({ status: "PROCESSED", paymentId: payment.id, updatedAt: now })
-          .where(eq(paymentProviderEvents.id, existing.id));
-        const [record] = await tx
-          .select(bookingReadFields)
-          .from(bookings)
-          .innerJoin(bookingCustomer, eq(bookingCustomer.id, bookings.userId))
-          .where(eq(bookings.id, booking.id));
-        if (!record) throw new AppError(PAYMENT_MESSAGES.paymentMissingBookingInformation, 500);
-        return {
-          duplicate: false,
-          processed: true,
-          paymentId: paid.id,
-          completed: {
-            payment: paid,
-            booking: record,
-            confirmation: toConfirmation(record, checkout.facility, checkout.unitType),
-          },
-        };
-      },
-      { isolationLevel: "read committed" },
-    );
-  }
-
-  async prepareRentalChargePayment(input: {
-    chargeId: string;
-    userId: string;
-    idempotencyKey: string;
-    paymentCode: string;
-  }) {
-    return this.withChargeRentalLock(input.chargeId, async (tx) => {
-      const [row] = await tx
-        .select({ charge: rentalCharges, userId: bookings.userId })
-        .from(rentalCharges)
-        .innerJoin(rentals, eq(rentals.id, rentalCharges.rentalId))
-        .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
-        .where(eq(rentalCharges.id, input.chargeId))
-        .for("update", { of: rentalCharges });
-      if (!row || row.userId !== input.userId)
-        throw new AppError(PAYMENT_MESSAGES.paymentNotFound, 404);
-      let quoteExpiresAt: Date | undefined;
-      if (row.charge.source === "RENEWAL") {
-        const result = await new RenewalsRepository(this.db).payable(
-          tx,
-          input.chargeId,
-          new Date(),
-        );
-        if ("failure" in result) throw new AppError(RENEWAL_MESSAGES[result.failure], 409);
-        quoteExpiresAt = result.quote.expiresAt;
-      }
-      const [existing] = await tx
-        .select()
-        .from(payments)
-        .where(eq(payments.idempotencyKey, input.idempotencyKey))
-        .for("update");
-      if (existing) {
-        if (existing.rentalChargeId !== input.chargeId || existing.provider !== "sepay")
-          throw new AppError(PAYMENT_MESSAGES.idempotencyKeyUsedForAnotherCheckout, 409);
-        if (
-          existing.status !== "PENDING" ||
-          !existing.expiresAt ||
-          existing.expiresAt <= new Date()
-        )
-          throw new AppError(PAYMENT_MESSAGES.paymentAttemptFinalized, 409);
-        return { payment: existing, expiresAt: existing.expiresAt };
-      }
-      if (row.charge.status !== "OPEN")
-        throw new AppError(PAYMENT_MESSAGES.paymentAttemptFinalized, 409);
-      const now = new Date();
-      await tx
-        .update(payments)
-        .set({ status: "FAILED", updatedAt: now })
-        .where(
-          and(
-            eq(payments.rentalChargeId, input.chargeId),
-            eq(payments.status, "PENDING"),
-            lte(payments.expiresAt, now),
-          ),
-        );
-      const adjustments = await tx
-        .select()
-        .from(rentalChargeAdjustments)
-        .where(eq(rentalChargeAdjustments.chargeId, input.chargeId));
-      const total = adjustments.reduce(
-        (value, adjustment) =>
-          value + (adjustment.direction === "INCREASE" ? 1 : -1) * Number(adjustment.amount),
-        Number(row.charge.amount),
-      );
-      if (!Number.isSafeInteger(total) || total <= 0)
-        throw new AppError(PAYMENT_MESSAGES.paymentAttemptFinalized, 409);
-      const [pending] = await tx
-        .select({ id: payments.id })
-        .from(payments)
-        .where(and(eq(payments.rentalChargeId, input.chargeId), eq(payments.status, "PENDING")))
-        .limit(1);
-      if (pending) throw new AppError(PAYMENT_MESSAGES.paymentPendingReconciliation, 409);
-      const expiresAt = quoteExpiresAt ?? new Date(now.getTime() + 15 * 60_000);
-      const [payment] = await tx
-        .insert(payments)
-        .values({
-          rentalChargeId: input.chargeId,
-          holdTokenHash: null,
-          provider: "sepay",
-          paymentCode: input.paymentCode,
-          providerPaymentId: `pending_${input.paymentCode}`,
-          idempotencyKey: input.idempotencyKey,
-          totalAmount: String(total),
-          currency: "VND",
-          status: "PENDING",
-          expiresAt,
-        })
-        .returning();
-      if (!payment) throw new AppError(PAYMENT_MESSAGES.failedToFinalizePayment, 500);
-      return { payment, expiresAt };
-    });
-  }
-
-  async processRentalChargePaymentEvent(event: VerifiedPaymentEvent) {
-    const [candidate] = await this.db
-      .select()
-      .from(payments)
-      .where(and(eq(payments.provider, "sepay"), eq(payments.paymentCode, event.paymentCode)));
-    if (!candidate?.rentalChargeId) return null;
-    const chargeId = candidate.rentalChargeId;
-    return this.withChargeRentalLock(chargeId, async (tx) => {
-      const [charge] = await tx
-        .select()
-        .from(rentalCharges)
-        .where(eq(rentalCharges.id, chargeId))
-        .for("update");
-      const [payment] = await tx
-        .select()
-        .from(payments)
-        .where(eq(payments.id, candidate.id))
-        .for("update");
-      if (!charge || !payment) throw new AppError(PAYMENT_MESSAGES.paymentNotFound, 404);
-      const [recorded] = await tx
-        .insert(paymentProviderEvents)
-        .values({
-          provider: "sepay",
-          providerEventId: event.providerEventId,
-          paymentId: payment.id,
-          paymentCode: event.paymentCode,
-          amount: event.amount,
-          transferType: event.transferType,
-          referenceCode: event.referenceCode,
-          status: "FAILED",
-          payloadMetadata: event.metadata,
-        })
-        .onConflictDoNothing({
-          target: [paymentProviderEvents.provider, paymentProviderEvents.providerEventId],
-        })
-        .returning();
-      const [existing] = recorded
-        ? [recorded]
-        : await tx
-            .select()
-            .from(paymentProviderEvents)
-            .where(
-              and(
-                eq(paymentProviderEvents.provider, "sepay"),
-                eq(paymentProviderEvents.providerEventId, event.providerEventId),
-              ),
-            )
-            .for("update");
-      if (!existing) throw new AppError(PAYMENT_MESSAGES.failedToFinalizePayment, 500);
-      if (
-        existing.paymentCode !== event.paymentCode ||
-        (existing.paymentId && existing.paymentId !== payment.id)
-      )
-        return { duplicate: true, processed: false, paymentId: payment.id };
-      if (!recorded && existing.status !== "FAILED")
-        return { duplicate: true, processed: false, paymentId: payment.id };
-      const matches =
-        ["PENDING", "FAILED"].includes(payment.status) &&
-        event.successful === true &&
-        event.transferType === "in" &&
-        event.amount === Number(payment.totalAmount) &&
-        event.currency === payment.currency;
-      if (!matches) {
-        await tx
-          .update(paymentProviderEvents)
-          .set({ status: "IGNORED", updatedAt: new Date() })
-          .where(eq(paymentProviderEvents.id, existing.id));
-        return { duplicate: false, processed: false, paymentId: payment.id };
-      }
-      const paidAt = event.paidAt;
-      let applicable = Boolean(
-        paidAt && payment.expiresAt && paidAt <= payment.expiresAt && charge.status === "OPEN",
-      );
-      if (charge.source === "RENEWAL") {
-        const renewals = new RenewalsRepository(this.db);
-        if (applicable && paidAt) {
-          applicable = await renewals.apply(tx, charge.id, payment.id, paidAt);
-        } else {
-          applicable = false;
-          await renewals.rejectCapture(tx, charge.id, payment.id, "expired");
-        }
-      }
-      const [updated] = await tx
-        .update(payments)
-        .set({
-          status: applicable ? "SUCCEEDED" : "REFUND_PENDING",
-          providerPaymentId: event.providerEventId,
-          paidAt: paidAt ?? new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(payments.id, payment.id))
-        .returning();
-      if (applicable && paidAt) {
-        await tx
-          .update(rentalCharges)
-          .set({ status: "PAID", updatedAt: paidAt })
-          .where(eq(rentalCharges.id, charge.id));
-        await tx.insert(rentalChargeEvents).values({
-          chargeId: charge.id,
-          type: "PAID",
-          actorId: null,
-          details: { paymentId: payment.id, paidAt: paidAt.toISOString() },
-        });
-      } else {
-        await tx
-          .update(rentalCharges)
-          .set({ status: "REFUND_DUE", updatedAt: new Date() })
-          .where(eq(rentalCharges.id, charge.id));
-        await tx.insert(rentalChargeRefunds).values({
-          chargeId: charge.id,
-          paymentId: payment.id,
-          amount: payment.totalAmount,
-          reason:
-            charge.source === "RENEWAL"
-              ? RENEWAL_MESSAGES.refundRequired
-              : PAYMENT_MESSAGES.chargeRefundRequired,
-        });
-        await tx.insert(rentalChargeEvents).values({
-          chargeId: charge.id,
-          type: "REFUND_CREATED",
-          actorId: null,
-          details: { paymentId: payment.id, reason: "late_or_closed_payment" },
-        });
-      }
-      await tx
-        .update(paymentProviderEvents)
-        .set({ status: "PROCESSED", paymentId: payment.id, updatedAt: new Date() })
-        .where(eq(paymentProviderEvents.id, existing.id));
-      return { duplicate: false, processed: true, paymentId: updated?.id };
-    });
-  }
-
-  private async withChargeRentalLock<T>(
-    chargeId: string,
-    work: (tx: RenewalTransaction) => Promise<T>,
-  ): Promise<T> {
-    const [charge] = await this.db
-      .select({ rentalId: rentalCharges.rentalId, source: rentalCharges.source })
-      .from(rentalCharges)
-      .where(eq(rentalCharges.id, chargeId));
-    if (charge?.source === "RENEWAL") {
-      // Match lifecycle locking before charge/payment locks; checkout shares the offering lock.
-      return new RentalsRepository(this.db).withLockedRental(charge.rentalId, (tx) => work(tx));
-    }
-    return this.db.transaction(work);
-  }
-
-  async prepareBookingPayment(input: PrepareBookingPaymentInput) {
-    return this.db.transaction(
-      async (tx) => {
-        const [booking] = await tx
-          .select()
-          .from(bookings)
-          .where(and(eq(bookings.id, input.bookingId), eq(bookings.userId, input.userId)))
-          .for("update");
-        if (!booking) throw new AppError(PAYMENT_MESSAGES.bookingUnavailable, 404);
-        if (booking.status !== "DRAFT") throw new AppError(PAYMENT_MESSAGES.bookingNotDraft, 409);
-
-        const [existing] = await tx
-          .select()
-          .from(payments)
-          .where(eq(payments.idempotencyKey, input.idempotencyKey))
-          .for("update");
-        if (existing) {
-          if (existing.bookingId !== booking.id || existing.provider !== "sepay")
-            throw new AppError(PAYMENT_MESSAGES.idempotencyKeyUsedForAnotherCheckout, 409);
-          if (input.contactPhone && booking.contactPhone !== input.contactPhone)
-            throw new AppError(PAYMENT_MESSAGES.bookingCheckoutChanged, 409);
-          if (existing.status !== "PENDING")
-            throw new AppError(PAYMENT_MESSAGES.paymentAttemptFinalized, 409);
-          const [hold] = await tx
-            .select({ expiresAt: capacityAllocations.expiresAt })
-            .from(capacityAllocations)
-            .where(
-              and(
-                eq(capacityAllocations.referenceId, booking.id),
-                eq(capacityAllocations.kind, "HOLD"),
-                eq(capacityAllocations.status, "ACTIVE"),
-                existing.holdTokenHash
-                  ? eq(capacityAllocations.accessTokenHash, existing.holdTokenHash)
-                  : undefined,
-                gt(capacityAllocations.expiresAt, new Date()),
-              ),
-            )
-            .for("update");
-          if (!hold?.expiresAt) throw new AppError(PAYMENT_MESSAGES.holdExpired, 409);
-          return { payment: existing, expiresAt: hold.expiresAt };
-        }
-
-        const [pending] = await tx
-          .select({ id: payments.id })
-          .from(payments)
-          .where(
-            and(
-              eq(payments.bookingId, booking.id),
-              inArray(payments.status, ["PENDING", "REFUND_PENDING"]),
-            ),
-          )
-          .limit(1);
-        // A pending transfer may still arrive after hold expiry. Do not create another charge.
-        if (pending) throw new AppError(PAYMENT_MESSAGES.paymentPendingReconciliation, 409);
-        if (booking.checkInDate <= bookingLocalDate())
-          throw new AppError(PAYMENT_MESSAGES.checkInTomorrow, 409);
-
-        // Every booking checkout for this facility/type locks the same row before counting
-        // allocations. READ COMMITTED sees the preceding checkout's committed hold.
-        const [offering] = await tx
-          .select({
-            active: unitTypes.isActive,
-            facilityActive: facilities.isActive,
-            typeActive: unitTypes.isActive,
-          })
-          .from(unitTypes)
-          .innerJoin(facilities, eq(facilities.id, unitTypes.facilityId))
-          .where(
-            and(eq(unitTypes.facilityId, booking.facilityId), eq(unitTypes.id, booking.unitTypeId)),
-          )
-          .for("update");
-        if (!offering?.active || !offering.facilityActive || !offering.typeActive)
-          throw new AppError(PAYMENT_MESSAGES.bookingOfferingUnavailable, 409);
-        const now = new Date();
-        const slot = await new CheckInSlotsRepository(tx).findByIdForDate(
-          booking.checkInSlotId,
-          booking.checkInDate,
-        );
-        if (
-          !slot ||
-          slot.startsAt <= now ||
-          slot.endsAt <= slot.startsAt ||
-          booking.rentalEndAt <= slot.startsAt
-        )
-          throw new AppError(PAYMENT_MESSAGES.bookingScheduleUnavailable, 409);
-        const available = await new StorageUnitsRepository(tx).getAvailableCapacity(
-          booking.facilityId,
-          booking.unitTypeId,
-          slot.startsAt,
-          booking.rentalEndAt,
-        );
-        if (available <= 0) throw new AppError(PAYMENT_MESSAGES.bookingCapacityUnavailable, 409);
-
-        const [customer] = await tx
-          .select({ phone: bookingCustomer.phone })
-          .from(bookingCustomer)
-          .where(eq(bookingCustomer.id, input.userId));
-        const contactPhone = input.contactPhone ?? customer?.phone;
-        if (!contactPhone || !/^(?:\+[1-9]\d{7,14}|0\d{9})$/.test(contactPhone))
-          throw new AppError(PAYMENT_MESSAGES.bookingPhoneRequired, 400, "BOOKING_PHONE_REQUIRED");
-        const expiresAt = new Date(now.getTime() + input.holdDurationMs);
-        await tx.insert(capacityAllocations).values({
-          referenceId: booking.id,
-          facilityId: booking.facilityId,
-          unitTypeId: booking.unitTypeId,
-          kind: "HOLD",
-          status: "ACTIVE",
-          accessTokenHash: input.holdTokenHash,
-          startsAt: slot.startsAt,
-          endsAt: booking.rentalEndAt,
-          expiresAt,
-        });
-        await tx
-          .update(bookings)
-          .set({
-            contactPhone,
-            updatedAt: now,
-          })
-          .where(eq(bookings.id, booking.id));
-        const [payment] = await tx
-          .insert(payments)
-          .values({
-            bookingId: booking.id,
-            holdTokenHash: input.holdTokenHash,
-            provider: "sepay",
-            paymentCode: input.paymentCode,
-            providerPaymentId: `pending_${input.paymentCode}`,
-            idempotencyKey: input.idempotencyKey,
-            totalAmount: booking.totalAmount,
-            currency: "VND",
-            status: "PENDING",
-          })
-          .onConflictDoNothing({ target: payments.idempotencyKey })
-          .returning();
-        if (!payment)
-          throw new AppError(PAYMENT_MESSAGES.idempotencyKeyUsedForAnotherCheckout, 409);
-        return { payment, expiresAt };
-      },
-      { isolationLevel: "read committed" },
-    );
-  }
-
   async listManualRefunds(query: ManualRefundQuery) {
     return this.db
       .select({
         paymentId: payments.id,
-        bookingId: payments.bookingId,
+        type: payments.type,
+        bookingId: sql<string | null>`coalesce(${payments.bookingId}, ${rentals.bookingId})`,
+        reservationId: sql<
+          string | null
+        >`coalesce(${payments.reservationId}, ${rentals.reservationId})`,
         amount: sql<string>`coalesce(${payments.refundAmount}, ${payments.totalAmount})`,
         depositForfeitedAmount: payments.depositForfeitedAmount,
         currency: payments.currency,
@@ -801,13 +252,33 @@ export class PaymentsRepository {
         paidAt: payments.paidAt,
         contactName: bookingCustomer.name,
         contactEmail: bookingCustomer.email,
-        contactPhone: bookings.contactPhone,
+        contactPhone: sql<
+          string | null
+        >`coalesce(${bookings.contactPhone}, ${bookingCustomer.phone})`,
       })
       .from(payments)
-      .leftJoin(bookings, eq(bookings.id, payments.bookingId))
-      .leftJoin(bookingCustomer, eq(bookingCustomer.id, bookings.userId))
+      .leftJoin(rentalRenewals, eq(rentalRenewals.id, payments.renewalId))
+      .leftJoin(
+        rentals,
+        or(eq(rentals.id, payments.rentalId), eq(rentals.id, rentalRenewals.rentalId)),
+      )
+      .leftJoin(
+        bookings,
+        eq(bookings.id, sql`coalesce(${payments.bookingId}, ${rentals.bookingId})`),
+      )
+      .leftJoin(
+        reservations,
+        eq(reservations.id, sql`coalesce(${payments.reservationId}, ${rentals.reservationId})`),
+      )
+      .leftJoin(
+        bookingCustomer,
+        eq(
+          bookingCustomer.id,
+          sql`coalesce(${bookings.userId}, ${reservations.customerId}, ${rentals.userId})`,
+        ),
+      )
       .where(eq(payments.status, "REFUND_PENDING"))
-      .orderBy(desc(payments.paidAt), payments.id)
+      .orderBy(desc(sql`coalesce(${payments.paidAt}, ${payments.createdAt})`), payments.id)
       .limit(query.limit)
       .offset(query.offset);
   }
@@ -849,32 +320,6 @@ export class PaymentsRepository {
     });
   }
 
-  async findCompletedByPaymentId(paymentId: string) {
-    return this.findCompleted(eq(payments.id, paymentId));
-  }
-
-  private async findCompleted(condition: SQL | undefined) {
-    const [result] = await this.db
-      .select({
-        payment: payments,
-        booking: bookingReadFields,
-        facility: facilities,
-        unitType: unitTypes,
-      })
-      .from(payments)
-      .innerJoin(bookings, eq(bookings.id, payments.bookingId))
-      .innerJoin(bookingCustomer, eq(bookingCustomer.id, bookings.userId))
-      .innerJoin(facilities, eq(facilities.id, bookings.facilityId))
-      .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
-      .where(condition);
-    return result
-      ? {
-          ...result,
-          confirmation: toConfirmation(result.booking, result.facility, result.unitType),
-        }
-      : undefined;
-  }
-
   async findPendingByPaymentCode(paymentCode: string) {
     const [payment] = await this.db
       .select()
@@ -894,26 +339,19 @@ export class PaymentsRepository {
       .select({ payment: payments })
       .from(payments)
       .leftJoin(bookings, eq(bookings.id, payments.bookingId))
+      .leftJoin(reservations, eq(reservations.id, payments.reservationId))
+      .leftJoin(rentalRenewals, eq(rentalRenewals.id, payments.renewalId))
+      .leftJoin(
+        rentals,
+        or(eq(rentals.id, rentalRenewals.rentalId), eq(rentals.id, payments.rentalId)),
+      )
       .where(
         and(
           eq(payments.id, paymentId),
           or(
-            access.userId ? eq(bookings.userId, access.userId) : undefined,
-            access.userId
-              ? exists(
-                  this.db
-                    .select({ id: rentals.id })
-                    .from(rentalCharges)
-                    .innerJoin(rentals, eq(rentals.id, rentalCharges.rentalId))
-                    .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
-                    .where(
-                      and(
-                        eq(rentalCharges.id, payments.rentalChargeId),
-                        eq(bookings.userId, access.userId),
-                      ),
-                    ),
-                )
-              : undefined,
+            eq(bookings.userId, access.userId),
+            eq(reservations.customerId, access.userId),
+            eq(rentals.userId, access.userId),
           ),
         ),
       );
@@ -921,13 +359,14 @@ export class PaymentsRepository {
   }
 
   async findActiveHoldForPayment(payment: typeof payments.$inferSelect) {
-    if (!payment.holdTokenHash || !payment.bookingId) return null;
+    const referenceId = payment.bookingId ?? payment.reservationId ?? payment.renewalId;
+    if (!payment.holdTokenHash || !referenceId) return null;
     const [hold] = await this.db
       .select({ id: capacityAllocations.id, expiresAt: capacityAllocations.expiresAt })
       .from(capacityAllocations)
       .where(
         and(
-          eq(capacityAllocations.referenceId, payment.bookingId),
+          eq(capacityAllocations.referenceId, referenceId),
           eq(capacityAllocations.kind, "HOLD"),
           eq(capacityAllocations.status, "ACTIVE"),
           eq(capacityAllocations.accessTokenHash, payment.holdTokenHash),

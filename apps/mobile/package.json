@@ -10,13 +10,15 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "biome check .",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "test": "bun test tests"
   },
   "dependencies": {
     "@better-auth/expo": "1.7.5",
     "@hookform/resolvers": "^5.2.2",
     "@metastorage/api-client": "workspace:*",
     "@metastorage/contracts": "workspace:*",
+    "@metastorage/database": "workspace:*",
     "@metastorage/shared": "workspace:*",
     "@tanstack/react-query": "^5.90.2",
     "axios": "^1.12.2",
@@ -27,7 +29,6 @@
     "expo-file-system": "~57.0.7",
     "expo-image-picker": "~57.0.20",
     "expo-linking": "~57.0.11",
-    "expo-network": "~57.0.2",
     "expo-secure-store": "~57.0.4",
     "expo-sharing": "~57.0.24",
     "expo-status-bar": "~57.0.1",

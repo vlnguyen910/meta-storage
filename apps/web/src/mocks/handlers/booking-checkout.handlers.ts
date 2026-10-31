@@ -156,6 +156,7 @@ export function registerBookingCheckoutHandlers(mock: MockAdapter) {
     db.holds = db.holds.filter((h) => h.draftId !== d.id);
     saveMockDatabase(db);
     entry.status = {
+      type: "CHARGE",
       paymentId: entry.payment.paymentId,
       status: "SUCCEEDED",
       provider: "sepay",

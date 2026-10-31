@@ -1,5 +1,5 @@
-export type StorageHubTab = "rentals" | "reservations";
-export type StorageRentalView = "current" | "history";
+export type StorageHubTab = "rentals" | "reservations" | "appointments";
+export type StorageRentalView = "all" | "current" | "history";
 
 export interface CustomerStorageHubProps {
   defaultTab?: StorageHubTab;

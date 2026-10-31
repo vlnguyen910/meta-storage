@@ -1,4 +1,5 @@
-import { type DashboardSummary, StorageUnitStatus, UserRole } from "@metastorage/contracts";
+import { type DashboardSummary, StorageUnitStatus } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { businessOperationsDashboard } from "../seeds/dashboards/business-operations.dashboard";
 import { facilityManagerDashboard } from "../seeds/dashboards/facility-manager.dashboard";
 import { facilityStaffDashboard } from "../seeds/dashboards/facility-staff.dashboard";

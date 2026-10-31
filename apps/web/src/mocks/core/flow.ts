@@ -2,9 +2,10 @@ import {
   type BookingListItem,
   type CheckInLookupResult,
   PaymentStatus,
-  UserRole,
+  SYSTEM_SETTING_DEFINITIONS,
 } from "@metastorage/contracts";
-import type { MockDatabase, MockUser } from "../types";
+import { UserRole } from "@metastorage/database/schema/user-enums";
+import type { MockUser } from "../types";
 export function canReadBooking(user: MockUser | null, booking: BookingListItem): boolean {
   return Boolean(
     user?.assignedFacilityIds.includes(booking.facilityId) &&
@@ -18,19 +19,32 @@ export function canManageBooking(user: MockUser | null, booking: BookingListItem
       user.assignedFacilityIds.includes(booking.facilityId),
   );
 }
-export function lookupResult(db: MockDatabase, booking: BookingListItem): CheckInLookupResult {
-  const graceEndsAt = booking.checkInSlotEnd
-    ? new Date(Date.parse(booking.checkInSlotEnd) + 7200000).toISOString()
+export function lookupResult(booking: BookingListItem): CheckInLookupResult {
+  const localDate = booking.checkInSlotStart
+    ? new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).format(
+        new Date(booking.checkInSlotStart),
+      )
     : null;
-  const reasons: CheckInLookupResult["eligibility"]["reasons"] = [];
+  const checkInDeadlineAt = localDate
+    ? new Date(
+        `${localDate}T${String(SYSTEM_SETTING_DEFINITIONS.CLOSING_HOUR.defaultValue).padStart(2, "0")}:00:00+07:00`,
+      ).toISOString()
+    : null;
+  const checkInOpensAt = localDate
+    ? new Date(
+        `${localDate}T${String(SYSTEM_SETTING_DEFINITIONS.OPENING_HOUR.defaultValue).padStart(2, "0")}:00:00+07:00`,
+      ).getTime()
+    : null;
+  const reasons: CheckInLookupResult["checkInReadiness"]["reasons"] = [];
   if (booking.status !== "CONFIRMED") reasons.push("INVALID_BOOKING_STATUS");
+  if (!booking.paidAt) reasons.push("PAYMENT_NOT_SUCCEEDED");
   if (!booking.assignedUnit) reasons.push("UNIT_NOT_ASSIGNED");
-  if (!graceEndsAt) reasons.push("CHECKIN_SLOT_NOT_CONFIGURED");
-  else if (Date.now() < Date.parse(booking.checkInSlotStart)) reasons.push("TOO_EARLY");
-  else if (Date.now() > Date.parse(graceEndsAt)) reasons.push("DEADLINE_PASSED");
+  if (!checkInDeadlineAt) reasons.push("CHECKIN_SLOT_NOT_CONFIGURED");
+  else if (checkInOpensAt !== null && Date.now() < checkInOpensAt) reasons.push("TOO_EARLY");
+  else if (Date.now() >= Date.parse(checkInDeadlineAt)) reasons.push("DEADLINE_PASSED");
   const rate = booking.totalAmount / (booking.requestedMonths + 1);
   return {
-    booking: { ...booking, graceEndsAt },
+    booking: { ...booking, checkInDeadlineAt },
     payment: {
       status: booking.paidAt ? PaymentStatus.SUCCEEDED : null,
       paidAt: booking.paidAt,
@@ -40,25 +54,9 @@ export function lookupResult(db: MockDatabase, booking: BookingListItem): CheckI
       currency: "VND",
     },
     assignedUnit: booking.assignedUnit ?? null,
-    eligibility: {
+    checkInReadiness: {
       canProceed: reasons.length === 0 && Boolean(booking.paidAt && booking.assignedStaff),
       reasons,
     },
-    verification:
-      db.verifications.find(
-        (v) =>
-          v.bookingId === booking.id &&
-          v.status !== "INVALIDATED" &&
-          v.unitAssignmentId === booking.assignedUnit?.id,
-      ) ?? null,
   };
-}
-export function invalidateVerification(db: MockDatabase, booking: BookingListItem): void {
-  for (const v of db.verifications.filter(
-    (v) => v.bookingId === booking.id && v.status === "VERIFIED",
-  )) {
-    v.status = "INVALIDATED";
-    v.invalidatedAt = new Date().toISOString();
-    v.invalidatedReason = "ASSIGNMENT_CHANGED";
-  }
 }

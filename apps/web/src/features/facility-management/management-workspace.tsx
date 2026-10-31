@@ -12,6 +12,7 @@ import {
   createFacilityBodySchema,
   type FacilityUnitTypeDto,
 } from "@metastorage/contracts";
+import { formatReference } from "@metastorage/shared";
 import { Layers, Pencil, Plus, Search, UserMinus, UserPlus, Warehouse } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -43,9 +44,7 @@ import {
   useFacilityOptions,
   useManagedTypes,
   useMemberships,
-  useOfferings,
   useRevokeMember,
-  useSetOffering,
   useUpdateFacility,
   useUpdateType,
 } from "./hooks";
@@ -158,7 +157,7 @@ export function FacilityManagementWorkspace({ membershipsOnly = false }: Managem
               facilityId={scope.facilityId}
               facilityOptions={scope.query.data}
               onSelectFacility={scope.select}
-              canEdit={!membershipsOnly}
+              canEdit={false}
             />
           </div>
         )}
@@ -394,8 +393,9 @@ function FacilityListTable({
 /* =========================================================================
    TAB 2: DANH MỤC LOẠI KHO (Type Catalog Table có Paging & Filter)
    ========================================================================= */
-function TypeCatalogTable() {
-  const query = useManagedTypes();
+export function TypeCatalogTable({ facilityId }: { facilityId?: string } = {}) {
+  const canEdit = useAuthStore((state) => state.session?.user.role === "FACILITY_MANAGER");
+  const query = useManagedTypes(facilityId);
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -486,15 +486,17 @@ function TypeCatalogTable() {
           />
         </div>
 
-        <Button
-          type="button"
-          variant="primary"
-          onClick={() => setEditing("new")}
-          className="h-10 px-4 text-xs font-semibold gap-2 shadow-xs shrink-0"
-        >
-          <Plus className="size-4" />
-          <span>{F5.newType}</span>
-        </Button>
+        {canEdit && (
+          <Button
+            type="button"
+            variant="primary"
+            onClick={() => setEditing("new")}
+            className="h-10 px-4 text-xs font-semibold gap-2 shadow-xs shrink-0"
+          >
+            <Plus className="size-4" />
+            <span>{F5.newType}</span>
+          </Button>
+        )}
       </div>
 
       {/* Table container */}
@@ -551,30 +553,34 @@ function TypeCatalogTable() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setEditing(item)}
-                        className="h-8 min-h-8 px-2.5 text-xs gap-1 border-slate-200 text-slate-700 hover:text-primary"
-                      >
-                        <Pencil className="size-3.5" />
-                        <span>{F5.edit}</span>
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setToggling(item)}
-                        className={cn(
-                          "h-8 min-h-8 px-2.5 text-xs border-slate-200",
-                          item.isActive
-                            ? "text-amber-700 hover:bg-amber-50"
-                            : "text-emerald-700 hover:bg-emerald-50",
-                        )}
-                      >
-                        {item.isActive ? F5.deactivate : F5.activate}
-                      </Button>
-                    </div>
+                    {canEdit ? (
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setEditing(item)}
+                          className="h-8 min-h-8 px-2.5 text-xs gap-1 border-slate-200 text-slate-700 hover:text-primary"
+                        >
+                          <Pencil className="size-3.5" />
+                          <span>{F5.edit}</span>
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setToggling(item)}
+                          className={cn(
+                            "h-8 min-h-8 px-2.5 text-xs border-slate-200",
+                            item.isActive
+                              ? "text-amber-700 hover:bg-amber-50"
+                              : "text-emerald-700 hover:bg-emerald-50",
+                          )}
+                        >
+                          {item.isActive ? F5.deactivate : F5.activate}
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted">{F5.readOnly}</span>
+                    )}
                   </TableCell>
                 </TableRow>
               ))
@@ -592,13 +598,16 @@ function TypeCatalogTable() {
         onPageChange={setPage}
       />
 
-      {editing && (
+      {canEdit && editing && (
         <TypeEditor
           type={editing === "new" ? undefined : editing}
+          facilityId={facilityId}
           onClose={() => setEditing(null)}
         />
       )}
-      {toggling && <TypeStatusEditor type={toggling} onClose={() => setToggling(null)} />}
+      {canEdit && toggling && (
+        <TypeStatusEditor type={toggling} onClose={() => setToggling(null)} />
+      )}
     </div>
   );
 }
@@ -615,23 +624,20 @@ function FacilityOfferingsTable({
   facilityOptions: Array<{ id: string; name: string; code: string }>;
   onSelectFacility: (id: string) => void;
 }) {
-  const types = useManagedTypes();
-  const offerings = useOfferings(facilityId);
-  const mutation = useSetOffering(facilityId);
+  const types = useManagedTypes(facilityId);
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [offeringFilter, setOfferingFilter] = useState("ALL");
   const [page, setPage] = useState(1);
 
   const typesList = types.data ?? [];
-  const offeringsList = offerings.data ?? [];
 
   const combinedItems = useMemo(() => {
     return typesList.map((type) => {
-      const active = offeringsList.some((row) => row.unitTypeId === type.id && row.isActive);
+      const active = type.isActive;
       return { type, active };
     });
-  }, [typesList, offeringsList]);
+  }, [typesList]);
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -658,14 +664,13 @@ function FacilityOfferingsTable({
     return filtered.slice(start, start + PAGE_SIZE);
   }, [filtered, currentPage]);
 
-  if (types.isPending || offerings.isPending) return <LoadingState variant="table" />;
-  if (types.isError || offerings.isError) {
+  if (types.isPending) return <LoadingState variant="table" />;
+  if (types.isError) {
     return (
       <ErrorState
         message={F5.loadError}
         onRetry={() => {
           void types.refetch();
-          void offerings.refetch();
         }}
       />
     );
@@ -739,15 +744,6 @@ function FacilityOfferingsTable({
         </div>
       </div>
 
-      {mutation.isError && (
-        <div
-          role="alert"
-          className="p-3 bg-red-50 text-danger border border-red-200 rounded-xl text-xs font-semibold shrink-0"
-        >
-          {managementError(mutation.error)}
-        </div>
-      )}
-
       {/* Table container */}
       <div className="flex-1 overflow-y-auto min-h-0 border border-slate-200/90 rounded-xl bg-white shadow-xs">
         <Table>
@@ -810,15 +806,7 @@ function FacilityOfferingsTable({
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      type="button"
-                      variant={active ? "outline" : "primary"}
-                      disabled={mutation.isPending || (!active && !type.isActive)}
-                      onClick={() => mutation.mutate({ unitTypeId: type.id, isActive: !active })}
-                      className="h-8 min-h-8 px-3 text-xs"
-                    >
-                      {active ? F5.disable : F5.enable}
-                    </Button>
+                    <span className="text-xs text-muted">{F5.readOnly}</span>
                   </TableCell>
                 </TableRow>
               ))
@@ -1031,7 +1019,7 @@ function FacilityMembershipsTable({
                         </Avatar>
                         <div>
                           <strong className="block text-sm text-slate-900">
-                            {item.userName ?? item.userId}
+                            {item.userName ?? formatReference(item.userId, "NV")}
                           </strong>
                           <small className="text-xs text-slate-400 font-mono">
                             {item.userId.slice(0, 8)}
@@ -1279,15 +1267,23 @@ function FacilityEditor({
   );
 }
 
-function TypeEditor({ type, onClose }: { type?: FacilityUnitTypeDto; onClose: () => void }) {
+function TypeEditor({
+  type,
+  facilityId,
+  onClose,
+}: {
+  type?: FacilityUnitTypeDto;
+  facilityId?: string;
+  onClose: () => void;
+}) {
   const create = useCreateType();
   const update = useUpdateType(type?.id ?? "");
   const mutation = type ? update : create;
   const form = useForm<CreateUnitTypeInput>({
     resolver: zodResolver(CreateUnitTypeSchema),
     defaultValues: {
-      facilityId: type?.facilityId ?? "",
-      priceRangeId: type?.priceRangeId ?? "",
+      facilityId: type?.facilityId ?? facilityId ?? "",
+
       code: type?.code ?? "",
       name: type?.name ?? "",
       sizeLabel: type?.sizeLabel ?? "",
@@ -1310,7 +1306,7 @@ function TypeEditor({ type, onClose }: { type?: FacilityUnitTypeDto; onClose: ()
         onSubmit={form.handleSubmit(async (input) => {
           try {
             if (type) {
-              const { monthlyPrice: _price, facilityId: _facility, ...metadata } = input;
+              const { facilityId: _facility, ...metadata } = input;
               await update.mutateAsync({ ...metadata, expectedVersion: type.version });
             } else {
               await create.mutateAsync(input);
@@ -1346,24 +1342,18 @@ function TypeEditor({ type, onClose }: { type?: FacilityUnitTypeDto; onClose: ()
             </ManagementField>
           ))}
         </div>
-        {!type ? (
-          <ManagementField
-            label={F5.initialPrice}
-            error={form.formState.errors.monthlyPrice?.message}
-          >
-            <Input
-              type="number"
-              min="0"
-              step="1"
-              placeholder="VND / tháng"
-              {...form.register("monthlyPrice", { valueAsNumber: true })}
-            />
-          </ManagementField>
-        ) : (
-          <p className="text-xs text-slate-500 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-            {F5.pricingHint}
-          </p>
-        )}
+        <ManagementField
+          label={F5.initialPrice}
+          error={form.formState.errors.monthlyPrice?.message}
+        >
+          <Input
+            type="number"
+            min="0"
+            step="1"
+            placeholder="VND / tháng"
+            {...form.register("monthlyPrice", { valueAsNumber: true })}
+          />
+        </ManagementField>
         {mutation.isError && (
           <p role="alert" className="text-xs font-semibold text-danger">
             {managementError(mutation.error)}
@@ -1443,7 +1433,7 @@ function MembershipRevoke({
   return (
     <ManagementDialog
       pending={mutation.isPending}
-      title={F5.confirmRevoke(assignment.userName ?? assignment.userId)}
+      title={F5.confirmRevoke(assignment.userName ?? formatReference(assignment.userId, "NV"))}
       onClose={onClose}
     >
       <div className="grid gap-4">

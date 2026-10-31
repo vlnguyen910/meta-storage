@@ -11,12 +11,11 @@
     "./facility-tasks": "./src/facility-tasks.ts",
     "./users": "./src/users.ts",
     "./payments": "./src/payments.ts",
-    "./rental-charges": "./src/rental-charges.ts",
-    "./renewals": "./src/renewals.ts",
     "./pricing": "./src/pricing.ts",
-    "./returns": "./src/returns.ts",
     "./system-settings": "./src/system-settings.ts",
     "./rental-documents": "./src/rental-documents.ts",
+    "./appointments": "./src/appointments.ts",
+    "./reservations": "./src/reservations.ts",
     "./lifecycle-notifications": "./src/lifecycle-notifications.ts"
   },
   "scripts": {

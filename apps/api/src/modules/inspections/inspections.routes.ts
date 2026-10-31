@@ -1,16 +1,18 @@
 import {
+  ConfirmInspectionHandoverInputSchema,
   CreateInspectionInputSchema,
   InspectionListQuerySchema,
   UpdateInspectionInputSchema,
-  UserRole,
+  UpdatePolicyViolationFeeCatalogSchema,
 } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
+import { createAppointmentsService } from "../appointments/appointments.service";
 import { requireRole } from "../auth/auth.guard";
-import { BookingsRepository } from "../bookings/bookings.repository";
 import { FacilitiesRepository } from "../facilities/facilities.repository";
 import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
 import { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
@@ -18,6 +20,10 @@ import { FacilityTasksRepository } from "../facility-tasks/facility-tasks.reposi
 import { MediaAssetsRepository } from "../media-assets/media-assets.repository";
 import { MediaAssetsService } from "../media-assets/media-assets.service";
 import { RentalsRepository } from "../rentals/rentals.repository";
+import { RentalsService } from "../rentals/rentals.service";
+import { createReservationsService } from "../reservations/reservations.service";
+import { StorageUnitsRepository } from "../storage-units/storage-units.repository";
+import { StorageUnitsService } from "../storage-units/storage-units.service";
 import { INSPECTIONS_API_MESSAGES as m } from "./inspections.messages";
 import { InspectionsRepository } from "./inspections.repository";
 import { InspectionsService } from "./inspections.service";
@@ -35,11 +41,59 @@ export const inspectionsRoutes: FastifyPluginAsync = async (app) => {
   const media = new MediaAssetsService(new MediaAssetsRepository(app.db));
   const service = new InspectionsService(
     new InspectionsRepository(app.db),
-    new BookingsRepository(app.db),
     tasks,
-    new RentalsRepository(app.db),
+    new RentalsService(new RentalsRepository(app.db), assignments),
+    new StorageUnitsService(new StorageUnitsRepository(app.db)),
     assignments,
     media,
+    createAppointmentsService(app.db),
+    createReservationsService(app.db),
+  );
+
+  typed.get(
+    "/policy-violation-fees",
+    { preHandler: [requireRole(UserRole.BUSINESS_OPERATIONS_MANAGER)] },
+    async (request) => {
+      const user = request.user;
+      if (!user) throw new UnauthorizedError();
+      return successResponse(
+        await service.getPolicyCatalog({ id: user.id, role: user.role as UserRole }),
+      );
+    },
+  );
+  typed.put(
+    "/policy-violation-fees",
+    {
+      preHandler: [requireRole(UserRole.BUSINESS_OPERATIONS_MANAGER)],
+      schema: { body: UpdatePolicyViolationFeeCatalogSchema },
+    },
+    async (request) => {
+      const user = request.user;
+      if (!user) throw new UnauthorizedError();
+      return successResponse(
+        await service.updatePolicyCatalog(
+          { id: user.id, role: user.role as UserRole },
+          request.body,
+        ),
+      );
+    },
+  );
+
+  typed.get(
+    "/inspections/appointments/:appointmentId",
+    {
+      preHandler: [requireRole(UserRole.FACILITY_STAFF, UserRole.FACILITY_MANAGER)],
+      schema: { tags: ["Inspections"], params: z.object({ appointmentId: z.uuid() }) },
+    },
+    async (request) => {
+      if (!request.user) throw new UnauthorizedError();
+      return successResponse(
+        await service.historyForAppointment(request.params.appointmentId, {
+          id: request.user.id,
+          role: request.user.role as UserRole,
+        }),
+      );
+    },
   );
 
   typed.get(
@@ -137,6 +191,26 @@ export const inspectionsRoutes: FastifyPluginAsync = async (app) => {
           id: user.id,
           role: user.role as UserRole,
         }),
+      );
+    },
+  );
+
+  typed.post(
+    "/inspections/:id/handover",
+    {
+      preHandler: [requireRole(UserRole.FACILITY_STAFF)],
+      schema: {
+        tags: ["Inspections"],
+        summary: m.handoverSummary,
+        params: inspectionParams,
+        body: ConfirmInspectionHandoverInputSchema,
+      },
+    },
+    async (request) => {
+      const user = request.user;
+      if (!user) throw new UnauthorizedError();
+      return successResponse(
+        await service.handover(request.params.id, { id: user.id, role: user.role as UserRole }),
       );
     },
   );

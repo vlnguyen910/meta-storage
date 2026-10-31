@@ -1,6 +1,5 @@
-import type { PaymentStatus } from "./payments";
-import type { RentalRenewalDto } from "./renewals.types";
-import type { RentalListItem } from "./rentals";
+import type { PaymentStatus, PaymentType } from "./payments";
+import type { RentalListItem, ReturnSettlement } from "./rentals";
 
 export interface RentalPageCursor {
   afterEndAt: string;
@@ -12,11 +11,46 @@ export interface RentalPage {
   nextCursor: RentalPageCursor | null;
 }
 
-/** Stored checkout/refund facts. Pending payments are not collected revenue. */
-export interface RentalPaymentItem {
-  chargeId?: string | null;
-  source?: "BOOKING" | "RENEWAL" | "EXTRA" | "RETURN_DEBT";
+export interface RentalRenewalDto {
   id: string;
+  rentalId: string;
+  status: "QUOTED" | "PENDING_PAYMENT" | "APPLIED" | "REFUND_REQUIRED" | "EXPIRED";
+  months: number;
+  oldEndAt: string;
+  newEndAt: string;
+  monthlyRateSnapshot: string;
+  amount: string;
+  currency: "VND";
+  cutoffAt: string;
+  expiresAt: string;
+  createdAt: string;
+  appliedAt: string | null;
+  failureReason: string | null;
+  paymentId: string | null;
+}
+
+export interface RentalRenewalPage {
+  items: RentalRenewalDto[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface RentalRenewalPaymentSession {
+  renewalId: string;
+  paymentId: string;
+  provider: "sepay";
+  status: "PENDING";
+  paymentCode: string;
+  checkoutUrl: string;
+  checkoutFormFields: Record<string, string | number>;
+  expiresAt: string;
+}
+
+/** Booking payments associated with a rental. */
+export interface RentalPaymentItem {
+  id: string;
+  type: PaymentType;
   paymentCode: string | null;
   provider: string | null;
   status: PaymentStatus;
@@ -27,26 +61,17 @@ export interface RentalPaymentItem {
   refundReason: string | null;
   refundedAt: string | null;
   createdAt: string;
-  /** Completed return transfers; distinct from checkout cancellation refunds. */
-  returnRefunds: RentalReturnRefundItem[];
-  chargeRefunds?: RentalChargeRefundTransfer[];
-}
-
-export interface RentalReturnRefundItem {
-  id: string;
-  amount: string;
-  reference: string;
-  confirmedAt: string;
-  settlementId: string;
 }
 
 export interface FacilityRentalItem {
+  settlement?: ReturnSettlement | null;
   id: string;
-  bookingId: string;
+  bookingId: string | null;
+  reservationId?: string | null;
+  userId: string;
   bookingCode: string | null;
   facilityId: string;
   status: string;
-  version: number;
   customer: {
     userId: string | null;
     name: string | null;
@@ -55,18 +80,8 @@ export interface FacilityRentalItem {
   };
   unit: { id: string; code: string; unitTypeId: string; unitTypeName: string; sizeLabel: string };
   startAt: string;
-  expectedEndAt: string;
-  actualReturnAt: string | null;
+  endAt: string;
   closedAt: string | null;
-  abandonedReviewAt: string | null;
-  depositAmount: string;
-  initialPayment: {
-    id: string;
-    status: PaymentStatus;
-    amount: string;
-    currency: string;
-    paidAt: string | null;
-  } | null;
 }
 
 export interface FacilityRentalPage {
@@ -78,9 +93,8 @@ export interface FacilityRentalPage {
 
 export interface FacilityRentalPaymentItem {
   id: string;
+  type: PaymentType;
   paymentCode: string | null;
-  chargeId: string | null;
-  source: "BOOKING" | "EXTRA" | "RETURN_DEBT" | "RENEWAL";
   status: PaymentStatus;
   amount: string;
   currency: string;
@@ -89,13 +103,6 @@ export interface FacilityRentalPaymentItem {
   refundReason: string | null;
   refundedAt: string | null;
   createdAt: string;
-  confirmedRefunds: {
-    id: string;
-    source: "RETURN" | "CHARGE";
-    amount: string;
-    reference: string | null;
-    confirmedAt: string;
-  }[];
 }
 
 export interface FacilityRentalPaymentPage {
@@ -104,17 +111,3 @@ export interface FacilityRentalPaymentPage {
   limit: number;
   offset: number;
 }
-
-export interface FacilityRentalRenewalPage {
-  items: RentalRenewalDto[];
-  total: number;
-  limit: number;
-  offset: number;
-}
-
-export type RentalChargeRefundTransfer = {
-  id: string;
-  amount: string;
-  reference: string | null;
-  confirmedAt: string;
-};

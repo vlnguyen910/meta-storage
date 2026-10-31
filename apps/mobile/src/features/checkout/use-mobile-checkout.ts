@@ -97,7 +97,7 @@ export function useMobileCheckout({ route, data, run, go }: MobileScreenProps) {
     create: form.handleSubmit((input) =>
       run(
         async () => {
-          const d = await mobileApi.reservations.createDraft({
+          const d = await mobileApi.legacyReservations.createDraft({
             facilityId: facilityId ?? "",
             unitTypeId: selected,
             checkInAt: localDateTime(input.date, input.time),
@@ -108,7 +108,7 @@ export function useMobileCheckout({ route, data, run, go }: MobileScreenProps) {
               phone: input.phone.startsWith("0") ? `+84${input.phone.slice(1)}` : input.phone,
             },
           });
-          await mobileApi.reservations.createHold(d.id, d.draftAccessToken);
+          await mobileApi.legacyReservations.createHold(d.id, d.draftAccessToken);
           return d;
         },
         (d) => go("M-CK03", d.id),
@@ -117,7 +117,7 @@ export function useMobileCheckout({ route, data, run, go }: MobileScreenProps) {
     renew: () =>
       draft
         ? run(
-            () => mobileApi.reservations.createHold(draft.id, draft.draftAccessToken),
+            () => mobileApi.legacyReservations.createHold(draft.id, draft.draftAccessToken),
             () => go("M-CK03", draft.id),
           )
         : undefined,
@@ -125,7 +125,7 @@ export function useMobileCheckout({ route, data, run, go }: MobileScreenProps) {
       draft?.hold
         ? run(
             () =>
-              mobileApi.reservations.pay(draft.id, {
+              mobileApi.legacyReservations.pay(draft.id, {
                 holdToken: draft.hold?.holdToken ?? "",
                 idempotencyKey: `demo-${draft.id}`,
                 paymentMethodToken: failed ? "fail" : "success",

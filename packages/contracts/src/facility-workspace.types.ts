@@ -1,42 +1,4 @@
 import type { SupportAttachmentDto, SupportTicketDto } from "./support";
-export interface FacilityRentalItem {
-  id: string;
-  bookingId: string;
-  bookingCode: string | null;
-  customerId: string | null;
-  customerName: string | null;
-  customerEmail: string | null;
-  customerPhone: string | null;
-  facilityId: string;
-  unitCode: string;
-  unitTypeName: string;
-  status: string;
-  startAt: string;
-  expectedEndAt: string;
-  closedAt: string | null;
-  depositAmount: string;
-}
-export interface FacilityRentalPayment {
-  id: string;
-  paymentCode: string;
-  status: string;
-  provider: string;
-  totalAmount: string;
-  currency: string;
-  paidAt: string | null;
-  createdAt: string;
-  category: string | null;
-}
-export interface FacilityRentalPage {
-  items: FacilityRentalItem[];
-  total: number;
-  limit: number;
-  offset: number;
-}
-export interface FacilityRentalDetail {
-  rental: FacilityRentalItem;
-  payments: FacilityRentalPayment[];
-}
 export interface SupportOperationsTicket extends SupportTicketDto {
   assignedStaffId: string | null;
   assignedStaffName: string | null;

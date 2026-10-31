@@ -1,4 +1,4 @@
-import { UserRole } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import type { ReactNode } from "react";
 import { ProtectedArea } from "@/components/layout/protected-area";
 export default function CustomerLayout({ children }: { children: ReactNode }) {

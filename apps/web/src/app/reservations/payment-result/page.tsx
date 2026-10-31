@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { customerRoutes } from "@/config/routes";
 
 export default async function PaymentResultPage({
   searchParams,
@@ -7,9 +8,9 @@ export default async function PaymentResultPage({
 }) {
   const input = await searchParams;
   const params = new URLSearchParams();
-  for (const key of ["paymentId", "bookingId", "status"]) {
+  for (const key of ["paymentId", "reservationId", "bookingId", "status"]) {
     const value = input[key];
     if (typeof value === "string") params.set(key, value);
   }
-  redirect(`/bookings/payment-result?${params}`);
+  redirect(`${customerRoutes.paymentResult}?${params}`);
 }

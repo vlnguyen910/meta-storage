@@ -13,6 +13,8 @@ import {
   isNull,
   notificationOutbox,
   or,
+  reservations,
+  sql,
   supportTickets,
   unitTypes,
   users,
@@ -28,11 +30,26 @@ export async function recordLifecycleEvent(
   tx: NotificationTransaction,
   input: LifecycleEventInput,
 ) {
-  const [booking] = await tx
-    .select({ ...getTableColumns(bookings), contactEmail: users.email })
-    .from(bookings)
-    .innerJoin(users, eq(users.id, bookings.userId))
-    .where(eq(bookings.id, input.bookingId));
+  const [booking] = input.reservationId
+    ? await tx
+        .select({
+          id: reservations.id,
+          userId: reservations.customerId,
+          facilityId: reservations.facilityId,
+          unitTypeId: reservations.unitTypeId,
+          bookingCode: sql<string>`${reservations.id}::text`,
+          contactEmail: users.email,
+        })
+        .from(reservations)
+        .innerJoin(users, eq(users.id, reservations.customerId))
+        .where(eq(reservations.id, input.reservationId))
+    : input.bookingId
+      ? await tx
+          .select({ ...getTableColumns(bookings), contactEmail: users.email })
+          .from(bookings)
+          .innerJoin(users, eq(users.id, bookings.userId))
+          .where(eq(bookings.id, input.bookingId))
+      : [];
   if (!booking) return;
   const at = input.occurredAt ?? new Date();
   const [bookingInfo] =
@@ -88,7 +105,8 @@ export async function recordLifecycleEvent(
         recipients.map((recipient) => ({
           eventKey: input.key,
           eventType: input.type,
-          bookingId: booking.id,
+          bookingId: input.bookingId ? booking.id : null,
+          reservationId: input.reservationId ? booking.id : null,
           rentalTermVersion: input.rentalTermVersion,
           facilityId: booking.facilityId,
           recipientKey: recipient.key,
@@ -138,18 +156,20 @@ export class LifecycleNotificationsRepository {
         id: notificationOutbox.id,
         type: notificationOutbox.eventType,
         bookingId: notificationOutbox.bookingId,
+        reservationId: notificationOutbox.reservationId,
         subject: notificationOutbox.subject,
         body: notificationOutbox.body,
         occurredAt: notificationOutbox.occurredAt,
       })
       .from(notificationOutbox)
-      .innerJoin(bookings, eq(bookings.id, notificationOutbox.bookingId))
+      .leftJoin(bookings, eq(bookings.id, notificationOutbox.bookingId))
+      .leftJoin(reservations, eq(reservations.id, notificationOutbox.reservationId))
       .where(
         and(
           eq(notificationOutbox.recipientUserId, userId),
           eq(notificationOutbox.recipientRole, role),
           role === "CUSTOMER"
-            ? eq(bookings.userId, userId)
+            ? or(eq(bookings.userId, userId), eq(reservations.customerId, userId))
             : role === "BUSINESS_OPERATION_MANAGER"
               ? exists(
                   this.db

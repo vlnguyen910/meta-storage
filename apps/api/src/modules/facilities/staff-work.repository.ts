@@ -1,5 +1,13 @@
 import { FacilityTaskStatus } from "@metastorage/contracts/facility-tasks";
-import { and, bookings, type Database, eq, facilityTasks, inArray } from "@metastorage/database";
+import {
+  and,
+  appointments,
+  type Database,
+  eq,
+  facilityTasks,
+  inArray,
+} from "@metastorage/database";
+import { APPOINTMENT_STATUSES } from "@metastorage/database/schema/appointments";
 
 type WorkConnection = Database | Parameters<Parameters<Database["transaction"]>[0]>[0];
 
@@ -9,13 +17,16 @@ export async function hasOpenAssignedWork(
   facilityId?: string,
 ): Promise<boolean> {
   const rows = await connection
-    .select({ id: bookings.id })
-    .from(bookings)
+    .select({ id: appointments.id })
+    .from(appointments)
     .where(
       and(
-        eq(bookings.assignedStaffId, userId),
-        eq(bookings.status, "CONFIRMED"),
-        facilityId ? eq(bookings.facilityId, facilityId) : undefined,
+        eq(appointments.assignedStaffId, userId),
+        inArray(appointments.status, [
+          APPOINTMENT_STATUSES.SCHEDULED,
+          APPOINTMENT_STATUSES.CONFIRMED,
+        ]),
+        facilityId ? eq(appointments.facilityId, facilityId) : undefined,
       ),
     )
     .unionAll(

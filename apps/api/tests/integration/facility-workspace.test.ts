@@ -1,10 +1,10 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { bookings, checkInSlots, db, eq, payments, rentals, users } from "@metastorage/database";
-import { facilityWorkspaceRoutes } from "../../src/modules/facility-workspace/facility-workspace.routes";
+import { rentalsRoutes } from "../../src/modules/rentals/rentals.routes";
 import { createFacilityOperationsFixture } from "../fixtures/facility-operations";
 
-describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("FM facility workspace", () => {
+describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("FM rental workspace", () => {
   let f: Awaited<ReturnType<typeof createFacilityOperationsFixture>>;
   const bookingId = randomUUID(),
     rentalId = randomUUID(),
@@ -13,7 +13,7 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("FM facility workspa
   beforeAll(async () => {
     f = await createFacilityOperationsFixture();
     await db.update(users).set({ name: "Khách đang thuê" }).where(eq(users.id, f.ids.customer));
-    await f.app.register(facilityWorkspaceRoutes, { prefix: "/api/facility-workspace" });
+    await f.app.register(rentalsRoutes, { prefix: "/api/rentals" });
     await db
       .insert(checkInSlots)
       .values({ id: slotId, name: "FM workspace", startTime: "09:00", endTime: "10:00" });
@@ -37,12 +37,11 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("FM facility workspa
     await db.insert(rentals).values({
       id: rentalId,
       bookingId,
-      facilityId: f.facilityId,
-      physicalUnitId: f.unitId,
+      userId: f.ids.customer,
+      storageUnitId: f.unitId,
       status: "ACTIVE",
       startAt: new Date("2026-10-27"),
-      expectedEndAt: new Date("2026-11-27"),
-      depositAmount: "1000000",
+      endAt: new Date("2026-11-27"),
     });
     await db.insert(payments).values({
       id: paymentId,
@@ -68,29 +67,26 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("FM facility workspa
     await f.cleanup();
   });
   test("rental customers and payment history are restricted to the assigned FM", async () => {
-    const list = await f.api(
-      "manager",
-      "GET",
-      `/facility-workspace/rentals?facilityId=${f.facilityId}`,
-    );
+    const list = await f.api("manager", "GET", `/rentals/facility/${f.facilityId}`);
     expect(list.statusCode, list.body).toBe(200);
     expect(list.json().data.items[0]).toMatchObject({
       id: rentalId,
-      customerName: "Khách đang thuê",
+      customer: { name: "Khách đang thuê" },
       status: "ACTIVE",
     });
-    const detail = await f.api("manager", "GET", `/facility-workspace/rentals/${rentalId}`);
-    expect(detail.json().data.payments[0]).toMatchObject({ id: paymentId, status: "SUCCEEDED" });
+    const detail = await f.api(
+      "manager",
+      "GET",
+      `/rentals/facility/${f.facilityId}/${rentalId}/payments`,
+    );
+    expect(detail.json().data.items[0]).toMatchObject({ id: paymentId, status: "SUCCEEDED" });
     expect(
-      (await f.api("otherManager", "GET", `/facility-workspace/rentals/${rentalId}`)).statusCode,
-    ).toBe(404);
-    expect(
-      (await f.api("otherManager", "GET", `/facility-workspace/rentals?facilityId=${f.facilityId}`))
+      (await f.api("otherManager", "GET", `/rentals/facility/${f.facilityId}/${rentalId}`))
         .statusCode,
     ).toBe(403);
     expect(
-      (await f.api("staff", "GET", `/facility-workspace/rentals?facilityId=${f.facilityId}`))
-        .statusCode,
+      (await f.api("otherManager", "GET", `/rentals/facility/${f.facilityId}`)).statusCode,
     ).toBe(403);
+    expect((await f.api("staff", "GET", `/rentals/facility/${f.facilityId}`)).statusCode).toBe(403);
   });
 });

@@ -1,5 +1,5 @@
 import type { User } from "@metastorage/contracts";
-import { UserRole } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { isAxiosError } from "axios";
 import { ADMIN_MESSAGES as M } from "./admin.messages";
 import type {

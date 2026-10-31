@@ -8,7 +8,7 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
     );
     assertIsolatedDatabase();
     const { buildApp } = await import("../../src/app");
-    const { db, bookings, sessions, users, eq } = await import("@metastorage/database");
+    const { db, appointments, sessions, users, eq } = await import("@metastorage/database");
     const f = await createInspectionFixture();
     const app = buildApp();
     const sockets: WebSocket[] = [];
@@ -72,29 +72,30 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
       outsider.onmessage = (e) => forbidden.push(e.data);
       const assign = (staffId: string) =>
         app.inject({
-          method: "POST",
-          url: `/api/bookings/${f.bookingId}/assign-staff`,
+          method: "PATCH",
+          url: `/api/appointments/${f.bookingId}`,
           headers: { cookie: manager, origin },
-          payload: { staffId },
+          payload: { assignedStaffId: staffId, status: "CONFIRMED" },
         });
-      await db.update(bookings).set({ assignedStaffId: null }).where(eq(bookings.id, f.bookingId));
+
       expect((await assign(f.userId)).statusCode).toBe(200);
       await waitFor(() => received.length === 1 && another.length === 1);
       expect(received[0]).toMatchObject({
         type: "STAFF_TASK_ASSIGNED",
         recipientId: f.userId,
-        bookingId: f.bookingId,
+        appointmentId: f.bookingId,
       });
       expect(received[0]?.id).toEqual(expect.any(String));
       expect(forbidden).toHaveLength(0);
       expect(
-        (await db.select().from(bookings).where(eq(bookings.id, f.bookingId)))[0]?.assignedStaffId,
+        (await db.select().from(appointments).where(eq(appointments.id, f.bookingId)))[0]
+          ?.assignedStaffId,
       ).toBe(f.userId);
       expect((await assign(f.userId)).statusCode).toBe(200);
       await new Promise((resolve) => setTimeout(resolve, 80));
       expect(received).toHaveLength(1); // Same-assignment retry does not duplicate notifications.
       await db.update(users).set({ status: "INACTIVE" }).where(eq(users.id, f.outsiderId));
-      expect((await assign(f.outsiderId)).statusCode).toBe(400);
+      expect((await assign(f.outsiderId)).statusCode).toBe(403);
       expect(forbidden).toHaveLength(0);
       await db.update(users).set({ status: "ACTIVE" }).where(eq(users.id, f.outsiderId));
       first.close();
@@ -129,14 +130,14 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
       ]);
       expect(replay).toHaveLength(1);
       expect(forbidden).toHaveLength(2);
-      const failedDelivery = spyOn(app.notifications, "assigned").mockRejectedValueOnce(
+      const failedDelivery = spyOn(app.notifications, "assignedAppointment").mockRejectedValueOnce(
         new Error("Delivery unavailable"),
       );
       const log = spyOn(console, "error").mockImplementation(() => {});
       try {
         expect((await assign(f.outsiderId)).statusCode).toBe(200);
         expect(
-          (await db.select().from(bookings).where(eq(bookings.id, f.bookingId)))[0]
+          (await db.select().from(appointments).where(eq(appointments.id, f.bookingId)))[0]
             ?.assignedStaffId,
         ).toBe(f.outsiderId);
         expect(log).toHaveBeenCalled();
@@ -150,7 +151,11 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
       for (const socket of sockets) socket.close();
       // Bun 1.3 retains rejected upgrade connections after native clients close.
       app.server.closeAllConnections();
-      await app.close();
+      try {
+        await f.cleanup();
+      } finally {
+        await app.close();
+      }
     }
   },
   30_000,

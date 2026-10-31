@@ -1,6 +1,9 @@
-import { CustomerReturnForm } from "@/features/returns/customer-return-form";
+import { RentalIdParamsSchema } from "@metastorage/contracts";
+import { notFound, redirect } from "next/navigation";
+import { customerRoutes } from "@/config/routes";
 
-export default async function NewReturnPage({ params }: { params: Promise<{ rentalId: string }> }) {
+export default async function Page({ params }: { params: Promise<{ rentalId: string }> }) {
   const { rentalId } = await params;
-  return <CustomerReturnForm rentalId={rentalId} />;
+  if (!RentalIdParamsSchema.safeParse({ rentalId }).success) notFound();
+  redirect(customerRoutes.rental(rentalId));
 }

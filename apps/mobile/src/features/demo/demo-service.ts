@@ -15,6 +15,8 @@ import { DEMO_MESSAGES as m } from "./demo.messages";
 import type { DemoDatabase } from "./demo.types";
 import {
   canVerifyBooking,
+  demoCheckInDeadlineAt,
+  demoCheckInOpensAt,
   remainingDemoCapacity,
   requireCompleteChecklist,
   requirePeriod,
@@ -71,7 +73,6 @@ export function mobileWorkspace(db: DemoDatabase): MobileWorkspace {
     unitTypes: db.unitTypes,
     bookings,
     drafts: db.drafts.filter((d) => d.ownerId === owner(db)),
-    verifiedBookingIds: db.verifiedBookingIds.filter((id) => allowed.has(id)),
     inspections: db.inspections.filter((i) => allowed.has(i.bookingId)),
     rentals,
     requests: db.requests.filter(
@@ -92,7 +93,7 @@ export function handleMobileRequest(
   if (method === "GET" && url === "/demo/workspace") return mobileWorkspace(db);
   if (method === "POST" && url === "/demo/reset") {
     if (input.confirmed !== true) throw new Error(m.invalid);
-    Object.assign(db, createMobileSeed(), { verificationTimes: {} });
+    Object.assign(db, createMobileSeed());
     return mobileWorkspace(db);
   }
   if (
@@ -179,6 +180,11 @@ export function handleMobileRequest(
       throw new Error(m.capacity);
     const draft = {
       ...d,
+      contact: d.contact ?? {
+        fullName: account(db)?.name ?? "Guest",
+        email: account(db)?.email ?? "guest@example.com",
+        phone: account(db)?.phone ?? "",
+      },
       id: newDemoId(),
       ownerId: owner(db),
       rentalEndAt: end,
@@ -281,8 +287,9 @@ export function handleMobileRequest(
     const id = parts[2];
     if (parts[3] === "inspection") {
       const b = staffBooking(db, id);
-      if (!canVerifyBooking(b) || !db.verifiedBookingIds.includes(id))
+      if (!canVerifyBooking(b) || !["ASSIGNED", "IN_PROGRESS"].includes(b.taskStatus ?? "ASSIGNED"))
         throw new Error(m.inspection);
+      b.taskStatus = "IN_PROGRESS";
       let inspection = db.inspections.find((i) => i.bookingId === id);
       if (!inspection) {
         inspection = {
@@ -319,7 +326,7 @@ export function handleMobileRequest(
     if (parts[3] === "cancel") {
       if (
         b.status !== "CONFIRMED" ||
-        db.verifiedBookingIds.includes(id) ||
+        db.inspections.some((inspection) => inspection.bookingId === id) ||
         db.rentals.some((r) => r.bookingId === id)
       )
         throw new Error(m.cancel);
@@ -332,21 +339,18 @@ export function handleMobileRequest(
       return b;
     }
   }
-  if (parts[0] === "check-ins" && method === "POST") {
-    if (parts[1] === "lookup") {
-      const b = db.bookings.find(
-        (b) => b.bookingCode === input.value || `demo-qr-${b.id}` === input.value,
-      );
-      if (!b) throw new Error(m.missing);
-      staffBooking(db, b.id);
-      return checkInResult(db, b);
-    }
-    const b = staffBooking(db, parts[1]);
-    if (!canVerifyBooking(b)) throw new Error(m.notReady);
-    if (!db.verifiedBookingIds.includes(b.id)) db.verifiedBookingIds.push(b.id);
-    db.verificationTimes ??= {};
-    db.verificationTimes[b.id] ??= new Date().toISOString();
-    return checkInResult(db, b);
+  if (
+    parts[0] === "bookings" &&
+    parts[1] === "check-in" &&
+    parts[2] === "lookup" &&
+    method === "POST"
+  ) {
+    const b = db.bookings.find(
+      (b) => b.bookingCode === input.value || `demo-qr-${b.id}` === input.value,
+    );
+    if (!b) throw new Error(m.missing);
+    staffBooking(db, b.id);
+    return checkInResult(b);
   }
   if (parts[0] === "demo" && parts[1] === "inspections") {
     const i = db.inspections.find((i) => i.id === parts[2]);
@@ -362,8 +366,7 @@ export function handleMobileRequest(
       return i;
     }
     if (parts[3] === "complete" && method === "POST") {
-      if (i.status !== "DRAFT" || !canVerifyBooking(b) || !db.verifiedBookingIds.includes(b.id))
-        throw new Error(m.inspection);
+      if (i.status !== "DRAFT" || !canVerifyBooking(b)) throw new Error(m.inspection);
       requireCompleteChecklist(i.checklist);
       i.status = "COMPLETED";
       i.version++;
@@ -377,6 +380,7 @@ export function handleMobileRequest(
       i.status = "HANDED_OVER";
       i.version++;
       b.status = "CHECKED_IN";
+      b.taskStatus = "COMPLETED";
       b.handoverStage = "HANDED_OVER";
       db.rentals.push({
         id: newDemoId(),
@@ -457,13 +461,11 @@ export function handleMobileRequest(
   }
   throw new Error(m.missing);
 }
-function checkInResult(db: DemoDatabase, b: MobilePaidBooking): CheckInLookupResult {
-  const graceEndsAt = new Date(
-    Date.parse(b.checkInSlotEnd ?? b.checkInSlotStart) + 7200000,
-  ).toISOString();
+function checkInResult(b: MobilePaidBooking): CheckInLookupResult {
+  const checkInDeadlineAt = demoCheckInDeadlineAt(b.checkInSlotStart).toISOString();
   const canProceed = canVerifyBooking(b);
   return {
-    booking: { ...b, graceEndsAt },
+    booking: { ...b, checkInDeadlineAt },
     payment: {
       status: b.paidAt ? PaymentStatus.SUCCEEDED : null,
       paidAt: b.paidAt,
@@ -473,7 +475,7 @@ function checkInResult(db: DemoDatabase, b: MobilePaidBooking): CheckInLookupRes
       currency: "VND",
     },
     assignedUnit: b.assignedUnit ?? null,
-    eligibility: {
+    checkInReadiness: {
       canProceed,
       reasons: canProceed
         ? []
@@ -481,25 +483,10 @@ function checkInResult(db: DemoDatabase, b: MobilePaidBooking): CheckInLookupRes
           ? ["INVALID_BOOKING_STATUS"]
           : !b.assignedUnit
             ? ["UNIT_NOT_ASSIGNED"]
-            : Date.now() < Date.parse(b.checkInSlotStart)
+            : Date.now() < demoCheckInOpensAt(b.checkInSlotStart).getTime()
               ? ["TOO_EARLY"]
               : ["DEADLINE_PASSED"],
     },
-    verification:
-      db.verifiedBookingIds.includes(b.id) && b.assignedUnit && b.assignedStaff
-        ? {
-            id: b.id,
-            bookingId: b.id,
-            facilityId: b.facilityId,
-            staffId: b.assignedStaff.id,
-            unitAssignmentId: b.assignedUnit.id,
-            status: b.status === "CHECKED_IN" ? "CONSUMED" : "VERIFIED",
-            verifiedAt: db.verificationTimes?.[b.id] ?? b.createdAt,
-            consumedAt: b.status === "CHECKED_IN" ? new Date().toISOString() : null,
-            invalidatedAt: null,
-            invalidatedReason: null,
-          }
-        : null,
   };
 }
 function paidResult(b: MobilePaidBooking, draft: DemoDatabase["drafts"][number]) {

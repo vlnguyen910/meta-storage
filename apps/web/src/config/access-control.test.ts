@@ -1,4 +1,4 @@
-import { UserRole } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { describe, expect, it } from "vitest";
 import { hasPermission, Permission, rolePermissions } from "./access-control";
 

@@ -11,7 +11,7 @@ import {
   lte,
   notificationOutbox,
   or,
-  rentals,
+  reservations,
   sql,
   supportTickets,
   users,
@@ -187,15 +187,23 @@ export class OutboxRepository {
       const [owner] = await this.db
         .select({ email: users.email })
         .from(supportTickets)
-        .innerJoin(bookings, eq(bookings.id, supportTickets.bookingId))
+        .leftJoin(bookings, eq(bookings.id, supportTickets.bookingId))
+        .leftJoin(reservations, eq(reservations.id, supportTickets.reservationId))
         .innerJoin(users, eq(users.id, supportTickets.ownerUserId))
         .where(
           and(
             eq(supportTickets.id, row.supportTicketId),
-            eq(supportTickets.bookingId, row.bookingId),
+            row.reservationId
+              ? eq(supportTickets.reservationId, row.reservationId)
+              : row.bookingId
+                ? eq(supportTickets.bookingId, row.bookingId)
+                : sql`false`,
             eq(supportTickets.facilityId, row.facilityId),
             eq(supportTickets.ownerUserId, row.recipientUserId),
-            eq(bookings.userId, row.recipientUserId),
+            or(
+              eq(bookings.userId, row.recipientUserId),
+              eq(reservations.customerId, row.recipientUserId),
+            ),
             eq(users.role, "CUSTOMER"),
             eq(users.status, "ACTIVE"),
           ),
@@ -203,22 +211,7 @@ export class OutboxRepository {
       return Boolean(owner && owner.email === row.recipientEmail);
     }
     if (["UPCOMING_EXPIRY", "RENTAL_OVERDUE", "ABANDONED_REVIEW"].includes(row.eventType)) {
-      const [rental] = await this.db
-        .select({
-          version: rentals.version,
-          status: rentals.status,
-          closedAt: rentals.closedAt,
-          expectedEndAt: rentals.expectedEndAt,
-        })
-        .from(rentals)
-        .where(eq(rentals.bookingId, row.bookingId));
-      if (!rental || rental.closedAt || rental.version !== (row.rentalTermVersion ?? 0))
-        return false;
-      if (
-        row.eventType === "UPCOMING_EXPIRY" &&
-        (!["ACTIVE", "RETURN_PENDING"].includes(rental.status) || now >= rental.expectedEndAt)
-      )
-        return false;
+      return false; // Rental lifecycle notifications are retired until the new workflow is implemented.
     }
     if (row.recipientRole === "CUSTOMER") return true; // Booking contact may be a guest; never require an account for email.
     if (row.recipientRole !== "FACILITY_MANAGER" || !row.recipientUserId) return false;

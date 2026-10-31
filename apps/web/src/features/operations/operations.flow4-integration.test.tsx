@@ -69,39 +69,13 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("Flow 4 actual form, hook and cache integration", () => {
-  it("keeps the price draft through 409, awaits the new version and invalidates catalog after save", async () => {
-    const user = userEvent.setup();
-    const { client, Wrapper } = harness();
-    client.setQueryData(["facilities", "catalog"], { oldPrice: true });
-    vi.mocked(api.pricing.updateUnitTypePrice).mockImplementation(async (_id, input) => {
-      if (input.expectedVersion === 1) {
-        serverVersion = 2;
-        throw conflict();
-      }
-      serverVersion = 3;
-      return { version: 3, updatedAt: "2026-10-20T00:00:00Z" };
-    });
+  it("BOM views prices without a price-edit action or write request", async () => {
+    const { Wrapper } = harness();
     render(<OperationsPricingView />, { wrapper: Wrapper });
-    await user.click(
-      await screen.findByRole("button", { name: "Chỉnh giá thuê loại kho Test type" }),
-    );
-    const input = screen.getByRole("spinbutton");
-    await user.clear(input);
-    await user.type(input, "1234000");
-    await user.click(screen.getByRole("button", { name: "Lưu thay đổi" }));
-    await user.click(await screen.findByRole("button", { name: "Tải lại dữ liệu mới nhất" }));
-    await screen.findAllByText(R.compareVersion);
-    expect(input).toHaveValue(1234000);
-    await user.click(screen.getByRole("button", { name: "Lưu thay đổi" }));
-    await waitFor(() =>
-      expect(api.pricing.updateUnitTypePrice).toHaveBeenLastCalledWith(expect.any(String), {
-        expectedVersion: 2,
-        monthlyPrice: 1234000,
-      }),
-    );
-    await waitFor(() =>
-      expect(client.getQueryState(["facilities", "catalog"])?.isInvalidated).toBe(true),
-    );
+    await screen.findByText("Test type");
+    expect(screen.queryByRole("button", { name: /Chỉnh giá/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
+    expect(api.pricing.updateUnitTypePrice).not.toHaveBeenCalled();
   });
   it("retains dirty deposit input on background refresh and explicit conflict reload", async () => {
     const user = userEvent.setup();
@@ -127,29 +101,23 @@ describe("Flow 4 actual form, hook and cache integration", () => {
     expect(input).toHaveValue(9);
     expect(screen.getByText(R.latestDeposit(3, 3))).toBeInTheDocument();
   });
-  it("shows a failed reload without discarding the price draft", async () => {
+  it("keeps the last price list visible and reports a failed reload", async () => {
     const user = userEvent.setup();
     const { Wrapper } = harness();
-    vi.mocked(api.pricing.updateUnitTypePrice).mockRejectedValue(conflict());
     render(<OperationsPricingView />, { wrapper: Wrapper });
-    await user.click(
-      await screen.findByRole("button", { name: "Chỉnh giá thuê loại kho Test type" }),
-    );
-    const input = screen.getByRole("spinbutton");
-    await user.clear(input);
-    await user.type(input, "1250000");
-    await user.click(screen.getByRole("button", { name: "Lưu thay đổi" }));
-    const reload = await screen.findByRole("button", { name: "Tải lại dữ liệu mới nhất" });
+    await screen.findByText("Test type");
     vi.mocked(api.pricing.getConfiguration).mockRejectedValue(new Error("offline"));
-    await user.click(reload);
-    // Existing data stays visible on a failed background refresh.
-    await waitFor(() => expect(screen.getByRole("spinbutton")).toHaveValue(1250000));
+    await user.click(screen.getByRole("button", { name: "Làm mới bảng giá" }));
+    await screen.findByRole("alert");
+    expect(screen.getByText("Test type")).toBeInTheDocument();
+    expect(api.pricing.updateUnitTypePrice).not.toHaveBeenCalled();
   });
   it("loads refunds beyond the old 50-row cap through the existing paginated API", async () => {
     const { Wrapper } = harness();
     vi.mocked(api.payments.listRefunds).mockImplementation(async (params) =>
       Array.from({ length: params?.offset ? 55 : 100 }, (_, i) => ({
         paymentId: `payment-${(params?.offset ?? 0) + i}`,
+        type: "CHARGE",
         bookingId: null,
         amount: "100",
         paidAt: null,

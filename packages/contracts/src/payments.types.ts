@@ -1,5 +1,5 @@
 import type { BookingConfirmation } from "./bookings";
-import type { PaymentStatus, SepayPaymentInstructions } from "./payments";
+import type { PaymentStatus, PaymentType, SepayPaymentInstructions } from "./payments";
 
 export type BookingPaymentSession = {
   bookingId: string;
@@ -13,6 +13,8 @@ export type BookingPaymentSession = {
 };
 
 export type ManualRefund = {
+  type: PaymentType;
+  reservationId?: string | null;
   paymentId: string;
   bookingId: string | null;
   amount: string;
@@ -27,6 +29,7 @@ export type ManualRefund = {
 
 export type ManualRefundConfirmation = {
   paymentId: string;
+  type: PaymentType;
   status: "REFUNDED";
   amount: string;
   depositForfeitedAmount: string;
@@ -37,11 +40,13 @@ export type ManualRefundConfirmation = {
 };
 
 export type PaymentStatusResponse = {
+  type: PaymentType;
+  reservationId?: string;
   paymentId: string;
   status: PaymentStatus;
   provider: string | null;
   paymentCode: string | null;
-  chargeId?: string;
+
   transferInstructions?: SepayPaymentInstructions;
   checkoutUrl?: string;
   checkoutFormFields?: Record<string, string | number>;

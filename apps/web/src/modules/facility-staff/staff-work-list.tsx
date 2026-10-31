@@ -3,7 +3,6 @@ import {
   ArrowRight,
   CalendarDays,
   CheckCircle2,
-  ClipboardCheck,
   Clock3,
   DoorOpen,
   ListFilter,
@@ -70,10 +69,10 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
     const group = params.get("group") ?? saved.group;
     const groups: StaffWorkGroup[] =
       kind === "TASK"
-        ? ["pending", "review", "done"]
+        ? ["pending", "done"]
         : kind === "CHECK_IN" || kind === "RETURN"
           ? ["pending", "done", "closed"]
-          : ["pending", "review", "done", "closed"];
+          : ["pending", "done", "closed"];
     const date = params.get("date") ?? saved.date ?? "all";
     return {
       kind: kind === "CHECK_IN" || kind === "RETURN" || kind === "TASK" ? kind : "",
@@ -85,10 +84,10 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
   });
   const groups: StaffWorkGroup[] =
     filters.kind === "TASK"
-      ? ["pending", "review", "done"]
+      ? ["pending", "done"]
       : filters.kind === "CHECK_IN" || filters.kind === "RETURN"
         ? ["pending", "done", "closed"]
-        : ["pending", "review", "done", "closed"];
+        : ["pending", "done", "closed"];
   const work = useStaffWork(facilityId, filters.date, filters.kind);
   useEffect(() => {
     try {
@@ -229,11 +228,7 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
                 const kind = event.target.value as StaffWorkFilters["kind"];
                 update({
                   kind,
-                  group:
-                    (kind === "TASK" && filters.group === "closed") ||
-                    ((kind === "CHECK_IN" || kind === "RETURN") && filters.group === "review")
-                      ? "pending"
-                      : filters.group,
+                  group: kind === "TASK" && filters.group === "closed" ? "pending" : filters.group,
                 });
               }}
               className={controlClass}
@@ -330,16 +325,13 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
   );
 }
 function StaffWorkRow({ item }: StaffWorkRowProps) {
-  const Icon =
-    item.kind === "CHECK_IN" ? DoorOpen : item.kind === "RETURN" ? ClipboardCheck : CalendarDays;
+  const Icon = item.kind === "CHECK_IN" ? DoorOpen : CalendarDays;
   const tone =
     item.group === "done"
       ? "bg-emerald-50 text-emerald-800"
-      : item.group === "review"
-        ? "bg-amber-50 text-amber-900"
-        : item.group === "closed"
-          ? "bg-slate-100 text-slate-600"
-          : "bg-sky-50 text-sky-900";
+      : item.group === "closed"
+        ? "bg-slate-100 text-slate-600"
+        : "bg-sky-50 text-sky-900";
   return (
     <li className="group flex flex-col gap-4 py-5 first:pt-1 last:pb-1 sm:flex-row sm:items-center">
       <span className="hidden size-11 shrink-0 place-items-center rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-800 sm:grid">

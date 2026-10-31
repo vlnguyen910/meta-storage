@@ -4,13 +4,26 @@ import { ConflictError, ForbiddenError, NotFoundError } from "../../common/error
 import { type FacilityScope, requireAssignedFacility } from "./facilities.access";
 import { FACILITY_MESSAGES } from "./facilities.messages";
 import type { FacilitiesRepository } from "./facilities.repository";
-import type { FacilityAssignmentsRepository } from "./facility-assignments.repository";
+import type {
+  FacilityAssignmentsRepository,
+  FacilityAssignmentTransaction,
+} from "./facility-assignments.repository";
 
 export class FacilityAssignmentsService {
   constructor(
     private readonly assignmentsRepository: FacilityAssignmentsRepository,
     private readonly facilitiesRepository: FacilitiesRepository,
   ) {}
+
+  async requireActiveAssignments(
+    tx: FacilityAssignmentTransaction,
+    facilityId: string,
+    expected: readonly { userId: string; role: FacilityAssignmentRole }[],
+  ) {
+    const active = await this.assignmentsRepository.lockActiveAssignments(tx, facilityId, expected);
+    if (expected.some(({ userId }) => !active.has(userId)))
+      throw new ForbiddenError(FACILITY_MESSAGES.facilityAccessDenied);
+  }
 
   async getFacilityStaff(facilityId: string): Promise<FacilityStaffMember[]> {
     return this.assignmentsRepository.findFacilityStaff(facilityId);

@@ -3,20 +3,36 @@ import {
   FacilityTaskReferenceType,
   FacilityTaskStatus,
   FacilityTaskType,
+  HandoverChecklistCompletionSchema,
   INSPECTION_PHOTO_MAX_COUNT,
   type InspectionListQuery,
   type InspectionRecord,
+  ReturnChecklistCompletionSchema,
   type UpdateInspectionInput,
-  UserRole,
+  type UpdatePolicyViolationFeeCatalog,
 } from "@metastorage/contracts";
-import { InspectionCondition, InspectionStatus, InspectionType } from "@metastorage/database";
+import {
+  InspectionCondition,
+  InspectionStatus,
+  InspectionType,
+  PaymentMethod,
+  ReservationStatus,
+} from "@metastorage/database";
+import {
+  APPOINTMENT_STATUSES as AppointmentStatus,
+  APPOINTMENT_TYPES as AppointmentType,
+} from "@metastorage/database/schema/appointments";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { ConflictError, ForbiddenError, NotFoundError } from "../../common/errors/app-error";
 import { mapPageDto } from "../../common/types/page.dto";
-import type { BookingsRepository } from "../bookings/bookings.repository";
+import type { AppointmentsService } from "../appointments/appointments.service";
 import type { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
 import type { FacilityTasksRepository } from "../facility-tasks/facility-tasks.repository";
+import type { TaskTransaction } from "../facility-tasks/facility-tasks.types";
 import type { MediaAssetsService } from "../media-assets/media-assets.service";
-import type { RentalsRepository } from "../rentals/rentals.repository";
+import type { RentalsService } from "../rentals/rentals.service";
+import type { ReservationsService } from "../reservations/reservations.service";
+import type { StorageUnitsService } from "../storage-units/storage-units.service";
 import { INSPECTIONS_API_MESSAGES as m } from "./inspections.messages";
 import type { InspectionRow, InspectionsRepository } from "./inspections.repository";
 
@@ -25,11 +41,13 @@ type InspectionActor = { id: string; role: UserRole };
 export class InspectionsService {
   constructor(
     private readonly repository: InspectionsRepository,
-    private readonly bookings: BookingsRepository,
     private readonly tasks: FacilityTasksRepository,
-    private readonly rentals: RentalsRepository,
+    private readonly rentals: RentalsService,
+    private readonly storageUnits: StorageUnitsService,
     private readonly assignments: FacilityAssignmentsService,
     private readonly media: MediaAssetsService,
+    private readonly appointments?: AppointmentsService,
+    private readonly reservations?: ReservationsService,
   ) {}
 
   async listForStaff(query: InspectionListQuery, actor: InspectionActor) {
@@ -52,7 +70,20 @@ export class InspectionsService {
     return mapPageDto(result, query, (row) => this.toListItem(row));
   }
 
+  async historyForAppointment(
+    appointmentId: string,
+    actor: InspectionActor,
+  ): Promise<InspectionRecord[]> {
+    if (!this.appointments) throw new ConflictError(m.taskNotAvailable);
+    await this.appointments.getAppointment(appointmentId, actor);
+    const rows = await this.repository.listForAppointment(appointmentId);
+    return Promise.all(rows.map((row) => this.get(row.id, actor)));
+  }
+
   async create(input: CreateInspectionInput, actor: InspectionActor): Promise<InspectionRecord> {
+    const context = await this.repository.findTaskContext(input.taskId);
+    if (context?.referenceType === FacilityTaskReferenceType.APPOINTMENT)
+      return this.startForAppointment(input, context.referenceId, actor);
     const record = await this.repository.transaction(async (tx) => {
       const [task] = await this.tasks.findForUpdate(tx, input.taskId);
       if (
@@ -62,37 +93,17 @@ export class InspectionsService {
       )
         return undefined;
 
-      const [existing] = await this.repository.findByTask(tx, task.id);
+      const [existing] = await this.repository.findByTask(task.id, tx);
       if (existing) return existing;
 
       let storageUnitId: string | undefined;
-      let rentalId: string | null = null;
-      let bookingId: string | null = null;
       let inspectionType: InspectionType;
-
       if (
-        task.type === FacilityTaskType.CHECK_IN_HANDOVER &&
-        task.referenceType === FacilityTaskReferenceType.BOOKING
-      ) {
-        bookingId = task.referenceId;
-        inspectionType = InspectionType.CHECK_IN;
-        const [assignment] = await this.bookings.findActiveUnitAssignment(tx, bookingId);
-        storageUnitId = assignment?.physicalUnitId;
-      } else if (
         task.type === FacilityTaskType.UNIT_INSPECTION &&
         task.referenceType === FacilityTaskReferenceType.STORAGE_UNIT
       ) {
         storageUnitId = task.referenceId;
         inspectionType = InspectionType.MAINTENANCE;
-      } else if (
-        task.type === FacilityTaskType.UNIT_INSPECTION &&
-        task.referenceType === FacilityTaskReferenceType.BOOKING
-      ) {
-        const [rental] = await this.rentals.findByBookingId(tx, task.referenceId);
-        if (!rental) return undefined;
-        rentalId = rental.id;
-        storageUnitId = rental.physicalUnitId;
-        inspectionType = InspectionType.CHECK_OUT;
       } else {
         return undefined;
       }
@@ -100,8 +111,6 @@ export class InspectionsService {
 
       const [created] = await this.repository.create(tx, {
         storageUnitId,
-        rentalId,
-        bookingId,
         inspectedBy: actor.id,
         taskId: task.id,
         inspectionType,
@@ -111,6 +120,148 @@ export class InspectionsService {
     });
     if (!record) throw new ConflictError(m.taskNotAvailable);
     return this.get(record.id, actor);
+  }
+
+  private async startForAppointment(
+    input: CreateInspectionInput,
+    appointmentId: string,
+    actor: InspectionActor,
+  ) {
+    const appointments = this.appointments;
+    if (!appointments) throw new ConflictError(m.taskNotAvailable);
+    const [existing] = await this.repository.findByTask(input.taskId);
+    if (existing) return this.get(existing.id, actor);
+    const record = await this.repository.transaction(async (tx) => {
+      const { appointment, reservation, rental } = await appointments.requireInspectionContext(
+        tx,
+        appointmentId,
+        actor,
+      );
+      const [task] = await this.tasks.findForUpdate(tx, input.taskId);
+      if (
+        !task ||
+        task.referenceId !== appointment.id ||
+        task.assignedStaffId !== actor.id ||
+        task.status !== FacilityTaskStatus.IN_PROGRESS ||
+        appointment.status !== AppointmentStatus.CONFIRMED
+      )
+        throw new ConflictError(m.taskNotAvailable);
+      const [existing] = await this.repository.findByTask(task.id, tx);
+      if (existing) return existing;
+      if (
+        appointment.appointmentType === AppointmentType.CHECK_OUT &&
+        rental?.rental.status === "ACTIVE"
+      ) {
+        const [created] = await this.repository.create(tx, {
+          storageUnitId: rental.rental.storageUnitId,
+          rentalId: rental.rental.id,
+          inspectedBy: actor.id,
+          taskId: task.id,
+          inspectionType: InspectionType.CHECK_OUT,
+        });
+        if (!created) throw new Error("Return inspection insert returned no row");
+        return created;
+      }
+      if (
+        appointment.appointmentType !== AppointmentType.CHECK_IN ||
+        !reservation ||
+        reservation.status !== ReservationStatus.CONFIRMED ||
+        !input.storageUnitId
+      )
+        throw new ConflictError(m.handoverNotReady);
+      const assignment = await this.storageUnits.findReservationAssignment(tx, reservation.id);
+      if (!assignment || assignment.physicalUnitId !== input.storageUnitId)
+        throw new ConflictError(m.handoverNotReady);
+      await this.storageUnits.requireHandoverUnit(tx, {
+        unitId: input.storageUnitId,
+        taskId: task.id,
+        facilityId: reservation.facilityId,
+        unitTypeId: reservation.unitTypeId,
+        reservationId: reservation.id,
+        startsAt: reservation.rentalStartAt,
+        endsAt: reservation.rentalEndAt,
+      });
+      const [created] = await this.repository.create(tx, {
+        storageUnitId: input.storageUnitId,
+        reservationId: reservation.id,
+        inspectedBy: actor.id,
+        taskId: task.id,
+        inspectionType: InspectionType.CHECK_IN,
+      });
+      if (!created) throw new Error("Check-in inspection insert returned no row");
+      return created;
+    });
+    return this.get(record.id, actor);
+  }
+
+  private async handoverReservation(current: InspectionRow, actor: InspectionActor) {
+    const task = await this.repository.findTaskContext(current.taskId);
+    const appointments = this.appointments;
+    const reservations = this.reservations;
+    if (
+      !appointments ||
+      !reservations ||
+      task?.referenceType !== FacilityTaskReferenceType.APPOINTMENT
+    )
+      throw new ConflictError(m.handoverNotReady);
+    await this.repository.transaction(async (tx) => {
+      const { appointment, reservation } = await appointments.requireInspectionContext(
+        tx,
+        task.referenceId,
+        actor,
+      );
+      const [inspection] = await this.repository.findForUpdate(tx, current.id);
+      if (
+        !reservation ||
+        !inspection ||
+        inspection.reservationId !== reservation.id ||
+        inspection.inspectionType !== InspectionType.CHECK_IN ||
+        inspection.status !== InspectionStatus.PASSED
+      )
+        throw new ConflictError(m.handoverNotReady);
+      if (reservation.status === ReservationStatus.CHECKED_IN) {
+        if (
+          !(await this.rentals.findReservationRental(tx, reservation.id)) ||
+          appointment.status !== AppointmentStatus.COMPLETED
+        )
+          throw new ConflictError(m.handoverNotReady);
+        return;
+      }
+      if (
+        reservation.status !== ReservationStatus.CONFIRMED ||
+        appointment.status !== AppointmentStatus.CONFIRMED
+      )
+        throw new ConflictError(m.handoverNotReady);
+      const [activeTask] = await this.tasks.findForUpdate(tx, task.id);
+      if (
+        !activeTask ||
+        activeTask.assignedStaffId !== actor.id ||
+        activeTask.status !== FacilityTaskStatus.IN_PROGRESS
+      )
+        throw new ConflictError(m.taskNotAvailable);
+      const now = new Date();
+      if (now >= reservation.rentalEndAt) throw new ConflictError(m.handoverNotReady);
+      await this.storageUnits.requireHandoverUnit(tx, {
+        unitId: inspection.storageUnitId,
+        taskId: task.id,
+        facilityId: reservation.facilityId,
+        unitTypeId: reservation.unitTypeId,
+        reservationId: reservation.id,
+        startsAt: now,
+        endsAt: reservation.rentalEndAt,
+      });
+      await this.rentals.createForHandover(tx, {
+        reservationId: reservation.id,
+        userId: reservation.customerId,
+        storageUnitId: inspection.storageUnitId,
+        startAt: now,
+        endAt: reservation.rentalEndAt,
+      });
+      await this.storageUnits.markOccupied(tx, inspection.storageUnitId, now);
+      await reservations.markCheckedIn(tx, reservation.id);
+      await appointments.completeHandover(tx, appointment.id, actor);
+    });
+    return this.get(current.id, actor);
   }
 
   async get(id: string, actor: InspectionActor): Promise<InspectionRecord> {
@@ -126,6 +277,14 @@ export class InspectionsService {
     const current = await this.getAccessibleRow(id, actor);
     if (actor.role !== UserRole.FACILITY_STAFF || current.assignedStaffId !== actor.id)
       throw new ForbiddenError(m.notAssigned);
+    if (
+      current.inspectionType === InspectionType.CHECK_OUT &&
+      current.status === InspectionStatus.PASSED &&
+      input.status === InspectionStatus.PASSED
+    ) {
+      await this.repository.transaction((tx) => this.assertReturnReplay(tx, id, input));
+      return this.get(id, actor);
+    }
     const existingEvidence = await this.media.listImages("INSPECTION", id, "EVIDENCE_PHOTO");
     const removed = new Set(input.removeEvidenceIds ?? []);
     if (removed.size !== (input.removeEvidenceIds ?? []).length)
@@ -138,18 +297,99 @@ export class InspectionsService {
     )
       throw new ConflictError(m.evidenceLimit);
 
+    let alreadyCompleted = false;
     const updated = await this.repository.transaction(async (tx) => {
+      let appointmentContext:
+        | Awaited<ReturnType<AppointmentsService["requireInspectionContext"]>>
+        | undefined;
+      if (current.inspectionType === InspectionType.CHECK_OUT) {
+        const taskContext = await this.repository.findTaskContext(current.taskId, tx);
+        if (
+          !this.appointments ||
+          taskContext?.referenceType !== FacilityTaskReferenceType.APPOINTMENT
+        )
+          throw new ConflictError(m.handoverNotReady);
+        try {
+          appointmentContext = await this.appointments.requireInspectionContext(
+            tx,
+            taskContext.referenceId,
+            actor,
+          );
+        } catch (error) {
+          if (input.status === InspectionStatus.PASSED) {
+            const [completed] = await this.repository.findForUpdate(tx, id);
+            if (completed?.status === InspectionStatus.PASSED) {
+              await this.assertReturnReplay(tx, completed.id, input);
+              alreadyCompleted = true;
+              return completed;
+            }
+          }
+          throw error;
+        }
+      }
       const [locked] = await this.repository.findForUpdate(tx, id);
       if (!locked) return undefined;
-      const [task] = await this.tasks.find(tx, locked.taskId);
-      if (!task || task.assignedStaffId !== actor.id) return undefined;
+      if (
+        locked.inspectionType === InspectionType.CHECK_OUT &&
+        locked.status === InspectionStatus.PASSED &&
+        input.status === InspectionStatus.PASSED
+      ) {
+        await this.assertReturnReplay(tx, locked.id, input);
+        alreadyCompleted = true;
+        return locked;
+      }
+      if (locked.status === InspectionStatus.PASSED || locked.status === InspectionStatus.FAILED)
+        throw new ConflictError(m.alreadyCompleted);
+      const [task] = await this.tasks.findForUpdate(tx, locked.taskId);
+      if (
+        !task ||
+        task.assignedStaffId !== actor.id ||
+        ![FacilityTaskStatus.ASSIGNED, FacilityTaskStatus.IN_PROGRESS].includes(task.status)
+      )
+        throw new ConflictError(m.taskNotAvailable);
 
       const nextStatus = input.status ?? InspectionStatus.IN_PROGRESS;
+      if (
+        locked.inspectionType === InspectionType.CHECK_OUT &&
+        nextStatus === InspectionStatus.FAILED
+      )
+        throw new ConflictError(m.returnInspectionCannotFail);
       if (
         (nextStatus === InspectionStatus.PASSED || nextStatus === InspectionStatus.FAILED) &&
         !(input.condition ?? locked.condition)
       )
         throw new ConflictError(m.conditionRequired);
+      if (nextStatus === InspectionStatus.PASSED) {
+        const checklist = input.checklist ?? locked.checklist;
+        const results = Array.isArray(checklist.results) ? checklist.results : [];
+        const completionSchema =
+          locked.inspectionType === InspectionType.CHECK_OUT
+            ? ReturnChecklistCompletionSchema
+            : HandoverChecklistCompletionSchema;
+        if (!completionSchema.safeParse(results).success)
+          throw new ConflictError(m.checklistRequired);
+      }
+
+      if (locked.inspectionType === InspectionType.CHECK_OUT && input.violations !== undefined) {
+        if (input.policyVersion === undefined) throw new ConflictError(m.returnPolicyStale);
+        const fees = await this.repository.replaceInspectionFees(
+          tx,
+          locked.id,
+          input.policyVersion,
+          input.violations,
+        );
+        if (!fees) throw new ConflictError(m.returnPolicyStale);
+      } else if (input.violations !== undefined) {
+        throw new ConflictError(m.returnPolicyStale);
+      }
+
+      if (
+        locked.inspectionType === InspectionType.CHECK_OUT &&
+        nextStatus === InspectionStatus.PASSED
+      ) {
+        if (!appointmentContext) throw new ConflictError(m.handoverNotReady);
+        await this.completeReturn(tx, locked, task, actor, input, appointmentContext);
+      }
 
       const condition =
         input.condition === undefined
@@ -172,10 +412,137 @@ export class InspectionsService {
     });
     if (!updated) throw new NotFoundError(m.notFound);
 
-    for (const assetId of removed) await this.media.removeImage("INSPECTION", id, assetId);
-    for (const evidence of input.addEvidence ?? [])
-      await this.media.uploadImage("INSPECTION", id, "EVIDENCE_PHOTO", actor.id, evidence);
+    if (!alreadyCompleted) {
+      for (const assetId of removed) await this.media.removeImage("INSPECTION", id, assetId);
+      for (const evidence of input.addEvidence ?? [])
+        await this.media.uploadImage("INSPECTION", id, "EVIDENCE_PHOTO", actor.id, evidence);
+    }
     return this.get(id, actor);
+  }
+
+  async handover(id: string, actor: InspectionActor): Promise<InspectionRecord> {
+    const current = await this.getAccessibleRow(id, actor);
+    if (!current.reservationId) throw new ConflictError(m.handoverNotReady);
+    return this.handoverReservation(current, actor);
+  }
+
+  async getPolicyCatalog(actor: InspectionActor) {
+    if (actor.role !== UserRole.BUSINESS_OPERATIONS_MANAGER)
+      throw new ForbiddenError(m.policyCatalogForbidden);
+    return this.repository.policyCatalog();
+  }
+
+  async updatePolicyCatalog(actor: InspectionActor, input: UpdatePolicyViolationFeeCatalog) {
+    if (actor.role !== UserRole.BUSINESS_OPERATIONS_MANAGER)
+      throw new ForbiddenError(m.policyCatalogForbidden);
+    const result = await this.repository.updatePolicyCatalog(input);
+    if (!result) throw new ConflictError(m.policyCatalogStale);
+    return result;
+  }
+
+  private async assertReturnReplay(
+    tx: TaskTransaction,
+    inspectionId: string,
+    input: UpdateInspectionInput,
+  ) {
+    const recorded = await this.repository.findReturnSettlement(tx, inspectionId);
+    if (!recorded) return; // Historical returns were completed before settlements were recorded.
+    if (
+      !input.settlement ||
+      input.settlement.deductionAmount !== Number(recorded.settlement.deductionAmount) ||
+      (recorded.refund
+        ? input.settlement.refund?.method !== recorded.refund.method ||
+          (input.settlement.refund?.reference ?? "CASH") !== recorded.refund.refundReference
+        : Boolean(input.settlement.refund))
+    )
+      throw new ConflictError(m.returnSettlementChanged);
+  }
+
+  private async completeReturn(
+    tx: TaskTransaction,
+    inspection: Awaited<ReturnType<InspectionsRepository["findForUpdate"]>>[number],
+    task: Awaited<ReturnType<FacilityTasksRepository["findForUpdate"]>>[number],
+    actor: InspectionActor,
+    input: UpdateInspectionInput,
+    context: Awaited<ReturnType<AppointmentsService["requireInspectionContext"]>>,
+  ) {
+    if (
+      !this.appointments ||
+      !task ||
+      task.status !== FacilityTaskStatus.IN_PROGRESS ||
+      task.referenceType !== FacilityTaskReferenceType.APPOINTMENT
+    )
+      throw new ConflictError(m.handoverNotReady);
+    const { appointment, rental } = context;
+    if (
+      appointment.appointmentType !== AppointmentType.CHECK_OUT ||
+      appointment.status !== AppointmentStatus.CONFIRMED ||
+      !rental ||
+      rental.rental.status !== "ACTIVE" ||
+      rental.rental.id !== inspection.rentalId ||
+      rental.rental.storageUnitId !== inspection.storageUnitId
+    )
+      throw new ConflictError(m.handoverNotReady);
+
+    const fees = await this.repository.listInspectionFees(inspection.id, tx);
+    const totalFees = fees.reduce((total, fee) => total + fee.amount, 0);
+    const source = await this.repository.lockSourcePayment(tx, rental.rental.id);
+    if (
+      !source ||
+      Number(source.payment.totalAmount) <= 0 ||
+      Number(source.payment.totalAmount) !== source.quoteTotal
+    )
+      throw new ConflictError(m.returnPaymentMissing);
+    if (!input.settlement?.confirmed || input.settlement.deductionAmount !== totalFees)
+      throw new ConflictError(m.returnSettlementChanged);
+    const refundAmount = Math.max(0, source.depositAmount - totalFees);
+    const refund = input.settlement.refund;
+    if (refundAmount > 0 && !refund) throw new ConflictError(m.returnRefundRequired);
+    if (refundAmount === 0 && refund) throw new ConflictError(m.returnSettlementChanged);
+
+    const now = new Date();
+    const closed = await this.repository.closeRental(tx, rental.rental.id, now);
+    if (!closed.length) throw new ConflictError(m.handoverNotReady);
+    if (
+      !(await this.storageUnits.completeReturn(
+        tx,
+        rental.rental.storageUnitId,
+        rental.rental.id,
+        rental.rental.reservationId,
+        now,
+        (input.condition ?? inspection.condition) === InspectionCondition.GOOD
+          ? "AVAILABLE"
+          : "MAINTENANCE",
+      ))
+    )
+      throw new ConflictError(m.returnUnitUnavailable);
+    const settlement = await this.repository.createReturnSettlement(tx, {
+      rentalId: rental.rental.id,
+      inspectionId: inspection.id,
+      sourcePaymentId: source.payment.id,
+      depositAmount: String(source.depositAmount),
+      deductionAmount: String(totalFees),
+      currency: source.payment.currency,
+      settledBy: actor.id,
+      settledAt: now,
+    });
+    if (!settlement) throw new ConflictError(m.returnSettlementChanged);
+    if (totalFees > source.depositAmount)
+      await this.repository.createDebt(tx, settlement.id, totalFees - source.depositAmount);
+    if (refundAmount > 0 && refund)
+      await this.repository.createDepositRefund(tx, {
+        rentalId: rental.rental.id,
+        sourcePaymentId: source.payment.id,
+        bookingId: source.bookingId,
+        reservationId: source.reservationId,
+        amount: refundAmount,
+        currency: source.payment.currency,
+        method: PaymentMethod[refund.method],
+        reference: refund.reference,
+        actorId: actor.id,
+        now,
+      });
+    await this.appointments.completeHandover(tx, appointment.id, actor);
   }
 
   private async getAccessibleRow(id: string, actor: InspectionActor): Promise<InspectionRow> {
@@ -183,6 +550,11 @@ export class InspectionsService {
     if (!row) throw new NotFoundError(m.notFound);
     if (actor.role === UserRole.FACILITY_STAFF) {
       if (row.assignedStaffId !== actor.id) throw new ForbiddenError(m.notAssigned);
+      await this.assignments.requireFacilityAccess(
+        row.facilityId,
+        { kind: "assigned", userId: actor.id, role: actor.role },
+        [UserRole.FACILITY_STAFF],
+      );
       return row;
     }
     if (actor.role === UserRole.FACILITY_MANAGER) {
@@ -197,21 +569,27 @@ export class InspectionsService {
   }
 
   private toListItem(row: InspectionRow) {
-    const { assignedStaffId: _assignedStaffId, ...fields } = row;
+    const { assignedStaffId: _assignedStaffId, bookingId, ...fields } = row;
     return {
       ...fields,
+      reservationId: fields.reservationId ?? bookingId,
       inspectedAt: fields.inspectedAt?.toISOString() ?? null,
       inspectDoneAt: fields.inspectDoneAt?.toISOString() ?? null,
     };
   }
 
-  private toRecord(
+  private async toRecord(
     row: InspectionRow,
     evidence: Awaited<ReturnType<MediaAssetsService["listImages"]>>,
-  ): InspectionRecord {
-    const { assignedStaffId: _assignedStaffId, ...fields } = row;
+  ): Promise<InspectionRecord> {
+    const { assignedStaffId: _assignedStaffId, bookingId, ...fields } = row;
+    const returnContext =
+      fields.inspectionType === InspectionType.CHECK_OUT
+        ? await this.returnContext(fields.id)
+        : undefined;
     return {
       ...fields,
+      reservationId: fields.reservationId ?? bookingId,
       inspectedAt: fields.inspectedAt?.toISOString() ?? null,
       inspectDoneAt: fields.inspectDoneAt?.toISOString() ?? null,
       evidence: evidence.map((asset) => ({
@@ -222,6 +600,41 @@ export class InspectionsService {
         createdAt: asset.createdAt.toISOString(),
         url: asset.url,
       })),
+      ...(returnContext ? { returnContext } : {}),
+    };
+  }
+
+  private async returnContext(inspectionId: string) {
+    const [context, catalog, fees] = await Promise.all([
+      this.repository.findReturnContext(inspectionId),
+      this.repository.policyCatalog(),
+      this.repository.listInspectionFees(inspectionId),
+    ]);
+    if (!context || context.depositAmount === null) return undefined;
+    const deductionAmount = fees.reduce((total, fee) => total + fee.amount, 0);
+    return {
+      depositAmount: context.depositAmount,
+      deductionAmount,
+      refundAmount: Math.max(0, context.depositAmount - deductionAmount),
+      debtAmount: Math.max(0, deductionAmount - context.depositAmount),
+      policyVersion: catalog.version,
+      penalties: catalog.items
+        .filter((item) => item.isActive)
+        .map(({ code, name, amount }) => ({ code, name, amount })),
+      fees: fees.map((fee) => ({
+        code: fee.violationCode,
+        name: fee.violationName,
+        amount: fee.amount,
+        note: fee.note,
+      })),
+      checkIn: context.checkIn
+        ? {
+            condition: context.checkIn.condition,
+            checklist: context.checkIn.checklist,
+            notes: context.checkIn.notes,
+            inspectedAt: context.checkIn.inspectedAt?.toISOString() ?? null,
+          }
+        : null,
     };
   }
 }

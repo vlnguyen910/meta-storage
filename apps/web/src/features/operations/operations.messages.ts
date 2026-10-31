@@ -1,4 +1,33 @@
 export const OPERATIONS_MESSAGES = {
+  policyFeesTitle: "Phí vi phạm",
+  policyFeesVersion: "Phiên bản chính sách",
+  policyFeeAdd: "Thêm khoản phí",
+  policyFeeCode: "Mã (VD: DAMAGE)",
+  policyFeeName: "Tên khoản phí",
+  policyFeeAmount: "Số tiền VND",
+  policyFeeInvalid:
+    "Mã phải viết hoa và không trùng; nhập tên và số tiền nguyên không âm (tối đa 100 khoản phí).",
+  policyFeeActive: "Đang áp dụng",
+  policyFeeRemove: "Xóa khoản phí",
+  policyFeeSave: "Lưu chính sách",
+  policyFeeSaving: "Đang lưu…",
+  policyFeeSaveError: "Không lưu được. Hãy tải lại danh mục vì chính sách có thể đã thay đổi.",
+  policyFeeConflict:
+    "Danh mục phí đã đổi trên hệ thống. Tải lại để xem phiên bản mới trước khi tiếp tục.",
+  policyFeeReload: "Tải lại danh mục",
+  policyFeeReloading: "Đang tải lại…",
+  policyFeeReloadConfirm: "Tải lại sẽ bỏ các thay đổi phí chưa lưu của bạn.",
+  priceReadOnlyHint:
+    "Giá loại kho do quản lý cơ sở cập nhật. BOM theo dõi giá và điều chỉnh chính sách cọc tại mục chính sách.",
+  refreshPricing: "Làm mới bảng giá",
+  priceReloadError:
+    "Chưa tải được bảng giá mới. Dữ liệu đang hiển thị là lần tải thành công gần nhất.",
+  searchPrices: "Tìm tên hoặc mã loại kho",
+  priceTypeName: "Tên loại kho",
+  priceTypeCode: "Mã loại kho",
+  priceStatus: "Trạng thái",
+  rentalFeesRetired: "Phí thuê kho đang được xây dựng lại",
+  rentalFeesRetiredHint: "Cấu hình phụ phí và phí quá hạn cũ đã được gỡ trong đợt tinh gọn rental.",
   priceSearch: "Tìm loại kho theo tên hoặc mã",
   noPriceMatch: "Không có loại kho phù hợp. Thử từ khóa khác hoặc xóa tìm kiếm.",
   role: "Quản lý vận hành kinh doanh",

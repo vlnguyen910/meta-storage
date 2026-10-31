@@ -203,12 +203,11 @@ describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
     await payment(await booking(), "SUCCEEDED", "2026-09-30T16:59:59.999Z");
     await db.insert(rentals).values({
       bookingId: a,
-      facilityId: ids.a,
-      physicalUnitId: unitId,
+      userId: ids.customer,
+      storageUnitId: unitId,
       status: "ACTIVE",
       startAt: new Date("2026-10-01"),
-      expectedEndAt: new Date("2027-01-01"),
-      depositAmount: "1000000",
+      endAt: new Date("2027-01-01"),
     });
     await db.insert(capacityAllocations).values([
       {

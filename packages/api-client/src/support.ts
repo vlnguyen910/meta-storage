@@ -5,13 +5,8 @@ import type {
   SupportContextQuery,
   SupportCreateInput,
   SupportDetail,
-  SupportImageInput,
-  SupportImageResult,
-  SupportMessagePage,
   SupportPageQuery,
   SupportPaymentContext,
-  SupportReplyInput,
-  SupportReplyResult,
   SupportTicketPage,
   SupportTicketQuery,
 } from "@metastorage/contracts";
@@ -48,28 +43,6 @@ export function createSupportClient(http: AxiosInstance) {
           .then(unwrap),
       detail: (id: string, signal?: AbortSignal) =>
         http.get<ApiEnvelope<SupportDetail>>(path(id), { signal }).then(unwrap),
-      messages: (id: string, params: Partial<SupportPageQuery> = {}, signal?: AbortSignal) =>
-        http
-          .get<ApiEnvelope<SupportMessagePage>>(`${path(id)}/messages`, { params, signal })
-          .then(unwrap),
-      reply: (id: string, input: SupportReplyInput) =>
-        http.post<ApiEnvelope<SupportReplyResult>>(`${path(id)}/messages`, input).then(unwrap),
-      uploadImage: (id: string, messageId: string, input: SupportImageInput) =>
-        http
-          .post<ApiEnvelope<SupportImageResult>>(
-            `${path(id)}/messages/${encodeURIComponent(messageId)}/attachments`,
-            input,
-            { timeout: 45_000 },
-          )
-          .then(unwrap),
-      image: (id: string, imageId: string, signal?: AbortSignal) =>
-        http
-          .get<ArrayBuffer>(`${path(id)}/attachments/${encodeURIComponent(imageId)}`, {
-            responseType: "arraybuffer",
-            timeout: 45_000,
-            signal,
-          })
-          .then((response) => response.data),
     },
   };
 }

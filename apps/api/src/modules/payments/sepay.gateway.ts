@@ -122,7 +122,7 @@ export class SepayPaymentGateway {
     if (order.order_status !== "CAPTURED") return null;
     // CAPTURED is SePay's paid order state. Sandbox can return transactions: [].
     // A stable order event makes polling/restarts replay-safe; payment row locking
-    // in processBookingPaymentEvent also deduplicates an optional concurrent IPN.
+    // in the reservation payment workflow also deduplicates an optional concurrent IPN.
     return {
       providerEventId: `ORDER:${order.order_id}`,
       referenceCode: order.order_id,
@@ -153,9 +153,15 @@ export class SepayPaymentGateway {
     if (!this.pgClient) return null;
     const checkoutUrl = this.pgClient.checkout.initCheckoutUrl();
     const webUrl = this.config.webUrl || "http://localhost:3000";
-    const isCharge = Boolean(input.rentalChargeId);
-    const resultUrl = `${webUrl}/${isCharge ? "rental-charges" : "bookings"}/payment-result`;
-    const reference = `paymentId=${input.paymentId}&${isCharge ? "chargeId" : "bookingId"}=${input.rentalChargeId ?? input.bookingId}`;
+    const resultUrl = new URL(
+      input.renewalId && input.rentalId
+        ? `/customer/storage/${input.rentalId}/renew`
+        : input.reservationId
+          ? "/customer/payments/result"
+          : "/bookings/payment-result",
+      webUrl,
+    ).toString();
+    const reference = `paymentId=${input.paymentId}&${input.reservationId ? `reservationId=${input.reservationId}` : input.renewalId ? `renewalId=${input.renewalId}` : `bookingId=${input.bookingId}`}`;
     const successUrl = `${resultUrl}?status=success&${reference}`;
     const errorUrl = `${resultUrl}?status=error&${reference}`;
     const cancelUrl = `${resultUrl}?status=cancel&${reference}`;

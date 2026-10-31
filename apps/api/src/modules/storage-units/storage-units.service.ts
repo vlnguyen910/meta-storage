@@ -11,6 +11,7 @@ import { ConflictError, ForbiddenError, NotFoundError } from "../../common/error
 import { mapPageDto } from "../../common/types/page.dto";
 import { getFacilityAccessScope, requireAssignedFacility } from "../facilities/facilities.access";
 import type { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
+import type { TaskTransaction } from "../facility-tasks/facility-tasks.types";
 import type { StorageUnitsRepository } from "./storage-units.repository";
 import type { UnitTransitionUser } from "./storage-units.types";
 
@@ -49,6 +50,87 @@ export class StorageUnitsService {
 
   async getAvailableCapacity(facilityId: string, unitTypeId: string, startsAt: Date, endsAt: Date) {
     return this.repository.getAvailableCapacity(facilityId, unitTypeId, startsAt, endsAt);
+  }
+
+  async requireHandoverUnit(
+    tx: TaskTransaction,
+    input: {
+      unitId: string;
+      taskId: string;
+      facilityId: string;
+      unitTypeId: string;
+      startsAt: Date;
+      endsAt: Date;
+      reservationId?: string;
+    },
+  ) {
+    const unit = await this.repository.lockAvailableForHandover(
+      tx,
+      input.unitId,
+      input.taskId,
+      input.startsAt,
+      input.endsAt,
+      input.reservationId,
+    );
+    if (!unit || unit.facilityId !== input.facilityId || unit.unitTypeId !== input.unitTypeId)
+      throw new ConflictError(STORAGE_UNIT_MESSAGES.unitHasOperations);
+    return unit;
+  }
+
+  async assignReservationUnit(
+    tx: TaskTransaction,
+    input: {
+      reservationId: string;
+      unitId: string;
+      facilityId: string;
+      unitTypeId: string;
+      startsAt: Date;
+      endsAt: Date;
+      managerId: string;
+      reason?: string;
+    },
+  ) {
+    const current = await this.repository.findReservationAssignment(tx, input.reservationId);
+    await this.repository.lockAssignmentUnits(tx, [
+      input.unitId,
+      ...(current ? [current.physicalUnitId] : []),
+    ]);
+    if (current?.physicalUnitId === input.unitId) return;
+    if (await this.repository.hasReservationInspection(tx, input.reservationId))
+      throw new ConflictError(STORAGE_UNIT_MESSAGES.unitHasOperations);
+    await this.requireHandoverUnit(tx, { ...input, taskId: input.reservationId });
+    if (current)
+      await this.repository.closeReservationAssignment(
+        tx,
+        input.reservationId,
+        "REASSIGNED",
+        input.reason,
+      );
+    await this.repository.createReservationAssignment(tx, {
+      reservationId: input.reservationId,
+      physicalUnitId: input.unitId,
+      assignedBy: input.managerId,
+      reason: input.reason,
+    });
+  }
+  findReservationAssignment(tx: TaskTransaction, id: string) {
+    return this.repository.findReservationAssignment(tx, id);
+  }
+  closeReservationAssignment(tx: TaskTransaction, id: string, status: "CANCELLED" | "COMPLETED") {
+    return this.repository.closeReservationAssignment(tx, id, status);
+  }
+  markOccupied(tx: TaskTransaction, unitId: string, now: Date) {
+    return this.repository.markOccupied(tx, unitId, now);
+  }
+  completeReturn(
+    tx: TaskTransaction,
+    unitId: string,
+    rentalId: string,
+    reservationId: string | null,
+    now: Date,
+    status: "AVAILABLE" | "MAINTENANCE",
+  ) {
+    return this.repository.completeReturn(tx, unitId, rentalId, reservationId, now, status);
   }
 
   async getUnitById(id: string): Promise<StorageUnit> {

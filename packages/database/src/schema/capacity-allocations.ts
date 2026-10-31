@@ -2,7 +2,7 @@ import { foreignKey, index, pgEnum, pgTable, timestamp, uuid, varchar } from "dr
 import { facilities } from "./facilities";
 import { unitTypes } from "./unit-types";
 
-export const CAPACITY_ALLOCATION_KINDS = ["HOLD", "BOOKING"] as const;
+export const CAPACITY_ALLOCATION_KINDS = ["HOLD", "BOOKING", "RESERVATION"] as const;
 export const CAPACITY_ALLOCATION_STATUSES = ["ACTIVE", "RELEASED", "EXPIRED"] as const;
 
 export const capacityAllocationKindEnum = pgEnum(

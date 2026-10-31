@@ -8,11 +8,11 @@ import {
   FacilityTaskTypeReferenceSchema,
   type StaffFacilityTaskListQuery,
   type UpdateFacilityTaskInput,
-  UserRole,
 } from "@metastorage/contracts";
 import {
   aliasedTable,
   and,
+  appointments,
   BookingStatus,
   bookings,
   count,
@@ -27,6 +27,7 @@ import {
   supportTickets,
   users,
 } from "@metastorage/database";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import type { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
 import type {
   FacilityTaskActor,
@@ -49,12 +50,54 @@ export class FacilityTasksRepository {
     private readonly assignments: FacilityAssignmentsRepository,
   ) {}
 
+  async findAppointment(id: string) {
+    const [appointment] = await this.db.select().from(appointments).where(eq(appointments.id, id));
+    return appointment;
+  }
+
+  findActiveAppointmentTask(tx: TaskTransaction, appointmentId: string) {
+    return tx
+      .select()
+      .from(facilityTasks)
+      .where(
+        and(
+          eq(facilityTasks.referenceType, FacilityTaskReferenceType.APPOINTMENT),
+          eq(facilityTasks.referenceId, appointmentId),
+          inArray(facilityTasks.status, [
+            FacilityTaskStatus.ASSIGNED,
+            FacilityTaskStatus.IN_PROGRESS,
+          ]),
+        ),
+      )
+      .for("update");
+  }
+
+  createAppointmentTask(tx: TaskTransaction, input: typeof facilityTasks.$inferInsert) {
+    return tx.insert(facilityTasks).values(input).returning();
+  }
+
   find(tx: TaskTransaction, id: string) {
     return tx.select().from(facilityTasks).where(eq(facilityTasks.id, id));
   }
 
+  findById(id: string) {
+    return this.db.select().from(facilityTasks).where(eq(facilityTasks.id, id));
+  }
+
   findForUpdate(tx: TaskTransaction, id: string) {
     return tx.select().from(facilityTasks).where(eq(facilityTasks.id, id)).for("update");
+  }
+
+  setWorkflowStatus(
+    tx: TaskTransaction,
+    id: string,
+    status: FacilityTaskStatus,
+    timestamps: { startedAt?: Date; completedAt?: Date; updatedAt: Date },
+  ) {
+    return tx
+      .update(facilityTasks)
+      .set({ status, ...timestamps })
+      .where(eq(facilityTasks.id, id));
   }
 
   async create(input: CreateFacilityTaskInput, actor: FacilityTaskActor): Promise<TaskWriteResult> {
@@ -94,14 +137,8 @@ export class FacilityTasksRepository {
     });
   }
 
-  async assignBookingHandover(
-    tx: TaskTransaction,
-    facilityId: string,
-    bookingId: string,
-    staffId: string,
-    managerId: string,
-  ): Promise<void> {
-    const [activeTask] = await tx
+  findActiveBookingHandover(tx: TaskTransaction, bookingId: string) {
+    return tx
       .select()
       .from(facilityTasks)
       .where(
@@ -116,32 +153,41 @@ export class FacilityTasksRepository {
         ),
       )
       .for("update");
-    const now = new Date();
-    if (activeTask) {
-      if (activeTask.assignedStaffId !== staffId)
-        await tx
-          .update(facilityTasks)
-          .set({
-            assignedStaffId: staffId,
-            assignedBy: managerId,
-            assignedAt: now,
-            status: FacilityTaskStatus.ASSIGNED,
-            startedAt: null,
-            updatedAt: now,
-          })
-          .where(eq(facilityTasks.id, activeTask.id));
-      return;
-    }
+  }
 
-    await tx.insert(facilityTasks).values({
-      facilityId,
+  reassignTask(tx: TaskTransaction, taskId: string, staffId: string, managerId: string, now: Date) {
+    return tx
+      .update(facilityTasks)
+      .set({
+        assignedStaffId: staffId,
+        assignedBy: managerId,
+        assignedAt: now,
+        status: FacilityTaskStatus.ASSIGNED,
+        startedAt: null,
+        updatedAt: now,
+      })
+      .where(eq(facilityTasks.id, taskId));
+  }
+
+  createBookingHandover(
+    tx: TaskTransaction,
+    input: {
+      facilityId: string;
+      bookingId: string;
+      staffId: string;
+      managerId: string;
+      now: Date;
+    },
+  ) {
+    return tx.insert(facilityTasks).values({
+      facilityId: input.facilityId,
       type: FacilityTaskType.CHECK_IN_HANDOVER,
       status: FacilityTaskStatus.ASSIGNED,
       referenceType: FacilityTaskReferenceType.BOOKING,
-      referenceId: bookingId,
-      assignedStaffId: staffId,
-      assignedBy: managerId,
-      assignedAt: now,
+      referenceId: input.bookingId,
+      assignedStaffId: input.staffId,
+      assignedBy: input.managerId,
+      assignedAt: input.now,
     });
   }
 
@@ -151,6 +197,7 @@ export class FacilityTasksRepository {
         eq(facilityTasks.assignedStaffId, staffId),
         inArray(facilityTasks.facilityId, facilityIds),
         query.type ? eq(facilityTasks.type, query.type) : undefined,
+        query.referenceId ? eq(facilityTasks.referenceId, query.referenceId) : undefined,
       ),
       query,
     );
@@ -276,7 +323,7 @@ export class FacilityTasksRepository {
         (status === FacilityTaskStatus.COMPLETED &&
           current.status !== FacilityTaskStatus.IN_PROGRESS)
       )
-        return { error: "INVALID_TASK_STATE" };
+        return { error: "INVALID_STATUS_TRANSITION" };
       if (
         status === FacilityTaskStatus.COMPLETED &&
         current.type === FacilityTaskType.CHECK_IN_HANDOVER

@@ -41,8 +41,8 @@ export type SupportBookingContext = {
 export type SupportPaymentContext = {
   id: string;
   paymentCode: string | null;
-  chargeId: string | null;
-  source: "BOOKING" | "RENEWAL" | "EXTRA" | "RETURN_DEBT";
+
+  source: "RESERVATION";
   status: import("./payments").PaymentStatus;
   amount: string;
   currency: string;

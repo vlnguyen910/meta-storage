@@ -1,23 +1,31 @@
 "use client";
-import { zodResolver } from "@hookform/resolvers/zod";
-import type { CheckInLookupInput, Inspection, InspectionDraftInput } from "@metastorage/contracts";
+import type {
+  AppointmentRecordDto,
+  CheckInLookupInput,
+  InspectionRecord,
+  UpdateInspectionInput,
+} from "@metastorage/contracts";
 import {
+  FacilityTaskStatus,
+  FacilityTaskType,
   HANDOVER_CHECKLIST_ITEMS,
   HandoverChecklistCompletionSchema,
+  HandoverChecklistItemResultSchema,
   INSPECTION_PHOTO_MAX_BYTES,
   INSPECTION_PHOTO_MAX_COUNT,
-  InspectionDraftInputSchema,
+  InspectionConditionValueSchema,
 } from "@metastorage/contracts";
+import { formatReference } from "@metastorage/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useState } from "react";
 import { useGlobalLoading } from "@/components/providers/global-loading-provider";
 import { useToast } from "@/components/ui/toast";
-import { useAuthStore } from "@/features/auth/auth-store";
 import { api } from "@/lib/api";
 import { FLOW } from "./flow.messages";
+import { appointmentItem } from "./use-dispatch";
+
 export function flowError(error: unknown) {
   return axios.isAxiosError(error)
     ? ((error.response?.data as { error?: { message?: string }; message?: string })?.error
@@ -28,6 +36,7 @@ export function flowError(error: unknown) {
       ? error.message
       : FLOW.error;
 }
+
 export function normalizeLookup(value: string) {
   try {
     return new URL(value.trim()).searchParams.get("token") ?? value.trim();
@@ -35,20 +44,79 @@ export function normalizeLookup(value: string) {
     return value.trim();
   }
 }
+
 export const inspectionKey = (bookingId: string) =>
   ["facility-flow", "inspections", bookingId] as const;
+
 export function useCheckInFlow() {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
   const { showToast } = useToast();
-  const userId = useAuthStore((state) => state.session?.user.id);
-  const code = params.get("bookingCode") ?? "";
+  const code = params.get("appointmentId") ?? params.get("bookingCode") ?? "";
   const token = params.get("qrToken") ?? "";
   const lookup = useQuery({
     queryKey: ["facility-flow", "lookup", code, token],
-    queryFn: () =>
-      api.checkIns.lookup({ type: token ? "QR_TOKEN" : "BOOKING_CODE", value: token || code }),
+    queryFn: async () => {
+      let id = token ? normalizeLookup(token) : code;
+      try {
+        const url = new URL(id);
+        id =
+          url.searchParams.get("appointmentId") ??
+          url.pathname.split("/").filter(Boolean).at(-1) ??
+          id;
+      } catch {}
+      const isId = /^[0-9a-f-]{36}$/i.test(id);
+      let appointment: AppointmentRecordDto | undefined;
+      try {
+        appointment = isId ? await api.appointments.get(id) : undefined;
+      } catch (error) {
+        if (!axios.isAxiosError(error) || error.response?.status !== 404) throw error;
+      }
+      if (!appointment) {
+        const assignments = await api.facilities.myAssignments();
+        const scope = assignments.filter((x) => x.isActive);
+        for (const facility of scope) {
+          const list = await (pathname.startsWith("/staff")
+            ? api.appointments.assignedToMe({ facilityId: facility.facilityId })
+            : api.appointments.listFacility(facility.facilityId));
+          appointment = list.find(
+            (x) =>
+              x.id === id ||
+              x.reservationId === id ||
+              formatReference(
+                x.reservationId ?? x.id,
+                x.reservationId ? "BK" : "LH",
+              ).toUpperCase() === id.trim().toUpperCase(),
+          );
+          if (appointment) break;
+        }
+      }
+      if (!appointment) throw new Error(FLOW.emptyTitle);
+      const booking = {
+        ...appointmentItem(appointment),
+        checkInDeadlineAt: `${appointment.scheduledDate}T23:59:59.999+07:00`,
+      };
+      const r = appointment.reservation;
+      const reasons = [];
+      if (booking.status !== "CONFIRMED" || appointment.status !== "CONFIRMED")
+        reasons.push("INVALID_BOOKING_STATUS");
+      if (appointment.paymentStatus !== "SUCCEEDED") reasons.push("PAYMENT_NOT_SUCCEEDED");
+      if (!booking.assignedUnit) reasons.push("UNIT_NOT_ASSIGNED");
+      return {
+        booking,
+        payment: {
+          status: appointment.paymentStatus,
+          paidAt: appointment.paidAt ?? null,
+          totalAmount: r?.totalAmount ?? null,
+          rentalFeeAmount: r?.rentalFeeAmount ?? null,
+          depositAmount: r?.depositAmount ?? null,
+          currency: r ? "VND" : null,
+        },
+        assignedUnit: booking.assignedUnit,
+        checkInReadiness: { canProceed: reasons.length === 0, reasons },
+      };
+    },
     enabled: !!(code || token),
     retry: false,
     staleTime: 0,
@@ -56,73 +124,82 @@ export function useCheckInFlow() {
   });
   const result = lookup.data;
   const bookingId = result?.booking.id ?? "";
+  const recordKey = inspectionKey(result?.booking.reservationId ?? bookingId);
   const history = useQuery({
-    queryKey: inspectionKey(bookingId),
-    queryFn: () => api.inspections.history(bookingId),
+    queryKey: recordKey,
+    queryFn: () => api.inspections.forAppointment(bookingId),
     enabled: !!bookingId,
     retry: false,
     staleTime: 0,
     refetchOnWindowFocus: true,
   });
   const current = history.data?.find(
-    (i) =>
-      i.unitAssignmentId === result?.assignedUnit?.id &&
-      i.verificationId === result?.verification?.id,
+    (inspection) =>
+      inspection.inspectionType === "CHECK_IN" &&
+      inspection.storageUnitId === result?.assignedUnit?.physicalUnitId,
   );
   const view = params.get("view") ?? "verify";
   const navigate = (next: string) => {
-    const q = new URLSearchParams(params.toString());
-    if (next === "verify") q.delete("view");
-    else q.set("view", next);
-    router.push(`${pathname}?${q.toString()}`);
+    const query = new URLSearchParams(params.toString());
+    if (next === "verify") query.delete("view");
+    else query.set("view", next);
+    router.push(`${pathname}?${query.toString()}`);
   };
   const queryClient = useQueryClient();
+  async function startInspection() {
+    const { items } = await api.flow5.tasks.listMine({
+      type: FacilityTaskType.CHECK_IN_HANDOVER,
+      referenceId: bookingId,
+      limit: 100,
+      offset: 0,
+    });
+    const task = items.find(
+      (item) =>
+        item.referenceId === bookingId &&
+        (item.status === FacilityTaskStatus.ASSIGNED ||
+          item.status === FacilityTaskStatus.IN_PROGRESS),
+    );
+    if (!task) throw new Error(FLOW.taskNotFound);
+    if (task.status === FacilityTaskStatus.ASSIGNED)
+      await api.flow5.tasks.update(task.id, { status: FacilityTaskStatus.IN_PROGRESS });
+    else if (task.status !== FacilityTaskStatus.IN_PROGRESS) throw new Error(FLOW.taskNotReady);
+    if (!result?.assignedUnit) throw new Error(FLOW.unassigned);
+    return api.inspections.create({
+      taskId: task.id,
+      storageUnitId: result.assignedUnit.physicalUnitId,
+    });
+  }
   const verify = useMutation({
     meta: { globalLoading: true },
-    mutationFn: () =>
-      result?.booking.status === "CHECKED_IN" ||
-      (result?.verification?.status === "VERIFIED" && result.verification.staffId === userId)
-        ? Promise.resolve(result)
-        : api.checkIns.confirm(bookingId),
-    onSuccess: async (data) => {
-      queryClient.setQueryData(["facility-flow", "lookup", code, token], data);
+    mutationFn: startInspection,
+    onSuccess: async (inspection) => {
       await queryClient.invalidateQueries({ queryKey: ["bookings"] });
       const response = await history.refetch();
-      if (
-        !response.isError &&
-        !response.data?.some(
-          (i) =>
-            i.unitAssignmentId === data.assignedUnit?.id &&
-            i.verificationId === data.verification?.id,
-        )
-      ) {
-        try {
-          const record = await api.inspections.start(bookingId);
-          queryClient.setQueryData(inspectionKey(bookingId), [record, ...(response.data ?? [])]);
-        } catch (error) {
-          showToast(flowError(error), "error");
-        }
-      }
+      queryClient.setQueryData(recordKey, [
+        inspection,
+        ...(response.data ?? []).filter((item) => item.id !== inspection.id),
+      ]);
       navigate("inspect");
     },
-    onError: async (e) => {
-      showToast(flowError(e), "error");
+    onError: async (error) => {
+      showToast(flowError(error), "error");
       await queryClient.invalidateQueries({ queryKey: ["facility-flow", "lookup"] });
       await queryClient.invalidateQueries({ queryKey: ["bookings"] });
     },
   });
   const start = useMutation({
     meta: { globalLoading: true },
-    mutationFn: () => api.inspections.start(bookingId),
-    onSuccess: async (data) => {
-      queryClient.setQueryData(inspectionKey(bookingId), (old: Inspection[] | undefined) => [
-        data,
-        ...(old ?? []).filter((i) => i.id !== data.id),
+    mutationFn: startInspection,
+    onSuccess: async (inspection) => {
+      queryClient.setQueryData(recordKey, (old: InspectionRecord[] | undefined) => [
+        inspection,
+        ...(old ?? []).filter((item) => item.id !== inspection.id),
       ]);
       await queryClient.invalidateQueries({ queryKey: ["bookings"] });
     },
-    onError: (e) => showToast(flowError(e), "error"),
+    onError: (error) => showToast(flowError(error), "error"),
   });
+
   function search(type: CheckInLookupInput["type"], value: string) {
     if (!value.trim()) {
       showToast(FLOW.lookupRequired, "error");
@@ -132,84 +209,51 @@ export function useCheckInFlow() {
       `${pathname}?${type === "QR_TOKEN" ? "qrToken" : "bookingCode"}=${encodeURIComponent(type === "QR_TOKEN" ? normalizeLookup(value) : value.trim())}`,
     );
   }
+
   return { lookup, result, history, current, view, navigate, verify, start, search };
 }
-export function useInspectionEditor(record: Inspection, onNavigate: (next: string) => void) {
+
+export function readResults(checklist: Record<string, unknown>) {
+  const value = checklist.results;
+  return Array.isArray(value)
+    ? value.flatMap((item) => {
+        const parsed = HandoverChecklistItemResultSchema.safeParse(item);
+        return parsed.success ? [parsed.data] : [];
+      })
+    : [];
+}
+
+export function useInspectionEditor(record: InspectionRecord, onNavigate: (next: string) => void) {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
   const { runWithGlobalLoading } = useGlobalLoading();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [confirmLock, setConfirmLock] = useState(false);
-  const [serverConflict, setServerConflict] = useState(false);
-  const [comparison, setComparison] = useState<Inspection | null>(null);
-  const recordId = useRef(record.id);
-  const form = useForm<InspectionDraftInput>({
-    resolver: zodResolver(InspectionDraftInputSchema),
-    defaultValues: {
-      version: record.version,
-      results: record.results ?? [],
-      correctUnit: record.correctUnit,
-      conditionNotes: record.conditionNotes,
-    },
-  });
-  const locked = record.status === "COMPLETED";
-  const dirty = form.formState.isDirty;
+  const [results, setResults] = useState(() => readResults(record.checklist));
+  const [condition, setCondition] = useState(record.condition);
+  const [notes, setNotes] = useState(record.notes ?? "");
+  const locked = record.status === "PASSED" || record.status === "FAILED";
+  const dirty =
+    JSON.stringify(results) !== JSON.stringify(readResults(record.checklist)) ||
+    condition !== record.condition ||
+    notes !== (record.notes ?? "");
+
   useEffect(() => {
-    if (recordId.current === record.id && form.formState.isDirty) return;
-    recordId.current = record.id;
-    form.reset({
-      version: record.version,
-      results: record.results ?? [],
-      correctUnit: record.correctUnit,
-      conditionNotes: record.conditionNotes,
-    });
-    setConfirmLock(false);
-    setComparison(null);
-    setServerConflict(false);
-  }, [record.id, record.version, record.correctUnit, record.conditionNotes, record.results, form]);
-  useEffect(() => {
-    if (!dirty) return;
-    const listener = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = "";
-    };
-    const guardLinks = (event: MouseEvent) => {
-      const link = event.target instanceof Element ? event.target.closest("a[href]") : null;
-      if (!link?.getAttribute("href")?.startsWith("/")) return;
-      if (!window.confirm(FLOW.confirmLeave)) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
-    };
-    window.addEventListener("beforeunload", listener);
-    document.addEventListener("click", guardLinks, true);
-    return () => {
-      window.removeEventListener("beforeunload", listener);
-      document.removeEventListener("click", guardLinks, true);
-    };
-  }, [dirty]);
-  const values = form.watch();
-  const conflict = serverConflict || values.version !== record.version;
-  const canKeepDraft =
-    !!comparison &&
-    comparison.status === "DRAFT" &&
-    comparison.unitAssignmentId === record.unitAssignmentId &&
-    comparison.verificationId === record.verificationId &&
-    comparison.checklistVersion === record.checklistVersion;
-  const items = record.checklistDefinition?.length
-    ? record.checklistDefinition
-    : HANDOVER_CHECKLIST_ITEMS;
+    if (dirty) return;
+    setResults(readResults(record.checklist));
+    setCondition(record.condition);
+    setNotes(record.notes ?? "");
+  }, [record.checklist, record.condition, record.notes, dirty]);
+
+  const items = HANDOVER_CHECKLIST_ITEMS;
   const count = items.filter((item) =>
-    values.results?.some((entry) => entry.itemCode === item.code && entry.result === "PASS"),
+    results.some((entry) => entry.itemCode === item.code && entry.result === "PASS"),
   ).length;
-  const canComplete = HandoverChecklistCompletionSchema.safeParse(values.results).success;
+  const canComplete = HandoverChecklistCompletionSchema.safeParse(results).success;
   function setResult(itemCode: string, result: "PASS" | "FAIL") {
-    const previous = form.getValues("results") ?? [];
-    const old = previous.find((entry) => entry.itemCode === itemCode);
-    form.setValue(
-      "results",
-      [
+    setResults((previous) => {
+      const old = previous.find((entry) => entry.itemCode === itemCode);
+      return [
         ...previous.filter((entry) => entry.itemCode !== itemCode),
         {
           itemCode,
@@ -218,94 +262,57 @@ export function useInspectionEditor(record: Inspection, onNavigate: (next: strin
           note: old?.note ?? null,
           photos: old?.photos ?? [],
         },
-      ],
-      { shouldDirty: true },
-    );
-    if (itemCode === "ASSIGNED_UNIT")
-      form.setValue("correctUnit", result === "PASS", { shouldDirty: true });
-  }
-  function accept(data: Inspection) {
-    queryClient.setQueryData(inspectionKey(record.bookingId), (old: Inspection[] | undefined) => [
-      data,
-      ...(old ?? []).filter((i) => i.id !== data.id),
-    ]);
-    form.reset({
-      version: data.version,
-      results: data.results ?? [],
-      correctUnit: data.correctUnit,
-      conditionNotes: data.conditionNotes,
+      ];
     });
-    setServerConflict(false);
-    setComparison(null);
+  }
+
+  function updateInput(
+    status: UpdateInspectionInput["status"] = "IN_PROGRESS",
+  ): UpdateInspectionInput {
+    return {
+      status,
+      condition,
+      checklist: { ...record.checklist, results },
+      notes: notes.trim() || null,
+    };
+  }
+  function accept(data: InspectionRecord) {
+    if (data.reservationId) {
+      queryClient.setQueryData(
+        inspectionKey(data.reservationId),
+        (old: InspectionRecord[] | undefined) => [
+          data,
+          ...(old ?? []).filter((item) => item.id !== data.id),
+        ],
+      );
+    }
+    setResults(readResults(data.checklist));
+    setCondition(data.condition);
+    setNotes(data.notes ?? "");
     return data;
   }
-  async function refreshForComparison() {
-    if (busy) return;
-    setBusy(true);
-    setError("");
-    try {
-      const records = await queryClient.fetchQuery({
-        queryKey: inspectionKey(record.bookingId),
-        queryFn: () => api.inspections.history(record.bookingId),
-        staleTime: 0,
-      });
-      const latest = records.find((item) => item.id === record.id);
-      if (!latest) throw new Error(FLOW.comparisonUnavailable);
-      setComparison(latest);
-    } catch (error) {
-      setError(flowError(error));
-    } finally {
-      setBusy(false);
-    }
-  }
-  function keepDraft() {
-    if (!comparison || !canKeepDraft || busy) return;
-    const draft = form.getValues();
-    form.reset({
-      version: comparison.version,
-      results: comparison.results ?? [],
-      correctUnit: comparison.correctUnit,
-      conditionNotes: comparison.conditionNotes,
-    });
-    form.setValue("results", draft.results, { shouldDirty: true });
-    form.setValue("correctUnit", draft.correctUnit, { shouldDirty: true });
-    form.setValue("conditionNotes", draft.conditionNotes, { shouldDirty: true });
-    setConfirmLock(false);
-    setServerConflict(false);
-    setComparison(null);
-    setError("");
-  }
-  function loadServerDraft() {
-    if (!comparison || busy) return;
-    accept(comparison);
-    setConfirmLock(false);
-    setError("");
-  }
-  async function action(work: () => Promise<Inspection>): Promise<Inspection | undefined> {
-    if (busy || locked || conflict) return undefined;
+  async function action(work: () => Promise<InspectionRecord>) {
+    if (busy || locked) return undefined;
     setBusy(true);
     setError("");
     try {
       return accept(await runWithGlobalLoading(work));
-    } catch (e) {
-      if (axios.isAxiosError(e) && e.response?.status === 409) setServerConflict(true);
-      const msg = flowError(e);
-      setError(msg);
-      showToast(msg, "error");
-      await queryClient.invalidateQueries({ queryKey: inspectionKey(record.bookingId) });
+    } catch (cause) {
+      const message = flowError(cause);
+      setError(message);
+      showToast(message, "error");
+      if (record.reservationId)
+        await queryClient.invalidateQueries({ queryKey: inspectionKey(record.reservationId) });
+      return undefined;
     } finally {
       setBusy(false);
     }
-    return undefined;
   }
   async function save(next?: string) {
-    if (busy || locked || conflict) return;
-    if (!(await form.trigger())) return;
-    const data = await action(() => api.inspections.save(record.id, form.getValues()));
-    if (data) {
-      if (next) onNavigate(next);
-      else showToast(FLOW.saveSuccess, "success");
-    }
+    const data = await action(() => api.inspections.save(record.id, updateInput()));
+    if (!data) return;
+    if (next) onNavigate(next);
+    else showToast(FLOW.saveSuccess, "success");
   }
   async function upload(file: File) {
     if (
@@ -315,62 +322,52 @@ export function useInspectionEditor(record: Inspection, onNavigate: (next: strin
       setError(FLOW.photoError);
       return;
     }
-    if (record.photos.length >= INSPECTION_PHOTO_MAX_COUNT) {
+    if (record.evidence.length >= INSPECTION_PHOTO_MAX_COUNT) {
       setError(FLOW.photoLimit);
       return;
     }
     await action(async () => {
-      let saved = record;
-      if (dirty)
-        saved = await api.inspections.save(record.id, {
-          ...form.getValues(),
-          version: form.getValues("version"),
-        });
-      const data = await new Promise<string>((resolve, reject) => {
+      if (dirty) await api.inspections.save(record.id, updateInput());
+      const dataBase64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
         reader.onerror = () => reject(new Error(FLOW.photoError));
         reader.readAsDataURL(file);
       });
       return api.inspections.upload(record.id, {
-        version: saved.version,
         filename: file.name,
         mimeType: file.type as "image/jpeg" | "image/png" | "image/webp",
-        dataBase64: data,
+        dataBase64,
       });
     });
   }
   async function remove(photoId: string) {
     await action(async () => {
-      let saved = record;
-      if (dirty)
-        saved = await api.inspections.save(record.id, {
-          ...form.getValues(),
-          version: form.getValues("version"),
-        });
-      return api.inspections.removePhoto(record.id, photoId, saved.version);
+      if (dirty) await api.inspections.save(record.id, updateInput());
+      return api.inspections.removePhoto(record.id, photoId);
     });
   }
   async function complete() {
-    if (!canComplete || !confirmLock || dirty) return;
-    const data = await action(() => api.inspections.complete(record.id, record.version));
-    if (data) {
-      await queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      showToast(FLOW.completeSuccess, "success");
-      onNavigate("handover");
-    }
+    if (!canComplete || dirty) return;
+    const parsedCondition = InspectionConditionValueSchema.safeParse(condition);
+    const data = await action(() =>
+      api.inspections.save(record.id, {
+        ...updateInput("PASSED"),
+        condition: parsedCondition.success ? parsedCondition.data : "GOOD",
+      }),
+    );
+    if (!data) return;
+    await queryClient.invalidateQueries({ queryKey: ["bookings"] });
+    showToast(FLOW.completeSuccess, "success");
+    onNavigate("handover");
   }
+
   return {
-    form,
-    values,
+    values: { results, condition, notes },
+    setNotes,
+    setCondition,
     dirty,
     locked,
-    conflict,
-    comparison,
-    canKeepDraft,
-    refreshForComparison,
-    keepDraft,
-    loadServerDraft,
     busy,
     error,
     count,
@@ -380,32 +377,35 @@ export function useInspectionEditor(record: Inspection, onNavigate: (next: strin
     save,
     upload,
     remove,
-    confirmLock,
-    setConfirmLock,
     complete,
   };
 }
 
-export function useHandover(record: Inspection) {
+export function useHandover(record: InspectionRecord) {
   const [received, setReceived] = useState(false);
   const { showToast } = useToast();
   const queryClient = useQueryClient();
   const mutation = useMutation({
     meta: { globalLoading: true },
-    mutationFn: () => api.inspections.handover(record.id, record.version),
+    mutationFn: () => api.inspections.handover(record.id, { customerReceivedUnit: true }),
     onSuccess: async (data) => {
-      queryClient.setQueryData(inspectionKey(record.bookingId), (old: Inspection[] | undefined) => [
-        data,
-        ...(old ?? []).filter((i) => i.id !== data.id),
-      ]);
+      if (record.reservationId)
+        queryClient.setQueryData(
+          inspectionKey(record.reservationId),
+          (old: InspectionRecord[] | undefined) => [
+            data,
+            ...(old ?? []).filter((item) => item.id !== data.id),
+          ],
+        );
       await queryClient.invalidateQueries({ queryKey: ["facility-flow", "lookup"] });
       await queryClient.invalidateQueries({ queryKey: ["bookings"] });
       await queryClient.invalidateQueries({ queryKey: ["rentals"] });
       showToast(FLOW.handoverSuccess, "success");
     },
-    onError: async (error) => {
-      showToast(flowError(error), "error");
-      await queryClient.invalidateQueries({ queryKey: inspectionKey(record.bookingId) });
+    onError: async (cause) => {
+      showToast(flowError(cause), "error");
+      if (record.reservationId)
+        await queryClient.invalidateQueries({ queryKey: inspectionKey(record.reservationId) });
     },
   });
   return { received, setReceived, mutation };

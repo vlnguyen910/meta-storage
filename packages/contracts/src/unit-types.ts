@@ -34,7 +34,6 @@ export type UnitTypeListParams = Partial<UnitTypeListQuery>;
 export const CreateUnitTypeSchema = z
   .object({
     facilityId: z.uuid(),
-    priceRangeId: z.uuid(),
     code: z.string().trim().min(1).max(80),
     name: z.string().trim().min(1).max(100),
     sizeLabel: z.string().trim().min(1).max(50),

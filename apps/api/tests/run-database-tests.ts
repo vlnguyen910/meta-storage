@@ -75,7 +75,14 @@ async function run() {
           "--reporter=junit",
           `--reporter-outfile=${report}`,
         ],
-        { env: process.env, stdout: "inherit", stderr: "inherit" },
+        {
+          env:
+            file === "reservation-appointments-postgres.test.ts"
+              ? { ...process.env, PAYMENT_PROVIDER: "sepay" }
+              : process.env,
+          stdout: "inherit",
+          stderr: "inherit",
+        },
       );
       if ((await result.exited) !== 0)
         throw new Error(`${file} failed; stopping database regressions`);

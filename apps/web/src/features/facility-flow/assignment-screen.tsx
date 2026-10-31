@@ -1,5 +1,5 @@
 "use client";
-import { UserRole } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, ArrowRight, CheckCircle2, RefreshCw, Warehouse } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -32,7 +32,8 @@ import { flowError } from "./use-check-in-flow";
 export function AssignmentScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const id = useSearchParams().get("bookingId") ?? "";
+  const params = useSearchParams();
+  const id = params.get("appointmentId") ?? params.get("bookingId") ?? "";
   const booking = useBooking(id);
   const units = useEligibleUnits(id);
   const mutation = useAssignPhysicalUnitMutation();
@@ -87,7 +88,7 @@ export function AssignmentScreen() {
           : FLOW.assignedSuccess,
         "success",
       );
-      router.push(`${root}/check-in?bookingCode=${encodeURIComponent(change.bookingCode)}`);
+      router.push(`${root}/check-in?appointmentId=${encodeURIComponent(change.bookingId)}`);
     } catch (e) {
       setError(flowError(e));
       showToast(flowError(e), "error");
@@ -95,7 +96,7 @@ export function AssignmentScreen() {
   }
   return (
     <>
-      <OperationalBackLink href="/facility-manager/tasks?view=bookings">
+      <OperationalBackLink href="/facility-manager/tasks?view=appointments">
         {FLOW.back}
       </OperationalBackLink>
       <OperationalPageHeader title={FLOW.assignmentTitle} description={FLOW.assignmentWarning} />
@@ -236,7 +237,7 @@ export function AssignmentScreen() {
           <Panel className="flex flex-wrap items-center justify-between gap-3">
             <Button
               variant="secondary"
-              onClick={() => router.push("/facility-manager/tasks?view=bookings")}
+              onClick={() => router.push("/facility-manager/tasks?view=appointments")}
             >
               <BackLabel />
             </Button>

@@ -1,4 +1,5 @@
 import {
+  FacilityTaskStatus,
   HANDOVER_CHECKLIST_ITEMS,
   HandoverChecklistCompletionSchema,
   INSPECTION_CHECKLIST_VERSION,
@@ -6,8 +7,8 @@ import {
   InspectionDraftInputSchema,
   InspectionPhotoInputSchema,
   StorageUnitStatus,
-  UserRole,
 } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import type { AxiosRequestConfig } from "axios";
 import type MockAdapter from "axios-mock-adapter";
 import { canReadBooking, lookupResult } from "../core/flow";
@@ -47,17 +48,15 @@ export function registerInspectionHandlers(mock: MockAdapter): void {
     if (!booking) return [404, errorBody(404, M.missing)];
     if (user?.role !== UserRole.FACILITY_STAFF || !canReadBooking(user, booking))
       return [403, errorBody(403, M.forbidden)];
-    const lookup = lookupResult(db, booking);
-    const verification = lookup.verification;
+    const lookup = lookupResult(booking);
     if (
-      !lookup.eligibility.canProceed ||
+      !lookup.checkInReadiness.canProceed ||
       !booking.assignedUnit ||
-      verification?.status !== "VERIFIED" ||
-      verification.staffId !== user.id
+      booking.taskStatus !== "IN_PROGRESS"
     )
       return [409, errorBody(409, M.notReady)];
     const existing = db.inspections.find(
-      (i) => i.bookingId === booking.id && i.verificationId === verification.id,
+      (i) => i.bookingId === booking.id && i.unitAssignmentId === booking.assignedUnit?.id,
     );
     if (existing) return [200, envelope(existing)];
     const now = new Date().toISOString();
@@ -68,7 +67,6 @@ export function registerInspectionHandlers(mock: MockAdapter): void {
       physicalUnitId: booking.assignedUnit.physicalUnitId,
       unitCode: booking.assignedUnit.physicalUnitCode,
       unitAssignmentId: booking.assignedUnit.id,
-      verificationId: verification.id,
       policyVersion: "H6_V1",
       status: "DRAFT",
       version: 0,
@@ -118,12 +116,9 @@ export function registerInspectionHandlers(mock: MockAdapter): void {
     if (action === "handover" && inspection.handedOverAt) return [200, envelope(inspection)];
     const body = parseBody<{ version: number }>(config.data);
     if (body.version !== inspection.version) return [409, errorBody(409, M.stale)];
-    const lookup = lookupResult(db, booking);
+    const lookup = lookupResult(booking);
     if (
-      !lookup.eligibility.canProceed ||
-      lookup.verification?.status !== "VERIFIED" ||
-      lookup.verification.id !== inspection.verificationId ||
-      lookup.verification.staffId !== user.id ||
+      !lookup.checkInReadiness.canProceed ||
       booking.assignedUnit?.id !== inspection.unitAssignmentId
     )
       return [409, errorBody(409, M.notReady)];
@@ -184,6 +179,7 @@ export function registerInspectionHandlers(mock: MockAdapter): void {
       inspection.completedByName = user.name;
     }
     if (action === "handover") {
+      if (!booking.userId) return [409, errorBody(409, M.invalid)];
       const unit = db.units.find((u) => u.id === inspection.physicalUnitId);
       if (inspection.status !== "COMPLETED" || unit?.status !== "RESERVED")
         return [409, errorBody(409, M.notReady)];
@@ -193,12 +189,10 @@ export function registerInspectionHandlers(mock: MockAdapter): void {
       booking.handoverStage = "HANDED_OVER";
       booking.status = "CHECKED_IN";
       unit.status = StorageUnitStatus.OCCUPIED;
-      lookup.verification.status = "CONSUMED";
-      lookup.verification.consumedAt = inspection.handedOverAt;
-      // lookupResult returns the persisted verification object, so this transition is saved together.
+      booking.taskStatus = FacilityTaskStatus.COMPLETED;
       const facility = db.facilities.find((f) => f.id === booking.facilityId);
       db.rentals.push({
-        userId: booking.userId ?? null,
+        userId: booking.userId,
         id: crypto.randomUUID(),
         bookingId: booking.id,
         bookingCode: booking.bookingCode,
@@ -212,22 +206,19 @@ export function registerInspectionHandlers(mock: MockAdapter): void {
           name: booking.unitTypeName,
           sizeLabel: booking.unitTypeSizeLabel,
         },
-        physicalUnit: { id: unit.id, code: unit.code },
+        storageUnit: { id: unit.id, code: unit.code },
         startAt: inspection.handedOverAt,
-        expectedEndAt: booking.rentalEndAt,
+        endAt: booking.rentalEndAt,
+        closedAt: null,
         status: "ACTIVE",
         bookingStatus: "CHECKED_IN",
         actions: { canCancel: false, canReschedule: false, note: M.locked },
-        actualReturnAt: null,
-        closedAt: null,
-        depositAmount: String(booking.totalAmount / (booking.requestedMonths + 1)),
-        checkInSlotStart: booking.checkInSlotStart,
-        checkInSlotEnd: booking.checkInSlotEnd,
-        timeline: [
-          { label: "Thanh toán mô phỏng", status: "DONE", at: booking.paidAt },
-          { label: "Bàn giao kho", status: "DONE", at: inspection.handedOverAt },
-          { label: "Trả kho", status: "UPCOMING", at: booking.rentalEndAt },
-        ],
+        customer: {
+          userId: booking.userId,
+          name: booking.contactName,
+          email: booking.contactEmail,
+          phone: booking.contactPhone,
+        },
       });
     }
     inspection.version++;

@@ -50,7 +50,6 @@ function toApiUnitType(row: UnitType): FacilityUnitTypeDto {
   return {
     id: row.id,
     facilityId: row.facilityId,
-    priceRangeId: row.priceRangeId,
     code: row.code,
     name: row.name,
     sizeLabel: row.sizeLabel,

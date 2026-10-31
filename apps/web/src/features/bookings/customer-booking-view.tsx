@@ -1,5 +1,5 @@
 "use client";
-import { CUSTOMER_WORKSPACE as M } from "@metastorage/shared";
+import { formatReference, CUSTOMER_WORKSPACE as M } from "@metastorage/shared";
 import {
   ArrowLeft,
   CalendarClock,
@@ -84,7 +84,7 @@ export function CustomerBookingList() {
                   <CardContent className="space-y-4 p-5">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <strong className="text-lg font-bold tracking-tight text-slate-900">
-                        {b.bookingCode ?? b.id}
+                        {formatReference(b.bookingCode ?? b.id, "BK")}
                       </strong>
                       <Badge
                         className={
@@ -160,12 +160,12 @@ export function CustomerBookingDetail({ id }: { id: string }) {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Chi tiết đơn đặt kho"
-        title={b.bookingCode ?? b.id}
+        title={formatReference(b.bookingCode ?? b.id, "BK")}
         description={`${b.facility.name} · ${b.unitType.name}`}
         action={
           <div className="flex flex-wrap gap-2">
             <Link
-              href={`${customerRoutes.supportNew}?bookingId=${encodeURIComponent(id)}`}
+              href={`${customerRoutes.supportNew}?reservationId=${encodeURIComponent(id)}`}
               className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 hover:text-slate-900"
             >
               <HelpCircle className="size-4" />

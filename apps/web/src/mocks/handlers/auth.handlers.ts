@@ -2,8 +2,8 @@ import {
   CustomerSignUpInputSchema,
   type LoginInput,
   type SessionTokens,
-  UserRole,
 } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import type MockAdapter from "axios-mock-adapter";
 import {
   createSession,

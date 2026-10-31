@@ -1,10 +1,9 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, setSystemTime, test } from "bun:test";
 import {
   CheckInLookupResultSchema,
   HANDOVER_CHECKLIST_ITEMS,
   PaymentResultSchema,
-  ReservationDraftSchema,
-  ReservationHoldSchema,
+  ReservationDraftInputSchema,
 } from "@metastorage/contracts";
 import { remainingDemoCapacity } from "../src/features/demo/demo-policy";
 import { createMobileSeed, demoId } from "../src/features/demo/demo-seed";
@@ -29,6 +28,8 @@ const call = (
   method = "POST",
 ) => handleMobileRequest(db, method, path, body);
 describe("mobile demo policies", () => {
+  beforeEach(() => setSystemTime(new Date("2026-10-29T03:00:00Z")));
+  afterEach(() => setSystemTime());
   test("native storage encoding preserves Vietnamese/emoji and respects value byte limits", () => {
     const value = JSON.stringify({ notes: "Kho lưu trữ 🏠 sạch và nguyên vẹn. ".repeat(200) });
     const chunks = secureStoreChunks(value);
@@ -45,12 +46,20 @@ describe("mobile demo policies", () => {
       durationMonths: 2,
       contact: { fullName: "Guest Customer", email: "guest@example.test", phone: "+84901234567" },
     }) as (typeof db.drafts)[number];
-    expect(ReservationDraftSchema.safeParse(d).success).toBe(true);
+    expect(ReservationDraftInputSchema.safeParse(d).success).toBe(true);
+    expect(d).toMatchObject({ status: "DRAFT", pricingStatus: "PRICED", hold: null });
+    expect(d.draftAccessToken).toBeTruthy();
     expect(db.bookings.some((b) => b.id === d.id)).toBe(false);
     const h = call(db, `/reservations/drafts/${d.id}/hold`, {
       draftAccessToken: d.draftAccessToken,
     }) as NonNullable<typeof d.hold>;
-    expect(ReservationHoldSchema.safeParse(h).success).toBe(true);
+    expect(h).toMatchObject({
+      status: "ACTIVE",
+      unitTypeId: d.unitTypeId,
+      startsAt: d.checkInAt,
+      endsAt: d.rentalEndAt,
+    });
+    expect(h.holdToken).toBeTruthy();
     expect(Date.parse(h.expiresAt) - Date.now()).toBeGreaterThan(599000);
     const input = {
       holdToken: h.holdToken,
@@ -106,7 +115,7 @@ describe("mobile demo policies", () => {
     db.sessionId = demoId(101);
     expect(mobileWorkspace(db).bookings.some((b) => b.id === demoId(202))).toBe(false);
     expect(() =>
-      call(db, "/check-ins/lookup", { type: "BOOKING_CODE", value: "BK-2026-0002" }),
+      call(db, "/bookings/check-in/lookup", { type: "BOOKING_CODE", value: "BK-2026-0002" }),
     ).toThrow();
   });
   test("reschedule preserves paid attributes, checks capacity, and allows no more than two changes", () => {
@@ -159,18 +168,24 @@ describe("mobile demo policies", () => {
       remainingDemoCapacity(db, b.facilityId, b.unitTypeId, b.checkInSlotStart, b.rentalEndAt),
     ).toBe(before + 1);
   });
-  test("verify and completed inspection never activate rental; only explicit handover does, once", () => {
+  test("task arrival and inspection never activate rental; only explicit handover does, once", () => {
     const db = createMobileSeed();
     db.sessionId = demoId(101);
     const b = fixture(db.bookings.find((b) => b.id === demoId(201)));
-    expect(() => call(db, `/demo/bookings/${b.id}/inspection`)).toThrow();
-    const verified = call(db, `/check-ins/${b.id}/confirm`);
-    expect(CheckInLookupResultSchema.safeParse(verified).success).toBe(true);
+    expect(
+      CheckInLookupResultSchema.safeParse(
+        call(db, "/bookings/check-in/lookup", {
+          type: "BOOKING_CODE",
+          value: b.bookingCode,
+        }),
+      ).success,
+    ).toBe(true);
     expect(b.status).toBe("CONFIRMED");
     const inspection = call(
       db,
       `/demo/bookings/${b.id}/inspection`,
     ) as (typeof db.inspections)[number];
+    expect(b.taskStatus).toBe("IN_PROGRESS");
     expect(() => call(db, `/demo/inspections/${inspection.id}/complete`, { version: 0 })).toThrow();
     call(
       db,

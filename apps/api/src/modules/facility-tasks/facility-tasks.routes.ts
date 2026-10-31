@@ -6,27 +6,19 @@ import {
   FACILITY_TASK_MESSAGES as m,
   StaffFacilityTaskListQuerySchema,
   UpdateFacilityTaskSchema,
-  UserRole,
 } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import type { FastifyPluginAsync, FastifyRequest } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
 import { requireRole } from "../auth/auth.guard";
-import { FacilitiesRepository } from "../facilities/facilities.repository";
-import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
-import { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
-import { FacilityTasksRepository } from "./facility-tasks.repository";
-import { FacilityTasksService } from "./facility-tasks.service";
+import { createFacilityTasksService } from "./facility-tasks.service";
 import { facilityTaskSwaggerTransform } from "./facility-tasks.swagger";
 
 export const facilityTasksRoutes: FastifyPluginAsync = async (app) => {
   const typed = app.withTypeProvider<ZodTypeProvider>();
-  const assignmentRepository = new FacilityAssignmentsRepository(app.db);
-  const service = new FacilityTasksService(
-    new FacilityTasksRepository(app.db, assignmentRepository),
-    new FacilityAssignmentsService(assignmentRepository, new FacilitiesRepository(app.db)),
-  );
+  const service = createFacilityTasksService(app.db);
 
   app.addHook("onRequest", async (_request, reply) => {
     reply.header("Cache-Control", "private, no-store");

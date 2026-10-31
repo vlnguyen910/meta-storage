@@ -15,7 +15,7 @@ export const BookingPaymentParamsSchema = z.object({
 });
 export type BookingPaymentParams = z.infer<typeof BookingPaymentParamsSchema>;
 
-export const BookingPaymentInputSchema = z.object({
+export const CheckoutSessionInputSchema = z.object({
   idempotencyKey: z.string().min(16).max(128),
   contactPhone: z
     .string()
@@ -23,7 +23,9 @@ export const BookingPaymentInputSchema = z.object({
     .regex(/^(?:\+[1-9]\d{7,14}|0\d{9})$/)
     .optional(),
 });
-export type BookingPaymentInput = z.infer<typeof BookingPaymentInputSchema>;
+export type CheckoutSessionInput = z.infer<typeof CheckoutSessionInputSchema>;
+export { CheckoutSessionInputSchema as BookingPaymentInputSchema };
+export type BookingPaymentInput = CheckoutSessionInput;
 
 export const PaymentStatus = {
   PENDING: "PENDING",
@@ -40,7 +42,10 @@ export const PAYMENT_REFUND_REASONS = [
   "OFFERING_UNAVAILABLE",
   "CUSTOMER_CANCELLATION",
   "NO_SHOW",
+  "RENEWAL_NOT_APPLIED",
 ] as const;
+export type PaymentType = "CHARGE" | "DEPOSIT_REFUND" | "DEBT_COLLECTION";
+export const PaymentTypeSchema = z.enum(["CHARGE", "DEPOSIT_REFUND", "DEBT_COLLECTION"]);
 export const PaymentRefundReasonSchema = z.enum(PAYMENT_REFUND_REASONS);
 export type PaymentRefundReason = z.infer<typeof PaymentRefundReasonSchema>;
 
@@ -138,13 +143,58 @@ export type PaymentPendingResponse = z.infer<typeof PaymentPendingResponseSchema
 export type PaymentResponse = PaymentResult | PaymentPendingResponse;
 
 export const PaymentStatusResponseSchema = z.object({
+  type: PaymentTypeSchema,
+  reservationId: z.uuid().optional(),
   paymentId: z.string().uuid(),
   status: z.enum(PaymentStatus),
   provider: z.string().nullable(),
   paymentCode: z.string().nullable(),
-  chargeId: z.string().uuid().optional(),
+
   transferInstructions: SepayPaymentInstructionsSchema.optional(),
   checkoutUrl: z.string().url().optional(),
   checkoutFormFields: z.record(z.string(), z.union([z.string(), z.number()])).optional(),
   confirmation: z.lazy(() => BookingConfirmationSchema).optional(),
 });
+
+export const ManualPaymentInputSchema = z
+  .strictObject({
+    method: z.enum(["CASH", "BANK_TRANSFER"]),
+    reference: z.string().trim().min(1).max(128).optional(),
+  })
+  .refine((input) => input.method !== "BANK_TRANSFER" || Boolean(input.reference), {
+    message: PAYMENT_CONTRACT_MESSAGES.refundReferenceRequired,
+    path: ["reference"],
+  });
+export const DebtPaymentInputSchema = ManualPaymentInputSchema.safeExtend({
+  amount: z.number().int().positive().max(999_999_999_999),
+  idempotencyKey: z.string().min(16).max(123),
+});
+export type DebtPaymentInput = z.infer<typeof DebtPaymentInputSchema>;
+export const DebtQuerySchema = z.object({
+  rentalId: z.uuid().optional(),
+  status: z.enum(["UNPAID", "PARTIALLY_PAID", "PAID"]).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().nonnegative().default(0),
+});
+export type DebtQuery = z.infer<typeof DebtQuerySchema>;
+export type DebtRecord = {
+  id: string;
+  rentalId: string;
+  customerId: string;
+  customerName: string;
+  unitCode: string;
+  originalAmount: string;
+  paidAmount: string;
+  remainingAmount: string;
+  status: "UNPAID" | "PARTIALLY_PAID" | "PAID";
+  currency: string;
+  createdAt: string;
+};
+export type DebtPaymentRecord = {
+  id: string;
+  totalAmount: string;
+  method: "CASH" | "BANK_TRANSFER" | null;
+  reference: string | null;
+  paidAt: string | null;
+};
+export type DebtDetail = DebtRecord & { payments: DebtPaymentRecord[] };

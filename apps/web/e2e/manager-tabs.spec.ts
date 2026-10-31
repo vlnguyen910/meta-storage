@@ -66,26 +66,7 @@ async function tabsFixture(page: Page) {
     const url = new URL(route.request().url());
     queries.push(url);
     let data: unknown;
-    if (url.pathname.endsWith("/rentals"))
-      data = { items: [rental], total: 1, limit: 20, offset: 0 };
-    else if (url.pathname.includes("/rentals/"))
-      data = {
-        rental,
-        payments: [
-          {
-            id: f5id(703),
-            paymentCode: "PAY-001",
-            totalAmount: "2000000",
-            status: "SUCCEEDED",
-            provider: "mock",
-            currency: "VND",
-            paidAt: now,
-            createdAt: now,
-            category: null,
-          },
-        ],
-      };
-    else if (url.pathname.endsWith("/actions")) {
+    if (url.pathname.endsWith("/actions")) {
       const input = route.request().postDataJSON();
       writes.push(input);
       if (conflict) {
@@ -130,6 +111,57 @@ async function tabsFixture(page: Page) {
       data = { items: [ticket], total: 1, limit: 20, offset: 0 };
     else data = { ticket, messages, totalMessages: messages.length, limit: 20, offset: 0 };
     return route.fulfill({ json: { success: true, data } });
+  });
+  await page.route(`**/api/rentals/facility/${f5facility}**`, async (route) => {
+    const url = new URL(route.request().url());
+    queries.push(url);
+    const item = {
+      id: rental.id,
+      bookingId: rental.bookingId,
+      userId: rental.customerId,
+      bookingCode: rental.bookingCode,
+      facilityId: f5facility,
+      status: "ACTIVE",
+      startAt: now,
+      endAt: now,
+      customer: {
+        userId: rental.customerId,
+        name: rental.customerName,
+        email: rental.customerEmail,
+        phone: rental.customerPhone,
+      },
+      unit: {
+        id: f5id(6),
+        code: rental.unitCode,
+        unitTypeId: f5id(2),
+        unitTypeName: rental.unitTypeName,
+        sizeLabel: "4 m²",
+      },
+    };
+    const data = url.pathname.endsWith("/payments")
+      ? {
+          items: [
+            {
+              id: f5id(703),
+              paymentCode: "PAY-001",
+              amount: "2000000",
+              status: "SUCCEEDED",
+              currency: "VND",
+              paidAt: now,
+              createdAt: now,
+              refundedAt: null,
+              refundAmount: null,
+              refundReason: null,
+            },
+          ],
+          total: 1,
+          limit: 20,
+          offset: 0,
+        }
+      : url.pathname.endsWith(rental.id)
+        ? item
+        : { items: [item], total: 1, limit: 20, offset: 0 };
+    await route.fulfill({ json: { success: true, data } });
   });
   await page.route("**/api/reports/**", (route) => {
     const url = new URL(route.request().url());
@@ -235,7 +267,7 @@ test("FM opens a tenant rental and real transaction states within the selected f
   expect(
     f.queries.some(
       (q) =>
-        q.searchParams.get("facilityId") === f5facility &&
+        q.pathname === `/api/rentals/facility/${f5facility}` &&
         q.searchParams.get("status") === "ACTIVE",
     ),
   ).toBe(true);

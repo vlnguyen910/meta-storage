@@ -1,8 +1,5 @@
-import type {
-  BookingListItem,
-  FacilityTaskDetail,
-  ReturnQueueItemDto,
-} from "@metastorage/contracts";
+import type { BookingListItem, FacilityTaskDetail } from "@metastorage/contracts";
+import { formatReference } from "@metastorage/shared";
 import { STAFF_WORK as M } from "./staff-work.messages";
 import type { StaffWorkItem } from "./staff-work.types";
 
@@ -56,7 +53,7 @@ export function facilityWork(t: FacilityTaskDetail): StaffWorkItem {
     id: `task:${t.id}`,
     kind: "TASK",
     group: t.status === "COMPLETED" ? "done" : t.status === "CANCELLED" ? "closed" : "pending",
-    title: t.description ?? t.referenceId,
+    title: t.description || M.inspect,
     typeLabel: {
       CHECK_IN_HANDOVER: M.checkIn,
       UNIT_INSPECTION: M.inspect,
@@ -68,35 +65,9 @@ export function facilityWork(t: FacilityTaskDetail): StaffWorkItem {
       COMPLETED: M.complete,
       CANCELLED: M.cancelled,
     }[t.status],
-    reference: "",
+    reference: formatReference(t.id, "CV"),
     startsAt: null,
     href: `/staff/tasks/${encodeURIComponent(t.id)}`,
     action: t.status === "COMPLETED" || t.status === "CANCELLED" ? M.view : M.openTask,
-  };
-}
-export function returnWork(r: ReturnQueueItemDto): StaffWorkItem {
-  const done = r.status === "COMPLETED",
-    closed = r.status === "CANCELLED";
-  return {
-    id: `return:${r.id}`,
-    kind: "RETURN",
-    group: done ? "done" : closed ? "closed" : "pending",
-    title: M.returning(r.context.customer.name ?? r.context.unit.code),
-    typeLabel: M.return,
-    statusLabel: done
-      ? M.complete
-      : closed
-        ? M.cancelled
-        : r.status === "INSPECTING"
-          ? M.inProgress
-          : r.status === "FAILED"
-            ? M.returnFailed
-            : r.status === "PENDING"
-              ? M.returnAwaitingManager
-              : M.assigned,
-    reference: [r.context.booking.bookingCode, r.context.unit.code].filter(Boolean).join(" · "),
-    startsAt: r.startsAt,
-    href: `/staff/returns/${encodeURIComponent(r.id)}`,
-    action: done || closed ? M.view : M.inspectReturn,
   };
 }

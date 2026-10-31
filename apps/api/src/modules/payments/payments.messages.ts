@@ -1,4 +1,9 @@
 export const PAYMENT_MESSAGES = {
+  debtNotFound: "Không tìm thấy công nợ.",
+  debtPaymentConflict: "Thông tin khoản thu không khớp với giao dịch đã ghi nhận.",
+  debtAmountExceeded: "Số tiền thu vượt quá công nợ còn lại.",
+  debtAccessDenied: "Bạn không có quyền truy cập công nợ này.",
+  reservationNotFound: "Reservation not found.",
   bookingPhoneRequired: "Vui lòng nhập số điện thoại liên hệ cho booking.",
   chargeRefundRequired: "Payment received after quote expiry or charge closure",
   startSummary: "Start payment for a booking draft",
