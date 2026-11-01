@@ -16,6 +16,7 @@ export function InspectionChecklist({
         return onChange ? (
           <fieldset
             key={item.code}
+            aria-label={item.label}
             disabled={disabled}
             className="rounded-lg border border-slate-200/90 bg-white p-2.5 shadow-2xs transition-colors"
           >

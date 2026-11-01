@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useGlobalLoading } from "@/components/providers/global-loading-provider";
@@ -48,11 +48,16 @@ export function LoginForm() {
   const [pendingLinkDestination, setPendingLinkDestination] = useState<string | null>(null);
   const { linkGoogleAccount, isLoading: isLinkingGoogle } = useGoogleAuth();
   const oauthError = searchParams.get("error");
+  const hasRedirectedRef = useRef(false);
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
 
   useEffect(() => {
+    if (hasRedirectedRef.current) return;
     if (!hydrated || !authReady || !session?.user?.role) return;
+    if (oauthError === "account_not_linked") return;
+
+    hasRedirectedRef.current = true;
     const role = session.user.role;
     const requested = safeReturnTo(searchParams.get("returnTo"), roleHome[role]);
     const roleRoot = `/${roleHome[role].split("/")[1]}`;
@@ -65,18 +70,8 @@ export function LoginForm() {
         ? requested
         : roleHome[role];
 
-    startNavigationLoading();
     router.replace(destination);
-    if (process.env.NODE_ENV !== "test") {
-      const timer = window.setTimeout(() => {
-        if (typeof window !== "undefined" && window.location.pathname === routes.login) {
-          window.location.assign(destination);
-        }
-      }, 1200);
-      return () => window.clearTimeout(timer);
-    }
-    return undefined;
-  }, [hydrated, authReady, session, searchParams, router, startNavigationLoading]);
+  }, [hydrated, authReady, session?.user?.role, oauthError, searchParams, router]);
 
   const {
     register,
@@ -118,15 +113,9 @@ export function LoginForm() {
           return;
         }
 
+        hasRedirectedRef.current = true;
         startNavigationLoading();
         router.replace(destination);
-        if (process.env.NODE_ENV !== "test" && typeof window !== "undefined") {
-          window.setTimeout(() => {
-            if (window.location.pathname === routes.login) {
-              window.location.assign(destination);
-            }
-          }, 1200);
-        }
       });
     } catch (error) {
       const responseData = axios.isAxiosError(error)

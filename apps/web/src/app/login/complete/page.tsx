@@ -99,13 +99,6 @@ function LoginCompleteContent() {
             : roleHome[role];
 
         router.replace(destination);
-        if (typeof window !== "undefined") {
-          window.setTimeout(() => {
-            if (window.location.pathname === "/login/complete") {
-              window.location.assign(destination);
-            }
-          }, 1200);
-        }
       })
       .catch(() => {
         if (!isLinking) {
