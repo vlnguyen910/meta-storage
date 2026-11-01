@@ -17,7 +17,6 @@ import {
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { OperationalBackLink, OperationalBadge } from "@/components/ui/operational";
@@ -93,39 +92,44 @@ function Rentals({ facilityId }: { facilityId: string }) {
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          <span className="text-xs font-semibold text-slate-600 whitespace-nowrap">
-            {M.status}:
-          </span>
-          <Select
-            value={status || "ALL"}
-            onValueChange={(val) => {
-              setStatus(val === "ALL" ? "" : (val as RentalStatus));
-              setOffset(0);
-            }}
-          >
-            <SelectTrigger className="h-10 w-44 rounded-lg border-slate-200 bg-white text-xs font-semibold">
-              <SelectValue placeholder={M.status} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">{M.all}</SelectItem>
-              {RENTAL_STATUSES.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {M.statuses[s]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex shrink-0 items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-600 whitespace-nowrap">
+              {M.status}:
+            </span>
+            <div className="w-44 shrink-0">
+              <Select
+                value={status || "ALL"}
+                onValueChange={(val) => {
+                  setStatus(val === "ALL" ? "" : (val as RentalStatus));
+                  setOffset(0);
+                }}
+              >
+                <SelectTrigger className="h-10 w-full rounded-lg border-slate-200 bg-white text-xs font-semibold">
+                  <SelectValue placeholder={M.status} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">{M.all}</SelectItem>
+                  {RENTAL_STATUSES.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {M.statuses[s]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-          <Button
-            variant="outline"
+          <button
+            type="button"
             onClick={() => list.refetch()}
-            loading={list.isFetching}
-            className="h-10 px-3 text-xs font-medium"
+            disabled={list.isFetching}
+            className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-2xs transition-colors hover:border-primary hover:bg-slate-50 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
             title="Làm mới"
+            aria-label="Làm mới"
           >
-            <RefreshCw size={14} />
-          </Button>
+            <RefreshCw size={15} className={list.isFetching ? "animate-spin text-primary" : ""} />
+          </button>
         </div>
       </div>
 
