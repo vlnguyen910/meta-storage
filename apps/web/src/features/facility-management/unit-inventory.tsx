@@ -164,23 +164,26 @@ export function InventoryPanel({
             className="flex items-center gap-2 min-w-0 flex-1 sm:min-w-[220px]"
           >
             <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 size-4 text-slate-400" />
-              <Input
+              <Search
+                size={15}
+                className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+              <input
+                type="text"
                 aria-label={F5.searchUnit}
                 placeholder={F5.searchUnit}
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="pl-8.5 h-9 text-xs bg-slate-50 border-slate-200"
+                className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-8 pr-3 text-xs text-slate-900 placeholder:text-slate-400 transition-colors focus:border-primary focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
-            <Button
+            <button
               type="submit"
-              variant="outline"
-              className="h-9 px-3 text-xs font-semibold gap-1.5 shrink-0 border-slate-200"
+              className="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-2xs transition-colors hover:border-primary hover:bg-slate-50 hover:text-primary"
             >
               <Search className="size-3.5" />
               <span>{F5.searchAction}</span>
-            </Button>
+            </button>
           </form>
 
           {/* Status filter */}
