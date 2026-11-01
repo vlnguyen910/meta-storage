@@ -60,7 +60,7 @@ export function AssignmentScreen() {
     );
   });
 
-  const unitPageSize = 6; // 3x2 grid, fits viewport without scrolling
+  const unitPageSize = 9; // 3x3 grid, fits viewport without scrolling
   const pageUnits = filteredUnits.slice((unitPage - 1) * unitPageSize, unitPage * unitPageSize);
 
   // Reset page on search change
@@ -221,9 +221,9 @@ export function AssignmentScreen() {
           </Card>
 
           {/* Main 2-column Layout */}
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,3.2fr)_minmax(0,6.8fr)]">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,3.2fr)_minmax(0,6.8fr)] items-stretch">
             {/* Left Column: Specs, Notes & Action Confirmation */}
-            <div className="space-y-3">
+            <div className="flex flex-col gap-3 h-full">
               {/* Card 1: Selected Unit & Confirmation Button */}
               <Card className="border-slate-200 bg-white shadow-2xs">
                 <CardHeader className="border-b border-slate-100 px-3.5 py-2">
@@ -278,9 +278,9 @@ export function AssignmentScreen() {
                 </CardContent>
               </Card>
 
-              {/* Card 2: Notes Area */}
-              <Card className="border-slate-200 bg-white shadow-2xs">
-                <CardHeader className="border-b border-slate-100 px-3.5 py-1.5">
+              {/* Card 2: Notes Area stretching to fill height */}
+              <Card className="flex flex-1 flex-col border-slate-200 bg-white shadow-2xs min-h-0">
+                <CardHeader className="border-b border-slate-100 px-3.5 py-2 shrink-0">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-xs font-bold text-slate-800">
                       {FLOW.notesAssign}
@@ -288,10 +288,9 @@ export function AssignmentScreen() {
                     <span className="text-[10px] text-slate-400">{reason.length} / 500</span>
                   </div>
                 </CardHeader>
-                <CardContent className="p-2.5">
+                <CardContent className="flex flex-1 flex-col p-2.5 min-h-0">
                   <textarea
-                    className="w-full rounded-md border border-slate-200 p-2 text-xs text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary resize-none"
-                    rows={2}
+                    className="w-full flex-1 min-h-[140px] rounded-md border border-slate-200 p-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary resize-none"
                     maxLength={500}
                     placeholder="Ghi chú lý do phân công hoặc đổi buồng kho..."
                     value={reason}
