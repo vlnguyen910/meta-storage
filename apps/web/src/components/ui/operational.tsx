@@ -62,17 +62,15 @@ export function OperationalPageHeader({
   action,
 }: OperationalHeaderProps) {
   return (
-    <header className="flex flex-wrap items-start justify-between gap-4">
+    <header className="flex flex-wrap items-start justify-between gap-2">
       <div className="min-w-0 max-w-3xl">
         {eyebrow && (
-          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-800">
+          <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-800">
             {eyebrow}
           </p>
         )}
-        <h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-[28px] sm:leading-tight">
-          {title}
-        </h1>
-        {description && <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>}
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-950">{title}</h1>
+        {description && <p className="mt-1 text-xs text-slate-500">{description}</p>}
       </div>
       {action && <div className="flex shrink-0 flex-wrap items-center gap-2">{action}</div>}
     </header>

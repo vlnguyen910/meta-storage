@@ -55,7 +55,7 @@ const UNIT_STATUS_BADGE_CLASS: Record<StorageUnitStatus, string> = {
   [StorageUnitStatus.INACTIVE]: "border-slate-300 bg-slate-100 text-slate-700",
 };
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 6;
 
 export function UnitInventoryWorkspace({ global = false }: Flow5ScopeProps) {
   const scope = useFacilityOptions(global);
@@ -64,7 +64,7 @@ export function UnitInventoryWorkspace({ global = false }: Flow5ScopeProps) {
   if (scope.query.isError)
     return <ErrorState message={F5.loadError} onRetry={() => scope.query.refetch()} />;
   return (
-    <div className="flex min-w-0 flex-col gap-5">
+    <div className="flex min-w-0 flex-col gap-3">
       <OperationalPageHeader title={F5.inventory} description={F5.description} />
       {scope.query.data.length === 0 ? (
         <p role="status" className={panelClass}>
@@ -134,13 +134,13 @@ export function InventoryPanel({
   }
 
   return (
-    <div className="flex min-w-0 flex-col gap-5">
+    <div className="flex min-w-0 flex-col gap-3">
       {/* Toolbar / Filters */}
-      <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
+      <div className="shrink-0 flex flex-wrap items-center justify-between gap-2.5 bg-white p-3 rounded-xl border border-slate-200/90 shadow-2xs">
         <div className="flex flex-wrap items-center gap-2.5 min-w-0 flex-1 sm:min-w-[280px]">
           {/* Facility switcher if provided */}
           {facilityOptions && facilityOptions.length > 1 && onSelectFacility && (
-            <div className="w-56">
+            <div className="w-56 shrink-0">
               <DropdownSelect
                 value={facilityId}
                 onChange={(val) => {
@@ -184,7 +184,7 @@ export function InventoryPanel({
           </form>
 
           {/* Status filter */}
-          <div className="w-40">
+          <div className="w-40 shrink-0">
             <DropdownSelect
               value={status}
               onChange={(val) => {
@@ -205,7 +205,7 @@ export function InventoryPanel({
           </div>
 
           {/* Unit Type filter */}
-          <div className="w-44">
+          <div className="w-44 shrink-0">
             <DropdownSelect
               value={typeId}
               onChange={(val) => {
@@ -254,8 +254,8 @@ export function InventoryPanel({
         </div>
       </div>
 
-      {/* Main Table Area (Scrollable within container) */}
-      <div className="flex-1 overflow-y-auto min-h-0 border border-slate-200/90 rounded-xl bg-white shadow-xs">
+      {/* Main Table Area */}
+      <div className="border border-slate-200/90 rounded-xl bg-white shadow-2xs overflow-hidden">
         {query.isPending ? (
           <div className="p-8">
             <LoadingState variant="table" />
@@ -266,14 +266,14 @@ export function InventoryPanel({
           </div>
         ) : (
           <Table className="w-full">
-            <TableHeader className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-xs border-b border-slate-200 text-slate-700 text-xs font-bold uppercase tracking-wider">
+            <TableHeader className="bg-slate-50/95 border-b border-slate-200 text-slate-700 text-xs font-bold uppercase tracking-wider">
               <TableRow>
-                <TableHead className="w-44 px-4 py-3">{F5.unit}</TableHead>
-                <TableHead className="w-56 px-4 py-3">{F5.unitType}</TableHead>
-                <TableHead className="w-36 px-4 py-3">{F5.areaOrSize}</TableHead>
-                <TableHead className="px-4 py-3">{F5.location}</TableHead>
-                <TableHead className="w-36 px-4 py-3">{F5.status}</TableHead>
-                <TableHead className="w-36 text-right px-4 py-3">{F5.actions}</TableHead>
+                <TableHead className="w-36 px-3.5 py-2.5">{F5.unit}</TableHead>
+                <TableHead className="w-48 px-3.5 py-2.5">{F5.unitType}</TableHead>
+                <TableHead className="w-32 px-3.5 py-2.5">{F5.areaOrSize}</TableHead>
+                <TableHead className="px-3.5 py-2.5">{F5.location}</TableHead>
+                <TableHead className="w-32 px-3.5 py-2.5">{F5.status}</TableHead>
+                <TableHead className="w-64 text-right px-3.5 py-2.5">{F5.actions}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -297,18 +297,18 @@ export function InventoryPanel({
                       key={unit.id}
                       className="hover:bg-slate-50/80 transition-colors border-b border-slate-100 last:border-b-0"
                     >
-                      <TableCell className="px-4 py-3 font-semibold text-slate-900 font-mono text-xs">
+                      <TableCell className="px-3.5 py-2 font-semibold text-slate-900 font-mono text-xs">
                         <div className="flex items-center gap-2">
-                          <span className="p-1.5 bg-slate-100 rounded-md text-slate-700">
+                          <span className="p-1 bg-slate-100 rounded text-slate-700">
                             <Boxes className="size-3.5" />
                           </span>
                           <span>{unit.code}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="px-4 py-3 text-xs text-slate-700 font-medium">
+                      <TableCell className="px-3.5 py-2 text-xs text-slate-700 font-medium">
                         {unit.unitTypeName || "—"}
                       </TableCell>
-                      <TableCell className="px-4 py-3 text-xs text-slate-600">
+                      <TableCell className="px-3.5 py-2 text-xs text-slate-600">
                         {unit.unitTypeSizeLabel ? (
                           <span className="inline-block px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-xs font-medium">
                             {unit.unitTypeSizeLabel}
@@ -317,7 +317,7 @@ export function InventoryPanel({
                           "—"
                         )}
                       </TableCell>
-                      <TableCell className="px-4 py-3 text-xs text-slate-600">
+                      <TableCell className="px-3.5 py-2 text-xs text-slate-600">
                         {unit.floor || unit.locationDescription ? (
                           <span>
                             {unit.floor ? `${F5.floor} ${unit.floor}` : ""}
@@ -328,24 +328,65 @@ export function InventoryPanel({
                           <span className="text-slate-400 italic">—</span>
                         )}
                       </TableCell>
-                      <TableCell className="px-4 py-3">
+                      <TableCell className="px-3.5 py-2">
                         <Badge className={cn("text-[11px] font-bold px-2 py-0.5", badgeClass)}>
                           {F5.statuses[unit.status]}
                         </Badge>
                       </TableCell>
-                      <TableCell className="px-4 py-3 text-right">
+                      <TableCell className="px-3.5 py-2 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          <Button
+                          {/* 1. Xem chi tiết (icon) */}
+                          <button
                             type="button"
-                            variant="outline"
                             onClick={() => setDetailUnitId(unit.id)}
-                            className="min-h-10 px-3 text-xs gap-1.5"
-                            aria-label={F5.detail}
+                            className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-2xs transition-colors hover:border-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                             title={F5.detail}
+                            aria-label={F5.detail}
                           >
-                            <Eye className="size-4 text-emerald-700" aria-hidden="true" />
-                            <span className="hidden sm:inline">{F5.detail}</span>
-                          </Button>
+                            <Eye size={15} />
+                          </button>
+
+                          {/* 2. Chỉnh thông tin (icon) */}
+                          {canEdit && (
+                            <button
+                              type="button"
+                              onClick={() => setEditingUnit(unit)}
+                              className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-2xs transition-colors hover:border-primary hover:bg-slate-50 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                              title={F5.editUnit}
+                              aria-label={F5.editUnit}
+                            >
+                              <Pencil size={14} />
+                            </button>
+                          )}
+
+                          {/* 3. Đưa vào bảo trì (icon + chữ) */}
+                          <button
+                            type="button"
+                            onClick={() => setMaintainingUnit(unit)}
+                            className={cn(
+                              "flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold shadow-2xs transition-colors focus:outline-none focus:ring-2",
+                              unit.status === "MAINTENANCE"
+                                ? "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 hover:border-amber-300 focus:ring-amber-500/20"
+                                : "border-slate-200 bg-white text-slate-700 hover:border-amber-300 hover:bg-amber-50/50 hover:text-amber-800 focus:ring-amber-500/20",
+                            )}
+                            title={
+                              unit.status === "MAINTENANCE"
+                                ? F5.exitMaintenance
+                                : F5.enterMaintenance
+                            }
+                          >
+                            <Wrench
+                              size={13}
+                              className={
+                                unit.status === "MAINTENANCE" ? "text-amber-700" : "text-slate-500"
+                              }
+                            />
+                            <span>
+                              {unit.status === "MAINTENANCE"
+                                ? F5.exitMaintenance
+                                : F5.enterMaintenance}
+                            </span>
+                          </button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -498,13 +539,22 @@ function UnitDetailsModal({
         </div>
 
         {/* Action buttons */}
-        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-200">
+        <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-slate-100">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            className="h-9 px-4 text-xs font-semibold"
+          >
+            {F5.close}
+          </Button>
+
           {canEdit && (
             <Button
               type="button"
               variant="outline"
               onClick={() => onEdit(unit)}
-              className="min-h-10 px-3 gap-1.5 text-sm"
+              className="h-9 px-3.5 gap-1.5 text-xs font-semibold border-slate-200 text-slate-700 hover:text-primary hover:border-primary"
             >
               <Pencil className="size-3.5" />
               <span>{F5.edit}</span>
@@ -516,7 +566,12 @@ function UnitDetailsModal({
               type="button"
               variant={isMaintenance ? "primary" : "outline"}
               onClick={() => onMaintain(unit)}
-              className="min-h-10 px-3 gap-1.5 text-sm"
+              className={cn(
+                "h-9 px-3.5 gap-1.5 text-xs font-semibold",
+                isMaintenance
+                  ? "bg-amber-600 hover:bg-amber-700 text-white"
+                  : "border-slate-200 text-slate-700 hover:border-amber-300 hover:bg-amber-50 hover:text-amber-800",
+              )}
             >
               <Wrench className="size-3.5" />
               <span>{isMaintenance ? F5.exitMaintenance : F5.enterMaintenance}</span>
@@ -576,12 +631,19 @@ function UnitEditor({
       onClose={onClose}
       pending={mutation.isPending}
     >
-      <form noValidate onSubmit={save} className="grid gap-4">
+      <form noValidate onSubmit={save} className="grid gap-3.5">
         <ManagementField label={F5.code} error={form.formState.errors.code?.message}>
-          <Input {...form.register("code")} />
+          <Input
+            {...form.register("code")}
+            placeholder="Ví dụ: HCM-01-001"
+            className="h-10 min-h-10 rounded-lg border-slate-200 bg-slate-50/50 text-xs px-3 focus:bg-white"
+          />
         </ManagementField>
         <ManagementField label={F5.unitType} error={form.formState.errors.unitTypeId?.message}>
-          <Select {...form.register("unitTypeId")}>
+          <Select
+            {...form.register("unitTypeId")}
+            className="h-10 min-h-10 rounded-lg border-slate-200 bg-slate-50/50 text-xs px-3 focus:bg-white"
+          >
             <option value="">{F5.choose}</option>
             {unit && !types.data?.some((item) => item.id === unit.unitTypeId) && (
               <option value={unit.unitTypeId}>{formatReference(unit.unitTypeId, "LK")}</option>
@@ -593,28 +655,49 @@ function UnitEditor({
             ))}
           </Select>
         </ManagementField>
-        <ManagementField label={F5.floor} error={form.formState.errors.floor?.message}>
-          <Input {...form.register("floor")} />
-        </ManagementField>
-        <ManagementField
-          label={F5.location}
-          error={form.formState.errors.locationDescription?.message}
-        >
-          <Input {...form.register("locationDescription")} />
-        </ManagementField>
+        <div className="grid grid-cols-2 gap-3">
+          <ManagementField label={F5.floor} error={form.formState.errors.floor?.message}>
+            <Input
+              {...form.register("floor")}
+              placeholder="Ví dụ: Tầng 1"
+              className="h-10 min-h-10 rounded-lg border-slate-200 bg-slate-50/50 text-xs px-3 focus:bg-white"
+            />
+          </ManagementField>
+          <ManagementField
+            label={F5.location}
+            error={form.formState.errors.locationDescription?.message}
+          >
+            <Input
+              {...form.register("locationDescription")}
+              placeholder="Ví dụ: Khu demo A"
+              className="h-10 min-h-10 rounded-lg border-slate-200 bg-slate-50/50 text-xs px-3 focus:bg-white"
+            />
+          </ManagementField>
+        </div>
         {types.isError && <ErrorState message={F5.loadError} onRetry={() => types.refetch()} />}
         {mutation.isError && (
-          <p role="alert" className="text-danger">
+          <p role="alert" className="text-xs font-semibold text-danger">
             {managementError(mutation.error)}
           </p>
         )}
-        <Button
-          type="submit"
-          loading={mutation.isPending}
-          disabled={mutation.isPending || types.isPending || types.isError}
-        >
-          {F5.save}
-        </Button>
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            className="h-9 px-4 text-xs font-semibold"
+          >
+            {F5.cancel}
+          </Button>
+          <Button
+            type="submit"
+            loading={mutation.isPending}
+            disabled={mutation.isPending || types.isPending || types.isError}
+            className="h-9 px-4 text-xs font-semibold"
+          >
+            {F5.save}
+          </Button>
+        </div>
       </form>
     </ManagementDialog>
   );
@@ -643,7 +726,7 @@ function MaintenanceEditor({
     >
       <form
         noValidate
-        className="grid gap-4"
+        className="grid gap-3"
         onSubmit={form.handleSubmit(async (input) => {
           try {
             await mutation.mutateAsync(input);
@@ -653,18 +736,38 @@ function MaintenanceEditor({
           }
         })}
       >
-        <p className="text-sm text-slate-600">
+        <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-xs text-slate-600 leading-relaxed">
           {action === "ENTER_MAINTENANCE" ? F5.maintenanceHint : F5.exitHint}
+        </div>
+        <p className="font-mono font-bold text-slate-900 text-sm">
+          {F5.unit}: {unit.code}
         </p>
-        <p className="font-bold">{unit.code}</p>
         {mutation.isError && (
-          <p role="alert" className="text-danger">
+          <p role="alert" className="text-xs font-semibold text-danger">
             {managementError(mutation.error)}
           </p>
         )}
-        <Button type="submit" loading={mutation.isPending} disabled={mutation.isPending}>
-          {F5.save}
-        </Button>
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            className="h-9 px-4 text-xs font-semibold"
+          >
+            {F5.cancel}
+          </Button>
+          <Button
+            type="submit"
+            loading={mutation.isPending}
+            disabled={mutation.isPending}
+            className={cn(
+              "h-9 px-4 text-xs font-semibold",
+              action === "ENTER_MAINTENANCE" && "bg-amber-600 hover:bg-amber-700 text-white",
+            )}
+          >
+            {F5.save}
+          </Button>
+        </div>
       </form>
     </ManagementDialog>
   );

@@ -1,8 +1,9 @@
 "use client";
 
-import { cloneElement, useEffect, useId, useRef } from "react";
+import { cloneElement, useId } from "react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/cn";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 import { F5 } from "./management.messages";
 import type {
   ManagementDialogProps,
@@ -13,8 +14,8 @@ import type {
 export function ManagementField({ label, error, children }: ManagementFieldProps) {
   const id = useId();
   return (
-    <div className="grid gap-2">
-      <label htmlFor={id} className="text-sm font-semibold">
+    <div className="grid gap-1.5">
+      <label htmlFor={id} className="text-xs font-semibold text-slate-700">
         {label}
       </label>
       {cloneElement(children as React.ReactElement<Record<string, unknown>>, {
@@ -23,7 +24,7 @@ export function ManagementField({ label, error, children }: ManagementFieldProps
         "aria-describedby": error ? `${id}-error` : undefined,
       })}
       {error && (
-        <p id={`${id}-error`} className="text-sm text-danger">
+        <p id={`${id}-error`} className="text-xs font-medium text-danger">
           {error}
         </p>
       )}
@@ -38,46 +39,27 @@ export function ManagementDialog({
   pending,
   wide,
 }: ManagementDialogProps) {
-  const ref = useRef<HTMLDialogElement>(null);
-  const id = useId();
-  useEffect(() => {
-    const trigger = document.activeElement;
-    const dialog = ref.current;
-    dialog?.showModal();
-    return () => {
-      dialog?.close();
-      if (trigger instanceof HTMLElement) trigger.focus();
-    };
-  }, []);
   return (
-    <dialog
-      ref={ref}
-      aria-labelledby={id}
-      onCancel={(event) => {
-        event.preventDefault();
-        if (!pending) onClose();
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open && !pending) onClose();
       }}
-      className={cn(
-        "fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-white p-5 text-ink shadow-xl backdrop:bg-slate-950/40 sm:p-6",
-        wide ? "max-w-3xl" : "max-w-xl",
-      )}
     >
-      <div className="mb-5 flex items-start justify-between gap-4">
-        <h2 id={id} className="text-xl font-bold">
-          {title}
-        </h2>
-        <Button
-          type="button"
-          variant="outline"
-          className="border! border-slate-200 text-sm"
-          onClick={onClose}
-          disabled={pending}
-        >
-          {F5.close}
-        </Button>
-      </div>
-      {children}
-    </dialog>
+      <DialogContent
+        className={cn(
+          "gap-4 rounded-2xl border border-slate-200 bg-white p-5 text-ink shadow-2xl sm:p-6",
+          wide ? "max-w-2xl sm:max-w-3xl" : "max-w-lg sm:max-w-xl",
+        )}
+      >
+        <DialogHeader className="border-b border-slate-100 pb-3 pr-6">
+          <DialogTitle className="text-lg font-bold tracking-tight text-slate-900">
+            {title}
+          </DialogTitle>
+        </DialogHeader>
+        {children}
+      </DialogContent>
+    </Dialog>
   );
 }
 

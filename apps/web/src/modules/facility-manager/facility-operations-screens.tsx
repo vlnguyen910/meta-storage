@@ -11,12 +11,13 @@ import { ManagerTabFrame } from "./manager-tab-frame";
 export function ManagerInventoryScreen() {
   const [view, setView] = useState<"units" | "types">("units");
   return (
-    <div className="space-y-5">
+    <div className="space-y-3.5">
       <fieldset className="flex flex-wrap gap-2" aria-label={F5.inventory}>
         <Button
           variant={view === "units" ? "primary" : "outline"}
           aria-pressed={view === "units"}
           onClick={() => setView("units")}
+          className="h-9 px-4 text-xs font-bold"
         >
           {F5.inventory}
         </Button>
@@ -24,6 +25,7 @@ export function ManagerInventoryScreen() {
           variant={view === "types" ? "primary" : "outline"}
           aria-pressed={view === "types"}
           onClick={() => setView("types")}
+          className="h-9 px-4 text-xs font-bold"
         >
           {F5.unitTypesAndPrices}
         </Button>
