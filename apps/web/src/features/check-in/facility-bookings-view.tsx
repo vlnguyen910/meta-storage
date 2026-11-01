@@ -16,7 +16,6 @@ import { FLOW } from "@/features/facility-flow/flow.messages";
 import {
   FlowButton as Button,
   FlowHeading,
-  inputClass,
   Panel,
   Pill,
   titleClass,
@@ -107,33 +106,47 @@ export function FacilityBookingsView({
         />
       )}
       <Panel className="space-y-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative min-w-[180px] flex-1">
-            <Search size={20} className="absolute left-3 top-3 text-[#5c6661]" />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative min-w-[200px] flex-1">
+            <Search
+              size={16}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            />
             <input
-              className={`${inputClass} pl-10`}
+              type="text"
               aria-label={FLOW.searchLabel}
               placeholder={FLOW.search}
               value={d.search}
               onChange={(e) => d.setSearch(e.target.value)}
+              className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-9 pr-3 text-xs text-slate-900 placeholder:text-slate-400 transition-colors focus:border-primary focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
-          <Button
-            variant="secondary"
-            onClick={() => d.query.refetch()}
-            loading={d.query.isFetching}
-            icon={<RefreshCw size={18} />}
-          >
-            {FLOW.refresh}
-          </Button>
-          {isStaff && (
-            <Link
-              href={`${root}/check-in`}
-              className="rounded bg-[#003b2f] px-4 py-3 text-sm font-semibold text-white"
+
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => d.query.refetch()}
+              disabled={d.query.isFetching}
+              className="flex h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 shadow-2xs transition-colors hover:border-primary hover:bg-slate-50 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
+              title={FLOW.refresh}
+              aria-label={FLOW.refresh}
             >
-              {isStaff ? FLOW.lookup : FLOW.monitor}
-            </Link>
-          )}
+              <RefreshCw
+                size={14}
+                className={d.query.isFetching ? "animate-spin text-primary" : "text-slate-500"}
+              />
+              <span>{FLOW.refresh}</span>
+            </button>
+
+            {isStaff && (
+              <Link
+                href={`${root}/check-in`}
+                className="flex h-10 items-center rounded-lg bg-primary px-3.5 text-xs font-semibold text-white shadow-2xs transition-colors hover:bg-primary-dark"
+              >
+                {isStaff ? FLOW.lookup : FLOW.monitor}
+              </Link>
+            )}
+          </div>
         </div>
         <div className="space-y-2">
           <p className="text-xs font-semibold text-slate-600">{MB.filters}</p>
