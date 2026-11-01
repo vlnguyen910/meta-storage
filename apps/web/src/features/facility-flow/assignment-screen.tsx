@@ -10,11 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Currency } from "@/components/ui/display";
 import { ListPagination } from "@/components/ui/list-pagination";
-import {
-  OperationalBackLink,
-  OperationalBadge,
-  OperationalPageHeader,
-} from "@/components/ui/operational";
+import { OperationalBackLink, OperationalBadge } from "@/components/ui/operational";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
 import { useAuthStore } from "@/features/auth/auth-store";
@@ -24,6 +20,7 @@ import {
   useEligibleUnits,
 } from "@/features/check-in/hooks";
 import { formatDateTime } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { FLOW } from "./flow.messages";
 import { ReassignmentDialog } from "./reassignment-dialog";
 import type { UnitAssignmentConfirmation } from "./reassignment-dialog.types";
@@ -130,10 +127,21 @@ export function AssignmentScreen() {
     (chosen.status === "AVAILABLE" || chosen.id === booking.data?.assignedUnit?.physicalUnitId);
 
   return (
-    <div className="space-y-6">
-      <OperationalBackLink href="/facility-manager/tasks">{FLOW.back}</OperationalBackLink>
-
-      <OperationalPageHeader title={FLOW.assignmentTitle} />
+    <div className="space-y-3">
+      {/* Header with Back Link & Title */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <OperationalBackLink href="/facility-manager/tasks">{FLOW.back}</OperationalBackLink>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">
+              {FLOW.assignmentTitle}
+            </h1>
+            <p className="text-xs text-slate-500">
+              Phân công ô kho cho đơn đặt chỗ {booking.data?.bookingCode}
+            </p>
+          </div>
+        </div>
+      </div>
 
       {booking.isLoading ? (
         <LoadingState label={FLOW.loading} variant="detail" />
@@ -143,161 +151,190 @@ export function AssignmentScreen() {
         <>
           {/* Top Booking Overview Card */}
           <Card className="border-slate-200 bg-white shadow-2xs">
-            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/50 px-5 py-3.5">
-              <div>
-                <div className="flex items-center gap-2.5">
-                  <span className="font-mono text-base font-bold text-slate-900">
-                    {booking.data.bookingCode}
-                  </span>
-                  <OperationalBadge
-                    value={booking.data.paidAt ? "SUCCEEDED" : "PAYMENT_PENDING"}
-                    label={booking.data.paidAt ? FLOW.paid : FLOW.unpaid}
-                  />
-                </div>
-                <p className="mt-0.5 text-xs text-slate-500">{booking.data.facilityName}</p>
+            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/50 px-4 py-2 text-xs">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span className="font-mono text-sm font-bold text-slate-900">
+                  {booking.data.bookingCode}
+                </span>
+                <OperationalBadge
+                  value={booking.data.paidAt ? "SUCCEEDED" : "PAYMENT_PENDING"}
+                  label={booking.data.paidAt ? FLOW.paid : FLOW.unpaid}
+                />
+                <span className="text-slate-300">|</span>
+                <span className="text-xs text-slate-500">{booking.data.facilityName}</span>
               </div>
 
               {booking.data.assignedUnit?.physicalUnitCode && (
-                <div className="flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-900">
-                  <Warehouse size={15} className="text-blue-600" />
+                <div className="flex items-center gap-1.5 rounded-md bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-900">
+                  <Warehouse size={13} className="text-blue-600" />
                   <span>Ô kho hiện tại: {booking.data.assignedUnit.physicalUnitCode}</span>
                 </div>
               )}
             </CardHeader>
 
-            <CardContent className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-4">
+            <CardContent className="grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-4 text-xs">
               <div className="min-w-0">
-                <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                   {FLOW.customer}
                 </p>
                 <p className="truncate font-bold text-slate-900">{booking.data.contactName}</p>
-                <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
-                  <Phone size={12} className="text-slate-400" />
+                <p className="mt-0.5 flex items-center gap-1 text-[11px] text-slate-500">
+                  <Phone size={11} className="text-slate-400" />
                   {booking.data.contactPhone}
                 </p>
               </div>
 
               <div className="min-w-0">
-                <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                   {FLOW.unitType}
                 </p>
                 <p className="truncate font-bold text-slate-900">{booking.data.unitTypeName}</p>
-                <p className="mt-0.5 text-xs text-slate-500">{booking.data.unitTypeSizeLabel}</p>
+                <p className="mt-0.5 text-[11px] text-slate-500">
+                  {booking.data.unitTypeSizeLabel}
+                </p>
               </div>
 
               <div className="min-w-0">
-                <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                   {FLOW.period}
                 </p>
                 <p className="font-bold text-slate-900">
                   {FLOW.months(booking.data.requestedMonths)}
                 </p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  Hạn thuê: {formatDateTime(booking.data.rentalEndAt)}
+                <p className="mt-0.5 text-[11px] text-slate-500">
+                  Hạn: {formatDateTime(booking.data.rentalEndAt)}
                 </p>
               </div>
 
               <div className="min-w-0">
-                <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                   {FLOW.amount}
                 </p>
-                <p className="text-base font-bold tabular-nums text-primary">
+                <p className="text-sm font-bold tabular-nums text-primary">
                   <Currency value={booking.data.totalAmount} />
                 </p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  Hẹn đến: {formatDateTime(booking.data.checkInSlotStart)}
+                <p className="mt-0.5 text-[11px] text-slate-500">
+                  Hẹn: {formatDateTime(booking.data.checkInSlotStart)}
                 </p>
               </div>
             </CardContent>
           </Card>
 
           {/* Main 2-column Layout */}
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,3.2fr)_minmax(0,6.8fr)]">
-            {/* Left Column: Specs & Warning */}
-            <div className="space-y-4">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,3.2fr)_minmax(0,6.8fr)]">
+            {/* Left Column: Specs, Notes & Action Confirmation */}
+            <div className="space-y-3">
+              {/* Card 1: Selected Unit & Confirmation Button */}
               <Card className="border-slate-200 bg-white shadow-2xs">
-                <CardHeader className="border-b border-slate-100 px-4 py-3">
-                  <CardTitle className="flex items-center gap-2 text-sm font-bold text-slate-900">
-                    <Warehouse size={16} className="text-primary" />
-                    {FLOW.spec}
-                  </CardTitle>
+                <CardHeader className="border-b border-slate-100 px-3.5 py-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                      <Warehouse size={14} className="text-primary" />
+                      <span>Buồng kho được chọn</span>
+                    </CardTitle>
+                    <span className="font-mono text-xs font-bold text-primary">
+                      {chosen?.code ?? FLOW.unassigned}
+                    </span>
+                  </div>
                 </CardHeader>
-                <CardContent className="space-y-3.5 p-4 text-xs">
-                  <div>
-                    <span className="text-slate-500">{FLOW.unitType}:</span>
-                    <strong className="ml-1 text-slate-800">{booking.data.unitTypeName}</strong>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">{FLOW.size}:</span>
-                    <strong className="ml-1 text-slate-800">
-                      {booking.data.unitTypeSizeLabel}
-                    </strong>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">{FLOW.slot}:</span>
-                    <div className="mt-0.5 font-medium text-slate-800">
-                      {formatDateTime(booking.data.checkInSlotStart)}
+                <CardContent className="p-3 space-y-2.5 text-xs">
+                  {chosen ? (
+                    <div className="rounded-lg border border-primary/20 bg-primary-soft/10 p-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-sm font-bold text-slate-900">
+                          {chosen.code}
+                        </span>
+                        <span className="text-[11px] font-semibold text-slate-600">
+                          Tầng {chosen.floor ?? "—"}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[11px] text-slate-500 line-clamp-1">
+                        {chosen.locationDescription || booking.data.unitTypeSizeLabel}
+                      </p>
                     </div>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">{FLOW.rentalEnd}:</span>
-                    <div className="mt-0.5 font-medium text-slate-800">
-                      {formatDateTime(booking.data.rentalEndAt)}
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-slate-200 p-2.5 text-center text-[11px] text-slate-400">
+                      Chọn ô kho từ danh sách bên phải
                     </div>
-                  </div>
+                  )}
+
+                  {error && !confirmation && (
+                    <div className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-[11px] font-semibold text-rose-800">
+                      {error}
+                    </div>
+                  )}
+
+                  <Button
+                    onClick={submit}
+                    loading={mutation.isPending}
+                    disabled={
+                      !chosenAvailable || role !== UserRole.FACILITY_MANAGER || mutation.isPending
+                    }
+                    className="w-full h-8.5 text-xs font-bold"
+                    icon={<ArrowRight size={14} />}
+                  >
+                    {FLOW.assignConfirm}
+                  </Button>
                 </CardContent>
               </Card>
 
-              {/* Notes Input Area */}
+              {/* Card 2: Notes Area */}
               <Card className="border-slate-200 bg-white shadow-2xs">
-                <CardHeader className="border-b border-slate-100 px-4 py-3">
-                  <CardTitle className="text-xs font-bold text-slate-800">
-                    {FLOW.notesAssign}
-                  </CardTitle>
+                <CardHeader className="border-b border-slate-100 px-3.5 py-1.5">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-xs font-bold text-slate-800">
+                      {FLOW.notesAssign}
+                    </CardTitle>
+                    <span className="text-[10px] text-slate-400">{reason.length} / 500</span>
+                  </div>
                 </CardHeader>
-                <CardContent className="p-4">
+                <CardContent className="p-2.5">
                   <textarea
-                    className="w-full rounded-lg border border-slate-200 p-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                    rows={3}
+                    className="w-full rounded-md border border-slate-200 p-2 text-xs text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+                    rows={2}
                     maxLength={500}
                     placeholder="Ghi chú lý do phân công hoặc đổi buồng kho..."
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
                   />
-                  <div className="mt-1 text-right text-[11px] text-slate-400">
-                    {reason.length} / 500
-                  </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Right Column: Suggested Units in a Responsive 3x3 Card Grid with Pagination */}
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">{FLOW.suggested}</h3>
-                  <p className="text-xs text-slate-500">{FLOW.match}</p>
+            {/* Right Column: Suggested Units in a Responsive Card Grid */}
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                    {FLOW.suggested}
+                  </h3>
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 tabular-nums">
+                    {filteredUnits.length} ô
+                  </span>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <div className="relative">
-                    <Search size={15} className="absolute left-2.5 top-2.5 text-slate-400" />
+                    <Search
+                      size={13}
+                      className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
                     <input
                       type="text"
                       placeholder="Tìm mã ô, tầng..."
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      className="h-8.5 rounded-lg border border-slate-200 bg-white pl-8 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none"
+                      className="h-8 w-40 sm:w-48 rounded-lg border border-slate-200 bg-white pl-7 pr-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                     />
                   </div>
                   <Button
                     variant="outline"
                     onClick={() => units.refetch()}
                     loading={units.isFetching}
-                    className="h-8.5 px-3 text-xs font-medium"
+                    className="h-8 px-2.5 text-xs text-slate-600 hover:text-slate-900"
                     title={FLOW.refresh}
                   >
-                    <RefreshCw size={14} />
+                    <RefreshCw size={13} />
                   </Button>
                 </div>
               </div>
@@ -307,14 +344,14 @@ export function AssignmentScreen() {
               ) : units.isError ? (
                 <ErrorState message={FLOW.error} onRetry={() => units.refetch()} />
               ) : filteredUnits.length === 0 ? (
-                <Card className="p-8 text-center text-slate-500">
-                  <Warehouse className="mx-auto mb-2 text-slate-400" size={32} />
-                  <p className="text-sm font-semibold">{FLOW.noUnits}</p>
+                <Card className="p-6 text-center text-slate-500">
+                  <Warehouse className="mx-auto mb-2 text-slate-400" size={28} />
+                  <p className="text-xs font-semibold">{FLOW.noUnits}</p>
                   {search && (
                     <Button
                       variant="outline"
                       onClick={() => setSearch("")}
-                      className="mt-3 h-8 px-3 text-xs"
+                      className="mt-2.5 h-7 px-2.5 text-xs"
                     >
                       Xóa tìm kiếm
                     </Button>
@@ -322,8 +359,7 @@ export function AssignmentScreen() {
                 </Card>
               ) : (
                 <>
-                  {/* The Responsive 3x3 Card Grid */}
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
                     {pageUnits.map((u) => {
                       const isCurrentAssigned = u.id === booking.data?.assignedUnit?.physicalUnitId;
                       const available =
@@ -331,72 +367,78 @@ export function AssignmentScreen() {
                       const isSelected = current === u.id;
 
                       return (
-                        <button
+                        <label
                           key={u.id}
-                          type="button"
-                          disabled={!available}
-                          onClick={() => {
-                            if (available && !mutation.isPending) {
-                              setSelected(u.id);
-                            }
-                          }}
-                          className={`group flex w-full flex-col justify-between rounded-xl border p-3.5 text-left transition-all select-none ${
+                          className={cn(
+                            "group flex flex-col justify-between rounded-xl border p-2.5 text-left transition-all select-none relative",
                             isSelected
-                              ? "border-primary bg-primary-soft/30 ring-2 ring-primary/30 shadow-xs"
+                              ? "border-primary bg-primary-soft/30 ring-1.5 ring-primary/40 shadow-xs"
                               : available
                                 ? "cursor-pointer border-slate-200 bg-white hover:border-primary/50 hover:shadow-2xs"
-                                : "cursor-not-allowed border-slate-200 bg-slate-50/70 opacity-60"
-                          }`}
+                                : "cursor-not-allowed border-slate-100 bg-slate-50/70 opacity-55",
+                          )}
                         >
+                          <input
+                            type="radio"
+                            name="unit"
+                            aria-label={u.code}
+                            checked={isSelected}
+                            disabled={!available || mutation.isPending}
+                            onChange={() => {
+                              if (available && !mutation.isPending) {
+                                setSelected(u.id);
+                              }
+                            }}
+                            className="sr-only"
+                          />
                           <div>
-                            {/* Card Top: Code & Status Badge */}
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className={`grid size-7 shrink-0 place-items-center rounded-lg ${
+                            <div className="flex items-center justify-between gap-1.5">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span
+                                  className={cn(
+                                    "grid size-6 shrink-0 place-items-center rounded-md",
                                     isSelected
                                       ? "bg-primary text-white"
-                                      : "bg-slate-100 text-slate-600"
-                                  }`}
+                                      : "bg-slate-100 text-slate-600",
+                                  )}
                                 >
-                                  <Warehouse size={14} />
-                                </div>
-                                <span className="font-mono text-sm font-bold text-slate-900">
+                                  <Warehouse size={13} />
+                                </span>
+                                <span className="font-mono text-xs font-bold text-slate-900 truncate">
                                   {u.code}
                                 </span>
                               </div>
 
                               {isSelected ? (
-                                <Badge className="bg-primary text-[10px] font-bold text-white">
+                                <Badge className="bg-primary text-[9px] font-bold text-white px-1.5 py-0">
                                   {FLOW.selected}
                                 </Badge>
                               ) : isCurrentAssigned ? (
                                 <Badge
                                   variant="outline"
-                                  className="border-blue-300 bg-blue-50 text-[10px] font-semibold text-blue-700"
+                                  className="border-blue-300 bg-blue-50 text-[9px] font-semibold text-blue-700 px-1.5 py-0"
                                 >
                                   Đang gán
                                 </Badge>
                               ) : available ? (
                                 <Badge
                                   variant="outline"
-                                  className="border-emerald-300 bg-emerald-50 text-[10px] font-semibold text-emerald-700"
+                                  className="border-emerald-300 bg-emerald-50 text-[9px] font-semibold text-emerald-700 px-1.5 py-0"
                                 >
                                   {FLOW.available}
                                 </Badge>
                               ) : (
                                 <Badge
                                   variant="outline"
-                                  className="border-rose-300 bg-rose-50 text-[10px] font-semibold text-rose-700"
+                                  className="border-rose-300 bg-rose-50 text-[9px] font-semibold text-rose-700 px-1.5 py-0"
                                 >
                                   {FLOW.blocked}
                                 </Badge>
                               )}
                             </div>
 
-                            {/* Card Body: Floor & Location */}
-                            <div className="mt-3 space-y-1 text-xs">
-                              <div className="flex items-center gap-1.5 text-slate-600">
+                            <div className="mt-1.5 space-y-0.5 text-[11px]">
+                              <div className="flex items-center gap-1 text-slate-600">
                                 <span className="font-semibold text-slate-800">
                                   Tầng {u.floor ?? "—"}
                                 </span>
@@ -405,34 +447,32 @@ export function AssignmentScreen() {
                                   {booking.data?.unitTypeSizeLabel}
                                 </span>
                               </div>
-                              <p className="line-clamp-2 text-[11px] text-slate-500">
+                              <p className="line-clamp-1 text-[10px] text-slate-400">
                                 {u.locationDescription ?? FLOW.match}
                               </p>
                             </div>
                           </div>
 
-                          {/* Card Footer: Choice Status */}
-                          <div className="mt-3.5 flex items-center justify-between border-t border-slate-100 pt-2.5 text-[11px]">
+                          <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-1.5 text-[10px]">
                             {isSelected ? (
                               <span className="flex items-center gap-1 font-bold text-primary">
-                                <CheckCircle2 size={14} className="text-primary" />
+                                <CheckCircle2 size={12} className="text-primary" />
                                 {FLOW.selected}
                               </span>
                             ) : available ? (
-                              <span className="flex items-center gap-1 text-slate-500 group-hover:text-primary transition-colors">
-                                <span className="size-3 rounded-full border border-slate-300 group-hover:border-primary" />
+                              <span className="flex items-center gap-1 text-slate-400 group-hover:text-primary transition-colors">
+                                <span className="size-2.5 rounded-full border border-slate-300 group-hover:border-primary" />
                                 {FLOW.chooseUnit}
                               </span>
                             ) : (
-                              <span className="text-rose-600">{FLOW.blocked}</span>
+                              <span className="text-rose-500">{FLOW.blocked}</span>
                             )}
                           </div>
-                        </button>
+                        </label>
                       );
                     })}
                   </div>
 
-                  {/* Standard ListPagination for Grid */}
                   <ListPagination
                     label="buồng kho khả dụng"
                     unitLabel="ô kho"
@@ -444,36 +484,6 @@ export function AssignmentScreen() {
                 </>
               )}
             </div>
-          </div>
-
-          {error && !confirmation && (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs font-semibold text-rose-900">
-              {error}
-            </div>
-          )}
-
-          {/* Bottom Sticky Action Bar */}
-          <div className="sticky bottom-4 z-10 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200/90 bg-white/95 p-4 shadow-lg backdrop-blur-sm">
-            <div className="flex items-center gap-2 text-xs">
-              <span className="text-slate-600">
-                {role !== UserRole.FACILITY_MANAGER ? FLOW.managerOnly : "Buồng kho được chọn:"}
-              </span>
-              <strong className="rounded bg-slate-100 px-2.5 py-1 font-mono text-sm font-bold text-primary">
-                {chosen?.code ?? FLOW.unassigned}
-              </strong>
-            </div>
-
-            <Button
-              onClick={submit}
-              loading={mutation.isPending}
-              disabled={
-                !chosenAvailable || role !== UserRole.FACILITY_MANAGER || mutation.isPending
-              }
-              className="h-9 px-5 text-xs font-bold"
-              icon={<ArrowRight size={15} />}
-            >
-              {FLOW.assignConfirm}
-            </Button>
           </div>
         </>
       )}
