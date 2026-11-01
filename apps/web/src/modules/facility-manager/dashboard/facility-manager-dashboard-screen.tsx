@@ -32,7 +32,7 @@ function FacilityManagerDashboardContent() {
   if (!scope.currentFacility)
     return <EmptyState title={M.noAssignmentTitle} description={M.noAssignmentDescription} />;
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {scope.isMultiFacility && (
         <FacilitySwitcher
           activeAssignments={scope.activeAssignments}

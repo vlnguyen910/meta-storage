@@ -24,12 +24,17 @@ export function MonthlyRevenueChart({ report }: MonthlyChartProps) {
     refunded: Number(item.cashRefunded),
   }));
   return (
-    <section className="min-w-0 rounded-card border border-outline-variant bg-white p-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-bold">{R.monthlyTitle}</h2>
-        <div className="flex gap-1">
+    <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+        <div>
+          <h2 className="text-base font-bold text-slate-900">{R.monthlyTitle}</h2>
+          <p className="mt-0.5 text-xs text-slate-500">{R.monthlyHelp}</p>
+        </div>
+        <div className="flex gap-1 rounded-lg border border-slate-200/80 bg-slate-100 p-0.5">
           <button
-            className={`min-h-11 rounded border px-3 text-xs ${!cash ? "bg-primary text-white" : "bg-white text-ink"}`}
+            className={`h-7 rounded-md px-2.5 text-xs font-semibold transition-colors cursor-pointer ${
+              !cash ? "bg-white text-slate-900 shadow-2xs" : "text-slate-600 hover:text-slate-900"
+            }`}
             type="button"
             aria-pressed={!cash}
             onClick={() => setCash(false)}
@@ -37,7 +42,9 @@ export function MonthlyRevenueChart({ report }: MonthlyChartProps) {
             {R.rentalMode}
           </button>
           <button
-            className={`min-h-11 rounded border px-3 text-xs ${cash ? "bg-primary text-white" : "bg-white text-ink"}`}
+            className={`h-7 rounded-md px-2.5 text-xs font-semibold transition-colors cursor-pointer ${
+              cash ? "bg-white text-slate-900 shadow-2xs" : "text-slate-600 hover:text-slate-900"
+            }`}
             type="button"
             aria-pressed={cash}
             onClick={() => setCash(true)}
@@ -46,8 +53,7 @@ export function MonthlyRevenueChart({ report }: MonthlyChartProps) {
           </button>
         </div>
       </div>
-      <p className="mt-2 text-xs text-slate-600">{R.monthlyHelp}</p>
-      <div className="mt-4 h-72 min-w-0">
+      <div className="mt-3.5 h-72 min-w-0">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} accessibilityLayer margin={{ left: 0, right: 8, bottom: 12 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />

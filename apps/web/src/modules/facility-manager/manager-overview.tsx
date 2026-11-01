@@ -14,24 +14,24 @@ export function ManagerOverview({ facilityId }: ManagerOverviewProps) {
 
   if (overview.isPending || monthly.isPending)
     return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold">{M.overview}</h1>
+      <div className="space-y-4">
+        <h1 className="text-2xl font-bold">{M.overview}</h1>
         <LoadingState variant="dashboard" />
       </div>
     );
 
   if (overview.isError)
     return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold">{M.overview}</h1>
+      <div className="space-y-4">
+        <h1 className="text-2xl font-bold">{M.overview}</h1>
         <ErrorState message={M.overviewError} onRetry={() => overview.refetch()} />
       </div>
     );
 
   if (monthly.isError)
     return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold">{M.overview}</h1>
+      <div className="space-y-4">
+        <h1 className="text-2xl font-bold">{M.overview}</h1>
         <ErrorState message={M.revenueError} onRetry={() => monthly.refetch()} />
       </div>
     );
@@ -40,7 +40,7 @@ export function ManagerOverview({ facilityId }: ManagerOverviewProps) {
   const points = monthly.data?.items ?? [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <OperationalPageHeader
         title={M.overview}
         description={M.overviewHint}
@@ -53,22 +53,33 @@ export function ManagerOverview({ facilityId }: ManagerOverviewProps) {
               void overview.refetch();
               void monthly.refetch();
             }}
+            className="h-9 px-3 text-xs gap-1.5 shadow-2xs"
           >
-            <RefreshCw size={16} />
+            <RefreshCw
+              size={14}
+              className={
+                overview.isFetching || monthly.isFetching ? "animate-spin text-primary" : ""
+              }
+            />
             {M.refresh}
           </Button>
         }
       />
 
-      <div className="grid gap-6">
-        <div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+        {/* Cột 1: Doanh thu theo tháng */}
+        <div className="min-w-0">
           {points.length === 0 ? (
             <EmptyState title={M.emptyRevenue} description={M.incomeHint} />
           ) : (
             <MonthlyRevenueChart report={monthly.data} />
           )}
         </div>
-        <InventoryStatusChart metrics={units} title={M.inventory} />
+
+        {/* Cột 2: Trạng thái ô kho */}
+        <div className="min-w-0">
+          <InventoryStatusChart metrics={units} title={M.inventory} />
+        </div>
       </div>
     </div>
   );

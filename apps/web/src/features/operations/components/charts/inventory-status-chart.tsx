@@ -69,15 +69,15 @@ export function InventoryStatusChart({
   const activeSegments = physicalSegments.filter((seg) => seg.value > 0);
 
   return (
-    <section className="grid gap-5 rounded-card border border-outline-variant bg-surface-container-lowest p-5 shadow-[0_1px_2px_rgb(15_23_42_/_0.04)]">
-      <div className="border-b border-outline-variant pb-4">
-        <h3 className="text-base font-bold text-ink">{title}</h3>
-        <p className="m-0 text-xs text-slate-600 mt-1">{M.inventoryFormulaNoteReal}</p>
+    <section className="grid gap-3.5 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs">
+      <div className="border-b border-slate-100 pb-3">
+        <h3 className="text-base font-bold text-slate-900">{title}</h3>
+        <p className="m-0 text-xs text-slate-500 mt-0.5">{M.inventoryFormulaNoteReal}</p>
       </div>
 
       {/* Physical Status Donut Chart & Legend */}
-      <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-12">
-        <div data-testid="inventory-donut-chart" className="relative h-64 w-full lg:col-span-5">
+      <div className="grid grid-cols-1 items-center gap-3 sm:grid-cols-12">
+        <div data-testid="inventory-donut-chart" className="relative h-52 w-full sm:col-span-5">
           {!mounted ? (
             <div className="h-full w-full animate-pulse rounded-lg bg-slate-50" />
           ) : activeSegments.length === 0 ? (
@@ -92,8 +92,8 @@ export function InventoryStatusChart({
                     data={activeSegments}
                     cx="50%"
                     cy="50%"
-                    innerRadius={55}
-                    outerRadius={85}
+                    innerRadius={48}
+                    outerRadius={72}
                     paddingAngle={2}
                     dataKey="value"
                     strokeWidth={0}
@@ -115,7 +115,7 @@ export function InventoryStatusChart({
                 </PieChart>
               </ResponsiveContainer>
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-xl font-bold tabular-nums text-ink">
+                <span className="text-xl font-bold tabular-nums text-slate-900">
                   {metrics.totalUnits}
                 </span>
                 <span className="text-[11px] font-medium text-slate-500">Tổng số ô</span>
@@ -125,51 +125,52 @@ export function InventoryStatusChart({
         </div>
 
         {/* Detailed Full Labels Legend */}
-        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:col-span-7">
+        <div className="grid grid-cols-1 gap-1.5 sm:col-span-7">
           {physicalSegments.map((seg) => (
             <div
               key={seg.name}
-              className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50/70 p-2.5 text-xs"
+              className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50/70 px-2 py-1 text-xs"
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 min-w-0">
                 <span
-                  className="h-3 w-3 shrink-0 rounded-xs"
+                  className="size-2.5 shrink-0 rounded-xs"
                   style={{ backgroundColor: seg.color }}
                   aria-hidden="true"
                 />
-                <span className="font-semibold text-ink">{seg.name}</span>
+                <span className="truncate text-slate-700 font-medium text-[11px]">{seg.name}</span>
               </div>
-              <span className="font-bold tabular-nums text-slate-800 ml-2">{seg.value} ô</span>
+              <span className="font-bold font-mono tabular-nums text-slate-800 ml-2 text-xs shrink-0">
+                {seg.value} ô
+              </span>
             </div>
           ))}
         </div>
       </div>
 
       {/* Non-physical Indicators Section */}
-      <div className="mt-2 border-t border-outline-variant pt-4">
-        <h4 className="text-xs font-bold text-slate-700 mb-1">{M.nonPhysicalTitle}</h4>
-        <p className="text-[11px] text-slate-500 mb-3">{M.nonPhysicalNote}</p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="flex items-center justify-between rounded-lg border border-sky-200 bg-sky-50/50 p-3.5">
-            <div>
-              <span className="text-xs font-semibold text-sky-900">{M.activeHoldsLabel}</span>
-              <p className="m-0 text-[11px] text-sky-700">Đang thực hiện thanh toán tại checkout</p>
+      <div className="border-t border-slate-100 pt-3">
+        <h4 className="text-xs font-bold text-slate-700 mb-1.5">{M.nonPhysicalTitle}</h4>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <div className="flex items-center justify-between rounded-lg border border-sky-200 bg-sky-50/50 p-2.5">
+            <div className="min-w-0">
+              <span className="text-xs font-semibold text-sky-900 block truncate">
+                {M.activeHoldsLabel}
+              </span>
+              <p className="m-0 text-[10px] text-sky-700 truncate">Giữ chỗ checkout</p>
             </div>
-            <strong className="text-lg font-bold tabular-nums text-sky-900">
+            <strong className="text-base font-bold tabular-nums text-sky-900 ml-2 shrink-0">
               {metrics.activeCheckoutHolds}
             </strong>
           </div>
 
-          <div className="flex items-center justify-between rounded-lg border border-indigo-200 bg-indigo-50/50 p-3.5">
-            <div>
-              <span className="text-xs font-semibold text-indigo-900">
+          <div className="flex items-center justify-between rounded-lg border border-indigo-200 bg-indigo-50/50 p-2.5">
+            <div className="min-w-0">
+              <span className="text-xs font-semibold text-indigo-900 block truncate">
                 {M.awaitingHandoverLabel}
               </span>
-              <p className="m-0 text-[11px] text-indigo-700">
-                Đã thanh toán, đang chờ lịch nhận kho
-              </p>
+              <p className="m-0 text-[10px] text-indigo-700 truncate">Chờ lịch nhận kho</p>
             </div>
-            <strong className="text-lg font-bold tabular-nums text-indigo-900">
+            <strong className="text-base font-bold tabular-nums text-indigo-900 ml-2 shrink-0">
               {metrics.confirmedAwaitingHandover}
             </strong>
           </div>
