@@ -3,15 +3,17 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GlobalLoadingProvider } from "@/components/providers/global-loading-provider";
 import { ToastProvider } from "@/components/ui/toast";
+import { useAuthStore } from "./auth-store";
 import { LoginForm } from "./login-form";
 
 const { login } = vi.hoisted(() => ({ login: vi.fn() }));
 const mockReplace = vi.fn();
+let mockSearchParams = new URLSearchParams();
 
 vi.mock("@/lib/api", () => ({ api: { auth: { login } } }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: mockReplace }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => mockSearchParams,
 }));
 
 function renderLoginForm() {
@@ -28,6 +30,8 @@ describe("LoginForm", () => {
   beforeEach(() => {
     login.mockReset();
     mockReplace.mockReset();
+    mockSearchParams = new URLSearchParams();
+    useAuthStore.setState({ session: null, hydrated: false, authReady: false });
   });
 
   it("renders the Figma login form correctly", () => {
@@ -88,6 +92,64 @@ describe("LoginForm", () => {
         password: "12345678",
       });
       expect(mockReplace).toHaveBeenCalledWith("/customer/dashboard");
+    });
+  });
+
+  it("redirects BOM role to /operations/dashboard when returnTo is roleRoot /operations", async () => {
+    mockSearchParams = new URLSearchParams("returnTo=/operations");
+    const user = userEvent.setup();
+    login.mockResolvedValue({
+      user: {
+        id: "bom-1",
+        name: "Test BOM",
+        email: "operations@metastorage.test",
+        role: "BUSINESS_OPERATION_MANAGER",
+      },
+    });
+
+    renderLoginForm();
+
+    const emailInput = screen.getByLabelText("Địa chỉ Email");
+    const passwordInput = screen.getByLabelText("Mật khẩu");
+    const submitBtn = screen.getByRole("button", { name: "Đăng nhập" });
+
+    await user.clear(emailInput);
+    await user.type(emailInput, "operations@metastorage.test");
+    await user.clear(passwordInput);
+    await user.type(passwordInput, "12345678");
+    await user.click(submitBtn);
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith("/operations/dashboard");
+    });
+  });
+
+  it("preserves valid nested returnTo path for BOM role", async () => {
+    mockSearchParams = new URLSearchParams("returnTo=/operations/pricing");
+    const user = userEvent.setup();
+    login.mockResolvedValue({
+      user: {
+        id: "bom-1",
+        name: "Test BOM",
+        email: "operations@metastorage.test",
+        role: "BUSINESS_OPERATION_MANAGER",
+      },
+    });
+
+    renderLoginForm();
+
+    const emailInput = screen.getByLabelText("Địa chỉ Email");
+    const passwordInput = screen.getByLabelText("Mật khẩu");
+    const submitBtn = screen.getByRole("button", { name: "Đăng nhập" });
+
+    await user.clear(emailInput);
+    await user.type(emailInput, "operations@metastorage.test");
+    await user.clear(passwordInput);
+    await user.type(passwordInput, "12345678");
+    await user.click(submitBtn);
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith("/operations/pricing");
     });
   });
 });

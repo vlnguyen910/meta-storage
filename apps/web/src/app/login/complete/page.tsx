@@ -93,11 +93,19 @@ function LoginCompleteContent() {
           (requested === routes.reservationNew ||
             requested.startsWith(`${routes.reservationNew}?`));
         const destination =
-          requested === roleRoot || requested.startsWith(`${roleRoot}/`) || customerReservationEntry
+          customerReservationEntry ||
+          (requested.startsWith(`${roleRoot}/`) && requested !== `${roleRoot}/`)
             ? requested
             : roleHome[role];
 
         router.replace(destination);
+        if (typeof window !== "undefined") {
+          window.setTimeout(() => {
+            if (window.location.pathname === "/login/complete") {
+              window.location.assign(destination);
+            }
+          }, 1200);
+        }
       })
       .catch(() => {
         if (!isLinking) {
