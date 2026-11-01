@@ -133,7 +133,7 @@ export function AssignmentScreen() {
     <div className="space-y-6">
       <OperationalBackLink href="/facility-manager/tasks">{FLOW.back}</OperationalBackLink>
 
-      <OperationalPageHeader title={FLOW.assignmentTitle} description={FLOW.assignmentWarning} />
+      <OperationalPageHeader title={FLOW.assignmentTitle} />
 
       {booking.isLoading ? (
         <LoadingState label={FLOW.loading} variant="detail" />
