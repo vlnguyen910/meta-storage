@@ -454,14 +454,6 @@ export function AssignmentScreen() {
 
           {/* Bottom Sticky Action Bar */}
           <div className="sticky bottom-4 z-10 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200/90 bg-white/95 p-4 shadow-lg backdrop-blur-sm">
-            <Button
-              variant="outline"
-              onClick={() => router.push("/facility-manager/tasks")}
-              className="h-9 px-4 text-xs font-semibold"
-            >
-              {FLOW.back}
-            </Button>
-
             <div className="flex items-center gap-2 text-xs">
               <span className="text-slate-600">
                 {role !== UserRole.FACILITY_MANAGER ? FLOW.managerOnly : "Buồng kho được chọn:"}
