@@ -40,6 +40,8 @@ export function LoginForm() {
   const { runWithGlobalLoading, startNavigationLoading } = useGlobalLoading();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const session = useAuthStore((state) => state.session);
+  const authReady = useAuthStore((state) => state.authReady);
   const setSession = useAuthStore((state) => state.setSession);
   const { showToast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
@@ -48,6 +50,33 @@ export function LoginForm() {
   const oauthError = searchParams.get("error");
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
+
+  useEffect(() => {
+    if (!hydrated || !authReady || !session?.user?.role) return;
+    const role = session.user.role;
+    const requested = safeReturnTo(searchParams.get("returnTo"), roleHome[role]);
+    const roleRoot = `/${roleHome[role].split("/")[1]}`;
+    const customerReservationEntry =
+      role === UserRole.STORAGE_CUSTOMER &&
+      (requested === routes.reservationNew || requested.startsWith(`${routes.reservationNew}?`));
+    const destination =
+      customerReservationEntry ||
+      (requested.startsWith(`${roleRoot}/`) && requested !== `${roleRoot}/`)
+        ? requested
+        : roleHome[role];
+
+    startNavigationLoading();
+    router.replace(destination);
+    if (process.env.NODE_ENV !== "test") {
+      const timer = window.setTimeout(() => {
+        if (typeof window !== "undefined" && window.location.pathname === routes.login) {
+          window.location.assign(destination);
+        }
+      }, 1200);
+      return () => window.clearTimeout(timer);
+    }
+    return undefined;
+  }, [hydrated, authReady, session, searchParams, router, startNavigationLoading]);
 
   const {
     register,
@@ -80,7 +109,8 @@ export function LoginForm() {
           (requested === routes.reservationNew ||
             requested.startsWith(`${routes.reservationNew}?`));
         const destination =
-          requested === roleRoot || requested.startsWith(`${roleRoot}/`) || customerReservationEntry
+          customerReservationEntry ||
+          (requested.startsWith(`${roleRoot}/`) && requested !== `${roleRoot}/`)
             ? requested
             : roleHome[role];
         if (oauthError === "account_not_linked") {
@@ -90,6 +120,13 @@ export function LoginForm() {
 
         startNavigationLoading();
         router.replace(destination);
+        if (process.env.NODE_ENV !== "test" && typeof window !== "undefined") {
+          window.setTimeout(() => {
+            if (window.location.pathname === routes.login) {
+              window.location.assign(destination);
+            }
+          }, 1200);
+        }
       });
     } catch (error) {
       const responseData = axios.isAxiosError(error)
