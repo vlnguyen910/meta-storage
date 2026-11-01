@@ -130,17 +130,15 @@ export function AssignmentScreen() {
     <div className="space-y-3">
       {/* Header with Back Link & Title */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <OperationalBackLink href="/facility-manager/tasks">{FLOW.back}</OperationalBackLink>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">
-              {FLOW.assignmentTitle}
-            </h1>
-            <p className="text-xs text-slate-500">
-              Phân công ô kho cho đơn đặt chỗ {booking.data?.bookingCode}
-            </p>
-          </div>
+        <div>
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">
+            {FLOW.assignmentTitle}
+          </h1>
+          <p className="text-xs text-slate-500">
+            Phân công ô kho cho đơn đặt chỗ {booking.data?.bookingCode}
+          </p>
         </div>
+        <OperationalBackLink href="/facility-manager/tasks">{FLOW.back}</OperationalBackLink>
       </div>
 
       {booking.isLoading ? (
