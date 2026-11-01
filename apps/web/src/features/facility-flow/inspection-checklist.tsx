@@ -10,41 +10,53 @@ export function InspectionChecklist({
   onNoteChange,
 }: InspectionChecklistProps) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {items.map((item) => {
         const value = results.find((entry) => entry.itemCode === item.code);
         return onChange ? (
           <fieldset
             key={item.code}
             disabled={disabled}
-            className="rounded-xl border border-slate-200 bg-slate-50/40 p-4"
+            className="rounded-lg border border-slate-200/90 bg-white p-2.5 shadow-2xs transition-colors"
           >
-            <legend className="px-1 text-sm font-semibold">{item.label}</legend>
-            <div className="flex flex-wrap gap-3">
-              {(["PASS", "FAIL"] as const).map((result) => (
-                <label
-                  key={result}
-                  className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-4 text-sm transition-colors ${value?.result === result ? (result === "PASS" ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-rose-200 bg-rose-50 text-rose-900") : "border-slate-200 bg-white text-slate-600"}`}
-                >
-                  <input
-                    type="radio"
-                    name={`checklist-${item.code}`}
-                    checked={value?.result === result}
-                    onChange={() => onChange(item.code, result)}
-                    className="accent-[#003b2f]"
-                  />
-                  {result === "PASS" ? FLOW.checklistPass : FLOW.checklistFail}
-                </label>
-              ))}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <legend className="px-1 text-xs font-semibold text-slate-800">{item.label}</legend>
+              <div className="flex items-center gap-2">
+                {(["PASS", "FAIL"] as const).map((result) => {
+                  const isPass = result === "PASS";
+                  const isChecked = value?.result === result;
+                  return (
+                    <label
+                      key={result}
+                      className={`flex h-7 cursor-pointer items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-all ${
+                        isChecked
+                          ? isPass
+                            ? "border-emerald-500 bg-emerald-50 text-emerald-800 font-semibold ring-1 ring-emerald-500/30"
+                            : "border-rose-500 bg-rose-50 text-rose-800 font-semibold ring-1 ring-rose-500/30"
+                          : "border-slate-200 bg-slate-50/50 text-slate-600 hover:bg-slate-100/70"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name={`checklist-${item.code}`}
+                        checked={isChecked}
+                        onChange={() => onChange(item.code, result)}
+                        className={`size-3.5 ${isPass ? "accent-emerald-700" : "accent-rose-700"}`}
+                      />
+                      {isPass ? FLOW.checklistPass : FLOW.checklistFail}
+                    </label>
+                  );
+                })}
+              </div>
             </div>
             {value?.result === "FAIL" && (
-              <div className="mt-3 space-y-2">
-                <p className="text-sm text-[#93000a]">{FLOW.checklistFailure}</p>
+              <div className="mt-2 space-y-1.5 border-t border-rose-100 pt-2">
+                <p className="text-xs font-medium text-rose-700">{FLOW.checklistFailure}</p>
                 {onNoteChange && (
-                  <label className="block text-xs font-semibold">
+                  <label className="block text-[11px] font-semibold text-slate-700">
                     {FLOW.checklistFailureNote}
                     <textarea
-                      className="mt-1 min-h-20 w-full rounded-lg border border-line bg-white p-2 text-sm text-ink focus-visible:outline-2 focus-visible:outline-primary"
+                      className="mt-1 min-h-16 w-full rounded-md border border-slate-200 bg-slate-50/50 p-2 text-xs text-slate-800 outline-none focus:border-rose-400 focus:bg-white focus:ring-1 focus:ring-rose-400"
                       maxLength={1000}
                       value={value.note ?? ""}
                       disabled={disabled}
@@ -58,22 +70,26 @@ export function InspectionChecklist({
         ) : (
           <div
             key={item.code}
-            className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/70 p-3 text-sm"
+            className="flex items-center justify-between gap-2 rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-1.5 text-xs"
           >
-            {value?.result === "PASS" ? (
-              <CheckCircle2
-                aria-hidden="true"
-                size={18}
-                className="mt-0.5 shrink-0 text-emerald-700"
-              />
-            ) : value?.result === "FAIL" ? (
-              <XCircle aria-hidden="true" size={18} className="mt-0.5 shrink-0 text-rose-700" />
-            ) : (
-              <CircleHelp aria-hidden="true" size={18} className="mt-0.5 shrink-0 text-slate-500" />
-            )}
-            <span className="min-w-0 flex-1 leading-6">{item.label}</span>
+            <div className="flex items-center gap-2 min-w-0">
+              {value?.result === "PASS" ? (
+                <CheckCircle2 size={15} className="shrink-0 text-emerald-600" />
+              ) : value?.result === "FAIL" ? (
+                <XCircle size={15} className="shrink-0 text-rose-600" />
+              ) : (
+                <CircleHelp size={15} className="shrink-0 text-slate-400" />
+              )}
+              <span className="font-medium text-slate-800 truncate leading-5">{item.label}</span>
+            </div>
             <strong
-              className={`shrink-0 pt-0.5 text-xs ${value?.result === "PASS" ? "text-emerald-800" : value?.result === "FAIL" ? "text-rose-700" : "text-slate-500"}`}
+              className={`shrink-0 text-[10px] font-semibold ${
+                value?.result === "PASS"
+                  ? "text-emerald-700"
+                  : value?.result === "FAIL"
+                    ? "text-rose-600"
+                    : "text-slate-500"
+              }`}
             >
               {value?.result === "PASS"
                 ? FLOW.checklistPass
