@@ -37,12 +37,7 @@ import { useManagerKey } from "./use-manager-tabs";
 export function ManagerRentalsScreen() {
   return (
     <ManagerTabFrame title={M.rentals} description={M.rentalsHint}>
-      {(facilityId) => (
-        <div className="space-y-6">
-          <Rentals facilityId={facilityId} />
-          <DebtPanel />
-        </div>
-      )}
+      {(facilityId) => <Rentals facilityId={facilityId} />}
     </ManagerTabFrame>
   );
 }
@@ -306,6 +301,7 @@ function Detail({ facilityId, id }: { facilityId: string; id: string }) {
       </Card>
 
       <SettlementSummary settlement={r.settlement} />
+      {r.status === "CLOSED" && <DebtPanel rentalId={id} />}
 
       <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-5 shadow-2xs">
         <h2 className="text-base font-bold text-slate-900">{M.payments}</h2>
