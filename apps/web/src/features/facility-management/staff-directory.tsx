@@ -1,16 +1,17 @@
 "use client";
 
 import type { FacilityStaffMember } from "@metastorage/contracts";
-import { Building2, Mail, Phone, UsersRound } from "lucide-react";
+import { Mail, Phone, RefreshCw, Search, UsersRound } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
-import { Input } from "@/components/ui/form-controls";
+import { ListPagination } from "@/components/ui/list-pagination";
 import { OperationalPageHeader } from "@/components/ui/operational";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { isMockMode } from "@/config/api-mode";
+import { cn } from "@/lib/utils";
 import { useFacilityOptions, useTaskStaff } from "./hooks";
 import { F5 } from "./management.messages";
-import { ManagementField, panelClass } from "./management-ui";
+import { panelClass } from "./management-ui";
 import { STAFF_DIRECTORY as M } from "./staff-directory.messages";
 import type { StaffDirectorySort } from "./staff-directory.types";
 
@@ -49,27 +50,28 @@ export function StaffDirectoryWorkspace() {
   if (scope.query.data.length === 0) return <p role="status">{F5.noFacility}</p>;
 
   return (
-    <div className="grid gap-6">
+    <div className="space-y-4">
       <OperationalPageHeader title={M.title} description={M.description} />
       {scope.query.data.length > 1 && (
-        <ManagementField label={F5.facility}>
+        <div className="w-72">
           <DropdownSelect
             value={scope.facilityId}
             onChange={(val) => scope.select(val)}
             className="w-full"
-            triggerClassName="h-10 min-h-10 w-full bg-white border-slate-200"
+            triggerClassName="h-10 w-full bg-white border-slate-200 text-xs font-semibold"
             options={scope.query.data.map((facility) => ({
               value: facility.id,
               label: `${facility.code} · ${facility.name}`,
             }))}
             maxVisibleItems={6}
           />
-        </ManagementField>
+        </div>
       )}
       <StaffPanel
         key={scope.facilityId}
         staff={pageItems}
         total={staffQuery.data?.length ?? 0}
+        filteredTotal={staff.length}
         isLoading={staffQuery.isPending}
         isError={staffQuery.isError}
         retry={() => staffQuery.refetch()}
@@ -78,7 +80,7 @@ export function StaffDirectoryWorkspace() {
         sort={sort}
         setSort={setSort}
         page={safePage}
-        pageCount={pageCount}
+        pageSize={pageSize}
         onPageChange={setPage}
       />
     </div>
@@ -88,6 +90,7 @@ export function StaffDirectoryWorkspace() {
 function StaffPanel({
   staff,
   total,
+  filteredTotal,
   isLoading,
   isError,
   retry,
@@ -96,11 +99,12 @@ function StaffPanel({
   sort,
   setSort,
   page,
-  pageCount,
+  pageSize,
   onPageChange,
 }: {
   staff: FacilityStaffMember[];
   total: number;
+  filteredTotal: number;
   isLoading: boolean;
   isError: boolean;
   retry: () => void;
@@ -109,7 +113,7 @@ function StaffPanel({
   sort: StaffDirectorySort;
   setSort: (value: StaffDirectorySort) => void;
   page: number;
-  pageCount: number;
+  pageSize: number;
   onPageChange: (value: number) => void;
 }) {
   if (isLoading) return <LoadingState variant="table" />;
@@ -117,52 +121,68 @@ function StaffPanel({
   if (total === 0)
     return (
       <div className={`${panelClass} grid justify-items-center gap-2 py-12 text-center`}>
-        <UsersRound aria-hidden="true" className="text-slate-500" size={32} />
-        <p role="status" className="font-semibold">
+        <UsersRound aria-hidden="true" className="text-slate-400" size={32} />
+        <p role="status" className="font-semibold text-slate-700">
           {M.noStaff}
         </p>
       </div>
     );
 
   return (
-    <section aria-labelledby="staff-directory-heading" className="grid gap-5">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h2 id="staff-directory-heading" className="text-xl font-bold">
-            {M.staffCount(total)}
-          </h2>
-          <p className="mt-1 text-sm text-slate-600">{M.workloadHint}</p>
+    <section aria-labelledby="staff-directory-heading" className="space-y-4">
+      {/* Search & Sort Toolbar */}
+      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-3.5 shadow-2xs sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative flex-1 sm:max-w-md">
+          <Search size={16} className="absolute left-3 top-3 text-slate-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder={M.searchPlaceholder}
+            className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-9 pr-3 text-xs text-slate-900 placeholder:text-slate-400 transition-colors focus:border-primary focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary"
+          />
         </div>
-        <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-[minmax(16rem,1fr)_12rem]">
-          <ManagementField label={M.search}>
-            <Input
-              type="search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder={M.searchPlaceholder}
-            />
-          </ManagementField>
-          <ManagementField label={M.sort}>
-            <DropdownSelect
-              value={sort}
-              onChange={(val) => setSort(val as StaffDirectorySort)}
-              className="w-full"
-              triggerClassName="h-10 min-h-10 w-full bg-white border-slate-200"
-              options={[
-                { value: "name", label: M.sortByName },
-                { value: "workload", label: M.sortByWorkload },
-              ]}
-              maxVisibleItems={6}
-            />
-          </ManagementField>
+
+        <div className="flex shrink-0 items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-600 whitespace-nowrap">
+              {M.sort}:
+            </span>
+            <div className="w-44 shrink-0">
+              <DropdownSelect
+                value={sort}
+                onChange={(val) => setSort(val as StaffDirectorySort)}
+                className="w-full"
+                triggerClassName="h-10 w-full text-xs font-semibold bg-white border-slate-200"
+                options={[
+                  { value: "name", label: M.sortByName },
+                  { value: "workload", label: M.sortByWorkload },
+                ]}
+                maxVisibleItems={6}
+              />
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={retry}
+            disabled={isLoading}
+            className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-2xs transition-colors hover:border-primary hover:bg-slate-50 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
+            title="Làm mới"
+            aria-label="Làm mới"
+          >
+            <RefreshCw size={15} className={isLoading ? "animate-spin text-primary" : ""} />
+          </button>
         </div>
       </div>
+
+      {/* Staff Grid */}
       {staff.length === 0 ? (
-        <p role="status" className={`${panelClass} text-center text-slate-600`}>
+        <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-xs text-slate-500 shadow-2xs">
           {M.noMatches}
-        </p>
+        </div>
       ) : (
-        <ul className="grid list-none gap-4 p-0 md:grid-cols-2 xl:grid-cols-3">
+        <ul className="grid list-none gap-3.5 p-0 sm:grid-cols-2 lg:grid-cols-3">
           {staff.map((person) => (
             <li key={person.id}>
               <StaffCard person={person} />
@@ -170,30 +190,16 @@ function StaffPanel({
           ))}
         </ul>
       )}
-      {pageCount > 1 ? (
-        <nav
-          className="flex flex-wrap items-center justify-center gap-3"
-          aria-label="Phân trang nhân viên"
-        >
-          <button
-            type="button"
-            className="min-h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold"
-            disabled={page === 1}
-            onClick={() => onPageChange(page - 1)}
-          >
-            {M.previous}
-          </button>
-          <span className="text-sm font-semibold text-slate-600">{M.pageOf(page, pageCount)}</span>
-          <button
-            type="button"
-            className="min-h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold"
-            disabled={page === pageCount}
-            onClick={() => onPageChange(page + 1)}
-          >
-            {M.next}
-          </button>
-        </nav>
-      ) : null}
+
+      {/* Pagination Footer */}
+      <ListPagination
+        label="nhân viên"
+        page={page}
+        pageSize={pageSize}
+        total={filteredTotal}
+        onPageChange={onPageChange}
+        unitLabel="nhân viên"
+      />
     </section>
   );
 }
@@ -201,84 +207,83 @@ function StaffPanel({
 function StaffCard({ person }: { person: FacilityStaffMember }) {
   const assignedBookings = person.assignedTasksCount ?? 0;
   return (
-    <article className={`${panelClass} grid h-full content-start gap-3`}>
-      <header className="flex items-start gap-3">
-        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-900">
-          <UsersRound aria-hidden="true" size={21} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <h3 className="break-words text-lg font-bold leading-snug" title={person.name}>
-            {person.name}
-          </h3>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <p className="text-sm text-slate-600">{M.role}</p>
-            <span
-              className={
-                person.isActive
-                  ? "shrink-0 rounded-full border border-emerald-200 bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-900"
-                  : "shrink-0 rounded-full border border-slate-300 bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700"
-              }
-            >
-              {person.isActive ? F5.active : F5.inactive}
+    <article className="group flex h-full flex-col justify-between rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs transition-all hover:border-slate-300 hover:shadow-xs">
+      {/* Top Header */}
+      <div>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="grid size-10 shrink-0 place-items-center rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-800 transition-colors group-hover:bg-emerald-100/80">
+              <UsersRound aria-hidden="true" size={18} />
             </span>
+            <div className="min-w-0 flex-1">
+              <h3 className="truncate text-sm font-bold text-slate-900" title={person.name}>
+                {person.name}
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">{M.role}</p>
+            </div>
           </div>
-        </div>
-      </header>
-      <dl className="grid gap-3 border-t border-slate-200 pt-4 text-sm">
-        <div className="flex min-w-0 items-start gap-2">
-          <Mail aria-hidden="true" className="mt-0.5 shrink-0 text-emerald-800" size={16} />
-          <div className="min-w-0">
-            <dt className="text-xs font-semibold text-slate-600">{M.email}</dt>
-            <dd className="break-all font-semibold text-emerald-950">
-              <a
-                className="underline decoration-emerald-500 underline-offset-2 transition-colors hover:text-emerald-700 focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
-                href={`mailto:${person.email}`}
-              >
-                {person.email}
-              </a>
-            </dd>
-          </div>
-        </div>
-        <div className="flex min-w-0 items-start gap-2">
-          {person.phone ? (
-            <Phone aria-hidden="true" className="mt-0.5 shrink-0 text-slate-500" size={16} />
-          ) : (
-            <Building2 aria-hidden="true" className="mt-0.5 shrink-0 text-slate-500" size={16} />
-          )}
-          <div className="min-w-0">
-            <dt className="text-xs text-slate-500">{M.phone}</dt>
-            <dd className="font-medium">
-              {person.phone ? (
-                <a
-                  className="underline decoration-slate-300 underline-offset-2"
-                  href={`tel:${person.phone}`}
-                >
-                  {person.phone}
-                </a>
-              ) : (
-                M.missingPhone
+
+          <span
+            className={cn(
+              "inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold border",
+              person.isActive
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : "border-slate-200 bg-slate-100 text-slate-600",
+            )}
+          >
+            <span
+              className={cn(
+                "size-1.5 rounded-full",
+                person.isActive ? "bg-emerald-500" : "bg-slate-400",
               )}
-            </dd>
+            />
+            {person.isActive ? F5.active : F5.inactive}
+          </span>
+        </div>
+
+        {/* Contact info */}
+        <div className="mt-3.5 space-y-2 border-t border-slate-100 pt-3 text-xs">
+          <div className="flex items-center gap-2 text-slate-600">
+            <Mail size={14} className="shrink-0 text-slate-400" aria-hidden="true" />
+            <a
+              href={`mailto:${person.email}`}
+              className="truncate font-medium text-slate-700 transition-colors hover:text-primary hover:underline"
+              title={person.email}
+            >
+              {person.email}
+            </a>
+          </div>
+
+          <div className="flex items-center gap-2 text-slate-600">
+            <Phone size={14} className="shrink-0 text-slate-400" aria-hidden="true" />
+            {person.phone ? (
+              <a
+                href={`tel:${person.phone}`}
+                className="truncate font-medium text-slate-700 transition-colors hover:text-primary"
+              >
+                {person.phone}
+              </a>
+            ) : (
+              <span className="truncate text-slate-400 italic">{M.missingPhone}</span>
+            )}
           </div>
         </div>
-      </dl>
-      <div className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2.5">
-        <span className="text-sm font-semibold text-slate-700">{M.assignedBookings}</span>
+      </div>
+
+      {/* Bottom Workload Pill (Consistent height across all cards!) */}
+      <div className="mt-3.5 flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50/80 px-3 py-2 text-xs">
+        <span className="font-medium text-slate-600">{M.assignedBookings}</span>
         <span
-          className={`rounded-full border px-3 py-1 text-lg font-extrabold tabular-nums shadow-sm ${
+          className={cn(
+            "inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-mono text-xs font-bold border",
             assignedBookings > 0
-              ? "border-emerald-200 bg-emerald-100 text-emerald-950"
-              : "border-slate-200 bg-white text-slate-700"
-          }`}
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-slate-200 bg-white text-slate-500",
+          )}
         >
-          {assignedBookings}
+          {assignedBookings} booking
         </span>
       </div>
-      {assignedBookings === 0 && (
-        <p className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600">
-          {M.unassigned}
-        </p>
-      )}
     </article>
   );
 }
