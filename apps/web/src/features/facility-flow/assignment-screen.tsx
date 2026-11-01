@@ -2,15 +2,7 @@
 
 import { UserRole } from "@metastorage/database/schema/user-enums";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  AlertTriangle,
-  ArrowRight,
-  CheckCircle2,
-  Phone,
-  RefreshCw,
-  Search,
-  Warehouse,
-} from "lucide-react";
+import { ArrowRight, CheckCircle2, Phone, RefreshCw, Search, Warehouse } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -255,17 +247,6 @@ export function AssignmentScreen() {
                   </div>
                 </CardContent>
               </Card>
-
-              {/* Operational Warning Alert */}
-              <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-4 text-xs text-amber-950 shadow-2xs">
-                <div className="flex items-center gap-2 font-bold text-amber-900">
-                  <AlertTriangle size={16} className="text-amber-600" />
-                  <span>{FLOW.assignmentWarningTitle}</span>
-                </div>
-                <p className="mt-2 text-xs leading-relaxed text-amber-900/90">
-                  {FLOW.assignmentWarning}
-                </p>
-              </div>
 
               {/* Notes Input Area */}
               <Card className="border-slate-200 bg-white shadow-2xs">
