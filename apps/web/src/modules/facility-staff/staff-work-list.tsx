@@ -1,11 +1,11 @@
 "use client";
+
 import {
   ArrowRight,
   CalendarDays,
   CheckCircle2,
   Clock3,
   DoorOpen,
-  ListFilter,
   RefreshCw,
   Search,
 } from "lucide-react";
@@ -14,10 +14,19 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/states";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { isMockMode } from "@/config/api-mode";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { FacilitySwitcher } from "@/features/facilities/facility-switcher";
 import { useFacilityContext } from "@/features/facilities/use-facility-context";
+import { cn } from "@/lib/utils";
 import { staffWorkDate } from "./staff-work.data";
 import { STAFF_WORK as M } from "./staff-work.messages";
 import type {
@@ -28,8 +37,6 @@ import type {
 } from "./staff-work.types";
 import { useStaffWork } from "./use-staff-work";
 
-const controlClass =
-  "min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100";
 export function StaffWorkList() {
   const scope = useFacilityContext();
   const userId = useAuthStore((s) => s.session?.user.id);
@@ -38,7 +45,7 @@ export function StaffWorkList() {
   if (!scope.currentFacility)
     return <EmptyState title={M.noFacility} description={M.noFacilityHint} />;
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {scope.isMultiFacility && (
         <FacilitySwitcher
           activeAssignments={scope.activeAssignments}
@@ -53,6 +60,7 @@ export function StaffWorkList() {
     </div>
   );
 }
+
 function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
   const title = M.title;
   const params = useSearchParams();
@@ -82,13 +90,16 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
       page: Number.isSafeInteger(saved.page) && Number(saved.page) > 0 ? Number(saved.page) : 1,
     };
   });
+
   const groups: StaffWorkGroup[] =
     filters.kind === "TASK"
       ? ["pending", "done"]
       : filters.kind === "CHECK_IN" || filters.kind === "RETURN"
         ? ["pending", "done", "closed"]
         : ["pending", "done", "closed"];
+
   const work = useStaffWork(facilityId, filters.date, filters.kind);
+
   useEffect(() => {
     try {
       sessionStorage.setItem(storageKey, JSON.stringify(filters));
@@ -96,8 +107,10 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
       /* Keep controls usable without storage. */
     }
   }, [filters, storageKey]);
+
   const update = (values: Partial<StaffWorkFilters>) =>
     setFilters((current) => ({ ...current, ...values, page: values.page ?? 1 }));
+
   const filtered = work.items.filter(
     (item) =>
       (filters.date === "all" || !item.startsAt || staffWorkDate(item.startsAt) === filters.date) &&
@@ -105,6 +118,7 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
         .toLocaleLowerCase("vi")
         .includes(filters.search.trim().toLocaleLowerCase("vi")),
   );
+
   const rows = filtered
     .filter((item) => item.group === filters.group)
     .sort((a, b) => {
@@ -112,112 +126,145 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
       if (a.startsAt && !b.startsAt) return -1;
       return (a.startsAt ?? "").localeCompare(b.startsAt ?? "") || a.id.localeCompare(b.id);
     });
-  const pageCount = Math.max(1, Math.ceil(rows.length / 10)),
-    page = Math.min(filters.page, pageCount);
+
+  const pageCount = Math.max(1, Math.ceil(rows.length / 10));
+  const page = Math.min(filters.page, pageCount);
+
   return (
-    <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
+    <div className="space-y-4">
+      {/* Header */}
+      <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-emerald-800">
+          <p className="mb-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-800">
             {M.staff}
           </p>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">{title}</h1>
-          <p className="mt-2 text-sm text-slate-600">{M.subtitle}</p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
+          <p className="mt-0.5 text-xs text-slate-500">{M.subtitle}</p>
         </div>
-        <Button variant="outline" disabled={work.refreshing} onClick={() => work.refresh()}>
-          <RefreshCw size={16} className={work.refreshing ? "animate-spin" : ""} />
-          {M.refresh}
+        <Button
+          variant="outline"
+          disabled={work.refreshing}
+          onClick={() => work.refresh()}
+          className="h-9 px-3.5 gap-2 text-xs font-semibold rounded-lg border-slate-200 bg-white text-slate-700 hover:bg-slate-50 shadow-2xs"
+        >
+          <RefreshCw size={14} className={work.refreshing ? "animate-spin" : ""} />
+          <span>{M.refresh}</span>
         </Button>
       </header>
+
+      {/* Main Filter & Table Card */}
       <section
         aria-label={M.list}
-        className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs"
+        className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xs"
       >
+        {/* Tab Pills */}
         <div
-          className="flex flex-wrap gap-1 border-b border-slate-100 px-3 pt-3 sm:px-5"
+          className="flex flex-wrap items-center gap-1.5 border-b border-slate-100 bg-slate-50/60 p-2 sm:px-4"
           role="tablist"
           aria-label={title}
         >
-          {groups.map((group) => (
-            <button
-              key={group}
-              type="button"
-              role="tab"
-              id={`work-tab-${group}`}
-              aria-controls="work-results"
-              aria-selected={filters.group === group}
-              tabIndex={filters.group === group ? 0 : -1}
-              onKeyDown={(event) => {
-                const position = groups.indexOf(group);
-                const next =
-                  event.key === "ArrowRight"
-                    ? groups[(position + 1) % groups.length]
-                    : event.key === "ArrowLeft"
-                      ? groups[(position + groups.length - 1) % groups.length]
-                      : event.key === "Home"
-                        ? groups[0]
-                        : event.key === "End"
-                          ? groups[groups.length - 1]
-                          : undefined;
-                if (next) {
-                  event.preventDefault();
-                  update({ group: next });
-                  document.getElementById(`work-tab-${next}`)?.focus();
-                }
-              }}
-              onClick={() => update({ group })}
-              className={`min-h-12 rounded-t-lg border-b-2 px-3 text-sm font-semibold transition-colors sm:px-4 ${filters.group === group ? "border-emerald-800 bg-emerald-50/50 text-emerald-950" : "border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-800"}`}
-            >
-              {M[group]}
-              {!work.pending && !work.error && (
-                <span className="ml-2 rounded-md bg-slate-100 px-1.5 py-0.5 text-xs text-slate-700">
-                  {filtered.filter((item) => item.group === group).length}
-                </span>
-              )}
-            </button>
-          ))}
+          {groups.map((group) => {
+            const active = filters.group === group;
+            const count = filtered.filter((item) => item.group === group).length;
+            return (
+              <button
+                key={group}
+                type="button"
+                role="tab"
+                id={`work-tab-${group}`}
+                aria-controls="work-results"
+                aria-selected={active}
+                tabIndex={active ? 0 : -1}
+                onKeyDown={(event) => {
+                  const position = groups.indexOf(group);
+                  const next =
+                    event.key === "ArrowRight"
+                      ? groups[(position + 1) % groups.length]
+                      : event.key === "ArrowLeft"
+                        ? groups[(position + groups.length - 1) % groups.length]
+                        : event.key === "Home"
+                          ? groups[0]
+                          : event.key === "End"
+                            ? groups[groups.length - 1]
+                            : undefined;
+                  if (next) {
+                    event.preventDefault();
+                    update({ group: next });
+                    document.getElementById(`work-tab-${next}`)?.focus();
+                  }
+                }}
+                onClick={() => update({ group })}
+                className={cn(
+                  "inline-flex h-8.5 items-center gap-2 rounded-lg px-3.5 text-xs font-bold transition-all cursor-pointer",
+                  active
+                    ? "bg-white text-primary shadow-xs ring-1 ring-slate-200/80"
+                    : "text-slate-600 hover:bg-white/60 hover:text-slate-900",
+                )}
+              >
+                <span>{M[group]}</span>
+                {!work.pending && !work.error && (
+                  <span
+                    className={cn(
+                      "rounded-full px-1.5 py-0.2 text-[10px] font-bold tabular-nums",
+                      active ? "bg-primary/10 text-primary" : "bg-slate-200/70 text-slate-600",
+                    )}
+                  >
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
-        <div
-          className={`grid gap-3 border-b border-slate-100 bg-slate-50/50 p-4 sm:p-5 ${filters.kind !== "TASK" ? "sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1.3fr]" : "sm:grid-cols-2"}`}
-        >
+
+        {/* Filter Controls Row */}
+        <div className="grid gap-3 border-b border-slate-100 bg-white p-3.5 sm:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1.3fr]">
           {filters.kind !== "TASK" && (
             <div>
               <label
                 htmlFor="staff-work-date"
-                className="mb-1.5 block text-xs font-semibold text-slate-600"
+                className="mb-1 block text-[11px] font-semibold text-slate-600"
               >
                 {M.date}
               </label>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-1.5">
                 <input
                   id="staff-work-date"
                   type="date"
                   value={filters.date === "all" ? "" : filters.date}
                   onChange={(e) => update({ date: e.target.value || "all" })}
-                  className={controlClass}
+                  className="h-8.5 flex-1 min-w-0 rounded-lg border border-slate-200 bg-slate-50/50 px-2.5 text-xs text-slate-800 outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary"
                 />
-                <button
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => update({ date: staffWorkDate(new Date().toISOString()) })}
-                  className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-emerald-900"
+                  className="h-8.5 shrink-0 px-2.5 text-xs font-semibold border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs"
                 >
                   {M.today}
-                </button>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  aria-pressed={filters.date === "all"}
+                  onClick={() => update({ date: "all" })}
+                  className={cn(
+                    "h-8.5 shrink-0 px-2.5 text-xs font-semibold border-slate-200 shadow-2xs",
+                    filters.date === "all"
+                      ? "bg-slate-100 text-primary font-bold border-slate-300"
+                      : "text-slate-600 hover:bg-slate-50",
+                  )}
+                >
+                  {M.allDates}
+                </Button>
               </div>
-              <button
-                type="button"
-                aria-pressed={filters.date === "all"}
-                onClick={() => update({ date: "all" })}
-                className="mt-1.5 text-xs font-medium text-emerald-800 underline underline-offset-4"
-              >
-                {M.allDates}
-              </button>
             </div>
           )}
+
           <div>
             <label
               htmlFor="staff-work-kind"
-              className="mb-1.5 block text-xs font-semibold text-slate-600"
+              className="mb-1 block text-[11px] font-semibold text-slate-600"
             >
               {M.kind}
             </label>
@@ -231,7 +278,7 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
                   group: kind === "TASK" && filters.group === "closed" ? "pending" : filters.group,
                 });
               }}
-              className={controlClass}
+              className="h-8.5 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-2.5 text-xs text-slate-800 outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary"
             >
               <option value="">{M.allKinds}</option>
               <option value="CHECK_IN">{M.bookingTasksTitle}</option>
@@ -239,71 +286,106 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
               <option value="TASK">{M.facilityTasksTitle}</option>
             </select>
           </div>
+
           <div className={filters.kind !== "TASK" ? "sm:col-span-2 lg:col-span-1" : ""}>
             <label
               htmlFor="staff-work-search"
-              className="mb-1.5 block text-xs font-semibold text-slate-600"
+              className="mb-1 block text-[11px] font-semibold text-slate-600"
             >
               {M.search}
             </label>
             <div className="relative">
               <Search
-                size={17}
+                size={14}
                 aria-hidden="true"
-                className="absolute left-3 top-3.5 text-slate-400"
+                className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
               />
               <input
                 id="staff-work-search"
                 value={filters.search}
                 onChange={(e) => update({ search: e.target.value })}
                 placeholder={M.searchPlaceholder}
-                className={`${controlClass} pl-10`}
+                className="h-8.5 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-8 pr-3 text-xs text-slate-800 placeholder:text-slate-400 outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary"
               />
             </div>
           </div>
         </div>
+
+        {/* Results Tabpanel */}
         <div
           id="work-results"
           role="tabpanel"
           aria-labelledby={`work-tab-${filters.group}`}
-          className="p-4 sm:p-5"
+          className="p-0"
         >
           {work.error && (
-            <div className="mb-4">
+            <div className="p-4">
               <ErrorState message={M.partialError} onRetry={() => work.refresh()} />
             </div>
           )}
-          {isMockMode && <p className="mb-4 text-sm text-slate-600">{M.mockHint}</p>}
+
+          {isMockMode && <p className="px-4 pt-3 text-xs text-slate-500">{M.mockHint}</p>}
+
           {work.pending ? (
-            <LoadingState variant="table" />
+            <div className="p-4">
+              <LoadingState variant="table" />
+            </div>
           ) : rows.length === 0 ? (
             work.error ? null : (
-              <EmptyState title={M.noWork} description={M.noWorkHint} />
+              <div className="p-8">
+                <EmptyState title={M.noWork} description={M.noWorkHint} />
+              </div>
             )
           ) : (
             <>
-              <div className="mb-3 flex items-center gap-2 text-xs text-slate-500">
-                <ListFilter size={14} aria-hidden="true" />
-                {M.shown(rows.length)}
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="border-b border-slate-200 bg-slate-50/70">
+                    <TableRow className="hover:bg-transparent border-0">
+                      <TableHead className="h-9 px-4 text-xs font-bold uppercase tracking-wider text-slate-600">
+                        Loại công việc
+                      </TableHead>
+                      <TableHead className="h-9 px-4 text-xs font-bold uppercase tracking-wider text-slate-600">
+                        Nhiệm vụ & Khách hàng
+                      </TableHead>
+                      <TableHead className="h-9 px-4 text-xs font-bold uppercase tracking-wider text-slate-600">
+                        Thời gian
+                      </TableHead>
+                      <TableHead className="h-9 px-4 text-center text-xs font-bold uppercase tracking-wider text-slate-600">
+                        Trạng thái
+                      </TableHead>
+                      <TableHead className="h-9 px-4 text-right text-xs font-bold uppercase tracking-wider text-slate-600">
+                        Thao tác
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.slice((page - 1) * 10, page * 10).map((item) => (
+                      <StaffWorkTableRow key={item.id} item={item} />
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
-              <ul className="list-none divide-y divide-slate-100 p-0">
-                {rows.slice((page - 1) * 10, page * 10).map((item) => (
-                  <StaffWorkRow key={item.id} item={item} />
-                ))}
-              </ul>
+
               {rows.some((item) => !item.startsAt) && (
-                <p className="mt-4 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-600">
+                <p className="border-t border-slate-100 bg-slate-50/50 px-4 py-2.5 text-[11px] leading-5 text-slate-500">
                   {M.unscheduledHint}
                 </p>
               )}
-              {pageCount > 1 && (
-                <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-4">
-                  <span className="text-xs text-slate-500">{M.page(page, pageCount)}</span>
-                  <div className="flex gap-2">
+
+              {/* Bottom Pagination Bar */}
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-4 py-2.5 bg-slate-50/30">
+                <div className="text-xs text-slate-500">
+                  <span>{M.shown(rows.length)} · </span>
+                  <span className="font-medium text-slate-700">{M.page(page, pageCount)}</span>
+                </div>
+                {pageCount > 1 && (
+                  <div className="flex items-center gap-1.5">
                     <Button
                       variant="outline"
                       disabled={page === 1}
                       onClick={() => update({ page: page - 1 })}
+                      className="h-8 px-3 text-xs font-semibold border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs"
                     >
                       {M.previous}
                     </Button>
@@ -311,12 +393,13 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
                       variant="outline"
                       disabled={page === pageCount}
                       onClick={() => update({ page: page + 1 })}
+                      className="h-8 px-3 text-xs font-semibold border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs"
                     >
                       {M.next}
                     </Button>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </>
           )}
         </div>
@@ -324,53 +407,81 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
     </div>
   );
 }
-function StaffWorkRow({ item }: StaffWorkRowProps) {
+
+function StaffWorkTableRow({ item }: StaffWorkRowProps) {
   const Icon = item.kind === "CHECK_IN" ? DoorOpen : CalendarDays;
   const tone =
     item.group === "done"
-      ? "bg-emerald-50 text-emerald-800"
+      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
       : item.group === "closed"
-        ? "bg-slate-100 text-slate-600"
-        : "bg-sky-50 text-sky-900";
+        ? "bg-slate-100 text-slate-600 border-slate-200"
+        : "bg-blue-50 text-blue-700 border-blue-200";
+
   return (
-    <li className="group flex flex-col gap-4 py-5 first:pt-1 last:pb-1 sm:flex-row sm:items-center">
-      <span className="hidden size-11 shrink-0 place-items-center rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-800 sm:grid">
-        <Icon size={20} aria-hidden="true" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <span className="text-xs font-semibold text-slate-500">{item.typeLabel}</span>
-        <h2 className="mt-1 break-words text-base font-bold text-slate-900">{item.title}</h2>
-        {item.reference && (
-          <p className="mt-1 break-words text-sm text-slate-500">{item.reference}</p>
-        )}
-      </div>
-      <div className="flex flex-wrap items-center gap-3 sm:w-44 sm:shrink-0 sm:flex-col sm:items-start">
+    <TableRow role="listitem" className="hover:bg-slate-50/80 transition-colors">
+      {/* Col 1: Work Type */}
+      <TableCell className="py-2.5 px-4">
+        <div className="flex items-center gap-2">
+          <span className="grid size-7 shrink-0 place-items-center rounded-md bg-emerald-50 text-emerald-800">
+            <Icon size={15} aria-hidden="true" />
+          </span>
+          <span className="text-xs font-semibold text-slate-700">{item.typeLabel}</span>
+        </div>
+      </TableCell>
+
+      {/* Col 2: Title & Reference */}
+      <TableCell className="py-2.5 px-4 min-w-[200px] max-w-[320px]">
+        <div className="min-w-0">
+          <h2 className="text-xs font-bold text-slate-900 break-words">{item.title}</h2>
+          {item.reference && (
+            <p className="mt-0.5 font-mono text-[11px] text-slate-500 break-words">
+              {item.reference}
+            </p>
+          )}
+        </div>
+      </TableCell>
+
+      {/* Col 3: Starts At */}
+      <TableCell className="py-2.5 px-4 text-xs text-slate-600">
+        <div className="flex items-center gap-1.5">
+          <Clock3 size={13} className="text-slate-400 shrink-0" aria-hidden="true" />
+          <span>
+            {item.startsAt
+              ? new Date(item.startsAt).toLocaleString("vi-VN", {
+                  timeZone: "Asia/Ho_Chi_Minh",
+                  day: "2-digit",
+                  month: "2-digit",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : M.unscheduled}
+          </span>
+        </div>
+      </TableCell>
+
+      {/* Col 4: Status Badge */}
+      <TableCell className="py-2.5 px-4 text-center">
         <span
-          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${tone}`}
+          className={cn(
+            "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+            tone,
+          )}
         >
-          {item.group === "done" && <CheckCircle2 size={13} aria-hidden="true" />}
+          {item.group === "done" && <CheckCircle2 size={11} aria-hidden="true" />}
           {item.statusLabel}
         </span>
-        <span className="inline-flex items-center gap-1.5 text-xs text-slate-500">
-          <Clock3 size={13} aria-hidden="true" />
-          {item.startsAt
-            ? new Date(item.startsAt).toLocaleString("vi-VN", {
-                timeZone: "Asia/Ho_Chi_Minh",
-                day: "2-digit",
-                month: "2-digit",
-                hour: "2-digit",
-                minute: "2-digit",
-              })
-            : M.unscheduled}
-        </span>
-      </div>
-      <Link
-        href={item.href}
-        className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-900 px-4 text-sm font-semibold text-white transition-colors hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800 sm:min-w-40"
-      >
-        {item.action}
-        <ArrowRight size={16} aria-hidden="true" />
-      </Link>
-    </li>
+      </TableCell>
+
+      {/* Col 5: Action Button */}
+      <TableCell className="py-2.5 px-4 text-right">
+        <Link
+          href={item.href}
+          className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-primary-dark focus-visible:outline-2 focus-visible:outline-primary cursor-pointer"
+        >
+          <span>{item.action}</span>
+          <ArrowRight size={13} aria-hidden="true" />
+        </Link>
+      </TableCell>
+    </TableRow>
   );
 }
