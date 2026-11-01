@@ -63,7 +63,7 @@ export function AssignmentScreen() {
     );
   });
 
-  const unitPageSize = 9; // 3x3 grid
+  const unitPageSize = 6; // 3x2 grid, fits viewport without scrolling
   const pageUnits = filteredUnits.slice((unitPage - 1) * unitPageSize, unitPage * unitPageSize);
 
   // Reset page on search change
