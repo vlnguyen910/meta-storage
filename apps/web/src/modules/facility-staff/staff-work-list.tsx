@@ -4,6 +4,8 @@ import {
   ArrowRight,
   CalendarDays,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
   DoorOpen,
   RefreshCw,
@@ -218,56 +220,63 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
         </div>
 
         {/* Filter Controls Row */}
-        <div className="grid gap-3 border-b border-slate-100 bg-white p-3.5 sm:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1.3fr]">
+        <div className="grid gap-3.5 border-b border-slate-100 bg-white p-3.5 sm:grid-cols-2 lg:grid-cols-3">
           {filters.kind !== "TASK" && (
             <div>
-              <label
-                htmlFor="staff-work-date"
-                className="mb-1 block text-[11px] font-semibold text-slate-600"
-              >
-                {M.date}
-              </label>
-              <div className="flex items-center gap-1.5">
-                <input
-                  id="staff-work-date"
-                  type="date"
-                  value={filters.date === "all" ? "" : filters.date}
-                  onChange={(e) => update({ date: e.target.value || "all" })}
-                  className="h-8.5 flex-1 min-w-0 rounded-lg border border-slate-200 bg-slate-50/50 px-2.5 text-xs text-slate-800 outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => update({ date: staffWorkDate(new Date().toISOString()) })}
-                  className="h-8.5 shrink-0 px-2.5 text-xs font-semibold border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs"
+              <div className="mb-1.5 flex h-5 items-center justify-between">
+                <label
+                  htmlFor="staff-work-date"
+                  className="text-xs font-bold text-slate-700 select-none"
                 >
-                  {M.today}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  aria-pressed={filters.date === "all"}
-                  onClick={() => update({ date: "all" })}
-                  className={cn(
-                    "h-8.5 shrink-0 px-2.5 text-xs font-semibold border-slate-200 shadow-2xs",
-                    filters.date === "all"
-                      ? "bg-slate-100 text-primary font-bold border-slate-300"
-                      : "text-slate-600 hover:bg-slate-50",
-                  )}
-                >
-                  {M.allDates}
-                </Button>
+                  {M.date}
+                </label>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => update({ date: staffWorkDate(new Date().toISOString()) })}
+                    className={cn(
+                      "h-5 px-2 rounded-md text-[10px] font-bold transition-all cursor-pointer border",
+                      filters.date === staffWorkDate(new Date().toISOString())
+                        ? "bg-primary text-white border-primary shadow-2xs"
+                        : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900",
+                    )}
+                  >
+                    {M.today}
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={filters.date === "all"}
+                    onClick={() => update({ date: "all" })}
+                    className={cn(
+                      "h-5 px-2 rounded-md text-[10px] font-bold transition-all cursor-pointer border",
+                      filters.date === "all"
+                        ? "bg-primary text-white border-primary shadow-2xs"
+                        : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900",
+                    )}
+                  >
+                    {M.allDates}
+                  </button>
+                </div>
               </div>
+              <input
+                id="staff-work-date"
+                type="date"
+                value={filters.date === "all" ? "" : filters.date}
+                onChange={(e) => update({ date: e.target.value || "all" })}
+                className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-2.5 text-xs text-slate-800 outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary"
+              />
             </div>
           )}
 
-          <div>
-            <label
-              htmlFor="staff-work-kind"
-              className="mb-1 block text-[11px] font-semibold text-slate-600"
-            >
-              {M.kind}
-            </label>
+          <div className={filters.kind === "TASK" ? "sm:col-span-1" : ""}>
+            <div className="mb-1.5 flex h-5 items-center">
+              <label
+                htmlFor="staff-work-kind"
+                className="text-xs font-bold text-slate-700 select-none"
+              >
+                {M.kind}
+              </label>
+            </div>
             <select
               id="staff-work-kind"
               value={filters.kind}
@@ -278,7 +287,7 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
                   group: kind === "TASK" && filters.group === "closed" ? "pending" : filters.group,
                 });
               }}
-              className="h-8.5 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-2.5 text-xs text-slate-800 outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary"
+              className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-2.5 text-xs text-slate-800 outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary"
             >
               <option value="">{M.allKinds}</option>
               <option value="CHECK_IN">{M.bookingTasksTitle}</option>
@@ -287,25 +296,27 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
             </select>
           </div>
 
-          <div className={filters.kind !== "TASK" ? "sm:col-span-2 lg:col-span-1" : ""}>
-            <label
-              htmlFor="staff-work-search"
-              className="mb-1 block text-[11px] font-semibold text-slate-600"
-            >
-              {M.search}
-            </label>
+          <div className={filters.kind === "TASK" ? "sm:col-span-1" : ""}>
+            <div className="mb-1.5 flex h-5 items-center">
+              <label
+                htmlFor="staff-work-search"
+                className="text-xs font-bold text-slate-700 select-none"
+              >
+                {M.search}
+              </label>
+            </div>
             <div className="relative">
               <Search
                 size={14}
                 aria-hidden="true"
-                className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
               />
               <input
                 id="staff-work-search"
                 value={filters.search}
                 onChange={(e) => update({ search: e.target.value })}
                 placeholder={M.searchPlaceholder}
-                className="h-8.5 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-8 pr-3 text-xs text-slate-800 placeholder:text-slate-400 outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary"
+                className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-8.5 pr-3 text-xs text-slate-800 placeholder:text-slate-400 outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary"
               />
             </div>
           </div>
@@ -374,31 +385,68 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
               )}
 
               {/* Bottom Pagination Bar */}
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-4 py-2.5 bg-slate-50/30">
-                <div className="text-xs text-slate-500">
-                  <span>{M.shown(rows.length)} · </span>
-                  <span className="font-medium text-slate-700">{M.page(page, pageCount)}</span>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-4 py-2.5 bg-slate-50/50">
+                <div className="text-xs text-slate-600 flex items-center gap-1.5 font-medium">
+                  <span className="font-bold text-slate-900">{M.shown(rows.length)}</span>
+                  <span className="text-slate-300">·</span>
+                  <span className="font-semibold text-slate-700">{M.page(page, pageCount)}</span>
                 </div>
-                {pageCount > 1 && (
-                  <div className="flex items-center gap-1.5">
-                    <Button
-                      variant="outline"
-                      disabled={page === 1}
-                      onClick={() => update({ page: page - 1 })}
-                      className="h-8 px-3 text-xs font-semibold border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs"
-                    >
-                      {M.previous}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      disabled={page === pageCount}
-                      onClick={() => update({ page: page + 1 })}
-                      className="h-8 px-3 text-xs font-semibold border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs"
-                    >
-                      {M.next}
-                    </Button>
-                  </div>
-                )}
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={page <= 1}
+                    onClick={() => update({ page: page - 1 })}
+                    className="min-h-0 h-8 px-2.5 text-xs font-semibold border-slate-200 text-slate-700 hover:bg-slate-100 shadow-2xs gap-1 disabled:opacity-40"
+                  >
+                    <ChevronLeft size={14} />
+                    <span>{M.previous}</span>
+                  </Button>
+
+                  {/* Render page numbers */}
+                  {Array.from({ length: pageCount }, (_, i) => i + 1)
+                    .filter(
+                      (p) =>
+                        pageCount <= 7 || p === 1 || p === pageCount || Math.abs(p - page) <= 1,
+                    )
+                    .map((p, idx, arr) => {
+                      const prev = arr[idx - 1];
+                      const hasGap = prev && p - prev > 1;
+                      return (
+                        <div key={p} className="flex items-center gap-1">
+                          {hasGap && (
+                            <span className="px-1 text-xs text-slate-400 font-bold select-none">
+                              ...
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            aria-current={p === page ? "page" : undefined}
+                            onClick={() => update({ page: p })}
+                            className={cn(
+                              "size-8 rounded-lg text-xs font-bold transition-all cursor-pointer grid place-items-center",
+                              p === page
+                                ? "bg-primary text-white shadow-xs font-extrabold"
+                                : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300",
+                            )}
+                          >
+                            {p}
+                          </button>
+                        </div>
+                      );
+                    })}
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={page >= pageCount}
+                    onClick={() => update({ page: page + 1 })}
+                    className="min-h-0 h-8 px-2.5 text-xs font-semibold border-slate-200 text-slate-700 hover:bg-slate-100 shadow-2xs gap-1 disabled:opacity-40"
+                  >
+                    <span>{M.next}</span>
+                    <ChevronRight size={14} />
+                  </Button>
+                </div>
               </div>
             </>
           )}
