@@ -3,6 +3,7 @@ import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OperationalPageHeader } from "@/components/ui/operational";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/states";
+import { InventoryStatusChart } from "@/features/operations/components/charts/inventory-status-chart";
 import { MonthlyRevenueChart } from "@/features/operations/components/charts/monthly-revenue-chart";
 import { MANAGER_WORKSPACE as M } from "./manager-workspace.messages";
 import type { ManagerOverviewProps } from "./manager-workspace.types";
@@ -11,11 +12,19 @@ import { useManagerOverview } from "./use-manager-overview";
 export function ManagerOverview({ facilityId }: ManagerOverviewProps) {
   const { overview, monthly } = useManagerOverview(facilityId);
 
-  if (monthly.isPending)
+  if (overview.isPending || monthly.isPending)
     return (
       <div className="space-y-6">
         <h1 className="text-3xl font-bold">{M.overview}</h1>
         <LoadingState variant="dashboard" />
+      </div>
+    );
+
+  if (overview.isError)
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold">{M.overview}</h1>
+        <ErrorState message={M.overviewError} onRetry={() => overview.refetch()} />
       </div>
     );
 
@@ -27,6 +36,7 @@ export function ManagerOverview({ facilityId }: ManagerOverviewProps) {
       </div>
     );
 
+  const units = overview.data.summary.inventory;
   const points = monthly.data?.items ?? [];
 
   return (
@@ -50,12 +60,15 @@ export function ManagerOverview({ facilityId }: ManagerOverviewProps) {
         }
       />
 
-      <div>
-        {points.length === 0 ? (
-          <EmptyState title={M.emptyRevenue} description={M.incomeHint} />
-        ) : (
-          <MonthlyRevenueChart report={monthly.data} />
-        )}
+      <div className="grid gap-6">
+        <div>
+          {points.length === 0 ? (
+            <EmptyState title={M.emptyRevenue} description={M.incomeHint} />
+          ) : (
+            <MonthlyRevenueChart report={monthly.data} />
+          )}
+        </div>
+        <InventoryStatusChart metrics={units} title={M.inventory} />
       </div>
     </div>
   );
