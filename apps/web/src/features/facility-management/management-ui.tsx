@@ -1,10 +1,9 @@
 "use client";
 
 import { cloneElement, useId } from "react";
-import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ListPagination } from "@/components/ui/list-pagination";
 import { cn } from "@/lib/utils";
-import { F5 } from "./management.messages";
 import type {
   ManagementDialogProps,
   ManagementFieldProps,
@@ -66,36 +65,23 @@ export function ManagementDialog({
 export function PageControls({
   label,
   offset,
-  count,
+  count: _count,
   total,
   onChange,
   pending,
 }: PageControlsProps) {
+  const pageSize = 20;
+  const page = Math.floor(offset / pageSize) + 1;
   return (
-    <nav
-      aria-label={F5.paginationFor(label)}
-      className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm"
-    >
-      <span aria-live="polite">{F5.page(offset, count, total)}</span>
-      <div className="flex gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          disabled={pending || offset === 0}
-          onClick={() => onChange(Math.max(0, offset - 20))}
-        >
-          {F5.previous}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={pending || offset + count >= total}
-          onClick={() => onChange(offset + 20)}
-        >
-          {F5.next}
-        </Button>
-      </div>
-    </nav>
+    <ListPagination
+      label={label}
+      page={page}
+      pageSize={pageSize}
+      total={total}
+      onPageChange={(p) => onChange((p - 1) * pageSize)}
+      pending={pending}
+      unitLabel="mục"
+    />
   );
 }
 

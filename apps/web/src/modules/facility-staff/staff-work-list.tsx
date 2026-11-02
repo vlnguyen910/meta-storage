@@ -4,8 +4,6 @@ import {
   ArrowRight,
   CalendarDays,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   Clock3,
   DoorOpen,
   RefreshCw,
@@ -15,6 +13,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ListPagination } from "@/components/ui/list-pagination";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/states";
 import {
   Table,
@@ -385,68 +384,15 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
               )}
 
               {/* Bottom Pagination Bar */}
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-4 py-2.5 bg-slate-50/50">
-                <div className="text-xs text-slate-600 flex items-center gap-1.5 font-medium">
-                  <span className="font-bold text-slate-900">{M.shown(rows.length)}</span>
-                  <span className="text-slate-300">·</span>
-                  <span className="font-semibold text-slate-700">{M.page(page, pageCount)}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={page <= 1}
-                    onClick={() => update({ page: page - 1 })}
-                    className="min-h-0 h-8 px-2.5 text-xs font-semibold border-slate-200 text-slate-700 hover:bg-slate-100 shadow-2xs gap-1 disabled:opacity-40"
-                  >
-                    <ChevronLeft size={14} />
-                    <span>{M.previous}</span>
-                  </Button>
-
-                  {/* Render page numbers */}
-                  {Array.from({ length: pageCount }, (_, i) => i + 1)
-                    .filter(
-                      (p) =>
-                        pageCount <= 7 || p === 1 || p === pageCount || Math.abs(p - page) <= 1,
-                    )
-                    .map((p, idx, arr) => {
-                      const prev = arr[idx - 1];
-                      const hasGap = prev && p - prev > 1;
-                      return (
-                        <div key={p} className="flex items-center gap-1">
-                          {hasGap && (
-                            <span className="px-1 text-xs text-slate-400 font-bold select-none">
-                              ...
-                            </span>
-                          )}
-                          <button
-                            type="button"
-                            aria-current={p === page ? "page" : undefined}
-                            onClick={() => update({ page: p })}
-                            className={cn(
-                              "size-8 rounded-lg text-xs font-bold transition-all cursor-pointer grid place-items-center",
-                              p === page
-                                ? "bg-primary text-white shadow-xs font-extrabold"
-                                : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300",
-                            )}
-                          >
-                            {p}
-                          </button>
-                        </div>
-                      );
-                    })}
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={page >= pageCount}
-                    onClick={() => update({ page: page + 1 })}
-                    className="min-h-0 h-8 px-2.5 text-xs font-semibold border-slate-200 text-slate-700 hover:bg-slate-100 shadow-2xs gap-1 disabled:opacity-40"
-                  >
-                    <span>{M.next}</span>
-                    <ChevronRight size={14} />
-                  </Button>
-                </div>
+              <div className="border-t border-slate-100 p-3 bg-slate-50/40">
+                <ListPagination
+                  label={M.title}
+                  unitLabel="công việc"
+                  page={page}
+                  pageSize={10}
+                  total={rows.length}
+                  onPageChange={(p) => update({ page: p })}
+                />
               </div>
             </>
           )}

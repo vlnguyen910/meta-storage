@@ -338,7 +338,7 @@ export function OperationsPricingView() {
             className="flex items-center gap-1.5 ml-1.5 pl-2 border-l border-slate-200"
           >
             <span className="text-[11px] text-slate-500 font-medium whitespace-nowrap">
-              Đến trang:
+              Đi tới:
             </span>
             <input
               type="text"
