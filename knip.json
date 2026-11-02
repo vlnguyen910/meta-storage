@@ -10,7 +10,8 @@
         "src/common/types/fastify.types.ts",
         "tests/**/*.test.ts",
         "tests/run-*.ts",
-        "src/scripts/*.ts"
+        "src/scripts/*.ts",
+        "tests/fixtures/customer-rental-live-server.ts"
       ],
       "ignoreDependencies": ["pino-pretty"]
     },
