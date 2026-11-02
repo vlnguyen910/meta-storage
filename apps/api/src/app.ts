@@ -1,3 +1,4 @@
+import { db } from "@metastorage/database";
 import Fastify, { type FastifyInstance } from "fastify";
 import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
 import { cronPlugin } from "./common/cron/plugin";
@@ -33,6 +34,7 @@ import { storageUnitsRoutes } from "./modules/storage-units/storage-units.routes
 import { supportRoutes } from "./modules/support/support.routes";
 import { systemSettingsRoutes } from "./modules/system-settings/system-settings.routes";
 import { unitTypesRoutes } from "./modules/unit-types/unit-types.routes";
+import { UsersRepository } from "./modules/users/users.repository";
 import { usersRoutes } from "./modules/users/users.routes";
 
 export function buildApp(): FastifyInstance {
@@ -47,7 +49,10 @@ export function buildApp(): FastifyInstance {
 
   // Centralized Error Handler
   setupErrorHandler(app);
-  const activityLogs = new ActivityLogsService(new ActivityLogsRepository(mongoDatabase));
+  const activityLogs = new ActivityLogsService(
+    new ActivityLogsRepository(mongoDatabase),
+    new UsersRepository(db),
+  );
   app.addHook("onRequest", (request, _reply, done) => activityLogs.startRequest(request, done));
   app.addHook("onResponse", async (request, reply) => activityLogs.recordRequest(request, reply));
 

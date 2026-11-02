@@ -9,6 +9,7 @@ import {
 } from "@metastorage/contracts";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { mapPageDto } from "../../common/types/page.dto";
+import type { UsersRepository } from "../users/users.repository";
 import type { ActivityLogsRepository } from "./activity-logs.repository";
 
 export interface ActivityLog {
@@ -50,6 +51,7 @@ export class ActivityLogsService {
 
   constructor(
     private readonly repository: Pick<ActivityLogsRepository, "insert" | "ensureIndexes" | "list">,
+    private readonly users?: Pick<UsersRepository, "findActivityActors">,
   ) {}
 
   async initialize() {
@@ -121,13 +123,28 @@ export class ActivityLogsService {
 
   async list(input: ActivityLogQuery) {
     const query = ActivityLogQuerySchema.parse(input);
-    const page = await this.repository.list(query);
+    if ((query.search || query.role) && !this.users)
+      throw new Error("User lookup is required for activity log filters");
+    const actors =
+      this.users && (query.search || query.role)
+        ? await this.users.findActivityActors({ search: query.search, role: query.role })
+        : undefined;
+    const page = await this.repository.list(
+      query,
+      actors?.map((actor) => actor.id),
+    );
+    const ids = [...new Set(page.items.flatMap((log) => (log.actorId ? [log.actorId] : [])))];
+    const profiles = actors ?? (await this.users?.findActivityActors({ ids })) ?? [];
+    const profilesById = new Map(
+      profiles.map(({ id, name, email, role }) => [id, { name, email, role }]),
+    );
     return mapPageDto(
       page,
       query,
       (log): ActivityLogDto => ({
         id: log._id.toHexString(),
         userId: log.actorId,
+        user: log.actorId ? (profilesById.get(log.actorId) ?? null) : null,
         action: log.action,
         entityType: log.entityType,
         entityId: log.entityId,

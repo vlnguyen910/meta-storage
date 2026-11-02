@@ -177,7 +177,8 @@ so a simultaneous lock/role change cannot leave a stale session behind.
 The backend writes important authenticated user actions to the `activity_logs`
 collection in the database selected by `MONGODB_URI` (`metastorage_logs` in the
 example configuration). Capture is explicit in the owning services, not a blanket
-CRUD/request logger. No Web or Mobile changes are required.
+CRUD/request logger. The System Administrator web page at
+`/system-admin/activity-logs` provides read-only lookup; Mobile is unchanged.
 
 | Group | Capture points |
 | --- | --- |
@@ -203,6 +204,7 @@ capture; their existing domain/provider audits remain authoritative.
 | --- | --- |
 | id | MongoDB `_id`, serialized as a string |
 | userId | `actorId`, from the authenticated request; never from the body |
+| user | Current PostgreSQL name, email and role; null when the account is unavailable |
 | action | Explicit action enum: CREATE, UPDATE, LOCK, UNLOCK, ASSIGN_ROLE, CHANGE_ROLE, ASSIGN_FACILITY, REVOKE_FACILITY, ASSIGN_UNIT, CHANGE_STATUS, RECORD_RESULT, RESOLVE or LOGIN |
 | entityType | USER, FACILITY, UNIT, RENTAL, PAYMENT, INSPECTION or SUPPORT |
 | entityId | Actual domain record ID; nullable when creation fails before an ID exists |
@@ -221,10 +223,19 @@ login attempts are not captured.
 
 `GET /api/admin/activity-logs` requires an ACTIVE SYSTEM_ADMIN. It returns the
 standard success envelope with `{ items, total, limit, offset }`, ordered newest
-first by `(occurredAt, _id)`. Supported filters: `userId`, `action`, `entityType`,
+first by `(occurredAt, _id)`. Supported filters: `search` (name/email), current `role`, `userId`, `action`, `entityType`,
 `entityId`, `result`, inclusive UTC `from`/`to`; limit defaults to 20, max 100.
 No create, edit or delete log API exists, including for System Administrator.
 Responses use `Cache-Control: private, no-store`.
+
+Name/email search is case-insensitive and treats LIKE wildcards as literal text.
+Search and role resolve matching PostgreSQL actor IDs before MongoDB pagination,
+so totals and page boundaries reflect the complete matching history. Unfiltered
+pages load only their actors' profiles in one query. Profiles are live lookups,
+not snapshots: renaming a user or changing their role changes how past log entries
+are displayed and filtered. Deleted accounts keep their activity with null profile.
+The page has six columns and no KPI cards; date filters use complete Vietnam days
+(UTC+7), and the API continues accepting ISO timestamps with timezone offsets.
 
 MongoDB documents from the previous request-based capture remain readable without
 rewriting them: `actorId`/`occurredAt` are kept internally, missing descriptions

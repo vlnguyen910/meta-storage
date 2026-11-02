@@ -23,9 +23,13 @@ export class ActivityLogsRepository {
     await this.collection.insertOne(event);
   }
 
-  async list(query: ActivityLogQuery) {
+  async list(query: ActivityLogQuery, actorIds?: string[]) {
     const filter: mongodb.Filter<ActivityLog> = {};
-    if (query.userId) filter.actorId = query.userId;
+    if (actorIds)
+      filter.actorId = {
+        $in: query.userId ? actorIds.filter((id) => id === query.userId) : actorIds,
+      };
+    else if (query.userId) filter.actorId = query.userId;
     if (query.action) filter.action = query.action;
     if (query.entityType) filter.entityType = query.entityType;
     if (query.entityId) filter.entityId = query.entityId;

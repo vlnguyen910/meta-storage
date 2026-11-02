@@ -128,6 +128,7 @@ test.skipIf(!uri || !process.env.MY_STORAGE_LOCAL_DATABASE_URL)(
       "../../src/modules/activity-logs/activity-logs.routes"
     );
     const { usersRoutes } = await import("../../src/modules/users/users.routes");
+    const { UsersRepository } = await import("../../src/modules/users/users.repository");
     const { setupErrorHandler } = await import("../../src/common/errors/error-handler");
     const { serializerCompiler, validatorCompiler } = await import("fastify-type-provider-zod");
     const userId = randomUUID();
@@ -135,7 +136,10 @@ test.skipIf(!uri || !process.env.MY_STORAGE_LOCAL_DATABASE_URL)(
     const email = `activity-${userId}@example.test`;
     const app = Fastify();
     const logs = mongoDatabase.collection("activity_logs");
-    const activityLogs = new ActivityLogsService(new ActivityLogsRepository(mongoDatabase));
+    const activityLogs = new ActivityLogsService(
+      new ActivityLogsRepository(mongoDatabase),
+      new UsersRepository(db),
+    );
     let flushed = () => {};
     const cookies = (response: { headers: Record<string, unknown> }) => {
       const values = response.headers["set-cookie"];
@@ -241,6 +245,36 @@ test.skipIf(!uri || !process.env.MY_STORAGE_LOCAL_DATABASE_URL)(
       });
       expect(history.statusCode).toBe(200);
       expect(history.json().data.total).toBe(2);
+      expect(history.json().data.items[0].user).toMatchObject({
+        name: "Activity admin",
+        email: `admin-${email}`,
+        role: "SYSTEM_ADMIN",
+      });
+      const filtered = await app.inject({
+        url: "/api/admin/activity-logs?role=SYSTEM_ADMIN&search=activity%20ADMIN&action=LOCK&limit=1&offset=1",
+        headers: { cookie: adminCookie },
+      });
+      expect(filtered.statusCode).toBe(200);
+      expect(filtered.json().data).toMatchObject({ total: 2, limit: 1, offset: 1 });
+      expect(filtered.json().data.items[0].result).toBe("SUCCESS");
+      const literalWildcard = await app.inject({
+        url: "/api/admin/activity-logs?search=%25",
+        headers: { cookie: adminCookie },
+      });
+      expect(literalWildcard.json().data.total).toBe(0);
+      await db.update(users).set({ name: "Renamed administrator" }).where(eq(users.id, adminId));
+      const renamed = await app.inject({
+        url: "/api/admin/activity-logs?search=RENAMED&action=LOCK",
+        headers: { cookie: adminCookie },
+      });
+      expect(renamed.json().data.total).toBe(2);
+      expect(
+        renamed
+          .json()
+          .data.items.every(
+            (entry: { user: { name: string } }) => entry.user.name === "Renamed administrator",
+          ),
+      ).toBe(true);
       expect(
         history
           .json()
