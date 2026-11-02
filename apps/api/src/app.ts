@@ -11,8 +11,8 @@ import { healthPlugin } from "./common/plugins/health";
 import { swaggerPlugin } from "./common/plugins/swagger";
 import { redisPlugin } from "./common/redis/plugin";
 import { env } from "./config/env";
-import { activityLogsPlugin } from "./modules/activity-logs/activity-logs.plugin";
 import { ActivityLogsRepository } from "./modules/activity-logs/activity-logs.repository";
+import { activityLogsRoutes } from "./modules/activity-logs/activity-logs.routes";
 import { ActivityLogsService } from "./modules/activity-logs/activity-logs.service";
 import { appointmentsRoutes } from "./modules/appointments/appointments.routes";
 import { authPlugin } from "./modules/auth/auth.guard";
@@ -47,14 +47,14 @@ export function buildApp(): FastifyInstance {
 
   // Centralized Error Handler
   setupErrorHandler(app);
+  const activityLogs = new ActivityLogsService(new ActivityLogsRepository(mongoDatabase));
+  app.addHook("onRequest", (request, _reply, done) => activityLogs.startRequest(request, done));
+  app.addHook("onResponse", async (request, reply) => activityLogs.recordRequest(request, reply));
 
   // Core Plugins
   app.register(corsPlugin);
   app.register(databasePlugin);
   app.register(mongoPlugin);
-  app.register(activityLogsPlugin, {
-    service: new ActivityLogsService(new ActivityLogsRepository(mongoDatabase)),
-  });
   app.register(cronPlugin);
   app.register(lifecycleNotificationsRoutes, { prefix: "/api" });
   app.register(redisPlugin);
@@ -67,6 +67,7 @@ export function buildApp(): FastifyInstance {
   // System & Feature Routes
   app.register(healthPlugin, { prefix: "/api" });
   app.register(usersRoutes, { prefix: "/api/users" });
+  app.register(activityLogsRoutes, { prefix: "/api/admin/activity-logs", service: activityLogs });
   app.register(authRoutes, { prefix: "/api/auth" });
   app.register(facilitiesRoutes, { prefix: "/api/facilities" });
   app.register(unitTypesRoutes, { prefix: "/api/unit-types" });

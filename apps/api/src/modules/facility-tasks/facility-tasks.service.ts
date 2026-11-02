@@ -1,4 +1,6 @@
 import {
+  ActivityLogAction,
+  ActivityLogEntityType,
   type CreateFacilityTaskInput,
   type FacilityTaskDashboardSummary,
   type FacilityTaskDetail,
@@ -22,6 +24,7 @@ import {
 } from "../../common/errors/app-error";
 import { mapPageDto } from "../../common/types/page.dto";
 import { isDevelopmentEnvironment } from "../../config/env";
+import { beginActivity } from "../activity-logs/activity-logs.service";
 import { CheckInSlotsRepository } from "../appointments/check-in-slots.repository";
 import { CheckInSlotsService } from "../appointments/check-in-slots.service";
 import { getFacilityAccessScope } from "../facilities/facilities.access";
@@ -184,6 +187,19 @@ export class FacilityTasksService {
     actor: FacilityTaskActor,
   ): Promise<FacilityTaskDetail> {
     const [current] = await this.repository.findById(id);
+    const supportActivity =
+      current?.type === FacilityTaskType.HANDLE_SUPPORT &&
+      current.referenceType === FacilityTaskReferenceType.SUPPORT_TICKET &&
+      "status" in input &&
+      input.status === FacilityTaskStatus.COMPLETED
+        ? beginActivity({
+            action: ActivityLogAction.RESOLVE,
+            entityType: ActivityLogEntityType.SUPPORT,
+            entityId: current.referenceId,
+            facilityId: current.facilityId,
+            description: "Complete support task",
+          })
+        : undefined;
     if (current?.referenceType === FacilityTaskReferenceType.BOOKING)
       throw new ConflictError(m.appointmentWorkflowRequired);
     if (current?.referenceType === FacilityTaskReferenceType.APPOINTMENT) {
@@ -219,6 +235,7 @@ export class FacilityTasksService {
       if (input.type) this.assertTypeCanBeAssigned(input.type);
     }
     const task = await this.write(this.repository.update(id, input, actor));
+    if (supportActivity) supportActivity.changed = task.status !== current?.status;
     return {
       ...task,
       startedAt: task.startedAt?.toISOString() ?? null,

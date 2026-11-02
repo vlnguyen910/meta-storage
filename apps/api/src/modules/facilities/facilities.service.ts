@@ -1,8 +1,10 @@
-import type {
-  CreateFacilityBody,
-  FacilityCatalogQuery,
-  FacilityOperatingHours,
-  UpdateFacilityBody,
+import {
+  ActivityLogAction,
+  ActivityLogEntityType,
+  type CreateFacilityBody,
+  type FacilityCatalogQuery,
+  type FacilityOperatingHours,
+  type UpdateFacilityBody,
 } from "@metastorage/contracts";
 import type { Facility } from "@metastorage/database";
 import {
@@ -11,6 +13,7 @@ import {
   ForbiddenError,
   NotFoundError,
 } from "../../common/errors/app-error";
+import { beginActivity } from "../activity-logs/activity-logs.service";
 import type { FacilityListScope, FacilityScope } from "./facilities.access";
 import { FACILITY_MESSAGES } from "./facilities.messages";
 import type { FacilitiesRepository } from "./facilities.repository";
@@ -85,6 +88,12 @@ export class FacilitiesService {
   }
 
   async createFacility(input: CreateFacilityBody): Promise<Facility> {
+    const activity = beginActivity({
+      action: ActivityLogAction.CREATE,
+      entityType: ActivityLogEntityType.FACILITY,
+      entityId: null,
+      description: "Create facility",
+    });
     const existing = await this.facilitiesRepository.findByCode(input.code);
     if (existing) {
       throw new ConflictError(FACILITY_MESSAGES.facilityCodeAlreadyExists(input.code));
@@ -98,6 +107,9 @@ export class FacilitiesService {
       isActive: input.isActive ?? true,
     });
 
+    activity.entityId = facility.id;
+    activity.facilityId = facility.id;
+    activity.changed = true;
     return facility;
   }
 
@@ -132,6 +144,27 @@ export class FacilitiesService {
     input: UpdateFacilityBody,
     scope: FacilityScope,
   ): Promise<Facility> {
+    const activity = Object.entries(input).some(
+      ([key, value]) => key !== "isActive" && value !== undefined,
+    )
+      ? beginActivity({
+          action: ActivityLogAction.UPDATE,
+          entityType: ActivityLogEntityType.FACILITY,
+          entityId: id,
+          facilityId: id,
+          description: "Update facility",
+        })
+      : undefined;
+    const statusActivity =
+      input.isActive === undefined
+        ? undefined
+        : beginActivity({
+            action: ActivityLogAction.CHANGE_STATUS,
+            entityType: ActivityLogEntityType.FACILITY,
+            entityId: id,
+            facilityId: id,
+            description: input.isActive ? "Activate facility" : "Deactivate facility",
+          });
     this.assertManagerScope(scope);
     const existing = await this.facilitiesRepository.findAccessibleById(id, scope);
     if (!existing) {
@@ -161,6 +194,12 @@ export class FacilitiesService {
         throw new ForbiddenError(FACILITY_MESSAGES.facilityAccessDenied);
       throw new NotFoundError(FACILITY_MESSAGES.facilityNotFound(id));
     }
+    if (activity)
+      activity.changed = Object.entries(input).some(
+        ([key, value]) =>
+          key !== "isActive" && value !== undefined && existing[key as keyof Facility] !== value,
+      );
+    if (statusActivity) statusActivity.changed = updated.isActive !== existing.isActive;
     return updated;
   }
 

@@ -1,4 +1,6 @@
 import {
+  ActivityLogAction,
+  ActivityLogEntityType,
   type CreateInspectionInput,
   FacilityTaskReferenceType,
   FacilityTaskStatus,
@@ -25,6 +27,7 @@ import {
 import { UserRole } from "@metastorage/database/schema/user-enums";
 import { ConflictError, ForbiddenError, NotFoundError } from "../../common/errors/app-error";
 import { mapPageDto } from "../../common/types/page.dto";
+import { beginActivity } from "../activity-logs/activity-logs.service";
 import type { AppointmentsService } from "../appointments/appointments.service";
 import type { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
 import type { FacilityTasksRepository } from "../facility-tasks/facility-tasks.repository";
@@ -195,6 +198,20 @@ export class InspectionsService {
   }
 
   private async handoverReservation(current: InspectionRow, actor: InspectionActor) {
+    const activity = beginActivity({
+      action: ActivityLogAction.CREATE,
+      entityType: ActivityLogEntityType.RENTAL,
+      entityId: null,
+      facilityId: current.facilityId,
+      description: "Activate rental through check-in handover",
+    });
+    const unitActivity = beginActivity({
+      action: ActivityLogAction.CHANGE_STATUS,
+      entityType: ActivityLogEntityType.UNIT,
+      entityId: current.storageUnitId,
+      facilityId: current.facilityId,
+      description: "Mark unit occupied after handover",
+    });
     const task = await this.repository.findTaskContext(current.taskId);
     const appointments = this.appointments;
     const reservations = this.reservations;
@@ -250,17 +267,20 @@ export class InspectionsService {
         startsAt: now,
         endsAt: reservation.rentalEndAt,
       });
-      await this.rentals.createForHandover(tx, {
+      const [rental] = await this.rentals.createForHandover(tx, {
         reservationId: reservation.id,
         userId: reservation.customerId,
         storageUnitId: inspection.storageUnitId,
         startAt: now,
         endAt: reservation.rentalEndAt,
       });
+      activity.entityId = rental?.id ?? null;
       await this.storageUnits.markOccupied(tx, inspection.storageUnitId, now);
       await reservations.markCheckedIn(tx, reservation.id);
       await appointments.completeHandover(tx, appointment.id, actor);
     });
+    activity.changed = activity.entityId !== null;
+    unitActivity.changed = activity.changed;
     return this.get(current.id, actor);
   }
 
@@ -274,7 +294,31 @@ export class InspectionsService {
     input: UpdateInspectionInput,
     actor: InspectionActor,
   ): Promise<InspectionRecord> {
+    const activity =
+      input.status === InspectionStatus.PASSED || input.status === InspectionStatus.FAILED
+        ? beginActivity({
+            action: ActivityLogAction.RECORD_RESULT,
+            entityType: ActivityLogEntityType.INSPECTION,
+            entityId: id,
+            description:
+              input.status === InspectionStatus.PASSED
+                ? "Record inspection result: PASSED"
+                : "Record inspection result: FAILED",
+          })
+        : undefined;
     const current = await this.getAccessibleRow(id, actor);
+    if (activity) activity.facilityId = current.facilityId;
+    const rentalActivity =
+      current.inspectionType === InspectionType.CHECK_OUT &&
+      input.status === InspectionStatus.PASSED
+        ? beginActivity({
+            action: ActivityLogAction.CHANGE_STATUS,
+            entityType: ActivityLogEntityType.RENTAL,
+            entityId: current.rentalId,
+            facilityId: current.facilityId,
+            description: "Close rental after return inspection",
+          })
+        : undefined;
     if (actor.role !== UserRole.FACILITY_STAFF || current.assignedStaffId !== actor.id)
       throw new ForbiddenError(m.notAssigned);
     if (
@@ -411,6 +455,8 @@ export class InspectionsService {
       return updatedRecord;
     });
     if (!updated) throw new NotFoundError(m.notFound);
+    if (activity) activity.changed = !alreadyCompleted && updated.status !== current.status;
+    if (rentalActivity) rentalActivity.changed = !alreadyCompleted;
 
     if (!alreadyCompleted) {
       for (const assetId of removed) await this.media.removeImage("INSPECTION", id, assetId);
@@ -503,6 +549,13 @@ export class InspectionsService {
     const now = new Date();
     const closed = await this.repository.closeRental(tx, rental.rental.id, now);
     if (!closed.length) throw new ConflictError(m.handoverNotReady);
+    const unitActivity = beginActivity({
+      action: ActivityLogAction.CHANGE_STATUS,
+      entityType: ActivityLogEntityType.UNIT,
+      entityId: rental.rental.storageUnitId,
+      facilityId: appointment.facilityId,
+      description: "Release unit after return inspection",
+    });
     if (
       !(await this.storageUnits.completeReturn(
         tx,
@@ -516,6 +569,7 @@ export class InspectionsService {
       ))
     )
       throw new ConflictError(m.returnUnitUnavailable);
+    unitActivity.changed = true;
     const settlement = await this.repository.createReturnSettlement(tx, {
       rentalId: rental.rental.id,
       inspectionId: inspection.id,
@@ -529,8 +583,15 @@ export class InspectionsService {
     if (!settlement) throw new ConflictError(m.returnSettlementChanged);
     if (totalFees > source.depositAmount)
       await this.repository.createDebt(tx, settlement.id, totalFees - source.depositAmount);
-    if (refundAmount > 0 && refund)
-      await this.repository.createDepositRefund(tx, {
+    if (refundAmount > 0 && refund) {
+      const paymentActivity = beginActivity({
+        action: ActivityLogAction.CREATE,
+        entityType: ActivityLogEntityType.PAYMENT,
+        entityId: null,
+        facilityId: appointment.facilityId,
+        description: "Record deposit refund after return inspection",
+      });
+      const [payment] = await this.repository.createDepositRefund(tx, {
         rentalId: rental.rental.id,
         sourcePaymentId: source.payment.id,
         bookingId: source.bookingId,
@@ -542,6 +603,9 @@ export class InspectionsService {
         actorId: actor.id,
         now,
       });
+      paymentActivity.entityId = payment?.id ?? null;
+      paymentActivity.changed = Boolean(payment);
+    }
     await this.appointments.completeHandover(tx, appointment.id, actor);
   }
 
