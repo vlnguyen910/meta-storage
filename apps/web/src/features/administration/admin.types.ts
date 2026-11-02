@@ -2,7 +2,6 @@ import type { User } from "@metastorage/contracts";
 import type { UserRole } from "@metastorage/database/schema/user-enums";
 import type { ReactNode } from "react";
 
-export type AdminSection = "users" | "assignments" | "login-history" | "activity-logs";
 export type AdminAccountStatus = "ACTIVE" | "INACTIVE";
 export type AdminOutcome = "SUCCESS" | "FAILED";
 export type AdminAction = "ROLE_CHANGED" | "STATUS_CHANGED" | "FACILITIES_CHANGED";
@@ -82,10 +81,6 @@ export interface AdminUserDraft {
 export interface AdminAssignmentDraft {
   facilityIds: string[];
   reason: string;
-}
-
-export interface AdminWorkspaceProps {
-  readonly section: AdminSection;
 }
 
 export interface AdminTableProps {
