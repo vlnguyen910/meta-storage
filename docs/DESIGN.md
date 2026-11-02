@@ -225,3 +225,17 @@ Core component patterns and behaviors across the application:
 - **Don't** use arbitrary corner radii (e.g. mixing `6px`, `10px`, and `24px` in the same screen).
 - **Don't** use saturated red or green for decorative elements; keep semantic colors strictly for status and alerts.
 - **Don't** hardcode inline styles or custom hex colors in components; always reference theme tokens.
+
+## System Administrator: Activity Logs
+
+`/system-admin/activity-logs` is a read-only lookup page with no KPI cards.
+Reuse the existing administrator shell, table, form controls, buttons and pagination.
+Show six columns: user name/email, action, module, description, Vietnam date/time,
+and IP address. Show success/failure within the description cell.
+
+Filters are name/email search, current role, action, module, and inclusive date
+range in Vietnam time. Apply filters together and reset pagination to the first
+page. Names, emails and roles use current account profiles rather than historical
+snapshots. Keep filters usable during loading, empty and error states; provide a
+retry action. On narrow screens stack the filters and contain horizontal scrolling
+inside the table. No edit/delete controls or new shared components are needed.
