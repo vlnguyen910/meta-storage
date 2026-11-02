@@ -299,7 +299,7 @@ export class PaymentsRepository {
       ) {
         if (payment.refundReference !== reference)
           throw new AppError(PAYMENT_MESSAGES.refundReferenceConflict, 409);
-        return payment;
+        return { payment, changed: false };
       }
       if (payment.status !== "REFUND_PENDING")
         throw new AppError(PAYMENT_MESSAGES.refundNotPending, 409);
@@ -316,7 +316,7 @@ export class PaymentsRepository {
         .where(and(eq(payments.id, paymentId), eq(payments.status, "REFUND_PENDING")))
         .returning();
       if (!refunded) throw new AppError(PAYMENT_MESSAGES.refundNotPending, 409);
-      return refunded;
+      return { payment: refunded, changed: true };
     });
   }
 

@@ -1,4 +1,6 @@
 import {
+  ActivityLogAction,
+  ActivityLogEntityType,
   type CreateStorageUnitInput,
   STORAGE_UNIT_MESSAGES,
   type StorageUnitDetail,
@@ -9,6 +11,7 @@ import {
 import type { StorageUnit } from "@metastorage/database";
 import { ConflictError, ForbiddenError, NotFoundError } from "../../common/errors/app-error";
 import { mapPageDto } from "../../common/types/page.dto";
+import { beginActivity } from "../activity-logs/activity-logs.service";
 import { getFacilityAccessScope, requireAssignedFacility } from "../facilities/facilities.access";
 import type { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
 import type { TaskTransaction } from "../facility-tasks/facility-tasks.types";
@@ -90,6 +93,13 @@ export class StorageUnitsService {
       reason?: string;
     },
   ) {
+    const activity = beginActivity({
+      action: ActivityLogAction.ASSIGN_UNIT,
+      entityType: ActivityLogEntityType.UNIT,
+      entityId: input.unitId,
+      facilityId: input.facilityId,
+      description: "Assign physical unit to reservation",
+    });
     const current = await this.repository.findReservationAssignment(tx, input.reservationId);
     await this.repository.lockAssignmentUnits(tx, [
       input.unitId,
@@ -112,6 +122,7 @@ export class StorageUnitsService {
       assignedBy: input.managerId,
       reason: input.reason,
     });
+    activity.changed = true;
   }
   findReservationAssignment(tx: TaskTransaction, id: string) {
     return this.repository.findReservationAssignment(tx, id);
@@ -146,7 +157,15 @@ export class StorageUnitsService {
     targetStatus: "AVAILABLE" | "MAINTENANCE",
     user: UnitTransitionUser,
   ): Promise<StorageUnit> {
+    const activity = beginActivity({
+      action: ActivityLogAction.CHANGE_STATUS,
+      entityType: ActivityLogEntityType.UNIT,
+      entityId: unitId,
+      description:
+        targetStatus === "MAINTENANCE" ? "Set unit to maintenance" : "Restore unit availability",
+    });
     const unit = await this.getUnitById(unitId);
+    activity.facilityId = unit.facilityId;
 
     if (this.assignmentsRepository) {
       const scope = getFacilityAccessScope(user);
@@ -169,6 +188,7 @@ export class StorageUnitsService {
       throw new ConflictError(STORAGE_UNIT_MESSAGES.unitHasOperations);
     }
 
+    activity.changed = result.unit.status !== unit.status;
     return result.unit;
   }
 

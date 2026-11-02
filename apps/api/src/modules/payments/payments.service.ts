@@ -1,11 +1,13 @@
-import type {
-  DebtPaymentInput,
-  DebtQuery,
-  DebtRecord,
-  ManualRefund,
-  ManualRefundConfirmation,
-  ManualRefundQuery,
-  PaymentStatusResponse,
+import {
+  ActivityLogAction,
+  ActivityLogEntityType,
+  type DebtPaymentInput,
+  type DebtQuery,
+  type DebtRecord,
+  type ManualRefund,
+  type ManualRefundConfirmation,
+  type ManualRefundQuery,
+  type PaymentStatusResponse,
 } from "@metastorage/contracts";
 import { DebtStatus, PaymentMethod, PaymentType } from "@metastorage/database";
 import { UserRole } from "@metastorage/database/schema/user-enums";
@@ -19,6 +21,7 @@ import {
 } from "../../common/errors/app-error";
 import { mapPageDto } from "../../common/types/page.dto";
 import { env } from "../../config/env";
+import { beginActivity } from "../activity-logs/activity-logs.service";
 import { FacilitiesRepository } from "../facilities/facilities.repository";
 import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
 import { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
@@ -107,12 +110,19 @@ export class PaymentsService {
   }
 
   async collectDebt(id: string, input: DebtPaymentInput, actor: { id: string; role: string }) {
+    const activity = beginActivity({
+      action: ActivityLogAction.CREATE,
+      entityType: ActivityLogEntityType.PAYMENT,
+      entityId: null,
+      description: "Record debt payment",
+    });
     if (actor.role !== UserRole.FACILITY_STAFF || !this.assignments)
       throw new ForbiddenError(PAYMENT_MESSAGES.debtAccessDenied);
     const assignments = this.assignments;
     await this.repository.transaction(async (tx) => {
       const context = await this.repository.findDebt(id, tx);
       if (!context) throw new NotFoundError(PAYMENT_MESSAGES.debtNotFound);
+      activity.facilityId = context.facilityId;
       await assignments.requireActiveAssignments(tx, context.facilityId, [
         { userId: actor.id, role: UserRole.FACILITY_STAFF },
       ]);
@@ -149,6 +159,7 @@ export class PaymentsService {
         idempotencyKey: key,
       });
       if (!recorded.length) throw new ConflictError(PAYMENT_MESSAGES.debtPaymentConflict);
+      activity.entityId = recorded[0]?.id ?? null;
       await this.repository.updateDebt(tx, id, {
         paidAmount: String(paidAmount),
         status:
@@ -156,6 +167,7 @@ export class PaymentsService {
         updatedAt: now,
       });
     });
+    activity.changed = activity.entityId !== null;
     return this.getDebt(id, actor);
   }
 
@@ -169,7 +181,18 @@ export class PaymentsService {
     reference: string,
     actorId: string,
   ): Promise<ManualRefundConfirmation> {
-    const payment = await this.repository.confirmManualRefund(paymentId, reference, actorId);
+    const activity = beginActivity({
+      action: ActivityLogAction.CHANGE_STATUS,
+      entityType: ActivityLogEntityType.PAYMENT,
+      entityId: paymentId,
+      description: "Confirm manual refund",
+    });
+    const { payment, changed } = await this.repository.confirmManualRefund(
+      paymentId,
+      reference,
+      actorId,
+    );
+    activity.changed = changed;
     if (!payment.refundReference || !payment.refundedAt || !payment.refundedBy)
       throw new AppError(PAYMENT_MESSAGES.failedToFinalizePayment, 500);
     return {
