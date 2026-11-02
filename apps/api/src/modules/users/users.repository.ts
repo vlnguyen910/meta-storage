@@ -40,6 +40,27 @@ export class UsersRepository {
     return this.db.transaction(work);
   }
 
+  async findActivityActors(filters: {
+    ids?: string[];
+    search?: string;
+    role?: UserListQuery["role"];
+  }) {
+    if (filters.ids?.length === 0) return [];
+    const search = filters.search?.trim().replace(/[\\%_]/g, "\\$&");
+    return this.db
+      .select({ id: users.id, name: users.name, email: users.email, role: users.role })
+      .from(users)
+      .where(
+        and(
+          filters.ids ? inArray(users.id, filters.ids) : undefined,
+          filters.role ? eq(users.role, filters.role) : undefined,
+          search
+            ? or(ilike(users.name, `%${search}%`), ilike(users.email, `%${search}%`))
+            : undefined,
+        ),
+      );
+  }
+
   async findByIdForUpdate(id: string, tx: UserTransaction): Promise<User | undefined> {
     const [user] = await tx.select().from(users).where(eq(users.id, id)).for("update");
     return user;

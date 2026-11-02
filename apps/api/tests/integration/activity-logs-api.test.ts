@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, spyOn, test } from "bun:test";
 import { mongodb } from "@fastify/mongodb";
 import { type ActivityLogQuery, ActivityLogResult } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import Fastify from "fastify";
 import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
 import { setupErrorHandler } from "../../src/common/errors/error-handler";
@@ -12,34 +13,56 @@ import { authPlugin } from "../../src/modules/auth/auth.guard";
 const userId = "b666c066-dbf7-40b4-9855-c34243a1f881";
 const entityId = "8c12bcf7-f621-4e67-968e-6c0c8af90e21";
 const queries: ActivityLogQuery[] = [];
-const service = new ActivityLogsService({
-  ensureIndexes: async () => {},
-  insert: async () => {},
-  list: async (query) => {
-    queries.push(query);
-    return {
-      total: 1,
-      items: [
-        {
-          _id: new mongodb.ObjectId("000000000000000000000001"),
-          occurredAt: new Date("2026-11-02T00:00:00Z"),
-          action: "UPDATE",
-          actorId: userId,
-          entityType: "USER",
-          entityId,
-          description: "Update user",
-          result: ActivityLogResult.SUCCESS,
-          facilityId: null,
-          ipAddress: "127.0.0.1",
-          requestId: "request",
-          userAgent: "internal-client-metadata",
-          sessionId: "internal-session-id",
-          statusCode: 200,
-        },
-      ],
-    };
+const actorFilters: (string[] | undefined)[] = [];
+const profileQueries: unknown[] = [];
+const profile = {
+  id: userId,
+  name: "Nguyen An",
+  email: "an@example.test",
+  role: UserRole.FACILITY_MANAGER,
+};
+const service = new ActivityLogsService(
+  {
+    ensureIndexes: async () => {},
+    insert: async () => {},
+    list: async (query, ids) => {
+      queries.push(query);
+      actorFilters.push(ids);
+      if (ids && !ids.includes(userId)) return { items: [], total: 0 };
+      return {
+        total: 1,
+        items: [
+          {
+            _id: new mongodb.ObjectId("000000000000000000000001"),
+            occurredAt: new Date("2026-11-02T00:00:00Z"),
+            action: "UPDATE",
+            actorId: userId,
+            entityType: "USER",
+            entityId,
+            description: "Update user",
+            result: ActivityLogResult.SUCCESS,
+            facilityId: null,
+            ipAddress: "127.0.0.1",
+            requestId: "request",
+            userAgent: "internal-client-metadata",
+            sessionId: "internal-session-id",
+            statusCode: 200,
+          },
+        ],
+      };
+    },
   },
-});
+  {
+    findActivityActors: async (filters) => {
+      profileQueries.push(filters);
+      return (filters.role && filters.role !== profile.role) ||
+        (filters.search &&
+          !`${profile.name} ${profile.email}`.toLowerCase().includes(filters.search.toLowerCase()))
+        ? []
+        : [profile];
+    },
+  },
+);
 const app = Fastify();
 const session = spyOn(auth.api, "getSession");
 function authenticate(role: string | null, status = "ACTIVE") {
@@ -92,6 +115,7 @@ test("only an active System Administrator can list all logs", async () => {
       {
         id: "000000000000000000000001",
         userId,
+        user: { name: profile.name, email: profile.email, role: profile.role },
         entityId,
         action: "UPDATE",
         entityType: "USER",
@@ -143,4 +167,25 @@ test("there are no endpoints to create, edit or delete logs, including for admin
         .statusCode,
     ).toBe(404);
   }
+});
+
+test("current name/email and role filters restrict actors before pagination", async () => {
+  authenticate("SYSTEM_ADMIN");
+  const response = await app.inject(
+    "/api/admin/activity-logs?search=AN%40example.test&role=FACILITY_MANAGER&limit=1&offset=10",
+  );
+  expect(response.statusCode).toBe(200);
+  expect(queries.at(-1)).toMatchObject({
+    search: "AN@example.test",
+    role: "FACILITY_MANAGER",
+    limit: 1,
+    offset: 10,
+  });
+  expect(actorFilters.at(-1)).toEqual([userId]);
+  expect(profileQueries.at(-1)).toEqual({ search: "AN@example.test", role: "FACILITY_MANAGER" });
+  const noMatch = await app.inject("/api/admin/activity-logs?search=nobody");
+  expect(noMatch.json().data).toMatchObject({ items: [], total: 0 });
+  expect(actorFilters.at(-1)).toEqual([]);
+  expect((await app.inject("/api/admin/activity-logs?role=CUSTOMER")).json().data.total).toBe(0);
+  expect((await app.inject("/api/admin/activity-logs?role=ADMIN")).statusCode).toBe(400);
 });

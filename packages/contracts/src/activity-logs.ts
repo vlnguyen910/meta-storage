@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { UserListQuerySchema } from "./users";
+import { UserListQuerySchema, UserRoleSchema } from "./users";
 
 export enum ActivityLogAction {
   LOGIN = "LOGIN",
@@ -35,6 +35,8 @@ export enum ActivityLogResult {
 export const ActivityLogQuerySchema = UserListQuerySchema.pick({ limit: true, offset: true })
   .extend({
     userId: z.uuid().optional(),
+    search: z.string().trim().max(150).optional(),
+    role: UserRoleSchema.optional(),
     action: z.enum(ActivityLogAction).optional(),
     entityType: z.enum(ActivityLogEntityType).optional(),
     entityId: z.uuid().optional(),
@@ -50,6 +52,9 @@ export type ActivityLogQuery = z.infer<typeof ActivityLogQuerySchema>;
 export const ActivityLogSchema = z.object({
   id: z.string(),
   userId: z.uuid().nullable(),
+  user: z
+    .object({ name: z.string(), email: z.string(), role: UserRoleSchema.nullable() })
+    .nullable(),
   action: z.string(),
   entityType: z.string(),
   entityId: z.string().nullable(),
@@ -67,3 +72,4 @@ export const ActivityLogPageSchema = z.object({
   limit: z.number().int().positive(),
   offset: z.number().int().nonnegative(),
 });
+export type ActivityLogPage = z.infer<typeof ActivityLogPageSchema>;

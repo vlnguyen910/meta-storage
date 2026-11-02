@@ -1,4 +1,6 @@
 import type {
+  ActivityLogPage,
+  ActivityLogQuery,
   ApiEnvelope,
   ApiFacility,
   ApiFacilityAssignment,
@@ -262,6 +264,12 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
         });
         return response.data;
       },
+    },
+    activityLogs: {
+      list: (params: Partial<ActivityLogQuery> = {}, signal?: AbortSignal) =>
+        http
+          .get<ApiEnvelope<ActivityLogPage>>("/admin/activity-logs", { params, signal })
+          .then(unwrap),
     },
     users: {
       list: (params: Partial<UserListQuery> = { limit: 100 }) =>
