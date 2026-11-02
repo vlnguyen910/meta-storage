@@ -1,6 +1,5 @@
 import * as FileSystem from "expo-file-system";
 import * as SecureStore from "expo-secure-store";
-import * as Sharing from "expo-sharing";
 import * as WebBrowser from "expo-web-browser";
 import { Platform } from "react-native";
 import { WEB_BASE_URL } from "../../lib/runtime-config";
@@ -35,24 +34,6 @@ export async function clearCustomerCommand(ownerId: string, operation: string) {
   const key = `customer-${ownerId}-${operation}`;
   if (Platform.OS === "web") sessionStorage.removeItem(key);
   else await SecureStore.deleteItemAsync(key);
-}
-export async function sharePrivateFile(bytes: Uint8Array, name: string, mimeType: string) {
-  if (Platform.OS === "web") {
-    const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: mimeType }));
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = name;
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    return;
-  }
-  const directory = privateDirectory();
-  directory.create({ idempotent: true, intermediates: true });
-  const file = new FileSystem.File(directory, name.replace(/[^a-zA-Z0-9._-]/g, "_"));
-  file.create({ overwrite: true });
-  file.write(bytes);
-  privateFiles.add(file.uri);
-  if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(file.uri, { mimeType });
 }
 export function clearPrivateFiles() {
   for (const uri of privateFiles) {

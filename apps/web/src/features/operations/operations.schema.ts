@@ -23,7 +23,6 @@ export const OperationsPriceDraftSchema = z
         message: R.priceInteger,
       });
   });
-export type OperationsPriceDraft = z.infer<typeof OperationsPriceDraftSchema>;
 export const OperationsDepositDraftSchema = z
   .object({ depositMonths: z.number({ invalid_type_error: M.required }) })
   .superRefine((value, ctx) => {

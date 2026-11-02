@@ -20,7 +20,6 @@ export type {
   ErrorStateProps,
   FullScreenLoadingProps,
   LoadingStateProps,
-  LoadingVariant,
 } from "./states.types";
 
 const DASHBOARD_METRIC_KEYS = ["revenue", "bookings", "capacity", "refunds"] as const;

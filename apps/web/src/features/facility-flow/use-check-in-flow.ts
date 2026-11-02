@@ -39,7 +39,7 @@ export function flowError(error: unknown) {
       : FLOW.error;
 }
 
-export function normalizeLookup(value: string) {
+function normalizeLookup(value: string) {
   try {
     return new URL(value.trim()).searchParams.get("token") ?? value.trim();
   } catch {
@@ -47,8 +47,7 @@ export function normalizeLookup(value: string) {
   }
 }
 
-export const inspectionKey = (bookingId: string) =>
-  ["facility-flow", "inspections", bookingId] as const;
+const inspectionKey = (bookingId: string) => ["facility-flow", "inspections", bookingId] as const;
 
 export function useCheckInFlow() {
   const router = useRouter();

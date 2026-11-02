@@ -4,7 +4,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useFlow3Identity } from "@/features/returns/use-flow3-identity";
 import { api } from "@/lib/api";
 
-export const rentalKeys = {
+const rentalKeys = {
   all: ["rentals"] as const,
   mine: ["rentals", "mine"] as const,
   detail: (id: string) => ["rentals", "detail", id] as const,

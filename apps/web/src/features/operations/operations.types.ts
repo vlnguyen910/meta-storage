@@ -1,7 +1,7 @@
 import type { FacilityStatus } from "@metastorage/contracts";
 import type { ReactNode } from "react";
 
-export type OperationsSection =
+type OperationsSection =
   | "dashboard"
   | "facilities"
   | "pricing"

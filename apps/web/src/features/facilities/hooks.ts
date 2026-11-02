@@ -10,7 +10,7 @@ import type {
   FacilityUnitTypeOption,
 } from "./facility-catalog.types";
 
-export const facilityKeys = {
+const facilityKeys = {
   all: ["facilities"] as const,
   catalog: ["facilities", "catalog"] as const,
   list: (params: FacilityCatalogFilters) => ["facilities", "list", params] as const,

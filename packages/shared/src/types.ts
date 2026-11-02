@@ -16,11 +16,3 @@ export interface ApiResponse<T = unknown> {
   error?: ApiError;
   timestamp: string;
 }
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: "admin" | "user";
-  createdAt: string;
-}
