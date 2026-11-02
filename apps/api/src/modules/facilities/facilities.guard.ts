@@ -3,7 +3,7 @@ import fp from "fastify-plugin";
 import { BadRequestError, UnauthorizedError } from "../../common/errors/app-error";
 import { requireAuth } from "../auth/auth.guard";
 import { getFacilityAccessScope, requireAssignedFacility } from "./facilities.access";
-import type { FacilityContext, RequireFacilityAccessOptions } from "./facilities.guard.types";
+import type { RequireFacilityAccessOptions } from "./facilities.guard.types";
 import { FACILITY_MESSAGES } from "./facilities.messages";
 import { FacilityAssignmentsRepository } from "./facility-assignments.repository";
 
@@ -14,13 +14,6 @@ const facilityContextPluginCallback: FastifyPluginAsync = async (fastify) => {
 export const facilityContextPlugin = fp(facilityContextPluginCallback, {
   name: "facility-context-plugin",
 });
-
-export function getFacilityContext(request: FastifyRequest): FacilityContext {
-  if (!request.facilityContext) {
-    throw new UnauthorizedError(FACILITY_MESSAGES.loginRequired);
-  }
-  return request.facilityContext;
-}
 
 export function requireFacilityAccess(options: RequireFacilityAccessOptions = {}) {
   return async function requireFacilityAccessPreHandler(

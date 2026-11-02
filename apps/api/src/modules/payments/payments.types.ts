@@ -6,11 +6,6 @@ export type PaymentStatusAccess = {
   userId?: string;
 };
 
-export type GatewayPaymentResult = {
-  providerPaymentId: string;
-  status: "SUCCEEDED" | "FAILED";
-};
-
 export type PaymentInstructions = {
   paymentCode: string;
   bankName: string;
@@ -33,16 +28,6 @@ export type VerifiedPaymentEvent = {
   successful?: boolean;
   paidAt?: Date;
 };
-
-export interface PaymentGateway {
-  readonly provider: string;
-  charge(input: {
-    amount: string;
-    currency: string;
-    paymentMethodToken: string;
-    idempotencyKey: string;
-  }): Promise<GatewayPaymentResult>;
-}
 
 export type SepayWebhookPayload = {
   notification_type?: string;
@@ -107,15 +92,4 @@ export type SepayOrderDetailResponse = {
       transaction_date?: string;
     }>;
   };
-};
-
-export type SepayPaymentInstructions = PaymentInstructions & { provider: "sepay" };
-export type SepayVerifiedPaymentEvent = VerifiedPaymentEvent & { provider: "sepay" };
-
-export type PricingSnapshot = {
-  monthlyRateSnapshot: string;
-  rentalFeeAmount: string;
-  depositAmount: string;
-  totalAmount: string;
-  currency: string;
 };

@@ -1,4 +1,2 @@
-import type { NewUnitType, Role } from "@metastorage/database";
-
-export type UpdateUnitTypeData = Partial<Omit<NewUnitType, "id" | "createdAt" | "updatedAt">>;
+import type { Role } from "@metastorage/database";
 export type UnitTypeActor = { id: string; role?: Role | null };

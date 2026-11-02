@@ -137,24 +137,6 @@ export class FacilityTasksRepository {
     });
   }
 
-  findActiveBookingHandover(tx: TaskTransaction, bookingId: string) {
-    return tx
-      .select()
-      .from(facilityTasks)
-      .where(
-        and(
-          eq(facilityTasks.type, FacilityTaskType.CHECK_IN_HANDOVER),
-          eq(facilityTasks.referenceType, FacilityTaskReferenceType.BOOKING),
-          eq(facilityTasks.referenceId, bookingId),
-          inArray(facilityTasks.status, [
-            FacilityTaskStatus.ASSIGNED,
-            FacilityTaskStatus.IN_PROGRESS,
-          ]),
-        ),
-      )
-      .for("update");
-  }
-
   reassignTask(tx: TaskTransaction, taskId: string, staffId: string, managerId: string, now: Date) {
     return tx
       .update(facilityTasks)
@@ -167,28 +149,6 @@ export class FacilityTasksRepository {
         updatedAt: now,
       })
       .where(eq(facilityTasks.id, taskId));
-  }
-
-  createBookingHandover(
-    tx: TaskTransaction,
-    input: {
-      facilityId: string;
-      bookingId: string;
-      staffId: string;
-      managerId: string;
-      now: Date;
-    },
-  ) {
-    return tx.insert(facilityTasks).values({
-      facilityId: input.facilityId,
-      type: FacilityTaskType.CHECK_IN_HANDOVER,
-      status: FacilityTaskStatus.ASSIGNED,
-      referenceType: FacilityTaskReferenceType.BOOKING,
-      referenceId: input.bookingId,
-      assignedStaffId: input.staffId,
-      assignedBy: input.managerId,
-      assignedAt: input.now,
-    });
   }
 
   async listForStaff(staffId: string, facilityIds: string[], query: StaffFacilityTaskListQuery) {

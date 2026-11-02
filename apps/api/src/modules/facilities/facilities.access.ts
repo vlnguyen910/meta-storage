@@ -10,7 +10,7 @@ export type AssignedFacilityScope = {
   role: FacilityAssignmentRole;
 };
 
-export type GlobalFacilityScope = {
+type GlobalFacilityScope = {
   kind: "global";
   userId: string;
   role: "SYSTEM_ADMIN" | "BUSINESS_OPERATION_MANAGER";
@@ -27,19 +27,6 @@ function isFacilityRole(role: Role | null | undefined): role is FacilityAssignme
 
 function isGlobalFacilityRole(role: Role | null | undefined): role is GlobalFacilityScope["role"] {
   return role === "SYSTEM_ADMIN" || role === "BUSINESS_OPERATION_MANAGER";
-}
-
-export function getFacilityListScope(user: FacilityUser): FacilityListScope {
-  if (isFacilityRole(user.role)) {
-    return { kind: "assigned", userId: user.id, role: user.role };
-  }
-  if (isGlobalFacilityRole(user.role)) {
-    return { kind: "global", userId: user.id, role: user.role };
-  }
-  if (user.role === "CUSTOMER") {
-    return { kind: "public" };
-  }
-  throw new ForbiddenError(FACILITY_MESSAGES.facilityListAccessDenied);
 }
 
 export function getFacilityAccessScope(user: FacilityUser): FacilityScope {

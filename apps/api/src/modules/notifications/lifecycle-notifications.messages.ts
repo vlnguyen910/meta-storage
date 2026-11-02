@@ -17,5 +17,3 @@ export const LIFECYCLE_NOTIFICATION_SUBJECTS: Record<LifecycleNotificationEvent,
 };
 export const lifecycleNotificationBody = (subject: string, bookingCode: string, detail: string) =>
   `${subject}\nBooking: ${bookingCode}${detail ? `\n${detail}` : ""}`;
-
-export const lifecycleExpiryDetail = (date: string) => `Ngày hết hạn: ${date}`;
