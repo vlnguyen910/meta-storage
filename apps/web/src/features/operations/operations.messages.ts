@@ -11,6 +11,7 @@ export const OPERATIONS_MESSAGES = {
   policyFeeRemove: "Xóa khoản phí",
   policyFeeSave: "Lưu chính sách",
   policyFeeSaving: "Đang lưu…",
+  policyFeeSaved: "Đã lưu chính sách phí vi phạm thành công.",
   policyFeeSaveError: "Không lưu được. Hãy tải lại danh mục vì chính sách có thể đã thay đổi.",
   policyFeeConflict:
     "Danh mục phí đã đổi trên hệ thống. Tải lại để xem phiên bản mới trước khi tiếp tục.",

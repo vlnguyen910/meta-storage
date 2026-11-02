@@ -29,6 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { useOperationsPricing } from "../hooks/use-operations-pricing";
 import { OPERATIONS_MESSAGES as M } from "../operations.messages";
@@ -39,6 +40,7 @@ import { REPORTING_MESSAGES as R } from "../operations-reporting.messages";
 const REFERENCE_BUSINESS_POLICIES = R.policyRules;
 
 export function OperationsRulesView() {
+  const { showToast } = useToast();
   const [historyPage, setHistoryPage] = useState(1);
   const {
     configQuery,
@@ -100,6 +102,7 @@ export function OperationsRulesView() {
         depositMonths: values.depositMonths,
       });
       setFeedback(M.depositUpdated);
+      showToast(M.depositUpdated, "success");
       setBaseVersion(saved.version);
       depositForm.reset(values);
     } catch {
@@ -252,6 +255,7 @@ export function OperationsRulesView() {
             <div>
               <Button
                 type="submit"
+                loading={updateDepositMutation.isPending}
                 disabled={updateDepositMutation.isPending}
                 className="h-10 px-5 text-xs font-semibold gap-2 bg-[#165f4d] hover:bg-[#0f493b] text-white cursor-pointer shadow-xs disabled:opacity-50 transition-colors"
               >

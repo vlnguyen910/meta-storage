@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { LoadingState } from "@/components/ui/states";
+import { useToast } from "@/components/ui/toast";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { formatDateTime } from "@/lib/format";
 import {
@@ -45,6 +46,7 @@ const codes = {
 };
 
 export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
+  const { showToast } = useToast();
   const query = useAdminData();
   const actor = useAuthStore((state) => state.session?.user.name) ?? M.role;
   const [filters, setFilters] = useState(initialFilters);
@@ -458,6 +460,7 @@ export function AdminWorkspace({ section }: Readonly<AdminWorkspaceProps>) {
           onSave={async (changes) => {
             await query.mutation.mutateAsync(changes);
             setNotice(M.saved);
+            showToast(M.saved, "success");
           }}
         />
       )}

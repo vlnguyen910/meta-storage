@@ -30,10 +30,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useToast } from "@/components/ui/toast";
 import { api } from "@/lib/api";
 import { OPERATIONS_MESSAGES as M } from "../operations.messages";
 
 export function OperationsFeesView() {
+  const { showToast } = useToast();
   const client = useQueryClient();
   const query = useQuery({
     queryKey: ["policy-violation-fees"],
@@ -58,6 +60,7 @@ export function OperationsFeesView() {
     onSuccess: (data) => {
       setItems(null);
       setPolicyConflict(false);
+      showToast(M.policyFeeSaved, "success");
       void client.setQueryData(["policy-violation-fees"], data);
     },
     onError: (error) => {
@@ -308,6 +311,7 @@ export function OperationsFeesView() {
       <div className="flex items-center justify-end pt-1">
         <Button
           variant="primary"
+          loading={save.isPending}
           disabled={save.isPending || items === null || policyConflict || !catalogInput.success}
           onClick={() => save.mutate()}
           className="h-10 px-5 text-xs font-semibold gap-2 bg-[#165f4d] hover:bg-[#0f493b] text-white cursor-pointer shadow-xs disabled:opacity-50 transition-colors"

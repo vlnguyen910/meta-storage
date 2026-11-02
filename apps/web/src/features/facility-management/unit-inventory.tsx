@@ -28,6 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useToast } from "@/components/ui/toast";
 import { isMockMode } from "@/config/api-mode";
 import { cn } from "@/lib/utils";
 import {
@@ -89,6 +90,7 @@ export function InventoryPanel({
   facilityOptions,
   onSelectFacility,
 }: InventoryPanelProps) {
+  const { showToast } = useToast();
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [status, setStatus] = useState<StorageUnitStatus | "">("");
@@ -442,6 +444,7 @@ export function InventoryPanel({
           onClose={() => setCreating(false)}
           onSaved={(unit) => {
             setCreating(false);
+            showToast(F5.unitCreated, "success");
             setDetailUnitId(unit.id);
           }}
         />
@@ -455,6 +458,7 @@ export function InventoryPanel({
           onClose={() => setEditingUnit(null)}
           onSaved={() => {
             setEditingUnit(null);
+            showToast(F5.unitUpdated, "success");
             query.refetch();
           }}
         />
@@ -467,6 +471,7 @@ export function InventoryPanel({
           onClose={() => setMaintainingUnit(null)}
           onSaved={() => {
             setMaintainingUnit(null);
+            showToast(F5.saved, "success");
             query.refetch();
           }}
         />
