@@ -9,12 +9,14 @@ import {
   facilities,
   gt,
   inArray,
+  min,
   type NewFacility,
   or,
   ReservationStatus,
   reservations,
   systemSettingInteger,
   systemSettings,
+  unitTypes,
 } from "@metastorage/database";
 import type { FacilityListScope, FacilityScope } from "./facilities.access";
 import { FACILITY_MESSAGES } from "./facilities.messages";
@@ -25,6 +27,21 @@ export class FacilitiesRepository {
 
   constructor(private readonly db: Database) {
     this.assignmentsRepository = new FacilityAssignmentsRepository(db);
+  }
+
+  async catalog() {
+    return this.db
+      .select({
+        facility: facilities,
+        startingMonthlyPrice: min(unitTypes.monthlyPrice).mapWith(Number),
+      })
+      .from(facilities)
+      .leftJoin(
+        unitTypes,
+        and(eq(unitTypes.facilityId, facilities.id), eq(unitTypes.isActive, true)),
+      )
+      .where(eq(facilities.isActive, true))
+      .groupBy(facilities.id);
   }
 
   async globalOperatingHours() {

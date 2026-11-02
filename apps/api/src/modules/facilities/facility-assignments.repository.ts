@@ -79,10 +79,7 @@ export class FacilityAssignmentsRepository {
   }
 
   activeAssignmentExists(facilityId: string | typeof facilities.id, scope: AssignedFacilityScope) {
-    const facilityCondition =
-      typeof facilityId === "string"
-        ? eq(facilityAssignments.facilityId, facilityId)
-        : eq(facilityAssignments.facilityId, facilityId);
+    const facilityCondition = eq(facilityAssignments.facilityId, facilityId);
 
     return exists(
       this.db

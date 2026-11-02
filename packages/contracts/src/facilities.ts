@@ -158,3 +158,13 @@ export const FacilityUnitTypeManagementItemSchema = z.object({
   monthlyPrice: z.number().int().nonnegative(),
 });
 export type FacilityUnitTypeManagementItem = z.infer<typeof FacilityUnitTypeManagementItemSchema>;
+
+export const FacilityCatalogQuerySchema = z.object({
+  search: z.string().trim().max(200).optional(),
+  city: z.string().trim().max(200).optional(),
+  sort: z.enum(["name", "price"]).default("name"),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+});
+export type FacilityCatalogQuery = z.input<typeof FacilityCatalogQuerySchema>;
+export type FacilityCatalogItem = ApiFacility & { startingMonthlyPrice: number | null };

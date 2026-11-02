@@ -35,6 +35,8 @@ import type {
   DebtQuery,
   DebtRecord,
   Facility,
+  FacilityCatalogItem,
+  FacilityCatalogQuery,
   FacilityListParams,
   FacilityOperatingHours,
   FacilityQuery,
@@ -277,6 +279,10 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
         http.patch<ApiEnvelope<User>>(`/users/${userId}/role`, { role }).then(unwrap),
     },
     facilities: {
+      catalog: (params: FacilityCatalogQuery) =>
+        http
+          .get<ApiEnvelope<PaginatedResult<FacilityCatalogItem>>>("/facilities/catalog", { params })
+          .then(unwrap),
       operatingHours: (signal?: AbortSignal) =>
         http
           .get<ApiEnvelope<FacilityOperatingHours>>("/facilities/operating-hours", { signal })
