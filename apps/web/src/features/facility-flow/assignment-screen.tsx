@@ -32,7 +32,7 @@ export function AssignmentScreen() {
   const params = useSearchParams();
   const id = params.get("appointmentId") ?? params.get("bookingId") ?? "";
   const booking = useBooking(id);
-  const units = useEligibleUnits(id);
+  const units = useEligibleUnits(booking.data);
   const mutation = useAssignPhysicalUnitMutation();
 
   const [selected, setSelected] = useState("");
