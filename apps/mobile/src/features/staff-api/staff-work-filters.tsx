@@ -52,7 +52,7 @@ export function StaffStatusTabs({
   );
 }
 
-export function staffFilterDate(date: string) {
+function staffFilterDate(date: string) {
   return date === facilityDay()
     ? M.today
     : date

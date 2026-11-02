@@ -179,15 +179,6 @@ export const useUpdateTask = (id: string) =>
   useFlow5Write((input: import("@metastorage/contracts").UpdateFacilityTaskInput) =>
     api.flow5.tasks.update(id, input),
   );
-
-export function useManagedFacility(id: string) {
-  const key = useManagementKey();
-  return useQuery({
-    queryKey: [...key, "facility", id],
-    queryFn: ({ signal }) => api.flow5.facilities.get(id, signal),
-    enabled: Boolean(id) && !isMockMode,
-  });
-}
 export function useManagedTypes(facilityId?: string) {
   const key = useManagementKey();
   return useQuery({

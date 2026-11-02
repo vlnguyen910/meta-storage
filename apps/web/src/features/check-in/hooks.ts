@@ -1,10 +1,6 @@
 "use client";
 
-import type {
-  AssignBookingStaffInput,
-  AssignPhysicalUnitInput,
-  CheckInLookupInput,
-} from "@metastorage/contracts";
+import type { AssignBookingStaffInput, AssignPhysicalUnitInput } from "@metastorage/contracts";
 import { APPOINTMENT_STATUSES } from "@metastorage/database/schema/appointments";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { loadAppointmentItem } from "@/features/facility-flow/use-dispatch";
@@ -21,14 +17,9 @@ export const bookingKeys = {
   eligibleUnits: (id: string) => [...bookingKeys.all, "eligible-units", id] as const,
 };
 
-export const facilityKeys = {
+const facilityKeys = {
   all: ["facilities"] as const,
   myAssignments: () => [...facilityKeys.all, "my-assignments"] as const,
-};
-
-export const checkInKeys = {
-  all: ["check-ins"] as const,
-  lookup: (input: CheckInLookupInput) => [...checkInKeys.all, input.type, input.value] as const,
 };
 
 export function useMyFacilityAssignments() {

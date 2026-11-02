@@ -5,7 +5,7 @@ import { api } from "../../lib/api";
 import { pickImage } from "../../lib/pick-image";
 import { STAFF_API_UI as M } from "./staff-api.messages";
 import type { StaffSelection, StaffWorkFilters } from "./staff-api.types";
-import { filterStaffWork, staffWorkDate } from "./staff-work.helpers";
+import { filterStaffWork } from "./staff-work.helpers";
 
 export function staffError(error: unknown): string {
   if (axios.isAxiosError(error) && (!error.response || error.response.status >= 500))
@@ -16,8 +16,6 @@ export function staffError(error: unknown): string {
       ? error.message
       : M.error;
 }
-
-export const staffDate = staffWorkDate;
 export function useStaffWorkspace(owner: string, filters: StaffWorkFilters) {
   const assignments = useQuery({
     queryKey: ["mobile-staff-assignments", owner],

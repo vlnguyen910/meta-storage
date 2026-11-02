@@ -7,7 +7,7 @@ export interface NotificationPopoverProps {
   children: (open: boolean) => ReactNode;
 }
 
-export interface NotificationDisplayItem {
+interface NotificationDisplayItem {
   id: string;
   type: LifecycleNotificationEvent | "STAFF_TASK_ASSIGNED";
   subject: string;

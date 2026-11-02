@@ -13,7 +13,7 @@ export const f5facility = f5id(1);
 export const f5type = f5id(2);
 export const f5staff = f5id(3);
 export const f5staff2 = f5id(4);
-export const f5manager = f5id(5);
+const f5manager = f5id(5);
 
 // Contract-driven UI fixture only. Live PostgreSQL persistence is verified separately.
 export function flow5Fixture() {

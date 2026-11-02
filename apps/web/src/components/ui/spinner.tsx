@@ -1,7 +1,7 @@
 import { cn } from "@/lib/cn";
 import type { SpinnerProps, SpinnerSize } from "./spinner.types";
 
-export type { SpinnerProps, SpinnerSize, SpinnerVariant } from "./spinner.types";
+export type { SpinnerProps } from "./spinner.types";
 
 const sizeClasses: Record<SpinnerSize, string> = {
   xs: "size-3.5",

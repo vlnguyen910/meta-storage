@@ -6,7 +6,7 @@ export interface WorkspaceHeaderProps {
   onBack?: () => void;
   onLogout: () => void;
 }
-export interface WorkspaceTab {
+interface WorkspaceTab {
   key: string;
   label: string;
   icon: string;
