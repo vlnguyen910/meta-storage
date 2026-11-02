@@ -2,6 +2,7 @@
 
 import type { ApiFacility, ApiUnitType, PaginatedResult } from "@metastorage/contracts";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { isMockMode } from "@/config/api-mode";
 import { api } from "@/lib/api";
 import type {
   FacilityCatalogFilters,
@@ -26,10 +27,11 @@ async function loadUnitTypes(facilityId: string): Promise<ApiUnitType[]> {
   }
 }
 
-function useFacilityCatalog() {
+function useFacilityCatalog(enabled: boolean) {
   const queryClient = useQueryClient();
   return useQuery({
     queryKey: facilityKeys.catalog,
+    enabled,
     queryFn: async (): Promise<FacilityCatalogItem[]> => {
       const facilities: ApiFacility[] = [];
       for (let offset = 0; ; offset += 100) {
@@ -57,7 +59,7 @@ function useFacilityCatalog() {
 }
 
 export function useFacilities(params: FacilityCatalogFilters) {
-  const query = useFacilityCatalog();
+  const query = useFacilityCatalog(isMockMode);
   let data: PaginatedResult<FacilityCatalogItem> | undefined;
   if (query.data) {
     const search = params.search?.trim().toLocaleLowerCase("vi");
@@ -84,12 +86,12 @@ export function useFacilities(params: FacilityCatalogFilters) {
       totalPages: Math.max(1, Math.ceil(rows.length / pageSize)),
     };
   }
-  return { ...query, data };
-}
-
-export function useFacility(id: string) {
-  const query = useFacilityCatalog();
-  return { ...query, data: query.data?.find((facility) => facility.id === id) };
+  const live = useQuery({
+    queryKey: facilityKeys.list(params),
+    queryFn: () => api.facilities.catalog(params),
+    enabled: !isMockMode,
+  });
+  return isMockMode ? { ...query, data } : live;
 }
 
 // Catalog remains readable without a schedule. Period capacity is a snapshot;
