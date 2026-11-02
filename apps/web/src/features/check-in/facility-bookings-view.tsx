@@ -242,7 +242,7 @@ export function FacilityBookingsView({
       ) : (
         <div className="grid gap-4">
           {pageItems.map((b) => {
-            const state = readiness(b, d.now);
+            const state = readiness(b);
             const returnFlow = b.appointmentType === APPOINTMENT_TYPES.CHECK_OUT;
             const canAssign =
               !isStaff &&

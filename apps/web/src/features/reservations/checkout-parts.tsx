@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { Currency } from "@/components/ui/display";
 import { cn } from "@/lib/utils";
 import { checkoutMessages as m } from "./checkout.messages";
-import type { CheckoutPanelProps, CheckoutState } from "./checkout.types";
+import type { CheckoutState } from "./checkout.types";
 
 export function CheckoutProgress({ step }: { step: number }) {
   return (
@@ -60,26 +60,6 @@ export function CheckoutProgress({ step }: { step: number }) {
         })}
       </ol>
     </nav>
-  );
-}
-
-export function CheckoutPanel({ title, children, onEdit }: CheckoutPanelProps) {
-  return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
-      <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
-        <h2 className="text-sm font-bold text-slate-900">{title}</h2>
-        {onEdit ? (
-          <button
-            className="text-xs font-semibold text-[#165f4d] hover:text-[#0f493b] hover:underline cursor-pointer"
-            type="button"
-            onClick={onEdit}
-          >
-            {m.edit}
-          </button>
-        ) : null}
-      </div>
-      {children}
-    </section>
   );
 }
 
