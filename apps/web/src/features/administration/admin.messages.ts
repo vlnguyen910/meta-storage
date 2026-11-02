@@ -1,4 +1,30 @@
+import { ActivityLogAction, ActivityLogEntityType } from "@metastorage/contracts";
 import { UserRole } from "@metastorage/database/schema/user-enums";
+
+export const ACTIVITY_ACTION_LABELS: Readonly<Record<string, string>> = {
+  [ActivityLogAction.LOGIN]: "Đăng nhập",
+  [ActivityLogAction.CREATE]: "Tạo mới",
+  [ActivityLogAction.UPDATE]: "Cập nhật",
+  [ActivityLogAction.LOCK]: "Khóa tài khoản",
+  [ActivityLogAction.UNLOCK]: "Mở khóa tài khoản",
+  [ActivityLogAction.ASSIGN_ROLE]: "Gán vai trò",
+  [ActivityLogAction.CHANGE_ROLE]: "Đổi vai trò",
+  [ActivityLogAction.ASSIGN_FACILITY]: "Gán cơ sở",
+  [ActivityLogAction.REVOKE_FACILITY]: "Thu hồi quyền cơ sở",
+  [ActivityLogAction.ASSIGN_UNIT]: "Gán kho thực tế",
+  [ActivityLogAction.CHANGE_STATUS]: "Đổi trạng thái",
+  [ActivityLogAction.RECORD_RESULT]: "Ghi nhận kết quả",
+  [ActivityLogAction.RESOLVE]: "Xử lý hỗ trợ",
+};
+export const ACTIVITY_MODULE_LABELS: Readonly<Record<string, string>> = {
+  [ActivityLogEntityType.USER]: "Tài khoản",
+  [ActivityLogEntityType.FACILITY]: "Cơ sở",
+  [ActivityLogEntityType.UNIT]: "Kho",
+  [ActivityLogEntityType.RENTAL]: "Hợp đồng thuê",
+  [ActivityLogEntityType.PAYMENT]: "Thanh toán",
+  [ActivityLogEntityType.INSPECTION]: "Kiểm tra",
+  [ActivityLogEntityType.SUPPORT]: "Hỗ trợ",
+};
 
 export const ADMIN_ROLE_LABELS: Readonly<Record<UserRole, string>> = {
   [UserRole.STORAGE_CUSTOMER]: "Khách thuê kho",
@@ -176,12 +202,37 @@ export const ADMIN_MESSAGES = {
   titles: {
     dashboard: "Tổng quan hệ thống",
     users: "Quản lý tài khoản",
+    activityLogs: "Nhật ký hoạt động",
     assignments: "Phân quyền theo cơ sở",
   },
   descriptions: {
     dashboard: "Theo dõi tài khoản người dùng, phân quyền và bảo mật hệ thống.",
     users: "Quản lý thông tin, vai trò và trạng thái tài khoản người dùng trong hệ thống.",
     assignments: "Cấp phạm vi dữ liệu cơ sở cho quản lý và nhân viên thuộc FS/FM.",
+  },
+  activityLogs: {
+    description: "Tra cứu các thao tác quan trọng của người dùng trên toàn hệ thống.",
+    filters: "Bộ lọc nhật ký hoạt động",
+    search: "Tìm người dùng",
+    role: "Vai trò hiện tại",
+    module: "Module",
+    allModules: "Tất cả module",
+    from: "Từ ngày",
+    to: "Đến ngày",
+    apply: "Áp dụng bộ lọc",
+    invalidFilters: "Kiểm tra bộ lọc; ngày kết thúc không được trước ngày bắt đầu.",
+    timezone: "Thời gian hiển thị theo giờ Việt Nam (UTC+7).",
+    headings: ["Người dùng", "Hành động", "Module", "Mô tả", "Ngày & giờ", "Địa chỉ IP"] as const,
+    loading: "Đang tải nhật ký hoạt động…",
+    error: "Không tải được nhật ký hoạt động. Vui lòng thử lại.",
+    retry: "Thử lại",
+    refresh: "Làm mới",
+    deletedUser: "Không còn thông tin tài khoản",
+    unknownUser: "Không xác định người dùng",
+    unknownIp: "Chưa ghi nhận",
+    empty: "Chưa có nhật ký phù hợp",
+    emptyHelp: "Thử đổi tên, email hoặc khoảng thời gian tìm kiếm.",
+    unit: "bản ghi",
   },
   detailLabel: (name: string) => `Xem chi tiết: ${name}`,
   editLabel: (name: string) => `Chỉnh tài khoản: ${name}`,
