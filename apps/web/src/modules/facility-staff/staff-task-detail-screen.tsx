@@ -40,6 +40,7 @@ import {
 } from "@/features/facility-management/hooks";
 import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
+import { readFileBase64 } from "@/lib/read-file-base64";
 import { STAFF_WORK as M } from "./staff-work.messages";
 
 export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
@@ -175,11 +176,8 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
   const uploadEvidence = useMutation({
     mutationFn: async (file: File) => {
       if (!record) throw new Error(M.returnPhotoError);
-      const dataBase64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
-        reader.onerror = () => reject(new Error(M.returnPhotoError));
-        reader.readAsDataURL(file);
+      const dataBase64 = await readFileBase64(file).catch(() => {
+        throw new Error(M.returnPhotoError);
       });
       return api.inspections.upload(record.id, {
         filename: file.name,

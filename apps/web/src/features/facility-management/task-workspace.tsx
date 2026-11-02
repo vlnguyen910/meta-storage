@@ -9,15 +9,13 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CustomerTable } from "@/components/ui/customer-table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { Select } from "@/components/ui/form-controls";
 import { OperationalBadge } from "@/components/ui/operational";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ErrorState, LoadingState } from "@/components/ui/states";
-import { isMockMode } from "@/config/api-mode";
 import { api } from "@/lib/api";
 import { formatDate, formatDateTime } from "@/lib/format";
-import { managementError, useFacilityOptions, useFacilityTaskList, useTaskStaff } from "./hooks";
+import { managementError, useFacilityTaskList, useTaskStaff } from "./hooks";
 import { F5 } from "./management.messages";
 import type { TaskPanelProps } from "./management.types";
 import { ManagementField, PageControls, panelClass } from "./management-ui";
@@ -33,29 +31,6 @@ function taskReference(type: string, id: string) {
   };
   const prefix = prefixes[type] ?? "CV";
   return formatReference(id, prefix);
-}
-
-export function TaskWorkspace({ manager }: { manager: boolean }) {
-  const scope = useFacilityOptions();
-  if (isMockMode) return <p role="status">{F5.noMock}</p>;
-  if (scope.query.isPending) return <LoadingState variant="table" />;
-  if (scope.query.isError)
-    return <ErrorState message={F5.loadError} onRetry={() => scope.query.refetch()} />;
-  if (!scope.query.data.length) return <p role="status">{F5.noFacility}</p>;
-  return (
-    <div className="grid gap-6">
-      <h1 className="text-3xl font-bold">{F5.tasks}</h1>
-      <ManagementField label={F5.facility}>
-        <DropdownSelect
-          value={scope.facilityId}
-          onChange={scope.select}
-          className="w-full"
-          options={scope.query.data.map((f) => ({ value: f.id, label: `${f.code} · ${f.name}` }))}
-        />
-      </ManagementField>
-      <TaskPanel key={scope.facilityId} facilityId={scope.facilityId} manager={manager} />
-    </div>
-  );
 }
 
 export function TaskPanel({ facilityId, manager }: TaskPanelProps) {
