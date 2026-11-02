@@ -39,8 +39,9 @@ export function ListPagination({
   function handleDirectJumpSubmit(e: FormEvent) {
     e.preventDefault();
     const target = Number.parseInt(directJumpValue, 10);
-    if (!Number.isNaN(target) && target >= 1 && target <= pages) {
-      onPageChange(target);
+    if (!Number.isNaN(target)) {
+      const clamped = Math.min(Math.max(1, target), pages);
+      onPageChange(clamped);
     }
     setDirectJumpValue("");
   }
@@ -197,9 +198,11 @@ export function ListPagination({
         {pages > 1 && (
           <form
             onSubmit={handleDirectJumpSubmit}
-            className="hidden md:flex items-center gap-1.5 ml-2 pl-2 border-l border-slate-200"
+            className="flex items-center gap-1.5 ml-1.5 sm:ml-2 pl-1.5 sm:pl-2 border-l border-slate-200"
           >
-            <span className="text-[11px] text-slate-500 font-medium">{M.jumpTo}:</span>
+            <span className="text-[11px] text-slate-500 font-medium whitespace-nowrap">
+              {M.jumpTo}:
+            </span>
             <input
               type="number"
               min={1}
@@ -207,13 +210,13 @@ export function ListPagination({
               placeholder={`${current}`}
               value={directJumpValue}
               onChange={(e) => setDirectJumpValue(e.target.value)}
-              className="w-12 h-8 text-center text-xs font-semibold border border-slate-200 rounded-lg bg-slate-50 focus:bg-white focus:border-primary focus:outline-none"
+              className="w-11 sm:w-12 h-8 text-center text-xs font-semibold border border-slate-200 rounded-lg bg-slate-50 focus:bg-white focus:border-primary focus:outline-none"
             />
             <Button
               type="submit"
               variant="outline"
               disabled={!directJumpValue || pending}
-              className="min-h-0 h-8 px-2 text-xs font-semibold"
+              className="min-h-0 h-8 px-2.5 text-xs font-semibold border-slate-200 text-slate-700 hover:border-primary hover:text-primary hover:bg-primary-soft/40 cursor-pointer disabled:opacity-40"
             >
               {M.jump}
             </Button>
