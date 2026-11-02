@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { HANDOVER_CHECKLIST_ITEMS, SYSTEM_SETTING_DEFINITIONS } from "@metastorage/contracts";
+import { SYSTEM_SETTING_DEFINITIONS } from "@metastorage/contracts";
 import {
   accounts,
   and,
@@ -28,14 +28,6 @@ import { APPOINTMENT_STATUSES, APPOINTMENT_TYPES } from "@metastorage/database/s
 import { hashPassword } from "better-auth/crypto";
 import { createTestUnitType, deleteTestUnitTypes } from "./facility-catalog";
 import { assertTestDatabase } from "./test-database";
-
-export const passingChecklist = HANDOVER_CHECKLIST_ITEMS.map((item) => ({
-  itemCode: item.code,
-  resultType: "PASS_FAIL" as const,
-  result: "PASS" as const,
-  note: null,
-  photos: [],
-}));
 
 export function assertIsolatedDatabase(allowExistingLocal = false) {
   assertTestDatabase(

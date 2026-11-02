@@ -30,14 +30,6 @@ export async function requireAuth(request: FastifyRequest, _reply: FastifyReply)
   request.session = sessionData.session;
 }
 
-export async function optionalAuth(request: FastifyRequest) {
-  const sessionData = await auth.api.getSession({ headers: fromNodeHeaders(request.headers) });
-  if (!sessionData) return;
-  assertActiveUser(sessionData.user);
-  request.user = sessionData.user;
-  request.session = sessionData.session;
-}
-
 export function requireRole(...allowedRoles: UserRole[]) {
   return async function requireRolePreHandler(request: FastifyRequest, reply: FastifyReply) {
     await requireAuth(request, reply);

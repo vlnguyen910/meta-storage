@@ -293,23 +293,6 @@ export class FacilityAssignmentsRepository {
     }
   }
 
-  async deactivateAssignment(
-    facilityId: string,
-    userId: string,
-  ): Promise<FacilityAssignment | undefined> {
-    const [deactivated] = await this.db
-      .update(facilityAssignments)
-      .set({
-        isActive: false,
-        endedAt: new Date(),
-      })
-      .where(
-        and(eq(facilityAssignments.facilityId, facilityId), eq(facilityAssignments.userId, userId)),
-      )
-      .returning();
-    return deactivated;
-  }
-
   async listAssignmentsWithUsers(
     facilityId: string,
     limit: number,
