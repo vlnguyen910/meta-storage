@@ -1,12 +1,14 @@
 "use client";
 import { APPOINTMENT_TYPES } from "@metastorage/database/schema/appointments";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/components/ui/toast";
 import { useFlow3Identity } from "@/features/returns/use-flow3-identity";
 import { api } from "@/lib/api";
 import { clearCheckoutContext, readCheckoutContext } from "./checkout-storage";
 import { RESERVATION_UI as m } from "./reservation.messages";
 
 export function useReservationRecord(id: string) {
+  const { showToast } = useToast();
   const owner = useFlow3Identity();
   const client = useQueryClient();
   const reservation = useQuery({
@@ -49,6 +51,7 @@ export function useReservationRecord(id: string) {
       });
     },
     onSuccess: async () => {
+      showToast(m.appointmentCreated, "success");
       await client.invalidateQueries({ queryKey: ["appointments"] });
       if (readCheckoutContext()?.draft.id === id) clearCheckoutContext();
     },
@@ -57,6 +60,7 @@ export function useReservationRecord(id: string) {
   const cancel = useMutation({
     mutationFn: () => api.reservations.cancel(id),
     onSuccess: async () => {
+      showToast(m.cancelSuccess, "success");
       await Promise.all([
         client.invalidateQueries({ queryKey: ["reservations"] }),
         client.invalidateQueries({ queryKey: ["appointments"] }),

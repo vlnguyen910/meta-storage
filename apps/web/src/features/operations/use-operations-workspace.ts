@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useToast } from "@/components/ui/toast";
 import { OPERATIONS_MESSAGES as M } from "./operations.messages";
 import { operationsMockData, operationsTypeMetrics } from "./operations.mock";
 import { OperationsFacilityDraftSchema, OperationsPriceDraftSchema } from "./operations.schema";
@@ -19,6 +20,7 @@ import { downloadCsv, filterFacilities, summarizeFacilities, toCsv } from "./ope
 const queryKey = ["operations", "mock-workspace"] as const;
 
 export function useOperationsWorkspace() {
+  const { showToast } = useToast();
   const cache = useQueryClient();
   const query = useQuery({
     queryKey,
@@ -47,8 +49,12 @@ export function useOperationsWorkspace() {
       setEditingFacility(null);
       setEditingPrice(null);
       setFeedback(M.saved);
+      showToast(M.saved, "success");
     },
-    onError: () => setFeedback(M.error),
+    onError: () => {
+      setFeedback(M.error);
+      showToast(M.error, "error");
+    },
   });
   const data = query.data;
   const selectedFacilities = filterFacilities(data?.facilities ?? [], facilityId, search);

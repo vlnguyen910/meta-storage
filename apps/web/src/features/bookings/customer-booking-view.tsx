@@ -16,13 +16,16 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, PageHeader, StatusBadge } from "@/components/ui/display";
 import { ErrorState, LoadingState } from "@/components/ui/states";
+import { useToast } from "@/components/ui/toast";
 import { customerRoutes } from "@/config/routes";
 import { customerApiError } from "@/features/bookings/customer-error";
 import { money } from "@/features/returns/integration-utils";
 import { formatDateTime } from "@/lib/format";
 import { useCancelCustomerBooking, useCustomerBooking } from "./customer-bookings.hooks";
+import { CUSTOMER_BOOKINGS_MESSAGES as BM } from "./customer-bookings.messages";
 
 export function CustomerBookingDetail({ id }: { id: string }) {
+  const { showToast } = useToast();
   const query = useCustomerBooking(id);
   const cancel = useCancelCustomerBooking(id);
   const [qr, setQr] = useState<string>();
@@ -144,18 +147,17 @@ export function CustomerBookingDetail({ id }: { id: string }) {
                   <Button
                     variant="outline"
                     className="w-full border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-800 sm:w-auto text-xs"
+                    loading={cancel.isPending}
                     disabled={cancel.isPending}
                     onClick={() => {
-                      if (
-                        window.confirm(
-                          "Bạn có chắc chắn muốn hủy đơn đặt kho này theo chính sách hiện hành?",
-                        )
-                      ) {
-                        cancel.mutate();
+                      if (window.confirm(BM.cancelConfirm)) {
+                        cancel.mutate(undefined, {
+                          onSuccess: () => showToast(BM.cancelSuccess, "success"),
+                        });
                       }
                     }}
                   >
-                    Hủy đơn đặt kho
+                    {BM.cancelAction}
                   </Button>
                 </div>
               )}

@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ErrorState, LoadingState } from "@/components/ui/states";
+import { useToast } from "@/components/ui/toast";
 import { customerRoutes } from "@/config/routes";
 import { useFlow3Identity } from "@/features/returns/use-flow3-identity";
 import { api } from "@/lib/api";
@@ -92,6 +93,7 @@ function AppointmentStatus({ item }: { item: AppointmentRecordDto }) {
 }
 
 export function CustomerAppointmentsView() {
+  const { showToast } = useToast();
   const owner = useFlow3Identity();
   const client = useQueryClient();
   const calendarRef = useRef<FullCalendar>(null);
@@ -116,6 +118,7 @@ export function CustomerAppointmentsView() {
       api.appointments.update(id, { status: APPOINTMENT_STATUSES.CANCELLED }),
     onSuccess: async () => {
       setCancelTarget(null);
+      showToast(M.cancelSuccess, "success");
       await client.invalidateQueries({ queryKey: ["customer-appointments", owner] });
     },
   });
@@ -570,6 +573,7 @@ export function CustomerAppointmentsView() {
             <AlertDialogAction asChild>
               <Button
                 variant="danger"
+                loading={cancel.isPending}
                 disabled={cancel.isPending}
                 onClick={() => cancelTarget && cancel.mutate(cancelTarget)}
               >

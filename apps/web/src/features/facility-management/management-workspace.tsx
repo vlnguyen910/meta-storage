@@ -31,6 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useToast } from "@/components/ui/toast";
 import { isMockMode } from "@/config/api-mode";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { formatCurrency } from "@/lib/format";
@@ -854,6 +855,7 @@ function FacilityMembershipsTable({
   facilityOptions: Array<{ id: string; name: string; code: string }>;
   onSelectFacility: (id: string) => void;
 }) {
+  const { showToast } = useToast();
   const query = useMemberships(facilityId);
   const isAdmin = useAuthStore((state) => state.session?.user.role === "SYSTEM_ADMIN");
   const accounts = useAssignableAccounts(isAdmin);
@@ -1112,6 +1114,7 @@ function FacilityMembershipsTable({
             onSubmit={form.handleSubmit(async (input) => {
               try {
                 await assign.mutateAsync(input);
+                showToast(F5.saved, "success");
                 form.reset({ userId: "", role: input.role });
                 setAssignDialogOpen(false);
               } catch {
@@ -1197,6 +1200,7 @@ function FacilityEditor({
   onClose: () => void;
   onSaved: (facility: ApiFacility) => void;
 }) {
+  const { showToast } = useToast();
   const create = useCreateFacility();
   const update = useUpdateFacility(facility?.id ?? "");
   const mutation = facility ? update : create;
@@ -1226,7 +1230,11 @@ function FacilityEditor({
         className="grid gap-4"
         onSubmit={form.handleSubmit(async (input) => {
           try {
-            onSaved(facility ? await update.mutateAsync(input) : await create.mutateAsync(input));
+            const res = facility
+              ? await update.mutateAsync(input)
+              : await create.mutateAsync(input);
+            showToast(F5.saved, "success");
+            onSaved(res);
           } catch {
             /* Backend validation errors */
           }
@@ -1291,6 +1299,7 @@ function TypeEditor({
   facilityId?: string;
   onClose: () => void;
 }) {
+  const { showToast } = useToast();
   const create = useCreateType();
   const update = useUpdateType(type?.id ?? "");
   const mutation = type ? update : create;
@@ -1326,6 +1335,7 @@ function TypeEditor({
             } else {
               await create.mutateAsync(input);
             }
+            showToast(F5.saved, "success");
             onClose();
           } catch {
             /* Backend validation errors */
@@ -1413,6 +1423,7 @@ function TypeEditor({
 }
 
 function TypeStatusEditor({ type, onClose }: { type: FacilityUnitTypeDto; onClose: () => void }) {
+  const { showToast } = useToast();
   const mutation = useUpdateType(type.id);
   const isDeactivating = type.isActive;
   return (
@@ -1452,6 +1463,7 @@ function TypeStatusEditor({ type, onClose }: { type: FacilityUnitTypeDto; onClos
                   isActive: !type.isActive,
                   expectedVersion: type.version,
                 });
+                showToast(F5.saved, "success");
                 onClose();
               } catch {
                 /* Backend error */
@@ -1475,6 +1487,7 @@ function MembershipRevoke({
   assignment,
   onClose,
 }: FacilityPanelProps & { assignment: ApiFacilityAssignment; onClose: () => void }) {
+  const { showToast } = useToast();
   const mutation = useRevokeMember(facilityId);
   return (
     <ManagementDialog
@@ -1501,6 +1514,7 @@ function MembershipRevoke({
             onClick={async () => {
               try {
                 await mutation.mutateAsync(assignment.userId);
+                showToast(F5.saved, "success");
                 onClose();
               } catch {
                 /* Conflict error */

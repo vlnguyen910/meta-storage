@@ -46,6 +46,7 @@ export const CUSTOMER_APPOINTMENTS_MESSAGES = {
   cancelTitle: "Hủy lịch hẹn này?",
   cancelDescription: "Lịch hẹn sẽ được hủy nếu vẫn còn trong thời hạn cho phép.",
   cancelConfirm: "Xác nhận hủy",
+  cancelSuccess: "Đã hủy lịch hẹn thành công.",
   cancelBack: "Giữ lịch hẹn",
   cancelError: "Không thể hủy lịch hẹn. Hãy tải lại trạng thái mới nhất.",
   empty: "Bạn chưa có lịch hẹn phù hợp.",

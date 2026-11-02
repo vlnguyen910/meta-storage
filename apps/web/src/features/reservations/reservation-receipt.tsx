@@ -105,6 +105,7 @@ export function ReservationReceipt({
             </select>
           </label>
           <Button
+            loading={createAppointment.isPending}
             disabled={
               createAppointment.isPending ||
               state.appointments.isPending ||
@@ -221,6 +222,7 @@ export function ReservationReceipt({
         {["DRAFT", "CONFIRMED"].includes(record.status) && (
           <Button
             variant="outline"
+            loading={state.cancel.isPending}
             disabled={state.cancel.isPending}
             onClick={() => {
               if (window.confirm(m.cancelConfirm)) state.cancel.mutate();

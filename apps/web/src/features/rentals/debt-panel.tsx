@@ -33,6 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useToast } from "@/components/ui/toast";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { api } from "@/lib/api";
 import { formatCurrency, formatDateTime } from "@/lib/format";
@@ -288,6 +289,7 @@ function DebtTableRow({
 }
 
 function DebtHistory({ debt, canCollect }: { debt: DebtRecord; canCollect: boolean }) {
+  const { showToast } = useToast();
   const userId = useAuthStore((state) => state.session?.user.id);
   const client = useQueryClient();
   const detail = useQuery({
@@ -302,6 +304,7 @@ function DebtHistory({ debt, canCollect }: { debt: DebtRecord; canCollect: boole
     mutationFn: (input: DebtPaymentInput) => api.debts.collect(debt.id, input),
     onSuccess: async () => {
       form.reset({ method: "CASH", idempotencyKey: crypto.randomUUID() });
+      showToast(M.confirmed, "success");
       await Promise.all([
         client.invalidateQueries({ queryKey: ["debts"] }),
         client.invalidateQueries({ queryKey: ["debt", userId, debt.id] }),

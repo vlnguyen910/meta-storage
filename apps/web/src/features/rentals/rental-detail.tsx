@@ -31,6 +31,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { StatusBadge } from "@/components/ui/display";
 import { OperationalBackLink } from "@/components/ui/operational";
 import { ErrorState, LoadingState } from "@/components/ui/states";
+import { useToast } from "@/components/ui/toast";
 import { BookingSchedulePicker } from "@/features/reservations/booking-schedule-picker";
 import { toLocalDateTimeInput } from "@/features/reservations/checkout-validation";
 import { api } from "@/lib/api";
@@ -49,6 +50,7 @@ function remainingLabel(endAt: string): string {
 }
 
 export function RentalDetail({ rentalId }: { rentalId: string }) {
+  const { showToast } = useToast();
   const query = useRental(rentalId);
   const client = useQueryClient();
   const [showReturnForm, setShowReturnForm] = useState(false);
@@ -80,6 +82,7 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
       setConfirmEarlyReturn(false);
       setScheduledDate("");
       setSlotId("");
+      showToast(M.returnCreatedSuccess, "success");
       await Promise.all([
         client.invalidateQueries({ queryKey: ["my-return-appointments", rentalId] }),
         client.invalidateQueries({ queryKey: ["rentals"] }),
@@ -90,6 +93,7 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
     mutationFn: (appointmentId: string) =>
       api.appointments.update(appointmentId, { status: APPOINTMENT_STATUSES.CANCELLED }),
     onSuccess: async () => {
+      showToast(M.returnCancelledSuccess, "success");
       await client.invalidateQueries({ queryKey: ["my-return-appointments", rentalId] });
     },
   });
@@ -257,6 +261,7 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
               {r.status === "ACTIVE" && (
                 <Button
                   variant="outline"
+                  loading={cancelReturn.isPending}
                   disabled={appointments.isPending || cancelReturn.isPending}
                   onClick={() =>
                     activeReturn ? cancelReturn.mutate(activeReturn.id) : setShowReturnForm(true)
@@ -385,6 +390,7 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
               {!appointments.isPending && !appointments.isError && !hasPendingReturn && (
                 <Button
                   variant="primary"
+                  loading={createReturn.isPending}
                   disabled={
                     !scheduledDate ||
                     !slotId ||
@@ -418,6 +424,7 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
             <AlertDialogAction asChild>
               <Button
                 variant="primary"
+                loading={createReturn.isPending}
                 disabled={createReturn.isPending}
                 onClick={() => createReturn.mutate()}
               >
