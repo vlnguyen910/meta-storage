@@ -4,6 +4,7 @@ export const ENV_MESSAGES = {
   secret: (name: string) => `${name} must contain at least 32 characters.`,
   httpUrl: "Must be an absolute HTTP or HTTPS URL.",
   databaseUrl: "Must be a PostgreSQL URL (postgres:// or postgresql://).",
+  mongodbUrl: "Must be a MongoDB URL (mongodb:// or mongodb+srv://).",
   redisUrl: "Must be a Redis URL (redis:// or rediss://).",
   corsOrigins:
     "Must list explicit HTTP(S) origins separated by commas, without empty entries or wildcards.",
