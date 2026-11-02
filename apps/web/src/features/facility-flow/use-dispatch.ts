@@ -3,7 +3,7 @@ import type { AppointmentRecordDto, BookingListItem } from "@metastorage/contrac
 import { APPOINTMENT_TYPES } from "@metastorage/database/schema/appointments";
 import { formatReference } from "@metastorage/shared";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { bookingKeys } from "@/features/check-in/hooks";
 import { useFlow3Identity } from "@/features/returns/use-flow3-identity";
 import { api } from "@/lib/api";
@@ -60,7 +60,7 @@ export function appointmentItem(a: AppointmentRecordDto): DispatchItem {
 export async function loadAppointmentItem(id: string) {
   return appointmentItem(await api.appointments.get(id));
 }
-export function readiness(b: DispatchItem, _now = Date.now()): string {
+export function readiness(b: DispatchItem): string {
   if (b.appointmentType === APPOINTMENT_TYPES.CHECK_OUT)
     return b.appointmentStatus === "COMPLETED" ? "COMPLETED" : b.appointmentStatus;
   if (b.status === "CHECKED_IN") return "CHECKED_IN";
@@ -109,17 +109,12 @@ export function useDispatch(
   });
   const [filter, setFilter] = useState("ALL");
   const [search, setSearch] = useState("");
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 30000);
-    return () => clearInterval(timer);
-  }, []);
   const bookings = [...(query.data ?? [])].sort(
     (a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt),
   );
   const filtered = bookings.filter(
     (b) =>
-      (filter === "ALL" || readiness(b, now) === filter) &&
+      (filter === "ALL" || readiness(b) === filter) &&
       [
         b.bookingCode,
         b.rentalId ?? "",
@@ -128,6 +123,6 @@ export function useDispatch(
         b.assignedUnit?.physicalUnitCode ?? "",
       ].some((v) => v.toLowerCase().includes(search.trim().toLowerCase())),
   );
-  const count = (status: string) => bookings.filter((b) => readiness(b, now) === status).length;
-  return { query, bookings, filtered, filter, setFilter, search, setSearch, count, now };
+  const count = (status: string) => bookings.filter((b) => readiness(b) === status).length;
+  return { query, bookings, filtered, filter, setFilter, search, setSearch, count };
 }

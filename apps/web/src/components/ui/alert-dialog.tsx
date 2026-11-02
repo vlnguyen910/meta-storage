@@ -8,10 +8,6 @@ export function AlertDialog(props: ComponentProps<typeof AlertDialogPrimitive.Ro
   return <AlertDialogPrimitive.Root data-slot="alert-dialog" {...props} />;
 }
 
-export function AlertDialogTrigger(props: ComponentProps<typeof AlertDialogPrimitive.Trigger>) {
-  return <AlertDialogPrimitive.Trigger data-slot="alert-dialog-trigger" {...props} />;
-}
-
 export function AlertDialogContent({
   className,
   ...props
