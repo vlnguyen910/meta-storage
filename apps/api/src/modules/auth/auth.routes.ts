@@ -83,6 +83,8 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
 
       // Convert Fastify headers to standard Headers object
       const headers = fromNodeHeaders(request.headers);
+      // Use Fastify's trusted-proxy policy instead of client-supplied forwarding headers.
+      headers.set("x-forwarded-for", request.ip);
 
       // Create Fetch API-compatible request
       const req = new Request(url.toString(), {

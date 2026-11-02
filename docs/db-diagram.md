@@ -172,34 +172,92 @@ scope at the next request. SA/BOM keep assignment write permissions. Session
 creation holds a user share lock and rechecks ACTIVE inside its insert transaction,
 so a simultaneous lock/role change cannot leave a stale session behind.
 
-## User history (#185, confirmed scope 2026-10-25)
+## Activity logs (MongoDB)
 
-`login_history` stores successful sign-ins only, across all roles: UUID id,
-nullable user_id FK users (SET NULL), unique session_id (correlation identifier,
-never a session token; no FK to transient sessions), occurred_at timestamptz,
-nullable bounded device, operating_system, browser and model descriptions.
-No failed sign-ins, logout, expiry, IP, credentials, tokens or raw request headers.
-Device/model descriptions are best-effort client metadata, not proof of identity.
-Indexes: (occurred_at,id), (user_id,occurred_at,id).
+The backend `activity-logs` module writes to the `activity_logs` collection in the
+database selected by `MONGODB_URI` (`metastorage_logs` in the example configuration).
+It records accepted POST/PUT/PATCH/DELETE API
+requests (2xx responses), plus one `LOGIN` event after each persisted auth session
+is created. Login history survives logout, session revocation and expiry; no failed
+login attempts are recorded. Session creation is the capture boundary, including
+any future authentication flow that creates a session.
 
-`user_activity_logs` records accepted mutation API requests across all roles,
-excluding read/list/search/download operations: UUID id, nullable actor_id FK users
-(SET NULL), bounded action/entity_type, nullable entity_id when no safe UUID is
-available, nullable facility_id FK facilities (SET NULL), occurred_at timestamptz.
-Accepted idempotent/no-op writes may appear; this is not an exact state-change ledger.
-No arbitrary request payloads or financial/PII
-snapshots. Indexes: (occurred_at,id), (actor_id,occurred_at,id),
-(entity_type,entity_id,occurred_at,id), (facility_id,occurred_at,id).
-Existing domain audits remain authoritative for their detailed before/after facts.
+Fields: MongoDB `_id`, `occurredAt` (UTC date), `action` (`LOGIN` or HTTP method +
+route template), nullable `actorId`, `facilityId`, `entityId`, `requestId`,
+`ipAddress`, `userAgent` (max 512 characters), `statusCode`, and `entityType`.
+Only login events have `sessionId` (the identifier, never the token). Login events
+have no request ID or HTTP status. Facility scope comes from the authorized request
+context when available; a facility route parameter is only a reference otherwise.
+Entity IDs come from UUID response IDs or route parameters; targets without a safe
+UUID remain null. Anonymous/provider requests have a null actor.
 
-History starts at capture enablement; do not synthesize legacy records. Both logs
-are best-effort per the user's 2026-10-25 decision: log failure never fails or rolls
-back the main operation and emits an operational warning. SA-only read access
-follows #185. Retention/cleanup remain TBD; no automatic cleanup is authorized.
-User profile edits allow only own name/phone; administrators cannot edit another
-user's profile.
+Indexes: `(occurredAt,_id)`, `(actorId,occurredAt)`, `(action,occurredAt)`,
+`(facilityId,occurredAt)`. There is no TTL or automatic deletion. Failed log writes
+emit an operational warning and do not fail the main operation. MongoDB must be
+reachable at startup so the connection and indexes can be initialized. No queue or
+retry is added: a process crash or MongoDB outage can leave gaps.
 
+Read requests and auth HTTP routes are excluded from request capture; auth login
+events use the session hook instead. Other auth events and worker/cron events are
+outside this initial capture scope. Accepted no-op/idempotent writes may appear;
+these logs are not an exact state-change ledger. Existing domain audits remain
+authoritative. Payloads, query strings, passwords, cookies and tokens are never
+copied into activity logs. IP uses Fastify's trusted-proxy policy for HTTP auth
+requests; user-agent is unverified client metadata. No read/write management API
+or frontend is added; future log read access should be restricted to SYSTEM_ADMIN.
 
+### Developer notes
+
+- Read `apps/api/src/modules/activity-logs/activity-logs.service.ts` first for the
+  event fields and capture rules. The repository only inserts documents and creates
+  indexes. Both HTTP capture and auth reuse the MongoDB client exported by
+  `common/database/mongo-plugin.ts`; no separate auth connection or Mongoose model
+  is used.
+- `app.ts` registers the activity plugin after MongoDB and before API routes. The
+  plugin initializes indexes, remembers only the safe response `data.id` in a
+  request-scoped WeakMap, and writes through the service after the response is
+  sent. This plugin file is organizational, not required for persistence: these
+  hooks can live directly in `app.ts` if registered in the same order. The plugin
+  currently remains in the implementation.
+- `auth.ts` records `LOGIN` in `databaseHooks.session.create.after`. Do not also
+  record login in the HTTP plugin or sign-in handler: that would duplicate events
+  and could miss OAuth session creation. Reading or updating an existing session
+  does not create a login event. These documents have no FK to transient sessions.
+- An HTTP 2xx response is the request-capture rule; it does not prove that a row
+  changed. `entityType` is the first path segment after `/api/`, not necessarily a
+  database table. Entity resolution prefers response `data.id`, then `params.id`,
+  then another UUID route parameter excluding `facilityId`. Treat these references
+  as navigation aids, not authoritative domain facts or authorization evidence.
+- Runtime insert failures are caught and warned. HTTP writes are logged after
+  response delivery; login awaits its log attempt. The shared MongoDB client has
+  a 5-second operation timeout, so an outage can delay login before it succeeds.
+  No retry, durable delivery, deduplication or automatic retention is implemented.
+  Do not use these logs as a financial ledger or a guaranteed security audit.
+- `auth.routes.ts` replaces forwarded IP with Fastify's resolved `request.ip`
+  before passing the request to auth. Keep this together with the IP header
+  configuration in `auth.ts`; deployment must configure verified proxy peers via
+  `TRUSTED_PROXY_CIDRS`. The comment at that boundary explains why it exists.
+- Setup belongs in `README.md`, `apps/api/.env.example` and `docker/app.env.example`.
+  Specify the database name in `MONGODB_URI`; the client uses that URI's database.
+  Keep event semantics and known limits in this section, rather than duplicating
+  them in `AGENTS.md` or adding another documentation file. No PostgreSQL schema
+  change or migration is required for this replacement.
+- Tests are in `apps/api/tests/units/activity-logs.test.ts` and
+  `apps/api/tests/integration/activity-logs.test.ts`. The MongoDB test requires
+  `MONGODB_TEST_URI`; the actual login/logout test also requires an isolated
+  PostgreSQL `MY_STORAGE_LOCAL_DATABASE_URL` matching `DATABASE_URL`, plus a
+  loopback MongoDB test database in `MONGODB_URI`. These integration tests skip
+  without opt-in. CI supplies MongoDB; the local database runner creates and drops
+  a uniquely named MongoDB test database alongside its PostgreSQL test databases.
+
+## Retained user history tables
+
+The `user-history` application module and its capture hooks and read endpoints
+have been replaced by `activity-logs`. The existing `login_history` and
+`user_activity_logs` tables, schema declarations, and stored records are retained.
+The application no longer writes to these PostgreSQL tables; new activity and
+login records go to MongoDB. Existing records are not migrated or deleted. Other
+domain audit records remain unchanged.
 
 ## Facility work tasks
 
