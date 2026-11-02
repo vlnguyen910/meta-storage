@@ -26,16 +26,16 @@
     "db:clear": "turbo run db:clear",
     "test:db:local": "bun apps/api/tests/run-local-database-tests.ts",
     "check:pr": "bun run check && bun run check-types && bun run test && bun run test:db:local",
-    "test:rental:local": "bun packages/database/scripts/test-rental-core.ts"
+    "test:rental:local": "bun packages/database/scripts/test-rental-core.ts",
+    "knip": "knip"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",
+    "@types/node": "^26.6.6",
     "husky": "^9.1.7",
+    "knip": "^6.44.1",
     "turbo": "^2.10.13",
-    "typescript": "^5.7.3"
+    "typescript": "^7.0.2"
   },
-  "dependencies": {
-    "@fastify/cors": "^11.3.0",
-    "fastify": "^5.12.5"
-  }
+  "dependencies": {}
 }
