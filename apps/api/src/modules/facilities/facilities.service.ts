@@ -1,5 +1,6 @@
 import type {
   CreateFacilityBody,
+  FacilityCatalogQuery,
   FacilityOperatingHours,
   UpdateFacilityBody,
 } from "@metastorage/contracts";
@@ -16,6 +17,31 @@ import type { FacilitiesRepository } from "./facilities.repository";
 
 export class FacilitiesService {
   constructor(private readonly facilitiesRepository: FacilitiesRepository) {}
+
+  async catalog(query: FacilityCatalogQuery) {
+    const search = query.search?.trim().toLocaleLowerCase("vi");
+    const city = query.city?.trim().toLocaleLowerCase("vi");
+    const rows = (await this.facilitiesRepository.catalog()).filter(
+      ({ facility: f }) =>
+        (!search || `${f.name} ${f.address}`.toLocaleLowerCase("vi").includes(search)) &&
+        (!city || f.address.toLocaleLowerCase("vi").includes(city)),
+    );
+    rows.sort((a, b) =>
+      query.sort === "price"
+        ? (a.startingMonthlyPrice ?? Infinity) - (b.startingMonthlyPrice ?? Infinity) ||
+          a.facility.name.localeCompare(b.facility.name, "vi")
+        : a.facility.name.localeCompare(b.facility.name, "vi"),
+    );
+    const page = Number(query.page ?? 1),
+      pageSize = Number(query.pageSize ?? 20);
+    return {
+      items: rows.slice((page - 1) * pageSize, page * pageSize),
+      page,
+      pageSize,
+      total: rows.length,
+      totalPages: Math.max(1, Math.ceil(rows.length / pageSize)),
+    };
+  }
 
   async requireActiveFacility(facilityId: string): Promise<Facility> {
     const facility = await this.facilitiesRepository.findById(facilityId);

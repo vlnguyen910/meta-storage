@@ -4,6 +4,7 @@ import {
   CustomerAvailabilityQuerySchema,
   createAssignmentBodySchema,
   createFacilityBodySchema,
+  FacilityCatalogQuerySchema,
   facilityAssignmentListQuerySchema,
   facilityAssignmentParamSchema,
   facilityIdNestedParamSchema,
@@ -57,6 +58,20 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
 
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
   const reservationService = createReservationsService(fastify.db);
+  typedApp.get(
+    "/catalog",
+    { schema: { querystring: FacilityCatalogQuerySchema } },
+    async (request) => {
+      const page = await service.catalog(request.query);
+      return successResponse({
+        ...page,
+        items: page.items.map(({ facility, startingMonthlyPrice }) => ({
+          ...toApiFacility(facility),
+          startingMonthlyPrice,
+        })),
+      });
+    },
+  );
   typedApp.get(
     "/operating-hours",
     {
@@ -120,7 +135,6 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
         params: facilityIdNestedParamSchema,
       },
       preHandler: [
-        requireAuth,
         requireRole(
           "FACILITY_MANAGER",
           "FACILITY_STAFF",
