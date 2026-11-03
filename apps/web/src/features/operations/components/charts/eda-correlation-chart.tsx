@@ -1,6 +1,8 @@
 "use client";
 
 import type { OperationsOverview } from "@metastorage/contracts";
+import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { useMemo } from "react";
 import {
   Bar,
@@ -8,13 +10,17 @@ import {
   ComposedChart,
   Legend,
   Line,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { businessOperationsRoutes as routes } from "@/config/routes";
 import { formatMoney, formatPercentage } from "../../operations.utils";
+import { DASHBOARD_MESSAGES as D } from "../../operations-dashboard.messages";
 
 interface EdaCorrelationChartProps {
   data: OperationsOverview;
@@ -22,7 +28,10 @@ interface EdaCorrelationChartProps {
 
 export function EdaCorrelationChart({ data }: Readonly<EdaCorrelationChartProps>) {
   const chartData = useMemo(() => {
-    return data.facilities.map((item) => {
+    const sorted = [...data.facilities].sort(
+      (a, b) => Number(b.financial.netCash || 0) - Number(a.financial.netCash || 0),
+    );
+    return sorted.map((item) => {
       const netCash = Number(item.financial.netCash || 0);
       const occupancy = Number(item.inventory.utilizationPercent || 0);
       const shortName =
@@ -40,6 +49,14 @@ export function EdaCorrelationChart({ data }: Readonly<EdaCorrelationChartProps>
     });
   }, [data.facilities]);
 
+  const stats = useMemo(() => {
+    const n = chartData.length;
+    if (n === 0) return { n: 0, meanNetCash: 0, meanOccupancy: 0 };
+    const meanNetCash = chartData.reduce((acc, d) => acc + d.netCash, 0) / n;
+    const meanOccupancy = chartData.reduce((acc, d) => acc + d.occupancy, 0) / n;
+    return { n, meanNetCash, meanOccupancy };
+  }, [chartData]);
+
   if (chartData.length === 0) return null;
 
   return (
@@ -47,14 +64,41 @@ export function EdaCorrelationChart({ data }: Readonly<EdaCorrelationChartProps>
       <CardHeader className="p-3.5 pb-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <CardTitle className="text-sm font-bold text-slate-900">
-              Phân tích tương quan: Doanh thu vs Tỷ lệ lấp đầy (Bivariate Correlation)
-            </CardTitle>
+            <div className="flex flex-wrap items-center gap-2">
+              <CardTitle className="text-sm font-bold text-slate-900">
+                {D.facilityPerformanceTitle}
+              </CardTitle>
+              <Badge variant="outline" className="border-slate-200 text-[10px] text-slate-600">
+                {stats.n} cơ sở
+              </Badge>
+              {stats.meanNetCash > 0 && (
+                <Badge
+                  variant="outline"
+                  className="border-blue-200 bg-blue-50 text-[10px] font-medium text-blue-700"
+                >
+                  {D.meanRevenueBadge(formatMoney(Math.round(stats.meanNetCash)))}
+                </Badge>
+              )}
+              {stats.meanOccupancy > 0 && (
+                <Badge
+                  variant="outline"
+                  className="border-orange-200 bg-orange-50 text-[10px] font-medium text-orange-700"
+                >
+                  {D.meanOccupancyBadge(formatPercentage(stats.meanOccupancy))}
+                </Badge>
+              )}
+            </div>
             <CardDescription className="mt-0.5 text-xs text-slate-500">
-              Quan sát mối liên hệ giữa Dòng tiền ròng (cột xanh) và Công suất khai thác (đường cam)
-              của từng cơ sở
+              {D.facilityPerformanceSubtitle}
             </CardDescription>
           </div>
+          <Link
+            href={`${routes.revenue}?from=${data.period.from}&to=${data.period.to}`}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+          >
+            <span>{D.viewAllRevenue}</span>
+            <ArrowRight className="h-3 w-3" aria-hidden="true" />
+          </Link>
         </div>
       </CardHeader>
 
@@ -126,6 +170,24 @@ export function EdaCorrelationChart({ data }: Readonly<EdaCorrelationChartProps>
                 align="right"
                 wrapperStyle={{ paddingBottom: 8, fontSize: 11 }}
               />
+              {stats.meanNetCash > 0 && (
+                <ReferenceLine
+                  yAxisId="left"
+                  y={stats.meanNetCash}
+                  stroke="#3b82f6"
+                  strokeDasharray="4 4"
+                  strokeWidth={1.5}
+                />
+              )}
+              {stats.meanOccupancy > 0 && (
+                <ReferenceLine
+                  yAxisId="right"
+                  y={stats.meanOccupancy}
+                  stroke="#f97316"
+                  strokeDasharray="4 4"
+                  strokeWidth={1.5}
+                />
+              )}
               <Bar
                 yAxisId="left"
                 dataKey="netCash"
@@ -146,14 +208,6 @@ export function EdaCorrelationChart({ data }: Readonly<EdaCorrelationChartProps>
               />
             </ComposedChart>
           </ResponsiveContainer>
-        </div>
-
-        {/* Dynamic takeaway footer */}
-        <div className="mt-2 rounded-lg bg-slate-50 p-2 text-[11px] text-slate-600 flex items-center justify-between">
-          <span>
-            💡 <strong>Quy luật EDA:</strong> Các trạm có tỷ lệ lấp đầy &gt; 85% nhưng doanh thu ở
-            mức trung bình là cơ hội điều chỉnh tăng giá tối ưu (Yield Management).
-          </span>
         </div>
       </CardContent>
     </Card>

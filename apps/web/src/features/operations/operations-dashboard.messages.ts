@@ -26,4 +26,13 @@ export const DASHBOARD_MESSAGES = {
   filterReset: "Đặt lại bộ lọc",
   financialBreakdown: "Chi tiết dòng tiền",
   viewDataSheet: "Xem bảng số liệu",
+  facilityPerformanceTitle: "Hiệu suất cơ sở (Doanh thu & Tỷ lệ lấp đầy)",
+  facilityPerformanceSubtitle:
+    "Dòng tiền ròng (cột xanh) và Tỷ lệ lấp đầy (đường cam) xếp theo doanh thu",
+  meanRevenueBadge: (val: string) => `TB Doanh thu: ${val}`,
+  meanOccupancyBadge: (val: string) => `TB Lấp đầy: ${val}`,
+  outliersTitle: "Cảnh báo vận hành",
+  outliersSubtitle: "Các vấn đề cần BOM chú ý xử lý",
+  outliersAllGood: "Mọi chỉ số đều nằm trong ngưỡng an toàn",
+  outliersIssuesCount: (count: number) => `${count} vấn đề`,
 } as const;
