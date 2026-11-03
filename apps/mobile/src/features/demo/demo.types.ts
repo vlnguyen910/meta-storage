@@ -1,6 +1,6 @@
 import type { MobileDemoSession, MobileWorkspace } from "@metastorage/contracts";
 
-export interface DemoAccount extends MobileDemoSession {
+interface DemoAccount extends MobileDemoSession {
   password: string;
   verified: boolean;
 }
@@ -10,7 +10,7 @@ export interface DemoDatabase extends Omit<MobileWorkspace, "session"> {
   sessionId: string | null;
   recoveryRequestedAtByEmail?: Record<string, string>;
 }
-export type ScreenCode =
+type ScreenCode =
   | "M-P00"
   | "M-P01"
   | "M-P02"

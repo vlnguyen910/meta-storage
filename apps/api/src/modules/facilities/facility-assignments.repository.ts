@@ -79,10 +79,7 @@ export class FacilityAssignmentsRepository {
   }
 
   activeAssignmentExists(facilityId: string | typeof facilities.id, scope: AssignedFacilityScope) {
-    const facilityCondition =
-      typeof facilityId === "string"
-        ? eq(facilityAssignments.facilityId, facilityId)
-        : eq(facilityAssignments.facilityId, facilityId);
+    const facilityCondition = eq(facilityAssignments.facilityId, facilityId);
 
     return exists(
       this.db
@@ -294,23 +291,6 @@ export class FacilityAssignmentsRepository {
       }
       throw error;
     }
-  }
-
-  async deactivateAssignment(
-    facilityId: string,
-    userId: string,
-  ): Promise<FacilityAssignment | undefined> {
-    const [deactivated] = await this.db
-      .update(facilityAssignments)
-      .set({
-        isActive: false,
-        endedAt: new Date(),
-      })
-      .where(
-        and(eq(facilityAssignments.facilityId, facilityId), eq(facilityAssignments.userId, userId)),
-      )
-      .returning();
-    return deactivated;
   }
 
   async listAssignmentsWithUsers(

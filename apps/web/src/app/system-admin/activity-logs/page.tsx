@@ -1,5 +1,5 @@
-import { SystemAdministratorActivityLogsScreen } from "@/modules/system-administrator/system-administrator-screens";
+import { SystemAdministratorActivityLogsScreen } from "@/modules/system-administrator/activity-logs/system-administrator-activity-logs-screen";
 
-export default function SystemAdminActivityLogsPage() {
+export default function SystemAdministratorActivityLogsPage() {
   return <SystemAdministratorActivityLogsScreen />;
 }

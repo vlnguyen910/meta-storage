@@ -5,6 +5,7 @@ test("local database wrapper defaults to loopback administration and reserved Re
   const urls = localTestUrls({});
   expect(urls.postgres.href).toBe("postgres://postgres:postgres@127.0.0.1:5433/postgres");
   expect(urls.redis.href).toBe("redis://127.0.0.1:6379/12");
+  expect(urls.mongo.hostname).toBe("127.0.0.1");
   expect(
     localTestUrls({
       LOCAL_TEST_POSTGRES_URL: "postgresql://test:pass@localhost:15433/postgres",
@@ -34,4 +35,6 @@ test("local database wrapper rejects business databases, remote hosts and Redis 
     "not a URL",
   ])
     expect(() => localTestUrls({ LOCAL_TEST_REDIS_URL: url })).toThrow();
+  for (const url of ["mongodb://production.example/logs", "https://localhost/logs", "not a URL"])
+    expect(() => localTestUrls({ MONGODB_TEST_URI: url })).toThrow();
 });

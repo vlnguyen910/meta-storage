@@ -20,7 +20,7 @@ function ScopedFrame({ title, description, children }: ManagerTabFrameProps) {
   if (!scope.currentFacility)
     return <EmptyState title={M.noFacility} description={M.noFacilityHint} />;
   return (
-    <div className="space-y-6">
+    <div className="space-y-3.5">
       {scope.isMultiFacility && (
         <FacilitySwitcher
           activeAssignments={scope.activeAssignments}

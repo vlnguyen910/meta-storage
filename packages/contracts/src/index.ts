@@ -1,3 +1,4 @@
+export * from "./activity-logs";
 export * from "./api-response";
 export * from "./appointments";
 export * from "./auth";
@@ -46,5 +47,4 @@ export * from "./storage-units.messages";
 export * from "./support";
 export * from "./system-settings";
 export * from "./unit-types";
-export * from "./user-history";
 export * from "./users";

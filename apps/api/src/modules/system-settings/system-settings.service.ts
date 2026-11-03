@@ -23,11 +23,6 @@ export class SystemSettingsService {
   getRenewalNoticeSetting(tx: Parameters<Parameters<Database["transaction"]>[0]>[0]) {
     return this.repository.find("RENEWAL_NOTICE_DAYS", tx);
   }
-  async getOpeningHour(): Promise<number> {
-    const setting = await this.repository.find("OPENING_HOUR");
-    if (!setting) throw new NotFoundError(m.notFound);
-    return Number(setting.value);
-  }
   async getClosingHour(): Promise<number> {
     const setting = await this.repository.find("CLOSING_HOUR");
     if (!setting) throw new NotFoundError(m.notFound);

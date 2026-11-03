@@ -10,4 +10,5 @@ afterEach(() => {
   cleanup();
   window.localStorage.clear();
   window.sessionStorage.clear();
+  vi.clearAllTimers();
 });

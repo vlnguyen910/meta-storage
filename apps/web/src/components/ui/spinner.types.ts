@@ -1,4 +1,4 @@
-export type SpinnerVariant = "brand" | "button" | "default";
+type SpinnerVariant = "brand" | "button" | "default";
 export type SpinnerSize = "xs" | "sm" | "md" | "lg" | "xl";
 
 export interface SpinnerProps {

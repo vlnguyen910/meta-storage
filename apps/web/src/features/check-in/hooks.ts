@@ -1,10 +1,6 @@
 "use client";
 
-import type {
-  AssignBookingStaffInput,
-  AssignPhysicalUnitInput,
-  CheckInLookupInput,
-} from "@metastorage/contracts";
+import type { AssignBookingStaffInput, AssignPhysicalUnitInput } from "@metastorage/contracts";
 import { APPOINTMENT_STATUSES } from "@metastorage/database/schema/appointments";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { loadAppointmentItem } from "@/features/facility-flow/use-dispatch";
@@ -21,14 +17,9 @@ export const bookingKeys = {
   eligibleUnits: (id: string) => [...bookingKeys.all, "eligible-units", id] as const,
 };
 
-export const facilityKeys = {
+const facilityKeys = {
   all: ["facilities"] as const,
   myAssignments: () => [...facilityKeys.all, "my-assignments"] as const,
-};
-
-export const checkInKeys = {
-  all: ["check-ins"] as const,
-  lookup: (input: CheckInLookupInput) => [...checkInKeys.all, input.type, input.value] as const,
 };
 
 export function useMyFacilityAssignments() {
@@ -46,11 +37,18 @@ export function useBooking(bookingId: string) {
   });
 }
 
-export function useEligibleUnits(bookingId: string) {
+export function useEligibleUnits(
+  item: Awaited<ReturnType<typeof loadAppointmentItem>> | undefined,
+) {
   return useQuery({
-    queryKey: bookingKeys.eligibleUnits(bookingId),
+    queryKey: [
+      ...bookingKeys.eligibleUnits(item?.id ?? ""),
+      item?.facilityId,
+      item?.unitTypeId,
+      item?.assignedUnit?.physicalUnitId,
+    ],
     queryFn: async () => {
-      const item = await loadAppointmentItem(bookingId);
+      if (!item) throw new Error();
       const units = [];
       for (let offset = 0; ; offset += 100) {
         const page = await api.flow5.units.list({
@@ -68,7 +66,7 @@ export function useEligibleUnits(bookingId: string) {
           unit.status === "AVAILABLE" || unit.id === item.assignedUnit?.physicalUnitId,
       }));
     },
-    enabled: Boolean(bookingId),
+    enabled: Boolean(item),
   });
 }
 

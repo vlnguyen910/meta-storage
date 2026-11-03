@@ -7,6 +7,7 @@ import { FacilityBookingsView } from "@/features/check-in/facility-bookings-view
 import { FacilitySwitcher } from "@/features/facilities/facility-switcher";
 import { useFacilityContext } from "@/features/facilities/use-facility-context";
 import { TaskPanel } from "@/features/facility-management/task-workspace";
+import { cn } from "@/lib/utils";
 import { FACILITY_DASHBOARD_MESSAGES as D } from "./dashboard/facility-dashboard.messages";
 import { MANAGER_WORKSPACE as M } from "./manager-workspace.messages";
 
@@ -27,7 +28,7 @@ function CoordinationContent() {
   if (!scope.currentFacility)
     return <EmptyState title={D.noAssignmentTitle} description={D.noAssignmentDescription} />;
   return (
-    <div className="space-y-6 pt-5">
+    <div className="space-y-4 pt-1">
       {scope.isMultiFacility && (
         <FacilitySwitcher
           activeAssignments={scope.activeAssignments}
@@ -35,34 +36,39 @@ function CoordinationContent() {
           onSwitchFacility={scope.switchFacility}
         />
       )}
+      <nav aria-label={M.navigation} className="flex flex-wrap items-center gap-2">
+        {[
+          { id: "bookings", label: M.booking },
+          { id: "tasks", label: M.tasks },
+        ].map((item) => {
+          const active = view === item.id;
+          return (
+            <Link
+              key={item.id}
+              href={`/facility-manager/tasks?view=${item.id}`}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "inline-flex h-9 items-center justify-center rounded-lg px-4 text-xs font-bold transition-all shadow-2xs cursor-pointer",
+                active
+                  ? "bg-primary text-white hover:bg-primary-dark"
+                  : "border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900",
+              )}
+            >
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
       <header>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
           {view === "bookings" ? M.booking : M.tasks}
         </h1>
-        <p className="mt-2 text-sm text-slate-600">
+        <p className="mt-1 text-xs text-slate-500">
           {view === "bookings"
             ? M.bookingHint(scope.currentFacility.facilityName ?? "cơ sở được phân công")
             : M.coordinationHint}
         </p>
       </header>
-      <nav
-        aria-label={M.navigation}
-        className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-2"
-      >
-        {[
-          { id: "bookings", label: M.booking },
-          { id: "tasks", label: M.tasks },
-        ].map((item) => (
-          <Link
-            key={item.id}
-            href={`/facility-manager/tasks?view=${item.id}`}
-            aria-current={view === item.id ? "page" : undefined}
-            className={`inline-flex min-h-11 items-center rounded-xl px-4 text-sm font-semibold ${view === item.id ? "bg-emerald-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}
-          >
-            {item.label}
-          </Link>
-        ))}
-      </nav>
       {view === "bookings" ? (
         <FacilityBookingsView
           facilityId={scope.currentFacilityId}

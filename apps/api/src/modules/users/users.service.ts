@@ -1,4 +1,6 @@
 import {
+  ActivityLogAction,
+  ActivityLogEntityType,
   type CreateUserInput,
   CreateUserInputSchema,
   type CustomerRegistrationStats,
@@ -11,6 +13,7 @@ import {
 } from "@metastorage/contracts";
 import type { UserRole } from "@metastorage/database/schema/user-enums";
 import { ConflictError, ForbiddenError, NotFoundError } from "../../common/errors/app-error";
+import { beginActivity } from "../activity-logs/activity-logs.service";
 import type { AuthService } from "../auth/auth.service";
 import { toUserDto } from "./users.dto";
 import { USER_MESSAGES } from "./users.messages";
@@ -23,6 +26,12 @@ export class UsersService {
   ) {}
 
   async createUser(input: CreateUserInput): Promise<User> {
+    const activity = beginActivity({
+      action: ActivityLogAction.CREATE,
+      entityType: ActivityLogEntityType.USER,
+      entityId: null,
+      description: "Create user",
+    });
     const data = CreateUserInputSchema.parse(input);
     if (await this.usersRepository.findByEmail(data.email)) {
       throw new ConflictError(USER_MESSAGES.emailAlreadyExists);
@@ -39,6 +48,8 @@ export class UsersService {
       },
       passwordHash,
     );
+    activity.entityId = user.id;
+    activity.changed = true;
     return toUserDto(user);
   }
 
@@ -79,9 +90,20 @@ export class UsersService {
   }
 
   async updateOwnProfile(userId: string, input: UpdateOwnProfileInput): Promise<User> {
+    const activity = beginActivity({
+      action: ActivityLogAction.UPDATE,
+      entityType: ActivityLogEntityType.USER,
+      entityId: userId,
+      description: "Update own profile",
+    });
     const data = UpdateOwnProfileInputSchema.parse(input);
+    const existing = await this.usersRepository.findById(userId);
+    if (!existing) throw new NotFoundError(USER_MESSAGES.userNotFound);
     const user = await this.usersRepository.updateProfile(userId, data);
     if (!user) throw new NotFoundError(USER_MESSAGES.userNotFound);
+    activity.changed = Object.entries(data).some(
+      ([key, value]) => value !== undefined && existing[key as keyof typeof existing] !== value,
+    );
     return toUserDto(user);
   }
 
@@ -91,13 +113,38 @@ export class UsersService {
 
   async updateUser(id: string, input: UpdateUserInput): Promise<User> {
     const data = UpdateUserInputSchema.parse(input);
-    return this.usersRepository.transaction(async (tx) => {
+    const roleActivity =
+      data.role === undefined
+        ? undefined
+        : beginActivity({
+            action: ActivityLogAction.CHANGE_ROLE,
+            entityType: ActivityLogEntityType.USER,
+            entityId: id,
+            description: "Change user role",
+          });
+    const statusActivity =
+      data.status === undefined
+        ? undefined
+        : beginActivity({
+            action: data.status === "INACTIVE" ? ActivityLogAction.LOCK : ActivityLogAction.UNLOCK,
+            entityType: ActivityLogEntityType.USER,
+            entityId: id,
+            description: data.status === "INACTIVE" ? "Lock user" : "Unlock user",
+          });
+    let roleChanged = false;
+    let statusChanged = false;
+    const result = await this.usersRepository.transaction(async (tx) => {
       const existing = await this.usersRepository.findByIdForUpdate(id, tx);
       if (!existing) throw new NotFoundError(USER_MESSAGES.userNotFound);
       if (data.role === "SYSTEM_ADMIN" && existing.role !== "SYSTEM_ADMIN") {
         throw new ForbiddenError(USER_MESSAGES.adminCreationForbidden);
       }
-      const roleChanged = data.role !== undefined && data.role !== existing.role;
+      roleChanged = data.role !== undefined && data.role !== existing.role;
+      statusChanged = data.status !== undefined && data.status !== existing.status;
+      if (roleActivity && !existing.role) {
+        roleActivity.action = ActivityLogAction.ASSIGN_ROLE;
+        roleActivity.description = "Assign user role";
+      }
       const disabling = data.status === "INACTIVE";
       if (existing.role === "SYSTEM_ADMIN" && (disabling || roleChanged)) {
         throw new ForbiddenError(USER_MESSAGES.adminProtected);
@@ -113,5 +160,8 @@ export class UsersService {
       }
       return toUserDto(user);
     });
+    if (roleActivity) roleActivity.changed = roleChanged;
+    if (statusActivity) statusActivity.changed = statusChanged;
+    return result;
   }
 }

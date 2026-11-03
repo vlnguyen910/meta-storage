@@ -1,7 +1,6 @@
 services:
   redis:
     image: redis:7-alpine
-    container_name: metastorage-redis
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
     ports:
@@ -16,7 +15,6 @@ services:
 
   postgres:
     image: postgres:18-alpine
-    container_name: metastorage-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
@@ -27,6 +25,18 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql
 
+  mongo:
+    image: mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongo
+      MONGO_INITDB_ROOT_PASSWORD: mongo
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
 volumes:
   postgres_data:
   redis_data:
+  mongodb_data:

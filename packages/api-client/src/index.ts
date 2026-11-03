@@ -1,4 +1,6 @@
 import type {
+  ActivityLogPage,
+  ActivityLogQuery,
   ApiEnvelope,
   ApiFacility,
   ApiFacilityAssignment,
@@ -35,6 +37,8 @@ import type {
   DebtQuery,
   DebtRecord,
   Facility,
+  FacilityCatalogItem,
+  FacilityCatalogQuery,
   FacilityListParams,
   FacilityOperatingHours,
   FacilityQuery,
@@ -261,6 +265,12 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
         return response.data;
       },
     },
+    activityLogs: {
+      list: (params: Partial<ActivityLogQuery> = {}, signal?: AbortSignal) =>
+        http
+          .get<ApiEnvelope<ActivityLogPage>>("/admin/activity-logs", { params, signal })
+          .then(unwrap),
+    },
     users: {
       list: (params: Partial<UserListQuery> = { limit: 100 }) =>
         http.get<ApiEnvelope<User[]>>("/users", { params }).then(unwrap),
@@ -277,6 +287,10 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
         http.patch<ApiEnvelope<User>>(`/users/${userId}/role`, { role }).then(unwrap),
     },
     facilities: {
+      catalog: (params: FacilityCatalogQuery) =>
+        http
+          .get<ApiEnvelope<PaginatedResult<FacilityCatalogItem>>>("/facilities/catalog", { params })
+          .then(unwrap),
       operatingHours: (signal?: AbortSignal) =>
         http
           .get<ApiEnvelope<FacilityOperatingHours>>("/facilities/operating-hours", { signal })

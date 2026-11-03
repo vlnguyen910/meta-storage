@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, spyOn, test } from "bun:test";
 import { v2 as cloudinary } from "cloudinary";
 import { CloudinaryAdapter } from "../../src/common/adapters/storage/cloudinary.adapter";
-import { CloudinaryPhotoStorage } from "../../src/common/adapters/storage/cloudinary-photo.storage";
 
 const credentials = {
   CLOUDINARY_CLOUD_NAME: "test-cloud",
@@ -19,7 +18,7 @@ describe("Cloudinary private storage boundary", () => {
   test("photo deletion specifies the image resource type", async () => {
     const remove = spyOn(cloudinary.uploader, "destroy").mockResolvedValue({ result: "not found" });
     spies.push(remove);
-    await new CloudinaryPhotoStorage(adapter).remove("photo/id");
+    await adapter.remove({ publicId: "photo/id", resourceType: "image" });
     expect(remove.mock.calls[0]?.[1]).toMatchObject({ resource_type: "image" });
   });
 
@@ -28,15 +27,18 @@ describe("Cloudinary private storage boundary", () => {
       async (_source, options) => ({ public_id: options?.public_id, format: "png" }) as never,
     );
     spies.push(upload);
-    const storage = new CloudinaryPhotoStorage(adapter);
-    const result = await storage.upload("inspection", "image/png", "AA==");
-    expect(result.publicId).toStartWith("metastorage/inspections/inspection/");
+    const storage = adapter;
+    const result = await storage.upload("data:image/png;base64,AA==", {
+      publicId: "metastorage/media-assets/test",
+      resourceType: "image",
+    });
+    expect(result.publicId).toStartWith("metastorage/media-assets/");
     expect(upload.mock.calls[0]?.[1]).toMatchObject({
       resource_type: "image",
       type: "authenticated",
       overwrite: false,
     });
-    const url = new URL(storage.readUrl(result.publicId, result.format));
+    const url = new URL(storage.readUrl({ ...result, resourceType: "image" }));
     expect(Number(url.searchParams.get("expires_at")) - Math.floor(Date.now() / 1000)).toBe(300);
   });
 
@@ -44,7 +46,7 @@ describe("Cloudinary private storage boundary", () => {
     const upload = spyOn(cloudinary.uploader, "upload").mockRejectedValue(new Error("secret=url"));
     spies.push(upload);
     await expect(
-      new CloudinaryPhotoStorage(adapter).upload("id", "image/png", "AA=="),
-    ).rejects.toMatchObject({ statusCode: 503, code: "PHOTO_STORAGE_UNAVAILABLE" });
+      adapter.upload("data:image/png;base64,AA==", { publicId: "id", resourceType: "image" }),
+    ).rejects.toMatchObject({ statusCode: 503, code: "FILE_STORAGE_UNAVAILABLE" });
   });
 });

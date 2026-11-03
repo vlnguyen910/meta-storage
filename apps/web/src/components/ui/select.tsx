@@ -3,14 +3,10 @@
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
 import { Select as SelectPrimitive } from "radix-ui";
 import type { ComponentProps } from "react";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils";
 
 export function Select(props: ComponentProps<typeof SelectPrimitive.Root>) {
   return <SelectPrimitive.Root data-slot="select" {...props} />;
-}
-
-export function SelectGroup(props: ComponentProps<typeof SelectPrimitive.Group>) {
-  return <SelectPrimitive.Group data-slot="select-group" {...props} />;
 }
 
 export function SelectValue(props: ComponentProps<typeof SelectPrimitive.Value>) {
@@ -85,29 +81,6 @@ export function SelectItem({
         </SelectPrimitive.ItemIndicator>
       </span>
     </SelectPrimitive.Item>
-  );
-}
-
-export function SelectLabel({ className, ...props }: ComponentProps<typeof SelectPrimitive.Label>) {
-  return (
-    <SelectPrimitive.Label
-      data-slot="select-label"
-      className={cn("px-3 py-2 text-xs font-semibold text-muted", className)}
-      {...props}
-    />
-  );
-}
-
-export function SelectSeparator({
-  className,
-  ...props
-}: ComponentProps<typeof SelectPrimitive.Separator>) {
-  return (
-    <SelectPrimitive.Separator
-      data-slot="select-separator"
-      className={cn("-mx-1 my-1 h-px bg-line", className)}
-      {...props}
-    />
   );
 }
 

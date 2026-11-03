@@ -350,7 +350,7 @@ for (const width of [1440, 375]) {
       }) as typeof window.structuredClone;
     });
     await fixture(page, UserRole.SYSTEM_ADMINISTRATOR);
-    for (const section of ["users", "login-history", "activity-logs"] as const) {
+    for (const section of ["users"] as const) {
       await page.goto(`/system-admin/${section}`);
       await expect(page.locator("tbody tr")).toHaveCount(10);
       const nav = page.getByRole("navigation", { name: `Phân trang ${AM.titles[section]}` });
@@ -366,9 +366,7 @@ for (const width of [1440, 375]) {
       await nav.getByRole("button", { name: "Trang sau" }).click();
       await expect(page.locator("tbody tr")).toHaveCount(3);
       await expect(nav.getByRole("button", { name: "Trang sau" })).toBeDisabled();
-      await page
-        .getByRole("searchbox", { name: section === "activity-logs" ? AM.auditSearch : AM.search })
-        .fill("no-match-qa");
+      await page.getByRole("searchbox", { name: AM.search }).fill("no-match-qa");
       await expect(page.getByText(AM.empty, { exact: true })).toBeVisible();
       await page.getByRole("button", { name: AM.reset }).click();
       await expect(page.locator("tbody tr")).toHaveCount(10);

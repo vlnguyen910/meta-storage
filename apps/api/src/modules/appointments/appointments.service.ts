@@ -1,4 +1,6 @@
 import {
+  ActivityLogAction,
+  ActivityLogEntityType,
   type AppointmentQuery,
   type AssignBookingStaffInput,
   type CreateAppointmentInput,
@@ -21,6 +23,7 @@ import {
   NotFoundError,
 } from "../../common/errors/app-error";
 import { isDevelopmentEnvironment } from "../../config/env";
+import { beginActivity } from "../activity-logs/activity-logs.service";
 import { getFacilityAccessScope } from "../facilities/facilities.access";
 import { FacilitiesRepository } from "../facilities/facilities.repository";
 import { FacilitiesService } from "../facilities/facilities.service";
@@ -228,6 +231,16 @@ export class AppointmentsService {
     input = UpdateAppointmentSchema.parse(input);
     if (!Object.keys(input).length) throw new BadRequestError(m.emptyUpdate);
     const current = await this.getAppointment(id, actor);
+    const supportActivity =
+      current.appointmentType === "SUPPORT" && input.status === "COMPLETED"
+        ? beginActivity({
+            action: ActivityLogAction.RESOLVE,
+            entityType: ActivityLogEntityType.SUPPORT,
+            entityId: current.supportTicketId,
+            facilityId: current.facilityId,
+            description: "Complete support appointment",
+          })
+        : undefined;
     const demo = isDevelopmentEnvironment();
     const updated = await this.repository.transaction(async (tx) => {
       // Use the same parent -> appointment lock order as reservation cancellation.
@@ -358,6 +371,7 @@ export class AppointmentsService {
       if (!updated) throw new AppError(m.writeFailed);
       return updated;
     });
+    if (supportActivity) supportActivity.changed = updated.status !== current.status;
     if (
       input.assignedStaffId &&
       input.assignedStaffId !== current.assignedStaffId &&

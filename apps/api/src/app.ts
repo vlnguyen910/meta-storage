@@ -1,7 +1,9 @@
+import { db } from "@metastorage/database";
 import Fastify, { type FastifyInstance } from "fastify";
 import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
 import { cronPlugin } from "./common/cron/plugin";
-import { databasePlugin } from "./common/database/plugin";
+import { mongoDatabase, mongoPlugin } from "./common/database/mongo-plugin";
+import { databasePlugin } from "./common/database/postgre-plugin";
 import { setupErrorHandler } from "./common/errors/error-handler";
 import { loggerConfig } from "./common/logger/logger";
 import { mailQueuePlugin } from "./common/mail/plugin";
@@ -10,6 +12,9 @@ import { healthPlugin } from "./common/plugins/health";
 import { swaggerPlugin } from "./common/plugins/swagger";
 import { redisPlugin } from "./common/redis/plugin";
 import { env } from "./config/env";
+import { ActivityLogsRepository } from "./modules/activity-logs/activity-logs.repository";
+import { activityLogsRoutes } from "./modules/activity-logs/activity-logs.routes";
+import { ActivityLogsService } from "./modules/activity-logs/activity-logs.service";
 import { appointmentsRoutes } from "./modules/appointments/appointments.routes";
 import { authPlugin } from "./modules/auth/auth.guard";
 import { authRoutes } from "./modules/auth/auth.routes";
@@ -29,8 +34,7 @@ import { storageUnitsRoutes } from "./modules/storage-units/storage-units.routes
 import { supportRoutes } from "./modules/support/support.routes";
 import { systemSettingsRoutes } from "./modules/system-settings/system-settings.routes";
 import { unitTypesRoutes } from "./modules/unit-types/unit-types.routes";
-import { userActivityPlugin } from "./modules/user-history/user-activity.plugin";
-import { userHistoryRoutes } from "./modules/user-history/user-history.routes";
+import { UsersRepository } from "./modules/users/users.repository";
 import { usersRoutes } from "./modules/users/users.routes";
 
 export function buildApp(): FastifyInstance {
@@ -45,16 +49,22 @@ export function buildApp(): FastifyInstance {
 
   // Centralized Error Handler
   setupErrorHandler(app);
+  const activityLogs = new ActivityLogsService(
+    new ActivityLogsRepository(mongoDatabase),
+    new UsersRepository(db),
+  );
+  app.addHook("onRequest", (request, _reply, done) => activityLogs.startRequest(request, done));
+  app.addHook("onResponse", async (request, reply) => activityLogs.recordRequest(request, reply));
 
   // Core Plugins
   app.register(corsPlugin);
   app.register(databasePlugin);
+  app.register(mongoPlugin);
   app.register(cronPlugin);
   app.register(lifecycleNotificationsRoutes, { prefix: "/api" });
   app.register(redisPlugin);
   app.register(mailQueuePlugin);
   app.register(authPlugin);
-  app.register(userActivityPlugin);
   app.register(notificationsPlugin);
   app.register(facilityContextPlugin);
   app.register(swaggerPlugin);
@@ -62,7 +72,7 @@ export function buildApp(): FastifyInstance {
   // System & Feature Routes
   app.register(healthPlugin, { prefix: "/api" });
   app.register(usersRoutes, { prefix: "/api/users" });
-  app.register(userHistoryRoutes, { prefix: "/api/admin" });
+  app.register(activityLogsRoutes, { prefix: "/api/admin/activity-logs", service: activityLogs });
   app.register(authRoutes, { prefix: "/api/auth" });
   app.register(facilitiesRoutes, { prefix: "/api/facilities" });
   app.register(unitTypesRoutes, { prefix: "/api/unit-types" });

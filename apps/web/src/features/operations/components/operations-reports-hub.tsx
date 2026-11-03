@@ -22,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useToast } from "@/components/ui/toast";
 import { businessOperationsRoutes as routes } from "@/config/routes";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/cn";
@@ -711,6 +712,7 @@ function ReconciliationTab() {
 }
 
 function RefundsQueueTab() {
+  const { showToast } = useToast();
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -750,14 +752,15 @@ function RefundsQueueTab() {
         reference: values.reference,
       });
       setFeedback(M.confirmRefundSuccess);
+      showToast(M.confirmRefundSuccess, "success");
       setConfirmingPaymentId(null);
       form.reset();
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        setActionError(err.response?.data?.message || err.message || "Lỗi khi xác nhận hoàn tiền");
-      } else {
-        setActionError("Lỗi kết nối máy chủ khi xử lý hoàn tiền");
-      }
+      const errorMsg = axios.isAxiosError(err)
+        ? err.response?.data?.message || err.message || "Lỗi khi xác nhận hoàn tiền"
+        : "Lỗi kết nối máy chủ khi xử lý hoàn tiền";
+      setActionError(errorMsg);
+      showToast(errorMsg, "error");
     }
   }
 

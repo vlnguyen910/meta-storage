@@ -1,11 +1,7 @@
 "use client";
-import type {
-  AppointmentRecordDto,
-  CustomerBookingPageCursor,
-  ReservationRecordDto,
-} from "@metastorage/contracts";
+import type { AppointmentRecordDto, ReservationRecordDto } from "@metastorage/contracts";
 import { formatReference } from "@metastorage/shared";
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useFlow3Identity } from "@/features/returns/use-flow3-identity";
 import { api } from "@/lib/api";
 
@@ -56,18 +52,6 @@ function reservationView(
         : null,
     rentalId: rentalId ?? r.rentalId,
   };
-}
-export function useCustomerBookings() {
-  const identity = useFlow3Identity();
-  return useInfiniteQuery({
-    queryKey: ["customer-bookings", identity],
-    initialPageParam: undefined as CustomerBookingPageCursor | undefined,
-    queryFn: async () => ({
-      items: (await api.reservations.mine()).map((r) => reservationView(r)),
-      nextCursor: null,
-    }),
-    getNextPageParam: () => undefined,
-  });
 }
 export function useCustomerBooking(id: string) {
   const identity = useFlow3Identity();

@@ -3,20 +3,11 @@ import { APPOINTMENT_TYPES } from "@metastorage/contracts";
 import { UserRole } from "@metastorage/database/schema/user-enums";
 import { formatReference } from "@metastorage/shared";
 import { useQuery } from "@tanstack/react-query";
-import {
-  ArrowRight,
-  Calendar,
-  ClipboardCheck,
-  Phone,
-  Printer,
-  RefreshCw,
-  Search,
-  UserCheck,
-  Warehouse,
-} from "lucide-react";
+import { ArrowRight, Phone, RefreshCw, Search, Warehouse } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Currency } from "@/components/ui/display";
+import { ListPagination } from "@/components/ui/list-pagination";
 import { OperationalBadge } from "@/components/ui/operational";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ErrorState, LoadingState } from "@/components/ui/states";
@@ -25,7 +16,6 @@ import { FLOW } from "@/features/facility-flow/flow.messages";
 import {
   FlowButton as Button,
   FlowHeading,
-  inputClass,
   Panel,
   Pill,
   titleClass,
@@ -71,9 +61,7 @@ export function FacilityBookingsView({
 }: FacilityBookingsViewProps) {
   const isStaff = useAuthStore((s) => s.session?.user.role) === UserRole.FACILITY_STAFF;
   const root = isStaff ? "/staff" : "/facility-manager";
-  const [appointmentType, setAppointmentType] = useState<DispatchAppointmentType>(
-    isStaff ? APPOINTMENT_TYPES.CHECK_IN : "ALL",
-  );
+  const appointmentType = (isStaff ? APPOINTMENT_TYPES.CHECK_IN : "ALL") as DispatchAppointmentType;
   const showingReturns = appointmentType === APPOINTMENT_TYPES.CHECK_OUT;
   const showingAll = appointmentType === "ALL";
   const d = useDispatch(facilityId, isStaff, appointmentType);
@@ -91,30 +79,6 @@ export function FacilityBookingsView({
     queryFn: () => api.rentals.facilityDetail(facilityId, detailsRentalId),
     enabled: Boolean(detailsRentalId) && details?.appointmentType === APPOINTMENT_TYPES.CHECK_OUT,
   });
-  const headingActions = (
-    <div className="flex items-center gap-2">
-      <div className="flex h-[58px] flex-col justify-center rounded-lg bg-white px-3.5 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
-        <p className="text-[11px] font-medium uppercase tracking-wider text-[#5c6661]">
-          {FLOW.syncTime}
-        </p>
-        <strong className={`${titleClass} text-sm font-bold text-slate-900`}>
-          {d.query.dataUpdatedAt
-            ? new Date(d.query.dataUpdatedAt).toLocaleTimeString("vi-VN", {
-                timeZone: "Asia/Ho_Chi_Minh",
-              })
-            : "—"}
-        </strong>
-      </div>
-      <Button
-        variant="secondary"
-        onClick={() => window.print()}
-        icon={<Printer size={18} />}
-        className="h-[58px] px-4 font-semibold"
-      >
-        {FLOW.print}
-      </Button>
-    </div>
-  );
   // Reset pagination whenever the user changes a filter or search term.
   // biome-ignore lint/correctness/useExhaustiveDependencies: filter and search intentionally reset the local page.
   useEffect(() => setPage(1), [filter, search]);
@@ -139,155 +103,50 @@ export function FacilityBookingsView({
                 ? FLOW.returnDispatchDescription(facilityName ?? FLOW.noFacility)
                 : FLOW.dispatchDescription(facilityName ?? FLOW.noFacility)
           }
-          actions={headingActions}
         />
       )}
-      <fieldset className="flex gap-2">
-        <legend className="sr-only">{FLOW.appointmentType}</legend>
-        {[
-          ...(!isStaff ? (["ALL"] as const) : []),
-          APPOINTMENT_TYPES.CHECK_IN,
-          APPOINTMENT_TYPES.CHECK_OUT,
-        ].map((type) => (
-          <button
-            key={type}
-            type="button"
-            aria-pressed={appointmentType === type}
-            onClick={() => {
-              setAppointmentType(type);
-              d.setFilter("ALL");
-            }}
-            className={`rounded-full px-4 py-2 text-sm font-semibold ${appointmentType === type ? "bg-primary text-white" : "border border-line bg-white text-ink"}`}
-          >
-            {type === "ALL"
-              ? FLOW.allAppointments
-              : type === APPOINTMENT_TYPES.CHECK_IN
-                ? FLOW.checkInAppointments
-                : FLOW.checkOutAppointments}
-            <span className="ml-1.5 rounded-full bg-black/10 px-2 py-0.5 text-xs">
-              {type === "ALL"
-                ? d.bookings.length
-                : d.bookings.filter((item) => item.appointmentType === type).length}
-            </span>
-          </button>
-        ))}
-      </fieldset>
-      <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
-        <div
-          className={`grid flex-1 grid-cols-2 gap-2 sm:grid-cols-3 ${showingAll ? "xl:grid-cols-4" : "xl:grid-cols-5"}`}
-        >
-          {(showingAll
-            ? [
-                { label: FLOW.totalAppointments, value: d.bookings.length, icon: Calendar },
-                {
-                  label: FLOW.checkInAppointments,
-                  value: d.bookings.filter(
-                    (item) => item.appointmentType === APPOINTMENT_TYPES.CHECK_IN,
-                  ).length,
-                  icon: Warehouse,
-                },
-                {
-                  label: FLOW.checkOutAppointments,
-                  value: d.bookings.filter(
-                    (item) => item.appointmentType === APPOINTMENT_TYPES.CHECK_OUT,
-                  ).length,
-                  icon: UserCheck,
-                },
-                {
-                  label: FLOW.returnNeedsConfirmation,
-                  value: d.bookings.filter(
-                    (item) =>
-                      item.appointmentType === APPOINTMENT_TYPES.CHECK_OUT &&
-                      readiness(item, d.now) === "SCHEDULED",
-                  ).length,
-                  icon: ClipboardCheck,
-                },
-              ]
-            : showingReturns
-              ? [
-                  { label: FLOW.total, value: d.bookings.length, icon: Calendar },
-                  {
-                    label: FLOW.returnNeedsConfirmation,
-                    value: d.count("SCHEDULED"),
-                    icon: Warehouse,
-                  },
-                  { label: FLOW.returnConfirmed, value: d.count("CONFIRMED"), icon: UserCheck },
-                  {
-                    label: FLOW.returnCompleted,
-                    value: d.count("COMPLETED"),
-                    icon: ClipboardCheck,
-                  },
-                  {
-                    label: FLOW.returnClosed,
-                    value: d.count("CANCELLED") + d.count("NO_SHOW"),
-                    icon: ClipboardCheck,
-                  },
-                ]
-              : [
-                  { label: FLOW.total, value: d.bookings.length, icon: Calendar },
-                  {
-                    label: FLOW.needsAction,
-                    value: d.count("NEEDS_UNIT") + d.count("NEEDS_STAFF"),
-                    icon: Warehouse,
-                  },
-                  { label: FLOW.waiting, value: d.count("READY"), icon: UserCheck },
-                  {
-                    label: FLOW.inProgress,
-                    value: d.count("INSPECTING") + d.count("READY_HANDOVER"),
-                    icon: ClipboardCheck,
-                  },
-                  { label: FLOW.pendingAccess, value: d.count("CHECKED_IN"), icon: ClipboardCheck },
-                ]
-          ).map(({ label, value, icon: Icon }) => (
-            <Panel key={label} className="flex h-[58px] flex-col justify-center px-3.5 py-1.5">
-              <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <span className="block truncate text-[11px] font-medium uppercase tracking-wider text-[#5c6661]">
-                    {label}
-                  </span>
-                  <p className={`${titleClass} text-2xl font-bold leading-tight text-slate-900`}>
-                    {value}
-                  </p>
-                </div>
-                <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-[#003b2f]/10 text-[#003b2f]">
-                  <Icon size={16} />
-                </div>
-              </div>
-            </Panel>
-          ))}
-        </div>
-        {headingMode !== "full" && (
-          <div className="flex shrink-0 items-center justify-end">{headingActions}</div>
-        )}
-      </div>
       <Panel className="space-y-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative min-w-[180px] flex-1">
-            <Search size={20} className="absolute left-3 top-3 text-[#5c6661]" />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative min-w-[200px] flex-1">
+            <Search
+              size={16}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            />
             <input
-              className={`${inputClass} pl-10`}
+              type="text"
               aria-label={FLOW.searchLabel}
               placeholder={FLOW.search}
               value={d.search}
               onChange={(e) => d.setSearch(e.target.value)}
+              className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-9 pr-3 text-xs text-slate-900 placeholder:text-slate-400 transition-colors focus:border-primary focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
-          <Button
-            variant="secondary"
-            onClick={() => d.query.refetch()}
-            loading={d.query.isFetching}
-            icon={<RefreshCw size={18} />}
-          >
-            {FLOW.refresh}
-          </Button>
-          {isStaff && (
-            <Link
-              href={`${root}/check-in`}
-              className="rounded bg-[#003b2f] px-4 py-3 text-sm font-semibold text-white"
+
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => d.query.refetch()}
+              disabled={d.query.isFetching}
+              className="flex h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 shadow-2xs transition-colors hover:border-primary hover:bg-slate-50 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
+              title={FLOW.refresh}
+              aria-label={FLOW.refresh}
             >
-              {isStaff ? FLOW.lookup : FLOW.monitor}
-            </Link>
-          )}
+              <RefreshCw
+                size={14}
+                className={d.query.isFetching ? "animate-spin text-primary" : "text-slate-500"}
+              />
+              <span>{FLOW.refresh}</span>
+            </button>
+
+            {isStaff && (
+              <Link
+                href={`${root}/check-in`}
+                className="flex h-10 items-center rounded-lg bg-primary px-3.5 text-xs font-semibold text-white shadow-2xs transition-colors hover:bg-primary-dark"
+              >
+                {isStaff ? FLOW.lookup : FLOW.monitor}
+              </Link>
+            )}
+          </div>
         </div>
         <div className="space-y-2">
           <p className="text-xs font-semibold text-slate-600">{MB.filters}</p>
@@ -383,7 +242,7 @@ export function FacilityBookingsView({
       ) : (
         <div className="grid gap-4">
           {pageItems.map((b) => {
-            const state = readiness(b, d.now);
+            const state = readiness(b);
             const returnFlow = b.appointmentType === APPOINTMENT_TYPES.CHECK_OUT;
             const canAssign =
               !isStaff &&
@@ -557,32 +416,17 @@ export function FacilityBookingsView({
           })}
         </div>
       )}
-      {pageCount > 1 ? (
-        <nav
-          className="flex flex-wrap items-center justify-center gap-3"
-          aria-label="Phân trang booking"
-        >
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={page === 1}
-            onClick={() => setPage((value) => value - 1)}
-          >
-            {FLOW.previous}
-          </Button>
-          <span className="text-sm font-semibold text-[#404945]">
-            {FLOW.pageOf(page, pageCount)}
-          </span>
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={page === pageCount}
-            onClick={() => setPage((value) => value + 1)}
-          >
-            {FLOW.paginationNext}
-          </Button>
-        </nav>
-      ) : null}
+      {d.filtered.length > 0 && (
+        <ListPagination
+          label="danh sách booking"
+          unitLabel="booking"
+          page={page}
+          pageSize={pageSize}
+          total={d.filtered.length}
+          onPageChange={setPage}
+          pending={d.query.isFetching}
+        />
+      )}
       {staffBooking && (
         <StaffAssignmentModal booking={staffBooking} isOpen onClose={() => setStaffBooking(null)} />
       )}

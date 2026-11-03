@@ -1,5 +1,5 @@
 import type { Database } from "@metastorage/database";
-import { asc, checkInSlots, eq, max, sql } from "@metastorage/database";
+import { asc, checkInSlots, eq, sql } from "@metastorage/database";
 
 type SlotQueryExecutor = Database | Parameters<Parameters<Database["transaction"]>[0]>[0];
 
@@ -7,18 +7,6 @@ import type { ResolvedCheckInSlot } from "./check-in-slots.types";
 
 export class CheckInSlotsRepository {
   constructor(private readonly executor: SlotQueryExecutor) {}
-
-  async findDayEnd(checkInDate: string): Promise<Date | null> {
-    const [row] = await this.executor
-      .select({
-        endsAt: sql<Date | null>`(${checkInDate}::date + ${max(checkInSlots.endTime)})
-        at time zone 'Asia/Ho_Chi_Minh'`.mapWith((value) =>
-          value === null ? null : new Date(value),
-        ),
-      })
-      .from(checkInSlots);
-    return row?.endsAt ?? null;
-  }
 
   async list() {
     return this.executor

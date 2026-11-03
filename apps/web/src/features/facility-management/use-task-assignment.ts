@@ -9,11 +9,13 @@ import {
 } from "@metastorage/contracts";
 import { useForm } from "react-hook-form";
 import type { DropdownOption } from "@/components/ui/dropdown-select.types";
+import { useToast } from "@/components/ui/toast";
 import { useCreateTask, useTaskStaff, useTaskUnitOptions } from "./hooks";
 import { F5 } from "./management.messages";
 import { TASK_ASSIGNMENT_MESSAGES as M } from "./task-assignment.messages";
 
 export function useTaskAssignment(facilityId: string, onCreated?: () => void) {
+  const { showToast } = useToast();
   const create = useCreateTask();
   const form = useForm<CreateFacilityTaskInput>({
     resolver: zodResolver(CreateFacilityTaskSchema),
@@ -66,6 +68,7 @@ export function useTaskAssignment(facilityId: string, onCreated?: () => void) {
       {
         onSuccess: () => {
           form.reset({ ...input, referenceId: "", description: "" });
+          showToast(F5.taskCreated, "success");
           onCreated?.();
         },
       },

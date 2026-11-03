@@ -1,6 +1,12 @@
-import type { FacilityAssignmentRole, FacilityStaffMember } from "@metastorage/contracts";
+import {
+  ActivityLogAction,
+  ActivityLogEntityType,
+  type FacilityAssignmentRole,
+  type FacilityStaffMember,
+} from "@metastorage/contracts";
 import type { FacilityAssignment, Role } from "@metastorage/database";
 import { ConflictError, ForbiddenError, NotFoundError } from "../../common/errors/app-error";
+import { beginActivity } from "../activity-logs/activity-logs.service";
 import { type FacilityScope, requireAssignedFacility } from "./facilities.access";
 import { FACILITY_MESSAGES } from "./facilities.messages";
 import type { FacilitiesRepository } from "./facilities.repository";
@@ -47,6 +53,13 @@ export class FacilityAssignmentsService {
   }
 
   async revokeAssignment(facilityId: string, userId: string): Promise<FacilityAssignment> {
+    const activity = beginActivity({
+      action: ActivityLogAction.REVOKE_FACILITY,
+      entityType: ActivityLogEntityType.USER,
+      entityId: userId,
+      facilityId,
+      description: "Revoke user facility assignment",
+    });
     const result = await this.assignmentsRepository.deactivateAssignmentWithWorkCheck(
       facilityId,
       userId,
@@ -56,10 +69,18 @@ export class FacilityAssignmentsService {
         throw new NotFoundError(FACILITY_MESSAGES.staffAssignmentNotFound);
       throw new ConflictError(FACILITY_MESSAGES.openWorkPreventsRevocation);
     }
+    activity.changed = true;
     return result.assignment;
   }
 
   async assignUser(facilityId: string, userId: string, role: Role): Promise<FacilityAssignment> {
+    const activity = beginActivity({
+      action: ActivityLogAction.ASSIGN_FACILITY,
+      entityType: ActivityLogEntityType.USER,
+      entityId: userId,
+      facilityId,
+      description: "Assign user to facility",
+    });
     const facility = await this.facilitiesRepository.findById(facilityId);
     if (!facility) throw new NotFoundError(FACILITY_MESSAGES.facilityNotFound(facilityId));
 
@@ -72,13 +93,15 @@ export class FacilityAssignmentsService {
       throw new ForbiddenError(FACILITY_MESSAGES.assignmentRoleMismatch);
     }
 
-    return this.assignmentsRepository.upsertAssignment({
+    const assignment = await this.assignmentsRepository.upsertAssignment({
       facilityId,
       userId,
       role,
       isActive: true,
       endedAt: null,
     });
+    activity.changed = true;
+    return assignment;
   }
 
   async listFacilityAssignments(

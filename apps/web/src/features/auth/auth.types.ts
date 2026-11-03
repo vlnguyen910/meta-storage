@@ -1,5 +1,4 @@
 import type { CustomerSignUpInput } from "@metastorage/contracts";
-import type { UserRole } from "@metastorage/database/schema/user-enums";
 
 export interface LoginFormValues {
   email: string;
@@ -13,12 +12,4 @@ export interface RegisterFormValues extends CustomerSignUpInput {
 
 export interface ForgotPasswordFormValues {
   email: string;
-}
-
-export type VerifyEmailState = "pending" | "success" | "expired" | "failure";
-
-export interface DemoAccountItem {
-  role: UserRole;
-  email: string;
-  label: string;
 }

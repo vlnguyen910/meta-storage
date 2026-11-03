@@ -31,8 +31,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useToast } from "@/components/ui/toast";
 import { isMockMode } from "@/config/api-mode";
 import { useAuthStore } from "@/features/auth/auth-store";
+import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
   managementError,
@@ -61,7 +63,7 @@ const tabLabels = {
   units: F5.inventory,
 };
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 6;
 
 export function FacilityManagementWorkspace({ membershipsOnly = false }: ManagementWorkspaceProps) {
   const scope = useFacilityOptions(true);
@@ -502,81 +504,95 @@ export function TypeCatalogTable({ facilityId }: { facilityId?: string } = {}) {
       {/* Table container */}
       <div className="flex-1 overflow-y-auto min-h-0 border border-slate-200/90 rounded-xl bg-white shadow-xs">
         <Table>
-          <TableHeader className="sticky top-0 bg-slate-50/95 backdrop-blur-xs z-10 border-b border-slate-200">
+          <TableHeader className="sticky top-0 bg-slate-50/95 backdrop-blur-xs z-10 border-b border-slate-200 text-slate-700 text-xs font-bold uppercase tracking-wider">
             <TableRow>
-              <TableHead className="w-28">{F5.code}</TableHead>
-              <TableHead className="w-64">{F5.name}</TableHead>
-              <TableHead className="w-32">{F5.sizeLabel}</TableHead>
-              <TableHead>{F5.dimensions}</TableHead>
-              <TableHead className="w-32">{F5.status}</TableHead>
-              <TableHead className="w-48 text-right">{F5.actions}</TableHead>
+              <TableHead className="w-28 px-3.5 py-2.5">{F5.code}</TableHead>
+              <TableHead className="w-56 px-3.5 py-2.5">{F5.name}</TableHead>
+              <TableHead className="w-28 px-3.5 py-2.5">{F5.sizeLabel}</TableHead>
+              <TableHead className="w-40 px-3.5 py-2.5">{F5.dimensions}</TableHead>
+              <TableHead className="w-36 px-3.5 py-2.5">Giá thuê</TableHead>
+              <TableHead className="w-32 px-3.5 py-2.5">{F5.status}</TableHead>
+              <TableHead className="w-56 text-right px-3.5 py-2.5">{F5.actions}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {pagedItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-12 text-slate-500">
+                <TableCell colSpan={7} className="text-center py-12 text-slate-500 text-xs">
                   {F5.empty}
                 </TableCell>
               </TableRow>
             ) : (
               pagedItems.map((item) => (
-                <TableRow key={item.id} className="hover:bg-slate-50/70 transition-colors">
-                  <TableCell className="font-mono font-bold text-xs">
-                    <span className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md border border-slate-200/80">
+                <TableRow
+                  key={item.id}
+                  className="hover:bg-slate-50/70 transition-colors border-b border-slate-100 last:border-b-0"
+                >
+                  <TableCell className="px-3.5 py-2 font-mono font-bold text-xs">
+                    <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200/80">
                       {item.code}
                     </span>
                   </TableCell>
-                  <TableCell className="font-bold text-slate-900">
+                  <TableCell className="px-3.5 py-2 font-bold text-slate-900 text-xs">
                     <div className="flex items-center gap-2">
-                      <Layers className="size-4 text-primary shrink-0" />
+                      <Layers className="size-3.5 text-primary shrink-0" />
                       <span>{item.name}</span>
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <Badge className="bg-purple-50 text-purple-700 border-purple-200">
+                  <TableCell className="px-3.5 py-2">
+                    <Badge className="bg-purple-50 text-purple-700 border-purple-200 text-[11px] font-semibold">
                       {item.sizeLabel}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-slate-600 font-medium text-xs sm:text-sm">
+                  <TableCell className="px-3.5 py-2 text-slate-600 font-medium text-xs">
                     {item.lengthM} × {item.widthM} × {item.heightM} m
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="px-3.5 py-2">
+                    <div className="flex items-baseline gap-1">
+                      <span className="font-mono font-bold text-xs text-slate-900">
+                        {typeof item.monthlyPrice === "number"
+                          ? formatCurrency(item.monthlyPrice)
+                          : "—"}
+                      </span>
+                      <span className="text-[11px] text-slate-400">/tháng</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="px-3.5 py-2">
                     <Badge
-                      className={
+                      className={cn(
+                        "text-[11px] font-semibold px-2 py-0.5",
                         item.isActive
                           ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                          : "bg-slate-100 text-slate-500 border-slate-200"
-                      }
+                          : "bg-slate-100 text-slate-500 border-slate-200",
+                      )}
                     >
                       {item.isActive ? F5.active : F5.inactive}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="px-3.5 py-2 text-right">
                     {canEdit ? (
                       <div className="flex items-center justify-end gap-1.5">
                         <Button
                           type="button"
                           variant="outline"
                           onClick={() => setEditing(item)}
-                          className="h-8 min-h-8 px-2.5 text-xs gap-1 border-slate-200 text-slate-700 hover:text-primary"
+                          className="h-8 min-h-8 px-2.5 text-xs gap-1 border-slate-200 text-slate-700 hover:text-primary hover:border-primary"
                         >
                           <Pencil className="size-3.5" />
                           <span>{F5.edit}</span>
                         </Button>
-                        <Button
+                        <button
                           type="button"
-                          variant="outline"
                           onClick={() => setToggling(item)}
                           className={cn(
-                            "h-8 min-h-8 px-2.5 text-xs border-slate-200",
+                            "h-8 px-2.5 text-xs font-semibold rounded-lg border transition-colors cursor-pointer",
                             item.isActive
-                              ? "text-amber-700 hover:bg-amber-50"
-                              : "text-emerald-700 hover:bg-emerald-50",
+                              ? "border-red-200 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600"
+                              : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white hover:border-emerald-600",
                           )}
                         >
                           {item.isActive ? F5.deactivate : F5.activate}
-                        </Button>
+                        </button>
                       </div>
                     ) : (
                       <span className="text-xs text-muted">{F5.readOnly}</span>
@@ -839,6 +855,7 @@ function FacilityMembershipsTable({
   facilityOptions: Array<{ id: string; name: string; code: string }>;
   onSelectFacility: (id: string) => void;
 }) {
+  const { showToast } = useToast();
   const query = useMemberships(facilityId);
   const isAdmin = useAuthStore((state) => state.session?.user.role === "SYSTEM_ADMIN");
   const accounts = useAssignableAccounts(isAdmin);
@@ -1097,6 +1114,7 @@ function FacilityMembershipsTable({
             onSubmit={form.handleSubmit(async (input) => {
               try {
                 await assign.mutateAsync(input);
+                showToast(F5.saved, "success");
                 form.reset({ userId: "", role: input.role });
                 setAssignDialogOpen(false);
               } catch {
@@ -1182,6 +1200,7 @@ function FacilityEditor({
   onClose: () => void;
   onSaved: (facility: ApiFacility) => void;
 }) {
+  const { showToast } = useToast();
   const create = useCreateFacility();
   const update = useUpdateFacility(facility?.id ?? "");
   const mutation = facility ? update : create;
@@ -1211,7 +1230,11 @@ function FacilityEditor({
         className="grid gap-4"
         onSubmit={form.handleSubmit(async (input) => {
           try {
-            onSaved(facility ? await update.mutateAsync(input) : await create.mutateAsync(input));
+            const res = facility
+              ? await update.mutateAsync(input)
+              : await create.mutateAsync(input);
+            showToast(F5.saved, "success");
+            onSaved(res);
           } catch {
             /* Backend validation errors */
           }
@@ -1276,6 +1299,7 @@ function TypeEditor({
   facilityId?: string;
   onClose: () => void;
 }) {
+  const { showToast } = useToast();
   const create = useCreateType();
   const update = useUpdateType(type?.id ?? "");
   const mutation = type ? update : create;
@@ -1311,6 +1335,7 @@ function TypeEditor({
             } else {
               await create.mutateAsync(input);
             }
+            showToast(F5.saved, "success");
             onClose();
           } catch {
             /* Backend validation errors */
@@ -1318,13 +1343,25 @@ function TypeEditor({
         })}
       >
         <ManagementField label={F5.code} error={form.formState.errors.code?.message}>
-          <Input {...form.register("code")} placeholder="Ví dụ: UT-10M" />
+          <Input
+            {...form.register("code")}
+            placeholder="Ví dụ: UT-10M"
+            className="h-10 min-h-10 w-full rounded-lg border-slate-200 bg-slate-50/50 px-3 text-xs text-slate-900 placeholder:text-slate-400 transition-colors focus:border-primary focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary"
+          />
         </ManagementField>
         <ManagementField label={F5.name} error={form.formState.errors.name?.message}>
-          <Input {...form.register("name")} placeholder="Ví dụ: Kho tiêu chuẩn (10 m²)" />
+          <Input
+            {...form.register("name")}
+            placeholder="Ví dụ: Kho tiêu chuẩn (10 m²)"
+            className="h-10 min-h-10 w-full rounded-lg border-slate-200 bg-slate-50/50 px-3 text-xs text-slate-900 placeholder:text-slate-400 transition-colors focus:border-primary focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary"
+          />
         </ManagementField>
         <ManagementField label={F5.sizeLabel} error={form.formState.errors.sizeLabel?.message}>
-          <Input {...form.register("sizeLabel")} placeholder="Ví dụ: 10 m²" />
+          <Input
+            {...form.register("sizeLabel")}
+            placeholder="Ví dụ: 10 m²"
+            className="h-10 min-h-10 w-full rounded-lg border-slate-200 bg-slate-50/50 px-3 text-xs text-slate-900 placeholder:text-slate-400 transition-colors focus:border-primary focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary"
+          />
         </ManagementField>
         <div className="grid gap-3 sm:grid-cols-3">
           {(["lengthM", "widthM", "heightM"] as const).map((field, index) => (
@@ -1338,6 +1375,7 @@ function TypeEditor({
                 step="any"
                 min="0"
                 {...form.register(field, { valueAsNumber: true })}
+                className="h-10 min-h-10 w-full rounded-lg border-slate-200 bg-slate-50/50 px-3 text-xs text-slate-900 placeholder:text-slate-400 transition-colors focus:border-primary focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </ManagementField>
           ))}
@@ -1349,9 +1387,10 @@ function TypeEditor({
           <Input
             type="number"
             min="0"
-            step="1"
+            step="1000"
             placeholder="VND / tháng"
             {...form.register("monthlyPrice", { valueAsNumber: true })}
+            className="h-10 min-h-10 w-full rounded-lg border-slate-200 bg-slate-50/50 px-3 text-xs text-slate-900 placeholder:text-slate-400 transition-colors focus:border-primary focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </ManagementField>
         {mutation.isError && (
@@ -1359,8 +1398,13 @@ function TypeEditor({
             {managementError(mutation.error)}
           </p>
         )}
-        <div className="flex items-center justify-end gap-2 mt-2">
-          <Button type="button" variant="outline" onClick={onClose}>
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            className="h-9 px-4 text-xs font-semibold"
+          >
             {F5.cancel}
           </Button>
           <Button
@@ -1368,6 +1412,7 @@ function TypeEditor({
             variant="primary"
             disabled={mutation.isPending}
             loading={mutation.isPending}
+            className="h-9 px-4 text-xs font-semibold"
           >
             {F5.save}
           </Button>
@@ -1378,30 +1423,38 @@ function TypeEditor({
 }
 
 function TypeStatusEditor({ type, onClose }: { type: FacilityUnitTypeDto; onClose: () => void }) {
+  const { showToast } = useToast();
   const mutation = useUpdateType(type.id);
+  const isDeactivating = type.isActive;
   return (
     <ManagementDialog
-      title={F5.confirmType(type.name)}
+      title={isDeactivating ? "Ngừng cung cấp loại kho" : "Kích hoạt loại kho"}
       onClose={onClose}
       pending={mutation.isPending}
     >
-      <div className="grid gap-4">
-        <p className="text-sm text-slate-600">
-          Bạn có chắc chắn muốn {type.isActive ? "ngừng cung cấp" : "kích hoạt lại"} loại kho này
-          trong hệ thống?
+      <div className="grid gap-3 py-1">
+        <p className="text-xs text-slate-600 leading-relaxed">
+          {isDeactivating
+            ? `Bạn có chắc chắn muốn ngừng cung cấp loại kho "${type.name}" (${type.code}) trong hệ thống cơ sở?`
+            : `Kích hoạt lại loại kho "${type.name}" (${type.code}) trong hệ thống cơ sở để tiếp tục cung cấp.`}
         </p>
         {mutation.isError && (
           <p role="alert" className="text-xs font-semibold text-danger">
             {managementError(mutation.error)}
           </p>
         )}
-        <div className="flex items-center justify-end gap-2 mt-2">
-          <Button type="button" variant="outline" onClick={onClose}>
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            className="h-9 px-4 text-xs font-semibold"
+          >
             {F5.cancel}
           </Button>
           <Button
             type="button"
-            variant="primary"
+            variant={isDeactivating ? "danger" : "primary"}
             disabled={mutation.isPending}
             loading={mutation.isPending}
             onClick={async () => {
@@ -1410,13 +1463,18 @@ function TypeStatusEditor({ type, onClose }: { type: FacilityUnitTypeDto; onClos
                   isActive: !type.isActive,
                   expectedVersion: type.version,
                 });
+                showToast(F5.saved, "success");
                 onClose();
               } catch {
                 /* Backend error */
               }
             }}
+            className={cn(
+              "h-9 px-4 text-xs font-semibold",
+              isDeactivating && "bg-red-600 hover:bg-red-700 text-white",
+            )}
           >
-            {type.isActive ? F5.deactivate : F5.activate}
+            {isDeactivating ? "Xác nhận ngừng cung cấp" : "Kích hoạt"}
           </Button>
         </div>
       </div>
@@ -1429,6 +1487,7 @@ function MembershipRevoke({
   assignment,
   onClose,
 }: FacilityPanelProps & { assignment: ApiFacilityAssignment; onClose: () => void }) {
+  const { showToast } = useToast();
   const mutation = useRevokeMember(facilityId);
   return (
     <ManagementDialog
@@ -1455,6 +1514,7 @@ function MembershipRevoke({
             onClick={async () => {
               try {
                 await mutation.mutateAsync(assignment.userId);
+                showToast(F5.saved, "success");
                 onClose();
               } catch {
                 /* Conflict error */

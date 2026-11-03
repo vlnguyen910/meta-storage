@@ -52,6 +52,22 @@ const OperationsFinancialChart = dynamic(
     import("./charts/operations-financial-chart").then((module) => module.OperationsFinancialChart),
   { ssr: false, loading: () => <ChartLoadingSkeleton /> },
 );
+const EdaStatisticalSummary = dynamic(
+  () => import("./charts/eda-statistical-summary").then((module) => module.EdaStatisticalSummary),
+  { ssr: false, loading: () => <ChartLoadingSkeleton /> },
+);
+const EdaCorrelationChart = dynamic(
+  () => import("./charts/eda-correlation-chart").then((module) => module.EdaCorrelationChart),
+  { ssr: false, loading: () => <ChartLoadingSkeleton /> },
+);
+const EdaOutlierDetector = dynamic(
+  () => import("./charts/eda-outlier-detector").then((module) => module.EdaOutlierDetector),
+  { ssr: false, loading: () => <ChartLoadingSkeleton /> },
+);
+const EdaActionableInsights = dynamic(
+  () => import("./charts/eda-actionable-insights").then((module) => module.EdaActionableInsights),
+  { ssr: false, loading: () => <ChartLoadingSkeleton /> },
+);
 
 export function OperationsDashboardView() {
   const [showPreview, setShowPreview] = useState(false);
@@ -256,6 +272,9 @@ export function OperationsDashboardView() {
             </Card>
           </div>
 
+          {/* EDA Section 1: Data Understanding & Descriptive Statistics Table */}
+          <EdaStatisticalSummary data={data} />
+
           {/* Attention Banner if Data Quality Issues */}
           {data.attention.dataQuality.hasIssues && (
             <div className="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50/90 px-3 py-2 text-xs text-amber-900 shadow-xs">
@@ -272,7 +291,7 @@ export function OperationsDashboardView() {
             </div>
           )}
 
-          {/* Analytics Charts Grid */}
+          {/* EDA Section 2: Distribution & Categorical Charts Grid */}
           <div className="grid min-w-0 gap-3 lg:grid-cols-2">
             {/* Financial Flow Chart */}
             <Card className="overflow-hidden border-slate-200 bg-white shadow-xs">
@@ -321,6 +340,15 @@ export function OperationsDashboardView() {
               </CardContent>
             </Card>
           </div>
+
+          {/* EDA Section 3: Bivariate Correlation Analysis (Price / Occupancy vs Net Cash) */}
+          <EdaCorrelationChart data={data} />
+
+          {/* EDA Section 4: Outlier & Anomaly Detection */}
+          <EdaOutlierDetector data={data} />
+
+          {/* EDA Section 5: Actionable Insights & Recommendations for BOM */}
+          <EdaActionableInsights data={data} />
 
           {/* Collapsible Top 5 Facilities Section */}
           <Card className="overflow-hidden border-slate-200 bg-white shadow-xs">

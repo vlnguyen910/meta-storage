@@ -141,6 +141,13 @@ DATABASE_URL=postgres://postgres:postgres@localhost:5433/metastorage
 REDIS_URL=redis://localhost:6379
 ```
 
+Backend ghi activity log và lịch sử đăng nhập vào MongoDB. Khởi động MongoDB bằng
+`docker compose -f docker/docker-compose.yml up -d mongo`, rồi đặt
+`MONGODB_URI=mongodb://mongo:mongo@localhost:27017/metastorage_logs?authSource=admin`
+trong `apps/api/.env` cho môi trường local. Production cần MongoDB riêng và
+`MONGODB_URI` trong `docker/app.env`. API kiểm tra kết nối và tạo index khi khởi
+động. Xem phạm vi ghi nhận tại [activity logs](docs/db-diagram.md#activity-logs-mongodb).
+
 API đăng ký Redis trong `common/redis/plugin.ts`; các module dùng `fastify.redis`.
 Các thao tác dữ liệu tạm dùng `fastify.redisService` hoặc inject `RedisService`
 vào constructor của service/module cần dùng. Client `fastify.redis` dành cho

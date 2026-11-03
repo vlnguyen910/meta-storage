@@ -36,9 +36,14 @@ export function DialogContent({
 }
 
 export function DialogHeader({ className, ...props }: ComponentProps<"div">) {
-  return <div className={cn("grid gap-2 text-left", className)} {...props} />;
+  return <div className={cn("grid gap-1.5 text-left", className)} {...props} />;
 }
 
 export function DialogTitle({ className, ...props }: ComponentProps<typeof DialogPrimitive.Title>) {
-  return <DialogPrimitive.Title className={cn("text-lg font-semibold", className)} {...props} />;
+  return (
+    <DialogPrimitive.Title
+      className={cn("text-lg font-bold tracking-tight text-slate-900", className)}
+      {...props}
+    />
+  );
 }

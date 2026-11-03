@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useGlobalLoading } from "@/components/providers/global-loading-provider";
@@ -40,14 +40,38 @@ export function LoginForm() {
   const { runWithGlobalLoading, startNavigationLoading } = useGlobalLoading();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const session = useAuthStore((state) => state.session);
+  const authReady = useAuthStore((state) => state.authReady);
   const setSession = useAuthStore((state) => state.setSession);
   const { showToast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [pendingLinkDestination, setPendingLinkDestination] = useState<string | null>(null);
   const { linkGoogleAccount, isLoading: isLinkingGoogle } = useGoogleAuth();
   const oauthError = searchParams.get("error");
+  const hasRedirectedRef = useRef(false);
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
+
+  useEffect(() => {
+    if (hasRedirectedRef.current) return;
+    if (!hydrated || !authReady || !session?.user?.role) return;
+    if (oauthError === "account_not_linked") return;
+
+    hasRedirectedRef.current = true;
+    const role = session.user.role;
+    const requested = safeReturnTo(searchParams.get("returnTo"), roleHome[role]);
+    const roleRoot = `/${roleHome[role].split("/")[1]}`;
+    const customerReservationEntry =
+      role === UserRole.STORAGE_CUSTOMER &&
+      (requested === routes.reservationNew || requested.startsWith(`${routes.reservationNew}?`));
+    const destination =
+      customerReservationEntry ||
+      (requested.startsWith(`${roleRoot}/`) && requested !== `${roleRoot}/`)
+        ? requested
+        : roleHome[role];
+
+    router.replace(destination);
+  }, [hydrated, authReady, session?.user?.role, oauthError, searchParams, router]);
 
   const {
     register,
@@ -80,7 +104,8 @@ export function LoginForm() {
           (requested === routes.reservationNew ||
             requested.startsWith(`${routes.reservationNew}?`));
         const destination =
-          requested === roleRoot || requested.startsWith(`${roleRoot}/`) || customerReservationEntry
+          customerReservationEntry ||
+          (requested.startsWith(`${roleRoot}/`) && requested !== `${roleRoot}/`)
             ? requested
             : roleHome[role];
         if (oauthError === "account_not_linked") {
@@ -88,6 +113,7 @@ export function LoginForm() {
           return;
         }
 
+        hasRedirectedRef.current = true;
         startNavigationLoading();
         router.replace(destination);
       });

@@ -11,7 +11,6 @@ export {
   customerRoutes,
   facilityManagerRoutes,
   facilityStaffRoutes,
-  publicRoutes,
   systemAdministratorRoutes,
 };
 

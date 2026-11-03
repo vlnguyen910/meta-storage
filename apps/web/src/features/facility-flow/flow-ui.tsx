@@ -1,5 +1,5 @@
 "use client";
-import { ArrowLeft, Check, Lock, Warehouse } from "lucide-react";
+import { ArrowLeft, Warehouse } from "lucide-react";
 import localFont from "next/font/local";
 import type { ReactNode } from "react";
 import type { ButtonProps } from "@/components/ui/button";
@@ -28,8 +28,6 @@ const heading = localFont({
 });
 export const flowFontClass = `${body.variable} ${heading.variable} [font-family:var(--font-flow-body)] text-[14px] text-[#131b2e] [--color-primary:#003b2f] [--color-primary-dark:#125345] [--color-primary-soft:#b4efda] [--color-muted:#707975] [--color-line:#bfc9c440] [--color-canvas:#faf8ff] [--color-surface:#fff]`;
 export const titleClass = "[font-family:var(--font-flow-heading)] font-semibold tracking-[-0.01em]";
-export const inputClass =
-  "w-full min-h-11 rounded border border-transparent bg-[#f2f3ff] px-3 py-2 text-sm outline-none focus:border-[#306858] focus:ring-2 focus:ring-[#b4efda] disabled:opacity-50";
 export function Panel({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
     <section
@@ -98,44 +96,6 @@ export function FlowHeading({
     </div>
   );
 }
-export function Steps({ active, completed = [] }: { active: number; completed?: number[] }) {
-  return (
-    <ol className="grid grid-cols-2 gap-3 rounded-lg bg-white p-4 shadow-sm lg:grid-cols-4">
-      {FLOW.stepNames.map((name, i) => (
-        <li
-          key={name}
-          aria-current={i === active ? "step" : undefined}
-          className="flex items-center gap-3"
-        >
-          <span
-            className={cn(
-              "grid size-10 shrink-0 place-items-center rounded-lg font-bold",
-              completed.includes(i)
-                ? "bg-[#b4efda] text-[#135041]"
-                : i === active
-                  ? "bg-[#003b2f] text-white"
-                  : "bg-[#eaedff] text-[#5c6661]",
-            )}
-          >
-            {completed.includes(i) ? <Check size={20} /> : String(i + 1).padStart(2, "0")}
-          </span>
-          <div>
-            <p className="text-[11px] text-[#5c6661]">
-              {completed.includes(i)
-                ? FLOW.done
-                : i === active
-                  ? FLOW.current
-                  : i < active
-                    ? FLOW.pendingStep
-                    : FLOW.next}
-            </p>
-            <p className={cn(titleClass, "text-sm")}>{name}</p>
-          </div>
-        </li>
-      ))}
-    </ol>
-  );
-}
 export function SectionTitle({ children, icon }: { children: ReactNode; icon?: ReactNode }) {
   return (
     <h2 className={cn(titleClass, "flex items-center gap-2 text-lg leading-[26px]")}>
@@ -183,14 +143,6 @@ export function BackLabel() {
     <>
       <ArrowLeft size={18} />
       {FLOW.back}
-    </>
-  );
-}
-export function LockedLabel() {
-  return (
-    <>
-      <Lock size={16} />
-      {FLOW.locked}
     </>
   );
 }

@@ -99,9 +99,6 @@ export class RentalsService {
   findReservationRental(tx: TaskTransaction, reservationId: string) {
     return this.repository.findRentalByReservationId(tx, reservationId);
   }
-  findHandoverRental(tx: TaskTransaction, bookingId: string) {
-    return this.repository.findRentalByBookingId(tx, bookingId);
-  }
   private async assertFacilityManagerAccess(actor: RentalActor, facilityId: string) {
     if (actor.role !== "FACILITY_MANAGER") throw new ForbiddenError(M.facilityAccessDenied);
     await this.facilityAssignments.requireFacilityAccess(

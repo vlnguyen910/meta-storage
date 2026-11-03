@@ -172,34 +172,134 @@ scope at the next request. SA/BOM keep assignment write permissions. Session
 creation holds a user share lock and rechecks ACTIVE inside its insert transaction,
 so a simultaneous lock/role change cannot leave a stale session behind.
 
-## User history (#185, confirmed scope 2026-10-25)
+## Activity logs (MongoDB)
 
-`login_history` stores successful sign-ins only, across all roles: UUID id,
-nullable user_id FK users (SET NULL), unique session_id (correlation identifier,
-never a session token; no FK to transient sessions), occurred_at timestamptz,
-nullable bounded device, operating_system, browser and model descriptions.
-No failed sign-ins, logout, expiry, IP, credentials, tokens or raw request headers.
-Device/model descriptions are best-effort client metadata, not proof of identity.
-Indexes: (occurred_at,id), (user_id,occurred_at,id).
+The backend writes important authenticated user actions to the `activity_logs`
+collection in the database selected by `MONGODB_URI` (`metastorage_logs` in the
+example configuration). Capture is explicit in the owning services, not a blanket
+CRUD/request logger. The System Administrator web page at
+`/system-admin/activity-logs` provides read-only lookup; Mobile is unchanged.
 
-`user_activity_logs` records accepted mutation API requests across all roles,
-excluding read/list/search/download operations: UUID id, nullable actor_id FK users
-(SET NULL), bounded action/entity_type, nullable entity_id when no safe UUID is
-available, nullable facility_id FK facilities (SET NULL), occurred_at timestamptz.
-Accepted idempotent/no-op writes may appear; this is not an exact state-change ledger.
-No arbitrary request payloads or financial/PII
-snapshots. Indexes: (occurred_at,id), (actor_id,occurred_at,id),
-(entity_type,entity_id,occurred_at,id), (facility_id,occurred_at,id).
-Existing domain audits remain authoritative for their detailed before/after facts.
+| Group | Capture points |
+| --- | --- |
+| Account | Create user, update own profile, lock/unlock user |
+| Permission | Assign/change role, assign/revoke facility assignment |
+| Facility | Create, update metadata, activate/deactivate |
+| Unit | Assign physical unit, manual status transition, occupy/release at handover/return |
+| Rental | Activate at check-in handover, close after return inspection |
+| Payment | Record debt payment, confirm manual refund, record deposit refund at return |
+| Inspection | Record terminal PASSED/FAILED results; draft/checklist/evidence edits alone are excluded |
+| Support | Complete a support appointment or a task referencing a support ticket |
+| Login | One LOGIN event after each persisted auth session is created |
 
-History starts at capture enablement; do not synthesize legacy records. Both logs
-are best-effort per the user's 2026-10-25 decision: log failure never fails or rolls
-back the main operation and emits an operational warning. SA-only read access
-follows #185. Retention/cleanup remain TBD; no automatic cleanup is authorized.
-User profile edits allow only own name/phone; administrators cannot edit another
-user's profile.
+Support tickets currently have no separate active resolve endpoint; the old close
+route returns 410. Support logs describe completion of the existing appointment or
+task workflow and do not invent a new ticket lifecycle. Provider webhooks, worker
+and cron changes have no authenticated user request and are outside user activity
+capture; their existing domain/provider audits remain authoritative.
 
+### Fields and read API
 
+| API field | Stored field / meaning |
+| --- | --- |
+| id | MongoDB `_id`, serialized as a string |
+| userId | `actorId`, from the authenticated request; never from the body |
+| user | Current PostgreSQL name, email and role; null when the account is unavailable |
+| action | Explicit action enum: CREATE, UPDATE, LOCK, UNLOCK, ASSIGN_ROLE, CHANGE_ROLE, ASSIGN_FACILITY, REVOKE_FACILITY, ASSIGN_UNIT, CHANGE_STATUS, RECORD_RESULT, RESOLVE or LOGIN |
+| entityType | USER, FACILITY, UNIT, RENTAL, PAYMENT, INSPECTION or SUPPORT |
+| entityId | Actual domain record ID; nullable when creation fails before an ID exists |
+| description | Fixed backend description of the intended action, including on failure |
+| result | SUCCESS or FAILURE |
+| createdAt | `occurredAt`, a UTC timestamp |
+| ipAddress | Fastify's resolved request IP, or the auth session's IP for login |
+| facilityId | Domain facility reference when known; nullable |
+
+Internal correlation fields remain `requestId`, `statusCode`, `userAgent` (bounded
+at 512 characters), and `sessionId` on login events. The list API does not expose
+these extra fields. Session ID is an identifier, never a session token. Log entries
+have no FK to transient sessions, so login history survives logout/revocation.
+Reading or updating an existing session does not record another login, and failed
+login attempts are not captured.
+
+`GET /api/admin/activity-logs` requires an ACTIVE SYSTEM_ADMIN. It returns the
+standard success envelope with `{ items, total, limit, offset }`, ordered newest
+first by `(occurredAt, _id)`. Supported filters: `search` (name/email), current `role`, `userId`, `action`, `entityType`,
+`entityId`, `result`, inclusive UTC `from`/`to`; limit defaults to 20, max 100.
+No create, edit or delete log API exists, including for System Administrator.
+Responses use `Cache-Control: private, no-store`.
+
+Name/email search is case-insensitive and treats LIKE wildcards as literal text.
+Search and role resolve matching PostgreSQL actor IDs before MongoDB pagination,
+so totals and page boundaries reflect the complete matching history. Unfiltered
+pages load only their actors' profiles in one query. Profiles are live lookups,
+not snapshots: renaming a user or changing their role changes how past log entries
+are displayed and filtered. Deleted accounts keep their activity with null profile.
+The page has six columns and no KPI cards; date filters use complete Vietnam days
+(UTC+7), and the API continues accepting ISO timestamps with timezone offsets.
+
+MongoDB documents from the previous request-based capture remain readable without
+rewriting them: `actorId`/`occurredAt` are kept internally, missing descriptions
+fall back to the old action, and missing results map to SUCCESS because previous
+capture only stored accepted writes and created sessions. Old action/entity values
+are preserved rather than presented as newly classified business events. The old
+PostgreSQL history tables are also retained, as described below.
+
+### Developer notes and guarantees
+
+- Start with `activity-logs.service.ts`, then the owning business service. A service
+  calls `beginActivity` before an important attempt, supplies domain IDs and a
+  fixed description, and sets `changed` only when its write succeeds. Successful
+  no-ops/idempotent replays do not create activity entries. Assignment refreshes
+  do update assignment time and count as writes.
+- `app.ts` starts a request-scoped AsyncLocalStorage context and flushes its
+  collected attempts in `onResponse`. No separate activity plugin file is needed.
+  Only requests with an authenticated actor are flushed. Ordinary CRUD and reads
+  do not create entries unless an owning service explicitly marks a change.
+- SUCCESS requires a marked change and a successful HTTP response. A 4xx/5xx
+  response records the collected attempts as FAILURE, even if nested writes were
+  marked before an enclosing rollback. A compound operation can produce several
+  entries, correlated internally by request ID. Failures before the marked service
+  is entered (including route validation and role guards) are not captured. A
+  response failure after a commit is still a failed request; domain audits hold
+  the exact committed facts. This is not a financial ledger.
+- Register a new action at its business service, not by guessing from HTTP paths or
+  copying request/response objects. Do not copy passwords, OTPs, tokens, cookies,
+  payment references, free-text notes, raw provider payloads or error messages.
+  IP and user-agent are metadata; neither is proof of identity. Reuse existing
+  authorization and transaction boundaries rather than changing them for logging.
+- `auth.ts` writes LOGIN in `databaseHooks.session.create.after`. Keep login capture
+  there instead of duplicating it in handlers, so email and OAuth use one point.
+  Auth and request logs share the MongoDB client from `mongo-plugin.ts`; no separate
+  auth connection or Mongoose model is used. `auth.routes.ts` forwards Fastify's
+  resolved IP; deployment must configure actual trusted peers with
+  `TRUSTED_PROXY_CIDRS`.
+- Runtime insert failure warns without failing or rolling back the main operation.
+  HTTP logs are written after response delivery; login awaits its log attempt.
+  The client has a 5-second operation timeout, so MongoDB failure may delay login.
+  A crash or outage can lose entries: there is no retry, outbox or durable delivery.
+  MongoDB must be reachable at API startup for connection/index initialization.
+- Indexes: `(occurredAt,_id)`, `(actorId,occurredAt)`, `(action,occurredAt)`,
+  `(facilityId,occurredAt)`, `(entityType,entityId,occurredAt)`. No TTL or automatic
+  deletion is configured. No PostgreSQL schema change/migration is required.
+- Setup lives in `README.md`, `apps/api/.env.example` and `docker/app.env.example`.
+  Specify the database name in `MONGODB_URI`. Keep these workflow notes here,
+  rather than duplicating feature details in `AGENTS.md` or a new document.
+- Tests: `tests/units/activity-logs.test.ts` covers selection, no-ops, failures,
+  privacy and concurrent request isolation. `tests/integration/activity-logs-api.test.ts`
+  checks all roles, read filters and the absence of write endpoints.
+  `tests/integration/activity-logs.test.ts` exercises MongoDB storage/filtering and
+  real login/logout against isolated PostgreSQL/MongoDB. Database tests require
+  explicit test URLs; CI and the local database runner supply them. The local
+  runner creates and drops uniquely named test databases.
+
+## Retained user history tables
+
+The `user-history` application module and its capture hooks and read endpoints
+have been replaced by `activity-logs`. The existing `login_history` and
+`user_activity_logs` tables, schema declarations, and stored records are retained.
+The application no longer writes to these PostgreSQL tables; new activity and
+login records go to MongoDB. Existing records are not migrated or deleted. Other
+domain audit records remain unchanged.
 
 ## Facility work tasks
 

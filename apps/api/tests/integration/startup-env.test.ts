@@ -5,6 +5,7 @@ import { envSchema } from "../../src/config/env.schema";
 const valid = {
   NODE_ENV: "test",
   DATABASE_URL: "postgres://postgres:postgres@127.0.0.1:5433/metastorage",
+  MONGODB_URI: "mongodb://127.0.0.1:27017/metastorage_logs_test",
   REDIS_URL: "redis://127.0.0.1:6379/14",
   CORS_ORIGIN: "http://localhost:3000,http://127.0.0.1:3000",
   AUTH_TRUSTED_ORIGINS: "http://localhost:3000,metastorage://",
@@ -46,6 +47,13 @@ describe("API startup environment", () => {
     expect(result.TRUSTED_PROXY_CIDRS).toBe(false);
   });
 
+  test("accepts MongoDB SRV connection strings", () => {
+    expect(
+      envSchema.parse({ ...valid, MONGODB_URI: "mongodb+srv://cluster.example.test/logs" })
+        .MONGODB_URI,
+    ).toBe("mongodb+srv://cluster.example.test/logs");
+  });
+
   test("accepts explicit proxy IPs/CIDRs and rejects trusting every address", () => {
     expect(
       envSchema.parse({ ...valid, TRUSTED_PROXY_CIDRS: "127.0.0.1, 10.10.0.0/24, ::1/128" })
@@ -71,6 +79,8 @@ describe("API startup environment", () => {
   test("rejects wrong URL protocols, malformed origins, sender, weak secrets and invalid ports", () => {
     for (const values of [
       { DATABASE_URL: "https://db.example.test" },
+      { MONGODB_URI: "https://mongo.example.test" },
+      { MONGODB_URI: "mongodbql://mongo.example.test" },
       { REDIS_URL: "https://redis.example.test" },
       { WEB_URL: "file:///tmp/web" },
       { PUBLIC_APP_URL: "invalid" },

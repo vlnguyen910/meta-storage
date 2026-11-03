@@ -16,12 +16,12 @@ export const useAuthStore = create<AuthState>()(
       session: null,
       hydrated: false,
       authReady: false,
-      setSession: (session) => set({ session }),
+      setSession: (session) => set({ session, authReady: true }),
       updateTokens: (tokens) =>
         set((state) => ({
           session: state.session ? { ...state.session, ...tokens } : null,
         })),
-      clearSession: () => set({ session: null }),
+      clearSession: () => set({ session: null, authReady: true }),
       setHydrated: (hydrated) => set({ hydrated }),
       setAuthReady: (authReady) => set({ authReady }),
     }),

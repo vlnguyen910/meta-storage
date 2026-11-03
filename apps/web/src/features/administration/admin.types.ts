@@ -2,12 +2,11 @@ import type { User } from "@metastorage/contracts";
 import type { UserRole } from "@metastorage/database/schema/user-enums";
 import type { ReactNode } from "react";
 
-export type AdminSection = "users" | "assignments" | "login-history" | "activity-logs";
-export type AdminAccountStatus = "ACTIVE" | "INACTIVE";
-export type AdminOutcome = "SUCCESS" | "FAILED";
-export type AdminAction = "ROLE_CHANGED" | "STATUS_CHANGED" | "FACILITIES_CHANGED";
+type AdminAccountStatus = "ACTIVE" | "INACTIVE";
+type AdminOutcome = "SUCCESS" | "FAILED";
+type AdminAction = "ROLE_CHANGED" | "STATUS_CHANGED" | "FACILITIES_CHANGED";
 
-export interface AdminUser {
+interface AdminUser {
   readonly id: string;
   readonly name: string;
   readonly email: string;
@@ -17,13 +16,13 @@ export interface AdminUser {
   readonly lastLoginAt: string | null;
 }
 
-export interface AdminFacility {
+interface AdminFacility {
   readonly id: string;
   readonly name: string;
   readonly address: string;
 }
 
-export interface AdminLogin {
+interface AdminLogin {
   readonly id: string;
   readonly userId: string;
   readonly name: string;
@@ -41,7 +40,7 @@ export interface AdminSnapshot {
   readonly facilityIds: readonly string[];
 }
 
-export interface AdminAudit {
+interface AdminAudit {
   readonly id: string;
   readonly actor: string;
   readonly actorRole: UserRole;
@@ -63,38 +62,7 @@ export interface AdminMockData {
   readonly audits: readonly AdminAudit[];
 }
 
-export interface AdminFilters {
-  readonly search: string;
-  readonly role: string;
-  readonly status: string;
-  readonly facilityId: string;
-  readonly outcome: string;
-  readonly action: string;
-  readonly date: string;
-}
-
-export interface AdminUserDraft {
-  role: UserRole;
-  status: AdminAccountStatus;
-  reason: string;
-}
-
-export interface AdminAssignmentDraft {
-  facilityIds: string[];
-  reason: string;
-}
-
-export interface AdminWorkspaceProps {
-  readonly section: AdminSection;
-}
-
-export interface AdminTableProps {
-  readonly title: string;
-  readonly headings: readonly string[];
-  readonly children: ReactNode;
-}
-
-export interface AdminDrawerProps {
+interface AdminDrawerProps {
   readonly title: string;
   readonly children: ReactNode;
   readonly onClose: () => void;
@@ -131,33 +99,11 @@ export interface AdminUserFilters {
   readonly status: string;
 }
 
-export interface AdminBadgeProps {
-  readonly label: string;
-  readonly warning?: boolean;
-}
-
-export interface AdminSnapshotProps {
-  readonly title: string;
-  readonly snapshot: AdminSnapshot;
-  readonly facilities: readonly AdminFacility[];
-}
-
 export interface AdminAccountChange {
   readonly userId: string;
   readonly action: AdminAction;
   readonly patch: Partial<AdminSnapshot>;
   readonly reason: string;
-  readonly actor: string;
-}
-
-export interface AdminEditorProps {
-  readonly user: AdminUser;
-  readonly data: AdminMockData;
-  readonly assignment: boolean;
-  readonly modal?: boolean;
-  readonly pending: boolean;
-  readonly onSave: (changes: readonly AdminAccountChange[]) => Promise<void>;
-  readonly onClose: () => void;
   readonly actor: string;
 }
 

@@ -1,10 +1,8 @@
 import type { User } from "@metastorage/contracts";
 import { UserRole } from "@metastorage/database/schema/user-enums";
 import { isAxiosError } from "axios";
-import { ADMIN_MESSAGES as M } from "./admin.messages";
 import type {
   AdminAccountChange,
-  AdminFacility,
   AdminManagedUser,
   AdminMockData,
   AdminSnapshot,
@@ -43,16 +41,6 @@ export function roleBadgeClassName(role: UserRole): string {
     return "border-blue-100 bg-blue-50 text-blue-700";
   if (role === UserRole.SYSTEM_ADMINISTRATOR) return "border-amber-100 bg-amber-50 text-amber-800";
   return "border-line bg-slate-50 text-secondary";
-}
-
-export function accessLabel(snapshot: AdminSnapshot, facilities: readonly AdminFacility[]) {
-  if (snapshot.role === UserRole.STORAGE_CUSTOMER) return M.ownAccess;
-  if (!isFacilityRole(snapshot.role)) return M.globalAccess;
-  return (
-    snapshot.facilityIds
-      .map((id) => facilities.find((facility) => facility.id === id)?.name ?? id)
-      .join(", ") || M.noAssignments
-  );
 }
 
 export function matchesSearch(values: readonly string[], search: string) {
@@ -114,20 +102,4 @@ export function applyAdminChange(data: AdminMockData, change: AdminAccountChange
 export function csvCell(value: string) {
   const safe = /^[\s]*[=+@-]/.test(value) ? `'${value}` : value;
   return `"${safe.replace(/"/g, '""')}"`;
-}
-
-export function downloadCsv(
-  section: string,
-  headings: readonly string[],
-  rows: readonly (readonly string[])[],
-) {
-  const content = [headings, ...rows].map((row) => row.map(csvCell).join(",")).join("\r\n");
-  const url = URL.createObjectURL(
-    new Blob(["\uFEFF", content], { type: "text/csv;charset=utf-8" }),
-  );
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `storex-admin-${section}.csv`;
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

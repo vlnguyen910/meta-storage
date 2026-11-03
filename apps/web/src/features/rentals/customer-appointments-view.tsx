@@ -25,6 +25,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CustomerTable } from "@/components/ui/customer-table";
+import { ListPagination } from "@/components/ui/list-pagination";
 import {
   Select,
   SelectContent,
@@ -34,6 +35,7 @@ import {
 } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ErrorState, LoadingState } from "@/components/ui/states";
+import { useToast } from "@/components/ui/toast";
 import { customerRoutes } from "@/config/routes";
 import { useFlow3Identity } from "@/features/returns/use-flow3-identity";
 import { api } from "@/lib/api";
@@ -91,6 +93,7 @@ function AppointmentStatus({ item }: { item: AppointmentRecordDto }) {
 }
 
 export function CustomerAppointmentsView() {
+  const { showToast } = useToast();
   const owner = useFlow3Identity();
   const client = useQueryClient();
   const calendarRef = useRef<FullCalendar>(null);
@@ -115,6 +118,7 @@ export function CustomerAppointmentsView() {
       api.appointments.update(id, { status: APPOINTMENT_STATUSES.CANCELLED }),
     onSuccess: async () => {
       setCancelTarget(null);
+      showToast(M.cancelSuccess, "success");
       await client.invalidateQueries({ queryKey: ["customer-appointments", owner] });
     },
   });
@@ -138,6 +142,12 @@ export function CustomerAppointmentsView() {
         .filter((item) => statusFilter === "all" || item.status === statusFilter)
         .toSorted((a, b) => appointmentStart(a) - appointmentStart(b)),
     [allAppointments, facilityFilter, statusFilter],
+  );
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+  const pagedAppointments = useMemo(
+    () => filteredAppointments.slice((page - 1) * pageSize, page * pageSize),
+    [filteredAppointments, page],
   );
   const events = useMemo(
     () =>
@@ -233,7 +243,13 @@ export function CustomerAppointmentsView() {
           <div className="flex flex-wrap items-end gap-3 rounded-card border border-line bg-white p-3 shadow-card">
             <div className="min-w-40 flex-1 space-y-1.5 text-xs font-semibold text-slate-700">
               <span id="appointment-facility-filter-label">{M.facilityFilter}</span>
-              <Select value={facilityFilter} onValueChange={setFacilityFilter}>
+              <Select
+                value={facilityFilter}
+                onValueChange={(val) => {
+                  setFacilityFilter(val);
+                  setPage(1);
+                }}
+              >
                 <SelectTrigger aria-labelledby="appointment-facility-filter-label">
                   <SelectValue />
                 </SelectTrigger>
@@ -249,7 +265,13 @@ export function CustomerAppointmentsView() {
             </div>
             <div className="min-w-40 flex-1 space-y-1.5 text-xs font-semibold text-slate-700">
               <span id="appointment-status-filter-label">{M.statusFilter}</span>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select
+                value={statusFilter}
+                onValueChange={(val) => {
+                  setStatusFilter(val);
+                  setPage(1);
+                }}
+              >
                 <SelectTrigger aria-labelledby="appointment-status-filter-label">
                   <SelectValue />
                 </SelectTrigger>
@@ -412,38 +434,51 @@ export function CustomerAppointmentsView() {
               <p className="mt-3 text-xs text-muted">{M.localTimezone}</p>
             </section>
           ) : filteredAppointments.length ? (
-            <CustomerTable
-              title={M.title}
-              headings={[M.dateTime, M.facility, M.related, M.statusFilter, M.details]}
-              minWidth="min-w-[760px]"
-            >
-              {filteredAppointments.map((item) => (
-                <tr key={item.id}>
-                  <td>
-                    <span className="font-semibold text-ink">{appointmentLabel(item)}</span>
-                    <span className="mt-1 block text-xs text-muted">
-                      {formatDate(item.scheduledDate)} ·{" "}
-                      {item.slotStart?.slice(0, 5) ?? M.noSlotTime}
-                      {item.slotEnd ? `–${item.slotEnd.slice(0, 5)}` : ""}
-                    </span>
-                  </td>
-                  <td>{item.facility?.name ?? formatReference(item.facilityId, "CS")}</td>
-                  <td className="max-w-56 truncate">{relatedLabel(item)}</td>
-                  <td>
-                    <AppointmentStatus item={item} />
-                  </td>
-                  <td>
-                    <Button
-                      variant="outline"
-                      className="min-h-10 px-3 text-xs"
-                      onClick={() => setSelectedId(item.id)}
-                    >
-                      {M.details}
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </CustomerTable>
+            <div className="space-y-3">
+              <CustomerTable
+                title={M.title}
+                headings={[M.dateTime, M.facility, M.related, M.statusFilter, M.details]}
+                minWidth="min-w-[760px]"
+              >
+                {pagedAppointments.map((item) => (
+                  <tr key={item.id}>
+                    <td>
+                      <span className="font-semibold text-ink">{appointmentLabel(item)}</span>
+                      <span className="mt-1 block text-xs text-muted">
+                        {formatDate(item.scheduledDate)} ·{" "}
+                        {item.slotStart?.slice(0, 5) ?? M.noSlotTime}
+                        {item.slotEnd ? `–${item.slotEnd.slice(0, 5)}` : ""}
+                      </span>
+                    </td>
+                    <td>{item.facility?.name ?? formatReference(item.facilityId, "CS")}</td>
+                    <td className="max-w-56 truncate">{relatedLabel(item)}</td>
+                    <td>
+                      <AppointmentStatus item={item} />
+                    </td>
+                    <td>
+                      <Button
+                        variant="outline"
+                        className="min-h-10 px-3 text-xs"
+                        onClick={() => setSelectedId(item.id)}
+                      >
+                        {M.details}
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </CustomerTable>
+
+              <div className="shrink-0 [&>nav]:shadow-2xs">
+                <ListPagination
+                  label={M.title}
+                  page={page}
+                  pageSize={pageSize}
+                  total={filteredAppointments.length}
+                  onPageChange={setPage}
+                  unitLabel="lịch hẹn"
+                />
+              </div>
+            </div>
           ) : (
             <div className="rounded-card border border-dashed border-line bg-white px-4 py-10 text-center">
               <p className="text-sm font-semibold text-ink">{M.empty}</p>
@@ -538,6 +573,7 @@ export function CustomerAppointmentsView() {
             <AlertDialogAction asChild>
               <Button
                 variant="danger"
+                loading={cancel.isPending}
                 disabled={cancel.isPending}
                 onClick={() => cancelTarget && cancel.mutate(cancelTarget)}
               >

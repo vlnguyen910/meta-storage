@@ -42,6 +42,8 @@ export const RENTAL_MESSAGES = {
   returnHistory: "Lịch trả kho",
   returnSlotsError: "Không tải được khung giờ trả kho.",
   returnCreateError: "Không gửi được yêu cầu trả kho. Hãy kiểm tra lại ngày và khung giờ.",
+  returnCreatedSuccess: "Đã gửi yêu cầu trả kho thành công.",
+  returnCancelledSuccess: "Đã hủy yêu cầu trả kho thành công.",
   returnEarlyTitle: "Xác nhận trả kho sớm",
   returnEarlyDescription: (endDate: string) =>
     `Ngày trả bạn chọn sớm hơn hạn thuê ${endDate}. Bạn có chắc muốn gửi yêu cầu này không?`,

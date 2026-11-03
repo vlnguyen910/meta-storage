@@ -1,4 +1,5 @@
 "use client";
+
 import type {
   AppointmentRecordDto,
   CheckInLookupInput,
@@ -23,6 +24,7 @@ import { useEffect, useState } from "react";
 import { useGlobalLoading } from "@/components/providers/global-loading-provider";
 import { useToast } from "@/components/ui/toast";
 import { api } from "@/lib/api";
+import { readFileBase64 } from "@/lib/read-file-base64";
 import { FLOW } from "./flow.messages";
 import { appointmentItem } from "./use-dispatch";
 
@@ -37,7 +39,7 @@ export function flowError(error: unknown) {
       : FLOW.error;
 }
 
-export function normalizeLookup(value: string) {
+function normalizeLookup(value: string) {
   try {
     return new URL(value.trim()).searchParams.get("token") ?? value.trim();
   } catch {
@@ -45,8 +47,7 @@ export function normalizeLookup(value: string) {
   }
 }
 
-export const inspectionKey = (bookingId: string) =>
-  ["facility-flow", "inspections", bookingId] as const;
+const inspectionKey = (bookingId: string) => ["facility-flow", "inspections", bookingId] as const;
 
 export function useCheckInFlow() {
   const router = useRouter();
@@ -328,11 +329,8 @@ export function useInspectionEditor(record: InspectionRecord, onNavigate: (next:
     }
     await action(async () => {
       if (dirty) await api.inspections.save(record.id, updateInput());
-      const dataBase64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
-        reader.onerror = () => reject(new Error(FLOW.photoError));
-        reader.readAsDataURL(file);
+      const dataBase64 = await readFileBase64(file).catch(() => {
+        throw new Error(FLOW.photoError);
       });
       return api.inspections.upload(record.id, {
         filename: file.name,

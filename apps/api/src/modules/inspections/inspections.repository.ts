@@ -348,14 +348,6 @@ export class InspectionsRepository {
     return tx.insert(debts).values({ settlementId, originalAmount: String(amount) });
   }
 
-  findInspectionTask(tx: TaskTransaction, taskId: string) {
-    return tx.select().from(facilityTasks).where(eq(facilityTasks.id, taskId)).for("update");
-  }
-
-  findInspectionByTask(tx: TaskTransaction, taskId: string) {
-    return tx.select().from(inspections).where(eq(inspections.taskId, taskId));
-  }
-
   list(
     query: InspectionListQuery,
     scope: { staffId: string; facilityIds: string[] } | { facilityId: string },

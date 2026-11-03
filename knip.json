@@ -1,0 +1,26 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "tags": ["-lintignore"],
+  "workspaces": {
+    ".": {
+      "entry": [".stitch/mobile/pull-assets.mjs"]
+    },
+    "apps/api": {
+      "entry": [
+        "src/common/types/fastify.types.ts",
+        "tests/**/*.test.ts",
+        "tests/run-*.ts",
+        "src/scripts/*.ts",
+        "tests/fixtures/customer-rental-live-server.ts"
+      ],
+      "ignoreDependencies": ["pino-pretty"]
+    },
+    "apps/mobile": {
+      "entry": ["tests/**/*.test.mts"],
+      "ignoreDependencies": ["react-native-reanimated", "react-native-worklets"]
+    },
+    "apps/web": {
+      "entry": ["playwright*.config.ts", "e2e/support/*.mjs"]
+    }
+  }
+}

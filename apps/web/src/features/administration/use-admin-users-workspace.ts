@@ -4,6 +4,7 @@ import type { UpdateUserRoleWithoutCustomerInput, User } from "@metastorage/cont
 import { UserRole, type UserStatus } from "@metastorage/database/schema/user-enums";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { useToast } from "@/components/ui/toast";
 import { api } from "@/lib/api";
 import { adminApiError, isManagedUser, matchesSearch } from "./admin.helpers";
 import { ADMIN_MESSAGES as M } from "./admin.messages";
@@ -24,6 +25,7 @@ async function listAllUsers(): Promise<User[]> {
 }
 
 export function useAdminUsersWorkspace() {
+  const { showToast } = useToast();
   const queryClient = useQueryClient();
   const query = useQuery({ queryKey, queryFn: listAllUsers });
   const [filters, setFilters] = useState(initialFilters);
@@ -48,9 +50,14 @@ export function useAdminUsersWorkspace() {
     }) => api.users.setRole(userId, role),
     onSuccess: () => {
       setNotice(M.roleUpdateSuccess);
+      showToast(M.roleUpdateSuccess, "success");
       return invalidateUsers();
     },
-    onError: (error) => setNotice(adminApiError(error, M.updateError)),
+    onError: (error) => {
+      const msg = adminApiError(error, M.updateError);
+      setNotice(msg);
+      showToast(msg, "error");
+    },
   });
   const statusMutation = useMutation({
     meta: { globalLoading: true },
@@ -58,9 +65,14 @@ export function useAdminUsersWorkspace() {
       api.users.setStatus(userId, { status }),
     onSuccess: () => {
       setNotice(M.statusUpdateSuccess);
+      showToast(M.statusUpdateSuccess, "success");
       return invalidateUsers();
     },
-    onError: (error) => setNotice(adminApiError(error, M.updateError)),
+    onError: (error) => {
+      const msg = adminApiError(error, M.updateError);
+      setNotice(msg);
+      showToast(msg, "error");
+    },
   });
   const users = useMemo(
     () =>

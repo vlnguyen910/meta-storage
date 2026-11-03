@@ -64,6 +64,7 @@ export const envSchema = z
       .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
       .default("info"),
     DATABASE_URL: z.url({ protocol: /^postgres(?:ql)?$/, hostname: /^.+$/, error: m.databaseUrl }),
+    MONGODB_URI: z.url({ protocol: /^mongodb(?:\+srv)?$/, hostname: /^.+$/, error: m.mongodbUrl }),
     REDIS_URL: z.url({ protocol: /^rediss?$/, hostname: /^.+$/, error: m.redisUrl }),
     CORS_ORIGIN: required("CORS_ORIGIN").refine(
       (value) => validOriginList(value, true),

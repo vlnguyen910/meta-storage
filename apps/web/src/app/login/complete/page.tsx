@@ -93,7 +93,8 @@ function LoginCompleteContent() {
           (requested === routes.reservationNew ||
             requested.startsWith(`${routes.reservationNew}?`));
         const destination =
-          requested === roleRoot || requested.startsWith(`${roleRoot}/`) || customerReservationEntry
+          customerReservationEntry ||
+          (requested.startsWith(`${roleRoot}/`) && requested !== `${roleRoot}/`)
             ? requested
             : roleHome[role];
 

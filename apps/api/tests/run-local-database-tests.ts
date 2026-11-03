@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
+import { mongodb } from "@fastify/mongodb";
 import Redis from "ioredis";
 
 const root = fileURLToPath(new URL("../../..", import.meta.url));
@@ -9,6 +10,10 @@ export function localTestUrls(environment: Record<string, string | undefined>) {
     environment.LOCAL_TEST_POSTGRES_URL ?? "postgres://postgres:postgres@127.0.0.1:5433/postgres",
   );
   const redis = new URL(environment.LOCAL_TEST_REDIS_URL ?? "redis://127.0.0.1:6379/12");
+  const mongo = new URL(
+    environment.MONGODB_TEST_URI ??
+      "mongodb://mongo:mongo@127.0.0.1:27017/metastorage_logs_test?authSource=admin",
+  );
   const loopback = (host: string) => ["localhost", "127.0.0.1", "[::1]"].includes(host);
   if (
     !["postgres:", "postgresql:"].includes(postgres.protocol) ||
@@ -28,12 +33,17 @@ export function localTestUrls(environment: Record<string, string | undefined>) {
     redis.hash
   )
     throw new Error("LOCAL_TEST_REDIS_URL must target a reserved loopback Redis database 1–15");
-  return { postgres, redis };
+  if (mongo.protocol !== "mongodb:" || !loopback(mongo.hostname))
+    throw new Error("MONGODB_TEST_URI must target a loopback MongoDB server");
+  return { postgres, redis, mongo };
 }
 
 async function run() {
   const urls = localTestUrls(process.env);
   const suffix = randomUUID().replaceAll("-", "").slice(0, 16);
+  const mongoUrl = new URL(urls.mongo);
+  mongoUrl.pathname = `/metastorage_logs_test_${suffix}`;
+  const mongo = new mongodb.MongoClient(mongoUrl.href, { serverSelectionTimeoutMS: 3000 });
   const names = [
     `metastorage_inspection_test_local_${suffix}`,
     `metastorage_local_${suffix}_seed_test`,
@@ -51,6 +61,8 @@ async function run() {
     LOG_LEVEL: "silent",
     TRUSTED_PROXY_CIDRS: "127.0.0.1",
     DATABASE_URL: databaseUrl(names[0]),
+    MONGODB_URI: mongoUrl.href,
+    MONGODB_TEST_URI: mongoUrl.href,
     DOCKER_DATABASE_URL: "",
     REDIS_URL: urls.redis.href,
     REDIS_TEST_URL: urls.redis.href,
@@ -93,6 +105,7 @@ async function run() {
   const lock = "metastorage:local-tests:owner";
   const created: string[] = [];
   let ownsRedis = false;
+  let mongoConnected = false;
   async function command(args: string[], env = environment) {
     const child = Bun.spawn([process.execPath, ...args], {
       cwd: root,
@@ -104,6 +117,8 @@ async function run() {
     if (exitCode !== 0) throw new Error(`Local check failed (${exitCode}): bun ${args.join(" ")}`);
   }
   try {
+    await mongo.connect();
+    mongoConnected = true;
     await redis.connect();
     if (await redis.dbsize())
       throw new Error(
@@ -135,6 +150,11 @@ async function run() {
         if (ownsRedis && (await redis.get(lock)) === suffix) await redis.flushdb();
       } finally {
         redis.disconnect();
+        try {
+          if (mongoConnected) await mongo.db().dropDatabase();
+        } finally {
+          await mongo.close();
+        }
       }
     }
   }

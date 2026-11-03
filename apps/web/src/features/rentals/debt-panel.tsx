@@ -8,40 +8,83 @@ import {
   type ReturnSettlement,
 } from "@metastorage/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Banknote,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  CreditCard,
+  History,
+  Receipt,
+  Wallet,
+} from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ListPagination } from "@/components/ui/list-pagination";
-import { operationalField } from "@/components/ui/operational";
 import { ErrorState, LoadingState } from "@/components/ui/states";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { useToast } from "@/components/ui/toast";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { api } from "@/lib/api";
 import { formatCurrency, formatDateTime } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { DEBT_MESSAGES as M } from "./debts.messages";
 
 export function SettlementSummary({ settlement }: { settlement?: ReturnSettlement | null }) {
   if (!settlement) return null;
   return (
-    <section className="space-y-3 rounded-xl border border-line bg-white p-5">
-      <h2 className="text-lg font-semibold">{M.settlement}</h2>
-      <dl className="grid gap-3 text-sm sm:grid-cols-2">
-        {[
-          [M.deposit, settlement.depositAmount],
-          [M.deductions, settlement.deductionAmount],
-          [M.refund, settlement.refundAmount],
-          [M.debt, settlement.debtAmount],
-        ].map(([label, amount]) => (
-          <div key={label}>
-            <dt>{label}</dt>
-            <dd className="font-semibold tabular-nums">{formatCurrency(Number(amount))}</dd>
+    <Card className="border-slate-200 bg-white shadow-2xs">
+      <CardHeader className="flex flex-row items-center gap-2 border-b border-slate-100 bg-slate-50/50 px-4 py-3">
+        <span className="grid size-7 place-items-center rounded-md bg-emerald-50 text-emerald-800">
+          <Receipt size={15} />
+        </span>
+        <h2 className="text-sm font-bold text-slate-900">{M.settlement}</h2>
+      </CardHeader>
+      <CardContent className="p-4">
+        <dl className="grid gap-3 text-xs sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-2.5">
+            <dt className="text-[10px] font-semibold uppercase text-slate-400">{M.deposit}</dt>
+            <dd className="mt-1 font-bold tabular-nums text-slate-900">
+              {formatCurrency(Number(settlement.depositAmount))}
+            </dd>
           </div>
-        ))}
-        <div>
-          <dt>{M.time}</dt>
-          <dd>{formatDateTime(settlement.settledAt)}</dd>
+          <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-2.5">
+            <dt className="text-[10px] font-semibold uppercase text-slate-400">{M.deductions}</dt>
+            <dd className="mt-1 font-bold tabular-nums text-rose-600">
+              {formatCurrency(Number(settlement.deductionAmount))}
+            </dd>
+          </div>
+          <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-2.5">
+            <dt className="text-[10px] font-semibold uppercase text-slate-400">{M.refund}</dt>
+            <dd className="mt-1 font-bold tabular-nums text-emerald-700">
+              {formatCurrency(Number(settlement.refundAmount))}
+            </dd>
+          </div>
+          <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-2.5">
+            <dt className="text-[10px] font-semibold uppercase text-slate-400">{M.debt}</dt>
+            <dd className="mt-1 font-bold tabular-nums text-amber-700">
+              {formatCurrency(Number(settlement.debtAmount))}
+            </dd>
+          </div>
+        </dl>
+        <div className="mt-3 flex items-center justify-end text-[11px] text-slate-500">
+          <span>{M.time}:</span>
+          <span className="ml-1 font-medium text-slate-700">
+            {formatDateTime(settlement.settledAt)}
+          </span>
         </div>
-      </dl>
-    </section>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -50,19 +93,32 @@ export function DebtPanel({ rentalId }: { rentalId?: string }) {
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<DebtQuery["status"]>();
   const [selectedId, setSelectedId] = useState<string>();
+
   const list = useQuery({
     queryKey: ["debts", user?.id, rentalId, status, page],
     queryFn: () => api.debts.list({ rentalId, status, limit: 10, offset: (page - 1) * 10 }),
     enabled: Boolean(user),
   });
+
   return (
-    <section className="space-y-4 rounded-xl border border-line bg-white p-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">{M.title}</h2>
-        <label className="grid gap-1 text-sm">
-          {M.status}
+    <Card className="overflow-hidden border-slate-200 bg-white shadow-2xs">
+      <CardHeader className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
+        <div className="flex items-center gap-2.5">
+          <span className="grid size-8 place-items-center rounded-lg bg-emerald-50 text-emerald-800">
+            <Wallet size={16} />
+          </span>
+          <div>
+            <h2 className="text-base font-bold text-slate-900">{M.title}</h2>
+            <p className="text-[11px] text-slate-500">
+              Theo dõi và ghi nhận các khoản công nợ phát sinh sau trả kho
+            </p>
+          </div>
+        </div>
+
+        <label className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+          <span>{M.status}:</span>
           <select
-            className={operationalField}
+            className="h-8.5 rounded-lg border border-slate-200 bg-slate-50/50 px-2.5 text-xs text-slate-800 outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary font-normal"
             value={status ?? ""}
             onChange={(event) => {
               setStatus((event.target.value || undefined) as DebtQuery["status"]);
@@ -78,58 +134,162 @@ export function DebtPanel({ rentalId }: { rentalId?: string }) {
             ))}
           </select>
         </label>
-      </div>
-      {list.isPending ? (
-        <LoadingState variant="table" />
-      ) : list.isError ? (
-        <ErrorState message={M.loadError} onRetry={() => void list.refetch()} />
-      ) : (
-        <>
-          {!list.data.items.length && <p className="text-sm text-slate-600">{M.empty}</p>}
-          <ul className="divide-y divide-line">
-            {list.data.items.map((debt) => (
-              <li key={debt.id} className="space-y-3 py-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="font-semibold">
-                      {debt.customerName} · {debt.unitCode}
-                    </p>
-                    <p className="text-sm">{M.statuses[debt.status]}</p>
-                    <p className="text-sm">
-                      {M.original}: {formatCurrency(Number(debt.originalAmount))} · {M.paid}:{" "}
-                      {formatCurrency(Number(debt.paidAmount))}
-                    </p>
-                    <p className="text-sm">
-                      {M.remaining}: <strong>{formatCurrency(Number(debt.remainingAmount))}</strong>
-                    </p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    aria-expanded={selectedId === debt.id}
-                    onClick={() => setSelectedId(selectedId === debt.id ? undefined : debt.id)}
-                  >
-                    {user?.role === "FACILITY_STAFF" ? M.show : M.view}
-                  </Button>
-                </div>
-                {selectedId === debt.id && (
-                  <DebtHistory debt={debt} canCollect={user?.role === "FACILITY_STAFF"} />
-                )}
-              </li>
-            ))}
-          </ul>
-          <ListPagination
-            label={M.title}
-            page={page}
-            pageSize={10}
-            total={list.data.total}
-            onPageChange={setPage}
-          />
-        </>
-      )}
-    </section>
+      </CardHeader>
+
+      <CardContent className="p-0">
+        {list.isPending ? (
+          <div className="p-6">
+            <LoadingState variant="table" />
+          </div>
+        ) : list.isError ? (
+          <div className="p-6">
+            <ErrorState message={M.loadError} onRetry={() => void list.refetch()} />
+          </div>
+        ) : (
+          <>
+            {!list.data.items.length ? (
+              <div className="p-8 text-center text-xs text-slate-500">{M.empty}</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="border-b border-slate-200 bg-slate-50/70">
+                    <TableRow className="hover:bg-transparent border-0">
+                      <TableHead className="h-9 px-4 text-xs font-bold uppercase tracking-wider text-slate-600">
+                        Khách hàng & Ô kho
+                      </TableHead>
+                      <TableHead className="h-9 px-4 text-xs font-bold uppercase tracking-wider text-slate-600">
+                        {M.original}
+                      </TableHead>
+                      <TableHead className="h-9 px-4 text-xs font-bold uppercase tracking-wider text-slate-600">
+                        {M.paid}
+                      </TableHead>
+                      <TableHead className="h-9 px-4 text-xs font-bold uppercase tracking-wider text-slate-600">
+                        {M.remaining}
+                      </TableHead>
+                      <TableHead className="h-9 px-4 text-center text-xs font-bold uppercase tracking-wider text-slate-600">
+                        Trạng thái
+                      </TableHead>
+                      <TableHead className="h-9 px-4 text-right text-xs font-bold uppercase tracking-wider text-slate-600">
+                        Thao tác
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {list.data.items.map((debt) => {
+                      const isExpanded = selectedId === debt.id;
+                      return (
+                        <DebtTableRow
+                          key={debt.id}
+                          debt={debt}
+                          isExpanded={isExpanded}
+                          onToggle={() => setSelectedId(isExpanded ? undefined : debt.id)}
+                          isStaff={user?.role === "FACILITY_STAFF"}
+                        />
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            {list.data.total > 0 && (
+              <div className="border-t border-slate-100 p-3 bg-slate-50/40">
+                <ListPagination
+                  label={M.title}
+                  unitLabel="công nợ"
+                  page={page}
+                  pageSize={10}
+                  total={list.data.total}
+                  onPageChange={setPage}
+                  className="border-0 shadow-none bg-transparent p-0"
+                />
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }
+
+function DebtTableRow({
+  debt,
+  isExpanded,
+  onToggle,
+  isStaff,
+}: {
+  debt: DebtRecord;
+  isExpanded: boolean;
+  onToggle: () => void;
+  isStaff: boolean;
+}) {
+  return (
+    <>
+      <TableRow className={cn("transition-colors", isExpanded && "bg-slate-50/60")}>
+        <TableCell className="px-4 py-3 align-middle">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-slate-900 text-xs">{debt.customerName}</span>
+            <Badge
+              variant="outline"
+              className="border-emerald-200 bg-emerald-50 font-mono text-[10px] text-emerald-800 px-1.5 py-0"
+            >
+              {debt.unitCode}
+            </Badge>
+          </div>
+        </TableCell>
+        <TableCell className="px-4 py-3 align-middle text-xs font-medium tabular-nums text-slate-600">
+          {formatCurrency(Number(debt.originalAmount))}
+        </TableCell>
+        <TableCell className="px-4 py-3 align-middle text-xs font-semibold tabular-nums text-emerald-700">
+          {formatCurrency(Number(debt.paidAmount))}
+        </TableCell>
+        <TableCell className="px-4 py-3 align-middle text-xs font-bold tabular-nums text-rose-600">
+          {formatCurrency(Number(debt.remainingAmount))}
+        </TableCell>
+        <TableCell className="px-4 py-3 align-middle text-center">
+          <Badge
+            variant="outline"
+            className={cn(
+              "text-[10px] font-semibold px-2 py-0.5",
+              debt.status === "PAID"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : debt.status === "PARTIALLY_PAID"
+                  ? "border-amber-200 bg-amber-50 text-amber-800"
+                  : "border-rose-200 bg-rose-50 text-rose-800",
+            )}
+          >
+            {M.statuses[debt.status]}
+          </Badge>
+        </TableCell>
+        <TableCell className="px-4 py-3 align-middle text-right">
+          <Button
+            type="button"
+            variant="outline"
+            aria-expanded={isExpanded}
+            onClick={onToggle}
+            className="min-h-0 h-8 px-2.5 text-xs font-semibold border-slate-200 text-slate-700 hover:bg-slate-100 shadow-2xs gap-1.5"
+          >
+            <span>{isStaff ? M.show : M.view}</span>
+            {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          </Button>
+        </TableCell>
+      </TableRow>
+
+      {isExpanded && (
+        <TableRow className="bg-slate-50/70 border-t-0">
+          <TableCell colSpan={6} className="px-4 py-3">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
+              <DebtHistory debt={debt} canCollect={isStaff} />
+            </div>
+          </TableCell>
+        </TableRow>
+      )}
+    </>
+  );
+}
+
 function DebtHistory({ debt, canCollect }: { debt: DebtRecord; canCollect: boolean }) {
+  const { showToast } = useToast();
   const userId = useAuthStore((state) => state.session?.user.id);
   const client = useQueryClient();
   const detail = useQuery({
@@ -144,6 +304,7 @@ function DebtHistory({ debt, canCollect }: { debt: DebtRecord; canCollect: boole
     mutationFn: (input: DebtPaymentInput) => api.debts.collect(debt.id, input),
     onSuccess: async () => {
       form.reset({ method: "CASH", idempotencyKey: crypto.randomUUID() });
+      showToast(M.confirmed, "success");
       await Promise.all([
         client.invalidateQueries({ queryKey: ["debts"] }),
         client.invalidateQueries({ queryKey: ["debt", userId, debt.id] }),
@@ -152,85 +313,161 @@ function DebtHistory({ debt, canCollect }: { debt: DebtRecord; canCollect: boole
       ]);
     },
   });
+
   if (detail.isPending) return <LoadingState variant="detail" />;
   if (detail.isError)
     return <ErrorState message={M.loadError} onRetry={() => void detail.refetch()} />;
+
   return (
-    <div className="space-y-3">
-      <h3 className="font-semibold">{M.history}</h3>
-      {!detail.data.payments.length && <p className="text-sm text-slate-600">{M.noReceipts}</p>}
-      <ul className="space-y-2 text-sm">
-        {detail.data.payments.map((payment) => (
-          <li key={payment.id}>
-            {formatDateTime(payment.paidAt)} · {formatCurrency(Number(payment.totalAmount))} ·{" "}
-            {payment.method === "CASH" ? M.cash : M.bankTransfer} {payment.reference}
-          </li>
-        ))}
-      </ul>
+    <div className="space-y-4">
+      {/* Receipts History */}
+      <div>
+        <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800 mb-2">
+          <History size={14} className="text-slate-500" />
+          <h3>{M.history}</h3>
+        </div>
+
+        {!detail.data.payments.length ? (
+          <p className="rounded-lg border border-slate-100 bg-slate-50/60 p-3 text-xs text-slate-500">
+            {M.noReceipts}
+          </p>
+        ) : (
+          <div className="space-y-1.5">
+            {detail.data.payments.map((payment) => (
+              <div
+                key={payment.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-2 text-xs"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="grid size-6 place-items-center rounded bg-emerald-100 text-emerald-800">
+                    {payment.method === "CASH" ? <Banknote size={12} /> : <CreditCard size={12} />}
+                  </span>
+                  <div>
+                    <span className="font-bold text-emerald-800">
+                      {formatCurrency(Number(payment.totalAmount))}
+                    </span>
+                    <span className="text-[11px] text-slate-400 ml-2">
+                      {payment.method === "CASH" ? M.cash : M.bankTransfer}
+                      {payment.reference ? ` · ${payment.reference}` : ""}
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[11px] text-slate-500">{formatDateTime(payment.paidAt)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Collect Payment Form for Staff */}
       {canCollect && Number(detail.data.remainingAmount) > 0 && (
-        <form
-          className="grid gap-3 sm:grid-cols-2"
-          onSubmit={form.handleSubmit((input) => collect.mutate(input))}
-        >
-          <label className="grid gap-1 text-sm">
-            {M.amount}
-            <input
-              type="number"
-              required
-              min={1}
-              max={Number(detail.data.remainingAmount)}
-              step={1}
-              className={operationalField}
-              disabled={collect.isPending}
-              {...form.register("amount", { valueAsNumber: true })}
-            />
-          </label>
-          <label className="grid gap-1 text-sm">
-            {M.method}
-            <select
-              className={operationalField}
-              disabled={collect.isPending}
-              aria-label={M.method}
-              {...form.register("method", { onChange: () => form.resetField("reference") })}
-            >
-              <option value="CASH">{M.cash}</option>
-              <option value="BANK_TRANSFER">{M.bankTransfer}</option>
-            </select>
-          </label>
-          {form.watch("method") === "BANK_TRANSFER" && (
-            <label className="grid gap-1 text-sm">
-              {M.reference}
+        <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-3.5 space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
+              <CheckCircle2 size={14} className="text-emerald-700" />
+              <span>Ghi nhận khoản thanh toán từ khách</span>
+            </h4>
+            <span className="text-xs text-slate-600">
+              {M.remaining}:{" "}
+              <strong className="text-rose-600 font-bold">
+                {formatCurrency(Number(detail.data.remainingAmount))}
+              </strong>
+            </span>
+          </div>
+
+          <form
+            className="grid gap-3 sm:grid-cols-2"
+            onSubmit={form.handleSubmit((input) => collect.mutate(input))}
+          >
+            <label className="block text-xs font-semibold text-slate-700">
+              <span className="block mb-1">{M.amount}</span>
               <input
+                type="number"
                 required
-                className={operationalField}
-                maxLength={128}
+                min={1}
+                max={Number(detail.data.remainingAmount)}
+                step={1}
+                className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-800 outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary font-normal"
                 disabled={collect.isPending}
-                {...form.register("reference", {
-                  setValueAs: (value) => value?.trim() || undefined,
-                })}
+                {...form.register("amount", { valueAsNumber: true })}
               />
             </label>
-          )}
-          {Object.values(form.formState.errors).map((error) => (
-            <p role="alert" className="text-sm text-danger" key={error.message}>
-              {error.message}
-            </p>
-          ))}
-          <Button type="submit" disabled={collect.isPending}>
-            {M.collect}
-          </Button>
-        </form>
+
+            <label className="block text-xs font-semibold text-slate-700">
+              <span className="block mb-1">{M.method}</span>
+              <select
+                className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-800 outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary font-normal"
+                disabled={collect.isPending}
+                aria-label={M.method}
+                {...form.register("method", { onChange: () => form.resetField("reference") })}
+              >
+                <option value="CASH">{M.cash}</option>
+                <option value="BANK_TRANSFER">{M.bankTransfer}</option>
+              </select>
+            </label>
+
+            {form.watch("method") === "BANK_TRANSFER" && (
+              <label className="block text-xs font-semibold text-slate-700 sm:col-span-2">
+                <span className="block mb-1">{M.reference}</span>
+                <input
+                  required
+                  placeholder="Nhập mã biên lai / tham chiếu giao dịch ngân hàng"
+                  className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-800 outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary font-normal"
+                  maxLength={128}
+                  disabled={collect.isPending}
+                  {...form.register("reference", {
+                    setValueAs: (value) => value?.trim() || undefined,
+                  })}
+                />
+              </label>
+            )}
+
+            {Object.values(form.formState.errors).map((error) => (
+              <p
+                role="alert"
+                className="text-xs font-semibold text-rose-600 sm:col-span-2"
+                key={error.message}
+              >
+                {error.message}
+              </p>
+            ))}
+
+            <div className="sm:col-span-2 flex justify-end pt-1">
+              <Button
+                type="submit"
+                disabled={collect.isPending}
+                loading={collect.isPending}
+                className="min-h-0 h-8.5 px-4 text-xs font-bold"
+              >
+                {M.collect}
+              </Button>
+            </div>
+          </form>
+        </div>
       )}
+
       {collect.isError && (
-        <div role="alert" className="space-y-2 text-sm text-danger">
-          <p>{M.paymentError}</p>
-          <Button variant="outline" onClick={() => void detail.refetch()}>
+        <div
+          role="alert"
+          className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800 space-y-2"
+        >
+          <p className="font-medium">{M.paymentError}</p>
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-0 h-7 px-3 text-xs"
+            onClick={() => void detail.refetch()}
+          >
             {M.view}
           </Button>
         </div>
       )}
+
       {collect.isSuccess && (
-        <p role="status" className="text-sm text-primary">
+        <p
+          role="status"
+          className="rounded-lg border border-emerald-200 bg-emerald-50 p-2.5 text-xs font-bold text-emerald-800"
+        >
           {M.confirmed}
         </p>
       )}

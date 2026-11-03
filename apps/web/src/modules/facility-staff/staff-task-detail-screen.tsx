@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { OperationalBadge } from "@/components/ui/operational";
 import { ErrorState, LoadingState } from "@/components/ui/states";
+import { useToast } from "@/components/ui/toast";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { bookingKeys } from "@/features/check-in/hooks";
 import { InspectionChecklist } from "@/features/facility-flow/inspection-checklist";
@@ -40,10 +41,12 @@ import {
 } from "@/features/facility-management/hooks";
 import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
+import { readFileBase64 } from "@/lib/read-file-base64";
 import { STAFF_WORK as M } from "./staff-work.messages";
 
 export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
   const router = useRouter();
+  const { showToast } = useToast();
   const query = useFacilityTaskDetail(taskId);
   const actor = useAuthStore((s) => s.session?.user.id);
   const update = useUpdateTask(taskId);
@@ -101,6 +104,7 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
       return api.inspections.create({ taskId: task.id });
     },
     onSuccess: async () => {
+      showToast(M.updated, "success");
       await Promise.all([query.refetch(), history.refetch()]);
       await client.invalidateQueries({ queryKey: ["staff-return-inspections", task?.referenceId] });
     },
@@ -169,17 +173,19 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
         client.invalidateQueries({ queryKey: ["rentals"] }),
         client.invalidateQueries({ queryKey: bookingKeys.staffTasks(task?.facilityId) }),
       ]);
-      if (updated.status === "PASSED") router.push("/staff/tasks");
+      if (updated.status === "PASSED") {
+        showToast(M.returnFinalized, "success");
+        router.push("/staff/tasks");
+      } else {
+        showToast(M.returnSaved, "success");
+      }
     },
   });
   const uploadEvidence = useMutation({
     mutationFn: async (file: File) => {
       if (!record) throw new Error(M.returnPhotoError);
-      const dataBase64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
-        reader.onerror = () => reject(new Error(M.returnPhotoError));
-        reader.readAsDataURL(file);
+      const dataBase64 = await readFileBase64(file).catch(() => {
+        throw new Error(M.returnPhotoError);
       });
       return api.inspections.upload(record.id, {
         filename: file.name,
@@ -187,14 +193,20 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
         dataBase64,
       });
     },
-    onSuccess: () => void history.refetch(),
+    onSuccess: () => {
+      showToast(M.updated, "success");
+      void history.refetch();
+    },
   });
   const removeEvidence = useMutation({
     mutationFn: (photoId: string) => {
       if (!record) throw new Error(M.returnPhotoError);
       return api.inspections.removePhoto(record.id, photoId);
     },
-    onSuccess: () => void history.refetch(),
+    onSuccess: () => {
+      showToast(M.updated, "success");
+      void history.refetch();
+    },
   });
   if (query.isPending) return <LoadingState variant="detail" />;
   if (query.isError || query.data.assignedStaffId !== actor)
@@ -351,7 +363,13 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
           {!returnRecord && currentTask.status === "ASSIGNED" && (
             <Button
               disabled={update.isPending}
-              onClick={() => update.mutate({ status: FacilityTaskStatus.IN_PROGRESS })}
+              loading={update.isPending}
+              onClick={() =>
+                update.mutate(
+                  { status: FacilityTaskStatus.IN_PROGRESS },
+                  { onSuccess: () => showToast(M.updated, "success") },
+                )
+              }
             >
               {M.openTask}
             </Button>
@@ -359,7 +377,13 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
           {!returnRecord && currentTask.status === "IN_PROGRESS" && (
             <Button
               disabled={update.isPending}
-              onClick={() => update.mutate({ status: FacilityTaskStatus.COMPLETED })}
+              loading={update.isPending}
+              onClick={() =>
+                update.mutate(
+                  { status: FacilityTaskStatus.COMPLETED },
+                  { onSuccess: () => showToast(M.complete, "success") },
+                )
+              }
             >
               {M.complete}
             </Button>
@@ -392,6 +416,7 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
                 </div>
                 <Button
                   className="w-full sm:w-auto"
+                  loading={startReturn.isPending}
                   disabled={
                     startReturn.isPending ||
                     currentTask.status === "COMPLETED" ||
@@ -702,12 +727,14 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
                 <div className="sticky bottom-0 z-20 flex flex-wrap items-center justify-end gap-3 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-lg backdrop-blur sm:px-6">
                   <Button
                     variant="outline"
+                    loading={saveReturn.isPending && saveReturn.variables === "IN_PROGRESS"}
                     disabled={saveReturn.isPending || evidencePending || policyNeedsReview}
                     onClick={() => saveReturn.mutate("IN_PROGRESS")}
                   >
                     {M.returnSave}
                   </Button>
                   <Button
+                    loading={saveReturn.isPending && saveReturn.variables === "PASSED"}
                     disabled={
                       !canFinalize || saveReturn.isPending || evidencePending || policyNeedsReview
                     }
