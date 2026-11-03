@@ -1,13 +1,10 @@
 "use client";
 
 import {
-  AlertCircle,
   ArrowRight,
   Boxes,
   Building2,
   Calendar,
-  ChevronDown,
-  ChevronUp,
   RotateCcw,
   ShieldCheck,
   TrendingUp,
@@ -24,7 +21,6 @@ import { ErrorState, LoadingState } from "@/components/ui/states";
 import { businessOperationsRoutes as routes } from "@/config/routes";
 import { useOperationsCatalogOptions } from "../hooks/use-operations-catalog-options";
 import { useOperationsOverview } from "../hooks/use-operations-overview";
-import { useOperationsRevenue } from "../hooks/use-operations-revenue";
 import { OPERATIONS_MESSAGES as M } from "../operations.messages";
 import {
   formatDateTimeVn,
@@ -36,10 +32,6 @@ import { DASHBOARD_MESSAGES as D } from "../operations-dashboard.messages";
 import { REPORTING_MESSAGES as R } from "../operations-reporting.messages";
 import { ChartLoadingSkeleton } from "./charts/chart-loading-skeleton";
 
-const FacilityRevenueChart = dynamic(
-  () => import("./charts/facility-revenue-chart").then((module) => module.FacilityRevenueChart),
-  { ssr: false, loading: () => <ChartLoadingSkeleton /> },
-);
 const FacilityUtilizationDonutChart = dynamic(
   () =>
     import("./charts/facility-utilization-donut-chart").then(
@@ -52,10 +44,6 @@ const OperationsFinancialChart = dynamic(
     import("./charts/operations-financial-chart").then((module) => module.OperationsFinancialChart),
   { ssr: false, loading: () => <ChartLoadingSkeleton /> },
 );
-const EdaStatisticalSummary = dynamic(
-  () => import("./charts/eda-statistical-summary").then((module) => module.EdaStatisticalSummary),
-  { ssr: false, loading: () => <ChartLoadingSkeleton /> },
-);
 const EdaCorrelationChart = dynamic(
   () => import("./charts/eda-correlation-chart").then((module) => module.EdaCorrelationChart),
   { ssr: false, loading: () => <ChartLoadingSkeleton /> },
@@ -64,13 +52,8 @@ const EdaOutlierDetector = dynamic(
   () => import("./charts/eda-outlier-detector").then((module) => module.EdaOutlierDetector),
   { ssr: false, loading: () => <ChartLoadingSkeleton /> },
 );
-const EdaActionableInsights = dynamic(
-  () => import("./charts/eda-actionable-insights").then((module) => module.EdaActionableInsights),
-  { ssr: false, loading: () => <ChartLoadingSkeleton /> },
-);
 
 export function OperationsDashboardView() {
-  const [showPreview, setShowPreview] = useState(false);
   const period = getDefaultPeriod();
   const [from, setFrom] = useState(period.from);
   const [to, setTo] = useState(period.to);
@@ -80,12 +63,7 @@ export function OperationsDashboardView() {
   const { facilities, unitTypes } = useOperationsCatalogOptions();
   const filter = { from, to, facilityId, unitTypeId };
   const query = useOperationsOverview(filter);
-  const preview = useOperationsRevenue({ ...filter, limit: 5, offset: 0 });
   const data = query.data;
-
-  const reportParams = new URLSearchParams({ from, to });
-  if (facilityId !== "all") reportParams.set("facilityId", facilityId);
-  if (unitTypeId !== "all") reportParams.set("unitTypeId", unitTypeId);
 
   const handleResetFilters = () => {
     const p = getDefaultPeriod();
@@ -272,26 +250,7 @@ export function OperationsDashboardView() {
             </Card>
           </div>
 
-          {/* EDA Section 1: Data Understanding & Descriptive Statistics Table */}
-          <EdaStatisticalSummary data={data} />
-
-          {/* Attention Banner if Data Quality Issues */}
-          {data.attention.dataQuality.hasIssues && (
-            <div className="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50/90 px-3 py-2 text-xs text-amber-900 shadow-xs">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
-                <span className="font-medium">{D.dataQualityWarning}</span>
-              </div>
-              <Link
-                href={`${routes.reports}?tab=reconciliation`}
-                className="ml-2 shrink-0 font-semibold text-amber-800 underline hover:text-amber-950"
-              >
-                {M.actionViewReconciliation} →
-              </Link>
-            </div>
-          )}
-
-          {/* EDA Section 2: Distribution & Categorical Charts Grid */}
+          {/* Core Distribution Charts (2 Columns) */}
           <div className="grid min-w-0 gap-3 lg:grid-cols-2">
             {/* Financial Flow Chart */}
             <Card className="overflow-hidden border-slate-200 bg-white shadow-xs">
@@ -341,60 +300,11 @@ export function OperationsDashboardView() {
             </Card>
           </div>
 
-          {/* EDA Section 3: Bivariate Correlation Analysis (Price / Occupancy vs Net Cash) */}
+          {/* EDA Bivariate Performance Chart: Net Cash vs Occupancy % with Central Tendency Reference Lines */}
           <EdaCorrelationChart data={data} />
 
-          {/* EDA Section 4: Outlier & Anomaly Detection */}
+          {/* Operational Health & Outliers Detection */}
           <EdaOutlierDetector data={data} />
-
-          {/* EDA Section 5: Actionable Insights & Recommendations for BOM */}
-          <EdaActionableInsights data={data} />
-
-          {/* Collapsible Top 5 Facilities Section */}
-          <Card className="overflow-hidden border-slate-200 bg-white shadow-xs">
-            <button
-              type="button"
-              onClick={() => setShowPreview(!showPreview)}
-              className="flex w-full cursor-pointer items-center justify-between p-3 text-left transition-colors hover:bg-slate-50/70"
-            >
-              <div className="flex items-center gap-2">
-                {showPreview ? (
-                  <ChevronUp className="h-4 w-4 text-slate-500" aria-hidden="true" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 text-slate-500" aria-hidden="true" />
-                )}
-                <span className="text-xs font-bold text-slate-900">{D.topFacilities}</span>
-                <Badge variant="outline" className="py-0 text-[10px] font-normal text-slate-500">
-                  {R.facilityPreview}
-                </Badge>
-              </div>
-              <Link
-                href={`${routes.revenue}?${reportParams}`}
-                onClick={(e) => e.stopPropagation()}
-                className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
-              >
-                <span>{D.viewAllRevenue}</span>
-                <ArrowRight className="h-3 w-3" aria-hidden="true" />
-              </Link>
-            </button>
-
-            {showPreview && (
-              <div className="border-t border-slate-100 p-3.5 pt-0">
-                <p className="mb-3 text-xs text-slate-500">{D.topFacilitiesHelp}</p>
-                {preview.isPending ? (
-                  <LoadingState label={M.loading} variant="table" />
-                ) : preview.isError || !preview.data ? (
-                  <ErrorState message={M.error} onRetry={() => void preview.refetch()} />
-                ) : (
-                  <FacilityRevenueChart
-                    items={preview.data.items}
-                    totalFacilities={preview.data.total}
-                    limit={5}
-                  />
-                )}
-              </div>
-            )}
-          </Card>
         </>
       )}
     </div>
