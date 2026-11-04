@@ -1,12 +1,19 @@
 "use client";
 import { UserRole } from "@metastorage/database/schema/user-enums";
 import {
+  ArrowLeft,
+  ArrowLeftRight,
   ArrowRight,
+  Boxes,
+  CalendarClock,
   Check,
   CheckCircle2,
   CircleAlert,
   ClipboardCheck,
+  Clock,
   Clock3,
+  CreditCard,
+  Mail,
   Phone,
   Search,
   User,
@@ -17,26 +24,15 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Currency } from "@/components/ui/display";
-import {
-  OperationalBackLink,
-  OperationalBadge,
-  OperationalPageHeader,
-} from "@/components/ui/operational";
+import { OperationalBadge } from "@/components/ui/operational";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { facilityStaffRoutes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { AssignmentScreen } from "@/features/facility-flow/assignment-screen";
 import { FLOW } from "@/features/facility-flow/flow.messages";
-import {
-  BackLabel,
-  DataPair,
-  FlowHelp,
-  Panel,
-  Pill,
-  SectionTitle,
-} from "@/features/facility-flow/flow-ui";
+import { BackLabel, FlowHelp } from "@/features/facility-flow/flow-ui";
 import { InspectionScreen } from "@/features/facility-flow/inspection-screen";
 import { flowError, useCheckInFlow } from "@/features/facility-flow/use-check-in-flow";
 import { formatDateTime } from "@/lib/format";
@@ -97,9 +93,37 @@ function CheckInFlowScreen() {
   }
   if (user?.role === UserRole.FACILITY_MANAGER)
     return (
-      <>
-        <OperationalBackLink href={returnTo}>{FLOW.back}</OperationalBackLink>
-        <OperationalPageHeader title={FLOW.monitor} description={FLOW.managerMonitorHint} />
+      <div className="space-y-4">
+        {/* Navigation Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link
+            href={returnTo}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>{FLOW.back}</span>
+          </Link>
+          {result && (
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs font-semibold text-slate-500">
+                {result.booking.bookingCode}
+              </span>
+              <OperationalBadge
+                value={result.booking.status}
+                label={FLOW.statusLabels[result.booking.status]}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Page Header */}
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+            {FLOW.monitor}
+          </h1>
+          <p className="mt-0.5 text-xs text-slate-500">{FLOW.managerMonitorHint}</p>
+        </div>
+
         {flow.lookup.isLoading ? (
           <LoadingState label={FLOW.loading} variant="detail" />
         ) : flow.lookup.isError ? (
@@ -108,92 +132,301 @@ function CheckInFlowScreen() {
             onRetry={() => flow.lookup.refetch()}
           />
         ) : !result ? (
-          <Panel>
-            <p>{FLOW.managerMonitorHint}</p>
-            <Link href={returnTo} className="underline">
-              {FLOW.back}
-            </Link>
-          </Panel>
+          <Card className="border-slate-200 bg-white p-6 text-center shadow-xs">
+            <p className="text-sm text-slate-600">{FLOW.managerMonitorHint}</p>
+            <div className="mt-4">
+              <Link
+                href={returnTo}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                <span>{FLOW.back}</span>
+              </Link>
+            </div>
+          </Card>
         ) : (
           <>
-            <Panel>
-              <SectionTitle>{result.booking.contactName}</SectionTitle>
-              <p className="mt-2">
-                {result.booking.bookingCode} ·{" "}
-                {result.assignedUnit?.physicalUnitCode ?? FLOW.unassigned}
-              </p>
-              <OperationalBadge
-                value={result.booking.status}
-                label={FLOW.statusLabels[result.booking.status]}
-              />
-              <div className="mt-4 flex flex-wrap gap-3">
-                {result.booking.status === "CONFIRMED" && (
-                  <Link
-                    className="rounded bg-[#b4efda] p-3 font-semibold"
-                    href={`${root}/check-in?view=assign&bookingId=${result.booking.id}&bookingCode=${encodeURIComponent(result.booking.bookingCode)}`}
-                  >
-                    {result.assignedUnit ? FLOW.reassign : FLOW.assign}
-                  </Link>
-                )}
+            {/* Hero Booking & Assigned Unit Highlight Card */}
+            <Card className="overflow-hidden border-slate-200 bg-white shadow-xs">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between p-4 sm:p-5 gap-4">
+                {/* Left: Customer & Booking Info */}
+                <div className="flex items-start gap-3.5">
+                  <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/60">
+                    <User className="size-5" />
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="text-lg font-bold text-slate-900">
+                        {result.booking.contactName}
+                      </h2>
+                      <span className="rounded-md bg-slate-100 px-2 py-0.5 font-mono text-xs font-semibold text-slate-700">
+                        {result.booking.bookingCode}
+                      </span>
+                      <OperationalBadge
+                        value={result.booking.status}
+                        label={FLOW.statusLabels[result.booking.status]}
+                      />
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Phone className="size-3.5 text-slate-400" />
+                        <span className="font-medium text-slate-700">
+                          {result.booking.contactPhone}
+                        </span>
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <Mail className="size-3.5 text-slate-400" />
+                        <span>{result.booking.contactEmail}</span>
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <Clock className="size-3.5 text-slate-400" />
+                        <span>{FLOW.months(result.booking.requestedMonths)}</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right: Assigned Physical Unit Box + Prominent Action Button */}
+                <div className="flex shrink-0 items-center">
+                  {result.assignedUnit ? (
+                    <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-gradient-to-r from-emerald-50/70 via-teal-50/40 to-slate-50 p-3 sm:px-4 sm:py-3 shadow-2xs w-full lg:w-auto">
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-700 text-white shadow-xs">
+                          <Warehouse className="size-4.5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-800">
+                              {FLOW.assignedPhysicalUnit}
+                            </span>
+                            <span className="inline-block size-1.5 rounded-full bg-emerald-500" />
+                          </div>
+                          <p className="font-mono text-lg font-extrabold tracking-tight text-slate-900">
+                            {result.assignedUnit.physicalUnitCode}
+                          </p>
+                          <p className="text-[11px] text-slate-500 truncate max-w-[180px]">
+                            {result.booking.unitTypeName} · {result.booking.unitTypeSizeLabel}
+                          </p>
+                        </div>
+                      </div>
+
+                      {result.booking.status === "CONFIRMED" && (
+                        <Link
+                          href={`${root}/check-in?view=assign&bookingId=${result.booking.id}&bookingCode=${encodeURIComponent(result.booking.bookingCode)}`}
+                          className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-emerald-800 px-3.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-900 active:scale-[0.98] transition-all cursor-pointer ring-1 ring-emerald-700"
+                        >
+                          <ArrowLeftRight className="size-3.5" />
+                          <span>{FLOW.reassign}</span>
+                        </Link>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 rounded-xl border-2 border-dashed border-amber-300 bg-amber-50/70 p-3 sm:px-4 sm:py-3 shadow-2xs w-full lg:w-auto">
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-amber-600 text-white shadow-xs">
+                          <Boxes className="size-4.5" />
+                        </div>
+                        <div>
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800">
+                            {FLOW.unassigned}
+                          </span>
+                          <p className="text-xs font-medium text-amber-700">
+                            {FLOW.needPhysicalUnit}
+                          </p>
+                        </div>
+                      </div>
+
+                      {result.booking.status === "CONFIRMED" && (
+                        <Link
+                          href={`${root}/check-in?view=assign&bookingId=${result.booking.id}&bookingCode=${encodeURIComponent(result.booking.bookingCode)}`}
+                          className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-amber-600 px-3.5 text-xs font-bold text-white shadow-xs hover:bg-amber-700 active:scale-[0.98] transition-all cursor-pointer"
+                        >
+                          <Boxes className="size-3.5" />
+                          <span>{FLOW.assign}</span>
+                        </Link>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-            </Panel>
-            <div className="grid gap-6 lg:grid-cols-2">
-              <Panel className="space-y-4">
-                <SectionTitle icon={<User size={20} />}>{FLOW.dossier}</SectionTitle>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <DataPair label={FLOW.phone}>{result.booking.contactPhone}</DataPair>
-                  <DataPair label={FLOW.email}>{result.booking.contactEmail}</DataPair>
-                  <DataPair label={FLOW.unitDetails}>
-                    {result.booking.unitTypeName} · {result.booking.unitTypeSizeLabel}
-                  </DataPair>
-                  <DataPair label={FLOW.period}>
-                    {FLOW.months(result.booking.requestedMonths)}
-                  </DataPair>
-                  <DataPair label={FLOW.slotStart}>
-                    {formatDateTime(result.booking.checkInSlotStart)}
-                  </DataPair>
-                  <DataPair label={FLOW.slotEnd}>
-                    {formatDateTime(result.booking.checkInSlotEnd)}
-                  </DataPair>
-                  <DataPair label={FLOW.deadline}>
-                    {formatDateTime(result.booking.checkInDeadlineAt)}
-                  </DataPair>
-                  <DataPair label={FLOW.rentalEnd}>
-                    {formatDateTime(result.booking.rentalEndAt)}
-                  </DataPair>
-                </div>
-              </Panel>
-              <Panel className="space-y-4">
-                <SectionTitle icon={<CheckCircle2 size={20} />}>{FLOW.payment}</SectionTitle>
-                <Pill tone={result.payment.status === "SUCCEEDED" ? "green" : "amber"}>
-                  {result.payment.status === "SUCCEEDED" ? FLOW.paid : FLOW.unpaid}
-                </Pill>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <DataPair label={FLOW.rentalFee}>
-                    {result.payment.rentalFeeAmount === null ? (
-                      "—"
-                    ) : (
-                      <Currency value={result.payment.rentalFeeAmount} />
-                    )}
-                  </DataPair>
-                  <DataPair label={FLOW.deposit}>
-                    {result.payment.depositAmount === null ? (
-                      "—"
-                    ) : (
-                      <Currency value={result.payment.depositAmount} />
-                    )}
-                  </DataPair>
-                  <DataPair label={FLOW.amount}>
-                    {result.payment.totalAmount === null ? (
-                      "—"
-                    ) : (
-                      <Currency value={result.payment.totalAmount} />
-                    )}
-                  </DataPair>
-                  <DataPair label={FLOW.paidAt}>{formatDateTime(result.payment.paidAt)}</DataPair>
-                </div>
-              </Panel>
+            </Card>
+
+            {/* 2-Column Grid: Customer Dossier & Payment */}
+            <div className="grid gap-4 lg:grid-cols-2">
+              {/* Left Card: Customer & Rental Dossier */}
+              <Card className="overflow-hidden border-slate-200 bg-white shadow-xs">
+                <CardHeader className="border-b border-slate-100 bg-slate-50/50 p-3.5 pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CalendarClock className="size-4 text-emerald-800" />
+                      <CardTitle className="text-sm font-bold text-slate-900">
+                        {FLOW.dossier}
+                      </CardTitle>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className="border-slate-200 text-[10px] text-slate-500"
+                    >
+                      {result.booking.unitTypeName}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 pt-3.5">
+                  <div className="grid gap-3 sm:grid-cols-2 text-xs">
+                    <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-2.5">
+                      <span className="block text-[11px] font-medium text-slate-500">
+                        {FLOW.phone}
+                      </span>
+                      <span className="mt-0.5 block font-bold text-slate-800">
+                        {result.booking.contactPhone}
+                      </span>
+                    </div>
+                    <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-2.5">
+                      <span className="block text-[11px] font-medium text-slate-500">
+                        {FLOW.email}
+                      </span>
+                      <span className="mt-0.5 block font-semibold text-slate-800 truncate">
+                        {result.booking.contactEmail}
+                      </span>
+                    </div>
+                    <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-2.5">
+                      <span className="block text-[11px] font-medium text-slate-500">
+                        {FLOW.unitDetails}
+                      </span>
+                      <span className="mt-0.5 block font-bold text-slate-800">
+                        {result.booking.unitTypeName} · {result.booking.unitTypeSizeLabel}
+                      </span>
+                    </div>
+                    <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-2.5">
+                      <span className="block text-[11px] font-medium text-slate-500">
+                        {FLOW.period}
+                      </span>
+                      <span className="mt-0.5 block font-bold text-slate-800">
+                        {FLOW.months(result.booking.requestedMonths)}
+                      </span>
+                    </div>
+                    <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-2.5">
+                      <span className="block text-[11px] font-medium text-slate-500">
+                        {FLOW.slotStart}
+                      </span>
+                      <span className="mt-0.5 block font-semibold text-slate-800">
+                        {formatDateTime(result.booking.checkInSlotStart)}
+                      </span>
+                    </div>
+                    <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-2.5">
+                      <span className="block text-[11px] font-medium text-slate-500">
+                        {FLOW.slotEnd}
+                      </span>
+                      <span className="mt-0.5 block font-semibold text-slate-800">
+                        {formatDateTime(result.booking.checkInSlotEnd)}
+                      </span>
+                    </div>
+                    <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-2.5">
+                      <span className="block text-[11px] font-medium text-slate-500">
+                        {FLOW.deadline}
+                      </span>
+                      <span className="mt-0.5 block font-semibold text-slate-800">
+                        {formatDateTime(result.booking.checkInDeadlineAt)}
+                      </span>
+                    </div>
+                    <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-2.5">
+                      <span className="block text-[11px] font-medium text-slate-500">
+                        {FLOW.rentalEnd}
+                      </span>
+                      <span className="mt-0.5 block font-semibold text-slate-800">
+                        {formatDateTime(result.booking.rentalEndAt)}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Right Card: Payment Summary */}
+              <Card className="overflow-hidden border-slate-200 bg-white shadow-xs">
+                <CardHeader className="border-b border-slate-100 bg-slate-50/50 p-3.5 pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="size-4 text-emerald-800" />
+                      <CardTitle className="text-sm font-bold text-slate-900">
+                        {FLOW.payment}
+                      </CardTitle>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={
+                        result.payment.status === "SUCCEEDED"
+                          ? "border-emerald-200 bg-emerald-50 text-[11px] font-semibold text-emerald-800 gap-1"
+                          : "border-amber-200 bg-amber-50 text-[11px] font-semibold text-amber-800 gap-1"
+                      }
+                    >
+                      {result.payment.status === "SUCCEEDED" ? (
+                        <>
+                          <CheckCircle2 className="size-3 text-emerald-600" />
+                          <span>{FLOW.paid}</span>
+                        </>
+                      ) : (
+                        <span>{FLOW.unpaid}</span>
+                      )}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 pt-3.5 space-y-3">
+                  {/* Highlighted Total Amount Banner */}
+                  <div className="rounded-xl border border-emerald-100 bg-gradient-to-r from-emerald-50/60 to-slate-50 p-3.5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-medium text-slate-500">{FLOW.amount}</span>
+                        <p className="mt-0.5 text-2xl font-black tracking-tight text-emerald-900">
+                          {result.payment.totalAmount === null ? (
+                            "—"
+                          ) : (
+                            <Currency value={result.payment.totalAmount} />
+                          )}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[11px] font-medium text-slate-500">
+                          {FLOW.paidAt}
+                        </span>
+                        <p className="mt-0.5 text-xs font-semibold text-slate-700">
+                          {formatDateTime(result.payment.paidAt)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Fee Breakdown */}
+                  <div className="grid grid-cols-2 gap-2.5 text-xs">
+                    <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-2.5">
+                      <span className="block text-[11px] font-medium text-slate-500">
+                        {FLOW.rentalFee}
+                      </span>
+                      <span className="mt-1 block font-bold text-slate-800 text-sm">
+                        {result.payment.rentalFeeAmount === null ? (
+                          "—"
+                        ) : (
+                          <Currency value={result.payment.rentalFeeAmount} />
+                        )}
+                      </span>
+                    </div>
+                    <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-2.5">
+                      <span className="block text-[11px] font-medium text-slate-500">
+                        {FLOW.deposit}
+                      </span>
+                      <span className="mt-1 block font-bold text-slate-800 text-sm">
+                        {result.payment.depositAmount === null ? (
+                          "—"
+                        ) : (
+                          <Currency value={result.payment.depositAmount} />
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
+
+            {/* Inspection & Handover Records */}
             {flow.history.isLoading ? (
               <LoadingState label={FLOW.loading} variant="table" />
             ) : flow.history.isError ? (
@@ -211,14 +444,21 @@ function CheckInFlowScreen() {
                 />
               ))
             ) : (
-              <Panel>
-                <p>{FLOW.notInspected}</p>
-                <p className="mt-2 text-sm">{FLOW.inspectStaffOnly}</p>
-              </Panel>
+              <Card className="border-slate-200 bg-white p-4 shadow-xs">
+                <div className="flex items-center gap-3.5">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
+                    <ClipboardCheck className="size-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-900">{FLOW.notInspected}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">{FLOW.inspectStaffOnly}</p>
+                  </div>
+                </div>
+              </Card>
             )}
           </>
         )}
-      </>
+      </div>
     );
   return (
     <div className="space-y-3.5">
