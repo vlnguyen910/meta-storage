@@ -1,4 +1,5 @@
 import * as FileSystem from "expo-file-system";
+import * as Linking from "expo-linking";
 import * as SecureStore from "expo-secure-store";
 import * as WebBrowser from "expo-web-browser";
 import { Platform } from "react-native";
@@ -9,7 +10,13 @@ const privateFiles = new Set<string>();
 const privateDirectory = () => new FileSystem.Directory(FileSystem.Paths.cache, "customer-private");
 export async function openCustomerCheckout(session: CheckoutSession) {
   const target = new URL("/payments/mobile-checkout", WEB_BASE_URL);
-  target.hash = encodeURIComponent(JSON.stringify(session));
+  const returnUrl = Linking.createURL("payment-result", {
+    queryParams: {
+      paymentId: session.paymentId,
+      ...(session.reservationId ? { reservationId: session.reservationId } : {}),
+    },
+  });
+  target.hash = encodeURIComponent(JSON.stringify({ ...session, returnUrl }));
   await WebBrowser.openBrowserAsync(target.toString());
 }
 export async function saveCustomerCommand<T>(ownerId: string, operation: string, value: T) {

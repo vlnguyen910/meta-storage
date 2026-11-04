@@ -1,4 +1,5 @@
 "use client";
+import { mobilePaymentReturnKey, parseMobilePaymentReturn } from "@metastorage/shared";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -23,11 +24,21 @@ export function PaymentResultScreen() {
   const [context, setContext] = useState<CheckoutContext | null>(null);
   const [ready, setReady] = useState(false);
   const [now, setNow] = useState(Date.now());
+  const [appReturnUrl, setAppReturnUrl] = useState<string>();
   useEffect(() => {
-    if (!session || pathname !== "/bookings/payment-result") return;
+    try {
+      const saved = paymentId ? sessionStorage.getItem(mobilePaymentReturnKey(paymentId)) : null;
+      const parsed = parseMobilePaymentReturn(saved);
+      setAppReturnUrl(parsed?.paymentId === paymentId ? (saved ?? undefined) : undefined);
+    } catch {
+      setAppReturnUrl(undefined);
+    }
+  }, [paymentId]);
+  useEffect(() => {
+    if (!session || pathname !== "/bookings/payment-result" || !ready || appReturnUrl) return;
     const query = params.toString();
     router.replace(`${customerRoutes.paymentResult}${query ? `?${query}` : ""}`);
-  }, [pathname, params, router, session]);
+  }, [pathname, params, router, session, ready, appReturnUrl]);
   useEffect(() => {
     const saved = readCheckoutContext();
     if (
@@ -38,7 +49,7 @@ export function PaymentResultScreen() {
     else setContext(null);
     setReady(true);
   }, [paymentId, reservationId]);
-  const canRead = ready && authReady && Boolean(session);
+  const canRead = ready && authReady && Boolean(session) && !appReturnUrl;
   const query = useCheckoutPaymentStatus(paymentId, undefined, canRead);
   const confirmedId =
     canRead && !query.isError && query.data?.status === "SUCCEEDED"
@@ -73,36 +84,52 @@ export function PaymentResultScreen() {
 
   const content = (
     <main aria-busy={blockingPaymentCheck} className="mx-auto w-full max-w-4xl px-4 py-2 sm:py-3">
-      {blockingPaymentCheck && <Spinner label={m.loading} />}
-      {confirmedId ? (
-        <ReservationReceipt key={confirmedId} reservationId={confirmedId} variant="confirmation" />
-      ) : (
-        <section className="grid gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-xs max-w-xl mx-auto">
-          <h1 className="text-xl font-bold text-slate-900">{m.title}</h1>
-          <p role={query.isError ? "alert" : "status"} className="text-sm text-slate-600">
-            {message}
-          </p>
-          {canRead && (
-            <>
-              <p className="text-xs text-slate-500">{m.pendingHint}</p>
-              <button
-                className="h-10 rounded-xl bg-[#165f4d] hover:bg-[#0f493b] px-4 text-xs font-bold text-white transition-colors cursor-pointer"
-                type="button"
-                disabled={query.isFetching}
-                onClick={() => query.refetch()}
-              >
-                {m.retry}
-              </button>
-            </>
-          )}
-          {!canRead && ready && (
-            <Link className="text-xs font-semibold text-[#165f4d] underline" href="/login">
-              {m.login}
-            </Link>
-          )}
+      {appReturnUrl && (
+        <section className="mb-4 grid gap-3 rounded-xl border border-slate-200 bg-white p-6">
+          <p className="text-sm text-slate-600">{m.returnToAppHint}</p>
+          <a
+            className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#165f4d] px-4 font-semibold text-white"
+            href={appReturnUrl}
+          >
+            {m.returnToApp}
+          </a>
         </section>
       )}
-      {!isCustomer && (
+      {blockingPaymentCheck && <Spinner label={m.loading} />}
+      {!appReturnUrl &&
+        (confirmedId ? (
+          <ReservationReceipt
+            key={confirmedId}
+            reservationId={confirmedId}
+            variant="confirmation"
+          />
+        ) : (
+          <section className="grid gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-xs max-w-xl mx-auto">
+            <h1 className="text-xl font-bold text-slate-900">{m.title}</h1>
+            <p role={query.isError ? "alert" : "status"} className="text-sm text-slate-600">
+              {message}
+            </p>
+            {canRead && (
+              <>
+                <p className="text-xs text-slate-500">{m.pendingHint}</p>
+                <button
+                  className="h-10 rounded-xl bg-[#165f4d] hover:bg-[#0f493b] px-4 text-xs font-bold text-white transition-colors cursor-pointer"
+                  type="button"
+                  disabled={query.isFetching}
+                  onClick={() => query.refetch()}
+                >
+                  {m.retry}
+                </button>
+              </>
+            )}
+            {!canRead && ready && (
+              <Link className="text-xs font-semibold text-[#165f4d] underline" href="/login">
+                {m.login}
+              </Link>
+            )}
+          </section>
+        ))}
+      {!isCustomer && !appReturnUrl && (
         <div className="text-center mt-3">
           <Link
             aria-disabled={blockingPaymentCheck}

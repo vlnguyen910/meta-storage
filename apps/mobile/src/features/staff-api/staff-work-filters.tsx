@@ -180,7 +180,7 @@ function StaffFilterSheet({
               label={M.resetFilters}
               onPress={() => {
                 setKind("all");
-                setDate(facilityDay());
+                setDate("");
                 setCalendar(false);
               }}
             />

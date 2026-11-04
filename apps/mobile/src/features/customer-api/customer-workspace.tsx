@@ -1,3 +1,4 @@
+import { parseMobilePaymentReturn } from "@metastorage/shared";
 import { focusManager, useQueryClient } from "@tanstack/react-query";
 import * as Linking from "expo-linking";
 import { useEffect, useRef, useState } from "react";
@@ -92,15 +93,12 @@ export function CustomerWorkspace({
     const handleUrl = (url: string | null) => {
       if (!url || !active) return false;
       try {
-        const parsed = new URL(url);
-        if (parsed.protocol !== "metastorage:" || parsed.hostname !== "payment-result")
-          return false;
-        const id = parsed.searchParams.get("paymentId");
-        if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return false;
+        const parsed = parseMobilePaymentReturn(url);
+        if (!parsed) return false;
         const payment: CustomerRoute = {
           screen: "payment",
-          id,
-          reservationId: parsed.searchParams.get("reservationId") ?? undefined,
+          id: parsed.paymentId,
+          reservationId: parsed.reservationId,
         };
         setStack([{ screen: "home" }, payment]);
         void saveCustomerCommand(owner, "payment", payment);

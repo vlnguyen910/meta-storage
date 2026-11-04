@@ -1,13 +1,20 @@
 "use client";
-import { CUSTOMER_WORKSPACE as M } from "@metastorage/shared";
-import { useEffect, useState } from "react";
+import {
+  CUSTOMER_WORKSPACE as M,
+  mobilePaymentReturnKey,
+  parseMobilePaymentReturn,
+} from "@metastorage/shared";
+import { useEffect, useRef, useState } from "react";
 import { CheckoutPostForm } from "./checkout-post-form";
 import type { MobileCheckoutBridge } from "./mobile-checkout-bridge.types";
 
 export function MobileCheckoutBridgeScreen() {
   const [checkout, setCheckout] = useState<MobileCheckoutBridge>();
   const [error, setError] = useState(false);
+  const initialized = useRef(false);
   useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
     try {
       const input = JSON.parse(
         decodeURIComponent(window.location.hash.slice(1)),
@@ -15,8 +22,8 @@ export function MobileCheckoutBridgeScreen() {
       const url = new URL(input.checkoutUrl);
       if (
         url.protocol !== "https:" ||
-        !["pay.sepay.vn", "sandbox.pay.sepay.vn"].includes(url.hostname) ||
-        !/^\/v[0-9]+\/init$/.test(url.pathname) ||
+        !["pay.sepay.vn", "pay-sandbox.sepay.vn"].includes(url.hostname) ||
+        url.pathname !== "/v1/checkout/init" ||
         url.username ||
         url.password ||
         !input.checkoutFormFields ||
@@ -25,6 +32,11 @@ export function MobileCheckoutBridgeScreen() {
         )
       )
         throw new Error();
+      if (input.returnUrl) {
+        const payment = parseMobilePaymentReturn(input.returnUrl);
+        if (!payment) throw new Error();
+        sessionStorage.setItem(mobilePaymentReturnKey(payment.paymentId), input.returnUrl);
+      }
       setCheckout(input);
       window.history.replaceState(null, "", window.location.pathname);
     } catch {

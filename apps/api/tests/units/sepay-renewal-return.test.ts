@@ -29,7 +29,7 @@ describe("renewal checkout return", () => {
       expect(url.searchParams.get("renewalId")).toBe("renewal");
       expect(url.searchParams.get("paymentId")).toBe("payment");
       expect(new URL(String(reservation?.formFields[key])).pathname).toBe(
-        "/customer/payments/result",
+        "/bookings/payment-result",
       );
     }
   });

@@ -1,3 +1,4 @@
+import { parseMobilePaymentReturn } from "@metastorage/shared";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Linking, View } from "react-native";
@@ -25,19 +26,16 @@ function ConnectedScreens() {
   const [callbackUrl, setCallbackUrl] = useState<string>();
   useEffect(() => {
     const handleUrl = (url: string | null) => {
-      if (!url?.startsWith("metastorage://")) return;
-      const parsed = new URL(url);
-      if (parsed.hostname === "auth") {
-        setCallbackUrl(url);
-        setView("auth");
-      } else if (parsed.hostname === "payment-result") {
-        const id = parsed.searchParams.get("paymentId");
-        if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return;
+      const payment = parseMobilePaymentReturn(url);
+      if (payment) {
         setDestination({
           screen: "payment",
-          id,
-          reservationId: parsed.searchParams.get("reservationId") ?? undefined,
+          id: payment.paymentId,
+          reservationId: payment.reservationId,
         });
+        setView("auth");
+      } else if (url && /^metastorage:\/\/auth(?:[/?#]|$)/.test(url)) {
+        setCallbackUrl(url);
         setView("auth");
       }
     };

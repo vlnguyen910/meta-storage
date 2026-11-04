@@ -15,6 +15,8 @@ export type CustomerRoute =
   | { screen: "payment"; id: string; reservationId?: string };
 export type CustomerNavigation = (route: CustomerRoute) => void;
 export type CheckoutSession = {
+  paymentId: string;
+  reservationId?: string;
   checkoutUrl: string;
   checkoutFormFields: Record<string, string | number>;
 };

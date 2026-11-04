@@ -1,5 +1,7 @@
 export const paymentResultMessages = {
   title: "Kết quả thanh toán",
+  returnToApp: "Quay lại ứng dụng",
+  returnToAppHint: "Quay lại Metastorage để kiểm tra và cập nhật kết quả thanh toán.",
   loading: "Đang kiểm tra trạng thái thanh toán…",
   pending: "Đang chờ SePay xác nhận thanh toán",
   pendingHint:
