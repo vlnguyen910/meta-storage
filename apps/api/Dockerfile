@@ -1,4 +1,4 @@
-FROM oven/bun:1.3.14 AS build
+FROM oven/bun:1.4.2 AS build
 
 WORKDIR /app
 
@@ -25,7 +25,7 @@ RUN bun run --filter "./apps/api" build
 
 RUN rm -rf /app/node_modules && bun install --production --frozen-lockfile --filter "./apps/api"
 
-FROM oven/bun:1.3.14 AS runtime
+FROM oven/bun:1.4.2 AS runtime
 
 WORKDIR /app
 
