@@ -11,6 +11,7 @@ import { Currency } from "@/components/ui/display";
 import { isMockMode } from "@/config/api-mode";
 import { routes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
+import { formatDateTime } from "@/lib/format";
 import { checkoutMessages as m } from "./checkout.messages";
 import { CheckoutRow, UnitPhoto } from "./checkout-parts";
 
@@ -153,11 +154,7 @@ export function CheckoutConfirmation({
 
             <div className="space-y-1.5 text-xs sm:text-sm">
               <CheckoutRow label={m.date}>
-                {new Date(confirmation.checkInSlotStart).toLocaleString("vi-VN", {
-                  timeZone: "Asia/Ho_Chi_Minh",
-                  dateStyle: "short",
-                  timeStyle: "short",
-                })}
+                {formatDateTime(confirmation.checkInSlotStart)}
               </CheckoutRow>
               <CheckoutRow label={m.unit}>
                 {confirmation.unitTypeName} · {confirmation.sizeLabel}

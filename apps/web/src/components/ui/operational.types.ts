@@ -9,5 +9,5 @@ export interface OperationalHeaderProps {
 export interface OperationalBadgeProps {
   value: string;
   label?: string;
-  tone?: "green" | "blue" | "amber" | "red" | "gray";
+  tone?: "green" | "blue" | "amber" | "red" | "purple" | "gray";
 }

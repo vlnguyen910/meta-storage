@@ -1,11 +1,13 @@
 export const CUSTOMER_DASHBOARD_MESSAGES = {
   bookingStatus: {
+    DRAFT: "Bản nháp",
     CONFIRMED: "Đã xác nhận",
-    CHECKED_IN: "Đã check-in",
+    CHECKED_IN: "Đã nhận kho",
     NO_SHOW: "Không đến",
     CANCELLED: "Đã hủy",
   },
   bookingStatusClass: {
+    DRAFT: "border-slate-200 bg-slate-100 text-slate-700",
     CONFIRMED: "border-emerald-200 bg-emerald-50 text-emerald-800",
     CHECKED_IN: "border-sky-200 bg-sky-50 text-sky-800",
     NO_SHOW: "border-rose-200 bg-rose-50 text-rose-800",

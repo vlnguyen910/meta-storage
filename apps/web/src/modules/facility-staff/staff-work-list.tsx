@@ -27,6 +27,7 @@ import { isMockMode } from "@/config/api-mode";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { FacilitySwitcher } from "@/features/facilities/facility-switcher";
 import { useFacilityContext } from "@/features/facilities/use-facility-context";
+import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { staffWorkDate } from "./staff-work.data";
 import { STAFF_WORK as M } from "./staff-work.messages";
@@ -439,17 +440,7 @@ function StaffWorkTableRow({ item }: StaffWorkRowProps) {
       <TableCell className="py-2.5 px-4 text-xs text-slate-600">
         <div className="flex items-center gap-1.5">
           <Clock3 size={13} className="text-slate-400 shrink-0" aria-hidden="true" />
-          <span>
-            {item.startsAt
-              ? new Date(item.startsAt).toLocaleString("vi-VN", {
-                  timeZone: "Asia/Ho_Chi_Minh",
-                  day: "2-digit",
-                  month: "2-digit",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-              : M.unscheduled}
-          </span>
+          <span>{item.startsAt ? formatDateTime(item.startsAt) : M.unscheduled}</span>
         </div>
       </TableCell>
 
