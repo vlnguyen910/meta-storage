@@ -100,7 +100,7 @@ jobs:
       RUN_INSPECTION_DB_TESTS: "1"
     services:
       mongo:
-        image: mongo:8
+        image: mongo:7.0
         ports:
         - 27017:27017
         options: >-
