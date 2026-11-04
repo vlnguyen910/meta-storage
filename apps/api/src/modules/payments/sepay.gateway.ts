@@ -156,9 +156,7 @@ export class SepayPaymentGateway {
     const resultUrl = new URL(
       input.renewalId && input.rentalId
         ? `/customer/storage/${input.rentalId}/renew`
-        : input.reservationId
-          ? "/bookings/payment-result"
-          : "/bookings/payment-result",
+        : "/bookings/payment-result",
       webUrl,
     ).toString();
     const reference = `paymentId=${input.paymentId}&${input.reservationId ? `reservationId=${input.reservationId}` : input.renewalId ? `renewalId=${input.renewalId}` : `bookingId=${input.bookingId}`}`;
