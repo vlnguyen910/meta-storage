@@ -90,6 +90,9 @@ jobs:
       NODE_ENV: test
       GOOGLE_CLIENT_ID: ci-only-google-client
       GOOGLE_CLIENT_SECRET: ci-only-google-secret
+      SEPAY_ENV: sandbox
+      SEPAY_MERCHANT_ID: workflow-test
+      SEPAY_SECRET_KEY: workflow-test-ci-only
       BOOKING_TEST_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5433/metastorage_inspection_test_ci
       MY_STORAGE_LOCAL_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5433/metastorage_inspection_test_ci
       PRICING_TEST_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5433/metastorage_inspection_test_ci
