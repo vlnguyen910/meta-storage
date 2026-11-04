@@ -17,20 +17,28 @@ export const CUSTOMER_STORAGE_HUB_MESSAGES = {
   allStatuses: "Tất cả trạng thái",
   rentalStatuses: {
     ACTIVE: "Đang thuê",
+    RETURN_PENDING: "Chờ trả kho",
+    OVERDUE: "Quá hạn",
+    TERMINATED: "Đã chấm dứt",
     CLOSED: "Đã đóng",
   } as Record<string, string>,
   actualReturnDate: "Trả thực tế",
   rentalStatusClasses: {
     ACTIVE: "border-emerald-200 bg-emerald-50 text-emerald-800",
+    RETURN_PENDING: "border-amber-200 bg-amber-50 text-amber-800",
+    OVERDUE: "border-rose-200 bg-rose-50 text-rose-800",
+    TERMINATED: "border-slate-200 bg-slate-100 text-slate-700",
     CLOSED: "border-slate-200 bg-slate-100 text-slate-700",
   } as Record<string, string>,
   bookingStatuses: {
+    DRAFT: "Bản nháp",
     CONFIRMED: "Đã xác nhận",
     CHECKED_IN: "Đã nhận kho",
     NO_SHOW: "Không đến",
     CANCELLED: "Đã hủy",
   } as Record<string, string>,
   bookingStatusClasses: {
+    DRAFT: "border-slate-200 bg-slate-100 text-slate-700",
     CONFIRMED: "border-emerald-200 bg-emerald-50 text-emerald-800",
     CHECKED_IN: "border-sky-200 bg-sky-50 text-sky-800",
     NO_SHOW: "border-rose-200 bg-rose-50 text-rose-800",

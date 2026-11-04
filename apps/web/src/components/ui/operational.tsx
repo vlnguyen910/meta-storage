@@ -10,35 +10,62 @@ const tones = {
   blue: "border-blue-200 bg-blue-50 text-blue-800",
   amber: "border-amber-200 bg-amber-50 text-amber-900",
   red: "border-rose-200 bg-rose-50 text-rose-800",
+  purple: "border-purple-200 bg-purple-50 text-purple-800",
   gray: "border-slate-200 bg-slate-100 text-slate-600",
 };
 export function OperationalBadge({ value, label, tone }: OperationalBadgeProps) {
   const color =
     tone ??
-    (["FAILED", "OVERDUE", "NO_SHOW"].includes(value)
+    (["FAILED", "OVERDUE", "NO_SHOW", "UNPAID", "MAJOR_DAMAGE"].includes(value)
       ? "red"
-      : ["CANCELLED", "INACTIVE", "LOCKED", "CLOSED", "EXPIRED"].includes(value)
-        ? "gray"
-        : ["ACTIVE", "OCCUPIED", "IN_PROGRESS", "INSPECTING", "INSPECTION"].includes(value)
-          ? "blue"
+      : ["REFUNDED", "DEPOSIT_REFUND"].includes(value)
+        ? "purple"
+        : ["CANCELLED", "INACTIVE", "LOCKED", "CLOSED", "EXPIRED", "DRAFT", "TERMINATED"].includes(
+              value,
+            )
+          ? "gray"
           : [
-                "ASSIGNED",
+                "IN_PROGRESS",
+                "INSPECTING",
+                "INSPECTION",
+                "CHECKED_IN",
+                "OCCUPIED",
+                "SCHEDULED",
                 "OPEN",
-                "PENDING",
-                "RESERVED",
-                "RETURN_PENDING",
-                "MAINTENANCE",
-                "REFUND_PENDING",
-                "NEEDS_STAFF",
-                "NEEDS_UNIT",
-                "SLOT_MISSING",
-                "ABANDONED_REVIEW",
-                "TOO_EARLY",
-                "PAYMENT_PENDING",
-                "READY_HANDOVER",
               ].includes(value)
-            ? "amber"
-            : "green");
+            ? "blue"
+            : [
+                  "ASSIGNED",
+                  "PENDING",
+                  "RESERVED",
+                  "RETURN_PENDING",
+                  "MAINTENANCE",
+                  "REFUND_PENDING",
+                  "NEEDS_STAFF",
+                  "NEEDS_UNIT",
+                  "SLOT_MISSING",
+                  "ABANDONED_REVIEW",
+                  "TOO_EARLY",
+                  "PAYMENT_PENDING",
+                  "READY_HANDOVER",
+                  "PARTIALLY_PAID",
+                  "MINOR_DAMAGE",
+                ].includes(value)
+              ? "amber"
+              : [
+                    "ACTIVE",
+                    "AVAILABLE",
+                    "CONFIRMED",
+                    "SUCCEEDED",
+                    "PAID",
+                    "SUCCESS",
+                    "COMPLETED",
+                    "PASSED",
+                    "READY",
+                    "GOOD",
+                  ].includes(value)
+                ? "green"
+                : "gray");
   return (
     <span
       className={cn(

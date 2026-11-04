@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 export type LoadingVariant = "content" | "dashboard" | "table" | "detail" | "form";
 
 export interface LoadingStateProps {
@@ -17,6 +19,9 @@ export interface DelayedFullScreenLoadingProps {
 export interface EmptyStateProps {
   title: string;
   description: string;
+  action?: ReactNode;
+  onReset?: () => void;
+  resetLabel?: string;
 }
 
 export interface ErrorStateProps {

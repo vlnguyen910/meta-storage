@@ -11,6 +11,7 @@ import {
   Phone,
   UserRound,
 } from "lucide-react";
+import { formatDate } from "@/lib/format";
 import { checkoutMessages as m } from "./checkout.messages";
 import type { CheckoutState } from "./checkout.types";
 import { CheckoutSummary, UnitPhoto } from "./checkout-parts";
@@ -118,12 +119,7 @@ export function CheckoutReview({ state }: { state: CheckoutState }) {
                       {m.date}
                     </span>
                     <p className="text-xs sm:text-sm font-bold text-slate-900">
-                      {new Date(`${values.checkInDate}T00:00:00+07:00`).toLocaleDateString(
-                        "vi-VN",
-                        {
-                          timeZone: "Asia/Ho_Chi_Minh",
-                        },
-                      )}
+                      {formatDate(`${values.checkInDate}T00:00:00+07:00`)}
                     </p>
                   </div>
 

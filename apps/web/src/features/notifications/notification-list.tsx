@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
+import { formatDateTime } from "@/lib/format";
 import { NOTIFICATIONS as M } from "./notifications.messages";
 import type { NotificationListProps } from "./notifications.types";
 
@@ -81,12 +82,10 @@ export function NotificationList({ items, compact = false }: NotificationListPro
               </p>
               <time
                 dateTime={item.occurredAt}
-                title={new Date(item.occurredAt).toLocaleString("vi-VN")}
+                title={formatDateTime(item.occurredAt)}
                 className="mt-1.5 block text-xs font-medium text-slate-500"
               >
-                {compact
-                  ? relative(item.occurredAt)
-                  : new Date(item.occurredAt).toLocaleString("vi-VN")}
+                {compact ? relative(item.occurredAt) : formatDateTime(item.occurredAt)}
               </time>
             </div>
           </>

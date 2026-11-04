@@ -1,5 +1,5 @@
 export const OPERATIONAL_LABELS: Record<string, string> = {
-  ACTIVE: "Đang thuê",
+  ACTIVE: "Đang hoạt động",
   AVAILABLE: "Trống",
   RESERVED: "Đã giữ chỗ",
   OCCUPIED: "Đang thuê",
@@ -35,4 +35,16 @@ export const OPERATIONAL_LABELS: Record<string, string> = {
   TOO_EARLY: "Chưa tới giờ mở cửa",
   SLOT_MISSING: "Chưa cấu hình lịch hẹn",
   PAYMENT_PENDING: "Chưa thanh toán",
+  DRAFT: "Bản nháp",
+  SCHEDULED: "Đã lên lịch",
+  PASSED: "Đạt tiêu chuẩn",
+  UNPAID: "Chưa thanh toán",
+  PARTIALLY_PAID: "Thanh toán một phần",
+  TERMINATED: "Đã chấm dứt",
+  CHARGE: "Khoản thu",
+  DEPOSIT_REFUND: "Hoàn cọc",
+  DEBT_COLLECTION: "Thu công nợ",
+  GOOD: "Tốt",
+  MINOR_DAMAGE: "Hư hỏng nhẹ",
+  MAJOR_DAMAGE: "Hư hỏng nặng",
 };

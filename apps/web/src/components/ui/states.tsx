@@ -279,12 +279,27 @@ export function DelayedFullScreenLoading({
   return visible ? <FullScreenLoading label={label} /> : null;
 }
 
-export function EmptyState({ title, description }: EmptyStateProps) {
+export function EmptyState({
+  title,
+  description,
+  action,
+  onReset,
+  resetLabel = "Đặt lại bộ lọc",
+}: EmptyStateProps) {
   return (
     <div className="mx-auto my-8 flex min-h-[260px] w-full max-w-[620px] flex-col items-center justify-center rounded-card border border-dashed border-slate-300 bg-white p-10 text-center">
       <Inbox className="size-10 text-primary" />
       <h3 className="mt-3 mb-1 font-bold">{title}</h3>
       <p className="max-w-[460px] text-muted">{description}</p>
+      {action ? (
+        <div className="mt-4">{action}</div>
+      ) : onReset ? (
+        <div className="mt-4">
+          <Button variant="outline" onClick={onReset}>
+            {resetLabel}
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }
