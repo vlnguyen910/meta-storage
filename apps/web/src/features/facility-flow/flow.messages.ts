@@ -40,6 +40,9 @@ export const FLOW = {
   monitor: "Theo dõi hồ sơ",
   managerMonitorHint:
     "FM gán ô kho, phân công Staff và theo dõi hồ sơ. Staff được phân công thực hiện xác minh, kiểm tra và bàn giao.",
+  assignedPhysicalUnit: "Ô kho vật lý chỉ định",
+  needPhysicalUnit: "Cần chỉ định ô kho vật lý",
+  inspectionRecord: "Biên bản kiểm tra & Bàn giao",
   assignedStaff: "Staff phụ trách",
   needsStaff: "Chờ phân công Staff",
   staffTasks: "Công việc được giao",
