@@ -157,7 +157,7 @@ export class SepayPaymentGateway {
       input.renewalId && input.rentalId
         ? `/customer/storage/${input.rentalId}/renew`
         : input.reservationId
-          ? "/customer/payments/result"
+          ? "/bookings/payment-result"
           : "/bookings/payment-result",
       webUrl,
     ).toString();

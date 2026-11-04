@@ -31,7 +31,7 @@ export function StaffWorkspace({ owner, name, onHome }: StaffWorkspaceProps) {
     group: "pending",
     kind: "all",
     search: "",
-    date: facilityDay(),
+    date: "",
   });
   const [selection, setSelection] = useState<StaffSelection | null>(null);
   const [notifications, setNotifications] = useState(false);

@@ -22,7 +22,7 @@ test("signed checkout returns success, error and cancellation to the existing We
   for (const status of ["success", "error", "cancel"]) {
     const url = new URL(String(session?.formFields[`${status}_url`]));
     expect(url.origin).toBe("http://localhost:3000");
-    expect(url.pathname).toBe("/customer/payments/result");
+    expect(url.pathname).toBe("/bookings/payment-result");
     expect(url.searchParams.get("paymentId")).toBe(input.paymentId);
     expect(url.searchParams.get("reservationId")).toBe(input.reservationId);
     expect(url.searchParams.get("status")).toBe(status);

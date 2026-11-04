@@ -431,6 +431,7 @@ export function CustomerCheckoutScreen({
         render={({ field, fieldState }) => (
           <CalendarField
             label={M.checkInDate}
+            minDate={state.minCheckInDate}
             value={field.value}
             onChange={field.onChange}
             error={fieldState.error?.message}
@@ -455,7 +456,8 @@ export function CustomerCheckoutScreen({
         <Button
           secondary
           key={s.id}
-          label={`${state.form.watch("checkInSlotId") === s.id ? "✓ " : ""}${s.name} ${s.startTime}–${s.endTime}`}
+          disabled={!state.slotSelectable(s.startTime)}
+          label={`${state.form.watch("checkInSlotId") === s.id ? "✓ " : ""}${s.name} ${s.startTime.slice(0, 5)}–${s.endTime.slice(0, 5)}`}
           onPress={() => state.form.setValue("checkInSlotId", s.id)}
         />
       ))}
@@ -475,7 +477,7 @@ export function CustomerCheckoutScreen({
       <Text className="mb-3">{M.snapshot}</Text>
       <Button
         label={M.choose}
-        disabled={state.prepare.isPending}
+        disabled={state.prepare.isPending || !state.scheduleValid}
         onPress={() => void state.form.handleSubmit((v) => state.prepare.mutate(v))()}
       />
       {state.prepare.isError && <Notice error>{customerError(state.prepare.error)}</Notice>}
@@ -538,9 +540,18 @@ export function CustomerPaymentScreen({
     <>
       <Heading>{M.payment}</Heading>
       <QueryNotice query={query} />
+      {p?.status === "SUCCEEDED" && (
+        <View
+          accessibilityRole="alert"
+          className="mb-4 gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-5"
+        >
+          <Text className="text-lg font-bold text-emerald-900">{M.paymentSuccess}</Text>
+          <Text className="text-sm text-emerald-800">{M.paymentSuccessHint}</Text>
+        </View>
+      )}
       {p && (
         <Card title={formatReference(p.paymentCode, "TT")}>
-          <Row label={M.paymentStatus} value={p.status} />
+          <Row label={M.paymentStatus} value={U.status[p.status] ?? p.status} />
           {p.status === "PENDING" && <Notice>{M.paymentPending}</Notice>}
           {p.status === "FAILED" && <Notice error>{M.paymentFailed}</Notice>}
           {p.checkoutUrl && p.checkoutFormFields && p.status === "PENDING" && !expired && (
@@ -550,6 +561,8 @@ export function CustomerPaymentScreen({
               onPress={() => {
                 if (p.checkoutUrl && p.checkoutFormFields)
                   open.mutate({
+                    paymentId: id,
+                    reservationId: p.reservationId ?? reservationId,
                     checkoutUrl: p.checkoutUrl,
                     checkoutFormFields: p.checkoutFormFields,
                   });
@@ -602,11 +615,13 @@ export function CustomerPaymentScreen({
           />
         </>
       )}
-      <Button
-        label={M.checkPayment}
-        disabled={query.isFetching}
-        onPress={() => void query.refetch()}
-      />
+      {p?.status !== "SUCCEEDED" && (
+        <Button
+          label={query.isFetching ? M.paymentChecking : M.checkPayment}
+          disabled={query.isFetching}
+          onPress={() => void query.refetch()}
+        />
+      )}
       {open.isError && <Notice error>{customerError(open.error)}</Notice>}
       {query.restart.isError && <Notice error>{customerError(query.restart.error)}</Notice>}
       <Button label={M.storage} secondary onPress={() => go({ screen: "rentals" })} />

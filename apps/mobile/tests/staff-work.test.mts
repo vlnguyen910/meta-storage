@@ -36,6 +36,18 @@ function task(id: string, status = "ASSIGNED"): StaffSelection {
   };
 }
 describe("Staff work presentation", () => {
+  test("all dates shows completed appointments from previous days alongside unscheduled tasks", () => {
+    const items = [
+      appointment("check-in-1", "COMPLETED", "2026-10-29T01:00:00Z"),
+      appointment("check-in-2", "COMPLETED", "2026-10-30T01:00:00Z"),
+      appointment("return-1", "COMPLETED", "2026-10-30T02:00:00Z"),
+      appointment("return-2", "COMPLETED", "2026-10-30T03:00:00Z"),
+      task("inspection", "COMPLETED"),
+    ];
+    const completed: StaffWorkFilters = { ...filters, group: "done", date: "" };
+    expect(filterStaffWork(items, completed).items).toHaveLength(5);
+    expect(filterStaffWork(items, { ...completed, date: "2026-11-03" }).items).toHaveLength(1);
+  });
   test("counts status groups within the same date, search and type filters", () => {
     const result = filterStaffWork(
       [

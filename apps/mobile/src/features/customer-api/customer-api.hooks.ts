@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
+  APPOINTMENT_TYPES,
   type CheckoutSessionInput,
   CheckoutSessionInputSchema,
   type CreateReservationDraftInput,
@@ -10,13 +11,13 @@ import {
   type SupportCreateInput,
   SupportCreateInputSchema,
 } from "@metastorage/contracts";
-import { APPOINTMENT_TYPES } from "@metastorage/database/schema/appointments";
 import { CUSTOMER_WORKSPACE as M } from "@metastorage/shared";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { api } from "../../lib/api";
+import { canSelectCheckInSlot, firstCheckInDate } from "./check-in-schedule";
 import type { CustomerCheckoutCommand, CustomerNavigation } from "./customer-api.types";
 
 function checkoutSelectionKey(input: CreateReservationDraftInput) {
@@ -115,12 +116,38 @@ export function useCustomerCheckout(
     defaultValues: { idempotencyKey: customerCommandId(), contactPhone: undefined },
   });
   const slots = useQuery({ queryKey: ["customer-slots"], queryFn: api.appointments.slots });
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
   const values = form.watch();
+  const minCheckInDate = firstCheckInDate(slots.data ?? [], now);
+  const selectedSlot = slots.data?.find((slot) => slot.id === values.checkInSlotId);
+  const scheduleValid = Boolean(
+    selectedSlot && canSelectCheckInSlot(values.checkInDate, selectedSlot.startTime, now),
+  );
+  useEffect(() => {
+    if (!slots.isSuccess) return;
+    if (values.checkInDate && values.checkInDate < minCheckInDate) {
+      form.setValue("checkInDate", minCheckInDate);
+      form.setValue("checkInSlotId", "");
+    } else if (values.checkInSlotId && !scheduleValid) {
+      form.setValue("checkInSlotId", "");
+    }
+  }, [
+    slots.isSuccess,
+    values.checkInDate,
+    values.checkInSlotId,
+    minCheckInDate,
+    scheduleValid,
+    form,
+  ]);
   const valid = CreateReservationDraftSchema.safeParse(values);
   const availability = useQuery({
     queryKey: ["customer-availability", values],
     queryFn: ({ signal }) => api.facilities.availability(facilityId, values, signal),
-    enabled: valid.success,
+    enabled: valid.success && scheduleValid,
   });
   const draftRef = useRef<CustomerCheckoutCommand | null>(null);
   const restored = useQuery({
@@ -137,6 +164,9 @@ export function useCustomerCheckout(
   }, [restored.data, facilityId, unitTypeId, form.reset]);
   const prepare = useMutation({
     mutationFn: async (input: typeof values) => {
+      const slot = slots.data?.find((item) => item.id === input.checkInSlotId);
+      if (!slot || !canSelectCheckInSlot(input.checkInDate, slot.startTime))
+        throw new Error(M.slotUnavailable);
       const signature = checkoutSelectionKey(input);
       if (!draftRef.current || draftRef.current.signature !== signature) {
         const draft = await api.reservations.createDraft(input);
@@ -193,6 +223,9 @@ export function useCustomerCheckout(
     form,
     paymentForm,
     slots,
+    minCheckInDate,
+    scheduleValid,
+    slotSelectable: (startTime: string) => canSelectCheckInSlot(values.checkInDate, startTime, now),
     availability,
     prepare,
     pay,
@@ -218,7 +251,12 @@ export function useCustomerPayment(owner: string, id: string) {
   const paymentStatus = query.data?.status;
   useEffect(() => {
     if (paymentStatus && paymentStatus !== "PENDING") {
-      void clearCustomerCommand(owner, "payment");
+      void readCustomerCommand<{ screen: string; id: string }>(owner, "payment").then(
+        async (saved) => {
+          if (saved?.screen === "payment" && saved.id === id)
+            await clearCustomerCommand(owner, "payment");
+        },
+      );
       void readCustomerCommand<CustomerCheckoutCommand>(owner, "reservation-checkout-v2").then(
         async (saved) => {
           if (saved?.payment?.paymentId !== id) return;
@@ -227,7 +265,10 @@ export function useCustomerPayment(owner: string, id: string) {
             saved.contactPhone = undefined;
             saved.key = customerCommandId();
             await saveCustomerCommand(owner, "reservation-checkout-v2", saved);
+          } else {
+            await clearCustomerCommand(owner, "reservation-checkout-v2");
           }
+          await client.invalidateQueries({ queryKey: ["customer-checkout-recovery", owner] });
         },
       );
       for (const key of [
