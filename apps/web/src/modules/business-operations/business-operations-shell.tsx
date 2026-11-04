@@ -1,9 +1,10 @@
 "use client";
 
-import { Globe2, LogOut, Menu, Warehouse, X } from "lucide-react";
+import { Globe2, LogOut, Menu, Warehouse } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { isMockMode } from "@/config/api-mode";
 import { businessOperationsNavigation } from "@/config/navigation/business-operations.navigation";
 import { businessOperationsRoutes } from "@/config/routes";
@@ -17,10 +18,9 @@ export function BusinessOperationsShell({ children }: Readonly<BusinessOperation
   const pathname = usePathname();
   const logout = useLogout();
   const user = useAuthStore((state) => state.session?.user);
-  const drawer = useRef<HTMLDialogElement>(null);
-  const trigger = useRef<HTMLButtonElement>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   useEffect(() => {
-    if (pathname) drawer.current?.close();
+    if (pathname) setDrawerOpen(false);
   }, [pathname]);
   const navigation = (
     <nav aria-label={M.navigation} className="grid gap-1">
@@ -64,11 +64,10 @@ export function BusinessOperationsShell({ children }: Readonly<BusinessOperation
       </a>
       <header className="sticky top-0 z-30 flex min-h-16 shrink-0 flex-wrap items-center gap-4 border-b border-slate-200 bg-white px-4 py-3 lg:px-7">
         <button
-          ref={trigger}
           type="button"
-          className="grid size-11 place-items-center rounded-lg border border-slate-200 lg:hidden"
+          className="grid size-11 place-items-center rounded-lg border border-slate-200 lg:hidden cursor-pointer"
           aria-label={M.open}
-          onClick={() => drawer.current?.showModal()}
+          onClick={() => setDrawerOpen(true)}
         >
           <Menu size={22} aria-hidden="true" />
         </button>
@@ -115,25 +114,14 @@ export function BusinessOperationsShell({ children }: Readonly<BusinessOperation
           {isMockMode ? M.note : M.apiNote}
         </p>
       </aside>
-      <dialog
-        ref={drawer}
-        onClose={() => trigger.current?.focus()}
-        aria-label={M.navigation}
-        className="fixed inset-y-0 left-0 m-0 h-dvh max-h-none w-72 max-w-[90vw] border-r border-slate-200 bg-white p-4 text-ink backdrop:bg-slate-950/40"
-      >
-        <div className="mb-5 flex items-center justify-between">
-          <strong className="text-primary">{M.brand}</strong>
-          <button
-            type="button"
-            className="grid size-11 place-items-center rounded-lg border border-slate-200"
-            aria-label={M.close}
-            onClick={() => drawer.current?.close()}
-          >
-            <X size={21} aria-hidden="true" />
-          </button>
-        </div>
-        {navigation}
-      </dialog>
+      <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
+        <SheetContent className="left-0 right-auto max-w-72 p-4">
+          <SheetHeader className="mb-4">
+            <SheetTitle className="text-primary font-bold text-left">{M.brand}</SheetTitle>
+          </SheetHeader>
+          {navigation}
+        </SheetContent>
+      </Sheet>
       <div
         className={cn(
           "min-w-0 lg:ml-60",

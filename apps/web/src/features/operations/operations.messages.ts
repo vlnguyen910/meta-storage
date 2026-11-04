@@ -3,8 +3,12 @@ export const OPERATIONS_MESSAGES = {
   policyFeesVersion: "Phiên bản chính sách",
   policyFeeAdd: "Thêm khoản phí",
   policyFeeCode: "Mã (VD: DAMAGE)",
+  policyFeeCodePlaceholder: "VD: DAMAGE",
   policyFeeName: "Tên khoản phí",
+  policyFeeNamePlaceholder: "Tên khoản phí vi phạm",
   policyFeeAmount: "Số tiền VND",
+  policyFeeEmpty: "Chưa có khoản phí nào. Bấm 'Thêm khoản phí' để tạo mới.",
+  actions: "Thao tác",
   policyFeeInvalid:
     "Mã phải viết hoa và không trùng; nhập tên và số tiền nguyên không âm (tối đa 100 khoản phí).",
   policyFeeActive: "Đang áp dụng",

@@ -7,6 +7,7 @@ import {
   ActivityLogQuerySchema,
   UserRole,
 } from "@metastorage/contracts";
+import { formatReference } from "@metastorage/shared";
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, CircleAlert, RefreshCw, RotateCcw, Search } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -241,8 +242,9 @@ export function SystemAdministratorActivityLogsScreen() {
                           {log.user?.name ??
                             (log.userId ? M.activityLogs.deletedUser : M.activityLogs.unknownUser)}
                         </span>
-                        <span className="mt-1 block text-xs text-muted">
-                          {log.user?.email ?? log.userId}
+                        <span className="mt-1 block text-xs text-muted font-mono">
+                          {log.user?.email ??
+                            (log.userId ? formatReference(log.userId, "USR") : "—")}
                         </span>
                       </TableCell>
                       <TableCell>

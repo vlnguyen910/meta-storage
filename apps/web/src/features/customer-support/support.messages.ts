@@ -55,4 +55,11 @@ export const SUPPORT_MESSAGES = {
   loading: "Đang tải danh sách yêu cầu...",
   error: "Không thể tải danh sách yêu cầu hỗ trợ. Vui lòng thử lại.",
   unitLabel: "yêu cầu",
+  createSuccess: "Đã gửi yêu cầu hỗ trợ thành công.",
+  createError: "Không thể gửi yêu cầu hỗ trợ. Vui lòng thử lại.",
+  back: "Quay lại",
+  sending: "Đang gửi...",
+  send: "Gửi yêu cầu",
+  contentPlaceholder: "Mô tả chi tiết nội dung cần hỗ trợ...",
+  charCount: (len: number, max: number) => `${len} / ${max} ký tự`,
 } as const;

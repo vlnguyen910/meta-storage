@@ -27,6 +27,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Currency } from "@/components/ui/display";
 import { OperationalBadge } from "@/components/ui/operational";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { facilityStaffRoutes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
@@ -534,16 +541,22 @@ function CheckInFlowScreen() {
               flow.search(lookupType, input);
             }}
           >
-            <div className="w-36 shrink-0">
-              <select
-                aria-label={FLOW.lookupType}
+            <div className="w-40 shrink-0">
+              <Select
                 value={lookupType}
-                onChange={(ev) => setLookupType(ev.target.value as "BOOKING_CODE" | "QR_TOKEN")}
-                className="h-8.5 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-2.5 text-xs text-slate-800 outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary"
+                onValueChange={(val) => setLookupType(val as "BOOKING_CODE" | "QR_TOKEN")}
               >
-                <option value="BOOKING_CODE">{FLOW.bookingCode}</option>
-                <option value="QR_TOKEN">{FLOW.qr}</option>
-              </select>
+                <SelectTrigger
+                  aria-label={FLOW.lookupType}
+                  className="h-8.5 rounded-lg border-slate-200 bg-slate-50/50 text-xs text-slate-800 focus-visible:border-primary"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="BOOKING_CODE">{FLOW.bookingCode}</SelectItem>
+                  <SelectItem value="QR_TOKEN">{FLOW.qr}</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="relative min-w-[240px] flex-1">
               <Search

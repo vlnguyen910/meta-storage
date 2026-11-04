@@ -1,21 +1,11 @@
 "use client";
 
-import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-  Clock,
-  Layers,
-  RefreshCw,
-  Search,
-  Warehouse,
-  X,
-} from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { Clock, Layers, RefreshCw, Search, Warehouse, X } from "lucide-react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ListPagination } from "@/components/ui/list-pagination";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import {
   Table,
@@ -33,8 +23,7 @@ import { formatDateTimeVn, formatMoney } from "../operations.utils";
 export function OperationsPricingView() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
-  const [jumpInput, setJumpInput] = useState("");
+  const pageSize = 5;
 
   const { configQuery } = useOperationsPricing();
   const { data } = configQuery;
@@ -50,34 +39,7 @@ export function OperationsPricingView() {
 
   const totalPages = Math.max(1, Math.ceil(prices.length / pageSize));
   const safePage = Math.min(Math.max(1, page), totalPages);
-
-  const startIdx = prices.length === 0 ? 0 : (safePage - 1) * pageSize + 1;
-  const endIdx = Math.min(safePage * pageSize, prices.length);
   const displayedPrices = prices.slice((safePage - 1) * pageSize, safePage * pageSize);
-
-  function handleJumpSubmit(e?: FormEvent) {
-    if (e) e.preventDefault();
-    const target = Number.parseInt(jumpInput.trim(), 10);
-    if (!Number.isNaN(target)) {
-      const clamped = Math.min(Math.max(1, target), totalPages);
-      setPage(clamped);
-      setJumpInput("");
-    }
-  }
-
-  // Page numbers generator
-  const getPageNumbers = () => {
-    if (totalPages <= 5) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
-    }
-    if (safePage <= 3) {
-      return [1, 2, 3, 4, totalPages];
-    }
-    if (safePage >= totalPages - 2) {
-      return [1, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
-    }
-    return [1, safePage - 1, safePage, safePage + 1, totalPages];
-  };
 
   return (
     <div className="flex flex-col h-full min-h-0 gap-3">
@@ -231,135 +193,14 @@ export function OperationsPricingView() {
       </div>
 
       {/* Pagination Bar with Page Jump */}
-      <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs shadow-2xs">
-        {/* Left: Summary & Page size */}
-        <div className="flex items-center gap-4 text-slate-600 font-medium">
-          <span>
-            Hiển thị <strong className="text-slate-900 font-bold">{startIdx}</strong> –{" "}
-            <strong className="text-slate-900 font-bold">{endIdx}</strong> trong{" "}
-            <strong className="text-slate-900 font-bold">{prices.length}</strong> loại kho
-          </span>
-
-          <div className="hidden sm:flex items-center gap-1.5 pl-3 border-l border-slate-200">
-            <span className="text-[11px] text-slate-500">Số hàng:</span>
-            <select
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value));
-                setPage(1);
-              }}
-              className="h-7 px-2 text-xs font-semibold border border-slate-200 rounded-md bg-slate-50 text-slate-700 focus:bg-white focus:border-[#165f4d] focus:outline-none cursor-pointer"
-            >
-              <option value={5}>5 / trang</option>
-              <option value={8}>8 / trang</option>
-              <option value={10}>10 / trang</option>
-              <option value={20}>20 / trang</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Right: Pagination controls + Direct page jump */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* First page button */}
-          <button
-            type="button"
-            disabled={safePage <= 1}
-            onClick={() => setPage(1)}
-            aria-label="Trang đầu"
-            title="Trang đầu"
-            className="size-8 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors cursor-pointer"
-          >
-            <ChevronsLeft className="size-3.5" />
-          </button>
-
-          {/* Previous page button */}
-          <button
-            type="button"
-            disabled={safePage <= 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            aria-label={M.previousPage}
-            className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 text-xs font-semibold transition-colors cursor-pointer"
-          >
-            <ChevronLeft className="size-3.5" />
-            <span className="hidden sm:inline">Trước</span>
-          </button>
-
-          {/* Page numbers */}
-          {getPageNumbers().map((pageNum, idx, arr) => {
-            const prevPage = arr[idx - 1];
-            const isGap = idx > 0 && prevPage !== undefined && pageNum - prevPage > 1;
-            return (
-              <div key={pageNum} className="flex items-center">
-                {isGap && <span className="px-1 text-slate-400 font-bold select-none">…</span>}
-                <button
-                  type="button"
-                  aria-current={pageNum === safePage ? "page" : undefined}
-                  onClick={() => setPage(pageNum)}
-                  className={cn(
-                    "min-w-8 h-8 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center",
-                    pageNum === safePage
-                      ? "bg-[#165f4d] text-white shadow-2xs font-extrabold"
-                      : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300",
-                  )}
-                >
-                  {pageNum}
-                </button>
-              </div>
-            );
-          })}
-
-          {/* Next page button */}
-          <button
-            type="button"
-            disabled={safePage >= totalPages}
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            aria-label={M.nextPage}
-            className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 text-xs font-semibold transition-colors cursor-pointer"
-          >
-            <span className="hidden sm:inline">Sau</span>
-            <ChevronRight className="size-3.5" />
-          </button>
-
-          {/* Last page button */}
-          <button
-            type="button"
-            disabled={safePage >= totalPages}
-            onClick={() => setPage(totalPages)}
-            aria-label="Trang cuối"
-            title="Trang cuối"
-            className="size-8 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors cursor-pointer"
-          >
-            <ChevronsRight className="size-3.5" />
-          </button>
-
-          {/* Direct page jump input */}
-          <form
-            onSubmit={handleJumpSubmit}
-            className="flex items-center gap-1.5 ml-1.5 pl-2 border-l border-slate-200"
-          >
-            <span className="text-[11px] text-slate-500 font-medium whitespace-nowrap">
-              Đi tới:
-            </span>
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={jumpInput}
-              placeholder={`${safePage}`}
-              onChange={(e) => setJumpInput(e.target.value.replace(/[^0-9]/g, ""))}
-              className="w-11 h-8 text-center text-xs font-bold border border-slate-200 rounded-lg bg-slate-50 text-slate-900 focus:bg-white focus:border-[#165f4d] focus:ring-1 focus:ring-[#165f4d] focus:outline-none transition-colors"
-            />
-            <Button
-              type="submit"
-              variant="outline"
-              disabled={!jumpInput}
-              className="h-8 px-2.5 text-xs font-semibold border-slate-200 text-slate-700 hover:border-[#165f4d] hover:text-[#165f4d] hover:bg-[#e8f3ef]/40 cursor-pointer disabled:opacity-40"
-            >
-              Đi
-            </Button>
-          </form>
-        </div>
-      </div>
+      <ListPagination
+        label={M.titles.pricing}
+        page={safePage}
+        pageSize={pageSize}
+        total={prices.length}
+        unitLabel="loại kho"
+        onPageChange={setPage}
+      />
     </div>
   );
 }

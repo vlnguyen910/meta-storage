@@ -1,6 +1,7 @@
 "use client";
 
 import { FacilityStatus } from "@metastorage/contracts";
+import { formatReference } from "@metastorage/shared";
 import { Download, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { Button, buttonClassName } from "@/components/ui/button";
@@ -230,8 +231,8 @@ function MockOperationsWorkspace({ section }: Readonly<OperationsWorkspaceProps>
           {facilities.map((facility) => (
             <tr key={facility.id}>
               <th scope="row" className="min-w-48 px-5 py-5">
-                <span className="mb-2 inline-block rounded-lg bg-primary-soft px-2 py-1 text-xs font-bold text-primary">
-                  {facility.id}
+                <span className="mb-2 inline-block rounded-lg bg-primary-soft px-2 py-1 text-xs font-mono font-bold text-primary">
+                  {formatReference(facility.id, "CS")}
                 </span>
                 <span className="block text-primary">{facility.name}</span>
               </th>

@@ -10,6 +10,14 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { OPERATIONS_MESSAGES as M } from "../../operations.messages";
 import { formatMoney } from "../../operations.utils";
 import { REPORTING_MESSAGES as R } from "../../operations-reporting.messages";
@@ -146,39 +154,42 @@ export function FacilityRevenueChart({
           // biome-ignore lint/a11y/noNoninteractiveTabindex: Keyboard access to horizontal table scrolling.
           tabIndex={0}
         >
-          <table className="w-full text-left text-xs">
-            <caption className="sr-only">{R.facilityChart}</caption>
-            <thead>
-              <tr>
+          <Table className="w-full text-left text-xs">
+            <TableHeader className="bg-slate-50">
+              <TableRow>
                 {[M.facilityFilter, R.rental, R.received, R.refunded].map((h) => (
-                  <th key={h} className="p-2" scope="col">
+                  <TableHead
+                    key={h}
+                    className="p-2 text-xs font-semibold text-slate-700"
+                    scope="col"
+                  >
                     {h}
-                  </th>
+                  </TableHead>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {visible.map((item) => (
-                <tr key={item.facility.id}>
-                  <th className="p-2" scope="row">
+                <TableRow key={item.facility.id}>
+                  <TableCell className="p-2 font-medium" scope="row">
                     {item.facility.name} ({item.facility.code})
-                  </th>
+                  </TableCell>
                   {[
                     item.metrics.rentalCollected,
                     item.metrics.cashReceived,
                     item.metrics.cashRefunded,
                   ].map((value, index) => (
-                    <td
+                    <TableCell
                       key={[R.rental, R.received, R.refunded][index]}
-                      className="whitespace-nowrap p-2"
+                      className="whitespace-nowrap p-2 tabular-nums"
                     >
                       {value === null ? R.unknown : formatMoney(value)}
-                    </td>
+                    </TableCell>
                   ))}
-                </tr>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </section>
       </details>
     </section>

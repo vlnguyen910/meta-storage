@@ -135,6 +135,9 @@ export const FLOW = {
   backVerify: "Quay lại xác minh",
   backEdit: "Quay lại chỉnh sửa",
   confirmLeave: "Có thay đổi chưa lưu. Rời trang và bỏ các thay đổi này?",
+  confirmLeaveTitle: "Xác nhận rời màn hình",
+  confirmLeaveAction: "Rời trang",
+  deletePhotoTitle: "Xóa ảnh minh chứng",
   dispatchEyebrow: "Điều phối tiếp đón • Vận hành cơ sở",
   dispatchTitle: "Vận hành Check-in & Bàn giao kho",
   dispatchDescription: (name: string) => `Quản lý danh sách tiếp đón và bàn giao ô kho tại ${name}`,
@@ -183,6 +186,7 @@ export const FLOW = {
   reassignDescription:
     "Sau khi đổi kho, xác minh booking và biên bản kiểm tra của ô kho cũ không còn áp dụng. Nhân viên cần xác minh và lập lại biên bản kiểm tra cho ô kho mới trước khi bàn giao.",
   reassignCancel: "Hủy",
+  cancel: "Hủy",
   reassignConfirm: "Xác nhận đổi kho",
   reassignedSuccess: (oldCode: string, newCode: string) =>
     `Đã đổi ô kho từ ${oldCode} sang ${newCode}.`,
