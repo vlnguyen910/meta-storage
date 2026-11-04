@@ -1,9 +1,10 @@
 "use client";
 
-import { LogOut, Menu, ShieldCheck, X } from "lucide-react";
+import { LogOut, Menu, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { isMockMode } from "@/config/api-mode";
 import { systemAdministratorNavigation } from "@/config/navigation/system-administrator.navigation";
 import { systemAdministratorRoutes } from "@/config/routes";
@@ -26,10 +27,9 @@ export function SystemAdministratorShell({ children }: Readonly<AdminShellProps>
         ? F5.title
         : null
     : null;
-  const drawer = useRef<HTMLDialogElement>(null);
-  const trigger = useRef<HTMLButtonElement>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   useEffect(() => {
-    if (pathname) drawer.current?.close();
+    if (pathname) setDrawerOpen(false);
   }, [pathname]);
   const navigation = (
     <nav aria-label={M.navigation} className="grid gap-1.5">
@@ -70,11 +70,10 @@ export function SystemAdministratorShell({ children }: Readonly<AdminShellProps>
       </a>
       <header className="sticky top-0 z-30 flex min-h-16 shrink-0 items-center gap-3 border-b border-line bg-white/95 px-4 py-2 backdrop-blur-sm lg:ml-64 lg:px-8">
         <button
-          ref={trigger}
           type="button"
           aria-label={M.openMenu}
-          onClick={() => drawer.current?.showModal()}
-          className="grid size-11 shrink-0 place-items-center rounded-lg border border-slate-200 lg:hidden"
+          onClick={() => setDrawerOpen(true)}
+          className="grid size-11 shrink-0 place-items-center rounded-lg border border-slate-200 lg:hidden cursor-pointer"
         >
           <Menu size={22} aria-hidden="true" />
         </button>
@@ -153,25 +152,14 @@ export function SystemAdministratorShell({ children }: Readonly<AdminShellProps>
           </div>
         </div>
       </aside>
-      <dialog
-        ref={drawer}
-        onClose={() => trigger.current?.focus()}
-        aria-label={M.navigation}
-        className="fixed inset-y-0 left-0 m-0 h-dvh max-h-none w-72 max-w-[90vw] border-r border-slate-200 bg-white p-4 text-ink backdrop:bg-slate-950/40"
-      >
-        <div className="mb-5 flex items-center justify-between">
-          <strong className="text-primary">{M.brand}</strong>
-          <button
-            type="button"
-            aria-label={M.closeMenu}
-            onClick={() => drawer.current?.close()}
-            className="grid size-11 place-items-center rounded-lg border border-slate-200"
-          >
-            <X size={21} aria-hidden="true" />
-          </button>
-        </div>
-        {navigation}
-      </dialog>
+      <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
+        <SheetContent className="left-0 right-auto max-w-72 p-4">
+          <SheetHeader className="mb-4">
+            <SheetTitle className="text-primary font-bold text-left">{M.brand}</SheetTitle>
+          </SheetHeader>
+          {navigation}
+        </SheetContent>
+      </Sheet>
       <div
         className={cn(
           "min-w-0 lg:ml-64",

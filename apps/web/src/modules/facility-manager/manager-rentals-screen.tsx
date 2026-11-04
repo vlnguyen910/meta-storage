@@ -230,14 +230,20 @@ function Rentals({ facilityId }: { facilityId: string }) {
 }
 
 function Detail({ facilityId, id }: { facilityId: string; id: string }) {
+  const [paymentPage, setPaymentPage] = useState(1);
+  const paymentPageSize = 10;
   const key = useManagerKey();
   const query = useQuery({
     queryKey: [...key, "rental", facilityId, id],
     queryFn: () => api.rentals.facilityDetail(facilityId, id),
   });
   const payments = useQuery({
-    queryKey: [...key, "rental-payments", facilityId, id],
-    queryFn: () => api.rentals.facilityPayments(facilityId, id, { limit: 20, offset: 0 }),
+    queryKey: [...key, "rental-payments", facilityId, id, paymentPage],
+    queryFn: () =>
+      api.rentals.facilityPayments(facilityId, id, {
+        limit: paymentPageSize,
+        offset: (paymentPage - 1) * paymentPageSize,
+      }),
   });
   const appointments = useQuery({
     queryKey: [...key, "rental-return-appointments", facilityId, id],
@@ -422,6 +428,20 @@ function Detail({ facilityId, id }: { facilityId: string; id: string }) {
                 ))}
               </TableBody>
             </Table>
+          )}
+
+          {payments.data?.total != null && payments.data.total > paymentPageSize && (
+            <div className="border-t border-slate-100 p-3">
+              <ListPagination
+                label={M.payments}
+                page={paymentPage}
+                pageSize={paymentPageSize}
+                total={payments.data.total}
+                unitLabel="giao dịch"
+                onPageChange={setPaymentPage}
+                pending={payments.isFetching}
+              />
+            </div>
           )}
         </CardContent>
       </Card>

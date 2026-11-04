@@ -14,6 +14,16 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useRef, useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -35,42 +45,74 @@ export function InspectionPhotoCard({
   onRemove?: (id: string) => void;
   disabled?: boolean;
 }) {
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+
   return (
-    <div className="group relative overflow-hidden rounded-lg border border-slate-200/90 bg-slate-50 shadow-2xs">
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100">
-        <a href={photo.url} target="_blank" rel="noreferrer" download={photo.filename}>
-          <Image
-            unoptimized
-            width={480}
-            height={360}
-            src={photo.url}
-            alt={photo.filename || FLOW.evidencePhoto}
-            className="h-full w-full object-cover transition-transform group-hover:scale-105"
-          />
-        </a>
-        {onRemove && (
-          <button
-            type="button"
-            aria-label={`${FLOW.removePhoto}: ${photo.filename || FLOW.evidencePhoto}`}
-            disabled={disabled}
-            onClick={() => {
-              if (window.confirm(FLOW.deletePhotoConfirm(photo.filename || FLOW.evidencePhoto))) {
-                onRemove(photo.id);
-              }
-            }}
-            className="absolute right-1 top-1 grid size-5 place-items-center rounded bg-white/95 text-rose-600 shadow-xs transition-opacity hover:bg-rose-50 disabled:opacity-50"
-          >
-            <Trash2 size={12} />
-          </button>
-        )}
+    <>
+      <div className="group relative overflow-hidden rounded-lg border border-slate-200/90 bg-slate-50 shadow-2xs">
+        <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100">
+          <a href={photo.url} target="_blank" rel="noreferrer" download={photo.filename}>
+            <Image
+              unoptimized
+              width={480}
+              height={360}
+              src={photo.url}
+              alt={photo.filename || FLOW.evidencePhoto}
+              className="h-full w-full object-cover transition-transform group-hover:scale-105"
+            />
+          </a>
+          {onRemove && (
+            <button
+              type="button"
+              aria-label={`${FLOW.removePhoto}: ${photo.filename || FLOW.evidencePhoto}`}
+              disabled={disabled}
+              onClick={() => setConfirmDeleteOpen(true)}
+              className="absolute right-1 top-1 grid size-5 place-items-center rounded bg-white/95 text-rose-600 shadow-xs transition-opacity hover:bg-rose-50 disabled:opacity-50 cursor-pointer"
+            >
+              <Trash2 size={12} />
+            </button>
+          )}
+        </div>
+        <div className="p-1">
+          <p className="truncate text-[9.5px] font-semibold text-slate-800">
+            {photo.filename || FLOW.evidencePhoto}
+          </p>
+          <p className="text-[8.5px] text-slate-400">{formatDateTime(photo.createdAt)}</p>
+        </div>
       </div>
-      <div className="p-1">
-        <p className="truncate text-[9.5px] font-semibold text-slate-800">
-          {photo.filename || FLOW.evidencePhoto}
-        </p>
-        <p className="text-[8.5px] text-slate-400">{formatDateTime(photo.createdAt)}</p>
-      </div>
-    </div>
+
+      {onRemove && (
+        <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{FLOW.deletePhotoTitle}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {FLOW.deletePhotoConfirm(photo.filename || FLOW.evidencePhoto)}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel asChild>
+                <Button type="button" variant="outline">
+                  {FLOW.cancel}
+                </Button>
+              </AlertDialogCancel>
+              <AlertDialogAction asChild>
+                <Button
+                  type="button"
+                  variant="danger"
+                  onClick={() => {
+                    setConfirmDeleteOpen(false);
+                    onRemove(photo.id);
+                  }}
+                >
+                  {FLOW.removePhoto}
+                </Button>
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+    </>
   );
 }
 
@@ -92,6 +134,7 @@ export function InspectionScreen({
   const editor = useInspectionEditor(record, onNavigate);
   const fileRef = useRef<HTMLInputElement>(null);
   const [confirmLock, setConfirmLock] = useState(false);
+  const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
   const handover = view === "handover" && record.status === "PASSED";
   const review = view === "review";
   const historical =
@@ -99,7 +142,8 @@ export function InspectionScreen({
     record.reservationId !== result.booking.reservationId;
 
   function back() {
-    if (!editor.dirty || window.confirm(FLOW.confirmLeave)) onBack();
+    if (!editor.dirty) onBack();
+    else setConfirmLeaveOpen(true);
   }
 
   if (readOnly) {
@@ -501,6 +545,34 @@ export function InspectionScreen({
           {editor.error}
         </p>
       )}
+
+      <AlertDialog open={confirmLeaveOpen} onOpenChange={setConfirmLeaveOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{FLOW.confirmLeaveTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{FLOW.confirmLeave}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel asChild>
+              <Button type="button" variant="outline">
+                {FLOW.cancel}
+              </Button>
+            </AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Button
+                type="button"
+                variant="danger"
+                onClick={() => {
+                  setConfirmLeaveOpen(false);
+                  onBack();
+                }}
+              >
+                {FLOW.confirmLeaveAction}
+              </Button>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

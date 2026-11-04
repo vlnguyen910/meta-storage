@@ -13,6 +13,16 @@ import Image from "next/image";
 import Link from "next/link";
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, PageHeader, StatusBadge } from "@/components/ui/display";
 import { ErrorState, LoadingState } from "@/components/ui/states";
@@ -28,6 +38,7 @@ export function CustomerBookingDetail({ id }: { id: string }) {
   const { showToast } = useToast();
   const query = useCustomerBooking(id);
   const cancel = useCancelCustomerBooking(id);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [qr, setQr] = useState<string>();
   const qrUrl = query.data?.confirmation?.qrUrl;
   useEffect(() => {
@@ -149,13 +160,7 @@ export function CustomerBookingDetail({ id }: { id: string }) {
                     className="w-full border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-800 sm:w-auto text-xs"
                     loading={cancel.isPending}
                     disabled={cancel.isPending}
-                    onClick={() => {
-                      if (window.confirm(BM.cancelConfirm)) {
-                        cancel.mutate(undefined, {
-                          onSuccess: () => showToast(BM.cancelSuccess, "success"),
-                        });
-                      }
-                    }}
+                    onClick={() => setCancelDialogOpen(true)}
                   >
                     {BM.cancelAction}
                   </Button>
@@ -163,6 +168,39 @@ export function CustomerBookingDetail({ id }: { id: string }) {
               )}
             </div>
           </Card>
+
+          <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{BM.cancelAction}</AlertDialogTitle>
+                <AlertDialogDescription>{BM.cancelConfirm}</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel asChild>
+                  <Button type="button" variant="outline" disabled={cancel.isPending}>
+                    Đóng
+                  </Button>
+                </AlertDialogCancel>
+                <AlertDialogAction asChild>
+                  <Button
+                    type="button"
+                    variant="danger"
+                    loading={cancel.isPending}
+                    onClick={() => {
+                      cancel.mutate(undefined, {
+                        onSuccess: () => {
+                          setCancelDialogOpen(false);
+                          showToast(BM.cancelSuccess, "success");
+                        },
+                      });
+                    }}
+                  >
+                    {BM.cancelAction}
+                  </Button>
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
 
         {/* Right Column: QR Code & Thanh toán */}

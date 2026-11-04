@@ -42,6 +42,7 @@ import {
 import { ShadcnButton } from "@/components/ui/shadcn-button";
 import { Spinner } from "@/components/ui/spinner";
 import { ErrorState, LoadingState } from "@/components/ui/states";
+import { useToast } from "@/components/ui/toast";
 import { customerRoutes } from "@/config/routes";
 import { customerApiError } from "@/features/bookings/customer-error";
 import { api } from "@/lib/api";
@@ -287,6 +288,7 @@ export function CustomerSupportList() {
 }
 
 export function CustomerSupportCreate() {
+  const { showToast } = useToast();
   const params = useSearchParams();
   const router = useRouter();
   const client = useQueryClient();
@@ -316,9 +318,13 @@ export function CustomerSupportCreate() {
   const create = useMutation({
     mutationFn: api.support.create,
     onSuccess: async (result) => {
+      showToast(SM.createSuccess, "success");
       await client.invalidateQueries({ queryKey: ["support-tickets"] });
       // Open the canonical route so the popup is backed by the list, not the submitted form.
       window.location.replace(customerRoutes.supportTicket(result.ticket.id));
+    },
+    onError: () => {
+      showToast(SM.createError, "error");
     },
   });
   const previous = useRef("");
@@ -528,13 +534,13 @@ export function CustomerSupportCreate() {
                 {M.content} <span className="text-rose-500">*</span>
               </label>
               <span className="text-xs text-slate-400">
-                {form.watch("content")?.length || 0} / 5000 ký tự
+                {SM.charCount(form.watch("content")?.length || 0, 5000)}
               </span>
             </div>
             <textarea
               id="support-content"
               className="w-full rounded-xl border border-slate-200 bg-white p-3.5 text-sm text-slate-900 transition focus:border-[#165f4d] focus:outline-none focus:ring-2 focus:ring-[#165f4d]/20 placeholder:text-slate-400"
-              placeholder="Mô tả chi tiết nội dung cần hỗ trợ..."
+              placeholder={SM.contentPlaceholder}
               {...form.register("content")}
               rows={5}
               maxLength={5000}
@@ -557,31 +563,22 @@ export function CustomerSupportCreate() {
 
           {/* Action Buttons */}
           <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={() => router.push(customerRoutes.support)}
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 hover:text-slate-900"
+              icon={<ArrowLeft size={16} />}
             >
-              <ArrowLeft size={16} />
-              <span>Quay lại</span>
-            </button>
-            <button
+              {SM.back}
+            </Button>
+            <Button
               type="submit"
+              loading={create.isPending}
               disabled={create.isPending}
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#165f4d] hover:bg-[#0f493b] px-6 text-sm font-bold text-white shadow-xs transition disabled:cursor-not-allowed disabled:opacity-50"
+              icon={<Send size={16} />}
             >
-              {create.isPending ? (
-                <>
-                  <Spinner size="sm" variant="button" />
-                  <span>Đang gửi...</span>
-                </>
-              ) : (
-                <>
-                  <Send size={16} />
-                  <span>{M.save}</span>
-                </>
-              )}
-            </button>
+              {create.isPending ? SM.sending : SM.send}
+            </Button>
           </div>
         </form>
       </Card>

@@ -8,6 +8,17 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode, useState } from "react";
 import { useGlobalLoading } from "@/components/providers/global-loading-provider";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { isMockMode } from "@/config/api-mode";
 import { navigationByRole } from "@/config/navigation";
@@ -19,6 +30,7 @@ import { LifecycleInbox } from "@/features/returns/lifecycle-inbox";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { resetMockDatabase } from "@/mocks/database";
+import { APP_SHELL_MESSAGES as M } from "./app-shell.messages";
 
 const roleLabels: Record<UserRole, string> = {
   [UserRole.STORAGE_CUSTOMER]: "Khách thuê kho",
@@ -30,6 +42,7 @@ const roleLabels: Record<UserRole, string> = {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -56,11 +69,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
   }
 
-  function resetDemo() {
-    if (window.confirm("Khôi phục toàn bộ dữ liệu demo về trạng thái ban đầu?")) {
-      resetMockDatabase();
-      window.location.reload();
-    }
+  function handleConfirmResetDemo() {
+    setResetDialogOpen(false);
+    resetMockDatabase();
+    window.location.reload();
   }
 
   if (
@@ -142,10 +154,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             <button
               className="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-[10px] border-0 bg-transparent px-3 text-sm font-semibold text-[#bad2cc] hover:bg-white/10 hover:text-white"
               type="button"
-              onClick={resetDemo}
+              onClick={() => setResetDialogOpen(true)}
             >
               <RotateCcw size={18} />
-              Khôi phục dữ liệu demo
+              {M.resetDemoButton}
             </button>
           ) : null}
           <button
@@ -154,7 +166,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             onClick={logout}
           >
             <LogOut size={18} />
-            Đăng xuất
+            {M.logout}
           </button>
         </div>
       </aside>
@@ -163,7 +175,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           type="button"
           className="fixed inset-0 z-40 hidden cursor-pointer border-0 bg-slate-900/55 max-[800px]:block"
           onClick={() => setOpen(false)}
-          aria-label="Đóng menu"
+          aria-label={M.closeMenu}
         />
       ) : null}
       <div
@@ -177,12 +189,12 @@ export function AppShell({ children }: { children: ReactNode }) {
             type="button"
             className="hidden cursor-pointer border-0 bg-transparent p-2 text-inherit max-[800px]:grid max-[800px]:place-items-center"
             onClick={() => setOpen(true)}
-            aria-label="Mở menu"
+            aria-label={M.openMenu}
           >
             <Menu />
           </button>
           <div className="flex gap-1">
-            <span className="text-muted">Xin chào,</span>
+            <span className="text-muted">{M.greeting}</span>
             <strong>{session.user.name}</strong>
           </div>
           <span className="ml-auto rounded-full bg-primary-soft px-3 py-2 text-xs font-bold text-primary max-[560px]:hidden">
@@ -203,6 +215,27 @@ export function AppShell({ children }: { children: ReactNode }) {
           {children}
         </main>
       </div>
+
+      <AlertDialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{M.resetDemoTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{M.resetDemoDescription}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel asChild>
+              <Button type="button" variant="outline">
+                {M.cancel}
+              </Button>
+            </AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Button type="button" variant="danger" onClick={handleConfirmResetDemo}>
+                {M.resetDemoConfirm}
+              </Button>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

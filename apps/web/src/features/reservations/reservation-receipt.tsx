@@ -3,6 +3,16 @@ import { formatReference } from "@metastorage/shared";
 import Link from "next/link";
 import QRCode from "qrcode";
 import { useEffect, useRef, useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Currency } from "@/components/ui/display";
 import { ErrorState, LoadingState } from "@/components/ui/states";
@@ -25,6 +35,7 @@ export function ReservationReceipt({
 }) {
   const state = useReservationRecord(reservationId);
   const attempted = useRef(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   useEffect(() => {
     if (variant !== "confirmation") return;
@@ -224,14 +235,42 @@ export function ReservationReceipt({
             variant="outline"
             loading={state.cancel.isPending}
             disabled={state.cancel.isPending}
-            onClick={() => {
-              if (window.confirm(m.cancelConfirm)) state.cancel.mutate();
-            }}
+            onClick={() => setCancelDialogOpen(true)}
           >
             {state.cancel.isPending ? m.cancelling : m.cancel}
           </Button>
         )}
       </div>
+
+      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{m.cancel}</AlertDialogTitle>
+            <AlertDialogDescription>{m.cancelConfirm}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel asChild>
+              <Button type="button" variant="outline" disabled={state.cancel.isPending}>
+                {m.back}
+              </Button>
+            </AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Button
+                type="button"
+                variant="danger"
+                loading={state.cancel.isPending}
+                onClick={() => {
+                  state.cancel.mutate(undefined, {
+                    onSuccess: () => setCancelDialogOpen(false),
+                  });
+                }}
+              >
+                {m.cancel}
+              </Button>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 }

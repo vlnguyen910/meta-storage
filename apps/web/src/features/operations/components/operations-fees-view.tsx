@@ -209,7 +209,7 @@ export function OperationsFeesView() {
                 {M.policyFeeActive}
               </TableHead>
               <TableHead className="py-2.5 px-4 text-xs font-bold uppercase tracking-wider text-slate-600 w-[6%] text-center">
-                Thao tác
+                {M.actions}
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -217,7 +217,7 @@ export function OperationsFeesView() {
             {rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="h-32 text-center text-slate-500 text-xs">
-                  Chưa có khoản phí nào. Bấm &quot;{M.policyFeeAdd}&quot; để tạo mới.
+                  {M.policyFeeEmpty}
                 </TableCell>
               </TableRow>
             ) : (
@@ -231,7 +231,7 @@ export function OperationsFeesView() {
                     <input
                       id={`policy-fee-code-${index}`}
                       aria-label={M.policyFeeCode}
-                      placeholder="VD: DAMAGE"
+                      placeholder={M.policyFeeCodePlaceholder}
                       value={item.code}
                       disabled={save.isPending}
                       onChange={(e) => update(index, { code: e.target.value.toUpperCase() })}
@@ -244,7 +244,7 @@ export function OperationsFeesView() {
                     <input
                       id={`policy-fee-name-${index}`}
                       aria-label={M.policyFeeName}
-                      placeholder="Tên khoản phí vi phạm"
+                      placeholder={M.policyFeeNamePlaceholder}
                       value={item.name}
                       disabled={save.isPending}
                       onChange={(e) => update(index, { name: e.target.value })}
@@ -287,18 +287,18 @@ export function OperationsFeesView() {
 
                   {/* Delete button */}
                   <TableCell className="py-2.5 px-4 text-center">
-                    <button
+                    <Button
                       type="button"
+                      variant="outline"
                       aria-label={M.policyFeeRemove}
                       disabled={save.isPending}
                       onClick={() => {
                         save.reset();
                         setItems(rows.filter((_, i) => i !== index));
                       }}
-                      className="size-8 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-rose-600 hover:border-rose-300 hover:bg-rose-50/50 inline-flex items-center justify-center transition-colors cursor-pointer disabled:opacity-50"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </button>
+                      className="size-8 p-0 text-slate-500 hover:text-rose-600 hover:border-rose-300 hover:bg-rose-50/50 cursor-pointer disabled:opacity-50"
+                      icon={<Trash2 className="size-3.5" />}
+                    />
                   </TableCell>
                 </TableRow>
               ))
