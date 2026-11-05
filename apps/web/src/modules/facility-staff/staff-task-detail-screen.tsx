@@ -27,6 +27,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Select } from "@/components/ui/form-controls";
 import { OperationalBadge } from "@/components/ui/operational";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
@@ -446,10 +447,14 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
                       onChange={setChecklistResult}
                       onNoteChange={setChecklistNote}
                     />
-                    <label className="grid gap-2 text-sm font-semibold">
+                    <label
+                      htmlFor="staff-return-condition-select"
+                      className="grid gap-2 text-sm font-semibold"
+                    >
                       {M.returnConditionLabel}
-                      <select
-                        className="min-h-11 rounded-lg border border-line px-3"
+                      <Select
+                        id="staff-return-condition-select"
+                        className="min-h-11 h-11 rounded-lg border-line px-3"
                         value={condition ?? ""}
                         disabled={
                           record.status === "PASSED" || saveReturn.isPending || evidencePending
@@ -463,7 +468,7 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
                         <option value="GOOD">{M.good}</option>
                         <option value="MINOR_DAMAGE">{M.minorDamage}</option>
                         <option value="MAJOR_DAMAGE">{M.majorDamage}</option>
-                      </select>
+                      </Select>
                     </label>
                     <label className="grid gap-2 text-sm font-semibold">
                       {M.inspectionNotes}
@@ -664,10 +669,14 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
                   </p>
                   {refundAmount > 0 && (
                     <>
-                      <label className="grid gap-2 text-sm font-semibold">
+                      <label
+                        htmlFor="staff-refund-method-select"
+                        className="grid gap-2 text-sm font-semibold"
+                      >
                         {M.refundMethod}
-                        <select
-                          className="min-h-11 rounded-lg border border-line px-3"
+                        <Select
+                          id="staff-refund-method-select"
+                          className="min-h-11 h-11 rounded-lg border-line px-3"
                           value={refundMethod}
                           disabled={saveReturn.isPending}
                           onChange={(event) => {
@@ -677,7 +686,7 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
                         >
                           <option value="CASH">{M.cash}</option>
                           <option value="BANK_TRANSFER">{M.bankTransfer}</option>
-                        </select>
+                        </Select>
                       </label>
                       {refundMethod === "BANK_TRANSFER" && (
                         <label className="grid gap-2 text-sm font-semibold">

@@ -23,6 +23,7 @@ import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Select } from "@/components/ui/form-controls";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import {
@@ -113,10 +114,14 @@ export function DebtPanel({ rentalId }: { rentalId?: string }) {
           </div>
         </div>
 
-        <label className="flex shrink-0 flex-col items-start gap-1.5 text-xs font-semibold text-slate-700 sm:flex-row sm:items-center sm:gap-2">
+        <label
+          htmlFor="debt-status-filter"
+          className="flex shrink-0 flex-col items-start gap-1.5 text-xs font-semibold text-slate-700 sm:flex-row sm:items-center sm:gap-2"
+        >
           <span>{M.status}:</span>
-          <select
-            className="min-h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-sm font-normal text-slate-800 outline-none transition-colors focus:border-primary focus:bg-surface focus:ring-1 focus:ring-primary sm:w-48"
+          <Select
+            id="debt-status-filter"
+            className="h-8.5 min-h-8.5 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-2.5 pr-8 text-xs font-normal text-slate-800 focus:bg-white sm:w-48"
             value={status ?? ""}
             onChange={(event) => {
               setStatus((event.target.value || undefined) as DebtQuery["status"]);
@@ -130,7 +135,7 @@ export function DebtPanel({ rentalId }: { rentalId?: string }) {
                 {label}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
       </CardHeader>
 
@@ -400,17 +405,21 @@ function DebtHistory({ debt, canCollect }: { debt: DebtRecord; canCollect: boole
               />
             </label>
 
-            <label className="block text-xs font-semibold text-slate-700">
+            <label
+              htmlFor="debt-method-select"
+              className="block text-xs font-semibold text-slate-700"
+            >
               <span className="block mb-1">{M.method}</span>
-              <select
-                className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-800 outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary font-normal"
+              <Select
+                id="debt-method-select"
+                className="h-8.5 min-h-8.5 w-full rounded-lg border border-slate-200 bg-white pl-2.5 pr-8 text-xs text-slate-800 font-normal"
                 disabled={collect.isPending}
                 aria-label={M.method}
                 {...form.register("method", { onChange: () => form.resetField("reference") })}
               >
                 <option value="CASH">{M.cash}</option>
                 <option value="BANK_TRANSFER">{M.bankTransfer}</option>
-              </select>
+              </Select>
             </label>
 
             {form.watch("method") === "BANK_TRANSFER" && (

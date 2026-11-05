@@ -1,7 +1,7 @@
 "use client";
 import { formatReference } from "@metastorage/shared";
-
 import { Building2 } from "lucide-react";
+import { Select } from "@/components/ui/form-controls";
 import { FACILITY_CONTEXT_MESSAGES } from "./facility-context.messages";
 import type { FacilitySwitcherProps } from "./facility-switcher.types";
 
@@ -41,11 +41,11 @@ export function FacilitySwitcher({
 
       {isMultiFacility && (
         <div className="flex items-center gap-2">
-          <select
+          <Select
             value={currentFacilityId}
             onChange={(e) => onSwitchFacility(e.target.value)}
             aria-label={FACILITY_CONTEXT_MESSAGES.switchFacilityPrompt}
-            className="rounded-lg border border-line bg-white px-3 py-1.5 text-xs font-bold text-ink outline-hidden transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className="min-h-8.5 h-8.5 rounded-lg border-line bg-white pl-2.5 pr-8 text-xs font-bold text-ink"
           >
             {activeAssignments.map((assignment) => (
               <option key={assignment.facilityId} value={assignment.facilityId}>
@@ -55,7 +55,7 @@ export function FacilitySwitcher({
                 {assignment.facilityCode ? ` (${assignment.facilityCode})` : ""}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
       )}
     </div>

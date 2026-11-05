@@ -22,14 +22,17 @@ export function SelectTrigger({
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
       className={cn(
-        "flex h-10 w-full items-center justify-between gap-2 rounded-lg border border-line bg-canvas px-3.5 text-sm text-ink shadow-sm outline-none transition focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
+        "flex h-9.5 min-h-[38px] w-full cursor-pointer items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-800 shadow-xs outline-none transition-colors hover:border-slate-300 hover:bg-slate-50/50 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
         className,
       )}
       {...props}
     >
       {children}
       <SelectPrimitive.Icon asChild>
-        <ChevronDown aria-hidden="true" className="text-muted" />
+        <ChevronDown
+          aria-hidden="true"
+          className="text-slate-400 size-4 transition-transform duration-200"
+        />
       </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   );
@@ -47,7 +50,7 @@ export function SelectContent({
         data-slot="select-content"
         position={position}
         className={cn(
-          "z-50 max-h-[var(--radix-select-content-available-height)] min-w-[var(--radix-select-trigger-width)] overflow-y-auto rounded-lg border border-line bg-white p-1 text-ink shadow-lg outline-none",
+          "z-50 max-h-[var(--radix-select-content-available-height)] min-w-[var(--radix-select-trigger-width)] overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 text-slate-800 shadow-xl outline-none animate-in fade-in-0 zoom-in-95 duration-100",
           className,
         )}
         {...props}
@@ -69,15 +72,15 @@ export function SelectItem({
     <SelectPrimitive.Item
       data-slot="select-item"
       className={cn(
-        "relative flex min-h-10 w-full cursor-default select-none items-center rounded-md py-2 pl-3 pr-9 text-sm outline-none focus:bg-primary-soft focus:text-primary data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+        "relative flex min-h-9 w-full cursor-pointer select-none items-center rounded-lg py-2 pl-3 pr-8 text-xs sm:text-sm font-medium text-slate-700 outline-none transition-colors hover:bg-slate-100/80 hover:text-slate-900 focus:bg-primary/10 focus:text-primary data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
         className,
       )}
       {...props}
     >
       <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
-      <span className="absolute right-3 grid size-4 place-items-center">
+      <span className="absolute right-2.5 grid size-4 place-items-center">
         <SelectPrimitive.ItemIndicator>
-          <Check aria-hidden="true" className="size-4" />
+          <Check aria-hidden="true" className="size-4 text-primary" />
         </SelectPrimitive.ItemIndicator>
       </span>
     </SelectPrimitive.Item>

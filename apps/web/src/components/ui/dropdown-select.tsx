@@ -19,6 +19,7 @@ export function DropdownSelect({
   disabled = false,
   ariaLabel,
   placement = "auto",
+  align = "start",
 }: Readonly<DropdownSelectProps>) {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -136,20 +137,20 @@ export function DropdownSelect({
         disabled={disabled}
         onClick={() => setIsOpen((prev) => !prev)}
         className={cn(
-          "flex h-7 min-h-0 cursor-pointer items-center justify-between gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-800 shadow-2xs transition-all hover:bg-slate-100 hover:border-slate-300 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-50",
-          isOpen && "border-primary ring-1 ring-primary bg-white",
+          "flex h-9 min-h-9 cursor-pointer items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs sm:text-sm font-medium text-slate-800 shadow-xs transition-all hover:border-slate-300 hover:bg-slate-50/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50",
+          isOpen && "border-primary ring-2 ring-primary/20 bg-white",
           triggerClassName,
         )}
       >
         <div className="flex min-w-0 items-center gap-1.5">
-          {icon && <span className="shrink-0 text-slate-500">{icon}</span>}
+          {icon && <span className="shrink-0 text-slate-400">{icon}</span>}
           <span className="truncate">
             {selectedOption ? selectedOption.label : (placeholder ?? options[0]?.label)}
           </span>
         </div>
         <ChevronDown
           className={cn(
-            "h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform duration-200",
+            "h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200",
             isOpen && (isUpward ? "-rotate-180 text-primary" : "rotate-180 text-primary"),
           )}
           aria-hidden="true"
@@ -162,8 +163,9 @@ export function DropdownSelect({
           role="listbox"
           aria-labelledby={`dropdown-trigger-${id}`}
           className={cn(
-            "absolute left-0 z-50 min-w-[200px] min-w-full w-max max-w-[340px] rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl animate-in fade-in-0 zoom-in-95 duration-100",
-            isUpward ? "bottom-full mb-1 origin-bottom-left" : "top-full mt-1 origin-top-left",
+            "absolute z-50 min-w-[200px] min-w-full w-max max-w-[340px] rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl animate-in fade-in-0 zoom-in-95 duration-100",
+            isUpward ? "bottom-full mb-1.5" : "top-full mt-1.5",
+            align === "end" ? "right-0 origin-top-right" : "left-0 origin-top-left",
             dropdownClassName,
           )}
         >
@@ -197,7 +199,7 @@ export function DropdownSelect({
                     aria-selected={isSelected}
                     onClick={() => handleSelect(opt.value)}
                     className={cn(
-                      "flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs transition-colors",
+                      "flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-xs sm:text-sm transition-colors",
                       isSelected
                         ? "bg-primary/10 font-semibold text-primary"
                         : "font-medium text-slate-700 hover:bg-slate-100/80 hover:text-slate-900",

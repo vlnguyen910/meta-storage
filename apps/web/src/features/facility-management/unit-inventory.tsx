@@ -650,7 +650,7 @@ function UnitEditor({
         <ManagementField label={F5.unitType} error={form.formState.errors.unitTypeId?.message}>
           <Select
             {...form.register("unitTypeId")}
-            className="h-10 min-h-10 rounded-lg border-slate-200 bg-slate-50/50 text-xs px-3 focus:bg-white"
+            className="h-10 min-h-10 rounded-lg border-slate-200 bg-slate-50/50 text-xs pl-3 pr-9 focus:bg-white"
           >
             <option value="">{F5.choose}</option>
             {unit && !types.data?.some((item) => item.id === unit.unitTypeId) && (

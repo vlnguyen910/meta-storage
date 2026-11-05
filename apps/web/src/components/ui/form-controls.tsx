@@ -1,3 +1,4 @@
+import { ChevronDown } from "lucide-react";
 import {
   cloneElement,
   forwardRef,
@@ -55,18 +56,26 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
 );
 
 export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement>>(
-  function Select({ className = "", children, ...props }, ref) {
+  function Select({ className = "", children, disabled, id, ...props }, ref) {
     return (
-      <select
-        ref={ref}
-        className={cn(
-          "min-h-[46px] w-full rounded-[11px] border border-slate-300 bg-white px-3 text-ink outline-none transition focus:border-primary focus:ring-3 focus:ring-primary/10",
-          className,
-        )}
-        {...props}
-      >
-        {children}
-      </select>
+      <div className="relative w-full">
+        <select
+          ref={ref}
+          id={id}
+          disabled={disabled}
+          className={cn(
+            "min-h-11 h-11 w-full appearance-none rounded-xl border border-slate-300 bg-white pl-3.5 pr-10 text-xs sm:text-sm font-medium text-slate-800 shadow-xs outline-none transition-colors hover:border-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 cursor-pointer",
+            className,
+          )}
+          {...props}
+        >
+          {children}
+        </select>
+        <ChevronDown
+          aria-hidden="true"
+          className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400"
+        />
+      </div>
     );
   },
 );
