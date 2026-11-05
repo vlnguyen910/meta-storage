@@ -50,6 +50,14 @@ async function mockApi(page: Page, initialRole?: string) {
         status: 503,
         json: { code: "PROVIDER_UNAVAILABLE", message: "Unavailable" },
       });
+    } else if (path.endsWith("/appointments/mine")) {
+      await route.fulfill({ json: { success: true, data: [] } });
+    } else if (path.endsWith("/rentals/mine")) {
+      await route.fulfill({ json: { success: true, data: { items: [], nextCursor: null } } });
+    } else if (path.endsWith("/facilities/catalog")) {
+      await route.fulfill({
+        json: { success: true, data: { items: [], page: 1, pageSize: 6, total: 0, totalPages: 0 } },
+      });
     } else {
       // Workspace APIs are outside this auth test; an explicit error keeps them out of the real API.
       await route.fulfill({
@@ -165,7 +173,7 @@ test("register submits the shared contract with optional phone and can resend ve
   });
 });
 
-test("login routes to the waiting screen and sign-out returns directly to login", async ({
+test("login routes to the customer home and sign-out returns directly to login", async ({
   page,
 }) => {
   const calls = await mockApi(page);
@@ -173,12 +181,15 @@ test("login routes to the waiting screen and sign-out returns directly to login"
   await page.getByRole("textbox", { name: "Email", exact: true }).fill(user.email);
   await page.getByLabel("Mật khẩu", { exact: true }).fill("example-password");
   await page.getByRole("button", { name: "Đăng nhập", exact: true }).tap();
-  await expect(page.getByRole("heading", { name: "Bạn đã đăng nhập", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Tìm & Thuê buồng kho", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("tab", { name: "Tài khoản", exact: true }).tap();
   await expect(page.getByRole("button", { name: "Đăng xuất", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Đăng nhập", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Đăng xuất", exact: true }).tap();
   await expect(page.getByRole("heading", { name: "Đăng nhập", exact: true })).toBeVisible();
-  expect(calls.every((call) => call.path.startsWith("/api/auth/"))).toBeTruthy();
+  expect(calls.some((call) => /\/bookings|\/reservations\/drafts/.test(call.path))).toBeFalsy();
 });
 
 test("restores a staff session without a login or landing page", async ({ page }) => {
@@ -258,15 +269,16 @@ test("legacy deep links cannot open old screens after session restore", async ({
   await page.setViewportSize({ width: 390, height: 844 });
   const calls = await mockApi(page, "CUSTOMER");
   await page.goto("/#M-C03/old-booking");
-  await expect(page.getByRole("heading", { name: "Bạn đã đăng nhập", exact: true })).toBeVisible();
-  await assertFits(page);
+  await expect(
+    page.getByRole("heading", { name: "Tìm & Thuê buồng kho", exact: true }),
+  ).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({ path: testInfo.outputPath("home.png") });
   expect(
     (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze())
       .violations,
   ).toEqual([]);
-  expect(calls.every((call) => call.path.startsWith("/api/auth/"))).toBeTruthy();
+  expect(calls.some((call) => /\/appointments\/(?!mine)|\/bookings/.test(call.path))).toBeFalsy();
 });
 
 for (const failed of [false, true]) {

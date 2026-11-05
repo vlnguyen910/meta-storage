@@ -24,7 +24,8 @@ const [search, setSearch] = useState("");
 ```
 
 - `AppHeader`: logo, notification action, optional back action. Consumers supply callbacks.
-- `BottomTabs`: exactly **Home — Kho của tôi — Profile**, with `home`, `rentals`, `profile` keys.
+- `BottomTabs`: **Home — Kho của tôi — Profile** by default, with `home`, `rentals`, `profile` keys.
+  `labels` optionally localizes the visible labels.
   Selection is controlled by the consumer. No routes or screens are changed automatically.
 - `SearchField`: controlled text, search keyboard action, clear action, disabled state. `onSubmit`
   receives trimmed text; typing remains controlled by `onChangeText`, without built-in fetching
@@ -34,13 +35,14 @@ const [search, setSearch] = useState("");
 - `Button`: primary, secondary, outline, ghost and danger variants, disabled/loading states.
 - Existing `Card`, `Field`, `Heading`, `Notice`, `Row`, `StatusPill`, `ChoiceTabs` and `CalendarField`
   remain available through the same entry point.
+- `Card.compact` uses 16px padding for denser screens; default padding remains 20px.
 
 Load `global.css` and the fonts from `src/theme/fonts.ts` at the app entry. Place `ScreenFrame`
 inside `SafeAreaProvider`, once around the header, scrollable content and bottom tabs. Keyboard
 avoidance belongs to the consuming screen.
 
-The new components are not mounted into existing product screens. `e2e/app-ui-fixture.tsx` is a
-standalone component preview used by Playwright. Run `bun run --filter mobile test:e2e` to check
+`e2e/app-ui-fixture.tsx` is a standalone component preview used by Playwright.
+Run `bun run --filter mobile test:e2e` to check
 responsive layouts, interaction, accessibility, and the existing component suite.
 
 Authentication screens in `src/screens/auth/` each have their own file and reuse this foundation.
@@ -54,4 +56,7 @@ Shared type contracts and utility functions live in `src/common/`.
 
 `src/features/auth/use-authentication.ts` coordinates React Hook Form/Zod validation and the
 centralized auth/API clients. Previous screens are retained in `src/screens/old/` and are not
-registered in `src/navigation/app-navigator.tsx`. Signed-in users currently see `home-screen.tsx`.
+registered in `src/navigation/app-navigator.tsx`. API-mode customers use the three separate
+home, appointments and appointment-detail screens through `customer-navigator.tsx`.
+Their query/workflow hooks live in `src/features/customer-home/`. Staff and offline-demo
+sessions retain `account-screen.tsx` until their new screens are implemented.

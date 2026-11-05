@@ -1,0 +1,60 @@
+{
+  "projectId": "259132084655583484",
+  "title": "Remix of StoreX Storage Finder",
+  "deviceType": "MOBILE",
+  "Last Sync Time": "2026-11-05T17:30:23.798Z",
+  "screens": {
+    "home": {
+      "deviceType": "MOBILE",
+      "height": "2488",
+      "htmlCode": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/259132084655583484/files/8887408361327309817:download",
+        "mimeType": "text/html",
+        "name": "projects/259132084655583484/files/8887408361327309817"
+      },
+      "name": "projects/259132084655583484/screens/6b99d6354ca447eb94df723d9d1c5ada",
+      "screenshot": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/259132084655583484/files/1977177600566997987:download",
+        "mimeType": "image/jpeg",
+        "name": "projects/259132084655583484/files/1977177600566997987"
+      },
+      "title": "Trang chủ - MetaStorage Mobile",
+      "width": "780"
+    },
+    "appointment-detail": {
+      "deviceType": "MOBILE",
+      "height": "1768",
+      "htmlCode": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/259132084655583484/files/4512018001674679647:download",
+        "mimeType": "text/html",
+        "name": "projects/259132084655583484/files/4512018001674679647"
+      },
+      "name": "projects/259132084655583484/screens/1fd2b9189b244869a7b648d18e385efc",
+      "screenshot": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/259132084655583484/files/7540291057898870808:download",
+        "mimeType": "image/jpeg",
+        "name": "projects/259132084655583484/files/7540291057898870808"
+      },
+      "title": "Chi tiết lịch hẹn - MetaStorage Mobile",
+      "width": "780"
+    },
+    "appointments": {
+      "deviceType": "MOBILE",
+      "height": "1768",
+      "htmlCode": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/259132084655583484/files/1034414911155200017:download",
+        "mimeType": "text/html",
+        "name": "projects/259132084655583484/files/1034414911155200017"
+      },
+      "name": "projects/259132084655583484/screens/ab0928a18b6c4eea88df5a12f4b84486",
+      "screenshot": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/259132084655583484/files/3243367058112023929:download",
+        "mimeType": "image/jpeg",
+        "name": "projects/259132084655583484/files/3243367058112023929"
+      },
+      "title": "Tất cả lịch hẹn - MetaStorage Mobile",
+      "width": "780"
+    }
+  },
+  "retrieval": "Hosted download URLs require authentication (401). Source HTML and original JPEGs retrieved via Stitch download_file."
+}

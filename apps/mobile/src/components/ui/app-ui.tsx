@@ -71,7 +71,7 @@ export function AppHeader({ onHome, onBack, onNotifications }: AppHeaderProps) {
   );
 }
 
-export function BottomTabs({ selected, onSelect }: BottomTabsProps) {
+export function BottomTabs({ selected, onSelect, labels }: BottomTabsProps) {
   return (
     <View className="border-t border-line bg-surface px-4 py-2">
       <View
@@ -81,11 +81,12 @@ export function BottomTabs({ selected, onSelect }: BottomTabsProps) {
       >
         {customerTabs.map((tab) => {
           const active = selected === tab.key;
+          const label = labels?.[tab.key] ?? tab.label;
           return (
             <Pressable
               key={tab.key}
               accessibilityRole="tab"
-              accessibilityLabel={tab.label}
+              accessibilityLabel={label}
               accessibilityState={{ selected: active }}
               aria-selected={active}
               onPress={() => onSelect(tab.key)}
@@ -99,7 +100,7 @@ export function BottomTabs({ selected, onSelect }: BottomTabsProps) {
               <Text
                 className={`text-[12px] leading-5 ${active ? "font-body-bold text-primary" : "font-body-medium text-muted"}`}
               >
-                {tab.label}
+                {label}
               </Text>
             </Pressable>
           );

@@ -5,11 +5,12 @@ import { ThemedActivityIndicator } from "../components/ui/native-styles";
 import { AUTHENTICATION as M } from "../features/auth/authentication.messages";
 import { useAppSession, useDemoSession } from "../features/auth/use-app-session";
 import { useAuthentication } from "../features/auth/use-authentication";
+import { AccountScreen } from "../screens/account-screen";
 import { ForgotPasswordScreen } from "../screens/auth/forgot-password-screen";
 import { LoginScreen } from "../screens/auth/login-screen";
 import { RegisterScreen } from "../screens/auth/register-screen";
 import { VerifyEmailScreen } from "../screens/auth/verify-email-screen";
-import { HomeScreen } from "../screens/home-screen";
+import { CustomerNavigator } from "./customer-navigator";
 
 export function AppNavigator() {
   const session = useAppSession();
@@ -38,8 +39,16 @@ function SessionRoutes({ session, demo = false }: { session: AppSession; demo?: 
       </ScreenFrame>
     );
   }
-  return session.user ? (
-    <HomeScreen
+  return session.user && !demo && "role" in session.user && session.user.role === "CUSTOMER" ? (
+    <CustomerNavigator
+      key={session.user.id}
+      user={session.user}
+      onLogout={session.signOut}
+      pending={session.signingOut}
+      error={session.signOutError}
+    />
+  ) : session.user ? (
+    <AccountScreen
       name={session.user.name}
       onLogout={session.signOut}
       pending={session.signingOut}

@@ -1,0 +1,51 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-font",
+        "value": "material symbols outlined",
+        "files": [
+          ".stitch/designs/home.html",
+          ".stitch/designs/appointment-detail.html",
+          ".stitch/designs/appointments.html"
+        ],
+        "createdAt": "2026-11-05T17:30:43.993Z",
+        "reason": "Codex: downloaded Stitch source reference; native UI uses the existing Lucide icon system."
+      },
+      {
+        "rule": "flat-type-hierarchy",
+        "value": "*",
+        "files": [
+          ".stitch/designs/appointment-detail.html",
+          ".stitch/designs/appointments.html",
+          ".stitch/designs/home.html"
+        ],
+        "createdAt": "2026-11-05T18:02:28.512Z",
+        "reason": "Codex: untouched downloaded Stitch HTML retained as source reference at user request; active React Native screens are implemented separately and do not render these files."
+      },
+      {
+        "rule": "nested-cards",
+        "value": "*",
+        "files": [
+          ".stitch/designs/appointment-detail.html",
+          ".stitch/designs/appointments.html",
+          ".stitch/designs/home.html"
+        ],
+        "createdAt": "2026-11-05T18:02:28.681Z",
+        "reason": "Codex: untouched downloaded Stitch HTML retained as source reference at user request; active React Native screens are implemented separately and do not render these files."
+      },
+      {
+        "rule": "pulsing-dot",
+        "value": "*",
+        "files": [
+          ".stitch/designs/appointment-detail.html",
+          ".stitch/designs/appointments.html"
+        ],
+        "createdAt": "2026-11-05T18:02:28.862Z",
+        "reason": "Codex: pulse exists only in untouched downloaded Stitch references; active React Native screens do not include these decorative pulse indicators."
+      }
+    ]
+  }
+}

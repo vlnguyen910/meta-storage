@@ -18,6 +18,7 @@ export type CustomerTab = "home" | "rentals" | "profile";
 export interface BottomTabsProps {
   selected: CustomerTab;
   onSelect: (key: CustomerTab) => void;
+  labels?: Partial<Record<CustomerTab, string>>;
 }
 
 export interface SearchFieldProps {

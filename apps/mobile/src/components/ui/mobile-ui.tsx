@@ -31,9 +31,11 @@ const buttonVariants: Record<MobileButtonVariant, { container: string; label: st
   },
 };
 
-export function Card({ children, title }: MobileCardProps) {
+export function Card({ children, title, compact = false }: MobileCardProps) {
   return (
-    <View className="mb-4 rounded-card border border-line bg-surface p-card shadow-soft">
+    <View
+      className={`mb-4 rounded-card border border-line bg-surface shadow-soft ${compact ? "p-4" : "p-card"}`}
+    >
       {title ? (
         <Text
           accessibilityRole="header"
