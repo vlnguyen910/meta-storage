@@ -26,4 +26,5 @@ export interface MobileFieldProps extends TextInputProps {
 export interface MobileCardProps {
   children: ReactNode;
   title?: string;
+  compact?: boolean;
 }
