@@ -1,6 +1,6 @@
 import { create } from "qrcode";
 import { View } from "react-native";
-import type { QrGridRow } from "./qr-grid.types";
+import type { QrGridRow } from "../../common/qr-grid.types";
 
 export function BookingQr({ value, label }: { value: string; label: string }) {
   const matrix = create(value, { errorCorrectionLevel: "M" }).modules;

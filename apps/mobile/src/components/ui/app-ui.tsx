@@ -10,7 +10,6 @@ import {
 } from "lucide-react-native";
 import { useRef } from "react";
 import { Image, Pressable, Text, type TextInput, View } from "react-native";
-import { APP_UI as M } from "./app-ui.messages";
 import type {
   AppHeaderProps,
   BottomTabsProps,
@@ -18,7 +17,8 @@ import type {
   IconButtonProps,
   ListItemProps,
   SearchFieldProps,
-} from "./app-ui.types";
+} from "../../common/app-ui.types";
+import { APP_UI as M } from "./app-ui.messages";
 import { Icon } from "./icon";
 import { ThemedTextInput } from "./native-styles";
 

@@ -3,8 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { registerRootComponent } from "expo";
 import { useFonts } from "expo-font";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { MobileApp } from "../src/features/mobile-shell/mobile-app";
-import { AuthenticationScreen } from "../src/screens/authentication-screen";
+import { AuthNavigator, DemoNavigator } from "../src/navigation/app-navigator";
 import { MOBILE_FONTS } from "../src/theme/fonts";
 import "../global.css";
 
@@ -17,7 +16,7 @@ function AuthenticationFixture() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={client}>
-        {params.has("demo") ? <MobileApp /> : <AuthenticationScreen callbackUrl={callbackUrl} />}
+        {params.has("demo") ? <DemoNavigator /> : <AuthNavigator callbackUrl={callbackUrl} />}
       </QueryClientProvider>
     </SafeAreaProvider>
   );

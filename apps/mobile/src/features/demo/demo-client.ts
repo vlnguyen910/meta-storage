@@ -4,8 +4,8 @@ import {
   createMobileWorkflowClient,
 } from "@metastorage/api-client";
 import { type AxiosAdapter, AxiosError, type AxiosResponse } from "axios";
+import type { DemoDatabase } from "../../common/demo.types";
 import { DEMO_MESSAGES as m } from "./demo.messages";
-import type { DemoDatabase } from "./demo.types";
 import { createMobileSeed } from "./demo-seed";
 import { handleMobileRequest } from "./demo-service";
 import { readDemoStorage, writeDemoStorage } from "./demo-storage";

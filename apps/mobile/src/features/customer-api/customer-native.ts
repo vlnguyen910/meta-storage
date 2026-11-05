@@ -3,8 +3,8 @@ import * as Linking from "expo-linking";
 import * as SecureStore from "expo-secure-store";
 import * as WebBrowser from "expo-web-browser";
 import { Platform } from "react-native";
+import type { CheckoutSession } from "../../common/customer-api.types";
 import { WEB_BASE_URL } from "../../lib/runtime-config";
-import type { CheckoutSession } from "./customer-api.types";
 
 const privateFiles = new Set<string>();
 const privateDirectory = () => new FileSystem.Directory(FileSystem.Paths.cache, "customer-private");

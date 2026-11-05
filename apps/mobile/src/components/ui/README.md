@@ -43,7 +43,9 @@ The new components are not mounted into existing product screens. `e2e/app-ui-fi
 standalone component preview used by Playwright. Run `bun run --filter mobile test:e2e` to check
 responsive layouts, interaction, accessibility, and the existing component suite.
 
-Authentication screens reuse this foundation in `src/screens/authentication-screen.tsx`.
+Authentication screens in `src/screens/auth/` each have their own file and reuse this foundation.
+`src/navigation/app-navigator.tsx` connects the feature hook directly to the active screen.
+Shared type contracts and utility functions live in `src/common/`.
 
 - `Button.leadingIcon` accepts a leading visual; loading replaces it with the spinner.
 - `Field.labelAction` places an action or supporting content beside the label.
@@ -51,4 +53,5 @@ Authentication screens reuse this foundation in `src/screens/authentication-scre
   and `onChangeText` contract stay unchanged.
 
 `src/features/auth/use-authentication.ts` coordinates React Hook Form/Zod validation and the
-centralized auth/API clients. The previous authentication screens are intentionally retained.
+centralized auth/API clients. Previous screens are retained in `src/screens/old/` and are not
+registered in `src/navigation/app-navigator.tsx`. Signed-in users currently see `home-screen.tsx`.

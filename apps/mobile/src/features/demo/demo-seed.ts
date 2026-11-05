@@ -4,7 +4,7 @@ import {
   type MobileHeldDraft,
   type MobilePaidBooking,
 } from "@metastorage/contracts";
-import type { DemoDatabase } from "./demo.types";
+import type { DemoDatabase } from "../../common/demo.types";
 
 export const demoId = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 // Demo IDs and access tokens are intentionally not production security primitives.

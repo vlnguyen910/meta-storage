@@ -4,8 +4,8 @@ import {
   type MobilePaidBooking,
   SYSTEM_SETTING_DEFINITIONS,
 } from "@metastorage/contracts";
+import type { DemoDatabase } from "../../common/demo.types";
 import { DEMO_MESSAGES as m } from "./demo.messages";
-import type { DemoDatabase } from "./demo.types";
 import { addMonths } from "./demo-seed";
 
 export function requirePeriod(checkInAt: string, months: number, now = Date.now()) {

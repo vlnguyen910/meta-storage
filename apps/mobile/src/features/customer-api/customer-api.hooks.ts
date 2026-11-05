@@ -16,9 +16,9 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tansta
 import { isAxiosError } from "axios";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
+import { canSelectCheckInSlot, firstCheckInDate } from "../../common/check-in-schedule.utils";
+import type { CustomerCheckoutCommand, CustomerNavigation } from "../../common/customer-api.types";
 import { api } from "../../lib/api";
-import { canSelectCheckInSlot, firstCheckInDate } from "./check-in-schedule";
-import type { CustomerCheckoutCommand, CustomerNavigation } from "./customer-api.types";
 
 function checkoutSelectionKey(input: CreateReservationDraftInput) {
   return JSON.stringify([

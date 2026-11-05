@@ -5,18 +5,12 @@ import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { BackHandler, Platform } from "react-native";
 import { z } from "zod";
+import type { AuthenticationOptions, AuthRoute, Verification } from "../../common/auth.types";
+import { authenticationError } from "../../common/auth.utils";
 import { api } from "../../lib/api";
 import { authClient } from "../../lib/auth-client";
 import { mobileApi, mobileWorkflows } from "../demo/demo-client";
 import { AUTHENTICATION as M } from "./authentication.messages";
-
-type AuthPage = "login" | "register" | "forgot-password" | "verify-email";
-type Verification = "pending" | "returned" | "expired";
-export interface AuthenticationOptions {
-  callbackUrl?: string;
-  demo?: boolean;
-  onAuthenticated?: (role: string) => void;
-}
 
 const emailSchema = CustomerSignUpInputSchema.shape.email;
 const loginSchema = z.object({
@@ -56,7 +50,7 @@ export function useAuthentication({
   onAuthenticated,
 }: AuthenticationOptions) {
   const client = useQueryClient();
-  const [page, setPage] = useState<AuthPage>("login");
+  const [page, setPage] = useState<AuthRoute>("login");
   const [verification, setVerification] = useState<Verification>("pending");
   const [verificationEmail, setVerificationEmail] = useState("");
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -76,7 +70,7 @@ export function useAuthentication({
   });
   const request = useMutation({ mutationFn: (action: () => Promise<void>) => action() });
   const navigate = useCallback(
-    (next: AuthPage) => {
+    (next: AuthRoute) => {
       setPage(next);
       setFeedback(undefined);
       request.reset();
@@ -221,14 +215,4 @@ export function useAuthentication({
         ? feedback.message
         : undefined,
   };
-}
-
-function authenticationError(error: Error) {
-  if ("isAxiosError" in error) {
-    const data = (
-      error as { response?: { data?: { error?: { message?: string }; message?: string } } }
-    ).response?.data;
-    return data?.error?.message || data?.message || M.networkError;
-  }
-  return error.message === "Failed to fetch" ? M.networkError : error.message || M.requestFailed;
 }

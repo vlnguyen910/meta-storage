@@ -3,7 +3,7 @@ import { focusManager, useQueryClient } from "@tanstack/react-query";
 import * as Linking from "expo-linking";
 import { useEffect } from "react";
 import { AppState } from "react-native";
-import type { CustomerRoute } from "./customer-api.types";
+import type { CustomerRoute } from "../../common/customer-api.types";
 import { readCustomerCommand, saveCustomerCommand } from "./customer-native";
 
 type PaymentRoute = Extract<CustomerRoute, { screen: "payment" }>;

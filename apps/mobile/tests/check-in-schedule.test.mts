@@ -1,9 +1,6 @@
 import { expect, test } from "bun:test";
 import type { CheckInSlotOption } from "@metastorage/contracts";
-import {
-  canSelectCheckInSlot,
-  firstCheckInDate,
-} from "../src/features/customer-api/check-in-schedule";
+import { canSelectCheckInSlot, firstCheckInDate } from "../src/common/check-in-schedule.utils";
 
 const slots: CheckInSlotOption[] = ["08:00:00", "10:30:00", "14:00:00", "15:30:00"].map(
   (startTime, index) => ({

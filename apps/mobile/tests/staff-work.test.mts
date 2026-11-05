@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { AppointmentRecordDto, FacilityTaskDetail } from "@metastorage/contracts";
-import type { StaffSelection, StaffWorkFilters } from "../src/features/staff-api/staff-api.types";
-import { filterStaffWork } from "../src/features/staff-api/staff-work.helpers";
+import type { StaffSelection, StaffWorkFilters } from "../src/common/staff-api.types";
+import { filterStaffWork } from "../src/common/staff-work.utils";
 
 const filters: StaffWorkFilters = { group: "pending", kind: "all", date: "2026-10-29", search: "" };
 function appointment(
