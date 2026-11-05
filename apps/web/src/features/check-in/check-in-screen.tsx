@@ -26,7 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Currency } from "@/components/ui/display";
-import { OperationalBadge } from "@/components/ui/operational";
+import { OperationalBackLink, OperationalBadge } from "@/components/ui/operational";
 import {
   Select,
   SelectContent,
@@ -39,7 +39,7 @@ import { facilityStaffRoutes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { AssignmentScreen } from "@/features/facility-flow/assignment-screen";
 import { FLOW } from "@/features/facility-flow/flow.messages";
-import { BackLabel, FlowHelp } from "@/features/facility-flow/flow-ui";
+import { FlowHelp } from "@/features/facility-flow/flow-ui";
 import { InspectionScreen } from "@/features/facility-flow/inspection-screen";
 import { flowError, useCheckInFlow } from "@/features/facility-flow/use-check-in-flow";
 import { formatDateTime } from "@/lib/format";
@@ -468,7 +468,8 @@ function CheckInFlowScreen() {
       </div>
     );
   return (
-    <div className="space-y-3.5">
+    <div className="space-y-4">
+      <OperationalBackLink href={returnTo}>{FLOW.back}</OperationalBackLink>
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
         <div>
@@ -826,14 +827,6 @@ function CheckInFlowScreen() {
 
                 {/* Action Buttons */}
                 <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => router.push(returnTo)}
-                    className="h-9 px-4 text-xs font-semibold"
-                  >
-                    <BackLabel />
-                  </Button>
                   <Button
                     disabled={
                       result.booking.status === "CHECKED_IN"

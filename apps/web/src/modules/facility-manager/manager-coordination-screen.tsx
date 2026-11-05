@@ -50,7 +50,7 @@ function CoordinationContent() {
               className={cn(
                 "inline-flex h-9 items-center justify-center rounded-lg px-4 text-xs font-bold transition-all shadow-2xs cursor-pointer",
                 active
-                  ? "bg-primary text-white hover:bg-primary-dark"
+                  ? "bg-primary text-white hover:bg-primary hover:text-white"
                   : "border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900",
               )}
             >
@@ -59,11 +59,11 @@ function CoordinationContent() {
           );
         })}
       </nav>
-      <header>
+      <header className={view === "bookings" ? "sr-only" : undefined}>
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">
           {view === "bookings" ? M.booking : M.tasks}
         </h1>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-sm text-slate-600">
           {view === "bookings"
             ? M.bookingHint(scope.currentFacility.facilityName ?? "cơ sở được phân công")
             : M.coordinationHint}

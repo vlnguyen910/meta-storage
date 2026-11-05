@@ -99,5 +99,5 @@ test("settlement remains visible when refund and debt are zero", () => {
   );
   expect(screen.getByText("Quyết toán trả kho")).toBeInTheDocument();
   expect(screen.getByText("Tiền hoàn")).toBeInTheDocument();
-  expect(screen.getByText("Công nợ phát sinh")).toBeInTheDocument();
+  expect(screen.getByText("Phí còn phải trả")).toBeInTheDocument();
 });

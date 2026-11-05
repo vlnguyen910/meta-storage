@@ -116,7 +116,16 @@ export class SupportRepository {
     return this.db
       .select({
         id: reservations.id,
-        bookingCode: sql<string>`upper(left(${reservations.id}::text,8))`,
+        bookingCode: sql<string>`${reservations.id}::text`,
+        rentalId: rentals.id,
+        rentalStatus: rentals.status,
+        storageUnitCode: storageUnits.code,
+        startAt: sql<Date>`coalesce(${rentals.startAt}, ${reservations.rentalStartAt})`.mapWith(
+          rentals.startAt,
+        ),
+        endAt: sql<Date>`coalesce(${rentals.endAt}, ${reservations.rentalEndAt})`.mapWith(
+          rentals.endAt,
+        ),
         status: reservations.status,
         facility: { id: facilities.id, name: facilities.name },
         unitType: { id: unitTypes.id, name: unitTypes.name },
@@ -134,8 +143,14 @@ export class SupportRepository {
           eq(reservations.customerId, actorId),
           eq(users.role, "CUSTOMER"),
           eq(users.status, "ACTIVE"),
+          input.search
+            ? sql`position(lower(${input.search}) in lower(concat_ws(' ', ${reservations.id}::text, concat('BK-', upper(left(replace(${reservations.id}::text, '-', ''), 4)), '-', upper(right(replace(${reservations.id}::text, '-', ''), 6))), ${rentals.id}::text, ${storageUnits.code}, ${facilities.name}, ${unitTypes.name}))) > 0`
+            : undefined,
           input.category === "PAYMENT"
-            ? undefined
+            ? or(
+                sql`exists(select 1 from ${payments} where ${payments.reservationId} = ${reservations.id})`,
+                eq(rentals.userId, actorId),
+              )
             : and(
                 eq(reservations.status, ReservationStatus.CHECKED_IN),
                 eq(rentals.status, RentalStatus.ACTIVE),
@@ -144,8 +159,11 @@ export class SupportRepository {
               ),
           cursor
             ? or(
-                lt(createdAt, cursor.createdAt),
-                and(eq(createdAt, cursor.createdAt), lt(reservations.id, cursor.id)),
+                sql`${createdAt} < ${cursor.createdAt.toISOString()}::timestamptz`,
+                and(
+                  sql`${createdAt} = ${cursor.createdAt.toISOString()}::timestamptz`,
+                  lt(reservations.id, cursor.id),
+                ),
               )
             : undefined,
         ),
@@ -199,8 +217,11 @@ export class SupportRepository {
           ),
           cursor
             ? or(
-                lt(createdAt, cursor.createdAt),
-                and(eq(createdAt, cursor.createdAt), lt(payments.id, cursor.id)),
+                sql`${createdAt} < ${cursor.createdAt.toISOString()}::timestamptz`,
+                and(
+                  sql`${createdAt} = ${cursor.createdAt.toISOString()}::timestamptz`,
+                  lt(payments.id, cursor.id),
+                ),
               )
             : undefined,
         ),

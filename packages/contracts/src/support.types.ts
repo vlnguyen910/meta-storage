@@ -30,6 +30,11 @@ export type SupportReplyResult = z.infer<typeof SupportReplyResultSchema>;
 export type SupportImageResult = z.infer<typeof SupportImageResultSchema>;
 
 export type SupportBookingContext = {
+  rentalId?: string | null;
+  rentalStatus?: string | null;
+  storageUnitCode?: string | null;
+  startAt?: string;
+  endAt?: string;
   id: string;
   bookingCode: string | null;
   status: string;

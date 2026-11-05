@@ -223,8 +223,10 @@ function FacilityShellContent({
               {[{ label: FLOW.history, icon: History }].map(({ label, icon: Icon }) => (
                 <div
                   key={label}
+                  aria-disabled="true"
+                  title={`${label} · ${FLOW.unavailable}`}
                   className={cn(
-                    "flex items-center gap-2 rounded px-2 py-2",
+                    "flex cursor-not-allowed select-none items-center gap-2 rounded px-2 py-2 opacity-50",
                     isManager ? "text-slate-600" : "text-[#bfc9c4]",
                   )}
                 >
@@ -398,8 +400,8 @@ function FacilityShellContent({
         )}
         <main
           className={cn(
-            "mx-auto max-w-[1504px] space-y-6 px-4 pb-8 sm:px-8",
-            isManager && "min-w-0 pt-6",
+            "mx-auto max-w-[1504px] space-y-6 px-4 pb-8 pt-6 sm:px-8",
+            isManager && "min-w-0",
           )}
         >
           {children}

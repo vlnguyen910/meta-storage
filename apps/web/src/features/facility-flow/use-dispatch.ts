@@ -50,7 +50,13 @@ export function appointmentItem(a: AppointmentRecordDto): DispatchItem {
     handoverStage: a.handoverStage,
     paidAt: a.paidAt ?? null,
     paymentStatus: a.paymentStatus ?? null,
-    assignedUnit: a.assignedUnit,
+    assignedUnit:
+      a.assignedUnit?.physicalUnitId &&
+      a.assignedUnit.physicalUnitCode &&
+      (a.assignedUnit.status === "ACTIVE" ||
+        ["COMPLETED", "CANCELLED", "NO_SHOW"].includes(a.status))
+        ? a.assignedUnit
+        : null,
     assignedStaff: a.assignedStaffId
       ? { id: a.assignedStaffId, name: a.assignedStaffName ?? FLOW.assignedStaff }
       : null,

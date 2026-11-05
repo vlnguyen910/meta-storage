@@ -56,6 +56,7 @@ export type SepayGatewayConfig = {
   merchantId?: string;
   secretKey?: string;
   webUrl?: string;
+  trustedWebOrigins?: string[];
   bankName?: string;
   accountNumber?: string;
   accountName?: string;
@@ -67,6 +68,7 @@ export type SepayCheckoutSession = {
 };
 
 export type SepayCreateCheckoutInput = {
+  requestOrigin?: string;
   rentalId?: string;
   reservationId?: string;
   renewalId?: string;

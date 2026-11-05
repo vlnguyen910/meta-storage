@@ -184,8 +184,13 @@ export class ReservationsService {
     });
   }
 
-  startReservationPayment(id: string, input: CheckoutSessionInput, customerId: string) {
-    return this.payments.startPayment(id, input, customerId);
+  startReservationPayment(
+    id: string,
+    input: CheckoutSessionInput,
+    customerId: string,
+    requestOrigin?: string,
+  ) {
+    return this.payments.startPayment(id, input, customerId, requestOrigin);
   }
 
   private async closeReservation(

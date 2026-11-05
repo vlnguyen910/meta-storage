@@ -1,5 +1,9 @@
 export const paymentResultMessages = {
   title: "Kết quả thanh toán",
+  viewOnWeb: "Xem kết quả trên web",
+  openInApp: "Mở trong ứng dụng",
+  manualAppReturnHint:
+    "Nếu trình duyệt không mở ứng dụng hoặc bạn đang dùng Expo Go, hãy tự quay lại Metastorage. Ứng dụng sẽ kiểm tra giao dịch đã lưu; không cần thanh toán lại.",
   returnToApp: "Quay lại ứng dụng",
   returnToAppHint: "Quay lại Metastorage để kiểm tra và cập nhật kết quả thanh toán.",
   loading: "Đang kiểm tra trạng thái thanh toán…",
@@ -14,7 +18,7 @@ export const paymentResultMessages = {
   error: "Chưa đọc được trạng thái thanh toán. Vui lòng thử lại.",
   missing: "Thiếu thông tin thanh toán hợp lệ.",
   accessRequired:
-    "Không tìm thấy quyền xem giao dịch trong tab này. Đăng nhập bằng tài khoản sở hữu booking hoặc quay lại tab đã bắt đầu thanh toán.",
+    "Đăng nhập bằng tài khoản đã đặt kho để kiểm tra kết quả trên web. Nếu thanh toán từ ứng dụng, bạn có thể quay lại ứng dụng để cập nhật giao dịch.",
   retry: "Kiểm tra lại",
   login: "Đăng nhập",
   newBooking: "Đặt kho khác",

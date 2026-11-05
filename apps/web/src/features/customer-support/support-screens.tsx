@@ -40,7 +40,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ShadcnButton } from "@/components/ui/shadcn-button";
-import { Spinner } from "@/components/ui/spinner";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
 import { customerRoutes } from "@/config/routes";
@@ -48,12 +47,8 @@ import { customerApiError } from "@/features/bookings/customer-error";
 import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { SUPPORT_MESSAGES as SM } from "./support.messages";
-import {
-  useSupportContexts,
-  useSupportPaymentContexts,
-  useSupportTicket,
-  useSupportTickets,
-} from "./support-hooks";
+import { SupportContextPicker } from "./support-context-picker";
+import { useSupportPaymentContexts, useSupportTicket, useSupportTickets } from "./support-hooks";
 
 export function CustomerSupportList() {
   const router = useRouter();
@@ -313,7 +308,6 @@ export function CustomerSupportCreate() {
   });
   const category = form.watch("category");
   const reservationId = form.watch("reservationId");
-  const contexts = useSupportContexts(category);
   const payments = useSupportPaymentContexts(reservationId ?? "", category === "PAYMENT");
   const create = useMutation({
     mutationFn: api.support.create,
@@ -336,7 +330,6 @@ export function CustomerSupportCreate() {
     form.setValue("idempotencyKey", input.idempotencyKey);
     create.mutate(input);
   });
-  const bookingItems = contexts.data?.pages.flatMap((p) => p.items) ?? [];
   const paymentItems = payments.data?.pages.flatMap((p) => p.items) ?? [];
 
   return (
@@ -392,67 +385,17 @@ export function CustomerSupportCreate() {
             )}
           </div>
 
-          {/* Booking Context Dropdown */}
-          <div className="grid gap-1.5">
-            <label
-              htmlFor="support-booking"
-              className="text-xs sm:text-sm font-bold text-slate-700"
-            >
-              {M.booking} <span className="text-rose-500">*</span>
-            </label>
-            <Select
-              value={reservationId || "none"}
-              onValueChange={(val) => {
-                form.setValue("reservationId", val === "none" ? "" : val);
-                form.setValue("paymentId", undefined);
-              }}
-            >
-              <SelectTrigger
-                id="support-booking"
-                className="h-11 rounded-xl border-slate-200 bg-white text-sm font-medium text-slate-800"
-              >
-                <SelectValue placeholder={M.choose} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">-- {M.choose} --</SelectItem>
-                {bookingItems.map((b) => (
-                  <SelectItem key={b.id} value={b.id}>
-                    {formatReference(b.bookingCode ?? b.id, "BK")} · {b.facility.name} · {b.status}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {contexts.isPending && (
-              <div className="flex items-center gap-2 text-xs text-slate-500 py-1">
-                <Spinner size="sm" variant="brand" />
-                <span>{M.loading}</span>
-              </div>
-            )}
-            {contexts.isError && (
-              <ErrorState
-                message={customerApiError(contexts.error)}
-                onRetry={() => contexts.refetch()}
-              />
-            )}
-            {contexts.hasNextPage && (
-              <Button
-                type="button"
-                variant="outline"
-                className="justify-self-start text-xs h-8"
-                disabled={contexts.isFetchingNextPage}
-                onClick={() => contexts.fetchNextPage()}
-              >
-                {M.more}
-              </Button>
-            )}
-            {form.formState.errors.reservationId && (
-              <p role="alert" className="text-xs text-rose-600 font-medium">
-                {form.formState.errors.reservationId.message}
-              </p>
-            )}
-          </div>
+          <SupportContextPicker
+            key={category}
+            category={category}
+            value={reservationId ?? ""}
+            onChange={(id) => {
+              form.setValue("reservationId", id, { shouldValidate: true });
+              form.setValue("paymentId", undefined);
+            }}
+            error={form.formState.errors.reservationId?.message}
+          />
 
-          {/* Optional Payment Context Dropdown */}
           {category === "PAYMENT" && (
             <div className="grid gap-1.5">
               <label

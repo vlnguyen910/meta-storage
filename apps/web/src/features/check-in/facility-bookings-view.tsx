@@ -6,7 +6,6 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Phone, RefreshCw, Search, Warehouse } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Currency } from "@/components/ui/display";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { OperationalBadge } from "@/components/ui/operational";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -24,7 +23,8 @@ import {
 import type { DispatchAppointmentType, DispatchItem } from "@/features/facility-flow/use-dispatch";
 import { readiness, useDispatch } from "@/features/facility-flow/use-dispatch";
 import { api } from "@/lib/api";
-import { formatDateTime } from "@/lib/format";
+import { formatBookingAmount, formatBookingDateTime as formatDateTime } from "./booking-display";
+import { BookingFilterChips } from "./booking-filter-chips";
 import type { FacilityBookingsViewProps } from "./facility-bookings-view.types";
 import { ManagerBookingRow } from "./manager-booking-row";
 import { MANAGER_BOOKING_ROW as MB } from "./manager-booking-row.messages";
@@ -39,17 +39,17 @@ function slotRemainingLabel(value: string) {
 }
 
 const labels: Record<string, string> = {
-  READY: FLOW.ready,
+  READY: MB.ready,
   NEEDS_UNIT: FLOW.needsUnit,
-  NEEDS_STAFF: FLOW.needsStaff,
+  NEEDS_STAFF: MB.needsStaff,
   TOO_EARLY: FLOW.early,
   NO_SHOW: FLOW.noShow,
-  CHECKED_IN: FLOW.checkedIn,
+  CHECKED_IN: MB.checkedIn,
   PAYMENT_PENDING: FLOW.unpaid,
   CANCELLED: FLOW.cancelled,
   INSPECTING: FLOW.inspecting,
   READY_HANDOVER: FLOW.readyHandover,
-  SLOT_MISSING: FLOW.reasons.CHECKIN_SLOT_NOT_CONFIGURED ?? FLOW.notEligible,
+  SLOT_MISSING: MB.missingSlot,
   SCHEDULED: FLOW.scheduled,
   CONFIRMED: FLOW.confirmed,
   COMPLETED: FLOW.completed,
@@ -118,7 +118,7 @@ export function FacilityBookingsView({
               placeholder={FLOW.search}
               value={d.search}
               onChange={(e) => d.setSearch(e.target.value)}
-              className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-9 pr-3 text-xs text-slate-900 placeholder:text-slate-400 transition-colors focus:border-primary focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary"
+              className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-600 transition-colors focus:border-primary focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
 
@@ -148,10 +148,9 @@ export function FacilityBookingsView({
             )}
           </div>
         </div>
-        <div className="space-y-2">
-          <p className="text-xs font-semibold text-slate-600">{MB.filters}</p>
-          <div className="flex flex-wrap items-center gap-2" role="toolbar" aria-label={MB.filters}>
-            {(showingAll
+        <BookingFilterChips
+          ids={
+            showingAll
               ? [
                   "ALL",
                   "NEEDS_UNIT",
@@ -182,34 +181,12 @@ export function FacilityBookingsView({
                     "CHECKED_IN",
                   ]
                 : ["ALL", "SCHEDULED", "CONFIRMED", "COMPLETED", "CANCELLED"]
-            ).map((id) => {
-              const active = d.filter === id;
-              const itemCount = id === "ALL" ? d.bookings.length : d.count(id);
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => d.setFilter(id)}
-                  className={`inline-flex items-center rounded-full px-3.5 py-1.5 text-xs font-medium transition-all ${
-                    active
-                      ? "bg-[#003b2f] text-white shadow-sm ring-1 ring-[#003b2f]"
-                      : "border border-transparent bg-[#f2f3ff] text-[#404945] hover:bg-[#e4e7fa]"
-                  }`}
-                >
-                  <span>{id === "ALL" ? FLOW.all : labels[id]}</span>
-                  <span
-                    className={`ml-1.5 rounded-full px-2 py-0.5 text-[11px] font-bold ${
-                      active ? "bg-white/20 text-white" : "bg-slate-200/80 text-slate-700"
-                    }`}
-                  >
-                    {itemCount}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+          }
+          selected={d.filter}
+          count={(id) => (id === "ALL" ? d.bookings.length : d.count(id))}
+          onChange={d.setFilter}
+          labels={{ ...labels, ALL: FLOW.all }}
+        />
       </Panel>
       <p role="status" aria-live="polite" className="text-sm text-[#404945]">
         {d.query.isFetching ? FLOW.refreshing : FLOW.results(pageItems.length, d.filtered.length)}
@@ -240,7 +217,7 @@ export function FacilityBookingsView({
           </Button>
         </Panel>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-3">
           {pageItems.map((b) => {
             const state = readiness(b);
             const returnFlow = b.appointmentType === APPOINTMENT_TYPES.CHECK_OUT;
@@ -347,7 +324,7 @@ export function FacilityBookingsView({
                       <p className="mt-1 text-xs font-semibold text-[#125345]">
                         {b.paidAt ? FLOW.paid : FLOW.unpaid}
                       </p>
-                      <Currency value={b.totalAmount} />
+                      {formatBookingAmount(b.totalAmount)}
                       <p className="mt-2 text-xs text-[#404945]">
                         {FLOW.assignedStaff}:{" "}
                         <strong>{b.assignedStaff?.name ?? FLOW.needsStaff}</strong>

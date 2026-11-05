@@ -74,6 +74,7 @@ export const SupportPageQuerySchema = z.strictObject({
   cursor: z.string().min(1, m.invalidCursor).max(768, m.invalidCursor).optional(),
 });
 export const SupportContextQuerySchema = SupportPageQuerySchema.extend({
+  search: z.string().trim().max(120).optional(),
   category: z.enum(SUPPORT_CATEGORIES),
 });
 export const SupportContextParamsSchema = z.strictObject({ bookingId: uuid });

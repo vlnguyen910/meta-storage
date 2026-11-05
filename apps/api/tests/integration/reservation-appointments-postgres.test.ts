@@ -858,6 +858,130 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
     ).toBe("CANCELLED");
   });
 
+  test("appointment reads normalize missing assignments and prefer the active unit after reassignment", async () => {
+    const f = await fixture();
+    const paid = await scheduled(f);
+    expect(
+      (await appointmentService.getAppointment(paid.appointment.id, f.manager)).assignedUnit,
+    ).toBeNull();
+  });
+
+  test("assigning a unit repairs missing handover work without changing its assigned staff", async () => {
+    const f = await fixture();
+    const paid = await scheduled(f);
+    await db
+      .update(appointments)
+      .set({ assignedStaffId: f.id.staff, status: Status.CONFIRMED })
+      .where(eq(appointments.id, paid.appointment.id));
+    await appointmentService.updateAppointment(
+      paid.appointment.id,
+      { physicalUnitId: f.id.unit },
+      f.manager,
+    );
+    const [task] = await db
+      .select()
+      .from(facilityTasks)
+      .where(eq(facilityTasks.referenceId, paid.appointment.id));
+    expect(task).toMatchObject({
+      type: FacilityTaskType.CHECK_IN_HANDOVER,
+      referenceType: FacilityTaskReferenceType.APPOINTMENT,
+      assignedStaffId: f.id.staff,
+      status: FacilityTaskStatus.ASSIGNED,
+    });
+    await appointmentService.updateAppointment(
+      paid.appointment.id,
+      { physicalUnitId: f.id.unit },
+      f.manager,
+    );
+    expect(
+      await db
+        .select()
+        .from(facilityTasks)
+        .where(eq(facilityTasks.referenceId, paid.appointment.id)),
+    ).toHaveLength(1);
+    const assigned = (await appointmentService.getAppointment(paid.appointment.id, f.staff))
+      .assignedUnit;
+    if (!assigned) throw new Error("Missing assignment");
+    const timestamp = new Date();
+    await db
+      .update(unitAssignments)
+      .set({ assignedAt: timestamp })
+      .where(eq(unitAssignments.id, assigned.id));
+    // UUID ordering must never make an ended assignment win over the active assignment.
+    await db.insert(unitAssignments).values({
+      id: "ffffffff-ffff-4fff-bfff-ffffffffffff",
+      reservationId: paid.reservation.id,
+      physicalUnitId: f.id.unit,
+      assignedBy: f.id.manager,
+      assignedAt: timestamp,
+      endedAt: timestamp,
+      status: "REASSIGNED",
+    });
+    expect(
+      (await appointmentService.getAppointment(paid.appointment.id, f.staff)).assignedUnit?.id,
+    ).toBe(assigned.id);
+    expect(
+      (
+        await appointmentService.listAssignedAppointments(f.id.staff, { facilityId: f.id.facility })
+      )[0]?.assignedUnit?.id,
+    ).toBe(assigned.id);
+    await db
+      .update(unitAssignments)
+      .set({ status: "REASSIGNED", endedAt: timestamp })
+      .where(eq(unitAssignments.id, assigned.id));
+    expect(
+      (await appointmentService.getAppointment(paid.appointment.id, f.staff)).assignedUnit,
+    ).toBeNull();
+  });
+
+  test("migration restores missing seeded handover tasks once and leaves closed appointments closed", async () => {
+    const f = await fixture();
+    const id = randomUUID();
+    await db.insert(bookings).values({
+      id,
+      userId: f.id.customer,
+      facilityId: f.id.facility,
+      unitTypeId: f.id.type,
+      assignedStaffId: f.id.staff,
+      requestedMonths: 2,
+      checkInDate: f.date,
+      checkInSlotId: f.id.slot,
+      rentalEndAt: new Date(new Date(`${f.date}T09:00:00+07:00`).getTime() + 60 * 86400000),
+      monthlyRateSnapshot: "100000",
+      rentalFeeAmount: "200000",
+      depositAmount: "100000",
+      totalAmount: "300000",
+      status: "CONFIRMED",
+      contactPhone: "0900000000",
+    });
+    await db
+      .insert(unitAssignments)
+      .values({ bookingId: id, physicalUnitId: f.id.unit, assignedBy: f.id.manager });
+    await db.transaction(migrateBookingsToReservations);
+    const tasks = await db.select().from(facilityTasks).where(eq(facilityTasks.referenceId, id));
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]).toMatchObject({
+      referenceType: FacilityTaskReferenceType.APPOINTMENT,
+      assignedStaffId: f.id.staff,
+      assignedBy: f.id.manager,
+      status: FacilityTaskStatus.ASSIGNED,
+    });
+    await db.transaction(migrateBookingsToReservations);
+    expect(
+      await db.select().from(facilityTasks).where(eq(facilityTasks.referenceId, id)),
+    ).toHaveLength(1);
+    await db.update(appointments).set({ status: Status.CANCELLED }).where(eq(appointments.id, id));
+    await db
+      .update(facilityTasks)
+      .set({ status: FacilityTaskStatus.CANCELLED })
+      .where(eq(facilityTasks.referenceId, id));
+    await db.transaction(migrateBookingsToReservations);
+    expect(
+      await db.select().from(facilityTasks).where(eq(facilityTasks.referenceId, id)),
+    ).toHaveLength(1);
+    expect((await appointmentService.getAppointment(id, f.manager)).status).toBe(Status.CANCELLED);
+  });
+
   test("appointment tasks require assignment, schedule, and completed handover", async () => {
     const f = await fixture();
     const paid = await scheduled(f);

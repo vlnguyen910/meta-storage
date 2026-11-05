@@ -137,17 +137,17 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
       {/* Header */}
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="mb-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-800">
+          <p className="mb-0.5 text-xs font-bold uppercase tracking-[0.14em] text-emerald-800">
             {M.staff}
           </p>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
-          <p className="mt-0.5 text-xs text-slate-500">{M.subtitle}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">{title}</h1>
+          <p className="mt-0.5 text-sm text-slate-600">{M.subtitle}</p>
         </div>
         <Button
           variant="outline"
           disabled={work.refreshing}
           onClick={() => work.refresh()}
-          className="h-9 px-3.5 gap-2 text-xs font-semibold rounded-lg border-slate-200 bg-white text-slate-700 hover:bg-slate-50 shadow-2xs"
+          className="h-11 px-3.5 gap-2 text-sm font-semibold rounded-lg border-slate-200 bg-white text-slate-700 hover:bg-slate-50 shadow-2xs"
         >
           <RefreshCw size={14} className={work.refreshing ? "animate-spin" : ""} />
           <span>{M.refresh}</span>
@@ -197,7 +197,7 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
                 }}
                 onClick={() => update({ group })}
                 className={cn(
-                  "inline-flex h-8.5 items-center gap-2 rounded-lg px-3.5 text-xs font-bold transition-all cursor-pointer",
+                  "inline-flex min-h-11 items-center gap-2 rounded-lg px-3.5 text-sm font-bold transition-all cursor-pointer",
                   active
                     ? "bg-white text-primary shadow-xs ring-1 ring-slate-200/80"
                     : "text-slate-600 hover:bg-white/60 hover:text-slate-900",
@@ -207,7 +207,7 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
                 {!work.pending && !work.error && (
                   <span
                     className={cn(
-                      "rounded-full px-1.5 py-0.2 text-[10px] font-bold tabular-nums",
+                      "rounded-full px-1.5 py-0.2 text-xs font-bold tabular-nums",
                       active ? "bg-primary/10 text-primary" : "bg-slate-200/70 text-slate-600",
                     )}
                   >
@@ -223,10 +223,10 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
         <div className="grid gap-3.5 border-b border-slate-100 bg-white p-3.5 sm:grid-cols-2 lg:grid-cols-3">
           {filters.kind !== "TASK" && (
             <div>
-              <div className="mb-1.5 flex h-5 items-center justify-between">
+              <div className="mb-1.5 flex min-h-8 items-center justify-between">
                 <label
                   htmlFor="staff-work-date"
-                  className="text-xs font-bold text-slate-700 select-none"
+                  className="text-sm font-bold text-slate-700 select-none"
                 >
                   {M.date}
                 </label>
@@ -235,7 +235,7 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
                     type="button"
                     onClick={() => update({ date: staffWorkDate(new Date().toISOString()) })}
                     className={cn(
-                      "h-5 px-2 rounded-md text-[10px] font-bold transition-all cursor-pointer border",
+                      "min-h-8 px-2.5 rounded-md text-xs font-bold transition-all cursor-pointer border",
                       filters.date === staffWorkDate(new Date().toISOString())
                         ? "bg-primary text-white border-primary shadow-2xs"
                         : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900",
@@ -248,7 +248,7 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
                     aria-pressed={filters.date === "all"}
                     onClick={() => update({ date: "all" })}
                     className={cn(
-                      "h-5 px-2 rounded-md text-[10px] font-bold transition-all cursor-pointer border",
+                      "min-h-8 px-2.5 rounded-md text-xs font-bold transition-all cursor-pointer border",
                       filters.date === "all"
                         ? "bg-primary text-white border-primary shadow-2xs"
                         : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900",
@@ -263,16 +263,16 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
                 type="date"
                 value={filters.date === "all" ? "" : filters.date}
                 onChange={(e) => update({ date: e.target.value || "all" })}
-                className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-2.5 text-xs text-slate-800 outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary"
+                className="h-11 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-2.5 text-sm text-slate-800 outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary"
               />
             </div>
           )}
 
           <div className={filters.kind === "TASK" ? "sm:col-span-1" : ""}>
-            <div className="mb-1.5 flex h-5 items-center">
+            <div className="mb-1.5 flex min-h-8 items-center">
               <label
                 htmlFor="staff-work-kind"
-                className="text-xs font-bold text-slate-700 select-none"
+                className="text-sm font-bold text-slate-700 select-none"
               >
                 {M.kind}
               </label>
@@ -287,7 +287,7 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
                   group: kind === "TASK" && filters.group === "closed" ? "pending" : filters.group,
                 });
               }}
-              className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-2.5 text-xs text-slate-800 outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary"
+              className="h-11 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-2.5 text-sm text-slate-800 outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary"
             >
               <option value="">{M.allKinds}</option>
               <option value="CHECK_IN">{M.bookingTasksTitle}</option>
@@ -297,10 +297,10 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
           </div>
 
           <div className={filters.kind === "TASK" ? "sm:col-span-1" : ""}>
-            <div className="mb-1.5 flex h-5 items-center">
+            <div className="mb-1.5 flex min-h-8 items-center">
               <label
                 htmlFor="staff-work-search"
-                className="text-xs font-bold text-slate-700 select-none"
+                className="text-sm font-bold text-slate-700 select-none"
               >
                 {M.search}
               </label>
@@ -316,7 +316,7 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
                 value={filters.search}
                 onChange={(e) => update({ search: e.target.value })}
                 placeholder={M.searchPlaceholder}
-                className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-8.5 pr-3 text-xs text-slate-800 placeholder:text-slate-400 outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary"
+                className="h-11 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-8.5 pr-3 text-sm text-slate-800 placeholder:text-slate-600 outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary"
               />
             </div>
           </div>
@@ -335,7 +335,7 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
             </div>
           )}
 
-          {isMockMode && <p className="px-4 pt-3 text-xs text-slate-500">{M.mockHint}</p>}
+          {isMockMode && <p className="px-4 pt-3 text-sm text-slate-600">{M.mockHint}</p>}
 
           {work.pending ? (
             <div className="p-4">
@@ -353,19 +353,19 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
                 <Table>
                   <TableHeader className="border-b border-slate-200 bg-slate-50/70">
                     <TableRow className="hover:bg-transparent border-0">
-                      <TableHead className="h-9 px-4 text-xs font-bold uppercase tracking-wider text-slate-600">
+                      <TableHead className="h-11 px-4 text-sm font-bold uppercase tracking-wider text-slate-600">
                         Loại công việc
                       </TableHead>
-                      <TableHead className="h-9 px-4 text-xs font-bold uppercase tracking-wider text-slate-600">
+                      <TableHead className="h-11 px-4 text-sm font-bold uppercase tracking-wider text-slate-600">
                         Nhiệm vụ & Khách hàng
                       </TableHead>
-                      <TableHead className="h-9 px-4 text-xs font-bold uppercase tracking-wider text-slate-600">
+                      <TableHead className="h-11 px-4 text-sm font-bold uppercase tracking-wider text-slate-600">
                         Thời gian
                       </TableHead>
-                      <TableHead className="h-9 px-4 text-center text-xs font-bold uppercase tracking-wider text-slate-600">
+                      <TableHead className="h-11 px-4 text-center text-sm font-bold uppercase tracking-wider text-slate-600">
                         Trạng thái
                       </TableHead>
-                      <TableHead className="h-9 px-4 text-right text-xs font-bold uppercase tracking-wider text-slate-600">
+                      <TableHead className="h-11 px-4 text-right text-sm font-bold uppercase tracking-wider text-slate-600">
                         Thao tác
                       </TableHead>
                     </TableRow>
@@ -379,7 +379,7 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
               </div>
 
               {rows.some((item) => !item.startsAt) && (
-                <p className="border-t border-slate-100 bg-slate-50/50 px-4 py-2.5 text-[11px] leading-5 text-slate-500">
+                <p className="border-t border-slate-100 bg-slate-50/50 px-4 py-2.5 text-xs leading-5 text-slate-600">
                   {M.unscheduledHint}
                 </p>
               )}
@@ -415,40 +415,38 @@ function StaffWorkTableRow({ item }: StaffWorkRowProps) {
   return (
     <TableRow role="listitem" className="hover:bg-slate-50/80 transition-colors">
       {/* Col 1: Work Type */}
-      <TableCell className="py-2.5 px-4">
+      <TableCell className="py-4 px-4">
         <div className="flex items-center gap-2">
-          <span className="grid size-7 shrink-0 place-items-center rounded-md bg-emerald-50 text-emerald-800">
-            <Icon size={15} aria-hidden="true" />
+          <span className="grid size-9 shrink-0 place-items-center rounded-md bg-emerald-50 text-emerald-800">
+            <Icon size={18} aria-hidden="true" />
           </span>
-          <span className="text-xs font-semibold text-slate-700">{item.typeLabel}</span>
+          <span className="text-sm font-semibold text-slate-700">{item.typeLabel}</span>
         </div>
       </TableCell>
 
       {/* Col 2: Title & Reference */}
-      <TableCell className="py-2.5 px-4 min-w-[200px] max-w-[320px]">
+      <TableCell className="py-4 px-4 min-w-[200px] max-w-[320px]">
         <div className="min-w-0">
-          <h2 className="text-xs font-bold text-slate-900 break-words">{item.title}</h2>
+          <h2 className="text-sm font-bold text-slate-900 break-words">{item.title}</h2>
           {item.reference && (
-            <p className="mt-0.5 font-mono text-[11px] text-slate-500 break-words">
-              {item.reference}
-            </p>
+            <p className="mt-0.5 font-mono text-xs text-slate-600 break-words">{item.reference}</p>
           )}
         </div>
       </TableCell>
 
       {/* Col 3: Starts At */}
-      <TableCell className="py-2.5 px-4 text-xs text-slate-600">
+      <TableCell className="py-4 px-4 text-sm text-slate-600">
         <div className="flex items-center gap-1.5">
-          <Clock3 size={13} className="text-slate-400 shrink-0" aria-hidden="true" />
+          <Clock3 size={16} className="text-slate-400 shrink-0" aria-hidden="true" />
           <span>{item.startsAt ? formatDateTime(item.startsAt) : M.unscheduled}</span>
         </div>
       </TableCell>
 
       {/* Col 4: Status Badge */}
-      <TableCell className="py-2.5 px-4 text-center">
+      <TableCell className="py-4 px-4 text-center">
         <span
           className={cn(
-            "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+            "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold",
             tone,
           )}
         >
@@ -458,13 +456,13 @@ function StaffWorkTableRow({ item }: StaffWorkRowProps) {
       </TableCell>
 
       {/* Col 5: Action Button */}
-      <TableCell className="py-2.5 px-4 text-right">
+      <TableCell className="py-4 px-4 text-right">
         <Link
           href={item.href}
-          className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-primary-dark focus-visible:outline-2 focus-visible:outline-primary cursor-pointer"
+          className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 text-sm font-semibold text-white shadow-2xs transition-all hover:bg-primary-dark focus-visible:outline-2 focus-visible:outline-primary cursor-pointer"
         >
           <span>{item.action}</span>
-          <ArrowRight size={13} aria-hidden="true" />
+          <ArrowRight size={16} aria-hidden="true" />
         </Link>
       </TableCell>
     </TableRow>

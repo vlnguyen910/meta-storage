@@ -1,5 +1,5 @@
 "use client";
-import { mobilePaymentReturnKey, parseMobilePaymentReturn } from "@metastorage/shared";
+import { createMobilePaymentReturn } from "@metastorage/shared";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -10,6 +10,7 @@ import { useAuthStore } from "@/features/auth/auth-store";
 import { useCheckoutPaymentStatus } from "./booking-checkout.hooks";
 import type { CheckoutContext } from "./booking-checkout.types";
 import { readCheckoutContext } from "./checkout-storage";
+import { readMobilePaymentReturn } from "./mobile-payment-return-storage";
 import { paymentResultMessages as m } from "./payment-result.messages";
 import { ReservationReceipt } from "./reservation-receipt";
 
@@ -22,24 +23,18 @@ export function PaymentResultScreen() {
   const session = useAuthStore((state) => state.session);
   const authReady = useAuthStore((state) => state.authReady);
   const [context, setContext] = useState<CheckoutContext | null>(null);
-  const [ready, setReady] = useState(false);
+  const lookupKey = `${pathname}:${paymentId ?? ""}:${reservationId ?? ""}`;
+  const [loadedKey, setLoadedKey] = useState<string>();
+  const ready = loadedKey === lookupKey;
   const [now, setNow] = useState(Date.now());
   const [appReturnUrl, setAppReturnUrl] = useState<string>();
+  const nativeReturnUrl = paymentId ? createMobilePaymentReturn(paymentId, reservationId) : null;
   useEffect(() => {
-    try {
-      const saved = paymentId ? sessionStorage.getItem(mobilePaymentReturnKey(paymentId)) : null;
-      const parsed = parseMobilePaymentReturn(saved);
-      setAppReturnUrl(parsed?.paymentId === paymentId ? (saved ?? undefined) : undefined);
-    } catch {
-      setAppReturnUrl(undefined);
-    }
-  }, [paymentId]);
-  useEffect(() => {
-    if (!session || pathname !== "/bookings/payment-result" || !ready || appReturnUrl) return;
-    const query = params.toString();
-    router.replace(`${customerRoutes.paymentResult}${query ? `?${query}` : ""}`);
-  }, [pathname, params, router, session, ready, appReturnUrl]);
-  useEffect(() => {
+    setAppReturnUrl(
+      paymentId && !pathname.startsWith("/customer/")
+        ? readMobilePaymentReturn(paymentId, reservationId)
+        : undefined,
+    );
     const saved = readCheckoutContext();
     if (
       saved?.payment?.paymentId === paymentId &&
@@ -47,9 +42,27 @@ export function PaymentResultScreen() {
     )
       setContext(saved);
     else setContext(null);
-    setReady(true);
-  }, [paymentId, reservationId]);
-  const canRead = ready && authReady && Boolean(session) && !appReturnUrl;
+    setLoadedKey(lookupKey);
+  }, [paymentId, reservationId, pathname, lookupKey]);
+  const returnParams = new URLSearchParams();
+  if (paymentId) returnParams.set("paymentId", paymentId);
+  if (reservationId) returnParams.set("reservationId", reservationId);
+  const returnTo = `${customerRoutes.paymentResult}?${returnParams.toString()}`;
+  const loginHref = `/login?returnTo=${encodeURIComponent(returnTo)}`;
+  useEffect(() => {
+    if (
+      !authReady ||
+      !session ||
+      pathname !== "/bookings/payment-result" ||
+      !ready ||
+      appReturnUrl ||
+      !nativeReturnUrl
+    )
+      return;
+    router.replace(returnTo);
+  }, [pathname, router, session, authReady, ready, appReturnUrl, nativeReturnUrl, returnTo]);
+  const canRead =
+    ready && authReady && Boolean(session) && Boolean(nativeReturnUrl) && !appReturnUrl;
   const query = useCheckoutPaymentStatus(paymentId, undefined, canRead);
   const confirmedId =
     canRead && !query.isError && query.data?.status === "SUCCEEDED"
@@ -60,7 +73,7 @@ export function PaymentResultScreen() {
     return () => window.clearInterval(timer);
   }, []);
   const expired = context?.payment && Date.parse(context.payment.expiresAt) <= now;
-  const message = !paymentId
+  const message = !nativeReturnUrl
     ? m.missing
     : !ready || !authReady
       ? m.loading
@@ -86,6 +99,7 @@ export function PaymentResultScreen() {
     <main aria-busy={blockingPaymentCheck} className="mx-auto w-full max-w-4xl px-4 py-2 sm:py-3">
       {appReturnUrl && (
         <section className="mb-4 grid gap-3 rounded-xl border border-slate-200 bg-white p-6">
+          <h1 className="text-xl font-bold text-slate-900">{m.title}</h1>
           <p className="text-sm text-slate-600">{m.returnToAppHint}</p>
           <a
             className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#165f4d] px-4 font-semibold text-white"
@@ -93,6 +107,10 @@ export function PaymentResultScreen() {
           >
             {m.returnToApp}
           </a>
+          <p className="text-xs text-slate-500">{m.manualAppReturnHint}</p>
+          <Link className="text-sm font-semibold text-[#165f4d] underline" href={returnTo}>
+            {m.viewOnWeb}
+          </Link>
         </section>
       )}
       {blockingPaymentCheck && <Spinner label={m.loading} />}
@@ -122,10 +140,22 @@ export function PaymentResultScreen() {
                 </button>
               </>
             )}
-            {!canRead && ready && (
-              <Link className="text-xs font-semibold text-[#165f4d] underline" href="/login">
-                {m.login}
-              </Link>
+            {!session && ready && authReady && nativeReturnUrl && (
+              <div className="grid gap-3">
+                <Link
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#165f4d] px-4 font-semibold text-white"
+                  href={loginHref}
+                >
+                  {m.login}
+                </Link>
+                <a
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-200 px-4 font-semibold text-[#165f4d]"
+                  href={nativeReturnUrl}
+                >
+                  {m.openInApp}
+                </a>
+                <p className="text-xs text-slate-500">{m.manualAppReturnHint}</p>
+              </div>
             )}
           </section>
         ))}

@@ -22,7 +22,9 @@ export function ProtectedArea({
   useEffect(() => {
     if (!hydrated || !authReady) return;
     if (!session)
-      router.replace(`${routes.login}?returnTo=${encodeURIComponent(location.pathname)}`);
+      router.replace(
+        `${routes.login}?returnTo=${encodeURIComponent(`${location.pathname}${location.search}`)}`,
+      );
     else if (session.user.role !== allowedRole) router.replace(routes.forbidden);
   }, [allowedRole, authReady, hydrated, router, session]);
 

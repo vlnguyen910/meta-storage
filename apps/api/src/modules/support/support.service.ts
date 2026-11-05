@@ -109,9 +109,12 @@ export class SupportService {
   > {
     const rows = await this.repository.contexts(actorId, input, this.cursor(input.cursor));
     return {
-      items: rows
-        .slice(0, input.limit)
-        .map((row) => ({ ...row, createdAt: row.createdAt.toISOString() })),
+      items: rows.slice(0, input.limit).map((row) => ({
+        ...row,
+        startAt: row.startAt.toISOString(),
+        endAt: row.endAt.toISOString(),
+        createdAt: row.createdAt.toISOString(),
+      })),
       nextCursor: this.next(rows, input.limit),
     };
   }
