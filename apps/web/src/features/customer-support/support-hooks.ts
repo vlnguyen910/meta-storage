@@ -14,13 +14,16 @@ export function useSupportTickets(filters: Partial<SupportTicketQuery> = {}) {
     getNextPageParam: (p) => p.nextCursor ?? undefined,
   });
 }
-export function useSupportContexts(category: SupportContextQuery["category"]) {
+export function useSupportContexts(category: SupportContextQuery["category"], search = "") {
   const identity = useFlow3Identity();
   return useInfiniteQuery({
-    queryKey: ["support-contexts", identity, category],
+    queryKey: ["support-contexts", identity, category, search],
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam, signal }) =>
-      api.support.contexts({ category, limit: 20, cursor: pageParam }, signal),
+      api.support.contexts(
+        { category, search: search || undefined, limit: 20, cursor: pageParam },
+        signal,
+      ),
     getNextPageParam: (p) => p.nextCursor ?? undefined,
   });
 }

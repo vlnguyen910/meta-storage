@@ -42,7 +42,12 @@ export const reservationsRoutes: FastifyPluginAsync = async (app) => {
         .status(201)
         .send(
           successResponse(
-            await service.startReservationPayment(request.params.id, request.body, request.user.id),
+            await service.startReservationPayment(
+              request.params.id,
+              request.body,
+              request.user.id,
+              request.headers.origin,
+            ),
           ),
         );
     },

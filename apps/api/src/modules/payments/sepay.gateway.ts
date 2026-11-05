@@ -152,7 +152,14 @@ export class SepayPaymentGateway {
   createCheckoutSession(input: SepayCreateCheckoutInput): SepayCheckoutSession | null {
     if (!this.pgClient) return null;
     const checkoutUrl = this.pgClient.checkout.initCheckoutUrl();
-    const webUrl = this.config.webUrl || "http://localhost:3000";
+    // Keep browser cookies on the initiating web origin. Native requests use the
+    // configured callback; never accept an arbitrary callback URL from a client.
+    const origin = input.requestOrigin;
+    const trustedWebOrigin =
+      origin &&
+      /^https?:\/\//.test(origin) &&
+      (this.config.trustedWebOrigins ?? []).includes(origin);
+    const webUrl = trustedWebOrigin ? origin : this.config.webUrl || "http://localhost:3000";
     const resultUrl = new URL(
       input.renewalId && input.rentalId
         ? `/customer/storage/${input.rentalId}/renew`

@@ -10,15 +10,16 @@ export function StaffTasksScreen() {
   const [debts, setDebts] = useState(false);
   return (
     <Suspense fallback={<LoadingState variant="table" />}>
-      <div className="space-y-4">
+      <div className="space-y-6">
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => setDebts(false)}
+            aria-pressed={!debts}
             className={cn(
-              "inline-flex h-9 items-center justify-center rounded-lg px-4 text-xs font-bold transition-all shadow-2xs cursor-pointer",
+              "inline-flex min-h-11 items-center justify-center rounded-lg px-5 text-sm font-semibold transition-colors shadow-2xs cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
               !debts
-                ? "bg-primary text-white hover:bg-primary-dark"
+                ? "bg-primary text-white hover:bg-primary hover:text-white"
                 : "border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900",
             )}
           >
@@ -27,10 +28,11 @@ export function StaffTasksScreen() {
           <button
             type="button"
             onClick={() => setDebts(true)}
+            aria-pressed={debts}
             className={cn(
-              "inline-flex h-9 items-center justify-center rounded-lg px-4 text-xs font-bold transition-all shadow-2xs cursor-pointer",
+              "inline-flex min-h-11 items-center justify-center rounded-lg px-5 text-sm font-semibold transition-colors shadow-2xs cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
               debts
-                ? "bg-primary text-white hover:bg-primary-dark"
+                ? "bg-primary text-white hover:bg-primary hover:text-white"
                 : "border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900",
             )}
           >

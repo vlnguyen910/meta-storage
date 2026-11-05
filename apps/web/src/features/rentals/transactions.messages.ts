@@ -36,7 +36,7 @@ export const TRANSACTION_MESSAGES = {
   refunded: "Đã hoàn tiền",
   failed: "Thất bại",
   refundPending: "Chờ hoàn tiền",
-  debtCollection: "Thu công nợ",
+  debtCollection: "Thu phí phát sinh",
   tableTitle: "Danh sách giao dịch",
   tableHeadings: [
     "Mã giao dịch",

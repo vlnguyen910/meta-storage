@@ -352,13 +352,15 @@ export class AppointmentsService {
       const assignedStaffId = input.assignedStaffId ?? appointment.assignedStaffId;
       if (status === Status.CONFIRMED && !assignedStaffId)
         throw new BadRequestError(m.staffRequired);
-      if (input.assignedStaffId) {
-        if (!demo && now >= slot.endsAt) throw new ConflictError(m.closed);
-        await this.tasks.assignAppointment(
-          tx,
-          { ...appointment, assignedStaffId: input.assignedStaffId },
-          actor.id,
-        );
+      if (input.assignedStaffId && !demo && now >= slot.endsAt) throw new ConflictError(m.closed);
+      if (
+        input.assignedStaffId ||
+        (actor.role === UserRole.FACILITY_MANAGER &&
+          assignedStaffId &&
+          status === Status.CONFIRMED &&
+          (input.physicalUnitId || input.status === Status.CONFIRMED))
+      ) {
+        await this.tasks.assignAppointment(tx, { ...appointment, assignedStaffId }, actor.id);
       }
       if (status === Status.COMPLETED || status === Status.CANCELLED || status === Status.NO_SHOW)
         await this.tasks.finishAppointment(

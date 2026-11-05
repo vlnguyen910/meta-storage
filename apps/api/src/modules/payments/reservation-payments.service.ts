@@ -40,6 +40,7 @@ export class ReservationPaymentsService {
     reservationId: string,
     input: CheckoutSessionInput,
     customerId: string,
+    requestOrigin?: string,
   ): Promise<ReservationPaymentSession> {
     input = CheckoutSessionInputSchema.parse(input);
     const gateway = this.gateway;
@@ -115,6 +116,7 @@ export class ReservationPaymentsService {
     const paymentCode = prepared.payment.paymentCode;
     if (!paymentCode) throw new AppError(m.paymentCodeMissing, 500);
     const session = gateway.createCheckoutSession({
+      requestOrigin,
       paymentId: prepared.payment.id,
       reservationId,
       paymentCode,

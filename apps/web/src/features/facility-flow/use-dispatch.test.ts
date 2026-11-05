@@ -35,11 +35,29 @@ it("keeps appointment IDs for actions and reservation IDs for the incumbent disp
   expect(
     readiness({
       ...paid,
-      assignedUnit: { physicalUnitId: "unit", physicalUnitCode: "A-01" } as NonNullable<
-        AppointmentRecordDto["assignedUnit"]
-      >,
+      assignedUnit: {
+        physicalUnitId: "unit",
+        physicalUnitCode: "A-01",
+        status: "ACTIVE",
+      } as NonNullable<AppointmentRecordDto["assignedUnit"]>,
     }),
   ).toBe("NEEDS_STAFF");
+});
+
+it.each([
+  { id: null, physicalUnitId: null, physicalUnitCode: null, status: null },
+  { id: "assignment", physicalUnitId: "unit", physicalUnitCode: null, status: "ACTIVE" },
+  { id: "assignment", physicalUnitId: "unit", physicalUnitCode: "A-01", status: "REASSIGNED" },
+])("does not treat an empty or ended assignment as a prepared unit", (assignedUnit) => {
+  const item = appointmentItem({
+    id: "appointment",
+    status: "CONFIRMED",
+    appointmentType: "CHECK_IN",
+    paymentStatus: "SUCCEEDED",
+    assignedUnit,
+  } as unknown as AppointmentRecordDto);
+  expect(item.assignedUnit).toBeNull();
+  expect(readiness(item)).toBe("NEEDS_UNIT");
 });
 
 it("shows distinct compact references for seeded reservations and preserves full action identifiers", () => {

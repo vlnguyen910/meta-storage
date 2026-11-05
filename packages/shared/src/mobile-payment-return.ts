@@ -24,3 +24,11 @@ export function parseMobilePaymentReturn(value: string | null) {
 export function mobilePaymentReturnKey(paymentId: string) {
   return `metastorage.mobile-payment-return:${paymentId}`;
 }
+
+/** Routing identifiers only; callers must still query the API with the owner's session. */
+export function createMobilePaymentReturn(paymentId: string, reservationId?: string | null) {
+  const query = new URLSearchParams({ paymentId });
+  if (reservationId) query.set("reservationId", reservationId);
+  const url = `metastorage://payment-result?${query.toString()}`;
+  return parseMobilePaymentReturn(url) ? url : null;
+}

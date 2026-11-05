@@ -1,15 +1,6 @@
-import { parseMobilePaymentReturn } from "@metastorage/shared";
-import { focusManager, useQueryClient } from "@tanstack/react-query";
-import * as Linking from "expo-linking";
-import { useEffect, useRef, useState } from "react";
-import {
-  AppState,
-  BackHandler,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  View,
-} from "react-native";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { BackHandler, KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { ScreenFrame } from "../../components/ui/screen-frame";
 import { WorkspaceHeader, WorkspaceTabs } from "../../components/ui/workspace-ui";
 import { authClient } from "../../lib/auth-client";
@@ -28,14 +19,10 @@ import {
   CustomerSupportScreen,
   CustomerTicketScreen,
 } from "./customer-api-screens";
-import {
-  clearCustomerCommand,
-  clearPrivateFiles,
-  readCustomerCommand,
-  saveCustomerCommand,
-} from "./customer-native";
+import { clearCustomerCommand, clearPrivateFiles } from "./customer-native";
 import { CustomerTransactionsScreen } from "./customer-transactions-screen";
 import { CUSTOMER_MOBILE_UI as U } from "./customer-ui.messages";
+import { useCustomerPaymentRecovery } from "./use-customer-payment-recovery";
 
 export function CustomerWorkspace({
   owner,
@@ -87,42 +74,21 @@ export function CustomerWorkspace({
             ? "catalog"
             : "home";
 
+  const restorePayment = useCallback((payment: Extract<CustomerRoute, { screen: "payment" }>) => {
+    setStack((current) => {
+      const top = current.at(-1);
+      return top?.screen === "payment" &&
+        top.id === payment.id &&
+        top.reservationId === payment.reservationId
+        ? current
+        : [{ screen: "home" }, payment];
+    });
+  }, []);
+  useCustomerPaymentRecovery(owner, restorePayment);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: changing accounts must clear the previous account's private cache.
   useEffect(() => {
     clearPrivateFiles();
-    let active = true;
-    const handleUrl = (url: string | null) => {
-      if (!url || !active) return false;
-      try {
-        const parsed = parseMobilePaymentReturn(url);
-        if (!parsed) return false;
-        const payment: CustomerRoute = {
-          screen: "payment",
-          id: parsed.paymentId,
-          reservationId: parsed.reservationId,
-        };
-        setStack([{ screen: "home" }, payment]);
-        void saveCustomerCommand(owner, "payment", payment);
-        return true;
-      } catch {
-        return false;
-      }
-    };
-    void Linking.getInitialURL().then(async (url) => {
-      if (handleUrl(url)) return;
-      const saved = await readCustomerCommand<CustomerRoute>(owner, "payment");
-      if (active && saved?.screen === "payment") setStack([{ screen: "home" }, saved]);
-    });
-    const links = Linking.addEventListener("url", (e) => {
-      handleUrl(e.url);
-    });
-    const appState = AppState.addEventListener("change", (state) => {
-      focusManager.setFocused(state === "active");
-      if (state === "active") void client.invalidateQueries();
-    });
     return () => {
-      active = false;
-      links.remove();
-      appState.remove();
       void client.cancelQueries();
       client.clear();
       clearPrivateFiles();

@@ -102,23 +102,21 @@ export function DebtPanel({ rentalId }: { rentalId?: string }) {
 
   return (
     <Card className="overflow-hidden border-slate-200 bg-white shadow-2xs">
-      <CardHeader className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
-        <div className="flex items-center gap-2.5">
-          <span className="grid size-8 place-items-center rounded-lg bg-emerald-50 text-emerald-800">
-            <Wallet size={16} />
+      <CardHeader className="flex flex-col items-stretch gap-3 space-y-0 border-b border-line bg-surface px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 flex-1 items-start gap-2.5">
+          <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary">
+            <Wallet size={16} aria-hidden="true" />
           </span>
           <div>
             <h2 className="text-base font-bold text-slate-900">{M.title}</h2>
-            <p className="text-[11px] text-slate-500">
-              Theo dõi và ghi nhận các khoản công nợ phát sinh sau trả kho
-            </p>
+            <p className="mt-1 text-xs leading-5 text-slate-600">{M.description}</p>
           </div>
         </div>
 
-        <label className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+        <label className="flex shrink-0 flex-col items-start gap-1.5 text-xs font-semibold text-slate-700 sm:flex-row sm:items-center sm:gap-2">
           <span>{M.status}:</span>
           <select
-            className="h-8.5 rounded-lg border border-slate-200 bg-slate-50/50 px-2.5 text-xs text-slate-800 outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary font-normal"
+            className="min-h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-sm font-normal text-slate-800 outline-none transition-colors focus:border-primary focus:bg-surface focus:ring-1 focus:ring-primary sm:w-48"
             value={status ?? ""}
             onChange={(event) => {
               setStatus((event.target.value || undefined) as DebtQuery["status"]);
@@ -148,15 +146,19 @@ export function DebtPanel({ rentalId }: { rentalId?: string }) {
         ) : (
           <>
             {!list.data.items.length ? (
-              <div className="p-8 text-center text-xs text-slate-500">{M.empty}</div>
+              <p className="px-4 py-4 text-sm leading-6 text-slate-600">
+                {rentalId && !status ? M.emptyRental : M.empty}
+              </p>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader className="border-b border-slate-200 bg-slate-50/70">
                     <TableRow className="hover:bg-transparent border-0">
-                      <TableHead className="h-9 px-4 text-xs font-bold uppercase tracking-wider text-slate-600">
-                        Khách hàng & Ô kho
-                      </TableHead>
+                      {!rentalId && (
+                        <TableHead className="h-9 px-4 text-xs font-bold uppercase tracking-wider text-slate-600">
+                          {M.customerUnit}
+                        </TableHead>
+                      )}
                       <TableHead className="h-9 px-4 text-xs font-bold uppercase tracking-wider text-slate-600">
                         {M.original}
                       </TableHead>
@@ -184,6 +186,7 @@ export function DebtPanel({ rentalId }: { rentalId?: string }) {
                           isExpanded={isExpanded}
                           onToggle={() => setSelectedId(isExpanded ? undefined : debt.id)}
                           isStaff={user?.role === "FACILITY_STAFF"}
+                          showCustomer={!rentalId}
                         />
                       );
                     })}
@@ -196,7 +199,7 @@ export function DebtPanel({ rentalId }: { rentalId?: string }) {
               <div className="border-t border-slate-100 p-3 bg-slate-50/40">
                 <ListPagination
                   label={M.title}
-                  unitLabel="công nợ"
+                  unitLabel={M.unitLabel}
                   page={page}
                   pageSize={10}
                   total={list.data.total}
@@ -217,26 +220,30 @@ function DebtTableRow({
   isExpanded,
   onToggle,
   isStaff,
+  showCustomer,
 }: {
   debt: DebtRecord;
   isExpanded: boolean;
   onToggle: () => void;
   isStaff: boolean;
+  showCustomer: boolean;
 }) {
   return (
     <>
       <TableRow className={cn("transition-colors", isExpanded && "bg-slate-50/60")}>
-        <TableCell className="px-4 py-3 align-middle">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-900 text-xs">{debt.customerName}</span>
-            <Badge
-              variant="outline"
-              className="border-emerald-200 bg-emerald-50 font-mono text-[10px] text-emerald-800 px-1.5 py-0"
-            >
-              {debt.unitCode}
-            </Badge>
-          </div>
-        </TableCell>
+        {showCustomer && (
+          <TableCell className="px-4 py-3 align-middle">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-slate-900 text-xs">{debt.customerName}</span>
+              <Badge
+                variant="outline"
+                className="border-emerald-200 bg-emerald-50 font-mono text-[10px] text-emerald-800 px-1.5 py-0"
+              >
+                {debt.unitCode}
+              </Badge>
+            </div>
+          </TableCell>
+        )}
         <TableCell className="px-4 py-3 align-middle text-xs font-medium tabular-nums text-slate-600">
           {formatCurrency(Number(debt.originalAmount))}
         </TableCell>
@@ -277,7 +284,7 @@ function DebtTableRow({
 
       {isExpanded && (
         <TableRow className="bg-slate-50/70 border-t-0">
-          <TableCell colSpan={6} className="px-4 py-3">
+          <TableCell colSpan={showCustomer ? 6 : 5} className="px-4 py-3">
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
               <DebtHistory debt={debt} canCollect={isStaff} />
             </div>

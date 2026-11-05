@@ -1,6 +1,7 @@
 import {
   FacilityTaskReferenceType,
   FacilityTaskStatus,
+  FacilityTaskType,
 } from "@metastorage/contracts/facility-tasks";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import type { Database } from "./client";
@@ -248,6 +249,52 @@ export async function migrateBookingsToReservations(tx: Transaction) {
       .set({ reservationId: booking.id, bookingId: null })
       .where(eq(unitAssignments.bookingId, booking.id))
       .returning();
+    // Older seeds assigned staff and a unit without creating their handover task.
+    // Use current workflow state and the recorded manager; never revive closed appointments.
+    if (
+      booking.status === "CONFIRMED" &&
+      (!existing || existing.status === ReservationStatus.CONFIRMED)
+    ) {
+      const [appointment] = await tx
+        .select()
+        .from(appointments)
+        .where(eq(appointments.id, booking.id))
+        .for("update");
+      if (appointment?.status === APPOINTMENT_STATUSES.CONFIRMED && appointment.assignedStaffId) {
+        const [assignment] = await tx
+          .select()
+          .from(unitAssignments)
+          .where(
+            and(
+              eq(unitAssignments.reservationId, booking.id),
+              eq(unitAssignments.status, "ACTIVE"),
+            ),
+          );
+        const [task] = await tx
+          .select({ id: facilityTasks.id })
+          .from(facilityTasks)
+          .where(
+            and(
+              eq(facilityTasks.referenceType, FacilityTaskReferenceType.APPOINTMENT),
+              eq(facilityTasks.referenceId, appointment.id),
+              inArray(facilityTasks.status, [
+                FacilityTaskStatus.ASSIGNED,
+                FacilityTaskStatus.IN_PROGRESS,
+              ]),
+            ),
+          );
+        if (assignment && !task) {
+          await tx.insert(facilityTasks).values({
+            facilityId: appointment.facilityId,
+            type: FacilityTaskType.CHECK_IN_HANDOVER,
+            referenceType: FacilityTaskReferenceType.APPOINTMENT,
+            referenceId: appointment.id,
+            assignedStaffId: appointment.assignedStaffId,
+            assignedBy: assignment.assignedBy,
+          });
+        }
+      }
+    }
     if (booking.status !== "CONFIRMED")
       for (const assignment of movedAssignments.filter((a) => a.status === "ACTIVE")) {
         await tx

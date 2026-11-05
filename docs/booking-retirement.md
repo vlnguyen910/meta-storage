@@ -15,6 +15,11 @@ than overwriting it. Resolve reported conflicts before retrying. Keep the histor
 schema, migration utilities and financial records; this cleanup does not delete them.
 Do not use `db:clear` or demo seeding to upgrade an existing database.
 
+The conversion also repairs historical confirmed appointments that have an assigned
+staff member and an active unit assignment but no active handover task. It uses the
+manager recorded on the unit assignment and creates only the missing task. Repeating
+the migration preserves existing tasks and does not reopen closed appointments.
+
 Old `/booking/tracking` links now open the authenticated customer reservation workspace.
 The browser removes the retired guest token and booking-code query before navigating.
 Customers must sign in to the account that owns their reservations. Guest tracking is

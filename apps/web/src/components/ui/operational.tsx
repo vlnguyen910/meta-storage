@@ -16,25 +16,20 @@ const tones = {
 export function OperationalBadge({ value, label, tone }: OperationalBadgeProps) {
   const color =
     tone ??
-    (["FAILED", "OVERDUE", "NO_SHOW", "UNPAID", "MAJOR_DAMAGE"].includes(value)
+    (["FAILED", "OVERDUE", "NO_SHOW", "UNPAID", "MAJOR_DAMAGE", "CANCELLED", "EXPIRED"].includes(
+      value,
+    )
       ? "red"
       : ["REFUNDED", "DEPOSIT_REFUND"].includes(value)
         ? "purple"
-        : ["CANCELLED", "INACTIVE", "LOCKED", "CLOSED", "EXPIRED", "DRAFT", "TERMINATED"].includes(
-              value,
-            )
+        : ["INACTIVE", "LOCKED", "CLOSED", "DRAFT", "TERMINATED"].includes(value)
           ? "gray"
-          : [
-                "IN_PROGRESS",
-                "INSPECTING",
-                "INSPECTION",
-                "CHECKED_IN",
-                "OCCUPIED",
-                "SCHEDULED",
-                "OPEN",
-              ].includes(value)
+          : ["IN_PROGRESS", "INSPECTING", "INSPECTION", "CHECKED_IN", "OCCUPIED", "OPEN"].includes(
+                value,
+              )
             ? "blue"
             : [
+                  "SCHEDULED",
                   "ASSIGNED",
                   "PENDING",
                   "RESERVED",

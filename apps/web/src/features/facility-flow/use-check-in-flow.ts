@@ -148,6 +148,7 @@ export function useCheckInFlow() {
   };
   const queryClient = useQueryClient();
   async function startInspection() {
+    if (!result?.assignedUnit?.physicalUnitId) throw new Error(FLOW.unassigned);
     const { items } = await api.flow5.tasks.listMine({
       type: FacilityTaskType.CHECK_IN_HANDOVER,
       referenceId: bookingId,
@@ -164,7 +165,6 @@ export function useCheckInFlow() {
     if (task.status === FacilityTaskStatus.ASSIGNED)
       await api.flow5.tasks.update(task.id, { status: FacilityTaskStatus.IN_PROGRESS });
     else if (task.status !== FacilityTaskStatus.IN_PROGRESS) throw new Error(FLOW.taskNotReady);
-    if (!result?.assignedUnit) throw new Error(FLOW.unassigned);
     return api.inspections.create({
       taskId: task.id,
       storageUnitId: result.assignedUnit.physicalUnitId,

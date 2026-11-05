@@ -369,6 +369,7 @@ export function createSepayGateway() {
         merchantId: env.SEPAY_MERCHANT_ID,
         secretKey: env.SEPAY_SECRET_KEY,
         webUrl: env.WEB_URL,
+        trustedWebOrigins: env.AUTH_TRUSTED_ORIGINS.split(",").map((origin) => origin.trim()),
         bankName: env.SEPAY_BANK_NAME,
         accountNumber: env.SEPAY_BANK_ACCOUNT_NUMBER,
         accountName: env.SEPAY_BANK_ACCOUNT_NAME,

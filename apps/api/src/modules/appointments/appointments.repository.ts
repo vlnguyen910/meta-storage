@@ -29,6 +29,26 @@ export type AppointmentTransaction = Parameters<Parameters<Database["transaction
 
 const staff = aliasedTable(users, "appointment_staff");
 
+function normalizeAppointment<
+  T extends {
+    status: string;
+    assignedUnit: { physicalUnitId: string; physicalUnitCode: string; status: string } | null;
+  },
+>(appointment: T) {
+  const unit = appointment.assignedUnit;
+  const closed =
+    appointment.status === Status.COMPLETED ||
+    appointment.status === Status.CANCELLED ||
+    appointment.status === Status.NO_SHOW;
+  return {
+    ...appointment,
+    assignedUnit:
+      unit?.physicalUnitId && unit.physicalUnitCode && (unit.status === "ACTIVE" || closed)
+        ? unit
+        : null,
+  };
+}
+
 export class AppointmentsRepository {
   constructor(private readonly db: Database) {}
 
@@ -130,7 +150,7 @@ export class AppointmentsRepository {
         unitAssignments,
         eq(
           unitAssignments.id,
-          sql`(select ua.id from unit_assignments ua where ua.reservation_id = ${appointments.reservationId} order by ua.assigned_at desc,ua.id desc limit 1)`,
+          sql`(select ua.id from unit_assignments ua where ua.reservation_id = ${appointments.reservationId} order by (ua.status = 'ACTIVE') desc,ua.assigned_at desc,ua.id desc limit 1)`,
         ),
       )
       .leftJoin(storageUnits, eq(storageUnits.id, unitAssignments.physicalUnitId));
@@ -138,7 +158,7 @@ export class AppointmentsRepository {
 
   async findById(id: string) {
     const [appointment] = await this.readQuery().where(eq(appointments.id, id));
-    return appointment;
+    return appointment ? normalizeAppointment(appointment) : undefined;
   }
 
   async findByIdForUpdate(id: string, tx: AppointmentTransaction) {
@@ -150,8 +170,8 @@ export class AppointmentsRepository {
     return appointment;
   }
 
-  list(query: AppointmentQuery & { customerId?: string; assignedStaffId?: string }) {
-    return this.readQuery()
+  async list(query: AppointmentQuery & { customerId?: string; assignedStaffId?: string }) {
+    const rows = await this.readQuery()
       .where(
         and(
           query.customerId ? eq(appointments.customerId, query.customerId) : undefined,
@@ -166,6 +186,7 @@ export class AppointmentsRepository {
         ),
       )
       .orderBy(asc(appointments.scheduledDate), asc(appointments.id));
+    return rows.map(normalizeAppointment);
   }
 
   async update(id: string, data: UpdateAppointmentInput, tx: AppointmentTransaction) {

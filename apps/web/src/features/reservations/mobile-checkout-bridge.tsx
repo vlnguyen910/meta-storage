@@ -1,12 +1,9 @@
 "use client";
-import {
-  CUSTOMER_WORKSPACE as M,
-  mobilePaymentReturnKey,
-  parseMobilePaymentReturn,
-} from "@metastorage/shared";
+import { CUSTOMER_WORKSPACE as M } from "@metastorage/shared";
 import { useEffect, useRef, useState } from "react";
 import { CheckoutPostForm } from "./checkout-post-form";
 import type { MobileCheckoutBridge } from "./mobile-checkout-bridge.types";
+import { saveMobilePaymentReturn } from "./mobile-payment-return-storage";
 
 export function MobileCheckoutBridgeScreen() {
   const [checkout, setCheckout] = useState<MobileCheckoutBridge>();
@@ -33,9 +30,7 @@ export function MobileCheckoutBridgeScreen() {
       )
         throw new Error();
       if (input.returnUrl) {
-        const payment = parseMobilePaymentReturn(input.returnUrl);
-        if (!payment) throw new Error();
-        sessionStorage.setItem(mobilePaymentReturnKey(payment.paymentId), input.returnUrl);
+        if (!saveMobilePaymentReturn(input.returnUrl)) throw new Error();
       }
       setCheckout(input);
       window.history.replaceState(null, "", window.location.pathname);

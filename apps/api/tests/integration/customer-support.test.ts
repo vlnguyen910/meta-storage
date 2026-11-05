@@ -157,6 +157,93 @@ describe.skipIf(!process.env.MY_STORAGE_LOCAL_DATABASE_URL)("Customer Support", 
     ).toBe(404);
   });
 
+  test("returns rental details and searches owned contexts on the server", async () => {
+    const response = await fixture.api(
+      "customer",
+      "GET",
+      `/support/contexts?category=UNIT&search=${reservationId}`,
+    );
+    expect(response.statusCode, response.body).toBe(200);
+    expect(response.json().data.items).toEqual([
+      expect.objectContaining({
+        id: reservationId,
+        rentalId,
+        rentalStatus: "ACTIVE",
+        startAt: "2026-10-24T00:00:00.000Z",
+        endAt: "2026-11-24T00:00:00.000Z",
+      }),
+    ]);
+    const code = response.json().data.items[0].storageUnitCode;
+    const byUnit = await fixture.api(
+      "customer",
+      "GET",
+      `/support/contexts?category=UNIT&search=${encodeURIComponent(code)}`,
+    );
+    expect(byUnit.json().data.items.map((item: { id: string }) => item.id)).toContain(
+      reservationId,
+    );
+    for (const search of [otherReservationId, "%", "no-matching-support-record"]) {
+      const missing = await fixture.api(
+        "customer",
+        "GET",
+        `/support/contexts?category=PAYMENT&search=${encodeURIComponent(search)}`,
+      );
+      expect(missing.statusCode).toBe(200);
+      expect(missing.json().data.items).toEqual([]);
+    }
+  });
+
+  test("excludes unpaid drafts, retains pre-handover payments, and paginates without duplicates", async () => {
+    const id = randomUUID();
+    const transactionId = randomUUID();
+    const [base] = await db.select().from(reservations).where(eq(reservations.id, reservationId));
+    await db.insert(reservations).values({ ...base, id, status: "DRAFT" });
+    try {
+      const before = await fixture.api("customer", "GET", "/support/contexts?category=PAYMENT");
+      expect(before.json().data.items.map((item: { id: string }) => item.id)).not.toContain(id);
+      await db.insert(payments).values({
+        id: transactionId,
+        reservationId: id,
+        holdTokenHash: "support-pending-test",
+        provider: "mock",
+        providerPaymentId: transactionId,
+        paymentCode: transactionId.replaceAll("-", ""),
+        idempotencyKey: transactionId,
+        totalAmount: "2000000",
+        currency: "VND",
+        status: "PENDING",
+      });
+      const after = await fixture.api(
+        "customer",
+        "GET",
+        "/support/contexts?category=PAYMENT&limit=1",
+      );
+      const first = after.json().data;
+      expect(first.items).toHaveLength(1);
+      expect(first.nextCursor).toBeTruthy();
+      const next = await fixture.api(
+        "customer",
+        "GET",
+        `/support/contexts?category=PAYMENT&limit=1&cursor=${encodeURIComponent(first.nextCursor)}`,
+      );
+      expect(next.statusCode, next.body).toBe(200);
+      const combined = [...first.items, ...next.json().data.items].map(
+        (item: { id: string }) => item.id,
+      );
+      expect(combined.sort()).toEqual([id, reservationId].sort());
+      expect(next.json().data.nextCursor).toBeNull();
+      const unit = await fixture.api(
+        "customer",
+        "GET",
+        `/support/contexts?category=UNIT&search=${id}`,
+      );
+      expect(unit.json().data.items).toEqual([]);
+    } finally {
+      await db.delete(payments).where(eq(payments.id, transactionId));
+      await db.delete(reservations).where(eq(reservations.id, id));
+    }
+  });
+
   test("creates one immutable ticket and receipt; safe retries do not duplicate either", async () => {
     const payload = input();
     const [first, retry] = await Promise.all([
