@@ -1,11 +1,44 @@
-import { Platform, Pressable, Text, TextInput, View } from "react-native";
-import type { MobileButtonProps, MobileCardProps, MobileFieldProps } from "./mobile-ui.types";
+import { Eye, EyeOff } from "lucide-react-native";
+import { useId, useState } from "react";
+import { Platform, Pressable, Text, View } from "react-native";
+import { IconButton } from "./app-ui";
+import { APP_UI } from "./app-ui.messages";
+import type {
+  MobileButtonProps,
+  MobileButtonVariant,
+  MobileCardProps,
+  MobileFieldProps,
+} from "./mobile-ui.types";
+import { ThemedActivityIndicator, ThemedTextInput } from "./native-styles";
+
+const buttonVariants: Record<MobileButtonVariant, { container: string; label: string }> = {
+  primary: {
+    container: "bg-primary active:bg-primary-dark",
+    label: "text-primary-foreground",
+  },
+  secondary: {
+    container: "bg-secondary active:bg-ink",
+    label: "text-primary-foreground",
+  },
+  outline: {
+    container: "border border-outline-variant bg-surface active:bg-primary-soft",
+    label: "text-primary",
+  },
+  ghost: { container: "bg-transparent active:bg-neutral-soft", label: "text-muted" },
+  danger: {
+    container: "bg-danger-strong active:bg-danger-strong/80",
+    label: "text-primary-foreground",
+  },
+};
 
 export function Card({ children, title }: MobileCardProps) {
   return (
-    <View className="mb-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <View className="mb-4 rounded-card border border-line bg-surface p-card shadow-soft">
       {title ? (
-        <Text accessibilityRole="header" className="mb-3 text-lg font-bold text-[#131B2E]">
+        <Text
+          accessibilityRole="header"
+          className="mb-3 font-body-bold text-[18px] leading-7 text-ink"
+        >
           {title}
         </Text>
       ) : null}
@@ -18,47 +51,104 @@ export function Button({
   accessibilityLabel,
   onPress,
   disabled,
+  loading = false,
+  leadingIcon,
+  variant,
   secondary,
   danger,
   hint,
+  accessibilityState,
+  ...props
 }: MobileButtonProps) {
+  const appearance =
+    buttonVariants[variant ?? (danger ? "danger" : secondary ? "outline" : "primary")];
+  const unavailable = disabled || loading;
   return (
     <View className="mb-2">
       <Pressable
+        {...props}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel ?? label}
-        accessibilityState={{ disabled: !!disabled }}
-        disabled={disabled}
+        accessibilityState={{ ...accessibilityState, disabled: !!unavailable, busy: loading }}
+        aria-busy={loading}
+        disabled={unavailable}
         onPress={onPress}
-        className={`min-h-12 justify-center rounded-xl border px-4 py-3 ${disabled ? "border-slate-200 bg-[#E8EEEA]" : danger ? "border-red-700 bg-red-50" : secondary ? "border-slate-200 bg-white" : "border-[#125345] bg-[#125345]"}`}
+        className={`min-h-control flex-row items-center justify-center gap-2 rounded-control px-4 py-3 web:focus-visible:outline-2 web:focus-visible:outline-offset-2 web:focus-visible:outline-ring ${appearance.container} ${unavailable ? "opacity-55" : ""}`}
       >
+        {loading ? (
+          <ThemedActivityIndicator
+            aria-hidden={true}
+            accessible={false}
+            color={Platform.OS === "web" ? "currentColor" : undefined}
+            className={appearance.label}
+          />
+        ) : (
+          leadingIcon
+        )}
         <Text
-          className={`text-center text-[15px] font-semibold ${disabled ? "text-[#65756C]" : danger ? "text-red-800" : secondary ? "text-[#125345]" : "text-white"}`}
+          className={`min-w-0 shrink text-center font-body-bold text-label leading-6 ${appearance.label}`}
         >
           {label}
         </Text>
       </Pressable>
-      {hint ? <Text className="mt-1 text-sm leading-5 text-[#52635A]">{hint}</Text> : null}
+      {hint ? <Text className="mt-1 font-body text-label leading-5 text-muted">{hint}</Text> : null}
     </View>
   );
 }
-export function Field({ label, error, hint, ref, ...props }: MobileFieldProps) {
+export function Field({
+  label,
+  error,
+  hint,
+  ref,
+  labelAction,
+  secureTextEntry,
+  ...props
+}: MobileFieldProps) {
+  const id = useId();
+  const descriptionId = `${id}-description`;
+  const [passwordVisible, setPasswordVisible] = useState(false);
   return (
     <View className="mb-4">
-      <Text className="mb-2 font-semibold text-[#131B2E]">{label}</Text>
-      <TextInput
-        ref={ref}
-        accessibilityLabel={label}
-        placeholderTextColor="#66756C"
-        {...props}
-        className={`min-h-12 rounded-xl border bg-white px-3 py-3 text-[16px] text-[#131B2E] ${error ? "border-red-700" : "border-slate-200"}`}
-      />
+      <View className="mb-2 flex-row items-center justify-between gap-2">
+        <Text className="shrink font-body-semibold text-label leading-6 text-ink">{label}</Text>
+        {labelAction}
+      </View>
+      <View className="relative">
+        <ThemedTextInput
+          ref={ref}
+          accessibilityLabel={label}
+          placeholderClassName="text-muted"
+          selectionClassName="text-primary"
+          accessibilityState={{ disabled: props.editable === false }}
+          aria-describedby={Platform.OS === "web" && (error || hint) ? descriptionId : undefined}
+          {...props}
+          secureTextEntry={secureTextEntry && !passwordVisible}
+          aria-invalid={!!error}
+          className={`min-h-control rounded-control border bg-surface px-3 py-3 font-body text-body leading-6 text-ink placeholder:text-muted web:focus:outline-2 web:focus:outline-offset-2 web:focus:outline-ring ${secureTextEntry ? "pr-14" : ""} ${error ? "border-danger-strong focus:border-danger-strong" : "border-outline-variant focus:border-primary"} ${props.editable === false ? "opacity-55" : ""}`}
+        />
+        {secureTextEntry ? (
+          <View className="absolute inset-y-0 right-1 justify-center">
+            <IconButton
+              icon={passwordVisible ? EyeOff : Eye}
+              label={passwordVisible ? APP_UI.hidePassword : APP_UI.showPassword}
+              onPress={() => setPasswordVisible((visible) => !visible)}
+              disabled={props.editable === false}
+            />
+          </View>
+        ) : null}
+      </View>
       {error ? (
-        <Text accessibilityLiveRegion="polite" className="mt-1 text-sm text-red-700">
+        <Text
+          nativeID={descriptionId}
+          accessibilityLiveRegion="polite"
+          className="mt-1 font-body text-label leading-5 text-danger-strong"
+        >
           {error}
         </Text>
       ) : hint ? (
-        <Text className="mt-1 text-sm leading-5 text-[#52635A]">{hint}</Text>
+        <Text nativeID={descriptionId} className="mt-1 font-body text-label leading-5 text-muted">
+          {hint}
+        </Text>
       ) : null}
     </View>
   );
@@ -66,11 +156,11 @@ export function Field({ label, error, hint, ref, ...props }: MobileFieldProps) {
 export function Notice({ children, error = false }: { children: string; error?: boolean }) {
   return (
     <View
-      className={`mb-4 rounded-xl border p-3 ${error ? "border-red-300 bg-red-50" : "border-slate-200 bg-[#E8F3EF]"}`}
+      className={`mb-4 rounded-control border p-3 ${error ? "border-danger-line bg-danger-soft" : "border-outline-variant bg-primary-soft"}`}
     >
       <Text
         accessibilityLiveRegion="polite"
-        className={`text-sm leading-5 ${error ? "text-red-800" : "text-[#125345]"}`}
+        className={`font-body text-label leading-6 ${error ? "text-danger-strong" : "text-primary"}`}
       >
         {children}
       </Text>
@@ -79,9 +169,9 @@ export function Notice({ children, error = false }: { children: string; error?: 
 }
 export function Row({ label, value }: { label: string; value: string }) {
   return (
-    <View className="mb-2 flex-row flex-wrap justify-between gap-2 border-b border-[#E8EEEA] pb-2">
-      <Text className="text-sm text-[#52635A]">{label}</Text>
-      <Text className="min-w-0 flex-1 text-right text-sm font-semibold text-[#131B2E]">
+    <View className="mb-2 flex-row flex-wrap justify-between gap-2 border-b border-line pb-2">
+      <Text className="shrink font-body text-label leading-6 text-muted">{label}</Text>
+      <Text className="min-w-0 flex-1 text-right font-body-semibold text-label leading-6 text-ink">
         {value}
       </Text>
     </View>
@@ -92,7 +182,7 @@ export function Heading({ children }: { children: string }) {
     <Text
       accessibilityRole="header"
       aria-level={Platform.OS === "web" ? 1 : undefined}
-      className="mb-4 text-2xl font-bold leading-8 text-[#131B2E]"
+      className="mb-4 font-body-bold text-title leading-8 text-ink"
     >
       {children}
     </Text>

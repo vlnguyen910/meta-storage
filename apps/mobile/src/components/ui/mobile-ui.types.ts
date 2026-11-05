@@ -1,11 +1,17 @@
 import type { ReactNode, Ref } from "react";
-import type { TextInput, TextInputProps } from "react-native";
+import type { PressableProps, TextInput, TextInputProps } from "react-native";
 
-export interface MobileButtonProps {
+export type MobileButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "danger";
+
+export interface MobileButtonProps extends Omit<PressableProps, "children" | "style"> {
   label: string;
   accessibilityLabel?: string;
   onPress: () => void;
   disabled?: boolean;
+  loading?: boolean;
+  leadingIcon?: ReactNode;
+  variant?: MobileButtonVariant;
+  /** Existing secondary actions retain their outline appearance. */
   secondary?: boolean;
   danger?: boolean;
   hint?: string;
@@ -15,6 +21,7 @@ export interface MobileFieldProps extends TextInputProps {
   label: string;
   error?: string;
   hint?: string;
+  labelAction?: ReactNode;
 }
 export interface MobileCardProps {
   children: ReactNode;
