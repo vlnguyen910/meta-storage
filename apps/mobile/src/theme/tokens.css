@@ -1,0 +1,52 @@
+/* Mirrors apps/web/src/app/globals.css. Mobile owns its platform adaptations. */
+@theme {
+  --color-primary: #165f4d;
+  --color-primary-dark: #0f493b;
+  --color-primary-soft: #e8f3ef;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #64748b;
+  --color-accent: #107012;
+  --color-accent-soft: #e9f6e9;
+  --color-canvas: #fafafa;
+  --color-surface: #ffffff;
+  --color-ink: #0f172a;
+  --color-muted: #64748b;
+  --color-line: #eeeeee;
+  --color-outline-variant: #e2e8f0;
+  --color-ring: #94a3b8;
+  --color-danger: #ef4444;
+  --color-warning: #d97706;
+
+  /* Readable foregrounds and soft surfaces for mobile feedback. */
+  --color-danger-strong: #b91c1c;
+  --color-danger-soft: #fff1f2;
+  --color-danger-line: #fecdd3;
+  --color-success: #065f46;
+  --color-success-soft: #ecfdf5;
+  --color-success-line: #a7f3d0;
+  --color-warning-strong: #92400e;
+  --color-warning-soft: #fffbeb;
+  --color-warning-line: #fde68a;
+  --color-info: #075985;
+  --color-info-soft: #f0f9ff;
+  --color-info-line: #bae6fd;
+  --color-neutral-soft: #f1f5f9;
+
+  --radius-card: 15px;
+  --radius-control: 12px;
+  --shadow-soft: 0 8px 30px rgb(15 23 42 / 7%);
+
+  /* Explicit units keep controls >= 44pt with Nativewind's native rem size. */
+  --spacing-control: 48px;
+  --spacing-touch: 44px;
+  --spacing-card: 20px;
+  --text-label: 14px;
+  --text-body: 16px;
+  --text-title: 24px;
+
+  /* Native weights use separate font files rather than synthetic fontWeight. */
+  --font-body: "BeVietnamPro-Regular";
+  --font-body-medium: "BeVietnamPro-Medium";
+  --font-body-semibold: "BeVietnamPro-SemiBold";
+  --font-body-bold: "BeVietnamPro-Bold";
+}

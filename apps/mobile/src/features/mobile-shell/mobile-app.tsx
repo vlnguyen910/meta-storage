@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button, Heading, Notice } from "../../components/ui/mobile-ui";
 import { SCREEN_TITLES } from "../../navigation/route.messages";
 import { useMobileNavigation } from "../../navigation/use-mobile-navigation";
-import { AuthScreens } from "../../screens/auth-screens";
+import { AuthenticationScreen } from "../../screens/authentication-screen";
 import { CheckoutScreens } from "../../screens/checkout-screens";
 import { CustomerScreens } from "../../screens/customer-screens";
 import { PublicScreens } from "../../screens/public-screens";
@@ -25,7 +25,13 @@ import { SHELL_MESSAGES as m } from "./shell.messages";
 
 export function MobileApp() {
   const workspace = useMobileWorkspace();
-  const navigation = useMobileNavigation();
+  const homeScreen =
+    workspace.data?.session?.role === "FACILITY_STAFF"
+      ? "M-FS01"
+      : workspace.data?.session
+        ? "M-C01"
+        : "M-A01";
+  const navigation = useMobileNavigation(homeScreen);
   const insets = useSafeAreaInsets();
   const scroll = useRef<ScrollView>(null);
   const { data } = workspace;
@@ -50,6 +56,14 @@ export function MobileApp() {
     }
     if (Platform.OS === "web") document.title = m.pageTitle(SCREEN_TITLES[screen]);
   }, [screen, focusedRoute]);
+  if (data && (!role || screen.startsWith("M-A"))) {
+    return (
+      <AuthenticationScreen
+        demo
+        onAuthenticated={(nextRole) => go(nextRole === "FACILITY_STAFF" ? "M-FS01" : "M-C01")}
+      />
+    );
+  }
   return (
     <KeyboardAvoidingView
       className="flex-1 bg-[#F6F8F6]"
@@ -151,8 +165,6 @@ export function MobileApp() {
             <View key={`${route.screen}:${route.id ?? ""}`}>
               {screen.startsWith("M-P") ? (
                 <PublicScreens {...props} />
-              ) : screen.startsWith("M-A") ? (
-                <AuthScreens {...props} />
               ) : screen.startsWith("M-CK") ? (
                 <CheckoutScreens {...props} />
               ) : screen.startsWith("M-C") ? (

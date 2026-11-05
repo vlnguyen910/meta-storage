@@ -8,7 +8,7 @@ export function ScreenFrame({ children }: PropsWithChildren) {
 
   return (
     <View
-      className="flex-1 bg-[#f8faf9]"
+      className="flex-1 bg-canvas"
       style={{
         paddingTop: insets.top,
         paddingBottom: insets.bottom,

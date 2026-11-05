@@ -3,10 +3,10 @@ import { BackHandler, Platform } from "react-native";
 import type { MobileRoute } from "../features/demo/demo.types";
 import { SCREEN_TITLES } from "./route.messages";
 
-function browserRoute(): MobileRoute {
-  if (Platform.OS !== "web") return { screen: "M-P00" };
+function browserRoute(home: MobileRoute["screen"]): MobileRoute {
+  if (Platform.OS !== "web") return { screen: home };
   const [screen, id] = location.hash.slice(1).split("/");
-  if (!screen) return { screen: "M-P00" };
+  if (!screen || screen === "M-P00") return { screen: home };
   if (!Object.hasOwn(SCREEN_TITLES, screen)) return { screen: "M-E02" };
   try {
     return { screen: screen as MobileRoute["screen"], id: id ? decodeURIComponent(id) : undefined };
@@ -14,17 +14,18 @@ function browserRoute(): MobileRoute {
     return { screen: "M-E02" };
   }
 }
-export function useMobileNavigation() {
-  const [route, setRoute] = useState<MobileRoute>(browserRoute);
+export function useMobileNavigation(home: MobileRoute["screen"] = "M-A01") {
+  const [route, setRoute] = useState<MobileRoute>(() => browserRoute(home));
   const [history, setHistory] = useState<MobileRoute[]>([]);
   const go = useCallback(
     (screen: MobileRoute["screen"], id?: string) => {
+      if (screen === "M-P00") screen = home;
       setHistory((h) => [...h, route]);
       setRoute({ screen, id });
       if (Platform.OS === "web")
         window.history.pushState(null, "", `#${screen}${id ? `/${encodeURIComponent(id)}` : ""}`);
     },
-    [route],
+    [route, home],
   );
   const back = useCallback(() => {
     if (Platform.OS === "web" && history.length) {
@@ -32,13 +33,18 @@ export function useMobileNavigation() {
       setHistory((h) => h.slice(0, -1));
       return;
     }
-    const previous = history.at(-1) ?? { screen: "M-P00" as const };
+    const previous = history.at(-1) ?? { screen: home };
     setHistory((h) => h.slice(0, -1));
     setRoute(previous);
-  }, [history]);
+  }, [history, home]);
+  useEffect(() => {
+    setRoute((current) =>
+      current.screen === "M-A01" && home !== "M-A01" ? { screen: home } : current,
+    );
+  }, [home]);
   useEffect(() => {
     if (Platform.OS === "web") {
-      const update = () => setRoute(browserRoute());
+      const update = () => setRoute(browserRoute(home));
       window.addEventListener("popstate", update);
       window.addEventListener("hashchange", update);
       return () => {
@@ -52,6 +58,6 @@ export function useMobileNavigation() {
       return true;
     });
     return () => listener.remove();
-  }, [back, history.length]);
+  }, [back, history.length, home]);
   return { route, go, back };
 }

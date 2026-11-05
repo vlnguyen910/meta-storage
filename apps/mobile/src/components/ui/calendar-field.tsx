@@ -1,6 +1,8 @@
+import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { CALENDAR_UI as M } from "./calendar-field.messages";
+import { Icon } from "./icon";
 
 export function facilityDay(value = new Date()) {
   return new Intl.DateTimeFormat("en-CA", {
@@ -48,34 +50,42 @@ export function CalendarField({
   }));
   return (
     <View className="mb-4">
-      <Text className="mb-2 font-semibold text-slate-900">{label}</Text>
-      <View className="rounded-2xl border border-slate-200 bg-white p-3">
+      <Text className="mb-2 font-body-semibold text-label leading-6 text-ink">{label}</Text>
+      <View className="rounded-card border border-outline-variant bg-surface p-3">
         <View className="mb-3 flex-row items-center justify-between">
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={M.previous}
             disabled={disabled || month <= minDate.slice(0, 7)}
+            accessibilityState={{ disabled: disabled || month <= minDate.slice(0, 7) }}
             onPress={() => shift(-1)}
-            className="min-h-11 min-w-11 items-center justify-center"
+            className="min-h-touch min-w-touch items-center justify-center rounded-control active:bg-primary-soft web:focus-visible:outline-2 web:focus-visible:outline-ring"
           >
-            <Text className={month <= minDate.slice(0, 7) ? "text-slate-300" : "text-emerald-800"}>
-              ‹
-            </Text>
+            <Icon
+              as={ChevronLeft}
+              className={
+                disabled || month <= minDate.slice(0, 7) ? "text-muted/40" : "text-primary"
+              }
+            />
           </Pressable>
-          <Text className="font-bold text-slate-900">{title}</Text>
+          <Text className="font-body-bold text-label text-ink">{title}</Text>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={M.next}
             disabled={disabled}
+            accessibilityState={{ disabled }}
             onPress={() => shift(1)}
-            className="min-h-11 min-w-11 items-center justify-center"
+            className="min-h-touch min-w-touch items-center justify-center rounded-control active:bg-primary-soft web:focus-visible:outline-2 web:focus-visible:outline-ring"
           >
-            <Text className="text-emerald-800">›</Text>
+            <Icon as={ChevronRight} className={disabled ? "text-muted/40" : "text-primary"} />
           </Pressable>
         </View>
         <View className="flex-row">
           {M.days.map((day) => (
-            <Text key={day} className="flex-1 pb-3 text-center text-xs font-bold text-slate-500">
+            <Text
+              key={day}
+              className="flex-1 pb-3 text-center font-body-bold text-[12px] text-muted"
+            >
               {day}
             </Text>
           ))}
@@ -84,7 +94,7 @@ export function CalendarField({
           <View key={week.key} className="flex-row">
             {week.cells.map(({ day, date }) => {
               return day < 1 || day > days ? (
-                <View key={date} className="min-h-11 flex-1" />
+                <View key={date} className="min-h-touch flex-1" />
               ) : (
                 <Pressable
                   key={date}
@@ -94,12 +104,13 @@ export function CalendarField({
                     selected: date === value,
                     disabled: disabled || date < minDate,
                   }}
+                  aria-pressed={date === value}
                   disabled={disabled || date < minDate}
                   onPress={() => onChange(date)}
-                  className={`min-h-11 flex-1 items-center justify-center rounded-lg ${date === value ? "bg-emerald-800" : "bg-transparent"}`}
+                  className={`min-h-touch flex-1 items-center justify-center rounded-control web:focus-visible:outline-2 web:focus-visible:outline-ring ${date === value ? "bg-primary" : "bg-transparent active:bg-primary-soft"}`}
                 >
                   <Text
-                    className={`text-sm font-semibold ${date === value ? "text-white" : date < minDate ? "text-slate-300" : "text-slate-800"}`}
+                    className={`font-body-semibold text-label ${date === value ? "text-primary-foreground" : disabled || date < minDate ? "text-muted/40" : "text-ink"}`}
                   >
                     {day}
                   </Text>
@@ -109,7 +120,14 @@ export function CalendarField({
           </View>
         ))}
       </View>
-      {error && <Text className="mt-2 text-sm text-red-700">{error}</Text>}
+      {error && (
+        <Text
+          accessibilityLiveRegion="polite"
+          className="mt-2 font-body text-label text-danger-strong"
+        >
+          {error}
+        </Text>
+      )}
     </View>
   );
 }
