@@ -1,14 +1,14 @@
 import { Eye, EyeOff } from "lucide-react-native";
 import { useId, useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
-import { IconButton } from "./app-ui";
-import { APP_UI } from "./app-ui.messages";
 import type {
   MobileButtonProps,
   MobileButtonVariant,
   MobileCardProps,
   MobileFieldProps,
-} from "./mobile-ui.types";
+} from "../../common/mobile-ui.types";
+import { IconButton } from "./app-ui";
+import { APP_UI } from "./app-ui.messages";
 import { ThemedActivityIndicator, ThemedTextInput } from "./native-styles";
 
 const buttonVariants: Record<MobileButtonVariant, { container: string; label: string }> = {

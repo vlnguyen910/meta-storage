@@ -5,10 +5,10 @@ import {
   PaymentResultSchema,
   ReservationDraftInputSchema,
 } from "@metastorage/contracts";
+import { secureStoreChunks } from "../src/common/demo-storage.utils";
 import { remainingDemoCapacity } from "../src/features/demo/demo-policy";
 import { createMobileSeed, demoId } from "../src/features/demo/demo-seed";
 import { handleMobileRequest, mobileWorkspace } from "../src/features/demo/demo-service";
-import { secureStoreChunks } from "../src/features/demo/demo-storage-codec";
 
 const pass = HANDOVER_CHECKLIST_ITEMS.map((item) => ({
   itemCode: item.code,

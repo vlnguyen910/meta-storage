@@ -165,22 +165,26 @@ test("register submits the shared contract with optional phone and can resend ve
   });
 });
 
-test("login routes to the workspace and sign-out returns directly to login", async ({ page }) => {
-  await mockApi(page);
+test("login routes to the waiting screen and sign-out returns directly to login", async ({
+  page,
+}) => {
+  const calls = await mockApi(page);
   await openLogin(page);
   await page.getByRole("textbox", { name: "Email", exact: true }).fill(user.email);
   await page.getByLabel("Mật khẩu", { exact: true }).fill("example-password");
   await page.getByRole("button", { name: "Đăng nhập", exact: true }).tap();
+  await expect(page.getByRole("heading", { name: "Bạn đã đăng nhập", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Đăng xuất", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Đăng nhập", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Đăng xuất", exact: true }).tap();
   await expect(page.getByRole("heading", { name: "Đăng nhập", exact: true })).toBeVisible();
+  expect(calls.every((call) => call.path.startsWith("/api/auth/"))).toBeTruthy();
 });
 
 test("restores a staff session without a login or landing page", async ({ page }) => {
   await mockApi(page, "FACILITY_STAFF");
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Công việc của tôi", exact: true })).toBeVisible({
+  await expect(page.getByRole("heading", { name: "Bạn đã đăng nhập", exact: true })).toBeVisible({
     timeout: 120_000,
   });
   await expect(page.getByRole("heading", { name: "Đăng nhập", exact: true })).toHaveCount(0);
@@ -233,9 +237,7 @@ async function openPreview(page: Page, query: string) {
   await page.goto(`/authentication-preview?${query}`);
 }
 
-test("offline demo also starts at the new login and keeps home and logout away from landing", async ({
-  page,
-}) => {
+test("offline demo uses the waiting screen and never opens archived routes", async ({ page }) => {
   await openPreview(page, "demo=1");
   await expect(page.getByRole("heading", { name: "Đăng nhập", exact: true })).toBeVisible({
     timeout: 120_000,
@@ -244,11 +246,27 @@ test("offline demo also starts at the new login and keeps home and logout away f
   await page.getByLabel("Mật khẩu", { exact: true }).fill("12345678");
   await page.getByRole("button", { name: "Đăng nhập", exact: true }).tap();
   await expect(page.getByRole("button", { name: "Đăng xuất", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Trang chủ", exact: true }).tap();
-  await expect(page.getByRole("button", { name: "Đăng xuất", exact: true })).toBeVisible();
-  await expect(page).toHaveURL(/#M-C01$/);
+  await expect(page.getByRole("heading", { name: "Bạn đã đăng nhập", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Trang chủ", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Đăng xuất", exact: true }).tap();
   await expect(page.getByRole("heading", { name: "Đăng nhập", exact: true })).toBeVisible();
+});
+
+test("legacy deep links cannot open old screens after session restore", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const calls = await mockApi(page, "CUSTOMER");
+  await page.goto("/#M-C03/old-booking");
+  await expect(page.getByRole("heading", { name: "Bạn đã đăng nhập", exact: true })).toBeVisible();
+  await assertFits(page);
+  await page.evaluate(() => document.fonts.ready);
+  await page.screenshot({ path: testInfo.outputPath("home.png") });
+  expect(
+    (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze())
+      .violations,
+  ).toEqual([]);
+  expect(calls.every((call) => call.path.startsWith("/api/auth/"))).toBeTruthy();
 });
 
 for (const failed of [false, true]) {

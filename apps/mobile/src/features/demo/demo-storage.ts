@@ -1,8 +1,8 @@
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
+import type { DemoDatabase } from "../../common/demo.types";
+import { secureStoreChunks } from "../../common/demo-storage.utils";
 import { DEMO_MESSAGES as m } from "./demo.messages";
-import type { DemoDatabase } from "./demo.types";
-import { secureStoreChunks } from "./demo-storage-codec";
 
 const key = "storex.mobile.demo.v1";
 // SecureStore values are chunked; a revision pointer is published only after all writes succeed.

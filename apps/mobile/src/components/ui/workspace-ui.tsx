@@ -11,13 +11,13 @@ import {
   Warehouse,
 } from "lucide-react-native";
 import { Pressable, Text, View } from "react-native";
-import { Icon } from "./icon";
-import { WORKSPACE_UI as M } from "./workspace-ui.messages";
 import type {
   StatusPillProps,
   WorkspaceHeaderProps,
   WorkspaceTabsProps,
-} from "./workspace-ui.types";
+} from "../../common/workspace-ui.types";
+import { Icon } from "./icon";
+import { WORKSPACE_UI as M } from "./workspace-ui.messages";
 
 const tabIcons: Record<string, LucideIcon> = {
   "⌂": House,

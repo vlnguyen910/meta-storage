@@ -11,8 +11,8 @@ import {
   PaymentStatus,
   ReservationDraftInputSchema,
 } from "@metastorage/contracts";
+import type { DemoDatabase } from "../../common/demo.types";
 import { DEMO_MESSAGES as m } from "./demo.messages";
-import type { DemoDatabase } from "./demo.types";
 import {
   canVerifyBooking,
   demoCheckInDeadlineAt,

@@ -44,6 +44,7 @@ export const AUTHENTICATION = {
   resent: "Đã gửi lại email xác minh. Vui lòng kiểm tra hộp thư và thư rác.",
   missingVerificationEmail: "Hãy đăng nhập bằng email đăng ký để yêu cầu liên kết xác minh mới.",
   loading: "Đang tải phiên đăng nhập",
+  retry: "Thử lại",
   invalidEmail: "Vui lòng nhập địa chỉ email hợp lệ.",
   passwordRequired: "Vui lòng nhập mật khẩu.",
   passwordLength: "Mật khẩu cần từ 8 đến 128 ký tự.",
