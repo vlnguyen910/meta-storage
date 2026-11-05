@@ -27,6 +27,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Select } from "@/components/ui/form-controls";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { FLOW } from "./flow.messages";
@@ -383,9 +384,13 @@ export function InspectionScreen({
                 />
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-100">
-                  <label className="block text-[11px] font-semibold text-slate-700">
+                  <label
+                    htmlFor="inspection-condition-select"
+                    className="block text-[11px] font-semibold text-slate-700"
+                  >
                     <span className="block mb-1">{FLOW.conditionReport}</span>
-                    <select
+                    <Select
+                      id="inspection-condition-select"
                       value={editor.values.condition ?? ""}
                       onChange={(event) =>
                         editor.setCondition(
@@ -393,13 +398,13 @@ export function InspectionScreen({
                         )
                       }
                       disabled={editor.busy || editor.locked}
-                      className="h-8.5 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-2.5 text-xs text-slate-800 outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary font-normal"
+                      className="h-8.5 min-h-8.5 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-2.5 pr-8 text-xs text-slate-800 font-normal focus:bg-white"
                     >
                       <option value="">— Chọn hiện trạng —</option>
                       <option value="GOOD">Tốt</option>
                       <option value="MINOR_DAMAGE">Hư hỏng nhẹ</option>
                       <option value="MAJOR_DAMAGE">Hư hỏng nghiêm trọng</option>
-                    </select>
+                    </Select>
                   </label>
                   <label className="block text-[11px] font-semibold text-slate-700">
                     <span className="block mb-1">{FLOW.notesLabel}</span>

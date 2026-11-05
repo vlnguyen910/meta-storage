@@ -20,4 +20,5 @@ export interface DropdownSelectProps {
   disabled?: boolean;
   ariaLabel?: string;
   placement?: "auto" | "top" | "bottom";
+  align?: "start" | "end";
 }

@@ -13,6 +13,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/form-controls";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/states";
 import {
@@ -277,7 +278,7 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
                 {M.kind}
               </label>
             </div>
-            <select
+            <Select
               id="staff-work-kind"
               value={filters.kind}
               onChange={(event) => {
@@ -287,13 +288,13 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
                   group: kind === "TASK" && filters.group === "closed" ? "pending" : filters.group,
                 });
               }}
-              className="h-11 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-2.5 text-sm text-slate-800 outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary"
+              className="h-11 min-h-11 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-2.5 pr-8 text-sm text-slate-800 focus:bg-white"
             >
               <option value="">{M.allKinds}</option>
               <option value="CHECK_IN">{M.bookingTasksTitle}</option>
               <option value="RETURN">{M.return}</option>
               <option value="TASK">{M.facilityTasksTitle}</option>
-            </select>
+            </Select>
           </div>
 
           <div className={filters.kind === "TASK" ? "sm:col-span-1" : ""}>

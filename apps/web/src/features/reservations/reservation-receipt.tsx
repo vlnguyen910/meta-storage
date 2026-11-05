@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Currency } from "@/components/ui/display";
+import { Select } from "@/components/ui/form-controls";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { customerRoutes } from "@/config/routes";
 import { customerApiError } from "@/features/bookings/customer-error";
@@ -100,10 +101,11 @@ export function ReservationReceipt({
               {customerApiError(createAppointment.error)}
             </p>
           )}
-          <label className="block text-sm">
+          <label htmlFor="receipt-slot-select" className="block text-sm">
             {m.chooseSlot}
-            <select
-              className="mt-2 block min-h-11 w-full rounded-lg border border-line px-3"
+            <Select
+              id="receipt-slot-select"
+              className="mt-2 block min-h-11 h-11 w-full rounded-lg border-line px-3"
               value={slotId || suggestedSlot || ""}
               onChange={(event) => setSlotId(event.target.value)}
             >
@@ -113,7 +115,7 @@ export function ReservationReceipt({
                   {slot.name} · {slot.startTime.slice(0, 5)}–{slot.endTime.slice(0, 5)}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           <Button
             loading={createAppointment.isPending}
