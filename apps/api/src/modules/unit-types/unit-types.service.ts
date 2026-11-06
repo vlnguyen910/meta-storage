@@ -52,6 +52,7 @@ function toApiUnitType(row: UnitType): FacilityUnitTypeDto {
     facilityId: row.facilityId,
     code: row.code,
     name: row.name,
+    coverUrl: row.coverUrl,
     sizeLabel: row.sizeLabel,
     lengthM: row.lengthM,
     widthM: row.widthM,

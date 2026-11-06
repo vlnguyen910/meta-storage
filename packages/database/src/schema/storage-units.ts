@@ -1,4 +1,13 @@
-import { foreignKey, index, pgEnum, pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import {
+  foreignKey,
+  index,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
 import { facilities } from "./facilities";
 import { unitTypes } from "./unit-types";
 
@@ -26,6 +35,7 @@ export const storageUnits = pgTable(
     code: varchar({ length: 80 }).notNull().unique(),
     floor: varchar({ length: 50 }),
     locationDescription: varchar({ length: 255 }),
+    coverUrl: text(),
     status: storageUnitStatusEnum().default("AVAILABLE").notNull(),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),

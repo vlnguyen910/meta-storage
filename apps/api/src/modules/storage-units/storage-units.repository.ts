@@ -259,6 +259,7 @@ export class StorageUnitsRepository {
           code: storageUnits.code,
           floor: storageUnits.floor,
           locationDescription: storageUnits.locationDescription,
+          coverUrl: storageUnits.coverUrl,
           status: storageUnits.status,
           createdAt: storageUnits.createdAt,
           updatedAt: storageUnits.updatedAt,

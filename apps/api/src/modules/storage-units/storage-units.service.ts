@@ -253,6 +253,7 @@ function unitDetail(unit: StorageUnit): StorageUnitDetail {
     code: unit.code,
     floor: unit.floor,
     locationDescription: unit.locationDescription,
+    coverUrl: unit.coverUrl,
     status: unit.status,
     createdAt: unit.createdAt.toISOString(),
     updatedAt: unit.updatedAt.toISOString(),

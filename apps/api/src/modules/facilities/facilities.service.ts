@@ -103,6 +103,7 @@ export class FacilitiesService {
       code: input.code,
       name: input.name,
       address: input.address,
+      coverUrl: input.coverUrl,
       description: input.description,
       isActive: input.isActive ?? true,
     });

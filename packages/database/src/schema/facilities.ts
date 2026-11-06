@@ -5,6 +5,7 @@ export const facilities = pgTable("facilities", {
   code: varchar({ length: 50 }).notNull().unique(),
   name: varchar({ length: 150 }).notNull(),
   address: text().notNull(),
+  coverUrl: text(),
   description: text(),
   isActive: boolean().default(true).notNull(),
   createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
