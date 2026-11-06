@@ -57,3 +57,18 @@ export interface ListItemProps {
   icon: LucideIcon;
   onPress: () => void;
 }
+
+export interface DetailSheetProps {
+  readonly visible: boolean;
+  readonly title: string;
+  readonly closeLabel: string;
+  readonly onClose: () => void;
+  readonly children: ReactNode;
+}
+export interface ChoiceTabsProps<T extends string> {
+  readonly options: readonly { value: T; label: string; count?: number | string }[];
+  readonly value: T;
+  readonly onChange: (value: T) => void;
+  readonly disabled?: boolean;
+  readonly variant?: "pills" | "segmented";
+}

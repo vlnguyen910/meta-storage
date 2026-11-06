@@ -1,0 +1,29 @@
+[
+  {
+    "scenario": "partial",
+    "view": "current",
+    "width": 390,
+    "height": 844,
+    "errors": [],
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "scenario": "partial",
+    "view": "history",
+    "width": 390,
+    "height": 844,
+    "errors": [],
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "scenario": "partial",
+    "view": "transactions",
+    "width": 390,
+    "height": 844,
+    "errors": [],
+    "overflow": false,
+    "violations": []
+  }
+]

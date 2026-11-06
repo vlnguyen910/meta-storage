@@ -23,6 +23,7 @@ export {
 } from "./app-ui";
 export { CalendarField } from "./calendar-field";
 export { ChoiceTabs } from "./choice-tabs";
+export { DetailSheet } from "./detail-sheet";
 export { Icon } from "./icon";
 export { Button, Card, Field, Heading, Notice, Row } from "./mobile-ui";
 export { ScreenFrame } from "./screen-frame";

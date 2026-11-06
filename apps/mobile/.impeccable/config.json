@@ -140,6 +140,48 @@
         "files": [".stitch/designs/booking-success.html"],
         "createdAt": "2026-11-06T01:47:29.630Z",
         "reason": "Codex: original downloaded Stitch HTML retained unchanged as a reference, never rendered in the app. This source-only issue does not exist in the native screens, which use existing Lucide icons, a consistent heading hierarchy and sibling sections."
+      },
+      {
+        "rule": "design-system-font",
+        "value": "material symbols outlined",
+        "files": [".stitch/designs/rentals-current.html"],
+        "createdAt": "2026-11-06T02:26:38.546Z",
+        "reason": "Codex: untouched original Stitch HTML kept as a design reference and never rendered by the native app. The native screens use the existing Lucide icon system and sibling sections; their typography and contrast were checked separately with rendered screenshots and axe. Static analysis does not resolve the reference Tailwind CDN styles."
+      },
+      {
+        "rule": "flat-type-hierarchy",
+        "value": "*",
+        "files": [".stitch/designs/rentals-current.html"],
+        "createdAt": "2026-11-06T02:26:38.556Z",
+        "reason": "Codex: untouched original Stitch HTML kept as a design reference and never rendered by the native app. The native screens use the existing Lucide icon system and sibling sections; their typography and contrast were checked separately with rendered screenshots and axe. Static analysis does not resolve the reference Tailwind CDN styles."
+      },
+      {
+        "rule": "nested-cards",
+        "value": "*",
+        "files": [".stitch/designs/rentals-current.html"],
+        "createdAt": "2026-11-06T02:26:38.567Z",
+        "reason": "Codex: untouched original Stitch HTML kept as a design reference and never rendered by the native app. The native screens use the existing Lucide icon system and sibling sections; their typography and contrast were checked separately with rendered screenshots and axe. Static analysis does not resolve the reference Tailwind CDN styles."
+      },
+      {
+        "rule": "design-system-font",
+        "value": "material symbols outlined",
+        "files": [".stitch/designs/rentals-history.html"],
+        "createdAt": "2026-11-06T02:26:38.578Z",
+        "reason": "Codex: untouched original Stitch HTML kept as a design reference and never rendered by the native app. The native screens use the existing Lucide icon system and sibling sections; their typography and contrast were checked separately with rendered screenshots and axe. Static analysis does not resolve the reference Tailwind CDN styles."
+      },
+      {
+        "rule": "flat-type-hierarchy",
+        "value": "*",
+        "files": [".stitch/designs/rentals-history.html"],
+        "createdAt": "2026-11-06T02:26:38.589Z",
+        "reason": "Codex: untouched original Stitch HTML kept as a design reference and never rendered by the native app. The native screens use the existing Lucide icon system and sibling sections; their typography and contrast were checked separately with rendered screenshots and axe. Static analysis does not resolve the reference Tailwind CDN styles."
+      },
+      {
+        "rule": "design-system-font",
+        "value": "material symbols outlined",
+        "files": [".stitch/designs/rentals-transactions.html"],
+        "createdAt": "2026-11-06T02:26:38.603Z",
+        "reason": "Codex: untouched original Stitch HTML kept as a design reference and never rendered by the native app. The native screens use the existing Lucide icon system and sibling sections; their typography and contrast were checked separately with rendered screenshots and axe. Static analysis does not resolve the reference Tailwind CDN styles."
       }
     ]
   }

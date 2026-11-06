@@ -18,6 +18,8 @@ export function CustomerLayout({
   title,
   onBack,
   onHome,
+  onStorage,
+  selectedTab = "home",
   user,
   onLogout,
   pending,
@@ -56,10 +58,10 @@ export function CustomerLayout({
         {children}
         {showTabs ? (
           <BottomTabs
-            selected="home"
+            selected={selectedTab}
             labels={{ home: M.title, profile: M.account }}
             onSelect={(tab) =>
-              tab === "profile" ? setAccount(true) : tab === "rentals" ? onUnavailable() : onHome()
+              tab === "profile" ? setAccount(true) : tab === "rentals" ? onStorage() : onHome()
             }
           />
         ) : null}

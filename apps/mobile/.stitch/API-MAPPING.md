@@ -93,3 +93,30 @@ trigger repayment. Navigating to another facility cannot overwrite an in-flight 
 Validation: TypeScript and focused unit checks; Expo Web screenshots at 390×844, 375×667, 430×932, 768×1024 and
 844×390 with deterministic API fixtures. No E2E suite and no real charge were executed. Real
 provider completion and Android banking-app handoff remain user UAT.
+
+## Kho của tôi: đang thuê, lịch sử, giao dịch (2026-11-06)
+
+The three original Stitch HTML/JPEG pairs are preserved as `designs/rentals-*.{html,jpg}`.
+Hosted downloads were attempted with the skill's `curl -L` helper; HTTP 401 required
+Stitch's authenticated `download_file` fallback.
+
+Shared UI was built first: segmented `ChoiceTabs`, `DetailSheet`, `StorageHeader`,
+`RentalCard` (full/compact), `TransactionRow`, then the three separate screen files.
+Existing `Card`, `Button`, `SectionHeading`, `StatusPill`, `FacilitySummary`, `Row`,
+`ActionLink`, `QueryFeedback` and Lucide icons provide the foundation. No UI dependency
+or new theme is added. `StatusPill` neutral text and inactive segmented tabs use a stronger
+existing text token to meet small-text contrast requirements.
+
+| Surface/action | API and behavior |
+| --- | --- |
+| Đang thuê / Lịch sử | `GET /rentals/mine?view=current|history&limit=100` follows every `nextCursor`; counts are never guessed from the first page. `ACTIVE` and `CLOSED` come from the server, not date comparisons. Overdue ACTIVE rentals stay in current. Lists deduplicate IDs; current sorts by nearest end, history by actual close date. |
+| Chi tiết / Xem hồ sơ | `GET /rentals/:id` opens a native detail sheet with actual allocation, facility, dates, customer and optional return settlement. No web navigation. |
+| Thuê lại | Opens the existing native booking flow with facility/type preselected. Pricing and capacity are revalidated; no promise to allocate the same physical unit. Closing booking returns to the originating storage tab. |
+| Gia hạn | Uses the existing in-app unavailable notice, per the earlier user decision for actions without approved native flow designs. No renewal/payment is fabricated or submitted. |
+| Giao dịch | `GET /rentals/:id/payments` for the union of all current/history rentals, only when needed. Deduplicate by payment ID and sort by `paidAt ?? createdAt`; real statuses, payment type, provider and currency are shown. This is rental-linked history, not a claim of an account-wide ledger or draft-booking coverage. |
+| Số lượng / lỗi | Rental counts appear after complete cursor traversal; transaction counts after every relevant payment request succeeds. While unknown use “—”. Partial failures show a visible warning and retry, retaining available rows without claiming completeness. |
+| Xem giao dịch | Native read-only receipt sheet. Replaces sample “Xem hóa đơn”: the existing response is not a VAT invoice. Actual refund amount/reason/date appear separately when supplied. No invented VNPay, card or automatic-renewal method. |
+
+The API exposes no aggregate customer ledger or total-count endpoint, so complete rental traversal
+and per-rental payment reads are required. Payments use existing owner-scoped TanStack Query
+cache keys. FlatList virtualizes the rendered lists. No backend/shared contract changes are made.

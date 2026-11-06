@@ -13,9 +13,9 @@ export function HomeScreen({
   owner,
   onAppointments,
   onAppointment,
-  onUnavailable,
   onSearch,
   onBook,
+  onStorage,
 }: HomeScreenProps) {
   const state = useCustomerHome(owner);
   const today = state.todayAppointment;
@@ -55,7 +55,7 @@ export function HomeScreen({
             caption={M.activeUnits}
             icon={Warehouse}
             actionLabel={M.view}
-            onPress={onUnavailable}
+            onPress={onStorage}
           />
           <SummaryTile
             title={M.upcoming}

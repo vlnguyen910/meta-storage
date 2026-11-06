@@ -50,7 +50,7 @@ export function BookingNavigator(props: BookingNavigatorProps) {
         state.busy ||
         state.restoreError ||
         (step === 2 && !state.appointment) ||
-        (step === 0 && !state.unit) ||
+        (step === 0 && !state.unit?.isActive) ||
         (step === 1 &&
           (!state.scheduleReady ||
             !state.availability.data?.availableCount ||

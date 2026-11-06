@@ -1,0 +1,11 @@
+[
+  {
+    "scenario": "normal",
+    "view": "receipt",
+    "width": 390,
+    "height": 844,
+    "errors": [],
+    "overflow": false,
+    "violations": []
+  }
+]

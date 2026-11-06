@@ -21,6 +21,7 @@ export interface BookingSuccessScreenProps extends BookingScreenProps {
   readonly onAppointment: (id: string) => void;
 }
 export interface BookingNavigatorProps {
+  readonly unitTypeId?: string;
   readonly facility: BookingFacility;
   readonly user: { id: string; name: string; email?: string; phone?: string | null };
   readonly onClose: () => void;
