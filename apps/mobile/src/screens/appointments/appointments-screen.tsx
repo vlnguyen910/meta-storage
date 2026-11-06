@@ -1,12 +1,12 @@
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react-native";
 import { FlatList, Platform, Pressable, Text, View } from "react-native";
-import type { AppointmentsScreenProps } from "../common/customer-home.types";
-import { formatAppointmentDate, vietnamDate } from "../common/customer-home.utils";
-import { Button, ChoiceTabs, Icon, IconButton, Notice, SectionHeading } from "../components/ui";
-import { AppointmentCard } from "../features/customer-home/components/appointment-card";
-import { QueryFeedback } from "../features/customer-home/components/query-feedback";
-import { CUSTOMER_HOME as M } from "../features/customer-home/customer-home.messages";
-import { useAppointmentList } from "../features/customer-home/use-customer-home";
+import type { AppointmentsScreenProps } from "../../common/customer-home.types";
+import { formatAppointmentDate, vietnamDate } from "../../common/customer-home.utils";
+import { Button, ChoiceTabs, Icon, IconButton, Notice, SectionHeading } from "../../components/ui";
+import { AppointmentCard } from "../../features/customer-home/components/appointment-card";
+import { QueryFeedback } from "../../features/customer-home/components/query-feedback";
+import { CUSTOMER_HOME as M } from "../../features/customer-home/customer-home.messages";
+import { useAppointmentList } from "../../features/customer-home/use-customer-home";
 
 export function AppointmentsScreen({
   owner,

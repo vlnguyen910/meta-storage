@@ -1,4 +1,5 @@
 import type { AppointmentRecordDto, FacilityTaskDetail } from "@metastorage/contracts";
+/** @lintignore Retained for archived screens in screens/old/ until their cleanup. */
 export interface StaffWorkspaceProps {
   owner: string;
   name: string;

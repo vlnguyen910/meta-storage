@@ -1,9 +1,9 @@
 import { FlatList, View } from "react-native";
-import type { RentalHistoryScreenProps } from "../common/my-storage.types";
-import { Notice, SectionHeading } from "../components/ui";
-import { QueryFeedback } from "../features/customer-home/components/query-feedback";
-import { RentalCard } from "../features/my-storage/components/rental-card";
-import { MY_STORAGE as M } from "../features/my-storage/my-storage.messages";
+import type { RentalHistoryScreenProps } from "../../common/my-storage.types";
+import { Notice, SectionHeading } from "../../components/ui";
+import { QueryFeedback } from "../../features/customer-home/components/query-feedback";
+import { RentalCard } from "../../features/my-storage/components/rental-card";
+import { MY_STORAGE as M } from "../../features/my-storage/my-storage.messages";
 export function RentalHistoryScreen({ state: s, onRebook }: RentalHistoryScreenProps) {
   return (
     <FlatList

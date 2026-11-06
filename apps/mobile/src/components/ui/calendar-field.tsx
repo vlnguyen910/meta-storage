@@ -4,6 +4,7 @@ import { Pressable, Text, View } from "react-native";
 import { CALENDAR_UI as M } from "./calendar-field.messages";
 import { Icon } from "./icon";
 
+/** @lintignore Retained for archived screens in screens/old/ until their cleanup. */
 export function facilityDay(value = new Date()) {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Ho_Chi_Minh",

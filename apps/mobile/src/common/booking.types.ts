@@ -9,7 +9,7 @@ import type { useBooking } from "../features/booking/use-booking";
 export type BookingStep = 0 | 1 | 2 | 3 | 4;
 export type BookingFacility = Pick<FacilityCatalogItem, "id" | "name" | "address">;
 export type BookingValues = CreateReservationDraftInput & { contactPhone: string; notes: string };
-export type BookingState = ReturnType<typeof useBooking>;
+type BookingState = ReturnType<typeof useBooking>;
 export interface BookingScreenProps {
   readonly state: BookingState;
 }

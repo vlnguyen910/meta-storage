@@ -1,19 +1,19 @@
 import { CalendarClock, MapPin, QrCode, Warehouse } from "lucide-react-native";
 import { Platform, ScrollView, Text, View } from "react-native";
-import type { AppointmentDetailScreenProps } from "../common/customer-home.types";
+import type { AppointmentDetailScreenProps } from "../../common/customer-home.types";
 import {
   appointmentTime,
   appointmentTiming,
   formatAppointmentDate,
   paymentLabel,
-} from "../common/customer-home.utils";
-import { Card, Icon, Notice, Row, StatusPill } from "../components/ui";
-import { BookingQr } from "../components/ui/booking-qr";
-import { dateTime, money } from "../components/ui/mobile-ui";
-import { FacilitySummary } from "../features/customer-home/components/facility-card";
-import { QueryFeedback } from "../features/customer-home/components/query-feedback";
-import { CUSTOMER_HOME as M } from "../features/customer-home/customer-home.messages";
-import { useAppointmentDetail } from "../features/customer-home/use-customer-home";
+} from "../../common/customer-home.utils";
+import { Card, Icon, Notice, Row, StatusPill } from "../../components/ui";
+import { BookingQr } from "../../components/ui/booking-qr";
+import { dateTime, money } from "../../components/ui/mobile-ui";
+import { FacilitySummary } from "../../features/customer-home/components/facility-card";
+import { QueryFeedback } from "../../features/customer-home/components/query-feedback";
+import { CUSTOMER_HOME as M } from "../../features/customer-home/customer-home.messages";
+import { useAppointmentDetail } from "../../features/customer-home/use-customer-home";
 
 export function AppointmentDetailScreen({ owner, id }: AppointmentDetailScreenProps) {
   const state = useAppointmentDetail(owner, id);

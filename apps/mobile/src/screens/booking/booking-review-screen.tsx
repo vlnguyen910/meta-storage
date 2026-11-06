@@ -1,10 +1,10 @@
 import { Text, View } from "react-native";
-import type { BookingScreenProps } from "../common/booking.types";
-import { appointmentTime, formatAppointmentDate } from "../common/customer-home.utils";
-import { ActionLink, Card, Notice, Row, SectionHeading } from "../components/ui";
-import { dateTime } from "../components/ui/mobile-ui";
-import { BOOKING as M } from "../features/booking/booking.messages";
-import { BookingCosts, BookingSummary } from "../features/booking/components/booking-parts";
+import type { BookingScreenProps } from "../../common/booking.types";
+import { appointmentTime, formatAppointmentDate } from "../../common/customer-home.utils";
+import { ActionLink, Card, Notice, Row, SectionHeading } from "../../components/ui";
+import { dateTime } from "../../components/ui/mobile-ui";
+import { BOOKING as M } from "../../features/booking/booking.messages";
+import { BookingCosts, BookingSummary } from "../../features/booking/components/booking-parts";
 
 export function BookingReviewScreen({ state: s }: BookingScreenProps) {
   return (

@@ -23,7 +23,7 @@ function useNow() {
   }, []);
   return now;
 }
-export function useCustomerAppointments(owner: string) {
+function useCustomerAppointments(owner: string) {
   return useQuery({
     queryKey: ["customer-home-appointments", owner],
     queryFn: () => api.appointments.mine(),

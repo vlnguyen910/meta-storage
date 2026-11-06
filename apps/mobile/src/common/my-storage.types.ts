@@ -6,7 +6,7 @@ export interface StorageTransaction {
   readonly rental: RentalListItem;
   readonly payment: RentalPaymentItem;
 }
-export type MyStorageState = ReturnType<typeof useMyStorage>;
+type MyStorageState = ReturnType<typeof useMyStorage>;
 export interface MyStorageScreenProps {
   readonly state: MyStorageState;
 }

@@ -1,13 +1,13 @@
 import { Check, Copy } from "lucide-react-native";
 import { Text, View } from "react-native";
-import type { BookingSuccessScreenProps } from "../common/booking.types";
-import { appointmentTime, formatAppointmentDate } from "../common/customer-home.utils";
-import { Button, Card, Icon, IconButton, Row, SectionHeading } from "../components/ui";
-import { BookingQr } from "../components/ui/booking-qr";
-import { dateTime, money } from "../components/ui/mobile-ui";
-import { BOOKING as M } from "../features/booking/booking.messages";
-import { BookingSummary } from "../features/booking/components/booking-parts";
-import { WEB_BASE_URL } from "../lib/runtime-config";
+import type { BookingSuccessScreenProps } from "../../common/booking.types";
+import { appointmentTime, formatAppointmentDate } from "../../common/customer-home.utils";
+import { Button, Card, Icon, IconButton, Row, SectionHeading } from "../../components/ui";
+import { BookingQr } from "../../components/ui/booking-qr";
+import { dateTime, money } from "../../components/ui/mobile-ui";
+import { BOOKING as M } from "../../features/booking/booking.messages";
+import { BookingSummary } from "../../features/booking/components/booking-parts";
+import { WEB_BASE_URL } from "../../lib/runtime-config";
 
 export function BookingSuccessScreen({
   state: s,

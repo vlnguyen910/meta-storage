@@ -2,6 +2,7 @@ import { formatReference } from "@metastorage/shared";
 import { STAFF_API_UI as M } from "../features/staff-api/staff-api.messages";
 import type { StaffSelection, StaffWorkFilters, StaffWorkGroup } from "./staff-api.types";
 
+/** @lintignore Retained for archived screens in screens/old/ until their cleanup. */
 export function staffWorkDate(value: string) {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Ho_Chi_Minh",
@@ -10,6 +11,7 @@ export function staffWorkDate(value: string) {
     day: "2-digit",
   }).format(new Date(value));
 }
+/** @lintignore Retained for archived screens in screens/old/ until their cleanup. */
 export function staffWorkGroup(item: StaffSelection): StaffWorkGroup {
   const status = item.kind === "appointment" ? item.appointment.status : item.task.status;
   return ["CHECKED_IN", "COMPLETED"].includes(status)
@@ -18,6 +20,7 @@ export function staffWorkGroup(item: StaffSelection): StaffWorkGroup {
       ? "closed"
       : "pending";
 }
+/** @lintignore Retained for archived screens in screens/old/ until their cleanup. */
 export function staffWorkScheduledAt(item: StaffSelection): string | null {
   return item.kind === "appointment"
     ? `${item.appointment.scheduledDate}T${item.appointment.slotStart ?? "00:00:00"}+07:00`
