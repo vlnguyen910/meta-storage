@@ -50,7 +50,7 @@ export function InspectionPhotoCard({
 
   return (
     <>
-      <div className="group relative overflow-hidden rounded-lg border border-slate-200/90 bg-slate-50 shadow-2xs">
+      <div className="group relative overflow-hidden rounded-xl border border-slate-200/90 bg-slate-50 shadow-2xs">
         <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100">
           <a href={photo.url} target="_blank" rel="noreferrer" download={photo.filename}>
             <Image
@@ -68,17 +68,17 @@ export function InspectionPhotoCard({
               aria-label={`${FLOW.removePhoto}: ${photo.filename || FLOW.evidencePhoto}`}
               disabled={disabled}
               onClick={() => setConfirmDeleteOpen(true)}
-              className="absolute right-1 top-1 grid size-5 place-items-center rounded bg-white/95 text-rose-600 shadow-xs transition-opacity hover:bg-rose-50 disabled:opacity-50 cursor-pointer"
+              className="absolute right-1.5 top-1.5 grid size-6 place-items-center rounded-md bg-white/95 text-rose-600 shadow-xs transition-opacity hover:bg-rose-50 disabled:opacity-50 cursor-pointer"
             >
-              <Trash2 size={12} />
+              <Trash2 size={13} />
             </button>
           )}
         </div>
-        <div className="p-1">
-          <p className="truncate text-[9.5px] font-semibold text-slate-800">
+        <div className="p-1.5">
+          <p className="truncate text-[10.5px] font-semibold text-slate-800">
             {photo.filename || FLOW.evidencePhoto}
           </p>
-          <p className="text-[8.5px] text-slate-400">{formatDateTime(photo.createdAt)}</p>
+          <p className="text-[9.5px] text-slate-400">{formatDateTime(photo.createdAt)}</p>
         </div>
       </div>
 
@@ -204,27 +204,29 @@ export function InspectionScreen({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3.5">
       {/* Top Summary Bar for Inspection / Review */}
       {!handover && (
-        <Card className="border-slate-200 bg-white p-2.5 shadow-2xs">
-          <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+        <Card className="border-slate-200 bg-white p-3 sm:p-3.5 shadow-2xs">
+          <div className="flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm">
             {/* Customer & Unit */}
-            <div className="flex items-center gap-2.5">
-              <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-emerald-50 text-emerald-800">
-                <Warehouse size={16} />
+            <div className="flex items-center gap-3">
+              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-emerald-50 text-emerald-800">
+                <Warehouse size={18} />
               </span>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="font-bold text-slate-900 text-sm">{result.booking.contactName}</h2>
+                  <h2 className="font-bold text-slate-900 text-sm sm:text-base">
+                    {result.booking.contactName}
+                  </h2>
                   <Badge
                     variant="outline"
-                    className="border-slate-200 font-mono text-[10px] px-1.5 py-0 text-slate-600"
+                    className="border-slate-200 font-mono text-xs px-2 py-0 text-slate-600"
                   >
                     {result.booking.bookingCode}
                   </Badge>
                 </div>
-                <p className="text-[11px] text-slate-500 mt-0.5">
+                <p className="text-xs text-slate-500 mt-0.5">
                   <span className="font-semibold text-slate-700">{FLOW.assigned}:</span>{" "}
                   <strong className="font-mono text-emerald-900">{record.unitCode}</strong>
                   {result.booking.unitTypeSizeLabel && ` · ${result.booking.unitTypeSizeLabel}`}
@@ -234,33 +236,35 @@ export function InspectionScreen({
 
             {/* Checklist Progress Inline */}
             {!review && (
-              <div className="flex items-center gap-3 px-3 py-1 rounded-lg bg-slate-50 border border-slate-100">
+              <div className="flex items-center gap-3 px-3.5 py-1.5 rounded-xl bg-slate-50 border border-slate-100">
                 <div className="text-right">
                   <p className="text-[10px] font-semibold uppercase text-slate-400">
                     {FLOW.progress}
                   </p>
-                  <p className="text-xs font-bold text-slate-800">
+                  <p className="text-xs sm:text-sm font-bold text-slate-800">
                     {editor.count} / {editor.items.length} {FLOW.checklistPass}
                   </p>
                 </div>
-                <div className="grid size-7 place-items-center rounded-full bg-emerald-100 font-bold text-[11px] text-emerald-900">
+                <div className="grid size-8 place-items-center rounded-full bg-emerald-100 font-bold text-xs text-emerald-900">
                   {Math.round((editor.count / editor.items.length) * 100)}%
                 </div>
               </div>
             )}
 
             {/* Record ID & Status */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <div className="text-right">
-                <span className="text-[10px] text-slate-400 block">{FLOW.recordId}</span>
-                <span className="font-mono font-medium text-slate-700 text-[11px]">
+                <span className="text-[10px] font-semibold uppercase text-slate-400 block">
+                  {FLOW.recordId}
+                </span>
+                <span className="font-mono font-medium text-slate-700 text-xs">
                   {formatReference(record.id, "BB")}
                 </span>
               </div>
               <Badge
                 variant="outline"
                 className={cn(
-                  "text-[10px] font-semibold px-2 py-0.5",
+                  "text-xs font-semibold px-2.5 py-1",
                   editor.locked
                     ? "border-emerald-200 bg-emerald-50 text-emerald-800"
                     : editor.dirty
@@ -286,26 +290,26 @@ export function InspectionScreen({
         <div className="grid gap-3.5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] items-stretch">
           {/* Left Column: Summary of Checklist & Notes */}
           <Card className="flex flex-1 flex-col border-slate-200 bg-white shadow-2xs">
-            <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 bg-slate-50/50 px-4 py-2 text-xs">
-              <div className="flex items-center gap-1.5 font-bold text-slate-800">
-                <ClipboardCheck size={15} className="text-primary" />
+            <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 bg-slate-50/50 px-5 py-3 text-xs sm:text-sm">
+              <div className="flex items-center gap-2 font-bold text-slate-800">
+                <ClipboardCheck size={16} className="text-primary" />
                 <span>{FLOW.conditionReport}</span>
               </div>
-              <span className="text-[11px] text-slate-500">
+              <span className="text-xs text-slate-500">
                 {FLOW.syncTime}: {formatDateTime(record.inspectedAt)}
               </span>
             </CardHeader>
-            <CardContent className="p-3.5 space-y-3 text-xs flex-1 flex flex-col justify-between">
-              <div className="space-y-3">
+            <CardContent className="p-5 sm:p-6 space-y-4 text-xs sm:text-sm flex-1 flex flex-col justify-between">
+              <div className="space-y-4">
                 <InspectionChecklist
                   items={HANDOVER_CHECKLIST_ITEMS}
                   results={editor.values.results}
                 />
-                <div className="rounded-lg border border-slate-100 bg-slate-50/70 p-2.5">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3.5 sm:p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                     {FLOW.notesTitle}
                   </p>
-                  <p className="mt-1 whitespace-pre-wrap text-xs text-slate-800">
+                  <p className="mt-1.5 whitespace-pre-wrap text-sm text-slate-800">
                     {editor.values.notes || FLOW.noNotes}
                   </p>
                 </div>
@@ -314,36 +318,38 @@ export function InspectionScreen({
           </Card>
 
           {/* Right Column: Lock Warning & Confirmation Action */}
-          <div className="flex flex-col gap-3">
-            <Card className="border-amber-200 bg-amber-50/60 p-4 shadow-2xs">
+          <div className="flex flex-col gap-3.5">
+            <Card className="border-amber-200 bg-amber-50/60 p-5 shadow-2xs rounded-xl">
               <div className="flex items-start gap-3">
-                <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-amber-100 text-amber-800">
-                  <Lock size={16} />
+                <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-800">
+                  <Lock size={18} />
                 </span>
                 <div>
-                  <h2 className="text-sm font-bold text-amber-950">{FLOW.lockWarningTitle}</h2>
-                  <p className="mt-1 text-xs leading-relaxed text-amber-900">{FLOW.lockWarning}</p>
+                  <h2 className="text-base font-bold text-amber-950">{FLOW.lockWarningTitle}</h2>
+                  <p className="mt-1.5 text-xs sm:text-sm leading-relaxed text-amber-900">
+                    {FLOW.lockWarning}
+                  </p>
                 </div>
               </div>
             </Card>
 
-            <Card className="flex flex-1 flex-col justify-between border-slate-200 bg-white p-4 shadow-2xs">
-              <label className="flex items-start gap-2.5 text-xs text-slate-700 font-medium cursor-pointer rounded-lg border border-slate-200 bg-slate-50/60 p-3 hover:bg-slate-100/50 transition-colors">
+            <Card className="flex flex-1 flex-col justify-between border-slate-200 bg-white p-5 sm:p-6 shadow-2xs rounded-xl">
+              <label className="flex items-start gap-3 text-sm text-slate-700 font-medium cursor-pointer rounded-xl border border-slate-200 bg-slate-50/60 p-4 hover:bg-slate-100/50 transition-colors">
                 <input
                   type="checkbox"
                   checked={confirmLock}
                   onChange={(e) => setConfirmLock(e.target.checked)}
-                  className="mt-0.5 size-4 accent-emerald-700"
+                  className="mt-0.5 size-4.5 accent-emerald-700"
                 />
                 <span className="leading-relaxed">{FLOW.confirmLock}</span>
               </label>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 mt-4">
+              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100 mt-4">
                 <Button
                   variant="outline"
                   onClick={() => onNavigate("inspect")}
                   disabled={editor.busy}
-                  className="h-9 px-4 text-xs font-semibold"
+                  className="h-10 px-4 text-sm font-semibold rounded-xl"
                 >
                   {FLOW.backEdit}
                 </Button>
@@ -351,8 +357,8 @@ export function InspectionScreen({
                   loading={editor.busy}
                   disabled={!editor.canComplete || editor.dirty || editor.locked || !confirmLock}
                   onClick={editor.complete}
-                  icon={<Lock size={14} />}
-                  className="h-9 px-4 text-xs font-bold"
+                  icon={<Lock size={15} />}
+                  className="h-10 px-5 text-sm font-bold rounded-xl"
                 >
                   {FLOW.complete}
                 </Button>
@@ -364,18 +370,21 @@ export function InspectionScreen({
         /* Inspect Editing View */
         <div className="grid gap-3.5 lg:grid-cols-[minmax(0,1.18fr)_minmax(0,0.82fr)] items-stretch">
           {/* Left Column: Checklist & Notes & General Condition */}
-          <div className="flex flex-col gap-2.5">
-            <Card className="border-slate-200 bg-white shadow-2xs">
-              <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 bg-slate-50/50 px-3.5 py-2 text-xs">
-                <div className="flex items-center gap-1.5 font-bold text-slate-800">
-                  <ClipboardCheck size={14} className="text-primary" />
+          <div className="flex flex-col gap-3">
+            <Card className="flex flex-1 flex-col border-slate-200 bg-white shadow-2xs">
+              <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 bg-slate-50/50 px-4 sm:px-5 py-3 text-xs sm:text-sm">
+                <div className="flex items-center gap-2 font-bold text-slate-800">
+                  <ClipboardCheck size={16} className="text-primary" />
                   <span>{FLOW.checklistTitle}</span>
                 </div>
-                <Badge variant="outline" className="text-[10px] font-semibold border-slate-200">
+                <Badge
+                  variant="outline"
+                  className="text-xs font-semibold border-slate-200 px-2 py-0.5"
+                >
                   {editor.count} / {editor.items.length} {FLOW.checklistPass}
                 </Badge>
               </CardHeader>
-              <CardContent className="p-3 space-y-2.5">
+              <CardContent className="p-4 sm:p-5 space-y-3.5 flex-1 flex flex-col justify-between">
                 <InspectionChecklist
                   items={HANDOVER_CHECKLIST_ITEMS}
                   results={editor.values.results}
@@ -383,12 +392,12 @@ export function InspectionScreen({
                   onChange={editor.setResult}
                 />
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-100">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
                   <label
                     htmlFor="inspection-condition-select"
-                    className="block text-[11px] font-semibold text-slate-700"
+                    className="block text-xs font-semibold text-slate-700"
                   >
-                    <span className="block mb-1">{FLOW.conditionReport}</span>
+                    <span className="block mb-1.5">{FLOW.conditionReport}</span>
                     <Select
                       id="inspection-condition-select"
                       value={editor.values.condition ?? ""}
@@ -398,7 +407,7 @@ export function InspectionScreen({
                         )
                       }
                       disabled={editor.busy || editor.locked}
-                      className="h-8.5 min-h-8.5 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-2.5 pr-8 text-xs text-slate-800 font-normal focus:bg-white"
+                      className="h-9.5 min-h-9.5 w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-3 pr-8 text-xs sm:text-sm text-slate-800 font-normal focus:bg-white"
                     >
                       <option value="">— Chọn hiện trạng —</option>
                       <option value="GOOD">Tốt</option>
@@ -406,8 +415,8 @@ export function InspectionScreen({
                       <option value="MAJOR_DAMAGE">Hư hỏng nghiêm trọng</option>
                     </Select>
                   </label>
-                  <label className="block text-[11px] font-semibold text-slate-700">
-                    <span className="block mb-1">{FLOW.notesLabel}</span>
+                  <label className="block text-xs font-semibold text-slate-700">
+                    <span className="block mb-1.5">{FLOW.notesLabel}</span>
                     <textarea
                       value={editor.values.notes}
                       onChange={(event) => editor.setNotes(event.target.value)}
@@ -416,7 +425,7 @@ export function InspectionScreen({
                       maxLength={4000}
                       placeholder={FLOW.notesPlaceholder}
                       disabled={editor.busy || editor.locked}
-                      className="min-h-8.5 w-full resize-none rounded-lg border border-slate-200 bg-slate-50/50 p-2 text-xs text-slate-800 outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary font-normal"
+                      className="min-h-9.5 h-9.5 w-full resize-none rounded-xl border border-slate-200 bg-slate-50/50 p-2.5 text-xs sm:text-sm text-slate-800 outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary font-normal"
                     />
                   </label>
                 </div>
@@ -424,20 +433,20 @@ export function InspectionScreen({
             </Card>
 
             {/* Action Bar */}
-            <Card className="border-slate-200 bg-white p-2 shadow-2xs">
-              <div className="flex flex-wrap items-center justify-between gap-2">
+            <Card className="border-slate-200 bg-white p-3 shadow-2xs">
+              <div className="flex flex-wrap items-center justify-between gap-2.5">
                 <Button
                   variant="outline"
                   onClick={back}
                   disabled={editor.busy}
-                  className="h-8.5 px-3 text-xs font-semibold"
+                  className="h-9.5 px-3.5 text-xs sm:text-sm font-semibold rounded-xl"
                 >
                   {FLOW.backVerify}
                 </Button>
                 <div
                   role="status"
                   aria-live="polite"
-                  className="text-[11px] text-slate-500 font-medium"
+                  className="text-xs text-slate-500 font-medium"
                 >
                   {editor.busy ? FLOW.saving : editor.dirty ? FLOW.unsaved : FLOW.saved}
                 </div>
@@ -447,7 +456,7 @@ export function InspectionScreen({
                     loading={editor.busy}
                     disabled={editor.locked}
                     onClick={() => void editor.save()}
-                    className="h-8.5 px-3 text-xs font-semibold"
+                    className="h-9.5 px-3.5 text-xs sm:text-sm font-semibold rounded-xl"
                   >
                     {FLOW.save}
                   </Button>
@@ -455,7 +464,7 @@ export function InspectionScreen({
                     loading={editor.busy}
                     disabled={!editor.canComplete || editor.locked}
                     onClick={() => void editor.save("review")}
-                    className="h-8.5 px-3.5 text-xs font-bold"
+                    className="h-9.5 px-4 text-xs sm:text-sm font-bold rounded-xl"
                   >
                     {FLOW.review}
                   </Button>
@@ -464,13 +473,12 @@ export function InspectionScreen({
             </Card>
           </div>
 
-          {/* Right Column: Evidence Photos + Principles */}
-          <div className="flex flex-col gap-2.5">
-            {/* Photos Card */}
-            <Card className="border-slate-200 bg-white shadow-2xs">
-              <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 bg-slate-50/50 px-3.5 py-2 text-xs">
-                <div className="flex items-center gap-1.5 font-bold text-slate-800">
-                  <Camera size={14} className="text-slate-500" />
+          {/* Right Column: Evidence Photos Card Expanded */}
+          <div className="flex flex-col">
+            <Card className="flex flex-1 flex-col border-slate-200 bg-white shadow-2xs">
+              <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 bg-slate-50/50 px-4 sm:px-5 py-3 text-xs sm:text-sm">
+                <div className="flex items-center gap-2 font-bold text-slate-800">
+                  <Camera size={16} className="text-slate-500" />
                   <span>{FLOW.evidence}</span>
                   <span className="text-slate-400 font-normal">({record.evidence.length}/8)</span>
                 </div>
@@ -478,13 +486,13 @@ export function InspectionScreen({
                   variant="outline"
                   disabled={editor.busy || editor.locked || record.evidence.length >= 8}
                   onClick={() => fileRef.current?.click()}
-                  icon={<Camera size={13} />}
-                  className="h-7 px-2.5 text-[11px] font-semibold"
+                  icon={<Camera size={14} />}
+                  className="h-8 px-3 text-xs font-semibold rounded-lg"
                 >
                   {FLOW.upload}
                 </Button>
               </CardHeader>
-              <CardContent className="p-2.5">
+              <CardContent className="p-4 sm:p-5 flex flex-1 flex-col justify-between">
                 <input
                   ref={fileRef}
                   type="file"
@@ -501,15 +509,20 @@ export function InspectionScreen({
                   <button
                     type="button"
                     onClick={() => fileRef.current?.click()}
-                    className="w-full flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/50 py-3 text-center cursor-pointer hover:bg-slate-100/50 transition-colors"
+                    className="flex flex-1 min-h-[220px] sm:min-h-[260px] w-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-6 text-center cursor-pointer hover:bg-slate-100/50 hover:border-slate-300 transition-colors"
                   >
-                    <Camera size={18} className="text-slate-400" />
-                    <p className="mt-1 text-[11px] font-medium text-slate-500">
+                    <span className="grid size-12 place-items-center rounded-full bg-slate-100 text-slate-500 mb-2">
+                      <Camera size={24} />
+                    </span>
+                    <p className="text-sm font-semibold text-slate-700">
                       Bấm để tải ảnh hiện trạng ô kho
+                    </p>
+                    <p className="mt-1 text-xs text-slate-400">
+                      Hỗ trợ JPG, PNG, WEBP (tối đa 8 ảnh bằng chứng)
                     </p>
                   </button>
                 ) : (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {record.evidence.map((photo) => (
                       <InspectionPhotoCard
                         key={photo.id}
@@ -522,22 +535,6 @@ export function InspectionScreen({
                 )}
               </CardContent>
             </Card>
-
-            {/* Principles section - keeping bg-[#003b2f] and h2 for E2E compliance */}
-            <section className="flex-1 rounded-xl border border-emerald-950/20 bg-[#003b2f] p-3 text-white shadow-2xs">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[#b4efda]">
-                {FLOW.principles}
-              </p>
-              <h2 className="mt-0.5 text-xs font-bold text-white">{FLOW.principlesTitle}</h2>
-              <div className="mt-2 space-y-1.5 text-[11px]">
-                {FLOW.principleItems.map(([itemTitle, text]) => (
-                  <div key={itemTitle}>
-                    <h3 className="font-semibold text-emerald-100 text-[11px]">{itemTitle}</h3>
-                    <p className="text-[10px] leading-relaxed text-[#b4efda]/90">{text}</p>
-                  </div>
-                ))}
-              </div>
-            </section>
           </div>
         </div>
       )}
@@ -595,19 +592,19 @@ function HandoverContent({
   const handedOver = result.booking.status === "CHECKED_IN";
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3.5">
       {/* Top Banner */}
-      <Card className="border-emerald-200/80 bg-emerald-50/60 p-3 shadow-2xs">
+      <Card className="border-emerald-200/80 bg-emerald-50/60 p-4 shadow-2xs rounded-xl">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-emerald-600 text-white shadow-xs">
-              <ShieldCheck size={16} />
+          <div className="flex items-center gap-3">
+            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-emerald-600 text-white shadow-xs">
+              <ShieldCheck size={18} />
             </span>
             <div>
-              <h2 className="text-sm sm:text-base font-bold text-emerald-950">
+              <h2 className="text-base sm:text-lg font-bold text-emerald-950">
                 {handedOver ? FLOW.handoverCompletedTitle : FLOW.handoverReadyTitle}
               </h2>
-              <p className="text-[11px] text-emerald-900/80">
+              <p className="text-xs sm:text-sm text-emerald-900/90">
                 {handedOver ? FLOW.handoverSuccess : FLOW.handoverReadyHint}
               </p>
             </div>
@@ -615,13 +612,13 @@ function HandoverContent({
           <div className="flex items-center gap-2">
             <Badge
               variant="outline"
-              className="border-emerald-300 font-mono text-[10px] bg-white text-emerald-900"
+              className="border-emerald-300 font-mono text-xs bg-white text-emerald-900 px-2.5 py-0.5"
             >
               {record.unitCode}
             </Badge>
             <Badge
               className={cn(
-                "text-[10px] font-bold px-2 py-0.5",
+                "text-xs font-bold px-2.5 py-1",
                 handedOver
                   ? "bg-emerald-600 text-white"
                   : "bg-emerald-100 text-emerald-900 border border-emerald-300",
@@ -636,64 +633,62 @@ function HandoverContent({
       {/* 2 Columns Grid */}
       <div className="grid gap-3.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-stretch">
         {/* Left Column: Customer & Handover Confirmation Card */}
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-3">
           <Card className="border-slate-200 bg-white shadow-2xs">
-            <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 bg-slate-50/50 px-3.5 py-2 text-xs">
-              <div className="flex items-center gap-1.5 font-bold text-slate-800">
-                <Warehouse size={14} className="text-emerald-800" />
+            <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 bg-slate-50/50 px-4 sm:px-5 py-3 text-xs sm:text-sm">
+              <div className="flex items-center gap-2 font-bold text-slate-800">
+                <Warehouse size={16} className="text-emerald-800" />
                 <span>{FLOW.handoverCustomerInfo}</span>
               </div>
-              <span className="font-mono text-[10px] text-slate-500">
-                {result.booking.bookingCode}
-              </span>
+              <span className="font-mono text-xs text-slate-500">{result.booking.bookingCode}</span>
             </CardHeader>
-            <CardContent className="p-3 text-xs">
-              <div className="grid grid-cols-2 gap-2 rounded-lg bg-slate-50/80 p-2.5 border border-slate-100">
+            <CardContent className="p-4 sm:p-5 text-xs sm:text-sm">
+              <div className="grid grid-cols-2 gap-3.5 sm:gap-4 rounded-xl bg-slate-50/80 p-3.5 sm:p-4 border border-slate-100">
                 <div>
-                  <span className="text-[10px] uppercase font-semibold text-slate-400 block">
+                  <span className="text-[11px] uppercase font-semibold text-slate-400 block tracking-wider">
                     {FLOW.customer}
                   </span>
-                  <span className="font-bold text-slate-900 mt-0.5 block truncate">
+                  <span className="font-bold text-slate-900 text-sm mt-0.5 block truncate">
                     {result.booking.contactName}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-semibold text-slate-400 block">
+                  <span className="text-[11px] uppercase font-semibold text-slate-400 block tracking-wider">
                     {FLOW.assigned}
                   </span>
-                  <span className="font-mono font-bold text-emerald-900 mt-0.5 block">
+                  <span className="font-mono font-bold text-emerald-900 text-sm mt-0.5 block">
                     {record.unitCode}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-semibold text-slate-400 block">
+                  <span className="text-[11px] uppercase font-semibold text-slate-400 block tracking-wider">
                     {FLOW.phone}
                   </span>
-                  <span className="font-medium text-slate-800 mt-0.5 block">
+                  <span className="font-medium text-slate-800 text-sm mt-0.5 block">
                     {result.booking.contactPhone}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-semibold text-slate-400 block">
+                  <span className="text-[11px] uppercase font-semibold text-slate-400 block tracking-wider">
                     {FLOW.email}
                   </span>
-                  <span className="font-medium text-slate-800 mt-0.5 block truncate">
+                  <span className="font-medium text-slate-800 text-sm mt-0.5 block truncate">
                     {result.booking.contactEmail}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-semibold text-slate-400 block">
+                  <span className="text-[11px] uppercase font-semibold text-slate-400 block tracking-wider">
                     {FLOW.period}
                   </span>
-                  <span className="font-medium text-slate-800 mt-0.5 block">
+                  <span className="font-medium text-slate-800 text-sm mt-0.5 block">
                     {FLOW.months(result.booking.requestedMonths)}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-semibold text-slate-400 block">
+                  <span className="text-[11px] uppercase font-semibold text-slate-400 block tracking-wider">
                     {FLOW.rentalEnd}
                   </span>
-                  <span className="font-medium text-slate-800 mt-0.5 block">
+                  <span className="font-medium text-slate-800 text-sm mt-0.5 block">
                     {formatDateTime(result.booking.rentalEndAt)}
                   </span>
                 </div>
@@ -702,48 +697,48 @@ function HandoverContent({
           </Card>
 
           {/* Confirmation Box */}
-          <Card className="flex flex-1 flex-col justify-between border-slate-200 bg-white p-3 shadow-2xs">
+          <Card className="flex flex-1 flex-col justify-between border-slate-200 bg-white p-4 sm:p-5 shadow-2xs rounded-xl">
             {!handedOver ? (
-              <div className="space-y-2.5">
-                <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-2.5 text-xs text-amber-950">
-                  <h3 className="font-bold text-amber-900">{FLOW.confirmHandover}</h3>
-                  <p className="mt-0.5 text-[11px] leading-relaxed text-amber-900/80">
+              <div className="space-y-3">
+                <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3.5 text-xs sm:text-sm text-amber-950">
+                  <h3 className="font-bold text-amber-900 text-sm">{FLOW.confirmHandover}</h3>
+                  <p className="mt-1 text-xs sm:text-sm leading-relaxed text-amber-900/90">
                     {FLOW.handoverPending}
                   </p>
                 </div>
 
-                <label className="flex items-start gap-2.5 rounded-lg border border-slate-200 bg-slate-50/50 p-2.5 text-xs text-slate-800 font-medium cursor-pointer hover:bg-slate-100/50 transition-colors">
+                <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-3.5 text-xs sm:text-sm text-slate-800 font-medium cursor-pointer hover:bg-slate-100/50 transition-colors">
                   <input
                     type="checkbox"
                     checked={handover.received}
                     onChange={(event) => handover.setReceived(event.target.checked)}
                     disabled={handover.mutation.isPending}
-                    className="mt-0.5 size-4 accent-emerald-700"
+                    className="mt-0.5 size-4.5 accent-emerald-700"
                   />
                   <span className="leading-relaxed">{FLOW.customerReceived}</span>
                 </label>
 
                 {handover.mutation.isError && (
-                  <p role="alert" className="text-xs text-rose-600 font-medium">
+                  <p role="alert" className="text-xs sm:text-sm text-rose-600 font-medium">
                     {flowError(handover.mutation.error)}
                   </p>
                 )}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center p-4 text-center">
-                <CheckCircle2 size={32} className="text-emerald-600 mb-2" />
-                <h3 className="text-sm font-bold text-slate-900">{FLOW.handoverSuccess}</h3>
-                <p className="mt-1 text-xs text-slate-500">{FLOW.rentalActive}</p>
+              <div className="flex flex-col items-center justify-center p-6 text-center">
+                <CheckCircle2 size={36} className="text-emerald-600 mb-2.5" />
+                <h3 className="text-base font-bold text-slate-900">{FLOW.handoverSuccess}</h3>
+                <p className="mt-1 text-xs sm:text-sm text-slate-500">{FLOW.rentalActive}</p>
               </div>
             )}
 
             {/* Action Buttons */}
-            <div className="flex items-center justify-end gap-2 pt-2.5 border-t border-slate-100 mt-2.5 print:hidden">
+            <div className="flex items-center justify-end gap-2.5 pt-3.5 border-t border-slate-100 mt-3 print:hidden">
               <Button
                 type="button"
                 variant="outline"
                 onClick={onBack}
-                className="h-9 px-4 text-xs font-semibold"
+                className="h-10 px-4 text-sm font-semibold rounded-xl"
               >
                 {FLOW.backToMyWork}
               </Button>
@@ -752,8 +747,8 @@ function HandoverContent({
                   disabled={!handover.received || result.booking.status !== "CONFIRMED"}
                   loading={handover.mutation.isPending}
                   onClick={() => handover.mutation.mutate()}
-                  icon={<CheckCircle2 size={14} />}
-                  className="h-9 px-4 text-xs font-bold"
+                  icon={<CheckCircle2 size={15} />}
+                  className="h-10 px-5 text-sm font-bold rounded-xl"
                 >
                   {FLOW.handover}
                 </Button>
@@ -764,25 +759,25 @@ function HandoverContent({
 
         {/* Right Column: Locked Inspection Report */}
         <Card className="flex flex-1 flex-col border-slate-200 bg-white shadow-2xs">
-          <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 bg-slate-50/50 px-3.5 py-2 text-xs">
-            <div className="flex items-center gap-1.5 font-bold text-slate-800">
-              <ClipboardCheck size={14} className="text-emerald-800" />
+          <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 bg-slate-50/50 px-4 sm:px-5 py-3 text-xs sm:text-sm">
+            <div className="flex items-center gap-2 font-bold text-slate-800">
+              <ClipboardCheck size={16} className="text-emerald-800" />
               <span>{FLOW.handoverInspection}</span>
             </div>
             <Button
               type="button"
               variant="outline"
-              icon={<Printer size={13} />}
+              icon={<Printer size={14} />}
               onClick={() => window.print()}
-              className="h-7 px-2.5 text-[11px] font-semibold print:hidden"
+              className="h-8 px-3 text-xs font-semibold rounded-lg print:hidden"
             >
               {FLOW.printRecord}
             </Button>
           </CardHeader>
 
-          <CardContent className="p-3 space-y-2.5 text-xs flex-1 flex flex-col justify-between">
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between text-[11px] text-slate-500">
+          <CardContent className="p-4 sm:p-5 space-y-3.5 text-xs sm:text-sm flex-1 flex flex-col justify-between">
+            <div className="space-y-3.5">
+              <div className="flex items-center justify-between text-xs sm:text-sm text-slate-500">
                 <span>{FLOW.inspectionCompletedAt}:</span>
                 <span className="font-medium text-slate-700">
                   {formatDateTime(record.inspectDoneAt)}
@@ -794,21 +789,21 @@ function HandoverContent({
                 results={readResults(record.checklist)}
               />
 
-              <div className="rounded-lg border border-slate-100 bg-slate-50/70 p-2.5">
-                <span className="text-[10px] font-semibold uppercase text-slate-400 block">
+              <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3.5 sm:p-4">
+                <span className="text-xs font-semibold uppercase text-slate-400 block tracking-wider">
                   {FLOW.inspectionNotes}
                 </span>
-                <p className="mt-1 whitespace-pre-wrap text-xs text-slate-800">
+                <p className="mt-1 whitespace-pre-wrap text-sm text-slate-800">
                   {record.notes || FLOW.noNotes}
                 </p>
               </div>
 
               {record.evidence.length > 0 && (
                 <div>
-                  <span className="text-[10px] font-semibold uppercase text-slate-400 block mb-1">
+                  <span className="text-xs font-semibold uppercase text-slate-400 block mb-2 tracking-wider">
                     {FLOW.inspectionEvidence} ({record.evidence.length})
                   </span>
-                  <div className="grid grid-cols-4 gap-1.5">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                     {record.evidence.map((photo) => (
                       <InspectionPhotoCard key={photo.id} photo={photo} />
                     ))}

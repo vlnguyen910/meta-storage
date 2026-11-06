@@ -640,24 +640,24 @@ function CheckInFlowScreen() {
           {/* Left Column: Customer Dossier & Physical Unit */}
           <div className="flex flex-col gap-3">
             <Card className="flex flex-1 flex-col border-slate-200 bg-white shadow-2xs">
-              <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/50 px-4 py-2 text-xs">
+              <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/50 px-5 py-3.5 text-xs">
                 <div className="flex items-center gap-2">
-                  <span className="grid size-6 shrink-0 place-items-center rounded-md bg-emerald-50 text-emerald-800">
-                    <User size={13} />
+                  <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-emerald-50 text-emerald-800">
+                    <User size={15} />
                   </span>
-                  <span className="font-semibold text-slate-600">{FLOW.dossier}</span>
+                  <span className="text-sm font-semibold text-slate-700">{FLOW.dossier}</span>
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-2">
                   <Badge
                     variant="outline"
-                    className="border-emerald-200 bg-emerald-50 text-[10px] font-semibold text-emerald-800 px-2 py-0.5"
+                    className="border-emerald-200 bg-emerald-50 text-xs font-semibold text-emerald-800 px-2.5 py-0.5"
                   >
                     {FLOW.statusLabels[result.booking.status] ?? FLOW.pendingStep}
                   </Badge>
                   <Badge
                     variant="outline"
                     className={cn(
-                      "text-[10px] font-semibold px-2 py-0.5",
+                      "text-xs font-semibold px-2.5 py-0.5",
                       result.payment.status === "SUCCEEDED"
                         ? "border-emerald-200 bg-emerald-50 text-emerald-800"
                         : "border-amber-200 bg-amber-50 text-amber-800",
@@ -668,88 +668,92 @@ function CheckInFlowScreen() {
                 </div>
               </CardHeader>
 
-              <CardContent className="p-3.5 space-y-3 text-xs">
-                {/* Customer Name */}
-                <div>
-                  <h2 className="text-base font-bold text-slate-900 truncate">
-                    {result.booking.contactName}
-                  </h2>
-                </div>
+              <CardContent className="p-5 sm:p-6 space-y-4 flex-1 flex flex-col justify-between">
+                <div className="space-y-4">
+                  {/* Customer Name */}
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900 truncate">
+                      {result.booking.contactName}
+                    </h2>
+                  </div>
 
-                {/* Contact & Booking Facts */}
-                <div className="grid grid-cols-2 gap-2.5 rounded-lg bg-slate-50/80 p-2.5 text-xs border border-slate-100">
-                  <div>
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">
-                      {FLOW.phone}
-                    </span>
-                    <span className="font-semibold text-slate-800 flex items-center gap-1 mt-0.5">
-                      <Phone size={11} className="text-slate-400" />
-                      {result.booking.contactPhone}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">
-                      {FLOW.booking}
-                    </span>
-                    <span className="font-mono font-bold text-slate-900 mt-0.5 block">
-                      {result.booking.bookingCode}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">
-                      {FLOW.email}
-                    </span>
-                    <span className="font-medium text-slate-700 truncate mt-0.5 block">
-                      {result.booking.contactEmail}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">
-                      {FLOW.amount}
-                    </span>
-                    <span className="font-bold text-primary mt-0.5 block">
-                      {result.payment.totalAmount === null ? (
-                        "—"
-                      ) : (
-                        <Currency value={result.payment.totalAmount} />
-                      )}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Assigned Physical Unit */}
-                <div className="rounded-lg border border-primary/20 bg-primary-soft/10 p-2.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="grid size-7 shrink-0 place-items-center rounded-md bg-primary text-white">
-                        <Warehouse size={14} />
+                  {/* Contact & Booking Facts */}
+                  <div className="grid grid-cols-2 gap-3.5 rounded-xl bg-slate-50/80 p-3.5 sm:p-4 text-xs border border-slate-100">
+                    <div>
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block">
+                        {FLOW.phone}
                       </span>
-                      <div>
-                        <span className="text-[10px] uppercase font-bold tracking-wider text-primary block">
-                          {FLOW.assigned}
-                        </span>
-                        <span className="font-mono text-base font-bold text-slate-900">
-                          {result.assignedUnit?.physicalUnitCode ?? FLOW.unassigned}
-                        </span>
-                      </div>
+                      <span className="text-sm font-semibold text-slate-800 flex items-center gap-1.5 mt-0.5">
+                        <Phone size={13} className="text-slate-400" />
+                        {result.booking.contactPhone}
+                      </span>
                     </div>
-                    <div className="text-right text-[11px] text-slate-600">
-                      <p className="font-semibold text-slate-800">{result.booking.unitTypeName}</p>
-                      <p className="text-slate-500">
-                        {result.booking.unitTypeSizeLabel} ·{" "}
-                        {FLOW.months(result.booking.requestedMonths)}
-                      </p>
+                    <div>
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block">
+                        {FLOW.booking}
+                      </span>
+                      <span className="font-mono text-sm font-bold text-slate-900 mt-0.5 block">
+                        {result.booking.bookingCode}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block">
+                        {FLOW.email}
+                      </span>
+                      <span className="text-sm font-medium text-slate-700 truncate mt-0.5 block">
+                        {result.booking.contactEmail}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block">
+                        {FLOW.amount}
+                      </span>
+                      <span className="text-sm font-bold text-primary mt-0.5 block">
+                        {result.payment.totalAmount === null ? (
+                          "—"
+                        ) : (
+                          <Currency value={result.payment.totalAmount} />
+                        )}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Assigned Physical Unit */}
+                  <div className="rounded-xl border border-primary/20 bg-primary-soft/10 p-3.5 sm:p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary text-white">
+                          <Warehouse size={18} />
+                        </span>
+                        <div>
+                          <span className="text-[11px] uppercase font-bold tracking-wider text-primary block">
+                            {FLOW.assigned}
+                          </span>
+                          <span className="font-mono text-lg font-bold text-slate-900">
+                            {result.assignedUnit?.physicalUnitCode ?? FLOW.unassigned}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right text-xs sm:text-sm text-slate-600">
+                        <p className="font-semibold text-slate-800">
+                          {result.booking.unitTypeName}
+                        </p>
+                        <p className="text-slate-500">
+                          {result.booking.unitTypeSizeLabel} ·{" "}
+                          {FLOW.months(result.booking.requestedMonths)}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Slot Timing */}
-                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2 text-[11px] text-slate-500">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 text-xs sm:text-sm text-slate-600">
                   <div className="flex items-center gap-1.5">
-                    <Clock3 size={12} className="text-slate-400" />
+                    <Clock3 size={14} className="text-slate-400" />
                     <span>
                       Hẹn đến:{" "}
-                      <strong className="text-slate-700">
+                      <strong className="text-slate-800 font-semibold">
                         {formatDateTime(result.booking.checkInSlotStart)}
                       </strong>
                     </span>
@@ -757,7 +761,7 @@ function CheckInFlowScreen() {
                   <div>
                     <span>
                       Hạn chót:{" "}
-                      <strong className="text-slate-700">
+                      <strong className="text-slate-800 font-semibold">
                         {formatDateTime(result.booking.checkInDeadlineAt)}
                       </strong>
                     </span>
@@ -770,28 +774,28 @@ function CheckInFlowScreen() {
           {/* Right Column: 5 Reception Conditions & Action */}
           <div className="flex flex-col gap-3">
             <Card className="flex flex-1 flex-col border-slate-200 bg-white shadow-2xs">
-              <CardHeader className="flex flex-row items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/50 px-4 py-2 text-xs">
-                <div className="flex items-center gap-1.5 font-bold text-slate-800">
-                  <ClipboardCheck size={15} className="text-primary" />
+              <CardHeader className="flex flex-row items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/50 px-5 py-3.5 text-xs">
+                <div className="flex items-center gap-2 font-bold text-slate-800 text-sm">
+                  <ClipboardCheck size={17} className="text-primary" />
                   <span>{FLOW.conditions}</span>
                 </div>
-                <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] font-bold">
+                <Badge className="bg-primary/10 text-primary border-primary/20 text-xs font-bold px-2.5 py-0.5">
                   {criteria.filter(Boolean).length} / 5
                 </Badge>
               </CardHeader>
 
-              <CardContent className="flex flex-1 flex-col justify-between p-3.5 space-y-3">
-                <div className="space-y-1.5">
+              <CardContent className="flex flex-1 flex-col justify-between p-5 sm:p-6 space-y-4">
+                <div className="space-y-2.5">
                   {FLOW.criteria.map((text, i) => (
                     <div
                       key={text}
-                      className="flex items-center justify-between gap-2 rounded-lg bg-slate-50/80 px-2.5 py-1.5 text-xs border border-slate-100"
+                      className="flex items-center justify-between gap-3 rounded-xl bg-slate-50/80 px-3.5 py-2.5 text-xs sm:text-sm border border-slate-100"
                     >
-                      <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex items-center gap-2.5 min-w-0">
                         {criteria[i] ? (
-                          <CheckCircle2 size={15} className="shrink-0 text-emerald-600" />
+                          <CheckCircle2 size={17} className="shrink-0 text-emerald-600" />
                         ) : (
-                          <CircleAlert size={15} className="shrink-0 text-rose-500" />
+                          <CircleAlert size={17} className="shrink-0 text-rose-500" />
                         )}
                         <span className="font-medium text-slate-800 truncate">
                           {i + 1}. {text}
@@ -799,7 +803,7 @@ function CheckInFlowScreen() {
                       </div>
                       <span
                         className={cn(
-                          "text-[10px] font-semibold shrink-0",
+                          "text-xs font-semibold shrink-0",
                           criteria[i] ? "text-emerald-700" : "text-rose-600",
                         )}
                       >
@@ -810,9 +814,9 @@ function CheckInFlowScreen() {
                 </div>
 
                 {reasons.length > 0 && (
-                  <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-2.5 text-xs text-amber-900">
+                  <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3 text-xs text-amber-900">
                     <p className="font-semibold text-amber-950">{FLOW.notEligible}:</p>
-                    <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[11px]">
+                    <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs">
                       {reasons.map((r) => (
                         <li key={r}>
                           <strong>{FLOW.reasons[r] ?? FLOW.notEligible}</strong>
@@ -826,7 +830,7 @@ function CheckInFlowScreen() {
                 )}
 
                 {/* Action Buttons */}
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
                   <Button
                     disabled={
                       result.booking.status === "CHECKED_IN"
@@ -835,8 +839,8 @@ function CheckInFlowScreen() {
                     }
                     loading={flow.verify.isPending}
                     onClick={proceed}
-                    className="h-9 px-4 text-xs font-bold"
-                    icon={<ArrowRight size={14} />}
+                    className="h-10 px-5 text-sm font-bold rounded-xl"
+                    icon={<ArrowRight size={15} />}
                   >
                     {inspectionStarted ? FLOW.continueInspect : FLOW.verifyProceed}
                   </Button>
