@@ -1,52 +1,139 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BackHandler, Platform } from "react-native";
+import type { BookingFacility } from "../common/booking.types";
+import { bookingError } from "../common/booking.utils";
 import type { CustomerNavigatorProps, CustomerRoute } from "../common/customer-home.types";
+import { Notice } from "../components/ui";
+import { BOOKING } from "../features/booking/booking.messages";
+import { resumeBooking } from "../features/booking/booking.service";
 import { CustomerLayout } from "../features/customer-home/components/customer-layout";
 import { CUSTOMER_HOME as M } from "../features/customer-home/customer-home.messages";
+import { useFacilitySearch } from "../features/customer-home/use-facility-search";
 import { AppointmentDetailScreen } from "../screens/appointment-detail-screen";
 import { AppointmentsScreen } from "../screens/appointments-screen";
+import { FacilitySearchScreen } from "../screens/facility-search-screen";
 import { HomeScreen } from "../screens/home-screen";
+import { BookingNavigator } from "./booking-navigator";
+
+const titles = {
+  booking: BOOKING.title,
+  home: M.title,
+  search: M.discovery,
+  appointments: M.appointments,
+  appointment: M.detail,
+};
 
 export function CustomerNavigator(props: CustomerNavigatorProps) {
   const [route, setRoute] = useState<CustomerRoute>({ screen: "home" });
-  const home = () => setRoute({ screen: "home" });
-  const back = () => setRoute({ screen: route.screen === "appointment" ? route.from : "home" });
+  const revision = useRef(0);
+  const [bookingErrorText, setBookingErrorText] = useState("");
+  const [notice, setNotice] = useState(false);
+  const search = useFacilitySearch(route.screen === "search");
+  const navigate = (next: CustomerRoute) => {
+    revision.current++;
+    setBookingErrorText("");
+    setNotice(false);
+    setRoute(next);
+  };
+  const home = () => navigate({ screen: "home" });
+  const back = () =>
+    navigate({
+      screen: route.screen === "appointment" || route.screen === "booking" ? route.from : "home",
+    });
+  const unavailable = () => setNotice(true);
+  const bookingOpening = useRef(false);
+  async function book(facility: BookingFacility) {
+    if (bookingOpening.current) return;
+    bookingOpening.current = true;
+    const initial = revision.current;
+    try {
+      const pending = await resumeBooking(props.user.id);
+      if (revision.current !== initial) return;
+      navigate({
+        screen: "booking",
+        facility: pending?.facility ?? facility,
+        from: route.screen === "search" ? "search" : "home",
+      });
+    } catch (e) {
+      setBookingErrorText(bookingError(e));
+    } finally {
+      bookingOpening.current = false;
+    }
+  }
   useEffect(() => {
-    if (Platform.OS !== "android") return;
+    let alive = true;
+    const initial = revision.current;
+    void resumeBooking(props.user.id)
+      .then((pending) => {
+        if (alive && pending && revision.current === initial)
+          setRoute({ screen: "booking", facility: pending.facility, from: "home" });
+      })
+      .catch((e) => {
+        if (alive && revision.current === initial) setBookingErrorText(bookingError(e));
+      });
+    return () => {
+      alive = false;
+    };
+  }, [props.user.id]);
+  useEffect(() => {
+    if (Platform.OS !== "android" || route.screen === "booking") return;
     const listener = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (notice) {
+        setNotice(false);
+        return true;
+      }
       if (route.screen === "home") return false;
       setRoute({ screen: route.screen === "appointment" ? route.from : "home" });
       return true;
     });
     return () => listener.remove();
-  }, [route]);
+  }, [route, notice]);
   useEffect(() => {
-    if (Platform.OS === "web")
-      document.title = `${route.screen === "home" ? M.title : route.screen === "appointments" ? M.appointments : M.detail} | MetaStorage`;
+    if (Platform.OS === "web") document.title = `${titles[route.screen]} | MetaStorage`;
   }, [route.screen]);
+  if (route.screen === "booking")
+    return (
+      <BookingNavigator
+        key={route.facility.id}
+        facility={route.facility}
+        user={props.user}
+        onClose={back}
+        onHome={home}
+        onChangeFacility={() => navigate({ screen: "search" })}
+        onAppointment={(id) => navigate({ screen: "appointment", id, from: "home" })}
+      />
+    );
   return (
     <CustomerLayout
       {...props}
-      title={
-        route.screen === "home"
-          ? undefined
-          : route.screen === "appointments"
-            ? M.appointments
-            : M.detail
-      }
+      title={route.screen === "home" ? undefined : titles[route.screen]}
+      showTabs={route.screen === "home" || route.screen === "search"}
       onBack={back}
       onHome={home}
+      onUnavailable={unavailable}
+      notice={notice}
+      onDismissNotice={() => setNotice(false)}
     >
+      {bookingErrorText ? <Notice error>{bookingErrorText}</Notice> : null}
       {route.screen === "home" ? (
         <HomeScreen
           owner={props.user.id}
-          onAppointments={() => setRoute({ screen: "appointments" })}
-          onAppointment={(id) => setRoute({ screen: "appointment", id, from: "home" })}
+          onBook={(facility) => void book(facility)}
+          onAppointments={() => navigate({ screen: "appointments" })}
+          onAppointment={(id) => navigate({ screen: "appointment", id, from: "home" })}
+          onUnavailable={unavailable}
+          onSearch={(value) => {
+            search.start(value);
+            navigate({ screen: "search" });
+          }}
         />
+      ) : route.screen === "search" ? (
+        <FacilitySearchScreen state={search} onBook={(facility) => void book(facility)} />
       ) : route.screen === "appointments" ? (
         <AppointmentsScreen
           owner={props.user.id}
-          onAppointment={(id) => setRoute({ screen: "appointment", id, from: "appointments" })}
+          onAppointment={(id) => navigate({ screen: "appointment", id, from: "appointments" })}
+          onUnavailable={unavailable}
         />
       ) : (
         <AppointmentDetailScreen owner={props.user.id} id={route.id} />

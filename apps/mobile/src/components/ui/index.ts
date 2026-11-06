@@ -12,7 +12,15 @@ export type {
   MobileCardProps,
   MobileFieldProps,
 } from "../../common/mobile-ui.types";
-export { AppHeader, BottomTabs, IconButton, ListItem, SearchField } from "./app-ui";
+export {
+  ActionLink,
+  AppHeader,
+  BottomTabs,
+  IconButton,
+  ListItem,
+  SearchField,
+  SectionHeading,
+} from "./app-ui";
 export { CalendarField } from "./calendar-field";
 export { ChoiceTabs } from "./choice-tabs";
 export { Icon } from "./icon";

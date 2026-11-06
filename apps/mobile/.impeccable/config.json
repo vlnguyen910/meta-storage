@@ -39,12 +39,107 @@
       {
         "rule": "pulsing-dot",
         "value": "*",
-        "files": [
-          ".stitch/designs/appointment-detail.html",
-          ".stitch/designs/appointments.html"
-        ],
+        "files": [".stitch/designs/appointment-detail.html", ".stitch/designs/appointments.html"],
         "createdAt": "2026-11-05T18:02:28.862Z",
         "reason": "Codex: pulse exists only in untouched downloaded Stitch references; active React Native screens do not include these decorative pulse indicators."
+      },
+      {
+        "rule": "design-system-font",
+        "value": "material symbols outlined",
+        "files": [".stitch/designs/discovery.html"],
+        "createdAt": "2026-11-06T01:08:37.861Z",
+        "reason": "Codex: untouched downloaded Stitch reference HTML uses Material Symbols; active native UI uses the existing Lucide components."
+      },
+      {
+        "rule": "flat-type-hierarchy",
+        "value": "*",
+        "files": [".stitch/designs/discovery.html"],
+        "createdAt": "2026-11-06T01:08:38.009Z",
+        "reason": "Codex: untouched Stitch reference uses Tailwind CDN; static detector reports every heading as 16px although the supplied screenshot has differentiated heading/body sizes. Active native UI uses local type tokens."
+      },
+      {
+        "rule": "design-system-font",
+        "value": "material symbols outlined",
+        "files": [".stitch/designs/booking-payment.html"],
+        "createdAt": "2026-11-06T01:46:55.144Z",
+        "reason": "Codex: original downloaded Stitch HTML retained unchanged as a reference, never rendered in the app. This source-only issue does not exist in the native screens, which use existing Lucide icons, a consistent heading hierarchy and sibling sections."
+      },
+      {
+        "rule": "design-system-font",
+        "value": "material symbols outlined",
+        "files": [".stitch/designs/booking-units.html"],
+        "createdAt": "2026-11-06T01:47:29.515Z",
+        "reason": "Codex: original downloaded Stitch HTML retained unchanged as a reference, never rendered in the app. This source-only issue does not exist in the native screens, which use existing Lucide icons, a consistent heading hierarchy and sibling sections."
+      },
+      {
+        "rule": "flat-type-hierarchy",
+        "value": "*",
+        "files": [".stitch/designs/booking-units.html"],
+        "createdAt": "2026-11-06T01:47:29.524Z",
+        "reason": "Codex: original downloaded Stitch HTML retained unchanged as a reference. It is never rendered in the app; the native screens use existing Lucide icons and have been checked separately with screenshots and axe. Tailwind CDN styles in this reference are not resolved by static detection."
+      },
+      {
+        "rule": "skipped-heading",
+        "value": "*",
+        "files": [".stitch/designs/booking-units.html"],
+        "createdAt": "2026-11-06T01:47:29.535Z",
+        "reason": "Codex: original downloaded Stitch HTML retained unchanged as a reference, never rendered in the app. This source-only issue does not exist in the native screens, which use existing Lucide icons, a consistent heading hierarchy and sibling sections."
+      },
+      {
+        "rule": "design-system-font",
+        "value": "material symbols outlined",
+        "files": [".stitch/designs/booking-details.html"],
+        "createdAt": "2026-11-06T01:47:29.545Z",
+        "reason": "Codex: original downloaded Stitch HTML retained unchanged as a reference, never rendered in the app. This source-only issue does not exist in the native screens, which use existing Lucide icons, a consistent heading hierarchy and sibling sections."
+      },
+      {
+        "rule": "flat-type-hierarchy",
+        "value": "*",
+        "files": [".stitch/designs/booking-details.html"],
+        "createdAt": "2026-11-06T01:47:29.555Z",
+        "reason": "Codex: original downloaded Stitch HTML retained unchanged as a reference. It is never rendered in the app; the native screens use existing Lucide icons and have been checked separately with screenshots and axe. Tailwind CDN styles in this reference are not resolved by static detection."
+      },
+      {
+        "rule": "design-system-font",
+        "value": "material symbols outlined",
+        "files": [".stitch/designs/booking-review.html"],
+        "createdAt": "2026-11-06T01:47:29.565Z",
+        "reason": "Codex: original downloaded Stitch HTML retained unchanged as a reference, never rendered in the app. This source-only issue does not exist in the native screens, which use existing Lucide icons, a consistent heading hierarchy and sibling sections."
+      },
+      {
+        "rule": "flat-type-hierarchy",
+        "value": "*",
+        "files": [".stitch/designs/booking-review.html"],
+        "createdAt": "2026-11-06T01:47:29.577Z",
+        "reason": "Codex: original downloaded Stitch HTML retained unchanged as a reference. It is never rendered in the app; the native screens use existing Lucide icons and have been checked separately with screenshots and axe. Tailwind CDN styles in this reference are not resolved by static detection."
+      },
+      {
+        "rule": "nested-cards",
+        "value": "*",
+        "files": [".stitch/designs/booking-review.html"],
+        "createdAt": "2026-11-06T01:47:29.587Z",
+        "reason": "Codex: original downloaded Stitch HTML retained unchanged as a reference, never rendered in the app. This source-only issue does not exist in the native screens, which use existing Lucide icons, a consistent heading hierarchy and sibling sections."
+      },
+      {
+        "rule": "design-system-font",
+        "value": "material symbols outlined",
+        "files": [".stitch/designs/booking-success.html"],
+        "createdAt": "2026-11-06T01:47:29.608Z",
+        "reason": "Codex: original downloaded Stitch HTML retained unchanged as a reference, never rendered in the app. This source-only issue does not exist in the native screens, which use existing Lucide icons, a consistent heading hierarchy and sibling sections."
+      },
+      {
+        "rule": "flat-type-hierarchy",
+        "value": "*",
+        "files": [".stitch/designs/booking-success.html"],
+        "createdAt": "2026-11-06T01:47:29.620Z",
+        "reason": "Codex: original downloaded Stitch HTML retained unchanged as a reference. It is never rendered in the app; the native screens use existing Lucide icons and have been checked separately with screenshots and axe. Tailwind CDN styles in this reference are not resolved by static detection."
+      },
+      {
+        "rule": "nested-cards",
+        "value": "*",
+        "files": [".stitch/designs/booking-success.html"],
+        "createdAt": "2026-11-06T01:47:29.630Z",
+        "reason": "Codex: original downloaded Stitch HTML retained unchanged as a reference, never rendered in the app. This source-only issue does not exist in the native screens, which use existing Lucide icons, a consistent heading hierarchy and sibling sections."
       }
     ]
   }

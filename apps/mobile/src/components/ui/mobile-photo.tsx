@@ -5,15 +5,20 @@ export function MobilePhoto({
   source,
   label,
   tall = false,
+  aspectRatio,
+  flush = false,
 }: {
   source: ImageSourcePropType;
   label: string;
   tall?: boolean;
+  aspectRatio?: number;
+  flush?: boolean;
 }) {
   const [size, setSize] = useState({ width: 0, height: 0 });
   return (
     <View
-      className={`mb-4 w-full overflow-hidden rounded-[4px] ${tall ? "h-48" : "h-44"}`}
+      className={`w-full overflow-hidden ${flush ? "" : "mb-4 rounded-[4px]"} ${aspectRatio ? "" : tall ? "h-48" : "h-44"}`}
+      style={aspectRatio ? { aspectRatio } : undefined}
       onLayout={(event) => {
         const { width, height } = event.nativeEvent.layout;
         setSize((current) =>

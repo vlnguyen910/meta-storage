@@ -122,7 +122,7 @@ export function WorkspaceTabs({ tabs, selected, onSelect }: WorkspaceTabsProps) 
     </View>
   );
 }
-export function StatusPill({ label, tone = "neutral" }: StatusPillProps) {
+export function StatusPill({ label, tone = "neutral", compact = false }: StatusPillProps) {
   const colors = {
     green: "border-success-line bg-success-soft text-success",
     amber: "border-warning-line bg-warning-soft text-warning-strong",
@@ -132,7 +132,7 @@ export function StatusPill({ label, tone = "neutral" }: StatusPillProps) {
   };
   return (
     <Text
-      className={`self-start overflow-hidden rounded-full border px-3 py-1 font-body-semibold text-[12px] leading-5 ${colors[tone]}`}
+      className={`self-start overflow-hidden border font-body-semibold ${compact ? "rounded-[4px] px-1.5 py-0.5 text-[10px] leading-4" : "rounded-full px-3 py-1 text-[12px] leading-5"} ${colors[tone]}`}
     >
       {label}
     </Text>

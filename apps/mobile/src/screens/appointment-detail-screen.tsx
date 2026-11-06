@@ -10,6 +10,7 @@ import {
 import { Card, Icon, Notice, Row, StatusPill } from "../components/ui";
 import { BookingQr } from "../components/ui/booking-qr";
 import { dateTime, money } from "../components/ui/mobile-ui";
+import { FacilitySummary } from "../features/customer-home/components/facility-card";
 import { QueryFeedback } from "../features/customer-home/components/query-feedback";
 import { CUSTOMER_HOME as M } from "../features/customer-home/customer-home.messages";
 import { useAppointmentDetail } from "../features/customer-home/use-customer-home";
@@ -32,7 +33,7 @@ export function AppointmentDetailScreen({ owner, id }: AppointmentDetailScreenPr
         />
         {a ? (
           <>
-            <Card compact>
+            <Card compact outlined>
               <View className="mb-3 flex-row flex-wrap items-center justify-between gap-3">
                 <View className="flex-row items-center gap-2">
                   <Icon as={CalendarClock} size={24} className="text-primary" />
@@ -56,17 +57,10 @@ export function AppointmentDetailScreen({ owner, id }: AppointmentDetailScreenPr
               </Text>
               <View className="flex-row gap-2">
                 <Icon as={MapPin} className="text-primary" />
-                <View className="min-w-0 flex-1">
-                  <Text className="font-body-bold text-body leading-7 text-ink">
-                    {a.facility?.name ?? M.unknownFacility}
-                  </Text>
-                  <Text className="font-body text-label leading-6 text-muted">
-                    {a.facility?.address ?? M.empty}
-                  </Text>
-                </View>
+                <FacilitySummary name={a.facility?.name} address={a.facility?.address} />
               </View>
             </Card>
-            <Card title={M.unit} compact>
+            <Card title={M.unit} compact outlined>
               <View className="mb-3 flex-row items-center gap-3">
                 <Icon as={Warehouse} size={28} className="text-primary" />
                 <Text className="shrink font-body-bold text-title leading-8 text-primary">
@@ -111,7 +105,7 @@ export function AppointmentDetailScreen({ owner, id }: AppointmentDetailScreenPr
               </Text>
               {state.qrUrl ? <BookingQr value={state.qrUrl} label={M.qrLabel} /> : null}
             </View>
-            <Card title={M.contract}>
+            <Card title={M.contract} compact outlined>
               {reservation ? (
                 <>
                   <Row

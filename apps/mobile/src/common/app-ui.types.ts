@@ -1,10 +1,12 @@
 import type { LucideIcon } from "lucide-react-native";
+import type { ReactNode } from "react";
 
 export interface IconButtonProps {
   icon: LucideIcon;
   label: string;
   onPress: () => void;
   disabled?: boolean;
+  inverse?: boolean;
 }
 
 export interface AppHeaderProps {
@@ -28,6 +30,25 @@ export interface SearchFieldProps {
   placeholder?: string;
   onSubmit?: (value: string) => void;
   disabled?: boolean;
+  inverse?: boolean;
+  trailing?: ReactNode;
+}
+
+export interface ActionLinkProps {
+  disabled?: boolean;
+  label: string;
+  onPress: () => void;
+  icon?: LucideIcon;
+  warning?: boolean;
+}
+export interface SectionHeadingProps {
+  title: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}
+export interface ScreenFrameProps {
+  children: ReactNode;
+  className?: string;
 }
 
 export interface ListItemProps {

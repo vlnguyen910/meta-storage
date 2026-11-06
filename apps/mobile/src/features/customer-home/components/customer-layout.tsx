@@ -12,7 +12,6 @@ import {
   ScreenFrame,
 } from "../../../components/ui";
 import { CUSTOMER_HOME as M } from "../customer-home.messages";
-import { useCustomerLinks } from "../use-customer-home";
 
 export function CustomerLayout({
   children,
@@ -23,14 +22,17 @@ export function CustomerLayout({
   onLogout,
   pending,
   error,
+  onUnavailable,
+  notice,
+  onDismissNotice,
+  showTabs = !title,
 }: CustomerLayoutProps) {
   const [account, setAccount] = useState(false);
-  const links = useCustomerLinks();
   return (
-    <ScreenFrame>
+    <ScreenFrame className="bg-customer-canvas">
       <View className="flex-1 bg-customer-canvas">
         {title ? (
-          <View className="flex-row items-center gap-3 border-b border-line bg-surface px-4 py-3">
+          <View className="flex-row items-center gap-3 px-4 py-3">
             <IconButton icon={X} label={M.close} onPress={onBack ?? onHome} />
             <Text
               accessibilityRole="header"
@@ -41,27 +43,23 @@ export function CustomerLayout({
             </Text>
           </View>
         ) : (
-          <AppHeader
-            onHome={onHome}
-            onNotifications={() => void links.openWeb("/customer/notifications")}
-          />
+          <AppHeader onHome={onHome} onNotifications={onUnavailable} />
         )}
-        {links.error ? (
-          <View className="px-4 pt-3">
-            <Notice error>{links.error}</Notice>
+        {notice ? (
+          <View className="flex-row items-start gap-2 px-4 pt-2">
+            <View className="flex-1">
+              <Notice>{M.unavailable}</Notice>
+            </View>
+            <IconButton icon={X} label={M.close} onPress={onDismissNotice} />
           </View>
         ) : null}
         {children}
-        {!title ? (
+        {showTabs ? (
           <BottomTabs
             selected="home"
             labels={{ home: M.title, profile: M.account }}
             onSelect={(tab) =>
-              tab === "profile"
-                ? setAccount(true)
-                : tab === "rentals"
-                  ? void links.openWeb("/customer/storage")
-                  : onHome()
+              tab === "profile" ? setAccount(true) : tab === "rentals" ? onUnavailable() : onHome()
             }
           />
         ) : null}

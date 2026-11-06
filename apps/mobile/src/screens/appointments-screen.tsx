@@ -2,15 +2,18 @@ import { ChevronLeft, ChevronRight, Plus } from "lucide-react-native";
 import { FlatList, Platform, Pressable, Text, View } from "react-native";
 import type { AppointmentsScreenProps } from "../common/customer-home.types";
 import { formatAppointmentDate, vietnamDate } from "../common/customer-home.utils";
-import { Button, ChoiceTabs, Icon, IconButton, Notice } from "../components/ui";
+import { Button, ChoiceTabs, Icon, IconButton, Notice, SectionHeading } from "../components/ui";
 import { AppointmentCard } from "../features/customer-home/components/appointment-card";
 import { QueryFeedback } from "../features/customer-home/components/query-feedback";
 import { CUSTOMER_HOME as M } from "../features/customer-home/customer-home.messages";
-import { useAppointmentList, useCustomerLinks } from "../features/customer-home/use-customer-home";
+import { useAppointmentList } from "../features/customer-home/use-customer-home";
 
-export function AppointmentsScreen({ owner, onAppointment }: AppointmentsScreenProps) {
+export function AppointmentsScreen({
+  owner,
+  onAppointment,
+  onUnavailable,
+}: AppointmentsScreenProps) {
   const state = useAppointmentList(owner);
-  const links = useCustomerLinks();
   return (
     <>
       <FlatList
@@ -90,9 +93,7 @@ export function AppointmentsScreen({ owner, onAppointment }: AppointmentsScreenP
                 </Pressable>
               ))}
             </View>
-            <Text accessibilityRole="header" className="mb-4 font-body-bold text-[18px] text-ink">
-              {M.weekAppointments} · {state.visible.length}
-            </Text>
+            <SectionHeading title={`${M.weekAppointments} · ${state.visible.length}`} />
             <QueryFeedback
               pending={state.query.isPending}
               error={state.query.isError}
@@ -119,12 +120,10 @@ export function AppointmentsScreen({ owner, onAppointment }: AppointmentsScreenP
       />
       <View className="border-t border-line bg-surface px-4 py-3">
         <View className="mx-auto w-full max-w-3xl">
-          {links.error ? <Notice error>{links.error}</Notice> : null}
           <Button
             label={M.newAppointment}
-            hint={M.web}
             leadingIcon={<Icon as={Plus} className="text-primary-foreground" />}
-            onPress={() => void links.openWeb("/customer/facilities")}
+            onPress={onUnavailable}
           />
         </View>
       </View>
