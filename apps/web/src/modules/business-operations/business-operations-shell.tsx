@@ -1,6 +1,6 @@
 "use client";
 
-import { Globe2, LogOut, Menu, Warehouse } from "lucide-react";
+import { Globe2, LogOut, Menu, User, Warehouse } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -49,6 +49,30 @@ export function BusinessOperationsShell({ children }: Readonly<BusinessOperation
   );
   const isOperationsNoScroll = pathname.startsWith("/operations");
 
+  const userFooter = (
+    <div className="shrink-0 border-t border-slate-200 p-4">
+      <div className="flex items-center gap-2 rounded-lg bg-slate-50 p-2">
+        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary-soft text-primary">
+          <User size={18} aria-hidden="true" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <strong className="block truncate text-xs text-slate-800">{user?.name}</strong>
+          <span className="block truncate text-[11px] text-slate-500">{M.role}</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => logout.mutate()}
+          disabled={logout.isPending}
+          aria-label={M.logout}
+          title={M.logout}
+          className="shrink-0 rounded-lg p-2 text-slate-600 hover:bg-primary-soft hover:text-primary disabled:opacity-50 cursor-pointer"
+        >
+          <LogOut size={18} aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div
       className={cn(
@@ -86,20 +110,13 @@ export function BusinessOperationsShell({ children }: Readonly<BusinessOperation
           <span className="hidden rounded-full bg-primary-soft px-3 py-1.5 text-xs font-semibold text-primary sm:inline-block">
             {isMockMode ? M.demo : M.apiMode}
           </span>
-          <div className="hidden border-l border-slate-200 pl-4 text-right md:block">
-            <p className="m-0 text-sm font-semibold">{user?.name}</p>
-            <p className="m-0 text-xs text-slate-600">{M.role}</p>
+          <span className="grid size-8 place-items-center rounded-full bg-[#003b2f] text-white">
+            <User size={18} aria-hidden="true" />
+          </span>
+          <div className="hidden border-l border-slate-200 pl-3 md:block">
+            <strong className="block text-[11px] text-slate-800">{user?.name}</strong>
+            <span className="block text-[11px] text-slate-500">{M.role}</span>
           </div>
-          <button
-            type="button"
-            aria-label={M.logout}
-            title={M.logout}
-            disabled={logout.isPending}
-            onClick={() => logout.mutate()}
-            className="grid size-11 shrink-0 place-items-center rounded-lg border border-slate-200 focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50"
-          >
-            <LogOut size={20} aria-hidden="true" />
-          </button>
         </div>
       </header>
       {logout.isError && (
@@ -107,19 +124,24 @@ export function BusinessOperationsShell({ children }: Readonly<BusinessOperation
           {M.logoutFailed}
         </p>
       )}
-      <aside className="fixed bottom-0 left-0 top-16 hidden w-60 flex-col border-r border-slate-200 bg-white p-4 lg:flex">
-        <p className="mb-5 mt-2 px-3 text-xs font-semibold text-slate-600">{M.role}</p>
-        {navigation}
-        <p className="mb-0 mt-auto border-t border-slate-200 px-3 pt-4 text-xs text-slate-600">
-          {isMockMode ? M.note : M.apiNote}
-        </p>
+      <aside className="fixed bottom-0 left-0 top-16 hidden w-60 flex-col justify-between border-r border-slate-200 bg-white lg:flex">
+        <div className="min-h-0 flex-1 overflow-y-auto p-4">
+          <p className="mb-3 mt-1 px-3 text-xs font-semibold text-slate-500">{M.role}</p>
+          {navigation}
+          <p className="mt-4 px-3 text-[11px] text-slate-400">{isMockMode ? M.note : M.apiNote}</p>
+        </div>
+        {userFooter}
       </aside>
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <SheetContent className="left-0 right-auto max-w-72 p-4">
-          <SheetHeader className="mb-4">
-            <SheetTitle className="text-primary font-bold text-left">{M.brand}</SheetTitle>
-          </SheetHeader>
-          {navigation}
+        <SheetContent className="left-0 right-auto flex max-w-72 flex-col justify-between p-0">
+          <div className="min-h-0 flex-1 overflow-y-auto p-4">
+            <SheetHeader className="mb-4">
+              <SheetTitle className="text-left font-bold text-primary">{M.brand}</SheetTitle>
+            </SheetHeader>
+            <p className="mb-3 px-3 text-xs font-semibold text-slate-500">{M.role}</p>
+            {navigation}
+          </div>
+          {userFooter}
         </SheetContent>
       </Sheet>
       <div
