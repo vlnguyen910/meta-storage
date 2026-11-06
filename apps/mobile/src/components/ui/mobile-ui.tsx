@@ -25,16 +25,23 @@ const buttonVariants: Record<MobileButtonVariant, { container: string; label: st
     label: "text-primary",
   },
   ghost: { container: "bg-transparent active:bg-neutral-soft", label: "text-muted" },
+  soft: { container: "bg-customer-mint active:bg-primary-soft", label: "text-primary-dark" },
   danger: {
     container: "bg-danger-strong active:bg-danger-strong/80",
     label: "text-primary-foreground",
   },
 };
 
-export function Card({ children, title, compact = false }: MobileCardProps) {
+export function Card({
+  children,
+  title,
+  compact = false,
+  outlined = false,
+  flush = false,
+}: MobileCardProps) {
   return (
     <View
-      className={`mb-4 rounded-card border border-line bg-surface shadow-soft ${compact ? "p-4" : "p-card"}`}
+      className={`mb-4 rounded-card border bg-surface ${outlined ? "border-outline-variant/60" : "border-line shadow-soft"} ${flush ? "overflow-hidden" : compact ? "p-4" : "p-card"}`}
     >
       {title ? (
         <Text
@@ -55,10 +62,13 @@ export function Button({
   disabled,
   loading = false,
   leadingIcon,
+  trailingIcon,
   variant,
   secondary,
   danger,
   hint,
+  compact = false,
+  inline = false,
   accessibilityState,
   ...props
 }: MobileButtonProps) {
@@ -66,7 +76,7 @@ export function Button({
     buttonVariants[variant ?? (danger ? "danger" : secondary ? "outline" : "primary")];
   const unavailable = disabled || loading;
   return (
-    <View className="mb-2">
+    <View className={inline ? "" : "mb-2"}>
       <Pressable
         {...props}
         accessibilityRole="button"
@@ -75,7 +85,7 @@ export function Button({
         aria-busy={loading}
         disabled={unavailable}
         onPress={onPress}
-        className={`min-h-control flex-row items-center justify-center gap-2 rounded-control px-4 py-3 web:focus-visible:outline-2 web:focus-visible:outline-offset-2 web:focus-visible:outline-ring ${appearance.container} ${unavailable ? "opacity-55" : ""}`}
+        className={`${compact ? "min-h-touch px-3 py-2" : "min-h-control px-4 py-3"} flex-row items-center justify-center gap-2 rounded-control web:focus-visible:outline-2 web:focus-visible:outline-offset-2 web:focus-visible:outline-ring ${appearance.container} ${unavailable ? "opacity-55" : ""}`}
       >
         {loading ? (
           <ThemedActivityIndicator
@@ -88,10 +98,11 @@ export function Button({
           leadingIcon
         )}
         <Text
-          className={`min-w-0 shrink text-center font-body-bold text-label leading-6 ${appearance.label}`}
+          className={`min-w-0 shrink text-center font-body-bold ${compact ? "text-[12px] leading-5" : "text-label leading-6"} ${appearance.label}`}
         >
           {label}
         </Text>
+        {!loading ? trailingIcon : null}
       </Pressable>
       {hint ? <Text className="mt-1 font-body text-label leading-5 text-muted">{hint}</Text> : null}
     </View>

@@ -17,6 +17,7 @@ export interface WorkspaceTabsProps {
   onSelect: (key: string) => void;
 }
 export interface StatusPillProps {
+  compact?: boolean;
   label: string;
   tone?: "green" | "amber" | "blue" | "neutral" | "red";
 }

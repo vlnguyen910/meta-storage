@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Linking } from "react-native";
 import type { AppointmentFilter } from "../../common/customer-home.types";
 import {
   appointmentEnd,
@@ -16,18 +15,6 @@ import { api } from "../../lib/api";
 import { WEB_BASE_URL } from "../../lib/runtime-config";
 import { CUSTOMER_HOME as M } from "./customer-home.messages";
 
-export function useCustomerLinks() {
-  const [error, setError] = useState<string>();
-  async function openWeb(path: string) {
-    setError(undefined);
-    try {
-      await Linking.openURL(`${WEB_BASE_URL}${path}`);
-    } catch {
-      setError(M.openWebError);
-    }
-  }
-  return { openWeb, error };
-}
 function useNow() {
   const [now, setNow] = useState(Date.now);
   useEffect(() => {
@@ -46,7 +33,6 @@ export function useCustomerAppointments(owner: string) {
 export function useCustomerHome(owner: string) {
   const now = useNow();
   const [search, setSearch] = useState("");
-  const [submittedSearch, setSubmittedSearch] = useState("");
   const appointments = useCustomerAppointments(owner);
   const rentals = useQuery({
     queryKey: ["customer-home-rentals", owner],
@@ -54,36 +40,35 @@ export function useCustomerHome(owner: string) {
     staleTime: 30000,
   });
   const facilities = useQuery({
-    queryKey: ["customer-home-facilities", submittedSearch],
+    queryKey: ["customer-home-facilities"],
     queryFn: () =>
       api.facilities.catalog({
-        search: submittedSearch || undefined,
         page: 1,
         pageSize: 6,
         sort: "name",
       }),
     staleTime: 60000,
   });
-  const links = useCustomerLinks();
   const items = appointments.data ?? [];
+  const today = items
+    .filter(
+      (a) =>
+        a.scheduledDate === vietnamDate(now) && isOpenAppointment(a) && appointmentEnd(a) >= now,
+    )
+    .sort((a, b) => appointmentStart(a) - appointmentStart(b));
   return {
     appointments,
     rentals,
     facilities,
     now,
     search,
-    submittedSearch,
     setSearch,
-    ...links,
     next: nextCheckIn(items, now),
-    todayCount: items.filter(
-      (a) =>
-        a.scheduledDate === vietnamDate(now) && isOpenAppointment(a) && appointmentEnd(a) >= now,
-    ).length,
+    todayCount: today.length,
+    todayAppointment: today[0],
     rentalCount: rentals.data
       ? `${rentals.data.items.filter((r) => r.status === "ACTIVE").length}${rentals.data.nextCursor ? "+" : ""}`
       : "—",
-    find: () => setSubmittedSearch(search.trim()),
     refresh: () => Promise.all([appointments.refetch(), rentals.refetch(), facilities.refetch()]),
     refreshing: appointments.isRefetching || rentals.isRefetching || facilities.isRefetching,
   };

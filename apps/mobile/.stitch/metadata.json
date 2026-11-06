@@ -2,7 +2,7 @@
   "projectId": "259132084655583484",
   "title": "Remix of StoreX Storage Finder",
   "deviceType": "MOBILE",
-  "Last Sync Time": "2026-11-05T17:30:23.798Z",
+  "Last Sync Time": "2026-11-06T01:41:36.905830+00:00",
   "screens": {
     "home": {
       "deviceType": "MOBILE",
@@ -53,6 +53,108 @@
         "name": "projects/259132084655583484/files/3243367058112023929"
       },
       "title": "Tất cả lịch hẹn - MetaStorage Mobile",
+      "width": "780"
+    },
+    "discovery": {
+      "deviceType": "MOBILE",
+      "height": "4012",
+      "htmlCode": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/259132084655583484/files/10697433914076264642:download",
+        "mimeType": "text/html",
+        "name": "projects/259132084655583484/files/10697433914076264642"
+      },
+      "name": "projects/259132084655583484/screens/d2b08938d1d34a809ba7edde4f796e8b",
+      "screenshot": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/259132084655583484/files/7387338618801516049:download",
+        "mimeType": "image/jpeg",
+        "name": "projects/259132084655583484/files/7387338618801516049"
+      },
+      "title": "Khám phá cơ sở kho - MetaStorage Mobile",
+      "width": "780"
+    },
+    "booking-units": {
+      "deviceType": "MOBILE",
+      "height": "2458",
+      "htmlCode": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/259132084655583484/files/4092605065940993521:download",
+        "mimeType": "text/html",
+        "name": "projects/259132084655583484/files/4092605065940993521"
+      },
+      "name": "projects/259132084655583484/screens/7bbbf2388856462dbd00c7e12482d9e0",
+      "screenshot": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/259132084655583484/files/846636179938286814:download",
+        "mimeType": "image/jpeg",
+        "name": "projects/259132084655583484/files/846636179938286814"
+      },
+      "title": "Bước 1: Chọn loại kho - MetaStorage Mobile",
+      "width": "780"
+    },
+    "booking-details": {
+      "deviceType": "MOBILE",
+      "height": "3290",
+      "htmlCode": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/259132084655583484/files/5275717102290871869:download",
+        "mimeType": "text/html",
+        "name": "projects/259132084655583484/files/5275717102290871869"
+      },
+      "name": "projects/259132084655583484/screens/7dd74c1064504a8abc43dba47799eb62",
+      "screenshot": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/259132084655583484/files/7025846507571553080:download",
+        "mimeType": "image/jpeg",
+        "name": "projects/259132084655583484/files/7025846507571553080"
+      },
+      "title": "Bước 2: Thông tin & Lịch hẹn - MetaStorage Mobile",
+      "width": "780"
+    },
+    "booking-review": {
+      "deviceType": "MOBILE",
+      "height": "2752",
+      "htmlCode": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/259132084655583484/files/12443263989130524161:download",
+        "mimeType": "text/html",
+        "name": "projects/259132084655583484/files/12443263989130524161"
+      },
+      "name": "projects/259132084655583484/screens/ac66df28b6af4b5186117bc7ff186be1",
+      "screenshot": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/259132084655583484/files/15333800820765331444:download",
+        "mimeType": "image/jpeg",
+        "name": "projects/259132084655583484/files/15333800820765331444"
+      },
+      "title": "Bước 3: Xem đơn thuê - MetaStorage Mobile",
+      "width": "780"
+    },
+    "booking-payment": {
+      "deviceType": "MOBILE",
+      "height": "2948",
+      "htmlCode": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/259132084655583484/files/6055453398509386295:download",
+        "mimeType": "text/html",
+        "name": "projects/259132084655583484/files/6055453398509386295"
+      },
+      "name": "projects/259132084655583484/screens/805e7b37634148f5aef48c681c5f8130",
+      "screenshot": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/259132084655583484/files/14546785742228662046:download",
+        "mimeType": "image/jpeg",
+        "name": "projects/259132084655583484/files/14546785742228662046"
+      },
+      "title": "Bước 4: Thanh toán - MetaStorage Mobile",
+      "width": "780"
+    },
+    "booking-success": {
+      "deviceType": "MOBILE",
+      "height": "3152",
+      "htmlCode": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/259132084655583484/files/9101826632268651913:download",
+        "mimeType": "text/html",
+        "name": "projects/259132084655583484/files/9101826632268651913"
+      },
+      "name": "projects/259132084655583484/screens/d65986c392864eb9befb2971cef3606b",
+      "screenshot": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/259132084655583484/files/2001551700126663747:download",
+        "mimeType": "image/jpeg",
+        "name": "projects/259132084655583484/files/2001551700126663747"
+      },
+      "title": "Bước 5: Đặt kho thành công - MetaStorage Mobile",
       "width": "780"
     }
   },

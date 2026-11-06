@@ -39,7 +39,7 @@ for (const [width, height] of [
       await openFoundation(page);
       const tabs = page.getByRole("tablist", { name: "Điều hướng chính" });
       await expect(tabs.getByRole("tab")).toHaveCount(3);
-      for (const label of ["Home", "Kho của tôi", "Profile"]) {
+      for (const label of ["Trang chủ", "Kho của tôi", "Tài khoản"]) {
         const tab = tabs.getByRole("tab", { name: label, exact: true });
         await expect(tab).toBeVisible();
         const box = await tab.boundingBox();
@@ -53,7 +53,7 @@ for (const [width, height] of [
       }
       const bell = page.getByRole("button", { name: "Thông báo", exact: true });
       expect((await bell.boundingBox())?.width).toBeGreaterThanOrEqual(44);
-      const logo = page.getByRole("button", { name: "Về Home" }).locator("img");
+      const logo = page.getByRole("button", { name: "Về trang chủ" }).locator("img");
       await expect
         .poll(() =>
           logo.evaluate(
@@ -79,10 +79,10 @@ test("header actions, back and three controlled tabs work", async ({ page }) => 
   await page.getByRole("button", { name: "Xem chi tiết", exact: true }).tap();
   await page.getByRole("button", { name: "Quay lại", exact: true }).tap();
   await expect(page.getByTestId("foundation-feedback")).toHaveText("Đã quay lại");
-  const profile = page.getByRole("tab", { name: "Profile", exact: true });
+  const profile = page.getByRole("tab", { name: "Tài khoản", exact: true });
   await profile.tap();
   await expect(profile).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("tab", { name: "Home", exact: true })).toHaveAttribute(
+  await expect(page.getByRole("tab", { name: "Trang chủ", exact: true })).toHaveAttribute(
     "aria-selected",
     "false",
   );
@@ -91,8 +91,8 @@ test("header actions, back and three controlled tabs work", async ({ page }) => 
     "aria-selected",
     "true",
   );
-  await page.getByRole("button", { name: "Về Home" }).tap();
-  await expect(page.getByRole("tab", { name: "Home", exact: true })).toHaveAttribute(
+  await page.getByRole("button", { name: "Về trang chủ" }).tap();
+  await expect(page.getByRole("tab", { name: "Trang chủ", exact: true })).toHaveAttribute(
     "aria-selected",
     "true",
   );

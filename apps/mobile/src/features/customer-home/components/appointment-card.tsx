@@ -1,4 +1,4 @@
-import { CalendarClock, MapPin, Warehouse } from "lucide-react-native";
+import { CalendarClock, Eye, QrCode, Warehouse } from "lucide-react-native";
 import { Pressable, Text, View } from "react-native";
 import type { AppointmentCardProps } from "../../../common/customer-home.types";
 import {
@@ -8,6 +8,7 @@ import {
 } from "../../../common/customer-home.utils";
 import { Button, Card, Icon, StatusPill } from "../../../components/ui";
 import { CUSTOMER_HOME as M } from "../customer-home.messages";
+import { FacilitySummary } from "./facility-card";
 
 export function AppointmentCard({ appointment: a, onPress, variant }: AppointmentCardProps) {
   const label = `${M.view}: ${a.facility?.name ?? M.unknownFacility}, ${formatAppointmentDate(a.scheduledDate)}`;
@@ -25,23 +26,13 @@ export function AppointmentCard({ appointment: a, onPress, variant }: Appointmen
         onPress={onPress}
         className="rounded-card active:opacity-80 web:focus-visible:outline-2 web:focus-visible:outline-offset-2 web:focus-visible:outline-ring"
       >
-        <Card compact>
+        <Card compact outlined>
           <View className="mb-3 flex-row items-start gap-3">
             <View className="min-w-0 flex-1 gap-1">
               <View className="items-start">
-                <StatusPill label={M.statuses[a.status]} tone={tone} />
+                <StatusPill label={M.statuses[a.status]} tone={tone} compact />
               </View>
-              <Text className="font-body-bold text-[18px] leading-6 text-ink">
-                {a.facility?.name ?? M.unknownFacility}
-              </Text>
-              {a.facility?.address ? (
-                <View className="flex-row gap-1">
-                  <Icon as={MapPin} size={14} className="mt-1 text-muted" />
-                  <Text className="shrink font-body text-[12px] leading-5 text-muted">
-                    {a.facility.address}
-                  </Text>
-                </View>
-              ) : null}
+              <FacilitySummary name={a.facility?.name} address={a.facility?.address} />
             </View>
             <View className="w-[96px] gap-1">
               <View className="rounded-control bg-customer-subtle px-2 py-2">
@@ -67,49 +58,53 @@ export function AppointmentCard({ appointment: a, onPress, variant }: Appointmen
       </Pressable>
     );
   return (
-    <Card compact>
-      <View className="mb-3 flex-row flex-wrap items-center justify-between gap-2">
-        <StatusPill label={M.statuses[a.status]} tone={tone} />
-        <View className="items-end gap-1">
-          <Text className="font-body-medium text-[12px] text-muted">
-            {M.types[a.appointmentType]}
-          </Text>
+    <Card compact outlined>
+      <View className="absolute right-0 top-0 rounded-bl-control rounded-tr-card bg-customer-mint px-3 py-1">
+        <Text className="font-body-bold text-[10px] uppercase text-primary-dark">
+          {M.statuses[a.status]}
+        </Text>
+      </View>
+      <View className="mb-3 mt-1 flex-row items-start gap-3">
+        <View className="mt-1 h-10 w-10 items-center justify-center rounded-control border border-outline-variant/60 bg-customer-subtle">
+          <Icon as={QrCode} size={22} className="text-primary" />
+        </View>
+        <View className="min-w-0 flex-1 gap-1 pt-3">
           {a.paymentStatus ? (
-            <Text className="font-body-medium text-[12px] text-primary">
-              {paymentLabel(a.paymentStatus)}
-            </Text>
+            <StatusPill
+              compact
+              label={paymentLabel(a.paymentStatus)}
+              tone={a.paymentStatus === "SUCCEEDED" ? "green" : "amber"}
+            />
           ) : null}
+          <FacilitySummary compact name={a.facility?.name} address={a.facility?.address} />
         </View>
       </View>
-      <Text
-        accessibilityRole="header"
-        className="mb-2 font-body-bold text-[18px] leading-7 text-ink"
-      >
-        {a.facility?.name ?? M.unknownFacility}
-      </Text>
-      {a.facility?.address ? (
-        <View className="mb-3 flex-row gap-2">
-          <Icon as={MapPin} size={16} className="mt-1 text-muted" />
-          <Text className="shrink font-body text-label leading-6 text-muted">
-            {a.facility.address}
+      <View className="mb-3 gap-1 rounded-control bg-customer-subtle px-3 py-2">
+        <View className="flex-row items-center gap-2">
+          <Icon as={Warehouse} size={16} className="text-primary" />
+          <Text className="shrink font-body text-[12px] leading-5 text-ink">
+            {M.size}:{" "}
+            <Text className="font-body-bold">{a.unitType?.sizeLabel ?? M.unassigned}</Text>
+            {a.assignedUnit ? ` · ${a.assignedUnit.physicalUnitCode}` : ""}
           </Text>
         </View>
-      ) : null}
-      <View className="mb-3 gap-1 rounded-control bg-customer-subtle p-2">
-        <View className="flex-row gap-2">
-          <Icon as={CalendarClock} size={18} className="text-primary" />
-          <Text className="shrink font-body-semibold text-label leading-6 text-ink">
+        <View className="flex-row items-center gap-2 border-t border-outline-variant/40 pt-1">
+          <Icon as={CalendarClock} size={16} className="text-warning-strong" />
+          <Text className="shrink font-body-semibold text-[12px] leading-5 text-warning-strong">
             {appointmentTime(a)} · {formatAppointmentDate(a.scheduledDate)}
           </Text>
         </View>
-        <View className="flex-row gap-2">
-          <Icon as={Warehouse} size={18} className="text-primary" />
-          <Text className="shrink font-body text-label leading-6 text-ink">
-            {a.assignedUnit?.physicalUnitCode ?? a.unitType?.sizeLabel ?? M.unassigned}
-          </Text>
-        </View>
       </View>
-      <Button label={M.view} accessibilityLabel={label} onPress={onPress} />
+      <View className="w-[52%]">
+        <Button
+          compact
+          inline
+          label={M.view}
+          accessibilityLabel={label}
+          leadingIcon={<Icon as={Eye} size={18} className="text-white" />}
+          onPress={onPress}
+        />
+      </View>
     </Card>
   );
 }

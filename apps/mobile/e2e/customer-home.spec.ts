@@ -151,7 +151,7 @@ test("detail uses actual assignment, dimensions, payment and reference QR withou
   expect(calls.some((c) => c.path.endsWith(`/appointments/${appointment.id}`))).toBeTruthy();
   expect(calls.every((c) => c.method === "GET")).toBeTruthy();
 });
-test("facility search uses catalog parameters and selection keeps the facility context", async ({
+test("facility search uses catalog parameters and selection stays inside the app", async ({
   page,
 }) => {
   await setup(page);
@@ -164,21 +164,12 @@ test("facility search uses catalog parameters and selection keeps the facility c
   });
   await page.getByRole("button", { name: "Tìm kho", exact: true }).tap();
   await request;
-  await expect(page.getByRole("heading", { name: "Kho Hà Nội", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Chọn cơ sở", exact: true })).toHaveCount(1);
-  await page
-    .context()
-    .route("**/customer/booking/new?**", (route) =>
-      route.fulfill({ contentType: "text/html", body: "<title>Booking destination</title>" }),
-    );
-  const popup = page.waitForEvent("popup");
-  await page.getByRole("button", { name: "Chọn cơ sở", exact: true }).tap();
-  const booking = await popup;
-  await expect(booking).toHaveURL(/\/customer\/booking\/new\?/);
-  const destination = new URL(booking.url());
-  expect(destination.pathname).toBe("/customer/booking/new");
-  expect(destination.searchParams.get("facilityId")).toBe(id(21));
-  expect(destination.searchParams.get("new")).toBe("1");
+  await expect(page.getByText("Kho Hà Nội", { exact: true })).toBeVisible();
+  const selection = page.getByRole("button", { name: "Xem kho & Đặt", exact: true });
+  await expect(selection).toHaveCount(1);
+  await selection.tap();
+  await expect(page.getByRole("heading", { name: "Đặt kho mới", exact: true })).toBeVisible();
+  expect(page.context().pages()).toHaveLength(1);
 });
 test("calendar uses real Vietnamese dates, filters status and supports navigating weeks", async ({
   page,

@@ -1,6 +1,6 @@
 export const APP_UI = {
-  brand: "metastorage",
-  home: "Về Home",
+  brand: "MetaStorage",
+  home: "Về trang chủ",
   back: "Quay lại",
   notifications: "Thông báo",
   navigation: "Điều hướng chính",
@@ -8,5 +8,5 @@ export const APP_UI = {
   clearSearch: "Xóa nội dung tìm kiếm",
   showPassword: "Hiện mật khẩu",
   hidePassword: "Ẩn mật khẩu",
-  tabs: { home: "Home", rentals: "Kho của tôi", profile: "Profile" },
+  tabs: { home: "Trang chủ", rentals: "Kho của tôi", profile: "Tài khoản" },
 };

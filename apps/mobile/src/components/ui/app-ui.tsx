@@ -9,18 +9,19 @@ import {
   X,
 } from "lucide-react-native";
 import { useRef } from "react";
-import { Image, Pressable, Text, type TextInput, View } from "react-native";
+import { Image, Pressable, Text, TextInput, View } from "react-native";
 import type {
+  ActionLinkProps,
   AppHeaderProps,
   BottomTabsProps,
   CustomerTab,
   IconButtonProps,
   ListItemProps,
   SearchFieldProps,
+  SectionHeadingProps,
 } from "../../common/app-ui.types";
 import { APP_UI as M } from "./app-ui.messages";
 import { Icon } from "./icon";
-import { ThemedTextInput } from "./native-styles";
 
 const customerTabs = [
   { key: "home", label: M.tabs.home, icon: House },
@@ -28,7 +29,13 @@ const customerTabs = [
   { key: "profile", label: M.tabs.profile, icon: CircleUserRound },
 ] as const satisfies readonly { key: CustomerTab; label: string; icon: IconButtonProps["icon"] }[];
 
-export function IconButton({ icon, label, onPress, disabled = false }: IconButtonProps) {
+export function IconButton({
+  icon,
+  label,
+  onPress,
+  disabled = false,
+  inverse = false,
+}: IconButtonProps) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -36,16 +43,16 @@ export function IconButton({ icon, label, onPress, disabled = false }: IconButto
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
-      className={`min-h-touch min-w-touch items-center justify-center rounded-control active:bg-primary-soft web:focus-visible:outline-2 web:focus-visible:outline-offset-2 web:focus-visible:outline-ring ${disabled ? "opacity-55" : ""}`}
+      className={`min-h-touch min-w-touch items-center justify-center rounded-control ${inverse ? "active:bg-white/15" : "active:bg-primary-soft"} web:focus-visible:outline-2 web:focus-visible:outline-offset-2 web:focus-visible:outline-ring ${disabled ? "opacity-55" : ""}`}
     >
-      <Icon as={icon} className="text-primary" />
+      <Icon as={icon} className={inverse ? "text-primary-foreground" : "text-primary"} />
     </Pressable>
   );
 }
 
 export function AppHeader({ onHome, onBack, onNotifications }: AppHeaderProps) {
   return (
-    <View className="border-b border-line bg-surface px-4 py-2">
+    <View className="bg-transparent px-4 py-2">
       <View className="mx-auto w-full max-w-3xl flex-row items-center gap-2">
         {onBack ? <IconButton icon={ArrowLeft} label={M.back} onPress={onBack} /> : null}
         <Pressable
@@ -59,9 +66,9 @@ export function AppHeader({ onHome, onBack, onNotifications }: AppHeaderProps) {
             source={require("../../../assets/logo/logo.png")}
             accessible={false}
             resizeMode="contain"
-            className="h-[32px] w-[44px] web:h-[32px]! web:w-[44px]!"
+            className="h-[28px] w-[36px] web:h-[28px]! web:w-[36px]!"
           />
-          <Text numberOfLines={1} className="shrink font-body-bold text-[20px] text-primary">
+          <Text numberOfLines={1} className="shrink font-body-bold text-[16px] text-primary">
             {M.brand}
           </Text>
         </Pressable>
@@ -73,7 +80,7 @@ export function AppHeader({ onHome, onBack, onNotifications }: AppHeaderProps) {
 
 export function BottomTabs({ selected, onSelect, labels }: BottomTabsProps) {
   return (
-    <View className="border-t border-line bg-surface px-4 py-2">
+    <View className="border-t border-line bg-customer-canvas px-4 py-1">
       <View
         accessibilityRole="tablist"
         accessibilityLabel={M.navigation}
@@ -90,18 +97,18 @@ export function BottomTabs({ selected, onSelect, labels }: BottomTabsProps) {
               accessibilityState={{ selected: active }}
               aria-selected={active}
               onPress={() => onSelect(tab.key)}
-              className="min-h-touch min-w-touch flex-1 items-center justify-center gap-1 rounded-control py-1 active:bg-primary-soft web:focus-visible:outline-2 web:focus-visible:outline-offset-2 web:focus-visible:outline-ring"
+              className="min-h-touch min-w-touch flex-1 items-center justify-center rounded-control py-1 active:bg-primary-soft web:focus-visible:outline-2 web:focus-visible:outline-offset-2 web:focus-visible:outline-ring"
             >
               <View
-                className={`items-center justify-center rounded-full px-5 py-1 ${active ? "bg-primary-soft" : "bg-transparent"}`}
+                className={`min-w-[90px] items-center justify-center gap-1 rounded-control px-3 py-1 ${active ? "bg-customer-mint" : "bg-transparent"}`}
               >
                 <Icon as={tab.icon} className={active ? "text-primary" : "text-muted"} />
+                <Text
+                  className={`text-[12px] leading-5 ${active ? "font-body-bold text-primary" : "font-body-medium text-muted"}`}
+                >
+                  {label}
+                </Text>
               </View>
-              <Text
-                className={`text-[12px] leading-5 ${active ? "font-body-bold text-primary" : "font-body-medium text-muted"}`}
-              >
-                {label}
-              </Text>
             </Pressable>
           );
         })}
@@ -117,34 +124,38 @@ export function SearchField({
   placeholder = M.search,
   onSubmit,
   disabled = false,
+  inverse = false,
+  trailing,
 }: SearchFieldProps) {
   const input = useRef<TextInput>(null);
   return (
     <View
-      className={`mb-4 min-h-control flex-row items-center rounded-control border border-outline-variant bg-surface px-1 ${disabled ? "opacity-55" : ""}`}
+      className={`min-h-control flex-row items-center rounded-control border px-1 ${inverse ? "border-white/25 bg-white/15" : "mb-4 border-outline-variant bg-surface"} ${disabled ? "opacity-55" : ""}`}
     >
-      <View className="min-h-touch min-w-touch items-center justify-center">
-        <Icon as={Search} className="text-muted" />
+      <View className="min-h-touch w-8 items-center justify-center">
+        <Icon as={Search} size={18} className={inverse ? "text-white" : "text-muted"} />
       </View>
-      <ThemedTextInput
-        ref={input}
-        accessibilityLabel={label}
-        editable={!disabled}
-        aria-disabled={disabled}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderClassName="text-muted"
-        selectionClassName="text-primary"
-        autoCapitalize="none"
-        autoCorrect={false}
-        returnKeyType="search"
-        onSubmitEditing={() => onSubmit?.(value.trim())}
-        className="min-h-control min-w-0 flex-1 rounded-control px-1 py-2 font-body text-body leading-6 text-ink placeholder:text-muted web:focus:outline-2 web:focus:outline-offset-2 web:focus:outline-ring"
-      />
+      <View className="min-w-0 flex-1">
+        <TextInput
+          ref={input}
+          accessibilityLabel={label}
+          editable={!disabled}
+          aria-disabled={disabled}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          maxLength={200}
+          autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="search"
+          onSubmitEditing={() => onSubmit?.(value.trim())}
+          className={`min-h-touch w-full rounded-control px-1 py-2 font-body leading-6 web:focus:outline-2 web:focus:outline-offset-2 web:focus:outline-ring ${inverse ? "text-[12px] text-primary-foreground placeholder:text-primary-foreground/85" : "text-body text-ink placeholder:text-muted"}`}
+        />
+      </View>
       {value && !disabled ? (
         <IconButton
           icon={X}
+          inverse={inverse}
           label={M.clearSearch}
           onPress={() => {
             onChangeText("");
@@ -152,6 +163,51 @@ export function SearchField({
           }}
         />
       ) : null}
+      {trailing ? <View className="shrink-0">{trailing}</View> : null}
+    </View>
+  );
+}
+
+export function ActionLink({
+  disabled = false,
+  label,
+  onPress,
+  icon = ChevronRight,
+  warning = false,
+}: ActionLinkProps) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityState={{ disabled }}
+      className="min-h-touch min-w-touch flex-row items-center justify-between gap-2 rounded-control web:focus-visible:outline-2 web:focus-visible:outline-ring"
+    >
+      <Text
+        className={`shrink font-body-semibold text-[12px] leading-5 ${warning ? "text-warning-strong" : "text-primary"}`}
+      >
+        {label}
+      </Text>
+      <Icon as={icon} size={16} className={warning ? "text-warning-strong" : "text-primary"} />
+    </Pressable>
+  );
+}
+
+export function SectionHeading({ title, actionLabel, onAction }: SectionHeadingProps) {
+  return (
+    <View className="mb-2 min-h-touch flex-row items-center justify-between gap-2">
+      <View className="min-w-0 flex-1 flex-row items-center gap-2">
+        <View className="h-2 w-2 rounded-full bg-primary" />
+        <Text
+          accessibilityRole="header"
+          aria-level={2}
+          className="shrink font-body-bold text-label leading-5 text-ink"
+        >
+          {title}
+        </Text>
+      </View>
+      {actionLabel && onAction ? <ActionLink label={actionLabel} onPress={onAction} /> : null}
     </View>
   );
 }
