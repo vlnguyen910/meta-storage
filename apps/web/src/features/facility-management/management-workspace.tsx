@@ -20,7 +20,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
-import { Input, Select } from "@/components/ui/form-controls";
+import { Input } from "@/components/ui/form-controls";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import {
@@ -1123,10 +1123,22 @@ function FacilityMembershipsTable({
             })}
           >
             <ManagementField label={F5.role} error={form.formState.errors.role?.message}>
-              <Select {...form.register("role", { onChange: () => form.setValue("userId", "") })}>
-                <option value="FACILITY_STAFF">{F5.employee}</option>
-                <option value="FACILITY_MANAGER">{F5.manager}</option>
-              </Select>
+              <DropdownSelect
+                value={form.watch("role")}
+                onChange={(val) => {
+                  form.setValue("role", val as "FACILITY_STAFF" | "FACILITY_MANAGER", {
+                    shouldValidate: true,
+                  });
+                  form.setValue("userId", "");
+                }}
+                options={[
+                  { value: "FACILITY_STAFF", label: F5.employee },
+                  { value: "FACILITY_MANAGER", label: F5.manager },
+                ]}
+                ariaLabel={F5.role}
+                className="w-full"
+                triggerClassName="h-10 min-h-10 w-full bg-slate-50/50 border-slate-200 rounded-lg text-xs font-semibold text-slate-800"
+              />
             </ManagementField>
 
             <ManagementField
@@ -1134,16 +1146,22 @@ function FacilityMembershipsTable({
               error={form.formState.errors.userId?.message}
             >
               {isAdmin ? (
-                <Select {...form.register("userId")}>
-                  <option value="">{F5.choose}</option>
-                  {accounts.data
-                    ?.filter((item) => item.status === "ACTIVE" && item.role === role)
-                    .map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.name} · {item.email}
-                      </option>
-                    ))}
-                </Select>
+                <DropdownSelect
+                  value={form.watch("userId")}
+                  onChange={(val) => form.setValue("userId", val, { shouldValidate: true })}
+                  placeholder={F5.choose}
+                  ariaLabel={isAdmin ? F5.user : F5.userId}
+                  options={
+                    accounts.data
+                      ?.filter((item) => item.status === "ACTIVE" && item.role === role)
+                      .map((item) => ({
+                        value: item.id,
+                        label: `${item.name} · ${item.email}`,
+                      })) ?? []
+                  }
+                  className="w-full"
+                  triggerClassName="h-10 min-h-10 w-full bg-slate-50/50 border-slate-200 rounded-lg text-xs font-semibold text-slate-800"
+                />
               ) : (
                 <Input
                   {...form.register("userId")}

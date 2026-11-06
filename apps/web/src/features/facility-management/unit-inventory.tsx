@@ -16,7 +16,7 @@ import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
-import { Input, Select } from "@/components/ui/form-controls";
+import { Input } from "@/components/ui/form-controls";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { OperationalPageHeader } from "@/components/ui/operational";
 import { ErrorState, LoadingState } from "@/components/ui/states";
@@ -648,20 +648,23 @@ function UnitEditor({
           />
         </ManagementField>
         <ManagementField label={F5.unitType} error={form.formState.errors.unitTypeId?.message}>
-          <Select
-            {...form.register("unitTypeId")}
-            className="h-10 min-h-10 rounded-lg border-slate-200 bg-slate-50/50 text-xs pl-3 pr-9 focus:bg-white"
-          >
-            <option value="">{F5.choose}</option>
-            {unit && !types.data?.some((item) => item.id === unit.unitTypeId) && (
-              <option value={unit.unitTypeId}>{formatReference(unit.unitTypeId, "LK")}</option>
-            )}
-            {types.data?.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name} · {item.sizeLabel}
-              </option>
-            ))}
-          </Select>
+          <DropdownSelect
+            value={form.watch("unitTypeId")}
+            onChange={(val) => form.setValue("unitTypeId", val, { shouldValidate: true })}
+            placeholder={F5.choose}
+            ariaLabel={F5.unitType}
+            options={[
+              ...(unit && !types.data?.some((item) => item.id === unit.unitTypeId)
+                ? [{ value: unit.unitTypeId, label: formatReference(unit.unitTypeId, "LK") }]
+                : []),
+              ...(types.data?.map((item) => ({
+                value: item.id,
+                label: `${item.name} · ${item.sizeLabel}`,
+              })) ?? []),
+            ]}
+            className="w-full"
+            triggerClassName="h-10 min-h-10 w-full bg-slate-50/50 border-slate-200 rounded-lg text-xs font-semibold text-slate-800"
+          />
         </ManagementField>
         <div className="grid grid-cols-2 gap-3">
           <ManagementField label={F5.floor} error={form.formState.errors.floor?.message}>

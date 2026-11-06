@@ -52,11 +52,12 @@ it("shows six lookup columns and sends filters, Vietnam day boundaries and pagin
   fireEvent.change(screen.getByLabelText(M.activityLogs.search), {
     target: { value: "  Nguyễn  " },
   });
-  fireEvent.change(screen.getByLabelText(M.activityLogs.role), {
-    target: { value: "FACILITY_MANAGER" },
-  });
-  fireEvent.change(screen.getByLabelText(M.actionFilter), { target: { value: "UPDATE" } });
-  fireEvent.change(screen.getByLabelText(M.activityLogs.module), { target: { value: "USER" } });
+  fireEvent.click(screen.getByRole("button", { name: M.activityLogs.role }));
+  fireEvent.click(screen.getByRole("option", { name: "Quản lý cơ sở" }));
+  fireEvent.click(screen.getByRole("button", { name: M.actionFilter }));
+  fireEvent.click(screen.getByRole("option", { name: "Cập nhật" }));
+  fireEvent.click(screen.getByRole("button", { name: M.activityLogs.module }));
+  fireEvent.click(screen.getByRole("option", { name: "Tài khoản" }));
   fireEvent.change(screen.getByLabelText(M.activityLogs.from), { target: { value: "2026-11-01" } });
   fireEvent.change(screen.getByLabelText(M.activityLogs.to), { target: { value: "2026-11-02" } });
   fireEvent.click(screen.getByRole("button", { name: M.activityLogs.apply }));

@@ -1,7 +1,15 @@
 "use client";
 
+import { Controller } from "react-hook-form";
 import { Button } from "@/components/ui/button";
-import { FieldShell, Input, Select } from "@/components/ui/form-controls";
+import { FieldShell, Input } from "@/components/ui/form-controls";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { formatCurrency } from "@/lib/format";
 import { OPERATIONS_MESSAGES as M } from "./operations.messages";
 import { operationsRules } from "./operations.mock";
@@ -85,11 +93,22 @@ function OperationsFeesForm() {
         <section className="grid content-start gap-5 rounded-card border border-outline-variant bg-surface-container-lowest p-6 shadow-[0_1px_2px_rgb(15_23_42_/_0.04)]">
           <h2 className="text-xl font-bold text-primary">{M.depositPolicy}</h2>
           <FieldShell label={M.depositMethod} error={errors.method?.message}>
-            <Select {...register("method")}>
-              <option value="unconfigured">{M.unconfigured}</option>
-              <option value="fixed">{M.fixed}</option>
-              <option value="percentage">{M.percent}</option>
-            </Select>
+            <Controller
+              control={form.control}
+              name="method"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={M.depositMethod} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unconfigured">{M.unconfigured}</SelectItem>
+                    <SelectItem value="fixed">{M.fixed}</SelectItem>
+                    <SelectItem value="percentage">{M.percent}</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </FieldShell>
           <FieldShell label={M.depositValue} error={errors.value?.message}>
             <Input type="number" min={0} step="any" {...register("value")} />

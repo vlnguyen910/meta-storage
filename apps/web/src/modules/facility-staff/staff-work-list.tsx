@@ -13,7 +13,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/form-controls";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/states";
 import {
@@ -278,23 +278,24 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
                 {M.kind}
               </label>
             </div>
-            <Select
-              id="staff-work-kind"
+            <DropdownSelect
+              ariaLabel={M.kind}
               value={filters.kind}
-              onChange={(event) => {
-                const kind = event.target.value as StaffWorkFilters["kind"];
+              onChange={(val) => {
+                const kind = val as StaffWorkFilters["kind"];
                 update({
                   kind,
                   group: kind === "TASK" && filters.group === "closed" ? "pending" : filters.group,
                 });
               }}
-              className="h-11 min-h-11 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-2.5 pr-8 text-sm text-slate-800 focus:bg-white"
-            >
-              <option value="">{M.allKinds}</option>
-              <option value="CHECK_IN">{M.bookingTasksTitle}</option>
-              <option value="RETURN">{M.return}</option>
-              <option value="TASK">{M.facilityTasksTitle}</option>
-            </Select>
+              options={[
+                { value: "", label: M.allKinds },
+                { value: "CHECK_IN", label: M.bookingTasksTitle },
+                { value: "RETURN", label: M.return },
+                { value: "TASK", label: M.facilityTasksTitle },
+              ]}
+              triggerClassName="h-11 min-h-11 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-sm text-slate-800 focus:bg-white"
+            />
           </div>
 
           <div className={filters.kind === "TASK" ? "sm:col-span-1" : ""}>

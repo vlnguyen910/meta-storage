@@ -27,7 +27,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Select } from "@/components/ui/form-controls";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { FLOW } from "./flow.messages";
@@ -393,28 +399,31 @@ export function InspectionScreen({
                 />
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
-                  <label
-                    htmlFor="inspection-condition-select"
-                    className="block text-xs font-semibold text-slate-700"
-                  >
+                  <div className="block text-xs font-semibold text-slate-700">
                     <span className="block mb-1.5">{FLOW.conditionReport}</span>
                     <Select
-                      id="inspection-condition-select"
-                      value={editor.values.condition ?? ""}
-                      onChange={(event) =>
+                      value={editor.values.condition ?? "NONE"}
+                      onValueChange={(val) =>
                         editor.setCondition(
-                          (event.target.value || null) as InspectionRecord["condition"],
+                          val === "NONE" ? null : (val as InspectionRecord["condition"]),
                         )
                       }
                       disabled={editor.busy || editor.locked}
-                      className="h-9.5 min-h-9.5 w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-3 pr-8 text-xs sm:text-sm text-slate-800 font-normal focus:bg-white"
                     >
-                      <option value="">— Chọn hiện trạng —</option>
-                      <option value="GOOD">Tốt</option>
-                      <option value="MINOR_DAMAGE">Hư hỏng nhẹ</option>
-                      <option value="MAJOR_DAMAGE">Hư hỏng nghiêm trọng</option>
+                      <SelectTrigger
+                        id="inspection-condition-select"
+                        className="h-9.5 min-h-9.5 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-xs sm:text-sm text-slate-800 font-normal focus:bg-white"
+                      >
+                        <SelectValue placeholder="— Chọn hiện trạng —" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="NONE">— Chọn hiện trạng —</SelectItem>
+                        <SelectItem value="GOOD">Tốt</SelectItem>
+                        <SelectItem value="MINOR_DAMAGE">Hư hỏng nhẹ</SelectItem>
+                        <SelectItem value="MAJOR_DAMAGE">Hư hỏng nghiêm trọng</SelectItem>
+                      </SelectContent>
                     </Select>
-                  </label>
+                  </div>
                   <label className="block text-xs font-semibold text-slate-700">
                     <span className="block mb-1.5">{FLOW.notesLabel}</span>
                     <textarea

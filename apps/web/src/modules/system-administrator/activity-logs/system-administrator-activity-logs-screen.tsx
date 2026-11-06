@@ -14,7 +14,8 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FieldShell, Input, Select } from "@/components/ui/form-controls";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
+import { FieldShell, Input } from "@/components/ui/form-controls";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/states";
 import {
@@ -135,38 +136,56 @@ export function SystemAdministratorActivityLogsScreen() {
         </div>
         <div className="lg:col-span-3">
           <FieldShell label={M.activityLogs.role}>
-            <Select {...form.register("role")} className={controlClass}>
-              <option value="">{M.allRoles}</option>
-              {Object.values(UserRole).map((role) => (
-                <option key={role} value={role}>
-                  {ADMIN_ROLE_LABELS[role]}
-                </option>
-              ))}
-            </Select>
+            <DropdownSelect
+              ariaLabel={M.activityLogs.role}
+              value={form.watch("role") || ""}
+              onChange={(val) => form.setValue("role", val, { shouldValidate: true })}
+              options={[
+                { value: "", label: M.allRoles },
+                ...Object.values(UserRole).map((role) => ({
+                  value: role,
+                  label: ADMIN_ROLE_LABELS[role] ?? role,
+                })),
+              ]}
+              className="w-full"
+              triggerClassName={controlClass}
+            />
           </FieldShell>
         </div>
         <div className="lg:col-span-2">
           <FieldShell label={M.actionFilter}>
-            <Select {...form.register("action")} className={controlClass}>
-              <option value="">{M.allActions}</option>
-              {Object.values(ActivityLogAction).map((action) => (
-                <option key={action} value={action}>
-                  {ACTIVITY_ACTION_LABELS[action]}
-                </option>
-              ))}
-            </Select>
+            <DropdownSelect
+              ariaLabel={M.actionFilter}
+              value={form.watch("action") || ""}
+              onChange={(val) => form.setValue("action", val, { shouldValidate: true })}
+              options={[
+                { value: "", label: M.allActions },
+                ...Object.values(ActivityLogAction).map((action) => ({
+                  value: action,
+                  label: ACTIVITY_ACTION_LABELS[action] ?? action,
+                })),
+              ]}
+              className="w-full"
+              triggerClassName={controlClass}
+            />
           </FieldShell>
         </div>
         <div className="col-span-2 lg:col-span-3">
           <FieldShell label={M.activityLogs.module}>
-            <Select {...form.register("entityType")} className={controlClass}>
-              <option value="">{M.activityLogs.allModules}</option>
-              {Object.values(ActivityLogEntityType).map((module) => (
-                <option key={module} value={module}>
-                  {ACTIVITY_MODULE_LABELS[module]}
-                </option>
-              ))}
-            </Select>
+            <DropdownSelect
+              ariaLabel={M.activityLogs.module}
+              value={form.watch("entityType") || ""}
+              onChange={(val) => form.setValue("entityType", val, { shouldValidate: true })}
+              options={[
+                { value: "", label: M.activityLogs.allModules },
+                ...Object.values(ActivityLogEntityType).map((module) => ({
+                  value: module,
+                  label: ACTIVITY_MODULE_LABELS[module] ?? module,
+                })),
+              ]}
+              className="w-full"
+              triggerClassName={controlClass}
+            />
           </FieldShell>
         </div>
         <div className="lg:col-span-3">

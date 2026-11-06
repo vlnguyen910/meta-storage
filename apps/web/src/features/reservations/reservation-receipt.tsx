@@ -15,7 +15,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Currency } from "@/components/ui/display";
-import { Select } from "@/components/ui/form-controls";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { customerRoutes } from "@/config/routes";
 import { customerApiError } from "@/features/bookings/customer-error";
@@ -101,22 +107,27 @@ export function ReservationReceipt({
               {customerApiError(createAppointment.error)}
             </p>
           )}
-          <label htmlFor="receipt-slot-select" className="block text-sm">
-            {m.chooseSlot}
+          <div className="block text-sm">
+            <span className="block mb-2 font-medium text-ink">{m.chooseSlot}</span>
             <Select
-              id="receipt-slot-select"
-              className="mt-2 block min-h-11 h-11 w-full rounded-lg border-line px-3"
-              value={slotId || suggestedSlot || ""}
-              onChange={(event) => setSlotId(event.target.value)}
+              value={slotId || suggestedSlot || undefined}
+              onValueChange={(val) => setSlotId(val)}
             >
-              <option value="">{m.chooseSlot}</option>
-              {state.slots.map((slot) => (
-                <option value={slot.id} key={slot.id}>
-                  {slot.name} · {slot.startTime.slice(0, 5)}–{slot.endTime.slice(0, 5)}
-                </option>
-              ))}
+              <SelectTrigger
+                id="receipt-slot-select"
+                className="block min-h-11 h-11 w-full rounded-lg border-line px-3 text-sm"
+              >
+                <SelectValue placeholder={m.chooseSlot} />
+              </SelectTrigger>
+              <SelectContent>
+                {state.slots.map((slot) => (
+                  <SelectItem value={slot.id} key={slot.id}>
+                    {slot.name} · {slot.startTime.slice(0, 5)}–{slot.endTime.slice(0, 5)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
-          </label>
+          </div>
           <Button
             loading={createAppointment.isPending}
             disabled={
