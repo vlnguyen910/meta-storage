@@ -83,3 +83,16 @@ above. `use-booking` owns the form and draft/appointment coordination, `use-book
 owns reconciliation, and `booking.service` owns recovery storage and appointment reuse.
 Types and pure helpers stay in `common/booking.*`. SePay uses an embedded native WebView;
 the `.web.tsx` variant provides the development preview without importing native WebView code.
+
+`ChoiceTabs` keeps its default pill variant and optionally provides `variant="segmented"`
+with count badges. `DetailSheet` composes the native Modal, safe-area frame, scrollable body
+and labeled close action for record/transaction details.
+
+The three **Kho của tôi** screens share `features/my-storage/components/StorageHeader`,
+`RentalCard` and `TransactionRow`; `use-my-storage` owns complete cursor traversal, owner-scoped
+queries and receipt/detail selection. Types and display helpers live in `common/my-storage.*`.
+The transaction history represents payments attached to current and closed rentals.
+
+`QueryFeedback.errorMessage` optionally supplies context-specific retry copy while retaining
+its shared loading/error presentation. Storage partial-payment failures use this to keep the
+incomplete-data warning beside the retry action.

@@ -38,7 +38,11 @@ const schema = CreateReservationDraftSchema.extend({
   contactPhone: CheckoutSessionInputSchema.shape.contactPhone.unwrap(),
   notes: z.string().max(2000),
 });
-export function useBooking({ facility, user }: Pick<BookingNavigatorProps, "facility" | "user">) {
+export function useBooking({
+  facility,
+  user,
+  unitTypeId,
+}: Pick<BookingNavigatorProps, "facility" | "user" | "unitTypeId">) {
   const client = useQueryClient();
   const [step, setStep] = useState<BookingStep>(0);
   const [area, setArea] = useState("all");
@@ -60,7 +64,7 @@ export function useBooking({ facility, user }: Pick<BookingNavigatorProps, "faci
     resolver: zodResolver(schema),
     defaultValues: {
       facilityId: facility.id,
-      unitTypeId: "",
+      unitTypeId: unitTypeId ?? "",
       checkInDate: minDate,
       checkInSlotId: "",
       durationMonths: 1,

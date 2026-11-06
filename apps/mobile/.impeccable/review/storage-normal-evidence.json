@@ -1,0 +1,143 @@
+[
+  {
+    "scenario": "normal",
+    "view": "current",
+    "width": 375,
+    "height": 667,
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "scenario": "normal",
+    "view": "history",
+    "width": 375,
+    "height": 667,
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "scenario": "normal",
+    "view": "transactions",
+    "width": 375,
+    "height": 667,
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "scenario": "normal",
+    "view": "current",
+    "width": 390,
+    "height": 844,
+    "errors": [],
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "scenario": "normal",
+    "view": "detail",
+    "width": 390,
+    "height": 844,
+    "errors": [],
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "scenario": "normal",
+    "view": "history",
+    "width": 390,
+    "height": 844,
+    "errors": [],
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "scenario": "normal",
+    "view": "transactions",
+    "width": 390,
+    "height": 844,
+    "errors": [],
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "scenario": "normal",
+    "view": "receipt",
+    "width": 390,
+    "height": 844,
+    "errors": [],
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "scenario": "normal",
+    "view": "current",
+    "width": 430,
+    "height": 932,
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "scenario": "normal",
+    "view": "history",
+    "width": 430,
+    "height": 932,
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "scenario": "normal",
+    "view": "transactions",
+    "width": 430,
+    "height": 932,
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "scenario": "normal",
+    "view": "current",
+    "width": 768,
+    "height": 1024,
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "scenario": "normal",
+    "view": "history",
+    "width": 768,
+    "height": 1024,
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "scenario": "normal",
+    "view": "transactions",
+    "width": 768,
+    "height": 1024,
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "scenario": "normal",
+    "view": "current",
+    "width": 844,
+    "height": 390,
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "scenario": "normal",
+    "view": "history",
+    "width": 844,
+    "height": 390,
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "scenario": "normal",
+    "view": "transactions",
+    "width": 844,
+    "height": 390,
+    "errors": [],
+    "overflow": false
+  }
+]

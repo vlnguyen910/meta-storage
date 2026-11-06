@@ -2,7 +2,7 @@
   "projectId": "259132084655583484",
   "title": "Remix of StoreX Storage Finder",
   "deviceType": "MOBILE",
-  "Last Sync Time": "2026-11-06T01:41:36.905830+00:00",
+  "Last Sync Time": "2026-11-06T02:10:54.908153+00:00",
   "screens": {
     "home": {
       "deviceType": "MOBILE",
@@ -155,6 +155,57 @@
         "name": "projects/259132084655583484/files/2001551700126663747"
       },
       "title": "Bước 5: Đặt kho thành công - MetaStorage Mobile",
+      "width": "780"
+    },
+    "rentals-current": {
+      "deviceType": "MOBILE",
+      "height": "2128",
+      "htmlCode": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/259132084655583484/files/11427948712152179497:download",
+        "mimeType": "text/html",
+        "name": "projects/259132084655583484/files/11427948712152179497"
+      },
+      "name": "projects/259132084655583484/screens/6877adb0c6b94e70b1513b59efcbd2b2",
+      "screenshot": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/259132084655583484/files/10410525151542599589:download",
+        "mimeType": "image/jpeg",
+        "name": "projects/259132084655583484/files/10410525151542599589"
+      },
+      "title": "Kho của tôi - Đang thuê (MetaStorage Mobile)",
+      "width": "780"
+    },
+    "rentals-history": {
+      "deviceType": "MOBILE",
+      "height": "1768",
+      "htmlCode": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/259132084655583484/files/12335894478906673832:download",
+        "mimeType": "text/html",
+        "name": "projects/259132084655583484/files/12335894478906673832"
+      },
+      "name": "projects/259132084655583484/screens/7a9e3a0b3d9244b9a9bc5a0877282581",
+      "screenshot": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/259132084655583484/files/5193176703691380245:download",
+        "mimeType": "image/jpeg",
+        "name": "projects/259132084655583484/files/5193176703691380245"
+      },
+      "title": "Kho của tôi - Lịch sử thuê (MetaStorage Mobile)",
+      "width": "780"
+    },
+    "rentals-transactions": {
+      "deviceType": "MOBILE",
+      "height": "2166",
+      "htmlCode": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/259132084655583484/files/17443934202374433763:download",
+        "mimeType": "text/html",
+        "name": "projects/259132084655583484/files/17443934202374433763"
+      },
+      "name": "projects/259132084655583484/screens/fa98b2ac1465486d8adb559ad9cacb06",
+      "screenshot": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/259132084655583484/files/17413326023734928998:download",
+        "mimeType": "image/jpeg",
+        "name": "projects/259132084655583484/files/17413326023734928998"
+      },
+      "title": "Kho của tôi - Toàn bộ giao dịch (MetaStorage Mobile)",
       "width": "780"
     }
   },

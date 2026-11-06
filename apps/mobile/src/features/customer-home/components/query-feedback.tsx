@@ -5,16 +5,18 @@ export function QueryFeedback({
   pending,
   error,
   retry,
+  errorMessage = M.error,
 }: {
   pending: boolean;
   error: boolean;
   retry: () => void;
+  errorMessage?: string;
 }) {
   return pending ? (
     <Notice>{M.pending}</Notice>
   ) : error ? (
     <>
-      <Notice error>{M.error}</Notice>
+      <Notice error>{errorMessage}</Notice>
       <Button label={M.retry} variant="outline" onPress={retry} />
     </>
   ) : null;

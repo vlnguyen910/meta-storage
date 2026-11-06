@@ -128,7 +128,7 @@ export function StatusPill({ label, tone = "neutral", compact = false }: StatusP
     amber: "border-warning-line bg-warning-soft text-warning-strong",
     blue: "border-info-line bg-info-soft text-info",
     red: "border-danger-line bg-danger-soft text-danger-strong",
-    neutral: "border-outline-variant bg-neutral-soft text-muted",
+    neutral: "border-outline-variant bg-neutral-soft text-customer-muted",
   };
   return (
     <Text
