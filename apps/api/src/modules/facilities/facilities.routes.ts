@@ -406,6 +406,7 @@ function toApiFacility(facility: Facility): ApiFacility {
     code: facility.code,
     name: facility.name,
     address: facility.address,
+    coverUrl: facility.coverUrl,
     description: facility.description,
     isActive: facility.isActive,
     createdAt: facility.createdAt.toISOString(),

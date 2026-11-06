@@ -44,6 +44,7 @@ export const ApiFacilitySchema = z.object({
   code: z.string(),
   name: z.string(),
   address: z.string(),
+  coverUrl: z.string().nullable(),
   description: z.string().nullable(),
   isActive: z.boolean(),
   createdAt: z.string().datetime(),
@@ -115,6 +116,7 @@ export const createFacilityBodySchema = z.object({
   code: z.string().trim().min(1).max(50),
   name: z.string().trim().min(1).max(150),
   address: z.string().trim().min(1),
+  coverUrl: z.string().nullable().optional(),
   description: z.string().trim().optional(),
   isActive: z.boolean().optional().default(true),
 });
@@ -124,6 +126,7 @@ export const updateFacilityBodySchema = z.object({
   code: z.string().trim().min(1).max(50).optional(),
   name: z.string().trim().min(1).max(150).optional(),
   address: z.string().trim().min(1).optional(),
+  coverUrl: z.string().nullable().optional(),
   description: z.string().trim().nullable().optional(),
   isActive: z.boolean().optional(),
 });

@@ -13,6 +13,7 @@ export interface StorageUnitDetail {
   code: string;
   floor: string | null;
   locationDescription: string | null;
+  coverUrl: string | null;
   status: `${StorageUnitStatus}`;
   createdAt: string;
   updatedAt: string;

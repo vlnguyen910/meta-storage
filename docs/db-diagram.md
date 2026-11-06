@@ -629,6 +629,7 @@ erDiagram
     varchar code UK
     varchar name
     text address
+    text cover_url "nullable"
     text description
     boolean is_active
     timestamptz created_at
@@ -641,6 +642,7 @@ erDiagram
     uuid facility_id FK
     varchar code "unique within facility"
     varchar name
+    text cover_url "nullable"
     varchar size_label
     numeric length_m
     numeric width_m
@@ -661,6 +663,7 @@ erDiagram
     varchar code UK
     varchar floor "nullable"
     varchar location_description "nullable"
+    text cover_url "nullable"
     storage_unit_status status
     timestamptz created_at
     timestamptz updated_at

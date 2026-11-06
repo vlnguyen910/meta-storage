@@ -62,6 +62,7 @@ export const StorageUnitResponseSchema = z.object({
   code: z.string(),
   floor: z.string().nullable().optional(),
   locationDescription: z.string().nullable().optional(),
+  coverUrl: z.string().nullable(),
   status: z.nativeEnum(StorageUnitStatus),
   createdAt: z.union([z.date(), z.string()]),
   updatedAt: z.union([z.date(), z.string()]),
