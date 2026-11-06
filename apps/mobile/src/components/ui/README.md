@@ -96,3 +96,30 @@ The transaction history represents payments attached to current and closed renta
 `QueryFeedback.errorMessage` optionally supplies context-specific retry copy while retaining
 its shared loading/error presentation. Storage partial-payment failures use this to keep the
 incomplete-data warning beside the retry action.
+
+Active screens are organized by feature under `src/screens/`, with one file per screen:
+
+```text
+screens/
+├── account/        # Account/session fallback
+├── appointments/   # Appointment list and detail
+├── auth/           # Login, registration and verification
+├── booking/        # Five-step booking flow
+├── facilities/     # Facility search
+├── home/           # Customer home
+├── rental/         # Current rentals, history and transactions
+└── old/            # Archived screens, not registered in active navigation
+```
+
+Navigators import the screen files directly. Screen props/types and utilities stay in `common/`;
+feature hooks and reusable components stay in `features/` and `components/ui/`.
+
+
+Knip includes `e2e/*-fixture.tsx` as standalone entrypoints because the component/auth previews
+are loaded by Metro bundle URLs rather than regular imports. Their reusable components remain
+part of the UI surface. Public UI prop types are imported from `common/`; the barrel re-exports
+only `CustomerTab`, which the existing preview consumes.
+
+The app does not configure an OTA update URL/runtime version. `app.json` explicitly sets
+`updates.enabled` to false, matching the bundled-code setup and avoiding Knip's default
+`expo-updates` inference. Enabling OTA later requires installing and configuring that package.

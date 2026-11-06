@@ -8,6 +8,7 @@ import { WEB_BASE_URL } from "../../lib/runtime-config";
 
 const privateFiles = new Set<string>();
 const privateDirectory = () => new FileSystem.Directory(FileSystem.Paths.cache, "customer-private");
+/** @lintignore Retained for archived screens in screens/old/ until their cleanup. */
 export async function openCustomerCheckout(session: CheckoutSession) {
   const target = new URL("/payments/mobile-checkout", WEB_BASE_URL);
   const returnUrl = Linking.createURL("payment-result", {
@@ -42,6 +43,7 @@ export async function clearCustomerCommand(ownerId: string, operation: string) {
   if (Platform.OS === "web") sessionStorage.removeItem(key);
   else await SecureStore.deleteItemAsync(key);
 }
+/** @lintignore Retained for archived screens in screens/old/ until their cleanup. */
 export function clearPrivateFiles() {
   for (const uri of privateFiles) {
     try {

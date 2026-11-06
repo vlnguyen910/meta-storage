@@ -1,11 +1,11 @@
 import { Controller } from "react-hook-form";
 import { Pressable, Text, View } from "react-native";
-import type { BookingScreenProps } from "../common/booking.types";
-import { canSelectCheckInSlot } from "../common/check-in-schedule.utils";
-import { CalendarField, ChoiceTabs, Field, Notice, SectionHeading } from "../components/ui";
-import { BOOKING as M } from "../features/booking/booking.messages";
-import { BookingSummary } from "../features/booking/components/booking-parts";
-import { QueryFeedback } from "../features/customer-home/components/query-feedback";
+import type { BookingScreenProps } from "../../common/booking.types";
+import { canSelectCheckInSlot } from "../../common/check-in-schedule.utils";
+import { CalendarField, ChoiceTabs, Field, Notice, SectionHeading } from "../../components/ui";
+import { BOOKING as M } from "../../features/booking/booking.messages";
+import { BookingSummary } from "../../features/booking/components/booking-parts";
+import { QueryFeedback } from "../../features/customer-home/components/query-feedback";
 
 export function BookingDetailsScreen({ state: s }: BookingScreenProps) {
   return (

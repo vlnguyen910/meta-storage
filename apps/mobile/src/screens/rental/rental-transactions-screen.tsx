@@ -1,10 +1,10 @@
 import { ArrowDownWideNarrow } from "lucide-react-native";
 import { FlatList, Text, View } from "react-native";
-import type { MyStorageScreenProps } from "../common/my-storage.types";
-import { ActionLink, ChoiceTabs, Notice } from "../components/ui";
-import { QueryFeedback } from "../features/customer-home/components/query-feedback";
-import { TransactionRow } from "../features/my-storage/components/transaction-row";
-import { MY_STORAGE as M } from "../features/my-storage/my-storage.messages";
+import type { MyStorageScreenProps } from "../../common/my-storage.types";
+import { ActionLink, ChoiceTabs, Notice } from "../../components/ui";
+import { QueryFeedback } from "../../features/customer-home/components/query-feedback";
+import { TransactionRow } from "../../features/my-storage/components/transaction-row";
+import { MY_STORAGE as M } from "../../features/my-storage/my-storage.messages";
 export function RentalTransactionsScreen({ state: s }: MyStorageScreenProps) {
   return (
     <FlatList

@@ -5,7 +5,7 @@ import { ThemedActivityIndicator } from "../components/ui/native-styles";
 import { AUTHENTICATION as M } from "../features/auth/authentication.messages";
 import { useAppSession, useDemoSession } from "../features/auth/use-app-session";
 import { useAuthentication } from "../features/auth/use-authentication";
-import { AccountScreen } from "../screens/account-screen";
+import { AccountScreen } from "../screens/account/account-screen";
 import { ForgotPasswordScreen } from "../screens/auth/forgot-password-screen";
 import { LoginScreen } from "../screens/auth/login-screen";
 import { RegisterScreen } from "../screens/auth/register-screen";

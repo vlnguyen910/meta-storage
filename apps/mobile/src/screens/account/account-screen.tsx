@@ -1,6 +1,6 @@
 import { ScrollView, Text, View } from "react-native";
-import { ACCOUNT_MESSAGES as M } from "../common/account.messages";
-import { Button, Heading, Notice, ScreenFrame } from "../components/ui";
+import { ACCOUNT_MESSAGES as M } from "../../common/account.messages";
+import { Button, Heading, Notice, ScreenFrame } from "../../components/ui";
 
 export function AccountScreen({
   name,

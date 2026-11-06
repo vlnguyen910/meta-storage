@@ -1,10 +1,10 @@
 import { Text, View } from "react-native";
-import type { BookingUnitsScreenProps } from "../common/booking.types";
-import { ActionLink, Card, ChoiceTabs, Notice, SectionHeading } from "../components/ui";
-import { BOOKING as M } from "../features/booking/booking.messages";
-import { UnitChoice } from "../features/booking/components/booking-parts";
-import { FacilitySummary } from "../features/customer-home/components/facility-card";
-import { QueryFeedback } from "../features/customer-home/components/query-feedback";
+import type { BookingUnitsScreenProps } from "../../common/booking.types";
+import { ActionLink, Card, ChoiceTabs, Notice, SectionHeading } from "../../components/ui";
+import { BOOKING as M } from "../../features/booking/booking.messages";
+import { UnitChoice } from "../../features/booking/components/booking-parts";
+import { FacilitySummary } from "../../features/customer-home/components/facility-card";
+import { QueryFeedback } from "../../features/customer-home/components/query-feedback";
 
 export function BookingUnitsScreen({ state: s, onChangeFacility }: BookingUnitsScreenProps) {
   return (

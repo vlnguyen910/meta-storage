@@ -5,11 +5,11 @@ import { Button, Notice } from "../components/ui";
 import { BOOKING as M } from "../features/booking/booking.messages";
 import { BookingFrame } from "../features/booking/components/booking-parts";
 import { useBooking } from "../features/booking/use-booking";
-import { BookingDetailsScreen } from "../screens/booking-details-screen";
-import { BookingPaymentScreen } from "../screens/booking-payment-screen";
-import { BookingReviewScreen } from "../screens/booking-review-screen";
-import { BookingSuccessScreen } from "../screens/booking-success-screen";
-import { BookingUnitsScreen } from "../screens/booking-units-screen";
+import { BookingDetailsScreen } from "../screens/booking/booking-details-screen";
+import { BookingPaymentScreen } from "../screens/booking/booking-payment-screen";
+import { BookingReviewScreen } from "../screens/booking/booking-review-screen";
+import { BookingSuccessScreen } from "../screens/booking/booking-success-screen";
+import { BookingUnitsScreen } from "../screens/booking/booking-units-screen";
 
 export function BookingNavigator(props: BookingNavigatorProps) {
   const state = useBooking(props),

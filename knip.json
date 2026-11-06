@@ -16,7 +16,7 @@
       "ignoreDependencies": ["pino-pretty"]
     },
     "apps/mobile": {
-      "entry": ["tests/**/*.test.mts"],
+      "entry": ["tests/**/*.test.mts", "e2e/*-fixture.tsx"],
       "ignoreDependencies": ["react-native-reanimated", "react-native-worklets"]
     },
     "apps/web": {

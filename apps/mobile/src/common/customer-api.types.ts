@@ -1,3 +1,4 @@
+/** @lintignore Retained for archived screens in screens/old/ until their cleanup. */
 export type CustomerRoute =
   | {
       screen:
@@ -13,6 +14,7 @@ export type CustomerRoute =
   | { screen: "booking" | "rental" | "ticket"; id: string }
   | { screen: "support-new"; reservationId?: string; paymentId?: string }
   | { screen: "payment"; id: string; reservationId?: string };
+/** @lintignore Retained for archived screens in screens/old/ until their cleanup. */
 export type CustomerNavigation = (route: CustomerRoute) => void;
 export type CheckoutSession = {
   paymentId: string;
@@ -21,6 +23,7 @@ export type CheckoutSession = {
   checkoutFormFields: Record<string, string | number>;
 };
 
+/** @lintignore Retained for archived screens in screens/old/ until their cleanup. */
 export type CustomerCheckoutCommand = {
   signature: string;
   draft: import("@metastorage/contracts").ReservationRecordDto;

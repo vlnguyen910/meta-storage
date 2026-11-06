@@ -18,7 +18,7 @@ export type CustomerRoute =
   | { screen: "appointments" }
   | { screen: "appointment"; id: string; from: "home" | "appointments" };
 export type AppointmentFilter = "all" | "upcoming" | "completed" | "closed";
-export interface CustomerIdentity {
+interface CustomerIdentity {
   readonly id: string;
   readonly name: string;
   readonly email?: string;

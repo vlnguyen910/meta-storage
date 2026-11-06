@@ -1,10 +1,18 @@
 import { ArrowDownWideNarrow, History, SlidersHorizontal } from "lucide-react-native";
 import { FlatList, Pressable, Text, View } from "react-native";
-import type { FacilitySearchScreenProps } from "../common/customer-home.types";
-import { ActionLink, Button, Field, Icon, IconButton, Notice, SearchField } from "../components/ui";
-import { FacilityCard } from "../features/customer-home/components/facility-card";
-import { QueryFeedback } from "../features/customer-home/components/query-feedback";
-import { CUSTOMER_HOME as M } from "../features/customer-home/customer-home.messages";
+import type { FacilitySearchScreenProps } from "../../common/customer-home.types";
+import {
+  ActionLink,
+  Button,
+  Field,
+  Icon,
+  IconButton,
+  Notice,
+  SearchField,
+} from "../../components/ui";
+import { FacilityCard } from "../../features/customer-home/components/facility-card";
+import { QueryFeedback } from "../../features/customer-home/components/query-feedback";
+import { CUSTOMER_HOME as M } from "../../features/customer-home/customer-home.messages";
 
 export function FacilitySearchScreen({ state, onBook }: FacilitySearchScreenProps) {
   return (

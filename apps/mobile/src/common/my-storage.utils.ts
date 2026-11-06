@@ -31,7 +31,7 @@ export function storageRentals(items: RentalListItem[], view: "current" | "histo
         a.id.localeCompare(b.id),
   );
 }
-export const transactionTime = ({ payment }: StorageTransaction) =>
+const transactionTime = ({ payment }: StorageTransaction) =>
   Date.parse(payment.paidAt ?? payment.createdAt);
 export function storageTransactions(items: StorageTransaction[], oldest = false) {
   return [...new Map(items.map((item) => [item.payment.id, item])).values()].sort(

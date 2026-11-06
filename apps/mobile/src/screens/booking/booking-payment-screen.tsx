@@ -1,12 +1,12 @@
 import { Clock, Copy, X } from "lucide-react-native";
 import { useState } from "react";
 import { Image, Modal, Text, View } from "react-native";
-import type { BookingScreenProps } from "../common/booking.types";
-import { paymentQrUrl } from "../common/booking.utils";
-import { Button, Card, Icon, IconButton, Notice, Row, ScreenFrame } from "../components/ui";
-import { money } from "../components/ui/mobile-ui";
-import { BOOKING as M } from "../features/booking/booking.messages";
-import { PaymentGateway } from "../features/booking/components/payment-gateway";
+import type { BookingScreenProps } from "../../common/booking.types";
+import { paymentQrUrl } from "../../common/booking.utils";
+import { Button, Card, Icon, IconButton, Notice, Row, ScreenFrame } from "../../components/ui";
+import { money } from "../../components/ui/mobile-ui";
+import { BOOKING as M } from "../../features/booking/booking.messages";
+import { PaymentGateway } from "../../features/booking/components/payment-gateway";
 
 export function BookingPaymentScreen({ state: s }: BookingScreenProps) {
   const [gateway, setGateway] = useState(false),

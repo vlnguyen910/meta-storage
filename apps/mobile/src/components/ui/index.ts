@@ -1,17 +1,4 @@
-export type {
-  AppHeaderProps,
-  BottomTabsProps,
-  CustomerTab,
-  IconButtonProps,
-  ListItemProps,
-  SearchFieldProps,
-} from "../../common/app-ui.types";
-export type {
-  MobileButtonProps,
-  MobileButtonVariant,
-  MobileCardProps,
-  MobileFieldProps,
-} from "../../common/mobile-ui.types";
+export type { CustomerTab } from "../../common/app-ui.types";
 export {
   ActionLink,
   AppHeader,

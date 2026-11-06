@@ -1,9 +1,9 @@
 import { FlatList, Text, View } from "react-native";
-import type { RentalsScreenProps } from "../common/my-storage.types";
-import { Notice, SectionHeading } from "../components/ui";
-import { QueryFeedback } from "../features/customer-home/components/query-feedback";
-import { RentalCard } from "../features/my-storage/components/rental-card";
-import { MY_STORAGE as M } from "../features/my-storage/my-storage.messages";
+import type { RentalsScreenProps } from "../../common/my-storage.types";
+import { Notice, SectionHeading } from "../../components/ui";
+import { QueryFeedback } from "../../features/customer-home/components/query-feedback";
+import { RentalCard } from "../../features/my-storage/components/rental-card";
+import { MY_STORAGE as M } from "../../features/my-storage/my-storage.messages";
 export function RentalsScreen({ state: s, onUnavailable }: RentalsScreenProps) {
   return (
     <FlatList

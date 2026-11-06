@@ -14,10 +14,10 @@ import { CustomerLayout } from "../features/customer-home/components/customer-la
 import { CUSTOMER_HOME as M } from "../features/customer-home/customer-home.messages";
 import { useFacilitySearch } from "../features/customer-home/use-facility-search";
 import { MY_STORAGE } from "../features/my-storage/my-storage.messages";
-import { AppointmentDetailScreen } from "../screens/appointment-detail-screen";
-import { AppointmentsScreen } from "../screens/appointments-screen";
-import { FacilitySearchScreen } from "../screens/facility-search-screen";
-import { HomeScreen } from "../screens/home-screen";
+import { AppointmentDetailScreen } from "../screens/appointments/appointment-detail-screen";
+import { AppointmentsScreen } from "../screens/appointments/appointments-screen";
+import { FacilitySearchScreen } from "../screens/facilities/facility-search-screen";
+import { HomeScreen } from "../screens/home/home-screen";
 import { BookingNavigator } from "./booking-navigator";
 import { MyStorageNavigator } from "./my-storage-navigator";
 
