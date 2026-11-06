@@ -1,7 +1,7 @@
 "use client";
 import { formatReference } from "@metastorage/shared";
 import { Building2 } from "lucide-react";
-import { Select } from "@/components/ui/form-controls";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { FACILITY_CONTEXT_MESSAGES } from "./facility-context.messages";
 import type { FacilitySwitcherProps } from "./facility-switcher.types";
 
@@ -41,21 +41,20 @@ export function FacilitySwitcher({
 
       {isMultiFacility && (
         <div className="flex items-center gap-2">
-          <Select
+          <DropdownSelect
             value={currentFacilityId}
-            onChange={(e) => onSwitchFacility(e.target.value)}
-            aria-label={FACILITY_CONTEXT_MESSAGES.switchFacilityPrompt}
-            className="min-h-8.5 h-8.5 rounded-lg border-line bg-white pl-2.5 pr-8 text-xs font-bold text-ink"
-          >
-            {activeAssignments.map((assignment) => (
-              <option key={assignment.facilityId} value={assignment.facilityId}>
-                {assignment.facilityName ||
-                  assignment.facilityCode ||
-                  formatReference(assignment.facilityId, "CS")}
-                {assignment.facilityCode ? ` (${assignment.facilityCode})` : ""}
-              </option>
-            ))}
-          </Select>
+            onChange={onSwitchFacility}
+            ariaLabel={FACILITY_CONTEXT_MESSAGES.switchFacilityPrompt}
+            options={activeAssignments.map((assignment) => ({
+              value: assignment.facilityId,
+              label: `${
+                assignment.facilityName ||
+                assignment.facilityCode ||
+                formatReference(assignment.facilityId, "CS")
+              }${assignment.facilityCode ? ` (${assignment.facilityCode})` : ""}`,
+            }))}
+            triggerClassName="min-h-8.5 h-8.5 rounded-lg border-line bg-white px-2.5 text-xs font-bold text-ink"
+          />
         </div>
       )}
     </div>

@@ -4,7 +4,6 @@ import { FacilityTaskReferenceType, FacilityTaskType } from "@metastorage/contra
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
-import { Select } from "@/components/ui/form-controls";
 import { managementError } from "./hooks";
 import { F5 } from "./management.messages";
 import { ManagementField, panelClass, textareaClass } from "./management-ui";
@@ -49,19 +48,27 @@ export function TaskAssignmentForm({
           />
         </ManagementField>
         <ManagementField label={F5.taskType}>
-          <Select value={FacilityTaskType.UNIT_INSPECTION} disabled>
-            <option value={FacilityTaskType.UNIT_INSPECTION}>{M.taskTypes.UNIT_INSPECTION}</option>
-          </Select>
+          <DropdownSelect
+            ariaLabel={F5.taskType}
+            value={FacilityTaskType.UNIT_INSPECTION}
+            onChange={() => {}}
+            options={[
+              { value: FacilityTaskType.UNIT_INSPECTION, label: M.taskTypes.UNIT_INSPECTION },
+            ]}
+            disabled
+            className="w-full min-w-0"
+            triggerClassName="min-h-11 h-auto w-full bg-slate-50 py-2.5 text-sm text-left opacity-75"
+          />
         </ManagementField>
         <ManagementField label={M.referenceType}>
-          <Select
+          <DropdownSelect
+            ariaLabel={M.referenceType}
             value={work.referenceType}
-            onChange={(event) =>
-              work.selectReferenceType(event.target.value as FacilityTaskReferenceType)
-            }
-          >
-            <option value={FacilityTaskReferenceType.STORAGE_UNIT}>{F5.unit}</option>
-          </Select>
+            onChange={(val) => work.selectReferenceType(val as FacilityTaskReferenceType)}
+            options={[{ value: FacilityTaskReferenceType.STORAGE_UNIT, label: F5.unit }]}
+            className="w-full min-w-0"
+            triggerClassName="min-h-11 h-auto w-full bg-white py-2.5 text-sm text-left"
+          />
         </ManagementField>
         <div className="min-w-0">
           <ManagementField label={referenceLabel} error={errors.referenceId && M.referenceRequired}>

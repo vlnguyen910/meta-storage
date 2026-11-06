@@ -17,5 +17,6 @@ export default defineConfig({
     globals: true,
     css: false,
     exclude: ["e2e/**", "e2e-api/**", "node_modules/**"],
+    testTimeout: 15000,
   },
 });

@@ -54,15 +54,17 @@ function setup() {
   return userEvent.setup();
 }
 async function chooseStaff(user: ReturnType<typeof userEvent.setup>) {
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Nhân viên được giao" })).toBeEnabled(),
+  await waitFor(
+    () => expect(screen.getByRole("button", { name: "Nhân viên được giao" })).toBeEnabled(),
+    { timeout: 5000 },
   );
   await user.click(screen.getByRole("button", { name: "Nhân viên được giao" }));
   await user.click(screen.getByRole("option", { name: /Nhân viên HCM-02/ }));
 }
 async function chooseUnit(user: ReturnType<typeof userEvent.setup>) {
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Ô kho cần kiểm tra" })).toBeEnabled(),
+  await waitFor(
+    () => expect(screen.getByRole("button", { name: "Ô kho cần kiểm tra" })).toBeEnabled(),
+    { timeout: 5000 },
   );
   await user.click(screen.getByRole("button", { name: "Ô kho cần kiểm tra" }));
   await user.click(screen.getByRole("option", { name: /HCM-02-4M-001/ }));

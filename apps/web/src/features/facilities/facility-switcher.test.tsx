@@ -57,13 +57,14 @@ describe("FacilitySwitcher", () => {
     );
 
     expect(screen.getByText(FACILITY_CONTEXT_MESSAGES.activeFacilityLabel)).toBeInTheDocument();
-    const select = screen.getByRole("combobox", {
+    const trigger = screen.getByRole("button", {
       name: FACILITY_CONTEXT_MESSAGES.switchFacilityPrompt,
     });
-    expect(select).toBeInTheDocument();
-    expect(select).toHaveValue("fac-hcm-central");
+    expect(trigger).toBeInTheDocument();
 
-    await user.selectOptions(select, "fac-hn-west");
+    await user.click(trigger);
+    const option = screen.getByRole("option", { name: /metastorage Hà Nội West/ });
+    await user.click(option);
     expect(onSwitch).toHaveBeenCalledWith("fac-hn-west");
   });
 

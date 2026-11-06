@@ -9,7 +9,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CustomerTable } from "@/components/ui/customer-table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select } from "@/components/ui/form-controls";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { OperationalBadge } from "@/components/ui/operational";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ErrorState, LoadingState } from "@/components/ui/states";
@@ -86,21 +86,21 @@ export function TaskPanel({ facilityId, manager }: TaskPanelProps) {
       )}
       {manager && (
         <ManagementField label={M.staffFilter}>
-          <Select
+          <DropdownSelect
+            ariaLabel={M.staffFilter}
             value={staffId}
-            onChange={(e) => {
-              setStaffId(e.target.value);
+            onChange={(val) => {
+              setStaffId(val);
               setOffset(0);
               setSelectedTaskId(null);
             }}
-          >
-            <option value="">{F5.all}</option>
-            {staff.data?.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </Select>
+            options={[
+              { value: "", label: F5.all },
+              ...(staff.data?.map((s) => ({ value: s.id, label: s.name })) ?? []),
+            ]}
+            className="w-full"
+            triggerClassName="min-h-11 h-auto w-full bg-white py-2.5 text-sm text-left"
+          />
         </ManagementField>
       )}
       {query.data.items.length === 0 ? (

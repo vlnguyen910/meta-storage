@@ -23,8 +23,15 @@ import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Select } from "@/components/ui/form-controls";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { ListPagination } from "@/components/ui/list-pagination";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import {
   Table,
@@ -114,29 +121,24 @@ export function DebtPanel({ rentalId }: { rentalId?: string }) {
           </div>
         </div>
 
-        <label
-          htmlFor="debt-status-filter"
-          className="flex shrink-0 flex-col items-start gap-1.5 text-xs font-semibold text-slate-700 sm:flex-row sm:items-center sm:gap-2"
-        >
+        <div className="flex shrink-0 flex-col items-start gap-1.5 text-xs font-semibold text-slate-700 sm:flex-row sm:items-center sm:gap-2">
           <span>{M.status}:</span>
-          <Select
-            id="debt-status-filter"
-            className="h-8.5 min-h-8.5 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-2.5 pr-8 text-xs font-normal text-slate-800 focus:bg-white sm:w-48"
+          <DropdownSelect
+            ariaLabel={M.status}
             value={status ?? ""}
-            onChange={(event) => {
-              setStatus((event.target.value || undefined) as DebtQuery["status"]);
+            onChange={(val) => {
+              setStatus((val || undefined) as DebtQuery["status"]);
               setPage(1);
               setSelectedId(undefined);
             }}
-          >
-            <option value="">{M.all}</option>
-            {Object.entries(M.statuses).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </Select>
-        </label>
+            options={[
+              { value: "", label: M.all },
+              ...Object.entries(M.statuses).map(([val, label]) => ({ value: val, label })),
+            ]}
+            className="w-full sm:w-48"
+            triggerClassName="h-8.5 min-h-8.5 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-2.5 text-xs font-normal text-slate-800"
+          />
+        </div>
       </CardHeader>
 
       <CardContent className="p-0">
@@ -405,22 +407,31 @@ function DebtHistory({ debt, canCollect }: { debt: DebtRecord; canCollect: boole
               />
             </label>
 
-            <label
-              htmlFor="debt-method-select"
-              className="block text-xs font-semibold text-slate-700"
-            >
+            <div className="block text-xs font-semibold text-slate-700">
               <span className="block mb-1">{M.method}</span>
               <Select
-                id="debt-method-select"
-                className="h-8.5 min-h-8.5 w-full rounded-lg border border-slate-200 bg-white pl-2.5 pr-8 text-xs text-slate-800 font-normal"
+                value={form.watch("method")}
+                onValueChange={(val) => {
+                  form.setValue("method", val as "CASH" | "BANK_TRANSFER", {
+                    shouldValidate: true,
+                  });
+                  form.resetField("reference");
+                }}
                 disabled={collect.isPending}
-                aria-label={M.method}
-                {...form.register("method", { onChange: () => form.resetField("reference") })}
               >
-                <option value="CASH">{M.cash}</option>
-                <option value="BANK_TRANSFER">{M.bankTransfer}</option>
+                <SelectTrigger
+                  id="debt-method-select"
+                  aria-label={M.method}
+                  className="h-8.5 min-h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-800 font-normal"
+                >
+                  <SelectValue placeholder={M.method} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CASH">{M.cash}</SelectItem>
+                  <SelectItem value="BANK_TRANSFER">{M.bankTransfer}</SelectItem>
+                </SelectContent>
               </Select>
-            </label>
+            </div>
 
             {form.watch("method") === "BANK_TRANSFER" && (
               <label className="block text-xs font-semibold text-slate-700 sm:col-span-2">

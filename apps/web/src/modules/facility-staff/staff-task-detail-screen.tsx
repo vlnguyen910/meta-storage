@@ -27,8 +27,14 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Select } from "@/components/ui/form-controls";
 import { OperationalBadge } from "@/components/ui/operational";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
 import { useAuthStore } from "@/features/auth/auth-store";
@@ -447,29 +453,28 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
                       onChange={setChecklistResult}
                       onNoteChange={setChecklistNote}
                     />
-                    <label
-                      htmlFor="staff-return-condition-select"
-                      className="grid gap-2 text-sm font-semibold"
-                    >
-                      {M.returnConditionLabel}
+                    <div className="grid gap-2 text-sm font-semibold">
+                      <span>{M.returnConditionLabel}</span>
                       <Select
-                        id="staff-return-condition-select"
-                        className="min-h-11 h-11 rounded-lg border-line px-3"
-                        value={condition ?? ""}
+                        value={condition ?? "GOOD"}
                         disabled={
                           record.status === "PASSED" || saveReturn.isPending || evidencePending
                         }
-                        onChange={(event) =>
-                          setCondition(
-                            (event.target.value || null) as InspectionRecord["condition"],
-                          )
-                        }
+                        onValueChange={(val) => setCondition(val as InspectionRecord["condition"])}
                       >
-                        <option value="GOOD">{M.good}</option>
-                        <option value="MINOR_DAMAGE">{M.minorDamage}</option>
-                        <option value="MAJOR_DAMAGE">{M.majorDamage}</option>
+                        <SelectTrigger
+                          id="staff-return-condition-select"
+                          className="min-h-11 h-11 rounded-lg border-line px-3 text-sm text-slate-800"
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="GOOD">{M.good}</SelectItem>
+                          <SelectItem value="MINOR_DAMAGE">{M.minorDamage}</SelectItem>
+                          <SelectItem value="MAJOR_DAMAGE">{M.majorDamage}</SelectItem>
+                        </SelectContent>
                       </Select>
-                    </label>
+                    </div>
                     <label className="grid gap-2 text-sm font-semibold">
                       {M.inspectionNotes}
                       <textarea
@@ -669,25 +674,28 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
                   </p>
                   {refundAmount > 0 && (
                     <>
-                      <label
-                        htmlFor="staff-refund-method-select"
-                        className="grid gap-2 text-sm font-semibold"
-                      >
-                        {M.refundMethod}
+                      <div className="grid gap-2 text-sm font-semibold">
+                        <span>{M.refundMethod}</span>
                         <Select
-                          id="staff-refund-method-select"
-                          className="min-h-11 h-11 rounded-lg border-line px-3"
                           value={refundMethod}
                           disabled={saveReturn.isPending}
-                          onChange={(event) => {
-                            setRefundMethod(event.target.value as "CASH" | "BANK_TRANSFER");
+                          onValueChange={(val) => {
+                            setRefundMethod(val as "CASH" | "BANK_TRANSFER");
                             setSettlementConfirmed(false);
                           }}
                         >
-                          <option value="CASH">{M.cash}</option>
-                          <option value="BANK_TRANSFER">{M.bankTransfer}</option>
+                          <SelectTrigger
+                            id="staff-refund-method-select"
+                            className="min-h-11 h-11 w-full rounded-lg border-line px-3 text-sm text-slate-800"
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="CASH">{M.cash}</SelectItem>
+                            <SelectItem value="BANK_TRANSFER">{M.bankTransfer}</SelectItem>
+                          </SelectContent>
                         </Select>
-                      </label>
+                      </div>
                       {refundMethod === "BANK_TRANSFER" && (
                         <label className="grid gap-2 text-sm font-semibold">
                           {M.refundReference}

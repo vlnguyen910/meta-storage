@@ -86,6 +86,7 @@ describe("Flow 4 actual form, hook and cache integration", () => {
     });
     render(<OperationsRulesView />, { wrapper: Wrapper });
     const input = await screen.findByRole("spinbutton");
+    await waitFor(() => expect(input).toHaveValue(2));
     await user.clear(input);
     await user.type(input, "9");
     serverVersion = 2;
