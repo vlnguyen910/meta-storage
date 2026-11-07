@@ -37,3 +37,8 @@ export function safeReturnTo(value: string | null, fallback: string): string {
   }
   return value;
 }
+
+export function storageEntryHref(role?: UserRole | null): string {
+  if (!role) return `${routes.login}?returnTo=${encodeURIComponent(customerRoutes.facilities)}`;
+  return role === UserRole.STORAGE_CUSTOMER ? customerRoutes.facilities : roleHome[role];
+}

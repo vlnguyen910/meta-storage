@@ -1,7 +1,6 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { UserRole } from "@metastorage/database/schema/user-enums";
 import axios from "axios";
 import {
   AlertCircle,
@@ -61,12 +60,8 @@ export function LoginForm() {
     const role = session.user.role;
     const requested = safeReturnTo(searchParams.get("returnTo"), roleHome[role]);
     const roleRoot = `/${roleHome[role].split("/")[1]}`;
-    const customerReservationEntry =
-      role === UserRole.STORAGE_CUSTOMER &&
-      (requested === routes.reservationNew || requested.startsWith(`${routes.reservationNew}?`));
     const destination =
-      customerReservationEntry ||
-      (requested.startsWith(`${roleRoot}/`) && requested !== `${roleRoot}/`)
+      requested.startsWith(`${roleRoot}/`) && requested !== `${roleRoot}/`
         ? requested
         : roleHome[role];
 
@@ -99,13 +94,8 @@ export function LoginForm() {
         showToast(AUTH_MESSAGES.loginWelcome(session.user.name));
         const requested = safeReturnTo(searchParams.get("returnTo"), roleHome[role]);
         const roleRoot = `/${roleHome[role].split("/")[1]}`;
-        const customerReservationEntry =
-          session.user.role === UserRole.STORAGE_CUSTOMER &&
-          (requested === routes.reservationNew ||
-            requested.startsWith(`${routes.reservationNew}?`));
         const destination =
-          customerReservationEntry ||
-          (requested.startsWith(`${roleRoot}/`) && requested !== `${roleRoot}/`)
+          requested.startsWith(`${roleRoot}/`) && requested !== `${roleRoot}/`
             ? requested
             : roleHome[role];
         if (oauthError === "account_not_linked") {

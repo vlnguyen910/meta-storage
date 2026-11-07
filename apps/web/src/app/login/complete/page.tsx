@@ -1,6 +1,5 @@
 "use client";
 
-import { UserRole } from "@metastorage/database/schema/user-enums";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef } from "react";
 import { FullScreenLoading } from "@/components/ui/states";
@@ -88,13 +87,8 @@ function LoginCompleteContent() {
 
         const requested = safeReturnTo(returnTo, roleHome[role]);
         const roleRoot = `/${roleHome[role].split("/")[1]}`;
-        const customerReservationEntry =
-          role === UserRole.STORAGE_CUSTOMER &&
-          (requested === routes.reservationNew ||
-            requested.startsWith(`${routes.reservationNew}?`));
         const destination =
-          customerReservationEntry ||
-          (requested.startsWith(`${roleRoot}/`) && requested !== `${roleRoot}/`)
+          requested.startsWith(`${roleRoot}/`) && requested !== `${roleRoot}/`
             ? requested
             : roleHome[role];
 

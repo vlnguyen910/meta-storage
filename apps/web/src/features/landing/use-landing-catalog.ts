@@ -1,8 +1,13 @@
 "use client";
 import { useState } from "react";
+import { storageEntryHref } from "@/config/routes";
+import { useAuthStore } from "@/features/auth/auth-store";
 import { useAvailability, useFacilities } from "@/features/facilities/hooks";
 
 export function useLandingCatalog() {
+  const session = useAuthStore((state) => state.session);
+  const authReady = useAuthStore((state) => state.authReady);
+  const searchHref = storageEntryHref(session?.user.role);
   const facilitiesQuery = useFacilities({ pageSize: 20 });
   const [chosenFacility, setFacility] = useState("");
   const [need, setNeed] = useState("all");
@@ -13,11 +18,6 @@ export function useLandingCatalog() {
   const options = availabilityQuery.data?.filter(
     (item) => filter === "all" || (filter === "small" ? item.sizeSqm < 3 : item.sizeSqm >= 3),
   );
-  const bookingHref = (unitTypeId?: string) => {
-    const params = new URLSearchParams({ facilityId, area: unitTypeId ? "all" : need });
-    if (unitTypeId) params.set("unitTypeId", unitTypeId);
-    return `/reservations/new?${params}`;
-  };
   return {
     facilities,
     facilitiesQuery,
@@ -29,6 +29,7 @@ export function useLandingCatalog() {
     setFilter,
     options,
     availabilityQuery,
-    bookingHref,
+    searchHref,
+    authReady,
   };
 }

@@ -1,12 +1,17 @@
+"use client";
+
 import { ArrowRight, MapPin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Currency } from "@/components/ui/display";
-import { routes } from "@/config/routes";
+import { storageEntryHref } from "@/config/routes";
+import { useAuthStore } from "@/features/auth/auth-store";
 import { facilitiesMessages as m } from "./facilities.messages";
 import type { FacilityCatalogItem } from "./facility-catalog.types";
 
 export function PublicFacilityCard({ facility }: { facility: FacilityCatalogItem }) {
+  const session = useAuthStore((state) => state.session);
+  const href = storageEntryHref(session?.user.role);
   return (
     <article className="grid overflow-hidden rounded-lg border border-[#e2e8f0] bg-white shadow-[0_1px_3px_rgb(15_23_42/4%)] transition hover:border-[#125345]/30 hover:shadow-[0_8px_24px_rgb(18_83_69/8%)] md:grid-cols-[29%_1fr_240px]">
       <div className="relative min-h-[220px] bg-[#e8f5f1]">
@@ -26,10 +31,7 @@ export function PublicFacilityCard({ facility }: { facility: FacilityCatalogItem
       </div>
       <div className="flex flex-col justify-center gap-4 p-6">
         <div>
-          <Link
-            href={`${routes.reservationNew}?facilityId=${encodeURIComponent(facility.id)}`}
-            className="hover:text-[#125345]"
-          >
+          <Link href={href} className="hover:text-[#125345]">
             <h2 className="text-xl font-bold tracking-tight">{facility.name}</h2>
           </Link>
           <p className="mt-2 flex items-start gap-2 text-xs leading-6 text-[#64748b]">
@@ -63,7 +65,7 @@ export function PublicFacilityCard({ facility }: { facility: FacilityCatalogItem
           <span className="mt-1 block text-xs text-[#64748b]">{m.monthly}</span>
         </div>
         <Link
-          href={`${routes.reservationNew}?facilityId=${encodeURIComponent(facility.id)}`}
+          href={href}
           className="inline-flex min-h-11 items-center justify-center gap-2 rounded bg-[#125345] px-3 text-sm font-semibold text-white hover:bg-[#0f4d3e]"
         >
           {m.details}
