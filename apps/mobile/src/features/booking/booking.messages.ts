@@ -1,4 +1,5 @@
 export const BOOKING = {
+  vat: (rate: number) => `VAT (${rate}%)`,
   title: "Đặt kho mới",
   steps: ["Loại kho", "Thông tin", "Đơn thuê", "Thanh toán", "Hoàn tất"],
   close: "Đóng đặt kho",

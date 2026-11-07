@@ -139,6 +139,7 @@ export function BookingCosts({ state: s }: BookingSummaryProps) {
     <Card title={M.costs} compact outlined>
       <Row label={M.rate} value={`${money(d.monthlyRateSnapshot)} ${M.perMonth}`} />
       <Row label={`${M.rent} (${d.requestedMonths} ${M.month})`} value={money(d.rentalFeeAmount)} />
+      <Row label={M.vat(d.vatRateSnapshot ?? 0)} value={money(d.vatAmount ?? 0)} />
       <Row label={M.deposit} value={money(d.depositAmount)} />
       <View className="mt-2 rounded-control bg-primary-soft p-3">
         <Text className="font-body text-label text-primary">{M.total}</Text>

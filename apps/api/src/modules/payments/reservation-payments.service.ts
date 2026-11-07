@@ -241,7 +241,7 @@ export class ReservationPaymentsService {
       await this.repository.updatePayment(tx, payment.id, {
         status: "REFUND_PENDING",
         refundReason: reason,
-        refundAmount: String(reservation.rentalFeeAmount),
+        refundAmount: String(reservation.rentalFeeAmount + reservation.vatAmount),
         depositForfeitedAmount: String(reservation.depositAmount),
       });
     }

@@ -243,6 +243,14 @@ export function RenewalScreen({
                   />
                   <Row label={M.months} value={`${renewal.months} ${M.month}`} />
                   <Row label={M.rate} value={formatCurrency(Number(renewal.monthlyRateSnapshot))} />
+                  <Row
+                    label={M.rentalFee}
+                    value={formatCurrency(Number(renewal.amount) - Number(renewal.vatAmount ?? 0))}
+                  />
+                  <Row
+                    label={M.vat(renewal.vatRateSnapshot ?? 0)}
+                    value={formatCurrency(Number(renewal.vatAmount ?? 0))}
+                  />
                   <Row label={M.total} value={formatCurrency(Number(renewal.amount))} />
                 </dl>
                 {!["APPLIED", "REFUND_REQUIRED"].includes(renewal.status) && (

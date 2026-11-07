@@ -10,6 +10,11 @@ import { PRICING_MESSAGES as m } from "@metastorage/contracts";
 import { AppError } from "../../common/errors/app-error";
 import type { PricingRepository } from "./pricing.repository";
 
+// Round VAT once on the full rental fee, to the nearest whole VND.
+export function calculateRentalVat(rental: bigint, vatRate: number): bigint {
+  return (rental * BigInt(vatRate) + 50n) / 100n;
+}
+
 export class PricingService {
   constructor(private readonly repository: PricingRepository) {}
 
@@ -27,19 +32,26 @@ export class PricingService {
     return rows.map((row) => ({ ...row, changedAt: row.changedAt.toISOString() }));
   }
 
-  async quote(unitTypeId: string, durationMonths: number): Promise<BookingDraft["pricing"]> {
+  async quote(
+    unitTypeId: string,
+    durationMonths: number,
+  ): Promise<BookingDraft["pricing"] & { vatRateSnapshot: number; vatAmount: string }> {
     const row = await this.repository.findQuote(unitTypeId);
     if (!row) throw new AppError(m.unavailable, 503, "PRICING_NOT_CONFIGURED");
     const price = BigInt(row.monthlyPrice);
     const rental = price * BigInt(durationMonths);
     const deposit = price * BigInt(row.depositMonths);
-    const total = rental + deposit;
+    const vatRateSnapshot = await this.repository.getVatRate();
+    const vat = calculateRentalVat(rental, vatRateSnapshot);
+    const total = rental + vat + deposit;
     // Existing booking/payment amounts are NUMERIC(14,2), with whole-VND prices.
     if (total > 999999999999n)
       throw new AppError(m.amountTooLarge, 422, "PRICING_AMOUNT_OUT_OF_RANGE");
     return {
       monthlyRateSnapshot: String(price),
       rentalFeeAmount: String(rental),
+      vatRateSnapshot,
+      vatAmount: String(vat),
       depositAmount: String(deposit),
       totalAmount: String(total),
       currency: "VND",

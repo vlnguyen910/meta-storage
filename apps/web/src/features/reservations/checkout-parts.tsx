@@ -146,6 +146,9 @@ export function CheckoutSummary({ state }: { state: CheckoutState }) {
             <CheckoutRow label={m.rental}>
               {pricing ? <Currency value={Number(pricing.rentalFeeAmount)} /> : "—"}
             </CheckoutRow>
+            <CheckoutRow label={m.vat(pricing?.vatRateSnapshot ?? 0)}>
+              {pricing ? <Currency value={Number(pricing.vatAmount ?? 0)} /> : "—"}
+            </CheckoutRow>
             <CheckoutRow label={m.deposit}>
               {pricing ? <Currency value={Number(pricing.depositAmount)} /> : m.pendingPricing}
             </CheckoutRow>

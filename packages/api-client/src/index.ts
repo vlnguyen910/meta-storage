@@ -20,6 +20,7 @@ import type {
   CheckInSlotOption,
   CheckoutSessionInput,
   ClientSession,
+  ConfigureSystemSetting,
   ConfirmInspectionHandoverInput,
   ConfirmManualRefundInput,
   ConfirmReservationInput,
@@ -93,6 +94,8 @@ import type {
   StaffTasksQuery,
   StorageUnitMaintenanceTransition,
   StorageUnitResponse,
+  SystemSettingDto,
+  SystemSettingUpdateResult,
   UnitTypeListParams,
   UpdateAppointmentInput,
   UpdateDepositPolicy,
@@ -595,6 +598,11 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
             params: facilityId ? { facilityId } : undefined,
           })
           .then(unwrap),
+    },
+    systemSettings: {
+      list: () => http.get<ApiEnvelope<SystemSettingDto[]>>("/system-settings").then(unwrap),
+      update: (input: ConfigureSystemSetting) =>
+        http.put<ApiEnvelope<SystemSettingUpdateResult>>("/system-settings", input).then(unwrap),
     },
     pricing: {
       getConfiguration: (params: Partial<PricingQuery> = {}) =>

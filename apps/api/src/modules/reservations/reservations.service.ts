@@ -118,6 +118,8 @@ export class ReservationsService {
           rentalEndAt,
           monthlyRateSnapshot: Number(pricing.monthlyRateSnapshot),
           rentalFeeAmount: Number(pricing.rentalFeeAmount),
+          vatRateSnapshot: pricing.vatRateSnapshot,
+          vatAmount: Number(pricing.vatAmount),
           depositAmount: Number(pricing.depositAmount),
           totalAmount: Number(pricing.totalAmount),
         },

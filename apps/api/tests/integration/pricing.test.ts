@@ -12,6 +12,7 @@ import { FacilityUnitTypesService } from "../../src/modules/unit-types/facility-
 const actor = "11111111-1111-4111-8111-111111111111";
 const type = "22222222-2222-4222-8222-222222222222";
 const session = spyOn(auth.api, "getSession");
+const vatRate = spyOn(PricingRepository.prototype, "getVatRate");
 const findQuote = spyOn(PricingRepository.prototype, "findQuote");
 const read = spyOn(PricingRepository.prototype, "getConfiguration");
 const update = spyOn(PricingRepository.prototype, "updateDeposit");
@@ -30,6 +31,7 @@ beforeEach(() => {
     user: { id: actor, role: "BUSINESS_OPERATION_MANAGER", status: "ACTIVE" },
     session: {},
   } as never);
+  vatRate.mockReset().mockResolvedValue(8);
   findQuote.mockReset().mockResolvedValue({ monthlyPrice: 750000, depositMonths: 2 });
   read.mockReset().mockResolvedValue({
     version: 1,
@@ -45,6 +47,7 @@ afterAll(async () => {
   await app.close();
   session.mockRestore();
   findQuote.mockRestore();
+  vatRate.mockRestore();
   read.mockRestore();
   update.mockRestore();
   updatePrice.mockRestore();
@@ -90,8 +93,31 @@ describe("database-backed pricing policy", () => {
       monthlyRateSnapshot: "750000",
       rentalFeeAmount: "2250000",
       depositAmount: "1500000",
-      totalAmount: "3750000",
+      vatRateSnapshot: 8,
+      vatAmount: "180000",
+      totalAmount: "3930000",
       currency: "VND",
+    });
+  });
+  test("uses the configured VAT and leaves the deposit untaxed", async () => {
+    vatRate.mockResolvedValue(10);
+    expect(await service.quote(type, 1)).toMatchObject({
+      rentalFeeAmount: "750000",
+      vatRateSnapshot: 10,
+      vatAmount: "75000",
+      depositAmount: "1500000",
+      totalAmount: "2325000",
+    });
+    vatRate.mockResolvedValue(0);
+    expect(await service.quote(type, 1)).toMatchObject({ vatAmount: "0", totalAmount: "2250000" });
+  });
+  test("rounds VAT once on the complete rental fee to whole VND", async () => {
+    findQuote.mockResolvedValue({ monthlyPrice: 106, depositMonths: 1 });
+    expect(await service.quote(type, 3)).toMatchObject({
+      rentalFeeAmount: "318",
+      vatAmount: "25",
+      depositAmount: "106",
+      totalAmount: "449",
     });
   });
   test("does not silently fall back to one month when configuration is missing", async () => {

@@ -91,6 +91,8 @@ export const appointment: AppointmentRecordDto = {
     rentalEndAt: "2027-02-06T06:00:00.000Z",
     monthlyRateSnapshot: 1200000,
     rentalFeeAmount: 3600000,
+    vatRateSnapshot: 0,
+    vatAmount: 0,
     depositAmount: 1200000,
     totalAmount: 4800000,
     status: ReservationStatus.CONFIRMED,

@@ -26,11 +26,11 @@ export const systemSettings = pgTable(
     // Preserve database-level bounds of the former financial policy tables.
     check(
       "system_settings_known_integer",
-      sql`${t.key} not in ('EXPIRY_REMINDER_DAYS', 'ABANDONED_REVIEW_DAYS', 'RENEWAL_NOTICE_DAYS', 'OVERDUE_FEE_RATE', 'DEPOSIT_MONTHS', 'OPENING_HOUR', 'CLOSING_HOUR') or (jsonb_typeof(${t.value}) = 'number' and (${t.value} #>> '{}')::numeric between 0 and 2147483647 and trunc((${t.value} #>> '{}')::numeric) = (${t.value} #>> '{}')::numeric)`,
+      sql`${t.key} not in ('EXPIRY_REMINDER_DAYS', 'ABANDONED_REVIEW_DAYS', 'RENEWAL_NOTICE_DAYS', 'OVERDUE_FEE_RATE', 'VAT_RATE', 'DEPOSIT_MONTHS', 'OPENING_HOUR', 'CLOSING_HOUR') or (jsonb_typeof(${t.value}) = 'number' and (${t.value} #>> '{}')::numeric between 0 and 2147483647 and trunc((${t.value} #>> '{}')::numeric) = (${t.value} #>> '{}')::numeric)`,
     ),
     check(
       "system_settings_overdue_rate",
-      sql`${t.key} <> 'OVERDUE_FEE_RATE' or (${t.value} #>> '{}')::numeric between 0 and 100`,
+      sql`${t.key} not in ('OVERDUE_FEE_RATE', 'VAT_RATE') or (${t.value} #>> '{}')::numeric between 0 and 100`,
     ),
     check(
       "system_settings_deposit_policy",

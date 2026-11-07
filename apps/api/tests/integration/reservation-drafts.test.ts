@@ -148,7 +148,9 @@ describe.skipIf(!testUrl)("POST /api/reservations/drafts with PostgreSQL", () =>
       monthlyRateSnapshot: 1000000,
       rentalFeeAmount: 2000000,
       depositAmount: 1000000,
-      totalAmount: 3000000,
+      vatRateSnapshot: 8,
+      vatAmount: 160000,
+      totalAmount: 3160000,
     });
     expect(data.draftAccessToken).toBeUndefined();
     expect(data.accessTokenHash).toBeUndefined();
@@ -161,7 +163,7 @@ describe.skipIf(!testUrl)("POST /api/reservations/drafts with PostgreSQL", () =>
       .where(eq(facilityUnitTypes.id, ids.type));
     expect(
       (await db.select().from(reservations).where(eq(reservations.id, data.id)))[0]?.totalAmount,
-    ).toBe(3000000);
+    ).toBe(3160000);
     expect(await db.select({ count: count() }).from(payments)).toEqual(beforePayments);
     expect(
       await db

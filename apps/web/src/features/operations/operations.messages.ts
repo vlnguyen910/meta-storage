@@ -1,4 +1,14 @@
 export const OPERATIONS_MESSAGES = {
+  vatTitle: "Thuế VAT trên tiền thuê",
+  vatRate: "Tỷ lệ VAT (%)",
+  vatHelp:
+    "Tổng thanh toán = tiền thuê + VAT + tiền cọc. VAT không tính trên tiền cọc. Thay đổi chỉ áp dụng cho đơn thuê và báo giá gia hạn mới.",
+  vatInvalid: "Tỷ lệ VAT phải là số nguyên từ 0 đến 100%.",
+  vatSaved: "Đã cập nhật tỷ lệ VAT.",
+  vatSave: "Lưu tỷ lệ VAT",
+  vatError: "Không thể cập nhật VAT. Vui lòng thử lại.",
+  vatConflict: "Tỷ lệ VAT đã được người khác cập nhật. Hãy tải lại trước khi lưu.",
+  vatReload: "Tải lại tỷ lệ VAT",
   policyFeesTitle: "Phí vi phạm",
   policyFeesVersion: "Phiên bản chính sách",
   policyFeeAdd: "Thêm khoản phí",

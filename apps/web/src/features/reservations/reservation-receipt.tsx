@@ -170,6 +170,8 @@ export function ReservationReceipt({
           paidPricing: {
             monthlyRateSnapshot: String(record.monthlyRateSnapshot),
             rentalFeeAmount: String(record.rentalFeeAmount),
+            vatRateSnapshot: record.vatRateSnapshot,
+            vatAmount: String(record.vatAmount),
             depositAmount: String(record.depositAmount),
             totalAmount: String(record.totalAmount),
             currency: "VND",
@@ -217,6 +219,18 @@ export function ReservationReceipt({
             <dd className="mt-1 break-words text-sm font-semibold text-ink">{value}</dd>
           </div>
         ))}
+        <div>
+          <dt className="text-sm text-muted">{m.rentalFee}</dt>
+          <dd>
+            <Currency value={record.rentalFeeAmount} />
+          </dd>
+        </div>
+        <div>
+          <dt className="text-sm text-muted">{m.vat(record.vatRateSnapshot ?? 0)}</dt>
+          <dd>
+            <Currency value={record.vatAmount ?? 0} />
+          </dd>
+        </div>
         <div>
           <dt className="text-sm text-muted">{m.deposit}</dt>
           <dd>

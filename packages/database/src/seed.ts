@@ -1001,6 +1001,7 @@ async function seedPolicies(seedNow: Date) {
     "ABANDONED_REVIEW_DAYS",
     "RENEWAL_NOTICE_DAYS",
     "OVERDUE_FEE_RATE",
+    "VAT_RATE",
     "OPENING_HOUR",
     "CLOSING_HOUR",
   ] as const;

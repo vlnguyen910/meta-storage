@@ -265,6 +265,13 @@ export function CustomerBookingDetail({ id }: { id: string }) {
               </div>
 
               <div className="flex items-center justify-between text-xs text-slate-600">
+                <span>{BM.vat(b.pricing.vatRateSnapshot ?? 0)}</span>
+                <span className="font-semibold text-slate-800">
+                  {money(b.pricing.vatAmount ?? "0")}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs text-slate-600">
                 <span>Tiền đặt cọc</span>
                 <span className="font-semibold text-slate-800">
                   {money(b.pricing.depositAmount)}

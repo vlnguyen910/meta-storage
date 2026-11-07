@@ -20,6 +20,7 @@ export const RESERVATION_MESSAGES = {
 } as const;
 
 export const RESERVATION_UI = {
+  vat: (rate: number) => `VAT (${rate}%)`,
   title: "Đặt kho",
   detail: "Chi tiết đặt kho",
   paid: "Thanh toán đã được xác nhận",
@@ -28,6 +29,7 @@ export const RESERVATION_UI = {
   unitType: "Loại kho",
   receiveAt: "Lịch nhận kho",
   rentalEnd: "Ngày hết hạn",
+  rentalFee: "Tiền thuê",
   deposit: "Tiền cọc",
   total: "Tổng thanh toán",
   appointment: "Lịch hẹn nhận kho",

@@ -19,6 +19,8 @@ export interface RentalRenewalDto {
   oldEndAt: string;
   newEndAt: string;
   monthlyRateSnapshot: string;
+  vatRateSnapshot: number;
+  vatAmount: string;
   amount: string;
   currency: "VND";
   cutoffAt: string;

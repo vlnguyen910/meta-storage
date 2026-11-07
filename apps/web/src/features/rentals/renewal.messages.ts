@@ -1,4 +1,5 @@
 export const RENEWAL_MESSAGES = {
+  vat: (rate: number) => `VAT (${rate}%)`,
   title: "Gia hạn kỳ thuê",
   intro: "Tiếp tục sử dụng kho hiện tại, giữ nguyên tiền cọc.",
   back: "Về chi tiết kỳ thuê",
@@ -22,6 +23,7 @@ export const RENEWAL_MESSAGES = {
   cutoff: "Hạn chót yêu cầu",
   expires: "Thanh toán trước",
   rate: "Đơn giá mỗi tháng",
+  rentalFee: "Tiền thuê gia hạn",
   total: "Tổng thanh toán",
   summary: "Thông tin kỳ thuê",
   quoteTitle: "Báo giá gia hạn",
