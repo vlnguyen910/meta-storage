@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { F5 } from "@/features/facility-management/management.messages";
-import { TypeCatalogTable } from "@/features/facility-management/management-workspace";
+import { FacilityOfferingsTable } from "@/features/facility-management/management-workspace";
 import { StaffDirectoryWorkspace } from "@/features/facility-management/staff-directory";
 import { UnitInventoryWorkspace } from "@/features/facility-management/unit-inventory";
 import { ManagerCoordinationScreen } from "./manager-coordination-screen";
@@ -34,7 +34,7 @@ export function ManagerInventoryScreen() {
         <UnitInventoryWorkspace />
       ) : (
         <ManagerTabFrame title={F5.unitTypesAndPrices} description={F5.description}>
-          {(facilityId) => <TypeCatalogTable facilityId={facilityId} />}
+          {(facilityId) => <FacilityOfferingsTable facilityId={facilityId} />}
         </ManagerTabFrame>
       )}
     </div>

@@ -1,7 +1,7 @@
 import { createHash, createHmac } from "node:crypto";
 import { SYSTEM_SETTING_DEFINITIONS } from "@metastorage/contracts/system-settings";
 import { hashPassword } from "better-auth/crypto";
-import { and, asc, eq, getTableColumns, inArray, notExists } from "drizzle-orm";
+import { and, asc, eq, getTableColumns, inArray, isNull, notExists, or } from "drizzle-orm";
 import { db, queryClient } from "./client";
 import { loadApiEnv } from "./env";
 import { migrateBookingsToReservations } from "./migrate-bookings-to-reservations";
@@ -39,6 +39,7 @@ export const SEED_IDS = {
     "HCM-09": "30000000-0000-4000-8000-000000000009",
     "HCM-10": "30000000-0000-4000-8000-000000000010",
   },
+  // Stable offering IDs at HCM-01, retained for booking and handover demos.
   unitTypes: {
     "UT-2M": "60000000-0000-4000-8000-000000000001",
     "UT-4M": "60000000-0000-4000-8000-000000000002",
@@ -345,16 +346,6 @@ export async function seedImmediateCheckInSlot(seedNow = getSeedNow()) {
 // Fictional local fixtures only. No provider checkout, webhook or email is sent.
 async function seedDemoData(seedNow: Date) {
   const flow2CheckInDate = await db.transaction(async (tx) => {
-    await tx
-      .insert(users)
-      .values(
-        SEED_DEMO_USERS.map((user) => ({
-          ...user,
-          emailVerified: true,
-          status: "ACTIVE" as const,
-        })),
-      )
-      .onConflictDoNothing();
     const facilityRows = await tx
       .select()
       .from(facilities)
@@ -393,12 +384,6 @@ async function seedDemoData(seedNow: Date) {
                 `staff.hcm${String(facilityIndex + 1).padStart(2, "0")}@metastorage.test`,
             );
       if (!manager || !staff) throw new Error(`Missing demo team for ${facility.code}`);
-      for (const person of [manager, staff]) {
-        await tx
-          .insert(facilityAssignments)
-          .values({ userId: person.id, facilityId: facility.id, role: person.role })
-          .onConflictDoNothing();
-      }
       const facilityTypes = typeRows.filter((type) => type.facilityId === facility.id);
       for (const type of facilityTypes) {
         const originalCode = `${facility.code}-${type.code}-001`;
@@ -744,7 +729,7 @@ async function seedDemoData(seedNow: Date) {
     return today;
   });
   console.log(
-    "Core demo ready: 10 facilities, 8 types, 328 units, 29 users, 38 bookings, paid/pending/failed/refund/expired-hold scenarios.",
+    "Core demo ready: 9 BOM catalog types, 80 FM offerings across 10 facilities, 328 units, 29 users, 38 bookings, paid/pending/failed/refund/expired-hold scenarios.",
   );
   console.log(
     `Flow 2 Swagger booking: DEMO-FLOW2-READY (${id("83000000", 1)}), check-in ${flow2CheckInDate}.`,
@@ -1070,25 +1055,185 @@ async function seedAuthAccounts(seedNow: Date) {
   });
 }
 
+// Catalog rows model BOM actions; missing fixture metadata can be filled without resetting edits.
+async function seedUnitTypeCatalog(seedNow: Date) {
+  const fixture = SEED_USERS[3];
+  await db
+    .insert(users)
+    .values({ ...fixture, status: "ACTIVE", emailVerified: true })
+    .onConflictDoNothing();
+  const authors = await db
+    .select()
+    .from(users)
+    .where(or(eq(users.id, fixture.id), eq(users.email, fixture.email)));
+  const bom = authors.find((user) => user.id === fixture.id) ?? authors[0];
+  if (bom?.role !== "BUSINESS_OPERATION_MANAGER")
+    throw new Error("Demo catalog requires the seed BOM account");
+  const catalogFixtures = [
+    {
+      id: id("63000000", 1),
+      code: "UT-2M",
+      name: "Kho tiêu chuẩn (2 m²)",
+      sizeLabel: "2 m²",
+      lengthM: 2,
+      widthM: 1,
+      heightM: 2.5,
+      minMonthlyPrice: 700000,
+      maxMonthlyPrice: 1200000,
+    },
+    {
+      id: id("63000000", 2),
+      code: "UT-4M",
+      name: "Kho tiêu chuẩn (4 m²)",
+      sizeLabel: "4 m²",
+      lengthM: 2,
+      widthM: 2,
+      heightM: 2.5,
+      minMonthlyPrice: 1200000,
+      maxMonthlyPrice: 2000000,
+    },
+    {
+      id: id("63000000", 3),
+      code: "UT-6M",
+      name: "Kho tiêu chuẩn (6 m²)",
+      sizeLabel: "6 m²",
+      lengthM: 3,
+      widthM: 2,
+      heightM: 2.5,
+      minMonthlyPrice: 1700000,
+      maxMonthlyPrice: 2800000,
+    },
+    {
+      id: id("63000000", 4),
+      code: "UT-AC-4M",
+      name: "Kho kiểm soát ẩm (4 m²)",
+      sizeLabel: "4 m² - kiểm soát ẩm",
+      lengthM: 2,
+      widthM: 2,
+      heightM: 2.5,
+      minMonthlyPrice: 1600000,
+      maxMonthlyPrice: 2500000,
+    },
+    {
+      id: id("63000000", 5),
+      code: "UT-1M",
+      name: "Kho tiêu chuẩn (1 m²)",
+      sizeLabel: "1 m²",
+      lengthM: 1,
+      widthM: 1,
+      heightM: 2.5,
+      minMonthlyPrice: 400000,
+      maxMonthlyPrice: 700000,
+    },
+    {
+      id: id("63000000", 6),
+      code: "UT-8M",
+      name: "Kho tiêu chuẩn (8 m²)",
+      sizeLabel: "8 m²",
+      lengthM: 4,
+      widthM: 2,
+      heightM: 2.5,
+      minMonthlyPrice: 2200000,
+      maxMonthlyPrice: 3500000,
+    },
+    {
+      id: id("63000000", 7),
+      code: "UT-10M",
+      name: "Kho tiêu chuẩn (10 m²)",
+      sizeLabel: "10 m²",
+      lengthM: 5,
+      widthM: 2,
+      heightM: 2.5,
+      minMonthlyPrice: 2700000,
+      maxMonthlyPrice: 4300000,
+    },
+    {
+      id: id("63000000", 8),
+      code: "UT-15M",
+      name: "Kho tiêu chuẩn (15 m²)",
+      sizeLabel: "15 m²",
+      lengthM: 5,
+      widthM: 3,
+      heightM: 2.5,
+      minMonthlyPrice: 3800000,
+      maxMonthlyPrice: 6200000,
+    },
+    {
+      id: id("63000000", 9),
+      code: "UT-3M",
+      name: "Kho tiêu chuẩn (3 m²)",
+      sizeLabel: "3 m²",
+      lengthM: 3,
+      widthM: 1,
+      heightM: 2.5,
+      minMonthlyPrice: 900000,
+      maxMonthlyPrice: 1600000,
+    },
+  ];
+
+  const catalog = new Map<string, typeof unitTypes.$inferSelect>();
+  await db.transaction(async (tx) => {
+    for (const metadata of catalogFixtures) {
+      const catalogId = metadata.id;
+      const coverUrl = `https://placehold.co/1200x800/png?text=MetaStorage+${metadata.code}`;
+      await tx
+        .insert(unitTypes)
+        .values({
+          ...metadata,
+          id: catalogId,
+          coverUrl,
+          updatedBy: bom.id,
+          createdAt: seedNow,
+          updatedAt: seedNow,
+        })
+        .onConflictDoNothing();
+      const candidates = await tx
+        .select()
+        .from(unitTypes)
+        .where(or(eq(unitTypes.id, catalogId), eq(unitTypes.code, metadata.code)));
+      const row = candidates.find((item) => item.id === catalogId) ?? candidates[0];
+      if (!row) throw new Error(`Missing seed catalog type ${metadata.code}`);
+      await tx
+        .update(unitTypes)
+        .set({ coverUrl })
+        .where(and(eq(unitTypes.id, row.id), isNull(unitTypes.coverUrl)));
+      await tx
+        .update(unitTypes)
+        .set({ updatedBy: bom.id })
+        .where(and(eq(unitTypes.id, row.id), isNull(unitTypes.updatedBy)));
+      catalog.set(metadata.code, row);
+    }
+  });
+  return catalog;
+}
+
 async function seed() {
   const nodeEnv = process.env.NODE_ENV ?? loadApiEnv().NODE_ENV;
   if (nodeEnv?.trim().toLowerCase() === "production")
     throw new Error("Local demo seeding is disabled in production");
-  const [schema] = await queryClient<{ bookings: string | null }[]>`
-    SELECT to_regclass('public.bookings') AS bookings
+  const [schema] = await queryClient<
+    { bookings: string | null; offerings: string | null; catalog: boolean }[]
+  >`
+    SELECT to_regclass('public.bookings') AS bookings,
+      to_regclass('public.facility_unit_types') AS offerings,
+      EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'unit_types' AND column_name = 'min_monthly_price') AS catalog
   `;
-  if (!schema?.bookings) {
+  if (!schema?.bookings || !schema.offerings || !schema.catalog) {
     throw new Error(
-      "The database is missing public.bookings. Apply the current database migrations before seeding; this database still has the legacy schema.",
+      "Apply the current database migrations before seeding; bookings, facility_unit_types and the BOM min/max catalog are required.",
     );
   }
   const seedNow = getSeedNow();
   const existingReservations = await queryClient`select id from reservations limit 1`;
   if (existingReservations.length) {
+    await seedUnitTypeCatalog(seedNow);
+    for (const [code, facilityId] of Object.entries(SEED_IDS.facilities)) {
+      await queryClient`UPDATE facilities SET cover_url = ${`https://placehold.co/1200x800/png?text=MetaStorage+${code}`} WHERE id = ${facilityId} AND cover_url IS NULL`;
+    }
     await seedPolicies(seedNow);
     await seedAuthAccounts(seedNow);
     console.log(
-      "Reservation data already exists; preserved workflow history and refreshed policies/accounts. Use db:clear for a clean demo reset.",
+      "Reservation data already exists; preserved workflow history and facility prices; refreshed missing BOM catalog, policies/accounts. Use db:clear for a clean demo reset.",
     );
     await queryClient.end();
     return;
@@ -1163,15 +1308,16 @@ async function seed() {
   const facilities = [];
   for (const facility of facilitiesData) {
     const [row] = await queryClient`
-      INSERT INTO facilities (id, code, name, address, description, is_active)
+      INSERT INTO facilities (id, code, name, address, description, cover_url, is_active)
       VALUES (
         ${facility.id}, ${facility.code}, ${facility.name}, ${`${facility.address}, TP. Hồ Chí Minh`},
-        'Dữ liệu mẫu: kho lưu trữ cho gia đình và doanh nghiệp nhỏ, kiểm soát 24/7.', true
+        'Dữ liệu mẫu: kho lưu trữ cho gia đình và doanh nghiệp nhỏ, kiểm soát 24/7.', ${`https://placehold.co/1200x800/png?text=MetaStorage+${facility.code}`}, true
       )
       ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         address = EXCLUDED.address,
         description = EXCLUDED.description,
+        cover_url = coalesce(facilities.cover_url, EXCLUDED.cover_url),
         is_active = EXCLUDED.is_active
       RETURNING id, code, name
     `;
@@ -1192,6 +1338,12 @@ async function seed() {
         role = EXCLUDED.role, status = EXCLUDED.status, email_verified = EXCLUDED.email_verified
     `;
   }
+  await db
+    .insert(users)
+    .values(
+      SEED_DEMO_USERS.map((user) => ({ ...user, emailVerified: true, status: "ACTIVE" as const })),
+    )
+    .onConflictDoNothing();
   const [customer, staff, manager] = SEED_USERS;
 
   console.log("3. Seeding facility assignments...");
@@ -1209,130 +1361,100 @@ async function seed() {
     `;
   }
 
-  console.log("4. Seeding unit types...");
-  // Dimensions below are fictional seed fixtures, not measured facility inventory.
-  const unitTypesData = [
-    {
-      id: SEED_IDS.unitTypes["UT-2M"],
-      code: "UT-2M",
-      name: "Kho tiêu chuẩn (2 m²)",
-      sizeLabel: "2 m²",
-      lengthM: 2,
-      widthM: 1,
-      heightM: 2.5,
-      monthlyPrice: 900000,
-    },
-    {
-      id: SEED_IDS.unitTypes["UT-4M"],
-      code: "UT-4M",
-      name: "Kho tiêu chuẩn (4 m²)",
-      sizeLabel: "4 m²",
-      lengthM: 2,
-      widthM: 2,
-      heightM: 2.5,
-      monthlyPrice: 1500000,
-    },
-    {
-      id: SEED_IDS.unitTypes["UT-6M"],
-      code: "UT-6M",
-      name: "Kho tiêu chuẩn (6 m²)",
-      sizeLabel: "6 m²",
-      lengthM: 3,
-      widthM: 2,
-      heightM: 2.5,
-      monthlyPrice: 2100000,
-    },
-    {
-      id: SEED_IDS.unitTypes["UT-AC-4M"],
-      code: "UT-AC-4M",
-      name: "Kho kiểm soát ẩm (4 m²)",
-      sizeLabel: "4 m² - kiểm soát ẩm",
-      lengthM: 2,
-      widthM: 2,
-      heightM: 2.5,
-      monthlyPrice: 1900000,
-    },
-    {
-      id: SEED_IDS.unitTypes["UT-1M"],
-      code: "UT-1M",
-      name: "Kho tiêu chuẩn (1 m²)",
-      sizeLabel: "1 m²",
-      lengthM: 1,
-      widthM: 1,
-      heightM: 2.5,
-      monthlyPrice: 500000,
-    },
-    {
-      id: SEED_IDS.unitTypes["UT-8M"],
-      code: "UT-8M",
-      name: "Kho tiêu chuẩn (8 m²)",
-      sizeLabel: "8 m²",
-      lengthM: 4,
-      widthM: 2,
-      heightM: 2.5,
-      monthlyPrice: 2700000,
-    },
-    {
-      id: SEED_IDS.unitTypes["UT-10M"],
-      code: "UT-10M",
-      name: "Kho tiêu chuẩn (10 m²)",
-      sizeLabel: "10 m²",
-      lengthM: 5,
-      widthM: 2,
-      heightM: 2.5,
-      monthlyPrice: 3300000,
-    },
-    {
-      id: SEED_IDS.unitTypes["UT-15M"],
-      code: "UT-15M",
-      name: "Kho tiêu chuẩn (15 m²)",
-      sizeLabel: "15 m²",
-      lengthM: 5,
-      widthM: 3,
-      heightM: 2.5,
-      monthlyPrice: 4800000,
-    },
-  ];
+  console.log("4. Seeding BOM catalog and FM facility offerings...");
+  const catalog = await seedUnitTypeCatalog(seedNow);
+  // These are the FM's selected types and starting prices, independent of catalog bounds.
+  // UT-3M remains unselected so the manager can exercise the add-offering flow.
+  const facilityPrices = [
+    { code: "UT-2M", monthlyPrice: 900000 },
+    { code: "UT-4M", monthlyPrice: 1500000 },
+    { code: "UT-6M", monthlyPrice: 2100000 },
+    { code: "UT-AC-4M", monthlyPrice: 1900000 },
+    { code: "UT-1M", monthlyPrice: 500000 },
+    { code: "UT-8M", monthlyPrice: 2700000 },
+    { code: "UT-10M", monthlyPrice: 3300000 },
+    { code: "UT-15M", monthlyPrice: 4800000 },
+  ] as const;
 
   const typeMap = new Map<string, string>();
-  for (const [index, unitType] of unitTypesData.entries()) {
-    for (const [facilityIndex, facility] of facilities.entries()) {
-      const candidateId =
-        facilityIndex === 0 ? unitType.id : id("62000000", facilityIndex * 100 + index + 1);
-      const catalogId = id("63000000", index + 1);
-      const { monthlyPrice, id: _id, ...metadata } = unitType;
+  for (const [facilityIndex, facility] of facilities.entries()) {
+    const manager =
+      facilityIndex === 0
+        ? SEED_USERS[2]
+        : SEED_DEMO_USERS.find(
+            (user) =>
+              user.email ===
+              `manager.hcm${String(facilityIndex + 1).padStart(2, "0")}@metastorage.test`,
+          );
+    const staff =
+      facilityIndex === 0
+        ? SEED_USERS[1]
+        : SEED_DEMO_USERS.find(
+            (user) =>
+              user.email ===
+              `staff.hcm${String(facilityIndex + 1).padStart(2, "0")}@metastorage.test`,
+          );
+    if (!manager || !staff) throw new Error(`Missing demo team for ${facility.code}`);
+    for (const person of [manager, staff]) {
       await db
-        .insert(unitTypes)
-        .values({
-          ...metadata,
-          id: catalogId,
-          minMonthlyPrice: Math.floor(monthlyPrice / 2),
-          maxMonthlyPrice: monthlyPrice * 2,
-        })
+        .insert(facilityAssignments)
+        .values({ userId: person.id, facilityId: facility.id, role: person.role })
         .onConflictDoNothing();
+    }
+    for (const [index, selection] of facilityPrices.entries()) {
+      const type = catalog.get(selection.code);
+      if (!type) throw new Error(`Missing catalog type ${selection.code}`);
+      const offeringId =
+        facilityIndex === 0
+          ? SEED_IDS.unitTypes[selection.code]
+          : id("62000000", facilityIndex * 100 + index + 1);
+      // Stable differences between facilities; every price must obey the BOM's current bounds.
+      const candidatePrice = selection.monthlyPrice + (facilityIndex % 4) * 50000;
+      const monthlyPrice = Math.min(
+        type.maxMonthlyPrice,
+        Math.max(type.minMonthlyPrice, candidatePrice),
+      );
       await db
         .insert(facilityUnitTypes)
-        .values({ id: candidateId, facilityId: facility.id, unitTypeId: catalogId, monthlyPrice })
-        .onConflictDoUpdate({ target: facilityUnitTypes.id, set: { unitTypeId: catalogId } });
+        .values({
+          id: offeringId,
+          facilityId: facility.id,
+          unitTypeId: type.id,
+          monthlyPrice,
+          updatedBy: manager.id,
+          createdAt: seedNow,
+          updatedAt: seedNow,
+        })
+        .onConflictDoNothing();
       const [localType] = await db
-        .select({ id: facilityUnitTypes.id })
+        .select()
         .from(facilityUnitTypes)
         .where(
           and(
             eq(facilityUnitTypes.facilityId, facility.id),
-            eq(facilityUnitTypes.unitTypeId, catalogId),
+            eq(facilityUnitTypes.unitTypeId, type.id),
           ),
         );
-      if (!localType) throw new Error(`Missing seed type ${facility.code}/${unitType.code}`);
-      if (facilityIndex === 0) typeMap.set(unitType.code, localType.id);
+      if (!localType)
+        throw new Error(
+          `Existing offering ${offeringId} is linked to another catalog type; reconcile explicitly before seeding`,
+        );
+      if (
+        localType.monthlyPrice < type.minMonthlyPrice ||
+        localType.monthlyPrice > type.maxMonthlyPrice
+      )
+        throw new Error(`Seed offering ${facility.code}/${selection.code} is outside BOM bounds`);
+      if (facilityIndex === 0) typeMap.set(selection.code, localType.id);
       await db
         .insert(storageUnits)
         .values({
-          id: `71000000-0000-4000-8000-${facility.id.slice(-6)}${unitType.id.slice(-6)}`,
+          id: `71000000-0000-4000-8000-${facility.id.slice(-6)}${SEED_IDS.unitTypes[selection.code].slice(-6)}`,
           facilityId: facility.id,
           unitTypeId: localType.id,
-          code: `${facility.code}-${unitType.code}-001`,
+          code: `${facility.code}-${selection.code}-001`,
           status: "AVAILABLE",
+          floor: "1",
+          locationDescription: `Dãy A · ${type.sizeLabel} · Ô 01`,
         })
         .onConflictDoNothing({ target: storageUnits.code });
     }

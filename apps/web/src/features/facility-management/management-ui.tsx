@@ -1,6 +1,6 @@
 "use client";
 
-import { cloneElement, useId } from "react";
+import { cloneElement, useId, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { cn } from "@/lib/utils";
@@ -38,6 +38,7 @@ export function ManagementDialog({
   pending,
   wide,
 }: ManagementDialogProps) {
+  const trigger = useRef<HTMLElement | null>(null);
   return (
     <Dialog
       open
@@ -46,9 +47,20 @@ export function ManagementDialog({
       }}
     >
       <DialogContent
+        aria-describedby={undefined}
+        onOpenAutoFocus={() => {
+          trigger.current =
+            document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        }}
+        onCloseAutoFocus={(event) => {
+          if (trigger.current instanceof HTMLElement && trigger.current.isConnected) {
+            event.preventDefault();
+            trigger.current.focus({ preventScroll: true });
+          }
+        }}
         className={cn(
-          "gap-4 rounded-2xl border border-slate-200 bg-white p-5 text-ink shadow-2xl sm:p-6",
-          wide ? "max-w-2xl sm:max-w-3xl" : "max-w-lg sm:max-w-xl",
+          "max-h-[calc(100dvh-2rem)] overflow-y-auto gap-4 rounded-card border border-slate-200 bg-white p-5 text-ink shadow-2xl sm:p-6",
+          wide ? "max-w-[calc(100vw-2rem)] sm:max-w-3xl" : "max-w-[calc(100vw-2rem)] sm:max-w-xl",
         )}
       >
         <DialogHeader className="border-b border-slate-100 pb-3 pr-6">
