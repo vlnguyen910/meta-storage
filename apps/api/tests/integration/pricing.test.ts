@@ -7,7 +7,7 @@ import { auth } from "../../src/modules/auth/auth";
 import { PricingRepository } from "../../src/modules/pricing/pricing.repository";
 import { pricingRoutes } from "../../src/modules/pricing/pricing.routes";
 import { PricingService } from "../../src/modules/pricing/pricing.service";
-import { UnitTypesService } from "../../src/modules/unit-types/unit-types.service";
+import { FacilityUnitTypesService } from "../../src/modules/unit-types/facility-unit-types.service";
 
 const actor = "11111111-1111-4111-8111-111111111111";
 const type = "22222222-2222-4222-8222-222222222222";
@@ -15,7 +15,7 @@ const session = spyOn(auth.api, "getSession");
 const findQuote = spyOn(PricingRepository.prototype, "findQuote");
 const read = spyOn(PricingRepository.prototype, "getConfiguration");
 const update = spyOn(PricingRepository.prototype, "updateDeposit");
-const updatePrice = spyOn(UnitTypesService.prototype, "update");
+const updatePrice = spyOn(FacilityUnitTypesService.prototype, "update");
 const service = new PricingService(new PricingRepository({} as never));
 const app = Fastify();
 app.decorate("db", {});

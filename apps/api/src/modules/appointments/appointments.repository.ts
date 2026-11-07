@@ -9,6 +9,7 @@ import {
   eq,
   facilities,
   facilityTasks,
+  facilityUnitTypes,
   getTableColumns,
   inArray,
   inspections,
@@ -132,7 +133,11 @@ export class AppointmentsRepository {
         slotEnd: checkInSlots.endTime,
         reservation: { ...getTableColumns(reservations) },
         facility: { id: facilities.id, name: facilities.name, address: facilities.address },
-        unitType: { id: unitTypes.id, name: unitTypes.name, sizeLabel: unitTypes.sizeLabel },
+        unitType: {
+          id: facilityUnitTypes.id,
+          name: unitTypes.name,
+          sizeLabel: unitTypes.sizeLabel,
+        },
         handoverStage: sql<string>`case when ${appointments.status} = 'COMPLETED' then 'HANDED_OVER' when exists(select 1 from ${inspections} i join ${facilityTasks} t on t.id = i.task_id where t.reference_type = 'APPOINTMENT' and t.reference_id = ${appointments.id} and t.status <> 'CANCELLED' and i.status = 'PASSED') then 'READY_HANDOVER' when exists(select 1 from ${facilityTasks} t where t.reference_type = 'APPOINTMENT' and t.reference_id = ${appointments.id} and t.status = 'IN_PROGRESS') then 'INSPECTING' else 'WAITING_CUSTOMER' end`,
         paidAt: sql<Date | null>`(select ${payments.paidAt} from ${payments} where ${payments.reservationId} = ${appointments.reservationId} and ${payments.paidAt} is not null order by ${payments.paidAt} desc limit 1)`,
         paymentStatus: sql<
@@ -144,7 +149,8 @@ export class AppointmentsRepository {
       .innerJoin(facilities, eq(facilities.id, appointments.facilityId))
       .innerJoin(checkInSlots, eq(checkInSlots.id, appointments.slotId))
       .leftJoin(reservations, eq(reservations.id, appointments.reservationId))
-      .leftJoin(unitTypes, eq(unitTypes.id, reservations.unitTypeId))
+      .leftJoin(facilityUnitTypes, eq(facilityUnitTypes.id, reservations.unitTypeId))
+      .leftJoin(unitTypes, eq(unitTypes.id, facilityUnitTypes.unitTypeId))
       .leftJoin(staff, eq(staff.id, appointments.assignedStaffId))
       .leftJoin(
         unitAssignments,

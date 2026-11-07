@@ -7,6 +7,7 @@ import {
   eq,
   type Facility,
   facilities,
+  facilityUnitTypes,
   gt,
   inArray,
   min,
@@ -14,6 +15,7 @@ import {
   or,
   ReservationStatus,
   reservations,
+  sql,
   systemSettingInteger,
   systemSettings,
   unitTypes,
@@ -33,12 +35,16 @@ export class FacilitiesRepository {
     return this.db
       .select({
         facility: facilities,
-        startingMonthlyPrice: min(unitTypes.monthlyPrice).mapWith(Number),
+        startingMonthlyPrice: min(facilityUnitTypes.monthlyPrice).mapWith(Number),
       })
       .from(facilities)
       .leftJoin(
-        unitTypes,
-        and(eq(unitTypes.facilityId, facilities.id), eq(unitTypes.isActive, true)),
+        facilityUnitTypes,
+        and(
+          eq(facilityUnitTypes.facilityId, facilities.id),
+          eq(facilityUnitTypes.isActive, true),
+          sql`exists(select 1 from ${unitTypes} where ${unitTypes.id} = ${facilityUnitTypes.unitTypeId} and ${unitTypes.isActive})`,
+        ),
       )
       .where(eq(facilities.isActive, true))
       .groupBy(facilities.id);

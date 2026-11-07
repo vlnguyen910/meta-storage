@@ -7,11 +7,11 @@ import { checkInSlots } from "./check-in-slots";
 import { facilities } from "./facilities";
 import { facilityAssignments } from "./facility-assignments";
 import { facilityTasks } from "./facility-tasks";
+import { facilityUnitTypes } from "./facility-unit-types";
 import { inspections } from "./inspections";
 import { mediaAssets } from "./media-assets";
 import { paymentProviderEvents } from "./payment-provider-events";
 import { payments } from "./payments";
-import { rentalPriceRanges } from "./rental-price-ranges";
 import { rentals } from "./rentals";
 import { reservations } from "./reservations";
 import { sessions } from "./sessions";
@@ -78,7 +78,7 @@ export const paymentProviderEventsRelations = relations(paymentProviderEvents, (
 }));
 
 export const facilitiesRelations = relations(facilities, ({ many }) => ({
-  unitTypes: many(unitTypes),
+  unitTypes: many(facilityUnitTypes),
   assignments: many(facilityAssignments),
   storageUnits: many(storageUnits),
   capacityAllocations: many(capacityAllocations),
@@ -87,17 +87,15 @@ export const facilitiesRelations = relations(facilities, ({ many }) => ({
   appointments: many(appointments),
 }));
 
-export const rentalPriceRangesRelations = relations(rentalPriceRanges, ({ many, one }) => ({
-  updatedBy: one(users, { fields: [rentalPriceRanges.updatedBy], references: [users.id] }),
-  unitTypes: many(unitTypes),
+export const unitTypesRelations = relations(unitTypes, ({ many }) => ({
+  facilities: many(facilityUnitTypes),
 }));
-
-export const unitTypesRelations = relations(unitTypes, ({ many, one }) => ({
-  facility: one(facilities, { fields: [unitTypes.facilityId], references: [facilities.id] }),
-  priceRange: one(rentalPriceRanges, {
-    fields: [unitTypes.priceRangeId],
-    references: [rentalPriceRanges.id],
+export const facilityUnitTypesRelations = relations(facilityUnitTypes, ({ one, many }) => ({
+  facility: one(facilities, {
+    fields: [facilityUnitTypes.facilityId],
+    references: [facilities.id],
   }),
+  unitType: one(unitTypes, { fields: [facilityUnitTypes.unitTypeId], references: [unitTypes.id] }),
   storageUnits: many(storageUnits),
   bookings: many(bookings),
   reservations: many(reservations),
@@ -119,9 +117,9 @@ export const storageUnitsRelations = relations(storageUnits, ({ one, many }) => 
     fields: [storageUnits.facilityId],
     references: [facilities.id],
   }),
-  unitType: one(unitTypes, {
+  unitType: one(facilityUnitTypes, {
     fields: [storageUnits.unitTypeId],
-    references: [unitTypes.id],
+    references: [facilityUnitTypes.id],
   }),
   assignments: many(unitAssignments),
   rentals: many(rentals),
@@ -133,9 +131,9 @@ export const capacityAllocationsRelations = relations(capacityAllocations, ({ on
     fields: [capacityAllocations.facilityId],
     references: [facilities.id],
   }),
-  unitType: one(unitTypes, {
+  unitType: one(facilityUnitTypes, {
     fields: [capacityAllocations.unitTypeId],
-    references: [unitTypes.id],
+    references: [facilityUnitTypes.id],
   }),
 }));
 
@@ -153,9 +151,9 @@ export const bookingsRelations = relations(bookings, ({ one, many }) => ({
     fields: [bookings.facilityId],
     references: [facilities.id],
   }),
-  unitType: one(unitTypes, {
+  unitType: one(facilityUnitTypes, {
     fields: [bookings.unitTypeId],
-    references: [unitTypes.id],
+    references: [facilityUnitTypes.id],
   }),
   assignedStaff: one(users, {
     relationName: "bookingStaff",
@@ -196,7 +194,10 @@ export const rentalsRelations = relations(rentals, ({ one, many }) => ({
 export const reservationsRelations = relations(reservations, ({ one, many }) => ({
   customer: one(users, { fields: [reservations.customerId], references: [users.id] }),
   facility: one(facilities, { fields: [reservations.facilityId], references: [facilities.id] }),
-  unitType: one(unitTypes, { fields: [reservations.unitTypeId], references: [unitTypes.id] }),
+  unitType: one(facilityUnitTypes, {
+    fields: [reservations.unitTypeId],
+    references: [facilityUnitTypes.id],
+  }),
   appointments: many(appointments),
 }));
 

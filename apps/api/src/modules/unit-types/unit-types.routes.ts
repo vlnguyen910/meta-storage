@@ -1,8 +1,8 @@
 import {
-  CreateUnitTypeSchema,
+  CreateUnitTypeCatalogSchema,
+  UnitTypeCatalogQuerySchema,
   UnitTypeIdParamsSchema,
-  UnitTypeManagementQuerySchema,
-  UpdateUnitTypeSchema,
+  UpdateUnitTypeCatalogSchema,
 } from "@metastorage/contracts";
 import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
@@ -24,7 +24,7 @@ export const unitTypesRoutes: FastifyPluginAsync = async (fastify) => {
         tags: ["Unit Types"],
         security: [{ sessionAuth: [] }],
         summary: UNIT_TYPE_MESSAGES.unitTypeListSummary,
-        querystring: UnitTypeManagementQuerySchema,
+        querystring: UnitTypeCatalogQuerySchema,
       },
       preHandler: [requireRole("SYSTEM_ADMIN", "BUSINESS_OPERATION_MANAGER", "FACILITY_MANAGER")],
     },
@@ -42,9 +42,9 @@ export const unitTypesRoutes: FastifyPluginAsync = async (fastify) => {
         tags: ["Unit Types"],
         security: [{ sessionAuth: [] }],
         summary: UNIT_TYPE_MESSAGES.unitTypeCreateSummary,
-        body: CreateUnitTypeSchema,
+        body: CreateUnitTypeCatalogSchema,
       },
-      preHandler: [requireRole("FACILITY_MANAGER")],
+      preHandler: [requireRole("BUSINESS_OPERATION_MANAGER")],
     },
     async (request, reply) => {
       if (!request.user) throw new UnauthorizedError();
@@ -67,9 +67,9 @@ export const unitTypesRoutes: FastifyPluginAsync = async (fastify) => {
         security: [{ sessionAuth: [] }],
         summary: UNIT_TYPE_MESSAGES.unitTypeUpdateSummary,
         params: UnitTypeIdParamsSchema,
-        body: UpdateUnitTypeSchema,
+        body: UpdateUnitTypeCatalogSchema,
       },
-      preHandler: [requireRole("FACILITY_MANAGER")],
+      preHandler: [requireRole("BUSINESS_OPERATION_MANAGER")],
     },
     async (request, reply) => {
       if (!request.user) throw new UnauthorizedError();

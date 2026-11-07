@@ -17,6 +17,7 @@ import {
   eq,
   facilities,
   facilityTasks,
+  facilityUnitTypes,
   gt,
   InspectionType,
   inArray,
@@ -267,7 +268,8 @@ export class StorageUnitsRepository {
           unitTypeSizeLabel: unitTypes.sizeLabel,
         })
         .from(storageUnits)
-        .innerJoin(unitTypes, eq(storageUnits.unitTypeId, unitTypes.id))
+        .innerJoin(facilityUnitTypes, eq(storageUnits.unitTypeId, facilityUnitTypes.id))
+        .innerJoin(unitTypes, eq(unitTypes.id, facilityUnitTypes.unitTypeId))
         .where(filter)
         .orderBy(asc(storageUnits.code), asc(storageUnits.id))
         .limit(query.limit)
@@ -301,12 +303,14 @@ export class StorageUnitsRepository {
         .for("update");
       const [offering] = await tx
         .select({ id: unitTypes.id })
-        .from(unitTypes)
+        .from(facilityUnitTypes)
+        .innerJoin(unitTypes, eq(unitTypes.id, facilityUnitTypes.unitTypeId))
         .where(
           and(
-            eq(unitTypes.facilityId, facilityId),
-            eq(unitTypes.id, input.unitTypeId),
+            eq(facilityUnitTypes.facilityId, facilityId),
+            eq(facilityUnitTypes.id, input.unitTypeId),
             eq(unitTypes.isActive, true),
+            eq(facilityUnitTypes.isActive, true),
           ),
         )
         .for("update");
@@ -361,12 +365,14 @@ export class StorageUnitsRepository {
       if (input.unitTypeId && input.unitTypeId !== unit.unitTypeId) {
         const [offering] = await tx
           .select({ id: unitTypes.id })
-          .from(unitTypes)
+          .from(facilityUnitTypes)
+          .innerJoin(unitTypes, eq(unitTypes.id, facilityUnitTypes.unitTypeId))
           .where(
             and(
-              eq(unitTypes.facilityId, unit.facilityId),
-              eq(unitTypes.id, input.unitTypeId),
+              eq(facilityUnitTypes.facilityId, unit.facilityId),
+              eq(facilityUnitTypes.id, input.unitTypeId),
               eq(unitTypes.isActive, true),
+              eq(facilityUnitTypes.isActive, true),
             ),
           )
           .for("update");

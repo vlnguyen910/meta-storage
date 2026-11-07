@@ -5,6 +5,7 @@ import {
   desc,
   eq,
   facilities,
+  facilityUnitTypes,
   getTableColumns,
   type NewReservationRecord,
   payments,
@@ -53,7 +54,11 @@ export class ReservationsRepository {
         ...getTableColumns(reservations),
         user: { id: users.id, name: users.name, email: users.email, phone: users.phone },
         facility: { id: facilities.id, name: facilities.name, address: facilities.address },
-        unitType: { id: unitTypes.id, name: unitTypes.name, sizeLabel: unitTypes.sizeLabel },
+        unitType: {
+          id: facilityUnitTypes.id,
+          name: unitTypes.name,
+          sizeLabel: unitTypes.sizeLabel,
+        },
         rentalId: sql<
           string | null
         >`(select ${rentals.id} from ${rentals} where ${rentals.reservationId} = ${reservations.id} limit 1)`,
@@ -64,7 +69,8 @@ export class ReservationsRepository {
       .from(reservations)
       .innerJoin(users, eq(users.id, reservations.customerId))
       .innerJoin(facilities, eq(facilities.id, reservations.facilityId))
-      .innerJoin(unitTypes, eq(unitTypes.id, reservations.unitTypeId));
+      .innerJoin(facilityUnitTypes, eq(facilityUnitTypes.id, reservations.unitTypeId))
+      .innerJoin(unitTypes, eq(unitTypes.id, facilityUnitTypes.unitTypeId));
   }
 
   async findById(id: string) {

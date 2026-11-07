@@ -2,31 +2,23 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
-  index,
   integer,
   numeric,
   pgTable,
   text,
   timestamp,
-  unique,
   uniqueIndex,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { facilities } from "./facilities";
-import { rentalPriceRanges } from "./rental-price-ranges";
 import { users } from "./users";
 
 export const unitTypes = pgTable(
   "unit_types",
   {
     id: uuid().defaultRandom().primaryKey(),
-    facilityId: uuid()
-      .notNull()
-      .references(() => facilities.id, { onDelete: "restrict" }),
     version: integer().default(0).notNull(),
     updatedBy: uuid().references(() => users.id, { onDelete: "restrict" }),
-    priceRangeId: uuid().references(() => rentalPriceRanges.id, { onDelete: "restrict" }),
     code: varchar({ length: 80 }).notNull(),
     name: varchar({ length: 100 }).notNull(),
     coverUrl: text(),
@@ -37,16 +29,18 @@ export const unitTypes = pgTable(
     sizeCbm: numeric({ mode: "number" })
       .generatedAlwaysAs(sql`"length_m" * "width_m" * "height_m"`)
       .notNull(),
-    monthlyPrice: integer().notNull(),
+    minMonthlyPrice: integer().notNull(),
+    maxMonthlyPrice: integer().notNull(),
     isActive: boolean().default(true).notNull(),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
-    uniqueIndex("unit_types_facility_code_idx").on(table.facilityId, table.code),
-    unique("unit_types_facility_id_idx").on(table.facilityId, table.id),
-    index("unit_types_price_range_idx").on(table.priceRangeId),
-    check("unit_types_price_positive", sql`${table.monthlyPrice} > 0`),
+    uniqueIndex("unit_types_code_idx").on(table.code),
+    check(
+      "unit_types_price_bounds",
+      sql`${table.minMonthlyPrice} > 0 AND ${table.maxMonthlyPrice} >= ${table.minMonthlyPrice}`,
+    ),
     check("unit_types_version_valid", sql`${table.version} >= 0`),
     check(
       "unit_types_positive_dimensions",

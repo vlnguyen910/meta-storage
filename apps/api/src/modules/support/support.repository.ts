@@ -6,6 +6,7 @@ import {
   desc,
   eq,
   facilities,
+  facilityUnitTypes,
   getTableColumns,
   lt,
   notificationOutbox,
@@ -128,14 +129,15 @@ export class SupportRepository {
         ),
         status: reservations.status,
         facility: { id: facilities.id, name: facilities.name },
-        unitType: { id: unitTypes.id, name: unitTypes.name },
+        unitType: { id: facilityUnitTypes.id, name: unitTypes.name },
         checkInDate: sql<string>`(${reservations.rentalStartAt} at time zone 'Asia/Ho_Chi_Minh')::date::text`,
         createdAt,
       })
       .from(reservations)
       .innerJoin(users, eq(users.id, reservations.customerId))
       .innerJoin(facilities, eq(facilities.id, reservations.facilityId))
-      .innerJoin(unitTypes, eq(unitTypes.id, reservations.unitTypeId))
+      .innerJoin(facilityUnitTypes, eq(facilityUnitTypes.id, reservations.unitTypeId))
+      .innerJoin(unitTypes, eq(unitTypes.id, facilityUnitTypes.unitTypeId))
       .leftJoin(rentals, eq(rentals.reservationId, reservations.id))
       .leftJoin(storageUnits, eq(storageUnits.id, rentals.storageUnitId))
       .where(

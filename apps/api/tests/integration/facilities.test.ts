@@ -156,7 +156,7 @@ describe("GET /api/facilities/:facilityId/unit-types", () => {
     expect(findFacility).toHaveBeenCalledTimes(1);
     expect(findFacility).toHaveBeenCalledWith(facility.id);
     expect(getUnitTypes).toHaveBeenCalledTimes(1);
-    expect(getUnitTypes).toHaveBeenCalledWith(facility.id, 20, 0);
+    expect(getUnitTypes).toHaveBeenCalledWith(facility.id, 20, 0, true);
     expect(getFacilities).not.toHaveBeenCalled();
   });
 
@@ -164,7 +164,7 @@ describe("GET /api/facilities/:facilityId/unit-types", () => {
     const response = await app.inject({ method: "GET", url: `${url}?limit=5&offset=2` });
 
     expect(response.statusCode).toBe(200);
-    expect(getUnitTypes).toHaveBeenCalledWith(facility.id, 5, 2);
+    expect(getUnitTypes).toHaveBeenCalledWith(facility.id, 5, 2, true);
   });
 
   test("returns an empty array for an active facility without unit types", async () => {

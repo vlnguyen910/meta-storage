@@ -336,7 +336,7 @@ assignment constraints.
 
 - UUID primary keys on `users`, `facilities`, `facility_assignments`,
   `facility_tasks`,
-  `unit_types`, `storage_units`, `check_in_slots`,
+  `unit_types`, `facility_unit_types`, `storage_units`, `check_in_slots`,
   and `capacity_allocations` default to generated random UUIDs. Auth tables
   `accounts`, `sessions` and `verifications` use text primary keys.
 - `users.email`, `users.phone`, `facilities.code`, `storage_units.code` and
@@ -392,12 +392,15 @@ assignment constraints.
 - Before applying the single-Facility index migration, check for Users with
   multiple `is_active = true` assignments. Resolve them explicitly before
   migrating; the migration must not choose a Facility or discard history.
-- `unit_types.code` is unique within a facility; `(facility_id,id)` is unique.
-- `storage_units`, `bookings` and `capacity_allocations`
-  each use a composite foreign key `(facility_id,unit_type_id)` to
-  `unit_types(facility_id,id)` with ON DELETE RESTRICT. Range and facility ownership
-  references also use RESTRICT. `capacity_allocations.reference_id` remains a UUID
-  reference value without a database foreign key.
+- `unit_types` is the BOM catalog: globally unique code, standard dimensions,
+  required `min_monthly_price > 0` and `max_monthly_price >= min_monthly_price`.
+- `facility_unit_types` stores the FM offering, unique on `(facility_id,unit_type_id)`;
+  exact monthly price and enablement belong to the offering. Prices must fit the
+  catalog bounds; catalog bounds cannot exclude any configured offering price.
+- `storage_units`, `bookings`, `reservations` and `capacity_allocations` retain
+  their existing `unit_type_id` field as the **facility offering ID** and use a
+  composite FK to `facility_unit_types(facility_id,id)` with ON DELETE RESTRICT.
+  Public responses keep the offering ID and flatten catalog metadata with local price.
 - User foreign keys use `ON DELETE CASCADE` for `accounts`, `sessions` and
   `facility_assignments`, and `ON DELETE RESTRICT` for `bookings.user_id`.
   Facility task references use `ON DELETE RESTRICT` to preserve assigned work.
@@ -412,14 +415,14 @@ assignment constraints.
   `capacity_allocations.status` to `ACTIVE`. The default operating timezone is
   `Asia/Ho_Chi_Minh`. Operating hours are now global system settings, not a table.
 
-BOM-managed rental price range. BOM manages the shared catalog; Facility Managers
-assign active ranges to unit types. A range cannot be deactivated or narrowed while
-an assigned type falls outside it. Exact length, width and height are positive meters;
-`size_cbm` is generated as their product, and floor area is calculated when reading.
-Physical units inherit the dimensions of their local type. Availability and capacity
-are scoped to `(facility_id,unit_type_id)`. Public catalog requires an active facility,
-active type and active configured range containing its price.
-Customers select a type; operations assign the physical unit later.
+BOM creates and updates standard unit types, dimensions and price bounds.
+FM selects an active catalog type for an assigned active facility, then sets the
+local monthly price within those bounds. FM cannot edit standard metadata or bounds.
+Dimensions cannot change once a type has a facility offering. Disabling a catalog
+entry removes all its offerings from public selection without deleting operational history.
+Legacy migration keeps each old offering ID; it does not automatically merge catalog
+items. Existing finite price bounds are preserved, otherwise min=max=current price.
+Duplicate legacy codes receive an ID suffix. BOM can review and widen the migrated bounds.
 
 ## Sơ đồ quan hệ hiện tại trong code
 
@@ -534,14 +537,13 @@ erDiagram
   users ||--o{ sessions : signs_in_with
   users ||--o{ facility_assignments : receives
   facilities ||--o{ facility_assignments : has
-  facilities ||--o{ unit_types : owns
-  rental_price_ranges o|--o{ unit_types : bounds_price
-  unit_types ||--o{ storage_units : materializes
-  unit_types ||--o{ capacity_allocations : allocates
-  unit_types ||--o{ bookings : books
-  unit_types ||--o{ storage_units : materializes
+  facilities ||--o{ facility_unit_types : configures
+  unit_types ||--o{ facility_unit_types : offered_as
+  facility_unit_types ||--o{ storage_units : materializes
+  facility_unit_types ||--o{ capacity_allocations : allocates
+  facility_unit_types ||--o{ bookings : books
+  facility_unit_types ||--o{ reservations : reserves
   facilities ||--o{ storage_units : contains
-  unit_types ||--o{ capacity_allocations : allocates
   facilities ||--o{ capacity_allocations : reserves
   users o|--o{ bookings : saves_history
   users o|--o{ bookings : assigned_to
@@ -553,7 +555,6 @@ erDiagram
   bookings o|--o{ inspections : checkin_context
   rentals o|--o{ inspections : checkout_context
   rentals ||--o{ rental_renewals : renews
-  storage_units ||--o{ rental_renewals : snapshots
   rental_renewals ||--o| payments : charges
   storage_units ||--o{ inspections : inspected
   facility_tasks ||--o{ inspections : assigned_work
@@ -639,35 +640,32 @@ erDiagram
   }
 
 
-  rental_price_ranges {
+  unit_types {
     uuid id PK
     varchar code UK
     varchar name
-    integer min_monthly_price "nullable with max for unbounded range"
-    integer max_monthly_price "nullable with min for unbounded range"
-    boolean is_active
-    integer version
-    uuid updated_by FK "nullable"
-    timestamptz created_at
-    timestamptz updated_at
-  }
-
-  unit_types {
-    uuid id PK
-    uuid facility_id FK
-    uuid price_range_id FK "nullable until assigned"
-    varchar code "unique within facility"
-    varchar name
-    text cover_url "nullable"
+    text cover_url
     varchar size_label
     numeric length_m
     numeric width_m
     numeric height_m
     numeric size_cbm "generated"
+    integer min_monthly_price
+    integer max_monthly_price
+    boolean is_active
+    integer version
+    uuid updated_by FK
+    timestamptz created_at
+    timestamptz updated_at
+  }
+  facility_unit_types {
+    uuid id PK
+    uuid facility_id FK
+    uuid unit_type_id FK
     integer monthly_price
     boolean is_active
     integer version
-    uuid updated_by FK "nullable"
+    uuid updated_by FK
     timestamptz created_at
     timestamptz updated_at
   }

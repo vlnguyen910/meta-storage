@@ -1,236 +1,98 @@
-import type {
-  CreateUnitTypeInput,
-  SetUnitTypePriceRange,
-  UpdateUnitTypeInput,
-} from "@metastorage/contracts";
-import { PRICING_MESSAGES } from "@metastorage/contracts";
+import type { CreateUnitTypeCatalog, UpdateUnitTypeCatalog } from "@metastorage/contracts";
 import {
   and,
-  bookings,
   type Database,
   desc,
   eq,
-  facilityAssignments,
+  facilityUnitTypes,
   gt,
-  isNull,
+  lt,
   ne,
   or,
-  rentalPriceRanges,
-  type UnitType,
   unitTypes,
-  users,
 } from "@metastorage/database";
-import { ConflictError, ForbiddenError, NotFoundError } from "../../common/errors/app-error";
+import { ConflictError, NotFoundError } from "../../common/errors/app-error";
 import { lockPricingRevision, recordPricingChange } from "../pricing/pricing.repository";
-import type { PricingTransaction } from "../pricing/pricing.types";
 import { UNIT_TYPE_MESSAGES as M } from "./unit-types.messages";
 
 export class UnitTypesRepository {
   constructor(private readonly db: Database) {}
-
-  async managerFacility(userId: string, facilityId?: string) {
-    const [row] = await this.db
-      .select({ facilityId: facilityAssignments.facilityId })
-      .from(facilityAssignments)
-      .where(
-        and(
-          eq(facilityAssignments.userId, userId),
-          eq(facilityAssignments.role, "FACILITY_MANAGER"),
-          eq(facilityAssignments.isActive, true),
-          or(isNull(facilityAssignments.endedAt), gt(facilityAssignments.endedAt, new Date())),
-          facilityId ? eq(facilityAssignments.facilityId, facilityId) : undefined,
-        ),
-      );
-    return row?.facilityId;
-  }
-
-  private async manager(tx: PricingTransaction, facilityId: string, actor: string) {
-    const [row] = await tx
-      .select({ id: facilityAssignments.id })
-      .from(facilityAssignments)
-      .innerJoin(users, eq(users.id, facilityAssignments.userId))
-      .where(
-        and(
-          eq(users.id, actor),
-          eq(users.role, "FACILITY_MANAGER"),
-          eq(users.status, "ACTIVE"),
-          eq(facilityAssignments.facilityId, facilityId),
-          eq(facilityAssignments.role, "FACILITY_MANAGER"),
-          eq(facilityAssignments.isActive, true),
-          or(isNull(facilityAssignments.endedAt), gt(facilityAssignments.endedAt, new Date())),
-        ),
-      )
-      .for("share");
-    if (!row) throw new ForbiddenError(M.forbidden);
-  }
-
-  async create(input: CreateUnitTypeInput, actor: string): Promise<UnitType> {
-    return this.db.transaction(async (tx) => {
-      const revision = await lockPricingRevision(tx);
-      await this.manager(tx, input.facilityId, actor);
-      const [created] = await tx
-        .insert(unitTypes)
-        .values({ ...input, updatedBy: actor })
-        .onConflictDoNothing({ target: [unitTypes.facilityId, unitTypes.code] })
-        .returning();
-      if (!created) throw new ConflictError(M.codeAlreadyExists);
-      await recordPricingChange(tx, revision, actor, {
-        operation: "UNIT_TYPE_PRICE",
-        before: {
-          facilityId: created.facilityId,
-          unitTypeId: created.id,
-
-          monthlyPrice: null,
-        },
-        after: {
-          facilityId: created.facilityId,
-          unitTypeId: created.id,
-
-          monthlyPrice: created.monthlyPrice,
-        },
-      });
-      return created;
-    });
-  }
-
-  async findById(id: string): Promise<UnitType | undefined> {
-    const [row] = await this.db.select().from(unitTypes).where(eq(unitTypes.id, id));
-    return row;
-  }
-
-  async list(
-    limit: number,
-    offset: number,
-    isActive?: boolean,
-    facilityId?: string,
-  ): Promise<UnitType[]> {
+  list(limit: number, offset: number, isActive?: boolean) {
     return this.db
       .select()
       .from(unitTypes)
-      .where(
-        and(
-          isActive === undefined ? undefined : eq(unitTypes.isActive, isActive),
-          facilityId ? eq(unitTypes.facilityId, facilityId) : undefined,
-        ),
-      )
+      .where(isActive === undefined ? undefined : eq(unitTypes.isActive, isActive))
+      .orderBy(desc(unitTypes.createdAt), desc(unitTypes.id))
       .limit(limit)
-      .offset(offset)
-      .orderBy(desc(unitTypes.createdAt), desc(unitTypes.id));
+      .offset(offset);
   }
-
-  async update(id: string, input: UpdateUnitTypeInput, actor: string): Promise<UnitType> {
-    const initial = await this.findById(id);
-    if (!initial) throw new NotFoundError(M.unitTypeNotFound);
+  async create(input: CreateUnitTypeCatalog, actor: string) {
+    const [row] = await this.db
+      .insert(unitTypes)
+      .values({ ...input, updatedBy: actor })
+      .onConflictDoNothing({ target: unitTypes.code })
+      .returning();
+    if (!row) throw new ConflictError(M.codeAlreadyExists);
+    return row;
+  }
+  update(id: string, input: UpdateUnitTypeCatalog, actor: string) {
     return this.db.transaction(async (tx) => {
       const revision = await lockPricingRevision(tx);
-      await this.manager(tx, initial.facilityId, actor);
       const [before] = await tx.select().from(unitTypes).where(eq(unitTypes.id, id)).for("update");
       if (!before) throw new NotFoundError(M.unitTypeNotFound);
       if (before.version !== input.expectedVersion) throw new ConflictError(M.stale);
-      if (input.code && input.code !== before.code) {
-        const [duplicate] = await tx
-          .select({ id: unitTypes.id })
-          .from(unitTypes)
-          .where(
-            and(
-              eq(unitTypes.facilityId, before.facilityId),
-              eq(unitTypes.code, input.code),
-              ne(unitTypes.id, id),
-            ),
-          )
-          .limit(1);
-        if (duplicate) throw new ConflictError(M.codeAlreadyExists);
-      }
+      const min = input.minMonthlyPrice ?? before.minMonthlyPrice;
+      const max = input.maxMonthlyPrice ?? before.maxMonthlyPrice;
+      if (min > max) throw new ConflictError(M.invalidBounds);
+      const [outside] = await tx
+        .select({ id: facilityUnitTypes.id })
+        .from(facilityUnitTypes)
+        .where(
+          and(
+            eq(facilityUnitTypes.unitTypeId, id),
+            or(lt(facilityUnitTypes.monthlyPrice, min), gt(facilityUnitTypes.monthlyPrice, max)),
+          ),
+        )
+        .limit(1);
+      if (outside) throw new ConflictError(M.pricesInUse);
       const dimensionsChanged =
         (input.lengthM !== undefined && input.lengthM !== before.lengthM) ||
         (input.widthM !== undefined && input.widthM !== before.widthM) ||
         (input.heightM !== undefined && input.heightM !== before.heightM);
       if (dimensionsChanged) {
-        const [booking] = await tx
-          .select({ id: bookings.id })
-          .from(bookings)
-          .where(eq(bookings.unitTypeId, id))
+        const [used] = await tx
+          .select({ id: facilityUnitTypes.id })
+          .from(facilityUnitTypes)
+          .where(eq(facilityUnitTypes.unitTypeId, id))
           .limit(1);
-        if (booking) throw new ConflictError(M.dimensionsInUse);
+        if (used) throw new ConflictError(M.dimensionsInUse);
       }
-      if (before.priceRangeId && input.monthlyPrice !== undefined) {
-        const [range] = await tx
-          .select()
-          .from(rentalPriceRanges)
-          .where(eq(rentalPriceRanges.id, before.priceRangeId))
-          .for("share");
-        if (!range?.isActive) throw new NotFoundError(PRICING_MESSAGES.rangeUnavailable);
-        if (!containsPrice(input.monthlyPrice, range.minMonthlyPrice, range.maxMonthlyPrice))
-          throw new ConflictError(PRICING_MESSAGES.priceOutsideRange);
+      if (input.code && input.code !== before.code) {
+        const [duplicate] = await tx
+          .select({ id: unitTypes.id })
+          .from(unitTypes)
+          .where(and(eq(unitTypes.code, input.code), ne(unitTypes.id, id)))
+          .limit(1);
+        if (duplicate) throw new ConflictError(M.codeAlreadyExists);
       }
-      const { expectedVersion: _version, ...values } = input;
-      const [updated] = await tx
+      const { expectedVersion: _, ...values } = input;
+      const [row] = await tx
         .update(unitTypes)
         .set({ ...values, version: before.version + 1, updatedBy: actor, updatedAt: new Date() })
         .where(eq(unitTypes.id, id))
         .returning();
-      if (!updated) throw new NotFoundError(M.unitTypeNotFound);
-      if (before.monthlyPrice !== updated.monthlyPrice)
+      if (!row) throw new NotFoundError(M.unitTypeNotFound);
+      if (min !== before.minMonthlyPrice || max !== before.maxMonthlyPrice)
         await recordPricingChange(tx, revision, actor, {
-          operation: "UNIT_TYPE_PRICE",
+          operation: "UNIT_TYPE_PRICE_RANGE",
           before: {
-            facilityId: before.facilityId,
             unitTypeId: id,
-
-            monthlyPrice: before.monthlyPrice,
+            minMonthlyPrice: before.minMonthlyPrice,
+            maxMonthlyPrice: before.maxMonthlyPrice,
           },
-          after: {
-            facilityId: updated.facilityId,
-            unitTypeId: id,
-
-            monthlyPrice: updated.monthlyPrice,
-          },
+          after: { unitTypeId: id, minMonthlyPrice: min, maxMonthlyPrice: max },
         });
-      return updated;
+      return row;
     });
   }
-
-  async setPriceRange(id: string, input: SetUnitTypePriceRange, actor: string): Promise<UnitType> {
-    return this.db.transaction(async (tx) => {
-      const revision = await lockPricingRevision(tx);
-      const [before] = await tx.select().from(unitTypes).where(eq(unitTypes.id, id)).for("update");
-      if (!before) throw new NotFoundError(M.unitTypeNotFound);
-      await this.manager(tx, before.facilityId, actor);
-      if (before.version !== input.expectedVersion) throw new ConflictError(M.stale);
-
-      const [range] = await tx
-        .select()
-        .from(rentalPriceRanges)
-        .where(eq(rentalPriceRanges.id, input.priceRangeId))
-        .for("share");
-      if (!range?.isActive) throw new NotFoundError(PRICING_MESSAGES.rangeUnavailable);
-      if (!containsPrice(before.monthlyPrice, range.minMonthlyPrice, range.maxMonthlyPrice))
-        throw new ConflictError(PRICING_MESSAGES.priceOutsideRange);
-      if (before.priceRangeId === range.id) return before;
-
-      const [updated] = await tx
-        .update(unitTypes)
-        .set({
-          priceRangeId: range.id,
-          version: before.version + 1,
-          updatedBy: actor,
-          updatedAt: new Date(),
-        })
-        .where(eq(unitTypes.id, id))
-        .returning();
-      if (!updated) throw new NotFoundError(M.unitTypeNotFound);
-      await recordPricingChange(tx, revision, actor, {
-        operation: "UNIT_TYPE_PRICE_RANGE",
-        before: { unitTypeId: id, priceRangeId: before.priceRangeId },
-        after: { unitTypeId: id, priceRangeId: updated.priceRangeId },
-      });
-      return updated;
-    });
-  }
-}
-
-function containsPrice(price: number, min: number | null, max: number | null) {
-  return (
-    (min === null && max === null) || (min !== null && max !== null && price >= min && price <= max)
-  );
 }
