@@ -10,6 +10,7 @@ import {
   type SupportContextQuery,
   type SupportCreateInput,
   SupportCreateInputSchema,
+  type SupportTicketDto,
 } from "@metastorage/contracts";
 import { CUSTOMER_WORKSPACE as M } from "@metastorage/shared";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -305,11 +306,12 @@ export function useCustomerRental(owner: string, id: string) {
   });
   return { rental, payments };
 }
-export function useCustomerTickets(owner: string) {
+export function useCustomerTickets(owner: string, status?: SupportTicketDto["status"]) {
   return useInfiniteQuery({
-    queryKey: ["support-tickets", owner],
+    queryKey: status ? ["support-tickets", owner, status] : ["support-tickets", owner],
     initialPageParam: undefined as string | undefined,
-    queryFn: ({ pageParam, signal }) => api.support.list({ limit: 20, cursor: pageParam }, signal),
+    queryFn: ({ pageParam, signal }) =>
+      api.support.list({ limit: 20, cursor: pageParam, ...(status ? { status } : {}) }, signal),
     getNextPageParam: (p) => p.nextCursor ?? undefined,
   });
 }

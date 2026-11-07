@@ -10,6 +10,7 @@ import { ForgotPasswordScreen } from "../screens/auth/forgot-password-screen";
 import { LoginScreen } from "../screens/auth/login-screen";
 import { RegisterScreen } from "../screens/auth/register-screen";
 import { VerifyEmailScreen } from "../screens/auth/verify-email-screen";
+import { StaffWorkspace } from "../screens/staff/staff-workspace";
 import { CustomerNavigator } from "./customer-navigator";
 
 export function AppNavigator() {
@@ -46,6 +47,13 @@ function SessionRoutes({ session, demo = false }: { session: AppSession; demo?: 
       onLogout={session.signOut}
       pending={session.signingOut}
       error={session.signOutError}
+    />
+  ) : session.user && !demo && "role" in session.user && session.user.role === "FACILITY_STAFF" ? (
+    <StaffWorkspace
+      key={session.user.id}
+      owner={session.user.id}
+      name={session.user.name}
+      onLogout={session.signOut}
     />
   ) : session.user ? (
     <AccountScreen

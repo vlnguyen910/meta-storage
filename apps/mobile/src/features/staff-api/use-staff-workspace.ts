@@ -7,7 +7,6 @@ import { api } from "../../lib/api";
 import { pickImage } from "../../lib/pick-image";
 import { STAFF_API_UI as M } from "./staff-api.messages";
 
-/** @lintignore Retained for archived screens in screens/old/ until their cleanup. */
 export function staffError(error: unknown): string {
   if (axios.isAxiosError(error) && (!error.response || error.response.status >= 500))
     return M.error;
@@ -76,7 +75,6 @@ export function useStaffWorkspace(owner: string, filters: StaffWorkFilters) {
   };
 }
 
-/** @lintignore Retained for archived screens in screens/old/ until their cleanup. */
 export function useStaffTaskAction(owner: string, task: FacilityTaskDetail) {
   const client = useQueryClient();
   return useMutation({

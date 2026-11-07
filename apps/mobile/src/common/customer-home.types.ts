@@ -18,6 +18,7 @@ export type CustomerRoute =
   | { screen: "storage"; view: StorageView }
   | { screen: "appointments" }
   | { screen: "appointment"; id: string; from: "home" | "appointments" }
+  | { screen: "support-list" }
   | {
       screen: "support-new";
       reservationId?: string;
@@ -25,7 +26,11 @@ export type CustomerRoute =
       from: CustomerSupportOrigin;
     }
   | { screen: "support-ticket"; id: string; created: boolean; from: CustomerSupportOrigin };
-export type CustomerSupportOrigin = "profile" | "storage-current" | "storage-transactions";
+export type CustomerSupportOrigin =
+  | "profile"
+  | "support-list"
+  | "storage-current"
+  | "storage-transactions";
 export type AppointmentFilter = "all" | "upcoming" | "completed" | "closed";
 interface CustomerIdentity {
   readonly id: string;
@@ -55,6 +60,7 @@ export interface CustomerLayoutProps extends CustomerNavigatorProps {
 }
 export interface CustomerProfileScreenProps extends CustomerNavigatorProps {
   readonly onCreateSupport: () => void;
+  readonly onAllSupport: () => void;
 }
 export interface HomeScreenProps {
   readonly owner: string;
