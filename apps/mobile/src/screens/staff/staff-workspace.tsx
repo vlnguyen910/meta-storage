@@ -30,7 +30,7 @@ import {
   useStaffTaskAction,
   useStaffWorkspace,
 } from "../../features/staff-api/use-staff-workspace";
-import { NotificationScreen } from "../old/notifications/notification-screen";
+import { NotificationScreen } from "../notifications/notification-screen";
 import { StaffCheckInView } from "./staff-check-in-view";
 import { StaffStatusTabs, StaffWorkFiltersBar } from "./staff-work-filters";
 import { StaffWorkspaceHeader } from "./staff-workspace-header";
