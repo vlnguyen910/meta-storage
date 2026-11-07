@@ -24,12 +24,17 @@ function appointment(
     } as AppointmentRecordDto,
   };
 }
-function task(id: string, status = "ASSIGNED"): StaffSelection {
+function task(
+  id: string,
+  status = "ASSIGNED",
+  assignedAt = "2026-10-29T00:00:00Z",
+): StaffSelection {
   return {
     kind: "task",
     task: {
       id,
       status,
+      assignedAt,
       type: "UNIT_INSPECTION",
       description: "Kiểm tra cửa và khóa",
     } as FacilityTaskDetail,
@@ -71,10 +76,11 @@ describe("Staff work presentation", () => {
     expect(result.items).toHaveLength(1);
     expect(result.items[0]?.kind).toBe("task");
   });
-  test("prioritizes work in progress and then upcoming appointment times without mutating input", () => {
+  test("prioritizes newest tasks, then work in progress and upcoming appointment times", () => {
     const source = [
       appointment("late", "SCHEDULED", "2026-10-29T03:00:00Z"),
-      task("unscheduled"),
+      task("old-task", "ASSIGNED", "2026-10-29T04:00:00Z"),
+      task("new-task", "ASSIGNED", "2026-10-29T06:00:00Z"),
       appointment("early"),
       appointment("working", "CONFIRMED", "2026-10-29T05:00:00Z", "INSPECTING"),
     ];
@@ -83,8 +89,8 @@ describe("Staff work presentation", () => {
       result.items.map((x) =>
         x.kind === "appointment" ? x.appointment.id : x.kind === "task" ? x.task.id : "",
       ),
-    ).toEqual(["working", "early", "late", "unscheduled"]);
-    expect(source[0]).toBe(result.items[2]);
+    ).toEqual(["new-task", "old-task", "working", "early", "late"]);
+    expect(source[0]).toBe(result.items[4]);
   });
   test("supports removing the date chip and filters by task type", () => {
     const source = [

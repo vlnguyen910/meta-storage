@@ -468,7 +468,7 @@ describe.skipIf(!testUrl)("operator reports with isolated PostgreSQL", () => {
       id: ids.otherType,
       facilityId: ids.b,
       priceRangeId: ids.type,
-      code: ids.type,
+      code: ids.otherType,
       name: "Other facility type",
       sizeLabel: "S",
       lengthM: 1,
