@@ -1,16 +1,17 @@
 import { fileURLToPath } from "node:url";
+import { SYSTEM_SETTING_DEFINITIONS } from "@metastorage/contracts/system-settings";
 import { desc, sql } from "drizzle-orm";
 import { type MigrationMeta, readMigrationFiles } from "drizzle-orm/migrator";
 import { bigint, pgSchema, serial, text } from "drizzle-orm/pg-core";
 import { type Database, db, queryClient } from "./client";
 import { migrateBookingsToReservations } from "./migrate-bookings-to-reservations";
-
 import {
   finishRentalReset,
   prepareRentalReset,
   RENTAL_RESET_TIMESTAMP,
   rentalResetStatements,
 } from "./rental-reset-migration";
+import { systemSettings } from "./schema/system-settings";
 
 const journal = pgSchema("drizzle").table("__drizzle_migrations", {
   id: serial().primaryKey(),
@@ -93,6 +94,14 @@ if (import.meta.main) {
         migrationsFolder: fileURLToPath(new URL("../drizzle", import.meta.url)),
       }),
     );
+    await db
+      .insert(systemSettings)
+      .values({
+        key: "VAT_RATE",
+        value: SYSTEM_SETTING_DEFINITIONS.VAT_RATE.defaultValue,
+        description: SYSTEM_SETTING_DEFINITIONS.VAT_RATE.description,
+      })
+      .onConflictDoNothing();
     const { converted } = await db.transaction(migrateBookingsToReservations);
     console.log(`Applied ${count} schema migrations; converted ${converted} historical bookings.`);
   } catch (error) {

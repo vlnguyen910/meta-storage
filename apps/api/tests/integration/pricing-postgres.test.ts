@@ -170,7 +170,7 @@ describe.skipIf(!testUrl)("pricing transactions with isolated PostgreSQL", () =>
   test("updates price/policy with audit and keeps pre-existing draft snapshots", async () => {
     const first = await draft();
     expect(first.statusCode).toBe(201);
-    expect(first.json().data.totalAmount).toBe(2250000);
+    expect(first.json().data.totalAmount).toBe(2370000);
     expect(
       (await patch({ expectedVersion: 0, monthlyPrice: 900000 }, `/${ids.type}`)).statusCode,
     ).toBe(200);
@@ -181,10 +181,12 @@ describe.skipIf(!testUrl)("pricing transactions with isolated PostgreSQL", () =>
       monthlyRateSnapshot: 900000,
       depositAmount: 1800000,
       rentalFeeAmount: 1800000,
-      totalAmount: 3600000,
+      vatRateSnapshot: 8,
+      vatAmount: 144000,
+      totalAmount: 3744000,
     });
     const [old] = await db.select().from(bookings).where(eq(bookings.id, first.json().data.id));
-    expect(Number(old?.totalAmount)).toBe(2250000);
+    expect(Number(old?.totalAmount)).toBe(2370000);
     expect(Number(old?.depositAmount)).toBe(750000);
     const history = await app.inject({ method: "GET", url: "/api/business-rules/pricing/history" });
     expect(history.json().data).toHaveLength(2);

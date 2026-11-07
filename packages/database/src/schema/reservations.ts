@@ -44,6 +44,8 @@ export const reservations = pgTable(
     rentalEndAt: timestamp({ withTimezone: true }).notNull(),
     monthlyRateSnapshot: integer().notNull(),
     rentalFeeAmount: integer().notNull(),
+    vatRateSnapshot: integer().default(0).notNull(),
+    vatAmount: integer().default(0).notNull(),
     depositAmount: integer().notNull(),
     totalAmount: integer().notNull(),
     status: reservationRecordStatusEnum().default(ReservationStatus.DRAFT).notNull(),
@@ -59,7 +61,7 @@ export const reservations = pgTable(
     check("reservations_period_valid", sql`${table.rentalEndAt} > ${table.rentalStartAt}`),
     check(
       "reservations_amounts_valid",
-      sql`${table.monthlyRateSnapshot} >= 0 AND ${table.rentalFeeAmount} >= 0 AND ${table.depositAmount} >= 0 AND ${table.totalAmount} = ${table.rentalFeeAmount} + ${table.depositAmount}`,
+      sql`${table.monthlyRateSnapshot} >= 0 AND ${table.rentalFeeAmount} >= 0 AND ${table.depositAmount} >= 0 AND ${table.vatRateSnapshot} BETWEEN 0 AND 100 AND ${table.vatAmount} = round(${table.rentalFeeAmount}::numeric * ${table.vatRateSnapshot} / 100) AND ${table.totalAmount} = ${table.rentalFeeAmount} + ${table.vatAmount} + ${table.depositAmount}`,
     ),
     index("reservations_customer_idx").on(table.customerId, table.createdAt),
     index("reservations_facility_status_idx").on(table.facilityId, table.status),

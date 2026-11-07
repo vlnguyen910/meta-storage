@@ -190,6 +190,13 @@ Không cần biến môi trường bổ sung. Thanh toán phải được xác m
 giao việc và inspection/checklist vẫn bắt buộc; `test`/`production` giữ kiểm tra
 thời gian đầy đủ. Cần chạy production bằng đúng `NODE_ENV=production`.
 
+BOM cấu hình VAT tại **Phí & phụ phí** (`/operations/fees`), mặc định 8%, hỗ trợ
+số nguyên 0–100%. Checkout tính **tiền thuê + VAT trên tiền thuê + tiền cọc**;
+VAT được làm tròn một lần trên tổng tiền thuê tới VND nguyên gần nhất. Gia hạn
+tính VAT trên tiền thuê mới và không thu thêm cọc. Đơn/báo giá đã chốt giữ nguyên
+tỷ lệ và số tiền khi BOM đổi cấu hình; dữ liệu cũ giữ VAT bằng 0. Chạy
+`bun run db:migrate` trước khi khởi động phiên bản có VAT.
+
 API booking cũ đã được gỡ; xem [hướng dẫn chuyển đổi](docs/booking-retirement.md)
 trước khi nâng cấp database và khởi động phiên bản mới.
 

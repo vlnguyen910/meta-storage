@@ -30,6 +30,8 @@ import { PAYMENT_MESSAGES } from "../payments/payments.messages";
 import { PaymentsRepository } from "../payments/payments.repository";
 import type { VerifiedPaymentEvent } from "../payments/payments.types";
 import type { SepayPaymentGateway } from "../payments/sepay.gateway";
+import { PricingRepository } from "../pricing/pricing.repository";
+import { calculateRentalVat } from "../pricing/pricing.service";
 import { StorageUnitsRepository } from "../storage-units/storage-units.repository";
 import { StorageUnitsService } from "../storage-units/storage-units.service";
 import { SystemSettingsRepository } from "../system-settings/system-settings.repository";
@@ -280,6 +282,11 @@ export class RentalsService {
       if (available < 1) throw new ConflictError(RENTAL_RENEWAL_MESSAGES.capacityUnavailable);
       const expiresAt = new Date(Math.min(now.getTime() + CHECKOUT_TTL_MS, cutoffAt.getTime()));
       if (expiresAt <= now) throw new ConflictError(RENTAL_RENEWAL_MESSAGES.requestWindowClosed);
+      const vatRateSnapshot = await new PricingRepository(this.repository.db).getVatRate(tx);
+      const rentalFee = BigInt(unit.price) * BigInt(months);
+      const vatAmount = calculateRentalVat(rentalFee, vatRateSnapshot);
+      if (rentalFee + vatAmount > 999999999999n)
+        throw new ConflictError(RENTAL_RENEWAL_MESSAGES.unavailable);
       const [created] = await this.repository.createRenewal(tx, {
         rentalId,
         storageUnitId: rental.storageUnitId,
@@ -288,7 +295,9 @@ export class RentalsService {
         newEndAt,
         months,
         monthlyRateSnapshot: String(unit.price),
-        amount: String(BigInt(unit.price) * BigInt(months)),
+        vatRateSnapshot,
+        vatAmount: String(vatAmount),
+        amount: String(rentalFee + vatAmount),
         currency: "VND",
         noticeDaysSnapshot: noticeDays,
         settingVersionSnapshot: setting.version,
@@ -563,6 +572,8 @@ export class RentalsService {
       oldEndAt: row.oldEndAt.toISOString(),
       newEndAt: row.newEndAt.toISOString(),
       monthlyRateSnapshot: row.monthlyRateSnapshot,
+      vatRateSnapshot: row.vatRateSnapshot,
+      vatAmount: row.vatAmount,
       amount: row.amount,
       currency: "VND",
       cutoffAt: row.cutoffAt.toISOString(),

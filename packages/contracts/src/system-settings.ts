@@ -6,6 +6,7 @@ export const SystemSettingKey = {
   RENEWAL_NOTICE_DAYS: "RENEWAL_NOTICE_DAYS",
   ABANDONED_REVIEW_DAYS: "ABANDONED_REVIEW_DAYS",
   OVERDUE_FEE_RATE: "OVERDUE_FEE_RATE",
+  VAT_RATE: "VAT_RATE",
   DEPOSIT_MONTHS: "DEPOSIT_MONTHS",
   OPENING_HOUR: "OPENING_HOUR",
   CLOSING_HOUR: "CLOSING_HOUR",
@@ -45,6 +46,14 @@ export const SYSTEM_SETTING_DEFINITIONS = {
     role: "BUSINESS_OPERATION_MANAGER",
     description: "Tỷ lệ phí quá hạn tính theo phần trăm tiền cọc.",
     defaultValue: 25,
+  },
+  VAT_RATE: {
+    category: "FINANCE",
+    unit: "PERCENT",
+    valueType: "INTEGER",
+    role: "BUSINESS_OPERATION_MANAGER",
+    description: "Tỷ lệ VAT tính trên tiền thuê, không bao gồm tiền cọc.",
+    defaultValue: 8,
   },
   DEPOSIT_MONTHS: {
     category: "FINANCE",
@@ -100,6 +109,11 @@ export const ConfigureSystemSettingSchema = z.discriminatedUnion("key", [
   }),
   z.strictObject({
     key: z.literal(SystemSettingKey.OVERDUE_FEE_RATE),
+    value: integer.max(100, m.invalid),
+    expectedVersion: version,
+  }),
+  z.strictObject({
+    key: z.literal(SystemSettingKey.VAT_RATE),
     value: integer.max(100, m.invalid),
     expectedVersion: version,
   }),

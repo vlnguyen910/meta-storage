@@ -1,4 +1,5 @@
 import {
+  ConfigureSystemSettingSchema,
   ConfirmManualRefundInputSchema,
   UpdateDepositPolicySchema,
   UpdateUnitTypePriceSchema,
@@ -69,4 +70,14 @@ export const OperationsFeeDraftSchema = z
     if (values.method === "percentage" && Number(values.value) > 100) {
       context.addIssue({ code: z.ZodIssueCode.custom, path: ["value"], message: M.percentage });
     }
+  });
+
+export const OperationsVatDraftSchema = z
+  .object({ value: z.number({ invalid_type_error: M.vatInvalid, required_error: M.vatInvalid }) })
+  .superRefine((value, ctx) => {
+    if (
+      !ConfigureSystemSettingSchema.safeParse({ key: "VAT_RATE", expectedVersion: 0, ...value })
+        .success
+    )
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["value"], message: M.vatInvalid });
   });

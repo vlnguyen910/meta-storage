@@ -42,6 +42,8 @@ export const rentalRenewals = pgTable(
     newEndAt: timestamp({ withTimezone: true }).notNull(),
     months: integer().notNull(),
     monthlyRateSnapshot: numeric({ precision: 14, scale: 2 }).notNull(),
+    vatRateSnapshot: integer().default(0).notNull(),
+    vatAmount: numeric({ precision: 14, scale: 2 }).default("0").notNull(),
     amount: numeric({ precision: 14, scale: 2 }).notNull(),
     currency: varchar({ length: 3 }).default("VND").notNull(),
     noticeDaysSnapshot: integer().notNull(),
@@ -62,7 +64,7 @@ export const rentalRenewals = pgTable(
     ),
     check(
       "rental_renewals_amount_valid",
-      sql`${t.monthlyRateSnapshot} > 0 and ${t.amount} = ${t.monthlyRateSnapshot} * ${t.months} and ${t.currency} = 'VND'`,
+      sql`${t.monthlyRateSnapshot} > 0 and ${t.vatRateSnapshot} between 0 and 100 and ${t.vatAmount} = round(${t.monthlyRateSnapshot} * ${t.months} * ${t.vatRateSnapshot} / 100) and ${t.amount} = ${t.monthlyRateSnapshot} * ${t.months} + ${t.vatAmount} and ${t.currency} = 'VND'`,
     ),
     check(
       "rental_renewals_deadline_valid",
