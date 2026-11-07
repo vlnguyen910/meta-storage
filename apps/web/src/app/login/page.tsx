@@ -5,7 +5,7 @@ import { AUTH_MESSAGES } from "@/features/auth/auth.messages";
 import { LoginForm } from "@/features/auth/login-form";
 
 export const metadata = {
-  title: "A01 — Đăng nhập | StoreX",
+  title: "Đăng nhập",
 };
 
 export default function LoginPage() {

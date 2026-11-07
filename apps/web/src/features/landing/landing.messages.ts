@@ -1,6 +1,6 @@
 export const landingMessages = {
-  pageTitle: "metastorage | Kho lưu trữ cá nhân thông minh",
-  brand: "metastorage",
+  pageTitle: "MetaStorage",
+  brand: "MetaStorage",
   tagline: "Kho thông minh",
   home: "Trang chủ",
   find: "Tìm kho gần bạn",
@@ -38,7 +38,7 @@ export const landingMessages = {
   lobby: "Sảnh đón tiếp & Trợ giúp khách hàng",
   smart: "Không gian lưu trữ hiện đại",
   smartDescription: "Kho riêng biệt, sạch sẽ và dễ dàng tiếp cận",
-  imageAlt: "Ảnh minh họa không gian lưu trữ metastorage",
+  imageAlt: "Ảnh minh họa không gian lưu trữ MetaStorage",
   illustration: "Ảnh minh họa",
   stats: [
     { value: "01", label: "Chọn chi nhánh & loại kho" },
@@ -47,7 +47,7 @@ export const landingMessages = {
     { value: "QR", label: "Xác nhận lịch nhận kho" },
   ],
   whyEyebrow: "Tiêu chuẩn lưu trữ kiểu mới",
-  whyTitle: "Tại sao chọn metastorage?",
+  whyTitle: "Tại sao chọn MetaStorage?",
   whyDescription:
     "Mở rộng không gian sống với kho lưu trữ riêng biệt, thông tin rõ ràng và quy trình đặt thuê thuận tiện.",
   benefits: [
@@ -120,7 +120,7 @@ export const landingMessages = {
     },
   ],
   networkEyebrow: "Mạng lưới kho lưu trữ",
-  networkTitle: "Cơ sở metastorage gần bạn nhất",
+  networkTitle: "Cơ sở MetaStorage gần bạn nhất",
   networkDescription:
     "Tìm vị trí thuận tiện và kiểm tra tình trạng kho hiện có tại từng chi nhánh.",
   allFacilities: "Xem tất cả chi nhánh",
@@ -168,7 +168,7 @@ export const landingMessages = {
   footerDescription:
     "Giải pháp lưu trữ cá nhân thông minh. Tìm không gian phù hợp, đặt thuê trực tuyến và nhận mã xác nhận qua email.",
   footerLocations: "Chi nhánh đang hoạt động",
-  footerLinks: "Khám phá metastorage",
+  footerLinks: "Khám phá MetaStorage",
   footerHelp: "Thông tin đặt thuê",
-  copyright: "© 2026 metastorage Vietnam. Tất cả quyền được bảo lưu.",
+  copyright: "© 2026 MetaStorage Vietnam. Tất cả quyền được bảo lưu.",
 };

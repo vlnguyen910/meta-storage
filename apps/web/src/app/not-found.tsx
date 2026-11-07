@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PublicHeader } from "@/components/layout/public-header";
+import { BrandLogo } from "@/components/ui/brand-logo";
 import { routes } from "@/config/routes";
 import { AUTH_MESSAGES } from "@/features/auth/auth.messages";
 
@@ -214,9 +215,7 @@ export default function NotFound() {
         <div className="w-full max-w-7xl mx-auto px-4 md:px-8 py-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6 pb-6 border-b border-slate-200">
             <div className="flex items-center gap-2">
-              <span className="w-7 h-7 rounded-lg bg-[#165f4d] flex items-center justify-center text-white">
-                <Warehouse className="w-4 h-4" />
-              </span>
+              <BrandLogo />
               <span className="text-base font-bold text-[#165f4d]">{AUTH_MESSAGES.brandName}</span>
             </div>
             <nav

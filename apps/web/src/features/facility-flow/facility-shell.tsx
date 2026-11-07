@@ -1,4 +1,5 @@
 "use client";
+
 import { UserRole } from "@metastorage/database/schema/user-enums";
 import {
   ChevronRight,
@@ -11,12 +12,12 @@ import {
   Menu,
   User,
   UsersRound,
-  Warehouse,
   X,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { type ReactNode, Suspense, useEffect, useRef, useState } from "react";
+import { BrandLogo } from "@/components/ui/brand-logo";
 import { isMockMode } from "@/config/api-mode";
 import { facilityManagerRoutes, facilityStaffRoutes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
@@ -136,21 +137,9 @@ function FacilityShellContent({
                 isManager ? "border-slate-200" : "border-white/10",
               )}
             >
-              <span
-                className={cn(
-                  "grid size-9 place-items-center rounded-lg",
-                  isManager ? "bg-primary text-white" : "bg-[#125345]",
-                )}
-              >
-                <Warehouse size={22} aria-hidden="true" />
-              </span>
+              <BrandLogo />
               <div>
-                <strong
-                  className={cn(
-                    "block text-sm uppercase tracking-wider",
-                    isManager && "text-primary",
-                  )}
-                >
+                <strong className={cn("block text-sm tracking-wider", isManager && "text-primary")}>
                   {FLOW.brand}
                 </strong>
                 <span
@@ -314,7 +303,7 @@ function FacilityShellContent({
               >
                 {open ? <X size={20} /> : <Menu size={20} />}
               </button>
-              <Warehouse size={18} className="text-[#003b2f]" />
+              <BrandLogo className="h-8 w-10" />
               <span className="hidden text-xs text-[#404945] sm:inline">{FLOW.operations}</span>
               <ChevronRight size={14} />
               <span className="truncate text-xs font-medium">
@@ -357,13 +346,9 @@ function FacilityShellContent({
           <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur-xl print:hidden sm:px-6">
             <div className="mx-auto flex max-w-[1504px] items-center gap-3">
               <Link href={facilityStaffRoutes.tasks} className="flex shrink-0 items-center gap-2">
-                <span className="grid size-9 place-items-center rounded-lg bg-primary text-white">
-                  <Warehouse size={21} aria-hidden="true" />
-                </span>
+                <BrandLogo />
                 <span>
-                  <strong className="block text-sm uppercase tracking-wide text-primary">
-                    {FLOW.brand}
-                  </strong>
+                  <strong className="block text-sm tracking-wide text-primary">{FLOW.brand}</strong>
                   <span className="block text-[10px] uppercase text-slate-500">
                     {FLOW.subtitle}
                   </span>

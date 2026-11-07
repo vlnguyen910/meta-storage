@@ -5,7 +5,7 @@ import { AUTH_MESSAGES } from "@/features/auth/auth.messages";
 import { ForgotPasswordForm } from "@/features/auth/forgot-password-form";
 
 export const metadata = {
-  title: "Khôi phục mật khẩu | StoreX",
+  title: "Khôi phục mật khẩu",
 };
 
 export default function ForgotPasswordPage() {

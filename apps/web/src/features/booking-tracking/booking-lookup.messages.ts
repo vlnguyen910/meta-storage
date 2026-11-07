@@ -1,7 +1,7 @@
 export const bookingLookupMessages = {
   title: "Tra cứu kho của tôi",
   description:
-    "Nhập mã đặt kho và email đã dùng khi đặt. Nếu thông tin khớp, StoreX sẽ gửi liên kết truy cập qua email.",
+    "Nhập mã đặt kho và email đã dùng khi đặt. Nếu thông tin khớp, MetaStorage sẽ gửi liên kết truy cập qua email.",
   bookingCode: "Mã đặt kho",
   bookingCodePlaceholder: "Nhập mã đặt kho",
   email: "Email dùng khi đặt kho",

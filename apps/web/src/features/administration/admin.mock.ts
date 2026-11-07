@@ -3,10 +3,10 @@ import type { AdminMockData } from "./admin.types";
 
 export const adminMockData: AdminMockData = {
   facilities: [
-    { id: "SGC", name: "StoreX Sài Gòn Central", address: "Quận 7, TP. Hồ Chí Minh" },
-    { id: "BTL", name: "StoreX Bình Thạnh", address: "Bình Thạnh, TP. Hồ Chí Minh" },
-    { id: "CG", name: "StoreX Cầu Giấy", address: "Cầu Giấy, Hà Nội" },
-    { id: "NSG", name: "StoreX Nam Sài Gòn", address: "Nhà Bè, TP. Hồ Chí Minh" },
+    { id: "SGC", name: "MetaStorage Sài Gòn Central", address: "Quận 7, TP. Hồ Chí Minh" },
+    { id: "BTL", name: "MetaStorage Bình Thạnh", address: "Bình Thạnh, TP. Hồ Chí Minh" },
+    { id: "CG", name: "MetaStorage Cầu Giấy", address: "Cầu Giấy, Hà Nội" },
+    { id: "NSG", name: "MetaStorage Nam Sài Gòn", address: "Nhà Bè, TP. Hồ Chí Minh" },
   ],
   users: [
     {

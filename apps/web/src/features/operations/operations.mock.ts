@@ -5,7 +5,7 @@ export const operationsMockData: OperationsMockData = {
   facilities: [
     {
       id: "SGC",
-      name: "StoreX Sài Gòn Central",
+      name: "MetaStorage Sài Gòn Central",
       address: "Quận 7, TP. Hồ Chí Minh",
       status: FacilityStatus.ACTIVE,
       total: 120,
@@ -18,7 +18,7 @@ export const operationsMockData: OperationsMockData = {
     },
     {
       id: "BTL",
-      name: "StoreX Bình Thạnh",
+      name: "MetaStorage Bình Thạnh",
       address: "Bình Thạnh, TP. Hồ Chí Minh",
       status: FacilityStatus.ACTIVE,
       total: 100,
@@ -31,7 +31,7 @@ export const operationsMockData: OperationsMockData = {
     },
     {
       id: "CG",
-      name: "StoreX Cầu Giấy",
+      name: "MetaStorage Cầu Giấy",
       address: "Cầu Giấy, Hà Nội",
       status: FacilityStatus.ACTIVE,
       total: 80,
@@ -44,7 +44,7 @@ export const operationsMockData: OperationsMockData = {
     },
     {
       id: "NSG",
-      name: "StoreX Nam Sài Gòn",
+      name: "MetaStorage Nam Sài Gòn",
       address: "Nhà Bè, TP. Hồ Chí Minh",
       status: FacilityStatus.ACTIVE,
       total: 60,

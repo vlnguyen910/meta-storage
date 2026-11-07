@@ -5,7 +5,7 @@ import { AUTH_MESSAGES } from "@/features/auth/auth.messages";
 import { VerifyEmailView } from "@/features/auth/verify-email-view";
 
 export const metadata = {
-  title: "A03 — Xác thực email | StoreX",
+  title: "Xác thực email",
 };
 
 export default function VerifyEmailPage() {

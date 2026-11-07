@@ -1,6 +1,7 @@
 import { ArrowRight, ChevronRight, KeyRound, MapPin, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { PublicHeader } from "@/components/layout/public-header";
+import { BrandLogo } from "@/components/ui/brand-logo";
 import { routes } from "@/config/routes";
 import { facilitiesMessages as m } from "./facilities.messages";
 import { FacilityList } from "./facility-list";
@@ -64,7 +65,11 @@ export function PublicFacilitiesScreen() {
       <footer className="border-t border-[#e2e8f0] bg-white">
         <div className="mx-auto grid w-[min(1180px,calc(100%_-_40px))] gap-10 py-12 md:grid-cols-[2fr_1fr_1fr]">
           <div>
-            <Link href={routes.home} className="text-2xl font-bold text-[#125345]">
+            <Link
+              href={routes.home}
+              className="inline-flex items-center gap-2 text-2xl font-bold text-[#125345]"
+            >
+              <BrandLogo />
               {m.brand}
             </Link>
             <p className="mt-4 max-w-[420px] text-xs text-[#64748b]">{m.footerDescription}</p>

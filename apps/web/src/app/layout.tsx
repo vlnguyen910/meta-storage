@@ -5,9 +5,10 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "metastorage - Kho lưu trữ linh hoạt",
-    template: "%s | metastorage",
+    default: "MetaStorage",
+    template: "%s | MetaStorage",
   },
+  applicationName: "MetaStorage",
   description: "Đặt và quản lý kho lưu trữ tự phục vụ an toàn, minh bạch.",
 };
 

@@ -36,7 +36,7 @@ export const OPERATIONS_MESSAGES = {
   priceSearch: "Tìm loại kho theo tên hoặc mã",
   noPriceMatch: "Không có loại kho phù hợp. Thử từ khóa khác hoặc xóa tìm kiếm.",
   role: "Quản lý vận hành kinh doanh",
-  brand: "StoreX OS",
+  brand: "MetaStorage",
   scope: "Toàn hệ thống",
   demo: "Dữ liệu minh họa",
   period: "01/10/2026 – 07/10/2026",
@@ -179,7 +179,7 @@ export const OPERATIONS_MESSAGES = {
   descriptions: {
     dashboard:
       "Theo dõi tình hình tài chính trong kỳ, số dư cọc, sức chứa kho và các việc cần xử lý.",
-    facilities: "Theo dõi thông tin và tình trạng các cơ sở kho thuộc hệ thống StoreX.",
+    facilities: "Theo dõi thông tin và tình trạng các cơ sở kho thuộc hệ thống MetaStorage.",
     pricing: "Cấu hình giá thuê theo tháng cho từng loại kho áp dụng toàn hệ thống.",
     fees: "Xem các trường cấu hình cọc và phí trong phạm vi nghiệp vụ đã xác định.",
     "business-rules": "Quản lý hệ số cọc chung và theo dõi lịch sử thay đổi chính sách giá/cọc.",

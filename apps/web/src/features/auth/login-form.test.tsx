@@ -37,7 +37,9 @@ describe("LoginForm", () => {
   it("renders the Figma login form correctly", () => {
     renderLoginForm();
 
-    expect(screen.getByRole("heading", { name: "Đăng nhập tài khoản storeX" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Đăng nhập tài khoản MetaStorage" }),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText("Địa chỉ Email")).toBeInTheDocument();
     expect(screen.getByLabelText("Mật khẩu")).toBeInTheDocument();
     expect(screen.getByText("Ghi nhớ đăng nhập trên thiết bị này")).toBeInTheDocument();
