@@ -1,0 +1,59 @@
+import type { BookingConfirmation } from "./bookings";
+import type { PaymentStatus, PaymentType, SepayPaymentInstructions } from "./payments";
+
+export type BookingPaymentSession = {
+  bookingId: string;
+  paymentId: string;
+  status: "PENDING";
+  provider: "sepay";
+  paymentCode: string;
+  checkoutUrl: string;
+  checkoutFormFields: Record<string, string | number>;
+  expiresAt: string;
+};
+
+export type ManualRefund = {
+  type: PaymentType;
+  reservationId?: string | null;
+  paymentId: string;
+  bookingId: string | null;
+  amount: string;
+  depositForfeitedAmount: string;
+  currency: string;
+  reason: string | null;
+  paidAt: string | null;
+  contactName: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+};
+
+export type ManualRefundConfirmation = {
+  paymentId: string;
+  type: PaymentType;
+  status: "REFUNDED";
+  amount: string;
+  depositForfeitedAmount: string;
+  currency: string;
+  reference: string;
+  refundedAt: string;
+  refundedBy: string;
+};
+
+export type PaymentStatusResponse = {
+  type: PaymentType;
+  reservationId?: string;
+  paymentId: string;
+  status: PaymentStatus;
+  provider: string | null;
+  paymentCode: string | null;
+
+  transferInstructions?: SepayPaymentInstructions;
+  checkoutUrl?: string;
+  checkoutFormFields?: Record<string, string | number>;
+  confirmation?: BookingConfirmation;
+  refund?: {
+    amount: string;
+    depositForfeitedAmount: string;
+    reason: string | null;
+  };
+};

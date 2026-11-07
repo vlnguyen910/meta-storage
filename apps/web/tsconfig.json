@@ -1,11 +1,21 @@
 {
-  "extends": "@storex/typescript-config/nextjs.json",
+  "extends": "@metastorage/typescript-config/nextjs.json",
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", ".next"]
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".next-dev/types/**/*.ts",
+    ".next-flow5/types/**/*.ts",
+    ".next-manager-ui/types/**/*.ts",
+    ".next-playwright/types/**/*.ts",
+    ".next/types/**/*.ts",
+    "next-env.d.ts",
+    ".next-rental-core/types/**/*.ts"
+  ],
+  "exclude": ["node_modules", ".next", ".next-playwright"]
 }

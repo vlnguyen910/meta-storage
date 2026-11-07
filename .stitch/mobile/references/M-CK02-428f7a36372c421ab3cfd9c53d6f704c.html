@@ -1,0 +1,592 @@
+<!DOCTYPE html><html class="h-full bg-surface" lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>M-CK02 — Thông tin thuê — StoreX</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Fonts: Space Grotesk & Be Vietnam Pro -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-surface": "#131b2e",
+            "surface-container-lowest": "#ffffff",
+            "surface-bright": "#faf8ff",
+            "surface-dim": "#d2d9f4",
+            "on-tertiary-fixed": "#2f1500",
+            "primary-fixed-dim": "#96d3c0",
+            "on-secondary-fixed-variant": "#135041",
+            "on-secondary": "#ffffff",
+            "primary-container": "#125345",
+            "surface": "#faf8ff",
+            "error-container": "#ffdad6",
+            "secondary-fixed": "#b4efda",
+            "secondary-container": "#b4efda",
+            "on-primary-container": "#89c5b3",
+            "surface-tint": "#2c6859",
+            "on-tertiary-fixed-variant": "#6e3900",
+            "inverse-on-surface": "#eef0ff",
+            "on-primary": "#ffffff",
+            "tertiary-container": "#723b00",
+            "background": "#faf8ff",
+            "surface-container-highest": "#dae2fd",
+            "surface-container-low": "#f2f3ff",
+            "inverse-surface": "#283044",
+            "on-background": "#131b2e",
+            "inverse-primary": "#96d3c0",
+            "outline-variant": "#bfc9c4",
+            "on-primary-fixed-variant": "#0d5042",
+            "on-error": "#ffffff",
+            "on-error-container": "#93000a",
+            "primary-fixed": "#b1efdc",
+            "outline": "#707975",
+            "on-tertiary-container": "#ffa454",
+            "surface-variant": "#dae2fd",
+            "on-tertiary": "#ffffff",
+            "surface-container": "#eaedff",
+            "tertiary-fixed": "#ffdcc3",
+            "primary": "#003b2f",
+            "on-secondary-fixed": "#002018",
+            "on-secondary-container": "#366e5e",
+            "on-surface-variant": "#404945",
+            "on-primary-fixed": "#002019",
+            "error": "#ba1a1a",
+            "tertiary-fixed-dim": "#ffb77d",
+            "tertiary": "#512800",
+            "surface-container-high": "#e2e7ff",
+            "secondary-fixed-dim": "#98d2be",
+            "secondary": "#306858"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "gutter": "1.5rem",
+            "margin-sm": "1rem",
+            "space-md": "1rem",
+            "space-lg": "1.5rem",
+            "gutter-sm": "1rem",
+            "space-xs": "0.25rem",
+            "margin": "2rem",
+            "space-sm": "0.5rem",
+            "space-xl": "2.5rem"
+          },
+          "fontFamily": {
+            "headline-sm": ["Space Grotesk"],
+            "body-md": ["Be Vietnam Pro"],
+            "display": ["Space Grotesk"],
+            "label-sm": ["Space Grotesk"],
+            "label-lg": ["Space Grotesk"],
+            "display-mobile": ["Space Grotesk"],
+            "headline-lg": ["Space Grotesk"],
+            "body-sm": ["Be Vietnam Pro"],
+            "title-md": ["Be Vietnam Pro"],
+            "headline-md": ["Space Grotesk"],
+            "label-md": ["Space Grotesk"],
+            "headline-lg-mobile": ["Space Grotesk"],
+            "body-lg": ["Be Vietnam Pro"]
+          },
+          "fontSize": {
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "body-md": ["14px", { "lineHeight": "22px", "fontWeight": "400" }],
+            "display": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+            "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+            "display-mobile": ["34px", { "lineHeight": "42px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+            "title-md": ["18px", { "lineHeight": "26px", "fontWeight": "600" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "headline-lg-mobile": ["26px", { "lineHeight": "34px", "fontWeight": "600" }],
+            "body-lg": ["16px", { "lineHeight": "26px", "fontWeight": "400" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    /* iOS anti-zoom guarantee and touch defaults */
+    input, select, textarea, button {
+      font-size: 16px;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    /* Hide spin buttons */
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="h-full bg-surface text-on-surface antialiased flex justify-center selection:bg-secondary-fixed selection:text-on-secondary-fixed">
+<!-- Mobile Viewport Container: Strictly 390px width layout with padding -->
+<main class="w-full max-w-[390px] min-h-screen bg-surface flex flex-col relative pb-36 shadow-lg border-x border-outline-variant/30">
+<!-- 1. COMPACT TOP APP BAR (Shared Component Anchor Implementation) -->
+<header class="sticky top-0 z-50 flex items-center justify-between w-full h-14 px-4 bg-surface/90 backdrop-blur-md border-b border-outline-variant shadow-sm">
+<button aria-label="Quay lại" class="flex items-center gap-1 min-w-[44px] min-h-[44px] -ml-2 px-2 text-primary active:scale-95 transition-transform duration-150 ease-out hover:bg-surface-container-high rounded-lg" onclick="history.back()" type="button">
+<span class="material-symbols-outlined text-[22px]">arrow_back</span>
+<span class="font-body-md text-body-md font-medium text-primary">Quay lại</span>
+</button>
+<h1 class="font-title-md text-title-md font-semibold text-primary tracking-tight text-center truncate px-1">
+        Thông tin thuê
+      </h1>
+<a aria-label="Gọi hotline hỗ trợ" class="flex items-center justify-center min-w-[44px] min-h-[44px] -mr-2 text-primary hover:bg-surface-container-high rounded-lg active:scale-95 transition-transform" href="tel:02873001188" title="Hotline hỗ trợ: 028 7300 1188">
+<span class="material-symbols-outlined text-[20px]">help_outline</span>
+</a>
+</header>
+<!-- CONTENT WRAPPER -->
+<div class="px-4 pt-3 space-y-4">
+<!-- 2. STEP PROGRESS INDICATOR -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-lg p-3.5 shadow-sm">
+<div class="flex items-center justify-between mb-2">
+<span class="font-label-md text-label-md text-primary font-semibold tracking-wide">
+            Bước 2 / 5
+          </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+            Đang thực hiện
+          </span>
+</div>
+<p class="font-body-md text-body-md font-semibold text-on-surface mb-2.5">
+          Nhập thông tin người thuê &amp; thời gian
+        </p>
+<!-- Visual Segmented Bar -->
+<div class="grid grid-cols-5 gap-1.5 h-1.5">
+<div class="h-full bg-primary rounded-sm" title="Bước 1: Chọn kho (Đã xong)"></div>
+<div class="h-full bg-primary-container rounded-sm relative overflow-hidden" title="Bước 2: Thông tin thuê (Hiện tại)">
+<div class="absolute inset-0 bg-primary-fixed opacity-40"></div>
+</div>
+<div class="h-full bg-outline-variant/40 rounded-sm" title="Bước 3: Xem đơn"></div>
+<div class="h-full bg-outline-variant/40 rounded-sm" title="Bước 4: Thanh toán"></div>
+<div class="h-full bg-outline-variant/40 rounded-sm" title="Bước 5: Hoàn tất"></div>
+</div>
+<!-- Micro step trail labels -->
+<div class="flex justify-between items-center text-[10px] text-on-surface-variant mt-2 font-label-sm">
+<span class="text-primary font-medium">1. Chọn kho ✓</span>
+<span class="text-primary font-semibold">2. Thông tin</span>
+<span>3. Xem đơn</span>
+<span>4. Thanh toán</span>
+<span>5. Xong</span>
+</div>
+</section>
+<!-- 3. PERSISTENT SELECTION SUMMARY CARD -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-lg p-3.5 shadow-sm relative overflow-hidden">
+<div class="absolute top-0 right-0 bg-secondary-container px-2.5 py-0.5 rounded-bl font-label-sm text-label-sm text-on-secondary-container font-semibold flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+          Đang giữ chỗ
+        </div>
+<div class="flex items-start gap-2.5">
+<div class="w-9 h-9 rounded-lg bg-secondary-container flex items-center justify-center flex-shrink-0 text-primary-container mt-0.5">
+<span class="material-symbols-outlined text-[20px]">warehouse</span>
+</div>
+<div class="pr-16">
+<div class="font-title-md text-title-md font-bold text-on-surface leading-tight">
+              StoreX Sài Gòn Central
+            </div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5 leading-snug">
+              118 Nguyễn Văn Linh, P. Tân Phong, Q.7, TP.HCM
+            </p>
+</div>
+</div>
+<div class="mt-3 pt-3 border-t border-outline-variant/40 grid grid-cols-2 gap-2 text-left">
+<div class="bg-surface-container-low p-2 rounded">
+<span class="font-label-sm text-label-sm text-on-surface-variant block">Loại buồng kho</span>
+<span class="font-headline-sm text-[15px] font-bold text-on-surface leading-tight">Tiêu chuẩn 4m²</span>
+<span class="font-body-sm text-[11px] text-on-surface-variant block mt-0.5">2.0m × 2.0m × 2.5m (10m³)</span>
+</div>
+<div class="bg-surface-container-low p-2 rounded">
+<span class="font-label-sm text-label-sm text-on-surface-variant block">Giá thuê cơ sở</span>
+<span class="font-headline-sm text-[15px] font-bold text-primary-container leading-tight" id="summary-monthly-rate">1.500.000 đ</span>
+<span class="font-body-sm text-[11px] text-on-surface-variant block mt-0.5">Cọc: 1.500.000 đ (1 tháng)</span>
+</div>
+</div>
+<!-- Timeout Countdown Banner -->
+<div class="mt-2.5 flex items-center gap-1.5 px-2.5 py-1.5 bg-tertiary-fixed/30 rounded text-tertiary font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px] text-tertiary flex-shrink-0">timer</span>
+<span>Giữ chỗ trực tuyến tối đa: <strong class="font-label-md text-label-md text-tertiary" id="lock-timer">09:30</strong> (GMT+7)</span>
+</div>
+</section>
+<!-- 4. GUEST / CUSTOMER DETAILS FORM -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-lg p-3.5 shadow-sm space-y-3">
+<div class="flex items-center justify-between pb-1 border-b border-outline-variant/40">
+<h2 class="font-headline-sm text-[16px] font-bold text-on-surface flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px] text-primary">person</span>
+            Thông tin người thuê
+          </h2>
+<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">
+            Khách vãng lai / Thành viên
+          </span>
+</div>
+<!-- Full Name -->
+<div class="space-y-1">
+<label class="block font-label-md text-label-md font-semibold text-on-surface" for="tenant_name">
+            Họ và tên người thuê <span class="text-error">*</span>
+</label>
+<div class="relative">
+<input autocomplete="name" class="w-full h-12 px-3.5 bg-surface-container-lowest border border-outline-variant rounded focus:border-primary-container focus:ring-2 focus:ring-primary-container/15 font-body-lg text-body-lg text-on-surface placeholder:text-outline placeholder:font-normal outline-none transition-all" id="tenant_name" name="tenant_name" placeholder="Ví dụ: Nguyễn Minh Anh" required="" type="text">
+</div>
+<p class="font-body-sm text-[11px] text-on-surface-variant">Họ tên trên CMND/CCCD để đối chiếu khi nhận mã mở buồng kho.</p>
+</div>
+<!-- Phone Number -->
+<div class="space-y-1">
+<label class="block font-label-md text-label-md font-semibold text-on-surface" for="tenant_phone">
+            Số điện thoại di động Việt Nam <span class="text-error">*</span>
+</label>
+<div class="relative flex items-center">
+<span class="absolute left-3.5 font-label-md text-label-md text-on-surface-variant font-medium pointer-events-none">+84</span>
+<input autocomplete="tel" class="w-full h-12 pl-12 pr-3.5 bg-surface-container-lowest border border-outline-variant rounded focus:border-primary-container focus:ring-2 focus:ring-primary-container/15 font-body-lg text-body-lg text-on-surface placeholder:text-outline placeholder:font-normal outline-none transition-all tracking-wide" id="tenant_phone" name="tenant_phone" placeholder="0908 123 456" required="" type="tel">
+</div>
+<p class="font-body-sm text-[11px] text-on-surface-variant">Nhận SMS mã tiếp nhận Smart Key và định danh tại quầy.</p>
+</div>
+<!-- Email Address -->
+<div class="space-y-1">
+<label class="block font-label-md text-label-md font-semibold text-on-surface" for="tenant_email">
+            Địa chỉ Email <span class="text-error">*</span>
+</label>
+<input autocomplete="email" class="w-full h-12 px-3.5 bg-surface-container-lowest border border-outline-variant rounded focus:border-primary-container focus:ring-2 focus:ring-primary-container/15 font-body-lg text-body-lg text-on-surface placeholder:text-outline placeholder:font-normal outline-none transition-all" id="tenant_email" name="tenant_email" placeholder="customer@example.test" required="" type="email">
+<p class="font-body-sm text-[11px] text-on-surface-variant">Nhận hồ sơ xác nhận, hợp đồng điện tử và hóa đơn GTGT.</p>
+</div>
+</section>
+<!-- 5. SCHEDULE & DURATION -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-lg p-3.5 shadow-sm space-y-3">
+<div class="flex items-center justify-between pb-1 border-b border-outline-variant/40">
+<h2 class="font-headline-sm text-[16px] font-bold text-on-surface flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px] text-primary">calendar_today</span>
+            Thời gian bắt đầu &amp; Khung giờ
+          </h2>
+<span class="font-label-sm text-label-sm text-primary font-medium">Múi giờ GMT+7</span>
+</div>
+<!-- Start Date -->
+<div class="space-y-1">
+<label class="block font-label-md text-label-md font-semibold text-on-surface" for="start_date">
+            Ngày bắt đầu nhận kho <span class="text-error">*</span>
+</label>
+<div class="relative">
+<input class="w-full h-12 px-3.5 bg-surface-container-lowest border border-outline-variant rounded focus:border-primary-container focus:ring-2 focus:ring-primary-container/15 font-body-lg text-body-lg text-on-surface outline-none transition-all cursor-pointer" id="start_date" name="start_date" type="date">
+</div>
+<div class="flex items-center justify-between font-body-sm text-[11px] text-on-surface-variant">
+<span>Thời hạn đặt trước: Tối đa 30 ngày từ hôm nay.</span>
+<span class="text-primary font-medium" id="preview-formatted-date">Hôm nay</span>
+</div>
+</div>
+<!-- Time Slot Selection -->
+<div class="space-y-1.5">
+<label class="block font-label-md text-label-md font-semibold text-on-surface">
+            Khung giờ hẹn tiếp đón tại cơ sở <span class="text-error">*</span>
+</label>
+<div class="grid grid-cols-2 gap-2" id="slot-options">
+<button class="slot-pill flex items-center justify-center min-h-[44px] h-11 px-2 border border-primary-container bg-primary-container text-surface-container-lowest rounded font-label-md text-label-md font-medium transition-all" data-slot="08:30 - 10:30" type="button">
+              08:30 - 10:30
+            </button>
+<button class="slot-pill flex items-center justify-center min-h-[44px] h-11 px-2 border border-outline-variant bg-surface-container-lowest text-on-surface-variant rounded font-label-md text-label-md font-medium hover:border-primary-container transition-all" data-slot="10:00 - 12:00" type="button">
+              10:00 - 12:00
+            </button>
+<button class="slot-pill flex items-center justify-center min-h-[44px] h-11 px-2 border border-outline-variant bg-surface-container-lowest text-on-surface-variant rounded font-label-md text-label-md font-medium hover:border-primary-container transition-all" data-slot="14:00 - 16:00" type="button">
+              14:00 - 16:00
+            </button>
+<button class="slot-pill flex items-center justify-center min-h-[44px] h-11 px-2 border border-outline-variant bg-surface-container-lowest text-on-surface-variant rounded font-label-md text-label-md font-medium hover:border-primary-container transition-all" data-slot="16:30 - 18:30" type="button">
+              16:30 - 18:30
+            </button>
+</div>
+<p class="font-body-sm text-[11px] text-on-surface-variant">Chuyên viên hỗ trợ trực tiếp bàn giao buồng kho và kiểm tra vân tay/thẻ từ.</p>
+</div>
+<!-- Duration Selection -->
+<div class="space-y-1.5 pt-1">
+<label class="block font-label-md text-label-md font-semibold text-on-surface">
+            Thời hạn thuê ban đầu <span class="text-error">*</span>
+</label>
+<div class="grid grid-cols-4 gap-1.5" id="duration-options">
+<button class="duration-pill min-h-[44px] h-11 flex flex-col items-center justify-center border border-primary-container bg-primary-container text-surface-container-lowest rounded font-label-md text-label-md transition-all" data-months="1" type="button">
+<span>1 tháng</span>
+</button>
+<button class="duration-pill min-h-[44px] h-11 flex flex-col items-center justify-center border border-outline-variant bg-surface-container-lowest text-on-surface-variant rounded font-label-md text-label-md hover:border-primary-container transition-all" data-months="3" type="button">
+<span>3 tháng</span>
+</button>
+<button class="duration-pill min-h-[44px] h-11 flex flex-col items-center justify-center border border-outline-variant bg-surface-container-lowest text-on-surface-variant rounded font-label-md text-label-md hover:border-primary-container transition-all" data-months="6" type="button">
+<span>6 tháng</span>
+</button>
+<button class="duration-pill min-h-[44px] h-11 flex flex-col items-center justify-center border border-outline-variant bg-surface-container-lowest text-on-surface-variant rounded font-label-md text-label-md hover:border-primary-container transition-all" data-months="12" type="button">
+<span>12 tháng</span>
+</button>
+</div>
+<div class="p-2.5 bg-surface-container-low rounded flex items-center justify-between text-body-sm font-body-sm">
+<span class="text-on-surface-variant">Dự kiến kết thúc đợt 1:</span>
+<span class="font-label-md text-label-md font-semibold text-primary" id="end-date-preview">--/--/----</span>
+</div>
+</div>
+</section>
+<!-- 6. PROGRESSIVE DISCLOSURE: OPTIONAL NOTES -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-lg p-3.5 shadow-sm">
+<details class="group">
+<summary class="flex items-center justify-between cursor-pointer list-none select-none min-h-[36px]">
+<span class="font-headline-sm text-[15px] font-bold text-on-surface flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">inventory_2</span>
+              Ghi chú đồ đạc cần lưu trữ (Không bắt buộc)
+            </span>
+<span class="material-symbols-outlined text-on-surface-variant group-open:rotate-180 transition-transform duration-200">
+              expand_more
+            </span>
+</summary>
+<div class="pt-3 space-y-2">
+<textarea class="w-full p-3 bg-surface-container-lowest border border-outline-variant rounded focus:border-primary-container focus:ring-2 focus:ring-primary-container/15 font-body-lg text-body-lg text-on-surface placeholder:text-outline placeholder:font-normal outline-none transition-all" id="storage_notes" placeholder="Ví dụ: Đồ nội thất gia đình, 8 thùng carton sách báo, tài liệu công ty cần giữ khô ráo..." rows="3"></textarea>
+<p class="font-body-sm text-[11px] text-on-surface-variant italic">
+              * Ghi chú chỉ lưu trong phiên làm việc để nhân viên bố trí xe đẩy trợ lực và tư vấn bảo quản chu đáo nhất.
+            </p>
+</div>
+</details>
+</section>
+<!-- 7. TRANSPARENT COST BREAKDOWN -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-lg p-3.5 shadow-sm space-y-2.5">
+<h3 class="font-headline-sm text-[16px] font-bold text-on-surface flex items-center gap-1.5 pb-1 border-b border-outline-variant/40">
+<span class="material-symbols-outlined text-[18px] text-primary">receipt_long</span>
+          Tính toán chi phí minh bạch
+        </h3>
+<div class="space-y-1.5 text-body-md font-body-md">
+<div class="flex items-center justify-between text-on-surface-variant">
+<span>Tiền thuê kho (<span id="calc-duration-label">1 tháng</span>):</span>
+<span class="font-label-md text-label-md font-semibold text-on-surface" id="calc-rent-amount">1.500.000 đ</span>
+</div>
+<div class="flex items-start justify-between text-on-surface-variant">
+<div>
+<span>Tiền đặt cọc bảo đảm:</span>
+<span class="block text-[11px] text-secondary">Hoàn 100% khi thanh lý hợp đồng</span>
+</div>
+<span class="font-label-md text-label-md font-semibold text-on-surface">1.500.000 đ</span>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant text-[12px] pt-1 border-t border-dashed border-outline-variant/50">
+<span>Phí dịch vụ &amp; Quản lý cơ sở:</span>
+<span class="text-primary font-medium">Miễn phí (0 đ)</span>
+</div>
+</div>
+<div class="pt-2 border-t border-outline-variant/60 flex items-center justify-between bg-surface-container-low p-2.5 rounded">
+<div>
+<span class="font-label-md text-label-md font-bold text-on-surface block">Tạm tính ban đầu:</span>
+<span class="font-body-sm text-[11px] text-on-surface-variant">(Tiền thuê + Cọc hoàn lại)</span>
+</div>
+<span class="font-headline-sm text-headline-sm font-bold text-primary-container" id="calc-total-amount">
+            3.000.000 đ
+          </span>
+</div>
+</section>
+<!-- 8. CONTEXTUAL HELP ACCORDION -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-lg p-3.5 shadow-sm space-y-2">
+<h3 class="font-headline-sm text-[15px] font-bold text-on-surface flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px] text-secondary">help</span>
+          Hỗ trợ &amp; Quy trình StoreX
+        </h3>
+<!-- FAQ Item 1 -->
+<details class="group border-t border-outline-variant/40 pt-2">
+<summary class="flex items-center justify-between text-body-md font-body-md font-semibold text-on-surface cursor-pointer list-none py-1 min-h-[36px]">
+<span>Quy trình sau khi điền thông tin?</span>
+<span class="material-symbols-outlined text-outline text-[18px] group-open:rotate-180 transition-transform">expand_more</span>
+</summary>
+<div class="py-2 text-body-sm font-body-sm text-on-surface-variant space-y-1.5">
+<p>1. <strong>Bước 3 (Xem đơn):</strong> Kiểm tra lại buồng và điều khoản.</p>
+<p>2. <strong>Bước 4 (Thanh toán):</strong> Chuyển khoản VietQR hoặc thẻ.</p>
+<p>3. <strong>Bước 5 (Nhận kho):</strong> Quét mã tại quầy cơ sở Sài Gòn Central theo khung giờ đã chọn.</p>
+</div>
+</details>
+<!-- FAQ Item 2 -->
+<details class="group border-t border-outline-variant/40 pt-2">
+<summary class="flex items-center justify-between text-body-md font-body-md font-semibold text-on-surface cursor-pointer list-none py-1 min-h-[36px]">
+<span>Chính sách hoàn cọc bảo đảm</span>
+<span class="material-symbols-outlined text-outline text-[18px] group-open:rotate-180 transition-transform">expand_more</span>
+</summary>
+<div class="py-2 text-body-sm font-body-sm text-on-surface-variant leading-relaxed">
+            Tiền cọc được hoàn trả 100% tự động qua chuyển khoản ngân hàng trong vòng 24 giờ sau khi bạn hoàn tất bàn giao buồng kho sạch sẽ và đúng hạn.
+          </div>
+</details>
+<!-- Direct Callout -->
+<div class="pt-2 text-center">
+<a class="inline-flex items-center gap-1.5 font-label-md text-label-md text-primary-container font-semibold hover:underline" href="tel:02873001188">
+<span class="material-symbols-outlined text-[16px]">call</span>
+            Cần giải đáp ngay? Gọi Hotline 028 7300 1188
+          </a>
+</div>
+</section>
+</div>
+<!-- 9. STICKY BOTTOM ACTION BAR (Strict Mobile Elevation & Touch Rules) -->
+<div class="fixed bottom-0 left-0 right-0 z-50 flex justify-center bg-transparent pointer-events-none">
+<div class="w-full max-w-[390px] bg-surface-container-lowest/95 backdrop-blur-md border-t border-outline-variant/60 p-3.5 shadow-2xl pointer-events-auto">
+<div class="flex items-baseline justify-between mb-2">
+<div>
+<span class="font-body-sm text-[11px] text-on-surface-variant block uppercase tracking-wider">Tạm tính thanh toán</span>
+<span class="font-body-sm text-[11px] text-secondary">Gồm thuê &amp; 100% cọc hoàn lại</span>
+</div>
+<div class="text-right">
+<span class="font-headline-sm text-headline-sm font-bold text-primary-container" id="bar-total-amount">
+              3.000.000 đ
+            </span>
+</div>
+</div>
+<div class="space-y-1.5">
+<!-- Primary CTA Button (min-h 48px, >=44px touch) -->
+<button class="w-full min-h-[48px] h-12 bg-primary-container hover:bg-[#0F493B] active:scale-[0.98] text-surface-container-lowest font-label-lg text-label-lg font-semibold rounded flex items-center justify-center gap-2 shadow-sm transition-all" id="btn-continue" onclick="handleContinue()" type="button">
+<span>Tiếp tục: Xem đơn thuê (Bước 3)</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+<!-- Secondary Back Button -->
+<button class="w-full min-h-[44px] h-9 text-on-surface-variant hover:text-primary font-body-sm text-body-sm font-medium flex items-center justify-center active:scale-[0.98] transition-colors" onclick="history.back()" type="button">
+            Hủy &amp; Quay lại chọn kho
+          </button>
+</div>
+</div>
+</div>
+</main>
+<!-- Interactive Client-side Script -->
+<script>
+    // State
+    const BASE_MONTHLY_RATE = 1500000;
+    const DEPOSIT_RATE = 1500000;
+    let selectedMonths = 1;
+    let selectedSlot = "08:30 - 10:30";
+
+    // Format currency to Vietnamese standard
+    function formatVND(amount) {
+      return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " đ";
+    }
+
+    // Set initial date & constrain within 30 days
+    const dateInput = document.getElementById('start_date');
+    const previewDateSpan = document.getElementById('preview-formatted-date');
+    const endDateSpan = document.getElementById('end-date-preview');
+
+    const today = new Date();
+    const maxDate = new Date();
+    maxDate.setDate(today.getDate() + 30);
+
+    const formatDateISO = (d) => d.toISOString().split('T')[0];
+    dateInput.min = formatDateISO(today);
+    dateInput.max = formatDateISO(maxDate);
+    dateInput.value = formatDateISO(today);
+
+    function updateDatePreviews() {
+      const val = dateInput.value;
+      if (!val) return;
+      const parts = val.split('-');
+      const d = new Date(parts[0], parts[1] - 1, parts[2]);
+      
+      // Format DD/MM/YYYY
+      const formatted = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+      previewDateSpan.textContent = formatted;
+
+      // Calculate end date based on duration
+      const endD = new Date(d);
+      endD.setMonth(endD.getMonth() + selectedMonths);
+      const formattedEnd = `${String(endD.getDate()).padStart(2, '0')}/${String(endD.getMonth() + 1).padStart(2, '0')}/${endD.getFullYear()}`;
+      endDateSpan.textContent = formattedEnd;
+    }
+
+    dateInput.addEventListener('change', updateDatePreviews);
+
+    // Duration Pill Handlers
+    const durationPills = document.querySelectorAll('.duration-pill');
+    durationPills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        selectedMonths = parseInt(pill.getAttribute('data-months'), 10);
+
+        durationPills.forEach(p => {
+          p.classList.remove('bg-primary-container', 'text-surface-container-lowest', 'border-primary-container');
+          p.classList.add('bg-surface-container-lowest', 'text-on-surface-variant', 'border-outline-variant');
+        });
+
+        pill.classList.remove('bg-surface-container-lowest', 'text-on-surface-variant', 'border-outline-variant');
+        pill.classList.add('bg-primary-container', 'text-surface-container-lowest', 'border-primary-container');
+
+        // Recalculate
+        const rentTotal = BASE_MONTHLY_RATE * selectedMonths;
+        const grandTotal = rentTotal + DEPOSIT_RATE;
+
+        document.getElementById('calc-duration-label').textContent = `${selectedMonths} tháng`;
+        document.getElementById('calc-rent-amount').textContent = formatVND(rentTotal);
+        document.getElementById('calc-total-amount').textContent = formatVND(grandTotal);
+        document.getElementById('bar-total-amount').textContent = formatVND(grandTotal);
+
+        updateDatePreviews();
+      });
+    });
+
+    // Slot Pill Handlers
+    const slotPills = document.querySelectorAll('.slot-pill');
+    slotPills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        selectedSlot = pill.getAttribute('data-slot');
+
+        slotPills.forEach(p => {
+          p.classList.remove('bg-primary-container', 'text-surface-container-lowest', 'border-primary-container');
+          p.classList.add('bg-surface-container-lowest', 'text-on-surface-variant', 'border-outline-variant');
+        });
+
+        pill.classList.remove('bg-surface-container-lowest', 'text-on-surface-variant', 'border-outline-variant');
+        pill.classList.add('bg-primary-container', 'text-surface-container-lowest', 'border-primary-container');
+      });
+    });
+
+    // 10-Minute Lock Timer Countdown (Microinteraction)
+    let totalSeconds = 9 * 60 + 48;
+    const timerElement = document.getElementById('lock-timer');
+    setInterval(() => {
+      if (totalSeconds > 0) {
+        totalSeconds--;
+        const mins = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+        const secs = String(totalSeconds % 60).padStart(2, '0');
+        timerElement.textContent = `${mins}:${secs}`;
+      }
+    }, 1000);
+
+    // Initial calculation trigger
+    updateDatePreviews();
+
+    // Submission / Next Step Validation Logic
+    function handleContinue() {
+      const name = document.getElementById('tenant_name').value.trim();
+      const phone = document.getElementById('tenant_phone').value.trim();
+      const email = document.getElementById('tenant_email').value.trim();
+
+      if (!name) {
+        alert("Vui lòng nhập Họ và tên người thuê.");
+        document.getElementById('tenant_name').focus();
+        return;
+      }
+      if (!phone || phone.length < 9) {
+        alert("Vui lòng nhập số điện thoại hợp lệ để nhận mã nhận kho.");
+        document.getElementById('tenant_phone').focus();
+        return;
+      }
+      if (!email || !email.includes('@')) {
+        alert("Vui lòng nhập địa chỉ Email để nhận hợp đồng điện tử.");
+        document.getElementById('tenant_email').focus();
+        return;
+      }
+
+      // Temporary smooth feedback before navigating to step 3
+      const btn = document.getElementById('btn-continue');
+      btn.innerHTML = `<span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span> Đang lưu thông tin...`;
+      setTimeout(() => {
+        alert(`Đã lưu thông tin khách hàng ${name}!\nThời hạn: ${selectedMonths} tháng\nKhung giờ hẹn: ${selectedSlot}\nChuyển sang Bước 3: Xem đơn thuê.`);
+        btn.innerHTML = `<span>Tiếp tục: Xem đơn thuê (Bước 3)</span><span class="material-symbols-outlined text-[18px]">arrow_forward</span>`;
+      }, 400);
+    }
+  </script>
+</body></html>

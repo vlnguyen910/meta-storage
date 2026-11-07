@@ -1,27 +1,73 @@
 import {
   and,
+  asc,
+  capacityAllocations,
   type Database,
   desc,
   eq,
   type Facility,
-  type FacilityAssignment,
   facilities,
-  facilityAssignments,
+  facilityUnitTypes,
   gt,
-  isNull,
+  inArray,
+  min,
   type NewFacility,
-  type NewFacilityAssignment,
   or,
-  users,
-} from "@storex/database";
+  ReservationStatus,
+  reservations,
+  sql,
+  systemSettingInteger,
+  systemSettings,
+  unitTypes,
+} from "@metastorage/database";
+import type { FacilityListScope, FacilityScope } from "./facilities.access";
+import { FACILITY_MESSAGES } from "./facilities.messages";
+import { FacilityAssignmentsRepository } from "./facility-assignments.repository";
 
 export class FacilitiesRepository {
-  constructor(private readonly db: Database) {}
+  private readonly assignmentsRepository: FacilityAssignmentsRepository;
+
+  constructor(private readonly db: Database) {
+    this.assignmentsRepository = new FacilityAssignmentsRepository(db);
+  }
+
+  async catalog() {
+    return this.db
+      .select({
+        facility: facilities,
+        startingMonthlyPrice: min(facilityUnitTypes.monthlyPrice).mapWith(Number),
+      })
+      .from(facilities)
+      .leftJoin(
+        facilityUnitTypes,
+        and(
+          eq(facilityUnitTypes.facilityId, facilities.id),
+          eq(facilityUnitTypes.isActive, true),
+          sql`exists(select 1 from ${unitTypes} where ${unitTypes.id} = ${facilityUnitTypes.unitTypeId} and ${unitTypes.isActive})`,
+        ),
+      )
+      .where(eq(facilities.isActive, true))
+      .groupBy(facilities.id);
+  }
+
+  async globalOperatingHours() {
+    const rows = await this.db
+      .select({ key: systemSettings.key, value: systemSettingInteger })
+      .from(systemSettings)
+      .where(inArray(systemSettings.key, ["OPENING_HOUR", "CLOSING_HOUR"]));
+    const values = Object.fromEntries(rows.map((row) => [row.key, row.value]));
+    return values.OPENING_HOUR === undefined || values.CLOSING_HOUR === undefined
+      ? undefined
+      : {
+          openingHour: values.OPENING_HOUR,
+          closingHour: values.CLOSING_HOUR,
+        };
+  }
 
   async createFacility(data: NewFacility): Promise<Facility> {
     const [created] = await this.db.insert(facilities).values(data).returning();
     if (!created) {
-      throw new Error("Failed to create facility");
+      throw new Error(FACILITY_MESSAGES.failedToCreateFacility);
     }
     return created;
   }
@@ -31,147 +77,110 @@ export class FacilitiesRepository {
     return facility;
   }
 
+  async findAccessibleById(id: string, scope: FacilityScope): Promise<Facility | undefined> {
+    const [facility] = await this.db
+      .select()
+      .from(facilities)
+      .where(
+        and(
+          eq(facilities.id, id),
+          scope.kind === "assigned"
+            ? this.assignmentsRepository.activeAssignmentExists(facilities.id, scope)
+            : undefined,
+        ),
+      );
+    return facility;
+  }
+
   async findByCode(code: string): Promise<Facility | undefined> {
     const [facility] = await this.db.select().from(facilities).where(eq(facilities.code, code));
     return facility;
   }
 
-  async list(limit: number, offset: number, isActive?: boolean): Promise<Facility[]> {
-    const query = this.db.select().from(facilities);
-    if (isActive !== undefined) {
-      query.where(eq(facilities.isActive, isActive));
-    }
-    return query.limit(limit).offset(offset).orderBy(desc(facilities.createdAt));
+  async getAllFacilities(limit: number, offset: number, isActive: boolean) {
+    return this.db
+      .select()
+      .from(facilities)
+      .where(eq(facilities.isActive, isActive))
+      .limit(limit)
+      .offset(offset)
+      .orderBy(asc(facilities.createdAt));
   }
 
-  async update(id: string, data: Partial<NewFacility>): Promise<Facility | undefined> {
+  async listAccessible(
+    limit: number,
+    offset: number,
+    isActive: boolean | undefined,
+    scope: FacilityListScope,
+  ): Promise<Facility[]> {
+    return this.db
+      .select()
+      .from(facilities)
+      .where(
+        and(
+          isActive === undefined ? undefined : eq(facilities.isActive, isActive),
+          scope.kind === "assigned"
+            ? this.assignmentsRepository.activeAssignmentExists(facilities.id, scope)
+            : undefined,
+        ),
+      )
+      .limit(limit)
+      .offset(offset)
+      .orderBy(desc(facilities.createdAt));
+  }
+
+  async updateAccessible(
+    id: string,
+    data: Partial<NewFacility>,
+    scope: FacilityScope,
+  ): Promise<Facility | undefined> {
     const [updated] = await this.db
       .update(facilities)
       .set({ ...data, updatedAt: new Date() })
-      .where(eq(facilities.id, id))
+      .where(
+        and(
+          eq(facilities.id, id),
+          scope.kind === "assigned"
+            ? this.assignmentsRepository.activeAssignmentExists(id, scope)
+            : undefined,
+        ),
+      )
       .returning();
     return updated;
   }
 
-  async findActiveAssignment(
-    facilityId: string,
-    userId: string,
-  ): Promise<FacilityAssignment | undefined> {
-    const [assignment] = await this.db
-      .select()
-      .from(facilityAssignments)
+  async hasOpenOperations(id: string): Promise<boolean> {
+    const now = new Date();
+    const [booking] = await this.db
+      .select({ id: reservations.id })
+      .from(reservations)
       .where(
         and(
-          eq(facilityAssignments.facilityId, facilityId),
-          eq(facilityAssignments.userId, userId),
-          eq(facilityAssignments.isActive, true),
-          or(isNull(facilityAssignments.endedAt), gt(facilityAssignments.endedAt, new Date())),
+          eq(reservations.facilityId, id),
+          inArray(reservations.status, [
+            ReservationStatus.DRAFT,
+            ReservationStatus.CONFIRMED,
+            ReservationStatus.CHECKED_IN,
+          ]),
         ),
-      );
-    return assignment;
-  }
-
-  async findAssignment(
-    facilityId: string,
-    userId: string,
-  ): Promise<FacilityAssignment | undefined> {
-    const [assignment] = await this.db
-      .select()
-      .from(facilityAssignments)
-      .where(
-        and(eq(facilityAssignments.facilityId, facilityId), eq(facilityAssignments.userId, userId)),
-      );
-    return assignment;
-  }
-
-  async upsertAssignment(data: NewFacilityAssignment): Promise<FacilityAssignment> {
-    const [assignment] = await this.db
-      .insert(facilityAssignments)
-      .values(data)
-      .onConflictDoUpdate({
-        target: [facilityAssignments.userId, facilityAssignments.facilityId],
-        set: {
-          role: data.role,
-          isActive: true,
-          endedAt: null,
-          assignedAt: new Date(),
-        },
-      })
-      .returning();
-    if (!assignment) {
-      throw new Error("Failed to upsert assignment");
-    }
-    return assignment;
-  }
-
-  async deactivateAssignment(
-    facilityId: string,
-    userId: string,
-  ): Promise<FacilityAssignment | undefined> {
-    const [deactivated] = await this.db
-      .update(facilityAssignments)
-      .set({
-        isActive: false,
-        endedAt: new Date(),
-      })
-      .where(
-        and(eq(facilityAssignments.facilityId, facilityId), eq(facilityAssignments.userId, userId)),
       )
-      .returning();
-    return deactivated;
-  }
+      .limit(1);
+    if (booking) return true;
 
-  async listAssignmentsWithUsers(
-    facilityId: string,
-    limit: number,
-    offset: number,
-  ): Promise<
-    Array<{
-      assignment: FacilityAssignment;
-      userName: string;
-      userEmail: string;
-    }>
-  > {
-    const rows = await this.db
-      .select({
-        assignment: facilityAssignments,
-        userName: users.name,
-        userEmail: users.email,
-      })
-      .from(facilityAssignments)
-      .innerJoin(users, eq(facilityAssignments.userId, users.id))
-      .where(eq(facilityAssignments.facilityId, facilityId))
-      .limit(limit)
-      .offset(offset)
-      .orderBy(desc(facilityAssignments.assignedAt));
-
-    return rows;
-  }
-
-  async listUserAssignmentsWithFacilities(userId: string): Promise<
-    Array<{
-      assignment: FacilityAssignment;
-      facilityName: string;
-      facilityCode: string;
-    }>
-  > {
-    const rows = await this.db
-      .select({
-        assignment: facilityAssignments,
-        facilityName: facilities.name,
-        facilityCode: facilities.code,
-      })
-      .from(facilityAssignments)
-      .innerJoin(facilities, eq(facilityAssignments.facilityId, facilities.id))
+    const [allocation] = await this.db
+      .select({ id: capacityAllocations.id })
+      .from(capacityAllocations)
       .where(
         and(
-          eq(facilityAssignments.userId, userId),
-          eq(facilityAssignments.isActive, true),
-          or(isNull(facilityAssignments.endedAt), gt(facilityAssignments.endedAt, new Date())),
+          eq(capacityAllocations.facilityId, id),
+          eq(capacityAllocations.status, "ACTIVE"),
+          or(
+            inArray(capacityAllocations.kind, ["BOOKING", "RESERVATION"]),
+            and(eq(capacityAllocations.kind, "HOLD"), gt(capacityAllocations.expiresAt, now)),
+          ),
         ),
       )
-      .orderBy(desc(facilityAssignments.assignedAt));
-
-    return rows;
+      .limit(1);
+    return Boolean(allocation);
   }
 }

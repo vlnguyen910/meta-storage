@@ -2,120 +2,375 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
-import { ArrowRight, LockKeyhole, ShieldCheck } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowRight,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Lock,
+  Mail,
+  ShieldCheck,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import { FieldShell, Input } from "@/components/ui/form-controls";
+import { useGlobalLoading } from "@/components/providers/global-loading-provider";
 import { useToast } from "@/components/ui/toast";
+import { isMockMode } from "@/config/api-mode";
 import { roleHome, routes, safeReturnTo } from "@/config/routes";
 import { api } from "@/lib/api";
 import { demoAccounts } from "@/mocks/seeds";
+import { AUTH_MESSAGES } from "./auth.messages";
+import type { LoginFormValues } from "./auth.types";
 import { useAuthStore } from "./auth-store";
+import { GoogleSignInButton } from "./google-sign-in-button";
+import { useGoogleAuth } from "./use-google-auth";
 
 const schema = z.object({
-  email: z.string().email("Email chưa đúng định dạng"),
-  password: z.string().min(8, "Mật khẩu cần ít nhất 8 ký tự"),
+  email: z.string().email(AUTH_MESSAGES.invalidEmail),
+  password: z.string().min(8, AUTH_MESSAGES.passwordTooShort),
+  remember: z.boolean().optional(),
 });
-type FormValues = z.infer<typeof schema>;
 
 export function LoginForm() {
-  const isMockMode = process.env.NEXT_PUBLIC_API_MODE === "mock";
+  const { runWithGlobalLoading, startNavigationLoading } = useGlobalLoading();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const session = useAuthStore((state) => state.session);
+  const authReady = useAuthStore((state) => state.authReady);
   const setSession = useAuthStore((state) => state.setSession);
   const { showToast } = useToast();
+  const [showPassword, setShowPassword] = useState(false);
+  const [pendingLinkDestination, setPendingLinkDestination] = useState<string | null>(null);
+  const { linkGoogleAccount, isLoading: isLinkingGoogle } = useGoogleAuth();
+  const oauthError = searchParams.get("error");
+  const hasRedirectedRef = useRef(false);
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
+
+  useEffect(() => {
+    if (hasRedirectedRef.current) return;
+    if (!hydrated || !authReady || !session?.user?.role) return;
+    if (oauthError === "account_not_linked") return;
+
+    hasRedirectedRef.current = true;
+    const role = session.user.role;
+    const requested = safeReturnTo(searchParams.get("returnTo"), roleHome[role]);
+    const roleRoot = `/${roleHome[role].split("/")[1]}`;
+    const destination =
+      requested.startsWith(`${roleRoot}/`) && requested !== `${roleRoot}/`
+        ? requested
+        : roleHome[role];
+
+    router.replace(destination);
+  }, [hydrated, authReady, session?.user?.role, oauthError, searchParams, router]);
+
   const {
     register,
     handleSubmit,
     setValue,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({
+  } = useForm<LoginFormValues>({
     resolver: zodResolver(schema),
     defaultValues: isMockMode
-      ? { email: "customer@storex.vn", password: "Demo@123" }
-      : { email: "", password: "" },
+      ? { email: "customer@metastorage.test", password: "12345678", remember: false }
+      : { email: "", password: "", remember: false },
   });
 
-  async function onSubmit(values: FormValues) {
+  async function onSubmit(values: LoginFormValues) {
     try {
-      const session = await api.auth.login(values);
-      setSession(session);
-      showToast(`Chào mừng ${session.user.name}`);
-      const requested = safeReturnTo(searchParams.get("returnTo"), roleHome[session.user.role]);
-      const roleRoot = `/${roleHome[session.user.role].split("/")[1]}`;
-      const destination =
-        requested === roleRoot || requested.startsWith(`${roleRoot}/`)
-          ? requested
-          : roleHome[session.user.role];
-      router.replace(destination);
+      await runWithGlobalLoading(async () => {
+        const session = await api.auth.login({ email: values.email, password: values.password });
+        setSession(session);
+        const role = session.user.role;
+        if (!role) {
+          startNavigationLoading();
+          router.replace(routes.forbidden);
+          return;
+        }
+        showToast(AUTH_MESSAGES.loginWelcome(session.user.name));
+        const requested = safeReturnTo(searchParams.get("returnTo"), roleHome[role]);
+        const roleRoot = `/${roleHome[role].split("/")[1]}`;
+        const destination =
+          requested.startsWith(`${roleRoot}/`) && requested !== `${roleRoot}/`
+            ? requested
+            : roleHome[role];
+        if (oauthError === "account_not_linked") {
+          setPendingLinkDestination(destination);
+          return;
+        }
+
+        hasRedirectedRef.current = true;
+        startNavigationLoading();
+        router.replace(destination);
+      });
     } catch (error) {
-      const message = axios.isAxiosError(error)
-        ? (error.response?.data as { message?: string } | undefined)?.message
+      const responseData = axios.isAxiosError(error)
+        ? (error.response?.data as
+            | { code?: string; message?: string; error?: { code?: string; message?: string } }
+            | undefined)
         : undefined;
-      showToast(message ?? "Không thể đăng nhập", "error");
+      const message =
+        (responseData?.code ?? responseData?.error?.code) === "EMAIL_NOT_VERIFIED"
+          ? AUTH_MESSAGES.loginEmailNotVerified
+          : (responseData?.error?.message ?? responseData?.message);
+      showToast(message ?? AUTH_MESSAGES.loginFailed, "error");
     }
   }
 
   return (
-    <div className="w-full max-w-[620px] justify-self-end rounded-[22px] bg-white p-9 shadow-card max-[800px]:justify-self-center max-[560px]:p-[24px_18px]">
-      <div className="flex items-center gap-4">
-        <span className="grid size-[50px] place-items-center rounded-[14px] bg-primary text-white">
-          <LockKeyhole />
-        </span>
+    <div className="w-full max-w-[440px] mx-auto">
+      {/* Centered Login Card */}
+      <div className="w-full bg-white rounded-[15px] p-6 md:p-8 border border-slate-200 shadow-[0px_4px_6px_-1px_rgba(15,23,42,0.06),0px_2px_4px_-2px_rgba(15,23,42,0.03)]">
+        {/* Card Header */}
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[#e8f3ef] text-[#165f4d] mb-3.5 shadow-xs">
+            <Lock className="w-6 h-6" />
+          </div>
+          <h1 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight mb-2">
+            {AUTH_MESSAGES.loginTitle}
+          </h1>
+          <p className="text-xs md:text-sm text-slate-500 leading-relaxed">
+            {AUTH_MESSAGES.loginSubtitle}
+          </p>
+        </div>
+
+        {oauthError ? (
+          <div
+            className={`mb-5 p-4 rounded-xl border text-xs leading-relaxed ${
+              oauthError === "account_not_linked"
+                ? "bg-amber-50 border-amber-200 text-amber-900"
+                : "bg-rose-50 border-rose-200 text-rose-900"
+            }`}
+            role="alert"
+          >
+            <div className="flex items-start gap-3">
+              <AlertCircle
+                className={`w-5 h-5 shrink-0 mt-0.5 ${
+                  oauthError === "account_not_linked" ? "text-amber-600" : "text-rose-600"
+                }`}
+              />
+              <div>
+                <h3 className="text-sm font-bold mb-1">
+                  {oauthError === "account_not_linked"
+                    ? AUTH_MESSAGES.accountNotLinkedTitle
+                    : "Thông báo đăng nhập"}
+                </h3>
+                <p>
+                  {oauthError === "account_not_linked"
+                    ? AUTH_MESSAGES.accountNotLinked
+                    : oauthError === "access_denied"
+                      ? AUTH_MESSAGES.googleAccessDenied
+                      : oauthError === "google_email_unverified"
+                        ? AUTH_MESSAGES.googleEmailUnverified
+                        : oauthError === "account_disabled"
+                          ? AUTH_MESSAGES.googleAccountDisabled
+                          : oauthError === "invalid_state" || oauthError === "state_mismatch"
+                            ? AUTH_MESSAGES.googleStateExpired
+                            : AUTH_MESSAGES.googleAuthFailed}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Authentication Form */}
+        <form method="post" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {/* Field 1: Email */}
+          <div>
+            <label htmlFor="email" className="block text-sm font-bold text-slate-900 mb-1.5">
+              {AUTH_MESSAGES.emailLabel}
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-600">
+                <Mail className="w-4 h-4" />
+              </div>
+              <input
+                id="email"
+                type="email"
+                disabled={!hydrated}
+                autoComplete="email"
+                placeholder={AUTH_MESSAGES.emailPlaceholder}
+                {...register("email")}
+                className="w-full h-10 pl-9 pr-3.5 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 placeholder:text-slate-600 focus:outline-none focus:border-[#165f4d] focus:ring-1 focus:ring-[#165f4d] transition-colors"
+              />
+            </div>
+            {errors.email?.message && (
+              <p className="mt-1 text-xs text-rose-600">{errors.email.message}</p>
+            )}
+          </div>
+
+          {/* Field 2: Password */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label htmlFor="password" className="block text-sm font-bold text-slate-900">
+                {AUTH_MESSAGES.passwordLabel}
+              </label>
+            </div>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-600">
+                <KeyRound className="w-4 h-4" />
+              </div>
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                disabled={!hydrated}
+                autoComplete="current-password"
+                placeholder={AUTH_MESSAGES.passwordPlaceholder}
+                {...register("password")}
+                className="w-full h-10 pl-9 pr-11 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 placeholder:text-slate-600 focus:outline-none focus:border-[#165f4d] focus:ring-1 focus:ring-[#165f4d] transition-colors"
+              />
+              <button
+                type="button"
+                aria-label={showPassword ? AUTH_MESSAGES.hidePassword : AUTH_MESSAGES.showPassword}
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-600 hover:text-slate-700 focus:outline-none transition-colors cursor-pointer"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            {errors.password?.message && (
+              <p className="mt-1 text-xs text-rose-600">{errors.password.message}</p>
+            )}
+          </div>
+
+          {/* Field 3: Remember & Forgot Password */}
+          <div className="flex items-center justify-between pt-1">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                {...register("remember")}
+                className="w-4 h-4 rounded border-slate-300 text-[#165f4d] focus:ring-[#165f4d] focus:ring-offset-0 transition-all cursor-pointer"
+              />
+              <span className="text-xs text-slate-600 hover:text-slate-900">
+                {AUTH_MESSAGES.rememberMe}
+              </span>
+            </label>
+            <Link
+              href={routes.forgotPassword}
+              className="text-xs text-[#165f4d] hover:underline font-medium focus:outline-none whitespace-nowrap"
+            >
+              {AUTH_MESSAGES.forgotPassword}
+            </Link>
+          </div>
+
+          {/* Primary CTA Button */}
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={!hydrated || isSubmitting}
+              className="w-full h-11 bg-[#165f4d] hover:bg-[#0f493b] active:bg-[#0a352b] text-white text-sm font-semibold rounded-lg flex items-center justify-center gap-2 transition-all duration-150 shadow-xs active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#165f4d] cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              <span>{isSubmitting ? AUTH_MESSAGES.loggingIn : AUTH_MESSAGES.loginButton}</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </form>
+
+        {/* Alternative SSO Dividers */}
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-slate-200" />
+          </div>
+          <div className="relative flex justify-center text-xs">
+            <span className="bg-white px-3 text-slate-600">{AUTH_MESSAGES.orContinueWith}</span>
+          </div>
+        </div>
+
+        {/* Alternative SSO Buttons */}
         <div>
-          <span className="mb-2.5 inline-block text-xs font-extrabold tracking-[0.13em] text-primary uppercase">
-            Khu vực thành viên
-          </span>
-          <h1 className="m-0 text-3xl font-bold">Đăng nhập storeX</h1>
+          {/* Google SSO */}
+          <GoogleSignInButton disabled={!hydrated} />
+        </div>
+
+        {/* Demo Accounts (in Mock Mode) */}
+        {isMockMode && (
+          <div className="mt-5 rounded-xl bg-[#f8fafc] p-3.5 border border-slate-200">
+            <div className="mb-2.5 flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                <ShieldCheck className="w-4 h-4 text-[#165f4d]" />
+                <span>{AUTH_MESSAGES.demoAccountsTitle}</span>
+              </div>
+              <span className="text-[11px] text-slate-500">{AUTH_MESSAGES.demoPasswordLabel}</span>
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              {demoAccounts.map((account) => (
+                <button
+                  key={account.email}
+                  type="button"
+                  className="cursor-pointer rounded-lg border border-slate-200 bg-white p-2 text-left hover:border-[#165f4d] hover:bg-[#e8f3ef]/30 transition-all text-xs"
+                  onClick={() => {
+                    setValue("email", account.email, { shouldValidate: true });
+                    setValue("password", "12345678", { shouldValidate: true });
+                  }}
+                >
+                  <strong className="block text-[11px] text-slate-900 truncate">
+                    {account.label}
+                  </strong>
+                  <span className="block text-[10px] text-slate-500 truncate">{account.email}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Registration Prompt */}
+        <div className="mt-6 pt-4 border-t border-slate-200 text-center">
+          <p className="text-xs text-slate-600">
+            {AUTH_MESSAGES.noAccountPrompt}{" "}
+            <Link
+              href={routes.register}
+              className="font-bold text-[#165f4d] hover:underline transition-colors"
+            >
+              {AUTH_MESSAGES.registerNow}
+            </Link>
+          </p>
         </div>
       </div>
-      <p className="mb-6 text-muted">
-        Truy cập reservation, kho đang thuê và công việc vận hành của bạn.
-      </p>
-      <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
-        <FieldShell label="Email" error={errors.email?.message}>
-          <Input type="email" autoComplete="email" {...register("email")} />
-        </FieldShell>
-        <FieldShell label="Mật khẩu" error={errors.password?.message}>
-          <Input type="password" autoComplete="current-password" {...register("password")} />
-        </FieldShell>
-        <div className="flex items-center justify-between text-sm max-[560px]:items-start max-[560px]:gap-2.5">
-          <label className="flex items-center gap-2 text-muted">
-            <input type="checkbox" /> Ghi nhớ email
-          </label>
-          <Link className="font-bold text-primary" href={routes.forgotPassword}>
-            Quên mật khẩu?
-          </Link>
-        </div>
-        <Button type="submit" loading={isSubmitting} icon={<ArrowRight size={18} />}>
-          Đăng nhập
-        </Button>
-      </form>
-      {isMockMode ? (
-        <div className="mt-5 rounded-[14px] bg-[#f5f8f7] p-4">
-          <div className="mb-3 flex items-center gap-2">
-            <ShieldCheck size={18} />
-            <strong>Tài khoản demo</strong>
-            <span className="ml-auto text-xs text-muted">Mật khẩu: Demo@123</span>
-          </div>
-          <div className="grid grid-cols-2 gap-2 max-[560px]:grid-cols-1">
-            {demoAccounts.map((account) => (
+
+      {pendingLinkDestination ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl border border-slate-200">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="grid size-10 place-items-center rounded-xl bg-[#e8f3ef] text-[#165f4d]">
+                <ShieldCheck className="size-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">
+                  {AUTH_MESSAGES.googleLinkTitle}
+                </h3>
+                <p className="text-xs text-slate-500">{AUTH_MESSAGES.brandName}</p>
+              </div>
+            </div>
+            <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+              {AUTH_MESSAGES.googleLinkPromptAfterLogin}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2.5">
               <button
-                key={account.email}
                 type="button"
-                className="cursor-pointer rounded-[9px] border border-[#dce4e1] bg-white p-2.5 text-left hover:border-primary"
-                onClick={() => {
-                  setValue("email", account.email, { shouldValidate: true });
-                  setValue("password", "Demo@123", { shouldValidate: true });
-                }}
+                disabled={isLinkingGoogle}
+                onClick={() => linkGoogleAccount(pendingLinkDestination)}
+                className="flex-1 h-10 px-4 rounded-lg bg-[#165f4d] hover:bg-[#0f493b] text-white text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-xs disabled:opacity-60"
               >
-                <strong className="block text-xs">{account.label}</strong>
-                <small className="mt-1 block text-[0.68rem] text-muted">{account.email}</small>
+                <span>
+                  {isLinkingGoogle ? AUTH_MESSAGES.googleLinking : AUTH_MESSAGES.linkGoogleAction}
+                </span>
               </button>
-            ))}
+              <button
+                type="button"
+                disabled={isLinkingGoogle}
+                onClick={() => {
+                  startNavigationLoading();
+                  router.replace(pendingLinkDestination);
+                }}
+                className="h-10 px-4 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium flex items-center justify-center cursor-pointer transition-colors"
+              >
+                {AUTH_MESSAGES.linkGoogleLater}
+              </button>
+            </div>
           </div>
         </div>
       ) : null}

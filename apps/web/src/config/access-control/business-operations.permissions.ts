@@ -1,4 +1,4 @@
-import { Permission } from "@storex/contracts";
+import { Permission } from "./permissions";
 
 export const businessOperationsPermissions = [
   Permission.VIEW_FACILITIES,

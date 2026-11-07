@@ -1,4 +1,4 @@
-import type { DashboardSummary } from "@storex/contracts";
+import type { DashboardSummary } from "@metastorage/contracts";
 
 export function facilityStaffDashboard(facilityName?: string): DashboardSummary {
   return {

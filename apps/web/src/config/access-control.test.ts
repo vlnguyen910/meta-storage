@@ -1,6 +1,6 @@
-import { Permission, UserRole } from "@storex/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { describe, expect, it } from "vitest";
-import { hasPermission, rolePermissions } from "./access-control";
+import { hasPermission, Permission, rolePermissions } from "./access-control";
 
 describe("role permissions", () => {
   it("allows a customer to reserve but not manage units", () => {

@@ -1,9 +1,29 @@
 # Repository Guidelines & Architecture Summary
 
+## Project Context
+
+Read [`README.md`](README.md) first for the project overview, workspace layout, stack, and local setup. Use the domain-specific documents listed below when a task needs deeper business or architecture details.
+
+## User's Coding Preferences
+
+Apply these preferences when refactoring or adding backend features:
+
+- Prefer the smallest implementation that fully supports the confirmed workflow. Keep APIs and layers only when they serve a concrete use case.
+- Keep endpoints focused on business actions. Avoid CRUD or separate lifecycle endpoints when one validated update endpoint expresses the required operation clearly.
+- Let the backend derive identity and facility scope from the authenticated session and active assignments when available; do not require redundant frontend parameters.
+- Put workflow coordination and cross-module calls in services. Keep repositories focused on database reads/writes and transaction-specific persistence.
+- Reuse the facility-assignment authorization service, shared pagination DTOs, and Zod schemas instead of adding parallel checks or mapping helpers.
+- Model task references with one reference ID and an explicit reference type when the supported contexts share the same workflow. Do not add fields such as task version or completion actor without a confirmed need.
+- Reduce tables only when their data and lifecycle are truly redundant. Preserve records needed for distinct workflows, financial facts, audit, or history; update the schema and database diagram together for approved changes.
+- Prefer readable code over extra abstraction. Do not split a module solely because a file is long; split along distinct business responsibilities when that makes workflows easier to follow.
+- For behavior-preserving refactors, keep API contracts and transaction boundaries stable, especially when one workflow creates or updates records across modules.
+
+See [`docs/module-refactor-priorities.md`](docs/module-refactor-priorities.md) for the current module review order and proposed refactor scope.
+
 ## 1. Project Structure & Architecture
 
 ```text
-storex/
+metastorage/
 ├── apps/
 │   ├── web/          # Next.js (Web Frontend)
 │   ├── mobile/       # React Native + Expo
@@ -38,23 +58,37 @@ Project architecture: **Monorepo (Turborepo + Bun) + Modular Monolith**. Scope c
 > [!IMPORTANT]
 > To preserve context, AI agents should **ONLY** read the following documents when the task specifically requires detailed context on that domain:
 >
-> - [`docs/db-diagram.md`](file:///home/owen/Projects/storeX/docs/db-diagram.md): Canonical source of truth for database schema design, entities, relationships, and constraints. Read it for any database schema or migration task.
 > - [`docs/backend-patterns.md`](file:///home/owen/Projects/storeX/docs/backend-patterns.md): Route → Service → Repository, State Machines, Strategy/Adapter patterns, Transactions & Idempotency.
 > - [`docs/web-patterns.md`](file:///home/owen/Projects/storeX/docs/web-patterns.md): Next.js App Router, Feature-based structure, Server/Client/Form state separation, TanStack Query, Zustand.
 > - [`docs/mobile-patterns.md`](file:///home/owen/Projects/storeX/docs/mobile-patterns.md): React Native + Expo structure, Screen → Hook → API Client flow.
-> - [`docs/engineering-principles.md`](file:///home/owen/Projects/storeX/docs/engineering-principles.md): The 20 mandatory engineering principles for storeX.
 
-## 3. Core Engineering Rules for Agents
+## 3. Engineering Rules for Agents
 
-1. **Follow the Architecture**: Do not introduce new architectural patterns, layers, or microservices.
-2. **Feature-based Slices**: Organize code by feature/domain. Never put business logic in routes, screens, or UI components.
-3. **Strict State Separation**: Server state (TanStack Query), Client state (Zustand when necessary), Form state (React Hook Form + Zod).
-4. **Data Integrity**: Database is the source of truth. Use database transactions and row-level locks for concurrent/consistent flows. Never expose DB models directly to frontend.
-5. **Database Diagram & Schema-First Migrations**: Treat [`docs/db-diagram.md`](file:///home/owen/Projects/storeX/docs/db-diagram.md) as the source of truth for the intended database model. Before designing or changing database schema, read and follow the diagram. For every database change, update the diagram and the Drizzle schema in `packages/database` together so they stay in sync; generate migrations with `bun run db:generate`. Never edit generated migration files directly (`packages/database/drizzle/*`). If the diagram is missing details needed for a change, clarify and update the diagram before implementing the schema.
-6. **Business Clarity & Confidence Threshold (< 95%)**: Always verify domain requirements with the user before implementing features. If confidence in implementing according to exact business rules is below 95%, proactively ask clarifying questions instead of making assumptions. Never speculate; mark unknowns as `TBD`.
-7. **Propose Further Decisions Before Implementation**: Always provide design choices, trade-offs, alternatives, and further decisions for the user to review and align on before beginning implementation.
-8. **TDD & Business-Driven Testing (No Fabricated Tests)**: Follow Test-Driven Development (TDD). Before creating tests, thoroughly question and clarify all business requirements with the user. Only proceed to write tests when confidence in understanding the business domain reaches at least 95%. Never invent, speculate, or fabricate test cases based on assumptions. Always present the planned test cases and explain what each test is for to the user before implementation.
-9. **No Overengineering**: Shared abstractions only when reused in ≥2 places. Keep code readable and easily handoff-ready.
+Apply the rules relevant to the workspace and task. Keep implementation aligned with the existing architecture and confirmed requirements.
+
+### 3.1 General
+
+1. **Keep It Simple**: Prefer readable, maintainable solutions. Avoid speculative abstractions, layers, and dependencies.
+2. **Follow Project Architecture**: Preserve the monorepo and modular monolith. Organize by feature; keep business logic out of routes, screens, and UI components.
+3. **Centralize User-facing Messages**: Store feature messages in nearby `*.messages.ts` files; do not hard-code them in application code or create a global message registry. This excludes logs, comments, and test fixtures.
+4. **Prefer Composition**: Prefer function/component composition over complex inheritance.
+
+### 3.2 Backend and Database
+
+5. **Database Schema and Migrations**: Follow `docs/db-diagram.md`; update it with `packages/database` schema changes. Generate migrations with `bun run db:generate`; never edit generated migrations directly. Clarify missing domain decisions before implementation.
+6. **Drizzle Conventions**: Prefer the query builder; use parameterized `sql` only when needed. The client and Drizzle Kit use `casing: "snake_case"`, so declare properties in camelCase and omit redundant physical column names. Preserve existing database names and verify migrations do not rename columns.
+7. **Database Enums**: Represent backend enums with TypeScript `enum` declarations, not arrays of strings. Declare each enum in the schema file for the table that owns it, then use `enumToPgEnum` when defining its PostgreSQL enum.
+8. **Backend Boundaries**: Keep workflow coordination in services, persistence in repositories, and isolate external providers behind adapters. Avoid generic repository abstractions without a concrete use case.
+9. **Keep Modules Compact**: Avoid creating extra files when the existing module file can hold the implementation. Add service logic to the module's existing service file instead of creating another service file unless a distinct responsibility requires it.
+
+### 3.3 Web Frontend
+
+10. **State Separation**: Use TanStack Query for server state, Zustand when client state needs sharing, and React Hook Form + Zod for forms.
+11. **API Requests**: Use the centralized API client; do not make scattered requests from UI components.
+
+### 3.4 Mobile
+
+12. **Screen/Hook/API Flow**: Keep screens focused on UI, workflow logic in feature hooks/services, and backend calls in the centralized API client.
 
 ## 4. Build, Lint, and Development Commands
 
@@ -80,7 +114,7 @@ bun run check:fix                    # Apply Biome auto-fixes
 - **TypeScript**: Strict mode across all packages.
 - **Formatting & Linting**: Biome is the source of truth (2 spaces, double quotes, semicolons, 100 max line length). Run `bun run check:fix` before committing.
 - **Naming**: PascalCase for components/types, camelCase for functions/variables, kebab-case for route and config filenames.
-- **Contracts**: Always use shared types/schemas (`packages/contracts` or `@storex/shared`).
+- **Contracts**: Always use shared types/schemas (`packages/contracts` or `@metastorage/shared`).
 
 ## 6. Commit & Git Hook Guidelines
 

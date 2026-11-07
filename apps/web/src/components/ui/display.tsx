@@ -24,21 +24,69 @@ export function StatusBadge({ value }: { value: string }) {
     ACTIVE: "Đang hoạt động",
     AVAILABLE: "Còn trống",
     CONFIRMED: "Đã xác nhận",
+    CANCELLED: "Đã hủy",
+    NO_SHOW: "Không đến",
+    CHECKED_IN: "Đã nhận kho",
     SUCCEEDED: "Đã thanh toán",
+    PAID: "Đã thanh toán",
+    PENDING: "Đang chờ thanh toán",
+    FAILED: "Thanh toán thất bại",
+    REFUNDED: "Đã hoàn tiền",
+    REFUND_PENDING: "Chờ hoàn tiền",
     RESERVED: "Đã giữ chỗ",
     OCCUPIED: "Đang thuê",
     MAINTENANCE: "Bảo trì",
+    OVERDUE: "Quá hạn",
+    RETURN_PENDING: "Đang trả kho",
+    COMPLETED: "Đã hoàn tất",
+    CLOSED: "Đã kết thúc",
+    DRAFT: "Bản nháp",
+    SCHEDULED: "Đã lên lịch",
+    PASSED: "Đạt tiêu chuẩn",
+    UNPAID: "Chưa thanh toán",
+    PARTIALLY_PAID: "Thanh toán một phần",
+    TERMINATED: "Đã chấm dứt",
   };
-  const positive = ["ACTIVE", "AVAILABLE", "CONFIRMED", "SUCCEEDED"].includes(value);
-  const maintenance = value === "MAINTENANCE";
+  const positive = [
+    "ACTIVE",
+    "AVAILABLE",
+    "CONFIRMED",
+    "SUCCEEDED",
+    "PAID",
+    "COMPLETED",
+    "PASSED",
+  ].includes(value);
+  const info = ["CHECKED_IN", "OCCUPIED", "IN_PROGRESS", "SCHEDULED"].includes(value);
+  const danger = ["FAILED", "OVERDUE", "NO_SHOW", "UNPAID"].includes(value);
+  const warning = [
+    "PENDING",
+    "RESERVED",
+    "RETURN_PENDING",
+    "MAINTENANCE",
+    "REFUND_PENDING",
+    "PARTIALLY_PAID",
+  ].includes(value);
   return (
     <span
       className={cn(
-        "inline-flex min-h-[26px] w-fit items-center rounded-full bg-slate-100 px-2.5 text-xs font-extrabold text-slate-600",
-        positive && "bg-accent-soft text-accent",
-        maintenance && "bg-amber-50 text-amber-700",
+        "inline-flex min-h-[26px] w-fit items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold",
+        positive && "border-emerald-200/80 bg-emerald-50 text-emerald-800",
+        info && "border-sky-200/80 bg-sky-50 text-sky-800",
+        danger && "border-rose-200/80 bg-rose-50 text-rose-700",
+        warning && "border-amber-200/80 bg-amber-50 text-amber-800",
+        !positive && !info && !danger && !warning && "border-slate-200 bg-slate-100 text-slate-700",
       )}
     >
+      <span
+        className={cn(
+          "size-1.5 shrink-0 rounded-full",
+          positive && "bg-emerald-600",
+          info && "bg-sky-600",
+          danger && "bg-rose-600",
+          warning && "bg-amber-600",
+          !positive && !info && !danger && !warning && "bg-slate-500",
+        )}
+      />
       {labels[value] ?? value}
     </span>
   );

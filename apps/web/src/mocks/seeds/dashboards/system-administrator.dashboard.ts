@@ -1,4 +1,4 @@
-import type { DashboardSummary } from "@storex/contracts";
+import type { DashboardSummary } from "@metastorage/contracts";
 
 export function systemAdministratorDashboard(): DashboardSummary {
   return {
@@ -20,7 +20,7 @@ export function systemAdministratorDashboard(): DashboardSummary {
       {
         id: "s2",
         title: "Gán nhân viên vào HCM-01",
-        description: "Tài khoản staff@storex.vn",
+        description: "Tài khoản staff@metastorage.test",
         time: "Hôm qua",
       },
     ],

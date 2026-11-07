@@ -1,0 +1,43 @@
+{
+  "project": "MetaStorage Admin Design System",
+  "colors": {
+    "primary": "#165f4d",
+    "primaryDark": "#0f493b",
+    "primarySoft": "#e8f3ef",
+    "accent": "#107012",
+    "accentSoft": "#e9f6e9",
+    "canvas": "#fafafa",
+    "surface": "#ffffff",
+    "ink": "#0f172a",
+    "muted": "#64748b",
+    "line": "#eeeeee",
+    "danger": "#ef4444",
+    "warning": "#d97706"
+  },
+  "fontFamilies": {
+    "headline": "Space Grotesk",
+    "body": "Be Vietnam Pro",
+    "label": "Be Vietnam Pro"
+  },
+  "spacing": {
+    "xs": "8px",
+    "sm": "12px",
+    "md": "16px",
+    "lg": "24px",
+    "xl": "32px",
+    "gutter": "24px",
+    "margin": "32px"
+  },
+  "borderRadius": {
+    "control": "8px",
+    "card": "15px",
+    "pill": "9999px"
+  },
+  "typography": {
+    "headlineLarge": { "fontSize": "32px", "fontWeight": "600", "lineHeight": "1.25" },
+    "headlineMedium": { "fontSize": "24px", "fontWeight": "600", "lineHeight": "1.3" },
+    "bodyMedium": { "fontSize": "16px", "fontWeight": "400", "lineHeight": "1.6" },
+    "bodySmall": { "fontSize": "14px", "fontWeight": "400", "lineHeight": "1.5" },
+    "labelLarge": { "fontSize": "14px", "fontWeight": "600", "lineHeight": "1.4" }
+  }
+}

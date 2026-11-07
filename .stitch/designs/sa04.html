@@ -1,0 +1,963 @@
+<!DOCTYPE html><html class="light" lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>SA04 — Lịch sử đăng nhập | StoreX OS</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "primary-container": "#165f4d",
+            "on-error": "#ffffff",
+            "tertiary-fixed": "#9bf98a",
+            "surface-muted": "#F8FAFC",
+            "on-secondary-fixed": "#0b1c30",
+            "primary-fixed": "#acf0d9",
+            "on-tertiary-fixed-variant": "#005305",
+            "secondary-container": "#d0e1fb",
+            "warning": "#92400E",
+            "primary": "#004637",
+            "tertiary": "#004804",
+            "on-secondary-container": "#54647a",
+            "on-primary-fixed-variant": "#005140",
+            "secondary-fixed-dim": "#b7c8e1",
+            "surface": "#FFFFFF",
+            "on-surface-variant": "#3f4945",
+            "on-primary-container": "#92d6bf",
+            "on-primary": "#ffffff",
+            "surface-dim": "#d2d9f4",
+            "on-secondary": "#ffffff",
+            "outline": "#94A3B8",
+            "primary-fixed-dim": "#90d4bd",
+            "outline-variant": "#E2E8F0",
+            "on-tertiary": "#ffffff",
+            "surface-tint": "#246957",
+            "inverse-on-surface": "#eef0ff",
+            "error": "#ba1a1a",
+            "warning-container": "#FFFBEB",
+            "secondary-fixed": "#d3e4fe",
+            "on-background": "#131b2e",
+            "on-secondary-fixed-variant": "#38485d",
+            "on-success-container": "#166534",
+            "on-primary-fixed": "#002018",
+            "success-container": "#ECFDF5",
+            "surface-container-high": "#e2e7ff",
+            "surface-container-lowest": "#ffffff",
+            "surface-variant": "#dae2fd",
+            "secondary": "#505f76",
+            "on-tertiary-fixed": "#002201",
+            "inverse-surface": "#283044",
+            "primary-soft": "#E8F3EF",
+            "surface-container": "#eaedff",
+            "inverse-primary": "#90d4bd",
+            "primary-dark": "#0F493B",
+            "border": "#EEEEEE",
+            "tertiary-fixed-dim": "#80db71",
+            "on-error-container": "#93000a",
+            "surface-container-highest": "#dae2fd",
+            "on-tertiary-container": "#83de74",
+            "tertiary-container": "#006308",
+            "surface-bright": "#faf8ff",
+            "error-container": "#ffdad6",
+            "destructive": "#991B1B",
+            "destructive-container": "#FEF2F2",
+            "on-surface": "#131b2e",
+            "surface-container-low": "#f2f3ff",
+            "background": "#FAFAFA"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "xs": "4px",
+            "space-sm": "0.5rem",
+            "section": "80px",
+            "margin": "1.5rem",
+            "gutter-mobile": "1rem",
+            "md": "12px",
+            "space-xs": "0.25rem",
+            "gutter": "1.5rem",
+            "sm": "8px",
+            "xl": "24px",
+            "lg": "16px",
+            "space-xl": "1.5rem",
+            "margin-desktop": "2rem",
+            "page-gutter": "24px",
+            "space-md": "0.75rem",
+            "space-lg": "1rem",
+            "field-gap": "8px",
+            "2xl": "32px",
+            "4xl": "64px",
+            "card-padding": "24px",
+            "control-padding": "12px",
+            "3xl": "48px"
+          },
+          "fontFamily": {
+            "headline-lg-mobile": ["Inter"],
+            "body-lg": ["Inter"],
+            "title-lg": ["Inter"],
+            "body-sm": ["Inter"],
+            "headline-md": ["Inter"],
+            "label-md": ["Inter"],
+            "headline-display-mobile": ["Inter"],
+            "label-sm": ["Inter"],
+            "headline-lg": ["Inter"],
+            "body-md": ["Inter"],
+            "headline-display": ["Inter"]
+          },
+          "fontSize": {
+            "headline-lg-mobile": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.015em", "fontWeight": "700" }],
+            "body-lg": ["18px", { "lineHeight": "30px", "fontWeight": "400" }],
+            "title-lg": ["20px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "body-sm": ["14px", { "lineHeight": "22px", "fontWeight": "400" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.015em", "fontWeight": "700" }],
+            "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "700" }],
+            "headline-display-mobile": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.025em", "fontWeight": "800" }],
+            "label-sm": ["12px", { "lineHeight": "18px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "750" }],
+            "body-md": ["16px", { "lineHeight": "26px", "fontWeight": "400" }],
+            "headline-display": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.03em", "fontWeight": "800" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    body {
+      background-color: #FAFAFA;
+      color: #0F172A;
+      font-family: 'Inter', sans-serif;
+    }
+    /* Subtle custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #F1F5F9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface antialiased min-h-screen flex flex-col">
+<!-- TOP APP BAR -->
+<header class="flex justify-between items-center h-16 px-space-lg w-full bg-surface-container-lowest border-b border-outline-variant sticky top-0 z-40">
+<div class="flex items-center gap-space-md">
+<!-- Mobile Drawer Toggle -->
+<button aria-label="Mở danh mục điều hướng" class="md:hidden flex items-center justify-center w-11 h-11 rounded-lg hover:bg-surface-container-low transition-colors duration-150" onclick="toggleSidebarMobile()" type="button">
+<span class="material-symbols-outlined text-on-surface-variant">menu</span>
+</button>
+<div class="flex items-center gap-space-sm">
+<span class="text-headline-sm font-headline-sm font-bold text-primary tracking-tight">StoreX OS</span>
+<span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-primary-soft text-primary font-semibold border border-primary/20">SA Platform</span>
+</div>
+<div class="h-5 w-px bg-outline-variant hidden sm:block mx-1"></div>
+<div class="hidden sm:flex items-center text-label-md font-label-md text-on-surface-variant font-medium">
+<span class="">Hệ thống quản trị SA</span>
+</div>
+</div>
+<!-- Center/Right Global Context -->
+<div class="flex items-center gap-space-md">
+<div class="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-success-container/50 border border-success-container rounded-full text-label-sm font-label-sm text-on-success-container">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+</span>
+<span class="">Giám sát an ninh trực tuyến</span>
+</div>
+<!-- Action items -->
+<div class="flex items-center gap-1 sm:gap-2">
+<button aria-label="Thông báo hệ thống" class="w-11 h-11 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors duration-150 relative" type="button">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2.5 right-2.5 w-2 h-2 bg-error rounded-full ring-2 ring-surface"></span>
+</button>
+<button aria-label="Tài liệu hỗ trợ" class="w-11 h-11 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors duration-150" type="button">
+<span class="material-symbols-outlined">help</span>
+</button>
+</div>
+<div class="h-6 w-px bg-outline-variant hidden sm:block"></div>
+<!-- User Profile -->
+<div class="flex items-center gap-3 pl-1">
+<div class="flex flex-col text-right hidden sm:block">
+<span class="text-label-md font-label-md font-bold text-on-surface leading-tight">Nguyễn Văn Hùng</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Quản trị hệ thống</span>
+</div>
+<div class="w-10 h-10 rounded-full bg-primary-soft text-primary font-bold flex items-center justify-center border border-primary/20 text-body-md font-body-md" title="Nguyễn Văn Hùng (Quản trị hệ thống)">
+          NVH
+        </div>
+</div>
+</div>
+</header>
+<div class="flex flex-1 relative overflow-hidden">
+<!-- SIDEBAR NAVIGATION -->
+<aside class="fixed md:sticky top-16 left-0 h-[calc(100vh-4rem)] w-64 flex flex-col justify-between p-space-md bg-surface-container-lowest border-r border-outline-variant z-30 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out shrink-0" id="sidebarNav">
+<div class="space-y-4">
+<!-- Sub-header -->
+<div class="px-space-md py-space-xs">
+<p class="text-label-sm font-label-sm uppercase tracking-wider text-outline">Bảng phân hệ</p>
+<p class="text-label-md font-label-md font-bold text-on-surface">System Administrator</p>
+</div>
+<!-- Navigation items -->
+<nav aria-label="Sidebar Menu" class="space-y-1">
+<!-- SA01 -->
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-colors duration-150 min-h-[44px]" href="#">
+<span class="material-symbols-outlined text-outline">dashboard</span>
+<span class="text-body-sm font-body-sm">SA01 — Tổng quan nền tảng</span>
+</a>
+<!-- SA02 -->
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-colors duration-150 min-h-[44px]" href="#">
+<span class="material-symbols-outlined text-outline">manage_accounts</span>
+<span class="text-body-sm font-body-sm">SA02 — Tài khoản &amp; Phân quyền</span>
+</a>
+<!-- SA03 -->
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-colors duration-150 min-h-[44px]" href="#">
+<span class="material-symbols-outlined text-outline">dns</span>
+<span class="text-body-sm font-body-sm">SA03 — Cụm trạm &amp; Kho bãi</span>
+</a>
+<!-- SA04: ACTIVE -->
+<a class="bg-primary-container text-on-primary-container font-semibold rounded-lg px-space-md py-space-sm flex items-center gap-space-sm transition-colors duration-150 min-h-[44px] shadow-sm" href="#">
+<span class="material-symbols-outlined text-primary-fixed" style="font-variation-settings: 'FILL' 1;">security</span>
+<span class="text-body-sm font-body-sm text-white">SA04 — Lịch sử đăng nhập</span>
+</a>
+<!-- SA05 -->
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-colors duration-150 min-h-[44px]" href="#">
+<span class="material-symbols-outlined text-outline">history_edu</span>
+<span class="text-body-sm font-body-sm">SA05 — Nhật ký thay đổi (Audit)</span>
+</a>
+</nav>
+</div>
+<!-- Sidebar Footer -->
+<div class="border-t border-outline-variant pt-3 space-y-1">
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-colors duration-150 min-h-[44px]" href="#">
+<span class="material-symbols-outlined text-outline">policy</span>
+<span class="text-body-sm font-body-sm">Chính sách bảo mật SA</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-colors duration-150 min-h-[44px]" href="#">
+<span class="material-symbols-outlined text-outline">tune</span>
+<span class="text-body-sm font-body-sm">Cài đặt giám sát trạm</span>
+</a>
+<div class="px-space-md pt-2 pb-1">
+<p class="text-label-sm font-label-sm text-outline">Bảo mật giao thức: TLS 1.3 / HSTS</p>
+</div>
+</div>
+</aside>
+<!-- Mobile Overlay for Sidebar -->
+<div class="fixed inset-0 bg-inverse-surface/40 z-20 hidden md:hidden backdrop-blur-xs" id="sidebarOverlay" onclick="toggleSidebarMobile()"></div>
+<!-- MAIN CONTENT CANVAS -->
+<main class="flex-1 w-full max-w-[1440px] px-4 md:px-page-gutter py-6 md:py-8 overflow-y-auto">
+<!-- PAGE HEADER -->
+<section class="mb-6 space-y-2">
+<nav aria-label="Breadcrumb" class="flex items-center gap-1.5 text-label-sm font-label-sm text-on-surface-variant">
+<span class="hover:text-primary transition-colors cursor-pointer">Quản trị hệ thống</span>
+<span class="material-symbols-outlined text-[16px] text-outline">chevron_right</span>
+<span class="text-on-surface font-semibold">Lịch sử đăng nhập</span>
+</nav>
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-1">
+<div>
+<h1 class="text-headline-md font-headline-md text-on-surface tracking-tight">SA04 — Lịch sử Đăng nhập &amp; Giám sát An toàn</h1>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-0.5">Theo dõi thời gian thực mọi nỗ lực truy cập vào toàn bộ hệ sinh thái quản lý StoreX OS.</p>
+</div>
+<!-- Top Actions -->
+<div class="flex items-center gap-3 shrink-0 flex-wrap">
+<button class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-surface border border-outline-variant hover:bg-surface-muted text-on-surface text-label-md font-label-md rounded-lg min-h-[44px] transition-colors shadow-sm" onclick="exportCSVLog()" type="button">
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]">download</span>
+<span class="">Tải báo cáo nhật ký (CSV)</span>
+</button>
+<button class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-container hover:bg-primary-dark text-white text-label-md font-label-md rounded-lg min-h-[44px] transition-colors shadow-sm" onclick="refreshLiveData()" type="button">
+<span class="material-symbols-outlined text-[20px] animate-spin-hover" id="refreshIcon" aria-hidden="true">sync</span>
+<span class="">Làm mới danh sách (Live)</span>
+</button>
+</div>
+</div>
+</section>
+<!-- SECURITY KPI BENTO HIGHLIGHTS -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+<!-- KPI 1: Tổng phiên -->
+<div class="bg-surface rounded-[15px] p-card-padding border border-border shadow-[0_1px_3px_rgba(15,23,42,0.04)] flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div>
+<p class="text-label-sm font-label-sm uppercase tracking-wide text-secondary">Tổng phiên đăng nhập (24h)</p>
+<h3 class="text-headline-md font-headline-md text-on-surface mt-2">1.482 <span class="text-body-sm font-body-sm text-secondary font-normal">phiên</span></h3>
+</div>
+<div class="w-10 h-10 rounded-lg bg-surface-muted border border-outline-variant flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[22px]">login</span>
+</div>
+</div>
+<div class="flex items-center gap-1.5 mt-4 text-label-sm font-label-sm text-on-success-container bg-success-container/40 px-2 py-1 rounded w-fit">
+<span class="material-symbols-outlined text-[16px]">trending_up</span>
+<span class="">+4.2% so với hôm qua</span>
+</div>
+</div>
+<!-- KPI 2: Thành công -->
+<div class="bg-surface rounded-[15px] p-card-padding border border-border shadow-[0_1px_3px_rgba(15,23,42,0.04)] flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div>
+<p class="text-label-sm font-label-sm uppercase tracking-wide text-secondary">Đăng nhập thành công</p>
+<h3 class="text-headline-md font-headline-md text-primary mt-2">1.464 <span class="text-body-sm font-body-sm text-on-success-container font-medium">(98.8%)</span></h3>
+</div>
+<div class="w-10 h-10 rounded-lg bg-success-container border border-success-container flex items-center justify-center text-on-success-container">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</div>
+<div class="w-full bg-outline-variant rounded-full h-1.5 mt-4 overflow-hidden">
+<div class="bg-primary-container h-1.5 rounded-full" style="width: 98.8%"></div>
+</div>
+</div>
+<!-- KPI 3: Thất bại -->
+<div class="bg-surface rounded-[15px] p-card-padding border border-border shadow-[0_1px_3px_rgba(15,23,42,0.04)] flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div>
+<p class="text-label-sm font-label-sm uppercase tracking-wide text-secondary">Cảnh báo thất bại</p>
+<h3 class="text-headline-md font-headline-md text-destructive mt-2">18 <span class="text-body-sm font-body-sm text-destructive font-medium">(1.2%)</span></h3>
+</div>
+<div class="w-10 h-10 rounded-lg bg-destructive-container border border-destructive-container flex items-center justify-center text-destructive">
+<span class="material-symbols-outlined text-[22px]">gpp_bad</span>
+</div>
+</div>
+<div class="flex items-center gap-1.5 mt-4 text-label-sm font-label-sm text-destructive bg-destructive-container/50 px-2 py-1 rounded w-fit">
+<span class="material-symbols-outlined text-[16px]">priority_high</span>
+<span class="">Chủ yếu sai mật khẩu &amp; OTP</span>
+</div>
+</div>
+<!-- KPI 4: IP hạn chế -->
+<div class="bg-surface rounded-[15px] p-card-padding border border-border shadow-[0_1px_3px_rgba(15,23,42,0.04)] flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div>
+<p class="text-label-sm font-label-sm uppercase tracking-wide text-secondary">IP bị hạn chế tạm thời</p>
+<h3 class="text-headline-md font-headline-md text-warning mt-2">2 <span class="text-body-sm font-body-sm text-secondary font-normal">dải IP</span></h3>
+</div>
+<div class="w-10 h-10 rounded-lg bg-warning-container border border-warning-container flex items-center justify-center text-warning">
+<span class="material-symbols-outlined text-[22px]">block</span>
+</div>
+</div>
+<p class="mt-4 text-label-sm font-label-sm text-warning font-medium">Hạn chế tạm thời theo chính sách bảo mật mạng</p>
+</div>
+</section>
+<!-- FILTER CONTROLS BAR -->
+<section class="bg-surface rounded-[15px] p-card-padding border border-border shadow-[0_1px_3px_rgba(15,23,42,0.04)] mb-6">
+<form class="space-y-4" id="filterForm" onsubmit="event.preventDefault(); applyFilter();">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+<!-- Filter: Khoảng thời gian -->
+<div class="space-y-1.5">
+<label class="block text-label-sm font-label-sm text-on-surface font-semibold" for="timeRange">
+                Khoảng thời gian
+              </label>
+<div class="relative">
+<select class="w-full h-11 px-3 py-2 pr-9 bg-surface border border-outline-variant rounded-lg text-body-sm font-body-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all" id="timeRange">
+<option selected="" value="today">Hôm nay: 06/10/2026</option>
+<option value="7days">7 ngày qua</option>
+<option value="30days">30 ngày qua</option>
+<option value="custom">Tùy chỉnh khoảng ngày...</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-3 text-outline pointer-events-none text-[18px]">calendar_today</span>
+</div>
+</div>
+<!-- Filter: Kết quả đăng nhập -->
+<div class="space-y-1.5">
+<label class="block text-label-sm font-label-sm text-on-surface font-semibold" for="resultFilter">
+                Kết quả đăng nhập
+              </label>
+<div class="relative">
+<select class="w-full h-11 px-3 py-2 pr-9 bg-surface border border-outline-variant rounded-lg text-body-sm font-body-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all" id="resultFilter">
+<option selected="" value="all">Tất cả kết quả</option>
+<option value="success">Thành công</option>
+<option value="failed">Thất bại</option>
+<option value="blocked">Bị chặn / Khóa tạm</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-3 text-outline pointer-events-none text-[18px]">expand_more</span>
+</div>
+</div>
+<!-- Filter: Phân loại vai trò -->
+<div class="space-y-1.5">
+<label class="block text-label-sm font-label-sm text-on-surface font-semibold" for="roleFilter">
+                Phân loại vai trò
+              </label>
+<div class="relative">
+<select class="w-full h-11 px-3 py-2 pr-9 bg-surface border border-outline-variant rounded-lg text-body-sm font-body-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all" id="roleFilter">
+<option selected="" value="all">Tất cả vai trò</option>
+<option value="Customer">Customer (Khách thuê)</option>
+<option value="FS">FS (Facility Staff)</option>
+<option value="FM">FM (Facility Manager)</option>
+<option value="BOM">BOM (Ban điều hành)</option>
+<option value="SA">SA (System Administrator)</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-3 text-outline pointer-events-none text-[18px]">badge</span>
+</div>
+</div>
+<!-- Filter: Ô tìm kiếm -->
+<div class="space-y-1.5">
+<label class="block text-label-sm font-label-sm text-on-surface font-semibold" for="searchQuery">
+                Tìm kiếm tài khoản / IP
+              </label>
+<div class="relative">
+<input class="w-full h-11 pl-9 pr-3 py-2 bg-surface border border-outline-variant rounded-lg text-body-sm font-body-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all" id="searchQuery" placeholder="Email, tên, hoặc IP (vd: 118.69...)" type="text">
+<span class="material-symbols-outlined absolute left-2.5 top-3 text-outline pointer-events-none text-[18px]">search</span>
+</div>
+</div>
+</div>
+<!-- Buttons -->
+<div class="flex items-center justify-between pt-2 border-t border-border flex-wrap gap-3">
+<div class="text-body-sm font-body-sm text-secondary">
+              Hiển thị <span class="font-bold text-on-surface" id="currentCountText">6</span> kết quả phù hợp
+            </div>
+<div class="flex items-center gap-3">
+<button class="px-4 py-2 text-label-md font-label-md text-secondary hover:text-on-surface hover:bg-surface-muted rounded-lg border border-transparent min-h-[44px] transition-colors" onclick="resetFilters()" type="button">
+                Đặt lại
+              </button>
+<button class="px-5 py-2 bg-primary-container hover:bg-primary-dark text-white rounded-lg text-label-md font-label-md min-h-[44px] shadow-sm transition-colors flex items-center gap-1.5" type="submit">
+<span class="material-symbols-outlined text-[18px]">filter_alt</span>
+<span class="">Áp dụng bộ lọc</span>
+</button>
+</div>
+</div>
+</form>
+</section>
+<!-- DATA TABLE CARD -->
+<section class="bg-surface rounded-[15px] border border-border shadow-[0_1px_3px_rgba(15,23,42,0.04)] overflow-hidden mb-8">
+<!-- Table Action Header -->
+<div class="px-card-padding py-4 border-b border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-surface">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">list_alt</span>
+<h2 class="text-title-lg font-title-lg text-on-surface">Nhật ký truy cập chi tiết</h2>
+<span class="text-label-sm font-label-sm bg-surface-muted text-secondary px-2.5 py-0.5 rounded-full border border-outline-variant">Tự động ẩn token / Hash an toàn</span>
+</div>
+<div class="flex items-center gap-2 text-label-sm font-label-sm text-secondary">
+<span class="material-symbols-outlined text-[16px] text-primary">verified_user</span>
+<span class="">Mặt nạ IP chuẩn GDPR &amp; Nghị định 13</span>
+</div>
+</div>
+<!-- Table Container -->
+<div class="overflow-x-auto" role="region" aria-label="Bảng lịch sử đăng nhập" tabindex="0">
+<table class="w-full text-left border-collapse" id="loginTable">
+<thead>
+<tr class="bg-surface-muted border-b border-outline-variant">
+<th class="py-3 px-4 text-label-sm font-label-sm text-secondary font-semibold uppercase tracking-wider" scope="col">Thời gian</th>
+<th class="py-3 px-4 text-label-sm font-label-sm text-secondary font-semibold uppercase tracking-wider" scope="col">Người dùng / Email</th>
+<th class="py-3 px-4 text-label-sm font-label-sm text-secondary font-semibold uppercase tracking-wider" scope="col">Vai trò</th>
+<th class="py-3 px-4 text-label-sm font-label-sm text-secondary font-semibold uppercase tracking-wider" scope="col">Địa chỉ IP</th>
+<th class="py-3 px-4 text-label-sm font-label-sm text-secondary font-semibold uppercase tracking-wider" scope="col">Thiết bị &amp; Trình duyệt</th>
+<th class="py-3 px-4 text-label-sm font-label-sm text-secondary font-semibold uppercase tracking-wider" scope="col">Địa điểm</th>
+<th class="py-3 px-4 text-label-sm font-label-sm text-secondary font-semibold uppercase tracking-wider" scope="col">Kết quả</th>
+<th class="py-3 px-4 text-label-sm font-label-sm text-secondary font-semibold uppercase tracking-wider text-right" scope="col">Chi tiết</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border" id="tableBody">
+<!-- ROW 1 -->
+<tr class="hover:bg-surface-muted transition-colors duration-100 group" data-result="success" data-role="SA" data-user="hung.nguyen@storex.vn">
+<td class="py-3.5 px-4 text-body-sm font-body-sm font-medium text-on-surface whitespace-nowrap">
+                  06/10/2026 14:42:10
+                </td>
+<td class="py-3.5 px-4">
+<div class="flex flex-col">
+<span class="text-body-sm font-body-sm font-semibold text-on-surface">Nguyễn Văn Hùng</span>
+<span class="text-label-sm font-label-sm text-secondary">hung.nguyen@storex.vn</span>
+</div>
+</td>
+<td class="py-3.5 px-4 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-primary-soft text-primary font-semibold">SA (Admin)</span>
+</td>
+<td class="py-3.5 px-4 whitespace-nowrap">
+<span class="font-mono text-body-sm font-body-sm text-on-surface bg-surface-muted px-2 py-0.5 rounded border border-outline-variant/60">118.69.xxx.12</span>
+</td>
+<td class="py-3.5 px-4 text-body-sm font-body-sm text-secondary whitespace-nowrap">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px]">desktop_windows</span>
+<span class="">Chrome 128 / Windows 11</span>
+</div>
+</td>
+<td class="py-3.5 px-4 text-body-sm font-body-sm text-on-surface whitespace-nowrap">TP. Hồ Chí Minh</td>
+<td class="py-3.5 px-4 whitespace-nowrap">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-success-container text-on-success-container font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                    Thành công
+                  </span>
+</td>
+<td class="py-3.5 px-4 text-right whitespace-nowrap">
+<button aria-label="Xem chi tiết sự kiện STX-LOG-20261006-8812" class="inline-flex items-center justify-center w-11 h-11 rounded-lg text-primary hover:bg-primary-soft transition-colors" onclick="openDrawer('STX-LOG-20261006-8812', 'Nguyễn Văn Hùng (hung.nguyen@storex.vn)', 'SA', '118.69.xxx.12', 'Chrome 128 / Windows 11', 'TP. Hồ Chí Minh (Viettel ISP)', '06/10/2026 14:42:10', 'success', 'Xác thực 2 lớp (2FA TOTP) hoàn tất thành công. Khóa phiên khởi tạo chuẩn.')" title="Xem chi tiết sự kiện" type="button">
+<span class="material-symbols-outlined text-[20px]">info</span>
+</button>
+</td>
+</tr>
+<!-- ROW 2 -->
+<tr class="hover:bg-surface-muted transition-colors duration-100 group" data-result="failed" data-role="FM" data-user="ha.le@storex.vn">
+<td class="py-3.5 px-4 text-body-sm font-body-sm font-medium text-on-surface whitespace-nowrap">
+                  06/10/2026 14:38:05
+                </td>
+<td class="py-3.5 px-4">
+<div class="flex flex-col">
+<span class="text-body-sm font-body-sm font-semibold text-on-surface">Lê Thu Hà</span>
+<span class="text-label-sm font-label-sm text-secondary">ha.le@storex.vn</span>
+</div>
+</td>
+<td class="py-3.5 px-4 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-secondary-container/60 text-on-secondary-fixed font-semibold">FM (Quản lý)</span>
+</td>
+<td class="py-3.5 px-4 whitespace-nowrap">
+<span class="font-mono text-body-sm font-body-sm text-on-surface bg-surface-muted px-2 py-0.5 rounded border border-outline-variant/60">14.161.xxx.99</span>
+</td>
+<td class="py-3.5 px-4 text-body-sm font-body-sm text-secondary whitespace-nowrap">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px]">phone_iphone</span>
+<span class="">Safari 18 / iOS</span>
+</div>
+</td>
+<td class="py-3.5 px-4 text-body-sm font-body-sm text-on-surface whitespace-nowrap">TP. Hồ Chí Minh</td>
+<td class="py-3.5 px-4 whitespace-nowrap">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-destructive-container text-destructive font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-destructive"></span>
+                    Thất bại
+                  </span>
+</td>
+<td class="py-3.5 px-4 text-right whitespace-nowrap">
+<button aria-label="Xem chi tiết sự kiện STX-LOG-20261006-8809" class="inline-flex items-center justify-center w-11 h-11 rounded-lg text-primary hover:bg-primary-soft transition-colors" onclick="openDrawer('STX-LOG-20261006-8809', 'Lê Thu Hà (ha.le@storex.vn)', 'FM', '14.161.xxx.99', 'Safari 18 / iOS 18', 'TP. Hồ Chí Minh (VNPT)', '06/10/2026 14:38:05', 'failed', 'Sai mật khẩu lần 3 — kích hoạt cơ chế khóa tạm 15 phút. Không có dữ liệu token hoặc password bị lộ.')" title="Xem chi tiết sự kiện" type="button">
+<span class="material-symbols-outlined text-[20px]">info</span>
+</button>
+</td>
+</tr>
+<!-- ROW 3 -->
+<tr class="hover:bg-surface-muted transition-colors duration-100 group" data-result="success" data-role="Customer" data-user="minhtran.logistics@gmail.com">
+<td class="py-3.5 px-4 text-body-sm font-body-sm font-medium text-on-surface whitespace-nowrap">
+                  06/10/2026 14:15:22
+                </td>
+<td class="py-3.5 px-4">
+<div class="flex flex-col">
+<span class="text-body-sm font-body-sm font-semibold text-on-surface">Trần Minh Quân</span>
+<span class="text-label-sm font-label-sm text-secondary">minhtran.logistics@gmail.com</span>
+</div>
+</td>
+<td class="py-3.5 px-4 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-surface-muted text-secondary font-semibold border border-outline-variant">Customer</span>
+</td>
+<td class="py-3.5 px-4 whitespace-nowrap">
+<span class="font-mono text-body-sm font-body-sm text-on-surface bg-surface-muted px-2 py-0.5 rounded border border-outline-variant/60">42.113.xxx.45</span>
+</td>
+<td class="py-3.5 px-4 text-body-sm font-body-sm text-secondary whitespace-nowrap">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px]">laptop_mac</span>
+<span class="">Edge 126 / macOS</span>
+</div>
+</td>
+<td class="py-3.5 px-4 text-body-sm font-body-sm text-on-surface whitespace-nowrap">Hà Nội</td>
+<td class="py-3.5 px-4 whitespace-nowrap">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-success-container text-on-success-container font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                    Thành công
+                  </span>
+</td>
+<td class="py-3.5 px-4 text-right whitespace-nowrap">
+<button aria-label="Xem chi tiết sự kiện STX-LOG-20261006-8790" class="inline-flex items-center justify-center w-11 h-11 rounded-lg text-primary hover:bg-primary-soft transition-colors" onclick="openDrawer('STX-LOG-20261006-8790', 'Trần Minh Quân (minhtran.logistics@gmail.com)', 'Customer', '42.113.xxx.45', 'Edge 126 / macOS Sonoma', 'Hà Nội (FPT Telecom)', '06/10/2026 14:15:22', 'success', 'Khách hàng đăng nhập cổng Self-Storage qua mã OTP email. Hoàn tất trong 14 giây.')" title="Xem chi tiết sự kiện" type="button">
+<span class="material-symbols-outlined text-[20px]">info</span>
+</button>
+</td>
+</tr>
+<!-- ROW 4 -->
+<tr class="hover:bg-surface-muted transition-colors duration-100 group" data-result="blocked" data-role="FS" data-user="khoa.nguyen@storex.vn">
+<td class="py-3.5 px-4 text-body-sm font-body-sm font-medium text-on-surface whitespace-nowrap">
+                  06/10/2026 13:50:18
+                </td>
+<td class="py-3.5 px-4">
+<div class="flex flex-col">
+<span class="text-body-sm font-body-sm font-semibold text-on-surface">Nguyễn Đăng Khoa</span>
+<span class="text-label-sm font-label-sm text-secondary">khoa.nguyen@storex.vn</span>
+</div>
+</td>
+<td class="py-3.5 px-4 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-surface-muted text-secondary font-semibold border border-outline-variant">FS (Nhân viên trạm)</span>
+</td>
+<td class="py-3.5 px-4 whitespace-nowrap">
+<span class="font-mono text-body-sm font-body-sm text-on-surface bg-surface-muted px-2 py-0.5 rounded border border-outline-variant/60">171.244.xxx.88</span>
+</td>
+<td class="py-3.5 px-4 text-body-sm font-body-sm text-secondary whitespace-nowrap">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px]">phone_android</span>
+<span class="">Chrome Mobile / Android 14</span>
+</div>
+</td>
+<td class="py-3.5 px-4 text-body-sm font-body-sm text-on-surface whitespace-nowrap">Bình Dương</td>
+<td class="py-3.5 px-4 whitespace-nowrap">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-warning-container text-warning font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-warning"></span>
+                    Tạm khóa
+                  </span>
+</td>
+<td class="py-3.5 px-4 text-right whitespace-nowrap">
+<button aria-label="Xem chi tiết sự kiện STX-LOG-20261006-8745" class="inline-flex items-center justify-center w-11 h-11 rounded-lg text-primary hover:bg-primary-soft transition-colors" onclick="openDrawer('STX-LOG-20261006-8745', 'Nguyễn Đăng Khoa (khoa.nguyen@storex.vn)', 'FS', '171.244.xxx.88', 'Chrome Mobile / Android 14', 'Bình Dương (Viettel 4G)', '06/10/2026 13:50:18', 'blocked', 'Tài khoản yêu cầu xác minh nâng cao do thiết bị mới. Khóa tạm theo hạn ngạch xác thực.')" title="Xem chi tiết sự kiện" type="button">
+<span class="material-symbols-outlined text-[20px]">info</span>
+</button>
+</td>
+</tr>
+<!-- ROW 5 -->
+<tr class="hover:bg-surface-muted transition-colors duration-100 group" data-result="success" data-role="BOM" data-user="ceo.hoang@storex.vn">
+<td class="py-3.5 px-4 text-body-sm font-body-sm font-medium text-on-surface whitespace-nowrap">
+                  06/10/2026 11:20:44
+                </td>
+<td class="py-3.5 px-4">
+<div class="flex flex-col">
+<span class="text-body-sm font-body-sm font-semibold text-on-surface">Hoàng Quốc Bảo</span>
+<span class="text-label-sm font-label-sm text-secondary">ceo.hoang@storex.vn</span>
+</div>
+</td>
+<td class="py-3.5 px-4 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-secondary-container text-on-secondary-container font-semibold">BOM (Ban điều hành)</span>
+</td>
+<td class="py-3.5 px-4 whitespace-nowrap">
+<span class="font-mono text-body-sm font-body-sm text-on-surface bg-surface-muted px-2 py-0.5 rounded border border-outline-variant/60">125.235.xxx.15</span>
+</td>
+<td class="py-3.5 px-4 text-body-sm font-body-sm text-secondary whitespace-nowrap">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px]">laptop_mac</span>
+<span class="">Safari 18 / macOS</span>
+</div>
+</td>
+<td class="py-3.5 px-4 text-body-sm font-body-sm text-on-surface whitespace-nowrap">Đà Nẵng</td>
+<td class="py-3.5 px-4 whitespace-nowrap">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-success-container text-on-success-container font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                    Thành công
+                  </span>
+</td>
+<td class="py-3.5 px-4 text-right whitespace-nowrap">
+<button aria-label="Xem chi tiết sự kiện STX-LOG-20261006-8610" class="inline-flex items-center justify-center w-11 h-11 rounded-lg text-primary hover:bg-primary-soft transition-colors" onclick="openDrawer('STX-LOG-20261006-8610', 'Hoàng Quốc Bảo (ceo.hoang@storex.vn)', 'BOM', '125.235.xxx.15', 'Safari 18 / macOS Sonoma', 'Đà Nẵng (VNPT)', '06/10/2026 11:20:44', 'success', 'Đăng nhập thành công với Passkey sinh trắc học FaceID. Phiên an toàn cao cấp.')" title="Xem chi tiết sự kiện" type="button">
+<span class="material-symbols-outlined text-[20px]">info</span>
+</button>
+</td>
+</tr>
+<!-- ROW 6 -->
+<tr class="hover:bg-surface-muted transition-colors duration-100 group" data-result="failed" data-role="Customer" data-user="alex.smith@globalexport.com">
+<td class="py-3.5 px-4 text-body-sm font-body-sm font-medium text-on-surface whitespace-nowrap">
+                  06/10/2026 09:05:12
+                </td>
+<td class="py-3.5 px-4">
+<div class="flex flex-col">
+<span class="text-body-sm font-body-sm font-semibold text-on-surface">Alexander Smith</span>
+<span class="text-label-sm font-label-sm text-secondary">alex.smith@globalexport.com</span>
+</div>
+</td>
+<td class="py-3.5 px-4 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-surface-muted text-secondary font-semibold border border-outline-variant">Customer</span>
+</td>
+<td class="py-3.5 px-4 whitespace-nowrap">
+<span class="font-mono text-body-sm font-body-sm text-on-surface bg-surface-muted px-2 py-0.5 rounded border border-outline-variant/60">27.72.xxx.102</span>
+</td>
+<td class="py-3.5 px-4 text-body-sm font-body-sm text-secondary whitespace-nowrap">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px]">desktop_windows</span>
+<span class="">Firefox 130 / Windows 10</span>
+</div>
+</td>
+<td class="py-3.5 px-4 text-body-sm font-body-sm text-on-surface whitespace-nowrap">Hà Nội</td>
+<td class="py-3.5 px-4 whitespace-nowrap">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-destructive-container text-destructive font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-destructive"></span>
+                    Thất bại
+                  </span>
+</td>
+<td class="py-3.5 px-4 text-right whitespace-nowrap">
+<button aria-label="Xem chi tiết sự kiện STX-LOG-20261006-8402" class="inline-flex items-center justify-center w-11 h-11 rounded-lg text-primary hover:bg-primary-soft transition-colors" onclick="openDrawer('STX-LOG-20261006-8402', 'Alexander Smith (alex.smith@globalexport.com)', 'Customer', '27.72.xxx.102', 'Firefox 130 / Windows 10', 'Hà Nội (Viettel)', '06/10/2026 09:05:12', 'failed', 'Nhập sai mã OTP xác thực email lần 2. Yêu cầu gửi lại mã.')" title="Xem chi tiết sự kiện" type="button">
+<span class="material-symbols-outlined text-[20px]">info</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- EMPTY STATE (HIDDEN BY DEFAULT) -->
+<div class="hidden p-12 text-center flex-col items-center justify-center" id="emptyState">
+<div class="w-16 h-16 rounded-full bg-surface-muted flex items-center justify-center text-outline mb-3">
+<span class="material-symbols-outlined text-[32px]">filter_list_off</span>
+</div>
+<h4 class="text-title-lg font-title-lg text-on-surface mb-1">Không tìm thấy bản ghi nhật ký phù hợp</h4>
+<p class="text-body-sm font-body-sm text-secondary max-w-md mx-auto mb-4">
+            Vui lòng thử nới lỏng các tiêu chí tìm kiếm hoặc kiểm tra lại khoảng thời gian truy vấn.
+          </p>
+<button class="px-4 py-2 bg-primary-container text-white text-label-md font-label-md rounded-lg min-h-[44px] hover:bg-primary-dark transition-colors" onclick="resetFilters()" type="button">
+            Xóa bộ lọc &amp; Tải lại
+          </button>
+</div>
+<!-- Table Footer / Pagination -->
+<div class="px-card-padding py-3.5 border-t border-border bg-surface flex flex-col sm:flex-row items-center justify-between gap-3 text-body-sm font-body-sm text-secondary">
+<div class="flex items-center gap-2">
+<span class="">Hiển thị 1 đến 6 trong tổng số 1.482 phiên</span>
+<span class="text-outline">|</span>
+<span class="text-label-sm font-label-sm text-primary font-medium flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-primary inline-block"></span>
+              Đồng bộ dữ liệu thời gian thực
+            </span>
+</div>
+<div class="flex items-center gap-1">
+<button aria-label="Trang trước" class="w-9 h-9 flex items-center justify-center rounded border border-outline-variant text-outline hover:bg-surface-muted disabled:opacity-40" disabled="" type="button">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</button>
+<button aria-current="page" class="w-9 h-9 flex items-center justify-center rounded bg-primary-container text-white font-bold text-label-sm font-label-sm" type="button">1</button>
+<button class="w-9 h-9 flex items-center justify-center rounded border border-outline-variant hover:bg-surface-muted text-on-surface text-label-sm font-label-sm" type="button">2</button>
+<button class="w-9 h-9 flex items-center justify-center rounded border border-outline-variant hover:bg-surface-muted text-on-surface text-label-sm font-label-sm" type="button">3</button>
+<span class="px-1 text-outline">...</span>
+<button class="w-9 h-9 flex items-center justify-center rounded border border-outline-variant hover:bg-surface-muted text-on-surface text-label-sm font-label-sm" type="button">247</button>
+<button aria-label="Trang sau" class="w-9 h-9 flex items-center justify-center rounded border border-outline-variant text-on-surface hover:bg-surface-muted" type="button">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+</section>
+</main>
+</div>
+<!-- EVENT DETAIL DRAWER & BACKDROP -->
+<div aria-hidden="true" class="fixed inset-0 bg-inverse-surface/40 backdrop-blur-xs z-50 opacity-0 pointer-events-none transition-opacity duration-200" id="drawerBackdrop" onclick="closeDrawer()"></div>
+<aside aria-labelledby="drawerTitle" aria-modal="true" class="fixed right-0 top-0 bottom-0 w-full max-w-lg bg-surface border-l border-outline-variant shadow-2xl z-50 transform translate-x-full transition-transform duration-200 ease-out flex flex-col justify-between" id="detailDrawer" role="dialog" aria-label="Bảng chi tiết sự kiện xác thực">
+<!-- Drawer Header -->
+<div class="p-card-padding border-b border-border flex items-start justify-between bg-surface-muted">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[22px]">shield</span>
+<span class="text-label-sm font-label-sm uppercase tracking-wider font-bold text-secondary">Kiểm định phiên an toàn</span>
+</div>
+<h3 class="text-title-lg font-title-lg text-on-surface" id="drawerTitle">Chi tiết sự kiện xác thực</h3>
+<p class="text-label-sm font-label-sm text-secondary">Mã phiên: <span class="font-mono font-bold text-on-surface" id="drawerSessionId">STX-LOG-20261006-8812</span></p>
+</div>
+<button aria-label="Đóng bảng chi tiết (Phím Esc)" class="w-11 h-11 flex items-center justify-center rounded-lg text-secondary hover:text-on-surface hover:bg-surface-container transition-colors" onclick="closeDrawer()" type="button">
+<span class="material-symbols-outlined text-[24px]">close</span>
+</button>
+</div>
+<!-- Drawer Body -->
+<div class="p-card-padding overflow-y-auto space-y-6 flex-1 text-body-sm font-body-sm">
+<!-- Status Banner -->
+<div class="p-4 rounded-xl border flex items-start gap-3 bg-success-container/40 border-success-container text-on-success-container" id="drawerStatusBanner">
+<span class="material-symbols-outlined text-[24px] shrink-0 mt-0.5" id="drawerStatusIcon">check_circle</span>
+<div>
+<h4 class="font-bold text-label-md font-label-md" id="drawerStatusTitle">Phiên đăng nhập hợp lệ</h4>
+<p class="text-body-sm font-body-sm mt-0.5 text-on-surface-variant" id="drawerStatusDesc">Xác thực bảo mật hoàn tất không ghi nhận bất thường.</p>
+</div>
+</div>
+<!-- Critical Security Guarantee Banner -->
+<div class="p-3.5 bg-primary-soft/60 border border-primary/20 rounded-xl flex items-center gap-2.5 text-primary">
+<span class="material-symbols-outlined text-[20px] shrink-0">lock</span>
+<p class="text-label-sm font-label-sm leading-snug">
+<strong>Chuẩn an ninh Zero-Exposure:</strong> Không lưu trữ và không để lộ mật khẩu, JWT Session token, Auth hash hay Private keys của người dùng trong nhật ký kiểm toán này.
+        </p>
+</div>
+<!-- Attributes Grid -->
+<div class="space-y-3.5 bg-surface-muted p-4 rounded-xl border border-border">
+<div class="flex justify-between items-center py-1 border-b border-border/80">
+<span class="text-secondary text-label-sm font-label-sm">Tài khoản</span>
+<span class="font-semibold text-on-surface text-right" id="drawerUser">Nguyễn Văn Hùng (hung.nguyen@storex.vn)</span>
+</div>
+<div class="flex justify-between items-center py-1 border-b border-border/80">
+<span class="text-secondary text-label-sm font-label-sm">Vai trò phân bổ</span>
+<span class="inline-flex px-2 py-0.5 rounded text-label-sm font-label-sm font-bold bg-primary-soft text-primary" id="drawerRole">SA (Admin)</span>
+</div>
+<div class="flex justify-between items-center py-1 border-b border-border/80">
+<span class="text-secondary text-label-sm font-label-sm">Thời điểm ghi nhận</span>
+<span class="font-mono text-on-surface" id="drawerTimestamp">06/10/2026 14:42:10</span>
+</div>
+<div class="flex justify-between items-center py-1 border-b border-border/80">
+<span class="text-secondary text-label-sm font-label-sm">Địa chỉ IP (Mặt nạ)</span>
+<span class="font-mono font-bold text-on-surface" id="drawerIP">118.69.xxx.12</span>
+</div>
+<div class="flex justify-between items-center py-1 border-b border-border/80">
+<span class="text-secondary text-label-sm font-label-sm">Vị trí ước tính &amp; ISP</span>
+<span class="text-on-surface" id="drawerLocation">TP. Hồ Chí Minh (Viettel ISP)</span>
+</div>
+<div class="flex justify-between items-center py-1">
+<span class="text-secondary text-label-sm font-label-sm">Thiết bị &amp; Nền tảng</span>
+<span class="text-on-surface" id="drawerDevice">Chrome 128 / Windows 11</span>
+</div>
+</div>
+<!-- Security Recommendation -->
+<div class="space-y-2">
+<h4 class="text-label-md font-label-md font-bold text-on-surface flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px] text-primary">verified</span>
+          Khuyến nghị an ninh SA
+        </h4>
+<div class="p-3.5 bg-surface border border-outline-variant rounded-xl text-body-sm font-body-sm text-secondary space-y-1.5">
+<p id="drawerRecommendation" class="">
+            Nếu nghi ngờ hành vi bất thường hoặc người dùng báo quên thông tin đăng nhập, vui lòng điều hướng sang phân hệ <strong>SA02 — Tài khoản &amp; Phân quyền</strong> để kích hoạt quy trình xác minh lại danh tính hoặc đặt lại MFA.
+          </p>
+<div class="pt-1 flex items-center gap-2">
+<span class="text-label-sm font-label-sm font-bold text-primary hover:underline cursor-pointer flex items-center gap-0.5">
+              Chuyển tiếp đến SA02
+              <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Drawer Footer Actions -->
+<div class="p-card-padding border-t border-border bg-surface-muted flex items-center justify-end gap-3">
+<button class="px-4 py-2.5 bg-surface border border-outline-variant hover:bg-surface-muted text-on-surface text-label-md font-label-md rounded-lg min-h-[44px] transition-colors" onclick="closeDrawer()" type="button">
+        Đóng lại
+      </button>
+<button class="px-4 py-2.5 bg-primary-container hover:bg-primary-dark text-white text-label-md font-label-md rounded-lg min-h-[44px] transition-colors flex items-center gap-1.5 shadow-sm" onclick="alert('Đã tạo phiếu kiểm toán an ninh nội bộ cho phiên: ' + document.getElementById('drawerSessionId').innerText)" type="button">
+<span class="material-symbols-outlined text-[18px]">verified_user</span>
+<span class="">Ghi nhận giám sát SA</span>
+</button>
+</div>
+</aside>
+<!-- JAVASCRIPT LOGIC -->
+<script>
+    // Mobile Sidebar Toggle
+    function toggleSidebarMobile() {
+      const sidebar = document.getElementById('sidebarNav');
+      const overlay = document.getElementById('sidebarOverlay');
+      const isOpen = !sidebar.classList.contains('-translate-x-full');
+
+      if (isOpen) {
+        sidebar.classList.add('-translate-x-full');
+        overlay.classList.add('hidden');
+      } else {
+        sidebar.classList.remove('-translate-x-full');
+        overlay.classList.remove('hidden');
+      }
+    }
+
+    // Refresh Live Button Animation
+    function refreshLiveData() {
+      const icon = document.getElementById('refreshIcon');
+      icon.classList.add('animate-spin');
+      setTimeout(() => {
+        icon.classList.remove('animate-spin');
+      }, 700);
+    }
+
+    // Export CSV Notification
+    function exportCSVLog() {
+      alert("Đang chuẩn bị xuất tệp nhật ký 'storex_login_history_20261006.csv'. Các trường token/password mặc định được lược bỏ theo chính sách an toàn thông tin.");
+    }
+
+    // Filter Logic
+    function applyFilter() {
+      const roleVal = document.getElementById('roleFilter').value;
+      const resultVal = document.getElementById('resultFilter').value;
+      const searchVal = document.getElementById('searchQuery').value.toLowerCase().trim();
+
+      const rows = document.querySelectorAll('#tableBody tr');
+      let visibleCount = 0;
+
+      rows.forEach(row => {
+        const rowRole = row.getAttribute('data-role');
+        const rowResult = row.getAttribute('data-result');
+        const rowUser = (row.getAttribute('data-user') || '').toLowerCase();
+        const rowText = row.innerText.toLowerCase();
+
+        let matchRole = (roleVal === 'all') || (rowRole === roleVal);
+        let matchResult = (resultVal === 'all') || (rowResult === resultVal);
+        let matchSearch = !searchVal || rowUser.includes(searchVal) || rowText.includes(searchVal);
+
+        if (matchRole && matchResult && matchSearch) {
+          row.classList.remove('hidden');
+          visibleCount++;
+        } else {
+          row.classList.add('hidden');
+        }
+      });
+
+      document.getElementById('currentCountText').innerText = visibleCount;
+      const emptyState = document.getElementById('emptyState');
+      const tableBody = document.getElementById('tableBody');
+
+      if (visibleCount === 0) {
+        emptyState.classList.remove('hidden');
+        emptyState.classList.add('flex');
+        tableBody.classList.add('hidden');
+      } else {
+        emptyState.classList.add('hidden');
+        emptyState.classList.remove('flex');
+        tableBody.classList.remove('hidden');
+      }
+    }
+
+    function resetFilters() {
+      document.getElementById('filterForm').reset();
+      document.getElementById('roleFilter').value = 'all';
+      document.getElementById('resultFilter').value = 'all';
+      document.getElementById('timeRange').value = 'today';
+      document.getElementById('searchQuery').value = '';
+      applyFilter();
+    }
+
+    // Drawer Open / Close
+    function openDrawer(sessionId, user, role, ip, device, location, timestamp, resultType, message) {
+      document.getElementById('drawerSessionId').innerText = sessionId;
+      document.getElementById('drawerUser').innerText = user;
+      document.getElementById('drawerRole').innerText = role;
+      document.getElementById('drawerIP').innerText = ip;
+      document.getElementById('drawerDevice').innerText = device;
+      document.getElementById('drawerLocation').innerText = location;
+      document.getElementById('drawerTimestamp').innerText = timestamp;
+      document.getElementById('drawerStatusDesc').innerText = message;
+
+      const banner = document.getElementById('drawerStatusBanner');
+      const bannerIcon = document.getElementById('drawerStatusIcon');
+      const bannerTitle = document.getElementById('drawerStatusTitle');
+
+      if (resultType === 'success') {
+        banner.className = 'p-4 rounded-xl border flex items-start gap-3 bg-success-container/40 border-success-container text-on-success-container';
+        bannerIcon.innerText = 'check_circle';
+        bannerIcon.className = 'material-symbols-outlined text-[24px] shrink-0 mt-0.5 text-primary';
+        bannerTitle.innerText = 'Phiên xác thực thành công';
+      } else if (resultType === 'failed') {
+        banner.className = 'p-4 rounded-xl border flex items-start gap-3 bg-destructive-container/50 border-destructive-container text-destructive';
+        bannerIcon.innerText = 'error';
+        bannerIcon.className = 'material-symbols-outlined text-[24px] shrink-0 mt-0.5 text-destructive';
+        bannerTitle.innerText = 'Nỗ lực đăng nhập thất bại';
+      } else {
+        banner.className = 'p-4 rounded-xl border flex items-start gap-3 bg-warning-container/50 border-warning-container text-warning';
+        bannerIcon.innerText = 'warning';
+        bannerIcon.className = 'material-symbols-outlined text-[24px] shrink-0 mt-0.5 text-warning';
+        bannerTitle.innerText = 'Hạn chế truy cập tự động';
+      }
+
+      const drawer = document.getElementById('detailDrawer');
+      const backdrop = document.getElementById('drawerBackdrop');
+
+      backdrop.classList.remove('opacity-0', 'pointer-events-none');
+      backdrop.classList.add('opacity-100');
+
+      drawer.classList.remove('translate-x-full');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeDrawer() {
+      const drawer = document.getElementById('detailDrawer');
+      const backdrop = document.getElementById('drawerBackdrop');
+
+      drawer.classList.add('translate-x-full');
+      backdrop.classList.add('opacity-0', 'pointer-events-none');
+      backdrop.classList.remove('opacity-100');
+      document.body.style.overflow = '';
+    }
+
+    // Keyboard support: ESC to close
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        closeDrawer();
+        const sidebar = document.getElementById('sidebarNav');
+        const overlay = document.getElementById('sidebarOverlay');
+        if (!sidebar.classList.contains('-translate-x-full')) {
+          sidebar.classList.add('-translate-x-full');
+          overlay.classList.add('hidden');
+        }
+      }
+    });
+  </script>
+
+
+</body></html>

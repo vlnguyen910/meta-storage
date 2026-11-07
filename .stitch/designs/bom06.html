@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-background" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BOM06 — Trung tâm Báo cáo &amp; Phân tích Vận hành Hệ thống | StoreX OS</title>
+<!-- Material Symbols Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Inter Google Font -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "tertiary-fixed-dim": "#80db71",
+            "surface": "#FFFFFF",
+            "on-secondary": "#ffffff",
+            "on-primary-fixed": "#002018",
+            "on-tertiary-fixed": "#002201",
+            "on-success-container": "#166534",
+            "primary-fixed": "#acf0d9",
+            "tertiary-fixed": "#9bf98a",
+            "inverse-on-surface": "#eef0ff",
+            "primary-container": "#165f4d",
+            "surface-container-highest": "#dae2fd",
+            "surface-container-high": "#e2e7ff",
+            "primary": "#004637",
+            "inverse-surface": "#283044",
+            "outline-variant": "#bfc9c3",
+            "secondary-container": "#d0e1fb",
+            "error-container": "#ffdad6",
+            "border": "#EEEEEE",
+            "error": "#ba1a1a",
+            "secondary-fixed-dim": "#b7c8e1",
+            "on-background": "#131b2e",
+            "on-tertiary-fixed-variant": "#005305",
+            "on-primary": "#ffffff",
+            "outline": "#94A3B8",
+            "primary-fixed-dim": "#90d4bd",
+            "surface-container": "#eaedff",
+            "on-surface-variant": "#3f4945",
+            "secondary": "#505f76",
+            "on-secondary-container": "#54647a",
+            "on-secondary-fixed-variant": "#38485d",
+            "on-error": "#ffffff",
+            "warning-container": "#FFFBEB",
+            "tertiary-container": "#006308",
+            "on-primary-fixed-variant": "#005140",
+            "on-tertiary": "#ffffff",
+            "warning": "#92400E",
+            "destructive": "#991B1B",
+            "surface-muted": "#F8FAFC",
+            "on-error-container": "#93000a",
+            "on-surface": "#131b2e",
+            "primary-dark": "#0F493B",
+            "on-secondary-fixed": "#0b1c30",
+            "surface-container-lowest": "#ffffff",
+            "primary-soft": "#E8F3EF",
+            "tertiary": "#004804",
+            "secondary-fixed": "#d3e4fe",
+            "background": "#FAFAFA",
+            "surface-dim": "#d2d9f4",
+            "inverse-primary": "#90d4bd",
+            "destructive-container": "#FEF2F2",
+            "surface-variant": "#dae2fd",
+            "on-primary-container": "#92d6bf",
+            "surface-container-low": "#f2f3ff",
+            "on-tertiary-container": "#83de74",
+            "surface-bright": "#faf8ff",
+            "surface-tint": "#246957",
+            "success-container": "#ECFDF5"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "card": "15px",
+            "full": "9999px"
+          },
+          "spacing": {
+            "2xl": "32px",
+            "section": "80px",
+            "gutter-mobile": "1rem",
+            "space-lg": "1rem",
+            "margin": "1.5rem",
+            "xs": "4px",
+            "space-xl": "1.5rem",
+            "space-md": "0.75rem",
+            "margin-desktop": "2rem",
+            "page-gutter": "24px",
+            "md": "12px",
+            "lg": "16px",
+            "field-gap": "8px",
+            "space-sm": "0.5rem",
+            "card-padding": "24px",
+            "xl": "24px",
+            "control-padding": "12px",
+            "4xl": "64px",
+            "sm": "8px",
+            "gutter": "1.5rem",
+            "space-xs": "0.25rem",
+            "3xl": "48px"
+          },
+          "fontFamily": {
+            "headline-lg-mobile": ["Inter"],
+            "body-md": ["Inter"],
+            "body-lg": ["Inter"],
+            "headline-md": ["Inter"],
+            "headline-display": ["Inter"],
+            "label-md": ["Inter"],
+            "headline-lg": ["Inter"],
+            "title-lg": ["Inter"],
+            "body-sm": ["Inter"],
+            "headline-display-mobile": ["Inter"],
+            "label-sm": ["Inter"]
+          },
+          "fontSize": {
+            "headline-lg-mobile": ["26px", {"lineHeight": "34px", "letterSpacing": "-0.015em", "fontWeight": "700"}],
+            "body-md": ["16px", {"lineHeight": "26px", "fontWeight": "400"}],
+            "body-lg": ["18px", {"lineHeight": "30px", "fontWeight": "400"}],
+            "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.015em", "fontWeight": "700"}],
+            "headline-display": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.03em", "fontWeight": "800"}],
+            "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "700"}],
+            "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "750"}],
+            "title-lg": ["20px", {"lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+            "body-sm": ["14px", {"lineHeight": "22px", "fontWeight": "400"}],
+            "headline-display-mobile": ["30px", {"lineHeight": "38px", "letterSpacing": "-0.025em", "fontWeight": "800"}],
+            "label-sm": ["12px", {"lineHeight": "18px", "letterSpacing": "0.02em", "fontWeight": "600"}]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    /* Ambient Card Elevation according to Design System */
+    .elevation-level-1 {
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
+    }
+    .elevation-level-2:hover {
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06), 0 2px 4px rgba(15, 23, 42, 0.04);
+    }
+  </style>
+</head>
+<body class="h-full bg-background text-on-surface font-body-md text-body-md antialiased flex flex-col">
+<!-- TOP APP BAR (Shared Components: TopNavBar) -->
+<header class="flex justify-between items-center h-16 px-space-lg w-full bg-surface-container-lowest border-b border-outline-variant sticky top-0 z-40 shadow-sm">
+<!-- Left Section: Brand Logo & Context -->
+<div class="flex items-center gap-space-lg">
+<div class="flex items-center gap-2">
+<span class="w-8 h-8 rounded-lg bg-primary-container text-on-primary flex items-center justify-center font-bold text-lg shadow-sm">S</span>
+<span class="text-headline-sm font-headline-sm font-bold text-primary tracking-tight">StoreX OS</span>
+</div>
+<div class="h-6 w-px bg-outline-variant hidden sm:block"></div>
+<!-- Navigation links in header -->
+<nav class="hidden md:flex items-center space-x-6">
+<a class="text-primary font-bold border-b-2 border-primary py-4 px-1 text-label-md font-label-md flex items-center gap-1.5 transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="corporate_fare">corporate_fare</span>
+          StoreX Sài Gòn Central
+        </a>
+<a class="text-on-surface-variant font-medium py-4 px-1 text-label-md font-label-md flex items-center gap-1.5 hover:text-primary transition-colors duration-150" href="#">
+<span class="w-2 h-2 rounded-full bg-tertiary-fixed-dim"></span>
+          Đồng bộ trực tuyến
+        </a>
+</nav>
+</div>
+<!-- Search in TopNavBar (Left aligned conceptually in toolbar) -->
+<div class="hidden lg:flex items-center max-w-xs w-full ml-4">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-lg" data-icon="search">search</span>
+<input class="w-full pl-9 pr-3 py-1.5 text-body-sm font-body-sm bg-surface-muted border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-transparent" placeholder="Tìm kiếm mã kho, hợp đồng, báo cáo..." type="search"/>
+</div>
+</div>
+<!-- Right Profile & Trailing Actions -->
+<div class="flex items-center gap-space-md">
+<button aria-label="Xem thông báo" class="w-11 h-11 min-h-[44px] min-w-[44px] rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-primary transition-colors duration-150 flex items-center justify-center relative focus:ring-2 focus:ring-primary" type="button">
+<span class="material-symbols-outlined text-xl" data-icon="notifications">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full ring-2 ring-surface"></span>
+</button>
+<button aria-label="Trợ giúp tài liệu" class="w-11 h-11 min-h-[44px] min-w-[44px] rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-primary transition-colors duration-150 flex items-center justify-center focus:ring-2 focus:ring-primary" type="button">
+<span class="material-symbols-outlined text-xl" data-icon="help">help</span>
+</button>
+<div class="h-6 w-px bg-outline-variant"></div>
+<!-- User Info / Avatar Profile -->
+<div class="flex items-center gap-3 pl-1">
+<div class="flex flex-col text-right hidden sm:block">
+<span class="text-label-md font-label-md text-on-surface font-semibold leading-tight">Lê Thu Hà</span>
+<span class="text-label-sm font-label-sm text-secondary">Hội đồng Quản trị (BOM)</span>
+</div>
+<img alt="Lê Thu Hà (Quản lý cơ sở)" class="w-10 h-10 rounded-full border border-outline-variant object-cover ring-2 ring-primary-soft" data-alt="Professional enterprise portrait photograph of Le Thu Ha, female Vietnamese Board of Management executive dressed in modern business attire with dark green blazer, in a bright contemporary architectural corporate office space with gentle morning natural lighting, crisp professional corporate photography." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDKmHK9NM_nfWFQBhcIivKUlFlWVQMCbP8yz6eGHg2uTladUw6o9ovoPQFwVGIEA0yruTqEYxLgTCgRyGmuX2hA1VtnfrBlHK9RNf6Xy-B0HkZXc0dDL8T9Nbh1pjIVoFgRzThf-lIkbTJAB1VPOD45xMGqxcyKRpH6DpLUjAJ5JslI7aPTCdthFCtsE9nv49z68-_cvFGlDqqnytz-RQttPUJzMISHjRhJtjVPJljbpWUAmxD-VD0QayQGk9PP5ovx_6gCyupDry0Q"/>
+</div>
+</div>
+</header>
+<!-- BODY CONTENT CONTAINER WITH SIDEBAR DRAWER -->
+<div class="flex flex-1 overflow-hidden">
+<!-- SIDEBAR RAIL / DRAWER (Shared Components: SideNavBar - BOM active on Báo cáo) -->
+<aside class="fixed left-0 top-16 bottom-0 w-64 flex flex-col justify-between p-space-md bg-surface-container-lowest border-r border-outline-variant z-30 transition-all duration-150 ease-in-out hidden md:flex">
+<!-- Top Portion of Nav -->
+<div class="flex flex-col space-y-6">
+<!-- Workspace Identification -->
+<div class="px-space-md py-space-sm bg-surface-muted rounded-lg border border-border flex items-center gap-3">
+<div class="w-8 h-8 rounded-md bg-primary-soft text-primary flex items-center justify-center font-bold">
+<span class="material-symbols-outlined text-lg" data-icon="domain">domain</span>
+</div>
+<div class="flex flex-col">
+<span class="text-label-sm font-label-sm font-bold text-primary tracking-tight">Hệ thống Điều hành BOM</span>
+<span class="text-label-sm font-label-sm text-secondary">Vĩ mô &amp; Đầu tư</span>
+</div>
+</div>
+<!-- Primary Navigation List -->
+<nav class="space-y-1">
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-colors duration-150 min-h-[44px]" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="dashboard">dashboard</span>
+<span class="text-label-md font-label-md">Tổng quan cơ sở</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-colors duration-150 min-h-[44px]" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="grid_view">grid_view</span>
+<span class="text-label-md font-label-md">Quản lý ô kho</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-colors duration-150 min-h-[44px]" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="warehouse">warehouse</span>
+<span class="text-label-md font-label-md">Thông tin cơ sở &amp; loại kho</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-colors duration-150 min-h-[44px]" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="badge">badge</span>
+<span class="text-label-md font-label-md">Nhân viên cơ sở</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-colors duration-150 min-h-[44px]" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="assignment_ind">assignment_ind</span>
+<span class="text-label-md font-label-md">Phân công công việc</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-colors duration-150 min-h-[44px]" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="assignment_return">assignment_return</span>
+<span class="text-label-md font-label-md">Yêu cầu trả kho</span>
+</a>
+<!-- ACTIVE ITEM: Báo cáo cơ sở / Trung tâm báo cáo BOM -->
+<a class="bg-primary-container text-on-primary-container font-semibold rounded-lg px-space-md py-space-sm flex items-center gap-space-sm transition-all duration-150 min-h-[44px] shadow-sm" href="/operations/reports">
+<span class="material-symbols-outlined text-xl text-on-primary-container" data-icon="analytics" data-weight="fill" style="font-variation-settings: 'FILL' 1;">analytics</span>
+<span class="text-label-md font-label-md text-surface font-bold">Báo cáo cơ sở</span>
+<span class="ml-auto w-2 h-2 rounded-full bg-tertiary-fixed"></span>
+</a>
+</nav>
+</div>
+<!-- Footer SideNav Actions -->
+<div class="space-y-4 pt-4 border-t border-border">
+<!-- Quick CTA Button -->
+<button class="w-full min-h-[44px] bg-primary hover:bg-primary-dark text-on-primary rounded-lg font-label-md text-label-md py-2.5 px-3 flex items-center justify-center gap-2 transition-colors duration-150 shadow-sm" type="button">
+<span class="material-symbols-outlined text-lg" data-icon="input">input</span>
+          Bàn giao kho &amp; Check-in
+        </button>
+<div class="space-y-1">
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium text-label-sm font-label-sm transition-colors duration-150 min-h-[44px]" href="#">
+<span class="material-symbols-outlined text-warning text-lg" data-icon="warning">warning</span>
+<span>Chính sách chưa chốt</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium text-label-sm font-label-sm transition-colors duration-150 min-h-[44px]" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="tune">tune</span>
+<span>Cài đặt trạm</span>
+</a>
+</div>
+</div>
+</aside>
+<!-- MAIN SCROLLABLE CONTENT CANVAS (Offset for docked 64px TopBar and 256px SideBar) -->
+<main class="flex-1 md:ml-64 overflow-y-auto px-4 sm:px-6 lg:px-8 py-8 focus:outline-none" tabindex="-1">
+<div class="max-w-7xl mx-auto space-y-8">
+<!-- BREADCRUMB & METADATA BAR -->
+<nav aria-label="Breadcrumb" class="flex items-center space-x-2 text-label-sm font-label-sm text-secondary">
+<a class="hover:text-primary transition-colors" href="#">Điều hành Vận hành</a>
+<span class="material-symbols-outlined text-sm" data-icon="chevron_right">chevron_right</span>
+<span class="text-primary font-semibold">Báo cáo điều hành BOM</span>
+<span class="mx-2 text-outline-variant">|</span>
+<span class="bg-surface-muted px-2 py-0.5 rounded text-outline border border-border font-mono text-xs">/operations/reports</span>
+</nav>
+<!-- PAGE HEADER (BOM06) -->
+<div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4 pb-2 border-b border-border">
+<div class="space-y-1">
+<div class="flex items-center gap-3">
+<span class="px-2.5 py-1 rounded bg-primary-soft text-primary font-bold text-label-sm font-label-sm tracking-wide border border-primary/10">BOM06</span>
+<h1 class="text-headline-md lg:text-headline-lg font-headline-md lg:font-headline-lg text-on-surface tracking-tight">
+                Trung tâm Báo cáo &amp; Phân tích Vận hành Hệ thống
+              </h1>
+</div>
+<p class="text-body-md font-body-md text-secondary max-w-3xl">
+              Cổng tra cứu tổng hợp các báo cáo điều hành vĩ mô dành cho Hội đồng Quản trị và Ban Giám đốc StoreX.
+            </p>
+</div>
+<!-- Quick Refresh / Action -->
+<div class="flex items-center gap-3 self-start lg:self-auto">
+<span class="text-label-sm font-label-sm text-secondary hidden sm:inline">Cập nhật lúc: 09:30 AM (Hôm nay)</span>
+<button class="min-h-[44px] px-3.5 py-2 text-label-sm font-label-sm bg-surface border border-outline-variant hover:bg-surface-muted rounded-lg text-on-surface flex items-center gap-2 transition-colors" type="button">
+<span class="material-symbols-outlined text-lg text-primary" data-icon="sync">sync</span>
+              Làm mới
+            </button>
+</div>
+</div>
+<!-- FILTER BAR & CONTROLS -->
+<section aria-label="Bộ lọc dữ liệu" class="bg-surface rounded-card border border-border p-5 elevation-level-1">
+<div class="flex flex-col md:flex-row flex-wrap items-center justify-between gap-4">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full md:w-auto">
+<!-- Filter: Facility Selection -->
+<div class="flex flex-col gap-1.5">
+<label class="text-label-sm font-label-sm text-secondary" for="select-facility">Cơ sở vận hành</label>
+<div class="relative">
+<select class="w-full min-h-[44px] pl-3.5 pr-10 py-2.5 text-body-sm font-body-sm bg-surface-muted border border-outline-variant rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent cursor-pointer appearance-none" id="select-facility">
+<option value="all">Toàn bộ 4 cơ sở (Hệ thống)</option>
+<option value="sgc">StoreX Sài Gòn Central</option>
+<option value="btl">StoreX Bình Thạnh Landmark</option>
+<option value="cgt">StoreX Cầu Giấy TechHub</option>
+<option value="nsg">StoreX Nam Sài Gòn</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-secondary" data-icon="keyboard_arrow_down">keyboard_arrow_down</span>
+</div>
+</div>
+<!-- Filter: Time Range -->
+<div class="flex flex-col gap-1.5">
+<label class="text-label-sm font-label-sm text-secondary" for="select-timerange">Kỳ phân tích báo cáo</label>
+<div class="relative">
+<select class="w-full min-h-[44px] pl-3.5 pr-10 py-2.5 text-body-sm font-body-sm bg-surface-muted border border-outline-variant rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent cursor-pointer appearance-none" id="select-timerange">
+<option value="q1-2025">Quý 1 / 2025 (Hiện tại)</option>
+<option value="month-this">Tháng này (Tháng 3/2025)</option>
+<option value="month-last">Tháng trước (Tháng 2/2025)</option>
+<option value="year-2024">Cả năm tài chính 2024</option>
+<option value="custom">Tùy chỉnh khoảng ngày...</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-secondary" data-icon="calendar_today">calendar_today</span>
+</div>
+</div>
+<!-- Filter Preset Storage -->
+<div class="flex flex-col gap-1.5">
+<label class="text-label-sm font-label-sm text-secondary">Cấu hình bộ lọc lưu trữ</label>
+<button class="min-h-[44px] px-4 py-2.5 text-body-sm font-body-sm bg-surface border border-outline-variant hover:bg-surface-muted text-on-surface rounded-lg flex items-center justify-between transition-colors" type="button">
+<span class="flex items-center gap-2 text-primary font-medium">
+<span class="material-symbols-outlined text-base" data-icon="bookmark">bookmark</span>
+                    BOM Chuẩn (Q1-2025)
+                  </span>
+<span class="material-symbols-outlined text-sm text-secondary" data-icon="expand_more">expand_more</span>
+</button>
+</div>
+</div>
+<!-- Export Actions Group -->
+<div class="flex items-center gap-3 w-full md:w-auto justify-end pt-2 md:pt-0 border-t md:border-t-0 border-border">
+<button class="min-h-[44px] px-5 py-2.5 bg-primary hover:bg-primary-dark text-on-primary rounded-lg text-label-md font-label-md font-semibold flex items-center gap-2.5 shadow-sm transition-all duration-150 focus:ring-2 focus:ring-offset-2 focus:ring-primary" type="button">
+<span class="material-symbols-outlined text-xl" data-icon="file_download">file_download</span>
+                Xuất dữ liệu tổng hợp (CSV/Excel)
+              </button>
+</div>
+</div>
+</section>
+<!-- INTERNAL VIEW SWITCHER TABS (Bộ chuyển đổi Tab nhanh bên trong cùng màn hình) -->
+<section aria-label="Nội dung chuyên môn" class="space-y-6">
+<div class="border-b border-outline-variant">
+<nav aria-label="Tabs Trung tâm Báo cáo" class="flex space-x-8" role="tablist">
+<!-- Tab 1: Active -->
+<button aria-controls="tab-content-1" aria-selected="true" class="min-h-[44px] py-3 px-1 border-b-2 border-primary text-primary font-bold text-label-md font-label-md flex items-center gap-2.5 transition-colors focus:outline-none" id="tab-btn-1" role="tab">
+<span class="material-symbols-outlined text-lg" data-icon="analytics" data-weight="fill" style="font-variation-settings: 'FILL' 1;">analytics</span>
+                1. Danh mục báo cáo phân tích
+                <span class="ml-1 px-2 py-0.5 rounded-full text-xs bg-primary-soft text-primary font-semibold">Hiện hành</span>
+</button>
+<!-- Tab 2: Leases -->
+<button aria-controls="tab-content-2" aria-selected="false" class="min-h-[44px] py-3 px-1 border-b-2 border-transparent text-secondary hover:text-on-surface hover:border-outline font-medium text-label-md font-label-md flex items-center gap-2.5 transition-colors focus:outline-none" id="tab-btn-2" role="tab">
+<span class="material-symbols-outlined text-lg" data-icon="description">description</span>
+                2. Tổng hợp trạng thái hợp đồng thuê
+              </button>
+<!-- Tab 3: Risk & Overdue -->
+<button aria-controls="tab-content-3" aria-selected="false" class="min-h-[44px] py-3 px-1 border-b-2 border-transparent text-secondary hover:text-on-surface hover:border-outline font-medium text-label-md font-label-md flex items-center gap-2.5 transition-colors focus:outline-none" id="tab-btn-3" role="tab">
+<span class="material-symbols-outlined text-lg" data-icon="error_outline">error_outline</span>
+                3. Hàng đợi cảnh báo quá hạn &amp; Rủi ro
+                <span class="px-2 py-0.5 rounded-full text-xs bg-destructive-container text-destructive font-bold">03 ca</span>
+</button>
+</nav>
+</div>
+<!-- TAB PANEL 1: DANH MỤC BÁO CÁO PHÂN TÍCH (ACTIVE CONTENT) -->
+<div aria-labelledby="tab-btn-1" class="space-y-8" id="tab-content-1" role="tabpanel">
+<!-- SECTION 1: TWO CORE IN-DEPTH REPORT CARDS (BOM07 & BOM08) -->
+<div>
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-title-lg font-title-lg text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xl" data-icon="auto_stories">auto_stories</span>
+                  Báo cáo Điều hành Chuyên sâu Cốt lõi
+                </h2>
+<span class="text-label-sm font-label-sm text-secondary">Được thiết kế chuẩn cấu trúc phân tích BOM</span>
+</div>
+<!-- Bento Layout Grid for Core Reports -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+<!-- CARD 1: BÁO CÁO DOANH THU & DÒNG TIỀN (BOM07) -->
+<article class="bg-surface rounded-card border border-border p-card-padding elevation-level-1 elevation-level-2 transition-all duration-200 flex flex-col justify-between relative overflow-hidden group">
+<!-- Top accent bar -->
+<div class="absolute top-0 left-0 right-0 h-1.5 bg-primary"></div>
+<div>
+<div class="flex items-start justify-between gap-4 mb-4">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded bg-primary-soft text-primary font-mono text-xs font-bold">BOM07</span>
+<span class="text-label-sm font-label-sm text-secondary">Tài chính &amp; Doanh số</span>
+</div>
+<h3 class="text-title-lg font-title-lg text-on-surface group-hover:text-primary transition-colors">
+                          Báo cáo Doanh thu &amp; Dòng tiền
+                        </h3>
+</div>
+<div class="w-12 h-12 rounded-xl bg-primary-soft text-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-2xl" data-icon="payments">payments</span>
+</div>
+</div>
+<p class="text-body-sm font-body-sm text-secondary mb-6">
+                      Chi tiết cấu trúc dòng tiền thực thu, tiến độ quyết toán cọc bảo đảm, phân bổ tỷ trọng doanh thu theo từng chu kỳ và mô hình kho tự quản.
+                    </p>
+<!-- Key Financial Metrics Strip -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-surface-muted rounded-xl border border-border mb-6">
+<div class="space-y-1">
+<span class="text-label-sm font-label-sm text-secondary block">Tổng tiền thuê đã thu (mẫu)</span>
+<div class="text-title-lg font-title-lg text-primary font-bold">
+                          VND 428.500.000 <span class="text-sm font-normal">đ</span>
+</div>
+<span class="inline-flex items-center text-xs text-on-success-container font-semibold gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="trending_up">trending_up</span> +12.4% so với kỳ trước
+                        </span>
+</div>
+<div class="space-y-1 border-t sm:border-t-0 sm:border-l border-border pt-3 sm:pt-0 sm:pl-4">
+<span class="text-label-sm font-label-sm text-secondary block">Tiền cọc ký quỹ đang giữ</span>
+<div class="text-title-lg font-title-lg text-on-surface font-bold">
+                          VND 312.000.000 <span class="text-sm font-normal">đ</span>
+</div>
+<span class="inline-flex items-center text-xs text-secondary gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="lock">lock</span> Ký quỹ an toàn 100%
+                        </span>
+</div>
+</div>
+</div>
+<!-- Action Link CTA -->
+<div class="pt-4 border-t border-border flex items-center justify-between">
+<span class="text-label-sm font-label-sm font-mono text-outline">/operations/reports/revenue</span>
+<a class="min-h-[44px] px-4 py-2 text-label-md font-label-md text-primary font-bold hover:bg-primary-soft rounded-lg flex items-center gap-1.5 transition-colors duration-150 focus:ring-2 focus:ring-primary" href="/operations/reports/revenue">
+                      Mở báo cáo doanh thu chi tiết (BOM07)
+                      <span class="material-symbols-outlined text-lg" data-icon="arrow_forward">arrow_forward</span>
+</a>
+</div>
+</article>
+<!-- CARD 2: BÁO CÁO SỨC CHỨA & HIỆU SUẤT LẤP ĐẦY (BOM08) -->
+<article class="bg-surface rounded-card border border-border p-card-padding elevation-level-1 elevation-level-2 transition-all duration-200 flex flex-col justify-between relative overflow-hidden group">
+<!-- Top accent bar -->
+<div class="absolute top-0 left-0 right-0 h-1.5 bg-tertiary-fixed-dim"></div>
+<div>
+<div class="flex items-start justify-between gap-4 mb-4">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded bg-surface-container-low text-primary font-mono text-xs font-bold">BOM08</span>
+<span class="text-label-sm font-label-sm text-secondary">Tải trọng &amp; Công suất</span>
+</div>
+<h3 class="text-title-lg font-title-lg text-on-surface group-hover:text-primary transition-colors">
+                          Báo cáo Sức chứa &amp; Hiệu suất lấp đầy
+                        </h3>
+</div>
+<div class="w-12 h-12 rounded-xl bg-success-container text-on-success-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-2xl" data-icon="inventory_2">inventory_2</span>
+</div>
+</div>
+<p class="text-body-sm font-body-sm text-secondary mb-6">
+                      Đo lường thời gian xoay vòng buồng chứa, tỷ trọng occupancy theo danh mục cỡ kho (S/M/L) và dự phóng tình trạng khan hiếm diện tích.
+                    </p>
+<!-- Key Capacity Metrics Strip -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-surface-muted rounded-xl border border-border mb-6">
+<div class="space-y-1">
+<span class="text-label-sm font-label-sm text-secondary block">Tỷ lệ lấp đầy toàn hệ thống</span>
+<div class="text-title-lg font-title-lg text-primary font-bold flex items-baseline gap-2">
+                          81.5%
+                          <span class="text-xs font-medium text-secondary">/ 100% trần</span>
+</div>
+<!-- Progress bar -->
+<div class="w-full bg-border h-2 rounded-full overflow-hidden mt-1.5">
+<div class="bg-primary h-full rounded-full" style="width: 81.5%;"></div>
+</div>
+</div>
+<div class="space-y-1 border-t sm:border-t-0 sm:border-l border-border pt-3 sm:pt-0 sm:pl-4 flex flex-col justify-center">
+<div class="flex items-center justify-between text-body-sm font-body-sm">
+<span class="text-secondary flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-primary"></span> Buồng đang thuê:
+                          </span>
+<span class="font-bold text-on-surface">392 buồng</span>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm mt-1">
+<span class="text-secondary flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-outline-variant"></span> Buồng khả dụng:
+                          </span>
+<span class="font-bold text-tertiary">88 buồng</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Link CTA -->
+<div class="pt-4 border-t border-border flex items-center justify-between">
+<span class="text-label-sm font-label-sm font-mono text-outline">/operations/reports/utilization</span>
+<a class="min-h-[44px] px-4 py-2 text-label-md font-label-md text-primary font-bold hover:bg-primary-soft rounded-lg flex items-center gap-1.5 transition-colors duration-150 focus:ring-2 focus:ring-primary" href="/operations/reports/utilization">
+                      Mở báo cáo sức chứa chi tiết (BOM08)
+                      <span class="material-symbols-outlined text-lg" data-icon="arrow_forward">arrow_forward</span>
+</a>
+</div>
+</article>
+</div>
+</div>
+<!-- SECTION 2: BẢNG TỔNG HỢP SỐ LIỆU VẬN HÀNH NHANH THEO 4 CƠ SỞ -->
+<section class="bg-surface rounded-card border border-border p-card-padding elevation-level-1 space-y-4">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
+<div class="space-y-1">
+<h3 class="text-title-lg font-title-lg text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xl" data-icon="table_chart">table_chart</span>
+                    Bảng tổng hợp số liệu vận hành nhanh theo 4 cơ sở
+                  </h3>
+<p class="text-body-sm font-body-sm text-secondary">
+                    Thống kê hiệu suất tải thực tế, doanh thu thu nợ hợp đồng và điểm nóng vận hành phát sinh quá hạn.
+                  </p>
+</div>
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-surface-muted text-secondary border border-border">
+                    Dữ liệu chốt: Q1/2025
+                  </span>
+</div>
+</div>
+<!-- Structured Enterprise Table Container -->
+<div class="overflow-x-auto -mx-card-padding px-card-padding">
+<table class="w-full text-left border-collapse min-w-[720px]">
+<thead>
+<tr class="border-b border-outline-variant bg-surface-muted/60 text-secondary text-label-sm font-label-sm uppercase tracking-wider">
+<th class="py-3.5 px-4 font-semibold" scope="col">Tên cơ sở StoreX</th>
+<th class="py-3.5 px-4 font-semibold text-right" scope="col">Tổng buồng</th>
+<th class="py-3.5 px-4 font-semibold text-center" scope="col">Tỷ lệ lấp đầy</th>
+<th class="py-3.5 px-4 font-semibold text-right" scope="col">Buồng đang thuê</th>
+<th class="py-3.5 px-4 font-semibold text-right" scope="col">Tiền thuê đã thu (VND)</th>
+<th class="py-3.5 px-4 font-semibold text-center" scope="col">Quá hạn</th>
+<th class="py-3.5 px-4 font-semibold text-center" scope="col">Trạng thái rủi ro</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border text-body-sm font-body-sm">
+<!-- Row 1: Sài Gòn Central -->
+<tr class="hover:bg-surface-muted transition-colors">
+<td class="py-4 px-4 font-semibold text-on-surface flex items-center gap-2.5">
+<span class="w-2.5 h-2.5 rounded-full bg-primary shrink-0"></span>
+<div>
+<div>Sài Gòn Central</div>
+<span class="text-label-sm font-label-sm text-secondary font-normal font-mono">FAC-SGC-01</span>
+</div>
+</td>
+<td class="py-4 px-4 text-right font-medium text-on-surface">120</td>
+<td class="py-4 px-4 text-center">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-label-sm font-label-sm font-semibold bg-success-container text-on-success-container">
+                          84.2%
+                        </div>
+</td>
+<td class="py-4 px-4 text-right font-semibold text-primary">101</td>
+<td class="py-4 px-4 text-right font-mono font-medium text-on-surface">142.500.000 đ</td>
+<td class="py-4 px-4 text-center">
+<span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-surface-muted text-secondary text-xs font-semibold">0</span>
+</td>
+<td class="py-4 px-4 text-center">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-container text-on-success-container">
+<span class="material-symbols-outlined text-xs" data-icon="check_circle">check_circle</span> Tối ưu
+                        </span>
+</td>
+</tr>
+<!-- Row 2: Bình Thạnh Landmark -->
+<tr class="hover:bg-surface-muted transition-colors">
+<td class="py-4 px-4 font-semibold text-on-surface flex items-center gap-2.5">
+<span class="w-2.5 h-2.5 rounded-full bg-primary shrink-0"></span>
+<div>
+<div>Bình Thạnh Landmark</div>
+<span class="text-label-sm font-label-sm text-secondary font-normal font-mono">FAC-BTL-02</span>
+</div>
+</td>
+<td class="py-4 px-4 text-right font-medium text-on-surface">150</td>
+<td class="py-4 px-4 text-center">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-label-sm font-label-sm font-semibold bg-success-container text-on-success-container">
+                          78.0%
+                        </div>
+</td>
+<td class="py-4 px-4 text-right font-semibold text-primary">117</td>
+<td class="py-4 px-4 text-right font-mono font-medium text-on-surface">135.000.000 đ</td>
+<td class="py-4 px-4 text-center">
+<span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-warning-container text-warning text-xs font-bold border border-warning/20">1</span>
+</td>
+<td class="py-4 px-4 text-center">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning-container text-warning">
+<span class="material-symbols-outlined text-xs" data-icon="warning">warning</span> Chờ nhắc nợ
+                        </span>
+</td>
+</tr>
+<!-- Row 3: Cầu Giấy TechHub -->
+<tr class="hover:bg-surface-muted transition-colors">
+<td class="py-4 px-4 font-semibold text-on-surface flex items-center gap-2.5">
+<span class="w-2.5 h-2.5 rounded-full bg-primary shrink-0"></span>
+<div>
+<div>Cầu Giấy TechHub</div>
+<span class="text-label-sm font-label-sm text-secondary font-normal font-mono">FAC-CGT-03</span>
+</div>
+</td>
+<td class="py-4 px-4 text-right font-medium text-on-surface">130</td>
+<td class="py-4 px-4 text-center">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-label-sm font-label-sm font-semibold bg-success-container text-on-success-container">
+                          86.5%
+                        </div>
+</td>
+<td class="py-4 px-4 text-right font-semibold text-primary">112</td>
+<td class="py-4 px-4 text-right font-mono font-medium text-on-surface">108.000.000 đ</td>
+<td class="py-4 px-4 text-center">
+<span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-warning-container text-warning text-xs font-bold border border-warning/20">1</span>
+</td>
+<td class="py-4 px-4 text-center">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning-container text-warning">
+<span class="material-symbols-outlined text-xs" data-icon="schedule">schedule</span> Hạn cuối T+3
+                        </span>
+</td>
+</tr>
+<!-- Row 4: Nam Sài Gòn -->
+<tr class="hover:bg-surface-muted transition-colors">
+<td class="py-4 px-4 font-semibold text-on-surface flex items-center gap-2.5">
+<span class="w-2.5 h-2.5 rounded-full bg-primary shrink-0"></span>
+<div>
+<div>Nam Sài Gòn</div>
+<span class="text-label-sm font-label-sm text-secondary font-normal font-mono">FAC-NSG-04</span>
+</div>
+</td>
+<td class="py-4 px-4 text-right font-medium text-on-surface">80</td>
+<td class="py-4 px-4 text-center">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-label-sm font-label-sm font-semibold bg-surface-muted text-secondary border border-border">
+                          72.5%
+                        </div>
+</td>
+<td class="py-4 px-4 text-right font-semibold text-primary">58</td>
+<td class="py-4 px-4 text-right font-mono font-medium text-on-surface">43.000.000 đ</td>
+<td class="py-4 px-4 text-center">
+<span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-warning-container text-warning text-xs font-bold border border-warning/20">1</span>
+</td>
+<td class="py-4 px-4 text-center">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-destructive-container text-destructive">
+<span class="material-symbols-outlined text-xs" data-icon="report_problem">report_problem</span> Trả trễ kho
+                        </span>
+</td>
+</tr>
+</tbody>
+<!-- DÒNG TỔNG CỘNG THEO YÊU CẦU -->
+<tfoot>
+<tr class="bg-primary-soft/60 font-bold border-t-2 border-primary text-on-surface">
+<td class="py-4 px-4 text-label-md font-label-md uppercase tracking-wider text-primary">
+                        TỔNG CỘNG HỆ THỐNG
+                      </td>
+<td class="py-4 px-4 text-right text-title-lg font-title-lg font-bold text-on-surface">
+                        480 <span class="text-xs font-normal text-secondary">buồng</span>
+</td>
+<td class="py-4 px-4 text-center">
+<span class="inline-flex items-center px-3 py-1 rounded-full text-label-md font-label-md bg-primary-container text-surface">
+                          81.5% TB
+                        </span>
+</td>
+<td class="py-4 px-4 text-right text-title-lg font-title-lg font-bold text-primary">
+                        392 <span class="text-xs font-normal text-secondary">buồng thuê</span>
+</td>
+<td class="py-4 px-4 text-right font-mono text-title-lg font-title-lg font-bold text-primary">
+                        428.500.000 đ
+                      </td>
+<td class="py-4 px-4 text-center">
+<span class="inline-flex items-center justify-center px-2.5 py-1 rounded-full bg-destructive text-on-error text-label-sm font-label-sm font-bold">
+                          03 ca
+                        </span>
+</td>
+<td class="py-4 px-4 text-center text-label-sm font-label-sm text-destructive font-semibold">
+                        03 trường hợp quá hạn
+                      </td>
+</tr>
+</tfoot>
+</table>
+</div>
+<!-- Summary Footnote -->
+<div class="flex flex-col sm:flex-row items-center justify-between text-body-sm font-body-sm text-secondary pt-2">
+<span>* Chỉ số cập nhật tự động qua hệ thống trạm IoT StoreX lúc 00:00 hàng ngày.</span>
+<a class="text-primary hover:underline font-semibold flex items-center gap-1 min-h-[44px]" href="#tab-btn-3">
+                  Xem danh sách 3 trường hợp quá hạn
+                  <span class="material-symbols-outlined text-sm" data-icon="chevron_right">chevron_right</span>
+</a>
+</div>
+</section>
+<!-- SECTION 3: ADDITIONAL SUPPORTING ARCHIVES & MACRO REPORTS -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="bg-surface rounded-card border border-border p-5 elevation-level-1 flex flex-col justify-between">
+<div>
+<div class="w-10 h-10 rounded-lg bg-surface-muted text-primary flex items-center justify-center mb-3">
+<span class="material-symbols-outlined text-xl" data-icon="history_edu">history_edu</span>
+</div>
+<h4 class="text-title-lg font-title-lg text-on-surface mb-1">Kiểm toán Định kỳ Năm</h4>
+<p class="text-body-sm font-body-sm text-secondary mb-4">
+                    Lưu trữ các biên bản thanh tra tài sản và đối soát định kỳ từ đơn vị kiểm toán độc lập.
+                  </p>
+</div>
+<button class="min-h-[44px] text-label-md font-label-md text-primary font-semibold hover:bg-surface-muted rounded-lg flex items-center justify-between px-2 transition-colors" type="button">
+<span>Xem tài liệu PDF</span>
+<span class="material-symbols-outlined text-sm" data-icon="open_in_new">open_in_new</span>
+</button>
+</div>
+<div class="bg-surface rounded-card border border-border p-5 elevation-level-1 flex flex-col justify-between">
+<div>
+<div class="w-10 h-10 rounded-lg bg-surface-muted text-primary flex items-center justify-center mb-3">
+<span class="material-symbols-outlined text-xl" data-icon="energy_savings_leaf">energy_savings_leaf</span>
+</div>
+<h4 class="text-title-lg font-title-lg text-on-surface mb-1">Tiêu thụ Năng lượng &amp; HVAC</h4>
+<p class="text-body-sm font-body-sm text-secondary mb-4">
+                    Theo dõi chi phí điện năng, nhiệt độ buồng kho nhạy cảm (Kho lạnh / Hầm bảo mật).
+                  </p>
+</div>
+<button class="min-h-[44px] text-label-md font-label-md text-primary font-semibold hover:bg-surface-muted rounded-lg flex items-center justify-between px-2 transition-colors" type="button">
+<span>Xem biểu đồ cảm biến</span>
+<span class="material-symbols-outlined text-sm" data-icon="open_in_new">open_in_new</span>
+</button>
+</div>
+<div class="bg-surface rounded-card border border-border p-5 elevation-level-1 flex flex-col justify-between">
+<div>
+<div class="w-10 h-10 rounded-lg bg-surface-muted text-primary flex items-center justify-center mb-3">
+<span class="material-symbols-outlined text-xl" data-icon="security">security</span>
+</div>
+<h4 class="text-title-lg font-title-lg text-on-surface mb-1">Nhật ký An ninh Ra vào</h4>
+<p class="text-body-sm font-body-sm text-secondary mb-4">
+                    Nhật ký xác thực mở khóa mã PIN, thẻ từ và dữ liệu nhận diện khuôn mặt ngoại vi.
+                  </p>
+</div>
+<button class="min-h-[44px] text-label-md font-label-md text-primary font-semibold hover:bg-surface-muted rounded-lg flex items-center justify-between px-2 transition-colors" type="button">
+<span>Mở bảng truy vết</span>
+<span class="material-symbols-outlined text-sm" data-icon="open_in_new">open_in_new</span>
+</button>
+</div>
+</div>
+</div>
+<!-- TAB PANEL 2: TỔNG HỢP TRẠNG THÁI HỢP ĐỒNG THUÊ (HIDDEN BY DEFAULT, ACCESSIBLE VIA TAB) -->
+<div aria-labelledby="tab-btn-2" class="hidden space-y-6" id="tab-content-2" role="tabpanel">
+<div class="bg-surface rounded-card border border-border p-card-padding">
+<h3 class="text-title-lg font-title-lg text-on-surface mb-2">Tổng hợp Hợp đồng thuê Theo Thời hạn</h3>
+<p class="text-body-sm font-body-sm text-secondary mb-6">Theo dõi 392 hợp đồng đang có hiệu lực trên toàn bộ hệ thống StoreX.</p>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+<div class="p-4 bg-surface-muted rounded-xl border border-border">
+<span class="text-label-sm font-label-sm text-secondary">Thuê ngắn hạn (&lt; 1 tháng)</span>
+<div class="text-headline-md font-headline-md text-on-surface font-bold mt-1">48 HĐ</div>
+<span class="text-xs text-secondary">Tỷ trọng: 12.2%</span>
+</div>
+<div class="p-4 bg-surface-muted rounded-xl border border-border">
+<span class="text-label-sm font-label-sm text-secondary">Thuê quý (3 - 6 tháng)</span>
+<div class="text-headline-md font-headline-md text-on-surface font-bold mt-1">186 HĐ</div>
+<span class="text-xs text-secondary">Tỷ trọng: 47.4%</span>
+</div>
+<div class="p-4 bg-surface-muted rounded-xl border border-border">
+<span class="text-label-sm font-label-sm text-secondary">Thuê dài hạn (&gt; 1 năm)</span>
+<div class="text-headline-md font-headline-md text-on-surface font-bold mt-1">158 HĐ</div>
+<span class="text-xs text-secondary">Tỷ trọng: 40.4%</span>
+</div>
+<div class="p-4 bg-surface-muted rounded-xl border border-border">
+<span class="text-label-sm font-label-sm text-secondary">Sắp đáo hạn trong 7 ngày</span>
+<div class="text-headline-md font-headline-md text-warning font-bold mt-1">14 HĐ</div>
+<span class="text-xs text-warning">Cần gửi thông báo gia hạn</span>
+</div>
+</div>
+</div>
+</div>
+<!-- TAB PANEL 3: HÀNG ĐỢI CẢNH BÁO QUÁ HẠN & RỦI RO (ACCESSIBLE VIA TAB) -->
+<div aria-labelledby="tab-btn-3" class="hidden space-y-6" id="tab-content-3" role="tabpanel">
+<div class="bg-surface rounded-card border border-destructive/30 p-card-padding">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-2 text-destructive">
+<span class="material-symbols-outlined text-2xl" data-icon="warning">warning</span>
+<h3 class="text-title-lg font-title-lg font-bold">03 Trường hợp Quá hạn &amp; Nguy cơ phát sinh Rủi ro</h3>
+</div>
+<span class="px-3 py-1 rounded-full text-xs font-bold bg-destructive-container text-destructive">Yêu cầu xử lý BOM</span>
+</div>
+<div class="space-y-3">
+<div class="p-4 bg-surface-muted rounded-xl border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="font-bold text-on-surface">Buồng BTL-204 (Cỡ L)</span>
+<span class="text-xs bg-outline-variant/30 px-2 py-0.5 rounded font-mono">HĐ #8841-BTL</span>
+</div>
+<p class="text-body-sm font-body-sm text-secondary">Cơ sở: Bình Thạnh Landmark • Khách hàng: Cty TNHH Giao Vận Á Châu</p>
+<span class="text-xs text-destructive font-semibold">Chưa đóng tiền gia hạn 5 ngày | Cọc khả dụng: 18.000.000 đ</span>
+</div>
+<button class="min-h-[44px] px-4 py-2 bg-surface border border-outline-variant hover:bg-surface-muted rounded-lg text-label-sm font-label-sm font-semibold" type="button">Gửi trát nhắc nợ lần 2</button>
+</div>
+<div class="p-4 bg-surface-muted rounded-xl border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="font-bold text-on-surface">Buồng CGT-108 (Cỡ M)</span>
+<span class="text-xs bg-outline-variant/30 px-2 py-0.5 rounded font-mono">HĐ #9102-CGT</span>
+</div>
+<p class="text-body-sm font-body-sm text-secondary">Cơ sở: Cầu Giấy TechHub • Khách hàng: Vũ Mạnh Quân</p>
+<span class="text-xs text-warning font-semibold">Chậm trả cước lưu bãi 3 ngày | Hẹn thanh toán chuyển khoản</span>
+</div>
+<button class="min-h-[44px] px-4 py-2 bg-surface border border-outline-variant hover:bg-surface-muted rounded-lg text-label-sm font-label-sm font-semibold" type="button">Liên hệ trực tiếp</button>
+</div>
+<div class="p-4 bg-surface-muted rounded-xl border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="font-bold text-on-surface">Buồng NSG-015 (Cỡ XL)</span>
+<span class="text-xs bg-outline-variant/30 px-2 py-0.5 rounded font-mono">HĐ #7723-NSG</span>
+</div>
+<p class="text-body-sm font-body-sm text-secondary">Cơ sở: Nam Sài Gòn • Khách hàng: Trần Ngọc Bích</p>
+<span class="text-xs text-destructive font-semibold">Quá hạn trả buồng kho 48 giờ sau khi hợp đồng kết thúc</span>
+</div>
+<button class="min-h-[44px] px-4 py-2 bg-destructive text-on-error rounded-lg text-label-sm font-label-sm font-bold" type="button">Kích hoạt niêm phong tạm thời</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+</div>
+<!-- INLINE VANILLA JAVASCRIPT FOR TABS INTERACTION -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const tabButtons = [
+        document.getElementById('tab-btn-1'),
+        document.getElementById('tab-btn-2'),
+        document.getElementById('tab-btn-3')
+      ];
+
+      const tabContents = [
+        document.getElementById('tab-content-1'),
+        document.getElementById('tab-content-2'),
+        document.getElementById('tab-content-3')
+      ];
+
+      function setActiveTab(index) {
+        tabButtons.forEach((btn, i) => {
+          const isActive = i === index;
+          btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+          if (isActive) {
+            btn.className = "min-h-[44px] py-3 px-1 border-b-2 border-primary text-primary font-bold text-label-md font-label-md flex items-center gap-2.5 transition-colors focus:outline-none";
+          } else {
+            btn.className = "min-h-[44px] py-3 px-1 border-b-2 border-transparent text-secondary hover:text-on-surface hover:border-outline font-medium text-label-md font-label-md flex items-center gap-2.5 transition-colors focus:outline-none";
+          }
+        });
+
+        tabContents.forEach((content, i) => {
+          if (i === index) {
+            content.classList.remove('hidden');
+          } else {
+            content.classList.add('hidden');
+          }
+        });
+      }
+
+      tabButtons.forEach((btn, index) => {
+        if (btn) {
+          btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            setActiveTab(index);
+          });
+
+          // Keyboard support for WCAG Tablist
+          btn.addEventListener('keydown', (e) => {
+            let targetIndex = null;
+            if (e.key === 'ArrowRight') {
+              targetIndex = (index + 1) % tabButtons.length;
+            } else if (e.key === 'ArrowLeft') {
+              targetIndex = (index - 1 + tabButtons.length) % tabButtons.length;
+            }
+            if (targetIndex !== null) {
+              tabButtons[targetIndex].focus();
+              setActiveTab(targetIndex);
+            }
+          });
+        }
+      });
+    });
+  </script>
+</body></html>

@@ -1,5 +1,4 @@
 import {
-  ApiErrorCode,
   type ConfirmReservationInput,
   PaymentStatus,
   type Reservation,
@@ -7,34 +6,38 @@ import {
   type ReservationQuoteInput,
   ReservationStatus,
   StorageUnitStatus,
-  UserRole,
-} from "@storex/contracts";
+} from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import type MockAdapter from "axios-mock-adapter";
 import { addMonths, currentUser, envelope, errorBody, parseBody } from "../core/http";
 import { getMockDatabase, hydrateFacility, saveMockDatabase } from "../database";
+import { registerGuestCheckoutHandlers } from "./guest-checkout.handlers";
 
 export function registerReservationHandlers(mock: MockAdapter): void {
+  registerGuestCheckoutHandlers(mock);
+
   mock.onPost("/reservations/quote").reply((config) => {
     const database = getMockDatabase();
     const user = currentUser(config, database);
-    if (!user) return [401, errorBody(ApiErrorCode.UNAUTHORIZED, "Vui lòng đăng nhập")];
+    if (!user) return [401, errorBody(401, "Vui lòng đăng nhập")];
     if (user.role !== UserRole.STORAGE_CUSTOMER) {
-      return [403, errorBody(ApiErrorCode.FORBIDDEN, "Chỉ khách thuê kho có thể đặt chỗ")];
+      return [403, errorBody(403, "Chỉ khách thuê kho có thể đặt chỗ")];
     }
     const input = parseBody<ReservationQuoteInput>(config.data);
     const unit = database.units.find(
       (candidate) =>
         candidate.facilityId === input.facilityId &&
-        candidate.unitType === input.unitType &&
-        candidate.sizeLabel === input.sizeLabel &&
+        candidate.unitTypeId === input.unitTypeId &&
         candidate.status === StorageUnitStatus.AVAILABLE,
     );
     if (!unit) {
-      return [409, errorBody(ApiErrorCode.UNIT_UNAVAILABLE, "Loại kho này vừa hết chỗ")];
+      return [409, errorBody(409, "Loại kho này vừa hết chỗ")];
     }
     const quote: ReservationQuote = {
       id: `quote-${crypto.randomUUID()}`,
       ...input,
+      unitType: unit.unitType,
+      sizeLabel: unit.sizeLabel,
       monthlyPrice: unit.monthlyPrice,
       rentalTotal: unit.monthlyPrice * input.durationMonths,
       depositAmount: unit.monthlyPrice,
@@ -49,34 +52,27 @@ export function registerReservationHandlers(mock: MockAdapter): void {
   mock.onPost("/reservations/confirm").reply((config) => {
     const database = getMockDatabase();
     const user = currentUser(config, database);
-    if (!user) return [401, errorBody(ApiErrorCode.UNAUTHORIZED, "Vui lòng đăng nhập")];
+    if (!user) return [401, errorBody(401, "Vui lòng đăng nhập")];
     if (user.role !== UserRole.STORAGE_CUSTOMER) {
-      return [403, errorBody(ApiErrorCode.FORBIDDEN, "Bạn không có quyền tạo reservation")];
+      return [403, errorBody(403, "Bạn không có quyền tạo reservation")];
     }
     const input = parseBody<ConfirmReservationInput>(config.data);
     const quote = database.quotes.find((candidate) => candidate.id === input.quoteId);
     if (!quote || new Date(quote.expiresAt).getTime() < Date.now()) {
-      return [
-        409,
-        errorBody(ApiErrorCode.RESERVATION_CONFLICT, "Báo giá đã hết hạn, vui lòng tạo lại"),
-      ];
+      return [409, errorBody(409, "Báo giá đã hết hạn, vui lòng tạo lại")];
     }
     if (input.paymentToken === "tok_fail") {
-      return [
-        402,
-        errorBody(ApiErrorCode.PAYMENT_FAILED, "Ngân hàng từ chối giao dịch thử nghiệm"),
-      ];
+      return [402, errorBody(402, "Ngân hàng từ chối giao dịch thử nghiệm")];
     }
     const unit = database.units.find(
       (candidate) =>
         candidate.facilityId === quote.facilityId &&
-        candidate.unitType === quote.unitType &&
-        candidate.sizeLabel === quote.sizeLabel &&
+        candidate.unitTypeId === quote.unitTypeId &&
         candidate.status === StorageUnitStatus.AVAILABLE,
     );
     const facility = database.facilities.find((candidate) => candidate.id === quote.facilityId);
     if (!unit || !facility) {
-      return [409, errorBody(ApiErrorCode.UNIT_UNAVAILABLE, "Kho vừa được khách khác giữ chỗ")];
+      return [409, errorBody(409, "Kho vừa được khách khác giữ chỗ")];
     }
 
     const reservationId = `res-${crypto.randomUUID()}`;
@@ -92,8 +88,9 @@ export function registerReservationHandlers(mock: MockAdapter): void {
     const reservation: Reservation = {
       id: reservationId,
       code: `RS-${String(database.reservations.length + 1).padStart(5, "0")}`,
-      customerId: user.id,
+      userId: user.id,
       facility: hydrateFacility(database, facility),
+      unitTypeId: quote.unitTypeId,
       unitType: quote.unitType,
       sizeLabel: quote.sizeLabel,
       startDate: quote.startDate,
@@ -117,24 +114,24 @@ export function registerReservationHandlers(mock: MockAdapter): void {
   mock.onGet("/reservations/mine").reply((config) => {
     const database = getMockDatabase();
     const user = currentUser(config, database);
-    if (!user) return [401, errorBody(ApiErrorCode.UNAUTHORIZED, "Vui lòng đăng nhập")];
+    if (!user) return [401, errorBody(401, "Vui lòng đăng nhập")];
     if (user.role !== UserRole.STORAGE_CUSTOMER) {
-      return [403, errorBody(ApiErrorCode.FORBIDDEN, "Bạn không có quyền xem dữ liệu này")];
+      return [403, errorBody(403, "Bạn không có quyền xem dữ liệu này")];
     }
-    return [200, envelope(database.reservations.filter((item) => item.customerId === user.id))];
+    return [200, envelope(database.reservations.filter((item) => item.userId === user.id))];
   });
 
   mock.onGet(/\/reservations\/[^/]+$/).reply((config) => {
     const database = getMockDatabase();
     const user = currentUser(config, database);
-    if (!user) return [401, errorBody(ApiErrorCode.UNAUTHORIZED, "Vui lòng đăng nhập")];
+    if (!user) return [401, errorBody(401, "Vui lòng đăng nhập")];
     const reservationId = config.url?.split("/")[2] ?? "";
     const reservation = database.reservations.find((item) => item.id === reservationId);
     if (!reservation) {
-      return [404, errorBody(ApiErrorCode.NOT_FOUND, "Không tìm thấy reservation")];
+      return [404, errorBody(404, "Không tìm thấy reservation")];
     }
-    if (reservation.customerId !== user.id) {
-      return [403, errorBody(ApiErrorCode.FORBIDDEN, "Bạn không có quyền xem reservation này")];
+    if (reservation.userId !== user.id) {
+      return [403, errorBody(403, "Bạn không có quyền xem reservation này")];
     }
     return [200, envelope(reservation)];
   });

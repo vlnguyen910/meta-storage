@@ -1,4 +1,9 @@
-import { ApiErrorCode, type LoginInput, type SessionTokens } from "@storex/contracts";
+import {
+  CustomerSignUpInputSchema,
+  type LoginInput,
+  type SessionTokens,
+} from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import type MockAdapter from "axios-mock-adapter";
 import {
   createSession,
@@ -6,12 +11,39 @@ import {
   envelope,
   errorBody,
   parseBody,
-  publicUser,
+  sessionUser,
   tokenUserId,
 } from "../core/http";
-import { getMockDatabase } from "../database";
+import { getMockDatabase, saveMockDatabase } from "../database";
+import { MOCK_MESSAGES as M } from "../mock.messages";
 
 export function registerAuthHandlers(mock: MockAdapter): void {
+  mock.onPost("/auth/customer-sign-up").reply((config) => {
+    const parsed = CustomerSignUpInputSchema.safeParse(parseBody(config.data));
+    const db = getMockDatabase();
+    if (
+      !parsed.success ||
+      db.users.some((u) => u.email.toLowerCase() === parsed.data.email.toLowerCase())
+    )
+      return [400, errorBody(400, M.invalid)];
+    const { name, email, phone, password } = parsed.data;
+    db.users.push({
+      id: crypto.randomUUID(),
+      name,
+      email: email.toLowerCase(),
+      phone: phone ?? null,
+      password,
+      role: UserRole.STORAGE_CUSTOMER,
+      status: "ACTIVE",
+      emailVerified: false,
+      image: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      assignedFacilityIds: [],
+    });
+    saveMockDatabase(db);
+    return [201, { message: M.registered }];
+  });
   mock.onPost("/auth/login").reply((config) => {
     const database = getMockDatabase();
     const input = parseBody<LoginInput>(config.data);
@@ -22,7 +54,7 @@ export function registerAuthHandlers(mock: MockAdapter): void {
     );
     return user
       ? [200, envelope(createSession(user), "Đăng nhập thành công")]
-      : [401, errorBody(ApiErrorCode.UNAUTHORIZED, "Email hoặc mật khẩu không đúng")];
+      : [401, errorBody(401, "Email hoặc mật khẩu không đúng")];
   });
 
   mock.onPost("/auth/refresh").reply((config) => {
@@ -31,7 +63,7 @@ export function registerAuthHandlers(mock: MockAdapter): void {
     const userId = tokenUserId(body.refreshToken, "refresh");
     const user = database.users.find((candidate) => candidate.id === userId);
     if (!user) {
-      return [401, errorBody(ApiErrorCode.UNAUTHORIZED, "Phiên đăng nhập đã hết hạn")];
+      return [401, errorBody(401, "Phiên đăng nhập đã hết hạn")];
     }
     const session = createSession(user);
     const tokens: SessionTokens = {
@@ -45,14 +77,24 @@ export function registerAuthHandlers(mock: MockAdapter): void {
   mock.onGet("/auth/me").reply((config) => {
     const database = getMockDatabase();
     const user = currentUser(config, database);
-    return user
-      ? [200, envelope(publicUser(user))]
-      : [401, errorBody(ApiErrorCode.UNAUTHORIZED, "Vui lòng đăng nhập")];
+    return user ? [200, envelope(sessionUser(user))] : [401, errorBody(401, "Vui lòng đăng nhập")];
   });
+
+  mock.onPost("/auth/send-verification-email").reply(200, { status: true });
 
   mock.onPost("/auth/logout").reply(200, envelope(null, "Đăng xuất thành công"));
 
   mock
     .onPost("/auth/forgot-password")
     .reply(200, envelope(null, "Nếu email tồn tại, hướng dẫn đã được gửi"));
+
+  mock.onPost("/auth/sign-in/social").reply((config) => {
+    const body = parseBody<{ callbackURL?: string }>(config.data);
+    return [200, { url: body.callbackURL ?? "/login/complete", redirect: true }];
+  });
+
+  mock.onPost("/auth/link-social").reply((config) => {
+    const body = parseBody<{ callbackURL?: string }>(config.data);
+    return [200, { url: body.callbackURL ?? "/login/complete?action=link", redirect: true }];
+  });
 }

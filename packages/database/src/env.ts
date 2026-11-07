@@ -2,7 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import dotenv from "dotenv";
 
-export const DEFAULT_DOCKER_DATABASE_URL = "postgres://postgres:postgres@localhost:5432/storex";
+export const DEFAULT_DOCKER_DATABASE_URL =
+  "postgres://postgres:postgres@localhost:5432/metastorage";
 
 export function getDockerComposeUrl(): string {
   return process.env.DOCKER_DATABASE_URL || DEFAULT_DOCKER_DATABASE_URL;
@@ -17,6 +18,9 @@ export function findApiEnvPath(): string | null {
   const candidates = [
     path.resolve(process.cwd(), "apps/api/.env"),
     path.resolve(process.cwd(), ".env"),
+    // Drizzle Kit bundles its config, so import.meta may refer to that bundle
+    // rather than src/env.ts. Workspace scripts run from packages/database.
+    path.resolve(process.cwd(), "../../apps/api/.env"),
     path.resolve(currentDir, "../../../apps/api/.env"),
   ];
 

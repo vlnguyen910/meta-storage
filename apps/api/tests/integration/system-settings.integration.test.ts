@@ -1,0 +1,418 @@
+import { afterAll, beforeAll, describe, expect, spyOn, test } from "bun:test";
+import { randomUUID } from "node:crypto";
+import { SYSTEM_SETTING_DEFINITIONS } from "@metastorage/contracts/system-settings";
+import {
+  db,
+  eq,
+  facilities,
+  inArray,
+  pricingChanges,
+  queryClient,
+  sql,
+  systemSettingChanges,
+  systemSettings,
+  unitTypes,
+  users,
+} from "@metastorage/database";
+import Fastify from "fastify";
+import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
+import { applyMigrations } from "../../../../packages/database/src/migrate";
+import { seedPricingPolicy } from "../../../../packages/database/src/seed";
+import { setupErrorHandler } from "../../src/common/errors/error-handler";
+import { auth } from "../../src/modules/auth/auth";
+import { PricingRepository } from "../../src/modules/pricing/pricing.repository";
+import { pricingRoutes } from "../../src/modules/pricing/pricing.routes";
+import { SystemSettingsRepository } from "../../src/modules/system-settings/system-settings.repository";
+import { systemSettingsRoutes } from "../../src/modules/system-settings/system-settings.routes";
+import { createTestUnitType, deleteTestUnitTypes } from "../fixtures/facility-catalog";
+import { assertTestDatabase } from "../fixtures/test-database";
+
+const localUrl = process.env.MY_STORAGE_LOCAL_DATABASE_URL;
+describe.skipIf(!localUrl)("unified settings using existing local PostgreSQL", () => {
+  const ids = {
+    admin: randomUUID(),
+    bom: randomUUID(),
+    staff: randomUUID(),
+    type: randomUUID(),
+    facility: randomUUID(),
+  };
+  const roles = {
+    admin: "SYSTEM_ADMIN",
+    bom: "BUSINESS_OPERATION_MANAGER",
+    staff: "FACILITY_STAFF",
+  } as const;
+  const app = Fastify();
+  let session: ReturnType<typeof spyOn<typeof auth.api, "getSession">>;
+  let originals: (typeof systemSettings.$inferSelect)[] = [];
+  let created = false;
+  const request = (
+    role: keyof typeof roles | null,
+    method: "GET" | "PUT" | "PATCH",
+    path: string,
+    payload?: object,
+  ) =>
+    app.inject({
+      method,
+      url: `/api${path}`,
+      headers: role ? { "x-test-role": role } : {},
+      payload,
+    });
+  const row = async (key: (typeof systemSettings.$inferSelect)["key"]) => {
+    const [value] = await db.select().from(systemSettings).where(eq(systemSettings.key, key));
+    if (!value) throw new Error(`Missing local fixture setting ${key}`);
+    return value;
+  };
+
+  beforeAll(async () => {
+    assertTestDatabase(localUrl, process.env, true);
+    originals = await db.select().from(systemSettings);
+    expect(originals.map((setting) => setting.key).sort()).toEqual(
+      Object.keys(SYSTEM_SETTING_DEFINITIONS).sort(),
+    );
+    await db.insert(users).values(
+      Object.entries(roles).map(([key, role]) => ({
+        id: ids[key as keyof typeof roles],
+        name: "Settings integration",
+        email: `${ids[key as keyof typeof roles]}@example.test`,
+        role,
+        status: "ACTIVE" as const,
+      })),
+    );
+    await db
+      .insert(facilities)
+      .values({ id: ids.facility, code: ids.facility, name: "Settings fixture", address: "Test" });
+    await createTestUnitType(db, {
+      facilityId: ids.facility,
+      id: ids.type,
+      code: ids.type,
+      name: "Settings test type",
+      sizeLabel: "S",
+      lengthM: 1,
+      widthM: 1,
+      heightM: 1,
+      monthlyPrice: 123000,
+    });
+    created = true;
+    session = spyOn(auth.api, "getSession").mockImplementation(async ({ headers }) => {
+      const role = new Headers(headers).get("x-test-role") as keyof typeof roles | null;
+      return role && roles[role]
+        ? ({ user: { id: ids[role], role: roles[role], status: "ACTIVE" }, session: {} } as never)
+        : null;
+    });
+    app.decorate("db", db);
+    app.setValidatorCompiler(validatorCompiler);
+    app.setSerializerCompiler(serializerCompiler);
+    setupErrorHandler(app);
+    await app.register(systemSettingsRoutes, { prefix: "/api" });
+    await app.register(pricingRoutes, { prefix: "/api/business-rules" });
+    await app.ready();
+  });
+  afterAll(async () => {
+    await app.close();
+    session?.mockRestore();
+    try {
+      if (created)
+        await db.transaction(async (tx) => {
+          const actors = [ids.admin, ids.bom, ids.staff];
+          await tx
+            .delete(systemSettingChanges)
+            .where(inArray(systemSettingChanges.actorId, actors));
+          await tx.delete(pricingChanges).where(inArray(pricingChanges.changedBy, actors));
+          for (const original of originals)
+            await tx
+              .update(systemSettings)
+              .set(original)
+              .where(eq(systemSettings.key, original.key));
+          await deleteTestUnitTypes(tx, eq(unitTypes.id, ids.type));
+          await tx.delete(facilities).where(eq(facilities.id, ids.facility));
+          await tx.delete(users).where(inArray(users.id, actors));
+        });
+    } finally {
+      await queryClient.end();
+    }
+  });
+
+  test("authorization is per key; Admin cannot read or change BOM financial policy", async () => {
+    expect((await request(null, "GET", "/system-settings")).statusCode).toBe(401);
+    expect((await request("staff", "GET", "/system-settings")).statusCode).toBe(403);
+    const admin = await request("admin", "GET", "/system-settings");
+    expect(admin.headers["cache-control"]).toBe("private, no-store");
+    expect(
+      admin
+        .json()
+        .data.map((r: { key: string }) => r.key)
+        .sort(),
+    ).toEqual(["ABANDONED_REVIEW_DAYS", "EXPIRY_REMINDER_DAYS"]);
+    expect(
+      (await request("bom", "GET", "/system-settings"))
+        .json()
+        .data.map((r: { key: string }) => r.key)
+        .sort(),
+    ).toEqual([
+      "CLOSING_HOUR",
+      "DEPOSIT_MONTHS",
+      "OPENING_HOUR",
+      "OVERDUE_FEE_RATE",
+      "RENEWAL_NOTICE_DAYS",
+    ]);
+    const value = await row("OVERDUE_FEE_RATE");
+    expect(
+      (
+        await request("admin", "PUT", "/system-settings", {
+          key: value.key,
+          value: 10,
+          expectedVersion: value.version,
+        })
+      ).statusCode,
+    ).toBe(403);
+    expect(
+      (await request("admin", "GET", "/system-settings/OVERDUE_FEE_RATE/history")).statusCode,
+    ).toBe(403);
+  });
+
+  test("validation rejects arbitrary keys, wrong types and invalid approved policy bounds", async () => {
+    for (const payload of [
+      { key: "UNREGISTERED", value: 1, expectedVersion: 0 },
+      { key: "EXPIRY_REMINDER_DAYS", value: "7", expectedVersion: 0 },
+      { key: "EXPIRY_REMINDER_DAYS", value: -1, expectedVersion: 0 },
+      { key: "EXPIRY_REMINDER_DAYS", value: 1.5, expectedVersion: 0 },
+      { key: "EXPIRY_REMINDER_DAYS", value: 2147483648, expectedVersion: 0 },
+      { key: "OVERDUE_FEE_RATE", value: 101, expectedVersion: 0 },
+      { key: "DEPOSIT_MONTHS", value: 0, expectedVersion: 1 },
+    ])
+      expect((await request("admin", "PUT", "/system-settings", payload)).statusCode).toBe(400);
+  });
+
+  test("concurrent scalar setting updates share one lock/version and one audit", async () => {
+    const before = await row("EXPIRY_REMINDER_DAYS");
+    const results = await Promise.all([
+      request("admin", "PUT", "/system-settings", {
+        key: before.key,
+        value: 0,
+        expectedVersion: before.version,
+      }),
+      request("admin", "PUT", "/system-settings", {
+        key: before.key,
+        value: 9,
+        expectedVersion: before.version,
+      }),
+    ]);
+    expect(results.map((r) => r.statusCode).sort()).toEqual([200, 409]);
+    const current = await row(before.key);
+    expect(current.version).toBe(before.version + 1);
+    const history = await request(
+      "admin",
+      "GET",
+      `/system-settings/${before.key}/history?limit=1&offset=0`,
+    );
+    expect(history.statusCode).toBe(200);
+    expect(history.json().data[0]).toMatchObject({
+      before: { value: before.value, version: before.version },
+      after: { value: current.value, version: current.version },
+      actorId: ids.admin,
+    });
+    expect(
+      (await request("admin", "GET", "/system-settings"))
+        .json()
+        .data.find((r: { key: string }) => r.key === before.key).value,
+    ).toBe(current.value);
+  });
+
+  test("audit failure rolls back both setting and inserted audit history", async () => {
+    const before = await row("ABANDONED_REVIEW_DAYS");
+    const originalAudit = SystemSettingsRepository.prototype.audit;
+    const audit = spyOn(SystemSettingsRepository.prototype, "audit").mockImplementation(
+      async function (...args) {
+        await originalAudit.apply(this, args);
+        throw new Error("Injected audit failure");
+      },
+    );
+    try {
+      expect(
+        (
+          await request("admin", "PUT", "/system-settings", {
+            key: before.key,
+            value: 3,
+            expectedVersion: before.version,
+          })
+        ).statusCode,
+      ).toBe(500);
+      expect(await row(before.key)).toEqual(before);
+      expect(
+        (await request("admin", "GET", `/system-settings/${before.key}/history`)).json().data,
+      ).toHaveLength(0);
+    } finally {
+      audit.mockRestore();
+    }
+  });
+
+  test("deposit settings share pricing revision without granting Admin approval", async () => {
+    const before = await row("DEPOSIT_MONTHS");
+    expect(
+      (
+        await request("bom", "PUT", "/system-settings", {
+          key: before.key,
+          value: 2,
+          expectedVersion: before.version,
+        })
+      ).statusCode,
+    ).toBe(200);
+    const current = await row(before.key);
+    expect((await request("bom", "GET", "/business-rules/pricing")).json().data).toMatchObject({
+      depositMonths: current.value,
+      version: current.version,
+    });
+    expect((await new PricingRepository(db).findQuote(ids.type))?.depositMonths).toBe(
+      current.value,
+    );
+  });
+
+  test("failed financial audit actor rolls back policy, shared revision and domain history", async () => {
+    const before = await row("DEPOSIT_MONTHS");
+    const history = await db.select().from(pricingChanges);
+    await expect(
+      new PricingRepository(db).updateDeposit(
+        { depositMonths: 3, expectedVersion: before.version },
+        randomUUID(),
+      ),
+    ).rejects.toThrow();
+    expect(await row(before.key)).toEqual(before);
+    expect(await db.select().from(pricingChanges)).toEqual(history);
+  });
+
+  test("repeated policy seed preserves configured value, revision and actor metadata", async () => {
+    const before = await row("DEPOSIT_MONTHS");
+    await seedPricingPolicy();
+    await seedPricingPolicy();
+    expect(await row(before.key)).toEqual(before);
+  });
+
+  test("database constraints preserve integer, percentage and positive deposit invariants", async () => {
+    for (const [key, value] of [
+      ["OVERDUE_FEE_RATE", 101],
+      ["OVERDUE_FEE_RATE", 0.5],
+      ["DEPOSIT_MONTHS", 0],
+      ["EXPIRY_REMINDER_DAYS", "7"],
+    ] as const) {
+      const before = await row(key);
+      await expect(
+        Promise.resolve(
+          db.update(systemSettings).set({ value }).where(eq(systemSettings.key, key)),
+        ),
+      ).rejects.toThrow();
+      expect(await row(key)).toEqual(before);
+    }
+  });
+
+  test("rebased migration hashes skip applied SQL while pending migrations still run", async () => {
+    const table = `settings_rebase_${randomUUID().replaceAll("-", "")}`;
+    const hash = randomUUID();
+    const pendingHash = randomUUID();
+    const timestamp = Date.now() + 1000000000000;
+    const original = {
+      hash,
+      bps: true,
+      folderMillis: timestamp,
+      sql: [`create table ${table} (value integer)`, `insert into ${table} values (1)`],
+    };
+    const rebased = { ...original, folderMillis: timestamp + 2 };
+    const pending = {
+      hash: pendingHash,
+      bps: true,
+      folderMillis: timestamp + 1,
+      sql: [`update ${table} set value = value + 1`],
+    };
+    try {
+      expect(await applyMigrations(db, [original])).toBe(1);
+      expect(await applyMigrations(db, [pending, rebased])).toBe(1);
+      expect(await applyMigrations(db, [pending, rebased])).toBe(0);
+      const [stored] = await db.execute(sql`select value from ${sql.identifier(table)}`);
+      expect(stored?.value).toBe(2);
+      const applied = await db.execute(
+        sql`select created_at from drizzle.__drizzle_migrations where hash = ${hash}`,
+      );
+      expect(applied).toHaveLength(1);
+      expect(Number(applied[0]?.created_at)).toBe(timestamp);
+    } finally {
+      await db.execute(sql`drop table if exists ${sql.identifier(table)}`);
+      await db.execute(
+        sql`delete from drizzle.__drizzle_migrations where hash in (${hash}, ${pendingHash})`,
+      );
+    }
+  });
+
+  test("upgrading an existing enum commits additions before CHECK constraints and safely retries failed DDL", async () => {
+    const suffix = randomUUID().replaceAll("-", "");
+    const enumName = `payment_upgrade_${suffix}`;
+    const table = `payment_upgrade_rows_${suffix}`;
+    const hash = randomUUID();
+    const migration = {
+      hash,
+      bps: true,
+      folderMillis: Date.now() + 1000000000000,
+      sql: [
+        `ALTER TYPE "public"."${enumName}" ADD VALUE 'DEBT_COLLECTION';`,
+        `alter table "${table}" add column migrated boolean default true`,
+        `alter table "${table}" add constraint payment_context check (kind in ('CHARGE', 'DEBT_COLLECTION'))`,
+        "select nonexistent_enum_migration_function()",
+      ],
+    };
+    try {
+      await db.execute(sql.raw(`create type "${enumName}" as enum ('CHARGE')`));
+      await db.execute(sql.raw(`create table "${table}" (kind "${enumName}" not null)`));
+      await db.execute(sql.raw(`insert into "${table}" values ('CHARGE')`));
+      await expect(applyMigrations(db, [migration])).rejects.toThrow();
+      const [column] = await db.execute(
+        sql`select count(*)::int as total from information_schema.columns where table_schema = 'public' and table_name = ${table} and column_name = 'migrated'`,
+      );
+      expect(column?.total).toBe(0);
+      expect(
+        await db.execute(sql`select hash from drizzle.__drizzle_migrations where hash = ${hash}`),
+      ).toHaveLength(0);
+      const [value] = await db.execute(
+        sql`select enumlabel from pg_enum where enumtypid = to_regtype(${enumName}) and enumlabel = 'DEBT_COLLECTION'`,
+      );
+      expect(value?.enumlabel).toBe("DEBT_COLLECTION");
+      const retry = { ...migration, sql: migration.sql.slice(0, -1) };
+      expect(await applyMigrations(db, [retry])).toBe(1);
+      expect(await applyMigrations(db, [retry])).toBe(0);
+      await db.execute(sql.raw(`insert into "${table}" (kind) values ('DEBT_COLLECTION')`));
+      const rows = await db.execute(sql.raw(`select kind, migrated from "${table}" order by kind`));
+      expect(rows).toHaveLength(2);
+      expect(rows[0]?.kind).toBe("CHARGE");
+      expect(rows[1]?.kind).toBe("DEBT_COLLECTION");
+      expect(rows[1]?.migrated).toBe(true);
+    } finally {
+      await db.execute(sql.raw(`drop table if exists "${table}"`));
+      await db.execute(sql.raw(`drop type if exists "${enumName}"`));
+      await db.execute(sql`delete from drizzle.__drizzle_migrations where hash = ${hash}`);
+    }
+  });
+
+  test("migration failure rolls back generated DDL, journal and data writes", async () => {
+    const before = await row("ABANDONED_REVIEW_DAYS");
+    const table = `settings_rollback_${randomUUID().replaceAll("-", "")}`;
+    const hash = randomUUID();
+    await expect(
+      applyMigrations(db, [
+        {
+          hash,
+          bps: true,
+          folderMillis: Date.now() + 1000000000000,
+          sql: [
+            `create table ${table} (id integer)`,
+            `update system_settings set value = '123'::jsonb where key = 'ABANDONED_REVIEW_DAYS'`,
+            "select nonexistent_settings_migration_function()",
+          ],
+        },
+      ]),
+    ).rejects.toThrow();
+    expect(await row(before.key)).toEqual(before);
+    const [exists] = await db.execute(sql`select to_regclass(${table}) as name`);
+    expect(exists?.name).toBeNull();
+    const journalRows = await db.execute(
+      sql`select hash from drizzle.__drizzle_migrations where hash = ${hash}`,
+    );
+    expect(journalRows).toHaveLength(0);
+  });
+});

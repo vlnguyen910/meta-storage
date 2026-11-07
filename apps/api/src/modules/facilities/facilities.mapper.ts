@@ -1,5 +1,9 @@
-import type { ApiFacility, ApiFacilityAssignment, FacilityAssignmentRole } from "@storex/contracts";
-import type { Facility, FacilityAssignment } from "@storex/database";
+import type {
+  ApiFacility,
+  ApiFacilityAssignment,
+  FacilityAssignmentRole,
+} from "@metastorage/contracts";
+import type { Facility, FacilityAssignment } from "@metastorage/database";
 
 export function toApiFacility(facility: Facility): ApiFacility {
   return {
@@ -7,6 +11,7 @@ export function toApiFacility(facility: Facility): ApiFacility {
     code: facility.code,
     name: facility.name,
     address: facility.address,
+    coverUrl: facility.coverUrl,
     description: facility.description,
     isActive: facility.isActive,
     createdAt: facility.createdAt.toISOString(),

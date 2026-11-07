@@ -1,4 +1,4 @@
-# storeX Web Frontend Style Guide
+# metastorage Web Frontend Style Guide
 
 Tài liệu này là nguồn thống nhất cho UI, styling và cách tổ chức code trong `apps/web`.
 Mọi frontend pull request cần tuân theo tài liệu này cùng với `docs/web-patterns.md`.
@@ -43,7 +43,7 @@ src/
 Chiều dependency bắt buộc:
 
 ```text
-app → modules → features → @storex/api-client → @storex/contracts
+app → modules → features → @metastorage/api-client → @metastorage/contracts
               ↘ components / config / lib
 ```
 
@@ -147,7 +147,7 @@ Mỗi card hoặc dialog chỉ nên có một primary action rõ ràng.
 ## 7. Forms và validation
 
 - Form state dùng React Hook Form.
-- Schema validation dùng Zod; ưu tiên schema từ `@storex/contracts` nếu API cũng dùng nó.
+- Schema validation dùng Zod; ưu tiên schema từ `@metastorage/contracts` nếu API cũng dùng nó.
 - Error hiển thị ngay dưới field và mô tả cách sửa, không chỉ ghi “Invalid”.
 - Disable submit khi mutation đang chạy và hiển thị loading indicator.
 - Destructive hoặc irreversible action cần confirmation dialog.

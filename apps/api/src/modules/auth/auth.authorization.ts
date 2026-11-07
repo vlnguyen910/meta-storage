@@ -1,5 +1,6 @@
-import { ROLES, type Role } from "@storex/database";
+import { ROLES, type Role } from "@metastorage/database";
 import { ForbiddenError } from "../../common/errors/app-error";
+import { AUTH_MESSAGES } from "./auth.messages";
 
 type AuthorizationUser = {
   role: string | null | undefined;
@@ -14,7 +15,7 @@ export function assertActiveUser(user: AuthorizationUser): asserts user is Autho
   status: "ACTIVE";
 } {
   if (user.status !== "ACTIVE") {
-    throw new ForbiddenError("Tài khoản này đã bị vô hiệu hóa");
+    throw new ForbiddenError(AUTH_MESSAGES.accountDisabled);
   }
 }
 
@@ -23,6 +24,6 @@ export function assertUserHasRole(
   allowedRoles: readonly Role[],
 ): asserts user is AuthorizationUser & { role: Role } {
   if (!isRole(user.role) || !allowedRoles.includes(user.role)) {
-    throw new ForbiddenError("Bạn không có quyền thực hiện thao tác này");
+    throw new ForbiddenError(AUTH_MESSAGES.permissionDenied);
   }
 }

@@ -1,0 +1,463 @@
+<!DOCTYPE html><html lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=5.0" name="viewport">
+<title>M-P00 — Trang chủ — Guest/Customer | storeX</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Space+Grotesk:wght@600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#125345',
+            'primary-dark': '#0d3d33',
+            'primary-soft': '#E8F3EF',
+            canvas: '#F8FAF9',
+            surface: '#FFFFFF',
+            'border-base': '#BFCAC4',
+            textMain: '#0F172A',
+            textMuted: '#475569'
+          },
+          fontFamily: {
+            heading: ['Space Grotesk', 'sans-serif'],
+            body: ['Be Vietnam Pro', 'sans-serif']
+          },
+          boxShadow: {
+            subtle: '0 1px 2px rgba(15,23,42,0.04)'
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      background-color: #F8FAF9;
+      color: #0F172A;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+    h1, h2, h3, h4, .font-heading {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .card-border {
+      border: 1px solid #BFCAC4;
+      border-radius: 4px;
+    }
+    /* Touch target guarantee */
+    .touch-target {
+      min-height: 44px;
+      min-width: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    /* Drawer animation */
+    #account-drawer {
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  </style>
+</head>
+<body class="bg-canvas text-textMain min-h-screen flex flex-col justify-between selection:bg-primary-soft selection:text-primary">
+<!-- TOP HEADER (Mobile standard 390px) -->
+<header class="sticky top-0 z-40 bg-surface border-b border-border-base px-4 py-2.5 flex items-center justify-between shadow-subtle">
+<!-- Brand Logo -->
+<a aria-label="storeX Trang chủ" class="flex items-center gap-2 touch-target focus:outline-none focus:ring-2 focus:ring-primary rounded" href="#">
+<div aria-hidden="true" class="w-8 h-8 rounded bg-primary text-white flex items-center justify-center font-heading font-bold text-lg leading-none">
+        X
+      </div>
+<div class="flex flex-col">
+<span class="font-heading font-bold text-lg tracking-tight text-primary leading-tight">storeX</span>
+<span class="text-[11px] font-medium text-textMuted leading-none">Tự quản kho</span>
+</div>
+</a>
+<!-- Header Action: Account & Hotline -->
+<div class="flex items-center gap-1.5"><a aria-label="Hotline 028 7300 1188" class="touch-target p-2 text-textMuted hover:text-primary hover:bg-primary-soft rounded focus:outline-none focus:ring-2 focus:ring-primary" href="tel:02873001188"><span aria-hidden="true" class="material-symbols-outlined text-[22px]">call</span></a><a aria-label="Đăng nhập tài khoản" class="touch-target px-3 py-1.5 text-[15px] font-semibold text-primary bg-primary-soft hover:bg-primary hover:text-white rounded transition-colors flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-primary" href="#" onclick="showToast('Đang chuyển tới trang Đăng nhập...'); return false;"><span aria-hidden="true" class="material-symbols-outlined text-[20px]">login</span><span>Đăng nhập</span></a></div>
+</header>
+<!-- MAIN VIEWPORT CONTENT (Fluid 375/390/430px) -->
+<main class="flex-1 w-full mx-auto px-4 py-4 space-y-5">
+<!-- HERO SECTION: Clean headline & Key proposition -->
+<section aria-labelledby="hero-heading" class="space-y-3">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 text-[13px] font-semibold">
+<span aria-hidden="true" class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+<span>Dịch vụ thuê kho tự quản vật lý tại Việt Nam</span>
+</div>
+<h1 class="font-heading font-bold text-[26px] leading-[1.25] text-textMain tracking-tight" id="hero-heading">
+        Lưu trữ đồ đạc an tâm, chủ động mở khóa 24/7
+      </h1>
+<p class="text-[16px] leading-relaxed text-textMuted">
+        Giải pháp kho tự quản cá nhân và gia đình theo buồng riêng biệt. Quy mô linh hoạt từ 2m² đến 6m², sạch sẽ, an ninh khép kín.
+      </p>
+<!-- Useful facility photography card -->
+<div class="card-border overflow-hidden bg-surface relative shadow-subtle group">
+<img alt="Hành lang buồng kho tự quản vật lý StoreX Sài Gòn Central với cửa cuốn kiên cố và ánh sáng tiêu chuẩn" class="w-full h-44 object-cover object-center block" loading="eager" src="https://lh3.googleusercontent.com/aida/AEtjO1XkUDJlRIB_EDzmI1LQmHaMyBD2cWOFqzf_GDKQlFU0eWeF7J5K_0XxJ_tAm7tr-U3LvzjZBa7AWwEDOOxgG5UsPlne9aT0YLPMQ9g66Q6NZZJtgUzZQ_0e6UNzcagxZYxfRb6zwaAP_OnFbEYVX_ZGHdynmP8wRvUHMzpObaEXgTTorsFQOfKkeVoaBt0echX5H5t1GVf3S4b_q6nKggbzTCRIZOcHcCeuJJhMz-P49in07uLao-uDRwFW">
+<div class="p-3 bg-surface border-t border-border-base flex items-center justify-between">
+<div>
+<p class="text-[14px] font-bold text-textMain">Cơ sở vật lý đạt chuẩn an ninh</p>
+<p class="text-[12px] text-textMuted">Cửa cuốn riêng, lối đi thoáng, kiểm soát độ ẩm</p>
+</div>
+<span class="text-[12px] font-bold text-primary bg-primary-soft px-2 py-1 rounded">
+            Từ 900.000 đ/tháng
+          </span>
+</div>
+</div>
+</section>
+<!-- QUICK FIND / SEARCH FACILITY FORM -->
+<section aria-labelledby="search-heading" class="card-border bg-surface p-4 shadow-subtle space-y-3.5">
+<div class="flex items-center justify-between">
+<h2 class="font-heading font-bold text-[18px] text-textMain flex items-center gap-2" id="search-heading">
+<span aria-hidden="true" class="material-symbols-outlined text-primary text-[22px]">warehouse</span>
+<span>Tìm cơ sở kho gần bạn</span>
+</h2>
+<span class="text-[12px] text-textMuted font-medium">4 cơ sở khả dụng</span>
+</div>
+<form class="space-y-3" id="search-form" onsubmit="event.preventDefault(); handleSearch();">
+<!-- City selection -->
+<div>
+<label class="block text-[14px] font-semibold text-textMain mb-1.5" for="select-city">
+            Khu vực / Tỉnh thành
+          </label>
+<div class="relative">
+<select class="w-full h-12 pl-3 pr-10 text-[16px] text-textMain bg-white border border-border-base rounded focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary appearance-none" id="select-city">
+<option selected="" value="hcm">TP. Hồ Chí Minh (3 cơ sở)</option>
+<option value="hn">Hà Nội (1 cơ sở)</option>
+</select>
+<span aria-hidden="true" class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-textMuted pointer-events-none">
+              arrow_drop_down
+            </span>
+</div>
+</div>
+<!-- Keyword search input -->
+<div>
+<label class="block text-[14px] font-semibold text-textMain mb-1.5" for="search-input">
+            Quận huyện hoặc tên đường
+          </label>
+<div class="relative">
+<span aria-hidden="true" class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-textMuted">
+              search
+            </span>
+<input class="w-full h-12 pl-10 pr-3 text-[16px] text-textMain bg-white border border-border-base rounded focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-slate-400" id="search-input" placeholder="VD: Quận 7, Nguyễn Văn Linh, Bình Thạnh..." type="text" value="Quận 7">
+</div>
+</div>
+<!-- Submit Button: Direct navigation to M-P01 -->
+<button class="w-full h-12 bg-primary hover:bg-primary-dark active:bg-[#0a2f26] text-white font-heading font-bold text-[16px] rounded flex items-center justify-center gap-2 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary" type="submit">
+<span>Tìm cơ sở kho ngay</span>
+<span aria-hidden="true" class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button>
+</form>
+<!-- Live Search Feedback (Client-side mock) -->
+<div class="text-[13px] text-textMuted flex items-center justify-between pt-1 border-t border-dashed border-gray-200" id="search-feedback">
+<span>Gợi ý nhanh: <strong class="text-textMain font-semibold">Sài Gòn Central</strong> (Q.7)</span>
+<button class="text-primary font-semibold hover:underline" onclick="document.getElementById('search-input').value='Quận 7'; handleSearch();" type="button">
+          Chọn trạm này
+        </button>
+</div>
+</section>
+<!-- 3 CONCISE REAL SERVICE STEPS -->
+<section aria-labelledby="process-heading" class="card-border bg-surface p-4 shadow-subtle space-y-3.5">
+<div>
+<h2 class="font-heading font-bold text-[18px] text-textMain" id="process-heading">
+          Quy trình thuê kho 3 bước đơn giản
+        </h2>
+<p class="text-[14px] text-textMuted mt-0.5">
+          Rõ ràng, không phát sinh chi phí ngầm, có nhân viên đón tiếp tại cơ sở.
+        </p>
+</div>
+<ol class="space-y-3">
+<!-- Step 1 -->
+<li class="flex items-start gap-3 p-2.5 rounded bg-canvas border border-border-base/60">
+<div aria-hidden="true" class="w-8 h-8 rounded bg-primary text-white font-heading font-bold text-[15px] flex items-center justify-center shrink-0 mt-0.5">
+            1
+          </div>
+<div>
+<h3 class="text-[15px] font-bold text-textMain leading-snug">Chọn loại buồng kho &amp; giữ chỗ</h3>
+<p class="text-[14px] text-textMuted mt-0.5 leading-normal">
+              Tham khảo kích thước 2m², 4m² hoặc 6m². Giữ chỗ trực tuyến tối đa 10 phút để chuẩn bị thanh toán tiền thuê và cọc.
+            </p>
+</div>
+</li>
+<!-- Step 2 -->
+<li class="flex items-start gap-3 p-2.5 rounded bg-canvas border border-border-base/60">
+<div aria-hidden="true" class="w-8 h-8 rounded bg-primary text-white font-heading font-bold text-[15px] flex items-center justify-center shrink-0 mt-0.5">
+            2
+          </div>
+<div>
+<h3 class="text-[15px] font-bold text-textMain leading-snug">Đến trạm check-in &amp; xác minh</h3>
+<p class="text-[14px] text-textMuted mt-0.5 leading-normal">
+              Đến cơ sở trong khung giờ hẹn, xuất trình mã đơn booking đã thanh toán cho nhân viên hiện trường (FS) tại quầy tiếp đón.
+            </p>
+</div>
+</li>
+<!-- Step 3 -->
+<li class="flex items-start gap-3 p-2.5 rounded bg-canvas border border-border-base/60">
+<div aria-hidden="true" class="w-8 h-8 rounded bg-primary text-white font-heading font-bold text-[15px] flex items-center justify-center shrink-0 mt-0.5">
+            3
+          </div>
+<div>
+<h3 class="text-[15px] font-bold text-textMain leading-snug">Khảo sát buồng kho &amp; nhận bàn giao</h3>
+<p class="text-[14px] text-textMuted mt-0.5 leading-normal">
+              Cùng nhân viên nghiệm thu buồng sạch rỗng, nhận bàn giao chìa khóa/thẻ ra vào và bắt đầu lưu trữ an toàn.
+            </p>
+</div>
+</li>
+</ol>
+</section>
+<!-- SAMPLE STORAGE FACILITIES LIST -->
+<section aria-labelledby="facilities-heading" class="space-y-3">
+<div class="flex items-center justify-between">
+<div>
+<h2 class="font-heading font-bold text-[18px] text-textMain" id="facilities-heading">
+            Cơ sở tiêu biểu đang tiếp nhận
+          </h2>
+<p class="text-[13px] text-textMuted">Thông tin thực địa được cập nhật liên tục</p>
+</div>
+<a class="text-[14px] font-bold text-primary hover:underline touch-target" href="#" onclick="handleSearch(); return false;">
+          Xem tất cả (4)
+        </a>
+</div>
+<!-- Facility Card 1: StoreX Sài Gòn Central (Primary Fixture) -->
+<article class="card-border bg-surface p-3.5 shadow-subtle space-y-2.5">
+<div class="flex items-start justify-between gap-2">
+<div>
+<div class="flex items-center gap-1.5 mb-1">
+<span aria-hidden="true" class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+<span class="text-[12px] font-bold text-emerald-700">Đang tiếp nhận khách</span>
+<span class="text-[11px] font-semibold text-textMuted bg-gray-100 px-1.5 py-0.2 rounded border border-gray-200">Mã: SGC</span>
+</div>
+<h3 class="font-heading font-bold text-[17px] text-textMain">
+              StoreX Sài Gòn Central
+            </h3>
+</div>
+<span class="text-[12px] font-semibold text-primary bg-primary-soft px-2 py-0.5 rounded shrink-0">
+            Còn 16 buồng trống
+          </span>
+</div>
+<p class="text-[14px] text-textMuted flex items-start gap-1.5">
+<span aria-hidden="true" class="material-symbols-outlined text-[18px] text-textMuted shrink-0 mt-0.5">location_on</span>
+<span>118 Nguyễn Văn Linh, P. Tân Phong, Quận 7, TP.HCM</span>
+</p>
+<div class="grid grid-cols-2 gap-2 text-[13px] py-1.5 border-y border-border-base/50">
+<div>
+<span class="text-textMuted block text-[12px]">Giờ phục vụ</span>
+<span class="font-semibold text-textMain">08:00 – 20:00 (Hàng ngày)</span>
+</div>
+<div>
+<span class="text-textMuted block text-[12px]">Giá tham khảo</span>
+<span class="font-bold text-primary">Từ 900.000 đ/tháng</span>
+</div>
+</div>
+<div class="flex items-center gap-2 pt-1">
+<a aria-label="Xem chi tiết cơ sở StoreX Sài Gòn Central và đặt kho" class="flex-1 h-11 bg-primary hover:bg-primary-dark text-white font-heading font-bold text-[15px] rounded flex items-center justify-center gap-1.5 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary" href="#" onclick="handleSearch(); return false;">
+<span>Xem cơ sở &amp; Đặt buồng</span>
+<span aria-hidden="true" class="material-symbols-outlined text-[18px]">chevron_right</span>
+</a>
+<a aria-label="Gọi hotline cơ sở Sài Gòn Central: 028 7300 1188" class="h-11 px-3 border border-border-base bg-white hover:bg-gray-50 text-textMain rounded flex items-center justify-center touch-target focus:outline-none focus:ring-2 focus:ring-primary" href="tel:02873001188">
+<span aria-hidden="true" class="material-symbols-outlined text-[20px] text-textMuted">call</span>
+</a>
+</div>
+</article>
+<!-- Facility Card 2: StoreX Bình Thạnh Landmark -->
+<article class="card-border bg-surface p-3.5 shadow-subtle space-y-2.5">
+<div class="flex items-start justify-between gap-2">
+<div>
+<div class="flex items-center gap-1.5 mb-1">
+<span aria-hidden="true" class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+<span class="text-[12px] font-bold text-emerald-700">Đang tiếp nhận khách</span>
+<span class="text-[11px] font-semibold text-textMuted bg-gray-100 px-1.5 py-0.2 rounded border border-gray-200">Mã: BTL</span>
+</div>
+<h3 class="font-heading font-bold text-[17px] text-textMain">
+              StoreX Bình Thạnh Landmark
+            </h3>
+</div>
+<span class="text-[12px] font-semibold text-primary bg-primary-soft px-2 py-0.5 rounded shrink-0">
+            Còn 14 buồng trống
+          </span>
+</div>
+<p class="text-[14px] text-textMuted flex items-start gap-1.5">
+<span aria-hidden="true" class="material-symbols-outlined text-[18px] text-textMuted shrink-0 mt-0.5">location_on</span>
+<span>45 Điện Biên Phủ, P. 25, Q. Bình Thạnh, TP.HCM</span>
+</p>
+<div class="flex items-center justify-between text-[13px] py-1 border-t border-border-base/50">
+<span class="text-textMuted">Giá tham khảo: <strong class="text-primary font-bold">Từ 950.000 đ/tháng</strong></span>
+<a class="text-primary font-bold hover:underline touch-target" href="#" onclick="handleSearch(); return false;">
+            Xem cơ sở →
+          </a>
+</div>
+</article>
+<!-- Facility Card 3: StoreX Cầu Giấy TechHub (Hà Nội) -->
+<article class="card-border bg-surface p-3.5 shadow-subtle space-y-2.5">
+<div class="flex items-start justify-between gap-2">
+<div>
+<div class="flex items-center gap-1.5 mb-1">
+<span aria-hidden="true" class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+<span class="text-[12px] font-bold text-emerald-700">Đang tiếp nhận khách</span>
+<span class="text-[11px] font-semibold text-textMuted bg-gray-100 px-1.5 py-0.2 rounded border border-gray-200">Mã: CGT</span>
+</div>
+<h3 class="font-heading font-bold text-[17px] text-textMain">
+              StoreX Cầu Giấy TechHub
+            </h3>
+</div>
+<span class="text-[12px] font-semibold text-primary bg-primary-soft px-2 py-0.5 rounded shrink-0">
+            Còn 10 buồng trống
+          </span>
+</div>
+<p class="text-[14px] text-textMuted flex items-start gap-1.5">
+<span aria-hidden="true" class="material-symbols-outlined text-[18px] text-textMuted shrink-0 mt-0.5">location_on</span>
+<span>88 Duy Tân, Dịch Vọng Hậu, Cầu Giấy, Hà Nội</span>
+</p>
+<div class="flex items-center justify-between text-[13px] py-1 border-t border-border-base/50">
+<span class="text-textMuted">Giá tham khảo: <strong class="text-primary font-bold">Từ 850.000 đ/tháng</strong></span>
+<a class="text-primary font-bold hover:underline touch-target" href="#" onclick="handleSearch(); return false;">
+            Xem cơ sở →
+          </a>
+</div>
+</article>
+</section>
+<!-- CONTEXTUAL HELP ACCORDION (Nielsen 10: Concrete steps, no extra screen) -->
+<section aria-labelledby="faq-heading" class="card-border bg-surface p-3.5 shadow-subtle">
+<h2 class="font-heading font-bold text-[16px] text-textMain mb-2.5 flex items-center gap-2" id="faq-heading">
+<span aria-hidden="true" class="material-symbols-outlined text-primary text-[20px]">help</span>
+<span>Giải đáp nhanh cho khách hàng mới</span>
+</h2>
+<div class="space-y-2">
+<!-- Question 1 -->
+<details class="group border border-border-base/60 rounded overflow-hidden">
+<summary class="p-3 bg-canvas cursor-pointer font-semibold text-[15px] text-textMain flex items-center justify-between touch-target focus:outline-none focus:ring-2 focus:ring-primary">
+<span>Tiền đặt cọc được tính thế nào?</span>
+<span aria-hidden="true" class="material-symbols-outlined text-textMuted group-open:rotate-180 transition-transform text-[20px]">expand_more</span>
+</summary>
+<div class="p-3 bg-surface text-[14px] text-textMuted leading-relaxed border-t border-border-base/40">
+            Tiền đặt cọc bảo đảm bằng đúng 01 tháng tiền thuê buồng kho (tối thiểu 900.000 đ). Tiền cọc được tách bạch riêng trên phiếu thu và sẽ hoàn trả đầy đủ khi thanh lý hợp đồng đúng quy chuẩn.
+          </div>
+</details>
+<!-- Question 2 -->
+<details class="group border border-border-base/60 rounded overflow-hidden">
+<summary class="p-3 bg-canvas cursor-pointer font-semibold text-[15px] text-textMain flex items-center justify-between touch-target focus:outline-none focus:ring-2 focus:ring-primary">
+<span>Khách hàng vãng lai có cần tạo tài khoản ngay?</span>
+<span aria-hidden="true" class="material-symbols-outlined text-textMuted group-open:rotate-180 transition-transform text-[20px]">expand_more</span>
+</summary>
+<div class="p-3 bg-surface text-[14px] text-textMuted leading-relaxed border-t border-border-base/40">
+            Bạn có thể thoải mái tìm kiếm cơ sở, xem thông số buồng kho và giữ chỗ với tư cách Khách vãng lai (Guest). Tài khoản khách hàng sẽ được tạo nhanh tại bước xác nhận số điện thoại khi thanh toán.
+          </div>
+</details>
+<!-- Question 3 -->
+<details class="group border border-border-base/60 rounded overflow-hidden">
+<summary class="p-3 bg-canvas cursor-pointer font-semibold text-[15px] text-textMain flex items-center justify-between touch-target focus:outline-none focus:ring-2 focus:ring-primary">
+<span>Thời gian giữ chỗ trực tuyến kéo dài bao lâu?</span>
+<span aria-hidden="true" class="material-symbols-outlined text-textMuted group-open:rotate-180 transition-transform text-[20px]">expand_more</span>
+</summary>
+<div class="p-3 bg-surface text-[14px] text-textMuted leading-relaxed border-t border-border-base/40">
+            Mỗi phiếu giữ chỗ tạm thời có hiệu lực tối đa 10 phút để đảm bảo buồng kho không bị xung đột. Sau khi hoàn tất chuyển khoản hoặc thanh toán, đơn đặt chính thức sẽ được kích hoạt với mã định danh BK-.
+          </div>
+</details>
+</div>
+</section>
+<!-- FOOTER INFO / LEGAL / TRANSPARENCY -->
+<footer class="pt-3 pb-8 text-center text-textMuted text-[13px] space-y-2 border-t border-border-base/50">
+<div class="flex items-center justify-center gap-2">
+<span class="font-heading font-bold text-primary">storeX</span>
+<span>•</span>
+<span>Hệ thống kho tự quản vật lý</span>
+</div>
+<p class="leading-normal">
+        Hotline nội bộ mạng lưới: <a class="font-bold text-textMain hover:underline" href="tel:02873001188">028 7300 1188</a> (08:00 – 20:00)
+      </p>
+<p class="text-[12px] text-slate-500">
+        © 2026 StoreX Technologies. Dữ liệu thử nghiệm giao diện di động.
+      </p>
+</footer>
+</main>
+<!-- BOTTOM NAVIGATION BAR (Guest / Customer Mobile standard) -->
+<nav aria-label="Thanh điều hướng chính" class="sticky bottom-0 z-40 bg-surface border-t border-border-base px-3 py-1 flex items-center justify-around shadow-lg safe-bottom"><a aria-current="page" class="touch-target flex flex-col items-center justify-center py-1 text-primary font-bold focus:outline-none" href="#"><span aria-hidden="true" class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">home</span><span class="text-[12px] leading-tight mt-0.5">Trang chủ</span></a><a class="touch-target flex flex-col items-center justify-center py-1 text-textMuted hover:text-primary font-semibold focus:outline-none" href="#" onclick="handleSearch(); return false;"><span aria-hidden="true" class="material-symbols-outlined text-[24px]">warehouse</span><span class="text-[12px] leading-tight mt-0.5">Tìm kho</span></a><a class="touch-target flex flex-col items-center justify-center py-1 text-textMuted hover:text-primary font-semibold focus:outline-none" href="#faq-heading"><span aria-hidden="true" class="material-symbols-outlined text-[24px]">help</span><span class="text-[12px] leading-tight mt-0.5">Trợ giúp</span></a><a class="touch-target flex flex-col items-center justify-center py-1 text-textMuted hover:text-primary font-semibold focus:outline-none" href="#" onclick="showToast('Đang mở màn hình Đăng nhập...'); return false;"><span aria-hidden="true" class="material-symbols-outlined text-[24px]">account_circle</span><span class="text-[12px] leading-tight mt-0.5">Đăng nhập</span></a></nav>
+<!-- ACCOUNT / AUTH DRAWER SHEET (In-screen modal without opening external modules) -->
+<!-- IN-PAGE TOAST / FEEDBACK ANNOUNCEMENT -->
+<div aria-live="polite" class="fixed top-14 left-1/2 -translate-x-1/2 max-w-[360px] w-[90%] bg-textMain text-white px-3.5 py-2.5 rounded shadow-lg text-[14px] font-medium z-50 flex items-center gap-2 transform -translate-y-10 opacity-0 pointer-events-none transition-all duration-200" id="live-toast" role="status">
+<span aria-hidden="true" class="material-symbols-outlined text-emerald-400 text-[20px]">check_circle</span>
+<span id="toast-message">Đang chuyển tiếp tới danh sách cơ sở kho...</span>
+</div>
+<script>
+    // Drawer interaction logic
+    const drawer = document.getElementById('account-drawer');
+    const overlay = document.getElementById('account-overlay');
+    const openBtn = document.getElementById('open-account-btn');
+    const bottomAccountBtn = document.getElementById('bottom-account-btn');
+    const closeBtn = document.getElementById('close-drawer-btn');
+    const guestView = document.getElementById('drawer-guest-view');
+    const signedView = document.getElementById('drawer-signed-view');
+
+    function openDrawer() {
+      overlay.classList.remove('hidden');
+      setTimeout(() => {
+        overlay.classList.remove('opacity-0');
+        drawer.classList.remove('translate-y-full');
+      }, 10);
+      openBtn.setAttribute('aria-expanded', 'true');
+    }
+
+    function closeDrawer() {
+      drawer.classList.add('translate-y-full');
+      overlay.classList.add('opacity-0');
+      setTimeout(() => {
+        overlay.classList.add('hidden');
+      }, 250);
+      openBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    openBtn.addEventListener('click', openDrawer);
+    bottomAccountBtn.addEventListener('click', openDrawer);
+    closeBtn.addEventListener('click', closeDrawer);
+    overlay.addEventListener('click', closeDrawer);
+
+    // Escape key closes drawer
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeDrawer();
+    });
+
+    // Simulated login state
+    function simulateLogin() {
+      guestView.classList.add('hidden');
+      signedView.classList.remove('hidden');
+      showToast('Đã đăng nhập tài khoản: Nguyễn Minh Anh');
+    }
+
+    function simulateLogout() {
+      signedView.classList.add('hidden');
+      guestView.classList.remove('hidden');
+      showToast('Đã chuyển về trạng thái Khách vãng lai (Guest)');
+    }
+
+    // Search navigation simulation to M-P01
+    function handleSearch() {
+      const city = document.getElementById('select-city').value;
+      const kw = document.getElementById('search-input').value.trim();
+      showToast(`Đang chuyển tới M-P01: Tìm thấy cơ sở phù hợp tại ${kw || 'khu vực đã chọn'}`);
+    }
+
+    // Accessible Toast helper
+    function showToast(msg) {
+      const toast = document.getElementById('live-toast');
+      const toastMsg = document.getElementById('toast-message');
+      toastMsg.textContent = msg;
+      toast.classList.remove('-translate-y-10', 'opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        toast.classList.add('-translate-y-10', 'opacity-0', 'pointer-events-none');
+      }, 3000);
+    }
+  </script>
+
+
+</body></html>

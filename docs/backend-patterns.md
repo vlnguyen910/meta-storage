@@ -50,7 +50,7 @@ apps/api/src/
 │   │   ├── booking.routes.ts              # Đăng ký HTTP endpoints (/api/bookings)
 │   │   ├── booking.service.ts             # Business logic: validate dates, tính giá, chuyển trạng thái
 │   │   ├── booking.repository.ts          # Truy vấn Drizzle: findById, create, updateWithLock
-│   │   ├── booking.state-machine.ts       # Định nghĩa transitions: DRAFT → CONFIRMED → COMPLETED
+│   │   ├── booking.state-machine.ts       # Định nghĩa transitions theo policy Booking đã chốt
 │   │   ├── booking.schemas.ts             # Zod validation schema cho request body & query
 │   │   └── booking.types.ts               # Types nội bộ của module booking
 │   │
@@ -91,6 +91,8 @@ apps/api/src/
 ```
 
 ### Minh họa luồng thực thi trong một Domain (Ví dụ: Xác nhận Booking)
+
+Các transition cancellation, reschedule và no-show đã chốt nằm tại [Booking policy](./booking-cancellation-policy.md).
 
 ```text
 [HTTP Request: POST /api/bookings/:id/confirm]

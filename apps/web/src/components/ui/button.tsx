@@ -1,7 +1,8 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import type { ButtonProps, ButtonVariant } from "./button.types";
+import { Spinner } from "./spinner";
 
-type ButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "danger";
+export type { ButtonProps } from "./button.types";
 
 const baseClasses =
   "inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border-0 px-[18px] font-bold transition duration-150 hover:not-disabled:-translate-y-px focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ring/45 disabled:cursor-not-allowed disabled:opacity-[0.55]";
@@ -16,12 +17,6 @@ const variantClasses: Record<ButtonVariant, string> = {
 
 export function buttonClassName(variant: ButtonVariant = "primary", className?: string): string {
   return cn(baseClasses, variantClasses[variant], className);
-}
-
-export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: ButtonVariant;
-  loading?: boolean;
-  icon?: ReactNode;
 }
 
 export function Button({
@@ -39,14 +34,7 @@ export function Button({
       disabled={disabled || loading}
       {...props}
     >
-      {loading ? (
-        <span
-          className="size-[18px] animate-spin rounded-full border-2 border-current border-r-transparent"
-          aria-hidden="true"
-        />
-      ) : (
-        icon
-      )}
+      {loading ? <Spinner variant="button" className="size-[18px]" /> : icon}
       {children}
     </button>
   );

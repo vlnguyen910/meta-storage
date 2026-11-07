@@ -9,7 +9,7 @@ test.beforeEach(async ({ page }) => {
 
 test("customer completes a reservation and keeps it after reload", async ({ page }) => {
   await page.getByRole("link", { name: "Đặt kho mới" }).click();
-  await page.getByRole("button", { name: /storeX Sài Gòn Central/ }).click();
+  await page.getByRole("button", { name: /metastorage Sài Gòn Central/ }).click();
   await page.getByRole("button", { name: "Tiếp tục" }).click();
   await page
     .getByRole("button", { name: /2 m².*Kho tiêu chuẩn/ })

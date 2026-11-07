@@ -7,6 +7,7 @@ const corsPluginAsync: FastifyPluginAsync = async (fastify) => {
   await fastify.register(cors, {
     origin: env.CORS_ORIGIN.split(",").map((origin) => origin.trim()),
     credentials: true,
+    exposedHeaders: ["Content-Disposition"],
   });
 };
 

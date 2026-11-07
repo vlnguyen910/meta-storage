@@ -1,149 +1,212 @@
-import type { ApiFacility, ApiFacilityAssignment } from "@storex/contracts";
-import { BadRequestError, ConflictError, NotFoundError } from "../../common/errors/app-error";
-import type { UsersRepository } from "../users/users.repository";
-import { toApiFacility, toApiFacilityAssignment } from "./facilities.mapper";
+import {
+  ActivityLogAction,
+  ActivityLogEntityType,
+  type CreateFacilityBody,
+  type FacilityCatalogQuery,
+  type FacilityOperatingHours,
+  type UpdateFacilityBody,
+} from "@metastorage/contracts";
+import type { Facility } from "@metastorage/database";
+import {
+  AppError,
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+} from "../../common/errors/app-error";
+import { beginActivity } from "../activity-logs/activity-logs.service";
+import type { FacilityListScope, FacilityScope } from "./facilities.access";
+import { FACILITY_MESSAGES } from "./facilities.messages";
 import type { FacilitiesRepository } from "./facilities.repository";
-import type {
-  CreateAssignmentBody,
-  CreateFacilityBody,
-  UpdateFacilityBody,
-} from "./facilities.schema";
 
 export class FacilitiesService {
-  constructor(
-    private readonly facilitiesRepository: FacilitiesRepository,
-    private readonly usersRepository: UsersRepository,
-  ) {}
+  constructor(private readonly facilitiesRepository: FacilitiesRepository) {}
 
-  async createFacility(input: CreateFacilityBody): Promise<ApiFacility> {
+  async catalog(query: FacilityCatalogQuery) {
+    const search = query.search?.trim().toLocaleLowerCase("vi");
+    const city = query.city?.trim().toLocaleLowerCase("vi");
+    const rows = (await this.facilitiesRepository.catalog()).filter(
+      ({ facility: f }) =>
+        (!search || `${f.name} ${f.address}`.toLocaleLowerCase("vi").includes(search)) &&
+        (!city || f.address.toLocaleLowerCase("vi").includes(city)),
+    );
+    rows.sort((a, b) =>
+      query.sort === "price"
+        ? (a.startingMonthlyPrice ?? Infinity) - (b.startingMonthlyPrice ?? Infinity) ||
+          a.facility.name.localeCompare(b.facility.name, "vi")
+        : a.facility.name.localeCompare(b.facility.name, "vi"),
+    );
+    const page = Number(query.page ?? 1),
+      pageSize = Number(query.pageSize ?? 20);
+    return {
+      items: rows.slice((page - 1) * pageSize, page * pageSize),
+      page,
+      pageSize,
+      total: rows.length,
+      totalPages: Math.max(1, Math.ceil(rows.length / pageSize)),
+    };
+  }
+
+  async requireActiveFacility(facilityId: string): Promise<Facility> {
+    const facility = await this.facilitiesRepository.findById(facilityId);
+    if (!facility?.isActive) throw new NotFoundError(FACILITY_MESSAGES.facilityUnavailable);
+    return facility;
+  }
+
+  async assertCheckInWithinOperatingHours(_facilityId: string, checkInAt: Date): Promise<void> {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Ho_Chi_Minh",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).formatToParts(checkInAt);
+    const get = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
+    const time = `${get("hour")}:${get("minute")}:00`;
+    const hours = await this.getOperatingHours();
+    const openTime = `${String(hours.openingHour).padStart(2, "0")}:00:00`;
+    const closeTime = `${String(hours.closingHour).padStart(2, "0")}:00:00`;
+    if (time < openTime || time > closeTime) {
+      throw new AppError(
+        FACILITY_MESSAGES.checkInOutsideOperatingHours(openTime, closeTime),
+        400,
+        "CHECK_IN_OUTSIDE_HOURS",
+        [
+          {
+            field: "checkInSlotId",
+            message: FACILITY_MESSAGES.checkInOutsideOperatingHours(openTime, closeTime),
+          },
+        ],
+      );
+    }
+  }
+
+  async getOperatingHours(): Promise<FacilityOperatingHours> {
+    const hours = await this.facilitiesRepository.globalOperatingHours();
+    return {
+      openingHour: hours?.openingHour ?? 6,
+      closingHour: hours?.closingHour ?? 22,
+    };
+  }
+
+  async createFacility(input: CreateFacilityBody): Promise<Facility> {
+    const activity = beginActivity({
+      action: ActivityLogAction.CREATE,
+      entityType: ActivityLogEntityType.FACILITY,
+      entityId: null,
+      description: "Create facility",
+    });
     const existing = await this.facilitiesRepository.findByCode(input.code);
     if (existing) {
-      throw new ConflictError(`Cơ sở với mã "${input.code}" đã tồn tại`);
+      throw new ConflictError(FACILITY_MESSAGES.facilityCodeAlreadyExists(input.code));
     }
 
     const facility = await this.facilitiesRepository.createFacility({
       code: input.code,
       name: input.name,
       address: input.address,
+      coverUrl: input.coverUrl,
       description: input.description,
       isActive: input.isActive ?? true,
     });
 
-    return toApiFacility(facility);
+    activity.entityId = facility.id;
+    activity.facilityId = facility.id;
+    activity.changed = true;
+    return facility;
   }
 
-  async getFacilityById(id: string): Promise<ApiFacility> {
-    const facility = await this.facilitiesRepository.findById(id);
+  async getFacilityById(id: string, scope: FacilityScope): Promise<Facility> {
+    const facility = await this.facilitiesRepository.findAccessibleById(id, scope);
     if (!facility) {
-      throw new NotFoundError(`Không tìm thấy cơ sở với id "${id}"`);
+      if (scope.kind === "assigned")
+        throw new ForbiddenError(FACILITY_MESSAGES.facilityAccessDenied);
+      throw new NotFoundError(FACILITY_MESSAGES.facilityNotFound(id));
     }
-    return toApiFacility(facility);
+    return facility;
   }
 
-  async listFacilities(limit: number, offset: number, isActive?: boolean): Promise<ApiFacility[]> {
-    const list = await this.facilitiesRepository.list(limit, offset, isActive);
-    return list.map(toApiFacility);
+  async listFacilities(
+    limit: number,
+    offset: number,
+    isActive: boolean | undefined,
+    scope: FacilityListScope,
+  ): Promise<Facility[]> {
+    const list = await this.facilitiesRepository.listAccessible(limit, offset, isActive, scope);
+    return list;
   }
 
-  async updateFacility(id: string, input: UpdateFacilityBody): Promise<ApiFacility> {
-    const existing = await this.facilitiesRepository.findById(id);
+  async getAllActiveFacilities(limit: number, offset: number): Promise<Facility[]> {
+    const isActive: boolean = true;
+    const list = await this.facilitiesRepository.getAllFacilities(limit, offset, isActive);
+    return list;
+  }
+
+  async updateFacility(
+    id: string,
+    input: UpdateFacilityBody,
+    scope: FacilityScope,
+  ): Promise<Facility> {
+    const activity = Object.entries(input).some(
+      ([key, value]) => key !== "isActive" && value !== undefined,
+    )
+      ? beginActivity({
+          action: ActivityLogAction.UPDATE,
+          entityType: ActivityLogEntityType.FACILITY,
+          entityId: id,
+          facilityId: id,
+          description: "Update facility",
+        })
+      : undefined;
+    const statusActivity =
+      input.isActive === undefined
+        ? undefined
+        : beginActivity({
+            action: ActivityLogAction.CHANGE_STATUS,
+            entityType: ActivityLogEntityType.FACILITY,
+            entityId: id,
+            facilityId: id,
+            description: input.isActive ? "Activate facility" : "Deactivate facility",
+          });
+    this.assertManagerScope(scope);
+    const existing = await this.facilitiesRepository.findAccessibleById(id, scope);
     if (!existing) {
-      throw new NotFoundError(`Không tìm thấy cơ sở với id "${id}"`);
+      if (scope.kind === "assigned")
+        throw new ForbiddenError(FACILITY_MESSAGES.facilityAccessDenied);
+      throw new NotFoundError(FACILITY_MESSAGES.facilityNotFound(id));
     }
 
     if (input.code && input.code !== existing.code) {
       const codeDuplicate = await this.facilitiesRepository.findByCode(input.code);
       if (codeDuplicate) {
-        throw new ConflictError(`Cơ sở với mã "${input.code}" đã tồn tại`);
+        throw new ConflictError(FACILITY_MESSAGES.facilityCodeAlreadyExists(input.code));
       }
     }
 
-    const updated = await this.facilitiesRepository.update(id, input);
+    if (
+      existing.isActive &&
+      input.isActive === false &&
+      (await this.facilitiesRepository.hasOpenOperations(id))
+    ) {
+      throw new ConflictError(FACILITY_MESSAGES.facilityHasOpenBookings);
+    }
+
+    const updated = await this.facilitiesRepository.updateAccessible(id, input, scope);
     if (!updated) {
-      throw new NotFoundError(`Không tìm thấy cơ sở với id "${id}"`);
+      if (scope.kind === "assigned")
+        throw new ForbiddenError(FACILITY_MESSAGES.facilityAccessDenied);
+      throw new NotFoundError(FACILITY_MESSAGES.facilityNotFound(id));
     }
-    return toApiFacility(updated);
+    if (activity)
+      activity.changed = Object.entries(input).some(
+        ([key, value]) =>
+          key !== "isActive" && value !== undefined && existing[key as keyof Facility] !== value,
+      );
+    if (statusActivity) statusActivity.changed = updated.isActive !== existing.isActive;
+    return updated;
   }
 
-  async assignUserToFacility(
-    facilityId: string,
-    input: CreateAssignmentBody,
-  ): Promise<ApiFacilityAssignment> {
-    const facility = await this.facilitiesRepository.findById(facilityId);
-    if (!facility) {
-      throw new NotFoundError(`Không tìm thấy cơ sở với id "${facilityId}"`);
+  private assertManagerScope(scope: FacilityScope): void {
+    if (scope.kind === "assigned" && scope.role !== "FACILITY_MANAGER") {
+      throw new ForbiddenError(FACILITY_MESSAGES.facilityOperationDenied);
     }
-
-    const user = await this.usersRepository.findById(input.userId);
-    if (!user) {
-      throw new NotFoundError(`Không tìm thấy người dùng với id "${input.userId}"`);
-    }
-
-    if (user.status !== "ACTIVE") {
-      throw new BadRequestError("Không thể phân công cho tài khoản đang bị vô hiệu hóa");
-    }
-
-    const assignment = await this.facilitiesRepository.upsertAssignment({
-      facilityId,
-      userId: input.userId,
-      role: input.role,
-      isActive: true,
-    });
-
-    return toApiFacilityAssignment(assignment, {
-      userName: user.name,
-      userEmail: user.email,
-      facilityName: facility.name,
-      facilityCode: facility.code,
-    });
-  }
-
-  async revokeAssignment(facilityId: string, userId: string): Promise<ApiFacilityAssignment> {
-    const existing = await this.facilitiesRepository.findAssignment(facilityId, userId);
-    if (!existing) {
-      throw new NotFoundError("Không tìm thấy phân công nhân sự tương ứng");
-    }
-
-    const deactivated = await this.facilitiesRepository.deactivateAssignment(facilityId, userId);
-    if (!deactivated) {
-      throw new NotFoundError("Không tìm thấy phân công nhân sự tương ứng");
-    }
-
-    return toApiFacilityAssignment(deactivated);
-  }
-
-  async listFacilityAssignments(
-    facilityId: string,
-    limit: number,
-    offset: number,
-  ): Promise<ApiFacilityAssignment[]> {
-    const facility = await this.facilitiesRepository.findById(facilityId);
-    if (!facility) {
-      throw new NotFoundError(`Không tìm thấy cơ sở với id "${facilityId}"`);
-    }
-
-    const rows = await this.facilitiesRepository.listAssignmentsWithUsers(
-      facilityId,
-      limit,
-      offset,
-    );
-    return rows.map(({ assignment, userName, userEmail }) =>
-      toApiFacilityAssignment(assignment, {
-        userName,
-        userEmail,
-        facilityName: facility.name,
-        facilityCode: facility.code,
-      }),
-    );
-  }
-
-  async listUserAssignments(userId: string): Promise<ApiFacilityAssignment[]> {
-    const rows = await this.facilitiesRepository.listUserAssignmentsWithFacilities(userId);
-    return rows.map(({ assignment, facilityName, facilityCode }) =>
-      toApiFacilityAssignment(assignment, {
-        facilityName,
-        facilityCode,
-      }),
-    );
   }
 }

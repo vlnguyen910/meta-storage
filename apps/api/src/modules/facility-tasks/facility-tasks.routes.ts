@@ -1,0 +1,105 @@
+import {
+  CreateFacilityTaskSchema,
+  FacilityTaskListQuerySchema,
+  FacilityTaskParamsSchema,
+  FacilityTaskStatus,
+  FACILITY_TASK_MESSAGES as m,
+  StaffFacilityTaskListQuerySchema,
+  UpdateFacilityTaskSchema,
+} from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
+import type { FastifyPluginAsync, FastifyRequest } from "fastify";
+import type { ZodTypeProvider } from "fastify-type-provider-zod";
+import { UnauthorizedError } from "../../common/errors/app-error";
+import { successResponse } from "../../common/response/api-response";
+import { requireRole } from "../auth/auth.guard";
+import { createFacilityTasksService } from "./facility-tasks.service";
+import { facilityTaskSwaggerTransform } from "./facility-tasks.swagger";
+
+export const facilityTasksRoutes: FastifyPluginAsync = async (app) => {
+  const typed = app.withTypeProvider<ZodTypeProvider>();
+  const service = createFacilityTasksService(app.db);
+
+  app.addHook("onRequest", async (_request, reply) => {
+    reply.header("Cache-Control", "private, no-store");
+  });
+
+  typed.get(
+    "/dashboard/my",
+    {
+      config: { swaggerTransform: facilityTaskSwaggerTransform("dashboard") },
+      preHandler: [requireRole(UserRole.FACILITY_STAFF)],
+      schema: { tags: ["Facility Tasks"], summary: m.myDashboardSummary },
+    },
+    async (request) => successResponse(await service.dashboardForStaff(actor(request))),
+  );
+
+  typed.post(
+    "/",
+    {
+      config: { swaggerTransform: facilityTaskSwaggerTransform("create") },
+      preHandler: [requireRole(UserRole.FACILITY_MANAGER)],
+      schema: {
+        tags: ["Facility Tasks"],
+        summary: m.createSummary,
+        body: CreateFacilityTaskSchema,
+      },
+    },
+    async (request, reply) =>
+      reply.status(201).send(successResponse(await service.create(request.body, actor(request)))),
+  );
+
+  typed.get(
+    "/my",
+    {
+      config: { swaggerTransform: facilityTaskSwaggerTransform("list") },
+      preHandler: [requireRole(UserRole.FACILITY_STAFF)],
+      schema: {
+        tags: ["Facility Tasks"],
+        summary: m.myTasksSummary,
+        querystring: StaffFacilityTaskListQuerySchema,
+      },
+    },
+    async (request) => successResponse(await service.listMineTask(request.query, actor(request))),
+  );
+
+  typed.get(
+    "/facility",
+    {
+      config: { swaggerTransform: facilityTaskSwaggerTransform("list") },
+      preHandler: [requireRole(UserRole.FACILITY_MANAGER)],
+      schema: {
+        tags: ["Facility Tasks"],
+        summary: m.facilityTasksSummary,
+        querystring: FacilityTaskListQuerySchema,
+      },
+    },
+    async (request) => successResponse(await service.listFacility(request.query, actor(request))),
+  );
+
+  typed.patch(
+    "/:id",
+    {
+      config: { swaggerTransform: facilityTaskSwaggerTransform("update") },
+      preHandler: [requireRole(UserRole.FACILITY_MANAGER, UserRole.FACILITY_STAFF)],
+      schema: {
+        tags: ["Facility Tasks"],
+        summary: m.updateSummary,
+        params: FacilityTaskParamsSchema,
+        body: UpdateFacilityTaskSchema,
+      },
+    },
+    async (request) =>
+      successResponse(
+        await service.update(request.params.id, request.body, actor(request)),
+        "status" in request.body && request.body.status === FacilityTaskStatus.CANCELLED
+          ? m.taskCancelled
+          : m.updated,
+      ),
+  );
+};
+
+function actor(request: FastifyRequest) {
+  if (!request.user) throw new UnauthorizedError();
+  return { id: request.user.id, role: request.user.role };
+}

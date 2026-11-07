@@ -1,30 +1,95 @@
+import {
+  CreateUserInputSchema,
+  CustomerRegistrationQuerySchema,
+  UpdateOwnProfileInputSchema,
+  UpdateUserRoleWithoutCustomerSchema,
+  UpdateUserStatusInputSchema,
+  UserIdParamsSchema,
+  UserListQuerySchema,
+} from "@metastorage/contracts";
 import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
+import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
 import { requireAuth, requireRole } from "../auth/auth.guard";
+import { AUTH_MESSAGES } from "../auth/auth.messages";
+import { AuthRepository } from "../auth/auth.repository";
+import { AuthService } from "../auth/auth.service";
+import { USER_MESSAGES } from "./users.messages";
 import { UsersRepository } from "./users.repository";
-import { updateUserRoleBodySchema, userIdParamsSchema, userQuerySchema } from "./users.schema";
 import { UsersService } from "./users.service";
 
 export const usersRoutes: FastifyPluginAsync = async (fastify) => {
   const repository = new UsersRepository(fastify.db);
-  const service = new UsersService(repository);
+  const service = new UsersService(repository, new AuthService(new AuthRepository(fastify.db)));
 
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
+
+  typedApp.patch(
+    "/me/profile",
+    {
+      schema: { body: UpdateOwnProfileInputSchema },
+      preHandler: [requireAuth],
+    },
+    async (request, reply) => {
+      if (!request.user) throw new UnauthorizedError(AUTH_MESSAGES.loginRequired);
+      const user = await service.updateOwnProfile(request.user.id, request.body);
+      return reply.send(successResponse(user, USER_MESSAGES.profileUpdated));
+    },
+  );
+
+  typedApp.post(
+    "/",
+    {
+      schema: {
+        body: CreateUserInputSchema,
+      },
+      preHandler: [requireRole("SYSTEM_ADMIN")],
+    },
+    async (request, reply) => {
+      const user = await service.createUser(request.body);
+      return reply.status(201).send(successResponse(user, USER_MESSAGES.userCreated));
+    },
+  );
+
+  typedApp.patch(
+    "/:id/status",
+    {
+      schema: {
+        params: UserIdParamsSchema,
+        body: UpdateUserStatusInputSchema,
+      },
+      preHandler: [requireRole("SYSTEM_ADMIN")],
+    },
+    async (request, reply) => {
+      const user = await service.updateUser(request.params.id, request.body);
+      return reply.status(200).send(successResponse(user, USER_MESSAGES.statusUpdated));
+    },
+  );
 
   // GET /api/users
   typedApp.get(
     "/",
     {
       schema: {
-        querystring: userQuerySchema,
+        querystring: UserListQuerySchema,
       },
       preHandler: [requireRole("SYSTEM_ADMIN")],
     },
     async (request, reply) => {
-      const { limit, offset } = request.query;
-      const users = await service.listUsers(limit, offset);
+      const users = await service.listUsers(request.query);
       return reply.status(200).send(successResponse(users));
+    },
+  );
+
+  typedApp.get(
+    "/customer-registrations",
+    {
+      schema: { querystring: CustomerRegistrationQuerySchema },
+      preHandler: [requireRole("SYSTEM_ADMIN")],
+    },
+    async (request, reply) => {
+      return reply.send(successResponse(await service.customerRegistrations(request.query.year)));
     },
   );
 
@@ -33,14 +98,14 @@ export const usersRoutes: FastifyPluginAsync = async (fastify) => {
     "/:id/role",
     {
       schema: {
-        params: userIdParamsSchema,
-        body: updateUserRoleBodySchema,
+        params: UserIdParamsSchema,
+        body: UpdateUserRoleWithoutCustomerSchema,
       },
       preHandler: [requireRole("SYSTEM_ADMIN")],
     },
     async (request, reply) => {
       const user = await service.updateUserRole(request.params.id, request.body.role);
-      return reply.status(200).send(successResponse(user, "Vai trò đã được cập nhật"));
+      return reply.status(200).send(successResponse(user, USER_MESSAGES.roleUpdated));
     },
   );
 
@@ -49,7 +114,7 @@ export const usersRoutes: FastifyPluginAsync = async (fastify) => {
     "/:id",
     {
       schema: {
-        params: userIdParamsSchema,
+        params: UserIdParamsSchema,
       },
       preHandler: [requireRole("SYSTEM_ADMIN")],
     },

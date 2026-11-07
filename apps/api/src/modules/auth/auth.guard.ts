@@ -1,17 +1,11 @@
-import type { Role } from "@storex/database";
+import type { UserRole } from "@metastorage/database/schema/user-enums";
 import { fromNodeHeaders } from "better-auth/node";
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
 import { UnauthorizedError } from "../../common/errors/app-error";
-import { type AuthSession, type AuthUser, auth } from "./auth";
+import { auth } from "./auth";
 import { assertActiveUser, assertUserHasRole } from "./auth.authorization";
-
-declare module "fastify" {
-  interface FastifyRequest {
-    user: AuthUser | null;
-    session: AuthSession["session"] | null;
-  }
-}
+import { AUTH_MESSAGES } from "./auth.messages";
 
 const authPluginCallback: FastifyPluginAsync = async (fastify) => {
   fastify.decorateRequest("user", null);
@@ -28,7 +22,7 @@ export async function requireAuth(request: FastifyRequest, _reply: FastifyReply)
   });
 
   if (!sessionData) {
-    throw new UnauthorizedError("Bạn cần đăng nhập để thực hiện thao tác này");
+    throw new UnauthorizedError(AUTH_MESSAGES.loginRequired);
   }
 
   assertActiveUser(sessionData.user);
@@ -36,12 +30,12 @@ export async function requireAuth(request: FastifyRequest, _reply: FastifyReply)
   request.session = sessionData.session;
 }
 
-export function requireRole(...allowedRoles: Role[]) {
+export function requireRole(...allowedRoles: UserRole[]) {
   return async function requireRolePreHandler(request: FastifyRequest, reply: FastifyReply) {
     await requireAuth(request, reply);
     // requireAuth always sets the user when it resolves.
     if (!request.user) {
-      throw new UnauthorizedError("Bạn cần đăng nhập để thực hiện thao tác này");
+      throw new UnauthorizedError(AUTH_MESSAGES.loginRequired);
     }
     assertUserHasRole(request.user, allowedRoles);
   };

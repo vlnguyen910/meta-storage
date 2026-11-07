@@ -1,0 +1,383 @@
+<!DOCTYPE html><html lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Bước 1: Chọn cơ sở &amp; Loại kho - MetaStorage Mobile</title>
+<!-- Google Fonts: Space Grotesk & Be Vietnam Pro -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-error-container": "#93000a",
+            "primary": "#003b2f",
+            "inverse-on-surface": "#eef0ff",
+            "outline": "#707975",
+            "tertiary": "#512800",
+            "primary-fixed-dim": "#96d3c0",
+            "on-primary-fixed-variant": "#0d5042",
+            "tertiary-fixed": "#ffdcc3",
+            "surface-variant": "#dae2fd",
+            "surface-bright": "#faf8ff",
+            "on-tertiary-container": "#ffa454",
+            "on-background": "#131b2e",
+            "on-tertiary-fixed-variant": "#6e3900",
+            "secondary-fixed-dim": "#98d2be",
+            "on-tertiary-fixed": "#2f1500",
+            "on-primary-container": "#89c5b3",
+            "surface-container-highest": "#dae2fd",
+            "surface-container-high": "#e2e7ff",
+            "on-primary-fixed": "#002019",
+            "error-container": "#ffdad6",
+            "secondary-fixed": "#b4efda",
+            "surface": "#faf8ff",
+            "tertiary-container": "#723b00",
+            "on-tertiary": "#ffffff",
+            "surface-dim": "#d2d9f4",
+            "on-secondary-fixed-variant": "#135041",
+            "surface-tint": "#2c6859",
+            "primary-fixed": "#b1efdc",
+            "inverse-surface": "#283044",
+            "outline-variant": "#bfc9c4",
+            "on-primary": "#ffffff",
+            "on-secondary-fixed": "#002018",
+            "inverse-primary": "#96d3c0",
+            "tertiary-fixed-dim": "#ffb77d",
+            "secondary": "#306858",
+            "surface-container": "#eaedff",
+            "background": "#faf8ff",
+            "on-surface": "#131b2e",
+            "secondary-container": "#b4efda",
+            "on-secondary-container": "#366e5e",
+            "surface-container-low": "#f2f3ff",
+            "on-secondary": "#ffffff",
+            "primary-container": "#125345",
+            "on-surface-variant": "#404945",
+            "on-error": "#ffffff",
+            "error": "#ba1a1a",
+            "surface-container-lowest": "#ffffff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "space-md": "1rem",
+            "gutter-sm": "1rem",
+            "margin": "2rem",
+            "gutter": "1.5rem",
+            "margin-sm": "1rem",
+            "space-sm": "0.5rem",
+            "space-xl": "2.5rem",
+            "space-xs": "0.25rem",
+            "space-lg": "1.5rem"
+          },
+          "fontFamily": {
+            "headline-lg-mobile": ["Space Grotesk"],
+            "headline-md": ["Space Grotesk"],
+            "display-mobile": ["Space Grotesk"],
+            "headline-sm": ["Space Grotesk"],
+            "body-md": ["Be Vietnam Pro"],
+            "label-sm": ["Space Grotesk"],
+            "label-md": ["Space Grotesk"],
+            "title-md": ["Be Vietnam Pro"],
+            "display": ["Space Grotesk"],
+            "body-lg": ["Be Vietnam Pro"],
+            "headline-lg": ["Space Grotesk"],
+            "label-lg": ["Space Grotesk"],
+            "body-sm": ["Be Vietnam Pro"]
+          },
+          "fontSize": {
+            "headline-lg-mobile": ["26px", { "lineHeight": "34px", "fontWeight": "600" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+            "display-mobile": ["34px", { "lineHeight": "42px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "body-md": ["14px", { "lineHeight": "22px", "fontWeight": "400" }],
+            "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "title-md": ["18px", { "lineHeight": "26px", "fontWeight": "600" }],
+            "display": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "body-lg": ["16px", { "lineHeight": "26px", "fontWeight": "400" }],
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+            "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface antialiased min-h-screen pb-32">
+<!-- Mobile Container Context -->
+<div class="max-w-md mx-auto min-h-screen bg-background relative flex flex-col shadow-xl">
+<!-- Top Bar & Linear Workflow Header -->
+<header class="sticky top-0 z-40 bg-surface-container-lowest/95 backdrop-blur-md px-gutter-sm pt-4 pb-3 shadow-sm">
+<div class="flex items-center justify-between gap-3 mb-3">
+<button aria-label="Quay lại" class="w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-xl">arrow_back</span>
+</button>
+<h1 class="font-headline-sm text-headline-sm text-on-surface tracking-tight font-bold flex-1 text-center pr-2">Đặt kho mới</h1>
+
+</div>
+<!-- 5-Step Linear Stepper Progress Bar -->
+<div class="pt-1 pb-1">
+<div class="flex items-center justify-between text-center relative mb-2">
+<!-- Step 1 (Active) -->
+<div class="flex flex-col items-center z-10">
+<span class="w-7 h-7 rounded-full bg-primary-container text-on-primary flex items-center justify-center font-label-md text-label-md shadow-sm">1</span>
+<span class="font-label-sm text-label-sm text-primary-container font-bold mt-1">Loại kho</span>
+</div>
+<div class="flex-1 h-0.5 bg-outline-variant mx-1 -mt-4"></div>
+<!-- Step 2 -->
+<div class="flex flex-col items-center z-10 opacity-60">
+<span class="w-7 h-7 rounded-full bg-surface-container text-on-surface-variant flex items-center justify-center font-label-md text-label-md">2</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant mt-1">Thông tin</span>
+</div>
+<div class="flex-1 h-0.5 bg-outline-variant mx-1 -mt-4"></div>
+<!-- Step 3 -->
+<div class="flex flex-col items-center z-10 opacity-60">
+<span class="w-7 h-7 rounded-full bg-surface-container text-on-surface-variant flex items-center justify-center font-label-md text-label-md">3</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant mt-1">Đơn thuê</span>
+</div>
+<div class="flex-1 h-0.5 bg-outline-variant mx-1 -mt-4"></div>
+<!-- Step 4 -->
+<div class="flex flex-col items-center z-10 opacity-60">
+<span class="w-7 h-7 rounded-full bg-surface-container text-on-surface-variant flex items-center justify-center font-label-md text-label-md">4</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant mt-1">Thanh toán</span>
+</div>
+<div class="flex-1 h-0.5 bg-outline-variant mx-1 -mt-4"></div>
+<!-- Step 5 -->
+<div class="flex flex-col items-center z-10 opacity-60">
+<span class="w-7 h-7 rounded-full bg-surface-container text-on-surface-variant flex items-center justify-center font-label-md text-label-md">5</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant mt-1">Hoàn tất</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 px-gutter-sm pt-4 space-y-4">
+<!-- Section 1: Selected Facility Card -->
+<section aria-label="Chi nhánh kho hiện tại">
+<div class="bg-surface-container-lowest rounded-xl p-3.5 border border-outline-variant/60 shadow-sm flex items-center justify-between gap-3">
+<div class="flex items-start gap-3">
+<div class="w-9 h-9 rounded-lg bg-secondary-container/40 flex items-center justify-center text-primary-container shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-xl">location_on</span>
+</div>
+<div>
+<div class="flex items-center gap-1.5">
+<span class="font-label-sm text-label-sm text-on-surface-variant tracking-wider uppercase">Cơ sở đang chọn</span>
+<span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+</div>
+<p class="font-title-md text-title-md text-on-surface font-bold leading-tight mt-0.5">MetaStorage Phú Nhuận</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate max-w-[210px]">156 Phan Xích Long, TP. Hồ Chí Minh</p>
+</div>
+</div>
+<button class="shrink-0 font-label-md text-label-md text-primary-container bg-surface-container-low hover:bg-secondary-container/50 px-2.5 py-1.5 rounded-lg border border-outline-variant/40 active:scale-95 transition-all" type="button">
+            Đổi cơ sở
+          </button>
+</div>
+</section>
+<!-- Section 2: Filter Chips -->
+<section aria-label="Lọc diện tích kho" class="space-y-1.5">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface-variant font-bold">Kích thước buồng kho</span>
+
+</div>
+<!-- Horizontal Scrollable Chips -->
+<div class="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 no-scrollbar">
+<button class="whitespace-nowrap px-3.5 py-1.5 rounded-full font-label-md text-label-md bg-primary-container text-on-primary shadow-sm font-semibold" type="button">
+            Tất cả diện tích
+          </button>
+<button class="whitespace-nowrap px-3.5 py-1.5 rounded-full font-label-md text-label-md bg-surface-container-lowest text-on-surface-variant border border-outline-variant hover:bg-surface-container active:scale-95 transition-all" type="button">
+            Dưới 3 m²
+          </button>
+<button class="whitespace-nowrap px-3.5 py-1.5 rounded-full font-label-md text-label-md bg-surface-container-lowest text-on-surface-variant border border-outline-variant hover:bg-surface-container active:scale-95 transition-all" type="button">
+            3–6 m²
+          </button>
+<button class="whitespace-nowrap px-3.5 py-1.5 rounded-full font-label-md text-label-md bg-surface-container-lowest text-on-surface-variant border border-outline-variant hover:bg-surface-container active:scale-95 transition-all" type="button">
+            Trên 6 m²
+          </button>
+</div>
+</section>
+<!-- Section 3: Storage Unit Cards List -->
+<section aria-label="Danh sách buồng lưu trữ" class="space-y-3 pb-4">
+<!-- Unit Card 1: 1 m² -->
+<article class="bg-surface-container-lowest rounded-xl p-3 border border-outline-variant/60 shadow-sm flex flex-col gap-2.5 transition-all">
+<div class="flex gap-3">
+<div class="relative w-24 h-24 rounded-lg overflow-hidden shrink-0 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="A clean, bright corridor of modern automated personal self-storage lockers with polished industrial concrete floors and metallic security roll-up doors illuminated under balanced studio lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA1Q21grB96tb3PzOfEA_4duEFoxXj0H-O1b4UptWujCKRIpnoLer-AC0kbDwlD30-U-j26ueH3WkA1Qo9k03YlILtlAW14yIFMXe3P9jjXJVxXiQwJGoQDpqqolNKN6vEnl7dFNmHuT_2F_mGfpbuZNyHSe14--_Ap-GWHMxxq7VLQymBifhvbh9iDffm3rORK5bmP--EJWH_tyhIdmTfu4FNmbee3H_bQQ9KxaQ">
+<span class="absolute bottom-1 left-1 font-label-sm text-[10px] leading-3 bg-inverse-surface/80 text-inverse-on-surface px-1 py-0.5 rounded">Ảnh mẫu</span>
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between">
+<h3 class="font-title-md text-[16px] text-on-surface font-bold truncate">Kho tiêu chuẩn (1 m²)</h3>
+</div>
+<div class="mt-1 space-y-0.5 font-body-sm text-body-sm text-on-surface-variant">
+<p class=""><span class="text-outline">Diện tích:</span> <strong class="text-on-surface font-medium">1 m²</strong></p>
+<p class=""><span class="text-outline">Kích thước:</span> 1m × 1m × 2.5m</p>
+</div>
+</div>
+<div class="flex items-baseline gap-1 mt-1">
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface">500.000 đ</span>
+<span class="font-body-sm text-body-sm text-outline">/ tháng</span>
+</div>
+</div>
+</div>
+<div class="pt-2 border-t border-surface-container flex items-center justify-between gap-2">
+<div class="flex items-center gap-1.5 font-label-sm text-label-sm text-secondary">
+<span class="material-symbols-outlined text-sm">lock</span>
+<span class="">Khóa thẻ từ cá nhân</span>
+</div>
+<button class="font-label-md text-label-md text-primary-container bg-surface-container-low hover:bg-secondary-container/40 px-3.5 py-1.5 rounded-lg border border-outline-variant/60 font-semibold active:scale-95 transition-all" type="button">
+              Chọn loại này
+            </button>
+</div>
+</article>
+<!-- Unit Card 2: 2 m² (ACTIVE / SELECTED) -->
+<article class="bg-surface-container-lowest rounded-xl p-3 border-2 border-primary-container shadow-md flex flex-col gap-2.5 relative ring-2 ring-primary-container/10">
+<div class="absolute -top-2.5 right-3 bg-primary-container text-on-primary font-label-sm text-[11px] px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm font-bold">
+<span class="material-symbols-outlined text-xs" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+            ĐÃ CHỌN
+          </div>
+<div class="flex gap-3">
+<div class="relative w-24 h-24 rounded-lg overflow-hidden shrink-0 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Interior of an ultra modern climate-controlled self storage bay facility with sleek sage-green metal doors and overhead clean LED linear ceiling lights." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAbq_vdk0ULHHOEK6Gl4YIucZMHIel6R0Gcr2mFwkRgWwzF9Zabd55vt3vGzztNbuWU2hp5EcqiNIPTorkTZlp1iqYhdcT0v0IkpR-2IZpDovyBknwo5Mhqnx5yyuCbnar_inusSLu2ovS6xZ2s7EeXEA84eflQpd6zLw-IBOdZf6qTJRbnbccnegCpOnizhBQ1IcbRyCabxHmGH9JuevMbc2i8FRQbW1WB3f-D8Q">
+<span class="absolute bottom-1 left-1 font-label-sm text-[10px] leading-3 bg-inverse-surface/80 text-inverse-on-surface px-1 py-0.5 rounded">Ảnh mẫu</span>
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between">
+<h3 class="font-title-md text-[16px] text-primary-container font-bold truncate">Kho tiêu chuẩn (2 m²)</h3>
+</div>
+<div class="mt-1 space-y-0.5 font-body-sm text-body-sm text-on-surface-variant">
+<p class=""><span class="text-outline">Diện tích:</span> <strong class="text-on-surface font-medium">2 m²</strong> (Gợi ý hộ gia đình)</p>
+<p class=""><span class="text-outline">Kích thước:</span> 2m × 1m × 2.5m</p>
+</div>
+</div>
+<div class="flex items-baseline gap-1 mt-1">
+<span class="font-headline-sm text-headline-sm font-bold text-primary-container">900.000 đ</span>
+<span class="font-body-sm text-body-sm text-outline">/ tháng</span>
+</div>
+</div>
+</div>
+<div class="pt-2 border-t border-surface-container flex items-center justify-between gap-2">
+<div class="flex items-center gap-1.5 font-label-sm text-label-sm text-primary-container font-semibold">
+<span class="material-symbols-outlined text-sm">ac_unit</span>
+<span class="">Nhiệt độ mát mẻ 24/7</span>
+</div>
+<button class="font-label-md text-label-md bg-primary-container text-on-primary px-3.5 py-1.5 rounded-lg flex items-center gap-1 font-bold shadow-sm" type="button">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">check</span>
+              Đã chọn
+            </button>
+</div>
+</article>
+<!-- Unit Card 3: 4 m² Standard -->
+<article class="bg-surface-container-lowest rounded-xl p-3 border border-outline-variant/60 shadow-sm flex flex-col gap-2.5 transition-all">
+<div class="flex gap-3">
+<div class="relative w-24 h-24 rounded-lg overflow-hidden shrink-0 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Wide spacious entrance of automated storage unit room with security keypad terminal, immaculate glossy epoxy floor, and numbered metal storage units." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBsC7EDdpAlbcdaM5bESKmsL0U8Kwkh3cRN9Ijrl6ewejNyF78Xuxk6Te5gaysDhGt1OgJ1uVGtPFOR5kIAuD0-qatDI0ilDguEzA2D1UuSluiCj-AmaZiTEgd9MC31XysSLLGZxBZzCKJM_IY3-cfJ1tx-YqJTXQCGhYv9xv7ePlqhmSo4KhvgnOmZxYylR0nFQvnJV-JIqpDxL6JCQE9-tKAHPmcncbNz_0t7Nw">
+<span class="absolute bottom-1 left-1 font-label-sm text-[10px] leading-3 bg-inverse-surface/80 text-inverse-on-surface px-1 py-0.5 rounded">Ảnh mẫu</span>
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between">
+<h3 class="font-title-md text-[16px] text-on-surface font-bold truncate">Kho tiêu chuẩn (4 m²)</h3>
+</div>
+<div class="mt-1 space-y-0.5 font-body-sm text-body-sm text-on-surface-variant">
+<p class=""><span class="text-outline">Diện tích:</span> <strong class="text-on-surface font-medium">4 m²</strong></p>
+<p class=""><span class="text-outline">Kích thước:</span> 2m × 2m × 2.5m</p>
+</div>
+</div>
+<div class="flex items-baseline gap-1 mt-1">
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface">1.500.000 đ</span>
+<span class="font-body-sm text-body-sm text-outline">/ tháng</span>
+</div>
+</div>
+</div>
+<div class="pt-2 border-t border-surface-container flex items-center justify-between gap-2">
+<div class="flex items-center gap-1.5 font-label-sm text-label-sm text-secondary">
+<span class="material-symbols-outlined text-sm">videocam</span>
+<span class="">Camera an ninh riêng</span>
+</div>
+<button class="font-label-md text-label-md text-primary-container bg-surface-container-low hover:bg-secondary-container/40 px-3.5 py-1.5 rounded-lg border border-outline-variant/60 font-semibold active:scale-95 transition-all" type="button">
+              Chọn
+            </button>
+</div>
+</article>
+<!-- Unit Card 4: 4 m² Climate-controlled -->
+<article class="bg-surface-container-lowest rounded-xl p-3 border border-outline-variant/60 shadow-sm flex flex-col gap-2.5 transition-all">
+<div class="flex gap-3">
+<div class="relative w-24 h-24 rounded-lg overflow-hidden shrink-0 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Modern indoor storage corridor featuring state-of-the-art humidity and temperature monitoring digital sensors mounted beside clean secure locker doors." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAjRUWAhqqK7HzVT2GfhG9kRCp3SGJWfjudNsHs8KtQLC-nnC406OjtemkRSiCVY-yUgMJISVEqHU6ILqgo5f1NiGAk6BPHY5dCePPrRudfPz0mCzwQgXJu0U4szQQHcbmZt_7rAbmMlAUly3TbI4IIQibZnBAyPhy44o_TwXmN5hyEof37aYLDG1pgwar673yoh4jVrPOp-aH8hFIcIhWGsMmNWPyasn1tuWnR3Q">
+<span class="absolute bottom-1 left-1 font-label-sm text-[10px] leading-3 bg-inverse-surface/80 text-inverse-on-surface px-1 py-0.5 rounded">Ảnh mẫu</span>
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between gap-1">
+<h3 class="font-title-md text-[16px] text-on-surface font-bold truncate">Kho kiểm soát ẩm (4 m²)</h3>
+</div>
+<div class="mt-1 space-y-0.5 font-body-sm text-body-sm text-on-surface-variant">
+<p class=""><span class="text-outline">Diện tích:</span> <strong class="text-on-surface font-medium">4 m²</strong> (Đồ điện tử / Tài liệu)</p>
+<p class=""><span class="text-outline">Kích thước:</span> 2m × 2m × 2.5m</p>
+</div>
+</div>
+<div class="flex items-baseline gap-1 mt-1">
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface">1.900.000 đ</span>
+<span class="font-body-sm text-body-sm text-outline">/ tháng</span>
+</div>
+</div>
+</div>
+<div class="pt-2 border-t border-surface-container flex items-center justify-between gap-2">
+<div class="flex items-center gap-1.5 font-label-sm text-label-sm text-tertiary-container font-semibold">
+<span class="material-symbols-outlined text-sm">humidity_mid</span>
+<span class="">Độ ẩm chuẩn &lt; 55%</span>
+</div>
+<button class="font-label-md text-label-md text-primary-container bg-surface-container-low hover:bg-secondary-container/40 px-3.5 py-1.5 rounded-lg border border-outline-variant/60 font-semibold active:scale-95 transition-all" type="button">
+              Chọn
+            </button>
+</div>
+</article>
+</section>
+</main>
+<!-- Section 4: Fixed Floating Summary & Action Bar -->
+<div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-50 bg-surface-container-lowest/95 backdrop-blur-md px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] border-t border-outline-variant/40">
+<div class="flex items-center justify-between mb-2 px-0.5">
+<div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Đã chọn:</span>
+<p class="font-label-md text-label-md font-bold text-on-surface leading-none mt-0.5">Kho tiêu chuẩn (2 m²)</p>
+</div>
+<div class="text-right">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Tạm tính:</span>
+<p class="font-headline-sm text-headline-sm font-bold text-primary-container leading-none mt-0.5">900.000 đ<span class="font-body-sm text-body-sm text-outline font-normal">/tháng</span></p>
+</div>
+</div>
+<!-- Primary Action Button -->
+<button class="w-full bg-primary-container text-on-primary font-headline-sm text-base py-3 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-primary active:scale-[0.98] transition-all font-semibold shadow-md" type="button">
+<span class="">Tiếp tục: Thông tin &amp; Lịch hẹn</span>
+<span class="material-symbols-outlined text-lg">arrow_forward</span>
+</button>
+
+</div>
+</div>
+
+
+<harper-render-box popover="manual" style="pointer-events: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; visibility: hidden !important;"></harper-render-box><harper-render-box popover="manual" style="pointer-events: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; visibility: hidden !important;"></harper-render-box></body></html>

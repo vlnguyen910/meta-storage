@@ -1,0 +1,469 @@
+<!DOCTYPE html><html class="light" lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>M-A04 — Quên mật khẩu — Chung | StoreX</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "tertiary-fixed": "#ffdcc3",
+            "on-secondary-fixed-variant": "#135041",
+            "on-primary-fixed-variant": "#0d5042",
+            "background": "#faf8ff",
+            "on-background": "#131b2e",
+            "outline": "#707975",
+            "tertiary-container": "#723b00",
+            "on-secondary-container": "#366e5e",
+            "on-error-container": "#93000a",
+            "surface": "#faf8ff",
+            "primary-container": "#125345",
+            "inverse-on-surface": "#eef0ff",
+            "secondary-fixed": "#b4efda",
+            "inverse-surface": "#283044",
+            "surface-container-lowest": "#ffffff",
+            "on-primary": "#ffffff",
+            "secondary-container": "#b4efda",
+            "error-container": "#ffdad6",
+            "on-error": "#ffffff",
+            "on-secondary": "#ffffff",
+            "secondary": "#306858",
+            "tertiary-fixed-dim": "#ffb77d",
+            "surface-bright": "#faf8ff",
+            "error": "#ba1a1a",
+            "surface-container-low": "#f2f3ff",
+            "on-surface-variant": "#404945",
+            "on-tertiary-fixed-variant": "#6e3900",
+            "on-tertiary-container": "#ffa454",
+            "surface-container": "#eaedff",
+            "on-surface": "#131b2e",
+            "surface-tint": "#2c6859",
+            "surface-container-highest": "#dae2fd",
+            "tertiary": "#512800",
+            "surface-variant": "#dae2fd",
+            "surface-dim": "#d2d9f4",
+            "secondary-fixed-dim": "#98d2be",
+            "primary-fixed-dim": "#96d3c0",
+            "primary": "#003b2f",
+            "outline-variant": "#bfc9c4",
+            "on-secondary-fixed": "#002018",
+            "inverse-primary": "#96d3c0",
+            "on-primary-fixed": "#002019",
+            "primary-fixed": "#b1efdc",
+            "on-tertiary-fixed": "#2f1500",
+            "on-primary-container": "#89c5b3",
+            "on-tertiary": "#ffffff",
+            "surface-container-high": "#e2e7ff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "margin": "2rem",
+            "space-sm": "0.5rem",
+            "space-xl": "2.5rem",
+            "space-md": "1rem",
+            "gutter": "1.5rem",
+            "space-xs": "0.25rem",
+            "margin-sm": "1rem",
+            "space-lg": "1.5rem",
+            "gutter-sm": "1rem"
+          },
+          "fontFamily": {
+            "body-sm": ["Be Vietnam Pro"],
+            "body-lg": ["Be Vietnam Pro"],
+            "label-lg": ["Space Grotesk"],
+            "display-mobile": ["Space Grotesk"],
+            "label-sm": ["Space Grotesk"],
+            "title-md": ["Be Vietnam Pro"],
+            "body-md": ["Be Vietnam Pro"],
+            "headline-lg-mobile": ["Space Grotesk"],
+            "label-md": ["Space Grotesk"],
+            "headline-lg": ["Space Grotesk"],
+            "headline-md": ["Space Grotesk"],
+            "headline-sm": ["Space Grotesk"],
+            "display": ["Space Grotesk"]
+          },
+          "fontSize": {
+            "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+            "body-lg": ["16px", { "lineHeight": "26px", "fontWeight": "400" }],
+            "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+            "display-mobile": ["34px", { "lineHeight": "42px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+            "title-md": ["18px", { "lineHeight": "26px", "fontWeight": "600" }],
+            "body-md": ["14px", { "lineHeight": "22px", "fontWeight": "400" }],
+            "headline-lg-mobile": ["26px", { "lineHeight": "34px", "fontWeight": "600" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "display": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    /* Mobile constraint */
+    body {
+      background-color: #f1f5f9;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    #mobile-canvas {
+      width: 390px;
+      min-height: 100vh;
+      background-color: #faf8ff;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    input::placeholder {
+      color: #94a3b8;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="selection:bg-secondary-fixed selection:text-primary">
+<!-- Mobile Viewport Canvas (Strict 390px) -->
+<main class="flex flex-col text-on-surface" id="mobile-canvas">
+<!-- Compact Mobile Auth Header (Linear/Transactional Flow - No full navbar) -->
+<header class="w-full bg-surface-container-lowest px-margin-sm py-space-sm flex items-center justify-between shadow-sm sticky top-0 z-20">
+<!-- Back Navigation Target -->
+<a aria-label="Quay lại đăng nhập" class="flex items-center gap-1.5 min-w-[44px] min-h-[44px] text-primary-container font-body-sm text-body-sm font-medium hover:opacity-80 transition-opacity" href="#login">
+<span class="material-symbols-outlined text-[20px]" data-icon="arrow_back">arrow_back</span>
+<span class="font-body-sm text-body-sm">Đăng nhập</span>
+</a>
+<!-- Brand Identity -->
+<div class="flex items-center gap-1">
+<span class="font-headline-sm text-headline-sm font-bold text-primary-container tracking-tight">storeX</span>
+<span class="w-1.5 h-1.5 rounded-full bg-secondary-container inline-block"></span>
+</div>
+<!-- Support Hotline Quick Dial -->
+<a aria-label="Gọi hỗ trợ 028 7300 1188" class="flex items-center justify-center min-w-[44px] min-h-[44px] text-on-surface-variant hover:text-primary-container transition-colors" href="tel:02873001188">
+<span class="material-symbols-outlined text-[20px]" data-icon="call">call</span>
+</a>
+</header>
+<!-- Main Content Area -->
+<div class="flex-1 px-margin-sm pt-space-lg pb-space-xl flex flex-col justify-between">
+<div>
+<!-- Page Title & Security Subtitle -->
+<div class="mb-space-lg text-left">
+<div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-fixed-variant font-label-sm text-label-sm mb-2">
+<span class="material-symbols-outlined text-[14px]" data-icon="lock_reset">lock_reset</span>
+<span>Bảo mật tài khoản 256-bit</span>
+</div>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile font-bold text-on-surface tracking-tight">
+            Khôi phục mật khẩu
+          </h1>
+<p class="mt-1.5 font-body-md text-body-md text-on-surface-variant">
+            Nhập địa chỉ email đăng ký để nhận liên kết thiết lập lại mật khẩu tài khoản StoreX của bạn.
+          </p>
+</div>
+<!-- Form & Feedback Card Container -->
+<section aria-labelledby="form-heading" class="bg-surface-container-lowest rounded-lg border border-outline-variant p-space-md shadow-sm">
+<h2 class="sr-only" id="form-heading">Biểu mẫu xác nhận email đặt lại mật khẩu</h2>
+<!-- STATE 1: RECOVERY FORM -->
+<form class="flex flex-col gap-4" id="recovery-form" novalidate="">
+<div>
+<div class="flex justify-between items-baseline mb-1.5">
+<label class="font-label-lg text-label-lg text-on-surface" for="recovery-email">
+                  Địa chỉ email đăng ký <span aria-hidden="true" class="text-error">*</span>
+</label>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Bắt buộc</span>
+</div>
+<!-- Input Wrapper -->
+<div class="relative">
+<input aria-describedby="email-hint email-error" autocomplete="email" class="w-full h-12 px-3.5 pr-10 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 transition-all placeholder:text-outline-variant" id="recovery-email" name="email" placeholder="vidu@domain.com" required="" type="email">
+<div class="absolute right-3 top-3 pointer-events-none text-on-surface-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]" data-icon="mail">mail</span>
+</div>
+</div>
+<!-- Inline Error Message (Hidden by default) -->
+<div class="hidden mt-1.5 items-center gap-1.5 text-error font-body-sm text-body-sm" id="email-error" role="alert">
+<span class="material-symbols-outlined text-[16px]" data-icon="error">error</span>
+<span id="email-error-text">Vui lòng nhập định dạng email hợp lệ (ví dụ: ten@mien.vn).</span>
+</div>
+<!-- Contextual Hint -->
+<p class="mt-1.5 font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1" id="email-hint">
+<span class="material-symbols-outlined text-[14px]" data-icon="info">info</span>
+<span>Chúng tôi sẽ gửi liên kết bảo mật về hòm thư này.</span>
+</p>
+</div>
+<!-- Primary Action CTA -->
+<button class="w-full h-12 min-h-[48px] bg-primary-container hover:bg-[#0e4035] active:scale-[0.98] text-on-primary font-label-lg text-label-lg rounded-lg flex items-center justify-center gap-2 transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-container/30 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer" id="submit-btn" type="submit">
+<span class="font-label-lg text-label-lg" id="btn-text">Gửi liên kết khôi phục</span>
+<span class="material-symbols-outlined text-[18px]" data-icon="arrow_forward" id="btn-icon">arrow_forward</span>
+<!-- Spinner (Hidden by default) -->
+<svg class="hidden animate-spin h-5 w-5 text-on-primary" fill="none" id="btn-spinner" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+<path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path>
+</svg>
+</button>
+</form>
+<!-- STATE 2: NEUTRAL RECOVERY ACKNOWLEDGEMENT (Hidden initially) -->
+<div aria-live="polite" class="hidden flex-col items-center text-center py-2" id="acknowledgement-card" role="status">
+<div class="w-12 h-12 rounded-full bg-secondary-container text-on-secondary-fixed-variant flex items-center justify-center mb-3">
+<span class="material-symbols-outlined text-[28px]" data-icon="mark_email_read" style="font-variation-settings: 'FILL' 1;">mark_email_read</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm font-semibold text-on-surface">
+              Kiểm tra hộp thư của bạn
+            </h3>
+<!-- Neutral Security Best Practice Message -->
+<div class="mt-2.5 p-3 bg-surface-container-low rounded-lg border border-outline-variant/60 text-left">
+<p class="font-body-md text-body-md text-on-surface leading-relaxed">
+                Nếu địa chỉ email <strong class="font-semibold text-primary-container" id="sent-target-email">email@domain.com</strong> tồn tại trên hệ thống StoreX, bạn sẽ nhận được email hướng dẫn đặt lại mật khẩu trong ít phút.
+              </p>
+<p class="mt-2 font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-tertiary-container" data-icon="markunread_mailbox">markunread_mailbox</span>
+<span>Vui lòng kiểm tra cả hộp thư <strong>Spam / Rác</strong> hoặc <strong>Quảng cáo</strong>.</span>
+</p>
+</div>
+<!-- Resend / Countdown Control -->
+<div class="mt-4 w-full flex flex-col items-center">
+<button class="w-full h-11 min-h-[44px] border border-outline-variant text-on-surface-variant font-label-lg text-label-lg rounded-lg flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-container" disabled="" id="resend-btn" type="button">
+<span class="material-symbols-outlined text-[18px]" data-icon="refresh">refresh</span>
+<span id="resend-label">Gửi lại sau (<span id="timer-count">60</span>s)</span>
+</button>
+<button class="mt-2.5 text-primary-container hover:underline font-body-sm text-body-sm font-medium min-h-[44px] flex items-center justify-center" id="edit-email-btn" type="button">
+                Nhập địa chỉ email khác
+              </button>
+</div>
+<!-- Demo Mock Prototype Banner -->
+<div class="mt-4 pt-3 border-t border-outline-variant/50 w-full flex items-start gap-2 text-left">
+<span class="material-symbols-outlined text-[16px] text-tertiary-container shrink-0 mt-0.5" data-icon="developer_mode">developer_mode</span>
+<p class="font-body-sm text-body-sm text-tertiary-container">
+<strong>Lưu ý minh họa:</strong> Đây là hệ thống mẫu thử nghiệm (Mock Prototype). Không gửi email thực tế ra môi trường ngoài.
+              </p>
+</div>
+</div>
+</section>
+<!-- Contextual Help Accordion (Nielsen 10) -->
+<div class="mt- space-lg bg-surface-container-lowest rounded-lg border border-outline-variant shadow-sm mt-4 overflow-hidden">
+<button aria-controls="accordion-content" aria-expanded="false" class="w-full px-space-md py-3.5 flex items-center justify-between text-left min-h-[44px] hover:bg-surface-container-low transition-colors focus:outline-none" id="accordion-toggle" type="button">
+<span class="font-label-lg text-label-lg text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-primary-container" data-icon="help_outline">help_outline</span>
+              Hỗ trợ khi không nhận được email?
+            </span>
+<span class="material-symbols-outlined text-[20px] text-on-surface-variant transition-transform duration-200" data-icon="expand_more" id="accordion-icon">expand_more</span>
+</button>
+<div class="hidden px-space-md pb- space-md pt-1 border-t border-outline-variant/40 bg-surface-bright pb-4" id="accordion-content">
+<ol class="space-y-3 font-body-sm text-body-sm text-on-surface-variant mt-2">
+<li class="flex items-start gap-2.5">
+<span class="w-5 h-5 rounded-full bg-secondary-container text-on-secondary-fixed-variant font-label-sm text-label-sm font-semibold flex items-center justify-center shrink-0 mt-0.5">1</span>
+<div>
+<strong class="text-on-surface">Kiểm tra hộp thư lọc tự động:</strong> Xem kỹ mục Hộp thư Rác / Spam hoặc thư mục Quảng cáo (Promotions) của dịch vụ email bạn dùng.
+                </div>
+</li>
+<li class="flex items-start gap-2.5">
+<span class="w-5 h-5 rounded-full bg-secondary-container text-on-secondary-fixed-variant font-label-sm text-label-sm font-semibold flex items-center justify-center shrink-0 mt-0.5">2</span>
+<div>
+<strong class="text-on-surface">Kiểm tra chính tả email:</strong> Đảm bảo bạn đã nhập đúng địa chỉ email từng dùng để ký hợp đồng hoặc mở buồng kho tại StoreX.
+                </div>
+</li>
+<li class="flex items-start gap-2.5">
+<span class="w-5 h-5 rounded-full bg-secondary-container text-on-secondary-fixed-variant font-label-sm text-label-sm font-semibold flex items-center justify-center shrink-0 mt-0.5">3</span>
+<div>
+<strong class="text-on-surface">Liên hệ trực tiếp:</strong> Nếu sau 5 phút vẫn chưa nhận được thư, hãy gọi hotline hỗ trợ khách hàng <a class="text-primary-container font-semibold underline" href="tel:02873001188">028 7300 1188</a> (08:00 - 20:00 hàng ngày) để kiểm tra trạng thái tài khoản.
+                </div>
+</li>
+</ol>
+</div>
+</div>
+<!-- Back to Login Navigation link -->
+<div class="mt-6 text-center">
+<a class="inline-flex items-center gap-1.5 font-label-lg text-label-lg text-primary-container hover:underline min-h-[44px] px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-primary-container/20" href="#login">
+<span class="material-symbols-outlined text-[18px]" data-icon="arrow_back">arrow_back</span>
+            Quay lại Đăng nhập
+          </a>
+</div>
+</div>
+<!-- Footer Compliance & Trust Seal -->
+<footer class="mt-8 pt-4 border-t border-outline-variant/40 text-center">
+<div class="flex items-center justify-center gap-4 text-on-surface-variant/70 mb-2">
+<span class="flex items-center gap-1 font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]" data-icon="shield">shield</span>
+            ISO 27001
+          </span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="flex items-center gap-1 font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]" data-icon="local_fire_department">local_fire_department</span>
+            An toàn PCCC
+          </span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="flex items-center gap-1 font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]" data-icon="nest_cam_wired_stand">nest_cam_wired_stand</span>
+            CCTV 24/7
+          </span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+          © 2026 StoreX Technologies. All rights reserved.
+        </p>
+<p class="text-[10px] text-outline mt-0.5 font-body-sm">
+          Mã màn hình: M-A04 — Khôi phục thông tin bảo mật
+        </p>
+</footer>
+</div>
+</main>
+<!-- Interactive JavaScript Logic -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const form = document.getElementById('recovery-form');
+      const emailInput = document.getElementById('recovery-email');
+      const emailError = document.getElementById('email-error');
+      const submitBtn = document.getElementById('submit-btn');
+      const btnText = document.getElementById('btn-text');
+      const btnIcon = document.getElementById('btn-icon');
+      const btnSpinner = document.getElementById('btn-spinner');
+      
+      const ackCard = document.getElementById('acknowledgement-card');
+      const sentTargetEmail = document.getElementById('sent-target-email');
+      const resendBtn = document.getElementById('resend-btn');
+      const resendLabel = document.getElementById('resend-label');
+      const timerCount = document.getElementById('timer-count');
+      const editEmailBtn = document.getElementById('edit-email-btn');
+
+      const accordionToggle = document.getElementById('accordion-toggle');
+      const accordionContent = document.getElementById('accordion-content');
+      const accordionIcon = document.getElementById('accordion-icon');
+
+      let timerInterval = null;
+
+      // Email validation regex (standard RFC 5322 compatible check)
+      const validateEmail = (email) => {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      };
+
+      // Realtime validation clear on typing
+      emailInput.addEventListener('input', () => {
+        if (emailError.classList.contains('flex')) {
+          emailError.classList.remove('flex');
+          emailError.classList.add('hidden');
+          emailInput.classList.remove('border-error');
+        }
+      });
+
+      // Submit form
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const value = emailInput.value.trim();
+
+        if (!value || !validateEmail(value)) {
+          emailError.classList.remove('hidden');
+          emailError.classList.add('flex');
+          emailInput.classList.add('border-error');
+          emailInput.focus();
+          return;
+        }
+
+        // Show loading state (Nielsen 1)
+        submitBtn.disabled = true;
+        btnText.textContent = 'Đang gửi...';
+        btnIcon.classList.add('hidden');
+        btnSpinner.classList.remove('hidden');
+
+        // Simulate secure async dispatch
+        setTimeout(() => {
+          // Reset button
+          submitBtn.disabled = false;
+          btnText.textContent = 'Gửi liên kết khôi phục';
+          btnIcon.classList.remove('hidden');
+          btnSpinner.classList.add('hidden');
+
+          // Switch to Ack State
+          form.classList.add('hidden');
+          sentTargetEmail.textContent = value;
+          ackCard.classList.remove('hidden');
+          ackCard.classList.add('flex');
+
+          // Start 60s cooldown timer
+          startCountdown(60);
+        }, 850);
+      });
+
+      // Countdown logic
+      function startCountdown(seconds) {
+        clearInterval(timerInterval);
+        let left = seconds;
+        resendBtn.disabled = true;
+        timerCount.textContent = left;
+        resendLabel.innerHTML = `Gửi lại sau (<span id="timer-count">${left}</span>s)`;
+
+        timerInterval = setInterval(() => {
+          left--;
+          const currentCount = document.getElementById('timer-count');
+          if (currentCount) currentCount.textContent = left;
+
+          if (left <= 0) {
+            clearInterval(timerInterval);
+            resendBtn.disabled = false;
+            resendLabel.textContent = 'Thử lại / Gửi lại email';
+          }
+        }, 1000);
+      }
+
+      // Resend action
+      resendBtn.addEventListener('click', () => {
+        resendBtn.disabled = true;
+        resendLabel.textContent = 'Đang gửi lại...';
+        
+        setTimeout(() => {
+          startCountdown(60);
+        }, 600);
+      });
+
+      // Edit email return
+      editEmailBtn.addEventListener('click', () => {
+        clearInterval(timerInterval);
+        ackCard.classList.remove('flex');
+        ackCard.classList.add('hidden');
+        form.classList.remove('hidden');
+        emailInput.focus();
+      });
+
+      // Accordion toggle
+      accordionToggle.addEventListener('click', () => {
+        const isExpanded = accordionToggle.getAttribute('aria-expanded') === 'true';
+        accordionToggle.setAttribute('aria-expanded', !isExpanded);
+        
+        if (isExpanded) {
+          accordionContent.classList.add('hidden');
+          accordionIcon.style.transform = 'rotate(0deg)';
+        } else {
+          accordionContent.classList.remove('hidden');
+          accordionIcon.style.transform = 'rotate(180deg)';
+        }
+      });
+    });
+  </script>
+</body></html>

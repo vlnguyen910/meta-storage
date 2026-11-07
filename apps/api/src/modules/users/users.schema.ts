@@ -1,4 +1,4 @@
-import { ROLES } from "@storex/database";
+import { ROLES } from "@metastorage/database";
 import { z } from "zod";
 
 export const userIdParamsSchema = z.object({

@@ -2,8 +2,12 @@ import type { FastifyError, FastifyInstance } from "fastify";
 import { ZodError } from "zod";
 import { errorResponse } from "../response/api-response";
 import { AppError } from "./app-error";
+import { ERROR_MESSAGES } from "./error.messages";
 
 export function setupErrorHandler(fastify: FastifyInstance): void {
+  fastify.setNotFoundHandler((_request, reply) =>
+    reply.status(404).send(errorResponse({ code: 404, message: ERROR_MESSAGES.notFound })),
+  );
   fastify.setErrorHandler((error: FastifyError | Error, request, reply) => {
     // 1. Handle Zod validation errors
     if (error instanceof ZodError) {
@@ -16,8 +20,8 @@ export function setupErrorHandler(fastify: FastifyInstance): void {
 
       return reply.status(400).send(
         errorResponse({
-          code: "VALIDATION_ERROR",
-          message: "Request validation failed",
+          code: 400,
+          message: ERROR_MESSAGES.requestValidationFailed,
           details,
         }),
       );
@@ -27,15 +31,15 @@ export function setupErrorHandler(fastify: FastifyInstance): void {
     if ("validation" in error && Array.isArray(error.validation)) {
       const details = error.validation.map((v) => ({
         field: v.instancePath?.replace(/^\//, "") || v.keyword,
-        message: v.message || "Invalid value",
+        message: v.message || ERROR_MESSAGES.invalidValue,
       }));
 
       request.log.warn({ err: error, path: request.url, details }, "Fastify validation error");
 
       return reply.status(400).send(
         errorResponse({
-          code: "VALIDATION_ERROR",
-          message: error.message || "Validation failed",
+          code: 400,
+          message: error.message || ERROR_MESSAGES.validationFailed,
           details,
         }),
       );
@@ -51,9 +55,24 @@ export function setupErrorHandler(fastify: FastifyInstance): void {
 
       return reply.status(error.statusCode).send(
         errorResponse({
-          code: error.code,
+          code: error.statusCode,
           message: error.message,
           details: error.details,
+        }),
+      );
+    }
+
+    // Preserve HTTP errors raised by Fastify (e.g. malformed JSON or unsupported media).
+    if (
+      "statusCode" in error &&
+      typeof error.statusCode === "number" &&
+      error.statusCode >= 400 &&
+      error.statusCode < 500
+    ) {
+      return reply.status(error.statusCode).send(
+        errorResponse({
+          code: error.statusCode,
+          message: error.message,
         }),
       );
     }
@@ -65,8 +84,8 @@ export function setupErrorHandler(fastify: FastifyInstance): void {
 
     return reply.status(500).send(
       errorResponse({
-        code: "INTERNAL_SERVER_ERROR",
-        message: isDev ? error.message : "An unexpected internal server error occurred",
+        code: 500,
+        message: isDev ? error.message : ERROR_MESSAGES.unexpectedInternalServerError,
       }),
     );
   });

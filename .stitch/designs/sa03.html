@@ -1,0 +1,876 @@
+<!DOCTYPE html><html class="light" lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>SA03 — Phân quyền theo cơ sở | StoreX OS</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "primary-container": "#165f4d",
+            "on-error": "#ffffff",
+            "tertiary-fixed": "#9bf98a",
+            "surface-muted": "#F8FAFC",
+            "on-secondary-fixed": "#0b1c30",
+            "primary-fixed": "#acf0d9",
+            "on-tertiary-fixed-variant": "#005305",
+            "secondary-container": "#d0e1fb",
+            "warning": "#92400E",
+            "primary": "#004637",
+            "tertiary": "#004804",
+            "on-secondary-container": "#54647a",
+            "on-primary-fixed-variant": "#005140",
+            "secondary-fixed-dim": "#b7c8e1",
+            "surface": "#FFFFFF",
+            "on-surface-variant": "#3f4945",
+            "on-primary-container": "#92d6bf",
+            "on-primary": "#ffffff",
+            "surface-dim": "#d2d9f4",
+            "on-secondary": "#ffffff",
+            "outline": "#94A3B8",
+            "primary-fixed-dim": "#90d4bd",
+            "outline-variant": "#E2E8F0",
+            "on-tertiary": "#ffffff",
+            "surface-tint": "#246957",
+            "inverse-on-surface": "#eef0ff",
+            "error": "#ba1a1a",
+            "warning-container": "#FFFBEB",
+            "secondary-fixed": "#d3e4fe",
+            "on-background": "#131b2e",
+            "on-secondary-fixed-variant": "#38485d",
+            "on-success-container": "#166534",
+            "on-primary-fixed": "#002018",
+            "success-container": "#ECFDF5",
+            "surface-container-high": "#e2e7ff",
+            "surface-container-lowest": "#ffffff",
+            "surface-variant": "#dae2fd",
+            "secondary": "#505f76",
+            "on-tertiary-fixed": "#002201",
+            "inverse-surface": "#283044",
+            "primary-soft": "#E8F3EF",
+            "surface-container": "#eaedff",
+            "inverse-primary": "#90d4bd",
+            "primary-dark": "#0F493B",
+            "border": "#EEEEEE",
+            "tertiary-fixed-dim": "#80db71",
+            "on-error-container": "#93000a",
+            "surface-container-highest": "#dae2fd",
+            "on-tertiary-container": "#83de74",
+            "tertiary-container": "#006308",
+            "surface-bright": "#faf8ff",
+            "error-container": "#ffdad6",
+            "destructive": "#991B1B",
+            "destructive-container": "#FEF2F2",
+            "on-surface": "#131b2e",
+            "surface-container-low": "#f2f3ff",
+            "background": "#FAFAFA"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "xs": "4px",
+            "space-sm": "0.5rem",
+            "section": "80px",
+            "margin": "1.5rem",
+            "gutter-mobile": "1rem",
+            "md": "12px",
+            "space-xs": "0.25rem",
+            "gutter": "1.5rem",
+            "sm": "8px",
+            "xl": "24px",
+            "lg": "16px",
+            "space-xl": "1.5rem",
+            "margin-desktop": "2rem",
+            "page-gutter": "24px",
+            "space-md": "0.75rem",
+            "space-lg": "1rem",
+            "field-gap": "8px",
+            "2xl": "32px",
+            "4xl": "64px",
+            "card-padding": "24px",
+            "control-padding": "12px",
+            "3xl": "48px"
+          },
+          "fontFamily": {
+            "headline-lg-mobile": ["Inter"],
+            "body-lg": ["Inter"],
+            "title-lg": ["Inter"],
+            "body-sm": ["Inter"],
+            "headline-md": ["Inter"],
+            "label-md": ["Inter"],
+            "headline-display-mobile": ["Inter"],
+            "label-sm": ["Inter"],
+            "headline-lg": ["Inter"],
+            "body-md": ["Inter"],
+            "headline-display": ["Inter"]
+          },
+          "fontSize": {
+            "headline-lg-mobile": ["26px", {"lineHeight": "34px", "letterSpacing": "-0.015em", "fontWeight": "700"}],
+            "body-lg": ["18px", {"lineHeight": "30px", "fontWeight": "400"}],
+            "title-lg": ["20px", {"lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+            "body-sm": ["14px", {"lineHeight": "22px", "fontWeight": "400"}],
+            "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.015em", "fontWeight": "700"}],
+            "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "700"}],
+            "headline-display-mobile": ["30px", {"lineHeight": "38px", "letterSpacing": "-0.025em", "fontWeight": "800"}],
+            "label-sm": ["12px", {"lineHeight": "18px", "letterSpacing": "0.02em", "fontWeight": "600"}],
+            "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "750"}],
+            "body-md": ["16px", {"lineHeight": "26px", "fontWeight": "400"}],
+            "headline-display": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.03em", "fontWeight": "800"}]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background-color: #E2E8F0;
+      border-radius: 9999px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body-md text-body-md antialiased min-h-screen flex flex-col">
+<!-- TopNavBar (Web Header Anchor) -->
+<header class="flex justify-between items-center h-16 px-space-lg w-full bg-surface-container-lowest border-b border-outline-variant sticky top-0 z-40 shadow-sm"><button id="mobileMenuToggleBtn" aria-label="Mở trình đơn quản trị SA" aria-expanded="false" class="min-w-[44px] min-h-[44px] lg:hidden flex items-center justify-center rounded-lg text-secondary hover:bg-surface-container-low transition-colors duration-150 mr-1" type="button"><span class="material-symbols-outlined text-2xl" aria-hidden="true">menu</span></button>
+<div class="flex items-center gap-space-lg">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-headline-md" data-icon="inventory_2">inventory_2</span>
+<span class="text-headline-sm font-headline-sm font-bold text-primary tracking-tight">StoreX OS</span>
+</div>
+<div class="h-6 w-px bg-outline-variant hidden md:block"></div>
+<div class="hidden md:flex items-center gap-space-sm bg-primary-soft text-primary px-space-md py-1 rounded-full border border-primary/20">
+<span class="material-symbols-outlined text-sm" data-icon="admin_panel_settings">admin_panel_settings</span>
+<span class="text-label-sm font-label-sm uppercase tracking-wide">Hệ thống quản trị SA</span>
+</div>
+</div>
+<!-- Active Facility Indicator & Connectivity -->
+<div class="hidden lg:flex items-center gap-space-lg">
+<div class="flex items-center gap-space-sm text-label-md font-label-md text-primary font-bold border-b-2 border-primary py-space-sm">
+<span class="material-symbols-outlined text-base" data-icon="apartment">apartment</span>
+<span class="">StoreX Sài Gòn Central</span>
+</div>
+<div class="flex items-center gap-space-xs text-on-surface-variant text-label-sm font-label-sm">
+<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+<span class="">Đồng bộ trực tuyến</span>
+</div>
+</div>
+<!-- Actions & Profile Info -->
+<div class="flex items-center gap-space-md">
+<button aria-label="Thông báo hệ thống" class="w-11 h-11 flex items-center justify-center rounded-lg text-secondary hover:bg-surface-container-low transition-colors duration-150 relative" type="button">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-destructive"></span>
+</button>
+<button aria-label="Trung tâm trợ giúp" class="w-11 h-11 flex items-center justify-center rounded-lg text-secondary hover:bg-surface-container-low transition-colors duration-150" type="button">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+</button>
+<div class="h-8 w-px bg-outline-variant mx-1"></div>
+<div class="flex items-center gap-space-sm pl-1">
+<div class="w-10 h-10 rounded-full bg-primary-container text-on-primary font-bold flex items-center justify-center text-sm shadow-sm">
+          NVH
+        </div>
+<div class="hidden sm:flex flex-col text-left">
+<span class="text-label-md font-label-md text-on-surface font-bold leading-tight">Nguyễn Văn Hùng</span>
+<span class="text-label-sm font-label-sm text-secondary">Quản trị hệ thống (SA)</span>
+</div>
+</div>
+</div>
+</header>
+<div class="flex flex-1 relative overflow-hidden">
+<!-- SideNavBar (SA Context Navigation) -->
+<aside aria-label="Thanh điều hướng quản trị" class="w-64 flex-shrink-0 flex flex-col justify-between p-space-md bg-surface-container-lowest border-r border-outline-variant min-h-[calc(100vh-4rem)]" id="saSidebar">
+<div class="flex flex-col gap-space-md">
+<!-- SA Menu Head -->
+<div class="px-space-md py-space-sm bg-surface-muted rounded-lg border border-outline-variant flex items-center gap-space-sm">
+<div class="p-1.5 bg-primary/10 rounded-md text-primary">
+<span class="material-symbols-outlined text-lg" data-icon="security">security</span>
+</div>
+<div class="flex flex-col">
+<span class="text-label-md font-label-md font-bold text-on-surface">StoreX Admin</span>
+<span class="text-label-sm font-label-sm text-secondary">System Administrator Hub</span>
+</div>
+</div>
+<!-- Navigation Tabs -->
+<nav class="flex flex-col gap-1">
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-colors duration-150 min-h-[44px]" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="dashboard">dashboard</span>
+<span class="text-label-md font-label-md">SA01 — Tổng quan hệ thống</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-colors duration-150 min-h-[44px]" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="domain_add">domain_add</span>
+<span class="text-label-md font-label-md">SA02 — Danh mục cơ sở</span>
+</a>
+<!-- SA03 Active -->
+<a class="bg-primary-container text-on-primary-container font-semibold rounded-lg px-space-md py-space-sm flex items-center gap-space-sm min-h-[44px] shadow-sm" href="#">
+<span class="material-symbols-outlined text-xl text-on-primary-container" data-icon="badge">badge</span>
+<span class="text-label-md font-label-md text-white font-bold">SA03 — Phân quyền cơ sở</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-colors duration-150 min-h-[44px]" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="manage_accounts">manage_accounts</span>
+<span class="text-label-md font-label-md">SA04 — Tài khoản nhân sự</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-colors duration-150 min-h-[44px]" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="history">history</span>
+<span class="text-label-md font-label-md">SA05 — Nhật ký kiểm toán</span>
+</a>
+</nav>
+</div>
+<!-- Footer Policy Box -->
+<div class="pt-space-md border-t border-outline-variant flex flex-col gap-space-sm">
+<div class="p-space-sm bg-warning-container/60 border border-warning/20 rounded-lg flex items-start gap-space-xs">
+<span class="material-symbols-outlined text-warning text-base flex-shrink-0 mt-0.5" data-icon="warning">warning</span>
+<div class="flex flex-col">
+<span class="text-label-sm font-label-sm font-bold text-warning leading-snug">Chính sách đa cơ sở (FS)</span>
+<span class="text-label-sm font-label-sm text-warning/90 text-[11px] leading-tight mt-0.5">Chính sách giới hạn gán đa cơ sở cho FS: Đang khảo sát - Policy TBD</span>
+</div>
+</div>
+<div class="px-space-xs text-[11px] text-secondary text-center">
+          StoreX Governance v2.4.1 (Build 2025)
+        </div>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 bg-background overflow-y-auto custom-scroll p-space-lg lg:p-space-xl flex flex-col gap-space-xl min-w-0">
+<!-- Top Breadcrumb & Page Header -->
+<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-space-md pb- space-sm">
+<div>
+<nav class="flex items-center gap-space-xs text-secondary text-label-sm font-label-sm mb-1">
+<span class="">Quản trị hệ thống</span>
+<span class="material-symbols-outlined text-xs" data-icon="chevron_right">chevron_right</span>
+<span class="text-primary font-bold">Phân quyền theo cơ sở</span>
+</nav>
+<div class="flex items-center gap-space-md flex-wrap">
+<h1 class="text-headline-md font-headline-md text-on-surface tracking-tight">SA03 — Phân quyền Cơ sở cho Quản lý &amp; Nhân viên</h1>
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-label-sm font-label-sm bg-primary-soft text-primary font-semibold border border-primary/20">
+              Quyền phân định: SA Scope Only
+            </span>
+</div>
+<p class="text-body-sm font-body-sm text-secondary mt-1 max-w-3xl">
+            Quản trị trạng thái kích hoạt tài khoản Quản lý cơ sở (FM) và Nhân viên cơ sở (FS). Lưu ý: SA chỉ gán quyền truy cập dữ liệu cơ sở; nghiệp vụ giao ca và phân công công việc cụ thể trực thuộc quản trị viên FM tại cơ sở.
+          </p>
+</div>
+<!-- Header CTA Actions -->
+<div class="flex items-center gap-space-sm flex-shrink-0">
+<button class="min-h-[44px] px-space-lg py-2.5 bg-surface border border-outline-variant hover:bg-surface-muted text-on-surface font-label-md rounded-lg flex items-center gap-space-xs transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-lg text-secondary" data-icon="file_download">file_download</span>
+<span class="">Xuất ma trận phân quyền</span>
+</button>
+<button class="min-h-[44px] px-space-lg py-2.5 bg-primary-container hover:bg-primary-dark text-on-primary font-label-md rounded-lg flex items-center gap-space-xs transition-colors shadow-sm" id="openModalBtn" type="button">
+<span class="material-symbols-outlined text-lg" data-icon="person_add">person_add</span>
+<span class="">Gán quyền cơ sở mới</span>
+</button>
+</div>
+</div>
+<!-- Policy Clarification Callout -->
+<div class="bg-surface border-l-4 border-primary rounded-r-[15px] border border-outline-variant p-space-md flex items-start gap-space-md shadow-sm"><div class="p-2 bg-primary-soft rounded-lg text-primary flex-shrink-0"><span class="material-symbols-outlined text-xl" aria-hidden="true" data-icon="policy">policy</span></div><div class="flex flex-col gap-0.5"><div class="flex items-center gap-2 flex-wrap"><span class="text-label-md font-label-md font-bold text-on-surface">Ranh giới thẩm quyền &amp; An toàn vận hành:</span><span class="text-label-sm font-label-sm px-2 py-0.5 rounded-full bg-warning-container text-warning font-semibold">Chính sách giới hạn gán đa cơ sở cho FS: Đang khảo sát - Policy TBD</span></div><p class="text-body-sm font-body-sm text-secondary mt-0.5">Phân quyền cơ sở cấp phạm vi dữ liệu trạm cho <strong class="text-on-surface font-semibold">Quản lý cơ sở (FM)</strong> và <strong class="text-on-surface font-semibold">Nhân viên cơ sở (FS)</strong>. Quyền điều hành cấp cao của <strong class="text-on-surface font-semibold">BOM (Quản lý vận hành kinh doanh - Business Operations Manager)</strong> và phân công ca trực hằng ngày của FM (chức năng FM06) không bị ảnh hưởng bởi thiết lập này.</p></div></div>
+<!-- Bento-style Summary KPI Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md">
+<!-- Card 1 -->
+<div class="bg-surface rounded-[15px] border border-border p-card-padding flex flex-col justify-between shadow-sm relative overflow-hidden">
+<div class="flex items-center justify-between">
+<span class="text-label-sm font-label-sm uppercase tracking-wider text-secondary">Cơ sở đang hoạt động</span>
+<div class="w-10 h-10 rounded-lg bg-surface-muted flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-xl" data-icon="warehouse">warehouse</span>
+</div>
+</div>
+<div class="mt-4 flex items-baseline gap-2">
+<span class="text-headline-md font-headline-md font-bold text-on-surface">4</span>
+<span class="text-label-md font-label-md text-secondary">trạm toàn quốc</span>
+</div>
+<div class="mt-2 text-label-sm font-label-sm text-on-success-container flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="check_circle">check_circle</span>
+<span class="">100% kết nối dữ liệu ổn định</span>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface rounded-[15px] border border-border p-card-padding flex flex-col justify-between shadow-sm relative overflow-hidden">
+<div class="flex items-center justify-between">
+<span class="text-label-sm font-label-sm uppercase tracking-wider text-secondary">Quản lý cơ sở (FM)</span>
+<div class="w-10 h-10 rounded-lg bg-primary-soft flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-xl" data-icon="assignment_ind">assignment_ind</span>
+</div>
+</div>
+<div class="mt-4 flex items-baseline gap-2">
+<span class="text-headline-md font-headline-md font-bold text-on-surface">8</span>
+<span class="text-label-md font-label-md text-secondary">nhân sự đã gán</span>
+</div>
+<div class="mt-2 text-label-sm font-label-sm text-secondary flex items-center gap-1">
+<span class="">Trung bình 2 FM / trạm (Chính &amp; Dự phòng)</span>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface rounded-[15px] border border-border p-card-padding flex flex-col justify-between shadow-sm relative overflow-hidden">
+<div class="flex items-center justify-between">
+<span class="text-label-sm font-label-sm uppercase tracking-wider text-secondary">Nhân viên cơ sở (FS)</span>
+<div class="w-10 h-10 rounded-lg bg-surface-muted flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-xl" data-icon="badge">badge</span>
+</div>
+</div>
+<div class="mt-4 flex items-baseline gap-2">
+<span class="text-headline-md font-headline-md font-bold text-on-surface">32</span>
+<span class="text-label-md font-label-md text-secondary">nhân sự đã gán</span>
+</div>
+<div class="mt-2 text-label-sm font-label-sm text-on-success-container flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="verified_user">verified_user</span>
+<span class="">Đang hoạt động trên hệ thống</span>
+</div>
+</div>
+<!-- Card 4 -->
+<div class="bg-surface rounded-[15px] border border-border p-card-padding flex flex-col justify-between shadow-sm relative overflow-hidden">
+<div class="flex items-center justify-between">
+<span class="text-label-sm font-label-sm uppercase tracking-wider text-secondary">Chờ gán quyền cơ sở</span>
+<div class="w-10 h-10 rounded-lg bg-warning-container flex items-center justify-center text-warning">
+<span class="material-symbols-outlined text-xl" data-icon="person_alert">person_alert</span>
+</div>
+</div>
+<div class="mt-4 flex items-baseline gap-2">
+<span class="text-headline-md font-headline-md font-bold text-warning">2</span>
+<span class="text-label-md font-label-md text-secondary">tài khoản mới</span>
+</div>
+<div class="mt-2 text-label-sm font-label-sm text-warning font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="schedule">schedule</span>
+<span class="">Cần phân quyền truy cập trạm</span>
+</div>
+</div>
+</div>
+<!-- Split Pane Main Content: Facility Selector (Left) & Personnel Matrix (Right) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-xl items-start">
+<!-- Left Pane: Danh sách cơ sở kho (col 4) -->
+<div class="lg:col-span-4 bg-surface rounded-[15px] border border-border p-card-padding shadow-sm flex flex-col gap-space-md">
+<div class="flex items-center justify-between pb-space-sm border-b border-border">
+<div>
+<h2 class="text-title-lg font-title-lg text-on-surface">Danh sách cơ sở</h2>
+<span class="text-label-sm font-label-sm text-secondary">4 trạm đang vận hành trực tuyến</span>
+</div>
+<button class="w-8 h-8 rounded-md hover:bg-surface-muted flex items-center justify-center text-secondary" title="Làm mới" type="button">
+<span class="material-symbols-outlined text-lg" data-icon="refresh">refresh</span>
+</button>
+</div>
+<!-- Quick Search for Facility -->
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-3 text-secondary text-lg" data-icon="search">search</span>
+<input class="w-full pl-9 pr-3 py-2 bg-surface rounded-lg border border-outline-variant text-body-sm font-body-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none" placeholder="Tìm nhanh cơ sở..." type="text" aria-label="Tìm kiếm nhanh cơ sở kho">
+</div>
+<!-- Facilities List -->
+<div class="flex flex-col gap-space-sm" id="facilityListContainer">
+<!-- Facility 1 (Active Selected) -->
+<div class="facility-card active-facility p-space-md rounded-xl border border-primary bg-primary-soft/40 cursor-pointer transition-all duration-150 relative" data-facility-id="central">
+<div class="flex items-start justify-between">
+<div class="flex items-start gap-space-sm">
+<div class="w-9 h-9 rounded-lg bg-primary text-white flex items-center justify-center flex-shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-base" data-icon="warehouse">warehouse</span>
+</div>
+<div>
+<h3 class="text-label-md font-label-md font-bold text-primary">StoreX Sài Gòn Central</h3>
+<p class="text-body-sm font-body-sm text-secondary text-xs">Quận 1, TP. Hồ Chí Minh</p>
+</div>
+</div>
+<span class="flex h-2.5 w-2.5 relative">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+</span>
+</div>
+<div class="mt-3 pt-2.5 border-t border-primary/20 flex items-center justify-between text-label-sm font-label-sm">
+<span class="text-secondary font-medium">FM: <strong class="text-on-surface">2</strong> | FS: <strong class="text-on-surface">10</strong></span>
+<span class="text-primary font-bold inline-flex items-center gap-0.5">
+                  Đang xem
+                  <span class="material-symbols-outlined text-sm" data-icon="arrow_forward">arrow_forward</span>
+</span>
+</div>
+</div>
+<!-- Facility 2 -->
+<div class="facility-card p-space-md rounded-xl border border-outline-variant hover:border-slate-300 bg-surface hover:bg-surface-muted/60 cursor-pointer transition-all duration-150" data-facility-id="binhthanh">
+<div class="flex items-start justify-between">
+<div class="flex items-start gap-space-sm">
+<div class="w-9 h-9 rounded-lg bg-surface-muted text-secondary flex items-center justify-center flex-shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-base" data-icon="warehouse">warehouse</span>
+</div>
+<div>
+<h3 class="text-label-md font-label-md font-bold text-on-surface">StoreX Bình Thạnh Landmark</h3>
+<p class="text-body-sm font-body-sm text-secondary text-xs">Bình Thạnh, TP. Hồ Chí Minh</p>
+</div>
+</div>
+</div>
+<div class="mt-3 pt-2.5 border-t border-border flex items-center justify-between text-label-sm font-label-sm">
+<span class="text-secondary">FM: <strong class="text-on-surface">2</strong> | FS: <strong class="text-on-surface">8</strong></span>
+<span class="text-secondary text-xs font-semibold">Chọn xem</span>
+</div>
+</div>
+<!-- Facility 3 -->
+<div class="facility-card p-space-md rounded-xl border border-outline-variant hover:border-slate-300 bg-surface hover:bg-surface-muted/60 cursor-pointer transition-all duration-150" data-facility-id="caugiay">
+<div class="flex items-start justify-between">
+<div class="flex items-start gap-space-sm">
+<div class="w-9 h-9 rounded-lg bg-surface-muted text-secondary flex items-center justify-center flex-shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-base" data-icon="warehouse">warehouse</span>
+</div>
+<div>
+<h3 class="text-label-md font-label-md font-bold text-on-surface">StoreX Cầu Giấy TechHub</h3>
+<p class="text-body-sm font-body-sm text-secondary text-xs">Cầu Giấy, Hà Nội</p>
+</div>
+</div>
+</div>
+<div class="mt-3 pt-2.5 border-t border-border flex items-center justify-between text-label-sm font-label-sm">
+<span class="text-secondary">FM: <strong class="text-on-surface">2</strong> | FS: <strong class="text-on-surface">7</strong></span>
+<span class="text-secondary text-xs font-semibold">Chọn xem</span>
+</div>
+</div>
+<!-- Facility 4 -->
+<div class="facility-card p-space-md rounded-xl border border-outline-variant hover:border-slate-300 bg-surface hover:bg-surface-muted/60 cursor-pointer transition-all duration-150" data-facility-id="namsaigon">
+<div class="flex items-start justify-between">
+<div class="flex items-start gap-space-sm">
+<div class="w-9 h-9 rounded-lg bg-surface-muted text-secondary flex items-center justify-center flex-shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-base" data-icon="warehouse">warehouse</span>
+</div>
+<div>
+<h3 class="text-label-md font-label-md font-bold text-on-surface">StoreX Nam Sài Gòn</h3>
+<p class="text-body-sm font-body-sm text-secondary text-xs">Quận 7, TP. Hồ Chí Minh</p>
+</div>
+</div>
+</div>
+<div class="mt-3 pt-2.5 border-t border-border flex items-center justify-between text-label-sm font-label-sm">
+<span class="text-secondary">FM: <strong class="text-on-surface">2</strong> | FS: <strong class="text-on-surface">7</strong></span>
+<span class="text-secondary text-xs font-semibold">Chọn xem</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Pane: Personnel Matrix for Selected Facility (col 8) -->
+<div class="lg:col-span-8 bg-surface rounded-[15px] border border-border p-card-padding shadow-sm flex flex-col gap-space-md">
+<!-- Selected Header Bar -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm pb-space-sm border-b border-border">
+<div>
+<div class="flex items-center gap-2">
+<h2 class="text-title-lg font-title-lg text-on-surface" id="currentFacilityTitle">StoreX Sài Gòn Central</h2>
+<span class="px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-success-container text-on-success-container font-semibold">Cơ sở trọng điểm</span>
+</div>
+<p class="text-body-sm font-body-sm text-secondary">Mã cơ sở: <code class="font-mono text-xs font-semibold text-primary">FAC-SGC-01</code> • Tổng cộng: 12 nhân sự có quyền truy cập</p>
+</div>
+<button class="min-h-[44px] px-space-md py-2 bg-primary-soft hover:bg-emerald-100 text-primary font-label-md rounded-lg flex items-center gap-1 transition-colors self-start sm:self-auto" onclick="document.getElementById('openModalBtn').click()" type="button">
+<span class="material-symbols-outlined text-base" data-icon="add_circle">add_circle</span>
+<span class="">Gán nhân sự vào trạm này</span>
+</button>
+</div>
+<!-- Role Filter Tabs (FM vs FS) -->
+<div class="flex items-center justify-between border-b border-outline-variant">
+<div class="flex gap-space-lg">
+<button class="py-2.5 text-label-md font-label-md font-bold text-primary border-b-2 border-primary flex items-center gap-2 transition-all" id="tabFM" onclick="switchRoleTab('FM')" type="button">
+<span class="">Quản lý cơ sở (FM)</span>
+<span class="px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-primary/10 text-primary" id="fmBadgeCount">2</span>
+</button>
+<button class="py-2.5 text-label-md font-label-md font-medium text-secondary hover:text-on-surface border-b-2 border-transparent flex items-center gap-2 transition-all" id="tabFS" onclick="switchRoleTab('FS')" type="button">
+<span class="">Nhân viên cơ sở (FS)</span>
+<span class="px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-surface-muted text-secondary" id="fsBadgeCount">10</span>
+</button>
+</div>
+<!-- Table Search Mini -->
+<div class="hidden sm:block pb-1">
+<input class="px-3 py-1.5 bg-surface-muted rounded-md border border-outline-variant text-body-sm font-body-sm w-48 focus:w-60 transition-all outline-none" placeholder="Lọc họ tên, mã NV..." type="text" aria-label="Lọc nhân sự theo họ tên hoặc mã nhân viên">
+</div>
+</div>
+<!-- Dynamic Role Personnel Table -->
+<div class="overflow-x-auto custom-scroll border border-outline-variant rounded-lg">
+<table class="w-full text-left border-collapse"><caption class="sr-only">Danh sách nhân sự Quản lý cơ sở (FM) và Nhân viên cơ sở (FS) đã được phân quyền truy cập tại cơ sở được chọn</caption>
+<thead>
+<tr class="bg-surface-muted border-b border-outline-variant">
+<th class="py-3 px-4 text-label-sm font-label-sm text-secondary uppercase tracking-wider">Họ tên &amp; Mã NV</th>
+<th class="py-3 px-4 text-label-sm font-label-sm text-secondary uppercase tracking-wider">Vai trò</th>
+<th class="py-3 px-4 text-label-sm font-label-sm text-secondary uppercase tracking-wider">Ngày phân quyền</th>
+<th class="py-3 px-4 text-label-sm font-label-sm text-secondary uppercase tracking-wider">Trạng thái</th>
+<th class="py-3 px-4 text-label-sm font-label-sm text-secondary uppercase tracking-wider">Ghi chú kiểm toán</th>
+<th class="py-3 px-4 text-label-sm font-label-sm text-secondary uppercase tracking-wider text-right">Thao tác</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border" id="personnelTableBody"><tr class="hover:bg-surface-muted transition-colors min-h-[48px]">
+          <td class="py-3 px-4">
+            <div class="flex items-center gap-space-sm">
+              <div class="w-8 h-8 rounded-full bg-primary-soft text-primary flex items-center justify-center font-bold text-xs">
+                H
+              </div>
+              <div class="flex flex-col">
+                <span class="text-body-sm font-body-sm font-bold text-on-surface">Lê Thu Hà</span>
+                <span class="text-label-sm font-label-sm font-mono text-secondary text-xs">FM-0102</span>
+              </div>
+            </div>
+          </td>
+          <td class="py-3 px-4">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-primary-soft text-primary font-semibold border border-outline-variant">
+              Quản lý chính
+            </span>
+          </td>
+          <td class="py-3 px-4 text-body-sm font-body-sm text-secondary">15/01/2024</td>
+          <td class="py-3 px-4">
+            <span class="inline-flex items-center gap-1 text-label-sm font-label-sm text-on-success-container bg-success-container px-2 py-0.5 rounded-full font-semibold">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              Hoạt động
+            </span>
+          </td>
+          <td class="py-3 px-4 text-body-sm font-body-sm text-secondary max-w-xs truncate" title="Bổ nhiệm theo QĐ-08/2024">
+            Bổ nhiệm theo QĐ-08/2024
+          </td>
+          <td class="py-3 px-4 text-right">
+            <div class="inline-flex items-center gap-1 justify-end">
+              <button type="button" aria-label="Chỉnh sửa quyền" onclick="editAssignment('FM-0102', 'Lê Thu Hà')" class="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md hover:bg-surface-container-low text-secondary hover:text-primary transition-colors" title="Chỉnh sửa quyền">
+                <span class="material-symbols-outlined text-lg" data-icon="edit">edit</span>
+              </button>
+              <button type="button" aria-label="Thu hồi quyền" onclick="revokeAssignment('FM-0102', 'Lê Thu Hà')" class="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md hover:bg-destructive-container text-secondary hover:text-destructive transition-colors" title="Thu hồi quyền">
+                <span class="material-symbols-outlined text-lg" data-icon="person_remove">person_remove</span>
+              </button>
+            </div>
+          </td>
+        </tr><tr class="hover:bg-surface-muted transition-colors min-h-[48px]">
+          <td class="py-3 px-4">
+            <div class="flex items-center gap-space-sm">
+              <div class="w-8 h-8 rounded-full bg-primary-soft text-primary flex items-center justify-center font-bold text-xs">
+                Q
+              </div>
+              <div class="flex flex-col">
+                <span class="text-body-sm font-body-sm font-bold text-on-surface">Trần Minh Quân</span>
+                <span class="text-label-sm font-label-sm font-mono text-secondary text-xs">FM-0145</span>
+              </div>
+            </div>
+          </td>
+          <td class="py-3 px-4">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-primary-soft text-primary font-semibold border border-outline-variant">
+              Quản lý dự phòng
+            </span>
+          </td>
+          <td class="py-3 px-4 text-body-sm font-body-sm text-secondary">10/06/2024</td>
+          <td class="py-3 px-4">
+            <span class="inline-flex items-center gap-1 text-label-sm font-label-sm text-on-success-container bg-success-container px-2 py-0.5 rounded-full font-semibold">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              Hoạt động
+            </span>
+          </td>
+          <td class="py-3 px-4 text-body-sm font-body-sm text-secondary max-w-xs truncate" title="Điều phối hỗ trợ cơ sở">
+            Điều phối hỗ trợ cơ sở
+          </td>
+          <td class="py-3 px-4 text-right">
+            <div class="inline-flex items-center gap-1 justify-end">
+              <button type="button" aria-label="Chỉnh sửa quyền" onclick="editAssignment('FM-0145', 'Trần Minh Quân')" class="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md hover:bg-surface-container-low text-secondary hover:text-primary transition-colors" title="Chỉnh sửa quyền">
+                <span class="material-symbols-outlined text-lg" data-icon="edit">edit</span>
+              </button>
+              <button type="button" aria-label="Thu hồi quyền" onclick="revokeAssignment('FM-0145', 'Trần Minh Quân')" class="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md hover:bg-destructive-container text-secondary hover:text-destructive transition-colors" title="Thu hồi quyền">
+                <span class="material-symbols-outlined text-lg" data-icon="person_remove">person_remove</span>
+              </button>
+            </div>
+          </td>
+        </tr></tbody>
+</table>
+</div>
+<!-- Operational Boundary Disclaimer -->
+<div class="p-3 bg-surface-muted rounded-lg border border-outline-variant text-label-sm font-label-sm text-secondary flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-base text-primary" data-icon="info">info</span>
+<span class="">Lịch phân công ca trực cụ thể hàng tuần của nhân viên do FM quản lý trực tiếp tại <strong class="text-on-surface">FM06 — Phân công công việc</strong>.</span>
+</div>
+<a class="text-primary hover:underline font-semibold flex items-center gap-0.5" href="#">
+              Xem quy chế FM06
+              <span class="material-symbols-outlined text-xs" data-icon="open_in_new">open_in_new</span>
+</a>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Drawer / Modal: "Gán quyền truy cập cơ sở" -->
+<div aria-labelledby="modalTitle" aria-modal="true" class="fixed inset-0 z-50 hidden" id="assignmentModal" role="dialog">
+<!-- Backdrop -->
+<div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity opacity-0" id="modalBackdrop"></div>
+<div class="fixed inset-0 z-10 overflow-y-auto flex items-center justify-center p-4">
+<div class="bg-surface rounded-[15px] border border-outline-variant max-w-lg w-full p-card-padding shadow-2xl transform transition-all scale-95 opacity-0 flex flex-col gap-space-md" id="modalPanel"><div class="flex items-center justify-between pb-space-sm border-b border-border"><div class="flex items-center gap-space-sm"><div class="w-10 h-10 rounded-lg bg-primary-soft text-primary flex items-center justify-center"><span class="material-symbols-outlined text-xl" aria-hidden="true" data-icon="key">key</span></div><div><h3 class="text-title-lg font-title-lg text-on-surface" id="modalTitle">Gán quyền truy cập cơ sở</h3><p class="text-body-sm font-body-sm text-secondary">Phân định phạm vi truy cập dữ liệu trạm (FM / FS)</p></div></div><button aria-label="Đóng cửa sổ phân quyền cơ sở" class="min-w-[44px] min-h-[44px] rounded-lg hover:bg-surface-muted flex items-center justify-center text-secondary transition-colors" id="closeModalBtn" type="button"><span class="material-symbols-outlined text-lg" aria-hidden="true" data-icon="close">close</span></button></div><form class="flex flex-col gap-space-md" id="assignmentForm"><div class="flex flex-col gap-1.5"><label class="text-label-md font-label-md text-on-surface font-medium" for="selectStaff">Nhân sự nội bộ (Chỉ vai trò FM / FS) <span class="text-destructive" aria-hidden="true">*</span></label><select class="w-full min-h-[44px] px-3 bg-surface rounded-lg border border-outline-variant text-body-sm font-body-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none" id="selectStaff" required="" aria-describedby="staffHelp"><option disabled="" selected="" value="">Chọn nhân viên hoặc quản lý...</option><option value="NV-2024-009">Trương Bá Đạo (FS - Kho vận mới) — [NV-2024-009]</option><option value="NV-2024-012">Đỗ Thùy Trang (FS - Điều phối kho) — [NV-2024-012]</option><option value="NV-2023-088">Lê Thu Hà (FM - Quản lý cơ sở) — [NV-2023-088]</option><option value="NV-2023-094">Trần Minh Quân (FM - Quản lý dự phòng) — [NV-2023-094]</option></select><span class="text-label-sm font-label-sm text-secondary" id="staffHelp">Chỉ cấp quyền cho nhân sự FM/FS. Vai trò BOM (Quản lý vận hành kinh doanh) được cấp quyền cấp quản trị toàn diện riêng.</span></div><div class="flex flex-col gap-1.5"><label class="text-label-md font-label-md text-on-surface font-medium" for="selectFacility">Cơ sở được cấp quyền truy cập <span class="text-destructive" aria-hidden="true">*</span></label><select class="w-full min-h-[44px] px-3 bg-surface rounded-lg border border-outline-variant text-body-sm font-body-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none" id="selectFacility" required=""><option selected="" value="central">StoreX Sài Gòn Central (Quận 1, TP.HCM)</option><option value="binhthanh">StoreX Bình Thạnh Landmark (Bình Thạnh, TP.HCM)</option><option value="caugiay">StoreX Cầu Giấy TechHub (Cầu Giấy, Hà Nội)</option><option value="namsaigon">StoreX Nam Sài Gòn (Quận 7, TP.HCM)</option></select></div><div class="flex flex-col gap-1.5"><label class="text-label-md font-label-md text-on-surface font-medium" for="auditReason">Ghi chú lý do phân quyền (Nhật ký kiểm toán SA05) <span class="text-destructive" aria-hidden="true">*</span></label><textarea class="w-full p-3 bg-surface rounded-lg border border-outline-variant text-body-sm font-body-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none" id="auditReason" placeholder="Ví dụ: Bổ sung nhân sự trực kỹ thuật theo Quyết định điều chuyển QĐ-2025/03..." required="" rows="3" aria-describedby="reasonHelp"></textarea><span class="text-label-sm font-label-sm text-secondary" id="reasonHelp">Bắt buộc nhập lý do phục vụ nhật ký kiểm toán hệ thống (SA05).</span></div><div class="p-3 bg-primary-soft/60 border border-primary/20 rounded-lg flex items-start gap-2.5"><span class="material-symbols-outlined text-primary text-base flex-shrink-0 mt-0.5" aria-hidden="true" data-icon="verified_user">verified_user</span><div class="text-body-sm font-body-sm text-primary text-xs leading-relaxed"><strong>Hiệu lực phân quyền:</strong> Quyền truy cập cơ sở cho phép xem dữ liệu buồng kho và hợp đồng tại cơ sở này. Không tự động phân công lịch ca trực hay giao việc (thuộc thẩm quyền FM tại trạm).</div></div><div class="flex items-center justify-end gap-space-sm pt-space-sm border-t border-border"><button class="min-h-[44px] px-space-lg py-2.5 bg-surface border border-outline-variant hover:bg-surface-muted text-on-surface font-label-md rounded-lg transition-colors" id="cancelModalBtn" type="button">Hủy</button><button class="min-h-[44px] px-space-lg py-2.5 bg-primary-container hover:bg-primary-dark text-on-primary font-label-md rounded-lg flex items-center gap-1.5 transition-colors shadow-sm" type="submit"><span class="material-symbols-outlined text-base" aria-hidden="true" data-icon="check">check</span><span class="">Xác nhận gán quyền</span></button></div></form></div>
+</div>
+</div>
+<!-- Interactive JavaScript -->
+<script>
+    // State representation
+    const facilityData = {
+      central: {
+        name: "StoreX Sài Gòn Central",
+        code: "FAC-SGC-01",
+        badge: "Cơ sở trọng điểm",
+        fmList: [
+          { name: "Lê Thu Hà", id: "FM-0102", role: "Quản lý chính", date: "15/01/2024", status: "Hoạt động", note: "Bổ nhiệm theo QĐ-08/2024" },
+          { name: "Trần Minh Quân", id: "FM-0145", role: "Quản lý dự phòng", date: "10/06/2024", status: "Hoạt động", note: "Điều phối hỗ trợ cơ sở" }
+        ],
+        fsList: [
+          { name: "Nguyễn Minh Hoàng", id: "FS-0301", role: "Nhân viên cơ sở", date: "01/02/2024", status: "Hoạt động", note: "Trực kho buồng chuẩn" },
+          { name: "Vũ Hữu Đạt", id: "FS-0302", role: "Nhân viên cơ sở", date: "15/02/2024", status: "Hoạt động", note: "Kỹ thuật buồng mát" },
+          { name: "Lê Văn Tân", id: "FS-0305", role: "Nhân viên cơ sở", date: "01/03/2024", status: "Hoạt động", note: "Kiểm soát an ninh kho" },
+          { name: "Phạm Hồng Ngọc", id: "FS-0312", role: "Nhân viên cơ sở", date: "20/04/2024", status: "Hoạt động", note: "Điều phối xuất nhập" },
+          { name: "Đặng Quốc Bảo", id: "FS-0319", role: "Nhân viên cơ sở", date: "05/05/2024", status: "Hoạt động", note: "Phụ trách tầng 1 & 2" },
+          { name: "Hoàng Mai Chi", id: "FS-0322", role: "Nhân viên cơ sở", date: "12/06/2024", status: "Hoạt động", note: "CSKH tại trạm" },
+          { name: "Nguyễn Hải Yến", id: "FS-0325", role: "Nhân viên cơ sở", date: "15/07/2024", status: "Hoạt động", note: "Bàn giao vật phẩm" },
+          { name: "Bùi Tuấn Anh", id: "FS-0330", role: "Nhân viên cơ sở", date: "01/08/2024", status: "Hoạt động", note: "Vận hành hệ thống khóa" },
+          { name: "Đinh Xuân Vinh", id: "FS-0334", role: "Nhân viên cơ sở", date: "10/09/2024", status: "Hoạt động", note: "Bảo trì định kỳ" },
+          { name: "Võ Thị Thanh", id: "FS-0340", role: "Nhân viên cơ sở", date: "01/10/2024", status: "Hoạt động", note: "Nhân viên mới luân chuyển" }
+        ]
+      },
+      binhthanh: {
+        name: "StoreX Bình Thạnh Landmark",
+        code: "FAC-BTL-02",
+        badge: "Cơ sở phía Đông",
+        fmList: [
+          { name: "Nguyễn Văn Tuấn", id: "FM-0201", role: "Quản lý chính", date: "01/03/2024", status: "Hoạt động", note: "QĐ bổ nhiệm trưởng trạm" },
+          { name: "Đỗ Mai Hương", id: "FM-0204", role: "Quản lý dự phòng", date: "12/05/2024", status: "Hoạt động", note: "Hỗ trợ ca tối" }
+        ],
+        fsList: [
+          { name: "Phan Văn Nam", id: "FS-0401", role: "Nhân viên cơ sở", date: "01/04/2024", status: "Hoạt động", note: "Kiểm kho định kỳ" },
+          { name: "Lý Thị Trang", id: "FS-0405", role: "Nhân viên cơ sở", date: "15/04/2024", status: "Hoạt động", note: "Tiếp đón khách thuê" },
+          { name: "Dương Minh Long", id: "FS-0410", role: "Nhân viên cơ sở", date: "20/05/2024", status: "Hoạt động", note: "Vận hành kho tự quản" },
+          { name: "Trịnh Thùy An", id: "FS-0415", role: "Nhân viên cơ sở", date: "01/06/2024", status: "Hoạt động", note: "Hỗ trợ check-in" },
+          { name: "Ngô Quang Hải", id: "FS-0420", role: "Nhân viên cơ sở", date: "10/07/2024", status: "Hoạt động", note: "Bảo an cơ sở" },
+          { name: "Cao Thành Đạt", id: "FS-0422", role: "Nhân viên cơ sở", date: "01/08/2024", status: "Hoạt động", note: "Kỹ thuật điện lạnh" },
+          { name: "Vũ Bảo Châu", id: "FS-0425", role: "Nhân viên cơ sở", date: "15/08/2024", status: "Hoạt động", note: "Kho tài liệu" },
+          { name: "Đoàn Thế Anh", id: "FS-0430", role: "Nhân viên cơ sở", date: "01/09/2024", status: "Hoạt động", note: "Giám sát camera" }
+        ]
+      },
+      caugiay: {
+        name: "StoreX Cầu Giấy TechHub",
+        code: "FAC-CGT-03",
+        badge: "Cơ sở miền Bắc",
+        fmList: [
+          { name: "Phạm Quốc Hùng", id: "FM-0301", role: "Quản lý chính", date: "10/02/2024", status: "Hoạt động", note: "Bổ nhiệm quản lý miền" },
+          { name: "Hoàng Yến Nga", id: "FM-0305", role: "Quản lý dự phòng", date: "01/04/2024", status: "Hoạt động", note: "Trực ca hỗ trợ" }
+        ],
+        fsList: [
+          { name: "Tạ Quang Bửu", id: "FS-0501", role: "Nhân viên cơ sở", date: "15/02/2024", status: "Hoạt động", note: "Vận hành Smart Lock" },
+          { name: "Nguyễn Thảo Ly", id: "FS-0504", role: "Nhân viên cơ sở", date: "01/03/2024", status: "Hoạt động", note: "Tiếp đón khách hàng" },
+          { name: "Lê Đức Phúc", id: "FS-0508", role: "Nhân viên cơ sở", date: "10/04/2024", status: "Hoạt động", note: "Kiểm tra cảm biến ẩm" },
+          { name: "Chu Tuấn Kiệt", id: "FS-0512", role: "Nhân viên cơ sở", date: "20/05/2024", status: "Hoạt động", note: "Quản lý tủ locker" },
+          { name: "Trương Bảo Ngân", id: "FS-0515", role: "Nhân viên cơ sở", date: "01/06/2024", status: "Hoạt động", note: "Dịch vụ đóng gói" },
+          { name: "Hồ Hoàng Nam", id: "FS-0520", role: "Nhân viên cơ sở", date: "15/07/2024", status: "Hoạt động", note: "An ninh kho tầng hầm" },
+          { name: "Bùi Diệu Linh", id: "FS-0522", role: "Nhân viên cơ sở", date: "01/09/2024", status: "Hoạt động", note: "Hỗ trợ khách hàng online" }
+        ]
+      },
+      namsaigon: {
+        name: "StoreX Nam Sài Gòn",
+        code: "FAC-NSG-04",
+        badge: "Cơ sở phía Nam",
+        fmList: [
+          { name: "Võ Minh Trí", id: "FM-0401", role: "Quản lý chính", date: "01/01/2024", status: "Hoạt động", note: "Điều phối toàn diện" },
+          { name: "Nguyễn Kim Ngân", id: "FM-0408", role: "Quản lý dự phòng", date: "15/03/2024", status: "Hoạt động", note: "Dự phòng ca ngày" }
+        ],
+        fsList: [
+          { name: "Trần Thế Khang", id: "FS-0601", role: "Nhân viên cơ sở", date: "10/01/2024", status: "Hoạt động", note: "Kho lạnh & rượu vang" },
+          { name: "Lâm Mỹ Duyên", id: "FS-0605", role: "Nhân viên cơ sở", date: "20/02/2024", status: "Hoạt động", note: "Bàn giao chìa khóa số" },
+          { name: "Phùng Vĩnh Thụy", id: "FS-0610", role: "Nhân viên cơ sở", date: "05/04/2024", status: "Hoạt động", note: "Quản lý bốc dỡ hàng" },
+          { name: "Dương Cẩm Nhung", id: "FS-0614", role: "Nhân viên cơ sở", date: "12/05/2024", status: "Hoạt động", note: "Thủ tục hợp đồng kho" },
+          { name: "Huỳnh Quốc Đạt", id: "FS-0619", role: "Nhân viên cơ sở", date: "01/07/2024", status: "Hoạt động", note: "Tuần tra an toàn PCCC" },
+          { name: "Mai Thu Hằng", id: "FS-0622", role: "Nhân viên cơ sở", date: "18/08/2024", status: "Hoạt động", note: "Hỗ trợ thủ kho" },
+          { name: "Lưu Văn Sáng", id: "FS-0625", role: "Nhân viên cơ sở", date: "01/10/2024", status: "Hoạt động", note: "Kiểm kê vật phẩm" }
+        ]
+      }
+    };
+
+    let currentFacility = 'central';
+    let currentRole = 'FM';
+
+    function renderTable() {
+      const facility = facilityData[currentFacility];
+      document.getElementById('currentFacilityTitle').textContent = facility.name;
+
+      const list = currentRole === 'FM' ? facility.fmList : facility.fsList;
+      document.getElementById('fmBadgeCount').textContent = facility.fmList.length;
+      document.getElementById('fsBadgeCount').textContent = facility.fsList.length;
+
+      const tbody = document.getElementById('personnelTableBody');
+      tbody.innerHTML = '';
+
+      list.forEach((item, index) => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-surface-muted transition-colors min-h-[48px]";
+        tr.innerHTML = `
+          <td class="py-3 px-4">
+            <div class="flex items-center gap-space-sm">
+              <div class="w-8 h-8 rounded-full ${currentRole === 'FM' ? 'bg-primary-soft text-primary' : 'bg-slate-100 text-secondary'} flex items-center justify-center font-bold text-xs">
+                ${item.name.split(' ').slice(-1)[0][0]}
+              </div>
+              <div class="flex flex-col">
+                <span class="text-body-sm font-body-sm font-bold text-on-surface">${item.name}</span>
+                <span class="text-label-sm font-label-sm font-mono text-secondary text-xs">${item.id}</span>
+              </div>
+            </div>
+          </td>
+          <td class="py-3 px-4">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-label-sm font-label-sm ${currentRole === 'FM' ? 'bg-primary-soft text-primary font-semibold' : 'bg-surface-muted text-secondary font-medium'} border border-outline-variant">
+              ${item.role}
+            </span>
+          </td>
+          <td class="py-3 px-4 text-body-sm font-body-sm text-secondary">${item.date}</td>
+          <td class="py-3 px-4">
+            <span class="inline-flex items-center gap-1 text-label-sm font-label-sm text-on-success-container bg-success-container px-2 py-0.5 rounded-full font-semibold">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              ${item.status}
+            </span>
+          </td>
+          <td class="py-3 px-4 text-body-sm font-body-sm text-secondary max-w-xs truncate" title="${item.note}">
+            ${item.note}
+          </td>
+          <td class="py-3 px-4 text-right">
+            <div class="inline-flex items-center gap-1 justify-end">
+              <button type="button" aria-label="Chỉnh sửa quyền" onclick="editAssignment('${item.id}', '${item.name}')" class="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md hover:bg-surface-container-low text-secondary hover:text-primary transition-colors" title="Chỉnh sửa quyền">
+                <span class="material-symbols-outlined text-lg" data-icon="edit">edit</span>
+              </button>
+              <button type="button" aria-label="Thu hồi quyền" onclick="revokeAssignment('${item.id}', '${item.name}')" class="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md hover:bg-destructive-container text-secondary hover:text-destructive transition-colors" title="Thu hồi quyền">
+                <span class="material-symbols-outlined text-lg" data-icon="person_remove">person_remove</span>
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function switchRoleTab(role) {
+      currentRole = role;
+      const tabFM = document.getElementById('tabFM');
+      const tabFS = document.getElementById('tabFS');
+
+      if (role === 'FM') {
+        tabFM.className = "py-2.5 text-label-md font-label-md font-bold text-primary border-b-2 border-primary flex items-center gap-2 transition-all";
+        tabFS.className = "py-2.5 text-label-md font-label-md font-medium text-secondary hover:text-on-surface border-b-2 border-transparent flex items-center gap-2 transition-all";
+      } else {
+        tabFS.className = "py-2.5 text-label-md font-label-md font-bold text-primary border-b-2 border-primary flex items-center gap-2 transition-all";
+        tabFM.className = "py-2.5 text-label-md font-label-md font-medium text-secondary hover:text-on-surface border-b-2 border-transparent flex items-center gap-2 transition-all";
+      }
+      renderTable();
+    }
+
+    // Facility Card Selection Logic
+    document.querySelectorAll('.facility-card').forEach(card => {
+      card.addEventListener('click', function() {
+        document.querySelectorAll('.facility-card').forEach(c => {
+          c.classList.remove('border-primary', 'bg-primary-soft/40');
+          c.classList.add('border-outline-variant', 'bg-surface');
+          const viewingText = c.querySelector('.active-indicator-label');
+          if (viewingText) viewingText.remove();
+        });
+
+        this.classList.add('border-primary', 'bg-primary-soft/40');
+        this.classList.remove('border-outline-variant', 'bg-surface');
+
+        currentFacility = this.getAttribute('data-facility-id');
+        renderTable();
+      });
+    });
+
+    // Modal Operations with Accessibility (Focus trap & ESC handling)
+    const modal = document.getElementById('assignmentModal');
+    const backdrop = document.getElementById('modalBackdrop');
+    const panel = document.getElementById('modalPanel');
+    const openBtn = document.getElementById('openModalBtn');
+    const closeBtn = document.getElementById('closeModalBtn');
+    const cancelBtn = document.getElementById('cancelModalBtn');
+    const assignmentForm = document.getElementById('assignmentForm');
+    let lastActiveElement = null;
+
+    function openModal() {
+      lastActiveElement = document.activeElement;
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        backdrop.classList.remove('opacity-0');
+        panel.classList.remove('scale-95', 'opacity-0');
+        panel.classList.add('scale-100', 'opacity-100');
+        document.getElementById('selectStaff').focus();
+      }, 20);
+    }
+
+    function closeModal() {
+      backdrop.classList.add('opacity-0');
+      panel.classList.remove('scale-100', 'opacity-100');
+      panel.classList.add('scale-95', 'opacity-0');
+      setTimeout(() => {
+        modal.classList.add('hidden');
+        assignmentForm.reset();
+        if (lastActiveElement) lastActiveElement.focus();
+      }, 200);
+    }
+
+    openBtn.addEventListener('click', openModal);
+    closeBtn.addEventListener('click', closeModal);
+    cancelBtn.addEventListener('click', closeModal);
+    backdrop.addEventListener('click', closeModal);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+        closeModal();
+      }
+    });
+
+    assignmentForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const staffVal = document.getElementById('selectStaff').value;
+      const facilityVal = document.getElementById('selectFacility').value;
+      const reasonVal = document.getElementById('auditReason').value;
+
+      if (!staffVal || !reasonVal.trim()) {
+        alert('Vui lòng điền đầy đủ thông tin và lý do phân quyền.');
+        return;
+      }
+
+      // Quick simulated optimistic update
+      const newPersonnel = {
+        name: staffVal.includes('Trương') ? "Trương Bá Đạo" : "Đỗ Thùy Trang",
+        id: staffVal,
+        role: "Nhân viên cơ sở",
+        date: "Hôm nay",
+        status: "Hoạt động",
+        note: reasonVal
+      };
+
+      if (facilityData[facilityVal]) {
+        facilityData[facilityVal].fsList.unshift(newPersonnel);
+      }
+
+      closeModal();
+      currentFacility = facilityVal;
+      switchRoleTab('FS');
+      alert(`Đã gán quyền truy cập cơ sở thành công cho tài khoản ${staffVal}. Nhật ký kiểm toán đã ghi nhận.`);
+    });
+
+    function editAssignment(id, name) {
+      openModal();
+      document.getElementById('auditReason').value = `Điều chỉnh phạm vi truy cập cho nhân sự ${name} (${id})`;
+    }
+
+    function revokeAssignment(id, name) {
+      const confirmed = confirm(`Bạn có chắc chắn muốn thu hồi quyền truy cập cơ sở của ${name} (${id})? Thao tác này sẽ ghi nhận vào nhật ký kiểm toán hệ thống.`);
+      if (confirmed) {
+        if (currentRole === 'FM') {
+          facilityData[currentFacility].fmList = facilityData[currentFacility].fmList.filter(item => item.id !== id);
+        } else {
+          facilityData[currentFacility].fsList = facilityData[currentFacility].fsList.filter(item => item.id !== id);
+        }
+        renderTable();
+        alert(`Đã thu hồi quyền truy cập cơ sở của ${name}.`);
+      }
+    }
+
+    // Initial table render
+    renderTable();
+  </script>
+
+
+</body></html>

@@ -1,31 +1,151 @@
 "use client";
 
-import type { FacilityListParams } from "@storex/contracts";
-import { useQuery } from "@tanstack/react-query";
+import type { ApiFacility, ApiUnitType, PaginatedResult } from "@metastorage/contracts";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { isMockMode } from "@/config/api-mode";
 import { api } from "@/lib/api";
+import type {
+  FacilityCatalogFilters,
+  FacilityCatalogItem,
+  FacilityUnitTypeOption,
+} from "./facility-catalog.types";
 
-export const facilityKeys = {
+const facilityKeys = {
   all: ["facilities"] as const,
-  list: (params: FacilityListParams) => [...facilityKeys.all, "list", params] as const,
-  detail: (id: string) => [...facilityKeys.all, "detail", id] as const,
-  availability: (id: string) => [...facilityKeys.all, "availability", id] as const,
+  catalog: ["facilities", "catalog"] as const,
+  list: (params: FacilityCatalogFilters) => ["facilities", "list", params] as const,
+  detail: (id: string) => ["facilities", "detail", id] as const,
+  unitTypes: (id: string) => ["facilities", "unit-types", id] as const,
 };
 
-export function useFacilities(params: FacilityListParams) {
+async function loadUnitTypes(facilityId: string): Promise<ApiUnitType[]> {
+  const rows: ApiUnitType[] = [];
+  for (let offset = 0; ; offset += 100) {
+    const page = await api.facilities.listUnitTypes(facilityId, { limit: 100, offset });
+    rows.push(...page);
+    if (page.length < 100) return rows;
+  }
+}
+
+function useFacilityCatalog(enabled: boolean) {
+  const queryClient = useQueryClient();
   return useQuery({
-    queryKey: facilityKeys.list(params),
-    queryFn: () => api.facilities.list(params),
+    queryKey: facilityKeys.catalog,
+    enabled,
+    queryFn: async (): Promise<FacilityCatalogItem[]> => {
+      const facilities: ApiFacility[] = [];
+      for (let offset = 0; ; offset += 100) {
+        const page = await api.facilities.listActive({ limit: 100, offset });
+        facilities.push(...page);
+        if (page.length < 100) break;
+      }
+      return Promise.all(
+        facilities.map(async (facility) => {
+          const types = await queryClient.fetchQuery({
+            queryKey: facilityKeys.unitTypes(facility.id),
+            queryFn: () => loadUnitTypes(facility.id),
+            staleTime: 30000,
+          });
+          return {
+            ...facility,
+            startingMonthlyPrice: types.length
+              ? Math.min(...types.map((type) => type.monthlyPrice))
+              : null,
+          };
+        }),
+      );
+    },
   });
+}
+
+export function useFacilities(params: FacilityCatalogFilters) {
+  const query = useFacilityCatalog(isMockMode);
+  let data: PaginatedResult<FacilityCatalogItem> | undefined;
+  if (query.data) {
+    const search = params.search?.trim().toLocaleLowerCase("vi");
+    const city = params.city?.trim().toLocaleLowerCase("vi");
+    const rows = query.data.filter(
+      (facility) =>
+        (!search ||
+          `${facility.name} ${facility.address}`.toLocaleLowerCase("vi").includes(search)) &&
+        (!city || facility.address.toLocaleLowerCase("vi").includes(city)),
+    );
+    rows.sort((a, b) =>
+      params.sort === "price"
+        ? (a.startingMonthlyPrice ?? Infinity) - (b.startingMonthlyPrice ?? Infinity) ||
+          a.name.localeCompare(b.name, "vi")
+        : a.name.localeCompare(b.name, "vi"),
+    );
+    const page = params.page ?? 1;
+    const pageSize = params.pageSize ?? 20;
+    data = {
+      items: rows.slice((page - 1) * pageSize, page * pageSize),
+      page,
+      pageSize,
+      total: rows.length,
+      totalPages: Math.max(1, Math.ceil(rows.length / pageSize)),
+    };
+  }
+  const live = useQuery({
+    queryKey: facilityKeys.list(params),
+    queryFn: () => api.facilities.catalog(params),
+    enabled: !isMockMode,
+  });
+  return isMockMode ? { ...query, data } : live;
 }
 
 export function useFacility(id: string) {
-  return useQuery({ queryKey: facilityKeys.detail(id), queryFn: () => api.facilities.get(id) });
-}
-
-export function useAvailability(id: string) {
   return useQuery({
-    queryKey: facilityKeys.availability(id),
-    queryFn: () => api.facilities.availability(id),
+    queryKey: facilityKeys.detail(id),
+    queryFn: () => api.catalog.getFacility(id),
     enabled: Boolean(id),
   });
+}
+
+// Catalog remains readable without a schedule. Period capacity is a snapshot;
+// draft creation and start-payment remain authoritative.
+export function useAvailability(
+  id: string,
+  period?: import("@metastorage/contracts").CustomerAvailabilityQuery,
+) {
+  const availability = useQuery({
+    queryKey: [...facilityKeys.all, "period", id, period],
+    queryFn: ({ signal }) => {
+      if (!period) throw new Error();
+      return api.facilities.availability(id, period, signal);
+    },
+    enabled: Boolean(id && period),
+    staleTime: 0,
+  });
+  const catalog = useQuery({
+    queryKey: facilityKeys.unitTypes(id),
+    queryFn: () => loadUnitTypes(id),
+    enabled: Boolean(id),
+    staleTime: 30000,
+    select: (types): FacilityUnitTypeOption[] =>
+      types.map((type) => ({
+        facilityId: id,
+        unitTypeId: type.id,
+        unitType: type.name,
+        sizeLabel: type.sizeLabel,
+        sizeSqm: type.lengthM * type.widthM,
+        lengthM: type.lengthM,
+        widthM: type.widthM,
+        heightM: type.heightM,
+        monthlyPrice: type.monthlyPrice,
+        availableCount:
+          !availability.isError && period?.unitTypeId === type.id
+            ? (availability.data?.availableCount ?? null)
+            : null,
+      })),
+  });
+  return {
+    ...catalog,
+    availability,
+    refetch: async () => {
+      const result = await catalog.refetch();
+      if (period) await availability.refetch();
+      return result;
+    },
+  };
 }

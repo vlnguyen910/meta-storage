@@ -1,0 +1,394 @@
+<!DOCTYPE html><html lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Chi tiết lịch hẹn - MetaStorage</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Google Fonts: Space Grotesk & Be Vietnam Pro -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS with custom configuration -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "outline-variant": "#bfc9c4",
+            "on-secondary": "#ffffff",
+            "inverse-surface": "#283044",
+            "inverse-primary": "#96d3c0",
+            "tertiary-fixed-dim": "#ffb77d",
+            "surface-container-high": "#e2e7ff",
+            "error-container": "#ffdad6",
+            "on-tertiary": "#ffffff",
+            "secondary-fixed": "#b4efda",
+            "surface-bright": "#faf8ff",
+            "surface-container": "#eaedff",
+            "on-primary-fixed-variant": "#0d5042",
+            "on-primary": "#ffffff",
+            "on-tertiary-fixed": "#2f1500",
+            "surface-variant": "#dae2fd",
+            "on-primary-fixed": "#002019",
+            "error": "#ba1a1a",
+            "outline": "#707975",
+            "on-surface": "#131b2e",
+            "surface-container-highest": "#dae2fd",
+            "surface-container-lowest": "#ffffff",
+            "on-tertiary-fixed-variant": "#6e3900",
+            "surface-container-low": "#f2f3ff",
+            "primary-fixed-dim": "#96d3c0",
+            "surface-tint": "#2c6859",
+            "secondary": "#306858",
+            "tertiary-fixed": "#ffdcc3",
+            "primary-container": "#125345",
+            "secondary-container": "#b4efda",
+            "primary-fixed": "#b1efdc",
+            "surface": "#faf8ff",
+            "on-primary-container": "#89c5b3",
+            "on-background": "#131b2e",
+            "on-tertiary-container": "#ffa454",
+            "inverse-on-surface": "#eef0ff",
+            "background": "#faf8ff",
+            "primary": "#003b2f",
+            "on-surface-variant": "#404945",
+            "surface-dim": "#d2d9f4",
+            "on-secondary-fixed-variant": "#135041",
+            "tertiary": "#512800",
+            "on-error-container": "#93000a",
+            "on-secondary-fixed": "#002018",
+            "on-error": "#ffffff",
+            "secondary-fixed-dim": "#98d2be",
+            "tertiary-container": "#723b00",
+            "on-secondary-container": "#366e5e"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "space-md": "1rem",
+            "margin-sm": "1rem",
+            "space-lg": "1.5rem",
+            "gutter": "1.5rem",
+            "gutter-sm": "1rem",
+            "space-xs": "0.25rem",
+            "space-sm": "0.5rem",
+            "margin": "2rem",
+            "space-xl": "2.5rem"
+          },
+          "fontFamily": {
+            "body-sm": ["Be Vietnam Pro"],
+            "display": ["Space Grotesk"],
+            "body-lg": ["Be Vietnam Pro"],
+            "title-md": ["Be Vietnam Pro"],
+            "display-mobile": ["Space Grotesk"],
+            "headline-lg-mobile": ["Space Grotesk"],
+            "headline-md": ["Space Grotesk"],
+            "label-md": ["Space Grotesk"],
+            "headline-lg": ["Space Grotesk"],
+            "headline-sm": ["Space Grotesk"],
+            "label-lg": ["Space Grotesk"],
+            "label-sm": ["Space Grotesk"],
+            "body-md": ["Be Vietnam Pro"]
+          },
+          "fontSize": {
+            "body-sm": ["12px", {"lineHeight": "18px", "fontWeight": "400"}],
+            "display": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+            "body-lg": ["16px", {"lineHeight": "26px", "fontWeight": "400"}],
+            "title-md": ["18px", {"lineHeight": "26px", "fontWeight": "600"}],
+            "display-mobile": ["34px", {"lineHeight": "42px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+            "headline-lg-mobile": ["26px", {"lineHeight": "34px", "fontWeight": "600"}],
+            "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+            "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "600"}],
+            "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+            "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+            "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "500"}],
+            "label-sm": ["11px", {"lineHeight": "14px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+            "body-md": ["14px", {"lineHeight": "22px", "fontWeight": "400"}]
+          }
+        },
+      },
+    }
+  </script>
+</head>
+<body class="bg-inverse-surface/40 min-h-screen flex items-end sm:items-center justify-center font-body-md text-on-surface antialiased p-0 sm:p-space-md select-none">
+<!-- Mobile Stack Modal / Bottom Sheet Container -->
+<div class="w-full max-w-[420px] bg-background rounded-t-full sm:rounded-full shadow-2xl flex flex-col max-h-[96vh] sm:max-h-[92vh] overflow-hidden border border-outline-variant/30 relative">
+<!-- Top Drag Handle & Modal Header -->
+<header class="bg-surface-container-lowest/90 backdrop-blur-md sticky top-0 z-30 pt-space-xs pb-space-sm px-gutter-sm border-b border-outline-variant/20">
+<!-- Drag Bar -->
+<div class="w-12 h-1.5 bg-outline-variant/60 rounded-full mx-auto mb-space-sm"></div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<button aria-label="Đóng" class="w-9 h-9 rounded-full flex items-center justify-center text-on-surface hover:bg-surface-container active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-[22px]">close</span>
+</button>
+<div>
+<span class="font-headline-sm text-headline-sm text-primary">Chi tiết lịch hẹn</span>
+</div>
+</div>
+<!-- Status Badge -->
+
+</div>
+<!-- Booking Code Row -->
+
+</header>
+<!-- Scrollable Content Canvas -->
+<main class="overflow-y-auto px-gutter-sm py-space-md space-y-space-md pb-28">
+<!-- Section 1: Urgent Appointment Schedule -->
+<section class="bg-surface-container-lowest p-space-md rounded-xl border border-outline-variant/40 shadow-sm relative overflow-hidden">
+<div class="absolute -right-6 -bottom-6 w-24 h-24 bg-secondary-container/30 rounded-full blur-xl pointer-events-none"></div>
+<div class="flex items-start justify-between mb-space-sm">
+<div class="flex items-center gap-2">
+<span class="w-8 h-8 rounded-lg bg-primary-container/10 flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined text-[20px]">calendar_clock</span>
+</span>
+<div>
+<span class="font-label-sm text-label-sm text-on-surface-variant block">Thời gian nhận kho</span>
+<span class="font-headline-sm text-headline-sm text-primary font-bold">07:00 - Thứ Tư</span>
+</div>
+</div>
+<!-- Countdown Badge -->
+<span class="bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm px-2.5 py-1 rounded-full font-bold flex items-center gap-1 shadow-sm">
+<span class="material-symbols-outlined text-[14px]">hourglass_top</span>
+            Hôm nay · Còn 45 phút
+          </span>
+</div>
+<div class="text-body-sm font-body-sm text-on-surface-variant pb-space-sm border-b border-outline-variant/20 flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-primary">event_available</span>
+          Ngày bắt đầu kích hoạt: <strong class="text-on-surface font-title-md text-title-md">30/09/2026</strong>
+</div>
+<!-- Facility details -->
+<div class="pt-space-sm space-y-1.5">
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-[18px] text-primary-container mt-0.5">warehouse</span>
+<div>
+<h4 class="font-title-md text-title-md text-on-surface">MetaStorage Sài Gòn Central</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">118 Nguyễn Văn Linh, P. Tân Phong, Quận 7, TP. HCM</p>
+</div>
+</div>
+<!-- Facility Action Buttons -->
+
+</div>
+</section>
+<!-- Section 2: Storage Unit Assigned & Specs Matrix -->
+<section class="bg-surface-container-lowest p-space-md rounded-xl border border-outline-variant/40 shadow-sm">
+<div class="flex items-center justify-between pb-space-sm border-b border-outline-variant/20">
+<div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Buồng kho được gán</span>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="font-headline-md text-headline-md text-primary-container font-bold tracking-tight">HCM-01-023</span>
+<span class="bg-surface-container text-on-surface font-label-sm text-label-sm px-2 py-0.5 rounded">Tầng 1 - Khu A</span>
+</div>
+</div>
+<div class="w-12 h-12 bg-secondary-container/40 rounded-xl flex flex-col items-center justify-center border border-secondary-container">
+<span class="font-headline-sm text-headline-sm text-primary font-bold leading-none">2.0</span>
+<span class="font-label-sm text-[10px] text-on-secondary-container">m²</span>
+</div>
+</div>
+<!-- Dimension Specs -->
+<div class="grid grid-cols-3 gap-2 py-space-sm text-center border-b border-outline-variant/20 my-space-xs">
+<div class="bg-surface-container-low p-2 rounded-lg">
+<span class="font-label-sm text-[10px] text-on-surface-variant block uppercase">Kích thước</span>
+<span class="font-label-md text-label-md text-on-surface font-semibold">1.4m × 1.4m</span>
+</div>
+<div class="bg-surface-container-low p-2 rounded-lg">
+<span class="font-label-sm text-[10px] text-on-surface-variant block uppercase">Chiều cao trần</span>
+<span class="font-label-md text-label-md text-on-surface font-semibold">2.8 m</span>
+</div>
+<div class="bg-surface-container-low p-2 rounded-lg">
+<span class="font-label-sm text-[10px] text-on-surface-variant block uppercase">Thể tích</span>
+<span class="font-label-md text-label-md text-on-surface font-semibold">~5.6 m³</span>
+</div>
+</div>
+
+</section>
+<!-- Section 3: Digital QR Check-in & Smart PIN Door Key -->
+<section class="bg-primary text-on-primary p-space-md rounded-xl shadow-lg relative overflow-hidden">
+<!-- Background subtle tech grid -->
+<div class="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none"></div>
+<div class="flex items-center justify-between mb-space-sm relative z-10">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[22px] text-primary-fixed">qr_code_scanner</span>
+<div>
+<h3 class="font-headline-sm text-headline-sm font-bold text-white">Mã QR Check-in&nbsp;</h3>
+<p class="font-body-sm text-body-sm text-on-primary-container">Hãy đưa cho nhân viên để xác minh</p>
+</div>
+</div>
+
+</div>
+<!-- High Contrast QR Viewport -->
+<div class="bg-white p-space-md rounded-2xl flex flex-col items-center justify-center shadow-inner my-space-sm max-w-[260px] mx-auto border-2 border-primary-fixed/20 relative z-10">
+<div class="p-2 bg-white rounded-lg">
+<!-- Structured SVG QR Code Simulation with Center MetaStorage Logo -->
+<svg class="w-44 h-44" fill="none" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+<!-- Corner Finder Top Left -->
+<rect height="36" rx="4" stroke="#003B2F" stroke-width="4" width="36" x="10" y="10"></rect>
+<rect fill="#003B2F" height="16" rx="2" width="16" x="20" y="20"></rect>
+<!-- Corner Finder Top Right -->
+<rect height="36" rx="4" stroke="#003B2F" stroke-width="4" width="36" x="114" y="10"></rect>
+<rect fill="#003B2F" height="16" rx="2" width="16" x="124" y="20"></rect>
+<!-- Corner Finder Bottom Left -->
+<rect height="36" rx="4" stroke="#003B2F" stroke-width="4" width="36" x="10" y="114"></rect>
+<rect fill="#003B2F" height="16" rx="2" width="16" x="20" y="124"></rect>
+<!-- QR Data Matrix Pattern -->
+<rect fill="#125345" height="8" width="8" x="54" y="14"></rect>
+<rect fill="#125345" height="8" width="8" x="70" y="14"></rect>
+<rect fill="#125345" height="8" width="8" x="86" y="14"></rect>
+<rect fill="#125345" height="8" width="8" x="98" y="26"></rect>
+<rect fill="#125345" height="8" width="8" x="54" y="30"></rect>
+<rect fill="#125345" height="8" width="8" x="70" y="38"></rect>
+<rect fill="#125345" height="8" width="8" x="86" y="30"></rect>
+<rect fill="#125345" height="8" width="8" x="18" y="54"></rect>
+<rect fill="#125345" height="8" width="8" x="34" y="54"></rect>
+<rect fill="#125345" height="8" width="8" x="18" y="70"></rect>
+<rect fill="#125345" height="8" width="8" x="34" y="86"></rect>
+<rect fill="#125345" height="8" width="8" x="54" y="54"></rect>
+<rect fill="#125345" height="8" width="8" x="98" y="54"></rect>
+<rect fill="#125345" height="8" width="8" x="114" y="62"></rect>
+<rect fill="#125345" height="8" width="8" x="134" y="74"></rect>
+<rect fill="#125345" height="8" width="8" x="118" y="90"></rect>
+<rect fill="#125345" height="8" width="8" x="54" y="98"></rect>
+<rect fill="#125345" height="8" width="8" x="70" y="90"></rect>
+<rect fill="#125345" height="8" width="8" x="86" y="98"></rect>
+<rect fill="#125345" height="8" width="8" x="98" y="114"></rect>
+<rect fill="#125345" height="8" width="8" x="130" y="114"></rect>
+<rect fill="#125345" height="8" width="8" x="114" y="130"></rect>
+<rect fill="#125345" height="8" width="8" x="138" y="138"></rect>
+<rect fill="#125345" height="8" width="8" x="54" y="126"></rect>
+<rect fill="#125345" height="8" width="8" x="74" y="134"></rect>
+<!-- Center Smart Logo Badge -->
+<rect fill="#125345" height="36" rx="8" width="36" x="62" y="62"></rect>
+<path d="M72 84V73L80 67L88 73V84L80 87L72 84Z" fill="#B1EFDC"></path>
+<circle cx="80" cy="77" fill="#125345" r="3"></circle>
+</svg>
+</div>
+<div class="mt-1 flex items-center gap-1.5 text-on-surface">
+<span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+<span class="font-label-sm text-label-sm font-semibold tracking-wider">HỢP LỆ VÀ SẴN SÀNG</span>
+</div>
+</div>
+<!-- Smart PIN Code backup container -->
+
+</section>
+<!-- Section 4: Lease Agreement & Payment Summary -->
+<section class="bg-surface-container-lowest p-space-md rounded-xl border border-outline-variant/40 shadow-sm space-y-3">
+<h4 class="font-title-md text-title-md text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px] text-primary-container">receipt_long</span>
+          Thông tin hợp đồng &amp; Dịch vụ
+        </h4>
+<div class="divide-y divide-outline-variant/20 text-body-sm">
+<div class="py-2 flex items-center justify-between">
+<span class="text-on-surface-variant font-body-sm">Thời hạn thuê</span>
+<div class="text-right">
+<span class="font-label-md text-label-md text-on-surface font-semibold">30/09/2026 - 14/12/2026</span>
+<span class="block text-[11px] text-secondary">(Thuê 3 tháng)</span>
+</div>
+</div>
+<div class="py-2 flex items-center justify-between">
+<span class="text-on-surface-variant font-body-sm">Người đặt kho</span>
+<div class="text-right">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Lê Thị Mai Linh</span>
+<span class="block text-[11px] text-on-surface-variant">0903 892 xxx</span>
+</div>
+</div>
+<div class="py-2 flex items-center justify-between">
+<span class="text-on-surface-variant font-body-sm">Phương thức thanh toán</span>
+<span class="font-label-md text-label-md text-on-surface font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-secondary">check_circle</span>
+              VNPay QR
+            </span>
+</div>
+<div class="pt-2 flex items-center justify-between">
+<span class="font-title-md text-title-md text-primary font-bold">Tổng thanh toán</span>
+<span class="font-headline-sm text-headline-sm text-primary font-bold text-emerald-800">1.800.000 đ</span>
+</div>
+</div>
+</section>
+<!-- Security Guidance Notice -->
+
+</main>
+<!-- Section 5: Fixed Action Bottom Bar -->
+<footer class="absolute bottom-0 left-0 right-0 bg-surface-container-lowest/95 backdrop-blur-md px-gutter-sm py-space-sm border-t border-outline-variant/30 z-40">
+<div class="grid grid-cols-5 gap-2 max-w-md mx-auto">
+<!-- Secondary Button: Change Schedule -->
+
+<!-- Primary Button: Unlock & Check-in -->
+
+</div>
+</footer>
+<!-- Interactive Toast Notification -->
+<div class="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-inverse-surface text-inverse-on-surface px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-2 transition-all duration-300 transform pointer-events-none -translate-y-20 opacity-0" id="toast">
+<span class="material-symbols-outlined text-[18px] text-secondary-fixed" id="toast-icon">lock_open</span>
+<span class="text-xs font-label-md" id="toast-text">Cửa buồng HCM-01-023 đã mở khóa!</span>
+</div>
+</div>
+<!-- Inline Script for Micro-Interactions -->
+<script>
+    let pinRevealed = false;
+    const realPin = "482916";
+
+    function copyBookingCode() {
+      const code = document.getElementById("booking-code").innerText;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(code).then(() => {
+          showToast("Đã sao chép mã " + code, "check_circle");
+        }).catch(() => {
+          showToast("Mã đặt kho: " + code, "info");
+        });
+      } else {
+        showToast("Mã đặt kho: " + code, "info");
+      }
+    }
+
+    function togglePinCode() {
+      pinRevealed = !pinRevealed;
+      const pinDisplay = document.getElementById("pin-display");
+      const pinBtnText = document.getElementById("pin-btn-text");
+      const pinIcon = document.getElementById("pin-icon");
+
+      if (pinRevealed) {
+        pinDisplay.innerText = realPin;
+        pinBtnText.innerText = "Ẩn mã PIN";
+        pinIcon.innerText = "visibility_off";
+        showToast("Mã Smart PIN đang hiển thị", "lock_open");
+      } else {
+        pinDisplay.innerText = "••••••";
+        pinBtnText.innerText = "Hiện mã PIN";
+        pinIcon.innerText = "visibility";
+      }
+    }
+
+    function triggerCheckIn() {
+      showToast("Đang xác thực quyền mở buồng kho...", "sensors");
+      setTimeout(() => {
+        showToast("Cửa buồng HCM-01-023 đã mở khóa!", "lock_open");
+      }, 1400);
+    }
+
+    function showToast(message, icon = "check_circle") {
+      const toast = document.getElementById("toast");
+      const toastText = document.getElementById("toast-text");
+      const toastIcon = document.getElementById("toast-icon");
+
+      toastText.innerText = message;
+      toastIcon.innerText = icon;
+
+      toast.classList.remove("-translate-y-20", "opacity-0");
+      toast.classList.add("translate-y-0", "opacity-100");
+
+      setTimeout(() => {
+        toast.classList.remove("translate-y-0", "opacity-100");
+        toast.classList.add("-translate-y-20", "opacity-0");
+      }, 2600);
+    }
+  </script>
+
+
+<harper-render-box popover="manual" style="pointer-events: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; visibility: hidden !important;"></harper-render-box></body></html>

@@ -1,0 +1,491 @@
+<!DOCTYPE html><html class="light" lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>M-CK04 — Thanh toán — Guest/Customer</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-error": "#ffffff",
+            "outline": "#707975",
+            "surface-tint": "#2c6859",
+            "surface-container-highest": "#dae2fd",
+            "on-tertiary": "#ffffff",
+            "inverse-surface": "#283044",
+            "secondary": "#306858",
+            "on-surface": "#131b2e",
+            "on-primary-fixed": "#002019",
+            "primary-fixed-dim": "#96d3c0",
+            "surface-container-low": "#f2f3ff",
+            "primary-container": "#125345",
+            "inverse-on-surface": "#eef0ff",
+            "primary": "#003b2f",
+            "on-primary-fixed-variant": "#0d5042",
+            "surface-dim": "#d2d9f4",
+            "inverse-primary": "#96d3c0",
+            "surface": "#faf8ff",
+            "on-secondary": "#ffffff",
+            "surface-container-high": "#e2e7ff",
+            "tertiary-container": "#723b00",
+            "secondary-fixed": "#b4efda",
+            "on-primary-container": "#89c5b3",
+            "background": "#faf8ff",
+            "secondary-container": "#b4efda",
+            "on-primary": "#ffffff",
+            "error": "#ba1a1a",
+            "surface-container-lowest": "#ffffff",
+            "surface-container": "#eaedff",
+            "on-surface-variant": "#404945",
+            "surface-variant": "#dae2fd",
+            "tertiary-fixed-dim": "#ffb77d",
+            "secondary-fixed-dim": "#98d2be",
+            "on-tertiary-fixed": "#2f1500",
+            "outline-variant": "#bfc9c4",
+            "on-secondary-fixed": "#002018",
+            "tertiary": "#512800",
+            "surface-bright": "#faf8ff",
+            "error-container": "#ffdad6",
+            "on-secondary-container": "#366e5e",
+            "primary-fixed": "#b1efdc",
+            "on-background": "#131b2e",
+            "on-tertiary-fixed-variant": "#6e3900",
+            "on-tertiary-container": "#ffa454",
+            "on-secondary-fixed-variant": "#135041",
+            "tertiary-fixed": "#ffdcc3",
+            "on-error-container": "#93000a"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "gutter-sm": "1rem",
+            "margin": "2rem",
+            "space-sm": "0.5rem",
+            "gutter": "1.5rem",
+            "space-lg": "1.5rem",
+            "space-xs": "0.25rem",
+            "space-xl": "2.5rem",
+            "space-md": "1rem",
+            "margin-sm": "1rem"
+          },
+          "fontFamily": {
+            "label-md": ["Space Grotesk"],
+            "display": ["Space Grotesk"],
+            "body-sm": ["Be Vietnam Pro"],
+            "display-mobile": ["Space Grotesk"],
+            "headline-lg": ["Space Grotesk"],
+            "headline-sm": ["Space Grotesk"],
+            "label-lg": ["Space Grotesk"],
+            "headline-md": ["Space Grotesk"],
+            "body-md": ["Be Vietnam Pro"],
+            "label-sm": ["Space Grotesk"],
+            "body-lg": ["Be Vietnam Pro"],
+            "headline-lg-mobile": ["Space Grotesk"],
+            "title-md": ["Be Vietnam Pro"]
+          },
+          "fontSize": {
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "display": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+            "display-mobile": ["34px", { "lineHeight": "42px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+            "body-md": ["14px", { "lineHeight": "22px", "fontWeight": "400" }],
+            "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+            "body-lg": ["16px", { "lineHeight": "26px", "fontWeight": "400" }],
+            "headline-lg-mobile": ["26px", { "lineHeight": "34px", "fontWeight": "600" }],
+            "title-md": ["18px", { "lineHeight": "26px", "fontWeight": "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    body {
+      background-color: #faf8ff;
+      color: #131b2e;
+      -webkit-font-smoothing: antialiased;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="min-h-screen bg-background text-on-surface antialiased flex flex-col items-center">
+<!-- MOBILE VIEWPORT SHELL (Fixed at 390px, edge-to-edge mobile canvas) -->
+<div class="w-full max-w-[390px] min-h-screen bg-surface-container-lowest flex flex-col relative pb-36 shadow-sm">
+<!-- 1. TOP APP BAR (Shared Component Anchor) -->
+<header class="sticky top-0 z-40 flex items-center justify-between w-full h-14 px-4 bg-surface/90 backdrop-blur-md shadow-sm border-b border-outline-variant">
+<!-- Back Action -->
+<button aria-label="Quay lại" class="w-11 h-11 flex items-center justify-center text-primary hover:bg-surface-container-high transition-transform active:scale-95 rounded-lg" type="button">
+<span class="material-symbols-outlined text-primary text-[24px]">arrow_back</span>
+</button>
+<!-- Center Typography -->
+<div class="flex flex-col items-center text-center">
+<h1 class="font-title-md text-title-md font-bold text-primary tracking-tight">Thanh toán đơn thuê</h1>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-semibold">Bước 4/5: Thanh toán</span>
+</div>
+<!-- Trailing Action: Hotline / Trợ giúp -->
+<a aria-label="Hotline hỗ trợ" class="w-11 h-11 flex items-center justify-center text-primary hover:bg-surface-container-high transition-transform active:scale-95 rounded-lg" href="tel:02873001188">
+<span class="material-symbols-outlined text-primary text-[22px]">help_outline</span>
+</a>
+</header>
+<!-- 2. HOLD COUNTDOWN BANNER -->
+<section class="bg-surface-container-low px-4 py-3 border-b border-outline-variant flex items-start gap-3">
+<span class="material-symbols-outlined text-primary-container text-[20px] mt-0.5 shrink-0">timer</span>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<p class="font-body-md text-body-md text-on-surface font-semibold">
+            Đang giữ buồng kho trong <span class="font-label-md text-label-md font-bold text-primary-container bg-secondary-container px-2 py-0.5 rounded-lg" id="countdown">09:26</span>
+</p>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5 leading-snug">
+          Kho sẽ tự động mở lại cho khách khác nếu chưa thanh toán sau khi hết hạn.
+        </p>
+</div>
+</section>
+<!-- MAIN SCROLLABLE CONTENT CANVAS -->
+<main class="p-4 space-y-4">
+<!-- 3. BOOKING SUMMARY CARD -->
+<article class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 shadow-sm">
+<div class="flex items-center justify-between pb-3 border-b border-outline-variant">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">warehouse</span>
+<span class="font-headline-sm text-headline-sm text-primary">Thông tin đặt kho</span>
+</div>
+<span class="inline-flex items-center gap-1 font-label-sm text-label-sm px-2 py-0.5 rounded-lg bg-secondary-container text-primary-container">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container inline-block"></span>
+            Tự động giữ chỗ
+          </span>
+</div>
+<div class="mt-3 space-y-2.5">
+<!-- Facility -->
+<div>
+<div class="font-label-md text-label-md text-on-surface-variant">Cơ sở lưu trữ</div>
+<div class="font-body-lg text-body-lg font-semibold text-on-surface">StoreX Sài Gòn Central</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">118 Nguyễn Văn Linh, P. Tân Phong, Q.7, TP.HCM</div>
+</div>
+<!-- Unit Specs -->
+<div class="bg-surface-container p-3 rounded-lg flex items-center justify-between">
+<div>
+<div class="font-label-md text-label-md text-primary font-bold">Buồng Mini 2m²</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">1.0m × 2.0m × Cao 2.5m (Thể tích 5.0 m³)</div>
+</div>
+<span class="material-symbols-outlined text-primary text-[24px]">view_in_ar</span>
+</div>
+<!-- Schedules & Customer Info -->
+<div class="grid grid-cols-1 gap-2 pt-1 font-body-md text-body-md">
+<div class="flex items-start justify-between py-1 border-b border-surface-container">
+<span class="text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-outline">schedule</span> Nhận kho:
+              </span>
+<span class="font-medium text-right text-on-surface">10:00 – 12:00 (09/10/2026)</span>
+</div>
+<div class="flex items-start justify-between py-1 border-b border-surface-container">
+<span class="text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-outline">calendar_month</span> Thời hạn thuê:
+              </span>
+<span class="font-medium text-right text-on-surface">1 tháng (09/10 – 09/11/2026)</span>
+</div>
+<div class="flex items-start justify-between py-1">
+<span class="text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-outline">person</span> Khách hàng:
+              </span>
+<span class="font-medium text-right text-on-surface">Nguyễn Minh Anh <br><span class="text-body-sm font-normal text-on-surface-variant">0908 123 456</span></span>
+</div>
+</div>
+</div>
+</article>
+<!-- 4. TRANSPARENT COST BREAKDOWN CARD -->
+<article class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 shadow-sm">
+<div class="flex items-center gap-2 pb-3 border-b border-outline-variant">
+<span class="material-symbols-outlined text-primary text-[20px]">receipt_long</span>
+<h2 class="font-headline-sm text-headline-sm text-primary">Chi tiết thanh toán</h2>
+</div>
+<div class="mt-3 space-y-2.5 font-body-lg text-body-lg">
+<div class="flex justify-between items-center text-on-surface">
+<span>Tiền thuê kho (1 tháng)</span>
+<span class="font-semibold">900.000 đ</span>
+</div>
+<div class="flex justify-between items-start text-on-surface pb-2 border-b border-outline-variant">
+<div>
+<span class="block">Tiền cọc bảo đảm</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Hoàn lại 100% khi thanh lý hợp đồng</span>
+</div>
+<span class="font-semibold">900.000 đ</span>
+</div>
+<div class="flex justify-between items-center pt-1 text-primary">
+<div>
+<span class="font-title-md text-title-md font-bold block">Tổng thanh toán đợt đầu</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Đã bao gồm VAT &amp; bảo hiểm đồ đạc cơ bản</span>
+</div>
+<span class="font-headline-sm text-headline-sm text-primary font-bold">1.800.000 đ</span>
+</div>
+</div>
+<!-- Demo Mode Notice -->
+<div class="mt-4 p-3 bg-surface-container-high rounded-lg flex items-start gap-2.5 border border-outline-variant">
+<span class="material-symbols-outlined text-tertiary-container text-[18px] shrink-0 mt-0.5">info</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+<strong class="text-on-surface font-semibold">Lưu ý mô phỏng:</strong> Đây là phiên thanh toán thử nghiệm (Demo Mock). Không trừ tiền thực tế từ tài khoản ngân hàng của quý khách.
+          </p>
+</div>
+</article>
+<!-- 5. PAYMENT METHODS SELECTION -->
+<section class="space-y-3">
+<div class="flex items-center gap-2 px-1">
+<span class="material-symbols-outlined text-primary text-[20px]">credit_card</span>
+<h2 class="font-headline-sm text-headline-sm text-primary">Phương thức thanh toán</h2>
+</div>
+<!-- Method 1: VietQR Mock (Active & Recommended) -->
+<label class="block cursor-pointer bg-surface-container-lowest border-2 border-primary-container rounded-lg p-4 shadow-sm relative transition-all">
+<input checked="" class="hidden" name="payment_method" onchange="switchMethod('vietqr')" type="radio" value="vietqr">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-secondary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary-container text-[22px]">qr_code_scanner</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<span class="font-body-lg text-body-lg font-bold text-on-surface">Chuyển khoản VietQR / App Ngân hàng</span>
+</div>
+<span class="inline-block mt-0.5 font-label-sm text-label-sm text-primary-container font-semibold bg-secondary-container px-2 py-0.5 rounded-lg">Khuyên dùng (Tự động kích hoạt)</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-primary-container text-[22px]">check_circle</span>
+</div>
+<div class="mt-3 pt-3 border-t border-outline-variant font-body-sm text-body-sm text-on-surface-variant space-y-1">
+<p>• Hỗ trợ 40+ ứng dụng ngân hàng và ví MoMo/ZaloPay.</p>
+<p>• Hệ thống đối soát mã tự động, buồng kho mở ngay lập tức.</p>
+<p class="text-primary font-medium">• Tuyệt đối an toàn: Không thu thập thông tin thẻ hoặc mật khẩu.</p>
+</div>
+</label>
+<!-- Method 2: Domestic ATM Napas (Disabled) -->
+<div class="bg-surface-container border border-outline-variant rounded-lg p-3.5 opacity-60 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-dim flex items-center justify-center shrink-0 text-outline">
+<span class="material-symbols-outlined text-[20px]">account_balance</span>
+</div>
+<div>
+<div class="font-body-lg text-body-lg font-medium text-on-surface">Thẻ ATM nội địa Napas</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Cổng thanh toán thẻ nội địa</div>
+</div>
+</div>
+<span class="font-label-sm text-label-sm bg-surface-container-highest text-on-surface-variant px-2 py-1 rounded-lg">Chưa hỗ trợ trực tuyến</span>
+</div>
+<!-- Method 3: Visa/MasterCard (Disabled) -->
+<div class="bg-surface-container border border-outline-variant rounded-lg p-3.5 opacity-60 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-dim flex items-center justify-center shrink-0 text-outline">
+<span class="material-symbols-outlined text-[20px]">credit_card</span>
+</div>
+<div>
+<div class="font-body-lg text-body-lg font-medium text-on-surface">Thẻ quốc tế Visa/MasterCard</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Thanh toán thẻ tín dụng quốc tế</div>
+</div>
+</div>
+<span class="font-label-sm text-label-sm bg-surface-container-highest text-on-surface-variant px-2 py-1 rounded-lg">Chưa hỗ trợ trực tuyến</span>
+</div>
+</section>
+<!-- 6. FAQ & CONTEXT ACCORDION -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 shadow-sm">
+<div class="flex items-center gap-2 pb-2">
+<span class="material-symbols-outlined text-primary text-[20px]">quiz</span>
+<h2 class="font-headline-sm text-headline-sm text-primary">Câu hỏi về thanh toán &amp; tiền cọc</h2>
+</div>
+<div class="divide-y divide-surface-container font-body-md text-body-md">
+<!-- Item 1 -->
+<div class="py-2.5">
+<button class="w-full flex justify-between items-center text-left font-medium text-on-surface" onclick="toggleFaq('faq-1')" type="button">
+<span>Tại sao cần đặt cọc 1 tháng tiền thuê?</span>
+<span class="material-symbols-outlined text-[20px] text-outline transition-transform" id="faq-1-icon">expand_more</span>
+</button>
+<div class="hidden mt-2 font-body-sm text-body-sm text-on-surface-variant leading-relaxed" id="faq-1">
+              Tiền cọc bảo đảm dùng để kích hoạt khóa điện tử và duy trì buồng kho. Khoản tiền 900.000 đ này sẽ được hoàn trả đầy đủ vào tài khoản ngân hàng của bạn trong 24 giờ sau khi thanh lý hợp đồng thuê và bàn giao kho nguyên vẹn.
+            </div>
+</div>
+<!-- Item 2 -->
+<div class="py-2.5">
+<button class="w-full flex justify-between items-center text-left font-medium text-on-surface" onclick="toggleFaq('faq-2')" type="button">
+<span>Sau khi thanh toán, làm sao tôi nhận kho?</span>
+<span class="material-symbols-outlined text-[20px] text-outline transition-transform" id="faq-2-icon">expand_more</span>
+</button>
+<div class="hidden mt-2 font-body-sm text-body-sm text-on-surface-variant leading-relaxed" id="faq-2">
+              Sau khi xác nhận thanh toán thành công, hệ thống gửi ngay Mã PIN thông minh 6 chữ số và mã QR qua SMS/Email. Bạn chỉ cần quét mã tại cổng ra vào của cơ sở StoreX Sài Gòn Central để vào kho 24/7.
+            </div>
+</div>
+</div>
+</section>
+</main>
+<!-- 7. STICKY BOTTOM CHECKOUT BAR -->
+<div class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-surface-container-lowest/95 backdrop-blur-md border-t border-outline-variant p-4 z-40 shadow-lg">
+<div class="flex items-center justify-between mb-3">
+<div>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider block">Tổng thanh toán</span>
+<span class="font-headline-sm text-headline-sm font-bold text-primary">1.800.000 đ</span>
+</div>
+<div class="text-right">
+<span class="font-label-sm text-label-sm text-primary-container bg-secondary-container px-2 py-0.5 rounded-lg inline-flex items-center gap-1 font-semibold">
+<span class="material-symbols-outlined text-[14px]">lock</span>
+            Bảo mật SSL 256-bit
+          </span>
+</div>
+</div>
+<!-- Main Action Button (Min 48px height, 44px touch area) -->
+<button class="w-full h-12 bg-primary-container text-on-primary font-label-md text-body-lg font-semibold rounded-lg flex items-center justify-center gap-2 hover:bg-primary transition-all active:scale-[0.98] shadow-sm disabled:opacity-75 disabled:cursor-not-allowed" id="btn-submit-payment" onclick="handleMockPayment()" type="button">
+<span id="btn-text">Xác nhận thanh toán mẫu (1.800.000 đ)</span>
+<span class="material-symbols-outlined text-[20px]" id="btn-icon">arrow_forward</span>
+</button>
+</div>
+<!-- 8. MOCK TRANSACTION MODAL (Nielsen Heuristics State & Feedback) -->
+<div class="fixed inset-0 bg-inverse-surface/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4" id="payment-modal">
+<div class="bg-surface-container-lowest border border-outline-variant w-full max-w-[358px] rounded-lg p-5 shadow-xl text-center space-y-4">
+<!-- Processing State -->
+<div class="space-y-3 py-4" id="state-processing">
+<div class="w-12 h-12 border-4 border-primary-container border-t-transparent rounded-full animate-spin mx-auto"></div>
+<h3 class="font-headline-sm text-headline-sm text-primary font-bold">Đang kiểm tra giao dịch...</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+            Hệ thống đang kết nối cổng đối soát ngân hàng mô phỏng. Vui lòng không đóng màn hình.
+          </p>
+</div>
+<!-- Waiting / Review State -->
+<div class="hidden space-y-3 py-2" id="state-waiting">
+<div class="w-12 h-12 bg-secondary-container text-primary-container rounded-full flex items-center justify-center mx-auto">
+<span class="material-symbols-outlined text-[28px]">hourglass_top</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-primary font-bold">Chờ xác nhận đối soát</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+            Giao dịch mẫu 1.800.000 đ đang được ghi nhận tại buồng Mini 2m².
+          </p>
+<div class="pt-2 flex flex-col gap-2">
+<button class="w-full h-11 bg-primary-container text-on-primary font-body-md font-semibold rounded-lg" onclick="completeSimulation()" type="button">
+              Hoàn tất giao dịch mẫu
+            </button>
+<button class="w-full h-11 border border-outline-variant text-on-surface-variant font-body-md rounded-lg hover:bg-surface-container" onclick="closeModal()" type="button">
+              Kiểm tra lại thông tin
+            </button>
+</div>
+</div>
+<!-- Success State -->
+<div class="hidden space-y-3 py-2" id="state-success">
+<div class="w-14 h-14 bg-secondary-container text-primary-container rounded-full flex items-center justify-center mx-auto">
+<span class="material-symbols-outlined text-[32px]">check_circle</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-primary font-bold">Thanh toán thành công!</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+            Buồng kho Mini 2m² tại <strong>StoreX Sài Gòn Central</strong> đã được kích hoạt. Bạn có thể nhận kho từ 10:00 ngày 09/10/2026.
+          </p>
+<div class="bg-surface-container p-3 rounded-lg text-left font-body-sm text-body-sm text-on-surface-variant space-y-1">
+<p><strong class="text-on-surface">Mã hợp đồng:</strong> STX-HCM-202610</p>
+<p><strong class="text-on-surface">Mã mở cửa tạm thời:</strong> <span class="font-label-md font-bold text-primary">884920</span></p>
+</div>
+<button class="w-full h-12 bg-primary-container text-on-primary font-body-lg font-semibold rounded-lg mt-2" onclick="alert('Chuyển tiếp đến Màn hình nhận kho &amp; quản lý buồng kho.'); closeModal();" type="button">
+            Chuyển đến bước nhận kho (5/5)
+          </button>
+</div>
+</div>
+</div>
+</div>
+<!-- INTERACTION LOGIC (Inline Vanilla JavaScript) -->
+<script>
+    // 1. Hold Countdown Timer (Starts at 09:42 = 582s)
+    let totalSeconds = 582;
+    const countdownEl = document.getElementById('countdown');
+
+    const timerInterval = setInterval(() => {
+      if (totalSeconds <= 0) {
+        clearInterval(timerInterval);
+        countdownEl.innerText = "00:00";
+        alert("Thời gian giữ kho đã hết hạn. Hệ thống sẽ làm mới trạng thái buồng kho.");
+        return;
+      }
+      totalSeconds--;
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      countdownEl.innerText = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }, 1000);
+
+    // 2. Accordion Functionality
+    function toggleFaq(id) {
+      const content = document.getElementById(id);
+      const icon = document.getElementById(`${id}-icon`);
+      if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        icon.innerText = 'expand_less';
+      } else {
+        content.classList.add('hidden');
+        icon.innerText = 'expand_more';
+      }
+    }
+
+    // 3. Payment Method Switcher (Mock)
+    function switchMethod(method) {
+      // Current single active option supported
+    }
+
+    // 4. Nielsen-Compliant Payment Submission Simulation
+    function handleMockPayment() {
+      const btn = document.getElementById('btn-submit-payment');
+      const btnText = document.getElementById('btn-text');
+      const modal = document.getElementById('payment-modal');
+      const stateProcessing = document.getElementById('state-processing');
+      const stateWaiting = document.getElementById('state-waiting');
+      const stateSuccess = document.getElementById('state-success');
+
+      // Prevent double submit & set loading
+      btn.disabled = true;
+      btnText.innerText = "Đang xử lý...";
+
+      // Show Modal in Processing state
+      modal.classList.remove('hidden');
+      stateProcessing.classList.remove('hidden');
+      stateWaiting.classList.add('hidden');
+      stateSuccess.classList.add('hidden');
+
+      // Transition to 'Chờ xác nhận' after 1.5s
+      setTimeout(() => {
+        stateProcessing.classList.add('hidden');
+        stateWaiting.classList.remove('hidden');
+      }, 1500);
+    }
+
+    function completeSimulation() {
+      const stateWaiting = document.getElementById('state-waiting');
+      const stateSuccess = document.getElementById('state-success');
+      stateWaiting.classList.add('hidden');
+      stateSuccess.classList.remove('hidden');
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('payment-modal');
+      const btn = document.getElementById('btn-submit-payment');
+      const btnText = document.getElementById('btn-text');
+      modal.classList.add('hidden');
+      btn.disabled = false;
+      btnText.innerText = "Xác nhận thanh toán mẫu (1.800.000 đ)";
+    }
+  </script>
+</body></html>

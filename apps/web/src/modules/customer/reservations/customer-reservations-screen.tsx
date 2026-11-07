@@ -1,5 +1,5 @@
-import { ReservationList } from "@/features/reservations/reservation-list";
+import { CustomerStorageHub } from "@/features/rentals/customer-storage-hub";
 
 export function CustomerReservationsScreen() {
-  return <ReservationList />;
+  return <CustomerStorageHub defaultTab="reservations" />;
 }

@@ -1,0 +1,356 @@
+<!DOCTYPE html><html lang="vi"><head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>M-E01 — Không có quyền truy cập — Chung</title>
+  <!-- Google Fonts: Space Grotesk + Be Vietnam Pro -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+  <!-- Material Symbols Outlined -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#125345",
+            "primary-hover": "#0e4337",
+            "primary-soft": "#E8F5F1",
+            surface: "#FFFFFF",
+            background: "#F8FAF9",
+            "text-main": "#0F172A",
+            "text-muted": "#475569",
+            border: "#BFCAC4",
+            error: "#ba1a1a",
+            "error-soft": "#FDF2F2",
+            warning: "#B45309",
+            "warning-soft": "#FFFBEB"
+          },
+          fontFamily: {
+            headline: ["Space Grotesk", "sans-serif"],
+            body: ["Be Vietnam Pro", "sans-serif"]
+          },
+          borderRadius: {
+            DEFAULT: "4px",
+            sm: "4px",
+            md: "4px",
+            lg: "4px"
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .material-symbols-outlined.fill-icon {
+      font-variation-settings: 'FILL' 1;
+    }
+    /* Touch target minimum 44px */
+    .touch-target {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    /* Safe Area padding support */
+    .pb-safe {
+      padding-bottom: env(safe-area-inset-bottom, 16px);
+    }
+    .pt-safe {
+      padding-top: env(safe-area-inset-top, 0px);
+    }
+  </style>
+</head>
+<body class="bg-background text-text-main font-body antialiased min-h-screen flex flex-col justify-between selection:bg-primary-soft selection:text-primary">
+
+  <!-- TOP APP BAR (Compact header for Auth/Status screens, fixed, 100% phone width) -->
+  <header class="sticky top-0 z-40 w-full bg-surface border-b border-border shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+    <div class="h-14 px-4 flex items-center justify-between">
+      <!-- Back button preserving history -->
+      <button type="button" onclick="handleGoBack()" class="touch-target inline-flex items-center justify-center rounded text-primary hover:bg-primary-soft active:scale-95 transition" aria-label="Quay lại trang trước">
+        <span class="material-symbols-outlined text-[24px]">arrow_back</span>
+      </button>
+
+      <!-- Centered Brand Identity & Status Title -->
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded bg-primary flex items-center justify-center text-white font-headline font-bold text-sm">
+          SX
+        </div>
+        <span class="font-headline font-bold text-base text-primary tracking-tight">storeX</span>
+      </div>
+
+      <!-- Account / Session Action Trigger -->
+      <button type="button" onclick="openSessionSheet()" class="touch-target inline-flex items-center justify-center rounded text-text-muted hover:text-primary hover:bg-primary-soft active:scale-95 transition" aria-label="Tùy chọn tài khoản và phiên đăng nhập">
+        <span class="material-symbols-outlined text-[24px]">account_circle</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT AREA (Single-column fluid mobile layout, 16px gutters) -->
+  <main class="flex-1 w-full max-w-[430px] mx-auto px-4 py-6 space-y-4">
+
+    <!-- Status Shield & 403 Indicator Card -->
+    <section class="bg-surface rounded border border-border p-5 text-center shadow-[0_1px_2px_rgba(15,23,42,0.04)]" aria-labelledby="status-title">
+      <!-- Icon Graphic -->
+      <div class="mx-auto w-16 h-16 rounded-full bg-error-soft border border-error/20 flex items-center justify-center text-error mb-4">
+        <span class="material-symbols-outlined text-[36px]" aria-hidden="true">lock</span>
+      </div>
+
+      <!-- Badges -->
+      <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-error-soft text-error text-xs font-semibold mb-2">
+        <span class="w-1.5 h-1.5 rounded-full bg-error animate-pulse" aria-hidden="true"></span>
+        <span>MÃ 403 • TỪ CHỐI TRUY CẬP</span>
+      </div>
+
+      <!-- Main Headline -->
+      <h1 id="status-title" class="font-headline font-bold text-xl text-text-main leading-snug">
+        Không có quyền truy cập
+      </h1>
+
+      <!-- Explanation copy in clear natural Vietnamese -->
+      <p class="text-sm text-text-muted mt-2 leading-relaxed">
+        Tài khoản hiện tại của bạn không có quyền xem hoặc thao tác trên bản ghi / cơ sở kho này. Điều này nhằm bảo mật hợp đồng thuê và an toàn tài sản kho tự quản.
+      </p>
+
+      <!-- Active Session Context Box -->
+      <div class="mt-4 pt-4 border-t border-border/60 text-left bg-background rounded p-3 text-xs space-y-1.5">
+        <div class="flex items-center justify-between text-text-muted">
+          <span>Phiên làm việc:</span>
+          <span class="font-semibold text-text-main flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#125345]" aria-hidden="true"></span>
+            <span id="display-user-role">Khách thuê kho (Customer)</span>
+          </span>
+        </div>
+        <div class="flex items-center justify-between text-text-muted">
+          <span>Tài khoản:</span>
+          <span class="font-mono text-text-main font-medium truncate max-w-[190px]" id="display-user-email">customer@example.test</span>
+        </div>
+        <div class="flex items-center justify-between text-text-muted">
+          <span>Cơ sở đối chiếu:</span>
+          <span class="text-text-main font-medium truncate">StoreX Sài Gòn Central</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Nielsen #9 & Guidance: Nguyên nhân thường gặp & Hướng xử lý -->
+    <section class="bg-surface rounded border border-border p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] space-y-3">
+      <h2 class="font-headline font-bold text-sm text-text-main flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary text-[20px]" aria-hidden="true">info</span>
+        Lý do bạn không thể truy cập
+      </h2>
+      <ul class="text-xs text-text-muted space-y-2 list-none pl-0">
+        <li class="flex items-start gap-2">
+          <span class="material-symbols-outlined text-warning text-[18px] shrink-0 mt-0.5" aria-hidden="true">warning</span>
+          <span><strong>Khác tài khoản thuê:</strong> Buồng kho hoặc đơn đặt chỗ này thuộc quyền quản lý của khách hàng khác.</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="material-symbols-outlined text-primary text-[18px] shrink-0 mt-0.5" aria-hidden="true">verified_user</span>
+          <span><strong>Phân định trách nhiệm:</strong> Khách hàng không thể tự gán ô buồng hay can thiệp vào tác vụ chuyên môn của Nhân viên trực trạm (FS).</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="material-symbols-outlined text-text-muted text-[18px] shrink-0 mt-0.5" aria-hidden="true">sync_problem</span>
+          <span><strong>Đăng nhập nhầm tài khoản:</strong> Bạn có thể đang sử dụng tài khoản cá nhân khác với email đã đăng ký đơn thuê.</span>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Nielsen #10: Contextual Help Accordion -->
+    <section class="bg-surface rounded border border-border overflow-hidden shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+      <button type="button" onclick="toggleHelpAccordion()" class="w-full p-4 flex items-center justify-between text-left touch-target hover:bg-background transition" aria-expanded="false" id="help-accordion-trigger">
+        <span class="font-headline font-semibold text-xs text-text-main flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary text-[20px]" aria-hidden="true">help_outline</span>
+          Cần hỗ trợ nhận buồng hoặc giải quyết quyền truy cập?
+        </span>
+        <span class="material-symbols-outlined text-text-muted text-[20px] transition-transform duration-200" id="help-accordion-icon" aria-hidden="true">expand_more</span>
+      </button>
+      <div id="help-accordion-content" class="hidden px-4 pb-4 pt-1 border-t border-border/40 text-xs text-text-muted space-y-2" role="region" aria-labelledby="help-accordion-trigger">
+        <p>1. <strong>Kiểm tra mã đơn:</strong> Đảm bảo bạn đang mở đúng mã đặt kho (Ví dụ: <code class="font-mono bg-background px-1 py-0.5 rounded text-text-main">BK-2026-0001</code>) từ email xác nhận.</p>
+        <p>2. <strong>Tại cơ sở trạm:</strong> Quý khách xuất trình CCCD/Hộ chiếu trực tiếp tại quầy lễ tân StoreX để nhân viên đối soát thủ công và hỗ trợ.</p>
+        <p>3. <strong>Hotline hỗ trợ 24/7:</strong> Gọi trực tiếp trạm Sài Gòn Central qua số <a href="tel:02873001188" class="text-primary font-bold underline">028 7300 1188</a> (118 Nguyễn Văn Linh, P. Tân Phong, Q.7).</p>
+      </div>
+    </section>
+
+    <!-- Status Feedback Banner (Appears on action trigger) -->
+    <div id="action-notification" class="hidden rounded border border-primary/30 bg-primary-soft p-3 text-xs text-primary font-medium flex items-center gap-2 transition" role="status" aria-live="polite">
+      <span class="material-symbols-outlined text-[18px]" aria-hidden="true">check_circle</span>
+      <span id="notification-message">Đang chuyển tiếp về khu vực quản lý...</span>
+    </div>
+
+  </main>
+
+  <!-- STICKY ACTION AREA (Safe Area Bottom, 100% phone width, non-overlapping) -->
+  <footer class="sticky bottom-0 z-40 bg-surface/95 backdrop-blur-md border-t border-border px-4 py-3 pb-safe shadow-[0_-2px_10px_rgba(15,23,42,0.04)]">
+    <div class="max-w-[430px] mx-auto space-y-2">
+      <!-- Primary Action: Về trang của tôi -->
+      <button type="button" onclick="handleGoToMyDashboard()" class="touch-target w-full h-12 rounded bg-primary text-white font-headline text-sm font-bold flex items-center justify-center gap-2 hover:bg-primary-hover active:scale-[0.98] transition shadow-sm" aria-label="Trở về khu vực quản lý cá nhân">
+        <span class="material-symbols-outlined text-[20px]" aria-hidden="true">home</span>
+        <span>Về trang của tôi</span>
+      </button>
+
+      <!-- Secondary Action Group: Tìm kho hoặc Đăng nhập tài khoản khác -->
+      <div class="grid grid-cols-2 gap-2">
+        <button type="button" onclick="handleGoToFindStorage()" class="touch-target w-full h-11 rounded border border-border text-text-main font-headline text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-background active:scale-[0.98] transition" aria-label="Tìm cơ sở kho khác">
+          <span class="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">search</span>
+          <span>Tìm cơ sở kho</span>
+        </button>
+
+        <button type="button" onclick="openSessionSheet()" class="touch-target w-full h-11 rounded border border-border text-text-main font-headline text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-background active:scale-[0.98] transition" aria-label="Đổi tài khoản hoặc đăng nhập lại">
+          <span class="material-symbols-outlined text-[18px] text-text-muted" aria-hidden="true">switch_account</span>
+          <span>Đổi tài khoản</span>
+        </button>
+      </div>
+
+      <!-- Quick Hotline Indicator -->
+      <p class="text-center text-[11px] text-text-muted pt-1">
+        Cần trợ giúp khẩn? Gọi trạm: <a href="tel:02873001188" class="text-primary font-semibold hover:underline">028 7300 1188</a> (08:00 – 20:00)
+      </p>
+    </div>
+  </footer>
+
+  <!-- BOTTOM SHEET MODAL: Quản lý Phiên đăng nhập & Đổi tài khoản (Same-screen control) -->
+  <div id="session-modal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="session-modal-title">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-xs transition-opacity" onclick="closeSessionSheet()"></div>
+
+    <!-- Sheet panel bottom anchored -->
+    <div class="absolute bottom-0 left-0 right-0 max-w-[430px] mx-auto bg-surface rounded-t-[8px] border-t border-border p-5 space-y-4 shadow-2xl pb-safe">
+      <!-- Drag handle bar -->
+      <div class="w-10 h-1 bg-border rounded-full mx-auto" aria-hidden="true"></div>
+
+      <!-- Header -->
+      <div class="flex items-start justify-between">
+        <div>
+          <h3 id="session-modal-title" class="font-headline font-bold text-base text-text-main">
+            Phiên làm việc &amp; Tài khoản
+          </h3>
+          <p class="text-xs text-text-muted mt-0.5">Xác thực đăng nhập trong phiên làm việc hiện tại</p>
+        </div>
+        <button type="button" onclick="closeSessionSheet()" class="touch-target -mr-2 -mt-2 inline-flex items-center justify-center rounded text-text-muted hover:text-text-main" aria-label="Đóng hộp thoại">
+          <span class="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
+        </button>
+      </div>
+
+      <!-- User Card Info -->
+      <div class="bg-background rounded border border-border p-3.5 flex items-center gap-3">
+        <div class="w-11 h-11 rounded bg-primary-soft text-primary font-headline font-bold text-base flex items-center justify-center shrink-0">
+          MA
+        </div>
+        <div class="min-w-0 flex-1">
+          <p class="font-semibold text-sm text-text-main truncate">Nguyễn Minh Anh</p>
+          <p class="text-xs text-text-muted truncate">customer@example.test</p>
+          <span class="inline-block mt-1 text-[10px] font-semibold text-primary bg-primary-soft px-1.5 py-0.5 rounded">
+            Vai trò: Khách thuê (Customer)
+          </span>
+        </div>
+      </div>
+
+      <div class="space-y-2 pt-1">
+        <!-- Re-login action -->
+        <button type="button" onclick="executeRelogin()" class="touch-target w-full h-11 rounded border border-primary text-primary font-headline text-xs font-bold flex items-center justify-center gap-2 hover:bg-primary-soft active:scale-[0.98] transition">
+          <span class="material-symbols-outlined text-[18px]" aria-hidden="true">login</span>
+          <span>Đăng nhập lại với tài khoản khác</span>
+        </button>
+
+        <!-- Logout action -->
+        <button type="button" onclick="executeLogout()" class="touch-target w-full h-11 rounded border border-border text-error hover:bg-error-soft font-headline text-xs font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition">
+          <span class="material-symbols-outlined text-[18px]" aria-hidden="true">logout</span>
+          <span>Đăng xuất khỏi thiết bị này</span>
+        </button>
+
+        <!-- Cancel / Dismiss button -->
+        <button type="button" onclick="closeSessionSheet()" class="touch-target w-full h-10 rounded text-text-muted font-body text-xs flex items-center justify-center hover:bg-background transition">
+          Hủy / Giữ nguyên phiên
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- INLINE JAVASCRIPT: In-memory mock handlers without production side effects -->
+  <script>
+    // In-memory state tracking
+    const state = {
+      role: "Customer",
+      user: "Nguyễn Minh Anh",
+      email: "customer@example.test",
+      facility: "StoreX Sài Gòn Central"
+    };
+
+    function showNotice(msg) {
+      const banner = document.getElementById("action-notification");
+      const text = document.getElementById("notification-message");
+      text.textContent = msg;
+      banner.classList.remove("hidden");
+      setTimeout(() => {
+        banner.classList.add("hidden");
+      }, 3500);
+    }
+
+    function handleGoBack() {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        handleGoToMyDashboard();
+      }
+    }
+
+    function handleGoToMyDashboard() {
+      showNotice("Đang chuyển hướng về màn hình 'Kho của tôi (M-C06)'...");
+    }
+
+    function handleGoToFindStorage() {
+      showNotice("Đang mở trang 'Tìm cơ sở kho (M-P01)'...");
+    }
+
+    function toggleHelpAccordion() {
+      const content = document.getElementById("help-accordion-content");
+      const icon = document.getElementById("help-accordion-icon");
+      const trigger = document.getElementById("help-accordion-trigger");
+      const isExpanded = trigger.getAttribute("aria-expanded") === "true";
+
+      if (isExpanded) {
+        content.classList.add("hidden");
+        icon.style.transform = "rotate(0deg)";
+        trigger.setAttribute("aria-expanded", "false");
+      } else {
+        content.classList.remove("hidden");
+        icon.style.transform = "rotate(180deg)";
+        trigger.setAttribute("aria-expanded", "true");
+      }
+    }
+
+    function openSessionSheet() {
+      const modal = document.getElementById("session-modal");
+      modal.classList.remove("hidden");
+    }
+
+    function closeSessionSheet() {
+      const modal = document.getElementById("session-modal");
+      modal.classList.add("hidden");
+    }
+
+    function executeRelogin() {
+      closeSessionSheet();
+      showNotice("Đang điều hướng về trang 'Đăng nhập (M-A01)'...");
+    }
+
+    function executeLogout() {
+      closeSessionSheet();
+      showNotice("Đã đăng xuất phiên làm việc an toàn. Đang về trang tìm kho...");
+    }
+
+    // Keyboard support: Escape closes modal
+    document.addEventListener("keydown", function(e) {
+      if (e.key === "Escape") {
+        closeSessionSheet();
+      }
+    });
+  </script>
+
+
+</body></html>

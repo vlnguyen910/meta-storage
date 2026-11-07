@@ -1,0 +1,633 @@
+<!DOCTYPE html><html lang="vi" class="h-full bg-[#F8FAF9]"><head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <title>M-C05 — Chi tiết phiếu giữ chỗ — Customer</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+  <!-- Material Symbols Outlined -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#125345",
+            "primary-hover": "#0F493B",
+            "primary-soft": "#E8F3EF",
+            surface: "#FFFFFF",
+            background: "#F8FAF9",
+            text: "#0F172A",
+            secondary: "#475569",
+            border: "#BFCAC4",
+            warning: "#D97706",
+            "warning-soft": "#FEF3C7",
+            destructive: "#BA1A1A",
+            "destructive-soft": "#FFDAD6"
+          },
+          fontFamily: {
+            headline: ["Space Grotesk", "sans-serif"],
+            body: ["Be Vietnam Pro", "sans-serif"]
+          },
+          borderRadius: {
+            sm: "4px"
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    /* Touch target consistency */
+    button, a, input, select {
+      touch-action: manipulation;
+    }
+  </style>
+</head>
+<body class="bg-[#F8FAF9] text-[#0F172A] font-body text-base antialiased min-h-screen flex flex-col justify-between selection:bg-[#E8F3EF] selection:text-[#125345]">
+
+  <!-- Mobile Viewport Container: Fixed 390px base width, responsive fluid reflow -->
+  <div class="w-full max-w-[390px] mx-auto min-h-screen flex flex-col bg-[#F8FAF9] relative pb-28">
+
+    <!-- Top App Bar / Header -->
+    <header class="sticky top-0 z-40 bg-[#FFFFFF] border-b border-[#BFCAC4] px-4 py-2.5 flex items-center justify-between shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+      <div class="flex items-center gap-2">
+        <a href="#danh-sach-giu-cho" onclick="history.back(); return false;" class="w-11 h-11 -ml-1 rounded-sm flex items-center justify-center text-[#475569] hover:text-[#0F172A] hover:bg-[#F8FAF9] transition-colors" aria-label="Quay lại danh sách phiếu giữ chỗ (M-C04)">
+          <span class="material-symbols-outlined text-2xl">arrow_back</span>
+        </a>
+        <div>
+          <h1 class="font-headline font-bold text-base text-[#0F172A] leading-tight">Phiếu giữ chỗ</h1>
+          <p class="text-xs text-[#475569] leading-none mt-0.5 font-medium">Mã phiếu: DC-2026-0001</p>
+        </div>
+      </div>
+
+      <!-- Account Profile Sheet Trigger -->
+      <button type="button" id="open-profile-btn" class="w-11 h-11 rounded-sm bg-[#E8F3EF] text-[#125345] border border-[#BFCAC4] hover:bg-[#125345] hover:text-white transition-colors flex items-center justify-center font-headline font-bold text-xs" aria-label="Tài khoản cá nhân Nguyễn Minh Anh">
+        MA
+      </button>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="px-4 pt-3.5 space-y-3.5 flex-1" id="main-content">
+
+      <!-- Status Banner & Expiry Timer (Heuristic 1: Visibility of System Status) -->
+      <section id="status-card" class="bg-[#FFFFFF] rounded-sm border border-[#BFCAC4] p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] space-y-2.5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1.5">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold bg-[#FEF3C7] text-[#92400E] border border-[#F59E0B]/30" id="badge-status">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#D97706] mr-1.5 animate-pulse" id="status-dot"></span>
+              Chưa thanh toán
+            </span>
+          </div>
+          <span class="text-xs text-[#475569] font-medium">Dữ liệu mẫu GMT+7</span>
+        </div>
+
+        <!-- Timer Display Box -->
+        <div id="timer-box" class="bg-[#FEF3C7]/40 border border-[#F59E0B]/30 rounded-sm p-3 flex items-center justify-between transition-colors">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-xl text-[#D97706]" id="timer-icon">timer</span>
+            <div>
+              <p class="text-xs text-[#0F172A] font-semibold" id="timer-title">Thời hạn giữ chỗ trực tuyến</p>
+              <p class="text-xs text-[#475569] leading-tight" id="timer-desc">Buồng kho được tạm giữ để thanh toán</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="font-headline font-bold text-xl text-[#D97706] tracking-tight tabular-nums" id="countdown-text">09:13</span>
+          </div>
+        </div>
+
+        <!-- Inline Business Helper (Plain, honest note) -->
+        <div class="text-xs text-[#475569] leading-relaxed flex items-start gap-1.5 pt-0.5">
+          <span class="material-symbols-outlined text-[17px] text-[#125345] shrink-0 mt-0.5">verified</span>
+          <p>Phiếu giữ chỗ tạm thời chưa cấp mã nhận buồng hay mã QR. Mã nhận kho chính thức sẽ xuất hiện sau khi thanh toán thành công.</p>
+        </div>
+      </section>
+
+      <!-- Expired State Alert (Initially Hidden, Reversible without extra page) -->
+      <section id="expired-alert" class="hidden bg-[#FFDAD6]/40 border border-[#BA1A1A]/40 rounded-sm p-3.5 space-y-2">
+        <div class="flex items-start gap-2 text-[#BA1A1A]">
+          <span class="material-symbols-outlined text-xl shrink-0 mt-0.5">warning</span>
+          <div>
+            <h2 class="font-headline font-bold text-sm text-[#0F172A]">Phiếu giữ chỗ đã hết hạn 10 phút</h2>
+            <p class="text-xs text-[#475569] mt-0.5 leading-relaxed">Buồng kho đã được hoàn lại hệ thống. Bạn có thể kiểm tra tình trạng trống và giữ lại buồng này mà không bị trừ tiền.</p>
+          </div>
+        </div>
+        <button type="button" id="recheck-renew-btn" class="w-full h-11 bg-[#125345] hover:bg-[#0F493B] text-white rounded-sm font-semibold text-sm flex items-center justify-center gap-1.5 transition-colors">
+          <span class="material-symbols-outlined text-lg">autorenew</span>
+          Kiểm tra trống &amp; Giữ lại chỗ
+        </button>
+      </section>
+
+      <!-- Facility & Slot Details Card -->
+      <section class="bg-[#FFFFFF] rounded-sm border border-[#BFCAC4] p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] space-y-3">
+        <div class="flex items-center justify-between border-b border-[#BFCAC4]/60 pb-2.5">
+          <div class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[#125345] text-xl">warehouse</span>
+            <h2 class="font-headline font-bold text-base text-[#0F172A]">Thông tin kho &amp; Lịch tiếp nhận</h2>
+          </div>
+          <span class="text-xs font-semibold text-[#125345] bg-[#E8F3EF] px-2 py-0.5 rounded-sm">Mini 2m²</span>
+        </div>
+
+        <div class="space-y-2.5 text-xs text-[#0F172A]">
+          <!-- Facility Name & Address -->
+          <div class="flex items-start gap-2">
+            <span class="material-symbols-outlined text-base text-[#125345] shrink-0 mt-0.5">location_on</span>
+            <div>
+              <p class="font-bold text-sm">StoreX Sài Gòn Central</p>
+              <p class="text-[#475569] mt-0.5 leading-snug">118 Nguyễn Văn Linh, P. Tân Phong, Q.7, TP.HCM</p>
+              <a href="tel:02873001188" class="inline-flex items-center gap-1 text-[#125345] font-semibold mt-1 hover:underline">
+                <span class="material-symbols-outlined text-sm">call</span> 028 7300 1188 (Hỗ trợ cơ sở)
+              </a>
+            </div>
+          </div>
+
+          <div class="border-t border-[#BFCAC4]/40 pt-2.5 grid grid-cols-2 gap-2">
+            <div>
+              <span class="text-[#475569] block text-[11px]">Kích thước buồng:</span>
+              <p class="font-semibold text-xs mt-0.5">Mini 2m² (1m × 2m × 2.5m)</p>
+              <p class="text-[11px] text-[#475569]">Thể tích lưu trữ 5.0 m³</p>
+            </div>
+            <div>
+              <span class="text-[#475569] block text-[11px]">Thời hạn thuê dự kiến:</span>
+              <p class="font-semibold text-xs mt-0.5">01 tháng</p>
+              <p class="text-[11px] text-[#475569]">09/10/2026 – 09/11/2026</p>
+            </div>
+          </div>
+
+          <div class="border-t border-[#BFCAC4]/40 pt-2.5 flex items-start gap-2">
+            <span class="material-symbols-outlined text-base text-[#125345] shrink-0 mt-0.5">schedule</span>
+            <div>
+              <span class="text-[#475569] block text-[11px]">Khung giờ hẹn đón tiếp tại trạm:</span>
+              <p class="font-bold text-xs mt-0.5 text-[#0F172A]">10:00 – 12:00, 09/10/2026 (GMT+7)</p>
+              <p class="text-[11px] text-[#475569]">Ân hạn tiếp đón tại sảnh đến 14:00 cùng ngày</p>
+            </div>
+          </div>
+
+          <!-- Physical Unit Allocation Guard Notice -->
+          <div class="bg-[#F8FAF9] p-2.5 rounded-sm border border-[#BFCAC4]/60 text-[11px] text-[#475569] flex items-start gap-1.5 leading-relaxed">
+            <span class="material-symbols-outlined text-base text-[#125345] shrink-0 mt-0.5">lock_clock</span>
+            <div>
+              <p><strong>Vị trí số buồng vật lý:</strong> Do Quản lý cơ sở (FM) điều phối và chỉ định trực tiếp tại quầy tiếp đón sau khi hoàn tất thủ tục thanh toán và đối soát CCCD.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Customer Contact Details Card (Nielsen 6: Recognition over Recall) -->
+      <section class="bg-[#FFFFFF] rounded-sm border border-[#BFCAC4] p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] space-y-2.5">
+        <div class="flex items-center justify-between border-b border-[#BFCAC4]/60 pb-2">
+          <div class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[#125345] text-xl">person</span>
+            <h2 class="font-headline font-bold text-sm text-[#0F172A]">Thông tin khách thuê</h2>
+          </div>
+          <span class="text-xs text-[#125345] font-semibold bg-[#E8F3EF] px-1.5 py-0.5 rounded-sm">Khách hàng</span>
+        </div>
+
+        <div class="space-y-1.5 text-xs text-[#0F172A]">
+          <div class="flex justify-between items-center py-0.5">
+            <span class="text-[#475569]">Họ và tên:</span>
+            <span class="font-semibold text-sm">Nguyễn Minh Anh</span>
+          </div>
+          <div class="flex justify-between items-center py-0.5">
+            <span class="text-[#475569]">Số điện thoại:</span>
+            <span class="font-medium">0908 123 456</span>
+          </div>
+          <div class="flex justify-between items-center py-0.5">
+            <span class="text-[#475569]">Email xác thực:</span>
+            <span class="font-medium">customer@example.test</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Financial Breakdown Card (Itemized transparent preview) -->
+      <section class="bg-[#FFFFFF] rounded-sm border border-[#BFCAC4] p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] space-y-3">
+        <div class="flex items-center justify-between border-b border-[#BFCAC4]/60 pb-2">
+          <div class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[#125345] text-xl">receipt_long</span>
+            <h2 class="font-headline font-bold text-sm text-[#0F172A]">Bảng tính chi phí đợt đầu</h2>
+          </div>
+          <span class="text-xs text-[#475569]">Bản nháp giữ chỗ</span>
+        </div>
+
+        <div class="space-y-2 text-xs">
+          <div class="flex justify-between items-center text-[#475569]">
+            <span>Tiền thuê kho tháng đầu (Mini 2m²):</span>
+            <span class="font-semibold text-[#0F172A]">900.000 đ</span>
+          </div>
+          <div class="flex justify-between items-center text-[#475569]">
+            <span>Tiền cọc bảo đảm (1 tháng thuê):</span>
+            <span class="font-semibold text-[#0F172A]">900.000 đ</span>
+          </div>
+          <div class="flex justify-between items-center text-[#475569]">
+            <span>Phí dịch vụ &amp; làm thủ tục thẻ:</span>
+            <span class="font-semibold text-[#125345]">Miễn phí</span>
+          </div>
+
+          <div class="border-t border-[#BFCAC4] pt-2.5 flex justify-between items-baseline">
+            <div>
+              <p class="font-headline font-bold text-sm text-[#0F172A]">Tổng tạm tính đợt 1:</p>
+              <p class="text-[11px] text-[#475569]">(Bao gồm 100% tiền cọc hoàn lại khi thanh lý)</p>
+            </div>
+            <p class="font-headline font-bold text-lg text-[#125345] tabular-nums">1.800.000 đ</p>
+          </div>
+        </div>
+
+        <!-- Clear separate note about deposit -->
+        <div class="bg-[#F8FAF9] p-2.5 rounded-sm border border-[#BFCAC4]/60 text-[11px] text-[#475569] leading-relaxed">
+          Khoản tiền cọc 900.000 đ được tách riêng biệt với tiền thuê hàng tháng và hoàn trả 100% sau khi kết thúc hợp đồng theo biên bản nghiệm thu buồng kho.
+        </div>
+      </section>
+
+      <!-- Nielsen Heuristic 10: Contextual Help Accordion -->
+      <section class="bg-[#FFFFFF] rounded-sm border border-[#BFCAC4] p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] space-y-2">
+        <div class="flex items-center justify-between border-b border-[#BFCAC4]/60 pb-2">
+          <div class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[#125345] text-lg">help_outline</span>
+            <h2 class="font-headline font-bold text-sm text-[#0F172A]">Hỗ trợ quy trình giữ chỗ</h2>
+          </div>
+          <span class="text-[11px] text-[#475569]">Giải đáp nhanh</span>
+        </div>
+
+        <div class="divide-y divide-[#BFCAC4]/50">
+          <!-- Accordion item 1 -->
+          <details class="group py-2">
+            <summary class="flex justify-between items-center text-xs font-semibold text-[#0F172A] cursor-pointer list-none py-1">
+              <span>Hết 10 phút giữ chỗ có bị mất phí không?</span>
+              <span class="material-symbols-outlined text-base text-[#475569] transition-transform group-open:rotate-180">expand_more</span>
+            </summary>
+            <div class="pt-1.5 text-xs text-[#475569] leading-relaxed">
+              Hoàn toàn không mất phí. Khi hết 10 phút giữ chỗ, phiếu sẽ chuyển sang trạng thái hết hạn và buồng kho tự động mở lại cho khách hàng khác mà không phát sinh bất kỳ khoản trừ nào.
+            </div>
+          </details>
+
+          <!-- Accordion item 2 -->
+          <details class="group py-2">
+            <summary class="flex justify-between items-center text-xs font-semibold text-[#0F172A] cursor-pointer list-none py-1">
+              <span>Bao giờ tôi nhận được mã QR check-in?</span>
+              <span class="material-symbols-outlined text-base text-[#475569] transition-transform group-open:rotate-180">expand_more</span>
+            </summary>
+            <div class="pt-1.5 text-xs text-[#475569] leading-relaxed">
+              Mã QR định danh check-in và mã đơn chính thức (BK-2026-...) chỉ được tạo sau khi bạn bấm "Tiếp tục thanh toán" và hoàn tất bước thanh toán trực tuyến.
+            </div>
+          </details>
+
+          <!-- Accordion item 3 -->
+          <details class="group py-2">
+            <summary class="flex justify-between items-center text-xs font-semibold text-[#0F172A] cursor-pointer list-none py-1">
+              <span>Tôi có thể hủy phiếu giữ chỗ này không?</span>
+              <span class="material-symbols-outlined text-base text-[#475569] transition-transform group-open:rotate-180">expand_more</span>
+            </summary>
+            <div class="pt-1.5 text-xs text-[#475569] leading-relaxed">
+              Bạn có thể bấm "Hủy phiếu giữ chỗ" bên dưới bất cứ lúc nào. Hệ thống sẽ giải phóng buồng ngay lập tức và đưa bạn về trang danh sách phiếu giữ chỗ.
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <!-- Danger Zone / Cancel Button (Heuristic 3: User Control & Freedom) -->
+      <div class="pt-1 text-center">
+        <button type="button" id="open-cancel-dialog-btn" class="text-xs font-semibold text-[#BA1A1A] hover:underline inline-flex items-center gap-1 py-2 px-3 rounded-sm active:bg-[#FFDAD6]/30">
+          <span class="material-symbols-outlined text-sm">cancel</span>
+          Hủy phiếu giữ chỗ này
+        </button>
+      </div>
+
+    </main>
+
+    <!-- Sticky Bottom Action Footer (Single Dominant CTA) -->
+    <footer class="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-[#FFFFFF] border-t border-[#BFCAC4] p-3 z-30 shadow-[0_-2px_8px_rgba(15,23,42,0.06)]">
+      <div class="flex items-center justify-between gap-3">
+        <div class="leading-none">
+          <span class="text-[11px] text-[#475569] block">Tạm tính đợt 1:</span>
+          <span class="font-headline font-bold text-base text-[#125345] tabular-nums" id="footer-price">1.800.000 đ</span>
+        </div>
+        
+        <!-- Primary Action CTA (Min 48px height, 44px touch) -->
+        <button type="button" id="continue-checkout-btn" class="flex-1 h-12 bg-[#125345] hover:bg-[#0F493B] active:scale-[0.98] text-white rounded-sm font-headline font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-all duration-150">
+          <span>Tiếp tục thanh toán</span>
+          <span class="material-symbols-outlined text-lg">arrow_forward</span>
+        </button>
+      </div>
+    </footer>
+
+    <!-- Role-Specific Bottom Navigation (Signed Customer: exactly 4 items, No top border, subtle shadow) -->
+    <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-[#FFFFFF] shadow-[0_-4px_12px_rgba(15,23,42,0.06)] z-40 px-2 py-1 flex items-center justify-around h-16" aria-label="Điều hướng chính của khách hàng">
+      <!-- 1. Tổng quan -->
+      <a href="#tong-quan" class="flex flex-col items-center justify-center flex-1 h-full text-[#475569] hover:text-[#125345] transition-colors" aria-label="Trang tổng quan">
+        <span class="material-symbols-outlined text-2xl">dashboard</span>
+        <span class="text-[11px] font-medium mt-0.5 tracking-tight">Tổng quan</span>
+      </a>
+      <!-- 2. Đơn đặt kho -->
+      <a href="#don-dat-kho" class="flex flex-col items-center justify-center flex-1 h-full text-[#475569] hover:text-[#125345] transition-colors" aria-label="Quản lý đơn đặt kho">
+        <span class="material-symbols-outlined text-2xl">receipt_long</span>
+        <span class="text-[11px] font-medium mt-0.5 tracking-tight">Đơn đặt kho</span>
+      </a>
+      <!-- 3. Giữ chỗ (Active) -->
+      <a href="#giu-cho" class="flex flex-col items-center justify-center flex-1 h-full text-[#125345] transition-colors font-bold" aria-current="page" aria-label="Quản lý phiếu giữ chỗ">
+        <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">timer</span>
+        <span class="text-[11px] mt-0.5 tracking-tight">Giữ chỗ</span>
+      </a>
+      <!-- 4. Kho của tôi -->
+      <a href="#kho-cua-toi" class="flex flex-col items-center justify-center flex-1 h-full text-[#475569] hover:text-[#125345] transition-colors" aria-label="Quản lý kho đang thuê">
+        <span class="material-symbols-outlined text-2xl">warehouse</span>
+        <span class="text-[11px] font-medium mt-0.5 tracking-tight">Kho của tôi</span>
+      </a>
+    </nav>
+
+    <!-- Account Sheet Modal (Drawer in same screen, no extra page) -->
+    <div id="profile-drawer-backdrop" class="fixed inset-0 bg-slate-900/60 z-50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-200" aria-hidden="true">
+      <div id="profile-drawer" class="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-[#FFFFFF] rounded-t-lg border-t border-[#BFCAC4] p-4 space-y-3.5 shadow-2xl transform translate-y-full transition-transform duration-300" role="dialog" aria-modal="true" aria-labelledby="profile-title">
+        <div class="w-10 h-1 bg-[#BFCAC4] rounded-full mx-auto mb-1"></div>
+        <div class="flex items-center justify-between border-b border-[#BFCAC4]/60 pb-3">
+          <div class="flex items-center gap-3">
+            <div class="w-11 h-11 rounded-sm bg-[#125345] text-white flex items-center justify-center font-headline font-bold text-base">
+              MA
+            </div>
+            <div>
+              <h3 id="profile-title" class="font-headline font-bold text-base text-[#0F172A]">Nguyễn Minh Anh</h3>
+              <p class="text-xs text-[#475569]">Khách hàng (CX-9821)</p>
+            </div>
+          </div>
+          <button type="button" id="close-profile-btn" class="w-11 h-11 rounded-sm text-[#475569] hover:bg-[#F8FAF9] flex items-center justify-center" aria-label="Đóng tài khoản">
+            <span class="material-symbols-outlined text-2xl">close</span>
+          </button>
+        </div>
+        
+        <div class="space-y-2 bg-[#F8FAF9] p-3 rounded-sm border border-[#BFCAC4] text-xs">
+          <div class="flex justify-between items-center">
+            <span class="text-[#475569]">Email:</span>
+            <span class="font-semibold text-[#0F172A]">customer@example.test</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-[#475569]">Số điện thoại:</span>
+            <span class="font-semibold text-[#0F172A]">0908 123 456</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-[#475569]">Cơ sở mặc định:</span>
+            <span class="font-semibold text-[#125345]">StoreX Sài Gòn Central</span>
+          </div>
+        </div>
+
+        <div class="pt-1 space-y-2">
+          <button type="button" onclick="closeProfileDrawer();" class="w-full h-11 border border-[#BFCAC4] rounded-sm text-[#0F172A] font-semibold text-xs flex items-center justify-center gap-2 hover:bg-[#F8FAF9]">
+            <span class="material-symbols-outlined text-base">receipt_long</span>
+            Đơn đặt kho của tôi
+          </button>
+          <button type="button" id="logout-btn" class="w-full h-11 bg-[#BA1A1A] hover:bg-[#93000A] text-white rounded-sm font-semibold text-xs flex items-center justify-center gap-2 transition-colors">
+            <span class="material-symbols-outlined text-base">logout</span>
+            Đăng xuất tài khoản
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirmation Dialog for Cancel Hold (Nielsen 3: Prevent unintended action) -->
+    <div id="cancel-dialog-backdrop" class="fixed inset-0 bg-slate-900/60 z-50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-200 flex items-center justify-center px-4" aria-hidden="true">
+      <div id="cancel-dialog" class="w-full max-w-[340px] bg-[#FFFFFF] rounded-sm border border-[#BFCAC4] p-4 space-y-3.5 shadow-2xl scale-95 transition-transform duration-200" role="alertdialog" aria-labelledby="cancel-dialog-title" aria-describedby="cancel-dialog-desc">
+        <div class="flex items-start gap-2.5 text-[#BA1A1A]">
+          <span class="material-symbols-outlined text-2xl shrink-0">help</span>
+          <div>
+            <h3 id="cancel-dialog-title" class="font-headline font-bold text-base text-[#0F172A]">Hủy phiếu giữ chỗ này?</h3>
+            <p id="cancel-dialog-desc" class="text-xs text-[#475569] mt-1 leading-relaxed">Buồng Mini 2m² tại trạm Sài Gòn Central sẽ lập tức được trả về hệ thống cho khách hàng khác.</p>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-[#BFCAC4]/60">
+          <button type="button" id="cancel-dialog-dismiss" class="h-11 px-4 border border-[#BFCAC4] rounded-sm text-xs font-semibold text-[#0F172A] hover:bg-[#F8FAF9]">
+            Giữ lại phiếu
+          </button>
+          <button type="button" id="cancel-dialog-confirm" class="h-11 px-4 bg-[#BA1A1A] hover:bg-[#93000A] text-white rounded-sm text-xs font-semibold">
+            Xác nhận hủy
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification Toast / Live Banner for mock operations -->
+    <div id="toast-msg" class="fixed top-14 left-1/2 -translate-x-1/2 w-[90%] max-w-[360px] bg-[#0F172A] text-white px-3.5 py-2.5 rounded-sm shadow-lg text-xs flex items-center justify-between opacity-0 pointer-events-none transition-all duration-300 z-50" role="status" aria-live="polite">
+      <span id="toast-text">Thông báo</span>
+      <button type="button" onclick="hideToast()" class="text-white/80 hover:text-white p-1" aria-label="Đóng thông báo">
+        <span class="material-symbols-outlined text-base">close</span>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Local Script Handling Nielsen Interactivity, Expiry & Drawer -->
+  <script>
+    // Elements
+    const countdownEl = document.getElementById('countdown-text');
+    const timerBox = document.getElementById('timer-box');
+    const statusCard = document.getElementById('status-card');
+    const badgeStatus = document.getElementById('badge-status');
+    const statusDot = document.getElementById('status-dot');
+    const expiredAlert = document.getElementById('expired-alert');
+    const continueBtn = document.getElementById('continue-checkout-btn');
+    const recheckBtn = document.getElementById('recheck-renew-btn');
+    const toast = document.getElementById('toast-msg');
+    const toastText = document.getElementById('toast-text');
+
+    // Drawer Elements
+    const openProfileBtn = document.getElementById('open-profile-btn');
+    const closeProfileBtn = document.getElementById('close-profile-btn');
+    const profileBackdrop = document.getElementById('profile-drawer-backdrop');
+    const profileDrawer = document.getElementById('profile-drawer');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    // Cancel Dialog Elements
+    const openCancelDialogBtn = document.getElementById('open-cancel-dialog-btn');
+    const cancelBackdrop = document.getElementById('cancel-dialog-backdrop');
+    const cancelDismiss = document.getElementById('cancel-dialog-dismiss');
+    const cancelConfirm = document.getElementById('cancel-dialog-confirm');
+
+    // Countdown Timer Logic (10 minutes = 600s, mock starts at 588s)
+    let totalSeconds = 588;
+    let isExpired = false;
+    let timerInterval = null;
+
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+
+    function runTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        if (totalSeconds > 0) {
+          totalSeconds--;
+          countdownEl.textContent = formatTime(totalSeconds);
+        } else {
+          clearInterval(timerInterval);
+          handleExpire();
+        }
+      }, 1000);
+    }
+
+    function handleExpire() {
+      isExpired = true;
+      countdownEl.textContent = '00:00';
+      badgeStatus.className = 'inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold bg-[#FFDAD6] text-[#BA1A1A] border border-[#BA1A1A]/30';
+      badgeStatus.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-[#BA1A1A] mr-1.5"></span>Đã hết hạn giữ';
+      
+      timerBox.className = 'bg-[#FFDAD6]/40 border border-[#BA1A1A]/30 rounded-sm p-3 flex items-center justify-between';
+      document.getElementById('timer-icon').className = 'material-symbols-outlined text-xl text-[#BA1A1A]';
+      document.getElementById('timer-title').textContent = 'Hết hạn giữ chỗ trực tuyến';
+      document.getElementById('timer-desc').textContent = 'Buồng kho đã được trả về kho chung';
+      countdownEl.className = 'font-headline font-bold text-xl text-[#BA1A1A] tracking-tight tabular-nums';
+
+      expiredAlert.classList.remove('hidden');
+      
+      // Disable checkout button with helpful explanation
+      continueBtn.disabled = true;
+      continueBtn.className = 'flex-1 h-12 bg-[#BFCAC4] text-[#475569] rounded-sm font-headline font-bold text-sm flex items-center justify-center gap-2 cursor-not-allowed';
+      continueBtn.innerHTML = '<span>Phiếu đã hết hạn</span><span class="material-symbols-outlined text-base">lock</span>';
+
+      showToast('Phiếu giữ chỗ đã hết hạn 10 phút. Vui lòng kiểm tra lại tình trạng trống.');
+    }
+
+    function renewHold() {
+      // Recheck availability simulation (Heuristic 9 & 10)
+      recheckBtn.disabled = true;
+      recheckBtn.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">progress_activity</span> Đang rà soát buồng trống...';
+
+      setTimeout(() => {
+        isExpired = false;
+        totalSeconds = 600; // Reset 10 minutes
+        expiredAlert.classList.add('hidden');
+
+        badgeStatus.className = 'inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold bg-[#FEF3C7] text-[#92400E] border border-[#F59E0B]/30';
+        badgeStatus.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-[#D97706] mr-1.5 animate-pulse"></span>Chưa thanh toán';
+
+        timerBox.className = 'bg-[#FEF3C7]/40 border border-[#F59E0B]/30 rounded-sm p-3 flex items-center justify-between';
+        document.getElementById('timer-icon').className = 'material-symbols-outlined text-xl text-[#D97706]';
+        document.getElementById('timer-title').textContent = 'Thời hạn giữ chỗ trực tuyến';
+        document.getElementById('timer-desc').textContent = 'Buồng kho được tạm giữ để thanh toán';
+        countdownEl.className = 'font-headline font-bold text-xl text-[#D97706] tracking-tight tabular-nums';
+        countdownEl.textContent = '10:00';
+
+        continueBtn.disabled = false;
+        continueBtn.className = 'flex-1 h-12 bg-[#125345] hover:bg-[#0F493B] active:scale-[0.98] text-white rounded-sm font-headline font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-all duration-150';
+        continueBtn.innerHTML = '<span>Tiếp tục thanh toán</span><span class="material-symbols-outlined text-lg">arrow_forward</span>';
+
+        recheckBtn.disabled = false;
+        recheckBtn.innerHTML = '<span class="material-symbols-outlined text-lg">autorenew</span> Kiểm tra trống &amp; Giữ lại chỗ';
+
+        runTimer();
+        showToast('Buồng Mini 2m² còn trống! Đã gia hạn giữ thêm 10 phút.');
+      }, 700);
+    }
+
+    recheckBtn.addEventListener('click', renewHold);
+
+    // Continue Checkout Action (Heuristic 5)
+    continueBtn.addEventListener('click', () => {
+      if (isExpired) {
+        showToast('Phiếu đã hết hạn. Hãy bấm gia hạn giữ chỗ trước.');
+        return;
+      }
+      continueBtn.disabled = true;
+      continueBtn.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">progress_activity</span> Đang chuyển sang Bước 4: Thanh toán...';
+      setTimeout(() => {
+        showToast('Đang chuyển hướng tới cổng thanh toán M-CK04...');
+        continueBtn.disabled = false;
+        continueBtn.innerHTML = '<span>Tiếp tục thanh toán</span><span class="material-symbols-outlined text-lg">arrow_forward</span>';
+      }, 1000);
+    });
+
+    // Profile Drawer Handlers
+    function openProfileDrawer() {
+      profileBackdrop.classList.remove('opacity-0', 'pointer-events-none');
+      profileBackdrop.classList.add('opacity-100');
+      profileDrawer.classList.remove('translate-y-full');
+      profileDrawer.classList.add('translate-y-0');
+      profileBackdrop.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeProfileDrawer() {
+      profileBackdrop.classList.add('opacity-0', 'pointer-events-none');
+      profileBackdrop.classList.remove('opacity-100');
+      profileDrawer.classList.add('translate-y-full');
+      profileDrawer.classList.remove('translate-y-0');
+      profileBackdrop.setAttribute('aria-hidden', 'true');
+    }
+
+    openProfileBtn.addEventListener('click', openProfileDrawer);
+    closeProfileBtn.addEventListener('click', closeProfileDrawer);
+    profileBackdrop.addEventListener('click', (e) => {
+      if (e.target === profileBackdrop) closeProfileDrawer();
+    });
+
+    logoutBtn.addEventListener('click', () => {
+      closeProfileDrawer();
+      showToast('Đã đăng xuất tài khoản an toàn.');
+    });
+
+    // Cancel Dialog Handlers
+    openCancelDialogBtn.addEventListener('click', () => {
+      cancelBackdrop.classList.remove('opacity-0', 'pointer-events-none');
+      cancelBackdrop.classList.add('opacity-100');
+      cancelBackdrop.setAttribute('aria-hidden', 'false');
+    });
+
+    function closeCancelDialog() {
+      cancelBackdrop.classList.add('opacity-0', 'pointer-events-none');
+      cancelBackdrop.classList.remove('opacity-100');
+      cancelBackdrop.setAttribute('aria-hidden', 'true');
+    }
+
+    cancelDismiss.addEventListener('click', closeCancelDialog);
+    cancelBackdrop.addEventListener('click', (e) => {
+      if (e.target === cancelBackdrop) closeCancelDialog();
+    });
+
+    cancelConfirm.addEventListener('click', () => {
+      closeCancelDialog();
+      clearInterval(timerInterval);
+      showToast('Đã hủy phiếu giữ chỗ DC-2026-0001. Đang quay lại M-C04...');
+      setTimeout(() => {
+        history.back();
+      }, 1200);
+    });
+
+    // Toast helper
+    let toastTimeout = null;
+    function showToast(msg) {
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastText.textContent = msg;
+      toast.classList.remove('opacity-0', 'pointer-events-none', 'top-14');
+      toast.classList.add('opacity-100', 'top-16');
+      toastTimeout = setTimeout(() => {
+        hideToast();
+      }, 3500);
+    }
+
+    function hideToast() {
+      toast.classList.add('opacity-0', 'pointer-events-none');
+      toast.classList.remove('opacity-100');
+    }
+
+    // Keyboard support (Escape to close open sheets)
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeProfileDrawer();
+        closeCancelDialog();
+      }
+    });
+
+    // Start timer on load
+    runTimer();
+  </script>
+
+
+</body></html>

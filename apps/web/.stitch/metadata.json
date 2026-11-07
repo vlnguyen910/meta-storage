@@ -1,0 +1,29 @@
+{
+  "projectId": "3568865121937293787",
+  "title": "MetaStorage Admin Design System",
+  "deviceType": "DESKTOP",
+  "Last Sync Time": "2026-10-26T17:38:07Z",
+  "screens": {
+    "userManagement": {
+      "id": "5f55ab3d33ae4333821652aca566561a",
+      "label": "User Management",
+      "sourceScreen": "projects/3568865121937293787/screens/5f55ab3d33ae4333821652aca566561a",
+      "dimensions": { "width": 1280, "height": 1202 },
+      "canvasPosition": { "x": 2737, "y": 7823 }
+    },
+    "designSystem": {
+      "id": "5a8fbae4-cf7b-46ea-89b8-d9a206f1c332",
+      "label": "DESIGN.md",
+      "sourceScreen": "projects/3568865121937293787/screens/7586715659372966930",
+      "dimensions": { "width": 780, "height": 1768 },
+      "canvasPosition": { "x": 0, "y": 0 }
+    },
+    "dashboard": {
+      "id": "b2adc444e8434adf8bf287e5f685e4fd",
+      "label": "Dashboard",
+      "sourceScreen": "projects/3568865121937293787/screens/b2adc444e8434adf8bf287e5f685e4fd",
+      "dimensions": { "width": 1280, "height": 970 },
+      "canvasPosition": { "x": 0, "y": 7823 }
+    }
+  }
+}

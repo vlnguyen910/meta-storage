@@ -1,33 +1,40 @@
-import { boolean, pgEnum, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import {
+  boolean,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
+import { UserRole, UserStatus } from "./user-enums";
 
-export const ROLES = [
-  "CUSTOMER",
-  "FACILITY_STAFF",
-  "FACILITY_MANAGER",
-  "BUSINESS_OPERATION_MANAGER",
-  "SYSTEM_ADMIN",
-] as const;
+export { ROLES, type Role, USER_STATUS, UserRole, UserStatus } from "./user-enums";
+export const roleEnum = pgEnum("role", UserRole);
+export const statusEnum = pgEnum("status", UserStatus);
 
-export type Role = (typeof ROLES)[number];
-export const roleEnum = pgEnum("role", ROLES);
-
-export const USER_STATUS = ["ACTIVE", "INACTIVE"] as const;
-export type UserStatus = (typeof USER_STATUS)[number];
-export const statusEnum = pgEnum("status", USER_STATUS);
-
-export const users = pgTable("users", {
-  id: uuid().defaultRandom().primaryKey(),
-  name: text().notNull(),
-  email: varchar({ length: 255 }).notNull().unique(),
-  emailVerified: boolean().default(false).notNull(),
-  image: text(),
-  phone: varchar({ length: 20 }).unique(),
-  passwordHash: varchar({ length: 255 }),
-  role: roleEnum(),
-  status: statusEnum(),
-  createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
-});
+export const users = pgTable(
+  "users",
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    name: text().notNull(),
+    email: varchar({ length: 255 }).notNull().unique(),
+    emailVerified: boolean().default(false).notNull(),
+    image: text(),
+    phone: varchar({ length: 20 }).unique(),
+    role: roleEnum(),
+    status: statusEnum(),
+    createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("users_single_system_admin_idx")
+      .on(table.role)
+      .where(sql`${table.role} = 'SYSTEM_ADMIN'`),
+  ],
+);
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;

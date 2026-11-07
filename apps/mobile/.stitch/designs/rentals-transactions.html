@@ -1,0 +1,1298 @@
+<!DOCTYPE html><html lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>Kho của tôi | MetaStorage</title>
+<style type="text/css">:root, :host {
+  --fa-font-solid: normal 900 1em/1 "Font Awesome 7 Free";
+  --fa-font-regular: normal 400 1em/1 "Font Awesome 7 Free";
+  --fa-font-light: normal 300 1em/1 "Font Awesome 7 Pro";
+  --fa-font-thin: normal 100 1em/1 "Font Awesome 7 Pro";
+  --fa-font-duotone: normal 900 1em/1 "Font Awesome 7 Duotone";
+  --fa-font-duotone-regular: normal 400 1em/1 "Font Awesome 7 Duotone";
+  --fa-font-duotone-light: normal 300 1em/1 "Font Awesome 7 Duotone";
+  --fa-font-duotone-thin: normal 100 1em/1 "Font Awesome 7 Duotone";
+  --fa-font-brands: normal 400 1em/1 "Font Awesome 7 Brands";
+  --fa-font-sharp-solid: normal 900 1em/1 "Font Awesome 7 Sharp";
+  --fa-font-sharp-regular: normal 400 1em/1 "Font Awesome 7 Sharp";
+  --fa-font-sharp-light: normal 300 1em/1 "Font Awesome 7 Sharp";
+  --fa-font-sharp-thin: normal 100 1em/1 "Font Awesome 7 Sharp";
+  --fa-font-sharp-duotone-solid: normal 900 1em/1 "Font Awesome 7 Sharp Duotone";
+  --fa-font-sharp-duotone-regular: normal 400 1em/1 "Font Awesome 7 Sharp Duotone";
+  --fa-font-sharp-duotone-light: normal 300 1em/1 "Font Awesome 7 Sharp Duotone";
+  --fa-font-sharp-duotone-thin: normal 100 1em/1 "Font Awesome 7 Sharp Duotone";
+  --fa-font-slab-regular: normal 400 1em/1 "Font Awesome 7 Slab";
+  --fa-font-slab-press-regular: normal 400 1em/1 "Font Awesome 7 Slab Press";
+  --fa-font-whiteboard-semibold: normal 600 1em/1 "Font Awesome 7 Whiteboard";
+  --fa-font-thumbprint-light: normal 300 1em/1 "Font Awesome 7 Thumbprint";
+  --fa-font-notdog-solid: normal 900 1em/1 "Font Awesome 7 Notdog";
+  --fa-font-notdog-duo-solid: normal 900 1em/1 "Font Awesome 7 Notdog Duo";
+  --fa-font-etch-solid: normal 900 1em/1 "Font Awesome 7 Etch";
+  --fa-font-jelly-regular: normal 400 1em/1 "Font Awesome 7 Jelly";
+  --fa-font-jelly-fill-regular: normal 400 1em/1 "Font Awesome 7 Jelly Fill";
+  --fa-font-jelly-duo-regular: normal 400 1em/1 "Font Awesome 7 Jelly Duo";
+  --fa-font-chisel-regular: normal 400 1em/1 "Font Awesome 7 Chisel";
+  --fa-font-utility-semibold: normal 600 1em/1 "Font Awesome 7 Utility";
+  --fa-font-utility-duo-semibold: normal 600 1em/1 "Font Awesome 7 Utility Duo";
+  --fa-font-utility-fill-semibold: normal 600 1em/1 "Font Awesome 7 Utility Fill";
+}
+
+.svg-inline--fa {
+  box-sizing: content-box;
+  display: var(--fa-display, inline-block);
+  height: 1em;
+  overflow: visible;
+  vertical-align: -0.125em;
+  width: var(--fa-width, 1.25em);
+}
+.svg-inline--fa.fa-2xs {
+  vertical-align: 0.1em;
+}
+.svg-inline--fa.fa-xs {
+  vertical-align: 0em;
+}
+.svg-inline--fa.fa-sm {
+  vertical-align: -0.0714285714em;
+}
+.svg-inline--fa.fa-lg {
+  vertical-align: -0.2em;
+}
+.svg-inline--fa.fa-xl {
+  vertical-align: -0.25em;
+}
+.svg-inline--fa.fa-2xl {
+  vertical-align: -0.3125em;
+}
+.svg-inline--fa.fa-pull-left,
+.svg-inline--fa .fa-pull-start {
+  float: inline-start;
+  margin-inline-end: var(--fa-pull-margin, 0.3em);
+}
+.svg-inline--fa.fa-pull-right,
+.svg-inline--fa .fa-pull-end {
+  float: inline-end;
+  margin-inline-start: var(--fa-pull-margin, 0.3em);
+}
+.svg-inline--fa.fa-li {
+  width: var(--fa-li-width, 2em);
+  inset-inline-start: calc(-1 * var(--fa-li-width, 2em));
+  inset-block-start: 0.25em; /* syncing vertical alignment with Web Font rendering */
+}
+
+.fa-layers-counter, .fa-layers-text {
+  display: inline-block;
+  position: absolute;
+  text-align: center;
+}
+
+.fa-layers {
+  display: inline-block;
+  height: 1em;
+  position: relative;
+  text-align: center;
+  vertical-align: -0.125em;
+  width: var(--fa-width, 1.25em);
+}
+.fa-layers .svg-inline--fa {
+  inset: 0;
+  margin: auto;
+  position: absolute;
+  transform-origin: center center;
+}
+
+.fa-layers-text {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  transform-origin: center center;
+}
+
+.fa-layers-counter {
+  background-color: var(--fa-counter-background-color, #ff253a);
+  border-radius: var(--fa-counter-border-radius, 1em);
+  box-sizing: border-box;
+  color: var(--fa-inverse, #fff);
+  line-height: var(--fa-counter-line-height, 1);
+  max-width: var(--fa-counter-max-width, 5em);
+  min-width: var(--fa-counter-min-width, 1.5em);
+  overflow: hidden;
+  padding: var(--fa-counter-padding, 0.25em 0.5em);
+  right: var(--fa-right, 0);
+  text-overflow: ellipsis;
+  top: var(--fa-top, 0);
+  transform: scale(var(--fa-counter-scale, 0.25));
+  transform-origin: top right;
+}
+
+.fa-layers-bottom-right {
+  bottom: var(--fa-bottom, 0);
+  right: var(--fa-right, 0);
+  top: auto;
+  transform: scale(var(--fa-layers-scale, 0.25));
+  transform-origin: bottom right;
+}
+
+.fa-layers-bottom-left {
+  bottom: var(--fa-bottom, 0);
+  left: var(--fa-left, 0);
+  right: auto;
+  top: auto;
+  transform: scale(var(--fa-layers-scale, 0.25));
+  transform-origin: bottom left;
+}
+
+.fa-layers-top-right {
+  top: var(--fa-top, 0);
+  right: var(--fa-right, 0);
+  transform: scale(var(--fa-layers-scale, 0.25));
+  transform-origin: top right;
+}
+
+.fa-layers-top-left {
+  left: var(--fa-left, 0);
+  right: auto;
+  top: var(--fa-top, 0);
+  transform: scale(var(--fa-layers-scale, 0.25));
+  transform-origin: top left;
+}
+
+.fa-1x {
+  font-size: 1em;
+}
+
+.fa-2x {
+  font-size: 2em;
+}
+
+.fa-3x {
+  font-size: 3em;
+}
+
+.fa-4x {
+  font-size: 4em;
+}
+
+.fa-5x {
+  font-size: 5em;
+}
+
+.fa-6x {
+  font-size: 6em;
+}
+
+.fa-7x {
+  font-size: 7em;
+}
+
+.fa-8x {
+  font-size: 8em;
+}
+
+.fa-9x {
+  font-size: 9em;
+}
+
+.fa-10x {
+  font-size: 10em;
+}
+
+.fa-2xs {
+  font-size: calc(10 / 16 * 1em); /* converts a 10px size into an em-based value that's relative to the scale's 16px base */
+  line-height: calc(1 / 10 * 1em); /* sets the line-height of the icon back to that of it's parent */
+  vertical-align: calc((6 / 10 - 0.375) * 1em); /* vertically centers the icon taking into account the surrounding text's descender */
+}
+
+.fa-xs {
+  font-size: calc(12 / 16 * 1em); /* converts a 12px size into an em-based value that's relative to the scale's 16px base */
+  line-height: calc(1 / 12 * 1em); /* sets the line-height of the icon back to that of it's parent */
+  vertical-align: calc((6 / 12 - 0.375) * 1em); /* vertically centers the icon taking into account the surrounding text's descender */
+}
+
+.fa-sm {
+  font-size: calc(14 / 16 * 1em); /* converts a 14px size into an em-based value that's relative to the scale's 16px base */
+  line-height: calc(1 / 14 * 1em); /* sets the line-height of the icon back to that of it's parent */
+  vertical-align: calc((6 / 14 - 0.375) * 1em); /* vertically centers the icon taking into account the surrounding text's descender */
+}
+
+.fa-lg {
+  font-size: calc(20 / 16 * 1em); /* converts a 20px size into an em-based value that's relative to the scale's 16px base */
+  line-height: calc(1 / 20 * 1em); /* sets the line-height of the icon back to that of it's parent */
+  vertical-align: calc((6 / 20 - 0.375) * 1em); /* vertically centers the icon taking into account the surrounding text's descender */
+}
+
+.fa-xl {
+  font-size: calc(24 / 16 * 1em); /* converts a 24px size into an em-based value that's relative to the scale's 16px base */
+  line-height: calc(1 / 24 * 1em); /* sets the line-height of the icon back to that of it's parent */
+  vertical-align: calc((6 / 24 - 0.375) * 1em); /* vertically centers the icon taking into account the surrounding text's descender */
+}
+
+.fa-2xl {
+  font-size: calc(32 / 16 * 1em); /* converts a 32px size into an em-based value that's relative to the scale's 16px base */
+  line-height: calc(1 / 32 * 1em); /* sets the line-height of the icon back to that of it's parent */
+  vertical-align: calc((6 / 32 - 0.375) * 1em); /* vertically centers the icon taking into account the surrounding text's descender */
+}
+
+.fa-width-auto {
+  --fa-width: auto;
+}
+
+.fa-fw,
+.fa-width-fixed {
+  --fa-width: 1.25em;
+}
+
+.fa-ul {
+  list-style-type: none;
+  margin-inline-start: var(--fa-li-margin, 2.5em);
+  padding-inline-start: 0;
+}
+.fa-ul > li {
+  position: relative;
+}
+
+.fa-li {
+  inset-inline-start: calc(-1 * var(--fa-li-width, 2em));
+  position: absolute;
+  text-align: center;
+  width: var(--fa-li-width, 2em);
+  line-height: inherit;
+}
+
+/* Heads Up: Bordered Icons will not be supported in the future!
+  - This feature will be deprecated in the next major release of Font Awesome (v8)!
+  - You may continue to use it in this version *v7), but it will not be supported in Font Awesome v8.
+*/
+/* Notes:
+* --@{v.$css-prefix}-border-width = 1/16 by default (to render as ~1px based on a 16px default font-size)
+* --@{v.$css-prefix}-border-padding =
+  ** 3/16 for vertical padding (to give ~2px of vertical whitespace around an icon considering it's vertical alignment)
+  ** 4/16 for horizontal padding (to give ~4px of horizontal whitespace around an icon)
+*/
+.fa-border {
+  border-color: var(--fa-border-color, #eee);
+  border-radius: var(--fa-border-radius, 0.1em);
+  border-style: var(--fa-border-style, solid);
+  border-width: var(--fa-border-width, 0.0625em);
+  box-sizing: var(--fa-border-box-sizing, content-box);
+  padding: var(--fa-border-padding, 0.1875em 0.25em);
+}
+
+.fa-pull-left,
+.fa-pull-start {
+  float: inline-start;
+  margin-inline-end: var(--fa-pull-margin, 0.3em);
+}
+
+.fa-pull-right,
+.fa-pull-end {
+  float: inline-end;
+  margin-inline-start: var(--fa-pull-margin, 0.3em);
+}
+
+.fa-beat {
+  animation-name: fa-beat;
+  animation-delay: var(--fa-animation-delay, 0s);
+  animation-direction: var(--fa-animation-direction, normal);
+  animation-duration: var(--fa-animation-duration, 1s);
+  animation-iteration-count: var(--fa-animation-iteration-count, infinite);
+  animation-timing-function: var(--fa-animation-timing, ease-in-out);
+}
+
+.fa-bounce {
+  animation-name: fa-bounce;
+  animation-delay: var(--fa-animation-delay, 0s);
+  animation-direction: var(--fa-animation-direction, normal);
+  animation-duration: var(--fa-animation-duration, 1s);
+  animation-iteration-count: var(--fa-animation-iteration-count, infinite);
+  animation-timing-function: var(--fa-animation-timing, cubic-bezier(0.28, 0.84, 0.42, 1));
+}
+
+.fa-fade {
+  animation-name: fa-fade;
+  animation-delay: var(--fa-animation-delay, 0s);
+  animation-direction: var(--fa-animation-direction, normal);
+  animation-duration: var(--fa-animation-duration, 1s);
+  animation-iteration-count: var(--fa-animation-iteration-count, infinite);
+  animation-timing-function: var(--fa-animation-timing, cubic-bezier(0.4, 0, 0.6, 1));
+}
+
+.fa-beat-fade {
+  animation-name: fa-beat-fade;
+  animation-delay: var(--fa-animation-delay, 0s);
+  animation-direction: var(--fa-animation-direction, normal);
+  animation-duration: var(--fa-animation-duration, 1s);
+  animation-iteration-count: var(--fa-animation-iteration-count, infinite);
+  animation-timing-function: var(--fa-animation-timing, cubic-bezier(0.4, 0, 0.6, 1));
+}
+
+.fa-flip {
+  animation-name: fa-flip;
+  animation-delay: var(--fa-animation-delay, 0s);
+  animation-direction: var(--fa-animation-direction, normal);
+  animation-duration: var(--fa-animation-duration, 1s);
+  animation-iteration-count: var(--fa-animation-iteration-count, infinite);
+  animation-timing-function: var(--fa-animation-timing, ease-in-out);
+}
+
+.fa-shake {
+  animation-name: fa-shake;
+  animation-delay: var(--fa-animation-delay, 0s);
+  animation-direction: var(--fa-animation-direction, normal);
+  animation-duration: var(--fa-animation-duration, 1s);
+  animation-iteration-count: var(--fa-animation-iteration-count, infinite);
+  animation-timing-function: var(--fa-animation-timing, linear);
+}
+
+.fa-spin {
+  animation-name: fa-spin;
+  animation-delay: var(--fa-animation-delay, 0s);
+  animation-direction: var(--fa-animation-direction, normal);
+  animation-duration: var(--fa-animation-duration, 2s);
+  animation-iteration-count: var(--fa-animation-iteration-count, infinite);
+  animation-timing-function: var(--fa-animation-timing, linear);
+}
+
+.fa-spin-reverse {
+  --fa-animation-direction: reverse;
+}
+
+.fa-pulse,
+.fa-spin-pulse {
+  animation-name: fa-spin;
+  animation-direction: var(--fa-animation-direction, normal);
+  animation-duration: var(--fa-animation-duration, 1s);
+  animation-iteration-count: var(--fa-animation-iteration-count, infinite);
+  animation-timing-function: var(--fa-animation-timing, steps(8));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fa-beat,
+  .fa-bounce,
+  .fa-fade,
+  .fa-beat-fade,
+  .fa-flip,
+  .fa-pulse,
+  .fa-shake,
+  .fa-spin,
+  .fa-spin-pulse {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+@keyframes fa-beat {
+  0%, 90% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(var(--fa-beat-scale, 1.25));
+  }
+}
+@keyframes fa-bounce {
+  0% {
+    transform: scale(1, 1) translateY(0);
+  }
+  10% {
+    transform: scale(var(--fa-bounce-start-scale-x, 1.1), var(--fa-bounce-start-scale-y, 0.9)) translateY(0);
+  }
+  30% {
+    transform: scale(var(--fa-bounce-jump-scale-x, 0.9), var(--fa-bounce-jump-scale-y, 1.1)) translateY(var(--fa-bounce-height, -0.5em));
+  }
+  50% {
+    transform: scale(var(--fa-bounce-land-scale-x, 1.05), var(--fa-bounce-land-scale-y, 0.95)) translateY(0);
+  }
+  57% {
+    transform: scale(1, 1) translateY(var(--fa-bounce-rebound, -0.125em));
+  }
+  64% {
+    transform: scale(1, 1) translateY(0);
+  }
+  100% {
+    transform: scale(1, 1) translateY(0);
+  }
+}
+@keyframes fa-fade {
+  50% {
+    opacity: var(--fa-fade-opacity, 0.4);
+  }
+}
+@keyframes fa-beat-fade {
+  0%, 100% {
+    opacity: var(--fa-beat-fade-opacity, 0.4);
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(var(--fa-beat-fade-scale, 1.125));
+  }
+}
+@keyframes fa-flip {
+  50% {
+    transform: rotate3d(var(--fa-flip-x, 0), var(--fa-flip-y, 1), var(--fa-flip-z, 0), var(--fa-flip-angle, -180deg));
+  }
+}
+@keyframes fa-shake {
+  0% {
+    transform: rotate(-15deg);
+  }
+  4% {
+    transform: rotate(15deg);
+  }
+  8%, 24% {
+    transform: rotate(-18deg);
+  }
+  12%, 28% {
+    transform: rotate(18deg);
+  }
+  16% {
+    transform: rotate(-22deg);
+  }
+  20% {
+    transform: rotate(22deg);
+  }
+  32% {
+    transform: rotate(-12deg);
+  }
+  36% {
+    transform: rotate(12deg);
+  }
+  40%, 100% {
+    transform: rotate(0deg);
+  }
+}
+@keyframes fa-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+.fa-rotate-90 {
+  transform: rotate(90deg);
+}
+
+.fa-rotate-180 {
+  transform: rotate(180deg);
+}
+
+.fa-rotate-270 {
+  transform: rotate(270deg);
+}
+
+.fa-flip-horizontal {
+  transform: scale(-1, 1);
+}
+
+.fa-flip-vertical {
+  transform: scale(1, -1);
+}
+
+.fa-flip-both,
+.fa-flip-horizontal.fa-flip-vertical {
+  transform: scale(-1, -1);
+}
+
+.fa-rotate-by {
+  transform: rotate(var(--fa-rotate-angle, 0));
+}
+
+.svg-inline--fa .fa-primary {
+  fill: var(--fa-primary-color, currentColor);
+  opacity: var(--fa-primary-opacity, 1);
+}
+
+.svg-inline--fa .fa-secondary {
+  fill: var(--fa-secondary-color, currentColor);
+  opacity: var(--fa-secondary-opacity, 0.4);
+}
+
+.svg-inline--fa.fa-swap-opacity .fa-primary {
+  opacity: var(--fa-secondary-opacity, 0.4);
+}
+
+.svg-inline--fa.fa-swap-opacity .fa-secondary {
+  opacity: var(--fa-primary-opacity, 1);
+}
+
+.svg-inline--fa mask .fa-primary,
+.svg-inline--fa mask .fa-secondary {
+  fill: black;
+}
+
+.svg-inline--fa.fa-inverse {
+  fill: var(--fa-inverse, #fff);
+}
+
+.fa-stack {
+  display: inline-block;
+  height: 2em;
+  line-height: 2em;
+  position: relative;
+  vertical-align: middle;
+  width: 2.5em;
+}
+
+.fa-inverse {
+  color: var(--fa-inverse, #fff);
+}
+
+.svg-inline--fa.fa-stack-1x {
+  --fa-width: 1.25em;
+  height: 1em;
+  width: var(--fa-width);
+}
+.svg-inline--fa.fa-stack-2x {
+  --fa-width: 2.5em;
+  height: 2em;
+  width: var(--fa-width);
+}
+
+.fa-stack-1x,
+.fa-stack-2x {
+  inset: 0;
+  margin: auto;
+  position: absolute;
+  z-index: var(--fa-stack-z-index, auto);
+}</style><style type="text/css">:root, :host {
+  --fa-font-solid: normal 900 1em/1 "Font Awesome 7 Free";
+  --fa-font-regular: normal 400 1em/1 "Font Awesome 7 Free";
+  --fa-font-light: normal 300 1em/1 "Font Awesome 7 Pro";
+  --fa-font-thin: normal 100 1em/1 "Font Awesome 7 Pro";
+  --fa-font-duotone: normal 900 1em/1 "Font Awesome 7 Duotone";
+  --fa-font-duotone-regular: normal 400 1em/1 "Font Awesome 7 Duotone";
+  --fa-font-duotone-light: normal 300 1em/1 "Font Awesome 7 Duotone";
+  --fa-font-duotone-thin: normal 100 1em/1 "Font Awesome 7 Duotone";
+  --fa-font-brands: normal 400 1em/1 "Font Awesome 7 Brands";
+  --fa-font-sharp-solid: normal 900 1em/1 "Font Awesome 7 Sharp";
+  --fa-font-sharp-regular: normal 400 1em/1 "Font Awesome 7 Sharp";
+  --fa-font-sharp-light: normal 300 1em/1 "Font Awesome 7 Sharp";
+  --fa-font-sharp-thin: normal 100 1em/1 "Font Awesome 7 Sharp";
+  --fa-font-sharp-duotone-solid: normal 900 1em/1 "Font Awesome 7 Sharp Duotone";
+  --fa-font-sharp-duotone-regular: normal 400 1em/1 "Font Awesome 7 Sharp Duotone";
+  --fa-font-sharp-duotone-light: normal 300 1em/1 "Font Awesome 7 Sharp Duotone";
+  --fa-font-sharp-duotone-thin: normal 100 1em/1 "Font Awesome 7 Sharp Duotone";
+  --fa-font-slab-regular: normal 400 1em/1 "Font Awesome 7 Slab";
+  --fa-font-slab-press-regular: normal 400 1em/1 "Font Awesome 7 Slab Press";
+  --fa-font-whiteboard-semibold: normal 600 1em/1 "Font Awesome 7 Whiteboard";
+  --fa-font-thumbprint-light: normal 300 1em/1 "Font Awesome 7 Thumbprint";
+  --fa-font-notdog-solid: normal 900 1em/1 "Font Awesome 7 Notdog";
+  --fa-font-notdog-duo-solid: normal 900 1em/1 "Font Awesome 7 Notdog Duo";
+  --fa-font-etch-solid: normal 900 1em/1 "Font Awesome 7 Etch";
+  --fa-font-jelly-regular: normal 400 1em/1 "Font Awesome 7 Jelly";
+  --fa-font-jelly-fill-regular: normal 400 1em/1 "Font Awesome 7 Jelly Fill";
+  --fa-font-jelly-duo-regular: normal 400 1em/1 "Font Awesome 7 Jelly Duo";
+  --fa-font-chisel-regular: normal 400 1em/1 "Font Awesome 7 Chisel";
+  --fa-font-utility-semibold: normal 600 1em/1 "Font Awesome 7 Utility";
+  --fa-font-utility-duo-semibold: normal 600 1em/1 "Font Awesome 7 Utility Duo";
+  --fa-font-utility-fill-semibold: normal 600 1em/1 "Font Awesome 7 Utility Fill";
+}
+
+.svg-inline--fa {
+  box-sizing: content-box;
+  display: var(--fa-display, inline-block);
+  height: 1em;
+  overflow: visible;
+  vertical-align: -0.125em;
+  width: var(--fa-width, 1.25em);
+}
+.svg-inline--fa.fa-2xs {
+  vertical-align: 0.1em;
+}
+.svg-inline--fa.fa-xs {
+  vertical-align: 0em;
+}
+.svg-inline--fa.fa-sm {
+  vertical-align: -0.0714285714em;
+}
+.svg-inline--fa.fa-lg {
+  vertical-align: -0.2em;
+}
+.svg-inline--fa.fa-xl {
+  vertical-align: -0.25em;
+}
+.svg-inline--fa.fa-2xl {
+  vertical-align: -0.3125em;
+}
+.svg-inline--fa.fa-pull-left,
+.svg-inline--fa .fa-pull-start {
+  float: inline-start;
+  margin-inline-end: var(--fa-pull-margin, 0.3em);
+}
+.svg-inline--fa.fa-pull-right,
+.svg-inline--fa .fa-pull-end {
+  float: inline-end;
+  margin-inline-start: var(--fa-pull-margin, 0.3em);
+}
+.svg-inline--fa.fa-li {
+  width: var(--fa-li-width, 2em);
+  inset-inline-start: calc(-1 * var(--fa-li-width, 2em));
+  inset-block-start: 0.25em; /* syncing vertical alignment with Web Font rendering */
+}
+
+.fa-layers-counter, .fa-layers-text {
+  display: inline-block;
+  position: absolute;
+  text-align: center;
+}
+
+.fa-layers {
+  display: inline-block;
+  height: 1em;
+  position: relative;
+  text-align: center;
+  vertical-align: -0.125em;
+  width: var(--fa-width, 1.25em);
+}
+.fa-layers .svg-inline--fa {
+  inset: 0;
+  margin: auto;
+  position: absolute;
+  transform-origin: center center;
+}
+
+.fa-layers-text {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  transform-origin: center center;
+}
+
+.fa-layers-counter {
+  background-color: var(--fa-counter-background-color, #ff253a);
+  border-radius: var(--fa-counter-border-radius, 1em);
+  box-sizing: border-box;
+  color: var(--fa-inverse, #fff);
+  line-height: var(--fa-counter-line-height, 1);
+  max-width: var(--fa-counter-max-width, 5em);
+  min-width: var(--fa-counter-min-width, 1.5em);
+  overflow: hidden;
+  padding: var(--fa-counter-padding, 0.25em 0.5em);
+  right: var(--fa-right, 0);
+  text-overflow: ellipsis;
+  top: var(--fa-top, 0);
+  transform: scale(var(--fa-counter-scale, 0.25));
+  transform-origin: top right;
+}
+
+.fa-layers-bottom-right {
+  bottom: var(--fa-bottom, 0);
+  right: var(--fa-right, 0);
+  top: auto;
+  transform: scale(var(--fa-layers-scale, 0.25));
+  transform-origin: bottom right;
+}
+
+.fa-layers-bottom-left {
+  bottom: var(--fa-bottom, 0);
+  left: var(--fa-left, 0);
+  right: auto;
+  top: auto;
+  transform: scale(var(--fa-layers-scale, 0.25));
+  transform-origin: bottom left;
+}
+
+.fa-layers-top-right {
+  top: var(--fa-top, 0);
+  right: var(--fa-right, 0);
+  transform: scale(var(--fa-layers-scale, 0.25));
+  transform-origin: top right;
+}
+
+.fa-layers-top-left {
+  left: var(--fa-left, 0);
+  right: auto;
+  top: var(--fa-top, 0);
+  transform: scale(var(--fa-layers-scale, 0.25));
+  transform-origin: top left;
+}
+
+.fa-1x {
+  font-size: 1em;
+}
+
+.fa-2x {
+  font-size: 2em;
+}
+
+.fa-3x {
+  font-size: 3em;
+}
+
+.fa-4x {
+  font-size: 4em;
+}
+
+.fa-5x {
+  font-size: 5em;
+}
+
+.fa-6x {
+  font-size: 6em;
+}
+
+.fa-7x {
+  font-size: 7em;
+}
+
+.fa-8x {
+  font-size: 8em;
+}
+
+.fa-9x {
+  font-size: 9em;
+}
+
+.fa-10x {
+  font-size: 10em;
+}
+
+.fa-2xs {
+  font-size: calc(10 / 16 * 1em); /* converts a 10px size into an em-based value that's relative to the scale's 16px base */
+  line-height: calc(1 / 10 * 1em); /* sets the line-height of the icon back to that of it's parent */
+  vertical-align: calc((6 / 10 - 0.375) * 1em); /* vertically centers the icon taking into account the surrounding text's descender */
+}
+
+.fa-xs {
+  font-size: calc(12 / 16 * 1em); /* converts a 12px size into an em-based value that's relative to the scale's 16px base */
+  line-height: calc(1 / 12 * 1em); /* sets the line-height of the icon back to that of it's parent */
+  vertical-align: calc((6 / 12 - 0.375) * 1em); /* vertically centers the icon taking into account the surrounding text's descender */
+}
+
+.fa-sm {
+  font-size: calc(14 / 16 * 1em); /* converts a 14px size into an em-based value that's relative to the scale's 16px base */
+  line-height: calc(1 / 14 * 1em); /* sets the line-height of the icon back to that of it's parent */
+  vertical-align: calc((6 / 14 - 0.375) * 1em); /* vertically centers the icon taking into account the surrounding text's descender */
+}
+
+.fa-lg {
+  font-size: calc(20 / 16 * 1em); /* converts a 20px size into an em-based value that's relative to the scale's 16px base */
+  line-height: calc(1 / 20 * 1em); /* sets the line-height of the icon back to that of it's parent */
+  vertical-align: calc((6 / 20 - 0.375) * 1em); /* vertically centers the icon taking into account the surrounding text's descender */
+}
+
+.fa-xl {
+  font-size: calc(24 / 16 * 1em); /* converts a 24px size into an em-based value that's relative to the scale's 16px base */
+  line-height: calc(1 / 24 * 1em); /* sets the line-height of the icon back to that of it's parent */
+  vertical-align: calc((6 / 24 - 0.375) * 1em); /* vertically centers the icon taking into account the surrounding text's descender */
+}
+
+.fa-2xl {
+  font-size: calc(32 / 16 * 1em); /* converts a 32px size into an em-based value that's relative to the scale's 16px base */
+  line-height: calc(1 / 32 * 1em); /* sets the line-height of the icon back to that of it's parent */
+  vertical-align: calc((6 / 32 - 0.375) * 1em); /* vertically centers the icon taking into account the surrounding text's descender */
+}
+
+.fa-width-auto {
+  --fa-width: auto;
+}
+
+.fa-fw,
+.fa-width-fixed {
+  --fa-width: 1.25em;
+}
+
+.fa-ul {
+  list-style-type: none;
+  margin-inline-start: var(--fa-li-margin, 2.5em);
+  padding-inline-start: 0;
+}
+.fa-ul > li {
+  position: relative;
+}
+
+.fa-li {
+  inset-inline-start: calc(-1 * var(--fa-li-width, 2em));
+  position: absolute;
+  text-align: center;
+  width: var(--fa-li-width, 2em);
+  line-height: inherit;
+}
+
+/* Heads Up: Bordered Icons will not be supported in the future!
+  - This feature will be deprecated in the next major release of Font Awesome (v8)!
+  - You may continue to use it in this version *v7), but it will not be supported in Font Awesome v8.
+*/
+/* Notes:
+* --@{v.$css-prefix}-border-width = 1/16 by default (to render as ~1px based on a 16px default font-size)
+* --@{v.$css-prefix}-border-padding =
+  ** 3/16 for vertical padding (to give ~2px of vertical whitespace around an icon considering it's vertical alignment)
+  ** 4/16 for horizontal padding (to give ~4px of horizontal whitespace around an icon)
+*/
+.fa-border {
+  border-color: var(--fa-border-color, #eee);
+  border-radius: var(--fa-border-radius, 0.1em);
+  border-style: var(--fa-border-style, solid);
+  border-width: var(--fa-border-width, 0.0625em);
+  box-sizing: var(--fa-border-box-sizing, content-box);
+  padding: var(--fa-border-padding, 0.1875em 0.25em);
+}
+
+.fa-pull-left,
+.fa-pull-start {
+  float: inline-start;
+  margin-inline-end: var(--fa-pull-margin, 0.3em);
+}
+
+.fa-pull-right,
+.fa-pull-end {
+  float: inline-end;
+  margin-inline-start: var(--fa-pull-margin, 0.3em);
+}
+
+.fa-beat {
+  animation-name: fa-beat;
+  animation-delay: var(--fa-animation-delay, 0s);
+  animation-direction: var(--fa-animation-direction, normal);
+  animation-duration: var(--fa-animation-duration, 1s);
+  animation-iteration-count: var(--fa-animation-iteration-count, infinite);
+  animation-timing-function: var(--fa-animation-timing, ease-in-out);
+}
+
+.fa-bounce {
+  animation-name: fa-bounce;
+  animation-delay: var(--fa-animation-delay, 0s);
+  animation-direction: var(--fa-animation-direction, normal);
+  animation-duration: var(--fa-animation-duration, 1s);
+  animation-iteration-count: var(--fa-animation-iteration-count, infinite);
+  animation-timing-function: var(--fa-animation-timing, cubic-bezier(0.28, 0.84, 0.42, 1));
+}
+
+.fa-fade {
+  animation-name: fa-fade;
+  animation-delay: var(--fa-animation-delay, 0s);
+  animation-direction: var(--fa-animation-direction, normal);
+  animation-duration: var(--fa-animation-duration, 1s);
+  animation-iteration-count: var(--fa-animation-iteration-count, infinite);
+  animation-timing-function: var(--fa-animation-timing, cubic-bezier(0.4, 0, 0.6, 1));
+}
+
+.fa-beat-fade {
+  animation-name: fa-beat-fade;
+  animation-delay: var(--fa-animation-delay, 0s);
+  animation-direction: var(--fa-animation-direction, normal);
+  animation-duration: var(--fa-animation-duration, 1s);
+  animation-iteration-count: var(--fa-animation-iteration-count, infinite);
+  animation-timing-function: var(--fa-animation-timing, cubic-bezier(0.4, 0, 0.6, 1));
+}
+
+.fa-flip {
+  animation-name: fa-flip;
+  animation-delay: var(--fa-animation-delay, 0s);
+  animation-direction: var(--fa-animation-direction, normal);
+  animation-duration: var(--fa-animation-duration, 1s);
+  animation-iteration-count: var(--fa-animation-iteration-count, infinite);
+  animation-timing-function: var(--fa-animation-timing, ease-in-out);
+}
+
+.fa-shake {
+  animation-name: fa-shake;
+  animation-delay: var(--fa-animation-delay, 0s);
+  animation-direction: var(--fa-animation-direction, normal);
+  animation-duration: var(--fa-animation-duration, 1s);
+  animation-iteration-count: var(--fa-animation-iteration-count, infinite);
+  animation-timing-function: var(--fa-animation-timing, linear);
+}
+
+.fa-spin {
+  animation-name: fa-spin;
+  animation-delay: var(--fa-animation-delay, 0s);
+  animation-direction: var(--fa-animation-direction, normal);
+  animation-duration: var(--fa-animation-duration, 2s);
+  animation-iteration-count: var(--fa-animation-iteration-count, infinite);
+  animation-timing-function: var(--fa-animation-timing, linear);
+}
+
+.fa-spin-reverse {
+  --fa-animation-direction: reverse;
+}
+
+.fa-pulse,
+.fa-spin-pulse {
+  animation-name: fa-spin;
+  animation-direction: var(--fa-animation-direction, normal);
+  animation-duration: var(--fa-animation-duration, 1s);
+  animation-iteration-count: var(--fa-animation-iteration-count, infinite);
+  animation-timing-function: var(--fa-animation-timing, steps(8));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fa-beat,
+  .fa-bounce,
+  .fa-fade,
+  .fa-beat-fade,
+  .fa-flip,
+  .fa-pulse,
+  .fa-shake,
+  .fa-spin,
+  .fa-spin-pulse {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+@keyframes fa-beat {
+  0%, 90% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(var(--fa-beat-scale, 1.25));
+  }
+}
+@keyframes fa-bounce {
+  0% {
+    transform: scale(1, 1) translateY(0);
+  }
+  10% {
+    transform: scale(var(--fa-bounce-start-scale-x, 1.1), var(--fa-bounce-start-scale-y, 0.9)) translateY(0);
+  }
+  30% {
+    transform: scale(var(--fa-bounce-jump-scale-x, 0.9), var(--fa-bounce-jump-scale-y, 1.1)) translateY(var(--fa-bounce-height, -0.5em));
+  }
+  50% {
+    transform: scale(var(--fa-bounce-land-scale-x, 1.05), var(--fa-bounce-land-scale-y, 0.95)) translateY(0);
+  }
+  57% {
+    transform: scale(1, 1) translateY(var(--fa-bounce-rebound, -0.125em));
+  }
+  64% {
+    transform: scale(1, 1) translateY(0);
+  }
+  100% {
+    transform: scale(1, 1) translateY(0);
+  }
+}
+@keyframes fa-fade {
+  50% {
+    opacity: var(--fa-fade-opacity, 0.4);
+  }
+}
+@keyframes fa-beat-fade {
+  0%, 100% {
+    opacity: var(--fa-beat-fade-opacity, 0.4);
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(var(--fa-beat-fade-scale, 1.125));
+  }
+}
+@keyframes fa-flip {
+  50% {
+    transform: rotate3d(var(--fa-flip-x, 0), var(--fa-flip-y, 1), var(--fa-flip-z, 0), var(--fa-flip-angle, -180deg));
+  }
+}
+@keyframes fa-shake {
+  0% {
+    transform: rotate(-15deg);
+  }
+  4% {
+    transform: rotate(15deg);
+  }
+  8%, 24% {
+    transform: rotate(-18deg);
+  }
+  12%, 28% {
+    transform: rotate(18deg);
+  }
+  16% {
+    transform: rotate(-22deg);
+  }
+  20% {
+    transform: rotate(22deg);
+  }
+  32% {
+    transform: rotate(-12deg);
+  }
+  36% {
+    transform: rotate(12deg);
+  }
+  40%, 100% {
+    transform: rotate(0deg);
+  }
+}
+@keyframes fa-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+.fa-rotate-90 {
+  transform: rotate(90deg);
+}
+
+.fa-rotate-180 {
+  transform: rotate(180deg);
+}
+
+.fa-rotate-270 {
+  transform: rotate(270deg);
+}
+
+.fa-flip-horizontal {
+  transform: scale(-1, 1);
+}
+
+.fa-flip-vertical {
+  transform: scale(1, -1);
+}
+
+.fa-flip-both,
+.fa-flip-horizontal.fa-flip-vertical {
+  transform: scale(-1, -1);
+}
+
+.fa-rotate-by {
+  transform: rotate(var(--fa-rotate-angle, 0));
+}
+
+.svg-inline--fa .fa-primary {
+  fill: var(--fa-primary-color, currentColor);
+  opacity: var(--fa-primary-opacity, 1);
+}
+
+.svg-inline--fa .fa-secondary {
+  fill: var(--fa-secondary-color, currentColor);
+  opacity: var(--fa-secondary-opacity, 0.4);
+}
+
+.svg-inline--fa.fa-swap-opacity .fa-primary {
+  opacity: var(--fa-secondary-opacity, 0.4);
+}
+
+.svg-inline--fa.fa-swap-opacity .fa-secondary {
+  opacity: var(--fa-primary-opacity, 1);
+}
+
+.svg-inline--fa mask .fa-primary,
+.svg-inline--fa mask .fa-secondary {
+  fill: black;
+}
+
+.svg-inline--fa.fa-inverse {
+  fill: var(--fa-inverse, #fff);
+}
+
+.fa-stack {
+  display: inline-block;
+  height: 2em;
+  line-height: 2em;
+  position: relative;
+  vertical-align: middle;
+  width: 2.5em;
+}
+
+.fa-inverse {
+  color: var(--fa-inverse, #fff);
+}
+
+.svg-inline--fa.fa-stack-1x {
+  --fa-width: 1.25em;
+  height: 1em;
+  width: var(--fa-width);
+}
+.svg-inline--fa.fa-stack-2x {
+  --fa-width: 2.5em;
+  height: 2em;
+  width: var(--fa-width);
+}
+
+.fa-stack-1x,
+.fa-stack-2x {
+  inset: 0;
+  margin: auto;
+  position: absolute;
+  z-index: var(--fa-stack-z-index, auto);
+}</style><link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-variant": "#dae2fd",
+            "tertiary-fixed": "#ffdcc3",
+            "secondary": "#306858",
+            "surface-container-low": "#f2f3ff",
+            "on-secondary-fixed-variant": "#135041",
+            "outline-variant": "#bfc9c4",
+            "error": "#ba1a1a",
+            "secondary-container": "#b4efda",
+            "on-secondary-fixed": "#002018",
+            "inverse-primary": "#96d3c0",
+            "tertiary": "#512800",
+            "surface-container-high": "#e2e7ff",
+            "surface-tint": "#2c6859",
+            "outline": "#707975",
+            "on-error-container": "#93000a",
+            "on-tertiary-fixed": "#2f1500",
+            "surface-bright": "#faf8ff",
+            "on-primary-fixed": "#002019",
+            "inverse-on-surface": "#eef0ff",
+            "surface-container": "#eaedff",
+            "background": "#faf8ff",
+            "surface-dim": "#d2d9f4",
+            "on-secondary": "#ffffff",
+            "secondary-fixed-dim": "#98d2be",
+            "on-background": "#131b2e",
+            "secondary-fixed": "#b4efda",
+            "on-error": "#ffffff",
+            "on-tertiary-fixed-variant": "#6e3900",
+            "primary": "#003b2f",
+            "tertiary-container": "#723b00",
+            "primary-fixed-dim": "#96d3c0",
+            "on-surface-variant": "#404945",
+            "on-primary": "#ffffff",
+            "inverse-surface": "#283044",
+            "on-primary-fixed-variant": "#0d5042",
+            "surface-container-lowest": "#ffffff",
+            "tertiary-fixed-dim": "#ffb77d",
+            "primary-fixed": "#b1efdc",
+            "surface": "#faf8ff",
+            "on-surface": "#131b2e",
+            "error-container": "#ffdad6",
+            "on-secondary-container": "#366e5e",
+            "on-tertiary-container": "#ffa454",
+            "surface-container-highest": "#dae2fd",
+            "on-tertiary": "#ffffff",
+            "on-primary-container": "#89c5b3",
+            "primary-container": "#125345"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "gutter-sm": "1rem",
+            "space-xl": "2.5rem",
+            "space-lg": "1.5rem",
+            "margin-sm": "1rem",
+            "space-md": "1rem",
+            "space-xs": "0.25rem",
+            "gutter": "1.5rem",
+            "margin": "2rem",
+            "space-sm": "0.5rem"
+          },
+          "fontFamily": {
+            "headline-lg": ["Space Grotesk"],
+            "title-md": ["Be Vietnam Pro"],
+            "headline-md": ["Space Grotesk"],
+            "headline-sm": ["Space Grotesk"],
+            "body-md": ["Be Vietnam Pro"],
+            "label-md": ["Space Grotesk"],
+            "body-lg": ["Be Vietnam Pro"],
+            "label-sm": ["Space Grotesk"],
+            "body-sm": ["Be Vietnam Pro"],
+            "label-lg": ["Space Grotesk"],
+            "display-mobile": ["Space Grotesk"],
+            "headline-lg-mobile": ["Space Grotesk"],
+            "display": ["Space Grotesk"]
+          },
+          "fontSize": {
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "title-md": ["18px", { "lineHeight": "26px", "fontWeight": "600" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "body-md": ["14px", { "lineHeight": "22px", "fontWeight": "400" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "body-lg": ["16px", { "lineHeight": "26px", "fontWeight": "400" }],
+            "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+            "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+            "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+            "display-mobile": ["34px", { "lineHeight": "42px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "headline-lg-mobile": ["26px", { "lineHeight": "34px", "fontWeight": "600" }],
+            "display": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    body {
+      background-color: #f1f4f9;
+      font-family: 'Be Vietnam Pro', sans-serif;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      display: none;
+    }
+    .custom-scroll {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="flex justify-center min-h-screen text-on-surface antialiased select-none">
+<!-- Mobile Viewport Shell (390px simulated native frame) -->
+<div class="w-full max-w-[390px] min-h-screen bg-background flex flex-col relative pb-24 shadow-2xl">
+<!-- iOS / Android Native Status Bar -->
+<div class="w-full px-6 pt-3 pb-1 flex justify-between items-center text-on-surface font-headline-sm text-label-md font-semibold select-none bg-surface/80 backdrop-blur-md sticky top-0 z-40">
+<span class="">9:41</span>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]">signal_cellular_4_bar</span>
+<span class="material-symbols-outlined text-[16px]">wifi</span>
+<span class="material-symbols-outlined text-[18px]">battery_full</span>
+</div>
+</div>
+<!-- Top Navigation Anchor (Shared Component: TopAppBar with Welcome greeting context) -->
+<header class="bg-surface text-primary shadow-sm flex justify-between items-center w-full px-gutter-sm py-space-sm max-w-md mx-auto sticky top-8 z-30 backdrop-blur-md bg-opacity-95"><div class="flex items-center gap-2"><div class="w-8 h-8 rounded-lg bg-primary text-on-primary flex items-center justify-center font-bold text-[18px]"><span class="material-symbols-outlined text-[20px]">inventory_2</span></div><span class="font-headline-sm text-title-md font-bold text-primary tracking-tight">metastorage</span></div><button aria-label="Thông báo" class="w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container relative active:scale-95 transition-all duration-150"><span class="material-symbols-outlined text-[21px]">notifications</span><span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-error ring-2 ring-surface"></span></button></header>
+<!-- Main Content Canvas -->
+<main class="flex-1 px-4 pt-3 flex flex-col gap-4">
+<!-- Section Title & Fast Actions -->
+<div class="flex items-end justify-between px-1">
+<div>
+<span class="font-headline-sm text-label-sm text-secondary font-semibold uppercase tracking-wider block">Quản lý kho cá nhân</span>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-primary font-bold">Kho của tôi</h2>
+</div>
+<button class="bg-primary text-on-primary font-headline-sm text-label-md px-3 py-2 rounded-xl flex items-center gap-1.5 shadow-sm active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+<span class="">Đặt thêm kho</span>
+</button>
+</div>
+<!-- Segmented Pill Tab Bar (3 modes) -->
+<div class="bg-surface-container-high p-1 rounded-2xl flex items-center gap-1 text-center shadow-inner"><button class="flex-1 py-2 rounded-xl font-headline-sm text-label-md font-medium text-on-surface-variant hover:text-primary transition-all flex items-center justify-center gap-1"><span class="">Đang thuê</span><span class="px-1.5 py-0.2 rounded-full bg-surface text-on-surface-variant text-[10px]">5</span></button><button class="flex-1 py-2 rounded-xl font-headline-sm text-label-md font-medium text-on-surface-variant hover:text-primary transition-all flex items-center justify-center gap-1"><span class="">Lịch sử</span><span class="px-1.5 py-0.2 rounded-full bg-surface text-on-surface-variant text-[10px]">1</span></button><button class="flex-1 py-2 rounded-xl font-headline-sm text-label-md font-semibold transition-all bg-primary text-on-primary shadow-sm flex items-center justify-center gap-1"><span class="">Giao dịch</span><span class="px-1.5 py-0.2 rounded-full bg-secondary-container text-on-secondary-fixed-variant text-[10px] font-bold">6</span></button></div>
+<!-- Live Storage Capacity Metric Widget (High precision Architectural Card) -->
+<!-- Tab Content 1: Active Lockers List -->
+<!-- Preview Section: Lịch sử thuê đã đóng -->
+<!-- Section: Lịch sử thanh toán gần nhất (Recent Transactions) -->
+<div class="flex flex-col gap-3.5 pb-2"><div class="flex items-center gap-1.5 overflow-x-auto custom-scroll py-0.5 px-0.5"><button class="px-3 py-1.5 rounded-full bg-primary text-on-primary font-headline-sm text-label-sm font-semibold flex items-center gap-1 shadow-sm flex-shrink-0"><span class="">Tất cả</span><span class="px-1.5 py-0.2 rounded-full bg-secondary-container text-on-secondary-fixed-variant text-[10px]">6</span></button><button class="px-3 py-1.5 rounded-full bg-surface-container-high text-primary font-headline-sm text-label-sm font-medium flex items-center gap-1 flex-shrink-0"><span class="">Thành công</span><span class="px-1.5 py-0.2 rounded-full bg-surface-container text-outline text-[10px]">6</span></button><button class="px-3 py-1.5 rounded-full bg-surface-container text-on-surface-variant font-headline-sm text-label-sm font-medium flex items-center gap-1 flex-shrink-0"><span class="">Gần đây nhất</span></button></div><div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl divide-y divide-surface-container shadow-sm overflow-hidden"><div class="p-3.5 flex flex-col gap-2 hover:bg-surface-bright transition-colors"><div class="flex items-center justify-between"><div class="flex items-center gap-2"><span class="font-headline-sm text-label-md font-bold text-on-surface">F3PAY1</span><span class="px-2 py-0.2 rounded-full bg-secondary-container text-on-secondary-fixed-variant font-headline-sm text-[10px] font-bold">Thành công</span></div><span class="font-headline-sm text-body-md font-bold text-primary">1.800.000 đ</span></div><div class="flex items-center justify-between text-xs text-outline"><span class="font-medium text-on-surface-variant">Kho tiêu chuẩn (2 m²) · HCM-01-019</span><span class="font-headline-sm text-[11px]">VNPay QR</span></div><div class="flex items-center justify-between pt-1 border-t border-surface-container/60 text-[11px]"><span class="text-outline">14:56 30 thg 9, 2026</span><a class="text-secondary font-headline-sm font-semibold hover:underline flex items-center gap-0.5" href="#">Xem hóa đơn <span class="material-symbols-outlined text-[13px]">chevron_right</span></a></div></div><div class="p-3.5 flex flex-col gap-2 hover:bg-surface-bright transition-colors"><div class="flex items-center justify-between"><div class="flex items-center gap-2"><span class="font-headline-sm text-label-md font-bold text-on-surface">F3PAY2</span><span class="px-2 py-0.2 rounded-full bg-secondary-container text-on-secondary-fixed-variant font-headline-sm text-[10px] font-bold">Thành công</span></div><span class="font-headline-sm text-body-md font-bold text-primary">1.800.000 đ</span></div><div class="flex items-center justify-between text-xs text-outline"><span class="font-medium text-on-surface-variant">Kho tiêu chuẩn (2 m²) · HCM-01-020</span><span class="font-headline-sm text-[11px]">Tự động gia hạn</span></div><div class="flex items-center justify-between pt-1 border-t border-surface-container/60 text-[11px]"><span class="text-outline">14:56 30 thg 9, 2026</span><a class="text-secondary font-headline-sm font-semibold hover:underline flex items-center gap-0.5" href="#">Xem hóa đơn <span class="material-symbols-outlined text-[13px]">chevron_right</span></a></div></div><div class="p-3.5 flex flex-col gap-2 hover:bg-surface-bright transition-colors"><div class="flex items-center justify-between"><div class="flex items-center gap-2"><span class="font-headline-sm text-label-md font-bold text-on-surface">F3PAY5</span><span class="px-2 py-0.2 rounded-full bg-secondary-container text-on-secondary-fixed-variant font-headline-sm text-[10px] font-bold">Thành công</span></div><span class="font-headline-sm text-body-md font-bold text-primary">1.800.000 đ</span></div><div class="flex items-center justify-between text-xs text-outline"><span class="font-medium text-on-surface-variant">Kho tiêu chuẩn (2 m²) · HCM-01-023</span><span class="font-headline-sm text-[11px]">VNPay QR</span></div><div class="flex items-center justify-between pt-1 border-t border-surface-container/60 text-[11px]"><span class="text-outline">14:56 30 thg 9, 2026</span><a class="text-secondary font-headline-sm font-semibold hover:underline flex items-center gap-0.5" href="#">Xem hóa đơn <span class="material-symbols-outlined text-[13px]">chevron_right</span></a></div></div><div class="p-3.5 flex flex-col gap-2 hover:bg-surface-bright transition-colors"><div class="flex items-center justify-between"><div class="flex items-center gap-2"><span class="font-headline-sm text-label-md font-bold text-on-surface">F3PAY6</span><span class="px-2 py-0.2 rounded-full bg-secondary-container text-on-secondary-fixed-variant font-headline-sm text-[10px] font-bold">Thành công</span></div><span class="font-headline-sm text-body-md font-bold text-primary">1.800.000 đ</span></div><div class="flex items-center justify-between text-xs text-outline"><span class="font-medium text-on-surface-variant">Kho tiêu chuẩn (2 m²) · HCM-01-024</span><span class="font-headline-sm text-[11px]">Thẻ tín dụng</span></div><div class="flex items-center justify-between pt-1 border-t border-surface-container/60 text-[11px]"><span class="text-outline">14:56 30 thg 9, 2026</span><a class="text-secondary font-headline-sm font-semibold hover:underline flex items-center gap-0.5" href="#">Xem hóa đơn <span class="material-symbols-outlined text-[13px]">chevron_right</span></a></div></div><div class="p-3.5 flex flex-col gap-2 hover:bg-surface-bright transition-colors"><div class="flex items-center justify-between"><div class="flex items-center gap-2"><span class="font-headline-sm text-label-md font-bold text-on-surface">F3PAY3</span><span class="px-2 py-0.2 rounded-full bg-secondary-container text-on-secondary-fixed-variant font-headline-sm text-[10px] font-bold">Thành công</span></div><span class="font-headline-sm text-body-md font-bold text-primary">1.800.000 đ</span></div><div class="flex items-center justify-between text-xs text-outline"><span class="font-medium text-on-surface-variant">Kho tiêu chuẩn (2 m²) · HCM-01-021</span><span class="font-headline-sm text-[11px]">VNPay QR</span></div><div class="flex items-center justify-between pt-1 border-t border-surface-container/60 text-[11px]"><span class="text-outline">14:56 28 thg 9, 2026</span><a class="text-secondary font-headline-sm font-semibold hover:underline flex items-center gap-0.5" href="#">Xem hóa đơn <span class="material-symbols-outlined text-[13px]">chevron_right</span></a></div></div><div class="p-3.5 flex flex-col gap-2 hover:bg-surface-bright transition-colors"><div class="flex items-center justify-between"><div class="flex items-center gap-2"><span class="font-headline-sm text-label-md font-bold text-on-surface">F3PAY4</span><span class="px-2 py-0.2 rounded-full bg-secondary-container text-on-secondary-fixed-variant font-headline-sm text-[10px] font-bold">Thành công</span></div><span class="font-headline-sm text-body-md font-bold text-primary">1.800.000 đ</span></div><div class="flex items-center justify-between text-xs text-outline"><span class="font-medium text-on-surface-variant">Kho tiêu chuẩn (2 m²) · HCM-01-022</span><span class="font-headline-sm text-[11px]">VNPay QR</span></div><div class="flex items-center justify-between pt-1 border-t border-surface-container/60 text-[11px]"><span class="text-outline">14:56 2 thg 6, 2026</span><a class="text-secondary font-headline-sm font-semibold hover:underline flex items-center gap-0.5" href="#">Xem hóa đơn <span class="material-symbols-outlined text-[13px]">chevron_right</span></a></div></div></div></div>
+</main>
+<!-- Bottom Navigation Bar (Shared Component strictly mapped to JSON specifications) -->
+<!-- Destination count: 3 | Active Tab: "Kho của tôi" (Primary Storage Management Screen) -->
+<nav aria-label="Thanh điều hướng chính" class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-gutter-sm py-space-xs bg-surface dark:bg-inverse-surface max-w-md mx-auto right-0 shadow-md dark:shadow-none">
+<!-- Tab 1: Trang chủ (Inactive) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant px-space-md py-space-xs active:scale-95 transition-transform duration-150 group" href="#">
+<span class="material-symbols-outlined text-[22px] group-hover:text-primary transition-colors">home</span>
+<span class="font-label-sm text-label-sm mt-0.5">Trang chủ</span>
+</a>
+<!-- Tab 2: Kho của tôi (Active state: matches style_active_navigation verbatim) -->
+<a aria-current="page" class="flex flex-col items-center justify-center bg-secondary-container dark:bg-primary-container text-on-secondary-container dark:text-on-primary-container rounded-full px-space-md py-space-xs active:scale-95 transition-transform duration-150 shadow-sm" href="#">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">inventory_2</span>
+<span class="font-label-sm text-label-sm font-bold mt-0.5">Kho của tôi</span>
+</a>
+<!-- Tab 3: Tài khoản (Inactive) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant px-space-md py-space-xs active:scale-95 transition-transform duration-150 group" href="#">
+<span class="material-symbols-outlined text-[22px] group-hover:text-primary transition-colors">person</span>
+<span class="font-label-sm text-label-sm mt-0.5">Tài khoản</span>
+</a>
+</nav>
+</div>
+<harper-render-box popover="manual" style="pointer-events: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; visibility: hidden !important;"></harper-render-box>
+
+<harper-render-box popover="manual" style="pointer-events: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; visibility: hidden !important;"></harper-render-box></body></html>

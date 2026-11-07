@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-background" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SA02 — Tài khoản &amp; Vai trò | StoreX OS</title>
+<!-- Google Fonts: Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;750;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS v3 with Plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "primary-container": "#165f4d",
+            "on-error": "#ffffff",
+            "tertiary-fixed": "#9bf98a",
+            "surface-muted": "#F8FAFC",
+            "on-secondary-fixed": "#0b1c30",
+            "primary-fixed": "#acf0d9",
+            "on-tertiary-fixed-variant": "#005305",
+            "secondary-container": "#d0e1fb",
+            "warning": "#92400E",
+            "primary": "#165F4D",
+            "tertiary": "#004804",
+            "on-secondary-container": "#54647a",
+            "on-primary-fixed-variant": "#005140",
+            "secondary-fixed-dim": "#b7c8e1",
+            "surface": "#FFFFFF",
+            "on-surface-variant": "#3f4945",
+            "on-primary-container": "#92d6bf",
+            "on-primary": "#ffffff",
+            "surface-dim": "#d2d9f4",
+            "on-secondary": "#ffffff",
+            "outline": "#94A3B8",
+            "primary-fixed-dim": "#90d4bd",
+            "outline-variant": "#E2E8F0",
+            "on-tertiary": "#ffffff",
+            "surface-tint": "#246957",
+            "inverse-on-surface": "#eef0ff",
+            "error": "#ba1a1a",
+            "warning-container": "#FFFBEB",
+            "secondary-fixed": "#d3e4fe",
+            "on-background": "#0F172A",
+            "on-secondary-fixed-variant": "#38485d",
+            "on-success-container": "#166534",
+            "on-primary-fixed": "#002018",
+            "success-container": "#ECFDF5",
+            "surface-container-high": "#e2e7ff",
+            "surface-container-lowest": "#ffffff",
+            "surface-variant": "#dae2fd",
+            "secondary": "#505f76",
+            "on-tertiary-fixed": "#002201",
+            "inverse-surface": "#283044",
+            "primary-soft": "#E8F3EF",
+            "surface-container": "#eaedff",
+            "inverse-primary": "#90d4bd",
+            "primary-dark": "#0F493B",
+            "border": "#EEEEEE",
+            "tertiary-fixed-dim": "#80db71",
+            "on-error-container": "#93000a",
+            "surface-container-highest": "#dae2fd",
+            "on-tertiary-container": "#83de74",
+            "tertiary-container": "#006308",
+            "surface-bright": "#faf8ff",
+            "error-container": "#ffdad6",
+            "destructive": "#991B1B",
+            "destructive-container": "#FEF2F2",
+            "on-surface": "#0F172A",
+            "surface-container-low": "#f2f3ff",
+            "background": "#FAFAFA"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "card": "15px",
+            "full": "9999px"
+          },
+          "spacing": {
+            "xs": "4px",
+            "space-sm": "0.5rem",
+            "section": "80px",
+            "margin": "1.5rem",
+            "gutter-mobile": "1rem",
+            "md": "12px",
+            "space-xs": "0.25rem",
+            "gutter": "1.5rem",
+            "sm": "8px",
+            "xl": "24px",
+            "lg": "16px",
+            "space-xl": "1.5rem",
+            "margin-desktop": "2rem",
+            "page-gutter": "24px",
+            "space-md": "0.75rem",
+            "space-lg": "1rem",
+            "field-gap": "8px",
+            "2xl": "32px",
+            "4xl": "64px",
+            "card-padding": "24px",
+            "control-padding": "12px",
+            "3xl": "48px"
+          },
+          "fontFamily": {
+            "headline-lg-mobile": ["Inter"],
+            "body-lg": ["Inter"],
+            "title-lg": ["Inter"],
+            "body-sm": ["Inter"],
+            "headline-md": ["Inter"],
+            "label-md": ["Inter"],
+            "headline-display-mobile": ["Inter"],
+            "label-sm": ["Inter"],
+            "headline-lg": ["Inter"],
+            "body-md": ["Inter"],
+            "headline-display": ["Inter"]
+          },
+          "fontSize": {
+            "headline-lg-mobile": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.015em", "fontWeight": "700" }],
+            "body-lg": ["18px", { "lineHeight": "30px", "fontWeight": "400" }],
+            "title-lg": ["20px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "body-sm": ["14px", { "lineHeight": "22px", "fontWeight": "400" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.015em", "fontWeight": "700" }],
+            "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "700" }],
+            "headline-display-mobile": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.025em", "fontWeight": "800" }],
+            "label-sm": ["12px", { "lineHeight": "18px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "750" }],
+            "body-md": ["16px", { "lineHeight": "26px", "fontWeight": "400" }],
+            "headline-display": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.03em", "fontWeight": "800" }]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: #FAFAFA;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 4px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background: #94A3B8;
+    }
+  </style>
+</head>
+<body class="h-full font-body-md text-on-surface bg-background flex flex-col antialiased selection:bg-primary-soft selection:text-primary">
+<!-- ========================================================================= -->
+<!-- TOP APP BAR (Shared Component Anchor)                                     -->
+<!-- ========================================================================= -->
+<header class="flex justify-between items-center h-16 px-space-lg w-full bg-surface-container-lowest border-b border-outline-variant sticky top-0 z-40 shadow-sm">
+<!-- Left Section: Logo & Context Switcher -->
+<div class="flex items-center gap-space-lg">
+<div class="flex items-center gap-2">
+<div class="w-9 h-9 rounded-lg bg-primary-container text-on-primary flex items-center justify-center font-headline-md font-bold tracking-tight">
+          SX
+        </div>
+<div class="flex flex-col">
+<span class="text-headline-sm font-bold text-primary tracking-tight leading-none">StoreX OS</span>
+<span class="text-[10px] uppercase font-bold tracking-wider text-secondary mt-0.5">Enterprise Core</span>
+</div>
+</div>
+<div class="h-6 w-px bg-outline-variant hidden sm:block"></div>
+<!-- Scope Chip / System Indicator -->
+<div class="hidden sm:flex items-center gap-2 px-3 py-1 bg-surface-muted rounded-full border border-outline-variant">
+<span class="inline-block w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<span class="text-label-sm text-on-surface">Hệ thống quản trị SA</span>
+<span class="text-xs text-secondary px-1.5 py-0.5 rounded bg-surface border border-outline-variant font-mono">v2.4</span>
+</div>
+</div>
+<!-- Center Search Bar (TopNavBar Anchor requirement) -->
+<div class="hidden md:flex items-center flex-1 max-w-md mx-6">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3 top-2.5 text-secondary text-lg pointer-events-none">search</span>
+<input class="w-full pl-9 pr-4 py-2 bg-surface-muted border border-outline-variant rounded-lg text-body-sm text-on-surface placeholder:text-secondary focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all" placeholder="Tìm tính năng hệ thống, bản ghi kiểm toán..." type="text"/>
+<kbd class="absolute right-3 top-2.5 px-1.5 py-0.5 text-[10px] font-mono font-medium text-secondary bg-surface border border-outline-variant rounded shadow-xs">⌘K</kbd>
+</div>
+</div>
+<!-- Right Controls: Status, Notifications & Profile -->
+<div class="flex items-center gap-space-md">
+<div class="hidden lg:flex items-center gap-2 text-label-sm text-secondary bg-surface-muted px-3 py-1.5 rounded-lg border border-outline-variant">
+<span class="material-symbols-outlined text-sm text-primary">sync</span>
+<span>Đồng bộ trực tuyến: 100%</span>
+</div>
+<button aria-label="Thông báo hệ thống" class="min-w-[44px] min-h-[44px] p-2 rounded-lg text-secondary hover:text-primary hover:bg-surface-muted transition-colors relative flex items-center justify-center">
+<span class="material-symbols-outlined text-xl">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-destructive rounded-full"></span>
+</button>
+<button aria-label="Trung tâm trợ giúp" class="min-w-[44px] min-h-[44px] p-2 rounded-lg text-secondary hover:text-primary hover:bg-surface-muted transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-xl">help</span>
+</button>
+<div class="h-6 w-px bg-outline-variant"></div>
+<!-- Current User Profile: SA -->
+<div class="flex items-center gap-3 pl-1">
+<div class="w-9 h-9 rounded-full bg-primary-soft text-primary font-bold flex items-center justify-center border border-primary/20 text-body-sm shadow-xs">
+          NH
+        </div>
+<div class="hidden xl:flex flex-col text-left">
+<span class="text-label-md text-on-surface font-semibold leading-tight">Nguyễn Văn Hùng</span>
+<span class="text-xs text-secondary leading-tight">Quản trị hệ thống (SA)</span>
+</div>
+</div>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden relative">
+<!-- ========================================================================= -->
+<!-- SIDEBAR NAVIGATION (SA Dedicated Shell SA01 - SA05)                       -->
+<!-- ========================================================================= -->
+<aside class="w-64 bg-surface border-r border-outline-variant flex flex-col justify-between shrink-0 z-30 transition-all select-none">
+<!-- Upper Section -->
+<div class="p-space-md flex flex-col gap-y-4 overflow-y-auto custom-scroll">
+<!-- Station / Hub Indicator -->
+<div class="p-3 bg-surface-muted rounded-lg border border-outline-variant">
+<div class="flex items-center justify-between">
+<span class="text-xs uppercase font-bold tracking-wider text-secondary">Phân khu bảo mật</span>
+<span class="px-1.5 py-0.5 text-[10px] font-bold bg-primary-container text-on-primary rounded">TIER-0</span>
+</div>
+<p class="text-label-sm font-semibold text-on-surface mt-1 truncate">Root Administration</p>
+<p class="text-[11px] text-secondary">Quyền kiểm soát thực thi tối cao</p>
+</div>
+<!-- Menu Group: System Admin Spec -->
+<nav class="flex flex-col gap-1">
+<div class="px-space-md py-1 text-[11px] font-bold uppercase tracking-wider text-secondary">
+            Cấu hình quản trị
+          </div>
+<!-- SA01 -->
+<a class="text-secondary hover:bg-surface-muted hover:text-on-surface rounded-lg px-space-md py-2.5 flex items-center gap-space-sm font-medium transition-all text-body-sm group min-h-[44px]" href="#sa01">
+<span class="material-symbols-outlined text-xl text-secondary group-hover:text-primary transition-colors">dashboard</span>
+<span class="flex-1 truncate">SA01 — Tổng quan hệ thống</span>
+</a>
+<!-- SA02 (ACTIVE) -->
+<a class="bg-primary text-on-primary font-semibold rounded-lg px-space-md py-2.5 flex items-center gap-space-sm transition-all text-body-sm shadow-xs min-h-[44px]" href="#sa02">
+<span class="material-symbols-outlined text-xl text-primary-fixed">admin_panel_settings</span>
+<span class="flex-1 truncate">SA02 — Tài khoản &amp; vai trò</span>
+<span class="w-2 h-2 rounded-full bg-tertiary-fixed"></span>
+</a>
+<!-- SA03 -->
+<a class="text-secondary hover:bg-surface-muted hover:text-on-surface rounded-lg px-space-md py-2.5 flex items-center gap-space-sm font-medium transition-all text-body-sm group min-h-[44px]" href="#sa03">
+<span class="material-symbols-outlined text-xl text-secondary group-hover:text-primary transition-colors">hub</span>
+<span class="flex-1 truncate">SA03 — Phân quyền cơ sở</span>
+</a>
+<!-- SA04 -->
+<a class="text-secondary hover:bg-surface-muted hover:text-on-surface rounded-lg px-space-md py-2.5 flex items-center gap-space-sm font-medium transition-all text-body-sm group min-h-[44px]" href="#sa04">
+<span class="material-symbols-outlined text-xl text-secondary group-hover:text-primary transition-colors">tune</span>
+<span class="flex-1 truncate">SA04 — Tham số hệ thống</span>
+</a>
+<!-- SA05 -->
+<a class="text-secondary hover:bg-surface-muted hover:text-on-surface rounded-lg px-space-md py-2.5 flex items-center gap-space-sm font-medium transition-all text-body-sm group min-h-[44px]" href="#sa05">
+<span class="material-symbols-outlined text-xl text-secondary group-hover:text-primary transition-colors">history_edu</span>
+<span class="flex-1 truncate">SA05 — Nhật ký kiểm toán</span>
+</a>
+</nav>
+</div>
+<!-- Lower Section: Security Lock & Helper info -->
+<div class="p-space-md border-t border-outline-variant bg-surface-muted/50 flex flex-col gap-2">
+<div class="flex items-start gap-2 p-2 rounded-lg bg-surface border border-outline-variant">
+<span class="material-symbols-outlined text-warning text-lg shrink-0 mt-0.5">verified_user</span>
+<div>
+<p class="text-[11px] font-bold text-on-surface">Tuân thủ ma trận 5 vai trò</p>
+<p class="text-[11px] text-secondary leading-tight mt-0.5">Không hỗ trợ phân quyền động theo chính sách bảo mật StoreX OS.</p>
+</div>
+</div>
+<div class="flex items-center justify-between text-[11px] text-secondary px-1 pt-1">
+<span>Phiên làm việc: <strong>#SA-88219</strong></span>
+<span class="text-primary font-medium hover:underline cursor-pointer">Khóa phiên</span>
+</div>
+</div>
+</aside>
+<!-- ========================================================================= -->
+<!-- MAIN CONTENT CANVAS                                                       -->
+<!-- ========================================================================= -->
+<main class="flex-1 overflow-y-auto custom-scroll flex flex-col" id="mainContent">
+<div class="p-space-md lg:p-space-xl max-w-[1440px] mx-auto w-full flex flex-col gap-6">
+<!-- Breadcrumbs & Page Header -->
+<div class="flex flex-col gap-2">
+<!-- Breadcrumb -->
+<nav aria-label="Đường dẫn trang" class="flex items-center gap-2 text-label-sm text-secondary">
+<span>Quản trị hệ thống</span>
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+<span class="text-on-surface font-semibold">Tài khoản &amp; vai trò</span>
+</nav>
+<!-- Title & Actions Row -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-1">
+<div>
+<h1 class="text-headline-md font-bold text-on-surface tracking-tight">
+                SA02 — Danh sách Tài khoản &amp; Phân quyền Vai trò
+              </h1>
+<p class="text-body-sm text-secondary mt-1">
+                Quản lý quyền truy cập chuẩn hóa cho toàn bộ nhân sự trạm, ban quản lý và người dùng dịch vụ.
+              </p>
+</div>
+<!-- Top Actions -->
+<div class="flex items-center gap-3">
+<button class="min-h-[44px] px-4 py-2.5 rounded-lg border border-outline-variant bg-surface text-on-surface hover:bg-surface-muted font-medium text-body-sm flex items-center gap-2 shadow-xs transition-colors" onclick="exportCsv()">
+<span class="material-symbols-outlined text-lg">download</span>
+<span>Xuất danh sách (CSV)</span>
+</button>
+<button class="min-h-[44px] px-5 py-2.5 rounded-lg bg-primary hover:bg-primary-dark text-on-primary font-medium text-body-sm flex items-center gap-2 shadow-sm transition-all active:scale-[0.99]" onclick="openCreateUserModal()">
+<span class="material-symbols-outlined text-lg">person_add</span>
+<span>Tạo tài khoản người dùng nội bộ</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Metric Badges Overview (Bento-style Micro Stats) -->
+<div class="grid grid-cols-2 md:grid-cols-5 gap-3.5">
+<div class="bg-surface rounded-card p-4 border border-border shadow-xs flex flex-col">
+<span class="text-label-sm text-secondary">Tổng tài khoản</span>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="text-headline-md font-bold text-on-surface" id="totalUserCount">6</span>
+<span class="text-xs text-primary font-semibold">100% active</span>
+</div>
+<span class="text-[11px] text-secondary mt-1">5 cấu hình vai trò</span>
+</div>
+<div class="bg-surface rounded-card p-4 border border-border shadow-xs flex flex-col">
+<span class="text-label-sm text-secondary">Khách hàng (Customer)</span>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="text-headline-md font-bold text-on-surface">2</span>
+<span class="text-xs text-secondary">Đầu cuối</span>
+</div>
+<span class="text-[11px] text-secondary mt-1">Thuê kho thông minh</span>
+</div>
+<div class="bg-surface rounded-card p-4 border border-border shadow-xs flex flex-col">
+<span class="text-label-sm text-secondary">Vận hành cơ sở (FM/FS)</span>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="text-headline-md font-bold text-on-surface">3</span>
+<span class="text-xs text-primary font-semibold">Trạm SG Central</span>
+</div>
+<span class="text-[11px] text-secondary mt-1">Giao ca &amp; kiểm kê</span>
+</div>
+<div class="bg-surface rounded-card p-4 border border-border shadow-xs flex flex-col">
+<span class="text-label-sm text-secondary">Điều hành chuỗi (BOM)</span>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="text-headline-md font-bold text-on-surface">1</span>
+<span class="text-xs text-secondary">Toàn quốc</span>
+</div>
+<span class="text-[11px] text-secondary mt-1">Kiểm soát doanh thu</span>
+</div>
+<div class="bg-surface rounded-card p-4 border border-border shadow-xs flex flex-col col-span-2 md:col-span-1">
+<span class="text-label-sm text-secondary">Quản trị cấp cao (SA)</span>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="text-headline-md font-bold text-primary">1</span>
+<span class="text-xs font-semibold px-1.5 py-0.2 bg-primary-soft text-primary rounded">TIER-0</span>
+</div>
+<span class="text-[11px] text-secondary mt-1">Bảo vệ định danh 2FA</span>
+</div>
+</div>
+<!-- Filter & Search Panel -->
+<div class="bg-surface rounded-card p-space-md border border-border shadow-xs flex flex-col gap-3">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+<!-- Search Field -->
+<div class="lg:col-span-5 flex flex-col gap-1.5">
+<label class="text-label-sm font-semibold text-on-surface flex items-center gap-1.5" for="searchInput">
+<span>Tìm theo tên, email hoặc số điện thoại</span>
+<span class="text-xs text-secondary font-normal">(Live Search)</span>
+</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-3 text-secondary text-lg">search</span>
+<input class="w-full pl-9 pr-3 py-2.5 bg-surface border border-outline-variant rounded-lg text-body-sm text-on-surface placeholder:text-secondary focus:ring-2 focus:ring-primary focus:border-transparent min-h-[44px]" id="searchInput" oninput="handleSearch()" placeholder="Nhập tên nhân sự, mã email @storex.vn, SĐT..." type="text"/>
+</div>
+</div>
+<!-- Role Filter -->
+<div class="lg:col-span-3 flex flex-col gap-1.5">
+<label class="text-label-sm font-semibold text-on-surface" for="roleFilter">Lọc theo vai trò chuẩn</label>
+<div class="relative">
+<select class="w-full px-3 py-2.5 bg-surface border border-outline-variant rounded-lg text-body-sm text-on-surface focus:ring-2 focus:ring-primary focus:border-transparent min-h-[44px] appearance-none cursor-pointer pr-9" id="roleFilter" onchange="handleFilter()">
+<option value="ALL">Tất cả vai trò (5 vai trò)</option>
+<option value="Customer">Customer (Khách hàng)</option>
+<option value="FS">FS (Nhân viên cơ sở)</option>
+<option value="FM">FM (Quản lý cơ sở)</option>
+<option value="BOM">BOM (Quản lý vận hành KD)</option>
+<option value="SA">SA (Quản trị hệ thống)</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-3 text-secondary pointer-events-none text-lg">expand_more</span>
+</div>
+</div>
+<!-- Status Filter -->
+<div class="lg:col-span-3 flex flex-col gap-1.5">
+<label class="text-label-sm font-semibold text-on-surface" for="statusFilter">Trạng thái tài khoản</label>
+<div class="relative">
+<select class="w-full px-3 py-2.5 bg-surface border border-outline-variant rounded-lg text-body-sm text-on-surface focus:ring-2 focus:ring-primary focus:border-transparent min-h-[44px] appearance-none cursor-pointer pr-9" id="statusFilter" onchange="handleFilter()">
+<option value="ALL">Tất cả trạng thái</option>
+<option value="ACTIVE">Đang hoạt động</option>
+<option value="LOCKED">Tạm khóa</option>
+<option value="PENDING">Chờ kích hoạt</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-3 text-secondary pointer-events-none text-lg">expand_more</span>
+</div>
+</div>
+<!-- Reset Filter Button -->
+<div class="lg:col-span-1">
+<button class="w-full min-h-[44px] p-2.5 rounded-lg border border-outline-variant hover:bg-surface-muted text-secondary hover:text-on-surface flex items-center justify-center transition-colors" onclick="resetFilters()" title="Xóa bộ lọc về mặc định">
+<span class="material-symbols-outlined text-xl">refresh</span>
+</button>
+</div>
+</div>
+<!-- Active Filter Pill indicators -->
+<div class="flex items-center justify-between text-xs text-secondary pt-2 border-t border-border mt-1">
+<div class="flex items-center gap-2">
+<span>Đang áp dụng:</span>
+<span class="font-medium text-on-surface" id="activeFiltersLabel">Toàn bộ 6 tài khoản</span>
+</div>
+<div class="flex items-center gap-1.5 text-primary">
+<span class="material-symbols-outlined text-sm">lock</span>
+<span>Chính sách kiểm soát phân quyền Tự động Đồng bộ SA05</span>
+</div>
+</div>
+</div>
+<!-- DATA TABLE CONTAINER -->
+<div class="bg-surface rounded-card border border-border shadow-xs overflow-hidden flex flex-col">
+<div class="overflow-x-auto custom-scroll">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-muted border-b border-outline-variant">
+<th class="py-3 px-4 text-label-sm uppercase tracking-wider text-secondary font-semibold" scope="col">Người dùng &amp; Email</th>
+<th class="py-3 px-4 text-label-sm uppercase tracking-wider text-secondary font-semibold" scope="col">Số điện thoại</th>
+<th class="py-3 px-4 text-label-sm uppercase tracking-wider text-secondary font-semibold" scope="col">Vai trò hiện tại</th>
+<th class="py-3 px-4 text-label-sm uppercase tracking-wider text-secondary font-semibold" scope="col">Cơ sở phụ trách</th>
+<th class="py-3 px-4 text-label-sm uppercase tracking-wider text-secondary font-semibold" scope="col">Trạng thái</th>
+<th class="py-3 px-4 text-label-sm uppercase tracking-wider text-secondary font-semibold" scope="col">Đăng nhập gần nhất</th>
+<th class="py-3 px-4 text-label-sm uppercase tracking-wider text-secondary font-semibold text-right" scope="col">Thao tác</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border" id="userTableBody">
+<!-- Rows will be rendered dynamically by JavaScript for interactivity -->
+</tbody>
+</table>
+</div>
+<!-- Table Empty State -->
+<div class="hidden flex-col items-center justify-center p-12 text-center bg-surface" id="tableEmptyState">
+<div class="w-14 h-14 rounded-full bg-surface-muted border border-outline-variant flex items-center justify-center text-secondary mb-3">
+<span class="material-symbols-outlined text-3xl">person_off</span>
+</div>
+<h3 class="text-title-lg font-bold text-on-surface">Không tìm thấy tài khoản phù hợp</h3>
+<p class="text-body-sm text-secondary max-w-sm mt-1">Vui lòng điều chỉnh lại từ khóa tìm kiếm, vai trò hoặc trạng thái lọc để xem kết quả.</p>
+<button class="mt-4 px-4 py-2 bg-primary-soft text-primary font-semibold rounded-lg text-body-sm hover:bg-primary hover:text-on-primary transition-all min-h-[44px]" onclick="resetFilters()">
+              Đặt lại toàn bộ bộ lọc
+            </button>
+</div>
+<!-- Table Footer Pagination bar -->
+<div class="flex flex-col sm:flex-row items-center justify-between p-4 border-t border-border bg-surface text-label-sm text-secondary gap-3">
+<div class="flex items-center gap-2">
+<span>Hiển thị</span>
+<span class="font-bold text-on-surface" id="visibleRowCount">6</span>
+<span>trên</span>
+<span class="font-bold text-on-surface">6</span>
+<span>tài khoản</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="min-w-[44px] min-h-[44px] px-3 py-1.5 border border-outline-variant rounded-lg text-secondary opacity-50 cursor-not-allowed flex items-center justify-center" disabled="">
+<span class="material-symbols-outlined text-base">chevron_left</span>
+</button>
+<button class="min-w-[44px] min-h-[44px] px-3 py-1.5 bg-primary text-on-primary font-bold rounded-lg flex items-center justify-center text-xs">
+                1
+              </button>
+<button class="min-w-[44px] min-h-[44px] px-3 py-1.5 border border-outline-variant rounded-lg text-secondary opacity-50 cursor-not-allowed flex items-center justify-center" disabled="">
+<span class="material-symbols-outlined text-base">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Policy Guidance Alert Callout -->
+<div class="bg-surface rounded-card p-5 border border-outline-variant flex items-start gap-4">
+<div class="w-10 h-10 rounded-lg bg-surface-muted text-primary flex items-center justify-center shrink-0 border border-outline-variant">
+<span class="material-symbols-outlined text-2xl">shield</span>
+</div>
+<div class="flex flex-col">
+<h4 class="text-label-md font-bold text-on-surface">Quy chuẩn Bảo mật Vai trò Cố định (StoreX Role Engine)</h4>
+<p class="text-body-sm text-secondary mt-0.5">
+              Hệ thống áp dụng kiến trúc <strong>Strict RBAC (5 chuẩn cố định)</strong> để ngăn chặn leo thang đặc quyền. Mọi thao tác đổi vai trò đều kích hoạt rà soát dữ liệu ở SA03 (Phân quyền cơ sở) và tạo bản ghi kiểm toán bất biến tại SA05.
+            </p>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- ========================================================================= -->
+<!-- DRAWER / MODAL: VIEW DETAILS & CHANGE ROLE                                -->
+<!-- ========================================================================= -->
+<div aria-hidden="true" class="fixed inset-0 bg-on-surface/40 backdrop-blur-xs z-50 transition-opacity duration-300 opacity-0 pointer-events-none" id="drawerBackdrop" onclick="closeDrawer()"></div>
+<div aria-labelledby="drawerTitle" aria-modal="true" class="fixed inset-y-0 right-0 max-w-xl w-full bg-surface shadow-2xl z-50 flex flex-col transform translate-x-full transition-transform duration-300 ease-in-out border-l border-outline-variant" id="userDrawer" role="dialog">
+<!-- Drawer Header -->
+<div class="p-6 border-b border-outline-variant flex items-center justify-between bg-surface-muted">
+<div>
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase bg-primary-soft text-primary rounded-full" id="drawerRoleTag">FM</span>
+<span class="text-xs text-secondary font-mono" id="drawerUserId">ID: #USR-1029</span>
+</div>
+<h2 class="text-headline-sm font-bold text-on-surface mt-1" id="drawerTitle">Chi tiết tài khoản &amp; Phân quyền</h2>
+</div>
+<button aria-label="Đóng cửa sổ chi tiết" class="min-w-[44px] min-h-[44px] p-2 rounded-lg text-secondary hover:text-on-surface hover:bg-surface border border-transparent hover:border-outline-variant flex items-center justify-center transition-all" onclick="closeDrawer()">
+<span class="material-symbols-outlined text-2xl">close</span>
+</button>
+</div>
+<!-- Drawer Content (Scrollable) -->
+<div class="flex-1 overflow-y-auto p-6 space-y-6 custom-scroll">
+<!-- User Identity Card -->
+<div class="p-4 rounded-xl bg-surface-muted border border-outline-variant flex items-center gap-4">
+<div class="w-14 h-14 rounded-full bg-primary-container text-on-primary font-bold text-headline-md flex items-center justify-center shrink-0" id="drawerAvatar">
+          LH
+        </div>
+<div class="flex-1 min-w-0">
+<h3 class="text-title-lg font-bold text-on-surface truncate" id="drawerUserName">Lê Thu Hà</h3>
+<p class="text-body-sm text-secondary truncate" id="drawerUserEmail">le.thuha@storex.vn</p>
+<div class="flex items-center gap-3 mt-1.5 text-xs text-secondary">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">phone</span>
+<span id="drawerUserPhone">0918 *** 221</span>
+</span>
+<span>•</span>
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">calendar_today</span>
+<span id="drawerCreatedAt">Khởi tạo: 15/01/2026</span>
+</span>
+</div>
+</div>
+</div>
+<!-- Section: Change Role Form -->
+<div class="space-y-4">
+<div class="flex items-center justify-between">
+<label class="text-label-md font-bold text-on-surface" for="drawerRoleSelect">
+            Chuyển đổi vai trò hệ thống
+          </label>
+<span class="text-xs font-semibold text-secondary">Quyền chuẩn SA</span>
+</div>
+<p class="text-body-sm text-secondary leading-relaxed">
+          StoreX OS áp dụng danh mục 5 vai trò duy nhất. Lựa chọn vai trò mới sẽ điều chỉnh phạm vi tác vụ ngay lập tức.
+        </p>
+<!-- Role Select dropdown -->
+<div class="space-y-2">
+<div class="relative">
+<select class="w-full px-4 py-3 bg-surface border-2 border-outline-variant rounded-lg text-body-sm text-on-surface font-semibold focus:border-primary focus:ring-0 min-h-[44px] appearance-none cursor-pointer" id="drawerRoleSelect" onchange="onDrawerRoleSelectChange()">
+<option value="Customer">Customer — Khách hàng (Sử dụng kho, dịch vụ)</option>
+<option value="FS">FS — Nhân viên cơ sở (Vận hành trạm, check-in ô)</option>
+<option value="FM">FM — Quản lý cơ sở (Điều hành kho &amp; duyệt trả)</option>
+<option value="BOM">BOM — Quản lý vận hành KD (Báo cáo chuỗi trạm)</option>
+<option value="SA">SA — Quản trị hệ thống (Toàn quyền thiết lập hệ thống)</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-3.5 text-secondary pointer-events-none">swap_vert</span>
+</div>
+</div>
+<!-- Warning Callout Box for Facility reassignment requirement -->
+<div class="p-4 rounded-xl bg-warning-container/80 border border-warning/30 flex gap-3 text-warning" id="roleWarningCallout">
+<span class="material-symbols-outlined text-xl shrink-0 mt-0.5">warning</span>
+<div class="text-body-sm">
+<strong class="font-bold">Lưu ý phân bổ dữ liệu trạm:</strong>
+<p class="mt-1 text-xs leading-relaxed">
+              Đổi vai trò sang <strong>FM/FS</strong> sẽ yêu cầu cấu hình phân quyền cơ sở tại <strong class="underline">SA03</strong> trước khi tài khoản có thể truy cập dữ liệu trạm.
+            </p>
+</div>
+</div>
+</div>
+<div class="h-px bg-outline-variant"></div>
+<!-- Section: Status & Account Lock / Unlock -->
+<div class="space-y-4">
+<div class="flex items-center justify-between">
+<span class="text-label-md font-bold text-on-surface">Bảo mật &amp; Trạng thái hoạt động</span>
+<span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-success-container text-on-success-container" id="drawerStatusBadge">
+            Đang hoạt động
+          </span>
+</div>
+<!-- Lock Action Input Form -->
+<div class="p-4 rounded-xl bg-surface border border-outline-variant space-y-3">
+<div class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-destructive text-xl mt-0.5" id="lockIcon">lock_person</span>
+<div>
+<p class="text-label-sm font-bold text-on-surface" id="lockActionTitle">Khóa tài khoản tạm thời</p>
+<p class="text-xs text-secondary mt-0.5">
+                Chặn phiên đăng nhập tức thì. Hệ thống yêu cầu ghi nhận lý do kiểm toán bắt buộc.
+              </p>
+</div>
+</div>
+<!-- Reason text area -->
+<div class="space-y-1">
+<label class="text-xs font-semibold text-secondary flex justify-between" for="lockReasonInput">
+<span>Lý do khóa / mở khóa <span class="text-destructive">*</span></span>
+<span class="font-normal text-[11px]" id="reasonCharCount">0/10 ký tự tối thiểu</span>
+</label>
+<textarea class="w-full p-2.5 text-body-sm border border-outline-variant rounded-lg bg-surface placeholder:text-secondary focus:ring-2 focus:ring-primary focus:border-transparent" id="lockReasonInput" oninput="handleReasonInput(this)" placeholder="Nhập lý do nghiệp vụ chi tiết (ví dụ: Bảo vệ brute-force, nghi vấn truy cập lạ)..." rows="2"></textarea>
+<p class="hidden text-xs text-destructive font-medium" id="lockErrorMsg">Vui lòng nhập lý do dài ít nhất 10 ký tự để lưu vào SA05.</p>
+</div>
+<div class="flex items-center justify-between pt-1">
+<span class="text-[11px] text-secondary flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">history_edu</span>
+<span>Ghi log kiểm toán SA05</span>
+</span>
+<button class="min-h-[44px] px-4 py-2 rounded-lg bg-destructive-container text-destructive hover:bg-destructive hover:text-on-error font-semibold text-body-sm transition-all" id="btnToggleLock" onclick="toggleUserLockState()">
+              Xác nhận Khóa tài khoản
+            </button>
+</div>
+</div>
+</div>
+<!-- Audit History Footnote in Drawer -->
+<div class="p-3 bg-surface-muted rounded-lg text-xs text-secondary flex items-center justify-between border border-outline-variant">
+<span>Lần đăng nhập gần nhất:</span>
+<span class="font-semibold text-on-surface" id="drawerLastLogin">06/10/2026 09:15</span>
+</div>
+</div>
+<!-- Drawer Footer Actions -->
+<div class="p-5 border-t border-outline-variant bg-surface flex items-center justify-end gap-3">
+<button class="min-h-[44px] px-5 py-2.5 rounded-lg border border-outline-variant bg-surface hover:bg-surface-muted text-on-surface font-medium text-body-sm transition-colors" onclick="closeDrawer()">
+        Hủy bỏ
+      </button>
+<button class="min-h-[44px] px-6 py-2.5 rounded-lg bg-primary hover:bg-primary-dark text-on-primary font-semibold text-body-sm shadow-sm transition-all flex items-center gap-2 active:scale-[0.99]" onclick="saveRoleChanges()">
+<span class="material-symbols-outlined text-lg">save</span>
+<span>Lưu thay đổi vai trò</span>
+</button>
+</div>
+</div>
+<!-- ========================================================================= -->
+<!-- MODAL: CREATE INTERNAL USER (Anchor Flow)                                 -->
+<!-- ========================================================================= -->
+<div aria-hidden="true" class="fixed inset-0 bg-on-surface/40 backdrop-blur-xs z-50 hidden items-center justify-center p-4 transition-all" id="createUserModal">
+<div class="bg-surface rounded-card max-w-lg w-full border border-outline-variant shadow-xl overflow-hidden flex flex-col">
+<div class="p-6 border-b border-outline-variant flex items-center justify-between bg-surface-muted">
+<div>
+<h3 class="text-title-lg font-bold text-on-surface">Tạo tài khoản người dùng nội bộ</h3>
+<p class="text-xs text-secondary mt-0.5">Khởi tạo thông tin nhân sự và chỉ định vai trò phân cấp</p>
+</div>
+<button class="min-w-[44px] min-h-[44px] p-2 rounded-lg text-secondary hover:text-on-surface hover:bg-surface flex items-center justify-center" onclick="closeCreateUserModal()">
+<span class="material-symbols-outlined text-2xl">close</span>
+</button>
+</div>
+<form class="p-6 space-y-4" onsubmit="handleCreateUser(event)">
+<div>
+<label class="text-label-sm font-semibold text-on-surface block mb-1">Họ và tên <span class="text-destructive">*</span></label>
+<input class="w-full px-3.5 py-2.5 border border-outline-variant rounded-lg text-body-sm focus:ring-2 focus:ring-primary focus:border-transparent min-h-[44px]" placeholder="Ví dụ: Hoàng Tuấn Kiệt" required="" type="text"/>
+</div>
+<div>
+<label class="text-label-sm font-semibold text-on-surface block mb-1">Email nội bộ StoreX <span class="text-destructive">*</span></label>
+<input class="w-full px-3.5 py-2.5 border border-outline-variant rounded-lg text-body-sm focus:ring-2 focus:ring-primary focus:border-transparent min-h-[44px]" placeholder="tuan.kiet@storex.vn" required="" type="email"/>
+</div>
+<div>
+<label class="text-label-sm font-semibold text-on-surface block mb-1">Số điện thoại liên hệ <span class="text-destructive">*</span></label>
+<input class="w-full px-3.5 py-2.5 border border-outline-variant rounded-lg text-body-sm focus:ring-2 focus:ring-primary focus:border-transparent min-h-[44px]" placeholder="0918 *** 999" required="" type="tel"/>
+</div>
+<div>
+<label class="text-label-sm font-semibold text-on-surface block mb-1">Chỉ định vai trò khởi tạo <span class="text-destructive">*</span></label>
+<select class="w-full px-3.5 py-2.5 border border-outline-variant rounded-lg text-body-sm focus:ring-2 focus:ring-primary focus:border-transparent min-h-[44px]" required="">
+<option value="FS">FS — Nhân viên cơ sở</option>
+<option value="FM">FM — Quản lý cơ sở</option>
+<option value="BOM">BOM — Quản lý vận hành KD</option>
+<option value="SA">SA — Quản trị hệ thống</option>
+</select>
+<p class="text-[11px] text-secondary mt-1">Lưu ý: Không tạo tài khoản Khách hàng (Customer) qua tính năng người dùng nội bộ.</p>
+</div>
+<div class="pt-4 flex items-center justify-end gap-3 border-t border-outline-variant">
+<button class="min-h-[44px] px-4 py-2 border border-outline-variant rounded-lg text-body-sm text-secondary hover:bg-surface-muted" onclick="closeCreateUserModal()" type="button">
+            Hủy bỏ
+          </button>
+<button class="min-h-[44px] px-5 py-2 bg-primary hover:bg-primary-dark text-on-primary rounded-lg text-body-sm font-semibold shadow-xs" type="submit">
+            Tạo tài khoản &amp; gửi thông tin
+          </button>
+</div>
+</form>
+</div>
+</div>
+<!-- TOAST NOTIFICATION CONTAINER -->
+<div class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none" id="toast">
+<div class="bg-inverse-surface text-inverse-on-surface px-4 py-3 rounded-lg shadow-xl flex items-center gap-3 border border-outline/30 min-h-[48px]">
+<span class="material-symbols-outlined text-tertiary-fixed" id="toastIcon">check_circle</span>
+<span class="text-body-sm font-medium" id="toastMessage">Đã thực hiện cập nhật thành công!</span>
+</div>
+</div>
+<!-- ========================================================================= -->
+<!-- JAVASCRIPT: DATA STORE, INTERACTIVE SEARCH, DRAWER & MODAL LOGIC          -->
+<!-- ========================================================================= -->
+<script>
+    // System Data Model (Strictly strictly as requested)
+    const initialUserData = [
+      {
+        id: "USR-001",
+        name: "Lê Thu Hà",
+        email: "le.thuha@storex.vn",
+        phone: "0918 *** 221",
+        role: "FM",
+        roleLabel: "FM (Quản lý cơ sở)",
+        facility: "Sài Gòn Central",
+        status: "ACTIVE",
+        statusText: "Đang hoạt động",
+        lastLogin: "06/10/2026 09:15",
+        createdAt: "12/01/2025"
+      },
+      {
+        id: "USR-002",
+        name: "Nguyễn Minh Hoàng",
+        email: "hoang.nm@storex.vn",
+        phone: "0982 *** 110",
+        role: "FS",
+        roleLabel: "FS (Nhân viên cơ sở)",
+        facility: "Sài Gòn Central",
+        status: "ACTIVE",
+        statusText: "Đang hoạt động",
+        lastLogin: "06/10/2026 08:30",
+        createdAt: "10/02/2025"
+      },
+      {
+        id: "USR-003",
+        name: "Vũ Hữu Đạt",
+        email: "dat.vh@storex.vn",
+        phone: "0903 *** 888",
+        role: "FS",
+        roleLabel: "FS (Nhân viên cơ sở)",
+        facility: "Sài Gòn Central",
+        status: "ACTIVE",
+        statusText: "Đang hoạt động",
+        lastLogin: "06/10/2026 07:45",
+        createdAt: "18/02/2025"
+      },
+      {
+        id: "USR-004",
+        name: "Vũ Minh Hoàng",
+        email: "hoang.vm@storex.vn",
+        phone: "0912 *** 345",
+        role: "BOM",
+        roleLabel: "BOM (Quản lý vận hành KD)",
+        facility: "Toàn chuỗi",
+        status: "ACTIVE",
+        statusText: "Đang hoạt động",
+        lastLogin: "05/10/2026 16:20",
+        createdAt: "01/11/2024"
+      },
+      {
+        id: "USR-005",
+        name: "Lê Thị Mai Linh",
+        email: "mailinh.le@business.vn",
+        phone: "0908 *** 456",
+        role: "Customer",
+        roleLabel: "Customer (Khách hàng)",
+        facility: "Không áp dụng",
+        status: "ACTIVE",
+        statusText: "Đang hoạt động",
+        lastLogin: "06/10/2026 09:00",
+        createdAt: "22/03/2025"
+      },
+      {
+        id: "USR-006",
+        name: "Trần Đình Khang",
+        email: "khang.td@outlook.com",
+        phone: "0918 *** 442",
+        role: "Customer",
+        roleLabel: "Customer (Khách hàng)",
+        facility: "Không áp dụng",
+        status: "LOCKED",
+        statusText: "Tạm khóa (Bảo vệ brute-force)",
+        lastLogin: "06/10/2026 04:12",
+        createdAt: "05/04/2025"
+      }
+    ];
+
+    let users = [...initialUserData];
+    let selectedUser = null;
+
+    // Helper: Role Badge Styling
+    function getRoleBadge(role) {
+      switch (role) {
+        case "SA":
+          return `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-primary-container text-on-primary"><span class="w-1.5 h-1.5 rounded-full bg-tertiary-fixed"></span>SA (Quản trị hệ thống)</span>`;
+        case "BOM":
+          return `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-secondary-container text-on-secondary-fixed"><span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>BOM (Vận hành KD)</span>`;
+        case "FM":
+          return `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-primary-soft text-primary"><span class="w-1.5 h-1.5 rounded-full bg-primary"></span>FM (Quản lý cơ sở)</span>`;
+        case "FS":
+          return `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-surface-muted text-on-surface border border-outline-variant"><span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>FS (Nhân viên cơ sở)</span>`;
+        case "Customer":
+        default:
+          return `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-surface-container-low text-secondary border border-outline-variant/60">Customer (Khách hàng)</span>`;
+      }
+    }
+
+    // Helper: Status Badge Styling
+    function getStatusBadge(status, customText) {
+      if (status === "ACTIVE") {
+        return `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-success-container text-on-success-container"><span class="w-1.5 h-1.5 rounded-full bg-primary"></span>${customText || 'Đang hoạt động'}</span>`;
+      } else if (status === "LOCKED") {
+        return `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-destructive-container text-destructive" title="${customText}"><span class="w-1.5 h-1.5 rounded-full bg-destructive"></span>${customText || 'Tạm khóa'}</span>`;
+      } else {
+        return `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-warning-container text-warning"><span class="w-1.5 h-1.5 rounded-full bg-warning"></span>Chờ kích hoạt</span>`;
+      }
+    }
+
+    // Render Table Rows
+    function renderTable(dataToRender) {
+      const tbody = document.getElementById("userTableBody");
+      const emptyState = document.getElementById("tableEmptyState");
+      const visibleRowCount = document.getElementById("visibleRowCount");
+
+      tbody.innerHTML = "";
+
+      if (dataToRender.length === 0) {
+        tbody.classList.add("hidden");
+        emptyState.classList.remove("hidden");
+        emptyState.classList.add("flex");
+        visibleRowCount.textContent = "0";
+        return;
+      }
+
+      tbody.classList.remove("hidden");
+      emptyState.classList.add("hidden");
+      emptyState.classList.remove("flex");
+      visibleRowCount.textContent = dataToRender.length;
+
+      dataToRender.forEach(user => {
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-surface-muted transition-colors group";
+        tr.innerHTML = `
+          <td class="py-3.5 px-4">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-primary-soft text-primary font-bold flex items-center justify-center shrink-0 border border-primary/10">
+                ${user.name.split(' ').map(n=>n[0]).slice(-2).join('')}
+              </div>
+              <div class="min-w-0">
+                <div class="font-bold text-body-sm text-on-surface truncate group-hover:text-primary transition-colors cursor-pointer" onclick="openDrawer('${user.id}')">
+                  ${user.name}
+                </div>
+                <div class="text-xs text-secondary truncate font-mono">${user.email}</div>
+              </div>
+            </div>
+          </td>
+          <td class="py-3.5 px-4 text-body-sm text-secondary font-mono">${user.phone}</td>
+          <td class="py-3.5 px-4">${getRoleBadge(user.role)}</td>
+          <td class="py-3.5 px-4">
+            <span class="text-body-sm ${user.facility === 'Không áp dụng' ? 'text-secondary italic' : 'text-on-surface font-medium'}">
+              ${user.facility}
+            </span>
+          </td>
+          <td class="py-3.5 px-4">${getStatusBadge(user.status, user.statusText)}</td>
+          <td class="py-3.5 px-4 text-xs text-secondary font-mono">${user.lastLogin}</td>
+          <td class="py-3.5 px-4 text-right">
+            <div class="flex items-center justify-end gap-1">
+              <button
+                onclick="openDrawer('${user.id}')"
+                title="Xem chi tiết & Đổi vai trò"
+                class="min-h-[44px] min-w-[44px] px-3 py-1.5 rounded-lg text-primary hover:bg-primary-soft font-semibold text-body-sm flex items-center gap-1 transition-all"
+              >
+                <span class="material-symbols-outlined text-lg">edit_note</span>
+                <span class="hidden sm:inline">Chi tiết</span>
+              </button>
+
+              <button
+                onclick="quickToggleStatus('${user.id}')"
+                title="${user.status === 'ACTIVE' ? 'Khóa tài khoản' : 'Mở khóa tài khoản'}"
+                class="min-h-[44px] min-w-[44px] p-2 rounded-lg text-secondary hover:text-destructive hover:bg-surface-muted transition-colors flex items-center justify-center"
+              >
+                <span class="material-symbols-outlined text-lg">${user.status === 'ACTIVE' ? 'lock' : 'lock_open'}</span>
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Filter and Search Handler
+    function filterUsers() {
+      const query = document.getElementById("searchInput").value.toLowerCase().trim();
+      const roleFilter = document.getElementById("roleFilter").value;
+      const statusFilter = document.getElementById("statusFilter").value;
+
+      return users.filter(user => {
+        const matchesQuery = !query ||
+          user.name.toLowerCase().includes(query) ||
+          user.email.toLowerCase().includes(query) ||
+          user.phone.toLowerCase().includes(query);
+
+        const matchesRole = (roleFilter === "ALL") || (user.role === roleFilter);
+        const matchesStatus = (statusFilter === "ALL") ||
+          (statusFilter === "ACTIVE" && user.status === "ACTIVE") ||
+          (statusFilter === "LOCKED" && user.status === "LOCKED");
+
+        return matchesQuery && matchesRole && matchesStatus;
+      });
+    }
+
+    function handleSearch() {
+      const filtered = filterUsers();
+      renderTable(filtered);
+      updateFilterSummary(filtered.length);
+    }
+
+    function handleFilter() {
+      const filtered = filterUsers();
+      renderTable(filtered);
+      updateFilterSummary(filtered.length);
+    }
+
+    function resetFilters() {
+      document.getElementById("searchInput").value = "";
+      document.getElementById("roleFilter").value = "ALL";
+      document.getElementById("statusFilter").value = "ALL";
+      renderTable(users);
+      updateFilterSummary(users.length);
+      showToast("Đã đặt lại toàn bộ điều kiện lọc");
+    }
+
+    function updateFilterSummary(count) {
+      const label = document.getElementById("activeFiltersLabel");
+      const role = document.getElementById("roleFilter").value;
+      const status = document.getElementById("statusFilter").value;
+
+      let parts = [];
+      if (role !== "ALL") parts.push(`Vai trò: ${role}`);
+      if (status !== "ALL") parts.push(`Trạng thái: ${status}`);
+
+      if (parts.length > 0) {
+        label.textContent = `${parts.join(" • ")} (${count} kết quả)`;
+      } else {
+        label.textContent = `Toàn bộ ${count} tài khoản`;
+      }
+    }
+
+    // Drawer Logic: Open, Populate & Close
+    function openDrawer(userId) {
+      selectedUser = users.find(u => u.id === userId);
+      if (!selectedUser) return;
+
+      // Populate Elements
+      document.getElementById("drawerUserId").textContent = `Mã: #${selectedUser.id}`;
+      document.getElementById("drawerUserName").textContent = selectedUser.name;
+      document.getElementById("drawerUserEmail").textContent = selectedUser.email;
+      document.getElementById("drawerUserPhone").textContent = selectedUser.phone;
+      document.getElementById("drawerCreatedAt").textContent = `Khởi tạo: ${selectedUser.createdAt}`;
+      document.getElementById("drawerLastLogin").textContent = selectedUser.lastLogin;
+      document.getElementById("drawerAvatar").textContent = selectedUser.name.split(' ').map(n=>n[0]).slice(-2).join('');
+      document.getElementById("drawerRoleTag").textContent = selectedUser.role;
+
+      // Role Select Box
+      document.getElementById("drawerRoleSelect").value = selectedUser.role;
+      onDrawerRoleSelectChange();
+
+      // Lock State Controls
+      const statusBadge = document.getElementById("drawerStatusBadge");
+      const lockActionTitle = document.getElementById("lockActionTitle");
+      const btnToggleLock = document.getElementById("btnToggleLock");
+      const lockIcon = document.getElementById("lockIcon");
+      const reasonInput = document.getElementById("lockReasonInput");
+      reasonInput.value = "";
+      document.getElementById("reasonCharCount").textContent = "0/10 ký tự tối thiểu";
+      document.getElementById("lockErrorMsg").classList.add("hidden");
+
+      if (selectedUser.status === "ACTIVE") {
+        statusBadge.className = "px-2.5 py-0.5 rounded-full text-xs font-bold bg-success-container text-on-success-container";
+        statusBadge.textContent = "Đang hoạt động";
+        lockActionTitle.textContent = "Khóa tài khoản tạm thời";
+        btnToggleLock.textContent = "Xác nhận Khóa tài khoản";
+        btnToggleLock.className = "min-h-[44px] px-4 py-2 rounded-lg bg-destructive-container text-destructive hover:bg-destructive hover:text-on-error font-semibold text-body-sm transition-all";
+        lockIcon.textContent = "lock_person";
+      } else {
+        statusBadge.className = "px-2.5 py-0.5 rounded-full text-xs font-bold bg-destructive-container text-destructive";
+        statusBadge.textContent = selectedUser.statusText || "Tạm khóa";
+        lockActionTitle.textContent = "Mở khóa tài khoản ngay";
+        btnToggleLock.textContent = "Xác nhận Mở khóa";
+        btnToggleLock.className = "min-h-[44px] px-4 py-2 rounded-lg bg-primary-soft text-primary hover:bg-primary hover:text-on-primary font-semibold text-body-sm transition-all";
+        lockIcon.textContent = "lock_open";
+      }
+
+      // Show Drawer
+      const backdrop = document.getElementById("drawerBackdrop");
+      const drawer = document.getElementById("userDrawer");
+      backdrop.classList.remove("pointer-events-none", "opacity-0");
+      backdrop.classList.add("opacity-100");
+      drawer.classList.remove("translate-x-full");
+
+      // Trap Escape key
+      window.addEventListener("keydown", handleDrawerEscape);
+    }
+
+    function closeDrawer() {
+      const backdrop = document.getElementById("drawerBackdrop");
+      const drawer = document.getElementById("userDrawer");
+      backdrop.classList.remove("opacity-100");
+      backdrop.classList.add("opacity-0", "pointer-events-none");
+      drawer.classList.add("translate-x-full");
+      window.removeEventListener("keydown", handleDrawerEscape);
+      selectedUser = null;
+    }
+
+    function handleDrawerEscape(e) {
+      if (e.key === "Escape") {
+        closeDrawer();
+        closeCreateUserModal();
+      }
+    }
+
+    // Role select change listener inside drawer to reveal caution warning
+    function onDrawerRoleSelectChange() {
+      const roleVal = document.getElementById("drawerRoleSelect").value;
+      const warningBox = document.getElementById("roleWarningCallout");
+      if (roleVal === "FM" || roleVal === "FS") {
+        warningBox.classList.remove("hidden");
+      } else {
+        warningBox.classList.add("hidden");
+      }
+    }
+
+    // Reason Textarea live counter
+    function handleReasonInput(el) {
+      const len = el.value.trim().length;
+      document.getElementById("reasonCharCount").textContent = `${len}/10 ký tự tối thiểu`;
+      if (len >= 10) {
+        document.getElementById("lockErrorMsg").classList.add("hidden");
+      }
+    }
+
+    // Save Role Changes
+    function saveRoleChanges() {
+      if (!selectedUser) return;
+      const newRole = document.getElementById("drawerRoleSelect").value;
+      selectedUser.role = newRole;
+
+      // Update Facility context based on fixed 5-role spec
+      if (newRole === "Customer") {
+        selectedUser.facility = "Không áp dụng";
+      } else if (newRole === "SA" || newRole === "BOM") {
+        selectedUser.facility = "Toàn chuỗi";
+      } else if (newRole === "FM" || newRole === "FS") {
+        if (selectedUser.facility === "Không áp dụng" || selectedUser.facility === "Toàn chuỗi") {
+          selectedUser.facility = "Chờ phân bổ SA03";
+        }
+      }
+
+      renderTable(filterUsers());
+      showToast(`Đã cập nhật vai trò của ${selectedUser.name} sang [${newRole}]. Log kiểm toán lưu tại SA05.`);
+      closeDrawer();
+    }
+
+    // Toggle Lock / Unlock
+    function toggleUserLockState() {
+      if (!selectedUser) return;
+      const reason = document.getElementById("lockReasonInput").value.trim();
+
+      if (reason.length < 10) {
+        document.getElementById("lockErrorMsg").classList.remove("hidden");
+        return;
+      }
+
+      if (selectedUser.status === "ACTIVE") {
+        selectedUser.status = "LOCKED";
+        selectedUser.statusText = `Tạm khóa (${reason})`;
+        showToast(`Tài khoản ${selectedUser.name} đã được TẠM KHÓA. Mã sự kiện SA05-#LK${Math.floor(Math.random()*9000+1000)}.`);
+      } else {
+        selectedUser.status = "ACTIVE";
+        selectedUser.statusText = "Đang hoạt động";
+        showToast(`Đã MỞ KHÓA tài khoản ${selectedUser.name}. Ghi nhận kiểm toán SA05 hoàn tất.`);
+      }
+
+      renderTable(filterUsers());
+      closeDrawer();
+    }
+
+    // Quick toggle directly from table button
+    function quickToggleStatus(userId) {
+      const u = users.find(x => x.id === userId);
+      if (!u) return;
+      if (u.status === "ACTIVE") {
+        // Redirect to detail drawer to force mandatory audit reason
+        openDrawer(userId);
+        showToast("Hệ thống yêu cầu nhập lý do kiểm toán trước khi khóa.");
+      } else {
+        u.status = "ACTIVE";
+        u.statusText = "Đang hoạt động";
+        renderTable(filterUsers());
+        showToast(`Đã mở khóa tài khoản ${u.name}`);
+      }
+    }
+
+    // Modal Create User Functions
+    function openCreateUserModal() {
+      const modal = document.getElementById("createUserModal");
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
+
+    function closeCreateUserModal() {
+      const modal = document.getElementById("createUserModal");
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    }
+
+    function handleCreateUser(e) {
+      e.preventDefault();
+      const form = e.target;
+      const name = form[0].value;
+      const email = form[1].value;
+      const phone = form[2].value;
+      const role = form[3].value;
+
+      const newUser = {
+        id: `USR-00${users.length + 1}`,
+        name: name,
+        email: email,
+        phone: phone,
+        role: role,
+        roleLabel: `${role}`,
+        facility: (role === 'SA' || role === 'BOM') ? "Toàn chuỗi" : "Chờ phân bổ SA03",
+        status: "ACTIVE",
+        statusText: "Đang hoạt động",
+        lastLogin: "Chưa đăng nhập",
+        createdAt: "Hôm nay"
+      };
+
+      users.unshift(newUser);
+      renderTable(filterUsers());
+      document.getElementById("totalUserCount").textContent = users.length;
+      closeCreateUserModal();
+      form.reset();
+      showToast(`Đã tạo tài khoản ${name} thành công. Bản tin kiểm toán đã ghi nhận.`);
+    }
+
+    // Export CSV Mock
+    function exportCsv() {
+      const visibleData = filterUsers();
+      let csvContent = "data:text/csv;charset=utf-8,";
+      csvContent += "ID,Họ và tên,Email,Số điện thoại,Vai trò,Cơ sở,Trạng thái,Đăng nhập gần nhất\n";
+
+      visibleData.forEach(row => {
+        csvContent += `"${row.id}","${row.name}","${row.email}","${row.phone}","${row.role}","${row.facility}","${row.statusText}","${row.lastLogin}"\n`;
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `StoreX_SA02_Users_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast("Đã trích xuất danh sách CSV thành công");
+    }
+
+    // Micro-toast notifications
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      const text = document.getElementById("toastMessage");
+      text.textContent = msg;
+
+      toast.classList.remove("translate-y-20", "opacity-0");
+      toast.classList.add("translate-y-0", "opacity-100");
+
+      setTimeout(() => {
+        toast.classList.remove("translate-y-0", "opacity-100");
+        toast.classList.add("translate-y-20", "opacity-0");
+      }, 3500);
+    }
+
+    // Initial table boot
+    document.addEventListener("DOMContentLoaded", () => {
+      renderTable(users);
+    });
+  </script>
+</body></html>

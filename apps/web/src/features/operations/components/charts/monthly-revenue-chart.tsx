@@ -1,0 +1,194 @@
+"use client";
+import { useState } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { formatMoney } from "../../operations.utils";
+import { REPORTING_MESSAGES as R } from "../../operations-reporting.messages";
+import type { MonthlyChartProps } from "./operations-chart.types";
+
+export function MonthlyRevenueChart({ report }: MonthlyChartProps) {
+  const [cash, setCash] = useState(false);
+  const data = report.items.map((item) => ({
+    ...item,
+    label: `${item.month.slice(5)}/${item.month.slice(0, 4)}`,
+    rental: item.rentalCollected === null ? null : Number(item.rentalCollected),
+    received: Number(item.cashReceived),
+    refunded: Number(item.cashRefunded),
+  }));
+  return (
+    <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+        <div>
+          <h2 className="text-base font-bold text-slate-900">{R.monthlyTitle}</h2>
+          <p className="mt-0.5 text-xs text-slate-500">{R.monthlyHelp}</p>
+        </div>
+        <div className="flex gap-1 rounded-lg border border-slate-200/80 bg-slate-100 p-0.5">
+          <button
+            className={`h-7 rounded-md px-2.5 text-xs font-semibold transition-colors cursor-pointer ${
+              !cash ? "bg-white text-slate-900 shadow-2xs" : "text-slate-600 hover:text-slate-900"
+            }`}
+            type="button"
+            aria-pressed={!cash}
+            onClick={() => setCash(false)}
+          >
+            {R.rentalMode}
+          </button>
+          <button
+            className={`h-7 rounded-md px-2.5 text-xs font-semibold transition-colors cursor-pointer ${
+              cash ? "bg-white text-slate-900 shadow-2xs" : "text-slate-600 hover:text-slate-900"
+            }`}
+            type="button"
+            aria-pressed={cash}
+            onClick={() => setCash(true)}
+          >
+            {R.cashMode}
+          </button>
+        </div>
+      </div>
+      <div className="mt-3.5 h-72 min-w-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} accessibilityLayer margin={{ left: 0, right: 8, bottom: 12 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <XAxis dataKey="label" tick={{ fontSize: 10 }} />
+            <YAxis
+              width={70}
+              tick={{ fontSize: 10 }}
+              tickFormatter={(value) => `${Number(value) / 1000000} tr`}
+            />
+            <Legend />
+            <Tooltip
+              content={({ active, payload, label }) =>
+                active && payload?.[0] ? (
+                  <div className="rounded border bg-white p-3 text-xs shadow">
+                    <strong>{label}</strong>
+                    <p>
+                      {R.rental}:{" "}
+                      {payload[0].payload.rentalCollected === null
+                        ? R.unknown
+                        : formatMoney(payload[0].payload.rentalCollected)}
+                    </p>
+                    <p>
+                      {R.received}: {formatMoney(payload[0].payload.cashReceived)}
+                    </p>
+                    <p>
+                      {R.refunded}: {formatMoney(payload[0].payload.cashRefunded)}
+                    </p>
+                    <p>
+                      {R.net}: {formatMoney(payload[0].payload.netCash)}
+                    </p>
+                  </div>
+                ) : null
+              }
+            />
+            {cash ? (
+              <>
+                <Bar
+                  dataKey="received"
+                  name={R.received}
+                  fill="#165f4d"
+                  maxBarSize={40}
+                  isAnimationActive={false}
+                />
+                <Bar
+                  dataKey="refunded"
+                  name={R.refunded}
+                  fill="#be123c"
+                  maxBarSize={40}
+                  isAnimationActive={false}
+                />
+              </>
+            ) : (
+              <Bar
+                dataKey="rental"
+                name={R.rental}
+                fill="#165f4d"
+                maxBarSize={55}
+                isAnimationActive={false}
+              />
+            )}
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      {report.items.some((item) => item.rentalCollected === null) && (
+        <p role="status" className="mt-2 text-xs text-amber-800">
+          {R.unknown}:{" "}
+          {report.items
+            .filter((item) => item.rentalCollected === null)
+            .map((item) => item.month)
+            .join(", ")}
+        </p>
+      )}
+      {report.items.some((item) => item.unsupportedCurrencyPayments > 0) && (
+        <p role="status" className="mt-2 text-xs text-amber-800">
+          {R.excludedCurrency}
+        </p>
+      )}
+      <details className="mt-3">
+        <summary className="min-h-11 cursor-pointer py-3 text-xs font-semibold text-primary">
+          {R.exactData}
+        </summary>
+        <section
+          className="overflow-x-auto"
+          aria-label={R.exactData}
+          // biome-ignore lint/a11y/noNoninteractiveTabindex: Keyboard access to horizontal table scrolling.
+          tabIndex={0}
+        >
+          <Table className="w-full text-left text-xs">
+            <TableHeader className="bg-slate-50">
+              <TableRow>
+                {R.monthlyHeadings.map((h) => (
+                  <TableHead
+                    key={h}
+                    className="whitespace-nowrap p-2 text-xs font-semibold text-slate-700"
+                    scope="col"
+                  >
+                    {h}
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {report.items.map((item) => (
+                <TableRow key={item.month}>
+                  <TableCell className="p-2 font-medium" scope="row">
+                    {item.month}
+                  </TableCell>
+                  {[
+                    item.rentalCollected,
+                    item.depositCollected,
+                    item.cashReceived,
+                    item.cashRefunded,
+                    item.netCash,
+                  ].map((value, index) => (
+                    <TableCell
+                      key={R.monthlyHeadings[index + 1]}
+                      className="whitespace-nowrap p-2 tabular-nums"
+                    >
+                      {value === null ? R.unknown : formatMoney(value)}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </section>
+      </details>
+    </section>
+  );
+}

@@ -1,4 +1,5 @@
-import type { ApiErrorDetail } from "@storex/shared";
+import type { ApiErrorDetail } from "@metastorage/shared";
+import { ERROR_MESSAGES } from "./error.messages";
 
 export class AppError extends Error {
   public readonly statusCode: number;
@@ -21,37 +22,37 @@ export class AppError extends Error {
 }
 
 export class NotFoundError extends AppError {
-  constructor(message = "Resource not found", details?: ApiErrorDetail[]) {
+  constructor(message: string = ERROR_MESSAGES.notFound, details?: ApiErrorDetail[]) {
     super(message, 404, "NOT_FOUND", details);
   }
 }
 
 export class BadRequestError extends AppError {
-  constructor(message = "Bad request", details?: ApiErrorDetail[]) {
+  constructor(message: string = ERROR_MESSAGES.badRequest, details?: ApiErrorDetail[]) {
     super(message, 400, "BAD_REQUEST", details);
   }
 }
 
 export class UnauthorizedError extends AppError {
-  constructor(message = "Unauthorized", details?: ApiErrorDetail[]) {
+  constructor(message: string = ERROR_MESSAGES.unauthorized, details?: ApiErrorDetail[]) {
     super(message, 401, "UNAUTHORIZED", details);
   }
 }
 
 export class ForbiddenError extends AppError {
-  constructor(message = "Forbidden", details?: ApiErrorDetail[]) {
+  constructor(message: string = ERROR_MESSAGES.forbidden, details?: ApiErrorDetail[]) {
     super(message, 403, "FORBIDDEN", details);
   }
 }
 
 export class ConflictError extends AppError {
-  constructor(message = "Conflict", details?: ApiErrorDetail[]) {
+  constructor(message: string = ERROR_MESSAGES.conflict, details?: ApiErrorDetail[]) {
     super(message, 409, "CONFLICT", details);
   }
 }
 
 export class ValidationError extends AppError {
-  constructor(message = "Validation failed", details?: ApiErrorDetail[]) {
+  constructor(message: string = ERROR_MESSAGES.validationFailed, details?: ApiErrorDetail[]) {
     super(message, 422, "VALIDATION_ERROR", details);
   }
 }

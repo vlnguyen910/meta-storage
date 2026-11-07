@@ -1,0 +1,1030 @@
+# metastorage database diagram
+
+## Reservation and appointment workflows
+
+`reservations` owns checkout and rental pricing; `appointments` owns meetings,
+assignment and receiving. The backend booking module and `/api/bookings` routes
+are retired. The `bookings` table remains an archive; new business writes use the
+new modules. See [booking cutover](booking-retirement.md) before deployment.
+Migration `0013_nostalgic_raza.sql` adds reservation references to support tickets
+and notification outbox, each requiring exactly one booking/reservation parent.
+After schema commit, the migration runner converts historical records atomically,
+keeping IDs, financial facts, rental/inspection history and assigned tasks.
+
+| Table | Main data and rules |
+| --- | --- |
+| `reservations` | Customer/facility/unit type, requested months, rental period, integer price snapshots and lifecycle. Draft creation checks active offering, schedule, pricing and available capacity. Price snapshots must fit PostgreSQL INTEGER. |
+| `appointments` | CHECK_IN references a paid reservation; CHECK_OUT references an active customer rental; SUPPORT references an owned support ticket. Facility/customer scope is derived from that context. Date and slot must be future and within operating hours. One active appointment per context is enforced by service parent locks. The check-in unique index applies to SCHEDULED/CONFIRMED records so cancelled history does not prevent rebooking. One confirmed return per facility/date/slot remains enforced by a partial unique index. |
+| `payments` | CHARGE retains provider fields. DEPOSIT_REFUND links to a rental and source charge; assigned Staff records it as REFUNDED when completing return settlement. DEBT_COLLECTION records an external receipt linked to a Debt. |
+| `return_settlements` | One immutable deposit/deduction snapshot per returned Rental and inspection, with source charge, currency, Staff and server timestamp. |
+| `debts` | Created only for deductions exceeding the deposit. Tracks original amount, paid amount and UNPAID/PARTIALLY_PAID/PAID independently of Rental closure. |
+| `policy_violation_fee` | Stores BOM catalog rows (null reference, versioned and soft-disabled) and applied fee snapshots (INSPECTION reference, code/name/VND amount/version/note). Applied rows do not change when the catalog changes. |
+| `capacity_allocations` | HOLD reserves capacity for ten minutes during checkout. A successful reservation payment changes it to RESERVATION without expiry. All allocation kinds contribute to the existing capacity calculation. |
+| `facility_tasks` | APPOINTMENT owns scheduled work; BOOKING is retained only for archived tasks. CHECK_IN creates CHECK_IN_HANDOVER, CHECK_OUT creates UNIT_INSPECTION and SUPPORT creates HANDLE_SUPPORT. Assignment/reassignment belongs to the appointment workflow. Staff start through the existing task API; completion/cancellation commits with the appointment. |
+
+```mermaid
+erDiagram
+  users ||--o{ reservations : owns
+  reservations ||--o{ payments : checkout
+  bookings ||--o{ payments : legacy_checkout
+  reservations ||--o{ appointments : check_in
+  reservations ||--o| rentals : handover
+  reservations ||--o{ inspections : check_in
+  reservations ||--o{ support_tickets : support
+  reservations ||--o{ notification_outbox : lifecycle
+  rentals ||--o{ appointments : check_out
+  rentals ||--o{ payments : refund_or_debt_receipt
+  rentals ||--o| return_settlements : settles
+  inspections ||--o| return_settlements : settlement_evidence
+  payments ||--o{ return_settlements : source_charge
+  return_settlements ||--o| debts : excess_deductions
+  debts ||--o{ payments : receipts
+  payments o|--o{ payments : source_charge
+  inspections ||--o{ policy_violation_fee : applied_violations
+  rentals ||--o{ inspections : check_out
+  support_tickets ||--o{ appointments : support
+  appointments ||--o{ facility_tasks : reference_type_APPOINTMENT
+```
+
+Payment holds and capacity checks serialize on the same offering rows as legacy
+booking checkout. A verified, matching payment confirms a reservation atomically
+with its paid allocation. Late payments are accepted only if the offering,
+schedule and capacity remain available; otherwise the full amount enters
+REFUND_PENDING. Cancellation after payment and no-show refund the rental fee and
+forfeit the deposit, matching the approved pre-handover booking policy.
+Reservation no-shows are swept at the configured closing hour on the check-in day.
+Cancelling a reservation cancels its active appointments and tasks in the same
+transaction. Refunds remain manual transfers followed by the existing refund
+confirmation endpoint; a webhook does not claim money was already refunded.
+
+Appointment states are SCHEDULED → CONFIRMED → COMPLETED, with CANCELLED/NO_SHOW
+terminal alternatives. Manager confirmation requires assigned active staff. Only
+the assigned staff can complete a confirmed appointment after starting its task.
+Check-in completion additionally requires reservation CHECKED_IN; check-out
+completion requires rental CLOSED. FM assigns staff through PATCH appointment;
+this creates the task atomically. Staff start the task, then POST `/api/inspections`
+with taskId. For CHECK_OUT the backend derives the Unit from the rental and does
+not accept a client-selected Unit. Existing inspection update/checklist/evidence
+APIs apply. POST `/api/inspections/:id/handover`
+with customerReceivedUnit=true requires a PASSED inspection and a confirmed
+appointment. One transaction creates the rental, marks the unit OCCUPIED,
+marks the reservation CHECKED_IN, releases its capacity allocation and completes
+both appointment and task. Replaying handover does not create another rental.
+Migration `0012_thin_gateway.sql` adds reservation_id to inspections and rentals;
+rentals require exactly one booking/reservation reference, individually unique.
+Customer, facility rental reads, payment history and rental reports support both
+references; bookingId is nullable and reservationId identifies the new context.
+Return completion uses PATCH `/api/inspections/:id` with status PASSED and a settlement confirmation. The assigned Staff confirms the computed deduction amount and, when refunding a positive balance externally, supplies CASH or BANK_TRANSFER (transfer reference required). One transaction stores the immutable settlement, records the confirmed REFUNDED deposit payment or creates a Debt for excess deductions, closes Rental, releases the assignment and completes the appointment/task. GOOD Units become AVAILABLE; damaged Units become MAINTENANCE. Failed checklist items require a note and do not block a documented return. A zero refund creates no payment. An outstanding Debt never blocks Rental closure. Identical retries preserve the original settlement; changed financial confirmations conflict. SUPPORT completion finishes the meeting/task without inventing a support-ticket lifecycle.
+
+Routes remain `/api/reservations` and `/api/appointments`. Reservation cancellation
+uses PATCH `/:id` with CANCELLED; appointment staff can list `/assigned-to-me`.
+Facility list paths are validated and service authorization uses the path facility,
+not a frontend-supplied query override. Business writes use transactions and row
+locks; no generic deletion endpoints are introduced.
+
+## Physical-unit assignment for reservations
+
+Migration `0014_mushy_the_executioner.sql` extends `unit_assignments` with nullable
+`reservation_id` (RESTRICT), makes `booking_id` nullable and requires exactly one
+parent. A partial unique index permits one ACTIVE assignment per reservation.
+Historical booking assignments remain; conversion preserves references/history.
+
+FM uses PATCH `/api/appointments/:id` with `physicalUnitId`, `assignedStaffId` and
+CONFIRMED. It may select the unit before confirming staff using the same endpoint.
+The paid reservation and appointment are locked, units are locked in UUID order,
+and facility/type/availability are validated. The unit becomes RESERVED; staff
+inspect this unit and cannot choose a different unit. Reassignment ends the old
+assignment and is refused after inspection has started. Cancellation/no-show
+releases the unit; handover completes the assignment and makes the unit OCCUPIED.
+Assigned capacity is counted once: the reserved physical unit is removed from
+inventory and its reservation allocation is excluded from unassigned demand.
+
+A customer CHECK_IN appointment may reference a DRAFT reservation so the schedule
+exists before payment. DRAFT only stores the quote; verified payment confirms the
+reservation. FM cannot assign a unit, confirm staff or create receiving work for
+an unpaid reservation. Existing appointment-after-payment clients remain supported.
+
+```mermaid
+erDiagram
+  reservations ||--o{ unit_assignments : physical_unit_history
+  bookings o|--o{ unit_assignments : archived_assignment
+  storage_units ||--o{ unit_assignments : assigned
+```
+
+## Rental tối giản (2026-10-28)
+
+Schema code: `packages/database/src/schema/rentals.ts`. Bản xem trước đã được
+chuyển thành schema chính. Đã sinh `0008_nostalgic_blacklash.sql` cùng snapshot.
+Migration đã đạt kiểm tra trên DB mới và nâng cấp DB tạm có dữ liệu cũ
+(xem `docs/rental-reset.md`); chưa áp vào DB ứng dụng, DB hiện hữu chưa đổi cấu trúc.
+
+| Field | Kiểu | Quy tắc |
+| --- | --- | --- |
+| id | UUID | PK, tự sinh |
+| bookingId | UUID | FK bookings.id, UNIQUE, nullable, RESTRICT |
+| reservationId | UUID | FK reservations.id, UNIQUE, nullable, RESTRICT; đúng một trong bookingId/reservationId |
+| userId | UUID | FK users.id, NOT NULL, RESTRICT; khách thuê |
+| storageUnitId | UUID | FK storage_units.id, NOT NULL, RESTRICT |
+| status | rental_status | ACTIVE hoặc CLOSED, mặc định ACTIVE |
+| startAt | TIMESTAMPTZ | NOT NULL |
+| endAt | TIMESTAMPTZ | NOT NULL, lớn hơn startAt |
+| closedAt | TIMESTAMPTZ | nullable, giờ trả thực tế; endAt vẫn là hạn thuê |
+| createdAt | TIMESTAMPTZ | NOT NULL, mặc định now() |
+| updatedAt | TIMESTAMPTZ | NOT NULL, mặc định now(); cập nhật khi ghi |
+
+Tên camelCase ánh xạ snake_case qua cấu hình Drizzle. Index theo userId và
+(storageUnitId,status,endAt). Không UNIQUE storageUnitId vì kho có thể được thuê
+qua nhiều kỳ khác nhau. userId phải lấy từ chủ booking; service phải kiểm tra ô
+kho thuộc đúng cơ sở/loại kho và không trùng thời gian, không nhận chủ thuê tùy ý.
+
+Các chức năng gia hạn, phụ phí/công nợ, điều chỉnh, hoàn tiền rental, lịch trả kho,
+quyết toán và nhắc hạn/quá hạn đã được gỡ để xây lại từng phần. Sáu bảng phụ cũ
+được bỏ khỏi schema code. Không có bảng thay thế hoặc JSON để giấu cấu trúc cũ.
+Thanh toán booking và hoàn tiền do hủy booking vẫn giữ riêng trong payments.
+Loại kho giữ giá monthlyPrice tại cơ sở, chưa áp dụng khung giá BOM cũ.
+
+API đọc Customer vẫn ở /api/rentals; API FM thống nhất ở
+/api/rentals/facility/:facilityId, kiểm tra phân công cơ sở đang hoạt động.
+DTO trả userId, storageUnit, startAt và endAt; dữ liệu hiển thị cơ sở/loại kho
+được join từ các quan hệ. Bộ API rental trùng trong facility-workspace đã gỡ.
+
+## System administrator and account lifecycle (#185, approved 2026-10-25)
+
+`users` keeps its existing single role per account. Add partial unique index
+users_single_system_admin_idx on role WHERE role = SYSTEM_ADMIN, allowing at most
+one bootstrap SA. Management create/role APIs accept only CUSTOMER, FACILITY_STAFF,
+FACILITY_MANAGER and BUSINESS_OPERATION_MANAGER. They cannot create/promote SA or
+lock/demote the bootstrap SA. If legacy data has multiple SA rows, the unique-index
+migration fails atomically for explicit resolution; never delete/disable users to
+make it pass. Existing bootstrap/seed is retained.
+
+Account role changes and locking serialize on the users row, then memberships.
+Block changes while directly assigned booking is CONFIRMED, manual task is
+ASSIGNED/IN_PROGRESS, support ticket is OPEN/IN_PROGRESS, or return
+request is PENDING/CONFIRMED/INSPECTING/FAILED. Closed/completed historical work and
+created_by/assigned_by audit references do not block changes. The existing handoff
+flows remain authoritative; no automatic work transfer is introduced.
+
+After handoff, user change, ending active facility assignments and deletion of all
+Better Auth sessions commit together. Reactivation creates neither sessions nor
+assignments. Changing assignment keeps sessions but membership guards read current
+scope at the next request. SA/BOM keep assignment write permissions. Session
+creation holds a user share lock and rechecks ACTIVE inside its insert transaction,
+so a simultaneous lock/role change cannot leave a stale session behind.
+
+## Activity logs (MongoDB)
+
+The backend writes important authenticated user actions to the `activity_logs`
+collection in the database selected by `MONGODB_URI` (`metastorage_logs` in the
+example configuration). Capture is explicit in the owning services, not a blanket
+CRUD/request logger. The System Administrator web page at
+`/system-admin/activity-logs` provides read-only lookup; Mobile is unchanged.
+
+| Group | Capture points |
+| --- | --- |
+| Account | Create user, update own profile, lock/unlock user |
+| Permission | Assign/change role, assign/revoke facility assignment |
+| Facility | Create, update metadata, activate/deactivate |
+| Unit | Assign physical unit, manual status transition, occupy/release at handover/return |
+| Rental | Activate at check-in handover, close after return inspection |
+| Payment | Record debt payment, confirm manual refund, record deposit refund at return |
+| Inspection | Record terminal PASSED/FAILED results; draft/checklist/evidence edits alone are excluded |
+| Support | Complete a support appointment or a task referencing a support ticket |
+| Login | One LOGIN event after each persisted auth session is created |
+
+Support tickets currently have no separate active resolve endpoint; the old close
+route returns 410. Support logs describe completion of the existing appointment or
+task workflow and do not invent a new ticket lifecycle. Provider webhooks, worker
+and cron changes have no authenticated user request and are outside user activity
+capture; their existing domain/provider audits remain authoritative.
+
+### Fields and read API
+
+| API field | Stored field / meaning |
+| --- | --- |
+| id | MongoDB `_id`, serialized as a string |
+| userId | `actorId`, from the authenticated request; never from the body |
+| user | Current PostgreSQL name, email and role; null when the account is unavailable |
+| action | Explicit action enum: CREATE, UPDATE, LOCK, UNLOCK, ASSIGN_ROLE, CHANGE_ROLE, ASSIGN_FACILITY, REVOKE_FACILITY, ASSIGN_UNIT, CHANGE_STATUS, RECORD_RESULT, RESOLVE or LOGIN |
+| entityType | USER, FACILITY, UNIT, RENTAL, PAYMENT, INSPECTION or SUPPORT |
+| entityId | Actual domain record ID; nullable when creation fails before an ID exists |
+| description | Fixed backend description of the intended action, including on failure |
+| result | SUCCESS or FAILURE |
+| createdAt | `occurredAt`, a UTC timestamp |
+| ipAddress | Fastify's resolved request IP, or the auth session's IP for login |
+| facilityId | Domain facility reference when known; nullable |
+
+Internal correlation fields remain `requestId`, `statusCode`, `userAgent` (bounded
+at 512 characters), and `sessionId` on login events. The list API does not expose
+these extra fields. Session ID is an identifier, never a session token. Log entries
+have no FK to transient sessions, so login history survives logout/revocation.
+Reading or updating an existing session does not record another login, and failed
+login attempts are not captured.
+
+`GET /api/admin/activity-logs` requires an ACTIVE SYSTEM_ADMIN. It returns the
+standard success envelope with `{ items, total, limit, offset }`, ordered newest
+first by `(occurredAt, _id)`. Supported filters: `search` (name/email), current `role`, `userId`, `action`, `entityType`,
+`entityId`, `result`, inclusive UTC `from`/`to`; limit defaults to 20, max 100.
+No create, edit or delete log API exists, including for System Administrator.
+Responses use `Cache-Control: private, no-store`.
+
+Name/email search is case-insensitive and treats LIKE wildcards as literal text.
+Search and role resolve matching PostgreSQL actor IDs before MongoDB pagination,
+so totals and page boundaries reflect the complete matching history. Unfiltered
+pages load only their actors' profiles in one query. Profiles are live lookups,
+not snapshots: renaming a user or changing their role changes how past log entries
+are displayed and filtered. Deleted accounts keep their activity with null profile.
+The page has six columns and no KPI cards; date filters use complete Vietnam days
+(UTC+7), and the API continues accepting ISO timestamps with timezone offsets.
+
+MongoDB documents from the previous request-based capture remain readable without
+rewriting them: `actorId`/`occurredAt` are kept internally, missing descriptions
+fall back to the old action, and missing results map to SUCCESS because previous
+capture only stored accepted writes and created sessions. Old action/entity values
+are preserved rather than presented as newly classified business events. The old
+PostgreSQL history tables are also retained, as described below.
+
+### Developer notes and guarantees
+
+- Start with `activity-logs.service.ts`, then the owning business service. A service
+  calls `beginActivity` before an important attempt, supplies domain IDs and a
+  fixed description, and sets `changed` only when its write succeeds. Successful
+  no-ops/idempotent replays do not create activity entries. Assignment refreshes
+  do update assignment time and count as writes.
+- `app.ts` starts a request-scoped AsyncLocalStorage context and flushes its
+  collected attempts in `onResponse`. No separate activity plugin file is needed.
+  Only requests with an authenticated actor are flushed. Ordinary CRUD and reads
+  do not create entries unless an owning service explicitly marks a change.
+- SUCCESS requires a marked change and a successful HTTP response. A 4xx/5xx
+  response records the collected attempts as FAILURE, even if nested writes were
+  marked before an enclosing rollback. A compound operation can produce several
+  entries, correlated internally by request ID. Failures before the marked service
+  is entered (including route validation and role guards) are not captured. A
+  response failure after a commit is still a failed request; domain audits hold
+  the exact committed facts. This is not a financial ledger.
+- Register a new action at its business service, not by guessing from HTTP paths or
+  copying request/response objects. Do not copy passwords, OTPs, tokens, cookies,
+  payment references, free-text notes, raw provider payloads or error messages.
+  IP and user-agent are metadata; neither is proof of identity. Reuse existing
+  authorization and transaction boundaries rather than changing them for logging.
+- `auth.ts` writes LOGIN in `databaseHooks.session.create.after`. Keep login capture
+  there instead of duplicating it in handlers, so email and OAuth use one point.
+  Auth and request logs share the MongoDB client from `mongo-plugin.ts`; no separate
+  auth connection or Mongoose model is used. `auth.routes.ts` forwards Fastify's
+  resolved IP; deployment must configure actual trusted peers with
+  `TRUSTED_PROXY_CIDRS`.
+- Runtime insert failure warns without failing or rolling back the main operation.
+  HTTP logs are written after response delivery; login awaits its log attempt.
+  The client has a 5-second operation timeout, so MongoDB failure may delay login.
+  A crash or outage can lose entries: there is no retry, outbox or durable delivery.
+  MongoDB must be reachable at API startup for connection/index initialization.
+- Indexes: `(occurredAt,_id)`, `(actorId,occurredAt)`, `(action,occurredAt)`,
+  `(facilityId,occurredAt)`, `(entityType,entityId,occurredAt)`. No TTL or automatic
+  deletion is configured. No PostgreSQL schema change/migration is required.
+- Setup lives in `README.md`, `apps/api/.env.example` and `docker/app.env.example`.
+  Specify the database name in `MONGODB_URI`. Keep these workflow notes here,
+  rather than duplicating feature details in `AGENTS.md` or a new document.
+- Tests: `tests/units/activity-logs.test.ts` covers selection, no-ops, failures,
+  privacy and concurrent request isolation. `tests/integration/activity-logs-api.test.ts`
+  checks all roles, read filters and the absence of write endpoints.
+  `tests/integration/activity-logs.test.ts` exercises MongoDB storage/filtering and
+  real login/logout against isolated PostgreSQL/MongoDB. Database tests require
+  explicit test URLs; CI and the local database runner supply them. The local
+  runner creates and drops uniquely named test databases.
+
+## Retained user history tables
+
+The `user-history` application module and its capture hooks and read endpoints
+have been replaced by `activity-logs`. The existing `login_history` and
+`user_activity_logs` tables, schema declarations, and stored records are retained.
+The application no longer writes to these PostgreSQL tables; new activity and
+login records go to MongoDB. Existing records are not migrated or deleted. Other
+domain audit records remain unchanged.
+
+## Facility work tasks
+
+`facility_tasks` is one staff work queue for check-in and handover, unit inspection,
+and support handling. `type` is `CHECK_IN_HANDOVER`, `UNIT_INSPECTION`, or
+`HANDLE_SUPPORT`; `status` is `ASSIGNED`, `IN_PROGRESS`, `COMPLETED`, or
+`CANCELLED`. Each row has UUID id, facility_id, reference_type/reference_id,
+assigned_staff_id and assigned_by FKs, nullable description, nullable started_at
+and completed_at, assigned_at, created_at and updated_at. The polymorphic reference
+types are `BOOKING`, `STORAGE_UNIT`, and `SUPPORT_TICKET`; because one UUID column
+cannot have foreign keys to three tables, repositories validate target existence
+and same-facility scope under transaction locks.
+
+`CHECK_IN_HANDOVER` references an appointment and is created or reassigned in the
+same transaction as manager appointment assignment. `UNIT_INSPECTION` references an
+appointment or storage unit; `HANDLE_SUPPORT` references a support ticket. Reassignment
+resets an in-progress task to `ASSIGNED`; same assignee retries are no-ops. The
+assigned active Facility Staff starts and completes the task. An assigned-facility
+FM may cancel unfinished work. There is no separate task report, approval state,
+title, or completion actor field; the existing inspection and support records own
+their domain details.
+
+Facility staff membership cannot be revoked while an assigned task is
+`ASSIGNED` or `IN_PROGRESS`; booking and return workflows retain their own
+assignment constraints.
+
+
+## Existing constraints and behavior
+
+- Booking confirmation emails have an intent/snapshot in the existing durable outbox,
+  inserted in the payment transaction. The worker prepares an authenticated account
+  booking URL and encrypted payload, then bridges to the existing BullMQ job/delivery ID.
+  Legacy jobs remain readable; ENQUEUED differs from provider-confirmed SENT.
+
+- UUID primary keys on `users`, `facilities`, `facility_assignments`,
+  `facility_tasks`,
+  `unit_types`, `facility_unit_types`, `storage_units`, `check_in_slots`,
+  and `capacity_allocations` default to generated random UUIDs. Auth tables
+  `accounts`, `sessions` and `verifications` use text primary keys.
+- `users.email`, `users.phone`, `facilities.code`, `storage_units.code` and
+  `sessions.token` are unique. `users.phone` is nullable. Booking contact email is not unique.
+- Varchar limits are `users.email` 255, `users.phone` 20, Booking contact phone 32,
+  `facilities.code` 50 and `facilities.name` 150;
+  `unit_types.code` 80, `unit_types.name` 100, `unit_types.size_label` 50;
+  `storage_units.code` 80.
+- Nullable columns are `users.image`, `users.phone`,
+  `users.role`, `users.status`, `facilities.description`,
+  `facility_assignments.ended_at`, `storage_units.floor`,
+  `storage_units.location_description`,
+  `facility_tasks.started_at`, `facility_tasks.completed_at`,
+  payment provider checkout fields, `paid_at`, `expires_at`, and booking refund metadata;
+  All nine rental columns are NOT NULL;
+  `sessions.ip_address`,
+  `sessions.user_agent`, and the optional token, expiry, scope and password
+  fields in `accounts`. Other nullability follows the Drizzle schema.
+- User role/status values are defined once in `packages/contracts/src/users.ts` and
+  reused by Drizzle and API contracts. Changing those values still requires a database migration.
+- Enum values are `role`: `CUSTOMER`, `FACILITY_STAFF`, `FACILITY_MANAGER`,
+  `BUSINESS_OPERATION_MANAGER`, `SYSTEM_ADMIN`; `status`: `ACTIVE`, `INACTIVE`;
+  `storage_unit_status`: `AVAILABLE`, `RESERVED`, `OCCUPIED`, `MAINTENANCE`,
+  `INSPECTION`, `RETURN_PENDING`, `LOCKED`, `INACTIVE`;
+  `facility_task_type`: `CHECK_IN_HANDOVER`, `UNIT_INSPECTION`, `HANDLE_SUPPORT`;
+  `facility_task_status`: `ASSIGNED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`;
+  `facility_task_reference_type`: `BOOKING`, `STORAGE_UNIT`, `SUPPORT_TICKET`;
+  `capacity_allocation_kind`: `HOLD`, `BOOKING`; and
+  `capacity_allocation_status`: `ACTIVE`, `RELEASED`, `EXPIRED`;
+  `inspection_type`: `CHECK_IN`, `CHECK_OUT`, `MAINTENANCE`;
+  `inspection_status`: `PENDING`, `IN_PROGRESS`, `PASSED`, `FAILED`;
+  `inspection_condition`: `GOOD`, `MINOR_DAMAGE`, `MAJOR_DAMAGE`;
+  `cloudinary_resource_type`: `image`, `video`, `raw`;
+  `payment_status`: `PENDING`, `SUCCEEDED`, `FAILED`, `REFUND_PENDING`, `REFUNDED`;
+  `payment_refund_reason_code`: `NO_CAPACITY`, `CHECK_IN_CLOSED`,
+  `OFFERING_UNAVAILABLE`, `CUSTOMER_CANCELLATION`, `NO_SHOW`;
+  `rental_status`: `ACTIVE`, `CLOSED`.
+- Composite unique `accounts(provider_id, account_id)` ensures one owner per provider
+  identity, including concurrent OAuth linking. Existing duplicates must be resolved
+  explicitly before applying this constraint; never merge users automatically.
+- Composite unique indexes exist on `facility_assignments(user_id, facility_id)`.
+- Each User may work at at most one Facility at a time. A partial unique index
+  `facility_assignments_active_user_idx` on `user_id WHERE is_active = true`
+  enforces this rule, including concurrent assignments. Inactive assignments are
+  retained. End or revoke the current assignment before assigning another Facility;
+  elapsed `ended_at` rows must be deactivated before reassigning. The API does not
+  automatically revoke a still-effective assignment to another Facility.
+- Login through the shared API client and `GET /api/auth/me` include
+  `user.assignedFacilityId`: the current assignment's Facility ID or `null`.
+  Only assignments matching the User's Facility Staff/Manager role, with
+  `is_active = true` and no elapsed `ended_at`, qualify. This field is derived,
+  not a new column on User or Session, and does not replace backend scope checks.
+- Before applying the single-Facility index migration, check for Users with
+  multiple `is_active = true` assignments. Resolve them explicitly before
+  migrating; the migration must not choose a Facility or discard history.
+- `unit_types` is the BOM catalog: globally unique code, standard dimensions,
+  required `min_monthly_price > 0` and `max_monthly_price >= min_monthly_price`.
+- `facility_unit_types` stores the FM offering, unique on `(facility_id,unit_type_id)`;
+  exact monthly price and enablement belong to the offering. Prices must fit the
+  catalog bounds; catalog bounds cannot exclude any configured offering price.
+- `storage_units`, `bookings`, `reservations` and `capacity_allocations` retain
+  their existing `unit_type_id` field as the **facility offering ID** and use a
+  composite FK to `facility_unit_types(facility_id,id)` with ON DELETE RESTRICT.
+  Public responses keep the offering ID and flatten catalog metadata with local price.
+- User foreign keys use `ON DELETE CASCADE` for `accounts`, `sessions` and
+  `facility_assignments`, and `ON DELETE RESTRICT` for `bookings.user_id`.
+  Facility task references use `ON DELETE RESTRICT` to preserve assigned work.
+  Facility foreign keys use `ON DELETE CASCADE` for
+  `storage_units` and `facility_assignments`, and
+  `ON DELETE RESTRICT` for capacity allocations.
+- `created_at` and `updated_at` columns default to `now()` wherever shown;
+  `assigned_at` also defaults to `now()`. `facilities.is_active`,
+  `unit_types.is_active` and
+  `facility_assignments.is_active` default to true.
+  `storage_units.status` defaults to `AVAILABLE`,
+  `capacity_allocations.status` to `ACTIVE`. The default operating timezone is
+  `Asia/Ho_Chi_Minh`. Operating hours are now global system settings, not a table.
+
+BOM creates and updates standard unit types, dimensions and price bounds.
+FM selects an active catalog type for an assigned active facility, then sets the
+local monthly price within those bounds. FM cannot edit standard metadata or bounds.
+Dimensions cannot change once a type has a facility offering. Disabling a catalog
+entry removes all its offerings from public selection without deleting operational history.
+Legacy migration keeps each old offering ID; it does not automatically merge catalog
+items. Existing finite price bounds are preserved, otherwise min=max=current price.
+Duplicate legacy codes receive an ID suffix. BOM can review and widen the migrated bounds.
+
+## Sơ đồ quan hệ hiện tại trong code
+
+```mermaid
+erDiagram
+  facility_tasks {
+    uuid id PK
+    uuid facility_id FK
+    facility_task_type type
+    facility_task_status status
+    facility_task_reference_type reference_type
+    uuid reference_id
+    uuid assigned_staff_id FK
+    uuid assigned_by FK
+    integer version
+    timestamptz started_at "nullable"
+    timestamptz completed_at "nullable"
+    timestamptz assigned_at
+    timestamptz created_at
+    timestamptz updated_at
+  }
+  facilities ||--o{ facility_tasks : scopes
+  users ||--o{ facility_tasks : performs
+  users ||--o{ facility_tasks : assigns
+  facility_tasks }o--|| bookings : "reference when BOOKING"
+  facility_tasks }o--|| storage_units : "reference when STORAGE_UNIT"
+  facility_tasks }o--|| support_tickets : "reference when SUPPORT_TICKET"
+  system_settings {
+    text key PK
+    jsonb value
+    text description
+    integer version
+    uuid updated_by FK
+    timestamptz updated_at
+  }
+  rental_renewals {
+    uuid id PK
+    uuid rental_id FK
+    uuid storage_unit_id FK
+    varchar idempotency_key
+    timestamptz old_end_at
+    timestamptz new_end_at
+    integer months
+    numeric monthly_rate_snapshot
+    numeric amount
+    varchar currency
+    integer notice_days_snapshot
+    integer setting_version_snapshot
+    timestamptz cutoff_at
+    timestamptz expires_at
+    rental_renewal_status status
+    timestamptz applied_at "nullable"
+    varchar failure_reason "nullable"
+    timestamptz created_at
+    timestamptz updated_at
+  }
+  rentals ||--o{ rental_renewals : renewals
+  storage_units ||--o{ rental_renewals : snapshots
+  system_setting_changes {
+    uuid id PK
+    text key FK
+    jsonb before
+    jsonb after
+    uuid actor_id FK
+    text source
+    timestamptz created_at
+  }
+  system_settings ||--o{ system_setting_changes : audits
+  users ||--o{ system_setting_changes : changes
+  pricing_changes {
+    uuid id PK
+    integer version UK
+    pricing_change_operation operation
+    jsonb before
+    jsonb after
+    uuid changed_by FK
+    timestamptz changed_at
+  }
+  users o|--o{ system_settings : updates
+  users ||--o{ pricing_changes : changes
+  inspections {
+    uuid id PK
+    uuid storage_unit_id FK
+    uuid rental_id FK "nullable"
+    uuid booking_id FK "nullable"
+    uuid inspected_by FK
+    uuid task_id FK
+    inspection_type inspection_type
+    inspection_status status
+    inspection_condition condition "nullable"
+    jsonb checklist
+    text notes "nullable"
+    timestamptz inspected_at "nullable"
+    timestamptz inspect_done_at "nullable"
+  }
+  media_assets {
+    uuid id PK
+    varchar owner_type
+    uuid owner_id
+    varchar purpose
+    uuid uploaded_by FK
+    varchar filename
+    varchar mime_type
+    integer byte_size
+    cloudinary_resource_type cloudinary_resource_type
+    text cloudinary_public_id
+    varchar cloudinary_format
+    timestamptz created_at
+  }
+  check_in_slots ||--o{ bookings : schedules
+  users ||--o{ accounts : authenticates_with
+  users ||--o{ sessions : signs_in_with
+  users ||--o{ facility_assignments : receives
+  facilities ||--o{ facility_assignments : has
+  facilities ||--o{ facility_unit_types : configures
+  unit_types ||--o{ facility_unit_types : offered_as
+  facility_unit_types ||--o{ storage_units : materializes
+  facility_unit_types ||--o{ capacity_allocations : allocates
+  facility_unit_types ||--o{ bookings : books
+  facility_unit_types ||--o{ reservations : reserves
+  facilities ||--o{ storage_units : contains
+  facilities ||--o{ capacity_allocations : reserves
+  users o|--o{ bookings : saves_history
+  users o|--o{ bookings : assigned_to
+  bookings ||--o| rentals : becomes
+  users ||--o{ rentals : rents
+  storage_units ||--o{ rentals : occupies
+  bookings ||--o{ payments : records
+  users o|--o{ payments : confirms_manual_refund
+  bookings o|--o{ inspections : checkin_context
+  rentals o|--o{ inspections : checkout_context
+  rentals ||--o{ rental_renewals : renews
+  rental_renewals ||--o| payments : charges
+  storage_units ||--o{ inspections : inspected
+  facility_tasks ||--o{ inspections : assigned_work
+  users ||--o{ inspections : inspects
+  users ||--o{ media_assets : uploads
+
+  check_in_slots {
+    uuid id PK
+    text name
+    time start_time
+    time end_time
+  }
+
+  users {
+    uuid id PK
+    text name
+    varchar email UK
+    boolean email_verified
+    text image
+    varchar phone UK
+    role role
+    status status
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+  accounts {
+    text id PK
+    uuid user_id FK
+    text account_id
+    text provider_id
+    text access_token
+    text refresh_token
+    text id_token
+    timestamptz access_token_expires_at
+    timestamptz refresh_token_expires_at
+    text scope
+    text password
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+  sessions {
+    text id PK
+    uuid user_id FK
+    text token UK
+    timestamptz expires_at
+    text ip_address
+    text user_agent
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+  verifications {
+    text id PK
+    text identifier
+    text value
+    timestamptz expires_at
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+  facility_assignments {
+    uuid id PK
+    uuid user_id FK
+    uuid facility_id FK
+    timestamptz assigned_at
+    timestamptz ended_at
+    boolean is_active
+    role role
+  }
+
+  facilities {
+    uuid id PK
+    varchar code UK
+    varchar name
+    text address
+    text cover_url "nullable"
+    text description
+    boolean is_active
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+
+  unit_types {
+    uuid id PK
+    varchar code UK
+    varchar name
+    text cover_url
+    varchar size_label
+    numeric length_m
+    numeric width_m
+    numeric height_m
+    numeric size_cbm "generated"
+    integer min_monthly_price
+    integer max_monthly_price
+    boolean is_active
+    integer version
+    uuid updated_by FK
+    timestamptz created_at
+    timestamptz updated_at
+  }
+  facility_unit_types {
+    uuid id PK
+    uuid facility_id FK
+    uuid unit_type_id FK
+    integer monthly_price
+    boolean is_active
+    integer version
+    uuid updated_by FK
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+  storage_units {
+    uuid id PK
+    uuid facility_id FK
+    uuid unit_type_id FK
+    varchar code UK
+    varchar floor "nullable"
+    varchar location_description "nullable"
+    text cover_url "nullable"
+    storage_unit_status status
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+  capacity_allocations {
+    uuid id PK
+    uuid facility_id FK
+    uuid unit_type_id FK
+    uuid reference_id
+    varchar access_token_hash "nullable during capacity hold"
+    capacity_allocation_kind kind
+    capacity_allocation_status status
+    timestamptz starts_at
+    timestamptz ends_at
+    timestamptz expires_at "nullable"
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+  bookings {
+    uuid id PK
+    varchar booking_code UK
+    uuid user_id FK "required; ON DELETE RESTRICT"
+    varchar contact_phone "nullable before payment; booking-specific"
+    uuid facility_id FK
+    uuid unit_type_id FK
+    integer requested_months
+    date check_in_date
+    uuid check_in_slot_id FK
+    timestamptz rental_end_at
+    numeric monthly_rate_snapshot
+    numeric rental_fee_amount
+    numeric deposit_amount
+    numeric total_amount
+    varchar status "default DRAFT"
+    uuid assigned_staff_id FK "nullable"
+    varchar qr_token_hash UK
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+  rentals {
+    uuid id PK
+    uuid booking_id FK,UK
+    uuid reservation_id FK,UK
+    uuid user_id FK
+    uuid storage_unit_id FK
+    rental_status status
+    timestamptz start_at
+    timestamptz end_at
+    timestamptz closed_at "nullable actual return time"
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+
+
+
+
+
+  payments {
+    uuid id PK
+    payment_type type "CHARGE, DEPOSIT_REFUND or DEBT_COLLECTION"
+    uuid debt_id FK "nullable; debt receipt"
+    payment_method method "nullable; CASH or BANK_TRANSFER"
+    varchar reference "nullable; external receipt reference"
+    uuid recorded_by FK "nullable; Staff recording a receipt"
+    uuid booking_id FK "nullable for rental-charge payments"
+    uuid reservation_id FK "nullable"
+    uuid rental_id FK "nullable; return refund"
+    uuid renewal_id FK "nullable; renewal charge"
+    uuid source_payment_id FK "nullable; original charge"
+    varchar provider "nullable for deposit refund"
+    varchar provider_payment_id "nullable"
+    varchar payment_code UK "nullable for refund"
+    varchar hold_token_hash "nullable for refund"
+    varchar idempotency_key UK
+    numeric total_amount
+    varchar currency
+    payment_status status
+    timestamptz paid_at
+    timestamptz expires_at "nullable payment quote expiry"
+    payment_refund_reason_code refund_reason "nullable"
+    numeric refund_amount "nullable; legacy refund falls back to total_amount"
+    numeric deposit_forfeited_amount "NOT NULL DEFAULT 0"
+    varchar refund_reference "nullable; bank transfer reference/evidence"
+    timestamptz refunded_at "nullable"
+    uuid refunded_by FK "nullable; ON DELETE RESTRICT"
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+  return_settlements {
+    uuid id PK
+    uuid rental_id FK,UK
+    uuid inspection_id FK,UK
+    uuid source_payment_id FK
+    numeric deposit_amount
+    numeric deduction_amount
+    varchar currency
+    uuid settled_by FK
+    timestamptz settled_at
+  }
+
+  debts {
+    uuid id PK
+    uuid settlement_id FK,UK
+    numeric original_amount "positive"
+    numeric paid_amount "0 through original_amount"
+    debt_status status "UNPAID, PARTIALLY_PAID, PAID"
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+  policy_violation_fee {
+    uuid id PK
+    varchar reference_type "nullable for catalog; INSPECTION for applied fee"
+    uuid reference_id "nullable for catalog"
+    varchar violation_code
+    varchar violation_name
+    integer amount "snapshot VND"
+    integer policy_version
+    text note "nullable"
+    boolean is_active "catalog enablement; applied rows false"
+    timestamptz created_at
+  }
+
+  payment_provider_events {
+    uuid id PK
+    varchar provider
+    varchar provider_event_id
+    uuid payment_id FK
+    varchar payment_code
+    numeric amount
+    varchar transfer_type
+    varchar reference_code
+    payment_provider_event_status status
+    jsonb payload_metadata
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+  unit_assignments {
+    uuid id PK
+    uuid reservation_id FK "nullable; exactly one parent"
+    uuid booking_id FK "nullable; archived context"
+    uuid physical_unit_id FK
+    uuid assigned_by FK
+    varchar status
+    timestamptz assigned_at
+    timestamptz ended_at
+    text reason
+  }
+
+```
+
+## Historical booking design (superseded by reservation cutover)
+
+The following booking-specific notes describe archived records and retired routes.
+Current receiving behavior is defined at the top of this document.
+
+### Account-required booking (approved 2026-10-25; supersedes guest decisions)
+
+Only active authenticated CUSTOMER accounts can create booking drafts, start payments,
+read payment status, cancel bookings, or access their rentals/documents and return details.
+Ownership is bookings.user_id, required with ON DELETE RESTRICT. No email-based claim,
+guest checkout token, magic link, guest cookie or guest actor grants business access.
+Existing guest business records are deleted before imposing NOT NULL; account-owned
+records remain. Name and email are read from users, not copied onto bookings.
+Signup does not require phone. At payment, contactPhone can be supplied for this booking;
+otherwise users.phone is used. A valid phone is required, stored on bookings only, and
+never written back to users. ContactPhone may be NULL only while the booking is DRAFT.
+Issued contracts retain their own immutable snapshots. Payments and rentals continue to
+derive ownership through booking. Accounts with bookings cannot be physically deleted;
+use the existing account lock/status workflow instead. Guest access endpoints are removed.
+The legacy reservation-draft checkout and table are removed.
+
+## Payment and Booking notes (#18)
+
+- Booking drafts store immutable pricing columns: rental fee equals
+  the monthly rate times the requested months; the deposit equals one month's
+  rate; total equals rental fee plus deposit, in VND. Payments use this stored
+  quote even if catalog prices change later. Legacy unpriced drafts must be recreated.
+
+- Booking stores per-booking phone and pricing snapshots; name/email come from users.
+- bookings.user_id is required, indexed and references users with ON DELETE RESTRICT.
+  Payment and Rental have no customer_id columns.
+- paidAt comes from the earliest non-null payments.paid_at with status SUCCEEDED,
+  REFUND_PENDING or REFUNDED. Booking queries join slots and aggregate payments before joining,
+  preventing duplicate booking rows. Other consumers retain their timestamp
+  projection until their dedicated query refactors.
+- Booking status defaults to DRAFT; a CHECK limits it to DRAFT, CONFIRMED,
+  CANCELLED, NO_SHOW or CHECKED_IN. Pricing columns remain required.
+- Bookings retain nullable unique booking_code/qr_token_hash, nullable
+  assigned_staff_id and required user_id. Operational lists/details
+  exclude DRAFT; drafts cannot be assigned a unit/staff or verified through QR.
+- Payment stores the transaction total, currency, provider references, status
+  and paid_at; the monthly rate, rental fee and deposit breakdown belong to
+  Booking. Readers project booking contact and date/slot timestamps for the
+  existing API contracts.
+- Payment status values are PENDING, SUCCEEDED, FAILED, REFUND_PENDING and REFUNDED,
+  defined in the payment contract and reused by Drizzle. A valid incoming payment
+  that cannot receive capacity/check-in becomes REFUND_PENDING with paid_at and
+  refund_reason, while its booking stays DRAFT and holds are released. The full
+  payment total (rent plus deposit) must be refunded manually. Only an admin or
+  business operations manager may record REFUND_PENDING -> REFUNDED with a
+  nonblank transfer reference, server timestamp and actor. Replays with the same
+  reference preserve the original audit; a different reference conflicts.
+- Customer cancellation and NO_SHOW retain the original payment total and snapshot
+  `refund_amount = bookings.rental_fee_amount` and
+  `deposit_forfeited_amount = bookings.deposit_amount`. Refund reasons distinguish
+  CUSTOMER_CANCELLATION and NO_SHOW from full refunds for unfulfillable checkout.
+  Refund amounts and forfeitures must be nonnegative, cannot individually exceed
+  total_amount, and their sum cannot exceed total_amount. Existing pending/refunded
+  rows with NULL refund_amount retain the previous full-total refund behavior.
+  Manual refund readers/confirmation use the snapshotted refund amount.
+- Payment provider integration is selected through a gateway adapter. The
+  current implementation provides a mock/test adapter; the production provider
+  pricing policy uses the confirmed one-month deposit rule for checkout.
+- A successful payment changes the matching active capacity allocation from
+  `HOLD` to `BOOKING` inside the same transaction. No physical unit is assigned
+  at checkout.
+- `payments.idempotency_key` and `(provider, provider_payment_id)` are unique.
+- Payments now reference their booking directly. Rental-charge and return-transfer
+  references are retired. Booking payment idempotency, provider transaction uniqueness
+  and cancellation refund metadata remain.
+
+Check-in slots are shared time-of-day definitions with exactly four required
+columns: `id`, `name`, `start_time`, `end_time`. A Booking stores a required
+`check_in_date` and `check_in_slot_id` instead of start/end timestamps. The
+calendar date is interpreted in the facility timezone (currently Vietnam time).
+Referenced slots cannot be deleted (`ON DELETE RESTRICT`). This change is
+represented in the database by date and slot. Booking, payment, check-in and
+rental readers project the start/end timestamps into existing API DTOs in
+Asia/Ho_Chi_Minh time. Legacy draft requests map check_in_at to the containing
+slot (start inclusive, end exclusive) and normalize draft/hold dates to that
+slot's start before charging. A request outside the slots is rejected. Previously
+created drafts with an unnormalized schedule must be recreated before payment.
+
+ACTIVE rentals block unit reassignment. The old return-closure workflow is retired.
+
+
+
+
+
+## Unified system settings (2026-10-20; supersedes global settings tables above)
+
+`system_settings` is the single active global configuration table: key PK, scalar JSONB
+value, description, nonnegative version, updated_by FK users and updated_at. API keys
+are an allowlist with per-key validation and permissions. Initial keys are
+EXPIRY_REMINDER_DAYS (7), ABANDONED_REVIEW_DAYS (7), OVERDUE_FEE_RATE (25),
+DEPOSIT_MONTHS (1), OPENING_HOUR (8) and CLOSING_HOUR (20). Day/hour settings use
+bounded integers, rate 0–100 and months positive. DEPOSIT_MONTHS retains the positive shared pricing revision: price changes
+also lock/increment this row. Existing quote/rental/settlement snapshots are unchanged.
+System Admin manages rental-day settings; BOM manages financial settings and shared
+operating hours. Return checklist versions, unit type prices and financial snapshots
+remain relational domain data. Holiday calendars are out of scope.
+
+`system_setting_changes`: UUID id, key FK, JSONB before/after value+version snapshots,
+actor_id FK, source and created_at. Append-only changes share the update transaction;
+existing pricing_changes remain the pricing history source.
+
+The pre-production baseline creates the current settings schema directly. Existing
+development databases must be reset before applying it; no legacy configuration
+transfer is included.
+
+## Customer Support request model (2026-10-27)
+
+Support is a one-way customer request. Customers can discover their booking and
+payment context, submit a subject and description, then view the immutable ticket.
+There is no support chat, image upload, staff assignment, or ticket lifecycle.
+
+```mermaid
+erDiagram
+  bookings ||--o{ support_tickets : context
+  users ||--o{ support_tickets : owns
+  facilities ||--o{ support_tickets : scopes
+  rentals o|--o{ support_tickets : warehouse_context
+  payments o|--o{ support_tickets : optional_transaction
+  support_tickets o|--o{ notification_outbox : receipt
+```
+
+### support_tickets
+
+| Columns | Type and constraints |
+| --- | --- |
+| id | UUID primary key, server generated |
+| booking_id, owner_user_id, facility_id | Required UUID foreign keys derived from the authenticated booking |
+| rental_id | Nullable UUID FK; required for warehouse categories and must belong to the booking |
+| payment_id | Nullable UUID FK; if present must belong to the booking |
+| category | UNIT, LOCK, ACCESS_CODE, STORED_ITEMS, or PAYMENT |
+| subject | Trimmed varchar(200), required |
+| description | Trimmed text, 1–5000 characters |
+| action_due_at | Required timestamp, created_at + 12 continuous hours |
+| idempotency_key | Required key, unique with owner_user_id; request fields are compared on retry |
+| created_at | Server-generated timestamp |
+
+The initial request is the ticket itself. `notification_outbox` records the
+creation receipt in the same transaction. Removed tables: `support_messages`,
+`support_attachments`, `support_audit`, and `support_idempotency`.
+Recheck current ownership/facility/assignee at read or sensitive delivery time.
+Revoked FS can receive only a minimal revocation notice, without old ticket data.
+
+### Lifecycle, workload and 12-hour tracking
+
+Ticket lifecycle: OPEN → IN_PROGRESS → CLOSED. Assignment immediately enters
+IN_PROGRESS; a separate FS start records first_onsite_started_at without another
+ticket transition. FS report remains IN_PROGRESS until FM accepts/closes for
+warehouse categories. BOM starts/resolves PAYMENT under its role.
+Customer withdrawal closes with CUSTOMER_WITHDREW, stops Support work and never
+marks an unfinished report/task successfully completed. Reopen is FM/BOM only
+within category scope and requires a fresh assignment where needed.
+
+12 continuous hours starts at created_at, without resetting on reassign.
+Warehouse measurement distinguishes “FS assigned” and “FS arrived/started”;
+assignment alone does not prove an onsite response. PAYMENT measures BOM's first
+contact/start in 12 hours. Reopen preserves original timing/audit and does not
+invent a fresh automatic SLA cycle or change the ticket's original created_at.
+Priority HIGH is processed ahead of NORMAL; both retain the 12-hour maximum.
+No new auto-dispatch, SLA engine, automatic escalation or realtime is approved.
+There is no cross-role ESCALATE action in MVP; overdue work stays with the
+authorized FM/BOM category owner and is visible in its manual queue.
+
+Support ticket text remains on support_tickets; staff assignment is a linked
+HANDLE_SUPPORT facility task. The task does not replace ticket content or alter
+booking, inspection, occupancy, rental, payment, maintenance or access-code state.
+
+## Facility workspace support events
+
+The existing notification_outbox lifecycle enum additionally supports SUPPORT_UPDATED.
+Support operation events use the existing support_ticket_id, versioned event key and
+recipient uniqueness; IN_APP records are stored as SENT and are never mailed. Public
+replies/resolutions enqueue customer email; private notes never enter customer or FS
+notifications. Staff inbox visibility rechecks current ticket assignment and active
+facility membership. No new ticket/message table is introduced.
+
+### Return settlement and debt API
+
+- Existing PATCH `/api/inspections/:id` accepts `settlement: { confirmed: true, deductionAmount, refund?: { method, reference? } }` when completing a CHECK_OUT. `deductionAmount` is a confirmation of the server-calculated fee total, not a caller override. No FM approval is required. Financial confirmation and return completion commit together. Applied inspection fees remain frozen after completion.
+- Inspection detail returnContext includes deposit, applied fees, deduction total, refund estimate and debt estimate. Final confirmation rechecks server totals inside the transaction.
+- Rental detail for Customer and FM includes `settlement` (null for unsettled or historical returns): deposit, deductions, refund entitlement, debt created, inspection, currency, Staff and server timestamp.
+- GET `/api/debts` supports rentalId, status and existing limit/offset pagination. Customer sees only owned debts; Staff and FM see only actively assigned facilities. GET `/api/debts/:id` adds receipt history. Scope and actor come from the authenticated session/assignments.
+- POST `/api/debts/:id/payments` is Staff-only and accepts a positive integer VND amount, method CASH/BANK_TRANSFER, transfer reference when applicable, and idempotencyKey. It records money already received externally. Active assignment and Debt row locks protect collection, prevent overpayment, and serialize concurrent receipts. Replaying the same payload/key reuses the receipt; conflicting reuse is rejected.
+- A receipt inserts a SUCCEEDED DEBT_COLLECTION payment and updates Debt paid_amount/status atomically. No Debt or Payment is created for a zero balance. Source CHARGE amounts and status remain unchanged. Financial reports count debt receipts as cash received and cap applied deposit deductions at the deposit; the excess remains a receivable until collected.
+- BOM/System Admin manual refund endpoints remain for cancellation/no-show/provider exceptions and historical pending refunds; new deposit-return refunds are confirmed by assigned Staff during completion. Historical records retain their existing reconciliation path and are not automatically marked paid or migrated to new settlements.
+
+Deployment compatibility: completing CHECK_OUT now requires settlement confirmation. Existing web/mobile clients must be updated in their later phase before exposing return completion against this backend. This phase changes no frontend code.
+
+Migration execution commits additions to existing PostgreSQL enums before running generated schema/data statements that use those values. Enum additions are additive and idempotent on retry; the main schema/data phase and migration journal entries roll back together on failure. A failed schema phase can therefore leave the new enum labels present, without marking the migration applied. Generated SQL files remain unchanged. Fresh-schema and existing-enum upgrade/retry paths are tested separately.

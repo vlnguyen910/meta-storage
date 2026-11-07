@@ -1,4 +1,4 @@
-import { UserRole } from "@storex/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { businessOperationsRoutes } from "./business-operations.routes";
 import { customerRoutes } from "./customer.routes";
 import { facilityManagerRoutes } from "./facility-manager.routes";
@@ -11,7 +11,6 @@ export {
   customerRoutes,
   facilityManagerRoutes,
   facilityStaffRoutes,
-  publicRoutes,
   systemAdministratorRoutes,
 };
 
@@ -26,7 +25,7 @@ export const routes = {
 
 export const roleHome: Record<UserRole, string> = {
   [UserRole.STORAGE_CUSTOMER]: customerRoutes.dashboard,
-  [UserRole.FACILITY_STAFF]: facilityStaffRoutes.dashboard,
+  [UserRole.FACILITY_STAFF]: facilityStaffRoutes.tasks,
   [UserRole.FACILITY_MANAGER]: facilityManagerRoutes.dashboard,
   [UserRole.BUSINESS_OPERATIONS_MANAGER]: businessOperationsRoutes.dashboard,
   [UserRole.SYSTEM_ADMINISTRATOR]: systemAdministratorRoutes.dashboard,
@@ -37,4 +36,9 @@ export function safeReturnTo(value: string | null, fallback: string): string {
     return fallback;
   }
   return value;
+}
+
+export function storageEntryHref(role?: UserRole | null): string {
+  if (!role) return `${routes.login}?returnTo=${encodeURIComponent(customerRoutes.facilities)}`;
+  return role === UserRole.STORAGE_CUSTOMER ? customerRoutes.facilities : roleHome[role];
 }

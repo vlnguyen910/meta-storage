@@ -1,26 +1,143 @@
 import { randomUUID } from "node:crypto";
-import { accounts, db, sessions, users, verifications } from "@storex/database";
+import { expo } from "@better-auth/expo";
 import { betterAuth } from "better-auth";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/api";
+import { ResendMailer } from "../../common/adapters/mailer/resend.adapter";
+import { mongoDatabase } from "../../common/database/mongo-plugin";
 import { env } from "../../config/env";
+import { ActivityLogsRepository } from "../activity-logs/activity-logs.repository";
+import { ActivityLogsService } from "../activity-logs/activity-logs.service";
+import { authDatabase } from "./auth.database";
+import { AUTH_MESSAGES } from "./auth.messages";
 
+const verificationMailer = new ResendMailer({
+  apiKey: env.RESEND_API_KEY,
+  fromEmail: env.RESEND_FROM_EMAIL,
+});
+const activityLogs = new ActivityLogsService(new ActivityLogsRepository(mongoDatabase));
 export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL,
-  trustedOrigins: env.AUTH_TRUSTED_ORIGINS.split(",").map((origin) => origin.trim()),
-  database: drizzleAdapter(db, {
-    provider: "pg",
-    schema: {
-      user: users,
-      session: sessions,
-      account: accounts,
-      verification: verifications,
+  trustedOrigins: [
+    ...env.AUTH_TRUSTED_ORIGINS.split(",").map((origin) => origin.trim()),
+    "metastorage://",
+    "exp://",
+  ],
+  database: authDatabase,
+  socialProviders:
+    env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
+      ? {
+          google: {
+            clientId: env.GOOGLE_CLIENT_ID,
+            clientSecret: env.GOOGLE_CLIENT_SECRET,
+            // Only the authorization-code flow is exposed in this backend integration.
+            disableIdTokenSignIn: true,
+            prompt: "select_account",
+          },
+        }
+      : {},
+  account: {
+    accountLinking: {
+      enabled: true,
+      disableImplicitLinking: true,
+      allowDifferentEmails: false,
+      updateUserInfoOnLink: false,
     },
-  }),
+  },
+  hooks: {
+    before: createAuthMiddleware(async (ctx) => {
+      if (ctx.path === "/request-password-reset") {
+        ctx.body.redirectTo = new URL("/reset-password", env.WEB_URL).toString();
+      }
+      if (ctx.path !== "/link-social") return;
+      const session = await getSessionFromCtx(ctx, { disableCookieCache: true });
+      if (!session)
+        throw new APIError("UNAUTHORIZED", {
+          code: "LOGIN_REQUIRED",
+          message: AUTH_MESSAGES.googleLinkSessionRequired,
+        });
+      if (session.user.status !== "ACTIVE")
+        throw new APIError("FORBIDDEN", {
+          code: "ACCOUNT_DISABLED",
+          message: AUTH_MESSAGES.accountDisabled,
+        });
+    }),
+  },
+  databaseHooks: {
+    session: {
+      create: {
+        before: async (session, ctx) => {
+          if (!ctx) return;
+          const user = await ctx.context.internalAdapter.findUserById(session.userId);
+          if (!user || !("status" in user) || user.status !== "ACTIVE")
+            throw new APIError("FORBIDDEN", {
+              code: "ACCOUNT_DISABLED",
+              message: AUTH_MESSAGES.accountDisabled,
+            });
+        },
+        after: async (session, ctx) => {
+          await activityLogs.recordLogin(session, () =>
+            (ctx?.context.logger ?? console).warn("Login activity log could not be stored"),
+          );
+        },
+      },
+    },
+  },
   emailAndPassword: {
     enabled: true,
+    requireEmailVerification: true,
+    autoSignIn: false,
+    minPasswordLength: 8,
+    maxPasswordLength: 128,
+    resetPasswordTokenExpiresIn: 60 * 60,
+    revokeSessionsOnPasswordReset: true,
+    sendResetPassword: async ({ user, url }) => {
+      await verificationMailer.sendPasswordResetEmail({
+        to: user.email,
+        name: user.name,
+        resetUrl: url,
+      });
+    },
+  },
+  emailVerification: {
+    sendOnSignUp: true,
+    sendOnSignIn: true,
+    autoSignInAfterVerification: false,
+    sendVerificationEmail: async ({ user, url }) => {
+      await verificationMailer.sendVerificationEmail({
+        to: user.email,
+        name: user.name,
+        verificationUrl: url,
+      });
+    },
   },
   user: {
+    validateUserInfo: async ({ user, source }, ctx) => {
+      if (source.method !== "oauth" || source.oauth?.providerId !== "google") return;
+      if (user.emailVerified !== true)
+        return {
+          error: "google_email_unverified",
+          errorDescription: AUTH_MESSAGES.googleEmailUnverified,
+        };
+      if (source.action !== "create-user" && user.id) {
+        const existing = await ctx.context.internalAdapter.findUserById(user.id);
+        if (!existing || !("status" in existing) || existing.status !== "ACTIVE")
+          return {
+            error: "account_disabled",
+            errorDescription: AUTH_MESSAGES.accountDisabled,
+          };
+      }
+      if (source.action === "link-account") {
+        // OAuth state proves initiation, but linking also requires a live session at callback.
+        const session = await getSessionFromCtx(ctx, { disableCookieCache: true });
+        if (!session || session.user.id !== user.id)
+          return {
+            error: "link_session_required",
+            errorDescription: AUTH_MESSAGES.googleLinkSessionRequired,
+          };
+      }
+      return undefined;
+    },
     additionalFields: {
       phone: {
         type: "string",
@@ -47,8 +164,12 @@ export const auth = betterAuth({
       },
     },
   },
+  plugins: [expo()],
   advanced: {
-    cookiePrefix: "storex-auth",
+    ipAddress: { ipAddressHeaders: ["x-forwarded-for"] },
+    disableOriginCheck: false,
+    disableCSRFCheck: false,
+    cookiePrefix: "metastorage-auth",
     useSecureCookies: env.NODE_ENV === "production",
     database: {
       generateId: () => randomUUID(),

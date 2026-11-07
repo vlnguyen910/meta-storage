@@ -19,7 +19,7 @@ Tuân thủ luồng dữ liệu một chiều và phân tách trách nhiệm rõ
   - Đóng gói toàn bộ logic nghiệp vụ, điều phối server state (TanStack Query) và local state.
   - Xử lý các validation, transformation dữ liệu trước khi render hoặc gửi lên server.
 
-- **Centralized API Client (`packages/api-client` hoặc `@storex/shared`)**:
+- **Centralized API Client (`packages/api-client` hoặc `@metastorage/shared`)**:
   - Thực hiện các HTTP call đến backend Fastify.
   - Sử dụng chung kiểu dữ liệu và schema với backend.
 
@@ -55,13 +55,13 @@ Tương tự như Web, Mobile phân định nghiêm ngặt giữa 3 loại state
 
 - **Server State**: Sử dụng **TanStack Query** để quản lý cache, background refetch, pagination, và optimistic update.
 - **Client / Local State**: Sử dụng **Zustand** cho các state cần chia sẻ liên màn hình (auth token, user session, onboarding status, offline cache flags). Tránh đưa state cục bộ của màn hình lên store toàn cục.
-- **Form State**: Sử dụng **React Hook Form** kết hợp **Zod** schema (tái sử dụng từ `@storex/shared` / `packages/contracts`).
+- **Form State**: Sử dụng **React Hook Form** kết hợp **Zod** schema (tái sử dụng từ `@metastorage/shared` / `packages/contracts`).
 
 ---
 
 ## 4. Tích hợp Monorepo & Metro Bundler
 
-Để Expo Metro có thể đọc và resolve các package nội bộ trong monorepo (`@storex/*`), [`apps/mobile/metro.config.js`](file:///home/owen/Projects/storeX/apps/mobile/metro.config.js) được cấu hình:
+Để Expo Metro có thể đọc và resolve các package nội bộ trong monorepo (`@metastorage/*`), [`apps/mobile/metro.config.js`](file:///home/owen/Projects/storeX/apps/mobile/metro.config.js) được cấu hình:
 
 ```javascript
 const { getDefaultConfig } = require("expo/metro-config");

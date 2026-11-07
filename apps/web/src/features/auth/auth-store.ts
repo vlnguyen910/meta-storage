@@ -1,19 +1,8 @@
 "use client";
 
-import type { ClientSession, SessionTokens } from "@storex/contracts";
 import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
-
-interface AuthState {
-  session: ClientSession | null;
-  hydrated: boolean;
-  authReady: boolean;
-  setSession: (session: ClientSession) => void;
-  updateTokens: (tokens: SessionTokens) => void;
-  clearSession: () => void;
-  setHydrated: (value: boolean) => void;
-  setAuthReady: (value: boolean) => void;
-}
+import type { AuthState } from "./auth-store.types";
 
 const noopStorage: StateStorage = {
   getItem: () => null,
@@ -27,17 +16,17 @@ export const useAuthStore = create<AuthState>()(
       session: null,
       hydrated: false,
       authReady: false,
-      setSession: (session) => set({ session }),
+      setSession: (session) => set({ session, authReady: true }),
       updateTokens: (tokens) =>
         set((state) => ({
           session: state.session ? { ...state.session, ...tokens } : null,
         })),
-      clearSession: () => set({ session: null }),
+      clearSession: () => set({ session: null, authReady: true }),
       setHydrated: (hydrated) => set({ hydrated }),
       setAuthReady: (authReady) => set({ authReady }),
     }),
     {
-      name: "storex.auth-session.v2",
+      name: "metastorage.auth-session.v2",
       storage: createJSONStorage(() =>
         typeof window === "undefined" ? noopStorage : window.sessionStorage,
       ),

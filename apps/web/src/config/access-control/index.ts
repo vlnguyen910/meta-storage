@@ -1,8 +1,9 @@
-import { type Permission, UserRole } from "@storex/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import { businessOperationsPermissions } from "./business-operations.permissions";
 import { customerPermissions } from "./customer.permissions";
 import { facilityManagerPermissions } from "./facility-manager.permissions";
 import { facilityStaffPermissions } from "./facility-staff.permissions";
+import type { Permission } from "./permissions";
 import { systemAdministratorPermissions } from "./system-administrator.permissions";
 
 export const rolePermissions: Record<UserRole, Permission[]> = {
@@ -16,3 +17,5 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
 export function hasPermission(role: UserRole, permission: Permission): boolean {
   return rolePermissions[role].includes(permission);
 }
+
+export { Permission } from "./permissions";

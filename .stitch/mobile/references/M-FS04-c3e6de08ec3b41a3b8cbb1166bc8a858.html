@@ -1,0 +1,506 @@
+<!DOCTYPE html><html class="light" lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>M-FS04 — Tìm và xác minh booking — FS</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-container-high": "#e2e7ff",
+            "inverse-primary": "#96d3c0",
+            "on-tertiary-container": "#ffa454",
+            "tertiary-fixed": "#ffdcc3",
+            "tertiary-container": "#723b00",
+            "primary-fixed-dim": "#96d3c0",
+            "on-secondary-fixed": "#002018",
+            "surface": "#faf8ff",
+            "on-primary-fixed-variant": "#0d5042",
+            "surface-container-highest": "#dae2fd",
+            "surface-container": "#eaedff",
+            "background": "#faf8ff",
+            "secondary-container": "#b4efda",
+            "inverse-surface": "#283044",
+            "surface-variant": "#dae2fd",
+            "outline": "#707975",
+            "surface-container-lowest": "#ffffff",
+            "primary": "#003b2f",
+            "on-background": "#131b2e",
+            "on-tertiary-fixed-variant": "#6e3900",
+            "inverse-on-surface": "#eef0ff",
+            "tertiary": "#512800",
+            "on-surface": "#131b2e",
+            "on-surface-variant": "#404945",
+            "surface-tint": "#2c6859",
+            "surface-container-low": "#f2f3ff",
+            "on-error-container": "#93000a",
+            "on-secondary-fixed-variant": "#135041",
+            "primary-fixed": "#b1efdc",
+            "surface-bright": "#faf8ff",
+            "secondary": "#306858",
+            "outline-variant": "#bfc9c4",
+            "on-tertiary-fixed": "#2f1500",
+            "on-primary-fixed": "#002019",
+            "on-tertiary": "#ffffff",
+            "error-container": "#ffdad6",
+            "surface-dim": "#d2d9f4",
+            "on-primary-container": "#89c5b3",
+            "error": "#ba1a1a",
+            "tertiary-fixed-dim": "#ffb77d",
+            "on-error": "#ffffff",
+            "secondary-fixed": "#b4efda",
+            "on-secondary-container": "#366e5e",
+            "on-primary": "#ffffff",
+            "on-secondary": "#ffffff",
+            "secondary-fixed-dim": "#98d2be",
+            "primary-container": "#125345"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "space-lg": "1.5rem",
+            "margin": "2rem",
+            "gutter": "1.5rem",
+            "space-xl": "2.5rem",
+            "space-md": "1rem",
+            "space-xs": "0.25rem",
+            "gutter-sm": "1rem",
+            "margin-sm": "1rem",
+            "space-sm": "0.5rem"
+          },
+          "fontFamily": {
+            "body-md": ["Be Vietnam Pro"],
+            "display-mobile": ["Space Grotesk"],
+            "label-sm": ["Space Grotesk"],
+            "title-md": ["Be Vietnam Pro"],
+            "body-sm": ["Be Vietnam Pro"],
+            "headline-sm": ["Space Grotesk"],
+            "label-md": ["Space Grotesk"],
+            "headline-lg": ["Space Grotesk"],
+            "display": ["Space Grotesk"],
+            "body-lg": ["Be Vietnam Pro"],
+            "headline-lg-mobile": ["Space Grotesk"],
+            "label-lg": ["Space Grotesk"],
+            "headline-md": ["Space Grotesk"]
+          },
+          "fontSize": {
+            "body-md": ["14px", { "lineHeight": "22px", "fontWeight": "400" }],
+            "display-mobile": ["34px", { "lineHeight": "42px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+            "title-md": ["18px", { "lineHeight": "26px", "fontWeight": "600" }],
+            "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "display": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "body-lg": ["16px", { "lineHeight": "26px", "fontWeight": "400" }],
+            "headline-lg-mobile": ["26px", { "lineHeight": "34px", "fontWeight": "600" }],
+            "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #faf8ff;
+      color: #131b2e;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      overflow-x: hidden;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .material-symbols-outlined.fill-icon {
+      font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface antialiased flex justify-center min-h-screen">
+<!-- Mobile Viewport Container 390px logical width -->
+<main class="w-full max-w-[390px] min-h-screen bg-surface flex flex-col relative pb-32 border-x border-outline-variant shadow-sm">
+<!-- Top App Bar (Header chuyên trách FS) -->
+<header class="w-full h-16 bg-surface px-4 flex items-center justify-between border-b border-outline-variant sticky top-0 z-30 shadow-none">
+<div class="flex items-center gap-2">
+<button aria-label="Quay lại" class="min-w-[44px] min-h-[44px] flex items-center justify-center text-primary-container rounded-lg active:scale-95 transition-transform hover:bg-surface-container" type="button">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<div class="flex flex-col">
+<span class="text-body-sm font-body-sm text-on-surface-variant font-medium">Công việc của tôi</span>
+<h1 class="text-title-md font-headline-sm font-bold text-primary tracking-tight">Xác minh Booking</h1>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div class="flex flex-col items-end">
+<span class="text-[11px] font-label-sm font-semibold text-primary-container bg-secondary-container/40 px-2 py-0.5 rounded-lg border border-outline-variant">StoreX Sài Gòn Central</span>
+<span class="text-[11px] text-on-surface-variant font-body-sm">FS #8841</span>
+</div>
+<div class="w-10 h-10 rounded-lg bg-primary-container text-white flex items-center justify-center font-headline-sm font-semibold border border-outline-variant">
+<span class="material-symbols-outlined text-[24px]">account_circle</span>
+</div>
+</div>
+</header>
+<!-- Task Navigation Tabs -->
+<div class="px-4 pt-3 pb-1">
+<div class="grid grid-cols-2 bg-surface-container p-1 rounded-lg border border-outline-variant">
+<button class="min-h-[44px] flex items-center justify-center gap-1.5 rounded-lg bg-primary-container text-white font-title-md text-[16px] font-semibold transition-all" id="tabReception" type="button">
+<span class="material-symbols-outlined text-[18px] fill-icon">login</span>
+          Tiếp đón nhận kho
+        </button>
+<button class="min-h-[44px] flex items-center justify-center gap-1.5 rounded-lg text-on-surface-variant hover:text-primary font-body-lg text-[16px] font-medium transition-all" id="tabCheckout" type="button">
+<span class="material-symbols-outlined text-[18px]">logout</span>
+          Kiểm tra trả kho
+        </button>
+</div>
+</div>
+<div class="px-4 py-3 flex flex-col gap-4">
+<!-- Search & QR Section -->
+<section class="bg-surface-container-lowest p-3.5 rounded-lg border border-outline-variant flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<label class="text-body-lg font-body-lg font-semibold text-on-surface flex items-center gap-1.5" for="bookingInput">
+<span class="material-symbols-outlined text-primary-container text-[20px]">search</span>
+            Tra cứu hồ sơ tiếp đón
+          </label>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Hệ thống đồng bộ FM</span>
+</div>
+<!-- Manual Input Row -->
+<div class="flex flex-col gap-2">
+<div class="relative flex items-center w-full">
+<input class="w-full min-h-[48px] pl-3.5 pr-20 text-[16px] font-title-md text-on-surface bg-surface rounded-lg border border-outline-variant focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 focus:outline-none" id="bookingInput" placeholder="Nhập mã booking (VD: BK-...)" type="text" value="BK-2026-0001">
+<div class="absolute right-2 flex items-center gap-1">
+<button aria-label="Xóa" class="min-w-[44px] min-h-[44px] flex items-center justify-center text-on-surface-variant hover:text-primary active:scale-90" id="clearInputBtn" type="button">
+<span class="material-symbols-outlined text-[20px]">cancel</span>
+</button>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-2">
+<button class="min-h-[44px] w-full bg-primary-container text-white rounded-lg font-title-md text-[16px] font-medium flex items-center justify-center gap-1.5 hover:bg-primary active:scale-95 transition-all border border-primary-container" id="searchBookingBtn" type="button">
+<span class="material-symbols-outlined text-[20px]">manage_search</span>
+              Tìm kiếm
+            </button>
+<button class="min-h-[44px] w-full bg-surface-container text-primary-container rounded-lg font-title-md text-[16px] font-semibold flex items-center justify-center gap-1.5 border border-outline-variant active:scale-95 transition-all" id="scanQrBtn" type="button">
+<span class="material-symbols-outlined text-[20px]">qr_code_scanner</span>
+              Quét QR Camera
+            </button>
+</div>
+</div>
+<!-- Permission Notice / Helper State -->
+<div class="text-body-sm font-body-sm text-on-surface-variant bg-surface-container-low p-2 rounded-lg border border-outline-variant/60 flex items-start gap-1.5" id="cameraNotice">
+<span class="material-symbols-outlined text-[18px] text-primary-container shrink-0 mt-0.5">info</span>
+<span>Chỉ yêu cầu quyền Camera khi bấm trực tiếp vào nút Quét QR. FS có thể dùng mã định danh số gõ tay bất kỳ lúc nào.</span>
+</div>
+</section>
+<!-- Booking Match Dossier Card -->
+<section class="bg-surface-container-lowest rounded-lg border border-outline-variant p-4 flex flex-col gap-3">
+<!-- Card Header with status -->
+<div class="flex items-start justify-between pb-2 border-b border-outline-variant/60">
+<div>
+<div class="flex items-center gap-2">
+<span class="font-headline-sm font-bold text-primary-container text-[18px] tracking-tight">BK-2026-0001</span>
+<span class="inline-flex items-center gap-1 bg-[#E8F5F1] text-primary-container px-2 py-0.5 rounded-lg text-label-sm font-label-sm font-bold border border-secondary-container">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+                HỢP LỆ
+              </span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-0.5">Thời điểm tạo: Hôm nay, 08:30 • Gói Thuê Tháng</p>
+</div>
+<span class="text-label-sm font-label-sm bg-surface-container-high text-primary px-2 py-1 rounded-lg border border-outline-variant">
+            Lịch: 10:00 - 12:00
+          </span>
+</div>
+<!-- Metric badges row -->
+<div class="grid grid-cols-2 gap-2">
+<!-- Payment metric -->
+<div class="bg-surface p-2.5 rounded-lg border border-outline-variant flex flex-col">
+<span class="text-body-sm font-body-sm text-on-surface-variant font-medium">Trạng thái thanh toán</span>
+<div class="flex items-center gap-1 mt-1 text-primary-container font-headline-sm text-[16px] font-bold">
+<span class="material-symbols-outlined text-[18px] fill-icon">check_circle</span>
+<span>100% ĐÃ THU</span>
+</div>
+<span class="text-body-sm font-body-sm text-on-surface-variant mt-0.5">Thuê 900k + Cọc 900k = 1.800.000 đ</span>
+</div>
+<!-- Time slot metric -->
+<div class="bg-surface p-2.5 rounded-lg border border-outline-variant flex flex-col">
+<span class="text-body-sm font-body-sm text-on-surface-variant font-medium">Khung giờ tiếp đón</span>
+<div class="flex items-center gap-1 mt-1 text-primary-container font-headline-sm text-[16px] font-bold">
+<span class="material-symbols-outlined text-[18px] fill-icon">schedule</span>
+<span>ĐÚNG GIỜ</span>
+</div>
+<span class="text-body-sm font-body-sm text-on-surface-variant mt-0.5">Khung 10:00 - 12:00 (Ân hạn 14:00)</span>
+</div>
+</div>
+<!-- Customer Identity & Physical Unit -->
+<div class="flex flex-col gap-2 pt-1">
+<div class="bg-surface p-3 rounded-lg border border-outline-variant">
+<div class="flex items-center justify-between mb-1">
+<span class="text-body-sm font-body-sm text-on-surface-variant font-semibold">Khách hàng đến nhận</span>
+<span class="text-label-sm font-label-sm text-primary-container font-medium">Chủ hồ sơ</span>
+</div>
+<div class="flex items-center justify-between">
+<div>
+<p class="text-body-lg font-title-md font-bold text-on-surface">Nguyễn Minh Anh</p>
+<p class="text-body-sm font-body-sm text-on-surface-variant">0908 123 456 • customer@example.test</p>
+</div>
+<a aria-label="Gọi điện" class="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg bg-surface-container border border-outline-variant text-primary-container active:scale-95" href="tel:0908123456">
+<span class="material-symbols-outlined text-[20px]">call</span>
+</a>
+</div>
+</div>
+<div class="bg-surface p-3 rounded-lg border border-outline-variant flex items-center justify-between">
+<div>
+<span class="text-body-sm font-body-sm text-on-surface-variant font-semibold block">Buồng kho vật lý đã gán bởi FM</span>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="font-headline-sm text-title-md font-bold text-primary-container">#HCM-01-001</span>
+<span class="text-body-sm font-body-sm bg-surface-container px-2 py-0.5 rounded-lg border border-outline-variant text-on-surface">Mini 2m² • Tầng 1 - Dãy A</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-primary-container text-[24px]">warehouse</span>
+</div>
+</div>
+</section>
+<!-- Checklist 4 chốt chặn bắt buộc FS -->
+<section class="bg-surface-container-lowest rounded-lg border border-outline-variant p-4 flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<h2 class="text-body-lg font-title-md font-bold text-primary-container flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[20px]">verified</span>
+            4 Chốt chặn xác minh bắt buộc
+          </h2>
+<span class="text-label-sm font-label-sm font-bold bg-[#E8F5F1] text-primary-container px-2 py-0.5 rounded-lg border border-outline-variant" id="checklistProgress">4/4 ĐẠT</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant">FS tích kiểm tra đầy đủ các điều kiện thực địa trước khi mở lệnh khảo sát hiện trạng buồng.</p>
+<div class="flex flex-col gap-2 pt-1">
+<!-- Gate 1 -->
+<label class="min-h-[48px] flex items-start gap-3 p-2.5 rounded-lg border border-outline-variant bg-surface cursor-pointer select-none">
+<input checked="" class="verify-checkbox mt-1 w-5 h-5 rounded text-primary-container border-outline focus:ring-0 focus:ring-offset-0" type="checkbox">
+<div class="flex flex-col">
+<span class="text-body-lg font-title-md font-semibold text-on-surface leading-tight">1. Đã thanh toán 100% đợt đầu</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant">1.800.000 đ (Tiền thuê + Cọc) khớp sao kê tự động ngân hàng.</span>
+</div>
+</label>
+<!-- Gate 2 -->
+<label class="min-h-[48px] flex items-start gap-3 p-2.5 rounded-lg border border-outline-variant bg-surface cursor-pointer select-none">
+<input checked="" class="verify-checkbox mt-1 w-5 h-5 rounded text-primary-container border-outline focus:ring-0 focus:ring-offset-0" id="chkPhysicalUnit" type="checkbox">
+<div class="flex flex-col">
+<span class="text-body-lg font-title-md font-semibold text-on-surface leading-tight">2. Đã có buồng vật lý xác định</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant">FM đã gán buồng #HCM-01-001 trên hệ thống, không ở trạng thái chờ gán.</span>
+</div>
+</label>
+<!-- Gate 3 -->
+<label class="min-h-[48px] flex items-start gap-3 p-2.5 rounded-lg border border-outline-variant bg-surface cursor-pointer select-none">
+<input checked="" class="verify-checkbox mt-1 w-5 h-5 rounded text-primary-container border-outline focus:ring-0 focus:ring-offset-0" type="checkbox">
+<div class="flex flex-col">
+<span class="text-body-lg font-title-md font-semibold text-on-surface leading-tight">3. Trong khung giờ tiếp đón hoặc ân hạn</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant">Lịch hẹn 10:00 - 12:00 hôm nay, thời gian ân hạn kéo dài tới 14:00.</span>
+</div>
+</label>
+<!-- Gate 4 -->
+<label class="min-h-[48px] flex items-start gap-3 p-2.5 rounded-lg border border-outline-variant bg-surface cursor-pointer select-none">
+<input checked="" class="verify-checkbox mt-1 w-5 h-5 rounded text-primary-container border-outline focus:ring-0 focus:ring-offset-0" id="chkIdDoc" type="checkbox">
+<div class="flex flex-col">
+<span class="text-body-lg font-title-md font-semibold text-on-surface leading-tight">4. Đối soát giấy tờ tùy thân khớp 100%</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant">CCCD/Hộ chiếu người đến tiếp đón khớp với tên 'Nguyễn Minh Anh'.</span>
+</div>
+</label>
+</div>
+</section>
+<!-- Business Logic Guard Alert (Mô phỏng cơ chế chặn lỗi) -->
+<section class="bg-surface-container-low rounded-lg border border-outline-variant p-3.5 flex flex-col gap-2" id="guardAlertBox">
+<div class="flex items-center justify-between">
+<span class="text-body-sm font-label-sm font-bold text-on-surface-variant uppercase tracking-wider">Trạng thái khóa bảo vệ quy trình</span>
+<span class="text-label-sm font-label-sm font-bold text-primary-container bg-secondary-container px-2 py-0.5 rounded-lg border border-outline-variant" id="guardStatusBadge">SẴN SÀNG KIỂM TRA</span>
+</div>
+<div class="hidden p-2.5 rounded-lg bg-error-container text-on-error-container border border-error/30 text-body-sm font-body-sm flex items-start gap-2" id="unassignedWarning">
+<span class="material-symbols-outlined text-[20px] text-error shrink-0">block</span>
+<div>
+<strong class="font-semibold block">Buồng chưa được FM chỉ định!</strong>
+            Buồng chưa được FM chỉ định. Vui lòng liên hệ Quản lý cơ sở để gán buồng trước khi xác minh.
+          </div>
+</div>
+<div class="hidden p-2.5 rounded-lg bg-tertiary-container/10 text-tertiary border border-outline-variant text-body-sm font-body-sm flex items-start gap-2" id="checklistIncompleteWarning">
+<span class="material-symbols-outlined text-[20px] text-tertiary shrink-0">warning</span>
+<div>
+<strong class="font-semibold block">Chưa hoàn tất 4 chốt chặn</strong>
+            Cần đánh dấu đầy đủ tất cả các chốt an toàn bắt buộc trước khi chuyển sang bước M-FS05.
+          </div>
+</div>
+<!-- FS Authority Warning Note -->
+<div class="p-3 rounded-lg bg-surface border border-outline-variant flex items-start gap-2">
+<span class="material-symbols-outlined text-primary-container text-[20px] shrink-0 mt-0.5">gavel</span>
+<p class="text-body-sm font-body-sm text-on-surface-variant leading-relaxed">
+<strong class="text-on-surface font-semibold">Cảnh báo thẩm quyền FS:</strong> Xác minh booking là bước hợp lệ hóa hồ sơ tiếp đón để tiến hành Kiểm tra hiện trạng buồng kho (M-FS05). FS tuyệt đối không bàn giao chìa khóa hoặc kích hoạt hợp đồng tại bước này.
+          </p>
+</div>
+</section>
+<!-- Simulation interactive helper controls -->
+<div class="p-2.5 bg-surface-container rounded-lg border border-outline-variant text-body-sm font-body-sm flex items-center justify-between">
+<span class="text-on-surface-variant text-[13px]">Giả lập trạng thái FM gán buồng:</span>
+<button class="min-h-[44px] px-3 bg-surface text-primary-container text-[13px] font-title-md font-semibold rounded-lg border border-outline-variant hover:bg-surface-container-high active:scale-95 transition-all" id="toggleAssignBtn" type="button">
+          Đổi: Có buồng / Chờ gán
+        </button>
+</div>
+</div>
+<!-- Sticky Bottom Execution Bar (CTA >= 44px) -->
+<div class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-surface/95 backdrop-blur-md p-3 border-t border-outline-variant z-40 flex flex-col gap-2">
+<div class="flex items-center justify-between px-1 text-body-sm font-body-sm text-on-surface-variant">
+<span>Tiếp theo: <strong class="text-on-surface">M-FS05 Hiện trạng</strong></span>
+<span class="font-label-sm font-semibold text-primary-container">Bước 1 / 3 tiếp đón</span>
+</div>
+<button class="w-full min-h-[48px] py-3 px-4 bg-primary-container text-white rounded-lg font-title-md text-[16px] font-bold flex items-center justify-center gap-2 hover:bg-primary active:scale-[0.98] transition-all shadow-sm border border-primary-container disabled:opacity-50 disabled:pointer-events-none" id="ctaSubmitBtn" type="button">
+<span>Xác minh booking &amp; Bắt đầu kiểm tra hiện trạng (M-FS05)</span>
+<span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button>
+</div>
+<!-- Modal Mockup Quét Camera Quyền Riêng Tư -->
+<div class="fixed inset-0 bg-inverse-surface/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden" id="cameraModal">
+<div class="bg-surface w-full max-w-[340px] rounded-lg border border-outline-variant p-4 flex flex-col gap-3 shadow-xl">
+<div class="flex items-center justify-between border-b border-outline-variant pb-2">
+<div class="flex items-center gap-2 text-primary-container font-headline-sm font-bold text-[18px]">
+<span class="material-symbols-outlined text-[24px]">photo_camera</span>
+<span>Quyền truy cập Camera</span>
+</div>
+<button class="min-w-[44px] min-h-[44px] flex items-center justify-center text-on-surface-variant hover:text-on-surface" id="closeModalBtn" type="button">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<p class="text-body-lg font-body-md text-on-surface">
+          Ứng dụng FS cần sử dụng camera quang học để quét mã QR booking từ màn hình điện thoại của khách hàng.
+        </p>
+<div class="w-full h-36 bg-inverse-surface rounded-lg flex flex-col items-center justify-center text-inverse-on-surface relative overflow-hidden border border-outline">
+<div class="w-24 h-24 border-2 border-dashed border-primary-fixed rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-[36px] text-primary-fixed animate-pulse">qr_code_scanner</span>
+</div>
+<span class="text-label-sm font-label-sm text-surface-dim mt-2">Căn chỉnh mã QR vào khung</span>
+</div>
+<div class="flex gap-2 pt-2">
+<button class="flex-1 min-h-[44px] bg-surface text-on-surface font-title-md text-[16px] rounded-lg border border-outline-variant" id="dismissModalBtn" type="button">
+            Hủy bỏ
+          </button>
+<button class="flex-1 min-h-[44px] bg-primary-container text-white font-title-md text-[16px] rounded-lg border border-primary-container" id="confirmScanBtn" type="button">
+            Cho phép &amp; Quét
+          </button>
+</div>
+</div>
+</div>
+</main>
+<script>
+    // State management
+    let hasPhysicalUnitAssigned = true;
+
+    const bookingInput = document.getElementById('bookingInput');
+    const clearInputBtn = document.getElementById('clearInputBtn');
+    const scanQrBtn = document.getElementById('scanQrBtn');
+    const cameraModal = document.getElementById('cameraModal');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const dismissModalBtn = document.getElementById('dismissModalBtn');
+    const confirmScanBtn = document.getElementById('confirmScanBtn');
+    const ctaSubmitBtn = document.getElementById('ctaSubmitBtn');
+    const checkboxes = document.querySelectorAll('.verify-checkbox');
+    const checklistProgress = document.getElementById('checklistProgress');
+    const unassignedWarning = document.getElementById('unassignedWarning');
+    const checklistIncompleteWarning = document.getElementById('checklistIncompleteWarning');
+    const guardStatusBadge = document.getElementById('guardStatusBadge');
+    const toggleAssignBtn = document.getElementById('toggleAssignBtn');
+    const chkPhysicalUnit = document.getElementById('chkPhysicalUnit');
+
+    // Clear input
+    clearInputBtn.addEventListener('click', () => {
+      bookingInput.value = '';
+      bookingInput.focus();
+    });
+
+    // Camera QR Dialog triggers
+    scanQrBtn.addEventListener('click', () => {
+      cameraModal.classList.remove('hidden');
+    });
+
+    const hideModal = () => {
+      cameraModal.classList.add('hidden');
+    };
+
+    closeModalBtn.addEventListener('click', hideModal);
+    dismissModalBtn.addEventListener('click', hideModal);
+
+    confirmScanBtn.addEventListener('click', () => {
+      bookingInput.value = 'BK-2026-0001';
+      hideModal();
+      validateGuardConditions();
+    });
+
+    // Checkbox and guard rules
+    function validateGuardConditions() {
+      const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+      const total = checkboxes.length;
+      const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+
+      checklistProgress.textContent = `${checkedCount}/${total} ĐẠT`;
+
+      if (!hasPhysicalUnitAssigned) {
+        unassignedWarning.classList.remove('hidden');
+        guardStatusBadge.textContent = 'CHẶN: CHƯA GÁN BUỒNG';
+        guardStatusBadge.className = 'text-label-sm font-label-sm font-bold text-error bg-error-container px-2 py-0.5 rounded-lg border border-error/30';
+        ctaSubmitBtn.disabled = true;
+        checklistIncompleteWarning.classList.add('hidden');
+        return;
+      } else {
+        unassignedWarning.classList.add('hidden');
+      }
+
+      if (!allChecked) {
+        checklistIncompleteWarning.classList.remove('hidden');
+        guardStatusBadge.textContent = 'CHƯA ĐỦ ĐIỀU KIỆN';
+        guardStatusBadge.className = 'text-label-sm font-label-sm font-bold text-tertiary bg-tertiary-fixed px-2 py-0.5 rounded-lg border border-outline-variant';
+        ctaSubmitBtn.disabled = true;
+      } else {
+        checklistIncompleteWarning.classList.add('hidden');
+        guardStatusBadge.textContent = 'SẴN SÀNG KIỂM TRA';
+        guardStatusBadge.className = 'text-label-sm font-label-sm font-bold text-primary-container bg-secondary-container px-2 py-0.5 rounded-lg border border-outline-variant';
+        ctaSubmitBtn.disabled = false;
+      }
+    }
+
+    checkboxes.forEach(cb => {
+      cb.addEventListener('change', validateGuardConditions);
+    });
+
+    // Simulation toggle to demonstrate business logic blocker
+    toggleAssignBtn.addEventListener('click', () => {
+      hasPhysicalUnitAssigned = !hasPhysicalUnitAssigned;
+      chkPhysicalUnit.checked = hasPhysicalUnitAssigned;
+      validateGuardConditions();
+    });
+
+    // Action CTA handler
+    ctaSubmitBtn.addEventListener('click', () => {
+      alert('Hồ sơ hợp lệ! Chuyển tiếp điều hướng tới màn hình: [M-FS05 — Kiểm tra hiện trạng buồng kho].');
+    });
+
+    // Initialize check
+    validateGuardConditions();
+  </script>
+</body></html>

@@ -1,5 +1,5 @@
 {
-  "extends": "@storex/typescript-config/node.json",
+  "extends": "@metastorage/typescript-config/node.json",
   "compilerOptions": {
     "rootDir": "src",
     "outDir": "dist"

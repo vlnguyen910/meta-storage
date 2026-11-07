@@ -1,0 +1,141 @@
+import {
+  ConfirmManualRefundInputSchema,
+  DebtPaymentInputSchema,
+  DebtQuerySchema,
+  ManualRefundQuerySchema,
+  PaymentIdParamsSchema,
+} from "@metastorage/contracts";
+import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
+import type { ZodTypeProvider } from "fastify-type-provider-zod";
+import { z } from "zod";
+import { UnauthorizedError } from "../../common/errors/app-error";
+import { successResponse } from "../../common/response/api-response";
+import { requireRole } from "../auth/auth.guard";
+import { AUTH_MESSAGES } from "../auth/auth.messages";
+import { PAYMENT_MESSAGES } from "./payments.messages";
+import { createPaymentsService } from "./payments.service";
+
+const privateTrackingResponse = async (_request: FastifyRequest, reply: FastifyReply) => {
+  reply.header("Cache-Control", "private, no-store");
+};
+
+export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
+  const service = createPaymentsService(fastify);
+  const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
+
+  typedApp.get(
+    "/debts",
+    {
+      preHandler: [requireRole("CUSTOMER", "FACILITY_STAFF", "FACILITY_MANAGER")],
+      schema: { querystring: DebtQuerySchema },
+    },
+    async (request, reply) => {
+      if (!request.user) throw new UnauthorizedError();
+      reply.header("Cache-Control", "private, no-store");
+      return successResponse(
+        await service.listDebts(request.query, {
+          id: request.user.id,
+          role: request.user.role ?? "",
+        }),
+      );
+    },
+  );
+  typedApp.get(
+    "/debts/:id",
+    {
+      preHandler: [requireRole("CUSTOMER", "FACILITY_STAFF", "FACILITY_MANAGER")],
+      schema: { params: z.object({ id: z.uuid() }) },
+    },
+    async (request, reply) => {
+      if (!request.user) throw new UnauthorizedError();
+      reply.header("Cache-Control", "private, no-store");
+      return successResponse(
+        await service.getDebt(request.params.id, {
+          id: request.user.id,
+          role: request.user.role ?? "",
+        }),
+      );
+    },
+  );
+  typedApp.post(
+    "/debts/:id/payments",
+    {
+      preHandler: [requireRole("FACILITY_STAFF")],
+      schema: { params: z.object({ id: z.uuid() }), body: DebtPaymentInputSchema },
+    },
+    async (request, reply) => {
+      if (!request.user) throw new UnauthorizedError();
+      reply.header("Cache-Control", "private, no-store");
+      return successResponse(
+        await service.collectDebt(request.params.id, request.body, {
+          id: request.user.id,
+          role: request.user.role ?? "",
+        }),
+      );
+    },
+  );
+
+  const handleWebhook = async (request: FastifyRequest, reply: FastifyReply) => {
+    await service.handleSepayWebhook(
+      request.headers as Record<string, string | string[] | undefined>,
+      JSON.stringify(request.body ?? {}),
+    );
+    return reply.status(200).send({ success: true });
+  };
+
+  typedApp.post("/payments/webhooks/sepay", handleWebhook);
+  typedApp.post("/sepay/ipn", handleWebhook);
+
+  typedApp.get(
+    "/payments/refunds",
+    {
+      preHandler: [requireRole("SYSTEM_ADMIN", "BUSINESS_OPERATION_MANAGER")],
+      schema: { querystring: ManualRefundQuerySchema },
+    },
+    async (request, reply) =>
+      reply.send(successResponse(await service.listManualRefunds(request.query))),
+  );
+
+  typedApp.post(
+    "/payments/:paymentId/refund/confirm",
+    {
+      preHandler: [requireRole("SYSTEM_ADMIN", "BUSINESS_OPERATION_MANAGER")],
+      schema: { params: PaymentIdParamsSchema, body: ConfirmManualRefundInputSchema },
+    },
+    async (request, reply) => {
+      if (!request.user) throw new UnauthorizedError(AUTH_MESSAGES.loginRequired);
+      return reply.send(
+        successResponse(
+          await service.confirmManualRefund(
+            request.params.paymentId,
+            request.body.reference,
+            request.user.id,
+          ),
+        ),
+      );
+    },
+  );
+
+  typedApp.get(
+    "/payments/:paymentId/status",
+    {
+      onRequest: [privateTrackingResponse],
+      preHandler: [requireRole("CUSTOMER")],
+      schema: {
+        tags: ["Payments"],
+        summary: PAYMENT_MESSAGES.statusSummary,
+        description: PAYMENT_MESSAGES.statusDescription,
+        params: PaymentIdParamsSchema,
+      },
+    },
+    async (request, reply) => {
+      return reply.send(
+        successResponse(
+          await service.getStatus(request.params.paymentId, {
+            userId: request.user?.id,
+          }),
+        ),
+      );
+    },
+  );
+};

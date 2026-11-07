@@ -7,9 +7,16 @@ node_modules/
 coverage/
 playwright-report/
 test-results/
+flow5-test-results/
 
 # Next.js
 .next/
+.next-dev/
+.next-playwright/
+.next-audit/
+.next-mock-playwright/
+.next-flow5/
+.next-manager-*/
 out/
 
 # Expo & Mobile
@@ -45,9 +52,19 @@ bun.lockb*
 .env.development.local
 .env.test.local
 .env.production.local
+docker/app.env
 
 # IDE
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
 .idea/
+
+# Local notes / workspace tracking
+handover.md
+
+/.codex/config.toml
+
+.next-rental-*/
+# Playwright CLI output (may contain credentials)
+.playwright-cli/

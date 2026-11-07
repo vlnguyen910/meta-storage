@@ -20,7 +20,7 @@ Phải phân định rạch ròi giữa 3 loại state:
 
 ### 3. API Client Pattern & Shared Contracts
 - Luôn sử dụng centralized API client (`packages/api-client`), không gọi `fetch` hay `axios` rải rác trong component.
-- Tái sử dụng schema/types từ `packages/contracts` hoặc `@storex/shared`.
+- Tái sử dụng schema/types từ `packages/contracts` hoặc `@metastorage/shared`.
 - Database models không được expose trực tiếp cho frontend.
 
 ### 4. Logic Placement

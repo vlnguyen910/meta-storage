@@ -1,40 +1,120 @@
 import type {
+  ActivityLogPage,
+  ActivityLogQuery,
   ApiEnvelope,
-  ApiUser,
+  ApiFacility,
+  ApiFacilityAssignment,
+  ApiUnitType,
+  AppointmentQuery,
+  AppointmentRecordDto,
+  AssignBookingStaffInput,
+  BookingListItem,
+  BookingTracking,
+  BookingTrackingSession,
+  CatalogAvailabilityParams,
+  CatalogFacility,
+  CatalogFacilityListParams,
+  CatalogUnitType,
+  CheckInLookupInput,
+  CheckInLookupResult,
+  CheckInSlotOption,
+  CheckoutSessionInput,
   ClientSession,
+  ConfirmInspectionHandoverInput,
+  ConfirmManualRefundInput,
   ConfirmReservationInput,
   CookieSession,
+  CreateAppointmentInput,
+  CreateInspectionInput,
+  CreateReservationDraftInput,
+  CustomerAvailability,
+  CustomerAvailabilityQuery,
+  CustomerRegistrationStats,
+  CustomerSignUpInput,
   DashboardSummary,
+  DebtDetail,
+  DebtPaymentInput,
+  DebtQuery,
+  DebtRecord,
   Facility,
+  FacilityCatalogItem,
+  FacilityCatalogQuery,
   FacilityListParams,
+  FacilityOperatingHours,
+  FacilityQuery,
+  FacilityRentalHistoryQuery,
+  FacilityRentalItem,
+  FacilityRentalListQuery,
+  FacilityRentalPage,
+  FacilityRentalPaymentPage,
+  FacilityStaffMember,
+  InspectionEvidenceInput,
+  InspectionRecord,
   LoginInput,
+  ManualRefund,
+  ManualRefundConfirmation,
+  ManualRefundQuery,
+  MonthlyRevenueQuery,
+  MonthlyRevenueReport,
+  OperationsOverview,
   PaginatedResult,
+  PaymentCheckoutInput,
+  PaymentResponse,
+  PaymentStatusResponse,
+  PricingChange,
+  PricingConfiguration,
+  PricingQuery,
+  PricingUpdateResult,
+  ReconciliationReport,
+  RentalDetail,
+  RentalPage,
+  RentalPageQuery,
+  RentalReport,
+  RentalReportQuery,
+  ReportExportQuery,
+  RequestGuestAccessLink,
   Reservation,
+  ReservationDraft,
+  ReservationDraftInput,
+  ReservationHold,
+  ReservationPaymentSession,
+  ReservationQuery,
   ReservationQuote,
   ReservationQuoteInput,
+  ReservationRecordDto,
+  ResetPasswordInput,
+  RevenueReport,
+  RevenueReportQuery,
   Session,
   SessionTokens,
-  UnitAvailabilityOption,
-  UserRole,
-} from "@storex/contracts";
-import axios, { type AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from "axios";
+  SessionUser,
+  SocialAuthInput,
+  SocialAuthResponse,
+  StaffTasksQuery,
+  StorageUnitMaintenanceTransition,
+  StorageUnitResponse,
+  UnitTypeListParams,
+  UpdateAppointmentInput,
+  UpdateDepositPolicy,
+  UpdateInspectionInput,
+  UpdateStorageUnitStatusBody,
+  UpdateUnitTypePrice,
+  UpdateUserRoleWithoutCustomerInput,
+  UpdateUserStatusInput,
+  User,
+  UserListQuery,
+  UtilizationReport,
+  UtilizationReportQuery,
+} from "@metastorage/contracts";
+import type { UserRole } from "@metastorage/database/schema/user-enums";
+import axios, { type AxiosError, type AxiosInstance } from "axios";
+import { createFlow3Client } from "./flow3";
+import { createFlow5Client } from "./flow5";
+import { createSupportClient } from "./support";
+import type { HttpClientOptions, RetryConfig } from "./types";
 
-interface RetryConfig extends InternalAxiosRequestConfig {
-  _retry?: boolean;
-  skipAuthRefresh?: boolean;
-}
-
-export interface TokenProvider {
-  getAccessToken: () => string | null;
-  getRefreshToken: () => string | null;
-  updateTokens: (tokens: SessionTokens) => void;
-  clearSession: () => void;
-}
-
-export interface HttpClientOptions {
-  baseURL: string;
-  tokenProvider: TokenProvider;
-}
+export { createMobileWorkflowClient } from "./mobile-workflows";
+export type { HttpClientOptions, TokenProvider } from "./types";
 
 export type AuthMode = "mock" | "better-auth";
 type SessionFor<Mode extends AuthMode> = Mode extends "mock"
@@ -98,23 +178,24 @@ function unwrap<T>(response: { data: ApiEnvelope<T> }): T {
   return response.data.data;
 }
 
-function toSession(user: ApiUser): CookieSession {
-  return {
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      role: user.role,
-      permissions: [],
-      assignedFacilityIds: [],
-    },
-  };
+function toSession(user: SessionUser): CookieSession {
+  return { user };
 }
 
-function createStorexApiClientImpl(http: AxiosInstance, authMode: AuthMode) {
+function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode) {
   return {
+    ...createFlow3Client(http),
+    ...createFlow5Client(http),
+    ...createSupportClient(http),
     http,
+    notifications: {
+      webSocketUrl: (origin: string) => {
+        const base = (http.defaults.baseURL ?? "/api").replace(/\/$/, "");
+        const url = new URL(`${base}/notifications/ws`, origin);
+        url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+        return url.toString();
+      },
+    },
     auth: {
       login: async (input: LoginInput) => {
         if (authMode === "mock") {
@@ -123,7 +204,7 @@ function createStorexApiClientImpl(http: AxiosInstance, authMode: AuthMode) {
 
         await http.post("/auth/sign-in/email", input);
         try {
-          const user = await http.get<ApiEnvelope<ApiUser>>("/users/me").then(unwrap);
+          const user = await http.get<ApiEnvelope<SessionUser>>("/auth/me").then(unwrap);
           return toSession(user);
         } catch (error) {
           await http.post("/auth/sign-out").catch(() => undefined);
@@ -135,7 +216,7 @@ function createStorexApiClientImpl(http: AxiosInstance, authMode: AuthMode) {
           return http.get<ApiEnvelope<Session["user"]>>("/auth/me").then(unwrap);
         }
 
-        const user = await http.get<ApiEnvelope<ApiUser>>("/users/me").then(unwrap);
+        const user = await http.get<ApiEnvelope<SessionUser>>("/auth/me").then(unwrap);
         return toSession(user).user;
       },
       logout: () =>
@@ -143,25 +224,192 @@ function createStorexApiClientImpl(http: AxiosInstance, authMode: AuthMode) {
           ? http.post<ApiEnvelope<null>>("/auth/logout").then(unwrap)
           : http.post("/auth/sign-out").then(() => null),
       forgotPassword: (email: string) =>
-        http.post<ApiEnvelope<null>>("/auth/forgot-password", { email }).then(unwrap),
+        authMode === "mock"
+          ? http.post<ApiEnvelope<null>>("/auth/forgot-password", { email }).then(unwrap)
+          : http.post("/auth/request-password-reset", { email }).then(() => undefined),
+      resetPassword: (input: ResetPasswordInput) =>
+        http
+          .post("/auth/reset-password", {
+            token: input.token,
+            newPassword: input.newPassword,
+          })
+          .then(() => undefined),
+      resendVerificationEmail: (email: string, callbackURL: string) =>
+        http.post("/auth/send-verification-email", { email, callbackURL }).then(() => undefined),
+      registerCustomer: (input: CustomerSignUpInput) =>
+        http
+          .post<{ message: string }>("/auth/customer-sign-up", input)
+          .then((response) => response.data),
+      signInSocial: async (input: SocialAuthInput): Promise<SocialAuthResponse> => {
+        if (authMode === "mock") {
+          return { url: input.callbackURL, redirect: true };
+        }
+        const response = await http.post<SocialAuthResponse>("/auth/sign-in/social", {
+          provider: input.provider,
+          callbackURL: input.callbackURL,
+          errorCallbackURL: input.errorCallbackURL,
+          disableRedirect: true,
+        });
+        return response.data;
+      },
+      linkSocial: async (input: SocialAuthInput): Promise<SocialAuthResponse> => {
+        if (authMode === "mock") {
+          return { url: input.callbackURL, redirect: true };
+        }
+        const response = await http.post<SocialAuthResponse>("/auth/link-social", {
+          provider: input.provider,
+          callbackURL: input.callbackURL,
+          errorCallbackURL: input.errorCallbackURL,
+          disableRedirect: true,
+        });
+        return response.data;
+      },
+    },
+    activityLogs: {
+      list: (params: Partial<ActivityLogQuery> = {}, signal?: AbortSignal) =>
+        http
+          .get<ApiEnvelope<ActivityLogPage>>("/admin/activity-logs", { params, signal })
+          .then(unwrap),
     },
     users: {
-      list: () =>
-        http.get<ApiEnvelope<ApiUser[]>>("/users", { params: { limit: 100 } }).then(unwrap),
-      setRole: (userId: string, role: ApiUser["role"]) =>
-        http.patch<ApiEnvelope<ApiUser>>(`/users/${userId}/role`, { role }).then(unwrap),
+      list: (params: Partial<UserListQuery> = { limit: 100 }) =>
+        http.get<ApiEnvelope<User[]>>("/users", { params }).then(unwrap),
+      get: (userId: string) => http.get<ApiEnvelope<User>>(`/users/${userId}`).then(unwrap),
+      setStatus: (userId: string, input: UpdateUserStatusInput) =>
+        http.patch<ApiEnvelope<User>>(`/users/${userId}/status`, input).then(unwrap),
+      customerRegistrations: (year?: number) =>
+        http
+          .get<ApiEnvelope<CustomerRegistrationStats>>("/users/customer-registrations", {
+            params: { year },
+          })
+          .then(unwrap),
+      setRole: (userId: string, role: UpdateUserRoleWithoutCustomerInput["role"]) =>
+        http.patch<ApiEnvelope<User>>(`/users/${userId}/role`, { role }).then(unwrap),
     },
     facilities: {
+      catalog: (params: FacilityCatalogQuery) =>
+        http
+          .get<ApiEnvelope<PaginatedResult<FacilityCatalogItem>>>("/facilities/catalog", { params })
+          .then(unwrap),
+      operatingHours: (signal?: AbortSignal) =>
+        http
+          .get<ApiEnvelope<FacilityOperatingHours>>("/facilities/operating-hours", { signal })
+          .then(unwrap),
+      listActive: (params: Partial<Pick<FacilityQuery, "limit" | "offset">> = {}) =>
+        http.get<ApiEnvelope<ApiFacility[]>>("/facilities", { params }).then(unwrap),
+      listUnitTypes: (facilityId: string, params: UnitTypeListParams = {}) =>
+        http
+          .get<ApiEnvelope<ApiUnitType[]>>(`/facilities/${facilityId}/unit-types`, { params })
+          .then(unwrap),
       list: (params: FacilityListParams = {}) =>
         http.get<ApiEnvelope<PaginatedResult<Facility>>>("/facilities", { params }).then(unwrap),
+      myAssignments: () =>
+        http.get<ApiEnvelope<ApiFacilityAssignment[]>>("/facilities/my-assignments").then(unwrap),
       get: (facilityId: string) =>
         http.get<ApiEnvelope<Facility>>(`/facilities/${facilityId}`).then(unwrap),
-      availability: (facilityId: string) =>
+      availability: (facilityId: string, params: CustomerAvailabilityQuery, signal?: AbortSignal) =>
         http
-          .get<ApiEnvelope<UnitAvailabilityOption[]>>(`/facilities/${facilityId}/availability`)
+          .get<ApiEnvelope<CustomerAvailability>>(`/facilities/${facilityId}/availability`, {
+            params,
+            signal,
+          })
+          .then(unwrap),
+      getStaff: (facilityId: string) =>
+        http
+          .get<ApiEnvelope<FacilityStaffMember[]>>(`/facilities/${facilityId}/staff`)
+          .then(unwrap),
+    },
+    storageUnits: {
+      get: (id: string) =>
+        http.get<ApiEnvelope<StorageUnitResponse>>(`/storage-units/${id}`).then(unwrap),
+      updateStatus: (id: string, input: UpdateStorageUnitStatusBody) =>
+        http
+          .patch<ApiEnvelope<StorageUnitResponse>>(`/storage-units/${id}/status`, input)
+          .then(unwrap),
+      transition: (id: string, input: StorageUnitMaintenanceTransition) =>
+        http
+          .post<ApiEnvelope<StorageUnitResponse>>(`/storage-units/${id}/transitions`, input)
+          .then(unwrap),
+    },
+    catalog: {
+      listFacilities: (params: CatalogFacilityListParams = {}) =>
+        http
+          .get<ApiEnvelope<PaginatedResult<CatalogFacility>>>("/catalog/facilities", { params })
+          .then(unwrap),
+      getFacility: (facilityId: string) =>
+        http.get<ApiEnvelope<CatalogFacility>>(`/catalog/facilities/${facilityId}`).then(unwrap),
+      listUnitTypes: (facilityId: string, params: CatalogAvailabilityParams = {}) =>
+        http
+          .get<ApiEnvelope<CatalogUnitType[]>>(`/catalog/facilities/${facilityId}/unit-types`, {
+            params,
+          })
           .then(unwrap),
     },
     reservations: {
+      createDraft: (input: CreateReservationDraftInput) =>
+        http.post<ApiEnvelope<ReservationRecordDto>>("/reservations/drafts", input).then(unwrap),
+      pay: (id: string, input: CheckoutSessionInput) =>
+        http
+          .post<ApiEnvelope<ReservationPaymentSession>>(`/reservations/${id}/make-payment`, input)
+          .then(unwrap),
+      mine: (params: ReservationQuery = {}) =>
+        http
+          .get<ApiEnvelope<ReservationRecordDto[]>>("/reservations/mine", { params })
+          .then(unwrap),
+      get: (id: string) =>
+        http.get<ApiEnvelope<ReservationRecordDto>>(`/reservations/${id}`).then(unwrap),
+      cancel: (id: string) =>
+        http
+          .patch<ApiEnvelope<ReservationRecordDto>>(`/reservations/${id}`, { status: "CANCELLED" })
+          .then(unwrap),
+      listFacility: (facilityId: string, params: ReservationQuery = {}) =>
+        http
+          .get<ApiEnvelope<ReservationRecordDto[]>>(`/reservations/facilities/${facilityId}`, {
+            params,
+          })
+          .then(unwrap),
+    },
+    appointments: {
+      slots: () =>
+        http.get<ApiEnvelope<CheckInSlotOption[]>>("/appointments/check-in-slots").then(unwrap),
+      create: (input: CreateAppointmentInput) =>
+        http.post<ApiEnvelope<AppointmentRecordDto>>("/appointments", input).then(unwrap),
+      mine: (params: AppointmentQuery = {}) =>
+        http
+          .get<ApiEnvelope<AppointmentRecordDto[]>>("/appointments/mine", { params })
+          .then(unwrap),
+      listFacility: (facilityId: string, params: AppointmentQuery = {}) =>
+        http
+          .get<ApiEnvelope<AppointmentRecordDto[]>>(`/appointments/facilities/${facilityId}`, {
+            params,
+          })
+          .then(unwrap),
+      assignedToMe: (params: AppointmentQuery = {}) =>
+        http
+          .get<ApiEnvelope<AppointmentRecordDto[]>>("/appointments/assigned-to-me", { params })
+          .then(unwrap),
+      get: (id: string) =>
+        http.get<ApiEnvelope<AppointmentRecordDto>>(`/appointments/${id}`).then(unwrap),
+      update: (id: string, input: UpdateAppointmentInput) =>
+        http.patch<ApiEnvelope<AppointmentRecordDto>>(`/appointments/${id}`, input).then(unwrap),
+      assignStaff: (id: string, staffId: string) =>
+        http
+          .post<ApiEnvelope<AppointmentRecordDto>>(`/appointments/${id}/assign-staff`, { staffId })
+          .then(unwrap),
+    },
+    legacyReservations: {
+      createDraft: (input: ReservationDraftInput) =>
+        http.post<ApiEnvelope<ReservationDraft>>("/reservations/drafts", input).then(unwrap),
+      createHold: (draftId: string, draftAccessToken: string) =>
+        http
+          .post<ApiEnvelope<ReservationHold>>(`/reservations/drafts/${draftId}/hold`, {
+            draftAccessToken,
+          })
+          .then(unwrap),
+      pay: (draftId: string, input: PaymentCheckoutInput) =>
+        http
+          .post<ApiEnvelope<PaymentResponse>>(`/reservations/drafts/${draftId}/pay`, input)
+          .then(unwrap),
       quote: (input: ReservationQuoteInput) =>
         http.post<ApiEnvelope<ReservationQuote>>("/reservations/quote", input).then(unwrap),
       confirm: (input: ConfirmReservationInput) =>
@@ -170,39 +418,264 @@ function createStorexApiClientImpl(http: AxiosInstance, authMode: AuthMode) {
       get: (reservationId: string) =>
         http.get<ApiEnvelope<Reservation>>(`/reservations/${reservationId}`).then(unwrap),
     },
+    debts: {
+      list: (params: Partial<DebtQuery> = {}) =>
+        http
+          .get<ApiEnvelope<{ items: DebtRecord[]; total: number; limit: number; offset: number }>>(
+            "/debts",
+            { params },
+          )
+          .then(unwrap),
+      get: (id: string) => http.get<ApiEnvelope<DebtDetail>>(`/debts/${id}`).then(unwrap),
+      collect: (id: string, input: DebtPaymentInput) =>
+        http.post<ApiEnvelope<DebtDetail>>(`/debts/${id}/payments`, input).then(unwrap),
+    },
+    payments: {
+      status: (paymentId: string, accessToken?: string) =>
+        http
+          .get<ApiEnvelope<PaymentStatusResponse>>(`/payments/${paymentId}/status`, {
+            headers: accessToken ? { "x-booking-access-token": accessToken } : undefined,
+            ...(accessToken ? { skipAuthRefresh: true } : {}),
+          })
+          .then(unwrap),
+      listRefunds: (params: Partial<ManualRefundQuery> = {}) =>
+        http.get<ApiEnvelope<ManualRefund[]>>("/payments/refunds", { params }).then(unwrap),
+      confirmManualRefund: (paymentId: string, input: ConfirmManualRefundInput) =>
+        http
+          .post<ApiEnvelope<ManualRefundConfirmation>>(
+            `/payments/${paymentId}/refund/confirm`,
+            input,
+          )
+          .then(unwrap),
+    },
+    legacyBookings: {
+      requestGuestAccessLink: (input: RequestGuestAccessLink) =>
+        http
+          .post<ApiEnvelope<{ message: string }>>("/booking/access-link", input, {
+            skipAuthRefresh: true,
+          } as RetryConfig)
+          .then(unwrap),
+      checkInLookup: (input: CheckInLookupInput) =>
+        http
+          .post<ApiEnvelope<CheckInLookupResult>>("/bookings/check-in/lookup", input)
+          .then(unwrap),
+      exchangeMagicLink: (token: string) =>
+        http
+          .post<ApiEnvelope<BookingTrackingSession>>("/booking/magic-link/exchange", { token }, {
+            skipAuthRefresh: true,
+          } as RetryConfig)
+          .then(unwrap),
+      tracking: (bookingCode: string) =>
+        http
+          .get<ApiEnvelope<BookingTracking>>(
+            `/booking/tracking/${encodeURIComponent(bookingCode)}`,
+            { skipAuthRefresh: true } as RetryConfig,
+          )
+          .then(unwrap),
+      revokeTrackingSession: () =>
+        http
+          .post("/booking/session/revoke", undefined, { skipAuthRefresh: true } as RetryConfig)
+          .then(() => undefined),
+      assignStaff: (bookingId: string, input: AssignBookingStaffInput) =>
+        http
+          .post<ApiEnvelope<BookingListItem>>(`/bookings/${bookingId}/assign-staff`, input)
+          .then(unwrap),
+      listAssignedToMe: (
+        facilityId?: string,
+        dates: Pick<StaffTasksQuery, "fromDate" | "toDate"> = {},
+      ) =>
+        http
+          .get<ApiEnvelope<BookingListItem[]>>("/bookings/assigned-to-me", {
+            params: { ...dates, facilityId },
+          })
+          .then(unwrap),
+    },
+    inspections: {
+      policyFees: () =>
+        http
+          .get<
+            ApiEnvelope<{
+              version: number;
+              items: import("@metastorage/contracts").PolicyViolationFee[];
+            }>
+          >("/policy-violation-fees")
+          .then(unwrap),
+      updatePolicyFees: (input: import("@metastorage/contracts").UpdatePolicyViolationFeeCatalog) =>
+        http
+          .put<
+            ApiEnvelope<{
+              version: number;
+              items: import("@metastorage/contracts").PolicyViolationFee[];
+            }>
+          >("/policy-violation-fees", input)
+          .then(unwrap),
+      create: (input: CreateInspectionInput) =>
+        http.post<ApiEnvelope<InspectionRecord>>("/inspections", input).then(unwrap),
+      forAppointment: (id: string) =>
+        http.get<ApiEnvelope<InspectionRecord[]>>(`/inspections/appointments/${id}`).then(unwrap),
+      get: (id: string) =>
+        http.get<ApiEnvelope<InspectionRecord>>(`/inspections/${id}`).then(unwrap),
+      save: (id: string, input: UpdateInspectionInput) =>
+        http.patch<ApiEnvelope<InspectionRecord>>(`/inspections/${id}`, input).then(unwrap),
+      upload: (id: string, input: InspectionEvidenceInput) =>
+        http
+          .patch<ApiEnvelope<InspectionRecord>>(`/inspections/${id}`, { addEvidence: [input] })
+          .then(unwrap),
+      removePhoto: (id: string, photoId: string) =>
+        http
+          .patch<ApiEnvelope<InspectionRecord>>(`/inspections/${id}`, {
+            removeEvidenceIds: [photoId],
+          })
+          .then(unwrap),
+      handover: (id: string, input: ConfirmInspectionHandoverInput) =>
+        http.post<ApiEnvelope<InspectionRecord>>(`/inspections/${id}/handover`, input).then(unwrap),
+    },
+    renewals: {
+      quote: (rentalId: string, input: import("@metastorage/contracts").CreateRentalRenewal) =>
+        http
+          .post<ApiEnvelope<import("@metastorage/contracts").RentalRenewalDto>>(
+            `/rentals/${rentalId}/renewals`,
+            input,
+          )
+          .then(unwrap),
+      list: (rentalId: string, offset = 0) =>
+        http
+          .get<ApiEnvelope<import("@metastorage/contracts").RentalRenewalPage>>(
+            `/rentals/${rentalId}/renewals`,
+            { params: { limit: 10, offset } },
+          )
+          .then(unwrap),
+      get: (rentalId: string, renewalId: string) =>
+        http
+          .get<ApiEnvelope<import("@metastorage/contracts").RentalRenewalDto>>(
+            `/rentals/${rentalId}/renewals/${renewalId}`,
+          )
+          .then(unwrap),
+      pay: (
+        rentalId: string,
+        renewalId: string,
+        input: import("@metastorage/contracts").RentalRenewalPaymentInput,
+      ) =>
+        http
+          .post<ApiEnvelope<import("@metastorage/contracts").RentalRenewalPaymentSession>>(
+            `/rentals/${rentalId}/renewals/${renewalId}/payments`,
+            input,
+          )
+          .then(unwrap),
+    },
+    rentals: {
+      facilityList: (facilityId: string, params: Partial<FacilityRentalListQuery> = {}) =>
+        http
+          .get<ApiEnvelope<FacilityRentalPage>>(`/rentals/facility/${facilityId}`, { params })
+          .then(unwrap),
+      facilityDetail: (facilityId: string, rentalId: string) =>
+        http
+          .get<ApiEnvelope<FacilityRentalItem>>(`/rentals/facility/${facilityId}/${rentalId}`)
+          .then(unwrap),
+      facilityPayments: (
+        facilityId: string,
+        rentalId: string,
+        params: Partial<FacilityRentalHistoryQuery> = {},
+      ) =>
+        http
+          .get<ApiEnvelope<FacilityRentalPaymentPage>>(
+            `/rentals/facility/${facilityId}/${rentalId}/payments`,
+            { params },
+          )
+          .then(unwrap),
+      mine: (params: Partial<RentalPageQuery> = {}) =>
+        http.get<ApiEnvelope<RentalPage>>("/rentals/mine", { params }).then(unwrap),
+      get: (rentalId: string) =>
+        http.get<ApiEnvelope<RentalDetail>>(`/rentals/${rentalId}`).then(unwrap),
+    },
     dashboards: {
-      get: (role: UserRole) =>
-        http.get<ApiEnvelope<DashboardSummary>>(`/dashboards/${role}`).then(unwrap),
+      get: (role: UserRole, facilityId?: string) =>
+        http
+          .get<ApiEnvelope<DashboardSummary>>(`/dashboards/${role}`, {
+            params: facilityId ? { facilityId } : undefined,
+          })
+          .then(unwrap),
+    },
+    pricing: {
+      getConfiguration: (params: Partial<PricingQuery> = {}) =>
+        http
+          .get<ApiEnvelope<PricingConfiguration>>("/business-rules/pricing", { params })
+          .then(unwrap),
+      getHistory: (params: Partial<PricingQuery> = {}) =>
+        http
+          .get<ApiEnvelope<PricingChange[]>>("/business-rules/pricing/history", { params })
+          .then(unwrap),
+      updateDepositPolicy: (input: UpdateDepositPolicy) =>
+        http.patch<ApiEnvelope<PricingUpdateResult>>("/business-rules/pricing", input).then(unwrap),
+      updateUnitTypePrice: (unitTypeId: string, input: UpdateUnitTypePrice) =>
+        http
+          .patch<ApiEnvelope<PricingUpdateResult>>(`/business-rules/pricing/${unitTypeId}`, input)
+          .then(unwrap),
+    },
+    reports: {
+      getMonthlyRevenue: (params: MonthlyRevenueQuery = {}) =>
+        http
+          .get<ApiEnvelope<MonthlyRevenueReport>>("/reports/revenue/monthly", { params })
+          .then(unwrap),
+      getOverview: (params: Partial<RevenueReportQuery> = {}) =>
+        http.get<ApiEnvelope<OperationsOverview>>("/reports/overview", { params }).then(unwrap),
+      getRevenue: (params: Partial<RevenueReportQuery> = {}) =>
+        http.get<ApiEnvelope<RevenueReport>>("/reports/revenue", { params }).then(unwrap),
+      getUtilization: (params: Partial<UtilizationReportQuery> = {}) =>
+        http.get<ApiEnvelope<UtilizationReport>>("/reports/utilization", { params }).then(unwrap),
+      getRentals: (params: Partial<RentalReportQuery> = {}) =>
+        http.get<ApiEnvelope<RentalReport>>("/reports/rentals", { params }).then(unwrap),
+      getReconciliation: (params: Partial<UtilizationReportQuery> = {}) =>
+        http
+          .get<ApiEnvelope<ReconciliationReport>>("/reports/reconciliation", { params })
+          .then(unwrap),
+      exportReport: async (
+        params: ReportExportQuery,
+      ): Promise<{ data: string; filename: string }> => {
+        const response = await http.get("/reports/export", {
+          params,
+          responseType: "text",
+        });
+        const contentDisposition = response.headers["content-disposition"] as string | undefined;
+        let filename = `${params.type}-report.csv`;
+        if (contentDisposition) {
+          const match = contentDisposition.match(/filename="?([^"]+)"?/);
+          if (match?.[1]) {
+            filename = match[1];
+          }
+        }
+        return { data: response.data as string, filename };
+      },
     },
   };
 }
 
-export type StorexApiClient<Mode extends AuthMode = "mock"> = Omit<
-  ReturnType<typeof createStorexApiClientImpl>,
+export type MetastorageApiClient<Mode extends AuthMode = "mock"> = Omit<
+  ReturnType<typeof createMetastorageApiClientImpl>,
   "auth"
 > & {
-  auth: Omit<ReturnType<typeof createStorexApiClientImpl>["auth"], "login" | "me"> & {
+  auth: Omit<ReturnType<typeof createMetastorageApiClientImpl>["auth"], "login" | "me"> & {
     login: (input: LoginInput) => Promise<SessionFor<Mode>>;
     me: () => Promise<SessionFor<Mode>["user"]>;
   };
 };
 
-export function createStorexApiClient(http: AxiosInstance): StorexApiClient<"mock">;
-export function createStorexApiClient(
+export function createMetastorageApiClient(http: AxiosInstance): MetastorageApiClient<"mock">;
+export function createMetastorageApiClient(
   http: AxiosInstance,
   authMode: "mock",
-): StorexApiClient<"mock">;
-export function createStorexApiClient(
+): MetastorageApiClient<"mock">;
+export function createMetastorageApiClient(
   http: AxiosInstance,
   authMode: "better-auth",
-): StorexApiClient<"better-auth">;
-export function createStorexApiClient(
+): MetastorageApiClient<"better-auth">;
+export function createMetastorageApiClient(
   http: AxiosInstance,
   authMode: AuthMode,
-): StorexApiClient<AuthMode>;
-export function createStorexApiClient(
+): MetastorageApiClient<AuthMode>;
+export function createMetastorageApiClient(
   http: AxiosInstance,
   authMode: AuthMode = "mock",
-): StorexApiClient<AuthMode> {
-  return createStorexApiClientImpl(http, authMode) as StorexApiClient<AuthMode>;
+): MetastorageApiClient<AuthMode> {
+  return createMetastorageApiClientImpl(http, authMode) as MetastorageApiClient<AuthMode>;
 }

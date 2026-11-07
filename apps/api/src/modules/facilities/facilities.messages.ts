@@ -1,0 +1,38 @@
+export const FACILITY_MESSAGES = {
+  facilityUnavailable: "Không tìm thấy cơ sở khả dụng",
+  checkInOutsideOperatingHours: (open: string, close: string) =>
+    `Giờ nhận kho phải từ ${open.slice(0, 5)} đến ${close.slice(0, 5)} (giờ Việt Nam) tại chi nhánh này.`,
+  loginRequired: "Bạn cần đăng nhập để thực hiện thao tác này",
+  facilityIdRequired: "Mã định danh cơ sở (facilityId) là bắt buộc",
+  facilityListAccessDenied: "Bạn không có quyền xem danh sách cơ sở",
+  facilityAccessDenied: "Bạn không có quyền truy cập cơ sở này",
+  facilityOperationDenied: "Bạn không có quyền thực hiện thao tác này tại cơ sở",
+  facilityCodeAlreadyExists: (code: string) => `Cơ sở với mã "${code}" đã tồn tại`,
+  facilityNotFound: (id: string) => `Không tìm thấy cơ sở với id "${id}"`,
+  userNotFound: (id: string) => `Không tìm thấy người dùng với id "${id}"`,
+  inactiveUserAssignment: "Không thể phân công cho tài khoản đang bị vô hiệu hóa",
+  assignmentRoleMismatch: "Vai trò phân công phải trùng với vai trò của tài khoản",
+  userAlreadyAssigned:
+    "Người dùng đã được phân công tại một cơ sở khác; hãy kết thúc phân công hiện tại trước",
+  staffAssignmentNotFound: "Không tìm thấy phân công nhân sự tương ứng",
+  failedToCreateFacility: "Failed to create facility",
+  failedToUpsertAssignment: "Failed to upsert assignment",
+  openWorkPreventsRevocation:
+    "Hãy bàn giao hết công việc đang phụ trách trước khi thu hồi phân công nhân sự.",
+  assignmentTargetUnavailable: "Tài khoản phải đang hoạt động và vai trò phải khớp với phân công.",
+  facilityHasOpenBookings:
+    "Không thể ngừng hoạt động cơ sở khi còn booking hoặc lượt giữ chỗ chưa kết thúc.",
+  facilityMetadataUpdated: "Đã cập nhật thông tin cơ sở.",
+  facilityCreated: "Đã tạo cơ sở.",
+  assignmentCreated: "Đã phân công nhân sự vào cơ sở.",
+  assignmentRevoked: "Đã thu hồi phân công nhân sự.",
+  managementSummary: "Quản lý danh sách cơ sở",
+  operatingHoursSummary: "Xem giờ mở cửa và đóng cửa chung trong cài đặt hệ thống",
+  detailSummary: "Xem chi tiết cơ sở theo quyền truy cập",
+  updateSummary: "Cập nhật thông tin cơ sở",
+  assignmentsSummary: "Quản lý thành viên được phân công tại cơ sở",
+  facilityUnitTypesSummary: "Quản lý loại kho được cung cấp tại cơ sở",
+  facilityUnitTypeUpdateSummary: "Cập nhật trạng thái cung cấp loại kho tại cơ sở",
+  assignmentTargetMismatch: "Vai trò của nhân sự không khớp với vai trò phân công.",
+  activeAssignmentNotFound: "Không tìm thấy phân công đang hoạt động.",
+} as const;

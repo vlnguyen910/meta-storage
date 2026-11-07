@@ -1,6 +1,9 @@
-import type { ApiError, ApiResponse } from "@storex/shared";
+import type { ApiError, ApiResponse } from "@metastorage/shared";
 
-export function successResponse<T>(data: T, message?: string): ApiResponse<T> {
+export function successResponse<T>(
+  data: T,
+  message?: string,
+): ApiResponse<T> & { success: true; data: T } {
   return {
     success: true,
     message,

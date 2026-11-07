@@ -14,7 +14,29 @@
       "dependsOn": ["^check-types"]
     },
     "test": {
-      "dependsOn": ["^test"]
+      "dependsOn": ["^test"],
+      "env": [
+        "NODE_ENV",
+        "DATABASE_URL",
+        "MONGODB_URI",
+        "MONGODB_TEST_URI",
+        "LOG_LEVEL",
+        "REDIS_URL",
+        "CORS_ORIGIN",
+        "AUTH_TRUSTED_ORIGINS",
+        "BETTER_AUTH_SECRET",
+        "BETTER_AUTH_URL",
+        "BOOKING_MAGIC_LINK_SECRET",
+        "QR_TOKEN_SECRET",
+        "PUBLIC_APP_URL",
+        "WEB_URL",
+        "RESEND_API_KEY",
+        "RESEND_FROM_EMAIL",
+        "CLOUDINARY_CLOUD_NAME",
+        "CLOUDINARY_API_KEY",
+        "CLOUDINARY_API_SECRET",
+        "SEED_TEST_DATABASE_URL"
+      ]
     },
     "dev": {
       "cache": false,
@@ -24,7 +46,8 @@
       "cache": false
     },
     "db:migrate": {
-      "cache": false
+      "cache": false,
+      "passThroughEnv": ["NODE_ENV", "DATABASE_URL", "DOCKER_DATABASE_URL"]
     },
     "db:push": {
       "cache": false
@@ -32,6 +55,20 @@
     "db:studio": {
       "cache": false,
       "persistent": true
+    },
+    "db:seed": {
+      "cache": false,
+      "passThroughEnv": [
+        "NODE_ENV",
+        "DATABASE_URL",
+        "DOCKER_DATABASE_URL",
+        "QR_TOKEN_SECRET",
+        "SEED_NOW"
+      ]
+    },
+    "db:clear": {
+      "cache": false,
+      "passThroughEnv": ["NODE_ENV", "DATABASE_URL", "DOCKER_DATABASE_URL"]
     }
   }
 }

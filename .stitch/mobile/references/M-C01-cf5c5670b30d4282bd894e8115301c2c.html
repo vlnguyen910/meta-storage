@@ -1,0 +1,487 @@
+<!DOCTYPE html><html class="h-full bg-[#F8FAF9]" lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>M-C01 — Tổng quan khách hàng — Customer</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "inverse-primary": "#96d3c0",
+            "on-primary": "#ffffff",
+            "error": "#ba1a1a",
+            "on-secondary-fixed-variant": "#135041",
+            "on-tertiary": "#ffffff",
+            "tertiary-fixed": "#ffdcc3",
+            "on-error-container": "#93000a",
+            "surface-container": "#eaedff",
+            "inverse-surface": "#283044",
+            "outline": "#707975",
+            "on-error": "#ffffff",
+            "error-container": "#ffdad6",
+            "surface-container-high": "#e2e7ff",
+            "secondary-fixed-dim": "#98d2be",
+            "on-background": "#131b2e",
+            "surface": "#faf8ff",
+            "inverse-on-surface": "#eef0ff",
+            "on-surface": "#131b2e",
+            "surface-container-highest": "#dae2fd",
+            "primary": "#003b2f",
+            "surface-tint": "#2c6859",
+            "surface-container-low": "#f2f3ff",
+            "on-secondary-fixed": "#002018",
+            "secondary-fixed": "#b4efda",
+            "on-tertiary-fixed": "#2f1500",
+            "surface-container-lowest": "#ffffff",
+            "outline-variant": "#bfc9c4",
+            "on-tertiary-fixed-variant": "#6e3900",
+            "on-primary-fixed": "#002019",
+            "on-primary-container": "#89c5b3",
+            "on-secondary-container": "#366e5e",
+            "tertiary-container": "#723b00",
+            "secondary-container": "#b4efda",
+            "background": "#faf8ff",
+            "primary-fixed-dim": "#96d3c0",
+            "tertiary": "#512800",
+            "primary-fixed": "#b1efdc",
+            "on-tertiary-container": "#ffa454",
+            "on-surface-variant": "#404945",
+            "primary-container": "#125345",
+            "surface-dim": "#d2d9f4",
+            "on-secondary": "#ffffff",
+            "tertiary-fixed-dim": "#ffb77d",
+            "on-primary-fixed-variant": "#0d5042",
+            "surface-variant": "#dae2fd",
+            "secondary": "#306858",
+            "surface-bright": "#faf8ff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "margin-sm": "1rem",
+            "space-xs": "0.25rem",
+            "gutter": "1.5rem",
+            "space-xl": "2.5rem",
+            "space-sm": "0.5rem",
+            "space-md": "1rem",
+            "gutter-sm": "1rem",
+            "margin": "2rem",
+            "space-lg": "1.5rem"
+          },
+          "fontFamily": {
+            "label-lg": ["Space Grotesk"],
+            "label-sm": ["Space Grotesk"],
+            "display": ["Space Grotesk"],
+            "headline-lg": ["Space Grotesk"],
+            "body-lg": ["Be Vietnam Pro"],
+            "display-mobile": ["Space Grotesk"],
+            "body-sm": ["Be Vietnam Pro"],
+            "body-md": ["Be Vietnam Pro"],
+            "headline-sm": ["Space Grotesk"],
+            "title-md": ["Be Vietnam Pro"],
+            "headline-lg-mobile": ["Space Grotesk"],
+            "label-md": ["Space Grotesk"],
+            "headline-md": ["Space Grotesk"]
+          },
+          "fontSize": {
+            "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+            "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+            "display": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-lg": ["16px", { "lineHeight": "26px", "fontWeight": "400" }],
+            "display-mobile": ["34px", { "lineHeight": "42px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+            "body-md": ["14px", { "lineHeight": "22px", "fontWeight": "400" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "title-md": ["18px", { "lineHeight": "26px", "fontWeight": "600" }],
+            "headline-lg-mobile": ["26px", { "lineHeight": "34px", "fontWeight": "600" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .custom-scroll-none::-webkit-scrollbar {
+      display: none;
+    }
+    .custom-scroll-none {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-[#F8FAF9] text-[#0F172A] font-body-md antialiased min-h-screen flex flex-col justify-between selection:bg-[#E8F3EF] selection:text-[#125345]">
+<!-- Mobile Viewport Container: Fixed exactly 390px width layout matching mobile form factor -->
+<div class="w-full max-w-[390px] mx-auto min-h-screen flex flex-col bg-[#F8FAF9] shadow-sm relative pb-28">
+<!-- Top App Bar / Brand Header -->
+<header class="sticky top-0 z-40 bg-[#FFFFFF] border-b border-[#BFCAC4] px-4 py-3 flex items-center justify-between shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+<div class="flex items-center gap-2">
+<div class="flex items-center gap-1.5">
+<span class="w-7 h-7 rounded-sm bg-[#125345] text-white flex items-center justify-center font-display font-bold text-base leading-none">S</span>
+<span class="font-headline-sm text-headline-sm tracking-tight text-[#003b2f] font-bold">StoreX</span>
+</div>
+<span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[11px] font-label-sm font-semibold bg-[#E8F3EF] text-[#125345] border border-[#125345]/20">
+          Khách hàng
+        </span>
+</div>
+<!-- User Avatar / Profile Drawer Trigger -->
+<button aria-label="Tài khoản cá nhân" class="w-10 h-10 rounded-sm bg-[#E8F3EF] text-[#125345] hover:bg-[#125345] hover:text-white transition-colors duration-150 flex items-center justify-center border border-[#BFCAC4] active:scale-95" id="open-profile-btn" type="button">
+<span class="font-label-lg font-bold text-xs">MA</span>
+</button>
+</header>
+<!-- Greeting Banner -->
+<section class="px-4 pt-4 pb-2">
+<div class="bg-[#FFFFFF] p-3.5 rounded-sm border border-[#BFCAC4] shadow-[0_1px_2px_rgba(15,23,42,0.04)] flex items-start justify-between">
+<div class="space-y-0.5">
+<div class="flex items-center gap-1.5">
+<span class="font-headline-sm text-headline-sm text-[#0F172A] font-bold">Xin chào, Nguyễn Minh Anh</span>
+</div>
+<p class="font-body-sm text-body-sm text-[#475569] flex items-center gap-1">
+<span class="material-symbols-outlined text-[15px] text-[#707975]">mail</span>
+            customer@example.test • <span class="text-[#125345] font-medium">0908 123 456</span>
+</p>
+</div>
+<span class="inline-flex items-center justify-center w-8 h-8 rounded-sm bg-[#E8F3EF] text-[#125345]">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+</span>
+</div>
+</section>
+<!-- Main Content Stream (16px Gutters / Single Column) -->
+<main class="px-4 space-y-4 pt-1">
+<!-- 1. Urgent / Next Action Card -->
+<section class="bg-[#FFFFFF] rounded-sm border border-[#BFCAC4] shadow-[0_1px_2px_rgba(15,23,42,0.04)] overflow-hidden">
+<!-- Card Header Alert -->
+<div class="bg-[#125345] text-white px-3.5 py-2.5 flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-base text-[#98d2be]" style="font-variation-settings: 'FILL' 1;">calendar_clock</span>
+<span class="font-label-md text-label-md uppercase tracking-wider text-white">Lịch đón tiếp sắp tới</span>
+</div>
+<span class="font-label-sm text-[11px] font-semibold bg-white/15 px-2 py-0.5 rounded-sm text-white">BK-2026-0001</span>
+</div>
+<div class="p-3.5 space-y-3">
+<!-- Status Badge -->
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-[#E8F3EF] border border-[#125345]/30">
+<span class="w-2 h-2 rounded-full bg-[#125345] animate-pulse"></span>
+<span class="font-label-md text-label-md text-[#125345] font-semibold">Đã thanh toán 100% • Chờ đón tiếp tại trạm</span>
+</div>
+<!-- Schedule & Facility Matrix -->
+<div class="bg-[#F8FAF9] p-3 rounded-sm border border-[#BFCAC4]/60 space-y-2 text-xs">
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-[18px] text-[#125345] shrink-0 mt-0.5">location_on</span>
+<div>
+<p class="font-label-md text-label-md text-[#0F172A] font-bold">StoreX Sài Gòn Central</p>
+<p class="font-body-sm text-body-sm text-[#475569] leading-snug">118 Nguyễn Văn Linh, P. Tân Thuận, Q.7, TP.HCM</p>
+<a class="font-label-sm text-[11px] text-[#125345] font-semibold inline-flex items-center gap-1 mt-0.5" href="tel:02873001188">
+<span class="material-symbols-outlined text-[13px]">call</span> Hotline: 028 7300 1188
+                </a>
+</div>
+</div>
+<div class="border-t border-[#BFCAC4]/40 pt-2 flex items-start gap-2">
+<span class="material-symbols-outlined text-[18px] text-[#125345] shrink-0 mt-0.5">schedule</span>
+<div>
+<p class="font-label-md text-label-md text-[#0F172A] font-bold">10:00 – 12:00, ngày 09/10/2026 (GMT+7)</p>
+<p class="font-body-sm text-body-sm text-[#707975]">Ân hạn đón tiếp tại sảnh đến 14:00 cùng ngày</p>
+</div>
+</div>
+<div class="border-t border-[#BFCAC4]/40 pt-2 flex items-start gap-2">
+<span class="material-symbols-outlined text-[18px] text-[#125345] shrink-0 mt-0.5">warehouse</span>
+<div>
+<p class="font-label-md text-label-md text-[#0F172A] font-bold">Buồng dự kiến: HCM-01-001 (Mini 2m²)</p>
+<p class="font-body-sm text-body-sm text-[#707975]">Do Quản lý cơ sở (FM) điều phối trực tiếp tại quầy</p>
+</div>
+</div>
+</div>
+<!-- Financial Breakdown Notice -->
+<div class="bg-white p-2.5 rounded-sm border border-[#BFCAC4] flex items-center justify-between text-xs">
+<span class="text-[#475569] font-body-sm text-body-sm">Thuê 900.000đ + Cọc 900.000đ</span>
+<span class="font-label-md text-label-md font-bold text-[#125345]">Tổng: 1.800.000 đ</span>
+</div>
+<!-- Quick Instruction / Verification -->
+<div class="p-2.5 rounded-sm bg-[#faf8ff] border border-[#dae2fd] text-xs text-[#404945] flex items-start gap-2">
+<span class="material-symbols-outlined text-[18px] text-[#125345] shrink-0 mt-0.5">assignment_turned_in</span>
+<p class="font-body-sm text-body-sm leading-relaxed">
+<strong>Lưu ý:</strong> Mang theo <strong>CCCD/Hộ chiếu gốc</strong> để nhân viên FS đối soát bảo mật và cùng nghiệm thu chìa khóa/buồng kho.
+            </p>
+</div>
+<!-- CTA Button (Min 48px height, 44px touch) -->
+<button class="w-full h-12 bg-[#125345] hover:bg-[#0F493B] active:scale-[0.98] text-white rounded-sm font-label-lg text-label-lg font-semibold flex items-center justify-center gap-2 shadow-sm transition-all duration-150" onclick="alert('Đang chuyển hướng xem Mã QR Check-in &amp; Thông tin chi tiết đơn (M-C03)...')" type="button">
+<span class="material-symbols-outlined text-lg">qr_code_scanner</span>
+            Xem chi tiết đơn &amp; Mã QR check-in
+          </button>
+</div>
+</section>
+<!-- 2. Active Rental Card -->
+<section class="bg-[#FFFFFF] rounded-sm border border-[#BFCAC4] p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] space-y-3">
+<div class="flex items-center justify-between border-b border-[#BFCAC4]/60 pb-2.5">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#125345] text-xl">key</span>
+<h2 class="font-title-md text-title-md font-bold text-[#0F172A]">Kho đang thuê hoạt động</h2>
+</div>
+<span class="inline-flex items-center gap-1 text-[11px] font-label-sm font-semibold px-2 py-0.5 rounded-sm bg-[#E8F3EF] text-[#125345]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#125345]"></span>
+            1 buồng kích hoạt
+          </span>
+</div>
+<div class="flex items-start justify-between">
+<div class="space-y-1">
+<p class="font-headline-sm text-headline-sm font-bold text-[#0F172A]">Buồng #HCM-02-015</p>
+<p class="font-body-sm text-body-sm text-[#475569]">Khu tầng 2 - Dãy B • Kiểm soát nhiệt ẩm 24/7</p>
+<div class="flex items-center gap-1.5 pt-1">
+<span class="material-symbols-outlined text-sm text-[#707975]">lock</span>
+<span class="font-label-sm text-[11px] text-[#475569]">Mã PIN cửa: •••• 58</span>
+</div>
+</div>
+<div class="text-right">
+<span class="inline-block px-2 py-0.5 rounded-sm bg-[#FEF3C7] text-[#92400E] font-label-sm text-[11px] font-bold">
+              Còn 14 ngày
+            </span>
+<p class="font-body-sm text-[11px] text-[#707975] mt-1">Kỳ hạn: 24/10/2026</p>
+</div>
+</div>
+<!-- 2 Column Actions -->
+<div class="grid grid-cols-2 gap-2 pt-1">
+<button class="h-11 border border-[#125345] text-[#125345] hover:bg-[#E8F3EF] rounded-sm font-label-md text-label-md font-semibold flex items-center justify-center gap-1 transition-colors active:scale-95" type="button">
+<span class="material-symbols-outlined text-base">info</span>
+            Xem chi tiết kho
+          </button>
+<button class="h-11 bg-[#125345] text-white hover:bg-[#0F493B] rounded-sm font-label-md text-label-md font-semibold flex items-center justify-center gap-1 transition-colors active:scale-95" type="button">
+<span class="material-symbols-outlined text-base">autorenew</span>
+            Gia hạn hợp đồng
+          </button>
+</div>
+</section>
+<!-- 3. Quick Nav Grid (4 Cards) -->
+<section class="space-y-2">
+<h3 class="font-label-md text-label-md uppercase tracking-wider text-[#475569] font-bold">Lối tắt quản lý nhanh</h3>
+<div class="grid grid-cols-2 gap-2.5">
+<!-- Quick Card 1 -->
+<a class="bg-[#FFFFFF] p-3 rounded-sm border border-[#BFCAC4] shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:border-[#125345] transition-all flex flex-col justify-between h-28 active:scale-95 group" href="#">
+<div class="flex items-center justify-between">
+<div class="w-8 h-8 rounded-sm bg-[#E8F3EF] text-[#125345] group-hover:bg-[#125345] group-hover:text-white transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-lg">receipt_long</span>
+</div>
+<span class="text-xs font-label-sm font-bold bg-[#FAF8FF] px-1.5 py-0.5 rounded-sm border border-[#BFCAC4]">1 đơn</span>
+</div>
+<div>
+<p class="font-label-md text-label-md font-bold text-[#0F172A] group-hover:text-[#125345]">Đơn đặt kho</p>
+<p class="font-body-sm text-[11px] text-[#475569] truncate">Tiến độ &amp; mã booking</p>
+</div>
+</a>
+<!-- Quick Card 2 -->
+<a class="bg-[#FFFFFF] p-3 rounded-sm border border-[#BFCAC4] shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:border-[#125345] transition-all flex flex-col justify-between h-28 active:scale-95 group" href="#">
+<div class="flex items-center justify-between">
+<div class="w-8 h-8 rounded-sm bg-[#E8F3EF] text-[#125345] group-hover:bg-[#125345] group-hover:text-white transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-lg">hourglass_top</span>
+</div>
+<span class="text-xs font-label-sm font-bold text-[#707975]">0 trống</span>
+</div>
+<div>
+<p class="font-label-md text-label-md font-bold text-[#0F172A] group-hover:text-[#125345]">Phiếu giữ chỗ</p>
+<p class="font-body-sm text-[11px] text-[#475569] truncate">Tạm giữ 10 phút</p>
+</div>
+</a>
+<!-- Quick Card 3 -->
+<a class="bg-[#FFFFFF] p-3 rounded-sm border border-[#BFCAC4] shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:border-[#125345] transition-all flex flex-col justify-between h-28 active:scale-95 group" href="#">
+<div class="flex items-center justify-between">
+<div class="w-8 h-8 rounded-sm bg-[#E8F3EF] text-[#125345] group-hover:bg-[#125345] group-hover:text-white transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-lg">inventory_2</span>
+</div>
+<span class="text-xs font-label-sm font-bold bg-[#E8F3EF] text-[#125345] px-1.5 py-0.5 rounded-sm">1 buồng</span>
+</div>
+<div>
+<p class="font-label-md text-label-md font-bold text-[#0F172A] group-hover:text-[#125345]">Kho của tôi</p>
+<p class="font-body-sm text-[11px] text-[#475569] truncate">Quản lý buồng đang thuê</p>
+</div>
+</a>
+<!-- Quick Card 4 -->
+<a class="bg-[#FFFFFF] p-3 rounded-sm border border-[#BFCAC4] shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:border-[#125345] transition-all flex flex-col justify-between h-28 active:scale-95 group" href="#">
+<div class="flex items-center justify-between">
+<div class="w-8 h-8 rounded-sm bg-[#E8F3EF] text-[#125345] group-hover:bg-[#125345] group-hover:text-white transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-lg">add_business</span>
+</div>
+<span class="text-xs font-label-sm text-[#125345] font-semibold">Ưu đãi</span>
+</div>
+<div>
+<p class="font-label-md text-label-md font-bold text-[#0F172A] group-hover:text-[#125345]">Tìm thêm kho</p>
+<p class="font-body-sm text-[11px] text-[#475569] truncate">Thuê thêm diện tích</p>
+</div>
+</a>
+</div>
+</section>
+<!-- 4. Contextual Help Accordion (Nielsen 10) -->
+<section class="bg-[#FFFFFF] rounded-sm border border-[#BFCAC4] p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] space-y-2">
+<div class="flex items-center justify-between border-b border-[#BFCAC4]/60 pb-2">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[#125345] text-lg">help_outline</span>
+<h3 class="font-title-md text-title-md font-bold text-[#0F172A]">Hỗ trợ &amp; Hướng dẫn (Nielsen #10)</h3>
+</div>
+<span class="font-label-sm text-[11px] text-[#707975]">Tự phục vụ 24/7</span>
+</div>
+<div class="divide-y divide-[#BFCAC4]/50">
+<!-- Accordion Item 1 -->
+<details class="group py-2.5">
+<summary class="flex justify-between items-center font-label-md text-label-md font-bold text-[#0F172A] cursor-pointer list-none">
+<span>Quy trình đón tiếp tại trạm diễn ra như thế nào?</span>
+<span class="material-symbols-outlined text-base transition-transform duration-200 group-open:rotate-180 text-[#707975]">expand_more</span>
+</summary>
+<div class="pt-2 text-xs font-body-sm text-[#475569] leading-relaxed">
+              Bạn chỉ cần đến đúng cơ sở StoreX Sài Gòn Central, xuất trình <strong>Mã QR check-in</strong> trên ứng dụng cùng CCCD gốc. Chuyên viên FS sẽ xác thực trong 60 giây và bàn giao mã PIN cửa kho thông minh.
+            </div>
+</details>
+<!-- Accordion Item 2 -->
+<details class="group py-2.5">
+<summary class="flex justify-between items-center font-label-md text-label-md font-bold text-[#0F172A] cursor-pointer list-none">
+<span>Tiền cọc 900.000 đ được hoàn trả khi nào?</span>
+<span class="material-symbols-outlined text-base transition-transform duration-200 group-open:rotate-180 text-[#707975]">expand_more</span>
+</summary>
+<div class="pt-2 text-xs font-body-sm text-[#475569] leading-relaxed">
+              Tiền cọc an ninh được hoàn 100% về tài khoản ngân hàng của bạn trong vòng 24 giờ sau khi kết thúc hợp đồng thuê và nghiệm thu bàn giao buồng kho nguyên vẹn.
+            </div>
+</details>
+<!-- Accordion Item 3 -->
+<details class="group py-2.5">
+<summary class="flex justify-between items-center font-label-md text-label-md font-bold text-[#0F172A] cursor-pointer list-none">
+<span>Tôi có thể đổi lịch hẹn nhận kho không?</span>
+<span class="material-symbols-outlined text-base transition-transform duration-200 group-open:rotate-180 text-[#707975]">expand_more</span>
+</summary>
+<div class="pt-2 text-xs font-body-sm text-[#475569] leading-relaxed">
+              Có thể điều chỉnh miễn phí trước giờ hẹn 4 tiếng thông qua mục "Chi tiết đơn" hoặc gọi ngay hotline trạm <strong class="text-[#125345]">028 7300 1188</strong> để được hỗ trợ xếp giờ linh hoạt.
+            </div>
+</details>
+</div>
+</section>
+<!-- Support Hotlines & Security Micro-banner -->
+<div class="text-center py-2 space-y-1">
+<p class="text-[11px] font-body-sm text-[#707975]">
+          Hệ thống bảo vệ đa tầng • Giám sát CCTV 24/7 • Chuẩn an ninh ISO/IEC 27001
+        </p>
+<p class="text-[10px] font-label-sm text-[#707975]/80">
+          Phiên bản ứng dụng v3.4.1 (Build 2026.10)
+        </p>
+</div>
+</main>
+<!-- Role-Specific Bottom Navigation (4 items - Fixed at Bottom) -->
+<!-- Mandatory Logic: No top border, subtle drop shadow separation, strictly 4 items -->
+<nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-[#FFFFFF] shadow-[0_-4px_12px_rgba(15,23,42,0.06)] z-50 px-2 py-1.5 flex items-center justify-around h-16">
+<!-- 1. Tổng quan (Active) -->
+<a class="flex flex-col items-center justify-center flex-1 h-full text-[#125345] transition-colors" href="#tong-quan">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-label-sm text-[11px] font-bold mt-0.5 tracking-tight">Tổng quan</span>
+</a>
+<!-- 2. Đơn đặt kho -->
+<a class="flex flex-col items-center justify-center flex-1 h-full text-[#707975] hover:text-[#125345] transition-colors" href="#don-dat-kho">
+<span class="material-symbols-outlined text-2xl">receipt_long</span>
+<span class="font-label-sm text-[11px] font-medium mt-0.5 tracking-tight">Đơn đặt kho</span>
+</a>
+<!-- 3. Giữ chỗ -->
+<a class="flex flex-col items-center justify-center flex-1 h-full text-[#707975] hover:text-[#125345] transition-colors" href="#giu-cho">
+<span class="material-symbols-outlined text-2xl">timer</span>
+<span class="font-label-sm text-[11px] font-medium mt-0.5 tracking-tight">Giữ chỗ</span>
+</a>
+<!-- 4. Kho của tôi -->
+<a class="flex flex-col items-center justify-center flex-1 h-full text-[#707975] hover:text-[#125345] transition-colors" href="#kho-cua-toi">
+<span class="material-symbols-outlined text-2xl">warehouse</span>
+<span class="font-label-sm text-[11px] font-medium mt-0.5 tracking-tight">Kho của tôi</span>
+</a>
+</nav>
+<!-- 5. In-Page Account Sheet Modal (Drawer) -->
+<div class="fixed inset-0 bg-slate-900/60 z-50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-200" id="profile-drawer-backdrop">
+<div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-[#FFFFFF] rounded-t-xl border-t border-[#BFCAC4] p-5 space-y-4 shadow-2xl transform translate-y-full transition-transform duration-300" id="profile-drawer">
+<!-- Drawer Drag Handle -->
+<div class="w-10 h-1 bg-[#BFCAC4] rounded-full mx-auto mb-1"></div>
+<div class="flex items-center justify-between border-b border-[#BFCAC4]/60 pb-3">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-sm bg-[#125345] text-white flex items-center justify-center font-display font-bold text-lg">
+              MA
+            </div>
+<div>
+<h4 class="font-title-md text-title-md font-bold text-[#0F172A]">Nguyễn Minh Anh</h4>
+<p class="font-body-sm text-body-sm text-[#475569]">Khách hàng cá nhân (ID: CX-9821)</p>
+</div>
+</div>
+<button class="w-9 h-9 rounded-sm text-[#707975] hover:bg-[#F8FAF9] flex items-center justify-center" id="close-profile-btn" type="button">
+<span class="material-symbols-outlined text-2xl">close</span>
+</button>
+</div>
+<div class="space-y-2 bg-[#F8FAF9] p-3 rounded-sm border border-[#BFCAC4]">
+<div class="flex justify-between items-center text-xs">
+<span class="text-[#707975]">Email đã xác thực:</span>
+<span class="font-semibold text-[#0F172A]">customer@example.test</span>
+</div>
+<div class="flex justify-between items-center text-xs">
+<span class="text-[#707975]">Số điện thoại:</span>
+<span class="font-semibold text-[#0F172A]">0908 123 456</span>
+</div>
+<div class="flex justify-between items-center text-xs">
+<span class="text-[#707975]">Tình trạng tài khoản:</span>
+<span class="text-[#125345] font-bold">Đã định danh eKYC</span>
+</div>
+</div>
+<div class="pt-1 space-y-2">
+<button class="w-full h-11 border border-[#BFCAC4] rounded-sm text-[#0F172A] font-label-md text-label-md font-semibold flex items-center justify-center gap-2 hover:bg-[#F8FAF9]" type="button">
+<span class="material-symbols-outlined text-base">manage_accounts</span>
+            Chỉnh sửa thông tin cá nhân
+          </button>
+<button class="w-full h-12 bg-[#ba1a1a] hover:bg-[#93000a] text-white rounded-sm font-label-md text-label-md font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-colors" onclick="alert('Đã đăng xuất tài khoản an toàn.')" type="button">
+<span class="material-symbols-outlined text-lg">logout</span>
+            Đăng xuất tài khoản
+          </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Micro-interactions Script -->
+<script>
+    const openBtn = document.getElementById('open-profile-btn');
+    const closeBtn = document.getElementById('close-profile-btn');
+    const backdrop = document.getElementById('profile-drawer-backdrop');
+    const drawer = document.getElementById('profile-drawer');
+
+    function openDrawer() {
+      backdrop.classList.remove('opacity-0', 'pointer-events-none');
+      backdrop.classList.add('opacity-100');
+      drawer.classList.remove('translate-y-full');
+      drawer.classList.add('translate-y-0');
+    }
+
+    function closeDrawer() {
+      backdrop.classList.add('opacity-0', 'pointer-events-none');
+      backdrop.classList.remove('opacity-100');
+      drawer.classList.add('translate-y-full');
+      drawer.classList.remove('translate-y-0');
+    }
+
+    openBtn.addEventListener('click', openDrawer);
+    closeBtn.addEventListener('click', closeDrawer);
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) closeDrawer();
+    });
+  </script>
+</body></html>

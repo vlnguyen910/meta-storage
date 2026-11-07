@@ -1,10 +1,10 @@
-import { type Facility, FacilityStatus } from "@storex/contracts";
+import { type Facility, FacilityStatus } from "@metastorage/contracts";
 
 export const facilitySeeds: Facility[] = [
   {
     id: "fac-hcm-central",
     code: "HCM-01",
-    name: "storeX Sài Gòn Central",
+    name: "metastorage Sài Gòn Central",
     description:
       "Kho trung tâm thuận tiện cho gia đình và doanh nghiệp nhỏ, có kiểm soát ra vào 24/7.",
     address: {
@@ -24,7 +24,7 @@ export const facilitySeeds: Facility[] = [
   {
     id: "fac-hn-west",
     code: "HN-01",
-    name: "storeX Hà Nội West",
+    name: "metastorage Hà Nội West",
     description:
       "Không gian lưu trữ sạch, khô thoáng ở phía Tây Hà Nội với nhiều lựa chọn diện tích.",
     address: {
@@ -44,7 +44,7 @@ export const facilitySeeds: Facility[] = [
   {
     id: "fac-dn-riverside",
     code: "DN-01",
-    name: "storeX Đà Nẵng Riverside",
+    name: "metastorage Đà Nẵng Riverside",
     description:
       "Cơ sở mới gần trung tâm thành phố, phù hợp lưu trữ đồ cá nhân, hồ sơ và hàng bán lẻ.",
     address: {

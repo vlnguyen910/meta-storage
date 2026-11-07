@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Clock3, MapPin, Phone, Ruler, ShieldCheck, Warehouse } from "lucide-react";
+import { CheckCircle2, MapPin, Ruler, Warehouse } from "lucide-react";
 import Link from "next/link";
 import { buttonClassName } from "@/components/ui/button";
 import { Currency, StatusBadge } from "@/components/ui/display";
@@ -44,11 +44,11 @@ export function FacilityDetail({ facilityId }: { facilityId: string }) {
         )}
       >
         <div>
-          <StatusBadge value={facility.status} />
+          <StatusBadge value="ACTIVE" />
           <h1 className="my-4 text-5xl font-bold max-[800px]:text-4xl">{facility.name}</h1>
           <p className="flex items-center gap-2 text-[#e4f1ed]">
             <MapPin />
-            {facility.address.line1}, {facility.address.district}, {facility.address.city}
+            {facility.address}
           </p>
         </div>
         <Warehouse className="max-[800px]:hidden" size={110} />
@@ -57,17 +57,12 @@ export function FacilityDetail({ facilityId }: { facilityId: string }) {
         <div className="grid gap-6">
           <section className="rounded-card border border-line bg-white p-6 shadow-soft">
             <h2 className="text-2xl font-bold">Không gian an toàn, dễ tiếp cận</h2>
-            <p className="text-muted">{facility.description}</p>
-            <div className="mt-5 flex flex-wrap gap-3">
-              {facility.features.map((feature) => (
-                <span
-                  className="flex items-center gap-1.5 rounded-[9px] bg-primary-soft px-3 py-2 text-sm font-bold text-primary"
-                  key={feature}
-                >
-                  <CheckCircle2 className="size-4" />
-                  {feature}
-                </span>
-              ))}
+            <p className="text-muted">
+              {facility.description ?? "Không gian lưu trữ an toàn, thuận tiện cho bạn."}
+            </p>
+            <div className="mt-5 flex items-center gap-2 text-sm font-bold text-primary">
+              <CheckCircle2 className="size-4" />
+              {facility.availableUnits} / {facility.totalUnits} unit còn trống
             </div>
           </section>
           <section>
@@ -118,20 +113,6 @@ export function FacilityDetail({ facilityId }: { facilityId: string }) {
             Từ <Currency value={facility.startingMonthlyPrice} />
           </h2>
           <p className="text-muted">Tiền cọc bằng một tháng thuê. Hoàn tất trong vài phút.</p>
-          <div className="grid gap-3 border-y border-line py-4 text-sm">
-            <span className="flex items-center gap-2">
-              <ShieldCheck className="size-4 text-primary" />
-              {facility.availableUnits} unit còn trống
-            </span>
-            <span className="flex items-center gap-2">
-              <Clock3 className="size-4 text-primary" />
-              {facility.openingHours}
-            </span>
-            <span className="flex items-center gap-2">
-              <Phone className="size-4 text-primary" />
-              {facility.phone}
-            </span>
-          </div>
           <Link href={ctaPath} className={buttonClassName("primary", "w-full")}>
             Bắt đầu đặt kho
           </Link>

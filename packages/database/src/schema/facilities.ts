@@ -1,52 +1,16 @@
-import {
-  boolean,
-  index,
-  pgTable,
-  text,
-  timestamp,
-  uniqueIndex,
-  uuid,
-  varchar,
-} from "drizzle-orm/pg-core";
-import { roleEnum, users } from "./users";
+import { boolean, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 
 export const facilities = pgTable("facilities", {
   id: uuid().defaultRandom().primaryKey(),
   code: varchar({ length: 50 }).notNull().unique(),
   name: varchar({ length: 150 }).notNull(),
   address: text().notNull(),
+  coverUrl: text(),
   description: text(),
   isActive: boolean().default(true).notNull(),
   createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
 });
 
-export const FACILITY_ROLES = ["FACILITY_STAFF", "FACILITY_MANAGER"] as const;
-export type FacilityRole = (typeof FACILITY_ROLES)[number];
-
-export const facilityAssignments = pgTable(
-  "facility_assignments",
-  {
-    id: uuid().defaultRandom().primaryKey(),
-    userId: uuid()
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    facilityId: uuid()
-      .notNull()
-      .references(() => facilities.id, { onDelete: "cascade" }),
-    assignedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
-    endedAt: timestamp({ withTimezone: true }),
-    isActive: boolean().default(true).notNull(),
-    role: roleEnum().notNull(),
-  },
-  (table) => [
-    uniqueIndex("facility_assignments_user_facility_idx").on(table.userId, table.facilityId),
-    index("facility_assignments_facility_idx").on(table.facilityId),
-  ],
-);
-
 export type Facility = typeof facilities.$inferSelect;
 export type NewFacility = typeof facilities.$inferInsert;
-
-export type FacilityAssignment = typeof facilityAssignments.$inferSelect;
-export type NewFacilityAssignment = typeof facilityAssignments.$inferInsert;

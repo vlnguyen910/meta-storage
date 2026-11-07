@@ -1,6 +1,6 @@
 "use client";
 
-import type { UserRole } from "@storex/contracts";
+import type { UserRole } from "@metastorage/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { Activity, ArrowUpRight } from "lucide-react";
 import { Card, PageHeader } from "@/components/ui/display";

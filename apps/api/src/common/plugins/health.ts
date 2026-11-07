@@ -1,4 +1,4 @@
-import { sql } from "@storex/database";
+import { sql } from "@metastorage/database";
 import type { FastifyPluginAsync } from "fastify";
 import { successResponse } from "../response/api-response";
 

@@ -1,0 +1,157 @@
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { GlobalLoadingProvider } from "@/components/providers/global-loading-provider";
+import { ToastProvider } from "@/components/ui/toast";
+import { useAuthStore } from "./auth-store";
+import { LoginForm } from "./login-form";
+
+const { login } = vi.hoisted(() => ({ login: vi.fn() }));
+const mockReplace = vi.fn();
+let mockSearchParams = new URLSearchParams();
+
+vi.mock("@/lib/api", () => ({ api: { auth: { login } } }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: mockReplace }),
+  useSearchParams: () => mockSearchParams,
+}));
+
+function renderLoginForm() {
+  return render(
+    <GlobalLoadingProvider>
+      <ToastProvider>
+        <LoginForm />
+      </ToastProvider>
+    </GlobalLoadingProvider>,
+  );
+}
+
+describe("LoginForm", () => {
+  beforeEach(() => {
+    login.mockReset();
+    mockReplace.mockReset();
+    mockSearchParams = new URLSearchParams();
+    useAuthStore.setState({ session: null, hydrated: false, authReady: false });
+  });
+
+  it("renders the Figma login form correctly", () => {
+    renderLoginForm();
+
+    expect(
+      screen.getByRole("heading", { name: "Đăng nhập tài khoản MetaStorage" }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Địa chỉ Email")).toBeInTheDocument();
+    expect(screen.getByLabelText("Mật khẩu")).toBeInTheDocument();
+    expect(screen.getByText("Ghi nhớ đăng nhập trên thiết bị này")).toBeInTheDocument();
+    expect(screen.getByText("Quên mật khẩu?")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Đăng nhập" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Đăng ký ngay" })).toHaveAttribute("href", "/register");
+  });
+
+  it("toggles password visibility when clicking toggle button", async () => {
+    renderLoginForm();
+
+    const passwordInput = screen.getByLabelText("Mật khẩu");
+    expect(passwordInput).toHaveAttribute("type", "password");
+
+    const toggleButton = screen.getByRole("button", { name: /Hiện mật khẩu/i });
+    fireEvent.click(toggleButton);
+
+    expect(passwordInput).toHaveAttribute("type", "text");
+
+    const hideButton = screen.getByRole("button", { name: /Ẩn mật khẩu/i });
+    fireEvent.click(hideButton);
+
+    expect(passwordInput).toHaveAttribute("type", "password");
+  });
+
+  it("submits the login form and redirects on success", async () => {
+    const user = userEvent.setup();
+    login.mockResolvedValue({
+      user: {
+        id: "user-1",
+        name: "Test Customer",
+        email: "customer@metastorage.test",
+        role: "CUSTOMER",
+      },
+    });
+
+    renderLoginForm();
+
+    const emailInput = screen.getByLabelText("Địa chỉ Email");
+    const passwordInput = screen.getByLabelText("Mật khẩu");
+    const submitBtn = screen.getByRole("button", { name: "Đăng nhập" });
+
+    await user.clear(emailInput);
+    await user.type(emailInput, "customer@metastorage.test");
+    await user.clear(passwordInput);
+    await user.type(passwordInput, "12345678");
+    await user.click(submitBtn);
+
+    await waitFor(() => {
+      expect(login).toHaveBeenCalledWith({
+        email: "customer@metastorage.test",
+        password: "12345678",
+      });
+      expect(mockReplace).toHaveBeenCalledWith("/customer/dashboard");
+    });
+  });
+
+  it("redirects BOM role to /operations/dashboard when returnTo is roleRoot /operations", async () => {
+    mockSearchParams = new URLSearchParams("returnTo=/operations");
+    const user = userEvent.setup();
+    login.mockResolvedValue({
+      user: {
+        id: "bom-1",
+        name: "Test BOM",
+        email: "operations@metastorage.test",
+        role: "BUSINESS_OPERATION_MANAGER",
+      },
+    });
+
+    renderLoginForm();
+
+    const emailInput = screen.getByLabelText("Địa chỉ Email");
+    const passwordInput = screen.getByLabelText("Mật khẩu");
+    const submitBtn = screen.getByRole("button", { name: "Đăng nhập" });
+
+    await user.clear(emailInput);
+    await user.type(emailInput, "operations@metastorage.test");
+    await user.clear(passwordInput);
+    await user.type(passwordInput, "12345678");
+    await user.click(submitBtn);
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith("/operations/dashboard");
+    });
+  });
+
+  it("preserves valid nested returnTo path for BOM role", async () => {
+    mockSearchParams = new URLSearchParams("returnTo=/operations/pricing");
+    const user = userEvent.setup();
+    login.mockResolvedValue({
+      user: {
+        id: "bom-1",
+        name: "Test BOM",
+        email: "operations@metastorage.test",
+        role: "BUSINESS_OPERATION_MANAGER",
+      },
+    });
+
+    renderLoginForm();
+
+    const emailInput = screen.getByLabelText("Địa chỉ Email");
+    const passwordInput = screen.getByLabelText("Mật khẩu");
+    const submitBtn = screen.getByRole("button", { name: "Đăng nhập" });
+
+    await user.clear(emailInput);
+    await user.type(emailInput, "operations@metastorage.test");
+    await user.clear(passwordInput);
+    await user.type(passwordInput, "12345678");
+    await user.click(submitBtn);
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith("/operations/pricing");
+    });
+  });
+});

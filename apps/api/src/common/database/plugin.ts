@@ -1,4 +1,4 @@
-import { type Database, db, queryClient } from "@storex/database";
+import { type Database, db, queryClient } from "@metastorage/database";
 import type { FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
 

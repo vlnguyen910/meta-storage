@@ -1,5 +1,5 @@
 {
-  "name": "@storex/api-client",
+  "name": "@metastorage/api-client",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -13,11 +13,12 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@storex/contracts": "workspace:*",
+    "@metastorage/contracts": "workspace:*",
+    "@metastorage/database": "workspace:*",
     "axios": "^1.12.2"
   },
   "devDependencies": {
-    "@storex/typescript-config": "workspace:*",
+    "@metastorage/typescript-config": "workspace:*",
     "typescript": "^5.7.3"
   }
 }

@@ -1,0 +1,713 @@
+<!DOCTYPE html><html lang="vi"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <title>M-FS04 — Tìm và xác minh booking — FS</title>
+  <!-- Google Fonts: Space Grotesk & Be Vietnam Pro -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              DEFAULT: '#125345',
+              dark: '#0D3D33',
+              light: '#E6EFEA',
+              surface: '#F8FAF9'
+            },
+            textMain: '#0F172A',
+            textMuted: '#475569',
+            borderMain: '#BFCAC4'
+          },
+          fontFamily: {
+            heading: ['"Space Grotesk"', 'sans-serif'],
+            body: ['"Be Vietnam Pro"', 'sans-serif']
+          },
+          borderRadius: {
+            'card': '4px',
+            'btn': '4px'
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      background-color: #F8FAF9;
+      color: #0F172A;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.5;
+    }
+    h1, h2, h3, h4, h5, h6, .font-heading {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .storex-card {
+      background-color: #FFFFFF;
+      border: 1px solid #BFCAC4;
+      border-radius: 4px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+    .min-touch {
+      min-width: 44px;
+      min-height: 44px;
+    }
+    /* Modal / Sheet transitions */
+    .sheet-backdrop {
+      background-color: rgba(15, 23, 42, 0.55);
+      transition: opacity 0.2s ease-out;
+    }
+    .sheet-content {
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-brand selection:text-white pb-28">
+
+  <!-- TOP APP BAR (Compact Mobile Bar for FS) -->
+  <header class="sticky top-0 z-40 bg-white border-b border-borderMain px-4 py-2.5 flex items-center justify-between shadow-xs">
+    <div class="flex items-center gap-3">
+      <button type="button" onclick="history.back()" aria-label="Quay lại danh sách công việc" class="min-touch flex items-center justify-center rounded-btn text-textMain hover:bg-slate-100 active:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-brand">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+        </svg>
+      </button>
+      <div>
+        <div class="flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-600 inline-block" aria-hidden="true"></span>
+          <span class="text-xs font-semibold tracking-wide text-brand uppercase font-heading">FS Hiện trường</span>
+        </div>
+        <h1 class="text-base font-bold text-textMain font-heading leading-tight">Xác minh Booking</h1>
+      </div>
+    </div>
+
+    <!-- Right Actions: Facility Info & User Avatar with Sheet Trigger -->
+    <div class="flex items-center gap-2">
+      <span class="hidden xs:inline-block text-xs bg-slate-100 text-textMuted px-2 py-1 rounded-btn border border-slate-200 font-medium">SG Central</span>
+      <button type="button" onclick="openProfileSheet()" aria-label="Tài khoản nhân viên Trần Quốc Huy" class="min-touch w-9 h-9 rounded-btn bg-brand-light text-brand font-bold text-sm flex items-center justify-center border border-borderMain hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-brand">
+        QH
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN VIEWPORT CONTAINER (Fluid 375px - 430px, optimized at 390px) -->
+  <main class="w-full max-w-[430px] mx-auto px-4 pt-3 pb-6 flex-1 flex flex-col gap-3.5">
+
+    <!-- SUB-NAV / CONTEXT TABS -->
+    <nav aria-label="Thanh điều hướng vai trò FS" class="flex items-center gap-2 border-b border-borderMain pb-2 text-sm">
+      <a href="javascript:void(0)" class="min-touch flex items-center gap-1.5 px-3 py-1.5 rounded-btn bg-brand text-white font-medium text-xs shadow-xs" aria-current="page">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+        <span>Công việc tiếp đón</span>
+      </a>
+      <a href="javascript:void(0)" class="min-touch flex items-center gap-1.5 px-3 py-1.5 rounded-btn text-textMuted hover:text-textMain hover:bg-slate-100 font-medium text-xs">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+        <span>Kiểm tra trả kho</span>
+      </a>
+    </nav>
+
+    <!-- HEADING & STATUS BANNER -->
+    <section aria-labelledby="section-title">
+      <div class="flex items-center justify-between mb-1">
+        <h2 id="section-title" class="text-lg font-bold text-textMain font-heading">Bước 1: Tiếp đón &amp; Xác thực</h2>
+        <span class="text-xs bg-slate-100 text-textMuted px-2 py-0.5 rounded-btn border border-slate-200">Dữ liệu mẫu GMT+7</span>
+      </div>
+      <p class="text-xs text-textMuted leading-relaxed">
+        Nhân viên FS tiến hành đối soát mã đơn hoặc quét QR khách mang tới. Xác minh tính hợp lệ trước khi thực địa kiểm tra buồng kho.
+      </p>
+    </section>
+
+    <!-- LOOKUP / SEARCH CARD (QR + Booking Code Input) -->
+    <section class="storex-card p-3.5 flex flex-col gap-3">
+      <div class="flex items-center justify-between">
+        <label for="bookingSearchInput" class="text-sm font-bold text-textMain flex items-center gap-1.5 font-heading">
+          <svg class="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          Tra cứu mã Booking hoặc dán QR
+        </label>
+        <span class="text-xs text-brand font-medium">Bắt buộc</span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <div class="relative flex-1">
+          <input type="text" id="bookingSearchInput" value="BK-2026-0001" placeholder="Ví dụ: BK-2026-0001" class="w-full text-base font-semibold text-textMain bg-white border border-borderMain rounded-btn px-3 py-2.5 pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand tracking-wide placeholder:font-normal placeholder:text-slate-400 min-touch" aria-describedby="inputHintText">
+          <button type="button" onclick="clearInput()" id="clearBtn" aria-label="Xóa nội dung nhập" class="absolute right-1 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-slate-600 focus:outline-none">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        </div>
+        
+        <!-- Camera QR Scanner trigger (Explicit Tap with Permission fallback) -->
+        <button type="button" onclick="openQrScannerModal()" class="min-touch px-3 py-2.5 bg-brand-light text-brand border border-borderMain rounded-btn hover:bg-slate-200 active:bg-slate-300 font-semibold text-xs flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-brand shrink-0" aria-label="Quét mã QR từ camera điện thoại">
+          <svg class="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+          <span>Quét QR</span>
+        </button>
+      </div>
+
+      <div class="flex items-center justify-between text-xs text-textMuted" id="inputHintText">
+        <span>Nhập chính xác mã hoặc dán chuỗi QR text</span>
+        <button type="button" onclick="resetToSample()" class="text-brand underline hover:text-brand-dark focus:outline-none">Khôi phục mã mẫu</button>
+      </div>
+      
+      <!-- Inline search state feedback (Simulated instant lookups) -->
+      <div id="searchMessage" class="hidden text-xs rounded-btn p-2 border"></div>
+    </section>
+
+    <!-- CORE VERIFICATION CARD: BK-2026-0001 DETAILS & STRICT ROLE GUARDS -->
+    <article class="storex-card p-3.5 flex flex-col gap-3.5 border-brand/30">
+      
+      <!-- Card Header: Code, Booking Type & Current Slot Badge -->
+      <div class="flex items-start justify-between border-b border-borderMain pb-2.5">
+        <div>
+          <span class="text-xs font-semibold text-textMuted uppercase tracking-wider">Hồ sơ đón tiếp</span>
+          <div class="flex items-center gap-2 mt-0.5">
+            <h3 class="text-lg font-bold text-brand font-heading tracking-tight" id="displayBookingId">BK-2026-0001</h3>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-btn text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-300">
+              Đã thanh toán 100%
+            </span>
+          </div>
+        </div>
+        <div class="text-right">
+          <span class="text-xs text-textMuted block">Trạng thái giờ</span>
+          <span class="inline-block text-xs font-bold text-brand bg-brand-light px-2 py-0.5 rounded-btn border border-brand/20">
+            Trong khung giờ
+          </span>
+        </div>
+      </div>
+
+      <!-- Customer & Facility Snapshot -->
+      <div class="grid grid-cols-2 gap-2.5 text-xs bg-slate-50 p-2.5 rounded-btn border border-slate-200">
+        <div>
+          <span class="text-textMuted block font-medium">Khách hàng thuê:</span>
+          <span class="font-bold text-textMain text-sm block">Nguyễn Minh Anh</span>
+          <span class="text-slate-500 font-mono text-xs">customer@example.test</span>
+          <span class="text-slate-600 block mt-0.5">0908 123 456</span>
+        </div>
+        <div>
+          <span class="text-textMuted block font-medium">Cơ sở tiếp nhận:</span>
+          <span class="font-bold text-textMain block">StoreX Sài Gòn Central</span>
+          <span class="text-slate-600 block">118 Nguyễn Văn Linh, Q.7</span>
+          <span class="text-brand font-medium block mt-0.5">Hotline: 028 7300 1188</span>
+        </div>
+      </div>
+
+      <!-- Financial Snapshot (Explicit rent vs deposit separation) -->
+      <div class="border border-borderMain rounded-btn p-2.5 bg-white">
+        <div class="flex items-center justify-between text-xs font-semibold text-textMuted mb-1.5 border-b border-slate-100 pb-1">
+          <span>Gói lưu trữ: <strong class="text-textMain">Mini 2m² (1 tháng)</strong></span>
+          <span>Kỳ hạn: 09/10 - 09/11/2026</span>
+        </div>
+        <div class="flex justify-between items-center text-xs">
+          <span class="text-textMuted">Tiền thuê kho (Kỳ 1):</span>
+          <span class="font-medium text-textMain">900.000 đ</span>
+        </div>
+        <div class="flex justify-between items-center text-xs mt-1">
+          <span class="text-textMuted">Tiền cọc giữ buồng (Hoàn lại 100%):</span>
+          <span class="font-medium text-textMain">900.000 đ</span>
+        </div>
+        <div class="flex justify-between items-center text-sm font-bold border-t border-slate-100 pt-1.5 mt-1.5">
+          <span class="text-brand">Tổng đã thanh toán (Đối soát xong):</span>
+          <span class="text-brand font-heading text-base">1.800.000 đ</span>
+        </div>
+      </div>
+
+      <!-- Physical Unit Allocation Status (FM Owned Rule) -->
+      <div class="p-2.5 rounded-btn border border-borderMain bg-slate-50">
+        <div class="flex items-center justify-between">
+          <span class="text-xs text-textMuted font-medium">Buồng vật lý được phân bổ:</span>
+          <span class="text-xs text-textMuted">Thẩm quyền: Quản lý (FM)</span>
+        </div>
+        <div class="flex items-center justify-between mt-1">
+          <div class="flex items-center gap-1.5">
+            <svg class="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+            <span class="text-base font-bold text-textMain font-heading" id="unitCodeText">HCM-01-001</span>
+          </div>
+          <span class="text-xs px-2 py-0.5 rounded-btn bg-emerald-100 text-emerald-800 font-semibold border border-emerald-300" id="unitStatusBadge">
+            Đã gán bởi FM
+          </span>
+        </div>
+        <p class="text-xs text-slate-500 mt-1 italic">
+          Vị trí: Tầng 1 - Dãy A. Nhân viên FS chỉ tiếp đón khi FM đã gán cụ thể số buồng.
+        </p>
+      </div>
+
+      <!-- MANDATORY 5-POINT VERIFICATION CHECKLIST (Must all pass to proceed) -->
+      <section aria-labelledby="checklist-heading" class="flex flex-col gap-2 pt-1 border-t border-borderMain">
+        <div class="flex items-center justify-between">
+          <h4 id="checklist-heading" class="text-xs font-bold uppercase tracking-wider text-textMain font-heading">
+            5 Chốt chặn xác minh thực tế (FS Checklist)
+          </h4>
+          <span class="text-xs font-semibold text-brand" id="checklistProgressText">5/5 Đạt điều kiện</span>
+        </div>
+
+        <ul class="flex flex-col gap-2 text-xs" role="list">
+          <!-- Check 1: Paid -->
+          <li class="flex items-start gap-2.5 p-2 rounded-btn bg-white border border-borderMain">
+            <input type="checkbox" id="chk1" checked="" disabled="" class="mt-0.5 w-4 h-4 text-brand rounded-xs accent-[#125345]">
+            <label for="chk1" class="flex-1 text-slate-700">
+              <strong class="text-textMain block">1. Đã thanh toán 100% chi phí kỳ đầu:</strong>
+              Hóa đơn 1.800.000 đ (900k thuê + 900k cọc) đã khớp sao kê chuyển khoản.
+            </label>
+          </li>
+
+          <!-- Check 2: Facility Assignment -->
+          <li class="flex items-start gap-2.5 p-2 rounded-btn bg-white border border-borderMain">
+            <input type="checkbox" id="chk2" checked="" disabled="" class="mt-0.5 w-4 h-4 text-brand rounded-xs accent-[#125345]">
+            <label for="chk2" class="flex-1 text-slate-700">
+              <strong class="text-textMain block">2. Cơ sở tiếp nhận chính xác:</strong>
+              Thuộc thẩm quyền trạm StoreX Sài Gòn Central của nhân viên FS trực.
+            </label>
+          </li>
+
+          <!-- Check 3: Physical Unit Assignment -->
+          <li class="flex items-start gap-2.5 p-2 rounded-btn bg-white border border-borderMain" id="chkUnitRow">
+            <input type="checkbox" id="chk3" checked="" disabled="" class="mt-0.5 w-4 h-4 text-brand rounded-xs accent-[#125345]">
+            <label for="chk3" class="flex-1 text-slate-700">
+              <strong class="text-textMain block">3. Đã có ô buồng vật lý xác định:</strong>
+              Đã gán buồng <span class="font-mono font-bold text-brand">#HCM-01-001</span> (Không bị bỏ trống hoặc chờ FM).
+            </label>
+          </li>
+
+          <!-- Check 4: Time Slot & Grace Window -->
+          <li class="flex items-start gap-2.5 p-2 rounded-btn bg-white border border-borderMain" id="chkSlotRow">
+            <input type="checkbox" id="chk4" checked="" disabled="" class="mt-0.5 w-4 h-4 text-brand rounded-xs accent-[#125345]">
+            <label for="chk4" class="flex-1 text-slate-700">
+              <strong class="text-textMain block">4. Trong khung tiếp đón hoặc ân hạn:</strong>
+              Lịch hẹn 10:00 - 12:00, ngày 09/10/2026 (Ân hạn hỗ trợ đến 14:00 cùng ngày).
+            </label>
+          </li>
+
+          <!-- Check 5: Government ID verification -->
+          <li class="flex items-start gap-2.5 p-2 rounded-btn bg-white border border-borderMain">
+            <input type="checkbox" id="chk5" checked="" onchange="toggleIdVerification(this)" class="mt-0.5 w-4 h-4 text-brand rounded-xs accent-[#125345] cursor-pointer">
+            <label for="chk5" class="flex-1 text-slate-700 cursor-pointer">
+              <strong class="text-textMain block">5. Đã đối soát CCCD/Hộ chiếu người đến:</strong>
+              Họ tên khớp 100% với chủ booking <strong class="text-brand">Nguyễn Minh Anh</strong>.
+            </label>
+          </li>
+        </ul>
+      </section>
+
+      <!-- IMPORTANT ROLE NOTICE (Role Guard: Check-in is NOT handover) -->
+      <aside class="p-2.5 rounded-btn bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2" role="note">
+        <svg class="w-4 h-4 text-amber-700 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+        <div>
+          <strong class="font-bold">Quy định thẩm quyền nhân viên (FS Guard):</strong>
+          Xác minh booking chỉ là bước hợp lệ hóa hồ sơ tiếp đón. FS <strong>tuyệt đối không bàn giao chìa, không kích hoạt hợp đồng</strong> trước khi hoàn thành kiểm tra hiện trạng buồng kho tại bước M-FS05.
+        </div>
+      </aside>
+
+    </article>
+
+    <!-- TEST SIMULATION DRAWER (Allows verifying edge cases locally without reload) -->
+    <section class="storex-card p-3 bg-slate-50 border-slate-200 text-xs flex flex-col gap-2">
+      <div class="flex items-center justify-between">
+        <span class="font-bold text-textMain flex items-center gap-1 font-heading">
+          <svg class="w-3.5 h-3.5 text-textMuted" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+          Mô phỏng tình huống thực địa (Local Test)
+        </span>
+        <span class="text-slate-400">Chỉ thử nghiệm UI</span>
+      </div>
+      <div class="grid grid-cols-3 gap-1.5">
+        <button type="button" onclick="setScenario('valid')" class="min-touch px-2 py-1.5 bg-white border border-borderMain rounded-btn font-semibold text-slate-700 hover:bg-emerald-50 hover:border-brand active:scale-95 text-xs text-center focus:outline-none focus:ring-1 focus:ring-brand">
+          Chuẩn (Đủ điều kiện)
+        </button>
+        <button type="button" onclick="setScenario('no_unit')" class="min-touch px-2 py-1.5 bg-white border border-borderMain rounded-btn font-semibold text-slate-700 hover:bg-amber-50 hover:border-amber-400 active:scale-95 text-xs text-center focus:outline-none focus:ring-1 focus:ring-brand">
+          Chưa gán buồng (Chờ FM)
+        </button>
+        <button type="button" onclick="setScenario('late')" class="min-touch px-2 py-1.5 bg-white border border-borderMain rounded-btn font-semibold text-slate-700 hover:bg-rose-50 hover:border-rose-400 active:scale-95 text-xs text-center focus:outline-none focus:ring-1 focus:ring-brand">
+          Quá hạn giờ đón
+        </button>
+      </div>
+    </section>
+
+    <!-- NIELSEN 10 CONTEXTUAL HELP ACCORDION (In-place guidance) -->
+    <section class="storex-card p-3 border-borderMain">
+      <button type="button" onclick="toggleHelpAccordion()" class="w-full flex items-center justify-between text-left font-bold text-sm text-textMain min-touch focus:outline-none font-heading" aria-expanded="false" aria-controls="helpAccordionBody" id="helpAccordionBtn">
+        <span class="flex items-center gap-1.5">
+          <svg class="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          Hướng dẫn nghiệp vụ tiếp đón tại quầy
+        </span>
+        <svg id="helpIcon" class="w-4 h-4 text-slate-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+        </svg>
+      </button>
+
+      <div id="helpAccordionBody" class="hidden pt-2.5 text-xs text-textMuted border-t border-slate-100 mt-2 space-y-2">
+        <p><strong>Bước 1:</strong> Yêu cầu khách đưa mã QR hoặc đọc mã Booking <span class="font-mono text-brand font-semibold">BK-2026-0001</span>.</p>
+        <p><strong>Bước 2:</strong> Kiểm tra trạng thái thanh toán 100% và số buồng đã được Quản lý cơ sở (FM) phân bổ trước.</p>
+        <p><strong>Bước 3:</strong> Yêu cầu xem bản gốc CCCD/Hộ chiếu đối chiếu họ tên.</p>
+        <p><strong>Bước 4:</strong> Bấm <em>"Xác nhận booking &amp; Chuyển sang kiểm tra (M-FS05)"</em> để bắt đầu quá trình dẫn khách đi kiểm tra buồng kho.</p>
+        <p class="text-amber-800 bg-amber-50 p-2 rounded-btn border border-amber-200">
+          * Trường hợp chưa có buồng vật lý, FS liên hệ trực tiếp FM qua bộ đàm để gán trên hệ thống StoreX OS, không tự ý cấp ô kho.
+        </p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- STICKY BOTTOM ACTION BAR (Full width mobile container, min 48px controls, safe area inset) -->
+  <aside class="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-borderMain p-3 shadow-lg">
+    <div class="max-w-[430px] mx-auto flex flex-col gap-2">
+      <!-- Error/Guard notice if blocked -->
+      <div id="guardBlockMessage" class="hidden text-xs text-rose-700 bg-rose-50 border border-rose-200 p-2 rounded-btn font-medium">
+        Không thể xác nhận: Vui lòng đối soát đủ 5 điều kiện nghiệp vụ phía trên.
+      </div>
+
+      <!-- Action Button Group -->
+      <div class="flex items-center gap-2">
+        <!-- Back Button -->
+        <button type="button" onclick="history.back()" class="min-touch w-1/3 py-3 px-3 border border-borderMain rounded-btn bg-white text-textMain font-semibold text-sm hover:bg-slate-100 active:bg-slate-200 text-center focus:outline-none focus:ring-2 focus:ring-brand">
+          Quay lại
+        </button>
+
+        <!-- Primary Commit CTA -->
+        <button type="button" id="confirmBookingBtn" onclick="handleConfirmVerification()" class="min-touch flex-1 py-3 px-4 bg-brand text-white rounded-btn font-bold text-sm hover:bg-brand-dark active:scale-[0.98] transition-transform duration-100 flex items-center justify-center gap-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2">
+          <span>Xác minh booking</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- PROFILE & LOGOUT SHEET (In-screen modal, avoids inventing external routes) -->
+  <div id="profileSheet" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="profileSheetTitle">
+    <div class="sheet-backdrop absolute inset-0" onclick="closeProfileSheet()"></div>
+    <div class="sheet-content absolute bottom-0 left-0 right-0 bg-white border-t border-borderMain rounded-t-lg max-w-[430px] mx-auto p-4 z-10 shadow-2xl">
+      <div class="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-3"></div>
+      <div class="flex items-start justify-between border-b border-borderMain pb-3">
+        <div>
+          <span class="text-xs text-textMuted uppercase font-semibold">Tài khoản nhân viên FS</span>
+          <h3 id="profileSheetTitle" class="text-base font-bold text-textMain font-heading">Trần Quốc Huy</h3>
+          <p class="text-xs text-textMuted font-mono">ID: FS-SG-012 • Ca trực: Sáng (08:00 - 16:00)</p>
+        </div>
+        <button type="button" onclick="closeProfileSheet()" aria-label="Đóng bảng thông tin" class="min-touch p-2 text-slate-400 hover:text-textMain focus:outline-none">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <div class="py-3 text-xs space-y-2 text-slate-700">
+        <div class="flex justify-between py-1 border-b border-slate-100">
+          <span class="text-textMuted">Cơ sở phân công:</span>
+          <strong class="text-textMain">StoreX Sài Gòn Central (Q.7)</strong>
+        </div>
+        <div class="flex justify-between py-1 border-b border-slate-100">
+          <span class="text-textMuted">Thẩm quyền:</span>
+          <span class="text-emerald-700 font-semibold">Nhân viên hiện trường (FS)</span>
+        </div>
+        <div class="flex justify-between py-1">
+          <span class="text-textMuted">Hotline hỗ trợ nội bộ:</span>
+          <span class="font-bold text-brand">028 7300 1188</span>
+        </div>
+      </div>
+
+      <div class="pt-2 flex flex-col gap-2">
+        <button type="button" onclick="showFeedback('Đã đồng bộ dữ liệu ca trực thành công!')" class="min-touch w-full py-2.5 px-3 bg-brand-light text-brand font-semibold text-xs rounded-btn border border-borderMain hover:bg-slate-200 focus:outline-none">
+          Đồng bộ danh sách ca trực
+        </button>
+        <button type="button" onclick="simulateLogout()" class="min-touch w-full py-2.5 px-3 bg-rose-50 text-rose-700 font-semibold text-xs rounded-btn border border-rose-200 hover:bg-rose-100 focus:outline-none">
+          Đăng xuất tài khoản
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- QR SCANNER MODAL (Camera Permission Flow + Manual Fallback) -->
+  <div id="qrScannerModal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="qrModalTitle">
+    <div class="sheet-backdrop absolute inset-0" onclick="closeQrScannerModal()"></div>
+    <div class="sheet-content absolute inset-x-4 top-1/2 -translate-y-1/2 bg-white border border-borderMain rounded-card max-w-[390px] mx-auto p-4 z-10 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-borderMain pb-2 mb-3">
+        <h3 id="qrModalTitle" class="text-base font-bold text-textMain font-heading flex items-center gap-1.5">
+          <svg class="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+          Quét mã QR Booking
+        </h3>
+        <button type="button" onclick="closeQrScannerModal()" aria-label="Đóng camera quét" class="min-touch p-2 text-slate-400 hover:text-textMain focus:outline-none">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <!-- Camera Viewport Mock with Permission States -->
+      <div id="cameraArea" class="relative aspect-square w-full bg-slate-900 rounded-btn overflow-hidden flex flex-col items-center justify-center p-4 text-center text-white">
+        <!-- Target Frame -->
+        <div class="w-48 h-48 border-2 border-dashed border-emerald-400 rounded-sm relative flex items-center justify-center mb-3">
+          <span class="text-xs text-emerald-300 font-mono tracking-widest animate-pulse">ĐẶT QR VÀO KHUNG</span>
+          <div class="absolute inset-0 bg-emerald-500/10 pointer-events-none"></div>
+        </div>
+        <p class="text-xs text-slate-300">Hướng camera về màn hình điện thoại hoặc vé in của khách hàng</p>
+      </div>
+
+      <!-- Action: Simulate Scan Successful or Fallback -->
+      <div class="mt-3 flex flex-col gap-2">
+        <button type="button" onclick="simulateQrRecognized('BK-2026-0001')" class="min-touch w-full py-2.5 px-3 bg-brand text-white font-bold text-xs rounded-btn hover:bg-brand-dark focus:outline-none">
+          Mô phỏng nhận diện mã: BK-2026-0001
+        </button>
+        <button type="button" onclick="simulateCameraDenied()" class="min-touch w-full py-2 px-3 bg-slate-100 text-textMuted font-semibold text-xs rounded-btn hover:bg-slate-200 focus:outline-none">
+          Mô phỏng quyền Camera bị từ chối
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUCCESS CONFIRMATION MODAL (Transition to M-FS05) -->
+  <div id="successModal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="successModalTitle">
+    <div class="sheet-backdrop absolute inset-0"></div>
+    <div class="sheet-content absolute inset-x-4 top-1/2 -translate-y-1/2 bg-white border border-borderMain rounded-card max-w-[390px] mx-auto p-4 z-10 shadow-2xl text-center">
+      <div class="w-12 h-12 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center mx-auto mb-2.5">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+      </div>
+      <h3 id="successModalTitle" class="text-lg font-bold text-textMain font-heading">Booking đã được xác minh!</h3>
+      <p class="text-xs text-textMuted mt-1 mb-3">
+        Mã <strong class="text-brand">BK-2026-0001</strong> đáp ứng đủ điều kiện tiếp đón. Hồ sơ buồng <strong class="text-textMain">HCM-01-001</strong> đã sẵn sàng cho biên bản kiểm tra thực địa.
+      </p>
+
+      <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-btn text-xs text-left mb-3.5 space-y-1 text-slate-700">
+        <div class="flex justify-between">
+          <span class="text-textMuted">Khách hàng:</span>
+          <strong>Nguyễn Minh Anh</strong>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-textMuted">Buồng chỉ định:</span>
+          <strong class="text-brand">HCM-01-001 (Mini 2m²)</strong>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-textMuted">Tiến trình tiếp theo:</span>
+          <span class="font-semibold text-textMain">M-FS05 — Kiểm tra buồng kho</span>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <button type="button" onclick="proceedToInspection()" class="min-touch w-full py-3 px-4 bg-brand text-white font-bold text-sm rounded-btn hover:bg-brand-dark flex items-center justify-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-brand">
+          <span>Bắt đầu kiểm tra buồng kho (M-FS05)</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+        </button>
+        <button type="button" onclick="closeSuccessModal()" class="min-touch w-full py-2 text-xs font-semibold text-textMuted hover:text-textMain">
+          Ở lại xem lại thông tin
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST FEEDBACK NOTIFIER -->
+  <div id="toastNotification" class="fixed top-16 left-4 right-4 z-50 max-w-[390px] mx-auto pointer-events-none transition-opacity duration-200 opacity-0 hidden">
+    <div class="bg-slate-900 text-white text-xs px-3.5 py-2.5 rounded-btn shadow-lg flex items-center justify-between border border-slate-700">
+      <span id="toastText">Thông báo cập nhật</span>
+      <span class="text-brand-light font-bold text-[10px] uppercase font-heading">StoreX OS</span>
+    </div>
+  </div>
+
+  <!-- INLINE JAVASCRIPT LOGIC (MOCK ONLY, COMPLIANT WITH NIELSEN 1-10 & ROLE GUARDS) -->
+  <script>
+    // Current Active Booking State
+    let currentScenario = 'valid'; // 'valid' | 'no_unit' | 'late'
+    let isIdVerified = true;
+
+    // Toast helper
+    function showFeedback(msg) {
+      const toast = document.getElementById('toastNotification');
+      const text = document.getElementById('toastText');
+      text.innerText = msg;
+      toast.classList.remove('hidden');
+      toast.classList.remove('opacity-0');
+      toast.classList.add('opacity-100');
+      setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0');
+        setTimeout(() => toast.classList.add('hidden'), 200);
+      }, 2500);
+    }
+
+    // Toggle contextual help accordion
+    function toggleHelpAccordion() {
+      const body = document.getElementById('helpAccordionBody');
+      const btn = document.getElementById('helpAccordionBtn');
+      const icon = document.getElementById('helpIcon');
+      const isHidden = body.classList.contains('hidden');
+      if (isHidden) {
+        body.classList.remove('hidden');
+        btn.setAttribute('aria-expanded', 'true');
+        icon.classList.add('rotate-180');
+      } else {
+        body.classList.add('hidden');
+        btn.setAttribute('aria-expanded', 'false');
+        icon.classList.remove('rotate-180');
+      }
+    }
+
+    // Input controls
+    function clearInput() {
+      const input = document.getElementById('bookingSearchInput');
+      input.value = '';
+      input.focus();
+      document.getElementById('searchMessage').classList.add('hidden');
+    }
+
+    function resetToSample() {
+      document.getElementById('bookingSearchInput').value = 'BK-2026-0001';
+      setScenario('valid');
+      showFeedback('Đã đặt lại mã mẫu BK-2026-0001');
+    }
+
+    // Profile sheet toggles
+    function openProfileSheet() {
+      document.getElementById('profileSheet').classList.remove('hidden');
+    }
+    function closeProfileSheet() {
+      document.getElementById('profileSheet').classList.add('hidden');
+    }
+    function simulateLogout() {
+      closeProfileSheet();
+      showFeedback('Mô phỏng đăng xuất. Phiên làm việc FS kết thúc.');
+    }
+
+    // QR scanner modal toggles
+    function openQrScannerModal() {
+      document.getElementById('qrScannerModal').classList.remove('hidden');
+    }
+    function closeQrScannerModal() {
+      document.getElementById('qrScannerModal').classList.add('hidden');
+    }
+
+    function simulateQrRecognized(code) {
+      closeQrScannerModal();
+      document.getElementById('bookingSearchInput').value = code;
+      setScenario('valid');
+      showFeedback('Quét QR thành công: ' + code);
+    }
+
+    function simulateCameraDenied() {
+      const cameraArea = document.getElementById('cameraArea');
+      cameraArea.innerHTML = `
+        <div class="text-rose-400 p-2">
+          <svg class="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          <strong class="font-bold text-sm block">Quyền Camera bị từ chối</strong>
+          <span class="text-xs text-slate-300 block mt-1">Không thể truy cập ống kính. Vui lòng sử dụng ô nhập mã Booking Code thủ công ở màn hình chính.</span>
+        </div>
+      `;
+    }
+
+    // Verification checkbox toggle
+    function toggleIdVerification(chk) {
+      isIdVerified = chk.checked;
+      updateGuardUI();
+    }
+
+    // Scenario simulation (Strict Role and Data guards)
+    function setScenario(type) {
+      currentScenario = type;
+      const unitCodeText = document.getElementById('unitCodeText');
+      const unitStatusBadge = document.getElementById('unitStatusBadge');
+      const chk3 = document.getElementById('chk3');
+      const chk4 = document.getElementById('chk4');
+      const chkUnitRow = document.getElementById('chkUnitRow');
+      const chkSlotRow = document.getElementById('chkSlotRow');
+
+      if (type === 'valid') {
+        unitCodeText.innerText = 'HCM-01-001';
+        unitStatusBadge.innerText = 'Đã gán bởi FM';
+        unitStatusBadge.className = 'text-xs px-2 py-0.5 rounded-btn bg-emerald-100 text-emerald-800 font-semibold border border-emerald-300';
+        chk3.checked = true;
+        chk4.checked = true;
+        chkUnitRow.className = 'flex items-start gap-2.5 p-2 rounded-btn bg-white border border-borderMain';
+        chkSlotRow.className = 'flex items-start gap-2.5 p-2 rounded-btn bg-white border border-borderMain';
+        showFeedback('Kịch bản: Đầy đủ điều kiện xác nhận');
+      } else if (type === 'no_unit') {
+        unitCodeText.innerText = 'Chờ FM chỉ định buồng';
+        unitStatusBadge.innerText = 'Chưa gán';
+        unitStatusBadge.className = 'text-xs px-2 py-0.5 rounded-btn bg-amber-100 text-amber-800 font-semibold border border-amber-300';
+        chk3.checked = false;
+        chk4.checked = true;
+        chkUnitRow.className = 'flex items-start gap-2.5 p-2 rounded-btn bg-amber-50 border border-amber-300';
+        chkSlotRow.className = 'flex items-start gap-2.5 p-2 rounded-btn bg-white border border-borderMain';
+        showFeedback('Kịch bản: Chưa có ô buồng vật lý. Khóa xác nhận.');
+      } else if (type === 'late') {
+        unitCodeText.innerText = 'HCM-01-001';
+        unitStatusBadge.innerText = 'Đã gán bởi FM';
+        unitStatusBadge.className = 'text-xs px-2 py-0.5 rounded-btn bg-emerald-100 text-emerald-800 font-semibold border border-emerald-300';
+        chk3.checked = true;
+        chk4.checked = false;
+        chkUnitRow.className = 'flex items-start gap-2.5 p-2 rounded-btn bg-white border border-borderMain';
+        chkSlotRow.className = 'flex items-start gap-2.5 p-2 rounded-btn bg-rose-50 border border-rose-300';
+        showFeedback('Kịch bản: Quá hạn khung giờ đón & ân hạn (Sau 14:00)');
+      }
+      updateGuardUI();
+    }
+
+    function updateGuardUI() {
+      const confirmBtn = document.getElementById('confirmBookingBtn');
+      const guardMsg = document.getElementById('guardBlockMessage');
+      const progressText = document.getElementById('checklistProgressText');
+
+      let passedCount = 3; // Paid, Facility are static true
+      if (currentScenario === 'valid') passedCount += 2; // unit & slot pass
+      else if (currentScenario === 'no_unit') passedCount += 1; // only slot passes
+      else if (currentScenario === 'late') passedCount += 1; // only unit passes
+
+      if (isIdVerified) passedCount += 1;
+      else passedCount -= 0;
+
+      // Normalize passedCount out of 5
+      let totalPassed = 0;
+      if (document.getElementById('chk1').checked) totalPassed++;
+      if (document.getElementById('chk2').checked) totalPassed++;
+      if (document.getElementById('chk3').checked) totalPassed++;
+      if (document.getElementById('chk4').checked) totalPassed++;
+      if (document.getElementById('chk5').checked) totalPassed++;
+
+      progressText.innerText = totalPassed + '/5 Đạt điều kiện';
+
+      if (totalPassed === 5) {
+        confirmBtn.disabled = false;
+        confirmBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-400');
+        confirmBtn.classList.add('bg-brand', 'hover:bg-brand-dark');
+        guardMsg.classList.add('hidden');
+      } else {
+        confirmBtn.disabled = true;
+        confirmBtn.classList.remove('bg-brand', 'hover:bg-brand-dark');
+        confirmBtn.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-400');
+        guardMsg.classList.remove('hidden');
+
+        if (currentScenario === 'no_unit') {
+          guardMsg.innerText = 'Không thể xác nhận: Buồng vật lý chưa được FM chỉ định. Vui lòng báo Quản lý cơ sở gán ô kho.';
+        } else if (currentScenario === 'late') {
+          guardMsg.innerText = 'Không thể xác nhận: Đã quá hạn ân hạn 14:00. Vui lòng hướng dẫn khách liên hệ hotline đặt lại lịch đón.';
+        } else if (!isIdVerified) {
+          guardMsg.innerText = 'Không thể xác nhận: Chưa hoàn thành đối soát CCCD/Hộ chiếu gốc với chủ tài khoản.';
+        }
+      }
+    }
+
+    // Confirmation action
+    function handleConfirmVerification() {
+      if (document.getElementById('confirmBookingBtn').disabled) return;
+      document.getElementById('successModal').classList.remove('hidden');
+    }
+
+    function closeSuccessModal() {
+      document.getElementById('successModal').classList.add('hidden');
+    }
+
+    function proceedToInspection() {
+      closeSuccessModal();
+      showFeedback('Đang chuyển tiếp sang M-FS05 (Kiểm tra buồng kho)...');
+    }
+
+    // Keyboard accessibility: ESC key closes open modals
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeProfileSheet();
+        closeQrScannerModal();
+        closeSuccessModal();
+      }
+    });
+
+    // Initial check
+    document.addEventListener('DOMContentLoaded', () => {
+      updateGuardUI();
+    });
+  </script>
+
+
+</body></html>

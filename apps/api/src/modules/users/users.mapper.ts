@@ -1,5 +1,5 @@
-import { type ApiUser, UserRole } from "@storex/contracts";
-import type { Role, User } from "@storex/database";
+import { type ApiUser, UserRole } from "@metastorage/contracts";
+import type { Role, User } from "@metastorage/database";
 
 const apiRoleByDatabaseRole: Record<Role, UserRole> = {
   CUSTOMER: UserRole.STORAGE_CUSTOMER,

@@ -1,0 +1,860 @@
+<!DOCTYPE html><html class="h-full bg-[#F8FAF9]" lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=390, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>M-C03 — Chi tiết đơn đặt kho — Customer</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#125345",
+            "primary-hover": "#0e4337",
+            "primary-soft": "#E8F3EF",
+            surface: "#FFFFFF",
+            background: "#F8FAF9",
+            text: "#0F172A",
+            secondary: "#475569",
+            border: "#BFCAC4",
+          },
+          fontFamily: {
+            display: ["Space Grotesk", "sans-serif"],
+            body: ["Be Vietnam Pro", "sans-serif"],
+          },
+          borderRadius: {
+            DEFAULT: "4px",
+            sm: "4px",
+            md: "4px",
+            lg: "4px",
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    body {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      color: #0F172A;
+      background-color: #F8FAF9;
+      width: 100%;
+      max-width: 390px;
+      margin: 0 auto;
+    }
+    h1, h2, h3, h4, .font-heading {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    input, select, textarea, button {
+      font-family: inherit;
+    }
+    :focus-visible {
+      outline: 2px solid #125345;
+      outline-offset: 2px;
+    }
+    /* Lock scrolling when sheet is open */
+    body.modal-open {
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body class="bg-[#F8FAF9] text-[#0F172A] antialiased min-h-screen relative flex flex-col selection:bg-[#E8F3EF] selection:text-[#125345]">
+<!-- Mobile Viewport Container: Direct 390px Edge-to-Edge Fluid Flow -->
+<div class="w-full min-h-screen flex flex-col bg-[#F8FAF9] pb-24 relative overflow-x-hidden">
+<!-- Top App Bar / Header -->
+<header class="sticky top-0 z-40 bg-[#FFFFFF] border-b border-[#BFCAC4] px-4 py-3 flex items-center justify-between shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+<div class="flex items-center gap-2">
+<a aria-label="Quay lại Đơn đặt kho" class="h-11 px-2.5 rounded border border-[#BFCAC4] bg-white hover:bg-[#F8FAF9] active:scale-95 transition-all flex items-center gap-1 text-[#0F172A]" href="#quay-lai-danh-sach">
+<span class="material-symbols-outlined text-2xl text-[#125345]">chevron_left</span>
+<span class="text-base font-semibold text-[#0F172A]">Đơn đặt kho</span>
+</a>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-xs font-mono font-bold text-[#475569] bg-[#F8FAF9] px-2 py-1 rounded border border-[#BFCAC4]">#BK-2026-0001</span>
+<!-- Customer Avatar Drawer Trigger -->
+<button aria-label="Thông tin khách hàng Nguyễn Minh Anh" class="w-11 h-11 rounded border border-[#BFCAC4] bg-[#E8F3EF] text-[#125345] hover:bg-[#125345] hover:text-white transition-colors flex items-center justify-center active:scale-95" id="open-profile-btn" type="button">
+<span class="font-heading font-bold text-base">MA</span>
+</button>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="px-4 pt-3.5 space-y-3.5 flex-1">
+<!-- Status Header Banner -->
+<div class="bg-white rounded border border-[#BFCAC4] p-3.5 shadow-sm space-y-2">
+<div class="flex items-center justify-between">
+<span class="text-xs font-semibold text-[#475569] uppercase tracking-wide">Trạng thái hồ sơ</span>
+<span class="text-xs text-[#475569]">Mã: <strong class="text-[#0F172A] font-mono">BK-2026-0001</strong></span>
+</div>
+<div class="flex items-center gap-2">
+<span class="inline-block w-3 h-3 rounded-full bg-[#125345] animate-pulse"></span>
+<h2 class="text-base font-bold text-[#125345] font-heading">Đã thanh toán 100% • Chờ đón tiếp tại quầy</h2>
+</div>
+<div class="flex items-center justify-between text-xs text-[#475569] pt-1 border-t border-[#BFCAC4]/40">
+<span>Ngày tạo đơn: 09/10/2026</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded bg-[#E8F3EF] text-[#125345] font-bold border border-[#125345]/20">
+            Sẵn sàng tiếp đón
+          </span>
+</div>
+</div>
+<!-- Card 1: Check-in Pass (Mã QR Check-in & Vé điện tử) -->
+<section class="bg-white rounded border border-[#BFCAC4] shadow-sm overflow-hidden">
+<div class="bg-[#125345] text-white px-4 py-3 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">qr_code_2</span>
+<h2 class="text-base font-bold font-heading text-white">Mã QR Check-in &amp; Vé đón tiếp</h2>
+</div>
+<span class="text-xs font-semibold bg-white/20 px-2 py-1 rounded text-white">Tại quầy trạm</span>
+</div>
+<div class="p-4 text-center space-y-3.5">
+<!-- Big Clear QR Code Box -->
+<div class="w-52 h-52 mx-auto bg-white border border-[#BFCAC4] rounded p-3 flex flex-col items-center justify-center shadow-inner relative">
+<svg class="w-full h-full text-[#125345]" fill="currentColor" viewBox="0 0 100 100">
+<!-- Corner Finder 1 -->
+<rect fill="#125345" height="28" rx="1" width="28" x="4" y="4"></rect>
+<rect fill="white" height="20" rx="0.5" width="20" x="8" y="8"></rect>
+<rect fill="#125345" height="12" rx="0.5" width="12" x="12" y="12"></rect>
+<!-- Corner Finder 2 -->
+<rect fill="#125345" height="28" rx="1" width="28" x="68" y="4"></rect>
+<rect fill="white" height="20" rx="0.5" width="20" x="72" y="8"></rect>
+<rect fill="#125345" height="12" rx="0.5" width="12" x="76" y="12"></rect>
+<!-- Corner Finder 3 -->
+<rect fill="#125345" height="28" rx="1" width="28" x="4" y="68"></rect>
+<rect fill="white" height="20" rx="0.5" width="20" x="8" y="72"></rect>
+<rect fill="#125345" height="12" rx="0.5" width="12" x="12" y="76"></rect>
+<!-- Alignment marker -->
+<rect fill="#125345" height="18" rx="0.5" width="18" x="68" y="68"></rect>
+<rect fill="white" height="10" rx="0.5" width="10" x="72" y="72"></rect>
+<rect fill="#125345" height="4" width="4" x="75" y="75"></rect>
+<!-- Data Elements Pattern -->
+<rect height="6" width="6" x="36" y="6"></rect>
+<rect height="6" width="6" x="46" y="6"></rect>
+<rect height="6" width="6" x="56" y="6"></rect>
+<rect height="6" width="6" x="36" y="16"></rect>
+<rect height="6" width="6" x="46" y="22"></rect>
+<rect height="6" width="6" x="56" y="16"></rect>
+<rect height="6" width="6" x="6" y="36"></rect>
+<rect height="6" width="6" x="16" y="36"></rect>
+<rect height="6" width="6" x="26" y="44"></rect>
+<rect height="8" width="8" x="36" y="36"></rect>
+<rect height="6" width="6" x="48" y="36"></rect>
+<rect height="8" width="8" x="58" y="36"></rect>
+<rect height="6" width="6" x="70" y="36"></rect>
+<rect height="6" width="6" x="82" y="36"></rect>
+<rect height="6" width="6" x="36" y="48"></rect>
+<rect height="8" width="8" x="46" y="48"></rect>
+<rect height="6" width="6" x="58" y="48"></rect>
+<rect height="6" width="6" x="70" y="48"></rect>
+<rect height="6" width="6" x="6" y="56"></rect>
+<rect height="6" width="6" x="18" y="56"></rect>
+<rect height="8" width="8" x="36" y="60"></rect>
+<rect height="6" width="6" x="48" y="60"></rect>
+<rect height="6" width="6" x="36" y="72"></rect>
+<rect height="6" width="6" x="46" y="76"></rect>
+<rect height="8" width="8" x="56" y="72"></rect>
+<rect height="6" width="6" x="36" y="84"></rect>
+<rect height="6" width="6" x="48" y="86"></rect>
+</svg>
+<span class="text-[11px] text-[#475569] font-mono mt-1 font-semibold">STOREX-ID: BK-2026-0001</span>
+</div>
+<!-- Code Display & Action Buttons -->
+<div class="space-y-2">
+<div class="flex items-center justify-center gap-2">
+<span class="text-xs text-[#475569]">Mã đặt chỗ:</span>
+<span class="text-base font-bold font-heading text-[#0F172A] tracking-wider" id="booking-code">BK-2026-0001</span>
+</div>
+<!-- Two action buttons with >= 44px min-height & text >= 16px -->
+<div class="grid grid-cols-2 gap-2 pt-1">
+<button aria-label="Sao chép mã đơn đặt kho" class="min-h-[44px] px-3 rounded border border-[#BFCAC4] bg-white hover:bg-[#E8F3EF] text-[#125345] text-base font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-all" id="copy-btn" type="button">
+<span class="material-symbols-outlined text-lg">content_copy</span>
+<span>Sao chép mã</span>
+</button>
+<button aria-label="Tải vé tiếp đón PDF" class="min-h-[44px] px-3 rounded border border-[#125345] bg-[#E8F3EF] hover:bg-[#d6eae3] text-[#125345] text-base font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-all" id="download-ticket-btn" onclick="alert('Đang tạo và tải tệp Vé tiếp đón PDF (BK-2026-0001)...')" type="button">
+<span class="material-symbols-outlined text-lg">download</span>
+<span>Tải vé PDF</span>
+</button>
+</div>
+</div>
+<!-- Copy Toast Feedback -->
+<div class="hidden text-xs text-[#125345] font-semibold bg-[#E8F3EF] py-1.5 px-3 rounded border border-[#125345]/30" id="copy-toast">
+            ✓ Đã sao chép mã BK-2026-0001 vào bộ nhớ tạm!
+          </div>
+<p class="text-xs text-[#475569] leading-relaxed bg-[#F8FAF9] p-2.5 rounded border border-[#BFCAC4]/60 text-left">
+            Nhân viên hiện trường (FS) tại sảnh sẽ quét mã QR trên màn hình hoặc đối soát mã <strong>BK-2026-0001</strong> với CCCD/Hộ chiếu gốc của quý khách.
+          </p>
+</div>
+</section>
+<!-- Card 2: Lịch hẹn & Cơ sở tiếp đón -->
+<section class="bg-white rounded border border-[#BFCAC4] p-3.5 shadow-sm space-y-3">
+<div class="flex items-center justify-between border-b border-[#BFCAC4]/60 pb-2">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[#125345] text-xl">calendar_month</span>
+<h2 class="text-base font-bold font-heading text-[#0F172A]">Lịch hẹn &amp; Cơ sở nhận kho</h2>
+</div>
+<span class="text-xs font-semibold text-[#125345] bg-[#E8F3EF] px-2 py-0.5 rounded border border-[#125345]/20">GMT+7</span>
+</div>
+<div class="space-y-2.5 text-xs">
+<!-- Appointment Slot Card -->
+<div class="bg-[#F8FAF9] p-3 rounded border border-[#BFCAC4]/60 space-y-1.5">
+<div class="flex items-center justify-between">
+<span class="text-[#475569]">Khung giờ đón tiếp:</span>
+<span class="font-bold text-[#0F172A] font-heading text-base" id="current-slot-display">10:00 – 12:00</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[#475569]">Ngày hẹn nhận kho:</span>
+<span class="font-bold text-[#0F172A] text-sm" id="current-date-display">09/10/2026</span>
+</div>
+<div class="pt-1.5 border-t border-[#BFCAC4]/40 flex items-center justify-between text-xs text-[#125345]">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">alarm</span>
+                Ân hạn đón tiếp tại sảnh:
+              </span>
+<span class="font-bold">Đến 14:00 (09/10/2026)</span>
+</div>
+</div>
+<!-- Facility Location -->
+<div class="flex items-start gap-2.5 pt-1">
+<span class="material-symbols-outlined text-[#125345] text-xl shrink-0 mt-0.5">warehouse</span>
+<div class="space-y-1 flex-1">
+<p class="text-base font-bold text-[#0F172A] font-heading">StoreX Sài Gòn Central</p>
+<p class="text-xs text-[#475569] leading-snug">118 Nguyễn Văn Linh, P. Tân Thuận, Q.7, TP.HCM</p>
+<div class="pt-1 flex items-center gap-4">
+<a class="inline-flex items-center gap-1 text-xs text-[#125345] font-bold hover:underline" href="tel:02873001188">
+<span class="material-symbols-outlined text-sm">call</span> 028 7300 1188
+                </a>
+<a class="inline-flex items-center gap-1 text-xs text-[#475569] hover:text-[#125345]" href="https://maps.google.com" rel="noopener noreferrer" target="_blank">
+<span class="material-symbols-outlined text-sm">directions</span> Chỉ đường Google Maps
+                </a>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Card 3: Chi tiết buồng kho & Buồng vật lý gán bởi FM -->
+<section class="bg-white rounded border border-[#BFCAC4] p-3.5 shadow-sm space-y-3">
+<div class="flex items-center justify-between border-b border-[#BFCAC4]/60 pb-2">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[#125345] text-xl">meeting_room</span>
+<h2 class="text-base font-bold font-heading text-[#0F172A]">Thông tin buồng kho</h2>
+</div>
+<span class="text-xs font-semibold text-[#475569] bg-[#F8FAF9] px-2 py-0.5 rounded border border-[#BFCAC4]">Gói Mini 2m²</span>
+</div>
+<div class="grid grid-cols-2 gap-2 text-xs">
+<div class="bg-[#F8FAF9] p-2.5 rounded border border-[#BFCAC4]/60">
+<span class="text-[#475569] block text-[11px]">Loại buồng kho</span>
+<span class="font-bold text-[#0F172A] text-sm">Mini 2m²</span>
+<span class="text-[11px] text-[#475569] block mt-0.5">1.0m × 2.0m × 2.5m (5.0m³)</span>
+</div>
+<div class="bg-[#F8FAF9] p-2.5 rounded border border-[#BFCAC4]/60">
+<span class="text-[#475569] block text-[11px]">Kỳ hạn thuê</span>
+<span class="font-bold text-[#0F172A] text-sm">01 tháng</span>
+<span class="text-[11px] text-[#475569] block mt-0.5">09/10/2026 – 09/11/2026</span>
+</div>
+</div>
+<!-- Physical Unit Assignment Badge -->
+<div class="p-3 rounded bg-[#E8F3EF] border border-[#125345]/30 space-y-1.5">
+<div class="flex items-center justify-between">
+<span class="text-sm font-bold text-[#125345] font-heading flex items-center gap-1">
+<span class="material-symbols-outlined text-base">pin_drop</span>
+              Ô vật lý đã gán: Buồng #HCM-01-001
+            </span>
+<span class="text-[10px] uppercase font-bold px-1.5 py-0.5 bg-white text-[#125345] rounded border border-[#125345]/30">
+              FM điều phối
+            </span>
+</div>
+<p class="text-xs text-[#475569] leading-relaxed">
+            Vị trí tầng 1, Dãy A. Nhân viên hiện trường (FS) sẽ dẫn quý khách trực tiếp vào nghiệm thu buồng này khi đến trạm.
+          </p>
+</div>
+<!-- Warning rule -->
+<div class="p-2.5 rounded bg-[#FFFBEB] border border-[#D97706]/40 flex items-start gap-2 text-xs text-[#92400E]">
+<span class="material-symbols-outlined text-base text-[#D97706] shrink-0 mt-0.5">info</span>
+<p class="leading-relaxed">
+<strong>Lưu ý bảo mật:</strong> Buồng kho chưa tự kích hoạt từ xa. Hợp đồng chỉ chính thức kích hoạt sau khi hai bên ký biên bản bàn giao tại trạm.
+          </p>
+</div>
+</section>
+<!-- Card 4: Chi tiết tài chính đã chốt (Tách bạch Thuê & Cọc) -->
+<section class="bg-white rounded border border-[#BFCAC4] p-3.5 shadow-sm space-y-3">
+<div class="flex items-center justify-between border-b border-[#BFCAC4]/60 pb-2">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[#125345] text-xl">receipt_long</span>
+<h2 class="text-base font-bold font-heading text-[#0F172A]">Chi tiết tài chính đã chốt</h2>
+</div>
+<span class="text-xs font-bold text-[#125345] bg-[#E8F3EF] px-2 py-0.5 rounded border border-[#125345]/20">Đã thanh toán</span>
+</div>
+<div class="space-y-2 text-xs divide-y divide-[#BFCAC4]/40">
+<div class="flex items-center justify-between pt-1">
+<span class="text-[#475569]">Tiền thuê kho (Kỳ 01 tháng):</span>
+<span class="font-bold text-[#0F172A] text-sm">900.000 đ</span>
+</div>
+<div class="flex items-center justify-between pt-2">
+<div>
+<span class="text-[#475569] block">Tiền cọc giữ buồng &amp; bảo đảm:</span>
+<span class="text-[11px] text-[#125345] font-medium">Hoàn lại 100% khi kết thúc hợp đồng theo quy định</span>
+</div>
+<span class="font-bold text-[#0F172A] text-sm">900.000 đ</span>
+</div>
+<div class="flex items-center justify-between pt-2.5">
+<span class="font-bold text-[#0F172A] font-heading text-sm">Tổng đã thanh toán:</span>
+<span class="font-bold text-[#125345] font-heading text-lg">1.800.000 đ</span>
+</div>
+</div>
+<div class="bg-[#F8FAF9] p-2.5 rounded border border-[#BFCAC4]/60 text-xs text-[#475569] space-y-1">
+<div class="flex justify-between">
+<span>Kênh giao dịch:</span>
+<span class="font-semibold text-[#0F172A]">Chuyển khoản QR (Đã đối soát)</span>
+</div>
+<div class="flex justify-between">
+<span>Mã hóa đơn tham chiếu:</span>
+<span class="font-mono font-semibold text-[#0F172A]">INV-2026-0001</span>
+</div>
+</div>
+</section>
+<!-- SECTION: 2 Action Buttons (Đổi lịch hẹn & Yêu cầu hủy đơn) -->
+<!-- Both buttons have min-height >= 44px, text >= 16px, border #BFCAC4, radius 4px, emerald #125345 theme -->
+<section class="bg-white rounded border border-[#BFCAC4] p-3.5 shadow-sm space-y-2.5" id="booking-actions-card">
+<div class="flex items-center justify-between border-b border-[#BFCAC4]/60 pb-2">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[#125345] text-xl">tune</span>
+<h2 class="text-base font-bold font-heading text-[#0F172A]">Tác vụ quản lý đơn</h2>
+</div>
+<span class="text-xs font-semibold text-[#125345] bg-[#E8F3EF] px-2 py-0.5 rounded" id="order-lifecycle-tag">Khả dụng</span>
+</div>
+<p class="text-xs text-[#475569] leading-relaxed">
+          Quý khách có thể điều chỉnh thời gian tiếp đón hoặc gửi yêu cầu hủy đơn trước khi tiến hành nhận kho thực tế tại quầy.
+        </p>
+<div class="space-y-2 pt-1">
+<!-- Action 1: Đổi lịch hẹn đón tiếp (Secondary Button) -->
+<button class="w-full min-h-[44px] px-4 py-2.5 rounded border border-[#125345] bg-[#E8F3EF] hover:bg-[#d6eae3] active:scale-[0.99] text-[#125345] text-base font-semibold flex items-center justify-center gap-2 transition-all shadow-sm" id="trigger-reschedule-btn" type="button">
+<span class="material-symbols-outlined text-xl">edit_calendar</span>
+<span>Đổi lịch hẹn đón tiếp</span>
+</button>
+<!-- Action 2: Yêu cầu hủy đơn (Subtle Danger / Outline Button) -->
+<button class="w-full min-h-[44px] px-4 py-2.5 rounded border border-[#BFCAC4] hover:border-[#EF4444] bg-white hover:bg-[#FEF2F2] active:scale-[0.99] text-[#B91C1C] text-base font-semibold flex items-center justify-center gap-2 transition-all shadow-sm" id="trigger-cancel-btn" type="button">
+<span class="material-symbols-outlined text-xl">cancel</span>
+<span>Yêu cầu hủy đơn trước nhận kho</span>
+</button>
+</div>
+<p class="text-[11px] text-[#475569] italic text-center pt-1" id="action-status-hint">
+          * Nút sẽ tự động khóa nếu đơn đã hoàn tất check-in hoặc đã hủy.
+        </p>
+</section>
+<!-- Card 5: Tiến độ đón tiếp thực tế (4 bước chuẩn) -->
+<section class="bg-white rounded border border-[#BFCAC4] p-3.5 shadow-sm space-y-3">
+<div class="flex items-center justify-between border-b border-[#BFCAC4]/60 pb-2">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[#125345] text-xl">timeline</span>
+<h2 class="text-base font-bold font-heading text-[#0F172A]">Tiến độ đón tiếp thực tế</h2>
+</div>
+<span class="text-xs font-semibold text-[#125345] bg-[#E8F3EF] px-2 py-0.5 rounded">Bước 2 / 4</span>
+</div>
+<ol class="space-y-3 relative border-l-2 border-[#125345] ml-3 pl-4 text-xs">
+<!-- Step 1: Hoàn tất -->
+<li class="relative">
+<span class="absolute -left-[23px] top-0 w-4 h-4 rounded-full bg-[#125345] text-white flex items-center justify-center text-[10px] font-bold">✓</span>
+<p class="font-bold text-[#0F172A] text-sm">1. Đặt kho &amp; thanh toán (xong)</p>
+<p class="text-[#475569] text-xs">Đã xác nhận thanh toán 100% và giữ chỗ buồng HCM-01-001.</p>
+</li>
+<!-- Step 2: Đang thực hiện -->
+<li class="relative">
+<span class="absolute -left-[23px] top-0 w-4 h-4 rounded-full bg-[#125345] text-white flex items-center justify-center text-[10px] font-bold animate-pulse">2</span>
+<p class="font-bold text-[#125345] font-heading text-sm">2. Chờ check-in tại quầy</p>
+<p class="text-[#475569] text-xs">Xuất trình mã QR và CCCD tại quầy trước 14:00 ngày 09/10/2026.</p>
+</li>
+<!-- Step 3: Kế tiếp -->
+<li class="relative opacity-70">
+<span class="absolute -left-[23px] top-0 w-4 h-4 rounded-full bg-white border-2 border-[#BFCAC4] text-[#475569] flex items-center justify-center text-[10px] font-bold">3</span>
+<p class="font-semibold text-[#0F172A] text-sm">3. Kiểm tra hiện trạng</p>
+<p class="text-[#475569] text-xs">Cùng nhân viên FS kiểm tra buồng kho, ổ khóa, camera giám sát.</p>
+</li>
+<!-- Step 4: Hoàn thành -->
+<li class="relative opacity-70">
+<span class="absolute -left-[23px] top-0 w-4 h-4 rounded-full bg-white border-2 border-[#BFCAC4] text-[#475569] flex items-center justify-center text-[10px] font-bold">4</span>
+<p class="font-semibold text-[#0F172A] text-sm">4. Nhận bàn giao chìa &amp; kích hoạt</p>
+<p class="text-[#475569] text-xs">Ký biên bản điện tử, nhận chìa khóa hoặc mã PIN ra vào độc lập.</p>
+</li>
+</ol>
+</section>
+<!-- Card 6: Hướng dẫn & Câu hỏi thường gặp -->
+<section class="bg-white rounded border border-[#BFCAC4] p-3.5 shadow-sm space-y-2">
+<div class="flex items-center justify-between border-b border-[#BFCAC4]/60 pb-2">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[#125345] text-xl">help_outline</span>
+<h2 class="text-base font-bold font-heading text-[#0F172A]">Hướng dẫn &amp; Câu hỏi thường gặp</h2>
+</div>
+<span class="text-xs text-[#475569]">Hỗ trợ</span>
+</div>
+<div class="divide-y divide-[#BFCAC4]/40 text-xs">
+<!-- Accordion 1 -->
+<details class="group py-2.5">
+<summary class="flex justify-between items-center font-semibold text-[#0F172A] cursor-pointer list-none text-sm">
+<span>Cần mang theo giấy tờ gì khi đến nhận kho?</span>
+<span class="material-symbols-outlined text-base transition-transform group-open:rotate-180 text-[#475569]">expand_more</span>
+</summary>
+<p class="pt-2 text-[#475569] leading-relaxed">
+              Quý khách chỉ cần xuất trình <strong>Mã QR check-in</strong> trên màn hình hoặc mã <strong>BK-2026-0001</strong> kèm <strong>CCCD / Hộ chiếu gốc</strong> trùng với tên người đăng ký hợp đồng để nhân viên đối soát.
+            </p>
+</details>
+<!-- Accordion 2 -->
+<details class="group py-2.5">
+<summary class="flex justify-between items-center font-semibold text-[#0F172A] cursor-pointer list-none text-sm">
+<span>Quy định đổi lịch hẹn tiếp đón như thế nào?</span>
+<span class="material-symbols-outlined text-base transition-transform group-open:rotate-180 text-[#475569]">expand_more</span>
+</summary>
+<p class="pt-2 text-[#475569] leading-relaxed">
+              Bạn có thể đổi lịch trực tiếp trên ứng dụng tối đa <strong>2 lần</strong>, thao tác phải thực hiện trước giờ hẹn ít nhất <strong>24 giờ</strong> và chọn ngày trong vòng 30 ngày tới tùy công suất sảnh.
+            </p>
+</details>
+<!-- Accordion 3 -->
+<details class="group py-2.5">
+<summary class="flex justify-between items-center font-semibold text-[#0F172A] cursor-pointer list-none text-sm">
+<span>Chính sách hoàn tiền khi hủy đơn trước check-in?</span>
+<span class="material-symbols-outlined text-base transition-transform group-open:rotate-180 text-[#475569]">expand_more</span>
+</summary>
+<p class="pt-2 text-[#475569] leading-relaxed">
+              Hệ thống sẽ hoàn lại <strong>100% tiền thuê đã đóng</strong> (900.000 đ). Tiền cọc giữ buồng (900.000 đ) không được hoàn lại để bù đắp chi phí giữ ô vật lý và nhân sự chuẩn bị. Tiền hoàn chuyển khoản trong 3-5 ngày làm việc.
+            </p>
+</details>
+</div>
+</section>
+<!-- Contact Center CTA -->
+<div class="pt-1">
+<a class="w-full min-h-[44px] bg-white hover:bg-[#F8FAF9] active:scale-[0.99] border border-[#125345] text-[#125345] rounded font-heading font-semibold text-base flex items-center justify-center gap-2 shadow-sm transition-all" href="tel:02873001188">
+<span class="material-symbols-outlined text-xl">call</span>
+<span>Hotline hỗ trợ: 028 7300 1188</span>
+</a>
+</div>
+</main>
+<!-- Bottom Navigation 4 Items: Tổng quan, Đơn đặt (active), Giữ chỗ, Kho của tôi -->
+<nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-white shadow-[0_-4px_12px_rgba(15,23,42,0.06)] z-30 px-2 py-1 flex items-center justify-around h-16 border-t border-[#BFCAC4]">
+<!-- 1. Tổng quan -->
+<a class="flex flex-col items-center justify-center flex-1 h-full text-[#475569] hover:text-[#125345] transition-colors" href="#tong-quan">
+<span class="material-symbols-outlined text-2xl">dashboard</span>
+<span class="text-[11px] font-medium mt-0.5">Tổng quan</span>
+</a>
+<!-- 2. Đơn đặt (Active) -->
+<a class="flex flex-col items-center justify-center flex-1 h-full text-[#125345] transition-colors" href="#don-dat-kho">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">receipt_long</span>
+<span class="text-[11px] font-bold mt-0.5">Đơn đặt</span>
+</a>
+<!-- 3. Giữ chỗ -->
+<a class="flex flex-col items-center justify-center flex-1 h-full text-[#475569] hover:text-[#125345] transition-colors" href="#giu-cho">
+<span class="material-symbols-outlined text-2xl">timer</span>
+<span class="text-[11px] font-medium mt-0.5">Giữ chỗ</span>
+</a>
+<!-- 4. Kho của tôi -->
+<a class="flex flex-col items-center justify-center flex-1 h-full text-[#475569] hover:text-[#125345] transition-colors" href="#kho-cua-toi">
+<span class="material-symbols-outlined text-2xl">warehouse</span>
+<span class="text-[11px] font-medium mt-0.5">Kho của tôi</span>
+</a>
+</nav>
+<!-- ========================================================================= -->
+<!-- 1. BOTTOM SHEET: Đổi lịch hẹn đón tiếp                                   -->
+<!-- ========================================================================= -->
+<div aria-hidden="true" class="fixed inset-0 bg-slate-900/60 z-50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-200" id="reschedule-sheet-backdrop">
+<div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] max-h-[92vh] overflow-y-auto bg-white rounded-t-lg border-t border-[#BFCAC4] p-4 space-y-4 shadow-2xl transform translate-y-full transition-transform duration-300" id="reschedule-sheet">
+<!-- Handle Bar -->
+<div class="w-12 h-1 bg-[#BFCAC4] rounded-full mx-auto"></div>
+<!-- Sheet Header -->
+<div class="flex items-center justify-between border-b border-[#BFCAC4]/60 pb-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#125345] text-2xl">edit_calendar</span>
+<div>
+<h3 class="text-base font-bold font-heading text-[#0F172A]">Đổi lịch hẹn đón tiếp</h3>
+<p class="text-xs text-[#475569]">Đơn hàng: #BK-2026-0001</p>
+</div>
+</div>
+<button aria-label="Đóng bảng đổi lịch hẹn" class="w-11 h-11 rounded border border-[#BFCAC4] text-[#475569] hover:bg-[#F8FAF9] flex items-center justify-center active:scale-95" id="close-reschedule-btn" type="button">
+<span class="material-symbols-outlined text-xl">close</span>
+</button>
+</div>
+<!-- Rule & Quota Notice Badge -->
+<div class="bg-[#E8F3EF] border border-[#125345]/30 rounded p-3 space-y-1.5 text-xs text-[#125345]">
+<div class="flex items-center justify-between font-bold font-heading">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-base">verified</span>
+              Hạn mức đổi lịch:
+            </span>
+<span class="px-2 py-0.5 bg-[#125345] text-white rounded text-[11px]">Còn 1/2 lần đổi</span>
+</div>
+<ul class="list-disc list-inside space-y-1 text-[#475569] text-xs pt-1">
+<li>Yêu cầu đổi trước ít nhất <strong>24 giờ</strong> so với lịch hiện tại.</li>
+<li>Giữ nguyên cơ sở <strong>StoreX Sài Gòn Central</strong> &amp; buồng <strong>HCM-01-001 (Mini 2m²)</strong>.</li>
+<li>Chọn ngày mới trong vòng <strong>30 ngày tới</strong> tùy công suất nhân sự tiếp đón.</li>
+</ul>
+</div>
+<!-- Reschedule Form -->
+<form class="space-y-3.5" id="reschedule-form">
+<!-- Current Appointment Display -->
+<div class="bg-[#F8FAF9] border border-[#BFCAC4] rounded p-2.5 text-xs flex justify-between items-center">
+<span class="text-[#475569]">Lịch hiện tại:</span>
+<span class="font-bold text-[#0F172A]">10:00 – 12:00, 09/10/2026</span>
+</div>
+<!-- Select New Date -->
+<div class="space-y-1">
+<label class="block text-sm font-bold text-[#0F172A]" for="new-booking-date">
+              Chọn ngày hẹn mới <span class="text-[#B91C1C]">*</span>
+</label>
+<input class="w-full min-h-[44px] rounded border border-[#BFCAC4] bg-white px-3 py-2 text-base text-[#0F172A] focus:border-[#125345] focus:ring-1 focus:ring-[#125345]" id="new-booking-date" max="2026-11-08" min="2026-10-10" name="new-date" required="" type="date" value="2026-10-12">
+<span class="text-[11px] text-[#475569]">Khả dụng từ 10/10/2026 đến 08/11/2026 (30 ngày).</span>
+</div>
+<!-- Select New Time Slot -->
+<div class="space-y-1">
+<label class="block text-sm font-bold text-[#0F172A]" for="new-booking-slot">
+              Khung giờ tiếp đón mới <span class="text-[#B91C1C]">*</span>
+</label>
+<select class="w-full min-h-[44px] rounded border border-[#BFCAC4] bg-white px-3 py-2 text-base text-[#0F172A] focus:border-[#125345] focus:ring-1 focus:ring-[#125345]" id="new-booking-slot" name="new-slot" required="">
+<option value="08:30 – 10:00">08:30 – 10:00 (Sáng - Còn 4 chỗ)</option>
+<option selected="" value="10:00 – 12:00">10:00 – 12:00 (Trưa - Còn 2 chỗ)</option>
+<option value="13:30 – 15:30">13:30 – 15:30 (Chiều - Còn 5 chỗ)</option>
+<option value="15:30 – 17:30">15:30 – 17:30 (Chiều muộn - Còn 3 chỗ)</option>
+<option value="17:30 – 19:30">17:30 – 19:30 (Tối - Còn 1 chỗ)</option>
+</select>
+</div>
+<!-- Capacity & Compliance check indicator -->
+<div class="p-2.5 rounded bg-[#F8FAF9] border border-[#BFCAC4] flex items-center gap-2 text-xs text-[#125345]">
+<span class="material-symbols-outlined text-base">check_circle</span>
+<span>Công suất sảnh tại cơ sở StoreX Q.7 sẵn sàng tiếp nhận ca hẹn mới.</span>
+</div>
+<!-- Action Buttons in Sheet (>= 44px min-height, text >= 16px) -->
+<div class="space-y-2 pt-2">
+<button class="w-full min-h-[44px] bg-[#125345] hover:bg-[#0e4337] active:scale-[0.99] text-white rounded font-heading font-semibold text-base flex items-center justify-center gap-2 shadow transition-all" id="submit-reschedule-btn" type="submit">
+<span class="material-symbols-outlined text-xl">event_available</span>
+<span>Xác nhận cập nhật lịch hẹn</span>
+</button>
+<button class="w-full min-h-[44px] bg-white hover:bg-[#F8FAF9] border border-[#BFCAC4] text-[#475569] rounded font-semibold text-base flex items-center justify-center active:scale-[0.99] transition-all" id="cancel-reschedule-action" type="button">
+              Hủy bỏ (Giữ nguyên lịch cũ)
+            </button>
+</div>
+</form>
+</div>
+</div>
+<!-- ========================================================================= -->
+<!-- 2. BOTTOM SHEET: Yêu cầu hủy đơn trước nhận kho                          -->
+<!-- ========================================================================= -->
+<div aria-hidden="true" class="fixed inset-0 bg-slate-900/60 z-50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-200" id="cancel-sheet-backdrop">
+<div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] max-h-[92vh] overflow-y-auto bg-white rounded-t-lg border-t border-[#BFCAC4] p-4 space-y-4 shadow-2xl transform translate-y-full transition-transform duration-300" id="cancel-sheet">
+<!-- Handle Bar -->
+<div class="w-12 h-1 bg-[#BFCAC4] rounded-full mx-auto"></div>
+<!-- Sheet Header -->
+<div class="flex items-center justify-between border-b border-[#BFCAC4]/60 pb-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#B91C1C] text-2xl">warning</span>
+<div>
+<h3 class="text-base font-bold font-heading text-[#0F172A]">Yêu cầu hủy đơn trước nhận kho</h3>
+<p class="text-xs text-[#475569]">Đơn hàng: #BK-2026-0001</p>
+</div>
+</div>
+<button aria-label="Đóng bảng yêu cầu hủy đơn" class="w-11 h-11 rounded border border-[#BFCAC4] text-[#475569] hover:bg-[#F8FAF9] flex items-center justify-center active:scale-95" id="close-cancel-btn" type="button">
+<span class="material-symbols-outlined text-xl">close</span>
+</button>
+</div>
+<!-- Cancellation Policy Breakdown Box -->
+<div class="bg-[#FFF8F8] border border-[#FCA5A5] rounded p-3 space-y-2 text-xs">
+<h4 class="font-bold text-[#991B1B] text-sm font-heading flex items-center gap-1.5">
+<span class="material-symbols-outlined text-base">policy</span>
+            Chính sách hoàn tiền trước check-in
+          </h4>
+<p class="text-[#7F1D1D] leading-relaxed">
+            Theo điều khoản dịch vụ StoreX, khi quý khách hủy đơn trước khi check-in tại quầy:
+          </p>
+<div class="bg-white rounded border border-[#FECACA] p-2.5 space-y-2 divide-y divide-[#FEE2E2]">
+<div class="flex justify-between items-center text-xs">
+<span class="text-[#475569]">Tổng tiền đã thanh toán:</span>
+<span class="font-bold text-[#0F172A] text-sm">1.800.000 đ</span>
+</div>
+<div class="flex justify-between items-center text-xs pt-1.5 text-[#125345]">
+<span class="font-medium">✓ Dự kiến hoàn tiền thuê (100%):</span>
+<span class="font-bold text-sm">+ 900.000 đ</span>
+</div>
+<div class="flex justify-between items-center text-xs pt-1.5 text-[#B91C1C]">
+<span class="font-medium">✕ Tiền cọc buồng (Không hoàn lại)*:</span>
+<span class="font-bold text-sm">- 900.000 đ</span>
+</div>
+</div>
+<p class="text-[11px] text-[#7F1D1D] italic">
+            * Tiền cọc không hoàn lại theo quy định giữ buồng vật lý HCM-01-001 và chi phí chuẩn bị cơ sở vật chất.
+          </p>
+</div>
+<!-- Cancellation Form -->
+<form class="space-y-3.5" id="cancel-form">
+<!-- Reason selector -->
+<div class="space-y-1">
+<label class="block text-sm font-bold text-[#0F172A]" for="cancel-reason-select">
+              Lý do hủy đơn <span class="text-xs font-normal text-[#475569]">(Chọn nhanh)</span>
+</label>
+<select class="w-full min-h-[44px] rounded border border-[#BFCAC4] bg-white px-3 py-2 text-base text-[#0F172A] focus:border-[#125345] focus:ring-1 focus:ring-[#125345]" id="cancel-reason-select" name="reason-select">
+<option value="thay_doi_ke_hoach">Thay đổi kế hoạch lưu trữ / chuyển nơi ở</option>
+<option value="sai_kich_thuoc">Cần loại buồng diện tích khác</option>
+<option value="doi_thoi_gian">Không kịp chuẩn bị đồ đạc theo lịch hẹn</option>
+<option value="khac">Lý do khác...</option>
+</select>
+</div>
+<!-- Reason note textarea -->
+<div class="space-y-1">
+<label class="block text-sm font-bold text-[#0F172A]" for="cancel-reason-note">
+              Ghi chú thêm <span class="text-xs font-normal text-[#475569]">(Tùy chọn)</span>
+</label>
+<textarea class="w-full rounded border border-[#BFCAC4] bg-white px-3 py-2 text-base text-[#0F172A] focus:border-[#125345] focus:ring-1 focus:ring-[#125345]" id="cancel-reason-note" name="reason-note" placeholder="Nhập thêm chi tiết nếu cần..." rows="2"></textarea>
+</div>
+<!-- Warning Notice -->
+<div class="p-3 rounded bg-[#FFFBEB] border border-[#F59E0B]/50 flex items-start gap-2 text-xs text-[#92400E]">
+<span class="material-symbols-outlined text-base text-[#D97706] shrink-0 mt-0.5">info</span>
+<p class="leading-relaxed">
+<strong>Lưu ý đối soát:</strong> Yêu cầu hủy sẽ được chuyển đến Ban quản lý cơ sở StoreX Sài Gòn Central. Tiền thuê <strong>900.000 đ</strong> sẽ được hoàn chuyển khoản về tài khoản ngân hàng của quý khách trong vòng <strong>3 – 5 ngày làm việc</strong> (không hoàn tiền mặt tức thì).
+            </p>
+</div>
+<!-- Action Buttons in Sheet (>= 44px min-height, text >= 16px) -->
+<div class="space-y-2 pt-1">
+<button class="w-full min-h-[44px] bg-[#B91C1C] hover:bg-[#991B1B] active:scale-[0.99] text-white rounded font-heading font-semibold text-base flex items-center justify-center gap-2 shadow transition-all" id="submit-cancel-btn" type="submit">
+<span class="material-symbols-outlined text-xl">delete_forever</span>
+<span>Gửi yêu cầu hủy đơn</span>
+</button>
+<button class="w-full min-h-[44px] bg-[#E8F3EF] hover:bg-[#d6eae3] border border-[#125345] text-[#125345] rounded font-semibold text-base flex items-center justify-center active:scale-[0.99] transition-all" id="retain-booking-btn" type="button">
+              Giữ lại đơn thuê (Không hủy)
+            </button>
+</div>
+</form>
+</div>
+</div>
+<!-- ========================================================================= -->
+<!-- Profile / Account Sheet Drawer                                           -->
+<!-- ========================================================================= -->
+<div aria-hidden="true" class="fixed inset-0 bg-slate-900/60 z-50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-200" id="profile-drawer-backdrop">
+<div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-white rounded-t-lg border-t border-[#BFCAC4] p-4 space-y-3.5 shadow-2xl transform translate-y-full transition-transform duration-300" id="profile-drawer">
+<div class="w-12 h-1 bg-[#BFCAC4] rounded-full mx-auto"></div>
+<div class="flex items-center justify-between border-b border-[#BFCAC4]/60 pb-3">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded bg-[#125345] text-white flex items-center justify-center font-heading font-bold text-base">
+              MA
+            </div>
+<div>
+<h3 class="text-base font-bold font-heading text-[#0F172A]">Nguyễn Minh Anh</h3>
+<p class="text-xs text-[#475569]">Khách hàng cá nhân • StoreX</p>
+</div>
+</div>
+<button aria-label="Đóng thông tin tài khoản" class="w-11 h-11 rounded border border-[#BFCAC4] text-[#475569] hover:bg-[#F8FAF9] flex items-center justify-center" id="close-profile-btn" type="button">
+<span class="material-symbols-outlined text-xl">close</span>
+</button>
+</div>
+<div class="space-y-2 bg-[#F8FAF9] p-3 rounded border border-[#BFCAC4] text-xs">
+<div class="flex justify-between items-center">
+<span class="text-[#475569]">Email:</span>
+<span class="font-semibold text-[#0F172A]">minhanh.nguyen@example.test</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-[#475569]">Số điện thoại:</span>
+<span class="font-semibold text-[#0F172A]">0908 123 456</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-[#475569]">Trạng thái hồ sơ:</span>
+<span class="text-[#125345] font-bold">Đã xác minh danh tính</span>
+</div>
+</div>
+<div class="pt-1">
+<button class="w-full min-h-[44px] bg-white hover:bg-[#FEF2F2] border border-[#EF4444] text-[#EF4444] rounded font-heading font-semibold text-base flex items-center justify-center gap-2 active:scale-[0.98] transition-colors" onclick="alert('Đã hoàn tất đăng xuất an toàn.')" type="button">
+<span class="material-symbols-outlined text-xl">logout</span>
+<span>Đăng xuất tài khoản</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Interactive Logic Scripts -->
+<script>
+    // Copy Booking Code
+    const copyBtn = document.getElementById('copy-btn');
+    const copyToast = document.getElementById('copy-toast');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText('BK-2026-0001').then(() => {
+          copyToast.classList.remove('hidden');
+          setTimeout(() => {
+            copyToast.classList.add('hidden');
+          }, 2500);
+        }).catch(() => {
+          copyToast.textContent = 'Mã đơn: BK-2026-0001';
+          copyToast.classList.remove('hidden');
+        });
+      });
+    }
+
+    // Modal Sheet Helper Functions
+    function openSheet(backdropId, sheetId) {
+      const backdrop = document.getElementById(backdropId);
+      const sheet = document.getElementById(sheetId);
+      if (backdrop && sheet) {
+        document.body.classList.add('modal-open');
+        backdrop.classList.remove('opacity-0', 'pointer-events-none');
+        backdrop.classList.add('opacity-100');
+        sheet.classList.remove('translate-y-full');
+        sheet.classList.add('translate-y-0');
+      }
+    }
+
+    function closeSheet(backdropId, sheetId) {
+      const backdrop = document.getElementById(backdropId);
+      const sheet = document.getElementById(sheetId);
+      if (backdrop && sheet) {
+        document.body.classList.remove('modal-open');
+        backdrop.classList.add('opacity-0', 'pointer-events-none');
+        backdrop.classList.remove('opacity-100');
+        sheet.classList.add('translate-y-full');
+        sheet.classList.remove('translate-y-0');
+      }
+    }
+
+    // 1. Reschedule Sheet Triggers
+    const triggerReschedule = document.getElementById('trigger-reschedule-btn');
+    const closeReschedule = document.getElementById('close-reschedule-btn');
+    const cancelRescheduleAction = document.getElementById('cancel-reschedule-action');
+    const rescheduleBackdrop = document.getElementById('reschedule-sheet-backdrop');
+    const rescheduleForm = document.getElementById('reschedule-form');
+
+    if (triggerReschedule) {
+      triggerReschedule.addEventListener('click', () => {
+        openSheet('reschedule-sheet-backdrop', 'reschedule-sheet');
+      });
+    }
+    if (closeReschedule) {
+      closeReschedule.addEventListener('click', () => {
+        closeSheet('reschedule-sheet-backdrop', 'reschedule-sheet');
+      });
+    }
+    if (cancelRescheduleAction) {
+      cancelRescheduleAction.addEventListener('click', () => {
+        closeSheet('reschedule-sheet-backdrop', 'reschedule-sheet');
+      });
+    }
+    if (rescheduleBackdrop) {
+      rescheduleBackdrop.addEventListener('click', (e) => {
+        if (e.target === rescheduleBackdrop) {
+          closeSheet('reschedule-sheet-backdrop', 'reschedule-sheet');
+        }
+      });
+    }
+
+    if (rescheduleForm) {
+      rescheduleForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const newDate = document.getElementById('new-booking-date').value;
+        const newSlot = document.getElementById('new-booking-slot').value;
+        
+        // Format display date DD/MM/YYYY
+        const parts = newDate.split('-');
+        const formattedDate = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : newDate;
+
+        document.getElementById('current-date-display').textContent = formattedDate;
+        document.getElementById('current-slot-display').textContent = newSlot;
+
+        closeSheet('reschedule-sheet-backdrop', 'reschedule-sheet');
+        alert(`✓ Đã gửi yêu cầu đổi lịch hẹn thành công!\nLịch đón tiếp mới: ${newSlot}, ${formattedDate} tại StoreX Sài Gòn Central.\nHạn mức đổi còn lại: 0/2 lần.`);
+        
+        // Disable reschedule button once quota limit reached
+        if (triggerReschedule) {
+          triggerReschedule.disabled = true;
+          triggerReschedule.classList.add('opacity-50', 'cursor-not-allowed');
+          triggerReschedule.innerHTML = '<span class="material-symbols-outlined text-xl">event_busy</span><span>Đã hết lượt đổi lịch (2/2)</span>';
+        }
+      });
+    }
+
+    // 2. Cancellation Sheet Triggers
+    const triggerCancel = document.getElementById('trigger-cancel-btn');
+    const closeCancel = document.getElementById('close-cancel-btn');
+    const retainBtn = document.getElementById('retain-booking-btn');
+    const cancelBackdrop = document.getElementById('cancel-sheet-backdrop');
+    const cancelForm = document.getElementById('cancel-form');
+
+    if (triggerCancel) {
+      triggerCancel.addEventListener('click', () => {
+        openSheet('cancel-sheet-backdrop', 'cancel-sheet');
+      });
+    }
+    if (closeCancel) {
+      closeCancel.addEventListener('click', () => {
+        closeSheet('cancel-sheet-backdrop', 'cancel-sheet');
+      });
+    }
+    if (retainBtn) {
+      retainBtn.addEventListener('click', () => {
+        closeSheet('cancel-sheet-backdrop', 'cancel-sheet');
+      });
+    }
+    if (cancelBackdrop) {
+      cancelBackdrop.addEventListener('click', (e) => {
+        if (e.target === cancelBackdrop) {
+          closeSheet('cancel-sheet-backdrop', 'cancel-sheet');
+        }
+      });
+    }
+
+    if (cancelForm) {
+      cancelForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        closeSheet('cancel-sheet-backdrop', 'cancel-sheet');
+        alert('✓ Đã gửi yêu cầu hủy đơn thành công tới Ban quản lý!\nKhoản hoàn tiền thuê: 900.000 đ sẽ được chuyển khoản trong 3-5 ngày làm việc.\nTrạng thái đơn: Đang chờ xử lý hủy.');
+
+        // Disable both buttons when cancellation is requested
+        if (triggerCancel) {
+          triggerCancel.disabled = true;
+          triggerCancel.classList.add('opacity-50', 'cursor-not-allowed');
+          triggerCancel.innerHTML = '<span class="material-symbols-outlined text-xl">hourglass_top</span><span>Đang xử lý hủy đơn...</span>';
+        }
+        if (triggerReschedule) {
+          triggerReschedule.disabled = true;
+          triggerReschedule.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+        const lifecycleTag = document.getElementById('order-lifecycle-tag');
+        if (lifecycleTag) {
+          lifecycleTag.textContent = 'Đang hủy đơn';
+          lifecycleTag.className = 'text-xs font-semibold text-[#B91C1C] bg-[#FEE2E2] px-2 py-0.5 rounded';
+        }
+      });
+    }
+
+    // 3. Profile Drawer Triggers
+    const openProfileBtn = document.getElementById('open-profile-btn');
+    const closeProfileBtn = document.getElementById('close-profile-btn');
+    const profileBackdrop = document.getElementById('profile-drawer-backdrop');
+
+    if (openProfileBtn) {
+      openProfileBtn.addEventListener('click', () => {
+        openSheet('profile-drawer-backdrop', 'profile-drawer');
+      });
+    }
+    if (closeProfileBtn) {
+      closeProfileBtn.addEventListener('click', () => {
+        closeSheet('profile-drawer-backdrop', 'profile-drawer');
+      });
+    }
+    if (profileBackdrop) {
+      profileBackdrop.addEventListener('click', (e) => {
+        if (e.target === profileBackdrop) {
+          closeSheet('profile-drawer-backdrop', 'profile-drawer');
+        }
+      });
+    }
+
+    // Support ESC key to close any active sheet
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeSheet('reschedule-sheet-backdrop', 'reschedule-sheet');
+        closeSheet('cancel-sheet-backdrop', 'cancel-sheet');
+        closeSheet('profile-drawer-backdrop', 'profile-drawer');
+      }
+    });
+  </script>
+</body></html>

@@ -1,0 +1,575 @@
+<!DOCTYPE html><html lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>M-FS06 — Xem lại và hoàn tất kiểm tra — FS</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-secondary-container": "#366e5e",
+            "on-background": "#0F172A",
+            "background": "#F8FAF9",
+            "surface-variant": "#dae2fd",
+            "on-surface-variant": "#475569",
+            "primary-container": "#125345",
+            "on-tertiary-fixed-variant": "#6e3900",
+            "on-secondary": "#ffffff",
+            "surface-container-lowest": "#ffffff",
+            "inverse-surface": "#283044",
+            "surface-tint": "#2c6859",
+            "surface-container-highest": "#dae2fd",
+            "outline": "#707975",
+            "surface-dim": "#d2d9f4",
+            "on-tertiary": "#ffffff",
+            "tertiary-container": "#723b00",
+            "tertiary": "#512800",
+            "primary-fixed-dim": "#96d3c0",
+            "error": "#ba1a1a",
+            "tertiary-fixed-dim": "#ffb77d",
+            "primary-fixed": "#b1efdc",
+            "on-surface": "#0F172A",
+            "on-error": "#ffffff",
+            "surface-bright": "#faf8ff",
+            "on-tertiary-fixed": "#2f1500",
+            "on-secondary-fixed": "#002018",
+            "inverse-on-surface": "#eef0ff",
+            "primary": "#125345",
+            "secondary-fixed": "#b4efda",
+            "secondary": "#306858",
+            "tertiary-fixed": "#ffdcc3",
+            "surface-container-high": "#e2e7ff",
+            "on-error-container": "#93000a",
+            "on-primary": "#ffffff",
+            "on-primary-container": "#89c5b3",
+            "error-container": "#ffdad6",
+            "surface-container-low": "#f2f3ff",
+            "surface": "#ffffff",
+            "on-tertiary-container": "#ffa454",
+            "on-primary-fixed": "#002019",
+            "on-primary-fixed-variant": "#0d5042",
+            "surface-container": "#eaedff",
+            "secondary-container": "#b4efda",
+            "outline-variant": "#BFCAC4",
+            "on-secondary-fixed-variant": "#135041",
+            "secondary-fixed-dim": "#98d2be",
+            "inverse-primary": "#96d3c0"
+          },
+          "borderRadius": {
+            "DEFAULT": "4px",
+            "lg": "4px",
+            "xl": "4px",
+            "full": "9999px"
+          },
+          "spacing": {
+            "gutter-sm": "1rem",
+            "space-lg": "1.5rem",
+            "margin-sm": "1rem",
+            "gutter": "1.5rem",
+            "space-xl": "2.5rem",
+            "space-sm": "0.5rem",
+            "space-md": "1rem",
+            "space-xs": "0.25rem",
+            "margin": "2rem"
+          },
+          "fontFamily": {
+            "title-md": ["Be Vietnam Pro"],
+            "headline-md": ["Space Grotesk"],
+            "label-md": ["Space Grotesk"],
+            "display": ["Space Grotesk"],
+            "label-lg": ["Space Grotesk"],
+            "body-sm": ["Be Vietnam Pro"],
+            "headline-lg": ["Space Grotesk"],
+            "headline-lg-mobile": ["Space Grotesk"],
+            "body-lg": ["Be Vietnam Pro"],
+            "label-sm": ["Space Grotesk"],
+            "headline-sm": ["Space Grotesk"],
+            "body-md": ["Be Vietnam Pro"],
+            "display-mobile": ["Space Grotesk"]
+          },
+          "fontSize": {
+            "title-md": ["18px", { "lineHeight": "26px", "fontWeight": "600" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "display": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+            "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "headline-lg-mobile": ["26px", { "lineHeight": "34px", "fontWeight": "600" }],
+            "body-lg": ["16px", { "lineHeight": "26px", "fontWeight": "400" }],
+            "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "body-md": ["14px", { "lineHeight": "22px", "fontWeight": "400" }],
+            "display-mobile": ["34px", { "lineHeight": "42px", "letterSpacing": "-0.01em", "fontWeight": "700" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .material-symbols-outlined.fill-icon {
+      font-variation-settings: 'FILL' 1;
+    }
+    /* Subtle touch feedback */
+    .touch-btn {
+      touch-action: manipulation;
+      transition: transform 0.15s ease, background-color 0.15s ease;
+    }
+    .touch-btn:active {
+      transform: scale(0.98);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-[#F8FAF9] text-[#0F172A] font-body-md text-body-md antialiased min-h-screen pb-32 select-none">
+<!-- TOP APP BAR (Shared Component: TopAppBar docked full-width top) -->
+<header class="fixed top-0 left-0 w-full z-40 bg-surface border-b border-outline-variant h-14 px-4 flex justify-between items-center shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+<!-- Back button / leading action -->
+<button aria-label="Quay lại" class="touch-btn h-11 w-11 flex items-center justify-center rounded-[4px] text-primary hover:bg-surface-container-high active:scale-95 transition-transform" onclick="handleBackAction()" type="button">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<!-- Header title & Facility name -->
+<div class="flex flex-col items-center text-center">
+<div class="flex items-center gap-1.5">
+<span class="text-primary font-headline-sm text-headline-sm font-bold tracking-tight">StoreX</span>
+<span class="text-[10px] font-label-sm font-semibold tracking-wider px-1.5 py-0.5 rounded-[4px] bg-[#E8F5F1] text-primary">TRẠM SG CENTRAL</span>
+</div>
+<h1 class="text-xs font-medium text-[#475569] font-body-sm">Chi tiết kho thuê</h1>
+</div>
+<!-- FS Account button with Profile Menu sheet trigger -->
+<button aria-label="Tài khoản FS" class="touch-btn h-11 w-11 flex items-center justify-center rounded-[4px] text-primary hover:bg-surface-container-high active:scale-95 transition-transform relative" onclick="toggleUserSheet()" type="button">
+<span class="material-symbols-outlined text-[28px] text-primary fill-icon">account_circle</span>
+<span class="absolute bottom-2 right-2 w-2 h-2 rounded-full bg-[#125345] ring-2 ring-white"></span>
+</button>
+</header>
+<!-- MAIN CANVAS (Single Column 390px Fluid mobile content) -->
+<main class="w-full max-w-[430px] mx-auto pt-16 px-4 space-y-4">
+<!-- Screen Identifier Badge -->
+<div class="pt-2 flex items-center justify-between">
+<span class="text-[11px] font-label-sm font-semibold text-[#475569] tracking-wider uppercase">M-FS06 — Quy trình FS</span>
+<span class="inline-flex items-center gap-1 text-[11px] font-label-sm text-[#125345] bg-[#E8F5F1] px-2 py-0.5 rounded-[4px] font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-[#125345] animate-pulse"></span>
+        Kiểm tra hiện trường
+      </span>
+</div>
+<!-- Title & Context Headline -->
+<div>
+<h2 class="font-headline-sm text-headline-sm text-[#0F172A] font-bold">Xem lại và hoàn tất kiểm tra</h2>
+<p class="font-body-sm text-body-sm text-[#475569] mt-0.5">Kiểm tra thông số kỹ thuật trước khi đóng hồ sơ và chuyển khách sang quầy.</p>
+</div>
+<!-- Inline Status / Success Announcement Banner (Hidden by default, triggered on complete) -->
+<div class="hidden rounded-[4px] border border-[#125345] bg-[#E8F5F1] p-3.5 space-y-2 shadow-sm animate-fade-in" id="successNotice">
+<div class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-[#125345] text-[22px] shrink-0 fill-icon">check_circle</span>
+<div class="text-sm">
+<p class="font-headline-sm text-[15px] font-bold text-[#125345]">Kiểm tra hoàn tất — chưa bàn giao</p>
+<p class="text-[#0F172A] font-body-sm text-xs mt-0.5">Biên bản buồng HCM-01-001 đã khóa thành công. Hồ sơ sẵn sàng tiếp nhận tại quầy tiếp đón.</p>
+</div>
+</div>
+<div class="pt-2 border-t border-[#125345]/20 flex items-center justify-between">
+<span class="text-xs font-semibold text-[#125345] flex items-center gap-1 font-label-md">
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span> Chuyển tiếp M-FS07
+        </span>
+<span class="text-[11px] text-[#475569] font-body-sm">Đang nạp hồ sơ quầy...</span>
+</div>
+</div>
+<!-- Step Progress Indicator (Bước 4/4) -->
+<div class="bg-surface rounded-[4px] border border-outline-variant p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+<div class="flex justify-between items-center mb-2">
+<span class="font-label-md text-label-md text-[#125345] font-bold">Tiến độ kiểm tra buồng</span>
+<span class="font-label-md text-label-md text-[#0F172A] font-semibold">Bước 4 / 4</span>
+</div>
+<!-- Progress Bar Track -->
+<div class="w-full bg-[#EAEDFF] h-2 rounded-[2px] overflow-hidden">
+<div class="bg-[#125345] h-full w-full rounded-[2px] transition-all duration-300"></div>
+</div>
+<div class="flex justify-between items-center mt-2.5 pt-2 border-t border-[#F1F5F9]">
+<div class="flex items-center gap-1.5 text-xs text-[#0F172A] font-medium font-body-sm">
+<span class="material-symbols-outlined text-[#125345] text-[18px] fill-icon">verified</span>
+<span>4/4 Tiêu chí đạt chuẩn kỹ thuật</span>
+</div>
+<span class="text-[11px] font-label-sm font-semibold bg-[#E8F5F1] text-[#125345] px-2 py-0.5 rounded-[4px]">SẴN SÀNG HOÀN TẤT</span>
+</div>
+</div>
+<!-- Task Identification (Context Card) -->
+<div class="bg-surface rounded-[4px] border border-outline-variant p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] space-y-3">
+<div class="flex items-center justify-between border-b border-[#F1F5F9] pb-2.5">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#125345] text-[20px]">assignment</span>
+<span class="font-headline-sm text-sm font-bold text-[#0F172A]">Hồ sơ tiếp đón &amp; Buồng kho</span>
+</div>
+<span class="text-[11px] font-label-sm font-semibold px-2 py-0.5 bg-[#E8F5F1] text-[#125345] rounded-[4px]">
+          Đã thanh toán 100%
+        </span>
+</div>
+<div class="grid grid-cols-2 gap-3 text-sm">
+<div>
+<span class="block text-xs font-body-sm text-[#475569]">Mã đặt kho</span>
+<span class="font-label-md text-[13px] font-bold text-[#0F172A] tracking-wide">BK-2026-0001</span>
+</div>
+<div>
+<span class="block text-xs font-body-sm text-[#475569]">Buồng kho vật lý (FM gán)</span>
+<span class="font-headline-sm text-[14px] font-bold text-[#125345]">HCM-01-001</span>
+<span class="block text-[11px] text-[#475569] font-body-sm">Mini 2m² • Tầng 1 - Khu A</span>
+</div>
+</div>
+<div class="pt-2 border-t border-[#F1F5F9] grid grid-cols-2 gap-3 text-sm">
+<div>
+<span class="block text-xs font-body-sm text-[#475569]">Khách hàng đối soát</span>
+<span class="font-body-md text-sm font-semibold text-[#0F172A]">Nguyễn Minh Anh</span>
+<span class="block text-xs text-[#475569] font-body-sm">0908 123 456</span>
+</div>
+<div>
+<span class="block text-xs font-body-sm text-[#475569]">Khung giờ tiếp đón</span>
+<span class="font-body-md text-sm font-medium text-[#0F172A]">10:00 - 12:00</span>
+<span class="block text-xs text-[#475569] font-body-sm">09/10/2026 (GMT+7)</span>
+</div>
+</div>
+<div class="pt-2 border-t border-[#F1F5F9] flex items-center justify-between text-xs text-[#475569]">
+<span class="flex items-center gap-1 font-body-sm">
+<span class="material-symbols-outlined text-[16px] text-[#125345]">badge</span>
+<span>Chuyên viên FS phụ trách:</span>
+</span>
+<span class="font-semibold text-[#0F172A] font-body-sm">Trần Quốc Huy (FS)</span>
+</div>
+</div>
+<!-- Read-only Review: Physical Inspection Checklist (4 Items) -->
+<section class="bg-surface rounded-[4px] border border-outline-variant p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] space-y-3.5">
+<div class="flex items-center justify-between">
+<h3 class="font-headline-sm text-sm font-bold text-[#0F172A] flex items-center gap-2">
+<span class="material-symbols-outlined text-[#125345] text-[20px]">checklist</span>
+          Kết quả thẩm định hiện trường (4/4)
+        </h3>
+<span class="text-[11px] font-label-sm text-[#475569]">Chỉ đọc</span>
+</div>
+<div class="divide-y divide-[#F1F5F9] space-y-2.5 pt-1">
+<!-- Item 1 -->
+<div class="pt-2 flex items-start justify-between gap-3">
+<div class="space-y-0.5">
+<div class="flex items-center gap-1.5">
+<span class="text-xs font-label-md font-bold text-[#125345]">1.</span>
+<p class="font-body-md text-sm font-semibold text-[#0F172A]">Buồng kho trống 100%</p>
+</div>
+<p class="text-xs font-body-sm text-[#475569] pl-3.5">Không có vật cản, pallet hay đồ đạc tồn đọng của khách cũ.</p>
+</div>
+<span class="inline-flex items-center gap-1 text-[11px] font-label-sm font-semibold px-2 py-0.5 bg-[#E8F5F1] text-[#125345] rounded-[4px] shrink-0">
+<span class="material-symbols-outlined text-[14px]">check</span> Đạt chuẩn
+          </span>
+</div>
+<!-- Item 2 -->
+<div class="pt-2.5 flex items-start justify-between gap-3">
+<div class="space-y-0.5">
+<div class="flex items-center gap-1.5">
+<span class="text-xs font-label-md font-bold text-[#125345]">2.</span>
+<p class="font-body-md text-sm font-semibold text-[#0F172A]">Vệ sinh sàn epoxy &amp; thông gió</p>
+</div>
+<p class="text-xs font-body-sm text-[#475569] pl-3.5">Sàn khô ráo, sạch bụi bẩn công nghiệp, khe lưới thông thoáng.</p>
+</div>
+<span class="inline-flex items-center gap-1 text-[11px] font-label-sm font-semibold px-2 py-0.5 bg-[#E8F5F1] text-[#125345] rounded-[4px] shrink-0">
+<span class="material-symbols-outlined text-[14px]">check</span> Đạt chuẩn
+          </span>
+</div>
+<!-- Item 3 -->
+<div class="pt-2.5 flex items-start justify-between gap-3">
+<div class="space-y-0.5">
+<div class="flex items-center gap-1.5">
+<span class="text-xs font-label-md font-bold text-[#125345]">3.</span>
+<p class="font-body-md text-sm font-semibold text-[#0F172A]">Cửa cuốn, then chốt &amp; bản lề</p>
+</div>
+<p class="text-xs font-body-sm text-[#475569] pl-3.5">Kéo đóng mở êm ái, khóa chốt cơ học ăn khớp chính xác.</p>
+</div>
+<span class="inline-flex items-center gap-1 text-[11px] font-label-sm font-semibold px-2 py-0.5 bg-[#E8F5F1] text-[#125345] rounded-[4px] shrink-0">
+<span class="material-symbols-outlined text-[14px]">check</span> Trơn tru
+          </span>
+</div>
+<!-- Item 4 -->
+<div class="pt-2.5 flex items-start justify-between gap-3">
+<div class="space-y-0.5">
+<div class="flex items-center gap-1.5">
+<span class="text-xs font-label-md font-bold text-[#125345]">4.</span>
+<p class="font-body-md text-sm font-semibold text-[#0F172A]">Đèn hành lang &amp; vách tôn an toàn</p>
+</div>
+<p class="text-xs font-body-sm text-[#475569] pl-3.5">Đèn cảm biến bật tức thì, vách tôn kín phẳng không cong vênh.</p>
+</div>
+<span class="inline-flex items-center gap-1 text-[11px] font-label-sm font-semibold px-2 py-0.5 bg-[#E8F5F1] text-[#125345] rounded-[4px] shrink-0">
+<span class="material-symbols-outlined text-[14px]">check</span> Đạt chuẩn
+          </span>
+</div>
+</div>
+</section>
+<!-- Evidence Photos Section -->
+<section class="bg-surface rounded-[4px] border border-outline-variant p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] space-y-3">
+<div class="flex justify-between items-center">
+<h3 class="font-headline-sm text-sm font-bold text-[#0F172A] flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[#125345] text-[20px]">photo_library</span>
+          Bằng chứng ảnh hiện trường
+        </h3>
+<span class="text-[11px] font-label-sm font-medium text-[#475569]">2 ảnh chụp</span>
+</div>
+<div class="grid grid-cols-2 gap-2.5">
+<!-- Photo 1: Sàn buồng kho -->
+<div class="border border-outline-variant rounded-[4px] overflow-hidden bg-background">
+<div class="relative h-28 w-full bg-slate-200">
+<img alt="Sàn buồng kho sạch sẽ" class="w-full h-full object-cover" data-alt="Interior view of a modern clean self-storage unit with smooth epoxy coated floor, corrugated metal clean partition walls, illuminated under cool white industrial LED lights in an automated warehouse in Ho Chi Minh City, shot in sharp realistic detail, minimal modern aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDuVXaRGhh2WEEYy4iwHowcV8vZUgwJsmVgJwBMLm04BQzFpoDLKHkY3C2NKPyEFBmVuaB_AyFiPUK_d7VyVgVDroYc1su9iAZd14-IaUqMHDzS7tgyKMvjlqWlw6ur9PPuGm3N7JilBTdP66ZBYwQrunFSEcWg46UtM9PBtWqNXsQvsSdfCcTu1JCC0U3kOzDxOvTNPXJqdZX2w5YqfmPbCUiJz15lrh3NnHKETwJ2rPZ14enAWRPr3Oynpqm-FR3VMf1DSVzZ3r1k">
+<span class="absolute bottom-1 right-1 text-[9px] font-label-sm bg-black/60 text-white px-1.5 py-0.5 rounded-[2px] backdrop-blur-xs">10:24</span>
+</div>
+<div class="p-2 space-y-0.5">
+<span class="font-label-md text-xs font-semibold text-[#0F172A] block leading-tight">Sàn kho sạch sẽ</span>
+<span class="text-[11px] font-body-sm text-[#475569] block">Không ẩm mốc &amp; rác thải</span>
+</div>
+</div>
+<!-- Photo 2: Cửa cuốn buồng kho -->
+<div class="border border-outline-variant rounded-[4px] overflow-hidden bg-background">
+<div class="relative h-28 w-full bg-slate-200">
+<img alt="Cửa cuốn đóng kín" class="w-full h-full object-cover" data-alt="A durable green-painted roll-up metal shutter door of a clean self-storage unit in an indoor high-tech facility, securely closed with inspection tag, pristine white floor and bright architectural warehouse corridor lighting in light mode." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBuNH3-RJ16LzaY0hH6uS_LbuAMLOKDDVcgywlL7HLPWRnxNpiZG1NHGtxujtyvM3KUVn3ax-MVKUvmmg1wXLPLP-MaH8WHZOWl26BxuPfx52diJ0SBpeEVdqgi0Vz-jDYLvvSl8DbkJv0YJ37UxoNITz7ejzysUkkicCoCUfk4okVC9V7U4vyNY657jMFyDWxQkPYXak9DSK1ulETX4m51kPvzVU2gdsVJvIrPjrvy3G39eyLgM6KKwzEnAv8nU_qPtKlhZeYENH2C">
+<span class="absolute bottom-1 right-1 text-[9px] font-label-sm bg-black/60 text-white px-1.5 py-0.5 rounded-[2px] backdrop-blur-xs">10:25</span>
+</div>
+<div class="p-2 space-y-0.5">
+<span class="font-label-md text-xs font-semibold text-[#0F172A] block leading-tight">Cửa cuốn đóng kín</span>
+<span class="text-[11px] font-body-sm text-[#475569] block">Bát khóa cơ chuẩn chỉ</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-1.5 text-xs text-[#475569] pt-1">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+<span class="font-body-sm">Đã ghi nhận ảnh: <strong>09/10/2026 10:25 GMT+7</strong></span>
+</div>
+</section>
+<!-- Field Specialist Survey Note -->
+<div class="bg-surface rounded-[4px] border border-outline-variant p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] space-y-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#125345] text-[20px]">edit_note</span>
+<h3 class="font-headline-sm text-sm font-bold text-[#0F172A]">Ghi chú khảo sát của FS</h3>
+</div>
+<div class="bg-[#F8FAF9] p-3 rounded-[4px] border border-[#CBD5E1]/60 text-sm font-body-md text-[#0F172A] leading-relaxed italic">
+        “Buồng HCM-01-001 sạch sẽ, cửa cuốn êm ái, ổ khóa cơ MasterLock và 02 chìa gốc đã chuẩn bị sẵn tại quầy. Đã đối soát khách hàng Nguyễn Minh Anh.”
+      </div>
+<div class="flex justify-between items-center text-xs text-[#475569] pt-0.5">
+<span>Ký duyệt điện tử: <strong>Trần Quốc Huy</strong></span>
+<span class="font-label-sm">Mã thẻ: FS-8842</span>
+</div>
+</div>
+<!-- Business Authority Warning & Guardrails -->
+<div class="rounded-[4px] border border-[#FEF3C7] bg-[#FFFBEB] p-3.5 space-y-2">
+<div class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-[#92400E] text-[22px] shrink-0">warning</span>
+<div class="space-y-1">
+<h4 class="font-headline-sm text-xs font-bold text-[#92400E] uppercase tracking-wide">
+            Cảnh báo nghiệp vụ vai trò FS &amp; Giới hạn thẩm quyền
+          </h4>
+<p class="font-body-sm text-xs text-[#92400E] leading-relaxed">
+<strong>Lưu ý quan trọng:</strong> Sau khi hoàn tất kiểm tra, biên bản sẽ được <strong>KHÓA HỒ SƠ</strong> và không thể hoàn tác (không có Undo). Bước này xác nhận buồng đạt chuẩn kỹ thuật, <strong>CHƯA PHẢI</strong> là kích hoạt hợp đồng thuê hoặc bàn giao chìa khóa cho khách. Thủ tục bàn giao sẽ diễn ra tại quầy ở bước tiếp theo (M-FS07).
+          </p>
+</div>
+</div>
+</div>
+<!-- Nielsen #10: Contextual Help Accordion -->
+<div class="bg-surface rounded-[4px] border border-outline-variant overflow-hidden shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+<button class="w-full p-3.5 flex items-center justify-between text-left touch-btn hover:bg-[#F8FAF9]" onclick="toggleHelpAccordion()" type="button">
+<span class="flex items-center gap-2 font-headline-sm text-xs font-bold text-[#0F172A]">
+<span class="material-symbols-outlined text-[#125345] text-[20px]">help_outline</span>
+          Hướng dẫn nghiệp vụ tiếp đón tại quầy &amp; Đổi buồng
+        </span>
+<span class="material-symbols-outlined text-[#475569] text-[20px] transition-transform duration-200" id="helpAccordionIcon">expand_more</span>
+</button>
+<div class="hidden px-4 pb-4 pt-1 border-t border-[#F1F5F9] text-xs font-body-sm text-[#475569] space-y-2.5" id="helpAccordionContent">
+<p class="font-semibold text-[#0F172A]">Quy trình 4 bước tiếp đón tại quầy (Sắp tới M-FS07):</p>
+<ol class="list-decimal pl-4 space-y-1.5 leading-relaxed">
+<li><strong>Xác thực định danh:</strong> Đối chiếu CCCD/VNeID của khách với tên trên đơn đặt <em>Nguyễn Minh Anh</em>.</li>
+<li><strong>Bàn giao vật lý:</strong> Trao 01 ổ khóa MasterLock niêm phong mới và 02 chìa khóa cơ dự phòng.</li>
+<li><strong>Ký biên bản giao buồng:</strong> Hướng dẫn khách ký xác nhận hiện trạng đạt chuẩn trên màn hình máy trạm.</li>
+<li><strong>Kích hoạt quyền vào trạm:</strong> Kích hoạt mã thẻ từ hoặc xác thực sinh trắc cổng chung 24/7.</li>
+</ol>
+<div class="p-2.5 bg-[#F8FAF9] rounded-[4px] border border-[#CBD5E1]/60 mt-2">
+<p class="font-semibold text-[#0F172A] mb-1">Khách muốn đổi sang buồng diện tích khác?</p>
+<p class="leading-relaxed">FS không tự ý đổi buồng. Hãy chuyển tiếp khách sang quầy Facility Manager (FM) tại tầng trệt để thực hiện điều chuyển vị trí và cập nhật hệ thống tính chênh lệch giá.</p>
+</div>
+</div>
+</div>
+</main>
+<!-- BOTTOM STICKY ACTION AREA (Safe Area Bottom Docked) -->
+<footer class="fixed bottom-0 left-0 w-full z-40 bg-surface/95 backdrop-blur-md border-t border-outline-variant px-4 py-3 shadow-[0_-2px_10px_rgba(15,23,42,0.06)]">
+<div class="max-w-[430px] mx-auto flex items-center gap-3">
+<!-- Secondary Action: Chỉnh sửa kết quả (M-FS05) -->
+<button aria-label="Chỉnh sửa kết quả" class="touch-btn flex-1 h-12 min-h-[48px] px-3 rounded-[4px] border border-primary text-primary font-headline-sm text-sm font-semibold flex items-center justify-center gap-1.5 hover:bg-[#E8F5F1] active:scale-95 transition-transform" onclick="handleBackToEdit()" type="button">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+        Chỉnh sửa
+      </button>
+<!-- Primary CTA: Hoàn tất kiểm tra -->
+<button aria-label="Hoàn tất kiểm tra buồng kho" class="touch-btn flex-[2] h-12 min-h-[48px] px-4 rounded-[4px] bg-primary text-white font-headline-sm text-sm font-bold flex items-center justify-center gap-2 hover:bg-[#0F4D3E] shadow-sm active:scale-95 transition-transform" id="btnCompleteAudit" onclick="openConfirmBottomSheet()" type="button">
+<span class="material-symbols-outlined text-[20px] fill-icon">lock</span>
+        Hoàn tất kiểm tra
+      </button>
+</div>
+</footer>
+<!-- BOTTOM SHEET MODAL: Xác nhận khóa biên bản kiểm tra -->
+<div class="fixed inset-0 z-50 hidden transition-opacity duration-200" id="confirmSheet">
+<!-- Backdrop -->
+<div class="absolute inset-0 bg-black/50 backdrop-blur-xs transition-opacity" onclick="closeConfirmBottomSheet()"></div>
+<!-- Sheet Panel -->
+<div class="absolute bottom-0 left-0 w-full bg-surface rounded-t-[8px] border-t border-outline-variant p-5 shadow-2xl max-w-[430px] mx-auto right-0 animate-slide-up space-y-4">
+<!-- Drag handle -->
+<div class="w-12 h-1 bg-[#CBD5E1] rounded-full mx-auto mb-1"></div>
+<div class="flex items-start gap-3">
+<div class="w-10 h-10 rounded-[4px] bg-[#FEF3C7] text-[#92400E] flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[24px]">lock_clock</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-base font-bold text-[#0F172A]">Xác nhận khóa biên bản kiểm tra?</h3>
+<p class="font-body-sm text-xs text-[#475569] mt-0.5">Buồng kho vật lý: <strong class="text-primary font-bold">HCM-01-001</strong></p>
+</div>
+</div>
+<div class="bg-[#F8FAF9] p-3 rounded-[4px] border border-outline-variant text-xs font-body-sm text-[#0F172A] space-y-2">
+<p class="leading-relaxed">
+          Biên bản sau khi khóa sẽ được <strong>lưu vĩnh viễn</strong> vào nhật ký bảo trì trạm và chuyển trạng thái nhiệm vụ sang <strong>Sẵn sàng bàn giao tại quầy</strong>.
+        </p>
+<p class="text-[#ba1a1a] font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">cancel</span>
+          Thao tác này KHÔNG THỂ HOÀN TÁC hoặc chỉnh sửa lại.
+        </p>
+</div>
+<div class="space-y-2.5 pt-2">
+<button class="touch-btn w-full h-12 min-h-[48px] rounded-[4px] bg-[#125345] text-white font-headline-sm text-sm font-bold flex items-center justify-center gap-2 hover:bg-[#0F4D3E] active:scale-95 transition-transform" id="btnConfirmLock" onclick="executeLockAudit()" type="button">
+<span class="material-symbols-outlined text-[18px]">verified</span>
+          Xác nhận &amp; Khóa biên bản
+        </button>
+<button class="touch-btn w-full h-11 min-h-[44px] rounded-[4px] border border-outline-variant text-[#475569] font-headline-sm text-sm font-medium flex items-center justify-center hover:bg-[#F1F5F9] active:scale-95 transition-transform" onclick="closeConfirmBottomSheet()" type="button">
+          Hủy bỏ / Xem lại thêm
+        </button>
+</div>
+</div>
+</div>
+<!-- USER / FS PROFILE MENU SHEET -->
+<div class="fixed inset-0 z-50 hidden transition-opacity duration-200" id="userProfileSheet">
+<div class="absolute inset-0 bg-black/40 backdrop-blur-xs" onclick="toggleUserSheet()"></div>
+<div class="absolute bottom-0 left-0 right-0 w-full max-w-[430px] mx-auto bg-surface rounded-t-[8px] p-4 border-t border-outline-variant shadow-xl space-y-3">
+<div class="w-10 h-1 bg-[#CBD5E1] rounded-full mx-auto"></div>
+<div class="flex items-center gap-3 pt-1 border-b border-[#F1F5F9] pb-3">
+<div class="w-12 h-12 rounded-[4px] bg-[#E8F5F1] text-primary flex items-center justify-center font-bold text-lg">
+          HQ
+        </div>
+<div>
+<h4 class="font-body-md text-sm font-bold text-[#0F172A]">Trần Quốc Huy</h4>
+<p class="font-body-sm text-xs text-[#475569]">Chuyên viên Hiện trường (Field Specialist)</p>
+<span class="inline-block mt-0.5 text-[10px] font-label-sm font-semibold text-[#125345] bg-[#E8F5F1] px-1.5 py-0.2 rounded-[2px]">Trạm Sài Gòn Central • Ca sáng</span>
+</div>
+</div>
+<div class="space-y-1 text-sm font-body-md">
+<div class="p-2.5 rounded-[4px] bg-[#F8FAF9] flex justify-between items-center text-xs">
+<span class="text-[#475569]">Nhiệm vụ kiểm tra hoàn tất hôm nay:</span>
+<span class="font-bold text-[#125345]">5 / 6 buồng</span>
+</div>
+<div class="p-2.5 rounded-[4px] bg-[#F8FAF9] flex justify-between items-center text-xs">
+<span class="text-[#475569]">Bộ đàm kênh trạm FS:</span>
+<span class="font-semibold text-[#0F172A]">Kênh 04 (Vận hành)</span>
+</div>
+</div>
+<button class="touch-btn w-full h-11 min-h-[44px] rounded-[4px] bg-[#F1F5F9] text-[#0F172A] font-medium text-xs flex items-center justify-center" onclick="toggleUserSheet()" type="button">
+        Đóng
+      </button>
+</div>
+</div>
+<!-- JAVASCRIPT: In-memory Interaction Handlers -->
+<script>
+    // State Tracker (Mocked purely in memory)
+    const auditState = {
+      orderId: "BK-2026-0001",
+      unitId: "HCM-01-001",
+      customer: "Nguyễn Minh Anh",
+      isLocked: false,
+      step: 4
+    };
+
+    function handleBackAction() {
+      // Mock navigation back to previous edit step M-FS05
+      alert("Đang quay về bước M-FS05 (Chỉnh sửa bảng kiểm tra kỹ thuật). Dữ liệu nháp vẫn được lưu nguyên vẹn.");
+    }
+
+    function handleBackToEdit() {
+      if (auditState.isLocked) {
+        alert("Hồ sơ đã bị khóa, không thể chỉnh sửa kết quả.");
+        return;
+      }
+      handleBackAction();
+    }
+
+    function openConfirmBottomSheet() {
+      if (auditState.isLocked) {
+        alert("Biên bản đã được hoàn tất trước đó!");
+        return;
+      }
+      const sheet = document.getElementById('confirmSheet');
+      sheet.classList.remove('hidden');
+    }
+
+    function closeConfirmBottomSheet() {
+      const sheet = document.getElementById('confirmSheet');
+      sheet.classList.add('hidden');
+    }
+
+    function toggleUserSheet() {
+      const sheet = document.getElementById('userProfileSheet');
+      if (sheet.classList.contains('hidden')) {
+        sheet.classList.remove('hidden');
+      } else {
+        sheet.classList.add('hidden');
+      }
+    }
+
+    function toggleHelpAccordion() {
+      const content = document.getElementById('helpAccordionContent');
+      const icon = document.getElementById('helpAccordionIcon');
+      if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        icon.style.transform = 'rotate(180deg)';
+      } else {
+        content.classList.add('hidden');
+        icon.style.transform = 'rotate(0deg)';
+      }
+    }
+
+    function executeLockAudit() {
+      // Execute in-memory state transition
+      auditState.isLocked = true;
+      closeConfirmBottomSheet();
+
+      // Show top success alert banner
+      const notice = document.getElementById('successNotice');
+      notice.classList.remove('hidden');
+
+      // Scroll smoothly to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // Disable CTA to reflect locked state
+      const btnCTA = document.getElementById('btnCompleteAudit');
+      btnCTA.disabled = true;
+      btnCTA.classList.add('opacity-50', 'cursor-not-allowed');
+      btnCTA.innerHTML = `<span class="material-symbols-outlined text-[20px]">task_alt</span> Đã khóa hồ sơ`;
+
+      // Simulating seamless flow transition to counter handover M-FS07
+      setTimeout(() => {
+        alert("Hệ thống: Đã khóa biên bản HCM-01-001. Sẵn sàng chuyển tiếp sang M-FS07 — Bàn giao chìa & Kích hoạt hợp đồng.");
+      }, 700);
+    }
+  </script>
+</body></html>

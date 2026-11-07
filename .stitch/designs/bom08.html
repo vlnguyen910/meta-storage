@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BOM08 — Báo cáo Quy hoạch Sức chứa & Hiệu suất Lấp đầy Buồng kho | StoreX OS</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "tertiary-fixed-dim": "#80db71",
+            "surface": "#FFFFFF",
+            "on-secondary": "#ffffff",
+            "on-primary-fixed": "#002018",
+            "on-tertiary-fixed": "#002201",
+            "on-success-container": "#166534",
+            "primary-fixed": "#acf0d9",
+            "tertiary-fixed": "#9bf98a",
+            "inverse-on-surface": "#eef0ff",
+            "primary-container": "#165f4d",
+            "surface-container-highest": "#dae2fd",
+            "surface-container-high": "#e2e7ff",
+            "primary": "#004637",
+            "inverse-surface": "#283044",
+            "outline-variant": "#bfc9c3",
+            "secondary-container": "#d0e1fb",
+            "error-container": "#ffdad6",
+            "border": "#EEEEEE",
+            "error": "#ba1a1a",
+            "secondary-fixed-dim": "#b7c8e1",
+            "on-background": "#131b2e",
+            "on-tertiary-fixed-variant": "#005305",
+            "on-primary": "#ffffff",
+            "outline": "#94A3B8",
+            "primary-fixed-dim": "#90d4bd",
+            "surface-container": "#eaedff",
+            "on-surface-variant": "#3f4945",
+            "secondary": "#505f76",
+            "on-secondary-container": "#54647a",
+            "on-secondary-fixed-variant": "#38485d",
+            "on-error": "#ffffff",
+            "warning-container": "#FFFBEB",
+            "tertiary-container": "#006308",
+            "on-primary-fixed-variant": "#005140",
+            "on-tertiary": "#ffffff",
+            "warning": "#92400E",
+            "destructive": "#991B1B",
+            "surface-muted": "#F8FAFC",
+            "on-error-container": "#93000a",
+            "on-surface": "#131b2e",
+            "primary-dark": "#0F493B",
+            "on-secondary-fixed": "#0b1c30",
+            "surface-container-lowest": "#ffffff",
+            "primary-soft": "#E8F3EF",
+            "tertiary": "#004804",
+            "secondary-fixed": "#d3e4fe",
+            "background": "#FAFAFA",
+            "surface-dim": "#d2d9f4",
+            "inverse-primary": "#90d4bd",
+            "destructive-container": "#FEF2F2",
+            "surface-variant": "#dae2fd",
+            "on-primary-container": "#92d6bf",
+            "surface-container-low": "#f2f3ff",
+            "on-tertiary-container": "#83de74",
+            "surface-bright": "#faf8ff",
+            "surface-tint": "#246957",
+            "success-container": "#ECFDF5"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "15px": "15px",
+            "full": "9999px"
+          },
+          "spacing": {
+            "2xl": "32px",
+            "section": "80px",
+            "gutter-mobile": "1rem",
+            "space-lg": "1rem",
+            "margin": "1.5rem",
+            "xs": "4px",
+            "space-xl": "1.5rem",
+            "space-md": "0.75rem",
+            "margin-desktop": "2rem",
+            "page-gutter": "24px",
+            "md": "12px",
+            "lg": "16px",
+            "field-gap": "8px",
+            "space-sm": "0.5rem",
+            "card-padding": "24px",
+            "xl": "24px",
+            "control-padding": "12px",
+            "4xl": "64px",
+            "sm": "8px",
+            "gutter": "1.5rem",
+            "space-xs": "0.25rem",
+            "3xl": "48px"
+          },
+          "fontFamily": {
+            "headline-lg-mobile": ["Inter"],
+            "body-md": ["Inter"],
+            "body-lg": ["Inter"],
+            "headline-md": ["Inter"],
+            "headline-display": ["Inter"],
+            "label-md": ["Inter"],
+            "headline-lg": ["Inter"],
+            "title-lg": ["Inter"],
+            "body-sm": ["Inter"],
+            "headline-display-mobile": ["Inter"],
+            "label-sm": ["Inter"]
+          },
+          "fontSize": {
+            "headline-lg-mobile": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.015em", "fontWeight": "700" }],
+            "body-md": ["16px", { "lineHeight": "26px", "fontWeight": "400" }],
+            "body-lg": ["18px", { "lineHeight": "30px", "fontWeight": "400" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.015em", "fontWeight": "700" }],
+            "headline-display": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.03em", "fontWeight": "800" }],
+            "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "700" }],
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "750" }],
+            "title-lg": ["20px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "body-sm": ["14px", { "lineHeight": "22px", "fontWeight": "400" }],
+            "headline-display-mobile": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.025em", "fontWeight": "800" }],
+            "label-sm": ["12px", { "lineHeight": "18px", "letterSpacing": "0.02em", "fontWeight": "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      height: 6px;
+      width: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 4px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface antialiased font-body-md min-h-screen flex flex-col selection:bg-primary-soft selection:text-primary">
+<!-- TOP NAV BAR (Shared Component Execution) -->
+<header class="flex justify-between items-center h-16 px-space-lg w-full bg-surface-container-lowest border-b border-outline-variant sticky top-0 z-40 shadow-sm">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-3">
+<span class="p-2 rounded-lg bg-primary-soft text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-2xl" data-icon="domain_verification">domain_verification</span>
+</span>
+<div class="flex flex-col">
+<span class="text-headline-sm font-headline-sm font-bold text-primary tracking-tight">StoreX OS</span>
+<span class="text-label-sm font-label-sm text-secondary -mt-1 font-semibold">BOM Executive Console</span>
+</div>
+</div>
+<div class="hidden lg:flex items-center gap-2 pl-6 ml-2 border-l border-slate-200">
+<button class="min-h-[44px] px-3 flex items-center gap-2 rounded-lg text-primary hover:bg-surface-container-low transition-colors duration-150" type="button">
+<span class="material-symbols-outlined text-lg" data-icon="location_city">location_city</span>
+<span class="text-label-md font-label-md">StoreX Sài Gòn Central</span>
+<span class="material-symbols-outlined text-sm" data-icon="expand_more">expand_more</span>
+</button>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-success-container text-on-success-container">
+<span class="w-2 h-2 rounded-full bg-[#16A34A] animate-pulse"></span>
+          Đồng bộ trực tuyến
+        </span>
+</div>
+</div>
+<!-- Search & Quick Action Context -->
+<div class="flex items-center gap-3">
+<div class="relative hidden md:block w-72">
+<span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+<span class="material-symbols-outlined text-xl" data-icon="search">search</span>
+</span>
+<input class="w-full pl-10 pr-4 py-2 min-h-[44px] bg-slate-50 border border-slate-200 rounded-lg text-body-sm font-body-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all" placeholder="Tìm kiếm cơ sở, buồng kho, chỉ số..." type="text"/>
+</div>
+<button aria-label="Thông báo" class="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-600 hover:text-primary hover:bg-slate-100 rounded-lg transition-colors relative" type="button">
+<span class="material-symbols-outlined text-xl" data-icon="notifications">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-destructive rounded-full"></span>
+</button>
+<button aria-label="Trợ giúp tài liệu" class="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-600 hover:text-primary hover:bg-slate-100 rounded-lg transition-colors" type="button">
+<span class="material-symbols-outlined text-xl" data-icon="help">help</span>
+</button>
+<!-- Profile Avatar -->
+<div class="flex items-center gap-3 pl-3 border-l border-slate-200">
+<div class="w-10 h-10 rounded-full bg-primary text-on-primary font-bold flex items-center justify-center shadow-inner text-sm">
+          BOM
+        </div>
+<div class="hidden xl:flex flex-col text-left">
+<span class="text-label-md font-label-md text-on-surface leading-tight">Vũ Minh Hoàng</span>
+<span class="text-label-sm font-label-sm text-secondary">Hội đồng Quản trị (BOM)</span>
+</div>
+</div>
+</div>
+</header>
+<div class="flex flex-1 relative">
+<!-- SIDEBAR BOM (Mục "Trung tâm báo cáo" active) -->
+<aside class="w-64 fixed left-0 top-16 bottom-0 flex flex-col justify-between p-space-md bg-surface-container-lowest border-r border-outline-variant z-30 overflow-y-auto">
+<div class="space-y-6">
+<!-- Identity Header inside Nav -->
+<div class="px-2 py-2 flex items-center gap-3 bg-slate-50 rounded-xl border border-slate-200">
+<div class="w-9 h-9 rounded-lg bg-primary-container text-on-primary flex items-center justify-center font-bold text-sm">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+</div>
+<div>
+<div class="text-label-md font-label-md text-primary font-bold">StoreX OS</div>
+<div class="text-label-sm font-label-sm text-secondary">Board of Management (BOM)</div>
+</div>
+</div>
+<!-- Navigation Tabs -->
+<nav aria-label="Thanh điều hướng chính" class="space-y-1">
+<a class="min-h-[44px] text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-all duration-150" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="dashboard">dashboard</span>
+<span class="text-label-md font-label-md">Tổng quan điều hành</span>
+</a>
+<a class="min-h-[44px] text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-all duration-150" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="grid_view">grid_view</span>
+<span class="text-label-md font-label-md">Quản lý ô kho & Mặt bằng</span>
+</a>
+<a class="min-h-[44px] text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-all duration-150" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="warehouse">warehouse</span>
+<span class="text-label-md font-label-md">Thông tin cơ sở & Loại kho</span>
+</a>
+<!-- ACTIVE: Trung tâm báo cáo (Maps to BOM reporting domain) -->
+<a aria-current="page" class="min-h-[44px] bg-primary-container text-white font-semibold rounded-lg px-space-md py-space-sm flex items-center gap-space-sm shadow-sm transition-all duration-150" href="#">
+<span class="material-symbols-outlined text-xl text-primary-fixed" data-icon="analytics">analytics</span>
+<span class="text-label-md font-label-md">Trung tâm báo cáo</span>
+</a>
+<a class="min-h-[44px] text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-all duration-150" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="assignment_return">assignment_return</span>
+<span class="text-label-md font-label-md">Yêu cầu trả kho</span>
+</a>
+<a class="min-h-[44px] text-on-surface-variant hover:bg-surface-container-low rounded-lg px-space-md py-space-sm flex items-center gap-space-sm font-medium transition-all duration-150" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="badge">badge</span>
+<span class="text-label-md font-label-md">Nhân sự & Phân công</span>
+</a>
+</nav>
+</div>
+<!-- Quick Operational Action & Footer Meta -->
+<div class="pt-4 border-t border-slate-200 space-y-3">
+<a class="min-h-[44px] w-full bg-primary-soft text-primary font-bold text-label-md font-label-md px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 hover:bg-[#d6ece4] transition-colors shadow-sm" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="handshake">handshake</span>
+          Bàn giao kho & Check-in
+        </a>
+<div class="space-y-1">
+<a class="min-h-[44px] text-on-surface-variant hover:bg-slate-100 rounded-lg px-3 py-2 flex items-center gap-2.5 text-label-sm font-label-sm font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-lg text-amber-600" data-icon="warning">warning</span>
+<span>Chính sách chưa chốt</span>
+</a>
+<a class="min-h-[44px] text-on-surface-variant hover:bg-slate-100 rounded-lg px-3 py-2 flex items-center gap-2.5 text-label-sm font-label-sm font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-lg text-slate-500" data-icon="tune">tune</span>
+<span>Cài đặt trạm & Thông số</span>
+</a>
+</div>
+<div class="px-2 pt-2 text-[11px] text-slate-400 font-medium flex items-center justify-between">
+<span>Hệ thống StoreX v2.4</span>
+<span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+</div>
+</div>
+</aside>
+<!-- MAIN CONTENT CANVAS -->
+<main class="ml-64 flex-1 p-6 lg:p-8 bg-background max-w-[1600px] w-[calc(100%-16rem)]">
+<!-- Breadcrumb & Back Action -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+<nav aria-label="Breadcrumb" class="flex items-center gap-2 text-label-sm font-label-sm text-secondary">
+<a class="hover:text-primary transition-colors flex items-center gap-1" href="#">
+<span class="material-symbols-outlined text-base" data-icon="analytics">analytics</span>
+            Trung tâm báo cáo
+          </a>
+<span class="text-slate-400">/</span>
+<span class="text-on-surface font-semibold">Sức chứa & Hiệu suất sử dụng</span>
+</nav>
+<!-- Nút quay lại Trung tâm báo cáo (BOM06) -->
+<a class="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 bg-surface text-slate-700 hover:text-primary border border-[#E2E8F0] rounded-lg text-label-md font-label-md font-semibold transition-all hover:bg-slate-50 shadow-xs" href="#bom06">
+<span class="material-symbols-outlined text-lg" data-icon="arrow_back">arrow_back</span>
+<span>Quay lại Trung tâm báo cáo (BOM06)</span>
+</a>
+</div>
+<!-- Header & Strategic Identifier -->
+<div class="flex flex-col xl:flex-row xl:items-start justify-between gap-4 mb-6 pb-6 border-b border-[#E2E8F0]">
+<div>
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-soft text-primary font-bold text-label-sm font-label-sm mb-2">
+<span class="material-symbols-outlined text-sm" data-icon="storage">storage</span>
+<span>Định danh luồng: /operations/reports/utilization</span>
+</div>
+<h1 class="text-headline-lg font-headline-lg text-on-surface font-extrabold tracking-tight">
+            BOM08 — Báo cáo Quy hoạch Sức chứa & Hiệu suất Lấp đầy Buồng kho
+          </h1>
+<p class="text-body-sm font-body-sm text-secondary mt-1">
+            Số liệu thống kê thời gian thực phục vụ hoạch định nguồn cung, mở rộng module và tối ưu hóa diện tích sàn thương mại.
+          </p>
+</div>
+<div class="flex items-center gap-3 self-start">
+<span class="text-label-sm font-label-sm text-secondary bg-white px-3 py-2 rounded-lg border border-[#E2E8F0]">
+            Cập nhật lần cuối: <strong class="text-on-surface">10:45:00 Hôm nay</strong>
+</span>
+</div>
+</div>
+<!-- Descriptive Utilization Denominator Box (Định nghĩa chuẩn Nielsen 10 & WCAG) -->
+<div class="bg-primary-soft border border-primary/20 rounded-15px p-5 mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
+<div class="flex items-start gap-3.5">
+<div class="p-2.5 rounded-xl bg-primary text-white shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-2xl" data-icon="info">info</span>
+</div>
+<div>
+<div class="text-label-md font-label-md text-primary font-bold uppercase tracking-wider mb-1">
+              Định nghĩa mẫu số hiệu suất chuẩn hóa (Descriptive Utilization Denominator)
+            </div>
+<p class="text-body-sm font-body-sm text-on-surface leading-relaxed font-normal">
+              "Tỷ lệ lấp đầy = (Số buồng đang sử dụng có hợp đồng có hiệu lực) / (Tổng số buồng thực tế trừ đi buồng đang tạm khóa bảo trì kỹ thuật). Tỷ lệ lấp đầy toàn mạng lưới hiện đạt <span class="font-bold text-primary underline decoration-2 underline-offset-2">81.5%</span>."
+            </p>
+</div>
+</div>
+<div class="shrink-0 flex items-center gap-2 bg-surface px-4 py-2.5 rounded-xl border border-primary/20 text-primary">
+<span class="material-symbols-outlined text-xl" data-icon="verified">verified</span>
+<span class="text-label-sm font-label-sm font-bold">Chuẩn kiểm toán BOM-Q3</span>
+</div>
+</div>
+<!-- FILTER & COMPARISON TOOLBAR (Kỳ báo cáo, Cơ sở, Loại buồng) -->
+<section aria-label="Bộ lọc dữ liệu phân tích" class="bg-surface rounded-15px p-6 border border-[#E2E8F0] mb-8 shadow-sm">
+<div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 flex-1">
+<!-- Kỳ báo cáo: Chọn & So sánh -->
+<div>
+<label class="block text-label-sm font-label-sm text-secondary font-bold mb-2" for="filter-period-current">Kỳ báo cáo chính</label>
+<div class="relative">
+<select class="w-full min-h-[44px] px-3.5 py-2.5 bg-surface-muted border border-[#E2E8F0] rounded-lg text-body-sm font-body-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary focus:border-primary transition-all" id="filter-period-current">
+<option selected="">Tháng 10/2026</option>
+<option>Tháng 09/2026</option>
+<option>Tháng 08/2026</option>
+<option>Quý 3/2026</option>
+</select>
+</div>
+</div>
+<div>
+<label class="block text-label-sm font-label-sm text-secondary font-bold mb-2" for="filter-period-compare">So sánh với kỳ</label>
+<div class="relative">
+<select class="w-full min-h-[44px] px-3.5 py-2.5 bg-surface-muted border border-[#E2E8F0] rounded-lg text-body-sm font-body-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary focus:border-primary transition-all" id="filter-period-compare">
+<option selected="">Tháng 09/2026</option>
+<option>Tháng 08/2026</option>
+<option>Tháng 10/2025 (Cùng kỳ năm trước)</option>
+<option>Kế hoạch ngân sách Q4</option>
+</select>
+</div>
+</div>
+<!-- Cơ sở áp dụng -->
+<div>
+<label class="block text-label-sm font-label-sm text-secondary font-bold mb-2" for="filter-facility">Cơ sở áp dụng</label>
+<div class="relative">
+<select class="w-full min-h-[44px] px-3.5 py-2.5 bg-surface-muted border border-[#E2E8F0] rounded-lg text-body-sm font-body-sm text-on-surface focus:ring-2 focus:ring-primary focus:border-primary transition-all" id="filter-facility">
+<option selected="">Tất cả 4 cơ sở kho</option>
+<option>storeX Sài Gòn Central</option>
+<option>storeX Bình Thạnh Landmark</option>
+<option>storeX Cầu Giấy TechHub</option>
+<option>storeX Nam Sài Gòn</option>
+</select>
+</div>
+</div>
+<!-- Loại kích thước buồng -->
+<div>
+<label class="block text-label-sm font-label-sm text-secondary font-bold mb-2" for="filter-size-type">Loại kích thước buồng</label>
+<div class="relative">
+<select class="w-full min-h-[44px] px-3.5 py-2.5 bg-surface-muted border border-[#E2E8F0] rounded-lg text-body-sm font-body-sm text-on-surface focus:ring-2 focus:ring-primary focus:border-primary transition-all" id="filter-size-type">
+<option selected="">Tất cả loại buồng</option>
+<option>Phân rã Mini S (< 4m²)</option>
+<option>Phân rã Tiêu chuẩn M (4 - 10m²)</option>
+<option>Phân rã Doanh nghiệp L (> 10m²)</option>
+</select>
+</div>
+</div>
+</div>
+<!-- Nhóm nút hành động -->
+<div class="flex items-center gap-3 shrink-0 pt-2 lg:pt-0">
+<button class="min-h-[44px] px-5 py-2.5 bg-[#165F4D] hover:bg-[#0F493B] text-white text-label-md font-label-md font-bold rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm" type="button">
+<span class="material-symbols-outlined text-lg" data-icon="compare_arrows">compare_arrows</span>
+<span>Áp dụng so sánh</span>
+</button>
+<button class="min-h-[44px] px-4 py-2.5 bg-surface hover:bg-[#F8FAFC] border border-[#E2E8F0] text-slate-800 text-label-md font-label-md font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 shadow-xs" type="button">
+<span class="material-symbols-outlined text-lg text-slate-600" data-icon="download">download</span>
+<span>Xuất dữ liệu lấp đầy (CSV)</span>
+</button>
+</div>
+</div>
+</section>
+<!-- 4 THẺ PHÂN RÃ SỨC CHỨA TOÀN MẠNG LƯỚI (Tổng: 480 buồng vật lý) -->
+<section aria-label="Phân rã sức chứa buồng kho" class="mb-8">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-3">
+<h2 class="text-title-lg font-title-lg text-on-surface font-bold">Phân rã trạng thái sức chứa toàn mạng lưới</h2>
+<span class="px-2.5 py-0.5 rounded-full text-label-sm font-label-sm font-bold bg-slate-100 text-slate-700 border border-slate-200">
+              Tổng quy mô: 480 buồng vật lý
+            </span>
+</div>
+<span class="text-label-sm font-label-sm text-secondary font-medium hidden sm:inline">Chu kỳ tính toán: 30 ngày gần nhất</span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+<!-- Thẻ 1: Đang sử dụng (In Use) -->
+<div class="bg-surface rounded-15px p-6 border border-[#E2E8F0] shadow-sm relative overflow-hidden transition-all hover:border-[#165F4D]/40">
+<div class="flex items-center justify-between mb-3">
+<span class="text-label-md font-label-md text-secondary font-bold">Đang sử dụng (In Use)</span>
+<span class="p-2 rounded-lg bg-emerald-50 text-emerald-700">
+<span class="material-symbols-outlined text-xl" data-icon="lock">lock</span>
+</span>
+</div>
+<div class="flex items-baseline gap-2 mb-2">
+<span class="text-headline-display font-headline-display text-[#166534] font-extrabold">392</span>
+<span class="text-title-lg font-title-lg text-emerald-800 font-bold">buồng</span>
+</div>
+<div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden mb-3">
+<div class="bg-[#165F4D] h-full rounded-full" style="width: 81.7%;"></div>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm">
+<span class="text-label-sm font-label-sm font-bold text-slate-600">Tỷ trọng: 81.7%</span>
+<span class="inline-flex items-center text-label-sm font-label-sm font-bold text-emerald-700">
+<span class="material-symbols-outlined text-sm" data-icon="trending_up">trending_up</span> +3.2% vs T09
+              </span>
+</div>
+</div>
+<!-- Thẻ 2: Trống sẵn sàng đón khách (Available) -->
+<div class="bg-surface rounded-15px p-6 border border-[#E2E8F0] shadow-sm relative overflow-hidden transition-all hover:border-[#165F4D]/40">
+<div class="flex items-center justify-between mb-3">
+<span class="text-label-md font-label-md text-secondary font-bold">Trống sẵn sàng (Available)</span>
+<span class="p-2 rounded-lg bg-blue-50 text-blue-700">
+<span class="material-symbols-outlined text-xl" data-icon="door_front">door_front</span>
+</span>
+</div>
+<div class="flex items-baseline gap-2 mb-2">
+<span class="text-headline-display font-headline-display text-blue-900 font-extrabold">64</span>
+<span class="text-title-lg font-title-lg text-blue-800 font-bold">buồng</span>
+</div>
+<div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden mb-3">
+<div class="bg-blue-600 h-full rounded-full" style="width: 13.3%;"></div>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm">
+<span class="text-label-sm font-label-sm font-bold text-slate-600">Tỷ trọng: 13.3%</span>
+<span class="inline-flex items-center text-label-sm font-label-sm font-bold text-blue-700">
+                Sẵn sàng ký kết ngay
+              </span>
+</div>
+</div>
+<!-- Thẻ 3: Đã đặt chỗ chờ tiếp đón (Reserved) -->
+<div class="bg-surface rounded-15px p-6 border border-[#E2E8F0] shadow-sm relative overflow-hidden transition-all hover:border-[#165F4D]/40">
+<div class="flex items-center justify-between mb-3">
+<span class="text-label-md font-label-md text-secondary font-bold">Đã đặt chỗ (Reserved)</span>
+<span class="p-2 rounded-lg bg-amber-50 text-amber-700">
+<span class="material-symbols-outlined text-xl" data-icon="schedule">schedule</span>
+</span>
+</div>
+<div class="flex items-baseline gap-2 mb-2">
+<span class="text-headline-display font-headline-display text-amber-900 font-extrabold">16</span>
+<span class="text-title-lg font-title-lg text-amber-800 font-bold">buồng</span>
+</div>
+<div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden mb-3">
+<div class="bg-amber-500 h-full rounded-full" style="width: 3.3%;"></div>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm">
+<span class="text-label-sm font-label-sm font-bold text-slate-600">Tỷ trọng: 3.3%</span>
+<span class="text-label-sm font-label-sm text-secondary">Chờ check-in 48h</span>
+</div>
+</div>
+<!-- Thẻ 4: Đang bảo trì / Kiểm tra kỹ thuật (Maintenance) -->
+<div class="bg-surface rounded-15px p-6 border border-[#E2E8F0] shadow-sm relative overflow-hidden transition-all hover:border-[#165F4D]/40">
+<div class="flex items-center justify-between mb-3">
+<span class="text-label-md font-label-md text-secondary font-bold">Bảo trì / Kỹ thuật</span>
+<span class="p-2 rounded-lg bg-red-50 text-red-700">
+<span class="material-symbols-outlined text-xl" data-icon="build">build</span>
+</span>
+</div>
+<div class="flex items-baseline gap-2 mb-2">
+<span class="text-headline-display font-headline-display text-red-900 font-extrabold">08</span>
+<span class="text-title-lg font-title-lg text-red-800 font-bold">buồng</span>
+</div>
+<div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden mb-3">
+<div class="bg-red-500 h-full rounded-full" style="width: 1.7%;"></div>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm">
+<span class="text-label-sm font-label-sm font-bold text-slate-600">Tỷ trọng: 1.7%</span>
+<span class="text-label-sm font-label-sm text-red-700 font-semibold">Tạm loại khỏi mẫu số</span>
+</div>
+</div>
+</div>
+</section>
+<!-- TAB TÍCH HỢP TRONG MÀN HÌNH -->
+<section aria-label="Bảng điều khiển chi tiết" class="bg-surface rounded-15px border border-[#E2E8F0] shadow-sm overflow-hidden mb-8">
+<!-- Tab Navigation Bar -->
+<div class="border-b border-[#E2E8F0] bg-surface-muted px-6 flex items-center gap-2 overflow-x-auto custom-scroll">
+<button aria-selected="true" class="min-h-[48px] px-5 py-3 border-b-2 border-primary text-primary font-headline-sm font-bold flex items-center gap-2 text-label-md font-label-md transition-colors" type="button">
+<span class="material-symbols-outlined text-lg" data-icon="grid_view">grid_view</span>
+<span>Tổng quan sức chứa & lấp đầy</span>
+</button>
+<button class="min-h-[48px] px-5 py-3 border-b-2 border-transparent text-secondary hover:text-on-surface hover:bg-slate-100 font-medium flex items-center gap-2 text-label-md font-label-md transition-colors" type="button">
+<span class="material-symbols-outlined text-lg" data-icon="event_upcoming">event_upcoming</span>
+<span>Danh sách hợp đồng sắp đáo hạn (14 ngày tới)</span>
+<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[11px] font-bold">19</span>
+</button>
+<button class="min-h-[48px] px-5 py-3 border-b-2 border-transparent text-secondary hover:text-on-surface hover:bg-slate-100 font-medium flex items-center gap-2 text-label-md font-label-md transition-colors" type="button">
+<span class="material-symbols-outlined text-lg" data-icon="handyman">handyman</span>
+<span>Danh sách buồng kho đang bảo trì kỹ thuật</span>
+<span class="px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-[11px] font-bold">08</span>
+</button>
+</div>
+<!-- BẢNG MA TRẬN SỨC CHỨA VÀ HIỆU SUẤT CHI TIẾT -->
+<div class="p-6">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+<div>
+<h3 class="text-title-lg font-title-lg text-on-surface font-bold">Ma trận sức chứa & Hiệu suất theo Chi nhánh</h3>
+<p class="text-body-sm font-body-sm text-secondary">Phân loại chi tiết theo quy chuẩn mặt bằng kích thước Mini S, Tiêu chuẩn M và Doanh nghiệp L.</p>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-label-sm font-label-sm text-secondary">Đơn vị diện tích: <strong class="text-slate-700">m² sàn ròng</strong></span>
+</div>
+</div>
+<div class="overflow-x-auto custom-scroll border border-[#EEEEEE] rounded-xl">
+<table class="w-full text-left border-collapse min-w-[900px]">
+<thead>
+<tr class="bg-slate-50 border-b border-[#E2E8F0] text-secondary">
+<th class="py-3.5 px-4 text-label-sm font-label-sm uppercase tracking-wider font-bold" scope="col">Cơ sở kho</th>
+<th class="py-3.5 px-4 text-label-sm font-label-sm uppercase tracking-wider font-bold" scope="col">Tổng quy mô</th>
+<th class="py-3.5 px-4 text-label-sm font-label-sm uppercase tracking-wider font-bold" scope="col">Phân rã Mini S (<4m²)</th>
+<th class="py-3.5 px-4 text-label-sm font-label-sm uppercase tracking-wider font-bold" scope="col">Phân rã Tiêu chuẩn M</th>
+<th class="py-3.5 px-4 text-label-sm font-label-sm uppercase tracking-wider font-bold" scope="col">Phân rã Doanh nghiệp L</th>
+<th class="py-3.5 px-4 text-label-sm font-label-sm uppercase tracking-wider font-bold" scope="col">Tỷ lệ lấp đầy %</th>
+<th class="py-3.5 px-4 text-label-sm font-label-sm uppercase tracking-wider font-bold text-right" scope="col">Biến động (vs T09)</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#EEEEEE] text-body-sm font-body-sm">
+<!-- Hàng 1: storeX Sài Gòn Central -->
+<tr class="hover:bg-[#F8FAFC] transition-colors">
+<td class="py-4 px-4 font-bold text-on-surface">
+<div class="flex items-center gap-2.5">
+<span class="w-2.5 h-2.5 rounded-full bg-primary"></span>
+<div>
+<div class="text-label-md font-label-md text-on-surface font-bold">storeX Sài Gòn Central</div>
+<div class="text-xs text-secondary font-normal">Quận 1, TP. Hồ Chí Minh</div>
+</div>
+</div>
+</td>
+<td class="py-4 px-4">
+<div class="font-bold text-slate-800">140 buồng</div>
+<div class="text-xs text-secondary">1,250 m² sàn</div>
+</td>
+<td class="py-4 px-4">
+<div class="text-slate-800 font-semibold">50/55 buồng</div>
+<div class="text-xs text-emerald-700 font-bold">90.9% lấp đầy</div>
+</td>
+<td class="py-4 px-4">
+<div class="text-slate-800 font-semibold">52/60 buồng</div>
+<div class="text-xs text-emerald-700 font-bold">86.6% lấp đầy</div>
+</td>
+<td class="py-4 px-4">
+<div class="text-slate-800 font-semibold">20/25 buồng</div>
+<div class="text-xs text-amber-700 font-bold">80.0% lấp đầy</div>
+</td>
+<td class="py-4 px-4">
+<div class="flex items-center gap-3">
+<span class="font-extrabold text-[#166534] text-base">87.1%</span>
+<div class="w-20 bg-slate-200 h-2 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 87.1%;"></div>
+</div>
+</div>
+</td>
+<td class="py-4 px-4 text-right">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-success-container text-on-success-container">
+<span class="material-symbols-outlined text-xs mr-0.5" data-icon="north">north</span> +4.5%
+                    </span>
+</td>
+</tr>
+<!-- Hàng 2: storeX Bình Thạnh Landmark -->
+<tr class="hover:bg-[#F8FAFC] transition-colors">
+<td class="py-4 px-4 font-bold text-on-surface">
+<div class="flex items-center gap-2.5">
+<span class="w-2.5 h-2.5 rounded-full bg-teal-600"></span>
+<div>
+<div class="text-label-md font-label-md text-on-surface font-bold">storeX Bình Thạnh Landmark</div>
+<div class="text-xs text-secondary font-normal">Bình Thạnh, TP. Hồ Chí Minh</div>
+</div>
+</div>
+</td>
+<td class="py-4 px-4">
+<div class="font-bold text-slate-800">120 buồng</div>
+<div class="text-xs text-secondary">980 m² sàn</div>
+</td>
+<td class="py-4 px-4">
+<div class="text-slate-800 font-semibold">45/50 buồng</div>
+<div class="text-xs text-emerald-700 font-bold">90.0% lấp đầy</div>
+</td>
+<td class="py-4 px-4">
+<div class="text-slate-800 font-semibold">38/48 buồng</div>
+<div class="text-xs text-amber-700 font-bold">79.1% lấp đầy</div>
+</td>
+<td class="py-4 px-4">
+<div class="text-slate-800 font-semibold">16/22 buồng</div>
+<div class="text-xs text-amber-700 font-bold">72.7% lấp đầy</div>
+</td>
+<td class="py-4 px-4">
+<div class="flex items-center gap-3">
+<span class="font-extrabold text-[#166534] text-base">82.5%</span>
+<div class="w-20 bg-slate-200 h-2 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 82.5%;"></div>
+</div>
+</div>
+</td>
+<td class="py-4 px-4 text-right">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-success-container text-on-success-container">
+<span class="material-symbols-outlined text-xs mr-0.5" data-icon="north">north</span> +2.1%
+                    </span>
+</td>
+</tr>
+<!-- Hàng 3: storeX Cầu Giấy TechHub -->
+<tr class="hover:bg-[#F8FAFC] transition-colors">
+<td class="py-4 px-4 font-bold text-on-surface">
+<div class="flex items-center gap-2.5">
+<span class="w-2.5 h-2.5 rounded-full bg-cyan-600"></span>
+<div>
+<div class="text-label-md font-label-md text-on-surface font-bold">storeX Cầu Giấy TechHub</div>
+<div class="text-xs text-secondary font-normal">Cầu Giấy, Hà Nội</div>
+</div>
+</div>
+</td>
+<td class="py-4 px-4">
+<div class="font-bold text-slate-800">110 buồng</div>
+<div class="text-xs text-secondary">860 m² sàn</div>
+</td>
+<td class="py-4 px-4">
+<div class="text-slate-800 font-semibold">32/40 buồng</div>
+<div class="text-xs text-amber-700 font-bold">80.0% lấp đầy</div>
+</td>
+<td class="py-4 px-4">
+<div class="text-slate-800 font-semibold">39/46 buồng</div>
+<div class="text-xs text-emerald-700 font-bold">84.7% lấp đầy</div>
+</td>
+<td class="py-4 px-4">
+<div class="text-slate-800 font-semibold">17/24 buồng</div>
+<div class="text-xs text-amber-700 font-bold">70.8% lấp đầy</div>
+</td>
+<td class="py-4 px-4">
+<div class="flex items-center gap-3">
+<span class="font-extrabold text-[#166534] text-base">79.6%</span>
+<div class="w-20 bg-slate-200 h-2 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 79.6%;"></div>
+</div>
+</div>
+</td>
+<td class="py-4 px-4 text-right">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800">
+<span class="material-symbols-outlined text-xs mr-0.5" data-icon="south">south</span> -0.8%
+                    </span>
+</td>
+</tr>
+<!-- Hàng 4: storeX Nam Sài Gòn -->
+<tr class="hover:bg-[#F8FAFC] transition-colors">
+<td class="py-4 px-4 font-bold text-on-surface">
+<div class="flex items-center gap-2.5">
+<span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+<div>
+<div class="text-label-md font-label-md text-on-surface font-bold">storeX Nam Sài Gòn</div>
+<div class="text-xs text-secondary font-normal">Quận 7, TP. Hồ Chí Minh</div>
+</div>
+</div>
+</td>
+<td class="py-4 px-4">
+<div class="font-bold text-slate-800">110 buồng</div>
+<div class="text-xs text-secondary">910 m² sàn</div>
+</td>
+<td class="py-4 px-4">
+<div class="text-slate-800 font-semibold">33/42 buồng</div>
+<div class="text-xs text-amber-700 font-bold">78.5% lấp đầy</div>
+</td>
+<td class="py-4 px-4">
+<div class="text-slate-800 font-semibold">36/46 buồng</div>
+<div class="text-xs text-amber-700 font-bold">78.2% lấp đầy</div>
+</td>
+<td class="py-4 px-4">
+<div class="text-slate-800 font-semibold">17/22 buồng</div>
+<div class="text-xs text-amber-700 font-bold">77.2% lấp đầy</div>
+</td>
+<td class="py-4 px-4">
+<div class="flex items-center gap-3">
+<span class="font-extrabold text-[#166534] text-base">78.0%</span>
+<div class="w-20 bg-slate-200 h-2 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 78.0%;"></div>
+</div>
+</div>
+</td>
+<td class="py-4 px-4 text-right">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-success-container text-on-success-container">
+<span class="material-symbols-outlined text-xs mr-0.5" data-icon="north">north</span> +1.8%
+                    </span>
+</td>
+</tr>
+<!-- HÀNG TỔNG CỘNG TOÀN HỆ THỐNG -->
+<tr class="bg-primary-soft/50 font-bold text-on-surface border-t-2 border-[#165F4D]/30">
+<td class="py-4 px-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="hub">hub</span>
+<span class="text-label-md font-label-md text-primary font-extrabold uppercase tracking-wide">Tổng cộng toàn hệ thống</span>
+</div>
+</td>
+<td class="py-4 px-4">
+<div class="text-primary font-extrabold">480 buồng vật lý</div>
+<div class="text-xs text-slate-600">4,000 m² sàn ròng</div>
+</td>
+<td class="py-4 px-4">
+<div class="text-slate-900">160/187 buồng</div>
+<div class="text-xs text-emerald-800 font-bold">85.5% tổng Mini</div>
+</td>
+<td class="py-4 px-4">
+<div class="text-slate-900">165/200 buồng</div>
+<div class="text-xs text-emerald-800 font-bold">82.5% tổng Tiêu chuẩn</div>
+</td>
+<td class="py-4 px-4">
+<div class="text-slate-900">70/93 buồng</div>
+<div class="text-xs text-amber-800 font-bold">75.2% tổng DN</div>
+</td>
+<td class="py-4 px-4">
+<div class="flex items-center gap-3">
+<span class="font-black text-[#166534] text-lg">81.5%</span>
+<div class="w-20 bg-slate-200 h-2.5 rounded-full overflow-hidden">
+<div class="bg-[#165F4D] h-full rounded-full" style="width: 81.5%;"></div>
+</div>
+</div>
+</td>
+<td class="py-4 px-4 text-right">
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-black bg-success-container text-on-success-container">
+<span class="material-symbols-outlined text-xs mr-0.5" data-icon="north">north</span> +2.4% vs T09
+                    </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Ghi chú chân bảng chuẩn Nielsen Heuristic (Trợ giúp nhận biết thông tin) -->
+<div class="mt-4 flex flex-col md:flex-row items-start md:items-center justify-between text-label-sm font-label-sm text-secondary gap-2 pt-2 border-t border-slate-100">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-slate-400" data-icon="lightbulb">lightbulb</span>
+<span>Lưu ý: Mẫu số tính toán đã trừ 08 buồng bảo trì (Central: 2, Bình Thạnh: 2, Cầu Giấy: 2, Nam Sài Gòn: 2).</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span> ≥80% Tối ưu cao</span>
+<span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> 70% - 79% Bình thường</span>
+<span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> <70% Cần kích cầu</span>
+</div>
+</div>
+</div>
+</section>
+<!-- HỆ THỐNG ĐỀ XUẤT ĐIỀU HÀNH DÀNH CHO BOM (Strategic Recommendations) -->
+<section aria-label="Đề xuất hành động chiến lược" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<div class="bg-surface rounded-15px p-6 border border-[#E2E8F0] shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center gap-2 text-primary font-bold text-label-md font-label-md mb-2">
+<span class="material-symbols-outlined" data-icon="trending_up">trending_up</span>
+              Khuyến nghị Mở rộng Phân khúc S
+            </div>
+<p class="text-body-sm font-body-sm text-slate-600 mb-4">
+              Tỷ lệ lấp đầy loại Mini S đạt 85.5% trên toàn hệ thống, đặc biệt tại Central (90.9%). Khuyến nghị BOM phê duyệt chuyển đổi 15 buồng Tiêu chuẩn chưa khai thác tại Nam Sài Gòn thành 30 buồng Mini S trong quý tới.
+            </p>
+</div>
+<button class="min-h-[44px] w-full bg-surface-muted hover:bg-slate-200 text-slate-800 text-label-sm font-label-sm font-bold rounded-lg px-4 py-2 border border-[#E2E8F0] transition-colors flex items-center justify-center gap-1.5" type="button">
+<span class="material-symbols-outlined text-base" data-icon="description">description</span>
+            Xem kế hoạch phân bổ module
+          </button>
+</div>
+<div class="bg-surface rounded-15px p-6 border border-[#E2E8F0] shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center gap-2 text-amber-800 font-bold text-label-md font-label-md mb-2">
+<span class="material-symbols-outlined text-amber-600" data-icon="notification_important">notification_important</span>
+              Kích cầu Kho Doanh nghiệp L
+            </div>
+<p class="text-body-sm font-body-sm text-slate-600 mb-4">
+              Phân rã kho Doanh nghiệp L chỉ đạt 75.2%, hiện còn 23 buồng trống tập trung chủ yếu tại Cầu Giấy và Nam Sài Gòn. Đề xuất gói khuyến mãi chiết khấu thanh toán trước 12 tháng dành cho khách hàng logistics TMĐT.
+            </p>
+</div>
+<button class="min-h-[44px] w-full bg-surface-muted hover:bg-slate-200 text-slate-800 text-label-sm font-label-sm font-bold rounded-lg px-4 py-2 border border-[#E2E8F0] transition-colors flex items-center justify-center gap-1.5" type="button">
+<span class="material-symbols-outlined text-base" data-icon="campaign">campaign</span>
+            Tạo chiến dịch chiết khấu B2B
+          </button>
+</div>
+<div class="bg-surface rounded-15px p-6 border border-[#E2E8F0] shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center gap-2 text-red-800 font-bold text-label-md font-label-md mb-2">
+<span class="material-symbols-outlined text-red-600" data-icon="speed">speed</span>
+              Rút ngắn Chu kỳ Bảo trì
+            </div>
+<p class="text-body-sm font-body-sm text-slate-600 mb-4">
+              08 buồng kho bảo trì hiện hữu đang chịu thời gian xử lý kỹ thuật trung bình 6.4 ngày/buồng (vượt KPI 4.0 ngày). Yêu cầu Trưởng bộ phận Kỹ thuật kiểm toán tiến độ hoàn thiện trước ngày 25/10.
+            </p>
+</div>
+<button class="min-h-[44px] w-full bg-surface-muted hover:bg-slate-200 text-slate-800 text-label-sm font-label-sm font-bold rounded-lg px-4 py-2 border border-[#E2E8F0] transition-colors flex items-center justify-center gap-1.5" type="button">
+<span class="material-symbols-outlined text-base" data-icon="assignment">assignment</span>
+            Đốc thúc đội ngũ cơ sở
+          </button>
+</div>
+</section>
+</main>
+</div>
+</body></html>

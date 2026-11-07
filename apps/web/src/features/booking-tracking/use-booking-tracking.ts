@@ -1,0 +1,131 @@
+"use client";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { isAxiosError } from "axios";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { api } from "@/lib/api";
+import { trackingMessages as m } from "./tracking.messages";
+
+const queryRoot = ["booking-tracking"] as const;
+function accessError(error: unknown): string {
+  const status = isAxiosError(error) ? error.response?.status : undefined;
+  return status === 429
+    ? m.rateLimited
+    : status === 401 || status === 404 || status === 400
+      ? m.invalid
+      : m.unavailable;
+}
+export function useBookingTracking() {
+  const client = useQueryClient();
+  const initialized = useRef(false);
+  const [bookingCode, setBookingCode] = useState<string | null>(null);
+  const [lookup, setLookup] = useState(false);
+  const [initializing, setInitializing] = useState(true);
+  const [message, setMessage] = useState<string | null>(null);
+  const [expiresAt, setExpiresAt] = useState<number | null>(null);
+  const expire = useCallback(() => {
+    setMessage(m.invalid);
+    setBookingCode(null);
+    void client
+      .cancelQueries({ queryKey: queryRoot })
+      .then(() => client.removeQueries({ queryKey: queryRoot }));
+  }, [client]);
+  const exchange = useMutation({
+    meta: { globalLoading: true },
+    mutationFn: api.legacyBookings.exchangeMagicLink,
+    gcTime: 0,
+    retry: false,
+  });
+  const { mutateAsync, reset } = exchange;
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+    const url = new URL(window.location.href);
+    const token = new URLSearchParams(url.hash.slice(1)).get("token");
+    // Remove the credential from the visible URL before any request is made.
+    url.hash = "";
+    if (token) url.search = "";
+    window.history.replaceState(null, "", url);
+    client.removeQueries({ queryKey: queryRoot });
+    if (!token) {
+      const code = url.searchParams.get("bookingCode");
+      setBookingCode(code);
+      setLookup(!code);
+      setInitializing(false);
+      return;
+    }
+    setLookup(false);
+    void mutateAsync(token)
+      .then((session) => {
+        client.setQueryData([...queryRoot, session.bookingCode], session.booking);
+        setBookingCode(session.bookingCode);
+        setExpiresAt(Date.parse(session.expiresAt));
+        url.searchParams.set("bookingCode", session.bookingCode);
+        window.history.replaceState(null, "", url);
+      })
+      .catch((error: unknown) => setMessage(accessError(error)))
+      .finally(() => {
+        reset();
+        setInitializing(false);
+      });
+  }, [client, mutateAsync, reset]);
+  const query = useQuery({
+    queryKey: [...queryRoot, bookingCode],
+    queryFn: () => api.legacyBookings.tracking(bookingCode ?? ""),
+    enabled: Boolean(bookingCode) && !message,
+    retry: false,
+    staleTime: 30_000,
+    gcTime: 0,
+    refetchOnWindowFocus: "always",
+    refetchInterval: 30_000,
+  });
+  useEffect(() => {
+    if (isAxiosError(query.error) && query.error.response?.status === 401) expire();
+  }, [query.error, expire]);
+  useEffect(() => {
+    if (!expiresAt) return;
+    const timer = window.setTimeout(
+      () => {
+        expire();
+      },
+      Math.max(0, expiresAt - Date.now()),
+    );
+    return () => window.clearTimeout(timer);
+  }, [expiresAt, expire]);
+  const revoke = useMutation({
+    meta: { globalLoading: true },
+    mutationFn: api.legacyBookings.revokeTrackingSession,
+    onSuccess: async () => {
+      // Cancel outstanding requests before removing cached private data.
+      await client.cancelQueries({ queryKey: queryRoot });
+      setBookingCode(null);
+      setExpiresAt(null);
+      setMessage(m.revoked);
+      client.removeQueries({ queryKey: queryRoot });
+      window.history.replaceState(null, "", window.location.pathname);
+    },
+  });
+  async function startLookup() {
+    setBookingCode(null);
+    setExpiresAt(null);
+    setMessage(null);
+    setLookup(true);
+    setInitializing(false);
+    exchange.reset();
+    revoke.reset();
+    window.history.replaceState(null, "", window.location.pathname);
+    await client.cancelQueries({ queryKey: queryRoot });
+    client.removeQueries({ queryKey: queryRoot });
+  }
+  return {
+    startLookup,
+    expire,
+    booking: query.isError || message ? undefined : query.data,
+    lookup,
+    loading: initializing || (Boolean(bookingCode) && query.isPending),
+    message: message ?? (query.isError ? accessError(query.error) : null),
+    revokeError: revoke.isError ? m.revokeFailed : null,
+    revoke: () => revoke.mutate(),
+    revoking: revoke.isPending,
+    retry: !message && query.isError ? () => void query.refetch() : undefined,
+  };
+}
