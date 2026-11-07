@@ -8,6 +8,7 @@ import type {
   CustomerRoute,
   CustomerSupportOrigin,
 } from "../common/customer-home.types";
+import { PROFILE as PROFILE_MESSAGES } from "../common/profile.messages";
 import { Notice } from "../components/ui";
 import { BOOKING } from "../features/booking/booking.messages";
 import { resumeBooking } from "../features/booking/booking.service";
@@ -20,6 +21,7 @@ import { AppointmentDetailScreen } from "../screens/appointments/appointment-det
 import { AppointmentsScreen } from "../screens/appointments/appointments-screen";
 import { FacilitySearchScreen } from "../screens/facilities/facility-search-screen";
 import { HomeScreen } from "../screens/home/home-screen";
+import { CustomerSupportListScreen } from "../screens/support/customer-support-list-screen";
 import { CustomerSupportRequestScreen } from "../screens/support/customer-support-request-screen";
 import { CustomerSupportTicketScreen } from "../screens/support/customer-support-ticket-screen";
 import { BookingNavigator } from "./booking-navigator";
@@ -34,11 +36,13 @@ const titles = {
   appointments: M.appointments,
   appointment: M.detail,
   "support-new": M.supportNew,
+  "support-list": PROFILE_MESSAGES.supportList,
   "support-ticket": M.supportTicket,
 };
 
 function supportOriginRoute(origin: CustomerSupportOrigin): CustomerRoute {
   if (origin === "profile") return { screen: "profile" };
+  if (origin === "support-list") return { screen: "support-list" };
   if (origin === "storage-transactions") return { screen: "storage", view: "transactions" };
   return { screen: "storage", view: "current" };
 }
@@ -62,7 +66,9 @@ export function CustomerNavigator(props: CustomerNavigatorProps) {
         ? route.from
         : route.screen === "support-new" || route.screen === "support-ticket"
           ? supportOriginRoute(route.from)
-          : { screen: route.screen === "appointment" ? route.from : "home" },
+          : route.screen === "support-list"
+            ? { screen: "profile" }
+            : { screen: route.screen === "appointment" ? route.from : "home" },
     );
   const storage = () => navigate({ screen: "storage", view: "current" });
   const unavailable = () => setNotice(true);
@@ -122,7 +128,9 @@ export function CustomerNavigator(props: CustomerNavigatorProps) {
       setRoute(
         route.screen === "support-new" || route.screen === "support-ticket"
           ? supportOriginRoute(route.from)
-          : { screen: route.screen === "appointment" ? route.from : "home" },
+          : route.screen === "support-list"
+            ? { screen: "profile" }
+            : { screen: route.screen === "appointment" ? route.from : "home" },
       );
       return true;
     });
@@ -175,6 +183,7 @@ export function CustomerNavigator(props: CustomerNavigatorProps) {
           {...props}
           onUnavailable={unavailable}
           onCreateSupport={() => navigate({ screen: "support-new", from: "profile" })}
+          onAllSupport={() => navigate({ screen: "support-list" })}
         />
       ) : route.screen === "home" ? (
         <HomeScreen
@@ -223,6 +232,14 @@ export function CustomerNavigator(props: CustomerNavigatorProps) {
           paymentId={route.paymentId}
           onCreated={(id) =>
             navigate({ screen: "support-ticket", id, created: true, from: route.from })
+          }
+        />
+      ) : route.screen === "support-list" ? (
+        <CustomerSupportListScreen
+          owner={props.user.id}
+          onCreate={() => navigate({ screen: "support-new", from: "support-list" })}
+          onTicket={(id) =>
+            navigate({ screen: "support-ticket", id, created: false, from: "support-list" })
           }
         />
       ) : route.screen === "support-ticket" ? (

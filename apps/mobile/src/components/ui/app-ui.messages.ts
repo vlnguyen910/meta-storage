@@ -8,5 +8,7 @@ export const APP_UI = {
   clearSearch: "Xóa nội dung tìm kiếm",
   showPassword: "Hiện mật khẩu",
   hidePassword: "Ẩn mật khẩu",
+  previewPhoto: "Xem ảnh toàn màn hình",
+  closePhoto: "Đóng ảnh",
   tabs: { home: "Trang chủ", rentals: "Kho của tôi", profile: "Tài khoản" },
 };

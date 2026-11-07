@@ -20,7 +20,7 @@ import {
 } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import type { CustomerNavigatorProps } from "../../common/customer-home.types";
+import type { CustomerProfileScreenProps } from "../../common/customer-home.types";
 import { PROFILE as M } from "../../common/profile.messages";
 import { Button, DetailSheet, Field, Icon, Notice } from "../../components/ui";
 import { dateTime } from "../../components/ui/mobile-ui";
@@ -112,15 +112,13 @@ export function CustomerProfileScreen({
   error,
   onUnavailable,
   onCreateSupport,
-}: CustomerNavigatorProps & {
-  onUnavailable: () => void;
-  onCreateSupport: () => void;
-}) {
+  onAllSupport,
+}: CustomerProfileScreenProps & { onUnavailable: () => void }) {
   const editor = useProfileEditor(user);
   const tickets = useCustomerTickets(user.id);
   const items = tickets.data?.pages.flatMap((page) => page.items) ?? [];
-  const [sheet, setSheet] = useState<"all" | string | null>(null);
-  const detail = useCustomerTicket(user.id, sheet && sheet !== "all" ? sheet : "");
+  const [sheet, setSheet] = useState<string | null>(null);
+  const detail = useCustomerTicket(user.id, sheet ?? "");
   const initial = user.name.trim().charAt(0).toLocaleUpperCase("vi") || "M";
   return (
     <>
@@ -255,7 +253,7 @@ export function CustomerProfileScreen({
               )}
               <Pressable
                 accessibilityRole="button"
-                onPress={() => setSheet("all")}
+                onPress={onAllSupport}
                 className={`min-h-touch flex-row items-center justify-center gap-2 rounded-lg bg-customer-subtle px-3 py-2 active:bg-customer-mint ${focus}`}
               >
                 <Text className="shrink font-body-semibold text-[12px] text-primary">
@@ -317,33 +315,12 @@ export function CustomerProfileScreen({
       </ScrollView>
       <DetailSheet
         visible={sheet !== null}
-        title={sheet === "all" ? M.supportList : M.supportDetail}
+        title={M.supportDetail}
         closeLabel={M.close}
         onClose={() => setSheet(null)}
       >
         <View className="gap-3">
-          {sheet === "all" ? (
-            <>
-              {tickets.isError ? (
-                <Notice error>{M.supportError}</Notice>
-              ) : (
-                !items.length && (
-                  <Text className="font-body text-label text-muted">{M.noSupport}</Text>
-                )
-              )}
-              {items.map((ticket) => (
-                <TicketCard key={ticket.id} ticket={ticket} onPress={() => setSheet(ticket.id)} />
-              ))}
-              {tickets.hasNextPage && (
-                <Button
-                  label={M.more}
-                  variant="outline"
-                  loading={tickets.isFetchingNextPage}
-                  onPress={() => void tickets.fetchNextPage()}
-                />
-              )}
-            </>
-          ) : detail.isPending ? (
+          {detail.isPending ? (
             <ThemedActivityIndicator accessibilityLabel={M.loading} className="text-primary" />
           ) : detail.isError ? (
             <>
@@ -352,7 +329,7 @@ export function CustomerProfileScreen({
             </>
           ) : detail.data ? (
             <>
-              <TicketCard ticket={detail.data.ticket} onPress={() => setSheet("all")} />
+              <TicketCard ticket={detail.data.ticket} onPress={() => setSheet(null)} />
               <Text
                 accessibilityRole="header"
                 className="mt-3 font-body-semibold text-label text-ink"

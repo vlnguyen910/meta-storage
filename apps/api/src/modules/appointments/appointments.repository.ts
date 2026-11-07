@@ -142,7 +142,7 @@ export class AppointmentsRepository {
         paidAt: sql<Date | null>`(select ${payments.paidAt} from ${payments} where ${payments.reservationId} = ${appointments.reservationId} and ${payments.paidAt} is not null order by ${payments.paidAt} desc limit 1)`,
         paymentStatus: sql<
           string | null
-        >`(select ${payments.status}::text from ${payments} where ${payments.reservationId} = ${appointments.reservationId} order by ${payments.createdAt} desc, ${payments.id} desc limit 1)`,
+        >`(select ${payments.status}::text from ${payments} where ${payments.reservationId} = ${appointments.reservationId} and ${payments.type} = 'CHARGE' order by ${payments.createdAt} desc, ${payments.id} desc limit 1)`,
       })
       .from(appointments)
       .innerJoin(users, eq(users.id, appointments.customerId))

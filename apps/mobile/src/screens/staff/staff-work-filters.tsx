@@ -1,10 +1,12 @@
+import { CalendarDays, ChevronDown, Search, SlidersHorizontal } from "lucide-react-native";
 import { useState } from "react";
 import { Keyboard, Pressable, Text, TextInput, View } from "react-native";
-import type { StaffWorkFilters, StaffWorkGroup } from "../../../common/staff-api.types";
-import { CalendarField, facilityDay } from "../../../components/ui/calendar-field";
-import { ChoiceTabs } from "../../../components/ui/choice-tabs";
-import { Button } from "../../../components/ui/mobile-ui";
-import { STAFF_API_UI as M } from "../../../features/staff-api/staff-api.messages";
+import type { StaffWorkFilters, StaffWorkGroup } from "../../common/staff-api.types";
+import { CalendarField, facilityDay } from "../../components/ui/calendar-field";
+import { ChoiceTabs } from "../../components/ui/choice-tabs";
+import { Icon } from "../../components/ui/icon";
+import { Button } from "../../components/ui/mobile-ui";
+import { STAFF_API_UI as M } from "../../features/staff-api/staff-api.messages";
 import { StaffSheet } from "./staff-sheet";
 
 export function StaffStatusTabs({
@@ -17,7 +19,7 @@ export function StaffStatusTabs({
   onChange: (value: StaffWorkGroup) => void;
 }) {
   return (
-    <View className="mb-4 flex-row gap-1 rounded-2xl bg-slate-100 p-1">
+    <View className="mb-3 flex-row gap-1 rounded-xl border border-outline-variant bg-customer-canvas p-1">
       {(
         [
           { value: "pending", label: M.pending },
@@ -31,17 +33,17 @@ export function StaffStatusTabs({
           accessibilityLabel={tab.label}
           accessibilityState={{ selected: tab.value === value }}
           onPress={() => onChange(tab.value)}
-          className={`min-h-11 min-w-0 flex-1 flex-row items-center justify-center gap-1 rounded-xl px-2 ${tab.value === value ? "bg-emerald-900" : "bg-transparent"}`}
+          className={`min-h-10 min-w-0 flex-1 flex-row items-center justify-center gap-1 rounded-lg px-2 ${tab.value === value ? "bg-primary" : "bg-transparent active:bg-primary-soft"}`}
         >
           <Text
             numberOfLines={1}
-            className={`text-xs font-semibold ${tab.value === value ? "text-white" : "text-slate-600"}`}
+            className={`font-body-semibold text-[11px] ${tab.value === value ? "text-primary-foreground" : "text-muted"}`}
           >
             {tab.label}
           </Text>
           {counts && (
             <Text
-              className={`text-[10px] font-bold ${tab.value === value ? "text-emerald-100" : "text-slate-500"}`}
+              className={`min-w-5 rounded-full px-1 text-center font-body-bold text-[10px] ${tab.value === value ? "bg-customer-mint text-primary" : "bg-surface text-muted"}`}
             >
               {counts[tab.value]}
             </Text>
@@ -72,6 +74,7 @@ export function StaffWorkFiltersBar({
   onChange: (value: StaffWorkFilters) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [initialCalendar, setInitialCalendar] = useState(false);
   const kindLabel =
     filters.kind === "appointment"
       ? M.bookings
@@ -80,15 +83,69 @@ export function StaffWorkFiltersBar({
         : filters.kind === "return"
           ? M.returns
           : M.allWork;
-  const openSheet = () => {
+  const openSheet = (showCalendar = false) => {
     Keyboard.dismiss();
+    setInitialCalendar(showCalendar);
     setOpen(true);
   };
   return (
-    <View className="mb-3">
+    <View className="mb-3 gap-2 rounded-xl border border-outline-variant bg-surface p-2.5">
+      <View className="flex-row gap-1.5">
+        {(
+          [
+            { value: "today", label: M.today },
+            { value: "all", label: M.allDates },
+          ] as const
+        ).map((option) => {
+          const selected =
+            option.value === "today" ? filters.date === facilityDay() : !filters.date;
+          return (
+            <Pressable
+              key={option.value}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              onPress={() =>
+                onChange({ ...filters, date: option.value === "today" ? facilityDay() : "" })
+              }
+              className={`min-h-9 items-center justify-center rounded-lg px-3 ${selected ? "bg-primary" : "border border-outline-variant bg-surface active:bg-primary-soft"}`}
+            >
+              <Text
+                className={`font-body-semibold text-[11px] ${selected ? "text-primary-foreground" : "text-muted"}`}
+              >
+                {option.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={M.chooseDate}
+          onPress={() => openSheet(true)}
+          className="min-h-9 min-w-0 flex-1 flex-row items-center justify-center gap-1 rounded-lg border border-outline-variant bg-surface px-2 active:bg-primary-soft"
+        >
+          <Icon as={CalendarDays} size={13} className="text-primary" />
+          <Text numberOfLines={1} className="font-body-medium text-[11px] text-muted">
+            {filters.date && filters.date !== facilityDay()
+              ? staffFilterDate(filters.date)
+              : M.chooseDate}
+          </Text>
+        </Pressable>
+      </View>
       <View className="flex-row items-center gap-2">
-        <View className="min-h-11 min-w-0 flex-1 flex-row items-center rounded-xl border border-slate-200 bg-white pl-3">
-          <Text className="mr-2 text-2xl text-slate-400">⌕</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={M.chooseKind}
+          onPress={() => openSheet()}
+          className="min-h-10 max-w-[45%] flex-row items-center justify-center gap-1.5 rounded-lg border border-outline-variant bg-surface px-2.5 active:bg-primary-soft"
+        >
+          <Icon as={SlidersHorizontal} size={14} className="text-primary" />
+          <Text numberOfLines={1} className="font-body-semibold text-[11px] text-ink">
+            {kindLabel}
+          </Text>
+          <Icon as={ChevronDown} size={13} className="text-muted" />
+        </Pressable>
+        <View className="min-h-10 min-w-0 flex-1 flex-row items-center rounded-lg border border-outline-variant bg-surface pl-2.5">
+          <Icon as={Search} size={15} className="text-muted" />
           <TextInput
             accessibilityLabel={M.search}
             placeholder={M.searchPlaceholder}
@@ -97,54 +154,24 @@ export function StaffWorkFiltersBar({
             onChangeText={(search) => onChange({ ...filters, search })}
             autoCorrect={false}
             returnKeyType="search"
-            className="min-h-11 min-w-0 flex-1 py-2 text-sm text-slate-900"
+            className="min-h-10 min-w-0 flex-1 px-2 py-1 font-body text-[11px] text-ink placeholder:text-muted"
           />
           {!!filters.search && (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={M.clearSearch}
               onPress={() => onChange({ ...filters, search: "" })}
-              className="min-h-11 min-w-11 items-center justify-center"
+              className="min-h-10 min-w-9 items-center justify-center"
             >
-              <Text className="text-xl text-slate-500">×</Text>
+              <Text className="font-body text-lg text-muted">×</Text>
             </Pressable>
           )}
         </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={M.filters}
-          onPress={openSheet}
-          className="min-h-11 flex-row items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3"
-        >
-          <Text className="text-lg text-emerald-900">☷</Text>
-          <Text className="text-sm font-semibold text-slate-800">{M.filterButton}</Text>
-        </Pressable>
-      </View>
-      <View className="mt-1 flex-row flex-wrap gap-x-2">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={filters.date ? M.clearDate : M.chooseDate}
-          onPress={filters.date ? () => onChange({ ...filters, date: "" }) : openSheet}
-          className="min-h-11 flex-row items-center gap-2 px-1"
-        >
-          <Text className="text-xs font-medium text-emerald-900">
-            {staffFilterDate(filters.date)}
-          </Text>
-          <Text className="text-sm text-emerald-700">{filters.date ? "×" : "⌄"}</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={filters.kind !== "all" ? M.clearKind : M.chooseKind}
-          onPress={filters.kind !== "all" ? () => onChange({ ...filters, kind: "all" }) : openSheet}
-          className="min-h-11 flex-row items-center gap-2 px-1"
-        >
-          <Text className="text-xs font-medium text-slate-600">{kindLabel}</Text>
-          <Text className="text-sm text-slate-500">{filters.kind !== "all" ? "×" : "⌄"}</Text>
-        </Pressable>
       </View>
       {open && (
         <StaffFilterSheet
           filters={filters}
+          initialCalendar={initialCalendar}
           onClose={() => setOpen(false)}
           onApply={(next) => {
             onChange({ ...filters, ...next });
@@ -158,16 +185,18 @@ export function StaffWorkFiltersBar({
 
 function StaffFilterSheet({
   filters,
+  initialCalendar,
   onClose,
   onApply,
 }: {
   filters: StaffWorkFilters;
+  initialCalendar: boolean;
   onClose: () => void;
   onApply: (values: Pick<StaffWorkFilters, "date" | "kind">) => void;
 }) {
   const [kind, setKind] = useState(filters.kind);
   const [date, setDate] = useState(filters.date);
-  const [calendar, setCalendar] = useState(false);
+  const [calendar, setCalendar] = useState(initialCalendar);
   return (
     <StaffSheet
       title={M.filters}

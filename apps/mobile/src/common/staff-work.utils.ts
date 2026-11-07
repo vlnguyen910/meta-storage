@@ -2,7 +2,6 @@ import { formatReference } from "@metastorage/shared";
 import { STAFF_API_UI as M } from "../features/staff-api/staff-api.messages";
 import type { StaffSelection, StaffWorkFilters, StaffWorkGroup } from "./staff-api.types";
 
-/** @lintignore Retained for archived screens in screens/old/ until their cleanup. */
 export function staffWorkDate(value: string) {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Ho_Chi_Minh",
@@ -11,7 +10,6 @@ export function staffWorkDate(value: string) {
     day: "2-digit",
   }).format(new Date(value));
 }
-/** @lintignore Retained for archived screens in screens/old/ until their cleanup. */
 export function staffWorkGroup(item: StaffSelection): StaffWorkGroup {
   const status = item.kind === "appointment" ? item.appointment.status : item.task.status;
   return ["CHECKED_IN", "COMPLETED"].includes(status)
@@ -20,7 +18,6 @@ export function staffWorkGroup(item: StaffSelection): StaffWorkGroup {
       ? "closed"
       : "pending";
 }
-/** @lintignore Retained for archived screens in screens/old/ until their cleanup. */
 export function staffWorkScheduledAt(item: StaffSelection): string | null {
   return item.kind === "appointment"
     ? `${item.appointment.scheduledDate}T${item.appointment.slotStart ?? "00:00:00"}+07:00`
@@ -30,6 +27,11 @@ function inProgress(item: StaffSelection) {
   return item.kind === "appointment"
     ? item.appointment.status === "CONFIRMED"
     : item.task.status === "IN_PROGRESS";
+}
+function staffWorkCompletedAt(item: StaffSelection) {
+  return item.kind === "appointment"
+    ? item.appointment.updatedAt
+    : (item.task.completedAt ?? item.task.updatedAt);
 }
 export function filterStaffWork(items: StaffSelection[], filters: StaffWorkFilters) {
   const matching = items.filter((item) => {
@@ -46,7 +48,16 @@ export function filterStaffWork(items: StaffSelection[], filters: StaffWorkFilte
   for (const item of matching) counts[staffWorkGroup(item)]++;
   const visible = matching.filter((item) => staffWorkGroup(item) === filters.group);
   visible.sort((left, right) => {
+    if (filters.group === "done") {
+      return Date.parse(staffWorkCompletedAt(right)) - Date.parse(staffWorkCompletedAt(left));
+    }
     if (filters.group === "pending") {
+      const leftTask = left.kind === "task";
+      const rightTask = right.kind === "task";
+      if (leftTask !== rightTask) return rightTask ? 1 : -1;
+      if (leftTask && rightTask) {
+        return Date.parse(right.task.assignedAt) - Date.parse(left.task.assignedAt);
+      }
       const priority = Number(inProgress(right)) - Number(inProgress(left));
       if (priority) return priority;
     }

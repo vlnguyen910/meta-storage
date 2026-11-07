@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { STAFF_API_UI as M } from "../../../features/staff-api/staff-api.messages";
+import { STAFF_API_UI as M } from "../../features/staff-api/staff-api.messages";
 
 export function StaffSheet({
   title,
