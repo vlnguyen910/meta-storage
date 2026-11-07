@@ -1,0 +1,22 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-font",
+        "value": "vietnam pro",
+        "files": ["apps/web/public/previews/landing-header.html"],
+        "createdAt": "2026-11-07T12:59:00.326Z",
+        "reason": "Agent verified docs/DESIGN.md typography explicitly declares Be Vietnam Pro; detector splits the documented font name."
+      },
+      {
+        "rule": "overused-font",
+        "value": "*",
+        "files": ["apps/web/public/previews/landing-header.html"],
+        "createdAt": "2026-11-07T12:59:34.523Z",
+        "reason": "Agent retained Space Grotesk because docs/DESIGN.md explicitly requires it for headings; this preview preserves the existing brand typography."
+      }
+    ]
+  }
+}
