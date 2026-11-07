@@ -94,6 +94,14 @@ export function useFacilities(params: FacilityCatalogFilters) {
   return isMockMode ? { ...query, data } : live;
 }
 
+export function useFacility(id: string) {
+  return useQuery({
+    queryKey: facilityKeys.detail(id),
+    queryFn: () => api.catalog.getFacility(id),
+    enabled: Boolean(id),
+  });
+}
+
 // Catalog remains readable without a schedule. Period capacity is a snapshot;
 // draft creation and start-payment remain authoritative.
 export function useAvailability(

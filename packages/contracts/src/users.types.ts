@@ -13,6 +13,17 @@ export interface User {
   updatedAt: string;
 }
 
+export interface ApiUser {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  role: UserRole;
+  status: UserStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface CustomerRegistrationMonth {
   month: string;
   count: number;
