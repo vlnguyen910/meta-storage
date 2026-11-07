@@ -334,7 +334,7 @@ bun run db:migrate
 # Mở Drizzle Studio UI trực quan quản lý dữ liệu trên trình duyệt
 bun run db:studio
 
-# Tạo dữ liệu test: 10 facilities TP.HCM, mỗi facility có 8 unit types
+# Tạo dữ liệu test: 9 loại kho chuẩn BOM, 10 cơ sở TP.HCM có 8 loại kho/cơ sở
 bun run db:seed
 
 # Xoá toàn bộ dữ liệu ứng dụng (kể cả tài khoản), giữ schema và migrations
@@ -360,6 +360,13 @@ Kiểm thử seed trên database loopback mới, đã migrate, có tên kết th
 SEED_TEST_DATABASE_URL=postgres://postgres:postgres@localhost:5433/metastorage_checkin_seed_test \
   bun run --filter @metastorage/database test
 ```
+
+Danh mục seed gồm 9 loại kho chuẩn do BOM quản lý với kích thước và min/max rõ ràng.
+Mỗi cơ sở áp dụng 8 loại qua `facility_unit_types`, có FM được phân công và giá riêng
+nằm trong giới hạn BOM. `UT-3M` chưa được cơ sở nào chọn để thử luồng thêm loại kho
+trên màn hình FM. Cover cơ sở/loại kho dùng ảnh placeholder HTTPS cho dữ liệu demo.
+Chạy lại seed bổ sung danh mục thiếu nhưng giữ các chỉnh sửa min/max của BOM,
+giá và trạng thái cung cấp của FM cùng lịch sử reservation/thanh toán.
 
 Tên, địa chỉ và giá trong seed là dữ liệu giả lập để test. Seed giữ các booking
 check-in mẫu tại `HCM-01` và có thể chạy lại mà không tạo bản ghi trùng. Để thay

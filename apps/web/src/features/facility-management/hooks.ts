@@ -5,14 +5,16 @@ import type {
   CreateAssignmentBody,
   CreateFacilityBody,
   CreateFacilityTaskInput,
+  CreateFacilityUnitType,
   CreateStorageUnitInput,
-  CreateUnitTypeInput,
+  CreateUnitTypeCatalog,
   FacilityTaskListQuery,
   StorageUnitListQuery,
   StorageUnitMaintenanceTransition,
   UpdateFacilityBody,
+  UpdateFacilityUnitType,
   UpdateStorageUnitInput,
-  UpdateUnitTypeInput,
+  UpdateUnitTypeCatalog,
 } from "@metastorage/contracts";
 import { formatReference } from "@metastorage/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -179,20 +181,34 @@ export const useUpdateTask = (id: string) =>
   useFlow5Write((input: import("@metastorage/contracts").UpdateFacilityTaskInput) =>
     api.flow5.tasks.update(id, input),
   );
-export function useManagedTypes(facilityId?: string) {
+export function useManagedTypes() {
   const key = useManagementKey();
   return useQuery({
-    queryKey: [...key, "types", facilityId],
+    queryKey: [...key, "types"],
     queryFn: ({ signal }) =>
-      allPages((offset) =>
-        api.flow5.unitTypes.list(
-          { limit: 100, offset, ...(facilityId ? { facilityId } : {}) },
-          signal,
-        ),
-      ),
+      allPages((offset) => api.flow5.unitTypes.list({ limit: 100, offset }, signal)),
     enabled: !isMockMode,
   });
 }
+export function useFacilityOfferings(facilityId: string) {
+  const key = useManagementKey();
+  return useQuery({
+    queryKey: [...key, "offerings", facilityId],
+    queryFn: ({ signal }) =>
+      allPages((offset) =>
+        api.flow5.facilityUnitTypes.list(facilityId, { limit: 100, offset }, signal),
+      ),
+    enabled: Boolean(facilityId) && !isMockMode,
+  });
+}
+export const useCreateOffering = (facilityId: string) =>
+  useFlow5Write((input: CreateFacilityUnitType) =>
+    api.flow5.facilityUnitTypes.create(facilityId, input),
+  );
+export const useUpdateOffering = (facilityId: string, id: string) =>
+  useFlow5Write((input: UpdateFacilityUnitType) =>
+    api.flow5.facilityUnitTypes.update(facilityId, id, input),
+  );
 export function useMemberships(id: string) {
   const key = useManagementKey();
   return useQuery({
@@ -215,9 +231,9 @@ export const useCreateFacility = () =>
 export const useUpdateFacility = (id: string) =>
   useFlow5Write((input: UpdateFacilityBody) => api.flow5.facilities.update(id, input));
 export const useCreateType = () =>
-  useFlow5Write((input: CreateUnitTypeInput) => api.flow5.unitTypes.create(input));
+  useFlow5Write((input: CreateUnitTypeCatalog) => api.flow5.unitTypes.create(input));
 export const useUpdateType = (id: string) =>
-  useFlow5Write((input: UpdateUnitTypeInput) => api.flow5.unitTypes.update(id, input));
+  useFlow5Write((input: UpdateUnitTypeCatalog) => api.flow5.unitTypes.update(id, input));
 export function useUploadCoverImage() {
   return useMutation({ mutationFn: api.flow5.coverImages.upload });
 }

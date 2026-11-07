@@ -7,8 +7,9 @@ import type {
   CreateAssignmentBody,
   CreateFacilityBody,
   CreateFacilityTaskInput,
+  CreateFacilityUnitType,
   CreateStorageUnitInput,
-  CreateUnitTypeInput,
+  CreateUnitTypeCatalog,
   FacilityQuery,
   FacilityTaskDashboardSummary,
   FacilityTaskDetail,
@@ -20,11 +21,13 @@ import type {
   StorageUnitListQuery,
   StorageUnitListResult,
   StorageUnitMaintenanceTransition,
+  UnitTypeCatalogDto,
   UnitTypeManagementQuery,
   UpdateFacilityBody,
   UpdateFacilityTaskInput,
+  UpdateFacilityUnitType,
   UpdateStorageUnitInput,
-  UpdateUnitTypeInput,
+  UpdateUnitTypeCatalog,
 } from "@metastorage/contracts";
 import type { AxiosInstance } from "axios";
 import type { Flow5AssignableAccount } from "./flow5.types";
@@ -69,14 +72,41 @@ export function createFlow5Client(http: AxiosInstance) {
             .then(unwrap),
       },
       unitTypes: {
-        list: (params: Partial<UnitTypeManagementQuery> = {}, signal?: AbortSignal) =>
+        list: (
+          params: Partial<Omit<UnitTypeManagementQuery, "facilityId">> = {},
+          signal?: AbortSignal,
+        ) =>
           http
-            .get<ApiEnvelope<FacilityUnitTypeDto[]>>("/unit-types", { params, signal })
+            .get<ApiEnvelope<UnitTypeCatalogDto[]>>("/unit-types", { params, signal })
             .then(unwrap),
-        create: (input: CreateUnitTypeInput) =>
-          http.post<ApiEnvelope<FacilityUnitTypeDto>>("/unit-types", input).then(unwrap),
-        update: (id: string, input: UpdateUnitTypeInput) =>
-          http.patch<ApiEnvelope<FacilityUnitTypeDto>>(`/unit-types/${id}`, input).then(unwrap),
+        create: (input: CreateUnitTypeCatalog) =>
+          http.post<ApiEnvelope<UnitTypeCatalogDto>>("/unit-types", input).then(unwrap),
+        update: (id: string, input: UpdateUnitTypeCatalog) =>
+          http.patch<ApiEnvelope<UnitTypeCatalogDto>>(`/unit-types/${id}`, input).then(unwrap),
+      },
+      facilityUnitTypes: {
+        list: (
+          facilityId: string,
+          params: Partial<Omit<UnitTypeManagementQuery, "facilityId">> = {},
+          signal?: AbortSignal,
+        ) =>
+          http
+            .get<ApiEnvelope<FacilityUnitTypeDto[]>>(
+              `/facilities/${facilityId}/unit-types/management`,
+              { params, signal },
+            )
+            .then(unwrap),
+        create: (facilityId: string, input: CreateFacilityUnitType) =>
+          http
+            .post<ApiEnvelope<FacilityUnitTypeDto>>(`/facilities/${facilityId}/unit-types`, input)
+            .then(unwrap),
+        update: (facilityId: string, id: string, input: UpdateFacilityUnitType) =>
+          http
+            .patch<ApiEnvelope<FacilityUnitTypeDto>>(
+              `/facilities/${facilityId}/unit-types/${id}`,
+              input,
+            )
+            .then(unwrap),
       },
       coverImages: {
         upload: (input: CoverImageUploadInput) =>

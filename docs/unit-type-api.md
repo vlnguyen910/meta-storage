@@ -39,6 +39,8 @@ merged. Duplicate catalog codes receive an ID suffix. BOM should review migrated
 and limits. Migration scripts are generated with Drizzle Kit; 0023 is an authored custom
 data migration. No application database is migrated automatically by this change.
 
-Client read contracts remain compatible, but management writes must adopt the new
-schemas: the old FM create-type form sends dimensions and has no min/max controls.
-Frontend changes to those management forms are a separate task.
+The web management UI uses the new contracts through the shared API client.
+BOM manages standard types and min/max on Operations → Facility Management → Unit Types.
+FM selects catalog types and sets prices on Storage Units → Unit Types & Facility Prices;
+physical unit creation lists only active offerings and sends the offering ID.
+The UI reuses existing dialogs, fields, tables, buttons and selection controls.

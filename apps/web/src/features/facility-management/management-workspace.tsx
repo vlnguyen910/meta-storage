@@ -6,11 +6,14 @@ import {
   type ApiFacilityAssignment,
   type CreateAssignmentBody,
   type CreateFacilityBody,
-  type CreateUnitTypeInput,
-  CreateUnitTypeSchema,
+  type CreateFacilityUnitType,
+  CreateFacilityUnitTypeSchema,
+  type CreateUnitTypeCatalog,
+  CreateUnitTypeCatalogSchema,
   createAssignmentBodySchema,
   createFacilityBodySchema,
   type FacilityUnitTypeDto,
+  type UnitTypeCatalogDto,
 } from "@metastorage/contracts";
 import { formatReference } from "@metastorage/shared";
 import {
@@ -52,12 +55,15 @@ import {
   useAssignableAccounts,
   useAssignMember,
   useCreateFacility,
+  useCreateOffering,
   useCreateType,
+  useFacilityOfferings,
   useFacilityOptions,
   useManagedTypes,
   useMemberships,
   useRevokeMember,
   useUpdateFacility,
+  useUpdateOffering,
   useUpdateType,
   useUploadCoverImage,
 } from "./hooks";
@@ -149,6 +155,7 @@ export function FacilityManagementWorkspace({ membershipsOnly = false }: Managem
 
         {tab === "offerings" && (
           <FacilityOfferingsTable
+            key={scope.facilityId}
             facilityId={scope.facilityId}
             facilityOptions={scope.query.data}
             onSelectFacility={scope.select}
@@ -249,10 +256,7 @@ function FacilityListTable({
     <div className="flex flex-col h-full w-full overflow-hidden min-h-0 gap-3">
       {/* Filter / Search bar */}
       <div className="shrink-0 flex flex-wrap items-center gap-3 p-3 bg-white border border-slate-200/90 rounded-xl shadow-xs">
-        <form
-          onSubmit={handleSearchSubmit}
-          className="flex items-center gap-2 flex-1 min-w-[280px]"
-        >
+        <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 flex-1 min-w-0">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
             <Input
@@ -268,7 +272,7 @@ function FacilityListTable({
             className="h-10 px-3 text-xs font-semibold gap-1.5 shrink-0 border-slate-200"
           >
             <Search className="size-3.5" />
-            <span>Tìm kiếm</span>
+            <span>{F5.search}</span>
           </Button>
         </form>
 
@@ -406,15 +410,17 @@ function FacilityListTable({
 /* =========================================================================
    TAB 2: DANH MỤC LOẠI KHO (Type Catalog Table có Paging & Filter)
    ========================================================================= */
-export function TypeCatalogTable({ facilityId }: { facilityId?: string } = {}) {
-  const canEdit = useAuthStore((state) => state.session?.user.role === "FACILITY_MANAGER");
-  const query = useManagedTypes(facilityId);
+export function TypeCatalogTable() {
+  const canEdit = useAuthStore(
+    (state) => state.session?.user.role === "BUSINESS_OPERATION_MANAGER",
+  );
+  const query = useManagedTypes();
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [page, setPage] = useState(1);
-  const [editing, setEditing] = useState<FacilityUnitTypeDto | "new" | null>(null);
-  const [toggling, setToggling] = useState<FacilityUnitTypeDto | null>(null);
+  const [editing, setEditing] = useState<UnitTypeCatalogDto | "new" | null>(null);
+  const [toggling, setToggling] = useState<UnitTypeCatalogDto | null>(null);
 
   const items = query.data ?? [];
 
@@ -458,15 +464,13 @@ export function TypeCatalogTable({ facilityId }: { facilityId?: string } = {}) {
     <div className="flex flex-col h-full w-full overflow-hidden min-h-0 gap-3">
       {/* Filter / Search bar */}
       <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 p-3 bg-white border border-slate-200/90 rounded-xl shadow-xs">
-        <form
-          onSubmit={handleSearchSubmit}
-          className="flex items-center gap-2 flex-1 min-w-[280px]"
-        >
+        <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 flex-1 min-w-0">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
             <Input
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
+              aria-label={F5.searchType}
               placeholder={F5.searchType}
               className="pl-9 h-10 min-h-10 text-sm bg-slate-50/50 border-slate-200 focus:bg-white"
             />
@@ -477,7 +481,7 @@ export function TypeCatalogTable({ facilityId }: { facilityId?: string } = {}) {
             className="h-10 px-3 text-xs font-semibold gap-1.5 shrink-0 border-slate-200"
           >
             <Search className="size-3.5" />
-            <span>Tìm kiếm</span>
+            <span>{F5.search}</span>
           </Button>
         </form>
 
@@ -521,7 +525,7 @@ export function TypeCatalogTable({ facilityId }: { facilityId?: string } = {}) {
               <TableHead className="w-56 px-3.5 py-2.5">{F5.name}</TableHead>
               <TableHead className="w-28 px-3.5 py-2.5">{F5.sizeLabel}</TableHead>
               <TableHead className="w-40 px-3.5 py-2.5">{F5.dimensions}</TableHead>
-              <TableHead className="w-36 px-3.5 py-2.5">Giá thuê</TableHead>
+              <TableHead className="w-36 px-3.5 py-2.5">{F5.priceRange}</TableHead>
               <TableHead className="w-32 px-3.5 py-2.5">{F5.status}</TableHead>
               <TableHead className="w-56 text-right px-3.5 py-2.5">{F5.actions}</TableHead>
             </TableRow>
@@ -551,7 +555,7 @@ export function TypeCatalogTable({ facilityId }: { facilityId?: string } = {}) {
                     </div>
                   </TableCell>
                   <TableCell className="px-3.5 py-2">
-                    <Badge className="bg-purple-50 text-purple-700 border-purple-200 text-[11px] font-semibold">
+                    <Badge className="bg-purple-50 text-purple-700 border-purple-200 text-xs font-semibold">
                       {item.sizeLabel}
                     </Badge>
                   </TableCell>
@@ -561,17 +565,15 @@ export function TypeCatalogTable({ facilityId }: { facilityId?: string } = {}) {
                   <TableCell className="px-3.5 py-2">
                     <div className="flex items-baseline gap-1">
                       <span className="font-mono font-bold text-xs text-slate-900">
-                        {typeof item.monthlyPrice === "number"
-                          ? formatCurrency(item.monthlyPrice)
-                          : "—"}
+                        {formatCurrency(item.minMonthlyPrice)} –{" "}
+                        {formatCurrency(item.maxMonthlyPrice)}
                       </span>
-                      <span className="text-[11px] text-slate-400">/tháng</span>
                     </div>
                   </TableCell>
                   <TableCell className="px-3.5 py-2">
                     <Badge
                       className={cn(
-                        "text-[11px] font-semibold px-2 py-0.5",
+                        "text-xs font-semibold px-2 py-0.5",
                         item.isActive
                           ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                           : "bg-slate-100 text-slate-500 border-slate-200",
@@ -592,18 +594,19 @@ export function TypeCatalogTable({ facilityId }: { facilityId?: string } = {}) {
                           <Pencil className="size-3.5" />
                           <span>{F5.edit}</span>
                         </Button>
-                        <button
+                        <Button
                           type="button"
+                          variant="outline"
                           onClick={() => setToggling(item)}
                           className={cn(
                             "h-8 px-2.5 text-xs font-semibold rounded-lg border transition-colors cursor-pointer",
                             item.isActive
-                              ? "border-red-200 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600"
+                              ? "border-red-200 bg-red-50 text-red-700 hover:bg-red-700 hover:text-white hover:border-red-600"
                               : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white hover:border-emerald-600",
                           )}
                         >
                           {item.isActive ? F5.deactivate : F5.activate}
-                        </button>
+                        </Button>
                       </div>
                     ) : (
                       <span className="text-xs text-muted">{F5.readOnly}</span>
@@ -628,7 +631,6 @@ export function TypeCatalogTable({ facilityId }: { facilityId?: string } = {}) {
       {canEdit && editing && (
         <TypeEditor
           type={editing === "new" ? undefined : editing}
-          facilityId={facilityId}
           onClose={() => setEditing(null)}
         />
       )}
@@ -642,16 +644,18 @@ export function TypeCatalogTable({ facilityId }: { facilityId?: string } = {}) {
 /* =========================================================================
    TAB 3: LOẠI KHO TẠI CƠ SỞ (Offerings Table có Paging & Filter)
    ========================================================================= */
-function FacilityOfferingsTable({
+export function FacilityOfferingsTable({
   facilityId,
   facilityOptions,
   onSelectFacility,
 }: {
   facilityId: string;
-  facilityOptions: Array<{ id: string; name: string; code: string }>;
-  onSelectFacility: (id: string) => void;
+  facilityOptions?: Array<{ id: string; name: string; code: string }>;
+  onSelectFacility?: (id: string) => void;
 }) {
-  const types = useManagedTypes(facilityId);
+  const types = useFacilityOfferings(facilityId);
+  const canEdit = useAuthStore((state) => state.session?.user.role === "FACILITY_MANAGER");
+  const [editing, setEditing] = useState<FacilityUnitTypeDto | "new" | null>(null);
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [offeringFilter, setOfferingFilter] = useState("ALL");
@@ -713,30 +717,30 @@ function FacilityOfferingsTable({
     <div className="flex flex-col h-full w-full overflow-hidden min-h-0 gap-3">
       {/* Scope facility selector & Filter bar */}
       <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 p-3 bg-white border border-slate-200/90 rounded-xl shadow-xs">
-        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
-          <div className="w-full sm:w-64">
-            <DropdownSelect
-              value={facilityId}
-              onChange={(val) => onSelectFacility(val)}
-              className="w-full"
-              triggerClassName="h-10 min-h-10 w-full text-sm bg-slate-50/50 border-slate-200 font-semibold text-slate-800"
-              options={facilityOptions.map((opt) => ({
-                value: opt.id,
-                label: `${opt.code} · ${opt.name}`,
-              }))}
-              maxVisibleItems={6}
-            />
-          </div>
+        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-0">
+          {facilityOptions && onSelectFacility && (
+            <div className="w-full sm:w-64">
+              <DropdownSelect
+                value={facilityId}
+                onChange={(val) => onSelectFacility(val)}
+                className="w-full"
+                triggerClassName="h-10 min-h-10 w-full text-sm bg-slate-50/50 border-slate-200 font-semibold text-slate-800"
+                options={facilityOptions.map((opt) => ({
+                  value: opt.id,
+                  label: `${opt.code} · ${opt.name}`,
+                }))}
+                maxVisibleItems={6}
+              />
+            </div>
+          )}
 
-          <form
-            onSubmit={handleSearchSubmit}
-            className="flex items-center gap-2 flex-1 min-w-[220px]"
-          >
+          <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 flex-1 min-w-0">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
               <Input
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
+                aria-label={F5.searchOffering}
                 placeholder={F5.searchOffering}
                 className="pl-9 h-10 min-h-10 text-sm bg-slate-50/50 border-slate-200 focus:bg-white"
               />
@@ -747,7 +751,7 @@ function FacilityOfferingsTable({
               className="h-10 px-3 text-xs font-semibold gap-1.5 shrink-0 border-slate-200"
             >
               <Search className="size-3.5" />
-              <span>Tìm kiếm</span>
+              <span>{F5.search}</span>
             </Button>
           </form>
 
@@ -769,6 +773,11 @@ function FacilityOfferingsTable({
             />
           </div>
         </div>
+        {canEdit && (
+          <Button type="button" onClick={() => setEditing("new")} disabled={!facilityId}>
+            {F5.addOffering}
+          </Button>
+        )}
       </div>
 
       {/* Table container */}
@@ -779,7 +788,7 @@ function FacilityOfferingsTable({
               <TableHead className="w-28">{F5.code}</TableHead>
               <TableHead className="w-64">{F5.name}</TableHead>
               <TableHead className="w-32">{F5.sizeLabel}</TableHead>
-              <TableHead className="w-40">{F5.baseStatus}</TableHead>
+              <TableHead className="w-40">{F5.pricePerMonth}</TableHead>
               <TableHead className="w-44">{F5.offeringStatus}</TableHead>
               <TableHead className="w-36 text-right">{F5.actions}</TableHead>
             </TableRow>
@@ -810,17 +819,7 @@ function FacilityOfferingsTable({
                       {type.sizeLabel}
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    <Badge
-                      className={
-                        type.isActive
-                          ? "bg-slate-100 text-slate-700 border-slate-200"
-                          : "bg-slate-100 text-slate-400 border-slate-200"
-                      }
-                    >
-                      {type.isActive ? F5.active : F5.inactive}
-                    </Badge>
-                  </TableCell>
+                  <TableCell>{formatCurrency(type.monthlyPrice)}</TableCell>
                   <TableCell>
                     <Badge
                       className={
@@ -833,7 +832,13 @@ function FacilityOfferingsTable({
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <span className="text-xs text-muted">{F5.readOnly}</span>
+                    {canEdit ? (
+                      <Button type="button" variant="outline" onClick={() => setEditing(type)}>
+                        {F5.edit}
+                      </Button>
+                    ) : (
+                      <span className="text-xs text-muted">{F5.readOnly}</span>
+                    )}
                   </TableCell>
                 </TableRow>
               ))
@@ -842,6 +847,15 @@ function FacilityOfferingsTable({
         </Table>
       </div>
 
+      {editing && canEdit && (
+        <OfferingEditor
+          key={`${facilityId}-${editing === "new" ? "new" : editing.id}`}
+          facilityId={facilityId}
+          offering={editing === "new" ? undefined : editing}
+          offerings={typesList}
+          onClose={() => setEditing(null)}
+        />
+      )}
       {/* Pagination footer */}
       <PaginationFooter
         total={totalItems}
@@ -928,7 +942,7 @@ function FacilityMembershipsTable({
     <div className="flex flex-col h-full w-full overflow-hidden min-h-0 gap-3">
       {/* Scope facility selector & Filter bar */}
       <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 p-3 bg-white border border-slate-200/90 rounded-xl shadow-xs">
-        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
+        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-0">
           <div className="w-full sm:w-64">
             <DropdownSelect
               value={facilityId}
@@ -943,10 +957,7 @@ function FacilityMembershipsTable({
             />
           </div>
 
-          <form
-            onSubmit={handleSearchSubmit}
-            className="flex items-center gap-2 flex-1 min-w-[220px]"
-          >
+          <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 flex-1 min-w-0">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
               <Input
@@ -962,7 +973,7 @@ function FacilityMembershipsTable({
               className="h-10 px-3 text-xs font-semibold gap-1.5 shrink-0 border-slate-200"
             >
               <Search className="size-3.5" />
-              <span>Tìm kiếm</span>
+              <span>{F5.search}</span>
             </Button>
           </form>
 
@@ -1332,24 +1343,156 @@ function FacilityEditor({
   );
 }
 
-function TypeEditor({
-  type,
+function OfferingEditor({
   facilityId,
+  offering,
+  offerings,
   onClose,
 }: {
-  type?: FacilityUnitTypeDto;
-  facilityId?: string;
+  facilityId: string;
+  offering?: FacilityUnitTypeDto;
+  offerings: FacilityUnitTypeDto[];
   onClose: () => void;
 }) {
+  const catalog = useManagedTypes();
+  const create = useCreateOffering(facilityId);
+  const update = useUpdateOffering(facilityId, offering?.id ?? "");
+  const mutation = offering ? update : create;
+  const { showToast } = useToast();
+  const [active, setActive] = useState(offering?.isActive ?? true);
+  const form = useForm<CreateFacilityUnitType>({
+    resolver: zodResolver(CreateFacilityUnitTypeSchema),
+    defaultValues: {
+      unitTypeId: offering?.catalogUnitTypeId ?? "",
+      monthlyPrice: offering?.monthlyPrice,
+    },
+  });
+  const selectedId = form.watch("unitTypeId");
+  const selected = catalog.data?.find((type) => type.id === selectedId);
+  const min = offering?.minMonthlyPrice ?? selected?.minMonthlyPrice;
+  const max = offering?.maxMonthlyPrice ?? selected?.maxMonthlyPrice;
+  const options = (catalog.data ?? []).filter(
+    (type) => type.isActive && !offerings.some((item) => item.catalogUnitTypeId === type.id),
+  );
+  const save = form.handleSubmit(async (input) => {
+    if (
+      min === undefined ||
+      max === undefined ||
+      input.monthlyPrice < min ||
+      input.monthlyPrice > max
+    ) {
+      form.setError("monthlyPrice", { message: F5.invalidLocalPrice });
+      return;
+    }
+    try {
+      if (offering)
+        await update.mutateAsync({
+          monthlyPrice: input.monthlyPrice,
+          isActive: active,
+          expectedVersion: offering.version,
+        });
+      else await create.mutateAsync(input);
+      showToast(F5.saved, "success");
+      onClose();
+    } catch {
+      /* Show the backend conflict without losing the entered price. */
+    }
+  });
+  return (
+    <ManagementDialog
+      title={offering ? F5.editOffering : F5.addOffering}
+      onClose={onClose}
+      pending={mutation.isPending}
+    >
+      {catalog.isPending ? (
+        <LoadingState variant="table" />
+      ) : catalog.isError ? (
+        <ErrorState message={F5.loadError} onRetry={() => catalog.refetch()} />
+      ) : !offering && !options.length ? (
+        <p role="status" className="text-sm text-muted">
+          {catalog.data?.some((type) => type.isActive) ? F5.noAvailableTypes : F5.noCatalogTypes}
+        </p>
+      ) : (
+        <form noValidate onSubmit={save} className="grid gap-4">
+          <ManagementField
+            label={F5.selectCatalog}
+            error={form.formState.errors.unitTypeId?.message}
+          >
+            <Select {...form.register("unitTypeId")} disabled={Boolean(offering)}>
+              <option value="">{F5.choose}</option>
+              {offering ? (
+                <option value={offering.catalogUnitTypeId}>
+                  {offering.name} · {offering.sizeLabel}
+                </option>
+              ) : (
+                options.map((type) => (
+                  <option key={type.id} value={type.id}>
+                    {type.name} · {type.sizeLabel}
+                  </option>
+                ))
+              )}
+            </Select>
+          </ManagementField>
+          <p className="text-sm text-muted">{F5.catalogHint}</p>
+          {min !== undefined && max !== undefined && (
+            <p className="text-sm font-medium text-ink">
+              {F5.priceRange}: {formatCurrency(min)} – {formatCurrency(max)}
+            </p>
+          )}
+          <ManagementField
+            label={F5.localPrice}
+            error={form.formState.errors.monthlyPrice ? F5.invalidLocalPrice : undefined}
+          >
+            <Input
+              type="number"
+              min={min ?? 1}
+              max={max}
+              step="1"
+              {...form.register("monthlyPrice", { valueAsNumber: true })}
+            />
+          </ManagementField>
+          {offering && (
+            <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={active}
+                onChange={(event) => setActive(event.target.checked)}
+              />
+              {F5.enabled}
+            </label>
+          )}
+          {mutation.isError && (
+            <p role="alert" className="text-sm font-medium text-danger">
+              {managementError(mutation.error)}
+            </p>
+          )}
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={onClose} disabled={mutation.isPending}>
+              {F5.cancel}
+            </Button>
+            <Button type="submit" disabled={mutation.isPending} loading={mutation.isPending}>
+              {F5.save}
+            </Button>
+          </div>
+        </form>
+      )}
+    </ManagementDialog>
+  );
+}
+
+function TypeEditor({ type, onClose }: { type?: UnitTypeCatalogDto; onClose: () => void }) {
   const { showToast } = useToast();
   const create = useCreateType();
   const update = useUpdateType(type?.id ?? "");
   const mutation = type ? update : create;
-  const form = useForm<CreateUnitTypeInput>({
-    resolver: zodResolver(CreateUnitTypeSchema),
+  const form = useForm<CreateUnitTypeCatalog>({
+    resolver: zodResolver(
+      CreateUnitTypeCatalogSchema.refine(
+        (value) => value.maxMonthlyPrice >= value.minMonthlyPrice,
+        { path: ["maxMonthlyPrice"], message: F5.invalidBounds },
+      ),
+    ),
     defaultValues: {
-      facilityId: type?.facilityId ?? facilityId ?? "",
-
       code: type?.code ?? "",
       name: type?.name ?? "",
       coverUrl: type?.coverUrl ?? "",
@@ -1357,7 +1500,8 @@ function TypeEditor({
       lengthM: type?.lengthM,
       widthM: type?.widthM,
       heightM: type?.heightM,
-      monthlyPrice: type?.monthlyPrice,
+      minMonthlyPrice: type?.minMonthlyPrice,
+      maxMonthlyPrice: type?.maxMonthlyPrice,
     },
   });
 
@@ -1373,8 +1517,7 @@ function TypeEditor({
         onSubmit={form.handleSubmit(async (input) => {
           try {
             if (type) {
-              const { facilityId: _facility, ...metadata } = input;
-              await update.mutateAsync({ ...metadata, expectedVersion: type.version });
+              await update.mutateAsync({ ...input, expectedVersion: type.version });
             } else {
               await create.mutateAsync(input);
             }
@@ -1435,19 +1578,29 @@ function TypeEditor({
             </ManagementField>
           ))}
         </div>
-        <ManagementField
-          label={F5.initialPrice}
-          error={form.formState.errors.monthlyPrice?.message}
-        >
-          <Input
-            type="number"
-            min="0"
-            step="1000"
-            placeholder="VND / tháng"
-            {...form.register("monthlyPrice", { valueAsNumber: true })}
-            className="h-10 min-h-10 w-full rounded-lg border-slate-200 bg-slate-50/50 px-3 text-xs text-slate-900 placeholder:text-slate-400 transition-colors focus:border-primary focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-        </ManagementField>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {(["minMonthlyPrice", "maxMonthlyPrice"] as const).map((field) => (
+            <ManagementField
+              key={field}
+              label={field === "minMonthlyPrice" ? F5.minPrice : F5.maxPrice}
+              error={
+                form.formState.errors[field]
+                  ? form.formState.errors[field]?.message === F5.invalidBounds
+                    ? F5.invalidBounds
+                    : F5.invalidCatalogPrice
+                  : undefined
+              }
+            >
+              <Input
+                type="number"
+                min="1"
+                max="2147483647"
+                step="1"
+                {...form.register(field, { valueAsNumber: true })}
+              />
+            </ManagementField>
+          ))}
+        </div>
         {mutation.isError && (
           <p role="alert" className="text-xs font-semibold text-danger">
             {managementError(mutation.error)}
@@ -1610,27 +1763,20 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
-function TypeStatusEditor({ type, onClose }: { type: FacilityUnitTypeDto; onClose: () => void }) {
+function TypeStatusEditor({ type, onClose }: { type: UnitTypeCatalogDto; onClose: () => void }) {
   const { showToast } = useToast();
   const mutation = useUpdateType(type.id);
   const isDeactivating = type.isActive;
   return (
     <ManagementDialog
-      title={isDeactivating ? "Ngừng cung cấp loại kho" : "Kích hoạt loại kho"}
+      title={isDeactivating ? F5.deactivateTitle : F5.activateTitle}
       onClose={onClose}
       pending={mutation.isPending}
     >
       <div className="grid gap-3 py-1">
         <p className="text-xs text-slate-600 leading-relaxed">
-          {isDeactivating
-            ? `Bạn có chắc chắn muốn ngừng cung cấp loại kho "${type.name}" (${type.code}) trong hệ thống cơ sở?`
-            : `Kích hoạt lại loại kho "${type.name}" (${type.code}) trong hệ thống cơ sở để tiếp tục cung cấp.`}
+          {F5.typeStatusHint(type.name, type.isActive)}
         </p>
-        {!type.coverUrl && (
-          <p role="alert" className="text-xs font-medium text-danger">
-            {F5.coverImageRequired}
-          </p>
-        )}
         {mutation.isError && (
           <p role="alert" className="text-xs font-semibold text-danger">
             {managementError(mutation.error)}
@@ -1648,12 +1794,11 @@ function TypeStatusEditor({ type, onClose }: { type: FacilityUnitTypeDto; onClos
           <Button
             type="button"
             variant={isDeactivating ? "danger" : "primary"}
-            disabled={mutation.isPending || !type.coverUrl}
+            disabled={mutation.isPending}
             loading={mutation.isPending}
             onClick={async () => {
               try {
                 await mutation.mutateAsync({
-                  coverUrl: type.coverUrl ?? "",
                   isActive: !type.isActive,
                   expectedVersion: type.version,
                 });
@@ -1668,7 +1813,7 @@ function TypeStatusEditor({ type, onClose }: { type: FacilityUnitTypeDto; onClos
               isDeactivating && "bg-red-600 hover:bg-red-700 text-white",
             )}
           >
-            {isDeactivating ? "Xác nhận ngừng cung cấp" : "Kích hoạt"}
+            {isDeactivating ? F5.deactivateConfirm : F5.activate}
           </Button>
         </div>
       </div>

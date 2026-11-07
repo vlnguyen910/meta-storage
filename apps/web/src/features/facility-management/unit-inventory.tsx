@@ -685,6 +685,11 @@ function UnitEditor({
             />
           </ManagementField>
         </div>
+        {!unit && types.isSuccess && !types.data.length && (
+          <p role="status" className="text-sm text-muted">
+            {F5.noOfferedTypes}
+          </p>
+        )}
         {types.isError && <ErrorState message={F5.loadError} onRetry={() => types.refetch()} />}
         {mutation.isError && (
           <p role="alert" className="text-xs font-semibold text-danger">
@@ -703,7 +708,12 @@ function UnitEditor({
           <Button
             type="submit"
             loading={mutation.isPending}
-            disabled={mutation.isPending || types.isPending || types.isError}
+            disabled={
+              mutation.isPending ||
+              types.isPending ||
+              types.isError ||
+              (!unit && !types.data?.length)
+            }
             className="h-9 px-4 text-xs font-semibold"
           >
             {F5.save}
