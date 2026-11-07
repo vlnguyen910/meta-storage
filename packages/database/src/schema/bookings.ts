@@ -13,7 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { checkInSlots } from "./check-in-slots";
 import { facilities } from "./facilities";
-import { unitTypes } from "./unit-types";
+import { facilityUnitTypes } from "./facility-unit-types";
 import { users } from "./users";
 
 export enum BookingStatus {
@@ -64,7 +64,7 @@ export const bookings = pgTable(
     ),
     foreignKey({
       columns: [table.facilityId, table.unitTypeId],
-      foreignColumns: [unitTypes.facilityId, unitTypes.id],
+      foreignColumns: [facilityUnitTypes.facilityId, facilityUnitTypes.id],
     }).onDelete("restrict"),
     index("bookings_facility_status_idx").on(table.facilityId, table.status),
     index("bookings_user_idx").on(table.userId),

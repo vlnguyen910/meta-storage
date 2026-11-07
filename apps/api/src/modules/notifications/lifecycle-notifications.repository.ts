@@ -8,6 +8,7 @@ import {
   exists,
   facilities,
   facilityAssignments,
+  facilityUnitTypes,
   getTableColumns,
   gt,
   isNull,
@@ -57,7 +58,8 @@ export async function recordLifecycleEvent(
       ? await tx
           .select({ facilityName: facilities.name, unitTypeName: unitTypes.name })
           .from(facilities)
-          .innerJoin(unitTypes, eq(unitTypes.id, booking.unitTypeId))
+          .innerJoin(facilityUnitTypes, eq(facilityUnitTypes.id, booking.unitTypeId))
+          .innerJoin(unitTypes, eq(unitTypes.id, facilityUnitTypes.unitTypeId))
           .where(eq(facilities.id, booking.facilityId))
       : [];
 

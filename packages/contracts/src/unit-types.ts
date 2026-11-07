@@ -34,6 +34,7 @@ export type UnitTypeManagementQuery = z.infer<typeof UnitTypeManagementQuerySche
 export type UnitTypeListQuery = z.infer<typeof UnitTypeListQuerySchema>;
 export type UnitTypeListParams = Partial<UnitTypeListQuery>;
 
+// Legacy management-form contract. HTTP catalog writes use CreateUnitTypeCatalogSchema.
 export const CreateUnitTypeSchema = z
   .object({
     facilityId: z.uuid(),
@@ -60,3 +61,52 @@ export const UnitTypeIdParamsSchema = z.object({ id: z.string().uuid() });
 export type CreateUnitTypeInput = z.infer<typeof CreateUnitTypeSchema>;
 export type UpdateUnitTypeInput = z.infer<typeof UpdateUnitTypeSchema>;
 export type { FacilityUnitTypeDto } from "./unit-types.types";
+
+const catalogPrice = z.number().int().positive().max(2147483647);
+export const CreateUnitTypeCatalogSchema = CreateUnitTypeSchema.omit({
+  facilityId: true,
+  monthlyPrice: true,
+})
+  .extend({ minMonthlyPrice: catalogPrice, maxMonthlyPrice: catalogPrice })
+  .strict()
+  .refine((v) => v.maxMonthlyPrice >= v.minMonthlyPrice);
+export const UpdateUnitTypeCatalogSchema = CreateUnitTypeSchema.omit({
+  facilityId: true,
+  monthlyPrice: true,
+})
+  .partial()
+  .extend({
+    minMonthlyPrice: catalogPrice.optional(),
+    maxMonthlyPrice: catalogPrice.optional(),
+    isActive: z.boolean().optional(),
+    expectedVersion: z.number().int().nonnegative().max(2147483646),
+  })
+  .strict()
+  .refine((v) => Object.keys(v).some((k) => k !== "expectedVersion"));
+export type CreateUnitTypeCatalog = z.infer<typeof CreateUnitTypeCatalogSchema>;
+export type UpdateUnitTypeCatalog = z.infer<typeof UpdateUnitTypeCatalogSchema>;
+export const CreateFacilityUnitTypeSchema = z.strictObject({
+  unitTypeId: z.uuid(),
+  monthlyPrice: catalogPrice,
+});
+export const UpdateFacilityUnitTypeSchema = z
+  .strictObject({
+    monthlyPrice: catalogPrice.optional(),
+    isActive: z.boolean().optional(),
+    expectedVersion: z.number().int().nonnegative().max(2147483646),
+  })
+  .refine((v) => Object.keys(v).some((k) => k !== "expectedVersion"));
+export type CreateFacilityUnitType = z.infer<typeof CreateFacilityUnitTypeSchema>;
+export type UpdateFacilityUnitType = z.infer<typeof UpdateFacilityUnitTypeSchema>;
+
+export const UnitTypeCatalogQuerySchema = UnitTypeManagementQuerySchema.omit({ facilityId: true });
+export const ApiUnitTypeCatalogSchema = ApiUnitTypeSchema.omit({
+  monthlyPrice: true,
+  priceRangeId: true,
+}).extend({
+  minMonthlyPrice: catalogPrice,
+  maxMonthlyPrice: catalogPrice,
+  version: z.number().int().nonnegative(),
+  updatedBy: z.uuid().nullable(),
+});
+export type UnitTypeCatalogDto = z.infer<typeof ApiUnitTypeCatalogSchema>;

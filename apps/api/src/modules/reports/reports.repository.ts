@@ -8,6 +8,7 @@ import {
   type Database,
   eq,
   facilities,
+  facilityUnitTypes,
   gt,
   gte,
   inArray,
@@ -421,7 +422,8 @@ export class ReportsRepository {
           .leftJoin(reservations, eq(reservations.id, rentals.reservationId))
           .innerJoin(storageUnits, eq(storageUnits.id, rentals.storageUnitId))
           .innerJoin(facilities, eq(facilities.id, storageUnits.facilityId))
-          .innerJoin(unitTypes, eq(unitTypes.id, storageUnits.unitTypeId))
+          .innerJoin(facilityUnitTypes, eq(facilityUnitTypes.id, storageUnits.unitTypeId))
+          .innerJoin(unitTypes, eq(unitTypes.id, facilityUnitTypes.unitTypeId))
           .where(predicate)
           .orderBy(asc(rentals.endAt), asc(rentals.id))
           .limit(query.limit)

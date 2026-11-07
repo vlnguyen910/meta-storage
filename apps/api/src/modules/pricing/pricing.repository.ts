@@ -1,9 +1,4 @@
-import type {
-  CreatePriceRange,
-  PricingQuery,
-  UpdateDepositPolicy,
-  UpdatePriceRange,
-} from "@metastorage/contracts";
+import type { PricingQuery, UpdateDepositPolicy } from "@metastorage/contracts";
 import { PRICING_MESSAGES as m, SystemSettingKey } from "@metastorage/contracts";
 import {
   and,
@@ -11,10 +6,10 @@ import {
   type Database,
   desc,
   eq,
+  facilityUnitTypes,
   getTableColumns,
-  ne,
   pricingChanges,
-  rentalPriceRanges,
+  sql,
   systemSettingChanges,
   systemSettingInteger,
   systemSettings,
@@ -77,87 +72,6 @@ export async function recordPricingChange(
 export class PricingRepository {
   constructor(private readonly db: Database) {}
 
-  listPriceRanges(query: PricingQuery) {
-    return this.db
-      .select()
-      .from(rentalPriceRanges)
-      .orderBy(
-        desc(rentalPriceRanges.isActive),
-        asc(rentalPriceRanges.minMonthlyPrice),
-        asc(rentalPriceRanges.code),
-      )
-      .limit(query.limit)
-      .offset(query.offset);
-  }
-
-  async createPriceRange(input: CreatePriceRange, actor: string) {
-    const [created] = await this.db
-      .insert(rentalPriceRanges)
-      .values({ ...input, updatedBy: actor })
-      .onConflictDoNothing({ target: rentalPriceRanges.code })
-      .returning();
-    if (!created) throw new ConflictError(m.rangeCodeExists);
-    return created;
-  }
-
-  updatePriceRange(id: string, input: UpdatePriceRange, actor: string) {
-    return this.db.transaction(async (tx) => {
-      const [before] = await tx
-        .select()
-        .from(rentalPriceRanges)
-        .where(eq(rentalPriceRanges.id, id))
-        .for("update");
-      if (!before) throw new AppError(m.rangeNotFound, 404, "PRICE_RANGE_NOT_FOUND");
-      if (before.version !== input.expectedVersion) throw new ConflictError(m.conflict);
-
-      if (input.code && input.code !== before.code) {
-        const [duplicate] = await tx
-          .select({ id: rentalPriceRanges.id })
-          .from(rentalPriceRanges)
-          .where(and(eq(rentalPriceRanges.code, input.code), ne(rentalPriceRanges.id, id)))
-          .limit(1);
-        if (duplicate) throw new ConflictError(m.rangeCodeExists);
-      }
-
-      const minMonthlyPrice =
-        input.minMonthlyPrice === undefined ? before.minMonthlyPrice : input.minMonthlyPrice;
-      const maxMonthlyPrice =
-        input.maxMonthlyPrice === undefined ? before.maxMonthlyPrice : input.maxMonthlyPrice;
-      const isActive = input.isActive ?? before.isActive;
-      if (!isValidPriceRange(minMonthlyPrice, maxMonthlyPrice))
-        throw new ConflictError(m.rangeBoundsInvalid);
-
-      const assignedTypes = await tx
-        .select({ monthlyPrice: unitTypes.monthlyPrice })
-        .from(unitTypes)
-        .where(eq(unitTypes.priceRangeId, id));
-      if (
-        assignedTypes.some(
-          ({ monthlyPrice }) => !containsPrice(monthlyPrice, minMonthlyPrice, maxMonthlyPrice),
-        ) ||
-        (!isActive && assignedTypes.length > 0)
-      )
-        throw new ConflictError(m.rangeInUse);
-
-      const [updated] = await tx
-        .update(rentalPriceRanges)
-        .set({
-          code: input.code ?? before.code,
-          name: input.name ?? before.name,
-          minMonthlyPrice,
-          maxMonthlyPrice,
-          isActive,
-          version: before.version + 1,
-          updatedBy: actor,
-          updatedAt: new Date(),
-        })
-        .where(eq(rentalPriceRanges.id, id))
-        .returning();
-      if (!updated) throw new AppError(m.rangeNotFound, 404, "PRICE_RANGE_NOT_FOUND");
-      return updated;
-    });
-  }
-
   getConfiguration(query: PricingQuery) {
     return this.db.transaction(async (tx) => {
       const [settings] = await tx
@@ -168,16 +82,17 @@ export class PricingRepository {
       if (!settings) throw new AppError(m.unavailable, 503, "PRICING_NOT_CONFIGURED");
       const prices = await tx
         .select({
-          unitTypeId: unitTypes.id,
-          facilityId: unitTypes.facilityId,
+          unitTypeId: facilityUnitTypes.id,
+          facilityId: facilityUnitTypes.facilityId,
           code: unitTypes.code,
           name: unitTypes.name,
-          monthlyPrice: unitTypes.monthlyPrice,
-          priceRangeId: unitTypes.priceRangeId,
-          isActive: unitTypes.isActive,
+          monthlyPrice: facilityUnitTypes.monthlyPrice,
+          priceRangeId: sql<string | null>`null`,
+          isActive: sql<boolean>`${unitTypes.isActive} and ${facilityUnitTypes.isActive}`,
         })
-        .from(unitTypes)
-        .orderBy(asc(unitTypes.facilityId), asc(unitTypes.code))
+        .from(facilityUnitTypes)
+        .innerJoin(unitTypes, eq(unitTypes.id, facilityUnitTypes.unitTypeId))
+        .orderBy(asc(facilityUnitTypes.facilityId), asc(unitTypes.code))
         .limit(query.limit)
         .offset(query.offset);
       return {
@@ -192,10 +107,17 @@ export class PricingRepository {
 
   async findQuote(unitTypeId: string) {
     const [row] = await this.db
-      .select({ monthlyPrice: unitTypes.monthlyPrice, depositMonths: systemSettingInteger })
-      .from(unitTypes)
+      .select({ monthlyPrice: facilityUnitTypes.monthlyPrice, depositMonths: systemSettingInteger })
+      .from(facilityUnitTypes)
+      .innerJoin(unitTypes, eq(unitTypes.id, facilityUnitTypes.unitTypeId))
       .innerJoin(systemSettings, eq(systemSettings.key, SystemSettingKey.DEPOSIT_MONTHS))
-      .where(and(eq(unitTypes.id, unitTypeId), eq(unitTypes.isActive, true)));
+      .where(
+        and(
+          eq(facilityUnitTypes.id, unitTypeId),
+          eq(unitTypes.isActive, true),
+          eq(facilityUnitTypes.isActive, true),
+        ),
+      );
     return row ?? null;
   }
 
@@ -224,14 +146,4 @@ export class PricingRepository {
       .limit(query.limit)
       .offset(query.offset);
   }
-}
-
-function isValidPriceRange(min: number | null, max: number | null) {
-  return (min === null && max === null) || (min !== null && max !== null && min > 0 && max >= min);
-}
-
-function containsPrice(price: number, min: number | null, max: number | null) {
-  return (
-    (min === null && max === null) || (min !== null && max !== null && price >= min && price <= max)
-  );
 }

@@ -11,7 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { enumToPgEnum } from "../enum-to-pg-enum";
 import { facilities } from "./facilities";
-import { unitTypes } from "./unit-types";
+import { facilityUnitTypes } from "./facility-unit-types";
 import { users } from "./users";
 
 export enum ReservationStatus {
@@ -53,7 +53,7 @@ export const reservations = pgTable(
   (table) => [
     foreignKey({
       columns: [table.facilityId, table.unitTypeId],
-      foreignColumns: [unitTypes.facilityId, unitTypes.id],
+      foreignColumns: [facilityUnitTypes.facilityId, facilityUnitTypes.id],
     }).onDelete("restrict"),
     check("reservations_months_valid", sql`${table.requestedMonths} BETWEEN 1 AND 12`),
     check("reservations_period_valid", sql`${table.rentalEndAt} > ${table.rentalStartAt}`),

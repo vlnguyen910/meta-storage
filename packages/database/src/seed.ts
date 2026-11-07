@@ -1,7 +1,7 @@
 import { createHash, createHmac } from "node:crypto";
 import { SYSTEM_SETTING_DEFINITIONS } from "@metastorage/contracts/system-settings";
 import { hashPassword } from "better-auth/crypto";
-import { and, asc, eq, inArray, notExists } from "drizzle-orm";
+import { and, asc, eq, getTableColumns, inArray, notExists } from "drizzle-orm";
 import { db, queryClient } from "./client";
 import { loadApiEnv } from "./env";
 import { migrateBookingsToReservations } from "./migrate-bookings-to-reservations";
@@ -12,6 +12,7 @@ import {
   checkInSlots,
   facilities,
   facilityAssignments,
+  facilityUnitTypes,
   payments,
   RentalStatus,
   rentals,
@@ -360,9 +361,10 @@ async function seedDemoData(seedNow: Date) {
       .where(inArray(facilities.id, Object.values(SEED_IDS.facilities)))
       .orderBy(asc(facilities.code));
     const typeRows = await tx
-      .select()
-      .from(unitTypes)
-      .where(inArray(unitTypes.facilityId, Object.values(SEED_IDS.facilities)))
+      .select({ ...getTableColumns(unitTypes), ...getTableColumns(facilityUnitTypes) })
+      .from(facilityUnitTypes)
+      .innerJoin(unitTypes, eq(unitTypes.id, facilityUnitTypes.unitTypeId))
+      .where(inArray(facilityUnitTypes.facilityId, Object.values(SEED_IDS.facilities)))
       .orderBy(asc(unitTypes.code));
     const slots = await tx
       .select()
@@ -827,9 +829,10 @@ async function seedFlow2Demo(seedNow: Date) {
     ];
     for (const [index, typeCode] of codes.entries()) {
       const [type] = await tx
-        .select()
-        .from(unitTypes)
-        .where(and(eq(unitTypes.code, typeCode), eq(unitTypes.facilityId, facility.id)));
+        .select({ ...getTableColumns(unitTypes), ...getTableColumns(facilityUnitTypes) })
+        .from(facilityUnitTypes)
+        .innerJoin(unitTypes, eq(unitTypes.id, facilityUnitTypes.unitTypeId))
+        .where(and(eq(unitTypes.code, typeCode), eq(facilityUnitTypes.facilityId, facility.id)));
       if (!type) throw new Error(`Missing active unit type ${typeCode}`);
       const code = `HCM-01-${String(index + 9).padStart(3, "0")}`;
       await tx
@@ -852,9 +855,10 @@ async function seedBasicRentals(seedNow: Date) {
   const [facility] = await db.select().from(facilities).where(eq(facilities.code, "HCM-01"));
   if (!facility) throw new Error("HCM-01 is required for return seed data");
   const [type] = await db
-    .select()
-    .from(unitTypes)
-    .where(and(eq(unitTypes.code, "UT-2M"), eq(unitTypes.facilityId, facility.id)));
+    .select({ ...getTableColumns(unitTypes), ...getTableColumns(facilityUnitTypes) })
+    .from(facilityUnitTypes)
+    .innerJoin(unitTypes, eq(unitTypes.id, facilityUnitTypes.unitTypeId))
+    .where(and(eq(unitTypes.code, "UT-2M"), eq(facilityUnitTypes.facilityId, facility.id)));
   const [customer, staff, manager] = SEED_USERS;
   if (!facility || !type || !customer || !staff || !manager)
     throw new Error("Flow 3 fixture prerequisites are missing");
@@ -1295,14 +1299,30 @@ async function seed() {
     for (const [facilityIndex, facility] of facilities.entries()) {
       const candidateId =
         facilityIndex === 0 ? unitType.id : id("62000000", facilityIndex * 100 + index + 1);
+      const catalogId = id("63000000", index + 1);
+      const { monthlyPrice, id: _id, ...metadata } = unitType;
       await db
         .insert(unitTypes)
-        .values({ ...unitType, id: candidateId, facilityId: facility.id })
+        .values({
+          ...metadata,
+          id: catalogId,
+          minMonthlyPrice: Math.floor(monthlyPrice / 2),
+          maxMonthlyPrice: monthlyPrice * 2,
+        })
         .onConflictDoNothing();
+      await db
+        .insert(facilityUnitTypes)
+        .values({ id: candidateId, facilityId: facility.id, unitTypeId: catalogId, monthlyPrice })
+        .onConflictDoUpdate({ target: facilityUnitTypes.id, set: { unitTypeId: catalogId } });
       const [localType] = await db
-        .select({ id: unitTypes.id })
-        .from(unitTypes)
-        .where(and(eq(unitTypes.facilityId, facility.id), eq(unitTypes.code, unitType.code)));
+        .select({ id: facilityUnitTypes.id })
+        .from(facilityUnitTypes)
+        .where(
+          and(
+            eq(facilityUnitTypes.facilityId, facility.id),
+            eq(facilityUnitTypes.unitTypeId, catalogId),
+          ),
+        );
       if (!localType) throw new Error(`Missing seed type ${facility.code}/${unitType.code}`);
       if (facilityIndex === 0) typeMap.set(unitType.code, localType.id);
       await db

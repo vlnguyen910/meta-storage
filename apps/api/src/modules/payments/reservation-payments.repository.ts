@@ -4,8 +4,10 @@ import {
   type Database,
   eq,
   facilities,
+  facilityUnitTypes,
   inArray,
   payments,
+  sql,
   unitTypes,
 } from "@metastorage/database";
 import type { ReservationTransaction } from "../reservations/reservations.repository";
@@ -19,10 +21,16 @@ export class ReservationPaymentsRepository {
 
   async lockOffering(tx: ReservationTransaction, facilityId: string, unitTypeId: string) {
     const [offering] = await tx
-      .select({ active: unitTypes.isActive, facilityActive: facilities.isActive })
-      .from(unitTypes)
-      .innerJoin(facilities, eq(facilities.id, unitTypes.facilityId))
-      .where(and(eq(unitTypes.id, unitTypeId), eq(unitTypes.facilityId, facilityId)))
+      .select({
+        active: sql<boolean>`${unitTypes.isActive} and ${facilityUnitTypes.isActive}`,
+        facilityActive: facilities.isActive,
+      })
+      .from(facilityUnitTypes)
+      .innerJoin(unitTypes, eq(unitTypes.id, facilityUnitTypes.unitTypeId))
+      .innerJoin(facilities, eq(facilities.id, facilityUnitTypes.facilityId))
+      .where(
+        and(eq(facilityUnitTypes.id, unitTypeId), eq(facilityUnitTypes.facilityId, facilityId)),
+      )
       .for("update");
     return offering;
   }

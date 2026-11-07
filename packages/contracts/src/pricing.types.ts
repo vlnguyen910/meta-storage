@@ -14,13 +14,8 @@ export interface PricingConfiguration {
   }[];
 }
 
-export interface UnitTypePriceRangeAssignment {
-  unitTypeId: string;
-  priceRangeId: string;
-  version: number;
-}
-
 export type PricingChangeValues =
+  | { unitTypeId: string; minMonthlyPrice: number; maxMonthlyPrice: number }
   | { depositMonths: number }
   | { unitTypeId: string; monthlyPrice: number }
   | { unitTypeId: string; priceRangeId: string | null }

@@ -77,6 +77,7 @@ import { SepayPaymentGateway } from "../../src/modules/payments/sepay.gateway";
 import { ReportsRepository } from "../../src/modules/reports/reports.repository";
 import { reservationsRoutes } from "../../src/modules/reservations/reservations.routes";
 import { createReservationsService } from "../../src/modules/reservations/reservations.service";
+import { createTestUnitType, deleteTestUnitTypes } from "../fixtures/facility-catalog";
 import { assertTestDatabase } from "../fixtures/test-database";
 
 const testUrl = process.env.BOOKING_TEST_DATABASE_URL;
@@ -166,7 +167,7 @@ async function fixture() {
     { userId: id.manager, facilityId: id.facility, role: UserRole.FACILITY_MANAGER },
     { userId: id.staff, facilityId: id.facility, role: UserRole.FACILITY_STAFF },
   ]);
-  await db.insert(unitTypes).values({
+  await createTestUnitType(db, {
     id: id.type,
     facilityId: id.facility,
     code: id.type,
@@ -324,7 +325,7 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
       await db.delete(bookings).where(eq(bookings.facilityId, f.id.facility));
       await db.delete(facilityAssignments).where(eq(facilityAssignments.facilityId, f.id.facility));
       await db.delete(storageUnits).where(eq(storageUnits.facilityId, f.id.facility));
-      await db.delete(unitTypes).where(eq(unitTypes.facilityId, f.id.facility));
+      await deleteTestUnitTypes(db, eq(unitTypes.id, f.id.type));
       await db.delete(facilities).where(eq(facilities.id, f.id.facility));
       await db.delete(checkInSlots).where(eq(checkInSlots.id, f.id.slot));
       await db

@@ -1,5 +1,6 @@
 import type { ApiFacility, ApiFacilityAssignment } from "@metastorage/contracts";
 import {
+  CreateFacilityUnitTypeSchema,
   CreateStorageUnitSchema,
   CustomerAvailabilityQuerySchema,
   createAssignmentBodySchema,
@@ -12,9 +13,9 @@ import {
   facilityQuerySchema,
   facilityStorageUnitParamsSchema,
   facilityUnitTypeParamsSchema,
-  SetFacilityUnitTypeSchema,
   STORAGE_UNIT_MESSAGES,
   UnitTypeListQuerySchema,
+  UpdateFacilityUnitTypeSchema,
   updateFacilityBodySchema,
   updateFacilityIdParamSchema,
 } from "@metastorage/contracts";
@@ -29,8 +30,6 @@ import { StorageUnitsRepository } from "../storage-units/storage-units.repositor
 import { StorageUnitsService } from "../storage-units/storage-units.service";
 import { FacilityUnitTypesRepository } from "../unit-types/facility-unit-types.repository";
 import { FacilityUnitTypesService } from "../unit-types/facility-unit-types.service";
-import { UnitTypesRepository } from "../unit-types/unit-types.repository";
-import { UnitTypesService } from "../unit-types/unit-types.service";
 import { getFacilityAccessScope } from "./facilities.access";
 import { requireFacilityAccess } from "./facilities.guard";
 import { FACILITY_MESSAGES } from "./facilities.messages";
@@ -41,7 +40,7 @@ import { FacilityAssignmentsService } from "./facility-assignments.service";
 
 export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
   const facilitiesRepository = new FacilitiesRepository(fastify.db);
-  const catalogService = new UnitTypesService(new UnitTypesRepository(fastify.db));
+
   const service = new FacilitiesService(facilitiesRepository);
   const assignmentsService = new FacilityAssignmentsService(
     new FacilityAssignmentsRepository(fastify.db),
@@ -312,11 +311,34 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       if (!request.user) throw new UnauthorizedError();
       reply.header("Cache-Control", "private, no-store");
-      const items = await catalogService.list(
-        { ...request.query, facilityId: request.params.facilityId },
+      const items = await unitTypesService.listManagement(
+        request.params.facilityId,
+        request.query,
         request.user,
       );
       return reply.send(successResponse(items));
+    },
+  );
+
+  typedApp.post(
+    "/:facilityId/unit-types",
+    {
+      preHandler: [requireRole("FACILITY_MANAGER")],
+      schema: {
+        params: facilityIdNestedParamSchema,
+        body: CreateFacilityUnitTypeSchema,
+        tags: ["Facilities"],
+      },
+    },
+    async (request, reply) => {
+      if (!request.user) throw new UnauthorizedError();
+      return reply
+        .status(201)
+        .send(
+          successResponse(
+            await unitTypesService.create(request.params.facilityId, request.body, request.user),
+          ),
+        );
     },
   );
 
@@ -328,13 +350,13 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
         security: [{ sessionAuth: [] }],
         summary: FACILITY_MESSAGES.facilityUnitTypeUpdateSummary,
         params: facilityUnitTypeParamsSchema,
-        body: SetFacilityUnitTypeSchema,
+        body: UpdateFacilityUnitTypeSchema,
       },
       preHandler: [requireRole("FACILITY_MANAGER")],
     },
     async (request, reply) => {
       if (!request.user) throw new UnauthorizedError();
-      const offering = await catalogService.update(
+      const offering = await unitTypesService.update(
         request.params.unitTypeId,
         request.body,
         request.user,

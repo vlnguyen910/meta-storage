@@ -20,6 +20,8 @@ import {
   eq,
   exists,
   facilities,
+  facilityUnitTypes,
+  getTableColumns,
   gt,
   InspectionStatus,
   InspectionType,
@@ -112,7 +114,11 @@ export class RentalsRepository {
           status: sql<string>`coalesce(${bookings.status}::text, ${reservations.status}::text)`,
         },
         facility: facilities,
-        unitType: unitTypes,
+        unitType: {
+          ...getTableColumns(unitTypes),
+          id: facilityUnitTypes.id,
+          monthlyPrice: facilityUnitTypes.monthlyPrice,
+        },
         storageUnit: storageUnits,
         customer: bookingCustomer,
         // Preserve PostgreSQL precision for keyset pagination.
@@ -136,9 +142,10 @@ export class RentalsRepository {
         eq(facilities.id, sql`coalesce(${bookings.facilityId}, ${reservations.facilityId})`),
       )
       .innerJoin(
-        unitTypes,
-        eq(unitTypes.id, sql`coalesce(${bookings.unitTypeId}, ${reservations.unitTypeId})`),
+        facilityUnitTypes,
+        eq(facilityUnitTypes.id, sql`coalesce(${bookings.unitTypeId}, ${reservations.unitTypeId})`),
       )
+      .innerJoin(unitTypes, eq(unitTypes.id, facilityUnitTypes.unitTypeId))
       .innerJoin(
         storageUnits,
         and(
@@ -317,10 +324,11 @@ export class RentalsRepository {
       .select({
         facilityId: storageUnits.facilityId,
         unitTypeId: storageUnits.unitTypeId,
-        active: unitTypes.isActive,
+        active: sql<boolean>`${unitTypes.isActive} and ${facilityUnitTypes.isActive}`,
       })
       .from(storageUnits)
-      .innerJoin(unitTypes, eq(unitTypes.id, storageUnits.unitTypeId))
+      .innerJoin(facilityUnitTypes, eq(facilityUnitTypes.id, storageUnits.unitTypeId))
+      .innerJoin(unitTypes, eq(unitTypes.id, facilityUnitTypes.unitTypeId))
       .where(eq(storageUnits.id, unitId))
       .for("update");
   }
@@ -396,11 +404,12 @@ export class RentalsRepository {
       .select({
         facilityId: storageUnits.facilityId,
         unitTypeId: storageUnits.unitTypeId,
-        price: unitTypes.monthlyPrice,
-        active: unitTypes.isActive,
+        price: facilityUnitTypes.monthlyPrice,
+        active: sql<boolean>`${unitTypes.isActive} and ${facilityUnitTypes.isActive}`,
       })
       .from(storageUnits)
-      .innerJoin(unitTypes, eq(unitTypes.id, storageUnits.unitTypeId))
+      .innerJoin(facilityUnitTypes, eq(facilityUnitTypes.id, storageUnits.unitTypeId))
+      .innerJoin(unitTypes, eq(unitTypes.id, facilityUnitTypes.unitTypeId))
       .where(eq(storageUnits.id, unitId));
   }
   findRenewalByIdempotencyKey(tx: RentalTransaction, rentalId: string, idempotencyKey: string) {

@@ -7,6 +7,7 @@ import {
   eq,
   facilities,
   facilityAssignments,
+  facilityUnitTypes,
   inArray,
   pricingChanges,
   storageUnits,
@@ -141,9 +142,9 @@ describe.skipIf(!testUrl)("pricing transactions with isolated PostgreSQL", () =>
     await db.delete(systemSettings).where(eq(systemSettings.key, "DEPOSIT_MONTHS"));
     await seedPricingPolicy();
     await db
-      .update(unitTypes)
+      .update(facilityUnitTypes)
       .set({ monthlyPrice: 750000, version: 0, updatedBy: null })
-      .where(eq(unitTypes.id, ids.type));
+      .where(eq(facilityUnitTypes.id, ids.type));
   });
   afterAll(async () => {
     await app.close();

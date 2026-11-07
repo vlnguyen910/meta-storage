@@ -7,6 +7,7 @@ import {
   db,
   eq,
   facilities,
+  facilityUnitTypes,
   payments,
   reservations,
   storageUnits,
@@ -98,13 +99,13 @@ describe.skipIf(!testUrl)("POST /api/reservations/drafts with PostgreSQL", () =>
   beforeEach(async () => {
     await db.update(facilities).set({ isActive: true }).where(eq(facilities.id, ids.facility));
     await db
-      .update(unitTypes)
+      .update(facilityUnitTypes)
       .set({ isActive: true, monthlyPrice: 1000000 })
-      .where(eq(unitTypes.id, ids.type));
+      .where(eq(facilityUnitTypes.id, ids.type));
     await db
-      .update(unitTypes)
+      .update(facilityUnitTypes)
       .set({ isActive: true })
-      .where(eq(unitTypes.facilityId, ids.facility));
+      .where(eq(facilityUnitTypes.facilityId, ids.facility));
     await db.update(storageUnits).set({ status: "AVAILABLE" }).where(eq(storageUnits.id, ids.unit));
     await db.delete(capacityAllocations).where(eq(capacityAllocations.facilityId, ids.facility));
     await db.delete(checkInSlots).where(eq(checkInSlots.id, ids.extraSlot));
@@ -154,7 +155,10 @@ describe.skipIf(!testUrl)("POST /api/reservations/drafts with PostgreSQL", () =>
     expect(data.contact).toBeUndefined();
     const [row] = await db.select().from(reservations).where(eq(reservations.id, data.id));
     expect(row).toMatchObject({ status: "DRAFT", customerId: ids.customer });
-    await db.update(unitTypes).set({ monthlyPrice: 2000000 }).where(eq(unitTypes.id, ids.type));
+    await db
+      .update(facilityUnitTypes)
+      .set({ monthlyPrice: 2000000 })
+      .where(eq(facilityUnitTypes.id, ids.type));
     expect(
       (await db.select().from(reservations).where(eq(reservations.id, data.id)))[0]?.totalAmount,
     ).toBe(3000000);
@@ -187,9 +191,9 @@ describe.skipIf(!testUrl)("POST /api/reservations/drafts with PostgreSQL", () =>
     expect((await createDraft()).statusCode).toBe(404);
     await db.update(unitTypes).set({ isActive: true }).where(eq(unitTypes.id, ids.type));
     await db
-      .update(unitTypes)
+      .update(facilityUnitTypes)
       .set({ isActive: false })
-      .where(eq(unitTypes.facilityId, ids.facility));
+      .where(eq(facilityUnitTypes.facilityId, ids.facility));
     expect((await createDraft()).statusCode).toBe(404);
     expect((await createDraft({ ...input, unitTypeId: randomUUID() })).statusCode).toBe(404);
   });

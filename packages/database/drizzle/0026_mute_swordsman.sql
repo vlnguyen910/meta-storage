@@ -1,0 +1,1 @@
+DROP TABLE "rental_price_ranges" CASCADE;
