@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/ui/brand-logo";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { isMockMode } from "@/config/api-mode";
 import { businessOperationsNavigation } from "@/config/navigation/business-operations.navigation";
 import { businessOperationsRoutes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
@@ -108,9 +107,6 @@ export function BusinessOperationsShell({ children }: Readonly<BusinessOperation
           {M.global}
         </span>
         <div className="ml-auto flex items-center gap-3">
-          <span className="hidden rounded-full bg-primary-soft px-3 py-1.5 text-xs font-semibold text-primary sm:inline-block">
-            {isMockMode ? M.demo : M.apiMode}
-          </span>
           <span className="grid size-8 place-items-center rounded-full bg-[#003b2f] text-white">
             <User size={18} aria-hidden="true" />
           </span>
@@ -129,7 +125,6 @@ export function BusinessOperationsShell({ children }: Readonly<BusinessOperation
         <div className="min-h-0 flex-1 overflow-y-auto p-4">
           <p className="mb-3 mt-1 px-3 text-xs font-semibold text-slate-500">{M.role}</p>
           {navigation}
-          <p className="mt-4 px-3 text-[11px] text-slate-400">{isMockMode ? M.note : M.apiNote}</p>
         </div>
         {userFooter}
       </aside>
