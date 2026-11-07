@@ -412,8 +412,9 @@ assignment constraints.
   `capacity_allocations.status` to `ACTIVE`. The default operating timezone is
   `Asia/Ho_Chi_Minh`. Operating hours are now global system settings, not a table.
 
-Unit types belong to a facility and own their dimensions and monthly price within a
-BOM-managed rental price range. Exact length, width and height are positive meters;
+BOM-managed rental price range. BOM manages the shared catalog; Facility Managers
+assign active ranges to unit types. A range cannot be deactivated or narrowed while
+an assigned type falls outside it. Exact length, width and height are positive meters;
 `size_cbm` is generated as their product, and floor area is calculated when reading.
 Physical units inherit the dimensions of their local type. Availability and capacity
 are scoped to `(facility_id,unit_type_id)`. Public catalog requires an active facility,
@@ -534,6 +535,7 @@ erDiagram
   users ||--o{ facility_assignments : receives
   facilities ||--o{ facility_assignments : has
   facilities ||--o{ unit_types : owns
+  rental_price_ranges o|--o{ unit_types : bounds_price
   unit_types ||--o{ storage_units : materializes
   unit_types ||--o{ capacity_allocations : allocates
   unit_types ||--o{ bookings : books
@@ -637,9 +639,23 @@ erDiagram
   }
 
 
+  rental_price_ranges {
+    uuid id PK
+    varchar code UK
+    varchar name
+    integer min_monthly_price "nullable with max for unbounded range"
+    integer max_monthly_price "nullable with min for unbounded range"
+    boolean is_active
+    integer version
+    uuid updated_by FK "nullable"
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
   unit_types {
     uuid id PK
     uuid facility_id FK
+    uuid price_range_id FK "nullable until assigned"
     varchar code "unique within facility"
     varchar name
     text cover_url "nullable"

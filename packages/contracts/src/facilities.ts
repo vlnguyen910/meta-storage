@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CoverImageUrlSchema } from "./media-assets";
 import { UserRole } from "./users";
 
 export enum FacilityStatus {
@@ -116,7 +117,7 @@ export const createFacilityBodySchema = z.object({
   code: z.string().trim().min(1).max(50),
   name: z.string().trim().min(1).max(150),
   address: z.string().trim().min(1),
-  coverUrl: z.string().nullable().optional(),
+  coverUrl: CoverImageUrlSchema,
   description: z.string().trim().optional(),
   isActive: z.boolean().optional().default(true),
 });
@@ -126,7 +127,7 @@ export const updateFacilityBodySchema = z.object({
   code: z.string().trim().min(1).max(50).optional(),
   name: z.string().trim().min(1).max(150).optional(),
   address: z.string().trim().min(1).optional(),
-  coverUrl: z.string().nullable().optional(),
+  coverUrl: CoverImageUrlSchema.optional(),
   description: z.string().trim().nullable().optional(),
   isActive: z.boolean().optional(),
 });

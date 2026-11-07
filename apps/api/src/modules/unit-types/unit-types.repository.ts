@@ -1,4 +1,9 @@
-import type { CreateUnitTypeInput, UpdateUnitTypeInput } from "@metastorage/contracts";
+import type {
+  CreateUnitTypeInput,
+  SetUnitTypePriceRange,
+  UpdateUnitTypeInput,
+} from "@metastorage/contracts";
+import { PRICING_MESSAGES } from "@metastorage/contracts";
 import {
   and,
   bookings,
@@ -10,6 +15,7 @@ import {
   isNull,
   ne,
   or,
+  rentalPriceRanges,
   type UnitType,
   unitTypes,
   users,
@@ -147,6 +153,16 @@ export class UnitTypesRepository {
           .limit(1);
         if (booking) throw new ConflictError(M.dimensionsInUse);
       }
+      if (before.priceRangeId && input.monthlyPrice !== undefined) {
+        const [range] = await tx
+          .select()
+          .from(rentalPriceRanges)
+          .where(eq(rentalPriceRanges.id, before.priceRangeId))
+          .for("share");
+        if (!range?.isActive) throw new NotFoundError(PRICING_MESSAGES.rangeUnavailable);
+        if (!containsPrice(input.monthlyPrice, range.minMonthlyPrice, range.maxMonthlyPrice))
+          throw new ConflictError(PRICING_MESSAGES.priceOutsideRange);
+      }
       const { expectedVersion: _version, ...values } = input;
       const [updated] = await tx
         .update(unitTypes)
@@ -173,4 +189,48 @@ export class UnitTypesRepository {
       return updated;
     });
   }
+
+  async setPriceRange(id: string, input: SetUnitTypePriceRange, actor: string): Promise<UnitType> {
+    return this.db.transaction(async (tx) => {
+      const revision = await lockPricingRevision(tx);
+      const [before] = await tx.select().from(unitTypes).where(eq(unitTypes.id, id)).for("update");
+      if (!before) throw new NotFoundError(M.unitTypeNotFound);
+      await this.manager(tx, before.facilityId, actor);
+      if (before.version !== input.expectedVersion) throw new ConflictError(M.stale);
+
+      const [range] = await tx
+        .select()
+        .from(rentalPriceRanges)
+        .where(eq(rentalPriceRanges.id, input.priceRangeId))
+        .for("share");
+      if (!range?.isActive) throw new NotFoundError(PRICING_MESSAGES.rangeUnavailable);
+      if (!containsPrice(before.monthlyPrice, range.minMonthlyPrice, range.maxMonthlyPrice))
+        throw new ConflictError(PRICING_MESSAGES.priceOutsideRange);
+      if (before.priceRangeId === range.id) return before;
+
+      const [updated] = await tx
+        .update(unitTypes)
+        .set({
+          priceRangeId: range.id,
+          version: before.version + 1,
+          updatedBy: actor,
+          updatedAt: new Date(),
+        })
+        .where(eq(unitTypes.id, id))
+        .returning();
+      if (!updated) throw new NotFoundError(M.unitTypeNotFound);
+      await recordPricingChange(tx, revision, actor, {
+        operation: "UNIT_TYPE_PRICE_RANGE",
+        before: { unitTypeId: id, priceRangeId: before.priceRangeId },
+        after: { unitTypeId: id, priceRangeId: updated.priceRangeId },
+      });
+      return updated;
+    });
+  }
+}
+
+function containsPrice(price: number, min: number | null, max: number | null) {
+  return (
+    (min === null && max === null) || (min !== null && max !== null && price >= min && price <= max)
+  );
 }

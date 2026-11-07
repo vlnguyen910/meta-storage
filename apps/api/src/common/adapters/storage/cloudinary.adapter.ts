@@ -7,14 +7,14 @@ import { STORAGE_MESSAGES } from "./storage.messages";
 export class CloudinaryAdapter {
   constructor(private readonly credentials: CloudinaryCredentials = env) {}
 
-  private options() {
+  private options(type: "authenticated" | "upload" = "authenticated") {
     const {
       CLOUDINARY_CLOUD_NAME: cloud_name,
       CLOUDINARY_API_KEY: api_key,
       CLOUDINARY_API_SECRET: api_secret,
     } = this.credentials;
     if (!cloud_name || !api_key || !api_secret) throw this.unavailable();
-    return { cloud_name, api_key, api_secret, secure: true, type: "authenticated" as const };
+    return { cloud_name, api_key, api_secret, secure: true, type };
   }
 
   private unavailable() {
@@ -33,6 +33,27 @@ export class CloudinaryAdapter {
       // overwrite:false can return an existing asset instead of rejecting a collision.
       if (result.existing || result.public_id !== resource.publicId) throw this.unavailable();
       return { publicId: result.public_id, format: result.format };
+    } catch {
+      throw this.unavailable();
+    }
+  }
+
+  async uploadPublicImage(source: string, resource: CloudinaryResource) {
+    try {
+      const result = await cloudinary.uploader.upload(source, {
+        ...this.options("upload"),
+        resource_type: "image",
+        public_id: resource.publicId,
+        overwrite: false,
+        timeout: 30000,
+      });
+      if (
+        result.existing ||
+        result.public_id !== resource.publicId ||
+        !result.secure_url?.startsWith("https://")
+      )
+        throw this.unavailable();
+      return { publicId: result.public_id, format: result.format, secureUrl: result.secure_url };
     } catch {
       throw this.unavailable();
     }

@@ -29,6 +29,7 @@ export * from "./handover-checklist.messages";
 export * from "./inspections";
 export * from "./inspections.messages";
 export * from "./lifecycle-notifications";
+export * from "./media-assets";
 export * from "./messages";
 export * from "./mobile-workflows";
 export type {

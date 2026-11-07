@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { CoverImageUploadInput } from "@metastorage/contracts";
 import { CloudinaryResourceType, type MediaAsset } from "@metastorage/database";
 import { CloudinaryAdapter } from "../../common/adapters/storage/cloudinary.adapter";
 import type { CloudinaryResource } from "../../common/adapters/storage/cloudinary.types";
@@ -54,6 +55,15 @@ export class MediaAssetsService {
     }
   }
 
+  async uploadCoverImage(input: CoverImageUploadInput): Promise<{ coverUrl: string }> {
+    this.decodeImage(input.mimeType, input.dataBase64, m.invalidCoverImage);
+    const stored = await this.cloudinary.uploadPublicImage(
+      `data:${input.mimeType};base64,${input.dataBase64}`,
+      { publicId: `metastorage/covers/${randomUUID()}`, resourceType: "image" },
+    );
+    return { coverUrl: stored.secureUrl };
+  }
+
   async listImages(ownerType: string, ownerId: string, purpose: string) {
     const assets = await this.repository.list(ownerType, ownerId, purpose);
     return assets.map((asset) => ({ ...asset, url: this.url(asset) }));
@@ -82,9 +92,9 @@ export class MediaAssetsService {
     };
   }
 
-  private decodeImage(mimeType: string, value: string) {
+  private decodeImage(mimeType: string, value: string, errorMessage: string = m.invalidImage) {
     if (!/^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value))
-      throw new BadRequestError(m.invalidImage);
+      throw new BadRequestError(errorMessage);
     const bytes = Buffer.from(value, "base64");
     const canonical = bytes.toString("base64");
     const matches =
@@ -101,7 +111,7 @@ export class MediaAssetsService {
         (mimeType === "image/webp" &&
           bytes.toString("ascii", 0, 4) === "RIFF" &&
           bytes.toString("ascii", 8, 12) === "WEBP"));
-    if (!matches) throw new BadRequestError(m.invalidImage);
+    if (!matches) throw new BadRequestError(errorMessage);
     return bytes;
   }
 }

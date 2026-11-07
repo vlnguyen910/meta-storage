@@ -1,10 +1,12 @@
 import { z } from "zod";
+import { CoverImageUrlSchema } from "./media-assets";
 
 export const ApiUnitTypeSchema = z.object({
   id: z.string().uuid(),
   code: z.string(),
   name: z.string(),
   coverUrl: z.string().nullable(),
+  priceRangeId: z.string().uuid().nullable().optional(),
   sizeLabel: z.string(),
   lengthM: z.number().positive(),
   widthM: z.number().positive(),
@@ -37,7 +39,7 @@ export const CreateUnitTypeSchema = z
     facilityId: z.uuid(),
     code: z.string().trim().min(1).max(80),
     name: z.string().trim().min(1).max(100),
-    coverUrl: z.string().nullable().optional(),
+    coverUrl: CoverImageUrlSchema,
     sizeLabel: z.string().trim().min(1).max(50),
     lengthM: z.number().positive(),
     widthM: z.number().positive(),
@@ -48,6 +50,7 @@ export const CreateUnitTypeSchema = z
 export const UpdateUnitTypeSchema = CreateUnitTypeSchema.omit({ facilityId: true })
   .partial()
   .extend({
+    coverUrl: CoverImageUrlSchema.optional(),
     isActive: z.boolean().optional(),
     expectedVersion: z.number().int().nonnegative().max(2147483646),
   })

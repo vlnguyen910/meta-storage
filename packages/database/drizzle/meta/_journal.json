@@ -148,6 +148,13 @@
       "when": 1793956037690,
       "tag": "0020_known_chamber",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793959015024,
+      "tag": "0021_strong_living_mummy",
+      "breakpoints": true
     }
   ]
 }

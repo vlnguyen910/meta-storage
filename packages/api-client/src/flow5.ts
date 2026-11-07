@@ -2,6 +2,8 @@ import type {
   ApiEnvelope,
   ApiFacility,
   ApiFacilityAssignment,
+  CoverImageUploadInput,
+  CoverImageUploadResult,
   CreateAssignmentBody,
   CreateFacilityBody,
   CreateFacilityTaskInput,
@@ -75,6 +77,12 @@ export function createFlow5Client(http: AxiosInstance) {
           http.post<ApiEnvelope<FacilityUnitTypeDto>>("/unit-types", input).then(unwrap),
         update: (id: string, input: UpdateUnitTypeInput) =>
           http.patch<ApiEnvelope<FacilityUnitTypeDto>>(`/unit-types/${id}`, input).then(unwrap),
+      },
+      coverImages: {
+        upload: (input: CoverImageUploadInput) =>
+          http
+            .post<ApiEnvelope<CoverImageUploadResult>>("/media-assets/cover-image", input)
+            .then(unwrap),
       },
       units: {
         list: (params: StorageUnitListQuery, signal?: AbortSignal) =>

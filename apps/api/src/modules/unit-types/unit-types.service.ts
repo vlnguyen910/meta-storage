@@ -1,6 +1,7 @@
 import type {
   CreateUnitTypeInput,
   FacilityUnitTypeDto,
+  SetUnitTypePriceRange,
   UnitTypeManagementQuery,
   UpdateUnitTypeInput,
 } from "@metastorage/contracts";
@@ -44,6 +45,20 @@ export class UnitTypesService {
       throw new ForbiddenError(M.forbidden);
     return toApiUnitType(await this.repository.update(id, input, actor.id));
   }
+
+  async setPriceRange(id: string, input: SetUnitTypePriceRange, actor: UnitTypeActor) {
+    if (actor.role !== "FACILITY_MANAGER") throw new ForbiddenError(M.forbidden);
+    const existing = await this.repository.findById(id);
+    if (!existing) throw new NotFoundError(M.unitTypeNotFound);
+    if (!(await this.repository.managerFacility(actor.id, existing.facilityId)))
+      throw new ForbiddenError(M.forbidden);
+    const updated = await this.repository.setPriceRange(id, input, actor.id);
+    return {
+      unitTypeId: updated.id,
+      priceRangeId: updated.priceRangeId as string,
+      version: updated.version,
+    };
+  }
 }
 
 function toApiUnitType(row: UnitType): FacilityUnitTypeDto {
@@ -53,6 +68,7 @@ function toApiUnitType(row: UnitType): FacilityUnitTypeDto {
     code: row.code,
     name: row.name,
     coverUrl: row.coverUrl,
+    priceRangeId: row.priceRangeId,
     sizeLabel: row.sizeLabel,
     lengthM: row.lengthM,
     widthM: row.widthM,

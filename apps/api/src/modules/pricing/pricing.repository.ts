@@ -1,4 +1,9 @@
-import type { PricingQuery, UpdateDepositPolicy } from "@metastorage/contracts";
+import type {
+  CreatePriceRange,
+  PricingQuery,
+  UpdateDepositPolicy,
+  UpdatePriceRange,
+} from "@metastorage/contracts";
 import { PRICING_MESSAGES as m, SystemSettingKey } from "@metastorage/contracts";
 import {
   and,
@@ -7,7 +12,9 @@ import {
   desc,
   eq,
   getTableColumns,
+  ne,
   pricingChanges,
+  rentalPriceRanges,
   systemSettingChanges,
   systemSettingInteger,
   systemSettings,
@@ -70,6 +77,87 @@ export async function recordPricingChange(
 export class PricingRepository {
   constructor(private readonly db: Database) {}
 
+  listPriceRanges(query: PricingQuery) {
+    return this.db
+      .select()
+      .from(rentalPriceRanges)
+      .orderBy(
+        desc(rentalPriceRanges.isActive),
+        asc(rentalPriceRanges.minMonthlyPrice),
+        asc(rentalPriceRanges.code),
+      )
+      .limit(query.limit)
+      .offset(query.offset);
+  }
+
+  async createPriceRange(input: CreatePriceRange, actor: string) {
+    const [created] = await this.db
+      .insert(rentalPriceRanges)
+      .values({ ...input, updatedBy: actor })
+      .onConflictDoNothing({ target: rentalPriceRanges.code })
+      .returning();
+    if (!created) throw new ConflictError(m.rangeCodeExists);
+    return created;
+  }
+
+  updatePriceRange(id: string, input: UpdatePriceRange, actor: string) {
+    return this.db.transaction(async (tx) => {
+      const [before] = await tx
+        .select()
+        .from(rentalPriceRanges)
+        .where(eq(rentalPriceRanges.id, id))
+        .for("update");
+      if (!before) throw new AppError(m.rangeNotFound, 404, "PRICE_RANGE_NOT_FOUND");
+      if (before.version !== input.expectedVersion) throw new ConflictError(m.conflict);
+
+      if (input.code && input.code !== before.code) {
+        const [duplicate] = await tx
+          .select({ id: rentalPriceRanges.id })
+          .from(rentalPriceRanges)
+          .where(and(eq(rentalPriceRanges.code, input.code), ne(rentalPriceRanges.id, id)))
+          .limit(1);
+        if (duplicate) throw new ConflictError(m.rangeCodeExists);
+      }
+
+      const minMonthlyPrice =
+        input.minMonthlyPrice === undefined ? before.minMonthlyPrice : input.minMonthlyPrice;
+      const maxMonthlyPrice =
+        input.maxMonthlyPrice === undefined ? before.maxMonthlyPrice : input.maxMonthlyPrice;
+      const isActive = input.isActive ?? before.isActive;
+      if (!isValidPriceRange(minMonthlyPrice, maxMonthlyPrice))
+        throw new ConflictError(m.rangeBoundsInvalid);
+
+      const assignedTypes = await tx
+        .select({ monthlyPrice: unitTypes.monthlyPrice })
+        .from(unitTypes)
+        .where(eq(unitTypes.priceRangeId, id));
+      if (
+        assignedTypes.some(
+          ({ monthlyPrice }) => !containsPrice(monthlyPrice, minMonthlyPrice, maxMonthlyPrice),
+        ) ||
+        (!isActive && assignedTypes.length > 0)
+      )
+        throw new ConflictError(m.rangeInUse);
+
+      const [updated] = await tx
+        .update(rentalPriceRanges)
+        .set({
+          code: input.code ?? before.code,
+          name: input.name ?? before.name,
+          minMonthlyPrice,
+          maxMonthlyPrice,
+          isActive,
+          version: before.version + 1,
+          updatedBy: actor,
+          updatedAt: new Date(),
+        })
+        .where(eq(rentalPriceRanges.id, id))
+        .returning();
+      if (!updated) throw new AppError(m.rangeNotFound, 404, "PRICE_RANGE_NOT_FOUND");
+      return updated;
+    });
+  }
+
   getConfiguration(query: PricingQuery) {
     return this.db.transaction(async (tx) => {
       const [settings] = await tx
@@ -85,6 +173,7 @@ export class PricingRepository {
           code: unitTypes.code,
           name: unitTypes.name,
           monthlyPrice: unitTypes.monthlyPrice,
+          priceRangeId: unitTypes.priceRangeId,
           isActive: unitTypes.isActive,
         })
         .from(unitTypes)
@@ -135,4 +224,14 @@ export class PricingRepository {
       .limit(query.limit)
       .offset(query.offset);
   }
+}
+
+function isValidPriceRange(min: number | null, max: number | null) {
+  return (min === null && max === null) || (min !== null && max !== null && min > 0 && max >= min);
+}
+
+function containsPrice(price: number, min: number | null, max: number | null) {
+  return (
+    (min === null && max === null) || (min !== null && max !== null && price >= min && price <= max)
+  );
 }
