@@ -9,6 +9,7 @@ export function RentalsScreen({ state: s, onUnavailable }: RentalsScreenProps) {
     <FlatList
       data={s.current.data ?? []}
       keyExtractor={(r) => r.id}
+      className="flex-1"
       contentContainerClassName="grow px-4 pb-5"
       refreshing={s.current.isRefetching}
       onRefresh={() => void s.current.refetch()}

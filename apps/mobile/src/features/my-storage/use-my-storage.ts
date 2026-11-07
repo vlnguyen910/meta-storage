@@ -1,7 +1,7 @@
 import type { RentalListItem, RentalPageCursor } from "@metastorage/contracts";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import type { StorageSelection, StorageView } from "../../common/my-storage.types";
+import type { StorageSelection } from "../../common/my-storage.types";
 import { storageRentals, storageTransactions } from "../../common/my-storage.utils";
 import { api } from "../../lib/api";
 import { MY_STORAGE as M } from "./my-storage.messages";
@@ -23,7 +23,7 @@ async function loadRentals(view: "current" | "history", signal: AbortSignal) {
   } while (cursor);
   return storageRentals(items, view);
 }
-export function useMyStorage(owner: string, view: StorageView) {
+export function useMyStorage(owner: string) {
   const [now, setNow] = useState(Date.now),
     [selection, setSelection] = useState<StorageSelection | null>(null);
   const [filter, setFilter] = useState<"all" | "succeeded">("all"),
@@ -47,7 +47,7 @@ export function useMyStorage(owner: string, view: StorageView) {
     queries: rentals.map((rental) => ({
       queryKey: ["rental-payments", owner, rental.id],
       queryFn: ({ signal }: { signal: AbortSignal }) => api.rentalPayments(rental.id, signal),
-      enabled: view === "transactions",
+      enabled: Boolean(owner),
       staleTime: 30000,
     })),
   });

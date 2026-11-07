@@ -1,10 +1,10 @@
 import type { StorageOverlaysProps } from "../../../common/my-storage.types";
 import { storageMoney } from "../../../common/my-storage.utils";
-import { Card, DetailSheet, Notice, Row } from "../../../components/ui";
+import { Button, Card, DetailSheet, Notice, Row } from "../../../components/ui";
 import { dateTime } from "../../../components/ui/mobile-ui";
 import { QueryFeedback } from "../../customer-home/components/query-feedback";
 import { MY_STORAGE as M } from "../my-storage.messages";
-export function StorageOverlays({ state: s }: StorageOverlaysProps) {
+export function StorageOverlays({ state: s, onCreateSupport }: StorageOverlaysProps) {
   const rental = s.detail.data,
     transaction = s.selection?.kind === "payment" ? s.selection.transaction : undefined;
   const p = transaction?.payment;
@@ -49,6 +49,16 @@ ${rental.facility.address}`}
                 <Row label={M.email} value={rental.customer.email} />
                 <Row label={M.phone} value={rental.customer.phone ?? M.unknown} />
               </Card>
+              {rental.status === "ACTIVE" && rental.reservationId ? (
+                <Button
+                  label={M.supportRental}
+                  variant="outline"
+                  onPress={() => {
+                    s.setSelection(null);
+                    onCreateSupport(rental.reservationId ?? undefined);
+                  }}
+                />
+              ) : null}
               {rental.settlement ? (
                 <Card title={M.settlement} compact outlined>
                   <Row
@@ -104,6 +114,16 @@ ${rental.facility.address}`}
             <Row label={M.facility} value={transaction.rental.facility.name} />
             <Row label={M.bookingCode} value={transaction.rental.bookingCode} />
           </Card>
+          {transaction.rental.reservationId ? (
+            <Button
+              label={M.supportPayment}
+              variant="outline"
+              onPress={() => {
+                s.setSelection(null);
+                onCreateSupport(transaction.rental.reservationId ?? undefined, p.id);
+              }}
+            />
+          ) : null}
         </>
       ) : null}
     </DetailSheet>

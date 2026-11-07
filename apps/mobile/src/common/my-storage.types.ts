@@ -35,6 +35,7 @@ export interface StorageNavigatorProps {
   readonly onBook: () => void;
   readonly onRebook: (facility: BookingFacility, unitTypeId: string) => void;
   readonly onUnavailable: () => void;
+  readonly onCreateSupport: (reservationId?: string, paymentId?: string) => void;
 }
 
 export type StorageSelection =
@@ -42,6 +43,7 @@ export type StorageSelection =
   | { kind: "payment"; transaction: StorageTransaction };
 export interface StorageOverlaysProps {
   readonly state: MyStorageState;
+  readonly onCreateSupport: (reservationId?: string, paymentId?: string) => void;
 }
 
 export interface RentalsScreenProps extends MyStorageScreenProps {

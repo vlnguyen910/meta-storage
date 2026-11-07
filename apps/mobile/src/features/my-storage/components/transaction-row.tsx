@@ -9,7 +9,7 @@ export function TransactionRow({
   onPress,
 }: TransactionRowProps) {
   return (
-    <View className="border-b border-line bg-surface px-4 py-3">
+    <View className="bg-surface px-4 py-4">
       <View className="mb-2 flex-row flex-wrap items-center justify-between gap-2">
         <View className="min-w-0 flex-1 flex-row flex-wrap items-center gap-2">
           <Text selectable className="shrink font-body-bold text-[12px] text-ink">
@@ -39,7 +39,7 @@ export function TransactionRow({
       <Text className="font-body text-[12px] leading-5 text-muted">
         {M.paymentTypes[p.type]} · {p.provider === "sepay" ? M.sepay : (p.provider ?? M.unknown)}
       </Text>
-      <View className="flex-row flex-wrap items-center justify-between gap-2">
+      <View className="mt-2 flex-row flex-wrap items-center justify-between gap-2">
         <Text className="font-body text-[12px] text-muted">
           {dateTime(p.paidAt ?? p.createdAt)}
         </Text>

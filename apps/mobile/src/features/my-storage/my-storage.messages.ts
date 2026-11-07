@@ -38,6 +38,8 @@ export const MY_STORAGE = {
   latest: "Gần đây nhất",
   oldest: "Cũ nhất",
   paymentDetails: "Xem giao dịch",
+  supportRental: "Báo vấn đề với kỳ thuê này",
+  supportPayment: "Hỗ trợ giao dịch này",
   paymentCode: "Mã giao dịch",
   paymentType: "Loại giao dịch",
   paymentStatus: "Trạng thái",

@@ -9,6 +9,7 @@ export function RentalHistoryScreen({ state: s, onRebook }: RentalHistoryScreenP
     <FlatList
       data={s.history.data ?? []}
       keyExtractor={(r) => r.id}
+      className="flex-1"
       contentContainerClassName="grow px-4 pb-5"
       refreshing={s.history.isRefetching}
       onRefresh={() => void s.history.refetch()}
