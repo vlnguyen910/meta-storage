@@ -75,18 +75,15 @@ import { InventoryPanel } from "./unit-inventory";
 const tabLabels = {
   facilities: F5.facilities,
   types: F5.types,
-  offerings: F5.offerings,
-  memberships: F5.memberships,
-  units: F5.inventory,
 };
+
+type ManagementTab = keyof typeof tabLabels | "offerings" | "memberships" | "units";
 
 const PAGE_SIZE = 6;
 
 export function FacilityManagementWorkspace({ membershipsOnly = false }: ManagementWorkspaceProps) {
   const scope = useFacilityOptions(true);
-  const [tab, setTab] = useState<keyof typeof tabLabels>(
-    membershipsOnly ? "memberships" : "facilities",
-  );
+  const [tab, setTab] = useState<ManagementTab>(membershipsOnly ? "memberships" : "facilities");
   const [creatingFacility, setCreatingFacility] = useState(false);
 
   if (isMockMode) return <p role="status">{F5.noMock}</p>;
@@ -142,10 +139,6 @@ export function FacilityManagementWorkspace({ membershipsOnly = false }: Managem
       <div className="flex-1 overflow-hidden min-h-0 flex flex-col">
         {tab === "facilities" && (
           <FacilityListTable
-            onSelectFacility={(id) => {
-              scope.select(id);
-              setTab("offerings");
-            }}
             selectedFacilityId={scope.facilityId}
             onOpenCreate={() => setCreatingFacility(true)}
           />
@@ -203,7 +196,7 @@ function FacilityListTable({
   onSelectFacility,
   onOpenCreate,
 }: {
-  onSelectFacility: (id: string) => void;
+  onSelectFacility?: (id: string) => void;
   selectedFacilityId?: string;
   onOpenCreate: () => void;
 }) {
@@ -367,14 +360,16 @@ function FacilityListTable({
                         <Pencil className="size-3.5" />
                         <span>{F5.edit}</span>
                       </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => onSelectFacility(facility.id)}
-                        className="h-8 min-h-8 px-2.5 text-xs border-slate-200 text-slate-700 hover:text-primary"
-                      >
-                        <span>Quản lý</span>
-                      </Button>
+                      {onSelectFacility && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => onSelectFacility(facility.id)}
+                          className="h-8 min-h-8 px-2.5 text-xs border-slate-200 text-slate-700 hover:text-primary"
+                        >
+                          <span>Quản lý</span>
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
