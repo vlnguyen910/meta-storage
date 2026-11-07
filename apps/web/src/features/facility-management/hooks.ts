@@ -218,6 +218,9 @@ export const useCreateType = () =>
   useFlow5Write((input: CreateUnitTypeInput) => api.flow5.unitTypes.create(input));
 export const useUpdateType = (id: string) =>
   useFlow5Write((input: UpdateUnitTypeInput) => api.flow5.unitTypes.update(id, input));
+export function useUploadCoverImage() {
+  return useMutation({ mutationFn: api.flow5.coverImages.upload });
+}
 export const useAssignMember = (id: string) =>
   useFlow5Write((input: CreateAssignmentBody) => api.flow5.facilities.assign(id, input));
 export const useRevokeMember = (id: string) =>

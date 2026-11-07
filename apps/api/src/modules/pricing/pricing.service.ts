@@ -1,10 +1,12 @@
 import type {
   BookingDraft,
+  CreatePriceRange,
   PricingChange,
   PricingConfiguration,
   PricingQuery,
   PricingUpdateResult,
   UpdateDepositPolicy,
+  UpdatePriceRange,
 } from "@metastorage/contracts";
 import { PRICING_MESSAGES as m } from "@metastorage/contracts";
 import { AppError } from "../../common/errors/app-error";
@@ -20,6 +22,19 @@ export class PricingService {
 
   updateDeposit(input: UpdateDepositPolicy, actor: string): Promise<PricingUpdateResult> {
     return this.repository.updateDeposit(input, actor);
+  }
+
+  async listPriceRanges(query: PricingQuery) {
+    const rows = await this.repository.listPriceRanges(query);
+    return rows.map(serializePriceRange);
+  }
+
+  async createPriceRange(input: CreatePriceRange, actor: string) {
+    return serializePriceRange(await this.repository.createPriceRange(input, actor));
+  }
+
+  async updatePriceRange(id: string, input: UpdatePriceRange, actor: string) {
+    return serializePriceRange(await this.repository.updatePriceRange(id, input, actor));
   }
 
   async history(query: PricingQuery): Promise<PricingChange[]> {
@@ -45,4 +60,12 @@ export class PricingService {
       currency: "VND",
     };
   }
+}
+
+function serializePriceRange(range: Awaited<ReturnType<PricingRepository["createPriceRange"]>>) {
+  return {
+    ...range,
+    createdAt: range.createdAt.toISOString(),
+    updatedAt: range.updatedAt.toISOString(),
+  };
 }

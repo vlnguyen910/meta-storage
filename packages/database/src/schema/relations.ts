@@ -11,6 +11,7 @@ import { inspections } from "./inspections";
 import { mediaAssets } from "./media-assets";
 import { paymentProviderEvents } from "./payment-provider-events";
 import { payments } from "./payments";
+import { rentalPriceRanges } from "./rental-price-ranges";
 import { rentals } from "./rentals";
 import { reservations } from "./reservations";
 import { sessions } from "./sessions";
@@ -86,8 +87,17 @@ export const facilitiesRelations = relations(facilities, ({ many }) => ({
   appointments: many(appointments),
 }));
 
+export const rentalPriceRangesRelations = relations(rentalPriceRanges, ({ many, one }) => ({
+  updatedBy: one(users, { fields: [rentalPriceRanges.updatedBy], references: [users.id] }),
+  unitTypes: many(unitTypes),
+}));
+
 export const unitTypesRelations = relations(unitTypes, ({ many, one }) => ({
   facility: one(facilities, { fields: [unitTypes.facilityId], references: [facilities.id] }),
+  priceRange: one(rentalPriceRanges, {
+    fields: [unitTypes.priceRangeId],
+    references: [rentalPriceRanges.id],
+  }),
   storageUnits: many(storageUnits),
   bookings: many(bookings),
   reservations: many(reservations),

@@ -14,6 +14,7 @@ import {
   reservations,
   sql,
   unitTypes,
+  users,
 } from "@metastorage/database";
 
 export type ReservationTransaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
@@ -50,6 +51,7 @@ export class ReservationsRepository {
     return this.db
       .select({
         ...getTableColumns(reservations),
+        user: { id: users.id, name: users.name, email: users.email, phone: users.phone },
         facility: { id: facilities.id, name: facilities.name, address: facilities.address },
         unitType: { id: unitTypes.id, name: unitTypes.name, sizeLabel: unitTypes.sizeLabel },
         rentalId: sql<
@@ -60,6 +62,7 @@ export class ReservationsRepository {
         >`(select ${payments.status}::text from ${payments} where ${payments.reservationId} = ${reservations.id} order by ${payments.createdAt} desc, ${payments.id} desc limit 1)`,
       })
       .from(reservations)
+      .innerJoin(users, eq(users.id, reservations.customerId))
       .innerJoin(facilities, eq(facilities.id, reservations.facilityId))
       .innerJoin(unitTypes, eq(unitTypes.id, reservations.unitTypeId));
   }

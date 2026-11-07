@@ -23,6 +23,7 @@ import { facilitiesRoutes } from "./modules/facilities/facilities.routes";
 import { facilityTasksRoutes } from "./modules/facility-tasks/facility-tasks.routes";
 import { facilityWorkspaceRoutes } from "./modules/facility-workspace/facility-workspace.routes";
 import { inspectionsRoutes } from "./modules/inspections/inspections.routes";
+import { mediaAssetsRoutes } from "./modules/media-assets/media-assets.routes";
 import { lifecycleNotificationsRoutes } from "./modules/notifications/lifecycle-notifications.routes";
 import { notificationsPlugin } from "./modules/notifications/notifications.plugin";
 import { paymentsRoutes } from "./modules/payments/payments.routes";
@@ -81,6 +82,7 @@ export function buildApp(): FastifyInstance {
   app.register(reservationsRoutes, { prefix: "/api/reservations" });
   app.register(appointmentsRoutes, { prefix: "/api/appointments" });
   app.register(inspectionsRoutes, { prefix: "/api" });
+  app.register(mediaAssetsRoutes, { prefix: "/api/media-assets" });
   app.register(paymentsRoutes, { prefix: "/api" });
   app.register(pricingRoutes, { prefix: "/api/business-rules" });
   app.register(reportsRoutes, { prefix: "/api/reports" });

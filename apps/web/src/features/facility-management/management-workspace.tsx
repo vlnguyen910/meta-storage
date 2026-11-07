@@ -13,7 +13,17 @@ import {
   type FacilityUnitTypeDto,
 } from "@metastorage/contracts";
 import { formatReference } from "@metastorage/shared";
-import { Layers, Pencil, Plus, Search, UserMinus, UserPlus, Warehouse } from "lucide-react";
+import {
+  CloudUpload,
+  Layers,
+  Link2,
+  Pencil,
+  Plus,
+  Search,
+  UserMinus,
+  UserPlus,
+  Warehouse,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -49,6 +59,7 @@ import {
   useRevokeMember,
   useUpdateFacility,
   useUpdateType,
+  useUploadCoverImage,
 } from "./hooks";
 import { F5 } from "./management.messages";
 import type { FacilityPanelProps, ManagementWorkspaceProps } from "./management.types";
@@ -1232,6 +1243,7 @@ function FacilityEditor({
       code: facility?.code ?? "",
       name: facility?.name ?? "",
       address: facility?.address ?? "",
+      coverUrl: facility?.coverUrl ?? "",
       description: facility?.description ?? "",
       isActive: facility?.isActive ?? true,
     },
@@ -1266,6 +1278,18 @@ function FacilityEditor({
         </ManagementField>
         <ManagementField label={F5.address} error={form.formState.errors.address?.message}>
           <Input {...form.register("address")} placeholder="Địa chỉ chi tiết..." />
+        </ManagementField>
+        <ManagementField
+          label={F5.coverImage}
+          error={form.formState.errors.coverUrl ? F5.coverImageRequired : undefined}
+        >
+          <CoverImageField
+            id="facility-cover-url"
+            value={form.watch("coverUrl")}
+            onChange={(coverUrl) =>
+              form.setValue("coverUrl", coverUrl, { shouldDirty: true, shouldValidate: true })
+            }
+          />
         </ManagementField>
         <ManagementField
           label={F5.descriptionLabel}
@@ -1328,6 +1352,7 @@ function TypeEditor({
 
       code: type?.code ?? "",
       name: type?.name ?? "",
+      coverUrl: type?.coverUrl ?? "",
       sizeLabel: type?.sizeLabel ?? "",
       lengthM: type?.lengthM,
       widthM: type?.widthM,
@@ -1372,6 +1397,18 @@ function TypeEditor({
             {...form.register("name")}
             placeholder="Ví dụ: Kho tiêu chuẩn (10 m²)"
             className="h-10 min-h-10 w-full rounded-lg border-slate-200 bg-slate-50/50 px-3 text-xs text-slate-900 placeholder:text-slate-400 transition-colors focus:border-primary focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+        </ManagementField>
+        <ManagementField
+          label={F5.coverImage}
+          error={form.formState.errors.coverUrl ? F5.coverImageRequired : undefined}
+        >
+          <CoverImageField
+            id="unit-type-cover-url"
+            value={form.watch("coverUrl")}
+            onChange={(coverUrl) =>
+              form.setValue("coverUrl", coverUrl, { shouldDirty: true, shouldValidate: true })
+            }
           />
         </ManagementField>
         <ManagementField label={F5.sizeLabel} error={form.formState.errors.sizeLabel?.message}>
@@ -1440,6 +1477,139 @@ function TypeEditor({
   );
 }
 
+function CoverImageField({
+  id,
+  value,
+  onChange,
+}: {
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const upload = useUploadCoverImage();
+  const [mode, setMode] = useState<"external" | "cloudinary">("external");
+  const [uploadError, setUploadError] = useState<string>();
+
+  const handleFile = async (file: File | undefined) => {
+    setUploadError(undefined);
+    if (!file) return;
+    if (
+      !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
+      file.size > 3 * 1024 * 1024
+    ) {
+      setUploadError(F5.coverFileError);
+      return;
+    }
+    try {
+      const result = await upload.mutateAsync({
+        filename: file.name,
+        mimeType: file.type as "image/jpeg" | "image/png" | "image/webp",
+        dataBase64: await fileToBase64(file),
+      });
+      onChange(result.coverUrl);
+    } catch (error) {
+      const message = managementError(error);
+      setUploadError(message === F5.saveError ? F5.coverUploadError : message);
+    }
+  };
+
+  return (
+    <div className="grid gap-3">
+      <fieldset className="flex flex-wrap gap-2">
+        <legend className="sr-only">{F5.coverImage}</legend>
+        <Button
+          type="button"
+          variant={mode === "external" ? "primary" : "outline"}
+          aria-pressed={mode === "external"}
+          onClick={() => setMode("external")}
+          className="min-h-10"
+        >
+          <Link2 aria-hidden="true" className="size-4" />
+          {F5.coverExternalMode}
+        </Button>
+        <Button
+          type="button"
+          variant={mode === "cloudinary" ? "primary" : "outline"}
+          aria-pressed={mode === "cloudinary"}
+          onClick={() => setMode("cloudinary")}
+          className="min-h-10"
+        >
+          <CloudUpload aria-hidden="true" className="size-4" />
+          {F5.coverUploadMode}
+        </Button>
+      </fieldset>
+      {mode === "external" ? (
+        <Input
+          id={id}
+          type="url"
+          inputMode="url"
+          autoComplete="url"
+          required
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder="https://example.com/anh-cover.jpg"
+          aria-label={F5.coverUrl}
+          aria-invalid={!value || undefined}
+        />
+      ) : (
+        <label
+          htmlFor={`${id}-file`}
+          className="flex min-h-28 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center transition-colors hover:border-primary hover:bg-primary-soft focus-within:ring-2 focus-within:ring-primary"
+        >
+          <input
+            id={`${id}-file`}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="sr-only"
+            disabled={upload.isPending}
+            onChange={(event) => {
+              const file = event.currentTarget.files?.[0];
+              event.currentTarget.value = "";
+              void handleFile(file);
+            }}
+          />
+          <CloudUpload aria-hidden="true" className="size-5 text-primary" />
+          <span className="text-sm font-semibold text-slate-800">
+            {upload.isPending ? F5.coverUploading : F5.coverUpload}
+          </span>
+          <span className="text-xs text-slate-500">{F5.coverUploadHint}</span>
+        </label>
+      )}
+      {uploadError && (
+        <p role="alert" className="text-xs font-medium text-danger">
+          {uploadError}
+        </p>
+      )}
+      {value && (
+        <a
+          href={value}
+          target="_blank"
+          rel="noreferrer"
+          className="break-all text-xs text-primary underline underline-offset-2"
+        >
+          {F5.coverPreviewLink}
+        </a>
+      )}
+    </div>
+  );
+}
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result !== "string") {
+        reject(new Error(F5.coverUploadError));
+        return;
+      }
+      const separator = reader.result.indexOf(",");
+      resolve(reader.result.slice(separator + 1));
+    };
+    reader.onerror = () => reject(reader.error ?? new Error(F5.coverUploadError));
+    reader.readAsDataURL(file);
+  });
+}
+
 function TypeStatusEditor({ type, onClose }: { type: FacilityUnitTypeDto; onClose: () => void }) {
   const { showToast } = useToast();
   const mutation = useUpdateType(type.id);
@@ -1456,6 +1626,11 @@ function TypeStatusEditor({ type, onClose }: { type: FacilityUnitTypeDto; onClos
             ? `Bạn có chắc chắn muốn ngừng cung cấp loại kho "${type.name}" (${type.code}) trong hệ thống cơ sở?`
             : `Kích hoạt lại loại kho "${type.name}" (${type.code}) trong hệ thống cơ sở để tiếp tục cung cấp.`}
         </p>
+        {!type.coverUrl && (
+          <p role="alert" className="text-xs font-medium text-danger">
+            {F5.coverImageRequired}
+          </p>
+        )}
         {mutation.isError && (
           <p role="alert" className="text-xs font-semibold text-danger">
             {managementError(mutation.error)}
@@ -1473,11 +1648,12 @@ function TypeStatusEditor({ type, onClose }: { type: FacilityUnitTypeDto; onClos
           <Button
             type="button"
             variant={isDeactivating ? "danger" : "primary"}
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || !type.coverUrl}
             loading={mutation.isPending}
             onClick={async () => {
               try {
                 await mutation.mutateAsync({
+                  coverUrl: type.coverUrl ?? "",
                   isActive: !type.isActive,
                   expectedVersion: type.version,
                 });

@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  index,
   integer,
   numeric,
   pgTable,
@@ -13,6 +14,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { facilities } from "./facilities";
+import { rentalPriceRanges } from "./rental-price-ranges";
 import { users } from "./users";
 
 export const unitTypes = pgTable(
@@ -24,6 +26,7 @@ export const unitTypes = pgTable(
       .references(() => facilities.id, { onDelete: "restrict" }),
     version: integer().default(0).notNull(),
     updatedBy: uuid().references(() => users.id, { onDelete: "restrict" }),
+    priceRangeId: uuid().references(() => rentalPriceRanges.id, { onDelete: "restrict" }),
     code: varchar({ length: 80 }).notNull(),
     name: varchar({ length: 100 }).notNull(),
     coverUrl: text(),
@@ -42,6 +45,7 @@ export const unitTypes = pgTable(
   (table) => [
     uniqueIndex("unit_types_facility_code_idx").on(table.facilityId, table.code),
     unique("unit_types_facility_id_idx").on(table.facilityId, table.id),
+    index("unit_types_price_range_idx").on(table.priceRangeId),
     check("unit_types_price_positive", sql`${table.monthlyPrice} > 0`),
     check("unit_types_version_valid", sql`${table.version} >= 0`),
     check(
