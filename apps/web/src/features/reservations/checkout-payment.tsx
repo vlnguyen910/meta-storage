@@ -3,7 +3,6 @@
 import { CUSTOMER_WORKSPACE as C } from "@metastorage/shared";
 import { AlertCircle, ArrowRight, CheckCircle2, Landmark, Loader2, RefreshCw } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { isMockMode } from "@/config/api-mode";
 import { routes } from "@/config/routes";
 import { checkoutMessages as m } from "./checkout.messages";
@@ -11,10 +10,7 @@ import type { CheckoutState } from "./checkout.types";
 import { CheckoutRow, CheckoutSummary } from "./checkout-parts";
 
 export function CheckoutPayment({ state }: { state: CheckoutState }) {
-  const pathname = usePathname();
-  const restartPath = pathname?.startsWith("/customer/")
-    ? routes.customer.newReservation
-    : routes.reservationNew;
+  const restartPath = routes.customer.newReservation;
 
   const pending = state.pendingPayment;
   const status = state.paymentStatusQuery.data?.status;
