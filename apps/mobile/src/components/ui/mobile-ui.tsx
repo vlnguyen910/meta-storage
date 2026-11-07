@@ -1,6 +1,6 @@
 import { Eye, EyeOff } from "lucide-react-native";
 import { useId, useState } from "react";
-import { Platform, Pressable, Text, View } from "react-native";
+import { Platform, Pressable, Text, TextInput, View } from "react-native";
 import type {
   MobileButtonProps,
   MobileButtonVariant,
@@ -9,7 +9,7 @@ import type {
 } from "../../common/mobile-ui.types";
 import { IconButton } from "./app-ui";
 import { APP_UI } from "./app-ui.messages";
-import { ThemedActivityIndicator, ThemedTextInput } from "./native-styles";
+import { ThemedActivityIndicator } from "./native-styles";
 
 const buttonVariants: Record<MobileButtonVariant, { container: string; label: string }> = {
   primary: {
@@ -115,6 +115,7 @@ export function Field({
   ref,
   labelAction,
   secureTextEntry,
+  outlined = false,
   ...props
 }: MobileFieldProps) {
   const id = useId();
@@ -126,18 +127,20 @@ export function Field({
         <Text className="shrink font-body-semibold text-label leading-6 text-ink">{label}</Text>
         {labelAction}
       </View>
-      <View className="relative">
-        <ThemedTextInput
+      <View
+        className={`relative ${outlined ? `rounded-control border bg-surface ${error ? "border-danger-strong" : "border-primary/50"} ${props.multiline ? "min-h-[132px]" : "min-h-control"}` : ""}`}
+      >
+        <TextInput
           ref={ref}
           accessibilityLabel={label}
-          placeholderClassName="text-muted"
-          selectionClassName="text-primary"
+          placeholderTextColor="#64748b"
+          selectionColor="#165f4d"
           accessibilityState={{ disabled: props.editable === false }}
           aria-describedby={Platform.OS === "web" && (error || hint) ? descriptionId : undefined}
           {...props}
           secureTextEntry={secureTextEntry && !passwordVisible}
           aria-invalid={!!error}
-          className={`min-h-control rounded-control border bg-surface px-3 py-3 font-body text-body leading-6 text-ink placeholder:text-muted web:focus:outline-2 web:focus:outline-offset-2 web:focus:outline-ring ${secureTextEntry ? "pr-14" : ""} ${error ? "border-danger-strong focus:border-danger-strong" : "border-outline-variant focus:border-primary"} ${props.editable === false ? "opacity-55" : ""}`}
+          className={`min-h-control rounded-control px-3 py-3 font-body text-body leading-6 text-ink placeholder:text-muted web:focus:outline-2 web:focus:outline-offset-2 web:focus:outline-ring ${outlined ? `border-0 bg-transparent ${props.multiline ? "min-h-[132px]" : ""}` : `border bg-surface ${error ? "border-danger-strong focus:border-danger-strong" : "border-outline-variant focus:border-primary"}`} ${secureTextEntry ? "pr-14" : ""} ${props.editable === false ? "opacity-55" : ""}`}
         />
         {secureTextEntry ? (
           <View className="absolute inset-y-0 right-1 justify-center">

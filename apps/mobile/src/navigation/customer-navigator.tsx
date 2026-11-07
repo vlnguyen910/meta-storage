@@ -6,6 +6,7 @@ import type {
   BookingOrigin,
   CustomerNavigatorProps,
   CustomerRoute,
+  CustomerSupportOrigin,
 } from "../common/customer-home.types";
 import { Notice } from "../components/ui";
 import { BOOKING } from "../features/booking/booking.messages";
@@ -14,10 +15,13 @@ import { CustomerLayout } from "../features/customer-home/components/customer-la
 import { CUSTOMER_HOME as M } from "../features/customer-home/customer-home.messages";
 import { useFacilitySearch } from "../features/customer-home/use-facility-search";
 import { MY_STORAGE } from "../features/my-storage/my-storage.messages";
+import { CustomerProfileScreen } from "../screens/account/customer-profile-screen";
 import { AppointmentDetailScreen } from "../screens/appointments/appointment-detail-screen";
 import { AppointmentsScreen } from "../screens/appointments/appointments-screen";
 import { FacilitySearchScreen } from "../screens/facilities/facility-search-screen";
 import { HomeScreen } from "../screens/home/home-screen";
+import { CustomerSupportRequestScreen } from "../screens/support/customer-support-request-screen";
+import { CustomerSupportTicketScreen } from "../screens/support/customer-support-ticket-screen";
 import { BookingNavigator } from "./booking-navigator";
 import { MyStorageNavigator } from "./my-storage-navigator";
 
@@ -25,10 +29,19 @@ const titles = {
   storage: MY_STORAGE.title,
   booking: BOOKING.title,
   home: M.title,
+  profile: M.account,
   search: M.discovery,
   appointments: M.appointments,
   appointment: M.detail,
+  "support-new": M.supportNew,
+  "support-ticket": M.supportTicket,
 };
+
+function supportOriginRoute(origin: CustomerSupportOrigin): CustomerRoute {
+  if (origin === "profile") return { screen: "profile" };
+  if (origin === "storage-transactions") return { screen: "storage", view: "transactions" };
+  return { screen: "storage", view: "current" };
+}
 
 export function CustomerNavigator(props: CustomerNavigatorProps) {
   const [route, setRoute] = useState<CustomerRoute>({ screen: "home" });
@@ -47,7 +60,9 @@ export function CustomerNavigator(props: CustomerNavigatorProps) {
     navigate(
       route.screen === "booking"
         ? route.from
-        : { screen: route.screen === "appointment" ? route.from : "home" },
+        : route.screen === "support-new" || route.screen === "support-ticket"
+          ? supportOriginRoute(route.from)
+          : { screen: route.screen === "appointment" ? route.from : "home" },
     );
   const storage = () => navigate({ screen: "storage", view: "current" });
   const unavailable = () => setNotice(true);
@@ -104,7 +119,11 @@ export function CustomerNavigator(props: CustomerNavigatorProps) {
         setRoute({ screen: "storage", view: "current" });
         return true;
       }
-      setRoute({ screen: route.screen === "appointment" ? route.from : "home" });
+      setRoute(
+        route.screen === "support-new" || route.screen === "support-ticket"
+          ? supportOriginRoute(route.from)
+          : { screen: route.screen === "appointment" ? route.from : "home" },
+      );
       return true;
     });
     return () => listener.remove();
@@ -129,10 +148,20 @@ export function CustomerNavigator(props: CustomerNavigatorProps) {
     <CustomerLayout
       {...props}
       title={
-        route.screen === "home" || route.screen === "storage" ? undefined : titles[route.screen]
+        route.screen === "home" || route.screen === "storage" || route.screen === "profile"
+          ? undefined
+          : titles[route.screen]
       }
-      showTabs={route.screen === "home" || route.screen === "search" || route.screen === "storage"}
-      selectedTab={route.screen === "storage" ? "rentals" : "home"}
+      showTabs={
+        route.screen === "home" ||
+        route.screen === "search" ||
+        route.screen === "storage" ||
+        route.screen === "profile"
+      }
+      selectedTab={
+        route.screen === "profile" ? "profile" : route.screen === "storage" ? "rentals" : "home"
+      }
+      onProfile={() => navigate({ screen: "profile" })}
       onStorage={storage}
       onBack={back}
       onHome={home}
@@ -141,7 +170,13 @@ export function CustomerNavigator(props: CustomerNavigatorProps) {
       onDismissNotice={() => setNotice(false)}
     >
       {bookingErrorText ? <Notice error>{bookingErrorText}</Notice> : null}
-      {route.screen === "home" ? (
+      {route.screen === "profile" ? (
+        <CustomerProfileScreen
+          {...props}
+          onUnavailable={unavailable}
+          onCreateSupport={() => navigate({ screen: "support-new", from: "profile" })}
+        />
+      ) : route.screen === "home" ? (
         <HomeScreen
           owner={props.user.id}
           onStorage={storage}
@@ -164,6 +199,14 @@ export function CustomerNavigator(props: CustomerNavigatorProps) {
           }}
           onRebook={(facility, id) => void book(facility, id)}
           onUnavailable={unavailable}
+          onCreateSupport={(reservationId, paymentId) =>
+            navigate({
+              screen: "support-new",
+              reservationId,
+              paymentId,
+              from: route.view === "transactions" ? "storage-transactions" : "storage-current",
+            })
+          }
         />
       ) : route.screen === "search" ? (
         <FacilitySearchScreen state={search} onBook={(facility) => void book(facility)} />
@@ -173,6 +216,17 @@ export function CustomerNavigator(props: CustomerNavigatorProps) {
           onAppointment={(id) => navigate({ screen: "appointment", id, from: "appointments" })}
           onUnavailable={unavailable}
         />
+      ) : route.screen === "support-new" ? (
+        <CustomerSupportRequestScreen
+          owner={props.user.id}
+          reservationId={route.reservationId}
+          paymentId={route.paymentId}
+          onCreated={(id) =>
+            navigate({ screen: "support-ticket", id, created: true, from: route.from })
+          }
+        />
+      ) : route.screen === "support-ticket" ? (
+        <CustomerSupportTicketScreen owner={props.user.id} id={route.id} created={route.created} />
       ) : (
         <AppointmentDetailScreen owner={props.user.id} id={route.id} />
       )}

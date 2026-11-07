@@ -19,6 +19,7 @@ export function CustomerLayout({
   onBack,
   onHome,
   onStorage,
+  onProfile,
   selectedTab = "home",
   user,
   onLogout,
@@ -31,8 +32,8 @@ export function CustomerLayout({
 }: CustomerLayoutProps) {
   const [account, setAccount] = useState(false);
   return (
-    <ScreenFrame className="bg-customer-canvas">
-      <View className="flex-1 bg-customer-canvas">
+    <ScreenFrame className={selectedTab === "profile" ? "bg-surface" : "bg-customer-canvas"}>
+      <View className={`flex-1 ${selectedTab === "profile" ? "bg-surface" : "bg-customer-canvas"}`}>
         {title ? (
           <View className="flex-row items-center gap-3 px-4 py-3">
             <IconButton icon={X} label={M.close} onPress={onBack ?? onHome} />
@@ -61,7 +62,13 @@ export function CustomerLayout({
             selected={selectedTab}
             labels={{ home: M.title, profile: M.account }}
             onSelect={(tab) =>
-              tab === "profile" ? setAccount(true) : tab === "rentals" ? onStorage() : onHome()
+              tab === "profile"
+                ? onProfile
+                  ? onProfile()
+                  : setAccount(true)
+                : tab === "rentals"
+                  ? onStorage()
+                  : onHome()
             }
           />
         ) : null}

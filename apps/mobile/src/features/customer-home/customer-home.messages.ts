@@ -38,6 +38,8 @@ export const CUSTOMER_HOME = {
   unavailable: "Tính năng này chưa được hỗ trợ trong ứng dụng. Vui lòng quay lại sau.",
   appointments: "Tất cả lịch hẹn",
   detail: "Chi tiết lịch hẹn",
+  supportNew: "Tạo yêu cầu hỗ trợ",
+  supportTicket: "Chi tiết yêu cầu hỗ trợ",
   upcomingTab: "Sắp diễn ra",
   completedTab: "Đã hoàn tất",
   closedTab: "Đã hủy / Vắng hẹn",

@@ -20,6 +20,7 @@ export interface MobileButtonProps extends Omit<PressableProps, "children" | "st
   inline?: boolean;
 }
 export interface MobileFieldProps extends TextInputProps {
+  outlined?: boolean;
   ref?: Ref<TextInput>;
   label: string;
   error?: string;

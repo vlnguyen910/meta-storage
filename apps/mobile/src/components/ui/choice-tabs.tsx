@@ -22,7 +22,7 @@ export function ChoiceTabs<T extends string>({
           aria-selected={value === option.value}
           disabled={disabled}
           onPress={() => onChange(option.value)}
-          className={`min-h-touch flex-row flex-wrap items-center justify-center gap-1 py-2 web:focus-visible:outline-2 web:focus-visible:outline-offset-2 web:focus-visible:outline-ring ${segmented ? "min-w-0 flex-1 rounded-control px-2" : "rounded-full border px-4"} ${value === option.value ? "border-primary bg-primary active:bg-primary-dark" : segmented ? "border-transparent bg-transparent" : "border-outline-variant bg-surface active:bg-primary-soft"} ${disabled ? "opacity-55" : ""}`}
+          className={`min-h-touch flex-row items-center justify-center gap-1 py-2 web:focus-visible:outline-2 web:focus-visible:outline-offset-2 web:focus-visible:outline-ring ${segmented ? "min-w-0 flex-1 rounded-control px-2" : "rounded-full border px-4"} ${value === option.value ? "border-primary bg-primary active:bg-primary-dark" : segmented ? "border-transparent bg-transparent" : "border-outline-variant bg-surface active:bg-primary-soft"} ${disabled ? "opacity-55" : ""}`}
         >
           <Text
             className={`shrink font-body-semibold ${segmented ? "text-[12px] leading-5" : "text-label leading-6"} ${value === option.value ? "text-primary-foreground" : segmented ? "text-customer-muted" : "text-muted"}`}
@@ -43,9 +43,9 @@ export function ChoiceTabs<T extends string>({
     </View>
   );
   return segmented ? (
-    <View className="mb-4">{content}</View>
+    <View className="mb">{content}</View>
   ) : (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4 grow-0">
       {content}
     </ScrollView>
   );

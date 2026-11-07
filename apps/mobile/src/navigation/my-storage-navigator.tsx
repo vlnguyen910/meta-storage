@@ -6,7 +6,7 @@ import { RentalHistoryScreen } from "../screens/rental/rental-history-screen";
 import { RentalTransactionsScreen } from "../screens/rental/rental-transactions-screen";
 import { RentalsScreen } from "../screens/rental/rentals-screen";
 export function MyStorageNavigator(props: StorageNavigatorProps) {
-  const state = useMyStorage(props.owner, props.view);
+  const state = useMyStorage(props.owner);
   return (
     <>
       <StorageHeader
@@ -25,7 +25,7 @@ export function MyStorageNavigator(props: StorageNavigatorProps) {
       ) : (
         <RentalTransactionsScreen state={state} />
       )}
-      <StorageOverlays state={state} />
+      <StorageOverlays state={state} onCreateSupport={props.onCreateSupport} />
     </>
   );
 }

@@ -12,17 +12,27 @@ export type BookingOrigin =
   | { screen: "storage"; view: StorageView };
 export type CustomerRoute =
   | { screen: "home" }
+  | { screen: "profile" }
   | { screen: "search" }
   | { screen: "booking"; facility: BookingFacility; unitTypeId?: string; from: BookingOrigin }
   | { screen: "storage"; view: StorageView }
   | { screen: "appointments" }
-  | { screen: "appointment"; id: string; from: "home" | "appointments" };
+  | { screen: "appointment"; id: string; from: "home" | "appointments" }
+  | {
+      screen: "support-new";
+      reservationId?: string;
+      paymentId?: string;
+      from: CustomerSupportOrigin;
+    }
+  | { screen: "support-ticket"; id: string; created: boolean; from: CustomerSupportOrigin };
+export type CustomerSupportOrigin = "profile" | "storage-current" | "storage-transactions";
 export type AppointmentFilter = "all" | "upcoming" | "completed" | "closed";
 interface CustomerIdentity {
   readonly id: string;
   readonly name: string;
   readonly email?: string;
   readonly phone?: string | null;
+  readonly emailVerified?: boolean;
 }
 export interface CustomerNavigatorProps {
   readonly user: CustomerIdentity;
@@ -36,11 +46,15 @@ export interface CustomerLayoutProps extends CustomerNavigatorProps {
   readonly onBack?: () => void;
   readonly onHome: () => void;
   readonly onStorage: () => void;
+  readonly onProfile?: () => void;
   readonly selectedTab?: CustomerTab;
   readonly onUnavailable: () => void;
   readonly notice: boolean;
   readonly onDismissNotice: () => void;
   readonly showTabs?: boolean;
+}
+export interface CustomerProfileScreenProps extends CustomerNavigatorProps {
+  readonly onCreateSupport: () => void;
 }
 export interface HomeScreenProps {
   readonly owner: string;
