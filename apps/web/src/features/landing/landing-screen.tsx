@@ -21,6 +21,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { publicNavigation as nav, PublicHeader } from "@/components/layout/public-header";
+import { BrandLogo } from "@/components/ui/brand-logo";
 import { Currency } from "@/components/ui/display";
 import { facilitiesMessages as facilityMessages } from "@/features/facilities/facilities.messages";
 import fonts from "@/features/facilities/metastorage-fonts.module.css";
@@ -418,7 +419,10 @@ export function LandingScreen() {
         <div className={s.container}>
           <div className={s.footerGrid}>
             <div>
-              <h3>{m.brand} Vietnam</h3>
+              <h3 className="flex items-center gap-2">
+                <BrandLogo />
+                {m.brand}
+              </h3>
               <p>{m.footerDescription}</p>
             </div>
             <div>

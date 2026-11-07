@@ -1,5 +1,5 @@
 export const OPERATIONS_SHELL_MESSAGES = {
-  brand: "StoreX OS",
+  brand: "MetaStorage",
   logout: "Đăng xuất",
   logoutFailed: "Chưa thể đăng xuất. Vui lòng thử lại.",
   role: "Quản lý vận hành kinh doanh",

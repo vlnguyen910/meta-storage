@@ -59,7 +59,7 @@ function MockBookingTrackingScreen() {
       <main className="mx-auto w-[min(1240px,calc(100%_-_32px))] py-8 text-slate-900 sm:py-10">
         <div className="mb-8">
           <span className="mb-2 inline-block text-xs font-bold tracking-wider text-primary uppercase">
-            StoreX Tracking
+            {m.brand} Tracking
           </span>
           <h1 className="mb-2 text-3xl font-bold tracking-tight text-ink sm:text-4xl">{m.title}</h1>
           <p className="m-0 text-sm text-muted sm:text-base">{m.description}</p>

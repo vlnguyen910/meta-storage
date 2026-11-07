@@ -142,7 +142,7 @@ components:
 
 ## Overview
 
-StoreX is a modern self-storage management and rental platform built for individuals, families, and businesses in Vietnam. The visual identity reflects **security, reliability, architectural precision, and hospitality**.
+MetaStorage is a modern self-storage management and rental platform built for individuals, families, and businesses in Vietnam. The visual identity reflects **security, reliability, architectural precision, and hospitality**.
 
 - **Brand Personality**: Trustworthy, secure, crisp, and effortless. It avoids cold industrial warehouse aesthetics in favor of a warm, orderly, tech-enabled storage experience.
 - **Visual Rhythm**: High legibility, clear containment with rounded cards (`15px`), ample white space, and an emerald-and-slate color palette inspired by institutional security and modern urban spaces.
@@ -163,7 +163,7 @@ The color palette centers on deep emerald green (`#165F4D`) and dark slate tones
 
 ## Typography
 
-StoreX pairs two complementary typefaces to distinguish structured data from readable narrative:
+MetaStorage pairs two complementary typefaces to distinguish structured data from readable narrative:
 
 - **Space Grotesk** (Headings, Metrics, Labels): A geometric sans-serif that evokes technical precision, warehouse unit numbering, and architectural layouts. Used for `h1` through `h3`, unit codes (e.g. `HCM-01`), and uppercase metric badges.
 - **Be Vietnam Pro** / **Inter** (Body, Controls, Forms): An optimized grotesque sans-serif ensuring long-form readability, high legibility for Vietnamese diacritics, and clean data density in admin tables and booking summaries.
@@ -176,7 +176,7 @@ StoreX pairs two complementary typefaces to distinguish structured data from rea
 
 ## Layout
 
-StoreX uses a responsive **Fluid-to-Max-Width** grid system:
+MetaStorage uses a responsive **Fluid-to-Max-Width** grid system:
 
 - **Container Width**: Max-width of `1280px` for desktop views with centered margins, ensuring optimal scan lines on wide displays.
 - **Spacing Rhythm**: An 8px base rhythm (`4px` micro-step, `8px`, `16px`, `24px`, `32px`, `48px`, `64px`).
@@ -185,7 +185,7 @@ StoreX uses a responsive **Fluid-to-Max-Width** grid system:
 
 ## Elevation & Depth
 
-StoreX emphasizes **Tonal Layers & Soft Shadows** over heavy skeuomorphic drop shadows.
+MetaStorage emphasizes **Tonal Layers & Soft Shadows** over heavy skeuomorphic drop shadows.
 
 - **Layering**: Depth is created primarily through color contrast: `Canvas (#FAFAFA)` -> `Surface Card (#FFFFFF)` -> `Modal / Popover (#FFFFFF)`.
 - **Card Shadow**: `-2px 4px 12px 4px rgba(51, 51, 51, 0.08)` provides subtle elevation without looking heavy.
@@ -194,7 +194,7 @@ StoreX emphasizes **Tonal Layers & Soft Shadows** over heavy skeuomorphic drop s
 
 ## Shapes
 
-StoreX blends approachable modern curves with functional order:
+MetaStorage blends approachable modern curves with functional order:
 
 - **Card Radius (`15px`)**: Standardized across all main dashboard cards, unit category previews, and reservation containers.
 - **Button & Input Radius (`8px`)**: Interactive controls use `8px` (`rounded-md`) to feel tactile, clickable, and responsive.
@@ -239,3 +239,12 @@ page. Names, emails and roles use current account profiles rather than historica
 snapshots. Keep filters usable during loading, empty and error states; provide a
 retry action. On narrow screens stack the filters and contain horizontal scrolling
 inside the table. No edit/delete controls or new shared components are needed.
+
+## Brand mark
+
+Use the supplied mark from `apps/web/assets/logo/logo.png` for the web identity.
+`BrandLogo` renders the same mark from `public/brand/logo.png` with transparent
+padding trimmed for legible header/sidebar sizing. Pair it with **MetaStorage**;
+use a light backing on dark surfaces so the green mark remains visible.
+Browser and home-screen icons use the same mark through the App Router favicon,
+icon and apple-icon files. The default browser title is **MetaStorage**.

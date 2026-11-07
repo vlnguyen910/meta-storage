@@ -49,16 +49,20 @@ test("facility filtering, empty recovery, and edit dialog work", async ({ page }
   await search.fill("missing-facility");
   await expect(page.getByText("Không có cơ sở phù hợp", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Đặt lại bộ lọc" }).click();
-  await page.getByRole("button", { name: "Chỉnh thông tin cơ sở: StoreX Sài Gòn Central" }).click();
+  await page
+    .getByRole("button", { name: "Chỉnh thông tin cơ sở: MetaStorage Sài Gòn Central" })
+    .click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
   await dialog.getByLabel("Tên cơ sở", { exact: true }).fill("");
   await dialog.getByRole("button", { name: "Lưu bản mẫu" }).click();
   await expect(dialog.getByText("Vui lòng nhập thông tin này.", { exact: true })).toBeVisible();
-  await dialog.getByLabel("Tên cơ sở", { exact: true }).fill("StoreX Central — bản mẫu");
+  await dialog.getByLabel("Tên cơ sở", { exact: true }).fill("MetaStorage Central — bản mẫu");
   await dialog.getByRole("button", { name: "Lưu bản mẫu" }).click();
   await expect(dialog).not.toBeVisible();
-  await expect(page.getByRole("rowheader", { name: /StoreX Central — bản mẫu/ })).toBeVisible();
+  await expect(
+    page.getByRole("rowheader", { name: /MetaStorage Central — bản mẫu/ }),
+  ).toBeVisible();
 });
 
 test("pricing validates and retains edits across mock navigation", async ({ page }) => {
@@ -89,7 +93,7 @@ test("report filter totals and CSV export use only selected fixtures", async ({ 
   await page.goto("/operations/reports/revenue");
   await page.getByLabel("Cơ sở kho", { exact: true }).selectOption("SGC");
   await expect(page.getByText(/120\.000\.000/).first()).toBeVisible();
-  await expect(page.getByRole("rowheader", { name: "StoreX Bình Thạnh" })).toHaveCount(0);
+  await expect(page.getByRole("rowheader", { name: "MetaStorage Bình Thạnh" })).toHaveCount(0);
   await page.getByLabel("Loại kho", { exact: true }).selectOption("mini");
   await expect(page.getByText(/30\.000\.000/).first()).toBeVisible();
   await page.getByLabel("Kỳ báo cáo mẫu", { exact: true }).selectOption("previous");

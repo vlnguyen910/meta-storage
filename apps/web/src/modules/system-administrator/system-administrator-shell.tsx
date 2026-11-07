@@ -1,9 +1,10 @@
 "use client";
 
-import { LogOut, Menu, ShieldCheck } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { BrandLogo } from "@/components/ui/brand-logo";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { isMockMode } from "@/config/api-mode";
 import { systemAdministratorNavigation } from "@/config/navigation/system-administrator.navigation";
@@ -79,8 +80,9 @@ export function SystemAdministratorShell({ children }: Readonly<AdminShellProps>
         </button>
         <Link
           href={systemAdministratorRoutes.dashboard}
-          className="font-bold text-primary lg:hidden"
+          className="flex items-center gap-2 font-bold text-primary lg:hidden"
         >
+          <BrandLogo />
           {M.brand}
         </Link>
         <nav aria-label={M.breadcrumb} className="hidden items-center gap-3 text-sm lg:flex">
@@ -129,9 +131,7 @@ export function SystemAdministratorShell({ children }: Readonly<AdminShellProps>
           href={systemAdministratorRoutes.dashboard}
           className="mb-8 flex items-center gap-3 px-2 pt-1"
         >
-          <span className="grid size-10 place-items-center rounded-xl bg-primary text-white">
-            <ShieldCheck size={23} aria-hidden="true" />
-          </span>
+          <BrandLogo />
           <span className="min-w-0">
             <strong className="block font-['Space_Grotesk'] text-lg leading-tight text-primary">
               {M.brand}
@@ -155,7 +155,10 @@ export function SystemAdministratorShell({ children }: Readonly<AdminShellProps>
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
         <SheetContent className="left-0 right-auto max-w-72 p-4">
           <SheetHeader className="mb-4">
-            <SheetTitle className="text-primary font-bold text-left">{M.brand}</SheetTitle>
+            <SheetTitle className="flex items-center gap-2 text-primary font-bold text-left">
+              <BrandLogo />
+              {M.brand}
+            </SheetTitle>
           </SheetHeader>
           {navigation}
         </SheetContent>

@@ -1,9 +1,8 @@
 "use client";
 
 import { UserRole } from "@metastorage/database/schema/user-enums";
-import { APP_NAME } from "@metastorage/shared";
 import { useQueryClient } from "@tanstack/react-query";
-import { LogOut, Menu, RotateCcw, Warehouse, X } from "lucide-react";
+import { LogOut, Menu, RotateCcw, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode, useState } from "react";
@@ -18,6 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { BrandLogo } from "@/components/ui/brand-logo";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { isMockMode } from "@/config/api-mode";
@@ -104,10 +104,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             href={roleHome[role]}
             className="inline-flex items-center gap-2.5 text-[1.35rem] font-extrabold tracking-[-0.04em] text-white"
           >
-            <span className="grid size-[38px] place-items-center rounded-[11px] bg-primary text-white">
-              <Warehouse size={22} />
-            </span>
-            <span>{APP_NAME}</span>
+            <BrandLogo />
+            <span>{AUTH_MESSAGES.brandName}</span>
           </Link>
           <button
             type="button"

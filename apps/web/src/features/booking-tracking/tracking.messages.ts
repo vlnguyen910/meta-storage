@@ -1,10 +1,10 @@
 export const trackingMessages = {
-  brand: "StoreX",
+  brand: "MetaStorage",
   title: "Thông tin đặt kho",
   description: "Theo dõi đơn đặt kho qua liên kết trong email xác nhận.",
   loading: "Đang tải thông tin đặt kho…",
   invalid:
-    "Liên kết hoặc phiên tra cứu đã hết hạn. Vui lòng mở lại liên kết trong email xác nhận. Nếu liên kết vẫn không hoạt động, hãy liên hệ StoreX để được hỗ trợ.",
+    "Liên kết hoặc phiên tra cứu đã hết hạn. Vui lòng mở lại liên kết trong email xác nhận. Nếu liên kết vẫn không hoạt động, hãy liên hệ MetaStorage để được hỗ trợ.",
   unavailable:
     "Chưa thể tải thông tin đặt kho. Vui lòng thử lại hoặc mở lại liên kết trong email xác nhận.",
   rateLimited: "Bạn đã thử quá nhiều lần. Vui lòng đợi một phút rồi mở lại liên kết trong email.",

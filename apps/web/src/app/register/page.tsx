@@ -5,7 +5,7 @@ import { AUTH_MESSAGES } from "@/features/auth/auth.messages";
 import { RegisterForm } from "@/features/auth/register-form";
 
 export const metadata = {
-  title: "A02 — Đăng ký khách hàng | StoreX",
+  title: "Đăng ký khách hàng",
 };
 
 export default function RegisterPage() {

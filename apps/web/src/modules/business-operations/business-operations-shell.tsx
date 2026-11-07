@@ -1,9 +1,10 @@
 "use client";
 
-import { Globe2, LogOut, Menu, User, Warehouse } from "lucide-react";
+import { Globe2, LogOut, Menu, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { BrandLogo } from "@/components/ui/brand-logo";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { isMockMode } from "@/config/api-mode";
 import { businessOperationsNavigation } from "@/config/navigation/business-operations.navigation";
@@ -99,7 +100,7 @@ export function BusinessOperationsShell({ children }: Readonly<BusinessOperation
           href={businessOperationsRoutes.dashboard}
           className="inline-flex min-h-11 items-center gap-2 font-bold text-primary"
         >
-          <Warehouse size={25} aria-hidden="true" />
+          <BrandLogo />
           {M.brand}
         </Link>
         <span className="hidden items-center gap-2 border-l border-slate-200 pl-5 text-sm font-semibold text-primary md:inline-flex">
@@ -136,7 +137,10 @@ export function BusinessOperationsShell({ children }: Readonly<BusinessOperation
         <SheetContent className="left-0 right-auto flex max-w-72 flex-col justify-between p-0">
           <div className="min-h-0 flex-1 overflow-y-auto p-4">
             <SheetHeader className="mb-4">
-              <SheetTitle className="text-left font-bold text-primary">{M.brand}</SheetTitle>
+              <SheetTitle className="flex items-center gap-2 text-left font-bold text-primary">
+                <BrandLogo />
+                {M.brand}
+              </SheetTitle>
             </SheetHeader>
             <p className="mb-3 px-3 text-xs font-semibold text-slate-500">{M.role}</p>
             {navigation}

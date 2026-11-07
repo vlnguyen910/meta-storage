@@ -27,7 +27,7 @@ export const AUTH_MESSAGES = {
   invalidEmail: "Email chưa đúng định dạng",
   passwordTooShort: "Mật khẩu cần ít nhất 8 ký tự",
   loginEmailNotVerified:
-    "Email chưa xác minh. Nếu thông tin đăng nhập đúng, storeX đã gửi lại liên kết xác minh.",
+    "Email chưa xác minh. Nếu thông tin đăng nhập đúng, MetaStorage đã gửi lại liên kết xác minh.",
   logoutFailed: "Chưa thể đăng xuất. Vui lòng thử lại.",
   loginFailed: "Không thể đăng nhập. Vui lòng kiểm tra lại email hoặc mật khẩu.",
   loginWelcome: (name: string) => `Chào mừng ${name}`,
@@ -36,13 +36,13 @@ export const AUTH_MESSAGES = {
     "Nếu email tồn tại trong hệ thống, bạn sẽ nhận được hướng dẫn đặt lại mật khẩu.",
 
   // Header & Brand
-  brandName: "storeX",
-  homeAriaLabel: "StoreX Trang chủ",
+  brandName: "MetaStorage",
+  homeAriaLabel: "MetaStorage Trang chủ",
   noAccountPrompt: "Bạn chưa có tài khoản?",
   registerNow: "Đăng ký ngay",
 
   // Login Card
-  loginTitle: "Đăng nhập tài khoản storeX",
+  loginTitle: "Đăng nhập tài khoản MetaStorage",
   loginSubtitle: "Truy cập để quản lý buồng kho, hợp đồng và lịch hẹn bàn giao của bạn",
   emailLabel: "Địa chỉ Email",
   emailPlaceholder: "vidu@gmail.com",
@@ -88,7 +88,7 @@ export const AUTH_MESSAGES = {
   googleStateExpired: "Phiên xác thực đã hết hạn hoặc không hợp lệ. Vui lòng thử lại.",
   googleProviderDisabled: "Phương thức đăng nhập qua Google hiện chưa được kích hoạt.",
   googleAuthFailed: "Đăng nhập bằng Google không thành công. Vui lòng thử lại.",
-  qrLogin: "Đăng nhập bằng mã QR qua ứng dụng storeX",
+  qrLogin: "Đăng nhập bằng mã QR qua ứng dụng MetaStorage",
   hotlineLabel: "Hotline hỗ trợ kỹ thuật:",
   hotlineNumber: "1900 6868",
 
@@ -100,7 +100,7 @@ export const AUTH_MESSAGES = {
   registerBadge: "Khách hàng mới",
   registerTitle: "Đăng ký tài khoản thuê kho",
   registerSubtitle:
-    "Dành riêng cho khách hàng cá nhân & doanh nghiệp có nhu cầu thuê kho tại hệ thống storeX.",
+    "Dành riêng cho khách hàng cá nhân & doanh nghiệp có nhu cầu thuê kho tại hệ thống MetaStorage.",
   fullNameLabel: "Họ và tên",
   fullNamePlaceholder: "Nguyễn Văn A",
   fullNameRequired: "Vui lòng nhập họ và tên",
@@ -117,7 +117,7 @@ export const AUTH_MESSAGES = {
   passwordsDoNotMatch: "Mật khẩu không khớp",
   termsAgreementPrefix: "Tôi đồng ý với",
   termsAgreementAnd: "&",
-  termsAgreementSuffix: "của storeX",
+  termsAgreementSuffix: "của MetaStorage",
   termsOfService: "Quy chế hoạt động",
   privacyPolicy: "Chính sách bảo mật thông tin",
   registerButton: "Tạo tài khoản khách hàng",
@@ -130,7 +130,7 @@ export const AUTH_MESSAGES = {
   goToLogin: "Đến trang đăng nhập",
   surveillanceSecurity: "Camera giám sát 24/7",
   topNavFindStorage: "Tìm kho",
-  topNavAbout: "Về StoreX",
+  topNavAbout: "Về MetaStorage",
   topNavGuide: "Hướng dẫn thuê",
   topNavContact: "Liên hệ",
   topNavHotline: "Hỗ trợ trực tuyến",
@@ -149,7 +149,7 @@ export const AUTH_MESSAGES = {
   backToLogin: "Quay lại Đăng nhập",
   forgotPasswordSuccessTitle: "Yêu cầu đã được tiếp nhận",
   forgotPasswordSuccessSubtitle:
-    "Chúng tôi đã áp dụng các biện pháp bảo mật danh tính tài khoản StoreX.",
+    "Chúng tôi đã áp dụng các biện pháp bảo mật danh tính tài khoản MetaStorage.",
   securityNoticeTitle: "Thông báo bảo mật",
   securityNoticeBody:
     "Nếu email tồn tại trong hệ thống, hướng dẫn đặt lại mật khẩu đã được gửi đi. Vì lý do bảo mật, chúng tôi không tiết lộ email có trong hệ thống hay không.",
@@ -163,7 +163,7 @@ export const AUTH_MESSAGES = {
   helpCenter247: "Trung tâm trợ giúp trực tuyến 24/7",
 
   // Verify Email Page
-  verifyEmailBadge: "Bảo mật hạ tầng StoreX",
+  verifyEmailBadge: "Bảo mật hạ tầng MetaStorage",
   verifyEmailTitle: "Xác thực địa chỉ Email",
   verifyEmailSubtitle: "Hệ thống kho lưu trữ tự quản thông minh dành cho doanh nghiệp & cá nhân",
   verifyEmailTagline: "Hệ thống kho lưu trữ tự quản thông minh",
@@ -195,7 +195,7 @@ export const AUTH_MESSAGES = {
   requestTechSupport: "Yêu cầu hỗ trợ kỹ thuật (1900 6868)",
   retryEnterEmail: "Thử nhập lại email",
   helpCenter: "Trung tâm trợ giúp",
-  clusterInfo: "StoreX Cluster: SGN-01 (Ho Chi Minh)",
+  clusterInfo: "MetaStorage Cluster: SGN-01 (Ho Chi Minh)",
   sessionPrefix: "Phiên:",
   needHelpNote: "Cần trợ giúp giải phóng kho hàng gấp? Gọi ngay đường dây nóng:",
 
@@ -227,18 +227,18 @@ export const AUTH_MESSAGES = {
     "Hệ thống áp dụng cơ chế xác thực đa tầng nhằm bảo vệ tài khoản và dữ liệu cá nhân. Các hành động truy cập ngoài phạm vi ủy quyền sẽ tự động bị từ chối.",
   backToDashboard: "Quay về trang quản lý của bạn",
   forbiddenHelpNote: "Cần thêm trợ giúp hoặc yêu cầu cấp quyền? Vui lòng truy cập",
-  storeXHelpCenter: "Trung tâm trợ giúp StoreX",
+  storeXHelpCenter: "Trung tâm trợ giúp MetaStorage",
   submitTicketNote: "để gửi phiếu hỗ trợ.",
   secureSessionFooter: "Phiên đăng nhập an toàn",
-  securityGuard: "StoreX Security Guard",
+  securityGuard: "MetaStorage Security Guard",
 
   // Demo Accounts (Mock Mode)
   demoAccountsTitle: "Tài khoản demo (1-Click)",
   demoPasswordLabel: "Mật khẩu mặc định: 12345678",
 
   // Footer
-  footerCopyright: "© 2025 StoreX. All rights reserved. Giấy phép ĐKKD TP.HCM & Hà Nội.",
-  navAbout: "Về StoreX",
+  footerCopyright: "© 2025 MetaStorage. All rights reserved. Giấy phép ĐKKD TP.HCM & Hà Nội.",
+  navAbout: "Về MetaStorage",
   navLocationsHcm: "Hệ thống kho TP.HCM",
   navLocationsHn: "Hệ thống kho Hà Nội",
   navPrivacy: "Chính sách bảo mật",

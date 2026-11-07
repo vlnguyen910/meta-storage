@@ -1,6 +1,8 @@
 "use client";
-import { ChevronRight, KeyRound, Menu, UserRound, Warehouse } from "lucide-react";
+
+import { ChevronRight, KeyRound, Menu, UserRound } from "lucide-react";
 import Link from "next/link";
+import { BrandLogo } from "@/components/ui/brand-logo";
 import { roleHome, routes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
 import fonts from "@/features/facilities/metastorage-fonts.module.css";
@@ -21,7 +23,7 @@ export function PublicHeader() {
     <header className={`${fonts.page} ${s.page} ${s.header}`}>
       <div className={s.headerInner}>
         <Link href="/" className={s.brand}>
-          <Warehouse size={29} />
+          <BrandLogo />
           <span>
             <strong>{m.brand}</strong>
             <small>{m.tagline}</small>
