@@ -121,9 +121,9 @@ export function SystemAdministratorActivityLogsScreen() {
       <form
         aria-label={M.activityLogs.filters}
         onSubmit={apply}
-        className="grid shrink-0 grid-cols-2 gap-4 rounded-card border border-line bg-surface p-4 lg:grid-cols-12"
+        className="flex shrink-0 flex-col gap-4 rounded-card border border-line bg-surface p-4"
       >
-        <div className="col-span-2 lg:col-span-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <FieldShell label={M.activityLogs.search}>
             <Input
               type="search"
@@ -133,8 +133,6 @@ export function SystemAdministratorActivityLogsScreen() {
               className={controlClass}
             />
           </FieldShell>
-        </div>
-        <div className="lg:col-span-3">
           <FieldShell label={M.activityLogs.role}>
             <DropdownSelect
               ariaLabel={M.activityLogs.role}
@@ -151,8 +149,6 @@ export function SystemAdministratorActivityLogsScreen() {
               triggerClassName={controlClass}
             />
           </FieldShell>
-        </div>
-        <div className="lg:col-span-2">
           <FieldShell label={M.actionFilter}>
             <DropdownSelect
               ariaLabel={M.actionFilter}
@@ -169,8 +165,6 @@ export function SystemAdministratorActivityLogsScreen() {
               triggerClassName={controlClass}
             />
           </FieldShell>
-        </div>
-        <div className="col-span-2 lg:col-span-3">
           <FieldShell label={M.activityLogs.module}>
             <DropdownSelect
               ariaLabel={M.activityLogs.module}
@@ -187,40 +181,41 @@ export function SystemAdministratorActivityLogsScreen() {
               triggerClassName={controlClass}
             />
           </FieldShell>
-        </div>
-        <div className="lg:col-span-3">
           <FieldShell label={M.activityLogs.from}>
             <Input type="date" {...form.register("from")} className={controlClass} />
           </FieldShell>
-        </div>
-        <div className="lg:col-span-3">
           <FieldShell label={M.activityLogs.to}>
             <Input type="date" {...form.register("to")} className={controlClass} />
           </FieldShell>
         </div>
-        <div className="col-span-2 flex flex-wrap items-end gap-2 lg:col-span-6 lg:justify-end">
-          <Button
-            type="button"
-            variant="outline"
-            className="rounded-lg text-sm"
-            onClick={reset}
-            icon={<RotateCcw size={16} aria-hidden="true" />}
-          >
-            {M.clearFilters}
-          </Button>
-          <Button
-            type="submit"
-            className="rounded-lg text-sm"
-            icon={<Search size={16} aria-hidden="true" />}
-          >
-            {M.activityLogs.apply}
-          </Button>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line/60 pt-3">
+          {form.formState.errors.root ? (
+            <p role="alert" className="m-0 text-xs font-medium text-danger">
+              {form.formState.errors.root.message}
+            </p>
+          ) : (
+            <span className="text-xs text-muted">{M.activityLogs.timezone}</span>
+          )}
+          <div className="ml-auto flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10 min-h-10 rounded-lg px-3.5 text-xs font-semibold"
+              onClick={reset}
+              icon={<RotateCcw size={15} aria-hidden="true" />}
+            >
+              {M.clearFilters}
+            </Button>
+            <Button
+              type="submit"
+              className="h-10 min-h-10 rounded-lg px-4 text-xs font-semibold"
+              icon={<Search size={15} aria-hidden="true" />}
+            >
+              {M.activityLogs.apply}
+            </Button>
+          </div>
         </div>
-        {form.formState.errors.root && (
-          <p role="alert" className="col-span-2 m-0 text-sm text-ink lg:col-span-12">
-            {form.formState.errors.root.message}
-          </p>
-        )}
       </form>
 
       <section
@@ -238,7 +233,7 @@ export function SystemAdministratorActivityLogsScreen() {
           ) : (
             <Table
               tabIndex={0}
-              className="min-w-[1080px] focus-visible:outline-2 focus-visible:outline-primary"
+              className="min-w-[920px] focus-visible:outline-2 focus-visible:outline-primary"
             >
               <TableCaption className="sr-only">{M.titles.activityLogs}</TableCaption>
               <TableHeader className="bg-canvas">
@@ -261,7 +256,7 @@ export function SystemAdministratorActivityLogsScreen() {
                           {log.user?.name ??
                             (log.userId ? M.activityLogs.deletedUser : M.activityLogs.unknownUser)}
                         </span>
-                        <span className="mt-1 block text-xs text-muted font-mono">
+                        <span className="mt-1 block font-mono text-xs text-muted">
                           {log.user?.email ??
                             (log.userId ? formatReference(log.userId, "USR") : "—")}
                         </span>
@@ -294,9 +289,6 @@ export function SystemAdministratorActivityLogsScreen() {
                             {timeFormat.format(new Date(log.createdAt))}
                           </span>
                         </time>
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {log.ipAddress ?? M.activityLogs.unknownIp}
                       </TableCell>
                     </TableRow>
                   );
