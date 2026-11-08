@@ -1,4 +1,9 @@
 import {
+  FacilitySupportPageSchema,
+  FacilitySupportParamsSchema,
+  FacilitySupportTicketParamsSchema,
+  FacilitySupportTicketQuerySchema,
+  FacilitySupportTicketSchema,
   SupportContextParamsSchema,
   SupportContextQuerySchema,
   SupportCreateInputSchema,
@@ -39,6 +44,37 @@ export const supportRoutes: FastifyPluginAsync<SupportRoutesOptions> = async (ap
     reply.header("Cache-Control", "private, no-store");
   });
   const guards = [requireRole("CUSTOMER")];
+  typed.get(
+    "/facilities/:facilityId/tickets",
+    {
+      preHandler: [requireRole("FACILITY_MANAGER")],
+      schema: {
+        ...schema,
+        summary: m.facilityListSummary,
+        params: FacilitySupportParamsSchema,
+        querystring: FacilitySupportTicketQuerySchema,
+        response: { 200: envelope(FacilitySupportPageSchema) },
+      },
+    },
+    async (req) =>
+      successResponse(await service.facilityList(actor(req), req.params.facilityId, req.query)),
+  );
+  typed.get(
+    "/facilities/:facilityId/tickets/:ticketId",
+    {
+      preHandler: [requireRole("FACILITY_MANAGER")],
+      schema: {
+        ...schema,
+        summary: m.facilityDetailSummary,
+        params: FacilitySupportTicketParamsSchema,
+        response: { 200: envelope(FacilitySupportTicketSchema) },
+      },
+    },
+    async (req) =>
+      successResponse(
+        await service.facilityDetail(actor(req), req.params.facilityId, req.params.ticketId),
+      ),
+  );
   typed.get(
     "/contexts",
     { preHandler: guards, schema: { ...schema, querystring: SupportContextQuerySchema } },

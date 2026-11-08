@@ -21,6 +21,8 @@ export const SUPPORT_MESSAGES = {
   createSummary: "Gửi phiếu hỗ trợ cho booking của bạn",
   listSummary: "Xem danh sách phiếu hỗ trợ của bạn",
   detailSummary: "Xem phiếu hỗ trợ và trao đổi công khai",
+  facilityListSummary: "Manager đọc phiếu hỗ trợ tại cơ sở được phân công",
+  facilityDetailSummary: "Manager đọc chi tiết phiếu hỗ trợ tại cơ sở được phân công",
   messagesSummary: "Xem lịch sử trao đổi công khai",
   replySummary: "Gửi thêm nội dung cho phiếu hỗ trợ đang mở",
   uploadSummary: "Đính kèm ảnh vào trao đổi của bạn",

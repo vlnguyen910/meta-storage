@@ -1,4 +1,7 @@
 import {
+  type FacilitySupportPage,
+  type FacilitySupportTicket,
+  type FacilitySupportTicketQuery,
   SUPPORT_RESPONSE_HOURS,
   type SupportCreateInput,
   type SupportDetail,
@@ -14,12 +17,68 @@ import {
   NotFoundError,
   ValidationError,
 } from "../../common/errors/app-error";
+import { FacilitiesRepository } from "../facilities/facilities.repository";
+import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
+import { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
 import { SUPPORT_MESSAGES as m, supportReceiptBody } from "./support.messages";
 import type { SupportRepository } from "./support.repository";
 import type { SupportCursor, SupportTransaction } from "./support.types";
 
 export class SupportService {
-  constructor(private readonly repository: SupportRepository) {}
+  constructor(
+    private readonly repository: SupportRepository,
+    private readonly assignments = new FacilityAssignmentsService(
+      new FacilityAssignmentsRepository(repository.db),
+      new FacilitiesRepository(repository.db),
+    ),
+  ) {}
+
+  private async requireManager(actorId: string, facilityId: string) {
+    await this.assignments.requireFacilityAccess(
+      facilityId,
+      { kind: "assigned", userId: actorId, role: "FACILITY_MANAGER" },
+      ["FACILITY_MANAGER"],
+    );
+  }
+
+  private mapFacilityTicket(
+    row: Awaited<ReturnType<SupportRepository["facilityList"]>>[number],
+  ): FacilitySupportTicket {
+    return {
+      ...this.mapTicket(row.ticket),
+      customer: row.customer,
+      unitCode: row.unitCode,
+      storageUnitId: row.storageUnitId,
+      bookingCode: row.bookingCode,
+    };
+  }
+
+  async facilityList(
+    actorId: string,
+    facilityId: string,
+    input: FacilitySupportTicketQuery,
+  ): Promise<FacilitySupportPage> {
+    await this.requireManager(actorId, facilityId);
+    const rows = await this.repository.facilityList(facilityId, input, this.cursor(input.cursor));
+    return {
+      items: rows.slice(0, input.limit).map((row) => this.mapFacilityTicket(row)),
+      nextCursor: this.next(
+        rows.map((row) => row.ticket),
+        input.limit,
+      ),
+    };
+  }
+
+  async facilityDetail(
+    actorId: string,
+    facilityId: string,
+    ticketId: string,
+  ): Promise<FacilitySupportTicket> {
+    await this.requireManager(actorId, facilityId);
+    const [row] = await this.repository.facilityList(facilityId, { limit: 1 }, undefined, ticketId);
+    if (!row) throw new NotFoundError(m.notFound);
+    return this.mapFacilityTicket(row);
+  }
 
   async requireCustomerTicket(tx: SupportTransaction, id: string, customerId: string) {
     const ticket = await this.repository.lockCustomerTicket(tx, id, customerId);
