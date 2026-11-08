@@ -9,13 +9,13 @@ import {
 } from "@metastorage/contracts";
 import { formatReference } from "@metastorage/shared";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, CircleAlert, RefreshCw, RotateCcw, Search } from "lucide-react";
+import { Calendar, CheckCircle2, CircleAlert, RefreshCw, RotateCcw, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
-import { FieldShell, Input } from "@/components/ui/form-controls";
+import { Input } from "@/components/ui/form-controls";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/states";
 import {
@@ -37,7 +37,6 @@ import { api } from "@/lib/api";
 
 const initialFilters = { search: "", role: "", action: "", entityType: "", from: "", to: "" };
 const initialQuery: ActivityLogQuery = { limit: 20, offset: 0 };
-const controlClass = "min-h-11 min-w-0 rounded-lg text-sm";
 const dateFormat = new Intl.DateTimeFormat("vi-VN", {
   day: "2-digit",
   month: "2-digit",
@@ -121,101 +120,141 @@ export function SystemAdministratorActivityLogsScreen() {
       <form
         aria-label={M.activityLogs.filters}
         onSubmit={apply}
-        className="flex shrink-0 flex-col gap-4 rounded-card border border-line bg-surface p-4"
+        className="flex shrink-0 flex-wrap items-center gap-2 rounded-xl border border-line bg-surface p-2.5 sm:p-3"
       >
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <FieldShell label={M.activityLogs.search}>
-            <Input
-              type="search"
-              {...form.register("search")}
-              maxLength={150}
-              placeholder={M.userSearchPlaceholder}
-              className={controlClass}
-            />
-          </FieldShell>
-          <FieldShell label={M.activityLogs.role}>
-            <DropdownSelect
-              ariaLabel={M.activityLogs.role}
-              value={form.watch("role") || ""}
-              onChange={(val) => form.setValue("role", val, { shouldValidate: true })}
-              options={[
-                { value: "", label: M.allRoles },
-                ...Object.values(UserRole).map((role) => ({
-                  value: role,
-                  label: ADMIN_ROLE_LABELS[role] ?? role,
-                })),
-              ]}
-              className="w-full"
-              triggerClassName={controlClass}
-            />
-          </FieldShell>
-          <FieldShell label={M.actionFilter}>
-            <DropdownSelect
-              ariaLabel={M.actionFilter}
-              value={form.watch("action") || ""}
-              onChange={(val) => form.setValue("action", val, { shouldValidate: true })}
-              options={[
-                { value: "", label: M.allActions },
-                ...Object.values(ActivityLogAction).map((action) => ({
-                  value: action,
-                  label: ACTIVITY_ACTION_LABELS[action] ?? action,
-                })),
-              ]}
-              className="w-full"
-              triggerClassName={controlClass}
-            />
-          </FieldShell>
-          <FieldShell label={M.activityLogs.module}>
-            <DropdownSelect
-              ariaLabel={M.activityLogs.module}
-              value={form.watch("entityType") || ""}
-              onChange={(val) => form.setValue("entityType", val, { shouldValidate: true })}
-              options={[
-                { value: "", label: M.activityLogs.allModules },
-                ...Object.values(ActivityLogEntityType).map((module) => ({
-                  value: module,
-                  label: ACTIVITY_MODULE_LABELS[module] ?? module,
-                })),
-              ]}
-              className="w-full"
-              triggerClassName={controlClass}
-            />
-          </FieldShell>
-          <FieldShell label={M.activityLogs.from}>
-            <Input type="date" {...form.register("from")} className={controlClass} />
-          </FieldShell>
-          <FieldShell label={M.activityLogs.to}>
-            <Input type="date" {...form.register("to")} className={controlClass} />
-          </FieldShell>
+        {/* Search */}
+        <div className="relative min-w-[200px] flex-1">
+          <label htmlFor="activity-log-search" className="sr-only">
+            {M.activityLogs.search}
+          </label>
+          <Search
+            size={15}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+            aria-hidden="true"
+          />
+          <Input
+            id="activity-log-search"
+            type="search"
+            aria-label={M.activityLogs.search}
+            maxLength={150}
+            placeholder={M.userSearchPlaceholder}
+            {...form.register("search")}
+            className="h-9 min-h-9 rounded-lg border-line bg-canvas pl-9 text-xs shadow-xs"
+          />
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line/60 pt-3">
-          {form.formState.errors.root ? (
-            <p role="alert" className="m-0 text-xs font-medium text-danger">
-              {form.formState.errors.root.message}
-            </p>
-          ) : (
-            <span className="text-xs text-muted">{M.activityLogs.timezone}</span>
-          )}
-          <div className="ml-auto flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="h-10 min-h-10 rounded-lg px-3.5 text-xs font-semibold"
-              onClick={reset}
-              icon={<RotateCcw size={15} aria-hidden="true" />}
-            >
-              {M.clearFilters}
-            </Button>
-            <Button
-              type="submit"
-              className="h-10 min-h-10 rounded-lg px-4 text-xs font-semibold"
-              icon={<Search size={15} aria-hidden="true" />}
-            >
-              {M.activityLogs.apply}
-            </Button>
-          </div>
+        {/* Role */}
+        <DropdownSelect
+          ariaLabel={M.activityLogs.role}
+          value={form.watch("role") || ""}
+          onChange={(val) => form.setValue("role", val, { shouldValidate: true })}
+          options={[
+            { value: "", label: M.allRoles },
+            ...Object.values(UserRole).map((role) => ({
+              value: role,
+              label: ADMIN_ROLE_LABELS[role] ?? role,
+            })),
+          ]}
+          className="w-36 lg:w-40 shrink-0"
+          triggerClassName="w-full text-xs"
+          placement="bottom"
+          maxVisibleItems={6}
+        />
+
+        {/* Action */}
+        <DropdownSelect
+          ariaLabel={M.actionFilter}
+          value={form.watch("action") || ""}
+          onChange={(val) => form.setValue("action", val, { shouldValidate: true })}
+          options={[
+            { value: "", label: M.allActions },
+            ...Object.values(ActivityLogAction).map((action) => ({
+              value: action,
+              label: ACTIVITY_ACTION_LABELS[action] ?? action,
+            })),
+          ]}
+          className="w-36 lg:w-36 shrink-0"
+          triggerClassName="w-full text-xs"
+          placement="bottom"
+          maxVisibleItems={6}
+        />
+
+        {/* Module */}
+        <DropdownSelect
+          ariaLabel={M.activityLogs.module}
+          value={form.watch("entityType") || ""}
+          onChange={(val) => form.setValue("entityType", val, { shouldValidate: true })}
+          options={[
+            { value: "", label: M.activityLogs.allModules },
+            ...Object.values(ActivityLogEntityType).map((module) => ({
+              value: module,
+              label: ACTIVITY_MODULE_LABELS[module] ?? module,
+            })),
+          ]}
+          className="w-36 lg:w-36 shrink-0"
+          triggerClassName="w-full text-xs"
+          placement="bottom"
+          maxVisibleItems={6}
+        />
+
+        {/* Date range picker */}
+        <div className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-canvas px-2.5 text-xs shadow-xs">
+          <Calendar size={14} className="text-muted shrink-0" aria-hidden="true" />
+          <label htmlFor="activity-log-from" className="sr-only">
+            {M.activityLogs.from}
+          </label>
+          <span className="text-[11px] font-medium text-muted whitespace-nowrap">
+            {M.activityLogs.from}:
+          </span>
+          <input
+            id="activity-log-from"
+            type="date"
+            aria-label={M.activityLogs.from}
+            {...form.register("from")}
+            className="cursor-pointer border-none bg-transparent p-0 text-xs font-semibold text-ink focus:outline-none"
+          />
+          <span className="text-muted">→</span>
+          <label htmlFor="activity-log-to" className="sr-only">
+            {M.activityLogs.to}
+          </label>
+          <span className="text-[11px] font-medium text-muted whitespace-nowrap">
+            {M.activityLogs.to}:
+          </span>
+          <input
+            id="activity-log-to"
+            type="date"
+            aria-label={M.activityLogs.to}
+            {...form.register("to")}
+            className="cursor-pointer border-none bg-transparent p-0 text-xs font-semibold text-ink focus:outline-none"
+          />
         </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-1.5 shrink-0 ml-auto sm:ml-0">
+          <Button
+            type="submit"
+            className="h-9 min-h-9 rounded-lg px-3 text-xs font-semibold gap-1.5"
+            icon={<Search size={14} aria-hidden="true" />}
+          >
+            {M.activityLogs.apply}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-9 min-h-9 rounded-lg px-2.5 text-xs font-semibold gap-1.5"
+            onClick={reset}
+            icon={<RotateCcw size={14} aria-hidden="true" />}
+          >
+            {M.clearFilters}
+          </Button>
+        </div>
+
+        {/* Error alert if validation fails */}
+        {form.formState.errors.root && (
+          <p role="alert" className="m-0 w-full text-xs font-medium text-danger">
+            {form.formState.errors.root.message}
+          </p>
+        )}
       </form>
 
       <section
