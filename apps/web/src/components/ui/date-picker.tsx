@@ -1,17 +1,16 @@
 "use client";
 
-import { Calendar, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, ChevronDown } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
+import { DateCalendarView } from "./date-calendar-view";
+import { DATE_PICKER_MESSAGES as M } from "./date-picker.messages";
 import {
   type CalendarDay,
   formatDisplayDate,
-  formatMonthYearVi,
-  getCalendarGrid,
   getTodayString,
   parseDateString,
   shiftMonths,
-  VIETNAMESE_WEEKDAYS,
 } from "./date-utils";
 
 export interface DatePickerProps {
@@ -32,16 +31,16 @@ export interface DatePickerProps {
 export function DatePicker({
   value = "",
   onChange,
-  placeholder = "Chọn ngày",
+  placeholder = M.placeholder,
   className,
   triggerClassName,
   align = "start",
   placement = "auto",
-  ariaLabel = "Chọn ngày",
+  ariaLabel = M.placeholder,
   id: propId,
   disabled = false,
   allowAll = false,
-  allLabel = "Tất cả ngày",
+  allLabel = M.allDates,
 }: Readonly<DatePickerProps>) {
   const [isOpen, setIsOpen] = useState(false);
   const [openUpward, setOpenUpward] = useState(false);
@@ -55,14 +54,16 @@ export function DatePicker({
   const [viewMonth, setViewMonth] = useState(currentDate.getMonth());
 
   useEffect(() => {
-    if (!isAll && value) {
-      const d = parseDateString(value);
-      if (d) {
-        setViewYear(d.getFullYear());
-        setViewMonth(d.getMonth());
+    if (isOpen) {
+      if (!isAll && value) {
+        const d = parseDateString(value);
+        if (d) {
+          setViewYear(d.getFullYear());
+          setViewMonth(d.getMonth());
+        }
       }
     }
-  }, [value, isAll]);
+  }, [isOpen, value, isAll]);
 
   // Position calculation
   useEffect(() => {
@@ -131,7 +132,6 @@ export function DatePicker({
 
   const todayStr = getTodayString();
   const triggerText = isAll ? (allowAll ? allLabel : placeholder) : formatDisplayDate(value);
-  const calendarDays = getCalendarGrid(viewYear, viewMonth);
 
   return (
     <div
@@ -186,7 +186,7 @@ export function DatePicker({
       {isOpen && (
         <div
           role="dialog"
-          aria-label="Chọn ngày"
+          aria-label={M.chooseDateDialog}
           className={cn(
             "absolute z-50 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-150",
             openUpward ? "bottom-full mb-1.5" : "top-full mt-1.5",
@@ -218,45 +218,17 @@ export function DatePicker({
                   : "bg-slate-50 text-slate-600 hover:bg-slate-100",
               )}
             >
-              Hôm nay
+              {M.today}
             </button>
           </div>
 
-          {/* Month Navigation */}
-          <div className="mb-2 flex items-center justify-between px-1">
-            <button
-              type="button"
-              aria-label="Tháng trước"
-              onClick={handlePrevMonth}
-              className="grid size-7 cursor-pointer place-items-center rounded-lg text-slate-600 hover:bg-slate-100"
-            >
-              <ChevronLeft size={16} aria-hidden="true" />
-            </button>
-            <span className="text-xs font-bold text-slate-800">
-              {formatMonthYearVi(viewYear, viewMonth)}
-            </span>
-            <button
-              type="button"
-              aria-label="Tháng sau"
-              onClick={handleNextMonth}
-              className="grid size-7 cursor-pointer place-items-center rounded-lg text-slate-600 hover:bg-slate-100"
-            >
-              <ChevronRight size={16} aria-hidden="true" />
-            </button>
-          </div>
-
-          {/* Weekday headers */}
-          <div className="mb-1 grid grid-cols-7 text-center">
-            {VIETNAMESE_WEEKDAYS.map((day) => (
-              <span key={day} className="text-[11px] font-semibold text-slate-400 py-0.5">
-                {day}
-              </span>
-            ))}
-          </div>
-
-          {/* Days Grid */}
-          <div className="grid grid-cols-7 gap-y-1">
-            {calendarDays.map((day: CalendarDay) => {
+          {/* Shared Calendar Component */}
+          <DateCalendarView
+            viewYear={viewYear}
+            viewMonth={viewMonth}
+            onPrevMonth={handlePrevMonth}
+            onNextMonth={handleNextMonth}
+            renderDay={(day: CalendarDay) => {
               const isSelected = value === day.dateStr;
 
               return (
@@ -277,8 +249,8 @@ export function DatePicker({
                   </button>
                 </div>
               );
-            })}
-          </div>
+            }}
+          />
         </div>
       )}
     </div>

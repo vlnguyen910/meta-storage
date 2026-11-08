@@ -84,8 +84,14 @@ export function OperationsDashboardView() {
               from={from}
               to={to}
               onChange={(range) => {
-                setFrom(range.from);
-                setTo(range.to);
+                const def = getDefaultPeriod();
+                setFrom(range.from || def.from);
+                setTo(range.to || def.to);
+              }}
+              onClear={() => {
+                const def = getDefaultPeriod();
+                setFrom(def.from);
+                setTo(def.to);
               }}
               fromAriaLabel={D.filterDateFrom}
               toAriaLabel={D.filterDateTo}

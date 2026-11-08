@@ -210,7 +210,7 @@ export function SystemAdministratorActivityLogsScreen() {
           toAriaLabel={M.activityLogs.to}
           fromId="activity-log-from"
           toId="activity-log-to"
-          placeholder="Khoảng thời gian"
+          placeholder={M.activityLogs.dateRangePlaceholder}
           className="shrink-0"
         />
 

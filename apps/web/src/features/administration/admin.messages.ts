@@ -219,6 +219,7 @@ export const ADMIN_MESSAGES = {
     allModules: "Tất cả module",
     from: "Từ ngày",
     to: "Đến ngày",
+    dateRangePlaceholder: "Khoảng thời gian",
     apply: "Áp dụng bộ lọc",
     invalidFilters: "Kiểm tra bộ lọc; ngày kết thúc không được trước ngày bắt đầu.",
     timezone: "Thời gian hiển thị theo giờ Việt Nam (UTC+7).",
