@@ -5,7 +5,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { Currency } from "@/components/ui/display";
-import { DropdownSelect } from "@/components/ui/dropdown-select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { routes } from "@/config/routes";
 import type { FacilityCatalogItem } from "@/features/facilities/facility-catalog.types";
 import { cn } from "@/lib/cn";
@@ -114,20 +120,30 @@ export function LandingUnitCatalog({ state }: { state: CatalogState }) {
         <SectionHeading title={m.sizesTitle} description={m.sizesDescription} />
         <div className="mb-7 flex flex-wrap items-center justify-between gap-5">
           <div className="flex min-w-0 max-w-full items-center gap-3 text-sm font-medium">
-            <MapPin size={18} className="text-primary shrink-0" aria-hidden="true" />
-            <span className="sr-only">{m.location}</span>
-            <DropdownSelect
-              id="catalog-facility-select"
-              options={state.facilities.map((facility) => ({
-                value: facility.id,
-                label: facility.name,
-              }))}
+            <label htmlFor="catalog-facility-select" className="flex items-center gap-3">
+              <MapPin size={18} className="text-primary shrink-0" aria-hidden="true" />
+              <span className="sr-only">{m.location}</span>
+            </label>
+            <Select
               value={state.facilityId}
-              onChange={(val) => state.setFacility(val)}
-              placeholder={m.facilityPlaceholder}
+              onValueChange={(val) => state.setFacility(val)}
               disabled={!state.facilities.length}
-              className="min-h-12 h-12 min-w-[260px] max-w-full rounded-xl border border-outline-variant bg-surface text-sm text-ink shadow-xs"
-            />
+            >
+              <SelectTrigger
+                id="catalog-facility-select"
+                aria-label={m.location}
+                className="min-h-12 h-12 min-w-[260px] max-w-full rounded-xl border border-outline-variant bg-surface text-sm text-ink shadow-xs"
+              >
+                <SelectValue placeholder={m.facilityPlaceholder} />
+              </SelectTrigger>
+              <SelectContent>
+                {state.facilities.map((facility) => (
+                  <SelectItem key={facility.id} value={facility.id}>
+                    {facility.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <fieldset aria-label={m.filterLabel} className="flex flex-wrap gap-2">
             {[

@@ -69,6 +69,7 @@ export function StaffAssignmentModal({ booking, isOpen, onClose }: StaffAssignme
                   key={member.id}
                   className={cn(
                     "group flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-all select-none",
+                    "focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-1 focus-within:border-primary",
                     selected === member.id
                       ? "border-primary bg-primary-soft/30 ring-1 ring-primary/40 shadow-2xs"
                       : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60",

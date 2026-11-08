@@ -1423,6 +1423,7 @@ function OfferingEditor({
           >
             <DropdownSelect
               id="offering-unit-type"
+              ariaLabel={F5.selectCatalog}
               placeholder={F5.choose}
               value={form.watch("unitTypeId") || ""}
               disabled={Boolean(offering)}
