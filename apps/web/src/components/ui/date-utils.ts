@@ -1,3 +1,5 @@
+import { DATE_PICKER_MESSAGES as M } from "./date-picker.messages";
+
 /**
  * Date utility helpers for StoreX custom DatePicker and DateRangePicker components.
  * Formats dates according to Vietnam locale (Asia/Ho_Chi_Minh) and calculates standard ranges.
@@ -25,12 +27,20 @@ export function formatDisplayDate(value: string): string {
   return `${day}/${month}/${year}`;
 }
 
+/**
+ * Returns today's date string YYYY-MM-DD in Vietnam timezone (Asia/Ho_Chi_Minh).
+ */
 export function getTodayString(): string {
-  return toDateString(new Date());
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 }
 
 export function shiftDays(dateStr: string, days: number): string {
-  const date = parseDateString(dateStr) ?? new Date();
+  const date = parseDateString(dateStr) ?? parseDateString(getTodayString()) ?? new Date();
   date.setDate(date.getDate() + days);
   return toDateString(date);
 }
@@ -62,27 +72,27 @@ export function getMonthPresets(todayStr = getTodayString()) {
 
   return {
     today: {
-      label: "Hôm nay",
+      label: M.today,
       from: todayStr,
       to: todayStr,
     },
     last7Days: {
-      label: "7 ngày qua",
+      label: M.last7Days,
       from: shiftDays(todayStr, -6),
       to: todayStr,
     },
     last30Days: {
-      label: "30 ngày qua",
+      label: M.last30Days,
       from: shiftDays(todayStr, -29),
       to: todayStr,
     },
     thisMonth: {
-      label: "Tháng này",
+      label: M.thisMonth,
       from: toDateString(startThisMonth),
       to: toDateString(endThisMonth),
     },
     lastMonth: {
-      label: "Tháng trước",
+      label: M.lastMonth,
       from: toDateString(startLastMonth),
       to: toDateString(endLastMonth),
     },
@@ -152,22 +162,9 @@ export function getCalendarGrid(year: number, monthIndex: number): CalendarDay[]
   return days;
 }
 
-export const VIETNAMESE_WEEKDAYS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"] as const;
+export const VIETNAMESE_WEEKDAYS = M.weekdays;
 
 export function formatMonthYearVi(year: number, monthIndex: number): string {
-  const monthNames = [
-    "Tháng 1",
-    "Tháng 2",
-    "Tháng 3",
-    "Tháng 4",
-    "Tháng 5",
-    "Tháng 6",
-    "Tháng 7",
-    "Tháng 8",
-    "Tháng 9",
-    "Tháng 10",
-    "Tháng 11",
-    "Tháng 12",
-  ];
-  return `${monthNames[monthIndex]}, ${year}`;
+  const monthName = M.months[monthIndex] ?? `Tháng ${monthIndex + 1}`;
+  return `${monthName}, ${year}`;
 }

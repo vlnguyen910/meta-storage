@@ -207,7 +207,20 @@ export function OperationsRevenueView() {
             <DateRangePicker
               from={from}
               to={to}
-              onChange={(range) => handleFilterChange({ from: range.from, to: range.to })}
+              onChange={(range) => {
+                const def = getDefaultPeriod();
+                handleFilterChange({
+                  from: range.from || def.from,
+                  to: range.to || def.to,
+                });
+              }}
+              onClear={() => {
+                const def = getDefaultPeriod();
+                handleFilterChange({
+                  from: def.from,
+                  to: def.to,
+                });
+              }}
               fromAriaLabel={D.filterDateFrom}
               toAriaLabel={D.filterDateTo}
             />

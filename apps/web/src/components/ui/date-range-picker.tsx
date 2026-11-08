@@ -1,17 +1,16 @@
 "use client";
 
-import { Calendar, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, ChevronDown } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
+import { DateCalendarView } from "./date-calendar-view";
+import { DATE_PICKER_MESSAGES as M } from "./date-picker.messages";
 import {
   type CalendarDay,
   formatDisplayDate,
-  formatMonthYearVi,
-  getCalendarGrid,
   getMonthPresets,
   parseDateString,
   shiftMonths,
-  VIETNAMESE_WEEKDAYS,
 } from "./date-utils";
 
 export interface DateRange {
@@ -23,6 +22,7 @@ export interface DateRangePickerProps {
   from?: string;
   to?: string;
   onChange: (range: DateRange) => void;
+  onClear?: () => void;
   placeholder?: string;
   className?: string;
   triggerClassName?: string;
@@ -39,7 +39,8 @@ export function DateRangePicker({
   from = "",
   to = "",
   onChange,
-  placeholder = "Chọn khoảng ngày",
+  onClear,
+  placeholder = M.rangePlaceholder,
   className,
   triggerClassName,
   align = "start",
@@ -68,18 +69,19 @@ export function DateRangePicker({
   const [viewYear, setViewYear] = useState(initialDate.getFullYear());
   const [viewMonth, setViewMonth] = useState(initialDate.getMonth());
 
-  // Sync draft with external props when popup opens or props change
+  // Reset draft whenever the popover opens or the saved props change
   useEffect(() => {
-    setDraftFrom(from);
-    setDraftTo(to);
-    if (from) {
-      const d = parseDateString(from);
+    if (isOpen) {
+      setDraftFrom(from);
+      setDraftTo(to);
+      setHoverDate(null);
+      const d = parseDateString(from) ?? parseDateString(to);
       if (d) {
         setViewYear(d.getFullYear());
         setViewMonth(d.getMonth());
       }
     }
-  }, [from, to]);
+  }, [isOpen, from, to]);
 
   // Position calculation
   useEffect(() => {
@@ -145,11 +147,9 @@ export function DateRangePicker({
 
   const handleDayClick = (dayStr: string) => {
     if (!draftFrom || (draftFrom && draftTo)) {
-      // Start a new selection
       setDraftFrom(dayStr);
       setDraftTo("");
     } else {
-      // Already picked start, now pick end
       if (dayStr < draftFrom) {
         setDraftFrom(dayStr);
         setDraftTo(draftFrom);
@@ -160,14 +160,20 @@ export function DateRangePicker({
   };
 
   const handleApply = () => {
-    onChange({ from: draftFrom, to: draftTo });
+    // If user only clicked start date, make it a 1-day range rather than sending an invalid empty "to"
+    const finalTo = draftTo || draftFrom;
+    onChange({ from: draftFrom, to: finalTo });
     setIsOpen(false);
   };
 
   const handleClear = () => {
     setDraftFrom("");
     setDraftTo("");
-    onChange({ from: "", to: "" });
+    if (onClear) {
+      onClear();
+    } else {
+      onChange({ from: "", to: "" });
+    }
     setIsOpen(false);
   };
 
@@ -189,14 +195,11 @@ export function DateRangePicker({
       if (from === to) return formatDisplayDate(from);
       return `${formatDisplayDate(from)} → ${formatDisplayDate(to)}`;
     }
-    if (from) return `Từ ${formatDisplayDate(from)}`;
-    if (to) return `Đến ${formatDisplayDate(to)}`;
+    if (from) return `${M.fromPrefix} ${formatDisplayDate(from)}`;
+    if (to) return `${M.toPrefix} ${formatDisplayDate(to)}`;
     return placeholder;
   })();
 
-  const calendarDays = getCalendarGrid(viewYear, viewMonth);
-
-  // Helper to determine range highlight status
   const effectiveEnd =
     draftTo || (draftFrom && hoverDate && hoverDate >= draftFrom ? hoverDate : "");
 
@@ -262,7 +265,7 @@ export function DateRangePicker({
       {isOpen && (
         <div
           role="dialog"
-          aria-label="Chọn khoảng thời gian"
+          aria-label={M.chooseRangeDialog}
           className={cn(
             "absolute z-50 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-150",
             openUpward ? "bottom-full mb-1.5" : "top-full mt-1.5",
@@ -292,41 +295,13 @@ export function DateRangePicker({
             })}
           </div>
 
-          {/* Month Navigation */}
-          <div className="mb-2 flex items-center justify-between px-1">
-            <button
-              type="button"
-              aria-label="Tháng trước"
-              onClick={handlePrevMonth}
-              className="grid size-7 cursor-pointer place-items-center rounded-lg text-slate-600 hover:bg-slate-100"
-            >
-              <ChevronLeft size={16} aria-hidden="true" />
-            </button>
-            <span className="text-xs font-bold text-slate-800">
-              {formatMonthYearVi(viewYear, viewMonth)}
-            </span>
-            <button
-              type="button"
-              aria-label="Tháng sau"
-              onClick={handleNextMonth}
-              className="grid size-7 cursor-pointer place-items-center rounded-lg text-slate-600 hover:bg-slate-100"
-            >
-              <ChevronRight size={16} aria-hidden="true" />
-            </button>
-          </div>
-
-          {/* Weekday headers */}
-          <div className="mb-1 grid grid-cols-7 text-center">
-            {VIETNAMESE_WEEKDAYS.map((day) => (
-              <span key={day} className="text-[11px] font-semibold text-slate-400 py-0.5">
-                {day}
-              </span>
-            ))}
-          </div>
-
-          {/* Calendar Day Grid */}
-          <div className="grid grid-cols-7 gap-y-1">
-            {calendarDays.map((day: CalendarDay) => {
+          {/* Shared Calendar Component */}
+          <DateCalendarView
+            viewYear={viewYear}
+            viewMonth={viewMonth}
+            onPrevMonth={handlePrevMonth}
+            onNextMonth={handleNextMonth}
+            renderDay={(day: CalendarDay) => {
               const isStart = draftFrom === day.dateStr;
               const isEnd = effectiveEnd === day.dateStr;
               const inRange = Boolean(
@@ -366,8 +341,8 @@ export function DateRangePicker({
                   </button>
                 </div>
               );
-            })}
-          </div>
+            }}
+          />
 
           {/* Footer with summary and action buttons */}
           <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2.5">
@@ -375,8 +350,8 @@ export function DateRangePicker({
               {draftFrom
                 ? draftTo
                   ? `${formatDisplayDate(draftFrom)} – ${formatDisplayDate(draftTo)}`
-                  : `Từ: ${formatDisplayDate(draftFrom)}`
-                : "Chưa chọn ngày"}
+                  : `${M.fromPrefix}: ${formatDisplayDate(draftFrom)}`
+                : M.noDateSelected}
             </span>
             <div className="flex items-center gap-1.5 shrink-0">
               <button
@@ -384,7 +359,7 @@ export function DateRangePicker({
                 onClick={handleClear}
                 className="cursor-pointer rounded-lg px-2 py-1 text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-700"
               >
-                Xóa
+                {M.clear}
               </button>
               <button
                 type="button"
@@ -392,7 +367,7 @@ export function DateRangePicker({
                 disabled={!draftFrom}
                 className="cursor-pointer rounded-lg bg-primary px-3 py-1 text-xs font-semibold text-white shadow-xs hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Áp dụng
+                {M.apply}
               </button>
             </div>
           </div>
