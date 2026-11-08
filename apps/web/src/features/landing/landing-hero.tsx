@@ -3,6 +3,7 @@
 import { Check, MapPin, Search, Warehouse } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { useRouter } from "next/navigation";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { landingMessages as m } from "./landing.messages";
 import { actionClass, CatalogFeedback, landingContainer, StorageImage } from "./landing-ui";
 import type { useLandingCatalog } from "./use-landing-catalog";
@@ -42,44 +43,40 @@ export function LandingHero({ state }: { state: ReturnType<typeof useLandingCata
           }}
           className="grid items-end gap-4 sm:grid-cols-[1fr_1fr_auto]"
         >
-          <label className="grid min-w-0 gap-2 text-xs font-medium text-muted">
+          <div className="grid min-w-0 gap-2 text-xs font-medium text-muted text-left">
             <span className="flex items-center gap-2">
               <MapPin size={16} aria-hidden="true" />
               {m.location}
             </span>
-            <select
-              name="facilityId"
+            <DropdownSelect
+              id="hero-facility-select"
+              options={state.facilities.map((facility) => ({
+                value: facility.id,
+                label: facility.name,
+              }))}
               value={state.facilityId}
-              onChange={(e) => state.setFacility(e.target.value)}
+              onChange={(val) => state.setFacility(val)}
+              placeholder={m.facilityPlaceholder}
               disabled={state.facilitiesQuery.isLoading || state.facilitiesQuery.isError}
-              className="min-h-12 w-full min-w-0 rounded-lg border border-outline-variant bg-surface px-3 text-sm text-ink focus-visible:outline-2 focus-visible:outline-primary"
-            >
-              {!state.facilityId ? <option value="">{m.facilityPlaceholder}</option> : null}
-              {state.facilities.map((facility) => (
-                <option key={facility.id} value={facility.id}>
-                  {facility.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="grid min-w-0 gap-2 text-xs font-medium text-muted">
+              className="min-h-12 h-12 w-full rounded-lg border border-outline-variant bg-surface text-sm text-ink shadow-xs"
+            />
+          </div>
+          <div className="grid min-w-0 gap-2 text-xs font-medium text-muted text-left">
             <span className="flex items-center gap-2">
               <Warehouse size={16} aria-hidden="true" />
               {m.need}
             </span>
-            <select
-              name="area"
+            <DropdownSelect
+              id="hero-need-select"
+              options={m.needs.map((need) => ({
+                value: need.value,
+                label: need.label,
+              }))}
               value={state.need}
-              onChange={(e) => state.setNeed(e.target.value)}
-              className="min-h-12 w-full rounded-lg border border-outline-variant bg-surface px-3 text-sm text-ink focus-visible:outline-2 focus-visible:outline-primary"
-            >
-              {m.needs.map((need) => (
-                <option key={need.value} value={need.value}>
-                  {need.label}
-                </option>
-              ))}
-            </select>
-          </label>
+              onChange={(val) => state.setNeed(val)}
+              className="min-h-12 h-12 w-full rounded-lg border border-outline-variant bg-surface text-sm text-ink shadow-xs"
+            />
+          </div>
           <button type="submit" disabled={!state.authReady} className={actionClass}>
             <Search size={18} aria-hidden="true" />
             {m.search}

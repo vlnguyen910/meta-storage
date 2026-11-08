@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/ui/brand-logo";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { TooltipSimple } from "@/components/ui/tooltip";
 import { isMockMode } from "@/config/api-mode";
 import { systemAdministratorNavigation } from "@/config/navigation/system-administrator.navigation";
 import { systemAdministratorRoutes } from "@/config/routes";
@@ -69,16 +70,17 @@ export function SystemAdministratorShell({ children }: Readonly<AdminShellProps>
           <strong className="block truncate text-xs text-slate-800">{user?.name ?? M.role}</strong>
           <span className="block truncate text-[11px] text-slate-500">{M.role}</span>
         </div>
-        <button
-          type="button"
-          onClick={() => logout.mutate()}
-          disabled={logout.isPending}
-          aria-label={M.logout}
-          title={M.logout}
-          className="shrink-0 rounded-lg p-2 text-slate-600 hover:bg-primary-soft hover:text-primary disabled:opacity-50 cursor-pointer"
-        >
-          <LogOut size={18} aria-hidden="true" />
-        </button>
+        <TooltipSimple content={M.logout} side="right">
+          <button
+            type="button"
+            onClick={() => logout.mutate()}
+            disabled={logout.isPending}
+            aria-label={M.logout}
+            className="shrink-0 rounded-lg p-2 text-slate-600 hover:bg-primary-soft hover:text-primary disabled:opacity-50 cursor-pointer"
+          >
+            <LogOut size={18} aria-hidden="true" />
+          </button>
+        </TooltipSimple>
       </div>
     </div>
   );

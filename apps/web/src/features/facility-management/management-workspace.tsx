@@ -33,9 +33,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
-import { Input, Select } from "@/components/ui/form-controls";
+import { Input } from "@/components/ui/form-controls";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ErrorState, LoadingState } from "@/components/ui/states";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -1307,14 +1308,21 @@ function FacilityEditor({
             placeholder="Mô tả đặc điểm, vị trí..."
           />
         </ManagementField>
-        <label className="flex min-h-11 items-center gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            className="size-4 rounded text-primary"
-            {...form.register("isActive")}
+        <div className="flex min-h-11 items-center gap-3">
+          <Switch
+            id="facility-active"
+            checked={form.watch("isActive")}
+            onCheckedChange={(checked) =>
+              form.setValue("isActive", checked, { shouldValidate: true, shouldDirty: true })
+            }
           />
-          <span className="text-sm font-semibold">{F5.active}</span>
-        </label>
+          <label
+            htmlFor="facility-active"
+            className="text-sm font-semibold cursor-pointer select-none"
+          >
+            {F5.active}
+          </label>
+        </div>
         {mutation.isError && (
           <p role="alert" className="text-xs font-semibold text-danger">
             {managementError(mutation.error)}
@@ -1413,20 +1421,28 @@ function OfferingEditor({
             label={F5.selectCatalog}
             error={form.formState.errors.unitTypeId?.message}
           >
-            <Select {...form.register("unitTypeId")} disabled={Boolean(offering)}>
-              <option value="">{F5.choose}</option>
-              {offering ? (
-                <option value={offering.catalogUnitTypeId}>
-                  {offering.name} · {offering.sizeLabel}
-                </option>
-              ) : (
-                options.map((type) => (
-                  <option key={type.id} value={type.id}>
-                    {type.name} · {type.sizeLabel}
-                  </option>
-                ))
-              )}
-            </Select>
+            <DropdownSelect
+              id="offering-unit-type"
+              placeholder={F5.choose}
+              value={form.watch("unitTypeId") || ""}
+              disabled={Boolean(offering)}
+              options={
+                offering
+                  ? [
+                      {
+                        value: offering.catalogUnitTypeId ?? "",
+                        label: `${offering.name} · ${offering.sizeLabel}`,
+                      },
+                    ]
+                  : options.map((type) => ({
+                      value: type.id,
+                      label: `${type.name} · ${type.sizeLabel}`,
+                    }))
+              }
+              onChange={(val) =>
+                form.setValue("unitTypeId", val, { shouldValidate: true, shouldDirty: true })
+              }
+            />
           </ManagementField>
           <p className="text-sm text-muted">{F5.catalogHint}</p>
           {min !== undefined && max !== undefined && (
@@ -1447,14 +1463,15 @@ function OfferingEditor({
             />
           </ManagementField>
           {offering && (
-            <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
-              <input
-                type="checkbox"
-                checked={active}
-                onChange={(event) => setActive(event.target.checked)}
-              />
-              {F5.enabled}
-            </label>
+            <div className="flex min-h-11 items-center gap-3">
+              <Switch id="offering-active" checked={active} onCheckedChange={setActive} />
+              <label
+                htmlFor="offering-active"
+                className="text-sm font-medium cursor-pointer select-none"
+              >
+                {F5.enabled}
+              </label>
+            </div>
           )}
           {mutation.isError && (
             <p role="alert" className="text-sm font-medium text-danger">
