@@ -9,11 +9,12 @@ import {
 } from "@metastorage/contracts";
 import { formatReference } from "@metastorage/shared";
 import { useQuery } from "@tanstack/react-query";
-import { Calendar, CheckCircle2, CircleAlert, RefreshCw, RotateCcw, Search } from "lucide-react";
+import { CheckCircle2, CircleAlert, RefreshCw, RotateCcw, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { Input } from "@/components/ui/form-controls";
 import { ListPagination } from "@/components/ui/list-pagination";
@@ -198,36 +199,20 @@ export function SystemAdministratorActivityLogsScreen() {
         />
 
         {/* Date range picker */}
-        <div className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-canvas px-2.5 text-xs shadow-xs">
-          <Calendar size={14} className="text-muted shrink-0" aria-hidden="true" />
-          <label htmlFor="activity-log-from" className="sr-only">
-            {M.activityLogs.from}
-          </label>
-          <span className="text-[11px] font-medium text-muted whitespace-nowrap">
-            {M.activityLogs.from}:
-          </span>
-          <input
-            id="activity-log-from"
-            type="date"
-            aria-label={M.activityLogs.from}
-            {...form.register("from")}
-            className="cursor-pointer border-none bg-transparent p-0 text-xs font-semibold text-ink focus:outline-none"
-          />
-          <span className="text-muted">→</span>
-          <label htmlFor="activity-log-to" className="sr-only">
-            {M.activityLogs.to}
-          </label>
-          <span className="text-[11px] font-medium text-muted whitespace-nowrap">
-            {M.activityLogs.to}:
-          </span>
-          <input
-            id="activity-log-to"
-            type="date"
-            aria-label={M.activityLogs.to}
-            {...form.register("to")}
-            className="cursor-pointer border-none bg-transparent p-0 text-xs font-semibold text-ink focus:outline-none"
-          />
-        </div>
+        <DateRangePicker
+          from={form.watch("from")}
+          to={form.watch("to")}
+          onChange={(range) => {
+            form.setValue("from", range.from, { shouldValidate: true });
+            form.setValue("to", range.to, { shouldValidate: true });
+          }}
+          fromAriaLabel={M.activityLogs.from}
+          toAriaLabel={M.activityLogs.to}
+          fromId="activity-log-from"
+          toId="activity-log-to"
+          placeholder="Khoảng thời gian"
+          className="shrink-0"
+        />
 
         {/* Actions */}
         <div className="flex items-center gap-1.5 shrink-0 ml-auto sm:ml-0">

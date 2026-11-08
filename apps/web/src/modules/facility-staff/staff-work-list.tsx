@@ -13,6 +13,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/states";
@@ -259,12 +260,15 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
                   </button>
                 </div>
               </div>
-              <input
+              <DatePicker
                 id="staff-work-date"
-                type="date"
-                value={filters.date === "all" ? "" : filters.date}
-                onChange={(e) => update({ date: e.target.value || "all" })}
-                className="h-11 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-2.5 text-sm text-slate-800 outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary"
+                ariaLabel={M.date}
+                value={filters.date}
+                onChange={(val) => update({ date: val || "all" })}
+                allowAll
+                allLabel={M.allDates}
+                className="w-full"
+                triggerClassName="h-11 min-h-11 w-full rounded-lg border-slate-200 bg-slate-50/50 px-3 text-sm focus:bg-white"
               />
             </div>
           )}

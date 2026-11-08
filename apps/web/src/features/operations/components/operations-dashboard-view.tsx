@@ -4,7 +4,6 @@ import {
   ArrowRight,
   Boxes,
   Building2,
-  Calendar,
   RotateCcw,
   ShieldCheck,
   TrendingUp,
@@ -16,6 +15,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { businessOperationsRoutes as routes } from "@/config/routes";
@@ -80,28 +80,16 @@ export function OperationsDashboardView() {
         <div className="flex flex-wrap items-center justify-between gap-2.5">
           <div className="flex flex-wrap items-center gap-2">
             {/* Date Range Picker */}
-            <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs">
-              <Calendar className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden="true" />
-              <span className="font-medium text-slate-500">{D.filterDateFrom}:</span>
-              <input
-                type="date"
-                value={from}
-                max={to}
-                aria-label={D.filterDateFrom}
-                onChange={(e) => setFrom(e.target.value)}
-                className="cursor-pointer border-none bg-transparent p-0 text-xs font-semibold text-slate-800 focus:outline-none"
-              />
-              <span className="text-slate-300">→</span>
-              <span className="font-medium text-slate-500">{D.filterDateTo}:</span>
-              <input
-                type="date"
-                value={to}
-                min={from}
-                aria-label={D.filterDateTo}
-                onChange={(e) => setTo(e.target.value)}
-                className="cursor-pointer border-none bg-transparent p-0 text-xs font-semibold text-slate-800 focus:outline-none"
-              />
-            </div>
+            <DateRangePicker
+              from={from}
+              to={to}
+              onChange={(range) => {
+                setFrom(range.from);
+                setTo(range.to);
+              }}
+              fromAriaLabel={D.filterDateFrom}
+              toAriaLabel={D.filterDateTo}
+            />
 
             {/* Facility Selector */}
             <DropdownSelect
