@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
 import { flowError } from "@/features/facility-flow/use-check-in-flow";
+import { cn } from "@/lib/utils";
 import { useAssignStaffMutation, useFacilityStaff } from "./hooks";
 import { STAFF_ASSIGNMENT_MESSAGES as M } from "./staff-assignment.messages";
 import type { StaffAssignmentModalProps } from "./staff-assignment-modal.types";
@@ -66,24 +67,39 @@ export function StaffAssignmentModal({ booking, isOpen, onClose }: StaffAssignme
               {activeStaff.map((member) => (
                 <label
                   key={member.id}
-                  className="flex cursor-pointer items-start gap-3 rounded-xl border border-line p-3 focus-within:ring-2 focus-within:ring-primary"
+                  className={cn(
+                    "group flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-all select-none",
+                    selected === member.id
+                      ? "border-primary bg-primary-soft/30 ring-1 ring-primary/40 shadow-2xs"
+                      : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60",
+                  )}
                 >
                   <input
                     type="radio"
                     value={member.id}
                     {...form.register("staffId")}
-                    className="mt-1"
+                    className="sr-only"
                   />
+                  <div
+                    className={cn(
+                      "mt-0.5 size-4.5 rounded-full border flex items-center justify-center transition-all shrink-0",
+                      selected === member.id
+                        ? "border-primary bg-primary text-white"
+                        : "border-slate-300 bg-white group-hover:border-slate-400",
+                    )}
+                  >
+                    {selected === member.id && <div className="size-2 rounded-full bg-white" />}
+                  </div>
                   <span className="min-w-0">
-                    <strong className="block">{member.name}</strong>
+                    <strong className="block text-slate-900 font-semibold">{member.name}</strong>
                     {member.assignedTasksCount != null && (
-                      <span className="block text-xs text-[#404945]">
+                      <span className="block text-xs text-slate-500 font-medium">
                         {M.taskCount(member.assignedTasksCount)}
                       </span>
                     )}
-                    <span className="block break-all text-xs text-[#404945]">{member.email}</span>
+                    <span className="block break-all text-xs text-slate-500">{member.email}</span>
                     {member.phone && (
-                      <span className="block text-xs text-[#404945]">{member.phone}</span>
+                      <span className="block text-xs text-slate-500">{member.phone}</span>
                     )}
                   </span>
                 </label>

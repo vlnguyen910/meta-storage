@@ -7,6 +7,7 @@ import { DROPDOWN_SELECT_MESSAGES as M } from "./dropdown-select.messages";
 import type { DropdownSelectProps } from "./dropdown-select.types";
 
 export function DropdownSelect({
+  id: propId,
   value,
   onChange,
   options,
@@ -27,7 +28,8 @@ export function DropdownSelect({
   const [searchQuery, setSearchQuery] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const id = useId();
+  const generatedId = useId();
+  const id = propId ?? generatedId;
 
   const selectedOption = options.find((o) => o.value === value);
   const selectedIndex = options.findIndex((o) => o.value === value);

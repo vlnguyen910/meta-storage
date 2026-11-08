@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { Currency } from "@/components/ui/display";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { routes } from "@/config/routes";
 import type { FacilityCatalogItem } from "@/features/facilities/facility-catalog.types";
 import { cn } from "@/lib/cn";
@@ -112,23 +113,22 @@ export function LandingUnitCatalog({ state }: { state: CatalogState }) {
       <div className={landingContainer}>
         <SectionHeading title={m.sizesTitle} description={m.sizesDescription} />
         <div className="mb-7 flex flex-wrap items-center justify-between gap-5">
-          <label className="flex min-w-0 max-w-full items-center gap-3 text-sm font-medium">
-            <MapPin size={18} className="text-primary" aria-hidden="true" />
+          <div className="flex min-w-0 max-w-full items-center gap-3 text-sm font-medium">
+            <MapPin size={18} className="text-primary shrink-0" aria-hidden="true" />
             <span className="sr-only">{m.location}</span>
-            <select
+            <DropdownSelect
+              id="catalog-facility-select"
+              options={state.facilities.map((facility) => ({
+                value: facility.id,
+                label: facility.name,
+              }))}
               value={state.facilityId}
+              onChange={(val) => state.setFacility(val)}
+              placeholder={m.facilityPlaceholder}
               disabled={!state.facilities.length}
-              onChange={(e) => state.setFacility(e.target.value)}
-              className="min-h-12 min-w-0 max-w-full rounded-xl border border-outline-variant bg-surface px-3 focus-visible:outline-2 focus-visible:outline-primary"
-            >
-              {!state.facilityId ? <option value="">{m.facilityPlaceholder}</option> : null}
-              {state.facilities.map((facility) => (
-                <option key={facility.id} value={facility.id}>
-                  {facility.name}
-                </option>
-              ))}
-            </select>
-          </label>
+              className="min-h-12 h-12 min-w-[260px] max-w-full rounded-xl border border-outline-variant bg-surface text-sm text-ink shadow-xs"
+            />
+          </div>
           <fieldset aria-label={m.filterLabel} className="flex flex-wrap gap-2">
             {[
               { value: "all", label: m.allSizes },

@@ -20,8 +20,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { useGlobalLoading } from "@/components/providers/global-loading-provider";
+import { Checkbox } from "@/components/ui/checkbox";
 import { isMockMode } from "@/config/api-mode";
 import { routes } from "@/config/routes";
 import { api } from "@/lib/api";
@@ -41,6 +42,7 @@ export function RegisterForm() {
     register,
     handleSubmit,
     watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(CustomerSignUpInputSchema),
@@ -290,32 +292,43 @@ export function RegisterForm() {
 
           {/* Field 6: Terms & Agreement */}
           <div className="pt-1">
-            <label className="flex items-start gap-2.5 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                {...register("terms")}
-                className="w-4 h-4 mt-0.5 rounded border-slate-300 text-[#165f4d] focus:ring-[#165f4d] focus:ring-offset-0 transition-all cursor-pointer"
-              />
-              <span className="text-xs text-slate-600 leading-relaxed">
-                {AUTH_MESSAGES.termsAgreementPrefix}{" "}
-                <Link
-                  href="/terms"
-                  className="font-medium text-[#165f4d] hover:underline"
-                  target="_blank"
+            <Controller
+              control={control}
+              name="terms"
+              render={({ field }) => (
+                <label
+                  htmlFor="terms"
+                  className="flex items-start gap-2.5 cursor-pointer select-none"
                 >
-                  {AUTH_MESSAGES.termsOfService}
-                </Link>{" "}
-                {AUTH_MESSAGES.termsAgreementAnd}{" "}
-                <Link
-                  href="/privacy"
-                  className="font-medium text-[#165f4d] hover:underline"
-                  target="_blank"
-                >
-                  {AUTH_MESSAGES.privacyPolicy}
-                </Link>{" "}
-                {AUTH_MESSAGES.termsAgreementSuffix}
-              </span>
-            </label>
+                  <Checkbox
+                    id="terms"
+                    aria-label={AUTH_MESSAGES.termsAgreementPrefix}
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    className="mt-0.5"
+                  />
+                  <span className="text-xs text-slate-600 leading-relaxed">
+                    {AUTH_MESSAGES.termsAgreementPrefix}{" "}
+                    <Link
+                      href="/terms"
+                      className="font-medium text-[#165f4d] hover:underline"
+                      target="_blank"
+                    >
+                      {AUTH_MESSAGES.termsOfService}
+                    </Link>{" "}
+                    {AUTH_MESSAGES.termsAgreementAnd}{" "}
+                    <Link
+                      href="/privacy"
+                      className="font-medium text-[#165f4d] hover:underline"
+                      target="_blank"
+                    >
+                      {AUTH_MESSAGES.privacyPolicy}
+                    </Link>{" "}
+                    {AUTH_MESSAGES.termsAgreementSuffix}
+                  </span>
+                </label>
+              )}
+            />
           </div>
 
           <input type="hidden" value="web" {...register("callbackTarget")} />

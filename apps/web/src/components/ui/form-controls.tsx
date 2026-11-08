@@ -1,11 +1,9 @@
-import { ChevronDown } from "lucide-react";
 import {
   cloneElement,
   forwardRef,
   type InputHTMLAttributes,
   isValidElement,
   type ReactElement,
-  type SelectHTMLAttributes,
 } from "react";
 import { cn } from "@/lib/cn";
 import type { FieldShellProps } from "./form-controls.types";
@@ -51,31 +49,6 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
         )}
         {...props}
       />
-    );
-  },
-);
-
-export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement>>(
-  function Select({ className = "", children, disabled, id, ...props }, ref) {
-    return (
-      <div className="relative w-full">
-        <select
-          ref={ref}
-          id={id}
-          disabled={disabled}
-          className={cn(
-            "min-h-11 h-11 w-full appearance-none rounded-xl border border-slate-300 bg-white pl-3.5 pr-10 text-xs sm:text-sm font-medium text-slate-800 shadow-xs outline-none transition-colors hover:border-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 cursor-pointer",
-            className,
-          )}
-          {...props}
-        >
-          {children}
-        </select>
-        <ChevronDown
-          aria-hidden="true"
-          className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400"
-        />
-      </div>
     );
   },
 );

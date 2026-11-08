@@ -21,6 +21,7 @@ import { BrandLogo } from "@/components/ui/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useToast } from "@/components/ui/toast";
+import { TooltipSimple } from "@/components/ui/tooltip";
 import { isMockMode } from "@/config/api-mode";
 import { navigationByRole } from "@/config/navigation";
 import { roleHome, routes } from "@/config/routes";
@@ -132,15 +133,16 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="min-w-0 flex-1">
           <strong className="block truncate text-xs text-slate-800">{session.user.name}</strong>
         </div>
-        <button
-          type="button"
-          onClick={logout}
-          aria-label={M.logout}
-          title={M.logout}
-          className="shrink-0 rounded-lg p-2 text-slate-600 hover:bg-primary-soft hover:text-primary disabled:opacity-50 cursor-pointer"
-        >
-          <LogOut size={18} aria-hidden="true" />
-        </button>
+        <TooltipSimple content={M.logout} side="right">
+          <button
+            type="button"
+            onClick={logout}
+            aria-label={M.logout}
+            className="shrink-0 rounded-lg p-2 text-slate-600 hover:bg-primary-soft hover:text-primary disabled:opacity-50 cursor-pointer"
+          >
+            <LogOut size={18} aria-hidden="true" />
+          </button>
+        </TooltipSimple>
       </div>
     </div>
   );

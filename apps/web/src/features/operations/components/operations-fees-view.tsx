@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FieldShell, Input } from "@/components/ui/form-controls";
 import { ErrorState, LoadingState } from "@/components/ui/states";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -277,17 +278,16 @@ export function OperationsFeesView() {
                     </div>
                   </TableCell>
 
-                  {/* Active checkbox */}
+                  {/* Active toggle switch */}
                   <TableCell className="py-2.5 px-4 text-center">
-                    <label className="inline-flex items-center justify-center cursor-pointer">
-                      <input
-                        type="checkbox"
+                    <div className="inline-flex items-center justify-center">
+                      <Switch
                         checked={item.isActive}
                         disabled={save.isPending}
-                        onChange={(e) => update(index, { isActive: e.target.checked })}
-                        className="size-4 rounded border-slate-300 text-[#165f4d] focus:ring-[#165f4d] cursor-pointer disabled:opacity-50"
+                        onCheckedChange={(checked) => update(index, { isActive: checked })}
+                        aria-label={M.policyFeeActive}
                       />
-                    </label>
+                    </div>
                   </TableCell>
 
                   {/* Delete button */}
