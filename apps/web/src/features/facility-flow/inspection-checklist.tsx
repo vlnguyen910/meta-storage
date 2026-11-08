@@ -32,6 +32,7 @@ export function InspectionChecklist({
                       key={result}
                       className={cn(
                         "flex h-8.5 cursor-pointer items-center gap-1.5 rounded-lg border px-3 text-xs sm:text-sm font-semibold transition-all select-none",
+                        "focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-1 focus-within:border-primary",
                         isChecked
                           ? isPass
                             ? "border-emerald-600 bg-emerald-50 text-emerald-800 shadow-2xs ring-1 ring-emerald-600/30"

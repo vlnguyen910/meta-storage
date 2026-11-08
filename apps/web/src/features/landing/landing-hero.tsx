@@ -3,7 +3,13 @@
 import { Check, MapPin, Search, Warehouse } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { useRouter } from "next/navigation";
-import { DropdownSelect } from "@/components/ui/dropdown-select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { landingMessages as m } from "./landing.messages";
 import { actionClass, CatalogFeedback, landingContainer, StorageImage } from "./landing-ui";
 import type { useLandingCatalog } from "./use-landing-catalog";
@@ -44,38 +50,52 @@ export function LandingHero({ state }: { state: ReturnType<typeof useLandingCata
           className="grid items-end gap-4 sm:grid-cols-[1fr_1fr_auto]"
         >
           <div className="grid min-w-0 gap-2 text-xs font-medium text-muted text-left">
-            <span className="flex items-center gap-2">
+            <label htmlFor="hero-facility-select" className="flex items-center gap-2">
               <MapPin size={16} aria-hidden="true" />
               {m.location}
-            </span>
-            <DropdownSelect
-              id="hero-facility-select"
-              options={state.facilities.map((facility) => ({
-                value: facility.id,
-                label: facility.name,
-              }))}
+            </label>
+            <Select
               value={state.facilityId}
-              onChange={(val) => state.setFacility(val)}
-              placeholder={m.facilityPlaceholder}
+              onValueChange={(val) => state.setFacility(val)}
               disabled={state.facilitiesQuery.isLoading || state.facilitiesQuery.isError}
-              className="min-h-12 h-12 w-full rounded-lg border border-outline-variant bg-surface text-sm text-ink shadow-xs"
-            />
+            >
+              <SelectTrigger
+                id="hero-facility-select"
+                aria-label={m.location}
+                className="min-h-12 h-12 w-full rounded-lg border border-outline-variant bg-surface text-sm text-ink shadow-xs"
+              >
+                <SelectValue placeholder={m.facilityPlaceholder} />
+              </SelectTrigger>
+              <SelectContent>
+                {state.facilities.map((facility) => (
+                  <SelectItem key={facility.id} value={facility.id}>
+                    {facility.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="grid min-w-0 gap-2 text-xs font-medium text-muted text-left">
-            <span className="flex items-center gap-2">
+            <label htmlFor="hero-need-select" className="flex items-center gap-2">
               <Warehouse size={16} aria-hidden="true" />
               {m.need}
-            </span>
-            <DropdownSelect
-              id="hero-need-select"
-              options={m.needs.map((need) => ({
-                value: need.value,
-                label: need.label,
-              }))}
-              value={state.need}
-              onChange={(val) => state.setNeed(val)}
-              className="min-h-12 h-12 w-full rounded-lg border border-outline-variant bg-surface text-sm text-ink shadow-xs"
-            />
+            </label>
+            <Select value={state.need} onValueChange={(val) => state.setNeed(val)}>
+              <SelectTrigger
+                id="hero-need-select"
+                aria-label={m.need}
+                className="min-h-12 h-12 w-full rounded-lg border border-outline-variant bg-surface text-sm text-ink shadow-xs"
+              >
+                <SelectValue placeholder={m.needs[0]?.label} />
+              </SelectTrigger>
+              <SelectContent>
+                {m.needs.map((need) => (
+                  <SelectItem key={need.value} value={need.value}>
+                    {need.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <button type="submit" disabled={!state.authReady} className={actionClass}>
             <Search size={18} aria-hidden="true" />

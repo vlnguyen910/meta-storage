@@ -8,6 +8,10 @@ global.ResizeObserver = class ResizeObserver {
   disconnect() {}
 };
 
+if (typeof window !== "undefined" && !window.HTMLElement.prototype.scrollIntoView) {
+  window.HTMLElement.prototype.scrollIntoView = () => {};
+}
+
 vi.mock("next/font/local", () => ({
   default: () => ({ className: "mock-font", variable: "mock-font" }),
 }));
