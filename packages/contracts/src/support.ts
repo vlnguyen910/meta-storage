@@ -129,6 +129,26 @@ export const SupportTicketPageSchema = z.object({
   items: z.array(SupportTicketSchema),
   nextCursor: z.string().nullable(),
 });
+export const FacilitySupportParamsSchema = z.strictObject({ facilityId: uuid });
+export const FacilitySupportTicketParamsSchema = FacilitySupportParamsSchema.extend({
+  ticketId: uuid,
+});
+export const FacilitySupportTicketQuerySchema = SupportPageQuerySchema.extend({
+  category: z.enum(SUPPORT_CATEGORIES).optional(),
+  search: z.string().trim().max(120).optional(),
+});
+export const FacilitySupportTicketSchema = SupportTicketSchema.extend({
+  customer: z.object({ name: z.string(), email: z.string(), phone: z.string().nullable() }),
+  unitCode: z.string().nullable(),
+  bookingCode: z.string().nullable(),
+});
+export const FacilitySupportPageSchema = z.object({
+  items: z.array(FacilitySupportTicketSchema),
+  nextCursor: z.string().nullable(),
+});
+export type FacilitySupportTicketQuery = z.infer<typeof FacilitySupportTicketQuerySchema>;
+export type FacilitySupportTicket = z.infer<typeof FacilitySupportTicketSchema>;
+export type FacilitySupportPage = z.infer<typeof FacilitySupportPageSchema>;
 export const SupportMessagePageSchema = z.object({
   items: z.array(SupportMessageSchema),
   nextCursor: z.string().nullable(),
