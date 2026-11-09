@@ -7,53 +7,18 @@ Dự án monorepo được quản lý bởi **Turborepo** và **Bun**, sử dụ
 ```text
 metastorage/
 ├── apps/
-│   ├── api/                   # Backend Node.js + Fastify + TypeScript
-│   │   ├── src/
-│   │   │   ├── common/        # Database, lỗi, logger, plugins dùng chung
-│   │   │   ├── modules/       # Các feature module (users, ...)
-│   │   │   ├── app.ts         # Fastify app factory & plugins
-│   │   │   └── index.ts       # Server entry point
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   ├── mobile/                # Mobile React Native + Expo + NativeWind + TypeScript
-│   │   ├── App.tsx            # Root component với NativeWind styling
-│   │   ├── global.css         # Tailwind & NativeWind CSS
-│   │   ├── metro.config.js    # Metro bundler config với NativeWind & Monorepo
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   └── web/                   # Frontend React + Next.js (App Router) + TypeScript
-│       ├── src/app/           # Next.js App Router (layout, page, css)
-│       ├── public/
-│       ├── next.config.ts
-│       ├── package.json
-│       └── tsconfig.json
+│   ├── api/                   # Fastify API và các module nghiệp vụ
+│   ├── mobile/                # React Native + Expo
+│   ├── web/                   # Next.js App Router
+│   └── worker/                # BullMQ background jobs
 ├── packages/
-│   ├── database/              # PostgreSQL + Drizzle ORM (schema, client, migrations)
-│   │   ├── src/
-│   │   │   ├── schema/        # Table schemas (users, bookings, ...)
-│   │   │   ├── client.ts      # Drizzle client kết nối qua postgres.js
-│   │   │   └── index.ts       # Export db, client, schemas, operators
-│   │   ├── drizzle/           # Thư mục chứa file SQL migration sinh bởi drizzle-kit
-│   │   ├── drizzle.config.ts  # Cấu hình drizzle-kit
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   ├── shared/                # Package chia sẻ dùng chung giữa FE và BE
-│   │   ├── src/index.ts       # Shared types, models, constants, utilities
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   └── typescript-config/     # Cấu hình tsconfig dùng chung
-│       ├── base.json          # Strict base TypeScript config
-│       ├── nextjs.json        # Next.js specific TypeScript config
-│       ├── node.json          # Node.js specific TypeScript config
-│       └── package.json
-├── docker/
-│   └── docker-compose.yml      # PostgreSQL và Redis cho local development
-├── .husky/
-│   └── pre-commit             # Git hook chạy Biome check trước khi commit
-├── biome.json                 # Cấu hình linter & formatter (Biome)
-├── turbo.json                 # Cấu hình task pipelines cho Turborepo
-├── package.json               # Root monorepo configuration
-└── README.md
+│   ├── api-client/            # API client dùng chung cho Web và Mobile
+│   ├── contracts/             # Zod schemas và API types
+│   ├── database/              # PostgreSQL, Drizzle schemas và migrations
+│   ├── shared/                # Constants và utilities dùng chung
+│   └── typescript-config/     # TypeScript configurations
+├── docker/                    # Local và production Compose
+└── docs/                      # Architecture và domain guides
 ```
 
 ---

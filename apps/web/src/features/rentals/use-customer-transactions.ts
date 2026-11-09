@@ -11,8 +11,8 @@ export type TransactionView = "all" | "current" | "history";
 
 export function useCustomerTransactions(view: TransactionView) {
   const identity = useFlow3Identity();
-  const current = useMyRentals("current");
-  const history = useMyRentals("history");
+  const current = useMyRentals("current", view !== "history");
+  const history = useMyRentals("history", view !== "current");
   const source = view === "current" ? current : view === "history" ? history : null;
   const rentals = useMemo(() => {
     const pages = source

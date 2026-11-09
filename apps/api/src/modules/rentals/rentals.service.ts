@@ -135,12 +135,14 @@ export class RentalsService {
     rentalId: string,
     query: FacilityRentalHistoryQuery,
   ): Promise<FacilityRentalPaymentPage> {
-    const rental = await this.getFacilityRental(actor, facilityId, rentalId);
+    await this.assertFacilityManagerAccess(actor, facilityId);
+    const rental = await this.repository.findFacilityRentalById(facilityId, rentalId);
+    if (!rental) throw new NotFoundError(M.rentalNotFound);
     const result = await this.repository.findBookingPayments(
-      rental.bookingId,
+      rental.rental.bookingId,
       query,
-      rental.reservationId,
-      rental.id,
+      rental.rental.reservationId,
+      rental.rental.id,
     );
     return {
       items: result.items.map((payment) => ({
@@ -226,7 +228,8 @@ export class RentalsService {
   }
 
   async listCustomerRentalPayments(rentalId: string, userId: string): Promise<RentalPaymentItem[]> {
-    await this.getCustomerRental(rentalId, userId);
+    const [rental] = await this.repository.findOwnedRental(rentalId, userId);
+    if (!rental) throw new NotFoundError(M.rentalNotFound);
     return (await this.repository.findCustomerRentalPayments(rentalId, userId)).map(
       ({ payment }) => ({
         id: payment.id,

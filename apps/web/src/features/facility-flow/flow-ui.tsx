@@ -1,5 +1,5 @@
 "use client";
-import { ArrowLeft, Warehouse } from "lucide-react";
+import { Warehouse } from "lucide-react";
 import localFont from "next/font/local";
 import type { ReactNode } from "react";
 import type { ButtonProps } from "@/components/ui/button";
@@ -96,22 +96,6 @@ export function FlowHeading({
     </div>
   );
 }
-export function SectionTitle({ children, icon }: { children: ReactNode; icon?: ReactNode }) {
-  return (
-    <h2 className={cn(titleClass, "flex items-center gap-2 text-lg leading-[26px]")}>
-      {icon}
-      {children}
-    </h2>
-  );
-}
-export function DataPair({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="min-w-0">
-      <p className="text-[11px] uppercase tracking-wide text-[#5c6661]">{label}</p>
-      <div className="mt-1 break-words font-medium">{children}</div>
-    </div>
-  );
-}
 export function UnitPlaceholder() {
   return (
     <div
@@ -138,15 +122,6 @@ export function FlowButton({ className, variant, style, ...props }: ButtonProps)
     />
   );
 }
-export function BackLabel() {
-  return (
-    <>
-      <ArrowLeft size={18} />
-      {FLOW.back}
-    </>
-  );
-}
-
 export function FlowHelp() {
   return (
     <details className="rounded-lg border border-[#bfc9c4] bg-white p-4">

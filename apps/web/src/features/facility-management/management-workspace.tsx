@@ -139,10 +139,7 @@ export function FacilityManagementWorkspace({ membershipsOnly = false }: Managem
       {/* Vùng nội dung Tab chính (Chiếm trọn không gian, không scroll ngoài) */}
       <div className="flex-1 overflow-hidden min-h-0 flex flex-col">
         {tab === "facilities" && (
-          <FacilityListTable
-            selectedFacilityId={scope.facilityId}
-            onOpenCreate={() => setCreatingFacility(true)}
-          />
+          <FacilityListTable onOpenCreate={() => setCreatingFacility(true)} />
         )}
 
         {tab === "types" && <TypeCatalogTable />}
@@ -198,7 +195,6 @@ function FacilityListTable({
   onOpenCreate,
 }: {
   onSelectFacility?: (id: string) => void;
-  selectedFacilityId?: string;
   onOpenCreate: () => void;
 }) {
   const query = useAllFacilities();
@@ -406,7 +402,7 @@ function FacilityListTable({
 /* =========================================================================
    TAB 2: DANH MỤC LOẠI KHO (Type Catalog Table có Paging & Filter)
    ========================================================================= */
-export function TypeCatalogTable() {
+function TypeCatalogTable() {
   const canEdit = useAuthStore(
     (state) => state.session?.user.role === "BUSINESS_OPERATION_MANAGER",
   );

@@ -58,73 +58,18 @@ không thêm component selector hoặc business-specific selector vào global CS
 
 ---
 
-## Ví dụ Cấu trúc Thư mục theo Domain / Feature trong Web
-
-Next.js App Router giữ vai trò **Thin Routing Layer** (chỉ xử lý layout, route params, metadata), toàn bộ logic hiển thị và nghiệp vụ thuộc về **Feature Slices**:
+## Ví dụ đường đi hiện tại
 
 ```text
-apps/web/src/
-├── app/                                   # Thin Routing Layer (Next.js App Router)
-│   ├── (auth)/                            # Route Group: Authentication
-│   │   ├── login/page.tsx                 # Render <LoginForm /> từ features/auth
-│   │   └── register/page.tsx
-│   ├── (dashboard)/                       # Route Group: Dashboard chính
-│   │   ├── layout.tsx                     # Dashboard shell (Sidebar, Header, Breadcrumbs)
-│   │   ├── bookings/
-│   │   │   ├── page.tsx                   # Render <BookingListPage /> từ features/booking
-│   │   │   └── [id]/
-│   │   │       └── page.tsx               # Render <BookingDetailView id={params.id} />
-│   │   └── rentals/
-│   │       └── page.tsx
-│   ├── layout.tsx                         # Root layout (Providers: QueryClientProvider, Theme)
-│   └── globals.css
-│
-├── features/                              # Vertical Feature Slices (Domain)
-│   ├── booking/                           # Domain Booking
-│   │   ├── components/                    # Feature-specific UI components
-│   │   │   ├── booking-card.tsx           # Thẻ tóm tắt thông tin booking
-│   │   │   ├── booking-status-badge.tsx   # Badge hiển thị status với màu tương ứng
-│   │   │   ├── booking-timeline.tsx       # Timeline tiến trình booking
-│   │   │   ├── booking-list-view.tsx      # Danh sách booking (gọi useBookings)
-│   │   │   └── booking-form.tsx           # Form đặt chỗ (React Hook Form + Zod)
-│   │   ├── hooks/                         # Logic & State của riêng booking
-│   │   │   ├── use-booking-detail.ts      # TanStack Query: fetch chi tiết theo id
-│   │   │   ├── use-create-booking.ts      # TanStack Mutation: tạo booking mới
-│   │   │   └── use-cancel-booking.ts      # TanStack Mutation: hủy booking & invalidate queries
-│   │   ├── api/                           # Gọi API thông qua centralized client
-│   │   │   └── booking.api.ts             # apiClient.get('/bookings'), apiClient.post(...)
-│   │   └── types.ts                       # UI-specific types / View models
-│   │
-│   ├── payment/                           # Domain Payment
-│   │   ├── components/
-│   │   │   ├── payment-method-selector.tsx
-│   │   │   └── payment-summary.tsx
-│   │   └── hooks/
-│   │       └── use-checkout.ts            # Xử lý redirect VNPay / Momo
-│   │
-│   └── auth/                              # Domain Auth
-│       ├── components/
-│       │   └── login-form.tsx
-│       ├── hooks/
-│       │   └── use-auth-session.ts
-│       └── store/
-│           └── auth.store.ts              # Zustand store lưu thông tin session client
-│
-├── components/ui/                         # Reusable UI Components (Dumb / Presentational)
-│   ├── button.tsx
-│   ├── input.tsx
-│   ├── dialog.tsx
-│   ├── dropdown-menu.tsx
-│   └── table.tsx
-│
-└── lib/                                   # Shared Client Infrastructure
-    ├── query-client.ts                    # Cấu hình TanStack QueryClient
-    └── utils.ts                           # cn (clsx + twMerge), formatters (currency, date)
+apps/web/src/app/customer/reservations/page.tsx
+  → apps/web/src/features/rentals/customer-storage-hub.tsx
+  → apps/web/src/features/rentals/hooks.ts
+  → packages/api-client/src/index.ts
+
+apps/web/src/app/facility-manager/dashboard/page.tsx
+  → apps/web/src/modules/facility-manager/dashboard/facility-manager-dashboard-screen.tsx
 ```
 
-### Quy tắc tương tác trong Web Frontend
+`app/` chỉ là route adapter. `modules/` giữ screen theo vai trò; `features/` giữ các luồng nghiệp vụ có thể tái sử dụng. UI dùng chung ở `components/`, còn `apps/web/src/lib/api.ts` cấu hình API client. Schema và kiểu dữ liệu HTTP nằm trong `packages/contracts`.
 
-1. `app/(routes)/[id]/page.tsx` chỉ đóng vai trò lấy `params.id` và truyền vào `<BookingDetailView id={params.id} />`.
-2. `<BookingDetailView />` sử dụng hook `useBookingDetail(id)`.
-3. `useBookingDetail` gọi API thông qua `booking.api.ts` và trả về `{ data, isLoading, error }`.
-4. Render UI phân tách rõ các trạng thái: `Skeleton Loading` → `Error State` → `Data Presentation`.
+Các endpoint Booking cũ không còn trong API production. Chỉ giữ mock/legacy client khi một demo offline hoặc test hiện tại vẫn cần; xem [booking retirement](booking-retirement.md).

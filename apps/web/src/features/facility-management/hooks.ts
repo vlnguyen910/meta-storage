@@ -52,7 +52,7 @@ export function useFacilityOptions(global = false) {
   const key = useManagementKey();
   const [selected, select] = useState("");
   const query = useQuery({
-    queryKey: [...key, "scope", global],
+    queryKey: global ? [...key, "all-facilities-list"] : [...key, "scope", false],
     enabled: !isMockMode,
     queryFn: async ({ signal }): Promise<FacilityOption[]> => {
       if (global)

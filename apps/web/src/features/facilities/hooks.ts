@@ -14,7 +14,6 @@ const facilityKeys = {
   all: ["facilities"] as const,
   catalog: ["facilities", "catalog"] as const,
   list: (params: FacilityCatalogFilters) => ["facilities", "list", params] as const,
-  detail: (id: string) => ["facilities", "detail", id] as const,
   unitTypes: (id: string) => ["facilities", "unit-types", id] as const,
 };
 
@@ -92,14 +91,6 @@ export function useFacilities(params: FacilityCatalogFilters) {
     enabled: !isMockMode,
   });
   return isMockMode ? { ...query, data } : live;
-}
-
-export function useFacility(id: string) {
-  return useQuery({
-    queryKey: facilityKeys.detail(id),
-    queryFn: () => api.catalog.getFacility(id),
-    enabled: Boolean(id),
-  });
 }
 
 // Catalog remains readable without a schedule. Period capacity is a snapshot;
