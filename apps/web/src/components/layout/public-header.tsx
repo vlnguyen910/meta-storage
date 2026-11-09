@@ -7,7 +7,7 @@ import { roleHome, routes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { landingMessages as m } from "@/features/landing/landing.messages";
 
-export const publicNavigation = [
+const publicNavigation = [
   { label: m.find, href: routes.facilities },
   { label: m.pricing, href: "/#pricing" },
   { label: m.process, href: "/#how-it-works" },

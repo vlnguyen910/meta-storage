@@ -60,8 +60,11 @@ it("does not create another appointment when one exists or payment is unconfirme
 
 it("keeps the original success, QR and summary UI while adding the receiving appointment", async () => {
   state.value.appointment = { scheduledDate: "2030-06-01", status: "SCHEDULED" };
-  state.value.facility = { name: "Kho Thủ Đức", address: "Thủ Đức, TP.HCM" };
-  state.value.unitType = { name: "Kho nhỏ", sizeLabel: "5 m²" };
+  (state.value.record as Record<string, unknown>).facility = {
+    name: "Kho Thủ Đức",
+    address: "Thủ Đức, TP.HCM",
+  };
+  (state.value.record as Record<string, unknown>).unitType = { name: "Kho nhỏ", sizeLabel: "5 m²" };
   (state.value.record as Record<string, unknown>).requestedMonths = 1;
   render(<ReservationReceipt reservationId="reservation" variant="confirmation" />);
   expect(screen.getByRole("heading", { name: "Đặt thuê kho thành công!" })).toBeInTheDocument();

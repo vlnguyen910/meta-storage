@@ -18,8 +18,6 @@ Apply these preferences when refactoring or adding backend features:
 - Prefer readable code over extra abstraction. Do not split a module solely because a file is long; split along distinct business responsibilities when that makes workflows easier to follow.
 - For behavior-preserving refactors, keep API contracts and transaction boundaries stable, especially when one workflow creates or updates records across modules.
 
-See [`docs/module-refactor-priorities.md`](docs/module-refactor-priorities.md) for the current module review order and proposed refactor scope.
-
 ## 1. Project Structure & Architecture
 
 ```text
@@ -33,7 +31,7 @@ metastorage/
 │   ├── database/     # PostgreSQL + Drizzle ORM
 │   ├── contracts/    # Shared API schemas/types (Zod/TS)
 │   ├── api-client/   # Shared API client for Web & Mobile
-│   ├── config/       # Shared configurations (TSConfig, Biome)
+│   ├── typescript-config/ # Shared TypeScript configurations
 │   └── shared/       # Shared constants and utilities
 └── docs/             # Specific architecture & pattern documentation
 ```
@@ -46,6 +44,7 @@ Web ───────┐
 Mobile ────┼── REST API ── Fastify Modular Monolith
            │                    │
            │                    ├── PostgreSQL (Drizzle)
+           │                    ├── MongoDB (activity logs)
            │                    └── Redis / BullMQ
            │
            └──────────────────────── Worker
@@ -58,9 +57,9 @@ Project architecture: **Monorepo (Turborepo + Bun) + Modular Monolith**. Scope c
 > [!IMPORTANT]
 > To preserve context, AI agents should **ONLY** read the following documents when the task specifically requires detailed context on that domain:
 >
-> - [`docs/backend-patterns.md`](file:///home/owen/Projects/storeX/docs/backend-patterns.md): Route → Service → Repository, State Machines, Strategy/Adapter patterns, Transactions & Idempotency.
-> - [`docs/web-patterns.md`](file:///home/owen/Projects/storeX/docs/web-patterns.md): Next.js App Router, Feature-based structure, Server/Client/Form state separation, TanStack Query, Zustand.
-> - [`docs/mobile-patterns.md`](file:///home/owen/Projects/storeX/docs/mobile-patterns.md): React Native + Expo structure, Screen → Hook → API Client flow.
+> - [`docs/backend-patterns.md`](docs/backend-patterns.md): Route → Service → Repository, State Machines, Strategy/Adapter patterns, Transactions & Idempotency.
+> - [`docs/web-patterns.md`](docs/web-patterns.md): Next.js App Router, Feature-based structure, Server/Client/Form state separation, TanStack Query, Zustand.
+> - [`docs/mobile-patterns.md`](docs/mobile-patterns.md): React Native + Expo structure, Screen → Hook → API Client flow.
 
 ## 3. Engineering Rules for Agents
 

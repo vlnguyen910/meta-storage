@@ -15,11 +15,11 @@ Tuân thủ luồng dữ liệu một chiều và phân tách trách nhiệm rõ
   - Kết nối giữa Feature Hook và các UI Component.
   - Không chứa logic nghiệp vụ hay fetch API trực tiếp.
 
-- **Feature Hook (`src/features/<feature>/hooks/`)**:
+- **Feature Hook (`src/features/<feature>/`)**:
   - Đóng gói toàn bộ logic nghiệp vụ, điều phối server state (TanStack Query) và local state.
   - Xử lý các validation, transformation dữ liệu trước khi render hoặc gửi lên server.
 
-- **Centralized API Client (`packages/api-client` hoặc `@metastorage/shared`)**:
+- **Centralized API Client (`packages/api-client`)**:
   - Thực hiện các HTTP call đến backend Fastify.
   - Sử dụng chung kiểu dữ liệu và schema với backend.
 
@@ -54,14 +54,14 @@ Tuân thủ luồng dữ liệu một chiều và phân tách trách nhiệm rõ
 Tương tự như Web, Mobile phân định nghiêm ngặt giữa 3 loại state:
 
 - **Server State**: Sử dụng **TanStack Query** để quản lý cache, background refetch, pagination, và optimistic update.
-- **Client / Local State**: Sử dụng **Zustand** cho các state cần chia sẻ liên màn hình (auth token, user session, onboarding status, offline cache flags). Tránh đưa state cục bộ của màn hình lên store toàn cục.
+- **Client / Local State**: Giữ state cục bộ trong screen/hook; dùng session và SecureStore hiện có cho trạng thái đăng nhập. Tránh đưa state cục bộ của màn hình lên store toàn cục.
 - **Form State**: Sử dụng **React Hook Form** kết hợp **Zod** schema (tái sử dụng từ `@metastorage/shared` / `packages/contracts`).
 
 ---
 
 ## 4. Tích hợp Monorepo & Metro Bundler
 
-Để Expo Metro có thể đọc và resolve các package nội bộ trong monorepo (`@metastorage/*`), [`apps/mobile/metro.config.js`](file:///home/owen/Projects/storeX/apps/mobile/metro.config.js) được cấu hình:
+Để Expo Metro có thể đọc và resolve các package nội bộ trong monorepo (`@metastorage/*`), [`apps/mobile/metro.config.js`](../apps/mobile/metro.config.js) được cấu hình:
 
 ```javascript
 const { getDefaultConfig } = require("expo/metro-config");
@@ -87,76 +87,15 @@ module.exports = withNativewind(config);
 
 ---
 
-## 5. Ví dụ Cấu trúc Thư mục theo Domain / Feature trong Mobile
+## 5. Đường đi hiện tại
 
 ```text
-apps/mobile/src/
-├── screens/                               # Màn hình điều hướng (Layout, Navigation, Safe Area)
-│   ├── booking/
-│   │   ├── booking-list-screen.tsx        # Screen danh sách, kết nối useBookings()
-│   │   └── booking-detail-screen.tsx      # Screen chi tiết, lấy route.params.id
-│   ├── payment/
-│   │   └── checkout-screen.tsx            # Screen checkout, hiển thị cổng thanh toán
-│   └── auth/
-│       └── login-screen.tsx
-│
-├── features/                              # Vertical Feature Slices (Domain)
-│   ├── booking/                           # Domain Booking
-│   │   ├── components/                    # Mobile UI components với NativeWind
-│   │   │   ├── booking-card.tsx           # Thẻ hiển thị với className="bg-slate-800 rounded-xl..."
-│   │   │   ├── booking-status-chip.tsx    # Chip status với màu tương ứng
-│   │   │   ├── booking-bottom-sheet.tsx   # Action sheet xác nhận thao tác đặt chỗ
-│   │   │   └── booking-filter-bar.tsx
-│   │   ├── hooks/                         # Feature logic & state
-│   │   │   ├── use-booking-detail.ts      # TanStack Query hook lấy chi tiết theo id
-│   │   │   ├── use-booking-actions.ts     # Action mutations: Confirm, Cancel
-│   │   │   └── use-booking-filter.ts      # Quản lý filter & pagination
-│   │   └── types.ts                       # Mobile-specific UI types
-│   │
-│   ├── payment/                           # Domain Payment
-│   │   ├── components/
-│   │   │   ├── payment-card-selector.tsx
-│   │   │   └── payment-qr-modal.tsx       # Modal QR cho Momo / VNPay
-│   │   └── hooks/
-│   │       └── use-mobile-payment.ts      # Deeplink mở ứng dụng Momo / ngân hàng
-│   │
-│   └── auth/                              # Domain Auth
-│       ├── hooks/
-│       │   └── use-auth.ts
-│       └── store/
-│           └── auth-storage.ts            # Zustand + Expo SecureStore lưu session
-│
-├── components/ui/                         # Reusable Mobile UI (NativeWind)
-│   ├── app-button.tsx                     # Nút bấm chuẩn thiết kế
-│   ├── app-input.tsx                      # Input text với label, helper text
-│   ├── card.tsx                           # Container card chuẩn styling
-│   └── skeleton.tsx                       # Shimmer loading skeleton
-│
-├── navigation/                            # Navigation Stacks / Tabs
-│   ├── root-navigator.tsx
-│   ├── tab-navigator.tsx
-│   └── types.ts                           # React Navigation ParamList typings
-│
-├── hooks/                                 # Global utility hooks (useSafeArea, useNetworkStatus)
-├── global.css                             # NativeWind & Tailwind CSS imports
-├── App.tsx                                # Root component
-├── metro.config.js                        # Metro configuration
-├── postcss.config.js                      # PostCSS cho Tailwind v4
-└── babel.config.js                        # Babel config
+apps/mobile/App.tsx
+  → src/navigation/app-navigator.tsx
+  → src/navigation/customer-navigator.tsx / src/screens/staff/staff-workspace.tsx
+  → src/features/booking/use-booking.ts / src/features/staff-api/use-staff-workspace.ts
+  → src/lib/api.ts
+  → packages/api-client
 ```
 
-### Minh họa luồng thực thi trong Mobile (Ví dụ: Chi tiết Booking)
-
-```text
-[User mở BookingDetailScreen]
-       │
-       ▼
-booking-detail-screen.tsx      ──> Lấy bookingId từ route.params
-       │
-       ▼
-use-booking-detail.ts          ──> TanStack Query: gọi centralized api-client
-       │
-       ▼
-booking-card.tsx               ──> Render giao diện với NativeWind (className="...")
-booking-action-sheet.tsx       ──> Khi người dùng bấm Confirm: gọi useBookingActions().confirm()
-```
+Screen hiển thị và điều hướng, feature hook điều phối TanStack Query và mutation, còn `src/lib/api.ts` cấu hình API client dùng schema từ `packages/contracts`. `src/screens/old/` đã được gỡ sau khi chuyển sang navigator hiện tại.
