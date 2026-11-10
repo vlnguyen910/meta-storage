@@ -6,7 +6,7 @@ import {
   type MailJobData,
 } from "@metastorage/shared/mail";
 import { Queue, Worker } from "bullmq";
-import Redis from "ioredis";
+import { Redis } from "ioredis";
 import { ResendMailAdapter } from "./mail/resend.adapter";
 import { BookingMailService } from "./notifications/booking-mail.service";
 import { OutboxRepository } from "./notifications/outbox.repository";

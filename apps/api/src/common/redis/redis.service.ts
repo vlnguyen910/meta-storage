@@ -1,4 +1,4 @@
-import type Redis from "ioredis";
+import type { Redis } from "ioredis";
 import { REDIS_MESSAGES } from "./redis.messages";
 
 function assertValidTtl(ttlSeconds: number): void {

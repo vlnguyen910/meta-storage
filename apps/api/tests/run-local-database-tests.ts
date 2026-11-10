@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { mongodb } from "@fastify/mongodb";
-import Redis from "ioredis";
+import { Redis } from "ioredis";
 
 const root = fileURLToPath(new URL("../../..", import.meta.url));
 
