@@ -154,6 +154,7 @@ describe.skipIf(!localUrl)("unified settings using existing local PostgreSQL", (
       "OPENING_HOUR",
       "OVERDUE_FEE_RATE",
       "RENEWAL_NOTICE_DAYS",
+      "VAT_RATE",
     ]);
     const value = await row("OVERDUE_FEE_RATE");
     expect(
@@ -168,6 +169,54 @@ describe.skipIf(!localUrl)("unified settings using existing local PostgreSQL", (
     expect(
       (await request("admin", "GET", "/system-settings/OVERDUE_FEE_RATE/history")).statusCode,
     ).toBe(403);
+  });
+
+  test("only BOM can configure VAT, with version checking and audit history", async () => {
+    const before = await row("VAT_RATE");
+    for (const role of ["admin", "staff"] as const)
+      expect(
+        (
+          await request(role, "PUT", "/system-settings", {
+            key: "VAT_RATE",
+            value: 10,
+            expectedVersion: before.version,
+          })
+        ).statusCode,
+      ).toBe(403);
+    expect(
+      (
+        await request("bom", "PUT", "/system-settings", {
+          key: "VAT_RATE",
+          value: 10,
+          expectedVersion: before.version,
+        })
+      ).statusCode,
+    ).toBe(200);
+    expect(
+      (
+        await request("bom", "PUT", "/system-settings", {
+          key: "VAT_RATE",
+          value: 5,
+          expectedVersion: before.version,
+        })
+      ).statusCode,
+    ).toBe(409);
+    const history = await request("bom", "GET", "/system-settings/VAT_RATE/history");
+    expect(history.json().data[0]).toMatchObject({
+      actorId: ids.bom,
+      before: { value: before.value },
+      after: { value: 10 },
+    });
+    for (const value of [-1, 101, 1.5, "8"])
+      expect(
+        (
+          await request("bom", "PUT", "/system-settings", {
+            key: "VAT_RATE",
+            value,
+            expectedVersion: before.version + 1,
+          })
+        ).statusCode,
+      ).toBe(400);
   });
 
   test("validation rejects arbitrary keys, wrong types and invalid approved policy bounds", async () => {

@@ -46,6 +46,8 @@ export interface ReservationDraft {
   pricing?: {
     monthlyRateSnapshot: string;
     rentalFeeAmount: string;
+    vatRateSnapshot?: number;
+    vatAmount?: string;
     depositAmount: string;
     totalAmount: string;
     currency: string;
@@ -131,6 +133,8 @@ export type ReservationRecordDto = Omit<
     rentalEndAt: Date;
     monthlyRateSnapshot: number;
     rentalFeeAmount: number;
+    vatRateSnapshot: number;
+    vatAmount: number;
     depositAmount: number;
     totalAmount: number;
     status: ReservationStatus;

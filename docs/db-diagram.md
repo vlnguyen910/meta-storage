@@ -13,7 +13,7 @@ keeping IDs, financial facts, rental/inspection history and assigned tasks.
 
 | Table | Main data and rules |
 | --- | --- |
-| `reservations` | Customer/facility/unit type, requested months, rental period, integer price snapshots and lifecycle. Draft creation checks active offering, schedule, pricing and available capacity. Price snapshots must fit PostgreSQL INTEGER. |
+| `reservations` | Customer/facility/unit type, requested months, rental period, integer price snapshots and lifecycle. Draft creation checks active offering, schedule, pricing and available capacity. Includes VAT rate/amount snapshots; total = rental fee + VAT + deposit. Price snapshots must fit PostgreSQL INTEGER. |
 | `appointments` | CHECK_IN references a paid reservation; CHECK_OUT references an active customer rental; SUPPORT references an owned support ticket. Facility/customer scope is derived from that context. Date and slot must be future and within operating hours. One active appointment per context is enforced by service parent locks. The check-in unique index applies to SCHEDULED/CONFIRMED records so cancelled history does not prevent rebooking. One confirmed return per facility/date/slot remains enforced by a partial unique index. |
 | `payments` | CHARGE retains provider fields. DEPOSIT_REFUND links to a rental and source charge; assigned Staff records it as REFUNDED when completing return settlement. DEBT_COLLECTION records an external receipt linked to a Debt. |
 | `return_settlements` | One immutable deposit/deduction snapshot per returned Rental and inspection, with source charge, currency, Staff and server timestamp. |
@@ -467,6 +467,8 @@ erDiagram
     timestamptz new_end_at
     integer months
     numeric monthly_rate_snapshot
+    integer vat_rate_snapshot
+    numeric vat_amount
     numeric amount
     varchar currency
     integer notice_days_snapshot
@@ -930,7 +932,7 @@ ACTIVE rentals block unit reassignment. The old return-closure workflow is retir
 value, description, nonnegative version, updated_by FK users and updated_at. API keys
 are an allowlist with per-key validation and permissions. Initial keys are
 EXPIRY_REMINDER_DAYS (7), ABANDONED_REVIEW_DAYS (7), OVERDUE_FEE_RATE (25),
-DEPOSIT_MONTHS (1), OPENING_HOUR (8) and CLOSING_HOUR (20). Day/hour settings use
+DEPOSIT_MONTHS (1), VAT_RATE (8), OPENING_HOUR (8) and CLOSING_HOUR (20). Day/hour settings use
 bounded integers, rate 0–100 and months positive. DEPOSIT_MONTHS retains the positive shared pricing revision: price changes
 also lock/increment this row. Existing quote/rental/settlement snapshots are unchanged.
 System Admin manages rental-day settings; BOM manages financial settings and shared
@@ -1028,3 +1030,23 @@ facility membership. No new ticket/message table is introduced.
 Deployment compatibility: completing CHECK_OUT now requires settlement confirmation. Existing web/mobile clients must be updated in their later phase before exposing return completion against this backend. This phase changes no frontend code.
 
 Migration execution commits additions to existing PostgreSQL enums before running generated schema/data statements that use those values. Enum additions are additive and idempotent on retry; the main schema/data phase and migration journal entries roll back together on failure. A failed schema phase can therefore leave the new enum labels present, without marking the migration applied. Generated SQL files remain unchanged. Fresh-schema and existing-enum upgrade/retry paths are tested separately.
+
+
+## VAT on customer rent
+
+`VAT_RATE` is a BOM-managed integer percentage (0–100, default 8) in
+`system_settings`. `PUT /api/system-settings` validates the key, BOM role and
+`expectedVersion`; updates append to `system_setting_changes` in the same transaction.
+Migration initialization and seed insert the default only when the key is absent.
+
+`reservations` stores `vat_rate_snapshot` and integer `vat_amount` alongside the
+base `rental_fee_amount`. `rental_renewals` stores the same rate and a NUMERIC(14,2)
+VAT amount; its existing `amount` is the total including VAT. Database checks enforce
+VAT = round(base rental fee × rate / 100), once per quote to whole VND. Initial checkout
+total = rental fee + VAT + deposit; renewal total = rental fee + VAT, without another deposit.
+The backend supplies these totals to payment checkout and verifies payment callbacks
+against the persisted amount. Changing VAT never reprices an existing reservation,
+renewal quote, pending payment or completed transaction. Historical rows migrate with
+zero VAT and retain their original totals. Cancellation/no-show refunds the rental
+fee plus its VAT while preserving the existing deposit-forfeiture policy. Reports
+recognize VAT-inclusive payment totals while keeping rental revenue exclusive of VAT.

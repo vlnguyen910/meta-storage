@@ -27,7 +27,8 @@
     "test:db:local": "bun apps/api/tests/run-local-database-tests.ts",
     "check:pr": "bun run check && bun run check-types && bun run test && bun run test:db:local",
     "test:rental:local": "bun packages/database/scripts/test-rental-core.ts",
-    "knip": "knip"
+    "knip": "knip",
+    "knip:ci": "knip --exclude duplicates --treat-tag-hints-as-errors"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",

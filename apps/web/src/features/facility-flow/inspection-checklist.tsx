@@ -1,4 +1,5 @@
 import { CheckCircle2, CircleHelp, XCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { FLOW } from "./flow.messages";
 import type { InspectionChecklistProps } from "./inspection-checklist.types";
 
@@ -29,22 +30,39 @@ export function InspectionChecklist({
                   return (
                     <label
                       key={result}
-                      className={`flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border px-3 text-xs sm:text-sm font-medium transition-all ${
+                      className={cn(
+                        "flex h-8.5 cursor-pointer items-center gap-1.5 rounded-lg border px-3 text-xs sm:text-sm font-semibold transition-all select-none",
+                        "focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-1 focus-within:border-primary",
                         isChecked
                           ? isPass
-                            ? "border-emerald-500 bg-emerald-50 text-emerald-800 font-semibold ring-1 ring-emerald-500/30"
-                            : "border-rose-500 bg-rose-50 text-rose-800 font-semibold ring-1 ring-rose-500/30"
-                          : "border-slate-200 bg-slate-50/50 text-slate-600 hover:bg-slate-100/70"
-                      }`}
+                            ? "border-emerald-600 bg-emerald-50 text-emerald-800 shadow-2xs ring-1 ring-emerald-600/30"
+                            : "border-rose-600 bg-rose-50 text-rose-800 shadow-2xs ring-1 ring-rose-600/30"
+                          : "border-slate-200 bg-slate-50/50 text-slate-600 hover:border-slate-300 hover:bg-slate-100/70",
+                      )}
                     >
                       <input
                         type="radio"
                         name={`checklist-${item.code}`}
                         checked={isChecked}
                         onChange={() => onChange(item.code, result)}
-                        className={`size-4 ${isPass ? "accent-emerald-700" : "accent-rose-700"}`}
+                        className="sr-only"
                       />
-                      {isPass ? FLOW.checklistPass : FLOW.checklistFail}
+                      {isPass ? (
+                        <CheckCircle2
+                          className={cn(
+                            "size-4 transition-colors",
+                            isChecked ? "text-emerald-700 fill-emerald-100" : "text-slate-400",
+                          )}
+                        />
+                      ) : (
+                        <XCircle
+                          className={cn(
+                            "size-4 transition-colors",
+                            isChecked ? "text-rose-700 fill-rose-100" : "text-slate-400",
+                          )}
+                        />
+                      )}
+                      <span>{isPass ? FLOW.checklistPass : FLOW.checklistFail}</span>
                     </label>
                   );
                 })}

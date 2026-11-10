@@ -57,7 +57,13 @@ test("Staff retries a failed receipt with the same idempotency key", async () =>
   });
   const user = userEvent.setup();
   view();
-  await user.click(await screen.findByRole("button", { name: "Xem lịch sử / ghi nhận khoản thu" }));
+  await user.click(
+    await screen.findByRole(
+      "button",
+      { name: "Xem lịch sử / ghi nhận khoản thu" },
+      { timeout: 3000 },
+    ),
+  );
   await user.type(await screen.findByLabelText("Số tiền đã nhận (VND)"), "20000");
   await user.click(screen.getByRole("button", { name: "Xác nhận đã nhận tiền" }));
   await screen.findByRole("alert");

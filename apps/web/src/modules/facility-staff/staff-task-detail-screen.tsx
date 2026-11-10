@@ -27,6 +27,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { OperationalBadge } from "@/components/ui/operational";
 import {
   Select,
@@ -595,18 +596,21 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
                               key={fee.code}
                               className="grid gap-2 rounded-xl border border-line p-3 sm:grid-cols-[1fr_auto]"
                             >
-                              <label className="flex items-center gap-3 text-sm font-semibold">
-                                <input
-                                  type="checkbox"
+                              <label
+                                htmlFor={`fee-checkbox-${fee.code}`}
+                                className="flex items-center gap-3 text-sm font-semibold cursor-pointer select-none"
+                              >
+                                <Checkbox
+                                  id={`fee-checkbox-${fee.code}`}
                                   checked={Boolean(selected)}
                                   disabled={
                                     record.status === "PASSED" ||
                                     saveReturn.isPending ||
                                     evidencePending
                                   }
-                                  onChange={(event) => {
+                                  onCheckedChange={(checked) => {
                                     setSettlementConfirmed(false);
-                                    toggleViolation(fee.code, event.target.checked);
+                                    toggleViolation(fee.code, Boolean(checked));
                                   }}
                                 />
                                 <span>{fee.name}</span>
@@ -713,12 +717,15 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
                       )}
                     </>
                   )}
-                  <label className="flex min-h-11 items-center gap-3 text-sm font-semibold">
-                    <input
-                      type="checkbox"
+                  <label
+                    htmlFor="settlement-confirmed-checkbox"
+                    className="flex min-h-11 items-center gap-3 text-sm font-semibold cursor-pointer select-none"
+                  >
+                    <Checkbox
+                      id="settlement-confirmed-checkbox"
                       checked={settlementConfirmed}
                       disabled={saveReturn.isPending}
-                      onChange={(event) => setSettlementConfirmed(event.target.checked)}
+                      onCheckedChange={(checked) => setSettlementConfirmed(Boolean(checked))}
                     />
                     {refundAmount > 0 ? M.refundConfirmed : M.settlementConfirmed}
                   </label>

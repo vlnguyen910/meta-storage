@@ -1,25 +1,5 @@
-import * as FileSystem from "expo-file-system";
-import * as Linking from "expo-linking";
 import * as SecureStore from "expo-secure-store";
-import * as WebBrowser from "expo-web-browser";
 import { Platform } from "react-native";
-import type { CheckoutSession } from "../../common/customer-api.types";
-import { WEB_BASE_URL } from "../../lib/runtime-config";
-
-const privateFiles = new Set<string>();
-const privateDirectory = () => new FileSystem.Directory(FileSystem.Paths.cache, "customer-private");
-/** @lintignore Retained for archived screens in screens/old/ until their cleanup. */
-export async function openCustomerCheckout(session: CheckoutSession) {
-  const target = new URL("/payments/mobile-checkout", WEB_BASE_URL);
-  const returnUrl = Linking.createURL("payment-result", {
-    queryParams: {
-      paymentId: session.paymentId,
-      ...(session.reservationId ? { reservationId: session.reservationId } : {}),
-    },
-  });
-  target.hash = encodeURIComponent(JSON.stringify({ ...session, returnUrl }));
-  await WebBrowser.openBrowserAsync(target.toString());
-}
 export async function saveCustomerCommand<T>(ownerId: string, operation: string, value: T) {
   const key = `customer-${ownerId}-${operation}`;
   if (Platform.OS === "web") sessionStorage.setItem(key, JSON.stringify(value));
@@ -43,26 +23,6 @@ export async function clearCustomerCommand(ownerId: string, operation: string) {
   if (Platform.OS === "web") sessionStorage.removeItem(key);
   else await SecureStore.deleteItemAsync(key);
 }
-/** @lintignore Retained for archived screens in screens/old/ until their cleanup. */
-export function clearPrivateFiles() {
-  for (const uri of privateFiles) {
-    try {
-      new FileSystem.File(uri).delete();
-    } catch {
-      /* Cache may already have been evicted. */
-    }
-  }
-  privateFiles.clear();
-  if (Platform.OS !== "web") {
-    try {
-      const directory = privateDirectory();
-      if (directory.exists) directory.delete();
-    } catch {
-      /* OS cache eviction may precede sign-out. */
-    }
-  }
-}
-
 // Idempotency identifiers are unique command names, not authentication credentials.
 export function customerCommandId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;

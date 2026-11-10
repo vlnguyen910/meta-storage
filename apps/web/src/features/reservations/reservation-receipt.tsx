@@ -150,26 +150,22 @@ export function ReservationReceipt({
           confirmation: {
             bookingCode: formatReference(record.id, "BK"),
             facility: {
-              name:
-                state.facility?.name ??
-                record.facility?.name ??
-                formatReference(record.facilityId, "CS"),
-              address: state.facility?.address ?? record.facility?.address ?? "",
+              name: record.facility?.name ?? formatReference(record.facilityId, "CS"),
+              address: record.facility?.address ?? "",
             },
             checkInSlotStart: record.rentalStartAt,
             checkInSlotEnd: null,
             rentalEndAt: record.rentalEndAt,
-            unitTypeName:
-              state.unitType?.name ??
-              record.unitType?.name ??
-              formatReference(record.unitTypeId, "LK"),
-            sizeLabel: state.unitType?.sizeLabel ?? record.unitType?.sizeLabel ?? "",
+            unitTypeName: record.unitType?.name ?? formatReference(record.unitTypeId, "LK"),
+            sizeLabel: record.unitType?.sizeLabel ?? "",
             durationMonths: record.requestedMonths,
           },
           qrDataUrl,
           paidPricing: {
             monthlyRateSnapshot: String(record.monthlyRateSnapshot),
             rentalFeeAmount: String(record.rentalFeeAmount),
+            vatRateSnapshot: record.vatRateSnapshot,
+            vatAmount: String(record.vatAmount),
             depositAmount: String(record.depositAmount),
             totalAmount: String(record.totalAmount),
             currency: "VND",
@@ -197,18 +193,8 @@ export function ReservationReceipt({
       <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
         {[
           [m.reference, formatReference(record.id, "BK")],
-          [
-            m.facility,
-            state.facility?.name ??
-              record.facility?.name ??
-              formatReference(record.facilityId, "CS"),
-          ],
-          [
-            m.unitType,
-            state.unitType?.name ??
-              record.unitType?.name ??
-              formatReference(record.unitTypeId, "LK"),
-          ],
+          [m.facility, record.facility?.name ?? formatReference(record.facilityId, "CS")],
+          [m.unitType, record.unitType?.name ?? formatReference(record.unitTypeId, "LK")],
           [m.receiveAt, formatDateTime(record.rentalStartAt)],
           [m.rentalEnd, formatDateTime(record.rentalEndAt)],
         ].map(([label, value]) => (
@@ -217,6 +203,18 @@ export function ReservationReceipt({
             <dd className="mt-1 break-words text-sm font-semibold text-ink">{value}</dd>
           </div>
         ))}
+        <div>
+          <dt className="text-sm text-muted">{m.rentalFee}</dt>
+          <dd>
+            <Currency value={record.rentalFeeAmount} />
+          </dd>
+        </div>
+        <div>
+          <dt className="text-sm text-muted">{m.vat(record.vatRateSnapshot ?? 0)}</dt>
+          <dd>
+            <Currency value={record.vatAmount ?? 0} />
+          </dd>
+        </div>
         <div>
           <dt className="text-sm text-muted">{m.deposit}</dt>
           <dd>

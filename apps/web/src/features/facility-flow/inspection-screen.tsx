@@ -27,6 +27,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -340,12 +341,15 @@ export function InspectionScreen({
             </Card>
 
             <Card className="flex flex-1 flex-col justify-between border-slate-200 bg-white p-5 sm:p-6 shadow-2xs rounded-xl">
-              <label className="flex items-start gap-3 text-sm text-slate-700 font-medium cursor-pointer rounded-xl border border-slate-200 bg-slate-50/60 p-4 hover:bg-slate-100/50 transition-colors">
-                <input
-                  type="checkbox"
+              <label
+                htmlFor="confirm-lock-checkbox"
+                className="flex items-start gap-3 text-sm text-slate-700 font-medium cursor-pointer rounded-xl border border-slate-200 bg-slate-50/60 p-4 hover:bg-slate-100/50 transition-colors"
+              >
+                <Checkbox
+                  id="confirm-lock-checkbox"
                   checked={confirmLock}
-                  onChange={(e) => setConfirmLock(e.target.checked)}
-                  className="mt-0.5 size-4.5 accent-emerald-700"
+                  onCheckedChange={(val) => setConfirmLock(Boolean(val))}
+                  className="mt-0.5"
                 />
                 <span className="leading-relaxed">{FLOW.confirmLock}</span>
               </label>
@@ -716,13 +720,16 @@ function HandoverContent({
                   </p>
                 </div>
 
-                <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-3.5 text-xs sm:text-sm text-slate-800 font-medium cursor-pointer hover:bg-slate-100/50 transition-colors">
-                  <input
-                    type="checkbox"
+                <label
+                  htmlFor="customer-received-checkbox"
+                  className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-3.5 text-xs sm:text-sm text-slate-800 font-medium cursor-pointer hover:bg-slate-100/50 transition-colors"
+                >
+                  <Checkbox
+                    id="customer-received-checkbox"
                     checked={handover.received}
-                    onChange={(event) => handover.setReceived(event.target.checked)}
+                    onCheckedChange={(val) => handover.setReceived(Boolean(val))}
                     disabled={handover.mutation.isPending}
-                    className="mt-0.5 size-4.5 accent-emerald-700"
+                    className="mt-0.5"
                   />
                   <span className="leading-relaxed">{FLOW.customerReceived}</span>
                 </label>

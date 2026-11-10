@@ -197,6 +197,19 @@ export function CheckoutConfirmation({
           </div>
 
           {state.paidPricing ? (
+            <div className="mt-3 space-y-2 border-t border-line pt-3 text-sm">
+              <CheckoutRow label={m.rental}>
+                <Currency value={Number(state.paidPricing.rentalFeeAmount)} />
+              </CheckoutRow>
+              <CheckoutRow label={m.vat(state.paidPricing.vatRateSnapshot ?? 0)}>
+                <Currency value={Number(state.paidPricing.vatAmount ?? 0)} />
+              </CheckoutRow>
+              <CheckoutRow label={m.deposit}>
+                <Currency value={Number(state.paidPricing.depositAmount)} />
+              </CheckoutRow>
+            </div>
+          ) : null}
+          {state.paidPricing ? (
             <div className="mt-3 pt-3 border-t border-slate-100 flex items-baseline justify-between">
               <span className="text-xs sm:text-sm font-semibold text-slate-600">{m.total}</span>
               <strong className="text-base font-bold text-[#165f4d]">

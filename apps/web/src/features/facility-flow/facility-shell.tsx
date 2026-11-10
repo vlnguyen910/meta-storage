@@ -18,6 +18,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { type ReactNode, Suspense, useEffect, useRef, useState } from "react";
 import { BrandLogo } from "@/components/ui/brand-logo";
+import { TooltipSimple } from "@/components/ui/tooltip";
 import { isMockMode } from "@/config/api-mode";
 import { facilityManagerRoutes, facilityStaffRoutes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
@@ -370,15 +371,16 @@ function FacilityShellContent({
                 >
                   <User size={18} />
                 </span>
-                <button
-                  type="button"
-                  onClick={onLogout}
-                  aria-label={FLOW.logout}
-                  title={FLOW.logout}
-                  className="grid size-9 place-items-center rounded-lg text-slate-600 transition-colors hover:bg-primary-soft hover:text-primary focus-visible:outline-2 focus-visible:outline-primary"
-                >
-                  <LogOut size={18} aria-hidden="true" />
-                </button>
+                <TooltipSimple content={FLOW.logout} side="bottom">
+                  <button
+                    type="button"
+                    onClick={onLogout}
+                    aria-label={FLOW.logout}
+                    className="grid size-9 place-items-center rounded-lg text-slate-600 transition-colors hover:bg-primary-soft hover:text-primary focus-visible:outline-2 focus-visible:outline-primary cursor-pointer"
+                  >
+                    <LogOut size={18} aria-hidden="true" />
+                  </button>
+                </TooltipSimple>
               </div>
             </div>
           </header>

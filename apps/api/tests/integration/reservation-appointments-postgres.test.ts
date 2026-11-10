@@ -611,7 +611,7 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
         url: `/api/reservations/${draft.json().data.id}`,
       });
       expect(detail.statusCode).toBe(200);
-      expect(detail.json().data.totalAmount).toBe(300000);
+      expect(detail.json().data.totalAmount).toBe(316000);
       session.mockResolvedValue({ user: { ...f.manager, status: "ACTIVE" }, session: {} } as never);
       const list = await app.inject({
         method: "GET",
@@ -630,10 +630,56 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
     }
   });
 
+  test("VAT changes apply to new quotes while checkout keeps the original snapshot", async () => {
+    const f = await fixture();
+    const originalDraft = await reservationService.createReservationDraft(f.input, f.id.customer);
+    expect(originalDraft).toMatchObject({
+      vatRateSnapshot: 8,
+      vatAmount: 16000,
+      totalAmount: 316000,
+    });
+    const [original] = await db
+      .select()
+      .from(systemSettings)
+      .where(eq(systemSettings.key, "VAT_RATE"));
+    if (!original) throw new Error("Missing VAT test setting");
+    try {
+      await db.update(systemSettings).set({ value: 10 }).where(eq(systemSettings.key, "VAT_RATE"));
+      const next = await reservationService.createReservationDraft(f.input, f.id.customer);
+      expect(next).toMatchObject({ vatRateSnapshot: 10, vatAmount: 20000, totalAmount: 320000 });
+      const session = await paymentWorkflow.startPayment(
+        originalDraft.id,
+        { idempotencyKey: randomUUID() },
+        f.id.customer,
+      );
+      const event: VerifiedPaymentEvent = {
+        providerEventId: randomUUID(),
+        paymentCode: session.paymentCode,
+        amount: 300000,
+        transferType: "in",
+        metadata: {},
+      };
+      expect((await paymentWorkflow.processEvent(event))?.processed).toBe(false);
+      expect((await paymentWorkflow.processEvent({ ...event, amount: 316000 }))?.processed).toBe(
+        true,
+      );
+      const stored = await reservationService.getCustomerReservation(
+        originalDraft.id,
+        f.id.customer,
+      );
+      expect(stored).toMatchObject({ vatRateSnapshot: 8, vatAmount: 16000, totalAmount: 316000 });
+    } finally {
+      await db
+        .update(systemSettings)
+        .set({ value: original.value })
+        .where(eq(systemSettings.key, "VAT_RATE"));
+    }
+  });
+
   test("drafts snapshot pricing and enforce owner/facility boundaries", async () => {
     const f = await fixture();
     const reservation = await reservationService.createReservationDraft(f.input, f.id.customer);
-    expect(reservation.totalAmount).toBe(300000);
+    expect(reservation.totalAmount).toBe(316000);
     expect(reservation.rentalFeeAmount).toBe(200000);
     await expect(
       reservationService.getReservation(reservation.id, {
@@ -737,7 +783,7 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
       to,
       asOf,
     );
-    expect(Number(monthly.receipts[0]?.cashReceived)).toBe(300000);
+    expect(Number(monthly.receipts[0]?.cashReceived)).toBe(316000);
     const [hold] = await db
       .select()
       .from(capacityAllocations)
@@ -796,7 +842,7 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
     expect(task?.status).toBe(FacilityTaskStatus.CANCELLED);
     const refunds = await paymentService.listManualRefunds({ limit: 100, offset: 0 });
     const refund = refunds.find((row) => row.paymentId === paid.session.paymentId);
-    expect(Number(refund?.amount)).toBe(200000);
+    expect(Number(refund?.amount)).toBe(216000);
     expect(Number(refund?.depositForfeitedAmount)).toBe(100000);
     expect(refund?.contactEmail).toBe(`${f.id.customer}@example.test`);
     expect(
@@ -1175,7 +1221,7 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
         const source = (
           await db.select().from(payments).where(eq(payments.id, paid.session.paymentId))
         )[0];
-        expect(source).toMatchObject({ status: "SUCCEEDED", totalAmount: "300000.00" });
+        expect(source).toMatchObject({ status: "SUCCEEDED", totalAmount: "316000.00" });
         const reports = new ReportsRepository(db);
         const from = new Date(Date.now() - 10 * 86400000),
           to = new Date(Date.now() + 86400000);
@@ -1186,7 +1232,7 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
           to,
           new Date(),
         );
-        expect(Number(report.financial[0]?.cashReceived)).toBe(300000);
+        expect(Number(report.financial[0]?.cashReceived)).toBe(316000);
         expect(Number(report.financial[0]?.cashRefunded)).toBe(
           Math.max(0, 100000 - deductionAmount),
         );
@@ -1268,7 +1314,7 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
           to,
           new Date(),
         );
-        expect(Number(collectedReport.financial[0]?.cashReceived)).toBe(350000);
+        expect(Number(collectedReport.financial[0]?.cashReceived)).toBe(366000);
         expect(collectedReport.financial[0]?.unclassifiedCollectedPayments).toBe(0);
         const monthly = await reports.monthlyRevenue(
           f.manager,
@@ -1279,7 +1325,7 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
         );
         expect(
           monthly.receipts.reduce((sum, receipt) => sum + Number(receipt.cashReceived), 0),
-        ).toBe(350000);
+        ).toBe(366000);
       } finally {
         session.mockRestore();
         await app.close();
@@ -1431,6 +1477,6 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
       .from(payments)
       .where(eq(payments.id, paid.session.paymentId));
     expect(payment?.refundReason).toBe("NO_SHOW");
-    expect(Number(payment?.refundAmount)).toBe(200000);
+    expect(Number(payment?.refundAmount)).toBe(216000);
   });
 });

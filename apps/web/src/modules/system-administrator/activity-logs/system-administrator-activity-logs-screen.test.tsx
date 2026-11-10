@@ -41,7 +41,7 @@ function renderLogs() {
   );
 }
 
-it("shows six lookup columns and sends filters, Vietnam day boundaries and pagination to the API", async () => {
+it("shows five lookup columns and sends filters, Vietnam day boundaries and pagination to the API", async () => {
   renderLogs();
   await screen.findByRole("table", { name: M.titles.activityLogs });
   expect(screen.getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual(

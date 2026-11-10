@@ -23,7 +23,7 @@ export function useStaffWorkspace(owner: string, filters: StaffWorkFilters) {
   });
   const facility = assignments.data?.find((item) => item.isActive && !item.endedAt);
   const bookings = useQuery({
-    queryKey: ["mobile-staff-bookings", owner, facility?.facilityId, filters.date],
+    queryKey: ["mobile-staff-bookings", owner, facility?.facilityId],
     queryFn: () => api.appointments.assignedToMe({ facilityId: facility?.facilityId }),
     enabled: Boolean(facility),
     refetchInterval: 30000,

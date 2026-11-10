@@ -1,5 +1,8 @@
 import type {
   ApiEnvelope,
+  FacilitySupportPage,
+  FacilitySupportTicket,
+  FacilitySupportTicketQuery,
   SupportBookingContext,
   SupportContextPage,
   SupportContextQuery,
@@ -17,6 +20,24 @@ export function createSupportClient(http: AxiosInstance) {
   const path = (id: string) => `/support/tickets/${encodeURIComponent(id)}`;
   return {
     support: {
+      facilityList: (
+        facilityId: string,
+        params: Partial<FacilitySupportTicketQuery> = {},
+        signal?: AbortSignal,
+      ) =>
+        http
+          .get<ApiEnvelope<FacilitySupportPage>>(
+            `/support/facilities/${encodeURIComponent(facilityId)}/tickets`,
+            { params, signal },
+          )
+          .then(unwrap),
+      facilityDetail: (facilityId: string, ticketId: string, signal?: AbortSignal) =>
+        http
+          .get<ApiEnvelope<FacilitySupportTicket>>(
+            `/support/facilities/${encodeURIComponent(facilityId)}/tickets/${encodeURIComponent(ticketId)}`,
+            { signal },
+          )
+          .then(unwrap),
       contexts: (params: SupportContextQuery, signal?: AbortSignal) =>
         http
           .get<ApiEnvelope<SupportContextPage<SupportBookingContext>>>("/support/contexts", {

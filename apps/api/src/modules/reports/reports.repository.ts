@@ -45,16 +45,17 @@ const paymentUnitTypeId = sql<
   string | null
 >`coalesce(${bookings.unitTypeId}, ${reservations.unitTypeId}, (select unit.unit_type_id from rentals rental join storage_units unit on unit.id = rental.storage_unit_id where rental.id = ${payments.rentalId}))`;
 const rentalSnapshot = sql`coalesce(${bookings.rentalFeeAmount}, ${reservations.rentalFeeAmount})`;
+const vatSnapshot = sql`coalesce(${reservations.vatAmount}, 0)`;
 const depositSnapshot = sql`coalesce(${bookings.depositAmount}, ${reservations.depositAmount})`;
 
 function financialRules(asOf: Date) {
   const vn = sql`${payments.currency} = 'VND'`;
   const captured = sql`${payments.type} = 'CHARGE' and ${payments.paidAt} is not null and ${payments.paidAt} <= ${asOf.toISOString()}`;
   const cashCaptured = sql`(${captured} or (${payments.type} = 'DEBT_COLLECTION' and ${payments.status} = 'SUCCEEDED' and ${payments.paidAt} <= ${asOf.toISOString()}))`;
-  const known = sql`${rentalSnapshot} >= 0 and ${depositSnapshot} >= 0 and ${payments.totalAmount} = ${rentalSnapshot} + ${depositSnapshot} and ${payments.depositForfeitedAmount} <= ${depositSnapshot}`;
+  const known = sql`${rentalSnapshot} >= 0 and ${depositSnapshot} >= 0 and ${payments.totalAmount} = ${rentalSnapshot} + ${vatSnapshot} + ${depositSnapshot} and ${payments.depositForfeitedAmount} <= ${depositSnapshot}`;
   const refund = sql`case when ${payments.type} = 'DEPOSIT_REFUND' then ${payments.totalAmount} else coalesce(${payments.refundAmount}, ${payments.totalAmount}) end`;
   const settledRefund = sql`${payments.status} = 'REFUNDED' and ${payments.refundedAt} is not null and ${payments.refundedAt} <= ${asOf.toISOString()}`;
-  const knownRefund = sql`${settledRefund} and (${refund} = ${payments.totalAmount} or (${refund} = ${rentalSnapshot} and ${payments.depositForfeitedAmount} = ${depositSnapshot}))`;
+  const knownRefund = sql`${settledRefund} and (${refund} = ${payments.totalAmount} or (${refund} = ${rentalSnapshot} + ${vatSnapshot} and ${payments.depositForfeitedAmount} = ${depositSnapshot}))`;
   const notReturned = notExists(
     sql`(select 1 from ${rentals} where ${rentals.status} = 'CLOSED' and ((${rentals.bookingId} is not null and ${rentals.bookingId} = ${payments.bookingId}) or (${rentals.reservationId} is not null and ${rentals.reservationId} = ${payments.reservationId})))`,
   );

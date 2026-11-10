@@ -1,5 +1,9 @@
 import type { PricingQuery, UpdateDepositPolicy } from "@metastorage/contracts";
-import { PRICING_MESSAGES as m, SystemSettingKey } from "@metastorage/contracts";
+import {
+  PRICING_MESSAGES as m,
+  SYSTEM_SETTING_DEFINITIONS,
+  SystemSettingKey,
+} from "@metastorage/contracts";
 import {
   and,
   asc,
@@ -103,6 +107,14 @@ export class PricingRepository {
         prices,
       };
     });
+  }
+
+  async getVatRate(executor: Database | PricingTransaction = this.db) {
+    const [row] = await executor
+      .select({ value: systemSettingInteger })
+      .from(systemSettings)
+      .where(eq(systemSettings.key, SystemSettingKey.VAT_RATE));
+    return row?.value ?? SYSTEM_SETTING_DEFINITIONS.VAT_RATE.defaultValue;
   }
 
   async findQuote(unitTypeId: string) {

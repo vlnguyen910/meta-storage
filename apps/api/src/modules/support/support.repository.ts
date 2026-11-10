@@ -1,4 +1,8 @@
-import type { SupportPageQuery, SupportTicketQuery } from "@metastorage/contracts";
+import type {
+  FacilitySupportTicketQuery,
+  SupportPageQuery,
+  SupportTicketQuery,
+} from "@metastorage/contracts";
 import {
   and,
   bookings,
@@ -26,6 +30,51 @@ import type { SupportCursor, SupportTransaction } from "./support.types";
 
 export class SupportRepository {
   constructor(readonly db: Database) {}
+
+  async facilityList(
+    facilityId: string,
+    input: FacilitySupportTicketQuery,
+    cursor?: SupportCursor,
+    ticketId?: string,
+  ) {
+    return this.db
+      .select({
+        ticket: supportTickets,
+        customer: { name: users.name, email: users.email, phone: users.phone },
+        unitCode: storageUnits.code,
+        storageUnitId: storageUnits.id,
+        bookingCode: sql<
+          string | null
+        >`coalesce(${bookings.bookingCode}, ${reservations.id}::text)`,
+      })
+      .from(supportTickets)
+      .innerJoin(users, eq(users.id, supportTickets.ownerUserId))
+      .leftJoin(bookings, eq(bookings.id, supportTickets.bookingId))
+      .leftJoin(reservations, eq(reservations.id, supportTickets.reservationId))
+      .leftJoin(rentals, eq(rentals.id, supportTickets.rentalId))
+      .leftJoin(storageUnits, eq(storageUnits.id, rentals.storageUnitId))
+      .where(
+        and(
+          eq(supportTickets.facilityId, facilityId),
+          ticketId ? eq(supportTickets.id, ticketId) : undefined,
+          input.category ? eq(supportTickets.category, input.category) : undefined,
+          input.search
+            ? sql`position(lower(${input.search}) in lower(concat_ws(' ', ${supportTickets.subject}, ${users.name}, ${users.email}, ${users.phone}, ${storageUnits.code}))) > 0`
+            : undefined,
+          cursor
+            ? or(
+                lt(supportTickets.createdAt, cursor.createdAt),
+                and(
+                  eq(supportTickets.createdAt, cursor.createdAt),
+                  lt(supportTickets.id, cursor.id),
+                ),
+              )
+            : undefined,
+        ),
+      )
+      .orderBy(desc(supportTickets.createdAt), desc(supportTickets.id))
+      .limit(ticketId ? 1 : input.limit + 1);
+  }
 
   async lockCustomerTicket(tx: SupportTransaction, id: string, customerId: string) {
     const [ticket] = await tx

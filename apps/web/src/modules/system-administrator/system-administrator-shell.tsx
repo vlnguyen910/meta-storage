@@ -1,11 +1,12 @@
 "use client";
 
-import { LogOut, Menu } from "lucide-react";
+import { LogOut, Menu, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/ui/brand-logo";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { TooltipSimple } from "@/components/ui/tooltip";
 import { isMockMode } from "@/config/api-mode";
 import { systemAdministratorNavigation } from "@/config/navigation/system-administrator.navigation";
 import { systemAdministratorRoutes } from "@/config/routes";
@@ -33,18 +34,21 @@ export function SystemAdministratorShell({ children }: Readonly<AdminShellProps>
     if (pathname) setDrawerOpen(false);
   }, [pathname]);
   const navigation = (
-    <nav aria-label={M.navigation} className="grid gap-1.5">
+    <nav aria-label={M.navigation} className="grid gap-1">
       {systemAdministratorNavigation.map((item) => {
         const Icon = item.icon;
-        const active = pathname === item.href;
+        const active =
+          pathname === item.href ||
+          (item.href !== systemAdministratorRoutes.dashboard &&
+            pathname.startsWith(`${item.href}/`));
         return (
           <Link
             key={item.href}
             href={item.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-600 outline-offset-2 hover:bg-primary-soft focus-visible:outline-2 focus-visible:outline-primary",
-              active && "bg-primary text-white shadow-sm hover:bg-primary-dark",
+              "flex min-h-11 items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-slate-600 outline-offset-2 hover:bg-primary-soft hover:text-primary focus-visible:outline-2 focus-visible:outline-primary",
+              active && "bg-primary text-white hover:bg-primary-dark hover:text-white",
             )}
           >
             <Icon size={19} aria-hidden="true" />
@@ -55,6 +59,31 @@ export function SystemAdministratorShell({ children }: Readonly<AdminShellProps>
     </nav>
   );
   const isNoScroll = pathname.startsWith("/system-admin");
+
+  const userFooter = (
+    <div className="shrink-0 border-t border-slate-200 p-4">
+      <div className="flex items-center gap-2 rounded-lg bg-slate-50 p-2">
+        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary-soft text-primary font-bold">
+          {user?.name?.slice(0, 1).toUpperCase() ?? "A"}
+        </span>
+        <div className="min-w-0 flex-1">
+          <strong className="block truncate text-xs text-slate-800">{user?.name ?? M.role}</strong>
+          <span className="block truncate text-[11px] text-slate-500">{M.role}</span>
+        </div>
+        <TooltipSimple content={M.logout} side="right">
+          <button
+            type="button"
+            onClick={() => logout.mutate()}
+            disabled={logout.isPending}
+            aria-label={M.logout}
+            className="shrink-0 rounded-lg p-2 text-slate-600 hover:bg-primary-soft hover:text-primary disabled:opacity-50 cursor-pointer"
+          >
+            <LogOut size={18} aria-hidden="true" />
+          </button>
+        </TooltipSimple>
+      </div>
+    </div>
+  );
 
   return (
     <div
@@ -69,7 +98,7 @@ export function SystemAdministratorShell({ children }: Readonly<AdminShellProps>
       >
         {M.skip}
       </a>
-      <header className="sticky top-0 z-30 flex min-h-16 shrink-0 items-center gap-3 border-b border-line bg-white/95 px-4 py-2 backdrop-blur-sm lg:ml-64 lg:px-8">
+      <header className="sticky top-0 z-30 flex min-h-16 shrink-0 flex-wrap items-center gap-4 border-b border-slate-200 bg-white px-4 py-3 lg:px-7">
         <button
           type="button"
           aria-label={M.openMenu}
@@ -80,12 +109,15 @@ export function SystemAdministratorShell({ children }: Readonly<AdminShellProps>
         </button>
         <Link
           href={systemAdministratorRoutes.dashboard}
-          className="flex items-center gap-2 font-bold text-primary lg:hidden"
+          className="inline-flex min-h-11 items-center gap-2 font-bold text-primary"
         >
           <BrandLogo />
           {M.brand}
         </Link>
-        <nav aria-label={M.breadcrumb} className="hidden items-center gap-3 text-sm lg:flex">
+        <nav
+          aria-label={M.breadcrumb}
+          className="hidden items-center gap-3 border-l border-slate-200 pl-5 text-sm lg:flex"
+        >
           <Link
             href={systemAdministratorRoutes.dashboard}
             className="text-slate-500 hover:text-primary"
@@ -105,20 +137,13 @@ export function SystemAdministratorShell({ children }: Readonly<AdminShellProps>
               {contextLabel}
             </span>
           )}
-          <div className="hidden border-l border-line pl-4 text-right md:block lg:hidden xl:block">
-            <p className="m-0 text-sm font-semibold">{user?.name}</p>
-            <p className="m-0 text-xs text-slate-600">{M.role}</p>
+          <span className="grid size-8 place-items-center rounded-full bg-[#003b2f] text-white">
+            <User size={18} aria-hidden="true" />
+          </span>
+          <div className="hidden border-l border-slate-200 pl-3 md:block">
+            <strong className="block text-xs text-slate-800">{user?.name}</strong>
+            <span className="block text-[11px] text-slate-500">{M.role}</span>
           </div>
-          <button
-            type="button"
-            aria-label={M.logout}
-            title={M.logout}
-            disabled={logout.isPending}
-            onClick={() => logout.mutate()}
-            className="grid size-11 shrink-0 place-items-center rounded-lg border border-slate-200 focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50"
-          >
-            <LogOut size={20} aria-hidden="true" />
-          </button>
         </div>
       </header>
       {logout.isError && (
@@ -126,46 +151,31 @@ export function SystemAdministratorShell({ children }: Readonly<AdminShellProps>
           {M.logoutFailed}
         </p>
       )}
-      <aside className="fixed bottom-0 left-0 top-0 hidden w-64 flex-col border-r border-line bg-white p-4 lg:flex">
-        <Link
-          href={systemAdministratorRoutes.dashboard}
-          className="mb-8 flex items-center gap-3 px-2 pt-1"
-        >
-          <BrandLogo />
-          <span className="min-w-0">
-            <strong className="block font-['Space_Grotesk'] text-lg leading-tight text-primary">
-              {M.brand}
-            </strong>
-            <span className="block text-[10px] font-semibold tracking-wide text-slate-500">
-              {M.role}
-            </span>
-          </span>
-        </Link>
-        {navigation}
-        <div className="mt-auto flex items-center gap-3 rounded-xl border border-line bg-canvas p-2">
-          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary-soft text-sm font-bold text-primary">
-            {user?.name?.trim().slice(0, 1) ?? "A"}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="m-0 truncate text-sm font-semibold">{user?.name ?? M.role}</p>
-            <p className="m-0 truncate text-xs text-slate-500">{M.role}</p>
-          </div>
+      <aside className="fixed bottom-0 left-0 top-16 hidden w-60 flex-col justify-between border-r border-slate-200 bg-white lg:flex">
+        <div className="min-h-0 flex-1 overflow-y-auto p-4">
+          <p className="mb-3 mt-1 px-3 text-xs font-semibold text-slate-500">{M.role}</p>
+          {navigation}
         </div>
+        {userFooter}
       </aside>
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <SheetContent className="left-0 right-auto max-w-72 p-4">
-          <SheetHeader className="mb-4">
-            <SheetTitle className="flex items-center gap-2 text-primary font-bold text-left">
-              <BrandLogo />
-              {M.brand}
-            </SheetTitle>
-          </SheetHeader>
-          {navigation}
+        <SheetContent className="left-0 right-auto flex max-w-72 flex-col justify-between p-0">
+          <div className="min-h-0 flex-1 overflow-y-auto p-4">
+            <SheetHeader className="mb-4">
+              <SheetTitle className="flex items-center gap-2 text-left font-bold text-primary">
+                <BrandLogo />
+                {M.brand}
+              </SheetTitle>
+            </SheetHeader>
+            <p className="mb-3 px-3 text-xs font-semibold text-slate-500">{M.role}</p>
+            {navigation}
+          </div>
+          {userFooter}
         </SheetContent>
       </Sheet>
       <div
         className={cn(
-          "min-w-0 lg:ml-64",
+          "min-w-0 lg:ml-60",
           isNoScroll && "flex-1 overflow-hidden min-h-0 flex flex-col",
         )}
       >

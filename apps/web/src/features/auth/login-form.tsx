@@ -15,9 +15,10 @@ import {
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { useGlobalLoading } from "@/components/providers/global-loading-provider";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/toast";
 import { isMockMode } from "@/config/api-mode";
 import { roleHome, routes, safeReturnTo } from "@/config/routes";
@@ -72,6 +73,7 @@ export function LoginForm() {
     register,
     handleSubmit,
     setValue,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(schema),
@@ -239,16 +241,21 @@ export function LoginForm() {
 
           {/* Field 3: Remember & Forgot Password */}
           <div className="flex items-center justify-between pt-1">
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                {...register("remember")}
-                className="w-4 h-4 rounded border-slate-300 text-[#165f4d] focus:ring-[#165f4d] focus:ring-offset-0 transition-all cursor-pointer"
-              />
-              <span className="text-xs text-slate-600 hover:text-slate-900">
-                {AUTH_MESSAGES.rememberMe}
-              </span>
-            </label>
+            <Controller
+              control={control}
+              name="remember"
+              render={({ field }) => (
+                <label
+                  htmlFor="remember"
+                  className="flex items-center gap-2 cursor-pointer select-none"
+                >
+                  <Checkbox id="remember" checked={field.value} onCheckedChange={field.onChange} />
+                  <span className="text-xs text-slate-600 hover:text-slate-900">
+                    {AUTH_MESSAGES.rememberMe}
+                  </span>
+                </label>
+              )}
+            />
             <Link
               href={routes.forgotPassword}
               className="text-xs text-[#165f4d] hover:underline font-medium focus:outline-none whitespace-nowrap"

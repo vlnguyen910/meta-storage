@@ -22,6 +22,8 @@ export type BookingClosure = {
 export type BookingDraftPricing = {
   monthlyRateSnapshot: string;
   rentalFeeAmount: string;
+  vatRateSnapshot?: number;
+  vatAmount?: string;
   depositAmount: string;
   totalAmount: string;
   currency: "VND";

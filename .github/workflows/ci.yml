@@ -66,6 +66,9 @@ jobs:
     - name: Check formatting and linting
       run: bun run check
 
+    - name: Check unused files, exports, and dependencies
+      run: bun run knip:ci
+
     - name: Type-check workspaces
       run: bun run check-types
 

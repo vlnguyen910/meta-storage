@@ -15,27 +15,21 @@ export function useReservationRecord(id: string) {
     queryKey: ["reservations", owner, id],
     queryFn: () => api.reservations.get(id),
     enabled: Boolean(id),
-    refetchInterval: 15000,
+    refetchInterval: (query) =>
+      query.state.data?.status === "DRAFT" || query.state.data?.status === "CONFIRMED"
+        ? 15000
+        : false,
   });
+  const record = reservation.data;
   const appointments = useQuery({
     queryKey: ["appointments", owner, "mine"],
     queryFn: () => api.appointments.mine(),
-    refetchInterval: 15000,
+    refetchInterval: record?.status === "CONFIRMED" ? 15000 : false,
   });
   const slots = useQuery({ queryKey: ["appointments", "slots"], queryFn: api.appointments.slots });
-  const record = reservation.data;
   const appointment = appointments.data?.find(
     (item) => item.reservationId === id && !["CANCELLED", "NO_SHOW"].includes(item.status),
   );
-  const facility = useQuery({
-    queryKey: ["facilities", "active"],
-    queryFn: () => api.facilities.listActive({ limit: 100 }),
-  });
-  const types = useQuery({
-    queryKey: ["unit-types", record?.facilityId],
-    queryFn: () => api.facilities.listUnitTypes(record?.facilityId ?? "", { limit: 100 }),
-    enabled: Boolean(record),
-  });
   const createAppointment = useMutation({
     mutationFn: async (slotId: string) => {
       if (!record) throw new Error(m.error);
@@ -91,7 +85,5 @@ export function useReservationRecord(id: string) {
     preferredSlot,
     createAppointment,
     cancel,
-    facility: facility.data?.find((item) => item.id === record?.facilityId),
-    unitType: types.data?.find((item) => item.id === record?.unitTypeId),
   };
 }

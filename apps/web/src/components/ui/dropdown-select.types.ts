@@ -8,6 +8,7 @@ export interface DropdownOption {
 }
 
 export interface DropdownSelectProps {
+  id?: string;
   value: string;
   onChange: (value: string) => void;
   options: DropdownOption[];
@@ -19,6 +20,11 @@ export interface DropdownSelectProps {
   dropdownClassName?: string;
   disabled?: boolean;
   ariaLabel?: string;
+  "aria-label"?: string;
+  "aria-invalid"?: boolean | "true" | "false";
+  "aria-describedby"?: string;
+  ariaInvalid?: boolean | "true" | "false";
+  ariaDescribedby?: string;
   placement?: "auto" | "top" | "bottom";
   align?: "start" | "end";
 }

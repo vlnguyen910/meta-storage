@@ -42,6 +42,8 @@ function reservationView(
     pricing: {
       monthlyRateSnapshot: String(r.monthlyRateSnapshot),
       rentalFeeAmount: String(r.rentalFeeAmount),
+      vatRateSnapshot: r.vatRateSnapshot,
+      vatAmount: String(r.vatAmount),
       depositAmount: String(r.depositAmount),
       totalAmount: String(r.totalAmount),
       currency: "VND",

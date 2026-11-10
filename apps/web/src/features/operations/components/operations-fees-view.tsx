@@ -1,5 +1,6 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   type PolicyViolationFee,
   UpdatePolicyViolationFeeCatalogSchema,
@@ -7,7 +8,8 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { AlertCircle, AlertTriangle, CheckCircle2, Coins, Plus, Save, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,7 +23,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { FieldShell, Input } from "@/components/ui/form-controls";
 import { ErrorState, LoadingState } from "@/components/ui/states";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -33,6 +37,7 @@ import {
 import { useToast } from "@/components/ui/toast";
 import { api } from "@/lib/api";
 import { OPERATIONS_MESSAGES as M } from "../operations.messages";
+import { OperationsVatDraftSchema } from "../operations.schema";
 
 export function OperationsFeesView() {
   const { showToast } = useToast();
@@ -96,6 +101,7 @@ export function OperationsFeesView() {
 
   return (
     <div className="space-y-4">
+      <VatPolicyForm />
       {/* Header Card */}
       <Card className="border-slate-200/90 shadow-2xs">
         <CardHeader className="p-4 pb-3 flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
@@ -272,17 +278,16 @@ export function OperationsFeesView() {
                     </div>
                   </TableCell>
 
-                  {/* Active checkbox */}
+                  {/* Active toggle switch */}
                   <TableCell className="py-2.5 px-4 text-center">
-                    <label className="inline-flex items-center justify-center cursor-pointer">
-                      <input
-                        type="checkbox"
+                    <div className="inline-flex items-center justify-center">
+                      <Switch
                         checked={item.isActive}
                         disabled={save.isPending}
-                        onChange={(e) => update(index, { isActive: e.target.checked })}
-                        className="size-4 rounded border-slate-300 text-[#165f4d] focus:ring-[#165f4d] cursor-pointer disabled:opacity-50"
+                        onCheckedChange={(checked) => update(index, { isActive: checked })}
+                        aria-label={M.policyFeeActive}
                       />
-                    </label>
+                    </div>
                   </TableCell>
 
                   {/* Delete button */}
@@ -355,5 +360,110 @@ export function OperationsFeesView() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+function VatPolicyForm() {
+  const client = useQueryClient();
+  const { showToast } = useToast();
+  const [baseVersion, setBaseVersion] = useState<number | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const query = useQuery({
+    queryKey: ["system-settings", "vat"],
+    queryFn: api.systemSettings.list,
+    select: (rows) => rows.find((row) => row.key === "VAT_RATE"),
+  });
+  const form = useForm<{ value: number }>({
+    resolver: zodResolver(OperationsVatDraftSchema),
+    defaultValues: { value: 8 },
+  });
+  const dirty = form.formState.isDirty;
+  useEffect(() => {
+    if (query.data && !dirty) {
+      setBaseVersion(query.data.version);
+      form.reset({ value: Number(query.data.value) });
+    }
+  }, [query.data, dirty, form]);
+  const save = useMutation({
+    mutationFn: (value: number) =>
+      api.systemSettings.update({
+        key: "VAT_RATE",
+        value,
+        expectedVersion: baseVersion ?? 0,
+      }),
+    onSuccess: async (result) => {
+      setSaveError(null);
+      setBaseVersion(result.version);
+      form.reset({ value: Number(result.value) });
+      await client.invalidateQueries({ queryKey: ["system-settings"] });
+      showToast(M.vatSaved, "success");
+    },
+    onError: (error) =>
+      setSaveError(
+        isAxiosError(error) && error.response?.status === 409 ? M.vatConflict : M.vatError,
+      ),
+  });
+  async function reload() {
+    const result = await query.refetch();
+    if (result.data) {
+      setBaseVersion(result.data.version);
+      form.reset({ value: Number(result.data.value) });
+      setSaveError(null);
+    }
+  }
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{M.vatTitle}</CardTitle>
+        <CardDescription>{M.vatHelp}</CardDescription>
+        {query.isPending ? (
+          <LoadingState variant="form" />
+        ) : query.isError || !query.data ? (
+          <ErrorState message={M.error} onRetry={() => void reload()} />
+        ) : (
+          <form
+            className="mt-4 grid max-w-xl gap-4"
+            noValidate
+            onSubmit={form.handleSubmit(({ value }) => {
+              setSaveError(null);
+              save.mutate(value);
+            })}
+          >
+            <FieldShell label={M.vatRate} error={form.formState.errors.value?.message}>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                step={1}
+                disabled={save.isPending}
+                {...form.register("value", { valueAsNumber: true })}
+              />
+            </FieldShell>
+            {saveError && (
+              <p role="alert" className="text-sm text-danger">
+                {saveError}
+              </p>
+            )}
+            <div className="flex flex-wrap gap-3">
+              <Button
+                type="submit"
+                loading={save.isPending}
+                disabled={baseVersion === null || save.isPending || !dirty}
+              >
+                {M.vatSave}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={save.isPending || query.isFetching}
+                onClick={() => void reload()}
+              >
+                {M.vatReload}
+              </Button>
+            </div>
+          </form>
+        )}
+      </CardHeader>
+    </Card>
   );
 }
