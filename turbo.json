@@ -5,6 +5,31 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "passThroughEnv": [
+        "NODE_ENV",
+        "DATABASE_URL",
+        "REDIS_URL",
+        "MONGODB_URI",
+        "CORS_ORIGIN",
+        "BETTER_AUTH_SECRET",
+        "BETTER_AUTH_URL",
+        "AUTH_TRUSTED_ORIGINS",
+        "WEB_URL",
+        "PUBLIC_APP_URL",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "BOOKING_MAGIC_LINK_SECRET",
+        "QR_TOKEN_SECRET",
+        "RESEND_API_KEY",
+        "RESEND_FROM_EMAIL",
+        "PAYMENT_PROVIDER",
+        "SEPAY_ENV",
+        "SEPAY_MERCHANT_ID",
+        "SEPAY_SECRET_KEY",
+        "CLOUDINARY_CLOUD_NAME",
+        "CLOUDINARY_API_KEY",
+        "CLOUDINARY_API_SECRET"
+      ],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "lint": {
