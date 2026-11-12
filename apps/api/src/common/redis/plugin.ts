@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
-import Redis from "ioredis";
+import { Redis } from "ioredis";
 import { env } from "../../config/env";
 import { RedisService } from "./redis.service";
 import type { RedisPluginOptions } from "./redis.types";
