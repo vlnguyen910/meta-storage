@@ -235,12 +235,40 @@ Chạy `sudo nginx -t` trước khi reload Nginx; tạo lại API container sau 
 `docker/app.env` để biến môi trường mới có hiệu lực. Không tự dùng gateway của
 máy development cho VPS staging.
 
+### 5. Deploy API và Worker lên Railway
+
+Repo có cấu hình Railway tại `.railway/railway.ts`. Tạo hai service tên `api`
+và `worker`, cùng kết nối repo này và giữ Root Directory mặc định ở repo root.
+Service `api` dùng `apps/api/Dockerfile` và healthcheck `/api/health`; cả API và
+worker chạy migration ở bước pre-deploy. Migration lỗi sẽ chặn deployment của
+service đó. Các Docker image production đóng gói workspace và migration files
+cần thiết.
+
+Sau khi cài Railway CLI và đăng nhập, link repo với đúng project/environment,
+rồi xem trước và áp dụng cấu hình:
+
+```bash
+railway link
+railway config plan
+railway config apply
+```
+
+Tên service trong Railway phải khớp `api` và `worker`. Cấu hình quản lý service
+hiện có, không tạo database hay Railway services mới. Giữ `PORT=4000` cho API.
+Đặt biến production theo `docker/app.env.example` trong từng service; API và
+worker cần cùng `DATABASE_URL`, `REDIS_URL`, `NODE_ENV`,
+`BOOKING_MAGIC_LINK_SECRET`, `RESEND_API_KEY` và `RESEND_FROM_EMAIL`. API cần
+thêm `MONGODB_URI`, URL/auth, payment và provider credentials theo tính năng
+đang bật. PostgreSQL, Redis và MongoDB cần được provision riêng hoặc dùng dịch
+vụ ngoài, rồi tham chiếu connection string vào service variables. Không đặt
+credentials trong `.railway/railway.ts`.
+
 CI chạy quality checks và database regressions độc lập. Chỉ push lên nhánh
 `stagging` vượt qua cả hai job mới gọi workflow deploy, với đúng commit SHA đã
 kiểm tra. PR không deploy. Deploy đang chạy không bị hủy khi có push mới;
 workflow vẫn build → migrate → start → kiểm tra API và worker theo thứ tự.
 
-### 5. Chạy môi trường phát triển (Dev)
+### 6. Chạy môi trường phát triển (Dev)
 
 Chạy đồng thời cả Frontend và Backend:
 
@@ -269,13 +297,13 @@ bun run --filter mobile android
 bun run --filter mobile ios
 ```
 
-### 6. Build dự án
+### 7. Build dự án
 
 ```bash
 bun run build
 ```
 
-### 7. Kiểm tra Type & Linter
+### 8. Kiểm tra Type & Linter
 
 ```bash
 # Kiểm tra TypeScript type checking toàn bộ repo

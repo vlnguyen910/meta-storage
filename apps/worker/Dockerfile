@@ -35,6 +35,9 @@ COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/apps/worker/node_modules ./apps/worker/node_modules
 COPY --from=build /app/apps/worker/dist ./apps/worker/dist
+COPY --from=build /app/packages/contracts ./packages/contracts
+COPY --from=build /app/packages/database ./packages/database
+COPY --from=build /app/packages/shared ./packages/shared
 
 USER bun
 
