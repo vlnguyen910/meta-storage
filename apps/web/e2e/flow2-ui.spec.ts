@@ -411,10 +411,6 @@ test("unsaved navigation is guarded and wrong unit blocks review", async ({ page
   await fixture(page);
   await page.goto("/staff/check-in?bookingCode=BK-2026-0001");
   await page.getByRole("button", { name: "Xác minh booking & Chuyển sang kiểm tra kho" }).click();
-  await page
-    .getByRole("group", { name: "Đúng ô kho đã được gán cho booking", exact: true })
-    .getByRole("radio", { name: "Không đạt", exact: true })
-    .check();
   await expect(page.getByRole("button", { name: "Lưu và xem lại trước khi khóa" })).toBeDisabled();
   await page
     .getByRole("textbox", { name: "Biên bản ghi nhận hiện trường" })
@@ -891,12 +887,12 @@ async function passChecklist(page: Page) {
   for (const item of HANDOVER_CHECKLIST_ITEMS) {
     await page
       .getByRole("group", { name: item.label, exact: true })
-      .getByRole("radio", { name: "Đạt", exact: true })
+      .getByRole("checkbox", { name: "Đạt", exact: true })
       .check();
   }
 }
 
-test("incomplete and failed checklist drafts persist; four PASS unlock without notes or photos", async ({
+test("incomplete and checklist drafts persist; four PASS unlock without notes or photos", async ({
   page,
 }) => {
   const f = await fixture(page);
@@ -906,24 +902,24 @@ test("incomplete and failed checklist drafts persist; four PASS unlock without n
     name: "Đúng ô kho đã được gán cho booking",
     exact: true,
   });
-  await first.getByRole("radio", { name: "Đạt", exact: true }).check();
+  await first.getByRole("checkbox", { name: "Đạt", exact: true }).check();
   await page.getByRole("button", { name: "Lưu nháp", exact: true }).click();
   await expect(page.getByText("Đã lưu biên bản nháp.", { exact: true })).toBeVisible();
   expect(f.getInspection()?.results).toHaveLength(1);
   await page.reload();
-  await expect(first.getByRole("radio", { name: "Đạt", exact: true })).toBeChecked();
+  await expect(first.getByRole("checkbox", { name: "Đạt", exact: true })).toBeChecked();
   await expect(page.getByRole("button", { name: "Lưu và xem lại trước khi khóa" })).toBeDisabled();
   await passChecklist(page);
   const lock = page.getByRole("group", { name: "Cửa và khóa hoạt động bình thường", exact: true });
-  await lock.getByRole("radio", { name: "Không đạt", exact: true }).check();
+  await lock.getByRole("checkbox", { name: "Đạt", exact: true }).uncheck();
   await page.getByRole("button", { name: "Lưu nháp", exact: true }).click();
   await expect
     .poll(() => f.getInspection()?.results?.find((r) => r.itemCode === "DOOR_LOCK")?.result)
-    .toBe("FAIL");
+    .toBeUndefined();
   await page.reload();
-  await expect(lock.getByRole("radio", { name: "Không đạt", exact: true })).toBeChecked();
+  await expect(lock.getByRole("checkbox", { name: "Đạt", exact: true })).not.toBeChecked();
   await expect(page.getByRole("button", { name: "Lưu và xem lại trước khi khóa" })).toBeDisabled();
-  await lock.getByRole("radio", { name: "Đạt", exact: true }).check();
+  await lock.getByRole("checkbox", { name: "Đạt", exact: true }).check();
   await page.getByRole("button", { name: "Lưu và xem lại trước khi khóa" }).click();
   expect(f.getInspection()?.conditionNotes).toBe("");
   expect(f.getInspection()?.photos).toEqual([]);
@@ -961,21 +957,21 @@ for (const width of [1440, 390]) {
     await expect(
       page
         .locator("fieldset")
-        .filter({ has: page.getByRole("radio", { name: "Đạt", exact: true }) }),
+        .filter({ has: page.getByRole("checkbox", { name: "Đạt", exact: true }) }),
     ).toHaveCount(4);
     await page
       .locator("fieldset")
-      .filter({ has: page.getByRole("radio", { name: "Đạt", exact: true }) })
+      .filter({ has: page.getByRole("checkbox", { name: "Đạt", exact: true }) })
       .first()
-      .getByRole("radio", { name: "Đạt", exact: true })
+      .getByRole("checkbox", { name: "Đạt", exact: true })
       .focus();
     await page.keyboard.press("Space");
     await expect(
       page
         .locator("fieldset")
-        .filter({ has: page.getByRole("radio", { name: "Đạt", exact: true }) })
+        .filter({ has: page.getByRole("checkbox", { name: "Đạt", exact: true }) })
         .first()
-        .getByRole("radio", { name: "Đạt", exact: true }),
+        .getByRole("checkbox", { name: "Đạt", exact: true }),
     ).toBeChecked();
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
@@ -995,7 +991,9 @@ test("legacy correct-unit flag never fabricates four PASS results", async ({ pag
   await page.goto("/staff/check-in?bookingCode=BK-2026-0001");
   await page.getByRole("button", { name: "Xác minh booking & Chuyển sang kiểm tra kho" }).click();
   await expect(
-    page.locator("fieldset").filter({ has: page.getByRole("radio", { name: "Đạt", exact: true }) }),
+    page
+      .locator("fieldset")
+      .filter({ has: page.getByRole("checkbox", { name: "Đạt", exact: true }) }),
   ).toHaveCount(4);
   const record = f.getInspection();
   if (!record) throw new Error("Expected inspection");
@@ -1006,9 +1004,11 @@ test("legacy correct-unit flag never fabricates four PASS results", async ({ pag
   record.conditionNotes = "Ghi chú biên bản cũ";
   await page.reload();
   await expect(
-    page.locator("fieldset").filter({ has: page.getByRole("radio", { name: "Đạt", exact: true }) }),
+    page
+      .locator("fieldset")
+      .filter({ has: page.getByRole("checkbox", { name: "Đạt", exact: true }) }),
   ).toHaveCount(4);
-  await expect(page.getByRole("radio", { checked: true })).toHaveCount(0);
+  await expect(page.getByRole("checkbox", { checked: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Lưu và xem lại trước khi khóa" })).toBeDisabled();
 });
 

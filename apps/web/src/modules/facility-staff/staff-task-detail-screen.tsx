@@ -247,8 +247,11 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
     Boolean(condition) &&
     settlementConfirmed &&
     (refundAmount === 0 || refundMethod === "CASH" || Boolean(refundReference.trim()));
-  function setChecklistResult(code: string, result: "PASS" | "FAIL") {
+  function setChecklistResult(code: string, result: "PASS" | "FAIL" | null) {
     setResults((previous) => {
+      if (result === null) {
+        return previous.filter((item) => item.itemCode !== code);
+      }
       const old = previous.find((item) => item.itemCode === code);
       return [
         ...previous.filter((item) => item.itemCode !== code),
