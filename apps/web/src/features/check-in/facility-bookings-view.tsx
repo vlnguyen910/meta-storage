@@ -6,9 +6,9 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Phone, RefreshCw, Search, Warehouse } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { OperationalBadge } from "@/components/ui/operational";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { FLOW } from "@/features/facility-flow/flow.messages";
@@ -407,15 +407,17 @@ export function FacilityBookingsView({
       {staffBooking && (
         <StaffAssignmentModal booking={staffBooking} isOpen onClose={() => setStaffBooking(null)} />
       )}
-      <Sheet open={Boolean(details)} onOpenChange={(open) => !open && setDetailsId(null)}>
-        <SheetContent className="w-full max-w-xl p-5 sm:p-7">
+      <Dialog open={Boolean(details)} onOpenChange={(open) => !open && setDetailsId(null)}>
+        <DialogContent aria-describedby={undefined} className="max-w-xl sm:max-w-2xl p-5 sm:p-6">
           {details && (
             <>
-              <SheetHeader className="pr-12">
-                <SheetTitle>{FLOW.appointmentDetails}</SheetTitle>
-                <OperationalBadge value={details.appointmentStatus} />
-              </SheetHeader>
-              <section className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm sm:grid-cols-2">
+              <DialogHeader className="border-b border-slate-100 pb-3 pr-8">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <DialogTitle>{FLOW.appointmentDetails}</DialogTitle>
+                  <OperationalBadge value={details.appointmentStatus} />
+                </div>
+              </DialogHeader>
+              <section className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-4 text-sm sm:grid-cols-2">
                 <DetailValue
                   label={FLOW.appointmentType}
                   value={
@@ -483,8 +485,8 @@ export function FacilityBookingsView({
               </section>
             </>
           )}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
