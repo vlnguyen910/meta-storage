@@ -1,4 +1,29 @@
 import type { LifecycleNotificationEvent } from "./lifecycle-notifications";
+export interface FacilityWorkUpdatedNotification {
+  id: string;
+  type: "FACILITY_WORK_UPDATED";
+  facilityId: string;
+  occurredAt: string;
+}
+
+export interface StaffWorkUpdatedNotification {
+  id: string;
+  type: "STAFF_WORK_UPDATED";
+  recipientId: string;
+  facilityId: string;
+  appointmentId?: string;
+  taskId?: string;
+  occurredAt: string;
+}
+
+export interface CustomerAppointmentUpdatedNotification {
+  id: string;
+  type: "CUSTOMER_APPOINTMENT_UPDATED";
+  recipientId: string;
+  appointmentId: string;
+  occurredAt: string;
+}
+
 export interface StaffTaskAssignedNotification {
   id: string;
   type: "STAFF_TASK_ASSIGNED";

@@ -25,6 +25,7 @@ import { TooltipSimple } from "@/components/ui/tooltip";
 import { isMockMode } from "@/config/api-mode";
 import { navigationByRole } from "@/config/navigation";
 import { roleHome, routes } from "@/config/routes";
+import { CustomerAppointmentsRealtime } from "@/features/appointments/customer-appointments-realtime";
 import { AUTH_MESSAGES } from "@/features/auth/auth.messages";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { FacilityShell } from "@/features/facility-flow/facility-shell";
@@ -154,6 +155,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         isNoScroll && "h-screen flex flex-col overflow-hidden min-h-0",
       )}
     >
+      {role === UserRole.STORAGE_CUSTOMER && <CustomerAppointmentsRealtime />}
       <header className="sticky top-0 z-30 flex min-h-16 shrink-0 flex-wrap items-center gap-4 border-b border-slate-200 bg-white px-4 py-3 lg:px-7">
         <button
           type="button"

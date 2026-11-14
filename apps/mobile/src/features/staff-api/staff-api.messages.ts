@@ -1,4 +1,5 @@
 export const STAFF_API_UI = {
+  workUnavailable: "Công việc đã bị hủy hoặc không còn được giao cho bạn.",
   nonCheckIn: "Lịch hẹn này không phải lịch nhận kho.",
   date: "Ngày làm việc",
   account: "Tài khoản nhân viên",
