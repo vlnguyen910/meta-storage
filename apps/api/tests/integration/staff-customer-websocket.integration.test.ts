@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { notificationSocketHarness } from "../fixtures/notification-socket";
 
 test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
   "FS/customer sockets isolate owners, remove reassigned work and never expose internal task progress to customers",
@@ -13,50 +14,12 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
     const f = await createInspectionFixture();
     const other = await createInspectionFixture();
     const app = buildApp();
-    const sockets: WebSocket[] = [];
     const origin = env.AUTH_TRUSTED_ORIGINS.split(",")[0] ?? "http://localhost:3000";
     const previousOrigins = env.AUTH_TRUSTED_ORIGINS;
     env.AUTH_TRUSTED_ORIGINS += ",metastorage://";
     await app.listen({ host: "127.0.0.1", port: 0 });
-    const address = app.server.address();
-    if (!address || typeof address === "string") throw new Error("No server port");
-    const url = `ws://127.0.0.1:${address.port}/api/notifications/ws`;
     type Event = { type: string; recipientId?: string; appointmentId?: string; taskId?: string };
-    async function login(email: string) {
-      const response = await app.inject({
-        method: "POST",
-        url: "/api/auth/sign-in/email",
-        headers: { origin },
-        payload: { email, password: f.password },
-      });
-      expect(response.statusCode).toBe(200);
-      const cookies = response.headers["set-cookie"];
-      return (Array.isArray(cookies) ? cookies : [cookies ?? ""])
-        .map((cookie) => cookie.split(";")[0])
-        .join("; ");
-    }
-    async function connect(cookie: string, messages: Event[], source = origin) {
-      const socket = new WebSocket(url, { headers: { cookie, origin: source } });
-      sockets.push(socket);
-      socket.onmessage = (event) => messages.push(JSON.parse(String(event.data)));
-      await new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(() => reject(new Error("WebSocket upgrade timed out")), 3000);
-        socket.onopen = () => {
-          clearTimeout(timer);
-          resolve();
-        };
-        socket.onerror = () => {
-          clearTimeout(timer);
-          reject(new Error("WebSocket upgrade rejected"));
-        };
-      });
-      return socket;
-    }
-    async function waitFor(predicate: () => boolean) {
-      const end = Date.now() + 3000;
-      while (!predicate() && Date.now() < end) await Bun.sleep(10);
-      expect(predicate()).toBe(true);
-    }
+    const { login, connect, waitFor, sockets } = notificationSocketHarness(app, origin, f.password);
     const work = (events: Event[]) => events.filter((event) => event.type === "STAFF_WORK_UPDATED");
     try {
       const manager = await login(f.managerEmail),
