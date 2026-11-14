@@ -21,6 +21,7 @@ import { checkoutMessages } from "./checkout.messages";
 import { clearCheckoutContext, readCheckoutContext, saveCheckoutContext } from "./checkout-storage";
 import {
   checkoutFailure,
+  createCheckoutPaymentKey,
   normalizePhone,
   toLocalDateTimeInput,
   wizardSchema,
@@ -41,7 +42,7 @@ export function useReservationCheckout() {
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [draft, setDraft] = useState<ReservationRecordDto | null>(null);
   const [pendingPayment, setPendingPayment] = useState<ReservationPaymentSession | null>(null);
-  const [paymentKey, setPaymentKey] = useState(() => crypto.randomUUID());
+  const [paymentKey, setPaymentKey] = useState(createCheckoutPaymentKey);
   const [holdSeconds, setHoldSeconds] = useState(0);
 
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -97,7 +98,7 @@ export function useReservationCheckout() {
     setPendingPayment(null);
     setPaymentError(null);
     setSubmissionError(null);
-    setPaymentKey(crypto.randomUUID());
+    setPaymentKey(createCheckoutPaymentKey());
     form.reset({
       facilityId: searchParams.get("facilityId") ?? "",
       unitTypeId: searchParams.get("unitTypeId") ?? "",
@@ -257,7 +258,7 @@ export function useReservationCheckout() {
         });
         setDraft(created);
         draftSelection.current = selection;
-        setPaymentKey(crypto.randomUUID());
+        setPaymentKey(createCheckoutPaymentKey());
       }
       setStep(2);
     } catch (error) {
@@ -325,7 +326,7 @@ export function useReservationCheckout() {
       setPaymentError(checkoutFailure(error, "payment").message);
       if (isAxiosError(error) && [400, 409, 422].includes(error.response?.status ?? 0)) {
         clearCheckoutContext();
-        setPaymentKey(crypto.randomUUID());
+        setPaymentKey(createCheckoutPaymentKey());
       }
     } finally {
       requestInFlight.current = false;

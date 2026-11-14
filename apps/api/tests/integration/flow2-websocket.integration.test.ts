@@ -1,4 +1,5 @@
 import { expect, spyOn, test } from "bun:test";
+import { notificationSocketHarness } from "../fixtures/notification-socket";
 
 test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
   "real WebSockets isolate Staff, notify after assignment, reconnect without replay and reject revoked sessions",
@@ -11,65 +12,35 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
     const { db, appointments, sessions, users, eq } = await import("@metastorage/database");
     const f = await createInspectionFixture();
     const app = buildApp();
-    const sockets: WebSocket[] = [];
     const origin = process.env.AUTH_TRUSTED_ORIGINS?.split(",")[0] ?? "http://localhost:3000";
     await app.listen({ host: "127.0.0.1", port: 0 });
     const mail = spyOn(app.mailQueue, "add");
-    const address = app.server.address();
-    if (!address || typeof address === "string") throw new Error("No server port");
-    const url = `ws://127.0.0.1:${address.port}/api/notifications/ws`;
-    async function login(email: string) {
-      const result = await app.inject({
-        method: "POST",
-        url: "/api/auth/sign-in/email",
-        headers: { origin },
-        payload: { email, password: f.password },
-      });
-      expect(result.statusCode).toBe(200);
-      const cookies = result.headers["set-cookie"];
-      return (Array.isArray(cookies) ? cookies : [cookies ?? ""])
-        .map((c) => c.split(";")[0])
-        .join("; ");
-    }
-    // Bun's native WebSocket client accepts headers; use a real TCP upgrade, not injectWS.
-    async function connect(cookie: string, source = origin) {
-      const socket = new WebSocket(url, { headers: { cookie, origin: source } });
-      sockets.push(socket);
-      await new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(() => reject(new Error("WebSocket upgrade timed out")), 3000);
-        socket.onopen = () => {
-          clearTimeout(timer);
-          resolve();
-        };
-        socket.onerror = () => {
-          clearTimeout(timer);
-          reject(new Error("WebSocket upgrade rejected"));
-        };
-      });
-      return socket;
-    }
-    const waitFor = async (predicate: () => boolean) => {
-      const end = Date.now() + 3000;
-      while (!predicate() && Date.now() < end)
-        await new Promise((resolve) => setTimeout(resolve, 10));
-      expect(predicate()).toBe(true);
-    };
+    const { login, connect, waitFor, sockets } = notificationSocketHarness(app, origin, f.password);
     try {
       const manager = await login(f.managerEmail),
         staff = await login(f.email),
         other = await login(f.outsiderEmail);
       await expect(connect("")).rejects.toThrow();
-      await expect(connect(manager)).rejects.toThrow();
-      await expect(connect(staff, "https://untrusted.example")).rejects.toThrow();
+      await connect(manager); // Managers can now observe their facility workspace.
+      await expect(connect(staff, [], "https://untrusted.example")).rejects.toThrow();
       const first = await connect(staff),
         second = await connect(staff),
         outsider = await connect(other);
       const received: Record<string, unknown>[] = [],
         another: unknown[] = [],
         forbidden: unknown[] = [];
-      first.onmessage = (e) => received.push(JSON.parse(String(e.data)));
-      second.onmessage = (e) => another.push(JSON.parse(String(e.data)));
-      outsider.onmessage = (e) => forbidden.push(e.data);
+      first.onmessage = (e) => {
+        const event = JSON.parse(String(e.data));
+        if (event.type === "STAFF_TASK_ASSIGNED") received.push(event);
+      };
+      second.onmessage = (e) => {
+        const event = JSON.parse(String(e.data));
+        if (event.type === "STAFF_TASK_ASSIGNED") another.push(event);
+      };
+      outsider.onmessage = (e) => {
+        const event = JSON.parse(String(e.data));
+        if (event.type === "STAFF_TASK_ASSIGNED") forbidden.push(event);
+      };
       const assign = (staffId: string) =>
         app.inject({
           method: "PATCH",
@@ -107,7 +78,10 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
       await waitFor(() => forbidden.length === 1);
       const reconnected = await connect(staff);
       const replay: unknown[] = [];
-      reconnected.onmessage = (e) => replay.push(e.data);
+      reconnected.onmessage = (e) => {
+        const event = JSON.parse(String(e.data));
+        if (event.type === "STAFF_TASK_ASSIGNED") replay.push(event);
+      };
       await new Promise((resolve) => setTimeout(resolve, 80));
       expect(replay).toHaveLength(0);
       expect((await assign(f.userId)).statusCode).toBe(200);

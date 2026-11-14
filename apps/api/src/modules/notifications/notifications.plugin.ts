@@ -21,12 +21,16 @@ const notificationsPluginAsync: FastifyPluginAsync = async (app) => {
           if (!request.headers.origin || !origins.includes(request.headers.origin))
             throw new ForbiddenError(NOTIFICATION_MESSAGES.originDenied);
         },
-        requireRole("FACILITY_STAFF"),
+        requireRole("FACILITY_STAFF", "FACILITY_MANAGER", "CUSTOMER"),
       ],
     },
     (socket, request) => {
       if (!request.user || !request.session) return socket.close(1008);
+      const role = request.user.role;
+      if (role !== "FACILITY_MANAGER" && role !== "FACILITY_STAFF" && role !== "CUSTOMER")
+        return socket.close(1008);
       notifications.connect(request.user.id, {
+        role,
         socket,
         headers: request.headers,
         expiresAt: new Date(request.session.expiresAt).getTime(),

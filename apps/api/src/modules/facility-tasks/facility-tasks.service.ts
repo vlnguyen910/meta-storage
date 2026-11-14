@@ -31,6 +31,7 @@ import { getFacilityAccessScope } from "../facilities/facilities.access";
 import { FacilitiesRepository } from "../facilities/facilities.repository";
 import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
 import { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
+import type { NotificationsService } from "../notifications/notifications.service";
 import { FacilityTasksRepository } from "./facility-tasks.repository";
 import type {
   FacilityTaskActor,
@@ -43,6 +44,7 @@ export class FacilityTasksService {
     private readonly repository: FacilityTasksRepository,
     private readonly assignments: FacilityAssignmentsService,
     private readonly appointmentSlots?: CheckInSlotsService,
+    private readonly notifications?: NotificationsService,
   ) {}
 
   async assignAppointment(tx: TaskTransaction, appointment: AppointmentRecord, managerId: string) {
@@ -119,6 +121,7 @@ export class FacilityTasksService {
       UserRole.FACILITY_MANAGER,
     ]);
     const task = await this.write(this.repository.create(input, actor));
+    await this.notifications?.taskChanged(task.id);
     return {
       ...task,
       startedAt: task.startedAt?.toISOString() ?? null,
@@ -235,6 +238,7 @@ export class FacilityTasksService {
       if (input.type) this.assertTypeCanBeAssigned(input.type);
     }
     const task = await this.write(this.repository.update(id, input, actor));
+    await this.notifications?.taskChanged(task.id, current?.assignedStaffId);
     if (supportActivity) supportActivity.changed = task.status !== current?.status;
     return {
       ...task,
@@ -283,11 +287,12 @@ export class FacilityTasksService {
   }
 }
 
-export function createFacilityTasksService(db: Database) {
+export function createFacilityTasksService(db: Database, notifications?: NotificationsService) {
   const assignments = new FacilityAssignmentsRepository(db);
   return new FacilityTasksService(
     new FacilityTasksRepository(db, assignments),
     new FacilityAssignmentsService(assignments, new FacilitiesRepository(db)),
     new CheckInSlotsService(new CheckInSlotsRepository(db)),
+    notifications,
   );
 }

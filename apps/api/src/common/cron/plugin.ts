@@ -14,7 +14,10 @@ const cronPluginAsync: FastifyPluginAsync<CronOptions> = async (fastify, options
   const sweep = () => {
     if (running) return running;
     running = Promise.allSettled([
-      createReservationsService(fastify.db).sweepNoShows(new Date(), options.facilityId),
+      createReservationsService(fastify.db, fastify.notifications).sweepNoShows(
+        new Date(),
+        options.facilityId,
+      ),
       createPaymentsService(fastify)
         .reconcilePendingPayments(options.facilityId)
         .then(({ failed }) => {

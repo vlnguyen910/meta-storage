@@ -44,6 +44,18 @@ export function StaffCheckInView({
     appointment.assignedUnit?.physicalUnitCode ??
     M.noUnit;
   const scheduledAt = dateTime(`${current.scheduledDate}T${current.slotStart ?? "00:00:00"}+07:00`);
+  if (
+    flow.error ||
+    (flow.appointment.isSuccess &&
+      (current.assignedStaffId !== owner || ["CANCELLED", "NO_SHOW"].includes(current.status)))
+  ) {
+    return (
+      <View>
+        <Notice error>{flow.error ? staffError(flow.error) : M.workUnavailable}</Notice>
+        <Button variant="outline" label={M.retry} onPress={() => void flow.refresh()} />
+      </View>
+    );
+  }
   return (
     <View>
       <View className="mb-4">
