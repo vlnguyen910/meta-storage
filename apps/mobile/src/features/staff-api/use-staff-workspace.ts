@@ -80,7 +80,23 @@ export function useStaffTaskAction(owner: string, task: FacilityTaskDetail) {
   return useMutation({
     mutationFn: (status: "IN_PROGRESS" | "COMPLETED") =>
       api.flow5.tasks.update(task.id, { status: FacilityTaskStatus[status] }),
-    onSuccess: () => client.invalidateQueries({ queryKey: ["mobile-staff-tasks", owner] }),
+    onSuccess: async () => {
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ["mobile-staff-tasks", owner] }),
+        client.invalidateQueries({ queryKey: ["mobile-staff-task", owner, task.id] }),
+      ]);
+    },
+  });
+}
+export function useStaffTaskDetail(owner: string, taskId: string) {
+  return useQuery({
+    queryKey: ["mobile-staff-task", owner, taskId],
+    queryFn: async ({ signal }) => {
+      const task = await api.flow5.tasks.findMine(taskId, signal);
+      if (!task) throw new Error(M.workUnavailable);
+      return task;
+    },
+    refetchInterval: 30_000,
   });
 }
 export function useStaffCheckIn(owner: string, appointmentId: string) {

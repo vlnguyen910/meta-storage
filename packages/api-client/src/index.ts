@@ -687,3 +687,4 @@ export function createMetastorageApiClient(
 ): MetastorageApiClient<AuthMode> {
   return createMetastorageApiClientImpl(http, authMode) as MetastorageApiClient<AuthMode>;
 }
+export { createNotificationStream } from "./notification-stream";

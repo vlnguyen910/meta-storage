@@ -59,7 +59,7 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
         staff = await login(f.email),
         other = await login(f.outsiderEmail);
       await expect(connect("")).rejects.toThrow();
-      await expect(connect(manager)).rejects.toThrow();
+      await connect(manager); // Managers can now observe their facility workspace.
       await expect(connect(staff, "https://untrusted.example")).rejects.toThrow();
       const first = await connect(staff),
         second = await connect(staff),
@@ -67,9 +67,18 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
       const received: Record<string, unknown>[] = [],
         another: unknown[] = [],
         forbidden: unknown[] = [];
-      first.onmessage = (e) => received.push(JSON.parse(String(e.data)));
-      second.onmessage = (e) => another.push(JSON.parse(String(e.data)));
-      outsider.onmessage = (e) => forbidden.push(e.data);
+      first.onmessage = (e) => {
+        const event = JSON.parse(String(e.data));
+        if (event.type === "STAFF_TASK_ASSIGNED") received.push(event);
+      };
+      second.onmessage = (e) => {
+        const event = JSON.parse(String(e.data));
+        if (event.type === "STAFF_TASK_ASSIGNED") another.push(event);
+      };
+      outsider.onmessage = (e) => {
+        const event = JSON.parse(String(e.data));
+        if (event.type === "STAFF_TASK_ASSIGNED") forbidden.push(event);
+      };
       const assign = (staffId: string) =>
         app.inject({
           method: "PATCH",
@@ -107,7 +116,10 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
       await waitFor(() => forbidden.length === 1);
       const reconnected = await connect(staff);
       const replay: unknown[] = [];
-      reconnected.onmessage = (e) => replay.push(e.data);
+      reconnected.onmessage = (e) => {
+        const event = JSON.parse(String(e.data));
+        if (event.type === "STAFF_TASK_ASSIGNED") replay.push(event);
+      };
       await new Promise((resolve) => setTimeout(resolve, 80));
       expect(replay).toHaveLength(0);
       expect((await assign(f.userId)).statusCode).toBe(200);

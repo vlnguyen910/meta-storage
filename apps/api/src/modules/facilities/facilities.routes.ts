@@ -56,7 +56,7 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
   );
 
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
-  const reservationService = createReservationsService(fastify.db);
+  const reservationService = createReservationsService(fastify.db, fastify.notifications);
   typedApp.get(
     "/catalog",
     { schema: { querystring: FacilityCatalogQuerySchema } },

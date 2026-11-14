@@ -110,7 +110,7 @@ export class AppointmentsService {
     const demo = isDevelopmentEnvironment() && input.appointmentType === Type.CHECK_IN;
     const slot = await this.slots.findByIdForDate(input.slotId, input.scheduledDate);
     if (!slot || (!demo && slot.startsAt <= new Date())) throw new BadRequestError(m.invalidSlot);
-    return this.repository.transaction(async (tx) => {
+    const scheduled = await this.repository.transaction(async (tx) => {
       let facilityId: string;
       if (input.appointmentType === Type.CHECK_IN) {
         if (!input.reservationId) throw new BadRequestError(m.contextMismatch);
@@ -166,6 +166,8 @@ export class AppointmentsService {
       if (!appointment) throw new AppError(m.writeFailed);
       return appointment;
     });
+    await this.notifications?.appointmentChanged(scheduled.id);
+    return scheduled;
   }
 
   listCustomerAppointments(query: AppointmentQuery, customerId: string) {
@@ -385,6 +387,7 @@ export class AppointmentsService {
         console.error("Appointment assignment notification failed");
       }
     }
+    await this.notifications?.appointmentChanged(updated.id, current.assignedStaffId);
     return updated;
   }
 }

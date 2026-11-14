@@ -3,10 +3,13 @@ import { useEffect, useState } from "react";
 import { Linking } from "react-native";
 import { authClient } from "../../lib/auth-client";
 import { mobileWorkflows } from "../demo/demo-client";
+import { useWorkRealtime } from "../realtime/use-work-realtime";
 import { AUTHENTICATION as M } from "./authentication.messages";
 
 export function useAppSession() {
   const session = authClient.useSession();
+  const user = session.data?.user;
+  useWorkRealtime(user?.id, user && "role" in user ? String(user.role) : undefined);
   const client = useQueryClient();
   const callbackUrl = useAuthCallback(session.data?.user.id);
   const signOut = useMutation({

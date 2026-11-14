@@ -16,7 +16,7 @@ import { requireFacilityAccess } from "../facilities/facilities.guard";
 import { createReservationsService } from "./reservations.service";
 
 export const reservationsRoutes: FastifyPluginAsync = async (app) => {
-  const service = createReservationsService(app.db);
+  const service = createReservationsService(app.db, app.notifications);
   const typed = app.withTypeProvider<ZodTypeProvider>();
 
   typed.post(

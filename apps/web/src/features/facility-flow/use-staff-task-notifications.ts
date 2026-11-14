@@ -1,6 +1,9 @@
 "use client";
 
-import type { StaffTaskAssignedNotification } from "@metastorage/contracts";
+import {
+  type StaffTaskAssignedNotification,
+  WorkUpdateNotificationSchema,
+} from "@metastorage/contracts";
 import { UserRole } from "@metastorage/database/schema/user-enums";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -54,6 +57,15 @@ export function useStaffTaskNotifications() {
       void queryClient.invalidateQueries({ queryKey: ["appointments"] });
       void queryClient.invalidateQueries({ queryKey: bookingKeys.all });
       void queryClient.invalidateQueries({ queryKey: ["appointment-tasks"] });
+      void queryClient.invalidateQueries({
+        queryKey: ["flow5", userId, UserRole.FACILITY_STAFF, "staff-work"],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ["flow5", userId, UserRole.FACILITY_STAFF, "task"],
+      });
+      void queryClient.invalidateQueries({ queryKey: ["facility-flow"] });
+      void queryClient.invalidateQueries({ queryKey: ["staff-return-appointment"] });
+      void queryClient.invalidateQueries({ queryKey: ["staff-return-inspections"] });
     };
     const schedule = () => {
       if (stopped || denied || !navigator.onLine) return;
@@ -89,6 +101,19 @@ export function useStaffTaskNotifications() {
         try {
           event = JSON.parse(data);
         } catch {
+          return;
+        }
+        const update = WorkUpdateNotificationSchema.safeParse(event);
+        if (
+          update.success &&
+          update.data.type === "STAFF_WORK_UPDATED" &&
+          update.data.recipientId === userId
+        ) {
+          if (!eventRefreshTimer)
+            eventRefreshTimer = setTimeout(() => {
+              eventRefreshTimer = undefined;
+              refresh();
+            }, 150);
           return;
         }
         if (!isTaskEvent(event) || event.recipientId !== userId || seen.has(event.id)) return;

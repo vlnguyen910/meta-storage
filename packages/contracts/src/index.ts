@@ -34,8 +34,11 @@ export * from "./messages";
 export * from "./mobile-workflows";
 export type {
   BookingEmailSnapshot,
+  CustomerAppointmentUpdatedNotification,
+  FacilityWorkUpdatedNotification,
   LifecycleNotificationItem,
   StaffTaskAssignedNotification,
+  StaffWorkUpdatedNotification,
 } from "./notifications.types";
 export * from "./payments";
 export * from "./pricing";
@@ -49,3 +52,4 @@ export * from "./support";
 export * from "./system-settings";
 export * from "./unit-types";
 export * from "./users";
+export * from "./work-updates";

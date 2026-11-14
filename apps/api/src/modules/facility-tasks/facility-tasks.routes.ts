@@ -18,7 +18,7 @@ import { facilityTaskSwaggerTransform } from "./facility-tasks.swagger";
 
 export const facilityTasksRoutes: FastifyPluginAsync = async (app) => {
   const typed = app.withTypeProvider<ZodTypeProvider>();
-  const service = createFacilityTasksService(app.db);
+  const service = createFacilityTasksService(app.db, app.notifications);
 
   app.addHook("onRequest", async (_request, reply) => {
     reply.header("Cache-Control", "private, no-store");
