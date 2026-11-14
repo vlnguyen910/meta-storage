@@ -42,6 +42,13 @@ class Socket {
     });
   }
 }
+async function emitDuplicateEvents(type: string) {
+  await act(async () => {
+    Socket.instances[0]?.event(type);
+    Socket.instances[0]?.event(type);
+    await vi.advanceTimersByTimeAsync(200);
+  });
+}
 function StaffListener() {
   useStaffTaskNotifications();
   return null;
@@ -107,11 +114,7 @@ it("updates customer appointment lists/open details while leaving rentals and no
     await vi.advanceTimersByTimeAsync(200);
   });
   expect(h.loads.every((load) => load.mock.calls.length === 1)).toBe(true);
-  await act(async () => {
-    Socket.instances[0]?.event("CUSTOMER_APPOINTMENT_UPDATED");
-    Socket.instances[0]?.event("CUSTOMER_APPOINTMENT_UPDATED");
-    await vi.advanceTimersByTimeAsync(200);
-  });
+  await emitDuplicateEvents("CUSTOMER_APPOINTMENT_UPDATED");
   expect(view.result.current.every((query) => query.data === "CONFIRMED")).toBe(true);
   expect(h.loads.every((load) => load.mock.calls.length === 2)).toBe(true);
   expect(
@@ -143,11 +146,7 @@ it("refreshes staff lists and details for transfers/cancellations without creati
     await vi.advanceTimersByTimeAsync(200);
   });
   expect(h.loads.every((load) => load.mock.calls.length === 1)).toBe(true);
-  await act(async () => {
-    Socket.instances[0]?.event("STAFF_WORK_UPDATED");
-    Socket.instances[0]?.event("STAFF_WORK_UPDATED");
-    await vi.advanceTimersByTimeAsync(200);
-  });
+  await emitDuplicateEvents("STAFF_WORK_UPDATED");
   expect(view.result.current.every((query) => query.data === "CANCELLED")).toBe(true);
   expect(h.loads.every((load) => load.mock.calls.length === 2)).toBe(true);
   expect(toast).not.toHaveBeenCalled();
