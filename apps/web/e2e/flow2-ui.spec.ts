@@ -139,6 +139,7 @@ async function fixture(
       path === "/bookings/assigned-to-me"
     )
       data = [booking];
+    else if (path === `/facility-tasks/my/${task.id}`) data = task;
     else if (path === "/facility-tasks/my")
       data = { items: [task], total: 1, limit: 100, offset: 0 };
     else if (path === `/facility-tasks/${task.id}` && method === "PATCH") {

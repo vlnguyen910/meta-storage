@@ -84,6 +84,22 @@ export class FacilityTasksRepository {
     return this.db.select().from(facilityTasks).where(eq(facilityTasks.id, id));
   }
 
+  async findForStaff(id: string, staffId: string, facilityIds: string[]) {
+    const [task] = await this.db
+      .select(taskColumns)
+      .from(facilityTasks)
+      .innerJoin(assignee, eq(assignee.id, facilityTasks.assignedStaffId))
+      .innerJoin(assigner, eq(assigner.id, facilityTasks.assignedBy))
+      .where(
+        and(
+          eq(facilityTasks.id, id),
+          eq(facilityTasks.assignedStaffId, staffId),
+          inArray(facilityTasks.facilityId, facilityIds),
+        ),
+      );
+    return task;
+  }
+
   findForUpdate(tx: TaskTransaction, id: string) {
     return tx.select().from(facilityTasks).where(eq(facilityTasks.id, id)).for("update");
   }

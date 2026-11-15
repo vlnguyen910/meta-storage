@@ -122,14 +122,20 @@ export class FacilityTasksService {
     ]);
     const task = await this.write(this.repository.create(input, actor));
     await this.notifications?.taskChanged(task.id);
-    return {
-      ...task,
-      startedAt: task.startedAt?.toISOString() ?? null,
-      completedAt: task.completedAt?.toISOString() ?? null,
-      assignedAt: task.assignedAt.toISOString(),
-      createdAt: task.createdAt.toISOString(),
-      updatedAt: task.updatedAt.toISOString(),
-    };
+    return toTaskDetail(task);
+  }
+
+  async getMine(id: string, actor: FacilityTaskActor): Promise<FacilityTaskDetail> {
+    this.assertStaff(actor);
+    const assignments = await this.assignments.listUserAssignments(actor.id, actor.role);
+    if (!assignments.length) throw new ForbiddenError(m.accessDenied);
+    const task = await this.repository.findForStaff(
+      id,
+      actor.id,
+      assignments.map(({ facilityId }) => facilityId),
+    );
+    if (!task) throw new NotFoundError(m.taskNotFound);
+    return toTaskDetail(task);
   }
 
   async listMineTask(
@@ -144,14 +150,7 @@ export class FacilityTasksService {
       assignments.map(({ facilityId }) => facilityId),
       query,
     );
-    return mapPageDto(result, query, (task) => ({
-      ...task,
-      startedAt: task.startedAt?.toISOString() ?? null,
-      completedAt: task.completedAt?.toISOString() ?? null,
-      assignedAt: task.assignedAt.toISOString(),
-      createdAt: task.createdAt.toISOString(),
-      updatedAt: task.updatedAt.toISOString(),
-    }));
+    return mapPageDto(result, query, toTaskDetail);
   }
 
   async listFacility(
@@ -164,14 +163,7 @@ export class FacilityTasksService {
       UserRole.FACILITY_MANAGER,
     );
     const result = await this.repository.listForFacility(facilityId, query);
-    return mapPageDto(result, query, (task) => ({
-      ...task,
-      startedAt: task.startedAt?.toISOString() ?? null,
-      completedAt: task.completedAt?.toISOString() ?? null,
-      assignedAt: task.assignedAt.toISOString(),
-      createdAt: task.createdAt.toISOString(),
-      updatedAt: task.updatedAt.toISOString(),
-    }));
+    return mapPageDto(result, query, toTaskDetail);
   }
 
   async dashboardForStaff(actor: FacilityTaskActor): Promise<FacilityTaskDashboardSummary> {
@@ -240,14 +232,7 @@ export class FacilityTasksService {
     const task = await this.write(this.repository.update(id, input, actor));
     await this.notifications?.taskChanged(task.id, current?.assignedStaffId);
     if (supportActivity) supportActivity.changed = task.status !== current?.status;
-    return {
-      ...task,
-      startedAt: task.startedAt?.toISOString() ?? null,
-      completedAt: task.completedAt?.toISOString() ?? null,
-      assignedAt: task.assignedAt.toISOString(),
-      createdAt: task.createdAt.toISOString(),
-      updatedAt: task.updatedAt.toISOString(),
-    };
+    return toTaskDetail(task);
   }
 
   private assertManager(actor: FacilityTaskActor) {
@@ -295,4 +280,15 @@ export function createFacilityTasksService(db: Database, notifications?: Notific
     new CheckInSlotsService(new CheckInSlotsRepository(db)),
     notifications,
   );
+}
+
+function toTaskDetail(task: FacilityTaskRecord): FacilityTaskDetail {
+  return {
+    ...task,
+    startedAt: task.startedAt?.toISOString() ?? null,
+    completedAt: task.completedAt?.toISOString() ?? null,
+    assignedAt: task.assignedAt.toISOString(),
+    createdAt: task.createdAt.toISOString(),
+    updatedAt: task.updatedAt.toISOString(),
+  };
 }

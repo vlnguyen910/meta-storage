@@ -48,7 +48,7 @@ function errorExample(code: number, message: string) {
 }
 
 export function facilityTaskSwaggerTransform(
-  operation: "create" | "list" | "update" | "dashboard",
+  operation: "create" | "list" | "detail" | "update" | "dashboard",
 ): SwaggerTransform {
   const isCreate = operation === "create";
   const isList = operation === "list";
@@ -75,7 +75,9 @@ export function facilityTaskSwaggerTransform(
         400: errorExample(400, m.invalidInput),
         401: errorExample(401, m.loginRequired),
         403: errorExample(403, m.accessDenied),
-        ...(operation === "update" ? { 404: errorExample(404, m.taskNotFound) } : {}),
+        ...(operation === "update" || operation === "detail"
+          ? { 404: errorExample(404, m.taskNotFound) }
+          : {}),
         ...(operation === "update" ? { 409: errorExample(409, m.taskNotReady) } : {}),
       },
     };

@@ -2,12 +2,11 @@ import { createMetastorageApiClient } from "@metastorage/api-client";
 import axios, { type AxiosRequestConfig } from "axios";
 import { expect, it } from "vitest";
 
-it("finds an assigned task beyond the first page without calling a retired detail route", async () => {
+it("loads an assigned task with one authorized detail request", async () => {
   const requests: AxiosRequestConfig[] = [];
   const http = axios.create({
     adapter: async (config) => {
       requests.push(config);
-      const offset = config.params.offset;
       return {
         config,
         status: 200,
@@ -15,24 +14,14 @@ it("finds an assigned task beyond the first page without calling a retired detai
         headers: {},
         data: {
           success: true,
-          data: {
-            items: offset
-              ? [{ id: "target" }]
-              : Array.from({ length: 100 }, (_, n) => ({ id: `task-${n}` })),
-            offset,
-            limit: 100,
-            total: 101,
-          },
+          data: { id: "target" },
         },
       };
     },
   });
   const api = createMetastorageApiClient(http, "better-auth");
-  expect((await api.flow5.tasks.findMine("target"))?.id).toBe("target");
-  expect(requests.map((r) => [r.method, r.url, r.params.offset])).toEqual([
-    ["get", "/facility-tasks/my", 0],
-    ["get", "/facility-tasks/my", 100],
-  ]);
+  expect((await api.flow5.tasks.getMine("target")).id).toBe("target");
+  expect(requests.map((r) => [r.method, r.url])).toEqual([["get", "/facility-tasks/my/target"]]);
   expect(api).not.toHaveProperty("rentalDocuments");
   expect(api).not.toHaveProperty("facilityWorkspace");
   for (const method of ["messages", "reply", "image", "uploadImage"])
