@@ -1,7 +1,6 @@
 import { afterAll, beforeAll, describe, expect, spyOn, test } from "bun:test";
 import Fastify from "fastify";
 import { setupErrorHandler } from "../../src/common/errors/error-handler";
-import { env } from "../../src/config/env";
 import { auth } from "../../src/modules/auth/auth";
 import { authRoutes } from "../../src/modules/auth/auth.routes";
 import { AuthService } from "../../src/modules/auth/auth.service";
@@ -14,7 +13,6 @@ const input = {
   confirmPassword: "SignupTest123!",
   callbackTarget: "web",
 };
-const previous = { key: env.RESEND_API_KEY, from: env.RESEND_FROM_EMAIL };
 const signup = spyOn(auth.api, "signUpEmail");
 const available = spyOn(AuthService.prototype, "assertEmailCanRegister");
 
@@ -22,16 +20,12 @@ describe("customer signup phone", () => {
   beforeAll(async () => {
     signup.mockResolvedValue({} as never);
     available.mockResolvedValue(undefined);
-    env.RESEND_API_KEY = "re_signup_test";
-    env.RESEND_FROM_EMAIL = "test@example.test";
     setupErrorHandler(app);
     await app.register(authRoutes, { prefix: "/api/auth" });
   });
   afterAll(async () => {
     signup.mockRestore();
     available.mockRestore();
-    env.RESEND_API_KEY = previous.key;
-    env.RESEND_FROM_EMAIL = previous.from;
     await app.close();
   });
   test.each([undefined, "0901234567"])("accepts registration with phone %s", async (phone) => {

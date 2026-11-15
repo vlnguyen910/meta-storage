@@ -122,11 +122,7 @@ export function useFacilityTaskDetail(id: string) {
   const key = useManagementKey();
   return useQuery({
     queryKey: [...key, "task", id],
-    queryFn: async ({ signal }) => {
-      const task = await api.flow5.tasks.findMine(id, signal);
-      if (!task) throw new Error(F5.loadError);
-      return task;
-    },
+    queryFn: ({ signal }) => api.flow5.tasks.getMine(id, signal),
     enabled: Boolean(id) && !isMockMode,
     refetchInterval: 30_000,
   });

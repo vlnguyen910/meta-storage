@@ -14,12 +14,12 @@ import {
   UserRound,
   Warehouse,
 } from "lucide-react";
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ListPagination } from "@/components/ui/list-pagination";
-import { OperationalBackLink, OperationalBadge } from "@/components/ui/operational";
+import { OperationalBadge } from "@/components/ui/operational";
 import {
   Select,
   SelectContent,
@@ -53,15 +53,35 @@ export function ManagerRentalsScreen() {
 
 function Rentals({ facilityId }: { facilityId: string }) {
   const key = useManagerKey();
-  const selected = useSearchParams().get("rentalId");
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const rentalIdFromUrl = searchParams.get("rentalId");
+  const [selectedRentalId, setSelectedRentalId] = useState<string | null>(rentalIdFromUrl);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<RentalStatus | "">("ACTIVE");
   const [offset, setOffset] = useState(0);
   const pageSize = 10;
 
+  useEffect(() => {
+    if (rentalIdFromUrl) {
+      setSelectedRentalId(rentalIdFromUrl);
+    }
+  }, [rentalIdFromUrl]);
+
+  const handleClose = () => {
+    setSelectedRentalId(null);
+    if (searchParams.get("rentalId")) {
+      const nextParams = new URLSearchParams(searchParams.toString());
+      nextParams.delete("rentalId");
+      const query = nextParams.toString();
+      router.replace(query ? `/facility-manager/rentals?${query}` : "/facility-manager/rentals", {
+        scroll: false,
+      });
+    }
+  };
+
   const list = useQuery({
     queryKey: [...key, "rentals", facilityId, search, status, offset],
-    enabled: !selected,
     queryFn: () =>
       api.rentals.facilityList(facilityId, {
         search: search || undefined,
@@ -70,8 +90,6 @@ function Rentals({ facilityId }: { facilityId: string }) {
         offset,
       }),
   });
-
-  if (selected) return <Detail facilityId={facilityId} id={selected} />;
 
   return (
     <div className="space-y-4">
@@ -201,12 +219,13 @@ function Rentals({ facilityId }: { facilityId: string }) {
                       <OperationalBadge value={r.status} />
                     </TableCell>
                     <TableCell className="py-3.5 pr-5 text-right">
-                      <Link
-                        className="inline-flex h-8 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition-colors hover:border-primary hover:bg-emerald-50/40 hover:text-primary"
-                        href={`/facility-manager/rentals?rentalId=${r.id}`}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedRentalId(r.id)}
+                        className="inline-flex h-8 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-2xs transition-colors hover:border-primary hover:bg-emerald-50/40 hover:text-primary"
                       >
                         {M.view}
-                      </Link>
+                      </button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -225,6 +244,15 @@ function Rentals({ facilityId }: { facilityId: string }) {
           />
         </>
       )}
+
+      <Dialog open={Boolean(selectedRentalId)} onOpenChange={(open) => !open && handleClose()}>
+        <DialogContent
+          aria-describedby={undefined}
+          className="max-h-[85vh] overflow-y-auto max-w-3xl sm:max-w-4xl p-5 sm:p-7"
+        >
+          {selectedRentalId && <Detail facilityId={facilityId} id={selectedRentalId} />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -259,27 +287,48 @@ function Detail({ facilityId, id }: { facilityId: string; id: string }) {
     enabled: Boolean(checkout),
   });
 
-  if (query.isPending) return <LoadingState variant="detail" />;
-  if (query.isError) return <ErrorState message={M.loadingError} onRetry={() => query.refetch()} />;
+  if (query.isPending) {
+    return (
+      <div className="space-y-4">
+        <DialogHeader className="pr-8">
+          <DialogTitle>{M.rentalDetails}</DialogTitle>
+        </DialogHeader>
+        <LoadingState variant="detail" />
+      </div>
+    );
+  }
+
+  if (query.isError) {
+    return (
+      <div className="space-y-4">
+        <DialogHeader className="pr-8">
+          <DialogTitle>{M.rentalDetails}</DialogTitle>
+        </DialogHeader>
+        <ErrorState message={M.loadingError} onRetry={() => query.refetch()} />
+      </div>
+    );
+  }
 
   const r = query.data;
 
   return (
-    <div className="space-y-6">
-      <OperationalBackLink href="/facility-manager/rentals">{M.back}</OperationalBackLink>
-
-      {/* Main Rental Information Card */}
-      <Card className="border-slate-200 bg-white shadow-2xs">
-        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/50 px-5 py-3.5">
+    <div className="space-y-5">
+      <DialogHeader className="border-b border-slate-100 pb-3 pr-8">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2.5">
-            <h2 className="text-base font-bold text-slate-900">{r.customer.name}</h2>
+            <DialogTitle className="text-base font-bold text-slate-900">
+              {r.customer.name}
+            </DialogTitle>
             <span className="rounded bg-slate-100 px-2 py-0.5 font-mono text-xs font-semibold text-slate-700">
               {formatReference(r.bookingCode, "BK")}
             </span>
           </div>
           <OperationalBadge value={r.status} />
-        </CardHeader>
+        </div>
+      </DialogHeader>
 
+      {/* Main Rental Information Card */}
+      <Card className="border-slate-200 bg-white shadow-2xs">
         <CardContent className="grid gap-6 p-5 sm:grid-cols-2 lg:grid-cols-3">
           {/* Column 1: Customer Contact Info */}
           <div className="space-y-2">

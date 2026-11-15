@@ -127,7 +127,7 @@ it("keeps start, draft save and validated completion working in the new staff la
   );
   for (const item of HANDOVER_CHECKLIST_ITEMS)
     await user.click(
-      within(screen.getByRole("group", { name: item.label })).getByRole("radio", {
+      within(screen.getByRole("group", { name: item.label })).getByRole("checkbox", {
         name: "Đạt",
       }),
     );

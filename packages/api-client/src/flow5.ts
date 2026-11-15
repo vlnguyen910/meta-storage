@@ -133,19 +133,10 @@ export function createFlow5Client(http: AxiosInstance) {
             .then(unwrap),
       },
       tasks: {
-        findMine: async (id: string, signal?: AbortSignal) => {
-          for (let offset = 0; ; offset += 100) {
-            const page = await http
-              .get<ApiEnvelope<FacilityTaskListResult>>("/facility-tasks/my", {
-                params: { limit: 100, offset },
-                signal,
-              })
-              .then(unwrap);
-            const task = page.items.find((item) => item.id === id);
-            if (task) return task;
-            if (!page.items.length || offset + page.items.length >= page.total) return undefined;
-          }
-        },
+        getMine: (id: string, signal?: AbortSignal) =>
+          http
+            .get<ApiEnvelope<FacilityTaskDetail>>(`/facility-tasks/my/${id}`, { signal })
+            .then(unwrap),
         dashboardMine: (signal?: AbortSignal) =>
           http
             .get<ApiEnvelope<FacilityTaskDashboardSummary>>("/facility-tasks/dashboard/my", {

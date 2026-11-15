@@ -19,6 +19,7 @@ export const FACILITY_TASK_MESSAGES = {
   taskNotFound: "Không tìm thấy công việc.",
   createSummary: "FM giao công việc kiểm tra hoặc hỗ trợ cho nhân viên tại cơ sở",
   myTasksSummary: "Nhân viên xem công việc được giao",
+  myTaskSummary: "Nhân viên xem chi tiết công việc được giao",
   facilityTasksSummary: "FM xem công việc tại cơ sở",
   myDashboardSummary: "Nhân viên xem số công việc còn mở được giao hôm nay theo loại",
   updateSummary: "Cập nhật loại, nhân viên phụ trách hoặc trạng thái công việc",

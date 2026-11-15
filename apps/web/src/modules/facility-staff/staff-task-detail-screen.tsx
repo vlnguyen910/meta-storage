@@ -39,7 +39,7 @@ import {
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
 import { useAuthStore } from "@/features/auth/auth-store";
-import { bookingKeys } from "@/features/check-in/hooks";
+import { bookingKeys } from "@/features/check-in/booking.keys";
 import { InspectionChecklist } from "@/features/facility-flow/inspection-checklist";
 import { InspectionPhotoCard } from "@/features/facility-flow/inspection-screen";
 import {
@@ -247,8 +247,11 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
     Boolean(condition) &&
     settlementConfirmed &&
     (refundAmount === 0 || refundMethod === "CASH" || Boolean(refundReference.trim()));
-  function setChecklistResult(code: string, result: "PASS" | "FAIL") {
+  function setChecklistResult(code: string, result: "PASS" | "FAIL" | null) {
     setResults((previous) => {
+      if (result === null) {
+        return previous.filter((item) => item.itemCode !== code);
+      }
       const old = previous.find((item) => item.itemCode === code);
       return [
         ...previous.filter((item) => item.itemCode !== code),

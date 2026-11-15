@@ -6,6 +6,8 @@ export interface LifecycleEventInput {
   key: string;
   type: LifecycleNotificationEvent;
   bookingId?: string;
+  rentalId?: string;
+  supportTicketId?: string;
   reservationId?: string;
   rentalTermVersion?: number;
   detail?: string;

@@ -14,6 +14,7 @@ import {
   isNull,
   notificationOutbox,
   or,
+  rentals,
   reservations,
   sql,
   supportTickets,
@@ -31,6 +32,21 @@ export async function recordLifecycleEvent(
   tx: NotificationTransaction,
   input: LifecycleEventInput,
 ) {
+  if (input.rentalId || input.supportTicketId) {
+    const contextId = input.rentalId ?? input.supportTicketId;
+    if (!contextId) return;
+    const table = input.rentalId ? rentals : supportTickets;
+    const [context] = await tx
+      .select({ bookingId: table.bookingId, reservationId: table.reservationId })
+      .from(table)
+      .where(eq(table.id, contextId));
+    if (!context) return;
+    input = {
+      ...input,
+      bookingId: context.bookingId ?? undefined,
+      reservationId: context.reservationId ?? undefined,
+    };
+  }
   const [booking] = input.reservationId
     ? await tx
         .select({
@@ -107,6 +123,7 @@ export async function recordLifecycleEvent(
         recipients.map((recipient) => ({
           eventKey: input.key,
           eventType: input.type,
+          supportTicketId: input.supportTicketId,
           bookingId: input.bookingId ? booking.id : null,
           reservationId: input.reservationId ? booking.id : null,
           rentalTermVersion: input.rentalTermVersion,

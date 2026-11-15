@@ -71,14 +71,13 @@ import {
 import { F5 } from "./management.messages";
 import type { FacilityPanelProps, ManagementWorkspaceProps } from "./management.types";
 import { ManagementDialog, ManagementField, textareaClass } from "./management-ui";
-import { InventoryPanel } from "./unit-inventory";
 
 const tabLabels = {
   facilities: F5.facilities,
   types: F5.types,
 };
 
-type ManagementTab = keyof typeof tabLabels | "offerings" | "memberships" | "units";
+type ManagementTab = keyof typeof tabLabels | "memberships";
 
 const PAGE_SIZE = 6;
 
@@ -144,33 +143,12 @@ export function FacilityManagementWorkspace({ membershipsOnly = false }: Managem
 
         {tab === "types" && <TypeCatalogTable />}
 
-        {tab === "offerings" && (
-          <FacilityOfferingsTable
-            key={scope.facilityId}
-            facilityId={scope.facilityId}
-            facilityOptions={scope.query.data}
-            onSelectFacility={scope.select}
-          />
-        )}
-
         {tab === "memberships" && (
           <FacilityMembershipsTable
             facilityId={scope.facilityId}
             facilityOptions={scope.query.data}
             onSelectFacility={scope.select}
           />
-        )}
-
-        {tab === "units" && (
-          <div className="flex flex-col h-full w-full overflow-hidden min-h-0">
-            <InventoryPanel
-              key={scope.facilityId}
-              facilityId={scope.facilityId}
-              facilityOptions={scope.query.data}
-              onSelectFacility={scope.select}
-              canEdit={false}
-            />
-          </div>
         )}
       </div>
 
@@ -190,13 +168,7 @@ export function FacilityManagementWorkspace({ membershipsOnly = false }: Managem
 /* =========================================================================
    TAB 1: DANH SÁCH CƠ SỞ (Facility Table có Paging & Filter)
    ========================================================================= */
-function FacilityListTable({
-  onSelectFacility,
-  onOpenCreate,
-}: {
-  onSelectFacility?: (id: string) => void;
-  onOpenCreate: () => void;
-}) {
+function FacilityListTable({ onOpenCreate }: { onOpenCreate: () => void }) {
   const query = useAllFacilities();
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -357,16 +329,6 @@ function FacilityListTable({
                         <Pencil className="size-3.5" />
                         <span>{F5.edit}</span>
                       </Button>
-                      {onSelectFacility && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => onSelectFacility(facility.id)}
-                          className="h-8 min-h-8 px-2.5 text-xs border-slate-200 text-slate-700 hover:text-primary"
-                        >
-                          <span>Quản lý</span>
-                        </Button>
-                      )}
                     </div>
                   </TableCell>
                 </TableRow>

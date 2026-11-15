@@ -40,7 +40,6 @@ import type {
   Facility,
   FacilityCatalogItem,
   FacilityCatalogQuery,
-  FacilityListParams,
   FacilityOperatingHours,
   FacilityQuery,
   FacilityRentalHistoryQuery,
@@ -92,15 +91,12 @@ import type {
   SocialAuthInput,
   SocialAuthResponse,
   StaffTasksQuery,
-  StorageUnitMaintenanceTransition,
-  StorageUnitResponse,
   SystemSettingDto,
   SystemSettingUpdateResult,
   UnitTypeListParams,
   UpdateAppointmentInput,
   UpdateDepositPolicy,
   UpdateInspectionInput,
-  UpdateStorageUnitStatusBody,
   UpdateUnitTypePrice,
   UpdateUserRoleWithoutCustomerInput,
   UpdateUserStatusInput,
@@ -304,8 +300,6 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
         http
           .get<ApiEnvelope<ApiUnitType[]>>(`/facilities/${facilityId}/unit-types`, { params })
           .then(unwrap),
-      list: (params: FacilityListParams = {}) =>
-        http.get<ApiEnvelope<PaginatedResult<Facility>>>("/facilities", { params }).then(unwrap),
       myAssignments: () =>
         http.get<ApiEnvelope<ApiFacilityAssignment[]>>("/facilities/my-assignments").then(unwrap),
       get: (facilityId: string) =>
@@ -320,18 +314,6 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
       getStaff: (facilityId: string) =>
         http
           .get<ApiEnvelope<FacilityStaffMember[]>>(`/facilities/${facilityId}/staff`)
-          .then(unwrap),
-    },
-    storageUnits: {
-      get: (id: string) =>
-        http.get<ApiEnvelope<StorageUnitResponse>>(`/storage-units/${id}`).then(unwrap),
-      updateStatus: (id: string, input: UpdateStorageUnitStatusBody) =>
-        http
-          .patch<ApiEnvelope<StorageUnitResponse>>(`/storage-units/${id}/status`, input)
-          .then(unwrap),
-      transition: (id: string, input: StorageUnitMaintenanceTransition) =>
-        http
-          .post<ApiEnvelope<StorageUnitResponse>>(`/storage-units/${id}/transitions`, input)
           .then(unwrap),
     },
     catalog: {
@@ -687,3 +669,4 @@ export function createMetastorageApiClient(
 ): MetastorageApiClient<AuthMode> {
   return createMetastorageApiClientImpl(http, authMode) as MetastorageApiClient<AuthMode>;
 }
+export { createNotificationStream } from "./notification-stream";

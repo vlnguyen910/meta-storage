@@ -159,19 +159,6 @@ export class FacilityAssignmentsRepository {
     );
   }
 
-  async findAssignment(
-    facilityId: string,
-    userId: string,
-  ): Promise<FacilityAssignment | undefined> {
-    const [assignment] = await this.db
-      .select()
-      .from(facilityAssignments)
-      .where(
-        and(eq(facilityAssignments.facilityId, facilityId), eq(facilityAssignments.userId, userId)),
-      );
-    return assignment;
-  }
-
   async findAssignmentTarget(userId: string) {
     const [user] = await this.db
       .select({ id: users.id, role: users.role, status: users.status })

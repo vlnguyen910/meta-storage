@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { isMockMode } from "@/config/api-mode";
 import { APPOINTMENTS_UI } from "@/features/appointments/appointments.messages";
 import { useAuthStore } from "@/features/auth/auth-store";
-import { bookingKeys } from "@/features/check-in/hooks";
+import { bookingKeys } from "@/features/check-in/booking.keys";
 import { useManagementKey } from "@/features/facility-management/hooks";
 import { api } from "@/lib/api";
 import { facilityWork } from "./staff-work.data";

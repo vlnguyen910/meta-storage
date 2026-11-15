@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { Button } from "./button";
 import { LOADING_MESSAGES } from "./loading.messages";
+import { STATE_MESSAGES } from "./states.messages";
 import type {
   DelayedFullScreenLoadingProps,
   EmptyStateProps,
@@ -311,9 +312,9 @@ export function ErrorState({ message, onRetry }: ErrorStateProps) {
       role="alert"
     >
       <AlertTriangle className="size-10 text-danger" />
-      <h3 className="mt-3 mb-1 font-bold">Không thể tải dữ liệu</h3>
+      <h2 className="mt-3 mb-1 font-bold">{STATE_MESSAGES.loadFailed}</h2>
       <p className="max-w-[460px] text-muted">{message}</p>
-      {onRetry ? <Button onClick={onRetry}>Thử lại</Button> : null}
+      {onRetry ? <Button onClick={onRetry}>{STATE_MESSAGES.retry}</Button> : null}
     </div>
   );
 }

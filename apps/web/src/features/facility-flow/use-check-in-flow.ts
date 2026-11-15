@@ -251,8 +251,11 @@ export function useInspectionEditor(record: InspectionRecord, onNavigate: (next:
     results.some((entry) => entry.itemCode === item.code && entry.result === "PASS"),
   ).length;
   const canComplete = HandoverChecklistCompletionSchema.safeParse(results).success;
-  function setResult(itemCode: string, result: "PASS" | "FAIL") {
+  function setResult(itemCode: string, result: "PASS" | "FAIL" | null) {
     setResults((previous) => {
+      if (result === null) {
+        return previous.filter((entry) => entry.itemCode !== itemCode);
+      }
       const old = previous.find((entry) => entry.itemCode === itemCode);
       return [
         ...previous.filter((entry) => entry.itemCode !== itemCode),

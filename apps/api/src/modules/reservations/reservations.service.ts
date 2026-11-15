@@ -28,6 +28,7 @@ import {
   createFacilityTasksService,
   type FacilityTasksService,
 } from "../facility-tasks/facility-tasks.service";
+import type { NotificationsService } from "../notifications/notifications.service";
 import { createSepayGateway } from "../payments/payments.service";
 import {
   createReservationPaymentsService,
@@ -57,6 +58,7 @@ export class ReservationsService {
     private readonly appointments: AppointmentsRepository,
     private readonly tasks: FacilityTasksService,
     private readonly settings: SystemSettingsService,
+    private readonly notifications?: NotificationsService,
   ) {}
 
   private async resolveRentalPeriod(input: CreateReservationDraftInput) {
@@ -69,8 +71,7 @@ export class ReservationsService {
     const unitType = await this.unitTypes.requireActiveUnitType(input.facilityId, input.unitTypeId);
     const slot = await this.slots.findByIdForDate(input.checkInSlotId, input.checkInDate);
     if (!slot || (!demo && slot.startsAt <= new Date())) throw new BadRequestError(m.invalidSlot);
-    if (!demo)
-      await this.facilities.assertCheckInWithinOperatingHours(input.facilityId, slot.startsAt);
+    if (!demo) await this.facilities.assertCheckInWithinOperatingHours(slot.startsAt);
     const rentalEndAt = new Date(slot.startsAt);
     rentalEndAt.setUTCDate(rentalEndAt.getUTCDate() + input.durationMonths * 30);
     return { slot, unitType, rentalEndAt };
@@ -173,8 +174,8 @@ export class ReservationsService {
     return reservation;
   }
 
-  cancelReservation(id: string, customerId: string) {
-    return this.repository.transaction(async (tx) => {
+  async cancelReservation(id: string, customerId: string) {
+    const updated = await this.repository.transaction(async (tx) => {
       const reservation = await this.requireCustomerReservation(id, customerId, tx);
       if (reservation.status === ReservationStatus.CANCELLED) return reservation;
       if (
@@ -184,6 +185,8 @@ export class ReservationsService {
         throw new ConflictError(m.cancellationClosed);
       return this.closeReservation(tx, reservation, ReservationStatus.CANCELLED);
     });
+    await this.notifications?.reservationAppointmentsChanged(updated.id);
+    return updated;
   }
 
   startReservationPayment(
@@ -223,17 +226,22 @@ export class ReservationsService {
   async sweepNoShows(now = new Date(), facilityId?: string) {
     if (isDevelopmentEnvironment()) return { processed: 0 };
     const closingHour = await this.settings.getClosingHour();
-    return this.repository.transaction(async (tx) => {
+    const changedReservations: string[] = [];
+    const result = await this.repository.transaction(async (tx) => {
       const reservations = await this.repository.findNoShows(tx, now, closingHour, facilityId);
       for (const reservation of reservations) {
         await this.closeReservation(tx, reservation, ReservationStatus.NO_SHOW);
+        changedReservations.push(reservation.id);
       }
       return { processed: reservations.length };
     });
+    for (const id of changedReservations)
+      await this.notifications?.reservationAppointmentsChanged(id);
+    return result;
   }
 }
 
-export function createReservationsService(db: Database) {
+export function createReservationsService(db: Database, notifications?: NotificationsService) {
   const facilities = new FacilitiesRepository(db);
   return new ReservationsService(
     new ReservationsRepository(db),
@@ -247,5 +255,6 @@ export function createReservationsService(db: Database) {
     new AppointmentsRepository(db),
     createFacilityTasksService(db),
     new SystemSettingsService(new SystemSettingsRepository(db)),
+    notifications,
   );
 }

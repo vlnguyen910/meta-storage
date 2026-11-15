@@ -1,8 +1,34 @@
 import { describe, expect, it, vi } from "vitest";
-import { checkInError, checkoutFailure, normalizePhone, phoneError } from "./checkout-validation";
+import {
+  checkInError,
+  checkoutFailure,
+  createCheckoutPaymentKey,
+  normalizePhone,
+  phoneError,
+} from "./checkout-validation";
 import { RESERVATION_MESSAGES as m } from "./reservation.messages";
 
 describe("guest checkout validation", () => {
+  it("generates a UUID from cryptographic random bytes when HTTP LAN has no randomUUID", () => {
+    const getRandomValues = vi.fn((bytes: Uint8Array) => bytes.fill(255));
+    vi.stubGlobal("crypto", { getRandomValues });
+    try {
+      expect(createCheckoutPaymentKey()).toBe("ffffffff-ffff-4fff-bfff-ffffffffffff");
+      expect(getRandomValues).toHaveBeenCalledOnce();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+  it("uses native randomUUID when the browser supports it", () => {
+    const randomUUID = vi.fn(() => "00112233-4455-4677-8899-aabbccddeeff");
+    vi.stubGlobal("crypto", { randomUUID });
+    try {
+      expect(createCheckoutPaymentKey()).toBe("00112233-4455-4677-8899-aabbccddeeff");
+      expect(randomUUID).toHaveBeenCalledOnce();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
   it.each(["0901234567", "901234567", "+84 901 234 567"])("normalizes %s for the API", (value) => {
     expect(normalizePhone(value)).toBe("+84901234567");
   });

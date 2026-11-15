@@ -30,6 +30,7 @@ import { RETURNS_MESSAGES as RETURNS } from "@/features/returns/returns.messages
 import { cn } from "@/lib/cn";
 import { FLOW } from "./flow.messages";
 import { flowFontClass } from "./flow-ui";
+import { ManagerWorkRealtime } from "./manager-work-realtime";
 import { StaffTaskNotifications } from "./staff-task-notifications";
 
 function FacilityShellContent({
@@ -117,6 +118,7 @@ function FacilityShellContent({
         isManager ? "min-h-screen bg-slate-50" : "min-h-screen bg-[#faf8ff]",
       )}
     >
+      {isManager && <ManagerWorkRealtime facilityId={facility?.facilityId ?? ""} />}
       {isManager && (
         <aside
           id="manager-navigation"

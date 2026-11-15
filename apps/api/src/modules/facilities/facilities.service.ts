@@ -52,30 +52,33 @@ export class FacilitiesService {
     return facility;
   }
 
-  async assertCheckInWithinOperatingHours(_facilityId: string, checkInAt: Date): Promise<void> {
-    const parts = new Intl.DateTimeFormat("en-US", {
+  async assertCheckInWithinOperatingHours(...checkInTimes: Date[]): Promise<void> {
+    const hours = await this.getOperatingHours();
+    const openTime = `${String(hours.openingHour).padStart(2, "0")}:00:00`;
+    const closeTime = `${String(hours.closingHour).padStart(2, "0")}:00:00`;
+    const formatter = new Intl.DateTimeFormat("en-US", {
       timeZone: "Asia/Ho_Chi_Minh",
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
-    }).formatToParts(checkInAt);
-    const get = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
-    const time = `${get("hour")}:${get("minute")}:00`;
-    const hours = await this.getOperatingHours();
-    const openTime = `${String(hours.openingHour).padStart(2, "0")}:00:00`;
-    const closeTime = `${String(hours.closingHour).padStart(2, "0")}:00:00`;
-    if (time < openTime || time > closeTime) {
-      throw new AppError(
-        FACILITY_MESSAGES.checkInOutsideOperatingHours(openTime, closeTime),
-        400,
-        "CHECK_IN_OUTSIDE_HOURS",
-        [
-          {
-            field: "checkInSlotId",
-            message: FACILITY_MESSAGES.checkInOutsideOperatingHours(openTime, closeTime),
-          },
-        ],
-      );
+    });
+    for (const checkInAt of checkInTimes) {
+      const parts = formatter.formatToParts(checkInAt);
+      const get = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
+      const time = `${get("hour")}:${get("minute")}:00`;
+      if (time < openTime || time > closeTime) {
+        throw new AppError(
+          FACILITY_MESSAGES.checkInOutsideOperatingHours(openTime, closeTime),
+          400,
+          "CHECK_IN_OUTSIDE_HOURS",
+          [
+            {
+              field: "checkInSlotId",
+              message: FACILITY_MESSAGES.checkInOutsideOperatingHours(openTime, closeTime),
+            },
+          ],
+        );
+      }
     }
   }
 

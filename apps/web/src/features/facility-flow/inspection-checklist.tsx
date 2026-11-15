@@ -8,7 +8,7 @@ export function InspectionChecklist({
   results,
   disabled,
   onChange,
-  onNoteChange,
+  onNoteChange: _onNoteChange,
 }: InspectionChecklistProps) {
   return (
     <div className="space-y-2.5">
@@ -24,67 +24,37 @@ export function InspectionChecklist({
             <div className="flex flex-wrap items-center justify-between gap-2.5">
               <legend className="px-1 text-sm font-semibold text-slate-800">{item.label}</legend>
               <div className="flex items-center gap-2">
-                {(["PASS", "FAIL"] as const).map((result) => {
-                  const isPass = result === "PASS";
-                  const isChecked = value?.result === result;
+                {(() => {
+                  const isChecked = value?.result === "PASS";
                   return (
                     <label
-                      key={result}
                       className={cn(
                         "flex h-8.5 cursor-pointer items-center gap-1.5 rounded-lg border px-3 text-xs sm:text-sm font-semibold transition-all select-none",
                         "focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-1 focus-within:border-primary",
                         isChecked
-                          ? isPass
-                            ? "border-emerald-600 bg-emerald-50 text-emerald-800 shadow-2xs ring-1 ring-emerald-600/30"
-                            : "border-rose-600 bg-rose-50 text-rose-800 shadow-2xs ring-1 ring-rose-600/30"
+                          ? "border-emerald-600 bg-emerald-50 text-emerald-800 shadow-2xs ring-1 ring-emerald-600/30"
                           : "border-slate-200 bg-slate-50/50 text-slate-600 hover:border-slate-300 hover:bg-slate-100/70",
                       )}
                     >
                       <input
-                        type="radio"
+                        type="checkbox"
                         name={`checklist-${item.code}`}
                         checked={isChecked}
-                        onChange={() => onChange(item.code, result)}
+                        onChange={() => onChange(item.code, isChecked ? null : "PASS")}
                         className="sr-only"
                       />
-                      {isPass ? (
-                        <CheckCircle2
-                          className={cn(
-                            "size-4 transition-colors",
-                            isChecked ? "text-emerald-700 fill-emerald-100" : "text-slate-400",
-                          )}
-                        />
-                      ) : (
-                        <XCircle
-                          className={cn(
-                            "size-4 transition-colors",
-                            isChecked ? "text-rose-700 fill-rose-100" : "text-slate-400",
-                          )}
-                        />
-                      )}
-                      <span>{isPass ? FLOW.checklistPass : FLOW.checklistFail}</span>
+                      <CheckCircle2
+                        className={cn(
+                          "size-4 transition-colors",
+                          isChecked ? "text-emerald-700 fill-emerald-100" : "text-slate-400",
+                        )}
+                      />
+                      <span>{FLOW.checklistPass}</span>
                     </label>
                   );
-                })}
+                })()}
               </div>
             </div>
-            {value?.result === "FAIL" && (
-              <div className="mt-2.5 space-y-1.5 border-t border-rose-100 pt-2.5">
-                <p className="text-xs font-semibold text-rose-700">{FLOW.checklistFailure}</p>
-                {onNoteChange && (
-                  <label className="block text-xs font-semibold text-slate-700">
-                    {FLOW.checklistFailureNote}
-                    <textarea
-                      className="mt-1 min-h-16 w-full rounded-lg border border-slate-200 bg-slate-50/50 p-2.5 text-xs sm:text-sm text-slate-800 outline-none focus:border-rose-400 focus:bg-white focus:ring-1 focus:ring-rose-400"
-                      maxLength={1000}
-                      value={value.note ?? ""}
-                      disabled={disabled}
-                      onChange={(event) => onNoteChange(item.code, event.target.value)}
-                    />
-                  </label>
-                )}
-              </div>
-            )}
           </fieldset>
         ) : (
           <div

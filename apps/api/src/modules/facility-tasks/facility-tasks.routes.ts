@@ -18,7 +18,7 @@ import { facilityTaskSwaggerTransform } from "./facility-tasks.swagger";
 
 export const facilityTasksRoutes: FastifyPluginAsync = async (app) => {
   const typed = app.withTypeProvider<ZodTypeProvider>();
-  const service = createFacilityTasksService(app.db);
+  const service = createFacilityTasksService(app.db, app.notifications);
 
   app.addHook("onRequest", async (_request, reply) => {
     reply.header("Cache-Control", "private, no-store");
@@ -75,6 +75,20 @@ export const facilityTasksRoutes: FastifyPluginAsync = async (app) => {
       },
     },
     async (request) => successResponse(await service.listFacility(request.query, actor(request))),
+  );
+
+  typed.get(
+    "/my/:id",
+    {
+      config: { swaggerTransform: facilityTaskSwaggerTransform("detail") },
+      preHandler: [requireRole(UserRole.FACILITY_STAFF)],
+      schema: {
+        tags: ["Facility Tasks"],
+        summary: m.myTaskSummary,
+        params: FacilityTaskParamsSchema,
+      },
+    },
+    async (request) => successResponse(await service.getMine(request.params.id, actor(request))),
   );
 
   typed.patch(

@@ -152,6 +152,7 @@
       "name": "worker",
       "version": "0.0.1",
       "dependencies": {
+        "@metastorage/contracts": "workspace:*",
         "@metastorage/database": "workspace:*",
         "@metastorage/shared": "workspace:*",
         "bullmq": "^5.58.5",

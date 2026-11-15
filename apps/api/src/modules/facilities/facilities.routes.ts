@@ -56,7 +56,7 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
   );
 
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
-  const reservationService = createReservationsService(fastify.db);
+  const reservationService = createReservationsService(fastify.db, fastify.notifications);
   typedApp.get(
     "/catalog",
     { schema: { querystring: FacilityCatalogQuerySchema } },
@@ -376,7 +376,7 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
         params: facilityStorageUnitParamsSchema,
         body: CreateStorageUnitSchema,
       },
-      preHandler: [requireAuth, requireRole("FACILITY_MANAGER")],
+      preHandler: [requireRole("FACILITY_MANAGER")],
     },
     async (request, reply) => {
       if (!request.user) throw new UnauthorizedError();

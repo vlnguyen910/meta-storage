@@ -28,6 +28,7 @@ import { STAFF_API_UI as M } from "../../features/staff-api/staff-api.messages";
 import {
   staffError,
   useStaffTaskAction,
+  useStaffTaskDetail,
   useStaffWorkspace,
 } from "../../features/staff-api/use-staff-workspace";
 import { NotificationScreen } from "../notifications/notification-screen";
@@ -437,8 +438,12 @@ function StaffTaskView({
   selection: Extract<StaffSelection, { kind: "task" }>;
   onNotify: (kind: FeedbackKind, message: string) => void;
 }) {
-  const [task, setTask] = useState(selection.task);
-  const update = useStaffTaskAction(owner, task);
+  const query = useStaffTaskDetail(owner, selection.task.id);
+  const task = query.data;
+  const update = useStaffTaskAction(owner, task ?? selection.task);
+  if (query.isPending) return <ActivityIndicator accessibilityLabel={M.loading} />;
+  if (query.isError || !task || task.assignedStaffId !== owner)
+    return <Notice error>{M.error}</Notice>;
   return (
     <>
       <Heading>{M.type[task.type] ?? M.tasks}</Heading>
@@ -459,8 +464,7 @@ function StaffTaskView({
             loading={update.isPending}
             onPress={() =>
               update.mutate("IN_PROGRESS", {
-                onSuccess: (next) => {
-                  setTask(next);
+                onSuccess: () => {
                   onNotify("success", M.taskStartedSuccess);
                 },
                 onError: (error) => onNotify("error", staffError(error)),
@@ -475,8 +479,7 @@ function StaffTaskView({
             loading={update.isPending}
             onPress={() =>
               update.mutate("COMPLETED", {
-                onSuccess: (next) => {
-                  setTask(next);
+                onSuccess: () => {
                   onNotify("success", M.taskCompletedSuccess);
                 },
                 onError: (error) => onNotify("error", staffError(error)),

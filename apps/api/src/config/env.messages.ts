@@ -12,7 +12,6 @@ export const ENV_MESSAGES = {
     "Must list valid trusted origins separated by commas, without empty entries or wildcards.",
   trustedProxyCidrs:
     "Must list explicit proxy IP addresses or CIDRs separated by commas; wildcards and /0 are forbidden.",
-  senderEmail: "Must be an email address or a display name followed by <email>.",
   sepayCredentials: "PAYMENT_PROVIDER=sepay requires SEPAY_MERCHANT_ID and SEPAY_SECRET_KEY.",
   sepayPair: "SEPAY_MERCHANT_ID and SEPAY_SECRET_KEY must be configured together.",
 } as const;

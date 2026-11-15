@@ -16,6 +16,13 @@
         "files": ["apps/web/public/previews/landing-header.html"],
         "createdAt": "2026-11-07T12:59:34.523Z",
         "reason": "Agent retained Space Grotesk because docs/DESIGN.md explicitly requires it for headings; this preview preserves the existing brand typography."
+      },
+      {
+        "rule": "gray-on-color",
+        "value": "*",
+        "files": ["apps/web/src/features/facility-management/unit-inventory.tsx"],
+        "createdAt": "2026-11-15T03:40:02.100Z",
+        "reason": "Agent review: both controls use neutral text on white at rest and matching dark emerald or amber text on their tinted hover backgrounds; no gray-on-color state."
       }
     ]
   }

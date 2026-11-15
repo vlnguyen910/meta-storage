@@ -3,7 +3,8 @@
   "tags": ["-lintignore"],
   "workspaces": {
     ".": {
-      "entry": [".stitch/mobile/pull-assets.mjs"]
+      "entry": [".railway/railway.ts"],
+      "ignoreDependencies": ["railway"]
     },
     "apps/api": {
       "entry": [

@@ -82,7 +82,7 @@ export function AdminUsersWorkspace() {
       label: M.inactive,
       value: data.filter((user) => user.status === "INACTIVE").length,
       detail: M.lockedReview,
-      detailClassName: "text-warning",
+      detailClassName: "text-amber-800",
       icon: LockKeyhole,
       iconClassName: "bg-red-50 text-danger",
     },
@@ -243,7 +243,7 @@ export function AdminUsersWorkspace() {
                     >
                       <TableCell className="px-5 py-3">
                         <div className="flex items-center gap-3">
-                          <span className="grid size-9 shrink-0 place-items-center rounded-full border border-line bg-slate-100 text-xs font-bold text-secondary">
+                          <span className="grid size-9 shrink-0 place-items-center rounded-full border border-line bg-slate-100 text-xs font-bold text-slate-700">
                             {userInitials(user.name)}
                           </span>
                           <span className="min-w-0">

@@ -33,6 +33,9 @@ import type { FacilityAssignmentsService } from "../facilities/facility-assignme
 import type { FacilityTasksRepository } from "../facility-tasks/facility-tasks.repository";
 import type { TaskTransaction } from "../facility-tasks/facility-tasks.types";
 import type { MediaAssetsService } from "../media-assets/media-assets.service";
+import { LIFECYCLE_MAIL_DETAIL as mailDetail } from "../notifications/lifecycle-notifications.messages";
+import { recordLifecycleEvent } from "../notifications/lifecycle-notifications.repository";
+import type { NotificationsService } from "../notifications/notifications.service";
 import type { RentalsService } from "../rentals/rentals.service";
 import type { ReservationsService } from "../reservations/reservations.service";
 import type { StorageUnitsService } from "../storage-units/storage-units.service";
@@ -51,6 +54,7 @@ export class InspectionsService {
     private readonly media: MediaAssetsService,
     private readonly appointments?: AppointmentsService,
     private readonly reservations?: ReservationsService,
+    private readonly notifications?: NotificationsService,
   ) {}
 
   async listForStaff(query: InspectionListQuery, actor: InspectionActor) {
@@ -85,6 +89,7 @@ export class InspectionsService {
 
   async create(input: CreateInspectionInput, actor: InspectionActor): Promise<InspectionRecord> {
     const context = await this.repository.findTaskContext(input.taskId);
+    if (!context) throw new ConflictError(m.taskNotAvailable);
     if (context?.referenceType === FacilityTaskReferenceType.APPOINTMENT)
       return this.startForAppointment(input, context.referenceId, actor);
     const record = await this.repository.transaction(async (tx) => {
@@ -122,6 +127,7 @@ export class InspectionsService {
       return created;
     });
     if (!record) throw new ConflictError(m.taskNotAvailable);
+    await this.notifications?.taskChanged(input.taskId);
     return this.get(record.id, actor);
   }
 
@@ -194,6 +200,7 @@ export class InspectionsService {
       if (!created) throw new Error("Check-in inspection insert returned no row");
       return created;
     });
+    await this.notifications?.taskChanged(input.taskId);
     return this.get(record.id, actor);
   }
 
@@ -281,6 +288,7 @@ export class InspectionsService {
     });
     activity.changed = activity.entityId !== null;
     unitActivity.changed = activity.changed;
+    await this.notifications?.appointmentChanged(task.referenceId);
     return this.get(current.id, actor);
   }
 
@@ -455,6 +463,12 @@ export class InspectionsService {
       return updatedRecord;
     });
     if (!updated) throw new NotFoundError(m.notFound);
+    await this.notifications?.taskChanged(
+      current.taskId,
+      undefined,
+      current.inspectionType === InspectionType.CHECK_OUT &&
+        updated.status === InspectionStatus.PASSED,
+    );
     if (activity) activity.changed = !alreadyCompleted && updated.status !== current.status;
     if (rentalActivity) rentalActivity.changed = !alreadyCompleted;
 
@@ -606,6 +620,24 @@ export class InspectionsService {
       paymentActivity.entityId = payment?.id ?? null;
       paymentActivity.changed = Boolean(payment);
     }
+    await recordLifecycleEvent(tx, {
+      key: `inspection:${inspection.id}:settled`,
+      type: "RETURN_SETTLED",
+      rentalId: rental.rental.id,
+      detail: mailDetail.settlement(
+        source.depositAmount,
+        totalFees,
+        refundAmount,
+        source.payment.currency,
+      ),
+    });
+    if (refundAmount > 0 && refund)
+      await recordLifecycleEvent(tx, {
+        key: `inspection:${inspection.id}:refund`,
+        type: "RETURN_REFUND",
+        rentalId: rental.rental.id,
+        detail: mailDetail.refund(refundAmount, source.payment.currency),
+      });
     await this.appointments.completeHandover(tx, appointment.id, actor);
   }
 

@@ -48,6 +48,7 @@ export const inspectionsRoutes: FastifyPluginAsync = async (app) => {
     media,
     createAppointmentsService(app.db),
     createReservationsService(app.db),
+    app.notifications,
   );
 
   typed.get(
