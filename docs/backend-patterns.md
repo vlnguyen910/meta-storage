@@ -55,4 +55,14 @@ apps/api/src/modules/
 
 Route xác thực và validate bằng schema từ `@metastorage/contracts`, gọi service và trả response. Service điều phối workflow và transaction; repository chỉ đọc/ghi dữ liệu. Các job gửi mail/notification chạy qua `apps/worker`.
 
+Staff đọc một task qua `GET /api/facility-tasks/my/:id`; service dùng phân công cơ sở
+còn hiệu lực và repository giới hạn theo cả cơ sở lẫn nhân viên được giao. Không dò
+task bằng cách tải từng trang danh sách.
+
+`GET /api/rentals/mine?includePayments=true` trả lịch sử thanh toán cùng từng rental
+trong trang hiện tại. Backend đọc thanh toán bằng một query cho các rental thuộc
+khách hàng đã đăng nhập, giữ nguyên cursor và không trả provider credentials.
+Danh sách mặc định không tải thanh toán; endpoint lịch sử riêng của rental vẫn dùng
+cho màn hình chi tiết.
+
 Booking API cũ đã nghỉ; xem [booking retirement](booking-retirement.md) trước khi thay đổi migration, historical schema hoặc financial records. Luồng mới là reservation → payment → appointment → task → inspection → rental.
