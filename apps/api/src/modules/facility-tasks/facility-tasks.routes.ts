@@ -77,6 +77,20 @@ export const facilityTasksRoutes: FastifyPluginAsync = async (app) => {
     async (request) => successResponse(await service.listFacility(request.query, actor(request))),
   );
 
+  typed.get(
+    "/my/:id",
+    {
+      config: { swaggerTransform: facilityTaskSwaggerTransform("detail") },
+      preHandler: [requireRole(UserRole.FACILITY_STAFF)],
+      schema: {
+        tags: ["Facility Tasks"],
+        summary: m.myTaskSummary,
+        params: FacilityTaskParamsSchema,
+      },
+    },
+    async (request) => successResponse(await service.getMine(request.params.id, actor(request))),
+  );
+
   typed.patch(
     "/:id",
     {

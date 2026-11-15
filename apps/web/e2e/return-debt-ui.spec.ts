@@ -86,7 +86,9 @@ for (const amount of [50000, 100000, 150000]) {
       route.fulfill({
         json: {
           success: true,
-          data: { items: state.tasks, total: state.tasks.length, limit: 100, offset: 0 },
+          data: new URL(route.request().url()).pathname.endsWith(`/my/${task.id}`)
+            ? task
+            : { items: state.tasks, total: state.tasks.length, limit: 100, offset: 0 },
         },
       }),
     );

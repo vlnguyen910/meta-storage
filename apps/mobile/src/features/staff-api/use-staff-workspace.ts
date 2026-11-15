@@ -91,11 +91,7 @@ export function useStaffTaskAction(owner: string, task: FacilityTaskDetail) {
 export function useStaffTaskDetail(owner: string, taskId: string) {
   return useQuery({
     queryKey: ["mobile-staff-task", owner, taskId],
-    queryFn: async ({ signal }) => {
-      const task = await api.flow5.tasks.findMine(taskId, signal);
-      if (!task) throw new Error(M.workUnavailable);
-      return task;
-    },
+    queryFn: ({ signal }) => api.flow5.tasks.getMine(taskId, signal),
     refetchInterval: 30_000,
   });
 }
