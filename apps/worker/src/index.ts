@@ -1,14 +1,11 @@
+import { MAIL_QUEUE_NAME, type MailJobData } from "@metastorage/contracts/mail";
 import "./env";
 import { db, queryClient } from "@metastorage/database";
-import {
-  BOOKING_EMAIL_MESSAGES,
-  MAIL_QUEUE_NAME,
-  type MailJobData,
-} from "@metastorage/shared/mail";
+import { BOOKING_EMAIL_MESSAGES } from "@metastorage/shared/mail";
 import { Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
+import { MailService } from "./mail/mail.service";
 import { ResendMailAdapter } from "./mail/resend.adapter";
-import { BookingMailService } from "./notifications/booking-mail.service";
 import { OutboxRepository } from "./notifications/outbox.repository";
 import { OutboxService } from "./notifications/outbox.service";
 
@@ -26,8 +23,7 @@ const redis = new Redis(process.env.REDIS_URL ?? "redis://localhost:6379", {
 redis.on("error", () => console.error("Mail worker Redis connection error"));
 const outboxRepository = new OutboxRepository(db);
 const mailQueue = new Queue<MailJobData>(MAIL_QUEUE_NAME, { connection: redis });
-const bookingMail = new BookingMailService(outboxRepository, {
-  redis,
+const mail = new MailService(outboxRepository, {
   queue: mailQueue,
   secret: mailPayloadSecret,
   publicAppUrl: process.env.PUBLIC_APP_URL ?? "http://localhost:3000",
@@ -35,7 +31,7 @@ const bookingMail = new BookingMailService(outboxRepository, {
 });
 const emailWorker = new Worker<MailJobData>(
   MAIL_QUEUE_NAME,
-  (job) => bookingMail.deliver(job.data, mailAdapter),
+  (job) => mail.deliver(job.data, mailAdapter),
   { connection: redis },
 );
 emailWorker.on("failed", (job) => {
@@ -43,7 +39,7 @@ emailWorker.on("failed", (job) => {
 });
 emailWorker.on("error", () => console.error("Mail worker error"));
 
-const outbox = new OutboxService(outboxRepository, mailAdapter, bookingMail);
+const outbox = new OutboxService(outboxRepository, mail);
 let outboxRunning: Promise<unknown> | undefined;
 const dispatchOutbox = () => {
   if (outboxRunning) return;
@@ -58,8 +54,24 @@ dispatchOutbox();
 const outboxTimer = setInterval(dispatchOutbox, 5000);
 outboxTimer.unref();
 
+let reminderRunning: Promise<unknown> | undefined;
+const remindExpiringRentals = () => {
+  if (reminderRunning) return;
+  reminderRunning = outbox
+    .remindExpiringRentals()
+    .catch(() => console.error("Rental expiry reminder scheduling failed"))
+    .finally(() => {
+      reminderRunning = undefined;
+    });
+};
+remindExpiringRentals();
+const reminderTimer = setInterval(remindExpiringRentals, 60_000);
+reminderTimer.unref();
+
 async function shutdown() {
   clearInterval(outboxTimer);
+  clearInterval(reminderTimer);
+  await reminderRunning;
   await outboxRunning;
   await emailWorker.close();
   await mailQueue.close();
