@@ -5,7 +5,7 @@ import { DATE_PICKER_MESSAGES as M } from "./date-picker.messages";
  * Formats dates according to Vietnam locale (Asia/Ho_Chi_Minh) and calculates standard ranges.
  */
 
-export function toDateString(date: Date): string {
+function toDateString(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
@@ -39,7 +39,7 @@ export function getTodayString(): string {
   }).format(new Date());
 }
 
-export function shiftDays(dateStr: string, days: number): string {
+function shiftDays(dateStr: string, days: number): string {
   const date = parseDateString(dateStr) ?? parseDateString(getTodayString()) ?? new Date();
   date.setDate(date.getDate() + days);
   return toDateString(date);

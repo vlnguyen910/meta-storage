@@ -13,7 +13,7 @@ import {
   shiftMonths,
 } from "./date-utils";
 
-export interface DateRange {
+interface DateRange {
   from: string;
   to: string;
 }
