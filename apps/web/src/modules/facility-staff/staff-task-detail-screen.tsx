@@ -39,7 +39,7 @@ import {
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
 import { useAuthStore } from "@/features/auth/auth-store";
-import { bookingKeys } from "@/features/check-in/hooks";
+import { bookingKeys } from "@/features/check-in/booking.keys";
 import { InspectionChecklist } from "@/features/facility-flow/inspection-checklist";
 import { InspectionPhotoCard } from "@/features/facility-flow/inspection-screen";
 import {
