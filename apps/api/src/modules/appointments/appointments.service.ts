@@ -153,9 +153,8 @@ export class AppointmentsService {
         throw new BadRequestError(m.contextMismatch);
       await this.facilities.requireActiveFacility(facilityId);
       if (!demo) {
-        await this.facilities.assertCheckInWithinOperatingHours(facilityId, slot.startsAt);
         await this.facilities.assertCheckInWithinOperatingHours(
-          facilityId,
+          slot.startsAt,
           new Date(slot.endsAt.getTime() - 1),
         );
       }

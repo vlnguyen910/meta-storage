@@ -10,7 +10,7 @@ import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
-import { requireAuth, requireRole } from "../auth/auth.guard";
+import { requireRole } from "../auth/auth.guard";
 import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
 import { StorageUnitsRepository } from "./storage-units.repository";
 import { StorageUnitsService } from "./storage-units.service";
@@ -57,7 +57,7 @@ export const storageUnitsRoutes: FastifyPluginAsync = async (fastify) => {
         security: [{ sessionAuth: [] }],
         summary: STORAGE_UNIT_MESSAGES.maintenanceTransitionSummary,
       },
-      preHandler: [requireAuth, requireRole("FACILITY_MANAGER")],
+      preHandler: [requireRole("FACILITY_MANAGER")],
     },
     async (request, reply) => {
       if (!request.user) throw new UnauthorizedError();
@@ -81,10 +81,7 @@ export const storageUnitsRoutes: FastifyPluginAsync = async (fastify) => {
         security: [{ sessionAuth: [] }],
         summary: STORAGE_UNIT_MESSAGES.maintenanceTransitionSummary,
       },
-      preHandler: [
-        requireAuth,
-        requireRole("FACILITY_MANAGER", "SYSTEM_ADMIN", "BUSINESS_OPERATION_MANAGER"),
-      ],
+      preHandler: [requireRole("FACILITY_MANAGER", "SYSTEM_ADMIN", "BUSINESS_OPERATION_MANAGER")],
     },
     async (request, reply) => {
       const { id } = request.params;
@@ -113,10 +110,7 @@ export const storageUnitsRoutes: FastifyPluginAsync = async (fastify) => {
         security: [{ sessionAuth: [] }],
         summary: STORAGE_UNIT_MESSAGES.updateSummary,
       },
-      preHandler: [
-        requireAuth,
-        requireRole("FACILITY_MANAGER", "SYSTEM_ADMIN", "BUSINESS_OPERATION_MANAGER"),
-      ],
+      preHandler: [requireRole("FACILITY_MANAGER", "SYSTEM_ADMIN", "BUSINESS_OPERATION_MANAGER")],
     },
     async (request, reply) => {
       const { id } = request.params;
