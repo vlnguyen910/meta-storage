@@ -13,10 +13,10 @@ import {
   NotificationMailJobDataSchema,
 } from "@metastorage/contracts/mail";
 import type { notificationOutbox } from "@metastorage/database";
-import { BOOKING_ACCESS } from "@metastorage/shared/booking-access";
 import {
   decryptMailPayload,
   encryptMailPayload,
+  MAIL_DELIVERY_TTL_SECONDS,
   BOOKING_EMAIL_MESSAGES as m,
   mailJobId,
 } from "@metastorage/shared/mail";
@@ -67,8 +67,8 @@ export class MailService {
           jobId,
           attempts: 5,
           backoff: { type: "exponential", delay: 5000 },
-          removeOnComplete: { age: BOOKING_ACCESS.magicTtl },
-          removeOnFail: { age: BOOKING_ACCESS.magicTtl },
+          removeOnComplete: { age: MAIL_DELIVERY_TTL_SECONDS },
+          removeOnFail: { age: MAIL_DELIVERY_TTL_SECONDS },
         },
       );
     }
@@ -89,7 +89,7 @@ export class MailService {
       Math.min(
         Date.parse(snapshot.linkExpiresAt ?? "9999-12-31T23:59:59.999Z"),
         new Date(snapshot.linkCreatedAt ?? snapshot.paidAt).getTime() +
-          BOOKING_ACCESS.magicTtl * 1000,
+          MAIL_DELIVERY_TTL_SECONDS * 1000,
         row.mailExpiresAt?.getTime() ?? Number.POSITIVE_INFINITY,
       ),
     );
@@ -132,8 +132,8 @@ export class MailService {
         jobId,
         attempts: 5,
         backoff: { type: "exponential", delay: 5000 },
-        removeOnComplete: { age: BOOKING_ACCESS.magicTtl },
-        removeOnFail: { age: BOOKING_ACCESS.magicTtl },
+        removeOnComplete: { age: MAIL_DELIVERY_TTL_SECONDS },
+        removeOnFail: { age: MAIL_DELIVERY_TTL_SECONDS },
       },
     );
     return { status: "ENQUEUED" as const };

@@ -19,7 +19,7 @@ import {
   supportTickets,
   users,
 } from "@metastorage/database";
-import { BOOKING_ACCESS } from "@metastorage/shared/booking-access";
+import { MAIL_DELIVERY_TTL_SECONDS } from "@metastorage/shared/mail";
 
 export class OutboxRepository {
   constructor(private readonly db: Database) {}
@@ -197,8 +197,8 @@ export class OutboxRepository {
         row.mailExpiresAt?.getTime() ?? Number.POSITIVE_INFINITY,
         row.bookingEmail.linkExpiresAt
           ? Date.parse(row.bookingEmail.linkExpiresAt)
-          : linkCreatedAt.getTime() + BOOKING_ACCESS.magicTtl * 1000,
-        linkCreatedAt.getTime() + BOOKING_ACCESS.magicTtl * 1000,
+          : linkCreatedAt.getTime() + MAIL_DELIVERY_TTL_SECONDS * 1000,
+        linkCreatedAt.getTime() + MAIL_DELIVERY_TTL_SECONDS * 1000,
       );
       const expired = expectedExpiry <= now.getTime() || expiresAt.getTime() !== expectedExpiry;
       const pastWindow =

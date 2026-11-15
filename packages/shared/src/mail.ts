@@ -1,6 +1,7 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 
 export { BOOKING_EMAIL_MESSAGES } from "./mail.messages";
+export const MAIL_DELIVERY_TTL_SECONDS = 24 * 60 * 60;
 export const mailJobId = (bookingId: string) => `booking-confirmation-${bookingId}`;
 
 // Transport encryption shared by API producer and worker consumer, bound to delivery ID.

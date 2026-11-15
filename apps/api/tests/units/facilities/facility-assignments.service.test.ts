@@ -38,7 +38,6 @@ function createService(
 ) {
   const assignmentsRepo = {
     findFacilityStaff: async () => [mockStaffMember],
-    findAssignment: async () => mockAssignment,
     deactivateAssignmentWithWorkCheck: async () => ({
       assignment: { ...mockAssignment, isActive: false, endedAt: new Date() },
     }),

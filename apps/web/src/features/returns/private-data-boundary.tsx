@@ -17,7 +17,6 @@ const privateRoots = new Set([
   "returns",
   "rentals",
   "rental-payments",
-  "rental-documents",
   "return-policy",
   "system-settings",
   "lifecycle-notifications",
