@@ -1,19 +1,16 @@
 import { randomUUID } from "node:crypto";
 import { expo } from "@better-auth/expo";
+import { AUTH_MAIL_TTL_SECONDS, MailJobKind } from "@metastorage/contracts/mail";
 import { betterAuth } from "better-auth";
 import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/api";
-import { ResendMailer } from "../../common/adapters/mailer/resend.adapter";
 import { mongoDatabase } from "../../common/database/mongo-plugin";
+import { mailProducer } from "../../common/mail/mail.service";
 import { env } from "../../config/env";
 import { ActivityLogsRepository } from "../activity-logs/activity-logs.repository";
 import { ActivityLogsService } from "../activity-logs/activity-logs.service";
 import { authDatabase } from "./auth.database";
 import { AUTH_MESSAGES } from "./auth.messages";
 
-const verificationMailer = new ResendMailer({
-  apiKey: env.RESEND_API_KEY,
-  fromEmail: env.RESEND_FROM_EMAIL,
-});
 const activityLogs = new ActivityLogsService(new ActivityLogsRepository(mongoDatabase));
 export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
@@ -89,25 +86,28 @@ export const auth = betterAuth({
     autoSignIn: false,
     minPasswordLength: 8,
     maxPasswordLength: 128,
-    resetPasswordTokenExpiresIn: 60 * 60,
+    resetPasswordTokenExpiresIn: AUTH_MAIL_TTL_SECONDS,
     revokeSessionsOnPasswordReset: true,
     sendResetPassword: async ({ user, url }) => {
-      await verificationMailer.sendPasswordResetEmail({
-        to: user.email,
+      await mailProducer.enqueue({
+        kind: MailJobKind.RESET_PASSWORD,
+        recipientEmail: user.email,
         name: user.name,
-        resetUrl: url,
+        url,
       });
     },
   },
   emailVerification: {
+    expiresIn: AUTH_MAIL_TTL_SECONDS,
     sendOnSignUp: true,
     sendOnSignIn: true,
     autoSignInAfterVerification: false,
     sendVerificationEmail: async ({ user, url }) => {
-      await verificationMailer.sendVerificationEmail({
-        to: user.email,
+      await mailProducer.enqueue({
+        kind: MailJobKind.VERIFY_EMAIL,
+        recipientEmail: user.email,
         name: user.name,
-        verificationUrl: url,
+        url,
       });
     },
   },

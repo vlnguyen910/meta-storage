@@ -15,8 +15,6 @@ const valid = {
   QR_TOKEN_SECRET: "test-qr-secret-at-least-32-characters",
   WEB_URL: "http://localhost:3000",
   PUBLIC_APP_URL: "http://localhost:3000",
-  RESEND_API_KEY: "re_test_only",
-  RESEND_FROM_EMAIL: "Metastorage <verify@example.test>",
   CLOUDINARY_CLOUD_NAME: "test-cloud",
   CLOUDINARY_API_KEY: "test-key",
   CLOUDINARY_API_SECRET: "test-secret",
@@ -76,7 +74,7 @@ describe("API startup environment", () => {
       expect(envSchema.safeParse({ ...valid, TRUSTED_PROXY_CIDRS: value }).success).toBe(false);
   });
 
-  test("rejects wrong URL protocols, malformed origins, sender, weak secrets and invalid ports", () => {
+  test("rejects wrong URL protocols, malformed origins, weak secrets and invalid ports", () => {
     for (const values of [
       { DATABASE_URL: "https://db.example.test" },
       { MONGODB_URI: "https://mongo.example.test" },
@@ -88,7 +86,6 @@ describe("API startup environment", () => {
       { CORS_ORIGIN: "http://localhost:3000,*" },
       { CORS_ORIGIN: "http://localhost:3000," },
       { AUTH_TRUSTED_ORIGINS: "not-an-origin" },
-      { RESEND_FROM_EMAIL: "not-an-email" },
       { BOOKING_MAGIC_LINK_SECRET: "short" },
       { QR_TOKEN_SECRET: "short" },
       { PORT: "0" },

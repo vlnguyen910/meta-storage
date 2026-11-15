@@ -1,7 +1,7 @@
 import { CustomerSignUpInputSchema } from "@metastorage/contracts";
 import { fromNodeHeaders } from "better-auth/node";
 import type { FastifyPluginAsync } from "fastify";
-import { AppError, ConflictError, UnauthorizedError } from "../../common/errors/app-error";
+import { ConflictError, UnauthorizedError } from "../../common/errors/app-error";
 import { ERROR_MESSAGES } from "../../common/errors/error.messages";
 import { errorResponse, successResponse } from "../../common/response/api-response";
 import { env } from "../../config/env";
@@ -24,14 +24,6 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post("/customer-sign-up", async (request, reply) => {
     const input = CustomerSignUpInputSchema.parse(request.body);
     await service.assertEmailCanRegister(input.email);
-
-    if (!env.RESEND_API_KEY || !env.RESEND_FROM_EMAIL) {
-      throw new AppError(
-        AUTH_MESSAGES.customerSignupEmailDeliveryUnavailable,
-        503,
-        "EMAIL_DELIVERY_UNAVAILABLE",
-      );
-    }
 
     const callbackURL = getCustomerSignupCallbackUrl(
       input.callbackTarget,

@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, spyOn, test } from "bun:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { MailJobKind } from "@metastorage/contracts/mail";
 import {
   accounts,
   db,
@@ -12,8 +13,8 @@ import {
 } from "@metastorage/database";
 import { hashPassword } from "better-auth/crypto";
 import Fastify from "fastify";
-import { ResendMailer } from "../../src/common/adapters/mailer/resend.adapter";
 import { setupErrorHandler } from "../../src/common/errors/error-handler";
+import { mailProducer } from "../../src/common/mail/mail.service";
 import { authRoutes } from "../../src/modules/auth/auth.routes";
 import { assertTestDatabase } from "../fixtures/test-database";
 
@@ -49,12 +50,11 @@ async function resetToken() {
 describe.skipIf(!target)("password recovery through Better Auth and PostgreSQL", () => {
   beforeAll(async () => {
     assertTestDatabase(target);
-    mail = spyOn(ResendMailer.prototype, "sendPasswordResetEmail").mockImplementation(
-      async (input) => {
-        expect(input.to).toBe(email);
-        delivered.push(input.resetUrl);
-      },
-    );
+    mail = spyOn(mailProducer, "enqueue").mockImplementation(async (input) => {
+      expect(input.kind).toBe(MailJobKind.RESET_PASSWORD);
+      expect(input.recipientEmail).toBe(email);
+      delivered.push(input.url);
+    });
     app.decorate("db", db);
     setupErrorHandler(app);
     await app.register(authRoutes, { prefix: "/api/auth" });

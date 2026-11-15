@@ -1,5 +1,6 @@
+import type { MailJobData } from "@metastorage/contracts/mail";
 import type { Database } from "@metastorage/database";
-import type { MailJobData } from "@metastorage/shared/mail";
+
 import type { Queue } from "bullmq";
 import type { Redis } from "ioredis";
 import type { AuthSession, AuthUser } from "../../modules/auth/auth";
