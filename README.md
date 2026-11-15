@@ -269,10 +269,8 @@ thêm `MONGODB_URI`, URL/auth, payment và provider credentials theo tính năng
 vụ ngoài, rồi tham chiếu connection string vào service variables. Không đặt
 credentials trong `.railway/railway.ts`.
 
-CI chạy quality checks và database regressions độc lập. Chỉ push lên nhánh
-`stagging` vượt qua cả hai job mới gọi workflow deploy, với đúng commit SHA đã
-kiểm tra. PR không deploy. Deploy đang chạy không bị hủy khi có push mới;
-workflow vẫn build → migrate → start → kiểm tra API và worker theo thứ tự.
+CI chạy quality checks và database regressions độc lập trên các nhánh được cấu
+hình. CI không tự động gọi workflow deploy staging.
 
 ### 6. Chạy môi trường phát triển (Dev)
 
