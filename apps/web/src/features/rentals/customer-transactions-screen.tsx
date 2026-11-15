@@ -80,11 +80,11 @@ export function CustomerTransactionsScreen() {
       {/* 2. Compact Single-row Toolbar */}
       <section
         aria-label={M.searchConfirm}
-        className="shrink-0 flex items-center gap-2 rounded-card border border-line bg-white p-2 shadow-card min-h-12 relative z-20"
+        className="shrink-0 flex flex-wrap items-center gap-2 rounded-card border border-line bg-white p-2 shadow-card min-h-12 relative z-20"
       >
         <form
           onSubmit={handleSearchSubmit}
-          className="flex items-center gap-1.5 flex-1 min-w-44 max-w-xs shrink-0"
+          className="flex basis-full items-center gap-1.5 flex-1 min-w-44 max-w-xs shrink-0 sm:basis-auto"
         >
           <div className="relative flex-1">
             <Search
@@ -96,6 +96,7 @@ export function CustomerTransactionsScreen() {
               type="search"
               value={searchInput}
               placeholder={M.searchPlaceholder}
+              aria-label={M.searchPlaceholder}
               onChange={(e) => setSearchInput(e.target.value)}
               className="h-9 w-full rounded-lg border border-line bg-canvas pl-8 pr-2 text-xs text-ink placeholder:text-muted outline-none transition focus:border-primary focus:ring-1 focus:ring-primary shadow-2xs"
             />
@@ -157,6 +158,17 @@ export function CustomerTransactionsScreen() {
 
       {/* 3. Table Content & Pagination */}
       <div className="flex-1 min-h-0 flex flex-col overflow-hidden gap-2">
+        {query.error && query.transactions.length > 0 && (
+          <div
+            role="alert"
+            className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+          >
+            <p className="m-0">{M.partialError}</p>
+            <Button variant="outline" onClick={() => void query.retry()}>
+              {M.retry}
+            </Button>
+          </div>
+        )}
         {query.loading ? (
           <LoadingState variant="table" />
         ) : query.error && query.transactions.length === 0 ? (
@@ -273,6 +285,16 @@ export function CustomerTransactionsScreen() {
               />
             </div>
           </>
+        )}
+        {query.hasNext && (
+          <Button
+            variant="outline"
+            disabled={query.fetchingMore}
+            aria-busy={query.fetchingMore}
+            onClick={() => void query.loadMore()}
+          >
+            {query.fetchingMore ? M.loadingMore : M.loadMore}
+          </Button>
         )}
       </div>
     </div>

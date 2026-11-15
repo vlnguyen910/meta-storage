@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PaymentStatus, PaymentTypeSchema } from "./payments";
 import { RENTAL_CONTRACT_MESSAGES } from "./rentals.messages";
 
 export type * from "./rentals.types";
@@ -47,6 +48,12 @@ export const RentalPageQuerySchema = z
       .enum(["current", "history"], { error: RENTAL_CONTRACT_MESSAGES.invalidView })
       .default("current"),
     limit: z.coerce.number().int().min(1).max(100).default(20),
+    includePayments: z
+      .preprocess(
+        (value) => (value === "true" ? true : value === "false" ? false : value),
+        z.boolean(),
+      )
+      .default(false),
     afterEndAt: z.string().datetime({ offset: true }).optional(),
     afterId: z.string().uuid().optional(),
   })
@@ -64,6 +71,22 @@ export const RentalActionStateSchema = z.object({
 });
 
 export type RentalActionState = z.infer<typeof RentalActionStateSchema>;
+
+export const RentalPaymentItemSchema = z.object({
+  id: z.string(),
+  type: PaymentTypeSchema,
+  paymentCode: z.string().nullable(),
+  provider: z.string().nullable(),
+  status: z.enum(PaymentStatus),
+  totalAmount: z.string(),
+  currency: z.string(),
+  paidAt: z.string().nullable(),
+  refundAmount: z.string().nullable(),
+  refundReason: z.string().nullable(),
+  refundedAt: z.string().nullable(),
+  createdAt: z.string(),
+});
+export type RentalPaymentItem = z.infer<typeof RentalPaymentItemSchema>;
 
 export const RentalListItemSchema = z.object({
   id: z.string().uuid(),
@@ -88,6 +111,7 @@ export const RentalListItemSchema = z.object({
   status: RentalStatusSchema,
   bookingStatus: z.string(),
   actions: RentalActionStateSchema,
+  payments: z.array(RentalPaymentItemSchema).optional(),
 });
 
 export type RentalListItem = z.infer<typeof RentalListItemSchema>;

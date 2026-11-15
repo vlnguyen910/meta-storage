@@ -83,9 +83,6 @@ export class RentalsRepository {
     return rental;
   }
 
-  findRentalByBookingId(executor: RentalQueryExecutor, bookingId: string) {
-    return executor.select().from(rentals).where(eq(rentals.bookingId, bookingId)).limit(1);
-  }
   createForHandover(
     tx: TaskTransaction,
     input: {
@@ -226,8 +223,13 @@ export class RentalsRepository {
   }
 
   findCustomerRentalPayments(rentalId: string, userId: string) {
+    return this.findCustomerRentalPaymentsFor([rentalId], userId);
+  }
+
+  async findCustomerRentalPaymentsFor(rentalIds: string[], userId: string) {
+    if (!rentalIds.length) return [];
     return this.db
-      .select({ payment: payments })
+      .select({ rentalId: rentals.id, payment: payments })
       .from(payments)
       .innerJoin(
         rentals,
@@ -248,7 +250,7 @@ export class RentalsRepository {
           ),
         ),
       )
-      .where(and(eq(rentals.id, rentalId), eq(rentals.userId, userId)))
+      .where(and(inArray(rentals.id, rentalIds), eq(rentals.userId, userId)))
       .orderBy(asc(payments.createdAt), asc(payments.id));
   }
   findBookingPayments(

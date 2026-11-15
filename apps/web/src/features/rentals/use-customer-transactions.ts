@@ -1,18 +1,14 @@
 "use client";
 
-import { useQueries } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { useFlow3Identity } from "@/features/returns/use-flow3-identity";
-import { api } from "@/lib/api";
 import { useMyRentals } from "./hooks";
 import type { CustomerTransaction } from "./transactions.types";
 
 export type TransactionView = "all" | "current" | "history";
 
 export function useCustomerTransactions(view: TransactionView) {
-  const identity = useFlow3Identity();
-  const current = useMyRentals("current", view !== "history");
-  const history = useMyRentals("history", view !== "current");
+  const current = useMyRentals("current", view !== "history", true);
+  const history = useMyRentals("history", view !== "current", true);
   const source = view === "current" ? current : view === "history" ? history : null;
   const rentals = useMemo(() => {
     const pages = source
@@ -27,45 +23,30 @@ export function useCustomerTransactions(view: TransactionView) {
         return true;
       });
   }, [current.data?.pages, history.data?.pages, source]);
-  const paymentQueries = useQueries({
-    queries: rentals.map((rental) => ({
-      queryKey: ["rental-payments", identity, rental.id],
-      queryFn: ({ signal }: { signal: AbortSignal }) => api.rentalPayments(rental.id, signal),
-      staleTime: 30_000,
-    })),
-  });
   const transactions = useMemo<CustomerTransaction[]>(
     () =>
       rentals
-        .flatMap((rental, index) =>
-          (paymentQueries[index]?.data ?? []).map((payment) => ({ rental, payment })),
-        )
+        .flatMap((rental) => (rental.payments ?? []).map((payment) => ({ rental, payment })))
         .sort(
           (a, b) =>
             Date.parse(b.payment.paidAt ?? b.payment.createdAt) -
               Date.parse(a.payment.paidAt ?? a.payment.createdAt) ||
             a.payment.id.localeCompare(b.payment.id),
         ),
-    [paymentQueries, rentals],
+    [rentals],
   );
   const loadingRentals = source ? source.isLoading : current.isLoading || history.isLoading;
-  const loadingPayments = paymentQueries.some((query) => query.isPending);
-  const error =
-    (source ? source.error : (current.error ?? history.error)) ??
-    paymentQueries.find((query) => query.error)?.error;
+  const error = source ? source.error : (current.error ?? history.error);
   const fetchingMore = source
     ? source.isFetchingNextPage
     : current.isFetchingNextPage || history.isFetchingNextPage;
   const hasNext = source ? source.hasNextPage : current.hasNextPage || history.hasNextPage;
   return {
     transactions,
-    loading: loadingRentals || loadingPayments,
+    loading: loadingRentals,
     error,
     fetchingMore,
-    refreshing:
-      current.isRefetching ||
-      history.isRefetching ||
-      paymentQueries.some((query) => query.isFetching),
+    refreshing: current.isRefetching || history.isRefetching,
     hasNext,
     loadMore: () => {
       if (view === "current") return current.fetchNextPage();
@@ -76,9 +57,6 @@ export function useCustomerTransactions(view: TransactionView) {
       ]);
     },
     retry: () =>
-      Promise.all([
-        ...(source ? [source.refetch()] : [current.refetch(), history.refetch()]),
-        ...paymentQueries.filter((query) => query.isError).map((query) => query.refetch()),
-      ]),
+      Promise.all([...(source ? [source.refetch()] : [current.refetch(), history.refetch()])]),
   };
 }

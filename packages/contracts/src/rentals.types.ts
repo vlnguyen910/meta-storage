@@ -49,22 +49,6 @@ export interface RentalRenewalPaymentSession {
   expiresAt: string;
 }
 
-/** Booking payments associated with a rental. */
-export interface RentalPaymentItem {
-  id: string;
-  type: PaymentType;
-  paymentCode: string | null;
-  provider: string | null;
-  status: PaymentStatus;
-  totalAmount: string;
-  currency: string;
-  paidAt: string | null;
-  refundAmount: string | null;
-  refundReason: string | null;
-  refundedAt: string | null;
-  createdAt: string;
-}
-
 export interface FacilityRentalItem {
   settlement?: ReturnSettlement | null;
   id: string;

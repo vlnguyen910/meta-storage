@@ -498,6 +498,42 @@ describe.skipIf(!target)("My Storage reads against existing local container Post
     }
   });
 
+  test("rental pages opt into scoped payment history without changing pagination or leaking credentials", async () => {
+    const plain = await read("/mine?limit=2");
+    const first = await read("/mine?limit=2&includePayments=true");
+    expect(first.statusCode, first.body).toBe(200);
+    expect(first.json().data.nextCursor).toEqual(plain.json().data.nextCursor);
+    expect(plain.json().data.items[0]).not.toHaveProperty("payments");
+    expect((await read("/mine?includePayments=false")).json().data.items[0]).not.toHaveProperty(
+      "payments",
+    );
+    expect((await read("/mine?includePayments=invalid")).statusCode).toBe(400);
+    const full = await read("/mine?includePayments=true");
+    for (const rental of full.json().data.items) {
+      expect(rental.userId).toBe(ids.owner);
+      expect(rental.payments).toEqual((await read(`/${rental.id}/payments`)).json().data);
+    }
+    expect(full.json().data.items.flatMap((r: { payments: unknown[] }) => r.payments)).toHaveLength(
+      5,
+    );
+    expect(full.body).not.toContain("holdTokenHash");
+    expect(full.body).not.toContain("idempotencyKey");
+    expect(full.body).not.toContain("providerPaymentId");
+    expect(full.body).not.toContain(foreignRental);
+    expect(
+      (await read("/mine?view=history&includePayments=true"))
+        .json()
+        .data.items.every((r: { payments: unknown[] }) => r.payments.length === 0),
+    ).toBe(true);
+    const cursor = new URLSearchParams({
+      ...first.json().data.nextCursor,
+      includePayments: "true",
+      limit: "2",
+    });
+    const second = await read(`/mine?${cursor}`);
+    expect(second.json().data.items.map((r: { id: string }) => r.id)).toEqual(active.slice(2));
+  });
+
   test("payment history preserves pending/failed/refund facts without credential disclosure", async () => {
     const [rental] = await db
       .select({ id: rentals.id })
