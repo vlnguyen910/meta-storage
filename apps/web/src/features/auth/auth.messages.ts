@@ -48,7 +48,6 @@ export const AUTH_MESSAGES = {
   emailPlaceholder: "vidu@gmail.com",
   passwordLabel: "Mật khẩu",
   passwordPlaceholder: "••••••••••••",
-  rememberMe: "Ghi nhớ đăng nhập trên thiết bị này",
   forgotPassword: "Quên mật khẩu?",
   showPassword: "Hiện mật khẩu",
   hidePassword: "Ẩn mật khẩu",

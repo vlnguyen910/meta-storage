@@ -42,7 +42,6 @@ describe("LoginForm", () => {
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Địa chỉ Email")).toBeInTheDocument();
     expect(screen.getByLabelText("Mật khẩu")).toBeInTheDocument();
-    expect(screen.getByText("Ghi nhớ đăng nhập trên thiết bị này")).toBeInTheDocument();
     expect(screen.getByText("Quên mật khẩu?")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Đăng nhập" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Đăng ký ngay" })).toHaveAttribute("href", "/register");

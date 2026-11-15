@@ -84,7 +84,7 @@ export function UnitInventoryWorkspace({ global = false }: Flow5ScopeProps) {
   );
 }
 
-export function InventoryPanel({
+function InventoryPanel({
   facilityId,
   canEdit = true,
   facilityOptions,
