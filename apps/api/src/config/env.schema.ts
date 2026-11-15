@@ -80,11 +80,6 @@ export const envSchema = z
     QR_TOKEN_SECRET: secret("QR_TOKEN_SECRET"),
     PUBLIC_APP_URL: httpUrl,
     WEB_URL: httpUrl,
-    RESEND_API_KEY: required("RESEND_API_KEY"),
-    RESEND_FROM_EMAIL: required("RESEND_FROM_EMAIL").refine((value) => {
-      const address = value.match(/^[^<>]+<([^<>]+)>$/)?.[1] ?? value;
-      return z.email().safeParse(address.trim()).success;
-    }, m.senderEmail),
     PAYMENT_PROVIDER: z.enum(["mock", "sepay"]).default("mock"),
     SEPAY_ENV: z.enum(["sandbox", "production"]).default("sandbox"),
     SEPAY_MERCHANT_ID: optionalText,

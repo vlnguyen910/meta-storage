@@ -4,7 +4,6 @@ export const AUTH_MESSAGES = {
   googleAccountNotLinked: "Vui lòng đăng nhập bằng phương thức hiện tại rồi liên kết Google.",
   googleAccountAlreadyLinked: "Tài khoản Google đã được liên kết. Vui lòng thử đăng nhập lại.",
   accountRecovery: "Email đã có tài khoản. Vui lòng đăng nhập hoặc khôi phục mật khẩu.",
-  customerSignupEmailDeliveryUnavailable: "Customer signup email delivery is not configured.",
   noTrustedWebOriginForEmailVerification:
     "No trusted web origin is configured for email verification.",
   customerSignupVerificationEmailSent:

@@ -172,6 +172,11 @@ khai báo trong `AUTH_TRUSTED_ORIGINS`. Cả Web và Mobile yêu cầu qua
 8–128 ký tự. Đặt lại thành công thu hồi các session cũ và yêu cầu đăng nhập lại,
 không tự đăng nhập. Email không tồn tại vẫn nhận cùng phản hồi chung.
 
+Mail xác minh và reset mật khẩu được API mã hóa và đưa vào queue `mail`; worker
+render nội dung và gửi qua Resend. Cần chạy worker để nhận các mail này. API chờ
+enqueue thành công, không chờ provider gửi. API và worker phải dùng cùng
+`REDIS_URL` và `BOOKING_MAGIC_LINK_SECRET`; worker bỏ qua job đã hết hạn token.
+
 ### 4. Deploy API và Worker lên VPS bằng Docker Compose
 
 Production Compose chỉ chạy API và worker. PostgreSQL và Redis phải được cung
@@ -257,7 +262,8 @@ Tên service trong Railway phải khớp `api` và `worker`. Cấu hình quản 
 hiện có, không tạo database hay Railway services mới. Giữ `PORT=4000` cho API.
 Đặt biến production theo `docker/app.env.example` trong từng service; API và
 worker cần cùng `DATABASE_URL`, `REDIS_URL`, `NODE_ENV`,
-`BOOKING_MAGIC_LINK_SECRET`, `RESEND_API_KEY` và `RESEND_FROM_EMAIL`. API cần
+`BOOKING_MAGIC_LINK_SECRET`. Chỉ worker cần `RESEND_API_KEY` và
+`RESEND_FROM_EMAIL`. API cần
 thêm `MONGODB_URI`, URL/auth, payment và provider credentials theo tính năng
 đang bật. PostgreSQL, Redis và MongoDB cần được provision riêng hoặc dùng dịch
 vụ ngoài, rồi tham chiếu connection string vào service variables. Không đặt
