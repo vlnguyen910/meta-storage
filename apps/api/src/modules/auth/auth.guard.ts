@@ -16,7 +16,10 @@ export const authPlugin = fp(authPluginCallback, {
   name: "auth-plugin",
 });
 
+const authenticatedRequests = new WeakSet<FastifyRequest>();
+
 export async function requireAuth(request: FastifyRequest, _reply: FastifyReply) {
+  if (authenticatedRequests.has(request)) return;
   const sessionData = await auth.api.getSession({
     headers: fromNodeHeaders(request.headers),
   });
@@ -28,6 +31,7 @@ export async function requireAuth(request: FastifyRequest, _reply: FastifyReply)
   assertActiveUser(sessionData.user);
   request.user = sessionData.user;
   request.session = sessionData.session;
+  authenticatedRequests.add(request);
 }
 
 export function requireRole(...allowedRoles: UserRole[]) {
