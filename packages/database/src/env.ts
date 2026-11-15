@@ -3,7 +3,7 @@ import path from "node:path";
 import dotenv from "dotenv";
 
 export const DEFAULT_DOCKER_DATABASE_URL =
-  "postgres://postgres:postgres@localhost:5432/metastorage";
+  "postgres://postgres:postgres@localhost:5433/metastorage";
 
 export function getDockerComposeUrl(): string {
   return process.env.DOCKER_DATABASE_URL || DEFAULT_DOCKER_DATABASE_URL;
