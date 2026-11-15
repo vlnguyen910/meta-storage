@@ -15,10 +15,9 @@ import {
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useGlobalLoading } from "@/components/providers/global-loading-provider";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/toast";
 import { isMockMode } from "@/config/api-mode";
 import { roleHome, routes, safeReturnTo } from "@/config/routes";
@@ -33,7 +32,6 @@ import { useGoogleAuth } from "./use-google-auth";
 const schema = z.object({
   email: z.string().email(AUTH_MESSAGES.invalidEmail),
   password: z.string().min(8, AUTH_MESSAGES.passwordTooShort),
-  remember: z.boolean().optional(),
 });
 
 export function LoginForm() {
@@ -73,13 +71,12 @@ export function LoginForm() {
     register,
     handleSubmit,
     setValue,
-    control,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(schema),
     defaultValues: isMockMode
-      ? { email: "customer@metastorage.test", password: "12345678", remember: false }
-      : { email: "", password: "", remember: false },
+      ? { email: "customer@metastorage.test", password: "12345678" }
+      : { email: "", password: "" },
   });
 
   async function onSubmit(values: LoginFormValues) {
@@ -239,23 +236,7 @@ export function LoginForm() {
             )}
           </div>
 
-          {/* Field 3: Remember & Forgot Password */}
-          <div className="flex items-center justify-between pt-1">
-            <Controller
-              control={control}
-              name="remember"
-              render={({ field }) => (
-                <label
-                  htmlFor="remember"
-                  className="flex items-center gap-2 cursor-pointer select-none"
-                >
-                  <Checkbox id="remember" checked={field.value} onCheckedChange={field.onChange} />
-                  <span className="text-xs text-slate-600 hover:text-slate-900">
-                    {AUTH_MESSAGES.rememberMe}
-                  </span>
-                </label>
-              )}
-            />
+          <div className="flex justify-end pt-1">
             <Link
               href={routes.forgotPassword}
               className="text-xs text-[#165f4d] hover:underline font-medium focus:outline-none whitespace-nowrap"
