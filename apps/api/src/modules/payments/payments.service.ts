@@ -25,6 +25,8 @@ import { beginActivity } from "../activity-logs/activity-logs.service";
 import { FacilitiesRepository } from "../facilities/facilities.repository";
 import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
 import { FacilityAssignmentsService } from "../facilities/facility-assignments.service";
+import { LIFECYCLE_MAIL_DETAIL as mailDetail } from "../notifications/lifecycle-notifications.messages";
+import { recordLifecycleEvent } from "../notifications/lifecycle-notifications.repository";
 import { createRentalsService, type RentalsService } from "../rentals/rentals.service";
 import { PAYMENT_MESSAGES } from "./payments.messages";
 import { PaymentsRepository } from "./payments.repository";
@@ -187,11 +189,43 @@ export class PaymentsService {
       entityId: paymentId,
       description: "Confirm manual refund",
     });
-    const { payment, changed } = await this.repository.confirmManualRefund(
-      paymentId,
-      reference,
-      actorId,
-    );
+    const { payment, changed } = await this.repository.transaction(async (tx) => {
+      const current = await this.repository.lockPayment(tx, paymentId);
+      if (!current) throw new AppError(PAYMENT_MESSAGES.paymentNotFound, 404);
+      if (
+        current.status === "REFUNDED" &&
+        current.refundReference &&
+        current.refundedAt &&
+        current.refundedBy
+      ) {
+        if (current.refundReference !== reference)
+          throw new AppError(PAYMENT_MESSAGES.refundReferenceConflict, 409);
+        return { payment: current, changed: false };
+      }
+      if (current.status !== "REFUND_PENDING")
+        throw new AppError(PAYMENT_MESSAGES.refundNotPending, 409);
+      const payment = await this.repository.confirmManualRefund(
+        tx,
+        paymentId,
+        reference,
+        actorId,
+        new Date(),
+      );
+      if (!payment) throw new AppError(PAYMENT_MESSAGES.refundNotPending, 409);
+      await recordLifecycleEvent(tx, {
+        key: `payment:${payment.id}:refunded`,
+        type: "RETURN_REFUND",
+        bookingId: payment.bookingId ?? undefined,
+        reservationId: payment.reservationId ?? undefined,
+        rentalId:
+          payment.rentalId ??
+          (payment.renewalId
+            ? await this.repository.findRenewalRentalId(payment.renewalId, tx)
+            : undefined),
+        detail: mailDetail.refund(payment.refundAmount ?? payment.totalAmount, payment.currency),
+      });
+      return { payment, changed: true };
+    });
     activity.changed = changed;
     if (!payment.refundReference || !payment.refundedAt || !payment.refundedBy)
       throw new AppError(PAYMENT_MESSAGES.failedToFinalizePayment, 500);
