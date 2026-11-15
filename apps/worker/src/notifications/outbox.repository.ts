@@ -11,8 +11,11 @@ import {
   lte,
   notificationOutbox,
   or,
+  RentalStatus,
+  rentals,
   reservations,
   sql,
+  storageUnits,
   supportTickets,
   users,
 } from "@metastorage/database";
@@ -20,6 +23,29 @@ import { BOOKING_ACCESS } from "@metastorage/shared/booking-access";
 
 export class OutboxRepository {
   constructor(private readonly db: Database) {}
+  findExpiringRentals(now: Date) {
+    return this.db
+      .select({ rental: rentals, email: users.email, facilityId: storageUnits.facilityId })
+      .from(rentals)
+      .innerJoin(users, eq(users.id, rentals.userId))
+      .innerJoin(storageUnits, eq(storageUnits.id, rentals.storageUnitId))
+      .where(
+        and(
+          eq(rentals.status, RentalStatus.ACTIVE),
+          eq(users.status, "ACTIVE"),
+          gt(rentals.endAt, now),
+          lte(rentals.endAt, new Date(now.getTime() + 7 * 86400000)),
+        ),
+      );
+  }
+  insertExpiryReminders(values: (typeof notificationOutbox.$inferInsert)[]) {
+    return this.db
+      .insert(notificationOutbox)
+      .values(values)
+      .onConflictDoNothing({
+        target: [notificationOutbox.eventKey, notificationOutbox.recipientKey],
+      });
+  }
   async claim(now: Date, facilityId?: string) {
     return this.db.transaction(async (tx) => {
       const [row] = await tx
@@ -69,6 +95,42 @@ export class OutboxRepository {
       return claimed;
     });
   }
+  async beginNotification(id: string, now: Date) {
+    return this.db.transaction(async (tx) => {
+      const [row] = await tx
+        .select()
+        .from(notificationOutbox)
+        .where(eq(notificationOutbox.id, id))
+        .for("update");
+      if (!row || row.bookingEmail || ["SUPPRESSED", "REVIEW_REQUIRED"].includes(row.status))
+        return { kind: "STOP" as const };
+      if (row.status === "SENT")
+        return { kind: "DONE" as const, providerMessageId: row.providerMessageId ?? "" };
+      if (
+        row.firstAttemptAt &&
+        now.getTime() - row.firstAttemptAt.getTime() >= 24 * 3600000 - 60000
+      ) {
+        await tx
+          .update(notificationOutbox)
+          .set({ status: "REVIEW_REQUIRED", leaseToken: null, leaseUntil: null })
+          .where(eq(notificationOutbox.id, id));
+        return { kind: "STOP" as const };
+      }
+      const [claimed] = await tx
+        .update(notificationOutbox)
+        .set({
+          status: "PROCESSING",
+          leaseToken: randomUUID(),
+          leaseUntil: new Date(now.getTime() + 60000),
+          firstAttemptAt: row.firstAttemptAt ?? now,
+        })
+        .where(eq(notificationOutbox.id, id))
+        .returning();
+      if (!claimed) throw new Error("Notification delivery lease lost");
+      return { kind: "SEND" as const, row: claimed };
+    });
+  }
+
   async bookingPayload(
     row: typeof notificationOutbox.$inferSelect,
     payload: string,
@@ -210,7 +272,34 @@ export class OutboxRepository {
         );
       return Boolean(owner && owner.email === row.recipientEmail);
     }
-    if (["UPCOMING_EXPIRY", "RENTAL_OVERDUE", "ABANDONED_REVIEW"].includes(row.eventType)) {
+    if (row.eventType === "UPCOMING_EXPIRY") {
+      if (!row.recipientUserId || (!row.bookingId && !row.reservationId)) return false;
+      const [current] = await this.db
+        .select({ rental: rentals, email: users.email })
+        .from(rentals)
+        .innerJoin(users, eq(users.id, rentals.userId))
+        .where(
+          and(
+            row.reservationId
+              ? eq(rentals.reservationId, row.reservationId)
+              : row.bookingId
+                ? eq(rentals.bookingId, row.bookingId)
+                : sql`false`,
+            eq(rentals.status, RentalStatus.ACTIVE),
+            eq(users.status, "ACTIVE"),
+            eq(users.id, row.recipientUserId),
+            gt(rentals.endAt, now),
+            lte(rentals.endAt, new Date(now.getTime() + 7 * 86400000)),
+          ),
+        );
+      return Boolean(
+        current &&
+          current.email === row.recipientEmail &&
+          row.eventKey ===
+            `rental:${current.rental.id}:expiry:${current.rental.endAt.toISOString()}`,
+      );
+    }
+    if (["RENTAL_OVERDUE", "ABANDONED_REVIEW"].includes(row.eventType)) {
       return false; // Rental lifecycle notifications are retired until the new workflow is implemented.
     }
     if (row.recipientRole === "CUSTOMER") return true; // Booking contact may be a guest; never require an account for email.
