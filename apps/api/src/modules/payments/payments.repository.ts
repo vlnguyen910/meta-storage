@@ -25,11 +25,9 @@ import {
   storageUnits,
   users,
 } from "@metastorage/database";
-import { AppError } from "../../common/errors/app-error";
 
 const bookingCustomer = alias(users, "booking_customer");
 
-import { PAYMENT_MESSAGES } from "./payments.messages";
 import type { PaymentStatusAccess, VerifiedPaymentEvent } from "./payments.types";
 
 export class PaymentsRepository {
@@ -149,8 +147,11 @@ export class PaymentsRepository {
     return tx.update(debts).set(input).where(eq(debts.id, id));
   }
 
-  async findRenewalRentalId(renewalId: string) {
-    const [row] = await this.db
+  async findRenewalRentalId(
+    renewalId: string,
+    tx?: Parameters<Parameters<Database["transaction"]>[0]>[0],
+  ) {
+    const [row] = await (tx ?? this.db)
       .select({ rentalId: rentalRenewals.rentalId })
       .from(rentalRenewals)
       .where(eq(rentalRenewals.id, renewalId));
@@ -283,41 +284,34 @@ export class PaymentsRepository {
       .offset(query.offset);
   }
 
-  async confirmManualRefund(paymentId: string, reference: string, actorId: string) {
-    return this.db.transaction(async (tx) => {
-      const [payment] = await tx
-        .select()
-        .from(payments)
-        .where(eq(payments.id, paymentId))
-        .for("update");
-      if (!payment) throw new AppError(PAYMENT_MESSAGES.paymentNotFound, 404);
-      if (
-        payment.status === "REFUNDED" &&
-        payment.refundReference &&
-        payment.refundedAt &&
-        payment.refundedBy
-      ) {
-        if (payment.refundReference !== reference)
-          throw new AppError(PAYMENT_MESSAGES.refundReferenceConflict, 409);
-        return { payment, changed: false };
-      }
-      if (payment.status !== "REFUND_PENDING")
-        throw new AppError(PAYMENT_MESSAGES.refundNotPending, 409);
-      const now = new Date();
-      const [refunded] = await tx
-        .update(payments)
-        .set({
-          status: "REFUNDED",
-          refundReference: reference,
-          refundedAt: now,
-          refundedBy: actorId,
-          updatedAt: now,
-        })
-        .where(and(eq(payments.id, paymentId), eq(payments.status, "REFUND_PENDING")))
-        .returning();
-      if (!refunded) throw new AppError(PAYMENT_MESSAGES.refundNotPending, 409);
-      return { payment: refunded, changed: true };
-    });
+  async lockPayment(tx: Parameters<Parameters<Database["transaction"]>[0]>[0], paymentId: string) {
+    const [payment] = await tx
+      .select()
+      .from(payments)
+      .where(eq(payments.id, paymentId))
+      .for("update");
+    return payment;
+  }
+
+  async confirmManualRefund(
+    tx: Parameters<Parameters<Database["transaction"]>[0]>[0],
+    paymentId: string,
+    reference: string,
+    actorId: string,
+    now: Date,
+  ) {
+    const [payment] = await tx
+      .update(payments)
+      .set({
+        status: "REFUNDED",
+        refundReference: reference,
+        refundedAt: now,
+        refundedBy: actorId,
+        updatedAt: now,
+      })
+      .where(and(eq(payments.id, paymentId), eq(payments.status, "REFUND_PENDING")))
+      .returning();
+    return payment;
   }
 
   async findPendingByPaymentCode(paymentCode: string) {

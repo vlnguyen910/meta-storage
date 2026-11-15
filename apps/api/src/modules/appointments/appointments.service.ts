@@ -33,6 +33,8 @@ import {
   createFacilityTasksService,
   type FacilityTasksService,
 } from "../facility-tasks/facility-tasks.service";
+import { LIFECYCLE_MAIL_DETAIL as mailDetail } from "../notifications/lifecycle-notifications.messages";
+import { recordLifecycleEvent } from "../notifications/lifecycle-notifications.repository";
 import type { NotificationsService } from "../notifications/notifications.service";
 import { RentalsRepository } from "../rentals/rentals.repository";
 import { RentalsService } from "../rentals/rentals.service";
@@ -164,6 +166,20 @@ export class AppointmentsService {
         tx,
       );
       if (!appointment) throw new AppError(m.writeFailed);
+      if (appointment.rentalId && appointment.appointmentType === Type.CHECK_OUT)
+        await recordLifecycleEvent(tx, {
+          key: `appointment:${appointment.id}:created`,
+          type: "RETURN_CHANGED",
+          rentalId: appointment.rentalId,
+          detail: mailDetail.returnRequested(appointment.scheduledDate),
+        });
+      if (appointment.supportTicketId)
+        await recordLifecycleEvent(tx, {
+          key: `appointment:${appointment.id}:created`,
+          type: "SUPPORT_UPDATED",
+          supportTicketId: appointment.supportTicketId,
+          detail: mailDetail.supportScheduled(appointment.scheduledDate),
+        });
       return appointment;
     });
     await this.notifications?.appointmentChanged(scheduled.id);
@@ -373,6 +389,30 @@ export class AppointmentsService {
         );
       const updated = await this.repository.update(id, input, tx);
       if (!updated) throw new AppError(m.writeFailed);
+      if (updated.status !== appointment.status) {
+        if (appointment.rentalId && appointment.appointmentType === Type.CHECK_OUT)
+          await recordLifecycleEvent(tx, {
+            key: `appointment:${id}:${updated.status}`,
+            type: updated.status === Status.CONFIRMED ? "RETURN_SCHEDULED" : "RETURN_CHANGED",
+            rentalId: appointment.rentalId,
+            detail: mailDetail.appointmentUpdated(
+              "return",
+              appointment.scheduledDate,
+              updated.status,
+            ),
+          });
+        if (appointment.supportTicketId)
+          await recordLifecycleEvent(tx, {
+            key: `appointment:${id}:${updated.status}`,
+            type: "SUPPORT_UPDATED",
+            supportTicketId: appointment.supportTicketId,
+            detail: mailDetail.appointmentUpdated(
+              "support",
+              appointment.scheduledDate,
+              updated.status,
+            ),
+          });
+      }
       return updated;
     });
     if (supportActivity) supportActivity.changed = updated.status !== current.status;

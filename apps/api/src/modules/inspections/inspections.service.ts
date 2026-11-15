@@ -33,6 +33,8 @@ import type { FacilityAssignmentsService } from "../facilities/facility-assignme
 import type { FacilityTasksRepository } from "../facility-tasks/facility-tasks.repository";
 import type { TaskTransaction } from "../facility-tasks/facility-tasks.types";
 import type { MediaAssetsService } from "../media-assets/media-assets.service";
+import { LIFECYCLE_MAIL_DETAIL as mailDetail } from "../notifications/lifecycle-notifications.messages";
+import { recordLifecycleEvent } from "../notifications/lifecycle-notifications.repository";
 import type { NotificationsService } from "../notifications/notifications.service";
 import type { RentalsService } from "../rentals/rentals.service";
 import type { ReservationsService } from "../reservations/reservations.service";
@@ -618,6 +620,24 @@ export class InspectionsService {
       paymentActivity.entityId = payment?.id ?? null;
       paymentActivity.changed = Boolean(payment);
     }
+    await recordLifecycleEvent(tx, {
+      key: `inspection:${inspection.id}:settled`,
+      type: "RETURN_SETTLED",
+      rentalId: rental.rental.id,
+      detail: mailDetail.settlement(
+        source.depositAmount,
+        totalFees,
+        refundAmount,
+        source.payment.currency,
+      ),
+    });
+    if (refundAmount > 0 && refund)
+      await recordLifecycleEvent(tx, {
+        key: `inspection:${inspection.id}:refund`,
+        type: "RETURN_REFUND",
+        rentalId: rental.rental.id,
+        detail: mailDetail.refund(refundAmount, source.payment.currency),
+      });
     await this.appointments.completeHandover(tx, appointment.id, actor);
   }
 

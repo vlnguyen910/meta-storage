@@ -17,3 +17,22 @@ export const LIFECYCLE_NOTIFICATION_SUBJECTS: Record<LifecycleNotificationEvent,
 };
 export const lifecycleNotificationBody = (subject: string, bookingCode: string, detail: string) =>
   `${subject}\nBooking: ${bookingCode}${detail ? `\n${detail}` : ""}`;
+
+export const LIFECYCLE_MAIL_DETAIL = {
+  returnRequested: (date: string) => `Lịch trả kho được yêu cầu: ${date}`,
+  appointmentUpdated: (kind: "return" | "support", date: string, status: string) => {
+    const labels: Record<string, string> = {
+      SCHEDULED: "Đã yêu cầu",
+      CONFIRMED: "Đã xác nhận",
+      COMPLETED: "Đã hoàn tất",
+      CANCELLED: "Đã hủy",
+      NO_SHOW: "Không đến hẹn",
+    };
+    return `${kind === "return" ? "Lịch trả kho" : "Lịch hỗ trợ"} ${date}: ${labels[status] ?? status}`;
+  },
+  supportScheduled: (date: string) => `Đã đặt lịch hỗ trợ: ${date}`,
+  refund: (amount: string | number, currency: string) =>
+    `Đã xác nhận hoàn tiền: ${amount} ${currency}`,
+  settlement: (deposit: number, deduction: number, refund: number, currency: string) =>
+    `Tiền cọc: ${deposit} ${currency}\nKhấu trừ: ${deduction} ${currency}\nHoàn cọc: ${refund} ${currency}\nCông nợ: ${Math.max(0, deduction - deposit)} ${currency}`,
+};
