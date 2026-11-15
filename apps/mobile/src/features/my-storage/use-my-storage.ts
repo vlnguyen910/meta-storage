@@ -1,18 +1,22 @@
 import type { RentalListItem, RentalPageCursor } from "@metastorage/contracts";
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import type { StorageSelection } from "../../common/my-storage.types";
+import type { StorageSelection, StorageView } from "../../common/my-storage.types";
 import { storageRentals, storageTransactions } from "../../common/my-storage.utils";
 import { api } from "../../lib/api";
 import { MY_STORAGE as M } from "./my-storage.messages";
 
-async function loadRentals(view: "current" | "history", signal: AbortSignal) {
+async function loadRentals(
+  view: "current" | "history",
+  signal: AbortSignal,
+  includePayments: boolean,
+) {
   const items: RentalListItem[] = [],
     seen = new Set<string>();
   let cursor: RentalPageCursor | undefined;
   do {
     if (signal.aborted) throw new Error(M.paginationError);
-    const page = await api.rentals.mine({ view, limit: 100, ...cursor });
+    const page = await api.rentals.mine({ view, limit: 100, includePayments, ...cursor });
     items.push(...page.items);
     cursor = page.nextCursor ?? undefined;
     if (cursor) {
@@ -23,41 +27,34 @@ async function loadRentals(view: "current" | "history", signal: AbortSignal) {
   } while (cursor);
   return storageRentals(items, view);
 }
-export function useMyStorage(owner: string) {
+export function useMyStorage(owner: string, view: StorageView) {
   const [now, setNow] = useState(Date.now),
     [selection, setSelection] = useState<StorageSelection | null>(null);
   const [filter, setFilter] = useState<"all" | "succeeded">("all"),
     [oldest, setOldest] = useState(false);
+  const includePayments = view === "transactions";
   const current = useQuery({
-    queryKey: ["customer-storage", owner, "current"],
-    queryFn: ({ signal }) => loadRentals("current", signal),
+    queryKey: ["customer-storage", owner, "current", { includePayments }],
+    queryFn: ({ signal }) => loadRentals("current", signal, includePayments),
     staleTime: 30000,
+    enabled: Boolean(owner) && view !== "history",
   });
   const history = useQuery({
-    queryKey: ["customer-storage", owner, "history"],
-    queryFn: ({ signal }) => loadRentals("history", signal),
+    queryKey: ["customer-storage", owner, "history", { includePayments }],
+    queryFn: ({ signal }) => loadRentals("history", signal, includePayments),
     staleTime: 30000,
+    enabled: Boolean(owner) && view !== "current",
   });
   const rentals = [
     ...new Map(
       [...(current.data ?? []), ...(history.data ?? [])].map((item) => [item.id, item]),
     ).values(),
   ];
-  const payments = useQueries({
-    queries: rentals.map((rental) => ({
-      queryKey: ["rental-payments", owner, rental.id],
-      queryFn: ({ signal }: { signal: AbortSignal }) => api.rentalPayments(rental.id, signal),
-      enabled: Boolean(owner),
-      staleTime: 30000,
-    })),
-  });
   const transactions = storageTransactions(
-    rentals.flatMap((rental, index) =>
-      (payments[index]?.data ?? []).map((payment) => ({ rental, payment })),
-    ),
+    rentals.flatMap((rental) => (rental.payments ?? []).map((payment) => ({ rental, payment }))),
     oldest,
   );
-  const complete = current.isSuccess && history.isSuccess && payments.every((q) => q.isSuccess);
+  const complete = includePayments && current.isSuccess && history.isSuccess;
   const detailId = selection?.kind === "rental" ? selection.id : undefined;
   const detail = useQuery({
     queryKey: ["rental", owner, detailId],
@@ -69,9 +66,8 @@ export function useMyStorage(owner: string) {
     const timer = setInterval(() => setNow(Date.now()), 60000);
     return () => clearInterval(timer);
   }, []);
-  const transactionLoading =
-    current.isPending || history.isPending || payments.some((q) => q.isPending);
-  const transactionError = current.isError || history.isError || payments.some((q) => q.isError);
+  const transactionLoading = current.isPending || history.isPending;
+  const transactionError = current.isError || history.isError;
   return {
     now,
     current,
@@ -93,12 +89,12 @@ export function useMyStorage(owner: string) {
       : undefined,
     transactionLoading,
     transactionError,
-    refreshing: current.isRefetching || history.isRefetching || payments.some((q) => q.isFetching),
+    refreshing:
+      (current.isEnabled && current.isRefetching) || (history.isEnabled && history.isRefetching),
     refresh: () =>
       Promise.all([
-        current.refetch(),
-        history.refetch(),
-        ...payments.filter((q) => q.isEnabled).map((q) => q.refetch()),
+        ...(current.isEnabled ? [current.refetch()] : []),
+        ...(history.isEnabled ? [history.refetch()] : []),
       ]),
     showRental: (id: string) => setSelection({ kind: "rental", id }),
   };

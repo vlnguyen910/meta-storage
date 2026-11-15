@@ -10,13 +10,17 @@ const rentalKeys = {
   detail: (id: string) => ["rentals", "detail", id] as const,
 };
 
-export function useMyRentals(view: "current" | "history" = "current", enabled = true) {
+export function useMyRentals(
+  view: "current" | "history" = "current",
+  enabled = true,
+  includePayments = false,
+) {
   const identity = useFlow3Identity();
   return useInfiniteQuery({
-    queryKey: [...rentalKeys.mine, view, identity],
+    queryKey: [...rentalKeys.mine, view, identity, { includePayments }],
     initialPageParam: undefined as { afterEndAt: string; afterId: string } | undefined,
     queryFn: ({ pageParam }) =>
-      api.rentals.mine({ view, limit: 20, ...(pageParam ? pageParam : {}) }),
+      api.rentals.mine({ view, limit: 20, includePayments, ...(pageParam ? pageParam : {}) }),
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     enabled,
   });

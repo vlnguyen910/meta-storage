@@ -15,7 +15,7 @@ import type {
   RentalRenewalPaymentSession,
 } from "@metastorage/contracts";
 import type { Database } from "@metastorage/database";
-import { RentalRenewalStatus, type rentalRenewals } from "@metastorage/database";
+import { type payments, RentalRenewalStatus, type rentalRenewals } from "@metastorage/database";
 import {
   AppError,
   ConflictError,
@@ -168,12 +168,31 @@ export class RentalsService {
     const page = rows.slice(0, query.limit),
       last = page.at(-1);
     return {
-      items: page.map(toCustomerRentalItem),
+      items: await this.customerRentalItems(page, userId, query.includePayments),
       nextCursor:
         rows.length > query.limit && last
           ? { afterEndAt: last.cursorEndAt, afterId: last.rental.id }
           : null,
     };
+  }
+  private async customerRentalItems(
+    rows: RentalWithDetails[],
+    userId: string,
+    includePayments = false,
+  ) {
+    const items = rows.map(toCustomerRentalItem);
+    if (!includePayments) return items;
+    const history = await this.repository.findCustomerRentalPaymentsFor(
+      items.map(({ id }) => id),
+      userId,
+    );
+    const byRental = new Map<string, RentalPaymentItem[]>();
+    for (const { rentalId, payment } of history) {
+      const entries = byRental.get(rentalId) ?? [];
+      entries.push(toRentalPaymentItem(payment));
+      byRental.set(rentalId, entries);
+    }
+    return items.map((item) => ({ ...item, payments: byRental.get(item.id) ?? [] }));
   }
   async getCustomerRental(rentalId: string, userId: string) {
     const row = await this.repository.findCustomerRentalById(rentalId, userId);
@@ -230,23 +249,11 @@ export class RentalsService {
   async listCustomerRentalPayments(rentalId: string, userId: string): Promise<RentalPaymentItem[]> {
     const [rental] = await this.repository.findOwnedRental(rentalId, userId);
     if (!rental) throw new NotFoundError(M.rentalNotFound);
-    return (await this.repository.findCustomerRentalPayments(rentalId, userId)).map(
-      ({ payment }) => ({
-        id: payment.id,
-        type: payment.type,
-        paymentCode: payment.paymentCode,
-        provider: payment.provider,
-        status: payment.status,
-        totalAmount: payment.totalAmount,
-        currency: payment.currency,
-        paidAt: payment.paidAt?.toISOString() ?? null,
-        refundAmount: payment.refundAmount,
-        refundReason: payment.refundReason,
-        refundedAt: payment.refundedAt?.toISOString() ?? null,
-        createdAt: payment.createdAt.toISOString(),
-      }),
+    return (await this.repository.findCustomerRentalPayments(rentalId, userId)).map(({ payment }) =>
+      toRentalPaymentItem(payment),
     );
   }
+
   async quoteRenewal(rentalId: string, customerId: string, months: number, idempotencyKey: string) {
     return this.repository.db.transaction(async (tx) => {
       const [rental] = await this.repository.lockRental(tx, rentalId);
@@ -587,6 +594,23 @@ export class RentalsService {
       paymentId,
     };
   }
+}
+
+function toRentalPaymentItem(payment: typeof payments.$inferSelect): RentalPaymentItem {
+  return {
+    id: payment.id,
+    type: payment.type,
+    paymentCode: payment.paymentCode,
+    provider: payment.provider,
+    status: payment.status,
+    totalAmount: payment.totalAmount,
+    currency: payment.currency,
+    paidAt: payment.paidAt?.toISOString() ?? null,
+    refundAmount: payment.refundAmount,
+    refundReason: payment.refundReason,
+    refundedAt: payment.refundedAt?.toISOString() ?? null,
+    createdAt: payment.createdAt.toISOString(),
+  };
 }
 
 function toCustomerRentalItem(row: RentalWithDetails): RentalListItem {
