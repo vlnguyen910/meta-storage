@@ -4,7 +4,7 @@ import { APPOINTMENT_TYPES } from "@metastorage/database/schema/appointments";
 import { formatReference } from "@metastorage/shared";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { bookingKeys } from "@/features/check-in/hooks";
+import { bookingKeys } from "@/features/check-in/booking.keys";
 import { useFlow3Identity } from "@/features/returns/use-flow3-identity";
 import { api } from "@/lib/api";
 import { FLOW } from "./flow.messages";

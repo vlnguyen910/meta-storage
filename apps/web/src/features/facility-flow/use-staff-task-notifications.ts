@@ -1,5 +1,6 @@
 "use client";
 
+import { createNotificationStream } from "@metastorage/api-client";
 import {
   type StaffTaskAssignedNotification,
   WorkUpdateNotificationSchema,
@@ -10,7 +11,7 @@ import { useEffect, useState } from "react";
 import { useToast } from "@/components/ui/toast";
 import { isMockMode } from "@/config/api-mode";
 import { useAuthStore } from "@/features/auth/auth-store";
-import { bookingKeys } from "@/features/check-in/hooks";
+import { bookingKeys } from "@/features/check-in/booking.keys";
 import { api } from "@/lib/api";
 import { STAFF_NOTIFICATIONS } from "./staff-task-notifications.messages";
 
@@ -45,12 +46,7 @@ export function useStaffTaskNotifications() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: retry explicitly restarts the connection lifecycle.
   useEffect(() => {
     if (isMockMode || !ready || !userId) return;
-    let stopped = false;
-    let socket: WebSocket | null = null;
-    let timer: ReturnType<typeof setTimeout> | undefined;
     let eventRefreshTimer: ReturnType<typeof setTimeout> | undefined;
-    let attempts = 0;
-    let denied = false;
     const seen = new Set<string>();
     let lastToastAt = 0;
     const refresh = () => {
@@ -67,39 +63,14 @@ export function useStaffTaskNotifications() {
       void queryClient.invalidateQueries({ queryKey: ["staff-return-appointment"] });
       void queryClient.invalidateQueries({ queryKey: ["staff-return-inspections"] });
     };
-    const schedule = () => {
-      if (stopped || denied || !navigator.onLine) return;
-      setStatus("reconnecting");
-      timer = setTimeout(connect, Math.min(1000 * 2 ** attempts++, 30000));
-    };
-    function connect() {
-      if (stopped || socket) return;
-      if (denied) {
-        setStatus("unavailable");
-        return;
-      }
-      if (!navigator.onLine) {
-        setStatus("offline");
-        return;
-      }
-      try {
-        socket = new WebSocket(api.notifications.webSocketUrl(window.location.origin));
-      } catch {
-        schedule();
-        return;
-      }
-      const current = socket;
-      current.onopen = () => {
-        if (stopped || socket !== current) return;
-        attempts = 0;
-        setStatus("connected");
-        refresh();
-      };
-      current.onmessage = ({ data }) => {
-        if (stopped || socket !== current) return;
+    const stream = createNotificationStream({
+      createSocket: () => new WebSocket(api.notifications.webSocketUrl(window.location.origin)),
+      onStatusChange: setStatus,
+      onOpen: refresh,
+      onMessage: (data) => {
         let event: unknown;
         try {
-          event = JSON.parse(data);
+          event = JSON.parse(String(data));
         } catch {
           return;
         }
@@ -142,46 +113,26 @@ export function useStaffTaskNotifications() {
             refresh();
           }, 200);
         }
-      };
-      current.onclose = ({ code }) => {
-        if (stopped || socket !== current) return;
-        socket = null;
-        if (code === 1008) {
-          denied = true;
-          setStatus("unavailable");
-          return;
-        }
-        if (!navigator.onLine) setStatus("offline");
-        else schedule();
-      };
-      // The close event owns reconnection; an error must not schedule a second socket.
-      current.onerror = () => {};
-    }
+      },
+    });
     const offline = () => {
-      clearTimeout(timer);
-      const current = socket;
-      socket = null;
-      current?.close();
+      stream.disconnect();
       setStatus("offline");
     };
     const online = () => {
       refresh();
-      connect();
+      if (navigator.onLine) void stream.connect();
     };
     const visible = () => {
-      if (document.visibilityState === "visible") {
-        refresh();
-        connect();
-      }
+      if (document.visibilityState === "visible") online();
     };
     window.addEventListener("offline", offline);
     window.addEventListener("online", online);
     document.addEventListener("visibilitychange", visible);
-    connect();
+    if (navigator.onLine) void stream.connect();
+    else setStatus("offline");
     return () => {
-      stopped = true;
-      clearTimeout(timer);
-      socket?.close();
+      stream.dispose();
       clearTimeout(eventRefreshTimer);
       window.removeEventListener("offline", offline);
       window.removeEventListener("online", online);

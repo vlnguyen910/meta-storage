@@ -5,17 +5,7 @@ import { APPOINTMENT_STATUSES } from "@metastorage/database/schema/appointments"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { loadAppointmentItem } from "@/features/facility-flow/use-dispatch";
 import { api } from "@/lib/api";
-
-export const bookingKeys = {
-  all: ["bookings"] as const,
-  facility: (facilityId: string, status?: string) =>
-    [...bookingKeys.all, "facility", facilityId, status] as const,
-  facilityStaff: (facilityId: string) =>
-    [...bookingKeys.all, "facility-staff", facilityId] as const,
-  staffTasks: (facilityId?: string) => [...bookingKeys.all, "staff-tasks", facilityId] as const,
-  detail: (id: string) => [...bookingKeys.all, "detail", id] as const,
-  eligibleUnits: (id: string) => [...bookingKeys.all, "eligible-units", id] as const,
-};
+import { bookingKeys } from "./booking.keys";
 
 const facilityKeys = {
   all: ["facilities"] as const,
