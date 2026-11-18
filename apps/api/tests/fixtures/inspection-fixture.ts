@@ -264,13 +264,13 @@ export async function createInspectionFixture(allowExistingLocal = false) {
             );
           await tx.delete(inspections).where(inArray(inspections.id, inspectionIds));
         }
+        await tx.delete(supportTickets).where(eq(supportTickets.facilityId, facilityId));
         await tx.delete(notificationOutbox).where(eq(notificationOutbox.reservationId, bookingId));
         await tx.delete(appointments).where(eq(appointments.reservationId, bookingId));
         await tx.delete(rentals).where(eq(rentals.reservationId, bookingId));
         await tx.delete(payments).where(eq(payments.reservationId, bookingId));
         await tx.delete(reservations).where(eq(reservations.id, bookingId));
         await tx.delete(storageUnits).where(eq(storageUnits.id, unitId));
-        await tx.delete(supportTickets).where(eq(supportTickets.facilityId, facilityId));
 
         await tx.delete(facilityTasks).where(eq(facilityTasks.facilityId, facilityId));
         await tx.delete(facilityAssignments).where(eq(facilityAssignments.facilityId, facilityId));
