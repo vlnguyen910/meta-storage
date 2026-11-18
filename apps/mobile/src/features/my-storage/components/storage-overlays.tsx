@@ -4,6 +4,7 @@ import { Button, Card, DetailSheet, Notice, Row } from "../../../components/ui";
 import { dateTime } from "../../../components/ui/mobile-ui";
 import { QueryFeedback } from "../../customer-home/components/query-feedback";
 import { MY_STORAGE as M } from "../my-storage.messages";
+import { ReturnScheduleSection } from "./return-schedule-section";
 export function StorageOverlays({ state: s, onCreateSupport }: StorageOverlaysProps) {
   const rental = s.detail.data,
     transaction = s.selection?.kind === "payment" ? s.selection.transaction : undefined;
@@ -58,6 +59,9 @@ ${rental.facility.address}`}
                     onCreateSupport(rental.reservationId ?? undefined);
                   }}
                 />
+              ) : null}
+              {rental.status === "ACTIVE" ? (
+                <ReturnScheduleSection owner={s.owner} rentalId={rental.id} endAt={rental.endAt} />
               ) : null}
               {rental.settlement ? (
                 <Card title={M.settlement} compact outlined>

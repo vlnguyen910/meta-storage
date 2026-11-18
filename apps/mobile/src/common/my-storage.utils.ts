@@ -8,6 +8,9 @@ export const storageDate = (date: string) =>
     month: "2-digit",
     year: "numeric",
   }).format(new Date(date));
+/** `date` is a facility-local `YYYY-MM-DD`; compared against the rental end day in GMT+7. */
+export const isEarlyReturn = (date: string, endAt: string) =>
+  date < new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).format(new Date(endAt));
 export const rentalPeriod = (rental: RentalListItem) =>
   `${storageDate(rental.startAt)} – ${storageDate(rental.endAt)}`;
 export function rentalTiming(rental: RentalListItem, now: number) {

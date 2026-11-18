@@ -69,6 +69,7 @@ export function useMyStorage(owner: string, view: StorageView) {
   const transactionLoading = current.isPending || history.isPending;
   const transactionError = current.isError || history.isError;
   return {
+    owner,
     now,
     current,
     history,
