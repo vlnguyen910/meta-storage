@@ -1,6 +1,7 @@
 import type { ReservationQuery } from "@metastorage/contracts";
 import {
   and,
+  checkInSlots,
   type Database,
   desc,
   eq,
@@ -24,6 +25,22 @@ export class ReservationsRepository {
   constructor(private readonly db: Database) {}
 
   findNoShows(tx: ReservationTransaction, now: Date, closingHour: number, facilityId?: string) {
+    const localDate = sql`(${reservations.rentalStartAt} AT TIME ZONE 'Asia/Ho_Chi_Minh')::date`;
+    const slotStartsAt = sql`(${localDate} + ${checkInSlots.startTime}) AT TIME ZONE 'Asia/Ho_Chi_Minh'`;
+    // Reservations persist the start time, so extend the cutoff only for a unique slot match.
+    const sameDaySlotEnd = sql`(
+      SELECT CASE
+        WHEN count(*) = 1 AND bool_and(${checkInSlots.sameDayCheckInEnabled})
+          THEN max((${localDate} + ${checkInSlots.endTime}) AT TIME ZONE 'Asia/Ho_Chi_Minh')
+        ELSE NULL::timestamptz
+      END
+      FROM ${checkInSlots}
+      WHERE ${slotStartsAt} = ${reservations.rentalStartAt}
+    )`;
+    const noShowCutoff = sql`COALESCE(
+      ${sameDaySlotEnd},
+      (${localDate} + ${closingHour} * interval '1 hour') AT TIME ZONE 'Asia/Ho_Chi_Minh'
+    )`;
     return tx
       .select()
       .from(reservations)
@@ -31,7 +48,7 @@ export class ReservationsRepository {
         and(
           eq(reservations.status, ReservationStatus.CONFIRMED),
           facilityId ? eq(reservations.facilityId, facilityId) : undefined,
-          sql`((${reservations.rentalStartAt} AT TIME ZONE 'Asia/Ho_Chi_Minh')::date + ${closingHour} * interval '1 hour') AT TIME ZONE 'Asia/Ho_Chi_Minh' <= ${now.toISOString()}::timestamptz`,
+          sql`${noShowCutoff} <= ${now.toISOString()}::timestamptz`,
         ),
       )
       .orderBy(reservations.id)

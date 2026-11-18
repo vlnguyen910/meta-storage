@@ -20,14 +20,15 @@ import {
 import { checkoutMessages } from "./checkout.messages";
 import { clearCheckoutContext, readCheckoutContext, saveCheckoutContext } from "./checkout-storage";
 import {
+  allowsSameDayCheckIn,
   checkoutFailure,
   createCheckoutPaymentKey,
+  createWizardSchema,
   normalizePhone,
   toLocalDateTimeInput,
-  wizardSchema,
 } from "./checkout-validation";
 
-type WizardValues = z.input<typeof wizardSchema>;
+type WizardValues = z.input<ReturnType<typeof createWizardSchema>>;
 
 export function useReservationCheckout() {
   const session = useAuthStore((state) => state.session);
@@ -53,7 +54,12 @@ export function useReservationCheckout() {
   const slotsQuery = useBookingSlots();
   const facilitiesQuery = useFacilities({ pageSize: 100 });
   const form = useForm<WizardValues>({
-    resolver: zodResolver(wizardSchema),
+    resolver: (values, context, options) => {
+      const selectedSlot = slotsQuery.data?.find((slot) => slot.id === values.checkInSlotId);
+      return zodResolver(
+        createWizardSchema(allowsSameDayCheckIn(values.checkInDate, selectedSlot)),
+      )(values, context, options);
+    },
     defaultValues: {
       facilityId: searchParams.get("facilityId") ?? "",
       unitTypeId: searchParams.get("unitTypeId") ?? "",
@@ -71,9 +77,10 @@ export function useReservationCheckout() {
   const checkInSlotId = form.watch("checkInSlotId");
   const durationMonths = Number(form.watch("durationMonths"));
   const selectedSlot = slotsQuery.data?.find((slot) => slot.id === checkInSlotId);
+  const sameDayAllowed = allowsSameDayCheckIn(checkInDate, selectedSlot);
   const scheduleReady =
     /^\d{4}-\d{2}-\d{2}$/.test(checkInDate) &&
-    checkInDate > toLocalDateTimeInput(new Date()).slice(0, 10) &&
+    (checkInDate > toLocalDateTimeInput(new Date()).slice(0, 10) || sameDayAllowed) &&
     Boolean(selectedSlot) &&
     durationMonths >= 1 &&
     durationMonths <= 12;

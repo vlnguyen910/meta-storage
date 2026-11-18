@@ -8,6 +8,7 @@ import { CreateReservationDraftSchema } from "@metastorage/contracts";
 import { isAxiosError } from "axios";
 import { z } from "zod";
 import { BOOKING as M } from "../features/booking/booking.messages";
+import { apiErrorDetailMessage } from "./api-error.utils";
 import type { SavedBooking } from "./booking.types";
 
 export const savedBookingSchema = CreateReservationDraftSchema.extend({
@@ -34,14 +35,14 @@ export function unitAreaMatches(unit: ApiUnitType, filter: string) {
   );
 }
 export function bookingError(error: unknown) {
-  if (isAxiosError(error))
-    return !error.response
-      ? M.network
-      : error.response.status === 401
-        ? M.identity
-        : error.response.status === 409
-          ? M.conflict
-          : M.error;
+  if (isAxiosError(error)) {
+    if (!error.response) return M.network;
+    const status = error.response.status;
+    if (status === 401) return M.identity;
+    if (status === 409) return M.conflict;
+    if (status === 400 || status === 422) return apiErrorDetailMessage(error) ?? M.error;
+    return M.error;
+  }
   return error instanceof Error && Object.values(M).some((message) => message === error.message)
     ? error.message
     : M.error;

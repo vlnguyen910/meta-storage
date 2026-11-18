@@ -212,9 +212,14 @@ export class FacilityTasksService {
       if (!slot) throw new ConflictError(m.appointmentSlotUnavailable);
       const now = new Date();
       const developmentMode = isDevelopmentEnvironment();
-      if (!developmentMode && now < slot.startsAt) throw new ConflictError(m.appointmentNotStarted);
+      const sameDayAllowed =
+        appointment.appointmentType === "CHECK_IN" &&
+        this.appointmentSlots?.allowsCheckInDuringSameDaySlot(slot, appointment.scheduledDate, now);
+      if (!developmentMode && !sameDayAllowed && now < slot.startsAt)
+        throw new ConflictError(m.appointmentNotStarted);
       if (
         !developmentMode &&
+        !sameDayAllowed &&
         now >=
           (appointment.appointmentType === "CHECK_OUT"
             ? new Date(`${appointment.scheduledDate}T23:59:59.999+07:00`)

@@ -31,7 +31,15 @@ export const AUTH_MESSAGES = {
   logoutFailed: "Chưa thể đăng xuất. Vui lòng thử lại.",
   loginFailed: "Không thể đăng nhập. Vui lòng kiểm tra lại email hoặc mật khẩu.",
   loginWelcome: (name: string) => `Chào mừng ${name}`,
+  loginAccountDisabled: "Tài khoản này đã bị vô hiệu hóa. Vui lòng liên hệ hỗ trợ.",
+  loginTooManyRequests: "Bạn thử đăng nhập quá nhiều lần. Vui lòng đợi một lúc rồi thử lại.",
+  networkError: "Không kết nối được hệ thống. Kiểm tra mạng và thử lại.",
   registrationFailed: "Chưa thể tạo tài khoản. Vui lòng thử lại sau.",
+  registrationEmailExists: "Email này đã có tài khoản. Vui lòng đăng nhập hoặc khôi phục mật khẩu.",
+  registrationTooManyRequests: "Bạn thao tác quá nhiều lần. Vui lòng đợi một lúc rồi thử lại.",
+  registrationEmailUnavailable:
+    "Hệ thống chưa gửi được email xác minh. Vui lòng thử lại sau ít phút.",
+  registrationInvalid: "Thông tin đăng ký chưa hợp lệ. Vui lòng kiểm tra lại các trường.",
   forgotPasswordRequestAccepted:
     "Nếu email tồn tại trong hệ thống, bạn sẽ nhận được hướng dẫn đặt lại mật khẩu.",
 

@@ -59,7 +59,8 @@ export function useBooking({
   const command = useRef<SavedBooking | null>(null);
   const signature = useRef("");
   const locked = useRef(true);
-  const minDate = shiftDate(vietnamDate(), 1);
+  const today = vietnamDate();
+  const minDate = shiftDate(today, 1);
   const form = useForm<BookingValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -81,13 +82,18 @@ export function useBooking({
     queryKey: ["customer-check-in-slots"],
     queryFn: () => api.appointments.slots(),
   });
+  const earliestCheckInDate = slots.data?.some(
+    (item) => item.sameDayCheckInEnabled && canSelectCheckInSlot(today, item),
+  )
+    ? today
+    : minDate;
   const unit = types.data?.find((item) => item.id === values.unitTypeId);
   const slot = slots.data?.find((item) => item.id === values.checkInSlotId);
   const scheduleReady = Boolean(
     unit &&
       slot &&
-      values.checkInDate >= minDate &&
-      canSelectCheckInSlot(values.checkInDate, slot.startTime),
+      values.checkInDate >= earliestCheckInDate &&
+      canSelectCheckInSlot(values.checkInDate, slot),
   );
   const availability = useQuery({
     queryKey: [
@@ -204,8 +210,8 @@ export function useBooking({
       if (
         !unit?.isActive ||
         !slot ||
-        input.checkInDate < minDate ||
-        !canSelectCheckInSlot(input.checkInDate, slot.startTime)
+        input.checkInDate < earliestCheckInDate ||
+        !canSelectCheckInSlot(input.checkInDate, slot)
       )
         throw new Error(M.slotInvalid);
       const stock = await availability.refetch();
@@ -326,7 +332,7 @@ export function useBooking({
     slots,
     unit,
     slot,
-    minDate,
+    minDate: earliestCheckInDate,
     restoreError,
     retryRestore: () => setRestoreAttempt((n) => n + 1),
     area,

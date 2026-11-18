@@ -175,7 +175,8 @@ export class MailService {
   }
 
   private async deliverAuth(data: AuthMailJobData, adapter: MailAdapter) {
-    if (!(Date.parse(data.expiresAt) > Date.now())) throw new UnrecoverableError(m.accessExpired);
+    if (!(Date.parse(data.expiresAt) > Date.now()))
+      throw new UnrecoverableError("Auth mail expired before worker delivery");
     let input: AuthMailPayload;
     try {
       input = AuthMailPayloadSchema.parse(
@@ -188,7 +189,9 @@ export class MailService {
       )
         throw new Error("Auth mail envelope mismatch");
     } catch {
-      throw new UnrecoverableError(m.sendFailed);
+      throw new UnrecoverableError(
+        "Auth mail payload could not be decrypted or validated; check API and worker BOOKING_MAGIC_LINK_SECRET consistency",
+      );
     }
     const messages = AUTH_MAIL_MESSAGES[input.kind];
     return adapter.send({

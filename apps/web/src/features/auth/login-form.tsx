@@ -107,16 +107,7 @@ export function LoginForm() {
         router.replace(destination);
       });
     } catch (error) {
-      const responseData = axios.isAxiosError(error)
-        ? (error.response?.data as
-            | { code?: string; message?: string; error?: { code?: string; message?: string } }
-            | undefined)
-        : undefined;
-      const message =
-        (responseData?.code ?? responseData?.error?.code) === "EMAIL_NOT_VERIFIED"
-          ? AUTH_MESSAGES.loginEmailNotVerified
-          : (responseData?.error?.message ?? responseData?.message);
-      showToast(message ?? AUTH_MESSAGES.loginFailed, "error");
+      showToast(getLoginErrorMessage(error), "error");
     }
   }
 
@@ -364,4 +355,21 @@ export function LoginForm() {
       ) : null}
     </div>
   );
+}
+
+function getLoginErrorMessage(error: unknown): string {
+  if (!axios.isAxiosError(error)) return AUTH_MESSAGES.loginFailed;
+  if (!error.response) return AUTH_MESSAGES.networkError;
+  const responseData = error.response.data as
+    | { code?: string; message?: string; error?: { code?: string; message?: string } }
+    | undefined;
+  const code = responseData?.code ?? responseData?.error?.code;
+  if (code === "EMAIL_NOT_VERIFIED") return AUTH_MESSAGES.loginEmailNotVerified;
+  if (code === "ACCOUNT_DISABLED") return AUTH_MESSAGES.loginAccountDisabled;
+  if (code === "INVALID_EMAIL_OR_PASSWORD" || error.response.status === 401) {
+    return AUTH_MESSAGES.loginFailed;
+  }
+  if (error.response.status === 429) return AUTH_MESSAGES.loginTooManyRequests;
+  if (error.response.status >= 500) return AUTH_MESSAGES.loginFailed;
+  return responseData?.error?.message ?? responseData?.message ?? AUTH_MESSAGES.loginFailed;
 }

@@ -1,7 +1,17 @@
 import { createHash, createHmac } from "node:crypto";
 import { SYSTEM_SETTING_DEFINITIONS } from "@metastorage/contracts/system-settings";
 import { hashPassword } from "better-auth/crypto";
-import { and, asc, eq, getTableColumns, inArray, isNull, notExists, or } from "drizzle-orm";
+import {
+  and,
+  asc,
+  eq,
+  getTableColumns,
+  inArray,
+  isNull,
+  notExists,
+  notInArray,
+  or,
+} from "drizzle-orm";
 import { db, queryClient } from "./client";
 import { loadApiEnv } from "./env";
 import { migrateBookingsToReservations } from "./migrate-bookings-to-reservations";
@@ -13,6 +23,8 @@ import {
   facilities,
   facilityAssignments,
   facilityUnitTypes,
+  PaymentStatus,
+  PaymentType,
   payments,
   RentalStatus,
   rentals,
@@ -111,21 +123,46 @@ export const SEED_USERS = [
   },
 ] as const;
 
+const DEMO_CUSTOMER_NAMES = [
+  "Nguyễn Minh An",
+  "Trần Ngọc Anh",
+  "Lê Hoàng Nam",
+  "Phạm Thảo Vy",
+  "Võ Thanh Tâm",
+  "Đặng Hải Yến",
+  "Hoàng Quốc Bảo",
+  "Đỗ Minh Đức",
+  "Vũ Thu Trang",
+  "Bùi Phương Linh",
+  "Ngô Gia Huy",
+  "Dương Khánh Huyền",
+  "Lý Gia Hưng",
+  "Phan Thanh Tùng",
+  "Trịnh Mai Anh",
+  "Hồ Ngọc Hà",
+  "Đinh Quang Khải",
+  "Lâm Vĩnh Phát",
+  "Mai Trọng Nghĩa",
+  "Chu Đình Trọng",
+  "Tô Bảo Ngọc",
+  "Huỳnh Tuấn Kiệt",
+  "Vương Bích Diệp",
+  "Tạ Quốc Anh",
+  "Lương Thế Vinh",
+  "Trương Quỳnh Như",
+  "Đoàn Văn Hậu",
+  "Vũ Hải Đăng",
+  "Nguyễn Thùy Dung",
+  "Trần Văn Sang",
+] as const;
+
 export const SEED_DEMO_USERS = [
-  ...Array.from({ length: 6 }, (_, index) => ({
+  ...DEMO_CUSTOMER_NAMES.map((name, index) => ({
     id: `40000000-0000-4000-8000-${String(101 + index).padStart(12, "0")}`,
     role: "CUSTOMER" as const,
     email: `customer${index + 1}@metastorage.test`,
-    name:
-      [
-        "Nguyễn Minh An",
-        "Trần Ngọc Anh",
-        "Lê Hoàng Nam",
-        "Phạm Thảo Vy",
-        "Võ Thanh Tâm",
-        "Đặng Hải Yến",
-      ][index] ?? "Khách demo",
-    phone: `090100000${index + 1}`,
+    name,
+    phone: `0901${String(100000 + index + 1)}`,
   })),
   ...Array.from({ length: 9 }, (_, index) => ({
     id: `40000000-0000-4000-8000-${String(202 + index).padStart(12, "0")}`,
@@ -218,6 +255,10 @@ export async function seedImmediateCheckInSlot(seedNow = getSeedNow()) {
         .from(rentals)
         .where(eq(rentals.bookingId, existing.id));
       if (existing.status !== "CONFIRMED" || rental) {
+        await tx
+          .update(checkInSlots)
+          .set({ sameDayCheckInEnabled: true })
+          .where(eq(checkInSlots.id, SEED_IDS.demoCheckInSlot));
         console.log("DEMO-CHECKIN-NOW already progressed; keeping its booking and slot unchanged.");
         return;
       }
@@ -229,8 +270,12 @@ export async function seedImmediateCheckInSlot(seedNow = getSeedNow()) {
         name: "Demo check-in ngay",
         startTime,
         endTime: "23:59:59.999999",
+        sameDayCheckInEnabled: true,
       })
-      .onConflictDoUpdate({ target: checkInSlots.id, set: { startTime } });
+      .onConflictDoUpdate({
+        target: checkInSlots.id,
+        set: { startTime, endTime: "23:59:59.999999", sameDayCheckInEnabled: true },
+      });
     if (!existing) {
       const [source] = await tx
         .select()
@@ -486,7 +531,7 @@ async function seedDemoData(seedNow: Date) {
               and(
                 eq(storageUnits.facilityId, facility.id),
                 eq(storageUnits.unitTypeId, type.id),
-                eq(storageUnits.code, `${facility.code}-${type.code}-002`),
+                eq(storageUnits.code, `${facility.code}-${type.code}-003`),
               ),
             );
           if (!unit) throw new Error(`Missing assignment unit for ${code}`);
@@ -979,6 +1024,388 @@ async function seedBasicRentals(seedNow: Date) {
         });
     });
   }
+}
+
+async function seedMultiFacilityRentals(seedNow: Date) {
+  const facilityRows = await db
+    .select()
+    .from(facilities)
+    .where(inArray(facilities.id, Object.values(SEED_IDS.facilities)))
+    .orderBy(asc(facilities.code));
+
+  const slots = await db.select().from(checkInSlots).orderBy(asc(checkInSlots.startTime));
+  if (slots.length < 4) throw new Error("At least four check-in slots are required");
+
+  const customers = SEED_DEMO_USERS.filter((user) => user.role === "CUSTOMER");
+  if (!customers.length) throw new Error("Missing customer fixtures for multi-facility rentals");
+
+  // Rental counts that achieve realistic target occupancies per facility:
+  // HCM-01: 42/56 (75.0%), HCM-02: 24/32 (75.0%), HCM-03: 21/32 (65.6%), HCM-04: 25/32 (78.1%),
+  // HCM-05: 23/32 (71.9%), HCM-06: 22/32 (68.8%), HCM-07: 21/32 (65.6%), HCM-08: 23/32 (71.9%),
+  // HCM-09: 26/32 (81.3%), HCM-10: 24/32 (75.0%). Total: 251/344 = 73.0% occupancy!
+  const targetOccupancyByCode: Record<string, number> = {
+    "HCM-01": 42,
+    "HCM-02": 24,
+    "HCM-03": 21,
+    "HCM-04": 25,
+    "HCM-05": 23,
+    "HCM-06": 22,
+    "HCM-07": 21,
+    "HCM-08": 23,
+    "HCM-09": 26,
+    "HCM-10": 24,
+  };
+
+  // Target count of rentals paying in current month (November 2026), creating a smooth revenue staircase:
+  // HCM-01: ~55M, HCM-09: ~42M, HCM-04: ~38M, HCM-02: ~34M, HCM-10: ~31M,
+  // HCM-08: ~27M, HCM-05: ~24M, HCM-06: ~22M, HCM-07: ~19M, HCM-03: ~16M.
+  const currentMonthPaidTarget: Record<string, number> = {
+    "HCM-01": 14,
+    "HCM-02": 8,
+    "HCM-03": 4,
+    "HCM-04": 9,
+    "HCM-05": 6,
+    "HCM-06": 6,
+    "HCM-07": 5,
+    "HCM-08": 7,
+    "HCM-09": 10,
+    "HCM-10": 8,
+  };
+
+  let globalRentalCounter = 100;
+  let closedCounter = 1;
+
+  for (const [facilityIndex, facility] of facilityRows.entries()) {
+    const manager =
+      facilityIndex === 0
+        ? SEED_USERS[2]
+        : SEED_DEMO_USERS.find(
+            (user) =>
+              user.email ===
+              `manager.hcm${String(facilityIndex + 1).padStart(2, "0")}@metastorage.test`,
+          );
+    const staff =
+      facilityIndex === 0
+        ? SEED_USERS[1]
+        : SEED_DEMO_USERS.find(
+            (user) =>
+              user.email ===
+              `staff.hcm${String(facilityIndex + 1).padStart(2, "0")}@metastorage.test`,
+          );
+    if (!manager || !staff) throw new Error(`Missing demo team for ${facility.code}`);
+
+    const offerings = await db
+      .select({ ...getTableColumns(unitTypes), ...getTableColumns(facilityUnitTypes) })
+      .from(facilityUnitTypes)
+      .innerJoin(unitTypes, eq(unitTypes.id, facilityUnitTypes.unitTypeId))
+      .where(eq(facilityUnitTypes.facilityId, facility.id))
+      .orderBy(asc(unitTypes.code));
+    const offeringMap = new Map<string, (typeof offerings)[number]>();
+    for (const o of offerings) {
+      offeringMap.set(o.id, o);
+      offeringMap.set(o.unitTypeId, o);
+    }
+
+    const units = await db
+      .select()
+      .from(storageUnits)
+      .where(eq(storageUnits.facilityId, facility.id))
+      .orderBy(asc(storageUnits.code));
+
+    // Exclude reserved demo fixtures at HCM-01
+    const isProtectedHcm01Unit = (code: string) => {
+      if (facility.code !== "HCM-01") return false;
+      const match = code.match(/^HCM-01-(\d{3})$/);
+      if (!match) return false;
+      const num = Number(match[1]);
+      return (num >= 1 && num <= 11) || (num >= 19 && num <= 24);
+    };
+
+    const candidateUnits = units.filter((u) => !isProtectedHcm01Unit(u.code));
+
+    // Number of active units already occupied at HCM-01 from Flow 3: 5 units
+    const existingOccupied = facility.code === "HCM-01" ? 5 : 0;
+    const targetToOccupy = (targetOccupancyByCode[facility.code] ?? 24) - existingOccupied;
+    const currentMonthTarget = currentMonthPaidTarget[facility.code] ?? 6;
+
+    // Pick 1 unit per facility for MAINTENANCE (serial 004 of the last type)
+    const maintenanceUnitCandidate = candidateUnits.find(
+      (u) => u.code.endsWith("-004") && !u.code.endsWith("-008"),
+    );
+    if (maintenanceUnitCandidate && facility.code !== "HCM-01") {
+      await db
+        .update(storageUnits)
+        .set({ status: "MAINTENANCE" })
+        .where(eq(storageUnits.id, maintenanceUnitCandidate.id));
+    }
+
+    const eligibleForRent = candidateUnits.filter((u) => {
+      if (maintenanceUnitCandidate && u.id === maintenanceUnitCandidate.id) return false;
+      if (u.status === "MAINTENANCE" || u.status === "INSPECTION" || u.status === "RESERVED")
+        return false;
+      return true;
+    });
+
+    const unitsToRent = eligibleForRent.slice(0, targetToOccupy);
+
+    let currentMonthPaidCount = 0;
+    for (const [rentalIndex, unit] of unitsToRent.entries()) {
+      globalRentalCounter++;
+      const offering = offeringMap.get(unit.unitTypeId);
+      if (!offering) continue;
+
+      const customer = customers[(facilityIndex * 7 + rentalIndex) % customers.length];
+      const slot = slots[rentalIndex % slots.length];
+      if (!customer || !slot) continue;
+
+      // Decide if this rental paid in the current month (November 2026) or earlier:
+      const isCurrentMonth = currentMonthPaidCount < currentMonthTarget;
+      if (isCurrentMonth) currentMonthPaidCount++;
+
+      const months = isCurrentMonth
+        ? ([1, 2, 3, 6][rentalIndex % 4] ?? 1)
+        : ([3, 6, 12][rentalIndex % 3] ?? 3);
+
+      const startAt = isCurrentMonth
+        ? shiftDays(seedNow, -(1 + ((rentalIndex * 3 + facilityIndex) % 15)))
+        : shiftDays(seedNow, -(30 + ((rentalIndex * 7 + facilityIndex) % 90)));
+
+      const checkInDate = localDate(startAt);
+      const expectedEndAt = shiftDays(startAt, months * 30);
+      const bookingId = id("86000000", globalRentalCounter);
+      const rentalId = id("87000000", globalRentalCounter);
+      const paymentId = id("16000000", globalRentalCounter);
+      const assignmentId = id("b7000000", globalRentalCounter);
+      const allocationId = id("a7000000", globalRentalCounter);
+
+      const monthlyRate = offering.monthlyPrice;
+      const rentalFeeAmount = monthlyRate * months;
+      const depositAmount = monthlyRate;
+      const totalAmount = rentalFeeAmount + depositAmount;
+      const bookingCode = `BK-${facility.code}-${String(globalRentalCounter).padStart(5, "0")}`;
+
+      await db.transaction(async (tx) => {
+        await tx
+          .update(storageUnits)
+          .set({ status: "OCCUPIED" })
+          .where(eq(storageUnits.id, unit.id));
+
+        await tx
+          .insert(bookings)
+          .values({
+            id: bookingId,
+            bookingCode,
+            userId: customer.id,
+            contactPhone: customer.phone,
+            facilityId: facility.id,
+            unitTypeId: unit.unitTypeId,
+            requestedMonths: months,
+            checkInDate,
+            checkInSlotId: slot.id,
+            rentalEndAt: expectedEndAt,
+            monthlyRateSnapshot: String(monthlyRate),
+            rentalFeeAmount: String(rentalFeeAmount),
+            depositAmount: String(depositAmount),
+            totalAmount: String(totalAmount),
+            status: "CHECKED_IN",
+            assignedStaffId: staff.id,
+          })
+          .onConflictDoUpdate({
+            target: bookings.id,
+            set: { status: "CHECKED_IN", rentalEndAt: expectedEndAt },
+          });
+
+        await tx
+          .insert(payments)
+          .values({
+            id: paymentId,
+            bookingId,
+            holdTokenHash: `seed-${bookingId}`,
+            provider: "MOCK",
+            providerPaymentId: `seed-pay-${bookingId}`,
+            idempotencyKey: `seed-multi-${bookingId}`,
+            paymentCode: `PAY-${facility.code}-${String(globalRentalCounter).padStart(5, "0")}`,
+            totalAmount: String(totalAmount),
+            currency: "VND",
+            status: "SUCCEEDED",
+            paidAt: startAt,
+          })
+          .onConflictDoNothing();
+
+        await tx
+          .insert(rentals)
+          .values({
+            id: rentalId,
+            bookingId,
+            userId: customer.id,
+            storageUnitId: unit.id,
+            status: RentalStatus.ACTIVE,
+            startAt,
+            endAt: expectedEndAt,
+          })
+          .onConflictDoNothing({ target: rentals.id });
+
+        await tx
+          .insert(unitAssignments)
+          .values({
+            id: assignmentId,
+            bookingId,
+            physicalUnitId: unit.id,
+            assignedBy: manager.id,
+            status: "ACTIVE",
+            reason: "Demo multi-facility active rental",
+          })
+          .onConflictDoUpdate({
+            target: unitAssignments.id,
+            set: {
+              physicalUnitId: unit.id,
+              assignedBy: manager.id,
+              status: "ACTIVE",
+            },
+          });
+
+        await tx
+          .insert(capacityAllocations)
+          .values({
+            id: allocationId,
+            facilityId: facility.id,
+            unitTypeId: unit.unitTypeId,
+            referenceId: bookingId,
+            kind: "BOOKING",
+            status: "ACTIVE",
+            startsAt: startAt,
+            endsAt: expectedEndAt,
+          })
+          .onConflictDoUpdate({
+            target: capacityAllocations.id,
+            set: {
+              status: "ACTIVE",
+              startsAt: startAt,
+              endsAt: expectedEndAt,
+            },
+          });
+      });
+    }
+
+    // Seed settled closed rental with refunded deposit for selected facilities (creating realistic cashRefunded)
+    if (["HCM-01", "HCM-02", "HCM-04", "HCM-08", "HCM-09", "HCM-10"].includes(facility.code)) {
+      closedCounter++;
+      const availableUnits = candidateUnits.filter((u) => !unitsToRent.some((r) => r.id === u.id));
+      const closedUnit = availableUnits[0];
+      if (closedUnit) {
+        const offering = offeringMap.get(closedUnit.unitTypeId);
+        if (offering) {
+          const customer = customers[closedCounter % customers.length];
+          const slot = slots[0];
+          if (!customer || !slot) continue;
+          const startAt = shiftDays(seedNow, -70);
+          const closedAt = shiftDays(seedNow, -4);
+          const checkInDate = localDate(startAt);
+          const monthlyRate = offering.monthlyPrice;
+          const depositAmount = monthlyRate;
+          const totalAmount = monthlyRate * 3;
+
+          const bookingId = id("88000000", closedCounter);
+          const originalPaymentId = id("18000000", closedCounter);
+          const rentalId = id("88500000", closedCounter);
+          const refundPaymentId = id("17000000", closedCounter);
+
+          await db.transaction(async (tx) => {
+            await tx
+              .insert(bookings)
+              .values({
+                id: bookingId,
+                bookingCode: `BK-RET-${facility.code}-${String(closedCounter).padStart(4, "0")}`,
+                userId: customer.id,
+                contactPhone: customer.phone,
+                facilityId: facility.id,
+                unitTypeId: closedUnit.unitTypeId,
+                requestedMonths: 2,
+                checkInDate,
+                checkInSlotId: slot.id,
+                rentalEndAt: closedAt,
+                monthlyRateSnapshot: String(monthlyRate),
+                rentalFeeAmount: String(monthlyRate * 2),
+                depositAmount: String(depositAmount),
+                totalAmount: String(totalAmount),
+                status: "CHECKED_IN",
+                assignedStaffId: staff.id,
+              })
+              .onConflictDoNothing();
+
+            await tx
+              .insert(payments)
+              .values({
+                id: originalPaymentId,
+                bookingId,
+                holdTokenHash: `seed-${bookingId}`,
+                provider: "MOCK",
+                providerPaymentId: `seed-orig-pay-${bookingId}`,
+                idempotencyKey: `seed-orig-${bookingId}`,
+                paymentCode: `PAY-RET-${facility.code}-${String(closedCounter).padStart(4, "0")}`,
+                totalAmount: String(totalAmount),
+                currency: "VND",
+                status: "SUCCEEDED",
+                paidAt: startAt,
+              })
+              .onConflictDoNothing();
+
+            await tx
+              .insert(rentals)
+              .values({
+                id: rentalId,
+                bookingId,
+                userId: customer.id,
+                storageUnitId: closedUnit.id,
+                status: RentalStatus.CLOSED,
+                startAt,
+                endAt: closedAt,
+                closedAt,
+              })
+              .onConflictDoNothing({ target: rentals.id });
+
+            await tx
+              .insert(payments)
+              .values({
+                id: refundPaymentId,
+                bookingId,
+                rentalId,
+                sourcePaymentId: originalPaymentId,
+                type: PaymentType.DEPOSIT_REFUND,
+                totalAmount: String(depositAmount),
+                currency: "VND",
+                status: PaymentStatus.REFUNDED,
+                refundedAt: shiftDays(seedNow, -3),
+                refundedBy: manager.id,
+                idempotencyKey: `seed-ref-idem-${rentalId}`,
+              })
+              .onConflictDoNothing();
+          });
+        }
+      }
+    }
+  }
+
+  // Ensure only the two designated demo fixtures have REFUND_PENDING status:
+  // 1. BK-2026-0003 (NO_SHOW)
+  // 2. DEMO-CANCELLED_REFUND
+  const allowedRefundPendingPaymentIds = [
+    id("10000000", 3), // payment for BK-2026-0003
+    id("12000000", 4), // payment for DEMO-CANCELLED_REFUND
+  ];
+  await db
+    .update(payments)
+    .set({ status: PaymentStatus.SUCCEEDED, refundAmount: null, refundReason: null })
+    .where(
+      and(
+        eq(payments.status, PaymentStatus.REFUND_PENDING),
+        notInArray(payments.id, allowedRefundPendingPaymentIds),
+      ),
+    );
+
+  console.log(
+    "Multi-facility rentals seeded: 251 active rentals (~73% system occupancy), healthy deposit pool, balanced cash flow, realistic settled refunds.",
+  );
 }
 
 export async function seedPricingPolicy(seedNow = getSeedNow()) {
@@ -1534,35 +1961,40 @@ async function seed() {
   const checkInSlotsData = [
     {
       id: SEED_IDS.checkInSlots[0],
-      name: "Ca demo hôm nay",
-      startTime: "07:00:00",
-      endTime: "20:00:00",
+      name: "Ca 1",
+      startTime: "09:00:00",
+      endTime: "10:30:00",
+      sameDayCheckInEnabled: false,
     },
     {
       id: SEED_IDS.checkInSlots[1],
       name: "Ca 2",
       startTime: "10:30:00",
       endTime: "12:00:00",
+      sameDayCheckInEnabled: false,
     },
     {
       id: SEED_IDS.checkInSlots[2],
       name: "Ca 3",
       startTime: "14:00:00",
       endTime: "15:30:00",
+      sameDayCheckInEnabled: false,
     },
     {
       id: SEED_IDS.checkInSlots[3],
       name: "Ca 4",
       startTime: "15:30:00",
       endTime: "17:00:00",
+      sameDayCheckInEnabled: false,
     },
   ];
   for (const slot of checkInSlotsData) {
     await queryClient`
-      INSERT INTO check_in_slots (id, name, start_time, end_time)
-      VALUES (${slot.id}, ${slot.name}, ${slot.startTime}, ${slot.endTime})
+      INSERT INTO check_in_slots (id, name, start_time, end_time, same_day_check_in_enabled)
+      VALUES (${slot.id}, ${slot.name}, ${slot.startTime}, ${slot.endTime}, ${slot.sameDayCheckInEnabled ?? false})
       ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name,
-        start_time = EXCLUDED.start_time, end_time = EXCLUDED.end_time
+        start_time = EXCLUDED.start_time, end_time = EXCLUDED.end_time,
+        same_day_check_in_enabled = EXCLUDED.same_day_check_in_enabled
     `;
   }
 
@@ -1715,6 +2147,7 @@ async function seed() {
   await seedDemoData(seedNow);
   await seedFlow2Demo(seedNow);
   await seedBasicRentals(seedNow);
+  await seedMultiFacilityRentals(seedNow);
   await seedPolicies(seedNow);
   await seedAuthAccounts(seedNow);
   await seedImmediateCheckInSlot(seedNow);

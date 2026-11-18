@@ -1,6 +1,7 @@
 import { type FacilityTaskDetail, FacilityTaskStatus } from "@metastorage/contracts";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
+import { apiErrorDetailMessage } from "../../common/api-error.utils";
 import type { StaffSelection, StaffWorkFilters } from "../../common/staff-api.types";
 import { filterStaffWork } from "../../common/staff-work.utils";
 import { api } from "../../lib/api";
@@ -11,7 +12,7 @@ export function staffError(error: unknown): string {
   if (axios.isAxiosError(error) && (!error.response || error.response.status >= 500))
     return M.error;
   return axios.isAxiosError(error)
-    ? (error.response?.data?.error?.message ?? M.error)
+    ? (apiErrorDetailMessage(error) ?? error.response?.data?.error?.message ?? M.error)
     : error instanceof Error
       ? error.message
       : M.error;

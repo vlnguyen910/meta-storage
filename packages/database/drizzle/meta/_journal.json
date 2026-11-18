@@ -197,6 +197,20 @@
       "when": 1794073449814,
       "tag": "0027_fat_ken_ellis",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1794981843360,
+      "tag": "0028_wonderful_wrecker",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1794981904645,
+      "tag": "0029_enable_same_day_demo_slot",
+      "breakpoints": true
     }
   ]
 }

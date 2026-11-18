@@ -65,12 +65,17 @@ export class ReservationsService {
     input = CreateReservationDraftSchema.parse(input);
     const today = localDate(new Date(), "Asia/Ho_Chi_Minh");
     const demo = isDevelopmentEnvironment();
-    if (input.checkInDate < today || (!demo && input.checkInDate === today))
-      throw new BadRequestError(m.futureDateRequired);
+    if (input.checkInDate < today) throw new BadRequestError(m.futureDateRequired);
     await this.facilities.requireActiveFacility(input.facilityId);
     const unitType = await this.unitTypes.requireActiveUnitType(input.facilityId, input.unitTypeId);
     const slot = await this.slots.findByIdForDate(input.checkInSlotId, input.checkInDate);
-    if (!slot || (!demo && slot.startsAt <= new Date())) throw new BadRequestError(m.invalidSlot);
+    const now = new Date();
+    const sameDayAllowed =
+      slot && this.slots.allowsSameDayReservation(slot, input.checkInDate, now);
+    if (input.checkInDate === today && !demo && !sameDayAllowed)
+      throw new BadRequestError(m.futureDateRequired);
+    if (!slot || (!demo && slot.startsAt <= now && !sameDayAllowed))
+      throw new BadRequestError(m.invalidSlot);
     if (!demo) await this.facilities.assertCheckInWithinOperatingHours(slot.startsAt);
     const rentalEndAt = new Date(slot.startsAt);
     rentalEndAt.setUTCDate(rentalEndAt.getUTCDate() + input.durationMonths * 30);

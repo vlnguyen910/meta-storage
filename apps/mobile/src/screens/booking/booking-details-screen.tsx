@@ -68,7 +68,7 @@ export function BookingDetailsScreen({ state: s }: BookingScreenProps) {
       <View className="mb-3 flex-row flex-wrap gap-2">
         {s.slots.data?.map((slot) => {
           const selected = slot.id === s.values.checkInSlotId;
-          const disabled = s.busy || !canSelectCheckInSlot(s.values.checkInDate, slot.startTime);
+          const disabled = s.busy || !canSelectCheckInSlot(s.values.checkInDate, slot);
           return (
             <Pressable
               key={slot.id}
