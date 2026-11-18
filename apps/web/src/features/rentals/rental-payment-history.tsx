@@ -53,7 +53,10 @@ export function RentalPaymentHistory({ rentalId }: { rentalId: string }) {
         <>
           <div className="hidden grid-cols-[1.3fr_1.1fr_1fr_1fr_1fr_auto] gap-4 bg-slate-50 px-6 py-3 text-xs font-semibold text-slate-500 md:grid">
             {M.paymentHeadings.map((label) => (
-              <span key={label} className={label === "Thao tác" ? "text-right" : undefined}>
+              <span
+                key={label}
+                className={label === M.paymentHeadings[5] ? "text-right" : undefined}
+              >
                 {label}
               </span>
             ))}
@@ -124,7 +127,6 @@ export function RentalPaymentHistory({ rentalId }: { rentalId: string }) {
               payment={selectedPayment}
               isOpen={Boolean(selectedPayment)}
               onClose={() => setSelectedPayment(null)}
-              rentalId={rentalId}
             />
           )}
         </>

@@ -9,6 +9,7 @@ import {
   INSPECTION_PHOTO_MAX_COUNT,
   type InspectionListQuery,
   type InspectionRecord,
+  MaintenanceChecklistCompletionSchema,
   ReturnChecklistCompletionSchema,
   type UpdateInspectionInput,
   type UpdatePolicyViolationFeeCatalog,
@@ -425,7 +426,9 @@ export class InspectionsService {
         const completionSchema =
           locked.inspectionType === InspectionType.CHECK_OUT
             ? ReturnChecklistCompletionSchema
-            : HandoverChecklistCompletionSchema;
+            : nextStatus === InspectionStatus.FAILED
+              ? MaintenanceChecklistCompletionSchema
+              : HandoverChecklistCompletionSchema;
         if (!completionSchema.safeParse(results).success)
           throw new ConflictError(m.checklistRequired);
       }

@@ -6,6 +6,7 @@ import {
   HandoverChecklistItemResultSchema,
   INSPECTION_PHOTO_MAX_COUNT,
   type InspectionRecord,
+  MaintenanceChecklistCompletionSchema,
   type UpdateInspectionInput,
 } from "@metastorage/contracts";
 import { useEffect, useRef, useState } from "react";
@@ -55,7 +56,8 @@ export function StaffUnitInspectionView({
     setPhotoIndex((current) => Math.min(current, Math.max(0, (record?.evidence.length ?? 0) - 1)));
   }, [record?.evidence.length]);
 
-  const checklistComplete = HandoverChecklistCompletionSchema.safeParse(results).success;
+  const checklistCanPass = HandoverChecklistCompletionSchema.safeParse(results).success;
+  const checklistCanFail = MaintenanceChecklistCompletionSchema.safeParse(results).success;
   const locked = record?.status === "PASSED" || record?.status === "FAILED";
   const selectedPhoto = record?.evidence[photoIndex];
 
@@ -311,14 +313,14 @@ export function StaffUnitInspectionView({
               />
               <Button
                 label={M.unitInspectionPass}
-                disabled={flow.busy || !checklistComplete}
+                disabled={flow.busy || !checklistCanPass}
                 loading={flow.save.isPending}
                 onPress={() => submit("PASSED")}
               />
               <Button
                 danger
                 label={M.unitInspectionFail}
-                disabled={flow.busy || !checklistComplete}
+                disabled={flow.busy || !checklistCanFail}
                 loading={flow.save.isPending}
                 onPress={() => submit("FAILED")}
               />

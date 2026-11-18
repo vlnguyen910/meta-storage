@@ -96,7 +96,7 @@ export function StaffAssignmentModal({ booking, isOpen, onClose }: StaffAssignme
                       <strong className="text-slate-900 font-semibold">{member.name}</strong>
                       {booking.assignedStaff?.id === member.id && (
                         <span className="text-[10px] font-semibold text-primary bg-primary-soft px-1.5 py-0.5 rounded">
-                          Đang phụ trách
+                          {M.assignedLabel}
                         </span>
                       )}
                     </div>

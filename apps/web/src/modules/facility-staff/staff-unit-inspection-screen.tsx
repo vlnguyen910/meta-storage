@@ -9,6 +9,7 @@ import {
   INSPECTION_PHOTO_MAX_BYTES,
   INSPECTION_PHOTO_MAX_COUNT,
   type InspectionRecord,
+  MaintenanceChecklistCompletionSchema,
   type UpdateInspectionInput,
 } from "@metastorage/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -130,8 +131,10 @@ export function StaffUnitInspectionScreen({ taskId }: { taskId: string }) {
 
   const locked = record?.status === "PASSED" || record?.status === "FAILED";
   const busy = start.isPending || save.isPending || upload.isPending || removePhoto.isPending;
-  const canFinalize =
-    Boolean(condition) && HandoverChecklistCompletionSchema.safeParse(results).success;
+  const checklistCanPass = HandoverChecklistCompletionSchema.safeParse(results).success;
+  const checklistCanFail = MaintenanceChecklistCompletionSchema.safeParse(results).success;
+  const canPass = Boolean(condition) && checklistCanPass;
+  const canFail = Boolean(condition) && checklistCanFail;
   function setChecklistResult(code: string, result: "PASS" | "FAIL" | null) {
     setResults((previous) => {
       if (!result) return previous.filter((item) => item.itemCode !== code);
@@ -306,14 +309,14 @@ export function StaffUnitInspectionScreen({ taskId }: { taskId: string }) {
               </Button>
               <Button
                 variant="outline"
-                disabled={busy || !canFinalize}
+                disabled={busy || !canFail}
                 onClick={() => saveResult("FAILED")}
               >
                 {M.unitInspectionFail}
               </Button>
               <Button
                 variant="primary"
-                disabled={busy || !canFinalize}
+                disabled={busy || !canPass}
                 onClick={() => saveResult("PASSED")}
               >
                 {M.unitInspectionPass}

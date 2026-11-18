@@ -75,6 +75,8 @@ export type RentalActionState = z.infer<typeof RentalActionStateSchema>;
 export const RentalPaymentItemSchema = z.object({
   id: z.string(),
   type: PaymentTypeSchema,
+  reservationId: z.string().uuid().nullable(),
+  method: z.enum(["CASH", "BANK_TRANSFER"]).nullable(),
   paymentCode: z.string().nullable(),
   provider: z.string().nullable(),
   status: z.enum(PaymentStatus),

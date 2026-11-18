@@ -391,7 +391,7 @@ export function CustomerSupportCreate() {
             value={reservationId ?? ""}
             onChange={(id) => {
               form.setValue("reservationId", id, { shouldValidate: true });
-              form.setValue("paymentId", undefined);
+              if (id !== reservationId) form.setValue("paymentId", undefined);
             }}
             error={form.formState.errors.reservationId?.message}
           />

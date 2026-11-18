@@ -221,19 +221,18 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
 
         {/* Quick Kind Filter Tabs */}
         <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-100 bg-white px-3.5 py-2.5">
-          <span className="text-xs font-bold text-slate-500 mr-1 select-none">Phân loại:</span>
+          <span className="text-xs font-bold text-slate-500 mr-1 select-none">
+            {M.kindTabTitle}
+          </span>
           {[
             { value: "", label: M.allKinds },
-            { value: "CHECK_IN", label: "Lịch nhận kho", dot: "bg-emerald-500" },
-            { value: "RETURN", label: "Lịch trả kho", dot: "bg-purple-500" },
-            { value: "SUPPORT", label: "Lịch hỗ trợ", dot: "bg-amber-500" },
-            { value: "TASK", label: "Việc cơ sở", dot: "bg-sky-500" },
+            { value: "CHECK_IN", label: M.kindTabCheckIn, dot: "bg-emerald-500" },
+            { value: "RETURN", label: M.kindTabReturn, dot: "bg-purple-500" },
+            { value: "SUPPORT", label: M.kindTabSupport, dot: "bg-amber-500" },
+            { value: "TASK", label: M.kindTabTask, dot: "bg-sky-500" },
           ].map((item) => {
             const active = filters.kind === item.value;
-            const count = work.items.filter((w) => {
-              if (item.value === "") return true;
-              return w.kind === item.value;
-            }).length;
+            const count = work.typeCount(item.value as StaffWorkFilters["kind"]);
             return (
               <button
                 key={item.value}
@@ -466,25 +465,25 @@ function StaffWorkTableRow({ item }: StaffWorkRowProps) {
       Icon: DoorOpen,
       iconContainer: "bg-emerald-100 text-emerald-800 border-emerald-200",
       badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
-      defaultLabel: "Lịch nhận kho",
+      defaultLabel: M.kindTabCheckIn,
     },
     RETURN: {
       Icon: ArrowLeftRight,
       iconContainer: "bg-purple-100 text-purple-800 border-purple-200",
       badgeClass: "bg-purple-50 text-purple-700 border-purple-200",
-      defaultLabel: "Lịch trả kho",
+      defaultLabel: M.kindTabReturn,
     },
     SUPPORT: {
       Icon: Headset,
       iconContainer: "bg-amber-100 text-amber-800 border-amber-200",
       badgeClass: "bg-amber-50 text-amber-700 border-amber-200",
-      defaultLabel: "Lịch hỗ trợ",
+      defaultLabel: M.kindTabSupport,
     },
     TASK: {
       Icon: ClipboardCheck,
       iconContainer: "bg-sky-100 text-sky-800 border-sky-200",
       badgeClass: "bg-sky-50 text-sky-700 border-sky-200",
-      defaultLabel: "Việc cơ sở",
+      defaultLabel: M.kindTabTask,
     },
   }[item.kind] ?? {
     Icon: CalendarDays,

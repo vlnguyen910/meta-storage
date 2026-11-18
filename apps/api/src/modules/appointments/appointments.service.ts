@@ -165,7 +165,7 @@ export class AppointmentsService {
       if (input.facilityId && input.facilityId !== facilityId)
         throw new BadRequestError(m.contextMismatch);
       await this.facilities.requireActiveFacility(facilityId);
-      if (!demo && !sameDayDemoSlotAllowed && !slot.sameDayCheckInEnabled) {
+      if (!demo && !sameDayDemoSlotAllowed) {
         await this.facilities.assertCheckInWithinOperatingHours(
           slot.startsAt,
           new Date(slot.endsAt.getTime() - 1),

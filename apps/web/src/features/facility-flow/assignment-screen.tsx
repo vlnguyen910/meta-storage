@@ -177,7 +177,9 @@ export function AssignmentScreen() {
                 {booking.data.assignedUnit?.physicalUnitCode && (
                   <div className="flex items-center gap-1.5 rounded-md bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-900">
                     <Warehouse size={13} className="text-blue-600" />
-                    <span>Ô kho hiện tại: {booking.data.assignedUnit.physicalUnitCode}</span>
+                    <span>
+                      {FLOW.reassignFrom}: {booking.data.assignedUnit.physicalUnitCode}
+                    </span>
                   </div>
                 )}
                 <button

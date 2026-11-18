@@ -142,15 +142,15 @@ function ActiveSearchChip({
   return (
     <div className="flex items-center gap-2 px-1 text-xs text-slate-600">
       <span>
-        Đang lọc theo: <strong className="text-slate-900">"{query}"</strong> ({count} kết quả trên
-        trang hiện tại)
+        {R.searchCurrentPagePrefix} <strong className="text-slate-900">"{query}"</strong>
+        {R.searchCurrentPageCount(count)}
       </span>
       <button
         type="button"
         onClick={onReset}
         className="text-primary hover:underline font-semibold text-xs cursor-pointer ml-1"
       >
-        Xóa tìm kiếm
+        {R.clearSearch}
       </button>
     </div>
   );
@@ -493,7 +493,7 @@ function RentalsTab() {
             label={M.rentalSummary}
             page={page}
             pageSize={PAGE_SIZE}
-            total={searchQuery ? items.length : data.total}
+            total={data.total}
             unitLabel="lượt thuê"
             onPageChange={setPage}
           />
@@ -730,7 +730,7 @@ function ReconciliationTab() {
             label={M.tabReconciliationTitle}
             page={page}
             pageSize={PAGE_SIZE}
-            total={searchQuery ? items.length : data.total}
+            total={data.total}
             unitLabel="giao dịch"
             onPageChange={setPage}
           />

@@ -78,19 +78,19 @@ export function ManagerBookingRow({
           {checkInFlow && (
             <span className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700">
               <DoorOpen size={12} aria-hidden="true" />
-              <span>{M.checkInAppointment ?? "Lịch nhận kho"}</span>
+              <span>{M.checkInAppointment}</span>
             </span>
           )}
           {returnFlow && (
             <span className="inline-flex items-center gap-1 rounded-md border border-purple-200 bg-purple-50 px-2 py-0.5 text-xs font-bold text-purple-700">
               <ArrowLeftRight size={12} aria-hidden="true" />
-              <span>{M.returnAppointment ?? "Lịch trả kho"}</span>
+              <span>{M.returnAppointment}</span>
             </span>
           )}
           {supportFlow && (
             <span className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-700">
               <Headset size={12} aria-hidden="true" />
-              <span>Lịch hỗ trợ</span>
+              <span>{M.supportAppointment}</span>
             </span>
           )}
           <span className="inline-flex items-center gap-1 rounded-md border border-line bg-slate-50 pl-2">

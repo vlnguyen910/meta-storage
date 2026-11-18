@@ -31,6 +31,7 @@ export const TRANSACTION_MESSAGES = {
   createdAt: "Thời gian tạo giao dịch",
   openRental: "Mở chi tiết kho",
   supportAction: "Gửi hỗ trợ",
+  detailAction: "Chi tiết",
   paid: "Thành công",
   pending: "Đang xử lý",
   refunded: "Đã hoàn tiền",

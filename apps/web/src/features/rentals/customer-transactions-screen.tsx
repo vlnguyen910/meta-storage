@@ -261,7 +261,7 @@ export function CustomerTransactionsScreen() {
                         onClick={() => setSelectedItem({ rental, payment })}
                         className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline cursor-pointer"
                       >
-                        <span>Chi tiết</span>
+                        <span>{M.detailAction}</span>
                       </button>
                       <span className="text-slate-300">|</span>
                       <Link
@@ -314,7 +314,6 @@ export function CustomerTransactionsScreen() {
           payment={selectedItem.payment}
           isOpen={Boolean(selectedItem)}
           onClose={() => setSelectedItem(null)}
-          rentalId={selectedItem.rental.id}
           bookingCode={selectedItem.rental.bookingCode}
           unitTypeName={selectedItem.rental.unitType.name}
           facilityName={selectedItem.rental.facility.name}

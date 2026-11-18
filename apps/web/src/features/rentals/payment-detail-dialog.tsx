@@ -26,7 +26,6 @@ export interface PaymentDetailDialogProps {
   payment: RentalPaymentItem | null;
   isOpen: boolean;
   onClose: () => void;
-  rentalId?: string;
   bookingCode?: string;
   unitTypeName?: string;
   facilityName?: string;
@@ -36,7 +35,6 @@ export function PaymentDetailDialog({
   payment,
   isOpen,
   onClose,
-  rentalId,
   bookingCode,
   unitTypeName,
   facilityName,
@@ -53,19 +51,27 @@ export function PaymentDetailDialog({
 
   const typeLabel = isRefund ? M.depositRefund : M.paymentCharge;
 
-  const providerLabel = payment.provider
-    ? payment.provider.toUpperCase() === "PAYOS"
-      ? "Cổng thanh toán PayOS (QR VietQR)"
-      : payment.provider.toUpperCase() === "VNPAY"
-        ? "Cổng thanh toán VNPAY"
-        : payment.provider
-    : "Chuyển khoản QR ngân hàng";
+  const providerLabel = isRefund
+    ? payment.method === "CASH"
+      ? M.paymentMethodCash
+      : payment.method === "BANK_TRANSFER"
+        ? M.paymentMethodBankTransfer
+        : M.paymentMethodUnknown
+    : payment.provider
+      ? payment.provider.toUpperCase() === "PAYOS"
+        ? M.paymentProviderPayos
+        : payment.provider.toUpperCase() === "VNPAY"
+          ? M.paymentProviderVnpay
+          : payment.provider
+      : M.paymentMethodUnknown;
+  const supportParams = new URLSearchParams({ paymentId: payment.id });
+  if (payment.reservationId) supportParams.set("reservationId", payment.reservationId);
 
   const handleCopyCode = async () => {
     try {
       await navigator.clipboard.writeText(displayCode);
       setCopied(true);
-      showToast("Đã sao chép mã giao dịch", "success");
+      showToast(M.paymentCodeCopied, "success");
       setTimeout(() => setCopied(false), 2000);
     } catch {
       // Ignore clipboard write failure
@@ -124,8 +130,8 @@ export function PaymentDetailDialog({
             </strong>
             <p className="text-[11px] text-slate-400">
               {payment.paidAt
-                ? `Thanh toán thành công lúc ${formatDateTime(payment.paidAt)}`
-                : `Tạo lúc ${formatDateTime(payment.createdAt)}`}
+                ? M.paymentPaidAtLabel(formatDateTime(payment.paidAt))
+                : M.paymentCreatedAtLabel(formatDateTime(payment.createdAt))}
             </p>
           </div>
 
@@ -138,7 +144,7 @@ export function PaymentDetailDialog({
                 <button
                   type="button"
                   onClick={handleCopyCode}
-                  title="Sao chép mã"
+                  title={M.paymentCopyCode}
                   className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
                 >
                   {copied ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
@@ -178,14 +184,14 @@ export function PaymentDetailDialog({
 
             {bookingCode && (
               <div className="flex items-center justify-between p-3">
-                <span className="text-slate-500 font-medium">Mã đơn đặt kho</span>
+                <span className="text-slate-500 font-medium">{M.paymentBookingCode}</span>
                 <span className="font-mono font-semibold text-slate-800">{bookingCode}</span>
               </div>
             )}
 
             {facilityName && (
               <div className="flex items-center justify-between p-3">
-                <span className="text-slate-500 font-medium">Cơ sở lưu kho</span>
+                <span className="text-slate-500 font-medium">{M.paymentFacility}</span>
                 <span className="font-semibold text-slate-800 text-right truncate max-w-[220px]">
                   {facilityName}
                 </span>
@@ -194,7 +200,7 @@ export function PaymentDetailDialog({
 
             {unitTypeName && (
               <div className="flex items-center justify-between p-3">
-                <span className="text-slate-500 font-medium">Loại kho</span>
+                <span className="text-slate-500 font-medium">{M.paymentUnitType}</span>
                 <span className="font-semibold text-slate-800 text-right">{unitTypeName}</span>
               </div>
             )}
@@ -235,7 +241,7 @@ export function PaymentDetailDialog({
 
         <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-2">
           <Link
-            href={`${customerRoutes.supportNew}?paymentId=${payment.id}${rentalId ? `&rentalId=${rentalId}` : ""}`}
+            href={`${customerRoutes.supportNew}?${supportParams.toString()}`}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-primary transition-colors"
           >
             <HelpCircle size={14} />

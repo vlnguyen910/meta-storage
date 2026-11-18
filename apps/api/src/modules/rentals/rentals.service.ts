@@ -600,6 +600,8 @@ function toRentalPaymentItem(payment: typeof payments.$inferSelect): RentalPayme
   return {
     id: payment.id,
     type: payment.type,
+    reservationId: payment.reservationId,
+    method: payment.method,
     paymentCode: payment.paymentCode,
     provider: payment.provider,
     status: payment.status,

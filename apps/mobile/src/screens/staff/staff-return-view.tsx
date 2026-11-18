@@ -130,14 +130,6 @@ export function StaffReturnView({
     });
   }
 
-  if (flow.error) {
-    return (
-      <View>
-        <Notice error>{staffError(flow.error)}</Notice>
-        <Button variant="outline" label={M.retry} onPress={() => void flow.refresh()} />
-      </View>
-    );
-  }
   if (current.appointmentType !== "CHECK_OUT") return <Notice error>{M.returnLoadError}</Notice>;
 
   return (
@@ -146,6 +138,12 @@ export function StaffReturnView({
         <Heading>{`${M.inspectReturn} · ${formatReference(current.rentalId ?? current.id, current.rentalId ? "KT" : "LH")}`}</Heading>
         <Text className="mt-1 font-body text-[12px] leading-5 text-muted">{scheduledAt}</Text>
       </View>
+      {flow.error ? (
+        <View className="mb-3">
+          <Notice error>{staffError(flow.error)}</Notice>
+          <Button variant="outline" label={M.retry} onPress={() => void flow.refresh()} />
+        </View>
+      ) : null}
 
       <Card title={M.returnAppointment}>
         <View className="mb-3 flex-row flex-wrap gap-2">
@@ -476,8 +474,8 @@ export function StaffReturnView({
                     }`}
                   >
                     {settlementConfirmed
-                      ? `Đã ghi nhận trả cọc (${refundAmount.toLocaleString("vi-VN")} đ)`
-                      : `Ghi nhận trả cọc (${refundAmount.toLocaleString("vi-VN")} đ)`}
+                      ? M.returnRefundRecorded(refundAmount.toLocaleString("vi-VN"))
+                      : M.returnRecordRefund(refundAmount.toLocaleString("vi-VN"))}
                   </Text>
                 </Pressable>
               ) : (

@@ -35,6 +35,7 @@ import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { formatBookingAmount, formatBookingDateTime as formatDateTime } from "./booking-display";
 import { BookingFilterChips } from "./booking-filter-chips";
+import { FACILITY_BOOKINGS_MESSAGES as M } from "./facility-bookings-view.messages";
 import type { FacilityBookingsViewProps } from "./facility-bookings-view.types";
 import { ManagerBookingRow } from "./manager-booking-row";
 import { MANAGER_BOOKING_ROW as MB } from "./manager-booking-row.messages";
@@ -163,13 +164,25 @@ export function FacilityBookingsView({
         {showingAll && (
           <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-100 pb-3">
             <span className="text-xs font-bold text-slate-500 mr-1 select-none">
-              Loại lịch hẹn:
+              {M.appointmentTypeFilter}
             </span>
             {[
-              { id: "ALL", label: "Tất cả lịch hẹn" },
-              { id: APPOINTMENT_TYPES.CHECK_IN, label: "Lịch nhận kho", dot: "bg-emerald-500" },
-              { id: APPOINTMENT_TYPES.CHECK_OUT, label: "Lịch trả kho", dot: "bg-purple-500" },
-              { id: APPOINTMENT_TYPES.SUPPORT, label: "Lịch hỗ trợ", dot: "bg-amber-500" },
+              { id: "ALL", label: M.allAppointmentTypes },
+              {
+                id: APPOINTMENT_TYPES.CHECK_IN,
+                label: M.checkInAppointmentType,
+                dot: "bg-emerald-500",
+              },
+              {
+                id: APPOINTMENT_TYPES.CHECK_OUT,
+                label: M.returnAppointmentType,
+                dot: "bg-purple-500",
+              },
+              {
+                id: APPOINTMENT_TYPES.SUPPORT,
+                label: M.supportAppointmentType,
+                dot: "bg-amber-500",
+              },
             ].map((typeItem) => {
               const active = d.typeFilter === typeItem.id;
               const count = d.typeCount(typeItem.id as "ALL" | APPOINTMENT_TYPES);
@@ -319,17 +332,17 @@ export function FacilityBookingsView({
                       {b.appointmentType === "CHECK_IN" ? (
                         <span className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700">
                           <DoorOpen size={12} aria-hidden="true" />
-                          <span>Lịch nhận kho</span>
+                          <span>{M.checkInAppointmentType}</span>
                         </span>
                       ) : b.appointmentType === "CHECK_OUT" ? (
                         <span className="inline-flex items-center gap-1 rounded-md border border-purple-200 bg-purple-50 px-2 py-0.5 text-xs font-bold text-purple-700">
                           <ArrowLeftRight size={12} aria-hidden="true" />
-                          <span>Lịch trả kho</span>
+                          <span>{M.returnAppointmentType}</span>
                         </span>
                       ) : b.appointmentType === "SUPPORT" ? (
                         <span className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-700">
                           <Headset size={12} aria-hidden="true" />
-                          <span>Lịch hỗ trợ</span>
+                          <span>{M.supportAppointmentType}</span>
                         </span>
                       ) : null}
                       <Pill
@@ -498,7 +511,7 @@ export function FacilityBookingsView({
                     details.appointmentType === APPOINTMENT_TYPES.CHECK_OUT
                       ? FLOW.checkOutAppointments
                       : details.appointmentType === APPOINTMENT_TYPES.SUPPORT
-                        ? "Hỗ trợ khách hàng"
+                        ? M.supportCustomerType
                         : FLOW.checkInAppointments
                   }
                 />

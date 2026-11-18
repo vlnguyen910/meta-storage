@@ -63,6 +63,8 @@ export const STAFF_API_UI = {
   returnFinalize: "Xác nhận quyết toán và hoàn tất trả kho",
   returnFinalized: "Đã chốt trả kho.",
   returnSaved: "Đã lưu biên bản trả kho.",
+  returnRefundRecorded: (amount: string) => `Đã ghi nhận trả cọc (${amount} đ)`,
+  returnRecordRefund: (amount: string) => `Ghi nhận trả cọc (${amount} đ)`,
   unitInspectionTitle: "Kiểm tra tình trạng ô kho",
   unitInspectionDescription:
     "Kiểm tra riêng ô kho theo yêu cầu của quản lý cơ sở; kết quả được lưu vào biên bản.",

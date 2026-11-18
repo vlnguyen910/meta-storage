@@ -152,3 +152,11 @@ export const ReturnChecklistCompletionSchema = createHandoverChecklistCompletion
     noteRequiredWhenFailed: true,
   })),
 );
+
+export const MaintenanceChecklistCompletionSchema = createHandoverChecklistCompletionSchema(
+  HANDOVER_CHECKLIST_ITEMS.map((item) => ({
+    ...item,
+    mustPass: false,
+    noteRequiredWhenFailed: true,
+  })),
+);
