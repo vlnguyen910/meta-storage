@@ -94,8 +94,10 @@ export function BookingSchedulePicker({
     if (value !== date) onSlotChange("");
     onDateChange(value);
   }
-  function slotHasPassed(startTime: string) {
-    return date === today && startTime.slice(0, 5) <= currentTime;
+  function slotHasPassed(slot: CheckInSlotOption) {
+    if (date !== today) return false;
+    const cutoff = slot.sameDayCheckInEnabled ? slot.endTime : slot.startTime;
+    return cutoff.slice(0, 5) <= currentTime;
   }
 
   return (
@@ -127,7 +129,7 @@ export function BookingSchedulePicker({
             <div className={dateFirst ? "grid gap-2" : "grid gap-2 sm:grid-cols-2"}>
               {slots.map((slot) => {
                 const selected = slotId === slot.id;
-                const passed = slotHasPassed(slot.startTime);
+                const passed = slotHasPassed(slot);
                 return (
                   <button
                     key={slot.id}
@@ -165,7 +167,7 @@ export function BookingSchedulePicker({
                 );
               })}
             </div>
-            {date === today && slots.every((slot) => slotHasPassed(slot.startTime)) && (
+            {date === today && slots.every(slotHasPassed) && (
               <p role="status" className="mt-2 text-xs text-muted">
                 {m.slotsPassedToday}
               </p>
