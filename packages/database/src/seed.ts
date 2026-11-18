@@ -1051,8 +1051,9 @@ async function seedMultiFacilityRentals(seedNow: Date) {
     "HCM-08": 4,
   };
 
-  // Target count of rentals paying in current month (November 2026), creating a smooth revenue staircase:
-  // HCM-01: ~45M, HCM-04: ~25M, HCM-02: ~20M, HCM-08: ~18M, HCM-05: ~15M, HCM-06: ~13M, HCM-07: ~9M, HCM-03: ~8M.
+  // Target count of rentals paying in current month (November 2026), creating a smooth
+  // revenue staircase: HCM-01: ~45M, HCM-04: ~25M, HCM-02: ~20M, HCM-08: ~18M,
+  // HCM-05: ~15M, HCM-06: ~13M, HCM-07: ~9M, HCM-03: ~8M.
   const currentMonthPaidTarget: Record<string, number> = {
     "HCM-01": 3,
     "HCM-02": 2,
@@ -1662,72 +1663,49 @@ async function seed() {
 
   console.log("1. Seeding facilities...");
   // Fictional catalog fixtures for local testing, not real metastorage locations.
-  const facilitiesData = [
-    {
-      id: SEED_IDS.facilities["HCM-01"],
-      code: "HCM-01",
-      name: "Cơ sở Demo",
-      address: "118 Nguyễn Văn Linh, P. Tân Phong, Q.7",
-      coverUrl:
-        "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80",
-    },
-    {
-      id: SEED_IDS.facilities["HCM-02"],
-      code: "HCM-02",
-      name: "Cơ sở Bến Thành",
-      address: "42 Lê Lai, P. Bến Thành, Q.1",
-      coverUrl:
-        "https://images.unsplash.com/photo-1553413077-190dd305871c?auto=format&fit=crop&w=1200&q=80",
-    },
-    {
-      id: SEED_IDS.facilities["HCM-03"],
-      code: "HCM-03",
-      name: "Cơ sở Bình Thạnh",
-      address: "85 Điện Biên Phủ, P. 15, Q. Bình Thạnh",
-      coverUrl:
-        "https://images.unsplash.com/photo-1587293852726-70cdb56c2866?auto=format&fit=crop&w=1200&q=80",
-    },
-    {
-      id: SEED_IDS.facilities["HCM-04"],
-      code: "HCM-04",
-      name: "Cơ sở Thảo Điền",
-      address: "28 Nguyễn Văn Hưởng, P. Thảo Điền, TP. Thủ Đức",
-      coverUrl:
-        "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80",
-    },
-    {
-      id: SEED_IDS.facilities["HCM-05"],
-      code: "HCM-05",
-      name: "Cơ sở Phú Nhuận",
-      address: "156 Phan Xích Long, P. 2, Q. Phú Nhuận",
-      coverUrl:
-        "https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=1200&q=80",
-    },
-    {
-      id: SEED_IDS.facilities["HCM-06"],
-      code: "HCM-06",
-      name: "Cơ sở Tân Bình",
-      address: "67 Cộng Hòa, P. 4, Q. Tân Bình",
-      coverUrl:
-        "https://images.unsplash.com/photo-1565610222536-ef125c59da2e?auto=format&fit=crop&w=1200&q=80",
-    },
-    {
-      id: SEED_IDS.facilities["HCM-07"],
-      code: "HCM-07",
-      name: "Cơ sở Tân Phú",
-      address: "93 Lũy Bán Bích, P. Tân Thới Hòa, Q. Tân Phú",
-      coverUrl:
-        "https://images.unsplash.com/photo-1590496793929-36417d3117de?auto=format&fit=crop&w=1200&q=80",
-    },
-    {
-      id: SEED_IDS.facilities["HCM-08"],
-      code: "HCM-08",
-      name: "Cơ sở Gò Vấp",
-      address: "210 Nguyễn Oanh, P. 17, Q. Gò Vấp",
-      coverUrl:
-        "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1200&q=80",
-    },
-  ];
+  const facilitiesData = (
+    [
+      [
+        "HCM-01",
+        "Cơ sở Demo",
+        "118 Nguyễn Văn Linh, P. Tân Phong, Q.7",
+        "1586528116311-ad8dd3c8310d",
+      ],
+      ["HCM-02", "Cơ sở Bến Thành", "42 Lê Lai, P. Bến Thành, Q.1", "1553413077-190dd305871c"],
+      [
+        "HCM-03",
+        "Cơ sở Bình Thạnh",
+        "85 Điện Biên Phủ, P. 15, Q. Bình Thạnh",
+        "1587293852726-70cdb56c2866",
+      ],
+      [
+        "HCM-04",
+        "Cơ sở Thảo Điền",
+        "28 Nguyễn Văn Hưởng, P. Thảo Điền, TP. Thủ Đức",
+        "1600585154340-be6161a56a0c",
+      ],
+      [
+        "HCM-05",
+        "Cơ sở Phú Nhuận",
+        "156 Phan Xích Long, P. 2, Q. Phú Nhuận",
+        "1578575437130-527eed3abbec",
+      ],
+      ["HCM-06", "Cơ sở Tân Bình", "67 Cộng Hòa, P. 4, Q. Tân Bình", "1565610222536-ef125c59da2e"],
+      [
+        "HCM-07",
+        "Cơ sở Tân Phú",
+        "93 Lũy Bán Bích, P. Tân Thới Hòa, Q. Tân Phú",
+        "1590496793929-36417d3117de",
+      ],
+      ["HCM-08", "Cơ sở Gò Vấp", "210 Nguyễn Oanh, P. 17, Q. Gò Vấp", "1504384308090-c894fdcc538d"],
+    ] as const
+  ).map(([code, name, address, photoId]) => ({
+    id: SEED_IDS.facilities[code],
+    code,
+    name,
+    address,
+    coverUrl: `https://images.unsplash.com/photo-${photoId}?auto=format&fit=crop&w=1200&q=80`,
+  }));
   const facilities = [];
   for (const facility of facilitiesData) {
     const [row] = await queryClient`
