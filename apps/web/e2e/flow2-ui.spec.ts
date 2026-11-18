@@ -46,7 +46,7 @@ async function fixture(
     id,
     bookingCode: "BK-2026-0001",
     facilityId: "f0000000-0000-4000-8000-000000000001",
-    facilityName: "metastorage Sài Gòn Central",
+    facilityName: "Cơ sở Demo",
     unitTypeId: "e0000000-0000-4000-8000-000000000001",
     unitTypeName: "Kho tiêu chuẩn (4 m²)",
     unitTypeSizeLabel: "4 m²",
