@@ -17,6 +17,8 @@ import {
   Phone,
   Search,
   User,
+  UserCheck,
+  UserPlus,
   Warehouse,
 } from "lucide-react";
 import Link from "next/link";
@@ -44,6 +46,7 @@ import { InspectionScreen } from "@/features/facility-flow/inspection-screen";
 import { flowError, useCheckInFlow } from "@/features/facility-flow/use-check-in-flow";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { StaffAssignmentModal } from "./staff-assignment-modal";
 export function CheckInScreen() {
   return (
     <Suspense fallback={<LoadingState label={FLOW.loading} />}>
@@ -68,6 +71,7 @@ function CheckInFlowScreen() {
       : `${root}/tasks?view=appointments`;
   const [lookupType, setLookupType] = useState<"BOOKING_CODE" | "QR_TOKEN">("BOOKING_CODE");
   const [input, setInput] = useState("");
+  const [staffModalOpen, setStaffModalOpen] = useState(false);
   const result = flow.result;
   const reasons = result?.checkInReadiness.reasons ?? [];
   const inspectionStarted = Boolean(flow.current);
@@ -155,7 +159,7 @@ function CheckInFlowScreen() {
           <>
             {/* Hero Booking & Assigned Unit Highlight Card */}
             <Card className="overflow-hidden border-slate-200 bg-white shadow-xs">
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between p-4 sm:p-5 gap-4">
+              <div className="flex flex-col 2xl:flex-row 2xl:items-center 2xl:justify-between p-4 sm:p-5 gap-4">
                 {/* Left: Customer & Booking Info */}
                 <div className="flex items-start gap-3.5">
                   <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/60">
@@ -193,10 +197,11 @@ function CheckInFlowScreen() {
                   </div>
                 </div>
 
-                {/* Right: Assigned Physical Unit Box + Prominent Action Button */}
-                <div className="flex shrink-0 items-center">
+                {/* Right: Assigned Physical Unit Box & Staff Assignment Box */}
+                <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 shrink-0">
+                  {/* Assigned Physical Unit Box */}
                   {result.assignedUnit ? (
-                    <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-gradient-to-r from-emerald-50/70 via-teal-50/40 to-slate-50 p-3 sm:px-4 sm:py-3 shadow-2xs w-full lg:w-auto">
+                    <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-gradient-to-r from-emerald-50/70 via-teal-50/40 to-slate-50 p-3 sm:px-4 sm:py-3 shadow-2xs w-full sm:w-auto">
                       <div className="flex items-center gap-3">
                         <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-700 text-white shadow-xs">
                           <Warehouse className="size-4.5" />
@@ -228,7 +233,7 @@ function CheckInFlowScreen() {
                       )}
                     </div>
                   ) : (
-                    <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 rounded-xl border-2 border-dashed border-amber-300 bg-amber-50/70 p-3 sm:px-4 sm:py-3 shadow-2xs w-full lg:w-auto">
+                    <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 rounded-xl border-2 border-dashed border-amber-300 bg-amber-50/70 p-3 sm:px-4 sm:py-3 shadow-2xs w-full sm:w-auto">
                       <div className="flex items-center gap-3">
                         <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-amber-600 text-white shadow-xs">
                           <Boxes className="size-4.5" />
@@ -251,6 +256,69 @@ function CheckInFlowScreen() {
                           <Boxes className="size-3.5" />
                           <span>{FLOW.assign}</span>
                         </Link>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Staff Assignment Box */}
+                  {result.booking.assignedStaff ? (
+                    <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-slate-50 p-3 sm:px-4 sm:py-3 shadow-2xs w-full sm:w-auto">
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-700 text-white shadow-xs">
+                          <UserCheck className="size-4.5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-semibold uppercase tracking-wider text-blue-800">
+                              {FLOW.assignedStaff}
+                            </span>
+                            <span className="inline-block size-1.5 rounded-full bg-blue-500" />
+                          </div>
+                          <p className="text-base font-bold tracking-tight text-slate-900 truncate max-w-[180px]">
+                            {result.booking.assignedStaff.name}
+                          </p>
+                          <p className="text-[11px] text-slate-500 truncate max-w-[180px]">
+                            {FLOW.staff}
+                          </p>
+                        </div>
+                      </div>
+
+                      {result.booking.status === "CONFIRMED" && (
+                        <button
+                          type="button"
+                          onClick={() => setStaffModalOpen(true)}
+                          className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-blue-700 px-3.5 text-xs font-bold text-white shadow-xs hover:bg-blue-800 active:scale-[0.98] transition-all cursor-pointer ring-1 ring-blue-600"
+                        >
+                          <UserCheck className="size-3.5" />
+                          <span>{FLOW.reassignStaff}</span>
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 rounded-xl border-2 border-dashed border-amber-300 bg-amber-50/70 p-3 sm:px-4 sm:py-3 shadow-2xs w-full sm:w-auto">
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-amber-600 text-white shadow-xs">
+                          <UserPlus className="size-4.5" />
+                        </div>
+                        <div>
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800">
+                            {FLOW.needsStaff}
+                          </span>
+                          <p className="text-xs font-medium text-amber-700">
+                            {FLOW.noStaffAssignedHint}
+                          </p>
+                        </div>
+                      </div>
+
+                      {result.booking.status === "CONFIRMED" && (
+                        <button
+                          type="button"
+                          onClick={() => setStaffModalOpen(true)}
+                          className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-amber-600 px-3.5 text-xs font-bold text-white shadow-xs hover:bg-amber-700 active:scale-[0.98] transition-all cursor-pointer"
+                        >
+                          <UserPlus className="size-3.5" />
+                          <span>{FLOW.assignStaff}</span>
+                        </button>
                       )}
                     </div>
                   )}
@@ -452,16 +520,56 @@ function CheckInFlowScreen() {
               ))
             ) : (
               <Card className="border-slate-200 bg-white p-4 shadow-xs">
-                <div className="flex items-center gap-3.5">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
-                    <ClipboardCheck className="size-5" />
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3.5">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
+                      <ClipboardCheck className="size-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-900">{FLOW.notInspected}</p>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        {result.booking.assignedStaff
+                          ? FLOW.staffAssignedWaitInspection(result.booking.assignedStaff.name)
+                          : FLOW.inspectStaffOnly}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-bold text-slate-900">{FLOW.notInspected}</p>
-                    <p className="mt-0.5 text-xs text-slate-500">{FLOW.inspectStaffOnly}</p>
-                  </div>
+                  {result.booking.status === "CONFIRMED" && (
+                    <button
+                      type="button"
+                      onClick={() => setStaffModalOpen(true)}
+                      className={cn(
+                        "inline-flex items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-bold transition-all cursor-pointer h-9 shrink-0 self-start sm:self-center",
+                        result.booking.assignedStaff
+                          ? "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300"
+                          : "bg-primary text-white hover:bg-primary-dark shadow-xs",
+                      )}
+                    >
+                      {result.booking.assignedStaff ? (
+                        <>
+                          <UserCheck className="size-3.5" />
+                          <span>{FLOW.reassignStaff}</span>
+                        </>
+                      ) : (
+                        <>
+                          <UserPlus className="size-3.5" />
+                          <span>{FLOW.quickAssignStaff}</span>
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               </Card>
+            )}
+            {staffModalOpen && (
+              <StaffAssignmentModal
+                booking={result.booking}
+                isOpen={staffModalOpen}
+                onClose={() => {
+                  setStaffModalOpen(false);
+                  flow.lookup.refetch();
+                }}
+              />
             )}
           </>
         )}

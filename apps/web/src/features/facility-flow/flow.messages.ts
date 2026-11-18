@@ -45,6 +45,12 @@ export const FLOW = {
   inspectionRecord: "Biên bản kiểm tra & Bàn giao",
   assignedStaff: "Staff phụ trách",
   needsStaff: "Chờ phân công Staff",
+  assignStaff: "Chỉ định nhân viên",
+  reassignStaff: "Đổi nhân viên",
+  quickAssignStaff: "Chỉ định nhân viên nhanh",
+  noStaffAssignedHint: "Chưa chỉ định nhân viên xử lý",
+  staffAssignedWaitInspection: (name: string) =>
+    `Đã phân công cho ${name}. Chờ Staff thực hiện kiểm tra và bàn giao.`,
   staffTasks: "Công việc được giao",
   staffWork: "Công việc của tôi",
   confirmHandover: "Xác nhận khách nhận kho",
