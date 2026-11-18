@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, KeyRound, Menu, UserRound } from "lucide-react";
+import { ChevronRight, Menu, UserRound } from "lucide-react";
 import Link from "next/link";
 import { BrandLogo } from "@/components/ui/brand-logo";
 import { roleHome, routes } from "@/config/routes";
@@ -45,16 +45,6 @@ export function PublicHeader() {
           ))}
         </nav>
         <div className="order-3 flex w-full items-center justify-between gap-2 sm:ml-auto sm:w-auto xl:ml-0 xl:justify-self-end">
-          {!session ? (
-            <Link
-              href={routes.bookingTracking}
-              aria-label={m.myStorageLookup}
-              className={`${headerLink} text-primary`}
-            >
-              <KeyRound size={16} aria-hidden="true" />
-              <span>{m.myStorageLookupShort}</span>
-            </Link>
-          ) : null}
           <Link
             href={accountHref}
             aria-label={session ? m.openAccount(session.user.name) : m.login}
