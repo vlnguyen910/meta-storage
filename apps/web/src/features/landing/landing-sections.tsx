@@ -214,7 +214,6 @@ export function LandingFooter() {
           <h3 className="mb-4 text-sm font-semibold">{m.footerHelp}</h3>
           <div className="grid gap-1 text-sm text-muted">
             {[
-              { label: m.myStorageLookup, href: routes.bookingTracking },
               { label: m.login, href: routes.login },
               { label: m.faq, href: "/#booking-info" },
             ].map((item) => (

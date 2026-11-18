@@ -49,10 +49,10 @@ export function StaffAssignmentModal({ booking, isOpen, onClose }: StaffAssignme
       <DialogContent className="max-w-lg max-h-[90dvh] overflow-y-auto p-6">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">{M.title}</DialogTitle>
-          <p className="mt-1 text-sm text-[#404945]">
+          <p className="mt-1 text-sm text-slate-600">
             {booking.bookingCode} · {booking.contactName}
           </p>
-          <p className="text-xs text-[#404945]">{booking.facilityName}</p>
+          <p className="text-xs text-slate-500">{booking.facilityName}</p>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(submit)} className="mt-5 space-y-5">
           {staff.isLoading ? (
@@ -92,7 +92,14 @@ export function StaffAssignmentModal({ booking, isOpen, onClose }: StaffAssignme
                     {selected === member.id && <div className="size-2 rounded-full bg-white" />}
                   </div>
                   <span className="min-w-0">
-                    <strong className="block text-slate-900 font-semibold">{member.name}</strong>
+                    <div className="flex items-center gap-2">
+                      <strong className="text-slate-900 font-semibold">{member.name}</strong>
+                      {booking.assignedStaff?.id === member.id && (
+                        <span className="text-[10px] font-semibold text-primary bg-primary-soft px-1.5 py-0.5 rounded">
+                          Đang phụ trách
+                        </span>
+                      )}
+                    </div>
                     {member.assignedTasksCount != null && (
                       <span className="block text-xs text-slate-500 font-medium">
                         {M.taskCount(member.assignedTasksCount)}

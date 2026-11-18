@@ -66,6 +66,7 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
   const client = useQueryClient();
   const [showReturnForm, setShowReturnForm] = useState(false);
   const [confirmEarlyReturn, setConfirmEarlyReturn] = useState(false);
+  const [confirmCancelReturn, setConfirmCancelReturn] = useState(false);
   const [scheduledDate, setScheduledDate] = useState("");
   const [slotId, setSlotId] = useState("");
   const slots = useQuery({
@@ -278,7 +279,7 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
                   loading={cancelReturn.isPending}
                   disabled={appointments.isPending || cancelReturn.isPending}
                   onClick={() =>
-                    activeReturn ? cancelReturn.mutate(activeReturn.id) : setShowReturnForm(true)
+                    activeReturn ? setConfirmCancelReturn(true) : setShowReturnForm(true)
                   }
                 >
                   <RotateCcw className="size-3.5" />
@@ -443,6 +444,34 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
                 onClick={() => createReturn.mutate()}
               >
                 {M.returnEarlyConfirm}
+              </Button>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={confirmCancelReturn} onOpenChange={setConfirmCancelReturn}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{M.returnCancelConfirmTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{M.returnCancelConfirmDescription}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel asChild>
+              <Button variant="outline">{M.cancel}</Button>
+            </AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Button
+                variant="danger"
+                loading={cancelReturn.isPending}
+                disabled={cancelReturn.isPending}
+                onClick={() => {
+                  if (activeReturn) {
+                    cancelReturn.mutate(activeReturn.id);
+                  }
+                  setConfirmCancelReturn(false);
+                }}
+              >
+                {M.returnCancelConfirmAction}
               </Button>
             </AlertDialogAction>
           </AlertDialogFooter>

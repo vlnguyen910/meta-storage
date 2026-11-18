@@ -40,16 +40,29 @@ export function CheckoutContact({ state }: { state: CheckoutState }) {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3.5">
           {/* Full Name */}
           <div>
-            <label htmlFor="fullName" className="block text-xs font-bold text-slate-700 mb-1">
-              {m.fullName}
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label htmlFor="fullName" className="text-xs font-bold text-slate-700">
+                {m.fullName}
+              </label>
+              {!isMockMode && (
+                <span className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
+                  <Lock size={10} />
+                  <span>Theo tài khoản</span>
+                </span>
+              )}
+            </div>
             <input
               id="fullName"
               type="text"
               readOnly={!isMockMode}
               autoComplete="name"
               {...form.register("fullName")}
-              className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:border-[#165f4d] focus:ring-1 focus:ring-[#165f4d] transition-colors"
+              className={cn(
+                "w-full h-10 px-3 rounded-xl border border-slate-200 text-xs sm:text-sm font-medium transition-colors",
+                !isMockMode
+                  ? "bg-slate-100 text-slate-500 cursor-not-allowed select-none"
+                  : "bg-white text-slate-900 focus:outline-none focus:border-[#165f4d] focus:ring-1 focus:ring-[#165f4d]",
+              )}
             />
             {form.formState.errors.fullName?.message && (
               <p className="mt-1 text-[11px] text-rose-600">
