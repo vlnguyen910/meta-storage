@@ -27,7 +27,7 @@ export function createMobileSeed(now = Date.now()): DemoDatabase {
     {
       id: demoId(1),
       code: "HCM-01",
-      name: "StoreX Sài Gòn Central",
+      name: "Cơ sở Demo",
       address: "118 Nguyễn Văn Linh, Quận 7, TP. Hồ Chí Minh",
       availableUnits: 12,
       totalUnits: 18,

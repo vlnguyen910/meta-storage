@@ -137,7 +137,7 @@ describe("mock reservation API", () => {
       UserRole.FACILITY_MANAGER,
       "fac-hcm-central",
     );
-    expect(singleDashboard.facilityName).toBe("metastorage Sài Gòn Central");
+    expect(singleDashboard.facilityName).toBe("Cơ sở Demo");
     expect(singleDashboard.kpis.length).toBeGreaterThan(0);
 
     // FM cannot access unassigned facility
@@ -161,12 +161,12 @@ describe("mock reservation API", () => {
     expect(multiSession.user.assignedFacilityId).toBe("fac-hcm-central");
     expect((await client.auth.me()).assignedFacilityId).toBe("fac-hcm-central");
     const hcmDashboard = await client.dashboards.get(UserRole.FACILITY_MANAGER, "fac-hcm-central");
-    expect(hcmDashboard.facilityName).toBe("metastorage Sài Gòn Central");
+    expect(hcmDashboard.facilityName).toBe("Cơ sở Demo");
     await expect(
       client.dashboards.get(UserRole.FACILITY_MANAGER, "fac-dn-riverside"),
     ).rejects.toMatchObject({ response: { status: 403 } });
 
     const hnDashboard = await client.dashboards.get(UserRole.FACILITY_MANAGER, "fac-hn-west");
-    expect(hnDashboard.facilityName).toBe("metastorage Hà Nội West");
+    expect(hnDashboard.facilityName).toBe("Cơ sở Hà Nội West");
   });
 });

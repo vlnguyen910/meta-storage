@@ -36,7 +36,7 @@ export function createSeedDatabase(): MockDatabase {
     bookingCode: "BK-2026-RETURN-DEMO",
     facility: {
       id: facility?.id ?? "fac-hcm-central",
-      name: facility?.name ?? "metastorage Sài Gòn Central",
+      name: facility?.name ?? "Cơ sở Demo",
       address: facility
         ? `${facility.address.line1}, ${facility.address.ward}, ${facility.address.district}, ${facility.address.city}`
         : "118 Nguyễn Văn Linh, Quận 7, TP. Hồ Chí Minh",

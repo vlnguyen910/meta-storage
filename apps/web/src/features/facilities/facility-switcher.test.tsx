@@ -13,7 +13,7 @@ const mockAssignment1: ApiFacilityAssignment = {
   assignedAt: "2026-01-01T00:00:00Z",
   endedAt: null,
   isActive: true,
-  facilityName: "metastorage Sài Gòn Central",
+  facilityName: "Cơ sở Demo",
   facilityCode: "HCM-01",
 };
 
@@ -25,7 +25,7 @@ const mockAssignment2: ApiFacilityAssignment = {
   assignedAt: "2026-01-01T00:00:00Z",
   endedAt: null,
   isActive: true,
-  facilityName: "metastorage Hà Nội West",
+  facilityName: "Cơ sở Hà Nội West",
   facilityCode: "HN-01",
 };
 
@@ -41,7 +41,7 @@ describe("FacilitySwitcher", () => {
     );
 
     expect(screen.getByText(FACILITY_CONTEXT_MESSAGES.singleFacilityLabel)).toBeInTheDocument();
-    expect(screen.getByText("metastorage Sài Gòn Central")).toBeInTheDocument();
+    expect(screen.getByText("Cơ sở Demo")).toBeInTheDocument();
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
 
@@ -63,7 +63,7 @@ describe("FacilitySwitcher", () => {
     expect(trigger).toBeInTheDocument();
 
     await user.click(trigger);
-    const option = screen.getByRole("option", { name: /metastorage Hà Nội West/ });
+    const option = screen.getByRole("option", { name: /Cơ sở Hà Nội West/ });
     await user.click(option);
     expect(onSwitch).toHaveBeenCalledWith("fac-hn-west");
   });
