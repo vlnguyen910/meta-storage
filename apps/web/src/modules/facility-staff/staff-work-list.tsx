@@ -9,6 +9,7 @@ import {
   Clock3,
   DoorOpen,
   Headset,
+  Phone,
   RefreshCw,
   Search,
 } from "lucide-react";
@@ -116,7 +117,7 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
   const filtered = work.items.filter(
     (item) =>
       (filters.date === "all" || !item.startsAt || staffWorkDate(item.startsAt) === filters.date) &&
-      `${item.title} ${item.reference} ${item.typeLabel}`
+      `${item.title} ${item.phone ?? ""} ${item.reference} ${item.typeLabel}`
         .toLocaleLowerCase("vi")
         .includes(filters.search.trim().toLocaleLowerCase("vi")),
   );
@@ -214,57 +215,6 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
                     {count}
                   </span>
                 )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Quick Kind Filter Tabs */}
-        <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-100 bg-white px-3.5 py-2.5">
-          <span className="text-xs font-bold text-slate-500 mr-1 select-none">
-            {M.kindTabTitle}
-          </span>
-          {[
-            { value: "", label: M.allKinds },
-            { value: "CHECK_IN", label: M.kindTabCheckIn, dot: "bg-emerald-500" },
-            { value: "RETURN", label: M.kindTabReturn, dot: "bg-purple-500" },
-            { value: "SUPPORT", label: M.kindTabSupport, dot: "bg-amber-500" },
-            { value: "TASK", label: M.kindTabTask, dot: "bg-sky-500" },
-          ].map((item) => {
-            const active = filters.kind === item.value;
-            const count = work.typeCount(item.value as StaffWorkFilters["kind"]);
-            return (
-              <button
-                key={item.value}
-                type="button"
-                onClick={() => {
-                  update({
-                    kind: item.value as StaffWorkFilters["kind"],
-                    group:
-                      item.value === "TASK" && filters.group === "closed"
-                        ? "pending"
-                        : filters.group,
-                  });
-                }}
-                className={cn(
-                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border",
-                  active
-                    ? "bg-primary text-white border-primary shadow-xs"
-                    : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900",
-                )}
-              >
-                {item.dot && (
-                  <span className={cn("size-2 rounded-full", active ? "bg-white" : item.dot)} />
-                )}
-                <span>{item.label}</span>
-                <span
-                  className={cn(
-                    "rounded-full px-1.5 py-0.2 text-[10px] font-bold tabular-nums",
-                    active ? "bg-white/20 text-white" : "bg-slate-200/80 text-slate-600",
-                  )}
-                >
-                  {count}
-                </span>
               </button>
             );
           })}
@@ -529,12 +479,20 @@ function StaffWorkTableRow({ item }: StaffWorkRowProps) {
         </div>
       </TableCell>
 
-      {/* Col 2: Title & Reference */}
+      {/* Col 2: Title & Phone */}
       <TableCell className="py-4 px-4 min-w-[200px] max-w-[320px]">
         <div className="min-w-0">
           <h2 className="text-sm font-bold text-slate-900 break-words">{item.title}</h2>
-          {item.reference && (
-            <p className="mt-0.5 font-mono text-xs text-slate-600 break-words">{item.reference}</p>
+          {item.phone && (
+            <p className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-600">
+              <Phone size={12} className="text-slate-400 shrink-0" aria-hidden="true" />
+              <a
+                href={`tel:${item.phone}`}
+                className="hover:text-primary transition-colors hover:underline"
+              >
+                {item.phone}
+              </a>
+            </p>
           )}
         </div>
       </TableCell>
