@@ -15,6 +15,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import {
   ArrowLeft,
+  Banknote,
   CalendarDays,
   Camera,
   CheckCircle2,
@@ -50,6 +51,7 @@ import {
 import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { readFileBase64 } from "@/lib/read-file-base64";
+import { cn } from "@/lib/utils";
 import { StaffUnitInspectionScreen } from "./staff-unit-inspection-screen";
 import { STAFF_WORK as M } from "./staff-work.messages";
 
@@ -87,8 +89,6 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
   const [policyNeedsReview, setPolicyNeedsReview] = useState(false);
   const photoInput = useRef<HTMLInputElement>(null);
   const [settlementConfirmed, setSettlementConfirmed] = useState(false);
-  const [refundMethod, setRefundMethod] = useState<"CASH" | "BANK_TRANSFER">("CASH");
-  const [refundReference, setRefundReference] = useState("");
   const [photoError, setPhotoError] = useState("");
   useEffect(() => {
     if (!record || record.id === recordId) return;
@@ -138,8 +138,7 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
                 ...(refundAmount > 0
                   ? {
                       refund: {
-                        method: refundMethod,
-                        reference: refundReference.trim() || undefined,
+                        method: "CASH" as const,
                       },
                     }
                   : {}),
@@ -248,8 +247,7 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
     Boolean(record?.returnContext) &&
     ReturnChecklistCompletionSchema.safeParse(results).success &&
     Boolean(condition) &&
-    settlementConfirmed &&
-    (refundAmount === 0 || refundMethod === "CASH" || Boolean(refundReference.trim()));
+    settlementConfirmed;
   function setChecklistResult(code: string, result: "PASS" | "FAIL" | null) {
     setResults((previous) => {
       if (result === null) {
@@ -684,59 +682,54 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
                   <p className="text-sm text-muted">
                     {condition === "GOOD" ? M.unitAvailable : M.unitMaintenance}
                   </p>
-                  {refundAmount > 0 && (
-                    <>
-                      <div className="grid gap-2 text-sm font-semibold">
-                        <span>{M.refundMethod}</span>
-                        <Select
-                          value={refundMethod}
-                          disabled={saveReturn.isPending}
-                          onValueChange={(val) => {
-                            setRefundMethod(val as "CASH" | "BANK_TRANSFER");
-                            setSettlementConfirmed(false);
-                          }}
-                        >
-                          <SelectTrigger
-                            id="staff-refund-method-select"
-                            className="min-h-11 h-11 w-full rounded-lg border-line px-3 text-sm text-slate-800"
-                          >
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="CASH">{M.cash}</SelectItem>
-                            <SelectItem value="BANK_TRANSFER">{M.bankTransfer}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      {refundMethod === "BANK_TRANSFER" && (
-                        <label className="grid gap-2 text-sm font-semibold">
-                          {M.refundReference}
-                          <input
-                            className="min-h-11 rounded-lg border border-line px-3"
-                            maxLength={128}
-                            value={refundReference}
-                            disabled={saveReturn.isPending}
-                            onChange={(event) => {
-                              setRefundReference(event.target.value);
-                              setSettlementConfirmed(false);
-                            }}
-                          />
-                        </label>
-                      )}
-                    </>
+                  {refundAmount > 0 ? (
+                    <div className="pt-2">
+                      <Button
+                        type="button"
+                        variant={settlementConfirmed ? "outline" : "primary"}
+                        className={cn(
+                          "flex min-h-11 items-center gap-2 font-semibold",
+                          settlementConfirmed
+                            ? "border-emerald-500 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                            : "bg-emerald-600 text-white hover:bg-emerald-700",
+                        )}
+                        disabled={saveReturn.isPending}
+                        onClick={() => setSettlementConfirmed((prev) => !prev)}
+                      >
+                        {settlementConfirmed ? (
+                          <>
+                            <CheckCircle2 className="size-4 text-emerald-600" />
+                            <span>
+                              {M.refundRecorded} ({refundAmount.toLocaleString("vi-VN")} đ)
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <Banknote className="size-4" />
+                            <span>
+                              {M.recordRefund} ({refundAmount.toLocaleString("vi-VN")} đ)
+                            </span>
+                          </>
+                        )}
+                      </Button>
+                      <p className="mt-1.5 text-xs text-muted">
+                        {settlementConfirmed ? M.refundConfirmed : M.refundButtonHint}
+                      </p>
+                    </div>
+                  ) : (
+                    <label
+                      htmlFor="settlement-confirmed-checkbox"
+                      className="flex min-h-11 items-center gap-3 text-sm font-semibold cursor-pointer select-none"
+                    >
+                      <Checkbox
+                        id="settlement-confirmed-checkbox"
+                        checked={settlementConfirmed}
+                        disabled={saveReturn.isPending}
+                        onCheckedChange={(checked) => setSettlementConfirmed(Boolean(checked))}
+                      />
+                      {M.settlementConfirmed}
+                    </label>
                   )}
-                  <label
-                    htmlFor="settlement-confirmed-checkbox"
-                    className="flex min-h-11 items-center gap-3 text-sm font-semibold cursor-pointer select-none"
-                  >
-                    <Checkbox
-                      id="settlement-confirmed-checkbox"
-                      checked={settlementConfirmed}
-                      disabled={saveReturn.isPending}
-                      onCheckedChange={(checked) => setSettlementConfirmed(Boolean(checked))}
-                    />
-                    {refundAmount > 0 ? M.refundConfirmed : M.settlementConfirmed}
-                  </label>
                 </Card>
               )}
               {saveReturn.isError && (

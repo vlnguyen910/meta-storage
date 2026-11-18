@@ -131,7 +131,7 @@ it("keeps start, draft save and validated completion working in the new staff la
         name: "Đạt",
       }),
     );
-  await user.click(screen.getByLabelText("Tôi xác nhận đã hoàn đủ phần cọc còn dư cho khách."));
+  await user.click(screen.getByRole("button", { name: /Ghi nhận trả cọc/ }));
   await user.click(screen.getByRole("button", { name: "Xác nhận quyết toán và hoàn tất trả kho" }));
   await waitFor(() =>
     expect(calls.save).toHaveBeenCalledWith(

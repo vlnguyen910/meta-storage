@@ -3,6 +3,7 @@
 import { APPOINTMENT_STATUSES, APPOINTMENT_TYPES } from "@metastorage/contracts";
 import { formatReference } from "@metastorage/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
 import {
   Calendar,
   CalendarCheck,
@@ -49,6 +50,16 @@ function remainingLabel(endAt: string): string {
   return `Còn ${diffDays} ngày`;
 }
 
+function returnErrorMessage(error: unknown): string {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data as
+      | { error?: { message?: string }; message?: string }
+      | undefined;
+    return data?.error?.message ?? data?.message ?? M.returnCreateError;
+  }
+  return error instanceof Error ? error.message : M.returnCreateError;
+}
+
 export function RentalDetail({ rentalId }: { rentalId: string }) {
   const { showToast } = useToast();
   const query = useRental(rentalId);
@@ -87,6 +98,9 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
         client.invalidateQueries({ queryKey: ["my-return-appointments", rentalId] }),
         client.invalidateQueries({ queryKey: ["rentals"] }),
       ]);
+    },
+    onError: (error) => {
+      showToast(returnErrorMessage(error), "error");
     },
   });
   const cancelReturn = useMutation({
@@ -368,7 +382,7 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
               )}
             {createReturn.isError && (
               <p role="alert" className="text-sm text-danger">
-                {M.returnCreateError}
+                {returnErrorMessage(createReturn.error)}
               </p>
             )}
           </div>

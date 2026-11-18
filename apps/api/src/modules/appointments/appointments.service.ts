@@ -116,7 +116,7 @@ export class AppointmentsService {
     input = CreateAppointmentSchema.parse(input);
     const slot = await this.slots.findByIdForDate(input.slotId, input.scheduledDate);
     const now = new Date();
-    const demo = isDevelopmentEnvironment() && input.appointmentType === Type.CHECK_IN;
+    const demo = isDevelopmentEnvironment();
     const sameDaySlotAllowed =
       slot && this.slots.allowsSameDayAppointment(slot, input.scheduledDate, now);
     const sameDayReservationAllowed = input.appointmentType === Type.CHECK_IN && sameDaySlotAllowed;
@@ -124,7 +124,7 @@ export class AppointmentsService {
     const sameDaySchedulingAllowed = sameDayReservationAllowed || sameDayReturnAllowed;
     if (!slot || slot.endsAt <= now || (!demo && slot.startsAt <= now && !sameDaySchedulingAllowed))
       throw new BadRequestError(m.invalidSlot);
-    const sameDayDemoSlotAllowed = Boolean(slot.sameDayCheckInEnabled && sameDayReservationAllowed);
+    const sameDayDemoSlotAllowed = Boolean(slot.sameDayCheckInEnabled && sameDaySchedulingAllowed);
     const scheduled = await this.repository.transaction(async (tx) => {
       let facilityId: string;
       if (input.appointmentType === Type.CHECK_IN) {
@@ -165,7 +165,7 @@ export class AppointmentsService {
       if (input.facilityId && input.facilityId !== facilityId)
         throw new BadRequestError(m.contextMismatch);
       await this.facilities.requireActiveFacility(facilityId);
-      if (!demo && !sameDayDemoSlotAllowed) {
+      if (!demo && !sameDayDemoSlotAllowed && !slot.sameDayCheckInEnabled) {
         await this.facilities.assertCheckInWithinOperatingHours(
           slot.startsAt,
           new Date(slot.endsAt.getTime() - 1),
@@ -310,7 +310,8 @@ export class AppointmentsService {
       if (!slot) throw new BadRequestError(m.invalidSlot);
       const now = new Date();
       const sameDayAllowed =
-        appointment.appointmentType === Type.CHECK_IN &&
+        (appointment.appointmentType === Type.CHECK_IN ||
+          appointment.appointmentType === Type.CHECK_OUT) &&
         this.slots.allowsCheckInDuringSameDaySlot(slot, appointment.scheduledDate, now);
       const status = input.status ?? appointment.status;
       if (status === Status.CANCELLED && actor.role === UserRole.FACILITY_STAFF)

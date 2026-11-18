@@ -9,7 +9,7 @@ import {
   type UpdateInspectionInput,
 } from "@metastorage/contracts";
 import { formatReference } from "@metastorage/shared";
-import { Check } from "lucide-react-native";
+import { Banknote, Check } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { Icon } from "../../components/ui/icon";
@@ -41,8 +41,6 @@ export function StaffReturnView({
   const [notes, setNotes] = useState("");
   const [violations, setViolations] = useState<Violation[]>([]);
   const [settlementConfirmed, setSettlementConfirmed] = useState(false);
-  const [refundMethod, setRefundMethod] = useState<"CASH" | "BANK_TRANSFER">("CASH");
-  const [refundReference, setRefundReference] = useState("");
   const [photoIndex, setPhotoIndex] = useState(0);
   const hydratedRecordId = useRef<string | null>(null);
 
@@ -78,11 +76,7 @@ export function StaffReturnView({
   const debtAmount = Math.max(0, feeTotal - depositAmount);
   const checklistComplete = ReturnChecklistCompletionSchema.safeParse(results).success;
   const canFinalize =
-    Boolean(returnContext) &&
-    checklistComplete &&
-    Boolean(condition) &&
-    settlementConfirmed &&
-    (refundAmount === 0 || refundMethod === "CASH" || Boolean(refundReference.trim()));
+    Boolean(returnContext) && checklistComplete && Boolean(condition) && settlementConfirmed;
   const locked = record?.status === "PASSED";
   const selectedPhoto = record?.evidence[photoIndex];
 
@@ -122,8 +116,7 @@ export function StaffReturnView({
               ...(refundAmount > 0
                 ? {
                     refund: {
-                      method: refundMethod,
-                      reference: refundReference.trim() || undefined,
+                      method: "CASH" as const,
                     },
                   }
                 : {}),
@@ -462,64 +455,51 @@ export function StaffReturnView({
               <Row label={M.totalDeductions} value={`${feeTotal.toLocaleString("vi-VN")} đ`} />
               <Row label={M.outstandingDebt} value={`${debtAmount.toLocaleString("vi-VN")} đ`} />
               {refundAmount > 0 ? (
-                <>
-                  <Text className="mb-2 font-body-semibold text-label text-ink">
-                    {M.refundMethod}
-                  </Text>
-                  <View className="mb-3 flex-row gap-2">
-                    {(["CASH", "BANK_TRANSFER"] as const).map((value) => (
-                      <Pressable
-                        key={value}
-                        accessibilityRole="radio"
-                        accessibilityState={{
-                          checked: refundMethod === value,
-                          disabled: flow.busy,
-                        }}
-                        disabled={flow.busy}
-                        onPress={() => {
-                          setRefundMethod(value);
-                          setSettlementConfirmed(false);
-                        }}
-                        className={`min-h-11 flex-1 items-center justify-center rounded-lg border ${refundMethod === value ? "border-primary bg-primary-soft" : "border-outline-variant"}`}
-                      >
-                        <Text className="font-body-semibold text-[12px] text-ink">
-                          {value === "CASH" ? M.cash : M.bankTransfer}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                  {refundMethod === "BANK_TRANSFER" ? (
-                    <Field
-                      label={M.refundReference}
-                      value={refundReference}
-                      maxLength={128}
-                      editable={!flow.busy}
-                      onChangeText={(value) => {
-                        setRefundReference(value);
-                        setSettlementConfirmed(false);
-                      }}
-                    />
-                  ) : null}
-                </>
-              ) : null}
-              <Pressable
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: settlementConfirmed, disabled: flow.busy }}
-                disabled={flow.busy}
-                onPress={() => setSettlementConfirmed((value) => !value)}
-                className="mb-3 min-h-12 flex-row items-center gap-3 rounded-control border border-outline-variant p-3"
-              >
-                <View
-                  className={`h-5 w-5 items-center justify-center rounded border ${settlementConfirmed ? "border-primary bg-primary" : "border-outline-variant bg-surface"}`}
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={flow.busy}
+                  onPress={() => setSettlementConfirmed((value) => !value)}
+                  className={`mb-3 min-h-12 flex-row items-center justify-center gap-2 rounded-control border p-3 ${
+                    settlementConfirmed
+                      ? "border-primary bg-primary-soft"
+                      : "border-primary bg-primary"
+                  }`}
                 >
-                  {settlementConfirmed ? (
-                    <Icon as={Check} size={14} className="text-primary-foreground" />
-                  ) : null}
-                </View>
-                <Text className="flex-1 font-body-medium text-[12px] leading-5 text-ink">
-                  {refundAmount > 0 ? M.refundConfirmed : M.settlementConfirmed}
-                </Text>
-              </Pressable>
+                  <Icon
+                    as={settlementConfirmed ? Check : Banknote}
+                    size={16}
+                    className={settlementConfirmed ? "text-primary" : "text-primary-foreground"}
+                  />
+                  <Text
+                    className={`font-body-bold text-[13px] ${
+                      settlementConfirmed ? "text-primary" : "text-primary-foreground"
+                    }`}
+                  >
+                    {settlementConfirmed
+                      ? `Đã ghi nhận trả cọc (${refundAmount.toLocaleString("vi-VN")} đ)`
+                      : `Ghi nhận trả cọc (${refundAmount.toLocaleString("vi-VN")} đ)`}
+                  </Text>
+                </Pressable>
+              ) : (
+                <Pressable
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: settlementConfirmed, disabled: flow.busy }}
+                  disabled={flow.busy}
+                  onPress={() => setSettlementConfirmed((value) => !value)}
+                  className="mb-3 min-h-12 flex-row items-center gap-3 rounded-control border border-outline-variant p-3"
+                >
+                  <View
+                    className={`h-5 w-5 items-center justify-center rounded border ${settlementConfirmed ? "border-primary bg-primary" : "border-outline-variant bg-surface"}`}
+                  >
+                    {settlementConfirmed ? (
+                      <Icon as={Check} size={14} className="text-primary-foreground" />
+                    ) : null}
+                  </View>
+                  <Text className="flex-1 font-body-medium text-[12px] leading-5 text-ink">
+                    {M.settlementConfirmed}
+                  </Text>
+                </Pressable>
+              )}
               <Button
                 variant="outline"
                 label={M.returnSave}
