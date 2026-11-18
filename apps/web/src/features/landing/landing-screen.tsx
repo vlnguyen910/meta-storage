@@ -27,7 +27,7 @@ export function LandingScreen() {
       </a>
       <PublicHeader />
       <main id="main-content" tabIndex={-1}>
-        <LandingHero state={state} />
+        <LandingHero />
         <LandingUseCases />
         <LandingReveal>
           <LandingFacilities state={state} />
