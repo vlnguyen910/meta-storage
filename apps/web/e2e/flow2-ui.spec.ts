@@ -8,6 +8,7 @@ import {
 } from "@metastorage/contracts";
 import { UserRole } from "@metastorage/database/schema/user-enums";
 import { expect, type Page, test } from "@playwright/test";
+import { FLOW } from "@/features/facility-flow/flow.messages";
 
 const id = "b0000000-0000-4000-8000-000000000001";
 const now = new Date().toISOString();
@@ -888,7 +889,7 @@ async function passChecklist(page: Page) {
   for (const item of HANDOVER_CHECKLIST_ITEMS) {
     await page
       .getByRole("group", { name: item.label, exact: true })
-      .getByRole("checkbox", { name: "Đạt", exact: true })
+      .getByRole("checkbox", { name: FLOW.checklistPass, exact: true })
       .check();
   }
 }
@@ -903,24 +904,28 @@ test("incomplete and checklist drafts persist; four PASS unlock without notes or
     name: "Đúng ô kho đã được gán cho booking",
     exact: true,
   });
-  await first.getByRole("checkbox", { name: "Đạt", exact: true }).check();
+  await first.getByRole("checkbox", { name: FLOW.checklistPass, exact: true }).check();
   await page.getByRole("button", { name: "Lưu nháp", exact: true }).click();
   await expect(page.getByText("Đã lưu biên bản nháp.", { exact: true })).toBeVisible();
   expect(f.getInspection()?.results).toHaveLength(1);
   await page.reload();
-  await expect(first.getByRole("checkbox", { name: "Đạt", exact: true })).toBeChecked();
+  await expect(
+    first.getByRole("checkbox", { name: FLOW.checklistPass, exact: true }),
+  ).toBeChecked();
   await expect(page.getByRole("button", { name: "Lưu và xem lại trước khi khóa" })).toBeDisabled();
   await passChecklist(page);
   const lock = page.getByRole("group", { name: "Cửa và khóa hoạt động bình thường", exact: true });
-  await lock.getByRole("checkbox", { name: "Đạt", exact: true }).uncheck();
+  await lock.getByRole("checkbox", { name: FLOW.checklistPass, exact: true }).uncheck();
   await page.getByRole("button", { name: "Lưu nháp", exact: true }).click();
   await expect
     .poll(() => f.getInspection()?.results?.find((r) => r.itemCode === "DOOR_LOCK")?.result)
     .toBeUndefined();
   await page.reload();
-  await expect(lock.getByRole("checkbox", { name: "Đạt", exact: true })).not.toBeChecked();
+  await expect(
+    lock.getByRole("checkbox", { name: FLOW.checklistPass, exact: true }),
+  ).not.toBeChecked();
   await expect(page.getByRole("button", { name: "Lưu và xem lại trước khi khóa" })).toBeDisabled();
-  await lock.getByRole("checkbox", { name: "Đạt", exact: true }).check();
+  await lock.getByRole("checkbox", { name: FLOW.checklistPass, exact: true }).check();
   await page.getByRole("button", { name: "Lưu và xem lại trước khi khóa" }).click();
   expect(f.getInspection()?.conditionNotes).toBe("");
   expect(f.getInspection()?.photos).toEqual([]);
@@ -958,21 +963,21 @@ for (const width of [1440, 390]) {
     await expect(
       page
         .locator("fieldset")
-        .filter({ has: page.getByRole("checkbox", { name: "Đạt", exact: true }) }),
+        .filter({ has: page.getByRole("checkbox", { name: FLOW.checklistPass, exact: true }) }),
     ).toHaveCount(4);
     await page
       .locator("fieldset")
-      .filter({ has: page.getByRole("checkbox", { name: "Đạt", exact: true }) })
+      .filter({ has: page.getByRole("checkbox", { name: FLOW.checklistPass, exact: true }) })
       .first()
-      .getByRole("checkbox", { name: "Đạt", exact: true })
+      .getByRole("checkbox", { name: FLOW.checklistPass, exact: true })
       .focus();
     await page.keyboard.press("Space");
     await expect(
       page
         .locator("fieldset")
-        .filter({ has: page.getByRole("checkbox", { name: "Đạt", exact: true }) })
+        .filter({ has: page.getByRole("checkbox", { name: FLOW.checklistPass, exact: true }) })
         .first()
-        .getByRole("checkbox", { name: "Đạt", exact: true }),
+        .getByRole("checkbox", { name: FLOW.checklistPass, exact: true }),
     ).toBeChecked();
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
@@ -994,7 +999,7 @@ test("legacy correct-unit flag never fabricates four PASS results", async ({ pag
   await expect(
     page
       .locator("fieldset")
-      .filter({ has: page.getByRole("checkbox", { name: "Đạt", exact: true }) }),
+      .filter({ has: page.getByRole("checkbox", { name: FLOW.checklistPass, exact: true }) }),
   ).toHaveCount(4);
   const record = f.getInspection();
   if (!record) throw new Error("Expected inspection");
@@ -1007,7 +1012,7 @@ test("legacy correct-unit flag never fabricates four PASS results", async ({ pag
   await expect(
     page
       .locator("fieldset")
-      .filter({ has: page.getByRole("checkbox", { name: "Đạt", exact: true }) }),
+      .filter({ has: page.getByRole("checkbox", { name: FLOW.checklistPass, exact: true }) }),
   ).toHaveCount(4);
   await expect(page.getByRole("checkbox", { checked: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Lưu và xem lại trước khi khóa" })).toBeDisabled();

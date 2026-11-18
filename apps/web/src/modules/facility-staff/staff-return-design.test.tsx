@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
+import { FLOW } from "@/features/facility-flow/flow.messages";
 import { StaffTaskDetailScreen } from "./staff-task-detail-screen";
 
 const calls = vi.hoisted(() => ({
@@ -128,7 +129,7 @@ it("keeps start, draft save and validated completion working in the new staff la
   for (const item of HANDOVER_CHECKLIST_ITEMS)
     await user.click(
       within(screen.getByRole("group", { name: item.label })).getByRole("checkbox", {
-        name: "Đạt",
+        name: FLOW.checklistPass,
       }),
     );
   await user.click(screen.getByRole("button", { name: /Ghi nhận trả cọc/ }));
