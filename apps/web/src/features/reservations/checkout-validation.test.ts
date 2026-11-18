@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  allowsSameDayCheckIn,
   checkInError,
   checkoutFailure,
   createCheckoutPaymentKey,
@@ -101,5 +102,28 @@ describe("guest checkout validation", () => {
     const log = vi.spyOn(console, "warn").mockImplementation(() => {});
     expect(checkoutFailure({ isAxiosError: true }, "payment").message).toBe(m.networkError);
     log.mockRestore();
+  });
+});
+
+describe("same-day check-in slots", () => {
+  const slot = (sameDayCheckInEnabled: boolean) => ({
+    id: "slot",
+    name: "Demo check-in ngay",
+    startTime: "16:55:00",
+    endTime: "20:00:00",
+    sameDayCheckInEnabled,
+  });
+  const late = new Date("2026-11-18T22:30:00+07:00");
+
+  it("ignores the time window of a same-day check-in slot", () => {
+    expect(allowsSameDayCheckIn("2026-11-18", slot(true), late)).toBe(true);
+    expect(allowsSameDayCheckIn("2026-11-19", slot(true), late)).toBe(false);
+  });
+
+  it("keeps ordinary slots closed once they end", () => {
+    expect(allowsSameDayCheckIn("2026-11-18", slot(false), late)).toBe(false);
+    expect(
+      allowsSameDayCheckIn("2026-11-18", slot(false), new Date("2026-11-18T18:00:00+07:00")),
+    ).toBe(true);
   });
 });

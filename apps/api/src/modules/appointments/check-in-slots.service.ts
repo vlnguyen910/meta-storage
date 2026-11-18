@@ -34,15 +34,13 @@ export class CheckInSlotsService {
     return scheduledDate === localDate(now, FACILITY_TIME_ZONE) && now < slot.endsAt;
   }
 
+  /** A same-day check-in slot ignores its time window: any time today is allowed. */
   allowsSameDayReservation(slot: ResolvedCheckInSlot, checkInDate: string, now = new Date()) {
+    if (slot.sameDayCheckInEnabled) return checkInDate === localDate(now, FACILITY_TIME_ZONE);
     return this.allowsSameDayAppointment(slot, checkInDate, now);
   }
 
   allowsCheckInDuringSameDaySlot(slot: ResolvedCheckInSlot, checkInDate: string, now = new Date()) {
-    return (
-      slot.sameDayCheckInEnabled &&
-      this.allowsSameDayReservation(slot, checkInDate, now) &&
-      now >= slot.startsAt
-    );
+    return slot.sameDayCheckInEnabled && checkInDate === localDate(now, FACILITY_TIME_ZONE);
   }
 }
