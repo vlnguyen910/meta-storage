@@ -1,6 +1,7 @@
 export const FACILITY_TASK_MESSAGES = {
   appointmentWorkflowRequired:
     "Phân công và hoàn tất lịch hẹn phải được cập nhật qua luồng lịch hẹn.",
+  inspectionResultRequired: "Hoàn tất kiểm tra và ghi nhận kết quả trước khi đóng công việc.",
   taskCancelled: "Đã hủy công việc.",
   taskNotReady: "Công việc chưa ở trạng thái phù hợp để thực hiện thao tác này.",
   taskStatusTransitionInvalid:
