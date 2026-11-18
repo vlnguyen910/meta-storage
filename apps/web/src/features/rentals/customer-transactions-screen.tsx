@@ -317,6 +317,11 @@ export function CustomerTransactionsScreen() {
           bookingCode={selectedItem.rental.bookingCode}
           unitTypeName={selectedItem.rental.unitType.name}
           facilityName={selectedItem.rental.facility.name}
+          storageUnitCode={selectedItem.rental.storageUnit?.code}
+          rentalPeriod={{
+            startAt: selectedItem.rental.startAt,
+            endAt: selectedItem.rental.endAt,
+          }}
         />
       )}
     </div>

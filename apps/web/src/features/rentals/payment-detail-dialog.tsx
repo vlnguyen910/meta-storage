@@ -10,6 +10,7 @@ import {
   CreditCard,
   HelpCircle,
   ReceiptText,
+  Warehouse,
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -18,7 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { OperationalBadge } from "@/components/ui/operational";
 import { useToast } from "@/components/ui/toast";
 import { customerRoutes } from "@/config/routes";
-import { formatCurrency, formatDateTime } from "@/lib/format";
+import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { RENTAL_MESSAGES as M } from "./rentals.messages";
 
@@ -29,6 +30,8 @@ export interface PaymentDetailDialogProps {
   bookingCode?: string;
   unitTypeName?: string;
   facilityName?: string;
+  storageUnitCode?: string | null;
+  rentalPeriod?: { startAt: string; endAt: string };
 }
 
 export function PaymentDetailDialog({
@@ -38,6 +41,8 @@ export function PaymentDetailDialog({
   bookingCode,
   unitTypeName,
   facilityName,
+  storageUnitCode,
+  rentalPeriod,
 }: PaymentDetailDialogProps) {
   const [copied, setCopied] = useState(false);
   const { showToast } = useToast();
@@ -49,7 +54,11 @@ export function PaymentDetailDialog({
     ? formatReference(payment.paymentCode, "TT")
     : formatReference(payment.id, "TT");
 
-  const typeLabel = isRefund ? M.depositRefund : M.paymentCharge;
+  const typeLabel = isRefund
+    ? M.depositRefund
+    : payment.months
+      ? `Thanh toán thuê kho (${payment.months} tháng)`
+      : M.paymentCharge;
 
   const providerLabel = isRefund
     ? payment.method === "CASH"
@@ -62,8 +71,15 @@ export function PaymentDetailDialog({
         ? M.paymentProviderPayos
         : payment.provider.toUpperCase() === "VNPAY"
           ? M.paymentProviderVnpay
-          : payment.provider
-      : M.paymentMethodUnknown;
+          : payment.provider.toLowerCase() === "sepay"
+            ? M.paymentProviderSepay
+            : payment.provider
+      : payment.method === "CASH"
+        ? M.paymentMethodCash
+        : payment.method === "BANK_TRANSFER"
+          ? M.paymentMethodBankTransfer
+          : M.paymentMethodUnknown;
+
   const supportParams = new URLSearchParams({ paymentId: payment.id });
   if (payment.reservationId) supportParams.set("reservationId", payment.reservationId);
 
@@ -77,6 +93,12 @@ export function PaymentDetailDialog({
       // Ignore clipboard write failure
     }
   };
+
+  const hasBreakdown =
+    payment.rentalFeeAmount != null ||
+    payment.depositAmount != null ||
+    payment.vatAmount != null ||
+    isRefund;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -135,7 +157,155 @@ export function PaymentDetailDialog({
             </p>
           </div>
 
-          {/* Details Table */}
+          {/* Section 1: Chi tiết các khoản tiền (Breakdown) */}
+          <div className="rounded-xl border border-slate-200 bg-white overflow-hidden divide-y divide-slate-100 text-xs">
+            <div className="bg-slate-50/80 px-3.5 py-2 font-semibold text-slate-700 flex items-center justify-between">
+              <span>{M.paymentDetailBreakdown}</span>
+              <span className="text-[11px] font-normal text-slate-400">Đơn vị: VNĐ</span>
+            </div>
+
+            {isRefund ? (
+              <>
+                <div className="flex items-center justify-between p-3">
+                  <span className="text-slate-500 font-medium">Tiền đặt cọc ban đầu</span>
+                  <span className="font-semibold text-slate-800">
+                    {formatCurrency(Number(payment.depositAmount ?? payment.totalAmount))}
+                  </span>
+                </div>
+                {payment.deductionAmount && Number(payment.deductionAmount) > 0 ? (
+                  <div className="flex items-center justify-between p-3 text-rose-700">
+                    <span className="font-medium">{M.paymentDeductionFee}</span>
+                    <span className="font-semibold">
+                      -{formatCurrency(Number(payment.deductionAmount))}
+                    </span>
+                  </div>
+                ) : null}
+                <div className="flex items-center justify-between p-3 bg-amber-50/40">
+                  <span className="font-bold text-amber-900">{M.paymentActualRefund}</span>
+                  <strong className="text-sm font-bold text-amber-700">
+                    +{formatCurrency(Number(payment.refundAmount ?? payment.totalAmount))}
+                  </strong>
+                </div>
+                {payment.refundReason && (
+                  <div className="flex items-center justify-between p-3 text-slate-500 text-[11px]">
+                    <span className="font-medium">{M.paymentDetailRefundReason}</span>
+                    <span className="italic text-slate-700">{payment.refundReason}</span>
+                  </div>
+                )}
+              </>
+            ) : hasBreakdown ? (
+              <>
+                <div className="flex items-start justify-between p-3 gap-2">
+                  <div>
+                    <span className="text-slate-600 font-medium block">{M.paymentRentalFee}</span>
+                    {payment.months && payment.monthlyRate ? (
+                      <span className="text-[11px] text-slate-400 block mt-0.5">
+                        {payment.months} tháng × {formatCurrency(Number(payment.monthlyRate))}
+                        /tháng
+                      </span>
+                    ) : null}
+                  </div>
+                  <span className="font-semibold text-slate-800">
+                    {formatCurrency(Number(payment.rentalFeeAmount ?? payment.totalAmount))}
+                  </span>
+                </div>
+
+                {payment.depositAmount && Number(payment.depositAmount) > 0 ? (
+                  <div className="flex items-start justify-between p-3 gap-2">
+                    <div>
+                      <span className="text-slate-600 font-medium block">
+                        {M.paymentDepositFee}
+                      </span>
+                      <span className="text-[11px] text-slate-400 block mt-0.5">
+                        {M.paymentDepositFeeHint}
+                      </span>
+                    </div>
+                    <span className="font-semibold text-slate-800">
+                      {formatCurrency(Number(payment.depositAmount))}
+                    </span>
+                  </div>
+                ) : null}
+
+                {payment.vatAmount && Number(payment.vatAmount) > 0 ? (
+                  <div className="flex items-center justify-between p-3">
+                    <span className="text-slate-600 font-medium">{M.paymentVatFee}</span>
+                    <span className="font-semibold text-slate-800">
+                      {formatCurrency(Number(payment.vatAmount))}
+                    </span>
+                  </div>
+                ) : null}
+
+                <div className="flex items-center justify-between p-3 bg-emerald-50/40">
+                  <span className="font-bold text-emerald-950">{M.paymentTotalAmount}</span>
+                  <strong className="text-sm font-bold text-emerald-800">
+                    {formatCurrency(Number(payment.totalAmount))}
+                  </strong>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center justify-between p-3">
+                <span className="text-slate-600 font-medium">{M.paymentTotalAmount}</span>
+                <strong className="text-sm font-bold text-slate-900">
+                  {formatCurrency(Number(payment.totalAmount))}
+                </strong>
+              </div>
+            )}
+          </div>
+
+          {/* Section 2: Thông tin dịch vụ thuê kho */}
+          {(bookingCode || facilityName || unitTypeName || storageUnitCode || rentalPeriod) && (
+            <div className="rounded-xl border border-slate-200 bg-white overflow-hidden divide-y divide-slate-100 text-xs">
+              <div className="bg-slate-50/80 px-3.5 py-2 font-semibold text-slate-700 flex items-center gap-1.5">
+                <Warehouse size={13} className="text-slate-500" />
+                <span>{M.paymentServiceInfo}</span>
+              </div>
+
+              {bookingCode && (
+                <div className="flex items-center justify-between p-3">
+                  <span className="text-slate-500 font-medium">{M.paymentBookingCode}</span>
+                  <span className="font-mono font-bold text-slate-800">
+                    {formatReference(bookingCode, "BK")}
+                  </span>
+                </div>
+              )}
+
+              {facilityName && (
+                <div className="flex items-center justify-between p-3 gap-2">
+                  <span className="text-slate-500 font-medium shrink-0">{M.paymentFacility}</span>
+                  <span className="font-semibold text-slate-800 text-right truncate max-w-[240px]">
+                    {facilityName}
+                  </span>
+                </div>
+              )}
+
+              {unitTypeName && (
+                <div className="flex items-center justify-between p-3">
+                  <span className="text-slate-500 font-medium">{M.paymentUnitType}</span>
+                  <span className="font-semibold text-slate-800 text-right">{unitTypeName}</span>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between p-3">
+                <span className="text-slate-500 font-medium">{M.paymentStorageUnit}</span>
+                {storageUnitCode ? (
+                  <span className="font-mono font-bold text-emerald-700">{storageUnitCode}</span>
+                ) : (
+                  <span className="text-slate-400 italic">{M.paymentUnitPending}</span>
+                )}
+              </div>
+
+              {rentalPeriod && (
+                <div className="flex items-center justify-between p-3">
+                  <span className="text-slate-500 font-medium">{M.paymentRentalPeriod}</span>
+                  <span className="font-medium text-slate-700">
+                    {formatDate(rentalPeriod.startAt)} – {formatDate(rentalPeriod.endAt)}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Section 3: Thông tin đối soát giao dịch ngân hàng */}
           <div className="rounded-xl border border-slate-200 bg-white overflow-hidden divide-y divide-slate-100 text-xs">
             <div className="flex items-center justify-between p-3">
               <span className="text-slate-500 font-medium">{M.paymentDetailCode}</span>
@@ -161,14 +331,6 @@ export function PaymentDetailDialog({
             </div>
 
             <div className="flex items-center justify-between p-3">
-              <span className="text-slate-500 font-medium">{M.paymentDetailStatus}</span>
-              <OperationalBadge
-                value={payment.status}
-                label={M.paymentStatuses[payment.status] ?? payment.status}
-              />
-            </div>
-
-            <div className="flex items-center justify-between p-3">
               <span className="text-slate-500 font-medium">{M.paymentDetailPaidAt}</span>
               <span className="font-medium text-slate-700">
                 {payment.paidAt ? formatDateTime(payment.paidAt) : "—"}
@@ -176,67 +338,13 @@ export function PaymentDetailDialog({
             </div>
 
             <div className="flex items-center justify-between p-3">
-              <span className="text-slate-500 font-medium">{M.paymentDetailCreatedAt}</span>
-              <span className="font-medium text-slate-700">
-                {formatDateTime(payment.createdAt)}
-              </span>
-            </div>
-
-            {bookingCode && (
-              <div className="flex items-center justify-between p-3">
-                <span className="text-slate-500 font-medium">{M.paymentBookingCode}</span>
-                <span className="font-mono font-semibold text-slate-800">{bookingCode}</span>
-              </div>
-            )}
-
-            {facilityName && (
-              <div className="flex items-center justify-between p-3">
-                <span className="text-slate-500 font-medium">{M.paymentFacility}</span>
-                <span className="font-semibold text-slate-800 text-right truncate max-w-[220px]">
-                  {facilityName}
-                </span>
-              </div>
-            )}
-
-            {unitTypeName && (
-              <div className="flex items-center justify-between p-3">
-                <span className="text-slate-500 font-medium">{M.paymentUnitType}</span>
-                <span className="font-semibold text-slate-800 text-right">{unitTypeName}</span>
-              </div>
-            )}
-
-            <div className="flex items-center justify-between p-3">
-              <span className="text-slate-500 font-medium">{M.paymentDetailSystemId}</span>
-              <span
-                className="font-mono text-[11px] text-slate-400 truncate max-w-[200px]"
-                title={payment.id}
-              >
-                {payment.id}
-              </span>
+              <span className="text-slate-500 font-medium">{M.paymentDetailStatus}</span>
+              <OperationalBadge
+                value={payment.status}
+                label={M.paymentStatuses[payment.status] ?? payment.status}
+              />
             </div>
           </div>
-
-          {/* Refund block if applicable */}
-          {payment.refundAmount && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-3.5 space-y-1.5 text-xs">
-              <div className="flex items-center justify-between font-bold text-amber-900">
-                <span>{M.paymentDetailRefundAmount}</span>
-                <span>+{formatCurrency(Number(payment.refundAmount))}</span>
-              </div>
-              {payment.refundedAt && (
-                <div className="flex items-center justify-between text-amber-800/80 text-[11px]">
-                  <span>{M.paymentDetailRefundedAt}</span>
-                  <span>{formatDateTime(payment.refundedAt)}</span>
-                </div>
-              )}
-              {payment.refundReason && (
-                <div className="flex items-center justify-between text-amber-800/80 text-[11px]">
-                  <span>{M.paymentDetailRefundReason}</span>
-                  <span className="italic">{payment.refundReason}</span>
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-2">

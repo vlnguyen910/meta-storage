@@ -229,7 +229,33 @@ export class RentalsRepository {
   async findCustomerRentalPaymentsFor(rentalIds: string[], userId: string) {
     if (!rentalIds.length) return [];
     return this.db
-      .select({ rentalId: rentals.id, payment: payments })
+      .select({
+        rentalId: rentals.id,
+        payment: payments,
+        reservation: {
+          rentalFeeAmount: reservations.rentalFeeAmount,
+          depositAmount: reservations.depositAmount,
+          vatAmount: reservations.vatAmount,
+          monthlyRate: reservations.monthlyRateSnapshot,
+          months: reservations.requestedMonths,
+        },
+        booking: {
+          rentalFeeAmount: bookings.rentalFeeAmount,
+          depositAmount: bookings.depositAmount,
+          monthlyRate: bookings.monthlyRateSnapshot,
+          months: bookings.requestedMonths,
+        },
+        renewal: {
+          rentalFeeAmount: rentalRenewals.amount,
+          vatAmount: rentalRenewals.vatAmount,
+          monthlyRate: rentalRenewals.monthlyRateSnapshot,
+          months: rentalRenewals.months,
+        },
+        settlement: {
+          depositAmount: returnSettlements.depositAmount,
+          deductionAmount: returnSettlements.deductionAmount,
+        },
+      })
       .from(payments)
       .innerJoin(
         rentals,
@@ -250,6 +276,10 @@ export class RentalsRepository {
           ),
         ),
       )
+      .leftJoin(reservations, eq(reservations.id, payments.reservationId))
+      .leftJoin(bookings, eq(bookings.id, payments.bookingId))
+      .leftJoin(rentalRenewals, eq(rentalRenewals.id, payments.renewalId))
+      .leftJoin(returnSettlements, eq(returnSettlements.rentalId, rentals.id))
       .where(and(inArray(rentals.id, rentalIds), eq(rentals.userId, userId)))
       .orderBy(asc(payments.createdAt), asc(payments.id));
   }

@@ -187,10 +187,10 @@ export class RentalsService {
       userId,
     );
     const byRental = new Map<string, RentalPaymentItem[]>();
-    for (const { rentalId, payment } of history) {
-      const entries = byRental.get(rentalId) ?? [];
-      entries.push(toRentalPaymentItem(payment));
-      byRental.set(rentalId, entries);
+    for (const row of history) {
+      const entries = byRental.get(row.rentalId) ?? [];
+      entries.push(toRentalPaymentItem(row.payment, resolveBreakdown(row)));
+      byRental.set(row.rentalId, entries);
     }
     return items.map((item) => ({ ...item, payments: byRental.get(item.id) ?? [] }));
   }
@@ -249,8 +249,8 @@ export class RentalsService {
   async listCustomerRentalPayments(rentalId: string, userId: string): Promise<RentalPaymentItem[]> {
     const [rental] = await this.repository.findOwnedRental(rentalId, userId);
     if (!rental) throw new NotFoundError(M.rentalNotFound);
-    return (await this.repository.findCustomerRentalPayments(rentalId, userId)).map(({ payment }) =>
-      toRentalPaymentItem(payment),
+    return (await this.repository.findCustomerRentalPayments(rentalId, userId)).map((row) =>
+      toRentalPaymentItem(row.payment, resolveBreakdown(row)),
     );
   }
 
@@ -596,7 +596,88 @@ export class RentalsService {
   }
 }
 
-function toRentalPaymentItem(payment: typeof payments.$inferSelect): RentalPaymentItem {
+interface PaymentBreakdownRow {
+  reservation: {
+    rentalFeeAmount: number | null;
+    depositAmount: number | null;
+    vatAmount: number | null;
+    monthlyRate: number | null;
+    months: number | null;
+  } | null;
+  booking: {
+    rentalFeeAmount: string | null;
+    depositAmount: string | null;
+    monthlyRate: string | null;
+    months: number | null;
+  } | null;
+  renewal: {
+    rentalFeeAmount: string | null;
+    vatAmount: string | null;
+    monthlyRate: string | null;
+    months: number | null;
+  } | null;
+  settlement: {
+    depositAmount: string | null;
+    deductionAmount: string | null;
+  } | null;
+}
+
+function resolveBreakdown(row: PaymentBreakdownRow) {
+  if (row.reservation?.rentalFeeAmount != null) {
+    return {
+      rentalFeeAmount: String(row.reservation.rentalFeeAmount),
+      depositAmount: String(row.reservation.depositAmount),
+      vatAmount: row.reservation.vatAmount != null ? String(row.reservation.vatAmount) : null,
+      monthlyRate: row.reservation.monthlyRate != null ? String(row.reservation.monthlyRate) : null,
+      months: row.reservation.months,
+      deductionAmount: null,
+    };
+  }
+  if (row.booking?.rentalFeeAmount != null) {
+    return {
+      rentalFeeAmount: String(row.booking.rentalFeeAmount),
+      depositAmount: String(row.booking.depositAmount),
+      vatAmount: null,
+      monthlyRate: row.booking.monthlyRate != null ? String(row.booking.monthlyRate) : null,
+      months: row.booking.months,
+      deductionAmount: null,
+    };
+  }
+  if (row.renewal?.rentalFeeAmount != null) {
+    return {
+      rentalFeeAmount: String(row.renewal.rentalFeeAmount),
+      depositAmount: "0",
+      vatAmount: row.renewal.vatAmount != null ? String(row.renewal.vatAmount) : null,
+      monthlyRate: row.renewal.monthlyRate != null ? String(row.renewal.monthlyRate) : null,
+      months: row.renewal.months,
+      deductionAmount: null,
+    };
+  }
+  if (row.settlement?.depositAmount != null) {
+    return {
+      depositAmount: String(row.settlement.depositAmount),
+      deductionAmount:
+        row.settlement.deductionAmount != null ? String(row.settlement.deductionAmount) : null,
+      rentalFeeAmount: null,
+      vatAmount: null,
+      monthlyRate: null,
+      months: null,
+    };
+  }
+  return undefined;
+}
+
+function toRentalPaymentItem(
+  payment: typeof payments.$inferSelect,
+  breakdown?: {
+    rentalFeeAmount?: string | null;
+    depositAmount?: string | null;
+    vatAmount?: string | null;
+    deductionAmount?: string | null;
+    monthlyRate?: string | null;
+    months?: number | null;
+  },
+): RentalPaymentItem {
   return {
     id: payment.id,
     type: payment.type,
@@ -612,6 +693,12 @@ function toRentalPaymentItem(payment: typeof payments.$inferSelect): RentalPayme
     refundReason: payment.refundReason,
     refundedAt: payment.refundedAt?.toISOString() ?? null,
     createdAt: payment.createdAt.toISOString(),
+    rentalFeeAmount: breakdown?.rentalFeeAmount ?? null,
+    depositAmount: breakdown?.depositAmount ?? null,
+    vatAmount: breakdown?.vatAmount ?? null,
+    deductionAmount: breakdown?.deductionAmount ?? null,
+    monthlyRate: breakdown?.monthlyRate ?? null,
+    months: breakdown?.months ?? null,
   };
 }
 
