@@ -52,7 +52,9 @@ export function useStaffWork(facilityId: string, date: string, kind: StaffWorkFi
                   ? item.appointmentType === "CHECK_OUT"
                   : kind === "CHECK_IN"
                     ? item.appointmentType === "CHECK_IN"
-                    : true) &&
+                    : kind === "SUPPORT"
+                      ? item.appointmentType === "SUPPORT"
+                      : true) &&
                 (date === "all" || item.scheduledDate === date),
             )
             .map((item): import("./staff-work.types").StaffWorkItem => {
@@ -66,7 +68,9 @@ export function useStaffWork(facilityId: string, date: string, kind: StaffWorkFi
                     ? "CHECK_IN"
                     : item.appointmentType === "CHECK_OUT"
                       ? "RETURN"
-                      : "TASK",
+                      : item.appointmentType === "SUPPORT"
+                        ? "SUPPORT"
+                        : "TASK",
                 group:
                   item.status === "COMPLETED"
                     ? "done"
@@ -91,7 +95,7 @@ export function useStaffWork(facilityId: string, date: string, kind: StaffWorkFi
               };
             })
         : []),
-      ...(kind !== "CHECK_IN" && !isMockMode
+      ...((kind === "" || kind === "TASK") && !isMockMode
         ? (tasks.data ?? [])
             .filter(
               (t) =>

@@ -76,13 +76,15 @@ export function StaffWorkFiltersBar({
   const [open, setOpen] = useState(false);
   const [initialCalendar, setInitialCalendar] = useState(false);
   const kindLabel =
-    filters.kind === "appointment"
+    filters.kind === "check_in" || filters.kind === "appointment"
       ? M.bookings
-      : filters.kind === "task"
-        ? M.tasks
-        : filters.kind === "return"
-          ? M.returns
-          : M.allWork;
+      : filters.kind === "return"
+        ? M.returns
+        : filters.kind === "support"
+          ? M.support
+          : filters.kind === "task"
+            ? M.tasks
+            : M.allWork;
   const openSheet = (showCalendar = false) => {
     Keyboard.dismiss();
     setInitialCalendar(showCalendar);
@@ -130,6 +132,38 @@ export function StaffWorkFiltersBar({
               : M.chooseDate}
           </Text>
         </Pressable>
+      </View>
+      <View className="flex-row flex-wrap gap-1">
+        {(
+          [
+            { value: "all", label: M.all },
+            { value: "check_in", label: M.bookings },
+            { value: "return", label: M.returns },
+            { value: "support", label: M.support },
+            { value: "task", label: M.tasks },
+          ] as const
+        ).map((opt) => {
+          const selected =
+            opt.value === "all"
+              ? filters.kind === "all"
+              : filters.kind === opt.value ||
+                (opt.value === "check_in" && filters.kind === "appointment");
+          return (
+            <Pressable
+              key={opt.value}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              onPress={() => onChange({ ...filters, kind: opt.value })}
+              className={`min-h-8 items-center justify-center rounded-lg px-2.5 ${selected ? "bg-primary" : "border border-outline-variant bg-surface active:bg-primary-soft"}`}
+            >
+              <Text
+                className={`font-body-semibold text-[10px] ${selected ? "text-primary-foreground" : "text-muted"}`}
+              >
+                {opt.label}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
       <View className="flex-row items-center gap-2">
         <Pressable
@@ -224,11 +258,12 @@ function StaffFilterSheet({
       <ChoiceTabs
         options={[
           { value: "all", label: M.all },
-          { value: "appointment", label: M.bookings },
+          { value: "check_in", label: M.bookings },
           { value: "return", label: M.returns },
+          { value: "support", label: M.support },
           { value: "task", label: M.tasks },
         ]}
-        value={kind}
+        value={kind === "appointment" ? "check_in" : kind}
         onChange={setKind}
       />
       <Text className="mb-3 mt-3 text-sm font-bold text-slate-900">{M.date}</Text>

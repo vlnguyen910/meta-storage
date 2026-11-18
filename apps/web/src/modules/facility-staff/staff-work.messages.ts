@@ -43,6 +43,8 @@ export const STAFF_WORK = {
   mockHint: "Các công việc cơ sở cần chế độ API để tải dữ liệu được phân công.",
   checkIn: "Nhận kho",
   return: "Trả kho",
+  support: "Hỗ trợ",
+  supportTasksTitle: "Hỗ trợ khách hàng",
   task: "Công việc cơ sở",
   inspect: "Kiểm tra kho",
   print: "In tài liệu",
