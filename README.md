@@ -151,12 +151,11 @@ khi tới giờ hẹn, chọn Unit và hoàn tất checklist trước khi bàn g
 Khi `NODE_ENV=develop` hoặc `development`, API cho phép demo đặt kho/nhận kho
 trong ngày, dùng slot demo ngoài giờ hoạt động và bắt đầu task/bàn giao trước hoặc
 sau giờ hẹn. Cron không tự đánh dấu reservation no-show trong hai môi trường này.
-Production giữ nguyên kiểm tra thời gian cho các slot thường; riêng slot
-`Demo check-in ngay` (`same_day_check_in_enabled`) cho phép đặt lịch trong ngày
-hiện tại và bắt đầu check-in trong khung giờ của slot. Reservation vẫn tính thời
-hạn thuê từ giờ bắt đầu cố định của slot. Thanh toán phải được xác minh, staff
-phải được giao việc và inspection/checklist vẫn bắt buộc. Cần chạy production
-bằng đúng `NODE_ENV=production`.
+Trong mọi môi trường, có thể đặt lịch nhận kho trong ngày nếu ca đã chọn chưa kết
+thúc; ca đã kết thúc bị từ chối. Reservation vẫn tính thời hạn thuê từ giờ bắt
+đầu cố định của slot. Thanh toán phải được xác minh, staff phải được giao việc và
+inspection/checklist vẫn bắt buộc. Cần chạy production bằng đúng
+`NODE_ENV=production`.
 
 BOM cấu hình VAT tại **Phí & phụ phí** (`/operations/fees`), mặc định 8%, hỗ trợ
 số nguyên 0–100%. Checkout tính **tiền thuê + VAT trên tiền thuê + tiền cọc**;

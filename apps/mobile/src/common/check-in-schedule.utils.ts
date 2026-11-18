@@ -3,7 +3,6 @@ import type { CheckInSlotOption } from "@metastorage/contracts";
 export function canSelectCheckInSlot(date: string, slot: CheckInSlotOption, now = new Date()) {
   if (!date) return false;
   const isToday = date === localDate(now);
-  if (isToday && !slot.sameDayCheckInEnabled) return false;
   const cutoff = isToday ? slot.endTime : slot.startTime;
   const slotTime = new Date(`${date}T${cutoff}+07:00`).getTime();
   return slotTime > now.getTime();
