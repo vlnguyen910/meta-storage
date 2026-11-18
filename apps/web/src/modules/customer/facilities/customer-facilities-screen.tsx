@@ -217,6 +217,8 @@ export function CustomerFacilitiesScreen() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {items.map((facility) => {
                   const imageIndex = Number.parseInt(facility.code.slice(-2), 10) % 3 || 0;
+                  const coverImage =
+                    facility.coverUrl || `/images/metastorage/unit-${imageIndex}.png`;
                   return (
                     <article
                       key={facility.id}
@@ -225,7 +227,8 @@ export function CustomerFacilitiesScreen() {
                       {/* Card Image Header */}
                       <div className="relative h-40 w-full overflow-hidden bg-slate-100">
                         <Image
-                          src={`/images/metastorage/unit-${imageIndex}.png`}
+                          unoptimized={Boolean(facility.coverUrl)}
+                          src={coverImage}
                           alt={M.imageAlt(facility.name)}
                           fill
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"

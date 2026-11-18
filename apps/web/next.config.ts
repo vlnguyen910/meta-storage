@@ -5,6 +5,18 @@ const nextConfig: NextConfig = {
   transpilePackages: ["@metastorage/shared", "@metastorage/contracts", "@metastorage/api-client"],
   reactStrictMode: true,
   devIndicators: false,
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+      {
+        protocol: "https",
+        hostname: "res.cloudinary.com",
+      },
+    ],
+  },
 };
 
 export default function config(phase: string): NextConfig {

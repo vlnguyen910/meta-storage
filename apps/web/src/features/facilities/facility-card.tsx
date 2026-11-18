@@ -18,12 +18,14 @@ export function FacilityCard({
   protectedMode?: boolean;
 }) {
   const imageIndex = Number.parseInt(facility.code.slice(-2), 10) % 3;
+  const coverImage = facility.coverUrl || `/images/metastorage/unit-${imageIndex}.png`;
 
   return (
     <article className="overflow-hidden rounded-card border border-line bg-white shadow-soft transition duration-200 hover:-translate-y-1 hover:shadow-card">
       <div className={cn("relative h-[170px] overflow-hidden bg-[#e8f5f1]")}>
         <Image
-          src={`/images/metastorage/unit-${imageIndex}.png`}
+          unoptimized={Boolean(facility.coverUrl)}
+          src={coverImage}
           alt={`Không gian ${facility.name}`}
           fill
           sizes="(max-width: 560px) 100vw, 33vw"

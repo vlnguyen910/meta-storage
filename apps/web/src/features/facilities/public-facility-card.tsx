@@ -12,11 +12,13 @@ import type { FacilityCatalogItem } from "./facility-catalog.types";
 export function PublicFacilityCard({ facility }: { facility: FacilityCatalogItem }) {
   const session = useAuthStore((state) => state.session);
   const href = storageEntryHref(session?.user.role);
+  const coverImage = facility.coverUrl || "/images/metastorage/storage-interior.png";
   return (
     <article className="grid overflow-hidden rounded-lg border border-[#e2e8f0] bg-white shadow-[0_1px_3px_rgb(15_23_42/4%)] transition hover:border-[#125345]/30 hover:shadow-[0_8px_24px_rgb(18_83_69/8%)] md:grid-cols-[29%_1fr_240px]">
       <div className="relative min-h-[220px] bg-[#e8f5f1]">
         <Image
-          src="/images/metastorage/storage-interior.png"
+          unoptimized={Boolean(facility.coverUrl)}
+          src={coverImage}
           alt={m.illustration}
           fill
           sizes="(max-width: 767px) 100vw, 360px"
