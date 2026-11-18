@@ -34,8 +34,17 @@ const emailWorker = new Worker<MailJobData>(
   (job) => mail.deliver(job.data, mailAdapter),
   { connection: redis },
 );
-emailWorker.on("failed", (job) => {
-  console.error(`Mail job failed (${job?.id ?? "unknown"})`);
+emailWorker.on("failed", (job, error) => {
+  console.error(
+    JSON.stringify({
+      event: "mail_job_failed",
+      jobId: job?.id ?? "unknown",
+      kind: job?.data.kind ?? "unknown",
+      attemptsMade: job?.attemptsMade,
+      attempts: job?.opts.attempts,
+      failedReason: error.message,
+    }),
+  );
 });
 emailWorker.on("error", () => console.error("Mail worker error"));
 
