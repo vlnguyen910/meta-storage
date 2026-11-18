@@ -50,6 +50,7 @@ import {
 import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { readFileBase64 } from "@/lib/read-file-base64";
+import { StaffUnitInspectionScreen } from "./staff-unit-inspection-screen";
 import { STAFF_WORK as M } from "./staff-work.messages";
 
 export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
@@ -60,7 +61,9 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
   const update = useUpdateTask(taskId);
   const client = useQueryClient();
   const task = query.data;
-  const isReturnTask = task?.type === "UNIT_INSPECTION" && task.referenceType === "APPOINTMENT";
+  const isReturnTask =
+    task?.referenceType === "APPOINTMENT" &&
+    (task.type === "RETURN_INSPECTION" || task.type === "UNIT_INSPECTION");
   const appointment = useQuery({
     queryKey: ["staff-return-appointment", task?.referenceId],
     queryFn: () => api.appointments.get(task?.referenceId ?? ""),
@@ -292,6 +295,8 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
     setPhotoError("");
     uploadEvidence.mutate(file);
   }
+  if (currentTask.type === "UNIT_INSPECTION" && currentTask.referenceType === "STORAGE_UNIT")
+    return <StaffUnitInspectionScreen taskId={taskId} />;
   return (
     <div className="space-y-5 pb-6">
       <Link

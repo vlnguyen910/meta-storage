@@ -1,5 +1,6 @@
 "use client";
 
+import type { FacilityTaskDetail } from "@metastorage/contracts";
 import { FacilityTaskReferenceType } from "@metastorage/contracts";
 import { formatReference } from "@metastorage/shared";
 import { useQuery } from "@tanstack/react-query";
@@ -30,6 +31,15 @@ function taskReference(type: string, id: string) {
   };
   const prefix = prefixes[type] ?? "CV";
   return formatReference(id, prefix);
+}
+
+function taskTypeLabel(task: Pick<FacilityTaskDetail, "type" | "referenceType">) {
+  if (
+    task.type === "UNIT_INSPECTION" &&
+    task.referenceType === FacilityTaskReferenceType.APPOINTMENT
+  )
+    return M.taskTypes.RETURN_INSPECTION;
+  return M.taskTypes[task.type];
 }
 
 export function TaskPanel({ facilityId, manager }: TaskPanelProps) {
@@ -118,7 +128,7 @@ export function TaskPanel({ facilityId, manager }: TaskPanelProps) {
                   {M.taskCode}: {formatReference(task.id, "CV")}
                 </span>
               </td>
-              <td>{M.taskTypes[task.type]}</td>
+              <td>{taskTypeLabel(task)}</td>
               <td>{task.assignedStaffName}</td>
               <td>
                 <OperationalBadge value={task.status} label={M.taskStatuses[task.status]} />
@@ -169,7 +179,7 @@ export function TaskPanel({ facilityId, manager }: TaskPanelProps) {
                 />
               </DialogHeader>
               <section className="grid gap-3 rounded-xl border border-line bg-canvas p-4 text-sm sm:grid-cols-2">
-                <DetailValue label={F5.taskType} value={M.taskTypes[selectedTask.type]} />
+                <DetailValue label={F5.taskType} value={taskTypeLabel(selectedTask)} />
                 <div className="grid gap-1">
                   <span className="text-xs text-muted">{F5.status}</span>
                   <OperationalBadge

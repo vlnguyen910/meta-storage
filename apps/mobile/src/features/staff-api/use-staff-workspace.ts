@@ -1,4 +1,9 @@
-import { type FacilityTaskDetail, FacilityTaskStatus } from "@metastorage/contracts";
+import {
+  type FacilityTaskDetail,
+  FacilityTaskStatus,
+  FacilityTaskType,
+  type UpdateInspectionInput,
+} from "@metastorage/contracts";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { apiErrorDetailMessage } from "../../common/api-error.utils";
@@ -59,7 +64,6 @@ export function useStaffWorkspace(owner: string, filters: StaffWorkFilters) {
     facility,
     bookings,
     tasks,
-    returnsUnavailable: true,
     items: filtered.items,
     counts: filtered.counts,
     hasMore: tasks.hasNextPage,
@@ -202,5 +206,168 @@ export function useStaffCheckIn(owner: string, appointmentId: string) {
       photo.error ??
       removePhoto.error ??
       handover.error,
+  };
+}
+
+export function useStaffReturn(owner: string, appointmentId: string) {
+  const client = useQueryClient();
+  const appointment = useQuery({
+    queryKey: ["mobile-return-appointment", owner, appointmentId],
+    queryFn: () => api.appointments.get(appointmentId),
+    refetchInterval: 15000,
+  });
+  const tasks = useQuery({
+    queryKey: ["mobile-return-tasks", owner, appointmentId],
+    queryFn: async () => {
+      const items: FacilityTaskDetail[] = [];
+      for (let offset = 0; ; offset += 100) {
+        const page = await api.flow5.tasks.listMine({
+          referenceId: appointmentId,
+          limit: 100,
+          offset,
+        });
+        items.push(...page.items);
+        if (offset + page.items.length >= page.total || !page.items.length) return items;
+      }
+    },
+  });
+  const task = tasks.data?.find(
+    (item) =>
+      item.referenceType === "APPOINTMENT" &&
+      item.referenceId === appointmentId &&
+      (item.type === FacilityTaskType.RETURN_INSPECTION ||
+        item.type === FacilityTaskType.UNIT_INSPECTION) &&
+      item.status !== FacilityTaskStatus.CANCELLED,
+  );
+  const history = useQuery({
+    queryKey: ["mobile-return-inspections", owner, appointmentId],
+    queryFn: () => api.inspections.forAppointment(appointmentId),
+    enabled: appointment.data?.appointmentType === "CHECK_OUT",
+  });
+  const record = history.data?.find((item) => item.taskId === task?.id);
+  const refresh = async () => {
+    await Promise.all([
+      appointment.refetch(),
+      tasks.refetch(),
+      history.refetch(),
+      client.invalidateQueries({ queryKey: ["mobile-staff-bookings", owner] }),
+      client.invalidateQueries({ queryKey: ["mobile-staff-tasks", owner] }),
+    ]);
+  };
+  const start = useMutation({
+    mutationFn: async () => {
+      if (!task) throw new Error(M.inspectionTaskUnavailable);
+      if (task.status === FacilityTaskStatus.ASSIGNED)
+        await api.flow5.tasks.update(task.id, { status: FacilityTaskStatus.IN_PROGRESS });
+      return api.inspections.create({ taskId: task.id });
+    },
+    onSuccess: refresh,
+  });
+  const save = useMutation({
+    mutationFn: (input: UpdateInspectionInput) => {
+      if (!record) throw new Error(M.returnLoadError);
+      return api.inspections.save(record.id, input);
+    },
+    onSuccess: refresh,
+  });
+  const photo = useMutation({
+    mutationFn: async (camera: boolean) => {
+      const input = await pickImage(camera);
+      return input && record ? api.inspections.upload(record.id, input) : null;
+    },
+    onSuccess: refresh,
+  });
+  const removePhoto = useMutation({
+    mutationFn: (id: string) => api.inspections.removePhoto(record?.id ?? "", id),
+    onSuccess: refresh,
+  });
+  return {
+    appointment,
+    tasks,
+    task,
+    history,
+    record,
+    start,
+    save,
+    photo,
+    removePhoto,
+    refresh,
+    busy: start.isPending || save.isPending || photo.isPending || removePhoto.isPending,
+    error:
+      appointment.error ??
+      tasks.error ??
+      history.error ??
+      start.error ??
+      save.error ??
+      photo.error ??
+      removePhoto.error,
+  };
+}
+
+export function useStaffUnitInspection(owner: string, task: FacilityTaskDetail) {
+  const client = useQueryClient();
+  const inspectionKey = ["mobile-unit-inspection", owner, task.id];
+  const recordQuery = useQuery({
+    queryKey: inspectionKey,
+    queryFn: () => api.inspections.create({ taskId: task.id }),
+    enabled:
+      task.status === FacilityTaskStatus.IN_PROGRESS ||
+      task.status === FacilityTaskStatus.COMPLETED,
+  });
+  const refresh = async () => {
+    await Promise.all([
+      recordQuery.refetch(),
+      client.invalidateQueries({ queryKey: ["mobile-staff-tasks", owner] }),
+      client.invalidateQueries({ queryKey: ["mobile-staff-task", owner, task.id] }),
+    ]);
+  };
+  const start = useMutation({
+    mutationFn: async () => {
+      if (task.status === FacilityTaskStatus.ASSIGNED)
+        await api.flow5.tasks.update(task.id, { status: FacilityTaskStatus.IN_PROGRESS });
+      return api.inspections.create({ taskId: task.id });
+    },
+    onSuccess: async (record) => {
+      client.setQueryData(inspectionKey, record);
+      await refresh();
+    },
+  });
+  const save = useMutation({
+    mutationFn: (input: UpdateInspectionInput) => {
+      if (!recordQuery.data) throw new Error(M.inspectionTaskUnavailable);
+      return api.inspections.save(recordQuery.data.id, input);
+    },
+    onSuccess: async (record) => {
+      client.setQueryData(inspectionKey, record);
+      await refresh();
+    },
+  });
+  const photo = useMutation({
+    mutationFn: async (camera: boolean) => {
+      const input = await pickImage(camera);
+      return input && recordQuery.data ? api.inspections.upload(recordQuery.data.id, input) : null;
+    },
+    onSuccess: async (record) => {
+      if (record) client.setQueryData(inspectionKey, record);
+      await refresh();
+    },
+  });
+  const removePhoto = useMutation({
+    mutationFn: (photoId: string) =>
+      api.inspections.removePhoto(recordQuery.data?.id ?? "", photoId),
+    onSuccess: async (record) => {
+      client.setQueryData(inspectionKey, record);
+      await refresh();
+    },
+  });
+  return {
+    record: recordQuery.data,
+    isPending: recordQuery.isPending,
+    error: recordQuery.error ?? start.error ?? save.error ?? photo.error ?? removePhoto.error,
+    start,
+    save,
+    photo,
+    removePhoto,
+    busy: start.isPending || save.isPending || photo.isPending || removePhoto.isPending,
   };
 }

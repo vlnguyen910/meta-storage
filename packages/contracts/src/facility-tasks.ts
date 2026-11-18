@@ -3,6 +3,7 @@ import { z } from "zod";
 //TODO: chuyển các export enum này xuống schema của facility task.
 export enum FacilityTaskType {
   CHECK_IN_HANDOVER = "CHECK_IN_HANDOVER",
+  RETURN_INSPECTION = "RETURN_INSPECTION",
   UNIT_INSPECTION = "UNIT_INSPECTION",
   HANDLE_SUPPORT = "HANDLE_SUPPORT",
 }
@@ -28,6 +29,10 @@ export const FacilityTaskTypeReferenceSchema = z.discriminatedUnion("type", [
       FacilityTaskReferenceType.BOOKING,
       FacilityTaskReferenceType.APPOINTMENT,
     ]),
+  }),
+  z.object({
+    type: z.literal(FacilityTaskType.RETURN_INSPECTION),
+    referenceType: z.literal(FacilityTaskReferenceType.APPOINTMENT),
   }),
   z.object({
     type: z.literal(FacilityTaskType.UNIT_INSPECTION),
@@ -102,6 +107,7 @@ export const FacilityTaskDashboardSummarySchema = z.object({
   pendingCount: z.number().int().nonnegative(),
   byType: z.object({
     [FacilityTaskType.CHECK_IN_HANDOVER]: z.number().int().nonnegative(),
+    [FacilityTaskType.RETURN_INSPECTION]: z.number().int().nonnegative(),
     [FacilityTaskType.UNIT_INSPECTION]: z.number().int().nonnegative(),
     [FacilityTaskType.HANDLE_SUPPORT]: z.number().int().nonnegative(),
   }),

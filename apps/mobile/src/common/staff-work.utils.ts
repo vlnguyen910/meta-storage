@@ -58,7 +58,7 @@ export function filterStaffWork(items: StaffSelection[], filters: StaffWorkFilte
     if (filters.date && date && staffWorkDate(date) !== filters.date) return false;
     const text =
       item.kind === "appointment"
-        ? `${item.appointment.customerName ?? ""} ${item.appointment.id} ${item.appointment.contactPhone ?? ""} ${item.appointment.assignedUnit?.physicalUnitCode ?? ""} ${formatReference(item.appointment.reservationId ?? item.appointment.id, item.appointment.reservationId ? "BK" : "LH")}`
+        ? `${item.appointment.customerName ?? ""} ${item.appointment.id} ${item.appointment.contactPhone ?? ""} ${item.appointment.assignedUnit?.physicalUnitCode ?? ""} ${formatReference(item.appointment.reservationId ?? item.appointment.rentalId ?? item.appointment.id, item.appointment.reservationId ? "BK" : item.appointment.rentalId ? "KT" : "LH")}`
         : `${item.task.description ?? ""} ${M.type[item.task.type] ?? ""}`;
     return text.toLocaleLowerCase("vi").includes(filters.search.trim().toLocaleLowerCase("vi"));
   });

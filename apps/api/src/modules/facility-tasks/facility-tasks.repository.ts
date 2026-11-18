@@ -205,6 +205,10 @@ export class FacilityTasksRepository {
             sql<number>`count(*) filter (where ${facilityTasks.type} = ${FacilityTaskType.CHECK_IN_HANDOVER})::int`.mapWith(
               Number,
             ),
+          RETURN_INSPECTION:
+            sql<number>`count(*) filter (where ${facilityTasks.type} = ${FacilityTaskType.RETURN_INSPECTION})::int`.mapWith(
+              Number,
+            ),
           UNIT_INSPECTION:
             sql<number>`count(*) filter (where ${facilityTasks.type} = ${FacilityTaskType.UNIT_INSPECTION})::int`.mapWith(
               Number,
