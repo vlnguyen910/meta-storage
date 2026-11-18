@@ -378,6 +378,21 @@ function RentalsTab() {
       )}
 
       {/* Table Section */}
+      {searchQuery && (
+        <div className="flex items-center gap-2 px-1 text-xs text-slate-600">
+          <span>
+            Đang lọc theo: <strong className="text-slate-900">"{searchQuery}"</strong> (
+            {items.length} kết quả trên trang hiện tại)
+          </span>
+          <button
+            type="button"
+            onClick={handleResetSearch}
+            className="text-primary hover:underline font-semibold text-xs cursor-pointer ml-1"
+          >
+            Xóa tìm kiếm
+          </button>
+        </div>
+      )}
       <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-slate-200/90 bg-white shadow-xs">
         {isPending ? (
           <LoadingState label={M.loading} variant="table" />
@@ -465,7 +480,7 @@ function RentalsTab() {
             label={M.rentalSummary}
             page={page}
             pageSize={PAGE_SIZE}
-            total={data.total}
+            total={searchQuery ? items.length : data.total}
             unitLabel="lượt thuê"
             onPageChange={setPage}
           />
@@ -599,6 +614,21 @@ function ReconciliationTab() {
       </section>
 
       {/* Table Section */}
+      {searchQuery && (
+        <div className="flex items-center gap-2 px-1 text-xs text-slate-600">
+          <span>
+            Đang lọc theo: <strong className="text-slate-900">"{searchQuery}"</strong> (
+            {items.length} kết quả trên trang hiện tại)
+          </span>
+          <button
+            type="button"
+            onClick={handleResetSearch}
+            className="text-primary hover:underline font-semibold text-xs cursor-pointer ml-1"
+          >
+            Xóa tìm kiếm
+          </button>
+        </div>
+      )}
       <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-slate-200/90 bg-white shadow-xs">
         {isPending ? (
           <LoadingState label={M.loading} variant="table" />
@@ -701,7 +731,7 @@ function ReconciliationTab() {
             label={M.tabReconciliationTitle}
             page={page}
             pageSize={PAGE_SIZE}
-            total={data.total}
+            total={searchQuery ? items.length : data.total}
             unitLabel="giao dịch"
             onPageChange={setPage}
           />
@@ -858,6 +888,21 @@ function RefundsQueueTab() {
       )}
 
       {/* Table Section */}
+      {searchQuery && (
+        <div className="flex items-center gap-2 px-1 text-xs text-slate-600">
+          <span>
+            Đang lọc theo: <strong className="text-slate-900">"{searchQuery}"</strong> (
+            {filteredRefunds.length} kết quả trên trang hiện tại)
+          </span>
+          <button
+            type="button"
+            onClick={handleResetSearch}
+            className="text-primary hover:underline font-semibold text-xs cursor-pointer ml-1"
+          >
+            Xóa tìm kiếm
+          </button>
+        </div>
+      )}
       <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-slate-200/90 bg-white shadow-xs">
         {isPending ? (
           <LoadingState label={M.loading} variant="table" />

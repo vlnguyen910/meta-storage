@@ -69,9 +69,13 @@ export const RENTAL_MESSAGES = {
   returnCancelledSuccess: "Đã hủy yêu cầu trả kho thành công.",
   returnEarlyTitle: "Xác nhận trả kho sớm",
   returnEarlyDescription: (endDate: string) =>
-    `Ngày trả bạn chọn sớm hơn hạn thuê ${endDate}. Bạn có chắc muốn gửi yêu cầu này không?`,
+    `Ngày trả bạn chọn sớm hơn hạn thuê ${endDate}. Việc trả kho trước hạn sẽ áp dụng chính sách quyết toán cọc và phí theo hợp đồng đã ký. Bạn có chắc muốn gửi yêu cầu này không?`,
   returnEarlyCancel: "Chọn ngày khác",
   returnEarlyConfirm: "Xác nhận trả sớm",
+  returnCancelConfirmTitle: "Xác nhận hủy lịch hẹn trả kho",
+  returnCancelConfirmDescription:
+    "Bạn có chắc chắn muốn hủy lịch hẹn trả kho này? Sau khi hủy, khung giờ đã chọn sẽ được giải phóng và bạn sẽ cần đặt lại lịch mới nếu muốn trả kho.",
+  returnCancelConfirmAction: "Xác nhận hủy",
   saving: "Đang gửi…",
   cancel: "Đóng",
   returnStatuses: {

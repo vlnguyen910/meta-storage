@@ -83,7 +83,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   const isNoScroll =
-    pathname === routes.customer.dashboard ||
     pathname === routes.customer.facilities ||
     pathname === routes.customer.rentals ||
     pathname === routes.customer.transactions ||
