@@ -290,7 +290,7 @@ export const FLOW = {
   progress: "Hạng mục hoàn tất",
   requirement: "Cả 4 mục kiểm tra phải đạt trước khi khóa biên bản. Ghi chú và ảnh là tùy chọn.",
   checklistTitle: "Checklist kiểm tra ô kho",
-  checklistPass: "Đạt",
+  checklistPass: "Xong",
   checklistFail: "Không đạt",
   checklistUnanswered: "Chưa kiểm tra",
   checklistFailure: "Mục kiểm tra chưa đạt. Dừng bàn giao và liên hệ quản lý để xử lý.",
