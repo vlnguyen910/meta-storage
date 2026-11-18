@@ -87,6 +87,12 @@ export const RentalPaymentItemSchema = z.object({
   refundReason: z.string().nullable(),
   refundedAt: z.string().nullable(),
   createdAt: z.string(),
+  rentalFeeAmount: z.string().nullable().optional(),
+  depositAmount: z.string().nullable().optional(),
+  vatAmount: z.string().nullable().optional(),
+  deductionAmount: z.string().nullable().optional(),
+  monthlyRate: z.string().nullable().optional(),
+  months: z.number().nullable().optional(),
 });
 export type RentalPaymentItem = z.infer<typeof RentalPaymentItemSchema>;
 

@@ -14,7 +14,20 @@ import { formatCurrency, formatDateTime } from "@/lib/format";
 import { PaymentDetailDialog } from "./payment-detail-dialog";
 import { RENTAL_MESSAGES as M } from "./rentals.messages";
 
-export function RentalPaymentHistory({ rentalId }: { rentalId: string }) {
+export function RentalPaymentHistory({
+  rentalId,
+  rental,
+}: {
+  rentalId: string;
+  rental?: {
+    bookingCode?: string;
+    facility?: { name: string; address?: string };
+    unitType?: { name: string; sizeLabel?: string };
+    storageUnit?: { code: string } | null;
+    startAt?: string;
+    endAt?: string;
+  };
+}) {
   const identity = useFlow3Identity();
   const [page, setPage] = useState(1);
   const [selectedPayment, setSelectedPayment] = useState<RentalPaymentItem | null>(null);
@@ -127,6 +140,15 @@ export function RentalPaymentHistory({ rentalId }: { rentalId: string }) {
               payment={selectedPayment}
               isOpen={Boolean(selectedPayment)}
               onClose={() => setSelectedPayment(null)}
+              bookingCode={rental?.bookingCode}
+              unitTypeName={rental?.unitType?.name}
+              facilityName={rental?.facility?.name}
+              storageUnitCode={rental?.storageUnit?.code}
+              rentalPeriod={
+                rental?.startAt && rental?.endAt
+                  ? { startAt: rental.startAt, endAt: rental.endAt }
+                  : undefined
+              }
             />
           )}
         </>

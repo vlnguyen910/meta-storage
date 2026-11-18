@@ -298,7 +298,7 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
           </div>
         )}
       </Card>
-      <RentalPaymentHistory key={rentalId} rentalId={rentalId} />
+      <RentalPaymentHistory key={rentalId} rentalId={rentalId} rental={r} />
 
       <Dialog open={showReturnForm && r.status === "ACTIVE"} onOpenChange={setShowReturnForm}>
         <DialogContent
