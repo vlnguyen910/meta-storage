@@ -56,6 +56,7 @@ export function allowsSameDayCheckIn(
   now = new Date(),
 ) {
   if (!slot || date !== toLocalDateTimeInput(now).slice(0, 10)) return false;
+  if (slot.sameDayCheckInEnabled) return true;
   const slotEnd = new Date(`${date}T${slot.endTime}+07:00`);
   return !Number.isNaN(slotEnd.getTime()) && now < slotEnd;
 }

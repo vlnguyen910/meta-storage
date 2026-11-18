@@ -72,7 +72,8 @@ export class ReservationsService {
     const now = new Date();
     const sameDayReservationAllowed =
       slot && this.slots.allowsSameDayReservation(slot, input.checkInDate, now);
-    if (!slot || slot.endsAt <= now) throw new BadRequestError(m.invalidSlot);
+    if (!slot || (slot.endsAt <= now && !sameDayReservationAllowed))
+      throw new BadRequestError(m.invalidSlot);
     if (input.checkInDate === today && !demo && !sameDayReservationAllowed)
       throw new BadRequestError(m.futureDateRequired);
     if (!demo && slot.startsAt <= now && !sameDayReservationAllowed)
