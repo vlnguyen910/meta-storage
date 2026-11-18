@@ -5,7 +5,7 @@ import { CalendarDays, ChevronLeft, ChevronRight, Clock3 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { checkoutMessages as m } from "./checkout.messages";
-import { toLocalDateTimeInput } from "./checkout-validation";
+import { allowsSameDayCheckIn, toLocalDateTimeInput } from "./checkout-validation";
 
 function dateFromParts(year: number, monthIndex: number, day: number): string {
   return `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -61,9 +61,9 @@ export function BookingSchedulePicker({
   slotsError?: boolean;
   onRetrySlots?: () => void;
 }) {
-  const localNow = toLocalDateTimeInput(new Date());
+  const now = new Date();
+  const localNow = toLocalDateTimeInput(now);
   const today = localNow.slice(0, 10);
-  const currentTime = localNow.slice(11, 16);
   const [calendarMonth, setCalendarMonth] = useState(() => minDate.slice(0, 7));
   const [year, month] = calendarMonth.split("-").map(Number);
   const monthYear = year ?? 0;
@@ -95,9 +95,7 @@ export function BookingSchedulePicker({
     onDateChange(value);
   }
   function slotHasPassed(slot: CheckInSlotOption) {
-    if (date !== today) return false;
-    const cutoff = slot.sameDayCheckInEnabled ? slot.endTime : slot.startTime;
-    return cutoff.slice(0, 5) <= currentTime;
+    return date === today && !allowsSameDayCheckIn(date, slot, now);
   }
 
   return (
