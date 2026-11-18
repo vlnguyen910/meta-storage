@@ -20,6 +20,12 @@ export class CheckInSlotsService {
     return slot && slot.endsAt > slot.startsAt ? slot : null;
   }
 
+  async allowsSameDayReservationForStartAt(checkInAt: Date, now = new Date()) {
+    const slot = await this.repository.findUniqueByStartAt(checkInAt);
+    if (!slot || slot.endsAt <= slot.startsAt) return false;
+    return this.allowsSameDayReservation(slot, localDate(checkInAt, FACILITY_TIME_ZONE), now);
+  }
+
   findForCheckIn(checkInAt: Date): Promise<ResolvedCheckInSlot | null> {
     return this.repository.findForCheckIn(checkInAt);
   }
