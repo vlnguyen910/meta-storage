@@ -12,6 +12,15 @@ import { toLocalDateTimeInput } from "./checkout-validation";
 export function CheckoutContact({ state }: { state: CheckoutState }) {
   const { form } = state;
   const tomorrow = toLocalDateTimeInput(new Date(Date.now() + 86_400_000)).slice(0, 10);
+  const localNow = toLocalDateTimeInput(new Date());
+  const today = localNow.slice(0, 10);
+  const currentTime = localNow.slice(11, 16);
+  const slots = state.slotsQuery.data ?? [];
+  const minDate = slots.some(
+    (slot) => slot.sameDayCheckInEnabled && slot.endTime.slice(0, 5) > currentTime,
+  )
+    ? today
+    : tomorrow;
   const selectedDate = form.watch("checkInDate");
   const selectedSlotId = form.watch("checkInSlotId");
   const selectedDuration = form.watch("durationMonths");
@@ -144,8 +153,8 @@ export function CheckoutContact({ state }: { state: CheckoutState }) {
             onSlotChange={(value) =>
               form.setValue("checkInSlotId", value, { shouldValidate: true })
             }
-            slots={state.slotsQuery.data ?? []}
-            minDate={tomorrow}
+            slots={slots}
+            minDate={minDate}
             dateTitle={m.datePickerTitle}
             slotTitle={m.slotPickerTitle}
             dateHint={m.datePickerHint}
