@@ -1,0 +1,130 @@
+<mxfile host="app.diagrams.net" modified="2026-11-18T00:00:00.000Z" agent="Codex" version="24.7.17">
+  <diagram id="flow1" name="Flow 1 - Reserve &amp; Pay">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="pool1" value="Metastorage - Flow 1: Reserve &amp; Pay Storage Unit" style="swimlane;horizontal=1;startSize=34;rounded=0;html=1;fillColor=#f5f5f5;strokeColor=#333333;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="1320" height="720" as="geometry" />
+        </mxCell>
+        <mxCell id="lane1" value="Customer" style="swimlane;horizontal=0;startSize=28;rounded=0;html=1;fillColor=#ffffff;strokeColor=#333333;fontStyle=1;" vertex="1" parent="pool1">
+          <mxGeometry x="0" y="34" width="330" height="686" as="geometry" />
+        </mxCell>
+        <mxCell id="lane2" value="Web / Mobile" style="swimlane;horizontal=0;startSize=28;rounded=0;html=1;fillColor=#ffffff;strokeColor=#333333;fontStyle=1;" vertex="1" parent="pool1">
+          <mxGeometry x="330" y="34" width="330" height="686" as="geometry" />
+        </mxCell>
+        <mxCell id="lane3" value="Metastorage API" style="swimlane;horizontal=0;startSize=28;rounded=0;html=1;fillColor=#ffffff;strokeColor=#333333;fontStyle=1;" vertex="1" parent="pool1">
+          <mxGeometry x="660" y="34" width="330" height="686" as="geometry" />
+        </mxCell>
+        <mxCell id="lane4" value="Payment Provider" style="swimlane;horizontal=0;startSize=28;rounded=0;html=1;fillColor=#ffffff;strokeColor=#333333;fontStyle=1;" vertex="1" parent="pool1">
+          <mxGeometry x="990" y="34" width="330" height="686" as="geometry" />
+        </mxCell>
+
+        <mxCell id="f1c1" value="1. Đăng nhập" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="lane1"><mxGeometry x="80" y="80" width="170" height="50" as="geometry" /></mxCell>
+        <mxCell id="f1c2" value="2. Tìm kiếm cơ sở" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="lane1"><mxGeometry x="80" y="190" width="170" height="50" as="geometry" /></mxCell>
+        <mxCell id="f1c3" value="3. Chọn kho và thời hạn" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="lane1"><mxGeometry x="70" y="300" width="190" height="50" as="geometry" /></mxCell>
+        <mxCell id="f1w1" value="Hiển thị cơ sở và kho" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="lane2"><mxGeometry x="80" y="190" width="170" height="50" as="geometry" /></mxCell>
+        <mxCell id="f1w2" value="Hiển thị báo giá" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="lane2"><mxGeometry x="80" y="300" width="170" height="50" as="geometry" /></mxCell>
+        <mxCell id="f1w3" value="Mở thanh toán" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="lane2"><mxGeometry x="80" y="410" width="170" height="50" as="geometry" /></mxCell>
+        <mxCell id="f1a1" value="Tạo reservation draft" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane3"><mxGeometry x="80" y="410" width="170" height="50" as="geometry" /></mxCell>
+        <mxCell id="f1a2" value="Còn kho?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane3"><mxGeometry x="105" y="510" width="120" height="70" as="geometry" /></mxCell>
+        <mxCell id="f1a3" value="Tạo payment session" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane3"><mxGeometry x="80" y="610" width="170" height="50" as="geometry" /></mxCell>
+        <mxCell id="f1p1" value="Xử lý thanh toán" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="lane4"><mxGeometry x="80" y="610" width="170" height="50" as="geometry" /></mxCell>
+
+        <mxCell id="e1" edge="1" parent="pool1" source="f1c1" target="f1c2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" />
+        <mxCell id="e2" edge="1" parent="pool1" source="f1c2" target="f1w1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" />
+        <mxCell id="e3" edge="1" parent="pool1" source="f1w1" target="f1c3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" />
+        <mxCell id="e4" edge="1" parent="pool1" source="f1c3" target="f1w2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" />
+        <mxCell id="e5" edge="1" parent="pool1" source="f1w2" target="f1w3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" />
+        <mxCell id="e6" edge="1" parent="pool1" source="f1w3" target="f1a1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" />
+        <mxCell id="e7" edge="1" parent="pool1" source="f1a1" target="f1a2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" />
+        <mxCell id="e8" value="Có" edge="1" parent="pool1" source="f1a2" target="f1a3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" />
+        <mxCell id="e9" edge="1" parent="pool1" source="f1a3" target="f1p1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" />
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram id="flow2" name="Flow 2 - Assign Unit &amp; Handover">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" /><mxCell id="1" parent="0" />
+        <mxCell id="pool2" value="Metastorage - Flow 2: Assign Unit &amp; Handover" style="swimlane;horizontal=1;startSize=34;rounded=0;html=1;fillColor=#f5f5f5;strokeColor=#333333;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="40" width="1320" height="720" as="geometry" /></mxCell>
+        <mxCell id="lane21" value="Facility Manager" style="swimlane;horizontal=0;startSize=28;rounded=0;html=1;fillColor=#ffffff;strokeColor=#333333;fontStyle=1;" vertex="1" parent="pool2"><mxGeometry x="0" y="34" width="330" height="686" as="geometry" /></mxCell>
+        <mxCell id="lane22" value="Metastorage API" style="swimlane;horizontal=0;startSize=28;rounded=0;html=1;fillColor=#ffffff;strokeColor=#333333;fontStyle=1;" vertex="1" parent="pool2"><mxGeometry x="330" y="34" width="330" height="686" as="geometry" /></mxCell>
+        <mxCell id="lane23" value="Staff" style="swimlane;horizontal=0;startSize=28;rounded=0;html=1;fillColor=#ffffff;strokeColor=#333333;fontStyle=1;" vertex="1" parent="pool2"><mxGeometry x="660" y="34" width="330" height="686" as="geometry" /></mxCell>
+        <mxCell id="lane24" value="Customer" style="swimlane;horizontal=0;startSize=28;rounded=0;html=1;fillColor=#ffffff;strokeColor=#333333;fontStyle=1;" vertex="1" parent="pool2"><mxGeometry x="990" y="34" width="330" height="686" as="geometry" /></mxCell>
+
+        <mxCell id="f2m1" value="1. Xem appointment" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="lane21"><mxGeometry x="80" y="80" width="170" height="50" as="geometry" /></mxCell>
+        <mxCell id="f2m2" value="2. Chọn unit và Staff" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="lane21"><mxGeometry x="70" y="190" width="190" height="50" as="geometry" /></mxCell>
+        <mxCell id="f2a1" value="Cập nhật assignment" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane22"><mxGeometry x="80" y="190" width="170" height="50" as="geometry" /></mxCell>
+        <mxCell id="f2a2" value="Tạo handover task" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane22"><mxGeometry x="80" y="300" width="170" height="50" as="geometry" /></mxCell>
+        <mxCell id="f2a3" value="Lưu inspection" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane22"><mxGeometry x="80" y="520" width="170" height="50" as="geometry" /></mxCell>
+        <mxCell id="f2s1" value="3. Check-in khách" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="lane23"><mxGeometry x="80" y="410" width="170" height="50" as="geometry" /></mxCell>
+        <mxCell id="f2s2" value="4. Hoàn tất checklist" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="lane23"><mxGeometry x="80" y="520" width="170" height="50" as="geometry" /></mxCell>
+        <mxCell id="f2s3" value="5. Bàn giao storage unit" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="lane23"><mxGeometry x="65" y="630" width="200" height="50" as="geometry" /></mxCell>
+        <mxCell id="f2c1" value="Nhận unit và key/access" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="lane24"><mxGeometry x="65" y="630" width="200" height="50" as="geometry" /></mxCell>
+
+        <mxCell id="g1" edge="1" parent="pool2" source="f2m1" target="f2m2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" />
+        <mxCell id="g2" edge="1" parent="pool2" source="f2m2" target="f2a1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" />
+        <mxCell id="g3" edge="1" parent="pool2" source="f2a1" target="f2a2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" />
+        <mxCell id="g4" edge="1" parent="pool2" source="f2a2" target="f2s1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" />
+        <mxCell id="g5" edge="1" parent="pool2" source="f2s1" target="f2s2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" />
+        <mxCell id="g6" edge="1" parent="pool2" source="f2s2" target="f2a3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" />
+        <mxCell id="g7" edge="1" parent="pool2" source="f2a3" target="f2s3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" />
+        <mxCell id="g8" edge="1" parent="pool2" source="f2s3" target="f2c1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" />
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="flow3" name="Flow 3 - Storage Return">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" page="1" pageWidth="1600" pageHeight="1000">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="p3" value="Metastorage - Flow 3: Storage Return" style="swimlane;horizontal=1;startSize=34;rounded=0;html=1;fillColor=#f5f5f5;strokeColor=#333333;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="40" width="1320" height="620" as="geometry"/></mxCell>
+        <mxCell id="p3l1" value="Customer" style="swimlane;horizontal=0;startSize=28;rounded=0;html=1;fillColor=#fff;strokeColor=#333;fontStyle=1;" vertex="1" parent="p3"><mxGeometry x="0" y="34" width="330" height="586" as="geometry"/></mxCell>
+        <mxCell id="p3l2" value="Facility Manager" style="swimlane;horizontal=0;startSize=28;rounded=0;html=1;fillColor=#fff;strokeColor=#333;fontStyle=1;" vertex="1" parent="p3"><mxGeometry x="330" y="34" width="330" height="586" as="geometry"/></mxCell>
+        <mxCell id="p3l3" value="Staff" style="swimlane;horizontal=0;startSize=28;rounded=0;html=1;fillColor=#fff;strokeColor=#333;fontStyle=1;" vertex="1" parent="p3"><mxGeometry x="660" y="34" width="330" height="586" as="geometry"/></mxCell>
+        <mxCell id="p3l4" value="Metastorage API" style="swimlane;horizontal=0;startSize=28;rounded=0;html=1;fillColor=#fff;strokeColor=#333;fontStyle=1;" vertex="1" parent="p3"><mxGeometry x="990" y="34" width="330" height="586" as="geometry"/></mxCell>
+        <mxCell id="p3a" value="1. Book return slot" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="p3l1"><mxGeometry x="70" y="100" width="190" height="50" as="geometry"/></mxCell>
+        <mxCell id="p3b" value="2. Assign Staff" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="p3l2"><mxGeometry x="70" y="210" width="190" height="50" as="geometry"/></mxCell>
+        <mxCell id="p3c" value="3. Inspect unit condition" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="p3l3"><mxGeometry x="60" y="320" width="210" height="50" as="geometry"/></mxCell>
+        <mxCell id="p3d" value="4. Refund deposit" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="p3l4"><mxGeometry x="70" y="430" width="190" height="50" as="geometry"/></mxCell>
+        <mxCell id="p3e1" edge="1" parent="p3" source="p3a" target="p3b" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;"/><mxCell id="p3e2" edge="1" parent="p3" source="p3b" target="p3c" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;"/><mxCell id="p3e3" edge="1" parent="p3" source="p3c" target="p3d" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;"/>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram id="flow4" name="Flow 4 - Rental Renewal">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" page="1" pageWidth="1600" pageHeight="1000">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="p4" value="Metastorage - Flow 4: Rental Renewal" style="swimlane;horizontal=1;startSize=34;rounded=0;html=1;fillColor=#f5f5f5;strokeColor=#333;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="40" width="1320" height="620" as="geometry"/></mxCell>
+        <mxCell id="p4l1" value="Customer" style="swimlane;horizontal=0;startSize=28;rounded=0;html=1;fillColor=#fff;strokeColor=#333;fontStyle=1;" vertex="1" parent="p4"><mxGeometry x="0" y="34" width="330" height="586" as="geometry"/></mxCell>
+        <mxCell id="p4l2" value="Payment Provider" style="swimlane;horizontal=0;startSize=28;rounded=0;html=1;fillColor=#fff;strokeColor=#333;fontStyle=1;" vertex="1" parent="p4"><mxGeometry x="330" y="34" width="330" height="586" as="geometry"/></mxCell>
+        <mxCell id="p4l3" value="Metastorage API" style="swimlane;horizontal=0;startSize=28;rounded=0;html=1;fillColor=#fff;strokeColor=#333;fontStyle=1;" vertex="1" parent="p4"><mxGeometry x="660" y="34" width="330" height="586" as="geometry"/></mxCell>
+        <mxCell id="p4l4" value="Rental Contract" style="swimlane;horizontal=0;startSize=28;rounded=0;html=1;fillColor=#fff;strokeColor=#333;fontStyle=1;" vertex="1" parent="p4"><mxGeometry x="990" y="34" width="330" height="586" as="geometry"/></mxCell>
+        <mxCell id="p4a" value="1. Request renewal" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="p4l1"><mxGeometry x="70" y="100" width="190" height="50" as="geometry"/></mxCell>
+        <mxCell id="p4b" value="2. Pay renewal fee" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="p4l1"><mxGeometry x="70" y="210" width="190" height="50" as="geometry"/></mxCell>
+        <mxCell id="p4c" value="Process payment" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="p4l2"><mxGeometry x="70" y="320" width="190" height="50" as="geometry"/></mxCell>
+        <mxCell id="p4d" value="3. Update expiration date" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="p4l3"><mxGeometry x="55" y="430" width="220" height="50" as="geometry"/></mxCell>
+        <mxCell id="p4e" value="4. Extend contract" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="p4l4"><mxGeometry x="70" y="540" width="190" height="50" as="geometry"/></mxCell>
+        <mxCell id="p4e1" edge="1" parent="p4" source="p4a" target="p4b" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;"/><mxCell id="p4e2" edge="1" parent="p4" source="p4b" target="p4c" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;"/><mxCell id="p4e3" edge="1" parent="p4" source="p4c" target="p4d" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;"/><mxCell id="p4e4" edge="1" parent="p4" source="p4d" target="p4e" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;"/>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram id="flow5" name="Flow 5 - Send Support Ticket">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" page="1" pageWidth="1600" pageHeight="1000">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="p5" value="Metastorage - Flow 5: Send Support Ticket" style="swimlane;horizontal=1;startSize=34;rounded=0;html=1;fillColor=#f5f5f5;strokeColor=#333;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="40" width="1320" height="620" as="geometry"/></mxCell>
+        <mxCell id="p5l1" value="Customer" style="swimlane;horizontal=0;startSize=28;rounded=0;html=1;fillColor=#fff;strokeColor=#333;fontStyle=1;" vertex="1" parent="p5"><mxGeometry x="0" y="34" width="440" height="586" as="geometry"/></mxCell>
+        <mxCell id="p5l2" value="Support Manager" style="swimlane;horizontal=0;startSize=28;rounded=0;html=1;fillColor=#fff;strokeColor=#333;fontStyle=1;" vertex="1" parent="p5"><mxGeometry x="440" y="34" width="440" height="586" as="geometry"/></mxCell>
+        <mxCell id="p5l3" value="Staff" style="swimlane;horizontal=0;startSize=28;rounded=0;html=1;fillColor=#fff;strokeColor=#333;fontStyle=1;" vertex="1" parent="p5"><mxGeometry x="880" y="34" width="440" height="586" as="geometry"/></mxCell>
+        <mxCell id="p5a" value="1. Request support ticket" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="p5l1"><mxGeometry x="120" y="180" width="200" height="50" as="geometry"/></mxCell>
+        <mxCell id="p5b" value="2. Receive and review ticket" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="p5l2"><mxGeometry x="110" y="300" width="220" height="50" as="geometry"/></mxCell>
+        <mxCell id="p5c" value="3. Handle request" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="p5l3"><mxGeometry x="120" y="420" width="200" height="50" as="geometry"/></mxCell>
+        <mxCell id="p5e1" edge="1" parent="p5" source="p5a" target="p5b" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;"/><mxCell id="p5e2" edge="1" parent="p5" source="p5b" target="p5c" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;"/>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

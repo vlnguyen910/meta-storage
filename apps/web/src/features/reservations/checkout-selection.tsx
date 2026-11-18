@@ -1,7 +1,8 @@
 "use client";
 
 import { CUSTOMER_WORKSPACE as C } from "@metastorage/shared";
-import { Check, Info, Sparkles } from "lucide-react";
+import { ArrowDownWideNarrow, ArrowUpNarrowWide, Check, Info, Sparkles } from "lucide-react";
+import { useState } from "react";
 import { Currency } from "@/components/ui/display";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/states";
 import { cn } from "@/lib/utils";
@@ -18,15 +19,26 @@ export function CheckoutSelection({ state }: { state: CheckoutState }) {
     availabilityQuery,
   } = state;
 
-  const options = availabilityQuery.data?.filter(
-    (option) =>
-      areaFilter === "all" ||
-      (areaFilter === "small"
-        ? option.sizeSqm < 3
-        : areaFilter === "medium"
-          ? option.sizeSqm >= 3 && option.sizeSqm <= 6
-          : option.sizeSqm > 6),
-  );
+  const [priceSort, setPriceSort] = useState<"asc" | "desc">("asc");
+
+  const options = availabilityQuery.data
+    ?.filter(
+      (option) =>
+        areaFilter === "all" ||
+        (areaFilter === "small"
+          ? option.sizeSqm < 3
+          : areaFilter === "medium"
+            ? option.sizeSqm >= 3 && option.sizeSqm <= 6
+            : option.sizeSqm > 6),
+    )
+    .slice()
+    .sort((a, b) => {
+      const priceA = Number(a.monthlyPrice) || 0;
+      const priceB = Number(b.monthlyPrice) || 0;
+      return priceSort === "asc"
+        ? priceA - priceB || a.sizeSqm - b.sizeSqm
+        : priceB - priceA || b.sizeSqm - a.sizeSqm;
+    });
 
   return (
     <>
@@ -78,29 +90,63 @@ export function CheckoutSelection({ state }: { state: CheckoutState }) {
         </section>
       ) : null}
 
-      {/* Area filter tabs */}
+      {/* Area filter tabs & Price sort */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-slate-100 border border-slate-200/60 w-fit">
-          {m.areaFilters.map((filter) => {
-            const active = areaFilter === filter.value;
-            return (
-              <button
-                key={filter.value}
-                type="button"
-                aria-pressed={active}
-                onClick={() => state.setAreaFilter(filter.value)}
-                className={cn(
-                  "px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-                  active
-                    ? "bg-[#165f4d] text-white shadow-xs"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60",
-                )}
-              >
-                {filter.label}
-              </button>
-            );
-          })}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-slate-100 border border-slate-200/60 w-fit">
+            {m.areaFilters.map((filter) => {
+              const active = areaFilter === filter.value;
+              return (
+                <button
+                  key={filter.value}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => state.setAreaFilter(filter.value)}
+                  className={cn(
+                    "px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                    active
+                      ? "bg-[#165f4d] text-white shadow-xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60",
+                  )}
+                >
+                  {filter.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-slate-100 border border-slate-200/60 w-fit">
+            <button
+              type="button"
+              aria-pressed={priceSort === "asc"}
+              onClick={() => setPriceSort("asc")}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                priceSort === "asc"
+                  ? "bg-[#165f4d] text-white shadow-xs"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60",
+              )}
+            >
+              <ArrowUpNarrowWide size={14} aria-hidden="true" />
+              <span>{m.priceLowToHigh}</span>
+            </button>
+            <button
+              type="button"
+              aria-pressed={priceSort === "desc"}
+              onClick={() => setPriceSort("desc")}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                priceSort === "desc"
+                  ? "bg-[#165f4d] text-white shadow-xs"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60",
+              )}
+            >
+              <ArrowDownWideNarrow size={14} aria-hidden="true" />
+              <span>{m.priceHighToLow}</span>
+            </button>
+          </div>
         </div>
+
         <p className="text-xs text-slate-400 flex items-center gap-1.5">
           <Info size={13} className="text-slate-400" />
           <span>{C.snapshot}</span>
