@@ -162,7 +162,7 @@ for (const width of [1280, 1440]) {
       const brand = await header.getByRole("link").first().boundingBox();
       const account = await header
         .getByRole("link", {
-          name: role ? "Mở trang quản lý của Người kiểm thử" : "Tra cứu kho của tôi",
+          name: role ? "Mở trang quản lý của Người kiểm thử" : "Đăng nhập",
           exact: true,
         })
         .boundingBox();

@@ -10,7 +10,7 @@ test("keeps auth and storage lookup actions visible without landscape overflow",
   await expect(
     page.locator("header").getByRole("link", { name: "Đăng nhập", exact: true }),
   ).toBeVisible();
-  await expect(page.locator("header").getByRole("link", { name: /Tra cứu kho/ })).toBeVisible();
+  await expect(page.locator("header").getByRole("link", { name: /Tra cứu kho/ })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
