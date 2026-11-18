@@ -5,6 +5,7 @@ export interface StaffWorkItem {
   kind: StaffWorkKind;
   group: StaffWorkGroup;
   title: string;
+  phone?: string | null;
   typeLabel: string;
   statusLabel: string;
   reference: string;
