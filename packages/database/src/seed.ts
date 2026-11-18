@@ -162,7 +162,7 @@ export const SEED_DEMO_USERS = [
     role: "CUSTOMER" as const,
     email: `customer${index + 1}@metastorage.test`,
     name,
-    phone: `0901${String(100000 + index + 1).slice(1)}`,
+    phone: `0901${String(100000 + index + 1)}`,
   })),
   ...Array.from({ length: 9 }, (_, index) => ({
     id: `40000000-0000-4000-8000-${String(202 + index).padStart(12, "0")}`,
