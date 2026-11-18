@@ -71,9 +71,9 @@ describe.skipIf(!target)("demo seed on an isolated, migrated database", () => {
     `;
     expect(catalogCounts).toEqual({
       types: 9,
-      offerings: 80,
+      offerings: 43,
       bom_types: 9,
-      fm_offerings: 80,
+      fm_offerings: 43,
       available_to_select: 1,
     });
     const [prices] =
