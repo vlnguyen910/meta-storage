@@ -30,8 +30,12 @@ export class CheckInSlotsService {
     return this.repository.findForCheckIn(checkInAt);
   }
 
+  allowsSameDayAppointment(slot: ResolvedCheckInSlot, scheduledDate: string, now = new Date()) {
+    return scheduledDate === localDate(now, FACILITY_TIME_ZONE) && now < slot.endsAt;
+  }
+
   allowsSameDayReservation(slot: ResolvedCheckInSlot, checkInDate: string, now = new Date()) {
-    return checkInDate === localDate(now, FACILITY_TIME_ZONE) && now < slot.endsAt;
+    return this.allowsSameDayAppointment(slot, checkInDate, now);
   }
 
   allowsCheckInDuringSameDaySlot(slot: ResolvedCheckInSlot, checkInDate: string, now = new Date()) {
