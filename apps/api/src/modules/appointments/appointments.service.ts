@@ -117,15 +117,12 @@ export class AppointmentsService {
     const slot = await this.slots.findByIdForDate(input.slotId, input.scheduledDate);
     const now = new Date();
     const demo = isDevelopmentEnvironment() && input.appointmentType === Type.CHECK_IN;
-    const sameDayReservationAllowed =
-      slot &&
-      input.appointmentType === Type.CHECK_IN &&
-      this.slots.allowsSameDayReservation(slot, input.scheduledDate, now);
-    if (
-      !slot ||
-      slot.endsAt <= now ||
-      (!demo && slot.startsAt <= now && !sameDayReservationAllowed)
-    )
+    const sameDaySlotAllowed =
+      slot && this.slots.allowsSameDayAppointment(slot, input.scheduledDate, now);
+    const sameDayReservationAllowed = input.appointmentType === Type.CHECK_IN && sameDaySlotAllowed;
+    const sameDayReturnAllowed = input.appointmentType === Type.CHECK_OUT && sameDaySlotAllowed;
+    const sameDaySchedulingAllowed = sameDayReservationAllowed || sameDayReturnAllowed;
+    if (!slot || slot.endsAt <= now || (!demo && slot.startsAt <= now && !sameDaySchedulingAllowed))
       throw new BadRequestError(m.invalidSlot);
     const sameDayDemoSlotAllowed = Boolean(slot.sameDayCheckInEnabled && sameDayReservationAllowed);
     const scheduled = await this.repository.transaction(async (tx) => {

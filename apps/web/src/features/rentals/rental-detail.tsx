@@ -109,7 +109,7 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
   const selectedSlot = slots.data?.find((slot) => slot.id === slotId);
   const selectedSlotIsPast =
     scheduledDate === today &&
-    Boolean(selectedSlot && selectedSlot.startTime.slice(0, 5) <= currentTime);
+    Boolean(selectedSlot && selectedSlot.endTime.slice(0, 5) <= currentTime);
   const hasPendingReturn = appointments.data?.some((item) =>
     ["SCHEDULED", "CONFIRMED"].includes(item.status),
   );
