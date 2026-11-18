@@ -101,9 +101,9 @@ test.skipIf(process.env.RUN_INSPECTION_DB_TESTS !== "1")(
         payload: {
           facilityId: f.facilityId,
           assignedStaffId: f.userId,
-          type: "UNIT_INSPECTION",
-          referenceType: "STORAGE_UNIT",
-          referenceId: f.unitId,
+          type: "HANDLE_SUPPORT",
+          referenceType: "SUPPORT_TICKET",
+          referenceId: f.supportTicketId,
         },
       });
       expect(task.statusCode).toBe(201);

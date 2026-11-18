@@ -424,55 +424,57 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
           </div>
         </DialogContent>
       </Dialog>
-      <AlertDialog open={confirmEarlyReturn} onOpenChange={setConfirmEarlyReturn}>
+      <AlertDialog
+        open={confirmEarlyReturn || confirmCancelReturn}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmEarlyReturn(false);
+            setConfirmCancelReturn(false);
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{M.returnEarlyTitle}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {confirmEarlyReturn ? M.returnEarlyTitle : M.returnCancelConfirmTitle}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              {M.returnEarlyDescription(formatDate(r.endAt))}
+              {confirmEarlyReturn
+                ? M.returnEarlyDescription(formatDate(r.endAt))
+                : M.returnCancelConfirmDescription}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel asChild>
-              <Button variant="outline">{M.returnEarlyCancel}</Button>
+              <Button variant="outline">
+                {confirmEarlyReturn ? M.returnEarlyCancel : M.cancel}
+              </Button>
             </AlertDialogCancel>
             <AlertDialogAction asChild>
-              <Button
-                variant="primary"
-                loading={createReturn.isPending}
-                disabled={createReturn.isPending}
-                onClick={() => createReturn.mutate()}
-              >
-                {M.returnEarlyConfirm}
-              </Button>
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      <AlertDialog open={confirmCancelReturn} onOpenChange={setConfirmCancelReturn}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{M.returnCancelConfirmTitle}</AlertDialogTitle>
-            <AlertDialogDescription>{M.returnCancelConfirmDescription}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel asChild>
-              <Button variant="outline">{M.cancel}</Button>
-            </AlertDialogCancel>
-            <AlertDialogAction asChild>
-              <Button
-                variant="danger"
-                loading={cancelReturn.isPending}
-                disabled={cancelReturn.isPending}
-                onClick={() => {
-                  if (activeReturn) {
-                    cancelReturn.mutate(activeReturn.id);
-                  }
-                  setConfirmCancelReturn(false);
-                }}
-              >
-                {M.returnCancelConfirmAction}
-              </Button>
+              {confirmEarlyReturn ? (
+                <Button
+                  variant="primary"
+                  loading={createReturn.isPending}
+                  disabled={createReturn.isPending}
+                  onClick={() => createReturn.mutate()}
+                >
+                  {M.returnEarlyConfirm}
+                </Button>
+              ) : (
+                <Button
+                  variant="danger"
+                  loading={cancelReturn.isPending}
+                  disabled={cancelReturn.isPending}
+                  onClick={() => {
+                    if (activeReturn) {
+                      cancelReturn.mutate(activeReturn.id);
+                    }
+                    setConfirmCancelReturn(false);
+                  }}
+                >
+                  {M.returnCancelConfirmAction}
+                </Button>
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

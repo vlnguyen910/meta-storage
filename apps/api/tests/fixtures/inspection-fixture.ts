@@ -20,6 +20,7 @@ import {
   rentals,
   reservations,
   storageUnits,
+  supportTickets,
   systemSettings,
   unitTypes,
   users,
@@ -207,6 +208,18 @@ export async function createInspectionFixture(allowExistingLocal = false) {
       status: "SUCCEEDED",
       paidAt: new Date(now - 86400_000),
     });
+    const supportTicketId = randomUUID();
+    await tx.insert(supportTickets).values({
+      id: supportTicketId,
+      reservationId: bookingId,
+      ownerUserId: customerId,
+      facilityId,
+      category: "PAYMENT",
+      subject: `Support test ${suffix}`,
+      description: `Support test description ${suffix}`,
+      actionDueAt: new Date(now + 86400_000),
+      idempotencyKey: `ticket-${suffix}`,
+    });
   });
   return {
     customerId,
@@ -219,6 +232,7 @@ export async function createInspectionFixture(allowExistingLocal = false) {
     bookingId,
     bookingCode: `BK-TEST-${suffix.toUpperCase()}`,
     unitId,
+    supportTicketId,
     email,
     outsiderEmail,
     password,
@@ -256,6 +270,7 @@ export async function createInspectionFixture(allowExistingLocal = false) {
         await tx.delete(payments).where(eq(payments.reservationId, bookingId));
         await tx.delete(reservations).where(eq(reservations.id, bookingId));
         await tx.delete(storageUnits).where(eq(storageUnits.id, unitId));
+        await tx.delete(supportTickets).where(eq(supportTickets.facilityId, facilityId));
 
         await tx.delete(facilityTasks).where(eq(facilityTasks.facilityId, facilityId));
         await tx.delete(facilityAssignments).where(eq(facilityAssignments.facilityId, facilityId));
