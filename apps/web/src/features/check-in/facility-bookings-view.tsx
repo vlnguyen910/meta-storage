@@ -278,6 +278,7 @@ export function FacilityBookingsView({
           {pageItems.map((b) => {
             const state = readiness(b);
             const returnFlow = b.appointmentType === APPOINTMENT_TYPES.CHECK_OUT;
+            const supportFlow = b.appointmentType === APPOINTMENT_TYPES.SUPPORT;
             const canAssign =
               !isStaff &&
               (returnFlow
@@ -442,7 +443,7 @@ export function FacilityBookingsView({
                     </Link>
                   )}
                   <div className="flex flex-wrap justify-end gap-3 text-[11px]">
-                    {canAssign && b.assignedUnit && (
+                    {canAssign && b.assignedUnit && !returnFlow && !supportFlow && (
                       <Link
                         href={`${url}&view=assign&bookingId=${b.id}`}
                         className="text-[#306858] underline"

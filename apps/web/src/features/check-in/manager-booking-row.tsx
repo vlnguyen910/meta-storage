@@ -218,30 +218,31 @@ export function ManagerBookingRow({
           {M.details}
         </button>
         <div className="flex flex-wrap items-center gap-2">
-          {canReassign ? (
-            <Link
-              href={`${url}&view=assign&bookingId=${b.id}`}
-              className={cn(
-                actionClass,
-                "inline-flex items-center border border-slate-300 bg-surface text-slate-700 transition-colors hover:border-primary hover:text-primary",
-              )}
-            >
-              {FLOW.reassign}
-            </Link>
-          ) : (
-            <span
-              title={reassignHint}
-              className="rounded-lg focus-visible:outline-2 focus-visible:outline-primary"
-            >
-              <button
-                type="button"
-                disabled
-                className={cn(buttonClassName("outline"), actionClass, "pointer-events-none")}
+          {checkInFlow &&
+            (canReassign ? (
+              <Link
+                href={`${url}&view=assign&bookingId=${b.id}`}
+                className={cn(
+                  actionClass,
+                  "inline-flex items-center border border-slate-300 bg-surface text-slate-700 transition-colors hover:border-primary hover:text-primary",
+                )}
               >
                 {FLOW.reassign}
-              </button>
-            </span>
-          )}
+              </Link>
+            ) : (
+              <span
+                title={reassignHint}
+                className="rounded-lg focus-visible:outline-2 focus-visible:outline-primary"
+              >
+                <button
+                  type="button"
+                  disabled
+                  className={cn(buttonClassName("outline"), actionClass, "pointer-events-none")}
+                >
+                  {FLOW.reassign}
+                </button>
+              </span>
+            ))}
           <span
             title={canAssign ? undefined : M.assignmentUnavailable}
             className="rounded-lg focus-visible:outline-2 focus-visible:outline-primary"
