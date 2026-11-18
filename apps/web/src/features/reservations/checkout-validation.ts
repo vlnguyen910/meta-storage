@@ -1,3 +1,4 @@
+import type { CheckInSlotOption } from "@metastorage/contracts";
 import axios from "axios";
 import { z } from "zod";
 import { RESERVATION_MESSAGES as m } from "./reservation.messages";
@@ -49,29 +50,41 @@ export function checkInError(value: string, now = new Date()): string | undefine
   return undefined;
 }
 
-export const wizardSchema = z.object({
-  facilityId: z.string().min(1, m.facilityRequired),
-  unitTypeId: z.string().min(1, m.unitTypeRequired),
-  checkInDate: z.string().superRefine((value, ctx) => {
-    const today = toLocalDateTimeInput(new Date()).slice(0, 10);
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(value))
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: m.checkInRequired });
-    else if (value <= today)
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: m.checkInTomorrow });
-  }),
-  checkInSlotId: z.string().min(1, m.checkInRequired),
-  durationMonths: z
-    .number()
-    .int(m.invalidDuration)
-    .min(1, m.invalidDuration)
-    .max(12, m.invalidDuration),
-  fullName: z.string().trim().min(2, m.nameRequired),
-  email: z.string().trim().email(m.invalidEmail),
-  phone: z.string().superRefine((value, ctx) => {
-    const message = phoneError(value);
-    if (message) ctx.addIssue({ code: z.ZodIssueCode.custom, message });
-  }),
-});
+export function allowsSameDayCheckIn(
+  date: string,
+  slot: CheckInSlotOption | undefined,
+  now = new Date(),
+) {
+  if (!slot?.sameDayCheckInEnabled || date !== toLocalDateTimeInput(now).slice(0, 10)) return false;
+  const slotEnd = new Date(`${date}T${slot.endTime}+07:00`);
+  return !Number.isNaN(slotEnd.getTime()) && now < slotEnd;
+}
+
+export function createWizardSchema(sameDayAllowed: boolean) {
+  return z.object({
+    facilityId: z.string().min(1, m.facilityRequired),
+    unitTypeId: z.string().min(1, m.unitTypeRequired),
+    checkInDate: z.string().superRefine((value, ctx) => {
+      const today = toLocalDateTimeInput(new Date()).slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(value))
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: m.checkInRequired });
+      else if (value < today || (value === today && !sameDayAllowed))
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: m.checkInTomorrow });
+    }),
+    checkInSlotId: z.string().min(1, m.checkInRequired),
+    durationMonths: z
+      .number()
+      .int(m.invalidDuration)
+      .min(1, m.invalidDuration)
+      .max(12, m.invalidDuration),
+    fullName: z.string().trim().min(2, m.nameRequired),
+    email: z.string().trim().email(m.invalidEmail),
+    phone: z.string().superRefine((value, ctx) => {
+      const message = phoneError(value);
+      if (message) ctx.addIssue({ code: z.ZodIssueCode.custom, message });
+    }),
+  });
+}
 
 export function checkoutFailure(error: unknown, stage: "draft" | "hold" | "payment") {
   const response = axios.isAxiosError(error) ? error.response : undefined;
