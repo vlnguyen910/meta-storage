@@ -220,57 +220,6 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
           })}
         </div>
 
-        {/* Quick Kind Filter Tabs */}
-        <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-100 bg-white px-3.5 py-2.5">
-          <span className="text-xs font-bold text-slate-500 mr-1 select-none">
-            {M.kindTabTitle}
-          </span>
-          {[
-            { value: "", label: M.allKinds },
-            { value: "CHECK_IN", label: M.kindTabCheckIn, dot: "bg-emerald-500" },
-            { value: "RETURN", label: M.kindTabReturn, dot: "bg-purple-500" },
-            { value: "SUPPORT", label: M.kindTabSupport, dot: "bg-amber-500" },
-            { value: "TASK", label: M.kindTabTask, dot: "bg-sky-500" },
-          ].map((item) => {
-            const active = filters.kind === item.value;
-            const count = work.typeCount(item.value as StaffWorkFilters["kind"]);
-            return (
-              <button
-                key={item.value}
-                type="button"
-                onClick={() => {
-                  update({
-                    kind: item.value as StaffWorkFilters["kind"],
-                    group:
-                      item.value === "TASK" && filters.group === "closed"
-                        ? "pending"
-                        : filters.group,
-                  });
-                }}
-                className={cn(
-                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border",
-                  active
-                    ? "bg-primary text-white border-primary shadow-xs"
-                    : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900",
-                )}
-              >
-                {item.dot && (
-                  <span className={cn("size-2 rounded-full", active ? "bg-white" : item.dot)} />
-                )}
-                <span>{item.label}</span>
-                <span
-                  className={cn(
-                    "rounded-full px-1.5 py-0.2 text-[10px] font-bold tabular-nums",
-                    active ? "bg-white/20 text-white" : "bg-slate-200/80 text-slate-600",
-                  )}
-                >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
         {/* Filter Controls Row */}
         <div className="grid gap-3.5 border-b border-slate-100 bg-white p-3.5 sm:grid-cols-2 lg:grid-cols-3">
           {filters.kind !== "TASK" && (
