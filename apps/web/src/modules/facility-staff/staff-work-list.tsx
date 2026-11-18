@@ -9,6 +9,7 @@ import {
   Clock3,
   DoorOpen,
   Headset,
+  Phone,
   RefreshCw,
   Search,
 } from "lucide-react";
@@ -116,7 +117,7 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
   const filtered = work.items.filter(
     (item) =>
       (filters.date === "all" || !item.startsAt || staffWorkDate(item.startsAt) === filters.date) &&
-      `${item.title} ${item.reference} ${item.typeLabel}`
+      `${item.title} ${item.phone ?? ""} ${item.reference} ${item.typeLabel}`
         .toLocaleLowerCase("vi")
         .includes(filters.search.trim().toLocaleLowerCase("vi")),
   );
@@ -533,6 +534,17 @@ function StaffWorkTableRow({ item }: StaffWorkRowProps) {
       <TableCell className="py-4 px-4 min-w-[200px] max-w-[320px]">
         <div className="min-w-0">
           <h2 className="text-sm font-bold text-slate-900 break-words">{item.title}</h2>
+          {item.phone && (
+            <p className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-600">
+              <Phone size={12} className="text-slate-400 shrink-0" aria-hidden="true" />
+              <a
+                href={`tel:${item.phone}`}
+                className="hover:text-primary transition-colors hover:underline"
+              >
+                {item.phone}
+              </a>
+            </p>
+          )}
           {item.reference && (
             <p className="mt-0.5 font-mono text-xs text-slate-600 break-words">{item.reference}</p>
           )}

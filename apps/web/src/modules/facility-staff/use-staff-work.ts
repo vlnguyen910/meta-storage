@@ -66,6 +66,7 @@ export function useStaffWork(facilityId: string, date: string, kind: StaffWorkFi
                 ? "closed"
                 : "pending",
           title: item.customerName ?? M.customer,
+          phone: item.contactPhone ?? null,
           typeLabel: APPOINTMENTS_UI.types[item.appointmentType] ?? item.appointmentType,
           statusLabel: APPOINTMENTS_UI.statuses[item.status] ?? item.status,
           reference: [
