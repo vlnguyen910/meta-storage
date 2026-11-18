@@ -27,18 +27,24 @@ export class ReservationsRepository {
   findNoShows(tx: ReservationTransaction, now: Date, closingHour: number, facilityId?: string) {
     const localDate = sql`(${reservations.rentalStartAt} AT TIME ZONE 'Asia/Ho_Chi_Minh')::date`;
     const slotStartsAt = sql`(${localDate} + ${checkInSlots.startTime}) AT TIME ZONE 'Asia/Ho_Chi_Minh'`;
-    // Reservations persist the start time, so extend the cutoff only for a unique slot match.
-    const sameDaySlotEnd = sql`(
+    // Keep ordinary no-show cutoffs at closing time, but don't cut off a shift before its end.
+    // Explicit same-day demo slots use their own end as the check-in deadline.
+    const slotNoShowCutoff = sql`(
       SELECT CASE
         WHEN count(*) = 1 AND bool_and(${checkInSlots.sameDayCheckInEnabled})
           THEN max((${localDate} + ${checkInSlots.endTime}) AT TIME ZONE 'Asia/Ho_Chi_Minh')
+        WHEN count(*) = 1
+          THEN GREATEST(
+            max((${localDate} + ${checkInSlots.endTime}) AT TIME ZONE 'Asia/Ho_Chi_Minh'),
+            (${localDate} + ${closingHour} * interval '1 hour') AT TIME ZONE 'Asia/Ho_Chi_Minh'
+          )
         ELSE NULL::timestamptz
       END
       FROM ${checkInSlots}
       WHERE ${slotStartsAt} = ${reservations.rentalStartAt}
     )`;
     const noShowCutoff = sql`COALESCE(
-      ${sameDaySlotEnd},
+      ${slotNoShowCutoff},
       (${localDate} + ${closingHour} * interval '1 hour') AT TIME ZONE 'Asia/Ho_Chi_Minh'
     )`;
     return tx

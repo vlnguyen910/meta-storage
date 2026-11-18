@@ -35,6 +35,10 @@ export class CheckInSlotsService {
   }
 
   allowsCheckInDuringSameDaySlot(slot: ResolvedCheckInSlot, checkInDate: string, now = new Date()) {
-    return this.allowsSameDayReservation(slot, checkInDate, now) && now >= slot.startsAt;
+    return (
+      slot.sameDayCheckInEnabled &&
+      this.allowsSameDayReservation(slot, checkInDate, now) &&
+      now >= slot.startsAt
+    );
   }
 }

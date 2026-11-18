@@ -70,13 +70,20 @@ export class ReservationsService {
     const unitType = await this.unitTypes.requireActiveUnitType(input.facilityId, input.unitTypeId);
     const slot = await this.slots.findByIdForDate(input.checkInSlotId, input.checkInDate);
     const now = new Date();
-    const sameDayAllowed =
+    const sameDayReservationAllowed =
       slot && this.slots.allowsSameDayReservation(slot, input.checkInDate, now);
     if (!slot || slot.endsAt <= now) throw new BadRequestError(m.invalidSlot);
-    if (input.checkInDate === today && !demo && !sameDayAllowed)
+    if (input.checkInDate === today && !demo && !sameDayReservationAllowed)
       throw new BadRequestError(m.futureDateRequired);
-    if (!demo && slot.startsAt <= now && !sameDayAllowed) throw new BadRequestError(m.invalidSlot);
-    if (!demo) await this.facilities.assertCheckInWithinOperatingHours(slot.startsAt);
+    if (!demo && slot.startsAt <= now && !sameDayReservationAllowed)
+      throw new BadRequestError(m.invalidSlot);
+    const sameDayDemoSlotAllowed = slot.sameDayCheckInEnabled && sameDayReservationAllowed;
+    if (!demo && !sameDayDemoSlotAllowed) {
+      await this.facilities.assertCheckInWithinOperatingHours(
+        slot.startsAt,
+        new Date(slot.endsAt.getTime() - 1),
+      );
+    }
     const rentalEndAt = new Date(slot.startsAt);
     rentalEndAt.setUTCDate(rentalEndAt.getUTCDate() + input.durationMonths * 30);
     return { slot, unitType, rentalEndAt };
