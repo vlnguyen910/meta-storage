@@ -13,26 +13,37 @@ const slots: CheckInSlotOption[] = [
   {
     id: "e0000000-0000-0000-0000-000000000001",
     name: "Ca 1",
-    startTime: "07:00:00",
-    endTime: "09:00:00",
+    startTime: "09:00:00",
+    endTime: "10:30:00",
+    sameDayCheckInEnabled: false,
   },
   {
     id: "e0000000-0000-0000-0000-000000000002",
     name: "Ca 2",
-    startTime: "09:00:00",
-    endTime: "11:00:00",
+    startTime: "10:30:00",
+    endTime: "12:00:00",
+    sameDayCheckInEnabled: false,
   },
   {
     id: "e0000000-0000-0000-0000-000000000003",
     name: "Ca 3",
     startTime: "14:00:00",
-    endTime: "16:00:00",
+    endTime: "15:30:00",
+    sameDayCheckInEnabled: false,
   },
   {
     id: "e0000000-0000-0000-0000-000000000004",
     name: "Ca 4",
-    startTime: "15:00:00",
+    startTime: "15:30:00",
     endTime: "17:00:00",
+    sameDayCheckInEnabled: false,
+  },
+  {
+    id: "e0000000-0000-0000-0000-000000000005",
+    name: "Demo check-in ngay",
+    startTime: "08:00:00",
+    endTime: "23:59:59.999999",
+    sameDayCheckInEnabled: true,
   },
 ];
 

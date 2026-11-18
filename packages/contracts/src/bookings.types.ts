@@ -5,6 +5,7 @@ export type CheckInSlotOption = {
   name: string;
   startTime: string;
   endTime: string;
+  sameDayCheckInEnabled: boolean;
 };
 
 export type BookingClosure = {

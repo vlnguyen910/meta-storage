@@ -15,6 +15,7 @@ export class CheckInSlotsRepository {
         name: checkInSlots.name,
         startTime: checkInSlots.startTime,
         endTime: checkInSlots.endTime,
+        sameDayCheckInEnabled: checkInSlots.sameDayCheckInEnabled,
       })
       .from(checkInSlots)
       .orderBy(asc(checkInSlots.startTime), asc(checkInSlots.endTime), asc(checkInSlots.id));
@@ -28,6 +29,7 @@ export class CheckInSlotsRepository {
     const [slot] = await this.executor
       .select({
         id: checkInSlots.id,
+        sameDayCheckInEnabled: checkInSlots.sameDayCheckInEnabled,
         checkInDate: sql<string>`${localDate}::text`,
         startsAt:
           sql<Date>`(${localDate} + ${checkInSlots.startTime}) at time zone 'Asia/Ho_Chi_Minh'`.mapWith(
@@ -51,6 +53,7 @@ export class CheckInSlotsRepository {
     const rows = await this.executor
       .select({
         id: checkInSlots.id,
+        sameDayCheckInEnabled: checkInSlots.sameDayCheckInEnabled,
         checkInDate: sql<string>`${localDate}::text`,
         startsAt:
           sql<Date>`(${localDate} + ${checkInSlots.startTime}) at time zone 'Asia/Ho_Chi_Minh'`.mapWith(
