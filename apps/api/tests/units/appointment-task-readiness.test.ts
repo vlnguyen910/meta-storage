@@ -62,6 +62,7 @@ describe("appointment task readiness", () => {
         startsAt: new Date(Date.now() + 60000),
         endsAt: new Date(Date.now() + 120000),
       }),
+      allowsCheckInDuringSameDaySlot: () => false,
     } as CheckInSlotsService;
     const service = new FacilityTasksService(f.repository, {} as FacilityAssignmentsService, slots);
     await expect(
@@ -76,6 +77,7 @@ describe("appointment task readiness", () => {
         startsAt: new Date(Date.now() - 60000),
         endsAt: new Date(Date.now() + 60000),
       }),
+      allowsCheckInDuringSameDaySlot: () => false,
     } as CheckInSlotsService;
     const service = new FacilityTasksService(f.repository, {} as FacilityAssignmentsService, slots);
     await service.update("task", { status: FacilityTaskStatus.IN_PROGRESS }, f.actor);
@@ -93,6 +95,7 @@ describe("appointment task readiness", () => {
             startsAt: new Date(Date.now() + 60000),
             endsAt: new Date(Date.now() + 120000),
           }),
+          allowsCheckInDuringSameDaySlot: () => false,
         } as CheckInSlotsService;
         const service = new FacilityTasksService(
           f.repository,
