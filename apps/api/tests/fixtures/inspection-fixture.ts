@@ -49,7 +49,8 @@ export async function createInspectionFixture(allowExistingLocal = false) {
     unitTypeId = randomUUID(),
     unitId = randomUUID(),
     bookingId = randomUUID(),
-    slotId = randomUUID();
+    slotId = randomUUID(),
+    supportTicketId = randomUUID();
   const email = `inspection-${suffix}@example.test`,
     outsiderEmail = `outside-${suffix}@example.test`,
     managerEmail = `manager-${suffix}@example.test`,
@@ -208,7 +209,6 @@ export async function createInspectionFixture(allowExistingLocal = false) {
       status: "SUCCEEDED",
       paidAt: new Date(now - 86400_000),
     });
-    const supportTicketId = randomUUID();
     await tx.insert(supportTickets).values({
       id: supportTicketId,
       reservationId: bookingId,
