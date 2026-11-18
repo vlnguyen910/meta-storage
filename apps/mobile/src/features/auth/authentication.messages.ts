@@ -53,6 +53,7 @@ export const AUTHENTICATION = {
   phoneInvalid: "Số điện thoại không được vượt quá 20 ký tự.",
   requestFailed: "Không thể hoàn tất yêu cầu. Vui lòng thử lại.",
   networkError: "Không thể kết nối máy chủ. Kiểm tra kết nối mạng và thử lại.",
+  tooManyRequests: "Bạn thao tác quá nhiều lần. Vui lòng đợi một lúc rồi thử lại.",
   invalidCredentials: "Email hoặc mật khẩu không đúng. Vui lòng kiểm tra lại.",
   googleFailed: "Chưa thể đăng nhập với Google. Vui lòng thử lại hoặc dùng email.",
   googleDemo: "Đăng nhập Google cần kết nối máy chủ. Hãy dùng tài khoản demo bằng email.",

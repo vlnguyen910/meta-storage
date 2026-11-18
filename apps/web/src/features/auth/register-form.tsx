@@ -82,8 +82,7 @@ export function RegisterForm() {
       await runWithGlobalLoading(() => api.auth.registerCustomer(payload));
       setRegisteredEmail(values.email.trim().toLowerCase());
     } catch (error) {
-      const message = getResponseMessage(error);
-      setFormError(message ?? AUTH_MESSAGES.registrationFailed);
+      setFormError(getRegistrationErrorMessage(error));
     }
   }
 
@@ -397,17 +396,48 @@ export function RegisterForm() {
   );
 }
 
+function getRegistrationErrorMessage(error: unknown): string {
+  if (axios.isAxiosError(error)) {
+    if (!error.response) return AUTH_MESSAGES.networkError;
+    const status = error.response.status;
+    if (status === 409) return AUTH_MESSAGES.registrationEmailExists;
+    if (status === 429) return AUTH_MESSAGES.registrationTooManyRequests;
+    if (status === 503) return AUTH_MESSAGES.registrationEmailUnavailable;
+    if (status === 400 || status === 422) {
+      return getValidationDetailMessage(error) ?? AUTH_MESSAGES.registrationInvalid;
+    }
+    if (status >= 500) return AUTH_MESSAGES.registrationFailed;
+  }
+  return getResponseMessage(error) ?? AUTH_MESSAGES.registrationFailed;
+}
+
+function getValidationDetailMessage(error: unknown): string | undefined {
+  if (!axios.isAxiosError(error)) return undefined;
+  const details = (
+    error.response?.data as { error?: { details?: { field?: string; message?: string }[] } }
+  )?.error?.details;
+  if (!Array.isArray(details)) return undefined;
+  const messages = details
+    .map((detail) => detail.message)
+    .filter((message): message is string => typeof message === "string" && message.length > 0);
+  return messages.length > 0 ? [...new Set(messages)].join(" ") : undefined;
+}
+
 function getResponseMessage(error: unknown): string | undefined {
   if (axios.isAxiosError(error)) {
-    const data = error.response?.data as { message?: string } | undefined;
-    return typeof data?.message === "string" ? data.message : undefined;
+    const data = error.response?.data as
+      | { message?: string; error?: { message?: string } }
+      | undefined;
+    const message = data?.error?.message ?? data?.message;
+    return typeof message === "string" ? message : undefined;
   }
   if (error && typeof error === "object" && "response" in error) {
     const response = (error as { response?: unknown }).response;
     if (response && typeof response === "object" && "data" in response) {
       const data = (response as { data?: unknown }).data;
-      if (data && typeof data === "object" && "message" in data) {
-        const msg = (data as { message?: unknown }).message;
+      if (data && typeof data === "object") {
+        const body = data as { message?: unknown; error?: { message?: unknown } };
+        const msg = body.error?.message ?? body.message;
         if (typeof msg === "string") return msg;
       }
     }
