@@ -4,7 +4,9 @@ import {
   type AppointmentRecordDto,
   type CheckInSlotOption,
   CreateAppointmentSchema,
+  type PhysicalUnitAssignment,
 } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import type MockAdapter from "axios-mock-adapter";
 import { currentUser, envelope, errorBody, parseBody } from "../core/http";
 import { getMockDatabase, saveMockDatabase } from "../database";
@@ -115,21 +117,137 @@ export function registerAppointmentHandlers(mock: MockAdapter): void {
     const user = currentUser(config, db);
     if (!user) return [401, errorBody(401, "Vui lòng đăng nhập")];
     const id = config.url?.split("/").at(-1);
-    const appointment = db.appointments.find(
-      (item) => item.id === id && item.customerId === user.id,
-    );
+    const appointment = db.appointments.find((item) => item.id === id);
     if (!appointment) return [404, errorBody(404, "Không tìm thấy lịch hẹn")];
-    const body = parseBody<{ status?: APPOINTMENT_STATUSES }>(config.data);
-    if (
-      body.status !== APPOINTMENT_STATUSES.CANCELLED ||
-      ![APPOINTMENT_STATUSES.SCHEDULED, APPOINTMENT_STATUSES.CONFIRMED].includes(appointment.status)
-    )
-      return [409, errorBody(409, "Lịch hẹn không thể hủy")];
-    const startsAt = Date.parse(
-      `${appointment.scheduledDate}T${appointment.slotStart ?? "00:00"}+07:00`,
+
+    // If customer is cancelling
+    if (user.role === UserRole.STORAGE_CUSTOMER) {
+      if (appointment.customerId !== user.id)
+        return [403, errorBody(403, "Không có quyền thực hiện")];
+      const body = parseBody<{ status?: APPOINTMENT_STATUSES }>(config.data);
+      if (
+        body.status !== APPOINTMENT_STATUSES.CANCELLED ||
+        ![APPOINTMENT_STATUSES.SCHEDULED, APPOINTMENT_STATUSES.CONFIRMED].includes(
+          appointment.status,
+        )
+      )
+        return [409, errorBody(409, "Lịch hẹn không thể hủy")];
+      const startsAt = Date.parse(
+        `${appointment.scheduledDate}T${appointment.slotStart ?? "00:00"}+07:00`,
+      );
+      if (startsAt <= Date.now()) return [409, errorBody(409, "Đã quá thời hạn hủy lịch hẹn")];
+      appointment.status = APPOINTMENT_STATUSES.CANCELLED;
+      appointment.updatedAt = new Date().toISOString();
+      saveMockDatabase(db);
+      return [200, envelope(appointment)];
+    }
+
+    // Facility Manager / Admin updating appointment (unit, staff, status, notes)
+    const body = parseBody<{
+      status?: APPOINTMENT_STATUSES;
+      assignedStaffId?: string;
+      physicalUnitId?: string;
+      assignmentReason?: string;
+      notes?: string;
+    }>(config.data);
+
+    if (body.assignedStaffId) {
+      const staff = db.users.find(
+        (u) => u.id === body.assignedStaffId && u.role === UserRole.FACILITY_STAFF,
+      );
+      if (staff) {
+        appointment.assignedStaffId = staff.id;
+        (appointment as { assignedStaffName?: string }).assignedStaffName = staff.name;
+        const booking = db.bookings.find(
+          (b) => b.id === appointment.reservationId || b.id === appointment.id,
+        );
+        if (booking) {
+          booking.assignedStaff = {
+            id: staff.id,
+            name: staff.name,
+            email: staff.email,
+            phone: staff.phone ?? null,
+            role: UserRole.FACILITY_STAFF,
+            isActive: true,
+          };
+        }
+      }
+    }
+
+    if (body.physicalUnitId) {
+      const unit = db.units.find((u) => u.id === body.physicalUnitId);
+      if (unit) {
+        const assignment: PhysicalUnitAssignment = {
+          id: crypto.randomUUID(),
+          bookingId: appointment.reservationId ?? appointment.id,
+          physicalUnitId: unit.id,
+          physicalUnitCode: unit.code,
+          assignedBy: user.id,
+          assignerName: user.name,
+          status: "ACTIVE",
+          assignedAt: new Date().toISOString(),
+          endedAt: null,
+          reason: body.assignmentReason ?? null,
+        };
+        appointment.assignedUnit = {
+          id: assignment.id,
+          physicalUnitId: assignment.physicalUnitId,
+          physicalUnitCode: assignment.physicalUnitCode,
+          assignedBy: assignment.assignedBy,
+          assignedAt: assignment.assignedAt,
+          endedAt: assignment.endedAt,
+          reason: assignment.reason ?? null,
+          status: assignment.status,
+        };
+        const booking = db.bookings.find(
+          (b) => b.id === appointment.reservationId || b.id === appointment.id,
+        );
+        if (booking) {
+          booking.assignedUnit = assignment;
+        }
+      }
+    }
+
+    if (body.status) {
+      appointment.status = body.status;
+    }
+
+    if (body.notes !== undefined) {
+      appointment.notes = body.notes;
+    }
+
+    appointment.updatedAt = new Date().toISOString();
+    saveMockDatabase(db);
+    return [200, envelope(appointment)];
+  });
+
+  mock.onPost(/\/appointments\/[^/]+\/assign-staff$/).reply((config) => {
+    const db = getMockDatabase();
+    const user = currentUser(config, db);
+    if (!user) return [401, errorBody(401, "Vui lòng đăng nhập")];
+    const id = config.url?.split("/").slice(-2, -1)[0];
+    const appointment = db.appointments.find((item) => item.id === id);
+    if (!appointment) return [404, errorBody(404, "Không tìm thấy lịch hẹn")];
+    const body = parseBody<{ staffId: string }>(config.data);
+    const staff = db.users.find((u) => u.id === body.staffId && u.role === UserRole.FACILITY_STAFF);
+    if (!staff) return [404, errorBody(404, "Không tìm thấy nhân viên")];
+
+    appointment.assignedStaffId = staff.id;
+    (appointment as { assignedStaffName?: string }).assignedStaffName = staff.name;
+    appointment.status = APPOINTMENT_STATUSES.CONFIRMED;
+    const booking = db.bookings.find(
+      (b) => b.id === appointment.reservationId || b.id === appointment.id,
     );
-    if (startsAt <= Date.now()) return [409, errorBody(409, "Đã quá thời hạn hủy lịch hẹn")];
-    appointment.status = APPOINTMENT_STATUSES.CANCELLED;
+    if (booking) {
+      booking.assignedStaff = {
+        id: staff.id,
+        name: staff.name,
+        email: staff.email,
+        phone: staff.phone ?? null,
+        role: UserRole.FACILITY_STAFF,
+        isActive: true,
+      };
+    }
     appointment.updatedAt = new Date().toISOString();
     saveMockDatabase(db);
     return [200, envelope(appointment)];
