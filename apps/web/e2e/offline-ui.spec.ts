@@ -64,7 +64,7 @@ test("all demo roles and public pages render without backend", async ({ page }) 
   await page.goto("/");
   await expect(page.getByRole("link", { name: /Tìm kho gần bạn/ }).first()).toBeVisible();
   await page.goto("/facilities");
-  await expect(page.getByText("metastorage Sài Gòn Central", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Cơ sở Demo|metastorage Sài Gòn Central/)).toBeVisible();
   for (const email of ["manager", "operations", "admin", "customer"]) {
     await login(page, `${email}@metastorage.test`);
     await expect(page.locator("main")).toBeVisible();

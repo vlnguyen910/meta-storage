@@ -48,8 +48,6 @@ export const SEED_IDS = {
     "HCM-06": "30000000-0000-4000-8000-000000000006",
     "HCM-07": "30000000-0000-4000-8000-000000000007",
     "HCM-08": "30000000-0000-4000-8000-000000000008",
-    "HCM-09": "30000000-0000-4000-8000-000000000009",
-    "HCM-10": "30000000-0000-4000-8000-000000000010",
   },
   // Stable offering IDs at HCM-01, retained for booking and handover demos.
   unitTypes: {
@@ -164,14 +162,14 @@ export const SEED_DEMO_USERS = [
     name,
     phone: `0901${String(100000 + index + 1)}`,
   })),
-  ...Array.from({ length: 9 }, (_, index) => ({
+  ...Array.from({ length: 7 }, (_, index) => ({
     id: `40000000-0000-4000-8000-${String(202 + index).padStart(12, "0")}`,
     role: "FACILITY_MANAGER" as const,
     email: `manager.hcm${String(index + 2).padStart(2, "0")}@metastorage.test`,
     name: `Quản lý demo HCM-${String(index + 2).padStart(2, "0")}`,
     phone: `09020000${String(index + 2).padStart(2, "0")}`,
   })),
-  ...Array.from({ length: 9 }, (_, index) => ({
+  ...Array.from({ length: 7 }, (_, index) => ({
     id: `40000000-0000-4000-8000-${String(302 + index).padStart(12, "0")}`,
     role: "FACILITY_STAFF" as const,
     email: `staff.hcm${String(index + 2).padStart(2, "0")}@metastorage.test`,
@@ -436,20 +434,20 @@ async function seedDemoData(seedNow: Date) {
           .update(storageUnits)
           .set({ floor: "1", locationDescription: `Dãy A · ${type.sizeLabel} · Ô 01` })
           .where(eq(storageUnits.code, originalCode));
-        for (let serial = 2; serial <= 4; serial++) {
+        for (let serial = 2; serial <= 10; serial++) {
           await tx
             .insert(storageUnits)
             .values({
               id: id(
                 "72000000",
-                (facilityIndex + 1) * 1000 + facilityTypes.indexOf(type) * 10 + serial,
+                (facilityIndex + 1) * 1000 + facilityTypes.indexOf(type) * 20 + serial,
               ),
               facilityId: facility.id,
               unitTypeId: type.id,
               code: `${facility.code}-${type.code}-${String(serial).padStart(3, "0")}`,
               status: "AVAILABLE",
-              floor: serial < 4 ? "1" : "2",
-              locationDescription: `Dãy ${serial < 4 ? "A" : "B"} · ${type.sizeLabel} · Ô ${String(serial).padStart(2, "0")}`,
+              floor: serial <= 5 ? "1" : "2",
+              locationDescription: `Dãy ${serial <= 5 ? "A" : "B"} · ${type.sizeLabel} · Ô ${String(serial).padStart(2, "0")}`,
             })
             .onConflictDoNothing();
         }
@@ -774,7 +772,7 @@ async function seedDemoData(seedNow: Date) {
     return today;
   });
   console.log(
-    "Core demo ready: 9 BOM catalog types, 80 FM offerings across 10 facilities, 328 units, 29 users, 38 bookings, paid/pending/failed/refund/expired-hold scenarios.",
+    "Core demo ready: 9 BOM catalog types, 43 FM offerings across 8 facilities, 430 units, 29 users, 38 bookings, paid/pending/failed/refund/expired-hold scenarios.",
   );
   console.log(
     `Flow 2 Swagger booking: DEMO-FLOW2-READY (${id("83000000", 1)}), check-in ${flow2CheckInDate}.`,
@@ -1051,13 +1049,10 @@ async function seedMultiFacilityRentals(seedNow: Date) {
     "HCM-06": 3,
     "HCM-07": 2,
     "HCM-08": 4,
-    "HCM-09": 5,
-    "HCM-10": 4,
   };
 
   // Target count of rentals paying in current month (November 2026), creating a smooth revenue staircase:
-  // HCM-01: ~45M, HCM-09: ~25M, HCM-04: ~20M, HCM-02: ~18M, HCM-10: ~16M,
-  // HCM-08: ~15M, HCM-05: ~13M, HCM-06: ~13M, HCM-07: ~9M, HCM-03: ~8M.
+  // HCM-01: ~45M, HCM-04: ~25M, HCM-02: ~20M, HCM-08: ~18M, HCM-05: ~15M, HCM-06: ~13M, HCM-07: ~9M, HCM-03: ~8M.
   const currentMonthPaidTarget: Record<string, number> = {
     "HCM-01": 3,
     "HCM-02": 2,
@@ -1067,8 +1062,6 @@ async function seedMultiFacilityRentals(seedNow: Date) {
     "HCM-06": 2,
     "HCM-07": 1,
     "HCM-08": 2,
-    "HCM-09": 3,
-    "HCM-10": 2,
   };
 
   let globalRentalCounter = 100;
@@ -1286,7 +1279,7 @@ async function seedMultiFacilityRentals(seedNow: Date) {
       }
 
       // Seed settled closed rental with refunded deposit for selected facilities (creating realistic cashRefunded)
-      if (["HCM-01", "HCM-09"].includes(facility.code)) {
+      if (["HCM-01", "HCM-04"].includes(facility.code)) {
         closedCounter++;
         const availableUnits = candidateUnits.filter(
           (u) => !unitsToRent.some((r) => r.id === u.id),
@@ -1673,62 +1666,66 @@ async function seed() {
     {
       id: SEED_IDS.facilities["HCM-01"],
       code: "HCM-01",
-      name: "metastorage Sài Gòn Central",
-      address: "118 Nguyễn Văn Linh",
+      name: "Cơ sở Demo",
+      address: "118 Nguyễn Văn Linh, P. Tân Phong, Q.7",
+      coverUrl:
+        "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80",
     },
     {
       id: SEED_IDS.facilities["HCM-02"],
       code: "HCM-02",
-      name: "metastorage Bến Thành",
-      address: "42 Lê Lai",
+      name: "Cơ sở Bến Thành",
+      address: "42 Lê Lai, P. Bến Thành, Q.1",
+      coverUrl:
+        "https://images.unsplash.com/photo-1553413077-190dd305871c?auto=format&fit=crop&w=1200&q=80",
     },
     {
       id: SEED_IDS.facilities["HCM-03"],
       code: "HCM-03",
-      name: "metastorage Bình Thạnh",
-      address: "85 Điện Biên Phủ",
+      name: "Cơ sở Bình Thạnh",
+      address: "85 Điện Biên Phủ, P. 15, Q. Bình Thạnh",
+      coverUrl:
+        "https://images.unsplash.com/photo-1587293852726-70cdb56c2866?auto=format&fit=crop&w=1200&q=80",
     },
     {
       id: SEED_IDS.facilities["HCM-04"],
       code: "HCM-04",
-      name: "metastorage Thảo Điền",
-      address: "28 Nguyễn Văn Hưởng",
+      name: "Cơ sở Thảo Điền",
+      address: "28 Nguyễn Văn Hưởng, P. Thảo Điền, TP. Thủ Đức",
+      coverUrl:
+        "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80",
     },
     {
       id: SEED_IDS.facilities["HCM-05"],
       code: "HCM-05",
-      name: "metastorage Phú Nhuận",
-      address: "156 Phan Xích Long",
+      name: "Cơ sở Phú Nhuận",
+      address: "156 Phan Xích Long, P. 2, Q. Phú Nhuận",
+      coverUrl:
+        "https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=1200&q=80",
     },
     {
       id: SEED_IDS.facilities["HCM-06"],
       code: "HCM-06",
-      name: "metastorage Tân Bình",
-      address: "67 Cộng Hòa",
+      name: "Cơ sở Tân Bình",
+      address: "67 Cộng Hòa, P. 4, Q. Tân Bình",
+      coverUrl:
+        "https://images.unsplash.com/photo-1565610222536-ef125c59da2e?auto=format&fit=crop&w=1200&q=80",
     },
     {
       id: SEED_IDS.facilities["HCM-07"],
       code: "HCM-07",
-      name: "metastorage Tân Phú",
-      address: "93 Lũy Bán Bích",
+      name: "Cơ sở Tân Phú",
+      address: "93 Lũy Bán Bích, P. Tân Thới Hòa, Q. Tân Phú",
+      coverUrl:
+        "https://images.unsplash.com/photo-1590496793929-36417d3117de?auto=format&fit=crop&w=1200&q=80",
     },
     {
       id: SEED_IDS.facilities["HCM-08"],
       code: "HCM-08",
-      name: "metastorage Gò Vấp",
-      address: "210 Nguyễn Oanh",
-    },
-    {
-      id: SEED_IDS.facilities["HCM-09"],
-      code: "HCM-09",
-      name: "metastorage Bình Tân",
-      address: "134 Tên Lửa",
-    },
-    {
-      id: SEED_IDS.facilities["HCM-10"],
-      code: "HCM-10",
-      name: "metastorage Thủ Đức",
-      address: "55 Võ Văn Ngân",
+      name: "Cơ sở Gò Vấp",
+      address: "210 Nguyễn Oanh, P. 17, Q. Gò Vấp",
+      coverUrl:
+        "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1200&q=80",
     },
   ];
   const facilities = [];
@@ -1737,13 +1734,13 @@ async function seed() {
       INSERT INTO facilities (id, code, name, address, description, cover_url, is_active)
       VALUES (
         ${facility.id}, ${facility.code}, ${facility.name}, ${`${facility.address}, TP. Hồ Chí Minh`},
-        'Dữ liệu mẫu: kho lưu trữ cho gia đình và doanh nghiệp nhỏ, kiểm soát 24/7.', ${`https://placehold.co/1200x800/png?text=MetaStorage+${facility.code}`}, true
+        'Dữ liệu mẫu: kho lưu trữ cho gia đình và doanh nghiệp nhỏ, kiểm soát 24/7.', ${facility.coverUrl}, true
       )
       ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         address = EXCLUDED.address,
         description = EXCLUDED.description,
-        cover_url = coalesce(facilities.cover_url, EXCLUDED.cover_url),
+        cover_url = EXCLUDED.cover_url,
         is_active = EXCLUDED.is_active
       RETURNING id, code, name
     `;
@@ -1791,16 +1788,30 @@ async function seed() {
   const catalog = await seedUnitTypeCatalog(seedNow);
   // These are the FM's selected types and starting prices, independent of catalog bounds.
   // UT-3M remains unselected so the manager can exercise the add-offering flow.
-  const facilityPrices = [
-    { code: "UT-2M", monthlyPrice: 900000 },
-    { code: "UT-4M", monthlyPrice: 1500000 },
-    { code: "UT-6M", monthlyPrice: 2100000 },
-    { code: "UT-AC-4M", monthlyPrice: 1900000 },
-    { code: "UT-1M", monthlyPrice: 500000 },
-    { code: "UT-8M", monthlyPrice: 2700000 },
-    { code: "UT-10M", monthlyPrice: 3300000 },
-    { code: "UT-15M", monthlyPrice: 4800000 },
-  ] as const;
+  // Default monthly prices per catalog unit type, adhering to BOM boundaries
+  const defaultMonthlyPrices: Record<string, number> = {
+    "UT-1M": 500000,
+    "UT-2M": 900000,
+    "UT-3M": 1200000,
+    "UT-4M": 1500000,
+    "UT-AC-4M": 1900000,
+    "UT-6M": 2100000,
+    "UT-8M": 2700000,
+    "UT-10M": 3300000,
+    "UT-15M": 4800000,
+  };
+
+  // Selected types per facility (5-6 types each, leaving realistic room for FM to add offerings)
+  const facilityTypeSelections: Record<string, string[]> = {
+    "HCM-01": ["UT-1M", "UT-2M", "UT-4M", "UT-6M", "UT-10M", "UT-AC-4M"], // 6 types
+    "HCM-02": ["UT-1M", "UT-2M", "UT-4M", "UT-AC-4M", "UT-8M"], // 5 types
+    "HCM-03": ["UT-2M", "UT-4M", "UT-6M", "UT-10M", "UT-15M"], // 5 types
+    "HCM-04": ["UT-1M", "UT-3M", "UT-4M", "UT-AC-4M", "UT-6M", "UT-10M"], // 6 types
+    "HCM-05": ["UT-2M", "UT-4M", "UT-6M", "UT-8M", "UT-AC-4M"], // 5 types
+    "HCM-06": ["UT-1M", "UT-2M", "UT-4M", "UT-6M", "UT-15M"], // 5 types
+    "HCM-07": ["UT-2M", "UT-3M", "UT-4M", "UT-6M", "UT-8M", "UT-10M"], // 6 types
+    "HCM-08": ["UT-1M", "UT-2M", "UT-4M", "UT-AC-4M", "UT-10M"], // 5 types
+  };
 
   const typeMap = new Map<string, string>();
   for (const [facilityIndex, facility] of facilities.entries()) {
@@ -1827,15 +1838,25 @@ async function seed() {
         .values({ userId: person.id, facilityId: facility.id, role: person.role })
         .onConflictDoNothing();
     }
-    for (const [index, selection] of facilityPrices.entries()) {
-      const type = catalog.get(selection.code);
-      if (!type) throw new Error(`Missing catalog type ${selection.code}`);
+
+    const selectedCodes = facilityTypeSelections[facility.code] ?? [
+      "UT-1M",
+      "UT-2M",
+      "UT-4M",
+      "UT-6M",
+      "UT-AC-4M",
+    ];
+
+    for (const [index, typeCode] of selectedCodes.entries()) {
+      const type = catalog.get(typeCode);
+      if (!type) throw new Error(`Missing catalog type ${typeCode}`);
+      const baseMonthlyPrice = defaultMonthlyPrices[typeCode] ?? 1000000;
       const offeringId =
-        facilityIndex === 0
-          ? SEED_IDS.unitTypes[selection.code]
+        facilityIndex === 0 && SEED_IDS.unitTypes[typeCode as keyof typeof SEED_IDS.unitTypes]
+          ? SEED_IDS.unitTypes[typeCode as keyof typeof SEED_IDS.unitTypes]
           : id("62000000", facilityIndex * 100 + index + 1);
       // Stable differences between facilities; every price must obey the BOM's current bounds.
-      const candidatePrice = selection.monthlyPrice + (facilityIndex % 4) * 50000;
+      const candidatePrice = baseMonthlyPrice + (facilityIndex % 4) * 50000;
       const monthlyPrice = Math.min(
         type.maxMonthlyPrice,
         Math.max(type.minMonthlyPrice, candidatePrice),
@@ -1869,15 +1890,15 @@ async function seed() {
         localType.monthlyPrice < type.minMonthlyPrice ||
         localType.monthlyPrice > type.maxMonthlyPrice
       )
-        throw new Error(`Seed offering ${facility.code}/${selection.code} is outside BOM bounds`);
-      if (facilityIndex === 0) typeMap.set(selection.code, localType.id);
+        throw new Error(`Seed offering ${facility.code}/${typeCode} is outside BOM bounds`);
+      if (facilityIndex === 0) typeMap.set(typeCode, localType.id);
       await db
         .insert(storageUnits)
         .values({
-          id: `71000000-0000-4000-8000-${facility.id.slice(-6)}${SEED_IDS.unitTypes[selection.code].slice(-6)}`,
+          id: `71000000-0000-4000-8000-${facility.id.slice(-6)}${type.id.slice(-6)}`,
           facilityId: facility.id,
           unitTypeId: localType.id,
-          code: `${facility.code}-${selection.code}-001`,
+          code: `${facility.code}-${typeCode}-001`,
           status: "AVAILABLE",
           floor: "1",
           locationDescription: `Dãy A · ${type.sizeLabel} · Ô 01`,
